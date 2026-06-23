@@ -10,7 +10,7 @@ EdTech-flavored Partner Success Manager team — a Claude Code plugin in the [Ra
 
 | Agent | Owns |
 |---|---|
-| `partner-success-manager` | Onboarding, adoption, ongoing pulse, day-to-day partner work (EdTech-specialized) |
+| `edtech-partner-success-manager` | Onboarding, adoption, ongoing pulse, day-to-day partner work (EdTech-specialized) |
 | `success-playbook-designer` | The play library — renewal / expansion / recovery / advocacy plays |
 | `qbr-composer` | QBR materials end-to-end with explicit commitment tracking |
 | `learning-analytics-analyst` | Partner-engagement signals, health-score design, dashboard specs |

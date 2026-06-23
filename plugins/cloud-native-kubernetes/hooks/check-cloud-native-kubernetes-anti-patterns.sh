@@ -15,10 +15,10 @@ fi
 if grep -nEi "runAsNonRoot:\\s*false|privileged:\\s*true|runAsUser:\\s*0\\b" "$file" >/dev/null 2>&1; then
   findings+=("Privileged/root container — run as non-root and unprivileged; drop capabilities.")
 fi
-if grep -nEi "kind:\\s*Deployment(?![\\s\\S]*resources:)" "$file" >/dev/null 2>&1; then
+if grep -Pzi "kind:\\s*Deployment(?![\\s\\S]*resources:)" "$file" >/dev/null 2>&1; then
   findings+=("Deployment without resources block nearby — set requests AND limits (scheduling + cap).")
 fi
-if grep -nEi "kind:\\s*(Deployment|StatefulSet)(?![\\s\\S]*readinessProbe)" "$file" >/dev/null 2>&1; then
+if grep -Pzi "kind:\\s*(Deployment|StatefulSet)(?![\\s\\S]*readinessProbe)" "$file" >/dev/null 2>&1; then
   findings+=("Workload without a readinessProbe nearby — readiness gates traffic; add it.")
 fi
 if grep -nEi "clusterrolebinding[\\s\\S]*cluster-admin" "$file" >/dev/null 2>&1; then

@@ -12,10 +12,10 @@ findings=()
 if grep -nEi "select\\s+\\*\\s+from" "$file" >/dev/null 2>&1; then
   findings+=("SELECT * — name the columns (avoids wide-row reads, breaks on schema change, blocks covering-index use).")
 fi
-if grep -nEi "create\\s+index\\s+(?!concurrently)" "$file" >/dev/null 2>&1; then
+if grep -Pzi "create\\s+index\\s+(?!concurrently)" "$file" >/dev/null 2>&1; then
   findings+=("CREATE INDEX without CONCURRENTLY — on a live table this takes a blocking lock; use CONCURRENTLY.")
 fi
-if grep -nEi "(alter\\s+table\\s+\\S+\\s+add\\s+column\\s+.*not\\s+null(?!.*default)|set\\s+not\\s+null)" "$file" >/dev/null 2>&1; then
+if grep -Pzi "(alter\\s+table\\s+\\S+\\s+add\\s+column\\s+.*not\\s+null(?!.*default)|set\\s+not\\s+null)" "$file" >/dev/null 2>&1; then
   findings+=("Adding NOT NULL / SET NOT NULL can lock a hot table — use nullable add + backfill + ADD CONSTRAINT NOT VALID then VALIDATE.")
 fi
 if grep -nEi "where\\s+\\w+\\s*\\(\\s*\\w+\\s*\\)\\s*=|where\\s+(lower|upper|date)\\s*\\(" "$file" >/dev/null 2>&1; then

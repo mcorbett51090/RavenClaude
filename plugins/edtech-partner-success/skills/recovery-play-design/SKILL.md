@@ -1,11 +1,11 @@
 ---
 name: recovery-play-design
-description: Design red-flag intervention sequences — root-cause diagnostic before remedy (4 parallel hypotheses), time-bound recovery plan with measurable 30/60/90-day signal targets, escalation criteria (PSM → success leadership → exec sponsor → counsel → churn-prep), the "is this recoverable?" rule, churn-prep workflow when not, and the post-recovery learning capture. Reach for this skill when a partner trips red on the health score, when a renewal is at clear risk, or when a partner has signaled dissatisfaction. Used by `success-playbook-designer` (primary) + `partner-success-manager`.
+description: Design red-flag intervention sequences — root-cause diagnostic before remedy (4 parallel hypotheses), time-bound recovery plan with measurable 30/60/90-day signal targets, escalation criteria (PSM → success leadership → exec sponsor → counsel → churn-prep), the "is this recoverable?" rule, churn-prep workflow when not, and the post-recovery learning capture. Reach for this skill when a partner trips red on the health score, when a renewal is at clear risk, or when a partner has signaled dissatisfaction. Used by `success-playbook-designer` (primary) + `edtech-partner-success-manager`.
 ---
 
 # Skill: recovery-play-design
 
-> **Invoked by:** `success-playbook-designer` (primary — when authoring or refreshing the firm's recovery plays), `partner-success-manager` (when executing recovery on a specific partner).
+> **Invoked by:** `success-playbook-designer` (primary — when authoring or refreshing the firm's recovery plays), `edtech-partner-success-manager` (when executing recovery on a specific partner).
 >
 > **When to invoke:** when a partner trips red on the composite health score OR fires an independent red-flag trigger; when a renewal is at clear risk; when a partner has signaled dissatisfaction (explicit complaint, vendor-comparison signal, escalation); when designing the firm's recovery playbook.
 >

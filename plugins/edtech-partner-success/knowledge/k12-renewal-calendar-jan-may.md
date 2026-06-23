@@ -91,7 +91,7 @@ Not every K-12 district runs July-1 fiscal. The most common exceptions:
 
 ## 6. What an agent should do differently
 
-- The `partner-success-manager` agent, when drafting any renewal-motion or 180-day-checkpoint artifact, must **calendar-date the checkpoints** (not just day-counts) and flag any collision with a dead zone, state-testing window, spring break, or board-meeting cycle. "T-180" without a date is not actionable.
+- The `edtech-partner-success-manager` agent, when drafting any renewal-motion or 180-day-checkpoint artifact, must **calendar-date the checkpoints** (not just day-counts) and flag any collision with a dead zone, state-testing window, spring break, or board-meeting cycle. "T-180" without a date is not actionable.
 - The `success-playbook-designer` agent, when designing a renewal play, anchors checkpoint dates to the **partner's** fiscal year (read from the profile), not to a default July-1 calendar.
 - The `qbr-composer` agent, when composing the 90-day EBR, **must** check the partner's spring-break and state-testing-window dates before locking the EBR date.
 - The `partner-profile-curator` agent carries `fiscal_year_start`, `board_meeting_cadence`, `spring_break_window`, `state_testing_window` as four mandatory fields on the durable profile.

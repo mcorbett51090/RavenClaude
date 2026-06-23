@@ -1,6 +1,6 @@
 ---
 name: cs-platform-integration
-description: The back-end integration contract for a centralized EdTech customer success dashboard sitting on top of Planhat (CS platform) + Salesforce (CRM) + Snowflake (warehouse / product usage) + Zapier (glue) + Granola (AI meeting notes, stubbed). Documents what each system contributes to the dashboard's `bi-report/data.json` shape, the sync-freshness thresholds that drive the source-freshness banner, the identity spine that joins records across systems, and the Granola-into-Planhat flow (currently a documented placeholder). Used by `learning-analytics-analyst` (primary), `partner-success-manager` (touchpoint and pickup-brief fields), `qbr-composer` (data-pull plan). FERPA / student PII routes through `ravenclaude-core/security-reviewer` (mandatory).
+description: The back-end integration contract for a centralized EdTech customer success dashboard sitting on top of Planhat (CS platform) + Salesforce (CRM) + Snowflake (warehouse / product usage) + Zapier (glue) + Granola (AI meeting notes, stubbed). Documents what each system contributes to the dashboard's `bi-report/data.json` shape, the sync-freshness thresholds that drive the source-freshness banner, the identity spine that joins records across systems, and the Granola-into-Planhat flow (currently a documented placeholder). Used by `learning-analytics-analyst` (primary), `edtech-partner-success-manager` (touchpoint and pickup-brief fields), `qbr-composer` (data-pull plan). FERPA / student PII routes through `ravenclaude-core/security-reviewer` (mandatory).
 ---
 
 # Skill: cs-platform-integration
@@ -131,9 +131,9 @@ For a team standing this up from scratch, the dependency order:
 ## Hand-offs
 
 - **Score design / weights / decay** → [`partner-health-scoring`](../partner-health-scoring/SKILL.md) (`learning-analytics-analyst`).
-- **Rendering / theming the dashboard** → [`health-report-dashboard`](../health-report-dashboard/SKILL.md) (`learning-analytics-analyst`, `partner-success-manager`).
-- **Pickup-brief markdown export** → [`templates/partner-pickup-brief.md`](../../templates/partner-pickup-brief.md) (`partner-success-manager`).
-- **Rostering / SIS data-quality concerns** → [`rostering-data-quality`](../rostering-data-quality/SKILL.md) (`learning-analytics-analyst`, `partner-success-manager`).
+- **Rendering / theming the dashboard** → [`health-report-dashboard`](../health-report-dashboard/SKILL.md) (`learning-analytics-analyst`, `edtech-partner-success-manager`).
+- **Pickup-brief markdown export** → [`templates/partner-pickup-brief.md`](../../templates/partner-pickup-brief.md) (`edtech-partner-success-manager`).
+- **Rostering / SIS data-quality concerns** → [`rostering-data-quality`](../rostering-data-quality/SKILL.md) (`learning-analytics-analyst`, `edtech-partner-success-manager`).
 - **Anything student-level** → `ravenclaude-core/security-reviewer` (mandatory per plugin §2).
 - **Identity-resolution across non-CS systems** (if Intercom, Slack, HubSpot enter scope) → `data-platform/cross-system-identity-resolution` skill, when that plugin is installed.
 

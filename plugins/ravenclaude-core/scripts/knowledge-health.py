@@ -104,7 +104,12 @@ def _bucket(age_days: int | None, threshold_days: int) -> str:
         return "untracked"
     if age_days > threshold_days:
         return "stale"
-    if age_days > threshold_days - DUE_SOON_WINDOW_DAYS:
+    # Cap the due-soon window so it can't exceed the threshold (a fixed 30-day
+    # window under a <30-day threshold made the lower bound negative, flagging
+    # every fresh file as due_soon). Half the threshold always leaves a fresh band
+    # and preserves the default-threshold behavior (a >=60d threshold is unchanged).
+    window = min(DUE_SOON_WINDOW_DAYS, threshold_days // 2)
+    if age_days > threshold_days - window:
         return "due_soon"
     return "fresh"
 

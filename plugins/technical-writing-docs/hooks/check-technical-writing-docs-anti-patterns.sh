@@ -12,7 +12,7 @@ findings=()
 if grep -nEi "(TODO|TBD|FIXME|coming soon|lorem ipsum|XXX)" "$file" >/dev/null 2>&1; then
   findings+=("Placeholder text in docs (TODO/TBD/coming soon/lorem) — ship complete content or omit the section; placeholders erode trust.")
 fi
-if grep -nEi "(localhost:[0-9]+|127\\.0\\.0\\.1|YOUR_API_KEY|example\\.com/api)(?![\\s\\S]{0,40}#\\s*example)" "$file" >/dev/null 2>&1; then
+if grep -Pzi "(localhost:[0-9]+|127\\.0\\.0\\.1|YOUR_API_KEY|example\\.com/api)(?![\\s\\S]{0,40}#\\s*example)" "$file" >/dev/null 2>&1; then
   findings+=("Hardcoded localhost/placeholder in a doc example — ensure the example is runnable or clearly marked as a placeholder to fill in.")
 fi
 if grep -nEi "\\b(click here|read more|this link)\\b" "$file" >/dev/null 2>&1; then

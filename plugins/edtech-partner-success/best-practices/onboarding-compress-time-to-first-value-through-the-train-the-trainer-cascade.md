@@ -51,7 +51,7 @@ Train-the-trainer cascade (the TTFV lever):
 - [`../skills/partner-training-program-design/SKILL.md`](../skills/partner-training-program-design/SKILL.md) — train-the-trainer is the only model that scales; PD modality rule
 - [`../knowledge/k12-pd-norms-and-constraints.md`](../knowledge/k12-pd-norms-and-constraints.md) — state PD-hour requirements, district PD windows, union overlay
 - [`../knowledge/district-implementation-failure-modes.md`](../knowledge/district-implementation-failure-modes.md) — training-cascade-collapse failure mode
-- [`../agents/partner-success-manager.md`](../agents/partner-success-manager.md) — owns the implementation arc
+- [`../agents/edtech-partner-success-manager.md`](../agents/edtech-partner-success-manager.md) — owns the implementation arc
 
 ## Provenance
 

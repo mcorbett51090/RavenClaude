@@ -54,9 +54,14 @@ def parse_iso(value: str | None) -> datetime | None:
     if not value:
         return None
     try:
-        return datetime.fromisoformat(value.replace("Z", "+00:00"))
+        dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
     except ValueError:
         return None
+    # A tz-less timestamp (hand-edited artifact; GitHub always sends `Z`) parses
+    # naive, and comparing it to the tz-aware `since` raises TypeError. Assume UTC.
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt
 
 
 def resolve_token(explicit: str | None) -> str | None:

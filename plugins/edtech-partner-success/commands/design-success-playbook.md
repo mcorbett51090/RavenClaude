@@ -5,7 +5,7 @@ argument-hint: "[the playbook, e.g. 'onboarding-to-renewal plan for a mid-sized 
 
 # Design a success playbook
 
-You are running `/edtech-partner-success:design-success-playbook`. Build the success plan the user described (`$ARGUMENTS`) as a measurable, time-phased motion — the work the `success-playbook-designer` and `partner-success-manager` agents own. A plan whose only success criterion is "they'll be happier" can't actually manage a partnership.
+You are running `/edtech-partner-success:design-success-playbook`. Build the success plan the user described (`$ARGUMENTS`) as a measurable, time-phased motion — the work the `success-playbook-designer` and `edtech-partner-success-manager` agents own. A plan whose only success criterion is "they'll be happier" can't actually manage a partnership.
 
 ## When to use this
 

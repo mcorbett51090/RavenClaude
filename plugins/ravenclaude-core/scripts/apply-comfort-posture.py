@@ -325,6 +325,28 @@ def parse_yaml(text: str) -> dict:
         return _minimal_yaml_parse(text)
 
 
+def _split_scalar_kv(content: str) -> tuple[str, str]:
+    """Split a `key: value` line on the first colon OUTSIDE a leading quoted key.
+
+    A documented per-pattern override key contains a colon (`"Bash(ls:*)": deny`).
+    A naive `split(":", 1)` cuts it inside the quotes into key `"Bash(ls` / value
+    `*)": deny`, which then aborts the whole posture apply (`resolve_category`
+    raises on the bogus value) — so a PyYAML-less consumer's `/set-posture` fails.
+    This finds the separator colon after the closing quote of a leading quoted
+    token; unquoted keys fall through to the original behavior unchanged.
+    """
+    if content[:1] in ("'", '"'):
+        q = content[0]
+        end = content.find(q, 1)
+        if end != -1:
+            rest = content[end + 1:]
+            colon = rest.find(":")
+            if colon != -1:
+                return content[1:end], rest[colon + 1:].strip()
+    k, v = content.split(":", 1)
+    return k.strip().strip("'\""), v.strip()
+
+
 def _minimal_yaml_parse(text: str) -> dict:
     """Hand-rolled parser supporting the posture YAML shape.
 
@@ -356,8 +378,8 @@ def _minimal_yaml_parse(text: str) -> dict:
             i += 1 + consumed
             continue
         if ":" in content:
-            k, v = content.split(":", 1)
-            result[k.strip()] = _coerce(v.strip())
+            k, v = _split_scalar_kv(content)
+            result[k] = _coerce(v)
             i += 1
             continue
         i += 1
@@ -424,8 +446,8 @@ def _parse_block(lines: list[str], start: int, base_indent: int):
             j += 1 + used
             continue
         if ":" in content:
-            k, v = content.split(":", 1)
-            result_map[k.strip().strip("'\"")] = _coerce(v.strip())
+            k, v = _split_scalar_kv(content)
+            result_map[k] = _coerce(v)
         consumed += 1
         j += 1
     return result_map, consumed

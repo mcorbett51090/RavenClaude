@@ -18,6 +18,7 @@
 ## Compute
 - **Functions Flex Consumption** — recommended serverless plan; constraints: **no deployment slots, one app per plan, no in-place migration from Consumption, AZ needs ≥2 always-ready instances**.
 - **Container Apps** — GA (serverless containers, Dapr, scale-to-zero, dynamic sessions for sandboxed code); **App Service**, **Static Web Apps**, **AKS** — GA. ("Container Apps as the flexible default" is RavenClaude's opinion, not a Microsoft statement.)
+- **⚠️ AKS — Azure Linux 2.0 node OS retired (action-forcing, verified 2026-06-19):** AKS support + security updates **ended 2025-11-30**; node images were **removed 2026-03-31** — after which affected node pools **can't scale**. Migrate to osSku **AzureLinux3** (the default for `--os-sku AzureLinux` on Kubernetes **1.32–1.36**; selectable without a version bump on 1.28+, but update the OS SKU before upgrading to 1.37+). Sources: [AKS Azure Linux support cycle](https://learn.microsoft.com/azure/azure-linux/aks-support-cycle), [Upgrade OS version in AKS](https://learn.microsoft.com/azure/aks/upgrade-os-version).
 
 ## Networking
 - **Private Endpoints + Private DNS**, **Front Door** (global + WAF), **Application Gateway** (regional + WAF), **Azure Firewall**, **Virtual WAN**, **DDoS Protection** — GA. Deny-public-by-default for PaaS data planes is the recommended posture.

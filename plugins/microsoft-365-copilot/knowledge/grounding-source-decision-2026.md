@@ -47,6 +47,7 @@ graph TD
 
 - **Copilot Retrieval API** — preview `[verify-at-build]`; programmatic retrieval over Graph/SharePoint for custom-engine agents.
 - **Remote SharePoint knowledge** — preview `[verify-at-build]`.
+- **Fabric Data Agents in M365 Copilot** — **GA-announced June 2026** (Fabric what's-new GA table) **but the consume page still carries a "This feature is in preview" banner** — treat as GA-announced/page-still-preview, `[verify-at-use]` (verified 2026-06-19). A Fabric data agent published to the **Agent Store** lets business users discover and chat governed Fabric (Lakehouse/Warehouse/semantic-model/KQL/mirrored-DB/ontology) data inside M365 Copilot. **Entra-enforced — RLS/CLS on the underlying source are fully respected**, and the recipient needs access to both the agent *and* its underlying sources. Prereqs: F2+ (or P1+) capacity, a Copilot/Office-365-commercial license, and cross-geo AI processing enabled (output may leave Fabric's compliance boundary). The Fabric *storage/agent* design is `microsoft-fabric`'s — this entry is only the **M365-Copilot grounding surface**. Source: [Consume Fabric data agent in M365 Copilot](https://learn.microsoft.com/fabric/data-science/data-agent-microsoft-365-copilot).
 
 ## The seams
 - Connector schema/ACL/crawl internals → `graph-connector-engineer`.

@@ -5,7 +5,7 @@ argument-hint: "[the partner and quarter, e.g. 'Q3 QBR for a mid-sized district'
 
 # Compose a QBR
 
-You are running `/edtech-partner-success:compose-qbr`. Build the QBR the user described (`$ARGUMENTS`) as a Value-Realization narrative, not a usage report — the work the `qbr-composer` and `partner-success-manager` agents own. A usage report dressed as a QBR loses the room.
+You are running `/edtech-partner-success:compose-qbr`. Build the QBR the user described (`$ARGUMENTS`) as a Value-Realization narrative, not a usage report — the work the `qbr-composer` and `edtech-partner-success-manager` agents own. A usage report dressed as a QBR loses the room.
 
 ## When to use this
 

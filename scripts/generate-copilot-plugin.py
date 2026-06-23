@@ -55,6 +55,43 @@ OUTPUT_DIR = CORE_DIR / "copilot"
 ROOT_AGENTS_MD = REPO_ROOT / "AGENTS.md"
 GROUNDING_SECTION_HEADER = "## Accuracy discipline (cross-tool pointer)"
 
+# "Launch the dashboard" directive appended to copilot/AGENTS.md. The `/dashboard`
+# slash command is Claude-Code-only and does not exist in Copilot CLI, so without
+# this block Copilot has to reverse-engineer the launch every time. Always
+# applicable (not gated like Relay mode) — it just tells the host the one command.
+DASHBOARD_BLOCK = """
+---
+
+## Launch the comfort-posture dashboard
+
+When the user asks to **open / launch / show the dashboard** (the comfort-posture,
+permissions, or command-review editor), run the bundled launcher directly — do NOT
+make them figure out a path. There is **no `/dashboard` slash command in Copilot**
+(that is Claude-Code-only); this local server is the Copilot path, and its **Save &
+apply** button works identically (it writes `.ravenclaude/comfort-posture.yaml`).
+
+Run the one-verb launcher in the **background**, from the user's **project root**
+(so `.ravenclaude/` is written into their repo, not the clone):
+
+```shell
+bash <marketplace-clone>/plugins/ravenclaude-core/bin/rc dashboard
+```
+
+(`<marketplace-clone>` is your RavenClaude clone root, e.g. `~/RavenClaude`. If `rc`
+is on your PATH you can just run `rc dashboard`.) If you cannot locate the clone:
+
+```shell
+bash "$(find . "$HOME" /workspaces -path '*ravenclaude-core/bin/rc' 2>/dev/null | head -1)" dashboard
+```
+
+- It is a long-running server — start it in the background and read its stdout for
+  the **exact URL** it bound (port 8000, auto-tries 8001–8005 if busy). Relay that URL.
+- In a Codespace the forwarded port opens automatically; tell the user to open it in
+  a **real browser tab** (not VS Code Simple Browser/Live Preview, which blocks it)
+  and to keep the forwarded port **Private** — `/__save` writes files.
+- Stop it with Ctrl+C (or by ending the session).
+"""
+
 # Self-gating "Relay mode" directive appended to copilot/AGENTS.md. Copilot reads
 # this natively; it is INERT under Claude Code and does nothing unless the consumer
 # opts in via `orchestrator_scope: all`. It is a behavioral commitment (like
@@ -319,7 +356,7 @@ def build_agents_md() -> str:
         "---\n"
         "\n"
     )
-    return banner + section + "\n" + RELAY_MODE_BLOCK
+    return banner + section + "\n" + DASHBOARD_BLOCK + RELAY_MODE_BLOCK
 
 
 def generate() -> dict[str, str]:

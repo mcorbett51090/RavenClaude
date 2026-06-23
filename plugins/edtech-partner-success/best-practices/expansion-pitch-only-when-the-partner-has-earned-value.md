@@ -51,7 +51,7 @@ Expansion eligibility (ALL THREE gates required — any failure = not yet):
 - [`./onboarding-sequence-depth-before-breadth-in-stage-one.md`](./onboarding-sequence-depth-before-breadth-in-stage-one.md) — depth is what Gate 2 measures
 - [`../skills/expansion-play-design/SKILL.md`](../skills/expansion-play-design/SKILL.md) — the 3-gate model, value-trigger taxonomy, champion-armament, ROI storytelling
 - [`../knowledge/customer-success-frameworks.md`](../knowledge/customer-success-frameworks.md) — expansion as the Expand motion in TSIA LAER, fired on earned value
-- [`../agents/success-playbook-designer.md`](../agents/success-playbook-designer.md) — designs the expansion play; `partner-success-manager` executes it
+- [`../agents/success-playbook-designer.md`](../agents/success-playbook-designer.md) — designs the expansion play; `edtech-partner-success-manager` executes it
 
 ## Provenance
 

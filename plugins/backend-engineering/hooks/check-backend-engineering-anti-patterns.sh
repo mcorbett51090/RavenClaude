@@ -9,7 +9,7 @@ file="${1:-}"
 [ ! -f "$file" ] && exit 0
 
 findings=()
-if grep -nEi "(requests\\.(get|post)\\((?![\\s\\S]{0,80}timeout)|fetch\\((?![\\s\\S]{0,80}(signal|timeout))|http\\.(Get|Post)\\()" "$file" >/dev/null 2>&1; then
+if grep -Pzi "(requests\\.(get|post)\\((?![\\s\\S]{0,80}timeout)|fetch\\((?![\\s\\S]{0,80}(signal|timeout))|http\\.(Get|Post)\\()" "$file" >/dev/null 2>&1; then
   findings+=("Outbound HTTP call without an apparent timeout — every external call needs one or a slow dependency cascades.")
 fi
 if grep -nEi "(catch\\s*\\([^)]*\\)\\s*\\{\\s*\\}|except\\s*:\\s*pass|except Exception:\\s*pass)" "$file" >/dev/null 2>&1; then

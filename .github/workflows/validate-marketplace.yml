@@ -19,6 +19,12 @@ on:
       - "docs/**"
       - "evals/**"
       - "schemas/**"
+      # The prettier (`--check .`) and ruff gates in this workflow read these
+      # config files; a PR that edits ONLY one of them must still trigger this
+      # workflow or the bad config merges unvalidated (repo-review 2026-06-20).
+      - ".prettierignore"
+      - ".prettierrc.json"
+      - "ruff.toml"
       - ".github/workflows/validate-marketplace.yml"
   push:
     branches:
@@ -35,6 +41,9 @@ on:
       - "docs/**"
       - "evals/**"
       - "schemas/**"
+      - ".prettierignore"
+      - ".prettierrc.json"
+      - "ruff.toml"
       - ".github/workflows/validate-marketplace.yml"
   workflow_dispatch:
 
@@ -395,6 +404,13 @@ jobs:
         # docs/**, and plugins/**/*.md (skipping external URLs, anchors, placeholders,
         # and the generated copilot/ tree). See scripts/check-md-links.py.
         run: python3 scripts/check-md-links.py
+
+      - name: Verify no PCRE constructs inside grep -E (dead-check guard)
+        # A PCRE-only construct ((?:..)/(?!..)/[\s\S]) inside `grep -E` (POSIX ERE)
+        # is silently misparsed by GNU grep, so the advisory-hook check is DEAD and
+        # a clean run looks like a pass. bash -n can't see it. Keeps the hook corpus
+        # on pure ERE or grep -P. Teeth audited in audit-gates.sh Gate 104.
+        run: python3 scripts/check-grep-ere-pcre.py
 
       - name: Verify bundled MCP servers are attributed
         # Any plugin.json that declares an `mcpServers` block must carry a top-level

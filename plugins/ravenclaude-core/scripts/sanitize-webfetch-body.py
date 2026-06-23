@@ -132,17 +132,20 @@ def _resolve_input(args: argparse.Namespace, repo_root: Path) -> str:
         sys.exit(1)
 
     p = Path(raw_path)
-    if p.is_absolute():
-        # Resolve and reject if outside repo root.
-        try:
-            resolved = p.resolve()
-            resolved.relative_to(repo_root.resolve())
-        except (ValueError, OSError):
-            print(
-                f"sanitize-webfetch-body: argv path '{raw_path}' resolves outside repo root — refused",
-                file=sys.stderr,
-            )
-            sys.exit(1)
+    # Resolve EVERY input — absolute or relative — and reject anything that lands
+    # outside the repo root. The literal-".." guard above is a cheap pre-filter;
+    # this is the real containment. It must apply uniformly: gating it on
+    # p.is_absolute() left relative inputs checked only for a literal "..", yet a
+    # relative path can still resolve outside the root (cwd elsewhere, a symlink).
+    try:
+        resolved = p.resolve()
+        resolved.relative_to(repo_root.resolve())
+    except (ValueError, OSError):
+        print(
+            f"sanitize-webfetch-body: argv path '{raw_path}' resolves outside repo root — refused",
+            file=sys.stderr,
+        )
+        sys.exit(1)
 
     try:
         data = p.read_bytes()

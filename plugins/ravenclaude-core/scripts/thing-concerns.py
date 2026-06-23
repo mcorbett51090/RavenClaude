@@ -125,11 +125,38 @@ def _normalize_for_match(command: str) -> str:
     return cmd
 
 
+def _match_variants(command: str) -> tuple[str, ...]:
+    """The command forms a concern trigger is matched against.
+
+    Returns the raw command, its wrapper-normalized form (`_normalize_for_match`),
+    and a NEWLINE-FLATTENED form of each — shell line-continuations (`\\<newline>`)
+    and any remaining bare newline collapsed to a single space. The flatten step
+    closes a catastrophe-floor fail-OPEN: the `always_screen` hard rules bridge
+    program→argument with `.*` (`git\\s+push\\b.*--force`, `curl\\b.*\\|\\s*sh`),
+    but `re.search` is not compiled with `re.DOTALL`, so a real newline between the
+    program and the dangerous flag (a line-continuation) makes `.*` unable to cross
+    it and the pre-LLM hard DENY silently does not fire. Like wrapper-normalization,
+    flattening can only ADD a match, never remove one — so it cannot relax any
+    existing deny. Deduplicated, raw command first.
+    """
+
+    def _flatten(s: str) -> str:
+        s = re.sub(r"\\\n", " ", s)  # shell line-continuation -> space
+        return re.sub(r"\s*\n\s*", " ", s)  # any remaining bare newline -> space
+
+    forms = [command, _normalize_for_match(command)]
+    forms += [_flatten(f) for f in list(forms)]
+    out: list[str] = []
+    for f in forms:
+        if f not in out:
+            out.append(f)
+    return tuple(out)
+
+
 def _matches(concern: dict, command: str) -> bool:
     """True if any trigger regex matches the command or its normalized form."""
     triggers = concern.get("triggers") or {}
-    normalized = _normalize_for_match(command)
-    variants = (command, normalized) if normalized != command else (command,)
+    variants = _match_variants(command)
     for rx in triggers.get("regex", []) or []:
         try:
             if any(re.search(rx, v, re.IGNORECASE) for v in variants):
@@ -321,8 +348,7 @@ def screen_always(catalog: dict, command: str) -> dict:
     normalized command. Returns the self-disable verdict (unchanged contract) AND
     a parallel hard-rule verdict; the orchestrator denies pre-LLM on either.
     """
-    normalized = _normalize_for_match(command)
-    variants = (command, normalized) if normalized != command else (command,)
+    variants = _match_variants(command)
     pools: list[list] = [catalog.get("cross_cutting") or []]
     for cat_concerns in (catalog.get("categories") or {}).values():
         if isinstance(cat_concerns, list):
