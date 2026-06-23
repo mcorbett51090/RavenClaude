@@ -2,6 +2,24 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.163.0 — 2026-06-23
+
+### Added
+
+- **Agentic work-streams — P1 (CLI + session-boundary tracking, no prompt-hook).** `rc streams` verb (list/show/status/create/set-active/get-active) over the P0 store; an `active-stream` pointer; a SessionStart banner line (`capability-orientation.py`) surfacing the active stream + count (slug/counts only, never history content) and stating the sticky rule; and a fail-safe Stop hook (`hooks/stream-session-close.sh`) that appends one DERIVED `session_closed` event + refreshes `state.md` for crash-resume (session_id FK; never prompt text; never blocks the stop). Proven by **Gate 111** (slug anti-traversal + banner no-egress + session-close derived-only, with a must-fail-traversal teeth half). **Migration:** none — additive CLI verb + fail-safe Stop hook; the banner only appears once a stream exists.
+
+## 0.162.0 — 2026-06-23
+
+### Added
+
+- **Agentic work-streams — P0 (store + deterministic classifier).** The model-free foundation for organizing agentic work into named streams under `.ravenclaude/streams/`: `scripts/stream-classify.py` (stdlib TF-IDF/cosine classifier — emits DERIVED features only: `terms`/`word_count`/`label`, never raw prompt text) + `scripts/stream-ops.py` (registry + per-stream `history.jsonl` + `state.md`, slug anti-traversal, a no-egress tripwire that rejects raw `prompt`/`text`/`content` keys, session_id FK back to `runs/`). Proven by **Gate 110** (no-egress + determinism + classify-accuracy, with a must-fail-egress teeth half). No deps, no model call. **Migration:** none — additive libs + one gate.
+
+## 0.161.8 — 2026-06-23
+
+### Changed
+
+- **Decision-review: verify-the-premise-before-you-prompt + batch.** Analysis of a consumer-repo yes/no prompt log found all the prompts were *correctly* deferred by the tribunal (genuine preferences / high-blast safety / product-intent) — the avoidable cost was **re-asking** the same decision because it was surfaced before its load-bearing claim was verified (a 'missing columns' claim that turned out false cost three rounds). Extended the CGP "verify the load-bearing assumption" clause and `skills/decision-review/SKILL.md` with a **Before you prompt at all** discipline (verify the factual premise, then batch related decisions into one post-verification ask) and added a dashboard-disambiguation prior (`commands/dashboard.md`: unqualified "open the dashboard" → the RavenClaude comfort-posture dashboard). Also added a **prompt-legibility** rule to the same skill: a surfaced `AskUserQuestion` must be succinct — the question states the specific action + blast radius in one line, and each option is labeled by its **consequence** (`Hard-deny — blocks every PROD query` / `Ask each time — prompts per query`) rather than bare `Yes`/`No`, so the human knows exactly what approve-vs-deny does without reading the context. Behavioral/doc only — no engine change, no auto-deciding of genuine preferences. **Migration:** none.
+
 ## 0.161.7 — 2026-06-23
 
 ### Fixed

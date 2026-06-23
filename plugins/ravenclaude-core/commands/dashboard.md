@@ -10,6 +10,11 @@ for your permission rules and command-review toggles, where the **Save & apply**
 actually writes `.ravenclaude/comfort-posture.yaml` and re-runs the translator for you (no
 Copy/Download step).
 
+> **Disambiguation:** an unqualified "open the dashboard" resolves to **this** RavenClaude
+> comfort-posture dashboard (the `rc dashboard` front door). Don't surface a chooser unless the
+> user *named* a different dashboard (e.g. a Power Platform admin / maker portal) — guessing wrong
+> there cost a needless menu prompt in a prior session.
+
 This launches a small **local** server (`serve-dashboards.py`) bundled inside the plugin.
 It serves the version-matched `dashboard.html` and exposes only `/__save`, `/__read`
 (allow-listed to `.ravenclaude/` files), `/__saga` (read-only Review-log feed from
