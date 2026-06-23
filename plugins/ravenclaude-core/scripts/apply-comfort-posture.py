@@ -456,10 +456,19 @@ def _parse_block(lines: list[str], start: int, base_indent: int):
 def _coerce(v: str):
     if v == "":
         return None
-    if v.isdigit():
-        return int(v)
     if v.lower() in ("true", "false"):
         return v.lower() == "true"
+    # `v.isdigit()` only caught pure-integer strings, so a float like
+    # `confidence_threshold: 0.5` fell through to the string branch and a caller
+    # expecting a number silently used its default. Parse int then float.
+    try:
+        return int(v)
+    except ValueError:
+        pass
+    try:
+        return float(v)
+    except ValueError:
+        pass
     return v.strip("'\"")
 
 

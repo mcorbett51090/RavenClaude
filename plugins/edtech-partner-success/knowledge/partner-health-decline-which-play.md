@@ -1,6 +1,6 @@
 # Partner health declined — which play do I run?
 
-> **Last reviewed:** 2026-05-22. Source: research-distilled from Gainsight + ChurnZero practitioner content (retrieved 2026-05-22), the plugin's own [`recovery-play-design`](../skills/recovery-play-design/SKILL.md), [`renewal-play-design`](../skills/renewal-play-design/SKILL.md), and [`expansion-play-design`](../skills/expansion-play-design/SKILL.md) skills, and the house opinion "diagnose before treat" already encoded in `recovery-play-design.md`. Refresh when: (a) the play library gains or loses a play type, (b) a new failure-mode pattern emerges that doesn't fit any of the five branches, or (c) the segment mix in the PSM's book changes materially (e.g., book shifts from majority K-12 to majority higher-ed).
+> **Last reviewed:** 2026-05-22. Source: research-distilled from Gainsight + ChurnZero practitioner content (retrieved 2026-05-22), the plugin's own [`recovery-play-design`](../skills/recovery-play-design/SKILL.md), [`renewal-play-design`](../skills/renewal-play-design/SKILL.md), and [`expansion-play-design`](../skills/expansion-play-design/SKILL.md) skills, and the house opinion "diagnose before treat" already encoded in `recovery-play-design/SKILL.md`. Refresh when: (a) the play library gains or loses a play type, (b) a new failure-mode pattern emerges that doesn't fit any of the five branches, or (c) the segment mix in the PSM's book changes materially (e.g., book shifts from majority K-12 to majority higher-ed).
 
 A health score going red is the start of a decision, not the end of one. The most common — and most costly — PSM mistake is **picking the play that fits the score's color rather than the play that fits the root cause.** A renewal play offered to a partner whose problem is a broken roster sync reads as tone-deaf; a recovery play run on a partner whose decline is calendar-suppression false-positive burns the PSM's credibility when the score bounces back on its own in two weeks. The decision tree below is the router that lives upstream of [`recovery-play-design`](../skills/recovery-play-design/SKILL.md), [`renewal-play-design`](../skills/renewal-play-design/SKILL.md), and [`expansion-play-design`](../skills/expansion-play-design/SKILL.md).
 
@@ -36,7 +36,7 @@ flowchart TD
 - _SPONSOR_ — a missing or silent named champion is the most predictive single signal in many books. Renewal and expansion plays both require a live sponsor; running them without one is talking to an empty room. Re-engage the sponsor (or identify a successor) before any other play.
 - _RECOVERY_THEN_RENEW_ — within 180 days of renewal with thin value evidence, a pure renewal play will be a price negotiation the PSM loses. Run recovery first (value-evidence pack, 30/60/90 signal targets), then layer renewal. K-12 specifically: 180-day clock per `renewal-pricing-conversations-edtech.md`.
 - _ADOPTION_ — stage-1 partners (newly implemented) look red by health-score math because deep-feature adoption hasn't had time to develop. The right play is sequencing them through the early-adoption arc, not running recovery. **Do NOT push feature breadth in stage 1.**
-- _RECOVERY (generic)_ — only when the four earlier branches don't apply. Run the 4-hypothesis diagnostic from `recovery-play-design.md` (product fit / implementation / sponsorship / external pressure) before any remedy.
+- _RECOVERY (generic)_ — only when the four earlier branches don't apply. Run the 4-hypothesis diagnostic from `recovery-play-design/SKILL.md` (product fit / implementation / sponsorship / external pressure) before any remedy.
 
 **Tradeoffs summary:**
 
@@ -85,7 +85,7 @@ If any of these are stale or missing, **the tree can't resolve cleanly** — the
 
 - **K-12** — the calendar branch is the most-active. Q1 in the tree resolves to YES roughly 40% of the calendar year (winter break + spring break + summer + testing windows + start-of-year + end-of-year wrap). The implementation branch (Q2) is also disproportionately active in K-12 because rostering is the silent killer.
 - **Higher-ed** — calendar branch resolves on academic-calendar phases (between-semester, finals, summer-session). Sponsor branch is heavier — institutional turnover (provosts, deans, department chairs) is the most common decline trigger.
-- **Corp L&D** — calendar branch is fiscal-quarter-driven. Implementation branch is lighter (HRIS sync is usually cleaner than K-12 SIS). External-pressure branch (budget squeeze, "L&D first to cut" pattern) is heavier; route through `recovery-play-design.md` hypothesis D.
+- **Corp L&D** — calendar branch is fiscal-quarter-driven. Implementation branch is lighter (HRIS sync is usually cleaner than K-12 SIS). External-pressure branch (budget squeeze, "L&D first to cut" pattern) is heavier; route through `recovery-play-design/SKILL.md` hypothesis D.
 
 ---
 
@@ -109,7 +109,7 @@ The tree is designed for the situations that recur. Genuine novelty deserves a c
 - [ChurnZero — What if the way you define customer value is wrong?](https://churnzero.com/blog/define-customer-value/) — value-definition trap (renewal-on-rostering pattern).
 - [ChurnZero — Forecast Renewals and Predict Churn Risk](https://churnzero.com/customer-success-software/forecast-renewals-predict-churn/) — leading-indicator surfaces.
 - [Customer Success Collective — The anatomy of the customer health score](https://www.customersuccesscollective.com/the-anatomy-of-the-customer-health-score/) — practitioner depth on score-to-action mapping.
-- Internal: `plugins/edtech-partner-success/skills/recovery-play-design.md` — "diagnose before treat" core opinion; this tree operationalizes the opinion at play-selection time.
+- Internal: `plugins/edtech-partner-success/skills/recovery-play-design/SKILL.md` — "diagnose before treat" core opinion; this tree operationalizes the opinion at play-selection time.
 - Internal: `plugins/edtech-partner-success/knowledge/district-implementation-failure-modes.md` — failure-mode frequency ranking informs the IMPL branch.
 - Internal: `plugins/edtech-partner-success/knowledge/renewal-pricing-conversations-edtech.md` — K-12 180-day renewal clock anchors RECOVERY_THEN_RENEW branch.
 - Internal: `plugins/edtech-partner-success/knowledge/k12-psm-operating-cadence.md` and `k12-adoption-arc-fall-spring-summer.md` — calendar-suppression branch (SUPPRESS leaf).

@@ -178,6 +178,8 @@ def execute(
 
     # Step 4 — atomic swap: two renames. Roll back the first if the second fails.
     first_done = False
+    staged = None  # set only on the cross-filesystem (EXDEV) path; tracked here so
+    # a mid-copy / failed-rename failure doesn't orphan a partial staging dir.
     try:
         os.rename(version_dir, pre)  # live → pre-ragnarok
         first_done = True
@@ -194,7 +196,12 @@ def execute(
             shutil.rmtree(staged, ignore_errors=True)
             shutil.copytree(fresh_tree, staged)
             os.rename(staged, version_dir)
+            staged = None  # consumed by the rename; nothing left to clean up
     except OSError as e:
+        # A partial cross-FS staging dir (copytree/rename failed mid-flight) would
+        # otherwise accumulate under the version parent across failed retries.
+        if staged is not None:
+            shutil.rmtree(staged, ignore_errors=True)
         rolled_back = False
         if first_done:
             # Roll back: restore the original live cache.
