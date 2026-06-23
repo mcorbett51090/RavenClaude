@@ -164,9 +164,14 @@ PY
       node scripts/check-concern-stats-render.mjs
       exit $?
       ;;
+    105)
+      echo "── Gate 105: Heimdall authored-content carve-out (per-gate run) ──────────"
+      bash plugins/ravenclaude-core/hooks/tests/test-gate105-heimdall-authored-content.sh
+      exit $?
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -3457,6 +3462,16 @@ echo "── Gate 103: svg-report-lint (geometry + security, bidirectional + tee
 # (teeth for both security and geometry checks).
 rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate103-svg-report-lint.sh >/dev/null 2>&1 || rc=$?
 gate "svg-report-lint bidirectional (geometry + security + teeth)" must_pass "$rc"
+
+echo
+echo "── Gate 105: Heimdall authored-content carve-out (file_edit_project) ──────"
+# Regression guard for the false-positive: the Heimdall injection seat denied
+# benign Markdown doc edits (<details>/<summary>, DONE→IN PROGRESS diffs). Asserts the
+# file_edit_project authored-content carve-out ships, is scoped to that category ONLY
+# (no leak into Bash/network/MCP/file_edit_global), the deterministic screen stays
+# clean on both triggers, and a stripped carve-out is caught (teeth).
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate105-heimdall-authored-content.sh >/dev/null 2>&1 || rc=$?
+gate "Heimdall authored-content carve-out (scoped + screen-clean + teeth)" must_pass "$rc"
 
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"

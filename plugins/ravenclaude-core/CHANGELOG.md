@@ -2,6 +2,12 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.161.7 — 2026-06-23
+
+### Fixed
+
+- **Heimdall (command-review injection seat) false-positived on legitimate Markdown doc edits.** For a `file_edit_project` review the seat screened the agent's own authored file content with the same injection heuristics used for untrusted external data, so a normal collapsible block (`<details>`/`<summary>`/`</details>`) read as a "forged closing delimiter" and a status-word diff (a line changing `DONE` → `IN PROGRESS`) read as "task-state manipulation" — a single Heimdall `injection_detected` then denied the whole edit despite a high-confidence Mímir allow (observed in a consumer repo blocking routine `docs/` rollups). Added a static, trusted resolved-fact line to the seat prompt (`thing-seat.sh`) — **scoped to `file_edit_project` only** — telling the seat the payload is the agent's own authored edit to a realpath-verified trusted file, that structural Markdown/HTML and status-word transitions are normal authored content, and that `injection_detected` is reserved for text targeting the tribunal itself. The deterministic concern screen (which never flagged these) and every other tool shape (Bash, network, MCP, `file_edit_global`) are unchanged — they keep the full injection screen. Proven by **Gate 105** (carve-out present + scoped to `file_edit_project` only + deterministic screen still clean + a stripped-carve-out teeth half).
+
 ## 0.161.6 — 2026-06-23
 
 ### Fixed (residual repo-review fixes — re-checked against current `main`)
