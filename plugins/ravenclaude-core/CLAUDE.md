@@ -674,6 +674,8 @@ Proven by **Gates 20 + 50 + 60** (no fixtures dropped — Gate 50.3 fixture upda
 
 ## Unified dashboard shell — one front door (added 2026-06-04, v0.114.0)
 
+> **Superseded (historical record).** The iframe-payload mechanism below was replaced by the **native fold** (v0.123.0) and `repo-guide.html` + the standalone root `dashboard.html` were **removed** (v0.124.0) — see those milestones below. The present-tense claims in this entry ("remain on disk", "still work") describe the v0.114.0 state, **not** today's: only `plugins/ravenclaude-core/dashboard.html` remains on disk; root `dashboard.html` / `repo-guide.html` are gone.
+
 `index.html` is now the single entry point for everything the marketplace surfaces: the polished landing UI, the deep comfort-posture + Norse tabs (Heimdall / Víðarr / Norns / Níðhöggr / Bifröst / Mímir / Sleipnir), and the per-plugin "I want to…" repo guide all live behind one URL. **`dashboard.html` and `repo-guide.html` remain on disk as the per-section content payloads** (no generator changes; Gates 11 + 13 untouched); the shell lazy-loads them into memoized `<iframe src>` slots on first navigation. Built per [`docs/plans/2026-06-04-unified-dashboard-shell/plan.md`](../../docs/plans/2026-06-04-unified-dashboard-shell/plan.md) — FORGE-synthesized from a cross-model two-panel review (Opus architect lens + Sonnet frontend-coder lens, strong empirical convergence on iframe-src lazy-load + hand-maintained shell + above-iframe mode banner).
 
 **Five phases, four shipped together (Phase 3 visual regression is the manual verify):**

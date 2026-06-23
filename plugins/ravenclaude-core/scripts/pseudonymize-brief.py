@@ -233,7 +233,11 @@ def main(argv=None):
             return 0
         except Exception as exc:  # fail closed: caller must NOT egress on nonzero
             sys.stderr.write(f"pseudonymize-brief encode failed: {exc}\n")
-            sys.stdout.write(text)  # unchanged; nonzero exit signals "do not send"
+            # Write NOTHING to stdout. The old behavior echoed the raw, untokenized
+            # input here — so a caller capturing stdout without checking $? (e.g.
+            # `out=$(... encode ...)` lacking `|| abort`) received raw PII and could
+            # forward it. An empty relay brief is strictly safer and still signals
+            # failure via the nonzero exit.
             return 1
     if args.cmd == "decode":
         text = sys.stdin.read()

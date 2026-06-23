@@ -239,6 +239,6 @@ After a successful capture, briefly explain:
 ---
 
 **Companion docs:**
-- `plugins/ravenclaude-core/skills/scenario-retrieval.md` — how agents consult scenarios
+- `plugins/ravenclaude-core/skills/scenario-retrieval/SKILL.md` — how agents consult scenarios
 - `plugins/power-platform/scenarios/README.md` — the first plugin to enable scenarios
 - `docs/staging/README.md` — the older, more elaborate `/contribute-finding` → `/review-staged-contributions` flow (still works for canonical best-practices)
