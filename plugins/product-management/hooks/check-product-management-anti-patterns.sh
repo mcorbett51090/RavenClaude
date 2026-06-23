@@ -15,7 +15,7 @@ fi
 if grep -nEi "(total\\s+(signups|users|downloads|registrations)|cumulative\\s+\\w+)" "$file" >/dev/null 2>&1; then
   findings+=("Possible vanity metric (cumulative total) — prefer rates/cohorts/retention that a team can act on.")
 fi
-if grep -nEi "(we (will|should) build|the solution is|spec:.*implement)(?![\\s\\S]{0,120}(problem|outcome|because))" "$file" >/dev/null 2>&1; then
+if grep -Pzi "(we (will|should) build|the solution is|spec:.*implement)(?![\\s\\S]{0,120}(problem|outcome|because))" "$file" >/dev/null 2>&1; then
   findings+=("Spec leads with a solution, not a problem/outcome — frame the problem + target outcome first; the solution is a hypothesis.")
 fi
 

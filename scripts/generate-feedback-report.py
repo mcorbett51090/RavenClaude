@@ -528,7 +528,10 @@ def main(argv=None) -> int:
 
     page = build()
     if args.check:
-        current = OUT_FILE.read_text(encoding="utf-8") if OUT_FILE.exists() else ""
+        try:
+            current = OUT_FILE.read_text(encoding="utf-8") if OUT_FILE.exists() else ""
+        except (UnicodeDecodeError, OSError):
+            current = ""  # corrupt/unreadable committed file → treat as stale, don't crash the gate
         if current != page:
             print(
                 f"STALE {OUT_FILE.relative_to(REPO_ROOT)} — run scripts/generate-feedback-report.py",

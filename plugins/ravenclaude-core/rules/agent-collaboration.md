@@ -14,10 +14,10 @@ The dependency graph is a **tree**, never a graph with cycles or peer calls.
              /    |    \
        architect  coder  tester
                    |
-                  (no nested spawning)
+            (single-orchestrator by house policy)
 ```
 
-- Sub-agents must not spawn other sub-agents. They surface needs to the Team Lead.
+- Sub-agents do not spawn other sub-agents — single-orchestrator is the binding default; they surface needs to the Team Lead. **(This is a deliberate house policy, not a platform limit.** As of Claude Code **v2.1.172 (2026-06-10)** the platform *permits* nested sub-agent spawning up to **5 levels deep**; RavenClaude retains the single-orchestrator pattern on purpose — for observability, debuggability, and loop-avoidance — and `guard-recursive-spawn.sh` enforces it **soft (warns, does not block)**, consistent with policy-not-constraint. `[platform fact verified 2026-06-16 against the Claude Code changelog]`)
 - Sub-agents must not directly read each other's reports unless the Team Lead pastes the relevant excerpt into the brief.
 
 ## Briefing checklist (Team Lead → Agent)

@@ -1,0 +1,7 @@
+{
+  "surface": "pbir",
+  "parity": {
+    "candidate": "tests/fixtures/visual-feedback-loop/parity/candidate-cardvisual.json",
+    "reference": "tests/fixtures/visual-feedback-loop/parity/reference-card.json"
+  }
+}

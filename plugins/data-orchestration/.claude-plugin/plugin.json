@@ -1,0 +1,27 @@
+{
+  "name": "data-orchestration",
+  "version": "0.1.0",
+  "description": "Data-orchestration team — 2 agents (orchestration-architect, pipeline-orchestration-engineer) for the layer that RUNS and SCHEDULES data pipelines: orchestrator selection (Airflow, Dagster, Prefect, Mage, Temporal-for-data; cloud-native MWAA/Step Functions, Azure Data Factory, Cloud Composer/Workflows), DAG and software-defined-asset design, scheduling/triggers (cron, sensor, data-aware), backfills and catchup, idempotency and retries with exponential backoff, partitioning, freshness SLAs and alerting, and lineage. 3 skills (choose-orchestrator, design-dag-and-dependencies, handle-backfills-and-retries), a 2-doc knowledge bank (a Mermaid selection tree + a 2026 patterns reference), and 2 templates. Distinct from data-platform (ELT/warehouse/BI), analytics-engineering (dbt), and data-streaming-engineering (real-time) — this is the scheduling/run layer they plug into. Requires ravenclaude-core@>=0.7.0.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "airflow",
+    "dagster",
+    "prefect",
+    "dag",
+    "orchestration",
+    "scheduling",
+    "backfill",
+    "idempotency",
+    "data-pipeline",
+    "lineage",
+    "retries",
+    "partitioning"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}

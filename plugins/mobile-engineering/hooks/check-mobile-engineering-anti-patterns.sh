@@ -12,7 +12,7 @@ findings=()
 if grep -nEi "(UserDefaults|SharedPreferences|AsyncStorage)[\\s\\S]{0,60}(token|password|secret|credential|apikey|api_key)" "$file" >/dev/null 2>&1; then
   findings+=("Secret stored in UserDefaults/SharedPreferences/AsyncStorage — use the Keychain/Keystore secure store; on-device storage is untrusted.")
 fi
-if grep -nEi "\\{\\s*\\[?\\s*self\\b(?![\\s\\S]{0,40}weak)|capture.*self(?!.*weak)" "$file" >/dev/null 2>&1; then
+if grep -Pzi "\\{\\s*\\[?\\s*self\\b(?![\\s\\S]{0,40}weak)|capture.*self(?!.*weak)" "$file" >/dev/null 2>&1; then
   findings+=("Closure capturing self strongly (iOS) — use [weak self] where it can cause a retain cycle.")
 fi
 if grep -nEi "(NSAllowsArbitraryLoads|usesCleartextTraffic\\s*=\\s*\\\"?true|cleartextTrafficPermitted\\s*=\\s*\\\"?true)" "$file" >/dev/null 2>&1; then

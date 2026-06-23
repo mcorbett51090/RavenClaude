@@ -75,7 +75,7 @@ case "$base_lc" in
     # expiresIn: '1h', '2h', '1d', '7d', '24h', etc.
     if grep -niE 'expires?in\s*[:=]\s*["'"'"']?([2-9][0-9]+m|[1-9][0-9]*h|[1-9][0-9]*d)' "$file" 2>/dev/null >/dev/null; then
       # Filter out reasonable values: 5m, 10m, 15m, 20m, 25m, 30m
-      if grep -niE 'expires?in\s*[:=]\s*["'"'"']?(([3-9][1-9]m)|([1-9][0-9]*h)|([1-9][0-9]*d))' "$file" 2>/dev/null >/dev/null; then
+      if grep -niE 'expires?in\s*[:=]\s*["'"'"']?((3[1-9]m)|([4-9][0-9]m)|([0-9]{3,}m)|([1-9][0-9]*h)|([1-9][0-9]*d))' "$file" 2>/dev/null >/dev/null; then
         violations+=("JWT expiresIn appears to be >30 minutes. Short-lived tokens (5-15 min) are the standard. (rule 3)")
       fi
     fi

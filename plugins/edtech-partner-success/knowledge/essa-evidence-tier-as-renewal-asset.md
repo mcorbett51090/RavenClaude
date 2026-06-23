@@ -1,6 +1,6 @@
 ---
 title: ESSA Evidence Tier as Renewal Asset
-audience: psm, success-playbook-designer, partner-success-manager, learning-analytics-analyst, qbr-composer
+audience: psm, success-playbook-designer, edtech-partner-success-manager, learning-analytics-analyst, qbr-composer
 status: stable
 last_reviewed: 2026-06-04
 refresh_triggers:

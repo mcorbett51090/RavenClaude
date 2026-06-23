@@ -81,7 +81,7 @@ The handoff-notes flag is a mandatory line in [`../templates/partner-profile.md`
 
 ## 5. What an agent should do differently
 
-- The `partner-success-manager` agent, when running any 180-day checkpoint or renewal-motion task, must run the superintendent-status check **first** and assign a STABLE / WATCH / ACTIVE flag before any other recommendation. A WATCH or ACTIVE flag changes the play selection.
+- The `edtech-partner-success-manager` agent, when running any 180-day checkpoint or renewal-motion task, must run the superintendent-status check **first** and assign a STABLE / WATCH / ACTIVE flag before any other recommendation. A WATCH or ACTIVE flag changes the play selection.
 - The `partner-profile-curator` agent owns the named-role-in-seat record and the cabinet-map refresh cadence (quarterly minimum, monthly on WATCH/ACTIVE).
 - The `success-playbook-designer` agent maintains a **superintendent-turnover-pre-renewal** play (a renewal-motion variant that runs cabinet-anchored evidence ahead of a known transition).
 - The `qbr-composer` agent, when composing an EBR for an ACTIVE-flagged partner, weights the deck toward **continuity evidence** — multi-cabinet endorsement, multi-year outcome story, named successor in the cabinet — so the new occupant inherits a defended position.
@@ -94,7 +94,7 @@ A diagnostic worth pinning to the analyst's dashboard:
 
 > **When admin/decision-maker engagement drops while teacher usage continues flat or up** — this is the signature of a leadership transition that hasn't yet been announced. Source: [User Intuition — Education Churn Playbook](https://www.userintuition.ai/posts/the-education-churn-playbook-what-edtech-gets-wrong/) (referenced in ``enhancement-k12-signal-taxonomy.md`` (deferred) §4).
 
-The `learning-analytics-analyst` should surface this divergence as a leading-indicator alert; the `partner-success-manager` triages by checking BoardDocs / state press / EdSurge for transition signals; the `partner-profile-curator` updates the cabinet-map and re-runs the position-mapping discipline against the (possibly soon-to-be-vacant) seat.
+The `learning-analytics-analyst` should surface this divergence as a leading-indicator alert; the `edtech-partner-success-manager` triages by checking BoardDocs / state press / EdSurge for transition signals; the `partner-profile-curator` updates the cabinet-map and re-runs the position-mapping discipline against the (possibly soon-to-be-vacant) seat.
 
 ---
 

@@ -2,36 +2,94 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
-## 0.158.0 — 2026-06-22
+## 0.161.5 — 2026-06-23
 
 ### Fixed
 
-- **`guard-web-access.sh` now resolves the session id from the hook payload, not just `$CLAUDE_SESSION_ID`.** Native Claude Code does not export `CLAUDE_SESSION_ID` to hooks, so the web-access guard collapsed every native session into `runs/unknown/` — the per-session "this session" web-allow file and the per-domain first-use trust markers were shared across all sessions and never reset, weakening the first-use trust gate (Finding 5). The hook now calls the same `_ee_resolve_session()` resolver (`$CLAUDE_SESSION_ID` → payload `.session_id` → `unknown`) the event substrate already uses, with a jq-free fallback. Verified: a native-shaped payload (no env var, `session_id` in stdin) now lands in `runs/<real-sid>/`. Gate 70 stays green.
-- **`format-on-write.sh` no longer aborts on a vanished directory.** The absolute-path `cd` ran under `set -e` with no guard, so a file whose directory was removed between the existence check and the resolve would abort the whole PostToolUse formatter. The `cd` is now guarded (`|| exit 0`) and resolved on its own line so a trailing command substitution can't mask its exit status.
+- **`skills/cross-platform-determinism/SKILL.md`** — the skill's runnable "repro recipe" code blocks still pointed at `scripts/generate-repo-guide.py` and `scripts/check-guide-fresh.sh`, both deleted when Gate 11 was retired (v0.124.0) — `No such file or directory` for anyone following them. Repointed the recipes to the live successor `scripts/generate-index-dashboard.py` (same `--check` strip-before-diff freshness contract); kept the historical bug attribution honest. Markdown-only; no behavior change.
+
+## 0.161.4 — 2026-06-23
+
+### Fixed (residual repo-review fixes not already on main)
+
+A 2026-06-19 repo review surfaced ten fixes; six were independently landed on `main` via the parallel #449 work (option-polarity guard, `archive-branch` base-branch resolution, the two-panel lens-key fix, the stale feedback-report regen, etc.). These four were **not** on `main` and are landed here:
+
+- **`guard-web-access.sh` consent ordering (P2).** The first-use "ask" for a YAML-whitelisted domain wrote its per-session "seen" marker **before** the user answered, so a DENIED first fetch silently auto-allowed on retry. Consent is now recorded by a **new PostToolUse(WebFetch) hook, [`mark-web-domain-seen.sh`](hooks/mark-web-domain-seen.sh)**, which fires only after a fetch proceeds; a denied first fetch re-prompts. Wired in `hooks/hooks.json` + the dev-mirror `.claude/settings.json`. (Hook count 16 → 17.)
+- **Engine-level deterministic high-blast floor in `thing-decide.py` (P2).** `decide()` now screens the decision question/context against a destructive vocabulary (`_screen_high_blast`, mirroring `route-decision-review.sh` §3) and forces `defer`, so "high-blast never auto-resolves" no longer depends on the caller's flag or an LLM seat. Can only **add** a defer — purely fail-safe.
+- **`route-decision-review.sh` nested `decision_review` form (P3).** The hook now parses the nested `decision_review:\n  mode: binding` form (the engine already accepted it), not just the flat form — and its high-blast heuristic gained `force-with-lease`/`truncate`/`wipe`/`revoke`/`purge` (word-anchored `drop`).
+- **`rc-deep-research.js` latency-trip event (P3).** The dispatch-evaluator latency circuit-breaker now surfaces its trip on Heimdall via a fire-and-forget `agent()` emit (the documented TODO), applied identically across all three byte-identical copies (the reference + both mirrors). Unawaited + rejection-swallowed, so a telemetry failure can never affect the run.
 
 ### Notes
 
-- **Migration:** none — both are fail-safe hook hardening; behavior is unchanged for the common (env-var-present) path. Also bundles documentation accuracy fixes (README/CLAUDE.md component counts corrected to 15 agents / 43 skills / 16 hooks / 5 rules / 7 slash commands; `viz-spec-reviewer` added to the agent roster) and repo-tooling fixes (`scripts/check-md-links.py` titled-link parsing, `feedback-report.html` regenerated from the current scenario corpus) that ship outside the plugin.
+- **Migration:** none — the web-access fix only makes first-use confirmation *stricter* (a denied domain re-prompts) and adds an opt-in PostToolUse hook; the high-blast floor only adds defers under the opt-in `decision_review` posture; the nested-parse and latency-event changes alter no consumer-facing schema. Gate 70's web-access subtest was updated to the corrected consent-ordering contract (+ a teeth subtest proving a no-consent retry re-asks). All audit-gates pass.
 
-## 0.157.0 — 2026-06-12
+## 0.161.1 — 2026-06-16
+
+### Fixed
+
+- **`route-decision-review.sh` mapped a binding yes/no verdict to an option by index, not semantics.** The eligibility gate accepts any two yes/no-shaped options regardless of order, but the act-block hard-coded `yes → options[0]` / `no → options[1]`. An `AskUserQuestion` phrased with the negative option first (`["Cancel","Proceed"]`, `["No","Yes"]`, `["Reject","Approve"]`) would receive a _binding_ deny instructing the agent to choose the **opposite** option — and, being auto-resolved, the human never saw it. Each option's polarity is now classified and the verdict maps to the matching option; ambiguous polarity fails safe to ALLOW. Proven by a new reverse-ordered fixture in Gate 31 (`audit-gates.sh`).
+- **`thing-concerns.py` `screen-always` catastrophe floor failed OPEN on an embedded newline.** The two `always_screen` + `pre_llm_deny` hard rules (force-push to a protected branch, `curl … | sh`) bridge program→argument with `.*`, but the regexes were searched without `re.DOTALL` and the screening variants were not newline-flattened — so a command carrying a real newline (a shell line-continuation) between `git push`/`curl` and the dangerous flag silently dodged the hard DENY. A newline-flattened screening variant is now matched alongside the raw + normalized command (only ever ADDS a match, never removes one). Proven by a new Gate 15 fixture. **Security-floor change.**
+- **`apply-comfort-posture.py` PyYAML-less fallback parser mis-split a quoted override key containing a colon** (`"Bash(ls:*)": deny` → key `"Bash(ls`), aborting `/set-posture` on a no-PyYAML consumer. The scalar split is now quote-aware; unquoted keys are unchanged.
+- **`guard-destructive.sh` `git push -f` pattern over-matched a branch name ending in `-f`** (`git push origin feature-f` was blocked). The pattern now requires `-f` to be a standalone flag; `-f` / `--force` force-pushes are still blocked (fails closed regardless).
+- **`thing-decision.py` self-disable guard missed non-canonical falsy `thing` values** (`thing: 0` / `"0"` / `disabled` / `none`) that `thing_enabled_for` treats as off; it now mirrors that truthiness exactly. Also: the seat/panel timeout config excludes `bool` so `seat_timeout_seconds: true` isn't coerced to a 1-second timeout.
+- **`rc-deep-research.js` eval stats under-counted verify agents** (both copies) — a flat `voted.length * VOTES_PER_CLAIM` that ignored per-claim fan-out + escalation; now a real `verifyAgentsFired` counter (baseline unchanged; Gate 52 untouched).
+- **`two-panel-plan-review.js` could mislabel lens results** (both copies) when a panel agent returned null; each result is now paired with its lens key before `filter(Boolean)`.
+- **New cross-plugin agent-name-uniqueness check** in `scripts/check-frontmatter.py` (resolves the `partner-success-manager` collision — `edtech-partner-success` renamed its specialist to `edtech-partner-success-manager`).
+
+### Notes
+
+- **Migration:** none — `decision_review` is off by default; the catastrophe-floor fix only closes a bypass (never relaxes a deny).
+
+## 0.161.0 — 2026-06-22
 
 ### Added
 
-- **`/claude-orchestrate` skill — one-off Claude orchestration escape hatch** ([`skills/claude-orchestrate/SKILL.md`](skills/claude-orchestrate/SKILL.md)). Exposes the always-on `claude-orchestrate.sh` invocation on-demand for sessions where the `orchestrator:` knob is `off` or the user wants a one-off Claude reasoning pass without changing the posture. Host-checks `THING_HOST` (no-op under Claude Code), prints a cost-transparency note, surfaces fail-safe exits (scrub/recursion/absent-claude) instead of swallowing them. Uses the team-dispatch path only (not a relay-all surface); covered by the existing Gate 102.
+- **New best-practice — "MCP tool context is a budget — enable only what you need"** ([`best-practices/mcp-tool-context-is-a-budget-enable-only-what-you-need.md`](best-practices/mcp-tool-context-is-a-budget-enable-only-what-you-need.md), 20 rules total). Every enabled MCP server preloads its full tool schemas (names + descriptions + JSON schemas) into the context window before any work — a widely-shared community measurement put 7 servers at ≈67K tokens (~⅓ of a 200K budget). The rule's levers: right-size the enabled-server set per kind of work, prefer tool-search / lazy-loading (load schemas on demand) over preloading, and measure with `/context`. The worked example is **this repo's own deferred-MCP-via-`ToolSearch` session model** (tools surfaced name-only, schema fetched just-in-time) — the count→cost tax paid down to near-zero by design. Sibling to the `AGENTS.md` agent-description ~15K budget (the authoring-side analog) and the generic `knowledge/concepts/context-window.md` concept (this rule is its MCP-specific, actionable corollary). Sourced from the [2026-06-22 Claude subreddit scan](../../docs/research/2026-06-22-claude-subreddit-scan/README.md) (1 of 4 findings approved; the worktree finding was already shipped by the 2026-06-13 scan, the other two deferred/denied as covered).
 
 ### Notes
 
-- **Migration:** none — adds one skill file; no hook, settings, or `apply-comfort-posture.py` change.
+- **Migration:** none — additive markdown; nothing in a consumer's installed plugin changes on `/plugin marketplace update`.
 
-## 0.156.0 — 2026-06-11
+## 0.160.0 — 2026-06-22
+
+### Added
+
+- **New best-practice — "Run parallel Claude Code instances in separate git worktrees — never aim two writers at one working tree"** ([`best-practices/isolate-parallel-claude-instances-in-git-worktrees.md`](best-practices/isolate-parallel-claude-instances-in-git-worktrees.md), 19 rules total). Names the **peer-process** parallelism posture the sub-agent rule [`delegate-reads-fan-out-keep-branch-writes-in-main.md`](best-practices/delegate-reads-fan-out-keep-branch-writes-in-main.md) explicitly defers: give each concurrent Claude Code instance its own `git worktree`/branch so two writers don't stomp one working tree's files + index, reconcile via merge/PR. Leads with native `--worktree`/`-w` + `claude agents` support; cites the bundled `new-worktree`/`cleanup-worktrees` skills + the Sleipnir convention. Sourced from the [2026-06-13 Claude subreddit scan](../../docs/research/2026-06-13-claude-subreddit-scan/README.md) (1 of 4 findings approved).
 
 ### Changed
 
-- **Research routine extended with a Learn-tab improvement pass.** The scheduled research routine now also reviews and refreshes the dashboard Learn-tab concept set as part of its sweep.
+- **Corrected a falsified premise in `delegate-reads-fan-out-keep-branch-writes-in-main.md` + CLAUDE.md §"Delegating branch-mutating work" + `knowledge/subagent-isolation-and-tooling.md`.** The original "background sub-agents are auto-denied git checkout/commit/push (confirmed behavior)" / "`isolation: "worktree"` strips `Read`" claims were re-verified against current primary docs ([sub-agents.md](https://code.claude.com/docs/en/sub-agents)) **and a direct this-session probe** (a non-isolated foreground sub-agent ran `git checkout -b` + `git commit`, both exit 0, no permission gate) and found **not universal**: a sub-agent's writes are governed by its `tools`/`disallowedTools` grant + permission mode, and `isolation: "worktree"` isolates the working directory, not the tool grant. The advice (serialize branch-writes, or isolate each writer in its own worktree) is re-grounded in the real hazard — concurrent writers racing on one shared working tree — and the best-practice's status was downgraded **Absolute → Pattern**. The 2026-05-23 denials are scoped as conditionally true (`run_in_background: true` × an `ask`-tier posture, where a background agent can't surface the approval prompt). **Not re-tested:** sub-agent `git push`, background agents, and the web/remote git-proxy mode.
 
 ### Notes
 
-- **Migration:** none — routine/content change; nothing in a consumer's installed plugin changes on `/plugin marketplace update`.
+- **Migration:** none — one additive best-practice + corrected guidance/status in existing best-practice/knowledge/constitution files; no hook, script, or settings change. Nothing in a consumer's installed plugin changes behaviorally on `/plugin marketplace update`.
+
+## 0.159.1 — 2026-06-21
+
+### Changed
+
+- **Research-sweep:** `knowledge/orchestrator-data-egress.md` — the ZDR note citing Fable 5 / Mythos 5 forcing 30-day retention now carries a dated **availability-suspended (2026-06-12)** aside pointing at the model lineup. The ZDR-ineligibility fact itself is unchanged; only an availability pointer was added so the egress guidance reflects that both models are currently disabled across all surfaces (US export-control directive). No migration — knowledge-file content only.
+
+## 0.159.0 — 2026-06-22
+
+### Added
+
+- **Visual-feedback-loop `parity` gate — diff a visual against a known-good exemplar** ([`skills/visual-feedback-loop/driver.py`](skills/visual-feedback-loop/driver.py), v0.2.0). Surfaces a structural class the layout linter can't see: a visual that is *perfectly placed* yet renders **blank** because its render skeleton is missing something its working twin has. The new `parity` config (`{"candidate": "...visual.json", "reference": "...visual.json"}`) extracts a PBIR render skeleton from each and is **asymmetric** — it **fails** (`next_action: match-reference-exemplar`) on what the candidate is **MISSING** relative to the exemplar (a missing query role `Values`/`Data`/`Indicator`; a dropped objects key, e.g. a `card` that dropped `labels` and substituted `calloutValue`; a missing per-item `$id`) and **passes benign additions** (an extra cosmetic object key, an optional role). It is a **diff surfacer, not a render oracle** — it validates the exemplar first (refuses a self-reference or a degenerate no-query-role reference → `not_captured`, so a bad exemplar can't launder a ship), and a different `visualType`/non-PBIR shape is also `not_captured`. Echoes only allowlist-sanitized schema tokens (`\A…\Z` + fullmatch, so a trailing-newline token can't slip through), never raw `visual.json` content. Documented generically for all declarative-viz (Vega-Lite, Tableau) in [`knowledge/visual-feedback-loop.md`](knowledge/visual-feedback-loop.md); runnable differ is PBIR-first. Hardened by an adversarial FORGE review (12 Gate-100 parity cases incl. benign-superset must-pass, pure-drop/partial-`$id`/degenerate-reference/self-reference, candidate-path traversal, + two teeth mutants). Origin: a Fabric/PBIR field session that burned four deploy-and-eyeball cycles before diffing against the confirmed-working exemplar cracked it.
+
+### Notes
+
+- **Migration:** none — additive `parity` gate (off unless a config supplies it); the driver envelope shape is unchanged. Nothing changes on `/plugin marketplace update`.
+
+## 0.158.0 — 2026-06-22
+
+### Added
+
+- **`rc` launcher — host-agnostic dashboard front door** ([`bin/rc`](bin/rc), new `plugins/*/bin/**` layout glob). The `rc dashboard` "one-verb front door" the docs referenced was a phantom (no `rc` on disk); it now exists for real as a thin bash dispatcher (one verb today: `rc dashboard [--port N] [--no-open]`). It **never `cd`s** — `serve-dashboards.py` resolves the project root from `Path.cwd()`, so the launcher `exec`s the server with the caller's cwd preserved (`.ravenclaude/` lands in the consumer's repo) and works identically under Claude Code, GitHub Copilot CLI, or a bare terminal.
+- **Copilot dashboard discoverability** — [`scripts/generate-copilot-plugin.py`](../../scripts/generate-copilot-plugin.py) appends an always-applicable **"Launch the comfort-posture dashboard"** block to the generated [`copilot/AGENTS.md`](copilot/AGENTS.md) (parallel to the opt-in Relay-mode block). Copilot reads `AGENTS.md` natively, so "open the dashboard" now Just Works in a Copilot repo — closing the gap where there's no `/dashboard` slash command (Claude-Code-only) and Copilot had to reverse-engineer the launch each time.
+
+### Fixed
+
+- **Phantom `rc dashboard` references made real.** [`commands/dashboard.md`](commands/dashboard.md) now documents where `rc` lives, the PATH one-liner, and the Copilot "just ask" path; the N-A `bin/` disposition in the CLAUDE.md Value-add table is updated to BUILT.
 
 ## 0.155.0 — 2026-06-11
 

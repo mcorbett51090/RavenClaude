@@ -119,6 +119,8 @@ flowchart TD
 - _Security group_ — pure access control with assigned membership.
 - _Dynamic group_ — membership computed from a rule on user attributes; requires the appropriate license and re-evaluates automatically.
 
+> **Ownerless-group governance — `ownerlessGroupPolicy` GA in v1.0 (May 2026)** (verified 2026-06-19, [Graph what's-new](https://learn.microsoft.com/graph/whats-new-overview)). When the sole owner of an M365 group leaves or is disabled, configure the [`ownerlessGroupPolicy`](https://learn.microsoft.com/graph/api/resources/ownerlessgrouppolicy) to send actionable-email notifications prompting active members to accept ownership — a governance control for the ownerless-group sprawl that assigned-membership M365 groups accumulate.
+
 **Tradeoffs summary:**
 
 | Type | Purpose | Membership | Caveat |

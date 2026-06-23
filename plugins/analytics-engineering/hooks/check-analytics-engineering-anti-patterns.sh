@@ -12,7 +12,7 @@ findings=()
 if grep -nEi "\\bfrom\\s+(raw|source|prod)\\.[a-z_]+\\.[a-z_]+|\\bfrom\\s+`[^`]+\\.[^`]+`" "$file" >/dev/null 2>&1; then
   findings+=("Querying a raw/source table directly — use {{ source() }} (in staging) or {{ ref() }} for lineage; don't hardcode warehouse paths.")
 fi
-if grep -nEi "materialized\\s*=\\s*['\\\"]incremental['\\\"](?![\\s\\S]{0,200}unique_key)" "$file" >/dev/null 2>&1; then
+if grep -Pzi "materialized\\s*=\\s*['\\\"]incremental['\\\"](?![\\s\\S]{0,200}unique_key)" "$file" >/dev/null 2>&1; then
   findings+=("Incremental model without a unique_key nearby — incremental needs a reliable unique key or it drops/dups rows.")
 fi
 if grep -nEi "select\\s+\\*\\s+from\\s+\\{\\{\\s*ref" "$file" >/dev/null 2>&1; then

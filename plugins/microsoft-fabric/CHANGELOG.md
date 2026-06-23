@@ -2,6 +2,28 @@
 
 All notable changes to this plugin are documented here. Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.8.3] — 2026-06-18
+
+Research-sweep **correction + addition** on the capability map's Runtime 1.3 row, re-verified 2026-06-18 against `learn.microsoft.com` via the Microsoft-Learn MCP. (Part of the 2026-06-18 Tier-A sweep; the sweep's other findings — Fable 5/Mythos 5 suspension, Grok Build, OWASP 2025 — had already landed independently on `main`, so only this net-new Fabric fix remained.)
+
+### Fixed
+
+- **`knowledge/fabric-2026-capability-map.md`** — Fabric **Runtime 1.3 is Spark 3.5.5 / Delta Lake 3.2** (was documented as Delta 3.1). Source: [runtime](https://learn.microsoft.com/fabric/data-engineering/runtime), [runtime-1-3](https://learn.microsoft.com/fabric/data-engineering/runtime-1-3).
+
+### Added
+
+- **`knowledge/fabric-2026-capability-map.md`** — pinned Runtime 1.3's **end-of-support: 2026-09-30**, entering **LTS Oct 2026 → March 2027** (it's the stated production default, so its ~3-month support clock now shows on the row, with a "plan the Runtime 2.0 migration" note). Source: [lifecycle](https://learn.microsoft.com/fabric/data-engineering/lifecycle). Bumped the file's `Last reviewed:` to 2026-06-18.
+
+## [0.8.2] — 2026-06-15
+
+Research-sweep **correction** — bring the dedicated OneLake-security doc in line with the GA reality that PR #411 (0.8.1) already applied to the capability map but left stale in `onelake-security-and-governance.md`. Re-verified 2026-06-15 against `learn.microsoft.com` via the Microsoft-Learn MCP.
+
+### Fixed
+
+- **`knowledge/onelake-security-and-governance.md`** — removed the now-false "OneLake-security data **preview**" framing: OneLake security (data-access roles + RLS/CLS/OLS) is **GA and default-on (May 2026)**; what remains **public preview** is only Eventhouse RLS and authorized third-party-engine enforcement. Added a Status callout, the supported-item-types table (Lakehouse Read/**ReadWrite**, Azure Databricks Mirrored Catalog Read, Mirrored Databases Read), the **DefaultReader residual-access gotcha**, and the **authorized-engine model** detail (`principalAccess` API) replacing the vague "third-party engines / partial / preview" row. Corrected "schema-enabled lakehouses are **required**" → recommended-not-required (schemaless RLS/CLS works via `spark.sql.fabric.catalog.enable-schemaless-lakehouses=true`). Restamped **Last reviewed: 2026-06-15**.
+- **`CLAUDE.md`** — house-opinion #14 updated to match (GA + default-on; schema-enabled is the recommended-not-required path; schemaless escape hatch noted). `[verify-at-use]`.
+- Version **0.8.1 → 0.8.2** in `.claude-plugin/plugin.json` + `marketplace.json` (lockstep).
+
 ## [0.8.1] — 2026-06-11
 
 Research-sweep **corrections** — two now-false facts in the capability map, re-verified 2026-06-11 against `learn.microsoft.com` via the Microsoft-Learn MCP.

@@ -50,7 +50,7 @@ Stage-1 onboarding sequence (newly-implemented partner):
 - [`./health-design-leading-not-lagging-signals.md`](./health-design-leading-not-lagging-signals.md) — depth-of-adoption trend is the canonical leading signal
 - [`../skills/adoption-sequencing-k12/SKILL.md`](../skills/adoption-sequencing-k12/SKILL.md) — the stage 1-4 sequencing rules
 - [`../knowledge/k12-adoption-arc-fall-spring-summer.md`](../knowledge/k12-adoption-arc-fall-spring-summer.md) — Phase 2 settling window is the most-predictive period
-- [`../agents/partner-success-manager.md`](../agents/partner-success-manager.md) — owns the onboarding sequence
+- [`../agents/edtech-partner-success-manager.md`](../agents/edtech-partner-success-manager.md) — owns the onboarding sequence
 
 ## Provenance
 

@@ -59,6 +59,28 @@ _DECISION = _HERE / "thing-decision.py"
 _SEATS = ("forseti", "mimir", "heimdall")
 _TRUTHY = {True, "on", "true", "yes", "1"}
 
+# Deterministic high-blast floor (the engine's own screen, independent of the
+# caller-passed `high_blast` flag). The invariant "high-blast / irreversible
+# decisions never auto-resolve" must not rest solely on an LLM seat or on the
+# caller having set the flag — a destructive-shaped question that reaches decide()
+# with high_blast=false would otherwise be eligible to auto-resolve on a confident
+# panel. This screen runs on the question + context text and can ONLY add a defer
+# (it never approves anything), so it is purely fail-safe. The vocabulary mirrors
+# route-decision-review.sh §3's heuristic so the hook layer and the engine layer
+# agree; either layer alone is belt-and-suspenders for the other.
+_HIGH_BLAST_RE = re.compile(
+    r"force[-\s]?push|force-with-lease|reset\s+--hard|\brm\s+-rf\b|delete|"
+    r"\bdrop\b|\btruncate\b|\bwipe\b|\brevoke\b|\bpurge\b|prod(uction)?|"
+    r"publish|secret|credential|merge\s+to\s+main|push\s+to\s+main",
+    re.IGNORECASE,
+)
+
+
+def _screen_high_blast(*texts: str) -> bool:
+    """Deterministic high-blast detector over the decision question/context.
+    Returns True if any text matches the irreversible/destructive vocabulary."""
+    return any(t and _HIGH_BLAST_RE.search(t) for t in texts)
+
 
 def _load_decision_module():
     """Import thing-decision.py for _load_yaml + resolve_panel_config reuse."""
@@ -486,7 +508,12 @@ def decide(root: Path, question: str, context: str, high_blast: bool) -> dict:
     # Safety envelope: high-blast/irreversible decisions never auto-resolve, even
     # if the panel reached a confident yes/no. The panel's view is preserved as a
     # recommendation in the reasoning; the effective verdict is defer.
-    if high_blast and verdict in {"yes", "no"}:
+    # `high_blast` is the caller-passed flag; the engine ALSO screens the question
+    # text deterministically so the invariant doesn't depend on the caller having
+    # set the flag (a destructive-shaped question with high_blast=false is still
+    # caught). The screen can only ADD a defer — it never flips a defer to yes/no.
+    effective_high_blast = high_blast or _screen_high_blast(question, context)
+    if effective_high_blast and verdict in {"yes", "no"}:
         reasoning = f"high blast radius — deferring to human (panel recommended: {verdict}; {reasoning})"
         verdict = "defer"
 

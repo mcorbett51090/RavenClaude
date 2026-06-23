@@ -105,7 +105,7 @@ _A replica adds eventual-consistency lag, a cache adds an invalidation problem, 
 
 | Capability | 2026 state `[verify-at-build]` | Notes |
 |---|---|---|
-| PostgreSQL | GA, current major | Leaned-on here; principles port |
+| PostgreSQL | GA — current major **PG18** (2025-09-25) `[verify-at-build]` | Leaned-on here; principles port |
 | CREATE INDEX CONCURRENTLY | GA | Online index without long lock |
 | ADD CONSTRAINT NOT VALID + VALIDATE | GA | Add FK/CHECK without long lock |
 | Partial / covering (INCLUDE) / GIN indexes | GA | Match to predicate |

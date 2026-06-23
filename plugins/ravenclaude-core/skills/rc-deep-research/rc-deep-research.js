@@ -329,14 +329,28 @@ function _trackLatency(latencyMs, dispatchCfg) {
     _latency.tripped = true;
     log(
       `[dispatch-eval] LATENCY CIRCUIT-BREAKER TRIPPED: rolling median ${median}ms > ${threshold}ms. ` +
-        `Session flipped to pass-through. (Emit evaluator-latency-trip event to hook-events.jsonl via shell.)`,
+        `Session flipped to pass-through. (Emitting evaluator-latency-trip to hook-events.jsonl.)`,
     );
-    // NOTE: Heimdall amber event emission requires _emit_hook_event from _emit-event.sh,
-    // which is shell-side only. A workflow cannot source shell functions directly.
-    // TODO: Emit via a fire-and-forget agent() call that runs the shell helper:
-    //   agent(`Run: source .../hooks/_emit-event.sh && _emit_hook_event evaluator-latency-trip ...`,
-    //         { _predispatch: 'skip' })
-    // This is marked TODO because the exact shell-sourcing path is substrate-specific.
+    // Surface the trip on the Heimdall perimeter panel. _emit_hook_event lives in
+    // the shell helper _emit-event.sh (a workflow cannot source shell functions),
+    // so emit via a fire-and-forget pass-through agent() shell call — the same
+    // pattern _appendAuditLog uses. _predispatch:"skip" keeps the dispatch-evaluator
+    // from re-reviewing this infra write; the call is unawaited and its rejection
+    // swallowed, so a telemetry failure can never affect the run. The shell resolves
+    // the helper via ${CLAUDE_PLUGIN_ROOT} (set for consumers) with a marketplace-
+    // relative fallback (this workflow runs from the marketplace repo root). Verdict
+    // is "warn" — a circuit-breaker trip is recoverable (Heimdall grey/advisory tier).
+    try {
+      const _trip = agent(
+        `Run this shell, ignoring any failure (telemetry is best-effort): ` +
+          `source "\${CLAUDE_PLUGIN_ROOT:-plugins/ravenclaude-core}/hooks/_emit-event.sh" 2>/dev/null && ` +
+          `_emit_hook_event rc-deep-research.js warn WebFetch dispatch-evaluator evaluator-latency-trip 0`,
+        { label: "rc-eval-latency-trip-emit", _predispatch: "skip" },
+      );
+      if (_trip && typeof _trip.catch === "function") _trip.catch(() => {});
+    } catch (_e) {
+      /* fire-and-forget: a telemetry emit must never break the workflow */
+    }
   }
 }
 
@@ -1023,6 +1037,12 @@ const USE_BATCH = runCfg.batch_verify && rankedClaims.length >= 10;
 if (USE_BATCH) log("batch_verify: enabled for " + rankedClaims.length + " claims");
 
 const claimTierAudit = [];
+// Actual count of verify agents dispatched, summed across claims (per-claim vote
+// fan-out can differ when verify_policy is non-uniform, and escalation fires one
+// extra). The stats below use this instead of `voted.length * VOTES_PER_CLAIM`,
+// which assumed a flat fan-out and never counted escalations. Baseline (uniform
+// policy, no escalation) yields the identical number, so the eval baseline holds.
+let verifyAgentsFired = 0;
 
 const voted = (
   await parallel(
@@ -1092,6 +1112,7 @@ const voted = (
             (survives ? "✓" : "✗"),
         );
 
+        verifyAgentsFired += voteCount + (escalated ? 1 : 0);
         // Per-claim audit row (gap-delta C4 / RM4).
         claimTierAudit.push({
           claim_idx: claimIdx,
@@ -1128,7 +1149,7 @@ if (runCfg.enabled && claimTierAudit.length > 0) {
   } catch {}
 }
 
-_phaseEnd("verify_default", rankedClaims.length * VOTES_PER_CLAIM);
+_phaseEnd("verify_default", verifyAgentsFired);
 const confirmed = voted.filter((c) => c.survives);
 const killed = voted.filter((c) => !c.survives);
 log(
@@ -1310,7 +1331,7 @@ if (!report) {
 if (RUN_ID) {
   const _evalStats = {
     subagent_tokens: 0,
-    agent_count: 1 + scope.angles.length + allSources.length + voted.length * VOTES_PER_CLAIM + 1,
+    agent_count: 1 + scope.angles.length + allSources.length + verifyAgentsFired + 1,
     duration_ms: _now() - _runStartedMs,
     confirmed_claim_count: confirmed.length,
     run_window: { started_ms: _runStartedMs, ended_ms: _now() },
@@ -1392,7 +1413,7 @@ return {
     // subagent_tokens is a PLACEHOLDER (0): the workflow cannot see per-agent token
     // usage; the grader fills it from ~/.claude transcripts, bucketed by per_phase.
     subagent_tokens: 0,
-    agent_count: 1 + scope.angles.length + allSources.length + voted.length * VOTES_PER_CLAIM + 1,
+    agent_count: 1 + scope.angles.length + allSources.length + verifyAgentsFired + 1,
     duration_ms: _now() - _runStartedMs,
     confirmed_claim_count: confirmed.length,
     run_window: { started_ms: _runStartedMs, ended_ms: _now() },
@@ -1407,7 +1428,7 @@ return {
     afterSynthesis: report.findings.length,
     urlDupes: dupes.length,
     budgetDropped: budgetDropped.length,
-    agentCalls: 1 + scope.angles.length + allSources.length + voted.length * VOTES_PER_CLAIM + 1,
+    agentCalls: 1 + scope.angles.length + allSources.length + verifyAgentsFired + 1,
   },
   run_config: {
     enabled: runCfg.enabled,

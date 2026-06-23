@@ -88,6 +88,11 @@ def cmd_nat_vs_endpoint(args: argparse.Namespace) -> int:
 
 
 def cmd_rightsize(args: argparse.Namespace) -> int:
+    # --hours default is resolved here, not at parser-build time: a global
+    # --hours-per-month override (applied in main() after parse_args) would
+    # otherwise never reach the rightsize default, which argparse freezes early.
+    hours = args.hours if args.hours is not None else HOURS_PER_MONTH
+    args.hours = hours
     current = args.current_hourly * args.current_count * args.hours
     proposed = args.proposed_hourly * args.proposed_count * args.hours
     monthly_delta = current - proposed
@@ -194,7 +199,12 @@ def build_parser() -> argparse.ArgumentParser:
     p_rs.add_argument(
         "--proposed-count", type=int, required=True, help="Proposed instance count."
     )
-    p_rs.add_argument("--hours", type=float, default=HOURS_PER_MONTH, help="Running hours/month.")
+    p_rs.add_argument(
+        "--hours",
+        type=float,
+        default=None,
+        help="Running hours/month (defaults to --hours-per-month).",
+    )
     p_rs.set_defaults(func=cmd_rightsize)
 
     p_cb = sub.add_parser(

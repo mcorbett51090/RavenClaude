@@ -18,7 +18,7 @@ fi
 if grep -nEi "(source_ranges.*0\\.0\\.0\\.0/0|0\\.0\\.0\\.0/0).*(22|3389|3306|5432)" "$file" >/dev/null 2>&1; then
   findings+=("Firewall open to 0.0.0.0/0 on an admin/DB port — target by tag/service-account and restrict the range.")
 fi
-if grep -nEi "(external_ip|nat_ip|access_config)\\b(?![\\s\\S]{0,80}#\\s*public)" "$file" >/dev/null 2>&1; then
+if grep -Pzi "(external_ip|nat_ip|access_config)\\b(?![\\s\\S]{0,80}#\\s*public)" "$file" >/dev/null 2>&1; then
   findings+=("VM external IP configured — confirm public reachability is required; prefer Private Google Access + Cloud NAT.")
 fi
 

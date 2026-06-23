@@ -136,6 +136,9 @@ def cmd_samplesize(args: argparse.Namespace) -> int:
         if args.baseline is None or args.mde is None:
             print("error: --kind proportion needs --baseline and --mde", file=sys.stderr)
             return 2
+        if args.mde == 0:
+            print("error: --mde must be non-zero (a zero effect needs an infinite sample)", file=sys.stderr)
+            return 2
         p1 = args.baseline
         p2 = args.baseline + args.mde
         _check_unit("--baseline", p1)

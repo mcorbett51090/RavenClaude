@@ -46,7 +46,7 @@ Fill one row per internal function. Add or remove rows for your vendor; the colu
 
 ## References (existing plugin artifacts)
 
-- [`../agents/partner-success-manager.md`](../agents/partner-success-manager.md) — the PSM agent that *uses* this map in routing decisions
+- [`../agents/edtech-partner-success-manager.md`](../agents/edtech-partner-success-manager.md) — the PSM agent that *uses* this map in routing decisions
 - [`../templates/escalation-memo.md`](../templates/escalation-memo.md) — the artifact when escalation moves past the per-function owner above
 - [`../knowledge/k12-psm-operating-cadence.md`](../knowledge/k12-psm-operating-cadence.md) — *when* in the week / quarter / school year these handoffs typically fire
 - [`../knowledge/parent-comms-jurisdictional-bear-traps.md`](../knowledge/parent-comms-jurisdictional-bear-traps.md) — the compliance-triggers row's source-of-truth

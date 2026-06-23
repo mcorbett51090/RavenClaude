@@ -77,6 +77,24 @@ SKILLS_RE = re.compile(r"(\d+)\s+skills", re.IGNORECASE)
 # claim; a description with no agent-count claim is simply not checked.
 AGENTS_RE = re.compile(r"(\d+)\s+(?:specialist\s+|strategist\s+)?agents?\b", re.IGNORECASE)
 README_COUNT_RE = re.compile(r"ships\s+\*\*(\d+)\s+plugins\*\*", re.IGNORECASE)
+# Count-drift family (the recurring hand-maintained-prose bug — README once said
+# "99 plugins" / "98 of the 99" / core "20 skills, 5 hooks" while reality was
+# 101 / 100-of-101 / 43-skills-16-hooks; no gate caught it). These anchor on
+# robustly-unique surfaces so they can't false-positive on subset counts:
+#   - every "<N> plugins" claim in README.md must equal the true plugin count
+#   - "<M> of the <N> plugins" — M must equal the require-core count
+#   - the core README "What's inside" table rows (| Skills | N |, etc.)
+README_PLUGINS_RE = re.compile(r"(\d+)\s+plugins\b", re.IGNORECASE)
+README_REQUIRES_RE = re.compile(r"(\d+)\s+of\s+the\s+\d+\s+plugins\b", re.IGNORECASE)
+CORE_README = PLUGINS / "ravenclaude-core" / "README.md"
+CORE_HOOKS_JSON = PLUGINS / "ravenclaude-core" / "hooks" / "hooks.json"
+CORE_RULES_DIR = PLUGINS / "ravenclaude-core" / "rules"
+# "| <Label> | <N> |" table-row matchers (the core README "What's inside" table).
+_CORE_TABLE_RES = {
+    "Skills": re.compile(r"(\|\s*Skills\s*\|\s*)(\d+)(\s*\|)"),
+    "Hooks": re.compile(r"(\|\s*Hooks\s*\|\s*)(\d+)(\s*\|)"),
+    "Rule-sets": re.compile(r"(\|\s*Rule-sets\s*\|\s*)(\d+)(\s*\|)"),
+}
 MAX_DESCRIPTION_CHARS = 1024
 
 failures = []
@@ -95,6 +113,44 @@ def actual_agent_count(plugin_dir: Path) -> int:
     if not agents.is_dir():
         return 0
     return sum(1 for e in agents.glob("*.md") if e.is_file())
+
+
+def actual_requires_core_count() -> int:
+    """Plugins whose plugin.json declares requires.plugins referencing ravenclaude-core."""
+    n = 0
+    for plugin_dir in _iter_plugin_dirs():
+        manifest_path = plugin_dir / ".claude-plugin" / "plugin.json"
+        if not manifest_path.is_file():
+            continue
+        try:
+            reqs = json.loads(manifest_path.read_text()).get("requires", {}).get("plugins", [])
+        except (json.JSONDecodeError, OSError):
+            continue
+        if any("ravenclaude-core" in str(r) for r in reqs):
+            n += 1
+    return n
+
+
+def actual_core_hook_count() -> int:
+    """Distinct hook commands registered in ravenclaude-core/hooks/hooks.json."""
+    if not CORE_HOOKS_JSON.is_file():
+        return 0
+    try:
+        data = json.loads(CORE_HOOKS_JSON.read_text())
+    except (json.JSONDecodeError, OSError):
+        return 0
+    cmds = set()
+    for groups in data.get("hooks", {}).values():
+        for grp in groups:
+            for h in grp.get("hooks", []):
+                cmd = h.get("command", "")
+                if cmd:
+                    cmds.add(cmd)
+    return len(cmds)
+
+
+def actual_core_rule_count() -> int:
+    return sum(1 for e in CORE_RULES_DIR.glob("*.md") if e.is_file()) if CORE_RULES_DIR.is_dir() else 0
 
 
 def first_skill_claim(text: str):
@@ -154,6 +210,49 @@ def check_readme_plugin_count(plugin_names: list[str]) -> None:
         )
 
 
+def check_count_drift_family(plugin_names: list[str]) -> None:
+    """Check 4c (counts) — the recurring hand-maintained-prose drift surfaces.
+
+    Robustly anchored so they cannot false-positive on a subset count:
+      - every "<N> plugins" claim in README.md == the true plugin count
+      - "<M> of the <N> plugins" — M == the require-core count
+      - core README "What's inside" table rows == the core actuals
+    """
+    actual_plugins = len(plugin_names)
+    if README.is_file():
+        readme = README.read_text()
+        for m in README_PLUGINS_RE.finditer(readme):
+            if int(m.group(1)) != actual_plugins:
+                failures.append(
+                    f"README.md: a '{m.group(1)} plugins' claim disagrees with the actual "
+                    f"plugin count {actual_plugins} — update the prose count"
+                )
+                break
+        req = README_REQUIRES_RE.search(readme)
+        if req is not None:
+            actual_req = actual_requires_core_count()
+            if int(req.group(1)) != actual_req:
+                failures.append(
+                    f"README.md: claims '{req.group(1)} of the … plugins' declare requires "
+                    f"but {actual_req} of {actual_plugins} plugin.json files reference "
+                    f"ravenclaude-core — update the count"
+                )
+
+    if CORE_README.is_file():
+        core = CORE_README.read_text()
+        for label, regex, actual in (
+            ("Skills", _CORE_TABLE_RES["Skills"], actual_skill_count(PLUGINS / "ravenclaude-core")),
+            ("Hooks", _CORE_TABLE_RES["Hooks"], actual_core_hook_count()),
+            ("Rule-sets", _CORE_TABLE_RES["Rule-sets"], actual_core_rule_count()),
+        ):
+            m = regex.search(core)
+            if m is not None and int(m.group(2)) != actual:
+                failures.append(
+                    f"ravenclaude-core/README.md: 'What's inside' table says "
+                    f"{label} = {m.group(2)} but the actual count is {actual}"
+                )
+
+
 def _iter_plugin_dirs() -> list[Path]:
     return sorted(p for p in PLUGINS.iterdir() if p.is_dir())
 
@@ -210,6 +309,9 @@ def collect_counts() -> None:
 
     # Check 4b — README plugin count.
     check_readme_plugin_count(plugin_names)
+
+    # Check 4c — the count-drift family (README plugin/requires counts + core table).
+    check_count_drift_family(plugin_names)
 
     for plugin_dir in plugin_dirs:
         name = plugin_dir.name
@@ -306,6 +408,41 @@ def fix_counts() -> list[str]:
             fixed = raw[: m.start(1)] + str(len(plugin_names)) + raw[m.end(1) :]
             README.write_text(fixed)
             changes.append(f"README.md 'ships **N plugins**' -> {len(plugin_names)}")
+
+    # 4c — count-drift family: every "<N> plugins" claim + "<M> of the <N>" + core table.
+    actual_plugins = len(plugin_names)
+    if README.is_file():
+        raw = README.read_text()
+        # All "<N> plugins" → actual_plugins (digit-only, formatting-preserving).
+        new_raw, n = README_PLUGINS_RE.subn(
+            lambda mm: mm.group(0)[: mm.start(1) - mm.start(0)] + str(actual_plugins)
+            + mm.group(0)[mm.end(1) - mm.start(0) :],
+            raw,
+        )
+        if new_raw != raw:
+            README.write_text(new_raw)
+            changes.append(f"README.md '<N> plugins' claims -> {actual_plugins}")
+            raw = new_raw
+        # "<M> of the <N> plugins" → M = require-core count.
+        actual_req = actual_requires_core_count()
+        rm = README_REQUIRES_RE.search(raw)
+        if rm and int(rm.group(1)) != actual_req:
+            README.write_text(raw[: rm.start(1)] + str(actual_req) + raw[rm.end(1) :])
+            changes.append(f"README.md '<M> of the N plugins' -> {actual_req}")
+
+    if CORE_README.is_file():
+        core = CORE_README.read_text()
+        for label, regex, actual in (
+            ("Skills", _CORE_TABLE_RES["Skills"], actual_skill_count(PLUGINS / "ravenclaude-core")),
+            ("Hooks", _CORE_TABLE_RES["Hooks"], actual_core_hook_count()),
+            ("Rule-sets", _CORE_TABLE_RES["Rule-sets"], actual_core_rule_count()),
+        ):
+            m = regex.search(core)
+            if m and int(m.group(2)) != actual:
+                core = core[: m.start(2)] + str(actual) + core[m.end(2) :]
+                changes.append(f"ravenclaude-core/README.md table {label} -> {actual}")
+        if core != CORE_README.read_text():
+            CORE_README.write_text(core)
 
     for plugin_dir in plugin_dirs:
         name = plugin_dir.name

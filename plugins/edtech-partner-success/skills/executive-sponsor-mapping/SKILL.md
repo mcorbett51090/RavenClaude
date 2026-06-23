@@ -1,11 +1,11 @@
 ---
 name: executive-sponsor-mapping
-description: Map the partner's buying committee — economic buyer, champion, technical buyer / IT, user-champion, blocker, executive sponsor — across segments (K-12 / higher-ed / corp L&D). Includes the multi-thread coverage gap visualization, the "ghost sponsor" detection pattern, sponsor-change protocols, and integration with the durable partner profile. Reach for this skill on a new-partner kick-off, before a renewal, when a critical contact leaves, or when QBRs are well-attended but decisions aren't happening. Used by `partner-profile-curator` (primary) + `partner-success-manager`.
+description: Map the partner's buying committee — economic buyer, champion, technical buyer / IT, user-champion, blocker, executive sponsor — across segments (K-12 / higher-ed / corp L&D). Includes the multi-thread coverage gap visualization, the "ghost sponsor" detection pattern, sponsor-change protocols, and integration with the durable partner profile. Reach for this skill on a new-partner kick-off, before a renewal, when a critical contact leaves, or when QBRs are well-attended but decisions aren't happening. Used by `partner-profile-curator` (primary) + `edtech-partner-success-manager`.
 ---
 
 # Skill: executive-sponsor-mapping
 
-> **Invoked by:** `partner-profile-curator` (primary — when building or refreshing the stakeholder section of the durable partner profile), `partner-success-manager` (when running a touchpoint cadence that needs sponsor-coverage diagnosis), `success-playbook-designer` (when a renewal, expansion, or recovery play needs the sponsor map as input).
+> **Invoked by:** `partner-profile-curator` (primary — when building or refreshing the stakeholder section of the durable partner profile), `edtech-partner-success-manager` (when running a touchpoint cadence that needs sponsor-coverage diagnosis), `success-playbook-designer` (when a renewal, expansion, or recovery play needs the sponsor map as input).
 >
 > **When to invoke:** new-partner kick-off; pre-renewal (T-180 in the renewal play); when a critical contact leaves the partner organization; when QBRs are well-attended but decisions aren't happening; when a "ghost sponsor" pattern is suspected; quarterly sponsor-map refresh as standard hygiene.
 >

@@ -4,7 +4,7 @@ description: Use this agent for Quarterly Business Review materials end-to-end �
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [psm, consultant]
-works_with: [learning-analytics-analyst, partner-success-manager, ferpa-comms-translator]
+works_with: [learning-analytics-analyst, edtech-partner-success-manager, ferpa-comms-translator]
 scenarios:
   - intent: "Prep QBR materials end-to-end one week out"
     trigger_phrase: "QBR for partner <X> is in a week — prep the deck + talk track"
@@ -21,7 +21,7 @@ scenarios:
 quickstart:
   - "Trigger phrase: 'QBR prep for <partner>' OR 'Renewal QBR for <partner>' OR 'Post-QBR tracker'"
   - "Expected output: end-to-end QBR artifact set — never just a deck without commitments tracker"
-  - "Common follow-up: learning-analytics-analyst for the data layer; ferpa-comms-translator for non-English-primary parent-leadership audiences; partner-success-manager to execute commitments"
+  - "Common follow-up: learning-analytics-analyst for the data layer; ferpa-comms-translator for non-English-primary parent-leadership audiences; edtech-partner-success-manager to execute commitments"
 ---
 
 # Role: QBR Composer
