@@ -170,9 +170,14 @@ PY
       bash plugins/ravenclaude-core/hooks/tests/test-gate105-heimdall-authored-content.sh
       exit $?
       ;;
+    110)
+      echo "── Gate 110: streams store + classifier (determinism / no-egress / accuracy) ──"
+      python3 scripts/check-streams-classify.py
+      exit $?
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -3489,6 +3494,17 @@ echo "── Gate 80: ravenclaude status launcher self-heal ──────�
 # `--fix` self-heal stays covered on every run.
 rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate80-status-launcher-check.sh >/dev/null 2>&1 || rc=$?
 gate "ravenclaude status launcher check (detect MISSING + --fix installs + teeth)" must_pass "$rc"
+
+echo
+echo "── Gate 110: Agentic Work-Streams store + classifier (P0) ─────────────────"
+# The two never-regress invariants (no-egress + determinism) plus classify-accuracy
+# on a labeled fixture, all stdlib-only / CI-safe. The bidirectional teeth: the
+# --must-fail-egress mode disables the no-egress tripwire and asserts the prompt
+# phrase THEN leaks (so a passing default run is not vacuous).
+rc=0; python3 scripts/check-streams-classify.py >/dev/null 2>&1 || rc=$?
+gate "streams: determinism + no-egress + classify-accuracy" must_pass "$rc"
+rc=0; python3 scripts/check-streams-classify.py --must-fail-egress >/dev/null 2>&1 || rc=$?
+gate "streams: no-egress tripwire has teeth (leak detected when disabled)" must_pass "$rc"
 
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"
