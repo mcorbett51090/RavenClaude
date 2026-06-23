@@ -175,9 +175,14 @@ PY
       python3 scripts/check-streams-classify.py
       exit $?
       ;;
+    111)
+      echo "── Gate 111: streams CLI + banner + session-close (anti-traversal / read-only) ──"
+      python3 scripts/check-streams-cli.py
+      exit $?
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -3505,6 +3510,17 @@ rc=0; python3 scripts/check-streams-classify.py >/dev/null 2>&1 || rc=$?
 gate "streams: determinism + no-egress + classify-accuracy" must_pass "$rc"
 rc=0; python3 scripts/check-streams-classify.py --must-fail-egress >/dev/null 2>&1 || rc=$?
 gate "streams: no-egress tripwire has teeth (leak detected when disabled)" must_pass "$rc"
+
+echo
+echo "── Gate 111: Agentic Work-Streams CLI + banner + session-close (P1) ───────"
+# The `rc streams` CLI slug anti-traversal, the SessionStart banner's read-only
+# (counts/slug-only) stream summary, and the Stop session-close hook's fail-safe +
+# derived-only write. Bidirectional teeth: --must-fail-traversal disables the slug
+# guard and asserts a crafted id THEN escapes the streams root.
+rc=0; python3 scripts/check-streams-cli.py >/dev/null 2>&1 || rc=$?
+gate "streams CLI: anti-traversal + read-only summary + session-close fail-safe" must_pass "$rc"
+rc=0; python3 scripts/check-streams-cli.py --must-fail-traversal >/dev/null 2>&1 || rc=$?
+gate "streams CLI: anti-traversal guard has teeth (escape when disabled)" must_pass "$rc"
 
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"

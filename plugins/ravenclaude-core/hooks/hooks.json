@@ -105,6 +105,11 @@
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/remind-tests.sh",
             "comment": "If any source files changed this session, remind the Team Lead to run the full test suite before reporting done. Advisory fallback when no definition_of_done.cmd is configured (dod-gate.sh no-ops in that case)."
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/stream-session-close.sh",
+            "comment": "Agentic Work-Streams (P1). On session end, if a work-stream is active in .ravenclaude/streams/, append ONE derived session_closed event + refresh that stream's state.md resume snapshot (crash-resilience). DERIVED-ONLY (session_id FK + counts; never prompt text). Fail-safe: no python3 / no active stream / any error -> silent no-op, never blocks the stop."
           }
         ]
       }

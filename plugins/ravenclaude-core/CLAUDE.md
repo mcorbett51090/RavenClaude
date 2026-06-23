@@ -1039,3 +1039,26 @@ The flow (all three pieces live at the **repo root**, NOT inside the plugin — 
 - **Spam cap** — >20 open external submissions → new ones are closed "queue full".
 
 **Migration:** none for consumers — this is repo-side intake infrastructure (no plugin file changes); nothing in an installed plugin changes on `/plugin marketplace update`. *(Phase 2 — the minimal safe run-context bundle — and Phase 3 — session-isolation fix — are separate tracks per the FORGE plan and are NOT part of this change.)*
+
+## Agentic Work-Streams — P0 store + classifier (added 2026-06-23, v0.162.0) + P1 CLI/banner/session-close (v0.163.0)
+
+A portable way to organize streams of agentic AI work so prompts target the right logical workstream and each stream's work is trackable + crash-resumable. Built per [`docs/plans/2026-06-23-agentic-work-streams/plan.md`](../../docs/plans/2026-06-23-agentic-work-streams/plan.md). A stream is a **named logical workstream** under the consumer's `.ravenclaude/streams/` (portable, spans branches/sessions). Stream names are **example data only** — core stays domain-neutral.
+
+**The store (P0).** [`scripts/stream-ops.py`](scripts/stream-ops.py) owns `.ravenclaude/streams/`: `registry.json` (small/hot — the index + per-stream EMA centroid), per-stream `history.jsonl` (append-only/cold), `state.md` (resume snapshot), and an `active-stream` pointer. It does **not** duplicate the `runs/` substrate — each history event carries a `session_id` **FK** back to `runs/<id>/`.
+
+**The classifier (P0).** [`scripts/stream-classify.py`](scripts/stream-classify.py) — pure, **deterministic, stdlib-only** TF-IDF/cosine over stemmed tokens, **no new dependencies**. The optional `claude -p` LLM-assist is a separate off-by-default posture toggle (P2+), never called here. `update_centroid` is a small-α EMA (centroid-poisoning mitigation).
+
+**The two never-regress invariants (gated):**
+1. **No-egress (load-bearing).** The prompt NEVER egresses. `derive_features()` returns only DERIVED labels/terms/word-count; `append_event()` **refuses** a raw `prompt`/`text`/`content`/`command` field (`ValueError`). **Gate 110** greps a written history for a distinctive prompt phrase → must be absent, with a `--must-fail-egress` teeth half that disables the tripwire and asserts the phrase then leaks.
+2. **Hook fail-open / fail-safe.** The Stop session-close hook (and every reader) no-ops silently on any error and never blocks. (The P4 per-prompt hook — opt-in, not yet built — is the fail-open classifier path.)
+
+**The P1 surface (delivers MVP value with zero prompt-hook):**
+- **`rc streams` CLI** ([`bin/rc`](bin/rc) `streams` verb): `list` / `show <id>` / `status` / `create <name>` / `set-active <id>` / `get-active`. Slug anti-traversal (`is_safe_slug` + post-resolve containment); a traversal id exits cleanly (no traceback).
+- **SessionStart banner line.** [`scripts/capability-orientation.py`](scripts/capability-orientation.py) `summarize_streams()` surfaces the active stream + count — **counts/slug only, never history content** (Gate 19's "banner leaks no value" + the no-egress invariant both hold by construction). States the **sticky** rule: prompts are attributed to the active stream; the classifier does not re-run while one is active.
+- **Stop session-close event.** [`hooks/stream-session-close.sh`](hooks/stream-session-close.sh) — on session end, if a stream is active, appends ONE derived `session_closed` event + refreshes `state.md` (crash-resilience). DERIVED-ONLY (session_id FK + counts), fail-safe, never blocks. Wired in `hooks.json` (Stop) + the dev-mirror `.claude/settings.json`.
+
+**Gates:** **110** (P0 — determinism + no-egress + classify-accuracy on a labeled fixture, bidirectional) and **111** (P1 — slug anti-traversal + read-only banner summary + session-close fail-safe/no-egress, bidirectional). Both in `audit-gates.sh` + the `--check` dispatcher.
+
+**Tiebreak (locked):** session-boundary classification first (P2 wires SessionStart classify); per-prompt hook is opt-in (P4). **Always sticky** — do not re-classify while a stream is active.
+
+**Migration:** none — additive libs + a new CLI verb + a fail-safe Stop hook + a banner line that only appears when `.ravenclaude/streams/` has streams. Nothing in a consumer's installed plugin behaves differently on `/plugin marketplace update` until they create a stream.
