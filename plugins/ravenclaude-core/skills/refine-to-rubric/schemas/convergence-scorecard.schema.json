@@ -1,0 +1,156 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://ravenclaude/convergence/convergence-scorecard.schema.json",
+  "title": "Convergence scorecard",
+  "description": "The per-iteration record the refine-to-rubric loop emits, plus the loop-level run envelope. A scorecard carries ONLY derived labels (numeric scores, fixed-vocabulary finding severities, dimension ids, booleans) — NEVER a raw artifact echo or raw model prose. terminate() consumes the scorecard history and emits a deterministic verdict; the engine NEVER claims 'perfect'.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "config", "iterations"],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "config": { "$ref": "#/definitions/config" },
+    "iterations": {
+      "type": "array",
+      "description": "One scorecard per loop iteration, in order (iteration 0 = the initial artifact).",
+      "items": { "$ref": "#/definitions/iteration" }
+    },
+    "verdict": { "$ref": "#/definitions/verdict" }
+  },
+  "definitions": {
+    "config": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "The deterministic stop-policy knobs. All defaults live in converge.py; a scorecard records the effective values so a verdict is reproducible.",
+      "properties": {
+        "iteration_cap": {
+          "type": "integer",
+          "description": "Hard cap on iterations (default ~6). HARD stop.",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "model_call_budget": {
+          "type": "integer",
+          "description": "Hard cap on cumulative model calls across the run (default ~12). HARD stop.",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "score_floor": {
+          "type": "number",
+          "description": "Minimum weighted score [0,1] required to declare rubric-pass. Below floor at plateau escalates to human.",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "epsilon": {
+          "type": "number",
+          "description": "Plateau threshold: if |score - previous_best| < epsilon for the configured patience, the loop has plateaued.",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "plateau_patience": {
+          "type": "integer",
+          "description": "Number of consecutive sub-epsilon iterations that constitutes a plateau.",
+          "minimum": 1,
+          "maximum": 20
+        }
+      }
+    },
+    "iteration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["index", "score", "scores", "findings", "hard_gates", "model_calls"],
+      "properties": {
+        "index": {
+          "type": "integer",
+          "description": "0-based iteration number.",
+          "minimum": 0
+        },
+        "score": {
+          "type": "number",
+          "description": "The weighted_score() over verified dimensions for this iteration, in [0,1].",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "scores": {
+          "type": "object",
+          "description": "Per-dimension raw scores in [0,1], keyed by dimension id. Derived/unverified dims may appear but are excluded from the weighted score.",
+          "additionalProperties": { "type": "number", "minimum": 0, "maximum": 1 }
+        },
+        "findings": {
+          "type": "array",
+          "description": "Findings for this iteration. Severity vocabulary is fixed; a finding carries a dimension id + severity, never raw model prose as the authoritative field.",
+          "items": { "$ref": "#/definitions/finding" }
+        },
+        "hard_gates": {
+          "type": "object",
+          "description": "Objective hard-gate results keyed by dimension id. true = green (passed), false = red (failed/blocking). Evaluated BEFORE any model judge.",
+          "additionalProperties": { "type": "boolean" }
+        },
+        "model_calls": {
+          "type": "integer",
+          "description": "Model calls consumed by THIS iteration (judge + refine). 0 when the objective gates short-circuited to refine.",
+          "minimum": 0
+        }
+      }
+    },
+    "finding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["dimension", "severity"],
+      "properties": {
+        "dimension": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$"
+        },
+        "severity": {
+          "type": "string",
+          "description": "Fixed severity vocabulary (borrowed from the FORGE P0/P1 rubric). 'critical' and 'high' are the NEW-finding tripwire for terminate().",
+          "enum": ["critical", "high", "medium", "low", "info"]
+        },
+        "note": {
+          "type": "string",
+          "description": "Optional short derived label. NOT authoritative; never a raw artifact echo.",
+          "maxLength": 200
+        }
+      }
+    },
+    "verdict": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "best_index", "best_score"],
+      "properties": {
+        "status": {
+          "type": "string",
+          "description": "The deterministic terminate() verdict. NEVER 'perfect'.",
+          "enum": ["rubric-pass", "capped", "plateaued", "budget-exhausted"]
+        },
+        "best_index": {
+          "type": "integer",
+          "description": "The argmax iteration index emitted (keep-best) — never blindly the last.",
+          "minimum": 0
+        },
+        "best_score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "reason": {
+          "type": "string",
+          "description": "Deterministic, fixed-vocabulary reason string for the stop.",
+          "maxLength": 200
+        },
+        "residual_gaps": {
+          "type": "array",
+          "description": "Honest list of dimensions not fully satisfied at the best iteration, plus every unverified derived dimension. The Last-Mile list — the engine reports what it did NOT achieve.",
+          "items": { "type": "string", "maxLength": 200 }
+        },
+        "escalate_to_human": {
+          "type": "boolean",
+          "description": "True when the loop plateaued below the score floor (cannot reach the bar) — surfaced for human judgement rather than over-claimed."
+        }
+      }
+    }
+  }
+}

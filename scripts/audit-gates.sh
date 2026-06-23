@@ -195,9 +195,14 @@ PY
       python3 scripts/check-streams-prompt-hook.py
       exit $?
       ;;
+    115)
+      echo "── Gate 115: convergence engine deterministic core (terminate / keep-best / stop cases) ──"
+      python3 scripts/check-converge.py
+      exit $?
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -3574,6 +3579,21 @@ rc=0; python3 scripts/check-streams-prompt-hook.py >/dev/null 2>&1 || rc=$?
 gate "streams per-prompt hook: fail-open + no-egress + opt-in + latency + parity" must_pass "$rc"
 rc=0; python3 scripts/check-streams-prompt-hook.py --must-fail-failopen >/dev/null 2>&1 || rc=$?
 gate "streams per-prompt hook: fail-open has teeth (nonzero when exit-0 stripped)" must_pass "$rc"
+
+echo
+echo "── Gate 115: Convergence Engine deterministic core (P0) ──────────────────"
+# The MODEL-FREE heart of refine-to-rubric: converge.terminate() / weighted_score()
+# / keep_best(). The default run proves all 7 stop cases resolve correctly
+# (converged→rubric-pass, capped, budget-exhausted, regression-revert keeps-best,
+# plateau-below-floor→escalate, new-high-finding blocks, red-hard-gate blocks),
+# that weighted_score ignores derived/unverified dims, and that the verdict
+# vocabulary never contains "perfect". Bidirectional teeth: --must-fail-redgate
+# disables the red-hard-gate guard and asserts a red-gated scorecard THEN wrongly
+# converges (so a passing default run is not vacuous).
+rc=0; python3 scripts/check-converge.py >/dev/null 2>&1 || rc=$?
+gate "converge core: 7 stop cases + keep-best + no-'perfect' verdict vocab" must_pass "$rc"
+rc=0; python3 scripts/check-converge.py --must-fail-redgate >/dev/null 2>&1 || rc=$?
+gate "converge core: red-hard-gate guard has teeth (wrongly converges when disabled)" must_pass "$rc"
 
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"
