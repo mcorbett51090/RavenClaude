@@ -142,7 +142,8 @@
           {
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/capability-orientation.sh",
-            "comment": "Injects a session-start capability banner via hookSpecificOutput.additionalContext so the agent opens every session aware of the project's external surface, its detected auth (env-var NAMES/presence only — never values), and its effective .claude/settings.json permissions. Cheap + local (no network, no CLI subprocesses); points to the environment-discovery skill for deep enumeration. Fail-silent; never blocks (SessionStart hooks cannot). Salience boost for the Capability Grounding Protocol, not enforcement."
+            "timeout": 10,
+            "comment": "Injects a session-start capability banner via hookSpecificOutput.additionalContext so the agent opens every session aware of the project's external surface, its detected auth (env-var NAMES/presence only — never values), and its effective .claude/settings.json permissions. Local + cheap; the ONLY subprocess is a bounded, read-only git read (branch + recent commit subjects) used by the work-streams classifier, and only when .ravenclaude/streams/ has streams + none is active. A 10s timeout bounds any pathological config/git read (defense-in-depth). Points to the environment-discovery skill for deep enumeration. Fail-silent; never blocks (SessionStart hooks cannot). Salience boost for the Capability Grounding Protocol, not enforcement."
           }
         ]
       }
