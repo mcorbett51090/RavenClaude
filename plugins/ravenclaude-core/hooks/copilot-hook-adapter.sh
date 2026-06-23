@@ -18,7 +18,7 @@
 #
 # Usage (from a Copilot hooks.json `bash` entry):
 #   copilot-hook-adapter.sh <mode> <real-hook> [real-hook-args...]
-#     mode = bash-pretool | file-pretool | sessionstart | posttool | stop
+#     mode = bash-pretool | file-pretool | sessionstart | posttool | stop | userpromptsubmit
 #
 # Fail-open is Copilot's default on hook error; for the PreToolUse command hooks
 # we translate a Claude `exit 2` (block) into a Copilot `deny` so the block still
@@ -154,6 +154,18 @@ case "$mode" in
     fp="$(printf '%s' "$payload" | jq -r \
       '(.toolArgs // "{}") | (try fromjson catch {}) | (.file_path // .path // .filePath // empty)' 2>/dev/null)"
     CLAUDE_PROJECT_DIR="$cw" bash "$real" "$fp" >/dev/null 2>&1 || true
+    exit 0
+    ;;
+  userpromptsubmit)
+    # UserPromptSubmit hooks (stream-prompt-attribute) — FAIL-OPEN, never block. Reshape
+    # Copilot's userPromptSubmitted payload to the Claude stdin {prompt, session_id, cwd}
+    # and run the hook; it derives + attributes and emits nothing. Output is ignored
+    # (the hook never alters the prompt), so a failure here can never stall a prompt.
+    claude_stdin="$(printf '%s' "$payload" | jq -c \
+      '{prompt: (.prompt // .promptText // .userPrompt // ""),
+        cwd: (.cwd // .workspaceRoot // "."),
+        session_id: (.sessionId // .session_id // "")}' 2>/dev/null)"
+    printf '%s' "$claude_stdin" | CLAUDE_PROJECT_DIR="$cw" bash "$real" "$@" >/dev/null 2>&1 || true
     exit 0
     ;;
   stop)
