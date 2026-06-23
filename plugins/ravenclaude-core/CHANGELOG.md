@@ -2,6 +2,21 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.161.4 — 2026-06-23
+
+### Fixed (residual repo-review fixes not already on main)
+
+A 2026-06-19 repo review surfaced ten fixes; six were independently landed on `main` via the parallel #449 work (option-polarity guard, `archive-branch` base-branch resolution, the two-panel lens-key fix, the stale feedback-report regen, etc.). These four were **not** on `main` and are landed here:
+
+- **`guard-web-access.sh` consent ordering (P2).** The first-use "ask" for a YAML-whitelisted domain wrote its per-session "seen" marker **before** the user answered, so a DENIED first fetch silently auto-allowed on retry. Consent is now recorded by a **new PostToolUse(WebFetch) hook, [`mark-web-domain-seen.sh`](hooks/mark-web-domain-seen.sh)**, which fires only after a fetch proceeds; a denied first fetch re-prompts. Wired in `hooks/hooks.json` + the dev-mirror `.claude/settings.json`. (Hook count 16 → 17.)
+- **Engine-level deterministic high-blast floor in `thing-decide.py` (P2).** `decide()` now screens the decision question/context against a destructive vocabulary (`_screen_high_blast`, mirroring `route-decision-review.sh` §3) and forces `defer`, so "high-blast never auto-resolves" no longer depends on the caller's flag or an LLM seat. Can only **add** a defer — purely fail-safe.
+- **`route-decision-review.sh` nested `decision_review` form (P3).** The hook now parses the nested `decision_review:\n  mode: binding` form (the engine already accepted it), not just the flat form — and its high-blast heuristic gained `force-with-lease`/`truncate`/`wipe`/`revoke`/`purge` (word-anchored `drop`).
+- **`rc-deep-research.js` latency-trip event (P3).** The dispatch-evaluator latency circuit-breaker now surfaces its trip on Heimdall via a fire-and-forget `agent()` emit (the documented TODO), applied identically across all three byte-identical copies (the reference + both mirrors). Unawaited + rejection-swallowed, so a telemetry failure can never affect the run.
+
+### Notes
+
+- **Migration:** none — the web-access fix only makes first-use confirmation *stricter* (a denied domain re-prompts) and adds an opt-in PostToolUse hook; the high-blast floor only adds defers under the opt-in `decision_review` posture; the nested-parse and latency-event changes alter no consumer-facing schema. Gate 70's web-access subtest was updated to the corrected consent-ordering contract (+ a teeth subtest proving a no-consent retry re-asks). All audit-gates pass.
+
 ## 0.161.1 — 2026-06-16
 
 ### Fixed

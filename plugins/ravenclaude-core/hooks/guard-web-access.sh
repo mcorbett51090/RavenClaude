@@ -139,8 +139,9 @@ PY
   seen_file="$seen_dir/$dom_slug"
 
   if [ ! -f "$seen_file" ]; then
-    mkdir -p "$seen_dir" 2>/dev/null || true
-    touch "$seen_file" 2>/dev/null || true
+    # Do NOT mark the domain seen here — consent is recorded by the PostToolUse
+    # hook (mark-web-domain-seen.sh) only after the fetch actually proceeds, so a
+    # denied first fetch re-prompts instead of silently auto-allowing on retry.
     reason="First access this session to YAML-whitelisted domain '$host'. The domain is in .ravenclaude/web-access.yaml 'allow:' — allow this fetch (and any subsequent ones to $host this session)?"
     if command -v jq >/dev/null 2>&1; then
       jq -cn --arg r "$reason" '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"ask",permissionDecisionReason:$r}}'

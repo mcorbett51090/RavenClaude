@@ -24,7 +24,7 @@ This is the prerequisite plugin — domain plugins (`power-platform`, `finance`,
 |-----------|-------|-------|
 | Specialist agents | 14 | [`agents/`](agents/) |
 | Skills | 43 | [`skills/`](skills/) |
-| Hooks | 16 | [`hooks/`](hooks/) |
+| Hooks | 17 | [`hooks/`](hooks/) |
 | Rule-sets | 5 | [`rules/`](rules/) |
 | Slash commands | 4 (`/init-agent-ready`, `/wrap`, `/set-posture`, `/dashboard`) | [`commands/`](commands/) |
 | Knowledge files | see [`knowledge/`](knowledge/) | [`knowledge/`](knowledge/) |
