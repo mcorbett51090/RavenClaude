@@ -1,0 +1,29 @@
+{
+  "_comment": "Labeled fixture for Gate 110 (Agentic Work-Streams classify-accuracy). `train` builds each stream's centroid via update_centroid; `eval` is a held-out set of {text, expect} the classifier must route to the right stream. `egress_phrase` is a distinctive multi-word phrase the no-egress gate writes through derive_features+append_event and then greps the stored history for — it MUST be absent. Stream names here are EXAMPLE DATA ONLY (the core plugin stays domain-neutral).",
+  "train": {
+    "billing": [
+      "fix the billing invoice payment subscription proration logic",
+      "billing payment refund reconciliation ledger dunning cycle",
+      "subscription plan pricing proration mid cycle change invoice"
+    ],
+    "auth": [
+      "add oauth login session token authentication provider wiring",
+      "auth login logout session cookie token refresh rotation csrf",
+      "protect the api with jwt verification issuer audience signature"
+    ],
+    "dashboard": [
+      "build the analytics dashboard chart widget panel layout grid",
+      "dashboard tab render card panel observe metric visualization",
+      "add a chart panel to the dashboard with a filter and a legend"
+    ]
+  },
+  "eval": [
+    { "text": "the billing payment invoice needs a refund processed", "expect": "billing" },
+    { "text": "proration on a mid-cycle subscription plan change", "expect": "billing" },
+    { "text": "wire up the oauth provider and a login session token", "expect": "auth" },
+    { "text": "verify the jwt issuer and audience on the api", "expect": "auth" },
+    { "text": "render a new chart panel on the analytics dashboard", "expect": "dashboard" },
+    { "text": "add a filter widget to the dashboard grid layout", "expect": "dashboard" }
+  ],
+  "egress_phrase": "the WIDGET-9000 quarterly invoice anomaly nobody noticed"
+}

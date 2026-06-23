@@ -2,6 +2,12 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.162.0 — 2026-06-23
+
+### Added
+
+- **Agentic work-streams — P0 (store + deterministic classifier).** The model-free foundation for organizing agentic work into named streams under `.ravenclaude/streams/`: `scripts/stream-classify.py` (stdlib TF-IDF/cosine classifier — emits DERIVED features only: `terms`/`word_count`/`label`, never raw prompt text) + `scripts/stream-ops.py` (registry + per-stream `history.jsonl` + `state.md`, slug anti-traversal, a no-egress tripwire that rejects raw `prompt`/`text`/`content` keys, session_id FK back to `runs/`). Proven by **Gate 110** (no-egress + determinism + classify-accuracy, with a must-fail-egress teeth half). No deps, no model call. **Migration:** none — additive libs + one gate.
+
 ## 0.161.8 — 2026-06-23
 
 ### Changed
