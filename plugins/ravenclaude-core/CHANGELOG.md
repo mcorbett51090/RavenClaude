@@ -2,6 +2,44 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.161.6 — 2026-06-23
+
+### Fixed (residual repo-review fixes — re-checked against current `main`)
+
+A re-run of the 2026-06-22 repo review against the moved `main` (0.161.5) found several
+issues still unfixed; the rest had already landed via the parallel #441/#445/#449/#457/#461/#479
+work (skill/rule/hook counts, CHANGELOG currency, feedback-report freshness, the `check-layout`
+`**` semantics — now documented-intentional). Still-open fixes, landed here:
+
+- **`guard-web-access.sh` session resolution (P1).** The web-access guard read the session id
+  from `$CLAUDE_SESSION_ID` only — which native Claude Code does not export to hooks — so every
+  native session collapsed into `runs/unknown/` and the per-session web-allow + first-use trust
+  markers leaked across sessions. Now resolves via the shared `_ee_resolve_session()`
+  (`$CLAUDE_SESSION_ID` → payload `.session_id` → `unknown`), with a jq-free fallback. Coexists
+  with the v0.161.4 consent-ordering change (different code region). Gate 70 stays green.
+- **`format-on-write.sh` (P3).** Guarded the absolute-path `cd` so a directory that vanished
+  between the existence check and the resolve can't abort the PostToolUse formatter under `set -e`.
+- **`scripts/check-md-links.py` (P2).** Titled-link parsing splits on the ` "` delimiter, not
+  arbitrary whitespace, so a relative path containing a space is no longer truncated/false-flagged.
+- **Dashboard-server endpoint claims corrected (accuracy).** `CLAUDE.md` (scripts/ bullet) said
+  serve-dashboards exposes "`/__save` + `/__read` + `/__classify` only, no `/__run`" while a later
+  line said it exposes `/__run` — a direct self-contradiction, and `README.md` repeated the stale
+  "limited to 3 endpoints" claim. The server actually exposes 15 endpoints; the docs now state the
+  accurate surface (CSRF-guarded `/__save`/`/__read`/`/__classify` + allow-listed `/__run`
+  install/update/status — **no arbitrary shell** — + read-only observability feeds).
+- **Component counts + roster (accuracy).** README still said 14 agents / 16 hooks / 4 slash
+  commands and omitted `viz-spec-reviewer`; corrected to 15 agents / 17 hooks / 7 commands and added
+  the missing specialist. Manifest descriptions now list `/forge` + `/reset-plugin-cache`.
+- **`scripts/content-scan.py` redirect re-validation (P3).** The SSRF scheme check ran on the
+  input URL only; urllib follows redirects, so it's now re-validated on the final resolved URL.
+  (Operator-invoked script, not the agent hot path.)
+
+### Notes
+
+- **Migration:** none — hook fixes are fail-safe and behavior-preserving on the common path;
+  the rest are doc-accuracy and an operator-script hardening. Regenerated `dashboard.html` /
+  `index.html` / `feedback-report.html` / copilot package for the version bump.
+
 ## 0.161.5 — 2026-06-23
 
 ### Fixed
