@@ -26,10 +26,11 @@ cd "$(git rev-parse --show-toplevel)"
 # Usage: bash scripts/audit-gates.sh --check 50
 # Runs only the named gate's fixture test directly and exits, bypassing the full
 # suite. This enables fast targeted re-runs after a regression fix without the
-# cost of the full 48-gate matrix. The full suite is the default (no --check arg).
+# cost of the full ~68-gate matrix. The full suite is the default (no --check arg).
 #
-# Currently supported per-gate values: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93. Other
-# gates can be added here as they acquire a standalone runner script.
+# Currently supported per-gate values: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92,
+# 93, 97, 100, 101, 103, 104, 105 (kept in sync with the case below + the Supported
+# error line). Other gates can be added here as they acquire a standalone runner script.
 if [[ "${1:-}" == "--check" && -n "${2:-}" ]]; then
   case "${2}" in
     20)
@@ -2162,7 +2163,7 @@ rc=0; python3 scripts/check-md-links.py >/dev/null 2>&1 || rc=$?
 gate "md-links (clean tree)" must_pass "$rc"
 
 echo
-echo "── Gate 104: no PCRE constructs inside grep -E (check-grep-ere-pcre.py) ─────"
+echo "── Gate 106: no PCRE constructs inside grep -E (check-grep-ere-pcre.py) ─────"
 # A PCRE-only construct ((?:..)/(?!..)/[\s\S]) inside `grep -E` (POSIX ERE) is
 # silently misparsed by GNU grep -> the advisory-hook check is DEAD and a clean
 # run looks like a pass. bash -n can't see it; this gate keeps the hook corpus
@@ -3472,6 +3473,22 @@ echo "── Gate 105: Heimdall authored-content carve-out (file_edit_project) �
 # clean on both triggers, and a stripped carve-out is caught (teeth).
 rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate105-heimdall-authored-content.sh >/dev/null 2>&1 || rc=$?
 gate "Heimdall authored-content carve-out (scoped + screen-clean + teeth)" must_pass "$rc"
+
+echo
+echo "── Gate 60: Copilot-aware tribunal seat soft cap ─────────────────────────"
+# Previously reachable ONLY via `--check 60` — never exercised by a default
+# (full-suite) CI run. Wired into the suite so THING_HOST=copilot's 45→90s seat-cap
+# bump (and the user-override-wins path) is actually covered on every run.
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate60-copilot-seat-cap.sh >/dev/null 2>&1 || rc=$?
+gate "Copilot-aware seat cap (THING_HOST bump + override-preserved + teeth)" must_pass "$rc"
+
+echo
+echo "── Gate 80: ravenclaude status launcher self-heal ────────────────────────"
+# Previously reachable ONLY via `--check 80` — never exercised by a default
+# (full-suite) CI run. Wired into the suite so the launcher MISSING-detection +
+# `--fix` self-heal stays covered on every run.
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate80-status-launcher-check.sh >/dev/null 2>&1 || rc=$?
+gate "ravenclaude status launcher check (detect MISSING + --fix installs + teeth)" must_pass "$rc"
 
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"
