@@ -2,6 +2,12 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.4.2] — 2026-06-22
+
+Version bump previously unlogged here (rolls up `0.4.0` → `0.4.2`); the change that set `0.4.2`:
+
+- Weekly Tier-A sweep: Microsoft-stack June-2026 GA/preview corrections (#451)
+
 ## [0.4.0] — 2026-06-05
 
 Value-add build-out completing the menu on top of PR #315 (which added the consolidated decision-trees, `best-practices/`, skills, templates, and the `scenarios/README.md` index). Every menu item dispositioned; see [`CLAUDE.md`](CLAUDE.md) § "Value-add completeness (build-out 2026-06-05)".

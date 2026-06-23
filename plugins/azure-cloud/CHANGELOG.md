@@ -4,6 +4,12 @@ Versioning is semver; bump on every user-visible change and keep it in sync with
 
 > Note: this file tracks the major arcs; the authoritative version history is the `version` field in `.claude-plugin/plugin.json` + git history (per the marketplace CHANGELOG convention). The 0.2.x–0.4.x bumps between the initial release and the build-out below were tracked in `plugin.json` + git, not back-filled here.
 
+## [0.5.1] — 2026-06-22
+
+Version bump previously unlogged here; the change that set `0.5.1`:
+
+- Weekly Tier-A sweep: Microsoft-stack June-2026 GA/preview corrections (#451)
+
 ## [0.5.0] — 2026-06-05
 
 Value-add completeness build-out (CLOUD/infra domain — runtime tier dispositioned). Builds on PR #315 (which consolidated the knowledge decision-trees + `best-practices/` + `templates/`); this release closes the net-new gaps. Full per-item disposition in CLAUDE.md "Value-add completeness (build-out 2026-06-05)".

@@ -2,6 +2,12 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.8] — 2026-06-23
+
+Version bump previously unlogged here; the change that set `0.3.8`:
+
+- chore(ai-coding,claude-app): 2026-06-23 lineup freshness sweep — Fable 5 free window elapsed + suspension re-verified
+
 ## [0.3.7] — 2026-06-21
 
 Research-sweep refresh (re-dated 2026-06-21) — two non-Claude churns folded into `knowledge/cross-tool-model-lineup-2026.md` on top of the 2026-06-17 Grok Build addition and the 2026-06-13 Fable 5 suspension (both unchanged): (1) **OpenAI GPT-5.3-Codex and GPT-5.2/5.2-Codex deprecated** — new API requests end 2026-06-30, full shutdown 2026-12-31; flagged in the Codex table like the `grok-code-fast-1` retirement, GPT-5.5 the migration target; decision-tree leaf updated. (2) **MAI-Code-1-Flash** (Microsoft small coding model) broadly available across Copilot surfaces 2026-06-18 — added to the cheapest-fast tier. Routed through two expert panels (usefulness → both USEFUL; detailed review → APPROVE with refinements applied); panels concurred. No migration — knowledge-file content only.

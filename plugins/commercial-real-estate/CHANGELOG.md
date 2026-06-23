@@ -2,6 +2,12 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.2.1] — 2026-06-12
+
+Version bump previously unlogged here; the change that set `0.2.1`:
+
+- fix: repo-review fixes — gate tool-absence guard + broken antipattern regex (#422)
+
 ## [0.2.0] — 2026-06-05
 
 Value-add build-out — extends the non-code-vertical recipe (the `veterinary-practice` pilot) to CRE. Adds the scenarios bank, two new Mermaid decision-tree knowledge files complementing the consolidated #315 trees, and a runnable underwriting calculator; honestly dispositions the code-runtime tier as N-A.

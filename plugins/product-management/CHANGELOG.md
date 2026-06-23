@@ -2,6 +2,12 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.1] — 2026-06-22
+
+Version bump previously unlogged here; the change that set `0.3.1`:
+
+- Repo review autonomous fixes + B1–B6 deferred items + dead-regex CI guard (#449)
+
 ## [0.3.0] — 2026-06-05
 
 Non-code-vertical value-add build-out — extends the plugin against the full value-add menu without forking a new agent (team-growth-as-knowledge house rule). Completes the scenarios bank, adds two complementary Mermaid decision trees, and ships a runnable prioritization calculator; honestly dispositions the code-runtime tier as N-A.

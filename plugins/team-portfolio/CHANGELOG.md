@@ -2,6 +2,12 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.2.1] — 2026-06-22
+
+Version bump previously unlogged here; the change that set `0.2.1`:
+
+- Repo review autonomous fixes + B1–B6 deferred items + dead-regex CI guard (#449)
+
 ## [0.2.0] — 2026-06-05
 
 Value-add build-out for the **tooling** tier of the menu. Because this plugin *is* deterministic scripts (a stdlib collector + markdown/HTML renderers + a scheduled Action), the runtime tier dispositions differently than for an advisory vertical: "add a runnable script" meant filling a real gap (config validation), not introducing the first script. Adds the scenarios bank, two new Mermaid decision trees, and an offline config linter; honestly dispositions bundled-MCP / monitors / LSP / themes as N-A with reasons (`CLAUDE.md` §10).

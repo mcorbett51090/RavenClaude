@@ -2,6 +2,12 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.9.4] — 2026-06-23
+
+Version bump previously unlogged here; the change that set `0.9.4`:
+
+- chore(ai-coding,claude-app): 2026-06-23 lineup freshness sweep — Fable 5 free window elapsed + suspension re-verified
+
 ## [0.9.3] — 2026-06-21
 
 Research-sweep follow-on to the Fable 5 / Mythos 5 suspension: closes the advisor-tool consequence in `knowledge/model-selection-and-2026-capability-map.md`. The rule "Fable 5 → Fable 5 advisor; Mythos 5 → Mythos 5 advisor" is **unsatisfiable** while those models are suspended (2026-06-12), so the advisor-tool row now directs an Opus 4.8 executor + Opus 4.8 advisor until access is restored. Re-dated 2026-06-21. Surfaced by Panel 2's detailed review of the sweep. No migration — knowledge-file content only.

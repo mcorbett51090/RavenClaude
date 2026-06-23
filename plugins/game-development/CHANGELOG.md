@@ -2,6 +2,12 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.2.1] — 2026-06-12
+
+Version bump previously unlogged here; the change that set `0.2.1`:
+
+- fix: repo-review fixes — gate tool-absence guard + broken antipattern regex (#422)
+
 ## [0.2.0] — 2026-06-05
 
 Code-runtime value-add build-out. PR #315 added the consolidated production/design/live-ops decision-trees + `best-practices/` + `templates/`; this build-out adds the net-new gap — a scenarios bank, the runtime/engineering tier, and complementary trees. Every value-add menu item was dispositioned (built or recorded N-A with a researched reason); see [`CLAUDE.md`](CLAUDE.md) §10 "Value-add completeness".

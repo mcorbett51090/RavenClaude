@@ -2,6 +2,12 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.12.2] — 2026-06-22
+
+Version bump previously unlogged here; the change that set `0.12.2`:
+
+- Repo review autonomous fixes + B1–B6 deferred items + dead-regex CI guard (#449)
+
 ## [0.12.1] — 2026-06-16
 
 ### Fixed

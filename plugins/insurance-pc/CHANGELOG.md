@@ -2,6 +2,12 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.2.1] — 2026-06-12
+
+Version bump previously unlogged here; the change that set `0.2.1`:
+
+- fix: repo-review fixes — gate tool-absence guard + broken antipattern regex (#422)
+
 ## [0.2.0] — 2026-06-05
 
 Value-add build-out — extends the P&C plugin to the marketplace value-add menu for a **non-code vertical** (underwriting, rating, claims, reserving, distribution), mirroring the merged `veterinary-practice` recipe. Adds a scenarios bank, two new topic-specific Mermaid decision-tree knowledge files (complementing the consolidated `pc-decision-trees.md` from PR #315), a runnable underwriting calculator, and a cited/dated KPI-glossary enrichment; honestly dispositions the code-runtime tier as N-A.
