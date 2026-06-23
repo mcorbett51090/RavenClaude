@@ -49,7 +49,23 @@ posture="$root/.ravenclaude/comfort-posture.yaml"
 
 # --- 1. Off-by-default short-circuit (no engine call unless opted in) ---
 [ -f "$posture" ] || emit_allow
+# Flat form: `decision_review: binding`. The engine (thing-decide.py _decision_mode)
+# ALSO accepts the nested mapping form `decision_review:\n  mode: binding`; parse
+# that too so the hook and engine agree (a nested-form posture must not silently
+# fall through to allow when the engine would honor it).
 mode="$(grep -E '^[[:space:]]*decision_review:' "$posture" 2>/dev/null | head -1 | sed -E 's/.*decision_review:[[:space:]]*//; s/["'\'' ]//g; s/#.*//' | tr '[:upper:]' '[:lower:]')"
+if [ -z "$mode" ]; then
+  # Nested form: read `mode:` inside the decision_review block (block ends at the
+  # next column-0, non-comment line — the standard 2-space-indent YAML shape).
+  mode="$(awk '
+    /^[[:space:]]*decision_review:[[:space:]]*(#.*)?$/ { inblk=1; next }
+    inblk && /^[^[:space:]#]/ { inblk=0 }
+    inblk && /^[[:space:]]*mode:[[:space:]]*/ {
+      sub(/^[[:space:]]*mode:[[:space:]]*/, ""); sub(/#.*/, ""); gsub(/["'\''[:space:]]/, "")
+      if ($0 != "") { print tolower($0); exit }
+    }
+  ' "$posture" 2>/dev/null || true)"
+fi
 case "$mode" in
   advisory | binding) ;;            # opted in -> continue
   *) emit_allow ;;                   # off / absent / unknown -> human answers

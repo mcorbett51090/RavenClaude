@@ -2,6 +2,19 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.157.2 — 2026-06-19
+
+### Fixed (the four repo-review issues previously deferred for design input)
+
+- **`guard-web-access.sh` consent ordering (P2).** The first-use "ask" for a YAML-whitelisted domain wrote its per-session "seen" marker **before** the user answered, so a DENIED first fetch silently auto-allowed on the next retry (control inversion). Consent is now recorded by a **new PostToolUse(WebFetch) hook, [`mark-web-domain-seen.sh`](hooks/mark-web-domain-seen.sh)**, which fires only after the fetch actually proceeds — so a denied first fetch re-prompts instead of auto-allowing. Registered in `hooks/hooks.json` + the dev-mirror `.claude/settings.json`. The "ask once per session" ergonomic is preserved.
+- **Engine-level deterministic high-blast floor in `thing-decide.py` (P2).** The "high-blast/irreversible decisions never auto-resolve" invariant no longer depends on the caller passing `high_blast=true` or on an LLM seat: `decide()` now deterministically screens the decision question/context against a destructive vocabulary (`_screen_high_blast`, mirroring `route-decision-review.sh` §3) and forces `defer`. The screen can only **add** a defer — it never approves anything — so it is purely fail-safe. The hook heuristic and the engine floor now agree (belt-and-suspenders).
+- **`route-decision-review.sh` nested `decision_review` form (P3).** The hook's mode parser handled only the flat `decision_review: binding` form; the nested mapping `decision_review:\n  mode: binding` (which the engine accepts) fell through to allow. The hook now parses both, so the hook and engine agree on a nested-form posture.
+- **`rc-deep-research.js` latency-trip event (P3).** The dispatch-evaluator latency circuit-breaker now surfaces its trip on the Heimdall perimeter panel via a fire-and-forget `agent()` shell call to `_emit_hook_event` (the documented TODO), instead of only logging. Applied identically to all three byte-identical copies (the reference `evaluate-dispatch.js` + both `rc-deep-research.js` mirrors). Unawaited + rejection-swallowed, so a telemetry failure can never affect the run.
+
+### Notes
+
+- **Migration:** none — the web-access fix only makes the first-use confirmation *stricter* (a denied domain re-prompts instead of auto-allowing) and adds an opt-in PostToolUse hook; the high-blast floor only adds defers under the opt-in `decision_review` posture; the nested-parse and latency-event changes alter no consumer-facing schema. The Gate 70 web-access subtest was updated to the corrected consent-ordering contract (and gained a teeth subtest proving a no-consent retry re-asks). All 444 audit-gates pass.
+
 ## 0.157.1 — 2026-06-19
 
 ### Fixed

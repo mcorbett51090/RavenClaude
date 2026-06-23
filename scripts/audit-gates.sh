@@ -3100,7 +3100,7 @@ echo "── Gate 70: Codex desktop trust review hooks (Findings 1, 2, 5) ──
 # exit-2-literal assertion catches the regression. See test file's header for
 # the per-subtest rationale.
 rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate70-codex-trust-hooks.sh >/dev/null 2>&1 || rc=$?
-gate "codex-trust-hooks fixture (13 subtests across STRICT + dod-gate + web-access)" must_pass "$rc"
+gate "codex-trust-hooks fixture (14 subtests across STRICT + dod-gate + web-access)" must_pass "$rc"
 # must_fail: an exit-1 (broken) STRICT branch must be distinguishable from an
 # exit-2 (fixed) STRICT branch. If a fixture treats both as "non-zero = block",
 # it would pass the pre-fix code. This sanity check proves exit 1 != exit 2.

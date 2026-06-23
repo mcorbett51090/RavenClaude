@@ -190,12 +190,26 @@ else
   fail "G70.5a first hit should emit ask; got: $(printf '%s' "$out_web1" | head -c 200)"
 fi
 
-# G70.5b — second hit same session (seen-file exists) -> silent allow
+# G70.5b — CONSENT-ORDERING FIX: the seen-file is written by the PostToolUse hook
+# (mark-web-domain-seen.sh) ONLY after a fetch proceeds — NOT pre-emptively by the
+# PreToolUse hook. So a second PreToolUse WITHOUT an intervening allowed fetch must
+# STILL ask (a denied first fetch must not silently auto-allow on retry).
+HOOK_WEB_SEEN="$REPO_ROOT/plugins/ravenclaude-core/hooks/mark-web-domain-seen.sh"
+out_web2_noconsent=$(CLAUDE_PROJECT_DIR="$sb_web" CLAUDE_SESSION_ID=w1 bash "$HOOK_WEB" <<< '{"tool_name":"WebFetch","tool_input":{"url":"https://example.com/y"}}' 2>/dev/null || true)
+if printf '%s' "$out_web2_noconsent" | grep -q '"permissionDecision":"ask"'; then
+  pass "G70.5b retry WITHOUT recorded consent -> still ask (no silent auto-allow)"
+else
+  fail "G70.5b retry without consent should ask; got: $(printf '%s' "$out_web2_noconsent" | head -c 200)"
+fi
+
+# G70.5b2 — once the PostToolUse hook records consent (a real fetch proceeded),
+# the next PreToolUse hit silently allows for the rest of the session.
+CLAUDE_PROJECT_DIR="$sb_web" CLAUDE_SESSION_ID=w1 bash "$HOOK_WEB_SEEN" <<< '{"tool_name":"WebFetch","tool_input":{"url":"https://example.com/x"}}' >/dev/null 2>&1 || true
 out_web2=$(CLAUDE_PROJECT_DIR="$sb_web" CLAUDE_SESSION_ID=w1 bash "$HOOK_WEB" <<< '{"tool_name":"WebFetch","tool_input":{"url":"https://example.com/y"}}' 2>/dev/null || true)
 if printf '%s' "$out_web2" | grep -q '"permissionDecision":"allow"'; then
-  pass "G70.5b second hit same session -> permissionDecision:allow"
+  pass "G70.5b2 after PostToolUse records consent -> permissionDecision:allow"
 else
-  fail "G70.5b second hit should emit allow; got: $(printf '%s' "$out_web2" | head -c 200)"
+  fail "G70.5b2 post-consent hit should emit allow; got: $(printf '%s' "$out_web2" | head -c 200)"
 fi
 
 # G70.5c — trusted:true posture -> silent allow on first hit

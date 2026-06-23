@@ -109,6 +109,11 @@ fi
 # per domain per session, emit permissionDecision: ask so a hostile YAML edit
 # can't silently auto-allow exfiltration. After the user confirms once, the
 # per-session seen-file means no further prompts for that domain this session.
+# The seen-file is written by the PostToolUse hook mark-web-domain-seen.sh, which
+# fires ONLY when the fetch actually proceeded — so a DENIED first fetch does NOT
+# mark the domain seen, and the next attempt re-prompts instead of silently
+# auto-allowing (a PreToolUse hook can't see its own ask's answer, so it must not
+# mark "seen" before the user replies).
 # Set `web_access.trusted: true` in posture YAML to skip the ask (you've reviewed
 # the whitelist and accept silent allow for persistent entries).
 if match_host "$host" "${allow_list[@]:-}"; then
@@ -139,8 +144,9 @@ PY
   seen_file="$seen_dir/$dom_slug"
 
   if [ ! -f "$seen_file" ]; then
-    mkdir -p "$seen_dir" 2>/dev/null || true
-    touch "$seen_file" 2>/dev/null || true
+    # Do NOT mark the domain seen here — consent is recorded by the PostToolUse
+    # hook (mark-web-domain-seen.sh) only after the fetch actually proceeds, so a
+    # denied first fetch re-prompts instead of silently auto-allowing on retry.
     reason="First access this session to YAML-whitelisted domain '$host'. The domain is in .ravenclaude/web-access.yaml 'allow:' — allow this fetch (and any subsequent ones to $host this session)?"
     if command -v jq >/dev/null 2>&1; then
       jq -cn --arg r "$reason" '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"ask",permissionDecisionReason:$r}}'
