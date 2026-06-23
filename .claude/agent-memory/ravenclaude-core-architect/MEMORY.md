@@ -1,0 +1,1 @@
+- [Orchestrator relay-scope design](project_orchestrator_relay_scope.md) — relay-all vs team-only toggle: new orthogonal knob `orchestrator_scope: team|all`, generated AGENTS.md directive (NOT hand-edited copilot-instructions.md), off-masks-scope precedence
