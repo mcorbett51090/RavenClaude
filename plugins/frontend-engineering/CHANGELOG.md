@@ -2,6 +2,12 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.4.0] — 2026-06-09
+
+Version bump previously unlogged here (rolls up `0.3.0` → `0.4.0`); the change that set `0.4.0`:
+
+- feat: visual-feedback-loop — render→see→iterate for web + reporting agents (#378)
+
 ## [0.3.0] — 2026-06-05
 
 Value-add build-out — adding the net-new gap left after PR #315 (which added the consolidated decision-tree knowledge, best-practices, and templates): the scenarios bank and the technical-runtime tier. Every value-add menu item is dispositioned (built or recorded N-A with reason); see [`CLAUDE.md`](CLAUDE.md) §9 "Value-add completeness (build-out 2026-06-05)".

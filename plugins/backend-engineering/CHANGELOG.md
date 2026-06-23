@@ -2,6 +2,12 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.1] — 2026-06-05
+
+Version bump previously unlogged here; the change that set `0.3.1`:
+
+- Build out best practices, decision trees, skills + templates across all plugins (#315)
+
 ## [0.3.0] — 2026-06-05
 
 Pilot value-add build-out — proving the repeatable plugin-enrichment recipe against the full value-add menu. Every menu item was dispositioned (built or recorded N-A with reason); see [`CLAUDE.md`](CLAUDE.md) § "Value-add completeness (pilot build-out 2026-06-05)".

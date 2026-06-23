@@ -2,6 +2,12 @@
 
 All notable changes to this plugin are documented here. Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.8.4] — 2026-06-22
+
+Version bump previously unlogged here; the change that set `0.8.4`:
+
+- Weekly Tier-A sweep: Microsoft-stack June-2026 GA/preview corrections (#451)
+
 ## [0.8.3] — 2026-06-18
 
 Research-sweep **correction + addition** on the capability map's Runtime 1.3 row, re-verified 2026-06-18 against `learn.microsoft.com` via the Microsoft-Learn MCP. (Part of the 2026-06-18 Tier-A sweep; the sweep's other findings — Fable 5/Mythos 5 suspension, Grok Build, OWASP 2025 — had already landed independently on `main`, so only this net-new Fabric fix remained.)

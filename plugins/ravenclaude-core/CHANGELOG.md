@@ -2,6 +2,12 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.161.2 — 2026-06-22
+
+Version bump previously unlogged here; the change that set `0.161.2`:
+
+- fix: repo-review novel fixes — fill_rate (D1), destructive find/truncate guard (D2), count-drift gate (D3) + reset-cache/i18n/check-layout (#445)
+
 ## 0.161.1 — 2026-06-16
 
 ### Fixed

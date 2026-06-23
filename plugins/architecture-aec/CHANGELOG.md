@@ -2,6 +2,12 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.2.1] — 2026-06-12
+
+Version bump previously unlogged here; the change that set `0.2.1`:
+
+- fix: repo-review fixes — gate tool-absence guard + broken antipattern regex (#422)
+
 ## [0.2.0] — 2026-06-05
 
 Value-add build-out for a **non-code (AEC) vertical** — adds the scenarios bank, a new Mermaid delivery-method + estimate-class decision-tree knowledge file, and a runnable project-economics calculator; honestly dispositions the code-runtime tier as N-A. Complements the consolidated knowledge decision-trees, best-practices, and templates already present (PR #315).
