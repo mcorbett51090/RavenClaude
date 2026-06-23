@@ -190,9 +190,14 @@ PY
       node scripts/check-streams-render.mjs
       exit $?
       ;;
+    114)
+      echo "── Gate 114: streams per-prompt hook (fail-open / no-egress / latency / Copilot parity) ──"
+      python3 scripts/check-streams-prompt-hook.py
+      exit $?
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -3556,6 +3561,19 @@ if command -v node >/dev/null 2>&1; then
 else
   _skip_or_fail "Gate 113 (streams render)" node
 fi
+
+echo
+echo "── Gate 114: Agentic Work-Streams per-prompt hook (P4, opt-in) ───────────"
+# The highest-risk surface (a prompt-reading UserPromptSubmit hook). FAIL-OPEN (always
+# exit 0; never blocks/alters the prompt), NO-EGRESS (only derived labels persist — the
+# prompt phrase never reaches disk), OPT-IN default (no-op without stream_hook: per_prompt),
+# the latency ceiling (RC_STREAM_HOOK_BUDGET_S timeout), and Copilot parity (hooks.json +
+# adapter mode + installer). Bidirectional teeth: --must-fail-failopen strips the exit-0
+# tail + forces an error and asserts it THEN exits nonzero.
+rc=0; python3 scripts/check-streams-prompt-hook.py >/dev/null 2>&1 || rc=$?
+gate "streams per-prompt hook: fail-open + no-egress + opt-in + latency + parity" must_pass "$rc"
+rc=0; python3 scripts/check-streams-prompt-hook.py --must-fail-failopen >/dev/null 2>&1 || rc=$?
+gate "streams per-prompt hook: fail-open has teeth (nonzero when exit-0 stripped)" must_pass "$rc"
 
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"

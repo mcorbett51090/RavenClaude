@@ -2,6 +2,12 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.166.0 — 2026-06-23
+
+### Added
+
+- **Agentic work-streams — P4 (opt-in per-prompt attribution hook).** A fail-open `UserPromptSubmit` hook (`hooks/stream-prompt-attribute.sh`) that attributes each prompt to the active stream — **opt-in, default OFF** (session-boundary remains the default; this is the locked tiebreak's optional upgrade). It is **fail-open** (any error/timeout exits 0 and never blocks the prompt), **derived-labels-only** (never egresses prompt text), and ships Copilot parity via the repo-level adapter. Security-reviewer: CLEAR-TO-MERGE (all 6 invariants pass). Proven by **Gate 114** (fail-open + no-egress + opt-in-default + latency ceiling + Copilot parity, with teeth). **Migration:** none — default OFF, so byte-identical behavior until a consumer sets `stream_hook: per_prompt`.
+
 ## 0.165.0 — 2026-06-23
 
 ### Added

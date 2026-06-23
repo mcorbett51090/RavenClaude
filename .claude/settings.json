@@ -156,6 +156,18 @@
         ]
       }
     ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/stream-prompt-attribute.sh",
+            "timeout": 10,
+            "comment": "Marketplace-dev hook (dev-mirror). Agentic Work-Streams P4 (OPT-IN, FAIL-OPEN): no-ops unless .ravenclaude/comfort-posture.yaml sets stream_hook: per_prompt (this repo doesn't, so it no-ops). When opted in, attributes the prompt to the active stream as a derived event (sticky — no reclassify) or auto-sets on a confident match. NEVER blocks/alters the prompt; NO-EGRESS (only derived labels persist)."
+          }
+        ]
+      }
+    ],
     "SubagentStart": [
       {
         "hooks": [

@@ -205,6 +205,10 @@ cfg = {
         "Stop": [
             bash("stop", "dod-gate.sh"),
             bash("stop", "remind-tests.sh"),
+            bash("stop", "stream-session-close.sh"),
+        ],
+        "UserPromptSubmit": [
+            bash("userpromptsubmit", "stream-prompt-attribute.sh"),
         ],
     },
 }
