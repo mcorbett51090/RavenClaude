@@ -2,6 +2,12 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.2.2] — 2026-06-12
+
+Version bump previously unlogged here (rolls up `0.2.0` → `0.2.2`); the change that set `0.2.2`:
+
+- fix: repo-review fixes — gate tool-absence guard + broken antipattern regex (#422)
+
 ## [0.2.0] — 2026-06-05
 
 Value-add build-out for a **pure non-code vertical** (precision ag / farm operations & agronomy analytics). Completes the scenarios bank, adds two standalone Mermaid decision-tree knowledge files and a runnable farm-economics calculator, and honestly dispositions the code-runtime tier as N-A. Builds on PR #315 (which added the consolidated knowledge decision-trees, `best-practices/`, `templates/`, and the scenarios `README.md`).

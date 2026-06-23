@@ -2,6 +2,12 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.1] — 2026-06-12
+
+Version bump previously unlogged here (rolls up `0.2.0` → `0.3.1`); the change that set `0.3.1`:
+
+- fix: repo-review fixes — gate tool-absence guard + broken antipattern regex (#422)
+
 ## [0.2.0] — 2026-06-05
 
 Value-add build-out — mirrors the `veterinary-practice` v0.2.0 recipe for a **pure non-code vertical** (practice ops, scheduling/production, insurance/PPO, hygiene recall, case acceptance, DSO economics). Adds the scenarios bank, two Mermaid decision-tree knowledge files, a runnable practice-economics calculator, and cited KPI benchmarks; honestly dispositions the code-runtime tier as N-A.

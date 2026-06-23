@@ -2,6 +2,12 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.2] — 2026-06-22
+
+Version bump previously unlogged here; the change that set `0.3.2`:
+
+- Repo review autonomous fixes + B1–B6 deferred items + dead-regex CI guard (#449)
+
 ## [0.3.1] — 2026-06-11
 
 Research-sweep **correction** — refreshed the stale dbt version anchor, re-verified 2026-06-11 against the dbt-core v2 roadmap (primary).

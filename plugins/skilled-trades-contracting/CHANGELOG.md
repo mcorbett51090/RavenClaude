@@ -24,6 +24,12 @@ The code-runtime tier (code-aware MCP server, LSP, `bin/`, monitors, output-styl
 
 Consolidated `knowledge/trades-decision-trees.md` (Mermaid trees), the `best-practices/` rule set, and `templates/`.
 
+## [0.2.1] — 2026-06-12
+
+Version bump previously unlogged here (rolls up `0.1.0` → `0.2.1`); the change that set `0.2.1`:
+
+- fix: repo-review fixes — gate tool-absence guard + broken antipattern regex (#422)
+
 ## [0.1.0] — initial release
 
 4 agents (`trades-engagement-lead`, `estimating-specialist`, `field-operations-specialist`, `trade-business-analyst`), 5 skills, 3 templates, 5 commands, 1 advisory hook, an 8-rule best-practices set, and a 4-file research-grounded knowledge bank. An estimating-and-field-operations team for an HVAC, electrical, or plumbing contractor.

@@ -2,6 +2,12 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.6.1] — 2026-06-22
+
+Version bump previously unlogged here; the change that set `0.6.1`:
+
+- Repo review autonomous fixes + B1–B6 deferred items + dead-regex CI guard (#449)
+
 ## [0.6.0] — 2026-06-05
 
 Value-add build-out for a **methodology / analytical vertical** ("is this difference/trend REAL?"). Adds the scenarios bank, one net-new Mermaid decision tree complementing the consolidated trees from PR #315, and a stdlib statistics calculator; honestly dispositions the code-runtime tier as N-A.

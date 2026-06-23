@@ -3,6 +3,12 @@
 All notable changes to the `tableau` plugin. Versioning is semver; the authoritative version is
 the `version` field in `.claude-plugin/plugin.json` (mirrored in `marketplace.json`).
 
+## 0.4.0 — 2026-06-09
+
+Version bump previously unlogged here (rolls up `0.3.0` → `0.4.0`); the change that set `0.4.0`:
+
+- feat: visual-feedback-loop — render→see→iterate for web + reporting agents (#378)
+
 ## 0.3.0 — 2026-06-05 — value-add completeness build-out
 
 Pilot build-out completing the plugin against the marketplace value-add menu. **No breaking

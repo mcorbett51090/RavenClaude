@@ -2,6 +2,12 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.2] — 2026-06-22
+
+Version bump previously unlogged here (rolls up `0.3.0` → `0.3.2`); the change that set `0.3.2`:
+
+- Repo review autonomous fixes + B1–B6 deferred items + dead-regex CI guard (#449)
+
 ## [0.3.0] — 2026-06-05
 
 Pilot value-add build-out — proving the repeatable plugin-enrichment recipe against the full value-add menu. Every menu item was dispositioned (built or recorded N-A with reason); see [`CLAUDE.md`](CLAUDE.md) § "Value-add completeness (pilot build-out 2026-06-05)".

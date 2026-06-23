@@ -2,6 +2,12 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.6.1] — 2026-06-05
+
+Version bump previously unlogged here; the change that set `0.6.1`:
+
+- fix(trees): unblock render + lazy-load decision-tree SVGs (#336)
+
 ## [0.6.0] — 2026-06-05
 
 Value-add build-out — the plugin was missed in the earlier marketplace-wide enrichment pass and had no scenarios bank. Every value-add menu item is now dispositioned (built or recorded N-A with reason); see [`CLAUDE.md`](CLAUDE.md) § "Value-add completeness (build-out 2026-06-05)".

@@ -2,6 +2,12 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.2.1] — 2026-06-12
+
+Version bump previously unlogged here; the change that set `0.2.1`:
+
+- fix: repo-review fixes — gate tool-absence guard + broken antipattern regex (#422)
+
 ## [0.2.0] — 2026-06-05
 
 Value-add build-out — mirrors the merged `veterinary-practice` recipe for a **pure non-code vertical**. Adds the scenarios bank, two complementary Mermaid decision-tree knowledge files, and a runnable strategic-sourcing calculator; honestly dispositions the code-runtime tier as N-A. Net-new on top of PR #315 (which added the consolidated knowledge decision-trees + best-practices/ + templates/).
