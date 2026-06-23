@@ -2,6 +2,12 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.161.5 — 2026-06-23
+
+### Fixed
+
+- **`skills/cross-platform-determinism/SKILL.md`** — the skill's runnable "repro recipe" code blocks still pointed at `scripts/generate-repo-guide.py` and `scripts/check-guide-fresh.sh`, both deleted when Gate 11 was retired (v0.124.0) — `No such file or directory` for anyone following them. Repointed the recipes to the live successor `scripts/generate-index-dashboard.py` (same `--check` strip-before-diff freshness contract); kept the historical bug attribution honest. Markdown-only; no behavior change.
+
 ## 0.161.4 — 2026-06-23
 
 ### Fixed (residual repo-review fixes not already on main)
