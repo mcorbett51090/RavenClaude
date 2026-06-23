@@ -185,9 +185,14 @@ PY
       python3 scripts/check-streams-classify-wiring.py
       exit $?
       ;;
+    113)
+      echo "── Gate 113: streams dashboard tab (render / parity / no-prompt-egress) ──"
+      node scripts/check-streams-render.mjs
+      exit $?
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -3538,6 +3543,19 @@ rc=0; python3 scripts/check-streams-classify-wiring.py >/dev/null 2>&1 || rc=$?
 gate "streams classify: sticky + override round-trip + threshold bounds" must_pass "$rc"
 rc=0; python3 scripts/check-streams-classify-wiring.py --must-fail-sticky >/dev/null 2>&1 || rc=$?
 gate "streams classify: sticky guard has teeth (reclassify when disabled)" must_pass "$rc"
+
+echo
+echo "── Gate 113: Agentic Work-Streams dashboard tab (P3) ─────────────────────"
+# The Streams Observe tab's render functions (extracted from the generated
+# dashboard.html), the /__streams both-copies parity, and the no-prompt-egress
+# proof (the _read_streams reader whitelists event fields — a raw prompt/content
+# field is never surfaced). Node-driven; LOUD-skips offline, hard-fails in CI.
+if command -v node >/dev/null 2>&1; then
+  rc=0; node scripts/check-streams-render.mjs >/dev/null 2>&1 || rc=$?
+  gate "streams dashboard tab: render + /__streams parity + no-prompt-egress" must_pass "$rc"
+else
+  _skip_or_fail "Gate 113 (streams render)" node
+fi
 
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"

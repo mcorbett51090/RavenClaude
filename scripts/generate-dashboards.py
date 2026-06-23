@@ -202,6 +202,7 @@ def _page_kwargs(plugin_dir: Path, schema: dict, include_trees: bool = True) -> 
         "vidarr_html": _render_vidarr_tab(),
         "norns_html": _render_norns_tab(),
         "mimir_html": _render_mimir_tab(),
+        "streams_html": _render_streams_tab(),
         "bifrost_html": _render_bifrost_tab(),
         "about_html": _render_about_tab(description, plugin_name),
         "pipeline_html": _render_pipeline_tab(),
@@ -392,6 +393,24 @@ def _render_mimir_tab() -> str:
     so the dashboard.html freshness gate (Gate 13) stays exact-match.
     """
     return _MIMIR_TAB_TEMPLATE
+
+
+def _render_streams_tab() -> str:
+    """Render the 'Streams' tab (Agentic Work-Streams) — a read-only Observe surface
+    that answers "what logical workstreams is my agentic work organized into, which is
+    active, and what derived activity has it seen?" by surfacing .ravenclaude/streams/.
+
+    Two card hosts hydrated by JS from /__streams on open: the stream list (id / name /
+    event-count / active marker, newest-updated first) and the active stream's recent
+    DERIVED history (kind / label / terms / word-count — NEVER prompt text; the reader
+    whitelists event fields). Served-only — on a static host the cards show an "open the
+    served dashboard" empty state.
+
+    The static skeleton is intentionally bytes-free of any dynamic content so the
+    dashboard.html freshness gate (Gate 13) stays exact-match; the JS fetch + render
+    live in _JS (loadStreams / renderStreams*).
+    """
+    return _STREAMS_TAB_TEMPLATE
 
 
 def _render_vidarr_tab() -> str:
@@ -6320,6 +6339,26 @@ _MIMIR_TAB_TEMPLATE = """
 </div>
 """.strip()
 
+_STREAMS_TAB_TEMPLATE = """
+<div class="mimir-layout">
+  <div class="saga-hdr">
+    <h2><span aria-hidden="true">&#127754;</span> Streams</h2>
+    <button type="button" class="saga-refresh" id="streams-refresh-btn">Refresh</button>
+  </div>
+  <p class="activity-intro">Agentic Work-Streams for this project &mdash; named logical workstreams under <code>.ravenclaude/streams/</code>, drawn live from the served dashboard. Read-only; the per-stream history shows <strong>derived labels only</strong> (never your prompt text). Switch the active stream with <code>/stream set &lt;id&gt;</code> or <code>rc streams set-active &lt;id&gt;</code>.</p>
+  <div class="mimir-grid">
+    <section class="mimir-card mimir-card--full" aria-labelledby="streams-list-h">
+      <h3 id="streams-list-h">Streams</h3>
+      <div id="streams-list"><div class="saga-empty"><p>Loading&hellip;</p></div></div>
+    </section>
+    <section class="mimir-card mimir-card--full" aria-labelledby="streams-history-h">
+      <h3 id="streams-history-h">Active stream &mdash; recent activity (derived)</h3>
+      <div id="streams-history"><div class="saga-empty"><p>Loading&hellip;</p></div></div>
+    </section>
+  </div>
+</div>
+""".strip()
+
 
 # Bifröst — the install-bridge wizard (§3.6). A guided 4-step copy-paste flow for
 # installing a marketplace plugin into a Claude Code project. The wizard NEVER
@@ -8337,6 +8376,7 @@ _JS = r"""
   let vidarrLoaded = false;
   let nornsLoaded = false;
   let mimirLoaded = false;
+  let streamsLoaded = false;
   let vidarrEvents = [];
   let vidarrKindFilter = "all";
   let activityRecords = [];
@@ -8390,6 +8430,7 @@ _JS = r"""
     if (tab === "vidarr" && !vidarrLoaded) loadVidarr();
     if (tab === "norns" && !nornsLoaded) loadNorns();
     if (tab === "mimir" && !mimirLoaded) loadMimir();
+    if (tab === "streams" && !streamsLoaded) loadStreams();
     if (tab === "pipeline") syncPipelineTab();
     if (tab.indexOf("plugin-") === 0) hydratePluginPage(tab.slice(7));
     if (tab === "web-access") hydrateWebAccess();
@@ -10170,6 +10211,91 @@ _JS = r"""
   const mimirRefBtn = document.getElementById("mimir-refresh-btn");
   if (mimirRefBtn) mimirRefBtn.addEventListener("click", () => { mimirLoaded = false; loadMimir(); });
 
+  /* ── Streams — Agentic Work-Streams Observe surface ─────────────────────
+   * Fetches /__streams (served-only). Two card hosts mirror the _read_streams
+   * payload: the stream list (id/name/event-count/active) and the active
+   * stream's recent DERIVED history (kind/label/terms/word-count — NEVER
+   * prompt text; the server whitelists event fields). All DOM is built with
+   * createElement + textContent, so even a hostile derived label can't inject. */
+  function renderStreamsList(data) {
+    const host = document.getElementById("streams-list");
+    if (!host) return;
+    const rows = (data && Array.isArray(data.streams)) ? data.streams : [];
+    if (!rows.length) {
+      host.replaceChildren(hmEmpty("No work-streams yet. Create one with", "rc streams create '<name>'"));
+      return;
+    }
+    const frag = document.createDocumentFragment();
+    const summary = document.createElement("p");
+    summary.className = "norns-grouphdr";
+    summary.textContent = rows.length + " stream(s) · active: " + (data.active || "none");
+    frag.appendChild(summary);
+    const ul = document.createElement("ul");
+    ul.className = "mimir-recent-list";
+    for (const s of rows) {
+      const li = document.createElement("li");
+      const mark = s.active ? "★ " : "  ";
+      const name = (s && s.name) || s.id;
+      const ec = (s && s.event_count != null) ? s.event_count : 0;
+      const upd = (s && s.updated) || "—";
+      li.textContent = mark + s.id + " — " + name + " · " + ec + " events · updated " + upd;
+      if (s.active) li.style.fontWeight = "600";
+      ul.appendChild(li);
+    }
+    frag.appendChild(ul);
+    host.replaceChildren(frag);
+  }
+  function renderStreamsHistory(data) {
+    const host = document.getElementById("streams-history");
+    if (!host) return;
+    const active = data && data.active;
+    const hist = (data && Array.isArray(data.active_history)) ? data.active_history : [];
+    if (!active) {
+      host.replaceChildren(hmEmpty("No active stream. Set one with", "rc streams set-active <id>"));
+      return;
+    }
+    if (!hist.length) {
+      host.replaceChildren(hmEmpty("No recorded activity for the active stream yet."));
+      return;
+    }
+    const ul = document.createElement("ul");
+    ul.className = "mimir-recent-list";
+    for (const ev of hist) {
+      const li = document.createElement("li");
+      const kind = (ev && ev.kind) || "event";
+      const label = (ev && ev.label) || "";
+      const wc = (ev && ev.word_count != null) ? (ev.word_count + " words") : "";
+      const ts = (ev && ev.ts) || "";
+      const terms = (ev && Array.isArray(ev.terms)) ? ev.terms.slice(0, 6).join(", ") : "";
+      const bits = [kind, label, wc, terms, ts].filter(Boolean);
+      li.textContent = bits.join(" · ");
+      ul.appendChild(li);
+    }
+    host.replaceChildren(ul);
+  }
+  async function loadStreams() {
+    streamsLoaded = true;
+    try {
+      const res = await fetchT("/__streams");
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const data = await res.json();
+      renderStreamsList(data);
+      renderStreamsHistory(data);
+    } catch (e) {
+      streamsLoaded = false; /* allow retry on next visit */
+      const served = await probeReadEndpoint();
+      const msg = served
+        ? ["Could not reach /__streams. Is the server running?", "python3 scripts/serve-dashboards.py"]
+        : ["Work-streams need the served dashboard — open it via", "rc dashboard"];
+      for (const id of ["streams-list", "streams-history"]) {
+        const host = document.getElementById(id);
+        if (host) host.replaceChildren(hmEmpty(msg[0], msg[1]));
+      }
+    }
+  }
+  const streamsRefBtn = document.getElementById("streams-refresh-btn");
+  if (streamsRefBtn) streamsRefBtn.addEventListener("click", () => { streamsLoaded = false; loadStreams(); });
+
   /* ── Bifröst — install-bridge wizard (§3.6) ─────────────────────────────
    * Pure client-side copy-paste flow. The wizard NEVER runs a slash command —
    * the user runs each in their session and pastes the output; we parse it with
@@ -10991,6 +11117,7 @@ _PAGE_TEMPLATE = """<!doctype html>
     <button class="tab-btn" id="tab-vidarr" data-tab="vidarr" data-cat="lookback" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-vidarr" title="Security log — a record of your permission changes (Víðarr)">Security log</button>
     <button class="tab-btn" id="tab-norns" data-tab="norns" data-cat="lookback" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-norns" title="Lineage — how your plugins connect and depend on each other (Norns)">Lineage</button>
     <button class="tab-btn" id="tab-mimir" data-tab="mimir" data-cat="lookback" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-mimir" title="Session — what Claude Code knows about this session (M&iacute;mir's well)">Session</button>
+    <button class="tab-btn" id="tab-streams" data-tab="streams" data-cat="lookback" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-streams" title="Streams — your Agentic Work-Streams: which is active and its derived activity">Streams</button>
     <button class="tab-btn" id="tab-learn" data-tab="learn" data-cat="learn" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-learn" title="Learn — plain-English explainers for each concept">Learn</button>
     <button class="tab-btn" id="tab-commands" data-tab="commands" data-cat="learn" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-commands" title="Commands — ready-to-run slash-command playbooks">Commands</button>
     <button class="tab-btn" id="tab-trees" data-tab="trees" data-cat="learn" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-trees" title="Guidance — decision trees and best practices">Guidance</button>
@@ -11046,6 +11173,9 @@ _PAGE_TEMPLATE = """<!doctype html>
   </section>
   <section class="tab-panel" id="panel-mimir" data-tab="mimir" role="tabpanel" aria-label="Session state">
 {mimir_html}
+  </section>
+  <section class="tab-panel" id="panel-streams" data-tab="streams" role="tabpanel" aria-label="Work-streams">
+{streams_html}
   </section>
   <section class="tab-panel" id="panel-bifrost" data-tab="bifrost" role="tabpanel" aria-label="Add plugin">
 {bifrost_html}

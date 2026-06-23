@@ -2,6 +2,12 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.165.0 — 2026-06-23
+
+### Added
+
+- **Agentic work-streams — P3 (dashboard "Streams" Observe tab).** A read-only Streams view in the dashboard Observe section, served by a new `/__streams` endpoint added **byte-identically to both `serve-dashboards.py` copies** (Gate 32 parity holds). The reader **whitelists** event fields, so a hand-corrupted history line carrying a `prompt` field is dropped before it can reach the dashboard (no-prompt-egress at the read boundary). Proven by **Gate 113** (render + `/__streams` parity + no-prompt-egress field whitelist). **Migration:** none — additive read-only tab; degrades to an honest empty state on a static host.
+
 ## 0.164.0 — 2026-06-23
 
 ### Added
