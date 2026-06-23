@@ -20,6 +20,7 @@ For the companion log of dated, story-shaped findings (incidents we tried-failed
 | [`lessons-vs-best-practices.md`](./lessons-vs-best-practices.md) | Pattern | Capturing a finding — deciding whether it's a lesson (story), a best-practice (rule), or both |
 | [`plugin-versioning.md`](./plugin-versioning.md) | Absolute rule | Touching any shipped plugin content — bumps the three version mirrors (plugin.json + marketplace.json + architecture.md) |
 | [`pr-vs-direct-push.md`](./pr-vs-direct-push.md) | Pattern | Deciding whether a change opens a PR or commits direct to main |
+| [`skill-authoring.md`](./skill-authoring.md) | Pattern | Writing a `plugins/<plugin>/skills/<name>/SKILL.md` — the discovery-carrying `description`, the ≤500-line lean body, splitting depth into sibling files/scripts (progressive disclosure), and `allowed-tools` least-privilege |
 
 ---
 
