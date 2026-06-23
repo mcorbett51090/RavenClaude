@@ -2,6 +2,12 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.161.8 — 2026-06-23
+
+### Changed
+
+- **Decision-review: verify-the-premise-before-you-prompt + batch.** Analysis of a consumer-repo yes/no prompt log found all the prompts were *correctly* deferred by the tribunal (genuine preferences / high-blast safety / product-intent) — the avoidable cost was **re-asking** the same decision because it was surfaced before its load-bearing claim was verified (a 'missing columns' claim that turned out false cost three rounds). Extended the CGP "verify the load-bearing assumption" clause and `skills/decision-review/SKILL.md` with a **Before you prompt at all** discipline (verify the factual premise, then batch related decisions into one post-verification ask) and added a dashboard-disambiguation prior (`commands/dashboard.md`: unqualified "open the dashboard" → the RavenClaude comfort-posture dashboard). Behavioral/doc only — no engine change, no auto-deciding of genuine preferences. **Migration:** none.
+
 ## 0.161.7 — 2026-06-23
 
 ### Fixed

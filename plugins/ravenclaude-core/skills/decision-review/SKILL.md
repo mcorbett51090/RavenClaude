@@ -12,6 +12,15 @@ Routes a **yes/no decision** through the tribunal's seats (Forseti / Mímir / He
 1. **Before asking the user any yes/no question.** Route it here first. If the tribunal returns a binding `yes`/`no`, act on it; if it returns `defer`, ask the user. **Now enforced** (added 2026-05-28): the `PreToolUse(AskUserQuestion)` hook [`hooks/route-decision-review.sh`](../../hooks/route-decision-review.sh) intercepts binary yes/no `AskUserQuestion` calls and runs this routing automatically, so it no longer depends on remembering to invoke the skill manually. The hook handles the **real-time** path; this skill is still the surface for #2.
 2. **In the post-PR decision review** (see [`docs/post-pr-decision-review.md`](../../../../docs/post-pr-decision-review.md)) — enumerate the PR's decisions and route the tribunal-eligible ones.
 
+## Before you prompt at all: verify the premise, then batch
+
+Most of a human's decision-prompt burden is **not** the prompts the tribunal correctly defers (genuine preferences, naming, product-intent, high-blast safety) — those *should* reach the human. The avoidable cost is **re-asking the same decision** because it was surfaced before its premise was checked. Two disciplines, applied **before** any `AskUserQuestion`:
+
+1. **Verify the load-bearing claim first.** If a decision's answer depends on a *fact* — a count, whether a field/entity exists, an API behavior, "X is missing" — **verify that claim before you prompt** (read the artifact, run the check, cross-confirm). A prompt built on an unverified premise that later flips forces a re-ask; a worked case lost three prompt rounds to a "missing columns" claim that turned out false. This is the [`CLAUDE.md`](../../CLAUDE.md) § "Verify the load-bearing assumption before a high-impact activity" clause applied to *soliciting a decision*, not just to destructive acts.
+2. **Batch related decisions into one post-verification prompt.** Don't fragment one design surface (e.g. a feature's scope + its sub-choices) across rounds. Verify the premises, then ask the related decisions together in a single consolidated `AskUserQuestion`.
+
+This reduces *rounds*, not the legitimate deferrals — it never auto-decides a genuine preference (the guardrails below still own that).
+
 ## How to invoke
 
 ```bash
