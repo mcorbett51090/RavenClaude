@@ -2,11 +2,9 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
-## [0.12.1] — 2026-06-20
+## [0.12.1] — 2026-06-14
 
-Bug fix — the credit-card PAN check in the PII-scrub hook never fired.
-
-- **`hooks/scrub-confidential-pre-write.sh`** (Check 4) — the `[pii-card]` credit-card PAN regex used PCRE non-capturing groups `(?:…)` inside `grep -E` (POSIX ERE), which GNU grep rejects with `warning: ? at start of expression` and then never matches a real PAN — a silent gap in a confidentiality control that runs **before** the write completes. Replaced the two `(?:…)` groups with plain capturing groups `(…)`; verified the pattern now matches all four major brands (Visa/MC/Amex/Discover) and does not false-positive on SSNs or ordinary digit strings. The detector now actually fires on card-number content in SAR/STR/KYC files.
+Bug fix (security-relevant) — the `scrub-confidential-pre-write.sh` PII hook's credit-card PAN check used PCRE non-capturing groups `(?:…)` inside a POSIX-ERE `grep -E`, so Visa and Discover PANs slipped past the confidentiality scan entirely (the group matched nothing and emitted a `? at start of expression` warning to stderr). For an engagement that flips this hook to `exit 2` to **block** SAR/STR writes, two of four card brands were a fail-open gap. Rewrote the two groups as ERE-safe capturing groups `(…)`; all four brands now match with no stderr noise. SSN/EIN/IBAN checks were already ERE-clean and unchanged.
 
 ## [0.12.0] — 2026-06-05
 

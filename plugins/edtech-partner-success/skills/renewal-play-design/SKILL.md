@@ -1,11 +1,11 @@
 ---
 name: renewal-play-design
-description: Design renewal motions that earn the renewal instead of negotiating it — T-180/T-120/T-90/T-60/T-30/T-0 sequence, sponsor-confirmation arc, value-evidence pack, multi-thread the buying committee, decision-memo support, expand/maintain/contract decision rule, and segment-specific overlays (K-12 budget cycle, higher-ed academic calendar, corp L&D fiscal year). Reach for this skill 120-90 days before a renewal date, when a renewal "should be safe" but no movement has happened, or when designing the firm's renewal playbook. Used by `success-playbook-designer` (primary) + `partner-success-manager`.
+description: Design renewal motions that earn the renewal instead of negotiating it — T-180/T-120/T-90/T-60/T-30/T-0 sequence, sponsor-confirmation arc, value-evidence pack, multi-thread the buying committee, decision-memo support, expand/maintain/contract decision rule, and segment-specific overlays (K-12 budget cycle, higher-ed academic calendar, corp L&D fiscal year). Reach for this skill 120-90 days before a renewal date, when a renewal "should be safe" but no movement has happened, or when designing the firm's renewal playbook. Used by `success-playbook-designer` (primary) + `edtech-partner-success-manager`.
 ---
 
 # Skill: renewal-play-design
 
-> **Invoked by:** `success-playbook-designer` (primary — when authoring or refreshing the firm's renewal play), `partner-success-manager` (when executing the renewal motion on a specific partner).
+> **Invoked by:** `success-playbook-designer` (primary — when authoring or refreshing the firm's renewal play), `edtech-partner-success-manager` (when executing the renewal motion on a specific partner).
 >
 > **When to invoke:** 120-90 days before a renewal date; when a renewal "should be safe" but no movement has happened in the last touchpoints; when designing the firm-wide renewal playbook for a new segment or product surface.
 >

@@ -5,7 +5,7 @@ description: Design expansion motions that fire only when the partner has earned
 
 # Skill: expansion-play-design
 
-> **Invoked by:** `success-playbook-designer` (primary — when authoring or refreshing the firm's expansion playbook), `partner-success-manager` (when a value-trigger fires on a specific partner and the play needs to be selected).
+> **Invoked by:** `success-playbook-designer` (primary — when authoring or refreshing the firm's expansion playbook), `edtech-partner-success-manager` (when a value-trigger fires on a specific partner and the play needs to be selected).
 >
 > **When to invoke:** when designing the firm's expansion playbook; when a partner trips an expansion value-trigger; when leadership is pushing for expansion volume across the book and the PSM team needs a defensible gating discipline; when scoping a new product module's land-and-expand motion.
 >

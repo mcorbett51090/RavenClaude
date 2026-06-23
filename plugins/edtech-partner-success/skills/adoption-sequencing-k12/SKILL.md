@@ -5,7 +5,7 @@ description: Sequence K-12 partner adoption activities by stage (newly-implement
 
 # Skill: adoption-sequencing-k12
 
-> **Invoked by:** `learning-analytics-analyst` (when interpreting an adoption signal), `success-playbook-designer` (when authoring an adoption / activation / low-engagement play), `partner-success-manager` (when responding to "why is adoption stalled?").
+> **Invoked by:** `learning-analytics-analyst` (when interpreting an adoption signal), `success-playbook-designer` (when authoring an adoption / activation / low-engagement play), `edtech-partner-success-manager` (when responding to "why is adoption stalled?").
 >
 > **When to invoke:** any question of the shape "how should this K-12 partner sequence their feature/role/school rollout?" or "is this adoption pattern a problem or just the expected calendar shape?"
 >

@@ -1,6 +1,6 @@
 {
   "name": "localization-i18n-engineering",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Internationalization (i18n) and localization (l10n) engineering specialists — 3 agents covering i18n architecture (string externalization, ICU MessageFormat, RTL/bidi, locale data), the l10n pipeline (extraction, TMS handoff, translation memory, continuous localization), and localization QA (pseudo-localization, l10n linting in CI, visual overflow QA, locale-coverage testing). Ships 3 skills, 3 commands, 2 templates, a decision-tree knowledge bank with a 2026 i18n/TMS capability map, 6 best-practice rules, and an advisory hook flagging i18n anti-patterns (hard-coded user-facing strings, string concatenation, if-count-1 plurals, hard-coded date/number formats). Inherits ravenclaude-core protocols (Grounding, Structured Output).",
   "author": {
     "name": "Matt Corbett"

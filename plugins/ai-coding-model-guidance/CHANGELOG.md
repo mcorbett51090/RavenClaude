@@ -2,6 +2,28 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.7] — 2026-06-21
+
+Research-sweep refresh (re-dated 2026-06-21) — two non-Claude churns folded into `knowledge/cross-tool-model-lineup-2026.md` on top of the 2026-06-17 Grok Build addition and the 2026-06-13 Fable 5 suspension (both unchanged): (1) **OpenAI GPT-5.3-Codex and GPT-5.2/5.2-Codex deprecated** — new API requests end 2026-06-30, full shutdown 2026-12-31; flagged in the Codex table like the `grok-code-fast-1` retirement, GPT-5.5 the migration target; decision-tree leaf updated. (2) **MAI-Code-1-Flash** (Microsoft small coding model) broadly available across Copilot surfaces 2026-06-18 — added to the cheapest-fast tier. Routed through two expert panels (usefulness → both USEFUL; detailed review → APPROVE with refinements applied); panels concurred. No migration — knowledge-file content only.
+
+## [0.3.6] — 2026-06-17
+
+Freshness-anchor refresh — **xAI Grok Build CLI + `grok-build-0.1` verified and added**. The prior review's Grok Build line was a flagged `[unverified — confirm at docs.x.ai]` placeholder; this sweep verified it across the xAI primary ([x.ai/news/grok-build-cli](https://x.ai/news/grok-build-cli), [x.ai/cli](https://x.ai/cli)) plus 10 secondaries (incl. OpenRouter / Vercel AI Gateway / Requesty, which list `grok-build-0.1` as a deployable model). The vendor doc pages 403 automated `WebFetch`, so values were read via `WebSearch` per the file's 403 route ladder. (Originally cut as 0.3.5; renumbered to 0.3.6 on merge after the 2026-06-13 Fable 5 suspension sweep independently took 0.3.5 on main.)
+
+### Changed
+
+- **`knowledge/cross-tool-model-lineup-2026.md`** — (1) added a **`grok-build-0.1`** row to the Grok table as a **distinct coding-agent SKU** (256K context · $1 in / $2 out · cached $0.20; text+image, tool-calling, structured output, **always-on/non-dialable reasoning**), framed explicitly as sub-flagship-by-design (cheaper + smaller window than Grok 4.3) so the row doesn't read as a transcription error, and noting house opinion #6's reasoning-dial lever does not apply to an always-on model; the row carries retrieval date **2026-06-17** + `[verify-at-use]` on the row itself (satisfies `check-lineup-citations.py`). (2) Replaced the `[unverified]` **Grok Build CLI** bullet with a verified, dated, cited description (beta launched 2026-05-14, expanded 2026-05-25; up to **8 parallel sub-agents in isolated Git worktrees**, native MCP, plan mode, **ACP** support) — `[verify-at-use — beta]` preserved. (3) Updated the AGENT decision-tree leaf to map the coding-agent tier to grok-build-0.1 (with a 1M+-context caveat to the flagship). (4) Re-dated `Last reviewed` → **2026-06-17** (preserving the 2026-06-13 Fable 5 suspension reference from 0.3.5), added the Grok Build sources to the header, and added a 2026-06-17 sweep note.
+- Version **0.3.5 → 0.3.6** bumped in `.claude-plugin/plugin.json` **and** the `marketplace.json` catalog entry in lockstep (CI fails on drift).
+
+## [0.3.5] — 2026-06-13
+
+Research-sweep **correction** (Tier-A weekly news sweep; freshness anchor) — **Claude Fable 5 was suspended on 2026-06-12** across the Anthropic API, AWS Bedrock, and all GitHub Copilot surfaces under a US export-control directive (disputed; Anthropic working to restore). This **supersedes the 2026-06-09 Copilot GA** recorded in this file. Verified this session against the primary [Anthropic statement](https://www.anthropic.com/news/fable-mythos-access) (corroborated by Bloomberg + CNBC). Routed through three expert panels (usefulness → USEFUL/unanimous; detailed review → APPROVE-WITH-FIX, fixes applied).
+
+### Fixed
+
+- **`knowledge/cross-tool-model-lineup-2026.md`** — annotated the Copilot coding-agent table row and the Fable 5 bullet as **SUSPENDED 2026-06-12** (was listed GA + selectable); noted the "free through 2026-06-22" inclusion window is suspended-with-access (expiry date unchanged, resumes only if access returns); re-route to **Opus 4.8** as the top Copilot Claude option until restored; added a 2026-06-13 sweep note. Other Claude models in Copilot (Opus 4.8, Sonnet 4.6, Haiku 4.5) unaffected. Framed as fluid/disputed (`[verify-at-use]`), not a deprecation.
+- Version **0.3.4 → 0.3.5** in `.claude-plugin/plugin.json` **and** `marketplace.json` (lockstep).
+
 ## [0.3.4] — 2026-06-11
 
 Research-sweep re-verify — re-checked the **Microsoft Foundry Fable 5** sub-claim against the authoritative `learn.microsoft.com` Foundry Claude-model table via the **Microsoft-Learn MCP**. Despite the Azure blog and the `ai.azure.com/catalog/models/claude-fable-5` catalog page announcing GA, the Learn **deployable-model table still does not list `claude-fable-5`** (it lists Opus 4-8/4-7/4-6/4-5/4-1, Sonnet 4-6/4-5, Haiku 4-5 previews + the gated `claude-mythos-preview`).

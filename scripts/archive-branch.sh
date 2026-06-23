@@ -118,9 +118,37 @@ if [[ "$CURRENT" == "$BRANCH" ]]; then
   exit 1
 fi
 
-# 4. Capture branch tip + the unmerged-vs-main commit list (the work we'd lose).
+# 4. Capture branch tip + the unmerged-vs-default-branch commit list (the work
+#    we'd lose). Resolve the default branch instead of hardcoding "main": on a
+#    repo whose default is "master" (or anything else), `git log ... --not main`
+#    errors out, the `|| true` swallows it, and an UNMERGED_COUNT of 0 would print
+#    a false "(none — branch is fully merged)" plan for a branch that is NOT
+#    merged. Prefer origin/HEAD's target, fall back across main/master, else the
+#    current branch's tracking base.
+_resolve_base_branch() {
+  local base
+  base="$(git symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null)"
+  base="${base#origin/}"
+  if [[ -n "$base" ]] && git rev-parse --verify --quiet "$base" >/dev/null 2>&1; then
+    printf '%s\n' "$base"; return 0
+  fi
+  local c
+  for c in main master; do
+    if git rev-parse --verify --quiet "$c" >/dev/null 2>&1; then
+      printf '%s\n' "$c"; return 0
+    fi
+  done
+  return 1
+}
 TIP="$(git rev-parse "$BRANCH")"
-UNMERGED_LIST="$(git log "$BRANCH" --not main --oneline 2>/dev/null || true)"
+if BASE_BRANCH="$(_resolve_base_branch)"; then
+  UNMERGED_LIST="$(git log "$BRANCH" --not "$BASE_BRANCH" --oneline 2>/dev/null || true)"
+else
+  # No resolvable default branch — treat every commit on BRANCH as unmerged so the
+  # plan never under-reports the work at risk (fail safe toward "you have work here").
+  BASE_BRANCH="(none found)"
+  UNMERGED_LIST="$(git log "$BRANCH" --oneline 2>/dev/null || true)"
+fi
 UNMERGED_COUNT="$(printf '%s\n' "$UNMERGED_LIST" | grep -c '.' || true)"
 
 # 5. Compute the archive tag name (date-stamped so multiple archives of the
@@ -133,7 +161,7 @@ cat <<PLAN
 archive-branch plan:
   Branch:        $BRANCH
   Tip SHA:       $TIP
-  Unmerged vs main:
+  Unmerged vs $BASE_BRANCH:
 $(printf '%s\n' "${UNMERGED_LIST:-  (none — branch is fully merged)}" | sed 's/^/    /')
   Archive tag:   $TAG
   Push tag:      $([[ $SKIP_PUSH -eq 1 ]] && echo "NO (--skip-push)" || echo "yes (origin)")

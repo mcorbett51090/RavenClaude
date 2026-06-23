@@ -27,6 +27,16 @@
             "comment": "When a plugin.json or marketplace.json version changes inside the RavenClaude marketplace clone, regenerate the downstream artifacts that mirror that data (Copilot package, dashboard.html, repo-guide.html). Prevents the freshness gates from catching drift the author forgot to regenerate. No-ops outside the marketplace, on non-manifest edits, and when the version is unchanged. Failures are logged but never block."
           }
         ]
+      },
+      {
+        "matcher": "WebFetch",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/mark-web-domain-seen.sh",
+            "comment": "Records the per-session first-use 'seen' marker for a YAML-whitelisted domain — but ONLY after the WebFetch actually proceeded (PostToolUse does not fire on a blocked/denied tool call). This is the consent-ordering complement to guard-web-access.sh's PreToolUse 'ask': a PreToolUse hook can't see its own ask's answer, so marking 'seen' there would silently auto-allow a domain the user just DENIED on the next retry. Recording consent post-allow here closes that inversion. Fail-safe: not WebFetch / no url / no jq -> no-op; never blocks."
+          }
+        ]
       }
     ],
     "PreToolUse": [

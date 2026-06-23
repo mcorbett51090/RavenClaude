@@ -57,7 +57,7 @@ Internal-only outputs (draft agenda, summary of a call recording, meeting notes)
 
 ## See also
 
-- [`../agents/partner-success-manager.md`](../agents/partner-success-manager.md) — the primary consumer of AI-teammate tools in the PSM workflow.
+- [`../agents/edtech-partner-success-manager.md`](../agents/edtech-partner-success-manager.md) — the primary consumer of AI-teammate tools in the PSM workflow.
 - [`../agents/learning-analytics-analyst.md`](../agents/learning-analytics-analyst.md) — designs and interprets signal-triage outputs that AI tools may assist with.
 
 ## Provenance

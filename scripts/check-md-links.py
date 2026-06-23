@@ -33,7 +33,9 @@ from urllib.parse import unquote
 
 ROOT = Path(__file__).resolve().parent.parent
 
-LINK_RE = re.compile(r"\[(?:[^\]]*)\]\(([^)]+)\)")
+# Target allows one level of balanced parens so a path/URL like `Foo_(bar)` is
+# captured whole instead of truncated at the first `)`.
+LINK_RE = re.compile(r"\[(?:[^\]]*)\]\(((?:[^()]|\([^()]*\))*)\)")
 FENCE_RE = re.compile(r"```.*?```", re.DOTALL)
 INLINE_CODE_RE = re.compile(r"`[^`]*`")
 EXTERNAL_SCHEME_RE = re.compile(r"^(?:[a-z][a-z0-9+.-]*:)?//", re.IGNORECASE)
@@ -56,7 +58,13 @@ def is_excluded(p: Path) -> bool:
     if p.name.startswith("_"):
         return True
     # Generated markdown (links are written for a rewritten render base).
-    head = p.read_text()[:400]
+    # Read defensively: a non-UTF-8 or transiently-unreadable .md must not crash
+    # the whole link gate with an uncaught UnicodeDecodeError/OSError — treat an
+    # unreadable head as "not a generated file" and let normal link-checking run.
+    try:
+        head = p.read_text(encoding="utf-8", errors="ignore")[:400]
+    except OSError:
+        return False
     if any(marker in head for marker in GENERATED_MARKERS):
         return True
     return False

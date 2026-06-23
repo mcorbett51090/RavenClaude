@@ -1,6 +1,6 @@
 ---
 name: health-report-dashboard
-description: Build a self-contained, Power-BI/Tableau-style HTML portfolio report from partner-health data — KPI cards (NRR/GRR/avg-health/red-count/renewal-risk), a health-band donut, a 12-week trend line, a peer-cohort range chart, score-component drill-downs, red-flag surfacing, and a sortable/filterable per-partner table. Used by `learning-analytics-analyst` (primary) + `partner-success-manager`. Ships with a ready-to-open demo (sample data) AND regenerates from real data — replace `bi-report/data.json` (same shape) and re-run the generator. Invoke when someone asks for a partner-health dashboard, a "report I can show leadership", a QBR data view, or "how's my whole book doing in one picture".
+description: Build a self-contained, Power-BI/Tableau-style HTML portfolio report from partner-health data — KPI cards (NRR/GRR/avg-health/red-count/renewal-risk), a health-band donut, a 12-week trend line, a peer-cohort range chart, score-component drill-downs, red-flag surfacing, and a sortable/filterable per-partner table. Used by `learning-analytics-analyst` (primary) + `edtech-partner-success-manager`. Ships with a ready-to-open demo (sample data) AND regenerates from real data — replace `bi-report/data.json` (same shape) and re-run the generator. Invoke when someone asks for a partner-health dashboard, a "report I can show leadership", a QBR data view, or "how's my whole book doing in one picture".
 ---
 
 # Skill: health-report-dashboard

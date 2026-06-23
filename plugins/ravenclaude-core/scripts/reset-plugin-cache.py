@@ -32,6 +32,7 @@ in production the command body fetches it (pinned to --pin) before calling.
 from __future__ import annotations
 
 import argparse
+import errno
 import json
 import os
 import shutil
@@ -62,13 +63,26 @@ def default_cache_root() -> Path:
     return Path.home() / ".claude" / "plugins" / "cache"
 
 
+def _version_key(version_dir: Path) -> tuple:
+    """Sort key that orders version dirs by semver, not lexically.
+    Lexical max picks `0.9.0` over `0.120.0` (wrong); a numeric tuple fixes it.
+    Non-numeric components sort below numeric ones; an unparseable name falls
+    back to its string so the sort never raises.
+    """
+    parts = version_dir.name.lstrip("v").split(".")
+    key = []
+    for p in parts:
+        key.append((1, int(p)) if p.isdigit() else (0, p))
+    return (tuple(key), version_dir.name)
+
+
 def resolve_plugin_version_dir(cache_root: Path, plugin: str) -> Path | None:
     """Find the single live cache dir for a plugin: <cache_root>/<marketplace>/
     <plugin>/<version>/. Returns the version dir, or None if not installed.
 
     Layout per the build plan: cache_root / marketplace / plugin / version.
     We search any marketplace dir for a matching plugin and take its newest
-    version dir (lexically max — good enough; the dry-run prints exactly which).
+    version dir by semver order (the dry-run prints exactly which).
     """
     if not cache_root.is_dir():
         return None
@@ -76,7 +90,20 @@ def resolve_plugin_version_dir(cache_root: Path, plugin: str) -> Path | None:
     for marketplace in sorted(p for p in cache_root.iterdir() if p.is_dir()):
         pdir = marketplace / plugin
         if pdir.is_dir():
-            versions = sorted((v for v in pdir.iterdir() if v.is_dir()), key=lambda v: v.name)
+            # Exclude our own retained backup dirs (<version>-snapshot-<ts> /
+            # <version>-pre-ragnarok-<ts>): they are siblings of the live version
+            # dir and would otherwise be picked as "newest". Sort the rest by
+            # semver (_version_key), not lexically (0.120.0 must beat 0.9.0).
+            versions = sorted(
+                (
+                    v
+                    for v in pdir.iterdir()
+                    if v.is_dir()
+                    and "-snapshot-" not in v.name
+                    and "-pre-ragnarok-" not in v.name
+                ),
+                key=_version_key,
+            )
             if versions:
                 candidates.append(versions[-1])
     if not candidates:
@@ -154,14 +181,34 @@ def execute(
     try:
         os.rename(version_dir, pre)  # live → pre-ragnarok
         first_done = True
-        os.rename(fresh_tree, version_dir)  # fresh → canonical
+        try:
+            os.rename(fresh_tree, version_dir)  # fresh → canonical (same-FS fast path)
+        except OSError as e:
+            if e.errno != errno.EXDEV:
+                raise
+            # fresh_tree is on a different filesystem (e.g. a /tmp clone vs the
+            # ~/.claude cache): os.rename can't cross mounts. Stage a copy onto
+            # version_dir's own filesystem, then rename that into place so the
+            # final swap is still an atomic same-FS rename.
+            staged = parent / f"{version_dir.name}-fresh-{ts}"
+            shutil.rmtree(staged, ignore_errors=True)
+            shutil.copytree(fresh_tree, staged)
+            os.rename(staged, version_dir)
     except OSError as e:
+        rolled_back = False
         if first_done:
             # Roll back: restore the original live cache.
             try:
                 os.rename(pre, version_dir)
+                rolled_back = True
             except OSError:
                 pass  # best-effort; the snapshot copy is the ultimate recovery
+        # If the original is fully restored (rollback succeeded, or the first
+        # rename never happened), the snapshot copy is redundant — remove it so a
+        # failed swap doesn't orphan it. If rollback FAILED, keep the snapshot:
+        # it is then the only recovery anchor.
+        if rolled_back or not first_done:
+            shutil.rmtree(snapshot, ignore_errors=True)
         return fail("RAGNAROK_ATOMIC_SWAP_PARTIAL", str(e))
 
     # Step 7 — audit JSON record (stays in the user's project; never exfiltrated).

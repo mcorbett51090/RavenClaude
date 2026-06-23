@@ -39,7 +39,7 @@ See [`CLAUDE.md`](CLAUDE.md) for the full team constitution (roster, routing rul
 "Quarterly board pack is due Friday"         → board-pack-composer
 ```
 
-The Team Lead in the consumer's Claude Code session reads this plugin's `CLAUDE.md` and dispatches the right specialist via `ravenclaude-core/skills/spawn-team.md`.
+The Team Lead in the consumer's Claude Code session reads this plugin's `CLAUDE.md` and dispatches the right specialist via `ravenclaude-core/skills/spawn-team/SKILL.md`.
 
 ## House opinions (short list)
 

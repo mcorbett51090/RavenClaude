@@ -1,6 +1,6 @@
 # Implementation 90-day plan — `<partner_name>`
 
-> **What this is.** The 90-day implementation runbook for a newly-contracted partner. Covers the technical-onboarding arc (rostering setup, SSO config, district-admin training, train-the-trainer, first-30-day measurement) that the `partner-success-manager` agent coordinates with `learning-analytics-analyst` and the partner's IT counterpart.
+> **What this is.** The 90-day implementation runbook for a newly-contracted partner. Covers the technical-onboarding arc (rostering setup, SSO config, district-admin training, train-the-trainer, first-30-day measurement) that the `edtech-partner-success-manager` agent coordinates with `learning-analytics-analyst` and the partner's IT counterpart.
 >
 > **When to fill in.** At contract close, alongside the [`success-plan.md`](success-plan.md). The implementation plan is the *technical* counterpart to the success plan's *outcome* framing.
 >

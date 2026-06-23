@@ -16,6 +16,8 @@
     "tests/fixtures/**",
     "tests/fixtures/data-viz/**",
     "index.html",
+    "pitch.html",
+    "pitch-data.json",
     "feedback-report.html",
     ".nojekyll",
     ".gitignore",
@@ -68,6 +70,7 @@
     "plugins/*/pattern-explanations.json",
     "plugins/*/dashboard-assets/**",
     "plugins/*/scripts/**",
+    "plugins/*/bin/**",
     "scripts/generate-dashboards.py",
     "scripts/serve-dashboards.py",
     "plugins/*/.lsp.json"

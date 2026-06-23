@@ -112,19 +112,19 @@ case "$base_lc" in
     if grep -EniI '\b(red|yellow)\b' "$file" 2>/dev/null | head -10 | while read -r line; do
       # Heuristic: same line must mention signal/driver/component/because, OR
       # the line must contain a colon followed by content (suggesting a list of components).
-      if echo "$line" | grep -qiE 'signal|driver|component|because|cited|caused|due[[:space:]]+to|:[[:space:]]+[A-Za-z]'; then
+      if echo "$line" | grep -qiE 'signal|driver|component|because|cited|caused|due[[:space:]]+to|owner|mitigat|risk|root[[:space:]]+cause|next[[:space:]]+step|action|blocker|escalat'; then
         :
       else
-        # Skip template placeholders.
-        if echo "$line" | grep -qE '\<[^\>]+\>'; then continue; fi
+        # Skip template placeholders (literal angle-bracket tokens, e.g. "<partner name>").
+        if echo "$line" | grep -qE '<[^>]+>'; then continue; fi
         # Skip headers and table-row separators.
         if echo "$line" | grep -qE '^[[:space:]]*\|.*\|$|^[[:space:]]*#'; then continue; fi
         echo "  [health-status-no-signals] $file: red/yellow status without named signals: $line"
       fi
     done | head -3 | grep -q .; then
       while IFS= read -r vline; do violations+=("$vline"); done < <(grep -EniI '\b(red|yellow)\b' "$file" 2>/dev/null | head -10 | while read -r line; do
-        if echo "$line" | grep -qiE 'signal|driver|component|because|cited|caused|due[[:space:]]+to|:[[:space:]]+[A-Za-z]'; then :;
-        elif echo "$line" | grep -qE '\<[^\>]+\>'; then :;
+        if echo "$line" | grep -qiE 'signal|driver|component|because|cited|caused|due[[:space:]]+to|owner|mitigat|risk|root[[:space:]]+cause|next[[:space:]]+step|action|blocker|escalat'; then :;
+        elif echo "$line" | grep -qE '<[^>]+>'; then :;
         elif echo "$line" | grep -qE '^[[:space:]]*\|.*\|$|^[[:space:]]*#'; then :;
         else echo "  [health-status-no-signals] $file: red/yellow status without named signals: $line";
         fi

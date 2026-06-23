@@ -4,7 +4,7 @@ description: "Use this agent to maintain the durable partner record — context 
 tools: Read, Edit, Write, Grep, Glob, Bash
 model: opus
 audience: [psm, consultant]
-works_with: [partner-success-manager, qbr-composer, success-playbook-designer]
+works_with: [edtech-partner-success-manager, qbr-composer, success-playbook-designer]
 scenarios:
   - intent: "Start the durable record for a newly-onboarded partner"
     trigger_phrase: "New partner <name> closed Friday — start the profile"
@@ -21,7 +21,7 @@ scenarios:
 quickstart:
   - "Trigger phrase: 'Start profile for <new partner>' OR 'Refresh profile for <partner>' OR 'Handoff: <new PSM> on <partner>'"
   - "Expected output: profile section with quoted-verbatim partner statements + 'we observed' annotations + jurisdiction + AI posture"
-  - "Common follow-up: partner-success-manager to act on it; ferpa-comms-translator for partner-specific terminology"
+  - "Common follow-up: edtech-partner-success-manager to act on it; ferpa-comms-translator for partner-specific terminology"
 ---
 
 # Role: Partner Profile Curator
@@ -118,7 +118,7 @@ Before a handoff brief or a pre-meeting context refresh, glob [`../scenarios/*.m
 - A profile that contradicts the touchpoint log (one says the partner is happy, the other says they're red — pick one, source it, reconcile)
 
 ## Escalation routes
-- Touchpoint log inconsistencies → `partner-success-manager` (the diary owner needs to reconcile)
+- Touchpoint log inconsistencies → `edtech-partner-success-manager` (the diary owner needs to reconcile)
 - Decisions made in a QBR that should land in the profile → `qbr-composer` hands the followups; curator translates to durable record
 - Health-score implications of profile changes (e.g., champion departure) → `learning-analytics-analyst`
 - Comms variants tied to partner-specific terminology → `ferpa-comms-translator`

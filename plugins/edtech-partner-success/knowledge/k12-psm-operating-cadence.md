@@ -20,7 +20,7 @@ A K-12 PSM book is almost never time-zone-homogeneous. Even a "West Coast" book 
 
 ### What an agent should do differently
 
-When the `partner-success-manager` agent (or `qbr-composer`, when scheduling) drafts a touchpoint, the touchpoint must include the partner's local time zone and the partner-local time **as the primary surface**, with the PSM's local time as parenthetical. Defaulting to the PSM's TZ first is the most common scheduling-confusion source in cross-TZ books.
+When the `edtech-partner-success-manager` agent (or `qbr-composer`, when scheduling) drafts a touchpoint, the touchpoint must include the partner's local time zone and the partner-local time **as the primary surface**, with the PSM's local time as parenthetical. Defaulting to the PSM's TZ first is the most common scheduling-confusion source in cross-TZ books.
 
 ### Signal: "no response in 24 hours"
 
@@ -58,7 +58,7 @@ The plugin's [`edtech-segment-fundamentals.md`](edtech-segment-fundamentals.md) 
 
 The `success-playbook-designer` agent, when designing a play with a "trigger if no response in N hours" condition, must reference this calendar to suppress the trigger during the partner-segment's known dead zones. A red-flag intervention play firing at Day 5 of winter break is noise, not signal.
 
-The `partner-success-manager` agent, when reading a partner-pulse request mid-dead-zone, must surface this in the response: *"Note: partner is in [dead-zone-name] — no-response signal is unreliable here. Recommend re-evaluating at [end of dead zone date]."*
+The `edtech-partner-success-manager` agent, when reading a partner-pulse request mid-dead-zone, must surface this in the response: *"Note: partner is in [dead-zone-name] — no-response signal is unreliable here. Recommend re-evaluating at [end of dead zone date]."*
 
 ---
 
@@ -110,7 +110,7 @@ A K-12 PSM's calendar should be structured around the partner's cadence, not the
 
 ### What an agent should do differently
 
-When the `partner-success-manager` agent recommends a touchpoint, it must reference the partner's cadence + dead-zone status + TZ. The default-cadence-week-and-time goes in the partner profile (via `partner-profile-curator`), and the agent reads it before scheduling.
+When the `edtech-partner-success-manager` agent recommends a touchpoint, it must reference the partner's cadence + dead-zone status + TZ. The default-cadence-week-and-time goes in the partner profile (via `partner-profile-curator`), and the agent reads it before scheduling.
 
 ---
 
@@ -128,5 +128,5 @@ When the `partner-success-manager` agent recommends a touchpoint, it must refere
 - [`renewal-pricing-conversations-edtech.md`](renewal-pricing-conversations-edtech.md) — the 120-180-day K-12 renewal clock + budget-build window
 - [`partner-health-score-drift.md`](partner-health-score-drift.md) — decay rules that should reference this file's dead-zone suppression
 - [`../templates/cross-functional-partnership-map.md`](../templates/cross-functional-partnership-map.md) — the *who-does-what* map that complements this *when* doc
-- [`../agents/partner-success-manager.md`](../agents/partner-success-manager.md) — the primary consumer
+- [`../agents/edtech-partner-success-manager.md`](../agents/edtech-partner-success-manager.md) — the primary consumer
 - [`../agents/success-playbook-designer.md`](../agents/success-playbook-designer.md) — secondary consumer (play-trigger-suppression)

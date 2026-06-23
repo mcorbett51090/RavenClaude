@@ -2,6 +2,20 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.0] — 2026-06-22
+
+Post-award / grant-management value-add — **complements** (does not duplicate) the existing pre-award / development side. Adds the post-award compliance lane as a skill + knowledge doc + template + 3 best-practice rules; **no new agent** (team-growth-as-knowledge house rule — `grant-writer` and `nonprofit-finance-analyst` reach the new surface).
+
+- **New knowledge doc** `knowledge/grant-management-post-award.md` — dated, with **2 Mermaid decision trees**: (a) allowable-cost determination (allowable/allocable/reasonable + direct vs indirect, Uniform Guidance 2 CFR 200) and (b) reporting-cadence & compliance triage (financial + programmatic reports, deadlines, the Single Audit threshold). Plus budget-vs-actual tracking, drawdown/reimbursement, modifications/no-cost extensions, the document/audit trail (records retention), and subrecipient monitoring. **Every regulatory specific carries a retrieval date + `[verify-at-use]`; advisory only, not legal/accounting/audit advice (§2).**
+- **New skill** `skills/grant-postaward-compliance/SKILL.md` — the post-award lifecycle: set up → spend within allowable costs → track budget-vs-actual monthly → report on cadence → modify before needed → close out audit-ready.
+- **New template** `templates/grant-budget-vs-actual-tracker.md` — fill-in budget-vs-actual ledger by category + drawdown log + report calendar (financial + programmatic) + modifications + subrecipient monitoring + audit-readiness checklist.
+- **3 new best-practice rules** (indexed in `best-practices/README.md`, now 23 rules): `spend-only-on-allowable-allocable-reasonable-costs.md`, `track-budget-vs-actual-every-month-not-at-report-time.md`, `keep-an-audit-ready-document-trail.md`.
+- **`CLAUDE.md`** — added the new skill, knowledge doc, and template to their tables (§5) plus a one-line post-award-coverage note.
+- **`plugin.json`** — version `0.2.1` → `0.3.0` (minor); description counts updated (6 skills, 4 templates, 23 best-practice rules, 5-file knowledge bank; "covering both pre-award development and post-award grant compliance").
+
+### Shared-file changes (orchestrator-owned, NOT done here)
+- `.claude-plugin/marketplace.json` `version` must be bumped `0.2.1` → `0.3.0` to match this catalog entry (per task constraint, marketplace.json was not edited here).
+
 ## [0.2.0] — 2026-06-05
 
 Value-add build-out — generalizing the marketplace non-code-vertical recipe (proven on `veterinary-practice`) to development/fundraising. Adds the scenarios bank, two complementary Mermaid decision-tree knowledge files, a runnable fundraising-economics calculator, and cited KPI benchmarks; honestly dispositions the code-runtime tier as N-A.

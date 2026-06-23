@@ -81,7 +81,7 @@ A rostering incident that resolves without documentation is a future repeat-inci
 
 ## Step 7 — Escalation paths
 
-- **Partner-side admin coaching** — PSM (`partner-success-manager`) handles directly; pull `ferpa-comms-translator` if the partner-admin needs a parent / institution-leadership-facing version
+- **Partner-side admin coaching** — PSM (`edtech-partner-success-manager`) handles directly; pull `ferpa-comms-translator` if the partner-admin needs a parent / institution-leadership-facing version
 - **Vendor outage / vendor-side bug** — open a ticket with the vendor; track in `ravenclaude-core/project-manager`; PSM keeps partner informed
 - **Our integration regression** — escalate to `ravenclaude-core/architect` or `data-engineer`; usually requires a code change
 - **Persistent identifier-drift issue** — architecture review; `ravenclaude-core/architect`
