@@ -84,13 +84,30 @@ while [ "$#" -gt 0 ]; do
 done
 
 current="$(git symbolic-ref --short HEAD 2>/dev/null || echo "")"
-default_branch="main"
-git show-ref --verify --quiet "refs/heads/main" || default_branch="master"
+
+# Resolve the default branch instead of hardcoding "main" with a "master"
+# fallback: on a repo whose default is e.g. "trunk"/"develop", the old fallback
+# silently picked "master" (which usually doesn't exist either), so Check 2's
+# `git merge-base --is-ancestor "$b" "$default_branch"` errored, the `2>/dev/null`
+# swallowed it, and an UNMERGED branch was misreported "all commits in master".
+# Prefer origin/HEAD's target (any resolvable ref), then a local main/master,
+# else fall back to "main". Mirrors archive-branch.sh's _resolve_base_branch.
+default_branch="$(git symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null || true)"
+default_branch="${default_branch#origin/}"
+if [ -z "$default_branch" ] || ! git rev-parse --verify --quiet "$default_branch" >/dev/null 2>&1; then
+  if git show-ref --verify --quiet "refs/heads/main"; then
+    default_branch="main"
+  elif git show-ref --verify --quiet "refs/heads/master"; then
+    default_branch="master"
+  else
+    default_branch="main"
+  fi
+fi
 
 if [ "$auto" = "1" ]; then
   while IFS= read -r b; do
     case "$b" in
-      main|master|"$current"|"") ;;
+      main|master|"$default_branch"|"$current"|"") ;;
       *) branches+=("$b") ;;
     esac
   done < <(git for-each-ref --format='%(refname:short)' refs/heads/)
@@ -120,8 +137,8 @@ verdict_safe=()    # "branch<TAB>reason"
 verdict_unsafe=()  # "branch<TAB>reason"
 
 for b in "${branches[@]}"; do
-  if [ "$b" = "main" ] || [ "$b" = "master" ]; then
-    verdict_unsafe+=("$b"$'\t'"protected (main/master)")
+  if [ "$b" = "main" ] || [ "$b" = "master" ] || [ "$b" = "$default_branch" ]; then
+    verdict_unsafe+=("$b"$'\t'"protected (default branch)")
     continue
   fi
   if [ -n "$current" ] && [ "$b" = "$current" ]; then
