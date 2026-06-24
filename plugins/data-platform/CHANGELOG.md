@@ -2,6 +2,20 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.14.0] — 2026-06-24
+
+OAuth-app / credential **registration walkthroughs** per ELT source — the connector docs stated the auth *mechanism* ("Connected App + OAuth 2.0", "OAuth 2.0 Authorization Code") but never how to register the app in the provider's developer portal, or who's allowed to.
+
+### Added
+
+- **`skills/connector-configuration/SKILL.md`** — a "Register the app" pointer under QuickBooks, Salesforce, HubSpot, Shopify, and GA4 (portal URL + who can do it + link to the knowledge-doc walkthrough). Made explicit that **Stripe is an API key, not an OAuth app** (restricted-key creation, no portal registration).
+- **Per-connector knowledge docs** — a "Registering the app (developer portal)" subsection added to `quickbooks-online-integration.md` (developer.intuit.com), `salesforce-integration.md` (App Manager → Connected App), `hubspot-integration.md` (Private App vs marketplace OAuth app), `shopify-integration.md` (custom app vs Partner app), and `ga4-integration.md` (BigQuery-export link needs no app; Data API uses a service account / OAuth client, cross-linking the Google SSO walkthrough). Each names the **role/permission required** and is marked `[verify-at-build]` per the files' existing refresh-trigger discipline.
+
+### Notes
+
+- Secrets stay a **reference** (env-var name / vault URI), never a literal — consistent with the plugin's `flag-data-platform-smells.sh` hook.
+- Companion to the `auth-identity` 0.3.0 social-provider walkthroughs (same "someone has to register the app — here's how, and whether you can" framing).
+
 ## [0.13.2] — 2026-06-22
 
 Version bump previously unlogged here (rolls up `0.12.0` → `0.13.2`); the change that set `0.13.2`:
