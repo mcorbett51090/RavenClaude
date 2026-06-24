@@ -1,0 +1,6 @@
+{
+  "project_id": "76e5ef74-a8c4-4cf7-9423-86ca92eddbdc",
+  "name": "RavenClaude Design System",
+  "mirror_dir": "",
+  "notes": "RavenClaude's own design system on claude.ai/design — tokens, core components (Button/Card/Badge/Input/Pill/PostureToggle/Stat/Tabs/Rule/Eyebrow), guidelines, and ui_kits for the dashboard + portal. Read as context via the DesignSync tool (get_file) or edit via the /design-sync skill (plan-gated). project_id is a non-secret UUID."
+}

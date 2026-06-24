@@ -27,6 +27,7 @@
     ".prettierignore",
     ".repo-layout.json",
     ".ravenclaude/comfort-posture.yaml",
+    ".ravenclaude/design-project.json",
     ".ravenclaude/dispatch-config.json",
     ".ravenclaude/plugins/*.yaml",
     ".ravenclaude/run-config.json",

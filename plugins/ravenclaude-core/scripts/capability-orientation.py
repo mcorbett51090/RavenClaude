@@ -235,6 +235,28 @@ def summarize_env_context(root: Path) -> dict | None:
             "self_serve_count": self_serve or None}
 
 
+def summarize_design_project(root: Path) -> dict | None:
+    """Report a claude.ai/design project bound to THIS repo (.ravenclaude/design-project.json).
+
+    The binding is a pointer, not a credential — a project_id is a non-secret UUID.
+    We surface the NAME + mirror dir + whether an id is recorded (so a session knows
+    which of the user's design projects is this repo's, and to read the file for the
+    id). Fail-safe: absent / unparseable -> None (the banner just omits the line).
+    """
+    path = root / ".ravenclaude" / "design-project.json"
+    if not path.exists():
+        return None
+    try:
+        import json as _json
+        d = _json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return {"present": True, "has_id": False, "name": None, "mirror_dir": None}
+    pid = (d.get("project_id") or "").strip()
+    name = (d.get("name") or "").strip() or None
+    mirror = (d.get("mirror_dir") or "").strip() or None
+    return {"present": True, "has_id": bool(pid), "name": name, "mirror_dir": mirror}
+
+
 def _fmt_rules(rules: list[str], cap: int = 6) -> str:
     if not rules:
         return "none"
@@ -488,9 +510,10 @@ def build_banner(root: Path) -> str:
     runtime = summarize_runtime_activity(root)
     run_cfg = summarize_run_config(root)
     streams = summarize_streams(root)
+    design = summarize_design_project(root)
 
     # If we have nothing useful at all, emit nothing (don't inject an empty box).
-    if not (surface or env_auth or cli_auth or perms or (envctx and envctx.get("present")) or runtime or run_cfg or streams):
+    if not (surface or env_auth or cli_auth or perms or (envctx and envctx.get("present")) or runtime or run_cfg or streams or design):
         return ""
 
     lines: list[str] = []
@@ -544,6 +567,24 @@ def build_banner(root: Path) -> str:
     else:
         lines.append("  not present. Run the environment-discovery skill to map which environments")
         lines.append("  your detected credentials can reach and what they're authorized to do.")
+
+    if design and design.get("present"):
+        lines.append("")
+        lines.append("LINKED DESIGN PROJECT (.ravenclaude/design-project.json):")
+        nm = design.get("name") or "(unnamed — fill in `name`)"
+        if design.get("has_id"):
+            md = design.get("mirror_dir")
+            lines.append(
+                f"  This repo is bound to the claude.ai/design project \"{nm}\". You CAN read it "
+                "as context and edit it — use the DesignSync tool (list_files / get_file) or the "
+                "/design-sync skill. Read the file for the project_id"
+                + (f"; local mirror dir `{md}`." if md else ".")
+            )
+        else:
+            lines.append(
+                f"  present but no project_id yet ({nm}). Run /design-link to pick the project and "
+                "record its id, then DesignSync / /design-sync can read + edit it."
+            )
 
     if run_cfg:
         lines.append("")

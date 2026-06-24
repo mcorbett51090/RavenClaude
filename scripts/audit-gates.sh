@@ -235,9 +235,14 @@ PY
       bash plugins/ravenclaude-core/hooks/tests/test-gate122-delegation-nudge.sh
       exit $?
       ;;
+    123)
+      echo "── Gate 123: design-project binding surfacing (banner bound / half-set / absent / leak-safe / teeth) ──"
+      bash plugins/ravenclaude-core/hooks/tests/test-gate123-design-project-binding.sh
+      exit $?
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -3718,6 +3723,14 @@ echo "── Gate 122: delegation-nudge.sh (consult-your-access-inventory writte
 # the reason line then fires — both directions in one run.
 rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate122-delegation-nudge.sh >/dev/null 2>&1 || rc=$?
 gate "delegation-nudge: fires on delegation prose + silent on reason/route/escape/scope/opt-out + teeth" must_pass "$rc"
+
+echo "── Gate 123: design-project binding surfacing in the capability banner ──"
+# Drives the REAL capability-orientation.py: a bound .ravenclaude/design-project.json surfaces the
+# LINKED DESIGN PROJECT line; a present-but-id-less file shows the /design-link guidance; an absent
+# file omits the line; the project_id VALUE never leaks into the banner; and a must-fail half neuters
+# the design block (`if False`) and asserts the bound case stops showing the line.
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate123-design-project-binding.sh >/dev/null 2>&1 || rc=$?
+gate "design-project binding: surfaces when bound + guides when half-set + silent when absent + leak-safe + teeth" must_pass "$rc"
 
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"
