@@ -107,8 +107,17 @@
 
       /* ── Hero ── */
       .hero {
-        padding: var(--rc-space-8) 0 var(--rc-space-7);
+        padding: var(--rc-space-6) 0 var(--rc-space-6);
         border-bottom: 1px solid var(--rc-border);
+      }
+
+      /* top row: brand left, compact stats top-right (numbers are secondary) */
+      .hero-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: var(--rc-space-5);
+        flex-wrap: wrap;
       }
 
       .brand {
@@ -124,19 +133,56 @@
         font-size: 22px;
       }
 
-      .hero h1 {
-        font-size: clamp(2rem, 4.5vw, 3rem);
-        line-height: 1.1;
+      .hero-stats {
+        display: flex;
+        gap: var(--rc-space-5);
+        flex-wrap: wrap;
+        align-items: flex-start;
+        margin-left: auto;
+      }
+
+      .hero-stats .stat {
+        background: none;
+        border: none;
+        box-shadow: none;
+        padding: 0;
+        text-align: right;
+      }
+
+      .hero-stats .stat .num {
+        font-size: 22px;
+        font-weight: 700;
         letter-spacing: -0.02em;
-        margin: var(--rc-space-5) 0 var(--rc-space-4);
-        max-width: 18ch;
+        line-height: 1;
+        color: var(--rc-text);
+      }
+
+      .hero-stats .stat .label {
+        margin-top: 2px;
+        font-size: 11px;
+        color: var(--rc-faint);
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+      }
+
+      .hero-stats .empty {
+        color: var(--rc-faint);
+        font-size: 13px;
+      }
+
+      .hero h1 {
+        font-size: clamp(1.9rem, 4.2vw, 2.75rem);
+        line-height: 1.08;
+        letter-spacing: -0.02em;
+        margin: var(--rc-space-4) 0 var(--rc-space-3);
+        max-width: 20ch;
       }
 
       .hero .lead {
         font-size: 18px;
         color: var(--rc-muted);
-        max-width: 60ch;
-        margin: 0 0 var(--rc-space-6);
+        max-width: 62ch;
+        margin: 0 0 var(--rc-space-5);
       }
 
       .cta-row {
@@ -183,7 +229,11 @@
 
       /* ── Sections ── */
       section {
-        padding: var(--rc-space-7) 0;
+        padding: var(--rc-space-6) 0;
+      }
+
+      section:first-of-type {
+        padding-top: var(--rc-space-6);
       }
 
       h2 {
@@ -383,16 +433,22 @@
     <!-- Hero -->
     <header class="hero">
       <div class="wrap">
-        <div class="brand"><span class="mark" aria-hidden="true">🐦‍⬛</span> RavenClaude</div>
-        <h1>A private Claude Code plugin marketplace.</h1>
+        <div class="hero-top">
+          <div class="brand"><span class="mark" aria-hidden="true">🐦‍⬛</span> RavenClaude</div>
+          <div class="hero-stats" id="stats">
+            <p class="empty">Loading…</p>
+          </div>
+        </div>
+        <h1>A whole expert team, inside Claude Code.</h1>
         <p class="lead">
-          A domain-neutral orchestration core plus specialist teams that travel with you across
-          projects — bundled team rules, specialist agents, dispatch playbooks, and templates,
-          governed by the same guardrails everywhere.
+          RavenClaude adds specialist AI teammates — for engineering, cloud, data, finance,
+          security, design, and dozens more fields — to Claude Code. One lead coordinates them, and
+          <strong>you</strong> decide what they can do on their own with point-and-click controls.
+          No hiring, no build step.
         </p>
         <div class="cta-row">
           <a class="btn primary" href="index.html">Explore the portal</a>
-          <a class="btn ghost" href="GETTING_STARTED.md">First workflow in 10 min</a>
+          <a class="btn ghost" href="index.html">Try it in Claude Code →</a>
           <a
             class="btn ghost"
             href="https://ravenpower.net"
@@ -404,16 +460,6 @@
       </div>
     </header>
 
-    <!-- Proof strip -->
-    <section>
-      <div class="wrap">
-        <p class="eyebrow">By the numbers</p>
-        <div class="stats" id="stats">
-          <p class="empty">Loading marketplace stats…</p>
-        </div>
-      </div>
-    </section>
-
     <!-- Value prop -->
     <section>
       <div class="wrap">
@@ -421,26 +467,26 @@
         <div class="cards">
           <div class="card">
             <div class="rule" aria-hidden="true"></div>
-            <h3>A domain-neutral core</h3>
+            <h3>Specialists on call</h3>
             <p>
-              A Team Lead plus generalist specialists, dispatch playbooks, and the epistemic
-              protocols every agent inherits — the foundation every plugin builds on.
+              Architects, code reviewers, security auditors, data engineers, FP&amp;A analysts and
+              more — drop in the fields you need, and they come with you to every project.
             </p>
           </div>
           <div class="card">
             <div class="rule" aria-hidden="true"></div>
-            <h3>Specialist teams that travel</h3>
+            <h3>Many fields, one standard</h3>
             <p>
-              Drop in the verticals you need — engineering, cloud, data, finance, healthcare, and
-              dozens more — and they come with you across every project.
+              Engineering, cloud, data, finance, healthcare, design, and dozens more — every team
+              follows the same review bar and hand-off rules, so quality doesn't drift between them.
             </p>
           </div>
           <div class="card">
             <div class="rule" aria-hidden="true"></div>
-            <h3>Governed multi-agent dispatch</h3>
+            <h3>You set the limits</h3>
             <p>
-              Heimdall watches the perimeter: a comfort-posture you tune by hand or by click, a
-              command-review tribunal, and guardrails that bound depth, breadth, and correctness.
+              Decide what agents can do on their own — deny, ask, or allow — per tool, with a click.
+              A built-in review step checks risky commands before they ever run.
             </p>
           </div>
           <div class="card">
@@ -504,9 +550,8 @@
           </div>
         </div>
         <p style="margin-top: 16px; color: var(--rc-muted)">
-          New here? <a href="GETTING_STARTED.md">First workflow in 10 minutes</a> walks the same
-          path interactively, and the <a href="index.html">portal's onboarding checklist</a> tracks
-          your progress — both stay current with every release.
+          New here? The <a href="index.html">portal's onboarding checklist</a> walks the same path
+          interactively and tracks your progress — and stays current with every release.
         </p>
       </div>
     </section>
@@ -517,8 +562,8 @@
         <div class="links">
           <a href="index.html">Portal</a>
           <a href="index.html#/configure">Dashboard</a>
-          <a href="GETTING_STARTED.md">Getting started</a>
-          <a href="README.md">README</a>
+          <a href="index.html">Get started</a>
+          <a href="index.html#/learn">How it works</a>
           <a href="https://ravenpower.net" target="_blank" rel="noopener noreferrer"
             >Raven Power ↗</a
           >
