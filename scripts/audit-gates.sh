@@ -210,9 +210,14 @@ PY
       python3 scripts/check-evaluate.py
       exit $?
       ;;
+    118)
+      echo "── Gate 118: convergence full loop + cross-model judge + keep-best + constrained report ──"
+      python3 scripts/check-converge-loop.py
+      exit $?
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -3632,6 +3637,23 @@ rc=0; python3 scripts/check-evaluate.py >/dev/null 2>&1 || rc=$?
 gate "evaluate: objective-gates-first + broken-artifact spends 0 judge calls" must_pass "$rc"
 rc=0; python3 scripts/check-evaluate.py --must-fail-judge-first >/dev/null 2>&1 || rc=$?
 gate "evaluate: objective-first ordering has teeth (judge-first mutant burns a call)" must_pass "$rc"
+
+echo
+echo "── Gate 118: Convergence full loop + cross-model judge + keep-best (P3) ───"
+# The e2e: a flawed→fixed fixture converges within the cap; iteration 0 (red gate)
+# spends NO judge call (objective-first); the loop emits the BEST iteration (a
+# regression on the last iteration must not win); the constrained report renders
+# with NO over-claim word ("perfect"/"flawless") and render_report actively
+# rejects a banned word; and the cross-model judge (judge.sh) refuses to
+# self-grade (author==judge family → exit 5), runs cross-model, and trips the
+# secret-egress backstop before transmitting (CI never calls claude — the
+# JUDGE_MOCK_VERDICT hook supplies verdicts). Bidirectional teeth:
+# --must-fail-keepbest makes keep_best 'last wins' and asserts the loop THEN
+# emits the regressed final iteration.
+rc=0; python3 scripts/check-converge-loop.py >/dev/null 2>&1 || rc=$?
+gate "converge loop: e2e converge + objective-first + keep-best + no-'perfect' report + judge security" must_pass "$rc"
+rc=0; python3 scripts/check-converge-loop.py --must-fail-keepbest >/dev/null 2>&1 || rc=$?
+gate "converge loop: keep-best has teeth (emits regression when keep_best is last-wins)" must_pass "$rc"
 
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"

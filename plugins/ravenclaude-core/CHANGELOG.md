@@ -2,6 +2,12 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.170.0 — 2026-06-24
+
+### Added
+
+- **Convergence engine — P3 (full loop + cross-model judge).** `loop.py` runs derive→evaluate→refine→re-evaluate→terminate, emitting the **best** iteration (keep-best, never the last) with a constrained no-overclaim report. `judge.sh` is the subjective judge — it **REFUSES (exit 5) when the judge model family equals the author's** (never self-grade). Security-reviewed (cross-model `claude -p` path): no blocker; anti-self-grade normalization broadened (closes -v2/-latest/-preview bypass) + `is_error`/verdict validation + secret-scrub synced to `_scrub.sh`. Proven by **Gate 118** (loop + judge≠author + keep-best + constrained report, with a must-fail-keepbest teeth half). **Migration:** none.
+
 ## 0.169.0 — 2026-06-24
 
 ### Added
