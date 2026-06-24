@@ -220,9 +220,39 @@ PY
       python3 scripts/check-converge-rc.py
       exit $?
       ;;
+    120)
+      echo "── Gate 120: model-fallback helper (classification / cost cap / exclude / disabled-byte-identical / teeth) ──"
+      bash plugins/ravenclaude-core/hooks/tests/test-gate120-model-fallback.sh
+      exit $?
+      ;;
+    121)
+      echo "── Gate 121: model-fallback runtime model-diversity collapse gate (fail-closed / inert / teeth) ──"
+      bash plugins/ravenclaude-core/hooks/tests/test-gate121-model-fallback-diversity.sh
+      exit $?
+      ;;
+    122)
+      echo "── Gate 122: delegation-nudge.sh (consult-your-access-inventory written-artifact nudge) ──"
+      bash plugins/ravenclaude-core/hooks/tests/test-gate122-delegation-nudge.sh
+      exit $?
+      ;;
+    123)
+      echo "── Gate 123: design-project binding surfacing (banner bound / half-set / absent / leak-safe / teeth) ──"
+      bash plugins/ravenclaude-core/hooks/tests/test-gate123-design-project-binding.sh
+      exit $?
+      ;;
+    124)
+      echo "── Gate 124: dataverse-payload-preflight validate() (all violation classes / clean / teeth) ──"
+      bash plugins/power-platform/hooks/tests/test-preflight.sh
+      exit $?
+      ;;
+    125)
+      echo "── Gate 125: nudge-dataverse-preflight.sh (fires on Dataverse create/update / silent on GET+opt-out / teeth) ──"
+      bash plugins/power-platform/hooks/tests/test-nudge-preflight.sh
+      exit $?
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -3679,6 +3709,20 @@ rc=0; python3 scripts/check-converge-rc.py >/dev/null 2>&1 || rc=$?
 gate "converge rc verb: report/verdict/derive + friendly errors + word-boundary over-claim screen" must_pass "$rc"
 rc=0; python3 scripts/check-converge-rc.py --must-fail-overclaim >/dev/null 2>&1 || rc=$?
 gate "converge rc verb: over-claim screen has teeth (renders 'perfect' when screen neutered)" must_pass "$rc"
+
+echo "── Gates 120–125: model-fallback + nudges + Dataverse pre-flight (restored after #519 dropped 120–123) ──"
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate120-model-fallback.sh >/dev/null 2>&1 || rc=$?
+gate "model-fallback helper: classification + cost cap + exclude + disabled-byte-identical + teeth" must_pass "$rc"
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate121-model-fallback-diversity.sh >/dev/null 2>&1 || rc=$?
+gate "model-fallback runtime diversity: collapse fails closed + inert when distinct + teeth" must_pass "$rc"
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate122-delegation-nudge.sh >/dev/null 2>&1 || rc=$?
+gate "delegation-nudge: fires on delegation prose + silent on reason/route/escape/scope/opt-out + teeth" must_pass "$rc"
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate123-design-project-binding.sh >/dev/null 2>&1 || rc=$?
+gate "design-project binding: surfaces when bound + guides when half-set + silent when absent + leak-safe + teeth" must_pass "$rc"
+rc=0; bash plugins/power-platform/hooks/tests/test-preflight.sh >/dev/null 2>&1 || rc=$?
+gate "dataverse-payload-preflight: catches all violation classes in one pass + clean on good + teeth" must_pass "$rc"
+rc=0; bash plugins/power-platform/hooks/tests/test-nudge-preflight.sh >/dev/null 2>&1 || rc=$?
+gate "nudge-dataverse-preflight: fires on Dataverse create/update under posture + silent on GET/opt-out + teeth" must_pass "$rc"
 
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"

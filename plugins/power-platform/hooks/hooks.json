@@ -2,6 +2,18 @@
   "$schema": "https://json.schemastore.org/claude-code-hooks.json",
   "description": "Plugin-distributed hooks for power-platform. Auto-merged with the consumer's session hooks when the plugin is installed.",
   "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/nudge-dataverse-preflight.sh",
+            "comment": "Advisory (opt-in): when a Bash command looks like a Dataverse Web API create/update (POST/PATCH to /api/data/vX.Y/<entityset>), nudges to run the dataverse-payload-preflight skill FIRST — validates every field against live metadata in one pass (nonexistent columns, option-set values, lookup binds, required fields, owner) instead of the fix-one-field-and-re-fire loop the BTCSI retro suffered. No-op without .ravenclaude/comfort-posture.yaml; exits 0 always (never blocks); fail-safe. Honest limit: it can't know if the preflight already ran — it nudges on the create/update shape."
+          }
+        ]
+      }
+    ],
     "PostToolUse": [
       {
         "matcher": "Edit|Write|MultiEdit",
