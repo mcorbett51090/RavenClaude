@@ -86,6 +86,36 @@ _mf_is_in_csv() {
   return 1
 }
 
+# _mf_load_config [posture-file] — populate MODEL_FALLBACK_{ENABLED,LADDER,MAX_RETRIES}
+# from the nested `model_fallback:` block in comfort-posture.yaml. No PyYAML (awk over
+# the block; ends at the first non-indented line). Fail-safe: no file/block ⇒ leaves
+# ENABLED=0. An already-set env var ALWAYS wins (caller/test override) via `:=`.
+_mf_load_config() {
+  local f="${1:-${CLAUDE_PROJECT_DIR:-.}/.ravenclaude/comfort-posture.yaml}"
+  : "${MODEL_FALLBACK_ENABLED:=}"
+  [ -f "$f" ] || {
+    : "${MODEL_FALLBACK_ENABLED:=0}"
+    return 0
+  }
+  local block en lad mr
+  block="$(awk '
+    /^model_fallback:[[:space:]]*$/ { inb = 1; next }
+    inb && /^[^[:space:]#]/ { inb = 0 }
+    inb { print }
+  ' "$f" 2>/dev/null)"
+  if [ -n "$block" ]; then
+    en="$(printf '%s\n' "$block" | sed -nE 's/^[[:space:]]*enabled:[[:space:]]*([A-Za-z0-9]+).*/\1/p' | head -1 | tr '[:upper:]' '[:lower:]')"
+    lad="$(printf '%s\n' "$block" | sed -nE 's/^[[:space:]]*ladder:[[:space:]]*\[(.*)\].*/\1/p' | head -1 | tr -d ' ')"
+    mr="$(printf '%s\n' "$block" | sed -nE 's/^[[:space:]]*max_retries:[[:space:]]*([0-9]+).*/\1/p' | head -1)"
+    case "$en" in
+      true | yes | 1) : "${MODEL_FALLBACK_ENABLED:=1}" ;;
+    esac
+    [ -n "$lad" ] && : "${MODEL_FALLBACK_LADDER:=$lad}"
+    [ -n "$mr" ] && : "${MODEL_FALLBACK_MAX_RETRIES:=$mr}"
+  fi
+  : "${MODEL_FALLBACK_ENABLED:=0}"
+}
+
 _model_call_with_fallback() {
   local runner="" exclude=""
   while [ $# -gt 0 ]; do
