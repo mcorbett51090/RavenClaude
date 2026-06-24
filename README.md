@@ -8,7 +8,7 @@
 >
 > _(Or [view the raw HTML source](index.html), or download and open locally — no server, no build step.)_
 
-> 🎛 **[▶ Open the RavenClaude dashboard](https://mcorbett51090.github.io/RavenClaude/plugins/ravenclaude-core/dashboard.html)** — point-and-click editor for your `.ravenclaude/comfort-posture.yaml`: set per-tool file, network, shell, and package autonomy across three levels (deny → ask → allow) — per layer (user / local / project) and per individual permission — without editing YAML by hand. _(That link is the published, read-only preview.)_
+> 🎛 **[▶ Open the RavenClaude dashboard](https://mcorbett51090.github.io/RavenClaude/plugins/ravenclaude-core/dashboard.html)** — point-and-click editor for your `.ravenclaude/comfort-posture.yaml`: set per-tool file, network, shell, and package autonomy across three levels (deny → ask → allow) — per layer (user / local / project) and per individual permission — without editing YAML by hand. _(That link is the published, read-only preview; to use it for real — where **Save & apply** writes your repo's config — run **`rc dashboard`** from your project, the one canonical launcher across Claude Code, Copilot CLI, and a bare terminal.)_
 
 > 🖥 **Working on this repo?** Launch the **functional local dashboard** (where **Save & apply** actually writes this repo's config) with one command: `bash scripts/open-dashboard.sh`. It kills any running dashboard server, starts a fresh one, and opens it in your browser automatically. _(VS Code users: a `.vscode/tasks.json` wired as the default build task — Ctrl/Cmd+Shift+B — runs the same script; `.vscode/` is gitignored, so add it locally if you want the keybinding.)_
 
@@ -17,6 +17,8 @@
 > _(Or [view the raw HTML source](index.html), or download and open locally — no server, no build step.)_
 
 > 🚀 **[▶ First Workflow in 10 Minutes](GETTING_STARTED.md)** — install → dashboard → one governed multi-agent dispatch → `/wrap`. The canonical onboarding walkthrough. Start here if you've never used RavenClaude before.
+
+> 🌐 **[▶ Raven Power ↗](https://ravenpower.net)** — the consulting front door behind RavenClaude. This marketplace is the proof-of-craft; the website is where the engagements live.
 
 Today this marketplace ships **118 plugins**:
 

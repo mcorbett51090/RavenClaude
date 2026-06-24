@@ -612,6 +612,7 @@ TEMPLATE = r"""<!doctype html>
         <div class="sidebar-foot">
           <div>v<span id="foot-version">__MKT_VERSION__</span></div>
           <div class="detail">Updated __GENERATED__</div>
+          <div class="detail"><a href="pitch.html">What is RavenClaude?</a></div>
           <div class="detail"><a href="https://ravenpower.net" target="_blank" rel="noopener noreferrer">Raven Power ↗</a></div>
         </div>
       </aside>
@@ -932,7 +933,7 @@ TEMPLATE = r"""<!doctype html>
         { id: 1, title: "Pick a posture scenario", desc: "Recommended: Client Delivery", cta: "Open", action: "route", route: "#/configure" },
         { id: 2, title: "Read GETTING_STARTED.md", desc: "10-minute canonical walkthrough", cta: "Open", action: "href", href: "GETTING_STARTED.md" },
         { id: 3, title: "Run your first /spawn-team", desc: "Copy an example prompt", cta: "Copy", action: "copyCmd", cmd: "/spawn-team architect → coder → tester for: <describe your change>" },
-        { id: 4, title: "Open the deep posture dashboard", desc: "Save & apply writes .ravenclaude/comfort-posture.yaml", cta: "Copy", action: "copyCmd", cmd: "bash scripts/open-dashboard.sh" },
+        { id: 4, title: "Open the deep posture dashboard", desc: "rc dashboard — Save & apply writes .ravenclaude/comfort-posture.yaml", cta: "Copy", action: "copyCmd", cmd: "rc dashboard" },
       ];
       function onboardingProgress() {
         return parseInt(localStorage.getItem("rc-onboarding-progress") || "0", 10);
@@ -994,23 +995,6 @@ TEMPLATE = r"""<!doctype html>
           </${tag}>`;
         }).join("");
 
-        const featured = D.featured.map((f) => {
-          const plugins = f.plugins.map(byName).filter(Boolean);
-          const tags = plugins.map((p) => `<span class="chip teal">${esc(p.label)}</span>`).join("");
-          const total = plugins.reduce((n, p) => n + p.counts.agents, 0);
-          return `<div class="card"><div style="font-weight:700">${esc(f.title)}</div>
-            <p class="desc" style="color:var(--muted);font-size:.86rem;margin:8px 0 0">${esc(f.blurb)}</p>
-            <div class="tags">${tags}</div>
-            <div class="metrics" style="margin-top:12px;font-size:.76rem;color:var(--faint)"><span><b style="color:var(--teal-2)">${total}</b> specialists combined</span></div>
-            <div class="pc-foot" style="margin-top:14px"><a class="btn" href="#/discover">View in marketplace</a></div></div>`;
-        }).join("");
-
-        const activity = [
-          { t: `Marketplace catalog at v${D.marketplace_version} — ${s.plugins} plugins published`, w: D.generated_date },
-          { t: `Dashboard regenerated from live repo data`, w: D.generated_date },
-          { t: `${s.specialists} specialist agents across the roster`, w: D.generated_date },
-        ].map((a) => `<div class="activity-item"><span class="dot"></span><span>${esc(a.t)}</span><span class="when">${esc(a.w)}</span></div>`).join("");
-
         $("#view").innerHTML = `
           ${onboardingHtml()}
           ${spawnLogHtml()}
@@ -1025,23 +1009,8 @@ TEMPLATE = r"""<!doctype html>
             </div>
           </section>
 
-          <div class="stats">
-            <div class="card stat"><span class="v">${s.plugins}</span><span class="k">Active Plugins</span><span class="sub">in the catalog</span></div>
-            <div class="card stat"><span class="v">${s.specialists}</span><span class="k">Specialists</span><span class="sub">agents on the roster</span></div>
-            <div class="card stat"><span class="v">${s.hooks}</span><span class="k">Active Hooks</span><span class="sub">gates & guardrails</span></div>
-            <div class="card stat"><span class="v">${s.skills}</span><span class="k">Skills</span><span class="sub">invokable capabilities</span></div>
-            <div class="card stat"><span class="v">${s.scenarios || 0}</span><span class="k">Scenarios</span><span class="sub">real-engagement field notes</span></div>
-            <div class="card stat"><span class="v">${s.tools || 0}</span><span class="k">Runnable tools</span><span class="sub">stdlib calculators &amp; checkers</span></div>
-          </div>
-
           <div class="section-title"><h2>Quick actions</h2><span class="hint">one click to the things you do most</span></div>
           <div class="grid cols-4">${qa}</div>
-
-          <div class="section-title"><h2>Featured plugin combinations</h2><span class="hint">teams that work well together</span></div>
-          <div class="grid cols-2">${featured}</div>
-
-          <div class="section-title"><h2>Recent activity</h2><span class="hint">generated snapshot</span></div>
-          <div class="card">${activity}<p style="color:var(--faint);font-size:.8rem;margin:14px 0 0">Live activity (PR events, posture changes) streams here once wired to the session feed.</p></div>
         `;
         // Wire onboarding step buttons
         const ob = $("#onboarding-card");
@@ -1144,6 +1113,17 @@ TEMPLATE = r"""<!doctype html>
         const navBtns = `<button data-cat="all" class="${mktState.cat === "all" ? "active" : ""}">${svg("market")} All plugins <span class="count">${D.plugins.length}</span></button>` +
           cats.map((c) => `<button data-cat="${c.id}" class="${mktState.cat === c.id ? "active" : ""}">${svg(c.icon)} ${esc(c.label)} <span class="count">${counts[c.id] || 0}</span></button>`).join("");
 
+        const featured = D.featured.map((f) => {
+          const plugins = f.plugins.map(byName).filter(Boolean);
+          const tags = plugins.map((p) => `<span class="chip teal">${esc(p.label)}</span>`).join("");
+          const total = plugins.reduce((n, p) => n + p.counts.agents, 0);
+          return `<div class="card"><div style="font-weight:700">${esc(f.title)}</div>
+            <p class="desc" style="color:var(--muted);font-size:.86rem;margin:8px 0 0">${esc(f.blurb)}</p>
+            <div class="tags">${tags}</div>
+            <div class="metrics" style="margin-top:12px;font-size:.76rem;color:var(--faint)"><span><b style="color:var(--teal-2)">${total}</b> specialists combined</span></div>
+            <div class="pc-foot" style="margin-top:14px"><a class="btn" href="#/discover">View in marketplace</a></div></div>`;
+        }).join("");
+
         $("#view").innerHTML = `
           <div class="page-head"><span class="eyebrow">Marketplace</span><h1>Browse the plugin catalog</h1>
             <p class="lede" style="max-width:none">${D.plugins.length} ready-made plugins, sorted by topic. Each one comes with expert agents, skills they can use, and a built-in pile of know-how. Start from <em>what you want to do</em>, or pick a group below.</p></div>
@@ -1160,7 +1140,9 @@ TEMPLATE = r"""<!doctype html>
           <div class="mkt">
             <nav class="mkt-nav" id="mkt-nav" aria-label="Plugin categories">${navBtns}</nav>
             <div id="mkt-grid"></div>
-          </div>`;
+          </div>
+          <div class="section-title" style="margin-top:28px"><h2>Featured plugin combinations</h2><span class="hint">teams that work well together</span></div>
+          <div class="grid cols-2">${featured}</div>`;
 
         function renderUC(q) {
           q = (q || "").toLowerCase().trim();
@@ -1430,6 +1412,7 @@ TEMPLATE = r"""<!doctype html>
 
       /* ---------------- RESOURCES ---------------- */
       function viewResources() {
+        const s = D.stats;
         const totalTemplates = D.plugins.reduce((n, p) => n + p.counts.templates, 0);
         const totalKnowledge = D.plugins.reduce((n, p) => n + p.counts.knowledge, 0);
         const templateCards = D.plugins.filter((p) => p.counts.templates).sort((a, b) => b.counts.templates - a.counts.templates).map((p) => `
@@ -1440,6 +1423,16 @@ TEMPLATE = r"""<!doctype html>
         $("#view").innerHTML = `
           <div class="page-head"><span class="eyebrow">Resources</span><h1>Templates, decision trees &amp; knowledge</h1>
             <p class="lede">${totalTemplates} templates and ${totalKnowledge} knowledge docs ship across the marketplace. Export the full documentation or jump into a plugin's knowledge bank.</p></div>
+
+          <div class="section-title"><h2>About RavenClaude</h2><span class="hint">the marketplace at a glance</span></div>
+          <div class="stats">
+            <div class="card stat"><span class="v">${s.plugins}</span><span class="k">Active Plugins</span><span class="sub">in the catalog</span></div>
+            <div class="card stat"><span class="v">${s.specialists}</span><span class="k">Specialists</span><span class="sub">agents on the roster</span></div>
+            <div class="card stat"><span class="v">${s.hooks}</span><span class="k">Active Hooks</span><span class="sub">gates &amp; guardrails</span></div>
+            <div class="card stat"><span class="v">${s.skills}</span><span class="k">Skills</span><span class="sub">invokable capabilities</span></div>
+            <div class="card stat"><span class="v">${s.scenarios || 0}</span><span class="k">Scenarios</span><span class="sub">real-engagement field notes</span></div>
+            <div class="card stat"><span class="v">${s.tools || 0}</span><span class="k">Runnable tools</span><span class="sub">stdlib calculators &amp; checkers</span></div>
+          </div>
 
           <div class="grid cols-3" style="margin-bottom:8px">
             <a class="card" href="README.md" style="display:block"><div class="action-tile"><span class="ico">${svg("info")}</span><span><span class="t">README</span><span class="d">Marketplace overview &amp; setup</span></span></div></a>
@@ -1490,7 +1483,7 @@ TEMPLATE = r"""<!doctype html>
           { kind: "action", label: "Apply Exploratory posture", meta: "Configuration", hay: "apply exploratory posture", route: "#/configure", preset: "exploratory" },
           { kind: "action", label: "Apply Maximum Autonomy posture", meta: "Configuration", hay: "apply maximum autonomy posture", route: "#/configure", preset: "maximum_autonomy" },
           { kind: "action", label: "Open posture editor", meta: "Configuration", hay: "open posture editor configuration", route: "#/configure" },
-          { kind: "action", label: "Open deep dashboard", meta: "External", hay: "open deep dashboard server", action: "copyCmd", cmd: "bash scripts/open-dashboard.sh" },
+          { kind: "action", label: "Open deep dashboard", meta: "rc dashboard", hay: "open deep dashboard server rc", action: "copyCmd", cmd: "rc dashboard" },
           { kind: "action", label: "Toggle dark mode", meta: "Theme", hay: "toggle dark mode theme", action: "toggleTheme" },
           { kind: "action", label: "Show onboarding checklist", meta: "Onboarding", hay: "show onboarding checklist setup", action: "showOnboarding" },
           { kind: "action", label: "Browse by use case", meta: "Marketplace", hay: "browse use case i want to intent lookup", route: "#/discover" },
