@@ -70,12 +70,28 @@ The disabled path (`enabled` ≠ 1) tries only the primary, once — byte-identi
 **Gate 120** (`hooks/tests/test-gate120-model-fallback.sh`): classification, the cost cap, `--exclude`,
 disabled-byte-identical, and a must-fail half (stripping the classifier ⇒ auth retries — teeth).
 
-## Phasing
-- **P0/P1 (shipped):** the config schema, this knowledge file, and the shared helper + Gate 120.
-- **P2 (next, security-reviewer-gated):** wire `thing-seat.sh`, `judge.sh` (with `--exclude author`),
-  `claude-orchestrate.sh` — touches the `claude -p` egress path, so it goes through `security-reviewer`.
-- **P3:** `thing-decide.py` resolved-model diversity re-check (the seam).
-- **P4:** `rc-deep-research.js` `agentWithFallback` + Gate 121 (resolved-model invariant re-check).
+## Phasing (status)
+- **P0/P1 — shipped:** config schema + this knowledge file + the shared helper + **Gate 120**.
+- **P2a — shipped (security-cleared):** `claude-orchestrate.sh` wired (the helper inserts before its
+  existing host-fallback).
+- **P2b — shipped (security-cleared):** `judge.sh` wired with `--exclude author` **and** a
+  family-aware anti-self-grade RE-CHECK on the resolved model (the unified `_is_selfgrade`).
+- **P3 — shipped (security-reviewed):** the command-review tribunal **seats** wired. Diversity is
+  preserved BY CONSTRUCTION — `thing-orchestrator.sh` passes each seat the OTHER convened seats'
+  models as `MODEL_FALLBACK_EXCLUDE`, so a fallback can never land on a peer's model (≥2-distinct
+  holds, verified by **Gate 22**); exhaustion ⇒ the seat abstains (fail-closed). **No
+  `thing-decision.py` change** — the orchestrator computes the peer-exclude from the panel JSON it
+  already reads, which is simpler and lower-risk than a post-hoc cross-seat re-check.
+- **P4 — deliberately NOT wired (reasoned disposition).** `rc-deep-research.js`'s research `agent()`
+  fan-out already fails safe by two existing mechanisms: the Workflow runtime **already retries an
+  `agent()` call on transient errors and returns `null`** on terminal failure, and the workflow
+  **`.filter(Boolean)`s** those nulls — an overloaded model degrades research completeness, never
+  crashes the run. Adding an explicit model-fallback wrapper there would be largely redundant with
+  that resilience AND would have to thread through the workflow's two strict byte-identical floors
+  (Gate 51 substrate-adapter, Gate 52 dispatch-evaluator) for marginal value. Disposition: rely on
+  the existing runtime retry + null-filter; revisit only if research-under-overload completeness
+  becomes a measured problem. (This is the value-add-completeness discipline: don't force a rung that
+  duplicates existing resilience and risks two gates.)
 
 ## Runbook — when the HARNESS layer is down (out of RavenClaude's control)
 If the **safety classifier** (`claude-opus-4-8`) or the **main-loop model** is unavailable — symptom:
