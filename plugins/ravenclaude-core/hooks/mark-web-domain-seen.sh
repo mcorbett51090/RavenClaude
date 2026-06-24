@@ -22,6 +22,32 @@
 # never affects the run. Always exits 0.
 set -euo pipefail
 
+# Structured hook-event substrate helper — sourced fail-safe, ONLY for its
+# _ee_resolve_session() (this hook emits no events itself). guard-web-access.sh
+# (the PreToolUse reader of the seen-file this hook writes) resolves the session
+# the SAME way; the two MUST agree or the first-use trust gate breaks. Native
+# Claude Code does NOT export CLAUDE_SESSION_ID — it is carried on the stdin
+# payload's .session_id — so resolving from $CLAUDE_SESSION_ID alone collided
+# every native session's seen-file into runs/unknown/ while the reader looked
+# under runs/<real-session-id>/, re-prompting on every whitelisted fetch.
+_emit_event_helper="$(dirname "$0")/_emit-event.sh"
+if [ -f "$_emit_event_helper" ]; then
+  # shellcheck source=/dev/null
+  . "$_emit_event_helper" 2>/dev/null || true
+fi
+# Fallback if the sourced helper is unavailable: resolve the session the same way
+# _ee_resolve_session() does — $CLAUDE_SESSION_ID, else the stdin payload's
+# .session_id (the `payload` var read below), else "unknown".
+command -v _ee_resolve_session >/dev/null 2>&1 || _ee_resolve_session() {
+  if [ -n "${CLAUDE_SESSION_ID:-}" ]; then printf '%s' "$CLAUDE_SESSION_ID"; return 0; fi
+  local _pl="${payload:-}" _sid=""
+  if [ -n "$_pl" ]; then
+    _sid="$(printf '%s' "$_pl" | grep -o '"session_id"[[:space:]]*:[[:space:]]*"[^"]*"' 2>/dev/null | head -n1 | sed 's/.*:[[:space:]]*"\([^"]*\)".*/\1/' 2>/dev/null || true)"
+  fi
+  [ -n "$_sid" ] && { printf '%s' "$_sid"; return 0; }
+  printf '%s' "unknown"
+}
+
 # Read the tool call as JSON on stdin. Only act on WebFetch.
 tool=""
 url=""
@@ -46,7 +72,10 @@ host="$(printf '%s' "$host" | tr 'A-Z' 'a-z')"
 
 proj="${CLAUDE_PROJECT_DIR:-$PWD}"
 [ -d "$proj" ] || exit 0
-sess="${CLAUDE_SESSION_ID:-unknown}"
+# Resolve the session id exactly as guard-web-access.sh does (payload .session_id
+# on native Claude Code, where CLAUDE_SESSION_ID is not exported) so the writer
+# and reader agree on runs/<sess>/web-first-seen/<domain>.
+sess="$(_ee_resolve_session)"
 
 # Same per-session, per-domain seen-file path guard-web-access.sh consults.
 dom_slug="$(printf '%s' "$host" | tr -dc 'A-Za-z0-9.-' | cut -c1-80)"

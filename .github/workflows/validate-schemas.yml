@@ -17,6 +17,10 @@ on:
       - ".github/workflows/validate-schemas.yml"
   workflow_dispatch:
 
+# Least-privilege GITHUB_TOKEN: this workflow only reads the repo to validate it.
+permissions:
+  contents: read
+
 jobs:
   validate:
     name: Validate plugin and marketplace JSON Schemas

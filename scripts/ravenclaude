@@ -598,7 +598,7 @@ cmd_doctor() {
 case "${1:-}" in
   setup)          shift; cmd_setup "$@" ;;
   install)        shift; cmd_install "$@" ;;
-  update)         cmd_update ;;
+  update)         shift; cmd_update "$@" ;;
   status)         shift; cmd_status "$@" ;;
   dashboard)      shift; cmd_dashboard "$@" ;;
   doctor)         shift; cmd_doctor "$@" ;;

@@ -208,12 +208,14 @@ fi
 
 echo
 echo "Deleting..."
+delete_failed=0
 for v in "${verdict_safe[@]}"; do
   b="${v%%$'\t'*}"
   if git branch -D "$b" >/dev/null 2>&1; then
     echo "  + local deleted: $b"
   else
     echo "  ! local delete failed: $b"
+    delete_failed=1
   fi
 
   if [ "$delete_remote" = "1" ] && [ -n "$owner_repo" ]; then
@@ -222,6 +224,7 @@ for v in "${verdict_safe[@]}"; do
         echo "    + remote deleted: $b"
       else
         echo "    ! remote delete failed: $b"
+        delete_failed=1
       fi
     else
       echo "    (no remote branch: $b)"
@@ -229,4 +232,9 @@ for v in "${verdict_safe[@]}"; do
   fi
 done
 
+# Exit non-zero if any deletion failed (exit 4) or any branch was unsafe (exit 3),
+# so a caller checking $? is not told "clean" when a delete silently failed.
+if [ "$delete_failed" = "1" ]; then
+  exit 4
+fi
 [ "${#verdict_unsafe[@]}" -gt 0 ] && exit 3 || exit 0

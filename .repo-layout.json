@@ -38,6 +38,7 @@
     ".claude/worktrees/**",
     ".claude/settings.local.json",
     ".claude/workflows/**.js",
+    ".claude/agent-memory/**",
     ".devcontainer/**",
     ".github/**",
     "docs/**",

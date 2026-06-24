@@ -1770,7 +1770,16 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             run_dirs = [
                 d for d in runs_dir.iterdir() if d.is_dir() and d.name != "thing"
             ]
-            run_dirs.sort(key=lambda d: d.stat().st_mtime, reverse=True)
+            def _safe_mtime(d):
+                # A run dir deleted between iterdir() and sort() (concurrent run
+                # cleanup) must not crash the /__runs handler with OSError —
+                # mirrors the try/except OSError guard in _summarize_run.
+                try:
+                    return d.stat().st_mtime
+                except OSError:
+                    return 0.0
+
+            run_dirs.sort(key=_safe_mtime, reverse=True)
             for d in run_dirs[:limit]:
                 records.append(_summarize_run(d))
         self._json(200, records)
