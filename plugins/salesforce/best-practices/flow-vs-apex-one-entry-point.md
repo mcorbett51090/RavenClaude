@@ -10,7 +10,7 @@
 
 ## Why this exists
 
-Two failure modes drive this rule. First, picking the wrong tool: simple same-record updates written in Apex carry test, maintenance, and recursion-control overhead a before-save Flow gives you for free; genuinely complex logic forced into Flow becomes an unmaintainable canvas. Second — the silent one — **automation stacking**: a record-triggered Flow *and* an Apex trigger *and* a legacy Process Builder all firing on the same save, with no shared order, recursing unpredictably. These are house opinions #11 and #12.
+Two failure modes drive this rule. First, picking the wrong tool: simple same-record updates written in Apex carry test, maintenance, and recursion-control overhead a before-save Flow gives you for free; genuinely complex logic forced into Flow becomes an unmaintainable canvas. Second — the silent one — **automation stacking**: a record-triggered Flow *and* an Apex trigger *and* a legacy Process Builder all firing on the same save, with no shared order, recursing unpredictably. These are house opinions #11 and #12. (Process Builder / Workflow Rules reached **end-of-support Dec 31, 2025** — retired for new automation, migrate existing ones to Flow; they still execute, so a stacked legacy Process Builder is a real find to consolidate away. `[verify-at-build]`)
 
 ## How to apply
 
