@@ -33,6 +33,7 @@
     ".ravenclaude/web-access.yaml",
     ".claude-plugin/marketplace.json",
     ".claude/settings.json",
+    ".claude/agent-memory/**",
     ".claude/worktrees/**",
     ".claude/settings.local.json",
     ".claude/workflows/**.js",
