@@ -81,21 +81,21 @@ disabled-byte-identical, and a must-fail half (stripping the classifier ⇒ auth
   `MODEL_FALLBACK_EXCLUDE`, so a fallback never lands on a peer's *configured* model; an exhausted
   ladder abstains (fail-closed). No `thing-decision.py` change (the orchestrator derives the
   peer-exclude from the panel JSON it already reads).
-  - **HONEST RESIDUAL (do not mistake this for a closed invariant).** This preserves ≥2-distinct at
-    **config time** but NOT fully at **runtime**: two seats with *distinct primaries* that BOTH
-    overload can both fall to the **same shared-ladder rung** (each excludes only the other's
-    primary, not the shared rung) → collapse to 1 backbone. It is a defense-in-depth weakening of
-    anti-correlation, **NOT a floor break** — a genuine panel deny, the hard-rule pre-deny, the
-    self-disable guard, the injection deny, and the secret-egress backstop all hold regardless of
-    which backbone answered. It requires the **OFF-by-default** fallback enabled AND ≥2 primaries
-    overloaded simultaneously AND a shared reachable rung. **Gate 22 cannot observe it** (it checks
-    configured, not resolved, models).
-  - **Follow-up (tracked):** close it observably — `thing-seat.sh` writes its resolved model per
-    role (`_MF_RESOLVED_FILE` → `$tmp/$role.model`) and the orchestrator, post-panel, forces an
-    abstain if <2 distinct resolved models voted (fail-closed; matches this helper's documented
-    "re-check on the resolved model" contract) — or partition the ladder per seat. Thor (the
-    tie-breaker) is dispatched without a peer-exclude today (it is the decider, run after the panel);
-    decide its posture when revisiting this.
+  - **Two-layer guard.** (1) *Prevent* — peer-exclude keeps a fallback off a peer's configured
+    model (reduces, doesn't eliminate, collision: two distinct-primary seats that both overload could
+    still fall to the same shared-ladder rung). (2) **Detect + fail closed (the actual closure)** —
+    each seat surfaces its **resolved** model (`_MF_RESOLVED_FILE` → `$tmp/$role.resolved`); the
+    orchestrator's post-panel **runtime model-diversity gate** counts distinct resolved models among
+    *voted* seats and, if <2, forces the verdict to `$posture` (fail closed — a genuine deny for the
+    high-stakes categories). So a runtime collapse can no longer pass as a clean panel. Proven by
+    **Gate 121** (collapse ⇒ deny+reason / distinct ⇒ inert / neutered-guard ⇒ no-deny teeth). When
+    fallback is OFF (default) seats resolve to their pre-enforced-distinct configured models, so the
+    gate never triggers — zero behavior change.
+  - **Remaining minor notes:** the prevent-layer is conservatively exclude-*all*-peers (can force an
+    abstain on a ≥3-seat panel where a collision would still leave ≥2 distinct — safe over-
+    approximation); and **Thor** (the tie-breaker, run after the panel as the decider) is dispatched
+    without a peer-exclude — decide its posture if the exclude semantics are revisited. Neither is a
+    floor concern.
 - **P4 — deliberately NOT wired (reasoned disposition).** `rc-deep-research.js`'s research `agent()`
   fan-out already fails safe by two existing mechanisms: the Workflow runtime **already retries an
   `agent()` call on transient errors and returns `null`** on terminal failure, and the workflow

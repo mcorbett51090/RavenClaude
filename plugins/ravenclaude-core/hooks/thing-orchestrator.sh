@@ -293,14 +293,16 @@ run_seat() {  # run_seat <role> <model> <tmp> [peer_verdicts_json] [fallback_exc
   if [ "$payload_shape" = "command" ]; then
     out="$(THING_SEAT_ACTIVE=1 THING_CMD="$cmd" THING_CATEGORY="$category" \
            THING_SEAT_ROLE="$role" THING_MODEL="$model" THING_PEER_VERDICTS="$peers" \
-           MODEL_FALLBACK_EXCLUDE="$fb_exclude" \
+           MODEL_FALLBACK_EXCLUDE="$fb_exclude" THING_SEAT_RESOLVED_FILE="$tmp/$role.resolved" \
+           THING_SEAT_RESOLVED_OVERRIDE="${THING_SEAT_RESOLVED_OVERRIDE:-}" \
            THING_SEAT_MOCK_VERDICT="${THING_SEAT_MOCK_VERDICT:-}" \
            timeout "${seat_timeout}s" bash "$SEAT" 2>/dev/null)" || rc=$?
   else
     out="$(THING_SEAT_ACTIVE=1 THING_PAYLOAD="$reviewed" THING_PAYLOAD_SHAPE="$payload_shape" \
            THING_CATEGORY="$category" \
            THING_SEAT_ROLE="$role" THING_MODEL="$model" THING_PEER_VERDICTS="$peers" \
-           MODEL_FALLBACK_EXCLUDE="$fb_exclude" \
+           MODEL_FALLBACK_EXCLUDE="$fb_exclude" THING_SEAT_RESOLVED_FILE="$tmp/$role.resolved" \
+           THING_SEAT_RESOLVED_OVERRIDE="${THING_SEAT_RESOLVED_OVERRIDE:-}" \
            THING_SEAT_MOCK_VERDICT="${THING_SEAT_MOCK_VERDICT:-}" \
            timeout "${seat_timeout}s" bash "$SEAT" 2>/dev/null)" || rc=$?
   fi
@@ -461,9 +463,33 @@ else
     all_cited="$(jq -cn --argjson a "$all_cited" --argjson b "${SCITED[$role]}" '$a + $b')"
   done
 
+  # Runtime model-diversity gate (closes the P3 shared-ladder convergence the security
+  # review flagged). If model-fallback resolved >=2 VOTED seats onto the SAME backbone,
+  # the >=2-distinct anti-correlation guarantee no longer holds → fail closed. Each seat
+  # surfaced its RESOLVED model to $tmp/$role.resolved; we count distinct among voters.
+  # When fallback is OFF (default), every seat resolves to its pre-enforced-distinct
+  # configured model, so distinct>=2 always holds and this never triggers (no behavior change).
+  diversity_collapsed="false"
+  if [ "$n_convened" -ge 2 ]; then
+    _rmodels=""; _nvoted=0
+    for role in $convened; do
+      [ "${SSTATUS[$role]}" = "voted" ] || continue
+      _nvoted=$((_nvoted + 1))
+      _rm="$(cat "$tmp/$role.resolved" 2>/dev/null || true)"
+      [ -z "$_rm" ] && _rm="$(printf '%s' "$decision" | jq -r --arg r "$role" '.panel[$r].model // empty')"
+      [ -n "$_rm" ] && _rmodels="${_rmodels}${_rmodels:+,}$_rm"
+    done
+    _ndistinct="$(printf '%s' "$_rmodels" | tr ',' '\n' | sort -u | grep -c . || true)"
+    [ "$_nvoted" -ge 2 ] && [ "${_ndistinct:-0}" -lt 2 ] && diversity_collapsed="true"
+  fi
+
   has_critical="false"
+  # 0. Runtime model-diversity collapse: fallback landed >=2 voted seats on one model.
+  if [ "$diversity_collapsed" = "true" ]; then
+    verdict="$posture"
+    reason="Command review: model-fallback collapsed the panel onto a single model backbone (>=2 voted seats resolved to the same model under capacity pressure) — the >=2-distinct anti-correlation guarantee no longer holds; ${posture_phrase} for ${category} (fail closed)."
   # 1. Abstention gate: >=2 abstained, or the whole convened panel abstained.
-  if [ "$n_abstain" -ge 2 ] || { [ "$n_convened" -gt 0 ] && [ "$n_abstain" -eq "$n_convened" ]; }; then
+  elif [ "$n_abstain" -ge 2 ] || { [ "$n_convened" -gt 0 ] && [ "$n_abstain" -eq "$n_convened" ]; }; then
     verdict="$posture"
     reason="Command review: the panel abstained (timeout or error); ${posture_phrase} for ${category}."
   # 2. Injection override (unilateral DENY).

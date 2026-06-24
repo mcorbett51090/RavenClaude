@@ -109,6 +109,14 @@ for _p in "${_secret_patterns[@]}"; do
   fi
 done
 
+# Record the resolved model for the orchestrator's runtime-diversity gate. Here it is
+# the configured THING_MODEL (no fallback in the mock path / before the real call); the
+# fallback helper OVERWRITES this on the real path with the rung that actually answered.
+# THING_SEAT_RESOLVED_OVERRIDE is a TEST-ONLY hook (parent-set, never attacker-derived;
+# sibling to THING_SEAT_MOCK_VERDICT) that lets Gate 121 simulate a fallback resolving a
+# seat onto a given model so the collapse gate is exercisable through the mock harness.
+[ -n "${THING_SEAT_RESOLVED_FILE:-}" ] && printf '%s' "${THING_SEAT_RESOLVED_OVERRIDE:-$model}" >"$THING_SEAT_RESOLVED_FILE"
+
 # ── TEST HOOK: canned, role-aware verdicts (no network, no credits) ───────────
 # The mock edited_command strings are chosen so the orchestrator's deterministic
 # EDIT re-validation (thing-concerns.py) passes for `edit` and fails for
@@ -298,6 +306,8 @@ if declare -F _model_call_with_fallback >/dev/null 2>&1; then
   _mf_load_config
   MODEL_FALLBACK_PRIMARY="$model"
   export MODEL_FALLBACK_PRIMARY MODEL_FALLBACK_ENABLED MODEL_FALLBACK_LADDER MODEL_FALLBACK_MAX_RETRIES
+  # Surface the RESOLVED model to the orchestrator (post-panel runtime-diversity gate).
+  [ -n "${THING_SEAT_RESOLVED_FILE:-}" ] && { _MF_RESOLVED_FILE="$THING_SEAT_RESOLVED_FILE"; export _MF_RESOLVED_FILE; }
   raw="$(_model_call_with_fallback --runner _seat_run --exclude "${MODEL_FALLBACK_EXCLUDE:-}")" || { echo '{"error":"claude invocation failed"}' >&2; exit 5; }
 else
   raw="$(cd "$scratch" && claude -p "${bare_args[@]}" \
