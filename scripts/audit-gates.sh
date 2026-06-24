@@ -602,8 +602,14 @@ cp -p "$TMP/README.md.bak" README.md
 # must_fail (f): a wrong "<N> skills" claim in the top-level metadata.description
 # (the catalog prose describing core) must be detected — previously ungated, it
 # silently drifted to "20 skills" while core had 22 (caught by the v0.74.0 panel).
+# Drift-proof: the catalog prose may or may not currently carry a "<N> skills"
+# claim, so INJECT a deliberately-wrong one (actual+100, guaranteed != actual)
+# rather than string-replacing an assumed-present literal. A hard-coded literal
+# ("43 skills") silently became a no-op once the prose was reworded / the count
+# bumped, which let this must_fail audit rot to a false failure (main CI red,
+# 2026-06-24).
 backup .claude-plugin/marketplace.json
-python3 -c "p='.claude-plugin/marketplace.json';s=open(p).read();open(p,'w').write(s.replace('43 skills','20 skills',1))"
+python3 -c "import json,os;p='.claude-plugin/marketplace.json';d=json.load(open(p));core=os.path.join('plugins','ravenclaude-core','skills');actual=sum(1 for e in os.listdir(core) if not e.startswith('.'));d['metadata']['description']=f'{actual+100} skills — '+d['metadata']['description'];json.dump(d,open(p,'w'),indent=2,ensure_ascii=False)"
 rc=0; python3 scripts/check-marketplace-claims.py >/dev/null 2>&1 || rc=$?
 gate "marketplace-claims (wrong metadata.description skill count)" must_fail "$rc"
 cp -p "$TMP/.claude-plugin_marketplace.json.bak" .claude-plugin/marketplace.json
