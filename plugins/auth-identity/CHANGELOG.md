@@ -2,6 +2,20 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.0] — 2026-06-24
+
+OAuth-app **registration walkthroughs** per social provider — closing the "someone has to register the app, but nothing tells them how to get there or whether they're allowed to" gap. Previously only Google had a full portal walkthrough; Apple/Microsoft/GitHub had a pointer + gotchas but no steps.
+
+### Added
+
+- **`skills/add-an-auth-provider/SKILL.md`** — a "Registering the app — portal walkthrough" subsection for **Apple**, **Microsoft (Entra)**, and **GitHub**, each leading with the **portal URL + nav path**, the **role/permission required to register it** ("if you don't hold it, it's an admin's task"), and numbered steps → client ID/secret + the Supabase callback. Added an upfront "do you have the access to register the app?" note to the generic procedure; Google cross-links to `google-sso-setup` rather than being restated.
+- **`knowledge/social-and-passwordless-providers-2026.md`** — a new **"Who can register it"** column on the providers table + a **"Registering the OAuth app — per-provider portal walkthrough"** section (Apple/Microsoft/GitHub short form; Google cross-linked). Every step marked `[verify-at-build]`; the `Last verified: 2026-06-03` discipline preserved.
+
+### Notes
+
+- Reuses, doesn't restate: Apple's ES256-JWT-secret / 180-day-rotation / Services-ID-vs-bundle-ID gotchas stay in their existing section and are linked from the new steps; enterprise Entra (admin consent, conditional access) still seams to `azure-cloud/entra-identity-engineer`.
+- Secrets remain a **reference** (env-var name / vault URI), never a literal — consistent with the plugin's anti-pattern hook.
+
 ## [0.2.0] — 2026-06-05
 
 Value-add build-out against the full value-add menu. Every menu item was dispositioned (built or recorded N-A with reason); see [`CLAUDE.md`](CLAUDE.md) §12 "Value-add completeness (build-out 2026-06-05)".

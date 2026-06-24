@@ -8,6 +8,22 @@
 - **Private apps (workspace-scoped)** — for single-org integrations; rate limits are per-app
 - **API keys** — deprecated; do not use for new builds
 
+## Registering the app (developer portal)
+
+Two registration paths depending on whether the integration is single-org or distributed. Treat each step as `[verify-at-build]` — HubSpot's settings + developer UIs move.
+
+> **Single-org ELT (the common case) — Private App.**
+> **Portal:** the HubSpot portal → **Settings (gear) → Integrations → Private Apps → Create a private app**.
+> **Who can do it:** a HubSpot **super admin** on that portal.
+>
+> **Distributed / marketplace — OAuth App.**
+> **Portal:** [developers.hubspot.com](https://developers.hubspot.com) → create a developer account → **Apps → Create app**.
+> **Who can do it:** anyone with a HubSpot developer account to *build* it; installing it into a customer portal still needs that portal's **super admin** to grant consent.
+
+1. **Private app:** create it, select **CRM read scopes** (`crm.objects.contacts.read`, `…companies.read`, `…deals.read`, `tickets`, etc.), then copy the **access token** (a bearer token — store as a secret reference).
+2. **OAuth app:** set scopes + the **redirect URL** (your ELT vendor's callback), copy the **Client ID/Secret**, and run the install/consent flow per installed account.
+3. Use the **least scopes** the marts actually need — over-broad scopes widen the blast radius and can trip the install review.
+
 ## Rate limits (CRITICAL — easy to hit)
 
 ### OAuth marketplace apps
