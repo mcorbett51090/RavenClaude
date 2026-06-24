@@ -273,19 +273,45 @@ printf '[claude-orchestrate] mode=%s host=%s model=%s\n' "$mode" "${THING_HOST:-
 
 # Layer 3 (structural): --tools "" prevents tool calls from the nested session,
 # regardless of prompt injection, independently of the env-var layers above.
-raw="$(cd "$scratch" && CLAUDE_PROJECT_DIR="$safe_project_dir" \
-  claude -p \
+#
+# Model-fallback (opt-in, P2): on an OVERLOADED/unavailable model the same call
+# retries on the next ladder rung BEFORE falling back to the host; an auth/bad-input
+# error never retries (would mask a real bug). Config comes from comfort-posture.yaml;
+# default OFF ⇒ a single call, byte-identical to the prior behavior. The runner keeps
+# the scratch cwd + defanged CLAUDE_PROJECT_DIR + --tools "" exactly as before.
+_mf_helper="$(dirname "$0")/../hooks/_model-fallback.sh"
+# shellcheck source=/dev/null
+[ -f "$_mf_helper" ] && . "$_mf_helper" 2>/dev/null || true
+
+_orch_claude_run() {
+  cd "$scratch" && CLAUDE_PROJECT_DIR="$safe_project_dir" \
+    claude -p \
     --output-format json \
-    --model "$model" \
+    --model "$1" \
     --tools "" \
     --append-system-prompt "$system_prompt" \
-    "$user_prompt" 2>/dev/null)" || {
-  echo "claude-orchestrate.sh: claude invocation failed — fall back to host" >&2
-  exit 3
+    "$user_prompt" 2>"${_MF_ERRFILE:-/dev/null}"
 }
 
+if declare -F _model_call_with_fallback >/dev/null 2>&1; then
+  _mf_load_config
+  MODEL_FALLBACK_PRIMARY="$model"
+  export MODEL_FALLBACK_PRIMARY MODEL_FALLBACK_ENABLED MODEL_FALLBACK_LADDER MODEL_FALLBACK_MAX_RETRIES
+  raw="$(_model_call_with_fallback --runner _orch_claude_run)" || {
+    echo "claude-orchestrate.sh: claude invocation failed — fall back to host" >&2
+    exit 3
+  }
+else
+  # Helper absent — preserve the exact prior single-call behavior.
+  raw="$(_orch_claude_run "$model" 2>/dev/null)" || {
+    echo "claude-orchestrate.sh: claude invocation failed — fall back to host" >&2
+    exit 3
+  }
+fi
+
 # A non-zero is_error in the envelope (e.g. auth failure) still exits 0 from
-# claude — check it explicitly (same as thing-seat.sh pattern).
+# claude — check it explicitly (the helper also treats is_error as failure; this
+# guards the no-helper branch and a single-rung success).
 if [ "$(printf '%s' "$raw" | jq -r '.is_error // false' 2>/dev/null)" = "true" ]; then
   echo "claude-orchestrate.sh: claude returned is_error — fall back to host" >&2
   exit 3

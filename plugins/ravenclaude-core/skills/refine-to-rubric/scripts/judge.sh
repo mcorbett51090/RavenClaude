@@ -65,14 +65,23 @@ _family() {
   printf '%s' "$1" | tr '[:upper:]' '[:lower:]' \
     | sed -E ':a; s/-(v[0-9]+|latest|preview|exp|stable|[0-9]{6,8})$//; ta; s/[[:space:]]+//g'
 }
-_af="$(_family "$author_model")"
-_jf="$(_family "$judge_model")"
-# Refuse on exact family match OR prefix-containment either direction (a
+# _is_selfgrade <judge_model> <author_model> — exit 0 (true) if the two are the SAME
+# model family: exact family match OR prefix-containment in EITHER direction (a
 # provider-prefixed or further-suffixed alias of the same family is still a
-# self-grade and must not slip through).
-case "$_jf" in "$_af"|"$_af"-*) _selfgrade=1 ;; *) _selfgrade=0 ;; esac
-case "$_af" in "$_jf"-*) _selfgrade=1 ;; esac
-if [ "$_jf" = "$_af" ] || [ "$_selfgrade" = "1" ]; then
+# self-grade and must not slip through). Used at BOTH the entry check (configured
+# model) AND the post-model-fallback re-check (resolved model) so the invariant is
+# guarded at equal strength on both surfaces.
+_is_selfgrade() {
+  local jf af
+  jf="$(_family "$1")"
+  af="$(_family "$2")"
+  [ "$jf" = "$af" ] && return 0
+  case "$jf" in "$af"-*) return 0 ;; esac
+  case "$af" in "$jf"-*) return 0 ;; esac
+  return 1
+}
+_af="$(_family "$author_model")"
+if _is_selfgrade "$judge_model" "$author_model"; then
   echo "{\"error\":\"refusing to self-grade: judge model (${judge_model}) matches author model (${author_model})\"}" >&2
   exit 5
 fi
@@ -193,18 +202,57 @@ trap 'rm -rf "$scratch" "$_cstderr"' EXIT
 
 # --tools "" disables ALL tools: the judge only reasons + returns JSON, so an
 # injected judge cannot issue tool calls.
-raw="$(cd "$scratch" && claude -p "${bare_args[@]}" \
-        --model "$judge_model" \
-        --output-format json \
-        --tools "" \
-        --append-system-prompt "$JUDGE_SYSTEM" \
-        "$user_prompt" 2>"$_cstderr")" || {
-          # Preserve a scrubbed, capped slice of claude's stderr for diagnosis
-          # (security-review 2026-06-24: do not swallow the error class).
-          _why="$(tr -d '\000-\037' < "$_cstderr" | cut -c1-256)"
-          echo "{\"error\":\"judge call failed\",\"detail\":\"${_why//\"/\'}\"}" >&2
-          exit 6
-        }
+# Model-fallback (opt-in, P3): on an OVERLOADED/unavailable judge model, retry the
+# same call on the next ladder rung; auth/bad-input never retries. The author model
+# is `--exclude`d so a fallback never lands on it, and — because exclude is exact but
+# anti-self-grade is FAMILY-based — the RESOLVED model is family-re-checked below
+# (fallback may have changed it; resolved==author-family ⇒ refuse, never self-grade).
+# Default OFF ⇒ a single call, byte-identical. --tools "" holds on every rung.
+_mf_helper="$(dirname "$0")/../../../hooks/_model-fallback.sh"
+# shellcheck source=/dev/null
+[ -f "$_mf_helper" ] && . "$_mf_helper" 2>/dev/null || true
+
+_judge_run() {
+  cd "$scratch" && claude -p "${bare_args[@]}" \
+    --model "$1" \
+    --output-format json \
+    --tools "" \
+    --append-system-prompt "$JUDGE_SYSTEM" \
+    "$user_prompt" 2>"${_MF_ERRFILE:-$_cstderr}"
+}
+
+if declare -F _model_call_with_fallback >/dev/null 2>&1; then
+  _mf_load_config
+  MODEL_FALLBACK_PRIMARY="$judge_model"
+  export MODEL_FALLBACK_PRIMARY MODEL_FALLBACK_ENABLED MODEL_FALLBACK_LADDER MODEL_FALLBACK_MAX_RETRIES
+  _MF_RESOLVED_FILE="$scratch/.mf-resolved"
+  export _MF_RESOLVED_FILE
+  raw="$(_model_call_with_fallback --runner _judge_run --exclude "$author_model")" || {
+    _why="$(tr -d '\000-\037' <"${_MF_ERRFILE:-$_cstderr}" 2>/dev/null | cut -c1-256)"
+    echo "{\"error\":\"judge call failed\",\"detail\":\"${_why//\"/\'}\"}" >&2
+    exit 6
+  }
+  # ANTI-SELF-GRADE RE-CHECK on the RESOLVED model (the seam: the entry check ran on
+  # the configured model; fallback may have resolved to the author's family).
+  resolved_model="$(cat "$_MF_RESOLVED_FILE" 2>/dev/null || true)"
+  if [ -n "$resolved_model" ] && _is_selfgrade "$resolved_model" "$author_model"; then
+    echo "{\"error\":\"refusing to self-grade: resolved judge model (${resolved_model}) matches author family (${author_model}) after fallback\"}" >&2
+    exit 5
+  fi
+else
+  raw="$(cd "$scratch" && claude -p "${bare_args[@]}" \
+    --model "$judge_model" \
+    --output-format json \
+    --tools "" \
+    --append-system-prompt "$JUDGE_SYSTEM" \
+    "$user_prompt" 2>"$_cstderr")" || {
+    # Preserve a scrubbed, capped slice of claude's stderr for diagnosis
+    # (security-review 2026-06-24: do not swallow the error class).
+    _why="$(tr -d '\000-\037' <"$_cstderr" | cut -c1-256)"
+    echo "{\"error\":\"judge call failed\",\"detail\":\"${_why//\"/\'}\"}" >&2
+    exit 6
+  }
+fi
 
 # claude -p --output-format json returns exit 0 even on an is_error envelope
 # (auth failure / rate limit / model error). Treat that as a failure, not a
