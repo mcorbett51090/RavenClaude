@@ -2,6 +2,12 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.171.1 — 2026-06-24
+
+### Fixed
+
+- **Count-string sync.** The streams (P1/P4) + convergence (P1) builds added hooks (17→19) and a skill (43→44), but the descriptive count strings in `README.md` (Skills/Hooks table + prose), `plugin.json`, and the marketplace entry weren't bumped — `marketplace-claims` (Gate 12) flagged the drift on integrated `main`. Synced to the actual counts (44 skills, 19 hooks) + regenerated artifacts. **Migration:** none.
+
 ## 0.171.0 — 2026-06-24
 
 ### Added
