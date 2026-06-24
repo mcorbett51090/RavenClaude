@@ -34,6 +34,10 @@ The capability chain (re-verified 2026-06-11):
 
 For non-trivial changes touching more than two files (or any manifest), enter plan mode first and present a Keep / Update / Deny structure before writing. This matches Matt's documented preference; Cursor/Codex users won't see this guidance and don't need to.
 
+## Agentic-Default Principle
+
+When a step is automatable and already authorized, the default is that the agent *does it*, not that you're handed a to-do — unless you've said you want that step manually (a stated preference always wins). Labor-allocation only: it bypasses no gate (design check-ins, the tribunal's high-blast defer, comfort-posture `ask`/`deny`, and irreversible-action confirmations all still pause). Full text: [`plugins/ravenclaude-core/CLAUDE.md`](plugins/ravenclaude-core/CLAUDE.md) § "Agentic-Default Principle".
+
 ## Decision review — route yes/no decisions through the tribunal (added 2026-05-26)
 
 **All yes/no decisions route through the tribunal (the Thing) before they reach Matt.** The `decision-review` skill convenes the same seats as command review on a yes/no question and returns `yes` / `no` / `defer`; the engine is [`plugins/ravenclaude-core/scripts/thing-decide.py`](plugins/ravenclaude-core/scripts/thing-decide.py). Full operating reference: [`docs/post-pr-decision-review.md`](docs/post-pr-decision-review.md).

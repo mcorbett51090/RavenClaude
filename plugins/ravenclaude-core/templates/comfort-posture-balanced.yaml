@@ -50,6 +50,22 @@ orchestrator_repo_pii: true
 # sole guard. Caveat: pattern detection does NOT reliably catch free-text names/addresses. Default off.
 orchestrator_pseudonymize: false
 
+# Model-fallback ladder (added 2026-06-24). When a model a RavenClaude process
+# invokes (a tribunal seat, the convergence judge, the orchestrator) ERRORS or is
+# OVERLOADED/unavailable, retry the same call on the next model in the ladder
+# instead of failing; fail safe (the caller abstains) when the ladder is exhausted.
+# Retries ONLY capacity/connectivity errors (overloaded/429/529/503/network) —
+# NEVER auth/bad-input errors (retrying those just masks a real bug + burns budget).
+# Default OFF: absent / enabled:false ⇒ byte-identical to a single direct call.
+# SCOPE: RavenClaude's own `claude -p` calls only — it CANNOT rescue the harness
+# safety classifier or the main-loop model (the layer RavenClaude runs inside);
+# see plugins/ravenclaude-core/knowledge/model-fallback.md for the harness-outage runbook.
+# model_fallback:
+#   enabled: false
+#   ladder: [claude-haiku-4-5, claude-sonnet-4-6, claude-opus-4-8]
+#   max_retries: 2          # fallback attempts after the primary (hard cap 3)
+#   on_exhausted: fail-safe  # caller's existing abstain path; never silently wrong
+
 # Definition-of-done gate (the ONE confident claim that IS machine-checkable).
 # The dod-gate.sh Stop hook runs this command and blocks "done" until it passes —
 # turning the agent's "it's done / tests pass" claim from an assertion into a fact.
