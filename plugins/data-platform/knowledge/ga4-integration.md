@@ -18,6 +18,18 @@ Use an ELT vendor connector only when:
 - **Service Account JSON key** — for ELT vendors using the Data API
 - **OAuth 2.0 (user-delegated)** — for interactive tools (Looker Studio, Power BI native connector)
 
+## Registering the app / credential (developer portal)
+
+GA4 differs from the other connectors: the **recommended BigQuery-export path needs no app at all** — it's a config link, not an OAuth registration. Registration only enters when an ELT vendor pulls via the **Data API**. Treat each step as `[verify-at-build]` — Google Cloud + GA4 admin UIs move.
+
+> **BigQuery export (preferred, no app):** **GA4 → Admin → Product Links → BigQuery Links → Link**.
+> **Who can do it:** **Editor** on the GA4 property **and** Owner/Editor on the destination Google Cloud / BigQuery project.
+>
+> **Data API path — service account (typical for ELT):** [console.cloud.google.com](https://console.cloud.google.com) → **IAM & Admin → Service Accounts → Create** → create a **JSON key**, then add that service-account email as a **Viewer** on the GA4 property (Admin → Property Access Management).
+> **Data API path — OAuth client (interactive):** same flow as Google SSO — **APIs & Services → Credentials → OAuth 2.0 Client ID**. See [`../../auth-identity/skills/google-sso-setup/SKILL.md`](../../auth-identity/skills/google-sso-setup/SKILL.md).
+>
+> **Who can do it:** Google Cloud project **Owner/Editor** (to create the service account / OAuth client) **and** a GA4 property admin (to grant the service account access). Store the JSON key as a secret reference, never in the repo.
+
 ## API options
 
 | API | Use case |

@@ -28,13 +28,26 @@ Offer **2–4 methods, not 8.** Every extra button is a "which one did I use las
 
 All of the below are wired through **Supabase Auth** the same way — enable the provider in **Authentication → Providers**, paste the provider's client ID/secret, and register Supabase's callback `https://<project-ref>.supabase.co/auth/v1/callback` (plus your own redirect) in the provider's console. `signInWithOAuth({ provider })` is the only app-code change per provider. `[verify-at-build]`
 
-| Provider | Offer it when | Setup home | Notable gotcha |
-|---|---|---|---|
-| **Google** | Almost always — broadest reach | Google Cloud Console → OAuth client + consent screen | Static client secret; verification review if you request sensitive scopes. Keep scopes to `openid email profile`. |
-| **Apple** | iOS app (App Store policy), privacy-focused users | Apple Developer → App ID + **Services ID** + key | **The hard one — see the dedicated section below.** |
-| **Microsoft** | Any M365/Entra users (B2B common) | Entra ID → App registration | Choose the right account-type audience (work/school vs personal); deep Entra work seams to `azure-cloud/entra-identity-engineer`. |
-| **GitHub** | Developer audience | GitHub → Settings → Developer settings → OAuth App | Email can be private — request `user:email` scope to get a verified email. GitHub itself now supports Apple/Google social login (2025-10). |
-| **Facebook / X (Twitter)** | Consumer/social apps only | Meta / X developer portals | Higher review friction + churn; usually skip for B2B/internal tools. |
+| Provider | Offer it when | Setup home | Who can register it `[verify-at-build]` | Notable gotcha |
+|---|---|---|---|---|
+| **Google** | Almost always — broadest reach | Google Cloud Console → OAuth client + consent screen | Google Cloud project **Owner/Editor** | Static client secret; verification review if you request sensitive scopes. Keep scopes to `openid email profile`. |
+| **Apple** | iOS app (App Store policy), privacy-focused users | Apple Developer → App ID + **Services ID** + key | Apple Developer team **Account Holder/Admin** (paid membership) | **The hard one — see the dedicated section below.** |
+| **Microsoft** | Any M365/Entra users (B2B common) | Entra ID → App registration | **Application Developer** role, or any user if the tenant allows app registration | Choose the right account-type audience (work/school vs personal); deep Entra work seams to `azure-cloud/entra-identity-engineer`. |
+| **GitHub** | Developer audience | GitHub → Settings → Developer settings → OAuth App | Any user (personal app); **org owner** (org-owned app) | Email can be private — request `user:email` scope to get a verified email. GitHub itself now supports Apple/Google social login (2025-10). |
+| **Facebook / X (Twitter)** | Consumer/social apps only | Meta / X developer portals | Meta/X developer-account admin | Higher review friction + churn; usually skip for B2B/internal tools. |
+
+> **"Someone has to register the app" — and it might not be you.** Every provider gates app creation behind a role in *its* portal (the column above). If you don't hold it, registration is an admin's task — surface that before you start, not mid-build. The step-by-step walkthroughs are in [`../skills/add-an-auth-provider/SKILL.md`](../skills/add-an-auth-provider/SKILL.md) (Apple/Microsoft/GitHub) and [`../skills/google-sso-setup/SKILL.md`](../skills/google-sso-setup/SKILL.md) (the full Google worked example). The short form of each is below.
+
+### Registering the OAuth app — per-provider portal walkthrough
+
+The shared shape is always *how to get there* → *register* → *set the callback* → *copy client ID + secret* → *minimal scopes*. Treat every step as `[verify-at-build]` — provider console UIs move constantly.
+
+- **Google** — Google Cloud Console → **APIs & Services → OAuth consent screen** (fill app name + scopes `openid email profile`), then **Credentials → Create Credentials → OAuth 2.0 Client ID** (type *Web application*); add the Supabase callback to **Authorized redirect URIs**. Full version: [`../skills/google-sso-setup/SKILL.md`](../skills/google-sso-setup/SKILL.md).
+- **Apple** — [developer.apple.com/account](https://developer.apple.com/account) → **Certificates, Identifiers & Profiles**: register an **App ID** (enable Sign in with Apple), a **Services ID** (your web `client_id`, set return URL = Supabase callback), and a **Sign in with Apple key** → download the **`.p8`**. The client secret is a **generated ES256 JWT**, not a static string (see the Apple section below).
+- **Microsoft** — [entra.microsoft.com](https://entra.microsoft.com) → **App registrations → New registration**: pick the **account-type audience**, add platform **Web** redirect URI = Supabase callback, then **Certificates & secrets → New client secret** (copy the *Value* once). Client ID is on the Overview page. Enterprise/admin-consent steps seam to `azure-cloud/entra-identity-engineer`.
+- **GitHub** — [github.com/settings/developers](https://github.com/settings/developers) → **OAuth Apps → New OAuth App** (org-owned: the org's Developer settings): set **Authorization callback URL** = Supabase callback, **Generate a new client secret** (copy once), request the `user:email` scope.
+
+In every case the callback to register is Supabase's `https://<project-ref>.supabase.co/auth/v1/callback` (plus your own `…/auth/callback`); store the secret as a **reference** (env-var name / vault URI), never a literal.
 
 > **Microsoft note:** "Sign in with Microsoft" via Supabase's Azure provider covers *consumer + basic work* login. Full enterprise Entra (conditional access, SCIM provisioning, app-role mapping, B2B federation) is `azure-cloud/entra-identity-engineer`'s lane — seam to it rather than forcing it through the generic OAuth path.
 

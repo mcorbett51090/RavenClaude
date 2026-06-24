@@ -14,6 +14,22 @@ For new builds, use GraphQL exclusively. REST is supported for legacy apps but w
 - **OAuth 2.0** for public / distribution apps
 - **Custom app via Shopify Admin** for single-store integrations (simpler; uses an Admin-generated access token)
 
+## Registering the app (developer portal)
+
+Two paths — a store-scoped custom app (simplest for a single-store ELT) or a Partner app (for distribution). Treat each step as `[verify-at-build]` — Shopify's admin + Partner UIs move.
+
+> **Single store — Custom app.**
+> **Portal:** Shopify **admin → Settings → Apps and sales channels → Develop apps → Create an app**.
+> **Who can do it:** the **store owner**, or staff granted the **"Apps and channels → Develop apps"** permission.
+>
+> **Distribution — Partner app.**
+> **Portal:** [partners.shopify.com](https://partners.shopify.com) → **Apps → Create app**.
+> **Who can do it:** a member of the **Partner organization**.
+
+1. **Custom app:** create it → **Configure Admin API scopes** (`read_orders`, `read_products`, `read_customers`, `read_inventory`, etc. — least-privilege) → **Install app** → reveal the **Admin API access token** (shown once; store as a secret reference). Note: a custom app uses GraphQL Admin API at the current version.
+2. **Partner app:** set the **App URL** + **Allowed redirection URL(s)** (your ELT vendor's callback), copy the **Client ID/Secret**, and run OAuth per store install.
+3. New apps **must use the GraphQL Admin API** (REST is legacy as of Oct 2024; GraphQL required for new public apps since April 1, 2025).
+
 ## API + Webhook architecture
 
 | Surface | Use case |

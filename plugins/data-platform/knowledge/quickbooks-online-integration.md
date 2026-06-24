@@ -25,6 +25,19 @@
 
 A new "Reconnect URL" field became mandatory in the Intuit developer portal in January 2026 (single-source claim from Truto blog; not corroborated against Intuit's release notes in this research pass). **Verify against Intuit Developer portal directly when implementing.**
 
+## Registering the app (developer portal)
+
+Before any QBO pipeline runs, someone has to register an app in Intuit's developer portal to get the OAuth client ID/secret. Treat each step as `[verify-at-build]` — the portal UI and field set move (see the Reconnect-URL note above).
+
+> **Portal:** [developer.intuit.com](https://developer.intuit.com) → sign in → **My Apps → Create an app**.
+>
+> **Who can do it:** *creating the app* needs only an **Intuit developer account** (free). *Connecting production data* to a specific QuickBooks company is authorized by **that company's admin** during the OAuth consent — so a consultant can build the app, but the client's admin completes the production connection.
+
+1. **Create an app** and select the **Accounting** scope (`com.intuit.quickbooks.accounting`).
+2. Under **Keys & OAuth**, note the **Client ID** and **Client Secret** for both the **Sandbox** and **Production** environments (they differ — see the sandbox-vs-production gotcha below). Store them as secret references, never in the repo.
+3. Set the **Redirect URI(s)** to your ELT vendor's callback (e.g. Airbyte/Fivetran's OAuth return URL), and the new **Reconnect URL** if the portal now requires it.
+4. The connecting user (the company admin) runs the OAuth Authorization-Code consent once; the connector then holds the refresh token and rotates it per the discipline above.
+
 ## Rate limits
 
 | Endpoint | Limit | Notes |

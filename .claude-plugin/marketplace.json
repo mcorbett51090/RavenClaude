@@ -349,7 +349,7 @@
       "name": "data-platform",
       "source": "./plugins/data-platform",
       "description": "Data-platform team \u2014 4 agents (database-setup-guide, etl-pipeline-engineer, dashboard-builder, connector-developer) for cloud DBs, ELT (Airbyte / Fivetran / n8n) with connectors for QuickBooks / Stripe / Salesforce / HubSpot / GA4 / Shopify / HRIS / Planhat / Intercom / Slack-as-source plus 8-vendor support-tool integration coverage (Zendesk, Freshdesk, Intercom Conv+Tkt, SFDC Service Cloud, JSM, HubSpot Service, Help Scout, Front + 2026 Fivetran connector-MAR build-vs-buy math), and embedded dashboards (Evidence.dev / Superset / Metabase / Cube + Tremor). 13 skills (incl. support-ticket-normalization \u2014 conformed fct_ticket / fct_conversation_event over 8 vendors; cross-system-identity-resolution \u2014 the Salesforce\u2194Planhat\u2194Intercom\u2194Slack account spine), 12 templates, a 24-doc knowledge bank, 21 best-practices. Opinionated against per-viewer-priced BI for greenfield SMB. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.13.3",
+      "version": "0.14.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -397,7 +397,7 @@
       "name": "auth-identity",
       "source": "./plugins/auth-identity",
       "description": "End-user authentication & identity team \u2014 2 agents (auth-architect, auth-implementation-engineer) for adding login to a web app (React/Next), an API, and an analytics dashboard. A variety of methods: Google, Apple, Microsoft, GitHub social SSO plus magic link, passkeys/WebAuthn, and email+password \u2014 via managed auth (leaning Supabase Auth, so adding a provider is config not architecture). 7 skills, 4 templates, 5 best-practices, and a 4-doc web-verified knowledge bank with 5 Mermaid decision trees (build-vs-buy, which-providers, OAuth-flow, token-storage, gate-the-dashboard). House rules: Authorization Code + PKCE never Implicit; never store tokens in localStorage; validate ID tokens server-side. The boundary: this plugin AUTHENTICATES the person; data-platform AUTHORIZES the data (RLS / embed-JWT); Microsoft/enterprise Entra seams to azure-cloud, concrete auth code to security-reviewer. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "author": {
         "name": "Matt Corbett"
       },

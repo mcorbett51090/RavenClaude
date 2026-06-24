@@ -9,6 +9,20 @@
 - **Web Server flow** — interactive; for initial setup only
 - **Username-password flow** — deprecated; don't use for new builds
 
+## Registering the app (Connected App)
+
+The OAuth credentials come from a **Connected App** the org admin creates. Treat each step as `[verify-at-build]` — Salesforce moved Connected App creation under the Lightning App Manager and is migrating toward **External Client Apps**, so the exact path varies by org.
+
+> **Portal:** Setup (gear icon) → **App Manager → New Connected App** (or, on newer orgs, **App Manager → New External Client App**).
+>
+> **Who can do it:** a **System Administrator**, or a user with **"Customize Application"** + **"Manage Connected Apps"** permissions. A consultant without admin access must have the client's Salesforce admin create it.
+
+1. **New Connected App** → name it; **Enable OAuth Settings**.
+2. **Callback URL** = your ELT vendor's OAuth return URL.
+3. **Selected OAuth scopes:** `api` (access data) + `refresh_token, offline_access` (unattended ELT); add `web`/`openid` only if needed. Keep it least-privilege.
+4. Save, then read the **Consumer Key** (client ID) and **Consumer Secret** — store as secret references. For the JWT-bearer flow, also upload the digital certificate and pre-authorize the integration user's profile.
+5. Assign a dedicated **Integration User** with **View All Data** (or scoped object permissions) so the connector sees every record it should (see the profile-filtering gotcha below).
+
 ## API choices
 
 | API | Use case |
