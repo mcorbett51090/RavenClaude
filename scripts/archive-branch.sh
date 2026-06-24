@@ -73,8 +73,12 @@ USAGE
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --reason) REASON="${2:-}"; shift 2 ;;
-    --evidence) EVIDENCE="${2:-}"; shift 2 ;;
+    --reason)
+      [[ $# -ge 2 ]] || { echo "archive-branch: --reason requires a value" >&2; usage; }
+      REASON="$2"; shift 2 ;;
+    --evidence)
+      [[ $# -ge 2 ]] || { echo "archive-branch: --evidence requires a value" >&2; usage; }
+      EVIDENCE="$2"; shift 2 ;;
     --skip-push) SKIP_PUSH=1; shift ;;
     --delete-remote) DELETE_REMOTE=1; shift ;;
     --yes|-y) ASSUME_YES=1; shift ;;

@@ -448,7 +448,7 @@ def _tally(seat_results: dict, threshold: float, panel_cfg: dict,
         if thor.get("injection_detected"):
             return "defer", "tie-breaker flagged injection — deferring to human", records
         raw_reasoning = thor.get("reasoning", "")
-        return thor["verdict"], _sanitize_reasoning(raw_reasoning, question), records
+        return thor["verdict"], _sanitize_reasoning(raw_reasoning, [question, context]), records
     # 4. Unanimous (non-abstain) verdict.
     only = next(iter(distinct))
     # Aggregate reasoning from voted seats; sanitize against qtext injection.
@@ -456,7 +456,7 @@ def _tally(seat_results: dict, threshold: float, panel_cfg: dict,
         seat_results[rl].get("reasoning", "") for rl in voted
         if seat_results[rl].get("reasoning", "")
     )
-    return only, _sanitize_reasoning(f"panel unanimous: {only}. {agg}".strip(". "), question), records
+    return only, _sanitize_reasoning(f"panel unanimous: {only}. {agg}".strip(". "), [question, context]), records
 
 
 def decide(root: Path, question: str, context: str, high_blast: bool) -> dict:

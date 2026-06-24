@@ -49,6 +49,24 @@ if [ -z "$msg" ]; then msg="(empty notification)"; fi
 ts="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 day="$(date -u +%Y-%m-%d)"
 
+# JSON-escape the inner content of a string for the no-jq fallback paths. The
+# prior fallbacks escaped ONLY the double-quote, so a backslash / newline / tab /
+# control char in the message produced malformed JSON in both the durable log and
+# the webhook body. Prefer python3 (a declared repo dependency) which escapes all
+# of them; degrade to escaping backslash-then-quote (strictly better than the old
+# quote-only form — a trailing backslash no longer escapes the closing quote).
+_json_escape() {
+  if command -v python3 >/dev/null 2>&1; then
+    if python3 -c 'import json,sys; sys.stdout.write(json.dumps(sys.argv[1])[1:-1])' "$1" 2>/dev/null; then
+      return 0
+    fi
+  fi
+  local s="$1"
+  s="${s//\\/\\\\}"
+  s="${s//\"/\\\"}"
+  printf '%s' "$s"
+}
+
 # Sink 1 — durable local record (always).
 logdir="${proj}/.ravenclaude/runs/notifications"
 mkdir -p "$logdir" 2>/dev/null || true
@@ -56,7 +74,7 @@ if command -v jq >/dev/null 2>&1; then
   jq -cn --arg ts "$ts" --arg msg "$msg" \
     '{ts:$ts, message:$msg}' >>"${logdir}/${day}.jsonl" 2>/dev/null || true
 else
-  printf '{"ts":"%s","message":"%s"}\n' "$ts" "${msg//\"/\\\"}" \
+  printf '{"ts":"%s","message":"%s"}\n' "$ts" "$(_json_escape "$msg")" \
     >>"${logdir}/${day}.jsonl" 2>/dev/null || true
 fi
 
@@ -64,9 +82,9 @@ fi
 hook_url="${RAVENCLAUDE_NOTIFY_WEBHOOK:-}"
 if [ -n "$hook_url" ] && command -v curl >/dev/null 2>&1; then
   if command -v jq >/dev/null 2>&1; then
-    body="$(jq -cn --arg t "$msg" '{text:$t}' 2>/dev/null || printf '{"text":"%s"}' "${msg//\"/\\\"}")"
+    body="$(jq -cn --arg t "$msg" '{text:$t}' 2>/dev/null || printf '{"text":"%s"}' "$(_json_escape "$msg")")"
   else
-    body="$(printf '{"text":"%s"}' "${msg//\"/\\\"}")"
+    body="$(printf '{"text":"%s"}' "$(_json_escape "$msg")")"
   fi
   curl -fsS --connect-timeout 5 -m 10 -X POST -H 'Content-Type: application/json' \
     -d "$body" "$hook_url" >/dev/null 2>&1 || true

@@ -7,6 +7,10 @@ on:
       - main
   workflow_dispatch:
 
+# Least-privilege GITHUB_TOKEN: this workflow only reads the repo to validate it.
+permissions:
+  contents: read
+
 jobs:
   validate-layout:
     name: Validate file paths against .repo-layout.json

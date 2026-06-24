@@ -47,6 +47,10 @@ on:
       - ".github/workflows/validate-marketplace.yml"
   workflow_dispatch:
 
+# Least-privilege GITHUB_TOKEN: this workflow only reads the repo to validate it.
+permissions:
+  contents: read
+
 jobs:
   validate:
     name: Validate manifests and hooks
@@ -81,9 +85,13 @@ jobs:
               status=1
               continue
             fi
-            # Sanity: must declare a name and version
-            name=$(python3 -c "import json,sys;print(json.load(open('$manifest')).get('name',''))")
-            version=$(python3 -c "import json,sys;print(json.load(open('$manifest')).get('version',''))")
+            # Sanity: must declare a name and version. Use jq (the safe pattern
+            # already used by the version cross-check step below) — the prior
+            # `python3 -c "...open('$manifest')..."` interpolated the path into a
+            # Python string literal, so a single quote in a future plugin dir name
+            # would be a SyntaxError that fails the step.
+            name=$(jq -r '.name // ""' "$manifest")
+            version=$(jq -r '.version // ""' "$manifest")
             if [[ -z "$name" ]]; then
               echo "::error file=$manifest::missing 'name' field"
               status=1
