@@ -4,6 +4,10 @@
 >
 > Task: research and identify 10 plugins **not yet implemented**, prioritize by user demand × technical feasibility, and build out the highest-priority first. This doc is the research deliverable; the build (`plugins/realtime-collaboration-engineering/`) ships alongside it.
 
+> ## ⛔ ROUTINE POLICY UPDATE (2026-06-24) — read before acting
+>
+> Per Matt's directive, the discovery routine now only **includes and builds new plugins that clear a value/criticality bar** — it no longer builds "the next unbuilt row" just to have output. The bar and the new run contract are canonical in **[`docs/plugin-discovery-routine-policy.md`](../plugin-discovery-routine-policy.md)** — **read it first.** In short: build a new plugin only if a candidate is **Valuable** (Disjoint ≥ 4, Demand ≥ 4, Feasibility ≥ 4, composite ≥ 13/15) **or Critical** (a real engagement/issue/explicit-ask signal). **If nothing clears the bar, build nothing new** — refresh the roadmap and/or do real-demand upkeep, and stay silent. "10" is not a quota. The roadmap below is retained as the gap map; held candidates stay listed with the gate they miss.
+
 ## How this run relates to the prior passes (read first)
 
 This is a **recurring routine** with a **standing decision** it must respect (see `docs/proposals/2026-06-09 … 2026-06-23-ten-new-plugin-candidates.md`, the parked-#409 rationale, and `docs/idea-board.md`):
