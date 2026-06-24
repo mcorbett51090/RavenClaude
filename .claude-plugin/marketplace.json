@@ -498,7 +498,7 @@
       "name": "claude-app-engineering",
       "source": "./plugins/claude-app-engineering",
       "description": "Claude app-engineering specialist team \u2014 6 agents (claude-solution-architect, prompt-and-context-engineer, mcp-and-server-tools-engineer, agent-sdk-engineer, eval-engineer, claude-app-ops-engineer) for building production applications on the Claude API, the Claude Agent SDK, and MCP. Covers the build-surface decision (Messages API / Agent SDK / Managed Agents), model right-sizing (Opus 4.8 / Sonnet 4.6 / Haiku 4.5, 1M context), prompt caching, tool use + structured output, MCP server authoring + Anthropic-hosted server tools (computer use, code execution, Files API, memory, advisor tool), evals (golden sets, LLM-as-judge), and FinOps + reliability (batch, model routing, backoff, observability). 15-doc dated-and-cited knowledge bank, 6 templates, 1 advisory hook (14 house opinions). Seams: prompt-as-artifact, security, and cross-domain architecture escalate to ravenclaude-core. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.9.4",
+      "version": "0.9.5",
       "author": {
         "name": "Matt Corbett"
       },
@@ -543,7 +543,7 @@
       "name": "salesforce",
       "source": "./plugins/salesforce",
       "description": "Salesforce practitioner team \u2014 5 agents (apex-engineer, flow-automation-architect, agentforce-architect, salesforce-platform-architect, salesforce-reviewer) covering governor-safe bulkified Apex (triggers/async/services), declarative automation by density (Flow vs Apex), Agentforce agent design (topics/subagents, Agent Script determinism, RAG grounding, Trust Layer), org architecture (data model, OWD\u2192role\u2192sharing\u2192Apex security model, 2GP packaging/DevOps, LDV), and a forked review rubric (the 15 house opinions as pass/fail). 9-doc citation-grounded knowledge bank (9 Mermaid decision trees, dated 2026-05-30), 5 skills, 5 templates, 1 advisory hook (grep-able anti-patterns: SOQL/DML-in-loop, hard-coded IDs, SeeAllData=true, missing with-sharing). Seams: integration\u2192azure-cloud, analytics\u2192data-platform/microsoft-fabric, LWC styling\u2192web-design, methodology/DevOps/security-review\u2192ravenclaude-core. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.6.1",
+      "version": "0.6.2",
       "author": {
         "name": "Matt Corbett"
       },
@@ -1789,7 +1789,7 @@
       "name": "accessibility-engineering",
       "source": "./plugins/accessibility-engineering",
       "description": "Accessibility Engineering specialist team \u2014 4 agents (accessibility-lead, wcag-audit-analyst, assistive-tech-testing-specialist, inclusive-design-strategist), 5 skills, 4 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. An accessibility team for an a11y lead or product owner accountable for WCAG conformance \u2014 it picks a conformance target and measures against it, treats automated scans as a fraction of the picture, holds keyboard and screen-reader parity as the floor, reaches for semantic HTML before ARIA, and verifies contrast ratios. Inherits ravenclaude-core protocols.",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "author": {
         "name": "Matt Corbett"
       },
