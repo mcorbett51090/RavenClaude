@@ -5,6 +5,8 @@ Statuses: **🟢 endorsed** (panel-reviewed, actionable) · **🟡 gated** (real
 
 _Last updated: 2026-06-04 · Full evidence trail: [`docs/research/2026-06-04-future-niche/`](research/2026-06-04-future-niche/)_
 
+> **Marketplace-breadth governance (2026-06-24):** the recurring plugin-discovery routine now builds a new plugin only when a candidate clears a **value/criticality bar** — see [`docs/plugin-discovery-routine-policy.md`](plugin-discovery-routine-policy.md). This sharpens the standing #409 *build-on-real-demand over catalog-breadth* decision: at 119 plugins, "no new plugin warranted this cycle" is the expected steady state, not an empty run.
+
 ---
 
 ## The lead idea
