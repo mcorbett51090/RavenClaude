@@ -2,6 +2,12 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.167.0 — 2026-06-24
+
+### Added
+
+- **Convergence engine (`refine-to-rubric`) — P0 (deterministic core).** The model-free foundation: `skills/refine-to-rubric/scripts/converge.py` `terminate()` (the stop decision is NEVER a model judgment) + `weighted_score()` + keep-best argmax (emit the best iteration, never the last) + rubric/scorecard JSON schemas. Verdict vocabulary is `rubric-pass | capped | plateaued | budget-exhausted` — the engine never claims "perfect". Proven by **Gate 115** (7 stop cases + keep-best + no-overclaim, with a must-fail-redgate teeth half). **Migration:** none — additive skill scaffolding.
+
 ## 0.166.0 — 2026-06-23
 
 ### Added
