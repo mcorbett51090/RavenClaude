@@ -2,6 +2,12 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.168.0 — 2026-06-24
+
+### Added
+
+- **Convergence engine — P1 (rubric library + derive).** Externalized versioned rubric library (`knowledge/convergence-rubrics.md`) + `derive_rubric.py`: explicit requirements become top-weighted dims, best-practices retrieved per artifact-kind, and an **additive-only** "commonly-missed" pass proposes the unknown-unknowns forced to `derived`+`verified=false` (a model can only ADD, never auto-grade, even if the proposal lies). `agent-file` delegates to `agent-quality-rubric`. Proven by **Gate 116** (schema-valid + explicit=weight-max + derived-forced-unverified, teeth half). **Migration:** none.
+
 ## 0.167.0 — 2026-06-24
 
 ### Added
