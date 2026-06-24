@@ -2,6 +2,30 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.170.0 — 2026-06-24
+
+### Added
+
+- **Convergence engine — P3 (full loop + cross-model judge).** `loop.py` runs derive→evaluate→refine→re-evaluate→terminate, emitting the **best** iteration (keep-best, never the last) with a constrained no-overclaim report. `judge.sh` is the subjective judge — it **REFUSES (exit 5) when the judge model family equals the author's** (never self-grade). Security-reviewed (cross-model `claude -p` path): no blocker; anti-self-grade normalization broadened (closes -v2/-latest/-preview bypass) + `is_error`/verdict validation + secret-scrub synced to `_scrub.sh`. Proven by **Gate 118** (loop + judge≠author + keep-best + constrained report, with a must-fail-keepbest teeth half). **Migration:** none.
+
+## 0.169.0 — 2026-06-24
+
+### Added
+
+- **Convergence engine — P2 (evaluate, objective-gates-first).** `evaluate.py` runs the deterministic/objective gates FIRST; a red hard gate short-circuits straight to refine with **0 model-judge calls** (cheap + defends the plateau/sycophancy failure mode). Proven by **Gate 117** (broken artifact ⇒ 0 judge calls, with a must-fail-judge-first teeth half). **Migration:** none.
+
+## 0.168.0 — 2026-06-24
+
+### Added
+
+- **Convergence engine — P1 (rubric library + derive).** Externalized versioned rubric library (`knowledge/convergence-rubrics.md`) + `derive_rubric.py`: explicit requirements become top-weighted dims, best-practices retrieved per artifact-kind, and an **additive-only** "commonly-missed" pass proposes the unknown-unknowns forced to `derived`+`verified=false` (a model can only ADD, never auto-grade, even if the proposal lies). `agent-file` delegates to `agent-quality-rubric`. Proven by **Gate 116** (schema-valid + explicit=weight-max + derived-forced-unverified, teeth half). **Migration:** none.
+
+## 0.167.0 — 2026-06-24
+
+### Added
+
+- **Convergence engine (`refine-to-rubric`) — P0 (deterministic core).** The model-free foundation: `skills/refine-to-rubric/scripts/converge.py` `terminate()` (the stop decision is NEVER a model judgment) + `weighted_score()` + keep-best argmax (emit the best iteration, never the last) + rubric/scorecard JSON schemas. Verdict vocabulary is `rubric-pass | capped | plateaued | budget-exhausted` — the engine never claims "perfect". Proven by **Gate 115** (7 stop cases + keep-best + no-overclaim, with a must-fail-redgate teeth half). **Migration:** none — additive skill scaffolding.
+
 ## 0.166.0 — 2026-06-23
 
 ### Added

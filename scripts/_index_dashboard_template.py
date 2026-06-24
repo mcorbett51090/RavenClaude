@@ -612,6 +612,7 @@ TEMPLATE = r"""<!doctype html>
         <div class="sidebar-foot">
           <div>v<span id="foot-version">__MKT_VERSION__</span></div>
           <div class="detail">Updated __GENERATED__</div>
+          <div class="detail"><a href="https://ravenpower.net" target="_blank" rel="noopener noreferrer">Raven Power ↗</a></div>
         </div>
       </aside>
 
