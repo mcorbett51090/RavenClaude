@@ -285,20 +285,22 @@ declare -A SV SCONF SINJ SCITED SEDIT SREASON SSTATUS
 seats_run=()
 
 # Run one seat: writes verdict JSON to $tmp/$role.json, rc to $tmp/$role.rc.
-run_seat() {  # run_seat <role> <model> <tmp> [peer_verdicts_json]
-  local role="$1" model="$2" tmp="$3" peers="${4:-}" out rc=0
+run_seat() {  # run_seat <role> <model> <tmp> [peer_verdicts_json] [fallback_exclude_csv]
+  local role="$1" model="$2" tmp="$3" peers="${4:-}" fb_exclude="${5:-}" out rc=0
   # Bash: THING_CMD (unchanged path). Non-Bash: THING_PAYLOAD (the reviewed text)
   # + THING_PAYLOAD_SHAPE. The full-payload secret screen already ran in
   # classify-payload, and the seat re-caps to SEAT_MAX_BYTES.
   if [ "$payload_shape" = "command" ]; then
     out="$(THING_SEAT_ACTIVE=1 THING_CMD="$cmd" THING_CATEGORY="$category" \
            THING_SEAT_ROLE="$role" THING_MODEL="$model" THING_PEER_VERDICTS="$peers" \
+           MODEL_FALLBACK_EXCLUDE="$fb_exclude" \
            THING_SEAT_MOCK_VERDICT="${THING_SEAT_MOCK_VERDICT:-}" \
            timeout "${seat_timeout}s" bash "$SEAT" 2>/dev/null)" || rc=$?
   else
     out="$(THING_SEAT_ACTIVE=1 THING_PAYLOAD="$reviewed" THING_PAYLOAD_SHAPE="$payload_shape" \
            THING_CATEGORY="$category" \
            THING_SEAT_ROLE="$role" THING_MODEL="$model" THING_PEER_VERDICTS="$peers" \
+           MODEL_FALLBACK_EXCLUDE="$fb_exclude" \
            THING_SEAT_MOCK_VERDICT="${THING_SEAT_MOCK_VERDICT:-}" \
            timeout "${seat_timeout}s" bash "$SEAT" 2>/dev/null)" || rc=$?
   fi
@@ -409,8 +411,18 @@ else
   pids=()
   for role in $convened; do
     model="$(printf '%s' "$decision" | jq -r --arg r "$role" '.panel[$r].model // "claude-haiku-4-5"')"
+    # Peer-exclude: the OTHER convened seats' models. Passed to the seat's
+    # model-fallback so a fallback never lands on a peer's model — preserving the
+    # >=2-distinct-backbone diversity invariant BY CONSTRUCTION (no post-hoc
+    # cross-seat re-check). Empty when fallback is off; harmless then.
+    peer_excl=""
+    for other in $convened; do
+      [ "$other" = "$role" ] && continue
+      om="$(printf '%s' "$decision" | jq -r --arg r "$other" '.panel[$r].model // empty')"
+      [ -n "$om" ] && peer_excl="${peer_excl}${peer_excl:+,}$om"
+    done
     seats_run+=("$role")
-    run_seat "$role" "$model" "$tmp" &
+    run_seat "$role" "$model" "$tmp" "" "$peer_excl" &
     pids+=("$!")
   done
   if [ "${#pids[@]}" -gt 0 ]; then

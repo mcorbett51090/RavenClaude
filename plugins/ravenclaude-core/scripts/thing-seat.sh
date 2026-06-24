@@ -272,19 +272,47 @@ fi
 scratch="$(mktemp -d)"
 trap 'rm -rf "$scratch"' EXIT
 
-# --tools "" disables ALL tools for the seat (assessment must-fix #5): a seat only
-# reasons + returns JSON, so a prompt-injected seat must not be able to issue tool
-# calls. Defense-in-depth beyond THING_SEAT_ACTIVE (recursion guard) + the
-# guard-destructive PreToolUse hook.
-raw="$(cd "$scratch" && claude -p "${bare_args[@]}" \
-        --output-format json \
-        --model "$model" \
-        --tools "" \
-        --append-system-prompt "$SEAT_SYSTEM" \
-        "$user_prompt" 2>/dev/null)" || { echo '{"error":"claude invocation failed"}' >&2; exit 5; }
+# Model-fallback (opt-in, P3): on an OVERLOADED/unavailable seat model, retry the same
+# call on the next ladder rung; auth/bad-input never retries. MODEL_FALLBACK_EXCLUDE
+# (set by the orchestrator to the OTHER convened seats' models) keeps a fallback from
+# landing on a peer's model — so the >=2-distinct-backbone diversity invariant is
+# preserved BY CONSTRUCTION; an exhausted ladder abstains (exit 5 — the tribunal
+# already fails closed on abstain). --tools "" holds on every rung. Default OFF ⇒ a
+# single call, byte-identical.
+_mf_helper="$(dirname "$0")/../hooks/_model-fallback.sh"
+# shellcheck source=/dev/null
+[ -f "$_mf_helper" ] && . "$_mf_helper" 2>/dev/null || true
+
+_seat_run() {
+  # --tools "" disables ALL tools (a seat only reasons + returns JSON) — holds on
+  # the primary AND every fallback rung.
+  cd "$scratch" && claude -p "${bare_args[@]}" \
+    --output-format json \
+    --model "$1" \
+    --tools "" \
+    --append-system-prompt "$SEAT_SYSTEM" \
+    "$user_prompt" 2>"${_MF_ERRFILE:-/dev/null}"
+}
+
+if declare -F _model_call_with_fallback >/dev/null 2>&1; then
+  _mf_load_config
+  MODEL_FALLBACK_PRIMARY="$model"
+  export MODEL_FALLBACK_PRIMARY MODEL_FALLBACK_ENABLED MODEL_FALLBACK_LADDER MODEL_FALLBACK_MAX_RETRIES
+  raw="$(_model_call_with_fallback --runner _seat_run --exclude "${MODEL_FALLBACK_EXCLUDE:-}")" || { echo '{"error":"claude invocation failed"}' >&2; exit 5; }
+else
+  raw="$(cd "$scratch" && claude -p "${bare_args[@]}" \
+    --output-format json \
+    --model "$model" \
+    --tools "" \
+    --append-system-prompt "$SEAT_SYSTEM" \
+    "$user_prompt" 2>/dev/null)" || {
+    echo '{"error":"claude invocation failed"}' >&2
+    exit 5
+  }
+fi
 
 # A non-zero is_error in the envelope (e.g. auth failure) is still exit-0 from
-# claude, so check it explicitly.
+# claude, so check it explicitly (the helper also treats is_error as failure).
 if [ "$(printf '%s' "$raw" | jq -r '.is_error // false' 2>/dev/null)" = "true" ]; then
   echo "{\"error\":\"seat call returned is_error\"}" >&2; exit 5
 fi
