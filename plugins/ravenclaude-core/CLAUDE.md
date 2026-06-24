@@ -299,6 +299,58 @@ The tell that this clause was skipped: an expensive activity completed, then a *
 
 **Composition.** "Read the error before you re-route" verifies the *cause of a failure* before the next move; "Check why a constraint exists before obeying it" verifies a *constraint* before honoring it; **this clause verifies the *premise* before a high-impact act.** It is distinct from `design_checkins` (which pauses for the *human's* judgment on a design decision) — this is the agent verifying its *own* load-bearing belief before committing expensive, irreversible work to it. It does not replace the tribunal's high-blast gate (which screens the *command*); it screens the *reasoning* that led to wanting the command. **It also applies before _soliciting a human decision_:** if a yes/no or multi-option prompt's answer depends on an unverified factual claim (a count, a field's existence, an API behavior), verify the claim *before* surfacing the prompt and batch related decisions into one post-verification ask — a prompt built on a premise that later flips forces a re-ask (the avoidable cost the tribunal's correct-deferrals are often blamed for). See [`skills/decision-review/SKILL.md`](skills/decision-review/SKILL.md) § "Before you prompt at all".
 
+### Verify a reference before you mirror it (added 2026-06-24)
+
+The load-bearing-assumption clause verifies the *premise of an action*; this clause verifies the
+*artifact you are about to copy or build on*. The trap is treating something as a **golden reference**
+— a flow, a script, a config, a prior implementation, a "known-good" example — and faithfully
+mirroring its pattern because it **exists / is active / is structurally complete**, *without ever
+confirming it produced the successful output you are assuming*. An unproven reference propagates its
+latent bug into everything built on it — and in a multi-agent run, **every dispatched sub-agent
+inherits the flawed premise from the orchestrator**, so a single unverified "reference" can invalidate
+the whole fan-out.
+
+**Before you mirror a reference, or declare a failure "architectural," run this checklist:**
+
+1. **Prove the reference actually produced its successful output.** "Activated", "structurally
+   complete", "exists", "ran without erroring" are NOT proof. Look for the *data-producing* artifact it
+   is supposed to create — a real output record, a green run that wrote the row/file/result. No such
+   evidence ⇒ it is **unproven**, not golden.
+2. **Read "0 successful runs / 0 output records" as a red flag on the REFERENCE, not a mandate to
+   rebuild around it.** "This has never completed" ≠ "the surrounding system is broken, rebuild it." It
+   means *don't trust this thing's pattern* until you've found one that genuinely worked.
+3. **Inspect the critical step's actual runtime output on a representative real input — early**, before
+   building on top of it. Read the bytes the step actually emits (the OCR text, the API response, the
+   parsed value); don't assume the step works because it "succeeded" (a step can succeed and emit
+   garbage).
+4. **Before declaring a failure "architectural," find a WORKING instance of the failing step in the
+   same environment.** One working comparator collapses a "re-architect / rebuild" down to a one-line
+   fix. It is cheap to look for and enormous if skipped — search adjacent/`temp-*`/test artifacts that
+   are outside your stated audit scope.
+5. **Enumerate the alternate implementations of the capability before declaring one canonical.** If
+   there are three flows that do "extract text", the one you're standing on may not be the one that
+   works — and the working one may be out of your audit scope.
+6. **When the human says "it worked before," treat that as high-signal evidence and hunt for the
+   artifact** (the run/flow/commit that worked) before re-asserting a "never worked" conclusion. Their
+   memory of a green result outranks your inference from a cold read.
+
+Same falsifiability bar as the other clauses: cite the this-session check that proves the reference
+worked (the output record, the green run), or mark it `[unverified — assumed-good reference]` and
+verify before you build on it.
+
+**Worked example (BTCSI document-extraction, 2026-06-24).** A multi-agent pipeline rebuild was anchored
+on an `*Extract-Action` flow as the "golden working reference" and faithfully mirrored its OCR wiring —
+but that flow had **0 successful extraction records, ever**. The "0 records" signal was misread as
+*"the pipeline is broken, rebuild it"* instead of the accurate *"the reference is unproven; don't trust
+its pattern"*, and every sub-agent inherited that flawed premise. When the rebuild then failed, the
+conclusion jumped to *"the OCR is architecturally broken on digital PDFs — re-architect to
+document-input prompts"* — **without checking whether any flow in the same environment OCR'd
+successfully.** One did (a `temp-*` test flow, outside the audit scope); comparing it showed the real
+bug was a **one-line double-`base64()` encoding** of the file, not the OCR. Steps 1 (verify the
+reference) and 4 (find the working comparator) would each, alone, have collapsed a multi-agent
+architectural rebuild to a one-line wiring fix. The human's *"it worked before"* (step 6) is what
+forced the correct diagnosis.
+
 ### Anti-patterns
 
 - **Stopping after one attempt.** "I tried the PA Management API and it failed, so this can't be done programmatically." Wrong — the answer was always to try Dataverse Web API.
@@ -308,6 +360,7 @@ The tell that this clause was skipped: an expensive activity completed, then a *
 - **Inventing alternatives that don't exist** to look thorough. Better to say "I considered X and Y; neither apply because Z" than to fabricate a third path.
 - **Taking a "forbidden" at face value.** Reading a rule's headline ("Forbidden infrastructure") and recommending against an adjacent thing it doesn't actually govern — without reading the rule's scope, rationale, or the proposal it split your case out to. The check is cheap; skipping it fails closed and wastes a round-trip when the user has to say "research that." (Real case, 2026-05-31: a permission-reconciler was recommended-against on the strength of a no-parser rule that was scoped to the tree *format* and had explicitly *deferred* the reconciler to "v0.2.0, build on real signal" — which had since arrived.)
 - **Betting an irreversible activity on an unchecked premise.** Running a destructive / hard-to-undo activity (delete-and-recreate, migrate, drop, mass-edit) on a plausible-but-unverified mental model of how the platform works, when one doc-read would have settled it. The activity "succeeds" and solves nothing, and the cleanup dwarfs the task. (Real case, 2026-06-11: 19 Dataverse entities deleted + recreated *twice* to "move them out of the Active layer" — a non-goal the docs would have flagged; the real fix was an in-place behavior flag, no delete. See "Verify the load-bearing assumption before a high-impact activity" above.)
+- **Mirroring an unproven "golden reference."** Building on / copying a flow, script, or config because it's *active and structurally complete* — without confirming it ever produced successful output. The latent bug propagates into everything (and every sub-agent inherits it). And the twin: declaring a failure *"architectural"* and re-architecting, without first finding a **working instance of the failing step in the same environment** — which usually collapses the rebuild to a one-line fix. (Real case, 2026-06-24: a document-extraction pipeline rebuilt around a flow with 0 successful runs ever, then mis-declared "OCR is architecturally broken" when a `temp-*` flow in the same env OCR'd fine — the real bug was a one-line double-`base64()`. See "Verify a reference before you mirror it" above.)
 
 ### How this interacts with the Structured Output Protocol
 
