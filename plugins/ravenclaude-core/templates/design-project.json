@@ -1,0 +1,6 @@
+{
+  "project_id": "",
+  "name": "",
+  "mirror_dir": "design/",
+  "notes": "Binds THIS repo to a claude.ai/design design-system project so the agent auto-knows which of your projects is this repo's. Fill project_id (from `DesignSync list_projects`, or just run the /design-link skill, which lists your projects and writes this file for you). Once set, every session's SessionStart capability banner surfaces the link and the agent can read it as context (DesignSync get_file) or edit it (the /design-sync skill, plan-gated). project_id is a NON-SECRET UUID — safe to commit. mirror_dir is the optional local dir /design-sync mirrors components into; leave \"\" if you only read the project remotely."
+}

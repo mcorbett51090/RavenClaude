@@ -212,9 +212,13 @@ def summarize_env_context(root: Path) -> dict | None:
     try:
         text = path.read_text(encoding="utf-8")
     except Exception:
-        return {"present": True, "env_count": None, "last_reviewed": None, "stale": None}
+        return {"present": True, "env_count": None, "last_reviewed": None,
+                "stale": None, "self_serve_count": None}
     # Count second-level headers as a proxy for environment sections.
     env_count = len(re.findall(r"(?m)^##\s+\S", text))
+    # Count Self-serve check entries (a capability->route map line begins `check:`).
+    # COUNT ONLY — never the check/route values (they name SPNs + URLs): leak-safe.
+    self_serve = len(re.findall(r"(?mi)^\s*-?\s*check:", text))
     dates = _DATE_RE.findall(text)
     last = max(dates) if dates else None
     stale = None
@@ -227,7 +231,30 @@ def summarize_env_context(root: Path) -> dict | None:
         except Exception:
             stale = None
     return {"present": True, "env_count": env_count or None,
-            "last_reviewed": last, "stale": stale}
+            "last_reviewed": last, "stale": stale,
+            "self_serve_count": self_serve or None}
+
+
+def summarize_design_project(root: Path) -> dict | None:
+    """Report a claude.ai/design project bound to THIS repo (.ravenclaude/design-project.json).
+
+    The binding is a pointer, not a credential — a project_id is a non-secret UUID.
+    We surface the NAME + mirror dir + whether an id is recorded (so a session knows
+    which of the user's design projects is this repo's, and to read the file for the
+    id). Fail-safe: absent / unparseable -> None (the banner just omits the line).
+    """
+    path = root / ".ravenclaude" / "design-project.json"
+    if not path.exists():
+        return None
+    try:
+        import json as _json
+        d = _json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return {"present": True, "has_id": False, "name": None, "mirror_dir": None}
+    pid = (d.get("project_id") or "").strip()
+    name = (d.get("name") or "").strip() or None
+    mirror = (d.get("mirror_dir") or "").strip() or None
+    return {"present": True, "has_id": bool(pid), "name": name, "mirror_dir": mirror}
 
 
 def _fmt_rules(rules: list[str], cap: int = 6) -> str:
@@ -483,9 +510,10 @@ def build_banner(root: Path) -> str:
     runtime = summarize_runtime_activity(root)
     run_cfg = summarize_run_config(root)
     streams = summarize_streams(root)
+    design = summarize_design_project(root)
 
     # If we have nothing useful at all, emit nothing (don't inject an empty box).
-    if not (surface or env_auth or cli_auth or perms or (envctx and envctx.get("present")) or runtime or run_cfg or streams):
+    if not (surface or env_auth or cli_auth or perms or (envctx and envctx.get("present")) or runtime or run_cfg or streams or design):
         return ""
 
     lines: list[str] = []
@@ -530,9 +558,33 @@ def build_banner(root: Path) -> str:
             bits.append(f"last dated {envctx['last_reviewed']}{tag}")
         lines.append("  " + "; ".join(bits) + ".")
         lines.append("  Read that file for per-environment roles, pre-authorized actions, and forbidden lists.")
+        if envctx.get("self_serve_count"):
+            lines.append(
+                f"  Lists {envctx['self_serve_count']} self-serve check(s) — concrete queries you can run YOURSELF "
+                "with the access you hold. Read the file's \"Self-serve checks\" entries and run the held route "
+                "before telling the user to manually check anything."
+            )
     else:
         lines.append("  not present. Run the environment-discovery skill to map which environments")
         lines.append("  your detected credentials can reach and what they're authorized to do.")
+
+    if design and design.get("present"):
+        lines.append("")
+        lines.append("LINKED DESIGN PROJECT (.ravenclaude/design-project.json):")
+        nm = design.get("name") or "(unnamed — fill in `name`)"
+        if design.get("has_id"):
+            md = design.get("mirror_dir")
+            lines.append(
+                f"  This repo is bound to the claude.ai/design project \"{nm}\". You CAN read it "
+                "as context and edit it — use the DesignSync tool (list_files / get_file) or the "
+                "/design-sync skill. Read the file for the project_id"
+                + (f"; local mirror dir `{md}`." if md else ".")
+            )
+        else:
+            lines.append(
+                f"  present but no project_id yet ({nm}). Run /design-link to pick the project and "
+                "record its id, then DesignSync / /design-sync can read + edit it."
+            )
 
     if run_cfg:
         lines.append("")
@@ -626,6 +678,14 @@ def build_banner(root: Path) -> str:
         "against the EFFECTIVE PERMISSIONS above and `.ravenclaude/environment-context.md`: "
         "if you hold it, proceed; if not, pick a route you ARE authorized for, or escalate "
         "— never default to the highest-privilege path."
+    )
+    lines.append(
+        "  Before telling the user to CHECK or DO something manually (\"open the portal "
+        "and check X\", \"verify Y yourself\", \"check the run history\"): consult your access "
+        "inventory — the auth + permissions above and the `Self-serve checks` in "
+        "`.ravenclaude/environment-context.md`. If you hold the route, run the check "
+        "yourself and report the answer (read-only; a derived write still hits the "
+        "Forbidden list). Only hand it back when no held route covers it — and say why."
     )
     lines.append(
         "  Before reporting you \"can't\" do something or that a tool is unavailable: a "

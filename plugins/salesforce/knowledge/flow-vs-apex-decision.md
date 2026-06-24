@@ -33,6 +33,8 @@ graph TD
 
 The silent failure is **stacking**: a record-triggered Flow *and* an Apex trigger *and* a legacy Process Builder all firing on the same save. They have no shared order and recurse unpredictably. Inventory every entry point before adding one, and keep **one ordered entry point per object**.
 
+**Process Builder & Workflow Rules reached end-of-support on Dec 31, 2025.** Salesforce retired them for *new* automation and directs all new declarative automation to Flow (the built-in "Migrate to Flow" tool is the sanctioned path). End-of-support is **not** a runtime shutoff — existing instances still execute — but they receive no fixes or support, so when you find one in the inventory above, treat it as a **migration target**, not merely legacy to leave in place. `[verify-at-build]`
+
 Whichever you choose, **document the call** ("Flow because X" / "Apex because Y") in the design.
 
 ## Sources

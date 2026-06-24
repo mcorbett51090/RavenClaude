@@ -2,6 +2,12 @@
 
 All notable changes to this plugin are documented here. Versioning is semver; bump on every user-visible change (AGENTS.md).
 
+## [0.1.1] — 2026-06-24
+
+### Added
+
+- **European Accessibility Act (EAA) as a named, dated regulatory driver.** The EAA (Directive (EU) 2019/882) has applied since **28 June 2025**, making accessibility a hard EU-market gate for in-scope consumer products/services, with **EN 301 549 (v3.2.1) → WCAG 2.1 AA** as the presumptive standard and a transition tail to 2030 for some existing services. Added a "Regulatory drivers (dated)" subsection to `knowledge/accessibility-engineering-context.md` (marked `[unverified — training knowledge]` per the file's convention) and a brief pointer in `CLAUDE.md` house opinion #6, so "is this in EU-market scope?" becomes a standard intake question. Liability/scope determinations still route to qualified counsel (§2, §3 #6). Dates verified 2026-06-24.
+
 ## [0.1.0] — 2026-06-08
 
 Initial release.

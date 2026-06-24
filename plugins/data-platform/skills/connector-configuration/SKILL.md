@@ -15,35 +15,40 @@ description: Connector-specific configuration patterns for ELT pipelines — Qui
 
 ### QuickBooks Online
 - **Auth:** OAuth 2.0 Authorization Code; 1-hour access tokens; refresh tokens 100-day rolling with notifications at 30 and 7 days
+- **Register the app:** [developer.intuit.com](https://developer.intuit.com) → My Apps → create an app, enable the **Accounting** scope, copy the client ID/secret, set the redirect URI to your ELT vendor's callback. **Who can do it:** any Intuit developer account creates the app; connecting *production* to a company needs that company's admin to authorize. Walkthrough: [`../../knowledge/quickbooks-online-integration.md`](../../knowledge/quickbooks-online-integration.md). `[verify-at-build]`
 - **Rate limits:** 10 req/s per realm-ID + app; batch endpoint 120/min; concurrent ~10. HTTP 429 / 403 → honor `Retry-After`
 - **Connector availability:** Fivetran ✅, Airbyte ✅, Hevo ✅, Stitch ✅ (in maintenance)
 - **QBO vs QB Desktop:** Desktop is materially different — usually requires QB Web Connector + CData / Transaction Pro. **QB Desktop is v0.2.0+ scope for this plugin.**
 - **2026 watch:** "Reconnect URL" mandatory field in Intuit developer portal (single-source claim; verify before implementing)
 
 ### Stripe
-- **Auth:** API key (restricted keys for production)
+- **Auth:** API key (restricted keys for production) — **not an OAuth app.** No developer-portal app registration: create a **restricted key** in the Stripe Dashboard → Developers → API keys (scoped read-only for ELT). **Who can do it:** a Stripe account member with Developer/Administrator access. `[verify-at-build]`
 - **Connector availability:** Fivetran ✅, Airbyte ✅, Hevo ✅, Estuary ✅
 - **Pattern:** **batch for history + webhooks for real-time** — don't try to ELT a webhook-driven event source as if it's a CRUD database
 - **Common error:** ELT vendors are batch-only; client expects real-time fraud signals — webhook handlers run separately
 
 ### Salesforce
 - **Auth:** Connected App + OAuth 2.0 JWT-bearer flow (server-side) or Web Server flow (interactive)
+- **Register the app:** Setup → **App Manager → New Connected App** → enable OAuth, add the ELT vendor's callback URL, select scopes (`api`, `refresh_token`), then copy the **Consumer Key/Secret**. **Who can do it:** a **System Administrator** (or "Customize Application" + "Manage Connected Apps" perms). Walkthrough: [`../../knowledge/salesforce-integration.md`](../../knowledge/salesforce-integration.md). `[verify-at-build]`
 - **Bulk API 2.0 ceilings:** 150M records/day; 15k batch submissions/24hr; 10k records/batch; 10MB payload (per [developer.salesforce.com/docs/atlas.en-us.api_asynch.meta/api_asynch/bulk_common_limits.htm](https://developer.salesforce.com/docs/atlas.en-us.api_asynch.meta/api_asynch/bulk_common_limits.htm))
 - **Connector availability:** Universal — all major ELT vendors. Bulk API 2.0 is the standard backbone.
 - **Common error:** custom SObject field selection — limit query result columns to avoid 10MB payload pings
 
 ### HubSpot
+- **Register the app:** single-org ELT → **Settings → Integrations → Private Apps → Create** (copy the access token, select CRM read scopes); distributed/marketplace → an app in [developers.hubspot.com](https://developers.hubspot.com) (OAuth client ID/secret + redirect URI). **Who can do it:** a HubSpot **super admin** for a private app; a developer account for a marketplace app (install still needs the target portal's super admin). Walkthrough: [`../../knowledge/hubspot-integration.md`](../../knowledge/hubspot-integration.md). `[verify-at-build]`
 - **Rate limits:** OAuth marketplace apps 110/10s per installed account; private apps 100/10s (Free/Starter) → 190/10s (Pro/Enterprise); **CRM Search API capped at 4/sec**; OAuth via developer accounts up to 1M/day (per [developers.hubspot.com/docs/developer-tooling/platform/usage-guidelines](https://developers.hubspot.com/docs/developer-tooling/platform/usage-guidelines))
 - **Connector availability:** Fivetran ✅, Airbyte ✅, Hevo ✅
 - **Common error:** sync designed against private-app rate limits then deployed via OAuth marketplace (or vice versa) — different ceilings
 
 ### Google Analytics 4
-- **Native BigQuery export:** FREE, daily + streaming/intraday — **this is the recommended path** when destination is BigQuery
+- **Native BigQuery export:** FREE, daily + streaming/intraday — **this is the recommended path** when destination is BigQuery. No app registration — configure in **GA4 → Admin → Product Links → BigQuery Links** (needs GA4 property **Editor** + the BigQuery project owner).
+- **Register the app (Data API path only):** when the destination isn't BigQuery, the ELT vendor authenticates via a **Google Cloud service-account JSON key** (Google Cloud Console → IAM & Admin → Service Accounts), or an OAuth client (same flow as Google SSO). **Who can do it:** Google Cloud project **Owner/Editor**; grant the service account GA4 property access. Walkthroughs: [`../../knowledge/ga4-integration.md`](../../knowledge/ga4-integration.md) + [`../../../auth-identity/skills/google-sso-setup/SKILL.md`](../../../auth-identity/skills/google-sso-setup/SKILL.md). `[verify-at-build]`
 - **UA is gone.** GA4 only. Historical UA windows have closed for most properties.
 - **ELT vendor connectors:** useful when destination is *not* BigQuery, or when blending with other sources
 
 ### Shopify
 - **Auth:** OAuth 2.0
+- **Register the app:** single-store ELT → **Shopify admin → Settings → Apps and sales channels → Develop apps → Create an app** (Admin API access token + scopes like `read_orders`, `read_products`); distribution → an app in the **Shopify Partner Dashboard** (OAuth client ID/secret + redirect URI). **Who can do it:** the **store owner** (or staff with the *Apps and channels → Develop apps* permission) for a custom app; **Partner-account** access for a Partner app. Walkthrough: [`../../knowledge/shopify-integration.md`](../../knowledge/shopify-integration.md). `[verify-at-build]`
 - **API contract:** REST Admin API is legacy as of Oct 1, 2024. **GraphQL Admin API required for new apps since April 1, 2025.** All new connector work uses GraphQL.
 - **Webhooks:** via GraphQL `webhookSubscriptionCreate`; HTTPS / Google Pub/Sub / AWS EventBridge destinations
 - **Pattern:** ELT for orders / customers / products (historical) + webhooks for inventory + order events (real-time)

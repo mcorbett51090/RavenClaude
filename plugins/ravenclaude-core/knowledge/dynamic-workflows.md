@@ -1,6 +1,8 @@
 # Dynamic workflows in Claude Code — when to reach for one, and how RavenClaude uses them
 
-**Last reviewed:** 2026-06-04 · **Confidence:** high (official docs + first-party article) · **Owner:** Team Lead (`spawn-team`)
+**Last reviewed:** 2026-06-20 · **Confidence:** high (official docs + first-party article) · **Owner:** Team Lead (`spawn-team`)
+
+> **2026-06-20 update.** The **agent-team** shape was corrected + reconciled against this marketplace's hub-and-spoke constitution after the [2026-06-20 Claude subreddit scan](../../../docs/research/2026-06-20-claude-subreddit-scan/README.md) surfaced that the shipped feature has **peer-to-peer mailbox messaging** (teammates message each other directly), which the prior text understated. See [§ Agent teams & RavenClaude's hub-and-spoke constitution](#agent-teams--ravenclaudes-hub-and-spoke-constitution). Grounded in the official [Orchestrate teams of Claude Code sessions](https://code.claude.com/docs/en/agent-teams) doc (retrieved 2026-06-20).
 
 > **What this file is for.** Claude Code shipped **dynamic workflows** (research preview) — Claude writes a JavaScript harness on the fly that orchestrates many subagents. RavenClaude pioneered this pattern locally before it was official (`.claude/workflows/rc-deep-research.js`, `two-panel-plan-review.js`). This file is the Team Lead's authoritative account: what the feature is, the runtime facts/limits, **when** to reach for a workflow versus a subagent / skill / agent-team / FORGE, and what RavenClaude already ships.
 >
@@ -74,9 +76,33 @@ flowchart TD
 **Rationale per leaf:**
 - _Subagent_ — cheapest delegation; the worker reports a summary so verbose work stays out of the main context.
 - _Skill_ — when the value is reusable *instructions/reasoning*, not parallelism.
-- _Agent team_ — a small number of long-running peers coordinating; the lead still decides turn by turn.
+- _Agent team_ — a small number of long-running peers that **message each other directly** (a shared task list + a mailbox), not only report back to the lead; the lead spawns and synthesizes, but does **not** mediate every inter-peer message. This relaxes RavenClaude's hub-and-spoke default — see [§ Agent teams & RavenClaude's hub-and-spoke constitution](#agent-teams--ravenclaudes-hub-and-spoke-constitution) below before reaching for it in a guardrailed repo.
 - _Dynamic workflow_ — the only shape that moves the plan **into code** so it scales to dozens–hundreds of agents and applies a repeatable quality pattern (adversarial cross-check, tournament) — and is rerunnable.
 - _FORGE_ — when the deliverable is a **plan** (not a multi-agent execution); FORGE adds scope/critic/fact-verification/tiebreak layers a bare workflow doesn't.
+
+## Agent teams & RavenClaude's hub-and-spoke constitution
+
+> **Why this section exists.** Agent teams are the one orchestration shape that **partially conflicts** with RavenClaude's [core dispatch rule](../CLAUDE.md) — *"Sub-agents should not freely spawn or directly invoke other sub-agents. Only the Team Lead performs dispatching and orchestration."* The conflict is narrower than it looks, and getting the boundary exact matters before you enable the feature in a guardrailed repo. Facts below are _[verified — official docs ([code.claude.com/docs/en/agent-teams](https://code.claude.com/docs/en/agent-teams)), retrieved 2026-06-20; feature described as of Claude Code v2.1.178]_; it is **experimental and disabled by default**, so re-verify at use.
+
+**What the feature is.** Enabled by setting `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` to `1` (in `settings.json` `env` or the shell). One session is the **lead**; it spawns **teammates** (each a full, independent Claude Code session with its own context window). The architecture has four parts — **team lead**, **teammates**, a **shared task list** (claim/complete, with file-locking and automatic dependency-unblock), and a **mailbox** (`SendMessage`, always available to a teammate even when its `tools` allowlist restricts everything else). The defining difference from [subagents](https://code.claude.com/docs/en/sub-agents): teammates **communicate directly with each other**, not only report back to the lead.
+
+**Where it agrees vs. diverges from the constitution** — the boundary is exact:
+
+| RavenClaude invariant | Agent teams | Verdict |
+|---|---|---|
+| **Only the lead spawns workers** (no peer-spawn) | *"No nested teams — teammates cannot spawn their own teammates. Only the lead can manage the team."* | ✅ **Preserved.** The hub-and-spoke spawn topology holds. |
+| **The lead is fixed / owns orchestration** | *"Lead is fixed — the main session is the lead for its lifetime."* One team per session. | ✅ **Preserved.** |
+| **Workers don't *directly invoke* each other; handoffs route through the lead** (the [Structured Output Protocol](../CLAUDE.md), observability, tribunal visibility) | Teammates **message each other directly** via the mailbox, self-claim tasks, and *"interact... without going through the lead."* | ⚠️ **Relaxed.** Inter-peer messages bypass the lead-mediated handoff path. |
+
+**The tradeoff you accept by enabling it.** RavenClaude's observability stack — the [Structured Output Protocol](../CLAUDE.md) handoffs, the run-artifact record, and the Heimdall/Víðarr event substrate — is built on the assumption that **work flows lead → worker → lead**, so the lead (and the audit log) sees every handoff. Agent-team **peer messaging happens off that path**: the lead synthesizes final results, but the inter-teammate mailbox traffic is not a structured handoff the lead brokered, so it is **not captured** by the SOP/run-artifact discipline. That is the right tool for *"have them talk to each other to disprove each other's theories"* (parallel research/review/debugging, the docs' strongest use cases) — but it is a deliberate step away from the auditable, single-orchestrator model the guardrail stack assumes.
+
+**How to keep the guardrails when you do use it:**
+
+- **Re-impose gating with the team hooks.** `TaskCreated`, `TaskCompleted`, and `TeammateIdle` hooks each gate the team (exit code 2 → block + send feedback, keep the teammate working) — the deterministic re-entry point for a definition-of-done / quality gate on a team, analogous to RavenClaude's `dod-gate.sh` on a single session.
+- **Reuse a hardened role as a teammate.** A teammate can be spawned from a **subagent definition** (project / user / plugin / CLI scope); it honors that definition's `tools` allowlist and `model`. So `ravenclaude-core/security-reviewer` can run *as a teammate*, carrying its tool restrictions — keep the security floor by spawning the reviewer role rather than an unconstrained teammate.
+- **Permissions are inherited at spawn.** Teammates start with the lead's permission mode (`--dangerously-skip-permissions` propagates to all of them) — so set the lead's posture before spawning, and prefer the container/worktree containment boundary (model-layer denies don't bound a teammate's subprocess any more than they bound the lead's).
+
+**When _not_ to reach for it (per the docs + this constitution).** Sequential work, same-file edits, or heavy-dependency tasks → a single session or subagents are more effective and cheaper (each teammate is a separate Claude instance; token cost scales linearly). And in a repo where the auditable lead-mediated handoff is load-bearing (tribunal-gated, compliance-sensitive), prefer subagents (which *do* route every result through the lead) or a [dynamic workflow](#choosing-an-orchestration-shape) (where the orchestration — and every agent boundary — lives in inspectable code) over the peer-mailbox model.
 
 ## Runtime facts & constraints
 

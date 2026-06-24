@@ -7,7 +7,7 @@
 > **Used together with:**
 > - `templates/airbyte-source-config.yaml` — feeds the raw_<source> schemas
 > - `templates/database-schema-starter.sql` — the destination Postgres schema (with RLS)
-> - `skills/connector-configuration.md` — source-system specifics
+> - `skills/connector-configuration/SKILL.md` — source-system specifics
 
 ## Layout
 
@@ -89,7 +89,7 @@ For multi-tenant engagements where dbt models flow into a tenant-scoped warehous
 3. **OR: tenant_id column on every fact/dim** — surfaces to the dashboard layer for RLS
 4. **dbt + Postgres RLS coordination** — dbt's connection role typically has BYPASSRLS for the mart layer; the read-time role for the dashboard does NOT (per `templates/database-schema-starter.sql`)
 
-See `data-platform/skills/rls-policy-authoring.md` for the closeness-to-data invariant and how dbt fits.
+See `data-platform/skills/rls-policy-authoring/SKILL.md` for the closeness-to-data invariant and how dbt fits.
 
 ## Refresh triggers for this starter
 

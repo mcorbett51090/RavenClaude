@@ -13,8 +13,8 @@ Anthropic's rough order of leverage (cheapest/most-effective first):
 6. **Prefill the assistant turn.** Start Claude's reply (e.g. `{` to force JSON, or a heading) to control format and skip preamble. (Not available with extended thinking.)
 7. **Chain prompts** for complex multi-stage work — one focused prompt per stage beats one mega-prompt (see [`agent-orchestration-patterns.md`](agent-orchestration-patterns.md)).
 
-## Output control (house opinion: structured output via tools, not regex)
-- For **machine-readable** output, prefer a **forced tool call** (schema + `tool_choice`) over "return JSON" — see [`tool-use-and-structured-output.md`](tool-use-and-structured-output.md). Prefill `{` is the lighter fallback.
+## Output control (house opinion: structured output via a schema-constrained path, not regex)
+- For **machine-readable** output, prefer a **schema-constrained path** over "return JSON" — native **Structured Outputs** (`output_config.format` / `strict:true`) where the model supports it, else a **forced tool call** (schema + `tool_choice`); see [`tool-use-and-structured-output.md`](tool-use-and-structured-output.md). Prefill `{` is the lighter fallback.
 - For **prose**, specify the shape (headings, length, audience) and give one example of the target.
 
 ## Reliability techniques

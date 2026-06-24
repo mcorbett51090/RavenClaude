@@ -333,8 +333,15 @@ def main() -> int:
   against the current environment before relying on this scenario.
 """
 
-    os.makedirs(os.path.dirname(file_rel), exist_ok=True)
-    with open(file_rel, "w", encoding="utf-8") as fh:
+    # Anchor the write to the repo root rather than the process CWD: the
+    # quarantine-intake workflow happens to run from the repo root, but nothing
+    # enforced it, so a local run from another directory wrote the staged file to
+    # the wrong place. The decision JSON keeps the *relative* path — the PR step
+    # needs a repo-relative path, and in CI (CWD == repo root) the two coincide.
+    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    file_abs = os.path.join(repo_root, file_rel)
+    os.makedirs(os.path.dirname(file_abs), exist_ok=True)
+    with open(file_abs, "w", encoding="utf-8") as fh:
         fh.write(doc)
 
     _write_decision("stage", file_rel, slug, None)

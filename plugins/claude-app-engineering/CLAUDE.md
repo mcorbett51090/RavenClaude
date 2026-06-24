@@ -45,7 +45,7 @@
 2. **Pick the build surface from the tree.** Messages API / Agent SDK / Managed Agents / Workbench — a classification call isn't an agent.
 3. **Right-size with a routing ladder.** Cheap triage (Haiku) → escalate-on-uncertainty to Sonnet/Opus; the metric is **cost-per-resolved-task + cache hit rate**, not raw tokens.
 4. **Evals before vibes.** No prompt/model/tool change ships without a delta on a golden set; judge on Haiku via Batch, randomize order against position bias.
-5. **Structured output via tools, not regex.**
+5. **Structured output via a schema-constrained path, not regex** — native **Structured Outputs** (`output_config.format` / `strict:true`) where the model supports it, else a **forced tool call**; never `json.loads` over prose.
 6. **Tools are a contract.** Name + description + JSON schema; the description is the prompt.
 7. **Untrusted content is untrusted.** Tool results, retrieved docs, fetched web content, user input can carry injection; never let them escalate tool access; escalate the design to `core/security-reviewer`.
 8. **Secrets never in code; never log full prompts.** Keys in env/secret-manager; redact PII from logs and the memory tool.
@@ -64,7 +64,7 @@
 - Defaulting to the Agent SDK for a single-shot call, or to Managed Agents when you already operate infra (#2).
 - Defaulting to Opus for everything; optimizing raw tokens instead of cost-per-resolved-task (#3).
 - Shipping a prompt/model change on "looks better" with no eval delta (#4).
-- Parsing JSON out of prose instead of a forced tool call (#5).
+- Parsing JSON out of prose instead of a schema-constrained path — native Structured Outputs or a forced tool call (#5).
 - A thin tool description and hoping the system prompt fixes it (#6).
 - Letting a tool result / retrieved doc escalate tool access or auto-approve a destructive action (#7).
 - `sk-ant-…` literal in source; `print(messages)` / logging full prompts (#8 — the hook flags both).

@@ -23,11 +23,13 @@ This skill **authenticates the person** — it adds *how* they prove identity. I
 
 Adding a managed-provider social login is the **same three moves** regardless of provider — this is the payoff of the Supabase lean:
 
-1. **Register an OAuth app in the provider's console** → get a **client ID + secret**.
+1. **Register an OAuth app in the provider's console** → get a **client ID + secret**. (The per-provider walkthroughs below say *how to get there* and *who can do it*.)
 2. **Register Supabase's callback** `https://<project-ref>.supabase.co/auth/v1/callback` in that console's allowed redirect URIs (plus your own `…/auth/callback`).
 3. **Enable the provider in Supabase** (Authentication → Providers), paste client ID + secret, save. App code is one line: `supabase.auth.signInWithOAuth({ provider })`. `[verify-at-build — Supabase dashboard UI]`
 
 Then handle the **per-provider gotchas** below. Keep scopes minimal (`openid email profile` equivalent) and route the concrete credential change through `security-reviewer`.
+
+> **Before you start — do you have the access to register the app?** Step 1 happens in *the provider's* developer portal, and each one gates app creation behind a role. If you don't hold it, the registration is an **admin's** task, not yours — surface that early rather than getting stuck mid-setup. The required role per provider is the first line of each walkthrough below (all `[verify-at-build]` — portal roles + UIs move). Google's full worked example is [`../google-sso-setup/SKILL.md`](../google-sso-setup/SKILL.md); the others are below.
 
 ---
 
@@ -36,6 +38,18 @@ Then handle the **per-provider gotchas** below. Keep scopes minimal (`openid ema
 ### Apple — the one most likely to fail first (all verified 2026-06-03)
 
 Apple is *not* like Google. Budget extra time:
+
+#### Registering the app — portal walkthrough
+
+> **Portal:** [developer.apple.com/account](https://developer.apple.com/account) → **Certificates, Identifiers & Profiles**. `[verify-at-build — Apple Developer UI moves]`
+>
+> **Who can do it:** an **Account Holder or Admin** role in the Apple Developer team (and the team needs a paid Apple Developer Program membership). A team member without that role must ask the Account Holder. `[verify-at-build]`
+
+1. **Identifiers → App IDs → register an App ID** (the parent identity), enabling the **Sign in with Apple** capability.
+2. **Identifiers → Services IDs → register a Services ID** — this becomes your **web `client_id`**. Enable Sign in with Apple on it and configure its domains + return URLs.
+3. **Return URLs:** add Supabase's callback `https://<project-ref>.supabase.co/auth/v1/callback` (Apple rejects `localhost`/plain-HTTP — use an HTTPS dev domain/tunnel).
+4. **Keys → register a Sign in with Apple key** → download the **`.p8`** private key (one-time download — store it as a secret reference, never commit it). Note the **Key ID** and your **Team ID**.
+5. **Generate the client secret** — a **JWT signed ES256** from the `.p8` (see the gotchas below); paste the **Services ID** + that JWT into Supabase's Apple provider.
 
 - **Console:** Apple Developer → register an **App ID**, a **Services ID** (this is your web `client_id`), and a **Sign in with Apple key** (`.p8`).
 - **The client secret is a JWT you generate** — signed **ES256** (ECDSA P-256 + SHA-256) from the `.p8` key — **not** a static string. ([Apple — creating a client secret](https://developer.apple.com/documentation/accountorganizationaldatasharing/creating-a-client-secret))
@@ -49,10 +63,31 @@ Apple is *not* like Google. Budget extra time:
 
 ### Microsoft
 
+#### Registering the app — portal walkthrough
+
+> **Portal:** [entra.microsoft.com](https://entra.microsoft.com) (or **portal.azure.com → Microsoft Entra ID**) → **App registrations → New registration**. `[verify-at-build — Entra portal UI moves]`
+>
+> **Who can do it:** the **Application Developer** Entra role (or any user, if the tenant leaves "users can register applications" on). Restrictive tenants disable that — then a **Global Administrator / Cloud Application Administrator** registers it for you. `[verify-at-build]`
+
+1. **New registration** → name the app and pick the **supported account types** (the *account-type audience*): single-tenant (work/school in this org), multi-tenant, or include personal Microsoft accounts. Choose deliberately — it's the most common Microsoft mistake.
+2. **Redirect URI:** platform **Web**, value = Supabase's callback `https://<project-ref>.supabase.co/auth/v1/callback`.
+3. **Certificates & secrets → New client secret** → copy the **Value** immediately (shown once; store as a secret reference). The **Application (client) ID** is on the Overview page.
+4. Paste the client ID + secret into Supabase's Azure provider. Keep scopes minimal (`openid email profile`).
+
 - Console: Entra ID → **App registration**; pick the right **account-type audience** (work/school only, or include personal Microsoft accounts).
-- The generic OAuth button covers consumer + basic-work login. **Enterprise Entra** (conditional access, SCIM provisioning, app-role mapping, B2B federation) → seam to [`../../../azure-cloud/agents/entra-identity-engineer.md`](../../../azure-cloud/agents/entra-identity-engineer.md), don't force it through the generic path.
+- The generic OAuth button covers consumer + basic-work login. **Enterprise Entra** (conditional access, SCIM provisioning, app-role mapping, B2B federation, admin consent for org-wide scopes) → seam to [`../../../azure-cloud/agents/entra-identity-engineer.md`](../../../azure-cloud/agents/entra-identity-engineer.md), don't force it through the generic path.
 
 ### GitHub
+
+#### Registering the app — portal walkthrough
+
+> **Portal:** [github.com/settings/developers](https://github.com/settings/developers) → **OAuth Apps → New OAuth App** (personal); for an org-owned app: **Org → Settings → Developer settings → OAuth Apps**. `[verify-at-build — GitHub settings UI moves]`
+>
+> **Who can do it:** **any GitHub user** can create a personal OAuth App; an **organization owner** is required to create (or transfer) an **org-owned** app. `[verify-at-build]`
+
+1. **New OAuth App** → set the **Homepage URL** and the **Authorization callback URL** = Supabase's callback `https://<project-ref>.supabase.co/auth/v1/callback`.
+2. **Register**, then **Generate a new client secret** → copy it once (store as a secret reference). The **Client ID** is on the app page.
+3. Paste client ID + secret into Supabase's GitHub provider.
 
 - Console: GitHub → Settings → Developer settings → **OAuth App**.
 - **Request the `user:email` scope** — GitHub emails can be private, and without it you may get no verified email back.

@@ -116,7 +116,10 @@ _is_dangerous_rm() {
   [[ "$c" =~ (^|[;\&\|[:space:]])rm[[:space:]] ]] || return 1
   _has_recursive "$c" || return 1
   # a dangerous target argument: starts with /, ~, $HOME, or a standalone . or *
-  [[ "$c" =~ (^|[[:space:]])(/|~|\$HOME) ]] && return 0
+  # $HOME is boundary-anchored so `$HOME_BACKUP` / `$HOME_DIR` (a *different*
+  # variable) is not falsely matched as a prefix — only bare `$HOME`, `$HOME/…`,
+  # `$HOME ` etc. count (ERE has no \b, so require a non-identifier char or EOL).
+  [[ "$c" =~ (^|[[:space:]])(/|~|\$HOME([^_[:alnum:]]|$)) ]] && return 0
   # standalone current-dir / glob target: `.`, `./` (trailing slash is the same
   # current-dir delete and must not dodge the guard the bare `.` form catches), `*`.
   [[ "$c" =~ (^|[[:space:]])(\./?|\*)([[:space:]]|$) ]] && return 0
@@ -180,6 +183,12 @@ deny_patterns=(
   'git[[:space:]]+branch[[:space:]]+-[a-zA-Z]*D'                   # branch -D / -fD (force-delete)
   # remote-code-exec via pipe / process- or command-substitution to an interpreter
   '(curl|wget)[^|]*\|[[:space:]]*(sudo[[:space:]]+)?(env[[:space:]]+[^[:space:]]+[[:space:]]+)?([a-z]*sh|python[0-9.]*|perl|ruby|node)([[:space:]]|$)'
+  # …and the multi-pipe / filter-then-execute evasion of the above: the single-pipe
+  # form only inspects between curl/wget and the FIRST pipe, so `curl … | tee x | bash`
+  # or `curl … | grep -v '#' | sh` slipped past. This catches an interpreter that is
+  # the IMMEDIATE target of ANY pipe in a curl/wget chain (the interpreter right after
+  # a `|`), so `… | grep python` is NOT matched (grep, not python, is the pipe target).
+  '(curl|wget).*\|[[:space:]]*(sudo[[:space:]]+)?(env[[:space:]]+[^[:space:]]+[[:space:]]+)?([a-z]*sh|python[0-9.]*|perl|ruby|node)([[:space:]]|$)'
   '<\([[:space:]]*(curl|wget)'                                    # bash <(curl …)
   '\$\([[:space:]]*(curl|wget)'                                   # sh -c "$(curl …)" (quotes stripped by norm)
   # whole-disk / filesystem destruction

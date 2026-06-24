@@ -34,6 +34,7 @@ For each environment the agent might touch, name:
   - **Auth mechanism:** `<SPN name | user account | service-principal-via-app-registration | ...>`
   - **Pre-authorized action categories:** `<comma-separated list>`
   - **Forbidden (always require explicit user OK):** `<comma-separated list — e.g., delete-table, drop-database, export-PII>`
+  - **Self-serve checks** *(optional — the capability→route map):* for each question you'd otherwise tell the user to "go check manually," one entry with four fields — `check:` the question · `route:` the concrete API/CLI the held credential unlocks · `unlocked_by:` the pre-authorized category it derives from (must match one listed above) · `instead_of:` the manual/portal step it replaces. **Self-serve checks are READ-ONLY** — a write derived from a check's finding still hits the Forbidden list.
 
 ### Example posture (delete this section in your real file)
 
@@ -42,6 +43,15 @@ For each environment the agent might touch, name:
   - **Auth mechanism:** SPN `raven-claude-dev`
   - **Pre-authorized:** solution import/export, Web API calls (Dataverse + Graph), `pac` CLI operations, programmatic flow creation/update/delete, temp solution lifecycle, plug-in registration, env-var + connection-ref edits
   - **Forbidden:** none (DEV is fully safe)
+  - **Self-serve checks:**
+    - check: "Did cloud flow &lt;name&gt; succeed or fail? Show its recent run history."
+      route: "Dataverse Web API — `GET /api/data/v9.2/flowruns` (the FlowRun table) with SPN raven-claude-dev"
+      unlocked_by: "Web API calls (Dataverse)"
+      instead_of: "telling the user to open the Power Automate portal → My flows → Run history"
+    - check: "Is a Dataverse row present / what's its current field value?"
+      route: "Dataverse Web API GET on the table + id with SPN raven-claude-dev"
+      unlocked_by: "Web API calls (Dataverse)"
+      instead_of: "asking the user to open the maker portal and look the record up"
 
 - **TEST** (`btcsi-test`)
   - **Role:** sysadmin
@@ -66,6 +76,10 @@ The agent's working assumption per environment:
 | PROD | NO writes without explicit per-action user confirmation. Reads are fine. |
 
 > **The bridge to the Capability Grounding Protocol:** before declaring "I can't do X" or asking "can you authorize me to do X?", the agent must check this file. If the action is in the pre-authorized list for the current environment, the agent executes. The Capability Grounding Protocol's reactive alternate-methods rule only fires AFTER the agent has tried and the action failed.
+
+> **`Self-serve checks` → the consult-your-access-inventory clause.** When a `Self-serve checks` map is present, the agent must consult it **before telling you to check/do something manually** (CGP § "Consult your access inventory before telling the user to check or do something"): if it holds the `route`, it runs the check and reports the *answer* instead of sending you to a portal. The SessionStart capability banner surfaces the *count* of entries (never the route/check values — those name SPNs and URLs) as a salience pointer.
+
+> **Keep it honest — verify on staleness.** This map is a *map, not a mirror*: if it's stale, or a listed route unexpectedly returns `401`/`403`, claiming access you no longer hold is worse than asking. Give each credential a cheap READ-ONLY **verify-me** probe (e.g. Dataverse `GET /api/data/v9.2/WhoAmI` → `200` confirms the SPN still works; `401`/`403` means re-confirm before trusting the map) and re-run the `environment-discovery` skill when this file is >90 days old.
 
 ## Cross-references
 

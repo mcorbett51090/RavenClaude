@@ -2,6 +2,12 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.6.2] — 2026-06-24
+
+### Changed
+
+- **Process Builder & Workflow Rules now framed as end-of-support, not just "legacy."** Salesforce ended support for Process Builder and Workflow Rules on **Dec 31, 2025** (retired for new automation; all new declarative automation → Flow via the "Migrate to Flow" tool). The plugin previously named them only as "legacy" inventory items; it now flags them as **migration targets** while preserving the accuracy nuance that end-of-support is not a runtime shutoff (existing instances still execute, just unsupported). Updated `knowledge/flow-vs-apex-decision.md`, `agents/flow-automation-architect.md` (discipline #1), and `best-practices/flow-vs-apex-one-entry-point.md`, tagged `[verify-at-build]`. Source: Salesforce Help end-of-support article (verified 2026-06-24).
+
 ## [0.6.1] — 2026-06-05
 
 Version bump previously unlogged here; the change that set `0.6.1`:
