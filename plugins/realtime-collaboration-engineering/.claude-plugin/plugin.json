@@ -1,0 +1,30 @@
+{
+  "name": "realtime-collaboration-engineering",
+  "version": "0.1.0",
+  "description": "Realtime-collaboration-engineering team — 3 agents (collab-architect, sync-engine-engineer, presence-and-transport-engineer) for multiplayer / collaborative-editing systems (Figma/Notion/Docs): the merge model (CRDT vs OT vs last-writer-wins, by data shape), the shared-document model, offline edits + reconnection/merge, presence & awareness kept OUT of the persisted document, transport (WebSocket vs WebRTC, client-server vs SFU vs mesh), and scaling the sync server (doc sharding, snapshots/compaction, access control at the boundary). 5 skills, a knowledge bank (CRDT-vs-OT + transport/topology Mermaid trees, durable consistency concepts, a dated 2026 tooling map), 8 best-practices, 4 templates, 3 commands, 1 advisory hook. Engineering craft, not legal/product advice; library specifics carry a date + verify-at-use. Seams: UI -> frontend-engineering; sync service/store -> backend-engineering; op-log fan-out -> data-streaming-engineering; latency -> performance-engineering. Requires ravenclaude-core@>=0.7.0.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "realtime-collaboration",
+    "collaborative-editing",
+    "multiplayer",
+    "crdt",
+    "operational-transform",
+    "yjs",
+    "automerge",
+    "presence",
+    "awareness",
+    "websocket",
+    "webrtc",
+    "offline-first",
+    "conflict-resolution",
+    "sync-engine",
+    "eventual-consistency"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}

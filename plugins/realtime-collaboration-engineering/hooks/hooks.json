@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-hooks.json",
+  "description": "Plugin-distributed hooks for realtime-collaboration-engineering. Auto-merged with the consumer's session hooks on install. Paths use ${CLAUDE_PLUGIN_ROOT} so they resolve to the install location.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/flag-realtime-collab-smells.sh \"$CLAUDE_TOOL_FILE_PATH\"",
+            "comment": "Advisory: flags 3 collaborative-systems design smells on .md/.txt (CRDT/OT design with no consistency guarantee named, presence/cursor feature with no ephemeral/separate-channel handling, library/protocol reference with no date/verify-at-use). Set RTC_STRICT=1 to make it blocking."
+          }
+        ]
+      }
+    ]
+  }
+}
