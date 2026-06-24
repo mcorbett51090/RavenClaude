@@ -76,12 +76,26 @@ disabled-byte-identical, and a must-fail half (stripping the classifier ⇒ auth
   existing host-fallback).
 - **P2b — shipped (security-cleared):** `judge.sh` wired with `--exclude author` **and** a
   family-aware anti-self-grade RE-CHECK on the resolved model (the unified `_is_selfgrade`).
-- **P3 — shipped (security-reviewed):** the command-review tribunal **seats** wired. Diversity is
-  preserved BY CONSTRUCTION — `thing-orchestrator.sh` passes each seat the OTHER convened seats'
-  models as `MODEL_FALLBACK_EXCLUDE`, so a fallback can never land on a peer's model (≥2-distinct
-  holds, verified by **Gate 22**); exhaustion ⇒ the seat abstains (fail-closed). **No
-  `thing-decision.py` change** — the orchestrator computes the peer-exclude from the panel JSON it
-  already reads, which is simpler and lower-risk than a post-hoc cross-seat re-check.
+- **P3 — shipped (security-reviewed 🟡, residual tracked):** the command-review tribunal **seats**
+  wired. `thing-orchestrator.sh` passes each seat the OTHER convened seats' **primary** models as
+  `MODEL_FALLBACK_EXCLUDE`, so a fallback never lands on a peer's *configured* model; an exhausted
+  ladder abstains (fail-closed). No `thing-decision.py` change (the orchestrator derives the
+  peer-exclude from the panel JSON it already reads).
+  - **HONEST RESIDUAL (do not mistake this for a closed invariant).** This preserves ≥2-distinct at
+    **config time** but NOT fully at **runtime**: two seats with *distinct primaries* that BOTH
+    overload can both fall to the **same shared-ladder rung** (each excludes only the other's
+    primary, not the shared rung) → collapse to 1 backbone. It is a defense-in-depth weakening of
+    anti-correlation, **NOT a floor break** — a genuine panel deny, the hard-rule pre-deny, the
+    self-disable guard, the injection deny, and the secret-egress backstop all hold regardless of
+    which backbone answered. It requires the **OFF-by-default** fallback enabled AND ≥2 primaries
+    overloaded simultaneously AND a shared reachable rung. **Gate 22 cannot observe it** (it checks
+    configured, not resolved, models).
+  - **Follow-up (tracked):** close it observably — `thing-seat.sh` writes its resolved model per
+    role (`_MF_RESOLVED_FILE` → `$tmp/$role.model`) and the orchestrator, post-panel, forces an
+    abstain if <2 distinct resolved models voted (fail-closed; matches this helper's documented
+    "re-check on the resolved model" contract) — or partition the ladder per seat. Thor (the
+    tie-breaker) is dispatched without a peer-exclude today (it is the decider, run after the panel);
+    decide its posture when revisiting this.
 - **P4 — deliberately NOT wired (reasoned disposition).** `rc-deep-research.js`'s research `agent()`
   fan-out already fails safe by two existing mechanisms: the Workflow runtime **already retries an
   `agent()` call on transient errors and returns `null`** on terminal failure, and the workflow
