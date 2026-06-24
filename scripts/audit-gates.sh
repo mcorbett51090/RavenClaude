@@ -205,9 +205,14 @@ PY
       python3 scripts/check-derive-rubric.py
       exit $?
       ;;
+    117)
+      echo "── Gate 117: convergence objective-gates-first evaluator (broken⇒0 judge calls / judge-first mutant) ──"
+      python3 scripts/check-evaluate.py
+      exit $?
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -3614,6 +3619,19 @@ rc=0; python3 scripts/check-derive-rubric.py >/dev/null 2>&1 || rc=$?
 gate "rubric library + derive: schema-valid + explicit-weight-max + derived-unverified" must_pass "$rc"
 rc=0; python3 scripts/check-derive-rubric.py --must-fail-grade-derived >/dev/null 2>&1 || rc=$?
 gate "derive: derived-normalizer has teeth (auto-grades malicious proposal when disabled)" must_pass "$rc"
+
+echo
+echo "── Gate 117: Convergence objective-gates-first evaluator (P2) ────────────"
+# The plan's hardest invariant: objective/deterministic gates run BEFORE any model
+# judge, and a BROKEN artifact (red objective hard gate) spends ZERO judge calls
+# (objective-first short-circuit). Proves judge_needed=false on a red gate / on an
+# evaluator error (never fail open) and judge_needed=true only when gates are green
+# and judge dims remain. Bidirectional teeth: --must-fail-judge-first uses the
+# judge-before-gates mutant and asserts a broken artifact THEN spends a judge call.
+rc=0; python3 scripts/check-evaluate.py >/dev/null 2>&1 || rc=$?
+gate "evaluate: objective-gates-first + broken-artifact spends 0 judge calls" must_pass "$rc"
+rc=0; python3 scripts/check-evaluate.py --must-fail-judge-first >/dev/null 2>&1 || rc=$?
+gate "evaluate: objective-first ordering has teeth (judge-first mutant burns a call)" must_pass "$rc"
 
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"

@@ -2,6 +2,12 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.169.0 — 2026-06-24
+
+### Added
+
+- **Convergence engine — P2 (evaluate, objective-gates-first).** `evaluate.py` runs the deterministic/objective gates FIRST; a red hard gate short-circuits straight to refine with **0 model-judge calls** (cheap + defends the plateau/sycophancy failure mode). Proven by **Gate 117** (broken artifact ⇒ 0 judge calls, with a must-fail-judge-first teeth half). **Migration:** none.
+
 ## 0.168.0 — 2026-06-24
 
 ### Added
