@@ -1,0 +1,216 @@
+<!doctype html>
+<!--
+  repo-build-studio starter — SELF-CONTAINED static reporting dashboard.
+  No build step. CDN deps only (Chart.js + Google Fonts). Data is INLINE sample data — replace it
+  with your real numbers, or (later) fetch from a PUBLIC read-only URL. A dashboard that needs a
+  PRIVATE DB/API + credentials is the Tier-1 case (see the repo-build-studio SKILL) — not this file.
+  Prompt Claude: "update this dashboard as a single self-contained HTML file, no build step, CDN deps."
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Reporting dashboard — sample</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Space+Grotesk:wght@500;600&display=swap"
+      rel="stylesheet"
+    />
+    <script
+      src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"
+      integrity="sha384-JUh163oCRItcbPme8pYnROHQMC6fNKTBWtRG3I3I0erJkzNgL7uxKlNwcrcFKeqF"
+      crossorigin="anonymous"
+    ></script>
+    <style>
+      :root {
+        --bg: #07080a;
+        --panel: #0a0c10;
+        --line: rgba(255, 255, 255, 0.08);
+        --fg: #f5f7fa;
+        --muted: #9aa3b2;
+        --accent: #c9a249;
+        --teal: #6fddc4;
+        --lav: #b79cff;
+        --font-sans: "Inter", system-ui, sans-serif;
+        --font-display: "Space Grotesk", var(--font-sans);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--fg);
+        font-family: var(--font-sans);
+      }
+      .wrap {
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: clamp(20px, 4vw, 40px);
+      }
+      .head {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      h1 {
+        font-family: var(--font-display);
+        font-weight: 600;
+        letter-spacing: -0.02em;
+        font-size: clamp(22px, 3vw, 32px);
+        margin: 0;
+      }
+      .asof {
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .kpis {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 14px;
+        margin: 24px 0;
+      }
+      .kpi {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 18px;
+      }
+      .kpi .label {
+        color: var(--muted);
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+      }
+      .kpi .val {
+        font-family: var(--font-display);
+        font-weight: 600;
+        font-size: clamp(26px, 4vw, 40px);
+        margin-top: 6px;
+      }
+      .kpi .delta {
+        font-size: 13px;
+        margin-top: 4px;
+      }
+      .up {
+        color: var(--teal);
+      }
+      .down {
+        color: #ff7676;
+      }
+      .panels {
+        display: grid;
+        grid-template-columns: 1.4fr 1fr;
+        gap: 14px;
+      }
+      @media (max-width: 760px) {
+        .panels {
+          grid-template-columns: 1fr;
+        }
+      }
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 18px;
+      }
+      .panel h2 {
+        font-family: var(--font-display);
+        font-weight: 600;
+        font-size: 16px;
+        margin: 0 0 12px;
+      }
+      footer {
+        color: var(--muted);
+        font-size: 12px;
+        margin-top: 24px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="head">
+        <h1>Revenue & pipeline — sample</h1>
+        <span class="asof" id="asof"></span>
+      </div>
+
+      <div class="kpis" id="kpis"></div>
+
+      <div class="panels">
+        <div class="panel">
+          <h2>Revenue by month</h2>
+          <canvas id="bar" height="150"></canvas>
+        </div>
+        <div class="panel">
+          <h2>Pipeline by stage</h2>
+          <canvas id="doughnut" height="150"></canvas>
+        </div>
+      </div>
+
+      <footer>
+        Inline sample data — replace with your figures. Built with the repo-build-studio loop.
+      </footer>
+    </div>
+
+    <script>
+      // --- INLINE sample data (replace with real numbers, or fetch from a public read-only URL) ---
+      const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"];
+      const revenue = [42, 51, 48, 63, 72, 81]; // $k
+      const pipeline = { Qualified: 12, Proposal: 7, Negotiation: 4, Won: 3 };
+      const kpis = [
+        { label: "Revenue (MTD)", val: "$81k", delta: "+12.5%", dir: "up" },
+        { label: "Active engagements", val: "5", delta: "+1", dir: "up" },
+        { label: "Avg cycle", val: "20m", delta: "8h → 20m", dir: "up" },
+        { label: "Win rate", val: "43%", delta: "−2pp", dir: "down" },
+      ];
+
+      document.getElementById("asof").textContent =
+        "as of " + new Date().toISOString().slice(0, 10);
+      document.getElementById("kpis").innerHTML = kpis
+        .map(
+          (k) =>
+            `<div class="kpi"><div class="label">${k.label}</div><div class="val">${k.val}</div><div class="delta ${k.dir}">${k.delta}</div></div>`,
+        )
+        .join("");
+
+      const gold = "#c9a249",
+        teal = "#6fddc4",
+        lav = "#b79cff",
+        copper = "#e8995a";
+      const grid = "rgba(255,255,255,0.06)",
+        tick = "#9aa3b2";
+      if (window.Chart) {
+        new Chart(document.getElementById("bar"), {
+          type: "bar",
+          data: {
+            labels: months,
+            datasets: [{ data: revenue, backgroundColor: gold, borderRadius: 4 }],
+          },
+          options: {
+            plugins: { legend: { display: false } },
+            scales: {
+              x: { grid: { color: grid }, ticks: { color: tick } },
+              y: { grid: { color: grid }, ticks: { color: tick } },
+            },
+          },
+        });
+        new Chart(document.getElementById("doughnut"), {
+          type: "doughnut",
+          data: {
+            labels: Object.keys(pipeline),
+            datasets: [
+              {
+                data: Object.values(pipeline),
+                backgroundColor: [teal, lav, copper, gold],
+                borderColor: "#0a0c10",
+                borderWidth: 2,
+              },
+            ],
+          },
+          options: { plugins: { legend: { labels: { color: tick } } } },
+        });
+      }
+    </script>
+  </body>
+</html>
