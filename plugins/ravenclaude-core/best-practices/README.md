@@ -8,7 +8,7 @@ For the marketplace-wide best-practice library (CI gates, hook authoring, versio
 
 ## Index
 
-_23 rules._
+_24 rules._
 
 | Doc | Status | Use when |
 |---|---|---|
@@ -35,6 +35,7 @@ _23 rules._
 | [`keep-skill-bodies-lean-let-progressive-disclosure-carry-the-detail.md`](./keep-skill-bodies-lean-let-progressive-disclosure-carry-the-detail.md) | Pattern | Authoring a SKILL.md — keep the body lean and push depth into `resources/` so progressive disclosure carries the detail (the body is always loaded; resources load on demand). |
 | [`claude-md-imports-organize-they-dont-shrink-context.md`](./claude-md-imports-organize-they-dont-shrink-context.md) | Pattern | Structuring a `CLAUDE.md` with `@imports` — they organize content, they do NOT shrink its context cost (imported files are still loaded); prune, don't just split. |
 | [`scope-the-reviewer-to-correctness-or-it-manufactures-work.md`](./scope-the-reviewer-to-correctness-or-it-manufactures-work.md) | Pattern | Briefing a code-reviewer agent — scope it to correctness/risk or it manufactures low-value churn. |
+| [`expensive-test-front-loading.md`](./expensive-test-front-loading.md) | Pattern | A test costs a scarce resource (a human re-fire, a long run, a billed turn, a deploy) — exhaustively static-validate first so each expensive test exercises a fully-validated change; prefer a deterministic validator over a "remember to check" rule. |
 
 ---
 
