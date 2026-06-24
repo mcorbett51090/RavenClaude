@@ -230,9 +230,14 @@ PY
       bash plugins/ravenclaude-core/hooks/tests/test-gate121-model-fallback-diversity.sh
       exit $?
       ;;
+    122)
+      echo "── Gate 122: delegation-nudge.sh (consult-your-access-inventory written-artifact nudge) ──"
+      bash plugins/ravenclaude-core/hooks/tests/test-gate122-delegation-nudge.sh
+      exit $?
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -3704,6 +3709,15 @@ echo "── Gate 121: model-fallback runtime model-diversity collapse gate (P3 
 # scenario no longer fails closed — so a single run proves both directions.
 rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate121-model-fallback-diversity.sh >/dev/null 2>&1 || rc=$?
 gate "model-fallback runtime diversity: collapse fails closed + inert when distinct + teeth" must_pass "$rc"
+
+echo "── Gate 122: delegation-nudge.sh (consult-your-access-inventory written-artifact nudge) ──"
+# Fires on a 'tell the user to manually check / open the portal' line written to a
+# knowledge/ file (under a comfort-posture project); stays silent on a hand-back-with-reason
+# line, a line citing the held route, a `delegation-nudge-ok` escape, a non-knowledge file,
+# and a no-posture project; the embedded must-fail half neuters the suppression and asserts
+# the reason line then fires — both directions in one run.
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate122-delegation-nudge.sh >/dev/null 2>&1 || rc=$?
+gate "delegation-nudge: fires on delegation prose + silent on reason/route/escape/scope/opt-out + teeth" must_pass "$rc"
 
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"

@@ -212,9 +212,13 @@ def summarize_env_context(root: Path) -> dict | None:
     try:
         text = path.read_text(encoding="utf-8")
     except Exception:
-        return {"present": True, "env_count": None, "last_reviewed": None, "stale": None}
+        return {"present": True, "env_count": None, "last_reviewed": None,
+                "stale": None, "self_serve_count": None}
     # Count second-level headers as a proxy for environment sections.
     env_count = len(re.findall(r"(?m)^##\s+\S", text))
+    # Count Self-serve check entries (a capability->route map line begins `check:`).
+    # COUNT ONLY — never the check/route values (they name SPNs + URLs): leak-safe.
+    self_serve = len(re.findall(r"(?mi)^\s*-?\s*check:", text))
     dates = _DATE_RE.findall(text)
     last = max(dates) if dates else None
     stale = None
@@ -227,7 +231,8 @@ def summarize_env_context(root: Path) -> dict | None:
         except Exception:
             stale = None
     return {"present": True, "env_count": env_count or None,
-            "last_reviewed": last, "stale": stale}
+            "last_reviewed": last, "stale": stale,
+            "self_serve_count": self_serve or None}
 
 
 def _fmt_rules(rules: list[str], cap: int = 6) -> str:
@@ -530,6 +535,12 @@ def build_banner(root: Path) -> str:
             bits.append(f"last dated {envctx['last_reviewed']}{tag}")
         lines.append("  " + "; ".join(bits) + ".")
         lines.append("  Read that file for per-environment roles, pre-authorized actions, and forbidden lists.")
+        if envctx.get("self_serve_count"):
+            lines.append(
+                f"  Lists {envctx['self_serve_count']} self-serve check(s) — concrete queries you can run YOURSELF "
+                "with the access you hold. Read the file's \"Self-serve checks\" entries and run the held route "
+                "before telling the user to manually check anything."
+            )
     else:
         lines.append("  not present. Run the environment-discovery skill to map which environments")
         lines.append("  your detected credentials can reach and what they're authorized to do.")
@@ -626,6 +637,14 @@ def build_banner(root: Path) -> str:
         "against the EFFECTIVE PERMISSIONS above and `.ravenclaude/environment-context.md`: "
         "if you hold it, proceed; if not, pick a route you ARE authorized for, or escalate "
         "— never default to the highest-privilege path."
+    )
+    lines.append(
+        "  Before telling the user to CHECK or DO something manually (\"open the portal "
+        "and check X\", \"verify Y yourself\", \"check the run history\"): consult your access "
+        "inventory — the auth + permissions above and the `Self-serve checks` in "
+        "`.ravenclaude/environment-context.md`. If you hold the route, run the check "
+        "yourself and report the answer (read-only; a derived write still hits the "
+        "Forbidden list). Only hand it back when no held route covers it — and say why."
     )
     lines.append(
         "  Before reporting you \"can't\" do something or that a tool is unavailable: a "

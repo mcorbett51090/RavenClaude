@@ -54,6 +54,11 @@
           },
           {
             "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/delegation-nudge.sh \"$CLAUDE_TOOL_FILE_PATH\"",
+            "comment": "Marketplace-dev hook (dev-mirror of the plugin's hooks/hooks.json entry). Advisory (Capability Grounding — consult-your-access-inventory): nudges on a 'tell the user to manually check / open the portal' phrasing written into a knowledge/ or docs/ markdown file. Opt-in, skips frontmatter/code/blockquotes/headings, suppresses a hand-back reason or a line citing the held route, honors `delegation-nudge-ok`. Exit 0 always; cannot see the chat answer (written-artifact subset only)."
+          },
+          {
+            "type": "command",
             "command": "${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/regen-on-manifest-change.sh \"$CLAUDE_TOOL_FILE_PATH\"",
             "comment": "Marketplace-dev hook (dev-mirror of the plugin's hooks/hooks.json entry). When a plugin.json or marketplace.json version changes inside this marketplace clone, regenerates the Copilot package + dashboard.html + repo-guide.html — the artifacts CI freshness gates check. No-op on non-manifest edits and when version is unchanged."
           }

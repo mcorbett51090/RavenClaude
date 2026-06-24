@@ -160,11 +160,46 @@ The right pattern: **the create function asserts no placeholder pattern remains 
 
 ---
 
+## Check a flow's run success/failure YOURSELF (don't send the user to the portal)
+
+> **Self-serve check (Capability Grounding — consult your access inventory).** If you hold the engagement SPN with Dataverse Web API access, you can read a cloud flow's run outcomes directly. Do **NOT** tell the user to "open the Power Automate portal → My flows → Run history" — that delegation is the defect, not the answer. The records are queryable with the access you already have; report the *answer* ("flow X failed at 14:02, error: connection timeout"), not the navigation.
+
+**The route.** Run history for **solution-aware** cloud flows is stored in the Dataverse **`FlowRun`** table (entity set `flowruns`, on elastic tables). Query it with the SPN's Dataverse Web API token — the same auth you use to create/update flows:
+
+```
+GET {org}/api/data/v9.2/flowruns?$select=name,starttime,endtime,status,errorcode,errormessage&$orderby=starttime desc
+# filter to one flow by its workflow lookup, or by status:
+#   &$filter=status eq 'Failed'
+```
+
+Each row carries **Status (Success / Failed / Cancelled)**, Start time, End time, Run duration, Error code, Error message, Workflow name, and the Workflow Id lookup (→ the `workflow` record this file already teaches you to find), plus parent-run linkage for child flows. So "did flow X fail, and why?" is fully answerable from the SPN.
+
+`[verified — learn.microsoft.com/power-automate/dataverse/cloud-flow-run-metadata + the FlowRun entity reference, retrieved 2026-06-24]`
+
+**Honest boundaries (don't over-promise the route):**
+
+- **Solution-aware flows only.** Run history lands in `FlowRun` only for flows whose definition lives in Dataverse (solution cloud flows). A non-solution flow has no `FlowRun` rows — there the PA Mgmt API / portal is still the path, and CGP's mandatory-phrasing applies (say _why_ you're handing it back: "this flow isn't solution-aware, so its runs aren't in Dataverse").
+- **`flowsession` is NOT this.** The `flowsession` table is desktop-flow / cloud-to-desktop run **sessions**, not cloud-flow run history — don't query it for "did my cloud flow succeed."
+- **28-day default TTL** (`Organization.FlowRunTimeToLiveInSeconds`) — older runs may be aged out.
+- **Richer run detail / resubmit** still favors the PA Mgmt API (next section).
+- **`requires:`** SPN read on `FlowRun` in the target environment (System Administrator / Customizer covers it). A PROD *write* derived from a finding (disable/resubmit) still hits the env-context Forbidden list — the check is read-only.
+
+### Decision Tree (table form): "is my flow failing?" — check it yourself first
+
+| Situation | Do this (smaller blast radius first) |
+|---|---|
+| "Did flow X succeed/fail? / show recent runs" + flow is **solution-aware** + you hold the SPN | **Query `FlowRun` via the Dataverse Web API yourself** — report status/error. Do not delegate to the portal. |
+| Same question, flow is **not** solution-aware (no `FlowRun` rows) | PA Mgmt API (if authorized) → else hand back to the user with the reason (CGP mandatory-phrasing). |
+| Need **deep run detail** (per-action inputs/outputs) or **resubmit** | PA Mgmt API / portal — `FlowRun` carries the outcome, not the full action trace. |
+| PROD remediation (disable/patch a failing flow) | Read first (above); the write is gated by the env-context Forbidden list — confirm per-action. |
+
+---
+
 ## What the Dataverse path can't do
 
 The Dataverse Web API covers create, update, delete, list, and read of the workflow record itself. A few flow-management operations still require the PA Management API (or the portal):
 
-- **Run history inspection** — `workflowrun` queries via Dataverse exist but the PA Mgmt API is richer.
+- **Run history inspection** — solution-aware flow runs ARE queryable via Dataverse (the `FlowRun` table — see "Check a flow's run success/failure YOURSELF" above; query it before sending anyone to the portal). The PA Mgmt API is richer only for deep per-action run detail / resubmit.
 - **Ownership transfer** between users (Dataverse-side `ownerid` updates work for many cases, but not all).
 - **Sharing the flow with named users / groups outside the solution.**
 - **Trigger-state management** (enable/disable) — Dataverse `statecode` updates work for most flows; some triggers require the Mgmt API.
