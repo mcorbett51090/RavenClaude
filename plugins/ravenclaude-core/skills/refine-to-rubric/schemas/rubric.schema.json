@@ -1,0 +1,87 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://ravenclaude/convergence/rubric.schema.json",
+  "title": "Convergence rubric",
+  "description": "An externalized, versioned rubric for the refine-to-rubric (Convergence Engine) loop. A rubric is a bounded set of decomposed binary/numeric dimensions, each ideally bound to an objective signal. The rubric is a PROXY (Goodhart): the deterministic terminate() predicate caps how hard any one dimension is optimized and the stop decision lives OUTSIDE any model. Dimensions sourced from the library or from explicit user requirements are graded; dimensions proposed by the additive LLM 'commonly-missed' pass carry source='derived' + verified=false and are NEVER auto-graded — they are surfaced to the human.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "artifact_kind", "dimensions"],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "description": "Contract version of this rubric envelope.",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "artifact_kind": {
+      "type": "string",
+      "description": "The detected kind of artifact this rubric grades (e.g. agent-file, visual-report, prose, code, generic). Surfaced for human inspection; a low-confidence kind should fall back to the generic rubric.",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "kind_confidence": {
+      "type": "string",
+      "description": "Confidence in the artifact_kind detection. 'low' should trigger a generic rubric + a design-checkin pause rather than kind-specific gates.",
+      "enum": ["low", "medium", "high"]
+    },
+    "library_version": {
+      "type": "string",
+      "description": "Version of knowledge/convergence-rubrics.md the library dimensions were drawn from (anti-reward-hack provenance).",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "dimensions": {
+      "type": "array",
+      "description": "The bounded set of scoring dimensions. Decomposed binary checks (CheckEval) are preferred over one scalar.",
+      "minItems": 1,
+      "items": { "$ref": "#/definitions/dimension" }
+    }
+  },
+  "definitions": {
+    "dimension": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "title", "weight", "source", "verified"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Stable identifier for the dimension.",
+          "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "weight": {
+          "type": "number",
+          "description": "Relative importance. Explicit user requirements get the maximum weight in the library; derived dims default low. Used by weighted_score().",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "source": {
+          "type": "string",
+          "description": "Where this dimension came from. 'library' = the externalized versioned rubric library; 'explicit' = a stated user requirement (weight-max); 'derived' = an additive LLM 'commonly-missed' proposal (NEVER auto-graded — verified must be false).",
+          "enum": ["library", "explicit", "derived"]
+        },
+        "verified": {
+          "type": "boolean",
+          "description": "Whether this dimension is sanctioned for automatic grading. Derived dimensions MUST be verified=false until a human accepts them; weighted_score() and terminate() ignore unverified dimensions for the verdict and surface them as residual_gaps."
+        },
+        "hard_gate": {
+          "type": "boolean",
+          "description": "If true, this dimension is an objective hard gate: a red score blocks convergence regardless of the weighted score. Hard gates are evaluated by deterministic/objective signals BEFORE any model judge.",
+          "default": false
+        },
+        "objective_signal": {
+          "type": "string",
+          "description": "The objective evaluator that produces this dimension's score (e.g. driver.py, svg-report-lint, declarative-viz, pbir, dod-cmd). Empty/absent means the dimension is judged by the cross-model judge AFTER objective gates pass.",
+          "maxLength": 128
+        },
+        "provenance": {
+          "type": "string",
+          "description": "Free-text provenance marker. Derived dimensions carry '[unverified — derived]'.",
+          "maxLength": 256
+        }
+      }
+    }
+  }
+}
