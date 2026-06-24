@@ -215,9 +215,14 @@ PY
       python3 scripts/check-converge-loop.py
       exit $?
       ;;
+    119)
+      echo "── Gate 119: convergence rc verb + report hardening (rc converge report/verdict/derive) ──"
+      python3 scripts/check-converge-rc.py
+      exit $?
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -3654,6 +3659,20 @@ rc=0; python3 scripts/check-converge-loop.py >/dev/null 2>&1 || rc=$?
 gate "converge loop: e2e converge + objective-first + keep-best + no-'perfect' report + judge security" must_pass "$rc"
 rc=0; python3 scripts/check-converge-loop.py --must-fail-keepbest >/dev/null 2>&1 || rc=$?
 gate "converge loop: keep-best has teeth (emits regression when keep_best is last-wins)" must_pass "$rc"
+
+echo
+echo "── Gate 119: Convergence rc verb + report hardening (P4, opt-in) ─────────"
+# The user-facing front door: `rc converge report|verdict|derive`. Proves derive
+# prints a schema-shaped rubric, verdict exit-codes the deterministic stop, report
+# renders a constrained report with NO over-claim word, a verdict-less scorecard
+# fails FRIENDLY (exit 2, no traceback), and the over-claim screen is word-boundary
+# based (honest "not a claim of perfection" allowed; real "is perfect" rejected).
+# Bidirectional teeth: --must-fail-overclaim neuters the screen and asserts a
+# "perfect" over-claim THEN renders clean.
+rc=0; python3 scripts/check-converge-rc.py >/dev/null 2>&1 || rc=$?
+gate "converge rc verb: report/verdict/derive + friendly errors + word-boundary over-claim screen" must_pass "$rc"
+rc=0; python3 scripts/check-converge-rc.py --must-fail-overclaim >/dev/null 2>&1 || rc=$?
+gate "converge rc verb: over-claim screen has teeth (renders 'perfect' when screen neutered)" must_pass "$rc"
 
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"
