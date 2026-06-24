@@ -2,6 +2,12 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.172.0 — 2026-06-24
+
+### Added
+
+- **New best-practice rule — `keep-skill-bodies-lean-let-progressive-disclosure-carry-the-detail`** (best-practices → 21 rules). Distilled from the [2026-06-24 Claude subreddit scan](../../docs/research/2026-06-24-claude-subreddit-scan/README.md): a `SKILL.md` loads in three tiers (frontmatter preloaded → body on relevance → references on demand), so the body is a real **on-invoke** context budget — keep it lean (~1,500–2,000 words / under ~500 lines), push long/conditional detail into referenced files that load only on the case that needs them, and make the always-on frontmatter `description` earn its cost. The same count→cost mechanic as the MCP-tool-budget rule, one tier down; grounded in this marketplace's own ~670 `SKILL.md` files and Anthropic's primary skill-authoring docs. **Migration:** none — additive markdown.
+
 ## 0.171.1 — 2026-06-24
 
 ### Fixed
