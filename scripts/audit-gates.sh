@@ -220,9 +220,14 @@ PY
       python3 scripts/check-converge-rc.py
       exit $?
       ;;
+    120)
+      echo "── Gate 120: model-fallback helper (classification / cost cap / exclude / disabled-byte-identical / teeth) ──"
+      bash plugins/ravenclaude-core/hooks/tests/test-gate120-model-fallback.sh
+      exit $?
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -3673,6 +3678,18 @@ rc=0; python3 scripts/check-converge-rc.py >/dev/null 2>&1 || rc=$?
 gate "converge rc verb: report/verdict/derive + friendly errors + word-boundary over-claim screen" must_pass "$rc"
 rc=0; python3 scripts/check-converge-rc.py --must-fail-overclaim >/dev/null 2>&1 || rc=$?
 gate "converge rc verb: over-claim screen has teeth (renders 'perfect' when screen neutered)" must_pass "$rc"
+
+echo "── Gate 120: model-fallback helper (P1 — ladder mechanism) ───────────────"
+# The shared _model-fallback.sh helper: retry a `claude -p` call across a model
+# ladder on UNAVAILABLE/OVERLOADED, never on auth/bad-input (the masking guard),
+# cap the cost (max_retries), preserve --exclude (diversity / anti-self-grade),
+# and keep the disabled path byte-identical to a single direct call. The test
+# embeds its own must-fail half (stripping the classifier ⇒ auth retries), so a
+# single run proves both directions.
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate120-model-fallback.sh >/dev/null 2>&1 || rc=$?
+gate "model-fallback helper: classification + cost cap + exclude + disabled-byte-identical + teeth" must_pass "$rc"
+if [ -f plugins/ravenclaude-core/hooks/_model-fallback.sh ]; then rc=0; else rc=1; fi
+gate "model-fallback helper present (hooks/_model-fallback.sh)" must_pass "$rc"
 
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"
