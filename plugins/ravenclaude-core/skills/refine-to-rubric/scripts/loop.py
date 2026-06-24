@@ -31,6 +31,7 @@ import argparse
 import importlib.util
 import json
 import os
+import re
 import sys
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
@@ -125,10 +126,15 @@ def run_loop(rubric, evaluate_fn, judge_fn, refine_fn, config=None, score_fn=_de
 # ──────────────────────────────────────────────────────────────────────────────
 # Constrained report — the engine reports honestly and NEVER claims "perfect".
 # ──────────────────────────────────────────────────────────────────────────────
-_BANNED_WORDS = ("perfect", "flawless", "100% complete", "essentially perfect")
+# Over-claim words the report must never contain, matched at WORD BOUNDARIES (so an
+# honest "not a claim of perfection" disclaimer is not flagged by a naive substring,
+# while a real over-claim "the artifact is perfect" is). The blurbs below are also
+# written to avoid these stems entirely — belt and suspenders.
+_BANNED_WORDS = ("perfect", "perfectly", "flawless", "flawlessly", "essentially perfect")
+_BANNED_RE = re.compile(r"\b(" + "|".join(re.escape(w) for w in _BANNED_WORDS) + r")\b")
 
 _STATUS_BLURB = {
-    "rubric-pass": "The artifact passes the bounded rubric (objective gates green, no new high/critical findings, score above the floor, and the score has plateaued). This is a rubric pass — not a claim of perfection.",
+    "rubric-pass": "The artifact passes the bounded rubric (objective gates green, no new high/critical findings, score above the floor, and the score has plateaued). This is a rubric pass — the engine does not claim the artifact is complete beyond the rubric's bounds.",
     "capped": "The iteration cap was reached before a rubric pass. Emitting the best iteration seen; residual gaps remain.",
     "plateaued": "The score plateaued below the floor — further refinement is not paying off. Escalating to a human; this is not a pass.",
     "budget-exhausted": "The model-call budget was exhausted. Emitting the best iteration seen; residual gaps remain.",
@@ -163,9 +169,8 @@ def render_report(scorecard):
         lines.append("No residual gaps recorded for the emitted iteration.")
     report = "\n".join(lines) + "\n"
 
-    low = report.lower()
-    for w in _BANNED_WORDS:
-        assert w not in low, f"report contains a banned over-claim word: {w!r}"
+    m = _BANNED_RE.search(report.lower())
+    assert m is None, f"report contains a banned over-claim word: {m.group(0)!r}"
     return report
 
 
@@ -174,9 +179,21 @@ def main(argv=None):
     ap.add_argument("--scorecard", help="render a constrained report from an existing scorecard JSON")
     args = ap.parse_args(argv)
     if args.scorecard:
-        with open(args.scorecard, encoding="utf-8") as fh:
-            sc = json.load(fh)
-        sys.stdout.write(render_report(sc))
+        try:
+            with open(args.scorecard, encoding="utf-8") as fh:
+                sc = json.load(fh)
+        except (OSError, json.JSONDecodeError) as exc:
+            print(f"loop: cannot read scorecard: {exc}", file=sys.stderr)
+            return 2
+        if "verdict" not in sc or not isinstance(sc.get("verdict"), dict):
+            print("loop: scorecard has no 'verdict' yet — run the loop to completion "
+                  "first (a report needs a terminate() verdict).", file=sys.stderr)
+            return 2
+        try:
+            sys.stdout.write(render_report(sc))
+        except AssertionError as exc:
+            print(f"loop: refusing to render an over-claiming report: {exc}", file=sys.stderr)
+            return 2
         return 0
     print("loop.py is the convergence orchestrator. See SKILL.md for the loop and "
           "judge.sh for the cross-model judge. Pass --scorecard to render a report.",

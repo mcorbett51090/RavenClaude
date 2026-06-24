@@ -6,6 +6,7 @@
 #
 #   rc dashboard [--port N] [--no-open]   Launch the comfort-posture dashboard.
 #   rc streams <subcommand>               Inspect / manage Agentic Work-Streams.
+#   rc converge <subcommand>              Convergence Engine (refine-to-rubric) helpers.
 #
 # DESIGN — why this never `cd`s:
 #   serve-dashboards.py resolves the project root from `Path.cwd()`, so
@@ -43,6 +44,14 @@ Usage:
   rc streams create <name>              Create a named stream (slugified).
   rc streams set-active <id>            Point the active-stream pointer at <id>.
   rc streams get-active                 Print the active stream id (or "none").
+
+  rc converge report <scorecard.json>            Render the constrained convergence report
+                                                 (verdict + keep-best + honest residual gaps).
+                                                 NEVER prints "perfect".
+  rc converge verdict --rubric R --scorecard S   Print the deterministic terminate() verdict JSON
+                                                 (exit 0 = stop reached, 1 = keep refining).
+  rc converge derive --kind K [--explicit "..."] Derive a rubric for an artifact kind from the
+                                                 externalized library (prints rubric JSON).
 
 Notes:
   - The dashboard is a small LOCAL server bound to 127.0.0.1 — single-user, no auth.
@@ -133,13 +142,54 @@ PY
         ;;
     esac
     ;;
+  converge)
+    shift
+    cdir="$PLUGIN_ROOT/skills/refine-to-rubric/scripts"
+    command -v python3 >/dev/null 2>&1 || {
+      echo "rc: python3 not found in PATH — 'rc converge' needs python3." >&2
+      exit 1
+    }
+    sub="${1:-help}"
+    case "$sub" in
+      report)
+        shift || true
+        sc="${1:-}"
+        [ -z "$sc" ] && { echo "rc converge report: needs a scorecard JSON path" >&2; exit 1; }
+        loop="$cdir/loop.py"
+        [ -f "$loop" ] || { echo "rc: cannot find loop.py at $loop" >&2; exit 1; }
+        exec python3 "$loop" --scorecard "$sc"
+        ;;
+      verdict)
+        shift || true
+        conv="$cdir/converge.py"
+        [ -f "$conv" ] || { echo "rc: cannot find converge.py at $conv" >&2; exit 1; }
+        # converge.py owns its --rubric/--scorecard/--emit-verdict args; default to emitting.
+        exec python3 "$conv" --emit-verdict "$@"
+        ;;
+      derive)
+        shift || true
+        der="$cdir/derive_rubric.py"
+        [ -f "$der" ] || { echo "rc: cannot find derive_rubric.py at $der" >&2; exit 1; }
+        exec python3 "$der" "$@"
+        ;;
+      -h | --help | help)
+        _usage
+        exit 0
+        ;;
+      *)
+        echo "rc converge: unknown subcommand '$sub' (try: report | verdict | derive)" >&2
+        _usage
+        exit 1
+        ;;
+    esac
+    ;;
   "" | -h | --help | help)
     _usage
     # No verb is an error (so scripts catch it); explicit help is a success.
     [ -z "$cmd" ] && exit 1 || exit 0
     ;;
   *)
-    echo "rc: unknown command '$cmd' (try: rc dashboard | rc streams)" >&2
+    echo "rc: unknown command '$cmd' (try: rc dashboard | rc streams | rc converge)" >&2
     _usage
     exit 1
     ;;

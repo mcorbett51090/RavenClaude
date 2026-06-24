@@ -2,6 +2,12 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.171.0 — 2026-06-24
+
+### Added
+
+- **Convergence engine — P4 (`rc converge` verb + report hardening).** `rc converge` runs the refine-to-rubric loop + renders the honest report (`rubric-pass | capped | plateaued | budget-exhausted` + residual gaps); the renderer rejects over-claims. Completes the engine (P0–P4). Proven by **Gate 119** (must-fail-overclaim teeth). **Migration:** none.
+
 ## 0.170.0 — 2026-06-24
 
 ### Added

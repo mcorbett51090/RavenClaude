@@ -153,9 +153,11 @@ def run_default():
         _check(w not in low, f"report does not contain over-claim word '{w}'")
     _check("residual" in low or "no residual gaps" in low, "report includes a residual-gaps section")
 
-    # render_report ACTIVELY rejects a banned word (defense-in-depth)
+    # render_report ACTIVELY rejects a banned word (defense-in-depth). The banned
+    # word is injected into a RENDERED field (a residual gap), since render_report
+    # screens its own output.
     bad = {"verdict": {"status": "rubric-pass", "best_index": 0, "best_score": 1.0,
-                       "reason": "this artifact is perfect", "residual_gaps": []},
+                       "reason": "ok", "residual_gaps": ["the artifact is now perfect"]},
            "iterations": [{"index": 0, "model_calls": 0}]}
     raised = False
     try:
