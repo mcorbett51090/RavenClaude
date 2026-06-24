@@ -29,7 +29,7 @@ Get each requirement onto the right automation tool with one ordered entry point
 
 ## The discipline (in order)
 
-1. **Inventory before you add.** Before building anything, enumerate every automation already firing on the object's event — Flows, triggers, legacy Process Builder/Workflow. Automation density and recursion are the failure modes. See `knowledge/flow-vs-apex-decision.md`.
+1. **Inventory before you add.** Before building anything, enumerate every automation already firing on the object's event — Flows, triggers, legacy Process Builder/Workflow (both reached **end-of-support Dec 31, 2025** — retired for new work; flag any you find as a Flow migration target). Automation density and recursion are the failure modes. See `knowledge/flow-vs-apex-decision.md`.
 2. **One automation entry point per object** (house opinion #12). Don't stack a record-triggered Flow and an Apex trigger on the same before/after event. Consolidate or sequence with explicit run order.
 3. **Flow first, Apex past the ceiling** (house opinion #11). Use Flow for simple field updates, related-record CRUD, and approvals; reach for Apex when you exceed the declarative ceiling — complex bulk logic, callouts mid-transaction, recursion control, or testability needs. **Document the call** either way.
 4. **Design record-triggered Flows correctly.** Before-save for same-record field updates (no DML cost), after-save for related records and async paths. Set tight entry criteria; never let a Flow run every save.

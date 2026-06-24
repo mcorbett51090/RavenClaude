@@ -2,6 +2,12 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.9.5] — 2026-06-24
+
+### Changed
+
+- **House opinion #5 reframed for native Structured Outputs (now GA).** Anthropic's **Structured Outputs** went GA on the Claude API (`output_config.format` for JSON-schema-constrained responses; `strict:true` for strict tool inputs), so #5 moved from "structured output **via tools**, not regex" to "structured output via a **schema-constrained path**, not regex" — native Structured Outputs is now the preferred path where the model supports it, and the forced-tool-call pattern remains valid for side-effecting tools, schema-validated tool inputs, or models/runtimes without native support. Updated: `CLAUDE.md` (#5 + anti-pattern #5), `knowledge/tool-use-and-structured-output.md`, `knowledge/prompt-engineering-techniques.md`, `agents/prompt-and-context-engineer.md`, `best-practices/output-structured-via-forced-tool.md` (incl. its Provenance quote), and the dated **capability map** row (where the GA/availability claim lives, `[verify-at-use]`). Availability varies by platform (Bedrock = subset; Microsoft Foundry = beta) — verified 2026-06-24 against platform.claude.com/docs/en/build-with-claude/structured-outputs.
+
 ## [0.9.4] — 2026-06-23
 
 Version bump previously unlogged here; the change that set `0.9.4`:
