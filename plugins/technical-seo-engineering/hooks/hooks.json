@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-hooks.json",
+  "description": "Plugin-distributed hooks for technical-seo-engineering. Auto-merged with the consumer's session hooks when the plugin is installed. Paths use ${CLAUDE_PLUGIN_ROOT} so they resolve to the plugin's install location.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/flag-seo-smells.sh \"$CLAUDE_TOOL_FILE_PATH\"",
+            "comment": "Advisory: flags 4 mechanically-detectable technical-SEO smells in SEO-shaped files (.txt/.xml/.html/.htm/.md) — (1) a path that is both robots.txt Disallow-ed and carries a noindex/canonical (the directive is never read), (2) a redirect chain or a 302 used for what reads as a permanent move, (3) an HTTP 200 returned alongside not-found/no-results text (a likely soft 404), (4) a quoted FID metric (replaced by INP — dates the analysis). Set SEO_SMELLS_STRICT=1 to make it blocking."
+          }
+        ]
+      }
+    ]
+  }
+}

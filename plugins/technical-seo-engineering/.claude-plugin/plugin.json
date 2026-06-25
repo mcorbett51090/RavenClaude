@@ -1,0 +1,29 @@
+{
+  "name": "technical-seo-engineering",
+  "version": "0.1.0",
+  "description": "Technical-SEO engineering team — 3 agents. The technical-seo-lead routes and owns site-migration redirect strategy (the highest-risk SEO event), measurement (Search Console, log files), and the canonicalization/noindex/robots decision; the crawl-indexation-engineer owns robots.txt, XML sitemaps, crawl-budget, canonical/pagination/faceted-nav traps, JS rendering (SSR/SSG/dynamic-rendering, soft-404s) and the noindex-vs-disallow distinction; the core-web-vitals-engineer owns LCP/INP/CLS as ranking inputs and rich-results structured data. 5 skills, a decision-tree knowledge bank (crawl-vs-index, noindex-vs-disallow-vs-canonical), a dated 2026 reference, 3 templates, 3 commands, 7 best-practices, 1 advisory hook (4 checks). Seams: deep runtime perf -> performance-engineering; rendering implementation -> frontend-engineering; content/keyword campaigns -> marketing-operations; i18n plumbing -> localization-i18n-engineering. Requires ravenclaude-core@>=0.7.0.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "technical-seo",
+    "crawlability",
+    "indexation",
+    "robots-txt",
+    "xml-sitemap",
+    "canonicalization",
+    "javascript-seo",
+    "rendering",
+    "core-web-vitals",
+    "structured-data",
+    "site-migration",
+    "redirect-mapping",
+    "hreflang",
+    "log-file-analysis"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}

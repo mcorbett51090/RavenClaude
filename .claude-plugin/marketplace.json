@@ -2655,6 +2655,83 @@
         "sync-engine",
         "eventual-consistency"
       ]
+    },
+    {
+      "name": "fitness-studio-operations",
+      "source": "./plugins/fitness-studio-operations",
+      "description": "Fitness-studio operations team \u2014 3 agents (fitness-studio-operations-lead, member-retention-analyst, class-and-instructor-ops-lead) for running boutique studios, gyms, and personal-training studios as businesses: membership models (recurring billing, drop-in, class packs, founding-member pricing), the retention/churn economic engine (churn math, at-risk detection, win-back), class scheduling and capacity (utilization, waitlists, instructor mix), instructor/trainer ops and pay (rev-share vs hourly vs per-head, the practical 1099-vs-W2 line), front-desk and member experience, retail/ancillary revenue, and the unit economics (LTV/CAC, revenue per member, no-show policy). This is the studio-ops craft \u2014 not coaching/programming, not bookkeeping, not campaigns. 5 skills, a decision-tree knowledge bank (pricing-model + retention-intervention + capacity + pay-model + no-show trees, plus a dated 2026 tooling/benchmark map), 7 best-practices, 3 templates, 3 commands, 1 advisory hook. Seams: books/payroll-mechanics -> accounting-bookkeeping; acquisition campaigns -> marketing-operations; staff hiring/classification policy -> people-operations-hr. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "fitness-studio",
+        "boutique-fitness",
+        "gym-operations",
+        "personal-training",
+        "membership-model",
+        "recurring-billing",
+        "class-packs",
+        "member-retention",
+        "churn",
+        "ltv-cac",
+        "class-scheduling",
+        "capacity-utilization",
+        "instructor-pay",
+        "no-show-policy",
+        "studio-unit-economics"
+      ]
+    },
+    {
+      "name": "technical-seo-engineering",
+      "source": "./plugins/technical-seo-engineering",
+      "description": "Technical-SEO engineering team \u2014 3 agents. The technical-seo-lead routes and owns site-migration redirect strategy (the highest-risk SEO event), measurement (Search Console, log files), and the canonicalization/noindex/robots decision; the crawl-indexation-engineer owns robots.txt, XML sitemaps, crawl-budget, canonical/pagination/faceted-nav traps, JS rendering (SSR/SSG/dynamic-rendering, soft-404s) and the noindex-vs-disallow distinction; the core-web-vitals-engineer owns LCP/INP/CLS as ranking inputs and rich-results structured data. 5 skills, a decision-tree knowledge bank (crawl-vs-index, noindex-vs-disallow-vs-canonical), a dated 2026 reference, 3 templates, 3 commands, 7 best-practices, 1 advisory hook (4 checks). Seams: deep runtime perf -> performance-engineering; rendering implementation -> frontend-engineering; content/keyword campaigns -> marketing-operations; i18n plumbing -> localization-i18n-engineering. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "technical-seo",
+        "crawlability",
+        "indexation",
+        "robots-txt",
+        "xml-sitemap",
+        "canonicalization",
+        "javascript-seo",
+        "rendering",
+        "core-web-vitals",
+        "structured-data",
+        "site-migration",
+        "redirect-mapping",
+        "hreflang",
+        "log-file-analysis"
+      ]
+    },
+    {
+      "name": "salon-spa-operations",
+      "source": "./plugins/salon-spa-operations",
+      "description": "Salon/spa operations team \u2014 3 agents (salon-spa-operations-lead, booking-and-retention-analyst, service-menu-and-pricing-strategist) for hair salons, day spas, and barbershops: booking and calendar utilization (online booking, double-booking, gaps, color processing-time overlap), the no-show/late-cancel policy and deposits, the two compensation models that define the trade \u2014 COMMISSION vs BOOTH/CHAIR RENTAL (and hybrid) with their tax/control trade-offs, service-menu design and pricing (good-better-best, add-ons, price increases), retail/product attachment (the margin lifeline), client retention and rebooking rate (the core KPI), front-desk and client experience, and stylist staffing/retention. This is the salon/spa-ops craft. 5 skills, a decision-tree knowledge bank (compensation-model + empty-chair-diagnosis + price-increase + deposit-policy trees, plus a dated 2026 benchmark map), 7 best-practices, 3 templates, 3 commands, 1 advisory hook. Seams: books/payroll/sales-tax -> accounting-bookkeeping; campaigns/ads/social -> marketing-operations; generic HR policy/employment law -> people-operations-hr. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "salon-operations",
+        "spa-operations",
+        "barbershop",
+        "booking",
+        "calendar-utilization",
+        "no-show-policy",
+        "deposits",
+        "commission",
+        "booth-rental",
+        "chair-rental",
+        "service-menu",
+        "pricing",
+        "retail-attachment",
+        "rebooking-rate",
+        "client-retention"
+      ]
     }
   ]
 }

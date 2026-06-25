@@ -1,0 +1,30 @@
+{
+  "name": "fitness-studio-operations",
+  "version": "0.1.0",
+  "description": "Fitness-studio operations team — 3 agents (fitness-studio-operations-lead, member-retention-analyst, class-and-instructor-ops-lead) for running boutique studios, gyms, and personal-training studios as businesses: membership models (recurring billing, drop-in, class packs, founding-member pricing), the retention/churn economic engine (churn math, at-risk detection, win-back), class scheduling and capacity (utilization, waitlists, instructor mix), instructor/trainer ops and pay (rev-share vs hourly vs per-head, the practical 1099-vs-W2 line), front-desk and member experience, retail/ancillary revenue, and the unit economics (LTV/CAC, revenue per member, no-show policy). This is the studio-ops craft — not coaching/programming, not bookkeeping, not campaigns. 5 skills, a decision-tree knowledge bank (pricing-model + retention-intervention + capacity + pay-model + no-show trees, plus a dated 2026 tooling/benchmark map), 7 best-practices, 3 templates, 3 commands, 1 advisory hook. Seams: books/payroll-mechanics -> accounting-bookkeeping; acquisition campaigns -> marketing-operations; staff hiring/classification policy -> people-operations-hr. Requires ravenclaude-core@>=0.7.0.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "fitness-studio",
+    "boutique-fitness",
+    "gym-operations",
+    "personal-training",
+    "membership-model",
+    "recurring-billing",
+    "class-packs",
+    "member-retention",
+    "churn",
+    "ltv-cac",
+    "class-scheduling",
+    "capacity-utilization",
+    "instructor-pay",
+    "no-show-policy",
+    "studio-unit-economics"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}
