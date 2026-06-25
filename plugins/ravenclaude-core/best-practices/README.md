@@ -8,7 +8,7 @@ For the marketplace-wide best-practice library (CI gates, hook authoring, versio
 
 ## Index
 
-_24 rules._
+_25 rules._
 
 | Doc | Status | Use when |
 |---|---|---|
@@ -36,6 +36,7 @@ _24 rules._
 | [`claude-md-imports-organize-they-dont-shrink-context.md`](./claude-md-imports-organize-they-dont-shrink-context.md) | Pattern | Structuring a `CLAUDE.md` with `@imports` — they organize content, they do NOT shrink its context cost (imported files are still loaded); prune, don't just split. |
 | [`scope-the-reviewer-to-correctness-or-it-manufactures-work.md`](./scope-the-reviewer-to-correctness-or-it-manufactures-work.md) | Pattern | Briefing a code-reviewer agent — scope it to correctness/risk or it manufactures low-value churn. |
 | [`expensive-test-front-loading.md`](./expensive-test-front-loading.md) | Pattern | A test costs a scarce resource (a human re-fire, a long run, a billed turn, a deploy) — exhaustively static-validate first so each expensive test exercises a fully-validated change; prefer a deterministic validator over a "remember to check" rule. |
+| [`give-the-agent-a-verification-signal-it-can-read.md`](./give-the-agent-a-verification-signal-it-can-read.md) | Pattern | Framing a task (or about to hand work back) — give the agent a check that emits a machine-readable pass/fail and iterate to green before reporting done; the umbrella principle the DoD-gate / expensive-test / visual-loop / adversarial-reviewer rules each instantiate. |
 
 ---
 
