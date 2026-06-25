@@ -4,6 +4,8 @@ _Two decision trees for choices the existing [`frontend-engineering-decision-tre
 
 Traverse the relevant graph top-to-bottom **before** committing — don't pattern-match on the loudest recent blog post.
 
+> **Update 2026-06-25 — React 19.2 baseline + React Compiler 1.0.** **React 19.2** (released 2025-10-01) is the current baseline (patch line ~19.2.4, Jan 2026), and the **React Compiler reached 1.0 (Oct 2025) and is production-ready**: a build-time tool that performs **automatic memoization**, removing the need for most manual `useMemo`/`useCallback`/`React.memo`. Relevance to the trees below: the compiler reduces *render-time* recompute cost automatically, but it does **not** shrink the styling engine's runtime cost or the JS bundle — so the "prefer zero-runtime / compile-time styling" and bundle-triage guidance is unchanged. Sources: [React 19.2](https://react.dev/blog/2025/10/01/react-19-2), [React Compiler v1.0](https://react.dev/blog/2025/10/07/react-compiler-1) (retrieved 2026-06-25).
+
 ## Decision Tree: Which styling approach?
 
 There is no single "best" CSS approach — the right one depends on your rendering model (RSC vs. CSR), your design-system posture, and your runtime-cost tolerance. The one durable rule: **prefer zero-runtime / compile-time styling for server-rendered and performance-sensitive surfaces**, because a runtime CSS-in-JS engine that executes during render adds main-thread cost and can fight React Server Components.
@@ -84,6 +86,8 @@ _Name the trade: every byte you ship is first-load latency and INP risk; code-sp
 
 | Capability | 2026 state `[verify-at-use]` | Notes |
 |---|---|---|
+| React (baseline version) | 19.2 (released 2025-10-01); patch line ~19.2.4 (Jan 2026) | Current baseline |
+| React Compiler | 1.0, production-ready (Oct 2025) | Build-time **automatic memoization** — cuts render-time recompute, **not** styling-engine runtime or bundle weight |
 | Zero-runtime CSS-in-JS / compile-time extraction | mainstream for RSC | Lower main-thread + bundle cost than runtime engines |
 | Runtime CSS-in-JS + React Server Components | friction; check per-library | Many runtime engines need client components |
 | Tailwind / utility-first | mature, RSC-safe | Static stylesheet, zero runtime |

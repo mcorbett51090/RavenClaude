@@ -2,6 +2,8 @@
 
 _Decision trees + a dated capability map. Capability rows are `[verify-at-build]` — re-check against the vendor before quoting. Last reviewed: 2026-06-04._
 
+> **Update 2026-06-25 — React 19.2 baseline + React Compiler 1.0.** **React 19.2** (released 2025-10-01) is the current baseline; the patch line is ~19.2.4 (Jan 2026). The **React Compiler reached 1.0 (Oct 2025) and is production-ready** — it is a build-time tool that performs **automatic memoization**, optimizing components and hooks without rewrites and removing the need for most manual `useMemo` / `useCallback` / `React.memo`. **Where the trees below say "memoize the value or callback" or "`useMemo` for the expensive computation," treat that as: if the React Compiler is enabled, it has already handled this — reach for manual memoization only when the compiler is off or the Profiler proves a specific gap.** Source: [React 19.2](https://react.dev/blog/2025/10/01/react-19-2) and [React Compiler v1.0](https://react.dev/blog/2025/10/07/react-compiler-1) (retrieved 2026-06-25).
+
 Traverse before choosing a rendering mode or a place for state.
 
 ## Decision Tree: Rendering strategy per route
@@ -101,6 +103,8 @@ _Optimistic UI is a bet that the write succeeds; only take it when the rollback 
 
 | Capability | 2026 state `[verify-at-build]` | Notes |
 |---|---|---|
+| React (baseline version) | 19.2 (released 2025-10-01); patch line ~19.2.4 (Jan 2026) | Current baseline; Activity, Performance Tracks, `useEffectEvent`, partial pre-rendering |
+| React Compiler | 1.0, production-ready (Oct 2025) | Build-time **automatic memoization** — removes most manual `useMemo`/`useCallback`/`memo`; enable via Vite/Next/Expo |
 | React Server Components | GA in Next App Router | Default server, hydrate islands |
 | TanStack Query / SWR | mature | Server-cache, not client state |
 | INP (Core Web Vital) | replaced FID (2024) | Main-thread responsiveness |
@@ -171,7 +175,7 @@ flowchart TD
 - *Chunk / Web Worker* — JS long tasks block input handling; yielding or offloading is the correct fix.
 - *React Profiler* — the browser timeline is too coarse for React rendering; the Profiler shows component-level render time.
 - *TanStack Query / RSC* — useEffect-based data fetching creates cascading waterfalls that look like slow renders.
-- *Memoize* — only when profiling confirms the reference instability is the cause, not by default.
+- *Memoize* — only when profiling confirms the reference instability is the cause, not by default. **With the React Compiler 1.0 (production-ready, Oct 2025) enabled, this memoization is automatic** — the compiler memoizes values and callbacks at build time, so reach for manual `useMemo`/`useCallback`/`memo` only when the compiler is off or the Profiler proves it missed a specific case.
 - *Virtualize* — rendering 500 list items is the fix, not memoization.
 
 **Tradeoffs summary:**

@@ -1,6 +1,6 @@
 {
   "name": "browser-extension-engineering",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Browser-extension-engineering team — 2 agents (extension-architect, extension-implementation-engineer) for building, shipping, and maintaining cross-browser extensions on Manifest V3: the service-worker background model (and the MV2->MV3 lifecycle trap), content-script isolation + message passing, the permissions/host-permissions model and least-privilege posture, storage, the Chrome Web Store / Edge Add-ons / Firefox AMO review pipelines, and the WebExtensions cross-browser delta. Distinct from frontend-engineering (app-grade React UI) and desktop-app-engineering (Electron/Tauri). 3 skills (build-browser-extension, manifest-permissions-audit, store-submission-readiness), a 3-doc knowledge bank (a where-should-this-logic-live tree across the four MV3 contexts, MV3 architecture + a permissions-minimization tree, a dated cross-browser note), best-practices. Security verdicts escalate to security-engineering. Requires ravenclaude-core@>=0.7.0.",
   "author": {
     "name": "Matt Corbett"
