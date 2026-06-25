@@ -112,6 +112,19 @@ _A replica adds eventual-consistency lag, a cache adds an invalidation problem, 
 | PgBouncer / built-in pooling | mature | Size to workload |
 | Logical + physical replication | GA | Read replicas eventually consistent |
 | PITR | GA (managed + self) | Test the restore |
+| Asynchronous I/O (AIO) | GA in **PG18** (`io_method = worker \| io_uring \| sync`) | Speeds **reads** — writes still synchronous; see PG18 note |
+| Native UUIDv7 generation (`uuidv7()`) | GA in **PG18** | Timestamp-ordered UUIDs — better index locality than v4 |
+| OAuth 2.0 authentication | GA in **PG18** | SSO via `oauth` method in `pg_hba.conf` |
+
+### Note — PostgreSQL 18 is the current major release (added 2026-06-25)
+
+PostgreSQL 18 was released **2025-09-25** and is the current major release. Relevant to the trees above:
+
+- **Asynchronous I/O subsystem** — a new AIO layer lets the backend issue multiple I/O requests concurrently instead of waiting on each in sequence. Controlled by the `io_method` GUC (`worker` | `io_uring` | `sync`, where `sync` keeps pre-18 behavior), with the `io_workers` GUC sizing the worker pool and a new `pg_aios` view exposing in-flight I/O. Benchmarks show up to **~3x faster reads** in some scenarios (sequential scans, bitmap heap scans, vacuum). **Caveat: AIO accelerates _reads_; writes remain synchronous** — so this changes the read-scaling calculus (index/replica/cache choices above), not write throughput.
+- **Native UUIDv7 generation** (`uuidv7()`) — timestamp-ordered UUIDs. Because they sort by creation time, they give far better B-tree index locality than random UUIDv4 keys, which matters wherever a UUID is a primary/clustered key in the schema-design and index trees.
+- **OAuth 2.0 authentication** — an `oauth` method in `pg_hba.conf` plus libpq OAuth options, easing SSO integration.
+
+Source: [PostgreSQL 18 Released!](https://www.postgresql.org/about/news/postgresql-18-released-3142/) (retrieved 2026-06-25).
 
 ## Decision Tree: Which transaction isolation level?
 

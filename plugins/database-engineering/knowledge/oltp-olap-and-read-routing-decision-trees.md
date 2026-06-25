@@ -69,6 +69,12 @@ _Name the trade: a replica buys read offload and pays in lag (a consistency risk
 
 ---
 
+## Note — PostgreSQL 18 and the read-routing calculus (added 2026-06-25)
+
+PostgreSQL 18 (released **2025-09-25**, the current major release) ships a new **asynchronous I/O subsystem** controlled by the `io_method` GUC (`worker` | `io_uring` | `sync`), with an `io_workers` GUC sizing the worker pool and a new `pg_aios` view for in-flight I/O. It delivers up to **~3x faster reads** in some scenarios (sequential scans, bitmap heap scans, vacuum). **This shifts read-routing math but does not eliminate the trade:** AIO accelerates **reads**, while **writes stay synchronous** — so a primary on PG18 can absorb more lag-tolerant read volume before you must offload to a replica, but it changes none of the consistency reasoning above (read-your-writes and strong-consistency reads still go to the primary; replicas still lag). PG18 also adds native **UUIDv7** (`uuidv7()`) — timestamp-ordered keys with better index locality than v4 — and **OAuth 2.0** authentication. `[verify-at-use]` — the LSN/wait-for-replay mechanism noted above (`pg_last_wal_replay_lsn`) is unchanged in 18; confirm against the deployed engine.
+
+Source: [PostgreSQL 18 Released!](https://www.postgresql.org/about/news/postgresql-18-released-3142/) (retrieved 2026-06-25).
+
 ## See also
 
 - [`database-engineering-decision-trees.md`](database-engineering-decision-trees.md) — index choice, migration safety, normalize/denormalize, SQL-vs-NoSQL, scaling reads, isolation level, partial index, online NOT NULL add.

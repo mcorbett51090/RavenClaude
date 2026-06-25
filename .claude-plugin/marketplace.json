@@ -176,7 +176,7 @@
       "name": "browser-extension-engineering",
       "source": "./plugins/browser-extension-engineering",
       "description": "Browser-extension-engineering team \u2014 2 agents (extension-architect, extension-implementation-engineer) for building, shipping, and maintaining cross-browser extensions on Manifest V3: the service-worker background model (and the MV2->MV3 lifecycle trap), content-script isolation + message passing, the permissions / host-permissions model and least-privilege posture, storage, the Chrome Web Store / Edge Add-ons / Firefox AMO review pipelines, and the WebExtensions cross-browser delta (Chrome callback vs Firefox browser.* promises). The extension runtime + manifest + store surface \u2014 distinct from frontend-engineering (app-grade React UI) and desktop-app-engineering (Electron/Tauri). 46 skills (manifest-permissions-audit, store-submission-readiness), a knowledge bank (MV3 architecture + a permissions-minimization decision tree + a dated cross-browser capability note), best-practices. Security verdicts escalate to security-engineering. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "author": {
         "name": "Matt Corbett"
       },
@@ -220,7 +220,7 @@
       "displayName": "RavenClaude Core",
       "source": "./plugins/ravenclaude-core",
       "description": "Domain-neutral Claude Code foundation: 15 specialist agents, 46 skills, gates, hooks, rules, templates. Capability Grounding Protocol, Structured Output Protocol, Researcher meta-skill, comfort-posture dashboard, opt-in command-review tribunal (the Thing), WebFetch sanitizer, branch-archive escape hatch, brand-extraction (homepage \u2192 brand kit), Problems & Resolutions view, declarative-visualization (Vega-Lite/Deneb/SVG, Gate 101 + Gate 103 svg-report-lint, viz-spec-reviewer), and Claude orchestrator escape hatch (/claude-orchestrate). Slash commands: /init-agent-ready, /wrap, /set-posture, /dashboard, /forge, /reset-plugin-cache.",
-      "version": "0.182.0",
+      "version": "0.182.1",
       "author": {
         "name": "Matt Corbett"
       },
@@ -498,7 +498,7 @@
       "name": "claude-app-engineering",
       "source": "./plugins/claude-app-engineering",
       "description": "Claude app-engineering specialist team \u2014 6 agents (claude-solution-architect, prompt-and-context-engineer, mcp-and-server-tools-engineer, agent-sdk-engineer, eval-engineer, claude-app-ops-engineer) for building production applications on the Claude API, the Claude Agent SDK, and MCP. Covers the build-surface decision (Messages API / Agent SDK / Managed Agents), model right-sizing (Opus 4.8 / Sonnet 4.6 / Haiku 4.5, 1M context), prompt caching, tool use + structured output, MCP server authoring + Anthropic-hosted server tools (computer use, code execution, Files API, memory, advisor tool), evals (golden sets, LLM-as-judge), and FinOps + reliability (batch, model routing, backoff, observability). 15-doc dated-and-cited knowledge bank, 6 templates, 1 advisory hook (14 house opinions). Seams: prompt-as-artifact, security, and cross-domain architecture escalate to ravenclaude-core. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.9.5",
+      "version": "0.9.6",
       "author": {
         "name": "Matt Corbett"
       },
@@ -543,7 +543,7 @@
       "name": "salesforce",
       "source": "./plugins/salesforce",
       "description": "Salesforce practitioner team \u2014 5 agents (apex-engineer, flow-automation-architect, agentforce-architect, salesforce-platform-architect, salesforce-reviewer) covering governor-safe bulkified Apex (triggers/async/services), declarative automation by density (Flow vs Apex), Agentforce agent design (topics/subagents, Agent Script determinism, RAG grounding, Trust Layer), org architecture (data model, OWD\u2192role\u2192sharing\u2192Apex security model, 2GP packaging/DevOps, LDV), and a forked review rubric (the 15 house opinions as pass/fail). 9-doc citation-grounded knowledge bank (9 Mermaid decision trees, dated 2026-05-30), 46 skills, 5 templates, 1 advisory hook (grep-able anti-patterns: SOQL/DML-in-loop, hard-coded IDs, SeeAllData=true, missing with-sharing). Seams: integration\u2192azure-cloud, analytics\u2192data-platform/microsoft-fabric, LWC styling\u2192web-design, methodology/DevOps/security-review\u2192ravenclaude-core. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.6.2",
+      "version": "0.6.3",
       "author": {
         "name": "Matt Corbett"
       },
@@ -802,7 +802,7 @@
       "name": "database-engineering",
       "source": "./plugins/database-engineering",
       "description": "Database-engineering team \u2014 4 agents (schema-architect, query-performance-engineer, migration-engineer, db-reliability-engineer) for the OPERATIONAL/transactional data layer (OLTP): relational schema design and normalization (and when to denormalize), indexing strategy and query/EXPLAIN-plan tuning, safe zero-downtime schema migrations (expand/contract), and connection-pooling, transactions/isolation, replication, and backup/restore reliability. Postgres-leaning, principles portable to MySQL/SQL Server; NoSQL access-pattern guidance where it fits. 46 skills, a decision-tree knowledge bank (index-choice + migration-safety trees + a dated 2026 capability map), 12 best-practices, 4 templates, 4 commands, 1 advisory hook. Distinct from data-platform (analytics/ELT/warehouse) and analytics-engineering (dbt). Seams: ELT/warehouse -> data-platform, ORM/app data-access -> backend-engineering, managed DB infra -> cloud plugins. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.3.2",
+      "version": "0.3.3",
       "author": {
         "name": "Matt Corbett"
       },
@@ -848,7 +848,7 @@
       "name": "frontend-engineering",
       "source": "./plugins/frontend-engineering",
       "description": "Frontend-engineering team \u2014 4 agents (frontend-architect, react-implementation-engineer, frontend-state-and-data-engineer, frontend-performance-engineer) for building app-grade frontends (React/Next, TypeScript): component architecture and composition, the rendering-strategy choice (CSR/SSR/SSG/ISR/React Server Components), client state vs server-cache (TanStack Query/RSC) and form/validation, bundle/performance discipline (code-splitting, Core Web Vitals, hydration cost), and accessibility-in-code (semantic HTML, ARIA, keyboard, focus). TypeScript-first. 46 skills, a decision-tree knowledge bank (rendering-strategy + state-location trees + a dated 2026 map), 12 best-practices, 4 templates, 4 commands, 1 advisory hook. Distinct from web-design (brand/UX/marketing sites). Seams: design/brand/WCAG-audit -> web-design, auth UX -> auth-identity, API consumption -> api-engineering, native -> mobile-engineering. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.4.0",
+      "version": "0.4.1",
       "author": {
         "name": "Matt Corbett"
       },
@@ -1147,7 +1147,7 @@
       "name": "security-engineering",
       "source": "./plugins/security-engineering",
       "description": "Security-engineering (AppSec) team \u2014 4 agents (appsec-engineer, threat-modeler, supply-chain-security-engineer, cloud-security-engineer) for building security INTO software: threat modeling (STRIDE, data-flow diagrams, trust boundaries), application security testing (SAST/DAST/IAST/SCA in CI, OWASP Top 10 web), secrets management (detection, rotation, vaulting, no plaintext), software supply-chain integrity (SBOM consumption, dependency CVEs, SLSA verification, pinning), and cloud security posture (CSPM, IAM least-privilege, network exposure). 46 skills, a decision-tree knowledge bank (vuln-triage + secrets-handling trees + a dated 2026 tooling map), 12 best-practices, 4 templates, 4 commands, 1 advisory hook. **Proposes controls; every ship/no-ship security VERDICT escalates to ravenclaude-core/security-reviewer.** Seams: API OWASP -> api-engineering, identity -> auth-identity, data privacy -> data-governance-privacy. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.3.2",
+      "version": "0.3.3",
       "author": {
         "name": "Matt Corbett"
       },
@@ -1338,7 +1338,7 @@
       "name": "medical-revenue-cycle",
       "source": "./plugins/medical-revenue-cycle",
       "description": "Medical Revenue Cycle specialist team \u2014 4 agents, 46 skills, 4-file cited knowledge bank, 3 templates, 5 commands, 8 best-practice rules, 1 advisory hook. A revenue-cycle team for a healthcare provider or RCM operator \u2014 it drives the clean-claim rate toward 98%, attacks denials before they happen (initial denials hit ~11.8% in 2024 and trend 12\u201315%), works the A/R by aging bucket, and reads net collection rate the way a CFO who lives the cash cycle does. Inherits ravenclaude-core protocols.",
-      "version": "0.2.1",
+      "version": "0.2.2",
       "author": {
         "name": "Matt Corbett"
       },
@@ -1471,7 +1471,7 @@
       "name": "cannabis-operations",
       "source": "./plugins/cannabis-operations",
       "description": "Cannabis Operations specialist team \u2014 4 agents, 46 skills, 4-file cited knowledge bank, 3 templates, 5 commands, 8 best-practice rules, 1 advisory hook. A compliance-and-retail-operations team for a licensed cannabis operator \u2014 it runs seed-to-sale traceability against the state track-and-trace system (Metrc/BioTrack/LeafData), manages the 280E tax burden that makes COGS allocation existential, runs dispensary retail on margin and basket, and reads a ~$45B U.S. market where the rules change at the state line. Inherits ravenclaude-core protocols.",
-      "version": "0.3.1",
+      "version": "0.3.2",
       "author": {
         "name": "Matt Corbett"
       },
@@ -1669,7 +1669,7 @@
       "name": "people-operations-hr",
       "source": "./plugins/people-operations-hr",
       "description": "People Operations / HR specialist team \u2014 4 agents (people-ops-lead, talent-acquisition-strategist, total-rewards-comp-analyst, people-analytics-engagement-specialist), 46 skills, 4 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. A People-Ops team for an HRBP, People-Ops leader, or founder accountable for headcount, attrition, comp, and engagement \u2014 it quantifies attrition cost and cause before acting, pays to a defensible band rather than the counteroffer, treats time-to-fill and quality-of-hire as a hiring system, and reads engagement segmented as a leading indicator of regretted exits. Inherits ravenclaude-core protocols.",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "author": {
         "name": "Matt Corbett"
       },
@@ -1907,7 +1907,7 @@
       "name": "mortgage-lending",
       "source": "./plugins/mortgage-lending",
       "description": "Mortgage Lending Operations specialist team \u2014 4 agents (mortgage-lending-lead, pipeline-pullthrough-analyst, processing-cycle-specialist, compliance-quality-specialist), 46 skills, 4 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. An operations team for a production or ops leader accountable for pull-through, cycle time, capacity, and cost-to-originate \u2014 it reads pull-through as the funnel and fixes the fallout stage, ties cycle time to capacity and satisfaction, manages lock/pipeline risk, holds cost-to-originate as the unit economic, and routes every compliance question to counsel. Inherits ravenclaude-core protocols.",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "author": {
         "name": "Matt Corbett"
       },
@@ -2315,7 +2315,7 @@
       "name": "data-science-research",
       "source": "./plugins/data-science-research",
       "description": "Exploratory data science & reproducible research team \u2014 3 agents (exploratory-data-scientist, feature-and-modeling-engineer, research-reproducibility-engineer) for the analysis layer between raw data and a defensible result: data profiling/cleaning, EDA, hypothesis generation, communicating findings with uncertainty; feature engineering, classical modeling (regression, trees, boosting), model selection, evaluation (cross-validation, metrics) and leakage avoidance; and the reproducibility spine \u2014 notebook hygiene, pinned environments, experiment tracking, data/version control, seeds, and reproducible pipelines. 12 best-practices, decision-tree knowledge bank, 46 skills, 3 commands, 2 templates, 1 hook, scenarios bank, and stdlib-only ds_calc.py (classification/regression metrics, split-check). Seams: is-the-result-statistically-real -> applied-statistics; productionize/serve/monitor -> ml-engineering; data pipelines/warehouse -> data-platform. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "author": {
         "name": "Matt Corbett"
       },

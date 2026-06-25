@@ -4,6 +4,24 @@
 > published, stable spec); store-policy and per-browser API availability specifics
 > are volatile and live in the companion `cross-browser-and-stores.md` with dates.
 
+## MV3 is the only Chrome target (MV2 is fully sunset)
+
+Manifest V2 is **fully sunset in Chrome** — there is no "keep MV2" path. MV2
+extensions are **disabled on all Chrome channels**, the last escape hatch (the
+`ExtensionManifestV2Availability` enterprise policy) **ended with Chrome 139
+(mid-2025)**, and users **can no longer re-enable** a disabled MV2 extension. So
+for Chrome, **MV3 is the only target**: an event-driven background **service
+worker** (no persistent page), **`declarativeNetRequest`** for request
+modification (not MV2 blocking `webRequest`), and **no remotely-hosted code**. Do
+not author new MV2 work or advise migrating *back* to MV2 for Chrome — the
+direction is one-way to MV3.
+
+> Firefox is the one major engine that **still** supports MV2-style **blocking
+> `webRequest`** — see the Chrome/Firefox divergence in
+> [`cross-browser-and-stores.md`](cross-browser-and-stores.md). The Chrome facts
+> above are durable platform mechanics (retrieved 2026-06-25,
+> [MV2 deprecation timeline](https://developer.chrome.com/docs/extensions/develop/migrate/mv2-deprecation-timeline)).
+
 ## The components
 
 | Component | What it is | Lifetime |
@@ -16,9 +34,11 @@
 
 ## The service-worker lifecycle trap (the #1 MV3 bug)
 
-MV2 had a **persistent background page**; MV3 replaced it with an **ephemeral
+MV2 *had* a **persistent background page**; MV3 replaced it with an **ephemeral
 service worker** that can be terminated whenever it's idle and restarted on the
-next event. Consequences:
+next event. (The persistent page is gone on Chrome for good — MV2 is fully sunset,
+so this is the only background model available there, not a migration target you
+can opt out of.) Consequences:
 
 - **No load-bearing global state.** Variables in the SW are lost when it's killed.
   Persist state to `chrome.storage` and rehydrate on each event.

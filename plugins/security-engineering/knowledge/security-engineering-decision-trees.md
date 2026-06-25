@@ -104,7 +104,7 @@ _A 9.8 in an unreachable path waits; a 6.5 unauthenticated and exploited-in-the-
 
 | Capability | 2026 state `[verify-at-build]` | Notes |
 |---|---|---|
-| OWASP Top 10 (web) | **2025 edition Final** (2021 superseded) | Adds **A03:2025 Software Supply Chain Failures** (expands A06:2021 Vulnerable & Outdated Components — `supply-chain-security-engineer`'s lane). [Top10:2025](https://owasp.org/Top10/2025/) `[verify-at-build — confirm category list/numbering at owasp.org before quoting]` |
+| OWASP Top 10 (web) | **2025 edition Final** (2021 superseded) | A01 stays **Broken Access Control** (now **absorbs SSRF** — Server-Side Request Forgery, formerly A10:2021). **Security Misconfiguration → A02:2025** (up from A05:2021). New **A03:2025 Software Supply Chain Failures** (expands A06:2021 Vulnerable & Outdated Components — `supply-chain-security-engineer`'s lane) and new **A10:2025 Mishandling of Exceptional Conditions**. [Top10:2025](https://owasp.org/Top10/2025/) `[verify-at-build — confirm category list/numbering at owasp.org before quoting]` |
 | SAST/SCA in CI | mature | Tune for signal; reachability where supported |
 | Secret scanning | GitHub/GitLab native + tools | Pre-commit + CI + history scan |
 | SLSA | v1.0 | Build levels; verify provenance on consume |

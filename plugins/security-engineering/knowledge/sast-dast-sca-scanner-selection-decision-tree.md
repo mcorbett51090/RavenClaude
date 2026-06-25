@@ -54,7 +54,7 @@ flowchart TD
 - You're choosing a **bundled MCP tool** for this plugin — that's governed by [`../../../docs/best-practices/bundled-mcp-servers.md`](../../../docs/best-practices/bundled-mcp-servers.md) (zero-config + read-only bar), not by tool capability alone; see the plugin CLAUDE.md MCP section.
 
 **Sources (retrieved 2026-06-05):**
-- OWASP Top 10:2025 (web; finalized — A03 "Software Supply Chain Failures" absorbs the 2021 A06 "Vulnerable & Outdated Components"; new A10 "Mishandling of Exceptional Conditions"; Security Misconfiguration → A02) — https://owasp.org/Top10/2025/ (retrieved 2026-06-16)
+- OWASP Top 10:2025 (web; finalized — A03 "Software Supply Chain Failures" absorbs the 2021 A06 "Vulnerable & Outdated Components"; new A10 "Mishandling of Exceptional Conditions"; Security Misconfiguration → A02; SSRF (Server-Side Request Forgery, formerly A10:2021) folded into A01 "Broken Access Control") — https://owasp.org/Top10/2025/ (retrieved 2026-06-25)
 - OWASP DevSecOps Guideline (SAST/DAST/SCA/secret placement) — https://owasp.org/www-project-devsecops-guideline/
 - OWASP Web Security Testing Guide (WSTG) — https://owasp.org/www-project-web-security-testing-guide/
 - Semgrep (SAST, taint mode) — https://github.com/semgrep/semgrep (MIT)

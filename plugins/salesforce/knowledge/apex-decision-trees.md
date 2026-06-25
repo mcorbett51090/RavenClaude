@@ -46,11 +46,13 @@ flowchart TD
 
 ---
 
-## Decision Tree: Apex Security — where to enforce CRUD/FLS (with sharing / WITH SECURITY_ENFORCED / stripInaccessible / USER_MODE)
+## Decision Tree: Apex Security — where to enforce CRUD/FLS (with sharing / WITH USER_MODE / stripInaccessible / USER_MODE)
 
 **When this applies:** You are writing Apex that reads or writes records on behalf of a user (a controller, a service called from LWC/Aura/VF, a user-invoked action). Observable triggers: a PMD/CRUD-FLS reviewer finding, an `@AuraEnabled` method exposing data, or a `without sharing` keyword with no justification. The *verdict* escalates to `ravenclaude-core/security-reviewer`; this tree picks the *mechanism*.
 
-**Last verified:** 2026-05-30 against [`sharing-and-security-model.md`](sharing-and-security-model.md) and the `salesforce-reviewer` rubric items 6–7.
+**Last verified:** 2026-06-25 against [`sharing-and-security-model.md`](sharing-and-security-model.md) and the `salesforce-reviewer` rubric items 6–7.
+
+> **Summer '26 (API v67.0) breaking change.** On classes set to **API v67.0+**, database operations run in **user mode by default**, a class with no sharing keyword defaults to **`with sharing`**, and **`WITH SECURITY_ENFORCED` is removed** — migrate every SOQL `WITH SECURITY_ENFORCED` to **`WITH USER_MODE`** (it handles polymorphic fields, enforces `WHERE`, and reports all FLS errors). Full migration guidance: [`sharing-and-security-model.md`](sharing-and-security-model.md) § "Summer '26 (API v67.0)".
 
 ```mermaid
 flowchart TD
@@ -59,7 +61,7 @@ flowchart TD
     Q1 -->|User context| SHARE[with sharing class — record-level access]
     SHARE --> Q2{Reading or writing?}
     Q2 -->|Reading via SOQL| Q3{Need a hard fail or graceful strip on inaccessible fields?}
-    Q3 -->|Hard fail is correct| SE[WITH SECURITY_ENFORCED in the SOQL]
+    Q3 -->|Hard fail is correct| SE[WITH USER_MODE in the SOQL]
     Q3 -->|Strip & continue| SI_READ[Security.stripInaccessible AccessType.READABLE]
     Q2 -->|Writing via DML| SI_WRITE[Security.stripInaccessible AccessType.CREATABLE/UPDATABLE before DML]
     SHARE --> Q4{Whole method should run in user mode end-to-end?}
@@ -67,22 +69,22 @@ flowchart TD
 ```
 
 **Rationale per leaf:**
-- *with sharing* — the default; enforces **record-level** OWD/sharing for the running user. **requires:** nothing; it is the baseline posture.
-- *WITH SECURITY_ENFORCED* — enforces **field- and object-level** read access *in the query*; **throws** if the user lacks access to any selected field — use when a missing field is an error, not a silent omission.
+- *with sharing* — the default; enforces **record-level** OWD/sharing for the running user. **requires:** nothing; it is the baseline posture (and on **API v67.0+** it is the implicit default when no keyword is given).
+- *WITH USER_MODE* — enforces **field- and object-level** access *in the query* in user mode; **throws** if the user lacks access — use when a missing field is an error, not a silent omission. Replaces the removed `WITH SECURITY_ENFORCED` on **API v67.0+**: it additionally handles polymorphic fields (`Owner`, `Task.whatId`), enforces the `WHERE` clause, and returns **all** FLS errors rather than only the first.
 - *Security.stripInaccessible (READABLE)* — removes inaccessible fields from results **without throwing**, so partial reads degrade gracefully — use when you'd rather return what the user can see.
 - *Security.stripInaccessible (CREATABLE/UPDATABLE)* — strips fields the user can't write **before** the DML, preventing an FLS bypass on insert/update.
-- *AccessLevel.USER_MODE* — runs the query/DML in user mode (FLS + sharing) as one switch; the modern end-to-end enforcement when you want uniform user-mode behavior.
-- *without sharing* — only for a **documented** system operation that must see all records; scoped narrowly, never the default.
+- *AccessLevel.USER_MODE* — runs the query/DML in user mode (FLS + sharing) as one switch; the modern end-to-end enforcement when you want uniform user-mode behavior. On **API v67.0+** this is the *default* for database operations; pass `AccessLevel.SYSTEM_MODE` explicitly to opt out.
+- *without sharing* — only for a **documented** system operation that must see all records; scoped narrowly, never the default. On **API v67.0+** it must be declared **explicitly** (the old implicit `without sharing` default is gone).
 
 **Tradeoffs summary table:**
 
 | Mechanism | Enforces | On inaccessible field | Use when |
 |---|---|---|---|
-| `with sharing` | record-level (OWD/sharing) | n/a (records, not fields) | always, by default, in user context |
-| `WITH SECURITY_ENFORCED` | field + object read | **throws** `QueryException` | a missing field must be a hard error |
+| `with sharing` | record-level (OWD/sharing) | n/a (records, not fields) | always, by default, in user context (implicit default on v67.0+) |
+| `WITH USER_MODE` | field + object access (user mode) | **throws** (reports all FLS errors; handles polymorphic fields) | a missing field must be a hard error — replaces removed `WITH SECURITY_ENFORCED` on v67.0+ |
 | `stripInaccessible` (READABLE) | field read | silently strips | partial read should degrade gracefully |
 | `stripInaccessible` (CREATABLE/UPDATABLE) | field write | strips before DML | prevent FLS bypass on insert/update |
-| `AccessLevel.USER_MODE` | FLS + sharing, query+DML | throws on violation | uniform user-mode for the whole operation |
+| `AccessLevel.USER_MODE` | FLS + sharing, query+DML | throws on violation | uniform user-mode for the whole operation (default on v67.0+; opt out via `SYSTEM_MODE`) |
 
 ---
 

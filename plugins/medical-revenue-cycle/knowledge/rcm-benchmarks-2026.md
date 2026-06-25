@@ -20,8 +20,16 @@ High performers run days-in-A/R <30 (31–40 acceptable per MGMA/AAFP/HFMA); A/R
 
 > Caveat: the "denials rose from 30% (2022) to 41% (2025)" figure in some vendor blogs is **[unverified]** and conflicts with AHA's 11.8% (2024) initial-denial-rate; do not cite without a primary source.
 
+## CY2026 regulatory facts (added 2026-06-25)
+
+**Medicare conversion factor — now TWO, not one (effective 2026-01-01).** The CMS CY2026 Physician Fee Schedule final rule (**CMS-1832-F**, finalized 2025-10-31) sets, as required by statute, **two** conversion factors effective 2026-01-01: **$33.57** for QPs (qualifying APM participants) and **$33.40** for non-QPs — replacing the prior single conversion factor. Any model or worksheet still applying one CF must be corrected to the QP/non-QP split (§3 #4 — the fee schedule, not gross charges, sets allowed). Both are increases over the prior $32.35 CF (+3.77% QP / +3.26% non-QP) (§8 #1).
+
+**CPT 2026 = 418 editorial changes (effective 2026-01-01).** The AMA CPT 2026 code set carries **418** editorial changes — **288 new / 84 deleted / 46 revised** — including a lower-extremity (leg) revascularization overhaul, new short-duration RPM codes, and a new hearing-device code family **92628–92642**. **Deleted codes are invalid for dates of service on/after 2026-01-01** — billing a deleted code is a front-end-preventable denial (§3 #6, #7). Validate any 2025-era code against the 2026 set before a date of service in 2026 (§8 #2).
+
 ## Sources
 
+- [CMS — Calendar Year (CY) 2026 Medicare Physician Fee Schedule Final Rule (CMS-1832-F)](https://www.cms.gov/newsroom/fact-sheets/calendar-year-cy-2026-medicare-physician-fee-schedule-final-rule-cms-1832-f) — retrieved 2026-06-25
+- [AMA — AMA releases CPT 2026 code set](https://www.ama-assn.org/press-center/ama-press-releases/ama-releases-cpt-2026-code-set) — retrieved 2026-06-25
 - [HFMA — Standardizing denial metrics for RCM benchmarking](https://www.hfma.org/guidance/standardizing-denial-metrics-revenue-cycle-benchmarking-process-improvement/) — retrieved 2026-06-04
 - [HFMA — 7 KPIs providers should be tracking](https://www.hfma.org/revenue-cycle/kpis/7-kpis-providers-should-be-tracking/) — retrieved 2026-06-05
 - [MD Clarity — RCM benchmarks](https://www.mdclarity.com/blog/rcm-benchmarks) and [Claim Denial Rate](https://www.mdclarity.com/rcm-metrics/claim-denial-rate) — retrieved 2026-06-05
