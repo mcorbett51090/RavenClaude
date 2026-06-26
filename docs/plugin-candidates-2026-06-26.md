@@ -167,7 +167,7 @@ for freshness/disclaimer burden:
 ## Build status (this PR)
 
 - **Built fully:** **#1 pricing-monetization** — 2 agents, skills, a 3-doc knowledge
-  bank with decision trees, best-practices, templates, scenarios, manifests, wired into
+  bank with decision trees, best-practices, templates, manifests, wired into
   `marketplace.json` and `docs/architecture.md`. See `plugins/pricing-monetization/`.
 - **Documented for follow-up:** #2–#10 above, each with an approach + dependency outline
   ready to build in subsequent PRs (one plugin per PR keeps CI's count gates from

@@ -38,7 +38,6 @@ Three plugins sit *around* a price but none owns it:
 - **Knowledge bank (3 docs)** — three Mermaid decision trees (model / value-metric / WTP-method), a monetization-metric glossary with formulas, and a dated 2026 reference (model trends, AI-product pricing, packaging patterns, the price-change playbook).
 - **10 best-practices** — value-not-cost, value-metric-first, WTP-is-researched, fence-don't-list, realized-price, change-is-a-migration, NRR-scoreboard, freemium-is-a-CAC-line, decompose-lift-from-mix-shift, not-legal-advice.
 - **3 templates** — packaging-design worksheet, price-change rollout plan, WTP-study brief.
-- **Scenarios bank** — per-seat-caps-an-AI-product, everyone-buys-the-cheapest-tier, did-the-price-increase-work.
 
 ## Install
 
