@@ -2655,6 +2655,32 @@
         "sync-engine",
         "eventual-consistency"
       ]
+    },
+    {
+      "name": "pricing-monetization",
+      "source": "./plugins/pricing-monetization",
+      "description": "Pricing & monetization team — 2 agents (pricing-strategist, monetization-analyst) that own the question no other plugin answers: what to charge and how to package it. Covers pricing-model selection (subscription / usage / per-seat / tiered / freemium / hybrid), the value-metric choice, packaging & tiering (good-better-best, fencing, add-ons), willingness-to-pay research (Van Westendorp, Gabor-Granger, conjoint), discount & price-change governance, and monetization metrics (ARPA, NRR, expansion, discount leakage, the rule-of-40 caveat). 5 skills, a 3-doc knowledge bank with Mermaid decision trees (model selection, value-metric, WTP-method) + a dated 2026 reference, 10 best-practices, 3 templates, a scenarios bank. Domain-neutral. Seams: model mechanics → finance; what-to-build → product-management; quota/comp → sales-revops; is-the-price-test-real → applied-statistics. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "pricing",
+        "monetization",
+        "pricing-strategy",
+        "saas-pricing",
+        "packaging",
+        "value-metric",
+        "willingness-to-pay",
+        "van-westendorp",
+        "freemium",
+        "usage-based-pricing",
+        "price-elasticity",
+        "discount-governance",
+        "nrr",
+        "arpa",
+        "rule-of-40"
+      ]
     }
   ]
 }
