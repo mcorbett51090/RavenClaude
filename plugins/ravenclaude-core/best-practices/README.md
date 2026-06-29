@@ -8,7 +8,7 @@ For the marketplace-wide best-practice library (CI gates, hook authoring, versio
 
 ## Index
 
-_24 rules._
+_25 rules._
 
 | Doc | Status | Use when |
 |---|---|---|
@@ -36,6 +36,7 @@ _24 rules._
 | [`claude-md-imports-organize-they-dont-shrink-context.md`](./claude-md-imports-organize-they-dont-shrink-context.md) | Pattern | Structuring a `CLAUDE.md` with `@imports` — they organize content, they do NOT shrink its context cost (imported files are still loaded); prune, don't just split. |
 | [`scope-the-reviewer-to-correctness-or-it-manufactures-work.md`](./scope-the-reviewer-to-correctness-or-it-manufactures-work.md) | Pattern | Briefing a code-reviewer agent — scope it to correctness/risk or it manufactures low-value churn. |
 | [`expensive-test-front-loading.md`](./expensive-test-front-loading.md) | Pattern | A test costs a scarce resource (a human re-fire, a long run, a billed turn, a deploy) — exhaustively static-validate first so each expensive test exercises a fully-validated change; prefer a deterministic validator over a "remember to check" rule. |
+| [`output-styles-replace-the-system-prompt-keep-coding-instructions-when-still-coding.md`](./output-styles-replace-the-system-prompt-keep-coding-instructions-when-still-coding.md) | Pattern | Authoring a Claude Code output style — a custom style silently replaces the software-engineering system prompt (scope/verify/security) unless you set `keep-coding-instructions: true`; keep it whenever the style is still doing coding work. |
 
 ---
 

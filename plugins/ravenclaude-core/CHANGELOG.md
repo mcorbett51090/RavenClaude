@@ -2,6 +2,12 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.183.0 — 2026-06-29
+
+### Added
+
+- **New best-practice — "Output styles replace the system prompt — keep the coding instructions when you're still coding."** A custom Claude Code output style **overwrites** the built-in software-engineering system prompt (scope-narrowly / verify-before-done / security instincts) unless you set `keep-coding-instructions: true` — a silent degradation with no error. The rule encodes the decision (re-voice the coder → keep the preset; replace the role → drop it deliberately) and where the output style sits on the instruction-method ladder. Core best-practices index 24 → 25 rules. Grounded in the 2026-06-29 subreddit scan ([`docs/research/2026-06-29-claude-subreddit-scan/README.md`](../../docs/research/2026-06-29-claude-subreddit-scan/README.md)). **Migration:** none — additive markdown.
+
 ## 0.171.1 — 2026-06-24
 
 ### Fixed
