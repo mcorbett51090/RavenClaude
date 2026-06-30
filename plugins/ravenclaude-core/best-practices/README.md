@@ -8,7 +8,7 @@ For the marketplace-wide best-practice library (CI gates, hook authoring, versio
 
 ## Index
 
-_24 rules._
+_25 rules._
 
 | Doc | Status | Use when |
 |---|---|---|
@@ -30,6 +30,7 @@ _24 rules._
 | [`check-constraint-scope-before-citing-it.md`](./check-constraint-scope-before-citing-it.md) | Absolute rule | Any agent is about to refuse an action or recommend against something by citing a rule. |
 | [`checkpoints-are-the-recovery-layer-not-a-substitute-for-commits.md`](./checkpoints-are-the-recovery-layer-not-a-substitute-for-commits.md) | Pattern | Setting up a fast-iterating or unsupervised session — when to use `/rewind` (Esc-Esc) vs. a git commit, and what checkpoints structurally can't undo. |
 | [`permissions-are-deny-ask-allow-not-an-on-off-switch.md`](./permissions-are-deny-ask-allow-not-an-on-off-switch.md) | Pattern | Configuring a project's permission posture — sorting operations into `deny`/`ask`/`allow` (eval order, the reversibility taxonomy) instead of reaching for bypass-everything or approve-reflexively. |
+| [`the-permission-list-is-policy-the-sandbox-is-containment.md`](./the-permission-list-is-policy-the-sandbox-is-containment.md) | Pattern | Hardening an autonomous / scheduled session — pair the `deny`/`ask`/`allow` policy with Claude Code's OS-enforced Bash sandbox (`sandbox.enabled`, filesystem + network isolation) so a name-deceptive or mis-classified command can't escape the working dir or exfiltrate creds. |
 | [`mcp-tool-context-is-a-budget-enable-only-what-you-need.md`](./mcp-tool-context-is-a-budget-enable-only-what-you-need.md) | Pattern | Deciding which MCP servers to enable — every enabled server preloads its full tool schemas into the context window, so right-size the set, prefer tool-search/lazy-loading, and measure with `/context`. |
 | [`isolate-parallel-claude-instances-in-git-worktrees.md`](./isolate-parallel-claude-instances-in-git-worktrees.md) | Pattern | Running two or more independent Claude Code instances at once — give each its own git worktree/branch so concurrent writers don't stomp one working tree (the peer-process complement to the sub-agent fan-out rule). |
 | [`keep-skill-bodies-lean-let-progressive-disclosure-carry-the-detail.md`](./keep-skill-bodies-lean-let-progressive-disclosure-carry-the-detail.md) | Pattern | Authoring a SKILL.md — keep the body lean and push depth into `resources/` so progressive disclosure carries the detail (the body is always loaded; resources load on demand). |
