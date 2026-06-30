@@ -1,6 +1,6 @@
 # Claude Code permissions — the load-bearing model
 
-> **Last reviewed:** 2026-05-25 against the Anthropic Claude Code documentation site at code.claude.com (permissions, permission-modes, settings, tools-reference, **hooks, hooks-guide, and agent-sdk/hooks** pages) AND the canonical GitHub Security Advisories at `github.com/anthropics/claude-code/security/advisories`. The 2026-05-25 pass added the **"Advanced JSON output protocol"** section below (PreToolUse `hookSpecificOutput` — `permissionDecision`, `updatedInput`, hook types, bypass interaction). The 2026-05-26 pass added the **"SessionStart hooks: `additionalContext`"** section (context injection, not gating). The **2026-06-08** pass added the full **"hook-event catalog"** (~30 events) + the **`PermissionRequest` `behavior ∈ {allow, deny}`-only** constraint, and expanded the **handler-types** table to the full five (`command`/`http`/`mcp_tool`/`prompt`/`agent`) — sourced from [hooks](https://code.claude.com/docs/en/hooks) + [plugins-reference](https://code.claude.com/docs/en/plugins-reference) (retrieved 2026-06-08). **Refresh when:** Anthropic ships a new permission mode, adds documented prompt-verbosity controls, changes the cross-layer merge rule, changes the hook output schema, or publishes a new security advisory affecting the permission model. Companion to [`../skills/permission-hygiene/SKILL.md`](../skills/permission-hygiene/SKILL.md).
+> **Last reviewed:** 2026-05-25 against the Anthropic Claude Code documentation site at code.claude.com (permissions, permission-modes, settings, tools-reference, **hooks, hooks-guide, and agent-sdk/hooks** pages) AND the canonical GitHub Security Advisories at `github.com/anthropics/claude-code/security/advisories`. The 2026-05-25 pass added the **"Advanced JSON output protocol"** section below (PreToolUse `hookSpecificOutput` — `permissionDecision`, `updatedInput`, hook types, bypass interaction). The 2026-05-26 pass added the **"SessionStart hooks: `additionalContext`"** section (context injection, not gating). The **2026-06-08** pass added the full **"hook-event catalog"** (~30 events) + the **`PermissionRequest` `behavior ∈ {allow, deny}`-only** constraint, and expanded the **handler-types** table to the full five (`command`/`http`/`mcp_tool`/`prompt`/`agent`) — sourced from [hooks](https://code.claude.com/docs/en/hooks) + [plugins-reference](https://code.claude.com/docs/en/plugins-reference) (retrieved 2026-06-08). The **2026-06-30** routine sweep added four **PRIMARY-VERIFIED** Claude Code CHANGELOG facts (fetched & confirmed against `raw.githubusercontent.com/anthropics/claude-code/main/CHANGELOG.md`): the **`Tool(param:value)` / `Agent(model:opus)` permission syntax** (v2.1.178) + the `Agent(type)` enforcement fix (v2.1.186); the **glob-in-deny `"*"` denies all tools** rule (v2.1.166); the **`sandbox.credentials`** setting (v2.1.187); the **`post-session` lifecycle hook** (v2.1.169); and the **hyphenated-matcher exact-match** fix (v2.1.195). **Refresh when:** Anthropic ships a new permission mode, adds documented prompt-verbosity controls, changes the cross-layer merge rule, changes the hook output schema, or publishes a new security advisory affecting the permission model. Companion to [`../skills/permission-hygiene/SKILL.md`](../skills/permission-hygiene/SKILL.md).
 
 This document is the long-form "why these patterns" reference behind the [`permission-hygiene`](../skills/permission-hygiene/SKILL.md) skill. The skill tells you what to do; this file tells you what the model is and where the surprises live.
 
@@ -8,12 +8,15 @@ This document is the long-form "why these patterns" reference behind the [`permi
 
 ## The schema
 
-Permission rules live under `permissions.allow`, `permissions.ask`, and `permissions.deny` in any of the four settings files. Each rule is a string in one of two shapes:
+Permission rules live under `permissions.allow`, `permissions.ask`, and `permissions.deny` in any of the four settings files. Each rule is a string in one of three shapes:
 
 - `Tool` — the bare tool name (e.g. `Bash`, `WebSearch`)
 - `Tool(specifier)` — the tool name plus a tool-specific specifier (e.g. `Bash(git status:*)`, `WebFetch(domain:github.com)`, `Read(/etc/**)`)
+- `Tool(param:value)` — **(Claude Code v2.1.178, 2026-06-15)** the tool name plus a match on a tool *input parameter* (with `*` wildcard), e.g. **`Agent(model:opus)`** to block any subagent spawned on an Opus model. This is the deterministic settings-layer lever for constraining *which subagents/models* may be spawned — relevant to RavenClaude's single-orchestrator dispatch policy, today enforced only by the **soft** `guard-recursive-spawn.sh` hook (a deliberate house policy, not a platform constraint — see CLAUDE.md § "Multi-Agent Coordination"). A companion fix in **v2.1.186** made `Agent(type)` deny rules and `Agent(x,y)` allowed-types restrictions actually enforced for *named* subagent spawns (they previously weren't). `[PRIMARY-VERIFIED 2026-06-30 against the anthropics/claude-code CHANGELOG]`
 
 A **bare-tool deny** like `deny: ["Bash"]` removes the tool from Claude's context entirely — Claude never sees it. A **scoped deny** like `Bash(rm *)` leaves the tool available and blocks matching calls. This is the most-surprising bit of the model: people add `deny: ["Bash"]` expecting "block destructive shell" and end up with "no shell at all."
+
+**Glob in the deny tool-name position (Claude Code v2.1.166, 2026-06-06):** a deny rule's *tool-name* position now accepts a glob — `deny: ["*"]` **denies all tools** (a deny-by-default posture useful for the comfort-posture deny-floor translation). **Allow** rules still reject non-MCP globs, so `"*"` is a deny-only lever. `[PRIMARY-VERIFIED 2026-06-30 against the anthropics/claude-code CHANGELOG]`
 
 ## Precedence — the cross-layer merge rule
 
@@ -91,6 +94,8 @@ Rules for `Read(...)` and `Edit(...)` follow gitignore semantics with four ancho
 **`Edit(...)` implicitly grants `Read(...)` on the same path.** Don't write paired rules.
 
 **Critical gap:** `Read`/`Edit` rules **do not protect against subprocess access.** A `Read(**/.env)` deny does not stop a Python script Claude writes (`python -c "open('.env').read()"`) from reading the file. OS-level enforcement requires the Claude Code sandbox feature.
+
+**Tightening that subprocess gap (Claude Code v2.1.187, 2026-06-23):** a new **`sandbox.credentials`** setting blocks sandboxed commands from **reading credential files and secret environment variables** — a credential-read-blocking knob on top of the existing OS sandbox (`denyRead`/`denyWrite`/`autoAllowBashIfSandboxed`). It still operates at the **OS-sandbox layer and is Claude-only** (Copilot CLI does not honor the Claude sandbox — the container/worktree remains the portable containment; see CLAUDE.md § "Containment posture"). It does not change the tool-layer truth above (a non-sandboxed subprocess is still unconstrained by `Read`/`Edit` denies). `[PRIMARY-VERIFIED 2026-06-30 against the anthropics/claude-code CHANGELOG]`
 
 ## The "more prompt detail" question
 
@@ -240,6 +245,10 @@ A hook entry declares a handler `type`. The full set is **five**:
 
 The last two (`prompt`, `agent`) call an LLM, so they cost a model round-trip per fire — reserve them for the calls that genuinely need judgment. (Verified 2026-06-08; `prompt`/`agent` previously documented here as PreToolUse-only additions, now confirmed as first-class handler types across the events that support them.)
 
+### Hook matchers — hyphenated identifiers exact-match (v2.1.195, 2026-06-26)
+
+Claude Code **v2.1.195** fixed hook matchers with **hyphenated identifiers** (e.g. `code-reviewer`, `mcp__brave-search`) that were accidentally **substring-matching** — they now **exact-match**. Practical consequence for a hook author: to match *all* tools/verbs of a hyphenated MCP server you must now use a regex form, e.g. **`mcp__brave-search__.*`** — a bare `mcp__brave-search` no longer substring-matches every verb. This is load-bearing for RavenClaude: its `hooks.json` ships hyphenated agent names (`code-reviewer`, `security-reviewer`) and a `mcp__.*` matcher. The marketplace's matchers are unaffected because they already use **regex/alternation forms** (`Edit|Write|MultiEdit`, `mcp__.*`) — it is *bare* hyphenated identifiers that changed behavior — but any new bare-hyphenated matcher must now be written as an explicit regex. `[PRIMARY-VERIFIED 2026-06-30 against the anthropics/claude-code CHANGELOG]`
+
 ## The hook-event catalog (the full event surface)
 
 > Reviewed 2026-06-08 against [hooks](https://code.claude.com/docs/en/hooks) + [plugins-reference](https://code.claude.com/docs/en/plugins-reference). The earlier passes here documented only the handful of events RavenClaude wires (`SessionStart` / `PreToolUse` / `PostToolUse` / `Stop`); this catalog records the **full ~30-event surface** so a hook author picks the right event instead of overloading `PreToolUse`/`PostToolUse`.
@@ -251,6 +260,7 @@ Claude Code now fires roughly thirty lifecycle events. The ones a guardrail or o
 | `SessionStart` | A session begins (`startup`/`resume`/`clear`/`compact`). | Inject a capability banner (`additionalContext`). Cannot gate. |
 | `Setup` | One-time environment setup at session bootstrap. | Provision/verify the workspace. |
 | `SessionEnd` | A session ends. | Flush run artifacts, emit a summary. |
+| `post-session` | After the session ends and **before the workspace is deleted** (Claude Code v2.1.169, 2026-06-08). | Finalize run artifacts that must survive workspace teardown — a natural complement to the current `Stop`-hook artifact wiring. `[PRIMARY-VERIFIED 2026-06-30 against the anthropics/claude-code CHANGELOG]` |
 | `UserPromptSubmit` | The user submits a prompt. | Pre-screen / annotate the prompt. |
 | `UserPromptExpansion` | A prompt's references/macros are expanded. | Inspect the expanded form. |
 | `InstructionsLoaded` | CLAUDE.md / AGENTS.md / rule files are loaded. | Audit which instruction files took effect. |
