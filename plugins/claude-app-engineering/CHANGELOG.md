@@ -2,6 +2,18 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.9.6] — 2026-06-30
+
+### Added
+
+- **2026-06-30 routine research sweep — five PRIMARY-VERIFIED platform release-notes facts** (each fetched and confirmed this session against `platform.claude.com/docs/en/release-notes/overview`, then vetted by a two-panel usefulness + mergeability review):
+  - **Workload Identity Federation (WIF) GA — 2026-05-04.** Short-lived OIDC tokens replace static `sk-ant-` keys; added to the capability-status table and the `claude-app-finops-reliability-and-security.md` Security section (strengthens house opinion #8).
+  - **Rate limits raised + usage tiers consolidated to Start/Build/Scale — 2026-06-26.** Sonnet/Haiku now match Opus at every tier; the cheap-triage rungs of the routing ladder are now less rate-limit-constrained. Capability-map row.
+  - **`code_execution_20260120` — 2026-06-18.** REPL state persistence; minimum version for programmatic tool calling; no beta header; Fable 5 / Mythos 5 / Opus 4.5+ / Sonnet 4.5+. Added to `server-side-tools-and-files.md` (code-execution) + capability map.
+  - **Mid-conversation system messages (Opus 4.8) — 2026-05-28.** Change instructions mid-session while preserving prompt-cache hits; no beta header. Added to `prompt-caching-playbook.md` + capability map.
+  - **`web_search_20260318` / `web_fetch_20260318` `response_inclusion` — 2026-06-11.** Drops consumed result blocks from the response (context/token saver); no beta header. Added to `server-side-tools-and-files.md` (web search/fetch) + capability map.
+- Capability map `Last reviewed` re-dated 2026-06-30 with the sweep note. **Migration:** none — dated knowledge-bank additions only; no default changed.
+
 ## [0.9.5] — 2026-06-24
 
 ### Changed

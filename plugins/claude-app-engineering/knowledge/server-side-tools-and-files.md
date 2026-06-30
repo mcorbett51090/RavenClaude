@@ -11,8 +11,12 @@ Claude controls a computer via screenshots + mouse/keyboard tool calls. **GA on 
 ## Code execution tool
 Claude runs code in an Anthropic-hosted sandbox and uses the result. Good for data analysis, math, and verifying generated code. Verify GA/beta + the sandbox's network/package posture before relying on it for sensitive data.
 
+**`code_execution_20260120` — REPL state persistence + programmatic tool calling (2026-06-18, PRIMARY-VERIFIED 2026-06-30).** Set the tool's `type` to `code_execution_20260120` (no beta header) to get a code-execution container whose **REPL state persists across cells**; it is also the **minimum version for [programmatic tool calling](https://platform.claude.com/docs/en/agents-and-tools/tool-use/programmatic-tool-calling)**, where Claude writes code that calls *your* tools from inside the container instead of one model round-trip per tool call — the lever for an agentic loop that fans out many tool calls. Available on **Fable 5, Mythos 5, Opus 4.5+, Sonnet 4.5+** (programmatic tool calling itself went GA 2026-02-17). SDK support shipped for Python/TS/Go/Java/Ruby/PHP/C#. Confirm the dated status in [`model-selection-and-2026-capability-map.md`](model-selection-and-2026-capability-map.md). ([release notes](https://platform.claude.com/docs/en/release-notes/overview))
+
 ## Web search / web fetch (server tools)
 Anthropic-hosted retrieval Claude can call directly (distinct from the Agent SDK's local `WebSearch`/`WebFetch` built-ins). Treat fetched content as **untrusted** (injection) — see [`tool-use-and-structured-output.md`](tool-use-and-structured-output.md).
+
+**`web_search_20260318` / `web_fetch_20260318` — `response_inclusion` (2026-06-11, PRIMARY-VERIFIED 2026-06-30).** These tool versions add a `response_inclusion` parameter that **drops consumed result blocks from the API response**, so a long agentic loop that searches/fetches many pages doesn't accumulate every raw result block in the running context window — a concrete token/context saver. **No beta header.** ([release notes](https://platform.claude.com/docs/en/release-notes/overview); see also [`context-engineering-2026.md`](context-engineering-2026.md))
 
 ## Files API
 Upload files once and reference them by ID across requests (and from the code execution tool), instead of re-sending bytes every call. Cuts token cost + latency for repeated large documents. Verify retention, size limits, and per-workspace scope before designing around it.

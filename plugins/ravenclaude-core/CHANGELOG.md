@@ -2,6 +2,18 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.182.1 — 2026-06-30
+
+### Added
+
+- **2026-06-30 routine research sweep — four PRIMARY-VERIFIED Claude Code CHANGELOG facts** added to `knowledge/claude-code-permissions.md` (each fetched and confirmed this session against `raw.githubusercontent.com/anthropics/claude-code/main/CHANGELOG.md`, then vetted by a two-panel usefulness + mergeability review):
+  - **`Tool(param:value)` permission syntax** — e.g. `Agent(model:opus)` to block Opus subagents (v2.1.178); plus the v2.1.186 fix making `Agent(type)` deny rules / `Agent(x,y)` allowed-types restrictions actually enforced for named spawns. Documents a deterministic settings-layer lever complementing the soft `guard-recursive-spawn.sh` dispatch guard.
+  - **Glob in the deny tool-name position** — `deny: ["*"]` denies all tools; allow rules still reject non-MCP globs (v2.1.166).
+  - **`sandbox.credentials`** — OS-sandbox setting blocking sandboxed commands from reading credential files / secret env vars (v2.1.187); still Claude-only, noted against the existing subprocess-access caveat.
+  - **`post-session` lifecycle hook** — runs after session end, before workspace deletion (v2.1.169); added to the hook-event catalog.
+  - **Hyphenated-matcher exact-match fix** (v2.1.195) — bare hyphenated identifiers no longer substring-match; match all verbs of a hyphenated MCP server via `mcp__<server>__.*`. Notes RavenClaude's own regex/alternation matchers are unaffected.
+- Permissions-doc `Last reviewed` re-dated 2026-06-30 with the sweep note. **Migration:** none — dated knowledge-file additions only; no hook, script, or default changed.
+
 ## 0.171.1 — 2026-06-24
 
 ### Fixed
