@@ -250,9 +250,14 @@ PY
       bash plugins/power-platform/hooks/tests/test-nudge-preflight.sh
       exit $?
       ;;
+    126)
+      echo "── Gate 126: managed-solution-import pure-logic (PROD-guard / SSRF allow-list / baseline-by-stable-key / flag-economy / teeth) ──"
+      bash plugins/power-platform/hooks/tests/test-managed-import.sh
+      exit $?
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -3723,6 +3728,8 @@ rc=0; bash plugins/power-platform/hooks/tests/test-preflight.sh >/dev/null 2>&1 
 gate "dataverse-payload-preflight: catches all violation classes in one pass + clean on good + teeth" must_pass "$rc"
 rc=0; bash plugins/power-platform/hooks/tests/test-nudge-preflight.sh >/dev/null 2>&1 || rc=$?
 gate "nudge-dataverse-preflight: fires on Dataverse create/update under posture + silent on GET/opt-out + teeth" must_pass "$rc"
+rc=0; bash plugins/power-platform/hooks/tests/test-managed-import.sh >/dev/null 2>&1 || rc=$?
+gate "managed-solution-import: PROD-guard boundaries + SSRF allow-list + baseline-by-stable-key + flag-economy + teeth" must_pass "$rc"
 
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"
