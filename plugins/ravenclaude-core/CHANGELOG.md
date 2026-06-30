@@ -2,6 +2,12 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.183.0 — 2026-06-30
+
+### Added
+
+- **New consumer best-practice: "The permission list is policy; the OS-enforced sandbox is containment — run both"** ([`best-practices/the-permission-list-is-policy-the-sandbox-is-containment.md`](best-practices/the-permission-list-is-policy-the-sandbox-is-containment.md)) — the 25th rule. The containment-layer companion to `permissions-are-deny-ask-allow-not-an-on-off-switch.md`: a permission decision is made *before* a command runs from its string, so it can be wrong when a command does more than its name suggests; Claude Code's OS-enforced Bash sandbox (`sandbox.enabled`, filesystem + network isolation via Seatbelt/bubblewrap) bounds a *running* process regardless. Grounded in Anthropic's [sandboxing docs](https://code.claude.com/docs/en/sandboxing) ("complementary layers", "not a complete isolation boundary") and this repo's own unattended-scheduled-routine posture. From the [2026-06-30 subreddit scan](../../docs/research/2026-06-30-claude-subreddit-scan/README.md). **Migration:** none — additive markdown.
+
 ## 0.171.1 — 2026-06-24
 
 ### Fixed
