@@ -76,6 +76,11 @@ _DATAVERSE_HOST_RE = re.compile(
     r"(?:dynamics\.com|microsoftdynamics\.us|appsplatform\.us|dynamics\.cn)$"
 )
 
+# AAD login hosts (commercial + sovereign) — gates redirects on the token endpoint (FM5 parity).
+_AAD_LOGIN_HOST_RE = re.compile(
+    r"^login\.(?:microsoftonline\.com|microsoftonline\.us|partner\.microsoftonline\.cn)$"
+)
+
 # A GUID, for impersonation-OID validation.
 _GUID_RE = re.compile(
     r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
@@ -123,6 +128,10 @@ def _eprint(msg: str) -> None:
 # ── PURE LOGIC (no network / no subprocess) — this is what the gate unit-tests ──────
 def is_allowed_dataverse_host(host: str | None) -> bool:
     return bool(host) and bool(_DATAVERSE_HOST_RE.match(host.lower()))
+
+
+def is_aad_login_host(host: str | None) -> bool:
+    return bool(host) and bool(_AAD_LOGIN_HOST_RE.match(host.lower()))
 
 
 def validate_env_url(url: str) -> str:
@@ -257,20 +266,25 @@ def build_pac_argv(
     return argv
 
 
-def flow_key(flow: dict) -> str:
-    """Stable identity for a flow across a managed import (FM6): prefer the solution
-    unique-ish name; fall back to the display name. NOT the workflowid — a managed import
-    can recreate the row with a new GUID."""
-    return str(flow.get("uniquename") or flow.get("name") or flow.get("workflowid") or "")
+def flow_key(flow: dict) -> str | None:
+    """Stable identity for a flow across a managed import (FM6): the solution unique name.
+    Returns None when absent — callers MUST skip+warn rather than fall back to the non-unique
+    display name (a name collision could reactivate the wrong flow), and never the workflowid
+    (a managed import can recreate the row with a new GUID)."""
+    uniquename = flow.get("uniquename")
+    return str(uniquename) if uniquename else None
 
 
 def reactivation_targets(baseline_active: list[dict], current_flows: list[dict]) -> list[dict]:
     """The flows to PATCH back to Active: currently Draft AND Active in the baseline, matched
-    by STABLE key (FM6). Never reactivates a flow that was Draft pre-import. Pure."""
-    active_keys = {flow_key(f) for f in baseline_active}
+    by STABLE key (FM6). A flow without a stable key (no uniquename) is skipped — never matched
+    on its display name. Never reactivates a flow that was Draft pre-import. Pure."""
+    active_keys = {k for f in baseline_active if (k := flow_key(f)) is not None}
     targets = []
     for f in current_flows:
-        if int(f.get("statecode", STATE_DRAFT)) == STATE_DRAFT and flow_key(f) in active_keys:
+        key = flow_key(f)
+        if key is not None and key in active_keys \
+                and int(f.get("statecode", STATE_DRAFT)) == STATE_DRAFT:
             targets.append(f)
     return targets
 
@@ -304,22 +318,23 @@ def is_durable_403(message: str) -> str:
 
 
 # ── I/O EDGES (network / subprocess) — thin, injectable, not unit-tested live ───────
-def _build_opener() -> urllib.request.OpenerDirector:
-    """An opener that refuses cross-host redirects so a 3xx can never re-attach the bearer
-    token to a foreign host (FM4)."""
+def _build_opener(host_ok) -> urllib.request.OpenerDirector:  # noqa: ANN001
+    """An opener that refuses any redirect to a different or non-allow-listed host, so a 3xx can
+    never re-attach a credential to a foreign host (FM4 data-plane; FM5 parity for the token
+    endpoint). `host_ok(host)` gates the redirect target."""
 
-    class _NoCrossHostRedirect(urllib.request.HTTPRedirectHandler):
+    class _GuardedRedirect(urllib.request.HTTPRedirectHandler):
         def redirect_request(self, req, fp, code, msg, headers, newurl):  # noqa: ANN001
             old = (urlparse(req.full_url).hostname or "").lower()
             new = (urlparse(newurl).hostname or "").lower()
-            if new != old or not is_allowed_dataverse_host(new):
+            if new != old or not host_ok(new):
                 raise urllib.error.HTTPError(
                     req.full_url, code,
-                    f"refused redirect to {new!r} (cross-host or non-Dataverse)", headers, fp,
+                    f"refused redirect to {new!r} (cross-host or not allow-listed)", headers, fp,
                 )
             return super().redirect_request(req, fp, code, msg, headers, newurl)
 
-    return urllib.request.build_opener(_NoCrossHostRedirect())
+    return urllib.request.build_opener(_GuardedRedirect())
 
 
 def acquire_token(org_url: str) -> str:
@@ -360,7 +375,7 @@ def acquire_token(org_url: str) -> str:
         headers={"Content-Type": "application/x-www-form-urlencoded"},
     )
     try:
-        with urllib.request.urlopen(req, timeout=30) as r:  # noqa: S310
+        with _build_opener(is_aad_login_host).open(req, timeout=30) as r:  # noqa: S310
             tok = json.loads(r.read().decode())["access_token"]
     except urllib.error.HTTPError as e:
         raise RuntimeError(f"token endpoint returned HTTP {e.code} {e.reason}") from None
@@ -444,7 +459,7 @@ def _classified_prod(env_name: str | None, cfg: dict) -> bool:
 def cmd_baseline(args, cfg) -> int:
     env_url, _, oid = _resolve_env(args, cfg)
     token = acquire_token(env_url)
-    opener = _build_opener()
+    opener = _build_opener(is_allowed_dataverse_host)
     flows = query_solution_flows(opener, env_url, token, oid)
     active = [f for f in flows if int(f.get("statecode", 0)) == STATE_ACTIVE]
     out = {"env_url": env_url, "active_flows": active, "total_flows_queried": len(flows)}
@@ -469,8 +484,13 @@ def cmd_reactivate(args, cfg) -> int:
     env_url, _, oid = _resolve_env(args, cfg)
     baseline_active = _read_baseline(args)
     token = acquire_token(env_url)
-    opener = _build_opener()
+    opener = _build_opener(is_allowed_dataverse_host)
     current = query_solution_flows(opener, env_url, token, oid)
+    keyless = [f for f in current
+               if flow_key(f) is None and int(f.get("statecode", 0)) == STATE_DRAFT]
+    if keyless:
+        _eprint(f"[managed-import] {len(keyless)} Draft flow(s) lack a solution unique name and "
+                "were skipped (cannot stably identify; refusing to match on display name)")
     targets = reactivation_targets(baseline_active, current)
     if not targets:
         print(json.dumps({"targeted": 0, "activated": 0, "note": "no Draft baseline-Active flows"}))
@@ -513,7 +533,7 @@ def cmd_verify(args, cfg) -> int:
     env_url, _, oid = _resolve_env(args, cfg)
     baseline_active = _read_baseline(args)
     token = acquire_token(env_url)
-    opener = _build_opener()
+    opener = _build_opener(is_allowed_dataverse_host)
     current = query_solution_flows(opener, env_url, token, oid)
     still_draft = reactivation_targets(baseline_active, current)
     print(json.dumps({
@@ -534,7 +554,7 @@ def cmd_preflight(args, cfg) -> int:
         return EXIT_PREFLIGHT
     crefs = settings.get("ConnectionReferences", []) or []
     token = acquire_token(env_url)
-    opener = _build_opener()
+    opener = _build_opener(is_allowed_dataverse_host)
     base = _api_base(env_url)
     missing = []
     for cr in crefs:

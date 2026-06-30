@@ -67,6 +67,17 @@ tg = mi.reactivation_targets(baseline, current)
 ck("fm6 targets recreated-GUID flow by stable key", len(tg) == 1 and tg[0]["uniquename"] == "mc_flowA")
 ck("fm6 does NOT target a flow that was Draft pre-import", all(f["uniquename"] != "mc_flowB" for f in tg))
 
+# Hardening: a Draft flow with NO uniquename must NOT be matched on a colliding display name
+collide_baseline = [{"uniquename": "mc_flowA", "name": "Notify", "workflowid": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"}]
+collide_current = [{"name": "Notify", "workflowid": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb", "statecode": 0}]
+ck("hardening: no-uniquename Draft flow not matched on display name", mi.reactivation_targets(collide_baseline, collide_current) == [])
+ck("hardening: flow_key returns None without uniquename", mi.flow_key({"name": "X", "workflowid": "g"}) is None)
+
+# AAD login-host allow-list (token-endpoint redirect guard)
+ck("aad host accepts commercial login", mi.is_aad_login_host("login.microsoftonline.com"))
+ck("aad host accepts US-gov login", mi.is_aad_login_host("login.microsoftonline.us"))
+ck("aad host rejects lookalike", not mi.is_aad_login_host("login.microsoftonline.com.attacker.tld"))
+
 # pac argv flag economy
 argv = mi.build_pac_argv("/s.zip", "https://org.crm.dynamics.com", "settings.json")
 ck("argv is a list", isinstance(argv, list))

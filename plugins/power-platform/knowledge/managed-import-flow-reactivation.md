@@ -42,9 +42,11 @@ explicit reactivation pass is the reliable path, not an edge case.
 ## The reactivation algorithm (what the script does)
 
 1. **Baseline first** (before the import): query `workflow` rows where `category = 5` and record which
-   are **Active**, keyed by a **stable identity** (`uniquename`, falling back to display name) — **not**
-   `workflowid`, because a managed import can recreate the row with a **new GUID** (matching by GUID would
-   silently skip a recreated flow — the exact "worse than before" failure this exists to prevent).
+   are **Active**, keyed by the **solution unique name** (`uniquename`) — **not** `workflowid`, because a
+   managed import can recreate the row with a **new GUID** (matching by GUID would silently skip a
+   recreated flow — the exact "worse than before" failure this exists to prevent). A flow with no
+   `uniquename` is skipped (and warned), never matched on its non-unique display name — a display-name
+   collision could otherwise reactivate the wrong flow.
 2. **After the import**, re-query and compute the targets = currently **Draft** ∩ **was Active in the
    baseline**. Never reactivate a flow that was Draft pre-import (it may be intentionally off).
 3. **PATCH** each target `{ statecode: 1, statuscode: 2 }` via the **Dataverse Web API** (the supported
