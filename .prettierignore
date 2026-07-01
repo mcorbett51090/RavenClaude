@@ -88,3 +88,11 @@ plugins/ravenclaude-core/knowledge/tree-visuals/
 # prettier's printer cleanly, and they're not ours to reformat. README.md here
 # is already covered by the *.md rule above.
 plugins/*/dashboard-assets/brand/
+
+# Planning-doc HTML artifacts under docs/plans/. Self-contained build-plan/
+# review pages with inline CSS/JS whose formatting prettier's HTML printer
+# rewrites differently across prettier releases (the whole-tree gate runs an
+# unpinned `npx --yes prettier`, so an artifact clean under one release can
+# fail under the next and block unrelated PRs). Not consumer-facing and not
+# ours to reflow — same rationale as the generated HTML artifacts above.
+docs/plans/**/*.html
