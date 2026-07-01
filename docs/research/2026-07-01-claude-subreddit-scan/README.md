@@ -2,7 +2,7 @@
 
 **Author:** `claude` (automated scheduled scan)
 **Task:** Search Claude-related subreddits for valuable insights and propose additions to the repo.
-**Outcome:** 4 fresh findings surfaced (none overlapping the 2026-06-09 / 2026-06-10 scans) → **1 approved**, 1 deferred-as-proposal, 2 deferred. The approved item shipped as a new consumer-facing subsection in `ravenclaude-core`'s permissions knowledge doc (v0.183.0).
+**Outcome:** 4 fresh findings surfaced (none overlapping the 2026-06-09 / 2026-06-10 scans) → **2 approved & shipped**, 2 deferred. H1 shipped as a new consumer-facing subsection in `ravenclaude-core`'s permissions knowledge doc (v0.183.0); H2 shipped as a `check-frontmatter.py` least-privilege gate after Matt approved the §4b proposal (2026-07-01).
 
 > This is the **third** run of this recurring scan. Prior runs:
 > - [2026-06-09](../2026-06-09-claude-subreddit-scan/README.md) — deterministic-hooks-vs-advisory-CLAUDE.md, model-tiering, subagent-isolation, plan-mode-TDD, `/clear` hygiene → approved the deterministic-gate rule (v0.139.0).
@@ -91,11 +91,15 @@ Per the repo's accuracy discipline, that is a verified property of **the Reddit�
 - **Version:** `ravenclaude-core` 0.182.0 → **0.183.0** in both `plugin.json` and `marketplace.json` (CI fails on drift); CHANGELOG top entry added.
 - **Dependencies:** none. Additive markdown + version bump. No hook/script/gate/agent/manifest-schema change → no migration.
 
-### 4b. Deferred-as-proposal — H2 (NOT shipped; awaiting Matt's Keep/Deny)
+### 4b. Approved by Matt — H2 (SHIPPED 2026-07-01)
 
-**Proposed deliverable (if approved):** a `check-frontmatter.py` gate asserting every **Claude-native** `agents/*.md` declares a `tools:` frontmatter line (excluding the Copilot `copilot/agents/*.agent.md` adapters, which use a different contract). ~20 lines + a known-bad/known-good fixture in `audit-gates.sh`, mirroring the existing description-length gate.
+Matt approved the proposal (originally deferred pending a design check-in, per plan-mode-default). Shipped:
 
-**Why not shipped in this unattended run:** it touches build-critical tooling (`check-frontmatter.py`) and adds a CI gate — the plan-mode-default reserves that for a design check-in. The convention is already ~100% honored, so the value is drift-prevention, not a live fix; nothing is bleeding while it waits for review.
+- **[`scripts/check-frontmatter.py`](../../../scripts/check-frontmatter.py)** — the agents branch now requires a non-empty `tools:` line on every native `agents/*.md`. The value MAY be `"*"` (an explicit opt-in to all tools) — the contract is presence + non-emptiness, not a narrow set. The glob `plugins/*/agents/*.md` already excludes the Copilot `.agent.md` adapters (they live at `plugins/*/copilot/agents/`, an extra path segment). Verified green on the real tree (474/474 native agents already comply).
+- **[`scripts/audit-gates.sh`](../../../scripts/audit-gates.sh)** Gate 18 — added a bidirectional pair (`must_fail` a schema-complete/within-cap agent with **no** `tools:`; `must_pass` the same agent **with** `tools: "*"`), and fixed the pre-existing `fm-ok-agent` must_pass fixture to carry a `tools:` line so it still passes under the new rule.
+- **[`AGENTS.md`](../../../AGENTS.md)** "Adding a new plugin" step 9 — documents the requirement + rationale (the tools line is the only bound on a subagent's blast radius; the permission mode is inherited, non-overridable under bypass — cross-linked to the H1 knowledge section).
+
+**Why it's a gate, not just prose:** the convention was already ~100% honored, so the value is **drift-prevention** — the repo's own philosophy (hook/CI is the source of truth; "don't restate what's enforced") says an always-honored convention worth keeping is worth enforcing. No plugin *content* changed (the gate lives in root `scripts/`), so no additional plugin version bump beyond H1's 0.183.0. **Migration:** none.
 
 ---
 
