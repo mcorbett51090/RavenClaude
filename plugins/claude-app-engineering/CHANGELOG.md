@@ -2,6 +2,10 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.9.6] — 2026-07-01
+
+Research-sweep **correction** (Tier-A weekly news sweep) — **Fable 5 / Mythos 5 export controls LIFTED 2026-06-30; access restoring from 2026-07-01.** The US Dept of Commerce / BIS withdrew the 2026-06-12 export-control directive and Anthropic said it would begin restoring access 2026-07-01, so the capability map's "SUSPENDED … disabled worldwide" current-status assertions were now-false and actively misleading (they told a router "uncallable worldwide" and stamped the suspension "re-verified still-active 2026-06-22"). Flipped **every carried location** in `knowledge/model-selection-and-2026-capability-map.md` (banner, Fable 5 lineup row, Mythos 5 note, routing ladder, capability-status row, advisor-tool pairing, and the `Last reviewed` line) to "controls lifted / access restoring — re-verify per-surface callability before routing; interim, route to Opus 4.8 until your surface confirms Fable 5 restored." Restoration is **in progress**, so the fluid `[verify-at-use]` hedge is retained and the safety-fallback / billing mechanics are untouched. Primary: Anthropic statement + 2026-06-30 restoration notice, cross-referenced CNBC / Fox Business / Axios (anthropic.com 403s automated fetch — the repo's accepted primary-403 → secondaries pattern). Routed through two expert panels (usefulness → USEFUL/high; detailed review → APPROVE). **Migration:** none — knowledge-file content only.
+
 ## [0.9.5] — 2026-06-24
 
 ### Changed

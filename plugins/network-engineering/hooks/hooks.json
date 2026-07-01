@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-hooks.json",
+  "description": "Plugin-distributed hooks for network-engineering. Auto-merged with the consumer's session hooks when the plugin is installed. Paths use ${CLAUDE_PLUGIN_ROOT} so they resolve to the plugin's install location.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/flag-network-smells.sh \"$CLAUDE_TOOL_FILE_PATH\"",
+            "comment": "Advisory: flags mechanically-detectable network anti-patterns — (1) permissive any/any firewall or ACL rules, (2) cleartext management (telnet/http), (3) a network change document missing a rollback or change window. Inspects config-shaped files (.cfg/.conf/.ios/.nxos/.junos/.txt) and design/change docs (.md). Set NETENG_STRICT=1 to make it blocking."
+          }
+        ]
+      }
+    ]
+  }
+}
