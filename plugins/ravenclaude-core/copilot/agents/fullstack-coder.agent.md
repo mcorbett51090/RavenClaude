@@ -57,11 +57,11 @@ After your Markdown report above, emit the structured handoff block so the Team 
 ---RESULT_END---
 ```
 
-`confidence` is a 0.0-1.0 float reflecting how sure you are of your output. Use ≥0.7 to trigger Cited-Adjudicator Escalation if you assert another agent's prior artifact is wrong; see [`rules/agent-collaboration.md`](../rules/agent-collaboration.md).
+`confidence` is a 0.0-1.0 float reflecting how sure you are of your output. Use ≥0.7 to trigger Cited-Adjudicator Escalation if you assert another agent's prior artifact is wrong; see [`rules/agent-collaboration.md`](../../rules/agent-collaboration.md).
 
-See [`skills/structured-output.md`](../skills/structured-output/SKILL.md) for the full schema and rationale.
+See [`skills/structured-output.md`](../../skills/structured-output/SKILL.md) for the full schema and rationale.
 
 ## References
-- Backend coder: [`agents/backend-coder.md`](backend-coder.md)
-- Frontend coder: [`agents/frontend-coder.md`](frontend-coder.md)
-- Constitution: [`CLAUDE.md`](../CLAUDE.md)
+- Backend coder: [`agents/backend-coder.md`](backend-coder.agent.md)
+- Frontend coder: [`agents/frontend-coder.md`](frontend-coder.agent.md)
+- Constitution: [`CLAUDE.md`](../../CLAUDE.md)

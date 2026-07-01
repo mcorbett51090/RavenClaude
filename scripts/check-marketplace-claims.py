@@ -104,8 +104,19 @@ def actual_skill_count(plugin_dir: Path) -> int:
     skills = plugin_dir / "skills"
     if not skills.is_dir():
         return 0
-    # Count one per skill: flat "<name>.md" files OR "<name>/" dirs (SKILL.md layout).
-    return sum(1 for e in skills.iterdir() if not e.name.startswith("."))
+    # Count one per skill: a "<name>/" dir (SKILL.md layout) OR a flat "<name>.md"
+    # file — matching the documented convention. Any OTHER entry dropped under
+    # skills/ (a README.md, an index.json, a stray note, an editor backup) is NOT
+    # a skill and must not inflate the count that gets written into the public
+    # descriptions. A skills/README.md is explicitly excluded.
+    def _is_skill(e: Path) -> bool:
+        if e.name.startswith("."):
+            return False
+        if e.name.lower() in ("readme.md", "index.md"):
+            return False
+        return e.is_dir() or e.suffix == ".md"
+
+    return sum(1 for e in skills.iterdir() if _is_skill(e))
 
 
 def actual_agent_count(plugin_dir: Path) -> int:

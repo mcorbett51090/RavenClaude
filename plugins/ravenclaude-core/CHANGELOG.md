@@ -2,6 +2,17 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.183.0 — 2026-07-01
+
+### Security
+
+- **`guard-destructive.sh` fails CLOSED on missing `jq`.** The catastrophe-floor Bash guard previously extracted the command via `jq` and, when `jq` was absent, fell through to `exit 0` (allow) — so on any consumer host without `jq` (a soft dependency) every destructive pattern it screens (`rm -rf /`, force-push, `curl|sh`, `mkfs`, fork bombs) passed unblocked and silently. It now emits a deny event and `exit 2` when a payload arrives but `jq` is unavailable, mirroring the E14 detect-and-deny posture the sibling `thing-orchestrator.sh` already uses. The genuinely-empty-payload / no-stdin case still allows (nothing to guard); with `jq` present, behavior is unchanged. **Migration:** consumers on a jq-less host will now see destructive commands blocked (with an "install jq" hint) instead of silently allowed — install `jq` to restore screening.
+- **`</script>` XSS-breakout hardening** in the dashboard/index HTML generators: JSON embedded into `<script>` blocks is now escaped (`<`/`>`/`&`/U+2028/U+2029 → `\uXXXX`) so third-party plugin/agent metadata carrying `</script>` cannot inject HTML. Regenerated `dashboard.html`; all render gates green. **Migration:** none.
+
+### Fixed
+
+- `check-marketplace-claims.py` skill-count no longer over-counts a stray non-skill file (e.g. a `skills/README.md`) dropped under `skills/`.
+
 ## 0.171.1 — 2026-06-24
 
 ### Fixed

@@ -134,7 +134,12 @@ jobs:
       - name: Open quarantine pull request
         id: pr
         if: steps.cap.outputs.over_cap == 'false' && steps.process.outputs.action == 'stage'
-        uses: peter-evans/create-pull-request@v6
+        # Pinned to a full commit SHA (not the mutable @v6 tag): this is the only
+        # third-party action in the tree and it runs on UNTRUSTED external issue
+        # input with contents+pull-requests write, so a hijack of the moving tag
+        # would execute attacker code with repo write. SHA verified 2026-07-01 to
+        # equal tag v6.1.0. Bump via the Dependabot github-actions entry.
+        uses: peter-evans/create-pull-request@c5a7806660adbe173f04e3e038b0ccdcd758773c # v6.1.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           branch: quarantine/scenario-${{ github.event.issue.number }}

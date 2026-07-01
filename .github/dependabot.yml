@@ -1,0 +1,13 @@
+# Keep third-party GitHub Actions patched. The workflows SHA-pin their actions
+# (e.g. peter-evans/create-pull-request in quarantine-intake.yml) for supply-chain
+# safety on the untrusted-input intake path; Dependabot opens reviewed PRs to bump
+# those pins so pinning does not mean "stuck on a stale, vulnerable version".
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(ci)"

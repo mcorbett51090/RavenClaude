@@ -232,7 +232,12 @@ def main() -> int:
     # Gate on the SAME normalized text the staged file is built from (see
     # _normalize_intake) so an obfuscated secret can't pass the gate and then be
     # reconstructed into the quarantine file by the strip's own normalization.
-    combined = "\n".join(_normalize_intake(fields[f]) for f in ("scenario_title", "product", "problem", "resolution"))
+    # Scan EVERY parsed field, not a hardcoded subset — the contract is
+    # "reject on any match across all free text", so a secret pasted into
+    # `plugin` / `scope_guess` / `confidence` must trip the gate too (those are
+    # re-validated/enum-clamped downstream, but the reject-on-secret intent must
+    # hold regardless of which field carried it).
+    combined = "\n".join(_normalize_intake(fields[f]) for f in sorted(fields))
     sec_reason = _has_secret_or_pii(combined)
     if sec_reason:
         _write_decision("reject", None, None, sec_reason)

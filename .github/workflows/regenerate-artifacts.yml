@@ -148,14 +148,24 @@ jobs:
             echo "concept SVGs stale — rendering with mermaid-cli."
             if ! python3 scripts/render-concepts.py; then
               echo "::warning::concept SVG render failed (mermaid) — reverting partial output, continuing self-heal"
-              git checkout -- plugins/ravenclaude-core/knowledge/concepts/visuals 2>/dev/null || true
+              # Restore tracked SVGs AND drop newly-created untracked partials.
+              # `git checkout` alone leaves new partial files that the later
+              # `git add -A` would commit; `git clean -fd` removes them. No
+              # `|| true`: under `set -e` a failed restore now aborts before the
+              # commit instead of silently committing a corrupt/partial SVG set.
+              git checkout -- plugins/ravenclaude-core/knowledge/concepts/visuals
+              git clean -fdq plugins/ravenclaude-core/knowledge/concepts/visuals
             fi
           fi
           if ! python3 scripts/render-trees.py --check >/dev/null 2>&1; then
             echo "decision-tree SVGs stale — rendering with mermaid-cli."
             if ! python3 scripts/render-trees.py; then
               echo "::warning::decision-tree SVG render failed (mermaid) — reverting partial output, continuing self-heal"
-              git checkout -- plugins/ravenclaude-core/knowledge/tree-visuals 2>/dev/null || true
+              # Restore tracked SVGs AND drop newly-created untracked partials
+              # (see the concept-render block above for the rationale). No
+              # `|| true`: a failed restore aborts before the commit under set -e.
+              git checkout -- plugins/ravenclaude-core/knowledge/tree-visuals
+              git clean -fdq plugins/ravenclaude-core/knowledge/tree-visuals
             fi
           fi
 

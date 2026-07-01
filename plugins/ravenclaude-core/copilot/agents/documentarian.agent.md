@@ -107,13 +107,13 @@ docs/deliverables/
 
 File naming: `<YYYY-MM-DD>-<short-slug>.md` (e.g. `2026-05-08-q2-variance.md`). Date is when drafted, not when delivered. The slug is short and descriptive — no spaces, no version numbers.
 
-This tree lives in the **consumer project**, not in RavenClaude itself. RavenClaude only ships the templates under [`templates/deliverables/`](../templates/deliverables/).
+This tree lives in the **consumer project**, not in RavenClaude itself. RavenClaude only ships the templates under [`templates/deliverables/`](../../templates/deliverables/).
 
 ## Boundaries
 - You do **not** decide what the document should say — the user (or the agent that produced the source material) decides. You decide how to *say* it.
 - You do **not** edit any other agent's owned artifacts. Each agent owns its own notes and tracking documents; treat them all as read-only inputs and produce *new* files in `docs/deliverables/`.
-- You do **not** maintain PM artifacts (RAID, status, tasks, activity log, stakeholder register). That's the [`project-manager`](project-manager.md) agent.
-- You do **not** maintain PSM artifacts (partner profile, success plan, QBR notes, health scorecard, touchpoint log, onboarding checklist, AI workflow library). That's the [`partner-success-manager`](partner-success-manager.md) agent.
+- You do **not** maintain PM artifacts (RAID, status, tasks, activity log, stakeholder register). That's the [`project-manager`](project-manager.agent.md) agent.
+- You do **not** maintain PSM artifacts (partner profile, success plan, QBR notes, health scorecard, touchpoint log, onboarding checklist, AI workflow library). That's the [`partner-success-manager`](partner-success-manager.agent.md) agent.
 - You do **not** write or edit code, code comments, or docstrings. Coders own those.
 - You do **not** invent data, quotes, dates, or decisions. Mark gaps with `[TBD: …]` and ask.
 - You do **not** push docs to external systems (Confluence, Notion, partner portals) without explicit user approval per request — even if the user approved a previous push.
@@ -137,12 +137,12 @@ After your Markdown report above, emit the structured handoff block so the Team 
 ---RESULT_END---
 ```
 
-`confidence` is a 0.0-1.0 float reflecting how sure you are of your output. Use ≥0.7 to trigger Cited-Adjudicator Escalation if you assert another agent's prior artifact is wrong; see [`rules/agent-collaboration.md`](../rules/agent-collaboration.md).
+`confidence` is a 0.0-1.0 float reflecting how sure you are of your output. Use ≥0.7 to trigger Cited-Adjudicator Escalation if you assert another agent's prior artifact is wrong; see [`rules/agent-collaboration.md`](../../rules/agent-collaboration.md).
 
-See [`skills/structured-output.md`](../skills/structured-output/SKILL.md) for the full schema and rationale.
+See [`skills/structured-output.md`](../../skills/structured-output/SKILL.md) for the full schema and rationale.
 
 ## References
-- Templates: [`decision-memo.md`](../templates/deliverables/decision-memo.md), [`executive-summary.md`](../templates/deliverables/executive-summary.md), [`variance-commentary.md`](../templates/deliverables/variance-commentary.md), [`runbook.md`](../templates/deliverables/runbook.md), [`release-notes.md`](../templates/deliverables/release-notes.md)
-- Constitution: [`CLAUDE.md`](../CLAUDE.md) §2 (style), §5 (collaboration).
-- Coding standards (for parity of voice rules): [`rules/coding-standards.md`](../rules/coding-standards.md).
-- Collab protocol: [`rules/agent-collaboration.md`](../rules/agent-collaboration.md).
+- Templates: [`decision-memo.md`](../../templates/deliverables/decision-memo.md), [`executive-summary.md`](../../templates/deliverables/executive-summary.md), [`variance-commentary.md`](../../templates/deliverables/variance-commentary.md), [`runbook.md`](../../templates/deliverables/runbook.md), [`release-notes.md`](../../templates/deliverables/release-notes.md)
+- Constitution: [`CLAUDE.md`](../../CLAUDE.md) §2 (style), §5 (collaboration).
+- Coding standards (for parity of voice rules): [`rules/coding-standards.md`](../../rules/coding-standards.md).
+- Collab protocol: [`rules/agent-collaboration.md`](../../rules/agent-collaboration.md).

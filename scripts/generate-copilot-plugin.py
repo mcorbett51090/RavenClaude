@@ -205,13 +205,48 @@ def yaml_quote(value: str) -> str:
     return f'"{escaped}"'
 
 
-def build_agent_doc(name: str, description: str, body: str) -> str:
-    """Render a Copilot .agent.md: name+description frontmatter, then the
-    verbatim original body."""
+# Markdown inline link: capture the "](" prefix, the target, and the ")" (plus an
+# optional  "title") suffix, so only the TARGET is rewritten, never display text.
+_LINK_RE = re.compile(r'(\]\()([^)\s]+)((?:\s+"[^"]*")?\))')
+
+
+def rewrite_body_links(body: str, agent_stems: set) -> str:
+    """Repoint the verbatim agent body's RELATIVE links for its new home, which
+    is one directory deeper than the source: `copilot/agents/<n>.agent.md` vs the
+    canonical `agents/<n>.md`. Without this every cross-reference 404s in the
+    shipped Copilot tree (the source `../skills/x` resolves to `copilot/skills/x`,
+    which does not exist). Exactly two link shapes occur in the source agents:
+
+      1. a `../…` link gains ONE more `../` (the extra `copilot/` nesting), so
+         `../skills/x` -> `../../skills/x` resolves back to the real plugin dir.
+      2. a same-dir peer-agent link `name.md` -> `name.agent.md` (siblings were
+         renamed to the `.agent.md` form).
+
+    http(s)/anchor/absolute/mailto targets are left untouched."""
+
+    def repl(m):
+        pre, target, post = m.group(1), m.group(2), m.group(3)
+        if target.startswith(("http://", "https://", "#", "mailto:", "/")):
+            return m.group(0)
+        if target.startswith("../"):
+            return f"{pre}../{target}{post}"
+        core, sep, frag = target.partition("#")
+        base = core[2:] if core.startswith("./") else core
+        if base.endswith(".md") and "/" not in base and base[:-3] in agent_stems:
+            new_core = ("./" if core.startswith("./") else "") + base[:-3] + ".agent.md"
+            return f"{pre}{new_core}{sep}{frag}{post}"
+        return m.group(0)
+
+    return _LINK_RE.sub(repl, body)
+
+
+def build_agent_doc(name: str, description: str, body: str, agent_stems: set) -> str:
+    """Render a Copilot .agent.md: name+description frontmatter, then the original
+    body with its relative links repointed for the deeper copilot/agents/ home."""
     fm = f"---\nname: {yaml_quote(name)}\ndescription: {yaml_quote(description)}\n---\n"
     # The canonical body already begins with a blank line after the closing
-    # `---`; preserve it verbatim so the output is a faithful projection.
-    return fm + body
+    # `---`; preserve it (only relative link TARGETS are rewritten).
+    return fm + rewrite_body_links(body, agent_stems)
 
 
 def build_manifest(canonical: dict) -> str:
@@ -373,13 +408,14 @@ def generate() -> dict[str, str]:
     tree[f"{rel_root}/README.md"] = build_readme()
     tree[f"{rel_root}/AGENTS.md"] = build_agents_md()
 
+    agent_stems = {p.stem for p in AGENTS_DIR.glob("*.md") if p.is_file()}
     for agent_path in sorted(AGENTS_DIR.glob("*.md"), key=lambda p: p.name):
         if not agent_path.is_file():
             continue
         text = read_text(agent_path)
         frontmatter, body = split_frontmatter(text)
         name, description = parse_name_description(frontmatter, agent_path.stem)
-        doc = build_agent_doc(name, description, body)
+        doc = build_agent_doc(name, description, body, agent_stems)
         tree[f"{rel_root}/agents/{agent_path.stem}.agent.md"] = doc
 
     return tree

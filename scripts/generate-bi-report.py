@@ -93,6 +93,23 @@ def _theme_css(theme) -> str:
     return "/* consumer theme override (from data.json `theme`) */\n:root {\n" + "\n".join(decls) + "\n}\n"
 
 
+# json.dumps hardened for embedding inside an HTML <script> element: json.dumps
+# does not escape '<'/'>'/'&'/U+2028/U+2029, so a value containing '</script>'
+# would break out of the script element and inject HTML (stored XSS). The \uXXXX
+# forms are valid inside JSON string literals and round-trip in the browser.
+_SCRIPT_SAFE = {
+    ord("<"): "\\u003c",
+    ord(">"): "\\u003e",
+    ord("&"): "\\u0026",
+    0x2028: "\\u2028",
+    0x2029: "\\u2029",
+}
+
+
+def _json_for_script(obj) -> str:
+    return json.dumps(obj).translate(_SCRIPT_SAFE)
+
+
 # ── band helpers ──────────────────────────────────────────────────────────
 BAND_VAR = {"green": "var(--rc-ok)", "yellow": "var(--rc-warn)", "red": "var(--rc-danger)"}
 BAND_WORD = {"green": "Healthy", "yellow": "Watch", "red": "Act now"}
@@ -378,8 +395,29 @@ def render_report(data: dict, plugin: str, tokens: str) -> str:
     bands = data.get("bands", {"green": [70, 100], "yellow": [50, 69], "red": [0, 49]})
     components = data.get("components", [])
     partners = data.get("partners", [])
+    # Drop structurally-malformed partner records (missing name/score) with a
+    # NAMED warning, rather than letting a later p["name"]/p["score"] raise an
+    # uncaught KeyError that aborts generation for EVERY plugin with an opaque
+    # traceback that never says which record was at fault.
+    _clean = []
+    for p in partners:
+        missing = [k for k in ("name", "score") if k not in p]
+        if missing:
+            print(
+                f"[generate-bi-report] skipping malformed partner record "
+                f"({p.get('name', '<no name>')!r}): missing {missing}",
+                file=sys.stderr,
+            )
+            continue
+        _clean.append(p)
+    partners = _clean
     for p in partners:
         p.setdefault("band", band_of(int(p.get("score", 0)), bands))
+        # Coerce an unknown band label to a known band so every downstream
+        # BAND_VAR[b] / BAND_WORD[b] lookup is safe (same philosophy as the
+        # donut-count coercion below).
+        if p["band"] not in BAND_VAR:
+            p["band"] = "red"
     counts = {"green": 0, "yellow": 0, "red": 0}
     for p in partners:
         # Coerce any unknown band label to a drawn segment so the donut sums to total
@@ -486,7 +524,7 @@ def render_report(data: dict, plugin: str, tokens: str) -> str:
     refreshed = esc(rep.get("refreshed", ""))
     synthetic = '<div class="synthetic">Sample data · not real partners</div>' if rep.get("synthetic") else ""
 
-    data_json = json.dumps({"partners": [{"name": p["name"], "band": p["band"], "score": p["score"]} for p in partners]})
+    data_json = _json_for_script({"partners": [{"name": p["name"], "band": p["band"], "score": p["score"]} for p in partners]})
 
     page = f"""<!doctype html>
 <html lang="en">

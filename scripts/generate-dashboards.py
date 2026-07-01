@@ -48,6 +48,25 @@ from _html_merge import iife_wrap, scope_css
 REPO_ROOT = Path(__file__).resolve().parent.parent
 PLUGINS_DIR = REPO_ROOT / "plugins"
 
+# json.dumps does NOT escape '<'/'>'/'&'/U+2028/U+2029, so a string value carrying
+# '</script>' (from third-party plugin/agent metadata inlined into these pages)
+# would terminate an enclosing <script> element and inject HTML — a stored-XSS
+# breakout, and `type="application/json"` does NOT prevent it (the </script> token
+# closes a script element of any type). The \uXXXX forms are valid inside JSON
+# string literals and round-trip to the identical value in the browser.
+_SCRIPT_SAFE = {
+    ord("<"): "\\u003c",
+    ord(">"): "\\u003e",
+    ord("&"): "\\u0026",
+    0x2028: "\\u2028",
+    0x2029: "\\u2029",
+}
+
+
+def _json_for_script(obj, **kw) -> str:
+    """json.dumps hardened for embedding inside an HTML <script> element."""
+    return json.dumps(obj, **kw).translate(_SCRIPT_SAFE)
+
 # Shared design tokens — single source of truth at
 # plugins/ravenclaude-core/dashboard-assets/shared-tokens.css. Read at
 # generate-time, inlined into the <style> block via the
@@ -206,12 +225,12 @@ def _page_kwargs(plugin_dir: Path, schema: dict, include_trees: bool = True) -> 
         "bifrost_html": _render_bifrost_tab(),
         "about_html": _render_about_tab(description, plugin_name),
         "pipeline_html": _render_pipeline_tab(),
-        "schema_json": json.dumps(schema, indent=2),
-        "heimdall_json": json.dumps(
+        "schema_json": _json_for_script(schema, indent=2),
+        "heimdall_json": _json_for_script(
             {"versionDrift": _compute_version_drift()}, indent=2, sort_keys=True
         ),
-        "concepts_json": _concepts_json(plugin_dir),
-        "pattern_explanations_json": json.dumps(
+        "concepts_json": _concepts_json(plugin_dir).translate(_SCRIPT_SAFE),
+        "pattern_explanations_json": _json_for_script(
             PATTERN_EXPLANATIONS, indent=2, sort_keys=True
         ),
         "js": _JS,

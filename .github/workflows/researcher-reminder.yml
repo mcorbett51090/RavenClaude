@@ -142,7 +142,7 @@ jobs:
                 '### Researcher prompt template (paste this into a deep-researcher Agent call)',
                 '',
                 '```',
-                'Audit the RavenClaude marketplace for skill gaps across all 7 plugins (ravenclaude-core, power-platform, edtech-partner-success, data-platform, finance, regulatory-compliance, web-design).',
+                'Audit the RavenClaude marketplace for skill gaps across EVERY plugin listed in `.claude-plugin/marketplace.json` (enumerate the full roster at audit time from that manifest — do NOT assume a fixed subset; the marketplace has grown well past its original handful of plugins).',
                 '',
                 'For each plugin:',
                 '1. List every agent and its top 3 responsibilities (from description + scenarios frontmatter).',

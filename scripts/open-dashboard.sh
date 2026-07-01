@@ -23,8 +23,12 @@ LOG="/tmp/rc-dashboard-$PORT.log"
 
 [ -f "$SERVER" ] || { echo "dashboard server not found: $SERVER" >&2; exit 1; }
 
-# 1. Kill any server already bound to this dashboard (ignore "no match").
-pkill -f "serve-dashboards.py" 2>/dev/null || true
+# 1. Kill only the server bound to THIS port (ignore "no match"). Scoping the
+# pattern to `--port $PORT` avoids killing a *different* dashboard server — a
+# consumer-repo dashboard on another port, or the marketplace's own on 8000 —
+# which a bare "serve-dashboards.py" match would take down as collateral. The
+# trailing (non-digit|end) anchor stops port 8000 from also matching 80001.
+pkill -f "serve-dashboards\.py --port ${PORT}([^0-9]|\$)" 2>/dev/null || true
 sleep 1
 
 # 2. Start fresh in the background, fully detached so it outlives this script.

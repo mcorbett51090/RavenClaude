@@ -102,9 +102,16 @@ def _validate_rubric_struct(rubric):
 def run_default(dr):
     # schema file exists + parses
     _check(os.path.isfile(SCHEMA_PATH), "rubric.schema.json exists")
-    with open(SCHEMA_PATH, encoding="utf-8") as fh:
-        json.load(fh)
-    _check(True, "rubric.schema.json is valid JSON")
+    # Route a parse failure through _check (a clean assertion) instead of letting
+    # json.load raise an uncaught JSONDecodeError, and stop asserting a
+    # tautological True — the check must actually reflect whether the file parsed.
+    schema_valid = True
+    try:
+        with open(SCHEMA_PATH, encoding="utf-8") as fh:
+            json.load(fh)
+    except (OSError, json.JSONDecodeError):
+        schema_valid = False
+    _check(schema_valid, "rubric.schema.json is valid JSON")
 
     # every gradable kind yields a structurally valid, non-empty rubric
     for kind in GRADABLE_KINDS:

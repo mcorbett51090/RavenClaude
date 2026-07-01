@@ -115,12 +115,12 @@ def check_accuracy(clf, fixture: dict) -> list[str]:
         if r["best_stream"] != item["expect"]:
             errs.append(
                 f"misroute: {item['text'][:40]!r} -> {r['best_stream']!r} "
-                f"(expected {item['expect']!r}, score=%.3f)" % r["best_score"]
+                f"(expected {item['expect']!r}, score={r['best_score']:.3f})"
             )
         elif not r["confident"]:
             errs.append(
                 f"low-confidence on expected match: {item['text'][:40]!r} "
-                f"-> {r['best_stream']!r} score=%.3f" % r["best_score"]
+                f"-> {r['best_stream']!r} score={r['best_score']:.3f}"
             )
     return errs
 

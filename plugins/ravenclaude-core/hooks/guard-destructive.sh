@@ -39,6 +39,19 @@ cmd=""
 if [ ! -t 0 ]; then
   payload="$(cat)"
   if [ -n "$payload" ]; then
+    # A payload arrived but we cannot parse it without jq. FAIL CLOSED (deny)
+    # rather than let an unparsed — possibly destructive — command through: this
+    # is the consumer's PRIMARY deterministic guard on the /plugin install path,
+    # and jq is only a soft dependency ("present in the devcontainer"), so a
+    # jq-less consumer host is exactly where the guard must not silently vanish.
+    # Mirrors the E14 detect-and-deny posture the sibling thing-orchestrator.sh
+    # already uses for the identical condition — the two must not diverge.
+    if ! command -v jq >/dev/null 2>&1; then
+      _emit_hook_event "guard-destructive.sh" "deny" "Bash" "" "jq-missing-fail-closed" 2
+      echo "[guard-destructive] jq not available; blocking to fail closed." >&2
+      echo "[guard-destructive] Install jq so destructive-command screening can run." >&2
+      exit 2
+    fi
     cmd="$(printf '%s' "$payload" | jq -r '.tool_input.command // empty' 2>/dev/null || true)"
   fi
 fi

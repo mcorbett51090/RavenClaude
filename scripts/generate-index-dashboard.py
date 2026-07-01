@@ -999,10 +999,30 @@ def _render_dt_store(gd) -> str:
     return "".join(parts)
 
 
+_SCRIPT_SAFE = {
+    ord("<"): "\\u003c",
+    ord(">"): "\\u003e",
+    ord("&"): "\\u0026",
+    0x2028: "\\u2028",
+    0x2029: "\\u2029",
+}
+
+
+def _json_for_script(obj) -> str:
+    """json.dumps hardened for embedding inside an HTML <script> element. Plain
+    json.dumps does NOT escape '<', '>', '&', U+2028 or U+2029, so a string value
+    containing '</script>' (from third-party plugin/agent metadata that flows
+    verbatim into this page) would terminate the script element and inject HTML —
+    a stored-XSS breakout. Escaping these to their \\uXXXX forms is valid inside
+    JSON string literals and round-trips to the identical value in the browser."""
+    s = json.dumps(obj, ensure_ascii=False, separators=(",", ":"))
+    return s.translate(_SCRIPT_SAFE)
+
+
 def render_html(data: dict) -> str:
     template = _TEMPLATE
     shared_tokens = _load_shared_tokens_root()
-    payload = json.dumps(data, ensure_ascii=False, separators=(",", ":"))
+    payload = _json_for_script(data)
     html = template.replace("/*__SHARED_TOKENS__*/", shared_tokens)
     html = html.replace("/*__RC_DATA__*/", payload)
     html = html.replace("__GENERATED__", data["generated"])
