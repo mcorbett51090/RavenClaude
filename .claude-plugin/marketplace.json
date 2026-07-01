@@ -6,9 +6,59 @@
   },
   "metadata": {
     "description": "RavenClaude \u2014 a private marketplace of opinionated Claude Code plugins: a domain-neutral core (Team Lead + 14 specialist agents, skills, hooks, the Capability Grounding & Structured Output Protocols, a comfort-posture dashboard, the decision-review tribunal) plus 99 domain plugins across clusters: the software-delivery chain (devops-cicd, observability-sre, security-engineering, qa-test-automation, cloud-native-kubernetes, terraform-iac); cloud (azure/aws/gcp); app craft (backend, frontend, mobile, database, api, auth); data & AI (data-platform, analytics-engineering, data-streaming, ml-engineering, data-governance-privacy, applied-statistics, microsoft-fabric, tableau, claude-app-engineering); the Microsoft stack (power-platform, m365-copilot, microsoft-graph); and business/product verticals (finance, fintech-payments, product-management, project-management, process-improvement, staffing, freight-forwarding, edtech). Every agent ships example-scenario frontmatter surfaced in an 'I want to\u2026' use-case lookup.",
-    "version": "0.89.2"
+    "version": "0.90.0"
   },
   "plugins": [
+    {
+      "name": "networking-engineering",
+      "source": "./plugins/networking-engineering",
+      "description": "Networking-engineering team — 2 agents (network-architect, network-implementation-engineer) for enterprise, campus, and data-center networks: L2/L3 design, routing (OSPF/BGP path selection & policy), IP addressing & segmentation, DNS/DHCP/IPAM, load balancing & NAT, firewalls & zero-trust segmentation, SD-WAN & VXLAN/EVPN overlays, and NetDevOps automation (config-as-code, CI validation, drift detection). Knowledge bank with two Mermaid decision trees (routing-protocol choice, subnetting & segmentation) + a layered L1-L7 troubleshooting reference + a dated 2026 tooling map, 5 skills, 5 best-practices, 3 templates, 1 advisory hook. Seams: cloud VPC/VNet -> aws-cloud/azure-cloud/gcp-cloud; firewall/appsec verdicts -> security-engineering; network monitoring/SLOs -> observability-sre; Kubernetes CNI/mesh -> cloud-native-kubernetes. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "networking",
+        "network-engineering",
+        "routing",
+        "switching",
+        "bgp",
+        "ospf",
+        "vlan",
+        "dns",
+        "load-balancing",
+        "segmentation",
+        "sd-wan",
+        "vxlan",
+        "zero-trust",
+        "netdevops"
+      ]
+    },
+    {
+      "name": "incident-response-dfir",
+      "source": "./plugins/incident-response-dfir",
+      "description": "Blue-team DFIR / SOC team — 2 agents (dfir-response-lead, detection-and-forensics-engineer) for running a security incident end to end: the incident lifecycle per NIST SP 800-61r2 (preparation -> detection & analysis -> containment/eradication/recovery -> post-incident), triage & severity classification, containment strategy, breach coordination + comms + regulatory notification (GDPR 72h), tabletops; and detection engineering (SIEM/Sigma rules mapped to MITRE ATT&CK, alert tuning), hypothesis-driven threat hunting (pyramid of pain), evidence acquisition & forensics (order of volatility per RFC 3227, chain of custody, disk/memory/network/cloud), and malware triage (static/dynamic sandboxing). 5 skills, a knowledge bank with two Mermaid decision trees + a dated 2026 DFIR tooling map, 5 best-practices, 3 templates, 1 advisory hook. Seams: appsec/secure-coding -> security-engineering; governance/risk/audit -> cybersecurity-grc; reliability incidents -> observability-sre; platform abuse -> trust-and-safety. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "incident-response",
+        "dfir",
+        "digital-forensics",
+        "soc",
+        "blue-team",
+        "detection-engineering",
+        "sigma",
+        "mitre-attack",
+        "threat-hunting",
+        "chain-of-custody",
+        "nist-800-61",
+        "malware-triage",
+        "breach-notification",
+        "siem"
+      ]
+    },
     {
       "name": "open-source-maintenance",
       "source": "./plugins/open-source-maintenance",

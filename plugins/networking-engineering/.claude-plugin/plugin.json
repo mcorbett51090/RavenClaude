@@ -1,0 +1,33 @@
+{
+  "name": "networking-engineering",
+  "version": "0.1.0",
+  "description": "Networking-engineering team — 2 agents (network-architect, network-implementation-engineer) for enterprise, campus, and data-center networks: L2/L3 design (VLANs, STP, routing), dynamic routing (OSPF, BGP path selection & policy), DNS/DHCP/IPAM, load balancing & NAT, firewalls & segmentation, SD-WAN & overlays (VXLAN/EVPN), zero-trust network access, and NetDevOps automation (IaC for network, config drift, CI validation). Knowledge bank with two Mermaid decision trees (routing-protocol choice, subnet/segmentation design) + a dated 2026 tooling map, 5 skills, 5 best-practices, 3 templates, 1 advisory hook. Seams: cloud VPC/VNet -> aws-cloud/azure-cloud/gcp-cloud; firewall appsec verdicts -> security-engineering; reliability/observability of the network -> observability-sre; Kubernetes CNI/service mesh -> cloud-native-kubernetes. Requires ravenclaude-core@>=0.7.0.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "networking",
+    "network-engineering",
+    "routing",
+    "switching",
+    "bgp",
+    "ospf",
+    "vlan",
+    "dns",
+    "load-balancing",
+    "firewall",
+    "segmentation",
+    "sd-wan",
+    "vxlan",
+    "evpn",
+    "zero-trust",
+    "netdevops",
+    "subnetting",
+    "ipam"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}

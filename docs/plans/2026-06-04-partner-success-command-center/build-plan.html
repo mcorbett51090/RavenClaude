@@ -1078,7 +1078,8 @@ priority_score math: priority_score = sum(priority_breakdown[k] * priority_weigh
 
 Generate 2-6 contacts, 4-10 timeline_events, ~30 days of usage_daily, 1-3 success_plans, 1 contract, 0-4 tickets, and 2-5 calendar_events per partner.
 
-Constraints: Do not ask clarifying questions. Do not install packages (standard library only: json, random, datetime). Run synthesize.py mentally and emit a real, valid data/data.json — do not leave it as a stub. Produce both files in one response, then stop.</pre>
+Constraints: Do not ask clarifying questions. Do not install packages (standard library only: json, random, datetime). Run synthesize.py mentally and emit a real, valid data/data.json — do not leave it as a stub. Produce both files in one response, then stop.</pre
+              >
               <div class="prompt-note">
                 <b>You get:</b> <code class="inline">data/synthesize.py</code> + a populated
                 <code class="inline">data/data.json</code>. Open the JSON to sanity-check ~25
@@ -1126,7 +1127,8 @@ Also include a compact top bar with the title "Partner Success Command Center", 
 
 Make it responsive (stat tiles wrap on narrow screens) and keep all numbers honest — if a value is missing in the data, show "—", not a guess.
 
-Constraints: Do not ask clarifying questions. Do not run a server or install anything. Read field names from the data/data.json already in the repo. Produce the single dashboard.html file in one response, then stop.</pre>
+Constraints: Do not ask clarifying questions. Do not run a server or install anything. Read field names from the data/data.json already in the repo. Produce the single dashboard.html file in one response, then stop.</pre
+              >
               <div class="prompt-note">
                 <b>You get:</b> a working <code class="inline">dashboard.html</code>. Double-click
                 it. With <code class="inline">data/data.json</code> present, the four widgets light
@@ -1165,7 +1167,8 @@ When the user clicks any partner name anywhere (Daily Action Center row, calenda
 
 One drill-down implementation, reused for every partner. Esc closes it; clicking the backdrop closes it.
 
-Constraints: Do not ask clarifying questions. Do not run or install anything. Reuse the existing styles and the data already loaded in the page. Produce the updated dashboard.html in one response, then stop.</pre>
+Constraints: Do not ask clarifying questions. Do not run or install anything. Reuse the existing styles and the data already loaded in the page. Produce the updated dashboard.html in one response, then stop.</pre
+              >
             </div>
           </section>
 
@@ -1194,7 +1197,8 @@ Extend dashboard.html with a left-hand nav that switches between "lens" views. K
 
 Cross-view consistency matters: a partner's health_score must read identically on the Home view, the Health lens, and the Top 15 lens. Don't recompute — read the same field.
 
-Constraints: Do not ask clarifying questions. Do not run or install anything. Reuse existing styles and loaded data. Produce the updated dashboard.html in one response, then stop.</pre>
+Constraints: Do not ask clarifying questions. Do not run or install anything. Reuse existing styles and loaded data. Produce the updated dashboard.html in one response, then stop.</pre
+              >
             </div>
           </section>
 
@@ -1220,7 +1224,8 @@ Extend dashboard.html with these business-motion lenses in the same left-hand na
   - CONTRACT CENTER: from contracts[] — start/end, ARR, multi_year, schools_included, licensed_users, products_purchased, plus a renewal alert bucket (180/120/90/60/30 days).
   - RELATIONSHIP MAPPING: from contacts[] — a stakeholder grid per partner (name/title/role/influence/sentiment/last interaction), so gaps (e.g. no exec sponsor) are obvious.
 
-Constraints: Do not ask clarifying questions. Do not run or install anything. Reuse existing styles and loaded data. Produce the updated dashboard.html in one response, then stop.</pre>
+Constraints: Do not ask clarifying questions. Do not run or install anything. Reuse existing styles and loaded data. Produce the updated dashboard.html in one response, then stop.</pre
+              >
             </div>
           </section>
 
@@ -1244,7 +1249,8 @@ Polish dashboard.html without changing what it shows. Three things only:
   2. COLOR DISCIPLINE: confirm every green/yellow/red decision reads thresholds from data.bands, and that red is reserved for genuine "act now" states (never decorative).
   3. EMPTY/ERROR STATES: a clean message if data/data.json is missing or a block is empty, and "—" for any missing field instead of blanks or zeros that imply real data.
 
-Constraints: Do not ask clarifying questions. Do not run or install anything. Do not add new widgets or change the layout. Produce the updated dashboard.html in one response, then stop.</pre>
+Constraints: Do not ask clarifying questions. Do not run or install anything. Do not add new widgets or change the layout. Produce the updated dashboard.html in one response, then stop.</pre
+              >
             </div>
           </section>
 
