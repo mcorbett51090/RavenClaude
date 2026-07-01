@@ -2,6 +2,12 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.183.0 — 2026-07-01
+
+### Added
+
+- **Subagent permission-mode inheritance documented** in [`knowledge/claude-code-permissions.md`](knowledge/claude-code-permissions.md). A subagent's `tools:` allowlist bounds *which tools* it may call, not the *permission mode* — under `bypassPermissions` all subagents inherit the mode and it can't be overridden (Anthropic docs); per-subagent restriction is proposed-not-shipped ([anthropics/claude-code#20264](https://github.com/anthropics/claude-code/issues/20264)). The section frames the enforceable containment (hook-`deny` beats bypass; `SubagentStart` audits the dispatch) for a 400+-subagent marketplace. Sourced from the 2026-07-01 community Claude-subreddit scan ([`docs/research/2026-07-01-claude-subreddit-scan/`](../../docs/research/2026-07-01-claude-subreddit-scan/README.md)). **Migration:** none — additive knowledge.
+
 ## 0.171.1 — 2026-06-24
 
 ### Fixed
