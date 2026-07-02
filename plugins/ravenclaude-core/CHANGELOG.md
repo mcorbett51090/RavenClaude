@@ -2,6 +2,12 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.183.0 — 2026-07-02
+
+### Added
+
+- **New best-practice (Claude subreddit scan, 2026-07-02):** [`best-practices/the-bash-sandbox-is-the-os-enforced-complement-to-deny-ask-allow.md`](best-practices/the-bash-sandbox-is-the-os-enforced-complement-to-deny-ask-allow.md) — enable Claude Code's OS-enforced Bash sandbox (Seatbelt/bubblewrap) to close the subprocess-access gap that `deny`/`ask`/`allow` rules structurally can't reach (a `Read(**/.env)` deny doesn't stop a `python -c "open('.env')"` subprocess — the gap the repo's own `knowledge/claude-code-permissions.md` names), and to earn prompt-free autonomy without `--dangerously-skip-permissions`. The OS-enforced complement to the existing `permissions-are-deny-ask-allow` rule (→ 25 rules). Grounded in the Anthropic [sandboxing docs](https://code.claude.com/docs/en/sandboxing) + this repo's containment-posture caveat. Research + panel: [`docs/research/2026-07-02-claude-subreddit-scan/README.md`](../../docs/research/2026-07-02-claude-subreddit-scan/README.md). **Migration:** none — additive markdown.
+
 ## 0.182.1 — 2026-07-01
 
 ### Fixed
