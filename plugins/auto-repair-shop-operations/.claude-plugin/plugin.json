@@ -1,0 +1,29 @@
+{
+  "name": "auto-repair-shop-operations",
+  "version": "0.1.0",
+  "description": "Independent auto-repair shop operations team — 3 agents (auto-repair-shop-lead, service-advisor-estimator, technician-workflow-manager) for a repair shop's three engines: shop P&L economics (effective labor rate, tech productivity-efficiency-proficiency, labor + parts gross profit, comeback rate, car count); the service-advisor front counter (write-up, digital vehicle inspection, inspection-to-estimate, approval, declined-work follow-up, ethical upsell); and technician workflow (dispatch, flat-rate vs actual hours, WIP/RO aging, parts staging, comeback control). Ships 4 skills, a decision-tree knowledge bank (4 Mermaid trees + a dated 2026 reference), 5 best-practices, 2 templates, 2 commands. Operations/financial decision-support, not legal/tax/OEM-warranty advice; labor-rate norms, productivity benchmarks, and parts-matrix figures carry a retrieval date + verify-at-use; no customer PII. Seams to automotive-dealership, fleet-logistics, and skilled-trades-contracting. Requires ravenclaude-core@>=0.7.0.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "auto-repair",
+    "fixed-operations",
+    "effective-labor-rate",
+    "gross-profit",
+    "service-advisor",
+    "digital-vehicle-inspection",
+    "repair-order",
+    "technician-productivity",
+    "flat-rate",
+    "comeback-rate",
+    "parts-matrix",
+    "car-count",
+    "shop-management",
+    "estimate-workflow"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}

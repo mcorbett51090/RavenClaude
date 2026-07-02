@@ -1,0 +1,29 @@
+{
+  "name": "residential-real-estate-brokerage",
+  "version": "0.1.0",
+  "description": "Residential real-estate brokerage operations team — 3 agents (residential-brokerage-lead, listing-and-transaction-coordinator, buyer-agent-advisor) for the engines of a residential brokerage: brokerage/team P&L and the lead-to-close pipeline (commission splits/caps, recruiting & retention, agency/fair-housing compliance, lead-gen), the listing lifecycle plus transaction coordination (CMA, prep, MLS, marketing, contract-to-close timeline, contingencies, deadlines), and buyer representation (needs analysis, showings, offer & negotiation, financing, closing). Ships 4 skills, a decision-tree knowledge bank (4 Mermaid trees + a dated 2026 reference), 5 best-practices, 2 templates, and 2 commands. ADVISORY operations knowledge, not legal/financial/real-estate-license advice; fair-housing sensitive; no client PII; commission norms, contingency periods, and protected-class lists are volatile and jurisdiction-specific — each carries a retrieval date + verify-at-use. Requires ravenclaude-core@>=0.7.0.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "residential-real-estate",
+    "real-estate-brokerage",
+    "listing-agent",
+    "buyer-agent",
+    "transaction-coordination",
+    "cma-pricing",
+    "commission-split-cap",
+    "agent-recruiting",
+    "fair-housing",
+    "agency-disclosure",
+    "contract-to-close",
+    "lead-to-close-pipeline",
+    "mls-marketing",
+    "brokerage-operations"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}
