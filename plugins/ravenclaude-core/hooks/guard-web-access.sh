@@ -58,6 +58,9 @@ host="${host%%/*}"
 host="${host##*@}"
 host="${host%%:*}"
 host="$(printf '%s' "$host" | tr 'A-Z' 'a-z')"
+host="${host%.}"   # strip a trailing FQDN dot: `evil.com.` is DNS-equivalent to
+                   # `evil.com`, but without this it matches neither a deny nor
+                   # an allow rule and slips past the blacklist.
 [ -n "$host" ] || exit 0
 
 proj="${CLAUDE_PROJECT_DIR:-$PWD}"

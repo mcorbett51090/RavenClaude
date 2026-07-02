@@ -320,9 +320,30 @@ def parse_yaml(text: str) -> dict:
         )
     try:
         import yaml as pyyaml  # type: ignore
-        return pyyaml.safe_load(text)
+        # `safe_load` returns None on an empty / comment-only file — guard with
+        # `or {}` so downstream `.get(...)` callers see a dict, matching the
+        # `_load_yaml(path) or {}` convention used at every other load site.
+        return pyyaml.safe_load(text) or {}
     except ImportError:
         return _minimal_yaml_parse(text)
+
+
+def _load_settings_json(path: Path) -> dict:
+    """Parse a settings.json, exiting cleanly on corrupt JSON.
+
+    A killed-mid-write, hand-edited, or merge-conflict-marked settings.json is a
+    plausible real-world state; without this guard `json.loads` surfaces a raw
+    JSONDecodeError traceback (even under --dry-run). Fail loud but actionable.
+    """
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        print(
+            f"ERROR: {path} is not valid JSON ({exc}). "
+            "Fix or remove the file, then retry.",
+            file=sys.stderr,
+        )
+        raise SystemExit(1)
 
 
 def _split_scalar_kv(content: str) -> tuple[str, str]:
@@ -776,7 +797,7 @@ def run_v5(posture: dict, root: Path, args) -> int:
             # Nothing authored here now. If a side-car says we wrote it before, clear our buckets.
             if side_car and side_car.is_file():
                 if not args.dry_run and target.is_file():
-                    settings = json.loads(target.read_text(encoding="utf-8"))
+                    settings = _load_settings_json(target)
                     overwrite_permissions(settings, {"allow": [], "ask": [], "deny": []})
                     target.write_text(
                         json.dumps(settings, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
@@ -787,7 +808,7 @@ def run_v5(posture: dict, root: Path, args) -> int:
 
         em = emission[scope]
         if target.is_file():
-            settings = json.loads(target.read_text(encoding="utf-8"))
+            settings = _load_settings_json(target)
         else:
             settings = {"$schema": "https://json.schemastore.org/claude-code-settings.json"}
         # Snapshot the prior buckets BEFORE overwrite — overwrite_permissions
@@ -1002,7 +1023,7 @@ def main() -> int:
     new_emission = compute_emission(posture)
 
     if settings_path.is_file():
-        settings = json.loads(settings_path.read_text(encoding="utf-8"))
+        settings = _load_settings_json(settings_path)
     else:
         settings = {"$schema": "https://json.schemastore.org/claude-code-settings.json"}
 

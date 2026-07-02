@@ -151,29 +151,40 @@ for b in "${branches[@]}"; do
   fi
 
   reason=""
+  local_tip="$(git rev-parse --verify --quiet "refs/heads/$b" 2>/dev/null || true)"
 
-  # Check 1: merged PR (best signal — covers squash-merge case).
-  if [ -z "$reason" ] && command -v gh >/dev/null 2>&1; then
-    merged_count="$(gh pr list --state merged --head "$b" --json number 2>/dev/null | jq 'length' 2>/dev/null || echo 0)"
-    if [ "${merged_count:-0}" -gt 0 ]; then
-      reason="merged PR exists"
+  # Check 1: a merged PR whose head tip EQUALS this branch's CURRENT tip.
+  # Hardened after the 2026-07 review: matching by branch NAME alone
+  # (`gh pr list --head "$b"`) is UNSOUND — this repo reuses branch names
+  # (e.g. `fix/plugin-slug`) and auto-deletes merged remotes, so a branch that
+  # was merged, then reused with NEW local commits, would be falsely cleared and
+  # its unmerged work hard-deleted. Require the merged PR's headRefOid to equal
+  # the local tip, so a post-merge commit rejects the branch. Still covers the
+  # squash-merge case (Check 2 can't) because the PR head IS the pre-merge tip.
+  if [ -z "$reason" ] && [ -n "$local_tip" ] && command -v gh >/dev/null 2>&1; then
+    if gh pr list --state merged --head "$b" --json headRefOid 2>/dev/null \
+         | jq -e --arg tip "$local_tip" 'any(.[]; .headRefOid == $tip)' >/dev/null 2>&1; then
+      reason="merged PR (head tip matches)"
     fi
   fi
 
-  # Check 2: every commit on $b is an ancestor of the default branch.
+  # Check 2: every commit on $b is an ancestor of the default branch. This is a
+  # SOUND, gh-free local proof of merged-ness (fast-forward / merge-commit), so
+  # it stands on its own even when gh is unavailable.
   if [ -z "$reason" ]; then
     if git merge-base --is-ancestor "$b" "$default_branch" 2>/dev/null; then
       reason="all commits in $default_branch"
     fi
   fi
 
-  # Check 3: upstream tracking is [gone].
-  if [ -z "$reason" ]; then
-    track="$(git for-each-ref --format='%(upstream:track)' "refs/heads/$b" 2>/dev/null || true)"
-    if [ "$track" = "[gone]" ]; then
-      reason="upstream gone"
-    fi
-  fi
+  # (Removed after the 2026-07 review) The former Check 3 accepted a bare
+  # `[gone]` upstream as INDEPENDENTLY sufficient — but "remote already deleted"
+  # is not proof the local commits are merged (a merged branch whose remote was
+  # auto-deleted, then reused locally, is exactly `[gone]` + unmerged work). The
+  # sound signals above (tip-matched merged PR, or ancestry) already cover the
+  # legitimate cases; a `[gone]` branch that passes neither is now REFUSED rather
+  # than deleted. If gh is unavailable, Check 1 simply doesn't fire and we fall
+  # back to the sound ancestry proof — we refuse rather than default to "safe".
 
   if [ -n "$reason" ]; then
     verdict_safe+=("$b"$'\t'"$reason")
@@ -209,10 +220,22 @@ fi
 echo
 echo "Deleting..."
 delete_failed=0
+_log_dir=".ravenclaude/runs/branch-cleanup"
+mkdir -p "$_log_dir" 2>/dev/null || true
 for v in "${verdict_safe[@]}"; do
   b="${v%%$'\t'*}"
+  # Record the tip SHA before deleting. `git branch -D` drops the branch reflog,
+  # so without this an accidental delete is recoverable only via `git fsck`
+  # spelunking; with it, `git branch <name> <sha>` restores in one step. Fail-safe.
+  # Capture the tip SHA BEFORE the delete (git branch -D drops the ref), but only
+  # WRITE the recovery log line AFTER a confirmed delete — the log is the restore
+  # record, so it must never claim a branch was deleted when the delete failed.
+  _tip="$(git rev-parse --verify --quiet "refs/heads/$b" 2>/dev/null || echo unknown)"
   if git branch -D "$b" >/dev/null 2>&1; then
-    echo "  + local deleted: $b"
+    printf '%s\tdeleted\t%s\t%s\n' \
+      "$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || echo unknown-ts)" "$b" "$_tip" \
+      >> "$_log_dir/deleted.log" 2>/dev/null || true
+    echo "  + local deleted: $b (was $_tip; logged to $_log_dir/deleted.log)"
   else
     echo "  ! local delete failed: $b"
     delete_failed=1

@@ -69,6 +69,10 @@ Common follow-ups:
 - **Document the granted permissions** in the customer's identity-and-access inventory the moment they're added; a future admin churning through app registrations will not remember why this one has Power Automate management.
 - **Token acquisition is a separate question from token authorization.** The `roles: null` 401 above is a *permission-grant* problem; "I'm in a Codespace and can't get a Dataverse token at all" is an *acquisition* problem — pick the path by what's authenticated (client-secret → `az` → reuse PAC's MSAL cache → interactive), and treat a missing `AZURE_CLIENT_SECRET` as a cue to switch paths, not retry. See [`../knowledge/dataverse-token-acquisition.md`](../knowledge/dataverse-token-acquisition.md).
 
+## Managed-import flow reactivation — the SPN connection-permission angle (priors)
+
+When a managed solution import in an SPN-driven pipeline leaves cloud flows **Draft**, the root cause is usually a **governance** one: the service principal lacks permission to the connections behind the solution's connection references, so the platform won't auto-reactivate the flows (it reactivates only when the flow was exported-On AND the connection refs are bound AND the importer can use the connections — verified: MS Learn "Import a solution" FAQ, 2026-06-30). The durable fix is to **share those connections with the SPN** (or bind the connection references to connections the SPN owns) — retrying the import won't help. The reactivation mechanics + the shipped pass are owned by `solution-alm-engineer` via the [`managed-solution-import`](../skills/managed-solution-import/SKILL.md) skill; the connection-permission grant is the tenant/identity decision that lands here. See [`../knowledge/managed-import-flow-reactivation.md`](../knowledge/managed-import-flow-reactivation.md).
+
 ## Anti-patterns you flag
 - Production apps stored in the Default environment.
 - DLP not configured at all — every connector is implicitly Business and any maker can connect Power Apps to anything.

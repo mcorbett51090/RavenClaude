@@ -1,10 +1,10 @@
-# Claude subreddit scan — research, panel decision & build plan (2026-06-25)
+# Claude subreddit scan — research, panel decision & build plan (2026-07-02)
 
 **Author:** `claude` (automated scheduled routine)
 **Task:** Search Claude-related subreddits for valuable insights and propose additions to the repo.
-**Outcome:** 4 findings surfaced → **1 approved** (net-new), 1 denied-as-duplicate, 2 deferred-as-covered. The approved item ships as one new consumer-facing best-practice in `ravenclaude-core` (v0.183.0).
+**Outcome:** 4 findings surfaced → **1 approved** (net-new), 1 denied-as-duplicate, 2 deferred-as-covered. The approved item ships as one new consumer-facing best-practice in `ravenclaude-core` (v0.184.4).
 
-> This is the **seventh** run of this recurring scan. Prior runs:
+> This is a recurring scan. Prior runs:
 >
 > - [2026-06-09](../2026-06-09-claude-subreddit-scan/README.md) — hooks-deterministic-vs-advisory (approved), model-tiering, subagent-isolation, plan-mode-TDD, `/clear` hygiene.
 > - [2026-06-10](../2026-06-10-claude-subreddit-scan/README.md) — checkpoints/`/rewind` (approved), the lethal-trifecta, context-compaction, subagent-description routing.
@@ -13,8 +13,9 @@
 > - [2026-06-15](../2026-06-15-claude-subreddit-scan/README.md) — scope-the-reviewer-to-correctness (approved), interview→SPEC, `claude -p` fan-out, `/clear`+`/btw` hygiene.
 > - [2026-06-22](../2026-06-22-claude-subreddit-scan/README.md) — `CLAUDE_CODE_SUBAGENT_MODEL` resolution order (approved) + the MCP tool-context budget; CLAUDE.md memory hygiene (deferred).
 > - [2026-06-24](../2026-06-24-claude-subreddit-scan/README.md) — SKILL.md progressive-disclosure body budget (approved); procedural-instructions-belong-in-skill (folded), model-tiering (denied dup), config-as-execution-vector (deferred).
+> - [2026-07-02](../2026-07-02-claude-subreddit-scan/README.md) — **the Bash-sandbox rule (approved → v0.183.0), same-day.** This run is a *second, disjoint* finding from the same day — the verification-loop umbrella below does not overlap the sandbox rule.
 >
-> Today's net-new finding (G1) is disjoint from all six prior sets. It is the **umbrella** the repo's `definition-of-done-gate` / `expensive-test-front-loading` / `visual-feedback-loop` / `scope-the-reviewer` leaves all instantiate — the general "give the agent a readable verification signal" principle that no prior rule states.
+> This run's net-new finding (G1) is disjoint from all prior sets. It is the **umbrella** the repo's `definition-of-done-gate` / `expensive-test-front-loading` / `visual-feedback-loop` / `scope-the-reviewer` leaves all instantiate — the general "give the agent a readable verification signal" principle that no prior *consumer-facing* rule states. (The internal architecture doc [`docs/autonomous-guardrails-research-2026-05-29.md`](../../autonomous-guardrails-research-2026-05-29.md) § "Layer 5 — verification + termination" frames the guardrail-enforcement angle; this rule is the task-framing companion — see §3.)
 
 ---
 
@@ -84,8 +85,8 @@
 | What | Where | Dependency |
 | --- | --- | --- |
 | New best-practice naming the umbrella verification-loop principle (construct a readable pass/fail signal; iterate to green; show evidence; pick the cheapest enforcement level), cross-linked to all four existing leaves + the epistemic protocols | New [`plugins/ravenclaude-core/best-practices/give-the-agent-a-verification-signal-it-can-read.md`](../../../plugins/ravenclaude-core/best-practices/give-the-agent-a-verification-signal-it-can-read.md) | none — single additive markdown file (matches `plugins/*/best-practices/**` allow-list glob, so no `.repo-layout.json` change) |
-| Index row + count bump (24 → 25 rules) | [`plugins/ravenclaude-core/best-practices/README.md`](../../../plugins/ravenclaude-core/best-practices/README.md) | none |
-| Version bump (best-practices ship to consumers → user-visible) | `plugins/ravenclaude-core/.claude-plugin/plugin.json` + `.claude-plugin/marketplace.json` mirror: `0.182.0 → 0.183.0` | CI fails on version drift between the two |
+| Index row + count bump (25 → 26 rules) | [`plugins/ravenclaude-core/best-practices/README.md`](../../../plugins/ravenclaude-core/best-practices/README.md) | none |
+| Version bump (best-practices ship to consumers → user-visible) | `plugins/ravenclaude-core/.claude-plugin/plugin.json` + `.claude-plugin/marketplace.json` mirror: `0.184.3 → 0.184.4` | CI fails on version drift between the two |
 | CHANGELOG top entry | `plugins/ravenclaude-core/CHANGELOG.md` | none |
 
 **Not touched:** no hook, script, agent, skill, gate, dashboard, knowledge file, or `.repo-layout.json` change. Additive prose + an index row + version/CHANGELOG bookkeeping only. **Migration:** none — nothing in a consumer's installed plugin behaves differently on `/plugin marketplace update`; a new best-practice is inert until an agent reads it.

@@ -8,7 +8,7 @@ For the marketplace-wide best-practice library (CI gates, hook authoring, versio
 
 ## Index
 
-_25 rules._
+_26 rules._
 
 | Doc | Status | Use when |
 |---|---|---|
@@ -36,6 +36,7 @@ _25 rules._
 | [`claude-md-imports-organize-they-dont-shrink-context.md`](./claude-md-imports-organize-they-dont-shrink-context.md) | Pattern | Structuring a `CLAUDE.md` with `@imports` — they organize content, they do NOT shrink its context cost (imported files are still loaded); prune, don't just split. |
 | [`scope-the-reviewer-to-correctness-or-it-manufactures-work.md`](./scope-the-reviewer-to-correctness-or-it-manufactures-work.md) | Pattern | Briefing a code-reviewer agent — scope it to correctness/risk or it manufactures low-value churn. |
 | [`expensive-test-front-loading.md`](./expensive-test-front-loading.md) | Pattern | A test costs a scarce resource (a human re-fire, a long run, a billed turn, a deploy) — exhaustively static-validate first so each expensive test exercises a fully-validated change; prefer a deterministic validator over a "remember to check" rule. |
+| [`the-bash-sandbox-is-the-os-enforced-complement-to-deny-ask-allow.md`](./the-bash-sandbox-is-the-os-enforced-complement-to-deny-ask-allow.md) | Pattern | Configuring a project's permission posture for autonomy/unattended runs — enable the OS-enforced Bash sandbox (Seatbelt/bubblewrap) to close the subprocess-access gap that `deny`/`ask`/`allow` rules can't reach, and to earn prompt-free autonomy without `--dangerously-skip-permissions`. |
 | [`give-the-agent-a-verification-signal-it-can-read.md`](./give-the-agent-a-verification-signal-it-can-read.md) | Pattern | Framing a task (or about to hand work back) — give the agent a check that emits a machine-readable pass/fail and iterate to green before reporting done; the umbrella principle the DoD-gate / expensive-test / visual-loop / adversarial-reviewer rules each instantiate. |
 
 ---

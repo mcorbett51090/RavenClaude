@@ -211,7 +211,11 @@ def earned_value(
     etc = None
     if budget_at_completion is not None and budget_at_completion > 0:
         if cpi and cpi > 0:
-            eac = round(budget_at_completion / cpi, 2)
+            # EAC = BAC / CPI. Compute from the EXACT ratio (BAC * ACWP / BCWP)
+            # rather than the display-rounded 4-dp `cpi`, so the forecast carries
+            # no avoidable dollar-scale rounding drift at large BAC. (bcwp > 0 here:
+            # a zero BCWP makes cpi == 0.0, which fails the `cpi and` guard above.)
+            eac = round(budget_at_completion * acwp / bcwp, 2)
             etc = round(eac - acwp, 2)
 
     # Plain-English interpretation
