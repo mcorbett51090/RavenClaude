@@ -23,8 +23,10 @@ LOG="/tmp/rc-dashboard-$PORT.log"
 
 [ -f "$SERVER" ] || { echo "dashboard server not found: $SERVER" >&2; exit 1; }
 
-# 1. Kill any server already bound to this dashboard (ignore "no match").
-pkill -f "serve-dashboards.py" 2>/dev/null || true
+# 1. Kill any server already bound to THIS port (ignore "no match"). Scoped to
+#    the exact --port invocation (matching the nohup line below) so a dashboard
+#    served on a different port for another repo is not collaterally killed.
+pkill -f "serve-dashboards.py --port ${PORT}" 2>/dev/null || true
 sleep 1
 
 # 2. Start fresh in the background, fully detached so it outlives this script.

@@ -117,7 +117,12 @@ def _load_emissions() -> dict[str, list[str]]:
         spec.loader.exec_module(mod)
         emissions = getattr(mod, "EMISSIONS", {}) or {}
         return {k: list(v) for k, v in emissions.items()}
-    except (ImportError, OSError, SyntaxError):
+    except Exception:
+        # Broadened from (ImportError, OSError, SyntaxError) after the 2026-07
+        # review so the docstring's "degrade to an empty mapping on any import
+        # failure" promise actually holds — the sibling module is trusted in-repo
+        # code, so this wider catch is purely a fail-safe backstop (a NameError /
+        # AttributeError / etc. at import time now degrades instead of crashing).
         return {}
 
 
