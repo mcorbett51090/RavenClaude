@@ -2,6 +2,12 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.184.1 — 2026-07-02
+
+### Fixed
+
+- **`guard-destructive.sh` path-qualified evasion closed (P0).** The four structural danger checks (`_is_dangerous_rm`/`_chmod`/`_find`/`_truncate`) anchored the command name only after start-of-string / `;` / `&` / `|` / whitespace, so a **path-qualified** invocation (`/bin/rm -rf /`, `./rm -rf ~`, `/usr/bin/chmod -R 777 /`) slipped past the primary consumer guard untouched — no `deny_patterns[]` entry backstops rm/chmod/find/truncate. The left-boundary character class now also matches after `/`. The same pass closes two missed forms: `find … -execdir` (the per-match twin of `-exec`) and `truncate --size=0` (the long-option spelling of `-s 0`). Verified with an adversarial + regression harness (10 blocks incl. the new evasions, 6 no-false-positive controls). (Autonomous 3-panel repo review, P0 + two P2s.)
+
 ## 0.183.1 — 2026-07-02
 
 ### Fixed

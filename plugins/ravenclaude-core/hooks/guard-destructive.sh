@@ -187,7 +187,9 @@ _has_recursive() { [[ "$1" =~ (^|[[:space:]])(-[a-zA-Z]*[rR][a-zA-Z]*|--recursiv
 # its own. `rm -rf ./tmp/build` is allowed (target is relative, starts with `.`).
 _is_dangerous_rm() {
   local c="$1"
-  [[ "$c" =~ (^|[;\&\|[:space:]])rm[[:space:]] ]] || return 1
+  # left boundary includes `/` so a path-qualified invocation (`/bin/rm`, `./rm`,
+  # `../rm`) is still caught — the command name need not be the first token.
+  [[ "$c" =~ (^|[;\&\|[:space:]/])rm[[:space:]] ]] || return 1
   _has_recursive "$c" || return 1
   # a dangerous target argument: starts with /, ~, $HOME, or a standalone . or *
   # $HOME is boundary-anchored so `$HOME_BACKUP` / `$HOME_DIR` (a *different*
@@ -209,7 +211,8 @@ _is_dangerous_rm() {
 # any flag order, octal prefix tolerated (0777). Symbolic modes are out of scope.
 _is_dangerous_chmod() {
   local c="$1"
-  [[ "$c" =~ (^|[;\&\|[:space:]])chmod[[:space:]] ]] || return 1
+  # left boundary includes `/` — see _is_dangerous_rm (path-qualified `/usr/bin/chmod`).
+  [[ "$c" =~ (^|[;\&\|[:space:]/])chmod[[:space:]] ]] || return 1
   _has_recursive "$c" || return 1
   [[ "$c" =~ (^|[[:space:]])0?(7{3}|6{3}|0{3})([[:space:]]|$) ]] || return 1
   return 0
@@ -227,10 +230,12 @@ _is_dangerous_chmod() {
 # blast-radius bound for that one, same as the worktree/sandbox posture).
 _is_dangerous_find() {
   local c="$1"
-  [[ "$c" =~ (^|[;\&\|[:space:]])find[[:space:]] ]] || return 1
-  # a destructive action must be present
+  # left boundary includes `/` — see _is_dangerous_rm (path-qualified `/usr/bin/find`).
+  [[ "$c" =~ (^|[;\&\|[:space:]/])find[[:space:]] ]] || return 1
+  # a destructive action must be present. `-execdir` is the functional twin of
+  # `-exec` (runs the command per-match) — match both spellings.
   [[ "$c" =~ (^|[[:space:]])-delete([[:space:]]|$) ]] \
-    || [[ "$c" =~ -exec[[:space:]]+(sudo[[:space:]]+)?(rm|unlink|shred|truncate)([[:space:]]|$) ]] \
+    || [[ "$c" =~ -exec(dir)?[[:space:]]+(sudo[[:space:]]+)?(rm|unlink|shred|truncate)([[:space:]]|$) ]] \
     || return 1
   # dangerous target: absolute path / ~ / $HOME
   [[ "$c" =~ (^|[[:space:]])(/|~|\$HOME) ]] && return 0
@@ -243,8 +248,10 @@ _is_dangerous_find() {
 # dangerous-root philosophy as rm/find.
 _is_dangerous_truncate() {
   local c="$1"
-  [[ "$c" =~ (^|[;\&\|[:space:]])truncate[[:space:]] ]] || return 1
-  [[ "$c" =~ -s[[:space:]]*0([[:space:]]|$|[bkKMGT]) ]] || return 1
+  # left boundary includes `/` — see _is_dangerous_rm (path-qualified `/usr/bin/truncate`).
+  [[ "$c" =~ (^|[;\&\|[:space:]/])truncate[[:space:]] ]] || return 1
+  # size 0 in any spelling: -s0 / -s 0 / -s 0K AND the long option --size=0 / --size 0.
+  [[ "$c" =~ (-s[[:space:]]*|--size[[:space:]]*=?[[:space:]]*)0([[:space:]]|$|[bkKMGT]) ]] || return 1
   [[ "$c" =~ (^|[[:space:]])(/|~|\$HOME) ]] && return 0
   return 1
 }

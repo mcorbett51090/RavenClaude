@@ -101,7 +101,9 @@ EOF
 
 EOF
   if [[ "${AZURE_STRICT:-0}" == "1" ]]; then
-    exit 1
+    # exit 2 = BLOCK (Claude Code PreToolUse blocking code); exit 1 is a non-blocking
+    # error Claude Code silently swallows, so STRICT would not actually block the edit.
+    exit 2
   fi
 fi
 
