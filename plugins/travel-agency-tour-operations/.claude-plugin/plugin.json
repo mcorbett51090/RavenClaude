@@ -1,0 +1,29 @@
+{
+  "name": "travel-agency-tour-operations",
+  "version": "0.1.0",
+  "description": "Travel agency / tour-operator operations team — 3 agents (travel-agency-operations-lead, itinerary-and-booking-specialist, supplier-and-commission-manager) for the three engines of a leisure travel business: agency P&L and revenue model (commission vs service fee vs markup, supplier mix, host splits, E&O risk), itinerary design and multi-supplier booking (FIT vs group, quoting, changes, documentation, service recovery), and supplier + commission management (net vs commissionable, BSP/ARC settlement, commission tracking and recovery, consortia). ADVISORY operations knowledge, not legal, tax, or financial advice; supplier fare rules, commission norms, cancellation penalties, and seller-of-travel requirements are volatile and supplier-/jurisdiction-specific — each carries a retrieval date + verify-at-use; no traveler PII. 4 skills, a decision-tree knowledge bank (4 Mermaid trees + a dated 2026 reference), 5 best-practices, 2 templates, 2 commands. Requires ravenclaude-core@>=0.7.0.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "travel-agency",
+    "tour-operator",
+    "itinerary-design",
+    "commission-management",
+    "supplier-relations",
+    "bsp-arc",
+    "consortia",
+    "group-travel",
+    "fit-travel",
+    "service-fees",
+    "service-recovery",
+    "cancellation-policy",
+    "host-agency",
+    "travel-operations"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}

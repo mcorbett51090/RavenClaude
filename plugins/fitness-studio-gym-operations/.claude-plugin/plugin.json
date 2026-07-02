@@ -1,0 +1,29 @@
+{
+  "name": "fitness-studio-gym-operations",
+  "version": "0.1.0",
+  "description": "Gym / boutique-fitness-studio operations team — 3 agents (fitness-studio-operations-lead, membership-retention-manager, class-schedule-coach-ops) for the three engines of a fitness business: the membership P&L (growth, churn/retention, member LTV, utilization, ancillary revenue from PT, retail, and café), the retention machine (onboarding, attendance triggers, churn prediction and saves, win-back, referral, pricing/tiers), and the class grid (scheduling on demand, instructor utilization and pay, capacity/fill, waitlist, no-show, sub coverage). ADVISORY operations knowledge, not legal/financial/medical advice; volatile specifics (churn norms, LTV math, class-fill and instructor-pay benchmarks) carry a retrieval date + verify-at-use; no member PII. Ships 4 skills, a decision-tree knowledge bank (4 Mermaid trees + a dated 2026 reference), 5 best-practices, 2 templates, 2 commands. Seams to retail-store-operations, restaurant-operations, and people-operations-hr. Requires ravenclaude-core@>=0.7.0.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "fitness-studio",
+    "gym-operations",
+    "boutique-fitness",
+    "membership-retention",
+    "member-churn",
+    "member-ltv",
+    "class-scheduling",
+    "instructor-utilization",
+    "ancillary-revenue",
+    "personal-training",
+    "onboarding",
+    "no-show-policy",
+    "capacity-fill",
+    "unit-economics"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}
