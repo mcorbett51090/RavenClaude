@@ -12,7 +12,7 @@
     {
       "name": "incident-response-dfir",
       "source": "./plugins/incident-response-dfir",
-      "description": "Blue-team DFIR / SOC team — 2 agents (dfir-response-lead, detection-and-forensics-engineer) for running a security incident end to end: the incident lifecycle per NIST SP 800-61r2 (preparation -> detection & analysis -> containment/eradication/recovery -> post-incident), triage & severity classification, containment strategy, breach coordination + comms + regulatory notification (GDPR 72h), tabletops; and detection engineering (SIEM/Sigma rules mapped to MITRE ATT&CK, alert tuning), hypothesis-driven threat hunting, evidence acquisition & forensics (order of volatility per RFC 3227, chain of custody), and malware triage. 5 skills, a knowledge bank with two Mermaid decision trees + a dated 2026 DFIR tooling map, 5 best-practices, 3 templates, 1 advisory hook. Seams: appsec/secure-coding -> security-engineering; governance/risk/audit -> cybersecurity-grc; reliability incidents -> observability-sre; platform abuse -> trust-and-safety. Requires ravenclaude-core@>=0.7.0.",
+      "description": "Blue-team DFIR / SOC team \u2014 2 agents (dfir-response-lead, detection-and-forensics-engineer) for running a security incident end to end: the incident lifecycle per NIST SP 800-61r2 (preparation -> detection & analysis -> containment/eradication/recovery -> post-incident), triage & severity classification, containment strategy, breach coordination + comms + regulatory notification (GDPR 72h), tabletops; and detection engineering (SIEM/Sigma rules mapped to MITRE ATT&CK, alert tuning), hypothesis-driven threat hunting, evidence acquisition & forensics (order of volatility per RFC 3227, chain of custody), and malware triage. 5 skills, a knowledge bank with two Mermaid decision trees + a dated 2026 DFIR tooling map, 5 best-practices, 3 templates, 1 advisory hook. Seams: appsec/secure-coding -> security-engineering; governance/risk/audit -> cybersecurity-grc; reliability incidents -> observability-sre; platform abuse -> trust-and-safety. Requires ravenclaude-core@>=0.7.0.",
       "version": "0.1.0",
       "author": {
         "name": "Matt Corbett"
@@ -37,7 +37,7 @@
     {
       "name": "network-engineering",
       "source": "./plugins/network-engineering",
-      "description": "Network-engineering team — 2 agents (network-architect, network-operations-engineer) for the ENTERPRISE network layer below the cloud VPC: campus/datacenter/WAN topology, routing (OSPF/BGP/EIGRP/static) and switching (VLANs, STP, LACP, VXLAN/EVPN), IP addressing/IPAM and DNS/DHCP, segmentation + zero-trust network access (microsegmentation, NAC, SASE/SD-WAN), load balancing, redundancy/HA (HSRP/VRRP, dual-homing), and day-2 ops (change windows, troubleshooting the OSI stack, observability/NetFlow). Knowledge bank with Mermaid decision trees (topology, routing-protocol selection, segmentation) + a dated 2026 capability map, 5 skills, best-practices, 4 templates, 1 advisory hook (any/any rules, telnet, no change window). Design-before-config; protocol-before-vendor-CLI. Seams: cloud VPC networking -> aws/azure/gcp-cloud; service mesh / k8s networking -> cloud-native-kubernetes; security verdicts -> security-engineering; IaC for network config -> terraform-iac. Requires ravenclaude-core@>=0.7.0.",
+      "description": "Network-engineering team \u2014 2 agents (network-architect, network-operations-engineer) for the ENTERPRISE network layer below the cloud VPC: campus/datacenter/WAN topology, routing (OSPF/BGP/EIGRP/static) and switching (VLANs, STP, LACP, VXLAN/EVPN), IP addressing/IPAM and DNS/DHCP, segmentation + zero-trust network access (microsegmentation, NAC, SASE/SD-WAN), load balancing, redundancy/HA (HSRP/VRRP, dual-homing), and day-2 ops (change windows, troubleshooting the OSI stack, observability/NetFlow). Knowledge bank with Mermaid decision trees (topology, routing-protocol selection, segmentation) + a dated 2026 capability map, 5 skills, best-practices, 4 templates, 1 advisory hook (any/any rules, telnet, no change window). Design-before-config; protocol-before-vendor-CLI. Seams: cloud VPC networking -> aws/azure/gcp-cloud; service mesh / k8s networking -> cloud-native-kubernetes; security verdicts -> security-engineering; IaC for network config -> terraform-iac. Requires ravenclaude-core@>=0.7.0.",
       "version": "0.1.0",
       "author": {
         "name": "Matt Corbett"
@@ -276,7 +276,7 @@
       "displayName": "RavenClaude Core",
       "source": "./plugins/ravenclaude-core",
       "description": "Domain-neutral Claude Code foundation: 15 specialist agents, 46 skills, gates, hooks, rules, templates. Capability Grounding Protocol, Structured Output Protocol, Researcher meta-skill, comfort-posture dashboard, opt-in command-review tribunal (the Thing), WebFetch sanitizer, branch-archive escape hatch, brand-extraction (homepage → brand kit), Problems & Resolutions view, declarative-visualization (Vega-Lite/Deneb/SVG, Gate 101 + Gate 103 svg-report-lint, viz-spec-reviewer), and Claude orchestrator escape hatch (/claude-orchestrate). Slash commands: /init-agent-ready, /wrap, /set-posture, /dashboard, /forge, /reset-plugin-cache.",
-      "version": "0.182.1",
+      "version": "0.183.0",
       "author": {
         "name": "Matt Corbett"
       },
