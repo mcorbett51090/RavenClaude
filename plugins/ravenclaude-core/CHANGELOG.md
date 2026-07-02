@@ -2,6 +2,20 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.183.1 — 2026-07-02
+
+### Fixed
+
+Autonomous 3-panel repo review (categorize → validate → tie-break) → the design-free confirmed fixes. Plugin-scoped items in this release:
+
+- **`guard-destructive.sh` bypasses closed (P0/P1/P2).** `$IFS`/`${IFS}` whitespace-substitution and a leading backslash (`\rm -rf /`) are now neutralized during normalization; git global options (`git -c x=y push --force`, `git --git-dir=… push`) are stripped so every `git` subcommand pattern re-anchors; force-branch-delete is caught order-independently (`git branch --delete --force`, `git branch main -D`); the fork-bomb pattern tolerates whitespace inside the parens. Verified with an adversarial + regression harness (21 blocks, 0 false positives).
+- **Tribunal fails CLOSED on catalog error (P0).** `thing-decision.py` `_screen_always` now denies (with a `screen_error` flag) if the concerns catalog can't be loaded/evaluated, instead of silently clearing the force-push / `curl|sh` / self-disable hard rules. Reproduced + verified fixed.
+- **`enforce-layout.sh` relative-path bypass closed (P1).** A relative `$file` (as Copilot's file-pretool adapter forwards) is normalized to absolute before the in-project prefix test, so it no longer silently skips the layout + task-scope gates.
+- **Honesty fixes (P2/P3).** `reset-plugin-cache.py` docstring/comment corrected to stop overstating `--confirm` as proof-of-human (the tribunal `xc.ragnarok-non-user-invocation` concern is the real user-only enforcement); `pseudonymize-brief.py` docstring corrected to match its actual fail-closed behavior (writes nothing on error, not the raw input).
+- **`evaluate-dispatch.js` reference fixed (P2).** Replaced raw `Date.now()`/`new Date()` (which throw under the dynamic-workflow runtime) with a resume-safe `_now()`/`_isoNow()` shim, and added the `rc-deep-research` search fan-out `.catch()` mirror so one failed search angle can't abort a research run.
+
+**Migration:** none — the guard/layout/tribunal changes only *close* bypasses and *fail safer*; nothing a consumer relies on changes on `/plugin marketplace update`.
+
 ## 0.183.0 — 2026-07-02
 
 ### Added

@@ -22,9 +22,12 @@ import os
 import re
 import sys
 
-# grep invoked with an ERE flag (E in the short-flag cluster) but NOT a PCRE flag.
-_GREP_ERE = re.compile(r"grep\s+-[A-Za-z]*E")
-_GREP_PCRE = re.compile(r"grep\s+-[A-Za-z]*P")
+# grep invoked with an ERE flag (E in the short-flag cluster, or the long option
+# --extended-regexp) but NOT a PCRE flag. The long-option spellings were added
+# after the 2026-07 review — the short-cluster-only forms missed
+# `grep --extended-regexp` / `grep --perl-regexp` entirely.
+_GREP_ERE = re.compile(r"grep\s+(?:-[A-Za-z]*E|--extended-regexp)")
+_GREP_PCRE = re.compile(r"grep\s+(?:-[A-Za-z]*P|--perl-regexp)")
 # PCRE-only constructs that are dead inside POSIX ERE.
 _PCRE_CONSTRUCT = re.compile(r"\(\?[:!=<]|\[\\s\\S\]|\[\\S\\s\]")
 

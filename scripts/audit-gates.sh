@@ -116,7 +116,7 @@ PY
       rc=0; $_LINT tests/fixtures/data-viz/good-page.json >/dev/null 2>&1 || rc=$?
       if [[ "$rc" -ne 0 ]]; then echo "  ✗ good-page should have exited zero, got $rc"; _rc92=1; else echo "  ✓ good-page exits zero"; fi
       # regression (v0.149.2): reference resolves through a symlink install
-      _g92link="$(mktemp -d)/.claude/skills"; mkdir -p "$_g92link"
+      _g92root="$(mktemp -d)"; _g92link="$_g92root/.claude/skills"; mkdir -p "$_g92link"
       ln -s "$PWD/plugins/ravenclaude-core/skills/pbir-layout-engine" "$_g92link/pbir-layout-engine"
       rc=0; RC_LINK="$_g92link/pbir-layout-engine" python3 - <<'PY' >/dev/null 2>&1 || rc=$?
 import os, sys
@@ -133,6 +133,7 @@ root = os.path.abspath(os.path.join(os.path.dirname(here), "..", "..", "..", "..
 sys.exit(0 if os.path.isfile(os.path.join(root, "plugins/power-platform/knowledge/pbir-enhanced-reference.md")) else 1)
 PY
       if [[ "$rc" -eq 0 ]]; then echo "  ✗ old abspath root unexpectedly found the reference (test has no teeth)"; _rc92=1; else echo "  ✓ old abspath root misses the reference (teeth)"; fi
+      rm -rf "$_g92root"   # clean the temp symlink-install dir (was leaked every run)
       exit "$_rc92"
       ;;
     93)
@@ -3730,6 +3731,27 @@ rc=0; bash plugins/power-platform/hooks/tests/test-nudge-preflight.sh >/dev/null
 gate "nudge-dataverse-preflight: fires on Dataverse create/update under posture + silent on GET/opt-out + teeth" must_pass "$rc"
 rc=0; bash plugins/power-platform/hooks/tests/test-managed-import.sh >/dev/null 2>&1 || rc=$?
 gate "managed-solution-import: PROD-guard boundaries + SSRF allow-list + baseline-by-stable-key + flag-economy + teeth" must_pass "$rc"
+
+echo "── Gate 126: workflow-mirror byte-identity (skills copy vs .claude/workflows copy) ──"
+# rc-deep-research.js and two-panel-plan-review.js each ship a bundled skills copy
+# AND a live .claude/workflows copy that MUST stay byte-identical — a one-sided edit
+# would silently ship drift to consumers (the skills copy is what plugin-install
+# delivers). No gate asserted this before. (Added after the 2026-07 three-panel review.)
+_mirror_pairs=(
+  "plugins/ravenclaude-core/skills/rc-deep-research/rc-deep-research.js:.claude/workflows/rc-deep-research.js"
+  "plugins/ravenclaude-core/skills/two-panel-plan-review/two-panel-plan-review.js:.claude/workflows/two-panel-plan-review.js"
+)
+rc=0
+for _pair in "${_mirror_pairs[@]}"; do
+  _a="${_pair%%:*}"; _b="${_pair##*:}"
+  diff -q "$_a" "$_b" >/dev/null 2>&1 || rc=1
+done
+gate "workflow-mirror byte-identity (both pairs identical)" must_pass "$rc"
+# teeth: a one-sided drift must be caught
+_mmut="$(mktemp)"; { cat .claude/workflows/rc-deep-research.js; echo "// drift"; } > "$_mmut"
+rc=0; diff -q plugins/ravenclaude-core/skills/rc-deep-research/rc-deep-research.js "$_mmut" >/dev/null 2>&1 || rc=1
+rm -f "$_mmut"
+gate "workflow-mirror byte-identity (one-sided drift caught)" must_fail "$rc"
 
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"

@@ -10,13 +10,19 @@ WHAT IT DOES (dry-run by DEFAULT — execute is opt-in):
             (two renames, roll back on partial) → preserve MEMORY → audit-JSON.
 
 SAFETY ENVELOPE (the reason this exists over a bare `rm -rf` + reinstall):
-  * Dry-run is the default; execute requires --execute AND a user-confirmation
-    token (--confirm). The slash-command body obtains that token via an
-    interactive AskUserQuestion the user types; an agent invoking this script
-    programmatically cannot supply it → RAGNAROK_NOT_USER_INVOKED. This is the
-    user-only gate. (The spec's $CLAUDE_INVOCATION_SOURCE does not exist in the
-    codebase — see the tee-up Blocker 1; the interactive-confirmation gate is
-    the shipped pattern, the same one /wrap uses.)
+  * Dry-run is the default; execute requires --execute AND a --confirm token that
+    must equal the plugin name. IMPORTANT — honest scope (corrected 2026-07 after
+    a review flagged the prior overstatement): this `--confirm` check is a
+    friction/typo guard, NOT a robust proof of human invocation. The plugin name is
+    knowable, and an agent that runs the (allowed, read-only) dry-run would see any
+    printed value in stdout, so no script-level `--confirm` scheme can by itself
+    keep an agent out. The ACTUAL user-only enforcement is the command-review
+    tribunal concern `xc.ragnarok-non-user-invocation` (pre_llm_deny + always_screen
+    in knowledge/concerns-catalog.md), which hard-denies — category-independently,
+    before any LLM seat — an agent that shells `--execute` directly. `--confirm`
+    composes with that as belt-and-suspenders; it is not the boundary on its own.
+    (The spec's $CLAUDE_INVOCATION_SOURCE does not exist in the codebase — see the
+    tee-up Blocker 1; the tribunal concern is the shipped user-only enforcement.)
   * Reinstall pins to a user-named SHA (--pin); no floating-HEAD fallback.
   * The pre-reset snapshot is retained (--ttl-days, default 30) so the reset is
     reversible. Atomic two-rename swap with roll-back if the second rename fails.
@@ -275,10 +281,13 @@ def main() -> int:
         return dry_run(args.plugin, version_dir, args.pin, args.ttl_days)
 
     # ── Execute mode — the hard gates ────────────────────────────────────────
-    # User-only gate: the confirmation token must equal the plugin name (the
-    # slash-command body asks the user to type the plugin name to confirm). An
-    # agent calling this script programmatically won't supply it. Fail SAFE:
-    # absence blocks execute, but dry-run above always works.
+    # Friction/typo guard (NOT the real user-only boundary — see the module
+    # docstring, corrected 2026-07): --confirm must equal the plugin name. This
+    # trips an accidental / half-typed execute, but the plugin name is knowable and
+    # visible in the read-only dry-run's stdout, so it does not by itself keep an
+    # agent out. The actual user-only enforcement is the tribunal's
+    # `xc.ragnarok-non-user-invocation` pre_llm_deny concern (hard-denies an agent
+    # shelling --execute directly). Fail SAFE: absence blocks execute; dry-run works.
     if args.confirm != args.plugin:
         return fail("RAGNAROK_NOT_USER_INVOKED")
 

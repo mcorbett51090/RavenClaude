@@ -24,10 +24,12 @@ HONEST LIMITS (printed in the knowledge file and on the dashboard toggle):
   - Conservative by design: bare integers (amounts, years, IDs) are NOT tokenized,
     so the relayed brief stays useful. Over-tokenizing would gut the brief.
 
-Stdlib-only. Fail-safe: on any internal error the encode path prints the input
-UNCHANGED to stdout and a non-zero exit — the caller (claude-orchestrate.sh) treats
-a non-zero exit from the pseudonymizer as "do not egress" (fail closed), so a
-tokenizer fault can never cause un-tokenized PII to slip out under layer A.
+Stdlib-only. Fail-safe: on any internal error the encode path writes NOTHING to
+stdout and exits non-zero — the caller (claude-orchestrate.sh) MUST treat a
+non-zero exit from the pseudonymizer as "do not egress" (fail closed). Writing
+nothing (rather than echoing the raw input) is deliberate: it guarantees a
+tokenizer fault can never cause un-tokenized PII to reach stdout for a caller that
+captures output without checking the exit code.
 """
 
 import argparse

@@ -102,7 +102,27 @@ fi
 norm="${norm//\"/}"                 # drop double quotes:  rm -rf "/"  -> rm -rf /
 norm="${norm//\'/}"                 # drop single quotes
 norm="${norm//\$\{HOME\}/\$HOME}"   # ${HOME} -> $HOME  (one form to match)
+# Anti-obfuscation (added after the 2026-07 three-panel review): a command can
+# smuggle a destructive payload past a whitespace-anchored pattern by writing the
+# spaces as ${IFS}/$IFS (word-splitting still runs them as real separators) or by
+# prefixing the command with a backslash (\rm still resolves to rm — the backslash
+# only suppresses alias expansion). Fold both to their executed form BEFORE the
+# whitespace collapse so the matchers see the same command the shell would run.
+norm="${norm//\$\{IFS\}/ }"         # ${IFS} -> space
+norm="${norm//\$IFS/ }"             # $IFS  -> space
+norm="${norm//\\/}"                 # drop backslashes:  \rm -rf /  -> rm -rf /
 norm="$(printf '%s' "$norm" | tr -s '[:space:]' ' ')"   # collapse whitespace runs
+
+# Strip git GLOBAL options that sit between `git` and its subcommand (added after
+# the 2026-07 review): `git -c foo=bar push --force`, `git --git-dir=.git push …`,
+# `git -C path reset --hard` etc. would otherwise dodge every `git[[:space:]]+<sub>`
+# anchor. Fold `git <globals…> <sub>` back to `git <sub>` so the subcommand
+# patterns match. A curated allow-list (never `-f`/`--force`, which are subcommand
+# options, not globals) keeps this from mis-stripping a real flag. Fail-safe: any
+# sed error leaves `norm` untouched.
+_gitglobal='(-[cC][[:space:]]*[^[:space:]]+|--(git-dir|work-tree|namespace|exec-path|config-env)(=[^[:space:]]*|[[:space:]]+[^[:space:]]+)|--(bare|no-pager|paginate|no-replace-objects|no-optional-locks|literal-pathspecs|icase-pathspecs|glob-pathspecs|noglob-pathspecs))'
+_gstripped="$(printf '%s' "$norm" | sed -E "s/(^|[;&|[:space:]])git(([[:space:]]+${_gitglobal})+)[[:space:]]+/\1git /g" 2>/dev/null || true)"
+[ -n "$_gstripped" ] && norm="$_gstripped"
 
 # --- Order-independent helpers ---------------------------------------------
 # A recursive flag in ANY spelling/order: -r, -R, -rf, -fr, -Rf, --recursive.
@@ -170,6 +190,23 @@ _is_dangerous_truncate() {
   return 1
 }
 
+# Force-delete of a git branch, order-independent (added after the 2026-07 review).
+# The prior single pattern anchored `-D` immediately after `branch`, so it caught
+# `git branch -D main` / `-fD` / `-Df` but MISSED the long form
+# `git branch --delete --force main` (and `--force --delete`) and the reordered
+# `git branch main -D`. Scan the whole `git branch …` invocation for either the
+# short force-delete flag (contains an uppercase D) OR the co-occurrence of
+# `--delete` and `--force` anywhere. (git global options are already stripped above.)
+_is_dangerous_git_branch_delete() {
+  local c="$1"
+  [[ "$c" =~ (^|[;\&\|[:space:]])git[[:space:]]+branch([[:space:]]|$) ]] || return 1
+  # short combined flag containing D:  -D / -fD / -Df
+  [[ "$c" =~ (^|[[:space:]])-[a-zA-Z]*D[a-zA-Z]*([[:space:]]|$) ]] && return 0
+  # long form: both --delete and --force present, in any order
+  { [[ "$c" =~ (^|[[:space:]])--delete([[:space:]]|$) ]] && [[ "$c" =~ (^|[[:space:]])--force([[:space:]]|$) ]]; } && return 0
+  return 1
+}
+
 # --- Pattern array (matched against the normalized command) ----------------
 # The settings.json deny-list catches the top-level form; this catches them
 # when nested / wrapped / reordered.
@@ -180,7 +217,8 @@ deny_patterns=(
   'git[[:space:]]+push[[:space:]].*[[:space:]]\+[A-Za-z0-9_./@~^-]+'  # refspec force-push: git push origin +HEAD:main
   'git[[:space:]]+reset[[:space:]]+--hard([[:space:]]+|$)'
   'git[[:space:]]+clean[[:space:]]+(-[a-z]*f|--force)'             # clean -fd / -df / --force (order-independent)
-  'git[[:space:]]+branch[[:space:]]+-[a-zA-Z]*D'                   # branch -D / -fD (force-delete)
+  # NB: git force-branch-delete is handled by _is_dangerous_git_branch_delete
+  # (order-independent, incl. the `--delete --force` long form), not a pattern.
   # remote-code-exec via pipe / process- or command-substitution to an interpreter
   '(curl|wget)[^|]*\|[[:space:]]*(sudo[[:space:]]+)?(env[[:space:]]+[^[:space:]]+[[:space:]]+)?([a-z]*sh|python[0-9.]*|perl|ruby|node)([[:space:]]|$)'
   # …and the multi-pipe / filter-then-execute evasion of the above: the single-pipe
@@ -198,7 +236,7 @@ deny_patterns=(
   'shred[[:space:]]+.*[[:space:]]/dev/'
   '>[[:space:]]*/dev/(sd|nvme|hd|disk|vd|xvd|mmcblk)'
   # fork bomb
-  ':\(\)\{[[:space:]]*:\|:&[[:space:]]*\}'
+  ':[[:space:]]*\([[:space:]]*\)[[:space:]]*\{[[:space:]]*:\|:&[[:space:]]*\}'
 )
 
 _deny() {
@@ -215,6 +253,7 @@ if _is_dangerous_rm "$norm";       then _deny "recursive-rm-of-dangerous-target"
 if _is_dangerous_chmod "$norm";    then _deny "recursive-chmod-world-or-lockout"; fi
 if _is_dangerous_find "$norm";     then _deny "find-delete-of-dangerous-target"; fi
 if _is_dangerous_truncate "$norm"; then _deny "truncate-zero-of-dangerous-target"; fi
+if _is_dangerous_git_branch_delete "$norm"; then _deny "git-branch-force-delete"; fi
 
 # Then the pattern array.
 for pat in "${deny_patterns[@]}"; do

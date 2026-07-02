@@ -892,13 +892,23 @@ const searchResults = await pipeline(
         ...adapterOpts("search", runCfg),
       },
       dispatchCfg,
-    ).then((r) => {
-      if (!r) return null;
-      log(angle.label + ": " + r.results.length + " results");
-      return { angle: angle.label, results: r.results };
-    }),
+    )
+      .then((r) => {
+        if (!r) return null;
+        log(angle.label + ": " + r.results.length + " results");
+        return { angle: angle.label, results: r.results };
+      })
+      .catch((e) => {
+        // Mirror the fetch fan-out's .catch() below: a single failed search
+        // angle (WebSearch timeout / tool error / schema-validation reject)
+        // degrades that angle to "no results" instead of rejecting into the
+        // pipeline and risking the whole research run. (Added after the 2026-07 review.)
+        log("search failed: " + angle.label + " — " + (e && e.message ? e.message : e));
+        return null;
+      }),
 
   (searchResult) => {
+    if (!searchResult) return null;
     const sorted = [...searchResult.results].sort(
       (a, b) => relRank[a.relevance] - relRank[b.relevance],
     );
