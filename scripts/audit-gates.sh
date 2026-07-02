@@ -3285,12 +3285,11 @@ echo "── Gate 70: Codex desktop trust review hooks (Findings 1, 2, 5) ──
 # the per-subtest rationale.
 rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate70-codex-trust-hooks.sh >/dev/null 2>&1 || rc=$?
 gate "codex-trust-hooks fixture (13 subtests across STRICT + dod-gate + web-access)" must_pass "$rc"
-# must_fail: an exit-1 (broken) STRICT branch must be distinguishable from an
-# exit-2 (fixed) STRICT branch. If a fixture treats both as "non-zero = block",
-# it would pass the pre-fix code. This sanity check proves exit 1 != exit 2.
-rc=0
-[ 1 -ne 2 ] || rc=1
-gate "codex-trust-hooks: exit 1 vs exit 2 are distinguishable (gate has teeth)" must_pass "$rc"
+# The exit-1-vs-exit-2 discrimination is proven WITH TEETH by the fixture's own
+# must-fail half (G70.6 patches a STRICT branch back to exit 1 and asserts the
+# exit-2-literal check catches it) — run as part of the fixture above. A prior
+# `[ 1 -ne 2 ]` self-check here was a tautology comparing two integer literals:
+# unconditionally true, asserting nothing about the code under test. Removed.
 
 echo "── Gate 90: agent-dispatch-evaluator SubagentStart hook — audit-only ──────"
 # The hook's full fixture (6 subtests incl. the deny-on-downgrade must-fail half) runs as one

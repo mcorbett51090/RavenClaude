@@ -93,6 +93,60 @@ s = re.sub(
     r"<<HEREDOC",
     s,
 )
+# (c) Decode bash ANSI-C $'...' quoting BEFORE the literal quote-stripping below.
+# bash expands `$'\057'` -> `/`, `$'\053'` -> `+`, etc. at execution time, so a
+# command can smuggle a destructive target/refspec past every whitespace- or
+# literal-anchored pattern by writing it as octal/hex/unicode escapes
+# (`rm -rf $'\057'`, `git push origin $'\053HEAD:main'`). Fold each $'...' token
+# to the byte string bash would actually run so the matchers see the real command.
+# Covers \nnn (octal), \xHH (hex), \u/\U (unicode) and the common letter escapes;
+# an unknown escape degrades to the char after the backslash. This never raises
+# (bad values are swallowed) — a decode failure leaves `norm` at the pre-decode
+# form, i.e. no worse than before this block existed.
+def _ansi_c_decode(m):
+    body = m.group(1)
+    simple = {"a": "\a", "b": "\b", "e": "\x1b", "E": "\x1b", "f": "\f",
+              "n": "\n", "r": "\r", "t": "\t", "v": "\v", "\\": "\\",
+              "'": "'", '"': '"', "?": "?"}
+    out = []
+    i = 0
+    while i < len(body):
+        ch = body[i]
+        if ch == "\\" and i + 1 < len(body):
+            nxt = body[i + 1]
+            if nxt in simple:
+                out.append(simple[nxt]); i += 2; continue
+            if nxt == "x":
+                j, hexd = i + 2, ""
+                while j < len(body) and len(hexd) < 2 and body[j] in "0123456789abcdefABCDEF":
+                    hexd += body[j]; j += 1
+                if hexd:
+                    out.append(chr(int(hexd, 16))); i = j; continue
+            if nxt in "uU":
+                width = 4 if nxt == "u" else 8
+                j, hexd = i + 2, ""
+                while j < len(body) and len(hexd) < width and body[j] in "0123456789abcdefABCDEF":
+                    hexd += body[j]; j += 1
+                if hexd:
+                    try:
+                        out.append(chr(int(hexd, 16)))
+                    except (ValueError, OverflowError):
+                        pass
+                    i = j; continue
+            if nxt in "01234567":
+                j, octd = i + 1, ""
+                while j < len(body) and len(octd) < 3 and body[j] in "01234567":
+                    octd += body[j]; j += 1
+                try:
+                    out.append(chr(int(octd, 8) & 0xFF))
+                except ValueError:
+                    pass
+                i = j; continue
+            out.append(nxt); i += 2; continue
+        out.append(ch); i += 1
+    return "".join(out)
+
+s = re.sub(r"\$'((?:\\.|[^'\\])*)'", _ansi_c_decode, s)
 sys.stdout.write(s)
 PY
 )"
@@ -140,9 +194,14 @@ _is_dangerous_rm() {
   # variable) is not falsely matched as a prefix — only bare `$HOME`, `$HOME/…`,
   # `$HOME ` etc. count (ERE has no \b, so require a non-identifier char or EOL).
   [[ "$c" =~ (^|[[:space:]])(/|~|\$HOME([^_[:alnum:]]|$)) ]] && return 0
-  # standalone current-dir / glob target: `.`, `./` (trailing slash is the same
-  # current-dir delete and must not dodge the guard the bare `.` form catches), `*`.
-  [[ "$c" =~ (^|[[:space:]])(\./?|\*)([[:space:]]|$) ]] && return 0
+  # standalone current-dir / parent-dir / glob target. Covers `.`, `./`, `*`
+  # (trailing slash is the same current-dir delete) AND the wipe-cwd / escape-to-
+  # parent globs `.*`, `./*`, `..`, `../`, `../*` — `../*` is the worst case: it
+  # deletes the ENTIRE PARENT directory, escaping the cwd-container blast-radius
+  # bound this function's design (above) relies on to allow relative deletes.
+  # Scoped relative paths (`./tmp/build`, `../build`) still fall through (allowed):
+  # they carry a non-`*` path segment after the dots, so the boundary anchor fails.
+  [[ "$c" =~ (^|[[:space:]])(\.{1,2}/?\*?|\*)([[:space:]]|$) ]] && return 0
   return 1
 }
 

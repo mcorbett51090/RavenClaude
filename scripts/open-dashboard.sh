@@ -23,10 +23,11 @@ LOG="/tmp/rc-dashboard-$PORT.log"
 
 [ -f "$SERVER" ] || { echo "dashboard server not found: $SERVER" >&2; exit 1; }
 
-# 1. Kill any server already bound to THIS port (ignore "no match"). Scoped to
-#    the exact --port invocation (matching the nohup line below) so a dashboard
-#    served on a different port for another repo is not collaterally killed.
-pkill -f "serve-dashboards.py --port ${PORT}" 2>/dev/null || true
+# 1. Kill any server already bound to THIS port (ignore "no match"). The port is
+#    end-anchored (\$) and the dot is escaped so `--port 800` can't substring-match
+#    a running `--port 8000` — pkill -f is an unanchored regex over the whole
+#    command line, and the nohup line below puts --port last, so `$` is exact.
+pkill -f "serve-dashboards\.py --port ${PORT}\$" 2>/dev/null || true
 sleep 1
 
 # 2. Start fresh in the background, fully detached so it outlives this script.

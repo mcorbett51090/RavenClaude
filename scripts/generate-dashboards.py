@@ -211,14 +211,18 @@ def _page_kwargs(plugin_dir: Path, schema: dict, include_trees: bool = True) -> 
         "bifrost_html": _render_bifrost_tab(),
         "about_html": _render_about_tab(description, plugin_name),
         "pipeline_html": _render_pipeline_tab(),
-        "schema_json": json.dumps(schema, indent=2),
+        # Each *_json below is spliced verbatim into an inline <script> block, so
+        # a literal `</script` substring in any value would end the script element
+        # early (HTML raw-text rule) and turn the rest into parsed markup. Escape
+        # `<` -> `<`; it round-trips through the JSON parser to `<`.
+        "schema_json": json.dumps(schema, indent=2).replace("<", "\\u003c"),
         "heimdall_json": json.dumps(
             {"versionDrift": _compute_version_drift()}, indent=2, sort_keys=True
-        ),
-        "concepts_json": _concepts_json(plugin_dir),
+        ).replace("<", "\\u003c"),
+        "concepts_json": _concepts_json(plugin_dir).replace("<", "\\u003c"),
         "pattern_explanations_json": json.dumps(
             PATTERN_EXPLANATIONS, indent=2, sort_keys=True
-        ),
+        ).replace("<", "\\u003c"),
         "js": _JS,
     }
 
