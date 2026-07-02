@@ -413,6 +413,13 @@ gd_block=(
   'find / -delete' 'find /etc -name conf -delete' 'find ~ -delete'
   'find $HOME -type f -exec rm {} +'
   'truncate -s 0 /etc/passwd' 'truncate -s0 ~/.bashrc'
+
+  # Hidden command-substitution payloads: the -m "…" / heredoc body stripping used
+  # to blank these before the scan while bash still expands them at run time
+  # (v0.178.x guard-destructive preprocessing + command-boundary fix). A `(rm` /
+  # `` `rm `` with no separator must be caught, not only space/;-delimited forms.
+  'git commit -m "$(rm -rf ~)"' 'git commit -m "$(true; rm -rf /)"'
+  $'cat <<EOF > /tmp/x\n$(rm -rf ~)\nEOF'
 )
 for c in "${gd_block[@]}"; do
   _gd "$c"; ok=0; [ "$GD_RC" -eq 2 ] || ok=1
@@ -423,6 +430,11 @@ gd_pass=(
   'git clean -n' 'curl https://x/data.json -o out.json'
   'find ./build -name "*.o" -delete' 'find . -name "*.tmp" -delete'
   'truncate -s 0 ./app.log' 'truncate -s 1G ./sparse.img'
+  # Inert bodies that merely DOCUMENT a destructive pattern must still be stripped
+  # (this repo constantly quotes `git branch -D` / `rm -rf`) — no command subst,
+  # so the strip fires and the scan never sees the literal.
+  'git commit -m "document the git branch -D escape hatch, avoid rm -rf"'
+  $'cat <<EOF > /tmp/x\ndocument git branch -D and rm -rf here\nEOF'
 )
 for c in "${gd_pass[@]}"; do
   _gd "$c"
@@ -556,7 +568,7 @@ elif [[ -x /tmp/actionlint ]]; then
   al_bin=/tmp/actionlint
 else
   al_tgz="$TMP/actionlint.tgz"
-  if curl -fsSL "https://github.com/rhysd/actionlint/releases/download/v${AL_VER}/actionlint_${AL_VER}_linux_amd64.tar.gz" -o "$al_tgz" 2>/dev/null \
+  if curl -fsSL --connect-timeout 5 -m 30 "https://github.com/rhysd/actionlint/releases/download/v${AL_VER}/actionlint_${AL_VER}_linux_amd64.tar.gz" -o "$al_tgz" 2>/dev/null \
     && printf '%s  %s\n' "$AL_SHA" "$al_tgz" | sha256sum -c - >/dev/null 2>&1 \
     && tar -xzf "$al_tgz" -C "$TMP" actionlint 2>/dev/null; then
     chmod +x "$TMP/actionlint"

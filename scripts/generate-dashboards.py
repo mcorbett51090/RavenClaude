@@ -206,14 +206,18 @@ def _page_kwargs(plugin_dir: Path, schema: dict, include_trees: bool = True) -> 
         "bifrost_html": _render_bifrost_tab(),
         "about_html": _render_about_tab(description, plugin_name),
         "pipeline_html": _render_pipeline_tab(),
-        "schema_json": json.dumps(schema, indent=2),
+        # Escape "<" as < in every JSON payload embedded in a <script> element
+        # so free-text content (e.g. a concept/pattern body) carrying a literal
+        # "</script>" can't close the element early and inject markup. < is a
+        # valid JSON escape decoding back to "<" — JSON.parse restores it client-side.
+        "schema_json": json.dumps(schema, indent=2).replace("<", "\\u003c"),
         "heimdall_json": json.dumps(
             {"versionDrift": _compute_version_drift()}, indent=2, sort_keys=True
-        ),
-        "concepts_json": _concepts_json(plugin_dir),
+        ).replace("<", "\\u003c"),
+        "concepts_json": _concepts_json(plugin_dir).replace("<", "\\u003c"),
         "pattern_explanations_json": json.dumps(
             PATTERN_EXPLANATIONS, indent=2, sort_keys=True
-        ),
+        ).replace("<", "\\u003c"),
         "js": _JS,
     }
 

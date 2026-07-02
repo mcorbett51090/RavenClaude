@@ -82,15 +82,38 @@ if command -v python3 >/dev/null 2>&1; then
   __preproc="$(__GUARD_RAW_CMD="$norm" python3 - <<'PY' 2>/dev/null
 import re, sys, os
 s = os.environ.get("__GUARD_RAW_CMD", "")
-# (a) Strip -m "..." and -m '...' argument bodies. Only the FIRST quoted
-# region after -m; refuses to merge across newlines.
-s = re.sub(r'''(-m\s+)"[^"\n]*"''', r"\1MSG", s)
+# A quoted body "executes" only if it carries command substitution — $(...) or a
+# backtick. Parameter expansion (${VAR}) does not run a command in the common case,
+# and the exotic bash-5.2 funsub ${ ...;} is out of scope for this defense-in-depth
+# layer. Keeping the trigger to the two real command-execution vectors preserves the
+# false-positive protection this stripping exists for: a -m / heredoc body that
+# merely *documents* `git branch -D` / `rm -rf` must still be stripped, or this repo
+# — whose commits and heredocs constantly quote destructive patterns — locks up.
+_EXECUTES = re.compile(r"\$\(|`")
+# (a) Strip -m "..." and -m '...' argument bodies so a commit message that documents
+# a destructive pattern isn't itself flagged. A SINGLE-quoted body is inert (no shell
+# expansion) and is always stripped. A DOUBLE-quoted body still expands $(...)/`...`
+# at run time, so it is stripped ONLY when it carries no command substitution —
+# otherwise `git commit -m "$(rm -rf ~)"` would be blanked to MSG before the scan
+# below ever sees the live payload bash will execute (the hidden-substitution bypass).
+def _strip_dq_m(m):
+    return m.group(1) + "MSG" if not _EXECUTES.search(m.group(2)) else m.group(0)
+s = re.sub(r'''(-m\s+)"([^"\n]*)"''', _strip_dq_m, s)
 s = re.sub(r"""(-m\s+)'[^'\n]*'""", r"\1MSG", s)
-# (b) Strip heredoc bodies. Recognize <<TAG / <<-TAG / <<'TAG' / <<"TAG",
-# then remove everything up to and including the closing TAG line.
+# (b) Strip heredoc bodies (data written to a file, not executed) — but ONLY when the
+# body is genuinely inert. A QUOTED delimiter (<<'TAG' / <<"TAG") suppresses all
+# expansion, so its body is always stripped; a BARE <<TAG still expands $(...)/`...`
+# at run time, so its body is stripped only when it carries no command substitution.
+# Without this split, `cat <<EOF > f\n$(rm -rf ~)\nEOF` would be blanked before the
+# scan, while bash still runs the substitution while building the heredoc.
+def _strip_heredoc(m):
+    quoted, body = m.group(1), m.group(3)
+    if quoted or not _EXECUTES.search(body):
+        return "<<HEREDOC"
+    return m.group(0)
 s = re.sub(
-    r"""<<-?\s*['"]?(\w+)['"]?[^\n]*\n[\s\S]*?\n\s*\1\s*(?=\n|$)""",
-    r"<<HEREDOC",
+    r"""<<-?\s*(['"]?)(\w+)\1[^\n]*\n([\s\S]*?)\n\s*\2\s*(?=\n|$)""",
+    _strip_heredoc,
     s,
 )
 sys.stdout.write(s)
@@ -105,6 +128,12 @@ norm="${norm//\$\{HOME\}/\$HOME}"   # ${HOME} -> $HOME  (one form to match)
 norm="$(printf '%s' "$norm" | tr -s '[:space:]' ' ')"   # collapse whitespace runs
 
 # --- Order-independent helpers ---------------------------------------------
+# Characters that open a fresh command word before rm/chmod: line start, ;, &, |,
+# whitespace, AND a command-substitution opener — `(` or a backtick — so
+# `$(rm -rf ~)` / ``rm -rf ~`` are caught, not only the space/;-separated forms.
+# Single-quoted so the literal backtick can't trigger command substitution here.
+_CMD_BOUNDARY='(^|[;&|(`[:space:]])'
+
 # A recursive flag in ANY spelling/order: -r, -R, -rf, -fr, -Rf, --recursive.
 _has_recursive() { [[ "$1" =~ (^|[[:space:]])(-[a-zA-Z]*[rR][a-zA-Z]*|--recursive)([[:space:]]|$) ]]; }
 
@@ -113,7 +142,7 @@ _has_recursive() { [[ "$1" =~ (^|[[:space:]])(-[a-zA-Z]*[rR][a-zA-Z]*|--recursiv
 # its own. `rm -rf ./tmp/build` is allowed (target is relative, starts with `.`).
 _is_dangerous_rm() {
   local c="$1"
-  [[ "$c" =~ (^|[;\&\|[:space:]])rm[[:space:]] ]] || return 1
+  [[ "$c" =~ ${_CMD_BOUNDARY}rm[[:space:]] ]] || return 1
   _has_recursive "$c" || return 1
   # a dangerous target argument: starts with /, ~, $HOME, or a standalone . or *
   # $HOME is boundary-anchored so `$HOME_BACKUP` / `$HOME_DIR` (a *different*
@@ -130,7 +159,7 @@ _is_dangerous_rm() {
 # any flag order, octal prefix tolerated (0777). Symbolic modes are out of scope.
 _is_dangerous_chmod() {
   local c="$1"
-  [[ "$c" =~ (^|[;\&\|[:space:]])chmod[[:space:]] ]] || return 1
+  [[ "$c" =~ ${_CMD_BOUNDARY}chmod[[:space:]] ]] || return 1
   _has_recursive "$c" || return 1
   [[ "$c" =~ (^|[[:space:]])0?(7{3}|6{3}|0{3})([[:space:]]|$) ]] || return 1
   return 0
@@ -204,8 +233,15 @@ deny_patterns=(
 _deny() {
   local reason="$1"
   _emit_hook_event "guard-destructive.sh" "deny" "Bash" "$cmd" "$reason" 2
-  echo "[guard-destructive] BLOCKED: command matches destructive pattern: $reason" >&2
-  echo "[guard-destructive] cmd: $cmd" >&2
+  # Scrub secret-shaped tokens before echoing the command to stderr — the stderr
+  # of a blocked tool call is captured into the conversation transcript, so a
+  # credential embedded in a destructive command would otherwise leak there
+  # (the JSONL substrate is already scrubbed inside _emit_hook_event above).
+  local safe_cmd safe_reason
+  safe_cmd="$(_scrub_reason "$cmd" 2>/dev/null || printf '%s' "$cmd")"
+  safe_reason="$(_scrub_reason "$reason" 2>/dev/null || printf '%s' "$reason")"
+  echo "[guard-destructive] BLOCKED: command matches destructive pattern: $safe_reason" >&2
+  echo "[guard-destructive] cmd: $safe_cmd" >&2
   echo "[guard-destructive] If you really need this, run it yourself with explicit confirmation." >&2
   exit 2   # 2 blocks the tool call; 1 would NOT (non-blocking error)
 }

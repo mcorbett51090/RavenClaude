@@ -1118,6 +1118,10 @@ def main() -> int:
             payload = json.load(sys.stdin)
         except (json.JSONDecodeError, ValueError):
             payload = {}
+        # Valid-but-non-object JSON (["a","b"], null) parses cleanly but has no
+        # .get(); normalize to an empty dict so classify fails safe rather than crashing.
+        if not isinstance(payload, dict):
+            payload = {}
         tool_name = payload.get("tool_name", "") or ""
         tool_input = payload.get("tool_input", {}) or {}
         category = classify_payload(tool_name, tool_input, root)

@@ -152,11 +152,25 @@ for b in "${branches[@]}"; do
 
   reason=""
 
-  # Check 1: merged PR (best signal — covers squash-merge case).
+  # Check 1: merged PR (best signal — covers squash-merge case). Match by the
+  # branch's current TIP, not merely its NAME: a branch REUSED after its PR merged
+  # carries commits BEYOND the merged head that are not necessarily merged, and
+  # deleting it would lose them. So "merged PR exists" counts as safe only when the
+  # current tip is CONTAINED in a merged PR's head (the tip is an ancestor of that
+  # head → no post-merge work). Otherwise fall through to Check 2/3. If the head SHA
+  # is unknown locally, is-ancestor fails and we conservatively do NOT mark it safe.
   if [ -z "$reason" ] && command -v gh >/dev/null 2>&1; then
-    merged_count="$(gh pr list --state merged --head "$b" --json number 2>/dev/null | jq 'length' 2>/dev/null || echo 0)"
-    if [ "${merged_count:-0}" -gt 0 ]; then
-      reason="merged PR exists"
+    merged_heads="$(gh pr list --state merged --head "$b" --json headRefOid --jq '.[].headRefOid' 2>/dev/null || true)"
+    if [ -n "$merged_heads" ]; then
+      while IFS= read -r _sha; do
+        [ -n "$_sha" ] || continue
+        if git merge-base --is-ancestor "$b" "$_sha" 2>/dev/null; then
+          reason="merged PR exists"
+          break
+        fi
+      done <<GHHEADS
+$merged_heads
+GHHEADS
     fi
   fi
 

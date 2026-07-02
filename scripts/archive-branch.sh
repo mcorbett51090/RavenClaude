@@ -122,6 +122,18 @@ if [[ "$CURRENT" == "$BRANCH" ]]; then
   exit 1
 fi
 
+# 3.5 Refuse if the branch is checked out in ANY OTHER git worktree. `git branch -D`
+#     refuses that automatically; the low-level `git update-ref -d` we use below does
+#     NOT — deleting the ref out from under a live worktree leaves it detached/corrupt.
+#     Precondition 3 already handled the current worktree, so any remaining exact
+#     match here is a DIFFERENT worktree. -x/-F: whole-line, literal (branch names
+#     may contain regex metacharacters and 'feat/foo' must not match 'feat/foobar').
+if git worktree list --porcelain 2>/dev/null | grep -qxF "branch refs/heads/$BRANCH"; then
+  echo "archive-branch: REFUSED — '$BRANCH' is checked out in another git worktree" >&2
+  git worktree list >&2
+  exit 1
+fi
+
 # 4. Capture branch tip + the unmerged-vs-default-branch commit list (the work
 #    we'd lose). Resolve the default branch instead of hardcoding "main": on a
 #    repo whose default is "master" (or anything else), `git log ... --not main`

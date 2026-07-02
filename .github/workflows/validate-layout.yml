@@ -33,9 +33,15 @@ jobs:
 
       - name: Determine base ref
         id: base
+        # github.base_ref is a branch name (attacker-controllable on a fork PR) and
+        # git ref names permit shell metacharacters — never splice it straight into
+        # the run: script. Pass it through env and reference the shell variable, so
+        # the value can never be interpreted as script (GitHub Actions injection).
+        env:
+          BASE_REF: ${{ github.base_ref }}
         run: |
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            echo "ref=origin/${{ github.base_ref }}" >> "$GITHUB_OUTPUT"
+            echo "ref=origin/${BASE_REF}" >> "$GITHUB_OUTPUT"
           else
             # For push to main and workflow_dispatch, diff against previous commit
             echo "ref=HEAD~1" >> "$GITHUB_OUTPUT"

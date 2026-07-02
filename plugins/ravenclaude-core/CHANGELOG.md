@@ -2,6 +2,17 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.182.1 — 2026-07-02
+
+### Fixed
+
+- **Security — `guard-destructive.sh` command-substitution bypasses.** The `-m "…"` / heredoc-body stripping (added to stop a documented `git branch -D`/`rm -rf` false-positive) blanked a **double-quoted** `-m "$(…)"` body and a **bare** `<<EOF` heredoc body before the destructive-pattern scan, while bash still executed the substitution at run time — so `git commit -m "$(rm -rf ~)"` and `cat <<EOF … $(rm -rf ~) … EOF` slipped past the guard. Now a quoted body is stripped only when it carries no command substitution (`$(`/backtick), and the command-boundary regex also treats `(`/backtick as word boundaries so `$(rm …` is caught. Regression fixtures added to Gate 5.
+- **Security — secret leakage into the transcript/substrate.** `_deny()` echoed the raw command to stderr (captured into the conversation) and `_emit_hook_event` wrote the free-form `path` field (the full command) to `hook-events.jsonl` unscrubbed; both now pass through `_scrub_reason()`, matching the existing `rule` scrub.
+- **Robustness — tribunal engines crash on non-object stdin.** `thing-decide.py` and `thing-decision.py` raised `AttributeError` on valid-but-non-object JSON (`["a"]`, `null`, `42`); both now fail safe (`defer` / empty classify).
+- **`</script>` breakout escaping** in the dashboard generator's embedded JSON payloads (`schema`/`heimdall`/`concepts`/`pattern-explanations`) — `<` is now emitted as `<`, which `JSON.parse` restores client-side.
+
+**Migration:** none — all changes are backward-compatible hardening; nothing in a consumer's installed plugin behaves differently on `/plugin marketplace update` beyond the closed bypasses.
+
 ## 0.171.1 — 2026-06-24
 
 ### Fixed

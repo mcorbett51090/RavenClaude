@@ -62,11 +62,22 @@ def validate(payload: dict, metadata: dict) -> list[dict]:
     attrs: dict = metadata.get("attributes", {}) or {}
     # case-insensitive lookup of attribute logical names (payload casing varies)
     by_lower = {k.lower(): k for k in attrs}
-    # entity-set -> logical, for validating @odata.bind targets we know about
+    # entity-set -> logical, for validating @odata.bind targets we know about.
+    # We only hold the logical target name here, and Dataverse EntitySetName
+    # pluralization is irregular, so accept several forms to avoid a false
+    # "unknown-lookup-target" warning: the raw/exact name (the "also accept exact"
+    # the old comment promised but never added), the naive "+s", and the
+    # consonant-"y" -> "-ies" rule (activity -> activities, company -> companies).
+    # This is a warning-only check, so widening the accepted set only ever
+    # suppresses false positives — it never blocks a genuinely-valid payload.
     known_target_sets: set[str] = set()
     for a in attrs.values():
         for t in a.get("targets", []) or []:
-            known_target_sets.add((t + "s").lower())  # rough plural; also accept exact below
+            tl = str(t).lower()
+            known_target_sets.add(tl)          # raw / exact
+            known_target_sets.add(tl + "s")    # naive plural
+            if len(tl) > 1 and tl.endswith("y") and tl[-2] not in "aeiou":
+                known_target_sets.add(tl[:-1] + "ies")
 
     present_logicals: set[str] = set()
 

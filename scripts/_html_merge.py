@@ -99,7 +99,11 @@ def scope_css(css: str, prefix: str) -> str:
             while j < n and css[j] not in "{;":
                 j += 1
             prelude = css[i:j].strip()
-            keyword = prelude.split(None, 1)[0].lower() if prelude else ""
+            # Extract the at-rule keyword up to the first "(" OR whitespace — CSS
+            # allows `@media(max-width:600px){…}` with no space, where a whitespace
+            # split would yield the whole prelude and never match "@media".
+            _kw = re.match(r"@[A-Za-z-]+", prelude) if prelude else None
+            keyword = _kw.group(0).lower() if _kw else ""
             if j < n and css[j] == ";":  # @import / @charset — no block
                 out.append(prelude + ";\n")
                 i = j + 1
