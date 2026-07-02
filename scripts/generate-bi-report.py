@@ -486,7 +486,12 @@ def render_report(data: dict, plugin: str, tokens: str) -> str:
     refreshed = esc(rep.get("refreshed", ""))
     synthetic = '<div class="synthetic">Sample data · not real partners</div>' if rep.get("synthetic") else ""
 
-    data_json = json.dumps({"partners": [{"name": p["name"], "band": p["band"], "score": p["score"]} for p in partners]})
+    # Escape "<" as < so a partner "name" containing the literal "</script>"
+    # cannot close the <script> element early and inject markup (json.dumps does
+    # not escape "</"). < is a valid JSON/JS escape that decodes back to "<".
+    data_json = json.dumps(
+        {"partners": [{"name": p["name"], "band": p["band"], "score": p["score"]} for p in partners]}
+    ).replace("<", "\\u003c")
 
     page = f"""<!doctype html>
 <html lang="en">

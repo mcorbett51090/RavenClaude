@@ -2,6 +2,16 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.184.2 — 2026-07-02
+
+### Fixed
+
+- **Security — `guard-destructive.sh` command-substitution bypasses.** The `-m "…"` / heredoc-body stripping blanked a **double-quoted** `-m "$(…)"` body and a **bare** `<<EOF` heredoc body before the destructive-pattern scan, while bash still executed the substitution at run time — so `git commit -m "$(rm -rf ~)"` and `cat <<EOF … $(rm -rf ~) … EOF` slipped the guard. A quoted body is now stripped only when it carries no command substitution (`$(`/backtick), and the command-word boundary was extended to treat `(`/backtick as boundaries (composing with the `/` path-qualified boundary from the same-day review) so `$(rm …` is caught. Gate 5 regression fixtures added.
+- **Security — secret leakage.** `guard-destructive.sh`'s `_deny()` echoed the raw command to stderr (captured into the transcript) and `_emit_hook_event` wrote the free-form `path` field (the full command) to `hook-events.jsonl` unscrubbed; both now pass through `_scrub_reason()`.
+- **Robustness — tribunal engines** (`thing-decide.py` / `thing-decision.py`) now fail safe on valid-but-non-object stdin JSON instead of raising `AttributeError`.
+
+**Migration:** none — backward-compatible hardening.
+
 ## 0.184.1 — 2026-07-02
 
 ### Fixed

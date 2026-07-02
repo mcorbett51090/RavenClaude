@@ -449,4 +449,17 @@ jobs:
               echo "OK $name pinned at $plugin_version in both files"
             fi
           done
+          # Reverse direction: the loop above only visits real plugin directories, so
+          # a stale/orphaned marketplace.json plugins[] entry whose plugin was deleted
+          # or renamed would slip through with a green build. Assert every catalog
+          # name is declared by some plugin.json (matched by name, not by directory,
+          # so a plugin whose dir != name is still covered).
+          all_names="$(jq -r '.name' plugins/*/.claude-plugin/plugin.json)"
+          while IFS= read -r name; do
+            [ -n "$name" ] || continue
+            if ! printf '%s\n' "$all_names" | grep -qxF "$name"; then
+              echo "::error file=.claude-plugin/marketplace.json::orphaned catalog entry '$name' — no plugins/*/plugin.json declares this name"
+              status=1
+            fi
+          done < <(jq -r '.plugins[].name' .claude-plugin/marketplace.json)
           exit $status

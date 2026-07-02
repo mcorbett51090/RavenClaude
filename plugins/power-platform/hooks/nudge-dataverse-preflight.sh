@@ -38,10 +38,11 @@ done
 printf '%s' "$cmd" | grep -qiE '/api/data/v[0-9]+\.[0-9]+/[a-z][a-z0-9_]+' || exit 0
 
 # A WRITE: explicit -X/--request POST|PATCH, OR a data body without an explicit read method.
+# The data-flag set includes curl's --json (curl >= 7.82), which implies a POST body.
 is_write=0
 printf '%s' "$cmd" | grep -qiE '(-X|--request)[[:space:]]*[="'\'']?(POST|PATCH)' && is_write=1
 if [ "$is_write" -eq 0 ]; then
-  if printf '%s' "$cmd" | grep -qiE '(--data-raw|--data-binary|--data|[[:space:]]-d)[[:space:]=]' \
+  if printf '%s' "$cmd" | grep -qiE '(--data-raw|--data-binary|--data|--json|[[:space:]]-d)[[:space:]=]' \
      && ! printf '%s' "$cmd" | grep -qiE '(-X|--request)[[:space:]]*[="'\'']?(GET|DELETE|PUT)'; then
     is_write=1
   fi

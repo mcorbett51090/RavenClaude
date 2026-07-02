@@ -19,7 +19,12 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # Root dev server serves the repo root, so /index.html (the unified portal
 # with the dashboard + catalog folded in) is reachable with live /__* endpoints.
 SERVER="$ROOT/scripts/serve-dashboards.py"
-LOG="/tmp/rc-dashboard-$PORT.log"
+# Create the log via mktemp (O_EXCL, unpredictable suffix) rather than a fixed,
+# world-predictable /tmp path opened with ">" — a plain redirect follows a symlink,
+# so a local attacker pre-planting /tmp/rc-dashboard-<port>.log could redirect the
+# write. LOG is only the redirect target + the informational echo below (the restart
+# uses pkill, not this path), so a fresh unique file per run is safe.
+LOG="$(mktemp "/tmp/rc-dashboard-${PORT}-XXXXXX.log" 2>/dev/null)" || LOG="/tmp/rc-dashboard-${PORT}.$$.log"
 
 [ -f "$SERVER" ] || { echo "dashboard server not found: $SERVER" >&2; exit 1; }
 

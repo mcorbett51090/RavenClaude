@@ -121,6 +121,10 @@ _emit_hook_event() {
     # here — inside _emit_hook_event — so EVERY caller gets safe-by-construction
     # output without any per-call scrub responsibility.
     rule="$(_scrub_reason "$rule" 2>/dev/null || printf '%s' "$rule")"
+    # The `path` field carries free-form content — guard-destructive.sh passes the
+    # FULL command string here — so a secret embedded in a denied command would be
+    # written verbatim. Scrub it identically to `rule` so no caller has to remember.
+    path="$(_scrub_reason "$path" 2>/dev/null || printf '%s' "$path")"
 
     local project_dir="${CLAUDE_PROJECT_DIR:-}"
     # No project dir → nowhere canonical to write. Stay silent (fail-safe).
