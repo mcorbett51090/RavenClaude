@@ -1002,7 +1002,15 @@ def _render_dt_store(gd) -> str:
 def render_html(data: dict) -> str:
     template = _TEMPLATE
     shared_tokens = _load_shared_tokens_root()
-    payload = json.dumps(data, ensure_ascii=False, separators=(",", ":"))
+    # Escape `<` as the JSON/JS `<` escape before splicing into the inline
+    # <script> block. Repo-authored free-text (agent/skill descriptions) can
+    # contain the literal substring `</script`, which the HTML parser treats as
+    # the end of the raw-text script element regardless of JS string context —
+    # truncating the script and turning the rest into parsed markup. `<`
+    # round-trips to `<` for the JSON parser and never appears as a raw `<`.
+    payload = json.dumps(data, ensure_ascii=False, separators=(",", ":")).replace(
+        "<", "\\u003c"
+    )
     html = template.replace("/*__SHARED_TOKENS__*/", shared_tokens)
     html = html.replace("/*__RC_DATA__*/", payload)
     html = html.replace("__GENERATED__", data["generated"])

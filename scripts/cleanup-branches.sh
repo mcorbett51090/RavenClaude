@@ -227,11 +227,14 @@ for v in "${verdict_safe[@]}"; do
   # Record the tip SHA before deleting. `git branch -D` drops the branch reflog,
   # so without this an accidental delete is recoverable only via `git fsck`
   # spelunking; with it, `git branch <name> <sha>` restores in one step. Fail-safe.
+  # Capture the tip SHA BEFORE the delete (git branch -D drops the ref), but only
+  # WRITE the recovery log line AFTER a confirmed delete — the log is the restore
+  # record, so it must never claim a branch was deleted when the delete failed.
   _tip="$(git rev-parse --verify --quiet "refs/heads/$b" 2>/dev/null || echo unknown)"
-  printf '%s\tdeleted\t%s\t%s\n' \
-    "$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || echo unknown-ts)" "$b" "$_tip" \
-    >> "$_log_dir/deleted.log" 2>/dev/null || true
   if git branch -D "$b" >/dev/null 2>&1; then
+    printf '%s\tdeleted\t%s\t%s\n' \
+      "$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || echo unknown-ts)" "$b" "$_tip" \
+      >> "$_log_dir/deleted.log" 2>/dev/null || true
     echo "  + local deleted: $b (was $_tip; logged to $_log_dir/deleted.log)"
   else
     echo "  ! local delete failed: $b"
