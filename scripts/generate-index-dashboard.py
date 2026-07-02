@@ -648,7 +648,11 @@ def _scan_scripts(plugin_dir: Path) -> list[dict]:
         except OSError:
             continue
         purpose = ""
-        mdoc = re.search(r'^\s*(?:"""|\'\'\')(.*?)(?:"""|\'\'\')', text, re.DOTALL)
+        # Strip a leading shebang line before matching: a real script starts with
+        # "#!...\n" so the docstring match anchored at position 0 (whitespace/quote)
+        # never fires, leaving `purpose` permanently empty for every runnable script.
+        doc_text = re.sub(r"^#![^\n]*\n", "", text, count=1)
+        mdoc = re.search(r'^\s*(?:"""|\'\'\')(.*?)(?:"""|\'\'\')', doc_text, re.DOTALL)
         if mdoc:
             for line in mdoc.group(1).strip().splitlines():
                 if line.strip():

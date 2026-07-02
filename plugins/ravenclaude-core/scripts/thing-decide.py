@@ -399,7 +399,12 @@ def _sanitize_reasoning(raw: str, untrusted_inputs) -> str:
     # Refuse to interpolate if reasoning contains ANY user-controlled field
     # (>=10 chars to skip trivially-short matches that would over-block).
     for u in candidates:
-        if len(u) >= 10 and u[:40] in sanitized:
+        if len(u) < 10:
+            continue
+        # Scan for ANY >=10-char substring of the untrusted field in the
+        # reasoning. A `u[:40]`-only check was defeated by front-padding the
+        # field with 40 benign chars (or the panel echoing only its tail).
+        if any(u[i:i + 10] in sanitized for i in range(len(u) - 9)):
             sanitized = "[untrusted panel reasoning withheld — echoed user-controlled input]"
             break
     # Cap length.

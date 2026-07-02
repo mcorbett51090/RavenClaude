@@ -181,7 +181,7 @@ def _read_posture_global_default(posture_path: Path) -> str | None:
     """
     try:
         text = posture_path.read_text(encoding="utf-8")
-    except OSError:
+    except (OSError, UnicodeDecodeError):
         return None
     for raw in text.splitlines():
         line = raw.split("#", 1)[0].rstrip()

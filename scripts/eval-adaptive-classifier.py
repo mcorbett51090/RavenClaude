@@ -685,11 +685,21 @@ def submit_batch_and_collect_judge(fixtures: dict, runs: dict[str, dict[str, Run
         if r.result.type != "succeeded":
             print(f"  [WARN] {fid}: batch result type={r.result.type}", file=sys.stderr)
             continue
-        body = r.result.message.content[0].text.strip()
         try:
+            content = r.result.message.content
+            if not content or not hasattr(content[0], "text"):
+                raise ValueError("empty or non-text content block")
+            body = content[0].text.strip()
             j = json.loads(body)
-        except json.JSONDecodeError:
-            print(f"  [WARN] {fid}: judge returned non-JSON: {body[:120]!r}", file=sys.stderr)
+            # Un-scramble
+            baseline_first = order_map[fid] == "baseline_first"
+            baseline_scores = j["A"] if baseline_first else j["B"]
+            adaptive_scores = j["B"] if baseline_first else j["A"]
+            results[fid] = {axis: {"baseline": int(baseline_scores[axis]),
+                                    "adaptive": int(adaptive_scores[axis])}
+                             for axis in ("task_coverage", "factual_accuracy", "clarity")}
+        except (json.JSONDecodeError, ValueError, KeyError, TypeError, IndexError) as exc:
+            print(f"  [WARN] {fid}: judge response off-schema ({type(exc).__name__}: {exc}); skipping", file=sys.stderr)
             continue
         # Un-scramble. Guard the same way the JSONDecodeError branch above does:
         # a judge response that is valid JSON but deviates from the expected schema
