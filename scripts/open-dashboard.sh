@@ -23,8 +23,9 @@ LOG="/tmp/rc-dashboard-$PORT.log"
 
 [ -f "$SERVER" ] || { echo "dashboard server not found: $SERVER" >&2; exit 1; }
 
-# 1. Kill any server already bound to this dashboard (ignore "no match").
-pkill -f "serve-dashboards.py" 2>/dev/null || true
+# 1. Kill any server already bound to THIS PORT (ignore "no match"). Narrowed to
+#    --port "$PORT" so restarting on one port doesn't kill dashboards on others.
+pkill -f "serve-dashboards.py --port $PORT" 2>/dev/null || true
 sleep 1
 
 # 2. Start fresh in the background, fully detached so it outlives this script.
@@ -45,7 +46,8 @@ done
 # 4. Open it in a browser. In a Codespace, $BROWSER is the VS Code helper that
 #    opens the forwarded port in your real browser; fall back to python's opener.
 if [ -n "${BROWSER:-}" ] && [ -x "${BROWSER%% *}" ]; then
-  "$BROWSER" "$URL" >/dev/null 2>&1 || true
+  read -ra browser_cmd <<<"$BROWSER"
+  "${browser_cmd[@]}" "$URL" >/dev/null 2>&1 || true
 else
   python3 -m webbrowser "$URL" >/dev/null 2>&1 || true
 fi
