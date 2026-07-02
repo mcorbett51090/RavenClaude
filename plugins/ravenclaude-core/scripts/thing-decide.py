@@ -557,6 +557,11 @@ def main() -> int:
     else:
         try:
             spec = json.load(sys.stdin)
+            # Valid-but-non-object JSON (["a"], null, 42) parses cleanly, then the
+            # spec.get(...) calls below would raise AttributeError uncaught. Treat any
+            # non-object as bad input so it fails safe to the "defer" verdict.
+            if not isinstance(spec, dict):
+                raise TypeError("stdin JSON must be a JSON object")
         except Exception as exc:
             json.dump({"verdict": "defer", "reasoning": f"bad input: {exc}", "mode": "off",
                        "binding": False, "seats": [], "saga_log": None}, sys.stdout)

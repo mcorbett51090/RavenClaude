@@ -18,6 +18,19 @@
 //   - Tribunal seats: verdicts are ALWAYS shadow (logged only); opts.model is NEVER mutated.
 //   - No cache_control: evaluator prompt is <1,024 tokens → below Haiku-4.5 minimum (4,096).
 
+// ─── Resume-safe time source (added 2026-07 after the three-panel review) ───────
+// The dynamic-workflow runtime FORBIDS Date.now() / new Date() — they break
+// in-session resume and THROW ("Date.now() / new Date() are unavailable in workflow
+// scripts"). This reference file is meant to be copied verbatim into a workflow, so
+// it MUST NOT use them directly (the prior raw Date.now()/new Date() calls below
+// would crash any adopter). We use a deterministic monotonic counter instead.
+// NOTE when copying: if your host workflow ALREADY defines `_now`/`_isoNow`
+// (rc-deep-research.js does, at its top), DELETE this block to avoid a
+// `const` redeclaration clash — same as the DISPATCH_TIER_MODEL rename note below.
+let _wfClock = 0;
+const _now = () => (_wfClock += 1); // monotonic ordinal, NOT wall-clock ms
+const _isoNow = () => "1970-01-01T00:00:00.000Z";
+
 // ─── Tier → SKU map (single source of truth; verify-at-use — 2026-05-31) ────────
 // Sourced from adaptive-run-classifier/SKILL.md §"Substrate tier table".
 // Do NOT re-author the table; copy updates from there.
@@ -91,7 +104,7 @@ async function evaluateDispatch(
   { subagent_type, description, prompt_head, requested_model, caller_context },
   dispatchCfg,
 ) {
-  const t0 = Date.now();
+  const t0 = _now();
   const classifierPrompt = JSON.stringify({
     subagent_type,
     description: (description || "").slice(0, 200),
@@ -117,7 +130,7 @@ async function evaluateDispatch(
       label: "dispatch-evaluator-classifier",
       _predispatch: "skip",
     });
-    const latency = Date.now() - t0;
+    const latency = _now() - t0;
     _trackLatency(latency, dispatchCfg);
 
     if (!raw || raw.trim() === "FAIL") return null;
@@ -262,7 +275,7 @@ async function _appendAuditLog(envelope, verdict, applied, dispatchCfg) {
   const sessionId = (typeof args !== "undefined" && args?._sessionId) || "unknown";
   const logPath = `${DISPATCH_EVAL_LOG_DIR}/${sessionId}.jsonl`;
   const line = JSON.stringify({
-    ts: new Date().toISOString(),
+    ts: _isoNow(),
     subagent_type: envelope.subagent_type,
     description_first40: (envelope.description || "").slice(0, 40),
     requested_model: envelope.requested_model,

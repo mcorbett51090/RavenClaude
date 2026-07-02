@@ -674,7 +674,9 @@ def submit_batch_and_collect_judge(fixtures: dict, runs: dict[str, dict[str, Run
             break
         time.sleep(20)
     else:
-        die(f"batch {batch.id} did not complete within 30min — re-run with --grade-from-batch {batch.id}")
+        die(f"batch {batch.id} did not complete within 30min — re-run 'python3 "
+            f"{os.path.basename(sys.argv[0])} --mode grade' to retry "
+            f"(a fresh batch is submitted; resuming batch {batch.id} directly is not supported).")
 
     # Parse results
     results: dict[str, dict] = {}
@@ -698,6 +700,22 @@ def submit_batch_and_collect_judge(fixtures: dict, runs: dict[str, dict[str, Run
                              for axis in ("task_coverage", "factual_accuracy", "clarity")}
         except (json.JSONDecodeError, ValueError, KeyError, TypeError, IndexError) as exc:
             print(f"  [WARN] {fid}: judge response off-schema ({type(exc).__name__}: {exc}); skipping", file=sys.stderr)
+            continue
+        # Un-scramble. Guard the same way the JSONDecodeError branch above does:
+        # a judge response that is valid JSON but deviates from the expected schema
+        # (missing "A"/"B", a missing axis, a non-numeric score) must skip THIS
+        # fixture with a warning, not raise and discard every result already
+        # collected for the other fixtures in the batch. (Added after the 2026-07 review.)
+        try:
+            baseline_first = order_map[fid] == "baseline_first"
+            baseline_scores = j["A"] if baseline_first else j["B"]
+            adaptive_scores = j["B"] if baseline_first else j["A"]
+            results[fid] = {axis: {"baseline": int(baseline_scores[axis]),
+                                    "adaptive": int(adaptive_scores[axis])}
+                             for axis in ("task_coverage", "factual_accuracy", "clarity")}
+        except (KeyError, TypeError, ValueError) as e:
+            print(f"  [WARN] {fid}: judge JSON off-schema ({type(e).__name__}: {e}); "
+                  f"skipping. body={body[:120]!r}", file=sys.stderr)
             continue
     return results
 

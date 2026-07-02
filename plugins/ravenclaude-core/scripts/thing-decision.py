@@ -92,26 +92,45 @@ def _screen_always(command: str) -> dict:
     Runs regardless of the per-category toggle: a command that would disable or
     tamper with the Thing is denied pre-LLM whenever the orchestrator reached us
     (i.e. some category is toggled on), even if THIS command's own category is
-    off. On any failure to load/evaluate, returns a conservative no-deny (the
-    orchestrator's other fail-closed paths still apply) rather than crashing.
+    off.
+
+    Fail direction (hardened after the 2026-07 three-panel review): this screen
+    enforces the two category-independent invariants the constitution calls
+    UNCONDITIONAL — "the Thing cannot disable itself" and the force-push / `curl|sh`
+    hard rules. If the catalog can't be loaded/evaluated (corrupt YAML, missing
+    PyYAML, a future schema change), the screen MUST fail CLOSED, not silently
+    clear the command: the prior no-deny fallback let any error disable both
+    invariants for as long as it persisted (verified reproducible by corrupting
+    concerns-catalog.md). We therefore DENY both on error, and surface a
+    `screen_error` flag the orchestrator can log/distinguish. The documented
+    maintainer escape hatch (`command_review.enabled: false`) remains the way to
+    edit the substrate itself while a catalog is mid-edit.
     """
-    fallback = {
+    ok_fallback = {
         "self_disable_deny": False,
         "self_disable_concern": None,
         "hard_rule_deny": False,
         "hard_rule_concern": None,
+        "screen_error": False,
+    }
+    fail_closed = {
+        "self_disable_deny": True,
+        "self_disable_concern": "internal-error-fail-closed",
+        "hard_rule_deny": True,
+        "hard_rule_concern": "internal-error-fail-closed",
+        "screen_error": True,
     }
     try:
         spec = importlib.util.spec_from_file_location("_thing_concerns", _CONCERNS)
         if spec is None or spec.loader is None:
-            return fallback
+            return fail_closed
         mod = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(mod)  # type: ignore[union-attr]
         catalog = mod._load_catalog()
         res = mod.screen_always(catalog, command)
-        return {k: res.get(k, fallback[k]) for k in fallback}
+        return {k: res.get(k, ok_fallback[k]) for k in ok_fallback}
     except Exception:
-        return fallback
+        return fail_closed
 
 
 _BASH_PATTERN_RE = re.compile(r"^Bash\((.+?)(:\*)?\)$")
@@ -1117,6 +1136,10 @@ def main() -> int:
         try:
             payload = json.load(sys.stdin)
         except (json.JSONDecodeError, ValueError):
+            payload = {}
+        # Valid-but-non-object JSON (["a","b"], null) parses cleanly but has no
+        # .get(); normalize to an empty dict so classify fails safe rather than crashing.
+        if not isinstance(payload, dict):
             payload = {}
         tool_name = payload.get("tool_name", "") or ""
         tool_input = payload.get("tool_input", {}) or {}

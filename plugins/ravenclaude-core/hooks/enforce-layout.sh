@@ -52,6 +52,17 @@ if ! command -v jq >/dev/null 2>&1; then
   exit 0
 fi
 
+# Normalize a RELATIVE path to absolute against the project root BEFORE the
+# in-project prefix test (added after the 2026-07 review). project_root is always
+# absolute, so a relative $file fails the "$project_root/*" prefix match and hits
+# the else-branch `exit 0` (silent allow) below — bypassing BOTH the layout and
+# task-scope gates. A relative path is exactly what a Copilot-hosted tool call
+# supplies (copilot-hook-adapter.sh's file-pretool mode forwards .file_path
+# verbatim with no absoluteness check), so this is a normal, not adversarial, input.
+if [[ "$file" != /* ]]; then
+  file="$project_root/$file"
+fi
+
 # Convert to a path relative to project root.
 # Match on the "$project_root/" prefix (with the trailing slash) so a SIBLING
 # directory that merely shares the project-root name as a prefix
