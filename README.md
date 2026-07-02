@@ -20,7 +20,7 @@
 
 > 🌐 **[▶ Raven Power ↗](https://ravenpower.net)** — the consulting front door behind RavenClaude. This marketplace is the proof-of-craft; the website is where the engagements live.
 
-Today this marketplace ships **119 plugins**:
+Today this marketplace ships **131 plugins**:
 
 - **[`ravenclaude-core`](plugins/ravenclaude-core/)** — domain-neutral Team Lead + 14 specialists (architect, coders, reviewers, designer, documentarian, deep-researcher, project-manager, partner-success-manager, prompt-engineer, data-engineer, etc.), plus dispatch playbooks (with a Cross-plugin dispatch section), gates, 43 skills, 16 hooks, templates, and the **cross-project contribution-staging loop**.
 - **[`power-platform`](plugins/power-platform/)** — 11 Microsoft Power Platform specialists (Power Fx, flows, Power BI, Dataverse, model-driven, PCF, Copilot Studio, Power Pages, admin, ALM, tester), 21 skills, an advisory house-opinions hook covering 8 checks, and the bundled `pbix-mcp` MCP server.
