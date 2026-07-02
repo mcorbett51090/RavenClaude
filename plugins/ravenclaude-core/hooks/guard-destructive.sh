@@ -95,8 +95,13 @@ s = re.sub(
 )
 sys.stdout.write(s)
 PY
-)"
+)" || __preproc=""
   # Only apply the preprocessed form if Python succeeded and produced output.
+  # NB: the `|| __preproc=""` above is load-bearing — without it, a non-zero
+  # exit from the python3 heredoc (e.g. an exotic UnicodeEncodeError) would trip
+  # `set -e` and ABORT the whole guard before the deny checks run, and Claude
+  # Code treats a non-2 hook exit as non-blocking → the destructive command
+  # would run unchecked. Failing the substitution just falls back to `norm`.
   [ -n "$__preproc" ] && norm="$__preproc"
 fi
 norm="${norm//\"/}"                 # drop double quotes:  rm -rf "/"  -> rm -rf /
@@ -176,7 +181,7 @@ _is_dangerous_truncate() {
 deny_patterns=(
   # git history / branch destruction
   'git[[:space:]]+push[[:space:]]+.*--force([[:space:]]|$)'        # --force (allows --force-with-lease)
-  'git[[:space:]]+push[[:space:]]+(.*[[:space:]])?-f([[:space:]]|$)'  # -f as a flag, not a branch name ending in -f
+  'git[[:space:]]+push[[:space:]]+(.*[[:space:]])?-[A-Za-z]*f[A-Za-z]*([[:space:]]|$)'  # -f in ANY bundled short-flag cluster (git push -uf), order-independent like _has_recursive; does NOT match --force-with-lease
   'git[[:space:]]+push[[:space:]].*[[:space:]]\+[A-Za-z0-9_./@~^-]+'  # refspec force-push: git push origin +HEAD:main
   'git[[:space:]]+reset[[:space:]]+--hard([[:space:]]+|$)'
   'git[[:space:]]+clean[[:space:]]+(-[a-z]*f|--force)'             # clean -fd / -df / --force (order-independent)
