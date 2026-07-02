@@ -62,7 +62,11 @@ def _today() -> datetime.date:
 
 def _parse_one(path: Path) -> dict:
     """Parse and schema-validate a single concept file. Raises ConceptError."""
-    import yaml  # local import so a missing pyyaml degrades to a clear message
+    try:
+        import yaml  # local import so a missing pyyaml degrades to a clear message
+    except ImportError:
+        print("concepts.py: pyyaml is required — run `pip install pyyaml`", file=sys.stderr)
+        sys.exit(1)
 
     rel = path.name
     stem = path.stem

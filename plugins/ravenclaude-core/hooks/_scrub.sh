@@ -80,8 +80,14 @@ _scrub_reason() {
     local s="${1:-}"
     [ -z "$s" ] && { printf '%s' "$s"; return 0; }
 
-    # Use sed for multi-pattern substitution when available.
-    if command -v sed >/dev/null 2>&1; then
+    # Use sed for multi-pattern substitution when available AND it supports -E.
+    # NB: probing `-E` (not just `command -v sed`) is load-bearing — every
+    # substitution below uses `sed -E`, so a sed build without -E support (e.g.
+    # a minimal/BusyBox image) would make each `sed -E` fail to empty, the
+    # `[ -n "$new_result" ]` guard would keep the ORIGINAL string, and the
+    # function would return the secret UNredacted. On no usable `-E`, fall
+    # through to the wholesale-redact branch (fail-safe over context).
+    if command -v sed >/dev/null 2>&1 && printf '' | sed -E 's/x/x/' >/dev/null 2>&1; then
       local result="$s"
       local p new_result
       # NB: sed s-command delimiter is '#' (not the conventional '|'), because

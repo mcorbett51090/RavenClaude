@@ -1,0 +1,35 @@
+{
+  "name": "network-engineering",
+  "version": "0.1.0",
+  "description": "Network-engineering team — 2 agents (network-architect, network-operations-engineer) for the ENTERPRISE network layer below the cloud VPC: campus/datacenter/WAN topology, routing (OSPF/BGP/EIGRP/static) and switching (VLANs, STP, LACP, VXLAN/EVPN), IP addressing/IPAM and DNS/DHCP, segmentation + zero-trust network access (microsegmentation, NAC, SASE/SD-WAN), load balancing, redundancy/HA (HSRP/VRRP, dual-homing), and day-2 ops (change windows, troubleshooting the OSI stack, observability/NetFlow). Knowledge bank with Mermaid decision trees (topology, routing-protocol selection, segmentation) + a dated 2026 capability map, 5 skills, best-practices, 4 templates, 1 advisory hook (any/any rules, telnet, no change window). Design-before-config; protocol-before-vendor-CLI. Seams: cloud VPC networking -> aws/azure/gcp-cloud; service mesh / k8s networking -> cloud-native-kubernetes; security verdicts -> security-engineering; IaC for network config -> terraform-iac. Requires ravenclaude-core@>=0.7.0.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "network-engineering",
+    "routing",
+    "switching",
+    "bgp",
+    "ospf",
+    "vlan",
+    "vxlan",
+    "evpn",
+    "sd-wan",
+    "sase",
+    "zero-trust",
+    "microsegmentation",
+    "load-balancing",
+    "dns",
+    "dhcp",
+    "ipam",
+    "nac",
+    "hsrp",
+    "vrrp",
+    "netflow"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}

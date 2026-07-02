@@ -2,6 +2,12 @@
 
 All notable changes to this plugin are documented here. Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.8.5] — 2026-07-02
+
+### Fixed
+
+- **`check-fabric-anti-patterns.sh` STRICT mode now actually blocks.** `FABRIC_STRICT=1` exited `1` (a non-blocking error Claude Code swallows; the header comment even documented "blocking (exit 1)") instead of `2` (the PreToolUse deny code), so the documented blocking mode was inert. Fixed both the code and the comment to `exit 2`. (Autonomous 3-panel repo review, P1.)
+
 ## [0.8.4] — 2026-06-22
 
 Version bump previously unlogged here; the change that set `0.8.4`:

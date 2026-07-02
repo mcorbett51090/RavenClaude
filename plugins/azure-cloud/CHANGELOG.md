@@ -4,6 +4,12 @@ Versioning is semver; bump on every user-visible change and keep it in sync with
 
 > Note: this file tracks the major arcs; the authoritative version history is the `version` field in `.claude-plugin/plugin.json` + git history (per the marketplace CHANGELOG convention). The 0.2.x–0.4.x bumps between the initial release and the build-out below were tracked in `plugin.json` + git, not back-filled here.
 
+## [0.5.2] — 2026-07-02
+
+### Fixed
+
+- **`check-azure-anti-patterns.sh` STRICT mode now actually blocks.** `AZURE_STRICT=1` exited `1`, which Claude Code treats as a non-blocking error (silently swallowed), so the documented enforcement mode did nothing. Now exits `2` (the PreToolUse deny code). (Autonomous 3-panel repo review, P1.)
+
 ## [0.5.1] — 2026-06-22
 
 Version bump previously unlogged here; the change that set `0.5.1`:

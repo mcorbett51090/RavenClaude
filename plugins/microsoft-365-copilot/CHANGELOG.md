@@ -2,6 +2,15 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.5.3] — 2026-07-01
+
+Research-sweep **refresh** (Tier-A weekly news sweep) — the PAYG-metering hedge's self-declared refresh trigger **fired**. `knowledge/copilot-admin-governance-2026.md` deferred "Pay-as-you-go (PAYG) metering for some agent consumption `[verify-at-build]`" to a future "when PAYG metering … reach GA" trigger; **Copilot Cowork went GA 2026-06-16 with usage-based "Copilot Credits" billing** (also the Work IQ API) — a concrete GA instance of that metering. Verified 2026-07-01 against MS Learn Cowork what's-new + Partner Center June 2026.
+
+### Fixed
+
+- **`knowledge/copilot-admin-governance-2026.md`** — the PAYG line now records Cowork GA 2026-06-16 + Copilot Credits as the live PAYG-metered surface (with inline MS Learn / Partner Center citations); which agents/actions meter which credits stays `[verify-at-build]` as coverage expands. The refresh-trigger list is updated to note PAYG reached GA (Agent 365 split onto its own line, still pending GA). Panels: usefulness → USEFUL; detailed review → APPROVE.
+- Version **0.5.2 → 0.5.3** in `.claude-plugin/plugin.json` **and** `marketplace.json` (lockstep). **Migration:** none — knowledge-file content only.
+
 ## [0.5.2] — 2026-06-13
 
 Research-sweep **correction** (Tier-A weekly news sweep) — **custom org-built federated connectors are now supported** (the prior "synced only / no custom federated connectors" restriction was lifted). Re-verified this session against the primary source via the Microsoft-Learn MCP: [Set up custom federated connectors](https://learn.microsoft.com/microsoft-365/copilot/connectors/set-up-custom-federated-connectors). Routed through the full panel process — usefulness → USEFUL; detailed review flagged a P0 (the edit overwrote a 2026-06-11-verified "no" with a "yes"), so it was **escalated to a tiebreak panel**, which ruled **APPROVE-WITH-FIX** once the orchestrator re-verified against Microsoft Learn this session; the required fixes (this-session verification marker + `[verify-at-use]` + a `security-reviewer` routing note for the org-operated MCP server) are applied.

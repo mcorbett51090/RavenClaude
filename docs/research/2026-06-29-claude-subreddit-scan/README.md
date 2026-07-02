@@ -2,7 +2,7 @@
 
 **Author:** `claude` (automated scan)
 **Task:** Search Claude-related subreddits for valuable insights and propose additions to the repo.
-**Outcome:** 4 findings surfaced → **1 approved** (net-new), 2 denied-as-covered, 1 deferred. The approved item ships as one new consumer-facing best-practice in `ravenclaude-core` (v0.182.0 → **0.183.0**).
+**Outcome:** 4 findings surfaced → **1 approved** (net-new), 2 denied-as-covered, 1 deferred. The approved item ships as one new consumer-facing best-practice in `ravenclaude-core` (v0.184.4 → **0.185.0**; rebased onto current main — 0.183.0/0.184.x were taken by intervening scans).
 
 > This is the **seventh+** run of this recurring scan. Prior runs (most recent first):
 >
@@ -91,9 +91,9 @@
 | Step | Change | Path | Dependency |
 | --- | --- | --- | --- |
 | 1 | New rule: "Output styles replace the system prompt — keep the coding instructions when you're still coding." Sections: Why (the system-prompt tier → the silent-replacement trap → the software-engineering preset that gets dropped) / How (the re-voice-vs-replace decision, `keep-coding-instructions: true`, built-ins first, where the file lives + team scope, do/don't) / Edge cases / See also / Provenance / Last reviewed. | `plugins/ravenclaude-core/best-practices/output-styles-replace-the-system-prompt-keep-coding-instructions-when-still-coding.md` | Follows the one-rule-per-file format of the existing rules. |
-| 2 | Index update: → **25 rules**; add table row + bump count. | `plugins/ravenclaude-core/best-practices/README.md` | — |
-| 3 | Version bump (new user-visible content) 0.182.0 → **0.183.0**, mirrored across all three. | `plugins/ravenclaude-core/.claude-plugin/plugin.json` **and** `.claude-plugin/marketplace.json` (+ generated `copilot/plugin.json` via `scripts/generate-copilot-plugin.py`) | CI fails on version drift between the mirrors. |
-| 4 | CHANGELOG top entry for 0.183.0. | `plugins/ravenclaude-core/CHANGELOG.md` | — |
+| 2 | Index update: → **27 rules**; add table row + bump count. | `plugins/ravenclaude-core/best-practices/README.md` | — |
+| 3 | Version bump (new user-visible content) 0.184.4 → **0.185.0**, mirrored across all three. | `plugins/ravenclaude-core/.claude-plugin/plugin.json` **and** `.claude-plugin/marketplace.json` (+ generated `copilot/plugin.json` via `scripts/generate-copilot-plugin.py`) | CI fails on version drift between the mirrors. |
+| 4 | CHANGELOG top entry for 0.185.0. | `plugins/ravenclaude-core/CHANGELOG.md` | — |
 | 5 | This research + panel doc. | `docs/research/2026-06-29-claude-subreddit-scan/README.md` | `docs/**` already allow-listed; no `.repo-layout.json` change. |
 
 **Layout/gate notes:** `plugins/*/best-practices/**` and `docs/**` are both already in `.repo-layout.json` `allowed_globs` → no manifest change. The gated "rules" count (Gate 12 `marketplace-claims`) maps to the `rules/` directory, **not** `best-practices/`, and this change adds no skill/hook — so no count-string sync is needed (verified this session). Markdown + manifest diff only; run `prettier --write .` before push (CI checks the whole tree). No new directory, no hook/script, so no gate-audit fixture needed.

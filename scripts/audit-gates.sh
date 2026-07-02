@@ -116,7 +116,7 @@ PY
       rc=0; $_LINT tests/fixtures/data-viz/good-page.json >/dev/null 2>&1 || rc=$?
       if [[ "$rc" -ne 0 ]]; then echo "  ✗ good-page should have exited zero, got $rc"; _rc92=1; else echo "  ✓ good-page exits zero"; fi
       # regression (v0.149.2): reference resolves through a symlink install
-      _g92link="$(mktemp -d)/.claude/skills"; mkdir -p "$_g92link"
+      _g92root="$(mktemp -d)"; _g92link="$_g92root/.claude/skills"; mkdir -p "$_g92link"
       ln -s "$PWD/plugins/ravenclaude-core/skills/pbir-layout-engine" "$_g92link/pbir-layout-engine"
       rc=0; RC_LINK="$_g92link/pbir-layout-engine" python3 - <<'PY' >/dev/null 2>&1 || rc=$?
 import os, sys
@@ -133,6 +133,7 @@ root = os.path.abspath(os.path.join(os.path.dirname(here), "..", "..", "..", "..
 sys.exit(0 if os.path.isfile(os.path.join(root, "plugins/power-platform/knowledge/pbir-enhanced-reference.md")) else 1)
 PY
       if [[ "$rc" -eq 0 ]]; then echo "  ✗ old abspath root unexpectedly found the reference (test has no teeth)"; _rc92=1; else echo "  ✓ old abspath root misses the reference (teeth)"; fi
+      rm -rf "$_g92root"   # clean the temp symlink-install dir (was leaked every run)
       exit "$_rc92"
       ;;
     93)
@@ -250,9 +251,14 @@ PY
       bash plugins/power-platform/hooks/tests/test-nudge-preflight.sh
       exit $?
       ;;
+    126)
+      echo "── Gate 126: managed-solution-import pure-logic (PROD-guard / SSRF allow-list / baseline-by-stable-key / flag-economy / teeth) ──"
+      bash plugins/power-platform/hooks/tests/test-managed-import.sh
+      exit $?
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -413,6 +419,13 @@ gd_block=(
   'find / -delete' 'find /etc -name conf -delete' 'find ~ -delete'
   'find $HOME -type f -exec rm {} +'
   'truncate -s 0 /etc/passwd' 'truncate -s0 ~/.bashrc'
+
+  # Hidden command-substitution payloads: the -m "…" / heredoc body stripping used
+  # to blank these before the scan while bash still expands them at run time
+  # (v0.178.x guard-destructive preprocessing + command-boundary fix). A `(rm` /
+  # `` `rm `` with no separator must be caught, not only space/;-delimited forms.
+  'git commit -m "$(rm -rf ~)"' 'git commit -m "$(true; rm -rf /)"'
+  $'cat <<EOF > /tmp/x\n$(rm -rf ~)\nEOF'
 )
 for c in "${gd_block[@]}"; do
   _gd "$c"; ok=0; [ "$GD_RC" -eq 2 ] || ok=1
@@ -423,6 +436,11 @@ gd_pass=(
   'git clean -n' 'curl https://x/data.json -o out.json'
   'find ./build -name "*.o" -delete' 'find . -name "*.tmp" -delete'
   'truncate -s 0 ./app.log' 'truncate -s 1G ./sparse.img'
+  # Inert bodies that merely DOCUMENT a destructive pattern must still be stripped
+  # (this repo constantly quotes `git branch -D` / `rm -rf`) — no command subst,
+  # so the strip fires and the scan never sees the literal.
+  'git commit -m "document the git branch -D escape hatch, avoid rm -rf"'
+  $'cat <<EOF > /tmp/x\ndocument git branch -D and rm -rf here\nEOF'
 )
 for c in "${gd_pass[@]}"; do
   _gd "$c"
@@ -556,7 +574,7 @@ elif [[ -x /tmp/actionlint ]]; then
   al_bin=/tmp/actionlint
 else
   al_tgz="$TMP/actionlint.tgz"
-  if curl -fsSL "https://github.com/rhysd/actionlint/releases/download/v${AL_VER}/actionlint_${AL_VER}_linux_amd64.tar.gz" -o "$al_tgz" 2>/dev/null \
+  if curl -fsSL --connect-timeout 5 -m 30 "https://github.com/rhysd/actionlint/releases/download/v${AL_VER}/actionlint_${AL_VER}_linux_amd64.tar.gz" -o "$al_tgz" 2>/dev/null \
     && printf '%s  %s\n' "$AL_SHA" "$al_tgz" | sha256sum -c - >/dev/null 2>&1 \
     && tar -xzf "$al_tgz" -C "$TMP" actionlint 2>/dev/null; then
     chmod +x "$TMP/actionlint"
@@ -3279,12 +3297,11 @@ echo "── Gate 70: Codex desktop trust review hooks (Findings 1, 2, 5) ──
 # the per-subtest rationale.
 rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate70-codex-trust-hooks.sh >/dev/null 2>&1 || rc=$?
 gate "codex-trust-hooks fixture (13 subtests across STRICT + dod-gate + web-access)" must_pass "$rc"
-# must_fail: an exit-1 (broken) STRICT branch must be distinguishable from an
-# exit-2 (fixed) STRICT branch. If a fixture treats both as "non-zero = block",
-# it would pass the pre-fix code. This sanity check proves exit 1 != exit 2.
-rc=0
-[ 1 -ne 2 ] || rc=1
-gate "codex-trust-hooks: exit 1 vs exit 2 are distinguishable (gate has teeth)" must_pass "$rc"
+# The exit-1-vs-exit-2 discrimination is proven WITH TEETH by the fixture's own
+# must-fail half (G70.6 patches a STRICT branch back to exit 1 and asserts the
+# exit-2-literal check catches it) — run as part of the fixture above. A prior
+# `[ 1 -ne 2 ]` self-check here was a tautology comparing two integer literals:
+# unconditionally true, asserting nothing about the code under test. Removed.
 
 echo "── Gate 90: agent-dispatch-evaluator SubagentStart hook — audit-only ──────"
 # The hook's full fixture (6 subtests incl. the deny-on-downgrade must-fail half) runs as one
@@ -3723,6 +3740,29 @@ rc=0; bash plugins/power-platform/hooks/tests/test-preflight.sh >/dev/null 2>&1 
 gate "dataverse-payload-preflight: catches all violation classes in one pass + clean on good + teeth" must_pass "$rc"
 rc=0; bash plugins/power-platform/hooks/tests/test-nudge-preflight.sh >/dev/null 2>&1 || rc=$?
 gate "nudge-dataverse-preflight: fires on Dataverse create/update under posture + silent on GET/opt-out + teeth" must_pass "$rc"
+rc=0; bash plugins/power-platform/hooks/tests/test-managed-import.sh >/dev/null 2>&1 || rc=$?
+gate "managed-solution-import: PROD-guard boundaries + SSRF allow-list + baseline-by-stable-key + flag-economy + teeth" must_pass "$rc"
+
+echo "── Gate 126: workflow-mirror byte-identity (skills copy vs .claude/workflows copy) ──"
+# rc-deep-research.js and two-panel-plan-review.js each ship a bundled skills copy
+# AND a live .claude/workflows copy that MUST stay byte-identical — a one-sided edit
+# would silently ship drift to consumers (the skills copy is what plugin-install
+# delivers). No gate asserted this before. (Added after the 2026-07 three-panel review.)
+_mirror_pairs=(
+  "plugins/ravenclaude-core/skills/rc-deep-research/rc-deep-research.js:.claude/workflows/rc-deep-research.js"
+  "plugins/ravenclaude-core/skills/two-panel-plan-review/two-panel-plan-review.js:.claude/workflows/two-panel-plan-review.js"
+)
+rc=0
+for _pair in "${_mirror_pairs[@]}"; do
+  _a="${_pair%%:*}"; _b="${_pair##*:}"
+  diff -q "$_a" "$_b" >/dev/null 2>&1 || rc=1
+done
+gate "workflow-mirror byte-identity (both pairs identical)" must_pass "$rc"
+# teeth: a one-sided drift must be caught
+_mmut="$(mktemp)"; { cat .claude/workflows/rc-deep-research.js; echo "// drift"; } > "$_mmut"
+rc=0; diff -q plugins/ravenclaude-core/skills/rc-deep-research/rc-deep-research.js "$_mmut" >/dev/null 2>&1 || rc=1
+rm -f "$_mmut"
+gate "workflow-mirror byte-identity (one-sided drift caught)" must_fail "$rc"
 
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"

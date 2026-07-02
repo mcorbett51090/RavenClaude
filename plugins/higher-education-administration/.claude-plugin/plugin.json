@@ -1,0 +1,29 @@
+{
+  "name": "higher-education-administration",
+  "version": "0.1.0",
+  "description": "Higher-education administration operations team — 3 agents (higher-ed-administration-lead, enrollment-management-strategist, student-success-advisor) across the three engines of a college/university admin operation: institutional strategy (enrollment strategy, the budget/net-tuition-revenue model, retention/completion, cross-functional coordination, accreditation), enrollment management (the inquiry->apply->admit->yield->melt funnel, yield & discount-rate modeling, financial-aid leveraging), and student success (persistence, early-alert, advising, at-risk intervention, DFW-course analysis). Ships 4 skills, a decision-tree knowledge bank (4 Mermaid trees + a dated 2026 reference), 5 best-practices, 2 templates, 2 commands. ADVISORY operations knowledge, not legal, financial-aid-compliance, or academic-policy advice; volatile specifics (funnel benchmarks, discount-rate norms, metric definitions) carry a retrieval date + verify-at-use; FERPA-aware — no student PII. Requires ravenclaude-core@>=0.7.0.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "higher-education",
+    "enrollment-management",
+    "student-success",
+    "retention",
+    "yield-modeling",
+    "discount-rate",
+    "financial-aid-leveraging",
+    "net-tuition-revenue",
+    "early-alert",
+    "persistence-completion",
+    "registrar-operations",
+    "admissions-funnel",
+    "institutional-research",
+    "accreditation"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}
