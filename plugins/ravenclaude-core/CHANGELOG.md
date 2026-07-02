@@ -2,6 +2,12 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.184.4 — 2026-07-02
+
+### Added
+
+- **New best-practice — `give-the-agent-a-verification-signal-it-can-read.md`** (26 rules, was 25). The umbrella principle that the repo's existing enforcement leaves (the definition-of-done Stop gate, expensive-test front-loading, the visual render→see→iterate loop, the adversarial reviewer) each instantiate but that no single rule named: every task should carry a check that emits a machine-readable pass/fail, and the agent should iterate to green and show the evidence before reporting done. Grounded in [Anthropic's best-practices guide](https://code.claude.com/docs/en/best-practices) § "Give Claude a way to verify its work" (its four enforcement levels map onto the four existing leaves); surfaced by the 7th recurring Claude-subreddit scan ([`docs/research/2026-07-02-claude-subreddit-scan-verification-loop/README.md`](../../docs/research/2026-07-02-claude-subreddit-scan-verification-loop/README.md) — 4 findings, 1 approved). **Migration:** none — additive consumer-facing markdown.
+
 ## 0.184.2 — 2026-07-02
 
 ### Fixed
