@@ -113,6 +113,14 @@ def resolve_target(md_file: Path, raw: str) -> Path | None:
 
 def strip_code(text: str) -> str:
     text = FENCE_RE.sub("", text)
+    # FENCE_RE only removes BALANCED ```…``` pairs. An unclosed fence (odd number
+    # of ``` markers) leaves a residual opening marker; a markdown renderer treats
+    # everything from an unclosed fence to EOF as code, so drop it here too.
+    # Without this, link-like text inside the intended-code block is link-checked
+    # and mis-reported as a broken link (added after the 2026-07 review).
+    residual = text.find("```")
+    if residual != -1:
+        text = text[:residual]
     return INLINE_CODE_RE.sub("", text)
 
 

@@ -115,9 +115,12 @@ jobs:
           set -euo pipefail
           status=0
           shopt -s nullglob
-          hooks=(plugins/*/hooks/*.sh)
+          # Cover both the plugin hooks AND the top-level scripts/*.sh (archive /
+          # cleanup / worktree / notify tooling) — a syntax error in the latter
+          # would otherwise land on green CI and only surface at invocation time.
+          hooks=(plugins/*/hooks/*.sh scripts/*.sh)
           if [[ ${#hooks[@]} -eq 0 ]]; then
-            echo "No hook scripts found — skipping."
+            echo "No shell scripts found — skipping."
             exit 0
           fi
           for hook in "${hooks[@]}"; do

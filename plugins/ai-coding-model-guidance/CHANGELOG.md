@@ -2,6 +2,10 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.9] — 2026-07-01
+
+Research-sweep **correction** (Tier-A weekly news sweep) — **Fable 5 / Mythos 5 export controls LIFTED 2026-06-30; access restoring from 2026-07-01** (the fan-out sibling of `claude-app-engineering` 0.9.6). `knowledge/cross-tool-model-lineup-2026.md` carried the suspension as current status; updated the live assertions (header `Last reviewed`, the coding-agent table row, the Fable 5 Copilot bullet, the free-window parenthetical) to "controls lifted / access restoring — confirm Fable 5 is selectable on your Copilot tenant before relying on it; interim, Opus 4.8 stays the top Copilot Claude option," and added a **2026-07-01 sweep note** that supersedes the older dated "remains suspended" notes (kept as the historical record). Restored access bills usage credits (free promo ended 2026-06-22). `[verify-at-use — restoration in progress]`. Panels: usefulness → USEFUL; detailed review → APPROVE. **Migration:** none — knowledge-file content only.
+
 ## [0.3.8] — 2026-06-23
 
 Version bump previously unlogged here; the change that set `0.3.8`:

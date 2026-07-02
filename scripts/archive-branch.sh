@@ -97,10 +97,32 @@ done
 # ─── Preconditions ───────────────────────────────────────────────────────────
 cd "$(git rev-parse --show-toplevel)"
 
+# Resolve the repo's actual default branch. Prefer origin/HEAD's target, fall
+# back across main/master. Defined here (moved up after the 2026-07 review) so the
+# protected-branch refusal below can include it: on a repo whose default is e.g.
+# "trunk"/"develop", hardcoding only main/master/HEAD would let `archive-branch.sh
+# trunk` archive the live default branch.
+_resolve_base_branch() {
+  local base
+  base="$(git symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null)"
+  base="${base#origin/}"
+  if [[ -n "$base" ]] && git rev-parse --verify --quiet "$base" >/dev/null 2>&1; then
+    printf '%s\n' "$base"; return 0
+  fi
+  local c
+  for c in main master; do
+    if git rev-parse --verify --quiet "$c" >/dev/null 2>&1; then
+      printf '%s\n' "$c"; return 0
+    fi
+  done
+  return 1
+}
+_default_branch="$(_resolve_base_branch 2>/dev/null || true)"
+
 # 1. Refuse on protected branch names — even if the user typo'd, never archive
-#    main/master/HEAD.
-for protected in main master HEAD; do
-  if [[ "$BRANCH" == "$protected" ]]; then
+#    main/master/HEAD or the resolved default branch.
+for protected in main master HEAD "$_default_branch"; do
+  if [[ -n "$protected" && "$BRANCH" == "$protected" ]]; then
     echo "archive-branch: REFUSED — '$BRANCH' is a protected branch name" >&2
     exit 1
   fi
@@ -139,25 +161,9 @@ fi
 #    repo whose default is "master" (or anything else), `git log ... --not main`
 #    errors out, the `|| true` swallows it, and an UNMERGED_COUNT of 0 would print
 #    a false "(none — branch is fully merged)" plan for a branch that is NOT
-#    merged. Prefer origin/HEAD's target, fall back across main/master, else the
-#    current branch's tracking base.
-_resolve_base_branch() {
-  local base
-  base="$(git symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null)"
-  base="${base#origin/}"
-  if [[ -n "$base" ]] && git rev-parse --verify --quiet "$base" >/dev/null 2>&1; then
-    printf '%s\n' "$base"; return 0
-  fi
-  local c
-  for c in main master; do
-    if git rev-parse --verify --quiet "$c" >/dev/null 2>&1; then
-      printf '%s\n' "$c"; return 0
-    fi
-  done
-  return 1
-}
+#    merged. Reuses $_default_branch resolved above (via _resolve_base_branch).
 TIP="$(git rev-parse "$BRANCH")"
-if BASE_BRANCH="$(_resolve_base_branch)"; then
+if BASE_BRANCH="${_default_branch:-}" && [[ -n "$BASE_BRANCH" ]]; then
   UNMERGED_LIST="$(git log "$BRANCH" --not "$BASE_BRANCH" --oneline 2>/dev/null || true)"
 else
   # No resolvable default branch — treat every commit on BRANCH as unmerged so the

@@ -26,7 +26,7 @@ The **M365 admin center Agent Registry** is the governance surface — agents ar
 
 - **Copilot seats** for users.
 - **Connector item quotas** per tenant (a large source can exhaust them).
-- **Pay-as-you-go (PAYG)** metering for some agent consumption `[verify-at-build]`.
+- **Pay-as-you-go (PAYG)** metering for some agent consumption — now GA in a concrete form: **Copilot Cowork went GA 2026-06-16 with usage-based "Copilot Credits" billing** (also covers the Work IQ API) — [Cowork what's-new](https://learn.microsoft.com/microsoft-365/copilot/cowork/whats-new) + [Partner Center June 2026](https://learn.microsoft.com/partner-center/announcements/2026-june), verified 2026-07-01. So PAYG metering is a live billing surface, not hypothetical; which agents/actions meter which credits is still expanding `[verify-at-build]`. (Credits pack sizing — e.g. 25,000/pack — see `best-practices/gov-attach-a-payg-billing-policy-with-a-budget-cap.md`.)
 
 House opinion #8: **no org-data grounding without a license story** — every recommendation carries the **`Licensing impact:`** line.
 
@@ -40,4 +40,5 @@ This doc covers *lifecycle + licensing*. The **data-protection** layer — Purvi
 
 ## Refresh triggers
 - Approval-role names or Agent Registry surface change.
-- PAYG metering or Agent 365 reach GA.
+- PAYG metering reached GA (Copilot Cowork + Copilot Credits, 2026-06-16 — recorded above); re-check which agents/actions meter credits as coverage expands.
+- Agent 365 reaches GA.

@@ -45,9 +45,9 @@ non-retention + no-training*, **not** data residency:
   Source: <https://code.claude.com/docs/en/data-usage>.
 - **Zero-data-retention (ZDR)** is available to qualified Commercial-API / Claude
   Enterprise accounts, enabled **per-organization** and **OFF by default**. Some
-  models (e.g. Fable 5 / Mythos 5 — _availability suspended 2026-06-12, see the
-  model lineup; the ZDR-ineligibility below still describes them when available_)
-  force 30-day retention and cannot run under ZDR.
+  models (e.g. Fable 5 / Mythos 5 — _their 2026-06-12 availability suspension was
+  lifted 2026-06-30; access restoring from 2026-07-01, re-verify per surface — see
+  the model lineup_) force 30-day retention and cannot run under ZDR.
   Source: <https://platform.claude.com/docs/en/manage-claude/api-and-data-retention>.
 
 **Amazon Bedrock / Google Vertex AI:**
