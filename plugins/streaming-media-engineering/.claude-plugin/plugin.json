@@ -1,0 +1,30 @@
+{
+  "name": "streaming-media-engineering",
+  "version": "0.1.0",
+  "description": "Streaming-media (video/audio) engineering team — 3 agents (media-streaming-architect, transcoding-pipeline-engineer, playback-and-delivery-engineer) for the three engines of a streaming build: system architecture (VOD vs live, protocol choice across HLS / MPEG-DASH / CMAF / WebRTC / LL-HLS, packaging + origin/edge design, single vs multi-CDN, DRM strategy across Widevine / FairPlay / PlayReady, ABR-ladder philosophy, cost & scale), transcoding (codec choice across H.264 / HEVC / AV1 / VP9, FFmpeg pipelines, per-title & ABR-ladder encoding, GPU vs CPU, CMAF/fMP4 packaging, captions/subtitles, audio & loudness, transcode-farm scaling), and playback & delivery (player integration across hls.js / dash.js / Shaka / ExoPlayer / AVPlayer, ABR tuning, QoE metrics, low-latency live, client-side DRM, CDN/edge cache tuning, analytics). Ships 4 skills, a decision-tree knowledge bank (4 Mermaid trees + a dated 2026 reference), 5 best-practices, 2 templates, 2 commands. Engineering judgment, not legal/DRM-licensing or content-rights advice; the codec/protocol/CDN/DRM/player landscape is volatile — every version, spec, and QoE target carries a retrieval date + [verify-at-use]; no PII. Requires ravenclaude-core@>=0.7.0.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "streaming-media",
+    "video-streaming",
+    "hls",
+    "mpeg-dash",
+    "cmaf",
+    "webrtc",
+    "ll-hls",
+    "transcoding",
+    "ffmpeg",
+    "av1",
+    "hevc",
+    "abr-ladder",
+    "drm",
+    "cdn-delivery",
+    "playback-qoe"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}

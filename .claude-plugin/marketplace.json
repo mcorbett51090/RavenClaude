@@ -2965,6 +2965,84 @@
         "passthrough-ar",
         "xr-performance"
       ]
+    },
+    {
+      "name": "computer-vision-engineering",
+      "source": "./plugins/computer-vision-engineering",
+      "description": "Computer-vision engineering team — 3 agents (cv-systems-architect, cv-model-engineer, vision-deployment-engineer) for the three engines of a production vision build: system architecture (task framing across classification / detection / segmentation / OCR / pose / tracking / VLM, data & annotation strategy, CNN-vs-ViT-vs-foundation-model choice, build-vs-fine-tune-vs-API, deployment-target selection across cloud GPU / edge / embedded / browser, and eval-metric design — mAP / IoU / precision-recall at the operating point), model engineering (dataset curation & augmentation, transfer learning / fine-tuning, model selection across YOLO / DETR / SAM / CLIP / EfficientNet / ViT, loss & metric design, active learning / hard-negative mining, class imbalance, the evaluation harness, drift/regression detection), and inference optimization & deployment (quantization / pruning / distillation, export/runtime across ONNX / TensorRT / CoreML / TFLite / OpenVINO, edge/embedded targets — Jetson / mobile NPU / Coral, batching & throughput, streaming-video pipelines with frame sampling / ROI / tracking-by-detection, latency budgets, camera integration). Ships 4 skills, a decision-tree knowledge bank (4 Mermaid trees + a dated 2026 reference), 5 best-practices, 2 templates, 2 commands. Engineering judgment, not a benchmark leaderboard or a compliance verdict; the model/hardware/runtime/annotation-tool landscape is volatile — every model name, version, accelerator spec, and accuracy/latency number carries a retrieval date + [verify-at-use]; no PII, no image data stored. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "computer-vision",
+        "object-detection",
+        "image-segmentation",
+        "ocr",
+        "video-analytics",
+        "edge-inference",
+        "tensorrt",
+        "onnx",
+        "yolo",
+        "vision-transformer",
+        "foundation-models",
+        "model-quantization",
+        "mlops-vision",
+        "active-learning",
+        "camera-pipeline"
+      ]
+    },
+    {
+      "name": "conversational-ai-voice-engineering",
+      "source": "./plugins/conversational-ai-voice-engineering",
+      "description": "Conversational voice-AI engineering team — 3 agents (voice-ai-architect, speech-pipeline-engineer, dialog-and-integration-engineer) for building production real-time voice agents: end-to-end system design (cascade STT->LLM->TTS vs speech-to-speech, the end-to-end latency budget, turn-taking / barge-in / endpointing, channel choice across telephony / web / SDK, build-vs-platform across Twilio / Vapi / Retell / LiveKit / Pipecat, guardrails & fallback), the speech pipeline (ASR & TTS model/provider choice, streaming transcription, VAD/endpointing, diarization, prosody/SSML, codecs & sample rates, noise robustness, WER), and dialog + integration (state management, LLM orchestration and mid-call tool calling, SIP/PSTN telephony, IVR/DTMF, call routing/transfer, conversation-flow testing and eval). Ships 4 skills, a decision-tree knowledge bank (4 Mermaid trees + a dated 2026 reference), 5 best-practices, 2 templates, 2 commands. Engineering judgment, not legal/compliance advice; the ASR/TTS/platform/telephony landscape is volatile — every version, price, and latency number carries a retrieval date + [verify-at-use]; no PII, and call audio/transcripts are sensitive. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "voice-ai",
+        "conversational-ai",
+        "speech-to-text",
+        "text-to-speech",
+        "asr",
+        "tts",
+        "telephony",
+        "sip",
+        "ivr",
+        "barge-in",
+        "endpointing",
+        "latency-budget",
+        "speech-to-speech",
+        "webrtc",
+        "call-automation"
+      ]
+    },
+    {
+      "name": "streaming-media-engineering",
+      "source": "./plugins/streaming-media-engineering",
+      "description": "Streaming-media (video/audio) engineering team — 3 agents (media-streaming-architect, transcoding-pipeline-engineer, playback-and-delivery-engineer) for the three engines of a streaming build: system architecture (VOD vs live, protocol choice across HLS / MPEG-DASH / CMAF / WebRTC / LL-HLS, packaging + origin/edge design, single vs multi-CDN, DRM strategy across Widevine / FairPlay / PlayReady, ABR-ladder philosophy, cost & scale), transcoding (codec choice across H.264 / HEVC / AV1 / VP9, FFmpeg pipelines, per-title & ABR-ladder encoding, GPU vs CPU, CMAF/fMP4 packaging, captions/subtitles, audio & loudness, transcode-farm scaling), and playback & delivery (player integration across hls.js / dash.js / Shaka / ExoPlayer / AVPlayer, ABR tuning, QoE metrics, low-latency live, client-side DRM, CDN/edge cache tuning, analytics). Ships 4 skills, a decision-tree knowledge bank (4 Mermaid trees + a dated 2026 reference), 5 best-practices, 2 templates, 2 commands. Engineering judgment, not legal/DRM-licensing or content-rights advice; the codec/protocol/CDN/DRM/player landscape is volatile — every version, spec, and QoE target carries a retrieval date + [verify-at-use]; no PII. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "streaming-media",
+        "video-streaming",
+        "hls",
+        "mpeg-dash",
+        "cmaf",
+        "webrtc",
+        "ll-hls",
+        "transcoding",
+        "ffmpeg",
+        "av1",
+        "hevc",
+        "abr-ladder",
+        "drm",
+        "cdn-delivery",
+        "playback-qoe"
+      ]
     }
   ]
 }
