@@ -1,0 +1,29 @@
+{
+  "name": "craft-beverage-operations",
+  "version": "0.1.0",
+  "description": "Craft-beverage (winery / brewery / distillery) operations team — 3 agents (craft-beverage-operations-lead, tasting-room-and-club-manager, beverage-distribution-compliance-advisor) for the three engines of a craft-beverage producer: production & cost (batch/yield planning, COGS per unit, tank/barrel/time capacity, packaging, channel margin mix), the tasting room & club (tasting-room throughput and conversion, club/membership revenue and churn, DTC, events), and distribution & compliance (three-tier vs self-distribution economics, distributor relationships, TTB / state licensing and excise concepts). Operations and financial decision-support, not legal, tax, or regulatory advice; the agents make no licensing or excise determinations and store no PII; volatile benchmarks (yields, COGS, margins, club norms) carry a retrieval date + verify-at-use; three-tier / TTB / state-licensing / excise rules are jurisdiction-specific and flagged for a licensed professional. Ships 4 skills, a decision-tree knowledge bank (4 Mermaid trees + a dated 2026 reference), 5 best-practices, 2 templates, and 2 commands. Requires ravenclaude-core@>=0.7.0.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "craft-beverage",
+    "winery",
+    "brewery",
+    "distillery",
+    "tasting-room",
+    "wine-club",
+    "dtc-beverage",
+    "three-tier-distribution",
+    "self-distribution",
+    "cogs-per-unit",
+    "production-planning",
+    "ttb-licensing",
+    "excise-tax",
+    "channel-margin-mix"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}
