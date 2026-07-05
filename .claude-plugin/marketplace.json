@@ -5,7 +5,7 @@
     "name": "Matt Corbett"
   },
   "metadata": {
-    "description": "RavenClaude — a private marketplace of opinionated Claude Code plugins: a domain-neutral core (Team Lead + 14 specialist agents, skills, hooks, the Capability Grounding & Structured Output Protocols, a comfort-posture dashboard, the decision-review tribunal) plus 130 domain plugins across clusters: the software-delivery chain (devops-cicd, observability-sre, security-engineering, qa-test-automation, cloud-native-kubernetes, terraform-iac); cloud (azure/aws/gcp); app craft (backend, frontend, mobile, database, api, auth); data & AI (data-platform, analytics-engineering, data-streaming, ml-engineering, data-governance-privacy, applied-statistics, microsoft-fabric, tableau, claude-app-engineering); the Microsoft stack (power-platform, m365-copilot, microsoft-graph); and business/product verticals (finance, fintech-payments, product-management, project-management, process-improvement, staffing, freight-forwarding, edtech). Every agent ships example-scenario frontmatter surfaced in an 'I want to…' use-case lookup.",
+    "description": "RavenClaude — a private marketplace of opinionated Claude Code plugins: a domain-neutral core (Team Lead + 14 specialist agents, skills, hooks, the Capability Grounding & Structured Output Protocols, a comfort-posture dashboard, the decision-review tribunal) plus 131 domain plugins across clusters: the software-delivery chain (devops-cicd, observability-sre, security-engineering, qa-test-automation, cloud-native-kubernetes, terraform-iac); cloud (azure/aws/gcp); app craft (backend, frontend, mobile, database, api, auth); data & AI (data-platform, analytics-engineering, data-streaming, ml-engineering, data-governance-privacy, applied-statistics, microsoft-fabric, tableau, claude-app-engineering); the Microsoft stack (power-platform, m365-copilot, microsoft-graph); and business/product verticals (finance, fintech-payments, product-management, project-management, process-improvement, staffing, freight-forwarding, edtech). Every agent ships example-scenario frontmatter surfaced in an 'I want to…' use-case lookup.",
     "version": "0.91.0"
   },
   "plugins": [
@@ -2964,6 +2964,32 @@
         "hand-tracking",
         "passthrough-ar",
         "xr-performance"
+      ]
+    },
+    {
+      "name": "graphql-engineering",
+      "source": "./plugins/graphql-engineering",
+      "description": "GraphQL-engineering team — 3 agents (graphql-schema-architect, graphql-server-engineer, graphql-security-governance-engineer) for the three engines of a GraphQL surface: schema design & evolution (client-driven type modeling, nullability, Relay pagination, mutation/error shape, schema-first vs code-first, federation vs stitching, non-breaking evolution), server & resolvers (N+1/DataLoader batching + per-request caching, selection-set-aware fetching, subscriptions, APQ/response caching), and security & governance (query cost/depth budgets, field-level authz, persisted operations, introspection hardening, rate/batch limits, error hygiene). Ships 4 skills, a decision-tree knowledge bank (4 Mermaid trees + a dated 2026 reference), 5 best-practices, 2 templates, 2 commands. Engineering judgment, not a security certification; library/federation/spec-feature specifics are volatile — every version carries a retrieval date + [verify-at-use]; no PII. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "graphql",
+        "schema-design",
+        "apollo-federation",
+        "dataloader",
+        "n-plus-one",
+        "resolvers",
+        "relay-pagination",
+        "schema-evolution",
+        "persisted-queries",
+        "query-cost-analysis",
+        "field-level-authorization",
+        "graphql-security",
+        "subgraph",
+        "introspection-hardening",
+        "graphql-subscriptions"
       ]
     }
   ]
