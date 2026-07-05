@@ -2,6 +2,12 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.185.0 — 2026-07-05
+
+### Added
+
+- **New best-practice — `compact-context-proactively-and-persist-state-before-it-is-discarded.md`** (27 rules, was 26). Compaction is a safety net, not a plan: auto-compaction fires when the window is already near-full, so the model has been reasoning in a degraded window _and_ the summary that replaces the old turns is generated under that same pressure. The rule teaches the community-converged discipline — compact **proactively** at a natural breakpoint (a widely-cited practitioner heuristic is ~60% context utilization, marked as a rule of thumb not an Anthropic threshold), tell `/compact` what to preserve (inline or via a `# Compact instructions` CLAUDE.md block), and **persist load-bearing state to a file first** because compaction discards intermediate reasoning (the approaches tried-and-rejected, the distilled tool output). Grounded in [Anthropic — Manage costs](https://code.claude.com/docs/en/costs) (auto-compaction near the limit; `/compact <instructions>`; `/clear`, subagent-delegation and CLAUDE.md→skills to keep the window small) and this repo's own [`knowledge/concepts/context-window.md`](knowledge/concepts/context-window.md) (post-compaction the older work is a summary → durable facts belong in files). Surfaced by the 12th recurring Claude-subreddit scan ([`docs/research/2026-07-05-claude-subreddit-scan/README.md`](../../docs/research/2026-07-05-claude-subreddit-scan/README.md) — 4 findings, 1 approved), where it was the candidate the 2026-07-02 scan (H2) had explicitly flagged as "the strongest next candidate" and deferred under the one-rule-per-scan discipline. **Migration:** none — additive consumer-facing markdown.
+
 ## 0.184.4 — 2026-07-02
 
 ### Added
