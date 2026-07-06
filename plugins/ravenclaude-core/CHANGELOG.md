@@ -2,6 +2,12 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.185.0 — 2026-07-06
+
+### Added
+
+- **New best-practice — `compact-proactively-persist-load-bearing-state-before-compaction.md`** (27 rules, was 26). The compaction-*event* discipline the repo had never stated: compaction is lossy summarization that discards the *intermediate reasoning* (rejected approaches, verbose output, the "why we ruled out X"), so (1) compact proactively at a clean boundary rather than letting the ~95%-full auto-trigger fire mid-thought, and (2) persist load-bearing state — the plan, decisions, rejected approaches, acceptance criteria — to disk (a file/test/run-artifact) *before* compaction, because a decision that lived only in the conversation becomes a summary of a summary. The repo already taught *that* compaction happens ([`knowledge/concepts/context-window.md`](knowledge/concepts/context-window.md)) and how to keep the window small (`mcp-tool-context-is-a-budget`, `claude-md-imports`), but had no consumer-facing rule on the compaction boundary itself. Grounded in [Anthropic's manage-costs/compaction guidance](https://code.claude.com/docs/en/costs) + the community `anthropics/claude-code` issue [#25999](https://github.com/anthropics/claude-code/issues/25999); **explicitly promoted from the 2026-07-02 scan's deferred next-scan candidate**, surfaced by the 9th recurring Claude-subreddit scan ([`docs/research/2026-07-06-claude-subreddit-scan/README.md`](../../docs/research/2026-07-06-claude-subreddit-scan/README.md) — 4 findings, 1 approved). **Migration:** none — additive consumer-facing markdown.
+
 ## 0.184.4 — 2026-07-02
 
 ### Added
