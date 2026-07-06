@@ -117,7 +117,12 @@ def _load_emissions() -> dict[str, list[str]]:
         spec.loader.exec_module(mod)
         emissions = getattr(mod, "EMISSIONS", {}) or {}
         return {k: list(v) for k, v in emissions.items()}
-    except (ImportError, OSError, SyntaxError):
+    except Exception:
+        # Broadened from (ImportError, OSError, SyntaxError) after the 2026-07
+        # review so the docstring's "degrade to an empty mapping on any import
+        # failure" promise actually holds — the sibling module is trusted in-repo
+        # code, so this wider catch is purely a fail-safe backstop (a NameError /
+        # AttributeError / etc. at import time now degrades instead of crashing).
         return {}
 
 
@@ -206,14 +211,18 @@ def _page_kwargs(plugin_dir: Path, schema: dict, include_trees: bool = True) -> 
         "bifrost_html": _render_bifrost_tab(),
         "about_html": _render_about_tab(description, plugin_name),
         "pipeline_html": _render_pipeline_tab(),
-        "schema_json": json.dumps(schema, indent=2),
+        # Each *_json below is spliced verbatim into an inline <script> block, so
+        # a literal `</script` substring in any value would end the script element
+        # early (HTML raw-text rule) and turn the rest into parsed markup. Escape
+        # `<` -> `<`; it round-trips through the JSON parser to `<`.
+        "schema_json": json.dumps(schema, indent=2).replace("<", "\\u003c"),
         "heimdall_json": json.dumps(
             {"versionDrift": _compute_version_drift()}, indent=2, sort_keys=True
-        ),
-        "concepts_json": _concepts_json(plugin_dir),
+        ).replace("<", "\\u003c"),
+        "concepts_json": _concepts_json(plugin_dir).replace("<", "\\u003c"),
         "pattern_explanations_json": json.dumps(
             PATTERN_EXPLANATIONS, indent=2, sort_keys=True
-        ),
+        ).replace("<", "\\u003c"),
         "js": _JS,
     }
 

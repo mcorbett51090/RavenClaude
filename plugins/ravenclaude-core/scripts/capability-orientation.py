@@ -198,6 +198,36 @@ def summarize_permissions(root: Path) -> dict[str, list[str]] | None:
 # ── Recorded environment context — PRESENCE + date only (no content inlined) ──
 _DATE_RE = re.compile(r"(20\d{2}-\d{2}-\d{2})")
 
+# Characters that let a repo-controlled string break out of the untrusted-data
+# frame: any line-break the model may honor (ASCII CR/LF/VT/FF + the Unicode
+# separators) collapsed to a space, so the value can never terminate the banner
+# frame or start a new logical line of "instructions".
+_LINE_BREAK_CHARS = "\r\n\x0b\x0c\u2028\u2029"
+_FRAME_TAG_RE = re.compile(r"</?\s*ravenclaude-capabilities\s*>", re.IGNORECASE)
+
+
+def _sanitize_banner_field(text: str | None, cap: int = 120) -> str | None:
+    """Make a repo-controlled string safe to inline into the capability banner.
+
+    The banner frames its whole body as untrusted DATA, but that defense is a
+    plain text tag — so a value carrying a newline + a literal
+    ``</ravenclaude-capabilities>`` could close the frame early and inject
+    out-of-frame text (verified break-out, 2026-07 review). Strip every
+    model-honored line break to a space, remove any literal frame open/close tag,
+    collapse whitespace, and cap length. Mirrors the CR/LF+tag hardening already
+    applied to panel reasoning in route-decision-review.sh. Fail-safe: None -> None.
+    """
+    if not text:
+        return None
+    try:
+        cleaned = text.translate({ord(ch): " " for ch in _LINE_BREAK_CHARS})
+        cleaned = _FRAME_TAG_RE.sub(" ", cleaned)
+        cleaned = " ".join(cleaned.split())  # collapse runs of whitespace
+        cleaned = cleaned[:cap].strip()
+        return cleaned or None
+    except Exception:
+        return None
+
 
 def summarize_env_context(root: Path) -> dict | None:
     """Report presence + last-reviewed date + staleness + environment COUNT.
@@ -252,8 +282,10 @@ def summarize_design_project(root: Path) -> dict | None:
     except Exception:
         return {"present": True, "has_id": False, "name": None, "mirror_dir": None}
     pid = (d.get("project_id") or "").strip()
-    name = (d.get("name") or "").strip() or None
-    mirror = (d.get("mirror_dir") or "").strip() or None
+    # name/mirror_dir are repo-controlled free text inlined into the banner, so
+    # they must be frame-break sanitized (CR/LF + tag strip), not just .strip()ed.
+    name = _sanitize_banner_field(d.get("name"))
+    mirror = _sanitize_banner_field(d.get("mirror_dir"))
     return {"present": True, "has_id": bool(pid), "name": name, "mirror_dir": mirror}
 
 
@@ -397,7 +429,10 @@ def summarize_run_config(root: Path) -> dict | None:
     task_class = str(data.get("task_class") or "unknown")
     tiers_obj = data.get("tiers") if isinstance(data.get("tiers"), dict) else {}
     rationale_raw = str(data.get("rationale") or "")
-    rationale = _scrub_run_config_rationale(rationale_raw)[:512]
+    # Scrub secrets, THEN frame-break sanitize (CR/LF + tag strip) before the
+    # rationale is inlined into the banner — the secret scrub alone left newlines
+    # and a literal </ravenclaude-capabilities> able to break out of the frame.
+    rationale = _sanitize_banner_field(_scrub_run_config_rationale(rationale_raw), cap=512) or ""
     # Compact tiers summary: the three load-bearing phases per the plan.
     tiers_summary = {
         "scope": str(tiers_obj.get("scope") or "?"),

@@ -1,0 +1,31 @@
+{
+  "name": "hardware-electronics-engineering",
+  "version": "0.1.0",
+  "description": "Hardware / electronics engineering team — 2 agents (hardware-systems-architect, pcb-design-engineer) for the BOARD embedded firmware runs on: architecture & build-vs-buy (module vs custom PCB), MCU/component selection + supply-aware BOM, power architecture (LDO-vs-switcher, budgets), schematic capture, PCB layout (stack-up, impedance, decoupling, grounding), signal & power integrity, DFM/DFA/DFT, and bring-up. 3 skills (scope-a-hardware-design, select-components-and-bom, review-schematic-and-layout), a knowledge bank (a Mermaid module-vs-custom-PCB tree + a dated 2026 EDA/fab/compliance reference), 7 best-practices. ENGINEERING decision-support, not a certification/safety-sign-off authority; component specs, fab/DFM rules, and regulatory thresholds are volatile + vendor/jurisdiction-specific, retrieval-dated + verify-at-use; datasheets read at the operating point. Distinct from embedded-iot-engineering (firmware) and robotics-autonomous-systems-engineering. Requires ravenclaude-core@>=0.7.0.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "hardware-engineering",
+    "electronics",
+    "pcb-design",
+    "schematic-capture",
+    "bom",
+    "component-selection",
+    "power-integrity",
+    "signal-integrity",
+    "dfm",
+    "emc",
+    "fcc",
+    "board-bring-up",
+    "kicad",
+    "altium",
+    "mcu-selection",
+    "power-architecture"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}

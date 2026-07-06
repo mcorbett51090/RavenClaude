@@ -134,6 +134,18 @@
   .reveal{ opacity:0; transform:translateY(14px); transition:opacity .7s ease, transform .7s ease; }
   .reveal.in{ opacity:1; transform:none; }
   @media (prefers-reduced-motion: reduce){ .reveal{ opacity:1; transform:none; transition:none; } }
+
+  .caps{ display:grid; grid-template-columns:1fr 1fr; gap:1px; background:var(--rule); border:1px solid var(--rule); border-radius:6px; overflow:hidden; margin-top:1.5rem; }
+  .cap{ background:var(--panel); padding:1.1rem 1.15rem; }
+  .cap.wide{ grid-column:1 / -1; }
+  .cap h3{ font-family:var(--serif); font-size:1.14rem; color:var(--accent); margin:0 0 .25rem; }
+  .cap > p{ font-size:.94rem; margin:0 0 .7rem; }
+  .cap dl{ margin:0 0 .6rem; display:flex; flex-direction:column; gap:0; }
+  .cap dl > div{ display:flex; justify-content:space-between; gap:.9rem; font-size:.84rem; border-top:1px solid var(--rule); padding:.34rem 0; }
+  .cap dt{ color:var(--muted); }
+  .cap dd{ margin:0; font-family:var(--mono); font-variant-numeric:tabular-nums; text-align:right; }
+  .cap .cav{ font-size:.79rem; color:var(--amber); margin:.2rem 0 0; }
+  @media (max-width:620px){ .caps{ grid-template-columns:1fr; } }
 </style>
 
 <div class="rail" aria-hidden="true"></div>
@@ -148,7 +160,8 @@
     <div class="pills">
       <span class="pill ok">statements</span><span class="pill ok">reconciliations</span>
       <span class="pill ok">flux commentary</span><span class="pill ok">SoD-enforced sign-off</span>
-      <span class="pill ok">hash-chained audit log</span>
+      <span class="pill ok">hash-chained audit log</span><span class="pill ok">multi-entity consolidation</span>
+      <span class="pill ok">recon auto-match</span><span class="pill ok">per-entity dashboards</span>
     </div>
   </header>
 
@@ -211,7 +224,7 @@
     <h2>Eight steps. The last three are yours.</h2>
     <p class="muted">Order matters here — each step gates the next, and the machine stops where your judgment begins.</p>
     <ol class="cycle">
-      <li><h3>Ingest the trial balance</h3><p>A CSV today; a live pull from QuickBooks, NetSuite, Sage Intacct, or Xero on the roadmap.</p></li>
+      <li><h3>Ingest the trial balance</h3><p>Drop in a CSV, or let the staging engine normalize a raw QuickBooks / NetSuite / Sage Intacct / Xero export — different vendor shapes come out byte-identical, and an unbalanced export is rejected before it reaches the close. Live OAuth pulls are next.</p></li>
       <li><h3>Validate the mapping</h3><p>Every account must map to a statement line. The run blocks on an unmapped account rather than guessing.</p></li>
       <li><h3>Produce the statements</h3><p>Income statement, balance sheet, and a clearly-labelled draft cash flow — tested on the subtotals, not just that it balances.</p></li>
       <li><h3>Reconcile &amp; flux</h3><p>Book vs sub-ledger tie-outs and period-over-period movement, both filtered to your materiality threshold.</p></li>
@@ -242,11 +255,75 @@
     <p class="eyebrow">Proven, not asserted</p>
     <h2>It ships with its own tests.</h2>
     <div class="kpis">
-      <div><div class="v">18/18</div><div class="k">acceptance tests passing — controls, classification, submit-only boundary</div></div>
-      <div><div class="v">0.00</div><div class="k">balance-sheet tie, to the cent, every run</div></div>
+      <div><div class="v">121/121</div><div class="k">acceptance tests passing across 7 suites — controls, classification, matching, consolidation, schedules</div></div>
+      <div><div class="v">0.00</div><div class="k">balance-sheet tie, to the cent, every run — and consolidation eliminations that net to zero</div></div>
       <div><div class="v">1&nbsp;config</div><div class="k">to instantiate the next entity — no code change</div></div>
     </div>
     <p>The engine is tested where correctness actually lives. A balanced trial balance produces a balanced balance sheet no matter how accounts are mapped — so "it balances" proves nothing about classification. The suite deliberately mis-maps an account and confirms the <strong>subtotals</strong> catch it while the balance check, as expected, does not. That is the honest test, and it passes.</p>
+  </section>
+
+  <section class="reveal">
+    <p class="eyebrow">The full close, engine by engine</p>
+    <h2>Every lane of the close — and it foots.</h2>
+    <p class="muted">The autopilot isn't one trick. Each stage is a runnable engine, and every figure below is from an actual run on a synthetic entity — nothing invented.</p>
+    <div class="caps">
+
+      <div class="cap">
+        <h3>Multi-entity consolidation</h3>
+        <p>Roll subsidiaries into one group P&amp;L and balance sheet, with intercompany double-counting stripped out automatically.</p>
+        <dl>
+          <div><dt>Intercompany eliminated</dt><dd>$300,000 → $0</dd></div>
+          <div><dt>Group revenue, pre → consolidated</dt><dd>$1.60M → $1.40M</dd></div>
+          <div><dt>Consolidated balance check</dt><dd>$0.00 ✓</dd></div>
+        </dl>
+        <p class="cav">Draft consolidation — no multi-currency remeasurement; a EUR sub's CTA is prepared separately.</p>
+      </div>
+
+      <div class="cap">
+        <h3>Reconciliation auto-match</h3>
+        <p>Ties GL to sub-ledger, clears what reconciles within materiality, and escalates only the account that doesn't.</p>
+        <dl>
+          <div><dt>Accounts auto-certified</dt><dd>3 of 4</dd></div>
+          <div><dt>Line groups matched</dt><dd>4 exact · 1 tol · 1 grouped</dd></div>
+          <div><dt>Break flagged (blocks close)</dt><dd>$30,000 AP · exit 3</dd></div>
+        </dl>
+        <p class="cav">Materiality ($25,000) is config-asserted; every flagged account still needs a human to clear it.</p>
+      </div>
+
+      <div class="cap">
+        <h3>Close schedules</h3>
+        <p>Fixed-asset depreciation, prepaid amortization, and deferred-revenue waterfalls — each self-proving.</p>
+        <dl>
+          <div><dt>Depreciation NBV</dt><dd>84k + 48k − 15k = 117k ✓</dd></div>
+          <div><dt>Deferred-rev waterfall</dt><dd>38k + 36k − 11k = 63k ✓</dd></div>
+          <div><dt>Schedules that tie</dt><dd>3 of 3 · residual $0</dd></div>
+        </dl>
+        <p class="cav">Straight-line draft schedules from summarized inputs — not a sub-ledger reconciled to the GL.</p>
+      </div>
+
+      <div class="cap">
+        <h3>Per-entity dashboard</h3>
+        <p>A one-file, e-mailable dashboard per entity — headline KPIs over the statements and exceptions behind them.</p>
+        <dl>
+          <div><dt>KPIs</dt><dd>net 13.5% · gross 60% · current 3.44×</dd></div>
+          <div><dt>Self-contained</dt><dd>10.9 KB · 0 external links</dd></div>
+          <div><dt>Missing input</dt><dd>shows n/a, never plugged</dd></div>
+        </dl>
+        <p class="cav">Rendered from an un-locked, self-certified TB-derived package; the cash-flow section is an unaudited draft.</p>
+      </div>
+
+      <div class="cap wide">
+        <h3>Finance-shaped ELT staging</h3>
+        <p>Point it at whatever your accounting system exports — two entirely different vendor shapes come out as the exact same clean trial balance, and a broken export never reaches the close.</p>
+        <dl>
+          <div><dt>Source shapes → one canonical schema</dt><dd>NetSuite + QBO → byte-identical (matching sha256)</dd></div>
+          <div><dt>Feeds the statement engine</dt><dd>lint-map OK — every account maps to a line</dd></div>
+          <div><dt>Unbalanced export</dt><dd>rejected up front — exit 4, out-of-balance delta named</dd></div>
+        </dl>
+        <p class="cav">Deterministic plumbing; entity / currency / period dimensions are stamped from the column-map, not independently verified.</p>
+      </div>
+
+    </div>
   </section>
 
   <section class="reveal">
@@ -273,10 +350,10 @@
 
   <section class="reveal">
     <p class="eyebrow">Roadmap</p>
-    <h2>The slice that's live — and what's next.</h2>
-    <p><strong>Live today:</strong> statement production, COA-mapping authoring &amp; validation, reconciliation + flux, and the enforced review→approve→lock workflow — the full local-file cycle, with the sample close above produced end to end.</p>
-    <p class="muted"><strong>Next:</strong> live ELT from QuickBooks / NetSuite / Sage Intacct / Xero with drill-through lineage; reconciliation auto-match with threshold auto-certification; multi-entity consolidation and intercompany elimination; a productized per-entity dashboard; and a secrets/PII scan gate for the plugin.</p>
-    <p class="foot" style="margin-top:1.8rem">Built for the <code>finance</code> plugin, v0.15.0 · every figure on this page traces to a committed, re-runnable transcript. Outputs are decision-support, not an audit or tax opinion.</p>
+    <h2>What's live — and what's next.</h2>
+    <p><strong>Live today:</strong> statement production · COA-mapping authoring &amp; validation · reconciliation, flux, and GL-to-sub-ledger auto-match with threshold auto-certification · the enforced review→approve→lock workflow with a hash-chained audit log · finance-shaped ELT staging that normalizes any vendor export · multi-entity consolidation with intercompany elimination · per-entity dashboards · depreciation / prepaid / deferred-revenue schedules · and a secrets/PII scan gate. All of it runnable, all of it tested.</p>
+    <p class="muted"><strong>Next:</strong> live OAuth connections to QuickBooks / NetSuite / Sage Intacct / Xero with statement-line → journal-entry drill-through lineage; full multi-currency remeasurement + CTA; a warehouse-backed multi-tenant dashboard with row-level security; and identity-provider-backed segregation for auditor-grade sign-off.</p>
+    <p class="foot" style="margin-top:1.8rem">Built for the <code>finance</code> plugin, v0.16.0 · every figure on this page traces to a committed, re-runnable transcript. Outputs are decision-support, not an audit or tax opinion.</p>
   </section>
 
 </div>

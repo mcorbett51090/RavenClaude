@@ -184,7 +184,7 @@ The `hooks/` directory ships [`scrub-confidential-pre-write.sh`](hooks/scrub-con
 | Bermuda passport / driver's licence number pattern | Local identifier shapes commonly in KYC files |
 | Common wire-instruction markers (`Wire ABA:`, `SWIFT:`, `Routing:`) | Free-form wire instructions |
 
-The hook is **advisory by default** (prints to stderr, doesn't block). For sensitive engagements — and **always for SAR / STR drafting** — flip the bottom `exit 0` to `exit 1` so the hook blocks the write. The plugin's [`hooks/hooks.json`](hooks/hooks.json) wires it in.
+The hook is **advisory by default** (prints to stderr, doesn't block). For sensitive engagements — and **always for SAR / STR drafting** — flip the bottom `exit 0` to `exit 2` so the hook blocks the write. The plugin's [`hooks/hooks.json`](hooks/hooks.json) wires it in.
 
 **Tuning:** the Bermuda-specific patterns are deliberately synthetic — adjust to match your actual TIN / driver's licence / passport formats. The hook is conservative by design: false positives are cheap (annoy the agent), false negatives are expensive (leak PII).
 

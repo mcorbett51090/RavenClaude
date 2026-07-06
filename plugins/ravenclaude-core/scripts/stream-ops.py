@@ -58,6 +58,11 @@ EVENT_SCHEMA_VERSION = 1
 _SLUG_RE = re.compile(r"[^a-z0-9-]+")
 _MAX_SLUG_LEN = 64
 _MAX_SUMMARY_LEN = 280
+# A derived `terms` element is a single stemmed token; cap its length and reject
+# any whitespace-bearing element so a caller can't smuggle a multi-word phrase
+# (which would defeat the no-egress invariant the way an uncapped summary would).
+_MAX_TERM_LEN = 64
+_MAX_TERMS = 64
 
 # Keys a caller is FORBIDDEN to pass to append_event — the no-egress tripwire.
 # A raw prompt/text/content/command field must never reach the history line.
@@ -266,9 +271,14 @@ def clear_active(project_root: str | os.PathLike) -> None:
 
 
 def _validate_event_fields(fields: dict) -> None:
-    """Raise ValueError if a caller passed a forbidden raw-content key.
+    """Raise ValueError if a caller passed a forbidden or non-allow-listed field.
 
     This is the no-egress tripwire enforced in code (the gate proves it bidirectionally).
+    The check is an ALLOWLIST, not just a 6-key denylist: any key outside
+    ``_ALLOWED_EVENT_FIELDS`` is refused, so a raw prompt smuggled under an
+    arbitrary key name (e.g. ``extra={"note": <raw prompt>}``) can never reach
+    the append-only history line. The forbidden-key check runs first so the
+    common mistake still gets the specific, clearer error.
     """
     for key in fields:
         kl = key.casefold()
@@ -276,6 +286,11 @@ def _validate_event_fields(fields: dict) -> None:
             raise ValueError(
                 f"refusing to persist forbidden raw-content field {key!r} to stream history "
                 "(no-egress invariant: history stores DERIVED labels/terms only)"
+            )
+        if kl not in _ALLOWED_EVENT_FIELDS:
+            raise ValueError(
+                f"refusing to persist non-allow-listed field {key!r} to stream history "
+                "(no-egress invariant: only DERIVED allow-listed fields are permitted)"
             )
 
 
@@ -310,7 +325,17 @@ def append_event(
     if label is not None:
         candidate["label"] = str(label)
     if terms is not None:
-        candidate["terms"] = [str(t) for t in terms]
+        # Enforce the single-token contract at the API boundary (like `summary` is
+        # capped): drop any element that is empty, over the per-term cap, or carries
+        # whitespace (a multi-word phrase) — so a current or future caller can't
+        # smuggle a raw phrase into history.jsonl and defeat the no-egress invariant.
+        cleaned_terms = []
+        for t in terms:
+            tok = str(t).strip()
+            if not tok or len(tok) > _MAX_TERM_LEN or any(ch.isspace() for ch in tok):
+                continue
+            cleaned_terms.append(tok)
+        candidate["terms"] = cleaned_terms[:_MAX_TERMS]
     if word_count is not None:
         candidate["word_count"] = int(word_count)
     if summary is not None:
@@ -323,8 +348,14 @@ def append_event(
     if score is not None:
         candidate["score"] = round(float(score), 6)
 
+    # Normalize `summary` from ANY source (the `summary=` kwarg OR an `extra`
+    # dict) so the cap + newline-strip no-egress protection can't be bypassed by
+    # routing a multi-line prompt body through `extra={"summary": ...}`.
+    if "summary" in candidate:
+        candidate["summary"] = " ".join(str(candidate["summary"]).split())[:_MAX_SUMMARY_LEN]
+
     # Final guard: every persisted key must be an allowed derived field (extra may add
-    # benign keys, but they cannot be forbidden — already checked above).
+    # benign keys, but they cannot be forbidden or non-allow-listed — checked above).
     _validate_event_fields(candidate)
 
     event = {

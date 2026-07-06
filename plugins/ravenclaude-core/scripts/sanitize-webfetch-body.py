@@ -92,6 +92,18 @@ INJECTION_PATTERNS = [
     re.compile(r"(?m)^\s*(?:SYSTEM|INSTRUCTION|SYSTEM PROMPT|NEW INSTRUCTIONS?)\s*[:>][^\n]*\n?", re.IGNORECASE),
     # 5. Markdown-style fenced "system" blocks — ```system ... ```
     re.compile(r"```\s*system\b[^\n]*\n.*?```", re.DOTALL | re.IGNORECASE),
+    # 6-8. UNTERMINATED opening tags. Patterns 1-3/5 all require a matching
+    #   closing delimiter, so an attacker bypasses them completely by simply
+    #   omitting the close (e.g. `<system-reminder>…<EOF>` with no
+    #   `</system-reminder>`). These run AFTER the paired patterns above (which
+    #   have already removed any closed blocks), so a residual UNCLOSED opening
+    #   tag of a high-signal injection shape is stripped through end-of-input.
+    #   Collateral damage (a doc that legitimately opens one of these tags and
+    #   never closes it loses everything after) is accepted — same floor
+    #   philosophy as the paired patterns.
+    re.compile(r"<system-reminder\b[^>]*>.*\Z", re.DOTALL | re.IGNORECASE),
+    re.compile(r"<system-instruction\b[^>]*>.*\Z", re.DOTALL | re.IGNORECASE),
+    re.compile(r"```\s*system\b.*\Z", re.DOTALL | re.IGNORECASE),
 ]
 
 

@@ -142,7 +142,7 @@ flowchart TD
 
 **When this applies:** a model is being converted from `table` to `incremental`, or an existing incremental model is producing wrong results (duplicate rows, missing updates). Observable inputs: warehouse dialect, whether records can be updated after insert, and the availability of a reliable unique key.
 
-**Last verified:** 2026-06-05; **dbt version line re-verified 2026-06-11.** dbt Core **v1.x remains the production default**. **dbt Core v2.0** (the Rust engine shared with **Fusion**, Apache-2.0) was announced 2026-06-01 at Snowflake Summit as a **first alpha — NOT GA** ([dbt-core v2 roadmap](https://github.com/dbt-labs/dbt-core/blob/main/docs/roadmap/2026-06-announcing-v2.md)); the **Fusion** engine reached Stable and is the default for *new* dbt platform environments with a supported adapter `[verify-at-use]`. **Pin v1.x for production until v2.0 reaches GA** (secondary coverage that says "v2.0 is here" elides the alpha status).
+**Last verified:** 2026-06-05; **dbt version line re-verified 2026-06-11.** dbt Core **v1.x remains the production default**. **dbt Core v2.0** (the Rust engine shared with **Fusion**, Apache-2.0) was announced 2026-06-01 at Snowflake Summit as a **first alpha — NOT GA** ([dbt-core v2 roadmap](https://github.com/dbt-labs/dbt-core/blob/main/docs/roadmap/2026-06-announcing-v2.md)); the **Fusion** engine is **GA for dbt-platform projects on Snowflake and in preview for other adapters** (BigQuery/Redshift/Databricks) — scope the "is it production-ready?" answer to the adapter, not just "Stable" `[verify-at-use 2026-07-01]`. **Pin v1.x for production until v2.0 reaches GA** (secondary coverage that says "v2.0 is here" elides the alpha status).
 
 ```mermaid
 flowchart TD
@@ -221,7 +221,7 @@ flowchart TD
 
 | Capability | 2026 state `[verify-at-build]` | Notes |
 |---|---|---|
-| dbt Core / Cloud | GA — **v1.x = production default** | staging/intermediate/marts; tests; docs. **v2.0 (Rust/Fusion, Apache-2.0) in _alpha_ — not GA**; Fusion engine Stable for new envs `[verify-at-use 2026-06-11]` |
+| dbt Core / Cloud | GA — **v1.x = production default** | staging/intermediate/marts; tests; docs. **v2.0 (Rust/Fusion, Apache-2.0) in _alpha_ — not GA**; Fusion engine **GA for dbt-platform projects on Snowflake, preview for other adapters** (BigQuery/Redshift/Databricks) `[verify-at-use 2026-07-01]` |
 | dbt Semantic Layer / MetricFlow | GA | metrics-as-code; one definition |
 | dbt model contracts | GA | enforce names/types at boundaries |
 | Incremental strategies | GA (merge/insert_overwrite/append) | warehouse-dependent |

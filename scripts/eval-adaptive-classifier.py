@@ -443,7 +443,13 @@ def collect_metrics(fixture_id: str, arm: str,
     so_path = run_dir / "structured-output.json"
     if not so_path.exists():
         die(f"missing {so_path} — workflow didn't persist a structured-output.json")
-    so = json.loads(so_path.read_text())
+    try:
+        so = json.loads(so_path.read_text())
+    except (OSError, ValueError) as e:
+        # A present-but-torn structured-output.json (interrupted workflow write) must
+        # produce the script's own diagnostic, not a raw JSONDecodeError traceback that
+        # aborts the whole grade phase — matching the missing-file branch (2026-07 review).
+        die(f"malformed {so_path} — {type(e).__name__}: {e}")
     stats = so.get("stats", {})
     per_phase = stats.get("per_phase", {})
 
@@ -674,7 +680,9 @@ def submit_batch_and_collect_judge(fixtures: dict, runs: dict[str, dict[str, Run
             break
         time.sleep(20)
     else:
-        die(f"batch {batch.id} did not complete within 30min — re-run with --grade-from-batch {batch.id}")
+        die(f"batch {batch.id} did not complete within 30min — re-run 'python3 "
+            f"{os.path.basename(sys.argv[0])} --mode grade' to retry "
+            f"(a fresh batch is submitted; resuming batch {batch.id} directly is not supported).")
 
     # Parse results
     results: dict[str, dict] = {}
@@ -683,19 +691,27 @@ def submit_batch_and_collect_judge(fixtures: dict, runs: dict[str, dict[str, Run
         if r.result.type != "succeeded":
             print(f"  [WARN] {fid}: batch result type={r.result.type}", file=sys.stderr)
             continue
-        body = r.result.message.content[0].text.strip()
         try:
+            content = r.result.message.content
+            if not content or not hasattr(content[0], "text"):
+                raise ValueError("empty or non-text content block")
+            body = content[0].text.strip()
             j = json.loads(body)
-        except json.JSONDecodeError:
-            print(f"  [WARN] {fid}: judge returned non-JSON: {body[:120]!r}", file=sys.stderr)
+            # Un-scramble
+            baseline_first = order_map[fid] == "baseline_first"
+            baseline_scores = j["A"] if baseline_first else j["B"]
+            adaptive_scores = j["B"] if baseline_first else j["A"]
+            results[fid] = {axis: {"baseline": int(baseline_scores[axis]),
+                                    "adaptive": int(adaptive_scores[axis])}
+                             for axis in ("task_coverage", "factual_accuracy", "clarity")}
+        except (json.JSONDecodeError, ValueError, KeyError, TypeError, IndexError) as exc:
+            # This single try-block already parses, un-scrambles, assigns, AND catches
+            # every off-schema shape (missing "A"/"B", missing axis, non-numeric score).
+            # A second identical un-scramble block used to follow here; it was dead on
+            # the error path (this `continue` skipped it) and pure repeated work on the
+            # success path — removed as a merge artifact (2026-07 review).
+            print(f"  [WARN] {fid}: judge response off-schema ({type(exc).__name__}: {exc}); skipping", file=sys.stderr)
             continue
-        # Un-scramble
-        baseline_first = order_map[fid] == "baseline_first"
-        baseline_scores = j["A"] if baseline_first else j["B"]
-        adaptive_scores = j["B"] if baseline_first else j["A"]
-        results[fid] = {axis: {"baseline": int(baseline_scores[axis]),
-                                "adaptive": int(adaptive_scores[axis])}
-                         for axis in ("task_coverage", "factual_accuracy", "clarity")}
     return results
 
 

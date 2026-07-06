@@ -36,13 +36,31 @@ command -v _emit_hook_event >/dev/null 2>&1 || _emit_hook_event() { :; }
 
 # Prefer stdin JSON (canonical); fall back to the positional arg (legacy).
 cmd=""
+payload=""
 if [ ! -t 0 ]; then
   payload="$(cat)"
   if [ -n "$payload" ]; then
-    cmd="$(printf '%s' "$payload" | jq -r '.tool_input.command // empty' 2>/dev/null || true)"
+    if command -v jq >/dev/null 2>&1; then
+      cmd="$(printf '%s' "$payload" | jq -r '.tool_input.command // empty' 2>/dev/null || true)"
+    elif command -v python3 >/dev/null 2>&1; then
+      # jq-free fallback: this is the consumer's PRIMARY destructive guard, so it
+      # must NOT silently no-op when jq is absent (it previously read cmd="" and
+      # exited 0 = allow-all, with no warning — 2026-07 review).
+      cmd="$(printf '%s' "$payload" | python3 -c 'import json,sys
+try: print(json.load(sys.stdin).get("tool_input",{}).get("command","") or "")
+except Exception: pass' 2>/dev/null || true)"
+    fi
   fi
 fi
 [ -z "$cmd" ] && cmd="${1:-}"
+# If a non-empty payload arrived but we could not extract a command (neither jq
+# nor python3 available), warn LOUDLY rather than fail open silently. We cannot
+# fail-closed-deny here (that would block every Bash call on a host missing both
+# parsers, breaking the session) — but a visible warning means the guard is never
+# silently inert, matching the fail-safe posture of the sibling guards.
+if [ -z "$cmd" ] && [ -n "$payload" ]; then
+  printf '%s\n' "[guard-destructive] WARNING: could not parse the command (jq and python3 both unavailable); the destructive-command guard is DEGRADED for this call." >&2
+fi
 [ -z "$cmd" ] && exit 0
 
 # --- Normalization ---------------------------------------------------------
@@ -82,29 +100,144 @@ if command -v python3 >/dev/null 2>&1; then
   __preproc="$(__GUARD_RAW_CMD="$norm" python3 - <<'PY' 2>/dev/null
 import re, sys, os
 s = os.environ.get("__GUARD_RAW_CMD", "")
-# (a) Strip -m "..." and -m '...' argument bodies. Only the FIRST quoted
-# region after -m; refuses to merge across newlines.
-s = re.sub(r'''(-m\s+)"[^"\n]*"''', r"\1MSG", s)
+# A quoted body "executes" only if it carries command substitution — $(...) or a
+# backtick. Parameter expansion (${VAR}) does not run a command in the common case,
+# and the exotic bash-5.2 funsub ${ ...;} is out of scope for this defense-in-depth
+# layer. Keeping the trigger to the two real command-execution vectors preserves the
+# false-positive protection this stripping exists for: a -m / heredoc body that
+# merely *documents* `git branch -D` / `rm -rf` must still be stripped, or this repo
+# — whose commits and heredocs constantly quote destructive patterns — locks up.
+_EXECUTES = re.compile(r"\$\(|`")
+# (a) Strip -m "..." and -m '...' argument bodies so a commit message that documents
+# a destructive pattern isn't itself flagged. A SINGLE-quoted body is inert (no shell
+# expansion) and is always stripped. A DOUBLE-quoted body still expands $(...)/`...`
+# at run time, so it is stripped ONLY when it carries no command substitution —
+# otherwise `git commit -m "$(rm -rf ~)"` would be blanked to MSG before the scan
+# below ever sees the live payload bash will execute (the hidden-substitution bypass).
+def _strip_dq_m(m):
+    return m.group(1) + "MSG" if not _EXECUTES.search(m.group(2)) else m.group(0)
+s = re.sub(r'''(-m\s+)"([^"\n]*)"''', _strip_dq_m, s)
 s = re.sub(r"""(-m\s+)'[^'\n]*'""", r"\1MSG", s)
-# (b) Strip heredoc bodies. Recognize <<TAG / <<-TAG / <<'TAG' / <<"TAG",
-# then remove everything up to and including the closing TAG line.
+# (b) Strip heredoc bodies (data written to a file, not executed) — but ONLY when the
+# body is genuinely inert. A QUOTED delimiter (<<'TAG' / <<"TAG") suppresses all
+# expansion, so its body is always stripped; a BARE <<TAG still expands $(...)/`...`
+# at run time, so its body is stripped only when it carries no command substitution.
+# Without this split, `cat <<EOF > f\n$(rm -rf ~)\nEOF` would be blanked before the
+# scan, while bash still runs the substitution while building the heredoc.
+def _strip_heredoc(m):
+    quoted, body = m.group(1), m.group(3)
+    if quoted or not _EXECUTES.search(body):
+        return "<<HEREDOC"
+    return m.group(0)
 s = re.sub(
-    r"""<<-?\s*['"]?(\w+)['"]?[^\n]*\n[\s\S]*?\n\s*\1\s*(?=\n|$)""",
-    r"<<HEREDOC",
+    r"""<<-?\s*(['"]?)(\w+)\1[^\n]*\n([\s\S]*?)\n\s*\2\s*(?=\n|$)""",
+    _strip_heredoc,
     s,
 )
+# (c) Decode bash ANSI-C $'...' quoting BEFORE the literal quote-stripping below.
+# bash expands `$'\057'` -> `/`, `$'\053'` -> `+`, etc. at execution time, so a
+# command can smuggle a destructive target/refspec past every whitespace- or
+# literal-anchored pattern by writing it as octal/hex/unicode escapes
+# (`rm -rf $'\057'`, `git push origin $'\053HEAD:main'`). Fold each $'...' token
+# to the byte string bash would actually run so the matchers see the real command.
+# Covers \nnn (octal), \xHH (hex), \u/\U (unicode) and the common letter escapes;
+# an unknown escape degrades to the char after the backslash. This never raises
+# (bad values are swallowed) — a decode failure leaves `norm` at the pre-decode
+# form, i.e. no worse than before this block existed.
+def _ansi_c_decode(m):
+    body = m.group(1)
+    simple = {"a": "\a", "b": "\b", "e": "\x1b", "E": "\x1b", "f": "\f",
+              "n": "\n", "r": "\r", "t": "\t", "v": "\v", "\\": "\\",
+              "'": "'", '"': '"', "?": "?"}
+    out = []
+    i = 0
+    while i < len(body):
+        ch = body[i]
+        if ch == "\\" and i + 1 < len(body):
+            nxt = body[i + 1]
+            if nxt in simple:
+                out.append(simple[nxt]); i += 2; continue
+            if nxt == "x":
+                j, hexd = i + 2, ""
+                while j < len(body) and len(hexd) < 2 and body[j] in "0123456789abcdefABCDEF":
+                    hexd += body[j]; j += 1
+                if hexd:
+                    out.append(chr(int(hexd, 16))); i = j; continue
+            if nxt in "uU":
+                width = 4 if nxt == "u" else 8
+                j, hexd = i + 2, ""
+                while j < len(body) and len(hexd) < width and body[j] in "0123456789abcdefABCDEF":
+                    hexd += body[j]; j += 1
+                if hexd:
+                    try:
+                        out.append(chr(int(hexd, 16)))
+                    except (ValueError, OverflowError):
+                        pass
+                    i = j; continue
+            if nxt in "01234567":
+                j, octd = i + 1, ""
+                while j < len(body) and len(octd) < 3 and body[j] in "01234567":
+                    octd += body[j]; j += 1
+                try:
+                    out.append(chr(int(octd, 8) & 0xFF))
+                except ValueError:
+                    pass
+                i = j; continue
+            out.append(nxt); i += 2; continue
+        out.append(ch); i += 1
+    return "".join(out)
+
+s = re.sub(r"\$'((?:\\.|[^'\\])*)'", _ansi_c_decode, s)
 sys.stdout.write(s)
 PY
-)"
+)" || __preproc=""
   # Only apply the preprocessed form if Python succeeded and produced output.
+  # NB: the `|| __preproc=""` above is load-bearing — without it, a non-zero
+  # exit from the python3 heredoc (e.g. an exotic UnicodeEncodeError) would trip
+  # `set -e` and ABORT the whole guard before the deny checks run, and Claude
+  # Code treats a non-2 hook exit as non-blocking → the destructive command
+  # would run unchecked. Failing the substitution just falls back to `norm`.
   [ -n "$__preproc" ] && norm="$__preproc"
 fi
 norm="${norm//\"/}"                 # drop double quotes:  rm -rf "/"  -> rm -rf /
 norm="${norm//\'/}"                 # drop single quotes
 norm="${norm//\$\{HOME\}/\$HOME}"   # ${HOME} -> $HOME  (one form to match)
+# Anti-obfuscation (added after the 2026-07 three-panel review): a command can
+# smuggle a destructive payload past a whitespace-anchored pattern by writing the
+# spaces as ${IFS}/$IFS (word-splitting still runs them as real separators) or by
+# prefixing the command with a backslash (\rm still resolves to rm — the backslash
+# only suppresses alias expansion). Fold both to their executed form BEFORE the
+# whitespace collapse so the matchers see the same command the shell would run.
+norm="${norm//\$\{IFS\}/ }"         # ${IFS} -> space
+norm="${norm//\$IFS/ }"             # $IFS  -> space
+norm="${norm//\\/}"                 # drop backslashes:  \rm -rf /  -> rm -rf /
 norm="$(printf '%s' "$norm" | tr -s '[:space:]' ' ')"   # collapse whitespace runs
 
+# Strip git GLOBAL options that sit between `git` and its subcommand (added after
+# the 2026-07 review): `git -c foo=bar push --force`, `git --git-dir=.git push …`,
+# `git -C path reset --hard` etc. would otherwise dodge every `git[[:space:]]+<sub>`
+# anchor. Fold `git <globals…> <sub>` back to `git <sub>` so the subcommand
+# patterns match. A curated allow-list (never `-f`/`--force`, which are subcommand
+# options, not globals) keeps this from mis-stripping a real flag. Fail-safe: any
+# sed error leaves `norm` untouched.
+_gitglobal='(-[cC][[:space:]]*[^[:space:]]+|--(git-dir|work-tree|namespace|exec-path|config-env)(=[^[:space:]]*|[[:space:]]+[^[:space:]]+)|--(bare|no-pager|paginate|no-replace-objects|no-optional-locks|literal-pathspecs|icase-pathspecs|glob-pathspecs|noglob-pathspecs))'
+_gstripped="$(printf '%s' "$norm" | sed -E "s/(^|[;&|[:space:]])git(([[:space:]]+${_gitglobal})+)[[:space:]]+/\1git /g" 2>/dev/null || true)"
+[ -n "$_gstripped" ] && norm="$_gstripped"
+
 # --- Order-independent helpers ---------------------------------------------
+# Characters that open a fresh command word before rm/chmod: line start, ;, &, |,
+# whitespace, a command-substitution opener — `(` or a backtick — so `$(rm -rf ~)`
+# / ``rm -rf ~`` are caught, AND `/` so a path-qualified invocation (`/bin/rm`,
+# `./rm`, `../rm`) is caught (the command name need not be the first token).
+# Single-quoted so the literal backtick can't trigger command substitution here.
+_CMD_BOUNDARY='(^|[;&|(`/[:space:]])'
+
+# Characters that CLOSE a command word: whitespace, end-of-string, or a command-
+# substitution closer — `)` or a backtick — so a trailing action inside `$(…)` /
+# `` `…` `` (e.g. `$(find / -delete)`) is recognized. Single-quoted so the literal
+# backtick can't trigger command substitution here (mirrors _CMD_BOUNDARY).
+_CMD_END='([[:space:])`]|$)'
+
 # A recursive flag in ANY spelling/order: -r, -R, -rf, -fr, -Rf, --recursive.
 _has_recursive() { [[ "$1" =~ (^|[[:space:]])(-[a-zA-Z]*[rR][a-zA-Z]*|--recursive)([[:space:]]|$) ]]; }
 
@@ -113,16 +246,23 @@ _has_recursive() { [[ "$1" =~ (^|[[:space:]])(-[a-zA-Z]*[rR][a-zA-Z]*|--recursiv
 # its own. `rm -rf ./tmp/build` is allowed (target is relative, starts with `.`).
 _is_dangerous_rm() {
   local c="$1"
-  [[ "$c" =~ (^|[;\&\|[:space:]])rm[[:space:]] ]] || return 1
+  # _CMD_BOUNDARY covers command-substitution openers ($(/backtick) AND `/` for a
+  # path-qualified invocation (`/bin/rm`, `./rm`, `../rm`).
+  [[ "$c" =~ ${_CMD_BOUNDARY}rm[[:space:]] ]] || return 1
   _has_recursive "$c" || return 1
   # a dangerous target argument: starts with /, ~, $HOME, or a standalone . or *
   # $HOME is boundary-anchored so `$HOME_BACKUP` / `$HOME_DIR` (a *different*
   # variable) is not falsely matched as a prefix — only bare `$HOME`, `$HOME/…`,
   # `$HOME ` etc. count (ERE has no \b, so require a non-identifier char or EOL).
   [[ "$c" =~ (^|[[:space:]])(/|~|\$HOME([^_[:alnum:]]|$)) ]] && return 0
-  # standalone current-dir / glob target: `.`, `./` (trailing slash is the same
-  # current-dir delete and must not dodge the guard the bare `.` form catches), `*`.
-  [[ "$c" =~ (^|[[:space:]])(\./?|\*)([[:space:]]|$) ]] && return 0
+  # standalone current-dir / parent-dir / glob target. Covers `.`, `./`, `*`
+  # (trailing slash is the same current-dir delete) AND the wipe-cwd / escape-to-
+  # parent globs `.*`, `./*`, `..`, `../`, `../*` — `../*` is the worst case: it
+  # deletes the ENTIRE PARENT directory, escaping the cwd-container blast-radius
+  # bound this function's design (above) relies on to allow relative deletes.
+  # Scoped relative paths (`./tmp/build`, `../build`) still fall through (allowed):
+  # they carry a non-`*` path segment after the dots, so the boundary anchor fails.
+  [[ "$c" =~ (^|[[:space:]])(\.{1,2}/?\*?|\*)([[:space:]]|$) ]] && return 0
   return 1
 }
 
@@ -130,7 +270,8 @@ _is_dangerous_rm() {
 # any flag order, octal prefix tolerated (0777). Symbolic modes are out of scope.
 _is_dangerous_chmod() {
   local c="$1"
-  [[ "$c" =~ (^|[;\&\|[:space:]])chmod[[:space:]] ]] || return 1
+  # _CMD_BOUNDARY also covers path-qualified `/usr/bin/chmod` (see _is_dangerous_rm).
+  [[ "$c" =~ ${_CMD_BOUNDARY}chmod[[:space:]] ]] || return 1
   _has_recursive "$c" || return 1
   [[ "$c" =~ (^|[[:space:]])0?(7{3}|6{3}|0{3})([[:space:]]|$) ]] || return 1
   return 0
@@ -148,10 +289,14 @@ _is_dangerous_chmod() {
 # blast-radius bound for that one, same as the worktree/sandbox posture).
 _is_dangerous_find() {
   local c="$1"
-  [[ "$c" =~ (^|[;\&\|[:space:]])find[[:space:]] ]] || return 1
-  # a destructive action must be present
-  [[ "$c" =~ (^|[[:space:]])-delete([[:space:]]|$) ]] \
-    || [[ "$c" =~ -exec[[:space:]]+(sudo[[:space:]]+)?(rm|unlink|shred|truncate)([[:space:]]|$) ]] \
+  # _CMD_BOUNDARY covers command-substitution openers ($(/backtick) AND `/` for a
+  # path-qualified invocation (`/usr/bin/find`) — the narrower `[;&|space/]` class
+  # let `$(find / -delete)` slip past while `$(rm -rf ~)` was caught (2026-07 review).
+  [[ "$c" =~ ${_CMD_BOUNDARY}find[[:space:]] ]] || return 1
+  # a destructive action must be present. `-execdir` is the functional twin of
+  # `-exec` (runs the command per-match) — match both spellings.
+  [[ "$c" =~ (^|[[:space:]])-delete${_CMD_END} ]] \
+    || [[ "$c" =~ -exec(dir)?[[:space:]]+(sudo[[:space:]]+)?(rm|unlink|shred|truncate)([[:space:]]|$) ]] \
     || return 1
   # dangerous target: absolute path / ~ / $HOME
   [[ "$c" =~ (^|[[:space:]])(/|~|\$HOME) ]] && return 0
@@ -164,9 +309,31 @@ _is_dangerous_find() {
 # dangerous-root philosophy as rm/find.
 _is_dangerous_truncate() {
   local c="$1"
-  [[ "$c" =~ (^|[;\&\|[:space:]])truncate[[:space:]] ]] || return 1
-  [[ "$c" =~ -s[[:space:]]*0([[:space:]]|$|[bkKMGT]) ]] || return 1
+  # _CMD_BOUNDARY covers command-substitution openers ($(/backtick) AND `/` for a
+  # path-qualified invocation — see _is_dangerous_find (2026-07 review boundary gap).
+  [[ "$c" =~ ${_CMD_BOUNDARY}truncate[[:space:]] ]] || return 1
+  # size 0 in any spelling: -s0 / -s 0 / -s 0K AND the long option --size=0 / --size 0.
+  [[ "$c" =~ (-s[[:space:]]*|--size[[:space:]]*=?[[:space:]]*)0([[:space:]]|$|[bkKMGT]) ]] || return 1
   [[ "$c" =~ (^|[[:space:]])(/|~|\$HOME) ]] && return 0
+  return 1
+}
+
+# Force-delete of a git branch, order-independent (added after the 2026-07 review).
+# The prior single pattern anchored `-D` immediately after `branch`, so it caught
+# `git branch -D main` / `-fD` / `-Df` but MISSED the long form
+# `git branch --delete --force main` (and `--force --delete`) and the reordered
+# `git branch main -D`. Scan the whole `git branch …` invocation for either the
+# short force-delete flag (contains an uppercase D) OR the co-occurrence of
+# `--delete` and `--force` anywhere. (git global options are already stripped above.)
+_is_dangerous_git_branch_delete() {
+  local c="$1"
+  # _CMD_BOUNDARY covers command-substitution openers ($(/backtick) — the narrower
+  # class let `$(git branch -D main)` slip past (2026-07 review boundary gap).
+  [[ "$c" =~ ${_CMD_BOUNDARY}git[[:space:]]+branch([[:space:]]|$) ]] || return 1
+  # short combined flag containing D:  -D / -fD / -Df
+  [[ "$c" =~ (^|[[:space:]])-[a-zA-Z]*D[a-zA-Z]*([[:space:]]|$) ]] && return 0
+  # long form: both --delete and --force present, in any order
+  { [[ "$c" =~ (^|[[:space:]])--delete([[:space:]]|$) ]] && [[ "$c" =~ (^|[[:space:]])--force([[:space:]]|$) ]]; } && return 0
   return 1
 }
 
@@ -176,11 +343,12 @@ _is_dangerous_truncate() {
 deny_patterns=(
   # git history / branch destruction
   'git[[:space:]]+push[[:space:]]+.*--force([[:space:]]|$)'        # --force (allows --force-with-lease)
-  'git[[:space:]]+push[[:space:]]+(.*[[:space:]])?-f([[:space:]]|$)'  # -f as a flag, not a branch name ending in -f
+  'git[[:space:]]+push[[:space:]]+(.*[[:space:]])?-[A-Za-z]*f[A-Za-z]*([[:space:]]|$)'  # -f in ANY bundled short-flag cluster (git push -uf), order-independent like _has_recursive; does NOT match --force-with-lease
   'git[[:space:]]+push[[:space:]].*[[:space:]]\+[A-Za-z0-9_./@~^-]+'  # refspec force-push: git push origin +HEAD:main
   'git[[:space:]]+reset[[:space:]]+--hard([[:space:]]+|$)'
   'git[[:space:]]+clean[[:space:]]+(-[a-z]*f|--force)'             # clean -fd / -df / --force (order-independent)
-  'git[[:space:]]+branch[[:space:]]+-[a-zA-Z]*D'                   # branch -D / -fD (force-delete)
+  # NB: git force-branch-delete is handled by _is_dangerous_git_branch_delete
+  # (order-independent, incl. the `--delete --force` long form), not a pattern.
   # remote-code-exec via pipe / process- or command-substitution to an interpreter
   '(curl|wget)[^|]*\|[[:space:]]*(sudo[[:space:]]+)?(env[[:space:]]+[^[:space:]]+[[:space:]]+)?([a-z]*sh|python[0-9.]*|perl|ruby|node)([[:space:]]|$)'
   # …and the multi-pipe / filter-then-execute evasion of the above: the single-pipe
@@ -198,14 +366,21 @@ deny_patterns=(
   'shred[[:space:]]+.*[[:space:]]/dev/'
   '>[[:space:]]*/dev/(sd|nvme|hd|disk|vd|xvd|mmcblk)'
   # fork bomb
-  ':\(\)\{[[:space:]]*:\|:&[[:space:]]*\}'
+  ':[[:space:]]*\([[:space:]]*\)[[:space:]]*\{[[:space:]]*:\|:&[[:space:]]*\}'
 )
 
 _deny() {
   local reason="$1"
   _emit_hook_event "guard-destructive.sh" "deny" "Bash" "$cmd" "$reason" 2
-  echo "[guard-destructive] BLOCKED: command matches destructive pattern: $reason" >&2
-  echo "[guard-destructive] cmd: $cmd" >&2
+  # Scrub secret-shaped tokens before echoing the command to stderr — the stderr
+  # of a blocked tool call is captured into the conversation transcript, so a
+  # credential embedded in a destructive command would otherwise leak there
+  # (the JSONL substrate is already scrubbed inside _emit_hook_event above).
+  local safe_cmd safe_reason
+  safe_cmd="$(_scrub_reason "$cmd" 2>/dev/null || printf '%s' "$cmd")"
+  safe_reason="$(_scrub_reason "$reason" 2>/dev/null || printf '%s' "$reason")"
+  echo "[guard-destructive] BLOCKED: command matches destructive pattern: $safe_reason" >&2
+  echo "[guard-destructive] cmd: $safe_cmd" >&2
   echo "[guard-destructive] If you really need this, run it yourself with explicit confirmation." >&2
   exit 2   # 2 blocks the tool call; 1 would NOT (non-blocking error)
 }
@@ -215,6 +390,7 @@ if _is_dangerous_rm "$norm";       then _deny "recursive-rm-of-dangerous-target"
 if _is_dangerous_chmod "$norm";    then _deny "recursive-chmod-world-or-lockout"; fi
 if _is_dangerous_find "$norm";     then _deny "find-delete-of-dangerous-target"; fi
 if _is_dangerous_truncate "$norm"; then _deny "truncate-zero-of-dangerous-target"; fi
+if _is_dangerous_git_branch_delete "$norm"; then _deny "git-branch-force-delete"; fi
 
 # Then the pattern array.
 for pat in "${deny_patterns[@]}"; do

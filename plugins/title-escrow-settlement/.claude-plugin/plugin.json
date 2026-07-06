@@ -1,0 +1,30 @@
+{
+  "name": "title-escrow-settlement",
+  "version": "0.1.0",
+  "description": "Title, escrow, and settlement operations team — 3 agents (title-escrow-lead, title-examiner, closing-settlement-coordinator) for the three engines of a settlement operation: the order-to-policy workflow (open->search->exam->clear->close->record->policy) with ALTA/CFPB/TRID coordination and wire-fraud controls; title search and examination (chain of title, liens/encumbrances, the commitment, exceptions/requirements, curative); and escrow settlement (CD/statement coordination, closing/signing, good-funds discipline, disbursement, recording, funding, and trust-account protection). ADVISORY operations knowledge, not legal/title-underwriting/financial advice; jurisdiction- and underwriter-specific rules, ALTA/CFPB/TRID specifics, and recording requirements are volatile and carry a retrieval date + verify-at-use; wire-fraud sensitive; no PII. 4 skills, decision-tree knowledge bank (4 Mermaid trees + dated 2026 reference), 5 best-practices, 2 templates, 2 commands. Requires ravenclaude-core@>=0.7.0.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "title-insurance",
+    "escrow",
+    "settlement",
+    "closing",
+    "title-examination",
+    "chain-of-title",
+    "title-commitment",
+    "curative",
+    "wire-fraud-prevention",
+    "escrow-trust-account",
+    "alta-best-practices",
+    "trid",
+    "disbursement",
+    "recording",
+    "real-estate-closing"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}

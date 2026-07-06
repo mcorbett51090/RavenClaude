@@ -91,6 +91,10 @@ def get_token(client_id: str, client_secret: str, user_agent: str) -> str:
     try:
         with urllib.request.urlopen(req, timeout=30) as resp:
             payload = json.loads(resp.read().decode())
+    except json.JSONDecodeError as e:
+        # A 2xx with a non-JSON body (HTML interstitial / captcha / proxy block page
+        # served as 200) would otherwise abort with a raw traceback (2026-07 review).
+        _die(f"token response was not JSON (a proxy/interstitial page?): {e}")
     except urllib.error.HTTPError as e:
         detail = e.read().decode(errors="replace")[:300]
         _die(
@@ -130,28 +134,50 @@ def fetch_listing(
         req = urllib.request.Request(
             url, headers={"Authorization": f"Bearer {token}", "User-Agent": user_agent}
         )
-        try:
-            with urllib.request.urlopen(req, timeout=30) as resp:
-                data = json.loads(resp.read().decode())
-                _respect_rate_limit(resp.headers)
-        except urllib.error.HTTPError as e:
-            if e.code == 429:
-                time.sleep(5)
-                continue
-            print(
-                f"reddit-scan: WARN: r/{subreddit} {listing} HTTP {e.code}; skipping",
-                file=sys.stderr,
-            )
+        data = None
+        for attempt in range(5):  # bounded retries with exponential backoff, capped like content-scan.search()
+            try:
+                with urllib.request.urlopen(req, timeout=30) as resp:
+                    data = json.loads(resp.read().decode())
+                    _respect_rate_limit(resp.headers)
+                break
+            except json.JSONDecodeError as e:
+                # 2xx with a non-JSON body (interstitial/captcha/proxy 200) — WARN and
+                # skip this listing like the HTTP-error branch, not a raw traceback.
+                print(
+                    f"reddit-scan: WARN: r/{subreddit} {listing} non-JSON response ({e}); skipping",
+                    file=sys.stderr,
+                )
+                data = None
+                break
+            except urllib.error.HTTPError as e:
+                if e.code == 429 and attempt < 4:
+                    time.sleep(2**attempt)
+                    continue
+                if e.code == 429:
+                    print(
+                        f"reddit-scan: WARN: r/{subreddit} {listing} still HTTP 429 after 5 attempts; skipping",
+                        file=sys.stderr,
+                    )
+                else:
+                    print(
+                        f"reddit-scan: WARN: r/{subreddit} {listing} HTTP {e.code}; skipping",
+                        file=sys.stderr,
+                    )
+                data = None
+                break
+            except urllib.error.URLError as e:
+                print(f"reddit-scan: WARN: r/{subreddit} unreachable ({e.reason})", file=sys.stderr)
+                data = None
+                break
+        if data is None:
             break
-        except urllib.error.URLError as e:
-            print(f"reddit-scan: WARN: r/{subreddit} unreachable ({e.reason})", file=sys.stderr)
-            break
-        children = data.get("data", {}).get("children", [])
+        children = (data.get("data") or {}).get("children", [])
         if not children:
             break
         for c in children:
             out.append(c.get("data", {}))
-        after = data.get("data", {}).get("after")
+        after = (data.get("data") or {}).get("after")
         if not after:
             break
         time.sleep(1)  # courteous pacing well under 100 req/min

@@ -25,7 +25,12 @@ on:
       - ".prettierignore"
       - ".prettierrc.json"
       - "ruff.toml"
-      - ".github/workflows/validate-marketplace.yml"
+      # actionlint (a gate in THIS workflow, direct step + audit-gates Gate 10)
+      # reads EVERY .github/workflows/*.yml — so a PR editing any OTHER workflow
+      # (e.g. quarantine-intake.yml, which ingests untrusted issue title/body)
+      # must trigger this workflow, or actionlint never lints the change and a
+      # script-injection could merge green (repo-review 2026-07-06, P2).
+      - ".github/workflows/**"
   push:
     branches:
       - main
@@ -44,7 +49,8 @@ on:
       - ".prettierignore"
       - ".prettierrc.json"
       - "ruff.toml"
-      - ".github/workflows/validate-marketplace.yml"
+      # actionlint reads every workflow file — see the pull_request note above.
+      - ".github/workflows/**"
   workflow_dispatch:
 
 # Least-privilege GITHUB_TOKEN: this workflow only reads the repo to validate it.
@@ -115,9 +121,12 @@ jobs:
           set -euo pipefail
           status=0
           shopt -s nullglob
-          hooks=(plugins/*/hooks/*.sh)
+          # Cover both the plugin hooks AND the top-level scripts/*.sh (archive /
+          # cleanup / worktree / notify tooling) — a syntax error in the latter
+          # would otherwise land on green CI and only surface at invocation time.
+          hooks=(plugins/*/hooks/*.sh scripts/*.sh)
           if [[ ${#hooks[@]} -eq 0 ]]; then
-            echo "No hook scripts found — skipping."
+            echo "No shell scripts found — skipping."
             exit 0
           fi
           for hook in "${hooks[@]}"; do
@@ -446,4 +455,17 @@ jobs:
               echo "OK $name pinned at $plugin_version in both files"
             fi
           done
+          # Reverse direction: the loop above only visits real plugin directories, so
+          # a stale/orphaned marketplace.json plugins[] entry whose plugin was deleted
+          # or renamed would slip through with a green build. Assert every catalog
+          # name is declared by some plugin.json (matched by name, not by directory,
+          # so a plugin whose dir != name is still covered).
+          all_names="$(jq -r '.name' plugins/*/.claude-plugin/plugin.json)"
+          while IFS= read -r name; do
+            [ -n "$name" ] || continue
+            if ! printf '%s\n' "$all_names" | grep -qxF "$name"; then
+              echo "::error file=.claude-plugin/marketplace.json::orphaned catalog entry '$name' — no plugins/*/plugin.json declares this name"
+              status=1
+            fi
+          done < <(jq -r '.plugins[].name' .claude-plugin/marketplace.json)
           exit $status

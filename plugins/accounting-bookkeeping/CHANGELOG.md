@@ -2,6 +2,10 @@
 
 All notable changes to this plugin are documented here. Versioning is semver; bump on every user-visible change (AGENTS.md).
 
+## [0.2.0] — 2026-07-06
+
+Scope clarification (docs-only; no agent/skill behavior change) — adds a **§0 scope-boundary** section to `CLAUDE.md` disambiguating this plugin from the `finance` plugin's controller-autopilot, ending the close/reconciliation/segregation-of-duties double-routing overlap. `accounting-bookkeeping` is now explicitly the **SMB multi-client practice-operations** lane (advisory diagnosis + readouts across a client portfolio); the **governed, audit-grade close-to-report cycle** — GAAP statement production, the enforced review→approve→lock workflow, GL↔subledger auto-match, finance-shaped ELT, and multi-entity consolidation — routes to the `finance` controller-autopilot (v0.16.0). Decoupled follow-on from the FORGE `financial-controller-autopilot` plan.
+
 ## [0.1.0] — 2026-06-08
 
 Initial release.

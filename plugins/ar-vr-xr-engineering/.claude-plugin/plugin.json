@@ -1,0 +1,30 @@
+{
+  "name": "ar-vr-xr-engineering",
+  "version": "0.1.0",
+  "description": "AR/VR/XR spatial-computing engineering team — 3 agents (xr-architect-lead, xr-interaction-engineer, spatial-rendering-engineer) for the three engines of an XR build: system architecture (target selection across standalone / PC-VR / WebXR / mobile-AR, engine choice across Unity / Unreal / native / WebXR, OpenXR-first strategy, perf-budget and comfort/safety architecture), interaction (hand / controller / gaze input, sim-sickness-aware locomotion, 3D UI, grab/physics, accessibility), and spatial rendering & performance (frame budget, reprojection, foveated rendering, occlusion/anchors/passthrough for AR, draw-call batching, thermal). Ships 4 skills, a decision-tree knowledge bank (4 Mermaid trees + a dated 2026 reference), 5 best-practices, 2 templates, 2 commands. Engineering judgment, not legal/safety-certification advice; the device/runtime/engine landscape is volatile — every version, headset spec, and per-eye perf number carries a retrieval date + [verify-at-use]; no PII. Requires ravenclaude-core@>=0.7.0.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "ar-vr-xr",
+    "spatial-computing",
+    "openxr",
+    "unity-xr",
+    "unreal-vr",
+    "webxr",
+    "quest",
+    "visionos",
+    "steamvr",
+    "frame-budget",
+    "foveated-rendering",
+    "locomotion-comfort",
+    "hand-tracking",
+    "passthrough-ar",
+    "xr-performance"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}

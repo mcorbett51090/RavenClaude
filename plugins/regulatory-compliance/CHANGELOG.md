@@ -2,6 +2,12 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.12.2] — 2026-07-02
+
+### Fixed
+
+- **`CLAUDE.md` corrected the SAR/STR blocking instruction to `exit 2`.** The doc told consumers to flip the hook's bottom `exit 0` to `exit 1` to block PII writes — but `exit 1` is a non-blocking error Claude Code silently swallows, so a consumer following it verbatim got a hook that still allowed the write on the plugin's highest-stakes control. The hook's own header + runtime comments already said `exit 2`; the doc now matches. (Autonomous 3-panel repo review, P1.)
+
 ## [0.12.1] — 2026-06-14
 
 Bug fix (security-relevant) — the `scrub-confidential-pre-write.sh` PII hook's credit-card PAN check used PCRE non-capturing groups `(?:…)` inside a POSIX-ERE `grep -E`, so Visa and Discover PANs slipped past the confidentiality scan entirely (the group matched nothing and emitted a `? at start of expression` warning to stderr). For an engagement that flips this hook to `exit 2` to **block** SAR/STR writes, two of four card brands were a fail-open gap. Rewrote the two groups as ERE-safe capturing groups `(…)`; all four brands now match with no stderr noise. SSN/EIN/IBAN checks were already ERE-clean and unchanged.

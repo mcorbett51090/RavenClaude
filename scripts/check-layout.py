@@ -32,13 +32,15 @@ from pathlib import Path
 
 
 def _matches(path: str, glob: str) -> bool:
-    """Match `path` against a layout glob. `**` spans directory separators;
-    a trailing `/**` also matches the directory itself's children. fnmatchcase
-    with `*`/`**` collapsed is what the CI bash matcher (`[[ $path == $glob ]]`
-    with globstar) and the hook approximate; we normalize `**` to `*` for
-    fnmatch (which treats `*` as spanning `/` — acceptable for an allow-list)."""
-    # fnmatch's * already spans '/', so `plugins/*/agents/**` and `docs/**`
-    # behave like the globstar bash match for allow-list purposes.
+    """Match `path` against a layout glob using fnmatchcase.
+
+    NOTE: fnmatch's `*` already spans '/', so `**` and `*` behave identically here
+    and NO normalization is performed (an earlier comment claimed `**`→`*`
+    normalization that the body never did — corrected 2026-07 review). The
+    consequence is intentional-but-permissive: a glob like `docs/*.md` also matches
+    `docs/sub/deep/x.md`, i.e. the allow-list is slightly looser than a shell glob.
+    That is acceptable for an allow-list and matches how the CI bash matcher
+    (`[[ $path == $glob ]]` with globstar) and the hook approximate it."""
     return fnmatchcase(path, glob)
 
 

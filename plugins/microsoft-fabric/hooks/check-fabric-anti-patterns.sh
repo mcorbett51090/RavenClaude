@@ -15,7 +15,7 @@
 #
 # Advisory by default: prints warnings to stderr (so Claude and the user both see
 # them) but exits 0 so the edit is not blocked. Set FABRIC_STRICT=1 to make
-# violations blocking (exit 1).
+# violations blocking (exit 2).
 
 set -euo pipefail
 
@@ -100,7 +100,9 @@ EOF
 
 EOF
   if [[ "${FABRIC_STRICT:-0}" == "1" ]]; then
-    exit 1
+    # exit 2 = BLOCK (Claude Code PreToolUse blocking code); exit 1 is a non-blocking
+    # error Claude Code silently swallows, so STRICT would not actually block the edit.
+    exit 2
   fi
 fi
 

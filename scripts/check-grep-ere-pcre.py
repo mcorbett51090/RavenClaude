@@ -22,11 +22,20 @@ import os
 import re
 import sys
 
-# grep invoked with an ERE flag (E in the short-flag cluster) but NOT a PCRE flag.
-_GREP_ERE = re.compile(r"grep\s+-[A-Za-z]*E")
-_GREP_PCRE = re.compile(r"grep\s+-[A-Za-z]*P")
+# grep invoked with an ERE flag (E in the short-flag cluster, or the long option
+# --extended-regexp) but NOT a PCRE flag. The long-option spellings were added
+# after the 2026-07 review — the short-cluster-only forms missed
+# `grep --extended-regexp` / `grep --perl-regexp` entirely.
+# `egrep` is the historical ERE alias (== `grep -E`), so an `egrep '(?:…)'` carries
+# the same dead-PCRE-in-ERE bug and must be recognized (2026-07 review).
+_GREP_ERE = re.compile(r"\begrep\b|grep\s+(?:-[A-Za-z]*E|--extended-regexp)")
+_GREP_PCRE = re.compile(r"grep\s+(?:-[A-Za-z]*P|--perl-regexp)")
 # PCRE-only constructs that are dead inside POSIX ERE.
 _PCRE_CONSTRUCT = re.compile(r"\(\?[:!=<]|\[\\s\\S\]|\[\\S\\s\]")
+# Split a shell line into command segments so a benign sibling `grep -P` on the
+# SAME line can't exonerate a broken `grep -E` earlier on it (2026-07 review):
+# the per-line `not _GREP_PCRE.search(raw)` was evaluated over the whole line.
+_SEGMENT_SPLIT = re.compile(r"&&|\|\||[;|]")
 
 
 def offending_lines(path: str) -> list[tuple[int, str]]:
@@ -39,12 +48,17 @@ def offending_lines(path: str) -> list[tuple[int, str]]:
     for n, raw in enumerate(lines, 1):
         if raw.lstrip().startswith("#"):
             continue
-        if (
-            _GREP_ERE.search(raw)
-            and _PCRE_CONSTRUCT.search(raw)
-            and not _GREP_PCRE.search(raw)
-        ):
-            out.append((n, raw.rstrip()))
+        # Evaluate each command segment independently: an ERE grep carrying a dead
+        # PCRE construct is offending even if a separate `grep -P` appears later on
+        # the same physical line.
+        for seg in _SEGMENT_SPLIT.split(raw):
+            if (
+                _GREP_ERE.search(seg)
+                and _PCRE_CONSTRUCT.search(seg)
+                and not _GREP_PCRE.search(seg)
+            ):
+                out.append((n, raw.rstrip()))
+                break
     return out
 
 

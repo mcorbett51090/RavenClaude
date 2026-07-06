@@ -138,12 +138,27 @@ reasoning="$(printf '%s' "$reasoning" | tr -d '\n\r\013\014' | sed -E 's/\xe2\x8
 if [ "${#reasoning}" -gt 256 ]; then
   reasoning="${reasoning:0:253}..."
 fi
-# Reject if reasoning contains any user-controlled field verbatim (qtext,
-# options, header, description). Each field must be >=10 chars to skip
-# trivially-short matches that would over-block.
+# Reject if reasoning contains ANY >=10-char substring of a user-controlled
+# field (qtext, options, header, description). A full-field `grep -F` check was
+# defeated by front-padding the field (or the panel echoing only its tail) —
+# the same gap as the Python `u[:40]`-only check this mirrors. The quoted part
+# of the case pattern is matched LITERALLY, so glob metachars in the field are
+# safe.
+_echoes_substr() {
+  local hay="$1" needle="$2" len i
+  len=${#needle}
+  [ "$len" -ge 10 ] || return 1
+  i=0
+  while [ $((i + 10)) -le "$len" ]; do
+    case "$hay" in
+      *"${needle:i:10}"*) return 0 ;;
+    esac
+    i=$((i + 1))
+  done
+  return 1
+}
 for _f in "$qtext" "$opt0" "$opt1" "${header:-}" "${description:-}"; do
-  if [ -n "$_f" ] && [ "${#_f}" -ge 10 ] && [ -n "$reasoning" ] && \
-     printf '%s' "$reasoning" | grep -qF "$_f" 2>/dev/null; then
+  if [ -n "$_f" ] && [ -n "$reasoning" ] && _echoes_substr "$reasoning" "$_f"; then
     reasoning="[untrusted panel reasoning withheld — echoed user-controlled input]"
     break
   fi
