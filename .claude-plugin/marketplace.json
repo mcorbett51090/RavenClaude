@@ -5,7 +5,7 @@
     "name": "Matt Corbett"
   },
   "metadata": {
-    "description": "RavenClaude — a private marketplace of opinionated Claude Code plugins: a domain-neutral core (Team Lead + 14 specialist agents, skills, hooks, the Capability Grounding & Structured Output Protocols, a comfort-posture dashboard, the decision-review tribunal) plus 131 domain plugins across clusters: the software-delivery chain (devops-cicd, observability-sre, security-engineering, qa-test-automation, cloud-native-kubernetes, terraform-iac); cloud (azure/aws/gcp); app craft (backend, frontend, mobile, database, api, auth); data & AI (data-platform, analytics-engineering, data-streaming, ml-engineering, data-governance-privacy, applied-statistics, microsoft-fabric, tableau, claude-app-engineering); the Microsoft stack (power-platform, m365-copilot, microsoft-graph); and business/product verticals (finance, fintech-payments, product-management, project-management, process-improvement, staffing, freight-forwarding, edtech). Every agent ships example-scenario frontmatter surfaced in an 'I want to…' use-case lookup.",
+    "description": "RavenClaude — a private marketplace of opinionated Claude Code plugins: a domain-neutral core (Team Lead + 14 specialist agents, skills, hooks, the Capability Grounding & Structured Output Protocols, a comfort-posture dashboard, the decision-review tribunal) plus 130 domain plugins across clusters: the software-delivery chain (devops-cicd, observability-sre, security-engineering, qa-test-automation, cloud-native-kubernetes, terraform-iac); cloud (azure/aws/gcp); app craft (backend, frontend, mobile, database, api, auth); data & AI (data-platform, analytics-engineering, data-streaming, ml-engineering, data-governance-privacy, applied-statistics, microsoft-fabric, tableau, claude-app-engineering); the Microsoft stack (power-platform, m365-copilot, microsoft-graph); and business/product verticals (finance, fintech-payments, product-management, project-management, process-improvement, staffing, freight-forwarding, edtech). Every agent ships example-scenario frontmatter surfaced in an 'I want to…' use-case lookup.",
     "version": "0.91.0"
   },
   "plugins": [
@@ -2964,6 +2964,134 @@
         "hand-tracking",
         "passthrough-ar",
         "xr-performance"
+      ]
+    },
+    {
+      "name": "computer-vision-engineering",
+      "source": "./plugins/computer-vision-engineering",
+      "description": "Computer-vision engineering team — 3 agents for a production vision build: cv-systems-architect (task framing across classification / detection / segmentation / OCR / tracking / VLM, data & annotation strategy, build-vs-API and deployment-target choice, eval-metric design — mAP / IoU / precision-recall), cv-model-engineer (dataset curation, augmentation, transfer learning, model selection across YOLO / DETR / SAM / CLIP / ViT, active learning, the eval harness, drift), and vision-deployment-engineer (quantization / distillation, ONNX / TensorRT / CoreML / TFLite export, edge/embedded targets, streaming-video pipelines, latency). Vision-specific vs the MLOps-broad ml-engineering. Ships 4 skills, a knowledge bank (4 Mermaid decision trees + a dated 2026 reference), 5 best-practices, 2 templates, 2 commands. Engineering judgment, not a benchmark verdict; model/hardware/runtime specifics carry a retrieval date + [verify-at-use]; no PII, no image data stored. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "computer-vision",
+        "object-detection",
+        "image-segmentation",
+        "ocr",
+        "video-analytics",
+        "edge-inference",
+        "tensorrt",
+        "onnx",
+        "yolo",
+        "vision-transformer",
+        "foundation-models",
+        "model-quantization",
+        "mlops-vision",
+        "active-learning",
+        "camera-pipeline"
+      ]
+    },
+    {
+      "name": "conversational-ai-voice-engineering",
+      "source": "./plugins/conversational-ai-voice-engineering",
+      "description": "Conversational voice-AI engineering team — 3 agents for production real-time voice agents: voice-ai-architect (cascade STT->LLM->TTS vs speech-to-speech, the latency budget, turn-taking / barge-in / endpointing, channel choice, build-vs-platform across Twilio / Vapi / Retell / LiveKit / Pipecat, guardrails), speech-pipeline-engineer (ASR & TTS provider choice, streaming transcription, VAD/endpointing, diarization, prosody/SSML, codecs, noise, WER), and dialog-and-integration-engineer (state, LLM orchestration and mid-call tool calling, SIP/PSTN telephony, IVR/DTMF, call routing, flow testing and eval). Ships 4 skills, a knowledge bank (4 Mermaid decision trees + a dated 2026 reference), 5 best-practices, 2 templates, 2 commands. Engineering judgment, not legal/compliance advice; the ASR/TTS/platform/telephony landscape is volatile — versions and latency numbers carry a retrieval date + [verify-at-use]; no PII, and call audio/transcripts are sensitive. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "voice-ai",
+        "conversational-ai",
+        "speech-to-text",
+        "text-to-speech",
+        "asr",
+        "tts",
+        "telephony",
+        "sip",
+        "ivr",
+        "barge-in",
+        "endpointing",
+        "latency-budget",
+        "speech-to-speech",
+        "webrtc",
+        "call-automation"
+      ]
+    },
+    {
+      "name": "streaming-media-engineering",
+      "source": "./plugins/streaming-media-engineering",
+      "description": "Streaming-media (video/audio) engineering team — 3 agents for a streaming build: media-streaming-architect (VOD vs live, protocol choice across HLS / MPEG-DASH / CMAF / WebRTC / LL-HLS, packaging + origin/edge, single vs multi-CDN, DRM across Widevine / FairPlay / PlayReady, ABR-ladder philosophy, cost), transcoding-pipeline-engineer (codec choice across H.264 / HEVC / AV1 / VP9, FFmpeg pipelines, per-title & ABR-ladder encoding, GPU vs CPU, CMAF packaging, captions, audio & loudness), and playback-and-delivery-engineer (player integration across hls.js / dash.js / Shaka / ExoPlayer / AVPlayer, ABR tuning, QoE metrics, low-latency live, client DRM, CDN cache tuning). Ships 4 skills, a knowledge bank (4 Mermaid decision trees + a dated 2026 reference), 5 best-practices, 2 templates, 2 commands. Engineering judgment, not legal/DRM-licensing advice; codec/protocol/CDN/DRM/player specifics carry a retrieval date + [verify-at-use]; no PII. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "streaming-media",
+        "video-streaming",
+        "hls",
+        "mpeg-dash",
+        "cmaf",
+        "webrtc",
+        "ll-hls",
+        "transcoding",
+        "ffmpeg",
+        "av1",
+        "hevc",
+        "abr-ladder",
+        "drm",
+        "cdn-delivery",
+        "playback-qoe"
+      ]
+    },
+    {
+      "name": "med-spa-aesthetics",
+      "source": "./plugins/med-spa-aesthetics",
+      "description": "Medical-aesthetics (med spa) practice operations team — 3 agents (med-spa-operations-lead, patient-coordinator-lead, aesthetics-compliance-advisor) across the three engines of a med spa: the practice P&L (injector/room utilization, service mix across injectables / devices / skincare / memberships, device payback, pricing per provider-hour), the patient front line (consult-to-treatment conversion, no-show / deposit, rebooking on the clinical cadence, memberships), and operational compliance structure (scope of practice, good-faith exam / supervision, consent and adverse-event protocols). Operations and financial decision-support, not legal, tax, or medical advice; no clinical/legal determinations and no patient PHI/PII; benchmarks carry a retrieval date + verify-at-use; scope/supervision rules are state-specific and flagged for a professional. Ships 4 skills, a decision-tree knowledge bank (4 Mermaid trees + a dated 2026 reference), 5 best-practices, 2 templates, 2 commands. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "med-spa",
+        "medical-aesthetics",
+        "injectables",
+        "aesthetic-devices",
+        "injector-utilization",
+        "consult-conversion",
+        "treatment-cadence-rebooking",
+        "membership-revenue",
+        "device-payback",
+        "skincare-retail",
+        "scope-of-practice",
+        "good-faith-exam",
+        "medical-supervision",
+        "patient-coordinator"
+      ]
+    },
+    {
+      "name": "craft-beverage-operations",
+      "source": "./plugins/craft-beverage-operations",
+      "description": "Craft-beverage (winery / brewery / distillery) operations team — 3 agents (craft-beverage-operations-lead, tasting-room-and-club-manager, beverage-distribution-compliance-advisor) across the three engines of a producer: production & cost (batch/yield planning, COGS per unit, tank/barrel/time capacity, packaging, channel margin mix), the tasting room & club (throughput and conversion, club/membership revenue and churn, DTC, events), and distribution & compliance (three-tier vs self-distribution economics, distributor relationships, TTB / state licensing and excise). Operations and financial decision-support, not legal, tax, or regulatory advice; no licensing/excise determinations and no PII; benchmarks carry a retrieval date + verify-at-use; three-tier / TTB / licensing / excise rules are jurisdiction-specific and flagged for a professional. Ships 4 skills, a decision-tree knowledge bank (4 Mermaid trees + a dated 2026 reference), 5 best-practices, 2 templates, 2 commands. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "craft-beverage",
+        "winery",
+        "brewery",
+        "distillery",
+        "tasting-room",
+        "wine-club",
+        "dtc-beverage",
+        "three-tier-distribution",
+        "self-distribution",
+        "cogs-per-unit",
+        "production-planning",
+        "ttb-licensing",
+        "excise-tax",
+        "channel-margin-mix"
       ]
     },
     {
