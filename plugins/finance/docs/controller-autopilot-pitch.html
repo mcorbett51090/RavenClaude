@@ -66,8 +66,9 @@
 
   /* ── the governed cycle (hero pipeline) ── */
   .cycle{ margin-top:2.6rem; position:relative; }
-  .cyclerow{ display:flex; gap:0; align-items:stretch; overflow-x:auto; padding-bottom:6px; scrollbar-width:thin; }
-  .cnode{ flex:1 0 92px; min-width:92px; position:relative; padding:.7rem .5rem .55rem; text-align:center; }
+  .cyclerow{ display:flex; gap:0; align-items:stretch; overflow-x:auto; scrollbar-width:none; }
+  .cyclerow::-webkit-scrollbar{ display:none; }
+  .cnode{ flex:1 1 0; min-width:0; position:relative; padding:.7rem .28rem .55rem; text-align:center; }
   .cnode .dot{ width:30px; height:30px; margin:0 auto .45rem; border-radius:50%; display:grid; place-items:center;
     font-family:var(--mono); font-size:.72rem; font-weight:650; border:1.5px solid var(--rule-2); color:var(--muted); background:var(--panel);
     transition:transform .3s, border-color .3s, color .3s, background .3s; }
@@ -170,7 +171,7 @@
   <header class="hero">
     <span class="kicker">The Close Autopilot · <b>finance</b> plugin · v0.17</span>
     <h1>The close, <em>governed</em> — you review, it does the rest.</h1>
-    <p class="sub">A controller installs one plugin, points it at the books, and gets a review-ready close with the controls already enforced. Every number below is real output.</p>
+    <p class="sub">A controller installs one plugin, points it at the books, and gets a review-ready close with the controls already enforced. The financial figures below are straight from the engine runs.</p>
     <div class="cycle reveal">
       <div class="cyclerow" id="cyclerow"></div>
       <div class="handoff"><span>◂ the machine stops here · your judgment begins ▸</span></div>
@@ -236,7 +237,7 @@
 <section class="bleed"><div class="band reveal">
   <p class="eyebrow">Consolidation · intercompany elimination</p>
   <h2>Roll up the group — with the double-counting stripped out.</h2>
-  <p class="muted" style="max-width:60ch">Two entities, one group. The €200K intercompany service billing and the €100K intercompany loan are counted in both books — and eliminated to exactly zero at the group level, so revenue and assets aren't overstated. The consolidated balance sheet still ties.</p>
+  <p class="muted" style="max-width:60ch">Two entities, one group. The $200K intercompany service billing and the $100K intercompany loan are counted in both books — and eliminated to exactly zero at the group level, so revenue and assets aren't overstated. The consolidated balance sheet still ties. (The revenue bridge below shows the $200K revenue elimination; the $300K total also nets out the $100K loan.)</p>
   <div class="instr"><div class="head"><div><h3>Group revenue — the elimination bridge</h3><div class="sub">pre-elimination → intercompany removed → consolidated</div></div></div>
     <div class="body"><div class="chartwrap"><canvas id="consol" height="280" aria-label="Consolidation elimination bridge"></canvas></div>
     <div class="readout"><div>Intercompany eliminated<b class="neg">−$300,000</b></div><div>Group revenue<b>$1,400,000</b></div><div>Consolidated balance<b class="pos">$0.00</b></div></div></div>
@@ -246,7 +247,7 @@
 <section class="bleed"><div class="band reveal">
   <p class="eyebrow">Multi-entity access · proven against a real Postgres</p>
   <h2>You see only your entities — even with an explicit filter.</h2>
-  <p class="muted" style="max-width:60ch">Grant a controller a portfolio and the warehouse shows only those entities; the rest are invisible at the database, not just hidden in the UI. Toggle the grants below, then try to peek at an entity you weren't given.</p>
+  <p class="muted" style="max-width:60ch">Grant a controller a portfolio and the warehouse shows only those entities; the rest are invisible at the database, not just hidden in the UI. The demo below is an interactive illustration of the mechanism — toggle the grants, then try to peek at an entity you weren't given. The underlying control is real and proven (right).</p>
   <div class="rls">
     <div>
       <div class="portfolio" id="portfolio"></div>
@@ -300,7 +301,7 @@
   <section class="reveal">
     <p class="eyebrow">Where it sits among the tools you know</p>
     <h2>Not a bigger BlackLine. A different shape.</h2>
-    <p>BlackLine and Trintech own the SOX controls backbone — and cost six figures and six months to stand up, a poor fit below roughly <span class="num">$250M</span> in revenue. FloQast and Numeric auto-match reconciliations to <span class="num">90–98%</span>. Ramp, Vic.ai, and BILL confidence-gate accounts payable. Each is excellent at its one lane.</p>
+    <p>BlackLine and Trintech own the SOX controls backbone — with multi-month implementations and enterprise pricing that fit awkwardly below roughly <span class="num">$250M</span> in revenue. FloQast and Numeric advertise reconciliation auto-match in the <span class="num">90s</span> of percent. Ramp, Vic.ai, and BILL confidence-gate accounts payable. Each is excellent at its one lane.</p>
     <blockquote>None runs ingest → reconcile → close → statements → controls → consolidation → locked-and-approved as a single governed cycle for a lean mid-market team. That seam is the product.</blockquote>
     <p class="muted">Producing statements from a ledger is a commodity — every accounting system does it. The value is the <strong>governed cycle</strong>, the <strong>enforced controls</strong>, and the reusable per-entity mapping — installed in minutes.</p>
   </section>
@@ -322,7 +323,7 @@
     <h2>What's live — and what's yours to wire.</h2>
     <p><strong>Now shipped (v0.17):</strong> the full close-to-report cycle, multi-currency remeasurement + CTA (fully tested), OAuth GL connectors + drill-through lineage, a warehouse dashboard with entity-level RLS <strong>proven against a real Postgres</strong>, and IdP-backed segregation of duties — reference implementations, each honest about the line between tested logic and live wiring.</p>
     <p class="muted"><strong>Genuinely next (yours):</strong> record your provider's fixtures once to go live on the connectors; stand up the warehouse + Cube denial test; connect your identity provider (RS256/JWKS) for auditor-grade, tamper-resistant sign-off.</p>
-    <p class="foot" style="margin-top:1.8rem">Built for the <code>finance</code> plugin, v0.17.1 · 272 tests + a containerized RLS denial runner, all green · every figure traces to a committed, re-runnable transcript. Decision-support, not an audit or tax opinion.</p>
+    <p class="foot" style="margin-top:1.8rem">Built for the <code>finance</code> plugin, v0.17.1 · 272 tests + a containerized RLS denial runner, all green · the close, multi-currency, consolidation, and RLS results all trace to committed, re-runnable tests (the isolation demo above uses representative entities). Decision-support, not an audit or tax opinion.</p>
   </section>
 </div>
 
