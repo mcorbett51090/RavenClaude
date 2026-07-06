@@ -2,6 +2,12 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.185.0 — 2026-07-03
+
+### Added
+
+- **New best-practice — `compact-proactively-and-persist-state-before-compaction.md`** (27 rules, was 26). The actionable compaction discipline the `context-window` concept card only _described_: (1) compact **proactively** at task boundaries — auto-compact fires late (~80% of the window) when context rot has already started, so `/compact` while clean yields a sharper summary; and (2) **persist load-bearing state before compaction** — a compact recap is a _summary_, so intermediate reasoning, rejected approaches, and plans that live only in the conversation are discarded; write them to a file/commit/test first, or anchor them with `/compact <preservation instructions>`. Grounded in [Anthropic's best-practices guide](https://code.claude.com/docs/en/best-practices) and cross-checked against `knowledge/concepts/context-window.md`. This was the candidate the [2026-07-02 scan](../../docs/research/2026-07-02-claude-subreddit-scan/README.md) explicitly deferred as the strongest next candidate; surfaced by the 12th recurring Claude-subreddit scan ([`docs/research/2026-07-03-claude-subreddit-scan/README.md`](../../docs/research/2026-07-03-claude-subreddit-scan/README.md) — 4 findings, 1 approved). **Migration:** none — additive consumer-facing markdown.
+
 ## 0.184.5 — 2026-07-06
 
 ### Fixed
