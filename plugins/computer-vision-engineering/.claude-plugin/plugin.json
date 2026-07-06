@@ -1,0 +1,31 @@
+{
+  "name": "computer-vision-engineering",
+  "version": "0.1.0",
+  "description": "Computer-vision engineering team — 2 agents (cv-systems-architect, cv-implementation-engineer) for the CV-specific discipline that generic ML doesn't own: framing the task (classification / detection / segmentation / OCR / tracking / pose / vision-LLM), choosing the model family against an accuracy + latency + deployment-target budget, dataset & annotation strategy, and building the pipeline (preprocessing, off-the-shelf-vs-fine-tune, inference/serving, and edge/real-time optimization via ONNX/TensorRT/OpenVINO). 3 skills (frame-a-cv-task, design-cv-dataset-and-eval, optimize-cv-inference), a knowledge bank (a Mermaid task->model-family tree + a cloud-vs-edge inference tree + a dated 2026 model & tooling map), 7 best-practices. Distinct from ml-engineering (generic training/MLOps), ai-rag-engineering (text/RAG), and embedded-iot-engineering (firmware/HAL). Seams: streaming-media-engineering (video delivery), performance-engineering (latency budgets). Requires ravenclaude-core@>=0.7.0.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "computer-vision",
+    "object-detection",
+    "image-segmentation",
+    "ocr",
+    "object-tracking",
+    "pose-estimation",
+    "vision-language-model",
+    "yolo",
+    "detr",
+    "segment-anything",
+    "annotation",
+    "edge-inference",
+    "tensorrt",
+    "onnx",
+    "openvino",
+    "video-analytics"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}
