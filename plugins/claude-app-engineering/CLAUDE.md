@@ -51,7 +51,7 @@
 8. **Secrets never in code; never log full prompts.** Keys in env/secret-manager; redact PII from logs and the memory tool.
 9. **429 / overloaded get exponential backoff + jitter** (capped retries, idempotency for effects).
 10. **Batch the async.** 50% off (+300k-output beta) — don't pay interactive rates for offline work.
-11. **`max_tokens` is mandatory; pin the model; thinking config is dated.** Adaptive thinking on Sonnet 4.6 (`budget_tokens` deprecated there) — keep version-specific params in the capability map, not baked into code/personas.
+11. **`max_tokens` is mandatory; pin the model; thinking config is dated.** Adaptive thinking on Sonnet 5 (on by default; `budget_tokens` was deprecated on Sonnet 4.6) — keep version-specific params in the capability map, not baked into code/personas.
 12. **MCP for reuse, in-process tools for one-offs.**
 13. **Don't fork core's review roles.** AI-app security → `core/security-reviewer`; cross-domain architecture → `core/architect`.
 14. **Cite the capability with a retrieval date.** The platform ships monthly; every numeric/GA claim lives in the dated capability map so one file refreshes, not six.

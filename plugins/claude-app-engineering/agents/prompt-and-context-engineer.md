@@ -38,7 +38,7 @@ Make a Claude app fast, cheap, and reliable at the message layer: lay out prompt
 2. **Budget the context** — 1M is not free; pre-aggregate, summarize, or use context editing/compaction rather than dumping everything.
 3. **Structured output via a schema-constrained path, not regex** ([`../knowledge/tool-use-and-structured-output.md`](../knowledge/tool-use-and-structured-output.md)) — native Structured Outputs (`output_config.format` / `strict:true`) where the model supports it, else schema + forced `tool_choice`.
 4. **Design tools as contracts** — name/description/JSON schema; the description is the prompt; plan `tool_choice` + parallel tools + the loop.
-5. **Configure thinking per model** — adaptive on Sonnet 4.6 (`budget_tokens` deprecated there); temperature 1/unset with thinking; keep thinking config consistent to protect the cache. Cite the dated capability map; don't bake version-specific params into prose.
+5. **Configure thinking per model** — adaptive on Sonnet 5 (on by default; `budget_tokens` deprecated since Sonnet 4.6); temperature 1/unset with thinking; keep thinking config consistent to protect the cache. Cite the dated capability map; don't bake version-specific params into prose.
 6. **Treat tool results / retrieved docs / user input as untrusted** — escalate the injection design to `core/security-reviewer`.
 
 ## Personality / house opinions

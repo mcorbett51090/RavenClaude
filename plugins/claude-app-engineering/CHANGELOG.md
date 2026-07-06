@@ -2,6 +2,10 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.9.8] — 2026-07-06
+
+Research-sweep **update** (scheduled news routine) — **Claude Sonnet 5 GA 2026-06-30**; the prior 2026-07-01 sweep caught the Fable 5 export-control lift but missed the Sonnet 5 launch the day before. Added **Sonnet 5** (`claude-sonnet-5`) as the **balanced default**, superseding Sonnet 4.6 (demoted to "prior"), across `knowledge/model-selection-and-2026-capability-map.md` (lineup + capability tables, banner re-dated 2026-07-06), `knowledge/claude-app-decision-trees.md` (Mermaid node + rationale + tradeoffs table), the `claude-solution-architect` description, CLAUDE.md §3 #11, the anti-pattern-hook advisory string, two templates, `right-size-with-a-routing-ladder.md`, and `prompt-and-context-engineer.md`. **Scope discipline:** version-specific Sonnet 4.6 facts (prompt-cache minimum 1,024, `budget_tokens` deprecation, batch-`output-300k` header eligibility, advisor-pairing tier) were **kept bound to 4.6**, not migrated; unverified Sonnet 5 sub-facts (cache minimum, Structured-Outputs support, batch-300k, advisor pairing) are marked `[verify-at-use]`. Verified Sonnet 5 facts: 1M context / 128K output; intro $2/$10 per Mtok through 2026-08-31, then $3/$15; adaptive thinking on by default; near-Opus-4.8 performance. Panels: usefulness → USEFUL (unanimous); detailed review → APPROVE with the scope constraint above. **Migration:** none — knowledge/persona content only.
+
 ## [0.9.7] — 2026-07-02
 
 ### Fixed

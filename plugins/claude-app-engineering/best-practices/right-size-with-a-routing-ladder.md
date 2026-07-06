@@ -32,7 +32,7 @@ def answer(task):
 ```
 
 **Do:**
-- Start volume/classification work on **Haiku**; default general app work to **Sonnet 4.6**; reserve **Opus** for the hard tail.
+- Start volume/classification work on **Haiku**; default general app work to **Sonnet 5**; reserve **Opus** for the hard tail.
 - Define an explicit escalation signal (schema-invalid output, low self-reported confidence, a judge flag) — don't escalate on vibes.
 - Pin the model id and always set `max_tokens` (house opinion #11); keep version-specific thinking params in the capability map, not baked into code.
 - Default the **eval judge** to Haiku and run eval/backfill batches through the Batch API (50% off, house opinion #10).

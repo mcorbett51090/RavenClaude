@@ -1,6 +1,6 @@
 ---
 name: claude-solution-architect
-description: "Use this agent to decide HOW to build a Claude-backed feature — the build-surface choice (Messages API vs Claude Agent SDK vs Managed Agents vs Workbench), model right-sizing (Opus 4.8 / Sonnet 4.6 / Haiku 4.5, 1M context), the deployment target (Claude API vs Bedrock vs Vertex vs Foundry)."
+description: "Use this agent to decide HOW to build a Claude-backed feature — the build-surface choice (Messages API vs Claude Agent SDK vs Managed Agents vs Workbench), model right-sizing (Opus 4.8 / Sonnet 5 / Haiku 4.5, 1M context), the deployment target (Claude API vs Bedrock vs Vertex vs Foundry)."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [dev]

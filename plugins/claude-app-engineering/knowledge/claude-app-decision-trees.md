@@ -13,14 +13,14 @@ This file collects the plugin's canonical `## Decision Tree:` sections in the ma
 
 **When this applies:** A request needs a model assigned and the observable inputs are the task *shape* — is it high-volume classification/extraction/triage; is it general app work (drafting, summarizing, moderate reasoning, tool use); or is it the genuinely hard reasoning tail (deep agentic work, multi-file refactors, hard analysis). Use this **after** the build surface is chosen ([`claude-build-surface-decision-tree.md`](claude-build-surface-decision-tree.md)) — surface and model are orthogonal. Not for the deployment-target call (Claude API vs Bedrock/Vertex/Foundry).
 
-**Last verified:** 2026-05-30 against [`model-selection-and-2026-capability-map.md`](model-selection-and-2026-capability-map.md) (lineup dated 2026-05-28; the platform ships monthly — re-confirm the model ids).
+**Last verified:** 2026-07-06 against [`model-selection-and-2026-capability-map.md`](model-selection-and-2026-capability-map.md) (lineup dated 2026-07-06 — **Sonnet 5 is the balanced default**, superseding Sonnet 4.6; the platform ships monthly — re-confirm the model ids).
 
 ```mermaid
 flowchart TD
     A[Task needs a model] --> V{High-volume classify / extract / triage / eval-judge?}
     V -->|Yes| HAIKU[Haiku 4.5<br/>cheap + fast; default eval judge]
     V -->|No| G{General app work<br/>draft / summarize / tool use / moderate reasoning?}
-    G -->|Yes| SONNET[Sonnet 4.6<br/>balanced default; 1M context; adaptive thinking]
+    G -->|Yes| SONNET[Sonnet 5<br/>balanced default; 1M context; adaptive thinking]
     G -->|No, genuinely hard tail| LADDER{Can a cheap model triage<br/>+ escalate on uncertainty?}
     LADDER -->|Yes| RUNG[Routing ladder:<br/>Haiku triage -> Sonnet -> Opus on the hard tail]
     LADDER -->|No, uniformly hard / latency-bound| OPUS[Opus 4.8<br/>hardest reasoning, agentic depth; 1M context]
@@ -29,7 +29,7 @@ flowchart TD
 **Rationale per leaf:**
 
 - _Haiku 4.5_ — high-volume, latency-sensitive, or schema-constrained extraction; also the **default eval judge**. Cheapest per token; right-size here before reaching up.
-- _Sonnet 4.6_ — the **balanced default** for most app work (1M context, adaptive thinking). Start here unless an observable says otherwise.
+- _Sonnet 5_ — the **balanced default** for most app work (1M context, adaptive thinking on by default; GA 2026-06-30, supersedes Sonnet 4.6). Start here unless an observable says otherwise.
 - _Routing ladder_ — when uncertainty is measurable (schema-invalid output, low self-reported confidence, a judge flag), triage cheap and escalate; the metric is **cost-per-resolved-task**, not raw tokens — a Haiku call that fails and re-routes to Opus is *more* expensive than starting on Sonnet.
 - _Opus 4.8_ — reserve for the genuinely hard tail (deep agentic reasoning, large-repo refactors) or when a multi-hop ladder's re-route cost / latency outweighs its savings. Don't *default* here unmeasured (anti-pattern #3).
 
@@ -38,7 +38,7 @@ flowchart TD
 | Model | Relative cost | Speed | Best for | Avoid when |
 |---|---|---|---|---|
 | Haiku 4.5 | lowest | fastest | volume classify/extract/triage; eval judge | the task needs deep reasoning the model can't reach |
-| Sonnet 4.6 | mid | fast | general app work; balanced default; 1M context | proven-trivial work Haiku resolves (overspend) |
+| Sonnet 5 | mid | fast | general app work; balanced default; 1M context | proven-trivial work Haiku resolves (overspend) |
 | Opus 4.8 | highest | slower | hardest reasoning / agentic depth; 1M context | as a blanket default "to be safe" (the #3 anti-pattern) |
 | Routing ladder | mid (amortized) | varies | mixed difficulty where uncertainty is measurable | strict latency budgets (the extra hop adds round-trips) |
 

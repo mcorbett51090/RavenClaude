@@ -47,7 +47,7 @@ fi
 # --- Check 3: retired model id --- (#11)
 if grep -Eni '"(claude-2|claude-instant|claude-1)[^"]*"|'\''(claude-2|claude-instant|claude-1)[^'\'']*'\''' "$file" >/dev/null 2>&1; then
   while IFS= read -r line; do
-    violations+=("  [retired-model] $file: $line — pin a current 4.x model (Opus 4.8 / Sonnet 4.6 / Haiku 4.5); claude-2/instant/1 are retired (CLAUDE.md §3 #11).")
+    violations+=("  [retired-model] $file: $line — pin a current model (Opus 4.8 / Sonnet 5 / Haiku 4.5); claude-2/instant/1 are retired (CLAUDE.md §3 #11).")
   done < <(grep -Eni '(claude-2|claude-instant|claude-1)' "$file" | head -3)
 fi
 

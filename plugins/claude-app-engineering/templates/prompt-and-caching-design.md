@@ -26,7 +26,7 @@
 - **Structured?** <tool-based shape + forced tool_choice | prose + why>
 
 ## Thinking (dated — cite the capability map)
-- **Config:** <adaptive (Sonnet 4.6) | extended budget | none>; temperature 1/unset with thinking.
+- **Config:** <adaptive (Sonnet 5) | extended budget | none>; temperature 1/unset with thinking.
 
 ## Untrusted-input handling
 - <how tool results / retrieved docs are wrapped as data> → security design to `core/security-reviewer`
