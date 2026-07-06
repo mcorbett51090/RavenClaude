@@ -2,6 +2,25 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.186.1 — 2026-07-06
+
+### Fixed
+
+Autonomous 3-panel repo review (run 2026-07-06) — 24 confirmed findings, P1→P3, all mechanical (no design input). Rebased onto 0.186.0; complements the 0.184.5 security pass. Plugin-internal fixes:
+
+- **P1 — tribunal false-positive on sibling plugins (`thing-decision.py`).** `THING_SUBSTRATE` used `plugins/*/hooks` and `plugins/*/scripts` wildcards, so in any repo shaped like a plugin monorepo a `Write`/`Edit` to an _unrelated_ plugin's hooks/scripts was pre-LLM denied with `xc.tribunal-self-disable`. Scoped the globs to `plugins/ravenclaude-core/…` (the Thing's actual substrate). Verified: core substrate still denied, siblings now allowed; Gate 24 green.
+- **P2 — `enforce-layout.sh` silent fail on corrupt manifest.** An invalid `.repo-layout.json` (trailing comma, merge marker) made both jq reads empty → the forbid-only branch allowed every write with no signal. Now validates the manifest and warns to stderr + emits a `warn` hook event instead of silently disabling enforcement.
+- **P2 — `runaway-brake.sh` counter race.** The per-session counter read-modify-write is now wrapped in a bounded `flock` (fails open) so concurrent tool calls can't clobber each other's increment and evade `max_total`/`max_consecutive`.
+- **P2 — `dod-gate.sh` code-change detection.** Switched to `git status --porcelain=v1 -z` + suffix grep; the prior `awk $2` field-parse silently missed changed source files with spaces in the path (and split rename lines), skipping the gate.
+- **P2 — tribunal seat kill robustness (`thing-orchestrator.sh`).** Per-seat `timeout` now uses `--kill-after=5s` so a `claude -p` ignoring SIGTERM is force-killed; the misleading watchdog comment was corrected (the per-seat timeout, not the watchdog, reaps the claude tree).
+- **P2 — `apply-comfort-posture.py` clean errors.** `parse_yaml` now catches `yaml.YAMLError`, and `main()`/`run_v5` surface a bad YAML/level value as an actionable one-liner + exit 1 instead of a raw traceback.
+- **P2 — `stream-ops.py` label no-egress cap + registry race.** Extends the 0.184.5 `terms` single-token cap to `label` (whitespace-collapse + length-cap, incl. the `extra={…}` bypass path) and serializes the registry read-modify-write with an advisory lock + a per-process unique temp file so concurrent writers can't clobber the event-count bump.
+- **P3 — `thing-decide.py`** bounds the untrusted-input substring scan to avoid quadratic cost on attacker-sized fields; **`thing-seat.sh`** truncation detection now compares byte lengths (not locale char counts); **`sanitize-webfetch-body.py`** checks `stat().st_size` before reading a file into memory.
+
+Marketplace-level fixes (CI + scripts, same review): `validate-marketplace.yml` (case-insensitive email guard; duplicate-catalog-entry detection), `check-marketplace-claims.py` (anchor the `<N> plugins` count regex to total-count forms), `generate-bi-report.py`, `eval-adaptive-classifier.py`, `render-trees.py`, `cleanup-branches.sh`, `archive-branch.sh`, `thing-golden-eval.py`.
+
+**Migration:** none — backward-compatible bug fixes and hardening.
+
 ## 0.185.0 — 2026-07-03
 
 ### Added

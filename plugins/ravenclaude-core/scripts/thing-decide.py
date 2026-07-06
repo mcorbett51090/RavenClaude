@@ -398,13 +398,22 @@ def _sanitize_reasoning(raw: str, untrusted_inputs) -> str:
         candidates = []
     # Refuse to interpolate if reasoning contains ANY user-controlled field
     # (>=10 chars to skip trivially-short matches that would over-block).
+    # Bound the scan cost: this loop is O(len(u) * len(sanitized)) per candidate,
+    # and both `question`/`context` and the reasoning are untrusted, so an
+    # attacker-sized field could make it quadratic in a large input. The final
+    # output is capped to 256 chars anyway, so an echo that could survive to the
+    # user lives in the first few hundred chars — scanning a small bound catches
+    # everything that matters while making the cost independent of input size.
+    _SCAN_CAP = 8192
+    scan_hay = sanitized[:_SCAN_CAP]
     for u in candidates:
         if len(u) < 10:
             continue
+        u = u[:_SCAN_CAP]
         # Scan for ANY >=10-char substring of the untrusted field in the
         # reasoning. A `u[:40]`-only check was defeated by front-padding the
         # field with 40 benign chars (or the panel echoing only its tail).
-        if any(u[i:i + 10] in sanitized for i in range(len(u) - 9)):
+        if any(u[i:i + 10] in scan_hay for i in range(len(u) - 9)):
             sanitized = "[untrusted panel reasoning withheld — echoed user-controlled input]"
             break
     # Cap length.
