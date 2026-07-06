@@ -36,13 +36,31 @@ command -v _emit_hook_event >/dev/null 2>&1 || _emit_hook_event() { :; }
 
 # Prefer stdin JSON (canonical); fall back to the positional arg (legacy).
 cmd=""
+payload=""
 if [ ! -t 0 ]; then
   payload="$(cat)"
   if [ -n "$payload" ]; then
-    cmd="$(printf '%s' "$payload" | jq -r '.tool_input.command // empty' 2>/dev/null || true)"
+    if command -v jq >/dev/null 2>&1; then
+      cmd="$(printf '%s' "$payload" | jq -r '.tool_input.command // empty' 2>/dev/null || true)"
+    elif command -v python3 >/dev/null 2>&1; then
+      # jq-free fallback: this is the consumer's PRIMARY destructive guard, so it
+      # must NOT silently no-op when jq is absent (it previously read cmd="" and
+      # exited 0 = allow-all, with no warning — 2026-07 review).
+      cmd="$(printf '%s' "$payload" | python3 -c 'import json,sys
+try: print(json.load(sys.stdin).get("tool_input",{}).get("command","") or "")
+except Exception: pass' 2>/dev/null || true)"
+    fi
   fi
 fi
 [ -z "$cmd" ] && cmd="${1:-}"
+# If a non-empty payload arrived but we could not extract a command (neither jq
+# nor python3 available), warn LOUDLY rather than fail open silently. We cannot
+# fail-closed-deny here (that would block every Bash call on a host missing both
+# parsers, breaking the session) — but a visible warning means the guard is never
+# silently inert, matching the fail-safe posture of the sibling guards.
+if [ -z "$cmd" ] && [ -n "$payload" ]; then
+  printf '%s\n' "[guard-destructive] WARNING: could not parse the command (jq and python3 both unavailable); the destructive-command guard is DEGRADED for this call." >&2
+fi
 [ -z "$cmd" ] && exit 0
 
 # --- Normalization ---------------------------------------------------------
@@ -214,6 +232,12 @@ _gstripped="$(printf '%s' "$norm" | sed -E "s/(^|[;&|[:space:]])git(([[:space:]]
 # Single-quoted so the literal backtick can't trigger command substitution here.
 _CMD_BOUNDARY='(^|[;&|(`/[:space:]])'
 
+# Characters that CLOSE a command word: whitespace, end-of-string, or a command-
+# substitution closer — `)` or a backtick — so a trailing action inside `$(…)` /
+# `` `…` `` (e.g. `$(find / -delete)`) is recognized. Single-quoted so the literal
+# backtick can't trigger command substitution here (mirrors _CMD_BOUNDARY).
+_CMD_END='([[:space:])`]|$)'
+
 # A recursive flag in ANY spelling/order: -r, -R, -rf, -fr, -Rf, --recursive.
 _has_recursive() { [[ "$1" =~ (^|[[:space:]])(-[a-zA-Z]*[rR][a-zA-Z]*|--recursive)([[:space:]]|$) ]]; }
 
@@ -265,11 +289,13 @@ _is_dangerous_chmod() {
 # blast-radius bound for that one, same as the worktree/sandbox posture).
 _is_dangerous_find() {
   local c="$1"
-  # left boundary includes `/` — see _is_dangerous_rm (path-qualified `/usr/bin/find`).
-  [[ "$c" =~ (^|[;\&\|[:space:]/])find[[:space:]] ]] || return 1
+  # _CMD_BOUNDARY covers command-substitution openers ($(/backtick) AND `/` for a
+  # path-qualified invocation (`/usr/bin/find`) — the narrower `[;&|space/]` class
+  # let `$(find / -delete)` slip past while `$(rm -rf ~)` was caught (2026-07 review).
+  [[ "$c" =~ ${_CMD_BOUNDARY}find[[:space:]] ]] || return 1
   # a destructive action must be present. `-execdir` is the functional twin of
   # `-exec` (runs the command per-match) — match both spellings.
-  [[ "$c" =~ (^|[[:space:]])-delete([[:space:]]|$) ]] \
+  [[ "$c" =~ (^|[[:space:]])-delete${_CMD_END} ]] \
     || [[ "$c" =~ -exec(dir)?[[:space:]]+(sudo[[:space:]]+)?(rm|unlink|shred|truncate)([[:space:]]|$) ]] \
     || return 1
   # dangerous target: absolute path / ~ / $HOME
@@ -283,8 +309,9 @@ _is_dangerous_find() {
 # dangerous-root philosophy as rm/find.
 _is_dangerous_truncate() {
   local c="$1"
-  # left boundary includes `/` — see _is_dangerous_rm (path-qualified `/usr/bin/truncate`).
-  [[ "$c" =~ (^|[;\&\|[:space:]/])truncate[[:space:]] ]] || return 1
+  # _CMD_BOUNDARY covers command-substitution openers ($(/backtick) AND `/` for a
+  # path-qualified invocation — see _is_dangerous_find (2026-07 review boundary gap).
+  [[ "$c" =~ ${_CMD_BOUNDARY}truncate[[:space:]] ]] || return 1
   # size 0 in any spelling: -s0 / -s 0 / -s 0K AND the long option --size=0 / --size 0.
   [[ "$c" =~ (-s[[:space:]]*|--size[[:space:]]*=?[[:space:]]*)0([[:space:]]|$|[bkKMGT]) ]] || return 1
   [[ "$c" =~ (^|[[:space:]])(/|~|\$HOME) ]] && return 0
@@ -300,7 +327,9 @@ _is_dangerous_truncate() {
 # `--delete` and `--force` anywhere. (git global options are already stripped above.)
 _is_dangerous_git_branch_delete() {
   local c="$1"
-  [[ "$c" =~ (^|[;\&\|[:space:]])git[[:space:]]+branch([[:space:]]|$) ]] || return 1
+  # _CMD_BOUNDARY covers command-substitution openers ($(/backtick) — the narrower
+  # class let `$(git branch -D main)` slip past (2026-07 review boundary gap).
+  [[ "$c" =~ ${_CMD_BOUNDARY}git[[:space:]]+branch([[:space:]]|$) ]] || return 1
   # short combined flag containing D:  -D / -fD / -Df
   [[ "$c" =~ (^|[[:space:]])-[a-zA-Z]*D[a-zA-Z]*([[:space:]]|$) ]] && return 0
   # long form: both --delete and --force present, in any order

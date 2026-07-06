@@ -2,6 +2,10 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.16.1] — 2026-07-06
+
+Bug fix (P3) — the advisory `flag-finance-anti-patterns.sh` IBAN PII check used `grep -Eni` (case-insensitive), so `[A-Z]{2}` also matched lowercase and over-flagged ordinary `<2 letters><2 digits><alnum>` tokens (e.g. commit hashes) as plaintext IBANs. Dropped `-i` (real IBANs are uppercase; the sibling SSN/card checks are already case-sensitive). No behavior change for any other check.
+
 ## [0.16.0] — 2026-07-06
 
 Feature — **controller-autopilot full build** (FORGE roadmap P6–P12, built in parallel and consolidated). Extends the v0.15.0 first slice to the full governed cycle:

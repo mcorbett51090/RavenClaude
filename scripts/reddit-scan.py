@@ -91,6 +91,10 @@ def get_token(client_id: str, client_secret: str, user_agent: str) -> str:
     try:
         with urllib.request.urlopen(req, timeout=30) as resp:
             payload = json.loads(resp.read().decode())
+    except json.JSONDecodeError as e:
+        # A 2xx with a non-JSON body (HTML interstitial / captcha / proxy block page
+        # served as 200) would otherwise abort with a raw traceback (2026-07 review).
+        _die(f"token response was not JSON (a proxy/interstitial page?): {e}")
     except urllib.error.HTTPError as e:
         detail = e.read().decode(errors="replace")[:300]
         _die(
@@ -136,6 +140,15 @@ def fetch_listing(
                 with urllib.request.urlopen(req, timeout=30) as resp:
                     data = json.loads(resp.read().decode())
                     _respect_rate_limit(resp.headers)
+                break
+            except json.JSONDecodeError as e:
+                # 2xx with a non-JSON body (interstitial/captcha/proxy 200) — WARN and
+                # skip this listing like the HTTP-error branch, not a raw traceback.
+                print(
+                    f"reddit-scan: WARN: r/{subreddit} {listing} non-JSON response ({e}); skipping",
+                    file=sys.stderr,
+                )
+                data = None
                 break
             except urllib.error.HTTPError as e:
                 if e.code == 429 and attempt < 4:

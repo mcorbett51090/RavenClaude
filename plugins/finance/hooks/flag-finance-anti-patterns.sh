@@ -66,8 +66,11 @@ case "$file" in
         | grep -Ev '(000-00-0000|123-45-6789|XXX-XX-XXXX|<.*>)' >/dev/null 2>&1; then
       violations+=("  [plaintext-pii-ssn] $file contains a number matching the SSN pattern (NNN-NN-NNNN). Verify it's not real client PII; replace with placeholder if it is.")
     fi
-    # IBAN-shaped: 2 letters + 2 digits + 11-30 alphanumerics. Conservative.
-    if grep -Eni '\b[A-Z]{2}[0-9]{2}[A-Z0-9]{11,30}\b' "$file" >/dev/null 2>&1; then
+    # IBAN-shaped: 2 UPPERCASE letters + 2 digits + 11-30 uppercase alphanumerics.
+    # Case-SENSITIVE (no -i): real IBANs are uppercase, and -i made [A-Z] also match
+    # lowercase, over-flagging ordinary tokens like commit hashes (2026-07 review).
+    # The sibling SSN/card checks above are likewise case-sensitive.
+    if grep -En '\b[A-Z]{2}[0-9]{2}[A-Z0-9]{11,30}\b' "$file" >/dev/null 2>&1; then
       violations+=("  [plaintext-pii-iban] $file contains a string matching the IBAN pattern. Verify it's not a real bank account; replace with placeholder if it is.")
     fi
     # Credit-card-shaped: 13-19 digits, often with separators. Very conservative.
