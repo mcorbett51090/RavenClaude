@@ -32,7 +32,7 @@ This is scaffolding guidance, not a certified integration. It is decision-suppor
 | Fact | Value `[confidence]` | Source to verify |
 |---|---|---|
 | Auth | **OAuth2** (M2M client-credentials or auth-code). **TBA (Token-Based Auth) is being retired for NEW setups — no new TBA integrations from ~2027.1.** Prefer OAuth2 for anything new. `[unverified — settling gate]` | Oracle NetSuite release notes (2027.1) |
-| Concurrency | **Governed, ~1 concurrent request by default** (raised via the SuiteCloud concurrency governance / license); design for serial extraction + backoff, not parallel fan-out. `[unverified — settling gate]` | NetSuite "Web Services & RESTlet concurrency governance" |
+| Concurrency | **Account-level POOLED limit — Shared 5 / Tier 1 15 / Tier 2 & Ultimate 20 concurrent (+10 per SuiteCloud Plus license)**, shared across SOAP + REST + RESTlet — NOT the ~1 this row previously stated (corrected v0.17.1). Discover the tier at runtime; design for the pool with backoff, not a hardcoded number. `[doc-sourced 2026-07-06 — Oracle "NetSuite Concurrency Limits" + SuiteCloud governance cheat sheet; not live-observed — re-confirm for the account's actual tier before go-live]` | Oracle "NetSuite Concurrency Limits" |
 | TB / query | **SuiteQL** (REST) — paginated, **~1000 rows/page** `[unverified — settling gate]` | NetSuite SuiteQL / REST records docs |
 | Account id | `netsuite_account_id` (e.g. `TSTDRV…` for sandboxes) is the per-tenant key + subdomain | NetSuite account setup |
 
@@ -79,7 +79,7 @@ This is scaffolding guidance, not a certified integration. It is decision-suppor
 | SG-1 | QBO Reports API migration deadline (**~Aug 31 2026**) + the **2026-08-15 build-against-new-only** cutover | Browser-verify Intuit's Reports API migration notice / changelog; pin the parser version to the confirmed date |
 | SG-2 | QBO token lifetimes (access ~1h, refresh ~100d, rotates) and **500 req/min/realmId** | Intuit "Refresh tokens" + "Service limits" docs |
 | SG-3 | Xero lifetimes (access ~30m, refresh ~60d, rotates) + **5 concurrent / 60-min / 5000-day** per tenant | Xero OAuth2 + rate-limit docs |
-| SG-4 | NetSuite **no new TBA from 2027.1**, default concurrency **~1**, SuiteQL **~1000 rows/page** | Oracle NetSuite 2027.1 release notes + SuiteCloud concurrency governance |
+| SG-4 | NetSuite **no new TBA from 2027.1**, POOLED concurrency **5 / 15 / 20 (+10 per SuiteCloud Plus)** (corrected v0.17.1 — not ~1), SuiteQL **~1000 rows/page** | Oracle NetSuite 2027.1 release notes + SuiteCloud concurrency governance |
 | SG-5 | Intacct XML `readByQuery` **~2,000/call** cap; **no first-party Airbyte source** | Sage Intacct Web Services docs + Airbyte connector catalog |
 
 **Discipline:** until a row is browser-verified, treat its number as `[unverified — settling gate]` and do not let it gate an irreversible build decision (a parser cutover, a rate-limiter constant). The *shapes* (rotation exists; there IS a migration; concurrency IS governed) are the durable facts; the numbers drift.

@@ -44,10 +44,10 @@ models/
 
 ## The 3 go-live denial tests (all must pass before a real deployment)
 
-Enforcement here is **specified, not executed** — so before go-live a consumer proves each of these against real infrastructure:
+Enforcement status (v0.17.1): the **claim-resolution layer** and the **Postgres FORCE-RLS layer** are now **EXECUTED in this repo** (the latter against a containerized `postgres:16` — no live creds); the **Cube** and **IdP** layers remain **specified-not-executed** and are the consumer's first-light steps. Before go-live a consumer proves each of these:
 
 1. **Claim resolution `[done]` (runs in THIS repo).** `entity_rls.resolve` / `resolve_from_claim` prove the deny-all invariant: Bob (entity C) requesting A+B → `[]`; partial overlap keeps only the granted; expired / missing-claim / >30-min-TTL → `[]`. Covered by `scripts/test_warehouse_rls.py` — the one denial test that is green in this repo today.
-2. **Postgres FORCE-RLS denial (consumer runs).** Deploy `rls/close_rls_policies.sql`, then run `rls/rls_cross_entity_denial_test.sql` against a fresh test DB in CI: grant entity A only, prove entities B and C return **zero rows**, and prove an **unset** `app.entity_ids` denies everything (fail-closed). No test passing = no merge.
+2. **Postgres FORCE-RLS denial `[executed]` (runs in THIS repo).** `rls/run_rls_denial_test.sh` stands up a disposable `postgres:16` container, applies the shipped `rls/close_rls_policies.sql`, and runs `rls/rls_cross_entity_denial_test.sql`: grant entity A only → B and C return **zero rows** (even with an explicit filter), unset/empty grants deny all (fail-closed), and the array claim `{A,C}` returns exactly the 2-entity portfolio. **Proven passing** — see [`rls/RLS_TEST_EVIDENCE.md`](models/rls/RLS_TEST_EVIDENCE.md). Executing it surfaced two fixes now folded into the shipped SQL (a `BEGIN/COMMIT` wrap so `SET LOCAL` applies, and a `NULLIF` coercion so an empty-string GUC fail-closes instead of aborting). A consumer re-runs it in CI against their own deploy.
 3. **Cube `access_policy` denial (consumer runs).** Issue an embed JWT whose `allowed_entities` is `[A]`, request entity B through Cube, and prove **zero rows** — the `securityContext.allowed_entities` filter overrides the explicit request (the cross-boundary denial test from `cube-schema-scaffolding`).
 
 ## Consumer runbook
