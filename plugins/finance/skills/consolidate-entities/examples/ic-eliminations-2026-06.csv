@@ -1,0 +1,5 @@
+ic_id,description,statement,section,line,debit,credit
+IC-LOAN,Parent loan to subsidiary (intercompany receivable/payable),BS,CurrentAssets,Intercompany receivable,0,100000
+IC-LOAN,Parent loan to subsidiary (intercompany receivable/payable),BS,CurrentLiabilities,Intercompany payable,100000,0
+IC-SALE,Parent services billed to subsidiary (intercompany revenue/COGS),IS,Revenue,Intercompany revenue,200000,0
+IC-SALE,Parent services billed to subsidiary (intercompany revenue/COGS),IS,COGS,Intercompany cost of goods sold,0,200000

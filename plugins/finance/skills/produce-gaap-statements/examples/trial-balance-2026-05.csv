@@ -1,0 +1,11 @@
+account,description,debit,credit,entity,period,currency
+1000,Cash,300000,0,MRI,2026-05,USD
+1100,Accounts Receivable,400000,0,MRI,2026-05,USD
+1200,Inventory,260000,0,MRI,2026-05,USD
+1500,Property Plant & Equipment,850000,0,MRI,2026-05,USD
+1600,Accumulated Depreciation,0,210000,MRI,2026-05,USD
+2000,Accounts Payable,0,240000,MRI,2026-05,USD
+2100,Accrued Liabilities,0,80000,MRI,2026-05,USD
+2500,Long-term Debt,0,480000,MRI,2026-05,USD
+3000,Common Stock,0,400000,MRI,2026-05,USD
+3100,Retained Earnings,0,400000,MRI,2026-05,USD

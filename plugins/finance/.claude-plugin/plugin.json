@@ -1,7 +1,7 @@
 {
   "name": "finance",
-  "version": "0.14.2",
-  "description": "Corporate finance & FP&A specialist team — FP&A analyst (budgets, forecasts, variance commentary), financial modeler (3-statement, DCF, scenarios), controller (close, JEs, reconciliations), treasury analyst (cash, covenants, FX), valuation analyst (DCF + comps + precedent), audit-prep specialist (PBC, walkthroughs, SOC1/2 narratives), and board-pack composer. Ships 9 skills (month-end close, variance commentary, model review, board-pack composition, driver-based-forecasting, dcf-valuation, thirteen-week-cash-forecast, soc-control-walkthrough, kpi-definition), 8 templates, and an advisory hook flagging finance anti-patterns. Inherits ravenclaude-core protocols (Grounding, Structured Output, Cited-Adjudicator).",
+  "version": "0.16.0",
+  "description": "Corporate finance & FP&A specialist team — FP&A analyst (budgets, forecasts, variance commentary), financial modeler (3-statement, DCF, scenarios), controller (close, JEs, reconciliations), treasury analyst (cash, covenants, FX), valuation analyst (DCF + comps + precedent), audit-prep specialist (PBC, walkthroughs, SOC1/2 narratives), and board-pack composer. Ships 18 skills including the controller-autopilot — a governed close-to-report cycle (produce-gaap-statements, author-coa-mapping, reconciliation-summary + auto-match, close-approval-workflow with enforced SoD, finance-elt-staging, consolidate-entities, per-entity-dashboard, close-schedules) alongside month-end close, variance commentary, model review, board-pack, forecasting, DCF, 13-week cash, SOC walkthrough, and KPI definition — plus 10 templates, a 16-doc knowledge bank, and 2 advisory hooks (anti-patterns + secrets/PII scan). Inherits ravenclaude-core protocols (Grounding, Structured Output, Cited-Adjudicator).",
   "author": {
     "name": "Matt Corbett"
   },

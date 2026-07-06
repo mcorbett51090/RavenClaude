@@ -2,6 +2,32 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.16.0] — 2026-07-06
+
+Feature — **controller-autopilot full build** (FORGE roadmap P6–P12, built in parallel and consolidated). Extends the v0.15.0 first slice to the full governed cycle:
+
+- **5 skills** (18 total) — `finance-elt-staging`, `reconciliation-automatch`, `consolidate-entities`, `per-entity-dashboard`, `close-schedules`.
+- **5 stdlib engines** — `tb_stage.py` (raw QBO/NetSuite/Sage/Xero export → canonical trial-balance staging, **byte-identical to a dbt `stg_trial_balance` model**, with close-period watermark + entity/currency dims + atomic write); `recon_match.py` (GL↔subledger auto-match: exact / tolerance / grouped, with threshold auto-certification + explainable match trail); `consolidate.py` (multi-entity roll-up + **intercompany elimination** worksheet + CTA note, reusing `statement_engine`); `entity_dashboard.py` (self-contained per-entity dashboard from a close-package JSON); `schedule_engine.py` (fixed-asset depreciation rollforward, prepaid amortization, deferred-revenue waterfall — each ties beginning + movements = ending).
+- **3 knowledge docs** — `finance-elt-connector-facts` (sourced QBO/NetSuite/Sage Intacct/Xero auth + rate-limit facts, rotating-refresh-token failure mode + mitigation, dated QBO Reports-API gate, settling gates for unverified lifetimes), `tax-close-calendar` (coordination checklist, not tax advice), `secrets-pii-gate`.
+- **2 templates** — `connector-config.template.json` (env-var NAMES only, never values), `tax-calendar.md`.
+- **2nd advisory hook** — `scan-finance-secrets.sh` (secret/PII shape scan; advisory by default, `--ci` for a non-zero pre-merge gate; excludes env-var references + well-known test placeholders). The FORGE red-team's P0 follow-up. Wired into `hooks.json`.
+- **Tests** — consolidated suite now **7 files / 121 acceptance tests, all green**; ruff-clean; stdlib-only.
+
+Counts: skills 13→18, knowledge 13→16, templates 8→10, hooks 1→2. Deferred to its own decoupled PR: the `accounting-bookkeeping` scope-down.
+
+## [0.15.0] — 2026-07-06
+
+Feature — **controller-autopilot** first slice (FORGE plan `financial-controller-autopilot`). Adds a governed close-to-report cycle a financial controller installs and runs, leaving only review + approve:
+
+- **4 skills** — `produce-gaap-statements`, `author-coa-mapping`, `reconciliation-summary`, `close-approval-workflow` (skill count 9 → 13).
+- **1 command** — `run-controller-cycle` (the submit-only orchestration front door).
+- **5 stdlib scripts** — `statement_engine.py` (TB → IS/BS/draft CF, classification-tested, blocks on unmapped accounts), `entity_config.py`, `reconcile_summary.py`, `close_state.py` (review→approve→lock state machine with enforced SoD + append-only hash-chained audit log), `controller_cycle.py` (orchestrator + self-contained HTML close package). Plus `test_controller_autopilot.py` — an 18-test acceptance/regression suite (all passing).
+- **Synthetic worked entity** (`Meridian Robotics Inc.`) with a hand-derived golden + a deliberate-misclassification negative fixture, and a `controller-autopilot-architecture` knowledge doc (knowledge 12 → 13).
+- **Honesty by design:** statement production is treated as a commodity (every GL emits statements natively) — the moat is the governed cycle + enforced controls + the COA-mapping asset. Local-tier identity is config-asserted (tamper-evident, not tamper-preventing); TB-only output is badged not-audit-traceable; CF is an unaudited draft. No false competitive claims.
+- **Deferred (roadmap):** finance-shaped ELT (QBO/NetSuite/Sage Intacct/Xero), reconciliation auto-match/auto-cert, consolidation + intercompany, productized per-entity dashboard (reuse `data-platform`), secrets/PII scan gate.
+
+No breaking change — all prior agents/skills/templates unchanged; the corrected catalog skill count (was a stale "46 skills" boilerplate → now 13) only fixes drift.
+
 ## [0.14.2] — 2026-06-22
 
 Bug fix — the advisory `flag-finance-anti-patterns.sh` hook's credit-card PAN check used PCRE non-capturing groups `(?:…)` inside a POSIX-ERE `grep -E`, so Visa and Discover PANs were never flagged (the group matched nothing and `grep` printed a `? at start of expression` warning to stderr on every run). Rewrote the two groups as ERE-safe capturing groups `(…)`; all four card brands (Visa/MC/Amex/Discover) now match cleanly with no stderr noise. No behavior change for any other check.

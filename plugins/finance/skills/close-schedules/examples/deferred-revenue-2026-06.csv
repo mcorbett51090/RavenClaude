@@ -1,0 +1,4 @@
+contract_id,description,billing_amount,term_months,start_month
+DR-A,SaaS annual subscription (SYNTHETIC),60000,12,2026-01
+DR-B,SaaS annual subscription new (SYNTHETIC),36000,12,2026-06
+DR-C,Support plan quarterly (SYNTHETIC),9000,3,2026-04

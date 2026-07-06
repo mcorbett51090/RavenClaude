@@ -1,0 +1,20 @@
+Account,Memo,Net Amount (Signed)
+1000,Cash,502500
+1100,Accounts Receivable,420000
+1200,Inventory,280000
+1500,Property Plant & Equipment,900000
+1600,Accumulated Depreciation,-250000
+2000,Accounts Payable,-260000
+2100,Accrued Liabilities,-90000
+2500,Long-term Debt,-500000
+3000,Common Stock,-400000
+3100,Retained Earnings,-400000
+4000,Product Revenue,"-1,200,000"
+4100,Service Revenue,-300000
+5000,Cost of Goods Sold,600000
+6000,Salaries & Wages,400000
+6100,Rent Expense,60000
+6200,Marketing Expense,90000
+6300,Depreciation Expense,50000
+7000,Interest Expense,40000
+7100,Interest Income,-10000

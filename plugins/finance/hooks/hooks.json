@@ -10,6 +10,11 @@
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/flag-finance-anti-patterns.sh \"$CLAUDE_TOOL_FILE_PATH\"",
             "comment": "Flag finance anti-patterns: hardcoded rates in models, plaintext PII (SSN/IBAN/credit-card), variance commentary missing Sources, forecast/budget missing Assumptions. Advisory by default; flip exit 0 to exit 1 to enforce."
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/scan-finance-secrets.sh \"$CLAUDE_TOOL_FILE_PATH\"",
+            "comment": "Scan the edited finance file for secret/PII shapes (OAuth secrets, API keys, PEM private keys, AWS/Slack tokens, SSN/PAN/IBAN). Advisory by default (exit 0, prints to stderr); run with --ci for a non-zero pre-merge gate. Excludes env-var-name references and well-known test placeholders. The FORGE red-team's P0 secrets/PII follow-up for the controller-autopilot."
           }
         ]
       }
