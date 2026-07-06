@@ -2,6 +2,17 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.17.1] — 2026-07-06
+
+Hardening + evidence for the live-integration tier (no new skills; W3 warehouse RLS moves from *specified* to *executed* at the DB layer).
+
+- **Postgres FORCE-RLS is now PROVEN, not just specified.** `skills/warehouse-dashboard/models/rls/run_rls_denial_test.sh` stands up a disposable `postgres:16` container, applies the shipped `close_rls_policies.sql`, and runs the cross-entity denial test — no live creds. Result (see `RLS_TEST_EVIDENCE.md`): a controller granted entity A sees only A; an explicit `WHERE entity_id=B` **leaks zero rows**; unset/empty grants deny all; and the array claim `{A,C}` returns exactly the 2-entity portfolio. Answers the security review's open question *"is the FORCE-RLS actually reached?"* — yes.
+- **Two fixes surfaced by executing it, folded into the shipped SQL:** `rls_cross_entity_denial_test.sql` now wraps each grant+query in `BEGIN/COMMIT` (a bare `SET LOCAL` is a silent no-op in autocommit → false-fail); and `close_rls_policies.sql` coerces the tenant GUC via `NULLIF(current_setting('app.entity_ids', true), '')::uuid[]` so a lingering empty-string `SET LOCAL` fail-closes to zero rows instead of aborting the query with a cast error.
+- **Knowledge correction (dated, cited):** `finance-elt-connector-facts.md` — NetSuite concurrency was wrong (`~1`); corrected to the account-level **pooled 5 / 15 / 20 (+10 per SuiteCloud Plus)** limit, flagged doc-sourced / re-confirm before go-live.
+- **Pitch refreshed** (`docs/controller-autopilot-pitch.html`) — the four live-tier capabilities move from "Next" to shipped, with the honest reference-impl framing and the Postgres-RLS-proven note; genuinely-remaining work (record provider fixtures, stand up Cube, wire the IdP) is stated as the consumer's step.
+
+Still specified-not-executed (needs infra a container can't cheaply supply): the Cube `access_policy` denial test (needs a running Cube) and the live IdP/JWKS. Consolidated suite unchanged: 272 tests green + the containerized RLS runner passing.
+
 ## [0.17.0] — 2026-07-06
 
 Feature — **controller-autopilot live-integration tier** (FORGE `fca-live-integration-tier`; four workstreams built in parallel, cross-model critic + red-team, mandatory security-reviewer). Skills 18 → 22.

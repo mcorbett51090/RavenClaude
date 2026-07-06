@@ -43,44 +43,44 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA analytics
 --    entity-scoped fact/dim. FORCE so the table owner is not exempt. dim_period is
 --    intentionally omitted — a fiscal period is not tenant-secret.
 --    `current_setting('app.entity_ids', true)` -> NULL when unset (missing_ok=true),
---    and `entity_id = ANY(NULL::uuid[])` is NULL -> the row is filtered out. So an
+--    and an empty-string GUC (a lingering SET LOCAL) is coerced to NULL via NULLIF, so
 --    unset context DENIES ALL rows (fail-closed), it does not expose the table.
 -- ---------------------------------------------------------------------------
 ALTER TABLE analytics.dim_entity                ENABLE ROW LEVEL SECURITY;
 ALTER TABLE analytics.dim_entity                FORCE  ROW LEVEL SECURITY;
 CREATE POLICY entity_portfolio_read ON analytics.dim_entity
   FOR SELECT TO finance_close_query_role
-  USING (entity_id = ANY (current_setting('app.entity_ids', true)::uuid[]));
+  USING (entity_id = ANY (NULLIF(current_setting('app.entity_ids', true), '')::uuid[]));
 
 ALTER TABLE analytics.fct_close_statement_line  ENABLE ROW LEVEL SECURITY;
 ALTER TABLE analytics.fct_close_statement_line  FORCE  ROW LEVEL SECURITY;
 CREATE POLICY entity_portfolio_read ON analytics.fct_close_statement_line
   FOR SELECT TO finance_close_query_role
-  USING (entity_id = ANY (current_setting('app.entity_ids', true)::uuid[]));
+  USING (entity_id = ANY (NULLIF(current_setting('app.entity_ids', true), '')::uuid[]));
 
 ALTER TABLE analytics.fct_recon_exception       ENABLE ROW LEVEL SECURITY;
 ALTER TABLE analytics.fct_recon_exception       FORCE  ROW LEVEL SECURITY;
 CREATE POLICY entity_portfolio_read ON analytics.fct_recon_exception
   FOR SELECT TO finance_close_query_role
-  USING (entity_id = ANY (current_setting('app.entity_ids', true)::uuid[]));
+  USING (entity_id = ANY (NULLIF(current_setting('app.entity_ids', true), '')::uuid[]));
 
 ALTER TABLE analytics.fct_flux_movement         ENABLE ROW LEVEL SECURITY;
 ALTER TABLE analytics.fct_flux_movement         FORCE  ROW LEVEL SECURITY;
 CREATE POLICY entity_portfolio_read ON analytics.fct_flux_movement
   FOR SELECT TO finance_close_query_role
-  USING (entity_id = ANY (current_setting('app.entity_ids', true)::uuid[]));
+  USING (entity_id = ANY (NULLIF(current_setting('app.entity_ids', true), '')::uuid[]));
 
 ALTER TABLE analytics.fct_close_kpi             ENABLE ROW LEVEL SECURITY;
 ALTER TABLE analytics.fct_close_kpi             FORCE  ROW LEVEL SECURITY;
 CREATE POLICY entity_portfolio_read ON analytics.fct_close_kpi
   FOR SELECT TO finance_close_query_role
-  USING (entity_id = ANY (current_setting('app.entity_ids', true)::uuid[]));
+  USING (entity_id = ANY (NULLIF(current_setting('app.entity_ids', true), '')::uuid[]));
 
 ALTER TABLE analytics.fct_close_state           ENABLE ROW LEVEL SECURITY;
 ALTER TABLE analytics.fct_close_state           FORCE  ROW LEVEL SECURITY;
 CREATE POLICY entity_portfolio_read ON analytics.fct_close_state
   FOR SELECT TO finance_close_query_role
-  USING (entity_id = ANY (current_setting('app.entity_ids', true)::uuid[]));
+  USING (entity_id = ANY (NULLIF(current_setting('app.entity_ids', true), '')::uuid[]));
 
 -- ---------------------------------------------------------------------------
 -- 4. Index the tenant column on every entity-scoped table — an ANY(array) predicate
