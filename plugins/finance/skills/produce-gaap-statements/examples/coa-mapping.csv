@@ -1,0 +1,21 @@
+account,description,statement,section,line,normal_balance,cf_category,noncash
+1000,Cash,BS,CurrentAssets,Cash and cash equivalents,debit,,
+1100,Accounts Receivable,BS,CurrentAssets,"Accounts receivable, net",debit,operating,
+1200,Inventory,BS,CurrentAssets,Inventory,debit,operating,
+1500,Property Plant & Equipment,BS,NonCurrentAssets,"Property, plant & equipment, gross",debit,investing,
+1600,Accumulated Depreciation,BS,NonCurrentAssets,Less: accumulated depreciation,credit,investing,true
+2000,Accounts Payable,BS,CurrentLiabilities,Accounts payable,credit,operating,
+2100,Accrued Liabilities,BS,CurrentLiabilities,Accrued liabilities,credit,operating,
+2500,Long-term Debt,BS,NonCurrentLiabilities,Long-term debt,credit,financing,
+3000,Common Stock,BS,Equity,Common stock,credit,financing,
+3100,Retained Earnings,BS,Equity,Retained earnings,credit,financing,
+4000,Product Revenue,IS,Revenue,Product revenue,credit,,
+4100,Service Revenue,IS,Revenue,Service revenue,credit,,
+5000,Cost of Goods Sold,IS,COGS,Cost of goods sold,debit,,
+6000,Salaries & Wages,IS,OpEx,Salaries and wages,debit,,
+6100,Rent Expense,IS,OpEx,Rent expense,debit,,
+6200,Marketing Expense,IS,OpEx,Marketing expense,debit,,
+6300,Depreciation Expense,IS,OpEx,Depreciation expense,debit,,true
+7000,Interest Expense,IS,OtherIncomeExpense,Interest expense,debit,,
+7100,Interest Income,IS,OtherIncomeExpense,Interest income,credit,,
+8000,Income Tax Expense,IS,Tax,Income tax expense,debit,,

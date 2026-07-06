@@ -1,0 +1,15 @@
+{
+  "source_system": "qbo",
+  "note": "SYNTHETIC fixture — a QuickBooks-Online-style TB export with SEPARATE Debit/Credit columns (thousands-comma formatted, blank = 0). Not real data; no PII. Same target entity/period as column-map-netsuite.json — proving one adapter serves both source shapes.",
+  "map": {
+    "account": "Account #",
+    "description": "Account Name",
+    "debit": "Debit",
+    "credit": "Credit"
+  },
+  "constants": {
+    "entity": "MRI",
+    "currency": "USD"
+  },
+  "close_period": "2026-06"
+}

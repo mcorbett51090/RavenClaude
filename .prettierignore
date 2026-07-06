@@ -22,6 +22,12 @@
 # synthesize.py`. Same rationale as the generated artifacts above.
 docs/plans/2026-06-04-partner-success-command-center/reference-build/data/data.json
 
+# Plan artifact HTML — a self-contained build-plan page whose inline CSS/JS
+# prettier's HTML printer rewrites in ways that drift between prettier versions
+# (it was already failing the whole-tree gate in main, blocking every PR). Same
+# rationale as the generated dashboard/index/report HTML excluded below.
+docs/plans/2026-06-04-partner-success-command-center/build-plan.html
+
 # Bundled third-party content keeps its upstream formatting.
 plugins/power-platform/skills/record-screen/extension/
 plugins/power-platform/skills/record-screen/scripts/
@@ -88,3 +94,14 @@ plugins/ravenclaude-core/knowledge/tree-visuals/
 # prettier's printer cleanly, and they're not ours to reformat. README.md here
 # is already covered by the *.md rule above.
 plugins/*/dashboard-assets/brand/
+
+# Generated artifact — a deterministic close-package produced by
+# plugins/finance/scripts/controller_cycle.py from synthetic fixtures.
+# Same rationale as the other generated HTML artifacts above.
+plugins/finance/skills/produce-gaap-statements/examples/sample-close-package.html
+
+# Self-contained controller-autopilot pitch (inline CSS/JS); prettier would rewrite it.
+plugins/finance/docs/controller-autopilot-pitch.html
+
+# Generated artifact — deterministic per-entity dashboard from entity_dashboard.py.
+plugins/finance/skills/per-entity-dashboard/examples/sample-entity-dashboard.html

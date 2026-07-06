@@ -61,10 +61,13 @@ def _consumer_root() -> Path:
 
 
 def _engine(root: Path, *args: str, stdin: str | None = None) -> dict:
-    out = subprocess.run(
-        [sys.executable, str(ENGINE), "--root", str(root), *args],
-        input=stdin, capture_output=True, text=True,
-    )
+    try:
+        out = subprocess.run(
+            [sys.executable, str(ENGINE), "--root", str(root), *args],
+            input=stdin, capture_output=True, text=True, timeout=60,
+        )
+    except subprocess.TimeoutExpired:
+        return {"_engine_error": "engine timed out after 60s"}
     try:
         return json.loads(out.stdout)
     except (json.JSONDecodeError, ValueError):
@@ -107,14 +110,31 @@ def _concern_present(d: dict, concern: str) -> bool:
 
 def run_deterministic(corpus: Path = CORPUS) -> int:
     root = _consumer_root()
-    entries = [json.loads(ln) for ln in corpus.read_text(encoding="utf-8").splitlines() if ln.strip()]
-    det = [e for e in entries if e.get("lane") == "deterministic"]
+    lines = [ln for ln in corpus.read_text(encoding="utf-8").splitlines() if ln.strip()]
+    entries: list[dict] = []
     fails = 0
+    for i, ln in enumerate(lines, 1):
+        try:
+            entries.append(json.loads(ln))
+        except json.JSONDecodeError as exc:
+            print(f"  FAIL <line {i}>: malformed JSON: {exc}")
+            fails += 1
+    det = [e for e in entries if e.get("lane") == "deterministic"]
+    total = len(det) + fails
     print(f"== golden-set deterministic lane ({len(det)} entries) ==")
     for e in det:
+        eid = e.get("id", "<no id>")
+        if "expect" not in e:
+            print(f"  FAIL {eid}: entry missing required 'expect' field")
+            fails += 1
+            continue
+        if e.get("shape", "command") == "command" and "cmd" not in e:
+            print(f"  FAIL {eid}: entry missing required 'cmd' field")
+            fails += 1
+            continue
         d = _decision(root, e)
         if "_engine_error" in d:
-            print(f"  FAIL {e['id']}: engine error: {d['_engine_error']}")
+            print(f"  FAIL {eid}: engine error: {d['_engine_error']}")
             fails += 1
             continue
         got = _disposition(d)
@@ -127,14 +147,14 @@ def run_deterministic(corpus: Path = CORPUS) -> int:
             concern_ok = _concern_present(d, concern)
         if ok and concern_ok:
             extra = f" [{concern}]" if concern else ""
-            print(f"  PASS {e['id']}: {got}{extra}")
+            print(f"  PASS {eid}: {got}{extra}")
         else:
             fails += 1
             why = f"want {want}, got {got}"
             if concern and not concern_ok:
                 why += f"; missing concern {concern} (saw {d.get('deny_concern') or d.get('concerns')})"
-            print(f"  FAIL {e['id']}: {why}")
-    print(f"-- {len(det) - fails}/{len(det)} pass --")
+            print(f"  FAIL {eid}: {why}")
+    print(f"-- {total - fails}/{total} pass --")
     return 1 if fails else 0
 
 
@@ -147,7 +167,10 @@ def _run_seat(payload: str, *, role: str = "mimir", model: str | None = None,
         env_extra["THING_SEAT_MOCK_VERDICT"] = mock
     import os
     env = {**os.environ, **env_extra}
-    out = subprocess.run(["bash", str(SEAT)], capture_output=True, text=True, env=env)
+    try:
+        out = subprocess.run(["bash", str(SEAT)], capture_output=True, text=True, env=env, timeout=120)
+    except subprocess.TimeoutExpired:
+        return {"_seat_error": "seat timed out after 120s", "_rc": None, "_stdout": ""}
     try:
         return json.loads(out.stdout)
     except (json.JSONDecodeError, ValueError):

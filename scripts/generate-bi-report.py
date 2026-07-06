@@ -214,7 +214,9 @@ def svg_cohort(partners, cohort) -> str:
     iw = w - pad_l - pad_r
     def x(v):
         return pad_l + iw * v / 100
-    p25, p75, med = cohort["p25"], cohort["p75"], cohort["median"]
+    # .get(...) with sane defaults: a hand-authored data.json can ship a partial
+    # cohort block (e.g. missing "median"), which must not KeyError the whole build.
+    p25, p75, med = cohort.get("p25", 25), cohort.get("p75", 75), cohort.get("median", 50)
     out = [f'<svg viewBox="0 0 {w} {h}" width="100%" height="{h}" role="img" aria-label="Each partner vs the peer group">']
     track_y = 58
     out.append(f'<rect x="{pad_l}" y="{track_y-4}" width="{iw}" height="8" rx="4" fill="var(--rc-border)"/>')
@@ -380,6 +382,10 @@ def render_report(data: dict, plugin: str, tokens: str) -> str:
     partners = data.get("partners", [])
     for p in partners:
         p.setdefault("band", band_of(int(p.get("score", 0)), bands))
+        # Persist the coercion so every downstream BAND_VAR[...] lookup (svg_cohort,
+        # the partner rows below) is safe against a custom/non-canonical band label
+        # in a hand-authored data.json — not just the local `counts` tally.
+        p["band"] = p["band"] if p["band"] in BAND_VAR else "red"
     counts = {"green": 0, "yellow": 0, "red": 0}
     for p in partners:
         # Coerce any unknown band label to a drawn segment so the donut sums to total
@@ -427,6 +433,8 @@ def render_report(data: dict, plugin: str, tokens: str) -> str:
     for p in partners:
         b = p["band"]
         d = p.get("delta", 0)
+        if not isinstance(d, (int, float)):
+            d = 0
         dcls = "flat" if d == 0 else ("up" if d > 0 else "down")
         darr = "→" if d == 0 else ("▲" if d > 0 else "▼")
         flag_n = len(p.get("flags", []))
@@ -434,9 +442,9 @@ def render_report(data: dict, plugin: str, tokens: str) -> str:
         seg_word = {"k12": "K-12", "higher-ed": "Higher ed", "corp-ld": "Corporate L&D", "mixed": "Mixed"}.get(p.get("segment", ""), p.get("segment", ""))
         prows.append(
             f'<tr class="prow" data-name="{esc(p["name"])}" data-psm="{esc(p.get("psm",""))}" '
-            f'data-band="{b}" data-score="{p["score"]}" data-delta="{d}" data-renewal="{esc(p.get("renewal",""))}">'
+            f'data-band="{b}" data-score="{esc(p["score"])}" data-delta="{d}" data-renewal="{esc(p.get("renewal",""))}">'
             f'<td><b>{esc(p["name"])}</b><div style="color:var(--faint);font-size:0.78rem">{esc(seg_word)}</div></td>'
-            f'<td><span class="scorebadge" style="background:{BAND_VAR[b]}">{p["score"]}</span></td>'
+            f'<td><span class="scorebadge" style="background:{BAND_VAR[b]}">{esc(p["score"])}</span></td>'
             f'<td><span class="dchip {dcls}">{darr} {abs(d)}</span></td>'
             f'<td><span class="bandtag"><span class="dot" style="background:{BAND_VAR[b]}"></span>{BAND_WORD[b]}</span></td>'
             f'<td>{flagcell}</td>'
@@ -486,7 +494,12 @@ def render_report(data: dict, plugin: str, tokens: str) -> str:
     refreshed = esc(rep.get("refreshed", ""))
     synthetic = '<div class="synthetic">Sample data · not real partners</div>' if rep.get("synthetic") else ""
 
-    data_json = json.dumps({"partners": [{"name": p["name"], "band": p["band"], "score": p["score"]} for p in partners]})
+    # Escape "<" as < so a partner "name" containing the literal "</script>"
+    # cannot close the <script> element early and inject markup (json.dumps does
+    # not escape "</"). < is a valid JSON/JS escape that decodes back to "<".
+    data_json = json.dumps(
+        {"partners": [{"name": p["name"], "band": p["band"], "score": p["score"]} for p in partners]}
+    ).replace("<", "\\u003c")
 
     page = f"""<!doctype html>
 <html lang="en">

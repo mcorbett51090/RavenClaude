@@ -1,0 +1,23 @@
+{
+  "_provenance": "Hand-derived from the source TB by independent arithmetic (see plan.md G5 mitigation), NOT frozen from an engine run.",
+  "income_statement": {
+    "revenue": 1500000.0,
+    "cogs": 600000.0,
+    "gross_profit": 900000.0,
+    "operating_expenses": 600000.0,
+    "operating_income": 300000.0,
+    "other_income_expense_net": -30000.0,
+    "pretax_income": 270000.0,
+    "income_tax_expense": 67500.0,
+    "net_income": 202500.0
+  },
+  "balance_sheet": {
+    "total_assets": 1852500.0,
+    "total_current_assets": 1202500.0,
+    "total_liabilities": 850000.0,
+    "equity_beginning": 800000.0,
+    "current_period_net_income": 202500.0,
+    "total_equity": 1002500.0,
+    "balance_delta": 0.0
+  }
+}

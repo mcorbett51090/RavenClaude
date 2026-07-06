@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "group_name": "Atlas Group (consolidated) — SYNTHETIC",
+  "presentation_currency": "USD",
+  "fiscal_period": "2026-06",
+  "entities": [
+    {
+      "profile": "atlas-holdings.json",
+      "coa": "coa-mapping-consol.csv",
+      "tb": "tb-atlas-holdings-2026-06.csv",
+      "role": "parent"
+    },
+    {
+      "profile": "atlas-robotics-gmbh.json",
+      "coa": "coa-mapping-consol.csv",
+      "tb": "tb-atlas-robotics-gmbh-2026-06.csv",
+      "role": "subsidiary"
+    }
+  ],
+  "eliminations": "ic-eliminations-2026-06.csv"
+}

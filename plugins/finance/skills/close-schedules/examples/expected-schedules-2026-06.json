@@ -1,0 +1,39 @@
+{
+  "_note": "Hand-derived by independent arithmetic from the synthetic fixtures, NOT frozen from an engine run — so a bug cannot ship inside its own golden. Period 2026-06, straight-line.",
+  "depreciation": {
+    "gross_cost": {
+      "beginning": 150000.0,
+      "additions": 48000.0,
+      "reductions": 30000.0,
+      "ending": 168000.0
+    },
+    "accumulated_depreciation": {
+      "beginning": 66000.0,
+      "additions": 3000.0,
+      "reductions": 18000.0,
+      "ending": 51000.0
+    },
+    "net_book_value": {
+      "beginning": 84000.0,
+      "additions": 48000.0,
+      "reductions": 15000.0,
+      "ending": 117000.0
+    },
+    "per_asset_ending_nbv": { "FA-100": 70000.0, "FA-200": 47000.0, "FA-050": 0.0 },
+    "gain_loss_on_disposal": { "FA-050": 2000.0 }
+  },
+  "prepaid": {
+    "opening": 10000.0,
+    "additions": 24000.0,
+    "amortization": 5000.0,
+    "ending": 29000.0,
+    "per_item_ending": { "PP-INS": 6000.0, "PP-SW": 23000.0, "PP-RENT": 0.0 }
+  },
+  "deferred_revenue": {
+    "opening": 38000.0,
+    "billings": 36000.0,
+    "recognized": 11000.0,
+    "ending": 63000.0,
+    "per_item_ending": { "DR-A": 30000.0, "DR-B": 33000.0, "DR-C": 0.0 }
+  }
+}

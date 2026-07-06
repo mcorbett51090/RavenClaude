@@ -13,6 +13,58 @@
 > real DevRel / higher-ed / PT (or any P1/P2) engagement lands; the scaffolded P0 code is recoverable
 > from the closed `#409` branch in minutes. "scaffolded, parked" below = built-but-held, not in the marketplace.
 
+## Refresh — 2026-06-30 (scheduled-routine re-run)
+
+A scheduled "research & build 10 plugins" routine re-ran this task on 2026-06-30. It
+re-derived the same conclusion the 2026-06-11 pass reached, so rather than re-scaffold
+speculative plugins it **refreshed this gap map and surfaced the build/no-build decision
+to Matt** instead of auto-shipping. What changed since 2026-06-11, verified this run:
+
+- **Catalog grew 100 → 119 plugins.** The build-on-real-demand thesis held: of this doc's
+  10 candidates, **3 shipped** once demand appeared — `developer-relations` (was P0,
+  parked), `physical-therapy-rehab-clinic` (was P0 "physical-therapy-practice"),
+  `optometry-eyecare-practice` (was P2). All three are now in `marketplace.json`.
+- **7 of the original 10 remain genuinely uncovered** (verified absent this run):
+  higher-education-administration, investor-relations, mergers-acquisitions-advisory,
+  content-marketing-seo, telecom-network-operations, utilities-operations,
+  franchise-operations.
+- **New engineering-discipline gaps identified this run** (all verified absent; none
+  overlap an existing agent roster). Listed newest-first by demand × feasibility:
+
+  | Candidate | Gap it fills | Closest existing (why not a dup) | Priority |
+  |---|---|---|---|
+  | **detection-engineering** | SOC / blue-team: detection-as-code, SIEM (Splunk/Sentinel/Elastic), Sigma, threat hunting, MITRE ATT&CK coverage | `security-engineering` = AppSec build-time; `cybersecurity-grc` = governance/audit; `trust-and-safety` = content abuse | **P0** |
+  | **design-systems-engineering** | Design system *as a product*: tokens/Style-Dictionary, component-API governance, Storybook, theming, visual-regression CI | `web-design` = one site's design; `frontend-engineering` = one app's UI; `accessibility-engineering` = WCAG audits | **P0** |
+  | **voice-ai-engineering** | Real-time voice agents: ASR→LLM→TTS streaming, turn-taking/barge-in, telephony (Twilio/SIP), latency budgets, voice eval | `ai-rag-engineering` = retrieval; `claude-app-engineering` = general app; `ml-engineering` = model lifecycle | **P0** |
+  | **media-streaming-engineering** | Video delivery: transcode (FFmpeg), ABR (HLS/DASH), DRM, CDN, low-latency live, players | `film-video-production` = creative production, not the delivery pipeline | P1 |
+  | **technical-seo-engineering** | Technical SEO at engineering scale: indexation, JS/SSR rendering, structured data, CWV-as-ranking, migrations | `web-design` ships a one-shot SEO audit; `marketing-operations` = content/keyword strategy | P1 |
+  | **bioinformatics-engineering** | Genomics pipelines: NGS, Nextflow/Snakemake, variant calling, reproducibility | `clinical-trials` = clinical ops; `data-science-research` = general | P2 |
+  | **robotics-engineering** | ROS 2: nodes/topics/actions, motion planning, perception, sim (Gazebo/Isaac) | `embedded-iot-engineering` = firmware/power/connectivity, not the robotics stack | P2 |
+  | **ar-vr-spatial-engineering** | XR: Unity/Unreal XR, OpenXR, spatial UX, comfort/perf budgets | `game-development` = game design/economy/live-ops (needs explicit boundary) | P2 |
+  | **partnerships-alliances** | Partner/channel motion: ISV/SI alliances, co-sell, deal-reg, cloud-marketplace listings | `sales-revops` = direct pipeline; `sales-engineering` = pre-sales | P2 |
+  | **grants-management** | Grants administration: 2 CFR 200 compliance, pre/post-award, effort reporting, closeout | `nonprofit-fundraising` = donor; `startup-fundraising` = VC; `accounting-bookkeeping` = books | P2 |
+
+**Decision this run (deliberate, not a blocker):** the routine did **not** open a PR shipping
+these. Shipping plugins is an outward-facing, high-blast action, and a standing documented
+decision (this doc + closed PR #409) is *build-on-real-demand, not catalog breadth*. Per the
+repo's own rule, a high-blast call defers to Matt rather than auto-resolving. The top-3 P0
+plugins above are scaffold-ready from the `browser-extension-engineering` minimal-complete
+shape (2 agents + 3 skills + knowledge + best-practices, exact count claims) and can be built
+in one pass the moment Matt greenlights any of them against real demand.
+
+> **Cross-reference (rebased onto main 2026-06-30).** This doc is a point-in-time reconciliation
+> snapshot, not the sole/latest gap map — the routine produces a dated candidate doc each run.
+> Since this refresh, `network-engineering` (enterprise campus/DC/WAN) shipped end-to-end via
+> [`#532`](https://github.com/mcorbett51090/RavenClaude/pull/532) from the newer
+> [`docs/new-plugin-candidates-2026-06-29.md`](new-plugin-candidates-2026-06-29.md), which is the
+> **current active candidate list**; several gaps below (design-systems, robotics, bioinformatics,
+> media-streaming, ar-vr) are also carried in it and in
+> [`docs/proposals/2026-06-24-ten-new-plugin-candidates.md`](proposals/2026-06-24-ten-new-plugin-candidates.md).
+> The genuinely net-new candidates surfaced only here are **detection-engineering** and
+> **voice-ai-engineering**. The `power-platform` hook exec-bit breakage flagged in
+> [`#535`](https://github.com/mcorbett51090/RavenClaude/pull/535)'s comment was fixed on main by
+> `c47bfe9`.
+
 ## How the gaps were found
 
 Inventoried all 100 existing plugins (`.claude-plugin/marketplace.json`) and grouped them by
