@@ -1,0 +1,30 @@
+{
+  "name": "computer-vision-engineering",
+  "version": "0.1.0",
+  "description": "Computer-vision engineering team — 3 agents for a production vision build: cv-systems-architect (task framing across classification / detection / segmentation / OCR / tracking / VLM, data & annotation strategy, build-vs-API and deployment-target choice, eval-metric design — mAP / IoU / precision-recall), cv-model-engineer (dataset curation, augmentation, transfer learning, model selection across YOLO / DETR / SAM / CLIP / ViT, active learning, the eval harness, drift), and vision-deployment-engineer (quantization / distillation, ONNX / TensorRT / CoreML / TFLite export, edge/embedded targets, streaming-video pipelines, latency). Vision-specific vs the MLOps-broad ml-engineering. Ships 4 skills, a knowledge bank (4 Mermaid decision trees + a dated 2026 reference), 5 best-practices, 2 templates, 2 commands. Engineering judgment, not a benchmark verdict; model/hardware/runtime specifics carry a retrieval date + [verify-at-use]; no PII, no image data stored. Requires ravenclaude-core@>=0.7.0.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "computer-vision",
+    "object-detection",
+    "image-segmentation",
+    "ocr",
+    "video-analytics",
+    "edge-inference",
+    "tensorrt",
+    "onnx",
+    "yolo",
+    "vision-transformer",
+    "foundation-models",
+    "model-quantization",
+    "mlops-vision",
+    "active-learning",
+    "camera-pipeline"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}

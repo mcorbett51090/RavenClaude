@@ -69,7 +69,9 @@ The two built first (P1/P2) are the highest-demand candidates that **also** have
 - **Implementation.** SMB vertical-ops template. 3 agents: `association-management-lead` (budget, assessments, reserve funding, vendor management), `governance-and-compliance-coordinator` (board meetings/elections, CC&R/covenant enforcement, notices), `homeowner-relations-manager` (violations, ARC requests, dues collections, communications). Reserve-study adequacy, fair-enforcement, and collections law flag to a professional.
 - **Dependencies.** `ravenclaude-core@>=0.7.0`. Seam note vs `property-management` documented in both CLAUDE.md files.
 
-### P5 — media-streaming-engineering
+### P5 — media-streaming-engineering `[SUPERSEDED by #551]`
+
+> **Update (2026-07-04):** while this branch was in review, PR #551 landed `streaming-media-engineering` on `main` — covering exactly this gap (VOD/live, HLS/DASH/CMAF/WebRTC, DRM, codec/ABR, QoE). This candidate is therefore already delivered; it stays listed here for the research record. `computer-vision-engineering` (a strong alternate below) also landed in #551.
 
 - **Purpose / value.** Video/audio delivery engineering — **encoding/transcoding** (codecs, ABR ladders), **packaging** (HLS/DASH/CMAF), **DRM**, **CDN** delivery, **live/low-latency** pipelines, and **QoE** (quality-of-experience) measurement. Zero coverage — `film-video-production` is production *operations*, not the streaming stack. Real demand from any product that ships video at scale.
 - **Implementation.** Engineering-team template. 3 agents: `streaming-architect-lead` (delivery architecture, codec/ABR strategy, live vs VOD, cost/quality trade-offs), `encoding-and-packaging-engineer` (transcode pipelines, ABR ladders, HLS/DASH/CMAF, DRM integration), `delivery-and-qoe-engineer` (CDN, low-latency, playback QoE, buffering/startup metrics). Decision trees: codec choice, ABR-ladder design, live-latency tier, DRM tier. Reference file dated (codec/DRM/CDN landscape volatile, verify-at-use).

@@ -20,7 +20,7 @@
 
 > 🌐 **[▶ Raven Power ↗](https://ravenpower.net)** — the consulting front door behind RavenClaude. This marketplace is the proof-of-craft; the website is where the engagements live.
 
-Today this marketplace ships **133 plugins**:
+Today this marketplace ships **136 plugins**:
 
 - **[`ravenclaude-core`](plugins/ravenclaude-core/)** — domain-neutral Team Lead + 14 specialists (architect, coders, reviewers, designer, documentarian, deep-researcher, project-manager, partner-success-manager, prompt-engineer, data-engineer, etc.), plus dispatch playbooks (with a Cross-plugin dispatch section), gates, 43 skills, 16 hooks, templates, and the **cross-project contribution-staging loop**.
 - **[`power-platform`](plugins/power-platform/)** — 11 Microsoft Power Platform specialists (Power Fx, flows, Power BI, Dataverse, model-driven, PCF, Copilot Studio, Power Pages, admin, ALM, tester), 21 skills, an advisory house-opinions hook covering 8 checks, and the bundled `pbix-mcp` MCP server.
@@ -174,7 +174,7 @@ You lose auto-update and version pinning. To update, `git pull` and re-copy. Oth
 
 ## Updating and version pinning
 
-The marketplace ships **semver-versioned** plugins (`plugin.json` `version` + matching `marketplace.json` entry, CI-gated for drift). 132 of the 133 plugins declare `requires.ravenclaude-core` — a minimum `ravenclaude-core` version they expect, surfaced in the per-plugin card of the portal’s **Marketplace** section ([`index.html`](index.html)).
+The marketplace ships **semver-versioned** plugins (`plugin.json` `version` + matching `marketplace.json` entry, CI-gated for drift). 135 of the 136 plugins declare `requires.ravenclaude-core` — a minimum `ravenclaude-core` version they expect, surfaced in the per-plugin card of the portal’s **Marketplace** section ([`index.html`](index.html)).
 
 **To update everything to the marketplace's latest:**
 
@@ -393,7 +393,7 @@ The container at `.devcontainer/` auto-installs the Claude Code CLI on rebuild, 
 
 **Shipped since the original roadmap:** `finance`, `regulatory-compliance`, `web-design`, `edtech-partner-success`, `data-platform`, `applied-statistics`, `microsoft-fabric` (the enterprise-Microsoft data-platform lane — OneLake / Lakehouse / Warehouse / Data Factory / Real-Time Intelligence / Direct Lake / capacity FinOps, from [`docs/microsoft-fabric-plugin-analysis.md`](docs/microsoft-fabric-plugin-analysis.md)), `claude-app-engineering` (building on the Claude API + Agent SDK + MCP, from [`docs/claude-app-engineering-plugin-analysis.md`](docs/claude-app-engineering-plugin-analysis.md)), and `azure-cloud` (Azure infrastructure & platform, from [`docs/azure-cloud-plugin-analysis.md`](docs/azure-cloud-plugin-analysis.md)).
 
-`salesforce` (Apex, Flow, Agentforce, platform-architecture specialists) has since **shipped** as well — it is now one of the 133 plugins above, no longer planned-only.
+`salesforce` (Apex, Flow, Agentforce, platform-architecture specialists) has since **shipped** as well — it is now one of the 136 plugins above, no longer planned-only.
 
 Each builds on top of `ravenclaude-core` (which provides the neutral team) and adds domain-specific agents that the consumer can choose to install or skip. `power-platform` is the reference implementation of this pattern.
 
