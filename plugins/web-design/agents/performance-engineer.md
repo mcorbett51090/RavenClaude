@@ -87,6 +87,7 @@ Take a performance goal — "audit our CWV in the field", "LCP is 4.2s on mobile
 - UX changes implied by perf (e.g., paginate vs infinite scroll) → `ux-designer`
 - Backend response-time / API latency → `ravenclaude-core` `backend-coder`
 - Third-party-script removal that's a business / marketing decision → `ravenclaude-core` `documentarian` to draft the rationale
+- Third-party scripts touching auth / payments / PII or adding network egress (payment SDKs, tag managers, chat / analytics that read user data) → `ravenclaude-core` `security-reviewer` (mandatory, zero-exception — the `gold-standard-website-pipeline` G9 gate)
 - A11y impact of perf changes (e.g., motion changes) → `accessibility-auditor`
 
 ## Tools

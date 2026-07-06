@@ -69,6 +69,14 @@
 - Hamburger → drawer with primary nav
 - Sticky CTA on mobile if conversion-driven
 
+## IA validation (card sort — G2 acceptance record)
+
+> G2 requires the nav/taxonomy be validated, not just asserted. Record the method and result here.
+
+- **Method:** open / closed / hybrid card sort · **participants:** [8–12 target]
+- **Result / key regroupings:** [...]
+- **Waiver (if no human panel available):** `synthetic-persona / stakeholder-proxy sort — validated against the G1 audience personas; re-run with real participants if budget appears` (owner + date)
+
 ## Internationalization
 
 - **Locales supported:** [en-US, en-GB, de-DE, ...]
@@ -97,7 +105,9 @@
 - **Cache strategy:** [HTML cache TTL; immutable assets via content hash]
 - **Custom domain config:** [DNS records to be set]
 
-## Content model (if headless CMS)
+## Content model
+
+> Every site has a content model, headless CMS or not — per-template fields + relationships. It is a **mandatory G2 artifact** (the join input G4 populates and G5 renders), not a headless-only concern; for a static/file-based build the "entities" are the content collections (Markdown/MDX frontmatter schema).
 
 | Entity | Fields | Relationships |
 |---|---|---|
@@ -105,6 +115,15 @@
 | Article | title, slug, excerpt, body, author, category, tags, published_at | belongsTo Author, hasMany Tags |
 | Author | name, bio, photo, social_links | hasMany Articles |
 | ... | ... | ... |
+
+## Redirect plan (mandatory on any re-platform / redesign)
+
+> A retired URL without a 301 destroys its link equity. Audit **301 chains** (old → new, no chains-of-chains) and map every retiring URL **before** any page is removed. On a greenfield build with no prior URLs, record `N/A — greenfield, no prior URLs`.
+
+| Old URL | → New URL | Status | Notes (chain check, param handling) |
+|---|---|---|---|
+| /old-path | /new-path | 301 | |
+| ... | ... | ... | |
 
 ## Technical SEO foundations
 

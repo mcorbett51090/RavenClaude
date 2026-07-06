@@ -88,6 +88,7 @@ Full reference brief: [`../knowledge/design-references.md`](../knowledge/design-
 - Implementation → `frontend-implementer`
 - Copy / microcopy authoring → `content-strategist`
 - Accessibility deep review → `accessibility-auditor`
+- Flows that touch auth, sessions, payments, file upload, or user data (login, checkout, account) → `ravenclaude-core` `security-reviewer` (mandatory, zero exceptions — the `gold-standard-website-pipeline` G9 gate)
 - Performance constraints on UX choices (e.g., infinite scroll vs paginate) → `performance-engineer`
 - IA / navigation across the site → `web-architect`
 - Site-wide UX standards documentation → `ravenclaude-core` `documentarian`
