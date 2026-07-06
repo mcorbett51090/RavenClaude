@@ -25,7 +25,12 @@ on:
       - ".prettierignore"
       - ".prettierrc.json"
       - "ruff.toml"
-      - ".github/workflows/validate-marketplace.yml"
+      # actionlint (a gate in THIS workflow, direct step + audit-gates Gate 10)
+      # reads EVERY .github/workflows/*.yml — so a PR editing any OTHER workflow
+      # (e.g. quarantine-intake.yml, which ingests untrusted issue title/body)
+      # must trigger this workflow, or actionlint never lints the change and a
+      # script-injection could merge green (repo-review 2026-07-06, P2).
+      - ".github/workflows/**"
   push:
     branches:
       - main
@@ -44,7 +49,8 @@ on:
       - ".prettierignore"
       - ".prettierrc.json"
       - "ruff.toml"
-      - ".github/workflows/validate-marketplace.yml"
+      # actionlint reads every workflow file — see the pull_request note above.
+      - ".github/workflows/**"
   workflow_dispatch:
 
 # Least-privilege GITHUB_TOKEN: this workflow only reads the repo to validate it.

@@ -36,8 +36,18 @@ set -uo pipefail
 proj="${CLAUDE_PROJECT_DIR:-$(pwd)}"
 
 # Resolve the message: stdin payload (Notification hook JSON) → $1 → raw stdin.
+# Only drain stdin when NO message argument was supplied — a supplied "$1" must
+# short-circuit the read so `notify.sh "summary"` from a non-interactive caller
+# can never block on an inherited, never-closed stdin fd (the never-block
+# invariant above — 2026-07 review). Bound the read too, as belt-and-suspenders.
 payload=""
-if [ ! -t 0 ]; then payload="$(cat 2>/dev/null || true)"; fi
+if [ "$#" -eq 0 ] && [ ! -t 0 ]; then
+  if command -v timeout >/dev/null 2>&1; then
+    payload="$(timeout 2 cat 2>/dev/null || true)"
+  else
+    payload="$(cat 2>/dev/null || true)"
+  fi
+fi
 msg=""
 if [ -n "$payload" ] && command -v jq >/dev/null 2>&1; then
   msg="$(printf '%s' "$payload" | jq -r '.message // .summary // empty' 2>/dev/null || true)"

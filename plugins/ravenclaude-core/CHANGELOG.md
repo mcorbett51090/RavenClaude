@@ -2,6 +2,16 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.184.5 — 2026-07-06
+
+### Fixed
+
+- **Security (P1) — `guard-destructive.sh` command-substitution boundary gap.** `_is_dangerous_find` / `_is_dangerous_truncate` / `_is_dangerous_git_branch_delete` used a boundary class that omitted the command-substitution openers `(`/backtick that `_is_dangerous_rm` deliberately includes, and a trailing `-delete)` (closed by the subst paren) dodged the action check — so `$(find / -delete)`, `$(truncate -s 0 /etc/passwd)`, and `$(git branch -D main)` slipped the guard while the same `$(rm -rf ~)` wrap was caught. All three now use `_CMD_BOUNDARY`; a new `_CMD_END` boundary recognizes the trailing subst closer. Gate 5 fixtures added.
+- **Security (P1) — SessionStart capability-banner prompt-injection break-out.** `capability-orientation.py` inlined repo-controlled `design-project.json` `name`/`mirror_dir` and `run-config.json` `rationale` with only `.strip()`, so a hostile cloned repo could embed a newline + a literal `</ravenclaude-capabilities>` close tag to break out of the untrusted-data frame. Added `_sanitize_banner_field()` (strips CR/LF + U+2028/U+2029, removes any frame tag, caps length) applied to all three fields. Gate 19 frame-break fixtures added.
+- **Security (P2) — `guard-destructive.sh` silent fail-open when `jq` is absent.** The guard read the command only via `jq`; a host without `jq` left `cmd` empty and `exit 0` (allow-all) with no warning. Added a `python3` fallback extractor and a loud stderr warning when neither parser is available.
+- **Security (P2) — `guard-web-access.sh` blacklist fail-open on flow-style YAML.** `parse_section` parsed only block-style lists, so a `deny: [evil.com]` (the syntax the header comment + template advertise) yielded an empty deny list. Now parses both flow- and block-style. Gate added.
+- **Robustness (P2) — `stream-ops.py` `append_event` `terms`** are now length-capped and rejected if they carry whitespace (single-token contract), matching the `summary` no-egress hardening.
+
 ## 0.184.4 — 2026-07-02
 
 ### Added

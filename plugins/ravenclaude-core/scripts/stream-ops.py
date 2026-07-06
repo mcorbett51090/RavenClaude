@@ -58,6 +58,11 @@ EVENT_SCHEMA_VERSION = 1
 _SLUG_RE = re.compile(r"[^a-z0-9-]+")
 _MAX_SLUG_LEN = 64
 _MAX_SUMMARY_LEN = 280
+# A derived `terms` element is a single stemmed token; cap its length and reject
+# any whitespace-bearing element so a caller can't smuggle a multi-word phrase
+# (which would defeat the no-egress invariant the way an uncapped summary would).
+_MAX_TERM_LEN = 64
+_MAX_TERMS = 64
 
 # Keys a caller is FORBIDDEN to pass to append_event — the no-egress tripwire.
 # A raw prompt/text/content/command field must never reach the history line.
@@ -320,7 +325,17 @@ def append_event(
     if label is not None:
         candidate["label"] = str(label)
     if terms is not None:
-        candidate["terms"] = [str(t) for t in terms]
+        # Enforce the single-token contract at the API boundary (like `summary` is
+        # capped): drop any element that is empty, over the per-term cap, or carries
+        # whitespace (a multi-word phrase) — so a current or future caller can't
+        # smuggle a raw phrase into history.jsonl and defeat the no-egress invariant.
+        cleaned_terms = []
+        for t in terms:
+            tok = str(t).strip()
+            if not tok or len(tok) > _MAX_TERM_LEN or any(ch.isspace() for ch in tok):
+                continue
+            cleaned_terms.append(tok)
+        candidate["terms"] = cleaned_terms[:_MAX_TERMS]
     if word_count is not None:
         candidate["word_count"] = int(word_count)
     if summary is not None:
