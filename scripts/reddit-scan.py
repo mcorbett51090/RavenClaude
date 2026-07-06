@@ -130,28 +130,41 @@ def fetch_listing(
         req = urllib.request.Request(
             url, headers={"Authorization": f"Bearer {token}", "User-Agent": user_agent}
         )
-        try:
-            with urllib.request.urlopen(req, timeout=30) as resp:
-                data = json.loads(resp.read().decode())
-                _respect_rate_limit(resp.headers)
-        except urllib.error.HTTPError as e:
-            if e.code == 429:
-                time.sleep(5)
-                continue
-            print(
-                f"reddit-scan: WARN: r/{subreddit} {listing} HTTP {e.code}; skipping",
-                file=sys.stderr,
-            )
+        data = None
+        for attempt in range(5):  # bounded retries with exponential backoff, capped like content-scan.search()
+            try:
+                with urllib.request.urlopen(req, timeout=30) as resp:
+                    data = json.loads(resp.read().decode())
+                    _respect_rate_limit(resp.headers)
+                break
+            except urllib.error.HTTPError as e:
+                if e.code == 429 and attempt < 4:
+                    time.sleep(2**attempt)
+                    continue
+                if e.code == 429:
+                    print(
+                        f"reddit-scan: WARN: r/{subreddit} {listing} still HTTP 429 after 5 attempts; skipping",
+                        file=sys.stderr,
+                    )
+                else:
+                    print(
+                        f"reddit-scan: WARN: r/{subreddit} {listing} HTTP {e.code}; skipping",
+                        file=sys.stderr,
+                    )
+                data = None
+                break
+            except urllib.error.URLError as e:
+                print(f"reddit-scan: WARN: r/{subreddit} unreachable ({e.reason})", file=sys.stderr)
+                data = None
+                break
+        if data is None:
             break
-        except urllib.error.URLError as e:
-            print(f"reddit-scan: WARN: r/{subreddit} unreachable ({e.reason})", file=sys.stderr)
-            break
-        children = data.get("data", {}).get("children", [])
+        children = (data.get("data") or {}).get("children", [])
         if not children:
             break
         for c in children:
             out.append(c.get("data", {}))
-        after = data.get("data", {}).get("after")
+        after = (data.get("data") or {}).get("after")
         if not after:
             break
         time.sleep(1)  # courteous pacing well under 100 req/min

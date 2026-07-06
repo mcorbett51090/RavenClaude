@@ -52,6 +52,17 @@ if ! command -v jq >/dev/null 2>&1; then
   exit 0
 fi
 
+# Normalize a RELATIVE path to absolute against the project root BEFORE the
+# in-project prefix test (added after the 2026-07 review). project_root is always
+# absolute, so a relative $file fails the "$project_root/*" prefix match and hits
+# the else-branch `exit 0` (silent allow) below — bypassing BOTH the layout and
+# task-scope gates. A relative path is exactly what a Copilot-hosted tool call
+# supplies (copilot-hook-adapter.sh's file-pretool mode forwards .file_path
+# verbatim with no absoluteness check), so this is a normal, not adversarial, input.
+if [[ "$file" != /* ]]; then
+  file="$project_root/$file"
+fi
+
 # Convert to a path relative to project root.
 # Match on the "$project_root/" prefix (with the trailing slash) so a SIBLING
 # directory that merely shares the project-root name as a prefix
@@ -128,7 +139,11 @@ mapfile -t allowed < <(jq -r '.allowed_globs[]?' "$manifest" 2>/dev/null)
 for pat in "${forbidden[@]:-}"; do
   [[ -z "$pat" ]] && continue
   if [[ "$rel_path" == $pat ]]; then
-    suggestion=$(jq -r --arg p "$pat" '.suggestions[$p] // empty' "$manifest")
+    # 2>/dev/null || suggestion="" : a malformed `suggestions` (e.g. an array
+    # instead of an object) makes jq exit non-zero ("Cannot index array with
+    # string"); under `set -e` that would ABORT before emit_deny runs, turning
+    # an intended DENY into a silent ALLOW. Degrade to no suggestion instead.
+    suggestion=$(jq -r --arg p "$pat" '.suggestions[$p] // empty' "$manifest" 2>/dev/null || true)
     emit_deny "Layout policy: '$rel_path' matches forbidden pattern '$pat'.${suggestion:+ ${suggestion}}" "forbidden-pattern"
   fi
 done
@@ -146,5 +161,5 @@ for pat in "${allowed[@]}"; do
 done
 
 # No match — deny with a generic suggestion.
-generic=$(jq -r '.suggestions["New top-level directory"] // empty' "$manifest")
+generic=$(jq -r '.suggestions["New top-level directory"] // empty' "$manifest" 2>/dev/null || true)
 emit_deny "Layout policy: '$rel_path' does not match any allowed_globs in .repo-layout.json. ${generic:-Add the glob to .repo-layout.json first if this location is intentional.}" "off-allow-list"

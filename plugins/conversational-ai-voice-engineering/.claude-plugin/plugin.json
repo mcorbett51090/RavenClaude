@@ -1,0 +1,30 @@
+{
+  "name": "conversational-ai-voice-engineering",
+  "version": "0.1.0",
+  "description": "Conversational voice-AI engineering team — 3 agents for production real-time voice agents: voice-ai-architect (cascade STT->LLM->TTS vs speech-to-speech, the latency budget, turn-taking / barge-in / endpointing, channel choice, build-vs-platform across Twilio / Vapi / Retell / LiveKit / Pipecat, guardrails), speech-pipeline-engineer (ASR & TTS provider choice, streaming transcription, VAD/endpointing, diarization, prosody/SSML, codecs, noise, WER), and dialog-and-integration-engineer (state, LLM orchestration and mid-call tool calling, SIP/PSTN telephony, IVR/DTMF, call routing, flow testing and eval). Ships 4 skills, a knowledge bank (4 Mermaid decision trees + a dated 2026 reference), 5 best-practices, 2 templates, 2 commands. Engineering judgment, not legal/compliance advice; the ASR/TTS/platform/telephony landscape is volatile — versions and latency numbers carry a retrieval date + [verify-at-use]; no PII, and call audio/transcripts are sensitive. Requires ravenclaude-core@>=0.7.0.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "voice-ai",
+    "conversational-ai",
+    "speech-to-text",
+    "text-to-speech",
+    "asr",
+    "tts",
+    "telephony",
+    "sip",
+    "ivr",
+    "barge-in",
+    "endpointing",
+    "latency-budget",
+    "speech-to-speech",
+    "webrtc",
+    "call-automation"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}
