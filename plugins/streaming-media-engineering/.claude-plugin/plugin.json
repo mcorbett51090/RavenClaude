@@ -1,33 +1,28 @@
 {
   "name": "streaming-media-engineering",
   "version": "0.1.0",
-  "description": "Streaming-media (audio/video) delivery engineering team — 2 agents (streaming-media-architect, media-pipeline-engineer) for the layer that MOVES media to players at scale: live-vs-VOD and the latency tier (broadcast/low/ultra-low), protocol & packaging selection (HLS/LL-HLS/DASH/CMAF, WebRTC/WHIP/WHEP), the codec & bitrate ladder (H.264/HEVC/AV1, per-title/ABR), DRM (Widevine/FairPlay/PlayReady + multi-DRM/CMAF-CBCS), CDN/multi-CDN & origin, and QoE (startup time, rebuffer ratio, player analytics). 3 skills (design-streaming-delivery, build-transcode-ladder, diagnose-playback-qoe), a knowledge bank (a Mermaid latency-tier->protocol tree + a DRM/packaging matrix + a dated 2026 codec/protocol/CDN reference), 7 best-practices. Distinct from data-streaming-engineering (Kafka/Flink data streams), film-video-production (content creation), and frontend-engineering (player UI). Seams: finops-cloud-cost (egress/CDN spend), computer-vision-engineering (frame analysis). Requires ravenclaude-core@>=0.7.0.",
+  "description": "Streaming-media (video/audio) engineering team — 3 agents for a streaming build: media-streaming-architect (VOD vs live, protocol choice across HLS / MPEG-DASH / CMAF / WebRTC / LL-HLS, packaging + origin/edge, single vs multi-CDN, DRM across Widevine / FairPlay / PlayReady, ABR-ladder philosophy, cost), transcoding-pipeline-engineer (codec choice across H.264 / HEVC / AV1 / VP9, FFmpeg pipelines, per-title & ABR-ladder encoding, GPU vs CPU, CMAF packaging, captions, audio & loudness), and playback-and-delivery-engineer (player integration across hls.js / dash.js / Shaka / ExoPlayer / AVPlayer, ABR tuning, QoE metrics, low-latency live, client DRM, CDN cache tuning). Ships 4 skills, a knowledge bank (4 Mermaid decision trees + a dated 2026 reference), 5 best-practices, 2 templates, 2 commands. Engineering judgment, not legal/DRM-licensing advice; codec/protocol/CDN/DRM/player specifics carry a retrieval date + [verify-at-use]; no PII. Requires ravenclaude-core@>=0.7.0.",
   "author": {
     "name": "Matt Corbett"
   },
   "homepage": "https://github.com/mcorbett51090/RavenClaude",
   "license": "MIT",
   "keywords": [
-    "streaming",
-    "video-delivery",
+    "streaming-media",
+    "video-streaming",
     "hls",
-    "ll-hls",
     "mpeg-dash",
     "cmaf",
     "webrtc",
-    "abr",
+    "ll-hls",
     "transcoding",
+    "ffmpeg",
     "av1",
     "hevc",
-    "h264",
+    "abr-ladder",
     "drm",
-    "widevine",
-    "fairplay",
-    "cdn",
-    "low-latency",
-    "qoe",
-    "live-streaming",
-    "vod"
+    "cdn-delivery",
+    "playback-qoe"
   ],
   "requires": {
     "plugins": ["ravenclaude-core@>=0.7.0"]

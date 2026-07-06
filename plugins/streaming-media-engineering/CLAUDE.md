@@ -1,200 +1,139 @@
-# Streaming-Media-Engineering Plugin — Team Constitution
+# Streaming-Media Engineering Plugin — Team Constitution
 
-> Team constitution for the `streaming-media-engineering` Claude Code plugin.
-> Bundles **2** specialist agents that own the **delivery of audio/video media to
-> players at scale**: the latency tier, protocol & packaging, codec ladder, DRM, and
-> CDN/QoE. This is the layer that *moves* media — not the data-streaming plugin
-> (Kafka/Flink data), not film-video-production (content), not frontend (player UI).
+> Team constitution for the `streaming-media-engineering` Claude Code plugin. Three specialist agents — **media-streaming-architect**, **transcoding-pipeline-engineer**, **playback-and-delivery-engineer** — plus a decision-tree knowledge bank, skills, templates, best-practices, and 2 commands, aimed at the three engines of a streaming build: **system architecture** (VOD vs live, protocol + packaging + origin/edge, CDN & DRM strategy, ABR-ladder philosophy, cost & scale), **transcoding** (codec choice, FFmpeg pipelines, per-title & ABR-ladder encoding, packaging, captions & audio, farm scaling), and **playback & delivery** (player integration, ABR tuning, QoE metrics, low-latency live, client DRM, CDN/edge cache tuning, analytics).
 >
-> **Orientation:** for the domain-neutral team constitution inherited by every
-> plugin (architect, reviewers, project-manager, the Capability Grounding &
-> Structured Output Protocols), see
-> [`../ravenclaude-core/CLAUDE.md`](../ravenclaude-core/CLAUDE.md). For the player UI
-> around the video, see [`../frontend-engineering/CLAUDE.md`](../frontend-engineering/CLAUDE.md).
-> For the meta-repo developer guide, see [`../../CLAUDE.md`](../../CLAUDE.md).
+> Designed for a streaming-media lead, media engineer, or platform architect building VOD or live video/audio delivery who wants real judgment on the protocol bet, the encoding ladder, DRM/packaging, and playback quality-of-experience — not an intro to video streaming.
+>
+> **Orientation:** this file is **domain-specific** to streaming-media engineering. For the domain-neutral team constitution every plugin inherits, see [`../ravenclaude-core/CLAUDE.md`](../ravenclaude-core/CLAUDE.md). For the meta-repo developer guide, see [`../../CLAUDE.md`](../../CLAUDE.md).
 
 ---
 
-## 1. What this plugin is (and is not)
+## 0. Scope & verify-at-use (read first)
 
-This plugin owns **media delivery**: how audio/video gets from an encoder to a
-player, at a latency tier, to a set of devices, at a cost. It is **not**:
+This plugin ships **streaming-media engineering judgment — not legal, DRM-licensing, or content-rights advice.** The agents:
 
-- **Data streaming** — Kafka / Flink / Kinesis *data* pipelines →
-  `data-streaming-engineering`. That's event streams; this is media streams. The
-  name collision is the #1 confusion — they share nothing.
-- **Content production** — editing, color, mastering, the creative →
-  `film-video-production`. This plugin ships what production made.
-- **The player UI** — the React/mobile app shell around the `<video>` element →
-  `frontend-engineering`. This plugin owns the *delivery + ABR/DRM wiring*, not the UI.
-- **A cost authority** — egress modeling and CDN spend verdicts → `finops-cloud-cost`
-  (this plugin names the cost seam and the levers).
+- give architecture, encoding, and delivery guidance; they do **not** negotiate DRM licenses, clear content rights, or certify compliance — that goes to the appropriate legal/licensing authority;
+- treat the **codec / protocol / CDN / DRM / player landscape as volatile**: every codec/version claim, protocol/packaging support statement, DRM system detail, CDN feature, player-SDK version, and QoE target carries a **retrieval date + `[verify-at-use]`** and must be confirmed against the spec/vendor/SDK docs before it drives a build commitment;
+- store **no PII**: they work in architectures, encoding ladders, and delivery metrics, not viewer identity or watch-history data.
 
-The line: this plugin owns **"how is this media packaged, protected, and delivered,
-at what latency and QoE, to which devices?"**
+The dated specifics live (flagged) in [`knowledge/streaming-reference-2026.md`](knowledge/streaming-reference-2026.md).
 
 ---
 
-## 2. Team roster
+## 1. Team roster
 
 | Agent | Owns | When to spawn |
 |---|---|---|
-| [`streaming-media-architect`](agents/streaming-media-architect.md) | The delivery design — live-vs-VOD, latency tier, protocol & packaging (HLS/LL-HLS/DASH/CMAF/WebRTC), codec ladder, DRM, CDN topology, and the QoE/cost plan. | "Which protocol / how low latency?"; "do we need DRM?"; "how do we deliver globally without rebuffering?"; "add AV1?" |
-| [`media-pipeline-engineer`](agents/media-pipeline-engineer.md) | The build — the ffmpeg transcode/ABR ladder, CMAF packaging + HLS/DASH manifests, DRM integration, player/ABR wiring, CDN/origin config, and QoE diagnosis. | "Build the ladder"; "package HLS/DASH"; "wire up multi-DRM"; "users are rebuffering"; "set up the CDN" |
+| [`media-streaming-architect`](agents/media-streaming-architect.md) | VOD vs live, protocol choice (HLS/DASH/CMAF/WebRTC/LL-HLS), packaging + origin/edge, single vs multi-CDN, DRM strategy, ABR-ladder philosophy, cost & scale | "VOD or live, and which protocol?"; "one CDN or multi-CDN?"; "which DRM systems do we need?" |
+| [`transcoding-pipeline-engineer`](agents/transcoding-pipeline-engineer.md) | Codec choice (H.264/HEVC/AV1/VP9), FFmpeg pipelines, per-title & ABR-ladder encoding, GPU vs CPU, CMAF/fMP4 packaging, captions/subtitles, audio & loudness, transcode-farm scaling | "which codec + ladder?"; "our FFmpeg pipeline is too slow/expensive"; "how do we do per-title encoding?" |
+| [`playback-and-delivery-engineer`](agents/playback-and-delivery-engineer.md) | Player integration (hls.js/dash.js/Shaka/ExoPlayer/AVPlayer), ABR tuning, QoE metrics, low-latency live, client DRM, CDN/edge cache tuning, analytics | "startup is slow / it rebuffers"; "tune the ABR algorithm"; "cut end-to-end live latency" |
 
-**Sub-agents do not spawn other sub-agents** — only the Team Lead delegates.
-
----
-
-## 3. Routing rules (Team Lead)
-
-- **"Which protocol / latency tier / DRM / CDN — design it"** → `streaming-media-architect`.
-- **"Build/fix the ladder, packaging, DRM, player, CDN"** → `media-pipeline-engineer`.
-- **"Design delivery from scratch"** → the `design-streaming-delivery` skill (architect) → the [`latency-tier-to-protocol tree`](knowledge/latency-tier-to-protocol-decision-tree.md).
-- **"Build the ladder + packaging"** → the `build-transcode-ladder` skill (engineer).
-- **"It's rebuffering / slow to start"** → the `diagnose-playback-qoe` skill (engineer).
-- **Kafka/Flink *data* streams** → `data-streaming-engineering` (not this).
-- **The player *UI*** → `frontend-engineering`.
-- **Content editing/production** → `film-video-production`.
-- **Egress/CDN cost at scale** → `finops-cloud-cost`.
+**Sub-agents do not spawn other sub-agents** — only the Team Lead delegates. Per the marketplace house rule, this plugin ships specialist *doing*-agents and does not fork core's *review* roles. Team growth ships as skills + knowledge + templates, not a fourth parallel agent.
 
 ---
 
-## 4. Cross-cutting house opinions (every agent enforces)
+## 2. Routing rules (Team Lead)
 
-1. **Interrogate the latency requirement before picking a protocol.** Most
-   "real-time" is really "a few seconds is fine". Broadcast HLS/DASH (~10–30s) scales
-   cheapest; LL-HLS (~2–6s) and WebRTC (<1s) each cost scale, cost, and complexity.
-   Don't pay the real-time tax you don't need.
-2. **Package once with CMAF.** One set of fragmented-MP4 segments serves HLS and
-   DASH — no parallel TS-HLS + MP4-DASH trees unless a legacy device forces it.
-3. **Use CBCS multi-DRM — encrypt once.** One CBCS packaging serves Widevine +
-   FairPlay + PlayReady. Match DRM level to content value; studio-grade DRM adds a
-   license server, key rotation, and per-device testing — take it on only when
-   licensing requires it.
-4. **Align keyframes across the ladder.** Every rung needs aligned IDR/keyframes at
-   the segment boundary with fixed closed GOPs — this is what makes ABR switch cleanly.
-   Misaligned GOPs are a top rebuffering cause that looks like a player bug.
-5. **Measure QoE at the player.** Startup time, rebuffer ratio, average bitrate, and
-   error rate come from player analytics — not encoder VMAF. A beautiful bitrate no
-   one can play smoothly is worthless.
-6. **Treat egress as the bill.** CDN egress usually dominates cost; codec efficiency,
-   ladder design, and cache-hit ratio are cost levers. Loop in `finops-cloud-cost` on
-   any at-scale design.
-7. **Date device and codec-support claims.** Codec/DRM/LL-HLS support varies by
-   device/OS/browser and changes over time — date every compatibility claim or mark
-   `[unverified]` and verify. Durable mechanics don't need dates; device specifics do.
+- **"VOD vs live / protocol / packaging / origin-edge / CDN strategy / DRM strategy / ABR-ladder philosophy / cost & scale"** → `media-streaming-architect`.
+- **"Codec / FFmpeg / encoding ladder / per-title / GPU-vs-CPU encode / fMP4-CMAF packaging / captions / audio loudness / transcode farm"** → `transcoding-pipeline-engineer`.
+- **"Player / ABR tuning / rebuffer / startup time / QoE / low-latency live client / client DRM / edge cache tuning / playback analytics"** → `playback-and-delivery-engineer`.
+- **Creative production / editorial / camera / post-production workflow (not delivery engineering)** → `film-video-production`.
+- **Kafka / event streams / data pipelines (not media delivery)** → `data-streaming-engineering`.
+- **Deep CPU/GPU/network profiling methodology beyond the encode/playback loop** → `performance-engineering`.
+- **Cloud infra (media services, storage, egress) for the pipeline** → `aws-cloud`.
+- **Live-service SLOs, on-call, delivery observability at scale** → `observability-sre`.
 
 ---
 
-## 5. Anti-patterns every agent flags
+## 3. Knowledge & verify-at-use
 
-- WebRTC for a one-way broadcast (paying the real-time tax needlessly).
-- Parallel TS-HLS + MP4-DASH rendition trees instead of CMAF package-once.
-- Encrypting per-DRM (three times) instead of one CBCS packaging.
-- Unaligned keyframes across ladder rungs → ABR stalls.
-- Reporting encoder quality while ignoring player rebuffer/startup QoE.
-- An at-scale design with no egress/CDN cost model.
-- Testing multi-DRM only in Chrome (Widevine) and calling it done.
-- A device-compatibility/DRM-support claim asserted with no date/source.
-- Confusing this with `data-streaming-engineering` (Kafka/data — a different plugin).
+Agents **traverse the relevant decision tree before choosing** ([`knowledge/streaming-decision-trees.md`](knowledge/streaming-decision-trees.md)) — the VOD-vs-live, protocol-choice, codec-choice, and low-latency-approach trees — rather than keyword-matching. The volatile codec/protocol/CDN/DRM/player/QoE specifics carry a retrieval date + `[verify-at-use]` and live in [`knowledge/streaming-reference-2026.md`](knowledge/streaming-reference-2026.md); re-verify against the spec/vendor/SDK docs before quoting or committing. This is the proactive complement to the inherited Capability Grounding Protocol.
 
 ---
 
-## 6. Capability Grounding Protocol (Anti-Hallucination)
+## 4. House opinions (the team's standing biases)
 
-This plugin inherits the Capability Grounding Protocol from `ravenclaude-core`.
-Before any agent says "I can't do X" or asserts a codec/DRM/device fact:
-
-1. **Check available skills first** — `design-streaming-delivery`,
-   `build-transcode-ladder`, `diagnose-playback-qoe`, plus the core skills
-   (`structured-output`, `grounding-protocol`).
-2. **Ground volatile facts.** Codec/DRM/device support and CDN features evolve — cite
-   the source + date, or mark `[unverified — training knowledge]` and offer to
-   verify. Packaging strategy, keyframe alignment, and QoE definitions are durable;
-   device support is not.
-3. **Try alternatives before declaring blocked** — if a codec/DRM isn't supported on
-   a target, name the fallback (H.264 baseline, a different DRM, a lower tier) before
-   reporting blocked.
-4. **Escalate uncertainty** with the mandatory phrasing from the upstream protocol.
-
-See [`../ravenclaude-core/CLAUDE.md`](../ravenclaude-core/CLAUDE.md).
+1. **Pick the protocol from latency and reach, not fashion.** The required end-to-end latency and the device/browser reach pick the protocol; CMAF is the packaging hedge.
+2. **Design the ABR ladder per-title, not from a fixed table.** Content complexity decides the bitrates; a fixed ladder wastes bits on easy content and starves hard content.
+3. **Measure QoE by rebuffer and startup, not just bitrate.** A high average bitrate with rebuffering is a worse experience than a slightly lower, stable one.
+4. **DRM and packaging are architecture — decide them early.** Multi-DRM (Widevine/FairPlay/PlayReady) and the packaging format constrain the whole pipeline; retrofitting them is a rebuild.
+5. **Test across devices and network conditions.** The reference player on fast wifi is a comforting lie; the long tail of devices and throttled networks is the truth.
+6. **Cite the source + retrieval date for every codec/protocol/CDN/DRM/player/QoE specific, and flag it `[verify-at-use]`** — this landscape moves fast; quote it dated or mark `[unverified — training knowledge]`.
 
 ---
 
-## 7. Output Contract (every agent)
-
-Every report ends with this block:
+## 5. Output contract
 
 ```
-Status: ✅  |  ⚠️ partial  |  ❌ blocked
-Files changed: <relative paths or "none">
-Latency tier & protocol: <the tier + protocol/packaging chosen>
-QoE & cost seam: <the QoE signals to watch + who owns the egress/CDN cost>
-Validated on: <players/platforms + each DRM target actually tested, or "design-only">
-Device/codec facts cited: <each support claim, with a date for volatile ones>
-Handoff: <player-UI / cost / data-streaming / production work handed to another team>
-Open questions: <anything the Team Lead must decide before this ships>
-Grounding checks performed: <skills/facts/alternatives reviewed before any limitation>
+Question: <what was asked, in the team's terms>
+Read: <architecture / encoding / delivery read + the metric or budget and its baseline>
+Decision: <the protocol/codec/ladder/DRM or delivery call + WHY>
+Verify-at-use: <every codec/protocol/CDN/DRM/player/QoE specific relied on, dated>
+Recommendation: <owner + expected movement (rebuffer/startup/bitrate/cost) + by when>
+Seams handed off: <media-streaming-architect / transcoding-pipeline-engineer / playback-and-delivery-engineer / film-video-production / data-streaming-engineering / performance-engineering / aws-cloud / observability-sre>
 ```
 
-**Mandatory lines:** `Latency tier & protocol:` and `QoE & cost seam:`. For the
-engineer, `Validated on:` must name the platforms/DRM targets actually tested.
-
-**Plus the cross-plugin Structured Output Protocol JSON block** — see
-[`../ravenclaude-core/skills/structured-output/SKILL.md`](../ravenclaude-core/skills/structured-output/SKILL.md);
-extend with `latency_tier`, `protocol_packaging`, `drm`, and `cdn_topology` fields.
+**Plus the cross-plugin Structured Output Protocol JSON block** ([`../ravenclaude-core/skills/structured-output/SKILL.md`](../ravenclaude-core/skills/structured-output/SKILL.md)).
 
 ---
 
-## 8. Skills in this plugin
+## 6. Skills in this plugin
 
 | Skill | Primary consumer | What's inside |
 |---|---|---|
-| [`skills/design-streaming-delivery/SKILL.md`](skills/design-streaming-delivery/SKILL.md) | `streaming-media-architect` | Interrogate latency → tier → protocol/packaging → DRM → codec ladder → CDN/QoE/cost. The first step of any delivery build. |
-| [`skills/build-transcode-ladder/SKILL.md`](skills/build-transcode-ladder/SKILL.md) | `media-pipeline-engineer` | The ffmpeg ladder (rungs, codec, aligned GOPs), CMAF→HLS+DASH packaging, DRM, and manifest validation + per-platform playback tests. |
-| [`skills/diagnose-playback-qoe/SKILL.md`](skills/diagnose-playback-qoe/SKILL.md) | `media-pipeline-engineer` | Root-cause rebuffering/startup/ABR-thrash/errors from player analytics, along the ladder→segment→cache→ABR chain. |
+| [`skills/streaming-architecture-and-protocol-selection/SKILL.md`](skills/streaming-architecture-and-protocol-selection/SKILL.md) | `media-streaming-architect` | VOD vs live, protocol + packaging choice, origin/edge, CDN & DRM strategy, cost & scale |
+| [`skills/transcoding-and-abr-ladder/SKILL.md`](skills/transcoding-and-abr-ladder/SKILL.md) | `transcoding-pipeline-engineer` | Codec choice, FFmpeg pipeline, per-title & ABR-ladder encoding, CMAF packaging, captions & audio |
+| [`skills/low-latency-live-streaming/SKILL.md`](skills/low-latency-live-streaming/SKILL.md) | all three | LL-HLS / LL-DASH / WebRTC, the latency budget end-to-end, chunked transfer, live origin design |
+| [`skills/playback-qoe-and-delivery/SKILL.md`](skills/playback-qoe-and-delivery/SKILL.md) | `playback-and-delivery-engineer` | Player integration, ABR tuning, QoE metrics (rebuffer/startup/VSF), CDN/edge cache tuning, analytics |
 
 ---
 
-## 9. Knowledge bank
+## 7. Knowledge bank
 
 | File | Read when |
 |---|---|
-| [`knowledge/latency-tier-to-protocol-decision-tree.md`](knowledge/latency-tier-to-protocol-decision-tree.md) | Choosing a delivery protocol. A **Mermaid live/VOD → latency-tier → protocol tree** (HLS/LL-HLS/DASH/CMAF/WebRTC) and the three failure modes it prevents. Durable mechanics. |
-| [`knowledge/streaming-codecs-protocols-and-cdn-2026.md`](knowledge/streaming-codecs-protocols-and-cdn-2026.md) | Deciding packaging, DRM, codec, or CDN. The CMAF package-once strategy, a **DRM matrix** (Widevine/FairPlay/PlayReady + CBCS), the codec ladder trade-offs, a protocol quick-reference, and CDN/QoE — with **dated 2026** device-support specifics (`[verify-at-use]`). |
+| [`knowledge/streaming-decision-trees.md`](knowledge/streaming-decision-trees.md) | Choosing VOD-vs-live, a protocol, a codec, or a low-latency approach — the Mermaid decision trees |
+| [`knowledge/streaming-reference-2026.md`](knowledge/streaming-reference-2026.md) | Quoting a codec/protocol/CDN/DRM/player detail or a QoE target — the dated reference (each row verify-at-use; re-confirm before quoting) |
 
 ---
 
-## 10. Best-practices
+## 8. Templates & commands
 
-[`best-practices/`](best-practices/) holds the grep-able rule cards that encode the
-§4 house opinions. See [`best-practices/README.md`](best-practices/README.md).
+| Template | Use for |
+|---|---|
+| [`templates/streaming-architecture.md`](templates/streaming-architecture.md) | The VOD/live + protocol + packaging + CDN + DRM decision and the architecture that follows |
+| [`templates/abr-ladder-plan.md`](templates/abr-ladder-plan.md) | A per-title ABR ladder + codec/encoding plan |
 
----
-
-## 11. Requires & pairs with
-
-- **Requires** `ravenclaude-core@>=0.7.0`.
-- **Pairs with** `frontend-engineering` (the player UI), `finops-cloud-cost` (egress
-  cost), `observability-sre` (streaming-infra reliability), and
-  `computer-vision-engineering` (frame analysis on the stream). Distinct from
-  `data-streaming-engineering` and `film-video-production`.
+Commands: [`/choose-streaming-stack`](commands/choose-streaming-stack.md), [`/plan-abr-ladder`](commands/plan-abr-ladder.md).
 
 ---
 
-## 12. References
+## 9. Best-practices
+
+Five named, citable rules — see [`best-practices/README.md`](best-practices/README.md): choose the protocol from latency and reach, design the ABR ladder per-title not fixed, measure QoE by rebuffer and startup not just bitrate, DRM and packaging are architecture decide early, test across devices and network conditions.
+
+---
+
+## 10. Escalating out of the streaming team
+
+- **`film-video-production`** — creative production, editorial, camera, and post-production workflow (the creative-ops side, not delivery engineering) ([`../film-video-production/CLAUDE.md`](../film-video-production/CLAUDE.md)).
+- **`data-streaming-engineering`** — Kafka / event streams / real-time data pipelines (event data, not media delivery) ([`../data-streaming-engineering/CLAUDE.md`](../data-streaming-engineering/CLAUDE.md)).
+- **`performance-engineering`** — deep CPU/GPU/memory/network profiling methodology beyond the encode/playback loop ([`../performance-engineering/CLAUDE.md`](../performance-engineering/CLAUDE.md)).
+- **`aws-cloud`** — cloud infra for the pipeline: media services, storage, egress, autoscaling ([`../aws-cloud/CLAUDE.md`](../aws-cloud/CLAUDE.md)).
+- **`observability-sre`** — live-service SLOs, on-call, and delivery observability at scale ([`../observability-sre/CLAUDE.md`](../observability-sre/CLAUDE.md)).
+- **`ravenclaude-core/security-reviewer`** — security/privacy verdicts (e.g. DRM key handling, token/signed-URL design, viewer-data privacy).
+
+---
+
+## 11. References
 
 - Domain-neutral team constitution: [`../ravenclaude-core/CLAUDE.md`](../ravenclaude-core/CLAUDE.md)
-- Player UI around the video: [`../frontend-engineering/CLAUDE.md`](../frontend-engineering/CLAUDE.md)
-- Structured Output Protocol (upstream): [`../ravenclaude-core/skills/structured-output/SKILL.md`](../ravenclaude-core/skills/structured-output/SKILL.md)
-- Marketplace-wide developer guide: [`../../CLAUDE.md`](../../CLAUDE.md)
+- Structured Output Protocol: [`../ravenclaude-core/skills/structured-output/SKILL.md`](../ravenclaude-core/skills/structured-output/SKILL.md)
+- Creative & data seams: [`../film-video-production/CLAUDE.md`](../film-video-production/CLAUDE.md), [`../data-streaming-engineering/CLAUDE.md`](../data-streaming-engineering/CLAUDE.md)
+- Performance, cloud & SRE seams: [`../performance-engineering/CLAUDE.md`](../performance-engineering/CLAUDE.md), [`../aws-cloud/CLAUDE.md`](../aws-cloud/CLAUDE.md), [`../observability-sre/CLAUDE.md`](../observability-sre/CLAUDE.md)
 
 ---
 
-## 13. Milestones
+## 12. Milestones
 
-- **v0.1.0** — initial release: 2 agents (streaming-media-architect,
-  media-pipeline-engineer), 3 skills (design-streaming-delivery, build-transcode-ladder,
-  diagnose-playback-qoe), a 2-doc knowledge bank (a Mermaid latency-tier→protocol tree
-  + a dated 2026 codec/protocol/DRM/CDN reference with a DRM matrix), 7 best-practices.
+- **v0.1.0** — initial build-out: 3 agents (media-streaming-architect, transcoding-pipeline-engineer, playback-and-delivery-engineer), 4 skills, a decision-tree knowledge bank (4 Mermaid trees: VOD vs live, protocol choice, codec choice, low-latency approach) + a dated 2026 reference (verify-at-use), 5 best-practices, 2 templates, 2 commands. Engineering judgment, not legal/DRM-licensing advice; codec/protocol/CDN/DRM/player landscape is volatile (verify-at-use); no PII. Distinct from `film-video-production` (creative-ops) and `data-streaming-engineering` (Kafka/event streams). Seams to film-video-production, data-streaming-engineering, performance-engineering, aws-cloud, and observability-sre.

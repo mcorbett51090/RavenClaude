@@ -1,7 +1,7 @@
 {
   "name": "computer-vision-engineering",
   "version": "0.1.0",
-  "description": "Computer-vision engineering team — 2 agents (cv-systems-architect, cv-implementation-engineer) for the CV-specific discipline that generic ML doesn't own: framing the task (classification / detection / segmentation / OCR / tracking / pose / vision-LLM), choosing the model family against an accuracy + latency + deployment-target budget, dataset & annotation strategy, and building the pipeline (preprocessing, off-the-shelf-vs-fine-tune, inference/serving, and edge/real-time optimization via ONNX/TensorRT/OpenVINO). 3 skills (frame-a-cv-task, design-cv-dataset-and-eval, optimize-cv-inference), a knowledge bank (a Mermaid task->model-family tree + a cloud-vs-edge inference tree + a dated 2026 model & tooling map), 7 best-practices. Distinct from ml-engineering (generic training/MLOps), ai-rag-engineering (text/RAG), and embedded-iot-engineering (firmware/HAL). Seams: streaming-media-engineering (video delivery), performance-engineering (latency budgets). Requires ravenclaude-core@>=0.7.0.",
+  "description": "Computer-vision engineering team — 3 agents for a production vision build: cv-systems-architect (task framing across classification / detection / segmentation / OCR / tracking / VLM, data & annotation strategy, build-vs-API and deployment-target choice, eval-metric design — mAP / IoU / precision-recall), cv-model-engineer (dataset curation, augmentation, transfer learning, model selection across YOLO / DETR / SAM / CLIP / ViT, active learning, the eval harness, drift), and vision-deployment-engineer (quantization / distillation, ONNX / TensorRT / CoreML / TFLite export, edge/embedded targets, streaming-video pipelines, latency). Vision-specific vs the MLOps-broad ml-engineering. Ships 4 skills, a knowledge bank (4 Mermaid decision trees + a dated 2026 reference), 5 best-practices, 2 templates, 2 commands. Engineering judgment, not a benchmark verdict; model/hardware/runtime specifics carry a retrieval date + [verify-at-use]; no PII, no image data stored. Requires ravenclaude-core@>=0.7.0.",
   "author": {
     "name": "Matt Corbett"
   },
@@ -12,18 +12,17 @@
     "object-detection",
     "image-segmentation",
     "ocr",
-    "object-tracking",
-    "pose-estimation",
-    "vision-language-model",
-    "yolo",
-    "detr",
-    "segment-anything",
-    "annotation",
+    "video-analytics",
     "edge-inference",
     "tensorrt",
     "onnx",
-    "openvino",
-    "video-analytics"
+    "yolo",
+    "vision-transformer",
+    "foundation-models",
+    "model-quantization",
+    "mlops-vision",
+    "active-learning",
+    "camera-pipeline"
   ],
   "requires": {
     "plugins": ["ravenclaude-core@>=0.7.0"]

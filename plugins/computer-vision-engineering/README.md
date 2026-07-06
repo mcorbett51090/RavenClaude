@@ -1,78 +1,42 @@
-# computer-vision-engineering plugin
+# computer-vision-engineering
 
-> **Computer vision as an engineering discipline** for the RavenClaude marketplace:
-> framing the vision task, choosing the model against an accuracy/latency/cost
-> budget, designing the dataset + eval, and building/optimizing the inference
-> pipeline. It answers **"what CV task is this, what model solves it, and how do we
-> build, evaluate, and ship it — in the cloud or on the edge?"** — the CV-specific
-> layer that `ml-engineering` (generic training/MLOps) and `ai-rag-engineering`
-> (text/RAG) are too general to own.
+A RavenClaude plugin: a **computer-vision engineering** specialist team for building production image and video systems — the three engines of a vision build: system architecture, model engineering, and inference optimization & deployment.
 
-**Designed for:** an engineer with a vision problem — inspect parts, read labels,
-count/track objects, segment for measurement, or answer questions about images — who
-needs the task framed correctly, the right model family, a trustworthy eval, and a
-pipeline that hits its latency budget on the target hardware.
+> Inherits the domain-neutral team constitution and protocols from [`ravenclaude-core`](../ravenclaude-core/). Requires `ravenclaude-core@>=0.7.0`.
 
-## What this plugin gives you
+> **Vision-specific by design.** This plugin is deliberately narrower and deeper than the sibling [`ml-engineering`](../ml-engineering/) plugin (which is MLOps-broad): it is about image/video tasks, annotation pipelines, and edge/embedded inference. For general model lifecycle, tabular/NLP modeling, and training infrastructure, use `ml-engineering`.
 
-- **Task framing done right** — turn "detect defects" / "read labels" / "count
-  people" into a concrete formulation (classification / detection / segmentation /
-  OCR / tracking / pose / vision-LLM) before choosing a model, via a decision tree.
-- **A trustworthy evaluation** — a train/val/test split that doesn't leak (no
-  frame-level splitting over video), mirrors production, and uses the
-  task-appropriate metric (mAP / IoU / CER) with an explicit ship threshold.
-- **The least-effort path** — zero-shot foundation model → fine-tune → custom, so you
-  don't label thousands of images for something SAM or an open-vocab detector does
-  zero-shot.
-- **Inference that hits budget** — export (ONNX / TensorRT / OpenVINO / CoreML),
-  quantization behind an accuracy gate, resolution/batching tuning, all measured on
-  the deployment hardware — plus a fix for the #1 CV production bug (train/serve
-  preprocessing skew).
+> **Engineering judgment — not a benchmark leaderboard, an accuracy guarantee, or a compliance/biometric-legality verdict.** The model / hardware / runtime / annotation-tool landscape is volatile: every model name/version, accelerator spec, and accuracy/latency number carries a retrieval date + `[verify-at-use]` and must be confirmed against the vendor/framework/paper before it drives a build commitment. The agents store no PII and no image/video data.
 
-## The two agents
+## What it's for
 
-| Agent | Owns |
+Building vision systems well: framing the task correctly (is it classification, detection, segmentation, OCR, pose, tracking, or a VLM?), deciding build-vs-fine-tune-vs-API, choosing the model family (CNN vs ViT vs foundation model) against the deployment target you'll actually ship to, measuring with the metric that matches the business decision, spending the annotation budget where active learning says it helps, and holding the latency budget on the edge or embedded target.
+
+## Agents
+
+| Agent | Use for |
 |---|---|
-| `cv-systems-architect` | The approach: task formulation, model-family + build-vs-adapt choice, deployment target/runtime, and the dataset + eval design — against a stated accuracy/latency/cost budget. |
-| `cv-implementation-engineer` | The build: preprocessing/augmentation, training/fine-tuning or wiring a zero-shot model, inference/serving, edge/real-time optimization, and debugging accuracy/latency regressions — measured on the target hardware. |
+| **cv-systems-architect** | Task framing (classification / detection / segmentation / OCR / pose / tracking / VLM), data & annotation strategy, model-family & build-vs-API choice, deployment-target selection, eval-metric design |
+| **cv-model-engineer** | Dataset curation & augmentation, transfer learning / fine-tuning, model selection (YOLO / DETR / SAM / CLIP / EfficientNet / ViT), loss & metric design, active learning, class imbalance, the eval harness, drift detection |
+| **vision-deployment-engineer** | Inference optimization (quantization / pruning / distillation), export/runtime (ONNX / TensorRT / CoreML / TFLite / OpenVINO), edge/embedded (Jetson / mobile NPU / Coral), batching, streaming-video pipelines, latency budgets, camera integration |
 
-## The three skills
+## What's inside
 
-| Skill | What's inside |
-|---|---|
-| `frame-a-cv-task` | Turn a vague vision goal into a concrete task + model family + deployment target + budget. The first step of any CV project. |
-| `design-cv-dataset-and-eval` | Label schema + QA, a non-leaking split mirroring production, the metric + ship threshold, and failure-slice analysis — before any training. |
-| `optimize-cv-inference` | Hit an edge/real-time latency budget: export, quantize behind an accuracy gate, tune resolution/batching, watch thermal throttling. Also diagnoses preprocessing skew. |
+- **4 skills** — cv-task-and-data-strategy, cv-model-training-and-evaluation, vision-inference-optimization, video-pipeline-and-edge-deployment.
+- **Knowledge bank** — [`cv-decision-trees.md`](knowledge/cv-decision-trees.md) (4 Mermaid trees: vision-task selection, build-vs-fine-tune-vs-API, model-family choice, deployment-target choice) + [`cv-reference-2026.md`](knowledge/cv-reference-2026.md) (dated model/accelerator/runtime/annotation-tool landscape + metric definitions, verify-at-use).
+- **5 best-practices** — see [`best-practices/README.md`](best-practices/README.md).
+- **2 templates** — CV project architecture, CV evaluation plan.
+- **2 commands** — `/choose-cv-approach`, `/plan-cv-evaluation`.
 
-## When to use it
+## Seams
 
-- You're starting a CV project and need the task framed and a model family chosen
-  before you label data or write code.
-- Your model is great in the notebook but bad in production (usually preprocessing
-  skew or a leaky eval).
-- Your model is too slow on the target device and needs to hit a real-time or edge
-  latency budget without quietly losing accuracy.
+Broad MLOps / non-vision modeling → [`ml-engineering`](../ml-engineering/) · VLM in a retrieval/RAG context → [`ai-rag-engineering`](../ai-rag-engineering/) · host firmware / sensor drivers / board bring-up → [`embedded-iot-engineering`](../embedded-iot-engineering/) · deep profiling → [`performance-engineering`](../performance-engineering/) · label/data store & orchestration → [`data-platform`](../data-platform/).
 
-## When *not* to use it
+## Install
 
-- You need the generic training platform / MLOps (experiment tracking, feature
-  stores, model CI) — that's `ml-engineering`. This plugin runs *on* it.
-- You're doing text/document RAG or LLM-app plumbing — that's `ai-rag-engineering`.
-- You're writing camera firmware / an accelerator HAL / MCU inference — that's
-  `embedded-iot-engineering`. This plugin hands off at the firmware line.
-- You're transcoding or delivering the video — that's `streaming-media-engineering`.
+```shell
+/plugin marketplace add ./        # from a separate Claude Code project, pointed at this repo
+/plugin install computer-vision-engineering@ravenclaude
+```
 
-## Seams to neighbouring plugins
-
-- **`ml-engineering`** — the generic training platform + MLOps this plugin sits on.
-- **`ai-rag-engineering`** — text/document retrieval and LLM-app plumbing.
-- **`embedded-iot-engineering`** — camera driver / accelerator HAL / MCU inference.
-- **`streaming-media-engineering`** — video ingest / transcode / delivery around the model.
-- **`performance-engineering`** — system-level latency budgeting beyond the model.
-- **`ravenclaude-core`** — the domain-neutral constitution + protocols.
-
-## Requires
-
-- `ravenclaude-core@>=0.7.0`.
-
-See [`CLAUDE.md`](CLAUDE.md) for the team constitution and house opinions.
+See the team constitution in [`CLAUDE.md`](CLAUDE.md) for the scope, routing rules, house opinions, and the output contract.
