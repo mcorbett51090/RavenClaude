@@ -3043,6 +3043,56 @@
         "cdn-delivery",
         "playback-qoe"
       ]
+    },
+    {
+      "name": "med-spa-aesthetics",
+      "source": "./plugins/med-spa-aesthetics",
+      "description": "Medical-aesthetics (med spa) practice operations team — 3 agents (med-spa-operations-lead, patient-coordinator-lead, aesthetics-compliance-advisor) across the three engines of a med spa: the practice P&L (injector/room utilization, service mix across injectables / devices / skincare / memberships, device payback, pricing per provider-hour), the patient front line (consult-to-treatment conversion, no-show / deposit, rebooking on the clinical cadence, memberships), and operational compliance structure (scope of practice, good-faith exam / supervision, consent and adverse-event protocols). Operations and financial decision-support, not legal, tax, or medical advice; no clinical/legal determinations and no patient PHI/PII; benchmarks carry a retrieval date + verify-at-use; scope/supervision rules are state-specific and flagged for a professional. Ships 4 skills, a decision-tree knowledge bank (4 Mermaid trees + a dated 2026 reference), 5 best-practices, 2 templates, 2 commands. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "med-spa",
+        "medical-aesthetics",
+        "injectables",
+        "aesthetic-devices",
+        "injector-utilization",
+        "consult-conversion",
+        "treatment-cadence-rebooking",
+        "membership-revenue",
+        "device-payback",
+        "skincare-retail",
+        "scope-of-practice",
+        "good-faith-exam",
+        "medical-supervision",
+        "patient-coordinator"
+      ]
+    },
+    {
+      "name": "craft-beverage-operations",
+      "source": "./plugins/craft-beverage-operations",
+      "description": "Craft-beverage (winery / brewery / distillery) operations team — 3 agents (craft-beverage-operations-lead, tasting-room-and-club-manager, beverage-distribution-compliance-advisor) across the three engines of a producer: production & cost (batch/yield planning, COGS per unit, tank/barrel/time capacity, packaging, channel margin mix), the tasting room & club (throughput and conversion, club/membership revenue and churn, DTC, events), and distribution & compliance (three-tier vs self-distribution economics, distributor relationships, TTB / state licensing and excise). Operations and financial decision-support, not legal, tax, or regulatory advice; no licensing/excise determinations and no PII; benchmarks carry a retrieval date + verify-at-use; three-tier / TTB / licensing / excise rules are jurisdiction-specific and flagged for a professional. Ships 4 skills, a decision-tree knowledge bank (4 Mermaid trees + a dated 2026 reference), 5 best-practices, 2 templates, 2 commands. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "craft-beverage",
+        "winery",
+        "brewery",
+        "distillery",
+        "tasting-room",
+        "wine-club",
+        "dtc-beverage",
+        "three-tier-distribution",
+        "self-distribution",
+        "cogs-per-unit",
+        "production-planning",
+        "ttb-licensing",
+        "excise-tax",
+        "channel-margin-mix"
+      ]
     }
   ]
 }
