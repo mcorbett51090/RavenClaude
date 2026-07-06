@@ -256,9 +256,14 @@ PY
       bash plugins/power-platform/hooks/tests/test-managed-import.sh
       exit $?
       ;;
+    127)
+      echo "── Gate 127: pseudonymize.py (fail-closed encode / no-egress / FM7 NER-absent / FM8 / teeth) ──"
+      bash plugins/ravenclaude-core/hooks/tests/test-gate127-pseudonymize.sh
+      exit $?
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -3817,6 +3822,8 @@ rc=0; bash plugins/power-platform/hooks/tests/test-nudge-preflight.sh >/dev/null
 gate "nudge-dataverse-preflight: fires on Dataverse create/update under posture + silent on GET/opt-out + teeth" must_pass "$rc"
 rc=0; bash plugins/power-platform/hooks/tests/test-managed-import.sh >/dev/null 2>&1 || rc=$?
 gate "managed-solution-import: PROD-guard boundaries + SSRF allow-list + baseline-by-stable-key + flag-economy + teeth" must_pass "$rc"
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate127-pseudonymize.sh >/dev/null 2>&1 || rc=$?
+gate "Gate 127 pseudonymize.py: fail-closed encode + no-egress + FM7 NER-absent + FM8 + teeth" must_pass "$rc"
 
 echo "── Gate 126: workflow-mirror byte-identity (skills copy vs .claude/workflows copy) ──"
 # rc-deep-research.js and two-panel-plan-review.js each ship a bundled skills copy
