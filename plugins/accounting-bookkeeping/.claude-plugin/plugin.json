@@ -1,6 +1,6 @@
 {
   "name": "accounting-bookkeeping",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Accounting & Bookkeeping Practice specialist team — 4 agents (accounting-practice-lead, close-cycle-analyst, ap-ar-cashflow-specialist, reconciliation-controls-specialist), 5 skills, 4 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. A practice-ops team for a bookkeeping/accounting practice owner or controller accountable for a timely, clean close — it closes on a cadence and tracks days-to-close, reconciles before reporting, reads AR/AP as working-capital levers, and enforces segregation of duties. Tax and audit opinions route to a licensed CPA. Inherits ravenclaude-core protocols.",
   "author": {
     "name": "Matt Corbett"
