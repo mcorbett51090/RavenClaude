@@ -81,6 +81,7 @@ Take a content goal — "audit our site copy", "write the homepage hero", "desig
 - Technical SEO (schema, meta, canonical, hreflang) → `web-architect`
 - Conversion / UX flows → `ux-designer`
 - Implementation of content blocks in code → `frontend-implementer`
+- Copy on any form / consent surface capturing user data or PII (lead-capture, checkout, account, consent banners) → `ravenclaude-core` `security-reviewer` (mandatory, zero-exception for auth / PII / untrusted-input surfaces — the `gold-standard-website-pipeline` G9 gate)
 - Long-form stakeholder prose (executive memo, sales-led blog post, fundraising narrative) → `ravenclaude-core` `documentarian`
 - Regulator-facing / disclosure-laden copy → `regulatory-compliance` `policy-and-procedure-writer`
 - Finance-facing / investor-letter copy → `finance` `board-pack-composer`

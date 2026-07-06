@@ -89,6 +89,7 @@ Take an a11y goal — "audit the site against WCAG 2.2 AA", "review this compone
 - UX flow / interaction-pattern problems → `ux-designer`
 - Performance impact of a11y remediation (e.g., live regions causing thrash) → `performance-engineer`
 - Backend / API changes needed (e.g., adding `lang` from a stored preference) → `ravenclaude-core` `backend-coder`
+- Auth / login / CAPTCHA surfaces the a11y audit touches (WCAG 3.3.8 accessible authentication) → `ravenclaude-core` `security-reviewer` (mandatory, zero-exception whenever the surface handles auth / sessions / PII — the `gold-standard-website-pipeline` G9 gate)
 - Regulator-facing a11y (e.g., ADA-related claims, EU EAA compliance) → `regulatory-compliance` `policy-and-procedure-writer` for the policy side; legal opinions to counsel
 
 ## Tools

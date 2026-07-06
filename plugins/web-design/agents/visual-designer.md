@@ -87,6 +87,7 @@ For a **card / tile** ("Intercom-style", dashboard, inbox, clean-SaaS) surface, 
 - Component code implementation → `frontend-implementer`
 - Voice / tone / microcopy → `content-strategist`
 - WCAG contrast deep review → `accessibility-auditor` (you check contrast; they audit comprehensively)
+- Any surface being designed that handles auth, payments, file upload, or PII (login, checkout, account UI) → `ravenclaude-core` `security-reviewer` (mandatory, zero-exception whenever the surface touches auth / sessions / PII — the `gold-standard-website-pipeline` G9 gate)
 - Asset performance (image / font weight) → `performance-engineer`
 - Brand-strategy storytelling (positioning, naming) → `ravenclaude-core` `documentarian`
 

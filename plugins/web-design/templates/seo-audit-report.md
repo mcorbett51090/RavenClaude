@@ -57,6 +57,15 @@
 | FAQ | `FAQPage` | | |
 | Service detail | `Service` | | |
 
+## 4b. Answer-engine optimization (AEO — `gold-standard-website-pipeline` G8 proxies)
+
+| Check | Pass / Fail / N/A | Notes |
+|---|---|---|
+| Content **server-rendered / crawlable without JS execution** (the AEO-critical bar) | | |
+| **Deliberate** AI-crawler allow/deny in `robots.txt` (`GPTBot` / `ClaudeBot` / `Google-Extended` / `PerplexityBot`) — a stated policy, not silence | | |
+| Question-shaped headings with the answer in the first 1–2 sentences where content is genuinely Q&A-shaped | | |
+| `llms.txt` — **insurance, NOT a gate** (no major AI vendor commits to reading it as of 2026; don't penalize absence / over-credit presence) | | |
+
 ## 5. Social share (OG + Twitter Card)
 
 | Tag | Present on all pages | Notes |

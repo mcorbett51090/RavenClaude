@@ -123,6 +123,39 @@ Pattern: **[Verb] + [object] when meaningful; skeleton screen otherwise.**
 
 ---
 
+## G4 content ledger (`gold-standard-website-pipeline` artifact)
+
+> The pipeline's **G4** gate emits a `content-ledger.md` built from the four scaffolds below (the artifact the SKILL names "from `content-style-guide.md`"). Fill all four; a screen or criterion left blank is a fail-closed loop-back, not a pass.
+
+### Reading-level ceiling (per audience — G4 acceptance bar)
+
+- **Target audience:** [broad consumer | technical/B2B | …]
+- **Flesch-Kincaid grade ceiling:** ≤ [8 broad-consumer / 12 technical-B2B] — verify with [`scripts/flesch_kincaid.py`](../scripts/flesch_kincaid.py) `check <prose.txt> --max <ceiling>`.
+
+### Per-screen state inventory (≥5 states each — G4 fail-closed if any interactive screen is missing one)
+
+Every interactive screen carries all five designed states, not just the happy path (loading/partial are the ones most often skipped, especially on web-apps).
+
+| Screen  | Empty | Loading | Error | Partial | Ideal |
+| ------- | ----- | ------- | ----- | ------- | ----- |
+| [Home]  |       |         |       |         |       |
+| [Form]  |       |         |       |         |       |
+| …       |       |         |       |         |       |
+
+### Trust-signal placement (at the decision point — archetype-agnostic per A6)
+
+| Decision point (CTA / form / checkout) | Trust signal placed adjacent | Type (review / guarantee / security / privacy) |
+| -------------------------------------- | ---------------------------- | ---------------------------------------------- |
+|                                        |                              |                                                |
+
+### KKCR content matrix (redesigns — Keep / Kill / Consolidate / Rewrite)
+
+| URL / page | Score (5-dim) | Disposition (Keep / Kill / Consolidate / Rewrite) | Redirect target (if killed/consolidated) |
+| ---------- | ------------- | ------------------------------------------------- | ---------------------------------------- |
+|            |               |                                                   |                                          |
+
+---
+
 **Change log**
 
 | Version | Date | Author | Change |
