@@ -2965,6 +2965,84 @@
         "passthrough-ar",
         "xr-performance"
       ]
+    },
+    {
+      "name": "computer-vision-engineering",
+      "source": "./plugins/computer-vision-engineering",
+      "description": "Computer-vision engineering team — 3 agents for a production vision build: cv-systems-architect (task framing across classification / detection / segmentation / OCR / tracking / VLM, data & annotation strategy, build-vs-API and deployment-target choice, eval-metric design — mAP / IoU / precision-recall), cv-model-engineer (dataset curation, augmentation, transfer learning, model selection across YOLO / DETR / SAM / CLIP / ViT, active learning, the eval harness, drift), and vision-deployment-engineer (quantization / distillation, ONNX / TensorRT / CoreML / TFLite export, edge/embedded targets, streaming-video pipelines, latency). Vision-specific vs the MLOps-broad ml-engineering. Ships 4 skills, a knowledge bank (4 Mermaid decision trees + a dated 2026 reference), 5 best-practices, 2 templates, 2 commands. Engineering judgment, not a benchmark verdict; model/hardware/runtime specifics carry a retrieval date + [verify-at-use]; no PII, no image data stored. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "computer-vision",
+        "object-detection",
+        "image-segmentation",
+        "ocr",
+        "video-analytics",
+        "edge-inference",
+        "tensorrt",
+        "onnx",
+        "yolo",
+        "vision-transformer",
+        "foundation-models",
+        "model-quantization",
+        "mlops-vision",
+        "active-learning",
+        "camera-pipeline"
+      ]
+    },
+    {
+      "name": "conversational-ai-voice-engineering",
+      "source": "./plugins/conversational-ai-voice-engineering",
+      "description": "Conversational voice-AI engineering team — 3 agents for production real-time voice agents: voice-ai-architect (cascade STT->LLM->TTS vs speech-to-speech, the latency budget, turn-taking / barge-in / endpointing, channel choice, build-vs-platform across Twilio / Vapi / Retell / LiveKit / Pipecat, guardrails), speech-pipeline-engineer (ASR & TTS provider choice, streaming transcription, VAD/endpointing, diarization, prosody/SSML, codecs, noise, WER), and dialog-and-integration-engineer (state, LLM orchestration and mid-call tool calling, SIP/PSTN telephony, IVR/DTMF, call routing, flow testing and eval). Ships 4 skills, a knowledge bank (4 Mermaid decision trees + a dated 2026 reference), 5 best-practices, 2 templates, 2 commands. Engineering judgment, not legal/compliance advice; the ASR/TTS/platform/telephony landscape is volatile — versions and latency numbers carry a retrieval date + [verify-at-use]; no PII, and call audio/transcripts are sensitive. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "voice-ai",
+        "conversational-ai",
+        "speech-to-text",
+        "text-to-speech",
+        "asr",
+        "tts",
+        "telephony",
+        "sip",
+        "ivr",
+        "barge-in",
+        "endpointing",
+        "latency-budget",
+        "speech-to-speech",
+        "webrtc",
+        "call-automation"
+      ]
+    },
+    {
+      "name": "streaming-media-engineering",
+      "source": "./plugins/streaming-media-engineering",
+      "description": "Streaming-media (video/audio) engineering team — 3 agents for a streaming build: media-streaming-architect (VOD vs live, protocol choice across HLS / MPEG-DASH / CMAF / WebRTC / LL-HLS, packaging + origin/edge, single vs multi-CDN, DRM across Widevine / FairPlay / PlayReady, ABR-ladder philosophy, cost), transcoding-pipeline-engineer (codec choice across H.264 / HEVC / AV1 / VP9, FFmpeg pipelines, per-title & ABR-ladder encoding, GPU vs CPU, CMAF packaging, captions, audio & loudness), and playback-and-delivery-engineer (player integration across hls.js / dash.js / Shaka / ExoPlayer / AVPlayer, ABR tuning, QoE metrics, low-latency live, client DRM, CDN cache tuning). Ships 4 skills, a knowledge bank (4 Mermaid decision trees + a dated 2026 reference), 5 best-practices, 2 templates, 2 commands. Engineering judgment, not legal/DRM-licensing advice; codec/protocol/CDN/DRM/player specifics carry a retrieval date + [verify-at-use]; no PII. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "streaming-media",
+        "video-streaming",
+        "hls",
+        "mpeg-dash",
+        "cmaf",
+        "webrtc",
+        "ll-hls",
+        "transcoding",
+        "ffmpeg",
+        "av1",
+        "hevc",
+        "abr-ladder",
+        "drm",
+        "cdn-delivery",
+        "playback-qoe"
+      ]
     }
   ]
 }
