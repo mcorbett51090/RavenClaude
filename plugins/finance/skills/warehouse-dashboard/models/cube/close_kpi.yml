@@ -1,0 +1,118 @@
+# close_kpi.yml — Cube semantic-layer schema for the finance close portfolio dashboard.
+#
+# REFERENCE ARTIFACT — specified, NOT executed. There is no Cube deployment in this
+# repo; this file is the semantic-layer enforcement contract a consumer deploys
+# (data-platform `cube-schema-scaffolding`). It is a security_review_target.
+#
+# THE FINANCE DELTA: data-platform's canonical access_policy scopes a SCALAR
+# securityContext.tenant_id. A controller owns a PORTFOLIO, so here the filter scopes
+# entity_id to the ARRAY claim securityContext.allowed_entities with operator `in`
+# — `in` is the explicit array-membership operator (entity_id ∈ allowed_entities),
+# pinned per the security review so IN-semantics do not rely on `equals`-against-an-array
+# compiling to SQL `IN`. securityContext is populated ONLY from the signed embed JWT's
+# allowed_entities[] claim (data-platform `jwt-embed-issuance`), never client-side.
+#
+# UNVERIFIED — READ THIS: the exact spelling of the array-membership row-level filter is
+# asserted from the array-filter convention, NOT verified against a running Cube in this
+# repo. `operator: in` is pinned here as the explicit array-IN form; confirm against
+# cube.dev/docs for your Cube version at deploy time, and PROVE it with the cross-boundary
+# denial test before go-live. The invariant is "entity_id ∈ allowed_entities", however
+# your Cube version spells it.
+#
+# DEFENSE-IN-DEPTH (belt-and-suspenders): the filter is applied at BOTH layers. Every
+# cube carries the access_policy AND the partner-facing `portfolio_close` VIEW carries its
+# OWN identical access_policy (Cube does not always propagate a cube's access_policy to a
+# view). And when Cube connects to Postgres with the tenant-aware query role, ALSO keep the
+# Postgres FORCE-RLS (models/rls/close_rls_policies.sql) as a third backstop.
+#
+# HONEST CAVEAT: reference implementation, not a live-verified control. Enforcement is
+# specified here, not exercised; a real deployment needs the IdP, a warehouse/Cube,
+# real credentials, and ravenclaude-core/security-reviewer sign-off.
+
+cubes:
+  - name: close_kpi
+    sql_table: analytics.fct_close_kpi
+    description: Headline close KPIs (long format), scoped to the viewer's entity portfolio.
+    measures:
+      - name: kpi_value
+        sql: value
+        type: max # one row per entity/period/metric; max == the value itself
+    dimensions:
+      - name: entity_id
+        sql: entity_id
+        type: string
+        primary_key: true
+      - name: period_id
+        sql: period_id
+        type: string
+      - name: metric
+        sql: metric
+        type: string
+      - name: is_na
+        sql: is_na
+        type: boolean
+    access_policy:
+      - role: controller
+        row_level:
+          filters:
+            # ARRAY claim -> IN: keep only rows whose entity_id is in the granted set.
+            # operator: in is the EXPLICIT array-membership form (pinned per review).
+            - member: close_kpi.entity_id
+              operator: in
+              values: "{ securityContext.allowed_entities }"
+
+  - name: close_state
+    sql_table: analytics.fct_close_state
+    description: Governed close state + honesty badges, scoped to the viewer's portfolio.
+    measures:
+      - name: package_count
+        sql: entity_id
+        type: count
+    dimensions:
+      - name: entity_id
+        sql: entity_id
+        type: string
+        primary_key: true
+      - name: period_id
+        sql: period_id
+        type: string
+      - name: state
+        sql: state
+        type: string
+      - name: self_certified
+        sql: self_certified
+        type: boolean
+      - name: traceability_badge
+        sql: traceability_badge
+        type: string
+    access_policy:
+      - role: controller
+        row_level:
+          filters:
+            - member: close_state.entity_id
+              operator: in
+              values: "{ securityContext.allowed_entities }"
+
+views:
+  - name: portfolio_close
+    description: >
+      Partner-facing surface over the scoped cubes. Belt-and-suspenders: every underlying
+      cube already carries its own access_policy AND this view carries its OWN identical
+      row-level access_policy below — because Cube does not always propagate a cube's
+      access_policy to a view, so the partner-facing surface must filter independently.
+    cubes:
+      # entity_id is included on the view so the view-level access_policy has a member to
+      # filter (it is also the scoping key the partner is entitled to see for their own rows).
+      - join_path: close_kpi
+        includes: [entity_id, period_id, metric, kpi_value, is_na]
+      - join_path: close_state
+        includes: [state, self_certified, traceability_badge]
+    # DEFENSE-IN-DEPTH: filter at the VIEW too, not only on the cubes. Same array-claim IN
+    # cut (entity_id ∈ securityContext.allowed_entities), operator: in pinned per review.
+    access_policy:
+      - role: controller
+        row_level:
+          filters:
+            - member: portfolio_close.entity_id
+              operator: in
+              values: "{ securityContext.allowed_entities }"

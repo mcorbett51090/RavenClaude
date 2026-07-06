@@ -1,0 +1,15 @@
+{
+  "source_system": "qbo",
+  "note": "SYNTHETIC \u2014 QBO adapter raw export has SEPARATE Debit/Credit columns.",
+  "map": {
+    "account": "Account #",
+    "description": "Account Name",
+    "debit": "Debit",
+    "credit": "Credit"
+  },
+  "constants": {
+    "entity": "MRI",
+    "currency": "USD"
+  },
+  "close_period": "2026-06"
+}

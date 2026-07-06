@@ -2,6 +2,19 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.17.0] — 2026-07-06
+
+Feature — **controller-autopilot live-integration tier** (FORGE `fca-live-integration-tier`; four workstreams built in parallel, cross-model critic + red-team, mandatory security-reviewer). Skills 18 → 22.
+
+- **W1 multi-currency (fully-tested real logic)** — `scripts/remeasure.py`: ASC 830 / IAS 21 **remeasurement (temporal)** + **translation (current-rate)** producing a CTA plug (→OCI) or remeasurement G/L (→net income); per-account `rate_class` COA column with a lint gate, a CTA analytical self-check (per-equity-account historical rates, dividend-aware), hyperinflation refusal (IAS 29 out of scope), and a byte-identical zero-drift no-op on all-USD groups. The FORGE critic **independently reconfirmed** both goldens (current-rate **CTA +200**; temporal **loss −80**). Skill `multi-currency-translation`.
+- **W2 connectors (reference impl + mock/replay)** — `scripts/connectors/`: OAuth2 GL extractor for QBO/NetSuite/Sage Intacct/Xero (atomic persist-then-use rotating refresh, per-entity lock, error-cause routing, Xero 30-min grace), a record/replay transport that never opens a live socket, and a GL-lineage emitter whose first 6 columns are byte-identical to `statement_engine --gl-detail`. Skill `live-connectors`.
+- **W3 warehouse/RLS (reference + tested claims core)** — `scripts/close_package_to_rows.py` (close-package → fact/dim), `scripts/entity_rls.py` (entity-level **array-claim** RLS), and a semantic model (dbt marts + Cube + Postgres FORCE-RLS) **reusing data-platform** wholesale. Skill `warehouse-dashboard`.
+- **W4 IdP-SoD (reference impl)** — `scripts/close_identity.py`: evolves `close_state.py`'s config-asserted `--actor` into an OIDC-verified identity (claim + signature validation; HS256 dev/fixture, RS256/ES256/JWKS via optional PyJWT that **refuses loudly** when absent; `alg:none`/alg-confusion rejected), token-level preparer≠approver SoD keyed on `sub@iss`, and a signature-bound step-up token for LOCK. Skill `idp-segregation`.
+
+**Security review (mandatory gate).** A `security-reviewer` pass returned must-fix-before-merge; all addressed before this release: a 🔴 Cube `portfolio_close` view shipped without its own `access_policy` (now filters `entity_id ∈ allowed_entities`, `operator: in`); `entity_rls.resolve()` now fails closed on non-list input; a `bind_entitlement_to_identity()` seam binds the RLS entitlement token and the SoD identity token to one issuer+subject (closing the split-brain gap); and `assert_fresh_stepup` now verifies the step-up token's signature + subject and rejects `iat`-only tokens.
+
+**Honest scope.** W1 is fully-tested logic. W2/W3/W4 are **assumption-complete reference implementations with mock/replay harnesses + consumer first-light checklists — NOT verified against any live provider, warehouse, or IdP** (none exist in this environment). Every W2/W3/W4 artifact badges this. Consolidated suite: **272 acceptance tests across 11 files, all green**; ruff-clean; stdlib-first.
+
 ## [0.16.1] — 2026-07-06
 
 Bug fix (P3) — the advisory `flag-finance-anti-patterns.sh` IBAN PII check used `grep -Eni` (case-insensitive), so `[A-Z]{2}` also matched lowercase and over-flagged ordinary `<2 letters><2 digits><alnum>` tokens (e.g. commit hashes) as plaintext IBANs. Dropped `-i` (real IBANs are uppercase; the sibling SSN/card checks are already case-sensitive). No behavior change for any other check.
