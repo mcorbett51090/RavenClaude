@@ -5,172 +5,186 @@
 <style>html,body{margin:0}img{max-width:100%}</style>
 </head><body>
 <style>
-  :root {
-    --paper:#f3f5f3; --panel:#fbfcfb; --ink:#14201b; --muted:#5b6a63;
-    --accent:#0e6b57; --accent-soft:#0e6b571a; --amber:#8a5e0d; --flag:#a8341f;
-    --rule:#d5ddd7; --rule-strong:#b9c5bd;
+  :root{
+    --paper:#f2f4f2; --panel:#fbfcfb; --panel-2:#eef2ef; --ink:#111b17; --muted:#586a61;
+    --accent:#0e6b57; --accent-ink:#0a5445; --accent-soft:#0e6b5715;
+    --teal:#12586b; --amber:#8a5e0d; --flag:#a8341f;
+    --rule:#d3ddd6; --rule-2:#c2cec6; --grid:#dfe6e1;
     --mono:"SFMono-Regular",ui-monospace,"JetBrains Mono","Cascadia Code",Menlo,Consolas,monospace;
     --serif:"Iowan Old Style","Palatino Linotype","Book Antiqua",Palatino,Georgia,"Times New Roman",serif;
     --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-    --maxw:720px;
+    --maxw:740px; --band:1120px;
   }
-  @media (prefers-color-scheme: dark){
-    :root{ --paper:#0b1310; --panel:#111c17; --ink:#e9efea; --muted:#8ba095;
-      --accent:#35b79d; --accent-soft:#35b79d1f; --amber:#d7a24c; --flag:#e8705c;
-      --rule:#223029; --rule-strong:#2f4238; }
+  @media (prefers-color-scheme:dark){
+    :root{ --paper:#0a1310; --panel:#101a15; --panel-2:#0d1712; --ink:#e9efea; --muted:#8ba095;
+      --accent:#37c39d; --accent-ink:#5fd3b3; --accent-soft:#37c39d1f;
+      --teal:#4aa6c0; --amber:#d9a441; --flag:#e8705c;
+      --rule:#20302a; --rule-2:#2b3d35; --grid:#182620; }
   }
-  :root[data-theme="light"]{ --paper:#f3f5f3; --panel:#fbfcfb; --ink:#14201b; --muted:#5b6a63;
-    --accent:#0e6b57; --accent-soft:#0e6b571a; --amber:#8a5e0d; --flag:#a8341f; --rule:#d5ddd7; --rule-strong:#b9c5bd; }
-  :root[data-theme="dark"]{ --paper:#0b1310; --panel:#111c17; --ink:#e9efea; --muted:#8ba095;
-    --accent:#35b79d; --accent-soft:#35b79d1f; --amber:#d7a24c; --flag:#e8705c; --rule:#223029; --rule-strong:#2f4238; }
+  :root[data-theme="light"]{ --paper:#f2f4f2; --panel:#fbfcfb; --panel-2:#eef2ef; --ink:#111b17; --muted:#586a61;
+    --accent:#0e6b57; --accent-ink:#0a5445; --accent-soft:#0e6b5715; --teal:#12586b; --amber:#8a5e0d; --flag:#a8341f;
+    --rule:#d3ddd6; --rule-2:#c2cec6; --grid:#dfe6e1; }
+  :root[data-theme="dark"]{ --paper:#0a1310; --panel:#101a15; --panel-2:#0d1712; --ink:#e9efea; --muted:#8ba095;
+    --accent:#37c39d; --accent-ink:#5fd3b3; --accent-soft:#37c39d1f; --teal:#4aa6c0; --amber:#d9a441; --flag:#e8705c;
+    --rule:#20302a; --rule-2:#2b3d35; --grid:#182620; }
 
   *{ box-sizing:border-box; }
-  html{ scroll-behavior:smooth; }
-  @media (prefers-reduced-motion: reduce){ html{ scroll-behavior:auto; } }
-  body{ margin:0; background:var(--paper); color:var(--ink); font-family:var(--sans);
-    font-size:17px; line-height:1.65; -webkit-font-smoothing:antialiased;
-    background-image:repeating-linear-gradient(to bottom, transparent 0 31px, color-mix(in srgb,var(--rule) 45%,transparent) 31px 32px);
+  html{ scroll-behavior:smooth; -webkit-text-size-adjust:100%; }
+  @media (prefers-reduced-motion:reduce){ html{ scroll-behavior:auto; } }
+  body{ margin:0; background:var(--paper); color:var(--ink); font-family:var(--sans); font-size:17px;
+    line-height:1.65; -webkit-font-smoothing:antialiased;
+    background-image:repeating-linear-gradient(to bottom,transparent 0 31px,color-mix(in srgb,var(--rule) 42%,transparent) 31px 32px);
     background-attachment:fixed; }
   .wrap{ max-width:var(--maxw); margin:0 auto; padding:0 22px; }
-  .rail{ position:fixed; top:0; left:0; height:100%; width:3px; background:var(--accent); opacity:.9; z-index:5; }
-  .rail::after{ content:""; position:absolute; inset:0 0 auto 0; height:0; }
+  .band{ max-width:var(--band); margin:0 auto; padding:0 22px; }
 
-  h1,h2,h3{ font-family:var(--serif); font-weight:600; text-wrap:balance; letter-spacing:-.01em; }
-  h1{ font-size:clamp(2.4rem,6vw,3.7rem); line-height:1.04; margin:0; }
-  h2{ font-size:clamp(1.5rem,3.4vw,2.05rem); line-height:1.12; margin:0 0 .5rem; }
-  h3{ font-size:1.16rem; margin:0 0 .3rem; }
-  p{ margin:0 0 1.05rem; }
-  .lead{ font-size:1.24rem; color:var(--ink); }
-  a{ color:var(--accent); }
-  .eyebrow{ font-family:var(--mono); font-size:.72rem; text-transform:uppercase; letter-spacing:.22em;
-    color:var(--accent); margin:0 0 1.1rem; font-weight:600; }
-  .muted{ color:var(--muted); }
-  .num{ font-family:var(--mono); font-variant-numeric:tabular-nums; }
-  strong{ font-weight:650; }
+  /* fixed chrome */
+  .rail{ position:fixed; top:0; left:0; height:100%; width:3px; background:var(--accent); opacity:.85; z-index:6; }
+  #prog{ position:fixed; top:0; left:0; height:3px; width:0; background:var(--accent-ink); z-index:7; transition:width .1s linear; }
+  .toggle{ position:fixed; top:13px; right:14px; z-index:10; font-family:var(--mono); font-size:.7rem; letter-spacing:.04em;
+    background:var(--panel); color:var(--muted); border:1px solid var(--rule-2); border-radius:100px; padding:.36rem .72rem; cursor:pointer; }
+  .toggle:focus-visible,a:focus-visible,button:focus-visible,.etile:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
 
-  header.hero{ padding:12svh 0 5vh; position:relative; }
-  .hero .kicker{ display:inline-flex; gap:.55rem; align-items:center; font-family:var(--mono); font-size:.74rem;
-    letter-spacing:.14em; text-transform:uppercase; color:var(--muted); border:1px solid var(--rule);
-    padding:.34rem .7rem; border-radius:100px; margin-bottom:1.7rem; }
-  .hero .kicker b{ color:var(--accent); font-weight:650; }
+  h1,h2,h3{ font-family:var(--serif); font-weight:600; text-wrap:balance; letter-spacing:-.012em; }
+  h1{ font-size:clamp(2.5rem,6.4vw,4rem); line-height:1.03; margin:0; }
+  h2{ font-size:clamp(1.55rem,3.6vw,2.15rem); line-height:1.1; margin:0 0 .5rem; }
+  h3{ font-size:1.14rem; margin:0 0 .3rem; }
+  p{ margin:0 0 1.05rem; } .lead{ font-size:1.25rem; }
+  a{ color:var(--accent); text-underline-offset:3px; }
+  .eyebrow{ font-family:var(--mono); font-size:.71rem; text-transform:uppercase; letter-spacing:.24em; color:var(--accent); font-weight:600; margin:0 0 1.05rem; }
+  .muted{ color:var(--muted); } .num{ font-family:var(--mono); font-variant-numeric:tabular-nums; } strong{ font-weight:650; }
+
+  header.hero{ padding:13svh 0 6vh; position:relative; }
+  .kicker{ display:inline-flex; gap:.5rem; align-items:center; font-family:var(--mono); font-size:.72rem; letter-spacing:.13em;
+    text-transform:uppercase; color:var(--muted); border:1px solid var(--rule-2); border-radius:100px; padding:.34rem .72rem; margin-bottom:1.7rem; }
+  .kicker b{ color:var(--accent); font-weight:650; }
   .hero h1 em{ font-style:italic; color:var(--accent); }
-  .hero .sub{ font-size:1.28rem; color:var(--muted); margin-top:1.4rem; max-width:34ch; }
+  .hero .sub{ font-size:1.3rem; color:var(--muted); margin-top:1.4rem; max-width:33ch; }
 
-  section{ padding:5.5vh 0; border-top:1px solid var(--rule); }
-  section:first-of-type{ border-top:none; }
+  section{ padding:6.5vh 0; border-top:1px solid var(--rule); }
+  section.bleed{ border-top:1px solid var(--rule); }
 
-  /* close-package receipt block */
-  .receipt{ background:var(--panel); border:1px solid var(--rule-strong); border-radius:6px; overflow:hidden;
-    box-shadow:0 1px 0 var(--rule), 0 18px 40px -30px #00000055; margin:1.6rem 0; }
-  .receipt .rtop{ display:flex; flex-wrap:wrap; gap:.5rem 1rem; align-items:baseline; justify-content:space-between;
-    padding:.9rem 1.1rem; border-bottom:1px solid var(--rule); background:var(--accent-soft); }
-  .receipt .rtop .co{ font-family:var(--serif); font-size:1.15rem; font-weight:600; }
-  .receipt .rtop .pd{ font-family:var(--mono); font-size:.8rem; color:var(--muted); letter-spacing:.03em; }
-  .receipt table{ width:100%; border-collapse:collapse; }
-  .receipt td{ padding:.5rem 1.1rem; border-bottom:1px solid var(--rule); font-size:.96rem; }
-  .receipt td.n{ text-align:right; font-family:var(--mono); font-variant-numeric:tabular-nums; }
-  .receipt tr:last-child td{ border-bottom:none; }
-  .receipt tr.sub td{ font-weight:700; border-top:2px solid var(--rule-strong); }
-  .receipt tr.tie td{ color:var(--accent); font-weight:650; }
+  /* ── the governed cycle (hero pipeline) ── */
+  .cycle{ margin-top:2.6rem; position:relative; }
+  .cyclerow{ display:flex; gap:0; align-items:stretch; overflow-x:auto; padding-bottom:6px; scrollbar-width:thin; }
+  .cnode{ flex:1 0 92px; min-width:92px; position:relative; padding:.7rem .5rem .55rem; text-align:center; }
+  .cnode .dot{ width:30px; height:30px; margin:0 auto .45rem; border-radius:50%; display:grid; place-items:center;
+    font-family:var(--mono); font-size:.72rem; font-weight:650; border:1.5px solid var(--rule-2); color:var(--muted); background:var(--panel);
+    transition:transform .3s, border-color .3s, color .3s, background .3s; }
+  .cnode.auto .dot{ border-color:var(--accent); color:var(--accent); }
+  .cnode.gate .dot{ border-color:var(--amber); color:var(--amber); }
+  .cnode .lbl{ font-size:.74rem; line-height:1.25; color:var(--muted); }
+  .cnode.auto .lbl,.cnode.gate .lbl{ color:var(--ink); }
+  .cnode::before{ content:""; position:absolute; top:1.4rem; left:-50%; width:100%; height:1.5px; background:var(--rule-2); z-index:-1; }
+  .cnode:first-child::before{ display:none; }
+  .cnode.gatestart::before{ background:repeating-linear-gradient(90deg,var(--amber) 0 5px,transparent 5px 10px); }
+  .cnode:hover .dot{ transform:translateY(-3px); }
+  .handoff{ display:flex; justify-content:center; margin-top:1rem; }
+  .handoff span{ font-family:var(--mono); font-size:.72rem; color:var(--amber); border:1px dashed var(--amber); border-radius:100px; padding:.3rem .8rem; background:color-mix(in srgb,var(--amber) 8%,transparent); }
 
-  .pills{ display:flex; flex-wrap:wrap; gap:.5rem; margin:1.1rem 0 0; }
-  .pill{ font-family:var(--mono); font-size:.72rem; letter-spacing:.03em; padding:.28rem .62rem; border-radius:100px;
-    border:1px solid var(--rule-strong); color:var(--muted); }
-  .pill.ok{ color:var(--accent); border-color:var(--accent); }
-  .pill.warn{ color:var(--amber); border-color:var(--amber); }
+  /* cards / panels */
+  .panel{ background:var(--panel); border:1px solid var(--rule-2); border-radius:10px; box-shadow:0 1px 0 var(--rule),0 24px 48px -38px color-mix(in srgb,var(--ink) 60%,transparent); }
+  .receipt .rtop{ display:flex; flex-wrap:wrap; gap:.4rem 1rem; align-items:baseline; justify-content:space-between; padding:.85rem 1.15rem; border-bottom:1px solid var(--rule); background:var(--accent-soft); border-radius:10px 10px 0 0; }
+  .receipt .co{ font-family:var(--serif); font-size:1.12rem; font-weight:600; } .receipt .pd{ font-family:var(--mono); font-size:.78rem; color:var(--muted); }
+  .receipt table{ width:100%; border-collapse:collapse; } .receipt td{ padding:.5rem 1.15rem; border-bottom:1px solid var(--rule); font-size:.95rem; }
+  .receipt td.n{ text-align:right; font-family:var(--mono); font-variant-numeric:tabular-nums; } .receipt tr:last-child td{ border-bottom:none; }
+  .receipt tr.sub td{ font-weight:700; border-top:2px solid var(--rule-2); } .receipt tr.tie td{ color:var(--accent); font-weight:650; }
 
-  /* two-column compare */
-  .compare{ display:grid; grid-template-columns:1fr 1fr; gap:1px; background:var(--rule); border:1px solid var(--rule);
-    border-radius:6px; overflow:hidden; margin-top:1.4rem; }
-  .compare > div{ background:var(--panel); padding:1.1rem 1.15rem; }
-  .compare h3{ font-family:var(--mono); font-size:.74rem; text-transform:uppercase; letter-spacing:.14em; }
-  .compare .today h3{ color:var(--muted); }
-  .compare .auto h3{ color:var(--accent); }
-  .compare ul{ margin:.4rem 0 0; padding-left:1.1rem; }
-  .compare li{ margin:.4rem 0; font-size:.95rem; }
+  .pills{ display:flex; flex-wrap:wrap; gap:.5rem; margin-top:1.1rem; }
+  .pill{ font-family:var(--mono); font-size:.71rem; padding:.28rem .62rem; border-radius:100px; border:1px solid var(--rule-2); color:var(--muted); }
+  .pill.ok{ color:var(--accent); border-color:var(--accent); } .pill.warn{ color:var(--amber); border-color:var(--amber); }
+
+  /* KPI gauges */
+  .gauges{ display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-top:1.4rem; }
+  .gauge{ background:var(--panel); border:1px solid var(--rule); border-radius:10px; padding:.9rem .6rem .7rem; text-align:center; }
+  .gauge canvas{ width:88px; height:88px; }
+  .gauge .gv{ font-family:var(--mono); font-variant-numeric:tabular-nums; font-size:1.05rem; font-weight:650; margin-top:-54px; position:relative; }
+  .gauge .gk{ font-size:.72rem; color:var(--muted); margin-top:30px; }
+  @media (max-width:640px){ .gauges{ grid-template-columns:repeat(2,1fr); } }
+  @media (max-width:680px){ .closegrid{ grid-template-columns:1fr !important; } }
+
+  /* instrument band (full-bleed chart) */
+  .instr{ background:var(--panel); border:1px solid var(--rule-2); border-radius:14px; overflow:hidden; margin-top:1.6rem; }
+  .instr .head{ display:flex; flex-wrap:wrap; gap:.6rem 1rem; align-items:center; justify-content:space-between; padding:1rem 1.3rem; border-bottom:1px solid var(--rule); }
+  .instr .head h3{ margin:0; } .instr .head .sub{ font-size:.86rem; color:var(--muted); }
+  .instr .body{ padding:1.1rem 1.3rem 1.4rem; } .chartwrap{ width:100%; overflow-x:auto; }
+  .seg{ display:inline-flex; border:1px solid var(--rule-2); border-radius:100px; padding:2px; background:var(--panel-2); }
+  .seg button{ font-family:var(--mono); font-size:.74rem; border:none; background:none; color:var(--muted); padding:.34rem .8rem; border-radius:100px; cursor:pointer; transition:.2s; }
+  .seg button[aria-pressed="true"]{ background:var(--accent); color:#fff; }
+  :root[data-theme="dark"] .seg button[aria-pressed="true"]{ color:#08130f; }
+  @media (prefers-color-scheme:dark){ .seg button[aria-pressed="true"]{ color:#08130f; } }
+  .legend{ display:flex; gap:1.2rem; flex-wrap:wrap; font-size:.8rem; color:var(--muted); margin-top:.8rem; }
+  .legend i{ display:inline-block; width:11px; height:11px; border-radius:3px; margin-right:.4rem; vertical-align:-1px; }
+  .readout{ display:flex; gap:1.6rem; flex-wrap:wrap; margin-top:1rem; }
+  .readout div{ font-size:.82rem; color:var(--muted); } .readout b{ display:block; font-family:var(--mono); font-size:1.35rem; color:var(--ink); font-variant-numeric:tabular-nums; margin-top:.15rem; }
+  .readout b.pos{ color:var(--accent); } .readout b.neg{ color:var(--flag); }
+
+  /* interactive RLS isolation */
+  .rls{ display:grid; grid-template-columns:1fr 1fr; gap:1.3rem; margin-top:1.4rem; }
+  @media (max-width:720px){ .rls{ grid-template-columns:1fr; } }
+  .portfolio{ display:grid; grid-template-columns:repeat(2,1fr); gap:8px; }
+  .etile{ text-align:left; border:1px solid var(--rule-2); border-radius:9px; background:var(--panel); padding:.7rem .8rem; cursor:pointer; transition:.2s; font:inherit; }
+  .etile .en{ font-weight:650; font-size:.95rem; } .etile .ec{ font-family:var(--mono); font-size:.72rem; color:var(--muted); }
+  .etile[aria-pressed="true"]{ border-color:var(--accent); background:var(--accent-soft); }
+  .etile[aria-pressed="true"] .ec{ color:var(--accent); }
+  .viewer{ background:#0b1512; border:1px solid var(--rule-2); border-radius:10px; padding:1rem 1.1rem; font-family:var(--mono); font-size:.8rem; color:#cfe0d8; min-height:200px; }
+  :root[data-theme="light"] .viewer{ background:#0d1a16; }
+  @media (prefers-color-scheme:light){ .viewer{ background:#0d1a16; } }
+  .vrow{ display:flex; justify-content:space-between; padding:.35rem 0; border-bottom:1px solid #ffffff14; }
+  .vrow.hidden{ color:#5f7a70; } .vrow.hidden .vv{ color:#4a635a; }
+  .vrow .vv{ color:#57c9ab; font-variant-numeric:tabular-nums; }
+  .lockrow{ color:#e8705c; } .lockrow .vv{ color:#e8705c; }
+  .atk{ margin-top:.9rem; display:flex; align-items:center; gap:.6rem; font-size:.82rem; color:var(--muted); }
+  .switch{ position:relative; width:38px; height:22px; border-radius:100px; background:var(--rule-2); border:none; cursor:pointer; flex:0 0 auto; transition:.2s; }
+  .switch::after{ content:""; position:absolute; top:2px; left:2px; width:18px; height:18px; border-radius:50%; background:#fff; transition:.2s; }
+  .switch[aria-pressed="true"]{ background:var(--flag); } .switch[aria-pressed="true"]::after{ transform:translateX(16px); }
+  .atkout{ margin-top:.7rem; font-family:var(--mono); font-size:.78rem; padding:.5rem .7rem; border-radius:7px; }
+  .atkout.blocked{ color:var(--flag); background:color-mix(in srgb,var(--flag) 9%,transparent); border:1px solid var(--flag); }
+
+  /* controls stepper */
+  .stepper{ display:flex; gap:0; margin-top:1.4rem; flex-wrap:wrap; }
+  .step{ flex:1 1 130px; padding:.8rem 1rem; border:1px solid var(--rule); border-right:none; background:var(--panel); position:relative; }
+  .step:last-child{ border-right:1px solid var(--rule); border-radius:0 9px 9px 0; } .step:first-child{ border-radius:9px 0 0 9px; }
+  .step .st{ font-family:var(--mono); font-size:.68rem; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); }
+  .step .sn{ font-weight:650; margin-top:.15rem; } .step.autoc{ background:var(--accent-soft); } .step.human{ background:color-mix(in srgb,var(--amber) 7%,transparent); }
+  .step .who{ font-size:.74rem; color:var(--muted); margin-top:.2rem; }
+  .term{ background:#0b1512; color:#d7e4dd; border:1px solid var(--rule-2); border-radius:9px; font-family:var(--mono); font-size:.82rem; line-height:1.7; padding:1rem 1.1rem; overflow-x:auto; margin-top:1.3rem; }
+  .term .c{ color:#6f8a7f; } .term .g{ color:#57c9ab; } .term .r{ color:#f2836f; } .term .w{ color:#d7e4dd; }
+
+  .compare{ display:grid; grid-template-columns:1fr 1fr; gap:1px; background:var(--rule); border:1px solid var(--rule); border-radius:9px; overflow:hidden; margin-top:1.4rem; }
+  .compare>div{ background:var(--panel); padding:1.1rem 1.15rem; } .compare h3{ font-family:var(--mono); font-size:.72rem; text-transform:uppercase; letter-spacing:.13em; }
+  .compare .today h3{ color:var(--muted); } .compare .auto h3{ color:var(--accent); } .compare ul{ margin:.4rem 0 0; padding-left:1.05rem; } .compare li{ margin:.4rem 0; font-size:.93rem; }
   @media (max-width:620px){ .compare{ grid-template-columns:1fr; } }
-
-  /* governed cycle sequence */
-  ol.cycle{ list-style:none; counter-reset:step; margin:1.5rem 0 0; padding:0; }
-  ol.cycle li{ counter-increment:step; position:relative; padding:0 0 1.35rem 3.2rem; }
-  ol.cycle li::before{ content:counter(step,decimal-leading-zero); position:absolute; left:0; top:-.1rem;
-    font-family:var(--mono); font-size:.86rem; color:var(--accent); font-weight:650;
-    width:2.2rem; height:2.2rem; display:grid; place-items:center; border:1px solid var(--accent); border-radius:50%; }
-  ol.cycle li::after{ content:""; position:absolute; left:1.1rem; top:2.1rem; bottom:.1rem; width:1px; background:var(--rule-strong); }
-  ol.cycle li:last-child::after{ display:none; }
-  ol.cycle .gate{ color:var(--amber); }
-  ol.cycle h3{ font-family:var(--sans); font-size:1.02rem; font-weight:650; margin-bottom:.15rem; }
-  ol.cycle p{ margin:0; font-size:.95rem; color:var(--muted); }
-
-  /* terminal */
-  .term{ background:#0c1512; color:#d7e4dd; border:1px solid var(--rule-strong); border-radius:6px;
-    font-family:var(--mono); font-size:.82rem; line-height:1.7; padding:1rem 1.1rem; overflow-x:auto; margin:1.3rem 0; }
-  .term .c{ color:#6f8a7f; } .term .g{ color:#57c9ab; } .term .r{ color:#f2836f; } .term .a{ color:#e0b25f; } .term .w{ color:#d7e4dd; }
-  :root[data-theme="light"] .term, @media (prefers-color-scheme:light){}
-
-  .kpis{ display:grid; grid-template-columns:repeat(3,1fr); gap:1px; background:var(--rule); border:1px solid var(--rule);
-    border-radius:6px; overflow:hidden; margin:1.5rem 0; }
-  .kpis > div{ background:var(--panel); padding:1.1rem 1rem; }
-  .kpis .v{ font-family:var(--mono); font-variant-numeric:tabular-nums; font-size:1.7rem; color:var(--accent); font-weight:600; }
-  .kpis .k{ font-size:.78rem; color:var(--muted); margin-top:.2rem; }
-  @media (max-width:620px){ .kpis{ grid-template-columns:1fr; } }
-
-  .limits{ border:1px solid var(--amber); border-radius:6px; padding:.3rem 1.2rem; margin:1.4rem 0;
-    background:color-mix(in srgb,var(--amber) 7%, transparent); }
-  .limits li{ margin:.7rem 0; }
-  .limits h3{ color:var(--amber); font-family:var(--sans); font-size:1rem; }
-
-  blockquote{ font-family:var(--serif); font-size:1.5rem; line-height:1.35; font-style:italic; margin:1.5rem 0;
-    padding-left:1.2rem; border-left:3px solid var(--accent); color:var(--ink); text-wrap:balance; }
-
-  .foot{ color:var(--muted); font-size:.86rem; }
-  .foot code{ font-family:var(--mono); background:var(--accent-soft); padding:.1rem .35rem; border-radius:4px; color:var(--accent); }
-
-  .toggle{ position:fixed; top:14px; right:14px; z-index:10; font-family:var(--mono); font-size:.72rem;
-    background:var(--panel); color:var(--muted); border:1px solid var(--rule-strong); border-radius:100px;
-    padding:.35rem .7rem; cursor:pointer; }
-  .toggle:focus-visible, a:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
-
-  .reveal{ opacity:0; transform:translateY(14px); transition:opacity .7s ease, transform .7s ease; }
-  .reveal.in{ opacity:1; transform:none; }
-  @media (prefers-reduced-motion: reduce){ .reveal{ opacity:1; transform:none; transition:none; } }
-
-  .caps{ display:grid; grid-template-columns:1fr 1fr; gap:1px; background:var(--rule); border:1px solid var(--rule); border-radius:6px; overflow:hidden; margin-top:1.5rem; }
-  .cap{ background:var(--panel); padding:1.1rem 1.15rem; }
-  .cap.wide{ grid-column:1 / -1; }
-  .cap h3{ font-family:var(--serif); font-size:1.14rem; color:var(--accent); margin:0 0 .25rem; }
-  .cap > p{ font-size:.94rem; margin:0 0 .7rem; }
-  .cap dl{ margin:0 0 .6rem; display:flex; flex-direction:column; gap:0; }
-  .cap dl > div{ display:flex; justify-content:space-between; gap:.9rem; font-size:.84rem; border-top:1px solid var(--rule); padding:.34rem 0; }
-  .cap dt{ color:var(--muted); }
-  .cap dd{ margin:0; font-family:var(--mono); font-variant-numeric:tabular-nums; text-align:right; }
-  .cap .cav{ font-size:.79rem; color:var(--amber); margin:.2rem 0 0; }
-  @media (max-width:620px){ .caps{ grid-template-columns:1fr; } }
+  blockquote{ font-family:var(--serif); font-size:1.5rem; line-height:1.34; font-style:italic; margin:1.5rem 0; padding-left:1.2rem; border-left:3px solid var(--accent); text-wrap:balance; }
+  .limits{ border:1px solid var(--amber); border-radius:9px; padding:.3rem 1.2rem; margin:1.4rem 0; background:color-mix(in srgb,var(--amber) 6%,transparent); }
+  .limits li{ margin:.7rem 0; } .limits h3{ color:var(--amber); font-family:var(--sans); font-size:1rem; }
+  .foot{ color:var(--muted); font-size:.85rem; } .foot code,code{ font-family:var(--mono); background:var(--accent-soft); padding:.1rem .35rem; border-radius:4px; color:var(--accent); font-size:.86em; }
+  .reveal{ opacity:0; transform:translateY(16px); transition:opacity .7s ease,transform .7s ease; } .reveal.in{ opacity:1; transform:none; }
+  @media (prefers-reduced-motion:reduce){ .reveal{ opacity:1; transform:none; transition:none; } }
 </style>
 
-<div class="rail" aria-hidden="true"></div>
+<div class="rail" aria-hidden="true"></div><div id="prog" aria-hidden="true"></div>
 <button class="toggle" id="tg" aria-label="Toggle light and dark theme">◐ theme</button>
 
 <div class="wrap">
-
   <header class="hero">
-    <span class="kicker">The Close Autopilot · <b>finance</b> plugin</span>
+    <span class="kicker">The Close Autopilot · <b>finance</b> plugin · v0.17</span>
     <h1>The close, <em>governed</em> — you review, it does the rest.</h1>
-    <p class="sub">A controller installs one plugin, points it at the books, and gets a review-ready close package with the controls already enforced. Not another dashboard. The whole cycle, as one auditable run.</p>
-    <div class="pills">
-      <span class="pill ok">statements</span><span class="pill ok">reconciliations</span>
-      <span class="pill ok">flux commentary</span><span class="pill ok">SoD-enforced sign-off</span>
-      <span class="pill ok">hash-chained audit log</span><span class="pill ok">multi-entity consolidation</span>
-      <span class="pill ok">recon auto-match</span><span class="pill ok">per-entity dashboards</span>
+    <p class="sub">A controller installs one plugin, points it at the books, and gets a review-ready close with the controls already enforced. Every number below is real output.</p>
+    <div class="cycle reveal">
+      <div class="cyclerow" id="cyclerow"></div>
+      <div class="handoff"><span>◂ the machine stops here · your judgment begins ▸</span></div>
     </div>
   </header>
+</div>
 
-  <section class="reveal">
-    <p class="eyebrow">One command · one review surface</p>
-    <h2>This is a real close it produced.</h2>
-    <p class="muted">Meridian Robotics' June close — trial balance in, review-ready package out, in a single run. Every figure below is from the actual engine output, not a mockup.</p>
-    <div class="receipt" role="table" aria-label="Sample close package">
-      <div class="rtop"><span class="co">Meridian Robotics Inc.</span><span class="pd num">Close · 2026-06 · USD · state: submitted</span></div>
+<section class="bleed"><div class="band reveal">
+  <p class="eyebrow">One command · one review surface</p>
+  <h2>This is a real close it produced.</h2>
+  <p class="muted" style="max-width:60ch">Meridian Robotics' June close — trial balance in, review-ready package out, in a single run. The balance sheet ties to the cent; the KPIs derive only from the package's own subtotals.</p>
+  <div style="display:grid;grid-template-columns:1.15fr 1fr;gap:1.4rem;align-items:start" class="closegrid">
+    <div class="panel receipt">
+      <div class="rtop"><span class="co">Meridian Robotics Inc.</span><span class="pd">2026-06 · USD · submitted</span></div>
       <table>
         <tr><td>Revenue</td><td class="n">1,500,000.00</td></tr>
         <tr><td>Cost of goods sold</td><td class="n">600,000.00</td></tr>
@@ -179,197 +193,280 @@
         <tr class="sub"><td>Operating income</td><td class="n">300,000.00</td></tr>
         <tr><td>Other income / (expense), net</td><td class="n">(30,000.00)</td></tr>
         <tr><td>Income tax expense</td><td class="n">67,500.00</td></tr>
-        <tr class="sub"><td>Net income</td><td class="n">202,500.00</td></tr>
+        <tr class="sub"><td>Net income</td><td class="n" id="ni-count" data-to="202500">0.00</td></tr>
         <tr class="tie"><td>Balance sheet check (A − L − E)</td><td class="n">0.00</td></tr>
       </table>
     </div>
-    <div class="pills">
-      <span class="pill ok">GL-detail-traced</span>
-      <span class="pill warn">cash flow: unaudited draft</span>
-      <span class="pill warn">1 reconciliation flag</span>
-      <span class="pill">12 material flux lines</span>
-    </div>
-    <p class="foot" style="margin-top:1rem">The one flag is real: inventory booked at <span class="num">280,000</span> against a sub-ledger of <span class="num">250,000</span> — a <span class="num">30,000</span> break over the <span class="num">25,000</span> materiality threshold, surfaced for you to clear. Everything within materiality auto-passes. You review the exceptions, not the ledger.</p>
-  </section>
-
-  <section class="reveal">
-    <p class="eyebrow">The shift</p>
-    <h2>From assembling the close to approving it.</h2>
-    <div class="compare">
-      <div class="today">
-        <h3>The close today</h3>
-        <ul>
-          <li>Pull the trial balance, wrangle it into statements by hand or across three tools.</li>
-          <li>Reconcile every account, eyeball each tie-out.</li>
-          <li>Write flux commentary line by line.</li>
-          <li>Chase sign-offs over email; the control lives in a policy doc, not the workflow.</li>
-          <li>Assemble the package. Then start next month.</li>
-        </ul>
-      </div>
-      <div class="auto">
-        <h3>With the autopilot</h3>
-        <ul>
-          <li>One command produces statements, reconciliations, and the flux table.</li>
-          <li>Tie-outs auto-pass within materiality; only breaks are flagged.</li>
-          <li>The package is submitted into a sign-off workflow that <strong>enforces</strong> segregation of duties.</li>
-          <li>You get a single review surface and clear it. Next month is the same command.</li>
-          <li>Instantiate it again for the next entity by adding a config — no rebuild.</li>
-        </ul>
+    <div>
+      <div class="gauges" id="gauges"></div>
+      <div class="pills">
+        <span class="pill ok">GL-detail-traced</span><span class="pill warn">CF: unaudited draft</span>
+        <span class="pill warn">1 reconciliation flag</span><span class="pill">12 material flux lines</span>
       </div>
     </div>
-  </section>
+  </div>
+  <p class="foot" style="margin-top:1rem">The one flag is real: inventory booked at <span class="num">280,000</span> vs a sub-ledger of <span class="num">250,000</span> — a <span class="num">30,000</span> break over the <span class="num">25,000</span> materiality threshold, surfaced for you. Everything within materiality auto-passes. <strong>You review the exceptions, not the ledger.</strong></p>
+</div></section>
 
-  <section class="reveal">
-    <p class="eyebrow">The governed cycle</p>
-    <h2>Eight steps. The last three are yours.</h2>
-    <p class="muted">Order matters here — each step gates the next, and the machine stops where your judgment begins.</p>
-    <ol class="cycle">
-      <li><h3>Ingest the trial balance</h3><p>Drop in a CSV, or let the staging engine normalize a raw QuickBooks / NetSuite / Sage Intacct / Xero export — different vendor shapes come out byte-identical, and an unbalanced export is rejected before it reaches the close. Live OAuth pulls are next.</p></li>
-      <li><h3>Validate the mapping</h3><p>Every account must map to a statement line. The run blocks on an unmapped account rather than guessing.</p></li>
-      <li><h3>Produce the statements</h3><p>Income statement, balance sheet, and a clearly-labelled draft cash flow — tested on the subtotals, not just that it balances.</p></li>
-      <li><h3>Reconcile &amp; flux</h3><p>Book vs sub-ledger tie-outs and period-over-period movement, both filtered to your materiality threshold.</p></li>
-      <li><h3>Assemble the package</h3><p>A self-contained close package you can open offline or email to a reviewer.</p></li>
-      <li><h3>Submit</h3><p>The automated cycle ends here. It <strong>only</strong> submits — it can never approve its own work.</p></li>
-      <li><h3 class="gate">Review &amp; approve</h3><p>A different person than the preparer, above the threshold. The workflow refuses a self-approval outright.</p></li>
-      <li><h3 class="gate">Lock</h3><p>Sealed with an out-of-band token and written to an append-only, tamper-evident audit log.</p></li>
-    </ol>
-  </section>
+<section class="bleed"><div class="band reveal">
+  <p class="eyebrow">Multi-currency · ASC 830 / IAS 21</p>
+  <h2>Same books, two methods — and the FX effect lands in different places.</h2>
+  <p class="muted" style="max-width:62ch">A EUR subsidiary, one trial balance. The method you choose — driven by the functional-currency call — decides whether the currency effect hits <strong>equity</strong> (a CTA) or <strong>net income</strong> (a remeasurement gain/loss). This is fully-tested logic; the FORGE review independently re-derived both results.</p>
+  <div class="instr">
+    <div class="head">
+      <div><h3>Currency effect by method</h3><div class="sub">EUR sub · closing 1.10 · average 1.05 · functional net assets €1,500</div></div>
+      <div class="seg" role="group" aria-label="translation method">
+        <button id="m-cur" aria-pressed="true">Current-rate (translate)</button>
+        <button id="m-tmp" aria-pressed="false">Temporal (remeasure)</button>
+      </div>
+    </div>
+    <div class="body">
+      <div class="chartwrap"><canvas id="fxchart" height="300" aria-label="Currency method comparison chart"></canvas></div>
+      <div class="legend"><span><i style="background:var(--accent)"></i>Net income</span><span><i style="background:var(--teal)"></i>Equity / OCI (CTA)</span><span><i style="background:var(--flag)"></i>Remeasurement loss → income</span></div>
+      <div class="readout">
+        <div>Net income<b id="fx-ni" class="pos">$1,050</b></div>
+        <div id="fx-plug-wrap">Cumulative translation adj. (equity)<b id="fx-plug" class="pos">+$200</b></div>
+        <div>Balance check<b class="pos">$0.00</b></div>
+      </div>
+      <p class="foot" id="fx-note" style="margin:1rem 0 0">Current-rate: all assets &amp; liabilities at the closing rate, income at the average, equity at historical — the plug is a <strong>+$200 CTA to equity</strong>. Net income is untouched at $1,050.</p>
+    </div>
+  </div>
+</div></section>
 
+<section class="bleed"><div class="band reveal">
+  <p class="eyebrow">Consolidation · intercompany elimination</p>
+  <h2>Roll up the group — with the double-counting stripped out.</h2>
+  <p class="muted" style="max-width:60ch">Two entities, one group. The €200K intercompany service billing and the €100K intercompany loan are counted in both books — and eliminated to exactly zero at the group level, so revenue and assets aren't overstated. The consolidated balance sheet still ties.</p>
+  <div class="instr"><div class="head"><div><h3>Group revenue — the elimination bridge</h3><div class="sub">pre-elimination → intercompany removed → consolidated</div></div></div>
+    <div class="body"><div class="chartwrap"><canvas id="consol" height="280" aria-label="Consolidation elimination bridge"></canvas></div>
+    <div class="readout"><div>Intercompany eliminated<b class="neg">−$300,000</b></div><div>Group revenue<b>$1,400,000</b></div><div>Consolidated balance<b class="pos">$0.00</b></div></div></div>
+  </div>
+</div></section>
+
+<section class="bleed"><div class="band reveal">
+  <p class="eyebrow">Multi-entity access · proven against a real Postgres</p>
+  <h2>You see only your entities — even with an explicit filter.</h2>
+  <p class="muted" style="max-width:60ch">Grant a controller a portfolio and the warehouse shows only those entities; the rest are invisible at the database, not just hidden in the UI. Toggle the grants below, then try to peek at an entity you weren't given.</p>
+  <div class="rls">
+    <div>
+      <div class="portfolio" id="portfolio"></div>
+      <div class="atk">
+        <button class="switch" id="atk" aria-pressed="false" aria-label="Attempt an explicit cross-entity query"></button>
+        <span>Attacker mode: query an <strong>ungranted</strong> entity directly (<code>WHERE entity_id = Zephyr</code>)</span>
+      </div>
+      <div class="atkout blocked" id="atkout" hidden></div>
+    </div>
+    <div>
+      <div class="viewer" id="viewer" aria-live="polite"></div>
+      <p class="foot" style="margin:.8rem 0 0">Enforced by Postgres <code>FORCE ROW LEVEL SECURITY</code> — <strong>proven</strong>: in a containerized run a granted-A viewer's explicit filter for B returned <span class="num">0</span> rows. The database is the cut, never the render layer.</p>
+    </div>
+  </div>
+</div></section>
+
+<div class="wrap">
   <section class="reveal">
     <p class="eyebrow">The part that actually matters</p>
     <h2>Controls enforced in code, not written in a policy.</h2>
-    <p>In 2025 an AP automation agent released roughly <span class="num">$92,000</span> in payments despite documentation saying it couldn't. That is the difference between a control that is <em>documented</em> and one that is <em>enforced</em>. Here the segregation of duties is the code path — the same person cannot prepare and approve a material package. Try it, and the workflow refuses:</p>
+    <p>The automated cycle performs one action — <strong>submit</strong>. Advancing it is a separate, human step, and the same person cannot prepare and approve a material package. That's a code path, not a paragraph.</p>
+    <div class="stepper">
+      <div class="step autoc"><div class="st">Automated</div><div class="sn">Submit</div><div class="who">the autopilot · only this</div></div>
+      <div class="step human"><div class="st">Human</div><div class="sn">Review</div><div class="who">a reviewer</div></div>
+      <div class="step human"><div class="st">Human · SoD</div><div class="sn">Approve</div><div class="who">≠ preparer, above threshold</div></div>
+      <div class="step human"><div class="st">Human</div><div class="sn">Lock</div><div class="who">out-of-band token</div></div>
+    </div>
     <div class="term" role="img" aria-label="Terminal showing a segregation-of-duties refusal">
-      <div><span class="c">$ close_state.py --run-dir ./close approve --actor alice --threshold 100000</span></div>
+      <div><span class="c">$ close_state.py approve --actor alice --threshold 100000</span></div>
       <div><span class="r">REFUSED (SoD):</span> <span class="w">actor 'alice' is the preparer and package amount</span></div>
-      <div><span class="w">500,000.00 &gt;= threshold 100,000.00. A different approver is required.</span></div>
+      <div><span class="w">500,000.00 ≥ threshold 100,000.00. A different approver is required.</span></div>
       <div>&nbsp;</div>
       <div><span class="c"># and the audit trail cannot be quietly rewritten:</span></div>
-      <div><span class="c">$ close_state.py --run-dir ./close verify</span></div>
+      <div><span class="c">$ close_state.py verify</span></div>
       <div><span class="r">FAIL:</span> <span class="w">line 1: hash mismatch (event 'submit' tampered)</span></div>
     </div>
-    <p class="muted">Every state change — submit, review, approve, reject, lock — is appended to a hash-chained log. Edit any past line and the chain breaks; <code style="font-family:var(--mono)">verify</code> catches it. That is the audit backbone a controller signs their name against.</p>
+    <p class="muted" style="margin-top:1rem">Every state change is appended to a hash-chained log; edit any past line and <code>verify</code> catches it. That's the backbone a controller signs their name against.</p>
   </section>
 
   <section class="reveal">
     <p class="eyebrow">Proven, not asserted</p>
     <h2>It ships with its own tests.</h2>
-    <div class="kpis">
-      <div><div class="v">121/121</div><div class="k">acceptance tests passing across 7 suites — controls, classification, matching, consolidation, schedules</div></div>
-      <div><div class="v">0.00</div><div class="k">balance-sheet tie, to the cent, every run — and consolidation eliminations that net to zero</div></div>
-      <div><div class="v">1&nbsp;config</div><div class="k">to instantiate the next entity — no code change</div></div>
+    <div class="gauges" style="grid-template-columns:repeat(3,1fr)">
+      <div class="gauge" style="padding:1.1rem .6rem"><div style="font-family:var(--mono);font-size:1.9rem;color:var(--accent);font-weight:650">272</div><div class="gk" style="margin-top:.3rem">acceptance tests across the autopilot, all green</div></div>
+      <div class="gauge" style="padding:1.1rem .6rem"><div style="font-family:var(--mono);font-size:1.9rem;color:var(--accent);font-weight:650">0.00</div><div class="gk" style="margin-top:.3rem">balance-sheet tie, every run — and eliminations that net to zero</div></div>
+      <div class="gauge" style="padding:1.1rem .6rem"><div style="font-family:var(--mono);font-size:1.9rem;color:var(--accent);font-weight:650">1&nbsp;config</div><div class="gk" style="margin-top:.3rem">to instantiate the next entity — no code change</div></div>
     </div>
-    <p>The engine is tested where correctness actually lives. A balanced trial balance produces a balanced balance sheet no matter how accounts are mapped — so "it balances" proves nothing about classification. The suite deliberately mis-maps an account and confirms the <strong>subtotals</strong> catch it while the balance check, as expected, does not. That is the honest test, and it passes.</p>
-  </section>
-
-  <section class="reveal">
-    <p class="eyebrow">The full close, engine by engine</p>
-    <h2>Every lane of the close — and it foots.</h2>
-    <p class="muted">The autopilot isn't one trick. Each stage is a runnable engine, and every figure below is from an actual run on a synthetic entity — nothing invented.</p>
-    <div class="caps">
-
-      <div class="cap">
-        <h3>Multi-entity consolidation</h3>
-        <p>Roll subsidiaries into one group P&amp;L and balance sheet, with intercompany double-counting stripped out automatically.</p>
-        <dl>
-          <div><dt>Intercompany eliminated</dt><dd>$300,000 → $0</dd></div>
-          <div><dt>Group revenue, pre → consolidated</dt><dd>$1.60M → $1.40M</dd></div>
-          <div><dt>Consolidated balance check</dt><dd>$0.00 ✓</dd></div>
-        </dl>
-        <p class="cav">Draft consolidation — no multi-currency remeasurement; a EUR sub's CTA is prepared separately.</p>
-      </div>
-
-      <div class="cap">
-        <h3>Reconciliation auto-match</h3>
-        <p>Ties GL to sub-ledger, clears what reconciles within materiality, and escalates only the account that doesn't.</p>
-        <dl>
-          <div><dt>Accounts auto-certified</dt><dd>3 of 4</dd></div>
-          <div><dt>Line groups matched</dt><dd>4 exact · 1 tol · 1 grouped</dd></div>
-          <div><dt>Break flagged (blocks close)</dt><dd>$30,000 AP · exit 3</dd></div>
-        </dl>
-        <p class="cav">Materiality ($25,000) is config-asserted; every flagged account still needs a human to clear it.</p>
-      </div>
-
-      <div class="cap">
-        <h3>Close schedules</h3>
-        <p>Fixed-asset depreciation, prepaid amortization, and deferred-revenue waterfalls — each self-proving.</p>
-        <dl>
-          <div><dt>Depreciation NBV</dt><dd>84k + 48k − 15k = 117k ✓</dd></div>
-          <div><dt>Deferred-rev waterfall</dt><dd>38k + 36k − 11k = 63k ✓</dd></div>
-          <div><dt>Schedules that tie</dt><dd>3 of 3 · residual $0</dd></div>
-        </dl>
-        <p class="cav">Straight-line draft schedules from summarized inputs — not a sub-ledger reconciled to the GL.</p>
-      </div>
-
-      <div class="cap">
-        <h3>Per-entity dashboard</h3>
-        <p>A one-file, e-mailable dashboard per entity — headline KPIs over the statements and exceptions behind them.</p>
-        <dl>
-          <div><dt>KPIs</dt><dd>net 13.5% · gross 60% · current 3.44×</dd></div>
-          <div><dt>Self-contained</dt><dd>10.9 KB · 0 external links</dd></div>
-          <div><dt>Missing input</dt><dd>shows n/a, never plugged</dd></div>
-        </dl>
-        <p class="cav">Rendered from an un-locked, self-certified TB-derived package; the cash-flow section is an unaudited draft.</p>
-      </div>
-
-      <div class="cap wide">
-        <h3>Finance-shaped ELT staging</h3>
-        <p>Point it at whatever your accounting system exports — two entirely different vendor shapes come out as the exact same clean trial balance, and a broken export never reaches the close.</p>
-        <dl>
-          <div><dt>Source shapes → one canonical schema</dt><dd>NetSuite + QBO → byte-identical (matching sha256)</dd></div>
-          <div><dt>Feeds the statement engine</dt><dd>lint-map OK — every account maps to a line</dd></div>
-          <div><dt>Unbalanced export</dt><dd>rejected up front — exit 4, out-of-balance delta named</dd></div>
-        </dl>
-        <p class="cav">Deterministic plumbing; entity / currency / period dimensions are stamped from the column-map, not independently verified.</p>
-      </div>
-
-    </div>
+    <p>Correctness is tested where it actually lives. A balanced trial balance produces a balanced balance sheet no matter how accounts are mapped — so "it balances" proves nothing about classification. The suite deliberately mis-maps an account and confirms the <strong>subtotals</strong> catch it. And the row-level security isn't asserted — it's <strong>executed against a real Postgres</strong> and returns zero rows for an ungranted entity.</p>
   </section>
 
   <section class="reveal">
     <p class="eyebrow">Where it sits among the tools you know</p>
     <h2>Not a bigger BlackLine. A different shape.</h2>
-    <p>BlackLine and Trintech own the SOX controls backbone — and cost six figures and six months to stand up, a poor fit below roughly <span class="num">$250M</span> in revenue. FloQast and Numeric auto-match reconciliations to <span class="num">90–98%</span> and let you review by exception. Ramp, Vic.ai, and BILL confidence-gate accounts payable. Each is excellent at its one lane.</p>
-    <blockquote>None of them runs ingest → reconcile → close → statements → controls → locked-and-approved as a single governed cycle for a lean mid-market team. That seam is the product.</blockquote>
-    <p class="muted">And the pitch stays honest: producing statements from a ledger is a commodity — every accounting system already does it. The value is the <strong>governed cycle</strong>, the <strong>enforced controls</strong>, and the reusable per-entity mapping — delivered as plugin artifacts you install in minutes.</p>
+    <p>BlackLine and Trintech own the SOX controls backbone — and cost six figures and six months to stand up, a poor fit below roughly <span class="num">$250M</span> in revenue. FloQast and Numeric auto-match reconciliations to <span class="num">90–98%</span>. Ramp, Vic.ai, and BILL confidence-gate accounts payable. Each is excellent at its one lane.</p>
+    <blockquote>None runs ingest → reconcile → close → statements → controls → consolidation → locked-and-approved as a single governed cycle for a lean mid-market team. That seam is the product.</blockquote>
+    <p class="muted">Producing statements from a ledger is a commodity — every accounting system does it. The value is the <strong>governed cycle</strong>, the <strong>enforced controls</strong>, and the reusable per-entity mapping — installed in minutes.</p>
   </section>
 
   <section class="reveal">
     <p class="eyebrow">What it is not</p>
     <h2>The honest edges.</h2>
-    <p>A controller signs their name to these numbers, so here is exactly where the line is — stated plainly rather than buried.</p>
-    <div class="limits">
-      <ul>
-        <li><h3>It does not replace the judgment that produces the trial balance.</h3>Accruals, cutoff, estimates, and the reconciliations that turn a raw GL into a <em>reconciled</em> TB stay yours. It governs and reports the close; it doesn't invent the accounting.</li>
-        <li><h3>Local-tier sign-off is tamper-<em>evident</em>, not tamper-<em>preventing</em>.</h3>Identity is config-asserted until it's wired to your identity provider. The hash chain detects edits; auditor-grade segregation arrives with the warehouse tier.</li>
-        <li><h3>Statements from a trial balance alone are not audit-traceable.</h3>They're badged as such. Drill-through from a statement line to the underlying journal entries comes with the live ELT connection.</li>
-        <li><h3>Nothing posts to your ledger or moves money.</h3>Review-and-approve by design. It proposes; you dispose.</li>
-      </ul>
-    </div>
+    <p>A controller signs their name to these numbers, so here is exactly where the line is.</p>
+    <div class="limits"><ul>
+      <li><h3>It doesn't replace the judgment that produces the trial balance.</h3>Accruals, cutoff, estimates, and the reconciliations that turn a raw GL into a <em>reconciled</em> TB stay yours.</li>
+      <li><h3>The live tier ships as tested reference implementations.</h3>Multi-currency is fully-tested logic. The connectors, the warehouse dashboard, and the IdP sign-off are tested against mocks and a containerized Postgres — the live wiring (your OAuth tenants, your Cube instance, your identity provider) is your first-light step, with a checklist for each.</li>
+      <li><h3>Local-tier sign-off is tamper-<em>evident</em>, not tamper-<em>preventing</em>.</h3>Identity is config-asserted until wired to your IdP; auditor-grade segregation needs your identity provider and an immutable store.</li>
+      <li><h3>Nothing posts to your ledger or moves money.</h3>Review-and-approve by design. It proposes; you dispose.</li>
+    </ul></div>
   </section>
 
   <section class="reveal">
     <p class="eyebrow">Roadmap</p>
-    <h2>What's live — and what's next.</h2>
-    <p><strong>Live today:</strong> statement production · COA-mapping authoring &amp; validation · reconciliation, flux, and GL-to-sub-ledger auto-match with threshold auto-certification · the enforced review→approve→lock workflow with a hash-chained audit log · finance-shaped ELT staging that normalizes any vendor export · multi-entity consolidation with intercompany elimination · per-entity dashboards · depreciation / prepaid / deferred-revenue schedules · and a secrets/PII scan gate. All of it runnable, all of it tested.</p>
-    <p><strong>Now shipped (v0.17):</strong> multi-currency remeasurement + CTA (ASC 830 / IAS 21) as fully-tested logic; and — as tested reference implementations you wire to your own systems — OAuth GL connectors (QuickBooks / NetSuite / Sage Intacct / Xero) with statement-line → journal-entry drill-through lineage, a warehouse-backed multi-tenant dashboard whose entity-level row-level security is <strong>proven against a real Postgres</strong> (a controller granted one entity cannot see another, even with an explicit filter), and identity-provider-backed segregation of duties. Each is honest about the line: the logic is tested here; the live wiring — your OAuth tenants, your warehouse, your IdP — is your step, and each ships a first-light checklist for it.</p>
-    <p class="muted"><strong>Genuinely next (yours to wire):</strong> record your provider's fixtures once to go live on the connectors; stand up the warehouse + Cube denial test; and connect your identity provider (RS256/JWKS) for auditor-grade, tamper-resistant sign-off.</p>
-    <p class="foot" style="margin-top:1.8rem">Built for the <code>finance</code> plugin, v0.16.0 · every figure on this page traces to a committed, re-runnable transcript. Outputs are decision-support, not an audit or tax opinion.</p>
+    <h2>What's live — and what's yours to wire.</h2>
+    <p><strong>Now shipped (v0.17):</strong> the full close-to-report cycle, multi-currency remeasurement + CTA (fully tested), OAuth GL connectors + drill-through lineage, a warehouse dashboard with entity-level RLS <strong>proven against a real Postgres</strong>, and IdP-backed segregation of duties — reference implementations, each honest about the line between tested logic and live wiring.</p>
+    <p class="muted"><strong>Genuinely next (yours):</strong> record your provider's fixtures once to go live on the connectors; stand up the warehouse + Cube denial test; connect your identity provider (RS256/JWKS) for auditor-grade, tamper-resistant sign-off.</p>
+    <p class="foot" style="margin-top:1.8rem">Built for the <code>finance</code> plugin, v0.17.1 · 272 tests + a containerized RLS denial runner, all green · every figure traces to a committed, re-runnable transcript. Decision-support, not an audit or tax opinion.</p>
   </section>
-
 </div>
 
 <script>
-  (function(){
-    var root=document.documentElement, tg=document.getElementById('tg');
-    tg.addEventListener('click',function(){
-      var cur=root.getAttribute('data-theme');
-      if(!cur){ cur = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark':'light'; }
-      root.setAttribute('data-theme', cur==='dark'?'light':'dark');
+(function(){
+  var root=document.documentElement, RM=matchMedia('(prefers-reduced-motion:reduce)').matches;
+  function C(n){ return getComputedStyle(root).getPropertyValue('--'+n).trim(); }
+  document.getElementById('tg').addEventListener('click',function(){
+    var cur=root.getAttribute('data-theme')||(matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');
+    root.setAttribute('data-theme',cur==='dark'?'light':'dark'); redrawAll();
+  });
+  // scroll progress
+  addEventListener('scroll',function(){ var h=document.body.scrollHeight-innerHeight; document.getElementById('prog').style.width=(h>0?scrollY/h*100:0)+'%'; },{passive:true});
+
+  // governed cycle
+  var STEPS=[['01','Ingest','auto'],['02','Map','auto'],['03','Statements','auto'],['04','Reconcile','auto'],['05','Package','auto'],['06','Submit','auto gatestart'],['07','Review','gate'],['08','Approve · Lock','gate']];
+  var cr=document.getElementById('cyclerow');
+  STEPS.forEach(function(s,i){ var d=document.createElement('div'); d.className='cnode '+s[2];
+    d.innerHTML='<div class="dot">'+s[0]+'</div><div class="lbl">'+s[1]+'</div>'; cr.appendChild(d);
+    if(!RM){ d.style.opacity=0; d.style.transform='translateY(8px)'; setTimeout(function(){ d.style.transition='.45s'; d.style.opacity=1; d.style.transform='none'; }, 260+i*90); }
+  });
+
+  // ── canvas helpers ──
+  function fit(cv){ var w=cv.parentNode.clientWidth||cv.clientWidth; var dpr=Math.min(devicePixelRatio||1,2);
+    cv.width=w*dpr; cv.style.width=w+'px'; var h=cv.height; if(cv.dataset.h) h=+cv.dataset.h; else{cv.dataset.h=h;} cv.height=h*dpr;
+    var ctx=cv.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0); return {ctx:ctx,w:w,h:h}; }
+  function rr(ctx,x,y,w,h,r){ r=Math.min(r,Math.abs(w)/2,Math.abs(h)/2); ctx.beginPath();
+    ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
+  function ease(t){ return 1-Math.pow(1-t,3); }
+  function animate(dur,step){ if(RM){ step(1); return; } var t0=performance.now();
+    (function fr(now){ var p=Math.min((now-t0)/dur,1); step(ease(p)); if(p<1) requestAnimationFrame(fr); })(t0); }
+
+  // ── FX method comparison ──
+  var fxMethod='current';
+  var fxData={
+    current:{ ni:1050, plug:200, plugTo:'equity', bars:[{l:'Net income',v:1050,c:'accent'},{l:'CTA → equity',v:200,c:'teal'}],
+      note:'Current-rate: all assets &amp; liabilities at the closing rate, income at the average, equity at historical — the plug is a <strong>+$200 CTA to equity</strong>. Net income is untouched at $1,050.' },
+    temporal:{ ni:970, plug:-80, plugTo:'income', bars:[{l:'Net income',v:970,c:'accent'},{l:'Remeasure → income',v:-80,c:'flag'}],
+      note:'Temporal: monetary items at closing, non-monetary held at <strong>historical</strong> cost — the plug is an <strong>−$80 remeasurement loss to net income</strong>, dropping it to $970. No CTA.' }
+  };
+  var fxc=document.getElementById('fxchart');
+  function drawFX(prog){ var g=fit(fxc), ctx=g.ctx, W=g.w, H=g.h; ctx.clearRect(0,0,W,H);
+    var d=fxData[fxMethod==='current'?'current':'temporal'];
+    var pad=42, baseY=H-38, top=24, maxV=1050, zeroAtTop=false;
+    var cols=[{l:'Net income',v:d.ni,c:C('accent')},{l:(fxMethod==='current'?'Equity / OCI (CTA)':'Remeasurement → income'),v:d.plug,c:(d.plug<0?C('flag'):C('teal'))}];
+    var bw=Math.min(150,(W-pad*2)/cols.length-40), gap=(W-pad*2-bw*cols.length)/(cols.length-1);
+    // baseline for the plug bars: measured from zero; NI from bottom
+    var scale=(baseY-top)/maxV;
+    ctx.strokeStyle=C('grid'); ctx.lineWidth=1;
+    // zero line
+    ctx.beginPath(); ctx.moveTo(pad,baseY); ctx.lineTo(W-pad,baseY); ctx.stroke();
+    ctx.font='12px '+C('mono')+',monospace'; ctx.textAlign='center';
+    cols.forEach(function(col,i){ var x=pad+i*(bw+gap); var val=col.v*prog;
+      var hgt=Math.abs(val)*scale; var y=val>=0? baseY-hgt : baseY;
+      ctx.fillStyle=col.c; rr(ctx,x,y,bw,Math.max(hgt,1),6); ctx.fill();
+      ctx.fillStyle=C('ink'); ctx.font='700 15px '+C('mono')+',monospace';
+      var lab=(col.v<0?'−$':'+$'); if(i===0) lab='$'; lab+=Math.round(Math.abs(col.v)).toLocaleString();
+      ctx.fillText(lab, x+bw/2, (val>=0?y-9:baseY+hgt+18));
+      ctx.fillStyle=C('muted'); ctx.font='12px '+C('sans')+',sans-serif';
+      ctx.fillText(col.l, x+bw/2, baseY+22);
     });
-    var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}});},{threshold:.12});
-    document.querySelectorAll('.reveal').forEach(function(el){io.observe(el);});
-  })();
+  }
+  function setFX(m){ fxMethod=m; document.getElementById('m-cur').setAttribute('aria-pressed',m==='current');
+    document.getElementById('m-tmp').setAttribute('aria-pressed',m==='temporal');
+    var d=fxData[m==='current'?'current':'temporal'];
+    var ni=document.getElementById('fx-ni'), plug=document.getElementById('fx-plug'), pw=document.getElementById('fx-plug-wrap');
+    ni.textContent='$'+d.ni.toLocaleString(); ni.className=(m==='temporal'?'':'pos');
+    plug.textContent=(d.plug<0?'−$':'+$')+Math.abs(d.plug); plug.className=(d.plug<0?'neg':'pos');
+    pw.childNodes[0].nodeValue=(m==='current'?'Cumulative translation adj. (equity)':'Remeasurement gain/loss (net income)');
+    document.getElementById('fx-note').innerHTML=d.note;
+    animate(650,drawFX);
+  }
+  document.getElementById('m-cur').addEventListener('click',function(){ setFX('current'); });
+  document.getElementById('m-tmp').addEventListener('click',function(){ setFX('temporal'); });
+
+  // ── consolidation bridge ──
+  var consolDrawn=false, cc=document.getElementById('consol');
+  // proper running-total waterfall: each floating bar spans [runStart, runEnd]
+  function drawConsol(prog){ var g=fit(cc),ctx=g.ctx,W=g.w,H=g.h; ctx.clearRect(0,0,W,H);
+    var steps=[{l:'Parent',v:1200,total:true},{l:'+ Subsidiary',v:400},{l:'− Intercompany',v:-200},{l:'Consolidated',v:1400,total:true}];
+    var pad=46, baseY=H-40, top=28, maxV=1650, scale=(baseY-top)/maxV;
+    ctx.strokeStyle=C('grid'); ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(pad,baseY); ctx.lineTo(W-pad,baseY); ctx.stroke();
+    var n=steps.length, bw=Math.min(118,(W-pad*2)/n-22), gap=(W-pad*2-bw*n)/(n-1), run=0, prevRunY=baseY;
+    steps.forEach(function(s,i){ var x=pad+i*(bw+gap), rStart, rEnd, col;
+      if(s.total){ rStart=0; rEnd=s.v; run=s.v; col=(i===0?C('teal'):C('accent')); }
+      else{ rStart=run; rEnd=run+s.v; run=rEnd; col=(s.v<0?C('flag'):C('teal')); }
+      var yTop=baseY-Math.max(rStart,rEnd)*scale, yBot=baseY-Math.min(rStart,rEnd)*scale;
+      var full=yBot-yTop, h=full*prog, y=yBot-h; // grow from its lower edge
+      ctx.fillStyle=col; rr(ctx,x,y,bw,Math.max(h,1),5); ctx.fill();
+      if(i>0 && prog>.85){ ctx.strokeStyle=C('rule-2'); ctx.setLineDash([3,3]); ctx.beginPath();
+        var connY=baseY-rStart*scale; ctx.moveTo(x-gap,connY); ctx.lineTo(x,connY); ctx.stroke(); ctx.setLineDash([]); }
+      ctx.fillStyle=C('ink'); ctx.font='700 13px '+C('mono')+',monospace'; ctx.textAlign='center';
+      if(prog>.7) ctx.fillText((s.v<0?'−':'')+'$'+Math.abs(s.v)+'K', x+bw/2, yTop-8);
+      ctx.fillStyle=C('muted'); ctx.font='12px '+C('sans')+',sans-serif'; ctx.fillText(s.l, x+bw/2, baseY+22);
+    });
+  }
+
+  // ── KPI gauges ──
+  var GA=[{k:'Net margin',v:13.5,max:30,suf:'%'},{k:'Gross margin',v:60,max:100,suf:'%'},{k:'Current ratio',v:3.44,max:5,suf:'×'},{k:'DSO',v:8.4,max:30,suf:'d'}];
+  var gwrap=document.getElementById('gauges');
+  GA.forEach(function(g){ var d=document.createElement('div'); d.className='gauge';
+    d.innerHTML='<canvas width="88" height="88"></canvas><div class="gv">'+g.v+g.suf+'</div><div class="gk">'+g.k+'</div>'; gwrap.appendChild(d); g.cv=d.querySelector('canvas'); });
+  function drawGauge(g,prog){ var cv=g.cv, dpr=Math.min(devicePixelRatio||1,2); cv.width=88*dpr; cv.height=88*dpr;
+    var ctx=cv.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,88,88);
+    var cx=44,cy=44,r=34, a0=Math.PI*0.75, a1=Math.PI*2.25, frac=Math.min(g.v/g.max,1)*prog;
+    ctx.lineWidth=7; ctx.lineCap='round'; ctx.strokeStyle=C('grid'); ctx.beginPath(); ctx.arc(cx,cy,r,a0,a1); ctx.stroke();
+    ctx.strokeStyle=C('accent'); ctx.beginPath(); ctx.arc(cx,cy,r,a0,a0+(a1-a0)*frac); ctx.stroke();
+  }
+
+  // ── RLS interactive ──
+  var ENT=[['Meridian Robotics','MRI',1500000],['Atlas Holdings','ATL',980000],['Nimbus Widgets','NMB',430000],['Zephyr Dynamics','ZPH',2100000]];
+  var granted={0:true,1:true,2:false,3:false};
+  var pf=document.getElementById('portfolio'), vw=document.getElementById('viewer'), atk=false;
+  ENT.forEach(function(e,i){ var b=document.createElement('button'); b.className='etile'; b.setAttribute('aria-pressed',granted[i]);
+    b.innerHTML='<div class="en">'+e[0]+'</div><div class="ec">entity '+e[1]+'</div>';
+    b.addEventListener('click',function(){ granted[i]=!granted[i]; b.setAttribute('aria-pressed',granted[i]); renderRLS(); }); pf.appendChild(b); });
+  function renderRLS(){ var rows='';
+    ENT.forEach(function(e,i){ var g=granted[i];
+      rows+='<div class="vrow'+(g?'':' hidden')+'"><span>'+e[0]+'</span><span class="vv">'+(g?'$'+e[2].toLocaleString():'—  hidden by RLS')+'</span></div>'; });
+    vw.innerHTML='<div style="color:#6f8a7f;margin-bottom:.5rem">SELECT entity, revenue FROM fct_close_kpi;</div>'+rows;
+    var ao=document.getElementById('atkout');
+    if(atk){ ao.hidden=false; ao.innerHTML='WHERE entity_id = <b>Zephyr</b> (not in your grant)<br>→ <b>0 rows.</b> FORCE-RLS overrides the explicit filter. Nothing leaks.'; }
+    else ao.hidden=true;
+  }
+  document.getElementById('atk').addEventListener('click',function(){ atk=!atk; this.setAttribute('aria-pressed',atk); renderRLS(); });
+  renderRLS();
+
+  // count-up
+  function countUp(el){ var to=+el.dataset.to; animate(1100,function(p){ el.textContent=(to*p).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}); }); }
+
+  function redrawAll(){ drawFX(1); if(consolDrawn) drawConsol(1); GA.forEach(function(g){ drawGauge(g,1); }); }
+  addEventListener('resize',function(){ clearTimeout(window._rt); window._rt=setTimeout(redrawAll,150); });
+
+  // reveal + lazy chart draw
+  var io=new IntersectionObserver(function(es){ es.forEach(function(e){ if(!e.isIntersecting) return; e.target.classList.add('in');
+    if(e.target.id==='fxchart'||e.target.querySelector&&e.target.querySelector('#fxchart')) setFX('current');
+    io.unobserve(e.target); }); },{threshold:.14});
+  document.querySelectorAll('.reveal').forEach(function(el){ io.observe(el); });
+  // specific triggers
+  new IntersectionObserver(function(es){ es.forEach(function(e){ if(e.isIntersecting){ setFX('current'); this.disconnect(); } },this); },{threshold:.3}).observe(fxc);
+  new IntersectionObserver(function(es){ es.forEach(function(e){ if(e.isIntersecting){ consolDrawn=true; animate(900,drawConsol); this.disconnect(); } },this); },{threshold:.3}).observe(cc);
+  new IntersectionObserver(function(es){ es.forEach(function(e){ if(e.isIntersecting){ GA.forEach(function(g){ animate(1000,function(p){drawGauge(g,p);}); }); this.disconnect(); } },this); },{threshold:.3}).observe(gwrap);
+  var nic=document.getElementById('ni-count'); new IntersectionObserver(function(es){ es.forEach(function(e){ if(e.isIntersecting){ countUp(nic); this.disconnect(); } },this); },{threshold:.5}).observe(nic);
+})();
 </script>
 
 </body></html>
