@@ -266,8 +266,8 @@
     {
       "name": "finance",
       "source": "./plugins/finance",
-      "description": "Corporate finance & FP&A specialist team \u2014 FP&A analyst (budgets, forecasts, variance commentary), financial modeler (3-statement, DCF, scenarios), controller (close, JEs, reconciliations), treasury analyst (cash, covenants, FX), valuation analyst (DCF + comps + precedent), audit-prep specialist (PBC, walkthroughs, SOC1/2 narratives), and board-pack composer. 13 skills, 8 templates, 13 knowledge-bank docs (ASC 805 / 718 / 740, accrual-cutoff, WACC, cost accounting, FP&A operating model + decision support), 1 advisory hook (hardcoded rates, plaintext PII, missing Sources / Assumptions). Inherits ravenclaude-core protocols.",
-      "version": "0.15.0",
+      "description": "Corporate finance & FP&A specialist team \u2014 FP&A analyst (budgets, forecasts, variance commentary), financial modeler (3-statement, DCF, scenarios), controller (close, JEs, reconciliations), treasury analyst (cash, covenants, FX), valuation analyst (DCF + comps + precedent), audit-prep specialist (PBC, walkthroughs, SOC1/2 narratives), and board-pack composer. 18 skills, 10 templates, 16 knowledge-bank docs (incl. the controller-autopilot: GAAP statements, COA mapping, recon auto-match, approval workflow, ELT staging, consolidation, per-entity dashboard, close schedules), 2 advisory hooks (hardcoded rates, plaintext PII, missing Sources / Assumptions). Inherits ravenclaude-core protocols.",
+      "version": "0.16.0",
       "author": {
         "name": "Matt Corbett"
       },

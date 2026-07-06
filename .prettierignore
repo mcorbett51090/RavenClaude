@@ -96,3 +96,6 @@ plugins/finance/skills/produce-gaap-statements/examples/sample-close-package.htm
 
 # Self-contained controller-autopilot pitch (inline CSS/JS); prettier would rewrite it.
 plugins/finance/docs/controller-autopilot-pitch.html
+
+# Generated artifact — deterministic per-entity dashboard from entity_dashboard.py.
+plugins/finance/skills/per-entity-dashboard/examples/sample-entity-dashboard.html
