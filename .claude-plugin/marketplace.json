@@ -1508,7 +1508,7 @@
       "name": "ecommerce-dtc",
       "source": "./plugins/ecommerce-dtc",
       "description": "E-commerce & DTC specialist team \u2014 4 agents, 5 skills, 4-file cited knowledge bank, 3 templates, 5 commands, 8 best-practice rules, 1 advisory hook. A growth-and-unit-economics team for a DTC brand operator \u2014 it protects the LTV:CAC ratio (the 3:1 line below which a brand bleeds), reads conversion against the 1.4\u20131.8% average, attacks the retention gap (the average brand keeps just ~28% for a second purchase), and reads contribution margin after the real cost of acquisition and returns. Inherits ravenclaude-core protocols.",
-      "version": "0.2.1",
+      "version": "0.2.2",
       "author": {
         "name": "Matt Corbett"
       },

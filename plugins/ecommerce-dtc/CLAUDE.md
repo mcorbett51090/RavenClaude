@@ -27,6 +27,8 @@
 
 **Is not:** a storefront/CMS platform, an ad-buying account, or a payments/sales-tax authority. It does not run campaigns or file taxes and stores no customer PII.
 
+**Seam to `web-design` (who owns what next door).** This team owns the **whether/what of commerce** — assortment, pricing, LTV:CAC, AOV, channel spend, and the themed-platform-vs-headless payback decision — upstream of any build. The storefront **build** itself — PDP / cart / checkout UX, conversion-design, product-page accessibility / performance / SEO — is [`web-design`](../web-design/CLAUDE.md)'s lane; its `gold-standard-website-pipeline` treats the platform-vs-headless decision as an explicit **G1 sub-step that defers to this team** for the unit-economics call (and takes a documented non-specialist stand-in, re-run-once-installed, when this plugin is not installed). Payments / checkout / PII security → `ravenclaude-core/security-reviewer` (mandatory). _Reciprocal cross-ref to `web-design`'s "Adjacent plugins" seam (added 2026-07-06) — completing the previously one-directional link._
+
 ---
 
 ## 3. House opinions (the team's standing biases)

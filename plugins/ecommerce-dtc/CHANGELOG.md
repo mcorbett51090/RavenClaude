@@ -2,6 +2,12 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.2.2] — 2026-07-06
+
+### Changed
+
+- **Reciprocal seam to `web-design` named in `CLAUDE.md` §2.** Completes the previously one-directional cross-ref: `web-design`'s `gold-standard-website-pipeline` (added web-design v0.14.0) already deferred the themed-platform-vs-headless payback decision to this team as an explicit G1 sub-step; §2 now names the return boundary — this team owns the whether/what of commerce, `web-design` owns the storefront build (PDP/cart/checkout UX, conversion-design, product-page a11y/perf/SEO). No behavior change; documentation seam only.
+
 ## [0.2.1] — 2026-06-12
 
 Version bump previously unlogged here; the change that set `0.2.1`:
