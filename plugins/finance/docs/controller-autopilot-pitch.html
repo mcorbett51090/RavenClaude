@@ -1,0 +1,297 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Meridian close autopilot — controller pitch · finance plugin</title>
+<style>html,body{margin:0}img{max-width:100%}</style>
+</head><body>
+<style>
+  :root {
+    --paper:#f3f5f3; --panel:#fbfcfb; --ink:#14201b; --muted:#5b6a63;
+    --accent:#0e6b57; --accent-soft:#0e6b571a; --amber:#8a5e0d; --flag:#a8341f;
+    --rule:#d5ddd7; --rule-strong:#b9c5bd;
+    --mono:"SFMono-Regular",ui-monospace,"JetBrains Mono","Cascadia Code",Menlo,Consolas,monospace;
+    --serif:"Iowan Old Style","Palatino Linotype","Book Antiqua",Palatino,Georgia,"Times New Roman",serif;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --maxw:720px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --paper:#0b1310; --panel:#111c17; --ink:#e9efea; --muted:#8ba095;
+      --accent:#35b79d; --accent-soft:#35b79d1f; --amber:#d7a24c; --flag:#e8705c;
+      --rule:#223029; --rule-strong:#2f4238; }
+  }
+  :root[data-theme="light"]{ --paper:#f3f5f3; --panel:#fbfcfb; --ink:#14201b; --muted:#5b6a63;
+    --accent:#0e6b57; --accent-soft:#0e6b571a; --amber:#8a5e0d; --flag:#a8341f; --rule:#d5ddd7; --rule-strong:#b9c5bd; }
+  :root[data-theme="dark"]{ --paper:#0b1310; --panel:#111c17; --ink:#e9efea; --muted:#8ba095;
+    --accent:#35b79d; --accent-soft:#35b79d1f; --amber:#d7a24c; --flag:#e8705c; --rule:#223029; --rule-strong:#2f4238; }
+
+  *{ box-sizing:border-box; }
+  html{ scroll-behavior:smooth; }
+  @media (prefers-reduced-motion: reduce){ html{ scroll-behavior:auto; } }
+  body{ margin:0; background:var(--paper); color:var(--ink); font-family:var(--sans);
+    font-size:17px; line-height:1.65; -webkit-font-smoothing:antialiased;
+    background-image:repeating-linear-gradient(to bottom, transparent 0 31px, color-mix(in srgb,var(--rule) 45%,transparent) 31px 32px);
+    background-attachment:fixed; }
+  .wrap{ max-width:var(--maxw); margin:0 auto; padding:0 22px; }
+  .rail{ position:fixed; top:0; left:0; height:100%; width:3px; background:var(--accent); opacity:.9; z-index:5; }
+  .rail::after{ content:""; position:absolute; inset:0 0 auto 0; height:0; }
+
+  h1,h2,h3{ font-family:var(--serif); font-weight:600; text-wrap:balance; letter-spacing:-.01em; }
+  h1{ font-size:clamp(2.4rem,6vw,3.7rem); line-height:1.04; margin:0; }
+  h2{ font-size:clamp(1.5rem,3.4vw,2.05rem); line-height:1.12; margin:0 0 .5rem; }
+  h3{ font-size:1.16rem; margin:0 0 .3rem; }
+  p{ margin:0 0 1.05rem; }
+  .lead{ font-size:1.24rem; color:var(--ink); }
+  a{ color:var(--accent); }
+  .eyebrow{ font-family:var(--mono); font-size:.72rem; text-transform:uppercase; letter-spacing:.22em;
+    color:var(--accent); margin:0 0 1.1rem; font-weight:600; }
+  .muted{ color:var(--muted); }
+  .num{ font-family:var(--mono); font-variant-numeric:tabular-nums; }
+  strong{ font-weight:650; }
+
+  header.hero{ padding:12svh 0 5vh; position:relative; }
+  .hero .kicker{ display:inline-flex; gap:.55rem; align-items:center; font-family:var(--mono); font-size:.74rem;
+    letter-spacing:.14em; text-transform:uppercase; color:var(--muted); border:1px solid var(--rule);
+    padding:.34rem .7rem; border-radius:100px; margin-bottom:1.7rem; }
+  .hero .kicker b{ color:var(--accent); font-weight:650; }
+  .hero h1 em{ font-style:italic; color:var(--accent); }
+  .hero .sub{ font-size:1.28rem; color:var(--muted); margin-top:1.4rem; max-width:34ch; }
+
+  section{ padding:5.5vh 0; border-top:1px solid var(--rule); }
+  section:first-of-type{ border-top:none; }
+
+  /* close-package receipt block */
+  .receipt{ background:var(--panel); border:1px solid var(--rule-strong); border-radius:6px; overflow:hidden;
+    box-shadow:0 1px 0 var(--rule), 0 18px 40px -30px #00000055; margin:1.6rem 0; }
+  .receipt .rtop{ display:flex; flex-wrap:wrap; gap:.5rem 1rem; align-items:baseline; justify-content:space-between;
+    padding:.9rem 1.1rem; border-bottom:1px solid var(--rule); background:var(--accent-soft); }
+  .receipt .rtop .co{ font-family:var(--serif); font-size:1.15rem; font-weight:600; }
+  .receipt .rtop .pd{ font-family:var(--mono); font-size:.8rem; color:var(--muted); letter-spacing:.03em; }
+  .receipt table{ width:100%; border-collapse:collapse; }
+  .receipt td{ padding:.5rem 1.1rem; border-bottom:1px solid var(--rule); font-size:.96rem; }
+  .receipt td.n{ text-align:right; font-family:var(--mono); font-variant-numeric:tabular-nums; }
+  .receipt tr:last-child td{ border-bottom:none; }
+  .receipt tr.sub td{ font-weight:700; border-top:2px solid var(--rule-strong); }
+  .receipt tr.tie td{ color:var(--accent); font-weight:650; }
+
+  .pills{ display:flex; flex-wrap:wrap; gap:.5rem; margin:1.1rem 0 0; }
+  .pill{ font-family:var(--mono); font-size:.72rem; letter-spacing:.03em; padding:.28rem .62rem; border-radius:100px;
+    border:1px solid var(--rule-strong); color:var(--muted); }
+  .pill.ok{ color:var(--accent); border-color:var(--accent); }
+  .pill.warn{ color:var(--amber); border-color:var(--amber); }
+
+  /* two-column compare */
+  .compare{ display:grid; grid-template-columns:1fr 1fr; gap:1px; background:var(--rule); border:1px solid var(--rule);
+    border-radius:6px; overflow:hidden; margin-top:1.4rem; }
+  .compare > div{ background:var(--panel); padding:1.1rem 1.15rem; }
+  .compare h3{ font-family:var(--mono); font-size:.74rem; text-transform:uppercase; letter-spacing:.14em; }
+  .compare .today h3{ color:var(--muted); }
+  .compare .auto h3{ color:var(--accent); }
+  .compare ul{ margin:.4rem 0 0; padding-left:1.1rem; }
+  .compare li{ margin:.4rem 0; font-size:.95rem; }
+  @media (max-width:620px){ .compare{ grid-template-columns:1fr; } }
+
+  /* governed cycle sequence */
+  ol.cycle{ list-style:none; counter-reset:step; margin:1.5rem 0 0; padding:0; }
+  ol.cycle li{ counter-increment:step; position:relative; padding:0 0 1.35rem 3.2rem; }
+  ol.cycle li::before{ content:counter(step,decimal-leading-zero); position:absolute; left:0; top:-.1rem;
+    font-family:var(--mono); font-size:.86rem; color:var(--accent); font-weight:650;
+    width:2.2rem; height:2.2rem; display:grid; place-items:center; border:1px solid var(--accent); border-radius:50%; }
+  ol.cycle li::after{ content:""; position:absolute; left:1.1rem; top:2.1rem; bottom:.1rem; width:1px; background:var(--rule-strong); }
+  ol.cycle li:last-child::after{ display:none; }
+  ol.cycle .gate{ color:var(--amber); }
+  ol.cycle h3{ font-family:var(--sans); font-size:1.02rem; font-weight:650; margin-bottom:.15rem; }
+  ol.cycle p{ margin:0; font-size:.95rem; color:var(--muted); }
+
+  /* terminal */
+  .term{ background:#0c1512; color:#d7e4dd; border:1px solid var(--rule-strong); border-radius:6px;
+    font-family:var(--mono); font-size:.82rem; line-height:1.7; padding:1rem 1.1rem; overflow-x:auto; margin:1.3rem 0; }
+  .term .c{ color:#6f8a7f; } .term .g{ color:#57c9ab; } .term .r{ color:#f2836f; } .term .a{ color:#e0b25f; } .term .w{ color:#d7e4dd; }
+  :root[data-theme="light"] .term, @media (prefers-color-scheme:light){}
+
+  .kpis{ display:grid; grid-template-columns:repeat(3,1fr); gap:1px; background:var(--rule); border:1px solid var(--rule);
+    border-radius:6px; overflow:hidden; margin:1.5rem 0; }
+  .kpis > div{ background:var(--panel); padding:1.1rem 1rem; }
+  .kpis .v{ font-family:var(--mono); font-variant-numeric:tabular-nums; font-size:1.7rem; color:var(--accent); font-weight:600; }
+  .kpis .k{ font-size:.78rem; color:var(--muted); margin-top:.2rem; }
+  @media (max-width:620px){ .kpis{ grid-template-columns:1fr; } }
+
+  .limits{ border:1px solid var(--amber); border-radius:6px; padding:.3rem 1.2rem; margin:1.4rem 0;
+    background:color-mix(in srgb,var(--amber) 7%, transparent); }
+  .limits li{ margin:.7rem 0; }
+  .limits h3{ color:var(--amber); font-family:var(--sans); font-size:1rem; }
+
+  blockquote{ font-family:var(--serif); font-size:1.5rem; line-height:1.35; font-style:italic; margin:1.5rem 0;
+    padding-left:1.2rem; border-left:3px solid var(--accent); color:var(--ink); text-wrap:balance; }
+
+  .foot{ color:var(--muted); font-size:.86rem; }
+  .foot code{ font-family:var(--mono); background:var(--accent-soft); padding:.1rem .35rem; border-radius:4px; color:var(--accent); }
+
+  .toggle{ position:fixed; top:14px; right:14px; z-index:10; font-family:var(--mono); font-size:.72rem;
+    background:var(--panel); color:var(--muted); border:1px solid var(--rule-strong); border-radius:100px;
+    padding:.35rem .7rem; cursor:pointer; }
+  .toggle:focus-visible, a:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+
+  .reveal{ opacity:0; transform:translateY(14px); transition:opacity .7s ease, transform .7s ease; }
+  .reveal.in{ opacity:1; transform:none; }
+  @media (prefers-reduced-motion: reduce){ .reveal{ opacity:1; transform:none; transition:none; } }
+</style>
+
+<div class="rail" aria-hidden="true"></div>
+<button class="toggle" id="tg" aria-label="Toggle light and dark theme">◐ theme</button>
+
+<div class="wrap">
+
+  <header class="hero">
+    <span class="kicker">The Close Autopilot · <b>finance</b> plugin</span>
+    <h1>The close, <em>governed</em> — you review, it does the rest.</h1>
+    <p class="sub">A controller installs one plugin, points it at the books, and gets a review-ready close package with the controls already enforced. Not another dashboard. The whole cycle, as one auditable run.</p>
+    <div class="pills">
+      <span class="pill ok">statements</span><span class="pill ok">reconciliations</span>
+      <span class="pill ok">flux commentary</span><span class="pill ok">SoD-enforced sign-off</span>
+      <span class="pill ok">hash-chained audit log</span>
+    </div>
+  </header>
+
+  <section class="reveal">
+    <p class="eyebrow">One command · one review surface</p>
+    <h2>This is a real close it produced.</h2>
+    <p class="muted">Meridian Robotics' June close — trial balance in, review-ready package out, in a single run. Every figure below is from the actual engine output, not a mockup.</p>
+    <div class="receipt" role="table" aria-label="Sample close package">
+      <div class="rtop"><span class="co">Meridian Robotics Inc.</span><span class="pd num">Close · 2026-06 · USD · state: submitted</span></div>
+      <table>
+        <tr><td>Revenue</td><td class="n">1,500,000.00</td></tr>
+        <tr><td>Cost of goods sold</td><td class="n">600,000.00</td></tr>
+        <tr class="sub"><td>Gross profit</td><td class="n">900,000.00</td></tr>
+        <tr><td>Operating expenses</td><td class="n">600,000.00</td></tr>
+        <tr class="sub"><td>Operating income</td><td class="n">300,000.00</td></tr>
+        <tr><td>Other income / (expense), net</td><td class="n">(30,000.00)</td></tr>
+        <tr><td>Income tax expense</td><td class="n">67,500.00</td></tr>
+        <tr class="sub"><td>Net income</td><td class="n">202,500.00</td></tr>
+        <tr class="tie"><td>Balance sheet check (A − L − E)</td><td class="n">0.00</td></tr>
+      </table>
+    </div>
+    <div class="pills">
+      <span class="pill ok">GL-detail-traced</span>
+      <span class="pill warn">cash flow: unaudited draft</span>
+      <span class="pill warn">1 reconciliation flag</span>
+      <span class="pill">12 material flux lines</span>
+    </div>
+    <p class="foot" style="margin-top:1rem">The one flag is real: inventory booked at <span class="num">280,000</span> against a sub-ledger of <span class="num">250,000</span> — a <span class="num">30,000</span> break over the <span class="num">25,000</span> materiality threshold, surfaced for you to clear. Everything within materiality auto-passes. You review the exceptions, not the ledger.</p>
+  </section>
+
+  <section class="reveal">
+    <p class="eyebrow">The shift</p>
+    <h2>From assembling the close to approving it.</h2>
+    <div class="compare">
+      <div class="today">
+        <h3>The close today</h3>
+        <ul>
+          <li>Pull the trial balance, wrangle it into statements by hand or across three tools.</li>
+          <li>Reconcile every account, eyeball each tie-out.</li>
+          <li>Write flux commentary line by line.</li>
+          <li>Chase sign-offs over email; the control lives in a policy doc, not the workflow.</li>
+          <li>Assemble the package. Then start next month.</li>
+        </ul>
+      </div>
+      <div class="auto">
+        <h3>With the autopilot</h3>
+        <ul>
+          <li>One command produces statements, reconciliations, and the flux table.</li>
+          <li>Tie-outs auto-pass within materiality; only breaks are flagged.</li>
+          <li>The package is submitted into a sign-off workflow that <strong>enforces</strong> segregation of duties.</li>
+          <li>You get a single review surface and clear it. Next month is the same command.</li>
+          <li>Instantiate it again for the next entity by adding a config — no rebuild.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="reveal">
+    <p class="eyebrow">The governed cycle</p>
+    <h2>Eight steps. The last three are yours.</h2>
+    <p class="muted">Order matters here — each step gates the next, and the machine stops where your judgment begins.</p>
+    <ol class="cycle">
+      <li><h3>Ingest the trial balance</h3><p>A CSV today; a live pull from QuickBooks, NetSuite, Sage Intacct, or Xero on the roadmap.</p></li>
+      <li><h3>Validate the mapping</h3><p>Every account must map to a statement line. The run blocks on an unmapped account rather than guessing.</p></li>
+      <li><h3>Produce the statements</h3><p>Income statement, balance sheet, and a clearly-labelled draft cash flow — tested on the subtotals, not just that it balances.</p></li>
+      <li><h3>Reconcile &amp; flux</h3><p>Book vs sub-ledger tie-outs and period-over-period movement, both filtered to your materiality threshold.</p></li>
+      <li><h3>Assemble the package</h3><p>A self-contained close package you can open offline or email to a reviewer.</p></li>
+      <li><h3>Submit</h3><p>The automated cycle ends here. It <strong>only</strong> submits — it can never approve its own work.</p></li>
+      <li><h3 class="gate">Review &amp; approve</h3><p>A different person than the preparer, above the threshold. The workflow refuses a self-approval outright.</p></li>
+      <li><h3 class="gate">Lock</h3><p>Sealed with an out-of-band token and written to an append-only, tamper-evident audit log.</p></li>
+    </ol>
+  </section>
+
+  <section class="reveal">
+    <p class="eyebrow">The part that actually matters</p>
+    <h2>Controls enforced in code, not written in a policy.</h2>
+    <p>In 2025 an AP automation agent released roughly <span class="num">$92,000</span> in payments despite documentation saying it couldn't. That is the difference between a control that is <em>documented</em> and one that is <em>enforced</em>. Here the segregation of duties is the code path — the same person cannot prepare and approve a material package. Try it, and the workflow refuses:</p>
+    <div class="term" role="img" aria-label="Terminal showing a segregation-of-duties refusal">
+      <div><span class="c">$ close_state.py --run-dir ./close approve --actor alice --threshold 100000</span></div>
+      <div><span class="r">REFUSED (SoD):</span> <span class="w">actor 'alice' is the preparer and package amount</span></div>
+      <div><span class="w">500,000.00 &gt;= threshold 100,000.00. A different approver is required.</span></div>
+      <div>&nbsp;</div>
+      <div><span class="c"># and the audit trail cannot be quietly rewritten:</span></div>
+      <div><span class="c">$ close_state.py --run-dir ./close verify</span></div>
+      <div><span class="r">FAIL:</span> <span class="w">line 1: hash mismatch (event 'submit' tampered)</span></div>
+    </div>
+    <p class="muted">Every state change — submit, review, approve, reject, lock — is appended to a hash-chained log. Edit any past line and the chain breaks; <code style="font-family:var(--mono)">verify</code> catches it. That is the audit backbone a controller signs their name against.</p>
+  </section>
+
+  <section class="reveal">
+    <p class="eyebrow">Proven, not asserted</p>
+    <h2>It ships with its own tests.</h2>
+    <div class="kpis">
+      <div><div class="v">18/18</div><div class="k">acceptance tests passing — controls, classification, submit-only boundary</div></div>
+      <div><div class="v">0.00</div><div class="k">balance-sheet tie, to the cent, every run</div></div>
+      <div><div class="v">1&nbsp;config</div><div class="k">to instantiate the next entity — no code change</div></div>
+    </div>
+    <p>The engine is tested where correctness actually lives. A balanced trial balance produces a balanced balance sheet no matter how accounts are mapped — so "it balances" proves nothing about classification. The suite deliberately mis-maps an account and confirms the <strong>subtotals</strong> catch it while the balance check, as expected, does not. That is the honest test, and it passes.</p>
+  </section>
+
+  <section class="reveal">
+    <p class="eyebrow">Where it sits among the tools you know</p>
+    <h2>Not a bigger BlackLine. A different shape.</h2>
+    <p>BlackLine and Trintech own the SOX controls backbone — and cost six figures and six months to stand up, a poor fit below roughly <span class="num">$250M</span> in revenue. FloQast and Numeric auto-match reconciliations to <span class="num">90–98%</span> and let you review by exception. Ramp, Vic.ai, and BILL confidence-gate accounts payable. Each is excellent at its one lane.</p>
+    <blockquote>None of them runs ingest → reconcile → close → statements → controls → locked-and-approved as a single governed cycle for a lean mid-market team. That seam is the product.</blockquote>
+    <p class="muted">And the pitch stays honest: producing statements from a ledger is a commodity — every accounting system already does it. The value is the <strong>governed cycle</strong>, the <strong>enforced controls</strong>, and the reusable per-entity mapping — delivered as plugin artifacts you install in minutes.</p>
+  </section>
+
+  <section class="reveal">
+    <p class="eyebrow">What it is not</p>
+    <h2>The honest edges.</h2>
+    <p>A controller signs their name to these numbers, so here is exactly where the line is — stated plainly rather than buried.</p>
+    <div class="limits">
+      <ul>
+        <li><h3>It does not replace the judgment that produces the trial balance.</h3>Accruals, cutoff, estimates, and the reconciliations that turn a raw GL into a <em>reconciled</em> TB stay yours. It governs and reports the close; it doesn't invent the accounting.</li>
+        <li><h3>Local-tier sign-off is tamper-<em>evident</em>, not tamper-<em>preventing</em>.</h3>Identity is config-asserted until it's wired to your identity provider. The hash chain detects edits; auditor-grade segregation arrives with the warehouse tier.</li>
+        <li><h3>Statements from a trial balance alone are not audit-traceable.</h3>They're badged as such. Drill-through from a statement line to the underlying journal entries comes with the live ELT connection.</li>
+        <li><h3>Nothing posts to your ledger or moves money.</h3>Review-and-approve by design. It proposes; you dispose.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="reveal">
+    <p class="eyebrow">Roadmap</p>
+    <h2>The slice that's live — and what's next.</h2>
+    <p><strong>Live today:</strong> statement production, COA-mapping authoring &amp; validation, reconciliation + flux, and the enforced review→approve→lock workflow — the full local-file cycle, with the sample close above produced end to end.</p>
+    <p class="muted"><strong>Next:</strong> live ELT from QuickBooks / NetSuite / Sage Intacct / Xero with drill-through lineage; reconciliation auto-match with threshold auto-certification; multi-entity consolidation and intercompany elimination; a productized per-entity dashboard; and a secrets/PII scan gate for the plugin.</p>
+    <p class="foot" style="margin-top:1.8rem">Built for the <code>finance</code> plugin, v0.15.0 · every figure on this page traces to a committed, re-runnable transcript. Outputs are decision-support, not an audit or tax opinion.</p>
+  </section>
+
+</div>
+
+<script>
+  (function(){
+    var root=document.documentElement, tg=document.getElementById('tg');
+    tg.addEventListener('click',function(){
+      var cur=root.getAttribute('data-theme');
+      if(!cur){ cur = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark':'light'; }
+      root.setAttribute('data-theme', cur==='dark'?'light':'dark');
+    });
+    var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}});},{threshold:.12});
+    document.querySelectorAll('.reveal').forEach(function(el){io.observe(el);});
+  })();
+</script>
+
+</body></html>

@@ -1,0 +1,659 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Meridian Robotics Inc. — Close Package 2026-06</title>
+    <style>
+      :root {
+        --bg: #fff;
+        --fg: #1a2233;
+        --muted: #667;
+        --line: #e4e8f0;
+        --accent: #1f6feb;
+        --ok: #137333;
+        --warn: #9a6700;
+        --flag: #b3261e;
+        --card: #f7f9fc;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #0d1117;
+          --fg: #e6edf3;
+          --muted: #9aa4b2;
+          --line: #232a35;
+          --accent: #4d9fff;
+          --ok: #3fb950;
+          --warn: #d29922;
+          --flag: #f85149;
+          --card: #161b22;
+        }
+      }
+      :root[data-theme="light"] {
+        --bg: #fff;
+        --fg: #1a2233;
+        --muted: #667;
+        --line: #e4e8f0;
+        --card: #f7f9fc;
+      }
+      :root[data-theme="dark"] {
+        --bg: #0d1117;
+        --fg: #e6edf3;
+        --muted: #9aa4b2;
+        --line: #232a35;
+        --card: #161b22;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--fg);
+        font:
+          15px/1.5 -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          Roboto,
+          Helvetica,
+          Arial,
+          sans-serif;
+      }
+      .wrap {
+        max-width: 940px;
+        margin: 0 auto;
+        padding: 28px 20px 64px;
+      }
+      header {
+        border-bottom: 2px solid var(--line);
+        padding-bottom: 16px;
+        margin-bottom: 8px;
+      }
+      h1 {
+        font-size: 24px;
+        margin: 0 0 4px;
+      }
+      h2 {
+        font-size: 18px;
+        margin: 28px 0 10px;
+      }
+      .sub {
+        color: var(--muted);
+        font-size: 14px;
+      }
+      .pills {
+        margin-top: 10px;
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .pill {
+        font-size: 12px;
+        font-weight: 600;
+        padding: 3px 9px;
+        border-radius: 20px;
+        border: 1px solid var(--line);
+      }
+      .pill.ok {
+        color: var(--ok);
+        border-color: var(--ok);
+      }
+      .pill.warn {
+        color: var(--warn);
+        border-color: var(--warn);
+      }
+      .banner {
+        margin: 14px 0;
+        padding: 10px 14px;
+        border-radius: 8px;
+        font-size: 13px;
+      }
+      .banner.warn {
+        background: color-mix(in srgb, var(--warn) 12%, transparent);
+        border: 1px solid var(--warn);
+        color: var(--warn);
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 6px 0 4px;
+        font-size: 14px;
+      }
+      .tablewrap {
+        overflow-x: auto;
+      }
+      th,
+      td {
+        text-align: left;
+        padding: 7px 10px;
+        border-bottom: 1px solid var(--line);
+      }
+      th {
+        color: var(--muted);
+        font-weight: 600;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      td.num {
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+      }
+      tr.subtotal td {
+        font-weight: 700;
+        border-top: 2px solid var(--line);
+      }
+      tr.flag {
+        background: color-mix(in srgb, var(--flag) 10%, transparent);
+      }
+      .status {
+        font-weight: 700;
+        font-size: 12px;
+      }
+      .s-pass {
+        color: var(--ok);
+      }
+      .s-flag {
+        color: var(--flag);
+      }
+      .s-selfsupported {
+        color: var(--muted);
+      }
+      .kv td:first-child {
+        color: var(--fg);
+      }
+      .card {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 4px 14px;
+      }
+      .caveat {
+        color: var(--warn);
+        font-size: 13px;
+      }
+      .muted {
+        color: var(--muted);
+      }
+      .review {
+        margin-top: 26px;
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 16px 18px;
+      }
+      code {
+        background: color-mix(in srgb, var(--fg) 8%, transparent);
+        padding: 1px 5px;
+        border-radius: 4px;
+        font-size: 13px;
+      }
+      .toggle {
+        float: right;
+        cursor: pointer;
+        font-size: 12px;
+        color: var(--accent);
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 3px 8px;
+        background: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <button
+          class="toggle"
+          onclick="
+            var r = document.documentElement;
+            r.setAttribute(
+              'data-theme',
+              r.getAttribute('data-theme') === 'dark' ? 'light' : 'dark',
+            );
+          "
+        >
+          ◐ theme
+        </button>
+        <h1>Meridian Robotics Inc.</h1>
+        <div class="sub">
+          Month-end close package · period <strong>2026-06</strong> · USD · state:
+          <strong>submitted</strong>
+        </div>
+        <div class="pills">
+          <span class="pill ok">GL-detail-traced</span>
+          <span class="pill warn">CF: unaudited draft</span>
+          <span class="pill warn">self-certified</span>
+        </div>
+      </header>
+      <div class="banner warn">
+        SELF-CERTIFIED / SINGLE-ACTOR — identity is config-asserted, not authenticated. Not
+        audit-grade until locked with a non-agent approval token at the warehouse/IdP tier.
+      </div>
+
+      <section>
+        <h2>Income statement</h2>
+        <div class="tablewrap card">
+          <table class="kv">
+            <tbody>
+              <tr>
+                <td>Revenue</td>
+                <td class="num">1,500,000.00</td>
+              </tr>
+              <tr>
+                <td>Cost of goods sold</td>
+                <td class="num">600,000.00</td>
+              </tr>
+              <tr class="subtotal">
+                <td>Gross profit</td>
+                <td class="num">900,000.00</td>
+              </tr>
+              <tr>
+                <td>Operating expenses</td>
+                <td class="num">600,000.00</td>
+              </tr>
+              <tr class="subtotal">
+                <td>Operating income</td>
+                <td class="num">300,000.00</td>
+              </tr>
+              <tr>
+                <td>Other income / (expense), net</td>
+                <td class="num">-30,000.00</td>
+              </tr>
+              <tr>
+                <td>Income tax expense</td>
+                <td class="num">67,500.00</td>
+              </tr>
+              <tr class="subtotal">
+                <td>Net income</td>
+                <td class="num">202,500.00</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section>
+        <h2>Balance sheet</h2>
+        <div class="tablewrap card">
+          <table class="kv">
+            <tbody>
+              <tr>
+                <td>Total current assets</td>
+                <td class="num">1,202,500.00</td>
+              </tr>
+              <tr class="subtotal">
+                <td>Total assets</td>
+                <td class="num">1,852,500.00</td>
+              </tr>
+              <tr>
+                <td>Total liabilities</td>
+                <td class="num">850,000.00</td>
+              </tr>
+              <tr>
+                <td>Equity, beginning</td>
+                <td class="num">800,000.00</td>
+              </tr>
+              <tr>
+                <td>Current-period net income</td>
+                <td class="num">202,500.00</td>
+              </tr>
+              <tr class="subtotal">
+                <td>Total equity</td>
+                <td class="num">1,002,500.00</td>
+              </tr>
+              <tr>
+                <td>Balance check (A − L − E)</td>
+                <td class="num">0.00</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section>
+        <h2>Cash flow <span class="pill warn">unaudited_draft</span></h2>
+        <p class="caveat">
+          Indirect CF derived from two trial balances only. Operating/investing/financing splits and
+          non-cash adjustments are NOT reliably derivable from a TB; treat as a draft sanity check,
+          not a GAAP cash-flow statement.
+        </p>
+        <table class="kv">
+          <tbody>
+            <tr>
+              <td>Cash from operating</td>
+              <td class="num">-10,000.00</td>
+            </tr>
+            <tr>
+              <td>Cash from investing</td>
+              <td class="num">-10,000.00</td>
+            </tr>
+            <tr>
+              <td>Cash from financing</td>
+              <td class="num">20,000.00</td>
+            </tr>
+            <tr class="subtotal">
+              <td>Net change in cash</td>
+              <td class="num">0.00</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section>
+        <h2>Reconciliations <span class="sub">(1 flagged · materiality 25,000.00)</span></h2>
+        <div class="tablewrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Acct</th>
+                <th>Description</th>
+                <th class="num">Book</th>
+                <th class="num">Sub-ledger</th>
+                <th class="num">Diff</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="">
+                <td>1000</td>
+                <td>Cash</td>
+                <td class="num">502,500.00</td>
+                <td class="num">502,500.00</td>
+                <td class="num">0.00</td>
+                <td class="status s-pass">PASS</td>
+              </tr>
+              <tr class="">
+                <td>1100</td>
+                <td>Accounts Receivable</td>
+                <td class="num">420,000.00</td>
+                <td class="num">420,000.00</td>
+                <td class="num">0.00</td>
+                <td class="status s-pass">PASS</td>
+              </tr>
+              <tr class="flag">
+                <td>1200</td>
+                <td>Inventory</td>
+                <td class="num">280,000.00</td>
+                <td class="num">250,000.00</td>
+                <td class="num">30,000.00</td>
+                <td class="status s-flag">FLAG</td>
+              </tr>
+              <tr class="">
+                <td>1500</td>
+                <td>Property Plant &amp; Equipment</td>
+                <td class="num">900,000.00</td>
+                <td class="num">—</td>
+                <td class="num">—</td>
+                <td class="status s-selfsupported">self-supported</td>
+              </tr>
+              <tr class="">
+                <td>1600</td>
+                <td>Accumulated Depreciation</td>
+                <td class="num">-250,000.00</td>
+                <td class="num">—</td>
+                <td class="num">—</td>
+                <td class="status s-selfsupported">self-supported</td>
+              </tr>
+              <tr class="">
+                <td>2000</td>
+                <td>Accounts Payable</td>
+                <td class="num">-260,000.00</td>
+                <td class="num">-260,000.00</td>
+                <td class="num">0.00</td>
+                <td class="status s-pass">PASS</td>
+              </tr>
+              <tr class="">
+                <td>2100</td>
+                <td>Accrued Liabilities</td>
+                <td class="num">-90,000.00</td>
+                <td class="num">—</td>
+                <td class="num">—</td>
+                <td class="status s-selfsupported">self-supported</td>
+              </tr>
+              <tr class="">
+                <td>2500</td>
+                <td>Long-term Debt</td>
+                <td class="num">-500,000.00</td>
+                <td class="num">—</td>
+                <td class="num">—</td>
+                <td class="status s-selfsupported">self-supported</td>
+              </tr>
+              <tr class="">
+                <td>3000</td>
+                <td>Common Stock</td>
+                <td class="num">-400,000.00</td>
+                <td class="num">—</td>
+                <td class="num">—</td>
+                <td class="status s-selfsupported">self-supported</td>
+              </tr>
+              <tr class="">
+                <td>3100</td>
+                <td>Retained Earnings</td>
+                <td class="num">-400,000.00</td>
+                <td class="num">—</td>
+                <td class="num">—</td>
+                <td class="status s-selfsupported">self-supported</td>
+              </tr>
+              <tr class="">
+                <td>4000</td>
+                <td>Product Revenue</td>
+                <td class="num">-1,200,000.00</td>
+                <td class="num">—</td>
+                <td class="num">—</td>
+                <td class="status s-selfsupported">self-supported</td>
+              </tr>
+              <tr class="">
+                <td>4100</td>
+                <td>Service Revenue</td>
+                <td class="num">-300,000.00</td>
+                <td class="num">—</td>
+                <td class="num">—</td>
+                <td class="status s-selfsupported">self-supported</td>
+              </tr>
+              <tr class="">
+                <td>5000</td>
+                <td>Cost of Goods Sold</td>
+                <td class="num">600,000.00</td>
+                <td class="num">—</td>
+                <td class="num">—</td>
+                <td class="status s-selfsupported">self-supported</td>
+              </tr>
+              <tr class="">
+                <td>6000</td>
+                <td>Salaries &amp; Wages</td>
+                <td class="num">400,000.00</td>
+                <td class="num">—</td>
+                <td class="num">—</td>
+                <td class="status s-selfsupported">self-supported</td>
+              </tr>
+              <tr class="">
+                <td>6100</td>
+                <td>Rent Expense</td>
+                <td class="num">60,000.00</td>
+                <td class="num">—</td>
+                <td class="num">—</td>
+                <td class="status s-selfsupported">self-supported</td>
+              </tr>
+              <tr class="">
+                <td>6200</td>
+                <td>Marketing Expense</td>
+                <td class="num">90,000.00</td>
+                <td class="num">—</td>
+                <td class="num">—</td>
+                <td class="status s-selfsupported">self-supported</td>
+              </tr>
+              <tr class="">
+                <td>6300</td>
+                <td>Depreciation Expense</td>
+                <td class="num">50,000.00</td>
+                <td class="num">—</td>
+                <td class="num">—</td>
+                <td class="status s-selfsupported">self-supported</td>
+              </tr>
+              <tr class="">
+                <td>7000</td>
+                <td>Interest Expense</td>
+                <td class="num">40,000.00</td>
+                <td class="num">—</td>
+                <td class="num">—</td>
+                <td class="status s-selfsupported">self-supported</td>
+              </tr>
+              <tr class="">
+                <td>7100</td>
+                <td>Interest Income</td>
+                <td class="num">-10,000.00</td>
+                <td class="num">—</td>
+                <td class="num">—</td>
+                <td class="status s-selfsupported">self-supported</td>
+              </tr>
+              <tr class="">
+                <td>8000</td>
+                <td>Income Tax Expense</td>
+                <td class="num">67,500.00</td>
+                <td class="num">—</td>
+                <td class="num">—</td>
+                <td class="status s-selfsupported">self-supported</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section>
+        <h2>Flux (period over period) <span class="sub">material movements only</span></h2>
+        <div class="tablewrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Acct</th>
+                <th>Description</th>
+                <th class="num">Current</th>
+                <th class="num">Prior</th>
+                <th class="num">Movement</th>
+                <th class="num">%</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>4000</td>
+                <td>Product Revenue</td>
+                <td class="num">-1,200,000.00</td>
+                <td class="num">0.00</td>
+                <td class="num">-1,200,000.00</td>
+                <td class="num"></td>
+              </tr>
+              <tr>
+                <td>5000</td>
+                <td>Cost of Goods Sold</td>
+                <td class="num">600,000.00</td>
+                <td class="num">0.00</td>
+                <td class="num">600,000.00</td>
+                <td class="num"></td>
+              </tr>
+              <tr>
+                <td>6000</td>
+                <td>Salaries &amp; Wages</td>
+                <td class="num">400,000.00</td>
+                <td class="num">0.00</td>
+                <td class="num">400,000.00</td>
+                <td class="num"></td>
+              </tr>
+              <tr>
+                <td>4100</td>
+                <td>Service Revenue</td>
+                <td class="num">-300,000.00</td>
+                <td class="num">0.00</td>
+                <td class="num">-300,000.00</td>
+                <td class="num"></td>
+              </tr>
+              <tr>
+                <td>1000</td>
+                <td>Cash</td>
+                <td class="num">502,500.00</td>
+                <td class="num">300,000.00</td>
+                <td class="num">202,500.00</td>
+                <td class="num">67.5%</td>
+              </tr>
+              <tr>
+                <td>6200</td>
+                <td>Marketing Expense</td>
+                <td class="num">90,000.00</td>
+                <td class="num">0.00</td>
+                <td class="num">90,000.00</td>
+                <td class="num"></td>
+              </tr>
+              <tr>
+                <td>8000</td>
+                <td>Income Tax Expense</td>
+                <td class="num">67,500.00</td>
+                <td class="num">0.00</td>
+                <td class="num">67,500.00</td>
+                <td class="num"></td>
+              </tr>
+              <tr>
+                <td>6100</td>
+                <td>Rent Expense</td>
+                <td class="num">60,000.00</td>
+                <td class="num">0.00</td>
+                <td class="num">60,000.00</td>
+                <td class="num"></td>
+              </tr>
+              <tr>
+                <td>1500</td>
+                <td>Property Plant &amp; Equipment</td>
+                <td class="num">900,000.00</td>
+                <td class="num">850,000.00</td>
+                <td class="num">50,000.00</td>
+                <td class="num">5.9%</td>
+              </tr>
+              <tr>
+                <td>6300</td>
+                <td>Depreciation Expense</td>
+                <td class="num">50,000.00</td>
+                <td class="num">0.00</td>
+                <td class="num">50,000.00</td>
+                <td class="num"></td>
+              </tr>
+              <tr>
+                <td>1600</td>
+                <td>Accumulated Depreciation</td>
+                <td class="num">-250,000.00</td>
+                <td class="num">-210,000.00</td>
+                <td class="num">-40,000.00</td>
+                <td class="num">19.0%</td>
+              </tr>
+              <tr>
+                <td>7000</td>
+                <td>Interest Expense</td>
+                <td class="num">40,000.00</td>
+                <td class="num">0.00</td>
+                <td class="num">40,000.00</td>
+                <td class="num"></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="muted" style="font-size: 13px">
+          Narrative "why" for each movement is authored via the
+          <code>variance-commentary</code> skill (reconcile before you narrate).
+        </p>
+      </section>
+
+      <div class="review">
+        <strong>Reviewer actions</strong> — this package is <code>submitted</code>. It was produced
+        by an automated cycle that performs <code>submit</code> ONLY. To advance it you (a different
+        person than the preparer, above the SoD threshold) run, separately:
+        <div style="margin-top: 8px">
+          <code>close_state.py --run-dir &lt;dir&gt; review --actor you</code> →
+          <code>approve --actor you --threshold 100,000.00</code> →
+          <code>lock --actor you --approval-token &lt;out-of-band token&gt;</code>
+        </div>
+        <p class="sub" style="margin-bottom: 0">
+          Every state change is written to an append-only, hash-chained audit log; run
+          <code>close_state.py --run-dir &lt;dir&gt; verify</code> to prove the chain is intact.
+        </p>
+      </div>
+    </div>
+  </body>
+</html>
