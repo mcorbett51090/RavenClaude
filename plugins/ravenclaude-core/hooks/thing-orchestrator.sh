@@ -296,7 +296,7 @@ run_seat() {  # run_seat <role> <model> <tmp> [peer_verdicts_json] [fallback_exc
            MODEL_FALLBACK_EXCLUDE="$fb_exclude" THING_SEAT_RESOLVED_FILE="$tmp/$role.resolved" \
            THING_SEAT_RESOLVED_OVERRIDE="${THING_SEAT_RESOLVED_OVERRIDE:-}" \
            THING_SEAT_MOCK_VERDICT="${THING_SEAT_MOCK_VERDICT:-}" \
-           timeout "${seat_timeout}s" bash "$SEAT" 2>/dev/null)" || rc=$?
+           timeout --kill-after=5s "${seat_timeout}s" bash "$SEAT" 2>/dev/null)" || rc=$?
   else
     out="$(THING_SEAT_ACTIVE=1 THING_PAYLOAD="$reviewed" THING_PAYLOAD_SHAPE="$payload_shape" \
            THING_CATEGORY="$category" \
@@ -304,7 +304,7 @@ run_seat() {  # run_seat <role> <model> <tmp> [peer_verdicts_json] [fallback_exc
            MODEL_FALLBACK_EXCLUDE="$fb_exclude" THING_SEAT_RESOLVED_FILE="$tmp/$role.resolved" \
            THING_SEAT_RESOLVED_OVERRIDE="${THING_SEAT_RESOLVED_OVERRIDE:-}" \
            THING_SEAT_MOCK_VERDICT="${THING_SEAT_MOCK_VERDICT:-}" \
-           timeout "${seat_timeout}s" bash "$SEAT" 2>/dev/null)" || rc=$?
+           timeout --kill-after=5s "${seat_timeout}s" bash "$SEAT" 2>/dev/null)" || rc=$?
   fi
   printf '%s' "$out" > "$tmp/$role.json"
   printf '%s' "$rc" > "$tmp/$role.rc"
@@ -428,12 +428,19 @@ else
     pids+=("$!")
   done
   if [ "${#pids[@]}" -gt 0 ]; then
-    # The watchdog enforces the panel-level hard deadline by killing straggler
-    # seats. Its fds are detached from the hook's stdout — otherwise the
-    # backgrounded `sleep` would inherit the verdict pipe and a command-
-    # substitution caller would block for the full deadline even after the
-    # verdict is emitted. `setsid` (when available) puts the sleep in its own
-    # session so killing the watchdog reaps the sleep too.
+    # The PRIMARY per-seat cutoff is each seat's own `timeout --kill-after=5s
+    # ${seat_timeout}s` (above): GNU timeout signals the child's process group, so
+    # it reaps the `claude -p` tree, and --kill-after escalates SIGTERM→SIGKILL for
+    # a seat that ignores TERM. This watchdog is a BEST-EFFORT panel-level backstop
+    # (deadline > every seat_timeout by construction): if a seat subshell is still
+    # around at the panel deadline it `kill`s the subshell PID. It does NOT signal
+    # the seat's whole process group (the seats share the orchestrator's group, so
+    # a group kill would take the orchestrator down too) — the per-seat timeout,
+    # not the watchdog, is what guarantees the claude tree is reaped. Its fds are
+    # detached from the hook's stdout — otherwise the backgrounded `sleep` would
+    # inherit the verdict pipe and a command-substitution caller would block for the
+    # full deadline even after the verdict is emitted. `setsid` (when available)
+    # puts the sleep in its own session so killing the watchdog reaps the sleep too.
     if command -v setsid >/dev/null 2>&1; then
       setsid bash -c 'sleep "$1"; shift; for p in "$@"; do kill "$p" 2>/dev/null || true; done' \
         _ "$panel_deadline" "${pids[@]}" </dev/null >/dev/null 2>&1 &

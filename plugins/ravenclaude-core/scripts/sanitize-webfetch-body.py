@@ -159,12 +159,29 @@ def _resolve_input(args: argparse.Namespace, repo_root: Path) -> str:
         )
         sys.exit(1)
 
+    # Bound-before-consume: check the size via stat() BEFORE reading, so an
+    # oversized file is rejected without ever loading it into memory (the stdin
+    # path already caps its read; read_bytes() had no such bound and would OOM on
+    # a huge file before the len() check below could reject it).
+    try:
+        size = p.stat().st_size
+    except OSError as e:
+        print(f"sanitize-webfetch-body: IO error stat-ing '{raw_path}': {e}", file=sys.stderr)
+        sys.exit(2)
+    if size > MAX_INPUT_BYTES:
+        print(
+            f"sanitize-webfetch-body: input file '{raw_path}' exceeds {MAX_INPUT_BYTES} bytes",
+            file=sys.stderr,
+        )
+        sys.exit(3)
+
     try:
         data = p.read_bytes()
     except OSError as e:
         print(f"sanitize-webfetch-body: IO error reading '{raw_path}': {e}", file=sys.stderr)
         sys.exit(2)
 
+    # Belt-and-suspenders against a TOCTOU grow between stat() and read().
     if len(data) > MAX_INPUT_BYTES:
         print(
             f"sanitize-webfetch-body: input file '{raw_path}' exceeds {MAX_INPUT_BYTES} bytes",

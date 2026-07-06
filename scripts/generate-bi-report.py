@@ -104,10 +104,14 @@ def band_of(score: int, bands: dict) -> str:
         # data.json instead of crashing the whole report build on a tuple-unpack.
         try:
             lo, hi = rng[0], rng[1]
+            # The comparison must be inside the try too: rng[0]/rng[1] can index
+            # successfully yet be non-numeric (e.g. a string in a hand-edited
+            # data.json), and `lo <= score <= hi` then raises TypeError — defeating
+            # the very guard this block is meant to be.
+            if lo <= score <= hi:
+                return name
         except (TypeError, KeyError, IndexError):
             continue
-        if lo <= score <= hi:
-            return name
     return "red"
 
 
@@ -401,7 +405,18 @@ def render_report(data: dict, plugin: str, tokens: str) -> str:
     components = data.get("components", [])
     partners = data.get("partners", [])
     for p in partners:
-        p.setdefault("band", band_of(int(_num(p.get("score", 0))), bands))
+        # Normalize the hand-authorable fields ONCE and PERSIST them so every later
+        # direct read is safe — including svg_cohort's x(p["score"]) and the embedded
+        # JSON, not just the band_of call. _num() (fail-soft: quoted "72" -> 72, a
+        # non-numeric string/None -> 0) coerces the score; flags are stringified so
+        # the later f.lower() rostering-stale filter can't crash on an int/None flag
+        # in a hand-edited data.json.
+        p["score"] = _num(p.get("score", 0))
+        flags = p.get("flags")
+        if not isinstance(flags, list):
+            flags = []
+        p["flags"] = [str(f) for f in flags]
+        p.setdefault("band", band_of(int(p["score"]), bands))
         # Persist the coercion so every downstream BAND_VAR[...] lookup (svg_cohort,
         # the partner rows below) is safe against a custom/non-canonical band label
         # in a hand-authored data.json — not just the local `counts` tally.

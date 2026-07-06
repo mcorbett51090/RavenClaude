@@ -222,6 +222,11 @@ fi
 LOGDIR=".ravenclaude/runs/branch-archive"
 mkdir -p "$LOGDIR"
 LOG="$LOGDIR/${DATE}-${BRANCH//\//-}.log"
+# Indent EVERY line of a value by 2 spaces so a multi-line --reason/--evidence
+# stays a well-formed YAML block scalar. A bare `printf '  %s\n' "$VAL"` only
+# indents the first line; an embedded newline then leaves subsequent lines at
+# column 0, which ends the `reason: |` block and corrupts the YAML.
+indent_block() { printf '%s\n' "$1" | sed 's/^/  /'; }
 {
   echo "schema_version: 1"
   echo "ts: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
@@ -230,9 +235,9 @@ LOG="$LOGDIR/${DATE}-${BRANCH//\//-}.log"
   echo "tag: $TAG"
   echo "operator: $(git config user.email 2>/dev/null || echo unknown)"
   echo "reason: |"
-  printf '  %s\n' "$REASON"
+  indent_block "$REASON"
   echo "evidence: |"
-  printf '  %s\n' "${EVIDENCE:-(none provided)}"
+  indent_block "${EVIDENCE:-(none provided)}"
   echo "unmerged_vs_main_count: ${UNMERGED_COUNT}"
   echo "unmerged_vs_main:"
   if [[ -n "$UNMERGED_LIST" ]]; then

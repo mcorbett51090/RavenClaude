@@ -38,6 +38,7 @@
 #   0  success (including "nothing to do")
 #   2  usage error (unknown flag, no candidates supplied)
 #   3  one or more refused (script ran but at least one branch was unsafe)
+#   4  one or more deletions failed after passing safety checks
 
 set -euo pipefail
 
@@ -54,15 +55,17 @@ USAGE
     -h | --help Show this help.
 
 SAFETY (a branch passes if ANY check holds)
-  1. A merged PR exists (`gh pr list --state merged --head BRANCH`)
+  1. A merged PR exists with a tip matching the branch (`gh pr list --state merged`)
   2. Every commit on the branch is an ancestor of main/master
-  3. The branch's upstream tracking ref is `[gone]`
-Refused unconditionally: main, master, current HEAD, any branch failing all 3.
+  (The former bare-`[gone]`-upstream check was removed 2026-07: a deleted remote
+  is not proof the local commits were merged.)
+Refused unconditionally: main, master, current HEAD, any branch failing both.
 
 EXIT
   0  success (incl. "nothing to do")
   2  usage error
   3  at least one refused
+  4  at least one deletion failed after passing checks
 EOF
 }
 
@@ -189,7 +192,7 @@ for b in "${branches[@]}"; do
   if [ -n "$reason" ]; then
     verdict_safe+=("$b"$'\t'"$reason")
   else
-    verdict_unsafe+=("$b"$'\t'"no safety criterion met (unmerged commits, has upstream, not in $default_branch)")
+    verdict_unsafe+=("$b"$'\t'"no safety criterion met (no merged PR with matching tip, and not fully merged into $default_branch)")
   fi
 done
 

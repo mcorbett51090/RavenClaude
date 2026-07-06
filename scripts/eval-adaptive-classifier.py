@@ -297,12 +297,25 @@ def _resolve_project_transcript_dir(project_root: str) -> Path | None:
         return computed
     if not PROJECTS_DIR.exists():
         return None
+    # Fallback for Anthropic ABI drift (the forward-encoded dir name changed). The
+    # reverse-decode below is LOSSY — it maps every '-' back to '/', so it can never
+    # match a project_root whose own path components contain hyphens (e.g.
+    # '/home/user/my-project' or '.../ravenclaude-core'); the forward-encoded name is
+    # ambiguous the same way. So this only opportunistically matches hyphen-free
+    # paths; on no match we warn rather than silently zeroing out the transcript
+    # stats (a degraded run should be visible, not mistaken for "no activity").
     for candidate in PROJECTS_DIR.glob("*"):
         if not candidate.is_dir():
             continue
         decoded = "/" + candidate.name.replace("-", "/")
         if decoded == project_root:
             return candidate
+    print(
+        f"        [WARN] no ~/.claude/projects transcript dir matched project_root "
+        f"{project_root!r} (forward-encoded {computed.name!r} absent; reverse-decode "
+        f"is lossy for hyphenated paths) — token/cache stats will be zero for this run",
+        file=sys.stderr,
+    )
     return None
 
 
@@ -691,6 +704,7 @@ def submit_batch_and_collect_judge(fixtures: dict, runs: dict[str, dict[str, Run
         if r.result.type != "succeeded":
             print(f"  [WARN] {fid}: batch result type={r.result.type}", file=sys.stderr)
             continue
+        body = ""
         try:
             content = r.result.message.content
             if not content or not hasattr(content[0], "text"):
@@ -705,12 +719,17 @@ def submit_batch_and_collect_judge(fixtures: dict, runs: dict[str, dict[str, Run
                                     "adaptive": int(adaptive_scores[axis])}
                              for axis in ("task_coverage", "factual_accuracy", "clarity")}
         except (json.JSONDecodeError, ValueError, KeyError, TypeError, IndexError) as exc:
-            # This single try-block already parses, un-scrambles, assigns, AND catches
-            # every off-schema shape (missing "A"/"B", missing axis, non-numeric score).
-            # A second identical un-scramble block used to follow here; it was dead on
-            # the error path (this `continue` skipped it) and pure repeated work on the
-            # success path — removed as a merge artifact (2026-07 review).
-            print(f"  [WARN] {fid}: judge response off-schema ({type(exc).__name__}: {exc}); skipping", file=sys.stderr)
+            # This single try-block parses, un-scrambles, assigns, AND catches every
+            # off-schema shape (bad JSON, missing "A"/"B", missing axis, non-numeric
+            # score), skipping THIS fixture with a warning rather than raising and
+            # discarding every result already collected for the other fixtures. (A
+            # second identical un-scramble block used to follow here; it was dead on
+            # the error path and repeated work on the success path — removed 2026-07.)
+            # body is "" if the failure came before it was assigned (empty/non-text
+            # content block); include a short snippet when we have one.
+            snippet = f" body={body[:120]!r}" if body else ""
+            print(f"  [WARN] {fid}: judge response off-schema "
+                  f"({type(exc).__name__}: {exc}); skipping.{snippet}", file=sys.stderr)
             continue
     return results
 
