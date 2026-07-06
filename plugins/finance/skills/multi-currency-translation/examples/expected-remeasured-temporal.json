@@ -1,0 +1,45 @@
+{
+  "_provenance": "Hand-derived by independent arithmetic from tb-eur-sub-2026-06.csv (closing 1.10, average 1.05, historical default 1.00, Inventory 1.02), NOT frozen from a remeasure.py run. Cross-checked in test_remeasure.py.",
+  "method": "temporal",
+  "functional_currency": "EUR",
+  "presentation_currency": "USD",
+  "_derivation": {
+    "monetary_at_closing": {
+      "Cash": "1500 x 1.10 = 1650",
+      "AP": "800 x 1.10 = 880",
+      "Debt": "1200 x 1.10 = 1320"
+    },
+    "nonmonetary_at_historical": {
+      "Inventory": "1000 x 1.02 = 1020",
+      "PP&E": "2000 x 1.00 = 2000"
+    },
+    "equity_at_historical": {
+      "Common stock": "1000 x 1.00 = 1000",
+      "Begin RE": "500 x 1.00 = 500"
+    },
+    "pnl_at_average": {
+      "Revenue": "3000 x 1.05 = 3150",
+      "Expenses": "2000 x 1.05 = 2100",
+      "net_income_before_remeasurement": 1050
+    },
+    "remeasurement_plug": "USD debits 6770 - USD credits 6850 = -80 (remeasurement LOSS, debit, flows to net income)",
+    "net_income": "1050 - 80 = 970"
+  },
+  "translated_income_statement": {
+    "revenue": 3150.0,
+    "gross_profit": 3150.0,
+    "operating_income": 1050.0,
+    "other_income_expense_net": -80.0,
+    "net_income": 970.0
+  },
+  "translated_balance_sheet": {
+    "total_assets": 4670.0,
+    "total_current_assets": 2670.0,
+    "total_liabilities": 2200.0,
+    "equity_beginning": 1500.0,
+    "current_period_net_income": 970.0,
+    "total_equity": 2470.0,
+    "balance_delta": 0.0
+  },
+  "remeasurement_gain_loss": -80.0
+}

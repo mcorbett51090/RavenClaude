@@ -1,0 +1,12 @@
+account,description,statement,section,line,normal_balance,cf_category,noncash,rate_class
+1000,Cash,BS,CurrentAssets,Cash and cash equivalents,debit,operating,,MONETARY
+1200,Inventory,BS,CurrentAssets,Inventory,debit,operating,,NONMONETARY
+1500,Property Plant & Equipment,BS,NonCurrentAssets,"Property, plant & equipment",debit,investing,,NONMONETARY
+2000,Accounts Payable,BS,CurrentLiabilities,Accounts payable,credit,operating,,MONETARY
+2500,Long-term Debt,BS,NonCurrentLiabilities,Long-term debt,credit,financing,,MONETARY
+3000,Common Stock,BS,Equity,Common stock,credit,financing,,EQUITY_CONTRIB
+3100,Retained Earnings,BS,Equity,Retained earnings (beginning),credit,financing,,EQUITY_RE
+4000,Revenue,IS,Revenue,Revenue,credit,,,REV_EXP
+5000,Expenses,IS,OpEx,Operating expenses,debit,,,REV_EXP
+__CTA__,Cumulative translation adjustment (CTA),BS,Equity,Cumulative translation adjustment (CTA),credit,,,EQUITY_RE
+__REMEAS_GL__,Remeasurement gain/(loss),IS,OtherIncomeExpense,Remeasurement gain/(loss),credit,,,REV_EXP

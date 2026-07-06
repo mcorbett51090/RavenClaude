@@ -1,0 +1,10 @@
+{
+  "_synthetic": "OBVIOUSLY FAKE token-refresh response. Token values are fake.",
+  "status": 200,
+  "body": {
+    "access_token": "FAKE-INTACCT-ACCESS-2",
+    "expires_in": 3600,
+    "refresh_token": "FAKE-INTACCT-REFRESH-STATIC",
+    "token_type": "Bearer"
+  }
+}

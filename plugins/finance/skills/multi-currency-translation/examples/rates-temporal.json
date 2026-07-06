@@ -1,0 +1,7 @@
+{
+  "method": "temporal",
+  "closing": 1.1,
+  "average": 1.05,
+  "historical": { "default": 1.0, "1200": 1.02 },
+  "highly_inflationary": false
+}

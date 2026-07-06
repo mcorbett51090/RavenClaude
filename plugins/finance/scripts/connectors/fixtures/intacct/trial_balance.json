@@ -1,0 +1,60 @@
+{
+  "_synthetic": "OBVIOUSLY FAKE recorded Sage Intacct readByQuery result. No real data, no PII.",
+  "provider": "intacct",
+  "intacct_company_id": "INTACCT-CO-FAKE",
+  "report": "TrialBalance",
+  "period": "2026-06",
+  "currency": "USD",
+  "rows": [
+    {
+      "account": "1000",
+      "name": "Cash",
+      "amount": 502500
+    },
+    {
+      "account": "1100",
+      "name": "Accounts Receivable",
+      "amount": 420000
+    },
+    {
+      "account": "1200",
+      "name": "Inventory",
+      "amount": 280000
+    },
+    {
+      "account": "2000",
+      "name": "Accounts Payable",
+      "amount": -300000
+    },
+    {
+      "account": "3000",
+      "name": "Common Stock",
+      "amount": -500000
+    },
+    {
+      "account": "3100",
+      "name": "Retained Earnings",
+      "amount": -270000
+    },
+    {
+      "account": "4000",
+      "name": "Product Revenue",
+      "amount": -1200000
+    },
+    {
+      "account": "5000",
+      "name": "Cost of Goods Sold",
+      "amount": 600000
+    },
+    {
+      "account": "6000",
+      "name": "Salaries & Wages",
+      "amount": 400000
+    },
+    {
+      "account": "8000",
+      "name": "Income Tax Expense",
+      "amount": 67500
+    }
+  ]
+}
