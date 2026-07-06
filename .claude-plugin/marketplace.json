@@ -3119,6 +3119,59 @@
         "introspection-hardening",
         "graphql-subscriptions"
       ]
+    },
+    {
+      "name": "creator-economy-operations",
+      "source": "./plugins/creator-economy-operations",
+      "description": "Creator-economy business operations team — 2 agents (creator-business-strategist, content-and-audience-manager) for running a creator/media business: the monetization mix (ads, sponsorships, memberships & subscriptions, products/courses, affiliate, services), the platform portfolio (owned vs rented, platform-risk diversification, repurposing), audience funnel & LTV, sponsorship valuation & rate cards, content ops, community & retention, and the creator P&L/MRR. 3 skills (choose-monetization-mix, price-a-brand-deal, plan-content-and-audience-growth), a knowledge bank (a Mermaid monetization-mix tree + a dated 2026 platform/payout/rate reference), 7 best-practices. ADVISORY operations knowledge, not legal/tax/financial advice; payout rules, rate norms, and FTC/ASA disclosure specifics are volatile + jurisdictional, retrieval-dated + verify-at-use; no audience PII. Distinct from marketing-operations, developer-relations, and ecommerce-dtc. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "creator-economy",
+        "content-creator",
+        "monetization",
+        "brand-deals",
+        "sponsorships",
+        "newsletter",
+        "membership",
+        "subscription",
+        "audience-growth",
+        "creator-p-and-l",
+        "rate-card",
+        "affiliate",
+        "community",
+        "mrr",
+        "platform-risk"
+      ]
+    },
+    {
+      "name": "hardware-electronics-engineering",
+      "source": "./plugins/hardware-electronics-engineering",
+      "description": "Hardware / electronics engineering team — 2 agents (hardware-systems-architect, pcb-design-engineer) for the BOARD embedded firmware runs on: architecture & build-vs-buy (module vs custom PCB), MCU/component selection + supply-aware BOM, power architecture (LDO-vs-switcher, budgets), schematic capture, PCB layout (stack-up, impedance, decoupling, grounding), signal & power integrity, DFM/DFA/DFT, and bring-up. 3 skills (scope-a-hardware-design, select-components-and-bom, review-schematic-and-layout), a knowledge bank (a Mermaid module-vs-custom-PCB tree + a dated 2026 EDA/fab/compliance reference), 7 best-practices. ENGINEERING decision-support, not a certification/safety-sign-off authority; component specs, fab/DFM rules, and regulatory thresholds are volatile + vendor/jurisdiction-specific, retrieval-dated + verify-at-use; datasheets read at the operating point. Distinct from embedded-iot-engineering (firmware) and robotics-autonomous-systems-engineering. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "hardware-engineering",
+        "electronics",
+        "pcb-design",
+        "schematic-capture",
+        "bom",
+        "component-selection",
+        "power-integrity",
+        "signal-integrity",
+        "dfm",
+        "emc",
+        "fcc",
+        "board-bring-up",
+        "kicad",
+        "altium",
+        "mcu-selection",
+        "power-architecture"
+      ]
     }
   ]
 }
