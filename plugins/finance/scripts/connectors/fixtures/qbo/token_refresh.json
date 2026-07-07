@@ -1,0 +1,10 @@
+{
+  "_synthetic": "OBVIOUSLY FAKE token-refresh response. Token values are fake.",
+  "status": 200,
+  "body": {
+    "access_token": "FAKE-QBO-ACCESS-2",
+    "expires_in": 3600,
+    "refresh_token": "FAKE-QBO-REFRESH-ROTATED-2",
+    "token_type": "Bearer"
+  }
+}

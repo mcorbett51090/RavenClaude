@@ -145,14 +145,37 @@ class CloseLedger:
             raise SystemExit(f"REFUSED: illegal transition {frm} -> {to_state} ({action}).")
         return st
 
-    def submit(self, actor: str, amount: float, now: str | None = None) -> dict:
-        st = self._transition("submit", "submitted", actor, {"amount": amount}, now)
+    def submit(self, actor: str, amount: float, now: str | None = None,
+               source_tb_sha256: str | None = None) -> dict:
+        # source_tb_sha256 PINS the trial balance this package was built from, so a later
+        # NetSuite re-pull whose hash differs can be flagged as "source changed after sign-off"
+        # (verify_source). Additive + backward-compatible: when None it is omitted entirely, so
+        # existing callers/events/audit hashes are byte-identical (no chain shift).
+        detail = {"amount": amount}
+        if source_tb_sha256 is not None:
+            detail["source_tb_sha256"] = source_tb_sha256
+        st = self._transition("submit", "submitted", actor, detail, now)
         st["state"] = "submitted"
         st["preparer"] = actor
         st["package_amount"] = amount
+        if source_tb_sha256 is not None:
+            st["source_tb_sha256"] = source_tb_sha256
         self._write_state(st)
-        self._append_event("submit", actor, {"amount": amount}, now)
+        self._append_event("submit", actor, detail, now)
         return st
+
+    def verify_source(self, current_hash: str) -> tuple[bool, str]:
+        """Cross-system drift control: compare a freshly-pulled TB hash to the one PINNED at
+        submit. Returns (unchanged, message). If no hash was pinned, reports that (not a
+        pass/fail). Does NOT touch the hash-chain verify() — it is a separate, read-only check."""
+        st = self.load_state()
+        pinned = st.get("source_tb_sha256")
+        if not pinned:
+            return (False, "no source TB hash was pinned at submit — cannot check drift")
+        if current_hash == pinned:
+            return (True, "source TB unchanged since sign-off")
+        return (False, f"SOURCE CHANGED AFTER SIGN-OFF: pinned {pinned[:12]}… != current "
+                       f"{current_hash[:12]}… — reopen before re-running the cycle")
 
     def review(self, actor: str, now: str | None = None) -> dict:
         st = self._transition("review", "in_review", actor, {}, now)
@@ -248,20 +271,21 @@ def main(argv=None) -> int:
     p.add_argument("--now", help="ISO timestamp override for deterministic runs")
     sub = p.add_subparsers(dest="cmd", required=True)
 
-    s = sub.add_parser("submit"); s.add_argument("--actor", required=True); s.add_argument("--amount", type=float, required=True)
+    s = sub.add_parser("submit"); s.add_argument("--actor", required=True); s.add_argument("--amount", type=float, required=True); s.add_argument("--source-tb-sha256", default=None, help="pin the source TB hash for drift detection")
     s = sub.add_parser("review"); s.add_argument("--actor", required=True)
     s = sub.add_parser("approve"); s.add_argument("--actor", required=True); s.add_argument("--threshold", type=float, required=True)
     s = sub.add_parser("reject"); s.add_argument("--actor", required=True); s.add_argument("--reason", required=True)
     s = sub.add_parser("lock"); s.add_argument("--actor", required=True); s.add_argument("--approval-token", default=None)
     s = sub.add_parser("reopen"); s.add_argument("--actor", required=True); s.add_argument("--reason", required=True)
     sub.add_parser("verify")
+    s = sub.add_parser("verify-source"); s.add_argument("--current-hash", required=True)
     sub.add_parser("show")
 
     a = p.parse_args(argv)
     led = CloseLedger(a.run_dir)
     try:
         if a.cmd == "submit":
-            _print(led.submit(a.actor, a.amount, a.now))
+            _print(led.submit(a.actor, a.amount, a.now, a.source_tb_sha256))
         elif a.cmd == "review":
             _print(led.review(a.actor, a.now))
         elif a.cmd == "approve":
@@ -275,6 +299,10 @@ def main(argv=None) -> int:
         elif a.cmd == "verify":
             ok, msg = led.verify()
             print(("OK: " if ok else "FAIL: ") + msg)
+            return 0 if ok else 1
+        elif a.cmd == "verify-source":
+            ok, msg = led.verify_source(a.current_hash)
+            print(("OK: " if ok else "DRIFT: ") + msg)
             return 0 if ok else 1
         elif a.cmd == "show":
             _print(led.load_state())

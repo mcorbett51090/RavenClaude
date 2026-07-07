@@ -1,5 +1,5 @@
 {
-  "_README": "Per-entity ELT connector config — SCAFFOLD / TEMPLATE. Copy per entity, fill in, keep OUT of version control if you add real ids. CREDENTIALS ARE NEVER STORED HERE: only the NAMES of environment variables (and a token-store path) that hold them at runtime. Extraction facts + failure modes: ../knowledge/finance-elt-connector-facts.md. Staging transform: ../skills/finance-elt-staging/SKILL.md.",
+  "_README": "Per-entity ELT connector config — SCAFFOLD / TEMPLATE. Copy per entity, fill in, keep OUT of version control if you add real ids. CREDENTIALS ARE NEVER STORED HERE: only the NAMES of environment variables (and a token-store path / private-key path) that hold them at runtime. Extraction facts + failure modes: ../knowledge/finance-elt-connector-facts.md. Staging transform: ../skills/finance-elt-staging/SKILL.md. NetSuite: this template ships TWO alternate auth blocks below — `auth` (generic OAuth2 authorization-code / TBA-era shape) and `auth_netsuite_m2m_variant` (the OAuth2 M2M cert-signed-JWT shape, the RECOMMENDED PRIMARY for any NEW NetSuite integration). Keep only the one matching your chosen flow; delete the other. Runbook: ../skills/netsuite-close/SKILL.md.",
   "schema_version": 1,
   "entity": "MRI",
   "entity_name": "Meridian Robotics Inc. (SYNTHETIC — replace)",
@@ -26,6 +26,23 @@
       "accounting.reports.read (Xero)",
       "restlets rest_webservices (NetSuite)"
     ]
+  },
+  "auth_netsuite_m2m_variant": {
+    "_note": "OPTIONAL ALTERNATE to the `auth` block above. Use THIS block instead when source_system=\"netsuite\" and you are wiring OAuth2 M2M (client-credentials + a certificate-signed JWT client assertion) — the RECOMMENDED PRIMARY path for any NEW NetSuite integration. The plain `auth` block above (oauth2_authorization_code / TBA-era shape) is a TIME-BOXED FALLBACK ONLY: NetSuite TBA (OAuth 1.0a) cannot create new integrations from release 2027.1, with existing TBA support running to roughly 2028.1 [unverified — settling gate]. Delete whichever of the two auth blocks you are not using. Runbook: ../skills/netsuite-close/SKILL.md.",
+    "flow": "oauth2_client_credentials_m2m",
+    "netsuite_account_id": "TSTDRV0000000",
+    "client_id_env": "FINANCE_NETSUITE_CLIENT_ID",
+    "cert_id": "REPLACE_WITH_THE_CERTIFICATE_ID_NETSUITE_ASSIGNED_ON_UPLOAD",
+    "private_key_path": ".secrets/netsuite-MRI.key",
+    "scope": "rest_webservices",
+    "token_store_path": ".secrets/netsuite-MRI-m2m.token.json",
+    "rotating_refresh_token": false,
+    "refresh_token_env": null,
+    "subsidiary_id": null,
+    "_no_refresh_token_note": "M2M has NO refresh token at all, unlike the rotating-refresh disciplines elsewhere in this template. A fresh access token is minted each time by re-signing a short-lived JWT client assertion with the private key at private_key_path (0600, NEVER on argv or an env-var value). refresh_token_env is null by design here, not an oversight. Generate the key/cert pair in YOUR shell (never this process): openssl req -x509 -newkey rsa:2048 -sha256 -nodes -days 730 -keyout netsuite-<entity>.key -out netsuite-<entity>.cert.pem -- then upload the .cert.pem in NetSuite (Setup > Integration > Manage Integrations > OAuth 2.0 > Certificate) and record the certificate id NetSuite assigns as cert_id above.",
+    "_suiteql_hints": "TB query endpoint: POST /services/rest/query/v1/suiteql. Header 'Prefer: transient' is REQUIRED. Query text goes in the request body field q, not the URL. Page with limit/offset; hard cap 100000 results per query -- scope by period/subsidiary rather than paging past it. Balance-sheet account types need a CUMULATIVE-from-inception sum through the target period; income-statement account types need a PERIOD-scoped sum -- a naive period-only SUM silently understates every BS account while the TB still foots to zero. See scripts/connectors/suiteql.py build_tb_query.",
+    "_role_hints": "Minimum NetSuite role: REST Web Services + Log in using Access Tokens + SuiteAnalytics Workbook + Lists -> Accounts (View) + the target subsidiary assignment. A role missing SuiteAnalytics Workbook is the most common cause of an otherwise-valid SuiteQL call returning an empty or denied result.",
+    "_settling_gate_note": "Every numeric/date fact referenced in this block's notes is [unverified -- settling gate] per ../knowledge/finance-elt-connector-facts.md -- browser-verify against your own NetSuite sandbox before it gates a live build."
   },
   "extract": {
     "_note": "Advisory rate/pagination hints — VERIFY against the connector-facts settling gates before relying on them.",

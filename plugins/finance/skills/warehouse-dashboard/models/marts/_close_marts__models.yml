@@ -1,0 +1,78 @@
+# _close_marts__models.yml — doc-blocks + tests for the finance close marts.
+# REFERENCE ARTIFACT (specified, not executed). Reuses data-platform
+# `dbt-project-scaffolding`: every mart is a contract; identifying columns carry
+# unique / not_null; entity_id carries a relationships test to dim_entity so the
+# tenant join spine can't silently break.
+version: 2
+
+models:
+  - name: dim_entity
+    description: "One row per legal entity — the tenant axis the RLS/Cube layer scopes on."
+    columns:
+      - name: entity_id
+        description: "UUID surrogate key (the tenant boundary)."
+        tests: [unique, not_null]
+      - name: functional_currency
+        tests: [not_null]
+
+  - name: dim_period
+    description: "One row per fiscal period. Not tenant-secret; un-scoped by RLS."
+    columns:
+      - name: period_id
+        tests: [unique, not_null]
+
+  - name: fct_close_statement_line
+    description: |
+      IS/BS statement lines, presentation-signed, at
+      entity × period × statement × section × line. Amounts are NOT re-signed here.
+    columns:
+      - name: entity_id
+        tests:
+          - not_null
+          - relationships: { to: ref('dim_entity'), field: entity_id }
+      - name: statement
+        tests:
+          - accepted_values: { values: ["IS", "BS"] }
+
+  - name: fct_recon_exception
+    description: "Reconciliation tie-out rows (PASS / FLAG / self-supported)."
+    columns:
+      - name: entity_id
+        tests:
+          - not_null
+          - relationships: { to: ref('dim_entity'), field: entity_id }
+      - name: status
+        tests:
+          - accepted_values: { values: ["PASS", "FLAG", "self-supported"] }
+
+  - name: fct_flux_movement
+    description: "Materiality-suppressed period-over-period movements."
+    columns:
+      - name: entity_id
+        tests:
+          - not_null
+          - relationships: { to: ref('dim_entity'), field: entity_id }
+
+  - name: fct_close_kpi
+    description: |
+      Headline KPIs, long format (metric/value/is_na). PARITY with
+      entity_dashboard.derive_kpis. value IS NULL exactly when is_na is true.
+    columns:
+      - name: entity_id
+        tests:
+          - not_null
+          - relationships: { to: ref('dim_entity'), field: entity_id }
+      - name: metric
+        tests: [not_null]
+
+  - name: fct_close_state
+    description: "Governed close state + traceability / self-certified badges."
+    columns:
+      - name: entity_id
+        tests:
+          - not_null
+          - relationships: { to: ref('dim_entity'), field: entity_id }
+      - name: state
+        tests:
+          - accepted_values:
+              values: ["draft", "submitted", "in_review", "approved", "locked", "rejected"]

@@ -1,0 +1,27 @@
+{
+  "_synthetic": "OBVIOUSLY FAKE per-entity NetSuite M2M connector config for --replay / tests. Mirrors the shape of ../../../templates/connector-config.template.json, adapted for the OAuth2 client-credentials (M2M) auth flow: auth carries a client_id/cert_id/scope (never a secret — the private key stays off this file, resolved by a signer at runtime) instead of a refresh-token env var.",
+  "schema_version": 1,
+  "entity": "MRI",
+  "entity_name": "Meridian Robotics Inc. (SYNTHETIC — replace)",
+  "source_system": "netsuite_m2m",
+  "source_ids": {
+    "netsuite_account_id": "TSTDRV0000FAKE"
+  },
+  "auth": {
+    "flow": "oauth2_client_credentials_m2m",
+    "_credentials_are_never_stored_here": true,
+    "client_id": "replay-client-123",
+    "cert_id": "replay-kid-9",
+    "scope": "rest_webservices",
+    "private_key_path_env": "FINANCE_NETSUITE_M2M_PRIVATE_KEY_PATH",
+    "_private_key_note": "LIVE use only: the private key is a 0600 FILE path (never inline/argv). See netsuite_signer.py."
+  },
+  "period_id": 42,
+  "subsidiary": 1,
+  "book": null,
+  "close_period_watermark": {
+    "field": "period",
+    "value": "2026-06"
+  },
+  "currency": "USD"
+}

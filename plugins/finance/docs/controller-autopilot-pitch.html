@@ -162,6 +162,7 @@
       <span class="pill ok">flux commentary</span><span class="pill ok">SoD-enforced sign-off</span>
       <span class="pill ok">hash-chained audit log</span><span class="pill ok">multi-entity consolidation</span>
       <span class="pill ok">recon auto-match</span><span class="pill ok">per-entity dashboards</span>
+      <span class="pill ok">NetSuite SuiteQL pull</span><span class="pill ok">changed-after-sign-off drift</span>
     </div>
   </header>
 
@@ -224,7 +225,7 @@
     <h2>Eight steps. The last three are yours.</h2>
     <p class="muted">Order matters here — each step gates the next, and the machine stops where your judgment begins.</p>
     <ol class="cycle">
-      <li><h3>Ingest the trial balance</h3><p>Drop in a CSV, or let the staging engine normalize a raw QuickBooks / NetSuite / Sage Intacct / Xero export — different vendor shapes come out byte-identical, and an unbalanced export is rejected before it reaches the close. Live OAuth pulls are next.</p></li>
+      <li><h3>Ingest the trial balance</h3><p>Drop in a CSV, or let the staging engine normalize a raw QuickBooks / NetSuite / Sage Intacct / Xero export — different vendor shapes come out byte-identical, and an unbalanced export is rejected before it reaches the close. For NetSuite, a one-command connector pulls the trial balance live over SuiteQL (OAuth 2.0 machine-to-machine) — balance-sheet accounts cumulative, income-statement accounts by period — and ties it out before it stages.</p></li>
       <li><h3>Validate the mapping</h3><p>Every account must map to a statement line. The run blocks on an unmapped account rather than guessing.</p></li>
       <li><h3>Produce the statements</h3><p>Income statement, balance sheet, and a clearly-labelled draft cash flow — tested on the subtotals, not just that it balances.</p></li>
       <li><h3>Reconcile &amp; flux</h3><p>Book vs sub-ledger tie-outs and period-over-period movement, both filtered to your materiality threshold.</p></li>
@@ -255,7 +256,7 @@
     <p class="eyebrow">Proven, not asserted</p>
     <h2>It ships with its own tests.</h2>
     <div class="kpis">
-      <div><div class="v">121/121</div><div class="k">acceptance tests passing across 7 suites — controls, classification, matching, consolidation, schedules</div></div>
+      <div><div class="v">310/310</div><div class="k">acceptance tests passing across 10 suites — controls, classification, matching, consolidation, schedules, and the NetSuite connector (auth, SuiteQL, tie-out, drift)</div></div>
       <div><div class="v">0.00</div><div class="k">balance-sheet tie, to the cent, every run — and consolidation eliminations that net to zero</div></div>
       <div><div class="v">1&nbsp;config</div><div class="k">to instantiate the next entity — no code change</div></div>
     </div>
@@ -323,6 +324,17 @@
         <p class="cav">Deterministic plumbing; entity / currency / period dimensions are stamped from the column-map, not independently verified.</p>
       </div>
 
+      <div class="cap wide">
+        <h3>NetSuite, wired for a layperson</h3>
+        <p>A controller — not an engineer — points the plugin at NetSuite and drives the whole governed close. One command mints the token, pulls a correct trial balance over SuiteQL, ties it out, and stages it; a chart-of-accounts <em>draft</em> saves you authoring 150 accounts from a blank page; and a plain-English doctor tells you <em>why</em> a TB won't tie instead of a stack trace.</p>
+        <dl>
+          <div><dt>Auth, built to last</dt><dd>OAuth 2.0 M2M — durable past NetSuite's 2027.1 TBA cutoff</dd></div>
+          <div><dt>Trial balance</dt><dd>BS-cumulative / IS-period SuiteQL · ties to $0.00</dd></div>
+          <div><dt>Changed after sign-off?</dt><dd>a re-pull's hash is checked against the locked package</dd></div>
+        </dl>
+        <p class="cav">A gold-standard <strong>reference implementation + offline harness</strong>, not a live-certified connector — the live wiring (certificate, integration record, read-only role) is a one-time, admin-assisted step measured in days; the <em>recurring</em> close, once wired, can approach a day. Every NetSuite fact is settling-gated for browser-verify before a live run.</p>
+      </div>
+
     </div>
   </section>
 
@@ -342,7 +354,7 @@
       <ul>
         <li><h3>It does not replace the judgment that produces the trial balance.</h3>Accruals, cutoff, estimates, and the reconciliations that turn a raw GL into a <em>reconciled</em> TB stay yours. It governs and reports the close; it doesn't invent the accounting.</li>
         <li><h3>Local-tier sign-off is tamper-<em>evident</em>, not tamper-<em>preventing</em>.</h3>Identity is config-asserted until it's wired to your identity provider. The hash chain detects edits; auditor-grade segregation arrives with the warehouse tier.</li>
-        <li><h3>Statements from a trial balance alone are not audit-traceable.</h3>They're badged as such. Drill-through from a statement line to the underlying journal entries comes with the live ELT connection.</li>
+        <li><h3>Statements from a trial balance alone are not audit-traceable.</h3>They're badged as such. Drill-through from a statement line back to the originating NetSuite transaction ships as a reference implementation (deep-link lineage); the live URL resolution against your authenticated account is the consumer's step.</li>
         <li><h3>Nothing posts to your ledger or moves money.</h3>Review-and-approve by design. It proposes; you dispose.</li>
       </ul>
     </div>
@@ -351,9 +363,9 @@
   <section class="reveal">
     <p class="eyebrow">Roadmap</p>
     <h2>What's live — and what's next.</h2>
-    <p><strong>Live today:</strong> statement production · COA-mapping authoring &amp; validation · reconciliation, flux, and GL-to-sub-ledger auto-match with threshold auto-certification · the enforced review→approve→lock workflow with a hash-chained audit log · finance-shaped ELT staging that normalizes any vendor export · multi-entity consolidation with intercompany elimination · per-entity dashboards · depreciation / prepaid / deferred-revenue schedules · and a secrets/PII scan gate. All of it runnable, all of it tested.</p>
-    <p class="muted"><strong>Next:</strong> live OAuth connections to QuickBooks / NetSuite / Sage Intacct / Xero with statement-line → journal-entry drill-through lineage; full multi-currency remeasurement + CTA; a warehouse-backed multi-tenant dashboard with row-level security; and identity-provider-backed segregation for auditor-grade sign-off.</p>
-    <p class="foot" style="margin-top:1.8rem">Built for the <code>finance</code> plugin, v0.16.0 · every figure on this page traces to a committed, re-runnable transcript. Outputs are decision-support, not an audit or tax opinion.</p>
+    <p><strong>Live today:</strong> statement production · COA-mapping authoring &amp; validation · reconciliation, flux, and GL-to-sub-ledger auto-match with threshold auto-certification · the enforced review→approve→lock workflow with a hash-chained audit log · finance-shaped ELT staging that normalizes any vendor export · <strong>a gold-standard NetSuite integration — OAuth 2.0 M2M + a BS-cumulative/IS-period SuiteQL trial-balance pull, a COA-map draft generator, a plain-English tie-out doctor, source-drift detection, and a one-command layperson runbook</strong> (reference implementation + offline harness) · multi-entity consolidation with intercompany elimination · per-entity dashboards · depreciation / prepaid / deferred-revenue schedules · and a secrets/PII scan gate. All of it runnable, all of it tested.</p>
+    <p class="muted"><strong>Next:</strong> live OAuth connections to QuickBooks / Sage Intacct / Xero on the same connector seam; full multi-currency remeasurement + CTA; a warehouse-backed multi-tenant dashboard with row-level security; and identity-provider-backed segregation for auditor-grade sign-off.</p>
+    <p class="foot" style="margin-top:1.8rem">Built for the <code>finance</code> plugin, v0.17.0 · every figure on this page traces to a committed, re-runnable transcript. Outputs are decision-support, not an audit or tax opinion.</p>
   </section>
 
 </div>

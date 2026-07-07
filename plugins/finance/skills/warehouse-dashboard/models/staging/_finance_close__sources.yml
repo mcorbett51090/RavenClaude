@@ -1,0 +1,46 @@
+# _finance_close__sources.yml — raw source declarations for the finance close warehouse.
+#
+# REFERENCE ARTIFACT — specified, not executed. There is no warehouse in this repo;
+# this file documents the contract a consumer wires up. The raw tables are what
+# `scripts/close_package_to_rows.py --out-dir` writes (one CSV per table), landed into
+# a raw schema by the consumer's ELT (Airbyte/Fivetran/n8n or a direct COPY). Reuses
+# data-platform `dbt-project-scaffolding`: sources -> staging -> marts, freshness on
+# every source, tests on identifying columns.
+#
+# HONEST CAVEAT: decision-support / reference implementation, NOT an audited close or a
+# live-verified pipeline. Live wiring, the IdP, the warehouse, and real credentials are
+# the consumer's step (gated through ravenclaude-core/security-reviewer).
+version: 2
+
+sources:
+  - name: finance_close_raw
+    description: >
+      Raw close-package rows emitted by close_package_to_rows.py, one table per
+      fact/dim, at grain entity_id × period. Landed by the consumer's ELT.
+    schema: "{{ var('finance_close_raw_schema', 'finance_close_raw') }}"
+    loaded_at_field: _loaded_at
+    freshness:
+      warn_after: { count: 36, period: hour }
+      error_after: { count: 72, period: hour }
+    tables:
+      - name: dim_entity
+        description: "One row per legal entity — the tenant axis for RLS."
+        columns:
+          - name: entity_id
+            description: "UUID surrogate key for the entity (the tenant boundary)."
+            tests: [unique, not_null]
+      - name: dim_period
+        description: "One row per fiscal period (YYYY-MM)."
+        columns:
+          - name: period_id
+            tests: [unique, not_null]
+      - name: fct_close_statement_line
+        description: "IS/BS lines, presentation-signed, at (entity, period, statement, section, line)."
+      - name: fct_recon_exception
+        description: "Reconciliation tie-out rows (PASS / FLAG / self-supported)."
+      - name: fct_flux_movement
+        description: "Materiality-suppressed period-over-period movements."
+      - name: fct_close_kpi
+        description: "Headline KPIs (long format: metric/value/is_na) — parity with entity_dashboard.derive_kpis."
+      - name: fct_close_state
+        description: "Governed close state + traceability / self-certified badges."
