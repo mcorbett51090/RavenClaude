@@ -8,7 +8,7 @@ For the marketplace-wide best-practice library (CI gates, hook authoring, versio
 
 ## Index
 
-_27 rules._
+_28 rules._
 
 | Doc | Status | Use when |
 |---|---|---|
@@ -39,6 +39,7 @@ _27 rules._
 | [`the-bash-sandbox-is-the-os-enforced-complement-to-deny-ask-allow.md`](./the-bash-sandbox-is-the-os-enforced-complement-to-deny-ask-allow.md) | Pattern | Configuring a project's permission posture for autonomy/unattended runs — enable the OS-enforced Bash sandbox (Seatbelt/bubblewrap) to close the subprocess-access gap that `deny`/`ask`/`allow` rules can't reach, and to earn prompt-free autonomy without `--dangerously-skip-permissions`. |
 | [`give-the-agent-a-verification-signal-it-can-read.md`](./give-the-agent-a-verification-signal-it-can-read.md) | Pattern | Framing a task (or about to hand work back) — give the agent a check that emits a machine-readable pass/fail and iterate to green before reporting done; the umbrella principle the DoD-gate / expensive-test / visual-loop / adversarial-reviewer rules each instantiate. |
 | [`compact-proactively-and-persist-state-before-compaction.md`](./compact-proactively-and-persist-state-before-compaction.md) | Pattern | A long or multi-task session is filling the context window — compact at task boundaries (not at the 95% cliff) and persist load-bearing state (plans, decisions, rejected approaches) to a file/commit *before* compaction discards it, because `/compact` keeps only a summary. |
+| [`precompact-hook-is-the-deterministic-enforcer-of-persist-before-compaction.md`](./precompact-hook-is-the-deterministic-enforcer-of-persist-before-compaction.md) | Pattern | Authoring a plugin/consumer repo where losing state to an unattended auto-compaction has a real cost — register a `PreToolUse`-style `PreCompact` command hook (trigger `manual`/`auto`) that flushes the plan/decisions/rejected-approaches to disk deterministically, turning the "persist before compaction" prose rule into a gate that fires whether or not the model remembers. |
 
 ---
 

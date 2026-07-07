@@ -2,6 +2,12 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.187.0 — 2026-07-07
+
+### Added
+
+New consumer-facing best-practice rule (**28 rules** total) — [`best-practices/precompact-hook-is-the-deterministic-enforcer-of-persist-before-compaction.md`](best-practices/precompact-hook-is-the-deterministic-enforcer-of-persist-before-compaction.md). The deterministic-enforcement sibling to the 0.185.0 compaction rule: register a `PreCompact` command hook (trigger `manual`/`auto`, with the `PostCompact` bookend) that flushes load-bearing state — plan, open decisions, rejected approaches — to disk *before* an unattended auto-compaction discards it, turning the behavioral "persist before compaction" rule into a gate that fires whether or not the model remembers. It closes the loop the two existing rules point at (`compact-proactively-…` = what to persist; `prefer-a-deterministic-gate-over-a-prose-rule` = mechanize load-bearing rules into hooks). Distilled from the recurring Claude-community scan ([2026-07-07](../../docs/research/2026-07-07-claude-subreddit-scan/README.md)); the `PreCompact`/`PostCompact` events + `manual`/`auto` trigger values are grounded against the Anthropic hooks reference (confirmed 2026-07-07), event payload marked verify-at-use.
+
 ## 0.186.1 — 2026-07-06
 
 ### Fixed
