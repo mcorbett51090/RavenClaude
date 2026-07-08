@@ -745,20 +745,33 @@ echo "── Gate 13: dashboard.html freshness + native-merge render prep ──
 # plugin artifact served to consumers by the bundled serve-dashboards.py (the
 # /dashboard command). Its content is ALSO folded natively into the marketplace
 # index.html (one portal), from the SAME generator, so they never drift. The
-# render-test gates below extract their functions from index.html, so this block:
-#   (a) must_fail: a stale committed dashboard.html is detected (teeth);
-#   (b) regenerates BOTH dashboard.html and index.html IN PLACE so the render
-#       gates test the CURRENT generator output, never a stale committed file.
-#       Both inline existing committed SVGs (no mermaid-cli needed here).
+# render-test gates below extract their functions from the generated output.
+#
+# HERMETIC RENDER PREP (2026-07): this block renders the CURRENT generator output
+# to TEMP files ($DASH_HTML / $IDX_HTML) and every downstream render/freshness
+# gate reads THOSE, so a validation run NEVER mutates the committed index.html /
+# dashboard.html. Previously it regenerated both IN PLACE, leaving the working
+# tree dirty after every run (the churn that forced manual reverts). Best
+# practice: validation must be side-effect-free on tracked files. The committed
+# artifacts self-heal post-merge via regenerate-artifacts.yml; they are not
+# PR-gated, so there is no reason for the audit to touch them.
+# See docs/best-practices/hermetic-validation-no-in-place-regen.md.
+DASH_HTML="$TMP/render-dashboard.html"
+IDX_HTML="$TMP/render-index.html"
+# (a) must_fail: a stale committed dashboard.html is detected (teeth). This uses
+#     generate-dashboards.py --check (which reads the committed file); it backs up,
+#     mutates, then RESTORES the committed file immediately, so it leaves the tree
+#     clean. --check has no temp-path mode, so this stays backup/restore-scoped.
 backup plugins/ravenclaude-core/dashboard.html
 printf '\n<!-- AUDIT FIXTURE — should diff against regenerated output -->\n' >> plugins/ravenclaude-core/dashboard.html
 rc=0; python3 scripts/generate-dashboards.py --check >/dev/null 2>&1 || rc=$?
 gate "dashboard freshness (stale committed dashboard.html)" must_fail "$rc"
 cp -p "$TMP/plugins_ravenclaude-core_dashboard.html.bak" plugins/ravenclaude-core/dashboard.html
-rc=0; python3 scripts/generate-dashboards.py >/dev/null 2>&1 || rc=$?
-gate "dashboard generator runs clean (full page for consumers)" must_pass "$rc"
-rc=0; python3 scripts/generate-index-dashboard.py >/dev/null 2>&1 || rc=$?
-gate "index portal generator runs clean (regenerates in place for render gates)" must_pass "$rc"
+# (b) render the CURRENT output to temp (no in-place write) for the render gates.
+rc=0; python3 scripts/generate-dashboards.py --plugin ravenclaude-core --stdout > "$DASH_HTML" 2>/dev/null || rc=$?
+gate "dashboard generator runs clean (rendered to temp, no in-place write)" must_pass "$rc"
+rc=0; python3 scripts/generate-index-dashboard.py -o "$IDX_HTML" >/dev/null 2>&1 || rc=$?
+gate "index portal generator runs clean (rendered to temp, no in-place write)" must_pass "$rc"
 
 echo
 echo "── Gate 14: command-review tribunal (the Thing) ──────────────────────────"
@@ -2367,23 +2380,24 @@ rc=0; python3 scripts/check-grep-ere-pcre.py >/dev/null 2>&1 || rc=$?
 gate "grep-ere-pcre (clean tree)" must_pass "$rc"
 
 echo
-echo "── Gate 127: plugin file-hooks read the stdin path (no CLAUDE_TOOL_FILE_PATH-only no-op) ──"
+echo "── Gate 128: plugin file-hooks read the stdin path (no CLAUDE_TOOL_FILE_PATH-only no-op) ──"
+# (Renumbered 127→128: Gate 127 is pseudonymize.py; #580 collided on 127.)
 # A plugin file hook wired as `script.sh "$CLAUDE_TOOL_FILE_PATH"` gets an EMPTY $1
 # under Claude Code (that env var is not a real hook variable — the path arrives as
 # stdin JSON `.tool_input.file_path`). A hook reading only `file="${1:-}"` therefore
 # silently no-ops, disabling its whole check with no signal (the 2026-07 sweep that
 # fixed ~66 domain hooks + the core file hooks). This gate keeps every plugin file
 # hook on the stdin-fallback rail so a new plugin can't reintroduce the dead-hook bug.
-G127="$TMP/hook-stdin-fallback"
+G128="$TMP/hook-stdin-fallback"
 # must_fail: a hook that reads only $1 with no stdin fallback → detected.
-mkdir -p "$G127/bad/plugins/sample/hooks"
-printf '#!/usr/bin/env bash\nset -euo pipefail\nfile="${1:-}"\n[[ -z "$file" ]] && exit 0\n' > "$G127/bad/plugins/sample/hooks/flag-x.sh"
-rc=0; python3 scripts/check-hook-stdin-fallback.py --root "$G127/bad" >/dev/null 2>&1 || rc=$?
+mkdir -p "$G128/bad/plugins/sample/hooks"
+printf '#!/usr/bin/env bash\nset -euo pipefail\nfile="${1:-}"\n[[ -z "$file" ]] && exit 0\n' > "$G128/bad/plugins/sample/hooks/flag-x.sh"
+rc=0; python3 scripts/check-hook-stdin-fallback.py --root "$G128/bad" >/dev/null 2>&1 || rc=$?
 gate "hook-stdin-fallback (arg-only hook is inert under Claude Code)" must_fail "$rc"
 # must_pass: same hook WITH the stdin fallback → fine.
-mkdir -p "$G127/good/plugins/sample/hooks"
-printf '#!/usr/bin/env bash\nfile="${1:-}"\nif [[ -z "$file" ]]; then file="$(cat | jq -r .tool_input.file_path)"; fi\n' > "$G127/good/plugins/sample/hooks/flag-x.sh"
-rc=0; python3 scripts/check-hook-stdin-fallback.py --root "$G127/good" >/dev/null 2>&1 || rc=$?
+mkdir -p "$G128/good/plugins/sample/hooks"
+printf '#!/usr/bin/env bash\nfile="${1:-}"\nif [[ -z "$file" ]]; then file="$(cat | jq -r .tool_input.file_path)"; fi\n' > "$G128/good/plugins/sample/hooks/flag-x.sh"
+rc=0; python3 scripts/check-hook-stdin-fallback.py --root "$G128/good" >/dev/null 2>&1 || rc=$?
 gate "hook-stdin-fallback (stdin fallback present is fine)" must_pass "$rc"
 # must_pass: the real committed tree is clean (every plugin file hook has the fallback).
 rc=0; python3 scripts/check-hook-stdin-fallback.py >/dev/null 2>&1 || rc=$?
@@ -2618,7 +2632,7 @@ echo "── Gate 35: dashboard serializer round-trip + Pipeline-tab server vali
 RT="scripts/check-dashboard-roundtrip.mjs"
 if command -v node >/dev/null 2>&1; then
   # must_pass: the real, in-sync dashboard.
-  rc=0; node "$RT" index.html >/dev/null 2>&1 || rc=$?
+  rc=0; node "$RT" "$IDX_HTML" >/dev/null 2>&1 || rc=$?
   gate "dashboard round-trip (real dashboard.html)" must_pass "$rc"
   # must_fail: a drifted dashboard whose decision_review emission line is stripped
   # (simulating the pre-fix serializer that silently dropped the key). The test
@@ -2730,7 +2744,7 @@ echo "── Gate 37: Heimdall perimeter-alarm tab (render logic + server reader
 #     generated dashboard.html against fixtures (red→red banner, empty→hidden,
 #     drift→DRIFT row, aria-live tiers). Must-pass on the real dashboard.
 if command -v node >/dev/null 2>&1; then
-  rc=0; node scripts/check-heimdall-render.mjs index.html >/dev/null 2>&1 || rc=$?
+  rc=0; node scripts/check-heimdall-render.mjs "$IDX_HTML" >/dev/null 2>&1 || rc=$?
   gate "heimdall render (real dashboard.html)" must_pass "$rc"
   # must_fail: a drifted dashboard whose red-tier aria-live line is broken (the
   # render test asserts red→assertive). Simulates a regression in the banner a11y.
@@ -2778,7 +2792,7 @@ echo "── Gate 38: Víðarr security-log tab (render + filter + server reader
 # (A) Behavioral render test: drives the REAL renderVidarrTable from the generated
 #     dashboard.html (both kinds render, type filter narrows, empty→quiet).
 if command -v node >/dev/null 2>&1; then
-  rc=0; node scripts/check-vidarr-render.mjs index.html >/dev/null 2>&1 || rc=$?
+  rc=0; node scripts/check-vidarr-render.mjs "$IDX_HTML" >/dev/null 2>&1 || rc=$?
   gate "vidarr render (real dashboard.html)" must_pass "$rc"
   # must_fail: a drifted dashboard whose kind-filter compare is broken (replaced
   # with a constant true) so the type filter no longer narrows — the render test
@@ -2831,7 +2845,7 @@ echo "── Gate 40: Norns lineage tab (render + Skuld gating + server reader) 
 #     generated dashboard.html (Urðr scenarios/commits, Verðandi counts, Skuld
 #     gated-empty-state when next_version absent + populated when present).
 if command -v node >/dev/null 2>&1; then
-  rc=0; node scripts/check-norns-render.mjs index.html >/dev/null 2>&1 || rc=$?
+  rc=0; node scripts/check-norns-render.mjs "$IDX_HTML" >/dev/null 2>&1 || rc=$?
   gate "norns render (real dashboard.html)" must_pass "$rc"
   # must_fail: a drifted dashboard whose Skuld gated-empty-state condition is
   # broken (forced false) so the gated message never shows — the render test
@@ -2879,7 +2893,7 @@ echo "── Gate 41: Níðhöggr debt-watch card (render + server reader) ─�
 # (A) Behavioral render test: drives the REAL renderNidhoggr from the generated
 #     dashboard.html (four signals render counts; populated lists items; empty→clean).
 if command -v node >/dev/null 2>&1; then
-  rc=0; node scripts/check-nidhoggr-render.mjs index.html >/dev/null 2>&1 || rc=$?
+  rc=0; node scripts/check-nidhoggr-render.mjs "$IDX_HTML" >/dev/null 2>&1 || rc=$?
   gate "nidhoggr render (real dashboard.html)" must_pass "$rc"
   # must_fail: a drifted dashboard whose "clean" empty-state word is renamed, so the
   # all-clean assertion (four 'clean' sections) breaks.
@@ -2926,7 +2940,7 @@ echo "── Gate 42: Bifröst install-wizard (verify logic + no-command-exec) �
 # path executes no command — the §3.6 "copy-paste only, never invokes a slash
 # command" acceptance criterion, checked structurally.
 if command -v node >/dev/null 2>&1; then
-  rc=0; node scripts/check-bifrost-render.mjs index.html >/dev/null 2>&1 || rc=$?
+  rc=0; node scripts/check-bifrost-render.mjs "$IDX_HTML" >/dev/null 2>&1 || rc=$?
   gate "bifrost render (real dashboard.html)" must_pass "$rc"
   # must_fail: a drifted dashboard whose failure verdict is broken — the bad-path
   # `bifrostSetBadge(step, "red")` is rewritten to "amber", so a known-failure
@@ -2957,7 +2971,7 @@ echo "── Gate 43: Sleipnir worktree widget (render + server reader) ──�
 # (A) Behavioral render test from the generated dashboard.html (count+names,
 #     singular, empty, undefined→no-crash).
 if command -v node >/dev/null 2>&1; then
-  rc=0; node scripts/check-sleipnir-render.mjs index.html >/dev/null 2>&1 || rc=$?
+  rc=0; node scripts/check-sleipnir-render.mjs "$IDX_HTML" >/dev/null 2>&1 || rc=$?
   gate "sleipnir render (real dashboard.html)" must_pass "$rc"
   # must_fail: a drifted dashboard whose empty-state text is renamed, so the
   # 0-worktrees assertion ("no active worktrees") no longer holds.
@@ -3211,7 +3225,7 @@ echo "── Gate 49: Mímir session-state tab (render + both-copies parity) ─
 # A render gate that misses that drift would lie to the user about what
 # Claude Code actually exposes; the must_fail half proves it doesn't.
 if command -v node >/dev/null 2>&1; then
-  rc=0; node scripts/check-mimir-render.mjs index.html >/dev/null 2>&1 || rc=$?
+  rc=0; node scripts/check-mimir-render.mjs "$IDX_HTML" >/dev/null 2>&1 || rc=$?
   gate "mimir render (real dashboard.html)" must_pass "$rc"
   # must_fail: drift the dashboard so mimirInProcessPill returns a plain dash
   # instead of a pill — the populated-fixture assertion "reasoning effort uses
@@ -3287,7 +3301,7 @@ PY
   rc=0; node scripts/check-shell-router.mjs "$SHELL_BAD" >/dev/null 2>&1 || rc=$?
   gate "shell-router (emptied DASH_SECTIONS is detected)" must_fail "$rc"
   # must_pass: real index.html satisfies the contract.
-  rc=0; node scripts/check-shell-router.mjs index.html >/dev/null 2>&1 || rc=$?
+  rc=0; node scripts/check-shell-router.mjs "$IDX_HTML" >/dev/null 2>&1 || rc=$?
   gate "shell-router (real index.html satisfies the contract)" must_pass "$rc"
 else
   _skip_or_fail "Gate 51 shell-router" node
@@ -3329,7 +3343,7 @@ echo "── Gate 93: Learn-tab step-by-step diagram (stepper) render ───�
 # the JS reveals them + honors prefers-reduced-motion). The script ALSO runs an
 # inline must-fail half (proves its own teeth).
 if command -v node >/dev/null 2>&1; then
-  rc=0; node scripts/check-stepper-render.mjs index.html >/dev/null 2>&1 || rc=$?
+  rc=0; node scripts/check-stepper-render.mjs "$IDX_HTML" >/dev/null 2>&1 || rc=$?
   gate "stepper render (real dashboard.html)" must_pass "$rc"
   # must_fail: a dashboard with the stepper markup stripped must be detected.
   ST_BAD="$(mktemp)"; sed 's/class="concept-stepper"/class="concept-NOPE"/g' \
@@ -3355,7 +3369,7 @@ echo "── Gate 104: Pipeline-tab concern-stats render (renderConcernStats) �
 # so the card could silently regress. The script hardcodes dashboard.html, which
 # audit-gates regenerates in place above before the render gates run.
 if command -v node >/dev/null 2>&1; then
-  rc=0; node scripts/check-concern-stats-render.mjs >/dev/null 2>&1 || rc=$?
+  rc=0; node scripts/check-concern-stats-render.mjs "$DASH_HTML" >/dev/null 2>&1 || rc=$?
   gate "concern-stats render (real dashboard.html + inline must-fail half)" must_pass "$rc"
 else
   _skip_or_fail "Gate 104 concern-stats render" node
@@ -3371,16 +3385,23 @@ echo "── Gate 97: index.html freshness (template round-trip, check-only) ─
 # design (Matt's G0 verdict): it fails loudly; it does not auto-regenerate.
 # Auto-heal promotion (regenerate-artifacts.yml) is a follow-up after one
 # clean week. NOTE: gates 94-96 are reserved by the in-flight data-viz run.
-# must_fail: a hand-edit to index.html that the template doesn't have (the
-# exact historical failure mode) must be detected.
-IDX_BAK="$(mktemp)"; cp index.html "$IDX_BAK"
-printf '\n<!-- AUDIT FIXTURE — hand-edit the template does not have -->\n' >> index.html
-rc=0; python3 scripts/generate-index-dashboard.py --check >/dev/null 2>&1 || rc=$?
-gate "index freshness (hand-edited index.html is detected)" must_fail "$rc"
-cp "$IDX_BAK" index.html; rm -f "$IDX_BAK"
-# must_pass: a clean tree round-trips.
-rc=0; python3 scripts/generate-index-dashboard.py --check >/dev/null 2>&1 || rc=$?
-gate "index freshness (clean tree round-trips)" must_pass "$rc"
+# HERMETIC (2026-07): this runs against the freshly-rendered TEMP index
+# ($IDX_HTML from Gate 13), NEVER the committed index.html — so a validation run
+# leaves the working tree untouched (best practice), and the gate is an honest
+# generator-determinism + template-teeth check rather than a self-fulfilling
+# re-check of a file the audit just rewrote in place. Committed-file freshness is
+# self-healed post-merge (regenerate-artifacts.yml) and remains checkable on
+# demand via `audit-gates.sh --check 97` (which reads the committed file).
+# See docs/best-practices/hermetic-validation-no-in-place-regen.md.
+# must_fail: a hand-edit the template does not emit is detected by --check.
+printf '\n<!-- AUDIT FIXTURE — hand-edit the template does not have -->\n' >> "$IDX_HTML"
+rc=0; python3 scripts/generate-index-dashboard.py --check -o "$IDX_HTML" >/dev/null 2>&1 || rc=$?
+gate "index freshness (hand-edited index is detected)" must_fail "$rc"
+# re-render clean (temp) for the must_pass round-trip.
+python3 scripts/generate-index-dashboard.py -o "$IDX_HTML" >/dev/null 2>&1
+# must_pass: a fresh render round-trips through --check (determinism, modulo ts).
+rc=0; python3 scripts/generate-index-dashboard.py --check -o "$IDX_HTML" >/dev/null 2>&1 || rc=$?
+gate "index freshness (fresh render round-trips)" must_pass "$rc"
 
 # ─────────────────────────────────────────────────────────────────────────────
 echo "── Gate 70: Codex desktop trust review hooks (Findings 1, 2, 5) ─────────"
@@ -3752,7 +3773,7 @@ echo "── Gate 113: Agentic Work-Streams dashboard tab (P3) ─────�
 # proof (the _read_streams reader whitelists event fields — a raw prompt/content
 # field is never surfaced). Node-driven; LOUD-skips offline, hard-fails in CI.
 if command -v node >/dev/null 2>&1; then
-  rc=0; node scripts/check-streams-render.mjs >/dev/null 2>&1 || rc=$?
+  rc=0; node scripts/check-streams-render.mjs "$DASH_HTML" >/dev/null 2>&1 || rc=$?
   gate "streams dashboard tab: render + /__streams parity + no-prompt-egress" must_pass "$rc"
 else
   _skip_or_fail "Gate 113 (streams render)" node
