@@ -24,7 +24,10 @@ import { fileURLToPath } from "node:url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const DASH = path.join(__dirname, "..", "plugins", "ravenclaude-core", "dashboard.html");
+// Accept an optional path arg (like the sibling render gates) so audit-gates can
+// point it at a hermetically-rendered temp file instead of the committed artifact.
+const DASH =
+  process.argv[2] || path.join(__dirname, "..", "plugins", "ravenclaude-core", "dashboard.html");
 
 function fail(msg) {
   process.stderr.write("FAIL: " + msg + "\n");
