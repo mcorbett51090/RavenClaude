@@ -25,7 +25,12 @@ on:
       - ".prettierignore"
       - ".prettierrc.json"
       - "ruff.toml"
-      - ".github/workflows/validate-marketplace.yml"
+      # actionlint (a gate in THIS workflow, direct step + audit-gates Gate 10)
+      # reads EVERY .github/workflows/*.yml — so a PR editing any OTHER workflow
+      # (e.g. quarantine-intake.yml, which ingests untrusted issue title/body)
+      # must trigger this workflow, or actionlint never lints the change and a
+      # script-injection could merge green (repo-review 2026-07-06, P2).
+      - ".github/workflows/**"
   push:
     branches:
       - main
@@ -44,7 +49,8 @@ on:
       - ".prettierignore"
       - ".prettierrc.json"
       - "ruff.toml"
-      - ".github/workflows/validate-marketplace.yml"
+      # actionlint reads every workflow file — see the pull_request note above.
+      - ".github/workflows/**"
   workflow_dispatch:
 
 # Least-privilege GITHUB_TOKEN: this workflow only reads the repo to validate it.
@@ -57,14 +63,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
       - name: Set up Node.js
         # The render/round-trip *.mjs gates and the prettier check run under node/npx.
         # audit-gates.sh now HARD-FAILS in CI when node/npx is absent (a skip is not
         # a pass), so provision node explicitly rather than relying on the runner
         # image happening to ship it.
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: "20"
 
@@ -280,8 +286,10 @@ jobs:
           status=0
           # AGENTS.md "PR conventions" requires removing email from manifests
           # before pushing to a public-readable remote. CI enforces it.
-          if grep -rn "matt@ravenpower.net" .claude-plugin/ plugins/*/.claude-plugin/ 2>/dev/null; then
-            echo "::error::Private email 'matt@ravenpower.net' found in a public manifest. Remove the email field or replace with a noreply alias."
+          # Case-insensitive (-i): a copy-pasted "Matt@RavenPower.NET" is the same
+          # address and the same leak, so an exact-case match would let it slip past.
+          if grep -rin "matt@ravenpower.net" .claude-plugin/ plugins/*/.claude-plugin/ 2>/dev/null; then
+            echo "::error::Private email 'matt@ravenpower.net' (any case) found in a public manifest. Remove the email field or replace with a noreply alias."
             status=1
           else
             echo "OK no private emails in manifests"
@@ -293,7 +301,7 @@ jobs:
           # Markdown is excluded via .prettierignore — the project's prose style
           # is reviewed by humans per AGENTS.md, not by prettier. JSON, YAML,
           # JS/TS, CSS in scope.
-          npx --yes prettier --check . --log-level warn
+          npx --yes prettier@3.9.4 --check . --log-level warn
 
       - name: Actionlint (GitHub Actions semantic check)
         # Pinned-binary actionlint (rhysd/actionlint v1.7.7) downloaded from the
@@ -439,6 +447,18 @@ jobs:
           for manifest in plugins/*/.claude-plugin/plugin.json; do
             name=$(jq -r '.name' "$manifest")
             plugin_version=$(jq -r '.version' "$manifest")
+            # A duplicate catalog entry for the same name makes the version select
+            # below emit MULTIPLE lines, which the string compare then mis-reports as
+            # "version drift". Detect the duplicate explicitly and report it as what
+            # it is (marketplace.json plugin names are not schema-enforced unique).
+            catalog_count=$(jq -r --arg n "$name" \
+              '[.plugins[] | select(.name == $n)] | length' \
+              .claude-plugin/marketplace.json)
+            if [[ "$catalog_count" -gt 1 ]]; then
+              echo "::error file=.claude-plugin/marketplace.json::duplicate catalog entry for $name — marketplace.json lists it $catalog_count times; remove the extras"
+              status=1
+              continue
+            fi
             catalog_version=$(jq -r --arg n "$name" \
               '.plugins[] | select(.name == $n) | .version' \
               .claude-plugin/marketplace.json)

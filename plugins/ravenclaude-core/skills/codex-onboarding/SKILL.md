@@ -2,7 +2,7 @@
 name: codex-onboarding
 description: Onboards a non-Claude-Code agent (GitHub Copilot CLI / Cursor / Aider / Codex / Devin) to this repo on session start. Use when this repo will be operated on by a coding agent that does NOT natively read CLAUDE.md. Mirrors what CLAUDE.md provides to Claude Code, but routes through AGENTS.md (which all major 2026 agents read) and surfaces tool-version floors + 2026 H1 failure-mode mitigations.
 target_path: plugins/ravenclaude-core/skills/codex-onboarding/SKILL.md
-last_reviewed: 2026-06-04
+last_reviewed: 2026-07-08
 audience: [external-coding-agent, codex-user, copilot-cli-user, cursor-user, aider-user]
 sources:
   - /tmp/research-codex-2026-updates.md §1-§3, §7-§8 (Q1-Q2 2026 changes + 2026 best-practices consensus)
@@ -25,6 +25,7 @@ Cross-tool onboarding skill: gives a non-Claude-Code agent the equivalent contex
 3. **Read the relevant plugin's `CLAUDE.md`.** Despite the name, it is the team constitution for that plugin and is not Claude-specific. It carries the cross-tool house opinions every agent must enforce.
 4. **Skim `plugins/ravenclaude-core/skills/`** for skills relevant to your task. The descriptions are written third-person and include trigger language — match against your task.
 5. **Identify your tool's plugin/hook surface and version floor** (§Tool-version floors below).
+6. **Read the document map first, if there is one.** If the repo root has a `DOCUMENT-MAP.md` (or an inline topic→path index in `AGENTS.md`), read it before any find/grep — it resolves a known-document lookup in ~1 tool call. Absent + the repo has a substantial docs tree → offer to seed one via `scripts/generate-document-map.py` (then hand-curate the topic labels); a repo with < ~20 docs doesn't need one. Mechanism: [`../../knowledge/copilot-cli-customization.md`](../../knowledge/copilot-cli-customization.md) §7; pattern: [`../../../../docs/best-practices/agent-onboarding.md`](../../../../docs/best-practices/agent-onboarding.md).
 
 ## Before every edit batch
 
@@ -80,6 +81,7 @@ A codex-onboarding invocation succeeds when:
 3. The relevant plugin's `CLAUDE.md` has been read.
 4. The tool's version floor has been verified (`gh copilot --version` / `cursor --version` / etc.).
 5. The decision-tree intake / spec-reread / diff-budget / validator-handoff loop is in the agent's working memory for the session.
+6. The repo's document map (if any) has been read, so known-document lookups cost ~1 tool call, not a find/grep sweep.
 
 ## See also
 
@@ -88,4 +90,5 @@ A codex-onboarding invocation succeeds when:
 - [`../spec-reread-ritual/SKILL.md`](../spec-reread-ritual/SKILL.md) — anti-drift mechanic.
 - [`../../CLAUDE.md`](../../CLAUDE.md) — the team constitution this skill mirrors.
 - `AGENTS.md` (at the repo root) — canonical cross-tool guidance (read this first).
+- [`../../../../docs/best-practices/agent-onboarding.md`](../../../../docs/best-practices/agent-onboarding.md) — give a cold agent a document map (session-start discovery); mechanism in [`../../knowledge/copilot-cli-customization.md`](../../knowledge/copilot-cli-customization.md) §7.
 - [`docs/best-practices/2026-q1-q2-failure-modes.md`](../../../../docs/best-practices/2026-q1-q2-failure-modes.md) — the H1 2026 failure-mode catalog.

@@ -48,9 +48,11 @@ Stdlib-only. Exits non-zero on missing key / API failure so CI fails loudly.
 from __future__ import annotations
 
 import argparse
+import ipaddress
 import json
 import os
 import re
+import socket
 import sys
 import time
 import urllib.error
@@ -140,22 +142,63 @@ _TAG_RE = re.compile(r"<[^>]+>")
 _WS_RE = re.compile(r"\s+")
 
 
+def _host_is_public(url: str) -> bool:
+    """True only if the URL's host resolves ENTIRELY to public IPs. The host-side
+    SSRF boundary on top of the scheme check: a hostile search result must not be
+    able to coax a GET of a link-local / loopback / private / reserved target —
+    cloud-metadata (169.254.169.254), 127.0.0.1:PORT, 10.x/192.168.x, etc. Every
+    resolved address must be public; a mixed result fails closed. Fail-safe: any
+    resolution error / unparseable host / empty result returns False (refuse).
+    Residual limit: this is a point-in-time check, not a DNS-rebinding guard —
+    acceptable defense-in-depth for an opt-in CLI research utility."""
+    host = urllib.parse.urlparse(url).hostname
+    if not host:
+        return False
+    try:
+        infos = socket.getaddrinfo(host, None)
+    except (socket.gaierror, UnicodeError, ValueError):
+        return False
+    if not infos:
+        return False
+    for info in infos:
+        try:
+            ip = ipaddress.ip_address(info[4][0])
+        except ValueError:
+            return False
+        if (
+            ip.is_private
+            or ip.is_loopback
+            or ip.is_link_local
+            or ip.is_reserved
+            or ip.is_multicast
+            or ip.is_unspecified
+        ):
+            return False
+    return True
+
+
 def fetch_body_excerpt(url: str) -> str:
     """Fetch an OPEN-WEB article and return a crude text excerpt. Never called
     for NEVER_FETCH hosts. Fail-safe: returns '' on any error."""
     # SSRF guard: urllib will happily open file://, ftp://, etc. We only ever
     # want real web articles — refuse anything that isn't http/https so a
-    # hostile search result can't coax a local-file or non-web fetch. The check
-    # is repeated on the FINAL resolved URL after urlopen, because urllib follows
-    # redirects by default and the input-URL check alone wouldn't catch a 3xx that
-    # lands on a non-web scheme.
+    # hostile search result can't coax a local-file or non-web fetch, AND refuse
+    # any host that resolves to a private/loopback/link-local/reserved IP so it
+    # can't coax an internal-network GET (cloud metadata, localhost services).
+    # Both checks are repeated on the FINAL resolved URL after urlopen, because
+    # urllib follows redirects by default and the input-URL check alone wouldn't
+    # catch a 3xx that lands on a non-web scheme or an internal host.
     if urllib.parse.urlparse(url).scheme not in ("http", "https"):
+        return ""
+    if not _host_is_public(url):
         return ""
     req = urllib.request.Request(url, headers={"User-Agent": UA})
     try:
         with urllib.request.urlopen(req, timeout=30) as resp:
             final = getattr(resp, "url", None) or url
             if urllib.parse.urlparse(final).scheme not in ("http", "https"):
+                return ""
+            if not _host_is_public(final):
                 return ""
             ctype = resp.headers.get("Content-Type", "")
             if "html" not in ctype and "text" not in ctype:

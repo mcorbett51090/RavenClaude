@@ -25,6 +25,13 @@
 import { readFileSync, existsSync } from "node:fs";
 
 const htmlPath = process.argv[2] || "plugins/ravenclaude-core/dashboard.html";
+// Guard BEFORE the read so a missing artifact yields a friendly message instead
+// of a raw ENOENT stack (the old existsSync check sat AFTER the PASS/FAIL line,
+// unreachable and useless — 2026-07 review).
+if (!existsSync(htmlPath)) {
+  console.error(`dashboard.html missing: ${htmlPath}`);
+  process.exit(1);
+}
 const html = readFileSync(htmlPath, "utf8");
 
 const scripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map((m) => m[1]);
@@ -284,8 +291,4 @@ ok(
 );
 
 console.log(failures === 0 ? "\nGate 113 PASS" : `\nGate 113 FAIL (${failures})`);
-if (!existsSync(htmlPath)) {
-  console.error("dashboard.html missing");
-  process.exit(1);
-}
 process.exit(failures === 0 ? 0 : 1);

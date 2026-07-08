@@ -84,6 +84,13 @@ def _violations(root: Path) -> list[tuple[str, str]]:
 
     patterns = [
         "plugins/*/skills/*/SKILL.md",
+        # Flat-file skills ("skills/<name>.md") are counted as skills by
+        # check-marketplace-claims.actual_skill_count, so they must be frontmatter-
+        # validated too — otherwise the strict-YAML load failure this gate exists to
+        # catch could ship in a flat skill (repo-review 2026-07-06, P2). This glob
+        # matches ONLY flat files, never "skills/<name>/SKILL.md" (one level deeper),
+        # so there is no double-processing with the pattern above.
+        "plugins/*/skills/*.md",
         "plugins/*/agents/*.md",
         "plugins/*/commands/*.md",
     ]

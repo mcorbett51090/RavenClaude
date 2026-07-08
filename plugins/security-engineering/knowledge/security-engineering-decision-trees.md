@@ -110,6 +110,7 @@ _A 9.8 in an unreachable path waits; a 6.5 unauthenticated and exploited-in-the-
 | SLSA | v1.0 | Build levels; verify provenance on consume |
 | CSPM | mature across clouds | Misconfig is #1 breach cause |
 | Policy-as-code (OPA/Conftest, cloud policy) | GA | Preventive > detective; wire via terraform-iac |
+| npm install-script hardening | **npm v12 (est. July 2026): install scripts OFF by default** | `allowScripts` defaults off (blocks pre/install/postinstall **and the implicit `node-gyp rebuild` a `binding.gyp` triggers** — closes the June-2026 "Phantom Gyp"/Miasma worm vector); Git deps opt-in `--allow-git`, remote URLs opt-in `--allow-remote`. Warnings today on npm ≥ 11.16.0; preview with `npm approve-scripts --allow-scripts-pending`. **CI: allow-list native-build deps before upgrading.** [GitHub Changelog 2026-06-09](https://github.blog/changelog/2026-06-09-upcoming-breaking-changes-for-npm-v12/) `[verify-at-build]` |
 
 ## Decision Tree: Should a dependency update be emergency or scheduled?
 

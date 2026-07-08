@@ -74,8 +74,10 @@ def cmd_evm(args: argparse.Namespace) -> int:
         print("error: --bac must be > 0", file=sys.stderr)
         return 2
     if not 0.0 < args.planned_pct <= 1.0 or not 0.0 <= args.earned_pct <= 1.0:
-        print("error: --planned-pct must be in (0%, 100%], --earned-pct in [0%, 100%]",
-              file=sys.stderr)
+        print(
+            "error: --planned-pct must be in (0%, 100%], --earned-pct in [0%, 100%]",
+            file=sys.stderr,
+        )
         return 2
     if args.actual_cost < 0:
         print("error: --actual-cost must be >= 0", file=sys.stderr)
@@ -88,8 +90,21 @@ def cmd_evm(args: argparse.Namespace) -> int:
     spi = ev / pv if pv else float("inf")
     cv = ev - ac
     sv = ev - pv
-    # EAC on the typical "current cost efficiency continues" assumption.
-    eac = args.bac / cpi if cpi not in (0.0, float("inf")) else args.bac
+    # EAC forecast. The two special cases are OPPOSITE situations and must not
+    # share a branch:
+    #   cpi == inf  (ac == 0): no cost incurred yet — EAC = BAC is defensible.
+    #   cpi == 0.0  (ev == 0, ac > 0): cost incurred with zero earned value. The
+    #     cost-to-complete is unbounded under the trending-CPI assumption, so we
+    #     do NOT collapse to BAC (that would read "on budget" while CPI reads
+    #     OVER). Fall back to the independent EAC = AC + (BAC - EV) and label it.
+    eac_independent = False
+    if cpi == float("inf"):
+        eac = args.bac
+    elif cpi == 0.0:
+        eac = ac + (args.bac - ev)
+        eac_independent = True
+    else:
+        eac = args.bac / cpi
     vac = args.bac - eac
 
     print("Earned-value (EVM) — project/phase health")
@@ -104,8 +119,12 @@ def cmd_evm(args: argparse.Namespace) -> int:
     print(f"  → SPI (EV/PV)  : {spi_s}   ({'ahead/on' if spi >= 1 else 'BEHIND'} schedule)")
     print(f"  → cost variance     (CV = EV-AC) : {cv:,.0f}")
     print(f"  → schedule variance (SV = EV-PV) : {sv:,.0f}")
-    print(f"  → forecast at completion (EAC = BAC/CPI) : {eac:,.0f}")
+    eac_formula = "EAC = AC+(BAC-EV), CPI=0" if eac_independent else "EAC = BAC/CPI"
+    print(f"  → forecast at completion ({eac_formula}) : {eac:,.0f}")
     print(f"  → variance at completion (VAC = BAC-EAC) : {vac:,.0f}")
+    if eac_independent:
+        print("    (CPI is 0 — cost incurred with zero earned value; cost-to-complete is")
+        print("     unbounded under the trending CPI, so EAC uses the independent formula)")
     print()
     quadrant = (
         ("under budget" if cpi >= 1 else "over budget")
@@ -159,8 +178,7 @@ def cmd_change_order(args: argparse.Namespace) -> int:
     print(f"  planned margin           : {args.margin * 100:g}%  (= {planned_profit:,.0f} profit)")
     print(f"  unbilled/absorbed CO work: {args.unbilled_share * 100:g}%  (= {unbilled_value:,.0f})")
     print(f"  → profit after absorption: {eroded_profit:,.0f}")
-    print(f"  → effective margin       : {eroded_margin * 100:.1f}%  "
-          f"(was {args.margin * 100:g}%)")
+    print(f"  → effective margin       : {eroded_margin * 100:.1f}%  (was {args.margin * 100:g}%)")
     if unbilled_value > 0:
         print("  note: unbilled CO work is effort delivered for no fee — it erodes")
         print("        profit dollar-for-dollar. Authorize additional services BEFORE")
@@ -217,33 +235,56 @@ def build_parser() -> argparse.ArgumentParser:
     sub = p.add_subparsers(dest="cmd", required=True)
 
     evm = sub.add_parser("evm", help="Earned-value (CPI/SPI/EAC) project health")
-    evm.add_argument("--bac", type=float, required=True,
-                     help="budget at completion (project or phase fee/cost budget)")
-    evm.add_argument("--planned-pct", type=_parse_rate, required=True,
-                     help="planned percent complete to date (e.g. 60%%)")
-    evm.add_argument("--earned-pct", type=_parse_rate, required=True,
-                     help="earned (actual) percent complete to date (e.g. 50%%)")
-    evm.add_argument("--actual-cost", type=float, required=True,
-                     help="actual cost incurred to date")
+    evm.add_argument(
+        "--bac",
+        type=float,
+        required=True,
+        help="budget at completion (project or phase fee/cost budget)",
+    )
+    evm.add_argument(
+        "--planned-pct",
+        type=_parse_rate,
+        required=True,
+        help="planned percent complete to date (e.g. 60%%)",
+    )
+    evm.add_argument(
+        "--earned-pct",
+        type=_parse_rate,
+        required=True,
+        help="earned (actual) percent complete to date (e.g. 50%%)",
+    )
+    evm.add_argument(
+        "--actual-cost", type=float, required=True, help="actual cost incurred to date"
+    )
     evm.set_defaults(func=cmd_evm)
 
     co = sub.add_parser("change-order", help="Change-order load + margin erosion")
     co.add_argument("--contract", type=float, required=True, help="original contract value")
-    co.add_argument("--change-orders", type=float, required=True,
-                    help="approved change-order total")
-    co.add_argument("--margin", type=_parse_rate, default=0.15,
-                    help="planned margin fraction (default 15%%)")
-    co.add_argument("--unbilled-share", type=_parse_rate, default=0.0,
-                    help="fraction of CO work delivered unbilled/absorbed (default 0%%)")
+    co.add_argument(
+        "--change-orders", type=float, required=True, help="approved change-order total"
+    )
+    co.add_argument(
+        "--margin", type=_parse_rate, default=0.15, help="planned margin fraction (default 15%%)"
+    )
+    co.add_argument(
+        "--unbilled-share",
+        type=_parse_rate,
+        default=0.0,
+        help="fraction of CO work delivered unbilled/absorbed (default 0%%)",
+    )
     co.set_defaults(func=cmd_change_order)
 
     area = sub.add_parser("chargeable-area", help="Gross<->usable efficiency translation")
-    area.add_argument("--efficiency", type=_parse_rate, required=True,
-                      help="building efficiency = usable / gross (e.g. 82%%)")
-    area.add_argument("--usable", type=float, default=None,
-                      help="target usable SF (solve for required gross)")
-    area.add_argument("--gross", type=float, default=None,
-                      help="gross SF (solve for usable)")
+    area.add_argument(
+        "--efficiency",
+        type=_parse_rate,
+        required=True,
+        help="building efficiency = usable / gross (e.g. 82%%)",
+    )
+    area.add_argument(
+        "--usable", type=float, default=None, help="target usable SF (solve for required gross)"
+    )
+    area.add_argument("--gross", type=float, default=None, help="gross SF (solve for usable)")
     area.set_defaults(func=cmd_chargeable_area)
 
     return p

@@ -1,0 +1,7 @@
+je_id,account,description,debit,credit,memo
+JE-1001,4000,Product Revenue,0,700000,June product shipments batch 1
+JE-1002,4000,Product Revenue,0,500000,June product shipments batch 2
+JE-1003,1100,Accounts Receivable,700000,0,Invoice run June wk2
+JE-1004,5000,Cost of Goods Sold,600000,0,COGS relief June
+JE-1005,6000,Salaries & Wages,400000,0,June payroll
+JE-1006,8000,Income Tax Expense,67500,0,June tax accrual @25%

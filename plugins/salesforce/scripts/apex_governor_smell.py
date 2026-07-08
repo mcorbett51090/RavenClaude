@@ -79,8 +79,35 @@ def _strip_noise(source: str) -> str:
     return "\n".join(cleaned_lines)
 
 
+def _record_segment(
+    findings: list[Finding],
+    matched: set[str],
+    path: str,
+    idx: int,
+    raw_line: str,
+    text: str,
+) -> None:
+    """Flag SOQL/DML found in an in-loop segment (once per kind per physical line)."""
+    if _SOQL_RE.search(text) and "soql-in-loop" not in matched:
+        findings.append(Finding(path, idx + 1, "soql-in-loop", raw_line.strip()))
+        matched.add("soql-in-loop")
+    if _DML_RE.search(text) and "dml-in-loop" not in matched:
+        findings.append(Finding(path, idx + 1, "dml-in-loop", raw_line.strip()))
+        matched.add("dml-in-loop")
+
+
 def scan_text(path: str, source: str) -> list[Finding]:
-    """Return the SOQL/DML-in-loop findings for one Apex source string."""
+    """Return the SOQL/DML-in-loop findings for one Apex source string.
+
+    Per line we do a two-pass walk: as we track brace depth / loop scopes
+    character-by-character, we cut the line into segments at each brace that opens
+    a loop BODY. Content before a body-open is matched under the *pre-brace* loop
+    state (so a loop HEADER's own SOQL — the bulk-safe `for (a : [SELECT ...])`
+    single-query pattern — is NOT flagged), while content after the body-open is
+    matched under the now-active scope (so a single-line body like
+    `for (x : xs) { insert x; }` IS flagged). Segmenting on each body-open also
+    handles multiple/nested loop opens on one physical line.
+    """
     cleaned = _strip_noise(source)
     lines = cleaned.split("\n")
     raw_lines = source.split("\n")
@@ -92,30 +119,53 @@ def scan_text(path: str, source: str) -> list[Finding]:
     depth = 0
 
     for idx, line in enumerate(lines):
-        opens_loop = bool(_LOOP_RE.search(line))
+        # Positions where a loop-opening keyword begins on this line. Each such
+        # keyword's body is opened by the next '{' we encounter.
+        loop_starts = [m.start() for m in _LOOP_RE.finditer(line)]
+        ls_ptr = 0
+        pending_loops = 0
 
-        in_loop = bool(loop_depths)
-        if in_loop:
-            if _SOQL_RE.search(line):
-                findings.append(
-                    Finding(path, idx + 1, "soql-in-loop", raw_lines[idx].strip())
-                )
-            if _DML_RE.search(line):
-                findings.append(
-                    Finding(path, idx + 1, "dml-in-loop", raw_lines[idx].strip())
-                )
+        matched: set[str] = set()
+        seg: list[str] = []
+        seg_in_loop = bool(loop_depths)
 
-        # Update brace depth from this line, recording where a loop body opens.
-        for char in line:
+        for i, char in enumerate(line):
+            # Register any loop-open keywords we have now reached; their body '{'
+            # follows, so we queue them as pending.
+            while ls_ptr < len(loop_starts) and loop_starts[ls_ptr] <= i:
+                pending_loops += 1
+                ls_ptr += 1
+
             if char == "{":
-                if opens_loop:
+                if pending_loops > 0:
+                    # This brace opens a loop body. The segment before it (which
+                    # includes any loop-header SOQL) is scored under the pre-brace
+                    # state; the body after it is in-loop.
+                    if seg_in_loop:
+                        _record_segment(findings, matched, path, idx, raw_lines[idx], "".join(seg))
+                    seg = []
                     loop_depths.append(depth)
-                    opens_loop = False
-                depth += 1
+                    pending_loops -= 1
+                    depth += 1
+                    seg_in_loop = bool(loop_depths)
+                else:
+                    depth += 1
+                    seg.append(char)
             elif char == "}":
                 depth -= 1
                 if loop_depths and loop_depths[-1] == depth:
+                    if seg_in_loop:
+                        _record_segment(findings, matched, path, idx, raw_lines[idx], "".join(seg))
+                    seg = []
                     loop_depths.pop()
+                    seg_in_loop = bool(loop_depths)
+                seg.append(char)
+            else:
+                seg.append(char)
+
+        # Flush the trailing segment.
+        if seg_in_loop:
+            _record_segment(findings, matched, path, idx, raw_lines[idx], "".join(seg))
 
     return findings
 

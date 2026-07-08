@@ -1,0 +1,7 @@
+je_id,source_type,source_id,source_doc_url
+JE-1001,invoice,QBO-INV-8801,https://example-fake/qbo/invoice/8801
+JE-1002,invoice,QBO-INV-8802,https://example-fake/qbo/invoice/8802
+JE-1003,invoice,QBO-INV-8803,https://example-fake/qbo/invoice/8803
+JE-1004,bill,QBO-BILL-5501,https://example-fake/qbo/bill/5501
+JE-1005,journal,QBO-JE-9001,
+JE-1006,journal,QBO-JE-9002,

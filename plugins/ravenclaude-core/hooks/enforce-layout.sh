@@ -28,6 +28,16 @@ set -euo pipefail
 shopt -s extglob globstar nullglob
 
 file="${1:-}"
+# $CLAUDE_TOOL_FILE_PATH (passed as $1 by hooks.json) is NOT a real Claude Code
+# hook variable, so under Claude Code the arg is empty and the path arrives only
+# via the canonical stdin JSON contract. Fall back to it — same dual-source
+# pattern regen-on-manifest-change.sh / guard-destructive.sh already use.
+if [[ -z "$file" ]] && [[ ! -t 0 ]] && command -v jq >/dev/null 2>&1; then
+  payload="$(cat 2>/dev/null || true)"
+  if [[ -n "$payload" ]]; then
+    file="$(printf '%s' "$payload" | jq -r '.tool_input.file_path // .tool_input.path // empty' 2>/dev/null || true)"
+  fi
+fi
 [[ -z "$file" ]] && exit 0
 
 project_root="${CLAUDE_PROJECT_DIR:-$(pwd)}"
@@ -132,6 +142,18 @@ fi
 # If you ever refactor this to use `find` or filename expansion, re-test
 # every pattern — the semantics differ. See bash(1) "Pattern Matching" and
 # "Filename Expansion" sections for details.
+# A corrupt .repo-layout.json (trailing comma, unresolved merge marker, truncation)
+# makes both jq reads below emit nothing, leaving `forbidden`/`allowed` empty. The
+# empty-allowed branch (line ~152) then takes the "forbid-only" path and allows
+# EVERY write — silently disabling layout enforcement with no signal, unlike the
+# missing-jq case above which warns. Fail open loudly instead: validate the manifest
+# and, if it is invalid JSON, warn to stderr + emit a warn event, then exit 0.
+if [[ -f "$manifest" ]] && ! jq -e . "$manifest" >/dev/null 2>&1; then
+  echo "[enforce-layout] .repo-layout.json is invalid JSON; layout policy NOT enforced. Fix the manifest to re-enable enforcement." >&2
+  _emit_hook_event "enforce-layout.sh" "warn" "" "$manifest" "invalid-manifest" 0
+  exit 0
+fi
+
 mapfile -t forbidden < <(jq -r '.forbidden_globs[]?' "$manifest" 2>/dev/null)
 mapfile -t allowed < <(jq -r '.allowed_globs[]?' "$manifest" 2>/dev/null)
 

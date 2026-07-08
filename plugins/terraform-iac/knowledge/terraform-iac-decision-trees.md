@@ -1,6 +1,6 @@
 # Terraform & IaC — Decision Trees
 
-_Decision trees + a dated capability map. Capability rows are `[verify-at-build]` — re-check against the vendor before quoting. Last reviewed: 2026-06-04._
+_Decision trees + a dated capability map. Capability rows are `[verify-at-build]` — re-check against the vendor before quoting. Last reviewed: 2026-07-08._
 
 Traverse before splitting state or drawing a module boundary.
 
@@ -99,7 +99,7 @@ _The wrong move is a reflexive `apply` that reverts an emergency console fix and
 | Capability | 2026 state `[verify-at-build]` | Notes |
 |---|---|---|
 | Terraform | GA (BSL license since 1.6) | Verify licensing fit |
-| OpenTofu | GA (MPL, Linux Foundation fork) | Drop-in for many; verify provider/module parity |
+| OpenTofu | GA (MPL, Linux Foundation fork) | Drop-in for many; verify provider/module parity · **Pin ≥ 1.12.3** — earlier 1.12.x had GHSA-q7j3-v8qv-22vq (crafted-git-URL arbitrary file read). |
 | State locking backends | mature (S3+DynamoDB/GCS/azurerm/TFC) | Locking is non-negotiable |
 | Terragrunt | mature | DRY + explicit; extra tool |
 | OPA/Conftest, Sentinel | mature | Evaluate plan JSON; preventive guardrails |
@@ -149,7 +149,7 @@ flowchart TD
 
 **When this applies:** A team is starting a new IaC project or migrating an existing one and must choose between Terraform (BSL license) and OpenTofu (MPL, Linux Foundation fork). The observable inputs are: the organization's license policy, the required provider/module ecosystem, and the team's existing toolchain.
 
-**Last verified:** 2026-06-05; **OpenTofu version + OCI distribution re-verified 2026-06-11** against Terraform BSL terms and OpenTofu release notes. Current OpenTofu GA is **1.12.x** (1.12.0 2026-05-14, 1.12.1 2026-05-27; [releases](https://github.com/opentofu/opentofu/releases)) — *not* 1.8. Since **OpenTofu 1.10**, modules **and** providers can be distributed via **OCI registries** (reuse existing container-registry infra; [OCI registry integrations](https://opentofu.org/docs/cli/oci_registries/)).
+**Last verified:** 2026-06-05; **OpenTofu version + OCI distribution re-verified 2026-06-11** against Terraform BSL terms and OpenTofu release notes. Current OpenTofu GA is **1.12.x** (latest **1.12.3, 2026-06-18**; 1.12.2 2026-06-12). **1.12.3 is a security patch fixing GHSA-q7j3-v8qv-22vq** (arbitrary file read during git operations via a maliciously crafted URL) affecting all earlier v1.12 releases, backported to **1.11.10** — **pin OpenTofu ≥ 1.12.3** (or ≥ 1.11.10 on the 1.11 line). [releases](https://github.com/opentofu/opentofu/releases). Since **OpenTofu 1.10**, modules **and** providers can be distributed via **OCI registries** (reuse existing container-registry infra; [OCI registry integrations](https://opentofu.org/docs/cli/oci_registries/)).
 
 ```mermaid
 flowchart TD

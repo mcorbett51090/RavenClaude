@@ -1,0 +1,33 @@
+{
+  "_provenance": "Hand-derived from the two source trial balances by independent arithmetic (see test_consolidate.py cross-check), NOT frozen from an engine run.",
+  "pre_elimination_intercompany": {
+    "_note": "Simple sum of the two entity columns still contains the intercompany balances on BOTH sides — this is the double-count that consolidation must remove.",
+    "Intercompany receivable": 100000.0,
+    "Intercompany payable": 100000.0,
+    "Intercompany revenue": 200000.0,
+    "Intercompany cost of goods sold": 200000.0
+  },
+  "consolidated_intercompany_after_elimination": {
+    "Intercompany receivable": 0.0,
+    "Intercompany payable": 0.0,
+    "Intercompany revenue": 0.0,
+    "Intercompany cost of goods sold": 0.0
+  },
+  "consolidated_income_statement": {
+    "revenue": 1400000.0,
+    "cogs": 600000.0,
+    "gross_profit": 800000.0,
+    "operating_expenses": 310000.0,
+    "operating_income": 490000.0,
+    "net_income": 490000.0
+  },
+  "consolidated_balance_sheet": {
+    "total_assets": 1770000.0,
+    "total_current_assets": 870000.0,
+    "total_liabilities": 230000.0,
+    "equity_beginning": 1050000.0,
+    "current_period_net_income": 490000.0,
+    "total_equity": 1540000.0,
+    "balance_delta": 0.0
+  }
+}

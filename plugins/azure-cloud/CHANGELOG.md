@@ -4,6 +4,10 @@ Versioning is semver; bump on every user-visible change and keep it in sync with
 
 > Note: this file tracks the major arcs; the authoritative version history is the `version` field in `.claude-plugin/plugin.json` + git history (per the marketplace CHANGELOG convention). The 0.2.x–0.4.x bumps between the initial release and the build-out below were tracked in `plugin.json` + git, not back-filled here.
 
+## [0.5.5] — 2026-07-08
+
+Weekly Tier-A news sweep (2026-07-08) — **correction + additions** in `knowledge/azure-ai-foundry.md`. **Correction:** the `azure-ai-inference` retirement date was conflated with the Assistants API sunset — the package retires **2026-05-30** (migrate to the `openai` package); **2026-08-26** is the *separate* Assistants API sunset → Foundry Agents / Responses API. **Additions:** the new Microsoft Foundry portal is now **GA** (per-feature GA/preview split noted); Claude models (**Opus 4.8, Sonnet 5, Haiku 4.5**) are **GA hosted-on-Azure** in Microsoft Foundry (CCU-billed). Sources: MS Learn navigate-from-classic, Foundry GA overview, Claude-models-in-Foundry (Microsoft-Learn MCP). Routed through usefulness → review panels (both APPROVE). **Migration:** none — knowledge-file content only.
+
 ## [0.5.2] — 2026-07-02
 
 ### Fixed

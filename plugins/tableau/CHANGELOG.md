@@ -3,6 +3,10 @@
 All notable changes to the `tableau` plugin. Versioning is semver; the authoritative version is
 the `version` field in `.claude-plugin/plugin.json` (mirrored in `marketplace.json`).
 
+## 0.4.1 — 2026-07-08
+
+Weekly Tier-A news sweep (2026-07-08) — **correction** in `CLAUDE.md`: Tableau now **also** offers a fully cloud-hosted / managed MCP service at **`https://mcp.tableau.com`** using **OAuth 2.1** (per-user identity, no self-hosting, no per-tenant PAT secret) — a second consumer path alongside the self-hosted `npx @tableau/mcp-server` + PAT flow; still per-tenant-authenticated, so still recommend-not-bundle. Re-verified via the tableau-mcp README. **Migration:** none — knowledge-file content only.
+
 ## 0.4.0 — 2026-06-09
 
 Version bump previously unlogged here (rolls up `0.3.0` → `0.4.0`); the change that set `0.4.0`:

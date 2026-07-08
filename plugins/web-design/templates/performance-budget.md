@@ -19,8 +19,11 @@
 
 ## Page-weight budget (compressed transfer size)
 
+> **Two different budgets — don't conflate them.** "Total page transfer" below is the **whole-page** ceiling (all resources, full load). The `gold-standard-website-pipeline` G7a also cites a web.dev **critical-path** default of **< 170 KB compressed** — that is the *render-blocking* path (HTML + critical CSS + blocking JS to first render), a subset of the total, not the total. Set both; the per-template number the G1 brief declared governs where it is stricter.
+
 | Resource | Budget | Current | Status |
 |---|---|---|---|
+| Critical-path (render-blocking: HTML + critical CSS + blocking JS) | < 170 KB | [...] | ✅ / ⚠️ / 🔴 |
 | Total page transfer | 1 MB | [...] | ✅ / ⚠️ / 🔴 |
 | HTML | 50 KB | | |
 | CSS | 50 KB | | |

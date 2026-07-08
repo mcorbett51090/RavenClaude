@@ -111,6 +111,8 @@ each is either **built** or carries a one-line disposition for an auditable "eve
 ### Recommended (not bundled) MCP — the official Tableau MCP server
 
 > **Verified 2026-06-05** against the official repo [`github.com/tableau/tableau-mcp`](https://github.com/tableau/tableau-mcp) (Apache-2.0). The package name, auth env vars, and tool surface are version-current — **`[verify-at-use]`** the exact published npm name and read/write verbs before relying on them (the claim-grounding discipline applies).
+>
+> **Update (re-verified 2026-07-08, [`github.com/tableau/tableau-mcp`](https://github.com/tableau/tableau-mcp) README):** Tableau now **also** offers a **fully cloud-hosted / managed** MCP service at a single endpoint — **`https://mcp.tableau.com`** — using **OAuth 2.1** (each user signs in with their own Tableau Cloud identity; existing per-user permissions are enforced automatically). This is a second consumer path alongside the self-hosted `npx @tableau/mcp-server` + PAT flow below: for **Tableau Cloud** users it removes the self-hosting infrastructure and the per-tenant **PAT secret** (OAuth per-user instead of a stored `PAT_VALUE`). It is still **per-tenant + authenticated** (consumer's own identity), so it remains **recommend-not-bundle** — point an MCP client at `https://mcp.tableau.com` and complete the OAuth flow. `[verify-at-use]` the hosted endpoint + OAuth scopes before relying on them.
 
 Tableau's **first-party** MCP server connects an agent to Tableau Cloud/Server to query published
 data sources, explore content/workbook metadata, and retrieve view images. It is **NOT bundled** —

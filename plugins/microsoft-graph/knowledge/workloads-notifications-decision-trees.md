@@ -38,6 +38,8 @@ flowchart TD
 | Subscription (signal) | seconds | public HTTPS endpoint | validation + renewal | near-real-time, signal enough |
 | Rich subscription | seconds | endpoint + cert | renewal + **decryption key** | need the data inline, high volume |
 
+> **New delivery channel — browser-native Web Push (PREVIEW / `/beta`, July 2026)** `[verify-at-use — beta only, do not ship to prod without flagging (§3 #9)]`. The [`subscription`](https://learn.microsoft.com/graph/api/resources/subscription?view=graph-rest-beta) resource gained `vapidPublicKey`, `webPushEncryptionP256dhPublicKey`, and `webPushEncryptionSecret` properties so a **browser-based** app can receive encrypted change notifications over the W3C Push API (Apple / Mozilla / FCM endpoints) **without operating a public webhook** — a fourth option alongside delta / signal-subscription / rich-subscription for the browser-client case. Uses RFC 8291 / RFC 8292 encryption; the encryption secret escalates to `security-reviewer` like any decryption key. Still **beta-only** — not GA. Source: Graph what's-new "July 2026: New in preview only — Change notifications" (re-verified 2026-07-08 against [Graph what's-new](https://learn.microsoft.com/graph/whats-new-overview)).
+
 ---
 
 ## Decision Tree: Graph files — small upload vs upload session

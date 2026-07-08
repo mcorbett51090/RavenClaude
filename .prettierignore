@@ -94,3 +94,14 @@ plugins/ravenclaude-core/knowledge/tree-visuals/
 # prettier's printer cleanly, and they're not ours to reformat. README.md here
 # is already covered by the *.md rule above.
 plugins/*/dashboard-assets/brand/
+
+# Generated artifact — a deterministic close-package produced by
+# plugins/finance/scripts/controller_cycle.py from synthetic fixtures.
+# Same rationale as the other generated HTML artifacts above.
+plugins/finance/skills/produce-gaap-statements/examples/sample-close-package.html
+
+# Self-contained controller-autopilot pitch (inline CSS/JS); prettier would rewrite it.
+plugins/finance/docs/controller-autopilot-pitch.html
+
+# Generated artifact — deterministic per-entity dashboard from entity_dashboard.py.
+plugins/finance/skills/per-entity-dashboard/examples/sample-entity-dashboard.html

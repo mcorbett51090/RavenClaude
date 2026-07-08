@@ -1,0 +1,10 @@
+account,reference,amount,description
+1100,INV-501,40000,AR invoice 501 - exact tie to subledger
+1100,INV-502,25000,AR invoice 502 - exact tie to subledger
+1100,DEP-777,12000,AR deposit 777 partial receipt A (grouped)
+1100,DEP-777,8000,AR deposit 777 partial receipt B (grouped)
+1000,WIRE-88,30000.50,Cash wire 88 - GL side incl 0.50 bank rounding (tolerance)
+1200,PP-01,15000,Prepaid insurance schedule - exact tie
+1200,PP-MISC,500,Prepaid misc accrual - immaterial unmatched item
+2000,BILL-900,50000,AP bill 900 - exact tie to subledger
+2000,BILL-999,30000,AP bill 999 - booked in GL, MISSING from subledger (break)

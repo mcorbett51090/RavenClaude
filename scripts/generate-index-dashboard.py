@@ -1016,7 +1016,6 @@ def render_html(data: dict) -> str:
         "<", "\\u003c"
     )
     html = template.replace("/*__SHARED_TOKENS__*/", shared_tokens)
-    html = html.replace("/*__RC_DATA__*/", payload)
     html = html.replace("__GENERATED__", data["generated"])
     html = html.replace("__MKT_VERSION__", data["marketplace_version"])
     html = html.replace("__RAVEN_LOGO_SVG__", _load_raven_logo())
@@ -1029,6 +1028,15 @@ def render_html(data: dict) -> str:
     # Decision-tree store (moved off the dashboard Guidance tab onto plugin pages).
     gd = _load_sibling("generate-dashboards.py", "generate_dashboards")
     html = html.replace("<!--__DT_STORE__-->", _render_dt_store(gd))
+    # Splice the DATA payload LAST — after every __MARKER__ / <!--__MARKER__--> /
+    # comment-sentinel substitution above. The payload is built from repo-authored
+    # free text (agent/skill/hook descriptions, scenario scope tags), so a field that
+    # happens to equal a bare or comment-style sentinel (`/*__DASH_JS__*/`,
+    # `__MKT_VERSION__`, …) must never be re-scanned and rewritten inside
+    # window.__RC_DATA__ — that would corrupt the JSON and break the portal's hydration.
+    # (The `<`->< escaping already shields the `<!--__…__-->` markers; splicing
+    # last closes the same gap for the sentinels that contain no `<`.)
+    html = html.replace("/*__RC_DATA__*/", payload)
     return html
 
 

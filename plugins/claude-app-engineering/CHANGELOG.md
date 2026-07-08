@@ -2,6 +2,10 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.9.10] — 2026-07-08
+
+Weekly Tier-A news sweep (2026-07-08) — **corrections + addition** in `knowledge/model-selection-and-2026-capability-map.md`, following the 0.9.6 export-control update. **Correction (Fable 5):** the 2026-07-01 Claude Platform release note confirms restoration is **complete on Anthropic first-party surfaces** (Claude API/Platform, Claude.ai, Claude Code, Cowork) — the "in-progress / not yet confirmed complete" hedge is retired for those; third-party surfaces (Bedrock/Copilot/Foundry) still re-verify per-surface. **Correction (Mythos 5):** it did **NOT** restore globally — Anthropic redeployed it only to a vetted set of **~100 US critical-infrastructure organizations**, not general availability. **Addition:** with the redeployment Anthropic shipped a **new cybersecurity safety classifier** blocking the Amazon-reported jailbreak in **>99%** of cases (blocked Fable 5 requests route to Opus 4.8; tradeoff: more false positives on benign coding). Sources: Claude Platform release notes 2026-07-01 + Redeploying-Fable-5 statement, corroborated by Al Jazeera / The Hacker News / MarkTechPost / Cybersecurity Dive / Infosecurity Magazine (anthropic.com 403s automated fetch — repo's primary-403 → secondaries pattern). Routed through usefulness → review panels (both APPROVE). **Migration:** none — knowledge-file content only.
+
 ## [0.9.7] — 2026-07-02
 
 ### Fixed

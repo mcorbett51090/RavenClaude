@@ -1,6 +1,6 @@
 {
   "name": "devops-cicd",
-  "version": "0.3.1",
+  "version": "0.3.3",
   "description": "DevOps & CI/CD delivery-pipeline team — 4 agents (pipeline-engineer, release-engineer, gitops-engineer, build-and-artifact-engineer) for the path from commit to production: CI design (stages, caching, matrix, fail-fast, required checks), progressive delivery (blue-green, canary, feature-flagged rollouts, automated rollback), GitOps continuous delivery (Argo CD / Flux, desired-state in Git, drift detection), and build/artifact integrity (reproducible builds, semantic versioning, SBOM, provenance/SLSA, registry hygiene). 5 skills, a decision-tree knowledge bank (deploy-strategy + CI-vs-CD-boundary trees + a dated 2026 tooling map), 12 best-practices, 4 templates, 4 commands, 1 advisory hook. Seams: IaC -> terraform-iac, clusters -> cloud-native-kubernetes, telemetry/SLOs -> observability-sre, supply-chain verdicts -> ravenclaude-core/security-reviewer. Requires ravenclaude-core@>=0.7.0.",
   "author": {
     "name": "Matt Corbett"

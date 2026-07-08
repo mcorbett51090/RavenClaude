@@ -256,7 +256,16 @@ def classify(command: str) -> str | None:
         wget_body = re.match(r"wget\b", lead) and re.search(
             r"(?:^|\s)--(?:post-data|post-file|body-data|body-file)\b", lead
         )
-        if has_method or curl_body or wget_body:
+        # `gh api` performs an IMPLICIT POST whenever a field/input flag is present
+        # with no explicit -X/--method (`gh api repos/o/r/issues -f title=x` creates
+        # an issue). Without this branch bare `gh api` isn't in any EMISSIONS prefix,
+        # so best_cat is None and the write auto-allows unreviewed. -f/--raw-field,
+        # -F/--field, --input all force the write; explicit -X POST is already caught
+        # by has_method above (so a bare `gh api <path>` GET stays a read).
+        gh_body = re.match(r"gh\s+api\b", lead) and re.search(
+            r"(?:^|\s)(?:-f|-F|--field|--raw-field|--input)\b", lead
+        )
+        if has_method or curl_body or wget_body or gh_body:
             best_cat = "network_write"
     return best_cat
 
@@ -430,10 +439,18 @@ def cache_identity(tool_name: str, tool_input: dict, project_root: Path) -> str:
 # except-branch), and denies if the canonicalized target is — or is under — any
 # substrate path, by lexical path, realpath, OR st_ino (the inode check closes a
 # hardlink to a substrate file). SINGLE SOURCE for the runtime substrate set.
+# Scoped to ravenclaude-core specifically — the Thing IS ravenclaude-core, so its
+# runtime substrate lives only under plugins/ravenclaude-core/. A bare `plugins/*`
+# wildcard also matched every SIBLING plugin's hooks/scripts dir, so in any repo
+# shaped like a plugin monorepo (this repo, or any consumer with a top-level
+# plugins/<name>/hooks|scripts layout) a Write/Edit to an unrelated plugin's files
+# was pre-LLM denied with xc.tribunal-self-disable — a false positive. In a normal
+# consumer repo the plugin lives in the ~/.claude cache (not the project tree), so
+# these globs correctly match nothing there.
 THING_SUBSTRATE = [
-    "plugins/*/hooks",  # dir — any write under the plugin hooks
-    "plugins/*/scripts",  # dir — thing-*, apply-comfort-posture, serve-dashboards, …
-    "plugins/*/knowledge/concerns-catalog.md",
+    "plugins/ravenclaude-core/hooks",  # dir — any write under the plugin hooks
+    "plugins/ravenclaude-core/scripts",  # dir — thing-*, apply-comfort-posture, serve-dashboards, …
+    "plugins/ravenclaude-core/knowledge/concerns-catalog.md",
     "scripts/generate-dashboards.py",
     ".ravenclaude/thing.yaml",
 ]

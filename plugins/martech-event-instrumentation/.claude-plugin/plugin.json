@@ -1,0 +1,27 @@
+{
+  "name": "martech-event-instrumentation",
+  "version": "0.1.0",
+  "description": "Martech / event-instrumentation & CDP team — 2 agents (event-taxonomy-architect, instrumentation-engineer) for the ENGINEERING of event collection: the tracking plan / event taxonomy (object-action naming), the identity model (anonymous → known, stitching), CDP & collection-architecture selection (Segment, RudderStack, Snowplow, mParticle; client vs server vs hybrid; warehouse-first / reverse-ETL via Hightouch / Census), and consent & privacy-by-design (Consent Mode, IAB TCF, GPC) plus destination wiring. 3 skills (design-a-tracking-plan, choose-cdp-and-collection-architecture, implement-event-instrumentation-and-consent), a 2-doc knowledge bank + 2 templates. Distinct from marketing-operations (campaign strategy), analytics-engineering (dbt models events downstream), experimentation-growth-engineering (runs tests on them), data-governance-privacy (org policy/DSAR), and data-platform (warehouse) — the event-collection layer they sit on. Requires ravenclaude-core@>=0.7.0.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "event-tracking",
+    "cdp",
+    "segment",
+    "rudderstack",
+    "snowplow",
+    "tracking-plan",
+    "event-taxonomy",
+    "identity-resolution",
+    "consent-mode",
+    "reverse-etl",
+    "instrumentation",
+    "analytics"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}

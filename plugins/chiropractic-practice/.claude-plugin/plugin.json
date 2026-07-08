@@ -1,0 +1,27 @@
+{
+  "name": "chiropractic-practice",
+  "version": "0.1.0",
+  "description": "Chiropractic practice operations & compliance team — 2 agents (chiropractic-practice-lead, chiro-billing-compliance-specialist) across the two engines of a DC office: the practice (capacity & scheduling to the care plan, the cash / insurance / wellness-plan model, membership pricing, patient-visit-average & plan-completion retention) and coding/compliance (CMT vs E&M by region, documented medical necessity via the PART exam, the active-vs-maintenance plateau call, ABN workflow, audit-defensible notes). 3 skills, a decision-tree knowledge bank (a billing-and-medical-necessity Mermaid tree + a dated 2026 payer/coding reference), 5 best-practices. Operations & coding decision-support, NOT medical/legal/billing advice and NOT a coding certification; no PHI; scope/coverage/coding rules are state/payer-specific + volatile — retrieval-dated + verify-at-use, flagged for a licensed professional. Seams: physical-therapy-rehab-clinic, medical-revenue-cycle. Requires ravenclaude-core@>=0.7.0.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "chiropractic-practice",
+    "practice-management",
+    "cmt-coding",
+    "medical-necessity",
+    "part-exam",
+    "active-vs-maintenance-care",
+    "abn",
+    "wellness-plan",
+    "patient-visit-average",
+    "care-plan",
+    "cash-practice",
+    "retention"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}

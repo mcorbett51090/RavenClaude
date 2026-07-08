@@ -97,7 +97,14 @@ def cmd_margin(args: argparse.Namespace) -> int:
     if args.bill <= 0:
         print("error: --bill must be > 0", file=sys.stderr)
         return 2
-    burden_lines = dict(args.burden or [])
+    if args.pay <= 0:
+        print("error: --pay must be > 0", file=sys.stderr)
+        return 2
+    # Aggregate (don't overwrite) duplicate --burden labels — dict() would keep
+    # only the last value per key and silently drop the earlier amount.
+    burden_lines: dict[str, float] = {}
+    for label, amt in args.burden or []:
+        burden_lines[label] = burden_lines.get(label, 0.0) + amt
     burden_total = sum(burden_lines.values())
     cost = args.pay + burden_total
     margin = args.bill - cost
@@ -122,8 +129,10 @@ def cmd_margin(args: argparse.Namespace) -> int:
     if burden_lines:
         top_label, top_amt = max(burden_lines.items(), key=lambda kv: kv[1])
         print()
-        print(f"  largest burden line: {top_label} ({top_amt:,.2f}, "
-              f"{top_amt / burden_total * 100:.0f}% of burden)")
+        print(
+            f"  largest burden line: {top_label} ({top_amt:,.2f}, "
+            f"{top_amt / burden_total * 100:.0f}% of burden)"
+        )
         print("  → before calling a margin slide a PRICING problem, confirm this line")
         print("    didn't move (§3 #3). In travel, housing/stipend is the usual culprit;")
         print("    in locums, malpractice; idle/bench time is the redeployment lever.")
@@ -155,8 +164,10 @@ def cmd_fill_rate(args: argparse.Namespace) -> int:
         on_workable = args.filled / args.workable
         dead = args.received - args.workable
         dead_pct = dead / args.received * 100.0 if args.received else 0.0
-        print(f"  orders workable      : {args.workable:>8,.0f}  "
-              f"({dead:,.0f} dead/on-hold/uncompetitive = {dead_pct:.0f}% of received)")
+        print(
+            f"  orders workable      : {args.workable:>8,.0f}  "
+            f"({dead:,.0f} dead/on-hold/uncompetitive = {dead_pct:.0f}% of received)"
+        )
         print(f"  → fill (÷ workable)  : {on_workable * 100:>7.1f}%")
         gap = (on_workable - on_received) * 100.0
         print(f"  → denominator gap    : {gap:>7.1f} pts (workable-base fill is higher)")
@@ -180,8 +191,7 @@ def cmd_funnel_leak(args: argparse.Namespace) -> int:
         return 2
     for label, rate in stages:
         if not 0.0 <= rate <= 1.0:
-            print(f"error: stage {label!r} rate must be in [0%, 100%], got {rate}",
-                  file=sys.stderr)
+            print(f"error: stage {label!r} rate must be in [0%, 100%], got {rate}", file=sys.stderr)
             return 2
 
     print("Recruiting-funnel leak localization")
@@ -196,8 +206,7 @@ def cmd_funnel_leak(args: argparse.Namespace) -> int:
         print(f"  {label:<28} | {rate * 100:>7.1f}%  | {cumulative * 100:>7.2f}%")
 
     print()
-    print(f"  → end-to-end yield   : {cumulative * 100:.2f}%  "
-          "(product of all stage rates)")
+    print(f"  → end-to-end yield   : {cumulative * 100:.2f}%  (product of all stage rates)")
     print(f"  → worst-converting   : {worst[0]} at {worst[1] * 100:.1f}%")
     print("  → Fix the weakest link FIRST — it caps the whole funnel. A 1-pt gain at")
     print("    the worst stage beats a 1-pt gain anywhere else. If the worst stage is")
@@ -220,20 +229,34 @@ def build_parser() -> argparse.ArgumentParser:
     mar = sub.add_parser("margin", help="Bill - pay - burden spread decomposition")
     mar.add_argument("--bill", type=float, required=True, help="hourly bill rate to the client")
     mar.add_argument("--pay", type=float, required=True, help="hourly pay rate to the worker")
-    mar.add_argument("--burden", type=_parse_kv_amount, action="append", metavar="LABEL=AMT",
-                     help="a burden line, e.g. housing_stipend=6.8 (repeatable)")
+    mar.add_argument(
+        "--burden",
+        type=_parse_kv_amount,
+        action="append",
+        metavar="LABEL=AMT",
+        help="a burden line, e.g. housing_stipend=6.8 (repeatable)",
+    )
     mar.set_defaults(func=cmd_margin)
 
     fr = sub.add_parser("fill-rate", help="Fill-rate denominator comparison")
     fr.add_argument("--filled", type=float, required=True, help="orders filled in the period")
     fr.add_argument("--received", type=float, required=True, help="orders received in the period")
-    fr.add_argument("--workable", type=float, default=None,
-                    help="workable orders (excludes dead/on-hold/uncompetitive); optional")
+    fr.add_argument(
+        "--workable",
+        type=float,
+        default=None,
+        help="workable orders (excludes dead/on-hold/uncompetitive); optional",
+    )
     fr.set_defaults(func=cmd_fill_rate)
 
     fl = sub.add_parser("funnel-leak", help="Localize the worst-converting funnel stage")
-    fl.add_argument("--stage", type=_parse_kv_rate, action="append", metavar="LABEL=RATE",
-                    help="a stage conversion rate, e.g. submittal_to_interview=0.34 (repeatable)")
+    fl.add_argument(
+        "--stage",
+        type=_parse_kv_rate,
+        action="append",
+        metavar="LABEL=RATE",
+        help="a stage conversion rate, e.g. submittal_to_interview=0.34 (repeatable)",
+    )
     fl.set_defaults(func=cmd_funnel_leak)
 
     return p

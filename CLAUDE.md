@@ -6,22 +6,24 @@ This file is Claude Code's entry point. The `@AGENTS.md` import above pulls in t
 
 ---
 
-## Remote-environment PR mechanics (Claude Code on the web) — re-verified 2026-06-11
+## Remote-environment PR mechanics (Claude Code on the web) — the environment VARIES across sessions; **probe, don't assume** (re-verified 2026-07-06)
 
-> **CI may not auto-run on a pushed commit (added 2026-06-22).** In a remote session a `git push` can update the PR head on GitHub **without** Actions creating any workflow run for it — the PR then has *no checks* and "merge when green" never fires. After every push, confirm a run exists for the **current head** (`pull_request_read get_check_runs` / `actions_list list_workflow_runs` → compare `head_sha`); if none, re-trigger each PR workflow with `actions_run_trigger run_workflow` (`workflow_dispatch`) on the branch, wait, then merge when all are `success`. **Do not** conclude "Actions minutes exhausted" from "no runs" — a successful dispatch disproves that (it did on PR #452). Full detection + remedy: [`docs/remote-ci-autotrigger-runbook.md`](docs/remote-ci-autotrigger-runbook.md).
+> **This capability has flip-flopped across sessions — treat the table below as "last observed," not a constant.** 2026-06-02 saw `gh` working; 2026-06-11 saw it absent + the direct API 403ing (MCP-only); **2026-07-06 saw `gh` + the token working again** (created *and* auto-merged PRs #568 and #570 with `gh pr create` / `gh pr merge --auto --squash`, while the github MCP server was *not* connected). The durable rule is the two enduring lessons below: **probe each route this session before concluding anything** — a stale row here has been wrong in both directions.
 
-**Don't generalize a failure on one route into "can't create a PR."** A prior session (2026-05-31) wrongly reported it "couldn't create a PR" after a CLI/API dead-end. That lesson stands — but a later refresh (2026-06-02) over-corrected by claiming `gh` was "now installed and authenticated" and the direct API "returns 200". **Re-verified 2026-06-11: that is false in this environment.** `command -v gh` returns not-found (gh is not installed) and the direct GitHub API `403`s. The sanctioned, working path here is the **GitHub MCP server** — which matches the plugin constitution ([`plugins/ravenclaude-core/CLAUDE.md`](plugins/ravenclaude-core/CLAUDE.md) § "absent tool" case study), which has correctly said all along that "creating a PR is _only_ the GitHub MCP path."
+> **CI auto-run also varies (note added 2026-06-22; updated 2026-07-06).** In some remote sessions a `git push` updated the PR head **without** Actions creating a run — the PR then had *no checks* and "merge when green" never fired (detect + re-trigger per [`docs/remote-ci-autotrigger-runbook.md`](docs/remote-ci-autotrigger-runbook.md); a successful `workflow_dispatch` disproves "Actions minutes exhausted", as on PR #452). **But on 2026-07-06 CI auto-ran normally** on both PRs (Validate Layout / Manifests / Schemas fired on the `pull_request` event within seconds). So after every push: **confirm a run exists for the current head** (`gh pr checks <n>` / `gh run list --branch <b>`, or the MCP `get_check_runs`); if none, re-trigger via `workflow_dispatch`; if present, just wait for green. Don't assume either way.
 
-The capability chain (re-verified 2026-06-11):
+**Don't generalize a failure on one route into "can't create a PR" — and don't assume a past dead-end still holds.** A prior session (2026-05-31) wrongly reported it "couldn't create a PR" after a CLI/API dead-end; that lesson stands. Its equally-real counter-lesson: the routes below have **changed between sessions**, so re-probe every time rather than trusting a stale row (2026-07-06 found `gh` working after 2026-06-11 found it absent).
 
-| Path | Works? | This-session check |
+The capability chain (last verified 2026-07-06):
+
+| Path | Works? (last seen) | This-session check |
 |---|---|---|
-| **GitHub MCP server** (`mcp__github__*`) | ✅ | Deferred + lazy-loaded — load with `ToolSearch` first, then call `mcp__github__create_pull_request` |
-| `git push` | ✅ (push only) | Remote is a local git proxy (`http://local_proxy@127.0.0.1:<port>/git/mcorbett51090/RavenClaude`) that forwards to github.com |
-| **`gh` CLI** | ❌ | `command -v gh` → not found (not installed on this host) |
-| **Direct GitHub API** (`curl api.github.com`) | ❌ | `403` unauthenticated — **no `GITHUB_TOKEN` in this session** (`GITHUB_TOKEN` unset; bare request → `403`, bogus token → `401`), so the route can't be authenticated at all |
+| **`gh` CLI** | ✅ 2026-07-06 (❌ on 2026-06-11) | `command -v gh` → `/usr/bin/gh`; `gh auth status` → logged in as `mcorbett51090` via `GITHUB_TOKEN`. Created + auto-merged PRs #568/#570. |
+| **Direct GitHub API** (`curl api.github.com`) | ✅ 2026-07-06 (❌ on 2026-06-11) | `GITHUB_TOKEN` **is set** this session; `GET /repos/…` → `HTTP 200` (a `ghu_` app-installation token — `x-oauth-scopes` empty, `x-accepted-oauth-scopes: repo`). |
+| **GitHub MCP server** (`mcp__github__*`) | ⚠️ not connected 2026-07-06 | `ToolSearch` for `github`/`pull_request` returned **no** github tools this session (the "dynamic client registration" auth path failed earlier). Was the sanctioned path on 2026-06-11. |
+| `git push` | ✅ (push only) | Remote is a local git proxy (`http://local_proxy@127.0.0.1:<port>/git/mcorbett51090/RavenClaude`) forwarding to github.com. |
 
-**Recommended order:** use the GitHub MCP server — call `mcp__github__create_pull_request`, loading it via `ToolSearch` first since it is deferred. `gh pr create` and the direct API are **not** available in this environment, so don't burn a round-trip on them; if you suspect the environment changed, re-probe with `command -v gh` / a `curl` check and update this table if it did.
+**Recommended order (2026-07-06):** **probe first**, then use whatever works this session. On 2026-07-06 the fastest path was `gh`: `gh pr create --base main --head <branch> --title … --body-file …`, then `gh pr merge <n> --auto --squash` (arms auto-merge — it lands the instant CI is green), prefixing `GH_TOKEN="${GITHUB_TOKEN}"` if `gh` isn't already authed. If `gh` is absent/403s this session, fall back to the **GitHub MCP server** (`mcp__github__create_pull_request`, loaded via `ToolSearch` first). Don't hard-code either as "the" path — the two `❌`→`✅` flips above are why.
 
 **The two enduring lessons (path-agnostic) — these are why this section still exists:**
 

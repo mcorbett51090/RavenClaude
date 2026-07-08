@@ -1,0 +1,4 @@
+prepaid_id,description,total_amount,term_months,start_month
+PP-INS,Annual property insurance (SYNTHETIC),12000,12,2026-01
+PP-SW,Software subscription 24-mo prepay (SYNTHETIC),24000,24,2026-06
+PP-RENT,Prepaid rent Q2 (SYNTHETIC),9000,3,2026-04

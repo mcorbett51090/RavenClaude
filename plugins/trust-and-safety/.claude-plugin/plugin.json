@@ -1,6 +1,6 @@
 {
   "name": "trust-and-safety",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Trust & Safety team — 2 agents for content-moderation and abuse-detection work. The trust-safety-policy-lead designs the policy taxonomy + enforcement ladder, the human-review operations layer (queue prioritization, reviewer wellness, escalation, appeals/due-process), and the measurement frame (prevalence, enforcement precision/recall, time-to-action SLA, appeal-overturn rate). The abuse-detection-engineer builds the detection stack: signals, rules-vs-ML classifiers, reviewer queues, thresholds tied to precision/recall. 3 skills, a 2-doc knowledge bank (a Mermaid enforcement decision tree + a T&S metrics catalogue with formulas), 2 templates, 3 best-practice rules, and 1 advisory hook. Seams: classifier-eval validity → applied-statistics; PII → data-governance-privacy; account-takeover → security-engineering; LLM-classifier build → claude-app-engineering. Enforcement is proportional; appeals are due process; measure prevalence, not just volume. Requires ravenclaude-core@>=0.7.0.",
   "author": {
     "name": "Matt Corbett"

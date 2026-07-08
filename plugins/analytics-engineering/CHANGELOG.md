@@ -2,6 +2,10 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.5] — 2026-07-08
+
+Weekly Tier-A news sweep (2026-07-08) — **correction** in `CLAUDE.md`: `dbt-mcp` latest is **1.21.2** (re-verified via the PyPI JSON API), superseding the documented **1.20.1**. **Migration:** none — knowledge-file content only.
+
 ## [0.3.3] — 2026-07-01
 
 Research-sweep **correction** (Tier-A weekly news sweep) — the dbt Fusion status line understated a scoped-GA flip. `knowledge/analytics-engineering-decision-trees.md` said "Fusion engine Stable for new envs"; per docs.getdbt.com (about-fusion) the Fusion engine is **GA for dbt-platform projects on Snowflake and in preview for other adapters** (BigQuery/Redshift/Databricks) — a narrower, and materially different, reality than an unqualified "Stable" (an engineer on a non-Snowflake adapter could otherwise adopt Fusion into a new env expecting production readiness that only exists on the Snowflake-on-dbt-platform path). Corrected **both** occurrences (the prose note :145 and the capability-map row :224) to the scoped GA + `[verify-at-use 2026-07-01]`; the **"dbt Core v2.0 in alpha — not GA"** clause is preserved (still true). Panels: usefulness → USEFUL/high; detailed review → APPROVE. **Migration:** none — knowledge-file content only.

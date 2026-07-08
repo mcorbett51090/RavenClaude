@@ -1,0 +1,27 @@
+{
+  "name": "data-quality-observability",
+  "version": "0.1.0",
+  "description": "Data-quality & observability team — 2 agents (data-quality-architect, data-quality-engineer) for the layer answering 'is this data CORRECT, FRESH, COMPLETE, and can we TRUST it?': producer-boundary contracts, validation tests (not-null/unique/accepted-values/referential/distribution), freshness/volume/schema-drift/distribution monitors, threshold vs statistical anomaly detection, data-quality SLAs/SLIs, and data-incident response (triage, quarantine/circuit-breaker, root-cause, backfill). Fluent in dbt tests + dbt-expectations, Great Expectations, Soda, Elementary, managed observability (Monte Carlo, Bigeye, Metaplane), and warehouse-native checks. 3 skills, a 2-doc knowledge bank (tooling decision tree + 2026 patterns reference), and 2 templates. Distinct from data-platform (ELT/warehouse/BI), analytics-engineering (dbt transforms), data-orchestration (schedules the runs), and data-governance-privacy (policy/PII/lineage) — this is the trust/quality layer over all of them. Requires ravenclaude-core@>=0.7.0.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "data-quality",
+    "data-observability",
+    "data-contracts",
+    "great-expectations",
+    "soda",
+    "dbt-tests",
+    "elementary",
+    "freshness",
+    "anomaly-detection",
+    "schema-drift",
+    "data-sla",
+    "data-incident"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}

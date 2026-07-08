@@ -2,6 +2,10 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.5] — 2026-07-08
+
+Weekly Tier-A news sweep (2026-07-08) — **correction** in `knowledge/sast-dast-sca-scanner-selection-decision-tree.md` (+ CLAUDE.md §6.1): OSV-Scanner is **v2.4.0** (June 2026, adds CycloneDX 1.7 support), superseding the documented **v2.3.8**. Re-verified via the GitHub releases API. **Migration:** none — knowledge-file content only.
+
 ## [0.3.2] — 2026-06-22
 
 Version bump previously unlogged here; the change that set `0.3.2`:

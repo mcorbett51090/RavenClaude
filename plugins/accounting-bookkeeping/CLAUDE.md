@@ -8,6 +8,18 @@
 
 ---
 
+## 0. Scope boundary — `accounting-bookkeeping` vs. `finance` (added v0.2.0)
+
+These two plugins both touch close, reconciliation, and controls, so be explicit about which owns what to avoid double-routing.
+
+**This plugin (`accounting-bookkeeping`) is the SMB practice-operations lane.** Its altitude is the **multi-client bookkeeping practice**: keeping a *portfolio* of clients' books clean and closed on a cadence, days-to-close as an operating number, AR/AP aging and the cash-conversion cycle as working-capital reads, bad-debt estimation, and SMB-grade segregation-of-duties / control-gap diagnosis. It advises and diagnoses; it produces **guidance and readouts**, not a governed close artifact.
+
+**The `finance` plugin's controller-autopilot owns the governed, audit-grade close-to-report cycle.** Route there — not here — for: producing **GAAP financial statements** from a trial balance (`produce-gaap-statements`), the **review→approve→lock workflow with enforced segregation of duties** + hash-chained audit log (`close-approval-workflow`), **GL↔subledger transaction auto-matching** with threshold auto-certification (`reconciliation-automatch`), **finance-shaped ELT** ingestion (`finance-elt-staging`), **multi-entity consolidation + intercompany elimination** (`consolidate-entities`), and the **controller command center** (`run-controller-cycle`). Those are runnable engines that emit a submitted-for-approval close package; `accounting-bookkeeping` stays advisory.
+
+**Quick test:** *"help me understand / diagnose / improve our books or close cadence across clients"* → here. *"run my close and hand me a review-ready, controls-enforced package"* → `finance` controller-autopilot. When a practice-ops engagement needs the governed artifact, hand off to `finance` rather than approximating it.
+
+---
+
 ## 1. Team roster
 
 | Agent | Owns | When to spawn |

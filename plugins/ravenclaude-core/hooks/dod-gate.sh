@@ -73,8 +73,16 @@ PY
 case "$max_blocks" in (*[!0-9]*|"") max_blocks=8;; esac
 
 # Only gate if source actually changed this session (mirror remind-tests' filter).
-code_changed="$(git -C "$cwd" status --porcelain 2>/dev/null \
-  | awk '$2 ~ /\.(ts|tsx|js|jsx|mjs|cjs|py|go|rs|java|kt|rb|php|cs|swift|scala)$/ {n++} END {print n+0}')"
+# Use --porcelain=v1 -z: the NUL-delimited form emits each path as a RAW, UNQUOTED
+# record (porcelain v1's default quotes/space-splits paths, so the prior awk `$2`
+# field-parse silently missed any changed file with a space in its name, and split
+# rename `old -> new` lines — under-counting to 0 and skipping the gate entirely).
+# grep -c matches the extension as a whole-line suffix (not a fixed field), so
+# spaces in the path are irrelevant; -z rename records emit old+new as separate
+# raw records, both scanned — we only need whether ANY changed path is source.
+code_changed="$(git -C "$cwd" status --porcelain=v1 -z 2>/dev/null \
+  | tr '\0' '\n' \
+  | grep -cE '\.(ts|tsx|js|jsx|mjs|cjs|py|go|rs|java|kt|rb|php|cs|swift|scala)$')" || true
 [ "${code_changed:-0}" -eq 0 ] && exit 0
 
 safe_sid="$(printf '%s' "$sid" | tr -dc 'A-Za-z0-9._-' | cut -c1-128)"

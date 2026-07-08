@@ -47,7 +47,7 @@ Match the platform to ML maturity; don't over-build for one model or hand-run fi
 ```mermaid
 graph TD
   A[Need an ML platform] --> B{How many models in production, realistically?}
-  B -- Zero / first one --> C[Managed end-to-end SageMaker/Vertex/Databricks - cut undifferentiated ops]
+  B -- Zero / first one --> C[Managed end-to-end SageMaker / Vertex (now Gemini Enterprise Agent Platform) / Databricks - cut undifferentiated ops]
   B -- A handful --> D{Strong existing cloud + small team?}
   D -- Yes --> C
   D -- No, need control/portability --> E[Managed registry+tracking, self-host orchestration as needed]
@@ -106,11 +106,11 @@ _Shuffling time-ordered data or splitting an entity across folds leaks future/co
 | Capability | 2026 state `[verify-at-build]` | Notes |
 |---|---|---|
 | MLflow / experiment tracking | GA | Params/metrics/artifacts/registry |
-| Model registry | GA (MLflow/SageMaker/Vertex) | Source of truth for promotion |
+| Model registry | GA (MLflow/SageMaker/Vertex — now Gemini Enterprise Agent Platform) | Source of truth for promotion |
 | Feature stores (Feast/managed) | GA | Train-serve consistency |
 | Drift detection (Evidently/managed) | GA | Data + prediction drift |
 | Serving (KServe/Seldon/managed) | GA | Online + batch; canary |
-| Managed platforms (SageMaker/Vertex/Databricks) | GA | Build-vs-buy by maturity |
+| Managed platforms (SageMaker/Vertex/Databricks) | GA | Build-vs-buy by maturity. Google rebranded **Vertex AI → "Gemini Enterprise Agent Platform (formerly Vertex AI)"**; classical MLOps features (Custom Training, Model Registry, Endpoints, Pipelines) persist under the new console's **Models** menu — build-vs-buy guidance unchanged, quote the current name. [Google Cloud](https://cloud.google.com/vertex-ai) `[verify-at-build]` |
 
 ## Decision Tree: Model rollout — shadow, canary, or full deploy?
 
