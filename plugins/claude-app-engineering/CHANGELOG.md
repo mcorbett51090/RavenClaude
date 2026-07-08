@@ -2,6 +2,10 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.9.8] — 2026-07-07
+
+Research-sweep **addition** (Tier-A weekly news sweep) — **Claude Sonnet 5 GA 2026-06-30, the new balanced-tier default.** Sonnet 5 (`claude-sonnet-5`) shipped one day before the 2026-07-01 review stamp and was missed — exactly the same-day-of-review failure the map's maintenance note warns about (as Fable 5 was on 2026-06-09). Updated `knowledge/model-selection-and-2026-capability-map.md`: added a Sonnet 5 lineup row (1M context / 128K output at standard pricing — no long-context premium; intro **$2/$10** through 2026-08-31 then **$3/$15**; **adaptive thinking ON by default** — a builder-facing behavior change; "most agentic Sonnet yet" / "close to Opus 4.8" as `[verify-at-use]` vendor framing; safer agentic than 4.6; on Anthropic API / AWS Bedrock / Google Vertex AI / GitHub Copilot; now the **Claude Code** default), **demoted Sonnet 4.6 to prior balanced default**, added a Sonnet 5 capability-status row + a dated **Sonnet/Haiku rate-limit-parity-with-Opus** row (as of 2026-06-30), propagated Sonnet 5 into the adaptive-thinking / 1M-context / structured-output rows, re-dated the header to 2026-07-07, and renamed the lineup section to (2026-07). Blast-radius contained to the dated capability map + version files (the 57 other files mentioning "Sonnet 4.6" — personas, hooks, best-practices, scripts — left untouched per house opinion #11). Cross-referenced 2026-07-07 across Anthropic docs/news + secondaries (anthropic.com 403s automated fetch — the repo's sanctioned primary-403 → cross-reference pattern). Routed through three expert panels: usefulness → USEFUL 3/3; detailed review → ACCEPT-WITH-REVISIONS (all revisions applied); the revisions carried no cross-panel disagreement so no tiebreak was needed on this finding. **Migration:** none — knowledge-file content only.
+
 ## [0.9.7] — 2026-07-02
 
 ### Fixed
