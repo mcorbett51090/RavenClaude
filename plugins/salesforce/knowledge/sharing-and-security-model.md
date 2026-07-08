@@ -34,7 +34,7 @@ graph TD
 
 ## CRUD/FLS in code
 
-OWD/sharing govern *records*; **CRUD/FLS** govern *objects and fields* in user context. Enforce with `WITH SECURITY_ENFORCED` in SOQL or `Security.stripInaccessible` on DML. `with sharing` on a class respects sharing rules; justify every `without sharing`. Treat FLS as a security control and **escalate the verdict to core**.
+OWD/sharing govern *records*; **CRUD/FLS** govern *objects and fields* in user context. Enforce with `WITH USER_MODE` in SOQL (or `Security.stripInaccessible` on DML). **At API v67.0+ (Summer '26) `WITH SECURITY_ENFORCED` is removed and no longer compiles, and DML/SOQL default to user mode** — prefer `WITH USER_MODE` / `AccessLevel.USER_MODE`; `WITH SECURITY_ENFORCED` remains valid only on pre-v67.0 classes. `[verify-at-build]` `with sharing` on a class respects sharing rules (and is the omitted-keyword default at v67.0+); justify every `without sharing`. Treat FLS as a security control and **escalate the verdict to core**.
 
 ## Sources
 

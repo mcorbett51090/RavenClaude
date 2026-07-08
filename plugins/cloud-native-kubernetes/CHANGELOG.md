@@ -2,6 +2,16 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.3] — 2026-07-08
+
+Research-sweep **correction** — the ingress/Gateway controller decision tree recommended community **`ingress-nginx`** for new clusters, but the Kubernetes project **retired** it: best-effort maintenance ended **March 2026**, after which there are no releases, bug fixes, or **security patches** (repos read-only). Recommending it for a new cluster now signs up for un-patched CVEs. Verified 2026-07-08 against [kubernetes.io](https://kubernetes.io/blog/2025/11/11/ingress-nginx-retirement/) (Nov 11 2025 notice + [Jan 29 2026 Steering/SRC statement](https://kubernetes.io/blog/2026/01/29/ingress-nginx-statement/)).
+
+### Changed
+
+- `knowledge/networking-and-ingress-decision-trees.md` — removed `ingress-nginx` from the controller-selection tree's recommended nodes and added a retirement callout steering new builds to the **Gateway API** or a supported/commercial controller.
+- `knowledge/cloud-native-kubernetes-decision-trees.md` — added a capability-map row marking community `ingress-nginx` **RETIRED** (no security patches after March 2026).
+- Version **0.3.2 → 0.3.3** in `.claude-plugin/plugin.json` + `marketplace.json` (lockstep).
+
 ## [0.3.2] — 2026-06-22
 
 Version bump previously unlogged here; the change that set `0.3.2`:

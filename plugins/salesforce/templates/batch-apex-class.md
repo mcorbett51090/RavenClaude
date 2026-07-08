@@ -14,7 +14,7 @@ public with sharing class AccountArchiveBatch
             SELECT Id, Name, LastActivityDate
             FROM Account
             WHERE LastActivityDate < LAST_N_YEARS:3
-            WITH SECURITY_ENFORCED
+            WITH USER_MODE              // v67.0+ (pre-v67: WITH SECURITY_ENFORCED, removed at v67.0+)
         ]);
     }
 

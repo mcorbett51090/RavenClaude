@@ -36,7 +36,7 @@ Classify every incident on two axes: **impact** (confidentiality/integrity/avail
 - [`notification-timelines-are-legal-deadlines-not-guidelines.md`](notification-timelines-are-legal-deadlines-not-guidelines.md)
 
 ## Provenance
-Codifies the impact × scope severity model common across SOC/IR practice, aligned to the NIST SP 800-61r2 prioritization guidance (functional/informational impact + recoverability). Last reviewed 2026-07-01.
+Codifies the impact × scope severity model common across SOC/IR practice, aligned to the NIST SP 800-61 prioritization guidance (functional/informational impact + recoverability; r2's model, carried forward under the CSF 2.0-aligned r3 that supersedes it). Last reviewed 2026-07-08.
 
 ---
 

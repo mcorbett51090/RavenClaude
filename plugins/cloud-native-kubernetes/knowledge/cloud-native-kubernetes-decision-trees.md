@@ -99,6 +99,7 @@ _A namespace shares a kernel and nodes; it is not a security boundary against a 
 |---|---|---|
 | **Kubernetes core** | current GA **1.36** ("Haru", 2026-04-22); 1.35 / 1.34 in support | re-verified 2026-06-11; ~12-mo support window — [1.36 release](https://kubernetes.io/blog/2026/04/22/kubernetes-v1-36-release/) |
 | Gateway API | GA (replacing Ingress for new) | Role-oriented, expressive routing |
+| Community **`ingress-nginx`** | **RETIRED** — best-effort maint. ended **March 2026**; no further releases/bugfixes/**security patches**, repos read-only | Do **not** deploy on new clusters (un-patched CVEs); migrate to Gateway API or a supported controller — [retirement notice](https://kubernetes.io/blog/2025/11/11/ingress-nginx-retirement/), [Steering/SRC statement](https://kubernetes.io/blog/2026/01/29/ingress-nginx-statement/) `[verified 2026-07-08]` |
 | HPA / VPA | GA | HPA on custom/external metrics; VPA for right-sizing |
 | Pod Security Admission | GA (replaced PSP) | baseline/restricted profiles |
 | OPA Gatekeeper / Kyverno | mature | policy-as-code admission |

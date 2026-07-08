@@ -144,7 +144,7 @@ Advisory by default (`exit 0` with stderr warnings). Set `DFIR_STRICT=1` to make
 
 - Domain-neutral team constitution: [`../ravenclaude-core/CLAUDE.md`](../ravenclaude-core/CLAUDE.md)
 - Structured Output Protocol (upstream): [`../ravenclaude-core/skills/structured-output/SKILL.md`](../ravenclaude-core/skills/structured-output/SKILL.md)
-- Standards this plugin encodes: NIST SP 800-61r2 (incident handling), NIST SP 800-86 (forensics), RFC 3227 (order of volatility), MITRE ATT&CK, the pyramid of pain, Sigma, GDPR Art. 33/34.
+- Standards this plugin encodes: NIST SP 800-61**r3** (incident response, CSF 2.0-aligned; Apr 2025 — supersedes the r2 *Computer Security Incident Handling Guide* whose four-phase lifecycle the plugin still runs as an operational structure), NIST SP 800-86 (forensics), RFC 3227 (order of volatility), MITRE ATT&CK, the pyramid of pain, Sigma, GDPR Art. 33/34.
 - Adjacent plugins: [`../security-engineering/CLAUDE.md`](../security-engineering/CLAUDE.md), [`../cybersecurity-grc/CLAUDE.md`](../cybersecurity-grc/CLAUDE.md), [`../observability-sre/CLAUDE.md`](../observability-sre/CLAUDE.md), [`../trust-and-safety/CLAUDE.md`](../trust-and-safety/CLAUDE.md)
 
 ## 12. Milestones

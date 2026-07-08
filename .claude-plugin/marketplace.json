@@ -13,7 +13,7 @@
       "name": "incident-response-dfir",
       "source": "./plugins/incident-response-dfir",
       "description": "Blue-team DFIR / SOC team — 2 agents (dfir-response-lead, detection-and-forensics-engineer) for running a security incident end to end: the incident lifecycle per NIST SP 800-61r2 (preparation -> detection & analysis -> containment/eradication/recovery -> post-incident), triage & severity classification, containment strategy, breach coordination + comms + regulatory notification (GDPR 72h), tabletops; and detection engineering (SIEM/Sigma rules mapped to MITRE ATT&CK, alert tuning), hypothesis-driven threat hunting, evidence acquisition & forensics (order of volatility per RFC 3227, chain of custody), and malware triage. 5 skills, a knowledge bank with two Mermaid decision trees + a dated 2026 DFIR tooling map, 5 best-practices, 3 templates, 1 advisory hook. Seams: appsec/secure-coding -> security-engineering; governance/risk/audit -> cybersecurity-grc; reliability incidents -> observability-sre; platform abuse -> trust-and-safety. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "author": {
         "name": "Matt Corbett"
       },
@@ -599,7 +599,7 @@
       "name": "salesforce",
       "source": "./plugins/salesforce",
       "description": "Salesforce practitioner team — 5 agents (apex-engineer, flow-automation-architect, agentforce-architect, salesforce-platform-architect, salesforce-reviewer) covering governor-safe bulkified Apex (triggers/async/services), declarative automation by density (Flow vs Apex), Agentforce agent design (topics/subagents, Agent Script determinism, RAG grounding, Trust Layer), org architecture (data model, OWD→role→sharing→Apex security model, 2GP packaging/DevOps, LDV), and a forked review rubric (the 15 house opinions as pass/fail). 9-doc citation-grounded knowledge bank (9 Mermaid decision trees, dated 2026-05-30), 5 skills, 5 templates, 1 advisory hook (grep-able anti-patterns: SOQL/DML-in-loop, hard-coded IDs, SeeAllData=true, missing with-sharing). Seams: integration→azure-cloud, analytics→data-platform/microsoft-fabric, LWC styling→web-design, methodology/DevOps/security-review→ravenclaude-core. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.6.2",
+      "version": "0.6.3",
       "author": {
         "name": "Matt Corbett"
       },
@@ -1272,7 +1272,7 @@
       "name": "cloud-native-kubernetes",
       "source": "./plugins/cloud-native-kubernetes",
       "description": "Cloud-native & Kubernetes team — 4 agents (kubernetes-architect, container-build-engineer, k8s-platform-operator, service-mesh-networking-engineer) for running workloads on Kubernetes well: workload design (Deployment/StatefulSet/Job, probes, requests/limits, PDBs, HPA/VPA), container build hygiene (minimal non-root images, distroless, multi-stage), platform ops (namespaces, RBAC, network policies, resource quotas, admission control, upgrades), and service-mesh networking (ingress/gateway, mTLS, traffic-splitting, observability). Cloud-agnostic. 6 skills, a decision-tree knowledge bank (workload-type + ingress trees + a dated 2026 ecosystem map), 12 best-practices, 4 templates, 4 commands, 1 advisory hook. Seams: managed control plane (AKS/EKS/GKE) -> azure/aws/gcp-cloud, GitOps reconcile -> devops-cicd, telemetry/SLOs -> observability-sre. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.3.2",
+      "version": "0.3.3",
       "author": {
         "name": "Matt Corbett"
       },

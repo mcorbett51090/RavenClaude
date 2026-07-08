@@ -2,6 +2,15 @@
 
 All notable changes to this plugin are documented here. Format follows [Keep a Changelog](https://keepachangelog.com); this plugin versions per [SemVer](https://semver.org).
 
+## [0.1.1] — 2026-07-08
+
+Research-sweep **correction** — the plugin cited **NIST SP 800-61r2** as its incident-response standard throughout, but r2 is **superseded by [SP 800-61r3](https://csrc.nist.gov/pubs/sp/800/61/r3/final)** (published Apr 3 2025), which reframes IR around the **CSF 2.0 Functions** rather than a single prescribed lifecycle. Verified 2026-07-08 against csrc.nist.gov / nist.gov.
+
+### Changed
+
+- Reframed the four-phase incident-handling lifecycle as **r2's model, superseded by r3** (the phases remain valid as an operational runbook and are compatible with r3) across: `skills/run-the-incident-lifecycle`, `knowledge/incident-lifecycle-decision-tree.md` (new standard-currency note), `agents/dfir-response-lead.md`, `skills/triage-and-classify-an-incident`, `templates/incident-response-plan.md`, `best-practices/contain-before-you-eradicate.md`, `best-practices/severity-drives-the-response-not-the-noise.md`, `README.md`, `CLAUDE.md` (§11 standards), and the `plugin.json` description.
+- Version **0.1.0 → 0.1.1** in `.claude-plugin/plugin.json` + `marketplace.json` (lockstep).
+
 ## [0.1.0] — 2026-07-01
 
 ### Added
