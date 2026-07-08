@@ -160,6 +160,16 @@ jobs:
             `docs/staging/incoming/external/` — promote it through the normal staging drain,
             do not merge it straight to a canonical location.
 
+            **⚠️ CI does NOT auto-run on this PR.** It was opened with the automatic
+            `GITHUB_TOKEN`, so GitHub does not trigger `pull_request` workflows
+            (validate-layout / validate-marketplace / validate-schemas) on it. That is
+            acceptable here: the only change is a scrubbed markdown file confined to the
+            already-allow-listed `docs/staging/incoming/external/**` path, so those gates
+            have nothing to validate. Full CI runs later, on your **promotion PR** when the
+            file moves out of staging into a plugin/canonical location. If you want to
+            validate this PR directly anyway, re-run the gates via
+            **Actions → the relevant workflow → Run workflow** (`workflow_dispatch`).
+
       - name: Comment, label, and close the staged issue
         if: steps.cap.outputs.over_cap == 'false' && steps.process.outputs.action == 'stage'
         env:
