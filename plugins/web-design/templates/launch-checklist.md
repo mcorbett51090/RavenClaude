@@ -66,6 +66,24 @@ Signed: [name] — [YYYY-MM-DD]
 
 Signed: [name] — [YYYY-MM-DD]
 
+## Security review (`security-reviewer`)
+
+> **Mandatory, zero exceptions** if the site has **auth, sessions, user data, payments, untrusted input, or file upload** (essentially all web-app / ecommerce builds, and any marketing site with a lead-capture form storing PII). No 🟢 Go is possible without this sign-off — the pipeline's one cross-cutting rule with no waiver path (`gold-standard-website-pipeline` §1 seam rule + G9).
+
+- [ ] **Scope determination (tick only if TRUE):** this site has **NONE** of {auth, sessions, user data, payments, untrusted input, file upload}. → If **ticked**, the sign-off may be `N/A`. If **NOT ticked**, `security-reviewer` sign-off below is **MANDATORY and cannot be N/A** — a login page, a checkout, or any PII-storing form makes this box false.
+- [ ] Security headers present + non-default (verify with `curl -I` against staging/preview; prod re-check tracked as a post-launch Condition):
+  - [ ] **HSTS** — `Strict-Transport-Security` (2-yr, `includeSubDomains`, `preload`)
+  - [ ] **CSP** — a real `Content-Security-Policy` with **no `unsafe-inline` / `unsafe-eval`** in `script-src`, and a `frame-ancestors` directive
+  - [ ] `X-Content-Type-Options: nosniff`
+  - [ ] `Referrer-Policy: strict-origin-when-cross-origin`
+  - [ ] explicit `Permissions-Policy`
+  - [ ] the **COOP / CORP / COEP** trio
+- [ ] Auth / session handling reviewed (if in scope): no CAPTCHA-only auth (WCAG 3.3.8), secure cookie flags, session fixation/rotation
+- [ ] Untrusted input / file upload / payment surfaces reviewed (if in scope)
+- [ ] No secret in the built client bundle (grep the built output, not just source)
+
+Signed: security-reviewer — [YYYY-MM-DD] | N/A — no auth/sessions/payments/PII
+
 ## Content strategist
 
 - [ ] All copy reviewed for voice + tone consistency
@@ -131,7 +149,14 @@ Signed: [name] — [YYYY-MM-DD]
 - [ ] RUM / Web Vitals reporting active
 - [ ] Error tracking active (Sentry, etc.)
 - [ ] No PII captured in analytics
-- [ ] Cookie banner / consent flow tested
+- [ ] Consent mechanics verified (if trackers/cookies present) — each independently falsifiable, not a single "looks fine":
+  - [ ] Non-essential trackers do **not** fire before consent (first-load network trace, no interaction)
+  - [ ] Granular per-purpose toggles (not one all-or-nothing switch)
+  - [ ] "Reject all" at **equal prominence** to "Accept all" in the same layer
+  - [ ] No pre-ticked consent boxes
+  - [ ] Symmetric (same-click-count) withdrawal of consent
+
+Signed (accountable: performance-engineer; tracking-config co-sign: web-architect where fired): [name] — [YYYY-MM-DD]
 
 ## Legal / compliance (if applicable)
 
@@ -141,12 +166,16 @@ Signed: [name] — [YYYY-MM-DD]
 - [ ] Locale-specific legal pages (GDPR, etc.)
 - [ ] Accessibility statement (if required by jurisdiction)
 
+Signed (org-level — Legal/compliance owner): [name] — [YYYY-MM-DD] | N/A — [reason]
+
 ## Communication
 
 - [ ] Launch announcement drafted
 - [ ] Social-share images verified (OG image renders)
 - [ ] Email campaign queued (if applicable)
 - [ ] Press / partner notifications drafted
+
+Signed (org-level — Communication owner): [name] — [YYYY-MM-DD] | N/A — [reason]
 
 ---
 

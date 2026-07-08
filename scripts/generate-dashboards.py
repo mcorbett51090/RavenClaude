@@ -75,7 +75,9 @@ def _load_raven_logo() -> str:
     try:
         raw = _RAVEN_LOGO_PATH.read_text(encoding="utf-8")
     except OSError:
-        return f'<img src="{_RAVEN_MARK_DATA_URI}" width="28" height="28" alt="" aria-hidden="true">'
+        return (
+            f'<img src="{_RAVEN_MARK_DATA_URI}" width="28" height="28" alt="" aria-hidden="true">'
+        )
     return re.sub(r"<!--.*?-->", "", raw, flags=re.DOTALL).strip()
 
 
@@ -99,25 +101,24 @@ def _load_emissions() -> dict[str, list[str]]:
     fails to import — the dashboard then renders without per-pattern rows.
     """
     script_path = (
-        REPO_ROOT
-        / "plugins"
-        / "ravenclaude-core"
-        / "scripts"
-        / "apply-comfort-posture.py"
+        REPO_ROOT / "plugins" / "ravenclaude-core" / "scripts" / "apply-comfort-posture.py"
     )
     if not script_path.is_file():
         return {}
     try:
-        spec = importlib.util.spec_from_file_location(
-            "_acp_emissions", script_path
-        )
+        spec = importlib.util.spec_from_file_location("_acp_emissions", script_path)
         if spec is None or spec.loader is None:
             return {}
         mod = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(mod)
         emissions = getattr(mod, "EMISSIONS", {}) or {}
         return {k: list(v) for k, v in emissions.items()}
-    except (ImportError, OSError, SyntaxError):
+    except Exception:
+        # Broadened from (ImportError, OSError, SyntaxError) after the 2026-07
+        # review so the docstring's "degrade to an empty mapping on any import
+        # failure" promise actually holds — the sibling module is trusted in-repo
+        # code, so this wider catch is purely a fail-safe backstop (a NameError /
+        # AttributeError / etc. at import time now degrades instead of crashing).
         return {}
 
 
@@ -149,11 +150,7 @@ PATTERN_EXPLANATIONS: dict[str, dict[str, str]] = {}
 
 def find_plugins_with_schema() -> list[Path]:
     """Return sorted plugin directories that have a dashboard-schema.json."""
-    return sorted(
-        p.parent
-        for p in PLUGINS_DIR.glob("*/dashboard-schema.json")
-        if p.is_file()
-    )
+    return sorted(p.parent for p in PLUGINS_DIR.glob("*/dashboard-schema.json") if p.is_file())
 
 
 def load_schema(plugin_dir: Path) -> dict:
@@ -206,14 +203,18 @@ def _page_kwargs(plugin_dir: Path, schema: dict, include_trees: bool = True) -> 
         "bifrost_html": _render_bifrost_tab(),
         "about_html": _render_about_tab(description, plugin_name),
         "pipeline_html": _render_pipeline_tab(),
-        "schema_json": json.dumps(schema, indent=2),
+        # Each *_json below is spliced verbatim into an inline <script> block, so
+        # a literal `</script` substring in any value would end the script element
+        # early (HTML raw-text rule) and turn the rest into parsed markup. Escape
+        # `<` -> `<`; it round-trips through the JSON parser to `<`.
+        "schema_json": json.dumps(schema, indent=2).replace("<", "\\u003c"),
         "heimdall_json": json.dumps(
             {"versionDrift": _compute_version_drift()}, indent=2, sort_keys=True
-        ),
-        "concepts_json": _concepts_json(plugin_dir),
+        ).replace("<", "\\u003c"),
+        "concepts_json": _concepts_json(plugin_dir).replace("<", "\\u003c"),
         "pattern_explanations_json": json.dumps(
             PATTERN_EXPLANATIONS, indent=2, sort_keys=True
-        ),
+        ).replace("<", "\\u003c"),
         "js": _JS,
     }
 
@@ -266,7 +267,9 @@ def render_fragment(plugin_dir: Path, schema: dict) -> dict:
     )
     _close = js.rfind("})();")
     if _close == -1:  # defensive: _JS shape changed — fail loud rather than ship a dead nav
-        raise RuntimeError("render_fragment: could not find the dashboard IIFE close `})();` to inject __dashApp")
+        raise RuntimeError(
+            "render_fragment: could not find the dashboard IIFE close `})();` to inject __dashApp"
+        )
     js = js[:_close] + _EXPOSE + js[_close:]
     js = iife_wrap(js)
     return {"css": css, "body": body, "js": js}
@@ -288,9 +291,9 @@ def _render_simulator_tab() -> str:
 def _render_stub_tab(name: str, when: str) -> str:
     return (
         f'<div class="stub">'
-        f'<h2>{html.escape(name)} tab</h2>'
-        f'<p>Ships in <strong>{html.escape(when)}</strong>. '
-        f'See <code>docs/proposals/2026-05-22-003-per-plugin-dashboard.md</code> for the design.</p>'
+        f"<h2>{html.escape(name)} tab</h2>"
+        f"<p>Ships in <strong>{html.escape(when)}</strong>. "
+        f"See <code>docs/proposals/2026-05-22-003-per-plugin-dashboard.md</code> for the design.</p>"
         f"</div>"
     )
 
@@ -335,9 +338,7 @@ def _compute_version_drift() -> list:
     rows = []
     try:
         catalog = json.loads(
-            (REPO_ROOT / ".claude-plugin" / "marketplace.json").read_text(
-                encoding="utf-8"
-            )
+            (REPO_ROOT / ".claude-plugin" / "marketplace.json").read_text(encoding="utf-8")
         )
         cat = {p.get("name", ""): p.get("version", "") for p in catalog.get("plugins", [])}
     except (OSError, json.JSONDecodeError, ValueError):
@@ -482,29 +483,50 @@ _PIPELINE_LANES = [
         "when": "When a session starts",
         "tip": "Right when the robot wakes up, it loads your settings and reminds itself what it's allowed to do.",
         "stages": [
-            {"id": "reapply-posture", "title": "Re-apply settings", "badge": "always",
-             "tip": "Loads your saved safety settings so they're on from the very first step.",
-             "detail": {
-                 "steps": ["Reads your saved settings file (.ravenclaude/comfort-posture.yaml).",
-                           "Turns each rule into a real Claude Code permission.",
-                           "Writes them into .claude/settings.json so they're active right away."],
-                 "trip": "If there's no settings file, it does nothing — no harm done.",
-                 "set": "Change these in the Settings tab; the Save button writes the file."}},
-            {"id": "ensure-default-mode", "title": "Safe starting mode", "badge": "always",
-             "tip": "Picks a safe mode to start the session in.",
-             "detail": {
-                 "steps": ["Checks what mode the session is starting in.",
-                           "If nothing was chosen, picks a safe default."],
-                 "trip": "Only steps in when no mode was set — otherwise it leaves your choice alone.",
-                 "set": "Built in — nothing to tune."}},
-            {"id": "capability-orientation", "title": "Capability check", "badge": "always",
-             "tip": "Reminds the robot what tools and access it already has, so it doesn't say “I can't” by mistake.",
-             "detail": {
-                 "steps": ["Looks at what tools, logins, and permissions are available.",
-                           "Writes a short summary into the session so the robot knows what it can do.",
-                           "Adds a line about recent guardrail activity (how many things were blocked, when settings last changed)."],
-                 "trip": "Read-only — it never changes anything, it only informs.",
-                 "set": "Built in."}},
+            {
+                "id": "reapply-posture",
+                "title": "Re-apply settings",
+                "badge": "always",
+                "tip": "Loads your saved safety settings so they're on from the very first step.",
+                "detail": {
+                    "steps": [
+                        "Reads your saved settings file (.ravenclaude/comfort-posture.yaml).",
+                        "Turns each rule into a real Claude Code permission.",
+                        "Writes them into .claude/settings.json so they're active right away.",
+                    ],
+                    "trip": "If there's no settings file, it does nothing — no harm done.",
+                    "set": "Change these in the Settings tab; the Save button writes the file.",
+                },
+            },
+            {
+                "id": "ensure-default-mode",
+                "title": "Safe starting mode",
+                "badge": "always",
+                "tip": "Picks a safe mode to start the session in.",
+                "detail": {
+                    "steps": [
+                        "Checks what mode the session is starting in.",
+                        "If nothing was chosen, picks a safe default.",
+                    ],
+                    "trip": "Only steps in when no mode was set — otherwise it leaves your choice alone.",
+                    "set": "Built in — nothing to tune.",
+                },
+            },
+            {
+                "id": "capability-orientation",
+                "title": "Capability check",
+                "badge": "always",
+                "tip": "Reminds the robot what tools and access it already has, so it doesn't say “I can't” by mistake.",
+                "detail": {
+                    "steps": [
+                        "Looks at what tools, logins, and permissions are available.",
+                        "Writes a short summary into the session so the robot knows what it can do.",
+                        "Adds a line about recent guardrail activity (how many things were blocked, when settings last changed).",
+                    ],
+                    "trip": "Read-only — it never changes anything, it only informs.",
+                    "set": "Built in.",
+                },
+            },
         ],
     },
     {
@@ -512,64 +534,119 @@ _PIPELINE_LANES = [
         "when": "Before the robot runs a command or edits a file",
         "tip": "This is the busiest checkpoint. Every command and every file edit goes through these in order before it's allowed to happen.",
         "stages": [
-            {"id": "guard-destructive", "title": "Danger guard", "badge": "always",
-             "tip": "Stops really dangerous commands (like deleting everything) before they can run.",
-             "detail": {
-                 "steps": ["Looks at the command about to run.",
-                           "Matches it against a list of never-allowed patterns (delete everything, force-push, wipe history).",
-                           "Blocks it before it can run if it matches."],
-                 "trip": "Blocks the command and writes a note in the alert log (Perimeter alerts tab).",
-                 "set": "Built-in safety floor — always on, can't be turned off."}},
-            {"id": "thing", "title": "Command review (the Thing)", "badge": "dynamic", "controls": "thing",
-             "tip": "A panel of robot reviewers votes yes / no / fix on a command before it runs. You choose how strict it is.",
-             "detail": {
-                 "steps": ["Runs quick free checks first, so the obvious-dangerous ones are caught with no waiting.",
-                           "If the command is risky enough, a panel of reviewers reads it.",
-                           "They vote: allow, fix (rewrite it to be safe), or block.",
-                           "Low-risk reads skip the panel completely — no waiting."],
-                 "trip": "A block stops the command; a fix rewrites it; anything safe just runs.",
-                 "set": "Turn it on (and on/off per command type) and tune the panel in Settings — quick toggles below."}},
-            {"id": "runaway-brake", "title": "Runaway brake", "badge": "dynamic", "controls": "runaway",
-             "tip": "Counts the robot's steps. If it loops forever or takes way too many steps, it pauses so it can't run away.",
-             "detail": {
-                 "steps": ["Counts every tool the robot uses this session.",
-                           "Watches for the same command repeated over and over.",
-                           "Pauses if it loops, or if it passes your step limit."],
-                 "trip": "Pauses the robot so it can't run away with your time or money.",
-                 "set": "Turn the brake off, or set the two limits, in the boxes below."}},
-            {"id": "parallel-workers", "title": "Parallel workers", "badge": "dynamic", "controls": "parallelism",
-             "tip": "Lets the robot split a job across several helpers at once — and caps how many run together.",
-             "detail": {
-                 "steps": ["Watches when the robot wants to fan work out to helpers (subagents / worktrees).",
-                           "If parallel workers are allowed, lets several run side by side.",
-                           "Caps how many run at once to your limit."],
-                 "trip": "When off, helpers run one at a time; when on, up to your worker limit run together.",
-                 "set": "Turn parallel workers on and set the most-at-once limit in the boxes below."}},
-            {"id": "enforce-layout", "title": "Folder & task limits", "badge": "dynamic", "controls": "files",
-             "tip": "Makes sure new files go in the right folders, and that the robot only touches the files this task is allowed to.",
-             "detail": {
-                 "steps": ["Checks where a new file is about to be written.",
-                           "Compares it to your allowed-folders list (.repo-layout.json).",
-                           "If a task-file list is set, checks the file is part of this task (.ravenclaude/task-scope.json)."],
-                 "trip": "Blocks the write and suggests the correct folder.",
-                 "set": "Edit the two file lists in the boxes below."}},
-            {"id": "route-decision-review", "title": "Decision routing", "badge": "dynamic", "controls": "decision",
-             "tip": "When the robot would ask you a yes/no question, a panel answers the easy ones so you're not interrupted.",
-             "detail": {
-                 "steps": ["Notices when the robot is about to ask you a yes/no question.",
-                           "Sends the simple, low-risk ones to a small panel.",
-                           "Big or risky questions always come to you."],
-                 "trip": "In binding mode the panel answers the easy ones; risky ones still reach you.",
-                 "set": "Pick off / advisory / binding in the box below."}},
-            {"id": "claude-orchestrator", "title": "Claude orchestrator", "badge": "dynamic", "controls": "orchestrator",
-             "tip": "Routes team-lead planning to Claude when your host CLI isn't Claude Code. Inert under Claude Code.",
-             "detail": {
-                 "steps": ["Checks whether the host is already Claude Code — if so, does nothing.",
-                           "Reads the orchestrator knob from .ravenclaude/comfort-posture.yaml.",
-                           "decide: sends the task to Claude and gets back a JSON plan the host CLI executes.",
-                           "full: sends the full task to Claude and gets back artifact content the host writes."],
-                 "trip": "If Claude is unavailable or auth fails, falls back to host orchestration automatically — never blocks.",
-                 "set": "Pick off / decide / full below. Inert under Claude Code (host already IS Claude)."}},
+            {
+                "id": "guard-destructive",
+                "title": "Danger guard",
+                "badge": "always",
+                "tip": "Stops really dangerous commands (like deleting everything) before they can run.",
+                "detail": {
+                    "steps": [
+                        "Looks at the command about to run.",
+                        "Matches it against a list of never-allowed patterns (delete everything, force-push, wipe history).",
+                        "Blocks it before it can run if it matches.",
+                    ],
+                    "trip": "Blocks the command and writes a note in the alert log (Perimeter alerts tab).",
+                    "set": "Built-in safety floor — always on, can't be turned off.",
+                },
+            },
+            {
+                "id": "thing",
+                "title": "Command review (the Thing)",
+                "badge": "dynamic",
+                "controls": "thing",
+                "tip": "A panel of robot reviewers votes yes / no / fix on a command before it runs. You choose how strict it is.",
+                "detail": {
+                    "steps": [
+                        "Runs quick free checks first, so the obvious-dangerous ones are caught with no waiting.",
+                        "If the command is risky enough, a panel of reviewers reads it.",
+                        "They vote: allow, fix (rewrite it to be safe), or block.",
+                        "Low-risk reads skip the panel completely — no waiting.",
+                    ],
+                    "trip": "A block stops the command; a fix rewrites it; anything safe just runs.",
+                    "set": "Turn it on (and on/off per command type) and tune the panel in Settings — quick toggles below.",
+                },
+            },
+            {
+                "id": "runaway-brake",
+                "title": "Runaway brake",
+                "badge": "dynamic",
+                "controls": "runaway",
+                "tip": "Counts the robot's steps. If it loops forever or takes way too many steps, it pauses so it can't run away.",
+                "detail": {
+                    "steps": [
+                        "Counts every tool the robot uses this session.",
+                        "Watches for the same command repeated over and over.",
+                        "Pauses if it loops, or if it passes your step limit.",
+                    ],
+                    "trip": "Pauses the robot so it can't run away with your time or money.",
+                    "set": "Turn the brake off, or set the two limits, in the boxes below.",
+                },
+            },
+            {
+                "id": "parallel-workers",
+                "title": "Parallel workers",
+                "badge": "dynamic",
+                "controls": "parallelism",
+                "tip": "Lets the robot split a job across several helpers at once — and caps how many run together.",
+                "detail": {
+                    "steps": [
+                        "Watches when the robot wants to fan work out to helpers (subagents / worktrees).",
+                        "If parallel workers are allowed, lets several run side by side.",
+                        "Caps how many run at once to your limit.",
+                    ],
+                    "trip": "When off, helpers run one at a time; when on, up to your worker limit run together.",
+                    "set": "Turn parallel workers on and set the most-at-once limit in the boxes below.",
+                },
+            },
+            {
+                "id": "enforce-layout",
+                "title": "Folder & task limits",
+                "badge": "dynamic",
+                "controls": "files",
+                "tip": "Makes sure new files go in the right folders, and that the robot only touches the files this task is allowed to.",
+                "detail": {
+                    "steps": [
+                        "Checks where a new file is about to be written.",
+                        "Compares it to your allowed-folders list (.repo-layout.json).",
+                        "If a task-file list is set, checks the file is part of this task (.ravenclaude/task-scope.json).",
+                    ],
+                    "trip": "Blocks the write and suggests the correct folder.",
+                    "set": "Edit the two file lists in the boxes below.",
+                },
+            },
+            {
+                "id": "route-decision-review",
+                "title": "Decision routing",
+                "badge": "dynamic",
+                "controls": "decision",
+                "tip": "When the robot would ask you a yes/no question, a panel answers the easy ones so you're not interrupted.",
+                "detail": {
+                    "steps": [
+                        "Notices when the robot is about to ask you a yes/no question.",
+                        "Sends the simple, low-risk ones to a small panel.",
+                        "Big or risky questions always come to you.",
+                    ],
+                    "trip": "In binding mode the panel answers the easy ones; risky ones still reach you.",
+                    "set": "Pick off / advisory / binding in the box below.",
+                },
+            },
+            {
+                "id": "claude-orchestrator",
+                "title": "Claude orchestrator",
+                "badge": "dynamic",
+                "controls": "orchestrator",
+                "tip": "Routes team-lead planning to Claude when your host CLI isn't Claude Code. Inert under Claude Code.",
+                "detail": {
+                    "steps": [
+                        "Checks whether the host is already Claude Code — if so, does nothing.",
+                        "Reads the orchestrator knob from .ravenclaude/comfort-posture.yaml.",
+                        "decide: sends the task to Claude and gets back a JSON plan the host CLI executes.",
+                        "full: sends the full task to Claude and gets back artifact content the host writes.",
+                    ],
+                    "trip": "If Claude is unavailable or auth fails, falls back to host orchestration automatically — never blocks.",
+                    "set": "Pick off / decide / full below. Inert under Claude Code (host already IS Claude).",
+                },
+            },
         ],
     },
     {
@@ -577,29 +654,50 @@ _PIPELINE_LANES = [
         "when": "Right after a command runs or a file is saved",
         "tip": "After something happens, these tidy up and double-check the work.",
         "stages": [
-            {"id": "format-on-write", "title": "Auto-tidy", "badge": "always",
-             "tip": "Tidies up a file's formatting right after it's saved.",
-             "detail": {
-                 "steps": ["Runs right after a file is saved.",
-                           "Runs the formatter for that kind of file.",
-                           "Saves the tidied version."],
-                 "trip": "Skips files it doesn't have a formatter for — never blocks.",
-                 "set": "Built in."}},
-            {"id": "guard-recursive-spawn", "title": "Copy guard", "badge": "always",
-             "tip": "Stops the robot from making endless copies of itself.",
-             "detail": {
-                 "steps": ["Watches for the robot launching copies of itself.",
-                           "Warns if those copies nest too deep."],
-                 "trip": "Warns (it doesn't hard-block) so you can step in.",
-                 "set": "Built in."}},
-            {"id": "claim-grounding-lint", "title": "Fact check", "badge": "advisory",
-             "tip": "Reminds the robot to say where a fact came from when it writes one into a document.",
-             "detail": {
-                 "steps": ["Reads facts written into knowledge / docs files.",
-                           "Checks each big claim says where it came from.",
-                           "Nudges if a source is missing."],
-                 "trip": "Advisory only — it nudges, it never blocks.",
-                 "set": "Active once command review is turned on."}},
+            {
+                "id": "format-on-write",
+                "title": "Auto-tidy",
+                "badge": "always",
+                "tip": "Tidies up a file's formatting right after it's saved.",
+                "detail": {
+                    "steps": [
+                        "Runs right after a file is saved.",
+                        "Runs the formatter for that kind of file.",
+                        "Saves the tidied version.",
+                    ],
+                    "trip": "Skips files it doesn't have a formatter for — never blocks.",
+                    "set": "Built in.",
+                },
+            },
+            {
+                "id": "guard-recursive-spawn",
+                "title": "Copy guard",
+                "badge": "always",
+                "tip": "Stops the robot from making endless copies of itself.",
+                "detail": {
+                    "steps": [
+                        "Watches for the robot launching copies of itself.",
+                        "Warns if those copies nest too deep.",
+                    ],
+                    "trip": "Warns (it doesn't hard-block) so you can step in.",
+                    "set": "Built in.",
+                },
+            },
+            {
+                "id": "claim-grounding-lint",
+                "title": "Fact check",
+                "badge": "advisory",
+                "tip": "Reminds the robot to say where a fact came from when it writes one into a document.",
+                "detail": {
+                    "steps": [
+                        "Reads facts written into knowledge / docs files.",
+                        "Checks each big claim says where it came from.",
+                        "Nudges if a source is missing.",
+                    ],
+                    "trip": "Advisory only — it nudges, it never blocks.",
+                    "set": "Active once command review is turned on.",
+                },
+            },
         ],
     },
     {
@@ -607,21 +705,36 @@ _PIPELINE_LANES = [
         "when": "When the robot thinks it's done",
         "tip": "Before the robot is allowed to stop, it proves the work is really finished.",
         "stages": [
-            {"id": "dod-gate", "title": "Done check", "badge": "dynamic", "controls": "dod",
-             "tip": "Before the robot says “done,” it runs your tests. If they fail, it keeps working.",
-             "detail": {
-                 "steps": ["Fires when the robot tries to stop.",
-                           "Runs your test / build command.",
-                           "If it fails, the robot keeps working instead of stopping."],
-                 "trip": "Blocks the stop until tests pass (up to a retry limit, then it lets the robot stop with a warning).",
-                 "set": "Set your test command and the retry limit in the boxes below."}},
-            {"id": "remind-tests", "title": "Test reminder", "badge": "advisory",
-             "tip": "A gentle nudge to run the tests when there's no done-check set up.",
-             "detail": {
-                 "steps": ["Fires on stop when no done-check is set.",
-                           "Prints a friendly reminder to run the tests."],
-                 "trip": "Advisory only — just a nudge.",
-                 "set": "Becomes unnecessary once you set a done-check above."}},
+            {
+                "id": "dod-gate",
+                "title": "Done check",
+                "badge": "dynamic",
+                "controls": "dod",
+                "tip": "Before the robot says “done,” it runs your tests. If they fail, it keeps working.",
+                "detail": {
+                    "steps": [
+                        "Fires when the robot tries to stop.",
+                        "Runs your test / build command.",
+                        "If it fails, the robot keeps working instead of stopping.",
+                    ],
+                    "trip": "Blocks the stop until tests pass (up to a retry limit, then it lets the robot stop with a warning).",
+                    "set": "Set your test command and the retry limit in the boxes below.",
+                },
+            },
+            {
+                "id": "remind-tests",
+                "title": "Test reminder",
+                "badge": "advisory",
+                "tip": "A gentle nudge to run the tests when there's no done-check set up.",
+                "detail": {
+                    "steps": [
+                        "Fires on stop when no done-check is set.",
+                        "Prints a friendly reminder to run the tests.",
+                    ],
+                    "trip": "Advisory only — just a nudge.",
+                    "set": "Becomes unnecessary once you set a done-check above.",
+                },
+            },
         ],
     },
 ]
@@ -675,9 +788,9 @@ _PIPELINE_CONTROLS = {
         '<select id="pipe-orchestrator">'
         '<option value="off">off — host CLI orchestrates (default, zero extra cost)</option>'
         '<option value="decide">decide — Claude plans, host runs agents '
-        '(+tokens for planning; lower cost)</option>'
+        "(+tokens for planning; lower cost)</option>"
         '<option value="full">full — Claude reasons through the task, host writes files '
-        '(+most tokens; bounded cost; locked intent)</option>'
+        "(+most tokens; bounded cost; locked intent)</option>"
         "</select></label>"
         '<p class="pipe-hint"><strong>[host-only — inert under Claude Code]</strong> '
         "Active only when your CLI is <em>not</em> Claude Code (e.g. GitHub Copilot routing GPT/Grok). "
@@ -701,7 +814,7 @@ _PIPELINE_CONTROLS = {
         "Bedrock/Vertex deployments are auto-detected and always pass.</p>"
         '<label class="pipe-ctl"><input type="checkbox" id="pipe-orch-zdr"> '
         "Zero-data-retention is ON for my Anthropic org "
-        "<span class=\"pipe-hint\">(it is OFF by default, per-org — confirm before checking)</span></label>"
+        '<span class="pipe-hint">(it is OFF by default, per-org — confirm before checking)</span></label>'
         '<label class="pipe-ctl"><input type="checkbox" id="pipe-orch-nopii"> '
         "This repo contains NO client PII</label>"
         '<label class="pipe-ctl"><input type="checkbox" id="pipe-orch-pseudo"> '
@@ -714,7 +827,7 @@ _PIPELINE_CONTROLS = {
     "files": (
         '<div class="pipe-file" data-file=".repo-layout.json">'
         '<div class="pipe-file-head"><strong>Allowed folders</strong> '
-        '<code>.repo-layout.json</code>'
+        "<code>.repo-layout.json</code>"
         '<button type="button" class="pipe-file-load" data-target=".repo-layout.json">Load</button>'
         '<button type="button" class="pipe-file-save" data-target=".repo-layout.json">Save</button></div>'
         '<textarea class="pipe-file-text" data-target=".repo-layout.json" spellcheck="false" '
@@ -722,7 +835,7 @@ _PIPELINE_CONTROLS = {
         '<span class="pipe-file-status" data-target=".repo-layout.json"></span></div>'
         '<div class="pipe-file" data-file=".ravenclaude/task-scope.json">'
         '<div class="pipe-file-head"><strong>This task’s files</strong> '
-        '<code>.ravenclaude/task-scope.json</code>'
+        "<code>.ravenclaude/task-scope.json</code>"
         '<button type="button" class="pipe-file-load" data-target=".ravenclaude/task-scope.json">Load</button>'
         '<button type="button" class="pipe-file-save" data-target=".ravenclaude/task-scope.json">Save</button></div>'
         '<textarea class="pipe-file-text" data-target=".ravenclaude/task-scope.json" spellcheck="false" '
@@ -830,7 +943,8 @@ def _render_pipeline_tab() -> str:
             controls = st.get("controls")
             controls_html = (
                 f'<div class="pipe-controls">{_PIPELINE_CONTROLS[controls]}</div>'
-                if controls else ""
+                if controls
+                else ""
             )
             detail = st.get("detail")
             detail_html = ""
@@ -840,9 +954,9 @@ def _render_pipeline_tab() -> str:
                     '<details class="pipe-more"><summary>How it works, step by step</summary>'
                     f'<ol class="pipe-steps">{steps}</ol>'
                     f'<p class="pipe-more-line"><span class="pipe-more-lbl">If it trips:</span> '
-                    f'{html.escape(detail.get("trip", ""))}</p>'
+                    f"{html.escape(detail.get('trip', ''))}</p>"
                     f'<p class="pipe-more-line"><span class="pipe-more-lbl">Where it’s set:</span> '
-                    f'{html.escape(detail.get("set", ""))}</p>'
+                    f"{html.escape(detail.get('set', ''))}</p>"
                     "</details>"
                 )
             cards.append(
@@ -933,9 +1047,7 @@ def _md_to_html(text: str) -> str:
     out = []
     for para in _re.split(r"\n\s*\n", text.strip()):
         s = html.escape(para)
-        s = _MD_LINK_RE.sub(
-            lambda m: f'<a href="{m.group(2)}" rel="noopener">{m.group(1)}</a>', s
-        )
+        s = _MD_LINK_RE.sub(lambda m: f'<a href="{m.group(2)}" rel="noopener">{m.group(1)}</a>', s)
         s = _MD_CODE_RE.sub(r"<code>\1</code>", s)
         s = _MD_BOLD_RE.sub(r"<strong>\1</strong>", s)
         s = _MD_ITALIC_RE.sub(r"<em>\1</em>", s)
@@ -1011,7 +1123,9 @@ def _render_concept_stepper(plugin_dir: Path, c: dict) -> str:
         svg = _inline_concept_svg(plugin_dir, st.get("svg"))
         active = " active" if i == 0 else ""
         cap = html.escape(st.get("caption", ""), quote=True)
-        frames.append(f'<div class="cs-frame{active}" data-step="{i}" data-caption="{cap}">{svg}</div>')
+        frames.append(
+            f'<div class="cs-frame{active}" data-step="{i}" data-caption="{cap}">{svg}</div>'
+        )
         dots.append(
             f'<button type="button" class="cs-dot{active}" data-step="{i}" '
             f'aria-label="Go to step {i + 1} of {n}"></button>'
@@ -1062,7 +1176,7 @@ def _render_concept_card(plugin_dir: Path, c: dict, titles: dict[str, str]) -> s
 
     see_also = "".join(
         f'<a class="concept-chip" href="#/learn/{html.escape(ref)}">'
-        f'{html.escape(titles.get(ref, ref))}</a>'
+        f"{html.escape(titles.get(ref, ref))}</a>"
         for ref in c.get("see_also", [])
         if ref in titles
     )
@@ -1070,16 +1184,16 @@ def _render_concept_card(plugin_dir: Path, c: dict, titles: dict[str, str]) -> s
 
     sources = "".join(
         f'<a class="concept-source" href="{html.escape(s["url"])}" rel="noopener">'
-        f'{html.escape(s["label"])}</a>'
+        f"{html.escape(s['label'])}</a>"
         for s in c.get("sources", [])
     )
     verified = ""
     if c.get("last_verified"):
-        verified = f'<span class="concept-verified">verified {html.escape(c["last_verified"])}</span>'
+        verified = (
+            f'<span class="concept-verified">verified {html.escape(c["last_verified"])}</span>'
+        )
 
-    search_blob = html.escape(
-        f"{c['title']} {c['summary']} {c['body_md']}".lower(), quote=True
-    )
+    search_blob = html.escape(f"{c['title']} {c['summary']} {c['body_md']}".lower(), quote=True)
 
     # The card is a native <details> (collapsed by default). The <summary> carries
     # the title + kind badge + one-line deck so the collapsed row is informative;
@@ -1102,8 +1216,8 @@ def _render_concept_card(plugin_dir: Path, c: dict, titles: dict[str, str]) -> s
         f'<div class="concept-card-body">'
         f"{well}{stepper}"
         f'<div class="concept-body">{_md_to_html(c["body_md"])}</div>'
-        f'{_CONCEPT_WIDGETS.get(c.get("widget") or "", "")}'
-        f'{_try_it_html(c.get("try_it"))}'
+        f"{_CONCEPT_WIDGETS.get(c.get('widget') or '', '')}"
+        f"{_try_it_html(c.get('try_it'))}"
         f"{see_also_block}"
         f'<div class="concept-sources-row">{sources}{verified}</div>'
         f"</div>"
@@ -1195,8 +1309,7 @@ def _render_learn_tab(plugin_dir: Path) -> str:
         "</div>"
         + "".join(tiers_html)
         + '<div class="stub learn-noresults" id="learn-noresults" hidden>'
-        '<h2>No matching concepts</h2><p>Try a different search term.</p></div>'
-        + "</div>"
+        "<h2>No matching concepts</h2><p>Try a different search term.</p></div>" + "</div>"
     )
 
 
@@ -1346,8 +1459,8 @@ def _render_command_card(cmd: dict) -> str:
         what_runs = (
             '<p class="cmd-what" '
             f'title="The green Run button does one fixed, safe thing right here in the page: it runs {html.escape(runs_literal)}. Or copy the command and paste it into Claude Code to do the same thing in your chat.">'
-            "<span class=\"cmd-what-label\">Run does:</span> "
-            f'<code>{html.escape(runs_literal)}</code>'
+            '<span class="cmd-what-label">Run does:</span> '
+            f"<code>{html.escape(runs_literal)}</code>"
             f' &middot; <span class="cmd-what-label">or in Claude:</span> <code>{html.escape(slash)}</code></p>'
         )
         actions = (
@@ -1367,8 +1480,8 @@ def _render_command_card(cmd: dict) -> str:
         what_runs = (
             '<p class="cmd-what" '
             f'title="This is a Claude Code command. A web page can&#39;t run it for you. Press Copy, then paste {html.escape(slash)} into Claude Code and press enter — Claude does the whole job for you there.">'
-            "<span class=\"cmd-what-label\">How to run it:</span> "
-            f'copy it, then paste into Claude Code &mdash; <code>{html.escape(slash)}</code></p>'
+            '<span class="cmd-what-label">How to run it:</span> '
+            f"copy it, then paste into Claude Code &mdash; <code>{html.escape(slash)}</code></p>"
         )
         actions = (
             f'<code class="cmd-code" id="{cid}">{html.escape(slash)}</code>'
@@ -1383,7 +1496,7 @@ def _render_command_card(cmd: dict) -> str:
         f'<h3 class="cmd-card-title">{html.escape(slash)}</h3>'
         f'<span class="cmd-card-badge" '
         f'title="Shipped by the {html.escape(cmd["owner"])} plugin">'
-        f'{html.escape(cmd["owner"])}</span>'
+        f"{html.escape(cmd['owner'])}</span>"
         f"{pill}"
         "</header>"
         f'<p class="cmd-card-desc">{html.escape(desc)}</p>'
@@ -1398,9 +1511,7 @@ def _render_overview_tab() -> str:
     Build-time, generator-discovered (House Rule 1 — never hard-code counts/names),
     so it renders identically on a static host and when served. The only live
     element is the served/static banner (toggled by the HEAD /__save probe in JS)."""
-    plugin_dirs = sorted(
-        p for p in PLUGINS_DIR.glob("*/.claude-plugin/plugin.json")
-    )
+    plugin_dirs = sorted(p for p in PLUGINS_DIR.glob("*/.claude-plugin/plugin.json"))
     n_plugins = len(plugin_dirs)
     n_agents = len(list(PLUGINS_DIR.glob("*/agents/*.md")))
     n_skills = len(
@@ -1414,51 +1525,71 @@ def _render_overview_tab() -> str:
     stat = lambda n, label: (
         f'<div class="ov-stat"><strong>{n}</strong><span>{html.escape(label)}</span></div>'
     )
-    stats = "".join([
-        stat(n_plugins, "plugins"),
-        stat(n_agents, "agents"),
-        stat(n_skills, "skills"),
-        stat(n_commands, "commands"),
-        stat(n_trees, "decision trees"),
-        stat(n_practices, "best practices"),
-    ])
+    stats = "".join(
+        [
+            stat(n_plugins, "plugins"),
+            stat(n_agents, "agents"),
+            stat(n_skills, "skills"),
+            stat(n_commands, "commands"),
+            stat(n_trees, "decision trees"),
+            stat(n_practices, "best practices"),
+        ]
+    )
 
     def card(title, body, target, cta):
         return (
             f'<a class="ov-card" href="#/{target}">'
-            f'<h4>{html.escape(title)}</h4>'
-            f'<p>{html.escape(body)}</p>'
+            f"<h4>{html.escape(title)}</h4>"
+            f"<p>{html.escape(body)}</p>"
             f'<span class="ov-card-cta">{html.escape(cta)} &rarr;</span>'
             "</a>"
         )
 
-    systems = "".join([
-        card("Comfort posture",
-             "Tune how autonomous your agents are — per-category deny / ask / allow, "
-             "and the security floor that never relaxes.",
-             "settings", "Open Settings"),
-        card("Guardrail pipeline",
-             "See every guard an action passes through — from session start, through "
-             "command review, to completion — with live on/off badges.",
-             "pipeline", "Open Pipeline"),
-        card("Command-review tribunal",
-             "The Thing — RavenClaude's command-review engine — checks risky "
-             "commands and logs an allow / edit / deny verdict you can browse.",
-             "saga", "Open Review log"),
-        card("Install & update",
-             "Two guides, one per tool: install &amp; update RavenClaude in Claude Code "
-             "(the Bifröst bridge) or in GitHub Copilot CLI.",
-             "bifrost", "Open install guides"),
-    ])
+    systems = "".join(
+        [
+            card(
+                "Comfort posture",
+                "Tune how autonomous your agents are — per-category deny / ask / allow, "
+                "and the security floor that never relaxes.",
+                "settings",
+                "Open Settings",
+            ),
+            card(
+                "Guardrail pipeline",
+                "See every guard an action passes through — from session start, through "
+                "command review, to completion — with live on/off badges.",
+                "pipeline",
+                "Open Pipeline",
+            ),
+            card(
+                "Command-review tribunal",
+                "The Thing — RavenClaude's command-review engine — checks risky "
+                "commands and logs an allow / edit / deny verdict you can browse.",
+                "saga",
+                "Open Review log",
+            ),
+            card(
+                "Install & update",
+                "Two guides, one per tool: install &amp; update RavenClaude in Claude Code "
+                "(the Bifröst bridge) or in GitHub Copilot CLI.",
+                "bifrost",
+                "Open install guides",
+            ),
+        ]
+    )
 
-    steps_required = "".join([
-        '<li><a href="#/settings">Pick a posture preset</a> — set how much your agents do without asking.</li>',
-        '<li>Wire it into your tool — <a href="#/bifrost">Claude&nbsp;Code</a> or <a href="#/install">Copilot&nbsp;CLI</a>. One-time setup, then updates are a git pull.</li>',
-    ])
-    steps_optional = "".join([
-        '<li><a href="#/pipeline">See what the guardrails do</a> — the map of every check, in plain language.</li>',
-        '<li><a href="#/trees">Browse the guidance</a> — the decision trees + best practices each plugin gives your agents.</li>',
-    ])
+    steps_required = "".join(
+        [
+            '<li><a href="#/settings">Pick a posture preset</a> — set how much your agents do without asking.</li>',
+            '<li>Wire it into your tool — <a href="#/bifrost">Claude&nbsp;Code</a> or <a href="#/install">Copilot&nbsp;CLI</a>. One-time setup, then updates are a git pull.</li>',
+        ]
+    )
+    steps_optional = "".join(
+        [
+            '<li><a href="#/pipeline">See what the guardrails do</a> — the map of every check, in plain language.</li>',
+            '<li><a href="#/trees">Browse the guidance</a> — the decision trees + best practices each plugin gives your agents.</li>',
+        ]
+    )
 
     return (
         '<div class="ov-wrap">'
@@ -1506,8 +1637,8 @@ def _render_commands_tab() -> str:
     run_note = (
         f" {n_run} can run from here when the dashboard is served; the rest are "
         "Claude Code slash commands."
-        if n_run else
-        " Each card shows exactly what it runs. Copy a command and paste it into your "
+        if n_run
+        else " Each card shows exactly what it runs. Copy a command and paste it into your "
         "Claude Code session to run it — a browser can't launch a slash command."
     )
     intro = (
@@ -1564,7 +1695,7 @@ def _decision_trees_inventory() -> list[dict]:
             title = m.group(1).strip()
             # Section body = from this header to the next '## ' (or EOF).
             nxt = _DT_NEXT_HEADER_RE.search(text, m.end())
-            section = text[m.end(): nxt.start() if nxt else len(text)]
+            section = text[m.end() : nxt.start() if nxt else len(text)]
             wm = _DT_WHEN_RE.search(section[:600])
             when = wm.group(1).strip() if wm else ""
             mm = _DT_MERMAID_RE.search(section)
@@ -1573,14 +1704,16 @@ def _decision_trees_inventory() -> list[dict]:
             n = seen_ids.get(base, 0)
             seen_ids[base] = n + 1
             tid = base if n == 0 else f"{base}-{n + 1}"
-            out.append({
-                "id": tid,
-                "owner": owner,
-                "title": title,
-                "when": when,
-                "mermaid": mermaid,
-                "path": str(md.relative_to(REPO_ROOT)),
-            })
+            out.append(
+                {
+                    "id": tid,
+                    "owner": owner,
+                    "title": title,
+                    "when": when,
+                    "mermaid": mermaid,
+                    "path": str(md.relative_to(REPO_ROOT)),
+                }
+            )
     out.sort(key=lambda d: (d["owner"], d["title"].lower()))
     return out
 
@@ -1632,13 +1765,15 @@ def _best_practices_inventory() -> list[dict]:
                 title = s[2:].strip()
                 break
         sm = _BP_STATUS_RE.search(text)
-        out.append({
-            "owner": owner,
-            "title": title,
-            "status": sm.group(1).strip() if sm else "",
-            "preview": _bp_preview(text),
-            "path": str(md.relative_to(REPO_ROOT)),
-        })
+        out.append(
+            {
+                "owner": owner,
+                "title": title,
+                "status": sm.group(1).strip() if sm else "",
+                "preview": _bp_preview(text),
+                "path": str(md.relative_to(REPO_ROOT)),
+            }
+        )
     out.sort(key=lambda d: (d["owner"], d["title"].lower()))
     return out
 
@@ -1748,16 +1883,18 @@ def _render_trees_tab(include_trees: bool = True) -> str:
             toggle = (
                 f'<button type="button" class="guide-bp-toggle" '
                 f'data-bp-toggle="{pid}" aria-expanded="false">preview</button>'
-                if preview else ""
+                if preview
+                else ""
             )
             preview_html = (
                 f'<p class="guide-bp-preview" id="{pid}" hidden>{html.escape(preview)}</p>'
-                if preview else ""
+                if preview
+                else ""
             )
             bp_parts.append(
                 '<li class="guide-item"><a href="../../{path}" class="guide-link">'
-                "<span class=\"guide-kind guide-kind-bp\">{status}</span>"
-                "<span class=\"guide-title\">{title}</span></a>{toggle}{preview}</li>".format(
+                '<span class="guide-kind guide-kind-bp">{status}</span>'
+                '<span class="guide-title">{title}</span></a>{toggle}{preview}</li>'.format(
                     path=html.escape(p["path"]),
                     title=html.escape(p["title"]),
                     status=html.escape(p["status"] or "rule"),
@@ -1768,18 +1905,20 @@ def _render_trees_tab(include_trees: bool = True) -> str:
         bp_items = "".join(bp_parts)
         tree_section = (
             f'<h4 class="guide-subhd">Decision trees <span class="guide-count">{len(ot)}</span></h4>'
-            f"<ul class=\"guide-list\">{tree_items}</ul>"
-            if ot else ""
+            f'<ul class="guide-list">{tree_items}</ul>'
+            if ot
+            else ""
         )
         bp_section = (
             f'<h4 class="guide-subhd">Best practices <span class="guide-count">{len(op)}</span></h4>'
-            f"<ul class=\"guide-list\">{bp_items}</ul>"
-            if op else ""
+            f'<ul class="guide-list">{bp_items}</ul>'
+            if op
+            else ""
         )
         if include_trees:
             counts = f"{len(ot)} trees · {len(op)} practices"
         else:
-            counts = f'{len(op)} practice{"s" if len(op) != 1 else ""}'
+            counts = f"{len(op)} practice{'s' if len(op) != 1 else ''}"
         blocks.append(
             '<details class="guide-plugin" open>'
             f'<summary class="guide-plugin-name">{html.escape(owner)}'
@@ -1801,8 +1940,7 @@ def _render_install_tab() -> str:
     tab's HEAD /__save probe). Clicking a button POSTs {"action":...} to /__run.
     """
     command_blocks = "".join(
-        _render_command_block(key, label, command)
-        for key, label, command in _INSTALL_COMMANDS
+        _render_command_block(key, label, command) for key, label, command in _INSTALL_COMMANDS
     )
     return _INSTALL_TAB_TEMPLATE.format(command_blocks=command_blocks)
 
@@ -1844,13 +1982,9 @@ def _render_settings_tab(properties: dict, presets: dict) -> str:
             + "</fieldset>"
         )
 
-    security_deny_html = _render_security_deny(
-        properties.get("security_deny", {})
-    )
+    security_deny_html = _render_security_deny(properties.get("security_deny", {}))
 
-    design_checkins_html = _render_design_checkins(
-        properties.get("design_checkins", {})
-    )
+    design_checkins_html = _render_design_checkins(properties.get("design_checkins", {}))
 
     category_intro_html = (
         '<div class="category-intro"><p>'
@@ -1948,7 +2082,7 @@ def _render_command_review_block() -> str:
     for seat, label, default_model in _THING_SEAT_META:
         opts = "".join(
             f'<option value="{html.escape(v)}"'
-            f'{" selected" if v == default_model else ""}>{html.escape(t)}</option>'
+            f"{' selected' if v == default_model else ''}>{html.escape(t)}</option>"
             for v, t in _THING_MODEL_CHOICES
         )
         rows.append(
@@ -2014,7 +2148,7 @@ def _render_command_review_block() -> str:
     # (b2) Scope disclaimer — when command review is for you, and when it's optional.
     disclaimer = (
         '<details class="crb-disclaimer">'
-        '<summary>Is command review for me? (scope &amp; when it&rsquo;s optional)</summary>'
+        "<summary>Is command review for me? (scope &amp; when it&rsquo;s optional)</summary>"
         "<p>Command review exists to put <strong>portable, model-agnostic</strong> "
         "guardrails on agentic AI that routes across <strong>multiple model vendors</strong> "
         "(e.g. GitHub Copilot CLI using Claude + ChatGPT + Grok), where Claude Code&rsquo;s "
@@ -2053,13 +2187,10 @@ def _render_command_review_block() -> str:
         + _render_gate_floor()
         + f'<div class="crp-seats">{seats_html}</div>'
         '<label class="crp-threshold" for="cr-threshold">'
-        "<span class=\"crp-threshold-label\">Confidence threshold</span>"
+        '<span class="crp-threshold-label">Confidence threshold</span>'
         '<input type="number" id="cr-threshold" min="0" max="1" step="0.05" value="0.5">'
         '<span class="crp-hint">A seat that votes below this convenes Thor.</span>'
-        "</label>"
-        + _render_mcp_allowlist()
-        + _render_tier_panel()
-        + "</div>"
+        "</label>" + _render_mcp_allowlist() + _render_tier_panel() + "</div>"
         "</details>"
     )
 
@@ -2205,9 +2336,7 @@ def _render_gate_floor() -> str:
     opts: list[str] = []
     for value, label, rec, tip in _GATE_FLOOR_META:
         checked = " checked" if value == _GATE_FLOOR_DEFAULT else ""
-        rec_badge = (
-            f'<span class="rec-badge">{html.escape(rec)}</span>' if rec else ""
-        )
+        rec_badge = f'<span class="rec-badge">{html.escape(rec)}</span>' if rec else ""
         opts.append(
             f'<input type="radio" id="gate-floor-{value}" name="gate-floor" '
             f'value="{value}"{checked} data-gate-floor="{value}">'
@@ -2246,14 +2375,12 @@ def _render_tier_panel() -> str:
             checked = " checked" if (in_seats or is_mandatory) else ""
             disabled = " disabled" if is_mandatory else ""
             mandatory_attr = ' data-mandatory="1"' if is_mandatory else ""
-            req_marker = (
-                '<span class="tier-seat-req">required</span>' if is_mandatory else ""
-            )
+            req_marker = '<span class="tier-seat-req">required</span>' if is_mandatory else ""
             seat_rows.append(
                 f'<label class="tier-seat" for="{cid}">'
                 f'<input type="checkbox" id="{cid}" class="tier-seat-cb" '
                 f'data-tier="{tier}" data-tier-seat="{seat}"'
-                f'{mandatory_attr}{checked}{disabled}>'
+                f"{mandatory_attr}{checked}{disabled}>"
                 f'<span class="tier-seat-name">{html.escape(_TIER_SEAT_LABELS[seat])}</span>'
                 f"{req_marker}"
                 "</label>"
@@ -2262,7 +2389,7 @@ def _render_tier_panel() -> str:
             f'<div class="tier-card" data-tier="{tier}">'
             f'<div class="tier-card-head">'
             f'<span class="tier-card-title">{html.escape(label)} risk</span>'
-            f'</div>'
+            f"</div>"
             f'<div class="tier-seats" role="group" '
             f'aria-label="Seats that convene at {html.escape(label)} risk">'
             + "".join(seat_rows)
@@ -2354,14 +2481,15 @@ def _render_pattern_overrides(category: str) -> str:
             f'data-info-pattern="{html.escape(pattern)}" '
             f'aria-label="Explain {html.escape(pattern)}" '
             f'title="Explain this pattern">?</button>'
-            if explanation else ""
+            if explanation
+            else ""
         )
         layer_controls: list[str] = []
         for layer in ("user", "local", "project"):
             sid = f"ov-{category}-{idx}-{layer}"
             options = "".join(
                 f'<option value="{html.escape(value)}"'
-                f'{" selected" if value == "inherit" else ""}>{html.escape(label)}</option>'
+                f"{' selected' if value == 'inherit' else ''}>{html.escape(label)}</option>"
                 for value, label in opts_spec
             )
             layer_controls.append(
@@ -2377,8 +2505,8 @@ def _render_pattern_overrides(category: str) -> str:
             f'<div class="pattern-row" data-pattern="{html.escape(pattern)}">'
             f'<div class="pattern-meta">'
             f'<code class="pattern-name" title="{html.escape(pattern)}">'
-            f'{html.escape(pattern)}</code>'
-            f'{info_btn}'
+            f"{html.escape(pattern)}</code>"
+            f"{info_btn}"
             f"</div>"
             f'<span class="pattern-detail">{html.escape(what_text)}</span>'
             f'<div class="pattern-layers" role="group" '
@@ -2392,13 +2520,11 @@ def _render_pattern_overrides(category: str) -> str:
         f'<summary class="pattern-summary">'
         f'<span class="pattern-summary-text">'
         f'Per-permission overrides <span class="pattern-count">'
-        f'({len(patterns)})</span></span>'
+        f"({len(patterns)})</span></span>"
         f'<span class="pattern-override-count" data-for="{html.escape(category)}">'
-        f'0 overridden</span>'
-        f'</summary>'
-        f'<div class="pattern-list">'
-        + "".join(rows)
-        + "</div>"
+        f"0 overridden</span>"
+        f"</summary>"
+        f'<div class="pattern-list">' + "".join(rows) + "</div>"
         "</details>"
     )
 
@@ -2434,9 +2560,7 @@ def _render_layer_radios(name: str, layer: str, default_value: str = "inherit") 
         f'<div class="layer-row" role="radiogroup" '
         f'aria-label="{html.escape(label_text)} layer for {html.escape(name)}">'
         f'<span class="layer-label">{html.escape(label_text)}</span>'
-        f'<div class="layer-radios">'
-        + "".join(radios)
-        + "</div>"
+        f'<div class="layer-radios">' + "".join(radios) + "</div>"
         "</div>"
     )
 
@@ -2451,7 +2575,9 @@ def _render_category_card(name: str, schema: dict) -> str:
     title = schema.get("title", name)
     description = schema.get("description", "")
     recommended = schema.get("x-recommended", "")
-    has_modal_content = bool(schema.get("x-controls") or schema.get("x-examples") or schema.get("x-guidance"))
+    has_modal_content = bool(
+        schema.get("x-controls") or schema.get("x-examples") or schema.get("x-guidance")
+    )
 
     # Map a category's x-recommended level to the 4-value layer set for the
     # Local-layer default. v0.19.0 recommendations are already deny/ask/allow
@@ -2471,7 +2597,8 @@ def _render_category_card(name: str, schema: dict) -> str:
     info_btn = (
         f'<button type="button" class="info-btn" data-info-for="{html.escape(name)}" '
         f'aria-label="Explain {html.escape(title)}" title="Explain this setting">?</button>'
-        if has_modal_content else ""
+        if has_modal_content
+        else ""
     )
 
     # Build layer rows (User=inherit, Local=recommended, Project=inherit)
@@ -2485,23 +2612,18 @@ def _render_category_card(name: str, schema: dict) -> str:
         f'<span class="cat-card-arrow" aria-hidden="true">&#9658;</span>'
         f'<span class="cat-card-title-group">'
         f'<span class="cat-card-title">{html.escape(title)}</span>'
-        f'{info_btn}'
-        f'</span>'
+        f"{info_btn}"
+        f"</span>"
         f'<span class="cat-card-desc">{html.escape(description)}</span>'
         f'<span class="cat-card-badge" data-badge-for="{html.escape(name)}" '
         f'aria-label="Effective level for {html.escape(title)}"></span>'
         + _render_thing_header_toggle(name)
-        + f'</summary>'
+        + f"</summary>"
         f'<div class="cat-card-body">'
         f'<div class="cat-project-warn" data-warn-for="{html.escape(name)}" hidden>'
         f'<span class="warn-icon" aria-hidden="true">&#9888;</span> '
-        f'Project-layer allows are granted to the whole team and cannot be relaxed by personal layers.'
-        f'</div>'
-        + user_row
-        + local_row
-        + project_row
-        + _render_pattern_overrides(name)
-        + "</div>"
+        f"Project-layer allows are granted to the whole team and cannot be relaxed by personal layers."
+        f"</div>" + user_row + local_row + project_row + _render_pattern_overrides(name) + "</div>"
         "</details>"
     )
 
@@ -2554,7 +2676,7 @@ def _render_thing_header_toggle(name: str) -> str:
             f'<span class="cat-thing-scales" data-scales-for="{html.escape(name)}">{icon_html}</span>'
             '<label class="dc-switch thing-switch-live cat-hdr-switch" '
             f'title="Command review (the Thing) — route {html.escape(name)} commands through a '
-            'one-seat reviewer (allow/deny) instead of asking you. ~10–15s &amp; credits / command. '
+            "one-seat reviewer (allow/deny) instead of asking you. ~10–15s &amp; credits / command. "
             'Off by default." '
             f'aria-label="Command review for {html.escape(name)}">'
             f'<input type="checkbox" data-thing-category="{html.escape(name)}" '
@@ -2595,7 +2717,7 @@ def _render_thing_toggle(name: str) -> str:
             '<span class="cat-thing-label">&#9878; Command review <span class="thing-aka">(the Thing)</span></span>'
             '<label class="dc-switch thing-switch-live" '
             f'title="Route {html.escape(name)} commands through a one-seat reviewer (allow/deny) '
-            'instead of asking you. Costs ~10–15s and credits per command — a validation switch, '
+            "instead of asking you. Costs ~10–15s and credits per command — a validation switch, "
             'not a daily setting. Off by default.">'
             f'<input type="checkbox" data-thing-category="{html.escape(name)}" '
             f'aria-label="Command review for {html.escape(name)}">'
@@ -2636,14 +2758,15 @@ def _render_security_deny(schema: dict) -> str:
             f'data-info-pattern="{html.escape(pattern)}" '
             f'aria-label="Explain {html.escape(pattern)}" '
             f'title="Explain this pattern">?</button>'
-            if explanation else ""
+            if explanation
+            else ""
         )
         rows.append(
             f'<div class="danger-zone-row">'
             f'<div class="danger-zone-info">'
             f'<div class="danger-zone-row-title">'
             f'<code class="danger-zone-pattern">{html.escape(pattern)}</code>'
-            f'{info_btn}'
+            f"{info_btn}"
             f"</div>"
             f'<p class="danger-zone-row-desc">{html.escape(what_text)}</p>'
             f"</div>"
@@ -2663,32 +2786,30 @@ def _render_security_deny(schema: dict) -> str:
         'data-info-section="security_deny" '
         'aria-label="Explain the Danger Zone" '
         'title="Explain the Danger Zone">?</button>'
-        '</h3>'
+        "</h3>"
         '<p class="danger-zone-subtitle">'
-        'The following patterns are ALWAYS denied, regardless of category levels. '
-        'Unblock individual rules at your own risk.'
-        '</p>'
+        "The following patterns are ALWAYS denied, regardless of category levels. "
+        "Unblock individual rules at your own risk."
+        "</p>"
         '<div class="danger-zone-note">'
-        '<p><strong>These are preventive guardrails, not a malware scanner.</strong> '
-        'They block the common <em>routes</em> malware and damage travel through &mdash; '
-        'running remote scripts (<code>curl | sh</code>), gaining root (<code>sudo</code>), '
-        'wiping files, and reading secrets &mdash; and they stop the command <em>before</em> it runs.</p>'
-        '<p><strong>What they don&rsquo;t do:</strong> inspect a file&rsquo;s contents &mdash; so they cannot '
-        'catch malware hidden inside something you explicitly approve. Treat the floor as a seatbelt, '
-        'not a reason to skip reviewing what Claude produced.</p>'
+        "<p><strong>These are preventive guardrails, not a malware scanner.</strong> "
+        "They block the common <em>routes</em> malware and damage travel through &mdash; "
+        "running remote scripts (<code>curl | sh</code>), gaining root (<code>sudo</code>), "
+        "wiping files, and reading secrets &mdash; and they stop the command <em>before</em> it runs.</p>"
+        "<p><strong>What they don&rsquo;t do:</strong> inspect a file&rsquo;s contents &mdash; so they cannot "
+        "catch malware hidden inside something you explicitly approve. Treat the floor as a seatbelt, "
+        "not a reason to skip reviewing what Claude produced.</p>"
         '<p class="danger-zone-note-maint">The floor and the hooks behind it '
-        '(<code>guard-destructive</code> blocks destructive shell commands, <code>enforce-layout</code> '
-        'blocks off-pattern file writes) are maintained in the RavenClaude marketplace and periodically '
-        're-reviewed by the Researcher meta-skill, which adds new dangerous patterns here as they emerge. '
-        'Learn more: '
+        "(<code>guard-destructive</code> blocks destructive shell commands, <code>enforce-layout</code> "
+        "blocks off-pattern file writes) are maintained in the RavenClaude marketplace and periodically "
+        "re-reviewed by the Researcher meta-skill, which adds new dangerous patterns here as they emerge. "
+        "Learn more: "
         '<a href="https://code.claude.com/docs/en/settings" target="_blank" rel="noopener">Claude Code permissions</a> &middot; '
         '<a href="https://code.claude.com/docs/en/hooks" target="_blank" rel="noopener">how hooks work</a> &middot; '
         '<a href="rules/security.md" target="_blank" rel="noopener">this plugin&rsquo;s security rules</a>.</p>'
-        '</div>'
-        '</header>'
-        '<div class="danger-zone-list">'
-        + "".join(rows)
-        + "</div>"
+        "</div>"
+        "</header>"
+        '<div class="danger-zone-list">' + "".join(rows) + "</div>"
         "</section>"
     )
 
@@ -10805,9 +10926,18 @@ _RAVEN_MARK_DATA_URI = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAjsAAAJLCA
 # Universal knob for every plugin that ships an advisory hook (13 of 16). Maps
 # to the hook's advisory(exit 0)/blocking(exit 1) toggle + its STRICT env var.
 _PLUGINS_WITH_HOOK = {
-    "applied-statistics", "azure-cloud", "claude-app-engineering", "data-platform",
-    "edtech-partner-success", "finance", "microsoft-365-copilot", "microsoft-fabric",
-    "power-platform", "ravenclaude-core", "regulatory-compliance", "salesforce",
+    "applied-statistics",
+    "azure-cloud",
+    "claude-app-engineering",
+    "data-platform",
+    "edtech-partner-success",
+    "finance",
+    "microsoft-365-copilot",
+    "microsoft-fabric",
+    "power-platform",
+    "ravenclaude-core",
+    "regulatory-compliance",
+    "salesforce",
     "web-design",
 }
 _HOOK_ENFORCEMENT_VAR = {
@@ -10823,72 +10953,168 @@ _HOOK_ENFORCEMENT_VAR = {
 # opinions. The free-form section covers everything not enumerated here.
 _PLUGIN_CURATED_VARS: dict[str, list[dict]] = {
     "power-platform": [
-        {"key": "publisher_prefix", "label": "Publisher prefix", "type": "text", "default": "rvn_",
-         "help": "House opinion #5 — a prefix you control (not the default cr_) so customizations are traceable."},
-        {"key": "default_environment_url", "label": "Default environment URL", "type": "text", "default": "",
-         "help": "Environment-variable discipline (#2) — never hard-code; set the engagement's default here."},
-        {"key": "dataverse_mcp_org_url", "label": "Dataverse MCP org URL", "type": "text", "default": "",
-         "help": "Per-tenant org URL for the official Dataverse MCP (CLAUDE.md §9a). e.g. https://contoso.crm.dynamics.com"},
-        {"key": "pbix_mcp_enabled", "label": "pbix-mcp enabled", "type": "enum", "options": ["no", "yes"], "default": "no",
-         "help": "Whether the bundled Power BI pbix-mcp server is wired (requires pip install pbix-mcp)."},
+        {
+            "key": "publisher_prefix",
+            "label": "Publisher prefix",
+            "type": "text",
+            "default": "rvn_",
+            "help": "House opinion #5 — a prefix you control (not the default cr_) so customizations are traceable.",
+        },
+        {
+            "key": "default_environment_url",
+            "label": "Default environment URL",
+            "type": "text",
+            "default": "",
+            "help": "Environment-variable discipline (#2) — never hard-code; set the engagement's default here.",
+        },
+        {
+            "key": "dataverse_mcp_org_url",
+            "label": "Dataverse MCP org URL",
+            "type": "text",
+            "default": "",
+            "help": "Per-tenant org URL for the official Dataverse MCP (CLAUDE.md §9a). e.g. https://contoso.crm.dynamics.com",
+        },
+        {
+            "key": "pbix_mcp_enabled",
+            "label": "pbix-mcp enabled",
+            "type": "enum",
+            "options": ["no", "yes"],
+            "default": "no",
+            "help": "Whether the bundled Power BI pbix-mcp server is wired (requires pip install pbix-mcp).",
+        },
     ],
     "microsoft-fabric": [
-        {"key": "default_capacity_sku", "label": "Default capacity SKU", "type": "text", "default": "F2",
-         "help": "Size to average + smoothing (house opinion #5); record the engagement's default capacity."},
-        {"key": "direct_lake_mode_default", "label": "Direct Lake mode", "type": "enum",
-         "options": ["on-onelake", "on-sql"], "default": "on-onelake",
-         "help": "House opinion #8 — on-OneLake has NO DirectQuery fallback; on-SQL falls back. Name it."},
+        {
+            "key": "default_capacity_sku",
+            "label": "Default capacity SKU",
+            "type": "text",
+            "default": "F2",
+            "help": "Size to average + smoothing (house opinion #5); record the engagement's default capacity.",
+        },
+        {
+            "key": "direct_lake_mode_default",
+            "label": "Direct Lake mode",
+            "type": "enum",
+            "options": ["on-onelake", "on-sql"],
+            "default": "on-onelake",
+            "help": "House opinion #8 — on-OneLake has NO DirectQuery fallback; on-SQL falls back. Name it.",
+        },
     ],
     "data-platform": [
-        {"key": "default_case", "label": "Default engagement Case", "type": "enum",
-         "options": ["A", "B", "C", "D", "not-yet-determined"], "default": "not-yet-determined",
-         "help": "The stack-selection Case (A/B/C/D) this engagement fits."},
-        {"key": "jwt_ttl_minutes", "label": "Embed JWT TTL (minutes)", "type": "number", "default": "15",
-         "help": "House opinion #4 — embed tokens are short-lived (5–15 min)."},
+        {
+            "key": "default_case",
+            "label": "Default engagement Case",
+            "type": "enum",
+            "options": ["A", "B", "C", "D", "not-yet-determined"],
+            "default": "not-yet-determined",
+            "help": "The stack-selection Case (A/B/C/D) this engagement fits.",
+        },
+        {
+            "key": "jwt_ttl_minutes",
+            "label": "Embed JWT TTL (minutes)",
+            "type": "number",
+            "default": "15",
+            "help": "House opinion #4 — embed tokens are short-lived (5–15 min).",
+        },
     ],
     "finance": [
-        {"key": "materiality_threshold", "label": "Materiality threshold", "type": "text", "default": "$50K or 5%",
-         "help": "House opinion #5 — materiality is a design constraint; document the threshold."},
-        {"key": "confidentiality_default", "label": "Confidentiality default", "type": "enum",
-         "options": ["internal", "client-confidential", "privileged"], "default": "internal",
-         "help": "House opinion #10 — finance data is sensitive; set the default handling class."},
+        {
+            "key": "materiality_threshold",
+            "label": "Materiality threshold",
+            "type": "text",
+            "default": "$50K or 5%",
+            "help": "House opinion #5 — materiality is a design constraint; document the threshold.",
+        },
+        {
+            "key": "confidentiality_default",
+            "label": "Confidentiality default",
+            "type": "enum",
+            "options": ["internal", "client-confidential", "privileged"],
+            "default": "internal",
+            "help": "House opinion #10 — finance data is sensitive; set the default handling class.",
+        },
     ],
     "regulatory-compliance": [
-        {"key": "default_jurisdiction", "label": "Default jurisdiction / regime", "type": "text", "default": "",
-         "help": "House opinion #12 — name the regulator + regime so the same word isn't read across regimes."},
+        {
+            "key": "default_jurisdiction",
+            "label": "Default jurisdiction / regime",
+            "type": "text",
+            "default": "",
+            "help": "House opinion #12 — name the regulator + regime so the same word isn't read across regimes.",
+        },
     ],
     "claude-app-engineering": [
-        {"key": "default_model_tier", "label": "Default model tier", "type": "enum",
-         "options": ["fast", "balanced", "frontier"], "default": "balanced",
-         "help": "House opinion #3 — right-size by cost-per-resolved-task; the everyday default tier."},
+        {
+            "key": "default_model_tier",
+            "label": "Default model tier",
+            "type": "enum",
+            "options": ["fast", "balanced", "frontier"],
+            "default": "balanced",
+            "help": "House opinion #3 — right-size by cost-per-resolved-task; the everyday default tier.",
+        },
     ],
     "microsoft-graph": [
-        {"key": "default_cloud", "label": "Default cloud", "type": "enum",
-         "options": ["global", "gcc", "gcc-high", "dod"], "default": "global",
-         "help": "The Microsoft national cloud the engagement targets (endpoints differ)."},
-        {"key": "use_immutable_ids", "label": "Use immutable IDs", "type": "enum",
-         "options": ["yes", "no"], "default": "yes",
-         "help": "Store immutable IDs for stored references (the immutable-ids best-practice)."},
+        {
+            "key": "default_cloud",
+            "label": "Default cloud",
+            "type": "enum",
+            "options": ["global", "gcc", "gcc-high", "dod"],
+            "default": "global",
+            "help": "The Microsoft national cloud the engagement targets (endpoints differ).",
+        },
+        {
+            "key": "use_immutable_ids",
+            "label": "Use immutable IDs",
+            "type": "enum",
+            "options": ["yes", "no"],
+            "default": "yes",
+            "help": "Store immutable IDs for stored references (the immutable-ids best-practice).",
+        },
     ],
     "salesforce": [
-        {"key": "default_api_version", "label": "Default API version", "type": "text", "default": "",
-         "help": "The Salesforce API version this org/engagement pins (e.g. v62.0)."},
+        {
+            "key": "default_api_version",
+            "label": "Default API version",
+            "type": "text",
+            "default": "",
+            "help": "The Salesforce API version this org/engagement pins (e.g. v62.0).",
+        },
     ],
     "applied-statistics": [
-        {"key": "default_alpha", "label": "Default significance level (α)", "type": "number", "default": "0.05",
-         "help": "The default α for hypothesis tests; document deviations."},
-        {"key": "multiple_comparison_default", "label": "Multiple-comparison correction", "type": "enum",
-         "options": ["none", "bonferroni", "benjamini-hochberg"], "default": "none",
-         "help": "Default family-wise / FDR correction when running many tests."},
+        {
+            "key": "default_alpha",
+            "label": "Default significance level (α)",
+            "type": "number",
+            "default": "0.05",
+            "help": "The default α for hypothesis tests; document deviations.",
+        },
+        {
+            "key": "multiple_comparison_default",
+            "label": "Multiple-comparison correction",
+            "type": "enum",
+            "options": ["none", "bonferroni", "benjamini-hochberg"],
+            "default": "none",
+            "help": "Default family-wise / FDR correction when running many tests.",
+        },
     ],
     "edtech-partner-success": [
-        {"key": "health_red_threshold", "label": "Account-health RED threshold", "type": "number", "default": "",
-         "help": "The score below which an account is RED in the health model."},
+        {
+            "key": "health_red_threshold",
+            "label": "Account-health RED threshold",
+            "type": "number",
+            "default": "",
+            "help": "The score below which an account is RED in the health model.",
+        },
     ],
     "ravenclaude-core": [
-        {"key": "decision_review_mode", "label": "Decision review (the Thing)", "type": "enum",
-         "options": ["off", "advisory", "binding"], "default": "off",
-         "help": "Canonical config is .ravenclaude/comfort-posture.yaml (Settings tab). Mirrored here for visibility."},
+        {
+            "key": "decision_review_mode",
+            "label": "Decision review (the Thing)",
+            "type": "enum",
+            "options": ["off", "advisory", "binding"],
+            "default": "off",
+            "help": "Canonical config is .ravenclaude/comfort-posture.yaml (Settings tab). Mirrored here for visibility.",
+        },
     ],
 }
 
@@ -10930,7 +11156,7 @@ def _gather_plugin_trees(plugin_dir: Path) -> list[str]:
                 if s.startswith("## Decision Tree"):
                     t = s.lstrip("#").strip()
                     if t.lower().startswith("decision tree:"):
-                        t = t[len("decision tree:"):].strip()
+                        t = t[len("decision tree:") :].strip()
                     titles.append(t)
         except OSError:
             continue
@@ -10974,7 +11200,7 @@ def _render_plugin_var_control(plugin: str, var: dict) -> str:
     return (
         '<div class="pv-row">'
         f'<label class="pv-label" for="{cid}">{label}</label>'
-        f'{control}'
+        f"{control}"
         f'<p class="pv-help">{help_txt}</p>'
         "</div>"
     )
@@ -11041,8 +11267,11 @@ def _render_plugins_category(plugin_dirs: list[Path]) -> tuple[str, str]:
 def _all_plugin_dirs() -> list[Path]:
     """Every plugin directory (has .claude-plugin/plugin.json), sorted by name."""
     return sorted(
-        (p for p in (REPO_ROOT / "plugins").iterdir()
-         if (p / ".claude-plugin" / "plugin.json").is_file()),
+        (
+            p
+            for p in (REPO_ROOT / "plugins").iterdir()
+            if (p / ".claude-plugin" / "plugin.json").is_file()
+        ),
         key=lambda p: p.name,
     )
 
@@ -11273,10 +11502,27 @@ _PAGE_TEMPLATE = """<!doctype html>
 
 
 def main() -> int:
-    p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("--plugin", help="Generate one plugin's dashboard only (e.g. 'ravenclaude-core').")
-    p.add_argument("--check", action="store_true", help="Exit 1 if any dashboard.html is stale vs its schema.")
+    p = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    p.add_argument(
+        "--plugin", help="Generate one plugin's dashboard only (e.g. 'ravenclaude-core')."
+    )
+    p.add_argument(
+        "--check", action="store_true", help="Exit 1 if any dashboard.html is stale vs its schema."
+    )
+    p.add_argument(
+        "--stdout",
+        action="store_true",
+        help="Print the (single --plugin) dashboard HTML to stdout instead of writing it "
+        "in place. For hermetic validation: a caller renders to a temp file without "
+        "mutating the committed artifact (see scripts/audit-gates.sh Gate 13).",
+    )
     args = p.parse_args()
+
+    if args.stdout and not args.plugin:
+        print("ERROR: --stdout requires --plugin (one dashboard to stdout)", file=sys.stderr)
+        return 1
 
     if args.plugin:
         target = PLUGINS_DIR / args.plugin
@@ -11306,6 +11552,10 @@ def main() -> int:
         new_html = render_dashboard(plugin_dir, schema)
         out_path = plugin_dir / "dashboard.html"
 
+        if args.stdout:
+            # Hermetic path: emit to stdout only, never touch the committed file.
+            sys.stdout.write(new_html)
+            continue
         if args.check:
             existing = out_path.read_text(encoding="utf-8") if out_path.exists() else ""
             if existing != new_html:

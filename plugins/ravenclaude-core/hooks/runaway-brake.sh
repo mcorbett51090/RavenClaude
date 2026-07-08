@@ -147,6 +147,17 @@ fi
 read_only=0
 if is_read_only "$tn" "$cmd"; then read_only=1; fi
 
+# Serialize the counter read-modify-write against concurrent PreToolUse hooks:
+# parallel tool calls in one turn share a session_id → one counter file, and
+# without a lock two invocations read the same `total`, both write total+1, and
+# one clobbers the other — so the session undercounts and max_total/max_consecutive
+# can be evaded under concurrency. A short bounded wait fails OPEN (allow, keep the
+# best-effort write) rather than hanging the hook if the lock is stuck; flock absent
+# (non-Linux) → skip locking and keep the prior best-effort behavior unchanged.
+if command -v flock >/dev/null 2>&1; then
+  exec 9>"${f}.lock" 2>/dev/null && flock -x -w 2 9 2>/dev/null || true
+fi
+
 total=0; last="-"; consec=0
 if [ -r "$f" ]; then
   read -r total last consec < "$f" 2>/dev/null || { total=0; last="-"; consec=0; }
@@ -165,6 +176,9 @@ else
   if [ "$h" = "$last" ]; then consec=$((consec + 1)); else consec=1; fi
   printf '%s %s %s\n' "$total" "$h" "$consec" > "$f" 2>/dev/null || true
 fi
+
+# Release the lock as soon as the write is durable (fd also closes at exit).
+flock -u 9 2>/dev/null || true
 
 trip=""
 if [ "$consec" -ge "$max_consec" ]; then

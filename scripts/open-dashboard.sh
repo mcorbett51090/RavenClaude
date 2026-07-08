@@ -19,12 +19,20 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # Root dev server serves the repo root, so /index.html (the unified portal
 # with the dashboard + catalog folded in) is reachable with live /__* endpoints.
 SERVER="$ROOT/scripts/serve-dashboards.py"
-LOG="/tmp/rc-dashboard-$PORT.log"
+# Create the log via mktemp (O_EXCL, unpredictable suffix) rather than a fixed,
+# world-predictable /tmp path opened with ">" — a plain redirect follows a symlink,
+# so a local attacker pre-planting /tmp/rc-dashboard-<port>.log could redirect the
+# write. LOG is only the redirect target + the informational echo below (the restart
+# uses pkill, not this path), so a fresh unique file per run is safe.
+LOG="$(mktemp "/tmp/rc-dashboard-${PORT}-XXXXXX.log" 2>/dev/null)" || LOG="/tmp/rc-dashboard-${PORT}.$$.log"
 
 [ -f "$SERVER" ] || { echo "dashboard server not found: $SERVER" >&2; exit 1; }
 
-# 1. Kill any server already bound to this dashboard (ignore "no match").
-pkill -f "serve-dashboards.py" 2>/dev/null || true
+# 1. Kill any server already bound to THIS port (ignore "no match"). The port is
+#    end-anchored (\$) and the dot is escaped so `--port 800` can't substring-match
+#    a running `--port 8000` — pkill -f is an unanchored regex over the whole
+#    command line, and the nohup line below puts --port last, so `$` is exact.
+pkill -f "serve-dashboards\.py --port ${PORT}\$" 2>/dev/null || true
 sleep 1
 
 # 2. Start fresh in the background, fully detached so it outlives this script.
@@ -42,12 +50,24 @@ for _ in $(seq 1 10); do
   sleep 1
 done
 
-# 4. Open it in a browser. In a Codespace, $BROWSER is the VS Code helper that
-#    opens the forwarded port in your real browser; fall back to python's opener.
-if [ -n "${BROWSER:-}" ] && [ -x "${BROWSER%% *}" ]; then
-  "$BROWSER" "$URL" >/dev/null 2>&1 || true
-else
-  python3 -m webbrowser "$URL" >/dev/null 2>&1 || true
+# 4. Open it in a browser — but ONLY when attached to an interactive terminal.
+#    Under postStartCommand there is no controlling TTY (stdout is redirected to a
+#    log) and $BROWSER isn't populated yet (the VS Code client hasn't attached), so
+#    the fallback below would launch a terminal browser (www-browser) that never
+#    exits and hangs the whole lifecycle command. Codespaces already auto-opens the
+#    forwarded port via onAutoForward: openBrowser, so skipping here loses nothing.
+if [ -t 1 ]; then
+  # Resolve the first word of $BROWSER via PATH (not as a cwd-relative path), so a bare
+  # command name (BROWSER=firefox) is honored, not just an absolute path. `command -v`
+  # handles both a PATH name and an absolute path uniformly (Finding 24).
+  browser_bin="$(command -v "${BROWSER%% *}" 2>/dev/null)"
+  if [ -n "${BROWSER:-}" ] && [ -n "$browser_bin" ]; then
+    read -ra browser_cmd <<<"$BROWSER"
+    "${browser_cmd[@]}" "$URL" >/dev/null 2>&1 || true
+  else
+    # Time-bound so a terminal-browser fallback can never block, even interactively.
+    timeout 5 python3 -m webbrowser "$URL" >/dev/null 2>&1 || true
+  fi
 fi
 
 echo "Dashboard: $URL"

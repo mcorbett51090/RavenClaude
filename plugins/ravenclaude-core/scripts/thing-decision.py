@@ -92,26 +92,45 @@ def _screen_always(command: str) -> dict:
     Runs regardless of the per-category toggle: a command that would disable or
     tamper with the Thing is denied pre-LLM whenever the orchestrator reached us
     (i.e. some category is toggled on), even if THIS command's own category is
-    off. On any failure to load/evaluate, returns a conservative no-deny (the
-    orchestrator's other fail-closed paths still apply) rather than crashing.
+    off.
+
+    Fail direction (hardened after the 2026-07 three-panel review): this screen
+    enforces the two category-independent invariants the constitution calls
+    UNCONDITIONAL — "the Thing cannot disable itself" and the force-push / `curl|sh`
+    hard rules. If the catalog can't be loaded/evaluated (corrupt YAML, missing
+    PyYAML, a future schema change), the screen MUST fail CLOSED, not silently
+    clear the command: the prior no-deny fallback let any error disable both
+    invariants for as long as it persisted (verified reproducible by corrupting
+    concerns-catalog.md). We therefore DENY both on error, and surface a
+    `screen_error` flag the orchestrator can log/distinguish. The documented
+    maintainer escape hatch (`command_review.enabled: false`) remains the way to
+    edit the substrate itself while a catalog is mid-edit.
     """
-    fallback = {
+    ok_fallback = {
         "self_disable_deny": False,
         "self_disable_concern": None,
         "hard_rule_deny": False,
         "hard_rule_concern": None,
+        "screen_error": False,
+    }
+    fail_closed = {
+        "self_disable_deny": True,
+        "self_disable_concern": "internal-error-fail-closed",
+        "hard_rule_deny": True,
+        "hard_rule_concern": "internal-error-fail-closed",
+        "screen_error": True,
     }
     try:
         spec = importlib.util.spec_from_file_location("_thing_concerns", _CONCERNS)
         if spec is None or spec.loader is None:
-            return fallback
+            return fail_closed
         mod = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(mod)  # type: ignore[union-attr]
         catalog = mod._load_catalog()
         res = mod.screen_always(catalog, command)
-        return {k: res.get(k, fallback[k]) for k in fallback}
+        return {k: res.get(k, ok_fallback[k]) for k in ok_fallback}
     except Exception:
-        return fallback
+        return fail_closed
 
 
 _BASH_PATTERN_RE = re.compile(r"^Bash\((.+?)(:\*)?\)$")
@@ -237,7 +256,16 @@ def classify(command: str) -> str | None:
         wget_body = re.match(r"wget\b", lead) and re.search(
             r"(?:^|\s)--(?:post-data|post-file|body-data|body-file)\b", lead
         )
-        if has_method or curl_body or wget_body:
+        # `gh api` performs an IMPLICIT POST whenever a field/input flag is present
+        # with no explicit -X/--method (`gh api repos/o/r/issues -f title=x` creates
+        # an issue). Without this branch bare `gh api` isn't in any EMISSIONS prefix,
+        # so best_cat is None and the write auto-allows unreviewed. -f/--raw-field,
+        # -F/--field, --input all force the write; explicit -X POST is already caught
+        # by has_method above (so a bare `gh api <path>` GET stays a read).
+        gh_body = re.match(r"gh\s+api\b", lead) and re.search(
+            r"(?:^|\s)(?:-f|-F|--field|--raw-field|--input)\b", lead
+        )
+        if has_method or curl_body or wget_body or gh_body:
             best_cat = "network_write"
     return best_cat
 
@@ -411,10 +439,18 @@ def cache_identity(tool_name: str, tool_input: dict, project_root: Path) -> str:
 # except-branch), and denies if the canonicalized target is — or is under — any
 # substrate path, by lexical path, realpath, OR st_ino (the inode check closes a
 # hardlink to a substrate file). SINGLE SOURCE for the runtime substrate set.
+# Scoped to ravenclaude-core specifically — the Thing IS ravenclaude-core, so its
+# runtime substrate lives only under plugins/ravenclaude-core/. A bare `plugins/*`
+# wildcard also matched every SIBLING plugin's hooks/scripts dir, so in any repo
+# shaped like a plugin monorepo (this repo, or any consumer with a top-level
+# plugins/<name>/hooks|scripts layout) a Write/Edit to an unrelated plugin's files
+# was pre-LLM denied with xc.tribunal-self-disable — a false positive. In a normal
+# consumer repo the plugin lives in the ~/.claude cache (not the project tree), so
+# these globs correctly match nothing there.
 THING_SUBSTRATE = [
-    "plugins/*/hooks",  # dir — any write under the plugin hooks
-    "plugins/*/scripts",  # dir — thing-*, apply-comfort-posture, serve-dashboards, …
-    "plugins/*/knowledge/concerns-catalog.md",
+    "plugins/ravenclaude-core/hooks",  # dir — any write under the plugin hooks
+    "plugins/ravenclaude-core/scripts",  # dir — thing-*, apply-comfort-posture, serve-dashboards, …
+    "plugins/ravenclaude-core/knowledge/concerns-catalog.md",
     "scripts/generate-dashboards.py",
     ".ravenclaude/thing.yaml",
 ]
@@ -1117,6 +1153,10 @@ def main() -> int:
         try:
             payload = json.load(sys.stdin)
         except (json.JSONDecodeError, ValueError):
+            payload = {}
+        # Valid-but-non-object JSON (["a","b"], null) parses cleanly but has no
+        # .get(); normalize to an empty dict so classify fails safe rather than crashing.
+        if not isinstance(payload, dict):
             payload = {}
         tool_name = payload.get("tool_name", "") or ""
         tool_input = payload.get("tool_input", {}) or {}

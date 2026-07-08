@@ -28,6 +28,16 @@ set -euo pipefail
 shopt -s extglob globstar nullglob
 
 file="${1:-}"
+# $CLAUDE_TOOL_FILE_PATH (passed as $1 by hooks.json) is NOT a real Claude Code
+# hook variable, so under Claude Code the arg is empty and the path arrives only
+# via the canonical stdin JSON contract. Fall back to it — same dual-source
+# pattern regen-on-manifest-change.sh / guard-destructive.sh already use.
+if [[ -z "$file" ]] && [[ ! -t 0 ]] && command -v jq >/dev/null 2>&1; then
+  payload="$(cat 2>/dev/null || true)"
+  if [[ -n "$payload" ]]; then
+    file="$(printf '%s' "$payload" | jq -r '.tool_input.file_path // .tool_input.path // empty' 2>/dev/null || true)"
+  fi
+fi
 [[ -z "$file" ]] && exit 0
 
 project_root="${CLAUDE_PROJECT_DIR:-$(pwd)}"
@@ -50,6 +60,17 @@ command -v _emit_hook_event >/dev/null 2>&1 || _emit_hook_event() { :; }
 if ! command -v jq >/dev/null 2>&1; then
   echo "[enforce-layout] jq not found; skipping layout/scope checks. Install jq to enable enforcement." >&2
   exit 0
+fi
+
+# Normalize a RELATIVE path to absolute against the project root BEFORE the
+# in-project prefix test (added after the 2026-07 review). project_root is always
+# absolute, so a relative $file fails the "$project_root/*" prefix match and hits
+# the else-branch `exit 0` (silent allow) below — bypassing BOTH the layout and
+# task-scope gates. A relative path is exactly what a Copilot-hosted tool call
+# supplies (copilot-hook-adapter.sh's file-pretool mode forwards .file_path
+# verbatim with no absoluteness check), so this is a normal, not adversarial, input.
+if [[ "$file" != /* ]]; then
+  file="$project_root/$file"
 fi
 
 # Convert to a path relative to project root.
@@ -121,6 +142,18 @@ fi
 # If you ever refactor this to use `find` or filename expansion, re-test
 # every pattern — the semantics differ. See bash(1) "Pattern Matching" and
 # "Filename Expansion" sections for details.
+# A corrupt .repo-layout.json (trailing comma, unresolved merge marker, truncation)
+# makes both jq reads below emit nothing, leaving `forbidden`/`allowed` empty. The
+# empty-allowed branch (line ~152) then takes the "forbid-only" path and allows
+# EVERY write — silently disabling layout enforcement with no signal, unlike the
+# missing-jq case above which warns. Fail open loudly instead: validate the manifest
+# and, if it is invalid JSON, warn to stderr + emit a warn event, then exit 0.
+if [[ -f "$manifest" ]] && ! jq -e . "$manifest" >/dev/null 2>&1; then
+  echo "[enforce-layout] .repo-layout.json is invalid JSON; layout policy NOT enforced. Fix the manifest to re-enable enforcement." >&2
+  _emit_hook_event "enforce-layout.sh" "warn" "" "$manifest" "invalid-manifest" 0
+  exit 0
+fi
+
 mapfile -t forbidden < <(jq -r '.forbidden_globs[]?' "$manifest" 2>/dev/null)
 mapfile -t allowed < <(jq -r '.allowed_globs[]?' "$manifest" 2>/dev/null)
 
@@ -128,7 +161,11 @@ mapfile -t allowed < <(jq -r '.allowed_globs[]?' "$manifest" 2>/dev/null)
 for pat in "${forbidden[@]:-}"; do
   [[ -z "$pat" ]] && continue
   if [[ "$rel_path" == $pat ]]; then
-    suggestion=$(jq -r --arg p "$pat" '.suggestions[$p] // empty' "$manifest")
+    # 2>/dev/null || suggestion="" : a malformed `suggestions` (e.g. an array
+    # instead of an object) makes jq exit non-zero ("Cannot index array with
+    # string"); under `set -e` that would ABORT before emit_deny runs, turning
+    # an intended DENY into a silent ALLOW. Degrade to no suggestion instead.
+    suggestion=$(jq -r --arg p "$pat" '.suggestions[$p] // empty' "$manifest" 2>/dev/null || true)
     emit_deny "Layout policy: '$rel_path' matches forbidden pattern '$pat'.${suggestion:+ ${suggestion}}" "forbidden-pattern"
   fi
 done
@@ -146,5 +183,5 @@ for pat in "${allowed[@]}"; do
 done
 
 # No match — deny with a generic suggestion.
-generic=$(jq -r '.suggestions["New top-level directory"] // empty' "$manifest")
+generic=$(jq -r '.suggestions["New top-level directory"] // empty' "$manifest" 2>/dev/null || true)
 emit_deny "Layout policy: '$rel_path' does not match any allowed_globs in .repo-layout.json. ${generic:-Add the glob to .repo-layout.json first if this location is intentional.}" "off-allow-list"

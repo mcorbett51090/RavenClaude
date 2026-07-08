@@ -181,7 +181,7 @@ def _read_posture_global_default(posture_path: Path) -> str | None:
     """
     try:
         text = posture_path.read_text(encoding="utf-8")
-    except OSError:
+    except (OSError, UnicodeDecodeError):
         return None
     for raw in text.splitlines():
         line = raw.split("#", 1)[0].rstrip()
@@ -259,20 +259,46 @@ def build_bundle(root: Path, model_arg: str | None) -> dict:
     return {k: v for k, v in bundle.items() if k in SAFE_FIELDS}
 
 
+def _yaml_scalar(v) -> str:
+    """Serialize a scalar as a YAML value, quoting ONLY when the plain form would be
+    ambiguous or invalid — a leading indicator char, an embedded ': ' or ' #', a
+    newline/CR/tab, or surrounding whitespace. Safe values (a model id, a semver)
+    render unquoted exactly as before, so this adds no output churn."""
+    s = str(v)
+    needs_quote = (
+        s == ""
+        or s != s.strip()
+        or s[:1] in "!&*?|>@`\"'%#-[]{},:"
+        or ": " in s
+        or " #" in s
+        or any(c in s for c in "\n\r\t")
+    )
+    if not needs_quote:
+        return s
+    esc = (
+        s.replace("\\", "\\\\")
+        .replace('"', '\\"')
+        .replace("\n", "\\n")
+        .replace("\r", "\\r")
+        .replace("\t", "\\t")
+    )
+    return f'"{esc}"'
+
+
 def render_yaml(bundle: dict) -> str:
     """Render the bundle as a `run_context:` YAML block (stdlib only — the shape
     is tiny and fixed, so we don't need PyYAML to serialize it)."""
     lines = ["run_context:"]
     if "model" in bundle:
-        lines.append(f"  model: {bundle['model']}")
+        lines.append(f"  model: {_yaml_scalar(bundle['model'])}")
     if "plugin_versions" in bundle:
         lines.append("  plugin_versions:")
         for name in sorted(bundle["plugin_versions"]):
-            lines.append(f"    {name}: {bundle['plugin_versions'][name]}")
+            lines.append(f"    {_yaml_scalar(name)}: {_yaml_scalar(bundle['plugin_versions'][name])}")
     if "posture_label" in bundle:
-        lines.append(f"  posture_label: {bundle['posture_label']}")
+        lines.append(f"  posture_label: {_yaml_scalar(bundle['posture_label'])}")
     if "capture_method" in bundle:
-        lines.append(f"  capture_method: {bundle['capture_method']}")
+        lines.append(f"  capture_method: {_yaml_scalar(bundle['capture_method'])}")
     return "\n".join(lines) + "\n"
 
 

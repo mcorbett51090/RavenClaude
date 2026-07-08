@@ -68,6 +68,10 @@ host="${host%%/*}"
 host="${host##*@}"
 host="${host%%:*}"
 host="$(printf '%s' "$host" | tr 'A-Z' 'a-z')"
+host="${host%.}"   # strip a trailing FQDN dot — MUST mirror guard-web-access.sh:61
+                   # exactly, else the writer keys the seen-file on `evil.com.`
+                   # while the reader looks for `evil.com`, so first-use consent
+                   # never latches and the user is re-prompted every fetch.
 [ -n "$host" ] || exit 0
 
 proj="${CLAUDE_PROJECT_DIR:-$PWD}"

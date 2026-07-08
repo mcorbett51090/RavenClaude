@@ -2,6 +2,83 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.17.6] — 2026-07-08
+
+Two non-blocking robustness hardenings for `honor_retry_after()` from the v0.17.5 security-reviewer sign-off (both fail in the safe direction; no security defect was present).
+
+- **Per-attempt `Retry-After` is now clamped to `backoff_cap`.** A single (attacker-influenceable) `Retry-After` header can no longer request a sleep longer than one exponential-backoff ceiling (default 60s) — previously only the *total* `backoff_budget_seconds` bounded it, so one header up to the full budget (120s) could hold the per-entity lock in a single sleep. The total-budget guard is unchanged; this tightens the single-sleep ceiling.
+- **The RFC-7231 HTTP-date form of `Retry-After` is now honored.** A `Retry-After` sent as an absolute HTTP-date (not delta-seconds) is parsed (`email.utils.parsedate_to_datetime`), the delta from `now()` is used, and the result is clamped to `[0, cap]` (past dates → 0; naive/tz-less parse treated as UTC). Previously a date value silently fell back to exponential backoff. `honor_retry_after` gained an injectable `now` (defaulted to `time.time`; the client passes its `clock`).
+
+Proven by 7 new assertions in `test_connectors.py` W2.5b (delta clamp, date honored/clamped/past, garbage→exponential, client-level huge-header capped at 60s). Full suite 59/59 green; ruff-clean. Security-reviewer verdict on the v0.17.5 retry path was CLEAR-TO-MERGE; these are the two optional follow-ups it noted.
+
+## [0.17.5] — 2026-07-08
+
+In-client 429/5xx backoff-retry for the OAuth GL connector — the follow-up the 2026-07-08 review deferred as a design question (now decided: implement it).
+
+- **`scripts/connectors/oauth_client.py` now retries a throttled/transient token refresh in place.** `_refresh_locked` (reached by both `refresh()` and `get_access_token()`) honors `Retry-After` via `honor_retry_after()` and retries on `BACKOFF_RETRY` (429 / 5xx) up to `max_backoff_retries` (default 3), instead of raising `TokenRefreshError` on the first 429. So a transient QBO/Xero throttle no longer aborts the whole GL extract. New constructor knobs: `max_backoff_retries`, `backoff_base`, `backoff_cap`, `backoff_budget_seconds`, and an injectable `sleep` (for tests).
+- **Bounded to protect the per-entity lock.** The refresh runs under the entity lock, so the retry is capped by a total `backoff_budget_seconds` (default 120s): if the next required backoff would exceed the remaining budget, it raises for the caller to retry later rather than pinning the lock. `REAUTH_REQUIRED` (invalid_grant) is never retried; `TransportTimeout` grace-retry and persist-then-use ordering are unchanged. Each backoff fires an observable `backoff_retry` alert that carries no token value.
+- **Security invariants preserved (this file is a `security_review` target):** tokens still never logged, bounded lock-hold, persist-then-use unchanged. Proven by 16 new assertions in `test_connectors.py` W2.6c (429→200, 5xx, exhaustion schedule, over-budget-no-sleep, invalid_grant-not-retried, retries-disabled, no-token-leak). Full suite: 52/52 green, ruff-clean.
+
+## [0.17.4] — 2026-07-08
+
+Docstring accuracy fix from the autonomous 3-panel repo review (run 2026-07-08). No behavior change.
+
+- **P3 — `scripts/connectors/oauth_client.py` docstring corrected.** The error-cause routing table promised "429 (throttled) → BACKOFF_RETRY (honor Retry-After, then retry)", but the shipped API (`refresh` / `get_access_token`) raises `TokenRefreshError` on a 429 and never itself backs off or retries (`honor_retry_after` is a helper for the caller to drive). The docstring now states accurately that the client _classifies_ the cause while the caller honors Retry-After and re-invokes — removing a "then retry" promise the component didn't keep. (Whether to implement the retry loop inside the client is a design question deferred to the maintainer.)
+
+## [0.17.1] — 2026-07-06
+
+Hardening + evidence for the live-integration tier (no new skills; W3 warehouse RLS moves from *specified* to *executed* at the DB layer).
+
+- **Postgres FORCE-RLS is now PROVEN, not just specified.** `skills/warehouse-dashboard/models/rls/run_rls_denial_test.sh` stands up a disposable `postgres:16` container, applies the shipped `close_rls_policies.sql`, and runs the cross-entity denial test — no live creds. Result (see `RLS_TEST_EVIDENCE.md`): a controller granted entity A sees only A; an explicit `WHERE entity_id=B` **leaks zero rows**; unset/empty grants deny all; and the array claim `{A,C}` returns exactly the 2-entity portfolio. Answers the security review's open question *"is the FORCE-RLS actually reached?"* — yes.
+- **Two fixes surfaced by executing it, folded into the shipped SQL:** `rls_cross_entity_denial_test.sql` now wraps each grant+query in `BEGIN/COMMIT` (a bare `SET LOCAL` is a silent no-op in autocommit → false-fail); and `close_rls_policies.sql` coerces the tenant GUC via `NULLIF(current_setting('app.entity_ids', true), '')::uuid[]` so a lingering empty-string `SET LOCAL` fail-closes to zero rows instead of aborting the query with a cast error.
+- **Knowledge correction (dated, cited):** `finance-elt-connector-facts.md` — NetSuite concurrency was wrong (`~1`); corrected to the account-level **pooled 5 / 15 / 20 (+10 per SuiteCloud Plus)** limit, flagged doc-sourced / re-confirm before go-live.
+- **Pitch refreshed** (`docs/controller-autopilot-pitch.html`) — the four live-tier capabilities move from "Next" to shipped, with the honest reference-impl framing and the Postgres-RLS-proven note; genuinely-remaining work (record provider fixtures, stand up Cube, wire the IdP) is stated as the consumer's step.
+
+Still specified-not-executed (needs infra a container can't cheaply supply): the Cube `access_policy` denial test (needs a running Cube) and the live IdP/JWKS. Consolidated suite unchanged: 272 tests green + the containerized RLS runner passing.
+
+## [0.17.0] — 2026-07-06
+
+Feature — **controller-autopilot live-integration tier** (FORGE `fca-live-integration-tier`; four workstreams built in parallel, cross-model critic + red-team, mandatory security-reviewer). Skills 18 → 22.
+
+- **W1 multi-currency (fully-tested real logic)** — `scripts/remeasure.py`: ASC 830 / IAS 21 **remeasurement (temporal)** + **translation (current-rate)** producing a CTA plug (→OCI) or remeasurement G/L (→net income); per-account `rate_class` COA column with a lint gate, a CTA analytical self-check (per-equity-account historical rates, dividend-aware), hyperinflation refusal (IAS 29 out of scope), and a byte-identical zero-drift no-op on all-USD groups. The FORGE critic **independently reconfirmed** both goldens (current-rate **CTA +200**; temporal **loss −80**). Skill `multi-currency-translation`.
+- **W2 connectors (reference impl + mock/replay)** — `scripts/connectors/`: OAuth2 GL extractor for QBO/NetSuite/Sage Intacct/Xero (atomic persist-then-use rotating refresh, per-entity lock, error-cause routing, Xero 30-min grace), a record/replay transport that never opens a live socket, and a GL-lineage emitter whose first 6 columns are byte-identical to `statement_engine --gl-detail`. Skill `live-connectors`.
+- **W3 warehouse/RLS (reference + tested claims core)** — `scripts/close_package_to_rows.py` (close-package → fact/dim), `scripts/entity_rls.py` (entity-level **array-claim** RLS), and a semantic model (dbt marts + Cube + Postgres FORCE-RLS) **reusing data-platform** wholesale. Skill `warehouse-dashboard`.
+- **W4 IdP-SoD (reference impl)** — `scripts/close_identity.py`: evolves `close_state.py`'s config-asserted `--actor` into an OIDC-verified identity (claim + signature validation; HS256 dev/fixture, RS256/ES256/JWKS via optional PyJWT that **refuses loudly** when absent; `alg:none`/alg-confusion rejected), token-level preparer≠approver SoD keyed on `sub@iss`, and a signature-bound step-up token for LOCK. Skill `idp-segregation`.
+
+**Security review (mandatory gate).** A `security-reviewer` pass returned must-fix-before-merge; all addressed before this release: a 🔴 Cube `portfolio_close` view shipped without its own `access_policy` (now filters `entity_id ∈ allowed_entities`, `operator: in`); `entity_rls.resolve()` now fails closed on non-list input; a `bind_entitlement_to_identity()` seam binds the RLS entitlement token and the SoD identity token to one issuer+subject (closing the split-brain gap); and `assert_fresh_stepup` now verifies the step-up token's signature + subject and rejects `iat`-only tokens.
+
+**Honest scope.** W1 is fully-tested logic. W2/W3/W4 are **assumption-complete reference implementations with mock/replay harnesses + consumer first-light checklists — NOT verified against any live provider, warehouse, or IdP** (none exist in this environment). Every W2/W3/W4 artifact badges this. Consolidated suite: **272 acceptance tests across 11 files, all green**; ruff-clean; stdlib-first.
+
+## [0.16.1] — 2026-07-06
+
+Bug fix (P3) — the advisory `flag-finance-anti-patterns.sh` IBAN PII check used `grep -Eni` (case-insensitive), so `[A-Z]{2}` also matched lowercase and over-flagged ordinary `<2 letters><2 digits><alnum>` tokens (e.g. commit hashes) as plaintext IBANs. Dropped `-i` (real IBANs are uppercase; the sibling SSN/card checks are already case-sensitive). No behavior change for any other check.
+
+## [0.16.0] — 2026-07-06
+
+Feature — **controller-autopilot full build** (FORGE roadmap P6–P12, built in parallel and consolidated). Extends the v0.15.0 first slice to the full governed cycle:
+
+- **5 skills** (18 total) — `finance-elt-staging`, `reconciliation-automatch`, `consolidate-entities`, `per-entity-dashboard`, `close-schedules`.
+- **5 stdlib engines** — `tb_stage.py` (raw QBO/NetSuite/Sage/Xero export → canonical trial-balance staging, **byte-identical to a dbt `stg_trial_balance` model**, with close-period watermark + entity/currency dims + atomic write); `recon_match.py` (GL↔subledger auto-match: exact / tolerance / grouped, with threshold auto-certification + explainable match trail); `consolidate.py` (multi-entity roll-up + **intercompany elimination** worksheet + CTA note, reusing `statement_engine`); `entity_dashboard.py` (self-contained per-entity dashboard from a close-package JSON); `schedule_engine.py` (fixed-asset depreciation rollforward, prepaid amortization, deferred-revenue waterfall — each ties beginning + movements = ending).
+- **3 knowledge docs** — `finance-elt-connector-facts` (sourced QBO/NetSuite/Sage Intacct/Xero auth + rate-limit facts, rotating-refresh-token failure mode + mitigation, dated QBO Reports-API gate, settling gates for unverified lifetimes), `tax-close-calendar` (coordination checklist, not tax advice), `secrets-pii-gate`.
+- **2 templates** — `connector-config.template.json` (env-var NAMES only, never values), `tax-calendar.md`.
+- **2nd advisory hook** — `scan-finance-secrets.sh` (secret/PII shape scan; advisory by default, `--ci` for a non-zero pre-merge gate; excludes env-var references + well-known test placeholders). The FORGE red-team's P0 follow-up. Wired into `hooks.json`.
+- **Tests** — consolidated suite now **7 files / 121 acceptance tests, all green**; ruff-clean; stdlib-only.
+
+Counts: skills 13→18, knowledge 13→16, templates 8→10, hooks 1→2. Deferred to its own decoupled PR: the `accounting-bookkeeping` scope-down.
+
+## [0.15.0] — 2026-07-06
+
+Feature — **controller-autopilot** first slice (FORGE plan `financial-controller-autopilot`). Adds a governed close-to-report cycle a financial controller installs and runs, leaving only review + approve:
+
+- **4 skills** — `produce-gaap-statements`, `author-coa-mapping`, `reconciliation-summary`, `close-approval-workflow` (skill count 9 → 13).
+- **1 command** — `run-controller-cycle` (the submit-only orchestration front door).
+- **5 stdlib scripts** — `statement_engine.py` (TB → IS/BS/draft CF, classification-tested, blocks on unmapped accounts), `entity_config.py`, `reconcile_summary.py`, `close_state.py` (review→approve→lock state machine with enforced SoD + append-only hash-chained audit log), `controller_cycle.py` (orchestrator + self-contained HTML close package). Plus `test_controller_autopilot.py` — an 18-test acceptance/regression suite (all passing).
+- **Synthetic worked entity** (`Meridian Robotics Inc.`) with a hand-derived golden + a deliberate-misclassification negative fixture, and a `controller-autopilot-architecture` knowledge doc (knowledge 12 → 13).
+- **Honesty by design:** statement production is treated as a commodity (every GL emits statements natively) — the moat is the governed cycle + enforced controls + the COA-mapping asset. Local-tier identity is config-asserted (tamper-evident, not tamper-preventing); TB-only output is badged not-audit-traceable; CF is an unaudited draft. No false competitive claims.
+- **Deferred (roadmap):** finance-shaped ELT (QBO/NetSuite/Sage Intacct/Xero), reconciliation auto-match/auto-cert, consolidation + intercompany, productized per-entity dashboard (reuse `data-platform`), secrets/PII scan gate.
+
+No breaking change — all prior agents/skills/templates unchanged; the corrected catalog skill count (was a stale "46 skills" boilerplate → now 13) only fixes drift.
+
 ## [0.14.2] — 2026-06-22
 
 Bug fix — the advisory `flag-finance-anti-patterns.sh` hook's credit-card PAN check used PCRE non-capturing groups `(?:…)` inside a POSIX-ERE `grep -E`, so Visa and Discover PANs were never flagged (the group matched nothing and `grep` printed a `? at start of expression` warning to stderr on every run). Rewrote the two groups as ERE-safe capturing groups `(…)`; all four card brands (Visa/MC/Amex/Discover) now match cleanly with no stderr noise. No behavior change for any other check.

@@ -32,6 +32,7 @@ import argparse
 import glob
 import json
 import os
+import re
 import sys
 
 
@@ -92,7 +93,14 @@ def check_plugin(manifest_path: str) -> list[str]:
             )
         else:
             with open(notice_path, encoding="utf-8") as nf:
-                if server not in nf.read():
+                # Word/token-boundary match, not a bare substring: a NOTICE that
+                # names a LONGER server (e.g. 'postman-enterprise') must not
+                # spuriously satisfy attribution for a shorter one ('postman'),
+                # nor 'dbeaver' satisfy 'db'. `-`/`_`/word-chars are treated as
+                # part of a token so a server name embedded in a longer id fails.
+                if not re.search(
+                    r"(?<![\w-])" + re.escape(server) + r"(?![\w-])", nf.read()
+                ):
                     errs.append(
                         f"{name}: {notice} does not mention server '{server}' "
                         f"(attribution must name the server it covers)"

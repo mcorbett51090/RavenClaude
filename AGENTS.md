@@ -103,16 +103,20 @@ for m in plugins/*/.claude-plugin/plugin.json; do python3 -m json.tool "$m" > /d
 python3 -m json.tool .repo-layout.json > /dev/null
 
 # 2. Shell syntax + executability
-bash -n plugins/*/hooks/*.sh
-find plugins/*/hooks -name '*.sh' -exec test -x {} \;
+#    NOTE: `find … -exec test -x {} \;` does NOT fail on a non-executable file —
+#    find's exit status reflects only traversal errors, not the -exec result — so
+#    it was a silent no-op. Use a loop that propagates the per-file failure, and
+#    cover scripts/*.sh syntax too (CI's validate-marketplace does the same).
+bash -n plugins/*/hooks/*.sh scripts/*.sh
+for f in plugins/*/hooks/*.sh; do [ -x "$f" ] || { echo "NOT EXECUTABLE: $f"; exit 1; }; done
 
 # 3. Prettier formatting (YAML / JSON / JS / TS / CSS — markdown is excluded)
 #    REQUIRED before pushing any branch that touches .yml / .yaml / .json / .js / .ts / .css files.
 #    Prettier check runs on the WHOLE TREE in CI, so a formatting failure on one file blocks
 #    every subsequent PR until fixed in main — even PRs that don't touch the failing file.
 #    Always auto-fix with --write before committing rather than --check + manual fix.
-npx --yes prettier --write . --log-level warn   # auto-format any out-of-style files
-npx --yes prettier --check . --log-level warn   # verify clean — must return exit 0
+npx --yes prettier@3.9.4 --write . --log-level warn   # auto-format any out-of-style files
+npx --yes prettier@3.9.4 --check . --log-level warn   # verify clean — must return exit 0
 
 # 4. Ruff (Python lint) — config in ruff.toml; runs as a CI gate (validate-marketplace Gate 9b)
 #    and inside audit-gates.sh. Same whole-tree discipline as prettier: a ruff violation

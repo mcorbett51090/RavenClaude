@@ -80,12 +80,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout (full history for accurate per-plugin "Last updated" dates)
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           fetch-depth: 0
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: "3.x"
 
@@ -99,7 +99,7 @@ jobs:
         run: python3 -m pip install --quiet pyyaml
 
       - name: Set up Node.js (mermaid-cli is fetched on demand by npx when an SVG is stale)
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: "20"
 
@@ -220,6 +220,42 @@ jobs:
             echo "docs/concepts.md stale — regenerating from concepts.json."
             python3 scripts/generate-concepts-doc.py
             python3 scripts/generate-concepts-doc.py --check
+          fi
+
+          # 4f. Validate the regenerated artifacts BEFORE committing (added after the
+          #     2026-07 three-panel review). This job pushes straight to main with
+          #     [skip ci], so NO PR gate ever runs on what it commits — a generator that
+          #     emitted non-prettier-conforming or structurally-invalid output would land
+          #     on main un-checked and then fail EVERY subsequent PR's whole-tree
+          #     `prettier --check .` / JSON-validity gate. We VALIDATE (never reformat —
+          #     the HTML artifacts are exact-byte freshness-gated and .prettierignore'd)
+          #     the files THIS job changed, and abort the push on any failure so the bad
+          #     artifact is never the thing we self-heal onto main. Changed-files-only
+          #     keeps this decoupled from unrelated pre-existing tree state.
+          # --untracked-files=all so a wholly-new untracked directory (e.g. a brand-new
+          # generated artifact tree like plugins/<name>/copilot/) is enumerated file-by-file
+          # instead of collapsed to a single directory line — otherwise the `[[ -f ]]` guards
+          # below skip every file inside it and BOTH the JSON and prettier gates silently
+          # ignore a freshly-created artifact dir (Finding 22).
+          mapfile -t _changed < <(git status --porcelain --untracked-files=all | sed -E 's/^.{3}//' | sed -E 's/^.* -> //')
+          if [[ ${#_changed[@]} -gt 0 ]]; then
+            for f in "${_changed[@]}"; do
+              [[ -f "$f" ]] || continue
+              case "$f" in
+                *.json)
+                  python3 -m json.tool "$f" >/dev/null \
+                    || { echo "::error::self-heal produced invalid JSON: $f — aborting push"; exit 1; } ;;
+              esac
+            done
+            # prettier auto-skips .prettierignore'd files (the generated HTML) and *.md,
+            # so this checks only the prettier-governed artifacts (concepts.json, the
+            # copilot package JSON, marketplace/plugin manifests) the PR gate would check.
+            _existing=()
+            for f in "${_changed[@]}"; do [[ -f "$f" ]] && _existing+=("$f"); done
+            if [[ ${#_existing[@]} -gt 0 ]]; then
+              npx --yes prettier@3.9.4 --check --log-level warn "${_existing[@]}" \
+                || { echo "::error::self-heal produced non-prettier-conforming output — aborting push (would break every subsequent PR's prettier gate)"; exit 1; }
+            fi
           fi
 
           # 5. Commit only if something actually changed.

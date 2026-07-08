@@ -62,6 +62,7 @@ import argparse
 import csv
 import json
 import sys
+from collections import defaultdict
 
 
 class ReconError(Exception):
@@ -139,12 +140,20 @@ def reconcile(
 
     # Cross-currency check on shared references: a reference present on both
     # sides but under different currencies is flagged, never netted.
-    ledger_refs = {ref for (ref, _cur) in ledger}
-    psp_refs = {ref for (ref, _cur) in psp}
+    # Precompute currency-by-reference in a single pass per side (O(N)) so the
+    # shared-reference loop is an O(1) lookup rather than an O(N) rescan each.
+    lcur_by_ref: dict[str, set] = defaultdict(set)
+    for r, c in ledger:
+        lcur_by_ref[r].add(c)
+    pcur_by_ref: dict[str, set] = defaultdict(set)
+    for r, c in psp:
+        pcur_by_ref[r].add(c)
+    ledger_refs = set(lcur_by_ref)
+    psp_refs = set(pcur_by_ref)
     currency_mismatch: list[dict] = []
     for ref in ledger_refs & psp_refs:
-        lcur = {c for (r, c) in ledger if r == ref}
-        pcur = {c for (r, c) in psp if r == ref}
+        lcur = lcur_by_ref[ref]
+        pcur = pcur_by_ref[ref]
         if lcur != pcur:
             currency_mismatch.append(
                 {"reference": ref, "ledger_currency": sorted(lcur), "psp_currency": sorted(pcur)}
@@ -198,21 +207,27 @@ def _print_report(result: dict, *, net_fees: bool) -> None:
         return
 
     if result["psp_only"]:
-        out.write(f"PSP_ONLY ({len(result['psp_only'])}) — PSP has a charge the ledger is missing.\n")
+        out.write(
+            f"PSP_ONLY ({len(result['psp_only'])}) — PSP has a charge the ledger is missing.\n"
+        )
         out.write("  Tree: likely a dropped/unprocessed webhook — replay it, post the entry.\n")
         for r in result["psp_only"]:
             out.write(f"    - {r['reference']}  {r['amount']} {r['currency']}\n")
         out.write("\n")
 
     if result["ledger_only"]:
-        out.write(f"LEDGER_ONLY ({len(result['ledger_only'])}) — ledger entry with no PSP counterpart.\n")
+        out.write(
+            f"LEDGER_ONLY ({len(result['ledger_only'])}) — ledger entry with no PSP counterpart.\n"
+        )
         out.write("  Tree: phantom credit / double-post — investigate idempotency + dedupe.\n")
         for r in result["ledger_only"]:
             out.write(f"    - {r['reference']}  {r['amount']} {r['currency']}\n")
         out.write("\n")
 
     if result["amount_mismatch"]:
-        out.write(f"AMOUNT_MISMATCH ({len(result['amount_mismatch'])}) — matched pair, amounts differ.\n")
+        out.write(
+            f"AMOUNT_MISMATCH ({len(result['amount_mismatch'])}) — matched pair, amounts differ.\n"
+        )
         out.write("  Tree: explained by fees/FX/partial capture? Model it and re-match.\n")
         out.write("        Unexplained delta = bug or fraud -> escalate (security-reviewer).\n")
         for r in result["amount_mismatch"]:
@@ -242,14 +257,20 @@ def main(argv: list[str] | None = None) -> int:
         prog="recon_diff.py",
         description="Diff an internal ledger against a PSP report; triage every discrepancy.",
     )
-    parser.add_argument("--ledger", required=True, help="CSV of your ledger view (reference, amount, currency)")
-    parser.add_argument("--psp", required=True, help="CSV of the PSP report (reference, amount, currency[, fee])")
+    parser.add_argument(
+        "--ledger", required=True, help="CSV of your ledger view (reference, amount, currency)"
+    )
+    parser.add_argument(
+        "--psp", required=True, help="CSV of the PSP report (reference, amount, currency[, fee])"
+    )
     parser.add_argument(
         "--net-fees",
         action="store_true",
         help="Compare PSP amounts net of the PSP 'fee' column (fees are an explained delta)",
     )
-    parser.add_argument("--json", action="store_true", help="Emit only the machine-readable JSON summary")
+    parser.add_argument(
+        "--json", action="store_true", help="Emit only the machine-readable JSON summary"
+    )
     args = parser.parse_args(argv)
 
     try:

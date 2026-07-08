@@ -1,0 +1,4 @@
+asset_id,description,cost,salvage_value,useful_life_months,in_service_month,disposal_month,disposal_proceeds
+FA-100,CNC milling machine (SYNTHETIC),120000,0,60,2024-06,,
+FA-200,Delivery van (SYNTHETIC),48000,8000,40,2026-06,,
+FA-050,Warehouse forklift (SYNTHETIC),30000,0,60,2023-06,2026-06,14000

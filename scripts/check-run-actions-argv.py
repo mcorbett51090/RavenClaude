@@ -15,7 +15,9 @@ never executed):
      expression: sys.executable, or str(<Path constant>) / str(REPO_ROOT-derived).
      Specifically: NO f-strings, NO %/+/.format() string building, NO Name that
      could carry request data, NO Call other than the allowed str()/Path joins.
-  4. argv[0] is one of {"bash", sys.executable} (no shell like sh -c).
+  4. argv[0] is one of the literals {"bash", "sh"} OR sys.executable (no shell
+     `-c` form). `bash`/`sh` are safe only because the `-c` family is separately
+     forbidden (checks below), so a shell launcher can't take an inline script.
   5. No element contains shell metacharacters in a literal.
 
 Exit 0 = clean; non-zero = a violation (the gate fails).
@@ -77,12 +79,21 @@ def _is_allowed_dynamic(node: ast.AST) -> bool:
     return False
 
 
+# The ONLY bare names allowed in a RUN_ACTIONS argv: the module-level path
+# constants + the `sys` module (for `sys.executable`). Accepting *any* ast.Name
+# (the prior behavior) defeated the gate — a future edit using a request-derived
+# local like `str(user_supplied)` would have passed. A name outside this set is
+# rejected, which is the whole point of the argv-integrity gate.
+_ALLOWED_CONST_NAMES = frozenset({"REPO_ROOT", "APPLY_SCRIPT", "RAVENCLAUDE_SCRIPT", "sys"})
+
+
 def _is_path_constant(node: ast.AST) -> bool:
     """A module-level path constant or a `/`-join of one with string literals.
-    Names (REPO_ROOT, APPLY_SCRIPT, RAVENCLAUDE_SCRIPT) are module constants —
-    they cannot hold request data. Reject anything else (Call, Subscript, etc.)."""
+    Names (REPO_ROOT, APPLY_SCRIPT, RAVENCLAUDE_SCRIPT, and `sys` for
+    sys.executable) are module constants — they cannot hold request data.
+    Reject any other Name, and anything else (Call, Subscript, etc.)."""
     if isinstance(node, ast.Name):
-        return True
+        return node.id in _ALLOWED_CONST_NAMES
     if isinstance(node, ast.Attribute):
         return _is_path_constant(node.value)
     if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Div):

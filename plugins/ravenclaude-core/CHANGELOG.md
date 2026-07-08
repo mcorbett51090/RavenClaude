@@ -2,6 +2,107 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.187.4 — 2026-07-08
+
+### Fixed
+
+- **P2 — decision-review safety envelope (`scripts/thing-decide.py`).** A **unanimous** panel `defer` (every voting seat independently says "this is a human call") could be routed into the Thor tie-breaker — whose `yes`/`no` verdict then becomes **binding** in `binding` mode — auto-resolving a decision the whole panel deferred. The `heimdall`-abstain re-screen (2b, added the same day) made this worse: a lone injection-seat abstention *also* forced a Thor convene on a unanimous defer. `_tally` now short-circuits `distinct == {"defer"}` straight to `defer` **before** the Thor branch (fail-safe — it can only send more decisions to the human). New `audit-gates.sh` Gate 17 case + a `defer-thor-flip` test mock prove Thor is never reached on a unanimous defer. _(From the autonomous 3-panel repo review, run 2026-07-08; the other findings in that run were already fixed on main via #585/#588.)_
+
+## 0.187.2 — 2026-07-08
+
+### Fixed
+
+- **`guard-destructive.sh` interpreter-heredoc fail-open (P1, security).** `_strip_heredoc` blanked _every_ inert heredoc body before the deny-pattern scan, on the premise that a heredoc body is data-written-to-a-file. That premise is false when the heredoc feeds an interpreter (`bash <<EOF … rm -rf / … EOF`, `sh <<'X'`, `python3 <<PY`) — there the body IS the executed script, so a destructive payload was stripped and sailed through as ALLOW. The strip now fires only when the heredoc's command word is NOT an interpreter (skips `bash`/`sh`/`dash`/`zsh`/`ksh`/`python*`/`perl`/`ruby`/`node`/…, incl. leading `VAR=`/`env`/`\` forms); interpreter heredocs are scanned as code. Data heredocs (`cat`/`tee` → file) that merely document a destructive pattern are still stripped. Closes the internal inconsistency where `<(curl` / `$(curl` to a shell were caught but the equivalent heredoc-to-shell was not. Gate 5 gained interpreter-heredoc block fixtures + benign-data-heredoc pass fixtures.
+- **Tribunal `network_write` classifier missed `gh api` implicit-POST (P2).** `classify()`'s flag-aware network-write override detected write bodies for `curl` and `wget` but had no `gh` branch, so `gh api … -f/-F/--field/--raw-field/--input` (an implicit POST that creates issues/PRs/comments) classified as `None` and auto-allowed unreviewed under a toggled-on `network_write` category. Added the `gh_body` branch; a bare `gh api <path>` GET still classifies as a read. Gate 21 #17e gained the implicit-POST forms + a bare-GET negative control.
+- **`thing-orchestrator.sh` non-portable millisecond clock (P3).** `date +%s%3N` is a GNU-date extension; on BSD/macOS `date` exits 0 and emits a non-numeric `<seconds>N`, so the `|| echo 0` guard never fired and the audit `duration_ms` arithmetic errored (telemetry corruption). Replaced both call sites with a portable `_now_ms` helper that validates all-digits output and falls back to whole-second precision.
+
+## 0.187.0 — 2026-07-08
+
+### Added
+
+- **Document-discovery pattern for cold agents (`DOCUMENT-MAP.md`).** Non-Claude-Code agents (Copilot CLI, Cursor, Aider) auto-load their instruction files but not a document-location index, so they re-run find/grep every turn to relocate known docs. New guidance closes the gap (forged via the FORGE two-panel + correlated-error-critic pipeline, which corrected the original "no persistent memory" framing):
+  - `knowledge/copilot-cli-customization.md` §7 — the canonical mechanism: inline-vs-standalone placement, ~50–300-doc sizing, and seed-then-hand-curate maintenance ("a stale map is worse than none").
+  - `codex-onboarding` skill — a session-start "read the document map first" step + matching done-check.
+  - `docs/best-practices/agent-onboarding.md` (new, repo-level) — the cross-tool Pattern, pointing at §7 rather than restating it.
+  - `scripts/generate-document-map.py` (new, repo-level) — a stdlib-only, deterministic, config-driven **seed** generator (`--self-test` / `--check`). Ships as a reusable tool, **not** a committed map: RavenClaude's own durable docs are already indexed elsewhere, and its `docs/` is mostly dated one-offs. No CI gate.
+
+## 0.186.1 — 2026-07-06
+
+### Fixed
+
+Autonomous 3-panel repo review (run 2026-07-06) — 24 confirmed findings, P1→P3, all mechanical (no design input). Rebased onto 0.186.0; complements the 0.184.5 security pass. Plugin-internal fixes:
+
+- **P1 — tribunal false-positive on sibling plugins (`thing-decision.py`).** `THING_SUBSTRATE` used `plugins/*/hooks` and `plugins/*/scripts` wildcards, so in any repo shaped like a plugin monorepo a `Write`/`Edit` to an _unrelated_ plugin's hooks/scripts was pre-LLM denied with `xc.tribunal-self-disable`. Scoped the globs to `plugins/ravenclaude-core/…` (the Thing's actual substrate). Verified: core substrate still denied, siblings now allowed; Gate 24 green.
+- **P2 — `enforce-layout.sh` silent fail on corrupt manifest.** An invalid `.repo-layout.json` (trailing comma, merge marker) made both jq reads empty → the forbid-only branch allowed every write with no signal. Now validates the manifest and warns to stderr + emits a `warn` hook event instead of silently disabling enforcement.
+- **P2 — `runaway-brake.sh` counter race.** The per-session counter read-modify-write is now wrapped in a bounded `flock` (fails open) so concurrent tool calls can't clobber each other's increment and evade `max_total`/`max_consecutive`.
+- **P2 — `dod-gate.sh` code-change detection.** Switched to `git status --porcelain=v1 -z` + suffix grep; the prior `awk $2` field-parse silently missed changed source files with spaces in the path (and split rename lines), skipping the gate.
+- **P2 — tribunal seat kill robustness (`thing-orchestrator.sh`).** Per-seat `timeout` now uses `--kill-after=5s` so a `claude -p` ignoring SIGTERM is force-killed; the misleading watchdog comment was corrected (the per-seat timeout, not the watchdog, reaps the claude tree).
+- **P2 — `apply-comfort-posture.py` clean errors.** `parse_yaml` now catches `yaml.YAMLError`, and `main()`/`run_v5` surface a bad YAML/level value as an actionable one-liner + exit 1 instead of a raw traceback.
+- **P2 — `stream-ops.py` label no-egress cap + registry race.** Extends the 0.184.5 `terms` single-token cap to `label` (whitespace-collapse + length-cap, incl. the `extra={…}` bypass path) and serializes the registry read-modify-write with an advisory lock + a per-process unique temp file so concurrent writers can't clobber the event-count bump.
+- **P3 — `thing-decide.py`** bounds the untrusted-input substring scan to avoid quadratic cost on attacker-sized fields; **`thing-seat.sh`** truncation detection now compares byte lengths (not locale char counts); **`sanitize-webfetch-body.py`** checks `stat().st_size` before reading a file into memory.
+
+Marketplace-level fixes (CI + scripts, same review): `validate-marketplace.yml` (case-insensitive email guard; duplicate-catalog-entry detection), `check-marketplace-claims.py` (anchor the `<N> plugins` count regex to total-count forms), `generate-bi-report.py`, `eval-adaptive-classifier.py`, `render-trees.py`, `cleanup-branches.sh`, `archive-branch.sh`, `thing-golden-eval.py`.
+
+**Migration:** none — backward-compatible bug fixes and hardening.
+
+## 0.185.0 — 2026-07-03
+
+### Added
+
+- **New best-practice — `compact-proactively-and-persist-state-before-compaction.md`** (27 rules, was 26). The actionable compaction discipline the `context-window` concept card only _described_: (1) compact **proactively** at task boundaries — auto-compact fires late (~80% of the window) when context rot has already started, so `/compact` while clean yields a sharper summary; and (2) **persist load-bearing state before compaction** — a compact recap is a _summary_, so intermediate reasoning, rejected approaches, and plans that live only in the conversation are discarded; write them to a file/commit/test first, or anchor them with `/compact <preservation instructions>`. Grounded in [Anthropic's best-practices guide](https://code.claude.com/docs/en/best-practices) and cross-checked against `knowledge/concepts/context-window.md`. This was the candidate the [2026-07-02 scan](../../docs/research/2026-07-02-claude-subreddit-scan/README.md) explicitly deferred as the strongest next candidate; surfaced by the 12th recurring Claude-subreddit scan ([`docs/research/2026-07-03-claude-subreddit-scan/README.md`](../../docs/research/2026-07-03-claude-subreddit-scan/README.md) — 4 findings, 1 approved). **Migration:** none — additive consumer-facing markdown.
+
+## 0.184.5 — 2026-07-06
+
+### Fixed
+
+- **Security (P1) — `guard-destructive.sh` command-substitution boundary gap.** `_is_dangerous_find` / `_is_dangerous_truncate` / `_is_dangerous_git_branch_delete` used a boundary class that omitted the command-substitution openers `(`/backtick that `_is_dangerous_rm` deliberately includes, and a trailing `-delete)` (closed by the subst paren) dodged the action check — so `$(find / -delete)`, `$(truncate -s 0 /etc/passwd)`, and `$(git branch -D main)` slipped the guard while the same `$(rm -rf ~)` wrap was caught. All three now use `_CMD_BOUNDARY`; a new `_CMD_END` boundary recognizes the trailing subst closer. Gate 5 fixtures added.
+- **Security (P1) — SessionStart capability-banner prompt-injection break-out.** `capability-orientation.py` inlined repo-controlled `design-project.json` `name`/`mirror_dir` and `run-config.json` `rationale` with only `.strip()`, so a hostile cloned repo could embed a newline + a literal `</ravenclaude-capabilities>` close tag to break out of the untrusted-data frame. Added `_sanitize_banner_field()` (strips CR/LF + U+2028/U+2029, removes any frame tag, caps length) applied to all three fields. Gate 19 frame-break fixtures added.
+- **Security (P2) — `guard-destructive.sh` silent fail-open when `jq` is absent.** The guard read the command only via `jq`; a host without `jq` left `cmd` empty and `exit 0` (allow-all) with no warning. Added a `python3` fallback extractor and a loud stderr warning when neither parser is available.
+- **Security (P2) — `guard-web-access.sh` blacklist fail-open on flow-style YAML.** `parse_section` parsed only block-style lists, so a `deny: [evil.com]` (the syntax the header comment + template advertise) yielded an empty deny list. Now parses both flow- and block-style. Gate added.
+- **Robustness (P2) — `stream-ops.py` `append_event` `terms`** are now length-capped and rejected if they carry whitespace (single-token contract), matching the `summary` no-egress hardening.
+
+## 0.184.4 — 2026-07-02
+
+### Added
+
+- **New best-practice — `give-the-agent-a-verification-signal-it-can-read.md`** (26 rules, was 25). The umbrella principle that the repo's existing enforcement leaves (the definition-of-done Stop gate, expensive-test front-loading, the visual render→see→iterate loop, the adversarial reviewer) each instantiate but that no single rule named: every task should carry a check that emits a machine-readable pass/fail, and the agent should iterate to green and show the evidence before reporting done. Grounded in [Anthropic's best-practices guide](https://code.claude.com/docs/en/best-practices) § "Give Claude a way to verify its work" (its four enforcement levels map onto the four existing leaves); surfaced by the 7th recurring Claude-subreddit scan ([`docs/research/2026-07-02-claude-subreddit-scan-verification-loop/README.md`](../../docs/research/2026-07-02-claude-subreddit-scan-verification-loop/README.md) — 4 findings, 1 approved). **Migration:** none — additive consumer-facing markdown.
+
+## 0.184.2 — 2026-07-02
+
+### Fixed
+
+- **Security — `guard-destructive.sh` command-substitution bypasses.** The `-m "…"` / heredoc-body stripping blanked a **double-quoted** `-m "$(…)"` body and a **bare** `<<EOF` heredoc body before the destructive-pattern scan, while bash still executed the substitution at run time — so `git commit -m "$(rm -rf ~)"` and `cat <<EOF … $(rm -rf ~) … EOF` slipped the guard. A quoted body is now stripped only when it carries no command substitution (`$(`/backtick), and the command-word boundary was extended to treat `(`/backtick as boundaries (composing with the `/` path-qualified boundary from the same-day review) so `$(rm …` is caught. Gate 5 regression fixtures added.
+- **Security — secret leakage.** `guard-destructive.sh`'s `_deny()` echoed the raw command to stderr (captured into the transcript) and `_emit_hook_event` wrote the free-form `path` field (the full command) to `hook-events.jsonl` unscrubbed; both now pass through `_scrub_reason()`.
+- **Robustness — tribunal engines** (`thing-decide.py` / `thing-decision.py`) now fail safe on valid-but-non-object stdin JSON instead of raising `AttributeError`.
+
+**Migration:** none — backward-compatible hardening.
+
+## 0.184.1 — 2026-07-02
+
+### Fixed
+
+- **`guard-destructive.sh` path-qualified evasion closed (P0).** The four structural danger checks (`_is_dangerous_rm`/`_chmod`/`_find`/`_truncate`) anchored the command name only after start-of-string / `;` / `&` / `|` / whitespace, so a **path-qualified** invocation (`/bin/rm -rf /`, `./rm -rf ~`, `/usr/bin/chmod -R 777 /`) slipped past the primary consumer guard untouched — no `deny_patterns[]` entry backstops rm/chmod/find/truncate. The left-boundary character class now also matches after `/`. The same pass closes two missed forms: `find … -execdir` (the per-match twin of `-exec`) and `truncate --size=0` (the long-option spelling of `-s 0`). Verified with an adversarial + regression harness (10 blocks incl. the new evasions, 6 no-false-positive controls). (Autonomous 3-panel repo review, P0 + two P2s.)
+
+## 0.183.1 — 2026-07-02
+
+### Fixed
+
+Autonomous 3-panel repo review (categorize → validate → tie-break) → the design-free confirmed fixes. Plugin-scoped items in this release:
+
+- **`guard-destructive.sh` bypasses closed (P0/P1/P2).** `$IFS`/`${IFS}` whitespace-substitution and a leading backslash (`\rm -rf /`) are now neutralized during normalization; git global options (`git -c x=y push --force`, `git --git-dir=… push`) are stripped so every `git` subcommand pattern re-anchors; force-branch-delete is caught order-independently (`git branch --delete --force`, `git branch main -D`); the fork-bomb pattern tolerates whitespace inside the parens. Verified with an adversarial + regression harness (21 blocks, 0 false positives).
+- **Tribunal fails CLOSED on catalog error (P0).** `thing-decision.py` `_screen_always` now denies (with a `screen_error` flag) if the concerns catalog can't be loaded/evaluated, instead of silently clearing the force-push / `curl|sh` / self-disable hard rules. Reproduced + verified fixed.
+- **`enforce-layout.sh` relative-path bypass closed (P1).** A relative `$file` (as Copilot's file-pretool adapter forwards) is normalized to absolute before the in-project prefix test, so it no longer silently skips the layout + task-scope gates.
+- **Honesty fixes (P2/P3).** `reset-plugin-cache.py` docstring/comment corrected to stop overstating `--confirm` as proof-of-human (the tribunal `xc.ragnarok-non-user-invocation` concern is the real user-only enforcement); `pseudonymize-brief.py` docstring corrected to match its actual fail-closed behavior (writes nothing on error, not the raw input).
+- **`evaluate-dispatch.js` reference fixed (P2).** Replaced raw `Date.now()`/`new Date()` (which throw under the dynamic-workflow runtime) with a resume-safe `_now()`/`_isoNow()` shim, and added the `rc-deep-research` search fan-out `.catch()` mirror so one failed search angle can't abort a research run.
+
+**Migration:** none — the guard/layout/tribunal changes only *close* bypasses and *fail safer*; nothing a consumer relies on changes on `/plugin marketplace update`.
+
+## 0.183.0 — 2026-07-02
+
+### Added
+
+- **New best-practice (Claude subreddit scan, 2026-07-02):** [`best-practices/the-bash-sandbox-is-the-os-enforced-complement-to-deny-ask-allow.md`](best-practices/the-bash-sandbox-is-the-os-enforced-complement-to-deny-ask-allow.md) — enable Claude Code's OS-enforced Bash sandbox (Seatbelt/bubblewrap) to close the subprocess-access gap that `deny`/`ask`/`allow` rules structurally can't reach (a `Read(**/.env)` deny doesn't stop a `python -c "open('.env')"` subprocess — the gap the repo's own `knowledge/claude-code-permissions.md` names), and to earn prompt-free autonomy without `--dangerously-skip-permissions`. The OS-enforced complement to the existing `permissions-are-deny-ask-allow` rule (→ 25 rules). Grounded in the Anthropic [sandboxing docs](https://code.claude.com/docs/en/sandboxing) + this repo's containment-posture caveat. Research + panel: [`docs/research/2026-07-02-claude-subreddit-scan/README.md`](../../docs/research/2026-07-02-claude-subreddit-scan/README.md). **Migration:** none — additive markdown.
+
 ## 0.182.1 — 2026-07-01
 
 ### Fixed

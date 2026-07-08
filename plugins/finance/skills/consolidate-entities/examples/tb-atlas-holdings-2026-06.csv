@@ -1,0 +1,11 @@
+account,description,debit,credit,entity,period,currency
+1000,Cash,400000,0,ATLAS-HLD,2026-06,USD
+1150,Intercompany Receivable,100000,0,ATLAS-HLD,2026-06,USD
+1500,Property Plant & Equipment,600000,0,ATLAS-HLD,2026-06,USD
+2000,Accounts Payable,0,150000,ATLAS-HLD,2026-06,USD
+3000,Common Stock,0,400000,ATLAS-HLD,2026-06,USD
+3100,Retained Earnings,0,300000,ATLAS-HLD,2026-06,USD
+4000,Product Revenue,0,800000,ATLAS-HLD,2026-06,USD
+4500,Intercompany Revenue,0,200000,ATLAS-HLD,2026-06,USD
+5000,Cost of Goods Sold,500000,0,ATLAS-HLD,2026-06,USD
+6000,Salaries & Wages,250000,0,ATLAS-HLD,2026-06,USD

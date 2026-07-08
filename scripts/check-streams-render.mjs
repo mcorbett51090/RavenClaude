@@ -25,6 +25,13 @@
 import { readFileSync, existsSync } from "node:fs";
 
 const htmlPath = process.argv[2] || "plugins/ravenclaude-core/dashboard.html";
+// Guard BEFORE the read so a missing artifact yields a friendly message instead
+// of a raw ENOENT stack (the old existsSync check sat AFTER the PASS/FAIL line,
+// unreachable and useless — 2026-07 review).
+if (!existsSync(htmlPath)) {
+  console.error(`dashboard.html missing: ${htmlPath}`);
+  process.exit(1);
+}
 const html = readFileSync(htmlPath, "utf8");
 
 const scripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map((m) => m[1]);
@@ -248,14 +255,40 @@ ok(
   "no-egress: the event whitelist contains no raw-content key",
 );
 
-/* ── must-fail teeth: a stripped whitelist (blind copy) WOULD leak — assert the
- * fixture we built above proves the client guard, and the server-side string check
- * proves the whitelist exists. A vacuous gate (no whitelist) is caught by the
- * `_allowed_event_keys` assertion above. */
+/* ── must-fail teeth (real mutate-and-reassert, added after the 2026-07 review —
+ * finding #19). The prior version of this block was PROSE ONLY: it never built a
+ * mutant, so a regression that (a) blind-copied the event or (b) added a raw-content
+ * key to the whitelist could have slipped past with the gate still "green". Below we
+ * construct both mutants from the real server source and assert the SAME checks used
+ * above would REJECT each — proving those checks have teeth, not just wording. */
+const usesWhitelistCopy = (s) =>
+  s.includes("_allowed_event_keys") && s.includes("clean = {k: ev[k] for k in _allowed_event_keys");
+const whitelistHasNoRawKey = (s) => {
+  const mm = s.match(/_allowed_event_keys = \(([^)]*)\)/);
+  const body = mm ? mm[1] : "";
+  return Boolean(body) && !/["'](prompt|text|content|command|raw|body)["']/.test(body);
+};
+// sanity: the real source passes both checks
+ok(usesWhitelistCopy(rootSrv), "teeth-setup: real reader copies via the whitelist");
+ok(whitelistHasNoRawKey(rootSrv), "teeth-setup: real whitelist has no raw-content key");
+// mutant 1 — a blind copy (`clean = dict(ev)`) must be caught by the whitelist-copy check
+const blindSrv = rootSrv.replace(
+  /clean = \{k: ev\[k\] for k in _allowed_event_keys[^\n]*/,
+  "clean = dict(ev)  # BLIND COPY (mutant)",
+);
+ok(
+  blindSrv !== rootSrv && !usesWhitelistCopy(blindSrv),
+  "teeth: a blind-copy reader (clean = dict(ev)) is CAUGHT by the whitelist-copy check",
+);
+// mutant 2 — a whitelist that admits a raw-content key must be caught by the no-raw-key check
+const rawKeySrv = rootSrv.replace(
+  /_allowed_event_keys = \(([^)]*)\)/,
+  '_allowed_event_keys = ($1 "content",)',
+);
+ok(
+  rawKeySrv !== rootSrv && !whitelistHasNoRawKey(rawKeySrv),
+  "teeth: a whitelist admitting a raw-content key is CAUGHT by the no-raw-key check",
+);
 
 console.log(failures === 0 ? "\nGate 113 PASS" : `\nGate 113 FAIL (${failures})`);
-if (!existsSync(htmlPath)) {
-  console.error("dashboard.html missing");
-  process.exit(1);
-}
 process.exit(failures === 0 ? 0 : 1);

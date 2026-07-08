@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "entity_name": "Atlas Holdings Inc. (SYNTHETIC — not a real company)",
+  "functional_currency": "USD",
+  "fiscal_period": "2026-06",
+  "materiality_threshold": 25000,
+  "sod_threshold": 100000,
+  "coa_mapping": "coa-mapping-consol.csv"
+}

@@ -1,0 +1,48 @@
+{
+  "_note": "Hand-derived from gl-lines / subledger-lines by independent arithmetic (NOT frozen from an engine run), per the FORGE golden discipline. See test_recon_match.py.",
+  "summary": {
+    "accounts": 4,
+    "auto_certified": 3,
+    "flagged": 1,
+    "matches": { "exact": 4, "tolerance": 1, "grouped": 1, "total": 6 },
+    "breaks": 2
+  },
+  "accounts": {
+    "1000": {
+      "status": "AUTO-CERTIFIED",
+      "gl_total": 30000.5,
+      "subledger_total": 30000.0,
+      "matched_delta": 0.5,
+      "residual": 0.0,
+      "n_breaks": 0,
+      "match_types": { "exact": 0, "tolerance": 1, "grouped": 0 }
+    },
+    "1100": {
+      "status": "AUTO-CERTIFIED",
+      "gl_total": 85000.0,
+      "subledger_total": 85000.0,
+      "matched_delta": 0.0,
+      "residual": 0.0,
+      "n_breaks": 0,
+      "match_types": { "exact": 2, "tolerance": 0, "grouped": 1 }
+    },
+    "1200": {
+      "status": "AUTO-CERTIFIED",
+      "gl_total": 15500.0,
+      "subledger_total": 15000.0,
+      "matched_delta": 0.0,
+      "residual": 500.0,
+      "n_breaks": 1,
+      "match_types": { "exact": 1, "tolerance": 0, "grouped": 0 }
+    },
+    "2000": {
+      "status": "FLAGGED",
+      "gl_total": 80000.0,
+      "subledger_total": 50000.0,
+      "matched_delta": 0.0,
+      "residual": 30000.0,
+      "n_breaks": 1,
+      "match_types": { "exact": 1, "tolerance": 0, "grouped": 0 }
+    }
+  }
+}

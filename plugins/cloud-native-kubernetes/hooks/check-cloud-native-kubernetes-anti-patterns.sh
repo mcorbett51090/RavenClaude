@@ -5,8 +5,24 @@
 set -euo pipefail
 
 file="${1:-}"
+# $CLAUDE_TOOL_FILE_PATH (passed as $1 by hooks.json) is NOT a real Claude Code
+# hook variable, so under Claude Code the arg is empty and the path arrives only
+# via the canonical stdin JSON contract. Fall back to it — same dual-source
+# pattern regen-on-manifest-change.sh / guard-destructive.sh already use.
+if [[ -z "$file" ]] && [[ ! -t 0 ]] && command -v jq >/dev/null 2>&1; then
+  payload="$(cat 2>/dev/null || true)"
+  if [[ -n "$payload" ]]; then
+    file="$(printf '%s' "$payload" | jq -r '.tool_input.file_path // .tool_input.path // empty' 2>/dev/null || true)"
+  fi
+fi
 [ -z "$file" ] && exit 0
 [ ! -f "$file" ] && exit 0
+
+# grep -P (PCRE) is a GNU extension; BSD/macOS grep lacks it and errors. Probe once
+# so the PCRE-based multiline checks below don't SILENTLY no-op on non-GNU grep —
+# emit a visible advisory instead of failing to "no finding" (2026-07 review).
+_pcre_ok=1
+printf 'x' | grep -Pq 'x' 2>/dev/null || _pcre_ok=0
 
 findings=()
 if grep -nEi "image:\\s*\\S+:latest|image:\\s*[^@\\s]+\\s*$" "$file" >/dev/null 2>&1; then
@@ -15,11 +31,15 @@ fi
 if grep -nEi "runAsNonRoot:\\s*false|privileged:\\s*true|runAsUser:\\s*0\\b" "$file" >/dev/null 2>&1; then
   findings+=("Privileged/root container — run as non-root and unprivileged; drop capabilities.")
 fi
-if grep -Pzi "kind:\\s*Deployment(?![\\s\\S]*resources:)" "$file" >/dev/null 2>&1; then
-  findings+=("Deployment without resources block nearby — set requests AND limits (scheduling + cap).")
-fi
-if grep -Pzi "kind:\\s*(Deployment|StatefulSet)(?![\\s\\S]*readinessProbe)" "$file" >/dev/null 2>&1; then
-  findings+=("Workload without a readinessProbe nearby — readiness gates traffic; add it.")
+if [ "$_pcre_ok" = 1 ]; then
+  if grep -Pzi "kind:\\s*Deployment(?![\\s\\S]*resources:)" "$file" >/dev/null 2>&1; then
+    findings+=("Deployment without resources block nearby — set requests AND limits (scheduling + cap).")
+  fi
+  if grep -Pzi "kind:\\s*(Deployment|StatefulSet)(?![\\s\\S]*readinessProbe)" "$file" >/dev/null 2>&1; then
+    findings+=("Workload without a readinessProbe nearby — readiness gates traffic; add it.")
+  fi
+else
+  printf "%s\n" "  • [note] resources/readinessProbe checks skipped — this grep lacks -P (PCRE); install GNU grep for full coverage." >&2
 fi
 if grep -nEi "clusterrolebinding[\\s\\S]*cluster-admin" "$file" >/dev/null 2>&1; then
   findings+=("Binding to cluster-admin — workloads should use namespace-scoped least-privilege RBAC.")

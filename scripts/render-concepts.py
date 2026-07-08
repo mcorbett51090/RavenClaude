@@ -189,6 +189,12 @@ def main() -> int:
 
     vis = root / VISUALS_DIR
     vis.mkdir(parents=True, exist_ok=True)
+    # Clear stale generated SVGs before re-rendering (mirrors render-trees.py) so a
+    # concept that drops a step/mini block doesn't leave an orphan `<cid>.step-N.svg`
+    # committed forever — the manifest-keyed --check only catches a whole removed
+    # concept, not a shrunk step count (2026-07 review).
+    for old in vis.glob("*.svg"):
+        old.unlink()
     manifest = {"mmdc_version": MMDC_VERSION, "normalizer_version": NORMALIZER_VERSION, "concepts": {}}
     with tempfile.TemporaryDirectory() as td:
         tmp = Path(td)

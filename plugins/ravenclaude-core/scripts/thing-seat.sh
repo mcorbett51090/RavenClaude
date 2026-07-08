@@ -187,7 +187,13 @@ nonce="$(head -c 16 /dev/urandom 2>/dev/null | od -An -tx1 | tr -d ' \n')"
 # §3a: cap the text SENT to the model at SEAT_MAX_BYTES (the egress backstop + the
 # orchestrator's local screen already ran on the full payload).
 seat_text="$(printf '%s' "$cmd" | head -c "$SEAT_MAX_BYTES")"
-[ "${#seat_text}" -lt "${#cmd}" ] && seat_text="${seat_text}
+# Detect truncation by BYTE length on both sides — `head -c` cuts on a byte
+# boundary, but `${#var}` counts CHARACTERS in a UTF-8 locale, so a multibyte
+# command near the cap could be miscompared (head -c may even cut mid-character).
+# wc -c compares the same unit head -c operates on.
+_orig_bytes="$(printf '%s' "$cmd" | wc -c)"
+_seat_bytes="$(printf '%s' "$seat_text" | wc -c)"
+[ "$_seat_bytes" -lt "$_orig_bytes" ] && seat_text="${seat_text}
 […truncated for the review prompt; the full payload was screened locally]"
 safe_cmd="$(printf '%s' "$seat_text" | sed 's#<\(/\{0,1\}\)untrusted#<\1u‑ntrusted#g')"
 

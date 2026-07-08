@@ -58,6 +58,9 @@ host="${host%%/*}"
 host="${host##*@}"
 host="${host%%:*}"
 host="$(printf '%s' "$host" | tr 'A-Z' 'a-z')"
+host="${host%.}"   # strip a trailing FQDN dot: `evil.com.` is DNS-equivalent to
+                   # `evil.com`, but without this it matches neither a deny nor
+                   # an allow rule and slips past the blacklist.
 [ -n "$host" ] || exit 0
 
 proj="${CLAUDE_PROJECT_DIR:-$PWD}"
@@ -79,11 +82,34 @@ match_host() {
   return 1
 }
 
-# Extract a "section:\n  - item" list from the simple YAML (awk, no YAML lib).
+# Extract a YAML list for a section — BOTH block style ("sec:\n  - item") AND
+# flow style ("sec: [a, b, c]"). Flow style is the syntax this hook's header
+# comment and the shipped template advertise, so a block-style-only parser
+# silently produced an EMPTY deny list for a documented config (fail-OPEN on the
+# blacklist — 2026-07 review). awk, no YAML lib.
 parse_section() {
   [ -f "$1" ] || return 0
   awk -v sec="$2" '
-    /^[A-Za-z_]+:/ { insec = ($0 ~ "^"sec":") ? 1 : 0; next }
+    /^[A-Za-z_]+:/ {
+      is_sec = ($0 ~ "^"sec":")
+      # flow style: `sec: [a, b, c]` (or `sec: []`) — self-contained on one line.
+      if (is_sec && $0 ~ ":[[:space:]]*\\[") {
+        line = $0
+        sub(/^[^[]*\[/, "", line)   # drop everything up to and including "["
+        sub(/\].*$/, "", line)      # drop "]" and any trailing content
+        n = split(line, arr, ",")
+        for (i = 1; i <= n; i++) {
+          item = arr[i]
+          gsub(/^[[:space:]]+|[[:space:]]+$/, "", item)
+          gsub(/["'\'']/, "", item)
+          if (item != "") print tolower(item)
+        }
+        insec = 0   # flow list is complete; the following lines are not ours
+        next
+      }
+      insec = is_sec ? 1 : 0
+      next
+    }
     insec && /^[[:space:]]*-[[:space:]]*/ {
       gsub(/^[[:space:]]*-[[:space:]]*/, "")
       gsub(/[[:space:]]+$/, "")

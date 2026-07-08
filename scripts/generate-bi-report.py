@@ -104,10 +104,14 @@ def band_of(score: int, bands: dict) -> str:
         # data.json instead of crashing the whole report build on a tuple-unpack.
         try:
             lo, hi = rng[0], rng[1]
+            # The comparison must be inside the try too: rng[0]/rng[1] can index
+            # successfully yet be non-numeric (e.g. a string in a hand-edited
+            # data.json), and `lo <= score <= hi` then raises TypeError — defeating
+            # the very guard this block is meant to be.
+            if lo <= score <= hi:
+                return name
         except (TypeError, KeyError, IndexError):
             continue
-        if lo <= score <= hi:
-            return name
     return "red"
 
 
@@ -214,7 +218,9 @@ def svg_cohort(partners, cohort) -> str:
     iw = w - pad_l - pad_r
     def x(v):
         return pad_l + iw * v / 100
-    p25, p75, med = cohort["p25"], cohort["p75"], cohort["median"]
+    # .get(...) with sane defaults: a hand-authored data.json can ship a partial
+    # cohort block (e.g. missing "median"), which must not KeyError the whole build.
+    p25, p75, med = cohort.get("p25", 25), cohort.get("p75", 75), cohort.get("median", 50)
     out = [f'<svg viewBox="0 0 {w} {h}" width="100%" height="{h}" role="img" aria-label="Each partner vs the peer group">']
     track_y = 58
     out.append(f'<rect x="{pad_l}" y="{track_y-4}" width="{iw}" height="8" rx="4" fill="var(--rc-border)"/>')
@@ -372,6 +378,26 @@ REPORT_JS = """
 """
 
 
+def _num(x, default: float = 0):
+    """Coerce a possibly-stringy/None data.json value to a number, else default.
+
+    A hand-authored data.json may quote a numeric field (e.g. delta: "3", score:
+    "72"); an unguarded `x > 0` / `int(x)` on that raises and aborts the WHOLE
+    multi-plugin run (2026-07 review). Fail-soft to `default` instead.
+    """
+    if isinstance(x, bool):
+        return default
+    if isinstance(x, (int, float)):
+        return x
+    try:
+        return int(str(x).strip())
+    except (TypeError, ValueError):
+        try:
+            return float(str(x).strip())
+        except (TypeError, ValueError):
+            return default
+
+
 def render_report(data: dict, plugin: str, tokens: str) -> str:
     rep = data.get("report", {})
     theme_css = _theme_css(data.get("theme"))
@@ -379,7 +405,22 @@ def render_report(data: dict, plugin: str, tokens: str) -> str:
     components = data.get("components", [])
     partners = data.get("partners", [])
     for p in partners:
-        p.setdefault("band", band_of(int(p.get("score", 0)), bands))
+        # Normalize the hand-authorable fields ONCE and PERSIST them so every later
+        # direct read is safe — including svg_cohort's x(p["score"]) and the embedded
+        # JSON, not just the band_of call. _num() (fail-soft: quoted "72" -> 72, a
+        # non-numeric string/None -> 0) coerces the score; flags are stringified so
+        # the later f.lower() rostering-stale filter can't crash on an int/None flag
+        # in a hand-edited data.json.
+        p["score"] = _num(p.get("score", 0))
+        flags = p.get("flags")
+        if not isinstance(flags, list):
+            flags = []
+        p["flags"] = [str(f) for f in flags]
+        p.setdefault("band", band_of(int(p["score"]), bands))
+        # Persist the coercion so every downstream BAND_VAR[...] lookup (svg_cohort,
+        # the partner rows below) is safe against a custom/non-canonical band label
+        # in a hand-authored data.json — not just the local `counts` tally.
+        p["band"] = p["band"] if p["band"] in BAND_VAR else "red"
     counts = {"green": 0, "yellow": 0, "red": 0}
     for p in partners:
         # Coerce any unknown band label to a drawn segment so the donut sums to total
@@ -392,7 +433,7 @@ def render_report(data: dict, plugin: str, tokens: str) -> str:
     # KPI cards
     kpi_html = []
     for k in data.get("kpis", []):
-        d = k.get("delta", 0)
+        d = _num(k.get("delta", 0))
         good = k.get("good", "up")
         if d == 0:
             cls, arrow = "flat", "→"
@@ -403,9 +444,9 @@ def render_report(data: dict, plugin: str, tokens: str) -> str:
             arrow = "▲" if rising else "▼"
         unit = k.get("unit", "")
         kpi_html.append(
-            f'<div class="kpi"><div class="k">{esc(k["label"])}'
+            f'<div class="kpi"><div class="k">{esc(k.get("label",""))}'
             f'<span class="info" tabindex="0" title="{esc(k.get("plain",""))}">?</span></div>'
-            f'<div class="v">{esc(k["value"])}{esc(unit)}</div>'
+            f'<div class="v">{esc(k.get("value",""))}{esc(unit)}</div>'
             f'<div class="d {cls}">{arrow} {abs(d)}{esc(unit) if unit=="%" else ""} vs last period</div>'
             f'<div class="full">{esc(k.get("short",""))}</div></div>'
         )
@@ -413,7 +454,10 @@ def render_report(data: dict, plugin: str, tokens: str) -> str:
     # legend
     legend = []
     for band in ("green", "yellow", "red"):
-        lo, hi = bands.get(band, [0, 0])
+        rng = bands.get(band, [0, 0])
+        # Guard the unpack: a hand-authored bands[band] that isn't a 2-item list
+        # would raise (ValueError/TypeError) and abort the run.
+        lo, hi = (rng[0], rng[1]) if isinstance(rng, (list, tuple)) and len(rng) >= 2 else (0, 0)
         legend.append(
             f'<div class="li"><span class="sw" style="background:{BAND_VAR[band]}"></span>'
             f'<b style="font-weight:700">{counts.get(band,0)}</b>&nbsp;{BAND_WORD[band]} '
@@ -425,18 +469,18 @@ def render_report(data: dict, plugin: str, tokens: str) -> str:
     # partner rows + drill-down drawers
     prows = []
     for p in partners:
-        b = p["band"]
-        d = p.get("delta", 0)
+        b = p["band"] if p.get("band") in BAND_VAR else "red"
+        d = _num(p.get("delta", 0))
         dcls = "flat" if d == 0 else ("up" if d > 0 else "down")
         darr = "→" if d == 0 else ("▲" if d > 0 else "▼")
         flag_n = len(p.get("flags", []))
         flagcell = f'<span class="flagcell" title="{flag_n} red flag(s)">{"⚠️"*min(flag_n,3)}</span>' if flag_n else '<span style="color:var(--faint)">—</span>'
         seg_word = {"k12": "K-12", "higher-ed": "Higher ed", "corp-ld": "Corporate L&D", "mixed": "Mixed"}.get(p.get("segment", ""), p.get("segment", ""))
         prows.append(
-            f'<tr class="prow" data-name="{esc(p["name"])}" data-psm="{esc(p.get("psm",""))}" '
-            f'data-band="{b}" data-score="{p["score"]}" data-delta="{d}" data-renewal="{esc(p.get("renewal",""))}">'
-            f'<td><b>{esc(p["name"])}</b><div style="color:var(--faint);font-size:0.78rem">{esc(seg_word)}</div></td>'
-            f'<td><span class="scorebadge" style="background:{BAND_VAR[b]}">{p["score"]}</span></td>'
+            f'<tr class="prow" data-name="{esc(p.get("name",""))}" data-psm="{esc(p.get("psm",""))}" '
+            f'data-band="{b}" data-score="{esc(p.get("score",""))}" data-delta="{d}" data-renewal="{esc(p.get("renewal",""))}">'
+            f'<td><b>{esc(p.get("name",""))}</b><div style="color:var(--faint);font-size:0.78rem">{esc(seg_word)}</div></td>'
+            f'<td><span class="scorebadge" style="background:{BAND_VAR[b]}">{esc(p.get("score",""))}</span></td>'
             f'<td><span class="dchip {dcls}">{darr} {abs(d)}</span></td>'
             f'<td><span class="bandtag"><span class="dot" style="background:{BAND_VAR[b]}"></span>{BAND_WORD[b]}</span></td>'
             f'<td>{flagcell}</td>'
@@ -486,7 +530,12 @@ def render_report(data: dict, plugin: str, tokens: str) -> str:
     refreshed = esc(rep.get("refreshed", ""))
     synthetic = '<div class="synthetic">Sample data · not real partners</div>' if rep.get("synthetic") else ""
 
-    data_json = json.dumps({"partners": [{"name": p["name"], "band": p["band"], "score": p["score"]} for p in partners]})
+    # Escape "<" as < so a partner "name" containing the literal "</script>"
+    # cannot close the <script> element early and inject markup (json.dumps does
+    # not escape "</"). < is a valid JSON/JS escape that decodes back to "<".
+    data_json = json.dumps(
+        {"partners": [{"name": p["name"], "band": p["band"], "score": p["score"]} for p in partners]}
+    ).replace("<", "\\u003c")
 
     page = f"""<!doctype html>
 <html lang="en">
@@ -971,13 +1020,22 @@ def main(argv=None) -> int:
         return 0
 
     stale = []
+    failed = []
     for name, data_file, out in targets:
         try:
             data = json.loads(data_file.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError) as e:
             print(f"[error] {name}: cannot read {data_file}: {e}", file=sys.stderr)
             return 2
-        page = render_sections(data, name, tokens) if data.get("sections") else render_report(data, name, tokens)
+        # Wrap the render so a malformed-but-valid-JSON data.json degrades THIS
+        # plugin only, instead of an uncaught exception aborting the run for every
+        # plugin (and in --check, dumping a traceback instead of a clean status).
+        try:
+            page = render_sections(data, name, tokens) if data.get("sections") else render_report(data, name, tokens)
+        except Exception as e:  # noqa: BLE001 — one bad data.json must not kill the batch
+            print(f"[error] {name}: cannot render report from {data_file}: {e}", file=sys.stderr)
+            failed.append(name)
+            continue
         if args.check:
             current = out.read_text(encoding="utf-8") if out.exists() else ""
             if current != page:
@@ -986,6 +1044,12 @@ def main(argv=None) -> int:
             out.write_text(page, encoding="utf-8")
             print(f"[ok] wrote {out.relative_to(REPO_ROOT)} ({len(page)//1024} KB, {len(data.get('partners',[]))} partners)")
 
+    # A data.json that couldn't render is a real error — surface it (exit 2) so a
+    # broken input is never silently dropped, but only AFTER attempting every other
+    # plugin (the point of the per-plugin guard above).
+    if failed:
+        print(f"[error] {len(failed)} plugin(s) failed to render: {', '.join(failed)}", file=sys.stderr)
+        return 2
     if args.check:
         if stale:
             print(f"STALE report.html for: {', '.join(stale)} — run scripts/generate-bi-report.py", file=sys.stderr)

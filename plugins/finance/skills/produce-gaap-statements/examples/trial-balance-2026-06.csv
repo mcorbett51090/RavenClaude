@@ -1,0 +1,21 @@
+account,description,debit,credit,entity,period,currency
+1000,Cash,502500,0,MRI,2026-06,USD
+1100,Accounts Receivable,420000,0,MRI,2026-06,USD
+1200,Inventory,280000,0,MRI,2026-06,USD
+1500,Property Plant & Equipment,900000,0,MRI,2026-06,USD
+1600,Accumulated Depreciation,0,250000,MRI,2026-06,USD
+2000,Accounts Payable,0,260000,MRI,2026-06,USD
+2100,Accrued Liabilities,0,90000,MRI,2026-06,USD
+2500,Long-term Debt,0,500000,MRI,2026-06,USD
+3000,Common Stock,0,400000,MRI,2026-06,USD
+3100,Retained Earnings,0,400000,MRI,2026-06,USD
+4000,Product Revenue,0,1200000,MRI,2026-06,USD
+4100,Service Revenue,0,300000,MRI,2026-06,USD
+5000,Cost of Goods Sold,600000,0,MRI,2026-06,USD
+6000,Salaries & Wages,400000,0,MRI,2026-06,USD
+6100,Rent Expense,60000,0,MRI,2026-06,USD
+6200,Marketing Expense,90000,0,MRI,2026-06,USD
+6300,Depreciation Expense,50000,0,MRI,2026-06,USD
+7000,Interest Expense,40000,0,MRI,2026-06,USD
+7100,Interest Income,0,10000,MRI,2026-06,USD
+8000,Income Tax Expense,67500,0,MRI,2026-06,USD

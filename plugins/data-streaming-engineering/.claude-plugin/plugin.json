@@ -1,6 +1,6 @@
 {
   "name": "data-streaming-engineering",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "Data-streaming-engineering team — 3 agents (streaming-architect, kafka-pipeline-engineer, stream-processing-engineer) for REAL-TIME data: streaming-vs-batch decision and topology, event streaming + CDC (Kafka/Pulsar/Kinesis, topics/partitioning, schema registry + evolution, the outbox/Debezium CDC pattern), delivery semantics (at-least-once vs exactly-once, idempotency, transactional outbox), and stream processing (Flink/Kafka-Streams: event-time vs processing-time, windowing, watermarks, state, joins, backpressure). 7 skills, a decision-tree knowledge bank (streaming-vs-batch + delivery-semantics trees + a dated 2026 map), 12 best-practices, 4 templates, 4 commands, 1 advisory hook. Distinct from data-platform (batch ELT) and microsoft-fabric (RTI/Eventstream). Seams: batch ELT -> data-platform, AsyncAPI contracts -> api-engineering, Fabric RTI -> microsoft-fabric, app-side messaging -> backend-engineering. Requires ravenclaude-core@>=0.7.0.",
   "author": {
     "name": "Matt Corbett"

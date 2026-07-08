@@ -1,0 +1,55 @@
+{
+  "_README": "Per-entity ELT connector config — SCAFFOLD / TEMPLATE. Copy per entity, fill in, keep OUT of version control if you add real ids. CREDENTIALS ARE NEVER STORED HERE: only the NAMES of environment variables (and a token-store path) that hold them at runtime. Extraction facts + failure modes: ../knowledge/finance-elt-connector-facts.md. Staging transform: ../skills/finance-elt-staging/SKILL.md.",
+  "schema_version": 1,
+  "entity": "MRI",
+  "entity_name": "Meridian Robotics Inc. (SYNTHETIC — replace)",
+  "source_system": "netsuite",
+  "source_system_choices": ["qbo", "netsuite", "xero", "intacct"],
+  "source_ids": {
+    "_note": "Fill in ONLY the id for the chosen source_system; leave the rest null.",
+    "qbo_realm_id": null,
+    "netsuite_account_id": "TSTDRV0000000",
+    "xero_tenant_id": null,
+    "intacct_company_id": null
+  },
+  "auth": {
+    "flow": "oauth2_authorization_code",
+    "_credentials_are_env_var_NAMES_only": true,
+    "client_id_env": "FINANCE_NETSUITE_CLIENT_ID",
+    "client_secret_env": "FINANCE_NETSUITE_CLIENT_SECRET",
+    "refresh_token_env": "FINANCE_NETSUITE_REFRESH_TOKEN",
+    "token_store_path": ".secrets/netsuite-MRI.token.json",
+    "rotating_refresh_token": false,
+    "_rotating_refresh_token_note": "TRUE for QBO and Xero — their refresh token ROTATES on every refresh. The new token MUST be persisted atomically (temp file + rename) BEFORE the new access token is used, under a per-entity file lock; alert on invalid_grant and follow the re-auth runbook. See ../knowledge/finance-elt-connector-facts.md.",
+    "scopes": [
+      "com.intuit.quickbooks.accounting (QBO)",
+      "accounting.reports.read (Xero)",
+      "restlets rest_webservices (NetSuite)"
+    ]
+  },
+  "extract": {
+    "_note": "Advisory rate/pagination hints — VERIFY against the connector-facts settling gates before relying on them.",
+    "rate_limit_hint": "per source — QBO ~500 req/min/realmId; Xero 60/min + 5 concurrent + 5000/day/tenant; NetSuite concurrency ~1 default; Intacct XML readByQuery <=2000 rows/call",
+    "page_size_hint": "NetSuite SuiteQL ~1000 rows/page; Intacct readByQuery pagination via resultId"
+  },
+  "column_map": "../skills/finance-elt-staging/examples/column-map-netsuite.json",
+  "close_period_watermark": {
+    "field": "period",
+    "value": "2026-06",
+    "note": "The close period this extract belongs to. Stamped on every staged row (the canonical `period` column) so the staging table is partitionable / incrementally loadable by close period. Override at stage time with --period."
+  },
+  "currency": "USD",
+  "output": {
+    "staging_csv": "staging/trial-balance-MRI-2026-06.csv",
+    "canonical_columns": [
+      "account",
+      "description",
+      "debit",
+      "credit",
+      "entity",
+      "period",
+      "currency"
+    ],
+    "_canonical_columns_note": "Byte-identical to the dbt stg_trial_balance model. Do not reorder or rename."
+  }
+}

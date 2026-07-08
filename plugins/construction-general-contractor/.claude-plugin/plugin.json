@@ -1,6 +1,6 @@
 {
   "name": "construction-general-contractor",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "description": "General-contractor project delivery team — 5 agents covering the full GC lifecycle: project P&L/billing/closeout (gc-project-lead), takeoff/bid assembly/markup (estimating-and-takeoff-analyst), CPM scheduling/critical-path/float (scheduling-engineer), submittal log/RFIs/change-order process (submittal-rfi-coordinator), and jobsite safety/JHA/OSHA hazard prevention (jobsite-safety-advisor). Ships 3 skills (estimating-and-bidding, cpm-scheduling, submittals-rfis-change-orders), 3 commands, 2 templates, a decision-tree knowledge bank, 6 best-practices, an advisory anti-pattern hook, and a stdlib calculator. Inherits ravenclaude-core protocols.",
   "author": {
     "name": "Matt Corbett"

@@ -29,6 +29,7 @@ bank `email-authentication-decision-tree.md`.
 
 from __future__ import annotations
 
+import re
 import sys
 
 # SPF mechanisms that each cost a DNS lookup (RFC 7208 §4.6.4 — the limit is 10).
@@ -48,7 +49,11 @@ def lint_spf(record: str) -> list[tuple[str, str]]:
     lookups = 0
     for tok in tokens:
         low = tok.lower().lstrip("+-~?")
-        if low in ("a", "mx", "ptr"):
+        # 'a' and 'mx' (and 'ptr') cost a lookup in every form: bare ('a'),
+        # domain-scoped ('a:host'), or CIDR-dual ('a/24', 'a:host/24'). Reduce
+        # to the mechanism name by dropping any ':' or '/' argument first.
+        mech = re.split(r"[:/]", low, maxsplit=1)[0]
+        if mech in ("a", "mx", "ptr"):
             lookups += 1
         elif any(low.startswith(m) for m in ("include:", "exists:", "redirect=")):
             lookups += 1
@@ -61,9 +66,7 @@ def lint_spf(record: str) -> list[tuple[str, str]]:
             )
         )
     elif lookups >= 8:
-        findings.append(
-            ("WARN", f"{lookups}/10 DNS-lookup mechanisms — close to the SPF limit.")
-        )
+        findings.append(("WARN", f"{lookups}/10 DNS-lookup mechanisms — close to the SPF limit."))
 
     # The terminal 'all' mechanism.
     all_tok = next((t for t in tokens if t.lower().lstrip("+-~?") == "all"), None)
@@ -72,9 +75,7 @@ def lint_spf(record: str) -> list[tuple[str, str]]:
     else:
         qualifier = all_tok[0] if all_tok[0] in "+-~?" else "+"
         if qualifier == "+":
-            findings.append(
-                ("ERROR", "'+all' passes ALL senders — this is effectively no SPF.")
-            )
+            findings.append(("ERROR", "'+all' passes ALL senders — this is effectively no SPF."))
         elif qualifier == "?":
             findings.append(
                 ("WARN", "'?all' (neutral) provides no protection; prefer '~all'/'-all'.")
@@ -137,9 +138,7 @@ def lint_dmarc(record: str) -> list[tuple[str, str]]:
 
 def main(argv: list[str]) -> int:
     if len(argv) < 3 or argv[1] not in ("spf", "dmarc"):
-        sys.stderr.write(
-            "usage: email_auth_lint.py {spf|dmarc} \"<record string>\"\n"
-        )
+        sys.stderr.write('usage: email_auth_lint.py {spf|dmarc} "<record string>"\n')
         return 2
 
     kind, record = argv[1], argv[2]

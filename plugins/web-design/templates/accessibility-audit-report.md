@@ -27,6 +27,26 @@
 - **Pass 4 (screen reader):** [VoiceOver + NVDA on N flows]
 - **Pass 5 (color + motion):** [contrast checks + reduced-motion check]
 
+**Evidence tier declared (`gold-standard-website-pipeline` G6 — record which one this audit closed at):**
+
+- [ ] **Tier A — clean pass:** automated (axe-core / pa11y) **+** manual keyboard **+** a **human** screen-reader pass (VoiceOver + NVDA min). _Only Tier A is a clean G6 pass._
+- [ ] **Tier B — agent-executable surrogate** (headless CI sandbox, no human AT tester): automated **+** a Playwright **accessibility-tree + ARIA computed-name/role dump** **+** a programmatic **focus-order simulation**. _Caps G6 at Conditional with a standing named-human-reviewer condition._
+- [ ] **Automated-only:** weaker than Tier B → Conditional at best.
+
+## WCAG 2.2 success-criterion checklist (the 9 verified SC — 6 new-at-A/AA + 3 carried, per G6)
+
+| SC | Criterion | Level | Result (Pass / Fail / N/A) | Note |
+| --- | --- | --- | --- | --- |
+| 2.4.11 | Focus not obscured (minimum) | AA (new 2.2) | | |
+| 2.5.7 | Dragging movements (single-pointer alt) | AA (new 2.2) | | |
+| 2.5.8 | Target size (minimum) ≥ 24×24 px | AA (new 2.2) | | |
+| 3.3.8 | Accessible authentication (no CAPTCHA-only; paste + password-manager) | AA (new 2.2) | | |
+| 3.2.6 | Consistent help | A (new 2.2) | | |
+| 3.3.7 | Redundant entry | A (new 2.2) | | |
+| 1.4.3 | Contrast (minimum) body ≥ 4.5:1 / large ≥ 3:1 | AA (carried) | | |
+| 1.1.1 | Non-text content (alt) | A (carried) | | |
+| 1.4.10 | Reflow to 320 px | AA (carried) | | |
+
 ---
 
 ## Findings
