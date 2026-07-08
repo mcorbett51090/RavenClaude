@@ -184,6 +184,13 @@ def _mock_verdict(role: str) -> dict | None:
         v = {"forseti": "yes", "heimdall": "yes", "mimir": "no", "thor": "no"}.get(role, "no")
         return {"verdict": v, "concerns_cited": [], "reasoning": f"mock split {role}",
                 "confidence": 0.9, "injection_detected": False, "status": "voted"}
+    if m == "defer-thor-flip":
+        # Seats unanimously defer, but Thor — were it convened — would flip to a binding
+        # "yes". Proves the unanimous-defer short-circuit never reaches Thor (safety
+        # envelope: a decision the whole panel deferred is never auto-resolved). TEST ONLY.
+        v = "yes" if role == "thor" else "defer"
+        return {"verdict": v, "concerns_cited": [], "reasoning": f"mock defer-thor-flip {role}",
+                "confidence": 0.9, "injection_detected": False, "status": "voted"}
     if m in {"yes", "no", "defer"}:
         return {"verdict": m, "concerns_cited": [], "reasoning": f"mock {m}",
                 "confidence": 0.9, "injection_detected": False, "status": "voted"}
@@ -451,7 +458,15 @@ def _tally(seat_results: dict, threshold: float, panel_cfg: dict,
     # 2. Injection -> defer.
     if injection:
         return "defer", "injection detected in decision context — deferring to human", records
-    # 3. A seat voted defer, or split, or low confidence -> convene Thor.
+    # 2b. UNANIMOUS defer -> defer (never Thor). When every voting seat independently says
+    #     "this is a human call", there is no tie to break — routing it to Thor could flip a
+    #     unanimous defer into a binding yes/no and auto-resolve a decision the whole panel
+    #     deferred, contradicting the envelope ("the panel defers genuine preferences"). This
+    #     is the fail-safe direction (it can only send more decisions to the human, never fewer),
+    #     so it must short-circuit BEFORE the Thor branch below.
+    if distinct == {"defer"}:
+        return "defer", "panel unanimously deferred — human decides", records
+    # 3. A seat voted defer (alongside a non-defer verdict), or split, or low confidence -> Thor.
     if "defer" in distinct or len(distinct) > 1 or low_conf:
         peers = [{"seat": rl, **{k: seat_results[rl][k] for k in ("verdict", "confidence", "reasoning")}}
                  for rl in voted]
@@ -492,7 +507,13 @@ def decide(root: Path, question: str, context: str, high_blast: bool) -> dict:
     mod = _load_decision_module()
     if mod is None:
         return {**base, "verdict": "defer", "reasoning": "could not resolve panel config — deferring."}
-    cfg, _cfg_err = mod.resolve_panel_config(root, posture)
+    cfg, cfg_err = mod.resolve_panel_config(root, posture)
+    # Mirror the command path (thing-decision.py `_decision_detail`): a malformed
+    # thing.yaml resolves to safe defaults BUT the error is surfaced on the result
+    # (and thus the Sága entry) instead of being silently swallowed, so a maintainer's
+    # broken seat config is visible rather than applied-as-defaults with zero signal.
+    if cfg_err:
+        base["config_error"] = cfg_err
     threshold = float(cfg["confidence_threshold"])
     timeout_s = int(cfg["seat_timeout_seconds"])
 

@@ -1061,6 +1061,12 @@ gate "decide: abstain -> defer (fail safe)" must_pass "$rc"
 # injection in the decision context -> defer
 rc=0; [[ "$(decide_field inject "$G17B" false verdict)" == "defer" ]] || rc=1
 gate "decide: injection -> defer" must_pass "$rc"
+# UNANIMOUS defer never reaches Thor: even when Thor would flip to a binding "yes",
+# a decision the whole panel deferred stays defer (safety-envelope short-circuit).
+# (verdict==defer is the load-bearing check — a deferred verdict can never be binding,
+# since binding requires verdict in {yes,no}.)
+rc=0; [[ "$(decide_field defer-thor-flip "$G17B" false verdict)" == "defer" ]] || rc=1
+gate "decide: unanimous defer -> defer (never Thor-flipped)" must_pass "$rc"
 
 echo
 echo "── Gate 18: skill/agent frontmatter strict-YAML ──────────────────────────"
@@ -3845,6 +3851,20 @@ _mmut="$(mktemp)"; { cat .claude/workflows/rc-deep-research.js; echo "// drift";
 rc=0; diff -q plugins/ravenclaude-core/skills/rc-deep-research/rc-deep-research.js "$_mmut" >/dev/null 2>&1 || rc=1
 rm -f "$_mmut"
 gate "workflow-mirror byte-identity (one-sided drift caught)" must_fail "$rc"
+
+echo
+echo "── Gate 128: eval scoring harness self-test (evals/runner.py) ─────────────"
+# The eval harness was listed as a validate-marketplace build trigger but nothing in
+# CI ever ran it, so a regression in the four score_* functions (or _tiny_yaml) would
+# ship green. This gate runs --self-test (case parse+schema AND the synthetic scorer
+# assertions) and proves the case-parse half has teeth via a known-bad fixture tree.
+rc=0; python3 evals/runner.py --self-test >/dev/null 2>&1 || rc=$?
+gate "eval-runner: --self-test passes on the real tree" must_pass "$rc"
+# teeth: a case file missing a required schema field must fail --self-test.
+G128BAD="$TMP/evals-bad/cases/x"; mkdir -p "$G128BAD"
+printf 'case:\n  id: broken\n' > "$G128BAD/broken.yaml"
+rc=0; RUNNER_EVALS_DIR="$TMP/evals-bad" python3 evals/runner.py --self-test >/dev/null 2>&1 || rc=$?
+gate "eval-runner: --self-test fails on a schema-broken case" must_fail "$rc"
 
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"

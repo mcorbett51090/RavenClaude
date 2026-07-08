@@ -248,7 +248,7 @@ jobs:
             _existing=()
             for f in "${_changed[@]}"; do [[ -f "$f" ]] && _existing+=("$f"); done
             if [[ ${#_existing[@]} -gt 0 ]]; then
-              npx --yes prettier --check --log-level warn "${_existing[@]}" \
+              npx --yes prettier@3.9.4 --check --log-level warn "${_existing[@]}" \
                 || { echo "::error::self-heal produced non-prettier-conforming output — aborting push (would break every subsequent PR's prettier gate)"; exit 1; }
             fi
           fi

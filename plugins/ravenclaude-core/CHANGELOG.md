@@ -2,6 +2,16 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.186.2 — 2026-07-08
+
+### Fixed
+
+Autonomous 3-panel repo review (run 2026-07-08). Plugin-internal fixes:
+
+- **P2 — decision-review safety envelope (`scripts/thing-decide.py`).** A **unanimous** panel `defer` (every voting seat independently says "this is a human call") was routed into the Thor tie-breaker, whose `yes`/`no` verdict then became **binding** in `binding` mode — auto-resolving a decision the whole panel deferred, contradicting the documented envelope ("the panel defers genuine preferences"). `_tally` now short-circuits `distinct == {"defer"}` straight to `defer` **before** the Thor branch. Strictly fail-safe (it can only send more decisions to the human). New `audit-gates.sh` Gate 17 case + a `defer-thor-flip` test mock prove Thor is never reached on a unanimous defer.
+- **P3 — decision-review swallowed a config error (`scripts/thing-decide.py`).** `resolve_panel_config`'s error return was discarded, unlike the command path which surfaces it as `config_error`. A malformed `thing.yaml` now attaches `config_error` to the decision result (and thus the Sága entry) instead of being silently applied-as-defaults with zero signal.
+- **P3 — web-access first-use trust gate re-prompt loop (`hooks/mark-web-domain-seen.sh`).** The writer omitted the trailing-FQDN-dot strip (`host="${host%.}"`) that `guard-web-access.sh` applies, so for a dotted host (`example.com.`) the writer's seen-file slug diverged from the reader's and the first-use gate re-prompted forever. The normalization now matches byte-for-byte.
+
 ## 0.186.1 — 2026-07-06
 
 ### Fixed

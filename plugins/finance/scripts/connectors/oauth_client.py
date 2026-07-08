@@ -30,7 +30,12 @@ Other disciplines enforced here:
     rotation.
   * ERROR-CAUSE ROUTING. The cause selects the fix; the actions are NOT interchangeable:
       - 401 (expired access token)      -> REFRESH_RETRY  (refresh, retry the SAME route)
-      - 429 (throttled)                 -> BACKOFF_RETRY  (honor Retry-After, then retry)
+      - 429 (throttled)                 -> BACKOFF_RETRY  (the CALLER honors Retry-After
+                                            via honor_retry_after() and re-invokes refresh();
+                                            this client CLASSIFIES the cause but does not itself
+                                            loop — refresh()/get_access_token() raise
+                                            TokenRefreshError on a 429, leaving the backoff+retry
+                                            to the caller)
       - 400 invalid_grant (dead refresh)-> REAUTH_REQUIRED (NON-retryable; fire alert hook;
                                             never backoff — it needs an interactive re-auth)
   * XERO 30-MIN GRACE. A refresh whose response is lost (timeout, no response) leaves us

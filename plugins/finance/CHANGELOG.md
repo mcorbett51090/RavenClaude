@@ -2,6 +2,12 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.17.2] — 2026-07-08
+
+Docstring accuracy fix from the autonomous 3-panel repo review (run 2026-07-08). No behavior change.
+
+- **P3 — `scripts/connectors/oauth_client.py` docstring corrected.** The error-cause routing table promised "429 (throttled) → BACKOFF_RETRY (honor Retry-After, then retry)", but the shipped API (`refresh` / `get_access_token`) raises `TokenRefreshError` on a 429 and never itself backs off or retries (`honor_retry_after` is a helper for the caller to drive). The docstring now states accurately that the client _classifies_ the cause while the caller honors Retry-After and re-invokes — removing a "then retry" promise the component didn't keep. (Whether to implement the retry loop inside the client is a design question deferred to the maintainer.)
+
 ## [0.17.1] — 2026-07-06
 
 Hardening + evidence for the live-integration tier (no new skills; W3 warehouse RLS moves from *specified* to *executed* at the DB layer).
