@@ -134,7 +134,12 @@ jobs:
       - name: Open quarantine pull request
         id: pr
         if: steps.cap.outputs.over_cap == 'false' && steps.process.outputs.action == 'stage'
-        uses: peter-evans/create-pull-request@v6
+        # Pinned to an immutable commit SHA (not the movable @v6 tag) — this is a
+        # third-party action running with contents:write + pull-requests:write in a
+        # workflow triggered by untrusted external issue-form content, so a malicious
+        # retag of @v6 would execute with write scope. c5a7806 == v6.1.0 (what @v6
+        # resolved to when pinned, 2026-07-08); bump deliberately to a newer SHA.
+        uses: peter-evans/create-pull-request@c5a7806660adbe173f04e3e038b0ccdcd758773c # v6.1.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           branch: quarantine/scenario-${{ github.event.issue.number }}

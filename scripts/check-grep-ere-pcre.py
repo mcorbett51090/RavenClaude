@@ -26,8 +26,15 @@ import sys
 # --extended-regexp) but NOT a PCRE flag. The long-option spellings were added
 # after the 2026-07 review — the short-cluster-only forms missed
 # `grep --extended-regexp` / `grep --perl-regexp` entirely.
-_GREP_ERE = re.compile(r"grep\s+(?:-[A-Za-z]*E|--extended-regexp)")
-_GREP_PCRE = re.compile(r"grep\s+(?:-[A-Za-z]*P|--perl-regexp)")
+#
+# `_FLAGS` allows any run of intervening short-flag tokens between `grep` and the
+# regex-dialect flag, so the common separated-flag idiom `grep -v -E '(?:...)'`
+# (or `grep -i -E`, `grep -rn -E`, …) is matched — not just the bundled
+# `grep -vE` form. Without it, any flag before -E anchored the dialect flag away
+# from `grep` and the whole check silently missed the line (2026-07 review).
+_FLAGS = r"(?:\s+-[A-Za-z]+)*"
+_GREP_ERE = re.compile(rf"grep{_FLAGS}\s+(?:-[A-Za-z]*E|--extended-regexp)")
+_GREP_PCRE = re.compile(rf"grep{_FLAGS}\s+(?:-[A-Za-z]*P|--perl-regexp)")
 # PCRE-only constructs that are dead inside POSIX ERE.
 _PCRE_CONSTRUCT = re.compile(r"\(\?[:!=<]|\[\\s\\S\]|\[\\S\\s\]")
 
