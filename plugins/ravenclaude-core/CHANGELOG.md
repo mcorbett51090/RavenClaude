@@ -2,6 +2,16 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.187.0 — 2026-07-08
+
+### Added
+
+- **Document-discovery pattern for cold agents (`DOCUMENT-MAP.md`).** Non-Claude-Code agents (Copilot CLI, Cursor, Aider) auto-load their instruction files but not a document-location index, so they re-run find/grep every turn to relocate known docs. New guidance closes the gap (forged via the FORGE two-panel + correlated-error-critic pipeline, which corrected the original "no persistent memory" framing):
+  - `knowledge/copilot-cli-customization.md` §7 — the canonical mechanism: inline-vs-standalone placement, ~50–300-doc sizing, and seed-then-hand-curate maintenance ("a stale map is worse than none").
+  - `codex-onboarding` skill — a session-start "read the document map first" step + matching done-check.
+  - `docs/best-practices/agent-onboarding.md` (new, repo-level) — the cross-tool Pattern, pointing at §7 rather than restating it.
+  - `scripts/generate-document-map.py` (new, repo-level) — a stdlib-only, deterministic, config-driven **seed** generator (`--self-test` / `--check`). Ships as a reusable tool, **not** a committed map: RavenClaude's own durable docs are already indexed elsewhere, and its `docs/` is mostly dated one-offs. No CI gate.
+
 ## 0.186.1 — 2026-07-06
 
 ### Fixed
