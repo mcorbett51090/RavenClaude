@@ -2,6 +2,10 @@
 
 All notable changes to this plugin are documented here. Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.8.7] — 2026-07-08
+
+Weekly Tier-A news sweep (2026-07-08) — **correction** in `knowledge/fabric-2026-capability-map.md`: the Eventstream **Apache Kafka + Azure Service Bus** source doc pages are no longer titled **"(preview)"** (the eventstream source table lists both without the tag) — the docs caught up to the June-2026 GA, so the prior "GA-announced / page-still-preview" caveat is resolved; treat the connectors as **GA**. Re-verified via the Microsoft-Learn MCP. **Migration:** none — knowledge-file content only.
+
 ## [0.8.5] — 2026-07-02
 
 ### Fixed

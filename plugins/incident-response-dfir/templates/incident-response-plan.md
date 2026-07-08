@@ -1,6 +1,6 @@
 # Incident Response Plan — <organization>
 
-> Template for a security incident-response plan, structured on the four NIST SP 800-61r2 phases. Copy and tailor. Review at least annually and after every significant incident and tabletop. This is a living document — the bus factor is not one person's memory.
+> Template for a security incident-response plan, structured on the four-phase incident-handling lifecycle (from NIST SP 800-61r2, superseded by r3 (2025, CSF 2.0-aligned) — cite r3 as current). Copy and tailor. Review at least annually and after every significant incident and tabletop. This is a living document — the bus factor is not one person's memory.
 
 **Owner:** <name/role> · **Version:** <x.y> · **Last reviewed:** <YYYY-MM-DD> · **Next review:** <YYYY-MM-DD>
 
@@ -53,4 +53,4 @@
 - After-action: fold every lesson back into this plan.
 
 ## 9. References
-- NIST SP 800-61r2; RFC 3227; MITRE ATT&CK; the plugin's knowledge bank and best-practices.
+- NIST SP 800-61r3 (2025, CSF 2.0-aligned; supersedes r2); RFC 3227; MITRE ATT&CK; the plugin's knowledge bank and best-practices.

@@ -1,6 +1,6 @@
 {
   "name": "observability-sre",
-  "version": "0.4.1",
+  "version": "0.4.3",
   "description": "Observability & SRE team — 3 agents (observability-engineer, sre-reliability-engineer, incident-commander) for making a system observable and keeping it reliable: instrumentation on OpenTelemetry (metrics/logs/traces, semantic conventions, sampling, cardinality control), SLI/SLO and error-budget design, symptom-based alerting (multi-window burn-rate, alert on user pain not causes), incident response (severity, roles, comms, blameless postmortems, action-item follow-through), and proactive resilience verification via chaos engineering (steady-state hypotheses, blast-radius-limited fault injection, game days). 7 skills, a decision-tree knowledge bank (alert-design + SLO-target trees + a chaos-engineering reference + a dated 2026 tooling map), 12 best-practices, 4 templates, 4 commands, 1 advisory hook. Seams: deploy health-gates -> devops-cicd, cluster telemetry -> cloud-native-kubernetes, API SLOs -> api-engineering, cloud-native monitors -> azure/aws/gcp-cloud. Requires ravenclaude-core@>=0.7.0.",
   "author": {
     "name": "Matt Corbett"

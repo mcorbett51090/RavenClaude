@@ -1,0 +1,22 @@
+# Dependabot — keep the SHA-pinned GitHub Actions fresh with DELIBERATE bump PRs
+# instead of silent tag drift. Every action in .github/workflows/ is pinned to an
+# immutable commit SHA (supply-chain hardening); this config is what surfaces new
+# releases as reviewable PRs so the pins don't go stale. github-actions is the only
+# ecosystem here — the marketplace is markdown/shell/python/JSON with no lockfile.
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(ci)"
+    labels:
+      - "dependencies"
+    groups:
+      # One PR per week for all first-party actions/* bumps, to keep the noise low.
+      actions:
+        patterns:
+          - "actions/*"

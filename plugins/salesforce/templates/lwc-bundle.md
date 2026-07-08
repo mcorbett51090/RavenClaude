@@ -55,7 +55,7 @@ public with sharing class AccountListController {
         return [
             SELECT Id, Name
             FROM Account
-            WITH SECURITY_ENFORCED      // enforce CRUD/FLS
+            WITH USER_MODE              // enforce CRUD/FLS (v67.0+; pre-v67 use WITH SECURITY_ENFORCED)
             ORDER BY Name
             LIMIT 200
         ];
@@ -63,4 +63,4 @@ public with sharing class AccountListController {
 }
 ```
 
-Notes: `cacheable=true` for reads; `with sharing` + `WITH SECURITY_ENFORCED`; `apiVersion` `[verify-at-build]` against the current release.
+Notes: `cacheable=true` for reads; `with sharing` + `WITH USER_MODE`. **At API v67.0+ (Summer '26) `WITH SECURITY_ENFORCED` is removed and no longer compiles — use `WITH USER_MODE`;** on pre-v67.0 classes `WITH SECURITY_ENFORCED` still works. `apiVersion` `[verify-at-build]` against the current release.

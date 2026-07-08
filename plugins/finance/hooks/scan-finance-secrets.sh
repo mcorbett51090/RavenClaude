@@ -86,7 +86,7 @@ fi
 
 # Lines that reference a credential by env-var NAME (the sanctioned pattern) or a
 # documented placeholder are NOT secrets — drop them before counting a finding.
-PLACEHOLDER_RE='ENV-VAR NAME|<out-of-band>|client_secret_env|example\.com|os\.environ|getenv|process\.env|System\.getenv|\bENV\[|\$\{?[A-Za-z_][A-Za-z0-9_]*\}?|000-00-0000|123-45-6789|111-11-1111|078-05-1120|XXX-XX-XXXX'
+PLACEHOLDER_RE='ENV-VAR NAME|<out-of-band>|client_secret_env|example\.com|os\.environ|getenv|process\.env|System\.getenv|\bENV\[|\$\{?[A-Za-z_][A-Za-z0-9_]*\}?|000-00-0000|123-45-6789|111-11-1111|078-05-1120|XXX-XX-XXXX|FAKE-[A-Z]|-FAKE\b|\bFAKE\b|obviously.fake|_synthetic'
 
 # Parallel rule arrays: name -> POSIX-ERE pattern.
 RULE_NAMES=(

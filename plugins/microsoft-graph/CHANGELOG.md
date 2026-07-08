@@ -2,6 +2,10 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.4.4] — 2026-07-08
+
+Weekly Tier-A news sweep (2026-07-08) — **additions**. `knowledge/identity-auth-decision-trees.md`: new **GA (July 2026)** least-privileged permissions **`User.Create`** (create a user) and **`User.ReadUpdate.All`** (update a user) — prefer over `User.ReadWrite.All`/`Directory.ReadWrite.All`. `knowledge/workloads-notifications-decision-trees.md`: new **browser-native Web Push** change-notification channel (`vapidPublicKey` + Web Push encryption properties) — **PREVIEW / `/beta` only**, marked do-not-ship-to-prod. Sources: Graph what's-new July-2026 (Microsoft-Learn MCP). **Migration:** none — knowledge-file content only.
+
 ## [0.4.2] — 2026-06-22
 
 Version bump previously unlogged here (rolls up `0.4.0` → `0.4.2`); the change that set `0.4.2`:

@@ -2,7 +2,7 @@
 
 _Two Mermaid decision trees that **complement** [`devops-cicd-decision-trees.md`](devops-cicd-decision-trees.md): that file's "Deploy / rollout strategy selection" tree picks the rollout shape by reversibility; these two go a layer deeper — (1) the data/dependency preconditions a rollout strategy actually requires before it's safe to run, and (2) where CI compute and the build cache should live. Capability rows are `[verify-at-use]` — re-check against the vendor before quoting._
 
-_Last reviewed: 2026-06-05._
+_Last reviewed: 2026-07-08._
 
 ## Decision Tree: Deployment-strategy preconditions — is this rollout actually safe to run?
 
@@ -69,7 +69,7 @@ flowchart TD
 - _Self-hosted / larger runners_ — only when you genuinely need private-network reach or special hardware; they carry maintenance + a security surface (untrusted PR code on your network), so keep them **ephemeral** and isolated. Don't reach for self-hosted just to go faster — a cache fix is usually cheaper.
 - _Provider-hosted_ — the default; no infra to own. Scale via larger hosted runner classes before going self-hosted.
 - _Persistent-runner warning_ — a reused runner leaks dependency state, caches, and secrets between builds; an ephemeral runner is reproducible and safer. If persistence is unavoidable, clean the workspace and scope the cache explicitly.
-- _Dependency cache_ — key on the **lockfile hash** (content-addressed), never a constant; a constant key serves a stale cache forever (a correctness risk, not a speedup).
+- _Dependency cache_ — key on the **lockfile hash** (content-addressed), never a constant; a constant key serves a stale cache forever (a correctness risk, not a speedup). A dependency cache is also a **cache-poisoning** surface: an untrusted-trigger job (fork PR, `pull_request_target`) that can write the shared cache can plant a tampered artifact that a later trusted job restores and executes — not just a secret/state leak. GitHub Actions' read-only-cache-for-untrusted-triggers default (2026-06) mitigates this on hosted runners too, but don't rely on a pipeline that writes cache from an untrusted-trigger job.
 - _Reorder Dockerfile first_ — layer cache is structurally defeated if `COPY . .` precedes the dependency install; fix the ordering before investing in a remote layer cache.
 - _Registry/remote build cache_ — `cache-from`/`cache-to` a shared store (registry or remote backend) so layers are reused across runners, not just within one runner's local disk.
 - _Remote/distributed cache_ — for compile/test-heavy builds, a content-addressed remote cache (shared across the team) beats per-runner local caching.
@@ -90,6 +90,7 @@ flowchart TD
 | GitHub Actions hosted larger runners | GA | Larger CPU/RAM, GPU, ARM classes; per-minute billing |
 | GitHub Actions self-hosted runners | GA | Prefer ephemeral; isolate untrusted PR code |
 | `actions/cache` lockfile-hash keying | GA | `hashFiles()` + `restore-keys` fallback prefix |
+| GitHub Actions cache — read-only for untrusted triggers | GA, default (2026-06) | Actions now issues read-only cache tokens to the default-branch cache for events runnable without write perms (pull_request_target, issue_comment, fork workflow_run) — blocks cross-fork cache poisoning by default; you gain it with no config. Don't design a pipeline that WRITES cache from an untrusted-trigger job (the write is now dropped). [Changelog 2026-06-26](https://github.blog/changelog/2026-06-26-read-only-actions-cache-for-untrusted-triggers/) |
 | Docker BuildKit `cache-from`/`cache-to` | GA | Registry or remote (`type=gha`, `type=registry`) backends |
 | Argo Rollouts automated analysis | GA | `AnalysisTemplate` + metric provider gates promote/abort |
 | Flagger (Flux) progressive delivery | GA | Same canary-with-analysis model for Flux users |

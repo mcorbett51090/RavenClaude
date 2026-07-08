@@ -2,6 +2,15 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.6.4] — 2026-07-08
+
+Research-sweep **correctness fix** — the plugin recommended `WITH SECURITY_ENFORCED` as the primary CRUD/FLS enforcement clause (house opinion #7, the reviewer rubric, two skills, the security decision tree, templates). Salesforce **Summer '26 / API v67.0** **removes `WITH SECURITY_ENFORCED`** — an Apex class set to v67.0+ that uses it **does not compile** — and defaults database operations to **user mode** and omitted sharing keywords to **`with sharing`**. Following the old guidance on a v67.0+ class produced non-deployable code. Verified 2026-07-08 against salesforce.com (Summer '26 architect highlights) + developer.salesforce.com.
+
+### Changed
+
+- Lead all CRUD/FLS-enforcement guidance with **`WITH USER_MODE`** and flag `WITH SECURITY_ENFORCED` as removed-at-v67.0+ (valid only on pre-v67.0 classes), across: house opinions #6/#7 (`CLAUDE.md`), `agents/apex-engineer.md`, `agents/salesforce-reviewer.md`, `skills/soql-authoring`, `skills/lwc-component-scaffold`, `knowledge/apex-decision-trees.md` (security mechanism-choice tree + tradeoffs table), `knowledge/sharing-and-security-model.md`, and the `templates/lwc-bundle.md` + `templates/batch-apex-class.md` code samples. Nuance preserved (mirroring the 0.6.2 end-of-support precedent): it is a compiler behavior at v67.0+, not a retroactive break of pre-v67.0 classes. Tagged `[verify-at-build]`.
+- Version **0.6.3 → 0.6.4** in `.claude-plugin/plugin.json` + `marketplace.json` (lockstep).
+
 ## [0.6.2] — 2026-06-24
 
 ### Changed

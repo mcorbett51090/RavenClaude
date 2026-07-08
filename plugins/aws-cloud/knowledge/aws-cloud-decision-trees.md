@@ -113,6 +113,7 @@ _The workload stays in a private subnet; only the load balancer (or CloudFront) 
 | Lambda (limits) | 15-min max, mem-bound | Verify limits before designing |
 | EventBridge / Step Functions | GA | Event routing + orchestration |
 | Savings Plans / RIs | GA | Rightsize FIRST |
+| Graviton (Arm) instances | GA — Graviton5 / EC2 M9g, M9gd GA 2026-06-10 | Prefer Arm for price-performance where the runtime/deps support Arm64; up to ~25% compute gain vs Graviton4. [AWS what's-new](https://aws.amazon.com/about-aws/whats-new/2026/06/ec2-m9g-m9gd-instances-graviton5-processors-available/) |
 
 ---
 

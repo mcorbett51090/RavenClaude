@@ -2,6 +2,30 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.187.4 — 2026-07-08
+
+### Fixed
+
+- **P2 — decision-review safety envelope (`scripts/thing-decide.py`).** A **unanimous** panel `defer` (every voting seat independently says "this is a human call") could be routed into the Thor tie-breaker — whose `yes`/`no` verdict then becomes **binding** in `binding` mode — auto-resolving a decision the whole panel deferred. The `heimdall`-abstain re-screen (2b, added the same day) made this worse: a lone injection-seat abstention *also* forced a Thor convene on a unanimous defer. `_tally` now short-circuits `distinct == {"defer"}` straight to `defer` **before** the Thor branch (fail-safe — it can only send more decisions to the human). New `audit-gates.sh` Gate 17 case + a `defer-thor-flip` test mock prove Thor is never reached on a unanimous defer. _(From the autonomous 3-panel repo review, run 2026-07-08; the other findings in that run were already fixed on main via #585/#588.)_
+
+## 0.187.2 — 2026-07-08
+
+### Fixed
+
+- **`guard-destructive.sh` interpreter-heredoc fail-open (P1, security).** `_strip_heredoc` blanked _every_ inert heredoc body before the deny-pattern scan, on the premise that a heredoc body is data-written-to-a-file. That premise is false when the heredoc feeds an interpreter (`bash <<EOF … rm -rf / … EOF`, `sh <<'X'`, `python3 <<PY`) — there the body IS the executed script, so a destructive payload was stripped and sailed through as ALLOW. The strip now fires only when the heredoc's command word is NOT an interpreter (skips `bash`/`sh`/`dash`/`zsh`/`ksh`/`python*`/`perl`/`ruby`/`node`/…, incl. leading `VAR=`/`env`/`\` forms); interpreter heredocs are scanned as code. Data heredocs (`cat`/`tee` → file) that merely document a destructive pattern are still stripped. Closes the internal inconsistency where `<(curl` / `$(curl` to a shell were caught but the equivalent heredoc-to-shell was not. Gate 5 gained interpreter-heredoc block fixtures + benign-data-heredoc pass fixtures.
+- **Tribunal `network_write` classifier missed `gh api` implicit-POST (P2).** `classify()`'s flag-aware network-write override detected write bodies for `curl` and `wget` but had no `gh` branch, so `gh api … -f/-F/--field/--raw-field/--input` (an implicit POST that creates issues/PRs/comments) classified as `None` and auto-allowed unreviewed under a toggled-on `network_write` category. Added the `gh_body` branch; a bare `gh api <path>` GET still classifies as a read. Gate 21 #17e gained the implicit-POST forms + a bare-GET negative control.
+- **`thing-orchestrator.sh` non-portable millisecond clock (P3).** `date +%s%3N` is a GNU-date extension; on BSD/macOS `date` exits 0 and emits a non-numeric `<seconds>N`, so the `|| echo 0` guard never fired and the audit `duration_ms` arithmetic errored (telemetry corruption). Replaced both call sites with a portable `_now_ms` helper that validates all-digits output and falls back to whole-second precision.
+
+## 0.187.0 — 2026-07-08
+
+### Added
+
+- **Document-discovery pattern for cold agents (`DOCUMENT-MAP.md`).** Non-Claude-Code agents (Copilot CLI, Cursor, Aider) auto-load their instruction files but not a document-location index, so they re-run find/grep every turn to relocate known docs. New guidance closes the gap (forged via the FORGE two-panel + correlated-error-critic pipeline, which corrected the original "no persistent memory" framing):
+  - `knowledge/copilot-cli-customization.md` §7 — the canonical mechanism: inline-vs-standalone placement, ~50–300-doc sizing, and seed-then-hand-curate maintenance ("a stale map is worse than none").
+  - `codex-onboarding` skill — a session-start "read the document map first" step + matching done-check.
+  - `docs/best-practices/agent-onboarding.md` (new, repo-level) — the cross-tool Pattern, pointing at §7 rather than restating it.
+  - `scripts/generate-document-map.py` (new, repo-level) — a stdlib-only, deterministic, config-driven **seed** generator (`--self-test` / `--check`). Ships as a reusable tool, **not** a committed map: RavenClaude's own durable docs are already indexed elsewhere, and its `docs/` is mostly dated one-offs. No CI gate.
+
 ## 0.186.1 — 2026-07-06
 
 ### Fixed

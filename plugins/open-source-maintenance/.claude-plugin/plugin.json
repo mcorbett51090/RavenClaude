@@ -1,6 +1,6 @@
 {
   "name": "open-source-maintenance",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Open-source maintenance team — 2 agents (oss-maintainer-strategist, release-and-versioning-engineer) for running a public project people can contribute to: license choice (permissive vs copyleft, dependency compatibility, CLA vs DCO), governance & community-health (CONTRIBUTING / CODE_OF_CONDUCT / GOVERNANCE / SECURITY.md, issue & PR triage + SLAs, the contributor funnel, bus factor, funding), semver + changelogs (Keep a Changelog / Conventional Commits), release automation (release-please / semantic-release / Changesets), deprecation windows, coordinated security releases (private report -> CVE/GHSA -> disclosure), and supply-chain provenance (SLSA, Sigstore). 5 skills, a knowledge bank with two Mermaid decision trees + a dated 2026 tooling map, 8 best-practices, 4 templates, 1 advisory hook. Seams: release pipelines -> devops-cicd; vuln analysis -> security-engineering; community growth -> developer-relations; docs -> technical-writing-docs. Requires ravenclaude-core@>=0.7.0.",
   "author": {
     "name": "Matt Corbett"

@@ -1,6 +1,6 @@
 {
   "name": "salesforce",
-  "version": "0.6.2",
+  "version": "0.6.4",
   "description": "Salesforce practitioner team — 5 agents (apex-engineer, flow-automation-architect, agentforce-architect, salesforce-platform-architect, salesforce-reviewer) covering governor-safe bulkified Apex (triggers/async/services), declarative automation by density (Flow vs Apex, order-of-execution), Agentforce design (topics/actions, Atlas determinism, Trust Layer), org architecture (data model, OWD→sharing→Apex security, 2GP packaging/DevOps, LDV), and a forked review rubric (the 15 house opinions as pass/fail). Citation-grounded knowledge bank (~20 Mermaid decision trees incl. automation-density), a scenarios bank (4 field notes), ~70 best-practices, 5 skills, 8 commands, 5 templates, an advisory hook + a runnable SOQL/DML-in-loop scanner (scripts/apex_governor_smell.py), and an .lsp.json (Apex + LWC LSP). MCP recommend-not-bundle (org-credentialed @salesforce/mcp). Seams: integration→azure-cloud, analytics→data-platform, LWC styling→web-design, security-review→ravenclaude-core. Requires ravenclaude-core@>=0.7.0.",
   "author": {
     "name": "Matt Corbett"

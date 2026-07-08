@@ -1,14 +1,14 @@
 # Contain before you eradicate
 
 **Status:** Absolute rule
-**Domain:** Incident lifecycle (NIST SP 800-61r2)
+**Domain:** Incident lifecycle (NIST SP 800-61r3, CSF 2.0-aligned; supersedes r2)
 **Applies to:** `incident-response-dfir`
 
 ---
 
 ## Why this exists
 
-The NIST SP 800-61r2 phase is *Containment, Eradication & Recovery* — in that order — for a reason. If you start deleting malware and closing accounts while the adversary still has active access and lateral-movement paths, you tip them off, they burn their current foothold and pivot to another you haven't found, and you've turned a contained incident into a game of whack-a-mole against an alerted adversary. Containment stops the spread and freezes the blast radius so eradication can be *complete* rather than partial.
+The incident-handling phase is *Containment, Eradication & Recovery* — in that order — for a reason. If you start deleting malware and closing accounts while the adversary still has active access and lateral-movement paths, you tip them off, they burn their current foothold and pivot to another you haven't found, and you've turned a contained incident into a game of whack-a-mole against an alerted adversary. Containment stops the spread and freezes the blast radius so eradication can be *complete* rather than partial.
 
 ## How to apply
 
@@ -35,7 +35,7 @@ Once an incident is scoped, choose a containment strategy — short-term (isolat
 - [`../knowledge/incident-lifecycle-decision-tree.md`](../knowledge/incident-lifecycle-decision-tree.md)
 
 ## Provenance
-Codifies the NIST SP 800-61r2 *Containment, Eradication & Recovery* phase ordering. Last reviewed 2026-07-01.
+Codifies the *Containment, Eradication & Recovery* phase ordering from NIST SP 800-61r2 (superseded by r3, 2025, CSF 2.0-aligned — cite r3 as current). Last reviewed 2026-07-08.
 
 ---
 

@@ -1,6 +1,6 @@
 {
   "name": "staffing-operations",
-  "version": "0.2.0",
+  "version": "0.2.2",
   "description": "Healthcare + education staffing operations & analytics consulting team — 6 specialist agents (engagement-lead, operations-analyst, recruiting-funnel-strategist, healthcare-staffing-specialist, education/school-based-specialist, workforce-market-analyst), 10 skills, 10 templates, 5 commands, 1 advisory hook, 7 best-practice rules, and an 8-file research-grounded knowledge bank: a staffing KPI glossary (funnel/financial/quality metrics with formulas + benchmarks), healthcare-staffing economics (travel/locum/allied/per-diem, bill-pay-burden, rate cycle), credentialing & IDEA/IEP compliance, K-12 school-based fundamentals (academic-calendar seasonality, teletherapy, ESSER cliff), 2023-2026 market trends + SIA-anchored sizing, a competitor landscape map, and a Soliant Health employer profile. Plus a scenarios bank, Mermaid decision trees, and staffing_calc.py (margin / fill-rate / funnel-leak). Every external figure carries a source + date; advisory numbers marked [ESTIMATE]. Requires ravenclaude-core@>=0.7.0.",
   "author": {
     "name": "Matt Corbett"

@@ -50,7 +50,9 @@ flowchart TD
 
 **When this applies:** You are writing Apex that reads or writes records on behalf of a user (a controller, a service called from LWC/Aura/VF, a user-invoked action). Observable triggers: a PMD/CRUD-FLS reviewer finding, an `@AuraEnabled` method exposing data, or a `without sharing` keyword with no justification. The *verdict* escalates to `ravenclaude-core/security-reviewer`; this tree picks the *mechanism*.
 
-**Last verified:** 2026-05-30 against [`sharing-and-security-model.md`](sharing-and-security-model.md) and the `salesforce-reviewer` rubric items 6–7.
+**Last verified:** 2026-07-08 against [`sharing-and-security-model.md`](sharing-and-security-model.md) and the `salesforce-reviewer` rubric items 6–7.
+
+> **API v67.0+ (Summer '26) change — verified 2026-07-08.** `WITH SECURITY_ENFORCED` is **removed and no longer compiles** in Apex classes set to API v67.0 or later; database operations there default to **user mode** and classes without a sharing keyword default to **`with sharing`**. **Prefer `WITH USER_MODE` / `AccessLevel.USER_MODE`** — it also supports polymorphic fields and returns the full set of access errors. On pre-v67.0 classes `WITH SECURITY_ENFORCED` still works. Treat the `SECURITY_ENFORCED` leaf below as legacy/pre-v67. `[verify-at-build]`
 
 ```mermaid
 flowchart TD
@@ -59,7 +61,7 @@ flowchart TD
     Q1 -->|User context| SHARE[with sharing class — record-level access]
     SHARE --> Q2{Reading or writing?}
     Q2 -->|Reading via SOQL| Q3{Need a hard fail or graceful strip on inaccessible fields?}
-    Q3 -->|Hard fail is correct| SE[WITH SECURITY_ENFORCED in the SOQL]
+    Q3 -->|Hard fail is correct| SE[WITH USER_MODE in the SOQL<br/>pre-v67: WITH SECURITY_ENFORCED]
     Q3 -->|Strip & continue| SI_READ[Security.stripInaccessible AccessType.READABLE]
     Q2 -->|Writing via DML| SI_WRITE[Security.stripInaccessible AccessType.CREATABLE/UPDATABLE before DML]
     SHARE --> Q4{Whole method should run in user mode end-to-end?}
@@ -68,7 +70,7 @@ flowchart TD
 
 **Rationale per leaf:**
 - *with sharing* — the default; enforces **record-level** OWD/sharing for the running user. **requires:** nothing; it is the baseline posture.
-- *WITH SECURITY_ENFORCED* — enforces **field- and object-level** read access *in the query*; **throws** if the user lacks access to any selected field — use when a missing field is an error, not a silent omission.
+- *WITH SECURITY_ENFORCED* — enforces **field- and object-level** read access *in the query*; **throws** if the user lacks access to any selected field — use when a missing field is an error, not a silent omission. **Removed at API v67.0+ (does not compile) — use `WITH USER_MODE` there.** `[verify-at-build]`
 - *Security.stripInaccessible (READABLE)* — removes inaccessible fields from results **without throwing**, so partial reads degrade gracefully — use when you'd rather return what the user can see.
 - *Security.stripInaccessible (CREATABLE/UPDATABLE)* — strips fields the user can't write **before** the DML, preventing an FLS bypass on insert/update.
 - *AccessLevel.USER_MODE* — runs the query/DML in user mode (FLS + sharing) as one switch; the modern end-to-end enforcement when you want uniform user-mode behavior.
@@ -79,7 +81,8 @@ flowchart TD
 | Mechanism | Enforces | On inaccessible field | Use when |
 |---|---|---|---|
 | `with sharing` | record-level (OWD/sharing) | n/a (records, not fields) | always, by default, in user context |
-| `WITH SECURITY_ENFORCED` | field + object read | **throws** `QueryException` | a missing field must be a hard error |
+| `WITH SECURITY_ENFORCED` | field + object read | **throws** `QueryException` | a missing field must be a hard error — **pre-v67.0 only (removed at v67.0+)** |
+| `WITH USER_MODE` (SOQL) / `AccessLevel.USER_MODE` | FLS + object + sharing | throws on violation | **preferred at v67.0+**; supports polymorphic fields, returns all access errors |
 | `stripInaccessible` (READABLE) | field read | silently strips | partial read should degrade gracefully |
 | `stripInaccessible` (CREATABLE/UPDATABLE) | field write | strips before DML | prevent FLS bypass on insert/update |
 | `AccessLevel.USER_MODE` | FLS + sharing, query+DML | throws on violation | uniform user-mode for the whole operation |

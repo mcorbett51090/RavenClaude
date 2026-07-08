@@ -96,9 +96,7 @@ def _parse_impact(s: str) -> float:
         return float(s)
     except ValueError:
         names = "/".join(_IMPACT_SCALE)
-        raise argparse.ArgumentTypeError(
-            f"impact must be one of {names} or a number, got {s!r}"
-        )
+        raise argparse.ArgumentTypeError(f"impact must be one of {names} or a number, got {s!r}")
 
 
 def _rice_score(reach: float, impact: float, confidence: float, effort: float) -> float:
@@ -124,6 +122,11 @@ def cmd_rice(args: argparse.Namespace) -> int:
                 reach = float(reach_s)
                 impact = _parse_impact(impact_s)
                 confidence = _parse_rate(conf_s)
+                if not 0.0 <= confidence <= 1.0:
+                    raise ValueError(
+                        f"confidence must be in [0%, 100%], got {confidence:g} — "
+                        "looks like a percent typed without % (e.g. 80 vs 80%)"
+                    )
                 effort = float(effort_s)
                 score = _rice_score(reach, impact, confidence, effort)
             except (ValueError, argparse.ArgumentTypeError) as e:
@@ -135,6 +138,13 @@ def cmd_rice(args: argparse.Namespace) -> int:
             print(
                 "error: provide either --item specs OR --reach/--impact/--effort "
                 "(and optionally --confidence)",
+                file=sys.stderr,
+            )
+            return 2
+        if not 0.0 <= args.confidence <= 1.0:
+            print(
+                f"error: --confidence must be in [0%, 100%], got {args.confidence:g} — "
+                "looks like a percent typed without % (e.g. 80 vs 80%)",
                 file=sys.stderr,
             )
             return 2
@@ -171,7 +181,9 @@ def cmd_wsjf(args: argparse.Namespace) -> int:
     score = cod / args.job_size
 
     print("WSJF = Cost of Delay / Job Size")
-    print("  Cost of Delay = Business Value + Time Criticality + Risk Reduction/Opportunity Enablement")
+    print(
+        "  Cost of Delay = Business Value + Time Criticality + Risk Reduction/Opportunity Enablement"
+    )
     print("  (SAFe convention: score each on the modified-Fibonacci scale 1-2-3-5-8-13-20)")
     print()
     print(f"  business value                  : {args.business_value:g}")
@@ -183,18 +195,26 @@ def cmd_wsjf(args: argparse.Namespace) -> int:
     print()
     print("  note: WSJF inputs are RELATIVE, not absolute - rank items against each other in")
     print("        one sitting. Use WSJF when time-sensitivity dominates (a deadline, a closing")
-    print("        window); it stops urgent items being buried the way RICE can (CLAUDE.md SS2 #3).")
+    print(
+        "        window); it stops urgent items being buried the way RICE can (CLAUDE.md SS2 #3)."
+    )
     return 0
 
 
 def cmd_opportunity(args: argparse.Namespace) -> int:
-    point = (
-        args.reachable * args.adoption * args.value_per_user * args.confidence
-    )
+    for name, val in (("--adoption", args.adoption), ("--confidence", args.confidence)):
+        if not 0.0 <= val <= 1.0:
+            print(
+                f"error: {name} must be in [0%, 100%], got {val:g} — looks like a "
+                "percent typed without % (e.g. 80 vs 80%)",
+                file=sys.stderr,
+            )
+            return 2
+    point = args.reachable * args.adoption * args.value_per_user * args.confidence
     # Symmetric band from the confidence haircut: confidence c -> [c*point ... point/c-ish].
     # Use a simple, transparent +/- band driven by (1 - confidence) so the range is honest
     # about uncertainty without pretending to a statistical interval.
-    spread = (1.0 - args.confidence)
+    spread = 1.0 - args.confidence
     low = point * (1.0 - spread)
     high = point * (1.0 + spread)
 
@@ -206,11 +226,15 @@ def cmd_opportunity(args: argparse.Namespace) -> int:
     print(f"  confidence              : {args.confidence * 100:g}%")
     print(f"  --> expected size       : {point:,.0f}")
     print(f"  --> honest band         : {low:,.0f}  ..  {high:,.0f}")
-    print(f"      (band = +/- (1 - confidence) = +/-{spread * 100:g}% - NOT a statistical interval)")
+    print(
+        f"      (band = +/- (1 - confidence) = +/-{spread * 100:g}% - NOT a statistical interval)"
+    )
     print()
     print("  note: this is a bottoms-up SIZING HELPER, not a market study. Argue the number as")
     print("        a RANGE; each input is a [verify-at-use] assumption - source reachable users")
-    print("        and value/user from data, not a top-down TAM% (CLAUDE.md SS2 #3, claim-grounding).")
+    print(
+        "        and value/user from data, not a top-down TAM% (CLAUDE.md SS2 #3, claim-grounding)."
+    )
     return 0
 
 
@@ -225,38 +249,87 @@ def build_parser() -> argparse.ArgumentParser:
     sub = p.add_subparsers(dest="cmd", required=True)
 
     rice = sub.add_parser("rice", help="RICE score (Reach x Impact x Confidence / Effort)")
-    rice.add_argument("--reach", type=float, default=None,
-                      help="users/events affected per time period (single-item mode)")
-    rice.add_argument("--impact", type=_parse_impact, default=None,
-                      help="massive/high/medium/low/minimal (3/2/1/0.5/0.25) or a raw multiplier")
-    rice.add_argument("--confidence", type=_parse_rate, default=0.8,
-                      help="confidence as a percent or fraction (default 80%%)")
-    rice.add_argument("--effort", type=float, default=None,
-                      help="effort in person-time units (person-weeks/months); must be > 0")
-    rice.add_argument("--item", action="append", default=None,
-                      help="repeatable: name:reach:impact:confidence:effort (ranked table mode)")
+    rice.add_argument(
+        "--reach",
+        type=float,
+        default=None,
+        help="users/events affected per time period (single-item mode)",
+    )
+    rice.add_argument(
+        "--impact",
+        type=_parse_impact,
+        default=None,
+        help="massive/high/medium/low/minimal (3/2/1/0.5/0.25) or a raw multiplier",
+    )
+    rice.add_argument(
+        "--confidence",
+        type=_parse_rate,
+        default=0.8,
+        help="confidence as a percent or fraction (default 80%%)",
+    )
+    rice.add_argument(
+        "--effort",
+        type=float,
+        default=None,
+        help="effort in person-time units (person-weeks/months); must be > 0",
+    )
+    rice.add_argument(
+        "--item",
+        action="append",
+        default=None,
+        help="repeatable: name:reach:impact:confidence:effort (ranked table mode)",
+    )
     rice.set_defaults(func=cmd_rice)
 
     wsjf = sub.add_parser("wsjf", help="WSJF score (Cost of Delay / Job Size, SAFe)")
-    wsjf.add_argument("--business-value", type=float, required=True,
-                      help="relative business value (Fibonacci 1-20)")
-    wsjf.add_argument("--time-criticality", type=float, required=True,
-                      help="relative time criticality / value decay (Fibonacci 1-20)")
-    wsjf.add_argument("--risk-opportunity", type=float, required=True,
-                      help="relative risk reduction / opportunity enablement (Fibonacci 1-20)")
-    wsjf.add_argument("--job-size", type=float, required=True,
-                      help="relative job size / effort (Fibonacci 1-20); must be > 0")
+    wsjf.add_argument(
+        "--business-value",
+        type=float,
+        required=True,
+        help="relative business value (Fibonacci 1-20)",
+    )
+    wsjf.add_argument(
+        "--time-criticality",
+        type=float,
+        required=True,
+        help="relative time criticality / value decay (Fibonacci 1-20)",
+    )
+    wsjf.add_argument(
+        "--risk-opportunity",
+        type=float,
+        required=True,
+        help="relative risk reduction / opportunity enablement (Fibonacci 1-20)",
+    )
+    wsjf.add_argument(
+        "--job-size",
+        type=float,
+        required=True,
+        help="relative job size / effort (Fibonacci 1-20); must be > 0",
+    )
     wsjf.set_defaults(func=cmd_wsjf)
 
     opp = sub.add_parser("opportunity", help="Bottoms-up opportunity size + honest band")
-    opp.add_argument("--reachable", type=float, required=True,
-                     help="reachable users in the target segment")
-    opp.add_argument("--adoption", type=_parse_rate, required=True,
-                     help="expected adoption rate (percent or fraction)")
-    opp.add_argument("--value-per-user", type=float, required=True,
-                     help="annual value per adopting user (revenue/retention proxy)")
-    opp.add_argument("--confidence", type=_parse_rate, default=0.6,
-                     help="confidence in the estimate (percent or fraction; default 60%%)")
+    opp.add_argument(
+        "--reachable", type=float, required=True, help="reachable users in the target segment"
+    )
+    opp.add_argument(
+        "--adoption",
+        type=_parse_rate,
+        required=True,
+        help="expected adoption rate (percent or fraction)",
+    )
+    opp.add_argument(
+        "--value-per-user",
+        type=float,
+        required=True,
+        help="annual value per adopting user (revenue/retention proxy)",
+    )
+    opp.add_argument(
+        "--confidence",
+        type=_parse_rate,
+        default=0.6,
+        help="confidence in the estimate (percent or fraction; default 60%%)",
+    )
     opp.set_defaults(func=cmd_opportunity)
 
     return p

@@ -1,0 +1,15 @@
+{
+  "_synthetic": "OBVIOUSLY FAKE recorded SuiteQL trial-balance RESULT (BS-cumulative / IS-period, already classified). No real data, no PII. Nets to zero. BS accounts (1000-3999) carry cumulative-from-inception balances; IS accounts (4000+) carry period balances.",
+  "netsuite_account_id": "TSTDRV0000FAKE",
+  "period": "2026-06",
+  "rows": [
+    { "account": "1000", "name": "Cash", "amount": 500000 },
+    { "account": "1100", "name": "Accounts Receivable", "amount": 300000 },
+    { "account": "1200", "name": "Inventory", "amount": 200000 },
+    { "account": "2000", "name": "Accounts Payable", "amount": -250000 },
+    { "account": "3000", "name": "Common Stock", "amount": -600000 },
+    { "account": "4000", "name": "Revenue", "amount": -400000 },
+    { "account": "5000", "name": "Cost of Goods Sold", "amount": 180000 },
+    { "account": "6000", "name": "Operating Expenses", "amount": 70000 }
+  ]
+}

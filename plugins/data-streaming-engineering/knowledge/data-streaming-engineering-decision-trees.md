@@ -1,6 +1,6 @@
 # Data Streaming — Decision Trees
 
-_Decision trees + a dated capability map. Capability rows are `[verify-at-build]` — re-check against the vendor before quoting. Last reviewed: 2026-06-22 (re-anchored the per-tree version stamps from Apache Flink 1.19 / Kafka Streams 3.7 to Flink 2.x / Kafka 4.x — both now GA; the documented semantics are version-stable)._
+_Decision trees + a dated capability map. Capability rows are `[verify-at-build]` — re-check against the vendor before quoting. Last reviewed: 2026-07-08 (refreshed the per-tree version stamps to Flink 2.3.x GA 2026-06-25 + Flink 2.3 SQL late-data handling, pinned Kafka 4.3.1 for the RocksDB memory-leak fix, and re-anchored the CDC tree to Debezium 3.6.x incl. the MySQL/MariaDB `never`-snapshot removal; earlier: re-anchored the per-tree version stamps from Apache Flink 1.19 / Kafka Streams 3.7 to Flink 2.x / Kafka 4.x — both GA; the documented semantics are version-stable)._
 
 Traverse before building a stream or choosing delivery semantics.
 
@@ -58,6 +58,8 @@ graph TD
 
 _Sliding windows multiply state (each event in many windows) — bound it. Every window runs on event-time with a watermark and an explicit late-data policy._
 
+Flink 2.3 (2026-06-25) lets Process Table Functions react to late records at the SQL level (custom late-data strategy) rather than dropping them — an option alongside allowed-lateness + side outputs. [Flink 2.3.0](https://flink.apache.org/2026/06/25/apache-flink-2.3.0-release-announcement/) `[verify-at-use]`
+
 ## Decision Tree: Which schema-compatibility mode?
 
 Compatibility mode is a contract about who can deploy first; choose by upgrade order.
@@ -100,7 +102,7 @@ _Replay is a design constraint: it needs retention to cover the window, idempote
 
 **When this applies:** a Debezium CDC connector fails, lags, or produces wrong/missing events. Observable inputs: the connector's status (RUNNING / PAUSED / FAILED), whether the WAL position is still available, and the type of failure (auth, schema change, WAL rotation).
 
-**Last verified:** 2026-06-05 against Debezium 2.x documentation and Kafka Connect error handling docs.
+**Last verified:** 2026-06-05 against Debezium 3.6.x (3.6.0.Final, 2026-07-01, built on Apache Kafka 4.3) documentation and Kafka Connect error handling docs.
 
 ```mermaid
 flowchart TD
@@ -127,6 +129,7 @@ flowchart TD
 - *NEWSNAP* — a breaking column change (type change, drop) requires a re-snapshot of the affected table; if the topic has existing consumers, this is the new-topic migration path.
 - *RESNAP* — the WAL replication slot retains data only while it is consumed; if the connector was paused too long, the WAL offset has advanced past what the slot retained and a full re-snapshot is the only recovery. This is expensive — set `max.slot.wal.keep.size` to prevent silent slot growth.
 - *LAG* — a RUNNING but lagging connector is usually a throughput tuning issue (batch size, polling interval, or broker I/O).
+- Debezium 3.6 (2026-07-01) removed the **MySQL/MariaDB** `"never"` snapshot mode (`snapshot.mode=never` now errors at startup) — plan snapshot strategy accordingly. [Debezium 3.6 release notes](https://debezium.io/releases/3.6/release-notes) `[verify-at-use]`
 
 **Tradeoffs summary:**
 
@@ -183,7 +186,7 @@ flowchart TD
 
 **When this applies:** a stream processing pipeline needs to join two event streams (e.g., orders + payments, clicks + impressions) and you must choose whether a stream-stream join is feasible and what join window to use. Observable inputs: the expected time skew between correlated events on the two streams, the cardinality (how many events per join key), and whether late arrivals are common.
 
-**Last verified:** 2026-06-22 against Apache Flink 2.x (current stable 2.2.x) and Kafka Streams 4.x join documentation. `[verify-at-use]` on exact patch versions. (Re-anchored from the stale Flink 1.19 / Kafka Streams 3.7 line — Flink 2.0 and Kafka 4.0 are both GA; the join semantics below are version-stable.)
+**Last verified:** 2026-06-22 against Apache Flink 2.x (current stable 2.3.x, GA 2026-06-25) and Kafka Streams 4.x join documentation. `[verify-at-use]` on exact patch versions. (Re-anchored from the stale Flink 1.19 / Kafka Streams 3.7 line — Flink 2.0 and Kafka 4.0 are both GA; the join semantics below are version-stable.)
 
 ```mermaid
 flowchart TD
@@ -223,7 +226,7 @@ flowchart TD
 
 **When this applies:** a stream processor's lag is growing (or its source is buffering), throughput is below target, and you must decide whether the fix is backpressure handling, re-keying, scaling, or bounding state. Observable inputs: whether lag is on *one* partition/task or *all*, whether an external sink/call is in the hot path, and whether state size is growing unbounded.
 
-**Last verified:** 2026-06-22 against Apache Flink 2.x (backpressure monitoring / network stack; current stable 2.2.x) and Kafka consumer-group documentation. Re-confirm tuning specifics at use. `[verify-at-use]` on exact patch versions.
+**Last verified:** 2026-06-22 against Apache Flink 2.x (backpressure monitoring / network stack; current stable 2.3.x, GA 2026-06-25) and Kafka consumer-group documentation. Re-confirm tuning specifics at use. `[verify-at-use]` on exact patch versions.
 
 ```mermaid
 flowchart TD
@@ -268,7 +271,7 @@ flowchart TD
 
 **When this applies:** a stateful processor (windowed aggregation, join, dedup store) needs a recovery and state-sizing strategy — choosing checkpoint/state-store config, the state backend, and how state is restored after a crash or rescale. Observable inputs: state size relative to memory, whether keys live forever or expire, the tolerable recovery time, and whether you ever rescale parallelism.
 
-**Last verified:** 2026-06-22 against Apache Flink 2.x (checkpoints/savepoints, RocksDB state backend, state TTL; current stable 2.2.x) and Kafka Streams 4.x (changelog topics, standby replicas). Re-confirm backend/TTL specifics at use. `[verify-at-use]` on exact patch versions.
+**Last verified:** 2026-06-22 against Apache Flink 2.x (checkpoints/savepoints, RocksDB state backend, state TTL; current stable 2.3.x, GA 2026-06-25) and Kafka Streams 4.x (changelog topics, standby replicas). Re-confirm backend/TTL specifics at use. `[verify-at-use]` on exact patch versions.
 
 ```mermaid
 flowchart TD
@@ -290,7 +293,7 @@ flowchart TD
 
 **Rationale per leaf:**
 - *TTL* — the most common stateful-streaming outage is unbounded state (a dedup/aggregation keyed on an ever-growing keyspace) silently filling disk/heap. Set TTL/retention *first*; it's a sizing decision, not a recovery afterthought.
-- *HEAP vs ROCKS* — small, bounded state runs fastest in memory; large state (GBs) needs a disk-spilling backend (RocksDB) with incremental checkpoints so a checkpoint doesn't snapshot the whole state every time.
+- *HEAP vs ROCKS* — small, bounded state runs fastest in memory; large state (GBs) needs a disk-spilling backend (RocksDB) with incremental checkpoints so a checkpoint doesn't snapshot the whole state every time. Operational pin: Kafka Streams users on the RocksDB backend should run **Kafka 4.3.1+** (2026-06-25) — 4.3.0 has an off-heap RocksDB memory leak (KAFKA-20616/20688) that grows unbounded under repeated task closes (rebalances / error recoveries) and OOMs. [Kafka 4.3.1](https://kafka.apache.org/blog/2026/06/25/apache-kafka-4.3.1-release-announcement/) `[verify-at-use]`
 - *STANDBY vs RESTORE* — standby replicas / local recovery cut failover from "replay the whole changelog" to "promote a warm copy," at the cost of extra resources; a generous RTO can just restore from the last checkpoint / replay the changelog.
 - *SAVEPOINT vs CHECKPOINT* — if you ever change parallelism, you need savepoints + properly key-grouped state so state redistributes across the new task count; a checkpoint tuned only for crash recovery may not rescale cleanly.
 

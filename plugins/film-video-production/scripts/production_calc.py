@@ -107,9 +107,13 @@ def cmd_shoot_day_cost(args: argparse.Namespace) -> int:
     loaded = labor + fringe_load + args.flat_costs
 
     print("Shoot-day cost — loaded build-up")
-    print(f"  crew base (straight-time day)  : {args.crew_base:>12,.0f}  ({args.contracted_hours:g}h contracted)")
+    print(
+        f"  crew base (straight-time day)  : {args.crew_base:>12,.0f}  ({args.contracted_hours:g}h contracted)"
+    )
     print(f"  implied straight-time hourly   : {st_hourly:>12,.2f}")
-    print(f"  worked hours                   : {worked:>12g}  (ST {st_hours:g} / OT1.5 {ot_15_hours:g} / OT2 {ot_2_hours:g})")
+    print(
+        f"  worked hours                   : {worked:>12g}  (ST {st_hours:g} / OT1.5 {ot_15_hours:g} / OT2 {ot_2_hours:g})"
+    )
     print("  ------------------------------------------")
     print(f"  straight-time labor            : {st_cost:>12,.0f}")
     print(f"  overtime @1.5x                 : {ot_15_cost:>12,.0f}")
@@ -121,9 +125,24 @@ def cmd_shoot_day_cost(args: argparse.Namespace) -> int:
     print("  ==========================================")
     print(f"  => LOADED SHOOT-DAY COST       : {loaded:>12,.0f}")
     if worked > args.contracted_hours:
-        overrun_pct = (loaded / (st_hourly * args.contracted_hours * (1 + args.fringe) + args.flat_costs) - 1) * 100
-        print(f"  note: running {worked - args.contracted_hours:g}h past the contracted day cost an extra "
-              f"{ot_premium + ot_premium * args.fringe:,.0f} (premium+fringe) — ~{overrun_pct:.0f}% over the contracted-day spend.")
+        contracted_day_spend = (
+            st_hourly * args.contracted_hours * (1 + args.fringe) + args.flat_costs
+        )
+        extra = ot_premium + ot_premium * args.fringe
+        over_hours = worked - args.contracted_hours
+        if contracted_day_spend > 0:
+            overrun_pct = (loaded / contracted_day_spend - 1) * 100
+            print(
+                f"  note: running {over_hours:g}h past the contracted day cost an extra "
+                f"{extra:,.0f} (premium+fringe) — ~{overrun_pct:.0f}% over the contracted-day spend."
+            )
+        else:
+            # A zero contracted-day spend (e.g. --crew-base 0 and no flat costs) has
+            # no meaningful percentage — report the dollar premium without the ratio.
+            print(
+                f"  note: running {over_hours:g}h past the contracted day cost an extra "
+                f"{extra:,.0f} (premium+fringe)."
+            )
     print("  reminder: OT thresholds, multipliers, and fringe rates are deal-memo +")
     print("            governing-agreement specific — validate before any deliverable (sec 3 #8).")
     return 0
@@ -138,8 +157,9 @@ def cmd_contingency(args: argparse.Namespace) -> int:
         return 2
 
     contingency = args.base * args.pct
-    grand_total = (args.pre_contingency_total if args.pre_contingency_total is not None
-                   else args.base) + contingency
+    grand_total = (
+        args.pre_contingency_total if args.pre_contingency_total is not None else args.base
+    ) + contingency
 
     print("Top-sheet contingency")
     print(f"  contingency base (BTL + post)  : {args.base:>12,.0f}")
@@ -156,29 +176,43 @@ def cmd_contingency(args: argparse.Namespace) -> int:
         remaining = contingency - args.drawn
         drawn_pct = (args.drawn / contingency * 100) if contingency else 0.0
         print()
-        print(f"  drawn to date                  : {args.drawn:>12,.0f}  ({drawn_pct:.0f}% of reserve)")
+        print(
+            f"  drawn to date                  : {args.drawn:>12,.0f}  ({drawn_pct:.0f}% of reserve)"
+        )
         print(f"  => remaining buffer            : {remaining:>12,.0f}")
         if remaining < 0:
-            print("  => CONTINGENCY EXHAUSTED — overage is now unfunded; escalate to EP/financier (sec 3 #4).")
+            print(
+                "  => CONTINGENCY EXHAUSTED — overage is now unfunded; escalate to EP/financier (sec 3 #4)."
+            )
 
         if args.days_elapsed is not None and args.days_total is not None:
-            if args.days_elapsed <= 0 or args.days_total <= 0 or args.days_elapsed > args.days_total:
+            if (
+                args.days_elapsed <= 0
+                or args.days_total <= 0
+                or args.days_elapsed > args.days_total
+            ):
                 print("  (skip burn projection: need 0 < days-elapsed <= days-total)")
                 return 0
             burn_per_day = args.drawn / args.days_elapsed
             days_left = args.days_total - args.days_elapsed
             projected_draw = burn_per_day * args.days_total
             print()
-            print(f"  burn rate                      : {burn_per_day:>12,.0f} / shoot-day "
-                  f"(day {args.days_elapsed:g} of {args.days_total:g})")
+            print(
+                f"  burn rate                      : {burn_per_day:>12,.0f} / shoot-day "
+                f"(day {args.days_elapsed:g} of {args.days_total:g})"
+            )
             print(f"  projected total draw @ wrap    : {projected_draw:>12,.0f}")
             if projected_draw > contingency and burn_per_day > 0:
                 exhaust_day = contingency / burn_per_day
-                print(f"  => AT THIS BURN, RESERVE EXHAUSTS at day ~{exhaust_day:.1f} "
-                      f"— {days_left:g} shoot-days still ahead. Re-forecast NOW (sec 3 #4).")
+                print(
+                    f"  => AT THIS BURN, RESERVE EXHAUSTS at day ~{exhaust_day:.1f} "
+                    f"— {days_left:g} shoot-days still ahead. Re-forecast NOW (sec 3 #4)."
+                )
             else:
-                print(f"  => at this burn, reserve holds to wrap ({remaining - burn_per_day * days_left:,.0f} "
-                      "projected to spare). Keep tracking — overage is managed, not hoped.")
+                print(
+                    f"  => at this burn, reserve holds to wrap ({remaining - burn_per_day * days_left:,.0f} "
+                    "projected to spare). Keep tracking — overage is managed, not hoped."
+                )
     print("  reminder: contingency convention is % of BTL+post, not whole budget — financiers/")
     print("            bond companies expect to see it. Validate the base + rate (sec 3 #1, #4).")
     return 0
@@ -205,10 +239,14 @@ def cmd_overtime_burden(args: argparse.Namespace) -> int:
     print(f"  time-and-a-half hour (loaded)  : {ot15:>10,.2f}  ({ot15 / st:.2f}x the ST hour)")
     print(f"  double-time hour (loaded)      : {ot2:>10,.2f}  ({ot2 / st:.2f}x the ST hour)")
     print()
-    print(f"  => one DT hour costs {ot2 - st:,.2f} more than one straight-time hour, per crew member.")
+    print(
+        f"  => one DT hour costs {ot2 - st:,.2f} more than one straight-time hour, per crew member."
+    )
     print("  multiply by crew headcount before the AD calls 'one more hour'. And remember the")
     print("  hidden second cost: a short turnaround tomorrow can force a forced-call premium too.")
-    print("  reminder: multipliers + thresholds + meal penalties are agreement-specific (sec 3 #8).")
+    print(
+        "  reminder: multipliers + thresholds + meal penalties are agreement-specific (sec 3 #8)."
+    )
     return 0
 
 
@@ -223,41 +261,94 @@ def build_parser() -> argparse.ArgumentParser:
     sub = p.add_subparsers(dest="cmd", required=True)
 
     sd = sub.add_parser("shoot-day-cost", help="Loaded shoot-day cost with overtime + fringe")
-    sd.add_argument("--crew-base", type=float, required=True,
-                    help="straight-time crew cost for the contracted day")
-    sd.add_argument("--contracted-hours", type=float, required=True,
-                    help="contracted straight-time day length (hours)")
-    sd.add_argument("--worked-hours", type=float, required=True,
-                    help="hours actually worked (or projected) on the day")
-    sd.add_argument("--dt-after", type=float, default=12.0,
-                    help="worked hours after which double-time applies (default 12)")
-    sd.add_argument("--fringe", type=_parse_rate, default=0.30,
-                    help="payroll fringe/burden as a fraction of labor (default 30%%)")
-    sd.add_argument("--flat-costs", type=float, default=0.0,
-                    help="flat per-day non-labor costs (gear/location/catering)")
+    sd.add_argument(
+        "--crew-base",
+        type=float,
+        required=True,
+        help="straight-time crew cost for the contracted day",
+    )
+    sd.add_argument(
+        "--contracted-hours",
+        type=float,
+        required=True,
+        help="contracted straight-time day length (hours)",
+    )
+    sd.add_argument(
+        "--worked-hours",
+        type=float,
+        required=True,
+        help="hours actually worked (or projected) on the day",
+    )
+    sd.add_argument(
+        "--dt-after",
+        type=float,
+        default=12.0,
+        help="worked hours after which double-time applies (default 12)",
+    )
+    sd.add_argument(
+        "--fringe",
+        type=_parse_rate,
+        default=0.30,
+        help="payroll fringe/burden as a fraction of labor (default 30%%)",
+    )
+    sd.add_argument(
+        "--flat-costs",
+        type=float,
+        default=0.0,
+        help="flat per-day non-labor costs (gear/location/catering)",
+    )
     sd.set_defaults(func=cmd_shoot_day_cost)
 
     ct = sub.add_parser("contingency", help="Top-sheet contingency reserve + burn projection")
-    ct.add_argument("--base", type=float, required=True,
-                    help="contingency base (convention: below-the-line + post)")
-    ct.add_argument("--pct", type=_parse_rate, default=0.10,
-                    help="contingency rate as a fraction (default 10%%)")
-    ct.add_argument("--pre-contingency-total", type=float, default=None,
-                    help="grand total before contingency (default: use --base)")
-    ct.add_argument("--drawn", type=float, default=None,
-                    help="contingency dollars drawn to date (optional)")
-    ct.add_argument("--days-elapsed", type=float, default=None,
-                    help="shoot-days elapsed, for a burn projection (optional)")
-    ct.add_argument("--days-total", type=float, default=None,
-                    help="total shoot-days, for a burn projection (optional)")
+    ct.add_argument(
+        "--base",
+        type=float,
+        required=True,
+        help="contingency base (convention: below-the-line + post)",
+    )
+    ct.add_argument(
+        "--pct",
+        type=_parse_rate,
+        default=0.10,
+        help="contingency rate as a fraction (default 10%%)",
+    )
+    ct.add_argument(
+        "--pre-contingency-total",
+        type=float,
+        default=None,
+        help="grand total before contingency (default: use --base)",
+    )
+    ct.add_argument(
+        "--drawn", type=float, default=None, help="contingency dollars drawn to date (optional)"
+    )
+    ct.add_argument(
+        "--days-elapsed",
+        type=float,
+        default=None,
+        help="shoot-days elapsed, for a burn projection (optional)",
+    )
+    ct.add_argument(
+        "--days-total",
+        type=float,
+        default=None,
+        help="total shoot-days, for a burn projection (optional)",
+    )
     ct.set_defaults(func=cmd_contingency)
 
     ot = sub.add_parser("overtime-burden", help="Marginal loaded cost of an overtime hour")
     ot.add_argument("--rate", type=float, required=True, help="base hourly rate for the position")
-    ot.add_argument("--dt-after", type=float, default=12.0,
-                    help="worked hours after which double-time applies (default 12)")
-    ot.add_argument("--fringe", type=_parse_rate, default=0.30,
-                    help="payroll fringe/burden as a fraction (default 30%%)")
+    ot.add_argument(
+        "--dt-after",
+        type=float,
+        default=12.0,
+        help="worked hours after which double-time applies (default 12)",
+    )
+    ot.add_argument(
+        "--fringe",
+        type=_parse_rate,
+        default=0.30,
+        help="payroll fringe/burden as a fraction (default 30%%)",
+    )
     ot.set_defaults(func=cmd_overtime_burden)
 
     return p

@@ -1,6 +1,6 @@
 {
   "name": "cli-tooling-engineering",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "CLI-tooling-engineering team — 4 agents (cli-architect, cli-implementation-engineer, tui-engineer, cli-distribution-engineer) for command-line tools and TUIs that feel native to the shell: the command/subcommand + flag/positional surface, config precedence (flags > env > file > default), the output contract (human by default, --json on demand, exit codes as an API, data->stdout/diagnostics->stderr, NO_COLOR/TTY detection), stdin, signal handling, TUIs (Ink / Bubble Tea / Textual / ratatui) with a non-TTY fallback, shell completions, and distribution (single static binary, Homebrew / Scoop / winget / npm / pipx, --version + update path). 5 skills, a knowledge bank (command-surface + output/exit-code + framework + distribution decision trees + a dated 2026 map), 12 best-practices, 4 templates, 4 commands, 1 advisory hook. Seams: service logic -> backend-engineering, release/signing -> devops-cicd, GUI sibling -> desktop-app-engineering, docs -> technical-writing-docs. Requires ravenclaude-core@>=0.7.0.",
   "author": {
     "name": "Matt Corbett"

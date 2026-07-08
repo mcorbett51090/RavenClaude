@@ -1,0 +1,104 @@
+{
+  "_synthetic": "OBVIOUSLY FAKE recorded SuiteQL chart-of-accounts RESULT (SELECT acctnumber, fullname, accttype, subsidiary FROM account). No real data, no PII. Spans every documented BALANCE_SHEET_TYPES / INCOME_STATEMENT_TYPES accttype in suiteql.py, plus one deliberately-unknown accttype ('Statistical') to exercise the REVIEW REQUIRED path.",
+  "netsuite_account_id": "TSTDRV0000FAKE",
+  "rows": [
+    { "acctnumber": "1000", "fullname": "Cash", "accttype": "Bank", "subsidiary": "1" },
+    {
+      "acctnumber": "1100",
+      "fullname": "Accounts Receivable",
+      "accttype": "AcctRec",
+      "subsidiary": "1"
+    },
+    {
+      "acctnumber": "1200",
+      "fullname": "Inventory",
+      "accttype": "OthCurrAsset",
+      "subsidiary": "1"
+    },
+    {
+      "acctnumber": "1500",
+      "fullname": "Property Plant & Equipment",
+      "accttype": "FixedAsset",
+      "subsidiary": "1"
+    },
+    {
+      "acctnumber": "1800",
+      "fullname": "Prepaid Expenses",
+      "accttype": "DeferExpense",
+      "subsidiary": "1"
+    },
+    {
+      "acctnumber": "1900",
+      "fullname": "Long-Term Deposits",
+      "accttype": "OthAsset",
+      "subsidiary": "1"
+    },
+    {
+      "acctnumber": "2000",
+      "fullname": "Accounts Payable",
+      "accttype": "AcctPay",
+      "subsidiary": "1"
+    },
+    {
+      "acctnumber": "2050",
+      "fullname": "Corporate Card Payable",
+      "accttype": "CredCard",
+      "subsidiary": "1"
+    },
+    {
+      "acctnumber": "2100",
+      "fullname": "Accrued Liabilities",
+      "accttype": "OthCurrLiab",
+      "subsidiary": "1"
+    },
+    {
+      "acctnumber": "2200",
+      "fullname": "Deferred Revenue",
+      "accttype": "DeferRevenue",
+      "subsidiary": "1"
+    },
+    {
+      "acctnumber": "2500",
+      "fullname": "Long-term Debt",
+      "accttype": "LongTermLiab",
+      "subsidiary": "1"
+    },
+    { "acctnumber": "3000", "fullname": "Common Stock", "accttype": "Equity", "subsidiary": "1" },
+    {
+      "acctnumber": "4000",
+      "fullname": "Product Revenue",
+      "accttype": "Income",
+      "subsidiary": "1"
+    },
+    {
+      "acctnumber": "5000",
+      "fullname": "Cost of Goods Sold",
+      "accttype": "COGS",
+      "subsidiary": "1"
+    },
+    {
+      "acctnumber": "6000",
+      "fullname": "Operating Expenses",
+      "accttype": "Expense",
+      "subsidiary": "1"
+    },
+    {
+      "acctnumber": "7000",
+      "fullname": "Interest Expense",
+      "accttype": "OthExpense",
+      "subsidiary": "1"
+    },
+    {
+      "acctnumber": "7100",
+      "fullname": "Interest Income",
+      "accttype": "OthIncome",
+      "subsidiary": "1"
+    },
+    {
+      "acctnumber": "9999",
+      "fullname": "Statistical Placeholder",
+      "accttype": "Statistical",
+      "subsidiary": "1"
+    }
+  ]
+}

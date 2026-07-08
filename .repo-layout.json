@@ -11,6 +11,7 @@
     "SECURITY.md",
     "GETTING_STARTED.md",
     "STRATEGY.md",
+    "logo-export/**",
     "evals/**",
     "schemas/**",
     "tests/fixtures/**",

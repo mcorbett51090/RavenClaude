@@ -6,7 +6,7 @@ Part of the [RavenClaude](https://github.com/mcorbett51090/RavenClaude) marketpl
 
 ## What it's for
 
-When an alert fires and you have to decide *fast* — is this an incident, how bad is it, do we contain now or capture memory first, who do we have to notify and by when — this plugin is the team that runs it with you, on the NIST SP 800-61r2 lifecycle. And between incidents, it builds the detections (Sigma rules mapped to MITRE ATT&CK), hunts for what the alerts missed, and acquires evidence that survives scrutiny (order of volatility, chain of custody). It is the **SOC / blue-team lane** — the *response*, not the appsec fix or the compliance program.
+When an alert fires and you have to decide *fast* — is this an incident, how bad is it, do we contain now or capture memory first, who do we have to notify and by when — this plugin is the team that runs it with you, on the four-phase incident-handling lifecycle (NIST SP 800-61r3, CSF 2.0-aligned; supersedes r2). And between incidents, it builds the detections (Sigma rules mapped to MITRE ATT&CK), hunts for what the alerts missed, and acquires evidence that survives scrutiny (order of volatility, chain of custody). It is the **SOC / blue-team lane** — the *response*, not the appsec fix or the compliance program.
 
 ## Agents
 

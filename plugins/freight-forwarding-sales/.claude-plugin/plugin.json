@@ -1,6 +1,6 @@
 {
   "name": "freight-forwarding-sales",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "International freight-forwarding sales team — 6 specialist agents (freight-rate-quoter, rfq-tender-strategist, key-account-manager, pipeline-forecast-coach, prospecting-outreach-strategist, trade-lane-compliance-advisor) for the day-to-day of a global-forwarding sales / business-development manager: building accurate all-in ocean + air quotes (chargeable weight, BAF/CAF/THC/LSS surcharges, margin), responding to RFQs/RFPs/tenders, running QBRs and account plans, keeping the CRM pipeline and forecast honest, prospecting shippers multi-channel, and getting Incoterms 2020 + customs basics right. 6 skills, 6 slash commands, a 2-doc knowledge bank with 10 Mermaid decision trees (mode, quote-vs-qualify, Incoterms, spot-vs-contract, rate-objection, account-risk, prospect-pursuit, quote-delivery, LCL-vs-FCL, deadline mode-shift), a scenarios bank, and a runnable chargeable-weight / quote-margin calculator. Carrier-neutral — any forwarder or 3PL. Inherits ravenclaude-core protocols.",
   "author": {
     "name": "Matt Corbett"

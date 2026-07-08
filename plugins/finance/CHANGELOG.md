@@ -2,6 +2,29 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.17.6] — 2026-07-08
+
+Two non-blocking robustness hardenings for `honor_retry_after()` from the v0.17.5 security-reviewer sign-off (both fail in the safe direction; no security defect was present).
+
+- **Per-attempt `Retry-After` is now clamped to `backoff_cap`.** A single (attacker-influenceable) `Retry-After` header can no longer request a sleep longer than one exponential-backoff ceiling (default 60s) — previously only the *total* `backoff_budget_seconds` bounded it, so one header up to the full budget (120s) could hold the per-entity lock in a single sleep. The total-budget guard is unchanged; this tightens the single-sleep ceiling.
+- **The RFC-7231 HTTP-date form of `Retry-After` is now honored.** A `Retry-After` sent as an absolute HTTP-date (not delta-seconds) is parsed (`email.utils.parsedate_to_datetime`), the delta from `now()` is used, and the result is clamped to `[0, cap]` (past dates → 0; naive/tz-less parse treated as UTC). Previously a date value silently fell back to exponential backoff. `honor_retry_after` gained an injectable `now` (defaulted to `time.time`; the client passes its `clock`).
+
+Proven by 7 new assertions in `test_connectors.py` W2.5b (delta clamp, date honored/clamped/past, garbage→exponential, client-level huge-header capped at 60s). Full suite 59/59 green; ruff-clean. Security-reviewer verdict on the v0.17.5 retry path was CLEAR-TO-MERGE; these are the two optional follow-ups it noted.
+
+## [0.17.5] — 2026-07-08
+
+In-client 429/5xx backoff-retry for the OAuth GL connector — the follow-up the 2026-07-08 review deferred as a design question (now decided: implement it).
+
+- **`scripts/connectors/oauth_client.py` now retries a throttled/transient token refresh in place.** `_refresh_locked` (reached by both `refresh()` and `get_access_token()`) honors `Retry-After` via `honor_retry_after()` and retries on `BACKOFF_RETRY` (429 / 5xx) up to `max_backoff_retries` (default 3), instead of raising `TokenRefreshError` on the first 429. So a transient QBO/Xero throttle no longer aborts the whole GL extract. New constructor knobs: `max_backoff_retries`, `backoff_base`, `backoff_cap`, `backoff_budget_seconds`, and an injectable `sleep` (for tests).
+- **Bounded to protect the per-entity lock.** The refresh runs under the entity lock, so the retry is capped by a total `backoff_budget_seconds` (default 120s): if the next required backoff would exceed the remaining budget, it raises for the caller to retry later rather than pinning the lock. `REAUTH_REQUIRED` (invalid_grant) is never retried; `TransportTimeout` grace-retry and persist-then-use ordering are unchanged. Each backoff fires an observable `backoff_retry` alert that carries no token value.
+- **Security invariants preserved (this file is a `security_review` target):** tokens still never logged, bounded lock-hold, persist-then-use unchanged. Proven by 16 new assertions in `test_connectors.py` W2.6c (429→200, 5xx, exhaustion schedule, over-budget-no-sleep, invalid_grant-not-retried, retries-disabled, no-token-leak). Full suite: 52/52 green, ruff-clean.
+
+## [0.17.4] — 2026-07-08
+
+Docstring accuracy fix from the autonomous 3-panel repo review (run 2026-07-08). No behavior change.
+
+- **P3 — `scripts/connectors/oauth_client.py` docstring corrected.** The error-cause routing table promised "429 (throttled) → BACKOFF_RETRY (honor Retry-After, then retry)", but the shipped API (`refresh` / `get_access_token`) raises `TokenRefreshError` on a 429 and never itself backs off or retries (`honor_retry_after` is a helper for the caller to drive). The docstring now states accurately that the client _classifies_ the cause while the caller honors Retry-After and re-invokes — removing a "then retry" promise the component didn't keep. (Whether to implement the retry loop inside the client is a design question deferred to the maintainer.)
+
 ## [0.17.1] — 2026-07-06
 
 Hardening + evidence for the live-integration tier (no new skills; W3 warehouse RLS moves from *specified* to *executed* at the DB layer).
