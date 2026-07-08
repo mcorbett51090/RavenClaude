@@ -36,8 +36,8 @@ Apply each opinion that's relevant to the artifact under review. Mark non-applic
 3. **Logic-less triggers.** *Look for:* `if`/queries/DML in the trigger itself. *Fix:* move all logic to the handler; the trigger only dispatches by context.
 4. **Recursion control.** *Look for:* a handler with no static guard re-entering on a DML it caused. *Fix:* a static boolean/Set guard keyed by record ID.
 5. **No hard-coded IDs.** *Look for:* 15- or 18-char literal IDs, RecordType/profile IDs in code. *Fix:* query by DeveloperName or read from custom metadata.
-6. **`with sharing` by default.** *Look for:* classes with no sharing keyword, or `without sharing` with no comment. *Fix:* add `with sharing`; justify any `without sharing` inline.
-7. **Enforce CRUD/FLS.** *Look for:* user-context SOQL/DML with no `WITH SECURITY_ENFORCED` or `Security.stripInaccessible`. *Fix:* add enforcement; **escalate the security verdict to core.**
+6. **`with sharing` by default.** *Look for:* classes with no sharing keyword, or `without sharing` with no comment. *Fix:* add `with sharing`; justify any `without sharing` inline. (At **API v67.0+** an omitted sharing keyword now defaults to `with sharing` — keep declaring it explicitly for clarity across API versions.)
+7. **Enforce CRUD/FLS.** *Look for:* user-context SOQL/DML with no `WITH USER_MODE` / `WITH SECURITY_ENFORCED` or `Security.stripInaccessible`. *Fix:* add enforcement — prefer `WITH USER_MODE`. **At API v67.0+ `WITH SECURITY_ENFORCED` is removed (does not compile) and DML/SOQL default to user mode** — flag any v67.0+ class still using `WITH SECURITY_ENFORCED` and migrate it to `WITH USER_MODE`. `[verify-at-build]` **Escalate the security verdict to core.**
 8. **Bind every SOQL variable.** *Look for:* string concatenation building dynamic SOQL. *Fix:* bind variables (`:var`) or `String.escapeSingleQuotes`; **escalate injection findings to core.**
 9. **Test for bulk.** *Look for:* tests that insert one record, or assert only coverage. *Fix:* insert 200 records and assert outcomes.
 10. **No `SeeAllData=true`.** *Look for:* `@isTest(SeeAllData=true)`. *Fix:* build data with a TestDataFactory.

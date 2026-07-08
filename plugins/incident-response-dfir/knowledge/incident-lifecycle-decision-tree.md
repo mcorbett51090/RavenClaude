@@ -1,6 +1,8 @@
 # Knowledge — Incident lifecycle & severity decision tree
 
-> **Last reviewed:** 2026-07-01 · **Confidence:** High (NIST SP 800-61r2 phases are settled doctrine; the severity matrix is an industry-common impact × scope model — tune the thresholds to the org). **Not legal advice** — notification obligations are a legal call; flag them.
+> **Last reviewed:** 2026-07-08 · **Confidence:** High (the four-phase incident-handling lifecycle is settled doctrine; the severity matrix is an industry-common impact × scope model — tune the thresholds to the org). **Not legal advice** — notification obligations are a legal call; flag them.
+>
+> **Standard currency note (verified 2026-07-08):** the four-phase lifecycle is the model from **NIST SP 800-61r2**, which is **superseded by [SP 800-61r3](https://csrc.nist.gov/pubs/sp/800/61/r3/final)** (Apr 3 2025). r3 reframes incident response around the **CSF 2.0 Functions** (Govern/Identify/Protect/Detect/Respond/Recover) rather than a single prescribed lifecycle; the phases here stay valid as an operational runbook. Cite **r3** as current NIST guidance.
 > The `dfir-response-lead` traverses this tree **before** naming a severity or a containment path. The governing question is always business impact × scope, never the alert's tone.
 
 The discipline: **is-it-an-incident? → severity (impact × scope) → containment path** — then run the NIST phases in order. Never jump to eradication before scoping and containing.
@@ -35,7 +37,7 @@ flowchart TD
   LONG --> ERAD
 ```
 
-## The NIST SP 800-61r2 phases (run in order)
+## The four-phase incident-handling lifecycle (run in order)
 
 ```mermaid
 flowchart LR
@@ -63,5 +65,5 @@ flowchart LR
 > Take the **higher** of impact/scope when in doubt. Regulated/personal data in scope escalates and starts the notification clock at *awareness*.
 
 ## Provenance
-- NIST SP 800-61r2 *Computer Security Incident Handling Guide* (the four-phase lifecycle). Severity model is an industry-common impact × scope classification (adapt thresholds per org). Notification obligations are legal — see [`../best-practices/notification-timelines-are-legal-deadlines-not-guidelines.md`](../best-practices/notification-timelines-are-legal-deadlines-not-guidelines.md). Last reviewed 2026-07-01.
+- NIST SP 800-61r2 *Computer Security Incident Handling Guide* (the four-phase lifecycle), **superseded by SP 800-61r3 (2025, CSF 2.0-aligned)** — cite r3 as current. Severity model is an industry-common impact × scope classification (adapt thresholds per org). Notification obligations are legal — see [`../best-practices/notification-timelines-are-legal-deadlines-not-guidelines.md`](../best-practices/notification-timelines-are-legal-deadlines-not-guidelines.md). Last reviewed 2026-07-01.
 - See also [`forensics-and-evidence-handling.md`](forensics-and-evidence-handling.md) for the evidence-capture gate.

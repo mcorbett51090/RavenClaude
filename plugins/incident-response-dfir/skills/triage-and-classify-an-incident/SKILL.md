@@ -21,7 +21,7 @@ A short verdict block: **event vs incident**, **severity (S1–S4) + reasoning**
 
 ## Procedure
 
-1. **Gate: is this an incident?** An *event* is any observable occurrence; an *adverse event* has negative consequence; a *security incident* is a violation (or imminent threat of violation) of security policy, acceptable-use, or standard practice (NIST SP 800-61r2). If it's a confirmed false positive → route to detection tuning, not the lifecycle. If unconfirmed → treat as a suspected incident and proceed (you can downgrade).
+1. **Gate: is this an incident?** An *event* is any observable occurrence; an *adverse event* has negative consequence; a *security incident* is a violation (or imminent threat of violation) of security policy, acceptable-use, or standard practice (NIST SP 800-61r3, CSF 2.0-aligned; supersedes r2). If it's a confirmed false positive → route to detection tuning, not the lifecycle. If unconfirmed → treat as a suspected incident and proceed (you can downgrade).
 2. **Scope the impact.** What is affected and how badly? Confidentiality (data exposed?), Integrity (data/systems altered?), Availability (service down?). Note whether regulated/personal data is in scope — that changes the notification obligations (hand to the lead).
 3. **Scope the spread.** One host or many? A sandbox or a domain controller / crown-jewel system? Contained to one account or lateral movement observed?
 4. **Classify severity from impact × scope.** Use the matrix below. Severity is the *business* consequence, not the alarm's tone — a quiet alert on a DC outranks a loud one on a test box.
