@@ -17,6 +17,7 @@ Exits 0 iff every load-bearing property holds:
 
 No live credentials, no live sockets, all fixtures synthetic/obviously-fake.
 """
+
 from __future__ import annotations
 
 import json
@@ -39,6 +40,7 @@ from connectors.oauth_client import (  # noqa: E402
     OAuthClient,
     ReauthRequired,
     SimulatedCrash,
+    TokenRefreshError,
     TransportTimeout,
     classify_error,
     honor_retry_after,
@@ -102,8 +104,16 @@ class RotatingTransport:
         with self._lock:
             self.token_calls += 1
             n = self.token_calls
-        return TokenResponse(200, {"access_token": f"A{n}", "refresh_token": f"R{n}",
-                                   "expires_in": 3600, "token_type": "Bearer"}, {})
+        return TokenResponse(
+            200,
+            {
+                "access_token": f"A{n}",
+                "refresh_token": f"R{n}",
+                "expires_in": 3600,
+                "token_type": "Bearer",
+            },
+            {},
+        )
 
 
 def _write_store(path, tokens):
@@ -118,20 +128,33 @@ def main():
     print("W2.1 — rotating-token ATOMIC persist-then-use ordering")
     with tempfile.TemporaryDirectory() as d:
         store = os.path.join(d, "qbo-MRI.token.json")
-        _write_store(store, {"access_token": "A0", "refresh_token": "R0",
-                             "expires_at": fixed["t"] - 10})  # expired
+        _write_store(
+            store, {"access_token": "A0", "refresh_token": "R0", "expires_at": fixed["t"] - 10}
+        )  # expired
         events = []
-        tr = StubTransport([TokenResponse(200, {"access_token": "A1", "refresh_token": "R1",
-                                               "expires_in": 3600}, {})], events=events)
+        tr = StubTransport(
+            [
+                TokenResponse(
+                    200, {"access_token": "A1", "refresh_token": "R1", "expires_in": 3600}, {}
+                )
+            ],
+            events=events,
+        )
         client = OAuthClient("qbo", store, tr, clock=clock, events=events)
         client.refresh()
         tr.api_request()  # the "use"
         names = [e[0] for e in events]
-        check("token_request precedes persist", names.index("token_request") < names.index("persist"))
-        check("persist precedes the first use (persist-THEN-use)",
-              names.index("persist") < names.index("use"))
-        check("the NEW rotating refresh token is durable on disk after persist",
-              json.load(open(store))["refresh_token"] == "R1")
+        check(
+            "token_request precedes persist", names.index("token_request") < names.index("persist")
+        )
+        check(
+            "persist precedes the first use (persist-THEN-use)",
+            names.index("persist") < names.index("use"),
+        )
+        check(
+            "the NEW rotating refresh token is durable on disk after persist",
+            json.load(open(store))["refresh_token"] == "R1",
+        )
 
     print("W2.2 — crash-safety (atomic persist)")
     with tempfile.TemporaryDirectory() as d:
@@ -139,25 +162,31 @@ def main():
         _write_store(store, {"refresh_token": "OLD", "access_token": "A0"})
         # crash AFTER os.replace: the NEW token is durable.
         oauth_client._atomic_persist(store, {"refresh_token": "NEW", "access_token": "A1"})
-        check("crash AFTER persist -> NEW token durable",
-              json.load(open(store))["refresh_token"] == "NEW")
+        check(
+            "crash AFTER persist -> NEW token durable",
+            json.load(open(store))["refresh_token"] == "NEW",
+        )
         # crash DURING the write (before os.replace): OLD token intact, no half-write.
         _write_store(store, {"refresh_token": "OLD2", "access_token": "A0"})
         raised = False
         try:
-            oauth_client._atomic_persist(store, {"refresh_token": "NEW2", "access_token": "A9"},
-                                         crash_after_tmp=True)
+            oauth_client._atomic_persist(
+                store, {"refresh_token": "NEW2", "access_token": "A9"}, crash_after_tmp=True
+            )
         except SimulatedCrash:
             raised = True
         check("mid-write crash raises before os.replace", raised)
-        check("crash DURING write -> OLD token fully intact (never half-written)",
-              json.load(open(store))["refresh_token"] == "OLD2")
+        check(
+            "crash DURING write -> OLD token fully intact (never half-written)",
+            json.load(open(store))["refresh_token"] == "OLD2",
+        )
 
     print("W2.3 — per-entity lock serializes two concurrent refreshes to ONE rotation")
     with tempfile.TemporaryDirectory() as d:
         store = os.path.join(d, "xero-MRI.token.json")
-        _write_store(store, {"access_token": "A0", "refresh_token": "R0",
-                             "expires_at": 0.0})  # expired (real-clock client)
+        _write_store(
+            store, {"access_token": "A0", "refresh_token": "R0", "expires_at": 0.0}
+        )  # expired (real-clock client)
         rot = RotatingTransport()
         client = OAuthClient("xero", store, rot)  # real time.time clock
         errs = []
@@ -173,15 +202,21 @@ def main():
             t.start()
         for t in ts:
             t.join()
-        check("two concurrent refreshes collapse to ONE rotation (recheck-under-lock)",
-              rot.token_calls == 1 and not errs)
-        check("store holds exactly the single rotation's token",
-              json.load(open(store))["refresh_token"] == "R1")
+        check(
+            "two concurrent refreshes collapse to ONE rotation (recheck-under-lock)",
+            rot.token_calls == 1 and not errs,
+        )
+        check(
+            "store holds exactly the single rotation's token",
+            json.load(open(store))["refresh_token"] == "R1",
+        )
 
     print("W2.4 — invalid_grant -> REAUTH_REQUIRED, non-retryable, alert fired")
     with tempfile.TemporaryDirectory() as d:
         store = os.path.join(d, "qbo.token.json")
-        _write_store(store, {"access_token": "A0", "refresh_token": "R0", "expires_at": fixed["t"] - 10})
+        _write_store(
+            store, {"access_token": "A0", "refresh_token": "R0", "expires_at": fixed["t"] - 10}
+        )
         alerts = []
         tr = StubTransport([TokenResponse(400, {"error": "invalid_grant"}, {})])
         client = OAuthClient("qbo", store, tr, clock=clock, alert_hook=alerts.append)
@@ -193,8 +228,10 @@ def main():
         check("invalid_grant raises ReauthRequired", got_reauth)
         check("alert hook fired exactly once", len(alerts) == 1)
         check("alert carries NO token value", all("R0" not in json.dumps(a) for a in alerts))
-        check("NON-retryable: the token endpoint was called exactly once (no backoff/retry)",
-              tr.token_calls == 1)
+        check(
+            "NON-retryable: the token endpoint was called exactly once (no backoff/retry)",
+            tr.token_calls == 1,
+        )
 
     print("W2.5 — error-cause routing: three distinct actions")
     a401 = classify_error(401, {})
@@ -204,23 +241,36 @@ def main():
     check("429 -> BACKOFF_RETRY", a429 == BACKOFF_RETRY)
     check("invalid_grant -> REAUTH_REQUIRED", agrant == REAUTH_REQUIRED)
     check("the three causes map to THREE distinct actions", len({a401, a429, agrant}) == 3)
-    check("429 backoff honors Retry-After header", honor_retry_after({"Retry-After": "12"}, 0) == 12.0)
+    check(
+        "429 backoff honors Retry-After header", honor_retry_after({"Retry-After": "12"}, 0) == 12.0
+    )
 
     print("W2.6 — Xero 30-min grace: lost response retries with the EXISTING refresh token")
     with tempfile.TemporaryDirectory() as d:
         store = os.path.join(d, "xero.token.json")
-        _write_store(store, {"access_token": "A0", "refresh_token": "RX0", "expires_at": fixed["t"] - 10})
-        tr = StubTransport([TransportTimeout("lost response"),
-                            TokenResponse(200, {"access_token": "AX1", "refresh_token": "RX1",
-                                               "expires_in": 1800}, {})])
+        _write_store(
+            store, {"access_token": "A0", "refresh_token": "RX0", "expires_at": fixed["t"] - 10}
+        )
+        tr = StubTransport(
+            [
+                TransportTimeout("lost response"),
+                TokenResponse(
+                    200, {"access_token": "AX1", "refresh_token": "RX1", "expires_in": 1800}, {}
+                ),
+            ]
+        )
         client = OAuthClient("xero", store, tr, clock=clock)
         client.refresh()
         check("grace: the endpoint is retried after a lost response", tr.token_calls == 2)
-        check("grace retry reuses the EXISTING refresh token (no assumed rotation)",
-              all(p["refresh_token"] == "RX0" for p in tr.payloads))
+        check(
+            "grace retry reuses the EXISTING refresh token (no assumed rotation)",
+            all(p["refresh_token"] == "RX0" for p in tr.payloads),
+        )
     with tempfile.TemporaryDirectory() as d:
         store = os.path.join(d, "qbo.token.json")
-        _write_store(store, {"access_token": "A0", "refresh_token": "R0", "expires_at": fixed["t"] - 10})
+        _write_store(
+            store, {"access_token": "A0", "refresh_token": "R0", "expires_at": fixed["t"] - 10}
+        )
         tr = StubTransport([TransportTimeout("lost response")])
         client = OAuthClient("qbo", store, tr, clock=clock)  # grace_seconds == 0
         propagated = False
@@ -228,7 +278,55 @@ def main():
             client.refresh()
         except TransportTimeout:
             propagated = True
-        check("no-grace provider (QBO) does NOT silently retry a lost response", propagated and tr.token_calls == 1)
+        check(
+            "no-grace provider (QBO) does NOT silently retry a lost response",
+            propagated and tr.token_calls == 1,
+        )
+
+    print("W2.6b — rotating 200 that OMITS refresh_token: grace-gated (2026-07-08 finding 14)")
+    # QBO (grace_seconds == 0): a rotating 200 with no refresh_token must FAIL CLOSED
+    # rather than silently persist prior_refresh (which rotation may have killed).
+    with tempfile.TemporaryDirectory() as d:
+        store = os.path.join(d, "qbo.token.json")
+        _write_store(
+            store, {"access_token": "A0", "refresh_token": "R0", "expires_at": fixed["t"] - 10}
+        )
+        tr = StubTransport([TokenResponse(200, {"access_token": "A1", "expires_in": 3600}, {})])
+        alerts = []
+        client = OAuthClient("qbo", store, tr, clock=clock, alert_hook=alerts.append)
+        failed = False
+        try:
+            client.refresh()
+        except TokenRefreshError:
+            failed = True
+        check("QBO rotating 200 w/o refresh_token -> TokenRefreshError (fail closed)", failed)
+        check(
+            "QBO omit-rotation fires missing_rotated_refresh alert",
+            any(a["kind"] == "missing_rotated_refresh" for a in alerts),
+        )
+        check(
+            "QBO omit-rotation does NOT persist prior_refresh as 'new'",
+            json.load(open(store))["refresh_token"] == "R0",
+        )  # store untouched (no persist)
+    # Xero (grace_seconds > 0): a rotating 200 with no refresh_token reuses prior WITHIN
+    # grace, but surfaces the anomaly via an alert.
+    with tempfile.TemporaryDirectory() as d:
+        store = os.path.join(d, "xero.token.json")
+        _write_store(
+            store, {"access_token": "A0", "refresh_token": "RX0", "expires_at": fixed["t"] - 10}
+        )
+        tr = StubTransport([TokenResponse(200, {"access_token": "AX1", "expires_in": 1800}, {})])
+        alerts = []
+        client = OAuthClient("xero", store, tr, clock=clock, alert_hook=alerts.append)
+        new = client.refresh()
+        check(
+            "Xero rotating 200 w/o refresh_token reuses prior within grace",
+            new["refresh_token"] == "RX0",
+        )
+        check(
+            "Xero grace-reuse fires reused_prior_refresh_within_grace alert",
+            any(a["kind"] == "reused_prior_refresh_within_grace" for a in alerts),
+        )
 
     print("W2.7 — replay transport: refuses a missing fixture, never opens a socket")
     rt = ReplayTransport(FIX)
@@ -256,34 +354,59 @@ def main():
             mod.export(rt, raw)
             colmap = os.path.join(FIX, mod.COLUMN_MAP)
             out = os.path.join(d, f"staging-{prov}.csv")
-            r = subprocess.run([sys.executable, os.path.join(HERE, "tb_stage.py"), "stage",
-                                "--raw", raw, "--column-map", colmap, "--out", out],
-                               capture_output=True, text=True)
-            check(f"{prov}: adapter raw export stages to a balanced canonical TB (rc0)",
-                  r.returncode == 0 and os.path.exists(out))
+            r = subprocess.run(
+                [
+                    sys.executable,
+                    os.path.join(HERE, "tb_stage.py"),
+                    "stage",
+                    "--raw",
+                    raw,
+                    "--column-map",
+                    colmap,
+                    "--out",
+                    out,
+                ],
+                capture_output=True,
+                text=True,
+            )
+            check(
+                f"{prov}: adapter raw export stages to a balanced canonical TB (rc0)",
+                r.returncode == 0 and os.path.exists(out),
+            )
 
     print("W2.9 — gl_lineage: first-6 byte-identical to --gl-detail + badge lift")
     import statement_engine as se
+
     with tempfile.TemporaryDirectory() as d:
         lineage = os.path.join(d, "lineage.csv")
         gl_lineage.build_lineage(GL_DETAIL, lineage, "qbo", DOCS)
         proj = os.path.join(d, "proj.csv")
         gl_lineage.project_gl_detail(lineage, proj)
-        check("projection of the lineage's first 6 columns is BYTE-IDENTICAL to --gl-detail",
-              open(proj).read() == open(GL_DETAIL).read())
+        check(
+            "projection of the lineage's first 6 columns is BYTE-IDENTICAL to --gl-detail",
+            open(proj).read() == open(GL_DETAIL).read(),
+        )
         head = open(lineage).read().splitlines()[0]
-        check("lineage header starts with the exact --gl-detail contract + source-doc cols",
-              head == "je_id,account,description,debit,credit,memo,"
-                      "source_system,source_type,source_id,source_doc_url")
-        check("source_id (durable key) is never blank",
-              all(row.split(",")[8] for row in open(lineage).read().splitlines()[1:]))
+        check(
+            "lineage header starts with the exact --gl-detail contract + source-doc cols",
+            head == "je_id,account,description,debit,credit,memo,"
+            "source_system,source_type,source_id,source_doc_url",
+        )
+        check(
+            "source_id (durable key) is never blank",
+            all(row.split(",")[8] for row in open(lineage).read().splitlines()[1:]),
+        )
         ent = json.load(open(ENT))
         traced = se.run(ent, COA, TB, gl_detail=lineage)
-        check("statement_engine consumes the lineage file with ZERO change -> badge lifts",
-              traced["traceability_badge"] == "GL-detail-traced")
+        check(
+            "statement_engine consumes the lineage file with ZERO change -> badge lifts",
+            traced["traceability_badge"] == "GL-detail-traced",
+        )
         untraced = se.run(ent, COA, TB)
-        check("without a gl-detail/lineage file the badge stays TB-only",
-              "TB-only" in untraced["traceability_badge"])
+        check(
+            "without a gl-detail/lineage file the badge stays TB-only",
+            "TB-only" in untraced["traceability_badge"],
+        )
 
     n_pass = sum(1 for _, ok in results if ok)
     print(f"\n{n_pass}/{len(results)} acceptance tests passed.")
