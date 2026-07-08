@@ -1,0 +1,9 @@
+{
+  "_synthetic": "OBVIOUSLY FAKE NetSuite M2M (client-credentials) token response. Token value is fake. NOTE: M2M returns NO refresh_token — a fresh access token is minted each time by re-signing a JWT assertion.",
+  "status": 200,
+  "body": {
+    "access_token": "FAKE-NETSUITE-M2M-ACCESS",
+    "expires_in": 3600,
+    "token_type": "Bearer"
+  }
+}

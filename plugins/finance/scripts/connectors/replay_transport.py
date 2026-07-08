@@ -47,6 +47,7 @@ class ReplayTransport:
         self.fixture_dir = fixture_dir
         self.mode = mode
         self.calls = []          # audit trail of (kind, name) for test assertions
+        self._fired = set()      # (name, offset) error injections already fired (fire-once)
 
     def _path(self, name: str) -> str:
         return os.path.join(self.fixture_dir, name + ".json")
@@ -78,6 +79,25 @@ class ReplayTransport:
         """Return a recorded report/query payload (e.g. 'qbo/trial_balance'). Loud on miss."""
         self.calls.append(("fetch", name))
         return self._load(name)
+
+    def suiteql(self, query: str, *, limit: int = 1000, offset: int = 0,
+                name: str = "netsuite_m2m/suiteql_tb"):
+        """Serve a recorded SuiteQL result, paged by (limit, offset) out of one fixture. The
+        `query` text is recorded for the audit trail but ignored for selection (offline replay
+        can't execute SQL) — the fixture IS the recorded result. Returns a page dict:
+        {items, hasMore, status}. Loud on a missing fixture; never opens a socket. An optional
+        `_error` block in the fixture ({at_offset, status, headers}) injects a throttled page
+        once, to exercise the pager's Retry-After backoff deterministically."""
+        self.calls.append(("suiteql", f"{name}@{offset}"))
+        rec = self._load(name)
+        err = rec.get("_error")
+        if err and int(err.get("at_offset", -1)) == offset and (name, offset) not in self._fired:
+            self._fired.add((name, offset))   # fire once, then the retry succeeds
+            return {"items": [], "hasMore": True, "status": int(err.get("status", 429)),
+                    "headers": err.get("headers", {"Retry-After": "0"})}
+        all_rows = rec.get("rows", rec.get("items", []))
+        page = all_rows[offset:offset + limit]
+        return {"items": page, "hasMore": (offset + limit) < len(all_rows), "status": 200}
 
     def token_request(self, url: str, data: dict) -> TokenResponse:
         """Serve a recorded token-endpoint response, keyed by the caller's provider tag.

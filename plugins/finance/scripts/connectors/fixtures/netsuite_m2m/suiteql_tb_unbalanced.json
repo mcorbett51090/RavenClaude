@@ -1,0 +1,13 @@
+{
+  "_synthetic": "OBVIOUSLY FAKE non-tying SuiteQL TB result (Inventory understated by 1000) — exercises tie_out()'s loud failure. No real data.",
+  "rows": [
+    { "account": "1000", "name": "Cash", "amount": 500000 },
+    { "account": "1100", "name": "Accounts Receivable", "amount": 300000 },
+    { "account": "1200", "name": "Inventory", "amount": 199000 },
+    { "account": "2000", "name": "Accounts Payable", "amount": -250000 },
+    { "account": "3000", "name": "Common Stock", "amount": -600000 },
+    { "account": "4000", "name": "Revenue", "amount": -400000 },
+    { "account": "5000", "name": "Cost of Goods Sold", "amount": 180000 },
+    { "account": "6000", "name": "Operating Expenses", "amount": 70000 }
+  ]
+}

@@ -55,6 +55,7 @@ Stdlib only (json/os/sys/fcntl/time/argparse/hashlib). Python 3.8+.
 
 from __future__ import annotations
 
+import base64
 import fcntl
 import json
 import os
@@ -102,6 +103,25 @@ PROVIDERS = {
         "authorize_url": "https://<account>.app.netsuite.com/app/login/oauth2/authorize.nl",
         "tenant_field": "netsuite_account_id",
     },
+    # NetSuite OAuth 2.0 machine-to-machine (client-credentials + a certificate-signed JWT
+    # ASSERTION). This is the PRIMARY go-forward path: Token-Based Auth (OAuth 1.0a) can no
+    # longer CREATE new integrations from NetSuite 2027.1 [Oracle "Preparing for TBA End of
+    # Support", retrieved 2026-07-07 — settling-gated]. The critical shape difference: M2M has
+    # NO refresh token — a fresh access token is minted each time by re-signing a short-lived
+    # JWT with the private key whose public cert is registered in NetSuite. So the rotating-
+    # refresh disciplines above are INERT here; the real NetSuite failure modes are private-key
+    # custody (kept OFF this process's argv — see build_jwt_assertion) and assertion exp/clock
+    # skew. `jwt_assertion: True` selects the client_credentials mint path in get_access_token().
+    "netsuite_m2m": {
+        "auth_flow": "client_credentials",
+        "jwt_assertion": True,
+        "pkce": False,
+        "rotating_refresh": False,  # M2M has no refresh token at all — nothing rotates
+        "grace_seconds": 0,
+        "token_url": "https://<account>.suitetalk.api.netsuite.com/services/rest/auth/oauth2/v1/token",
+        "authorize_url": None,  # no interactive authorize step for M2M
+        "tenant_field": "netsuite_account_id",
+    },
     "intacct": {
         "auth_flow": "authorization_code",
         "pkce": False,
@@ -129,6 +149,66 @@ class TokenRefreshError(Exception):
 
 class SimulatedCrash(Exception):
     """Test-only: raised by _atomic_persist(crash_after_tmp=True) to model a mid-write crash."""
+
+
+class SignerUnavailable(Exception):
+    """The M2M path needs an asymmetric (RS256/PS256) signer that the stdlib cannot provide,
+    and none was injected. Raised LOUDLY (never a silent no-op) — mirrors close_identity.py's
+    refuse-loudly discipline for the optional-PyJWT asymmetric path."""
+
+
+# --- M2M client-assertion (RS256/PS256 JWT) via an INJECTED signer seam -------------------
+# The shipped core stays stdlib-only: it base64url-assembles the JWT and delegates the ONE
+# operation the stdlib can't do — the asymmetric signature — to an injected
+# `signer(signing_input: bytes) -> bytes`. The default signer REFUSES LOUDLY, so a consumer
+# who hasn't wired real crypto gets a clear error, never a silently-unsigned token. A working
+# reference signer (optional PyJWT, key read from a 0600 FILE, never argv) ships in
+# netsuite_signer.py. This is the same seam pattern as close_identity.py's IdentityAdapter.
+def _b64url(raw: bytes) -> str:
+    return base64.urlsafe_b64encode(raw).rstrip(b"=").decode("ascii")
+
+
+def refuse_loudly_signer(signing_input: bytes) -> bytes:
+    raise SignerUnavailable(
+        "REFUSING: NetSuite M2M needs an RS256/PS256 signature the Python stdlib cannot "
+        "produce, and no signer was injected. Wire netsuite_signer.py (optional PyJWT[crypto] "
+        "+ your private key from a 0600 file) or pass signer= to OAuthClient. The plugin ships "
+        "the seam; you supply the key — key custody stays OFF this process (never on argv)."
+    )
+
+
+def build_jwt_assertion(
+    client_id: str,
+    token_url: str,
+    kid: str,
+    scope: str,
+    signer,
+    *,
+    clock=time.time,
+    alg: str = "PS256",
+    ttl_seconds: int = 3000,
+    nonce=None,
+) -> str:
+    """Assemble a signed client-assertion JWT (RFC 7523) for NetSuite M2M. Header carries the
+    cert `kid`; claims are iss=client_id, scope, aud=token_url, short iat/exp, and a unique jti
+    (anti-replay). The signature is produced by the INJECTED signer over `header.claims`."""
+    now = int(clock())
+    header = {"alg": alg, "typ": "JWT", "kid": kid}
+    claims = {
+        "iss": client_id,
+        "scope": scope,
+        "aud": token_url,
+        "iat": now,
+        "exp": now + int(ttl_seconds),
+        "jti": nonce or os.urandom(16).hex(),
+    }
+    signing_input = (
+        _b64url(json.dumps(header, separators=(",", ":")).encode())
+        + "."
+        + _b64url(json.dumps(claims, separators=(",", ":")).encode())
+    )
+    signature = signer(signing_input.encode("ascii"))
+    return signing_input + "." + _b64url(signature)
 
 
 # --- Error-cause routing -----------------------------------------------------------------
@@ -274,6 +354,8 @@ class OAuthClient:
         alert_hook=None,
         events=None,
         skew_seconds: int = 60,
+        signer=None,
+        assertion=None,
         max_backoff_retries: int = 3,
         backoff_base: float = 1.0,
         backoff_cap: float = 60.0,
@@ -301,6 +383,10 @@ class OAuthClient:
         self.backoff_cap = float(backoff_cap)
         self.backoff_budget_seconds = float(backoff_budget_seconds)
         self.sleep = sleep
+        # M2M (client-credentials) seam: `signer(signing_input)->bytes` (defaults to the
+        # refuse-loudly signer) and `assertion` config {client_id, cert_id(kid), scope, alg}.
+        self.signer = signer or refuse_loudly_signer
+        self.assertion = assertion
 
     # -- helpers ---------------------------------------------------------------------------
     def _expired(self, tok: dict) -> bool:
@@ -424,22 +510,74 @@ class OAuthClient:
         self.events.append(("persist", self.provider))
         return new
 
+    # -- the M2M mint critical section (assumes the entity lock is HELD) --------------------
+    def _client_credentials_locked(self, cur: dict) -> dict:
+        """Mint an access token via OAuth2 client-credentials + a certificate-signed JWT
+        ASSERTION. No refresh token is involved (M2M has none) — we re-sign a short-lived
+        assertion each time the access token expires. `invalid_grant` here means a bad/expired
+        cert-to-role mapping, not a dead refresh token: it is still NON-retryable + alerts."""
+        if not self.assertion:
+            self._alert("no_assertion_config")
+            raise TokenRefreshError(
+                f"{self.provider}: M2M requires assertion config {{client_id, cert_id, scope}} — "
+                "none supplied. Pass assertion= to OAuthClient."
+            )
+        url = self.p["token_url"]
+        jwt = build_jwt_assertion(
+            client_id=self.assertion["client_id"],
+            token_url=url,
+            kid=self.assertion["cert_id"],
+            scope=self.assertion.get("scope", "rest_webservices"),
+            signer=self.signer,
+            clock=self.clock,
+            alg=self.assertion.get("alg", "PS256"),
+        )
+        payload = {
+            "grant_type": "client_credentials",
+            "client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
+            "client_assertion": jwt,
+            "provider": self.provider,  # replay keying
+        }
+        resp = self.transport.token_request(url, payload)
+        action = classify_error(resp.status, resp.body)
+        if action == REAUTH_REQUIRED:
+            self._alert("invalid_grant")  # bad cert/role mapping; NON-retryable; never backoff
+            raise ReauthRequired(
+                f"{self.provider}: invalid_grant — the cert-to-role mapping is bad or expired; "
+                "re-upload the certificate / re-map the integration in NetSuite."
+            )
+        if action != OK:
+            raise TokenRefreshError(
+                f"{self.provider}: M2M mint failed status={resp.status} action={action}"
+            )
+        new = self._tokens_from_body(resp.body, None)  # no prior refresh token for M2M
+        _atomic_persist(self.store_path, new)
+        self.events.append(("persist", self.provider))
+        return new
+
+    def _mint_locked(self, cur: dict) -> dict:
+        """Dispatch to the right token-acquisition path for this provider's auth flow."""
+        if self.p.get("auth_flow") == "client_credentials":
+            return self._client_credentials_locked(cur)
+        return self._refresh_locked(cur)
+
     # -- public API ------------------------------------------------------------------------
     def refresh(self) -> dict:
-        """Force a refresh under the per-entity lock. Persists atomically before returning."""
+        """Force a token acquisition under the per-entity lock. Persists atomically before
+        returning. Refresh-token flow for auth-code providers; a fresh assertion mint for M2M."""
         with _EntityLock(self.lock_path):
             cur = _read_store(self.store_path)
-            return self._refresh_locked(cur)
+            return self._mint_locked(cur)
 
     def get_access_token(self) -> str:
-        """Return a valid access token, refreshing under the lock only if needed. Two racing
-        callers collapse to ONE rotation via the recheck-under-lock."""
+        """Return a valid access token, acquiring under the lock only if needed. Two racing
+        callers collapse to ONE acquisition via the recheck-under-lock."""
         cur = _read_store(self.store_path)
         if not self._expired(cur):
             return cur["access_token"]
         with _EntityLock(self.lock_path):
             cur = _read_store(self.store_path)  # recheck under lock
             if not self._expired(cur):
-                return cur["access_token"]  # someone else already rotated
-            new = self._refresh_locked(cur)
+                return cur["access_token"]  # someone else already acquired
+            new = self._mint_locked(cur)
             return new["access_token"]
