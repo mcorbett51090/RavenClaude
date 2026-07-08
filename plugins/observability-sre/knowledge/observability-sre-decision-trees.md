@@ -1,6 +1,6 @@
 # Observability & SRE — Decision Trees
 
-_Decision trees + a dated capability map. Capability rows are `[verify-at-build]` — re-check against the vendor before quoting. Last reviewed: 2026-06-04._
+_Decision trees + a dated capability map. Capability rows are `[verify-at-build]` — re-check against the vendor before quoting. Last reviewed: 2026-07-08._
 
 Traverse before designing an alert or setting an SLO target.
 
@@ -98,6 +98,8 @@ graph TD
 
 _Series count = product of every label's distinct values. If you can't name the upper bound, it isn't a label._
 
+Attributes are a secret-exposure surface too — redact credentials/PII before they reach a span (see CVE-2026-54704).
+
 ## Capability map (dated — verify at build)
 
 | Capability | 2026 state `[verify-at-build]` | Notes |
@@ -108,6 +110,8 @@ _Series count = product of every label's distinct values. If you can't name the 
 | Multi-window burn-rate alerts | standard practice (Google SRE) | Fast + slow window AND-ed |
 | Exemplars (metric->trace links) | supported in Prometheus/OTel | Jump from a spike to a trace |
 | Managed backends | CloudWatch / Azure Monitor / Cloud Monitoring | OTel keeps app code portable across them |
+| OTel span-attribute secret redaction | caution `[verify-at-build]` | Auto-instrumentation can capture secrets in span attributes (`db.statement` etc.). **CVE-2026-54704 (2026-07-01)** leaked double-quoted DB passwords via JDBC auto-instrumentation — **pin `opentelemetry-java-instrumentation ≥ 2.28.0`** and treat span attributes as sensitive-data surfaces, not just log fields. (Stopgap if you can't upgrade: disable `db.statement` capture / statement sanitizer.) [NVD](https://nvd.nist.gov/vuln/detail/CVE-2026-54704) |
+| OTel deployment guidance | Blueprints + reference implementations (2026) `[verify-at-build]` | Official prescriptive patterns for K8s observability, non-K8s infra instrumentation, and centralized telemetry-platform architectures — prefer as the vendor-neutral starting point before hand-rolling a collector/pipeline topology. [OTel Blueprints](https://opentelemetry.io/docs/guidance/blueprints/) |
 
 ## Decision Tree: SLO target — tighten, loosen, or hold?
 

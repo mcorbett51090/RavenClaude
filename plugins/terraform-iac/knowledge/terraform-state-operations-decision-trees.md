@@ -73,7 +73,7 @@ flowchart TD
 ```
 
 **Rationale per leaf:**
-- *MAJOR / MINOR / PATCH* — a module's input/output surface **is its public API**. Removing or renaming an input/output, or changing a default, breaks callers → MAJOR. Adding an optional input or a new output is additive → MINOR. A no-interface bug fix → PATCH. This lets callers read the version and know whether an upgrade is safe.
+- *MAJOR / MINOR / PATCH* — a module's input/output surface **is its public API**. Removing or renaming an input/output, or changing a default, breaks callers → MAJOR. Adding an optional input or a new output is additive → MINOR. A no-interface bug fix → PATCH. This lets callers read the version and know whether an upgrade is safe. Before a MAJOR that removes/renames an input or output, mark it `deprecated` (Terraform ≥ 1.15) so callers get a warning diagnostic for a release before removal — a soft-deprecation runway rather than a hard break. [Terraform 1.15 (HashiCorp)](https://www.hashicorp.com/blog/terraform-1-15) `[verify-at-use — GA 2026-04-29; OpenTofu had deprecation markers earlier, verify exact syntax]`
 - *ship `moved` blocks inside the module* — if a MAJOR restructures resources (rename, split into submodules), include `moved` blocks **in the module** so a caller who upgrades gets an address remap instead of a destroy/recreate. This turns a scary breaking upgrade into a no-op plan for the moved resources.
 - *registry vs git pin* — both must be **pinned** (a version range for registry, a tag/commit for git) and never floated to `latest`/a branch. Floating makes `init` non-deterministic and turns an unrelated upstream change into a surprise diff (CLAUDE.md §2 #5).
 - *roll out one caller/env at a time* — even a correct bump is reviewed per caller with a `plan`; never bulk-bump every environment (especially prod) on one PR.
@@ -99,5 +99,6 @@ flowchart TD
 | `terraform force-unlock` | mature | Exact-ID-from-error only; dead-holder only |
 | `state rm` / `state mv` | mature | Manual, runner-only side effect — prefer `moved`/`import` blocks |
 | Private module registry | mature (TFC/TFE, Spacelift, etc.) | Semver + changelog; pin caller ranges |
+| Native variable/output `deprecated` markers | Terraform ≥ 1.15 (GA 2026-04-29); OpenTofu had this earlier — verify syntax | Warns callers before a MAJOR removal. [Terraform 1.15](https://www.hashicorp.com/blog/terraform-1-15) `[verify-at-use]` |
 
 > **Sources (retrieved 2026-06-05):** Terraform state-command + `moved`-block + `import`-block + `-replace`/`taint` documentation at https://developer.hashicorp.com/terraform/cli/commands/state and https://developer.hashicorp.com/terraform/language/modules/develop/refactoring . Version-introduced facts (1.1 `moved`, 1.5 `import` block) are version-volatile — re-confirm at use against the docs for the user's Terraform/OpenTofu version (OpenTofu tracks these but verify parity).

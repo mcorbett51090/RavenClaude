@@ -187,7 +187,7 @@ flowchart TD
 
 **When this applies:** A team needs to set cost controls on GCP spend. The observable inputs are: the scope of spend to control (one project, one team across multiple projects, the whole org), and whether the team wants to alert or also block resource creation when the budget is hit.
 
-**Last verified:** 2026-06-05 against GCP Cloud Billing budget documentation.
+**Last verified:** 2026-07-08 against GCP Cloud Billing budget documentation and [Share committed use discounts across projects](https://cloud.google.com/compute/docs/instances/committed-use-discounts-overview).
 
 ```mermaid
 flowchart TD
@@ -209,6 +209,7 @@ flowchart TD
 - *Folder-scoped budget* — when a folder represents a business unit or team and all spend there has a shared limit.
 - *Billing account budget* — the org-level backstop; fires last but catches everything; useful as a high-water-mark alarm.
 - *Pub/Sub + Cloud Function* — only use automated budget responses (disabling billing/stopping VMs) in dev/test; never in prod without extensive testing and runbook.
+- **Note (2026-06-16):** new Cloud Billing accounts now default to **billing-account-scoped resource-based CUD sharing ON** — one commitment applies across every linked project (existing accounts with no active commitments were auto-switched). If you use project- or folder-scoped budgets for chargeback/cost isolation, **verify CUD sharing scope**, because a shared commitment can subsidize projects outside the intended cost center. [Share CUDs across projects](https://cloud.google.com/compute/docs/instances/committed-use-discounts-overview) `[verify-at-use]`
 
 **Tradeoffs summary:**
 
