@@ -1,6 +1,6 @@
 # DevOps & CI/CD — Decision Trees
 
-_Decision trees + a dated capability map. Capability rows are `[verify-at-build]` — re-check against the vendor before quoting. Last reviewed: 2026-06-04._
+_Decision trees + a dated capability map. Capability rows are `[verify-at-build]` — re-check against the vendor before quoting. Last reviewed: 2026-07-08._
 
 Traverse these before choosing a pipeline shape or a rollout strategy.
 
@@ -98,11 +98,13 @@ _A static key pasted into a CI variable is the last resort, never the default �
 | Capability | 2026 state `[verify-at-build]` | Notes |
 |---|---|---|
 | GitHub Actions OIDC to cloud | GA | Prefer over long-lived keys; federate to AWS/Azure/GCP |
+| GitHub Actions workflow execution protections | Public preview (2026-06) | Rulesets-based allow-list controlling who (users/roles/Apps/Copilot/Dependabot) and which events (push, pull_request, pull_request_target, workflow_dispatch) may trigger workflows; `evaluate`/shadow mode before enforce. Restrict pull_request_target + workflow_dispatch to disrupt poisoned-pipeline execution. [Changelog 2026-06-18](https://github.blog/changelog/2026-06-18-control-who-and-what-triggers-github-actions-workflows/) `[verify-at-build]` |
 | Argo CD | GA, CNCF graduated | App-of-apps, ApplicationSets, drift self-heal |
 | Flux | GA, CNCF graduated | GitOps Toolkit controllers |
 | SLSA provenance | v1.0 framework | Build L2/L3 levels; pair with signing (cosign/Sigstore) |
 | CycloneDX / SPDX SBOM | both widely supported | Pick one and attach at build time |
 | Conventional Commits | de-facto standard | Drives SemVer bump + changelog automation |
+| GitHub Actions step-level parallelism | New (announced 2026-06-25) — confirm preview/GA | `background: true` + `wait`/`wait-all`/`parallel`/`cancel` run steps concurrently within one job with separate logs — for independent work, background services, or non-blocking uploads; complements job-level `matrix`/`needs`, doesn't replace it. [Changelog 2026-06-25](https://github.blog/changelog/2026-06-25-actions-steps-can-now-be-run-in-parallel/) |
 
 ## Decision Tree: Pipeline stage — retry, fail, or skip?
 

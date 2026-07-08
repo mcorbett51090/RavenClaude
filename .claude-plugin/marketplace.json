@@ -554,7 +554,7 @@
       "name": "claude-app-engineering",
       "source": "./plugins/claude-app-engineering",
       "description": "Claude app-engineering specialist team — 6 agents (claude-solution-architect, prompt-and-context-engineer, mcp-and-server-tools-engineer, agent-sdk-engineer, eval-engineer, claude-app-ops-engineer) for building production applications on the Claude API, the Claude Agent SDK, and MCP. Covers the build-surface decision (Messages API / Agent SDK / Managed Agents), model right-sizing (Opus 4.8 / Sonnet 4.6 / Haiku 4.5, 1M context), prompt caching, tool use + structured output, MCP server authoring + Anthropic-hosted server tools (computer use, code execution, Files API, memory, advisor tool), evals (golden sets, LLM-as-judge), and FinOps + reliability (batch, model routing, backoff, observability). 15-doc dated-and-cited knowledge bank, 6 templates, 1 advisory hook (14 house opinions). Seams: prompt-as-artifact, security, and cross-domain architecture escalate to ravenclaude-core. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.9.8",
+      "version": "0.9.9",
       "author": {
         "name": "Matt Corbett"
       },
@@ -576,7 +576,7 @@
       "name": "azure-cloud",
       "source": "./plugins/azure-cloud",
       "description": "Azure cloud infrastructure & platform specialist team — 7 agents (azure-architect, bicep-iac-engineer, entra-identity-engineer, network-engineer, app-platform-engineer, integration-engineer, azure-ops-engineer) for the Azure layer under the Microsoft stack: landing zones / CAF, IaC (Bicep + Terraform + Azure Verified Modules + Deployment Stacks), Entra identity (managed identity, workload identity federation, RBAC, PIM, External ID), networking (Private Endpoints, hub-spoke, Front Door, WAF), compute selection (App Service / Container Apps / Functions / AKS), integration (Logic Apps, Service Bus, Event Grid, APIM), and observability + FinOps + governance. 12-doc dated knowledge bank (two Mermaid decision trees + a 2026 capability map), 6 templates, 1 advisory hook (16 house opinions). Seams: Logic Apps here vs Power Automate to power-platform; Fabric data to microsoft-fabric; Azure host here vs Claude app to claude-app-engineering. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.5.3",
+      "version": "0.5.4",
       "author": {
         "name": "Matt Corbett"
       },
@@ -705,7 +705,7 @@
       "name": "ai-coding-model-guidance",
       "source": "./plugins/ai-coding-model-guidance",
       "description": "Cross-tool AI-coding model guidance — three strategist agents that help you reason about model selection in the non-Claude coding ecosystems: GitHub Copilot's model picker (completions / chat / coding agent / cloud agent + org model rules), OpenAI Codex (CLI + cloud model lineup, reasoning levels, /model), and xAI Grok (Grok 4.x lineup + the coding-tool surface). Teaches the DURABLE reasoning — task-complexity → reasoning-level → cost-tier → surface — over a single citation-grounded, dated lineup that is the marketplace's freshness anchor for non-Claude model facts. Volatile specifics (prices, context windows, picker availability) carry retrieval dates + a re-verify-at-use rider, and the agents fetch live before quoting. Seam: when the answer is a CLAUDE model or a Claude-app build, escalate to claude-app-engineering/claude-solution-architect — this plugin owns the non-Claude tools. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.3.9",
+      "version": "0.3.10",
       "author": {
         "name": "Matt Corbett"
       },
@@ -950,7 +950,7 @@
       "name": "aws-cloud",
       "source": "./plugins/aws-cloud",
       "description": "AWS cloud infrastructure & platform team — 5 agents (aws-architect, aws-iam-identity-engineer, aws-network-engineer, aws-compute-platform-engineer, aws-ops-finops-engineer) for the AWS layer of a stack: multi-account landing zones (Organizations, Control Tower, SCPs), least-privilege IAM (roles over keys, IRSA, permission boundaries, Identity Center), VPC networking (subnets, security groups, PrivateLink/endpoints, Transit Gateway), compute selection (Lambda / ECS / EKS / Fargate / App Runner), event-driven integration (SQS/SNS/EventBridge/Step Functions), and observability + FinOps + Well-Architected governance. 6 skills, a decision-tree knowledge bank (compute-selection + account-strategy trees + a dated 2026 capability map), 12 best-practices, 5 templates, 4 commands, 1 advisory hook. Multi-cloud seam to azure-cloud/gcp-cloud; IaC -> terraform-iac; containers -> cloud-native-kubernetes; security verdicts -> ravenclaude-core/security-reviewer. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.3.2",
+      "version": "0.3.3",
       "author": {
         "name": "Matt Corbett"
       },
@@ -973,7 +973,7 @@
       "name": "gcp-cloud",
       "source": "./plugins/gcp-cloud",
       "description": "Google Cloud (GCP) infrastructure & platform team — 4 agents (gcp-architect, gcp-iam-engineer, gcp-network-engineer, gcp-data-and-compute-engineer) for the GCP layer of a stack: the resource hierarchy (organization/folders/projects) and org policy constraints, least-privilege IAM (predefined over primitive roles, service accounts + Workload Identity Federation, no key files), VPC networking (Shared VPC, firewall rules, Private Service Connect, Cloud NAT), compute selection (Cloud Run / GKE / Cloud Functions / GCE), and the data services (BigQuery, Pub/Sub, Cloud SQL) at a selection level. 5 skills, a decision-tree knowledge bank (compute-selection + project-hierarchy trees + a dated 2026 capability map), 12 best-practices, 4 templates, 4 commands, 1 advisory hook. Multi-cloud seam to aws-cloud/azure-cloud; IaC -> terraform-iac; BigQuery analytics -> data-platform; security verdicts -> ravenclaude-core/security-reviewer. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.3.2",
+      "version": "0.3.3",
       "author": {
         "name": "Matt Corbett"
       },
@@ -1111,7 +1111,7 @@
       "name": "data-streaming-engineering",
       "source": "./plugins/data-streaming-engineering",
       "description": "Data-streaming-engineering team — 3 agents (streaming-architect, kafka-pipeline-engineer, stream-processing-engineer) for REAL-TIME data: streaming-vs-batch decision and topology, event streaming + CDC (Kafka/Pulsar/Kinesis, topics/partitioning, schema registry + evolution, the outbox/Debezium CDC pattern), delivery semantics (at-least-once vs exactly-once, idempotency, transactional outbox), and stream processing (Flink/Kafka-Streams: event-time vs processing-time, windowing, watermarks, state, joins, backpressure). 7 skills, a decision-tree knowledge bank (streaming-vs-batch + delivery-semantics trees + a dated 2026 map), 12 best-practices, 4 templates, 4 commands, 1 advisory hook. Distinct from data-platform (batch ELT) and microsoft-fabric (RTI/Eventstream). Seams: batch ELT -> data-platform, AsyncAPI contracts -> api-engineering, Fabric RTI -> microsoft-fabric, app-side messaging -> backend-engineering. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.3.2",
+      "version": "0.3.3",
       "author": {
         "name": "Matt Corbett"
       },
@@ -1134,7 +1134,7 @@
       "name": "ml-engineering",
       "source": "./plugins/ml-engineering",
       "description": "ML-engineering (MLOps) team — 4 agents (ml-platform-architect, training-pipeline-engineer, model-serving-engineer, ml-monitoring-engineer) for the PRODUCTION lifecycle of ML models: the platform/architecture (build-vs-buy, the stack, the train->register->serve->monitor loop), reproducible training pipelines + experiment tracking + a model registry, feature stores and train/serve consistency (avoiding training-serving skew and leakage), model serving (online vs batch, the right deployment with shadow/canary), and monitoring (data + concept drift, performance decay, retraining triggers). 6 skills, a decision-tree knowledge bank (serving-pattern + retraining-trigger trees + a dated 2026 map), 12 best-practices, 4 templates, 4 commands, 1 advisory hook. Seams: 'is the result significant?' -> applied-statistics, data pipelines -> data-platform/data-streaming, LLM/agent apps -> claude-app-engineering, deploy infra -> devops-cicd/cloud-native-kubernetes. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.4.3",
+      "version": "0.4.4",
       "author": {
         "name": "Matt Corbett"
       },
@@ -1180,7 +1180,7 @@
       "name": "observability-sre",
       "source": "./plugins/observability-sre",
       "description": "Observability & SRE team — 3 agents (observability-engineer, sre-reliability-engineer, incident-commander) for making a system observable and keeping it reliable: instrumentation on OpenTelemetry (metrics/logs/traces, semantic conventions, sampling, cardinality control), SLI/SLO and error-budget design, symptom-based alerting (multi-window burn-rate, alert on user pain not causes), incident response (severity, roles, comms, blameless postmortems, action-item follow-through), and proactive resilience verification via chaos engineering (steady-state hypotheses, blast-radius-limited fault injection, game days). 7 skills, a decision-tree knowledge bank (alert-design + SLO-target trees + a chaos-engineering reference + a dated 2026 tooling map), 12 best-practices, 4 templates, 4 commands, 1 advisory hook. Seams: deploy health-gates -> devops-cicd, cluster telemetry -> cloud-native-kubernetes, API SLOs -> api-engineering, cloud-native monitors -> azure/aws/gcp-cloud. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.4.2",
+      "version": "0.4.3",
       "author": {
         "name": "Matt Corbett"
       },
@@ -1203,7 +1203,7 @@
       "name": "security-engineering",
       "source": "./plugins/security-engineering",
       "description": "Security-engineering (AppSec) team — 4 agents (appsec-engineer, threat-modeler, supply-chain-security-engineer, cloud-security-engineer) for building security INTO software: threat modeling (STRIDE, data-flow diagrams, trust boundaries), application security testing (SAST/DAST/IAST/SCA in CI, OWASP Top 10 web), secrets management (detection, rotation, vaulting, no plaintext), software supply-chain integrity (SBOM consumption, dependency CVEs, SLSA verification, pinning), and cloud security posture (CSPM, IAM least-privilege, network exposure). 5 skills, a decision-tree knowledge bank (vuln-triage + secrets-handling trees + a dated 2026 tooling map), 12 best-practices, 4 templates, 4 commands, 1 advisory hook. **Proposes controls; every ship/no-ship security VERDICT escalates to ravenclaude-core/security-reviewer.** Seams: API OWASP -> api-engineering, identity -> auth-identity, data privacy -> data-governance-privacy. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.3.3",
+      "version": "0.3.4",
       "author": {
         "name": "Matt Corbett"
       },
@@ -1249,7 +1249,7 @@
       "name": "devops-cicd",
       "source": "./plugins/devops-cicd",
       "description": "DevOps & CI/CD delivery-pipeline team — 4 agents (pipeline-engineer, release-engineer, gitops-engineer, build-and-artifact-engineer) for the path from commit to production: CI design (stages, caching, matrix, fail-fast, required checks), progressive delivery (blue-green, canary, feature-flagged rollouts, automated rollback), GitOps continuous delivery (Argo CD / Flux, desired-state in Git, drift detection), and build/artifact integrity (reproducible builds, semantic versioning, SBOM, provenance/SLSA, registry hygiene). 5 skills, a decision-tree knowledge bank (deploy-strategy + CI-vs-CD-boundary trees + a dated 2026 tooling map), 12 best-practices, 4 templates, 4 commands, 1 advisory hook. Seams: IaC -> terraform-iac, clusters -> cloud-native-kubernetes, telemetry/SLOs -> observability-sre, supply-chain verdicts -> ravenclaude-core/security-reviewer. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.3.2",
+      "version": "0.3.3",
       "author": {
         "name": "Matt Corbett"
       },
@@ -1272,7 +1272,7 @@
       "name": "cloud-native-kubernetes",
       "source": "./plugins/cloud-native-kubernetes",
       "description": "Cloud-native & Kubernetes team — 4 agents (kubernetes-architect, container-build-engineer, k8s-platform-operator, service-mesh-networking-engineer) for running workloads on Kubernetes well: workload design (Deployment/StatefulSet/Job, probes, requests/limits, PDBs, HPA/VPA), container build hygiene (minimal non-root images, distroless, multi-stage), platform ops (namespaces, RBAC, network policies, resource quotas, admission control, upgrades), and service-mesh networking (ingress/gateway, mTLS, traffic-splitting, observability). Cloud-agnostic. 6 skills, a decision-tree knowledge bank (workload-type + ingress trees + a dated 2026 ecosystem map), 12 best-practices, 4 templates, 4 commands, 1 advisory hook. Seams: managed control plane (AKS/EKS/GKE) -> azure/aws/gcp-cloud, GitOps reconcile -> devops-cicd, telemetry/SLOs -> observability-sre. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.3.4",
+      "version": "0.3.5",
       "author": {
         "name": "Matt Corbett"
       },
@@ -1295,7 +1295,7 @@
       "name": "terraform-iac",
       "source": "./plugins/terraform-iac",
       "description": "Terraform & IaC team — 3 agents (iac-architect, terraform-module-engineer, iac-policy-and-state-engineer) for cloud-agnostic infrastructure-as-code: module design (composable, versioned, registry-published, the root-vs-child split), remote state and backend safety (locking, isolation by blast radius, no secrets in state), environment promotion (workspaces vs directories vs Terragrunt), drift detection, and policy-as-code guardrails (OPA/Sentinel/Conftest) in the plan pipeline. Terraform + OpenTofu. 5 skills, a decision-tree knowledge bank (state-isolation + module-boundary trees + a dated 2026 tooling map), 12 best-practices, 4 templates, 4 commands, 1 advisory hook. Seams: per-cloud resources -> azure-cloud (Bicep too)/aws-cloud/gcp-cloud, plan in CI -> devops-cicd, posture verdicts -> security-engineering. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.3.3",
+      "version": "0.3.4",
       "author": {
         "name": "Matt Corbett"
       },

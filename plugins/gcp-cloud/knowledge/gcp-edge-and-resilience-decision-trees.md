@@ -1,6 +1,6 @@
 # GCP — Edge Exposure & Resilience Decision Trees
 
-_Two decision trees for choices the existing [`gcp-cloud-decision-trees.md`](gcp-cloud-decision-trees.md) does not cover: **how to expose a service at the edge** (which load balancer / ingress), and **what resilience tier** a workload's region/zone footprint should buy. Architectural priors, not version-volatile facts — but specific product capabilities marked `[verify-at-use]` move; re-check against the vendor before quoting. Last reviewed: 2026-06-05 against Google Cloud Load Balancing and locations/SLA documentation._
+_Two decision trees for choices the existing [`gcp-cloud-decision-trees.md`](gcp-cloud-decision-trees.md) does not cover: **how to expose a service at the edge** (which load balancer / ingress), and **what resilience tier** a workload's region/zone footprint should buy. Architectural priors, not version-volatile facts — but specific product capabilities marked `[verify-at-use]` move; re-check against the vendor before quoting. Last reviewed: 2026-07-08 against Google Cloud Load Balancing and locations/SLA documentation._
 
 Traverse the relevant graph top-to-bottom **before** picking an LB type or a regional footprint — do not default to "global external HTTPS LB" or "multi-region" reflexively; each tier has a real cost.
 
@@ -60,6 +60,7 @@ graph TD
 - **Multi-region is a real cost and complexity step — make a region outage's unacceptability explicit before buying it.** A regional outage is a rare event; for many workloads "down for the duration of a Google regional incident" is an acceptable, documented risk. Step up to **multi-region** only when the business genuinely cannot tolerate that — and then design *for* it (it is not a flag you flip late).
 - **Consistency need drives the multi-region shape.** If you need **strong global consistency**, that points at services built for it — **Spanner** (global relational, see the data-store tree) and **multi-region GCS** — at their (real) cost. If async replication / read-replicas are acceptable, an **active-passive** cross-region design with replicas and a **written, tested failover runbook** is cheaper and often sufficient. The most common DR failure is an untested runbook, not a missing replica.
 - **Let the managed service provide the regional HA where it can.** Cloud SQL HA (regional), regional GKE clusters, and regional managed instance groups give you cross-zone resilience without hand-rolling it. Stateless serverless (Cloud Run) and regional MIGs already span zones — the hard part of resilience is almost always the **stateful** tier, so that's where the design effort goes.
+- For a **stateless Cloud Run** tier, Cloud Run *service health* (GA, June 2026) gives native, managed multi-region failover AND failback via readiness-probe health aggregation behind a global/cross-region internal Application LB + serverless NEGs — prefer it over hand-rolling active-passive routing for the stateless serverless case; the hard DR problem remains the **stateful data tier**. `[verify-at-use]`
 - `[verify-at-use]`: per-product SLAs, the exact multi-region location set, and which services offer a regional-HA configuration all move — confirm RTO/RPO-relevant numbers against the current locations/SLA docs before committing a number to a design.
 
 > **Seam:** the resilience *posture* (the architecture choice above) is `gcp-architect`'s lane; provisioning it as IaC → `terraform-iac`; SLOs/error budgets that *justify* a tier → `observability-sre`. This tree picks the footprint; those neighbours set the targets and build it.
@@ -79,4 +80,5 @@ _Name the trade: each step up (zonal → regional → multi-region) buys a large
 | Cloud SQL regional HA | GA | Cross-zone failover within a region |
 | Spanner multi-region | GA | Strong global consistency; cost-justify |
 | Multi-region GCS | GA | Strongly consistent object storage across a multi-region |
+| Cloud Run service health (multi-region auto failover/failback) | GA | Readiness-probe health aggregated per region via serverless NEGs; a global external / cross-region internal Application LB diverts traffic from an unhealthy region and fails back on recovery. [Cloud Run service health](https://docs.cloud.google.com/run/docs/configuring/configure-service-health) `[verify-at-use]` |
 </content>

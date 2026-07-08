@@ -98,7 +98,7 @@ _A namespace shares a kernel and nodes; it is not a security boundary against a 
 | Capability | 2026 state `[verify-at-build]` | Notes |
 |---|---|---|
 | **Kubernetes core** | current GA **1.36** ("Haru", 2026-04-22); 1.35 / 1.34 in support | re-verified 2026-06-11; ~12-mo support window — [1.36 release](https://kubernetes.io/blog/2026/04/22/kubernetes-v1-36-release/) |
-| Gateway API | GA (replacing Ingress for new) | Role-oriented, expressive routing |
+| Gateway API | GA; latest v1.6.0 (2026-06-29) | Role-oriented, expressive routing; **UDPRoute + TCPRoute now GA (v1)** — stable L4 TCP/UDP routing, not just HTTP. [v1.6.0](https://github.com/kubernetes-sigs/gateway-api/releases/tag/v1.6.0) |
 | HPA / VPA | GA | HPA on custom/external metrics; VPA for right-sizing |
 | Pod Security Admission | GA (replaced PSP) | baseline/restricted profiles |
 | OPA Gatekeeper / Kyverno | mature | policy-as-code admission |

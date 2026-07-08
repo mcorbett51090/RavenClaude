@@ -54,6 +54,8 @@ flowchart TD
 
 _Don't buy a Savings Plan to fix a bill you haven't measured — you'll commit to the waste. `[verify-at-use]` current Compute Optimizer coverage, Savings Plan types, and Spot reclaim behavior against AWS docs._
 
+> **AWS FinOps Agent** (public preview, launched **2026-06-09**, no additional charge; US East N. Virginia only during preview; built on Bedrock) can accelerate the *measure*, *rightsize*, and *anomaly-investigation* steps — natural-language cost questions plus rightsizing/Savings Plans recommendations. It is **advisory / recommendations-only — it does not auto-apply infrastructure or commitment changes** — so the **measure → eliminate waste → rightsize → then commit** ordering still governs; treat its Savings Plans suggestions as input to the *last* lever, never a shortcut past rightsizing. Verify GA + region coverage before relying on it. [AWS Weekly Roundup 2026-06-15](https://aws.amazon.com/blogs/aws/aws-weekly-roundup-aws-finops-agent-in-preview-gemma-4-on-bedrock-kiro-pro-max-and-more-june-15-2026/) `[verify-at-use]`
+
 ---
 
 ## Decision Tree: AWS landing zone — how to bootstrap (or extend) the account foundation?
