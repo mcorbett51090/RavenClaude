@@ -328,6 +328,154 @@ def main():
             any(a["kind"] == "reused_prior_refresh_within_grace" for a in alerts),
         )
 
+    print("W2.6c — in-client backoff-retry on 429/5xx (2026-07-08 design decision)")
+
+    # A recording sleep so the backoff SCHEDULE is asserted without real delay.
+    def _mk(store_dir, name="qbo"):
+        store = os.path.join(store_dir, f"{name}.token.json")
+        _write_store(
+            store, {"access_token": "A0", "refresh_token": "R0", "expires_at": fixed["t"] - 10}
+        )
+        return store
+
+    # (a) 429 then 200 -> succeeds after ONE retry; the server Retry-After is honored.
+    with tempfile.TemporaryDirectory() as d:
+        store = _mk(d)
+        slept = []
+        tr = StubTransport(
+            [
+                TokenResponse(429, {}, {"Retry-After": "5"}),
+                TokenResponse(
+                    200, {"access_token": "A1", "refresh_token": "R1", "expires_in": 3600}, {}
+                ),
+            ]
+        )
+        client = OAuthClient("qbo", store, tr, clock=clock, sleep=slept.append)
+        tok = client.refresh()
+        check("429->200: retried in-client and succeeded", tok["access_token"] == "A1")
+        check("429->200: exactly one retry (2 token calls)", tr.token_calls == 2)
+        check("429->200: honored the server Retry-After (slept 5s)", slept == [5.0])
+        check(
+            "429->200: the NEW token is persisted after retry",
+            json.load(open(store))["access_token"] == "A1",
+        )
+
+    # (b) 5xx is BACKOFF_RETRY too; no Retry-After -> exponential base*2**attempt.
+    with tempfile.TemporaryDirectory() as d:
+        store = _mk(d)
+        slept = []
+        tr = StubTransport(
+            [
+                TokenResponse(503, {}, {}),
+                TokenResponse(
+                    200, {"access_token": "A1", "refresh_token": "R1", "expires_in": 3600}, {}
+                ),
+            ]
+        )
+        client = OAuthClient("qbo", store, tr, clock=clock, sleep=slept.append)
+        client.refresh()
+        check("5xx is retried (transient)", tr.token_calls == 2 and slept == [1.0])
+
+    # (c) Retries EXHAUSTED -> TokenRefreshError after exactly max_backoff_retries retries.
+    with tempfile.TemporaryDirectory() as d:
+        store = _mk(d)
+        slept = []
+        tr = StubTransport(
+            [TokenResponse(429, {}, {}), TokenResponse(429, {}, {}), TokenResponse(429, {}, {})]
+        )
+        client = OAuthClient(
+            "qbo", store, tr, clock=clock, sleep=slept.append, max_backoff_retries=2
+        )
+        exhausted = False
+        try:
+            client.refresh()
+        except TokenRefreshError:
+            exhausted = True
+        check("persistent 429 -> TokenRefreshError once retries exhausted", exhausted)
+        check("exhausted: 1 initial + max_backoff_retries(2) = 3 token calls", tr.token_calls == 3)
+        check("exhausted: exponential backoff schedule [1.0, 2.0]", slept == [1.0, 2.0])
+        check(
+            "exhausted: prior refresh token untouched on disk",
+            json.load(open(store))["refresh_token"] == "R0",
+        )
+
+    # (d) A Retry-After larger than the remaining budget -> raise WITHOUT sleeping past it
+    #     (the refresh runs under the entity lock; a big backoff must not pin it).
+    with tempfile.TemporaryDirectory() as d:
+        store = _mk(d)
+        slept = []
+        tr = StubTransport([TokenResponse(429, {}, {"Retry-After": "50"})])
+        client = OAuthClient(
+            "qbo", store, tr, clock=clock, sleep=slept.append, backoff_budget_seconds=10.0
+        )
+        over = False
+        try:
+            client.refresh()
+        except TokenRefreshError:
+            over = True
+        check("Retry-After over budget -> TokenRefreshError", over)
+        check("over-budget: never slept past the budget (0 sleeps)", slept == [])
+        check("over-budget: did not retry the endpoint (1 token call)", tr.token_calls == 1)
+
+    # (e) invalid_grant (REAUTH_REQUIRED) is NON-retryable -> never backoff, raise at once.
+    with tempfile.TemporaryDirectory() as d:
+        store = _mk(d)
+        slept = []
+        tr = StubTransport([TokenResponse(400, {"error": "invalid_grant"}, {})])
+        client = OAuthClient("qbo", store, tr, clock=clock, sleep=slept.append)
+        reauth = False
+        try:
+            client.refresh()
+        except ReauthRequired:
+            reauth = True
+        check(
+            "invalid_grant is not retried (raises ReauthRequired)",
+            reauth and tr.token_calls == 1 and slept == [],
+        )
+
+    # (f) max_backoff_retries=0 disables the loop: a 429 raises immediately.
+    with tempfile.TemporaryDirectory() as d:
+        store = _mk(d)
+        slept = []
+        tr = StubTransport([TokenResponse(429, {}, {"Retry-After": "5"})])
+        client = OAuthClient(
+            "qbo", store, tr, clock=clock, sleep=slept.append, max_backoff_retries=0
+        )
+        disabled = False
+        try:
+            client.refresh()
+        except TokenRefreshError:
+            disabled = True
+        check(
+            "max_backoff_retries=0 -> no retry, immediate raise",
+            disabled and tr.token_calls == 1 and slept == [],
+        )
+
+    # (g) each backoff fires an observable alert that carries NO token value.
+    with tempfile.TemporaryDirectory() as d:
+        store = _mk(d)
+        alerts = []
+        tr = StubTransport(
+            [
+                TokenResponse(429, {}, {"Retry-After": "1"}),
+                TokenResponse(
+                    200, {"access_token": "A1", "refresh_token": "R1", "expires_in": 3600}, {}
+                ),
+            ]
+        )
+        client = OAuthClient(
+            "qbo", store, tr, clock=clock, sleep=lambda _s: None, alert_hook=alerts.append
+        )
+        client.refresh()
+        check(
+            "backoff fires a 'backoff_retry' alert",
+            any(a["kind"] == "backoff_retry" for a in alerts),
+        )
+        check(
+            "backoff alert leaks NO token value",
+            all("R0" not in json.dumps(a) and "R1" not in json.dumps(a) for a in alerts),
+        )
+
     print("W2.7 — replay transport: refuses a missing fixture, never opens a socket")
     rt = ReplayTransport(FIX)
     missing = False

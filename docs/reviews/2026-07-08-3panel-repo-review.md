@@ -41,6 +41,8 @@ Each fix keeps the repo's gates green (verified via `audit-gates.sh`, including 
 
 - **Recommendation:** if the intended contract is "the connector is self-healing on throttle," implement the in-client loop (bounded attempts + a max wait, honoring `Retry-After`) as a follow-up; otherwise the docstring correction is the complete fix and callers own the loop by contract.
 
+> **RESOLVED (2026-07-08): implement it.** The in-client backoff-retry shipped as a follow-up (finance 0.17.5) — `_refresh_locked` now honors `Retry-After` and retries on 429/5xx up to `max_backoff_retries`, bounded by a total `backoff_budget_seconds` so it can't pin the per-entity lock; `REAUTH_REQUIRED` is never retried and the security invariants (no token leak, persist-then-use) are preserved and tested (`test_connectors.py` W2.6c). The docstring was updated to match the new behavior.
+
 ## Minor follow-up (no input needed)
 
 - **Eval scorer coverage (finding 3).** This PR wired `--self-test` into CI (Gate 128) and added synthetic-input assertions for all four `score_*` functions. A fuller property/fixture suite over the scorers could be added later, but the "never run by CI" gap — the actual finding — is now closed.
