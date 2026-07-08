@@ -124,8 +124,36 @@ s = re.sub(r"""(-m\s+)'[^'\n]*'""", r"\1MSG", s)
 # at run time, so its body is stripped only when it carries no command substitution.
 # Without this split, `cat <<EOF > f\n$(rm -rf ~)\nEOF` would be blanked before the
 # scan, while bash still runs the substitution while building the heredoc.
+# (b0) A heredoc feeding an INTERPRETER (`bash <<EOF … EOF`, `python3 <<'PY' … PY`,
+# `sh <<X … X`) is NOT data-written-to-a-file — the body IS the script the shell
+# executes, so blanking it would let `bash <<EOF\nrm -rf /\nEOF` slip past every
+# deny pattern (the interpreter-heredoc fail-open closed by the 2026-07 review;
+# the internal inconsistency that flagged it: `<(curl` / `$(curl` to a shell ARE
+# caught, but the equivalent heredoc-to-shell was not). Detect it by the command
+# word that opens the current simple command (after the nearest separator before
+# `<<`), skipping leading VAR=val assignments, a leading `env`, and a leading `\`
+# alias-suppressor; when it's an interpreter, do NOT strip — scan the body as code.
+_INTERP_BASE = re.compile(
+    r"^(?:sh|bash|dash|zsh|ksh|ash|csh|tcsh|mksh|busybox|python[0-9.]*|perl|ruby|node|php|tclsh|lua|Rscript)$"
+)
+def _heredoc_feeds_interpreter(prefix):
+    seg = re.split(r"[\n;&|(]", prefix)[-1]
+    toks = seg.split()
+    i = 0
+    while i < len(toks) and re.match(r"^[A-Za-z_][A-Za-z0-9_]*=", toks[i]):
+        i += 1
+    if i < len(toks) and toks[i].lstrip("\\").rsplit("/", 1)[-1] == "env":
+        i += 1
+        while i < len(toks) and re.match(r"^[A-Za-z_][A-Za-z0-9_]*=", toks[i]):
+            i += 1
+    if i >= len(toks):
+        return False
+    base = toks[i].lstrip("\\").rsplit("/", 1)[-1]
+    return bool(_INTERP_BASE.match(base))
 def _strip_heredoc(m):
     quoted, body = m.group(1), m.group(3)
+    if _heredoc_feeds_interpreter(m.string[: m.start()]):
+        return m.group(0)  # interpreter heredoc: body IS executed — scan it, don't blank
     if quoted or not _EXECUTES.search(body):
         return "<<HEREDOC"
     return m.group(0)

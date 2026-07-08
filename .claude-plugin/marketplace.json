@@ -5,7 +5,7 @@
     "name": "Matt Corbett"
   },
   "metadata": {
-    "description": "RavenClaude — a private marketplace of opinionated Claude Code plugins: a domain-neutral core (Team Lead + 14 specialist agents, skills, hooks, the Capability Grounding & Structured Output Protocols, a comfort-posture dashboard, the decision-review tribunal) plus 130 domain plugins across clusters: the software-delivery chain (devops-cicd, observability-sre, security-engineering, qa-test-automation, cloud-native-kubernetes, terraform-iac); cloud (azure/aws/gcp); app craft (backend, frontend, mobile, database, api, auth); data & AI (data-platform, analytics-engineering, data-streaming, ml-engineering, data-governance-privacy, applied-statistics, microsoft-fabric, tableau, claude-app-engineering); the Microsoft stack (power-platform, m365-copilot, microsoft-graph); and business/product verticals (finance, fintech-payments, product-management, project-management, process-improvement, staffing, freight-forwarding, edtech). Every agent ships example-scenario frontmatter surfaced in an 'I want to…' use-case lookup.",
+    "description": "RavenClaude — a private marketplace of opinionated Claude Code plugins: a domain-neutral core (Team Lead + 14 specialist agents, skills, hooks, the Capability Grounding & Structured Output Protocols, a comfort-posture dashboard, the decision-review tribunal) plus 143 domain plugins across clusters: the software-delivery chain (devops-cicd, observability-sre, security-engineering, qa-test-automation, cloud-native-kubernetes, terraform-iac); cloud (azure/aws/gcp); app craft (backend, frontend, mobile, database, api, auth); data & AI (data-platform, analytics-engineering, data-streaming, ml-engineering, data-governance-privacy, applied-statistics, microsoft-fabric, tableau, claude-app-engineering); the Microsoft stack (power-platform, m365-copilot, microsoft-graph); and business/product verticals (finance, fintech-payments, product-management, project-management, process-improvement, staffing, freight-forwarding, edtech). Every agent ships example-scenario frontmatter surfaced in an 'I want to…' use-case lookup.",
     "version": "0.91.0"
   },
   "plugins": [
@@ -276,7 +276,7 @@
       "displayName": "RavenClaude Core",
       "source": "./plugins/ravenclaude-core",
       "description": "Domain-neutral Claude Code foundation: 15 specialist agents, 47 skills, gates, hooks, rules, templates. Capability Grounding Protocol, Structured Output Protocol, Researcher meta-skill, comfort-posture dashboard, opt-in command-review tribunal (the Thing), WebFetch sanitizer, branch-archive escape hatch, brand-extraction (homepage → brand kit), Problems & Resolutions view, declarative-visualization (Vega-Lite/Deneb/SVG, Gate 101 + Gate 103 svg-report-lint, viz-spec-reviewer), and Claude orchestrator escape hatch (/claude-orchestrate). Slash commands: /init-agent-ready, /wrap, /set-posture, /dashboard, /forge, /reset-plugin-cache.",
-      "version": "0.187.1",
+      "version": "0.187.2",
       "author": {
         "name": "Matt Corbett"
       },

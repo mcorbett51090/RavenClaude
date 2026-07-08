@@ -30,7 +30,8 @@ Purity contract (mirrors sanitize-webfetch-body.py):
     - no network, no subprocess, no eval/exec/dynamic import
     - reads only environment variables (never argv content)
     - the injection-strip + secret patterns are the canonical marketplace patterns,
-      kept in sync with hooks/_scrub.sh and scripts/sanitize-webfetch-body.py
+      kept in sync with hooks/_scrub.sh and
+      plugins/ravenclaude-core/scripts/sanitize-webfetch-body.py
 """
 
 from __future__ import annotations
@@ -81,7 +82,7 @@ PII_PATTERNS = [
 ]
 PII_RE = [re.compile(p, re.IGNORECASE) for p in PII_PATTERNS]
 
-# --- Injection-strip patterns (mirror of scripts/sanitize-webfetch-body.py) -----------
+# --- Injection-strip patterns (mirror of plugins/ravenclaude-core/scripts/sanitize-webfetch-body.py) ---
 # These are STRIPPED (not rejected) — they neuter prompt-injection machinery so the
 # staged file, when later read by a maintainer's Claude session, can't carry an
 # instruction. The content survives; only the injection scaffolding is removed.
