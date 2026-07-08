@@ -2,6 +2,14 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.17.5] — 2026-07-08
+
+In-client 429/5xx backoff-retry for the OAuth GL connector — the follow-up the 2026-07-08 review deferred as a design question (now decided: implement it).
+
+- **`scripts/connectors/oauth_client.py` now retries a throttled/transient token refresh in place.** `_refresh_locked` (reached by both `refresh()` and `get_access_token()`) honors `Retry-After` via `honor_retry_after()` and retries on `BACKOFF_RETRY` (429 / 5xx) up to `max_backoff_retries` (default 3), instead of raising `TokenRefreshError` on the first 429. So a transient QBO/Xero throttle no longer aborts the whole GL extract. New constructor knobs: `max_backoff_retries`, `backoff_base`, `backoff_cap`, `backoff_budget_seconds`, and an injectable `sleep` (for tests).
+- **Bounded to protect the per-entity lock.** The refresh runs under the entity lock, so the retry is capped by a total `backoff_budget_seconds` (default 120s): if the next required backoff would exceed the remaining budget, it raises for the caller to retry later rather than pinning the lock. `REAUTH_REQUIRED` (invalid_grant) is never retried; `TransportTimeout` grace-retry and persist-then-use ordering are unchanged. Each backoff fires an observable `backoff_retry` alert that carries no token value.
+- **Security invariants preserved (this file is a `security_review` target):** tokens still never logged, bounded lock-hold, persist-then-use unchanged. Proven by 16 new assertions in `test_connectors.py` W2.6c (429→200, 5xx, exhaustion schedule, over-budget-no-sleep, invalid_grant-not-retried, retries-disabled, no-token-leak). Full suite: 52/52 green, ruff-clean.
+
 ## [0.17.4] — 2026-07-08
 
 Docstring accuracy fix from the autonomous 3-panel repo review (run 2026-07-08). No behavior change.

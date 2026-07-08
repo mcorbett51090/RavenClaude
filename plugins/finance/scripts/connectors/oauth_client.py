@@ -30,12 +30,14 @@ Other disciplines enforced here:
     rotation.
   * ERROR-CAUSE ROUTING. The cause selects the fix; the actions are NOT interchangeable:
       - 401 (expired access token)      -> REFRESH_RETRY  (refresh, retry the SAME route)
-      - 429 (throttled)                 -> BACKOFF_RETRY  (the CALLER honors Retry-After
-                                            via honor_retry_after() and re-invokes refresh();
-                                            this client CLASSIFIES the cause but does not itself
-                                            loop — refresh()/get_access_token() raise
-                                            TokenRefreshError on a 429, leaving the backoff+retry
-                                            to the caller)
+      - 429 / 5xx (throttled / transient)-> BACKOFF_RETRY  (the client honors Retry-After
+                                            via honor_retry_after() and retries IN PLACE, up to
+                                            `max_backoff_retries` attempts, bounded by a total
+                                            `backoff_budget_seconds` sleep budget so a throttled
+                                            endpoint can't hold the per-entity lock indefinitely.
+                                            If the retries are exhausted, or the next required
+                                            backoff would exceed the remaining budget, it raises
+                                            TokenRefreshError for the caller to retry later.)
       - 400 invalid_grant (dead refresh)-> REAUTH_REQUIRED (NON-retryable; fire alert hook;
                                             never backoff — it needs an interactive re-auth)
   * XERO 30-MIN GRACE. A refresh whose response is lost (timeout, no response) leaves us
@@ -248,6 +250,11 @@ class OAuthClient:
         alert_hook=None,
         events=None,
         skew_seconds: int = 60,
+        max_backoff_retries: int = 3,
+        backoff_base: float = 1.0,
+        backoff_cap: float = 60.0,
+        backoff_budget_seconds: float = 120.0,
+        sleep=time.sleep,
     ):
         if provider not in PROVIDERS:
             raise ValueError(f"unknown provider {provider!r}; known: {sorted(PROVIDERS)}")
@@ -260,6 +267,16 @@ class OAuthClient:
         self.alert_hook = alert_hook
         self.events = events if events is not None else []
         self.skew = skew_seconds
+        # Backoff-retry policy for BACKOFF_RETRY (429 / 5xx) on the token endpoint. The
+        # refresh runs UNDER the per-entity lock, so `backoff_budget_seconds` bounds the
+        # TOTAL time this can sleep — a throttled endpoint must never hold the lock (and
+        # every other caller for that entity) open past the budget. `sleep` is injected so
+        # tests exercise the backoff schedule without real delay.
+        self.max_backoff_retries = max(0, int(max_backoff_retries))
+        self.backoff_base = float(backoff_base)
+        self.backoff_cap = float(backoff_cap)
+        self.backoff_budget_seconds = float(backoff_budget_seconds)
+        self.sleep = sleep
 
     # -- helpers ---------------------------------------------------------------------------
     def _expired(self, tok: dict) -> bool:
@@ -321,26 +338,61 @@ class OAuthClient:
             raise ReauthRequired(f"{self.provider}: no refresh token on file — re-auth required")
         url = self.p["token_url"]
         payload = self._refresh_payload(prior_refresh)
-        try:
-            resp = self.transport.token_request(url, payload)
-        except TransportTimeout:
-            # Lost response. Within the provider grace window, retry with the EXISTING
-            # refresh token (it may still be valid, e.g. Xero's ~30-min grace); otherwise
-            # surface the timeout — we must not assume a rotation we never observed.
-            if self.p["grace_seconds"] > 0:
-                resp = self.transport.token_request(url, self._refresh_payload(prior_refresh))
-            else:
-                raise
-        action = classify_error(resp.status, resp.body)
-        if action == REAUTH_REQUIRED:
-            self._alert("invalid_grant")  # fire alert; NON-retryable; never backoff
-            raise ReauthRequired(
-                f"{self.provider}: invalid_grant — refresh token is dead, re-auth required"
-            )
-        if action != OK:
-            raise TokenRefreshError(
-                f"{self.provider}: refresh failed status={resp.status} action={action}"
-            )
+
+        # Backoff-retry loop for BACKOFF_RETRY (429 throttle / 5xx transient). `attempt` is
+        # the number of retries already taken; `slept_total` bounds the cumulative sleep so
+        # this critical section (held under the per-entity lock) cannot block indefinitely.
+        attempt = 0
+        slept_total = 0.0
+        while True:
+            try:
+                resp = self.transport.token_request(url, payload)
+            except TransportTimeout:
+                # Lost response. Within the provider grace window, retry with the EXISTING
+                # refresh token (it may still be valid, e.g. Xero's ~30-min grace); otherwise
+                # surface the timeout — we must not assume a rotation we never observed.
+                if self.p["grace_seconds"] > 0:
+                    resp = self.transport.token_request(url, self._refresh_payload(prior_refresh))
+                else:
+                    raise
+            action = classify_error(resp.status, resp.body)
+            if action == REAUTH_REQUIRED:
+                self._alert("invalid_grant")  # fire alert; NON-retryable; never backoff
+                raise ReauthRequired(
+                    f"{self.provider}: invalid_grant — refresh token is dead, re-auth required"
+                )
+            if action == BACKOFF_RETRY and attempt < self.max_backoff_retries:
+                delay = honor_retry_after(
+                    getattr(resp, "headers", None),
+                    attempt,
+                    base=self.backoff_base,
+                    cap=self.backoff_cap,
+                )
+                # Never sleep past the budget — a hostile/large Retry-After must not pin the
+                # entity lock. If the required backoff won't fit, surface for a later retry.
+                if slept_total + delay > self.backoff_budget_seconds:
+                    raise TokenRefreshError(
+                        f"{self.provider}: refresh throttled (status={resp.status}); next backoff "
+                        f"{delay:.1f}s exceeds the remaining "
+                        f"{self.backoff_budget_seconds - slept_total:.1f}s budget after "
+                        f"{attempt} backoff-retr{'y' if attempt == 1 else 'ies'} — retry later"
+                    )
+                self._alert("backoff_retry")  # observable; carries NO token value
+                self.sleep(delay)
+                slept_total += delay
+                attempt += 1
+                continue
+            if action != OK:
+                suffix = (
+                    f" after {attempt} backoff-retr{'y' if attempt == 1 else 'ies'}"
+                    if attempt
+                    else ""
+                )
+                raise TokenRefreshError(
+                    f"{self.provider}: refresh failed status={resp.status} action={action}{suffix}"
+                )
+            break
+
         new = self._tokens_from_body(resp.body, prior_refresh)
         # PERSIST-THEN-USE: durable, atomic write BEFORE the new access token is handed out.
         _atomic_persist(self.store_path, new)
