@@ -82,6 +82,9 @@ def _parse_surcharge(s: str) -> tuple[str, float]:
 
 
 def cmd_air(args: argparse.Namespace) -> int:
+    if args.divisor <= 0:
+        print("error: --divisor must be > 0 (cm³/kg)", file=sys.stderr)
+        return 2
     l, w, h = args.dims
     per_piece_vol = (l * w * h) / args.divisor  # kg
     volumetric = per_piece_vol * args.pieces
@@ -164,21 +167,40 @@ def build_parser() -> argparse.ArgumentParser:
     a.add_argument("--pieces", type=int, default=1, help="number of identical pieces (default 1)")
     a.add_argument("--dims", type=_parse_dims, required=True, help="LxWxH per piece, in CM")
     a.add_argument("--weight", type=float, required=True, help="total actual gross weight, kg")
-    a.add_argument("--divisor", type=float, default=IATA_DIVISOR, help="volumetric divisor (default 6000; couriers often 5000)")
+    a.add_argument(
+        "--divisor",
+        type=float,
+        default=IATA_DIVISOR,
+        help="volumetric divisor (default 6000; couriers often 5000)",
+    )
     a.set_defaults(func=cmd_air)
 
     o = sub.add_parser("ocean", help="ocean LCL chargeable basis (CBM vs W/M ton)")
     o.add_argument("--pieces", type=int, default=1, help="number of identical pieces (default 1)")
-    o.add_argument("--dims", type=_parse_dims, required=True, help="LxWxH per piece, in CM (converted to CBM)")
+    o.add_argument(
+        "--dims", type=_parse_dims, required=True, help="LxWxH per piece, in CM (converted to CBM)"
+    )
     o.add_argument("--weight", type=float, required=True, help="total actual gross weight, kg")
     o.add_argument("--min-wm", type=float, default=1.0, help="LCL minimum W/M floor (default 1.0)")
     o.set_defaults(func=cmd_ocean)
 
     q = sub.add_parser("quote", help="all-in sell price = base + surcharges + margin")
     q.add_argument("--base", type=float, required=True, help="base freight buy rate")
-    q.add_argument("--surcharge", type=_parse_surcharge, action="append", metavar="NAME=AMT", help="a surcharge line (repeatable)")
-    q.add_argument("--margin", type=_parse_margin, default=0.0, help="margin, e.g. '12%%' or '0.12'")
-    q.add_argument("--margin-on-sell", action="store_true", help="treat margin as gross-margin on sell (default is markup on cost)")
+    q.add_argument(
+        "--surcharge",
+        type=_parse_surcharge,
+        action="append",
+        metavar="NAME=AMT",
+        help="a surcharge line (repeatable)",
+    )
+    q.add_argument(
+        "--margin", type=_parse_margin, default=0.0, help="margin, e.g. '12%%' or '0.12'"
+    )
+    q.add_argument(
+        "--margin-on-sell",
+        action="store_true",
+        help="treat margin as gross-margin on sell (default is markup on cost)",
+    )
     q.add_argument("--currency", default="USD", help="currency label (default USD)")
     q.set_defaults(func=cmd_quote)
 

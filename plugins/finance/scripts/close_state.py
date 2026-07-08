@@ -34,6 +34,7 @@ local tier — it makes the honor-system honest and testable, which is the point
 
 Stdlib only (hashlib/json/argparse); runs anywhere Python 3.8+ is present.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -45,14 +46,20 @@ from datetime import datetime, timezone
 
 SCHEMA_VERSION = 1
 
-# state -> set of states reachable by a sanctioned transition
-TRANSITIONS = {
-    "draft": {"submitted"},
-    "submitted": {"in_review", "draft"},        # reject -> draft
-    "in_review": {"approved", "draft"},          # reject -> draft
-    "approved": {"locked"},
-    "locked": {"draft"},                          # reopen -> draft (authorized)
-    "rejected": {"draft"},
+# (action, from_state) -> the single legal destination state.
+# Keying by the invoking ACTION (not just destination reachability) enforces the
+# documented per-action table: e.g. `reject` is legal only from submitted|in_review,
+# and `reopen` only from locked — even though both target "draft". A guard keyed on
+# destination membership alone would let reject() run on a locked package and
+# reopen() on a submitted/in_review one, since "draft" is reachable from all three.
+ACTION_TRANSITIONS = {
+    ("submit", "draft"): "submitted",
+    ("review", "submitted"): "in_review",
+    ("approve", "in_review"): "approved",
+    ("reject", "submitted"): "draft",
+    ("reject", "in_review"): "draft",
+    ("lock", "approved"): "locked",
+    ("reopen", "locked"): "draft",
 }
 TERMINAL = "locked"
 
@@ -105,7 +112,7 @@ class CloseLedger:
         tmp = self.state_path + ".tmp"
         with open(tmp, "w") as fh:
             json.dump(st, fh, indent=2)
-        os.replace(tmp, self.state_path)   # atomic
+        os.replace(tmp, self.state_path)  # atomic
 
     def _last_hash(self) -> str:
         if not os.path.exists(self.audit_path):
@@ -127,21 +134,28 @@ class CloseLedger:
             "detail": detail,
             "prev_hash": prev,
         }
-        payload["hash"] = _event_hash(prev, {k: payload[k] for k in
-                                             ("action", "actor", "ts", "detail", "prev_hash")})
+        payload["hash"] = _event_hash(
+            prev, {k: payload[k] for k in ("action", "actor", "ts", "detail", "prev_hash")}
+        )
         os.makedirs(self.run_dir, exist_ok=True)
         with open(self.audit_path, "a") as fh:
             fh.write(json.dumps(payload) + "\n")
         return payload
 
     # ---- guarded transitions --------------------------------------------
-    def _transition(self, action: str, to_state: str, actor: str, detail: dict,
-                    now: str | None) -> dict:
+    def _transition(
+        self, action: str, to_state: str, actor: str, detail: dict, now: str | None
+    ) -> dict:
         st = self.load_state()
         frm = st["state"]
-        if to_state not in TRANSITIONS.get(frm, set()):
-            self._append_event(f"DENIED:{action}", actor,
-                               {**detail, "reason": f"illegal transition {frm}->{to_state}"}, now)
+        allowed = ACTION_TRANSITIONS.get((action, frm))
+        if allowed is None or allowed != to_state:
+            self._append_event(
+                f"DENIED:{action}",
+                actor,
+                {**detail, "reason": f"illegal transition {frm}->{to_state}"},
+                now,
+            )
             raise SystemExit(f"REFUSED: illegal transition {frm} -> {to_state} ({action}).")
         return st
 
@@ -167,9 +181,16 @@ class CloseLedger:
         amount = st.get("package_amount") or 0.0
         # SoD: the same declared actor cannot approve their own package above threshold.
         if actor == preparer and amount >= threshold:
-            self._append_event("DENIED:approve", actor,
-                               {"reason": "SoD violation: preparer==approver above threshold",
-                                "amount": amount, "threshold": threshold}, now)
+            self._append_event(
+                "DENIED:approve",
+                actor,
+                {
+                    "reason": "SoD violation: preparer==approver above threshold",
+                    "amount": amount,
+                    "threshold": threshold,
+                },
+                now,
+            )
             raise SystemExit(
                 f"REFUSED (SoD): actor '{actor}' is the preparer and package amount "
                 f"{amount:,.2f} >= threshold {threshold:,.2f}. A different approver is required."
@@ -177,9 +198,12 @@ class CloseLedger:
         st["state"] = "approved"
         st["approver"] = actor
         self._write_state(st)
-        self._append_event("approve", actor,
-                           {"amount": amount, "threshold": threshold,
-                            "sod_ok": actor != preparer}, now)
+        self._append_event(
+            "approve",
+            actor,
+            {"amount": amount, "threshold": threshold, "sod_ok": actor != preparer},
+            now,
+        )
         return st
 
     def reject(self, actor: str, reason: str, now: str | None = None) -> dict:
@@ -196,9 +220,12 @@ class CloseLedger:
         st["state"] = "locked"
         st["self_certified"] = self_certified
         self._write_state(st)
-        self._append_event("lock", actor,
-                           {"self_certified": self_certified,
-                            "approval_token_present": bool(approval_token)}, now)
+        self._append_event(
+            "lock",
+            actor,
+            {"self_certified": self_certified, "approval_token_present": bool(approval_token)},
+            now,
+        )
         if self_certified:
             sys.stderr.write(
                 "WARNING: locked WITHOUT a non-agent approval token — package is "
@@ -229,8 +256,9 @@ class CloseLedger:
                 ev = json.loads(line)
                 if ev.get("prev_hash") != prev:
                     return False, f"line {i}: prev_hash mismatch (chain broken/reordered)"
-                expected = _event_hash(prev, {k: ev[k] for k in
-                                              ("action", "actor", "ts", "detail", "prev_hash")})
+                expected = _event_hash(
+                    prev, {k: ev[k] for k in ("action", "actor", "ts", "detail", "prev_hash")}
+                )
                 if ev.get("hash") != expected:
                     return False, f"line {i}: hash mismatch (event '{ev.get('action')}' tampered)"
                 prev = ev["hash"]
@@ -248,12 +276,23 @@ def main(argv=None) -> int:
     p.add_argument("--now", help="ISO timestamp override for deterministic runs")
     sub = p.add_subparsers(dest="cmd", required=True)
 
-    s = sub.add_parser("submit"); s.add_argument("--actor", required=True); s.add_argument("--amount", type=float, required=True)
-    s = sub.add_parser("review"); s.add_argument("--actor", required=True)
-    s = sub.add_parser("approve"); s.add_argument("--actor", required=True); s.add_argument("--threshold", type=float, required=True)
-    s = sub.add_parser("reject"); s.add_argument("--actor", required=True); s.add_argument("--reason", required=True)
-    s = sub.add_parser("lock"); s.add_argument("--actor", required=True); s.add_argument("--approval-token", default=None)
-    s = sub.add_parser("reopen"); s.add_argument("--actor", required=True); s.add_argument("--reason", required=True)
+    s = sub.add_parser("submit")
+    s.add_argument("--actor", required=True)
+    s.add_argument("--amount", type=float, required=True)
+    s = sub.add_parser("review")
+    s.add_argument("--actor", required=True)
+    s = sub.add_parser("approve")
+    s.add_argument("--actor", required=True)
+    s.add_argument("--threshold", type=float, required=True)
+    s = sub.add_parser("reject")
+    s.add_argument("--actor", required=True)
+    s.add_argument("--reason", required=True)
+    s = sub.add_parser("lock")
+    s.add_argument("--actor", required=True)
+    s.add_argument("--approval-token", default=None)
+    s = sub.add_parser("reopen")
+    s.add_argument("--actor", required=True)
+    s.add_argument("--reason", required=True)
     sub.add_parser("verify")
     sub.add_parser("show")
 

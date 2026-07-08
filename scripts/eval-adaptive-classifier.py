@@ -81,24 +81,32 @@ PROJECTS_DIR = CLAUDE_HOME / "projects"
 _TRANSCRIPT_READ_CAP = 64 * 1024 * 1024  # 64 MiB/file ceiling
 
 # ─── Grader thresholds (from plan §Phase 5 acceptance) ───────────────────────────
-THRESH_VENDOR_DOCS_TOKEN_RATIO = 0.4   # adaptive ≤ baseline × 0.4
-THRESH_CONTESTED_TOKEN_RATIO = 0.6     # adaptive ≤ baseline × 0.6
-THRESH_GENERAL_TOKEN_RATIO = 0.5       # adaptive ≤ baseline × 0.5
-THRESH_CLAIM_DELTA_MAX = 1             # |confirmed_claim_count adaptive - baseline| ≤ 1
-THRESH_VERIFY_CACHE_HIT_RATE = 0.5     # RM1 escalation criterion
-THRESH_JUDGE_AXIS_DELTA = -1           # adaptive ≥ baseline - 1 on every axis
+THRESH_VENDOR_DOCS_TOKEN_RATIO = 0.4  # adaptive ≤ baseline × 0.4
+THRESH_CONTESTED_TOKEN_RATIO = 0.6  # adaptive ≤ baseline × 0.6
+THRESH_GENERAL_TOKEN_RATIO = 0.5  # adaptive ≤ baseline × 0.5
+THRESH_CLAIM_DELTA_MAX = 1  # |confirmed_claim_count adaptive - baseline| ≤ 1
+THRESH_VERIFY_CACHE_HIT_RATE = 0.5  # RM1 escalation criterion
+THRESH_JUDGE_AXIS_DELTA = -1  # adaptive ≥ baseline - 1 on every axis
 
-PHASES_TO_REPORT = ("scope", "search", "fetch", "verify_default",
-                    "verify_judgment", "synthesize", "synthesize_contested")
+PHASES_TO_REPORT = (
+    "scope",
+    "search",
+    "fetch",
+    "verify_default",
+    "verify_judgment",
+    "synthesize",
+    "synthesize_contested",
+)
 
 
 # ─── Data shapes ─────────────────────────────────────────────────────────────────
 @dataclass
 class RunMetrics:
     """One run's per-phase metrics, read out of the workflow's stats block."""
+
     fixture_id: str
-    arm: str                          # "baseline" | "adaptive"
-    run_id: str                       # the workflow harness run dir name
+    arm: str  # "baseline" | "adaptive"
+    run_id: str  # the workflow harness run dir name
     subagent_tokens: int
     agent_count: int
     duration_ms: int
@@ -136,7 +144,7 @@ class FixtureGrade:
     verify_cache_escalation_hint: str | None
     judge_scores: dict[str, dict[str, int]]  # {axis: {"baseline": s, "adaptive": s}}
     judge_pass: bool
-    verdict: str                          # "PASS" | "NEEDS-TUNE" | "FAIL"
+    verdict: str  # "PASS" | "NEEDS-TUNE" | "FAIL"
     notes: list[str] = field(default_factory=list)
 
 
@@ -202,8 +210,8 @@ def adaptive_run_config_for(fixture: dict) -> dict:
     so adding them here is sound. The HANDOFF additionally hardens the workflow to
     fall back to BASELINE_KNOBS for these two fields if ever absent.)
     """
-    VOTES_PER_CLAIM = 3        # BASELINE_KNOBS.votes_per_claim (deep-research.js:378)
-    REFUTATIONS_REQUIRED = 2   # BASELINE_KNOBS.refutations_required (deep-research.js:379)
+    VOTES_PER_CLAIM = 3  # BASELINE_KNOBS.votes_per_claim (deep-research.js:378)
+    REFUTATIONS_REQUIRED = 2  # BASELINE_KNOBS.refutations_required (deep-research.js:379)
     base = {
         "schema_version": "1",
         "enabled": True,
@@ -212,62 +220,129 @@ def adaptive_run_config_for(fixture: dict) -> dict:
         "rationale": f"eval-adaptive-classifier adaptive arm for {fixture['id']}",
     }
     if fixture["task_class"] == "research_loop_vendor_docs":
-        base.update({
-            "knobs": {
-                "votes_per_claim": VOTES_PER_CLAIM,
-                "refutations_required": REFUTATIONS_REQUIRED,
-                "angle_count": 3, "max_fetch": 10, "max_verify_claims": 18,
-                "verify_policy": {"primary_recent": 1, "primary_old": 2, "secondary": 3, "judgment": 3},
-            },
-            "tiers": {"scope": "balanced", "search": "fast", "fetch": "fast",
-                      "verify_default": "fast", "verify_judgment": "balanced",
-                      "synthesize": "balanced", "synthesize_contested": "top"},
-            "reasoning": {"scope": "medium", "search": "low", "fetch": "low",
-                          "verify_default": "low", "verify_judgment": "high",
-                          "synthesize": "high", "synthesize_contested": "high"},
-            "use_specialized_mcp": True,
-            "primary_source_host": fixture.get("expected_primary_source_host", "learn.microsoft.com"),
-        })
+        base.update(
+            {
+                "knobs": {
+                    "votes_per_claim": VOTES_PER_CLAIM,
+                    "refutations_required": REFUTATIONS_REQUIRED,
+                    "angle_count": 3,
+                    "max_fetch": 10,
+                    "max_verify_claims": 18,
+                    "verify_policy": {
+                        "primary_recent": 1,
+                        "primary_old": 2,
+                        "secondary": 3,
+                        "judgment": 3,
+                    },
+                },
+                "tiers": {
+                    "scope": "balanced",
+                    "search": "fast",
+                    "fetch": "fast",
+                    "verify_default": "fast",
+                    "verify_judgment": "balanced",
+                    "synthesize": "balanced",
+                    "synthesize_contested": "top",
+                },
+                "reasoning": {
+                    "scope": "medium",
+                    "search": "low",
+                    "fetch": "low",
+                    "verify_default": "low",
+                    "verify_judgment": "high",
+                    "synthesize": "high",
+                    "synthesize_contested": "high",
+                },
+                "use_specialized_mcp": True,
+                "primary_source_host": fixture.get(
+                    "expected_primary_source_host", "learn.microsoft.com"
+                ),
+            }
+        )
     elif fixture["task_class"] == "research_loop_contested":
-        base.update({
-            "knobs": {
-                "votes_per_claim": VOTES_PER_CLAIM,
-                "refutations_required": REFUTATIONS_REQUIRED,
-                "angle_count": 4, "max_fetch": 14, "max_verify_claims": 22,
-                "verify_policy": {"primary_recent": 2, "primary_old": 3, "secondary": 3, "judgment": 3},
-            },
-            "tiers": {"scope": "balanced", "search": "fast", "fetch": "fast",
-                      "verify_default": "balanced", "verify_judgment": "balanced",
-                      "synthesize": "top", "synthesize_contested": "top"},
-            "reasoning": {"scope": "medium", "search": "low", "fetch": "low",
-                          "verify_default": "medium", "verify_judgment": "high",
-                          "synthesize": "high", "synthesize_contested": "high"},
-            "use_specialized_mcp": False,
-        })
+        base.update(
+            {
+                "knobs": {
+                    "votes_per_claim": VOTES_PER_CLAIM,
+                    "refutations_required": REFUTATIONS_REQUIRED,
+                    "angle_count": 4,
+                    "max_fetch": 14,
+                    "max_verify_claims": 22,
+                    "verify_policy": {
+                        "primary_recent": 2,
+                        "primary_old": 3,
+                        "secondary": 3,
+                        "judgment": 3,
+                    },
+                },
+                "tiers": {
+                    "scope": "balanced",
+                    "search": "fast",
+                    "fetch": "fast",
+                    "verify_default": "balanced",
+                    "verify_judgment": "balanced",
+                    "synthesize": "top",
+                    "synthesize_contested": "top",
+                },
+                "reasoning": {
+                    "scope": "medium",
+                    "search": "low",
+                    "fetch": "low",
+                    "verify_default": "medium",
+                    "verify_judgment": "high",
+                    "synthesize": "high",
+                    "synthesize_contested": "high",
+                },
+                "use_specialized_mcp": False,
+            }
+        )
     else:  # research_loop_general
-        base.update({
-            "knobs": {
-                "votes_per_claim": VOTES_PER_CLAIM,
-                "refutations_required": REFUTATIONS_REQUIRED,
-                "angle_count": 3, "max_fetch": 12, "max_verify_claims": 18,
-                "verify_policy": {"primary_recent": 2, "primary_old": 3, "secondary": 3, "judgment": 3},
-            },
-            "tiers": {"scope": "balanced", "search": "fast", "fetch": "fast",
-                      "verify_default": "fast", "verify_judgment": "balanced",
-                      "synthesize": "balanced", "synthesize_contested": "top"},
-            "reasoning": {"scope": "medium", "search": "low", "fetch": "low",
-                          "verify_default": "low", "verify_judgment": "high",
-                          "synthesize": "high", "synthesize_contested": "high"},
-            "use_specialized_mcp": False,
-        })
+        base.update(
+            {
+                "knobs": {
+                    "votes_per_claim": VOTES_PER_CLAIM,
+                    "refutations_required": REFUTATIONS_REQUIRED,
+                    "angle_count": 3,
+                    "max_fetch": 12,
+                    "max_verify_claims": 18,
+                    "verify_policy": {
+                        "primary_recent": 2,
+                        "primary_old": 3,
+                        "secondary": 3,
+                        "judgment": 3,
+                    },
+                },
+                "tiers": {
+                    "scope": "balanced",
+                    "search": "fast",
+                    "fetch": "fast",
+                    "verify_default": "fast",
+                    "verify_judgment": "balanced",
+                    "synthesize": "balanced",
+                    "synthesize_contested": "top",
+                },
+                "reasoning": {
+                    "scope": "medium",
+                    "search": "low",
+                    "fetch": "low",
+                    "verify_default": "low",
+                    "verify_judgment": "high",
+                    "synthesize": "high",
+                    "synthesize_contested": "high",
+                },
+                "use_specialized_mcp": False,
+            }
+        )
     return base
 
 
 def print_invocation(fixture: dict, arm: str) -> None:
     run_id = f"eval-{fixture['id']}-{arm}"
     print(f"  ── Fixture {fixture['id']} · arm {arm} ──")
-    print(f"     1. python3 scripts/eval-adaptive-classifier.py "
-          f"--write-run-config {fixture['id']} {arm}")
+    print(
+        f"     1. python3 scripts/eval-adaptive-classifier.py "
+        f"--write-run-config {fixture['id']} {arm}"
+    )
     print("     2. In Claude Code, run:")
     q_escaped = fixture["question"].replace('"', '\\"')
     # Mismatch-1 fix: emit the OBJECT args contract {question, runId}. The HANDOFF
@@ -276,9 +351,11 @@ def print_invocation(fixture: dict, arm: str) -> None:
     # artifacts under .ravenclaude/runs/<runId>/ so the grade phase can read them
     # back by the deterministic eval-<fixture>-<arm> run-id. Without runId the
     # workflow falls back to its self-named run dir (pre-port behavior).
-    print(f"        Workflow({{ name: 'rc-deep-research', args: {{ "
-          f'question: "{q_escaped}", '
-          f"runId: '{run_id}' }} }})")
+    print(
+        f"        Workflow({{ name: 'rc-deep-research', args: {{ "
+        f'question: "{q_escaped}", '
+        f"runId: '{run_id}' }} }})"
+    )
     print()
 
 
@@ -364,17 +441,20 @@ def _iter_transcript_usage(project_root: str):
             usage = msg.get("usage") or ev.get("usage")
             if not isinstance(usage, dict):
                 continue
-            if not (usage.get("input_tokens") or usage.get("output_tokens")
-                    or usage.get("cache_read_input_tokens")):
+            if not (
+                usage.get("input_tokens")
+                or usage.get("output_tokens")
+                or usage.get("cache_read_input_tokens")
+            ):
                 continue
             ts_ms = _parse_ts_ms(ev.get("timestamp"))
             model = msg.get("model") or ev.get("model")
             yield ts_ms, usage, model
 
 
-def _collect_transcript_token_stats(project_root: str, per_phase_windows: dict,
-                                     run_window: tuple[int | None, int | None]
-                                     ) -> dict:
+def _collect_transcript_token_stats(
+    project_root: str, per_phase_windows: dict, run_window: tuple[int | None, int | None]
+) -> dict:
     """Bucket transcript usage events into the workflow-persisted per-phase
     wall-clock windows, returning per-phase {input, cache_read, cache_creation}
     plus a run-total subagent_tokens. Events outside every phase window but inside
@@ -383,8 +463,7 @@ def _collect_transcript_token_stats(project_root: str, per_phase_windows: dict,
     per_phase_windows: { <phase>: {"started_ms": int, "ended_ms": int} }
     run_window: (start_ms, end_ms) — the whole run's bound; None = unbounded.
     """
-    by_phase = {p: {"input": 0, "cache_read": 0, "cache_creation": 0}
-                for p in PHASES_TO_REPORT}
+    by_phase = {p: {"input": 0, "cache_read": 0, "cache_creation": 0} for p in PHASES_TO_REPORT}
     total = 0
     r_start, r_end = run_window
     for ts_ms, usage, _model in _iter_transcript_usage(project_root):
@@ -417,8 +496,9 @@ def _collect_transcript_token_stats(project_root: str, per_phase_windows: dict,
     return {"per_phase": by_phase, "subagent_tokens_total": total}
 
 
-def collect_metrics(fixture_id: str, arm: str,
-                    transcript_project_root: str | None = None) -> RunMetrics:
+def collect_metrics(
+    fixture_id: str, arm: str, transcript_project_root: str | None = None
+) -> RunMetrics:
     """Read the workflow run's persisted artifacts (Option A: the workflow
     self-reports the facts it CAN know) and layer on token/cache stats acquired
     from the on-disk transcript JSONL post-hoc (the facts the workflow CANNOT
@@ -449,9 +529,16 @@ def collect_metrics(fixture_id: str, arm: str,
     run_id = f"eval-{fixture_id}-{arm}"
     run_dir = RUNS_DIR / run_id
     if not run_dir.exists():
-        return RunMetrics(fixture_id=fixture_id, arm=arm, run_id=run_id,
-                          subagent_tokens=0, agent_count=0, duration_ms=0,
-                          confirmed_claim_count=0, missing=True)
+        return RunMetrics(
+            fixture_id=fixture_id,
+            arm=arm,
+            run_id=run_id,
+            subagent_tokens=0,
+            agent_count=0,
+            duration_ms=0,
+            confirmed_claim_count=0,
+            missing=True,
+        )
 
     so_path = run_dir / "structured-output.json"
     if not so_path.exists():
@@ -481,14 +568,17 @@ def collect_metrics(fixture_id: str, arm: str,
 
     self_input = {p: int(per_phase.get(p, {}).get("input", 0)) for p in PHASES_TO_REPORT}
     self_cread = {p: int(per_phase.get(p, {}).get("cache_read", 0)) for p in PHASES_TO_REPORT}
-    self_ccreate = {p: int(per_phase.get(p, {}).get("cache_creation", 0))
-                    for p in PHASES_TO_REPORT}
+    self_ccreate = {p: int(per_phase.get(p, {}).get("cache_creation", 0)) for p in PHASES_TO_REPORT}
     subagent_tokens = int(stats.get("subagent_tokens", 0))
 
     if project_root:
-        windows = {p: {"started_ms": per_phase.get(p, {}).get("started_ms"),
-                       "ended_ms": per_phase.get(p, {}).get("ended_ms")}
-                   for p in PHASES_TO_REPORT}
+        windows = {
+            p: {
+                "started_ms": per_phase.get(p, {}).get("started_ms"),
+                "ended_ms": per_phase.get(p, {}).get("ended_ms"),
+            }
+            for p in PHASES_TO_REPORT
+        }
         rw = stats.get("run_window", {})
         run_window = (rw.get("started_ms"), rw.get("ended_ms"))
         tstats = _collect_transcript_token_stats(project_root, windows, run_window)
@@ -501,7 +591,9 @@ def collect_metrics(fixture_id: str, arm: str,
             self_ccreate = {p: tp[p]["cache_creation"] for p in PHASES_TO_REPORT}
 
     return RunMetrics(
-        fixture_id=fixture_id, arm=arm, run_id=run_id,
+        fixture_id=fixture_id,
+        arm=arm,
+        run_id=run_id,
         subagent_tokens=subagent_tokens,
         agent_count=int(stats.get("agent_count", 0)),
         duration_ms=int(stats.get("duration_ms", 0)),
@@ -523,8 +615,9 @@ def token_ratio_target_for(task_class: str) -> float:
     }.get(task_class, THRESH_GENERAL_TOKEN_RATIO)
 
 
-def grade_fixture(fixture: dict, baseline: RunMetrics, adaptive: RunMetrics,
-                  judge_scores: dict) -> FixtureGrade:
+def grade_fixture(
+    fixture: dict, baseline: RunMetrics, adaptive: RunMetrics, judge_scores: dict
+) -> FixtureGrade:
     notes: list[str] = []
 
     # Programmatic: token ratio
@@ -544,14 +637,16 @@ def grade_fixture(fixture: dict, baseline: RunMetrics, adaptive: RunMetrics,
     # Cache-hit-rate per phase (RM1 — verify-phase is the load-bearing one)
     cache_hit = {p: adaptive.cache_hit_rate(p) for p in PHASES_TO_REPORT}
     verify_rate = cache_hit.get("verify_default")
-    verify_cache_pass = (verify_rate is not None and verify_rate >= THRESH_VERIFY_CACHE_HIT_RATE)
+    verify_cache_pass = verify_rate is not None and verify_rate >= THRESH_VERIFY_CACHE_HIT_RATE
     escalation_hint = None
     if not verify_cache_pass:
         # RM1: if verify-phase hit rate < 0.5, escalate verify_default tier from
         # `fast` (Haiku 4.5, min 4096) to `balanced` (Sonnet 4.6, min 1024).
         if verify_rate is None:
-            escalation_hint = ("verify_default phase never fired or has zero input — "
-                               "cannot evaluate RM1 escalation; investigate workflow trace")
+            escalation_hint = (
+                "verify_default phase never fired or has zero input — "
+                "cannot evaluate RM1 escalation; investigate workflow trace"
+            )
         else:
             escalation_hint = (
                 f"verify_default cache hit rate {verify_rate:.2f} < {THRESH_VERIFY_CACHE_HIT_RATE} — "
@@ -560,34 +655,57 @@ def grade_fixture(fixture: dict, baseline: RunMetrics, adaptive: RunMetrics,
             )
         notes.append(escalation_hint)
 
-    # LLM-as-judge: adaptive must score >= baseline - 1 on every axis
+    # LLM-as-judge: adaptive must score >= baseline - 1 on every axis.
+    # A missing / off-schema judge result (None or empty dict) means synthesis
+    # quality was never measured — that is INCONCLUSIVE, NOT a pass. The per-axis
+    # loop alone passes vacuously on an empty dict, so guard the empty case
+    # explicitly and keep it out of the PASS path end to end.
+    judge_missing = not judge_scores
     judge_pass = True
-    for axis, scores in judge_scores.items():
-        if scores["adaptive"] < scores["baseline"] + THRESH_JUDGE_AXIS_DELTA:
-            judge_pass = False
-            notes.append(f"judge axis '{axis}': adaptive {scores['adaptive']} vs "
-                         f"baseline {scores['baseline']} — regression")
+    if judge_missing:
+        judge_pass = False
+        notes.append(
+            "judge never ran / off-schema — synthesis quality unmeasured (INCONCLUSIVE, not a pass)"
+        )
+    else:
+        for axis, scores in judge_scores.items():
+            if scores["adaptive"] < scores["baseline"] + THRESH_JUDGE_AXIS_DELTA:
+                judge_pass = False
+                notes.append(
+                    f"judge axis '{axis}': adaptive {scores['adaptive']} vs "
+                    f"baseline {scores['baseline']} — regression"
+                )
 
-    # Final verdict
+    # Final verdict — unmeasured quality can never certify a PASS.
     all_pass = token_ratio_pass and claim_delta_pass and verify_cache_pass and judge_pass
-    only_cache_failed = (not verify_cache_pass) and token_ratio_pass and claim_delta_pass and judge_pass
-    if all_pass:
+    only_cache_failed = (
+        (not verify_cache_pass) and token_ratio_pass and claim_delta_pass and judge_pass
+    )
+    if judge_missing:
+        verdict = "INCONCLUSIVE"  # judge data absent — quality never measured
+    elif all_pass:
         verdict = "PASS"
     elif only_cache_failed:
-        verdict = "NEEDS-TUNE"   # known-fixable per RM1
+        verdict = "NEEDS-TUNE"  # known-fixable per RM1
     else:
         verdict = "FAIL"
 
     return FixtureGrade(
         fixture_id=fixture["id"],
-        baseline=baseline, adaptive=adaptive,
-        token_ratio=token_ratio, token_ratio_target=target, token_ratio_pass=token_ratio_pass,
-        claim_delta=claim_delta, claim_delta_pass=claim_delta_pass,
+        baseline=baseline,
+        adaptive=adaptive,
+        token_ratio=token_ratio,
+        token_ratio_target=target,
+        token_ratio_pass=token_ratio_pass,
+        claim_delta=claim_delta,
+        claim_delta_pass=claim_delta_pass,
         cache_hit_rate_per_phase=cache_hit,
         verify_cache_pass=verify_cache_pass,
         verify_cache_escalation_hint=escalation_hint,
-        judge_scores=judge_scores, judge_pass=judge_pass,
-        verdict=verdict, notes=notes,
+        judge_scores=judge_scores or {},
+        judge_pass=judge_pass,
+        verdict=verdict,
+        notes=notes,
     )
 
 
@@ -627,8 +745,9 @@ def build_judge_messages(question: str, syn_a: str, syn_b: str) -> list[dict]:
     return [{"role": "user", "content": user}]
 
 
-def submit_batch_and_collect_judge(fixtures: dict, runs: dict[str, dict[str, RunMetrics]],
-                                    dry_run: bool, judge_model: str) -> dict[str, dict]:
+def submit_batch_and_collect_judge(
+    fixtures: dict, runs: dict[str, dict[str, RunMetrics]], dry_run: bool, judge_model: str
+) -> dict[str, dict]:
     """Build one Batch API request per fixture (randomized A/B order to fight
     position bias), submit as a single batch, poll for completion, unscramble
     A/B back to baseline/adaptive, and return per-fixture per-axis scores.
@@ -652,27 +771,39 @@ def submit_batch_and_collect_judge(fixtures: dict, runs: dict[str, dict[str, Run
             continue
         baseline_first = random.random() < 0.5
         order_map[fid] = "baseline_first" if baseline_first else "adaptive_first"
-        syn_a, syn_b = (b.synthesis_text, a.synthesis_text) if baseline_first \
-                        else (a.synthesis_text, b.synthesis_text)
-        requests.append({
-            "custom_id": f"judge-{fid}",
-            "params": {
-                "model": judge_model,
-                "max_tokens": 400,           # house rule #11 — always set
-                "system": JUDGE_RUBRIC,
-                "messages": build_judge_messages(fx["question"], syn_a, syn_b),
-            },
-        })
+        syn_a, syn_b = (
+            (b.synthesis_text, a.synthesis_text)
+            if baseline_first
+            else (a.synthesis_text, b.synthesis_text)
+        )
+        requests.append(
+            {
+                "custom_id": f"judge-{fid}",
+                "params": {
+                    "model": judge_model,
+                    "max_tokens": 400,  # house rule #11 — always set
+                    "system": JUDGE_RUBRIC,
+                    "messages": build_judge_messages(fx["question"], syn_a, syn_b),
+                },
+            }
+        )
 
     if dry_run:
         print(f"[--dry-run] would submit a Batch with {len(requests)} requests:")
         for r in requests:
-            print(f"  custom_id={r['custom_id']}  model={r['params']['model']}  "
-                  f"max_tokens={r['params']['max_tokens']}  msg_chars="
-                  f"{sum(len(m['content']) for m in r['params']['messages'])}")
-        return {fx["id"]: {axis: {"baseline": 3, "adaptive": 3}
-                            for axis in ("task_coverage", "factual_accuracy", "clarity")}
-                for fx in fixtures["fixtures"] if fx["id"] in order_map}
+            print(
+                f"  custom_id={r['custom_id']}  model={r['params']['model']}  "
+                f"max_tokens={r['params']['max_tokens']}  msg_chars="
+                f"{sum(len(m['content']) for m in r['params']['messages'])}"
+            )
+        return {
+            fx["id"]: {
+                axis: {"baseline": 3, "adaptive": 3}
+                for axis in ("task_coverage", "factual_accuracy", "clarity")
+            }
+            for fx in fixtures["fixtures"]
+            if fx["id"] in order_map
+        }
 
     # Live Batch submission — requires `anthropic>=0.40` + ANTHROPIC_API_KEY.
     try:
@@ -693,9 +824,11 @@ def submit_batch_and_collect_judge(fixtures: dict, runs: dict[str, dict[str, Run
             break
         time.sleep(20)
     else:
-        die(f"batch {batch.id} did not complete within 30min — re-run 'python3 "
+        die(
+            f"batch {batch.id} did not complete within 30min — re-run 'python3 "
             f"{os.path.basename(sys.argv[0])} --mode grade' to retry "
-            f"(a fresh batch is submitted; resuming batch {batch.id} directly is not supported).")
+            f"(a fresh batch is submitted; resuming batch {batch.id} directly is not supported)."
+        )
 
     # Parse results
     results: dict[str, dict] = {}
@@ -715,9 +848,13 @@ def submit_batch_and_collect_judge(fixtures: dict, runs: dict[str, dict[str, Run
             baseline_first = order_map[fid] == "baseline_first"
             baseline_scores = j["A"] if baseline_first else j["B"]
             adaptive_scores = j["B"] if baseline_first else j["A"]
-            results[fid] = {axis: {"baseline": int(baseline_scores[axis]),
-                                    "adaptive": int(adaptive_scores[axis])}
-                             for axis in ("task_coverage", "factual_accuracy", "clarity")}
+            results[fid] = {
+                axis: {
+                    "baseline": int(baseline_scores[axis]),
+                    "adaptive": int(adaptive_scores[axis]),
+                }
+                for axis in ("task_coverage", "factual_accuracy", "clarity")
+            }
         except (json.JSONDecodeError, ValueError, KeyError, TypeError, IndexError) as exc:
             # This single try-block parses, un-scrambles, assigns, AND catches every
             # off-schema shape (bad JSON, missing "A"/"B", missing axis, non-numeric
@@ -728,8 +865,11 @@ def submit_batch_and_collect_judge(fixtures: dict, runs: dict[str, dict[str, Run
             # body is "" if the failure came before it was assigned (empty/non-text
             # content block); include a short snippet when we have one.
             snippet = f" body={body[:120]!r}" if body else ""
-            print(f"  [WARN] {fid}: judge response off-schema "
-                  f"({type(exc).__name__}: {exc}); skipping.{snippet}", file=sys.stderr)
+            print(
+                f"  [WARN] {fid}: judge response off-schema "
+                f"({type(exc).__name__}: {exc}); skipping.{snippet}",
+                file=sys.stderr,
+            )
             continue
     return results
 
@@ -743,22 +883,27 @@ def emit_report(grades: list[FixtureGrade], fixtures: dict) -> Path:
     overall = "PASS"
     if any(g.verdict == "FAIL" for g in grades):
         overall = "FAIL"
+    elif any(g.verdict == "INCONCLUSIVE" for g in grades):
+        overall = "INCONCLUSIVE"  # a judge parse failure means quality is uncertified
     elif any(g.verdict == "NEEDS-TUNE" for g in grades):
         overall = "NEEDS-TUNE"
 
     lines: list[str] = []
     lines.append(f"# Adaptive Run Classifier — Eval Report {today}\n")
     lines.append(f"**Overall verdict:** **{overall}**\n")
-    lines.append("**Plan:** [`docs/plans/2026-06-03-adaptive-run-classifier/plan.md`]"
-                 "(../../../docs/plans/2026-06-03-adaptive-run-classifier/plan.md) §Phase 5\n")
-    lines.append(f"**Judge:** Haiku 4.5 via Batch API "
-                 f"{fixtures.get('judge_pricing_marker', '')}\n")
-    lines.append(f"**Grader thresholds:** vendor_docs ≤ ×{THRESH_VENDOR_DOCS_TOKEN_RATIO}; "
-                 f"contested ≤ ×{THRESH_CONTESTED_TOKEN_RATIO}; "
-                 f"general ≤ ×{THRESH_GENERAL_TOKEN_RATIO}; "
-                 f"claim Δ ≤ {THRESH_CLAIM_DELTA_MAX}; "
-                 f"verify cache hit ≥ {THRESH_VERIFY_CACHE_HIT_RATE}; "
-                 f"judge per-axis Δ ≥ {THRESH_JUDGE_AXIS_DELTA}.\n")
+    lines.append(
+        "**Plan:** [`docs/plans/2026-06-03-adaptive-run-classifier/plan.md`]"
+        "(../../../docs/plans/2026-06-03-adaptive-run-classifier/plan.md) §Phase 5\n"
+    )
+    lines.append(f"**Judge:** Haiku 4.5 via Batch API {fixtures.get('judge_pricing_marker', '')}\n")
+    lines.append(
+        f"**Grader thresholds:** vendor_docs ≤ ×{THRESH_VENDOR_DOCS_TOKEN_RATIO}; "
+        f"contested ≤ ×{THRESH_CONTESTED_TOKEN_RATIO}; "
+        f"general ≤ ×{THRESH_GENERAL_TOKEN_RATIO}; "
+        f"claim Δ ≤ {THRESH_CLAIM_DELTA_MAX}; "
+        f"verify cache hit ≥ {THRESH_VERIFY_CACHE_HIT_RATE}; "
+        f"judge per-axis Δ ≥ {THRESH_JUDGE_AXIS_DELTA}.\n"
+    )
 
     # ─── Per-fixture metrics table
     lines.append("## Per-fixture metrics\n")
@@ -767,9 +912,11 @@ def emit_report(grades: list[FixtureGrade], fixtures: dict) -> Path:
     for g in grades:
         for arm, m in (("baseline", g.baseline), ("adaptive", g.adaptive)):
             tag = "missing" if m.missing else ""
-            lines.append(f"| {g.fixture_id} | {arm} {tag} | {m.subagent_tokens:,} | "
-                         f"{m.agent_count} | {m.duration_ms/1000:.1f} | "
-                         f"{m.confirmed_claim_count} |")
+            lines.append(
+                f"| {g.fixture_id} | {arm} {tag} | {m.subagent_tokens:,} | "
+                f"{m.agent_count} | {m.duration_ms / 1000:.1f} | "
+                f"{m.confirmed_claim_count} |"
+            )
     lines.append("")
 
     # ─── Programmatic graders
@@ -778,9 +925,11 @@ def emit_report(grades: list[FixtureGrade], fixtures: dict) -> Path:
     lines.append("|---|---:|---:|:---:|---:|:---:|:---:|")
     for g in grades:
         ratio_s = f"{g.token_ratio:.2f}" if g.token_ratio != float("inf") else "∞"
-        lines.append(f"| {g.fixture_id} | {ratio_s} | ≤ {g.token_ratio_target:.2f} | "
-                     f"{'PASS' if g.token_ratio_pass else 'FAIL'} | {g.claim_delta} | "
-                     f"{'PASS' if g.claim_delta_pass else 'FAIL'} | **{g.verdict}** |")
+        lines.append(
+            f"| {g.fixture_id} | {ratio_s} | ≤ {g.token_ratio_target:.2f} | "
+            f"{'PASS' if g.token_ratio_pass else 'FAIL'} | {g.claim_delta} | "
+            f"{'PASS' if g.claim_delta_pass else 'FAIL'} | **{g.verdict}** |"
+        )
     lines.append("")
 
     # ─── Cache hit rate per phase (the RM1 surface)
@@ -806,50 +955,73 @@ def emit_report(grades: list[FixtureGrade], fixtures: dict) -> Path:
     lines.append("| Fixture | Axis | Baseline | Adaptive | Δ | Pass |")
     lines.append("|---|---|---:|---:|---:|:---:|")
     for g in grades:
+        if not g.judge_scores:
+            # No judge data — render a distinct row so the gap is visible rather
+            # than a fixture silently absent from the table.
+            lines.append(f"| {g.fixture_id} | (all axes) | — | — | — | INCONCLUSIVE |")
+            continue
         for axis, scores in g.judge_scores.items():
             d = scores["adaptive"] - scores["baseline"]
             ok = "PASS" if d >= THRESH_JUDGE_AXIS_DELTA else "FAIL"
-            lines.append(f"| {g.fixture_id} | {axis} | {scores['baseline']} | "
-                         f"{scores['adaptive']} | {d:+d} | {ok} |")
+            lines.append(
+                f"| {g.fixture_id} | {axis} | {scores['baseline']} | "
+                f"{scores['adaptive']} | {d:+d} | {ok} |"
+            )
     lines.append("")
 
     # ─── Claim #11 settlement (PP-docs fixture)
     pp = next((g for g in grades if g.fixture_id == "research_loop_vendor_docs"), None)
     lines.append("## Claim #11 settlement — MCP vs WebFetch token ratio\n")
     if pp is None or pp.adaptive.missing or pp.baseline.missing:
-        lines.append("Could not settle — research_loop_vendor_docs arm missing. "
-                     "Re-run the harness with both arms present.\n")
+        lines.append(
+            "Could not settle — research_loop_vendor_docs arm missing. "
+            "Re-run the harness with both arms present.\n"
+        )
     else:
         fetch_b = pp.baseline.input_tokens.get("fetch", 0)
         fetch_a = pp.adaptive.input_tokens.get("fetch", 0)
         if fetch_b > 0:
             ratio = fetch_a / fetch_b
             lines.append(f"- Baseline fetch-phase input tokens: **{fetch_b:,}** (WebFetch path)")
-            lines.append(f"- Adaptive fetch-phase input tokens: **{fetch_a:,}** "
-                         f"(prefer-MCP path via `microsoft_docs_fetch`)")
-            lines.append(f"- **Measured ratio: {ratio:.2f}** — retrieval date "
-                         f"{today}. Update SKILL.md claim #11 row accordingly.\n")
+            lines.append(
+                f"- Adaptive fetch-phase input tokens: **{fetch_a:,}** "
+                f"(prefer-MCP path via `microsoft_docs_fetch`)"
+            )
+            lines.append(
+                f"- **Measured ratio: {ratio:.2f}** — retrieval date "
+                f"{today}. Update SKILL.md claim #11 row accordingly.\n"
+            )
         else:
-            lines.append("Baseline fetch-phase tokens = 0 — fixture didn't exercise fetch. "
-                         "Re-run with a fixture that triggers the workflow's fetch phase.\n")
+            lines.append(
+                "Baseline fetch-phase tokens = 0 — fixture didn't exercise fetch. "
+                "Re-run with a fixture that triggers the workflow's fetch phase.\n"
+            )
 
     # ─── Recommendations for Phase 6
     lines.append("## Recommended Phase 6 actions\n")
     actions: list[str] = []
     if overall == "PASS":
-        actions.append("Flip `templates/run-config.json` default `enabled: true` "
-                       "(plan §Phase 6 acceptance gate is met).")
+        actions.append(
+            "Flip `templates/run-config.json` default `enabled: true` "
+            "(plan §Phase 6 acceptance gate is met)."
+        )
     if any(g.verify_cache_escalation_hint for g in grades):
-        actions.append("**RM1 escalation:** raise `verify_default` tier from `fast` to `balanced` "
-                       "in `plugins/ravenclaude-core/skills/adaptive-run-classifier/templates/run-config.json` "
-                       "per-phase-defaults before flipping the flag.")
+        actions.append(
+            "**RM1 escalation:** raise `verify_default` tier from `fast` to `balanced` "
+            "in `plugins/ravenclaude-core/skills/adaptive-run-classifier/templates/run-config.json` "
+            "per-phase-defaults before flipping the flag."
+        )
     if any(not g.judge_pass for g in grades):
-        actions.append("Judge-axis regression — hold the flag flip; investigate which adaptive "
-                       "tier choice degraded the synthesis (likely `synthesize: balanced` on a "
-                       "task that needed `top`).")
+        actions.append(
+            "Judge-axis regression — hold the flag flip; investigate which adaptive "
+            "tier choice degraded the synthesis (likely `synthesize: balanced` on a "
+            "task that needed `top`)."
+        )
     if any(not g.claim_delta_pass for g in grades):
-        actions.append("Confirmed-claim count drift > 1 — the `verify_policy[primary_recent] = 1` "
-                       "shortcut is dropping claims; re-run with `primary_recent: 2` and re-grade.")
+        actions.append(
+            "Confirmed-claim count drift > 1 — the `verify_policy[primary_recent] = 1` "
+            "shortcut is dropping claims; re-run with `primary_recent: 2` and re-grade."
+        )
     if not actions:
         actions.append("No tuning required — Phase 6 cleared on programmatic + judge.")
     for a in actions:
@@ -869,11 +1041,19 @@ def self_test() -> int:
     and assert the programmatic graders fire FAIL. Exercises the grader pipeline
     without needing a live workflow run."""
     print("[self-test] constructing synthetic regression case…")
-    fixture = {"id": "research_loop_vendor_docs", "task_class": "research_loop_vendor_docs",
-                "question": "synthetic", "expected_primary_source_host": "learn.microsoft.com"}
+    fixture = {
+        "id": "research_loop_vendor_docs",
+        "task_class": "research_loop_vendor_docs",
+        "question": "synthetic",
+        "expected_primary_source_host": "learn.microsoft.com",
+    }
     baseline = RunMetrics(
-        fixture_id=fixture["id"], arm="baseline", run_id="syn-b",
-        subagent_tokens=4_900_000, agent_count=103, duration_ms=2_160_000,
+        fixture_id=fixture["id"],
+        arm="baseline",
+        run_id="syn-b",
+        subagent_tokens=4_900_000,
+        agent_count=103,
+        duration_ms=2_160_000,
         confirmed_claim_count=22,
         cache_read_input_tokens=dict.fromkeys(PHASES_TO_REPORT, 0),
         input_tokens=dict.fromkeys(PHASES_TO_REPORT, 100000),
@@ -883,28 +1063,46 @@ def self_test() -> int:
     # Adaptive REGRESSES: tokens dropped only 10%, claim count fell by 5, verify
     # cache hit rate at 0.2 (RM1 trip), and synthesis is degraded.
     adaptive = RunMetrics(
-        fixture_id=fixture["id"], arm="adaptive", run_id="syn-a",
-        subagent_tokens=4_400_000, agent_count=98, duration_ms=2_000_000,
-        confirmed_claim_count=17,    # delta = 5, fails THRESH_CLAIM_DELTA_MAX=1
+        fixture_id=fixture["id"],
+        arm="adaptive",
+        run_id="syn-a",
+        subagent_tokens=4_400_000,
+        agent_count=98,
+        duration_ms=2_000_000,
+        confirmed_claim_count=17,  # delta = 5, fails THRESH_CLAIM_DELTA_MAX=1
         cache_read_input_tokens=dict.fromkeys(PHASES_TO_REPORT, 20000),
         input_tokens=dict.fromkeys(PHASES_TO_REPORT, 100000),
         cache_creation_input_tokens=dict.fromkeys(PHASES_TO_REPORT, 5000),
         synthesis_text="Garbage.",
     )
     judge_scores = {
-        "task_coverage":    {"baseline": 3, "adaptive": 0},
+        "task_coverage": {"baseline": 3, "adaptive": 0},
         "factual_accuracy": {"baseline": 3, "adaptive": 0},
-        "clarity":          {"baseline": 3, "adaptive": 0},
+        "clarity": {"baseline": 3, "adaptive": 0},
     }
     g = grade_fixture(fixture, baseline, adaptive, judge_scores)
     assert g.verdict == "FAIL", f"self-test broken: expected FAIL, got {g.verdict}"
     assert not g.token_ratio_pass, "self-test broken: token-ratio grader should FAIL on 0.9 ratio"
     assert not g.claim_delta_pass, "self-test broken: claim-delta grader should FAIL on Δ=5"
-    assert not g.verify_cache_pass, "self-test broken: verify cache 0.2 should FAIL on threshold 0.5"
+    assert not g.verify_cache_pass, (
+        "self-test broken: verify cache 0.2 should FAIL on threshold 0.5"
+    )
     assert not g.judge_pass, "self-test broken: judge 3→0 should FAIL"
-    print(f"[self-test] OK — synthetic regression case yielded verdict={g.verdict}, "
-          f"token_ratio={g.token_ratio:.2f}, claim_delta={g.claim_delta}, "
-          f"verify_cache={g.cache_hit_rate_per_phase['verify_default']:.2f}")
+    print(
+        f"[self-test] OK — synthetic regression case yielded verdict={g.verdict}, "
+        f"token_ratio={g.token_ratio:.2f}, claim_delta={g.claim_delta}, "
+        f"verify_cache={g.cache_hit_rate_per_phase['verify_default']:.2f}"
+    )
+
+    # ── Sub-test 1b: a missing/off-schema judge result must NOT pass vacuously ────
+    # An empty (or None) judge_scores means the batch result was dropped as
+    # off-schema; the grade must be INCONCLUSIVE, never PASS.
+    g_inc = grade_fixture(fixture, baseline, baseline, None)
+    assert g_inc.verdict == "INCONCLUSIVE", (
+        f"self-test broken: missing judge data must be INCONCLUSIVE, got {g_inc.verdict}"
+    )
+    assert not g_inc.judge_pass, "self-test broken: missing judge data must not judge_pass"
+    print("[self-test] OK — missing judge data → INCONCLUSIVE (no vacuous PASS)")
 
     # ── Sub-test 2: the collect_metrics ⇄ transcript wiring (mismatches 2+3) ──────
     # Build a synthetic run dir (the workflow's self-reported half) + a synthetic
@@ -913,10 +1111,12 @@ def self_test() -> int:
     # verify_default cache-hit-rate is computed from the bucketed events. This gives
     # the new wiring its own teeth without needing a live workflow run.
     rc = _self_test_collect_metrics()
-    print(f"[self-test] OK — collect_metrics transcript wiring: "
-          f"subagent_tokens={rc['subagent_tokens']:,}, "
-          f"verify_default input={rc['verify_input']:,} cache_read={rc['verify_cread']:,}, "
-          f"cache_hit_rate={rc['verify_cache_hit']:.2f}")
+    print(
+        f"[self-test] OK — collect_metrics transcript wiring: "
+        f"subagent_tokens={rc['subagent_tokens']:,}, "
+        f"verify_default input={rc['verify_input']:,} cache_read={rc['verify_cread']:,}, "
+        f"cache_hit_rate={rc['verify_cache_hit']:.2f}"
+    )
     return 0
 
 
@@ -944,14 +1144,19 @@ def _self_test_collect_metrics() -> dict:
         base_ms = 1_700_000_000_000
         per_phase = {
             "scope": {"agent_count": 1, "started_ms": base_ms + 0, "ended_ms": base_ms + 500},
-            "verify_default": {"agent_count": 3, "started_ms": base_ms + 2000,
-                               "ended_ms": base_ms + 3000},
+            "verify_default": {
+                "agent_count": 3,
+                "started_ms": base_ms + 2000,
+                "ended_ms": base_ms + 3000,
+            },
         }
         so = {
             "question": "synthetic",
             "stats": {
                 "subagent_tokens": 0,  # placeholder — transcript fills it
-                "agent_count": 4, "duration_ms": 3000, "confirmed_claim_count": 7,
+                "agent_count": 4,
+                "duration_ms": 3000,
+                "confirmed_claim_count": 7,
                 "run_window": {"started_ms": base_ms, "ended_ms": base_ms + 3000},
                 "per_phase": per_phase,
             },
@@ -966,40 +1171,52 @@ def _self_test_collect_metrics() -> dict:
         tdir.mkdir(parents=True)
 
         def ev(ms_offset, inp, cread, ccreate, out):
-            ts = dt.datetime.fromtimestamp((base_ms + ms_offset) / 1000,
-                                           tz=dt.timezone.utc).isoformat()
-            return json.dumps({
-                "type": "assistant", "timestamp": ts,
-                "message": {"model": "claude-haiku-4-5-20251001",
-                            "usage": {"input_tokens": inp,
-                                      "cache_read_input_tokens": cread,
-                                      "cache_creation_input_tokens": ccreate,
-                                      "output_tokens": out}},
-            })
+            ts = dt.datetime.fromtimestamp(
+                (base_ms + ms_offset) / 1000, tz=dt.timezone.utc
+            ).isoformat()
+            return json.dumps(
+                {
+                    "type": "assistant",
+                    "timestamp": ts,
+                    "message": {
+                        "model": "claude-haiku-4-5-20251001",
+                        "usage": {
+                            "input_tokens": inp,
+                            "cache_read_input_tokens": cread,
+                            "cache_creation_input_tokens": ccreate,
+                            "output_tokens": out,
+                        },
+                    },
+                }
+            )
 
         lines = [
-            ev(-5000, 9999, 0, 0, 0),       # BEFORE run window — must be excluded
-            ev(200, 1000, 500, 0, 50),       # scope window
+            ev(-5000, 9999, 0, 0, 0),  # BEFORE run window — must be excluded
+            ev(200, 1000, 500, 0, 50),  # scope window
             ev(2200, 2000, 6000, 1000, 100),  # verify_default window
-            ev(2800, 2000, 6000, 0, 100),     # verify_default window
-            '{ this is a torn line',         # torn-write — must be dropped, never raise
+            ev(2800, 2000, 6000, 0, 100),  # verify_default window
+            "{ this is a torn line",  # torn-write — must be dropped, never raise
         ]
         (tdir / "session-abc.jsonl").write_text("\n".join(lines) + "\n")
 
-        m = collect_metrics("research_loop_general", "adaptive",
-                            transcript_project_root=project_root)
+        m = collect_metrics(
+            "research_loop_general", "adaptive", transcript_project_root=project_root
+        )
 
         # Total excludes the pre-run event (9999) and counts the other 3:
         #   scope: 1000+500+0+50=1550 ; verify×2: (2000+6000+1000+100)+(2000+6000+0+100)=17200
         expected_total = 1550 + 9100 + 8100
-        assert m.subagent_tokens == expected_total, \
+        assert m.subagent_tokens == expected_total, (
             f"transcript total wrong: {m.subagent_tokens} != {expected_total}"
+        )
         # verify_default phase: input=4000, cache_read=12000, cache_creation=1000.
         assert m.input_tokens["verify_default"] == 4000, m.input_tokens["verify_default"]
-        assert m.cache_read_input_tokens["verify_default"] == 12000, \
-            m.cache_read_input_tokens["verify_default"]
-        assert m.cache_creation_input_tokens["verify_default"] == 1000, \
+        assert m.cache_read_input_tokens["verify_default"] == 12000, m.cache_read_input_tokens[
+            "verify_default"
+        ]
+        assert m.cache_creation_input_tokens["verify_default"] == 1000, (
             m.cache_creation_input_tokens["verify_default"]
+        )
         # cache_hit_rate(verify_default) = 12000 / (12000 + 4000) = 0.75.
         chr_ = m.cache_hit_rate("verify_default")
         assert chr_ is not None and abs(chr_ - 0.75) < 1e-9, f"cache_hit_rate wrong: {chr_}"
@@ -1014,6 +1231,7 @@ def _self_test_collect_metrics() -> dict:
     finally:
         RUNS_DIR, PROJECTS_DIR = saved_runs, saved_projects
         import shutil
+
         shutil.rmtree(tmp, ignore_errors=True)
 
 
@@ -1040,16 +1258,30 @@ def main() -> int:
               3. python3 %(prog)s --mode grade
 
             shortcut: python3 %(prog)s --self-test  (no workflow needed)
-        """))
+        """),
+    )
     p.add_argument("--mode", choices=("setup", "grade", "all"), default="setup")
-    p.add_argument("--write-run-config", nargs=2, metavar=("FIXTURE_ID", "ARM"),
-                   help="write .ravenclaude/run-config.json for one arm of one fixture")
-    p.add_argument("--self-test", action="store_true",
-                   help="run the in-memory synthetic-regression sanity check; no I/O")
-    p.add_argument("--dry-run", action="store_true",
-                   help="skip live Batch submission; print payloads, return synthetic max scores")
-    p.add_argument("--judge-model", default="claude-haiku-4-5-20251001",
-                   help="judge model id (default: Haiku 4.5)")
+    p.add_argument(
+        "--write-run-config",
+        nargs=2,
+        metavar=("FIXTURE_ID", "ARM"),
+        help="write .ravenclaude/run-config.json for one arm of one fixture",
+    )
+    p.add_argument(
+        "--self-test",
+        action="store_true",
+        help="run the in-memory synthetic-regression sanity check; no I/O",
+    )
+    p.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="skip live Batch submission; print payloads, return synthetic max scores",
+    )
+    p.add_argument(
+        "--judge-model",
+        default="claude-haiku-4-5-20251001",
+        help="judge model id (default: Haiku 4.5)",
+    )
     args = p.parse_args()
 
     if args.self_test:
@@ -1082,8 +1314,10 @@ def main() -> int:
         tpr = os.environ.get("EVAL_TRANSCRIPT_PROJECT_ROOT", str(REPO_ROOT))
         runs: dict[str, dict[str, RunMetrics]] = {}
         for fx in fixtures["fixtures"]:
-            runs[fx["id"]] = {arm: collect_metrics(fx["id"], arm, transcript_project_root=tpr)
-                              for arm in ("baseline", "adaptive")}
+            runs[fx["id"]] = {
+                arm: collect_metrics(fx["id"], arm, transcript_project_root=tpr)
+                for arm in ("baseline", "adaptive")
+            }
             for arm, m in runs[fx["id"]].items():
                 tag = "MISSING" if m.missing else f"{m.subagent_tokens:,} tok"
                 print(f"  {fx['id']:30s} {arm:8s}  {tag}")
@@ -1096,8 +1330,10 @@ def main() -> int:
             if not b or not a or b.missing or a.missing:
                 print(f"  [skip] {fx['id']} — one or both arms missing")
                 continue
-            j = judge.get(fx["id"]) or {axis: {"baseline": 0, "adaptive": 0}
-                                          for axis in ("task_coverage", "factual_accuracy", "clarity")}
+            # Pass the missing case through as None (not fabricated 0/0 scores)
+            # so grade_fixture records it as INCONCLUSIVE — a judge parse failure
+            # must not masquerade as a genuine 0-vs-0 tie that passes vacuously.
+            j = judge.get(fx["id"])
             grades.append(grade_fixture(fx, b, a, j))
         if grades:
             emit_report(grades, fixtures)

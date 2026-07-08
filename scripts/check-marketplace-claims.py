@@ -106,19 +106,42 @@ MAX_DESCRIPTION_CHARS = 1024
 failures = []
 
 
+# Doc filenames that are NOT a skill/agent definition — a stray one of these under
+# skills/ or agents/ must not inflate the derived count (Finding 23). Matched
+# case-insensitively.
+_NON_DEFINITION_DOCS = frozenset({"readme.md", "changelog.md", "notes.md"})
+
+
 def actual_skill_count(plugin_dir: Path) -> int:
     skills = plugin_dir / "skills"
     if not skills.is_dir():
         return 0
-    # Count one per skill: flat "<name>.md" files OR "<name>/" dirs (SKILL.md layout).
-    return sum(1 for e in skills.iterdir() if not e.name.startswith("."))
+    # Count one per GENUINE skill: a "<name>/" dir only if it carries SKILL.md, or a
+    # flat "<name>.md" file that is not a known non-skill doc (README/CHANGELOG/NOTES).
+    n = 0
+    for e in skills.iterdir():
+        if e.name.startswith("."):
+            continue
+        if e.is_dir():
+            if (e / "SKILL.md").is_file():
+                n += 1
+        elif e.is_file() and e.name.lower().endswith(".md"):
+            if e.name.casefold() not in _NON_DEFINITION_DOCS:
+                n += 1
+    return n
 
 
 def actual_agent_count(plugin_dir: Path) -> int:
     agents = plugin_dir / "agents"
     if not agents.is_dir():
         return 0
-    return sum(1 for e in agents.glob("*.md") if e.is_file())
+    # Exclude non-agent docs (README/CHANGELOG/NOTES) from the *.md glob so a stray
+    # agents/README.md or agents/NOTES.md doesn't count as an agent.
+    return sum(
+        1
+        for e in agents.glob("*.md")
+        if e.is_file() and e.name.casefold() not in _NON_DEFINITION_DOCS
+    )
 
 
 def actual_requires_core_count() -> int:
@@ -156,7 +179,9 @@ def actual_core_hook_count() -> int:
 
 
 def actual_core_rule_count() -> int:
-    return sum(1 for e in CORE_RULES_DIR.glob("*.md") if e.is_file()) if CORE_RULES_DIR.is_dir() else 0
+    return (
+        sum(1 for e in CORE_RULES_DIR.glob("*.md") if e.is_file()) if CORE_RULES_DIR.is_dir() else 0
+    )
 
 
 def first_skill_claim(text: str):
@@ -404,7 +429,9 @@ def fix_counts() -> list[str]:
         meta = marketplace.get("metadata", {}).get("description", "")
         new_meta, changed = _sub_first_count(meta, SKILLS_RE, actual_skill_count(core_dir))
         if changed and _replace_json_string(MARKETPLACE, meta, new_meta):
-            changes.append(f"marketplace.json metadata.description skills -> {actual_skill_count(core_dir)}")
+            changes.append(
+                f"marketplace.json metadata.description skills -> {actual_skill_count(core_dir)}"
+            )
 
     # 4b — README plugin count.
     if README.is_file():
@@ -421,8 +448,11 @@ def fix_counts() -> list[str]:
         raw = README.read_text()
         # All "<N> plugins" → actual_plugins (digit-only, formatting-preserving).
         new_raw, n = README_PLUGINS_RE.subn(
-            lambda mm: mm.group(0)[: mm.start(1) - mm.start(0)] + str(actual_plugins)
-            + mm.group(0)[mm.end(1) - mm.start(0) :],
+            lambda mm: (
+                mm.group(0)[: mm.start(1) - mm.start(0)]
+                + str(actual_plugins)
+                + mm.group(0)[mm.end(1) - mm.start(0) :]
+            ),
             raw,
         )
         if new_raw != raw:
@@ -485,7 +515,9 @@ def fix_counts() -> list[str]:
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     g = ap.add_mutually_exclusive_group()
     g.add_argument(
         "--structural-only",

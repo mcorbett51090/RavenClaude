@@ -122,7 +122,9 @@ def cmd_contribution(args: argparse.Namespace) -> int:
             print("error: --employer-flat must be >= 0", file=sys.stderr)
             return 2
         employer_monthly = min(args.employer_flat, args.total_premium)
-        basis = f"flat {args.employer_flat:,.2f}/mo"
+        basis = f"flat {employer_monthly:,.2f}/mo"
+        if args.employer_flat > args.total_premium:
+            basis += f" (requested {args.employer_flat:,.2f}, capped to premium)"
     else:
         if not 0.0 <= args.employer_share <= 1.0:
             print("error: --employer-share must be in [0%, 100%]", file=sys.stderr)
@@ -134,14 +136,22 @@ def cmd_contribution(args: argparse.Namespace) -> int:
     employer_pct = employer_monthly / args.total_premium
 
     print("Contribution split — employer / employee premium share")
-    print(f"  total premium / enrollee : {args.total_premium:,.2f}/mo  ({args.total_premium * 12:,.2f}/yr)")
+    print(
+        f"  total premium / enrollee : {args.total_premium:,.2f}/mo  ({args.total_premium * 12:,.2f}/yr)"
+    )
     print(f"  basis                    : {basis}")
-    print(f"  → EMPLOYER share : {employer_monthly:,.2f}/mo  ({employer_monthly * 12:,.2f}/yr)  [{employer_pct * 100:.1f}%]")
-    print(f"  → EMPLOYEE share : {employee_monthly:,.2f}/mo  ({employee_monthly * 12:,.2f}/yr)  [{(1 - employer_pct) * 100:.1f}%]")
+    print(
+        f"  → EMPLOYER share : {employer_monthly:,.2f}/mo  ({employer_monthly * 12:,.2f}/yr)  [{employer_pct * 100:.1f}%]"
+    )
+    print(
+        f"  → EMPLOYEE share : {employee_monthly:,.2f}/mo  ({employee_monthly * 12:,.2f}/yr)  [{(1 - employer_pct) * 100:.1f}%]"
+    )
     print(f"  enrolled         : {args.enrolled:,}")
     print(f"  → employer ANNUAL cost (all enrollees): {employer_monthly * 12 * args.enrolled:,.2f}")
     print(f"  → employee ANNUAL cost (all enrollees): {employee_monthly * 12 * args.enrolled:,.2f}")
-    print(f"  → TOTAL ANNUAL premium (all enrollees): {args.total_premium * 12 * args.enrolled:,.2f}")
+    print(
+        f"  → TOTAL ANNUAL premium (all enrollees): {args.total_premium * 12 * args.enrolled:,.2f}"
+    )
     print("  note: the split drives take-up and the risk pool, not just cost — a thin")
     print("        employer share suppresses enrollment and can adversely select the pool")
     print("        (contribution-strategy-shapes-enrollment). Educational scaffolding; a")
@@ -153,8 +163,11 @@ def cmd_renewal(args: argparse.Namespace) -> int:
     if args.current_premium <= 0:
         print("error: --current-premium must be > 0", file=sys.stderr)
         return 2
-    for name, val in (("--trend", args.trend), ("--experience", args.experience),
-                      ("--demographic", args.demographic)):
+    for name, val in (
+        ("--trend", args.trend),
+        ("--experience", args.experience),
+        ("--demographic", args.demographic),
+    ):
         if val < -1.0:
             print(f"error: {name} must be >= -100%", file=sys.stderr)
             return 2
@@ -193,40 +206,62 @@ def build_parser() -> argparse.ArgumentParser:
         "loss-ratio",
         help="Underwriting loss ratio (claims/premium) + ACA MLR rebate flag",
     )
-    lr.add_argument("--incurred-claims", type=float, required=True,
-                    help="incurred claims for the period")
-    lr.add_argument("--earned-premium", type=float, required=True,
-                    help="earned premium for the period")
-    lr.add_argument("--mlr-threshold", type=_parse_rate, default=0.80,
-                    help="ACA MLR threshold, e.g. 80%% small/85%% large (default 80%%) [verify-at-build]")
+    lr.add_argument(
+        "--incurred-claims", type=float, required=True, help="incurred claims for the period"
+    )
+    lr.add_argument(
+        "--earned-premium", type=float, required=True, help="earned premium for the period"
+    )
+    lr.add_argument(
+        "--mlr-threshold",
+        type=_parse_rate,
+        default=0.80,
+        help="ACA MLR threshold, e.g. 80%% small/85%% large (default 80%%) [verify-at-build]",
+    )
     lr.set_defaults(func=cmd_loss_ratio)
 
     ct = sub.add_parser(
         "contribution",
         help="Employer/employee premium split + total cost across enrollees",
     )
-    ct.add_argument("--total-premium", type=float, required=True,
-                    help="total monthly premium per enrollee")
-    ct.add_argument("--employer-share", type=_parse_rate, default=0.0,
-                    help="employer contribution as a percent of premium, e.g. 75%% (default 0%%)")
-    ct.add_argument("--employer-flat", type=float, default=None,
-                    help="employer contribution as a flat monthly dollar amount (overrides --employer-share)")
-    ct.add_argument("--enrolled", type=int, required=True,
-                    help="number of enrolled employees")
+    ct.add_argument(
+        "--total-premium", type=float, required=True, help="total monthly premium per enrollee"
+    )
+    ct.add_argument(
+        "--employer-share",
+        type=_parse_rate,
+        default=0.0,
+        help="employer contribution as a percent of premium, e.g. 75%% (default 0%%)",
+    )
+    ct.add_argument(
+        "--employer-flat",
+        type=float,
+        default=None,
+        help="employer contribution as a flat monthly dollar amount (overrides --employer-share)",
+    )
+    ct.add_argument("--enrolled", type=int, required=True, help="number of enrolled employees")
     ct.set_defaults(func=cmd_contribution)
 
     rn = sub.add_parser(
         "renewal",
         help="Projected renewal premium = current × trend × experience × demographic",
     )
-    rn.add_argument("--current-premium", type=float, required=True,
-                    help="current annual (or monthly) premium")
-    rn.add_argument("--trend", type=_parse_rate, required=True,
-                    help="medical/Rx trend, e.g. 8%%")
-    rn.add_argument("--experience", type=_parse_rate, default=0.0,
-                    help="own-experience adjustment, e.g. 6%% (default 0%%)")
-    rn.add_argument("--demographic", type=_parse_rate, default=0.0,
-                    help="demographic-drift adjustment, e.g. 2%% (default 0%%)")
+    rn.add_argument(
+        "--current-premium", type=float, required=True, help="current annual (or monthly) premium"
+    )
+    rn.add_argument("--trend", type=_parse_rate, required=True, help="medical/Rx trend, e.g. 8%%")
+    rn.add_argument(
+        "--experience",
+        type=_parse_rate,
+        default=0.0,
+        help="own-experience adjustment, e.g. 6%% (default 0%%)",
+    )
+    rn.add_argument(
+        "--demographic",
+        type=_parse_rate,
+        default=0.0,
+        help="demographic-drift adjustment, e.g. 2%% (default 0%%)",
+    )
     rn.set_defaults(func=cmd_renewal)
 
     return p

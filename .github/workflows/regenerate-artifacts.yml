@@ -232,7 +232,12 @@ jobs:
           #     the files THIS job changed, and abort the push on any failure so the bad
           #     artifact is never the thing we self-heal onto main. Changed-files-only
           #     keeps this decoupled from unrelated pre-existing tree state.
-          mapfile -t _changed < <(git status --porcelain | sed -E 's/^.{3}//' | sed -E 's/^.* -> //')
+          # --untracked-files=all so a wholly-new untracked directory (e.g. a brand-new
+          # generated artifact tree like plugins/<name>/copilot/) is enumerated file-by-file
+          # instead of collapsed to a single directory line — otherwise the `[[ -f ]]` guards
+          # below skip every file inside it and BOTH the JSON and prettier gates silently
+          # ignore a freshly-created artifact dir (Finding 22).
+          mapfile -t _changed < <(git status --porcelain --untracked-files=all | sed -E 's/^.{3}//' | sed -E 's/^.* -> //')
           if [[ ${#_changed[@]} -gt 0 ]]; then
             for f in "${_changed[@]}"; do
               [[ -f "$f" ]] || continue
@@ -248,7 +253,7 @@ jobs:
             _existing=()
             for f in "${_changed[@]}"; do [[ -f "$f" ]] && _existing+=("$f"); done
             if [[ ${#_existing[@]} -gt 0 ]]; then
-              npx --yes prettier --check --log-level warn "${_existing[@]}" \
+              npx --yes prettier@3.9.4 --check --log-level warn "${_existing[@]}" \
                 || { echo "::error::self-heal produced non-prettier-conforming output — aborting push (would break every subsequent PR's prettier gate)"; exit 1; }
             fi
           fi

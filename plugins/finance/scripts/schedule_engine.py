@@ -37,6 +37,7 @@ accounting / audit / tax opinion (../CLAUDE.md sec.3). A schedule derived from a
 summarized input file is not a substitute for a fixed-asset sub-ledger reconciled to
 the GL, nor for a tax-basis depreciation calc. Stdlib only (csv/json/argparse). 3.8+.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -44,8 +45,10 @@ import csv
 import json
 import sys
 
-DISCLAIMER = ("Straight-line close schedule from summarized inputs; decision-support, "
-              "NOT an audit/tax opinion or a sub-ledger reconciled to the GL.")
+DISCLAIMER = (
+    "Straight-line close schedule from summarized inputs; decision-support, "
+    "NOT an audit/tax opinion or a sub-ledger reconciled to the GL."
+)
 
 
 # ---- period arithmetic (YYYY-MM as an absolute month index) ----------------
@@ -77,15 +80,22 @@ def _num(row: dict, key: str, default: float = 0.0) -> float:
     try:
         return float(raw)
     except ValueError:
-        raise SystemExit(f"non-numeric {key}={raw!r} for {row.get('asset_id') or row.get('prepaid_id') or row.get('contract_id') or '?'}")
+        raise SystemExit(
+            f"non-numeric {key}={raw!r} for {row.get('asset_id') or row.get('prepaid_id') or row.get('contract_id') or '?'}"
+        )
 
 
 def _tie(beginning: float, additions: float, reductions: float, ending: float) -> dict:
     """Rollforward identity: beginning + additions - reductions - ending should be 0.00."""
     residual = round(beginning + additions - reductions - ending, 2)
-    return {"beginning": round(beginning, 2), "additions": round(additions, 2),
-            "reductions": round(reductions, 2), "ending": round(ending, 2),
-            "residual": residual, "ties": abs(residual) < 0.005}
+    return {
+        "beginning": round(beginning, 2),
+        "additions": round(additions, 2),
+        "reductions": round(reductions, 2),
+        "ending": round(ending, 2),
+        "residual": residual,
+        "ties": abs(residual) < 0.005,
+    }
 
 
 # ---- depreciation: fixed-asset rollforward ---------------------------------
@@ -110,9 +120,9 @@ def depreciation(rows: list[dict], period: str) -> dict:
         disp_raw = (r.get("disposal_month") or "").strip()
         dmon = _ym(disp_raw) if disp_raw else None
 
-        base = round(cost - salvage, 2)          # depreciable base
+        base = round(cost - salvage, 2)  # depreciable base
         monthly = round(base / life, 2)
-        e = p - iserv                            # full months since in service
+        e = p - iserv  # full months since in service
         if e < 0:
             skipped.append({"asset_id": aid, "reason": "placed in service after period"})
             continue
@@ -129,9 +139,9 @@ def depreciation(rows: list[dict], period: str) -> dict:
         addition = round(cost, 2) if e == 0 else 0.0
         disposed_here = dmon is not None and dmon == p
         if disposed_here or e >= life:
-            dep = 0.0                            # fully depreciated, or disposed this period
+            dep = 0.0  # fully depreciated, or disposed this period
         else:
-            dep = round(min(monthly, base - b_accum), 2)   # final-month catch-up caps at base
+            dep = round(min(monthly, base - b_accum), 2)  # final-month catch-up caps at base
         disp_cost = round(cost, 2) if disposed_here else 0.0
         disp_accum = b_accum if disposed_here else 0.0
         disp_nbv = round(disp_cost - disp_accum, 2)
@@ -142,42 +152,71 @@ def depreciation(rows: list[dict], period: str) -> dict:
         proceeds = _num(r, "disposal_proceeds") if disposed_here else 0.0
         gain_loss = round(proceeds - disp_nbv, 2) if disposed_here else None
 
-        assets.append({
-            "asset_id": aid, "description": (r.get("description") or "").strip(),
-            "cost": round(cost, 2), "salvage_value": round(salvage, 2),
-            "useful_life_months": life, "monthly_depreciation": monthly,
-            "in_service_month": _ym_str(iserv),
-            "beginning_cost": b_cost, "beginning_accum_depreciation": b_accum,
-            "beginning_nbv": b_nbv,
-            "additions": addition, "depreciation": dep,
-            "disposal_cost": disp_cost, "disposal_accum_depreciation": disp_accum,
-            "disposal_nbv": disp_nbv, "disposal_proceeds": round(proceeds, 2) if disposed_here else None,
-            "gain_loss_on_disposal": gain_loss,
-            "ending_cost": e_cost, "ending_accum_depreciation": e_accum, "ending_nbv": e_nbv,
-            "nbv_tie_ok": abs((b_nbv + addition - dep - disp_nbv) - e_nbv) < 0.005,
-        })
+        assets.append(
+            {
+                "asset_id": aid,
+                "description": (r.get("description") or "").strip(),
+                "cost": round(cost, 2),
+                "salvage_value": round(salvage, 2),
+                "useful_life_months": life,
+                "monthly_depreciation": monthly,
+                "in_service_month": _ym_str(iserv),
+                "beginning_cost": b_cost,
+                "beginning_accum_depreciation": b_accum,
+                "beginning_nbv": b_nbv,
+                "additions": addition,
+                "depreciation": dep,
+                "disposal_cost": disp_cost,
+                "disposal_accum_depreciation": disp_accum,
+                "disposal_nbv": disp_nbv,
+                "disposal_proceeds": round(proceeds, 2) if disposed_here else None,
+                "gain_loss_on_disposal": gain_loss,
+                "ending_cost": e_cost,
+                "ending_accum_depreciation": e_accum,
+                "ending_nbv": e_nbv,
+                "nbv_tie_ok": abs((b_nbv + addition - dep - disp_nbv) - e_nbv) < 0.005,
+            }
+        )
 
     def col(k):
         return round(sum(a[k] for a in assets), 2)
 
-    cost_rf = _tie(col("beginning_cost"), col("additions"), col("disposal_cost"), col("ending_cost"))
-    accum_rf = _tie(col("beginning_accum_depreciation"), col("depreciation"),
-                    col("disposal_accum_depreciation"), col("ending_accum_depreciation"))
-    nbv_rf = _tie(col("beginning_nbv"), col("additions"),
-                  round(col("depreciation") + col("disposal_nbv"), 2), col("ending_nbv"))
-    cross_tie = abs(col("ending_cost") - col("ending_accum_depreciation") - col("ending_nbv")) < 0.005
+    cost_rf = _tie(
+        col("beginning_cost"), col("additions"), col("disposal_cost"), col("ending_cost")
+    )
+    accum_rf = _tie(
+        col("beginning_accum_depreciation"),
+        col("depreciation"),
+        col("disposal_accum_depreciation"),
+        col("ending_accum_depreciation"),
+    )
+    nbv_rf = _tie(
+        col("beginning_nbv"),
+        col("additions"),
+        round(col("depreciation") + col("disposal_nbv"), 2),
+        col("ending_nbv"),
+    )
+    cross_tie = (
+        abs(col("ending_cost") - col("ending_accum_depreciation") - col("ending_nbv")) < 0.005
+    )
     return {
-        "schedule": "depreciation", "period": period, "method": "straight-line, full-month convention",
-        "disclaimer": DISCLAIMER, "assets": assets, "skipped": skipped,
+        "schedule": "depreciation",
+        "period": period,
+        "method": "straight-line, full-month convention",
+        "disclaimer": DISCLAIMER,
+        "assets": assets,
+        "skipped": skipped,
         "rollforward": {
             "gross_cost": cost_rf,
             "accumulated_depreciation": accum_rf,
             "net_book_value": nbv_rf,
             "nbv_equals_cost_less_accum": cross_tie,
         },
-        "formula": ("ending NBV = beginning NBV + additions - depreciation - disposals(NBV); "
-                    "ending accum = beginning accum + depreciation - accum removed on disposal; "
-                    "NBV = gross cost - accumulated depreciation"),
+        "formula": (
+            "ending NBV = beginning NBV + additions - depreciation - disposals(NBV); "
+            "ending accum = beginning accum + depreciation - accum removed on disposal; "
+            "NBV = gross cost - accumulated depreciation"
+        ),
         "ties": cost_rf["ties"] and accum_rf["ties"] and nbv_rf["ties"] and cross_tie,
     }
 
@@ -191,14 +230,19 @@ def _ratable_item(total: float, term: int, start: str, period: str) -> tuple:
         raise SystemExit(f"term_months must be > 0 (got {term})")
     monthly = round(total / term, 2)
     s, p = _ym(start), _ym(period)
-    k = p - s                                    # 0-based month index within the term
+    k = p - s  # 0-based month index within the term
     if k <= 0:
         opening = 0.0
     else:
         drawn_before = round(min(k, term) * monthly, 2)
         opening = round(total - min(drawn_before, round(total, 2)), 2)
     addition = round(total, 2) if k == 0 else 0.0
-    if 0 <= k <= term - 1:
+    if k == term - 1:
+        # Final period drains the balance to exactly zero (mirrors _full_schedule's
+        # last row): take the full remaining balance, not the ratable slice, so a
+        # rounds-down monthly can't leave total - term*monthly on the books.
+        drawdown = round(opening + addition, 2)
+    elif 0 <= k < term - 1:
         drawn_before = round(min(k, term) * monthly, 2)
         drawdown = round(min(monthly, round(total, 2) - drawn_before), 2)
     else:
@@ -217,8 +261,15 @@ def _full_schedule(total: float, term: int, start: str) -> list[dict]:
         avail = round(opening + addition, 2)
         drawdown = round(min(monthly, avail), 2) if i < term - 1 else round(avail, 2)
         closing = round(avail - drawdown, 2)
-        rows.append({"period": _ym_str(_ym(start) + i), "opening": opening,
-                     "addition": addition, "drawdown": drawdown, "closing": closing})
+        rows.append(
+            {
+                "period": _ym_str(_ym(start) + i),
+                "opening": opening,
+                "addition": addition,
+                "drawdown": drawdown,
+                "closing": closing,
+            }
+        )
         bal = closing
     return rows
 
@@ -232,20 +283,34 @@ def _ratable_schedule(rows, period, id_key, add_label, draw_label, kind, title):
         term = int(float((r.get("term_months") or "0").strip() or 0))
         start = (r.get("start_month") or "").strip()
         opening, addition, drawdown, ending, monthly = _ratable_item(total, term, start, period)
-        port_open += opening; port_add += addition; port_draw += drawdown; port_end += ending
-        items.append({
-            id_key: iid, "description": (r.get("description") or "").strip(),
-            "total_amount": round(total, 2), "term_months": term, "start_month": start,
-            "monthly_amount": monthly,
-            "opening_balance": opening, add_label: addition, draw_label: drawdown,
-            "ending_balance": ending,
-            "tie_ok": abs((opening + addition - drawdown) - ending) < 0.005,
-            "full_schedule": _full_schedule(total, term, start),
-        })
+        port_open += opening
+        port_add += addition
+        port_draw += drawdown
+        port_end += ending
+        items.append(
+            {
+                id_key: iid,
+                "description": (r.get("description") or "").strip(),
+                "total_amount": round(total, 2),
+                "term_months": term,
+                "start_month": start,
+                "monthly_amount": monthly,
+                "opening_balance": opening,
+                add_label: addition,
+                draw_label: drawdown,
+                "ending_balance": ending,
+                "tie_ok": abs((opening + addition - drawdown) - ending) < 0.005,
+                "full_schedule": _full_schedule(total, term, start),
+            }
+        )
     rf = _tie(port_open, port_add, port_draw, port_end)
     return {
-        "schedule": kind, "period": period, "method": "straight-line ratable, final-period catch-up",
-        "disclaimer": DISCLAIMER, "title": title, "items": items,
+        "schedule": kind,
+        "period": period,
+        "method": "straight-line ratable, final-period catch-up",
+        "disclaimer": DISCLAIMER,
+        "title": title,
+        "items": items,
         "rollforward": rf,
         "formula": f"ending {kind} = opening + {add_label} - {draw_label}",
         "ties": rf["ties"] and all(i["tie_ok"] for i in items),
@@ -253,20 +318,36 @@ def _ratable_schedule(rows, period, id_key, add_label, draw_label, kind, title):
 
 
 def prepaid(rows: list[dict], period: str) -> dict:
-    return _ratable_schedule(rows, period, "prepaid_id", "additions", "amortization",
-                             "prepaid", "Prepaid expense amortization schedule")
+    return _ratable_schedule(
+        rows,
+        period,
+        "prepaid_id",
+        "additions",
+        "amortization",
+        "prepaid",
+        "Prepaid expense amortization schedule",
+    )
 
 
 def deferred_revenue(rows: list[dict], period: str) -> dict:
-    return _ratable_schedule(rows, period, "contract_id", "billings", "recognized",
-                             "deferred-revenue", "Deferred revenue waterfall")
+    return _ratable_schedule(
+        rows,
+        period,
+        "contract_id",
+        "billings",
+        "recognized",
+        "deferred-revenue",
+        "Deferred revenue waterfall",
+    )
 
 
 # ---- CLI -------------------------------------------------------------------
 def _emit(result: dict, out: str | None, strict: bool) -> int:
     if strict and not result["ties"]:
-        sys.stderr.write(f"BLOCKED (--strict): {result['schedule']} schedule does not tie "
-                         f"(beginning + movements != ending). Residual(s) present.\n")
+        sys.stderr.write(
+            f"BLOCKED (--strict): {result['schedule']} schedule does not tie "
+            f"(beginning + movements != ending). Residual(s) present.\n"
+        )
         return 5
     text = json.dumps(result, indent=2)
     if out:
@@ -279,8 +360,12 @@ def _emit(result: dict, out: str | None, strict: bool) -> int:
 
 
 def main(argv=None) -> int:
-    p = argparse.ArgumentParser(description="Standard close schedules (depreciation / prepaid / deferred-revenue).")
-    p.add_argument("--strict", action="store_true", help="exit non-zero if the rollforward does not tie")
+    p = argparse.ArgumentParser(
+        description="Standard close schedules (depreciation / prepaid / deferred-revenue)."
+    )
+    p.add_argument(
+        "--strict", action="store_true", help="exit non-zero if the rollforward does not tie"
+    )
     p.add_argument("--out", help="write schedule JSON here (else stdout)")
     sub = p.add_subparsers(dest="cmd", required=True)
 

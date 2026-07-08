@@ -179,6 +179,13 @@ def compute_psi(
     else:
         edges = _equal_width_edges(reference, bins)
 
+    # A constant (or spiky) reference sample can collapse quantile edges down to a
+    # single value; guarantee at least two edges so binning and per-bin detail
+    # never index past the edge list. PSI then degrades to one bin (contribution 0).
+    if len(edges) < 2:
+        base = edges[0] if edges else 0.0
+        edges = [base, base]
+
     ref_counts = _bin_counts(reference, edges)
     cur_counts = _bin_counts(current, edges)
     n_ref = sum(ref_counts) or 1
@@ -225,9 +232,7 @@ def _ecdf_value(ordered: Sequence[float], x: float) -> float:
     return lo / len(ordered)
 
 
-def compute_ks(
-    reference: Sequence[float], current: Sequence[float]
-) -> tuple[float, float]:
+def compute_ks(reference: Sequence[float], current: Sequence[float]) -> tuple[float, float]:
     """Two-sample KS statistic D = max|F_ref(x) - F_cur(x)| at all sample points."""
     ref_sorted = sorted(reference)
     cur_sorted = sorted(current)
@@ -263,9 +268,7 @@ def compute_chi2(
         observed = cur_counts.get(cat, 0)
         term = (observed - expected) ** 2 / expected
         stat += term
-        detail.append(
-            {"category": cat, "observed": observed, "expected": expected, "term": term}
-        )
+        detail.append({"category": cat, "observed": observed, "expected": expected, "term": term})
     dof = max(len(categories) - 1, 1)
     return stat, dof, detail
 
@@ -291,6 +294,9 @@ def cmd_psi(args: argparse.Namespace) -> int:
         return 2
     if not reference or not current:
         print("psi: both samples must be non-empty", file=sys.stderr)
+        return 2
+    if args.bins < 1:
+        print("psi: --bins must be >= 1", file=sys.stderr)
         return 2
 
     total, detail = compute_psi(reference, current, args.bins, args.method)

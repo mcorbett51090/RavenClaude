@@ -57,7 +57,11 @@ done
 #    exits and hangs the whole lifecycle command. Codespaces already auto-opens the
 #    forwarded port via onAutoForward: openBrowser, so skipping here loses nothing.
 if [ -t 1 ]; then
-  if [ -n "${BROWSER:-}" ] && [ -x "${BROWSER%% *}" ]; then
+  # Resolve the first word of $BROWSER via PATH (not as a cwd-relative path), so a bare
+  # command name (BROWSER=firefox) is honored, not just an absolute path. `command -v`
+  # handles both a PATH name and an absolute path uniformly (Finding 24).
+  browser_bin="$(command -v "${BROWSER%% *}" 2>/dev/null)"
+  if [ -n "${BROWSER:-}" ] && [ -n "$browser_bin" ]; then
     read -ra browser_cmd <<<"$BROWSER"
     "${browser_cmd[@]}" "$URL" >/dev/null 2>&1 || true
   else

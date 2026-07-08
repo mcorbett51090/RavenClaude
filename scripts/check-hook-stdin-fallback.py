@@ -38,9 +38,16 @@ def offending(path: str) -> int | None:
             text = fh.read()
     except OSError:
         return None
-    if _STDIN_FALLBACK.search(text):
-        return None  # has the fallback — fine
+    # Scope the fallback search to NON-COMMENT code lines (Finding 6): a bare textual
+    # mention of `tool_input.file_path` in a comment or diagnostic string must not
+    # exonerate an inert hook whose code only reads `file="${1:-}"`. Mirrors the
+    # comment handling in check-grep-ere-pcre.py (lines starting with `#` skipped).
+    code = "\n".join(line for line in text.splitlines() if not line.lstrip().startswith("#"))
+    if _STDIN_FALLBACK.search(code):
+        return None  # has the fallback in real code — fine
     for n, line in enumerate(text.splitlines(), 1):
+        if line.lstrip().startswith("#"):
+            continue
         if _ARG_PATH.match(line):
             return n
     return None  # doesn't read a positional path at all — not a file hook we gate

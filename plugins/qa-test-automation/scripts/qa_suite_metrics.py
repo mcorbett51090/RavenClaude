@@ -126,6 +126,11 @@ def _rate(counts: dict[str, int]) -> float:
 
 
 def run_flake_rate(args: argparse.Namespace) -> int:
+    # Reject a nonsensical negative window at the boundary so it can't be silently
+    # treated as all-time by the filter while the header still claims "last -Nd".
+    if args.window_days is not None and args.window_days <= 0:
+        print("error: --window-days must be > 0", file=sys.stderr)
+        return 2
     records = _read_jsonl(args.log)
     if not records:
         print("No usable run records found (empty input or all lines unparseable).")
