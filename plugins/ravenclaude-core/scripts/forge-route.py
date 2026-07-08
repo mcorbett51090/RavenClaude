@@ -39,7 +39,7 @@ _ENG_SIGNALS = {
         r"\bbump\b[^\n]{0,40}\b\d+\.\d+\.\d+\b|\bversion\b[^\n]{0,20}\b\d+\.\d+\.\d+\b|\b\d+\.\d+\.\d+\b[^\n]{0,20}\bbump\b",
         re.IGNORECASE,
     ),
-    "reserved-gate-slot": re.compile(r"\bGate\s+\d+\b"),
+    "reserved-gate-slot": re.compile(r"\bGate\s+\d+\b", re.IGNORECASE),
     "layout-allowlist-edit": re.compile(r"\.repo-layout\.json|allowed_globs", re.IGNORECASE),
     "named-pr-or-branch-target": re.compile(
         r"\b(?:branch|PR)\b[^\n]{0,30}\b(?:feat/|fix/|chore/|forge/)[\w./-]+", re.IGNORECASE
@@ -65,9 +65,13 @@ def landing_verdict(plan_text: str) -> dict:
 def execution_verdict(size: str, research_done: bool, privacy: str) -> dict:
     """use_local | consider_ultraplan | lean_ultraplan (+ confidence + reasons)."""
     reasons = []
-    # Privacy is a hard cap: sensitive work never leaves for the cloud.
-    if privacy == "sensitive":
-        reasons.append("privacy=sensitive → cloud Ultraplan is off the table (hard cap)")
+    # Privacy is a hard cap: sensitive work never leaves for the cloud. Fail CLOSED —
+    # whitelist the known-safe value ("clean") rather than blacklisting "sensitive", so
+    # any typo / casing / unknown label is treated as sensitive and stays local.
+    if str(privacy).strip().lower() != "clean":
+        reasons.append(
+            f"privacy={privacy!r} is not 'clean' → cloud Ultraplan is off the table (hard cap)"
+        )
         return {"execution": "use_local", "confidence": 0.9, "reasons": reasons}
 
     score = {"small": 0, "medium": 1, "large": 2}.get(size, 1)
@@ -76,7 +80,9 @@ def execution_verdict(size: str, research_done: bool, privacy: str) -> dict:
         score += 1
         reasons.append("web research not yet done → Ultraplan's cloud-research advantage applies")
     else:
-        reasons.append("research already done → one Ultraplan advantage neutralized (not against it)")
+        reasons.append(
+            "research already done → one Ultraplan advantage neutralized (not against it)"
+        )
 
     if score >= 3:
         verdict, conf = "lean_ultraplan", 0.72
@@ -96,16 +102,50 @@ def route(plan_text: str, size: str, research_done: bool, privacy: str) -> dict:
 
 _FIXTURES = [
     # (plan_text, size, research_done, privacy) -> (execution, landing)
-    ("Build 4 plugins. bump ravenclaude-core to 0.120.0 and add Gate 53.", "large", False, "clean",
-     ("lean_ultraplan", "pr")),
-    ("A short design memo weighing two approaches. No code, no version changes.", "small", True, "clean",
-     ("use_local", "main")),
-    ("Medium refactor across two skills; research still needed.", "medium", False, "clean",
-     ("consider_ultraplan", "main")),
-    ("Large client-confidential build. bump to 1.2.3.", "large", False, "sensitive",
-     ("use_local", "pr")),
-    ("Add a knowledge doc. Edit .repo-layout.json allowed_globs for the new dir.", "small", True, "clean",
-     ("use_local", "pr")),
+    (
+        "Build 4 plugins. bump ravenclaude-core to 0.120.0 and add Gate 53.",
+        "large",
+        False,
+        "clean",
+        ("lean_ultraplan", "pr"),
+    ),
+    (
+        "A short design memo weighing two approaches. No code, no version changes.",
+        "small",
+        True,
+        "clean",
+        ("use_local", "main"),
+    ),
+    (
+        "Medium refactor across two skills; research still needed.",
+        "medium",
+        False,
+        "clean",
+        ("consider_ultraplan", "main"),
+    ),
+    (
+        "Large client-confidential build. bump to 1.2.3.",
+        "large",
+        False,
+        "sensitive",
+        ("use_local", "pr"),
+    ),
+    (
+        "Add a knowledge doc. Edit .repo-layout.json allowed_globs for the new dir.",
+        "small",
+        True,
+        "clean",
+        ("use_local", "pr"),
+    ),
+    # Lowercase mid-sentence 'gate N' must still fire the reserved-gate-slot signal
+    # (regression guard for the missing re.IGNORECASE — Finding 10).
+    (
+        "A short memo, but we reserve gate 53 for the follow-up work.",
+        "small",
+        True,
+        "clean",
+        ("use_local", "pr"),
+    ),
 ]
 
 

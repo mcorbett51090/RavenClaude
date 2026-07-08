@@ -448,6 +448,16 @@ gd_block=(
   $'zsh <<EOF\nchmod -R 0777 /etc\nEOF'
   $'env FOO=bar bash <<EOF\nrm -rf ~\nEOF' $'/usr/bin/bash <<EOF\nmkfs.ext4 /dev/sda1\nEOF'
 
+  # Same-command heredoc write-then-execute (2026-07-08 review, finding 11): a NON-
+  # interpreter heredoc (cat/tee) writes a file, then the SAME command string executes
+  # that file via an interpreter (bash/sh/source <file> or ./<file>). The body must be
+  # scanned (not blanked), so the destructive content is caught. Redirect before OR after
+  # `<<`; direct path, flags, and ./basename forms.
+  $'cat <<\'EOF\' > /tmp/x.sh\nrm -rf /\nEOF\nbash /tmp/x.sh'
+  $'cat > /tmp/y.sh <<\'EOF\'\nrm -rf /home\nEOF\nsh -x /tmp/y.sh'
+  $'cat <<\'EOF\' > ./z.sh\nrm -rf ~\nEOF\n./z.sh'
+  $'cat <<\'EOF\' > /tmp/s.sh\nrm -rf /etc\nEOF\nsource /tmp/s.sh'
+
   # Command-substitution-wrapped find/truncate/git-branch-delete (2026-07 review):
   # the sibling functions used a boundary class omitting `(`/backtick that
   # _is_dangerous_rm deliberately included, and `-delete)` (closed by the subst
@@ -475,6 +485,12 @@ gd_pass=(
   # command word (cat/tee) is not an interpreter, so the strip still fires.
   $'tee /tmp/x <<EOF\ndocument git branch -D and rm -rf here\nEOF'
   $'python3 <<PY\nprint("just computing a sum, nothing destructive")\nPY'
+  # Write-then-execute close must not over-block: a heredoc that writes a BENIGN script
+  # then executes it is scanned but has nothing destructive, so it passes (finding 11).
+  $'cat <<\'EOF\' > /tmp/ok.sh\necho hello\nEOF\nbash /tmp/ok.sh'
+  # And writing a file with destructive content but NOT executing it (only cat) still
+  # blanks/strips as before — no interpreter reference to the target.
+  $'cat <<\'EOF\' > /tmp/x.sh\nrm -rf /\nEOF\ncat /tmp/x.sh'
 )
 for c in "${gd_pass[@]}"; do
   _gd "$c"
@@ -1099,6 +1115,12 @@ gate "decide: abstain -> defer (fail safe)" must_pass "$rc"
 # injection in the decision context -> defer
 rc=0; [[ "$(decide_field inject "$G17B" false verdict)" == "defer" ]] || rc=1
 gate "decide: injection -> defer" must_pass "$rc"
+# 2b (2026-07-08 review, finding 9): a LONE Heimdall (injection seat) abstention must
+# force a Thor injection re-screen, not rubber-stamp a Forseti+Mímir unanimous 'yes'.
+# The standalone test carries the teeth half (unanimous panel with Heimdall PRESENT
+# still resolves 'yes' with no Thor convene).
+rc=0; python3 plugins/ravenclaude-core/hooks/tests/test-heimdall-abstain-injection.py >/dev/null 2>&1 || rc=$?
+gate "decide: lone Heimdall abstain -> Thor re-screen (finding 9)" must_pass "$rc"
 
 echo
 echo "── Gate 18: skill/agent frontmatter strict-YAML ──────────────────────────"

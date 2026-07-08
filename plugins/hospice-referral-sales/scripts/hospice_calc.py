@@ -160,8 +160,14 @@ def cmd_benefit_periods(args: argparse.Namespace) -> int:
         print("error: --election must be YYYY-MM-DD", file=sys.stderr)
         return 2
 
+    if args.periods < 1:
+        print("error: --periods must be >= 1", file=sys.stderr)
+        return 2
+
     # Published MHB structure: two 90-day periods, then unlimited 60-day periods.
-    lengths = [90, 90] + [60] * (args.periods - 2)
+    # Slice to the requested count so the printed count always equals --periods
+    # (a bare [90, 90] + [60] * (periods - 2) prints 2 periods even for periods=1).
+    lengths = ([90, 90] + [60] * max(args.periods - 2, 0))[: args.periods]
     print(_rule("Medicare Hospice Benefit — period & recertification schedule"))
     print(f"  Election date             : {election.isoformat()}")
     print("  Structure                 : two 90-day periods, then 60-day periods")

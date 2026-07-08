@@ -1,6 +1,6 @@
 {
   "name": "ml-engineering",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "description": "ML-engineering (MLOps) team — 4 agents (ml-platform-architect, training-pipeline-engineer, model-serving-engineer, ml-monitoring-engineer) for the PRODUCTION lifecycle of ML models: the platform/architecture (build-vs-buy, the stack, the train->register->serve->monitor loop), reproducible training pipelines + experiment tracking + a model registry, feature stores and train/serve consistency (avoiding training-serving skew and leakage), model serving (online vs batch, shadow/canary), monitoring (data + concept drift, decay, retraining triggers), and computer-vision MLOps (task->architecture + edge-vs-cloud inference). 6 skills, a decision-tree knowledge bank (serving-pattern + retraining + computer-vision trees + a dated 2026 map), 25 best-practices, 4 templates, 4 commands, 1 advisory hook. Seams: significance -> applied-statistics, data pipelines -> data-platform/data-streaming, LLM/agent apps -> claude-app-engineering, deploy -> devops-cicd/cloud-native-kubernetes. Requires ravenclaude-core@>=0.7.0.",
   "author": {
     "name": "Matt Corbett"

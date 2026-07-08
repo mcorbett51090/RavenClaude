@@ -1,6 +1,6 @@
 {
   "name": "fintech-payments-engineering",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "Fintech & payments-engineering team — 4 agents (payments-architect, payments-integration-engineer, billing-subscriptions-engineer, payments-pci-compliance-advisor) for building payment + billing systems that don't lose or duplicate money: payment-flow architecture (PSP choice, money-as-integer, the double-entry ledger, reconciliation), payment integration (Stripe-style intents, idempotency keys, webhook verification + idempotent handling, 3DS/SCA, retries/dunning), subscription & usage billing (plans, proration, metering, invoicing, revenue events), and PCI-DSS scope minimization (tokenization, never touch raw PAN, SAQ-A posture). The ENGINEERING — accounting/GL routes to finance, financial regulation to regulatory-compliance, security verdicts to ravenclaude-core. 5 skills, a decision-tree knowledge bank (charge-flow + PCI-scope trees + a dated 2026 map), 12 best-practices, 4 templates, 4 commands, 1 advisory hook. Requires ravenclaude-core@>=0.7.0.",
   "author": {
     "name": "Matt Corbett"

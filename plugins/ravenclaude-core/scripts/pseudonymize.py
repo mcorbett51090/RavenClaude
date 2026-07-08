@@ -84,13 +84,44 @@ class NerUnavailable(Exception):
 # exotic look-alike can still bypass it. Stated in the coverage report + the skill.
 _CONFUSABLES = {
     # Cyrillic -> Latin
-    "А": "A", "В": "B", "Е": "E", "К": "K", "М": "M", "Н": "H", "О": "O",
-    "Р": "P", "С": "C", "Т": "T", "Х": "X", "а": "a", "е": "e", "о": "o",
-    "с": "c", "р": "p", "х": "x", "у": "y", "ѕ": "s", "і": "i", "ј": "j",
+    "А": "A",
+    "В": "B",
+    "Е": "E",
+    "К": "K",
+    "М": "M",
+    "Н": "H",
+    "О": "O",
+    "Р": "P",
+    "С": "C",
+    "Т": "T",
+    "Х": "X",
+    "а": "a",
+    "е": "e",
+    "о": "o",
+    "с": "c",
+    "р": "p",
+    "х": "x",
+    "у": "y",
+    "ѕ": "s",
+    "і": "i",
+    "ј": "j",
     # Greek -> Latin
-    "Α": "A", "Β": "B", "Ε": "E", "Ζ": "Z", "Η": "H", "Ι": "I", "Κ": "K",
-    "Μ": "M", "Ν": "N", "Ο": "O", "Ρ": "P", "Τ": "T", "Υ": "Y", "Χ": "X",
-    "ο": "o", "ν": "v",
+    "Α": "A",
+    "Β": "B",
+    "Ε": "E",
+    "Ζ": "Z",
+    "Η": "H",
+    "Ι": "I",
+    "Κ": "K",
+    "Μ": "M",
+    "Ν": "N",
+    "Ο": "O",
+    "Ρ": "P",
+    "Τ": "T",
+    "Υ": "Y",
+    "Χ": "X",
+    "ο": "o",
+    "ν": "v",
     # dotted capital I (Turkish) — folds 1:1 after the _fold_char length guard
     "İ": "I",
 }
@@ -139,6 +170,12 @@ def _load_entities(entities_file):
                 ent, label = ent.strip(), label.strip().upper() or "NAME"
             else:
                 ent, label = line, "NAME"
+            # NFKC-normalize the entity so its fold view goes through the SAME
+            # pipeline as the input text (encode()/scan() NFKC-normalize the text
+            # before folding). Without this, an NFD-form listed name produces a
+            # decomposed regex that never matches the composed text — a silent leak.
+            # Normalize before the length check (normalization can change length).
+            ent = unicodedata.normalize("NFKC", ent)
             if len(ent) < 2:
                 sys.stderr.write(
                     f"pseudonymize: SKIPPING 1-char denylist entry {ent!r} "
@@ -183,18 +220,53 @@ def _ner_spans(text):
 # the substitution manifest is printed to stderr so a reviewer can still tell a
 # surrogate from an un-replaced real name (overclaim #2).
 _FAKE_NAMES = [
-    "Quillon Vasp", "Marent Dolo", "Sable Krenn", "Ovid Marne", "Tessa Vane",
-    "Doran Fick", "Lira Osk", "Bram Teel", "Neve Calder", "Ivo Renn",
-    "Sasha Wold", "Piety Lund", "Orin Vex", "Mira Sol", "Kane Ferro",
+    "Quillon Vasp",
+    "Marent Dolo",
+    "Sable Krenn",
+    "Ovid Marne",
+    "Tessa Vane",
+    "Doran Fick",
+    "Lira Osk",
+    "Bram Teel",
+    "Neve Calder",
+    "Ivo Renn",
+    "Sasha Wold",
+    "Piety Lund",
+    "Orin Vex",
+    "Mira Sol",
+    "Kane Ferro",
 ]
 _FAKE_ORGS = [
-    "Vantridge Systems", "Okra Dynamics", "Perrell & Voss", "Nimbus Fell Co",
-    "Trellon Group", "Yarrow Labs", "Castle Peak Holdings", "Draymoor Inc",
+    "Vantridge Systems",
+    "Okra Dynamics",
+    "Perrell & Voss",
+    "Nimbus Fell Co",
+    "Trellon Group",
+    "Yarrow Labs",
+    "Castle Peak Holdings",
+    "Draymoor Inc",
+]
+# Clearly-fictional place names (disjoint from real GPE/LOC space) so GPE/LOC entities
+# get a location-shaped surrogate instead of a person name (FM4 label fidelity).
+_FAKE_PLACES = [
+    "Vornholt",
+    "Grey Marsh",
+    "Port Kessel",
+    "Adderly Reach",
+    "Mount Selvic",
+    "Dunmere",
+    "West Thallow",
+    "Caldwyn Vale",
 ]
 
 
 def _surrogate(value, label, salt, taken, banned):
-    pool = _FAKE_ORGS if label in ("ORG",) else _FAKE_NAMES
+    if label == "ORG":
+        pool = _FAKE_ORGS
+    elif label in ("GPE", "LOC"):
+        pool = _FAKE_PLACES
+    else:
+        pool = _FAKE_NAMES
     h = int(__import__("hashlib").sha256((salt + "\x00" + value).encode()).hexdigest(), 16)
     for i in range(len(pool)):
         cand = pool[(h + i) % len(pool)]
@@ -319,9 +391,7 @@ def encode(
 # ── decode (FM9, FM5) ───────────────────────────────────────────────────────────────
 # Tolerant token pattern: matches __PII_LABEL_NONCE_N__ even if the model wrapped it in
 # markdown, split it across a line wrap (whitespace inserted), or drifted its case.
-_TOK_RE = re.compile(
-    r"_\s*_\s*PII\s*_\s*([A-Za-z]+)\s*_\s*([0-9a-fA-F]+)\s*_\s*(\d+)\s*_\s*_"
-)
+_TOK_RE = re.compile(r"_\s*_\s*PII\s*_\s*([A-Za-z]+)\s*_\s*([0-9a-fA-F]+)\s*_\s*(\d+)\s*_\s*_")
 
 
 def decode(text, map_file):
@@ -354,8 +424,23 @@ def decode(text, map_file):
 # ── scan (residual-leak review aid; overclaims 1 & 3, FM1) ──────────────────────────
 # Common words that shouldn't count as an entity's "distinctive" word.
 _STOP = {
-    "corp", "corporation", "inc", "incorporated", "llc", "ltd", "limited", "company",
-    "co", "group", "holdings", "the", "and", "of", "systems", "labs", "partners",
+    "corp",
+    "corporation",
+    "inc",
+    "incorporated",
+    "llc",
+    "ltd",
+    "limited",
+    "company",
+    "co",
+    "group",
+    "holdings",
+    "the",
+    "and",
+    "of",
+    "systems",
+    "labs",
+    "partners",
 }
 
 
