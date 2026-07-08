@@ -2,6 +2,10 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.4.2] — 2026-07-08
+
+Weekly Tier-A news sweep (2026-07-08) — **correction** in `CLAUDE.md`: `chrome-devtools-mcp` is **v1.5.0** (past a v1.0.0 GA), not the documented **~v0.21.0**. Re-verified via the GitHub releases API. **Migration:** none — knowledge-file content only.
+
 ## [0.4.0] — 2026-06-09
 
 Version bump previously unlogged here (rolls up `0.3.0` → `0.4.0`); the change that set `0.4.0`:

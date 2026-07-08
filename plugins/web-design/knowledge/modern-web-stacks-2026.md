@@ -27,7 +27,7 @@ flowchart TD
     Q -->|Pure static, minimal JS, simple| ELE[Eleventy / Hugo / Astro]
 ```
 
-- **Astro 5+** — islands architecture, **zero JS by default**, View Transitions, **Content Layer API**, **Server Islands** (mix static + dynamic per-component). The performance default for content sites. (Cloudflare acquired Astro, 2026.)
+- **Astro 7+** — islands architecture, **zero JS by default**, View Transitions, **Content Layer API**, **Server Islands** (mix static + dynamic per-component). The performance default for content sites. (Cloudflare acquired Astro, 2026.) `[verify-at-use]` — Astro shipped a new major (**7.x**, current release re-verified 2026-07-08 via [github.com/withastro/astro releases](https://github.com/withastro/astro/releases)); the islands/zero-JS/Content-Layer/Server-Islands model carries forward.
 - **Next.js (16.x)** — **RSC default**, App Router, Server Actions; SSR/SSG/ISR/API routes/middleware/edge — the most versatile full-stack React choice. Heavier; needs a reason over Astro for content sites.
 - **React 19** — Server Components + Actions are the baseline; treat the server as the primary render environment, ship minimal client JS.
 - **React Router v7** (Remix merged in) — lighter data-router alternative to Next.

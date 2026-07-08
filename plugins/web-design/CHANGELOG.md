@@ -2,6 +2,10 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.14.2] — 2026-07-08
+
+Weekly Tier-A news sweep (2026-07-08) — **addition** in `knowledge/modern-web-stacks-2026.md`: Astro shipped a new major (**7.x**); the stack note now reads **Astro 7+** (the islands / zero-JS / Content-Layer / Server-Islands model carries forward). Re-verified via the withastro/astro GitHub releases. **Migration:** none — knowledge-file content only.
+
 ## [0.14.0] — 2026-07-06
 
 The **gold-standard website pipeline** — a gated, fail-closed checklist the Team Lead runs for _every_ new website so quality is designed in, not bolted on — plus the two plugin gaps that pipeline surfaced, closed in the same release. Skills 11 → 13; commands 5 → 6.

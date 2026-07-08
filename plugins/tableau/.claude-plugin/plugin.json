@@ -1,6 +1,6 @@
 {
   "name": "tableau",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Tableau analytics team — specialist agents for Tableau Desktop/Cloud/Server, Tableau Prep, and the developer surface: VizQL and chart-type selection, calculations (LOD expressions, table calcs, FIXED/INCLUDE/EXCLUDE), data modeling (relationships vs joins vs blends, extracts vs live), workbook/extract performance, Server/Cloud governance and permissions, content/ALM promotion, embedding (Embedding API v3, Connected Apps/JWT), and the next-gen surface (Tableau Pulse, Tableau Next, CRM Analytics, Einstein/Agent). Citation-grounded knowledge bank with Mermaid decision trees + a best-practices library. Seams: Salesforce platform data → salesforce; warehouse/semantic modeling → data-platform/microsoft-fabric; Power BI comparison → power-platform; methodology/security-review → ravenclaude-core. Requires ravenclaude-core@>=0.7.0.",
   "author": {
     "name": "Matt Corbett"

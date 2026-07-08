@@ -58,7 +58,7 @@ flowchart TD
 - OWASP DevSecOps Guideline (SAST/DAST/SCA/secret placement) — https://owasp.org/www-project-devsecops-guideline/
 - OWASP Web Security Testing Guide (WSTG) — https://owasp.org/www-project-web-security-testing-guide/
 - Semgrep (SAST, taint mode) — https://github.com/semgrep/semgrep (MIT)
-- OSV-Scanner (SCA) — https://github.com/google/osv-scanner (Apache-2.0; v2.3.8, May 2026)
+- OSV-Scanner (SCA) — https://github.com/google/osv-scanner (Apache-2.0; v2.4.0, June 2026 — adds CycloneDX 1.7 support + new default-enabled scanning plugins; re-verified 2026-07-08 via [releases/tag/v2.4.0](https://github.com/google/osv-scanner/releases/tag/v2.4.0))
 - Trivy (SCA + image + IaC) — https://github.com/aquasecurity/trivy (Apache-2.0)
 - gitleaks (secret scanning) — https://github.com/gitleaks/gitleaks
 - OWASP ZAP (DAST) — https://www.zaproxy.org/
