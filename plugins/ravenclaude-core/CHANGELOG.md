@@ -2,6 +2,12 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.187.0 — 2026-07-08
+
+### Added
+
+- **New best-practice: [`subagent-isolates-clutter-skill-keeps-the-work-in-thread.md`](best-practices/subagent-isolates-clutter-skill-keeps-the-work-in-thread.md)** (→ **28 rules**). The skill-vs-subagent authoring choice, decided by the **isolate-vs-steer** axis — a subagent when the work's intermediate results are clutter you won't reference again (isolation is the feature); a skill when you want the procedure to play out in-thread so you can see and steer each step — explicitly *not* by "can it run in parallel" (that's the delegation/fan-out rules' axis). Cross-linked to the routing, fan-out, and domain-plugin-architecture rules that own the adjacent axes. Sourced from the recurring Claude-community scan ([2026-07-08](../../docs/research/2026-07-08-claude-subreddit-scan/README.md)), grounded in the Anthropic primary "Steering Claude Code" blog. Additive markdown only.
+
 ## 0.186.1 — 2026-07-06
 
 ### Fixed

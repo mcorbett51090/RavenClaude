@@ -8,7 +8,7 @@ For the marketplace-wide best-practice library (CI gates, hook authoring, versio
 
 ## Index
 
-_27 rules._
+_28 rules._
 
 | Doc | Status | Use when |
 |---|---|---|
@@ -39,6 +39,7 @@ _27 rules._
 | [`the-bash-sandbox-is-the-os-enforced-complement-to-deny-ask-allow.md`](./the-bash-sandbox-is-the-os-enforced-complement-to-deny-ask-allow.md) | Pattern | Configuring a project's permission posture for autonomy/unattended runs — enable the OS-enforced Bash sandbox (Seatbelt/bubblewrap) to close the subprocess-access gap that `deny`/`ask`/`allow` rules can't reach, and to earn prompt-free autonomy without `--dangerously-skip-permissions`. |
 | [`give-the-agent-a-verification-signal-it-can-read.md`](./give-the-agent-a-verification-signal-it-can-read.md) | Pattern | Framing a task (or about to hand work back) — give the agent a check that emits a machine-readable pass/fail and iterate to green before reporting done; the umbrella principle the DoD-gate / expensive-test / visual-loop / adversarial-reviewer rules each instantiate. |
 | [`compact-proactively-and-persist-state-before-compaction.md`](./compact-proactively-and-persist-state-before-compaction.md) | Pattern | A long or multi-task session is filling the context window — compact at task boundaries (not at the 95% cliff) and persist load-bearing state (plans, decisions, rejected approaches) to a file/commit *before* compaction discards it, because `/compact` keeps only a summary. |
+| [`subagent-isolates-clutter-skill-keeps-the-work-in-thread.md`](./subagent-isolates-clutter-skill-keeps-the-work-in-thread.md) | Pattern | Authoring a capability and deciding whether it should be a skill or a subagent — choose by the isolate-vs-steer axis (subagent when the intermediate results are clutter you won't reference again; skill when you want the procedure to play out in-thread so you can see and steer each step), not by "can it run in parallel." |
 
 ---
 
