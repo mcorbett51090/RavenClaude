@@ -15,7 +15,9 @@ never executed):
      expression: sys.executable, or str(<Path constant>) / str(REPO_ROOT-derived).
      Specifically: NO f-strings, NO %/+/.format() string building, NO Name that
      could carry request data, NO Call other than the allowed str()/Path joins.
-  4. argv[0] is one of {"bash", sys.executable} (no shell like sh -c).
+  4. argv[0] is one of the literals {"bash", "sh"} OR sys.executable (no shell
+     `-c` form). `bash`/`sh` are safe only because the `-c` family is separately
+     forbidden (checks below), so a shell launcher can't take an inline script.
   5. No element contains shell metacharacters in a literal.
 
 Exit 0 = clean; non-zero = a violation (the gate fails).

@@ -15,7 +15,7 @@ name: Quarantine external scenario submission
 #    (quoted), and the processor reads them from the environment.
 #  * No LLM ever processes the content. Scrub + injection-strip are pure regex
 #    (scripts/process-scenario-submission.py), mirroring hooks/_scrub.sh +
-#    scripts/sanitize-webfetch-body.py.
+#    plugins/ravenclaude-core/scripts/sanitize-webfetch-body.py.
 #  * A secret/PII shape => the issue is closed "not staged", no file, no PR.
 #  * A spam cap closes the issue if too many external submissions are already open.
 
@@ -119,18 +119,9 @@ jobs:
           gh issue close "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY"
 
       # --- Stage path: open a PR with the sanitized file (R-PR — never push main). ---
-      - name: Read staged file path
-        id: staged
-        if: steps.cap.outputs.over_cap == 'false' && steps.process.outputs.action == 'stage'
-        env:
-          DECISION_FILE: ${{ github.workspace }}/submission-decision.json
-        run: |
-          set -euo pipefail
-          file_path="$(python3 -c 'import json,os;print(json.load(open(os.environ["DECISION_FILE"]))["file_path"])')"
-          slug="$(python3 -c 'import json,os;print(json.load(open(os.environ["DECISION_FILE"]))["slug"])')"
-          echo "file_path=$file_path" >> "$GITHUB_OUTPUT"
-          echo "slug=$slug" >> "$GITHUB_OUTPUT"
-
+      # (The processor already wrote the file to docs/staging/incoming/external/;
+      # the PR step stages it via the static add-paths glob below, so no
+      # intermediate step needs to re-read file_path/slug from the decision JSON.)
       - name: Open quarantine pull request
         id: pr
         if: steps.cap.outputs.over_cap == 'false' && steps.process.outputs.action == 'stage'

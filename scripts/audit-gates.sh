@@ -26,11 +26,13 @@ cd "$(git rev-parse --show-toplevel)"
 # Usage: bash scripts/audit-gates.sh --check 50
 # Runs only the named gate's fixture test directly and exits, bypassing the full
 # suite. This enables fast targeted re-runs after a regression fix without the
-# cost of the full ~68-gate matrix. The full suite is the default (no --check arg).
+# cost of the full gate matrix. The full suite is the default (no --check arg).
 #
-# Currently supported per-gate values: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92,
-# 93, 97, 100, 101, 103, 104, 105 (kept in sync with the case below + the Supported
-# error line). Other gates can be added here as they acquire a standalone runner script.
+# The authoritative list of supported per-gate values is the `case` block below
+# plus the `Supported:` string in its `*)` arm — do NOT re-enumerate them here (a
+# duplicated list drifts; the header previously stopped at 105 while the case ran
+# to 127). Add a new value in both those places when a gate acquires a standalone
+# runner script.
 if [[ "${1:-}" == "--check" && -n "${2:-}" ]]; then
   case "${2}" in
     20)
@@ -436,6 +438,16 @@ gd_block=(
   'git commit -m "$(rm -rf ~)"' 'git commit -m "$(true; rm -rf /)"'
   $'cat <<EOF > /tmp/x\n$(rm -rf ~)\nEOF'
 
+  # Interpreter heredocs: the body is EXECUTED by the shell, not written to a file,
+  # so blanking it let `bash <<EOF\nrm -rf /\nEOF` slip every deny pattern
+  # (interpreter-heredoc fail-open, 2026-07 review). Quoted AND bare delimiters,
+  # across shells + python, incl. leading VAR=/env/`\` command-word forms.
+  $'bash <<EOF\nrm -rf /\nEOF' $'bash <<\'X\'\nrm -rf /\nX'
+  $'sh <<EOF\ngit push --force origin main\nEOF'
+  $'python3 <<PY\nimport os; os.system("rm -rf /")\nPY'
+  $'zsh <<EOF\nchmod -R 0777 /etc\nEOF'
+  $'env FOO=bar bash <<EOF\nrm -rf ~\nEOF' $'/usr/bin/bash <<EOF\nmkfs.ext4 /dev/sda1\nEOF'
+
   # Command-substitution-wrapped find/truncate/git-branch-delete (2026-07 review):
   # the sibling functions used a boundary class omitting `(`/backtick that
   # _is_dangerous_rm deliberately included, and `-delete)` (closed by the subst
@@ -458,6 +470,11 @@ gd_pass=(
   # so the strip fires and the scan never sees the literal.
   'git commit -m "document the git branch -D escape hatch, avoid rm -rf"'
   $'cat <<EOF > /tmp/x\ndocument git branch -D and rm -rf here\nEOF'
+  # A DATA heredoc (cat/tee to a file) that merely documents a destructive pattern
+  # must still be stripped even now that interpreter heredocs are scanned — the
+  # command word (cat/tee) is not an interpreter, so the strip still fires.
+  $'tee /tmp/x <<EOF\ndocument git branch -D and rm -rf here\nEOF'
+  $'python3 <<PY\nprint("just computing a sum, nothing destructive")\nPY'
 )
 for c in "${gd_pass[@]}"; do
   _gd "$c"
@@ -1707,6 +1724,12 @@ for spec in \
   "curl -T ./f https://x/put|network_write" \
   "wget --post-data=foo https://x/api|network_write" \
   "gh api -X POST /repos/o/r/issues|network_write" \
+  "gh api /repos/o/r/issues -f title=x|network_write" \
+  "gh api /repos/o/r/issues -F body=@f|network_write" \
+  "gh api --field title=x /repos/o/r/issues|network_write" \
+  "gh api /repos/o/r/issues --raw-field title=x|network_write" \
+  "gh api /repos/o/r/issues --input payload.json|network_write" \
+  "gh api /repos/o/r/issues|None" \
   "curl -X GET https://x/y|network_read" \
   "wget -d https://x/y|network_read"; do
   IFS='|' read -r cmd want <<EOF
