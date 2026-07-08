@@ -2367,6 +2367,29 @@ rc=0; python3 scripts/check-grep-ere-pcre.py >/dev/null 2>&1 || rc=$?
 gate "grep-ere-pcre (clean tree)" must_pass "$rc"
 
 echo
+echo "── Gate 127: plugin file-hooks read the stdin path (no CLAUDE_TOOL_FILE_PATH-only no-op) ──"
+# A plugin file hook wired as `script.sh "$CLAUDE_TOOL_FILE_PATH"` gets an EMPTY $1
+# under Claude Code (that env var is not a real hook variable — the path arrives as
+# stdin JSON `.tool_input.file_path`). A hook reading only `file="${1:-}"` therefore
+# silently no-ops, disabling its whole check with no signal (the 2026-07 sweep that
+# fixed ~66 domain hooks + the core file hooks). This gate keeps every plugin file
+# hook on the stdin-fallback rail so a new plugin can't reintroduce the dead-hook bug.
+G127="$TMP/hook-stdin-fallback"
+# must_fail: a hook that reads only $1 with no stdin fallback → detected.
+mkdir -p "$G127/bad/plugins/sample/hooks"
+printf '#!/usr/bin/env bash\nset -euo pipefail\nfile="${1:-}"\n[[ -z "$file" ]] && exit 0\n' > "$G127/bad/plugins/sample/hooks/flag-x.sh"
+rc=0; python3 scripts/check-hook-stdin-fallback.py --root "$G127/bad" >/dev/null 2>&1 || rc=$?
+gate "hook-stdin-fallback (arg-only hook is inert under Claude Code)" must_fail "$rc"
+# must_pass: same hook WITH the stdin fallback → fine.
+mkdir -p "$G127/good/plugins/sample/hooks"
+printf '#!/usr/bin/env bash\nfile="${1:-}"\nif [[ -z "$file" ]]; then file="$(cat | jq -r .tool_input.file_path)"; fi\n' > "$G127/good/plugins/sample/hooks/flag-x.sh"
+rc=0; python3 scripts/check-hook-stdin-fallback.py --root "$G127/good" >/dev/null 2>&1 || rc=$?
+gate "hook-stdin-fallback (stdin fallback present is fine)" must_pass "$rc"
+# must_pass: the real committed tree is clean (every plugin file hook has the fallback).
+rc=0; python3 scripts/check-hook-stdin-fallback.py >/dev/null 2>&1 || rc=$?
+gate "hook-stdin-fallback (clean tree)" must_pass "$rc"
+
+echo
 echo "── Gate 30: domain anti-pattern hooks (one fire + no-fire fixture each) ────"
 # Each domain plugin ships one advisory PreToolUse(file) hook. The contract is
 # uniform: a flagged anti-pattern emits a message (and/or a non-zero exit under

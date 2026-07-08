@@ -1,6 +1,6 @@
 {
   "name": "optometry-eyecare-practice",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Optometry / eye-care practice operations team — 3 agents (practice-operations-lead, optical-dispensary-manager, front-office-billing) for the three engines of an eye-care practice: the clinical exam flow (scheduling, pretesting, lane flow, recall/recare cadence, capacity), the optical dispensary (frames & lens inventory, capture rate, lab orders, managed-vision-care formularies), and the front-office billing split that makes optometry distinct — medical-vs-vision routing, eligibility, CPT/coding for eye exams, payor mix, claims and denial triage. ADVISORY operations knowledge, not medical/legal/coding/billing advice; payor/coding specifics carry a retrieval date + verify-at-use; no PII/PHI. Distinct model from dental-practice and veterinary-practice (cross-linked); shares the revenue-cycle seam with medical-revenue-cycle. 5 skills, a decision-tree knowledge bank (4 Mermaid trees + dated 2026 reference), 8 best-practices, 3 templates, 3 commands, 1 advisory hook. Requires ravenclaude-core@>=0.7.0.",
   "author": {
     "name": "Matt Corbett"

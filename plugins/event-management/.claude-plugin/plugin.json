@@ -1,6 +1,6 @@
 {
   "name": "event-management",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Event-management team — 3 agents (event-strategist, event-operations-lead, event-marketing-revenue) for planning and running conferences, webinars, and field/community events across in-person, virtual, and hybrid formats: goals/KPIs and the go/no-go gate, format and audience and budget/break-even model, sponsorship strategy and fulfilled-promise delivery, minute-by-minute run-of-show and show-flow, venue/vendor/AV logistics, registration funnel and attendee ops, contingency and single-point-of-failure plan-Bs, promotion and ticketing funnel, and post-event ROI measured against the goal you set. This is the event craft, distinct from generic delivery — schedule/RAID/stakeholder management lives in project-management. 5 skills, a decision-tree knowledge bank (format + break-even + sponsorship-tier + go/no-go trees, plus a dated 2026 tooling/benchmark map), 8 best-practices, 3 templates, 3 commands, 1 advisory hook. Seams: schedule/RAID -> project-management. Requires ravenclaude-core@>=0.7.0.",
   "author": {
     "name": "Matt Corbett"
