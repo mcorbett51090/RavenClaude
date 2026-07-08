@@ -50,13 +50,20 @@ for _ in $(seq 1 10); do
   sleep 1
 done
 
-# 4. Open it in a browser. In a Codespace, $BROWSER is the VS Code helper that
-#    opens the forwarded port in your real browser; fall back to python's opener.
-if [ -n "${BROWSER:-}" ] && [ -x "${BROWSER%% *}" ]; then
-  read -ra browser_cmd <<<"$BROWSER"
-  "${browser_cmd[@]}" "$URL" >/dev/null 2>&1 || true
-else
-  python3 -m webbrowser "$URL" >/dev/null 2>&1 || true
+# 4. Open it in a browser — but ONLY when attached to an interactive terminal.
+#    Under postStartCommand there is no controlling TTY (stdout is redirected to a
+#    log) and $BROWSER isn't populated yet (the VS Code client hasn't attached), so
+#    the fallback below would launch a terminal browser (www-browser) that never
+#    exits and hangs the whole lifecycle command. Codespaces already auto-opens the
+#    forwarded port via onAutoForward: openBrowser, so skipping here loses nothing.
+if [ -t 1 ]; then
+  if [ -n "${BROWSER:-}" ] && [ -x "${BROWSER%% *}" ]; then
+    read -ra browser_cmd <<<"$BROWSER"
+    "${browser_cmd[@]}" "$URL" >/dev/null 2>&1 || true
+  else
+    # Time-bound so a terminal-browser fallback can never block, even interactively.
+    timeout 5 python3 -m webbrowser "$URL" >/dev/null 2>&1 || true
+  fi
 fi
 
 echo "Dashboard: $URL"
