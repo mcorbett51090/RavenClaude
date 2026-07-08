@@ -2,6 +2,15 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.17.6] — 2026-07-08
+
+Two non-blocking robustness hardenings for `honor_retry_after()` from the v0.17.5 security-reviewer sign-off (both fail in the safe direction; no security defect was present).
+
+- **Per-attempt `Retry-After` is now clamped to `backoff_cap`.** A single (attacker-influenceable) `Retry-After` header can no longer request a sleep longer than one exponential-backoff ceiling (default 60s) — previously only the *total* `backoff_budget_seconds` bounded it, so one header up to the full budget (120s) could hold the per-entity lock in a single sleep. The total-budget guard is unchanged; this tightens the single-sleep ceiling.
+- **The RFC-7231 HTTP-date form of `Retry-After` is now honored.** A `Retry-After` sent as an absolute HTTP-date (not delta-seconds) is parsed (`email.utils.parsedate_to_datetime`), the delta from `now()` is used, and the result is clamped to `[0, cap]` (past dates → 0; naive/tz-less parse treated as UTC). Previously a date value silently fell back to exponential backoff. `honor_retry_after` gained an injectable `now` (defaulted to `time.time`; the client passes its `clock`).
+
+Proven by 7 new assertions in `test_connectors.py` W2.5b (delta clamp, date honored/clamped/past, garbage→exponential, client-level huge-header capped at 60s). Full suite 59/59 green; ruff-clean. Security-reviewer verdict on the v0.17.5 retry path was CLEAR-TO-MERGE; these are the two optional follow-ups it noted.
+
 ## [0.17.5] — 2026-07-08
 
 In-client 429/5xx backoff-retry for the OAuth GL connector — the follow-up the 2026-07-08 review deferred as a design question (now decided: implement it).

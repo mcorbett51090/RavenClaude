@@ -59,6 +59,8 @@ import fcntl
 import json
 import os
 import time
+from datetime import timezone
+from email.utils import parsedate_to_datetime
 
 # --- Error-cause routing actions (distinct constants; the cause selects the fix) --------
 OK = "ok"
@@ -149,16 +151,38 @@ def classify_error(status: int, body: dict | None) -> str:
 
 
 def honor_retry_after(
-    headers: dict | None, attempt: int, base: float = 1.0, cap: float = 60.0
+    headers: dict | None,
+    attempt: int,
+    base: float = 1.0,
+    cap: float = 60.0,
+    now=time.time,
 ) -> float:
-    """Backoff seconds for a 429/5xx. If the server sent a Retry-After (delta-seconds),
-    HONOR it; otherwise exponential base*2**attempt, capped. Never negative."""
+    """Backoff seconds for a 429/5xx, always clamped to [0, cap].
+
+    If the server sent a Retry-After, HONOR it — supporting BOTH RFC-7231 forms:
+      * delta-seconds — an integer/float number of seconds; and
+      * HTTP-date — an absolute time (the delta from `now()` is used).
+    The honored value is CLAMPED to `cap` so a single (attacker-influenceable)
+    header can never request a longer sleep than one exponential-backoff ceiling.
+    Absent / unparseable -> exponential base*2**attempt, capped. Never negative."""
     headers = headers or {}
     ra = headers.get("Retry-After") or headers.get("retry-after")
     if ra is not None:
+        raw = str(ra).strip()
+        # Form 1: delta-seconds.
         try:
-            return max(0.0, float(str(ra).strip()))
+            return min(cap, max(0.0, float(raw)))
         except ValueError:
+            pass
+        # Form 2: HTTP-date. Compute the delta from now; clamp to [0, cap]. A naive
+        # (tz-less) parse is treated as UTC, since HTTP-dates are always GMT.
+        try:
+            dt = parsedate_to_datetime(raw)
+            if dt is not None:
+                if dt.tzinfo is None:
+                    dt = dt.replace(tzinfo=timezone.utc)
+                return min(cap, max(0.0, dt.timestamp() - now()))
+        except (TypeError, ValueError, OverflowError):
             pass
     return min(cap, base * (2 ** max(0, attempt)))
 
@@ -367,6 +391,7 @@ class OAuthClient:
                     attempt,
                     base=self.backoff_base,
                     cap=self.backoff_cap,
+                    now=self.clock,
                 )
                 # Never sleep past the budget — a hostile/large Retry-After must not pin the
                 # entity lock. If the required backoff won't fit, surface for a later retry.

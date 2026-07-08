@@ -245,6 +245,64 @@ def main():
         "429 backoff honors Retry-After header", honor_retry_after({"Retry-After": "12"}, 0) == 12.0
     )
 
+    print("W2.5b — honor_retry_after hardening: per-attempt cap + HTTP-date form")
+    from email.utils import formatdate
+
+    hnow = lambda: 1_000_000.0  # noqa: E731 — fixed 'now' for deterministic date deltas
+    # (i) a delta-seconds Retry-After LARGER than cap is clamped to cap (bounds one sleep).
+    check(
+        "delta-seconds Retry-After clamped to cap",
+        honor_retry_after({"Retry-After": "100"}, 0, cap=60.0) == 60.0,
+    )
+    check(
+        "delta-seconds under cap is unchanged",
+        honor_retry_after({"Retry-After": "45"}, 0, cap=60.0) == 45.0,
+    )
+    # (ii) HTTP-date form (RFC 7231) is honored: the delta from now() is used.
+    check(
+        "HTTP-date Retry-After honored (delta from now)",
+        honor_retry_after({"Retry-After": formatdate(1_000_030, usegmt=True)}, 0, now=hnow) == 30.0,
+    )
+    # (iii) an HTTP-date far in the future is clamped to cap.
+    check(
+        "HTTP-date Retry-After clamped to cap",
+        honor_retry_after(
+            {"Retry-After": formatdate(1_009_999, usegmt=True)}, 0, cap=60.0, now=hnow
+        )
+        == 60.0,
+    )
+    # (iv) an HTTP-date in the PAST yields 0 (never negative).
+    check(
+        "HTTP-date Retry-After in the past -> 0",
+        honor_retry_after({"Retry-After": formatdate(999_900, usegmt=True)}, 0, now=hnow) == 0.0,
+    )
+    # (v) an unparseable Retry-After (neither seconds nor a date) falls back to exponential.
+    check(
+        "garbage Retry-After -> exponential backoff",
+        honor_retry_after({"Retry-After": "soon"}, 2, base=1.0) == 4.0,
+    )
+    # (vi) client-level: a 429 with a huge delta-seconds header now sleeps at most `cap`.
+    with tempfile.TemporaryDirectory() as d:
+        store = os.path.join(d, "qbo.token.json")
+        _write_store(
+            store, {"access_token": "A0", "refresh_token": "R0", "expires_at": fixed["t"] - 10}
+        )
+        slept = []
+        tr = StubTransport(
+            [
+                TokenResponse(429, {}, {"Retry-After": "9999"}),
+                TokenResponse(
+                    200, {"access_token": "A1", "refresh_token": "R1", "expires_in": 3600}, {}
+                ),
+            ]
+        )
+        client = OAuthClient("qbo", store, tr, clock=clock, sleep=slept.append)
+        client.refresh()
+        check(
+            "client caps a huge Retry-After at backoff_cap (60s), then retries",
+            slept == [60.0] and tr.token_calls == 2,
+        )
+
     print("W2.6 — Xero 30-min grace: lost response retries with the EXISTING refresh token")
     with tempfile.TemporaryDirectory() as d:
         store = os.path.join(d, "xero.token.json")
