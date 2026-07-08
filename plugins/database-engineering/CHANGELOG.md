@@ -2,6 +2,10 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.5] — 2026-07-08
+
+Weekly Tier-A news sweep (2026-07-08) — **correction** in `CLAUDE.md`: MCP Toolbox for Databases is **v1.6.0** (past a v1.0 stable GA), not the documented **v0.28.0**. Re-verified via the GitHub releases API. **Migration:** none — knowledge-file content only.
+
 ## [0.3.3] — 2026-07-06
 
 Bug fix (P3) — the advisory `check-database-engineering-anti-patterns.sh` hook's CONCURRENTLY / NOT-NULL checks use `grep -Pzi` (PCRE, a GNU extension); on BSD/macOS grep the command errors and, wrapped in `if grep …; then`, silently failed to "no finding". Added a one-time PCRE-support probe that skips those two checks with a visible advisory (install GNU grep for full coverage) instead of a silent no-op. No behavior change on GNU-grep hosts.

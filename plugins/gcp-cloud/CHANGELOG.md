@@ -2,6 +2,10 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.4] — 2026-07-08
+
+Weekly Tier-A news sweep (2026-07-08) — **correction** in `CLAUDE.md`: MCP Toolbox for Databases advanced **v1.4.0 → v1.6.0** (2026-07-01). Re-verified via the GitHub releases API. **Migration:** none — knowledge-file content only.
+
 ## [0.3.1] — 2026-06-22
 
 Version bump previously unlogged here; the change that set `0.3.1`:
