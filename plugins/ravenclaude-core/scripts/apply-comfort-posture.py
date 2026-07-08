@@ -320,12 +320,19 @@ def parse_yaml(text: str) -> dict:
         )
     try:
         import yaml as pyyaml  # type: ignore
-        # `safe_load` returns None on an empty / comment-only file — guard with
-        # `or {}` so downstream `.get(...)` callers see a dict, matching the
-        # `_load_yaml(path) or {}` convention used at every other load site.
-        return pyyaml.safe_load(text) or {}
     except ImportError:
         return _minimal_yaml_parse(text)
+    # `safe_load` returns None on an empty / comment-only file — guard with
+    # `or {}` so downstream `.get(...)` callers see a dict, matching the
+    # `_load_yaml(path) or {}` convention used at every other load site.
+    # A YAML syntax error (unbalanced quote, bad indent, tab) raises yaml.YAMLError
+    # only when PyYAML IS installed; the prior code caught only ImportError, so that
+    # error propagated as a raw traceback out of main(). Re-raise as a ValueError so
+    # main() surfaces it cleanly (mirrors the too-large / _load_settings_json paths).
+    try:
+        return pyyaml.safe_load(text) or {}
+    except pyyaml.YAMLError as exc:
+        raise ValueError(f"invalid YAML: {exc}") from exc
 
 
 def _load_settings_json(path: Path) -> dict:
@@ -1006,12 +1013,31 @@ def main() -> int:
         )
         return 1
 
-    posture = parse_yaml(posture_path.read_text(encoding="utf-8"))
+    # parse_yaml + the emission walk both raise ValueError on a malformed posture
+    # (invalid YAML syntax, or a bad level/category value like `level: yolo`). Catch
+    # it here so the user sees an actionable one-liner + the valid vocabulary instead
+    # of a raw traceback.
+    def _posture_error(exc: Exception) -> int:
+        print(f"ERROR: invalid comfort-posture ({posture_path}): {exc}", file=sys.stderr)
+        print(
+            "Levels must be one of: " + ", ".join(sorted(VALID_LEVELS)) + ". "
+            "Fix the file, then retry.",
+            file=sys.stderr,
+        )
+        return 1
+
+    try:
+        posture = parse_yaml(posture_path.read_text(encoding="utf-8"))
+    except ValueError as exc:
+        return _posture_error(exc)
     schema_version = posture.get("schema_version")
 
     # Schema v5 — per-layer authoring. Distinct code path; v3/v4 fall through below.
     if schema_version == 5:
-        return run_v5(posture, root, args)
+        try:
+            return run_v5(posture, root, args)
+        except ValueError as exc:
+            return _posture_error(exc)
 
     if schema_version not in (3, 4):
         print(
@@ -1020,7 +1046,10 @@ def main() -> int:
             file=sys.stderr,
         )
 
-    new_emission = compute_emission(posture)
+    try:
+        new_emission = compute_emission(posture)
+    except ValueError as exc:
+        return _posture_error(exc)
 
     if settings_path.is_file():
         settings = _load_settings_json(settings_path)

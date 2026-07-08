@@ -1,0 +1,28 @@
+{
+  "name": "llm-evaluation-engineering",
+  "version": "0.1.0",
+  "description": "LLM-evaluation engineering team — 2 agents (eval-strategy-lead, eval-harness-engineer) for the question every team shipping an AI feature has to answer: is it getting better or worse? Eval design (task-grounded metrics, offline-vs-online split, sample size, a ship-gate decided as a number before the run), and the harness that proves it (frozen golden sets with provenance, LLM-as-judge rubrics with a bias audit and human calibration, CI regression gates, guardrail/red-team suites). 3 skills, a decision-tree knowledge bank (an eval-method Mermaid tree + a dated 2026 tooling/method map), 5 best-practices. Engineering decision-support, not a safety certification; model/judge/tooling specifics are volatile — retrieval-dated + verify-at-use; no eval-data PII. Seams: retrieval quality -> ai-rag-engineering; model selection -> ai-coding-model-guidance; classical-ML training/metrics -> ml-engineering; product A/B -> experimentation-growth-engineering. Requires ravenclaude-core@>=0.7.0.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "llm-evaluation",
+    "llm-as-judge",
+    "evals",
+    "eval-harness",
+    "guardrails",
+    "red-teaming",
+    "golden-set",
+    "regression-testing",
+    "offline-eval",
+    "online-eval",
+    "prompt-testing",
+    "ship-gate",
+    "llmops"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}

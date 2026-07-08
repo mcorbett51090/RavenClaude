@@ -30,6 +30,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -109,7 +110,16 @@ def _concern_present(d: dict, concern: str) -> bool:
 
 
 def run_deterministic(corpus: Path = CORPUS) -> int:
+    # _consumer_root() mkdtemp's a fresh dir per invocation; clean it up on the way
+    # out (normal return OR exception) so repeated runs don't leak /tmp dirs.
     root = _consumer_root()
+    try:
+        return _run_deterministic_body(root, corpus)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def _run_deterministic_body(root: Path, corpus: Path) -> int:
     lines = [ln for ln in corpus.read_text(encoding="utf-8").splitlines() if ln.strip()]
     entries: list[dict] = []
     fails = 0

@@ -79,12 +79,18 @@ AGENTS_RE = re.compile(r"(\d+)\s+(?:specialist\s+|strategist\s+)?agents?\b", re.
 README_COUNT_RE = re.compile(r"ships\s+\*\*(\d+)\s+plugins\*\*", re.IGNORECASE)
 # Count-drift family (the recurring hand-maintained-prose bug — README once said
 # "99 plugins" / "98 of the 99" / core "20 skills, 5 hooks" while reality was
-# 101 / 100-of-101 / 43-skills-16-hooks; no gate caught it). These anchor on
-# robustly-unique surfaces so they can't false-positive on subset counts:
-#   - every "<N> plugins" claim in README.md must equal the true plugin count
+# 101 / 100-of-101 / 43-skills-16-hooks; no gate caught it):
+#   - every TOTAL "<N> plugins" claim in README.md must equal the true plugin count
 #   - "<M> of the <N> plugins" — M must equal the require-core count
 #   - the core README "What's inside" table rows (| Skills | N |, etc.)
-README_PLUGINS_RE = re.compile(r"(\d+)\s+plugins\b", re.IGNORECASE)
+# README_PLUGINS_RE requires a TOTAL-signaling prefix ("**" bold, or "the ") before
+# the number so it matches the total-count claims ("ships **131 plugins**",
+# "the 131 plugins above", the "the <N> plugins" total inside "<M> of the <N>
+# plugins") but NOT a bare SUBSET count ("install 3 plugins", "these 5 plugins") —
+# without the anchor, the --fix rewrite would corrupt such subset prose to the
+# marketplace total (the docstring's earlier "cannot false-positive" claim was
+# false — the prior regex had no anchor at all).
+README_PLUGINS_RE = re.compile(r"(?:\*\*|\bthe\s+)(\d+)\s+plugins\b", re.IGNORECASE)
 README_REQUIRES_RE = re.compile(r"(\d+)\s+of\s+the\s+\d+\s+plugins\b", re.IGNORECASE)
 CORE_README = PLUGINS / "ravenclaude-core" / "README.md"
 CORE_HOOKS_JSON = PLUGINS / "ravenclaude-core" / "hooks" / "hooks.json"
@@ -213,8 +219,8 @@ def check_readme_plugin_count(plugin_names: list[str]) -> None:
 def check_count_drift_family(plugin_names: list[str]) -> None:
     """Check 4c (counts) — the recurring hand-maintained-prose drift surfaces.
 
-    Robustly anchored so they cannot false-positive on a subset count:
-      - every "<N> plugins" claim in README.md == the true plugin count
+    Anchored to TOTAL-signaling forms so they don't false-positive on a subset count:
+      - every TOTAL "<N> plugins" claim in README.md (bold or "the "-prefixed) == the true plugin count
       - "<M> of the <N> plugins" — M == the require-core count
       - core README "What's inside" table rows == the core actuals
     """

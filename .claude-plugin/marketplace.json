@@ -275,8 +275,8 @@
       "name": "ravenclaude-core",
       "displayName": "RavenClaude Core",
       "source": "./plugins/ravenclaude-core",
-      "description": "Domain-neutral Claude Code foundation: 15 specialist agents, 46 skills, gates, hooks, rules, templates. Capability Grounding Protocol, Structured Output Protocol, Researcher meta-skill, comfort-posture dashboard, opt-in command-review tribunal (the Thing), WebFetch sanitizer, branch-archive escape hatch, brand-extraction (homepage → brand kit), Problems & Resolutions view, declarative-visualization (Vega-Lite/Deneb/SVG, Gate 101 + Gate 103 svg-report-lint, viz-spec-reviewer), and Claude orchestrator escape hatch (/claude-orchestrate). Slash commands: /init-agent-ready, /wrap, /set-posture, /dashboard, /forge, /reset-plugin-cache.",
-      "version": "0.184.5",
+      "description": "Domain-neutral Claude Code foundation: 15 specialist agents, 47 skills, gates, hooks, rules, templates. Capability Grounding Protocol, Structured Output Protocol, Researcher meta-skill, comfort-posture dashboard, opt-in command-review tribunal (the Thing), WebFetch sanitizer, branch-archive escape hatch, brand-extraction (homepage → brand kit), Problems & Resolutions view, declarative-visualization (Vega-Lite/Deneb/SVG, Gate 101 + Gate 103 svg-report-lint, viz-spec-reviewer), and Claude orchestrator escape hatch (/claude-orchestrate). Slash commands: /init-agent-ready, /wrap, /set-posture, /dashboard, /forge, /reset-plugin-cache.",
+      "version": "0.187.1",
       "author": {
         "name": "Matt Corbett"
       },
@@ -322,8 +322,8 @@
     {
       "name": "finance",
       "source": "./plugins/finance",
-      "description": "Corporate finance & FP&A specialist team — FP&A analyst (budgets, forecasts, variance commentary), financial modeler (3-statement, DCF, scenarios), controller (close, JEs, reconciliations), treasury analyst (cash, covenants, FX), valuation analyst (DCF + comps + precedent), audit-prep specialist (PBC, walkthroughs, SOC1/2 narratives), and board-pack composer. 9 skills, 8 templates, 12 knowledge-bank docs (ASC 805 / 718 / 740, accrual-cutoff, WACC, cost accounting, FP&A operating model + decision support), 1 advisory hook (hardcoded rates, plaintext PII, missing Sources / Assumptions). Inherits ravenclaude-core protocols.",
-      "version": "0.14.2",
+      "description": "Corporate finance & FP&A specialist team — FP&A analyst (budgets, forecasts, variance commentary), financial modeler (3-statement, DCF, scenarios), controller (close, JEs, reconciliations), treasury analyst (cash, covenants, FX), valuation analyst (DCF + comps + precedent), audit-prep specialist (PBC, walkthroughs, SOC1/2 narratives), and board-pack composer. 22 skills, 10 templates, 16 knowledge-bank docs (ASC 805 / 718 / 740, accrual-cutoff, WACC, cost accounting, FP&A operating model + decision support), 1 advisory hook (hardcoded rates, plaintext PII, missing Sources / Assumptions). Inherits ravenclaude-core protocols.",
+      "version": "0.17.1",
       "author": {
         "name": "Matt Corbett"
       },
@@ -363,8 +363,8 @@
     {
       "name": "web-design",
       "source": "./plugins/web-design",
-      "description": "Web design & build specialist team — web architect (IA, stack, hosting), UX designer (wireframes, flows, conversion), visual designer (brand, typography, tokens), frontend implementer (HTML/CSS/JS, React, Astro, Next), content strategist (copy, microcopy, SEO content), accessibility auditor (WCAG 2.2 AA/AAA), and performance engineer (Core Web Vitals, image/font optimization). 11 skills (design-system audit, card/tile UI, accessibility review, Core Web Vitals tuning, technical SEO audit, information architecture, conversion design, content audit, design-tokens scaffolding, third-party hygiene, Fluent UI v9 + React implementation), 8 templates, 1 advisory hook, and a knowledge bank seeded with a curated 2026 reference set of \"cutting edge yet simple\" marketing-site donors (Linear, Vercel, Raycast, Resend, Cursor, v0, Tldraw, Cal.com) — visual-designer / ux-designer / frontend-implementer / web-architect all carry compact inline priors plus a pointer to the full brief. Inherits ravenclaude-core protocols.",
-      "version": "0.13.0",
+      "description": "Web design & build specialist team — web architect (IA, stack, hosting), UX designer (wireframes, flows, conversion), visual designer (brand, typography, tokens), frontend implementer (HTML/CSS/JS, React, Astro, Next), content strategist (copy, microcopy, SEO content), accessibility auditor (WCAG 2.2 AA/AAA), and performance engineer (Core Web Vitals, image/font optimization). 13 skills (the gold-standard-website-pipeline gated build pipeline, static-site build, design-system audit, card/tile UI, accessibility review, Core Web Vitals tuning, technical SEO audit, information architecture, conversion design, content audit, design-tokens scaffolding, third-party hygiene, Fluent UI v9 + React implementation), 8 templates, 1 advisory hook, and a knowledge bank seeded with a curated 2026 reference set of \"cutting edge yet simple\" marketing-site donors — the design agents carry compact inline priors plus a pointer to the full brief. Inherits ravenclaude-core protocols.",
+      "version": "0.14.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -858,7 +858,7 @@
       "name": "database-engineering",
       "source": "./plugins/database-engineering",
       "description": "Database-engineering team — 4 agents (schema-architect, query-performance-engineer, migration-engineer, db-reliability-engineer) for the OPERATIONAL/transactional data layer (OLTP): relational schema design and normalization (and when to denormalize), indexing strategy and query/EXPLAIN-plan tuning, safe zero-downtime schema migrations (expand/contract), and connection-pooling, transactions/isolation, replication, and backup/restore reliability. Postgres-leaning, principles portable to MySQL/SQL Server; NoSQL access-pattern guidance where it fits. 5 skills, a decision-tree knowledge bank (index-choice + migration-safety trees + a dated 2026 capability map), 12 best-practices, 4 templates, 4 commands, 1 advisory hook. Distinct from data-platform (analytics/ELT/warehouse) and analytics-engineering (dbt). Seams: ELT/warehouse -> data-platform, ORM/app data-access -> backend-engineering, managed DB infra -> cloud plugins. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.3.2",
+      "version": "0.3.3",
       "author": {
         "name": "Matt Corbett"
       },
@@ -1157,7 +1157,7 @@
       "name": "data-governance-privacy",
       "source": "./plugins/data-governance-privacy",
       "description": "Data governance & privacy team — 3 agents (data-governance-architect, privacy-compliance-engineer, data-catalog-lineage-engineer) for making data discoverable, trustworthy, and lawfully used: the governance operating model (ownership/stewardship, policies, classification scheme), privacy mechanics (GDPR/CCPA/-style data-subject rights — access/erasure/portability, consent + lawful basis, data minimization, retention, pseudonymization vs anonymization), and a data catalog with lineage + sensitive-data/PII discovery + access governance/DLP. The ENGINEERING of governance, not legal advice. 5 skills, a decision-tree knowledge bank (classification + DSR-handling trees + a dated 2026 map), 12 best-practices, 4 templates, 4 commands, 1 advisory hook. Seams: financial-regulatory -> regulatory-compliance, warehouse RLS -> data-platform, Purview-in-Fabric -> microsoft-fabric, security verdicts -> security-engineering. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.3.1",
+      "version": "0.3.2",
       "author": {
         "name": "Matt Corbett"
       },
@@ -1272,7 +1272,7 @@
       "name": "cloud-native-kubernetes",
       "source": "./plugins/cloud-native-kubernetes",
       "description": "Cloud-native & Kubernetes team — 4 agents (kubernetes-architect, container-build-engineer, k8s-platform-operator, service-mesh-networking-engineer) for running workloads on Kubernetes well: workload design (Deployment/StatefulSet/Job, probes, requests/limits, PDBs, HPA/VPA), container build hygiene (minimal non-root images, distroless, multi-stage), platform ops (namespaces, RBAC, network policies, resource quotas, admission control, upgrades), and service-mesh networking (ingress/gateway, mTLS, traffic-splitting, observability). Cloud-agnostic. 6 skills, a decision-tree knowledge bank (workload-type + ingress trees + a dated 2026 ecosystem map), 12 best-practices, 4 templates, 4 commands, 1 advisory hook. Seams: managed control plane (AKS/EKS/GKE) -> azure/aws/gcp-cloud, GitOps reconcile -> devops-cicd, telemetry/SLOs -> observability-sre. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.3.2",
+      "version": "0.3.3",
       "author": {
         "name": "Matt Corbett"
       },
@@ -1508,7 +1508,7 @@
       "name": "ecommerce-dtc",
       "source": "./plugins/ecommerce-dtc",
       "description": "E-commerce & DTC specialist team — 4 agents, 5 skills, 4-file cited knowledge bank, 3 templates, 5 commands, 8 best-practice rules, 1 advisory hook. A growth-and-unit-economics team for a DTC brand operator — it protects the LTV:CAC ratio (the 3:1 line below which a brand bleeds), reads conversion against the 1.4–1.8% average, attacks the retention gap (the average brand keeps just ~28% for a second purchase), and reads contribution margin after the real cost of acquisition and returns. Inherits ravenclaude-core protocols.",
-      "version": "0.2.1",
+      "version": "0.2.2",
       "author": {
         "name": "Matt Corbett"
       },
@@ -1765,7 +1765,7 @@
       "name": "accounting-bookkeeping",
       "source": "./plugins/accounting-bookkeeping",
       "description": "Accounting & Bookkeeping Practice specialist team — 4 agents (accounting-practice-lead, close-cycle-analyst, ap-ar-cashflow-specialist, reconciliation-controls-specialist), 5 skills, 4 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. A practice-ops team for a bookkeeping/accounting practice owner or controller accountable for a timely, clean close — it closes on a cadence and tracks days-to-close, reconciles before reporting, reads AR/AP as working-capital levers, and enforces segregation of duties. Tax and audit opinions route to a licensed CPA. Inherits ravenclaude-core protocols.",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -2964,6 +2964,330 @@
         "hand-tracking",
         "passthrough-ar",
         "xr-performance"
+      ]
+    },
+    {
+      "name": "computer-vision-engineering",
+      "source": "./plugins/computer-vision-engineering",
+      "description": "Computer-vision engineering team — 3 agents for a production vision build: cv-systems-architect (task framing across classification / detection / segmentation / OCR / tracking / VLM, data & annotation strategy, build-vs-API and deployment-target choice, eval-metric design — mAP / IoU / precision-recall), cv-model-engineer (dataset curation, augmentation, transfer learning, model selection across YOLO / DETR / SAM / CLIP / ViT, active learning, the eval harness, drift), and vision-deployment-engineer (quantization / distillation, ONNX / TensorRT / CoreML / TFLite export, edge/embedded targets, streaming-video pipelines, latency). Vision-specific vs the MLOps-broad ml-engineering. Ships 4 skills, a knowledge bank (4 Mermaid decision trees + a dated 2026 reference), 5 best-practices, 2 templates, 2 commands. Engineering judgment, not a benchmark verdict; model/hardware/runtime specifics carry a retrieval date + [verify-at-use]; no PII, no image data stored. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "computer-vision",
+        "object-detection",
+        "image-segmentation",
+        "ocr",
+        "video-analytics",
+        "edge-inference",
+        "tensorrt",
+        "onnx",
+        "yolo",
+        "vision-transformer",
+        "foundation-models",
+        "model-quantization",
+        "mlops-vision",
+        "active-learning",
+        "camera-pipeline"
+      ]
+    },
+    {
+      "name": "conversational-ai-voice-engineering",
+      "source": "./plugins/conversational-ai-voice-engineering",
+      "description": "Conversational voice-AI engineering team — 3 agents for production real-time voice agents: voice-ai-architect (cascade STT->LLM->TTS vs speech-to-speech, the latency budget, turn-taking / barge-in / endpointing, channel choice, build-vs-platform across Twilio / Vapi / Retell / LiveKit / Pipecat, guardrails), speech-pipeline-engineer (ASR & TTS provider choice, streaming transcription, VAD/endpointing, diarization, prosody/SSML, codecs, noise, WER), and dialog-and-integration-engineer (state, LLM orchestration and mid-call tool calling, SIP/PSTN telephony, IVR/DTMF, call routing, flow testing and eval). Ships 4 skills, a knowledge bank (4 Mermaid decision trees + a dated 2026 reference), 5 best-practices, 2 templates, 2 commands. Engineering judgment, not legal/compliance advice; the ASR/TTS/platform/telephony landscape is volatile — versions and latency numbers carry a retrieval date + [verify-at-use]; no PII, and call audio/transcripts are sensitive. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "voice-ai",
+        "conversational-ai",
+        "speech-to-text",
+        "text-to-speech",
+        "asr",
+        "tts",
+        "telephony",
+        "sip",
+        "ivr",
+        "barge-in",
+        "endpointing",
+        "latency-budget",
+        "speech-to-speech",
+        "webrtc",
+        "call-automation"
+      ]
+    },
+    {
+      "name": "streaming-media-engineering",
+      "source": "./plugins/streaming-media-engineering",
+      "description": "Streaming-media (video/audio) engineering team — 3 agents for a streaming build: media-streaming-architect (VOD vs live, protocol choice across HLS / MPEG-DASH / CMAF / WebRTC / LL-HLS, packaging + origin/edge, single vs multi-CDN, DRM across Widevine / FairPlay / PlayReady, ABR-ladder philosophy, cost), transcoding-pipeline-engineer (codec choice across H.264 / HEVC / AV1 / VP9, FFmpeg pipelines, per-title & ABR-ladder encoding, GPU vs CPU, CMAF packaging, captions, audio & loudness), and playback-and-delivery-engineer (player integration across hls.js / dash.js / Shaka / ExoPlayer / AVPlayer, ABR tuning, QoE metrics, low-latency live, client DRM, CDN cache tuning). Ships 4 skills, a knowledge bank (4 Mermaid decision trees + a dated 2026 reference), 5 best-practices, 2 templates, 2 commands. Engineering judgment, not legal/DRM-licensing advice; codec/protocol/CDN/DRM/player specifics carry a retrieval date + [verify-at-use]; no PII. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "streaming-media",
+        "video-streaming",
+        "hls",
+        "mpeg-dash",
+        "cmaf",
+        "webrtc",
+        "ll-hls",
+        "transcoding",
+        "ffmpeg",
+        "av1",
+        "hevc",
+        "abr-ladder",
+        "drm",
+        "cdn-delivery",
+        "playback-qoe"
+      ]
+    },
+    {
+      "name": "med-spa-aesthetics",
+      "source": "./plugins/med-spa-aesthetics",
+      "description": "Medical-aesthetics (med spa) practice operations team — 3 agents (med-spa-operations-lead, patient-coordinator-lead, aesthetics-compliance-advisor) across the three engines of a med spa: the practice P&L (injector/room utilization, service mix across injectables / devices / skincare / memberships, device payback, pricing per provider-hour), the patient front line (consult-to-treatment conversion, no-show / deposit, rebooking on the clinical cadence, memberships), and operational compliance structure (scope of practice, good-faith exam / supervision, consent and adverse-event protocols). Operations and financial decision-support, not legal, tax, or medical advice; no clinical/legal determinations and no patient PHI/PII; benchmarks carry a retrieval date + verify-at-use; scope/supervision rules are state-specific and flagged for a professional. Ships 4 skills, a decision-tree knowledge bank (4 Mermaid trees + a dated 2026 reference), 5 best-practices, 2 templates, 2 commands. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "med-spa",
+        "medical-aesthetics",
+        "injectables",
+        "aesthetic-devices",
+        "injector-utilization",
+        "consult-conversion",
+        "treatment-cadence-rebooking",
+        "membership-revenue",
+        "device-payback",
+        "skincare-retail",
+        "scope-of-practice",
+        "good-faith-exam",
+        "medical-supervision",
+        "patient-coordinator"
+      ]
+    },
+    {
+      "name": "craft-beverage-operations",
+      "source": "./plugins/craft-beverage-operations",
+      "description": "Craft-beverage (winery / brewery / distillery) operations team — 3 agents (craft-beverage-operations-lead, tasting-room-and-club-manager, beverage-distribution-compliance-advisor) across the three engines of a producer: production & cost (batch/yield planning, COGS per unit, tank/barrel/time capacity, packaging, channel margin mix), the tasting room & club (throughput and conversion, club/membership revenue and churn, DTC, events), and distribution & compliance (three-tier vs self-distribution economics, distributor relationships, TTB / state licensing and excise). Operations and financial decision-support, not legal, tax, or regulatory advice; no licensing/excise determinations and no PII; benchmarks carry a retrieval date + verify-at-use; three-tier / TTB / licensing / excise rules are jurisdiction-specific and flagged for a professional. Ships 4 skills, a decision-tree knowledge bank (4 Mermaid trees + a dated 2026 reference), 5 best-practices, 2 templates, 2 commands. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "craft-beverage",
+        "winery",
+        "brewery",
+        "distillery",
+        "tasting-room",
+        "wine-club",
+        "dtc-beverage",
+        "three-tier-distribution",
+        "self-distribution",
+        "cogs-per-unit",
+        "production-planning",
+        "ttb-licensing",
+        "excise-tax",
+        "channel-margin-mix"
+      ]
+    },
+    {
+      "name": "graphql-engineering",
+      "source": "./plugins/graphql-engineering",
+      "description": "GraphQL-engineering team — 3 agents (graphql-schema-architect, graphql-server-engineer, graphql-security-governance-engineer) for the three engines of a GraphQL surface: schema design & evolution (client-driven type modeling, nullability, Relay pagination, mutation/error shape, schema-first vs code-first, federation vs stitching, non-breaking evolution), server & resolvers (N+1/DataLoader batching + per-request caching, selection-set-aware fetching, subscriptions, APQ/response caching), and security & governance (query cost/depth budgets, field-level authz, persisted operations, introspection hardening, rate/batch limits, error hygiene). Ships 4 skills, a decision-tree knowledge bank (4 Mermaid trees + a dated 2026 reference), 5 best-practices, 2 templates, 2 commands. Engineering judgment, not a security certification; library/federation/spec-feature specifics are volatile — every version carries a retrieval date + [verify-at-use]; no PII. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "graphql",
+        "schema-design",
+        "apollo-federation",
+        "dataloader",
+        "n-plus-one",
+        "resolvers",
+        "relay-pagination",
+        "schema-evolution",
+        "persisted-queries",
+        "query-cost-analysis",
+        "field-level-authorization",
+        "graphql-security",
+        "subgraph",
+        "introspection-hardening",
+        "graphql-subscriptions"
+      ]
+    },
+    {
+      "name": "creator-economy-operations",
+      "source": "./plugins/creator-economy-operations",
+      "description": "Creator-economy business operations team — 2 agents (creator-business-strategist, content-and-audience-manager) for running a creator/media business: the monetization mix (ads, sponsorships, memberships & subscriptions, products/courses, affiliate, services), the platform portfolio (owned vs rented, platform-risk diversification, repurposing), audience funnel & LTV, sponsorship valuation & rate cards, content ops, community & retention, and the creator P&L/MRR. 3 skills (choose-monetization-mix, price-a-brand-deal, plan-content-and-audience-growth), a knowledge bank (a Mermaid monetization-mix tree + a dated 2026 platform/payout/rate reference), 7 best-practices. ADVISORY operations knowledge, not legal/tax/financial advice; payout rules, rate norms, and FTC/ASA disclosure specifics are volatile + jurisdictional, retrieval-dated + verify-at-use; no audience PII. Distinct from marketing-operations, developer-relations, and ecommerce-dtc. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "creator-economy",
+        "content-creator",
+        "monetization",
+        "brand-deals",
+        "sponsorships",
+        "newsletter",
+        "membership",
+        "subscription",
+        "audience-growth",
+        "creator-p-and-l",
+        "rate-card",
+        "affiliate",
+        "community",
+        "mrr",
+        "platform-risk"
+      ]
+    },
+    {
+      "name": "hardware-electronics-engineering",
+      "source": "./plugins/hardware-electronics-engineering",
+      "description": "Hardware / electronics engineering team — 2 agents (hardware-systems-architect, pcb-design-engineer) for the BOARD embedded firmware runs on: architecture & build-vs-buy (module vs custom PCB), MCU/component selection + supply-aware BOM, power architecture (LDO-vs-switcher, budgets), schematic capture, PCB layout (stack-up, impedance, decoupling, grounding), signal & power integrity, DFM/DFA/DFT, and bring-up. 3 skills (scope-a-hardware-design, select-components-and-bom, review-schematic-and-layout), a knowledge bank (a Mermaid module-vs-custom-PCB tree + a dated 2026 EDA/fab/compliance reference), 7 best-practices. ENGINEERING decision-support, not a certification/safety-sign-off authority; component specs, fab/DFM rules, and regulatory thresholds are volatile + vendor/jurisdiction-specific, retrieval-dated + verify-at-use; datasheets read at the operating point. Distinct from embedded-iot-engineering (firmware) and robotics-autonomous-systems-engineering. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "hardware-engineering",
+        "electronics",
+        "pcb-design",
+        "schematic-capture",
+        "bom",
+        "component-selection",
+        "power-integrity",
+        "signal-integrity",
+        "dfm",
+        "emc",
+        "fcc",
+        "board-bring-up",
+        "kicad",
+        "altium",
+        "mcu-selection",
+        "power-architecture"
+      ]
+    },
+    {
+      "name": "llm-evaluation-engineering",
+      "source": "./plugins/llm-evaluation-engineering",
+      "description": "LLM-evaluation engineering team — 2 agents (eval-strategy-lead, eval-harness-engineer) for the question every team shipping an AI feature must answer: is it getting better or worse? Eval design (task-grounded metrics not leaderboard scores, offline-vs-online split, sample size, a ship-gate decided as a number before the run) and the harness that proves it (frozen golden sets with provenance, LLM-as-judge rubrics with a bias audit + human calibration, CI regression gates, guardrail/red-team suites). 3 skills, a decision-tree knowledge bank (an eval-method Mermaid tree + a dated 2026 tooling/method map), 5 best-practices. Engineering decision-support, not a safety certification; model/judge/tooling specifics are volatile, retrieval-dated + verify-at-use; no eval-data PII. Seams: ai-rag-engineering (retrieval quality), ai-coding-model-guidance (model pick), ml-engineering (classical training), experimentation-growth-engineering (product A/B). Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "llm-evaluation",
+        "llm-as-judge",
+        "evals",
+        "eval-harness",
+        "guardrails",
+        "red-teaming",
+        "golden-set",
+        "regression-testing",
+        "offline-eval",
+        "online-eval",
+        "prompt-testing",
+        "ship-gate",
+        "llmops"
+      ]
+    },
+    {
+      "name": "chiropractic-practice",
+      "source": "./plugins/chiropractic-practice",
+      "description": "Chiropractic practice operations & compliance team — 2 agents (chiropractic-practice-lead, chiro-billing-compliance-specialist) across the two engines of a DC office: the practice (capacity & scheduling to the care plan, the cash / insurance / wellness-plan model, membership pricing, patient-visit-average & plan-completion retention) and coding/compliance (CMT vs E&M by region, documented medical necessity via the PART exam, the active-vs-maintenance plateau call, ABN workflow, audit-defensible notes). 3 skills, a decision-tree knowledge bank (a billing-and-medical-necessity Mermaid tree + a dated 2026 payer/coding reference), 5 best-practices. Operations & coding decision-support, NOT medical/legal/billing advice and NOT a coding certification; no PHI; rules state/payer-specific + retrieval-dated + verify-at-use, flagged for a professional. Distinct model from physical-therapy-rehab-clinic; revenue-cycle depth -> medical-revenue-cycle. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "chiropractic-practice",
+        "practice-management",
+        "cmt-coding",
+        "medical-necessity",
+        "part-exam",
+        "active-vs-maintenance-care",
+        "abn",
+        "wellness-plan",
+        "patient-visit-average",
+        "care-plan",
+        "cash-practice",
+        "retention"
+      ]
+    },
+    {
+      "name": "franchise-operations",
+      "source": "./plugins/franchise-operations",
+      "description": "Franchise operations team — 2 agents (franchise-operations-strategist, multi-unit-performance-manager) across the two halves of a franchise business: the system economics & relationship (reading the FDD and Item-19 FPR for what it does/doesn't say, royalty + ad-fund + fee flows, the royalty-loaded unit-economics model, the new-unit / expand go/no-go, the franchisor<->franchisee contract) and running the units (multi-unit P&L, prime-cost control, brand-standard audits, manager scorecards, unit-variance ranking). 3 skills, a decision-tree knowledge bank (a new-unit go/no-go Mermaid tree + a dated 2026 franchise-economics reference), 6 best-practices. Business decision-support, NOT legal/financial/investment advice; binding FDD/agreement review -> legal-ops-clm, model mechanics -> finance; fees + Item-19 figures per-FDD-edition + volatile, retrieval-dated + verify-at-use. Distinct from restaurant-operations / retail-store-operations and field-service-management. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "franchise-operations",
+        "franchisee",
+        "franchisor",
+        "fdd",
+        "item-19",
+        "royalty",
+        "ad-fund",
+        "unit-economics",
+        "multi-unit",
+        "brand-standards",
+        "prime-cost",
+        "new-unit",
+        "manager-scorecard"
+      ]
+    },
+    {
+      "name": "data-quality-observability",
+      "source": "./plugins/data-quality-observability",
+      "description": "Data-quality & observability team — 2 agents (data-quality-architect, data-quality-engineer) for the layer answering 'is this data CORRECT, FRESH, COMPLETE, and can we TRUST it?': producer-boundary contracts, validation tests (not-null/unique/accepted-values/referential/distribution), freshness/volume/schema-drift/distribution monitors, threshold vs statistical anomaly detection, data-quality SLAs/SLIs, and data-incident response (triage, quarantine/circuit-breaker, root-cause, backfill). Fluent in dbt tests + dbt-expectations, Great Expectations, Soda, Elementary, managed observability (Monte Carlo, Bigeye, Metaplane), and warehouse-native checks. 3 skills, a 2-doc knowledge bank (tooling decision tree + 2026 patterns reference), and 2 templates. Distinct from data-platform (ELT/warehouse/BI), analytics-engineering (dbt transforms), data-orchestration (schedules the runs), and data-governance-privacy (policy/PII/lineage) — this is the trust/quality layer over all of them. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "data-quality",
+        "data-observability",
+        "data-contracts",
+        "great-expectations",
+        "soda",
+        "dbt-tests",
+        "elementary",
+        "freshness",
+        "anomaly-detection",
+        "schema-drift",
+        "data-sla",
+        "data-incident"
+      ]
+    },
+    {
+      "name": "martech-event-instrumentation",
+      "source": "./plugins/martech-event-instrumentation",
+      "description": "Martech / event-instrumentation & CDP team — 2 agents (event-taxonomy-architect, instrumentation-engineer) for the ENGINEERING of event collection: the tracking plan / event taxonomy (object-action naming), the identity model (anonymous → known, stitching), CDP & collection-architecture selection (Segment, RudderStack, Snowplow, mParticle; client vs server vs hybrid; warehouse-first / reverse-ETL via Hightouch / Census), and consent & privacy-by-design (Consent Mode, IAB TCF, GPC) plus destination wiring. 3 skills (design-a-tracking-plan, choose-cdp-and-collection-architecture, implement-event-instrumentation-and-consent), a 2-doc knowledge bank + 2 templates. Distinct from marketing-operations (campaign strategy), analytics-engineering (dbt models events downstream), experimentation-growth-engineering (runs tests on them), data-governance-privacy (org policy/DSAR), and data-platform (warehouse) — the event-collection layer they sit on. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "event-tracking",
+        "cdp",
+        "segment",
+        "rudderstack",
+        "snowplow",
+        "tracking-plan",
+        "event-taxonomy",
+        "identity-resolution",
+        "consent-mode",
+        "reverse-etl",
+        "instrumentation",
+        "analytics"
       ]
     }
   ]

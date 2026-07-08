@@ -1,0 +1,10 @@
+account,description,debit,credit,entity,period,currency
+1000,Cash,1500,0,USDSUB,2026-06,USD
+1200,Inventory,1000,0,USDSUB,2026-06,USD
+1500,Property Plant & Equipment,2000,0,USDSUB,2026-06,USD
+2000,Accounts Payable,0,800,USDSUB,2026-06,USD
+2500,Long-term Debt,0,1200,USDSUB,2026-06,USD
+3000,Common Stock,0,1000,USDSUB,2026-06,USD
+3100,Retained Earnings,0,500,USDSUB,2026-06,USD
+4000,Revenue,0,3000,USDSUB,2026-06,USD
+5000,Expenses,2000,0,USDSUB,2026-06,USD

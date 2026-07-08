@@ -1,0 +1,21 @@
+Account #,Account Name,Debit,Credit
+1000,Cash,"502,500.00",
+1100,Accounts Receivable,"420,000.00",
+1200,Inventory,"280,000.00",
+1500,Property Plant & Equipment,"900,000.00",
+1600,Accumulated Depreciation,,"250,000.00"
+2000,Accounts Payable,,"260,000.00"
+2100,Accrued Liabilities,,"90,000.00"
+2500,Long-term Debt,,"500,000.00"
+3000,Common Stock,,"400,000.00"
+3100,Retained Earnings,,"400,000.00"
+4000,Product Revenue,,"1,200,000.00"
+4100,Service Revenue,,"300,000.00"
+5000,Cost of Goods Sold,"600,000.00",
+6000,Salaries & Wages,"400,000.00",
+6100,Rent Expense,"60,000.00",
+6200,Marketing Expense,"90,000.00",
+6300,Depreciation Expense,"50,000.00",
+7000,Interest Expense,"40,000.00",
+7100,Interest Income,,"10,000.00"
+8000,Income Tax Expense,"67,500.00",

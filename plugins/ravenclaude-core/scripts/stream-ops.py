@@ -37,11 +37,18 @@ DETERMINISM / FAIL-SAFE
 
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 import re
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
+
+try:  # POSIX advisory file locking; absent on non-POSIX hosts.
+    import fcntl
+except ImportError:  # pragma: no cover - non-POSIX
+    fcntl = None  # type: ignore[assignment]
 
 # ── Constants ──────────────────────────────────────────────────────────────────
 
@@ -58,6 +65,14 @@ EVENT_SCHEMA_VERSION = 1
 _SLUG_RE = re.compile(r"[^a-z0-9-]+")
 _MAX_SLUG_LEN = 64
 _MAX_SUMMARY_LEN = 280
+# A derived `terms` element is a single stemmed token; cap its length and reject
+# any whitespace-bearing element so a caller can't smuggle a multi-word phrase
+# (which would defeat the no-egress invariant the way an uncapped summary would).
+_MAX_TERM_LEN = 64
+# A derived label is a short human-readable string; cap it and collapse whitespace
+# (mirrors the summary no-egress protection) so a raw prompt can't ride through label=.
+_MAX_LABEL_LEN = 64
+_MAX_TERMS = 64
 
 # Keys a caller is FORBIDDEN to pass to append_event — the no-egress tripwire.
 # A raw prompt/text/content/command field must never reach the history line.
@@ -158,11 +173,53 @@ def write_registry(project_root: str | os.PathLike, registry: dict) -> None:
         "schema_version": registry.get("schema_version", REGISTRY_SCHEMA_VERSION),
         "streams": registry.get("streams", {}),
     }
-    tmp = path.with_suffix(".json.tmp")
-    with open(tmp, "w", encoding="utf-8") as fh:
-        json.dump(payload, fh, indent=2, sort_keys=True)
-        fh.write("\n")
-    os.replace(tmp, path)  # atomic on POSIX
+    # Per-call unique temp name: a fixed ``.json.tmp`` is truncated by open(...,"w"),
+    # so two concurrent writers sharing it would corrupt each other's payload before
+    # the rename. A pid+uuid suffix makes the temp private to this write.
+    tmp = path.with_name(f"{path.name}.{os.getpid()}.{uuid.uuid4().hex}.tmp")
+    try:
+        with open(tmp, "w", encoding="utf-8") as fh:
+            json.dump(payload, fh, indent=2, sort_keys=True)
+            fh.write("\n")
+        os.replace(tmp, path)  # atomic on POSIX
+    finally:
+        # If os.replace failed, don't leave the private temp behind.
+        with contextlib.suppress(OSError):
+            if tmp.exists():
+                tmp.unlink()
+
+
+@contextlib.contextmanager
+def _registry_lock(project_root: str | os.PathLike):
+    """Advisory exclusive lock serializing a registry read-modify-write cycle.
+
+    create_stream / append_event / set_centroid each read the registry, mutate it
+    in memory, then write it back; without serialization two concurrent writers can
+    read the same registry and the second write clobbers the first's mutation
+    (e.g. a lost event_count bump). This flocks a ``.registry.lock`` file across the
+    whole read+write. FAIL-SAFE: if the streams root can't be created, fcntl is
+    unavailable (non-POSIX), or the lock can't be taken, it proceeds WITHOUT the
+    lock rather than raising — matching the store's never-raise-to-caller contract.
+    """
+    fh = None
+    try:
+        root = streams_root(project_root)
+        root.mkdir(parents=True, exist_ok=True)
+        fh = open(root / ".registry.lock", "w")
+        if fcntl is not None:
+            with contextlib.suppress(OSError):
+                fcntl.flock(fh.fileno(), fcntl.LOCK_EX)
+    except OSError:
+        fh = None
+    try:
+        yield
+    finally:
+        if fh is not None:
+            if fcntl is not None:
+                with contextlib.suppress(OSError):
+                    fcntl.flock(fh.fileno(), fcntl.LOCK_UN)
+            with contextlib.suppress(OSError):
+                fh.close()
 
 
 def create_stream(
@@ -180,19 +237,20 @@ def create_stream(
     stream_id = slugify(name)
     if not is_safe_slug(stream_id):
         raise ValueError(f"name does not slugify to a safe stream id: {name!r}")
-    registry = read_registry(project_root)
-    streams = registry["streams"]
-    now = ts or _now_iso()
-    if stream_id not in streams:
-        streams[stream_id] = {
-            "name": name,
-            "description": description,
-            "created": now,
-            "updated": now,
-            "event_count": 0,
-            "centroid": {},
-        }
-        write_registry(project_root, registry)
+    with _registry_lock(project_root):
+        registry = read_registry(project_root)
+        streams = registry["streams"]
+        now = ts or _now_iso()
+        if stream_id not in streams:
+            streams[stream_id] = {
+                "name": name,
+                "description": description,
+                "created": now,
+                "updated": now,
+                "event_count": 0,
+                "centroid": {},
+            }
+            write_registry(project_root, registry)
     # ensure the dir exists
     _stream_dir(project_root, stream_id).mkdir(parents=True, exist_ok=True)
     return stream_id
@@ -318,9 +376,21 @@ def append_event(
         _validate_event_fields(extra)
         candidate.update(extra)
     if label is not None:
-        candidate["label"] = str(label)
+        # DERIVED short label — collapse whitespace + cap, so it can't carry a
+        # multi-line prompt body (mirrors the summary no-egress protection).
+        candidate["label"] = " ".join(str(label).split())[:_MAX_LABEL_LEN]
     if terms is not None:
-        candidate["terms"] = [str(t) for t in terms]
+        # Enforce the single-token contract at the API boundary (like `summary` is
+        # capped): drop any element that is empty, over the per-term cap, or carries
+        # whitespace (a multi-word phrase) — so a current or future caller can't
+        # smuggle a raw phrase into history.jsonl and defeat the no-egress invariant.
+        cleaned_terms = []
+        for t in terms:
+            tok = str(t).strip()
+            if not tok or len(tok) > _MAX_TERM_LEN or any(ch.isspace() for ch in tok):
+                continue
+            cleaned_terms.append(tok)
+        candidate["terms"] = cleaned_terms[:_MAX_TERMS]
     if word_count is not None:
         candidate["word_count"] = int(word_count)
     if summary is not None:
@@ -338,6 +408,23 @@ def append_event(
     # routing a multi-line prompt body through `extra={"summary": ...}`.
     if "summary" in candidate:
         candidate["summary"] = " ".join(str(candidate["summary"]).split())[:_MAX_SUMMARY_LEN]
+    # Same bypass-proofing for label/terms supplied via extra={...}.
+    if "label" in candidate:
+        candidate["label"] = " ".join(str(candidate["label"]).split())[:_MAX_LABEL_LEN]
+    if "terms" in candidate:
+        _t = candidate["terms"]
+        if not isinstance(_t, (list, tuple)):
+            _t = [_t]
+        # Same single-token contract as the terms= kwarg site: drop empty /
+        # oversized / whitespace-bearing tokens so extra={"terms": ...} can't
+        # smuggle a phrase past the no-egress invariant.
+        _cleaned = []
+        for t in _t:
+            tok = str(t).strip()
+            if not tok or len(tok) > _MAX_TERM_LEN or any(ch.isspace() for ch in tok):
+                continue
+            _cleaned.append(tok)
+        candidate["terms"] = _cleaned[:_MAX_TERMS]
 
     # Final guard: every persisted key must be an allowed derived field (extra may add
     # benign keys, but they cannot be forbidden or non-allow-listed — checked above).
@@ -358,12 +445,14 @@ def append_event(
         fh.write(line + "\n")
 
     # Bump the registry event_count + updated; tolerate an absent entry.
-    registry = read_registry(project_root)
-    meta = registry["streams"].get(stream_id)
-    if meta is not None:
-        meta["event_count"] = int(meta.get("event_count", 0)) + 1
-        meta["updated"] = event["ts"]
-        write_registry(project_root, registry)
+    # Locked read-modify-write so a concurrent writer's bump isn't lost.
+    with _registry_lock(project_root):
+        registry = read_registry(project_root)
+        meta = registry["streams"].get(stream_id)
+        if meta is not None:
+            meta["event_count"] = int(meta.get("event_count", 0)) + 1
+            meta["updated"] = event["ts"]
+            write_registry(project_root, registry)
 
     return event
 
@@ -466,12 +555,13 @@ def set_centroid(
     """Persist a stream's updated centroid into the registry."""
     if not is_safe_slug(stream_id):
         raise ValueError(f"unsafe stream id: {stream_id!r}")
-    registry = read_registry(project_root)
-    meta = registry["streams"].get(stream_id)
-    if meta is None:
-        raise ValueError(f"unknown stream id: {stream_id!r}")
-    meta["centroid"] = {k: round(float(v), 6) for k, v in centroid.items()}
-    write_registry(project_root, registry)
+    with _registry_lock(project_root):
+        registry = read_registry(project_root)
+        meta = registry["streams"].get(stream_id)
+        if meta is None:
+            raise ValueError(f"unknown stream id: {stream_id!r}")
+        meta["centroid"] = {k: round(float(v), 6) for k, v in centroid.items()}
+        write_registry(project_root, registry)
 
 
 # ── CLI shim — JSON in / JSON out, for the gate + manual use ───────────────────

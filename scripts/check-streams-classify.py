@@ -112,15 +112,19 @@ def check_accuracy(clf, fixture: dict) -> list[str]:
     centroids = _build_centroids(clf, fixture["train"])
     for item in fixture["eval"]:
         r = clf.classify(item["text"], centroids)
+        # Put best_score inside the f-string; the old trailing `% r["best_score"]`
+        # applied %-formatting to an already-materialized f-string, so any literal
+        # '%' in the eval text (via !r) became a stray conversion spec and crashed
+        # the diagnostic with a formatting error (2026-07 review).
         if r["best_stream"] != item["expect"]:
             errs.append(
                 f"misroute: {item['text'][:40]!r} -> {r['best_stream']!r} "
-                f"(expected {item['expect']!r}, score=%.3f)" % r["best_score"]
+                f"(expected {item['expect']!r}, score={r['best_score']:.3f})"
             )
         elif not r["confident"]:
             errs.append(
                 f"low-confidence on expected match: {item['text'][:40]!r} "
-                f"-> {r['best_stream']!r} score=%.3f" % r["best_score"]
+                f"-> {r['best_stream']!r} score={r['best_score']:.3f}"
             )
     return errs
 

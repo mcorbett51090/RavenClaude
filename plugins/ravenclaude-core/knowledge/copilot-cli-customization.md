@@ -84,6 +84,37 @@ External commands fired at lifecycle points (custom automation, security/policy 
 | **MCP** | Bundled MCP → `${COPILOT_HOME:-~/.copilot}/mcp-config.json` by `scripts/ravenclaude`. |
 | **Update model** | Everything is read **live from disk**, so an update is `git pull` (`ravenclaude update` / the `rc` alias) — no Copilot re-install/cache. |
 
+## 7. Document discovery (DOCUMENT-MAP.md)
+
+**The gap this closes** (a corollary of §1, not a new claim): Copilot CLI *auto-includes* the instruction files above on **every** request — but they carry *behaviour*, not a **location index**, and per §1's `[verify-at-use]` note a *path referenced inside* an auto-loaded file is **not** itself auto-loaded. So a cold agent re-runs `find`/`grep` each turn to relocate a document it already "knows" exists. A flat, keyword-indexed **topic → path** table fixes that: one lookup resolves any mapped document.
+
+**Placement — prefer inline, fall back to a file:**
+
+| Option | Cost | Use when |
+|---|---|---|
+| **Inline** the topic→path table directly into an already-auto-loaded file (`AGENTS.md` / `.github/copilot-instructions.md`) | Standing prompt tokens every request; **0** extra tool calls | The index is small enough to sit in the instruction file — the **preferred** shape |
+| **Standalone `DOCUMENT-MAP.md`** + one line in an auto-loaded file telling the agent to read it first | **1** `read` call per session; no standing token cost | The index is too large to inline |
+
+The standalone file is the *fallback*, not the default — a bare `DOCUMENT-MAP.md` that nothing auto-loads and nothing points at is invisible (the §1 not-auto-loaded rule again).
+
+**Sizing:** overkill below ~50 docs (one `grep` is fine); the sweet spot is ~50–300; beyond ~1000 a semantic index (a Copilot Space) beats a flat table `[verify-at-use — Copilot Space scaling not re-checked here]`.
+
+**Format** — flat, one table, keyword-first so the agent can `grep` the *map* instead of the filesystem:
+
+```markdown
+## Reports & designs
+| Topic | File |
+|---|---|
+| CSP thematic review Power BI report | docs/project-allocation-2026-07.html |
+| Onsite report SOP templates          | docs/sops/onsite/A. FINALISED TEMPLATES/ |
+```
+
+**Maintenance — seed, then hand-curate.** [`../../../scripts/generate-document-map.py`](../../../scripts/generate-document-map.py) *seeds* a map (enumerates files, best-effort titles from a first `# H1` / frontmatter). It **cannot** synthesise good topic keys — that judgement ("this is the file an agent looks up when asked about X") is the load-bearing part and stays human. Treat generator output as a starting draft to edit, **never** a regenerated source of truth. A **stale** map is *worse* than none (it routes the agent to a dead path); review it when a mapped document moves.
+
+**Honesty note:** a consumer reported ~6 tool calls / ~45s → ~5s per lookup after adopting a map `[unverified — single foreign-repo anecdote, illustrative only]`. The real win is narrow — repos where a known-document lookup was genuinely multi-round; where one `grep` already finds it, a map is ceremony.
+
+**See also:** [`../../../docs/best-practices/agent-onboarding.md`](../../../docs/best-practices/agent-onboarding.md) — the cross-tool pattern · the [`codex-onboarding`](../skills/codex-onboarding/SKILL.md) skill wires the session-start read.
+
 ## Sources
 
 All retrieved 2026-06-09:

@@ -138,8 +138,18 @@ def _render_all(trees: list[dict], tmp: Path) -> dict[str, str]:
     cfg_path = tmp / "pp.json"
     cfg_path.write_text(_PUPPETEER_CFG, encoding="utf-8")
     # One ```mermaid block per tree, separated so mmdc counts them distinctly.
+    # Defense-in-depth: a literal ``` inside a tree's source would prematurely
+    # close its fence and SHIFT every subsequent out-N.svg by one — a mis-map the
+    # count check below can't catch (the total count still matches). Fail loudly
+    # at write time with an actionable message instead.
     blocks = []
     for t in trees:
+        if "```" in t["mermaid"]:
+            raise RuntimeError(
+                f"tree {t['id']!r} mermaid source contains a literal '```' fence — "
+                "it would break the concatenated-markdown fence numbering and mis-map "
+                "rendered SVGs to the wrong tree ids. Remove the backtick fence."
+            )
         blocks.append(f"```mermaid\n{t['mermaid']}\n```")
     md_path.write_text("\n\n---\n\n".join(blocks) + "\n", encoding="utf-8")
     cmd = [

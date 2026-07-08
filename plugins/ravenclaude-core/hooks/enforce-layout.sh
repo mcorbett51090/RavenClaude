@@ -142,6 +142,18 @@ fi
 # If you ever refactor this to use `find` or filename expansion, re-test
 # every pattern — the semantics differ. See bash(1) "Pattern Matching" and
 # "Filename Expansion" sections for details.
+# A corrupt .repo-layout.json (trailing comma, unresolved merge marker, truncation)
+# makes both jq reads below emit nothing, leaving `forbidden`/`allowed` empty. The
+# empty-allowed branch (line ~152) then takes the "forbid-only" path and allows
+# EVERY write — silently disabling layout enforcement with no signal, unlike the
+# missing-jq case above which warns. Fail open loudly instead: validate the manifest
+# and, if it is invalid JSON, warn to stderr + emit a warn event, then exit 0.
+if [[ -f "$manifest" ]] && ! jq -e . "$manifest" >/dev/null 2>&1; then
+  echo "[enforce-layout] .repo-layout.json is invalid JSON; layout policy NOT enforced. Fix the manifest to re-enable enforcement." >&2
+  _emit_hook_event "enforce-layout.sh" "warn" "" "$manifest" "invalid-manifest" 0
+  exit 0
+fi
+
 mapfile -t forbidden < <(jq -r '.forbidden_globs[]?' "$manifest" 2>/dev/null)
 mapfile -t allowed < <(jq -r '.allowed_globs[]?' "$manifest" 2>/dev/null)
 

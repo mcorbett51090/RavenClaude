@@ -1,0 +1,7 @@
+account,reference,amount,description
+1100,INV-501,40000,AR subledger invoice 501 - exact
+1100,INV-502,25000,AR subledger invoice 502 - exact
+1100,DEP-777,20000,AR subledger deposit 777 - one line vs two GL lines (grouped)
+1000,WIRE-88,30000,Bank statement wire 88 - 30000.00 (tolerance vs GL 30000.50)
+1200,PP-01,15000,Prepaid insurance subledger - exact
+2000,BILL-900,50000,AP subledger bill 900 - exact

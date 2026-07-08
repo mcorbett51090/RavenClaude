@@ -297,12 +297,25 @@ def _resolve_project_transcript_dir(project_root: str) -> Path | None:
         return computed
     if not PROJECTS_DIR.exists():
         return None
+    # Fallback for Anthropic ABI drift (the forward-encoded dir name changed). The
+    # reverse-decode below is LOSSY — it maps every '-' back to '/', so it can never
+    # match a project_root whose own path components contain hyphens (e.g.
+    # '/home/user/my-project' or '.../ravenclaude-core'); the forward-encoded name is
+    # ambiguous the same way. So this only opportunistically matches hyphen-free
+    # paths; on no match we warn rather than silently zeroing out the transcript
+    # stats (a degraded run should be visible, not mistaken for "no activity").
     for candidate in PROJECTS_DIR.glob("*"):
         if not candidate.is_dir():
             continue
         decoded = "/" + candidate.name.replace("-", "/")
         if decoded == project_root:
             return candidate
+    print(
+        f"        [WARN] no ~/.claude/projects transcript dir matched project_root "
+        f"{project_root!r} (forward-encoded {computed.name!r} absent; reverse-decode "
+        f"is lossy for hyphenated paths) — token/cache stats will be zero for this run",
+        file=sys.stderr,
+    )
     return None
 
 
@@ -443,7 +456,13 @@ def collect_metrics(fixture_id: str, arm: str,
     so_path = run_dir / "structured-output.json"
     if not so_path.exists():
         die(f"missing {so_path} — workflow didn't persist a structured-output.json")
-    so = json.loads(so_path.read_text())
+    try:
+        so = json.loads(so_path.read_text())
+    except (OSError, ValueError) as e:
+        # A present-but-torn structured-output.json (interrupted workflow write) must
+        # produce the script's own diagnostic, not a raw JSONDecodeError traceback that
+        # aborts the whole grade phase — matching the missing-file branch (2026-07 review).
+        die(f"malformed {so_path} — {type(e).__name__}: {e}")
     stats = so.get("stats", {})
     per_phase = stats.get("per_phase", {})
 
@@ -685,6 +704,7 @@ def submit_batch_and_collect_judge(fixtures: dict, runs: dict[str, dict[str, Run
         if r.result.type != "succeeded":
             print(f"  [WARN] {fid}: batch result type={r.result.type}", file=sys.stderr)
             continue
+        body = ""
         try:
             content = r.result.message.content
             if not content or not hasattr(content[0], "text"):
@@ -699,23 +719,17 @@ def submit_batch_and_collect_judge(fixtures: dict, runs: dict[str, dict[str, Run
                                     "adaptive": int(adaptive_scores[axis])}
                              for axis in ("task_coverage", "factual_accuracy", "clarity")}
         except (json.JSONDecodeError, ValueError, KeyError, TypeError, IndexError) as exc:
-            print(f"  [WARN] {fid}: judge response off-schema ({type(exc).__name__}: {exc}); skipping", file=sys.stderr)
-            continue
-        # Un-scramble. Guard the same way the JSONDecodeError branch above does:
-        # a judge response that is valid JSON but deviates from the expected schema
-        # (missing "A"/"B", a missing axis, a non-numeric score) must skip THIS
-        # fixture with a warning, not raise and discard every result already
-        # collected for the other fixtures in the batch. (Added after the 2026-07 review.)
-        try:
-            baseline_first = order_map[fid] == "baseline_first"
-            baseline_scores = j["A"] if baseline_first else j["B"]
-            adaptive_scores = j["B"] if baseline_first else j["A"]
-            results[fid] = {axis: {"baseline": int(baseline_scores[axis]),
-                                    "adaptive": int(adaptive_scores[axis])}
-                             for axis in ("task_coverage", "factual_accuracy", "clarity")}
-        except (KeyError, TypeError, ValueError) as e:
-            print(f"  [WARN] {fid}: judge JSON off-schema ({type(e).__name__}: {e}); "
-                  f"skipping. body={body[:120]!r}", file=sys.stderr)
+            # This single try-block parses, un-scrambles, assigns, AND catches every
+            # off-schema shape (bad JSON, missing "A"/"B", missing axis, non-numeric
+            # score), skipping THIS fixture with a warning rather than raising and
+            # discarding every result already collected for the other fixtures. (A
+            # second identical un-scramble block used to follow here; it was dead on
+            # the error path and repeated work on the success path — removed 2026-07.)
+            # body is "" if the failure came before it was assigned (empty/non-text
+            # content block); include a short snippet when we have one.
+            snippet = f" body={body[:120]!r}" if body else ""
+            print(f"  [WARN] {fid}: judge response off-schema "
+                  f"({type(exc).__name__}: {exc}); skipping.{snippet}", file=sys.stderr)
             continue
     return results
 

@@ -32,11 +32,17 @@ import sys
 # (or `grep -i -E`, `grep -rn -E`, …) is matched — not just the bundled
 # `grep -vE` form. Without it, any flag before -E anchored the dialect flag away
 # from `grep` and the whole check silently missed the line (2026-07 review).
+# `egrep` is the historical ERE alias (== `grep -E`), so an `egrep '(?:…)'`
+# carries the same dead-PCRE-in-ERE bug and is recognized too (2026-07 review).
 _FLAGS = r"(?:\s+-[A-Za-z]+)*"
-_GREP_ERE = re.compile(rf"grep{_FLAGS}\s+(?:-[A-Za-z]*E|--extended-regexp)")
+_GREP_ERE = re.compile(rf"\begrep\b|grep{_FLAGS}\s+(?:-[A-Za-z]*E|--extended-regexp)")
 _GREP_PCRE = re.compile(rf"grep{_FLAGS}\s+(?:-[A-Za-z]*P|--perl-regexp)")
 # PCRE-only constructs that are dead inside POSIX ERE.
 _PCRE_CONSTRUCT = re.compile(r"\(\?[:!=<]|\[\\s\\S\]|\[\\S\\s\]")
+# Split a shell line into command segments so a benign sibling `grep -P` on the
+# SAME line can't exonerate a broken `grep -E` earlier on it (2026-07 review):
+# the per-line `not _GREP_PCRE.search(raw)` was evaluated over the whole line.
+_SEGMENT_SPLIT = re.compile(r"&&|\|\||[;|]")
 
 
 def offending_lines(path: str) -> list[tuple[int, str]]:
@@ -49,12 +55,13 @@ def offending_lines(path: str) -> list[tuple[int, str]]:
     for n, raw in enumerate(lines, 1):
         if raw.lstrip().startswith("#"):
             continue
-        if (
-            _GREP_ERE.search(raw)
-            and _PCRE_CONSTRUCT.search(raw)
-            and not _GREP_PCRE.search(raw)
-        ):
-            out.append((n, raw.rstrip()))
+        # Evaluate each command segment independently: an ERE grep carrying a dead
+        # PCRE construct is offending even if a separate `grep -P` appears later on
+        # the same physical line.
+        for seg in _SEGMENT_SPLIT.split(raw):
+            if _GREP_ERE.search(seg) and _PCRE_CONSTRUCT.search(seg) and not _GREP_PCRE.search(seg):
+                out.append((n, raw.rstrip()))
+                break
     return out
 
 

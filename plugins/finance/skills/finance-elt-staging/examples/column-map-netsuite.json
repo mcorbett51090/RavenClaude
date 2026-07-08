@@ -1,0 +1,15 @@
+{
+  "source_system": "netsuite",
+  "note": "SYNTHETIC fixture — a NetSuite-style TB export that emits ONE signed net amount per account (debit balances positive, credit balances negative). Not real data; no PII.",
+  "map": {
+    "account": "Account",
+    "description": "Memo"
+  },
+  "amount_column": "Net Amount (Signed)",
+  "amount_sign": "debit_positive",
+  "constants": {
+    "entity": "MRI",
+    "currency": "USD"
+  },
+  "close_period": "2026-06"
+}
