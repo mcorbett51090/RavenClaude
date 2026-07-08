@@ -2,6 +2,12 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.187.4 — 2026-07-08
+
+### Fixed
+
+- **P2 — decision-review safety envelope (`scripts/thing-decide.py`).** A **unanimous** panel `defer` (every voting seat independently says "this is a human call") could be routed into the Thor tie-breaker — whose `yes`/`no` verdict then becomes **binding** in `binding` mode — auto-resolving a decision the whole panel deferred. The `heimdall`-abstain re-screen (2b, added the same day) made this worse: a lone injection-seat abstention *also* forced a Thor convene on a unanimous defer. `_tally` now short-circuits `distinct == {"defer"}` straight to `defer` **before** the Thor branch (fail-safe — it can only send more decisions to the human). New `audit-gates.sh` Gate 17 case + a `defer-thor-flip` test mock prove Thor is never reached on a unanimous defer. _(From the autonomous 3-panel repo review, run 2026-07-08; the other findings in that run were already fixed on main via #585/#588.)_
+
 ## 0.187.2 — 2026-07-08
 
 ### Fixed

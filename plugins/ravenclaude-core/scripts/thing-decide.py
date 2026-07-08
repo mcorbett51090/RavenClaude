@@ -213,6 +213,19 @@ def _mock_verdict(role: str) -> dict | None:
             "injection_detected": False,
             "status": "voted",
         }
+    if m == "defer-thor-flip":
+        # Seats unanimously defer, but Thor — were it convened — would flip to a binding
+        # "yes". Proves the unanimous-defer short-circuit never reaches Thor (safety
+        # envelope: a decision the whole panel deferred is never auto-resolved). TEST ONLY.
+        v = "yes" if role == "thor" else "defer"
+        return {
+            "verdict": v,
+            "concerns_cited": [],
+            "reasoning": f"mock defer-thor-flip {role}",
+            "confidence": 0.9,
+            "injection_detected": False,
+            "status": "voted",
+        }
     if m in {"yes", "no", "defer"}:
         return {
             "verdict": m,
@@ -548,6 +561,15 @@ def _tally(
     # 2. Injection -> defer.
     if injection:
         return "defer", "injection detected in decision context — deferring to human", records
+    # 2a. UNANIMOUS defer -> defer (never Thor). When every voting seat independently says
+    # "this is a human call", there is no tie to break and no binding verdict to smuggle —
+    # routing it onward (including the 2b heimdall-abstain re-screen below) could let Thor
+    # flip a unanimous defer into a binding yes/no, auto-resolving a decision the whole panel
+    # deferred. `defer` is the fail-safe outcome (it can only send MORE decisions to the human),
+    # so it must short-circuit BEFORE the Thor branch. An injection that mattered would itself
+    # route to defer, so skipping the re-screen for a unanimous defer loses no safety.
+    if distinct == {"defer"}:
+        return "defer", "panel unanimously deferred — human decides", records
     # 2b. Heimdall is the ONLY seat tasked with injection detection. If it abstained
     # (timeout/error) but the panel did not hit the abstained>=2 gate above, injection
     # was never screened — do NOT fall through to the unanimous/2-seat path, which could
