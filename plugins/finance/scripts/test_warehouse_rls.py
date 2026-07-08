@@ -476,9 +476,18 @@ def test_reference_models_invariants():
         check(
             "RLS FORCEs row level security (owner is not exempt)", "FORCEROWLEVELSECURITY" in flat
         )
+        # The predicate is `entity_id = ANY(<guc>::uuid[])` — array membership over the
+        # session GUC. The model HARDENS the GUC read by wrapping it in
+        # NULLIF(current_setting('app.entity_ids', true), '') so an unset/empty GUC folds
+        # to NULL -> zero rows (fail-closed). Check the load-bearing pieces rather than an
+        # exact contiguous substring, so that (correct) NULLIF wrapper doesn't break the
+        # assertion (2026-07-08 test-drift fix: the prior literal expected
+        # `ANY(current_setting(...` with nothing between, which the NULLIF wrapper splits).
         check(
-            "RLS predicate uses ANY(current_setting('app.entity_ids')::uuid[])",
-            "ANY (CURRENT_SETTING('APP.ENTITY_IDS'".replace(" ", "") in sql.replace(" ", ""),
+            "RLS predicate is entity_id = ANY(current_setting('app.entity_ids')::uuid[])",
+            "ENTITY_ID=ANY(" in flat
+            and "CURRENT_SETTING('APP.ENTITY_IDS'" in flat
+            and "::UUID[]" in flat,
         )
         check("query role is NO BYPASSRLS", "NOBYPASSRLS" in sql.replace(" ", ""))
     if os.path.exists(cube_path):
