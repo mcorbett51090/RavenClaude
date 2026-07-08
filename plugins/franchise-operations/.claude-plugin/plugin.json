@@ -1,0 +1,28 @@
+{
+  "name": "franchise-operations",
+  "version": "0.1.0",
+  "description": "Franchise operations team — 2 agents (franchise-operations-strategist, multi-unit-performance-manager) across the two halves of a franchise business: the system economics & relationship (reading the FDD and Item-19 FPR for what it does/doesn't say, royalty + ad-fund + fee flows, the royalty-loaded unit-economics model, the new-unit / expand go/no-go, the franchisor<->franchisee contract) and running the units (multi-unit P&L, prime-cost control, brand-standard audits, manager scorecards, unit-variance ranking). 3 skills, a decision-tree knowledge bank (a new-unit go/no-go Mermaid tree + a dated 2026 franchise-economics reference), 6 best-practices. Business decision-support, NOT legal/financial/investment advice; binding FDD/agreement review -> legal-ops-clm; fees + Item-19 figures are per-FDD-edition, jurisdictional + volatile — retrieval-dated + verify-at-use. Seams: restaurant-operations, retail-store-operations, field-service-management, finance. Requires ravenclaude-core@>=0.7.0.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "franchise-operations",
+    "franchisee",
+    "franchisor",
+    "fdd",
+    "item-19",
+    "royalty",
+    "ad-fund",
+    "unit-economics",
+    "multi-unit",
+    "brand-standards",
+    "prime-cost",
+    "new-unit",
+    "manager-scorecard"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}
