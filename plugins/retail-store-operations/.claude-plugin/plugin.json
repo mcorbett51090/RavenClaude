@@ -1,6 +1,6 @@
 {
   "name": "retail-store-operations",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Brick-and-mortar retail store operations team — 5 agents (store-ops-lead, merchandising-analyst, inventory-and-replenishment-analyst, labor-scheduling-analyst, loss-prevention-advisor) covering four-wall P&L and store KPIs, assortment and planogram compliance, inventory accuracy and replenishment, labor scheduling to traffic, and shrink root-cause and loss prevention. 3 skills, 3 commands, 2 templates, Mermaid decision-tree knowledge bank + 2026 capability map, 6 best-practices, and 1 advisory hook. Seams: online/DTC -> ecommerce-dtc, upstream demand planning -> supply-chain-planning, buying -> procurement-sourcing. Requires ravenclaude-core@>=0.7.0.",
   "author": {
     "name": "Matt Corbett"

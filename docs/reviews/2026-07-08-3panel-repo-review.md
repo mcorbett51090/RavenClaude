@@ -3,6 +3,8 @@
 **Routine:** scheduled comprehensive repo review (find → validate → tie-break → implement → PR + design-questions doc).
 **Branch:** `claude/stoic-fermat-3atqnf`
 
+> **Reconciled against `main` (rebased 2026-07-08).** While this branch was open, `main` advanced with three other autonomous review runs (#579, #585, #588) plus #582 (SHA-pin actions) and #581 (hermetic audit-gates). Re-checking each finding against the new `main`: **3 were already fixed there** — #7 (create-pull-request SHA-pin, byte-identical), #8 (prettier `@3.9.4` pin), #9 (mark-web trailing-dot strip) — and **#2 (config_error) was fixed on main and better** (main *defers* on a config error). Those four are **dropped** from this PR. **This PR now carries the 5 findings `main` had not yet addressed:** #1, #3, #4, #5, #6. The branch was merged up to `main` and the surviving fixes re-applied on its new structure (the decision-engine `_tally` had a new `heimdall`-abstain path; audit-gates was rewritten hermetic; versions moved to rc 0.187.3 / finance 0.17.3 → this PR bumps to 0.187.4 / 0.17.4). Re-verified green post-merge.
+
 ## Method
 
 - **Panel 1 (find):** 6 parallel expert finders partitioned across the code surface (Python generators, decision-engine Python, shell hooks/guards, CI/manifests/config, other-plugin code, tests/evals/JS). Each returned P0–P3 findings with a concrete `file:line` + failure scenario.

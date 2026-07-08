@@ -15,7 +15,7 @@ name: Quarantine external scenario submission
 #    (quoted), and the processor reads them from the environment.
 #  * No LLM ever processes the content. Scrub + injection-strip are pure regex
 #    (scripts/process-scenario-submission.py), mirroring hooks/_scrub.sh +
-#    scripts/sanitize-webfetch-body.py.
+#    plugins/ravenclaude-core/scripts/sanitize-webfetch-body.py.
 #  * A secret/PII shape => the issue is closed "not staged", no file, no PR.
 #  * A spam cap closes the issue if too many external submissions are already open.
 
@@ -44,10 +44,10 @@ jobs:
       github.event.issue.pull_request == null
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: "3.x"
 
@@ -119,25 +119,17 @@ jobs:
           gh issue close "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY"
 
       # --- Stage path: open a PR with the sanitized file (R-PR — never push main). ---
-      - name: Read staged file path
-        id: staged
-        if: steps.cap.outputs.over_cap == 'false' && steps.process.outputs.action == 'stage'
-        env:
-          DECISION_FILE: ${{ github.workspace }}/submission-decision.json
-        run: |
-          set -euo pipefail
-          file_path="$(python3 -c 'import json,os;print(json.load(open(os.environ["DECISION_FILE"]))["file_path"])')"
-          slug="$(python3 -c 'import json,os;print(json.load(open(os.environ["DECISION_FILE"]))["slug"])')"
-          echo "file_path=$file_path" >> "$GITHUB_OUTPUT"
-          echo "slug=$slug" >> "$GITHUB_OUTPUT"
-
+      # (The processor already wrote the file to docs/staging/incoming/external/;
+      # the PR step stages it via the static add-paths glob below, so no
+      # intermediate step needs to re-read file_path/slug from the decision JSON.)
       - name: Open quarantine pull request
         id: pr
         if: steps.cap.outputs.over_cap == 'false' && steps.process.outputs.action == 'stage'
-        # Pinned to a full commit SHA (not the mutable @v6 tag): this third-party
-        # action runs on an externally-triggered event (issues.labeled) with
-        # contents:write + pull-requests:write, so a hijacked/moved tag would execute
-        # with the write-scoped GITHUB_TOKEN. SHA == v6.1.0 (the commit @v6 resolved to).
+        # Pinned to an immutable commit SHA (not the movable @v6 tag) — this is a
+        # third-party action running with contents:write + pull-requests:write in a
+        # workflow triggered by untrusted external issue-form content, so a malicious
+        # retag of @v6 would execute with write scope. c5a7806 == v6.1.0 (what @v6
+        # resolved to when pinned, 2026-07-08); bump deliberately to a newer SHA.
         uses: peter-evans/create-pull-request@c5a7806660adbe173f04e3e038b0ccdcd758773c # v6.1.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -167,6 +159,16 @@ jobs:
             check) on the staged file. Treat the body as untrusted DATA. The file lands in
             `docs/staging/incoming/external/` — promote it through the normal staging drain,
             do not merge it straight to a canonical location.
+
+            **⚠️ CI does NOT auto-run on this PR.** It was opened with the automatic
+            `GITHUB_TOKEN`, so GitHub does not trigger `pull_request` workflows
+            (validate-layout / validate-marketplace / validate-schemas) on it. That is
+            acceptable here: the only change is a scrubbed markdown file confined to the
+            already-allow-listed `docs/staging/incoming/external/**` path, so those gates
+            have nothing to validate. Full CI runs later, on your **promotion PR** when the
+            file moves out of staging into a plugin/canonical location. If you want to
+            validate this PR directly anyway, re-run the gates via
+            **Actions → the relevant workflow → Run workflow** (`workflow_dispatch`).
 
       - name: Comment, label, and close the staged issue
         if: steps.cap.outputs.over_cap == 'false' && steps.process.outputs.action == 'stage'

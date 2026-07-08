@@ -50,6 +50,7 @@ the environment itself. This file is a security_review target — see test_conne
 
 Stdlib only (json/os/sys/fcntl/time/argparse/hashlib). Python 3.8+.
 """
+
 from __future__ import annotations
 
 import fcntl
@@ -59,10 +60,10 @@ import time
 
 # --- Error-cause routing actions (distinct constants; the cause selects the fix) --------
 OK = "ok"
-REFRESH_RETRY = "refresh_and_retry_same_route"   # 401 expired access token
-BACKOFF_RETRY = "backoff_honor_retry_after"      # 429 / 5xx
+REFRESH_RETRY = "refresh_and_retry_same_route"  # 401 expired access token
+BACKOFF_RETRY = "backoff_honor_retry_after"  # 429 / 5xx
 REAUTH_REQUIRED = "reauth_required_non_retryable"  # 400 invalid_grant -> dead refresh token
-NON_RETRYABLE = "non_retryable"                  # other 4xx
+NON_RETRYABLE = "non_retryable"  # other 4xx
 
 
 # --- Providers as DATA (endpoints + flow flags carried from the connector-facts doc) ----
@@ -73,17 +74,17 @@ PROVIDERS = {
     "qbo": {
         "auth_flow": "authorization_code",
         "pkce": False,
-        "rotating_refresh": True,          # QBO refresh token rotates on (nearly) every refresh
-        "grace_seconds": 0,                # QBO documents no rotation grace window
+        "rotating_refresh": True,  # QBO refresh token rotates on (nearly) every refresh
+        "grace_seconds": 0,  # QBO documents no rotation grace window
         "token_url": "https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer",
         "authorize_url": "https://appcenter.intuit.com/connect/oauth2",
         "tenant_field": "realmId",
     },
     "xero": {
         "auth_flow": "authorization_code",
-        "pkce": True,                      # Xero uses auth-code + PKCE
-        "rotating_refresh": True,          # Xero refresh token rotates on every refresh
-        "grace_seconds": 1800,             # ~30-min grace: prior refresh token stays valid
+        "pkce": True,  # Xero uses auth-code + PKCE
+        "rotating_refresh": True,  # Xero refresh token rotates on every refresh
+        "grace_seconds": 1800,  # ~30-min grace: prior refresh token stays valid
         "token_url": "https://identity.xero.com/connect/token",
         "authorize_url": "https://login.xero.com/identity/connect/authorize",
         "tenant_field": "xero_tenant_id",
@@ -91,7 +92,7 @@ PROVIDERS = {
     "netsuite": {
         "auth_flow": "authorization_code",
         "pkce": False,
-        "rotating_refresh": False,         # NetSuite OAuth2 refresh token is not use-rotating
+        "rotating_refresh": False,  # NetSuite OAuth2 refresh token is not use-rotating
         "grace_seconds": 0,
         "token_url": "https://<account>.suitetalk.api.netsuite.com/services/rest/auth/oauth2/v1/token",
         "authorize_url": "https://<account>.app.netsuite.com/app/login/oauth2/authorize.nl",
@@ -100,7 +101,7 @@ PROVIDERS = {
     "intacct": {
         "auth_flow": "authorization_code",
         "pkce": False,
-        "rotating_refresh": False,         # Intacct classic is session-based; REST OAuth2 non-rotating
+        "rotating_refresh": False,  # Intacct classic is session-based; REST OAuth2 non-rotating
         "grace_seconds": 0,
         "token_url": "https://api.intacct.com/ia/api/v1/oauth2/token",
         "authorize_url": "https://api.intacct.com/ia/api/v1/oauth2/authorize",
@@ -145,8 +146,9 @@ def classify_error(status: int, body: dict | None) -> str:
     return NON_RETRYABLE
 
 
-def honor_retry_after(headers: dict | None, attempt: int, base: float = 1.0,
-                      cap: float = 60.0) -> float:
+def honor_retry_after(
+    headers: dict | None, attempt: int, base: float = 1.0, cap: float = 60.0
+) -> float:
     """Backoff seconds for a 429/5xx. If the server sent a Retry-After (delta-seconds),
     HONOR it; otherwise exponential base*2**attempt, capped. Never negative."""
     headers = headers or {}
@@ -236,8 +238,17 @@ class OAuthClient:
     the shared `events` list.
     """
 
-    def __init__(self, provider: str, store_path: str, transport, *,
-                 clock=time.time, alert_hook=None, events=None, skew_seconds: int = 60):
+    def __init__(
+        self,
+        provider: str,
+        store_path: str,
+        transport,
+        *,
+        clock=time.time,
+        alert_hook=None,
+        events=None,
+        skew_seconds: int = 60,
+    ):
         if provider not in PROVIDERS:
             raise ValueError(f"unknown provider {provider!r}; known: {sorted(PROVIDERS)}")
         self.provider = provider
@@ -265,15 +276,39 @@ class OAuthClient:
             self.alert_hook({"provider": self.provider, "store": self.store_path, "kind": kind})
 
     def _refresh_payload(self, refresh_token: str) -> dict:
-        return {"grant_type": "refresh_token", "refresh_token": refresh_token,
-                "provider": self.provider}
+        return {
+            "grant_type": "refresh_token",
+            "refresh_token": refresh_token,
+            "provider": self.provider,
+        }
 
     def _tokens_from_body(self, body: dict, prior_refresh: str) -> dict:
         # rotating providers return a new refresh token; non-rotating keep the prior one.
-        new_refresh = body.get("refresh_token") if self.p["rotating_refresh"] else None
+        if self.p["rotating_refresh"]:
+            rotated = body.get("refresh_token")
+            if rotated:
+                refresh_token = rotated
+            elif self.p["grace_seconds"] > 0:
+                # A rotating provider that omits refresh_token on a 200 — within a
+                # documented grace window (e.g. Xero ~30 min) the prior refresh token
+                # stays valid, so reusing it is legitimate; surface it so it's observable.
+                self._alert("reused_prior_refresh_within_grace")
+                refresh_token = prior_refresh
+            else:
+                # No grace window (e.g. QBO): rotation may already have invalidated
+                # prior_refresh, so persisting it silently would defer a detectable
+                # lockout one cycle. Fail closed instead (2026-07-08 review, finding 14).
+                self._alert("missing_rotated_refresh")
+                raise TokenRefreshError(
+                    f"{self.provider}: rotating refresh returned no refresh_token and the "
+                    "provider documents no grace window — re-auth required"
+                )
+        else:
+            # Non-rotating: the provider keeps the same refresh token across refreshes.
+            refresh_token = body.get("refresh_token") or prior_refresh
         return {
             "access_token": body["access_token"],
-            "refresh_token": new_refresh or body.get("refresh_token") or prior_refresh,
+            "refresh_token": refresh_token,
             "expires_at": self.clock() + float(body.get("expires_in", 3600)),
             "obtained_at": self.clock(),
         }
@@ -298,10 +333,14 @@ class OAuthClient:
                 raise
         action = classify_error(resp.status, resp.body)
         if action == REAUTH_REQUIRED:
-            self._alert("invalid_grant")          # fire alert; NON-retryable; never backoff
-            raise ReauthRequired(f"{self.provider}: invalid_grant — refresh token is dead, re-auth required")
+            self._alert("invalid_grant")  # fire alert; NON-retryable; never backoff
+            raise ReauthRequired(
+                f"{self.provider}: invalid_grant — refresh token is dead, re-auth required"
+            )
         if action != OK:
-            raise TokenRefreshError(f"{self.provider}: refresh failed status={resp.status} action={action}")
+            raise TokenRefreshError(
+                f"{self.provider}: refresh failed status={resp.status} action={action}"
+            )
         new = self._tokens_from_body(resp.body, prior_refresh)
         # PERSIST-THEN-USE: durable, atomic write BEFORE the new access token is handed out.
         _atomic_persist(self.store_path, new)
@@ -322,8 +361,8 @@ class OAuthClient:
         if not self._expired(cur):
             return cur["access_token"]
         with _EntityLock(self.lock_path):
-            cur = _read_store(self.store_path)      # recheck under lock
+            cur = _read_store(self.store_path)  # recheck under lock
             if not self._expired(cur):
-                return cur["access_token"]          # someone else already rotated
+                return cur["access_token"]  # someone else already rotated
             new = self._refresh_locked(cur)
             return new["access_token"]

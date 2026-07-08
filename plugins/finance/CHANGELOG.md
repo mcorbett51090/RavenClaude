@@ -2,7 +2,7 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
-## [0.17.2] — 2026-07-08
+## [0.17.4] — 2026-07-08
 
 Docstring accuracy fix from the autonomous 3-panel repo review (run 2026-07-08). No behavior change.
 

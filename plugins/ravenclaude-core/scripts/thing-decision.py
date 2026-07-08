@@ -256,7 +256,16 @@ def classify(command: str) -> str | None:
         wget_body = re.match(r"wget\b", lead) and re.search(
             r"(?:^|\s)--(?:post-data|post-file|body-data|body-file)\b", lead
         )
-        if has_method or curl_body or wget_body:
+        # `gh api` performs an IMPLICIT POST whenever a field/input flag is present
+        # with no explicit -X/--method (`gh api repos/o/r/issues -f title=x` creates
+        # an issue). Without this branch bare `gh api` isn't in any EMISSIONS prefix,
+        # so best_cat is None and the write auto-allows unreviewed. -f/--raw-field,
+        # -F/--field, --input all force the write; explicit -X POST is already caught
+        # by has_method above (so a bare `gh api <path>` GET stays a read).
+        gh_body = re.match(r"gh\s+api\b", lead) and re.search(
+            r"(?:^|\s)(?:-f|-F|--field|--raw-field|--input)\b", lead
+        )
+        if has_method or curl_body or wget_body or gh_body:
             best_cat = "network_write"
     return best_cat
 

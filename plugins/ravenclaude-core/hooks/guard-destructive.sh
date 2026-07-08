@@ -22,6 +22,16 @@
 # -D`, and whole-disk ops (`mkfs`/`shred`/`dd of=/dev/disk0`). This hook is the
 # consumer's PRIMARY deterministic guard on the `/plugin install` path (the
 # settings.json deny-list is marketplace-dev-only), so the variants matter.
+#
+# SCOPE (2026-07-08 review): this is a command-STRING scanner. It catches destructive
+# content within a SINGLE command — including a heredoc that writes a file and then
+# executes it in the SAME command (`cat <<'EOF' > f; rm -rf /; EOF; bash f`, closed by
+# the write-then-execute branch in the normalizer). It CANNOT see write-then-execute
+# spread ACROSS separate tool calls (Write a script in one call, `bash` it in another) —
+# a string scanner has no visibility into the other call, and the target is reachable via
+# Write/printf/tee/base64 regardless. That boundary is the OS container/worktree, NOT this
+# hook — see the plugin CLAUDE.md "Containment posture — the boundary the tribunal
+# structurally can't provide" section. Do not attempt to close it here.
 
 set -euo pipefail
 
@@ -124,8 +134,69 @@ s = re.sub(r"""(-m\s+)'[^'\n]*'""", r"\1MSG", s)
 # at run time, so its body is stripped only when it carries no command substitution.
 # Without this split, `cat <<EOF > f\n$(rm -rf ~)\nEOF` would be blanked before the
 # scan, while bash still runs the substitution while building the heredoc.
+# (b0) A heredoc feeding an INTERPRETER (`bash <<EOF … EOF`, `python3 <<'PY' … PY`,
+# `sh <<X … X`) is NOT data-written-to-a-file — the body IS the script the shell
+# executes, so blanking it would let `bash <<EOF\nrm -rf /\nEOF` slip past every
+# deny pattern (the interpreter-heredoc fail-open closed by the 2026-07 review;
+# the internal inconsistency that flagged it: `<(curl` / `$(curl` to a shell ARE
+# caught, but the equivalent heredoc-to-shell was not). Detect it by the command
+# word that opens the current simple command (after the nearest separator before
+# `<<`), skipping leading VAR=val assignments, a leading `env`, and a leading `\`
+# alias-suppressor; when it's an interpreter, do NOT strip — scan the body as code.
+_INTERP_BASE = re.compile(
+    r"^(?:sh|bash|dash|zsh|ksh|ash|csh|tcsh|mksh|busybox|python[0-9.]*|perl|ruby|node|php|tclsh|lua|Rscript)$"
+)
+def _heredoc_feeds_interpreter(prefix):
+    seg = re.split(r"[\n;&|(]", prefix)[-1]
+    toks = seg.split()
+    i = 0
+    while i < len(toks) and re.match(r"^[A-Za-z_][A-Za-z0-9_]*=", toks[i]):
+        i += 1
+    if i < len(toks) and toks[i].lstrip("\\").rsplit("/", 1)[-1] == "env":
+        i += 1
+        while i < len(toks) and re.match(r"^[A-Za-z_][A-Za-z0-9_]*=", toks[i]):
+            i += 1
+    if i >= len(toks):
+        return False
+    base = toks[i].lstrip("\\").rsplit("/", 1)[-1]
+    return bool(_INTERP_BASE.match(base))
+# (b1) SAME-COMMAND write-then-execute (2026-07-08 review, finding 11). A heredoc that
+# writes to a FILE with a non-interpreter command word (`cat <<'EOF' > /tmp/x.sh`) is
+# inert data on its own — but if the SAME command string then executes that written file
+# via an interpreter (`bash /tmp/x.sh`, `sh -x /tmp/x.sh`, `source /tmp/x.sh`, `. f`,
+# `./x.sh`), the body IS run and blanking it would let `cat <<'EOF' > f; rm -rf /; EOF;
+# bash f` slip every deny pattern. So when the redirect target is later executed in the
+# same command, do NOT blank — leave the body for the structural/deny checks (mirrors the
+# _heredoc_feeds_interpreter branch). SCOPE: this closes the SINGLE-command variant only.
+# Write-then-execute ACROSS separate tool calls (Write a file in one call, `bash` it in
+# another) is OUT OF SCOPE by design — a command-string scanner cannot see the other call,
+# and the file is reachable via Write/printf/tee/base64 anyway; the OS container/worktree
+# is that boundary (see the plugin CLAUDE.md "Containment posture" section).
+_HEREDOC_REDIR_TARGET = re.compile(r">>?\s*(['\"]?)([^\s'\";|&<>()]+)\1")
+_INTERP_EXEC_WORD = r"(?:sh|bash|dash|zsh|ksh|ash|busybox|source)"
+def _cmd_executes_path(full, path):
+    if not path:
+        return False
+    p = re.escape(path)
+    base = re.escape(path.rsplit("/", 1)[-1])
+    pat = re.compile(
+        r"\b" + _INTERP_EXEC_WORD + r"\b[^\n;|&]*?" + p          # bash [flags] <path>
+        + r"|(?<![\w/.])\.\s+[^\n;|&]*?" + p                      # . [flags] <path>
+        + r"|(?:^|[\s;&|])\./" + base + r"(?![\w.])"              # ./<base>
+    )
+    return bool(pat.search(full))
 def _strip_heredoc(m):
     quoted, body = m.group(1), m.group(3)
+    prefix = m.string[: m.start()]
+    if _heredoc_feeds_interpreter(prefix):
+        return m.group(0)  # interpreter heredoc: body IS executed — scan it, don't blank
+    # Look for the redirect target on this simple command (either before `<<`, in the
+    # prefix's last segment, or after it, in the heredoc's opening line).
+    seg = re.split(r"[\n;&|(]", prefix)[-1]
+    opening = m.group(0).split("\n", 1)[0]
+    tgt = _HEREDOC_REDIR_TARGET.search(seg + " " + opening)
+    if tgt and _cmd_executes_path(m.string, tgt.group(2)):
+        return m.group(0)  # written-then-executed in the same command — scan the body
     if quoted or not _EXECUTES.search(body):
         return "<<HEREDOC"
     return m.group(0)

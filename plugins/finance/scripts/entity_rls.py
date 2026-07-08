@@ -36,6 +36,7 @@ the only place. Decision-support / reference implementation; a real deployment n
 an IdP, a warehouse, real credentials, and `ravenclaude-core/security-reviewer`
 sign-off (../CLAUDE.md sec.3, sec.10). Stdlib only (argparse/json/sys). Python 3.8+.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -119,8 +120,10 @@ def validate_claim(claim, now) -> tuple:
     if now < iat:
         return False, "token not yet valid (now < iat)"
     if exp - iat > MAX_TTL_SECONDS:
-        return False, (f"ttl {exp - iat:.0f}s exceeds max {MAX_TTL_SECONDS}s "
-                       f"(>30-min embed-token anti-pattern)")
+        return False, (
+            f"ttl {exp - iat:.0f}s exceeds max {MAX_TTL_SECONDS}s "
+            f"(>30-min embed-token anti-pattern)"
+        )
     return True, "ok"
 
 
@@ -136,8 +139,13 @@ def resolve_from_claim(claim, requested_entities, now) -> tuple:
     return resolve(requested_entities, claim.get("allowed_entities")), "ok"
 
 
-def bind_entitlement_to_identity(entity_claims: dict, identity: VerifiedIdentity) -> tuple:
+def bind_entitlement_to_identity(entity_claims: dict, identity: VerifiedIdentity, now) -> tuple:
     """Bind the warehouse entitlement token (allowed_entities[]) to the SoD-verified IDENTITY.
+
+    `now` is unix seconds (int/float) — the entitlement token's envelope (iat/exp/ttl) is
+    validated against it via validate_claim, mirroring resolve_from_claim, so an EXPIRED
+    entitlement replayed alongside a freshly-verified identity of the same iss/sub cannot be
+    honored. The bind path is NOT blind to token freshness.
 
     THE SPLIT-BRAIN THIS CLOSES (the critic's + reviewer's core finding). This resolver and
     close_identity's SoD check answer two different questions off two potentially DIFFERENT
@@ -156,51 +164,76 @@ def bind_entitlement_to_identity(entity_claims: dict, identity: VerifiedIdentity
       * entity_claims['iss'] != identity.issuer (different issuer minted the two tokens).
       * f"{entity_claims['sub']}@{entity_claims['iss']}" != identity.subject (same issuer but a
         DIFFERENT principal — a sub swap).
+      * the entitlement token's envelope fails validate_claim(entity_claims, now) —
+        expired (now >= exp), not-yet-valid (now < iat), missing/non-numeric iat/exp, or
+        ttl > 30 min. An expired entitlement is never honored, even for a matched identity.
     On a full match it returns the resolved (normalized, deduped) allowed_entities; an empty
     grant still denies all. INVARIANT: entity entitlement and SoD identity MUST derive from the
     SAME verified token/issuer.
     """
     if identity is None or not getattr(identity, "verified", False):
-        return [], ("split-brain: identity is unverified — an entitlement can only bind to a "
-                    "signature+claim-verified identity (both must derive from one token)")
+        return [], (
+            "split-brain: identity is unverified — an entitlement can only bind to a "
+            "signature+claim-verified identity (both must derive from one token)"
+        )
     if not isinstance(entity_claims, dict):
         return [], "split-brain: entitlement claim is missing or not an object"
     ent_iss = entity_claims.get("iss")
     ent_sub = entity_claims.get("sub")
     if not ent_iss or not ent_sub:
-        return [], ("split-brain: entitlement token missing iss/sub — cannot bind it to the "
-                    "verified identity")
+        return [], (
+            "split-brain: entitlement token missing iss/sub — cannot bind it to the "
+            "verified identity"
+        )
     # 1. SAME issuer that minted the verified identity (exact match, no drift).
     if ent_iss != identity.issuer:
-        return [], (f"split-brain: entitlement token issuer {ent_iss!r} != identity token issuer "
-                    f"{identity.issuer!r} — entitlement and SoD identity must share one issuer")
+        return [], (
+            f"split-brain: entitlement token issuer {ent_iss!r} != identity token issuer "
+            f"{identity.issuer!r} — entitlement and SoD identity must share one issuer"
+        )
     # 2. SAME principal (sub@iss) — not a different sub on the same issuer.
     ent_subject = f"{ent_sub}@{ent_iss}"
     if ent_subject != identity.subject:
-        return [], (f"split-brain: entitlement token subject {ent_subject!r} != identity subject "
-                    f"{identity.subject!r} — entitlement and SoD identity must be one principal")
+        return [], (
+            f"split-brain: entitlement token subject {ent_subject!r} != identity subject "
+            f"{identity.subject!r} — entitlement and SoD identity must be one principal"
+        )
+    # 3. The entitlement token's envelope must be fresh — mirror resolve_from_claim's
+    #    fail-closed checks (iat/exp/ttl) so an EXPIRED entitlement replayed alongside a
+    #    freshly-verified identity of the same iss/sub cannot be honored. The bind path
+    #    must not be blind to token freshness (parity with resolve_from_claim).
+    env_ok, env_reason = validate_claim(entity_claims, now)
+    if not env_ok:
+        return [], (
+            f"split-brain: entitlement token envelope invalid ({env_reason}) — "
+            "an expired/invalid entitlement cannot bind even to a matched identity"
+        )
     # Bound: the entitlement provably belongs to the verified identity. Resolve (normalize +
     # dedup) the grant through the same guarded intersection; an empty grant denies all.
     allowed = entity_claims.get("allowed_entities")
     granted = resolve(allowed, allowed)
     if not granted:
-        return [], ("bound to identity, but the entitlement grants no entities "
-                    "(empty/invalid allowed_entities -> deny-all)")
+        return [], (
+            "bound to identity, but the entitlement grants no entities "
+            "(empty/invalid allowed_entities -> deny-all)"
+        )
     return granted, "ok — entitlement bound to the verified identity (one issuer, one subject)"
 
 
 def main(argv=None) -> int:
     p = argparse.ArgumentParser(
         description="Resolve an allowed_entities[] array claim against a request "
-                    "(deny-all by default).")
-    p.add_argument("--claim", help="JSON file with the token claim "
-                                    "(allowed_entities[], iat, exp)")
-    p.add_argument("--allowed", help="comma-separated allowed entity ids "
-                                     "(alternative to --claim; skips envelope checks)")
-    p.add_argument("--requested", required=True,
-                   help="comma-separated requested entity ids")
-    p.add_argument("--now", type=float,
-                   help="evaluation time (unix seconds); required with --claim")
+        "(deny-all by default)."
+    )
+    p.add_argument("--claim", help="JSON file with the token claim (allowed_entities[], iat, exp)")
+    p.add_argument(
+        "--allowed",
+        help="comma-separated allowed entity ids (alternative to --claim; skips envelope checks)",
+    )
+    p.add_argument("--requested", required=True, help="comma-separated requested entity ids")
+    p.add_argument(
+        "--now", type=float, help="evaluation time (unix seconds); required with --claim"
+    )
     a = p.parse_args(argv)
 
     requested = [s for s in (a.requested or "").split(",") if s.strip()]

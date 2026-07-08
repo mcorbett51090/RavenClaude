@@ -63,14 +63,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
       - name: Set up Node.js
         # The render/round-trip *.mjs gates and the prettier check run under node/npx.
         # audit-gates.sh now HARD-FAILS in CI when node/npx is absent (a skip is not
         # a pass), so provision node explicitly rather than relying on the runner
         # image happening to ship it.
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: "20"
 
@@ -301,9 +301,6 @@ jobs:
           # Markdown is excluded via .prettierignore — the project's prose style
           # is reviewed by humans per AGENTS.md, not by prettier. JSON, YAML,
           # JS/TS, CSS in scope.
-          # Pinned to an exact version (matching the ruff/actionlint pinning discipline):
-          # prettier --check runs over the WHOLE TREE, so an unpinned upstream release
-          # could re-evaluate every file and wedge all open PRs with no code change.
           npx --yes prettier@3.9.4 --check . --log-level warn
 
       - name: Actionlint (GitHub Actions semantic check)
