@@ -517,6 +517,14 @@ rc=0; CLAUDE_PROJECT_DIR="$TMP/proj" plugins/ravenclaude-core/hooks/enforce-layo
 gate "enforce-layout (in-pattern)" must_pass "$rc"
 rc=0; CLAUDE_PROJECT_DIR="$TMP/proj" plugins/ravenclaude-core/hooks/enforce-layout.sh "$TMP/proj/docs/../../etc/passwd" >/dev/null 2>&1 || rc=$?
 gate "enforce-layout (..-traversal scrub)" must_fail "$rc"
+# 2026-07 P1 teeth: under real Claude Code the path arrives via stdin JSON, NOT
+# as $1 ($CLAUDE_TOOL_FILE_PATH is not a hook var, so the arg is empty). With no
+# stdin fallback the hook no-ops (exit 0) and every layout/task-scope check is
+# silently inert. Empty $1 + off-pattern path on stdin MUST still deny.
+rc=0; printf '{"tool_input":{"file_path":"%s"}}' "$TMP/proj/random/file.txt" | CLAUDE_PROJECT_DIR="$TMP/proj" plugins/ravenclaude-core/hooks/enforce-layout.sh "" >/dev/null 2>&1 || rc=$?
+gate "enforce-layout (off-pattern via stdin JSON, empty \$1)" must_fail "$rc"
+rc=0; printf '{"tool_input":{"file_path":"%s"}}' "$TMP/proj/docs/x.md" | CLAUDE_PROJECT_DIR="$TMP/proj" plugins/ravenclaude-core/hooks/enforce-layout.sh "" >/dev/null 2>&1 || rc=$?
+gate "enforce-layout (in-pattern via stdin JSON, empty \$1)" must_pass "$rc"
 # Gap 6: task-scope gate — runs in the SAME hook, independent of .repo-layout.json.
 # Fresh proj with ONLY task-scope.json (no layout manifest) proves the independence.
 mkdir -p "$TMP/scopeproj/.ravenclaude" "$TMP/scopeproj/src"
@@ -2342,6 +2350,13 @@ mkdir -p "$G104/bad/plugins/sample/hooks"
 printf '#!/usr/bin/env bash\nif grep -nEi "foo(?!bar)" "$1"; then :; fi\n' > "$G104/bad/plugins/sample/hooks/x.sh"
 rc=0; python3 scripts/check-grep-ere-pcre.py --root "$G104/bad" >/dev/null 2>&1 || rc=$?
 gate "grep-ere-pcre (lookahead inside grep -E)" must_fail "$rc"
+# BAD (teeth for the 2026-07 separated-flag fix): the ERE flag is NOT bundled
+# with grep — `grep -v -E '(?:..)'` — which the old `grep\s+-...E` anchor missed
+# entirely. Must fail, else the separated-flag idiom ships a dead hook silently.
+mkdir -p "$G104/bad-sep/plugins/sample/hooks"
+printf '#!/usr/bin/env bash\nif grep -v -E "foo(?:bar)" "$1"; then :; fi\n' > "$G104/bad-sep/plugins/sample/hooks/x.sh"
+rc=0; python3 scripts/check-grep-ere-pcre.py --root "$G104/bad-sep" >/dev/null 2>&1 || rc=$?
+gate "grep-ere-pcre (separated flags: grep -v -E)" must_fail "$rc"
 # GOOD: same pattern under grep -Pz (PCRE) -> must pass.
 mkdir -p "$G104/good/plugins/sample/hooks"
 printf '#!/usr/bin/env bash\nif grep -Pzi "foo(?!bar)" "$1"; then :; fi\n' > "$G104/good/plugins/sample/hooks/x.sh"
@@ -3098,7 +3113,7 @@ gate "sanitize-webfetch-body (poisoned fixture stripped, NOT round-trip)" must_f
 
 # must_fail: poisoned sanitization removes every injection marker — grep MUST
 # fail to find any (grep exit 1 == not found == this gate passes via must_fail).
-rc=0; grep -qE '<system-reminder|<system-instruction|^SYSTEM:|```system' "$POISONED_OUT" || rc=$?
+rc=0; grep -qE '<system-reminder|<system-instruction|^SYSTEM:|```system|<important' "$POISONED_OUT" || rc=$?
 gate "sanitize-webfetch-body (no injection markers survive in sanitized output)" must_fail "$rc"
 
 # must_pass: poisoned sanitization preserves the canonical content sandwiching
