@@ -1,0 +1,14 @@
+{
+  "_synthetic": "OBVIOUSLY FAKE SuiteQL TB result that returns a 429 on the FIRST page fetch (offset 0) once, then serves normally on retry — exercises the pager's Retry-After backoff without data loss. No real data.",
+  "_error": { "at_offset": 0, "status": 429, "headers": { "Retry-After": "0" } },
+  "rows": [
+    { "account": "1000", "name": "Cash", "amount": 500000 },
+    { "account": "1100", "name": "Accounts Receivable", "amount": 300000 },
+    { "account": "1200", "name": "Inventory", "amount": 200000 },
+    { "account": "2000", "name": "Accounts Payable", "amount": -250000 },
+    { "account": "3000", "name": "Common Stock", "amount": -600000 },
+    { "account": "4000", "name": "Revenue", "amount": -400000 },
+    { "account": "5000", "name": "Cost of Goods Sold", "amount": 180000 },
+    { "account": "6000", "name": "Operating Expenses", "amount": 70000 }
+  ]
+}
