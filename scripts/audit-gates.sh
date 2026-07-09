@@ -465,6 +465,14 @@ gd_block=(
   # slipped the guard while the same `$(rm -rf ~)` wrap was caught.
   'x=$(find / -delete)' 'echo "$(truncate -s 0 /etc/passwd)"'
   '`git branch -D main`' '$(find $HOME -type f -delete)'
+
+  # Git GLOBAL-option bypass (2026-07-09 P0): the _gitglobal strip was a curated
+  # allow-list that omitted the real short globals -p (--paginate) and -P
+  # (--no-pager), so prefixing any git subcommand with one dodged EVERY git deny.
+  # These must all block (exit 2); the -c/--git-dir value-consuming controls in
+  # gd_pass below guard against over-stripping a global's separate-token value.
+  'git -p push --force' 'git -P push --force' 'git -p reset --hard HEAD'
+  'git -P reset --hard origin/main' 'git -p branch -D main' 'git -p clean -f'
 )
 for c in "${gd_block[@]}"; do
   _gd "$c"; ok=0; [ "$GD_RC" -eq 2 ] || ok=1
@@ -491,6 +499,10 @@ gd_pass=(
   # And writing a file with destructive content but NOT executing it (only cat) still
   # blanks/strips as before — no interpreter reference to the target.
   $'cat <<\'EOF\' > /tmp/x.sh\nrm -rf /\nEOF\ncat /tmp/x.sh'
+  # Git global-strip must NOT over-consume a global's SEPARATE-token value as the
+  # subcommand (2026-07-09 P0 fix): `-c key=val` / `--git-dir path` are benign
+  # reads once their value is consumed with them, and `-p` before a read is benign.
+  'git -c key=val push origin main' 'git --git-dir /x/.git status' 'git -p log --oneline'
 )
 for c in "${gd_pass[@]}"; do
   _gd "$c"

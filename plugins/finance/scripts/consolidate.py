@@ -42,6 +42,7 @@ carries no group-specific fact. Stdlib only (csv/json/argparse). Python 3.8+.
 Outputs are decision-support, NOT an audited consolidation, a GAAP/IFRS
 determination, or a multi-currency remeasurement (../CLAUDE.md sec.3, sec.12).
 """
+
 from __future__ import annotations
 
 import argparse
@@ -55,8 +56,13 @@ import statement_engine as se  # noqa: E402
 
 # Section ordering for a readable worksheet (mirrors statement_engine's sets).
 IS_SECTION_ORDER = ["Revenue", "COGS", "OpEx", "OtherIncomeExpense", "Tax"]
-BS_SECTION_ORDER = ["CurrentAssets", "NonCurrentAssets", "CurrentLiabilities",
-                    "NonCurrentLiabilities", "Equity"]
+BS_SECTION_ORDER = [
+    "CurrentAssets",
+    "NonCurrentAssets",
+    "CurrentLiabilities",
+    "NonCurrentLiabilities",
+    "Equity",
+]
 ASSET_SECTIONS = {"CurrentAssets", "NonCurrentAssets"}
 LIABILITY_SECTIONS = {"CurrentLiabilities", "NonCurrentLiabilities"}
 
@@ -70,10 +76,14 @@ def load_config(path: str) -> dict:
     with open(path) as fh:
         cfg = json.load(fh)
     if cfg.get("schema_version") != 1:
-        raise SystemExit(f"{path}: schema_version must be 1, got "
-                         f"{cfg.get('schema_version')!r} (re-review the config)")
+        raise SystemExit(
+            f"{path}: schema_version must be 1, got "
+            f"{cfg.get('schema_version')!r} (re-review the config)"
+        )
     if not cfg.get("entities"):
         raise SystemExit(f"{path}: config lists no entities")
+    if not cfg.get("group_name"):
+        raise SystemExit(f"{path}: config is missing required key 'group_name'")
     return cfg
 
 
@@ -98,20 +108,35 @@ def run_entities(cfg: dict, base_dir: str, strict: bool):
             for e in errs:
                 sys.stderr.write(f"  - {e}\n")
             raise SystemExit(2)
-        if period and profile.get("fiscal_period") != period:
+        # Fail-closed period check: if the group config omits fiscal_period, DERIVE it
+        # from the first entity's profile, then assert EVERY entity matches. This closes
+        # the hole where a falsy group period skipped the guard, letting entities from
+        # different periods be silently rolled up.
+        if period is None:
+            period = profile.get("fiscal_period")
+        if profile.get("fiscal_period") != period:
             raise SystemExit(
-                f"BLOCKED: period mismatch — group is {period!r} but "
+                f"BLOCKED: period mismatch — group period is {period!r} but "
                 f"{profile['entity_name']!r} is {profile.get('fiscal_period')!r}. "
-                f"A consolidation rolls up ONE period across entities.")
+                f"A consolidation rolls up ONE period across entities."
+            )
         stmts = se.run(profile, coa_path, tb_path, strict=strict)
-        results.append({"name": profile["entity_name"],
-                        "currency": profile["functional_currency"],
-                        "role": ent.get("role", ""),
-                        "statements": stmts})
+        results.append(
+            {
+                "name": profile["entity_name"],
+                "currency": profile["functional_currency"],
+                "role": ent.get("role", ""),
+                "statements": stmts,
+            }
+        )
         if profile["functional_currency"] != presentation_ccy:
-            cta_flags.append({"entity": profile["entity_name"],
-                              "functional_currency": profile["functional_currency"],
-                              "presentation_currency": presentation_ccy})
+            cta_flags.append(
+                {
+                    "entity": profile["entity_name"],
+                    "functional_currency": profile["functional_currency"],
+                    "presentation_currency": presentation_ccy,
+                }
+            )
     return results, presentation_ccy, cta_flags
 
 
@@ -127,17 +152,20 @@ def _trail_by_line(results):
     names = [r["name"] for r in results]
     for r in results:
         trail = r["statements"]["reasoning_trail"]
-        for stmt, entries in (("IS", trail["income_statement"]),
-                              ("BS", trail["balance_sheet"])):
+        for stmt, entries in (("IS", trail["income_statement"]), ("BS", trail["balance_sheet"])):
             for e in entries:
                 key = (stmt, e["section"], e["line"])
-                slot = lines.setdefault(key, {"statement": stmt,
-                                              "section": e["section"],
-                                              "line": e["line"],
-                                              "entities": dict.fromkeys(names, 0.0),
-                                              "elimination": 0.0})
-                slot["entities"][r["name"]] = round(
-                    slot["entities"][r["name"]] + e["amount"], 2)
+                slot = lines.setdefault(
+                    key,
+                    {
+                        "statement": stmt,
+                        "section": e["section"],
+                        "line": e["line"],
+                        "entities": dict.fromkeys(names, 0.0),
+                        "elimination": 0.0,
+                    },
+                )
+                slot["entities"][r["name"]] = round(slot["entities"][r["name"]] + e["amount"], 2)
     return lines, names
 
 
@@ -158,15 +186,18 @@ def load_eliminations(path: str):
             raise SystemExit(f"{path}:{i} non-numeric debit/credit")
         # Reuse the engine's section-based presentation sign (contra-safe).
         pres = se._present({"debit": debit, "credit": credit}, section)
-        rows.append({
-            "ic_id": (raw.get("ic_id") or "").strip(),
-            "description": (raw.get("description") or "").strip(),
-            "statement": (raw.get("statement") or "").strip(),
-            "section": section,
-            "line": (raw.get("line") or "").strip(),
-            "debit": debit, "credit": credit,
-            "presentation_amount": round(pres, 2),
-        })
+        rows.append(
+            {
+                "ic_id": (raw.get("ic_id") or "").strip(),
+                "description": (raw.get("description") or "").strip(),
+                "statement": (raw.get("statement") or "").strip(),
+                "section": section,
+                "line": (raw.get("line") or "").strip(),
+                "debit": debit,
+                "credit": credit,
+                "presentation_amount": round(pres, 2),
+            }
+        )
         dtot += debit
         ctot += credit
     return rows, round(dtot, 2), round(ctot, 2)
@@ -178,12 +209,13 @@ def apply_eliminations(lines: dict, elim_rows: list) -> list:
     for row in elim_rows:
         key = (row["statement"], row["section"], row["line"])
         if key not in lines:
-            errs.append(f"elimination line {row['line']!r} (section {row['section']!r}, "
-                        f"{row['statement']}) matches no entity line — check spelling / "
-                        f"that the intercompany accounts are actually mapped and booked")
+            errs.append(
+                f"elimination line {row['line']!r} (section {row['section']!r}, "
+                f"{row['statement']}) matches no entity line — check spelling / "
+                f"that the intercompany accounts are actually mapped and booked"
+            )
             continue
-        lines[key]["elimination"] = round(lines[key]["elimination"]
-                                          + row["presentation_amount"], 2)
+        lines[key]["elimination"] = round(lines[key]["elimination"] + row["presentation_amount"], 2)
     return errs
 
 
@@ -210,10 +242,17 @@ def _income_subtotals(sect: dict) -> dict:
     oi = round(gross - opex, 2)
     pretax = round(oi + other, 2)
     ni = round(pretax - tax, 2)
-    return {"revenue": rev, "cogs": cogs, "gross_profit": gross,
-            "operating_expenses": opex, "operating_income": oi,
-            "other_income_expense_net": other, "pretax_income": pretax,
-            "income_tax_expense": tax, "net_income": ni}
+    return {
+        "revenue": rev,
+        "cogs": cogs,
+        "gross_profit": gross,
+        "operating_expenses": opex,
+        "operating_income": oi,
+        "other_income_expense_net": other,
+        "pretax_income": pretax,
+        "income_tax_expense": tax,
+        "net_income": ni,
+    }
 
 
 def _balance_subtotals(sect: dict, net_income: float) -> dict:
@@ -222,11 +261,15 @@ def _balance_subtotals(sect: dict, net_income: float) -> dict:
     tl = round(sum(sect.get(s, 0.0) for s in LIABILITY_SECTIONS), 2)
     eq_beg = round(sect.get("Equity", 0.0), 2)
     teq = round(eq_beg + net_income, 2)
-    return {"total_assets": ta, "total_current_assets": ca,
-            "total_liabilities": tl, "equity_beginning": eq_beg,
-            "current_period_net_income": round(net_income, 2),
-            "total_equity": teq,
-            "balance_delta": round(ta - (tl + teq), 2)}
+    return {
+        "total_assets": ta,
+        "total_current_assets": ca,
+        "total_liabilities": tl,
+        "equity_beginning": eq_beg,
+        "current_period_net_income": round(net_income, 2),
+        "total_equity": teq,
+        "balance_delta": round(ta - (tl + teq), 2),
+    }
 
 
 def _worksheet_rows(lines: dict, names: list, statement: str, order: list) -> list:
@@ -237,13 +280,15 @@ def _worksheet_rows(lines: dict, names: list, statement: str, order: list) -> li
     out = []
     for s in rows:
         entity_sum = round(sum(s["entities"].values()), 2)
-        out.append({
-            "section": s["section"],
-            "line": s["line"],
-            "entities": {n: round(s["entities"][n], 2) for n in names},
-            "eliminations": round(s["elimination"], 2),
-            "consolidated": round(entity_sum + s["elimination"], 2),
-        })
+        out.append(
+            {
+                "section": s["section"],
+                "line": s["line"],
+                "entities": {n: round(s["entities"][n], 2) for n in names},
+                "eliminations": round(s["elimination"], 2),
+                "consolidated": round(entity_sum + s["elimination"], 2),
+            }
+        )
     return out
 
 
@@ -262,7 +307,8 @@ def consolidate(config_path: str, strict: bool = True) -> dict:
             sys.stderr.write(
                 f"BLOCKED: elimination journal is out of balance — debits {dtot:,.2f} "
                 f"!= credits {ctot:,.2f}. An unbalanced elimination would break the "
-                f"consolidated balance sheet.\n")
+                f"consolidated balance sheet.\n"
+            )
             raise SystemExit(4)
         match_errs = apply_eliminations(lines, elim_rows)
         if match_errs:
@@ -281,7 +327,8 @@ def consolidate(config_path: str, strict: bool = True) -> dict:
         sys.stderr.write(
             f"BLOCKED: consolidated balance sheet does not balance — off by "
             f"{con_bs['balance_delta']:,.2f}. Assets must equal liabilities + equity "
-            f"after eliminations.\n")
+            f"after eliminations.\n"
+        )
         raise SystemExit(6)
 
     # Which lines were touched by an elimination, and did each net to zero?
@@ -302,11 +349,15 @@ def consolidate(config_path: str, strict: bool = True) -> dict:
         "group": cfg["group_name"],
         "presentation_currency": presentation_ccy,
         "fiscal_period": cfg.get("fiscal_period"),
-        "basis_badge": ("Consolidation from summarized entity trial balances — "
-                        "decision-support, NOT an audited consolidation or a full "
-                        "multi-currency remeasurement."),
-        "entities": [{"name": r["name"], "functional_currency": r["currency"],
-                      "role": r["role"]} for r in results],
+        "basis_badge": (
+            "Consolidation from summarized entity trial balances — "
+            "decision-support, NOT an audited consolidation or a full "
+            "multi-currency remeasurement."
+        ),
+        "entities": [
+            {"name": r["name"], "functional_currency": r["currency"], "role": r["role"]}
+            for r in results
+        ],
         "worksheet": {
             "income_statement": _worksheet_rows(lines, names, "IS", IS_SECTION_ORDER),
             "balance_sheet": _worksheet_rows(lines, names, "BS", BS_SECTION_ORDER),
@@ -318,29 +369,31 @@ def consolidate(config_path: str, strict: bool = True) -> dict:
             "balanced": abs(dtot - ctot) < 0.01,
             "intercompany_lines": ic_lines,
         },
-        "pre_elimination_subtotals": {
-            "income_statement": pre_is, "balance_sheet": pre_bs},
-        "consolidated_subtotals": {
-            "income_statement": con_is, "balance_sheet": con_bs},
+        "pre_elimination_subtotals": {"income_statement": pre_is, "balance_sheet": pre_bs},
+        "consolidated_subtotals": {"income_statement": con_is, "balance_sheet": con_bs},
         "currency_translation_note": {
             "flagged_entities": cta_flags,
-            "caveat": ("Flagged entities report in a functional currency other than the "
-                       "group presentation currency. This engine does NOT perform a "
-                       "multi-currency remeasurement (closing/average/historical rates "
-                       "with the plug to a CTA component of equity/OCI). Their trial "
-                       "balances are treated as already stated in the presentation "
-                       "currency; a rigorous translation and its cumulative-translation-"
-                       "adjustment are OUT OF SCOPE and must be prepared separately."),
+            "caveat": (
+                "Flagged entities report in a functional currency other than the "
+                "group presentation currency. This engine does NOT perform a "
+                "multi-currency remeasurement (closing/average/historical rates "
+                "with the plug to a CTA component of equity/OCI). Their trial "
+                "balances are treated as already stated in the presentation "
+                "currency; a rigorous translation and its cumulative-translation-"
+                "adjustment are OUT OF SCOPE and must be prepared separately."
+            ),
         },
     }
 
 
 def main(argv=None) -> int:
-    p = argparse.ArgumentParser(
-        description="Consolidate N entities with intercompany elimination.")
+    p = argparse.ArgumentParser(description="Consolidate N entities with intercompany elimination.")
     p.add_argument("--config", required=True, help="consolidation config JSON")
-    p.add_argument("--no-strict", action="store_true",
-                   help="do NOT block on unmapped accounts in an entity (default: block)")
+    p.add_argument(
+        "--no-strict",
+        action="store_true",
+        help="do NOT block on unmapped accounts in an entity (default: block)",
+    )
     p.add_argument("--out", help="write consolidation JSON here (else stdout)")
     a = p.parse_args(argv)
 
@@ -351,8 +404,10 @@ def main(argv=None) -> int:
             fh.write(text + "\n")
         ni = out["consolidated_subtotals"]["income_statement"]["net_income"]
         delta = out["consolidated_subtotals"]["balance_sheet"]["balance_delta"]
-        print(f"wrote {a.out}  [{len(out['entities'])} entities]  consolidated net "
-              f"income {ni:,.2f} {out['presentation_currency']}  balance_delta {delta:,.2f}")
+        print(
+            f"wrote {a.out}  [{len(out['entities'])} entities]  consolidated net "
+            f"income {ni:,.2f} {out['presentation_currency']}  balance_delta {delta:,.2f}"
+        )
     else:
         print(text)
     return 0

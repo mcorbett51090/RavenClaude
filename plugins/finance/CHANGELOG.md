@@ -2,6 +2,15 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.18.1] — 2026-07-09
+
+Robustness + correctness fixes from an autonomous 3-panel repo review (2026-07-09). All stdlib-only; the finance acceptance suite stays green. The related design decision (whether to wire or drop `cf_category`/`noncash`) is in [`docs/2026-07-09-repo-review-design-questions.md`](../../docs/2026-07-09-repo-review-design-questions.md).
+
+- **P1 — `consolidate.py` fail-closed period check.** A group config that omitted `fiscal_period` skipped the cross-entity period-consistency guard, so entities from different periods could be silently rolled up (a mixed-period roll-up still balances to 0.00). Now derives the period from the first entity and asserts every entity matches; `group_name` added to `load_config`'s required-key validation (KeyError → BLOCKED).
+- **P2 — `connectors/netsuite_connect.py` single-pull integrity.** The staged trial balance was written from a second, independent SuiteQL pull while the watermark `source_tb_sha256` was computed from the first — so the pinned drift-detection hash described data that was never staged. The staged export is now written from the already-pulled+tied rows, so one pull backs both the hash and the export (`export_via_suiteql`'s signature is unchanged).
+- **P3 — `connectors/oauth_client.py` resilience.** M2M `TransportTimeout` is now caught and surfaced as a worded `ConnectError`/exit-2 (not a raw traceback); the bounded backoff-retry loop is shared so the M2M mint honors 429/5xx backoff like the refresh path; a corrupted token store raises a distinct `TokenStoreCorrupt` (was silently masked as "no tokens → re-auth").
+- **P3 — `remeasure.py` / `statement_engine.py` / `recon_match.py`.** `rates.json` required keys validated up front (KeyError → BLOCKED); bare internal-consistency `assert`s replaced with `raise SystemExit(...)` so the cross-checks survive `python -O`; the prior-period TB is now balance-checked before the cash-flow draft consumes it.
+
 ## [0.17.6] — 2026-07-08
 
 Two non-blocking robustness hardenings for `honor_retry_after()` from the v0.17.5 security-reviewer sign-off (both fail in the safe direction; no security defect was present).

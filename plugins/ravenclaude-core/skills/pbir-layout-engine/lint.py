@@ -86,9 +86,7 @@ DEFAULT_MAX_THEME_OVERRIDES = 12  # check-6 ceiling on objects + visualContainer
 PBIR_REFERENCE_RELPATH = "plugins/power-platform/knowledge/pbir-enhanced-reference.md"
 
 Severity = Literal["info", "warning", "error"]
-CheckId = Literal[
-    "check-1", "check-2", "check-3", "check-4", "check-5", "check-6", "check-7"
-]
+CheckId = Literal["check-1", "check-2", "check-3", "check-4", "check-5", "check-6", "check-7"]
 
 CHECK_DEFINITIONS = [
     ("check-1", "No-overlap (AABB)", "All stacks", "error"),
@@ -174,8 +172,11 @@ def _resolve_safe(input_path: str) -> str:
     """Reject ".." and paths that resolve outside the repo root; return abspath."""
     if ".." in input_path.split(os.sep):
         raise InputError(f"path component '..' is not allowed: {input_path!r}")
-    resolved = os.path.abspath(input_path)
-    root = _repo_root()
+    # realpath (not abspath) so an in-repo symlink whose leaf points OUTSIDE the repo
+    # is caught: abspath doesn't resolve symlinks, so the commonpath check would pass
+    # yet open() would follow the link out of the sandbox. Resolve both sides.
+    resolved = os.path.realpath(input_path)
+    root = os.path.realpath(_repo_root())
     if os.path.commonpath([resolved, root]) != root:
         raise InputError(f"path resolves outside repo root: {resolved!r}")
     return resolved
@@ -351,9 +352,7 @@ def check_equal_gap(page: str, visuals: list[dict], tolerance: float) -> list[Fi
     return findings
 
 
-def check_column_alignment(
-    page: str, visuals: list[dict], tolerance: float
-) -> list[Finding]:
+def check_column_alignment(page: str, visuals: list[dict], tolerance: float) -> list[Finding]:
     """Visuals stacked vertically (sharing a column) must share the same x (±tol)."""
     findings: list[Finding] = []
     boxes = [
@@ -418,9 +417,7 @@ def check_query_state(page: str, visuals: list[dict]) -> list[Finding]:
     return findings
 
 
-def check_theme_overrides(
-    page: str, visuals: list[dict], max_n: int
-) -> list[Finding]:
+def check_theme_overrides(page: str, visuals: list[dict], max_n: int) -> list[Finding]:
     """check-6: count objects + visualContainerObjects override entries per visual."""
     findings: list[Finding] = []
     for i, v in enumerate(visuals):
@@ -568,15 +565,11 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     p.add_argument("input_path", nargs="?", help="Page JSON / page dir / fixture dir.")
     p.add_argument("--pbir", action="store_true", help="Force PBIR-specific checks.")
-    p.add_argument(
-        "--no-pbir", action="store_true", help="Force off PBIR-specific checks."
-    )
+    p.add_argument("--no-pbir", action="store_true", help="Force off PBIR-specific checks.")
     p.add_argument("--format", choices=("text", "json"), default="text")
     p.add_argument("--strict", action="store_true", help="Exit nonzero on >= warning.")
     p.add_argument("--tolerance-gap", type=float, default=None, help="check-3 override.")
-    p.add_argument(
-        "--tolerance-align", type=float, default=None, help="check-4 override."
-    )
+    p.add_argument("--tolerance-align", type=float, default=None, help="check-4 override.")
     p.add_argument("--list-checks", action="store_true", help="Print checks and exit.")
     p.add_argument("--version", action="store_true", help="Print versions and exit.")
     return p
@@ -631,9 +624,7 @@ def main(argv: list[str] | None = None) -> int:
 
     gap_tol = args.tolerance_gap if args.tolerance_gap is not None else DEFAULT_GAP_TOLERANCE_PX
     align_tol = (
-        args.tolerance_align
-        if args.tolerance_align is not None
-        else DEFAULT_ALIGN_TOLERANCE_PX
+        args.tolerance_align if args.tolerance_align is not None else DEFAULT_ALIGN_TOLERANCE_PX
     )
     page_name = str(page.get("page") or os.path.splitext(os.path.basename(resolved))[0])
 

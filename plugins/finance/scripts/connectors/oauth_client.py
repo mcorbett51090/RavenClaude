@@ -151,6 +151,13 @@ class SimulatedCrash(Exception):
     """Test-only: raised by _atomic_persist(crash_after_tmp=True) to model a mid-write crash."""
 
 
+class TokenStoreCorrupt(Exception):
+    """The token store exists but is not valid JSON. Distinct from FileNotFoundError ('no
+    tokens yet' -> {}): a corrupt store must NOT be masked as 'no tokens', because that would
+    silently route the operator to re-authenticate (a fresh mint OVERWRITES a possibly-
+    recoverable store). Raised so the operator inspects/restores the file instead."""
+
+
 class SignerUnavailable(Exception):
     """The M2M path needs an asymmetric (RS256/PS256) signer that the stdlib cannot provide,
     and none was injected. Raised LOUDLY (never a silent no-op) — mirrors close_identity.py's
@@ -305,8 +312,13 @@ def _read_store(path: str) -> dict:
             return json.load(fh)
     except FileNotFoundError:
         return {}
-    except json.JSONDecodeError:
-        return {}
+    except json.JSONDecodeError as e:
+        # A corrupt store is NOT "no tokens" — surface it distinctly so the operator
+        # inspects/restores the file rather than re-authenticating over it.
+        raise TokenStoreCorrupt(
+            f"token store {path} is not valid JSON ({e}); inspect or restore it — do NOT "
+            "re-authenticate, which would overwrite a possibly-recoverable store"
+        ) from e
 
 
 class _EntityLock:
@@ -441,36 +453,40 @@ class OAuthClient:
         }
 
     # -- the refresh critical section (assumes the entity lock is HELD) --------------------
-    def _refresh_locked(self, cur: dict) -> dict:
-        prior_refresh = cur.get("refresh_token")
-        if not prior_refresh:
-            self._alert("no_refresh_token")
-            raise ReauthRequired(f"{self.provider}: no refresh token on file — re-auth required")
-        url = self.p["token_url"]
-        payload = self._refresh_payload(prior_refresh)
+    def _acquire_with_backoff(
+        self,
+        url: str,
+        payload: dict,
+        *,
+        timeout_grace_payload: dict | None,
+        reauth_msg: str,
+        throttle_label: str,
+        fail_label: str,
+    ):
+        """Shared bounded backoff-retry loop for the token endpoint, used by BOTH the
+        refresh-token flow and the M2M client-credentials mint. Handles BACKOFF_RETRY
+        (429 throttle / 5xx transient) with the client's bounded schedule/budget, routes
+        REAUTH_REQUIRED (invalid_grant) as NON-retryable, and returns the OK TokenResponse.
 
-        # Backoff-retry loop for BACKOFF_RETRY (429 throttle / 5xx transient). `attempt` is
-        # the number of retries already taken; `slept_total` bounds the cumulative sleep so
-        # this critical section (held under the per-entity lock) cannot block indefinitely.
+        `attempt` counts retries already taken; `slept_total` bounds the cumulative sleep so
+        this critical section (held under the per-entity lock) cannot block indefinitely.
+        `timeout_grace_payload` (if not None) is retried once on a TransportTimeout within a
+        provider grace window; otherwise the TransportTimeout propagates (we must not assume
+        a rotation we never observed)."""
         attempt = 0
         slept_total = 0.0
         while True:
             try:
                 resp = self.transport.token_request(url, payload)
             except TransportTimeout:
-                # Lost response. Within the provider grace window, retry with the EXISTING
-                # refresh token (it may still be valid, e.g. Xero's ~30-min grace); otherwise
-                # surface the timeout — we must not assume a rotation we never observed.
-                if self.p["grace_seconds"] > 0:
-                    resp = self.transport.token_request(url, self._refresh_payload(prior_refresh))
+                if timeout_grace_payload is not None and self.p["grace_seconds"] > 0:
+                    resp = self.transport.token_request(url, timeout_grace_payload)
                 else:
                     raise
             action = classify_error(resp.status, resp.body)
             if action == REAUTH_REQUIRED:
                 self._alert("invalid_grant")  # fire alert; NON-retryable; never backoff
-                raise ReauthRequired(
-                    f"{self.provider}: invalid_grant — refresh token is dead, re-auth required"
-                )
+                raise ReauthRequired(reauth_msg)
             if action == BACKOFF_RETRY and attempt < self.max_backoff_retries:
                 delay = honor_retry_after(
                     getattr(resp, "headers", None),
@@ -483,7 +499,7 @@ class OAuthClient:
                 # entity lock. If the required backoff won't fit, surface for a later retry.
                 if slept_total + delay > self.backoff_budget_seconds:
                     raise TokenRefreshError(
-                        f"{self.provider}: refresh throttled (status={resp.status}); next backoff "
+                        f"{self.provider}: {throttle_label} (status={resp.status}); next backoff "
                         f"{delay:.1f}s exceeds the remaining "
                         f"{self.backoff_budget_seconds - slept_total:.1f}s budget after "
                         f"{attempt} backoff-retr{'y' if attempt == 1 else 'ies'} — retry later"
@@ -500,10 +516,27 @@ class OAuthClient:
                     else ""
                 )
                 raise TokenRefreshError(
-                    f"{self.provider}: refresh failed status={resp.status} action={action}{suffix}"
+                    f"{self.provider}: {fail_label} status={resp.status} action={action}{suffix}"
                 )
-            break
+            return resp
 
+    def _refresh_locked(self, cur: dict) -> dict:
+        prior_refresh = cur.get("refresh_token")
+        if not prior_refresh:
+            self._alert("no_refresh_token")
+            raise ReauthRequired(f"{self.provider}: no refresh token on file — re-auth required")
+        url = self.p["token_url"]
+        payload = self._refresh_payload(prior_refresh)
+        resp = self._acquire_with_backoff(
+            url,
+            payload,
+            # Lost response: within the grace window retry with the EXISTING refresh token
+            # (it may still be valid, e.g. Xero's ~30-min grace).
+            timeout_grace_payload=self._refresh_payload(prior_refresh),
+            reauth_msg=f"{self.provider}: invalid_grant — refresh token is dead, re-auth required",
+            throttle_label="refresh throttled",
+            fail_label="refresh failed",
+        )
         new = self._tokens_from_body(resp.body, prior_refresh)
         # PERSIST-THEN-USE: durable, atomic write BEFORE the new access token is handed out.
         _atomic_persist(self.store_path, new)
@@ -515,7 +548,8 @@ class OAuthClient:
         """Mint an access token via OAuth2 client-credentials + a certificate-signed JWT
         ASSERTION. No refresh token is involved (M2M has none) — we re-sign a short-lived
         assertion each time the access token expires. `invalid_grant` here means a bad/expired
-        cert-to-role mapping, not a dead refresh token: it is still NON-retryable + alerts."""
+        cert-to-role mapping, not a dead refresh token: it is still NON-retryable + alerts.
+        A 429/5xx is retried via the SAME bounded backoff loop the refresh flow uses."""
         if not self.assertion:
             self._alert("no_assertion_config")
             raise TokenRefreshError(
@@ -538,18 +572,27 @@ class OAuthClient:
             "client_assertion": jwt,
             "provider": self.provider,  # replay keying
         }
-        resp = self.transport.token_request(url, payload)
-        action = classify_error(resp.status, resp.body)
-        if action == REAUTH_REQUIRED:
-            self._alert("invalid_grant")  # bad cert/role mapping; NON-retryable; never backoff
-            raise ReauthRequired(
-                f"{self.provider}: invalid_grant — the cert-to-role mapping is bad or expired; "
-                "re-upload the certificate / re-map the integration in NetSuite."
+        try:
+            resp = self._acquire_with_backoff(
+                url,
+                payload,
+                # M2M has no refresh token and NetSuite documents no grace window, so a lost
+                # response is not retried in-place with a prior credential — fail fast.
+                timeout_grace_payload=None,
+                reauth_msg=(
+                    f"{self.provider}: invalid_grant — the cert-to-role mapping is bad or "
+                    "expired; re-upload the certificate / re-map the integration in NetSuite."
+                ),
+                throttle_label="M2M mint throttled",
+                fail_label="M2M mint failed",
             )
-        if action != OK:
+        except TransportTimeout as e:
+            # M2M has no grace window to retry under — classify the lost response as a
+            # (fail-fast) refresh error rather than letting the raw TransportTimeout escape.
             raise TokenRefreshError(
-                f"{self.provider}: M2M mint failed status={resp.status} action={action}"
-            )
+                f"{self.provider}: M2M token request timed out (no response); M2M has no "
+                "refresh-token grace window — retry the mint later."
+            ) from e
         new = self._tokens_from_body(resp.body, None)  # no prior refresh token for M2M
         _atomic_persist(self.store_path, new)
         self.events.append(("persist", self.provider))

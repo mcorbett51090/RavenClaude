@@ -331,7 +331,7 @@ def mcp_server_name(tool_name: str) -> str:
     'github'; a bare `mcp__slack` → 'slack'."""
     if not tool_name.startswith("mcp__"):
         return ""
-    return tool_name[len("mcp__"):].split("__", 1)[0]
+    return tool_name[len("mcp__") :].split("__", 1)[0]
 
 
 def classify_payload(tool_name: str, tool_input: dict, project_root: Path) -> str | None:
@@ -396,8 +396,11 @@ def saga_tool_input(tool_name: str, tool_input: dict) -> dict:
     if tool_name in ("Edit", "Write", "MultiEdit"):
         content = reviewed_text(tool_name, ti)
         b = content.encode("utf-8", "replace")
-        return {"file_path": ti.get("file_path", "") or "",
-                "content_sha256": hashlib.sha256(b).hexdigest(), "bytes": len(b)}
+        return {
+            "file_path": ti.get("file_path", "") or "",
+            "content_sha256": hashlib.sha256(b).hexdigest(),
+            "bytes": len(b),
+        }
     if tool_name in ("WebFetch", "WebSearch"):
         return {"url": ti.get("url", "") or ti.get("query", "") or ""}
     if tool_name.startswith("mcp__"):
@@ -405,7 +408,10 @@ def saga_tool_input(tool_name: str, tool_input: dict) -> dict:
             args = json.dumps(ti.get("arguments", ti), sort_keys=True, default=str)
         except (TypeError, ValueError):
             args = ""
-        return {"name": tool_name, "args_sha256": hashlib.sha256(args.encode("utf-8", "replace")).hexdigest()}
+        return {
+            "name": tool_name,
+            "args_sha256": hashlib.sha256(args.encode("utf-8", "replace")).hexdigest(),
+        }
     return {"command": ti.get("command", "") or ""}
 
 
@@ -418,7 +424,11 @@ def cache_identity(tool_name: str, tool_input: dict, project_root: Path) -> str:
             rp = os.path.realpath(str(project_root / (ti.get("file_path", "") or "")))
         except (OSError, ValueError):
             rp = ti.get("file_path", "") or ""
-        return rp + "|" + hashlib.sha256(reviewed_text(tool_name, ti).encode("utf-8", "replace")).hexdigest()
+        return (
+            rp
+            + "|"
+            + hashlib.sha256(reviewed_text(tool_name, ti).encode("utf-8", "replace")).hexdigest()
+        )
     if tool_name in ("WebFetch", "WebSearch"):
         return ti.get("url", "") or ti.get("query", "") or ""
     if tool_name.startswith("mcp__"):
@@ -620,21 +630,11 @@ def screen_substrate_path(target_raw: str, project_root: Path) -> tuple[bool, st
     return False, None
 
 
-def _posture_write_disables(tool_name: str, tool_input: dict, project_root: Path) -> bool:
-    """True if a Write to comfort-posture.yaml would self-disable: parse the
-    RESULTING document (not a regex — a regex over content is evaded by
+def _posture_content_disables(content: str) -> bool:
+    """True if the RESULTING comfort-posture.yaml document would self-disable the
+    tribunal: parse it (not a regex — a regex over content is evaded by
     reformatting, §2a) and deny if it flips any category's `thing:` off or carries
-    a `command_review:` / `gate_floor:` block. Unparseable → DENY (fail closed).
-    Only the Write (full-content) shape is parse-screened here; Edit/MultiEdit to
-    the posture file fall back to the xc.tribunal-self-disable text regex via
-    screen_always (it cannot see the resulting doc without the original)."""
-    ti = tool_input or {}
-    if tool_name != "Write":
-        return False
-    target = unicodedata.normalize("NFC", ti.get("file_path", "") or "")
-    if not target.endswith("comfort-posture.yaml"):
-        return False
-    content = ti.get("content", "")
+    a `command_review:` / `gate_floor:` block. Unparseable → DENY (fail closed)."""
     try:
         import yaml  # type: ignore
 
@@ -661,6 +661,74 @@ def _posture_write_disables(tool_name: str, tool_input: dict, project_root: Path
                     if not enabled:
                         return True
     return False
+
+
+def _apply_edits_to_text(original: str, tool_name: str, ti: dict) -> str | None:
+    """Reconstruct the post-edit file content for an Edit/MultiEdit, or None if it
+    cannot be reconstructed faithfully (an old_string that doesn't occur, an
+    ambiguous non-replace_all match, or a malformed edit list). None → the caller
+    fails closed (DENY), so a crafted Edit can't dodge the screen by being
+    unreconstructable."""
+    if tool_name == "Edit":
+        edits = [ti]
+    elif tool_name == "MultiEdit":
+        edits = ti.get("edits")
+        if not isinstance(edits, list) or not edits:
+            return None
+    else:
+        return None
+    text = original
+    for e in edits:
+        if not isinstance(e, dict):
+            return None
+        old = e.get("old_string")
+        new = e.get("new_string")
+        if not isinstance(old, str) or not isinstance(new, str):
+            return None
+        if old == "":
+            # Create/prepend semantics: only valid against an empty original.
+            if text != "":
+                return None
+            text = new
+            continue
+        count = text.count(old)
+        if count == 0:
+            return None  # edit wouldn't apply — can't reconstruct the result
+        if e.get("replace_all"):
+            text = text.replace(old, new)
+        else:
+            if count > 1:
+                return None  # ambiguous (the real tool errors) — fail closed
+            text = text.replace(old, new, 1)
+    return text
+
+
+def _posture_write_disables(tool_name: str, tool_input: dict, project_root: Path) -> bool:
+    """True if a Write/Edit/MultiEdit to comfort-posture.yaml would self-disable the
+    tribunal. The Write (full-content) shape screens its content directly; the
+    Edit/MultiEdit shapes RECONSTRUCT the resulting document from the on-disk file
+    plus the edits and screen that (2026-07-09 P2 fix — the prior code returned
+    False for Edit/MultiEdit and relied only on the \\A-anchored 4000-char
+    screen_always regex, which a >4 KiB MultiEdit can push the disabling text past).
+    An Edit/MultiEdit whose result can't be faithfully reconstructed → DENY."""
+    ti = tool_input or {}
+    if tool_name not in ("Write", "Edit", "MultiEdit"):
+        return False
+    target = unicodedata.normalize("NFC", ti.get("file_path", "") or "")
+    if not target.endswith("comfort-posture.yaml"):
+        return False
+    if tool_name == "Write":
+        return _posture_content_disables(ti.get("content", ""))
+    # Edit / MultiEdit — reconstruct the resulting document from disk + the edits.
+    try:
+        disk_path = (project_root / target) if not os.path.isabs(target) else Path(target)
+        original = disk_path.read_text(encoding="utf-8") if disk_path.is_file() else ""
+    except Exception:
+        return True  # can't read the base doc → fail closed
+    resulting = _apply_edits_to_text(original, tool_name, ti)
+    if resulting is None:
+        return True  # unreconstructable → fail closed
+    return _posture_content_disables(resulting)
 
 
 # ── Config reading ───────────────────────────────────────────────────────────
@@ -701,13 +769,17 @@ def thing_enabled_for(posture: dict, category: str | None) -> bool:
     cr = (posture or {}).get("command_review")
     if isinstance(cr, dict):
         master = cr.get("enabled")
-        if master is False or (isinstance(master, str) and master.strip().lower() in {"off", "false", "no", "0"}):
+        if master is False or (
+            isinstance(master, str) and master.strip().lower() in {"off", "false", "no", "0"}
+        ):
             return False
     cats = (posture or {}).get("categories", {}) or {}
     cfg = cats.get(category)
     if isinstance(cfg, dict):
         val = cfg.get("thing")
-        return val in _TRUTHY or (isinstance(val, str) and val.strip().lower() in {"on", "true", "yes"})
+        return val in _TRUTHY or (
+            isinstance(val, str) and val.strip().lower() in {"on", "true", "yes"}
+        )
     return False  # bare-string (legacy) category has no toggle
 
 
@@ -887,8 +959,16 @@ _DEFAULT_CATEGORY_TIER_MAP = {
 _DEFAULT_TIERS = {
     "low": {"seats": [], "mandatory": [], "confidence": _DEFAULT_CONFIDENCE_THRESHOLD},
     "medium": {"seats": ["mimir", "heimdall"], "mandatory": ["heimdall"], "confidence": 0.5},
-    "high": {"seats": ["forseti", "mimir", "heimdall"], "mandatory": ["heimdall"], "confidence": 0.6},
-    "extreme": {"seats": ["forseti", "mimir", "heimdall"], "mandatory": ["forseti", "heimdall"], "confidence": 0.7},
+    "high": {
+        "seats": ["forseti", "mimir", "heimdall"],
+        "mandatory": ["heimdall"],
+        "confidence": 0.6,
+    },
+    "extreme": {
+        "seats": ["forseti", "mimir", "heimdall"],
+        "mandatory": ["forseti", "heimdall"],
+        "confidence": 0.7,
+    },
 }
 
 # Default lowest tier whose panel-ALLOW is surfaced to the human for confirmation.
@@ -1099,16 +1179,20 @@ def _decision_detail(root: Path, posture: dict, command: str, category: str | No
     # gate_floor/category map) OR the concern catalog change — so a cached
     # permissive verdict is never reused after the policy that produced it moves.
     cfg_blob = json.dumps(
-        {"tiers": cfg["tiers"], "panel": cfg["panel"], "gate_floor": cfg["gate_floor"],
-         "category_tier_map": cfg["category_tier_map"],
-         # Track B §Serialization: fold the substrate set + classifier version so a
-         # cached verdict is invalidated when either changes (the VALUEs, not file
-         # mtimes — deterministic across checkouts).
-         "substrate": sorted(THING_SUBSTRATE),
-         "classify_payload_version": CLASSIFY_PAYLOAD_VERSION,
-         # §MCP identity — a change to the server allowlist must invalidate a cached
-         # mcp_tools verdict (a server added/removed flips the deterministic deny).
-         "mcp_allowed_servers": sorted(cfg.get("mcp_allowed_servers") or [])},
+        {
+            "tiers": cfg["tiers"],
+            "panel": cfg["panel"],
+            "gate_floor": cfg["gate_floor"],
+            "category_tier_map": cfg["category_tier_map"],
+            # Track B §Serialization: fold the substrate set + classifier version so a
+            # cached verdict is invalidated when either changes (the VALUEs, not file
+            # mtimes — deterministic across checkouts).
+            "substrate": sorted(THING_SUBSTRATE),
+            "classify_payload_version": CLASSIFY_PAYLOAD_VERSION,
+            # §MCP identity — a change to the server allowlist must invalidate a cached
+            # mcp_tools verdict (a server added/removed flips the deterministic deny).
+            "mcp_allowed_servers": sorted(cfg.get("mcp_allowed_servers") or []),
+        },
         sort_keys=True,
     )
     try:
@@ -1119,15 +1203,21 @@ def _decision_detail(root: Path, posture: dict, command: str, category: str | No
 
     # Human-readable predicted outcome for the simulator.
     if d.get("pre_llm_deny"):
-        d["predicted_gate"] = f"DENY — blocked before any model runs ({d.get('deny_concern') or 'hard rule'})"
+        d["predicted_gate"] = (
+            f"DENY — blocked before any model runs ({d.get('deny_concern') or 'hard rule'})"
+        )
     elif not d["panel_required"]:
         d["predicted_gate"] = "ALLOW — clean low-risk command, no panel convened"
     elif is_read:
         d["predicted_gate"] = "panel auto-decides (reads are never surfaced to you)"
     elif d["gate_allow"]:
-        d["predicted_gate"] = "a confident panel-ALLOW is surfaced to you as ASK; DENY blocks, EDIT rewrites"
+        d["predicted_gate"] = (
+            "a confident panel-ALLOW is surfaced to you as ASK; DENY blocks, EDIT rewrites"
+        )
     else:
-        d["predicted_gate"] = "panel decides autonomously (tier is below gate_floor); DENY blocks, EDIT rewrites"
+        d["predicted_gate"] = (
+            "panel decides autonomously (tier is below gate_floor); DENY blocks, EDIT rewrites"
+        )
     return d
 
 
@@ -1137,7 +1227,9 @@ def main() -> int:
     sub = ap.add_subparsers(dest="cmd", required=True)
     c = sub.add_parser("classify", help="classify a command + report toggle state")
     c.add_argument("command", help="the shell command string")
-    p = sub.add_parser("preview", help="full tier/seat/gate preview regardless of toggle (dashboard simulator)")
+    p = sub.add_parser(
+        "preview", help="full tier/seat/gate preview regardless of toggle (dashboard simulator)"
+    )
     p.add_argument("command", help="the shell command string")
     # Track B: classify ANY tool shape. Reads {tool_name, tool_input} as JSON on
     # stdin (not argv — a 1 MiB Write.content would overflow ARG_MAX).
@@ -1188,9 +1280,12 @@ def main() -> int:
     if args.cmd == "classify-payload" and not payload_too_large:
         result["reviewed_text"] = screened
         result["payload_shape"] = (
-            "file" if (result.get("tool_name") or "") in ("Edit", "Write", "MultiEdit")
-            else "network" if (result.get("tool_name") or "") in ("WebFetch", "WebSearch")
-            else "mcp" if (result.get("tool_name") or "").startswith("mcp__")
+            "file"
+            if (result.get("tool_name") or "") in ("Edit", "Write", "MultiEdit")
+            else "network"
+            if (result.get("tool_name") or "") in ("WebFetch", "WebSearch")
+            else "mcp"
+            if (result.get("tool_name") or "").startswith("mcp__")
             else "command"
         )
 

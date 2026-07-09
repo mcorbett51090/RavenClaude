@@ -105,6 +105,19 @@ _ee_resolve_session() {
   printf '%s' "unknown"
 }
 
+# Sanitize a resolved session id into a path-safe token (the value lands in a
+# directory name under runs/). Factored out (2026-07-09 P2 review) so every
+# caller that builds a per-session path — not just _emit_hook_event — gets the
+# same PR #363 hardening: strip to the allowlisted charset, cap length, and
+# reject the pure-dot ids `.`/`..` (both survive the allowlist yet resolve the
+# run dir OUT of runs/ — a traversal read/write primitive). Empty → "unknown".
+_ee_sanitize_session() {
+  local s
+  s="$(printf '%s' "${1:-}" | tr -dc 'A-Za-z0-9._-' | cut -c1-128)"
+  case "$s" in .|.. | "") s="unknown" ;; esac
+  printf '%s' "$s"
+}
+
 # Append one structured hook event. Never fails the caller.
 _emit_hook_event() {
   # Wrap the whole body so a failure of any single step is contained.
@@ -135,13 +148,7 @@ _emit_hook_event() {
     # → "unknown". Sanitize to a path-safe token (the value lands in a directory
     # name) and fall back to "unknown" if sanitization empties it.
     local session
-    session="$(_ee_resolve_session 2>/dev/null || printf 'unknown')"
-    session="$(printf '%s' "$session" | tr -dc 'A-Za-z0-9._-' | cut -c1-128)"
-    [ -z "$session" ] && session="unknown"
-    # Reject pure-dot ids (security review PR #363): `.`/`..` survive the allowlist
-    # (both are made of allowlisted chars) and would resolve the run dir one level
-    # OUT of runs/ (`runs/..` → .ravenclaude/) or into runs/ itself (`runs/.`).
-    case "$session" in .|..) session="unknown" ;; esac
+    session="$(_ee_sanitize_session "$(_ee_resolve_session 2>/dev/null || printf 'unknown')")"
     local run_dir="$project_dir/.ravenclaude/runs/$session"
     local log="$run_dir/hook-events.jsonl"
 

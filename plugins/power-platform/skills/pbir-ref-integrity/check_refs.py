@@ -132,8 +132,11 @@ def _repo_root() -> str:
 def _resolve_safe(input_path: str) -> str:
     if ".." in input_path.split(os.sep):
         raise InputError(f"path component '..' is not allowed: {input_path!r}")
-    resolved = os.path.abspath(input_path)
-    root = _repo_root()
+    # realpath (not abspath) so an in-repo symlink whose leaf points outside the repo
+    # is rejected — abspath doesn't resolve symlinks, so open() would follow it out of
+    # the sandbox. Mirror the sibling linters (declarative-visualization, svg-report-lint).
+    resolved = os.path.realpath(input_path)
+    root = os.path.realpath(_repo_root())
     if os.path.commonpath([resolved, root]) != root:
         raise InputError(f"path resolves outside repo root: {resolved!r}")
     return resolved
@@ -216,9 +219,7 @@ def load_report(report_root: str, findings: list[Finding]) -> ReportModel | None
             page_path = os.path.join(pages_dir, entry)
             if not os.path.isdir(page_path):
                 continue  # pages.json is a file, not a page dir
-            page_json = _read_json(
-                os.path.join(page_path, "page.json"), findings, f"pages/{entry}"
-            )
+            page_json = _read_json(os.path.join(page_path, "page.json"), findings, f"pages/{entry}")
             if page_json is None:
                 # A directory with no readable page.json still counts as a page id
                 # for page-order purposes, but carries no visuals.
@@ -248,9 +249,7 @@ def load_report(report_root: str, findings: list[Finding]) -> ReportModel | None
                     visual_name_owner.setdefault(vname, []).append(f"{entry}/{vdir}")
             pages[entry] = {"page": page_json, "visual_names": visual_names}
 
-    pages_index = _read_json(
-        os.path.join(pages_dir, "pages.json"), findings, "pages/pages.json"
-    )
+    pages_index = _read_json(os.path.join(pages_dir, "pages.json"), findings, "pages/pages.json")
 
     bookmarks: list = []
     bookmarks_dir = os.path.join(definition, "bookmarks")
@@ -534,9 +533,7 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Path to a `*.Report` folder or its `definition/` directory.",
     )
     p.add_argument("--format", choices=("text", "json"), default="text")
-    p.add_argument(
-        "--strict", action="store_true", help="Exit nonzero on >= warning."
-    )
+    p.add_argument("--strict", action="store_true", help="Exit nonzero on >= warning.")
     p.add_argument("--list-checks", action="store_true", help="Print checks and exit.")
     p.add_argument("--version", action="store_true", help="Print version and exit.")
     return p

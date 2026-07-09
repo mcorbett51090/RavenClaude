@@ -33,6 +33,7 @@ silently swallowed); the manifest records the last alert kind, if any.
 
 Stdlib only (argparse/csv/json/os/socket/sys/tempfile/datetime). Python 3.8+.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -115,11 +116,24 @@ def _backup(path: str) -> None:
             dst.write(src.read())
 
 
-def _write_manifest(run_dir: str, entity: str, period: str, transport, rows: list,
-                    net: float, snapshot_hash: str, subsidiary, book, *, alert=None,
-                    promoted: bool = False, no_op: bool = False,
-                    staged_path: str | None = None, lineage_path: str | None = None,
-                    now: str | None = None) -> str:
+def _write_manifest(
+    run_dir: str,
+    entity: str,
+    period: str,
+    transport,
+    rows: list,
+    net: float,
+    snapshot_hash: str,
+    subsidiary,
+    book,
+    *,
+    alert=None,
+    promoted: bool = False,
+    no_op: bool = False,
+    staged_path: str | None = None,
+    lineage_path: str | None = None,
+    now: str | None = None,
+) -> str:
     suiteql_calls = [c for c in getattr(transport, "calls", []) if c[0] == "suiteql"]
     offsets = {c[1].rsplit("@", 1)[-1] for c in suiteql_calls}
     manifest = {
@@ -152,19 +166,36 @@ def _mint_token(run_dir: str, transport, assertion: dict, signer) -> tuple:
     alerts: list = []
     store = os.path.join(run_dir, "token-store.json")
     client = oauth_client.OAuthClient(
-        "netsuite_m2m", store, transport,
-        alert_hook=alerts.append, signer=signer, assertion=assertion,
+        "netsuite_m2m",
+        store,
+        transport,
+        alert_hook=alerts.append,
+        signer=signer,
+        assertion=assertion,
     )
     try:
         token = client.get_access_token()
-    except (oauth_client.ReauthRequired, oauth_client.TokenRefreshError,
-            oauth_client.SignerUnavailable) as e:
+    except (
+        oauth_client.ReauthRequired,
+        oauth_client.TokenRefreshError,
+        oauth_client.SignerUnavailable,
+        oauth_client.TransportTimeout,
+        oauth_client.TokenStoreCorrupt,
+    ) as e:
         raise ConnectError(f"authentication failed: {e}") from e
     return token, alerts
 
 
-def run_connect(cfg: dict, *, replay: bool, fixture_dir: str, promote: bool,
-                run_dir_override: str | None, gl_detail: str | None, docs: str | None) -> dict:
+def run_connect(
+    cfg: dict,
+    *,
+    replay: bool,
+    fixture_dir: str,
+    promote: bool,
+    run_dir_override: str | None,
+    gl_detail: str | None,
+    docs: str | None,
+) -> dict:
     entity = cfg["entity"]
     period_label = cfg["close_period_watermark"]["value"]
     period_id = cfg["period_id"]
@@ -172,8 +203,11 @@ def run_connect(cfg: dict, *, replay: bool, fixture_dir: str, promote: bool,
     book = cfg.get("book")
     currency = cfg.get("currency", "USD")
     netsuite_account_id = cfg["source_ids"]["netsuite_account_id"]
-    run_dir = run_dir_override or cfg.get("run_dir") or os.path.join(
-        RUNS_ROOT_DEFAULT, entity, str(period_label))
+    run_dir = (
+        run_dir_override
+        or cfg.get("run_dir")
+        or os.path.join(RUNS_ROOT_DEFAULT, entity, str(period_label))
+    )
 
     if not replay:
         raise ConnectError(
@@ -201,12 +235,28 @@ def run_connect(cfg: dict, *, replay: bool, fixture_dir: str, promote: bool,
 
     wm = _read_watermark(run_dir)
     if wm and wm.get("snapshot_hash") == snapshot_hash:
-        manifest_path = _write_manifest(run_dir, entity, period_label, transport, rows, net,
-                                        snapshot_hash, subsidiary, book,
-                                        alert=(alerts[0] if alerts else None),
-                                        promoted=False, no_op=True)
-        return {"status": "no_op", "run_dir": run_dir, "manifest": manifest_path,
-                "snapshot_hash": snapshot_hash, "rows": len(rows), "tb_total": net}
+        manifest_path = _write_manifest(
+            run_dir,
+            entity,
+            period_label,
+            transport,
+            rows,
+            net,
+            snapshot_hash,
+            subsidiary,
+            book,
+            alert=(alerts[0] if alerts else None),
+            promoted=False,
+            no_op=True,
+        )
+        return {
+            "status": "no_op",
+            "run_dir": run_dir,
+            "manifest": manifest_path,
+            "snapshot_hash": snapshot_hash,
+            "rows": len(rows),
+            "tb_total": net,
+        }
 
     if wm and wm.get("snapshot_hash") != snapshot_hash and not promote:
         raise ConnectError(
@@ -229,15 +279,34 @@ def run_connect(cfg: dict, *, replay: bool, fixture_dir: str, promote: bool,
             )
 
     raw_path = os.path.join(run_dir, "raw-netsuite.csv")
-    ns_adapter.export_via_suiteql(transport, period_id, raw_path, subsidiary=subsidiary, book=book)
+    # Write the raw export from the ALREADY-pulled+tied `rows` (the same pull that produced
+    # the tie-out and the pinned snapshot_hash), in the exact raw-export shape the netsuite
+    # adapter emits. This guarantees ONE pull backs both the hash/tie-out and the staged TB —
+    # previously export_via_suiteql re-ran an independent second pull, so the pinned
+    # source_tb_sha256 could describe data that was never staged.
+    out_rows = [[r["account"], r["name"], ns_adapter.signed(r["amount"])] for r in rows]
+    ns_adapter.write_raw(raw_path, ns_adapter.HEADER, out_rows)
     staged_path = os.path.join(run_dir, "staging-netsuite.csv")
     if wm and promote:
         _backup(staged_path)
         _backup(_watermark_path(run_dir))
-    rc = tb_stage.main([
-        "stage", "--raw", raw_path, "--column-map", NETSUITE_COLUMN_MAP, "--out", staged_path,
-        "--entity", entity, "--currency", currency, "--period", str(period_label),
-    ])
+    rc = tb_stage.main(
+        [
+            "stage",
+            "--raw",
+            raw_path,
+            "--column-map",
+            NETSUITE_COLUMN_MAP,
+            "--out",
+            staged_path,
+            "--entity",
+            entity,
+            "--currency",
+            currency,
+            "--period",
+            str(period_label),
+        ]
+    )
     if rc != 0:
         raise ConnectError(
             "tb_stage refused to publish the staged TB (see stderr above) — the watermark was "
@@ -250,15 +319,33 @@ def run_connect(cfg: dict, *, replay: bool, fixture_dir: str, promote: bool,
         netsuite_lineage.build_lineage(gl_detail, lineage_path, netsuite_account_id, docs_path=docs)
 
     _write_watermark(run_dir, snapshot_hash, {"entity": entity, "period": period_label})
-    manifest_path = _write_manifest(run_dir, entity, period_label, transport, rows, net,
-                                    snapshot_hash, subsidiary, book,
-                                    alert=(alerts[0] if alerts else None),
-                                    promoted=bool(wm), no_op=False,
-                                    staged_path=staged_path, lineage_path=lineage_path)
-    return {"status": "promoted" if wm else "staged", "run_dir": run_dir,
-            "manifest": manifest_path, "staged_path": staged_path,
-            "lineage_path": lineage_path, "snapshot_hash": snapshot_hash,
-            "rows": len(rows), "tb_total": net, "token_obtained": bool(token)}
+    manifest_path = _write_manifest(
+        run_dir,
+        entity,
+        period_label,
+        transport,
+        rows,
+        net,
+        snapshot_hash,
+        subsidiary,
+        book,
+        alert=(alerts[0] if alerts else None),
+        promoted=bool(wm),
+        no_op=False,
+        staged_path=staged_path,
+        lineage_path=lineage_path,
+    )
+    return {
+        "status": "promoted" if wm else "staged",
+        "run_dir": run_dir,
+        "manifest": manifest_path,
+        "staged_path": staged_path,
+        "lineage_path": lineage_path,
+        "snapshot_hash": snapshot_hash,
+        "rows": len(rows),
+        "tb_total": net,
+        "token_obtained": bool(token),
+    }
 
 
 def cmd_rollback(run_dir: str) -> dict:
@@ -289,8 +376,11 @@ def self_test() -> int:
     try:
         with tempfile.TemporaryDirectory() as d:
             transport = ReplayTransport(FIXTURE_DIR_DEFAULT)
-            assertion = {"client_id": "self-test-client", "cert_id": "self-test-kid",
-                        "scope": "rest_webservices"}
+            assertion = {
+                "client_id": "self-test-client",
+                "cert_id": "self-test-kid",
+                "scope": "rest_webservices",
+            }
             token, alerts = _mint_token(d, transport, assertion, _replay_stub_signer)
 
             period_id = 42
@@ -301,11 +391,23 @@ def self_test() -> int:
             raw_path = os.path.join(d, "raw.csv")
             ns_adapter.export_via_suiteql(transport, period_id, raw_path, subsidiary=1)
             staged_path = os.path.join(d, "staged.csv")
-            rc = tb_stage.main([
-                "stage", "--raw", raw_path, "--column-map", NETSUITE_COLUMN_MAP,
-                "--out", staged_path, "--entity", "SELFTEST", "--currency", "USD",
-                "--period", "2026-06",
-            ])
+            rc = tb_stage.main(
+                [
+                    "stage",
+                    "--raw",
+                    raw_path,
+                    "--column-map",
+                    NETSUITE_COLUMN_MAP,
+                    "--out",
+                    staged_path,
+                    "--entity",
+                    "SELFTEST",
+                    "--currency",
+                    "USD",
+                    "--period",
+                    "2026-06",
+                ]
+            )
             errs = tb_stage.validate_staging(staged_path) if rc == 0 else ["stage failed"]
 
             gl_detail_path = os.path.join(d, "gl-detail.csv")
@@ -316,15 +418,33 @@ def self_test() -> int:
                 w.writerow(["JE-1002", "4000", "Revenue", "0", "400000", "self-test"])
             lineage_path = os.path.join(d, "lineage.csv")
             netsuite_lineage.build_lineage(gl_detail_path, lineage_path, "TSTDRV0000FAKE")
-            lineage_ok = os.path.exists(lineage_path) and "app.netsuite.com" in open(lineage_path).read()
+            lineage_ok = (
+                os.path.exists(lineage_path) and "app.netsuite.com" in open(lineage_path).read()
+            )
 
             snapshot_hash = netsuite_lineage.source_snapshot_hash(rows, period="2026-06")
-            manifest_path = _write_manifest(d, "SELFTEST", "2026-06", transport, rows, net,
-                                            snapshot_hash, 1, None, alert=(alerts[0] if alerts else None),
-                                            staged_path=staged_path, lineage_path=lineage_path)
+            manifest_path = _write_manifest(
+                d,
+                "SELFTEST",
+                "2026-06",
+                transport,
+                rows,
+                net,
+                snapshot_hash,
+                1,
+                None,
+                alert=(alerts[0] if alerts else None),
+                staged_path=staged_path,
+                lineage_path=lineage_path,
+            )
 
-            ok = (rc == 0 and not errs and bool(token) and lineage_ok
-                  and os.path.exists(manifest_path))
+            ok = (
+                rc == 0
+                and not errs
+                and bool(token)
+                and lineage_ok
+                and os.path.exists(manifest_path)
+            )
             print(
                 ("PASS" if ok else "FAIL") + ": --self-test offline chain "
                 f"mint->pull->tie->stage->lineage->manifest — balanced={not errs}, "
@@ -343,18 +463,34 @@ def _print_result(res: dict) -> None:
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(
         description="One-command NetSuite close pull: mint -> pull -> tie -> stage -> "
-                    "optional lineage -> manifest, with an idempotent per-period watermark."
+        "optional lineage -> manifest, with an idempotent per-period watermark."
     )
     ap.add_argument("--config", help="per-entity connector config JSON")
-    ap.add_argument("--replay", action="store_true", help="offline, zero-cred mode (required — see module docstring)")
-    ap.add_argument("--fixture-dir", default=FIXTURE_DIR_DEFAULT, help="ReplayTransport fixture directory")
-    ap.add_argument("--promote", action="store_true", help="accept a changed re-pull over an existing watermark")
-    ap.add_argument("--rollback", action="store_true", help="restore the prior watermark + staged TB from .bak")
-    ap.add_argument("--run-dir", help="override the default .ravenclaude/runs/netsuite/<entity>/<period> run-dir")
+    ap.add_argument(
+        "--replay",
+        action="store_true",
+        help="offline, zero-cred mode (required — see module docstring)",
+    )
+    ap.add_argument(
+        "--fixture-dir", default=FIXTURE_DIR_DEFAULT, help="ReplayTransport fixture directory"
+    )
+    ap.add_argument(
+        "--promote", action="store_true", help="accept a changed re-pull over an existing watermark"
+    )
+    ap.add_argument(
+        "--rollback", action="store_true", help="restore the prior watermark + staged TB from .bak"
+    )
+    ap.add_argument(
+        "--run-dir",
+        help="override the default .ravenclaude/runs/netsuite/<entity>/<period> run-dir",
+    )
     ap.add_argument("--gl-detail", help="optional GL-detail CSV to build audit-grade lineage")
     ap.add_argument("--docs", help="optional source-doc sidecar for lineage")
-    ap.add_argument("--self-test", action="store_true",
-                    help="offline self-test of the full chain; asserts a balanced staged CSV; opens NO socket")
+    ap.add_argument(
+        "--self-test",
+        action="store_true",
+        help="offline self-test of the full chain; asserts a balanced staged CSV; opens NO socket",
+    )
     a = ap.parse_args(argv)
 
     try:
@@ -368,8 +504,15 @@ def main(argv=None) -> int:
         if not a.config:
             raise ConnectError("--config is required (or pass --self-test)")
         cfg = load_config(a.config)
-        res = run_connect(cfg, replay=a.replay, fixture_dir=a.fixture_dir, promote=a.promote,
-                          run_dir_override=a.run_dir, gl_detail=a.gl_detail, docs=a.docs)
+        res = run_connect(
+            cfg,
+            replay=a.replay,
+            fixture_dir=a.fixture_dir,
+            promote=a.promote,
+            run_dir_override=a.run_dir,
+            gl_detail=a.gl_detail,
+            docs=a.docs,
+        )
         _print_result(res)
         return 0
     except ConnectError as e:

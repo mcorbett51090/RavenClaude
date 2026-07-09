@@ -288,10 +288,20 @@ norm="$(printf '%s' "$norm" | tr -s '[:space:]' ' ')"   # collapse whitespace ru
 # the 2026-07 review): `git -c foo=bar push --force`, `git --git-dir=.git push …`,
 # `git -C path reset --hard` etc. would otherwise dodge every `git[[:space:]]+<sub>`
 # anchor. Fold `git <globals…> <sub>` back to `git <sub>` so the subcommand
-# patterns match. A curated allow-list (never `-f`/`--force`, which are subcommand
-# options, not globals) keeps this from mis-stripping a real flag. Fail-safe: any
-# sed error leaves `norm` untouched.
-_gitglobal='(-[cC][[:space:]]*[^[:space:]]+|--(git-dir|work-tree|namespace|exec-path|config-env)(=[^[:space:]]*|[[:space:]]+[^[:space:]]+)|--(bare|no-pager|paginate|no-replace-objects|no-optional-locks|literal-pathspecs|icase-pathspecs|glob-pathspecs|noglob-pathspecs))'
+# patterns match. Fail-safe: any sed error leaves `norm` untouched.
+#
+# The strip is tolerant of ANY dash-prefixed global (not a curated allow-list):
+# a P0 review (2026-07-09) found the prior allow-list omitted the real short
+# globals `-p` (= --paginate) and `-P` (= --no-pager), so `git -p push --force`
+# / `git -P reset --hard` / `git -p branch -D main` sailed past every git deny.
+# The two value-consuming alternatives (`-c`/`-C <val>` and the separate-token
+# long globals) MUST stay FIRST so a global's separate-token VALUE is consumed
+# with it — POSIX leftmost-longest then prefers them over the general trailing
+# alternatives, so `git -c key=val push` folds to `git push` (not `git key=val`).
+# The general alternatives (`--flag[=val]` and `-x`) cover -p/-P and any future
+# git global. Subcommand options like `-f`/`--force`/`-D` are never in the leading
+# run (they follow the subcommand), so they are preserved.
+_gitglobal='(-[cC][[:space:]]*[^[:space:]]+|--(git-dir|work-tree|namespace|exec-path|config-env)(=[^[:space:]]*|[[:space:]]+[^[:space:]]+)|--[A-Za-z][A-Za-z-]*(=[^[:space:]]*)?|-[A-Za-z]+)'
 _gstripped="$(printf '%s' "$norm" | sed -E "s/(^|[;&|[:space:]])git(([[:space:]]+${_gitglobal})+)[[:space:]]+/\1git /g" 2>/dev/null || true)"
 [ -n "$_gstripped" ] && norm="$_gstripped"
 
