@@ -21,7 +21,7 @@
 
 ## Engagement metadata
 
-- **Engagement name:** `<short slug, e.g., btcsi-flow-rebuild-2026>`
+- **Engagement name:** `<short slug, e.g., contoso-flow-rebuild-2026>`
 - **Last reviewed:** `<YYYY-MM-DD>` — refresh quarterly OR on env-posture change
 - **Owner:** `<name or handle>`
 
@@ -38,7 +38,7 @@ For each environment the agent might touch, name:
 
 ### Example posture (delete this section in your real file)
 
-- **DEV** (`btcsi-dev`)
+- **DEV** (`contoso-dev`)
   - **Role:** sysadmin
   - **Auth mechanism:** SPN `raven-claude-dev`
   - **Pre-authorized:** solution import/export, Web API calls (Dataverse + Graph), `pac` CLI operations, programmatic flow creation/update/delete, temp solution lifecycle, plug-in registration, env-var + connection-ref edits
@@ -53,13 +53,13 @@ For each environment the agent might touch, name:
       unlocked_by: "Web API calls (Dataverse)"
       instead_of: "asking the user to open the maker portal and look the record up"
 
-- **TEST** (`btcsi-test`)
+- **TEST** (`contoso-test`)
   - **Role:** sysadmin
   - **Auth mechanism:** SPN `raven-claude-test` (same SPN as DEV is fine if your auth model uses one SPN per tenant)
   - **Pre-authorized:** same as DEV
   - **Forbidden:** none
 
-- **PROD** (`btcsi-prod`)
+- **PROD** (`contoso-prod`)
   - **Role:** Read-Only
   - **Auth mechanism:** SPN `raven-claude-prod-readonly`
   - **Pre-authorized:** read-only queries, telemetry pulls, generating reports for the user

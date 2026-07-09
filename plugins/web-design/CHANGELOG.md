@@ -2,6 +2,12 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.14.3] — 2026-07-09
+
+### Changed
+
+- **Pseudonymized a private client codename** in `knowledge/gold-standard-website-references-2026.md` — a cross-link that referenced a research directory named after the codename now points at its renamed (`contoso`) path. Neutral placeholder; no consumer-facing behavior change.
+
 ## [0.14.2] — 2026-07-08
 
 Weekly Tier-A news sweep (2026-07-08) — **addition** in `knowledge/modern-web-stacks-2026.md`: Astro shipped a new major (**7.x**); the stack note now reads **Astro 7+** (the islands / zero-JS / Content-Layer / Server-Islands model carries forward). Re-verified via the withastro/astro GitHub releases. **Migration:** none — knowledge-file content only.

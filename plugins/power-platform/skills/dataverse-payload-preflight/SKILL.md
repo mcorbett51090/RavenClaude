@@ -27,10 +27,10 @@ allowed-tools: Bash, Read
 export DATAVERSE_TOKEN="$(az account get-access-token --resource https://yourorg.crm.dynamics.com --query accessToken -o tsv)"
 
 # 2. Validate the whole payload against LIVE metadata, in one pass:
-python3 preflight.py --org https://yourorg.crm.dynamics.com --entity btcsi_balancesheet --payload payload.json
+python3 preflight.py --org https://yourorg.crm.dynamics.com --entity contoso_balancesheet --payload payload.json
 
 # Offline / in a test (skip the live fetch — feed metadata you captured):
-python3 preflight.py --entity btcsi_balancesheet --metadata metadata.json --payload payload.json
+python3 preflight.py --entity contoso_balancesheet --metadata metadata.json --payload payload.json
 ```
 
 Output is JSON `{entity, ok, error_count, warning_count, violations[]}` (each violation has

@@ -13,7 +13,7 @@ Two layers:
     Web API EntityDefinitions (version-sensitive cast syntax — see SKILL [verify-at-use]).
 
 CLI:
-  DATAVERSE_TOKEN=... preflight.py --org https://x.crm.dynamics.com --entity btcsi_balancesheet \\
+  DATAVERSE_TOKEN=... preflight.py --org https://x.crm.dynamics.com --entity contoso_balancesheet \\
                                    --payload payload.json
   # offline / testing: pass --metadata metadata.json instead of --org
 Exit 0 = no ERROR-severity violations (warnings allowed); 3 = one or more errors.
@@ -28,8 +28,8 @@ import sys
 # ── The pure validator (no network — this is what the gate tests) ────────────────
 # `metadata` shape (assembled by fetch_metadata, or hand-authored for tests):
 # {
-#   "logical_name": "btcsi_balancesheet", "entity_set": "btcsi_balancesheets",
-#   "primary_id": "btcsi_balancesheetid", "ownership": "UserOwned",
+#   "logical_name": "contoso_balancesheet", "entity_set": "contoso_balancesheets",
+#   "primary_id": "contoso_balancesheetid", "ownership": "UserOwned",
 #   "attributes": {
 #     "<logical>": {"type": "String|Picklist|Lookup|...", "required": "None|ApplicationRequired|
 #                    SystemRequired|Recommended", "valid_for_create": true,
@@ -44,7 +44,7 @@ _REQUIRED = {"ApplicationRequired", "SystemRequired"}
 
 
 def _strip_annotation(key: str) -> tuple[str, str | None]:
-    """'btcsi_AccountId@odata.bind' -> ('btcsi_AccountId', 'odata.bind'); plain key -> (key, None)."""
+    """'contoso_AccountId@odata.bind' -> ('contoso_AccountId', 'odata.bind'); plain key -> (key, None)."""
     if "@" in key:
         base, ann = key.split("@", 1)
         return base, ann
@@ -215,7 +215,7 @@ def fetch_metadata(org: str, entity: str, token: str) -> dict:
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--entity", required=True, help="target entity logical name (e.g. btcsi_balancesheet)")
+    ap.add_argument("--entity", required=True, help="target entity logical name (e.g. contoso_balancesheet)")
     ap.add_argument("--payload", required=True, help="payload JSON file, or '-' for stdin")
     ap.add_argument("--org", help="Dataverse org URL (live metadata fetch); needs DATAVERSE_TOKEN env")
     ap.add_argument("--metadata", help="metadata JSON file (offline; skips the live fetch)")

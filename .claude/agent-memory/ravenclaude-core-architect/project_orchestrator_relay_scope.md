@@ -15,7 +15,7 @@ Matt wants a toggle between two relay scopes for the nested-Claude orchestrator 
 
 **Why:** keeps the existing knob + its emitYaml "emit only when ≠ default" round-trip untouched; two independent dashboard controls beat one six-value dropdown; no new mental model.
 
-**The trap to avoid (the original Copilot prompt's bug):** it had the agent **hand-append a "Relay Mode" block to `.github/copilot-instructions.md`** (ABSENT, no generator) in the CONSUMER's clone (~/RavenClaude + BTCSI). That file gets **clobbered on `git pull`/regenerate**. Correct split: schema + dashboard + directic text live in the marketplace plugin (generated, versioned); the only per-consumer thing is the one-line `orchestrator_scope:` in their git-ignored `.ravenclaude/comfort-posture.yaml` (git pull never touches it). **Zero hand-edited tracked files.**
+**The trap to avoid (the original Copilot prompt's bug):** it had the agent **hand-append a "Relay Mode" block to `.github/copilot-instructions.md`** (ABSENT, no generator) in the CONSUMER's clone (~/RavenClaude + Contoso). That file gets **clobbered on `git pull`/regenerate**. Correct split: schema + dashboard + directic text live in the marketplace plugin (generated, versioned); the only per-consumer thing is the one-line `orchestrator_scope:` in their git-ignored `.ravenclaude/comfort-posture.yaml` (git pull never touches it). **Zero hand-edited tracked files.**
 
 **Build prerequisite:** security-reviewer re-check — relay-all widens the `claude -p` input surface from team-briefs to EVERY prompt; v0.152.0 sign-off covered team-brief volume only. Re-confirm the 3-layer recursion guard + scrub + `--tools ""` hold on the arbitrary-prompt path.
 
