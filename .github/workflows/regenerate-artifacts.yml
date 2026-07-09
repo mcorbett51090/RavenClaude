@@ -65,9 +65,12 @@ on:
       - ".github/workflows/regenerate-artifacts.yml"
   workflow_dispatch:
 
-# The job pushes the regenerated artifacts back to main.
+# The job opens a PR with the regenerated artifacts (main is protected — direct
+# pushes are rejected by the "changes must be made through a pull request" ruleset),
+# then merges it immediately (the ruleset requires 0 approvals and no status checks).
 permissions:
   contents: write
+  pull-requests: write
 
 # Serialize runs so two quick merges can't race on the push.
 concurrency:
@@ -258,19 +261,54 @@ jobs:
             fi
           fi
 
-          # 5. Commit only if something actually changed.
+          # 5. Report drift (informational). The changes are left UNCOMMITTED in the
+          #    working tree; the create-pull-request step below commits them onto a
+          #    bot branch and opens a PR. main is branch-protected (direct push is
+          #    rejected), so a PR is the only route — see the two steps that follow.
           if [[ -z "$(git status --porcelain)" ]]; then
-            echo "Artifacts already in sync — nothing to commit."
-            exit 0
+            echo "Artifacts already in sync — nothing to heal."
+          else
+            echo "Artifacts drifted — the following will be opened as a self-heal PR:"
+            git status --porcelain
           fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git commit -m "chore(artifacts): self-heal counts + SVGs + dashboard + index portal + feedback report after merge [skip ci]"
 
-          # A merge may have landed since checkout; rebase our artifact-only commit
-          # before pushing. Branches no longer touch these files, so a rebase
-          # conflict is not expected (and would fail loudly). [skip ci] keeps this
-          # push from re-triggering the workflow.
-          git pull --rebase origin main
-          git push origin HEAD:main
+      # main is protected: direct `git push origin HEAD:main` is rejected by the
+      # ruleset ("changes must be made through a pull request"). Open a PR from a
+      # bot branch instead. No-ops silently when the tree is clean (no drift).
+      - name: Open self-heal PR
+        id: cpr
+        uses: peter-evans/create-pull-request@c5a7806660adbe173f04e3e038b0ccdcd758773c # v6.1.0
+        with:
+          token: ${{ github.token }}
+          branch: chore/self-heal-artifacts
+          base: main
+          delete-branch: true
+          commit-message: "chore(artifacts): self-heal generated artifacts after merge [skip ci]"
+          title: "chore(artifacts): self-heal generated artifacts"
+          body: |
+            Automated post-merge self-heal of repo-wide **generated** artifacts
+            (marketplace-claims counts, concept/decision-tree SVGs, `dashboard.html`,
+            the `index.html` portal, BI reports, the Copilot package, the feedback
+            report, `docs/concepts.md`).
+
+            main is branch-protected, so this bot cannot push to it directly; it opens
+            this PR and merges it immediately (the ruleset requires 0 approvals and no
+            status checks). Contents are deterministic generator output and were
+            validated (JSON + prettier) before commit.
+          labels: |
+            automated
+            generated-artifacts
+
+      # The ruleset requires a PR but 0 approvals and no status checks, so the bot PR
+      # can merge right away. A GITHUB_TOKEN merge does not re-trigger this workflow
+      # (and even if it did, the artifacts are now fresh → a no-op), so no loop.
+      - name: Merge the self-heal PR
+        if: steps.cpr.outputs.pull-request-number != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          n="${{ steps.cpr.outputs.pull-request-number }}"
+          echo "Merging self-heal PR #$n (operation: ${{ steps.cpr.outputs.pull-request-operation }})"
+          gh pr merge "$n" --squash --delete-branch \
+            --subject "chore(artifacts): self-heal generated artifacts (#$n) [skip ci]"
