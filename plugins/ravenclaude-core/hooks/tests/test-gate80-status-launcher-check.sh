@@ -2,7 +2,7 @@
 # test-gate80-status-launcher-check.sh — Gate 80 fixture for v0.113.2 / v0.114.0.
 #
 # Asserts that `ravenclaude status` detects a missing dashboard launcher
-# (BTCSI's pre-v0.44.0 install case) AND that `ravenclaude status --fix`
+# (Contoso's pre-v0.44.0 install case) AND that `ravenclaude status --fix`
 # installs it via wire_dashboard_launchers().
 #
 # Closes the PM panel's "dashboard_launcher_present check on ravenclaude
@@ -32,7 +32,7 @@ FAIL=0
 pass() { printf '  \033[32m✓\033[0m %s\n' "$1"; PASS=$((PASS + 1)); }
 fail() { printf '  \033[31m✗\033[0m %s\n' "$1"; FAIL=$((FAIL + 1)); }
 
-# Make a tmp project that looks like BTCSI's pre-v0.44.0 state: skills + hooks
+# Make a tmp project that looks like Contoso's pre-v0.44.0 state: skills + hooks
 # wired, but no dashboard.sh / README.md / .vscode/tasks.json.
 make_tmp_project() {
   local p; p="$(mktemp -d)"

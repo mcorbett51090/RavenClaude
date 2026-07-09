@@ -19,7 +19,7 @@ The fix is to **invert the loop**: when the *test* is expensive, spend cheap sta
 to make each expensive test exercise a **fully-validated** change — so the scarce resource is spent
 once on a payload you already know is complete, not N times discovering defects one at a time.
 
-> **Worked case (BTCSI extraction pipeline, 2026-06-24).** A `Create_BalanceSheet` failed **four times
+> **Worked case (Contoso extraction pipeline, 2026-06-24).** A `Create_BalanceSheet` failed **four times
 > in a row, each on a different field** — empty lookup bind `/accounts()` → invalid `sourcechannel`
 > option value → undeclared `extractionrun` columns → "Owner was not provided" — every failure costing
 > a human re-fire. A single metadata-vs-payload sweep would have surfaced **all four at once**. When a
@@ -55,8 +55,8 @@ those clauses already existed and were *non-applied* — which is why the highes
 principle; the validator skill + the `nudge-dataverse-preflight.sh` PreToolUse hook are the teeth.
 
 ## Anti-patterns
-- Fixing one field and asking the user to re-fire, then hitting the next field. (BTCSI #2/#3.)
-- Designing *around* a claimed limitation without one live capability test. (BTCSI #4 — a policy/memory
+- Fixing one field and asking the user to re-fire, then hitting the next field. (Contoso #2/#3.)
+- Designing *around* a claimed limitation without one live capability test. (Contoso #4 — a policy/memory
   doc is a hypothesis, not a fact; test the privilege live.)
 - Reasoning about a mechanism repeatedly when a proven reference exists to diff against exhaustively.
-  (BTCSI #1 — diff the working temp flow across host + params + **input schema/type** before variant N+1.)
+  (Contoso #1 — diff the working temp flow across host + params + **input schema/type** before variant N+1.)

@@ -2,6 +2,12 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.188.3 — 2026-07-09
+
+### Changed
+
+- **Pseudonymized a private client codename out of all shipped plugin content** (replaced with the neutral Microsoft `Contoso*` placeholder). The codename (and its example identifiers, e.g. `Contoso*Reporting` / `Contoso*FlowFix`) had leaked into shipped knowledge docs, this constitution's milestone narratives, a hook comment, a test fixture comment, and a skill docstring; each occurrence was replaced so worked examples stay coherent. The public regulator name `BMA` (Bermuda Monetary Authority) is intentionally retained. Behavior-neutral: no code literal was load-bearing on the string. Internal `docs/` and git history are out of scope (flagged separately).
+
 ## 0.188.2 — 2026-07-09
 
 ### Fixed

@@ -4,7 +4,7 @@
 >
 > **Purpose.** Route the agent from observed symptom → correct reference file in 1–2 steps, not 6. Every cell is a file-level link + plain-text §N.N pointer; no `#anchor` links (they drift past CI silently — the file-level link is what CI's `check-md-links.py` validates).
 >
-> **MCP-optional design (load-bearing).** This router works when **all MCPs are banned** (e.g. BTCSIReporting). Tier 1 (our captured reference) and Tier 2 (cited direct MS URLs) are the load-bearing tiers. The Learn MCP (Tier 3) is an **optional accelerator only** — it is never the only path to a fact.
+> **MCP-optional design (load-bearing).** This router works when **all MCPs are banned** (e.g. ContosoReporting). Tier 1 (our captured reference) and Tier 2 (cited direct MS URLs) are the load-bearing tiers. The Learn MCP (Tier 3) is an **optional accelerator only** — it is never the only path to a fact.
 
 ---
 

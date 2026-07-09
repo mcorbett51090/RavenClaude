@@ -4,7 +4,7 @@
 # CREATE or UPDATE (a POST/PATCH to an entity-set under /api/data/vX.Y/), it reminds you to
 # run the `dataverse-payload-preflight` skill FIRST — which validates every field against live
 # metadata in ONE pass (nonexistent columns, option-set values, lookup binds, required fields,
-# owner) instead of the fix-one-field-and-re-fire loop the BTCSI retro (2026-06-24) suffered.
+# owner) instead of the fix-one-field-and-re-fire loop the Contoso retro (2026-06-24) suffered.
 #
 # OPT-IN: no-op unless the project has a .ravenclaude/comfort-posture.yaml (a single stat; zero
 # cost for non-adopters). ADVISORY: exits 0 ALWAYS — it never blocks the command. FAIL-SAFE: any
