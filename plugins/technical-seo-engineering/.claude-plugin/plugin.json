@@ -1,0 +1,27 @@
+{
+  "name": "technical-seo-engineering",
+  "version": "0.1.0",
+  "description": "Technical-SEO & search-engineering team — 2 agents (seo-strategy-architect, seo-implementation-engineer) for the layer answering 'can search engines CRAWL, RENDER, INDEX, and UNDERSTAND this site, and will it RANK?': crawl-budget & log analysis, indexation control (robots.txt, meta robots, canonicalization, noindex), JS rendering (CSR/SSR/SSG, dynamic-rendering deprecation), structured data / schema.org (JSON-LD, rich-result eligibility), site architecture & internal linking, E-E-A-T, Core Web Vitals as a ranking factor (INP replaced FID in 2024), international SEO (hreflang), site migrations (redirect mapping, staging noindex), and topical authority. 3 skills, a 2-doc knowledge bank (strategy decision tree + 2026 patterns), and 2 templates. Distinct from search-relevance-engineering (internal site-search relevance), web-design (the full website build & visual design), and marketing-operations (paid ads / campaign strategy) — this is the organic-search-engineering layer. Requires ravenclaude-core@>=0.7.0.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "technical-seo",
+    "crawl-budget",
+    "indexation",
+    "structured-data",
+    "schema-org",
+    "core-web-vitals",
+    "hreflang",
+    "site-migration",
+    "internal-linking",
+    "e-e-a-t",
+    "search-console",
+    "topical-authority"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}

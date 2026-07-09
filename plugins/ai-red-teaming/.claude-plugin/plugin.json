@@ -1,0 +1,26 @@
+{
+  "name": "ai-red-teaming",
+  "version": "0.1.0",
+  "description": "AI/LLM red-teaming team — 2 agents (ai-redteam-lead, adversarial-testing-engineer) for the layer answering 'can this AI system be made to do harm, leak data, or exceed its authority — and how do we harden it?': threat modeling + rules of engagement, the attack taxonomy (OWASP LLM Top 10 2025 + MITRE ATLAS), direct vs indirect prompt injection, jailbreaks (roleplay/encoding/many-shot/crescendo), data exfiltration & training-data extraction, agentic tool-abuse / excessive agency, multimodal attacks, and defense-in-depth remediation. Fluent in automated red-team harnesses (PyRIT, Garak, Promptfoo red-team, Giskard) and likelihood×impact severity. 3 skills, a 2-doc knowledge bank (attack-taxonomy decision tree + 2026 patterns), and 2 templates. Distinct from llm-evaluation-engineering (quality-regression eval), trust-and-safety (content-moderation / T&S policy), and security-engineering (app/infra pentest) — the adversarial AI-security layer over model- and agent-based systems. Requires ravenclaude-core@>=0.7.0.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "ai-red-teaming",
+    "llm-security",
+    "prompt-injection",
+    "jailbreak",
+    "owasp-llm-top-10",
+    "mitre-atlas",
+    "ai-safety",
+    "adversarial-testing",
+    "pyrit",
+    "garak",
+    "agentic-security"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}

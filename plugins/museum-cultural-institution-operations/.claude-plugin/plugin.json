@@ -1,0 +1,27 @@
+{
+  "name": "museum-cultural-institution-operations",
+  "version": "0.1.0",
+  "description": "Museum & cultural-institution operations team — 2 agents (museum-operations-lead, collections-and-engagement-specialist) for running a museum/gallery/historic-site: admissions & timed ticketing, dynamic vs free-admission pricing, tiered membership & development, visitor experience & accessibility, facilities, board governance, AAM accreditation, and the earned-vs-contributed revenue mix on one side; collections stewardship (accessioning/deaccessioning ethics, cataloging, provenance & NAGPRA due diligence, condition/environmental controls, loans, insurance/valuation), exhibitions (permanent/temporary/traveling lifecycle), CMS systems (TMS/Axiell/PastPerfect/CollectionSpace), and digital collections/IIIF/open-access publishing on the other. 3 skills, a 2-doc knowledge bank + 2 templates. Distinct from nonprofit-fundraising (individual-donor strategy), event-management (event production), and grants-management (grant lifecycle) — the museum-operations layer. Requires ravenclaude-core@>=0.7.0.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "museum-operations",
+    "collections-management",
+    "exhibitions",
+    "provenance",
+    "nagpra",
+    "aam-accreditation",
+    "museum-membership",
+    "timed-ticketing",
+    "digital-collections",
+    "iiif",
+    "collections-cms",
+    "cultural-institution"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "name": "self-storage-operations",
+  "version": "0.1.0",
+  "description": "Self-storage operations team — 2 agents (self-storage-operations-lead for facility operations, staffing, access control/gate/cameras, climate, maintenance/curb appeal, move-in/out flow, remote-kiosk & multi-site; storage-revenue-and-occupancy-specialist for street vs in-place rate, ECRIs as the core profit lever, dynamic pricing, physical vs economic occupancy, unit-mix, the delinquency & lien process/auction, and tenant-insurance/ancillary revenue). Fluent in PMS platforms (Storable/SiteLink/storEDGE, Easy Storage Solutions, Yardi), aggregators (SpareFoot/Neighbor), auction platforms (StorageTreasures/Lockerfox), and REIT benchmarks (Public Storage, Extra Space, CubeSmart). 3 skills, a 2-doc knowledge bank (operations decision tree + 2026 patterns), and 2 templates. Distinct from commercial-real-estate (leasing/investment), property-management (residential), and field-service-management (dispatch). Lien law varies by US state and is not legal advice. Requires ravenclaude-core@>=0.7.0.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "self-storage",
+    "revenue-management",
+    "ecri",
+    "dynamic-pricing",
+    "occupancy",
+    "delinquency-lien",
+    "storage-auction",
+    "tenant-insurance",
+    "facility-operations",
+    "storable-sitelink",
+    "unit-mix",
+    "remote-storage"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}
