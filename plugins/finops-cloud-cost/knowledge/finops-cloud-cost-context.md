@@ -6,6 +6,20 @@
 
 Cloud pricing, discount rates, instance specs, and commitment terms **change constantly** and vary by region, account, and contract (EDP/PPA). The most defensible source is the provider's live pricing page and the org's own Cost and Usage data; published rates of thumb go stale fast. **Name the source and date, or mark the figure `[unverified — training knowledge]` and verify against the live pricing page (§3 #8).**
 
+## The FOCUS standard (normalized cost & usage schema)
+
+**FOCUS — the FinOps Open Cost & Usage Specification** — is the vendor-neutral open standard for normalized cloud/SaaS cost & usage billing data, and the industry-standard cost/usage data model. It gives one common schema across providers (AWS, Azure, GCP, Oracle, and others publish FOCUS-conformant exports), so allocation, unit-economics, and commitment analysis run off the same columns regardless of cloud. It is a FinOps Foundation / Linux Foundation project. **Prefer FOCUS-conformant exports over provider-proprietary billing formats** when normalizing spend across clouds.
+
+**Current version: v1.4**, ratified by the FOCUS Steering Committee on 2026-06-04. Headline additions in v1.4 (2 datasets, 47 columns, 6 attributes, 17 glossary entries):
+
+- **Invoice-to-usage reconciliation** — new **Invoice Detail** and **Billing Period** datasets let you tie invoiced amounts back to usage.
+- **Expanded Contract Commitment dataset** — grows from 13 to 30 columns (payment models, lifecycle status, discount rates, fulfillment intervals) — richer inputs for the commitment-portfolio read (§3 #3).
+- **`CommitmentProgramEligibilityDetails`** — a new column for commitment-coverage measurement.
+
+FOCUS Validator conformance testing for **1.3 is available now**; **1.4 conformance support is expected later in Q3 2026**.
+
+> Sources: https://www.finops.org/insights/introducing-focus-1-4/ ; https://focus.finops.org/focus-specification/ — retrieved 2026-07-09.
+
 ## Directional frames (illustrative only — `[unverified — training knowledge]`)
 
 | Area | Directional frame | Must-verify |

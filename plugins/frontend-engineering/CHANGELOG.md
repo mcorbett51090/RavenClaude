@@ -2,6 +2,10 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.4.1] — 2026-07-09
+
+- docs: `best-practices/memoize-only-when-measured.md` — update for the React Compiler v1.0 stable release (2025-10-07). New default posture: enable the React Compiler (build-time automatic memoization; Vite/Expo/Next.js guides; React 17+); manual `useMemo`/`useCallback`/`React.memo` is now the exception reserved for measured hot spots the compiler can't cover. Preserves the "measure first" spirit. Dated citation added (retrieved 2026-07-09).
+
 ## [0.4.0] — 2026-06-09
 
 Version bump previously unlogged here (rolls up `0.3.0` → `0.4.0`); the change that set `0.4.0`:

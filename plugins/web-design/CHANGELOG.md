@@ -2,6 +2,14 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.14.1] — 2026-07-09
+
+Knowledge-bank freshness: **Next.js 16 GA** stack update.
+
+### Changed
+
+- **`knowledge/modern-web-stacks-2026.md`** — updated the Next.js entry to **Next.js 16 (GA 2025-10-21; current stable 16.x, 16.2.x as of mid-2026)**: **Turbopack is now the default bundler** for `next dev` and `next build` (graduated from experimental — up to 5–10× faster Fast Refresh, 2–5× faster builds), and **caching flips to explicit opt-in** via the new `use cache` directive / **Cache Components** (dynamic code runs at request time by default). Prior `16.x` note retained as superseded. Added a dated citation line (retrieved 2026-07-09): https://nextjs.org/blog/next-16 , https://nextjs.org/docs/app/guides/upgrading/version-16 .
+
 ## [0.14.0] — 2026-07-06
 
 The **gold-standard website pipeline** — a gated, fail-closed checklist the Team Lead runs for _every_ new website so quality is designed in, not bolted on — plus the two plugin gaps that pipeline surfaced, closed in the same release. Skills 11 → 13; commands 5 → 6.

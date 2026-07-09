@@ -28,7 +28,7 @@ flowchart TD
 ```
 
 - **Astro 5+** — islands architecture, **zero JS by default**, View Transitions, **Content Layer API**, **Server Islands** (mix static + dynamic per-component). The performance default for content sites. (Cloudflare acquired Astro, 2026.)
-- **Next.js (16.x)** — **RSC default**, App Router, Server Actions; SSR/SSG/ISR/API routes/middleware/edge — the most versatile full-stack React choice. Heavier; needs a reason over Astro for content sites.
+- **Next.js 16 (GA 2025-10-21; current stable 16.x, 16.2.x as of mid-2026)** — **RSC default**, App Router, Server Actions; SSR/SSG/ISR/API routes/middleware/edge — the most versatile full-stack React choice. Heavier; needs a reason over Astro for content sites. Two headline shifts in 16: **Turbopack is now the DEFAULT bundler** for both `next dev` and `next build` (graduated from experimental to stable — up to 5–10× faster Fast Refresh, 2–5× faster builds), and **caching flips to explicit opt-in** via the new `use cache` directive / **Cache Components** — dynamic code runs at request time by default, so you now cache deliberately rather than opt out of implicit caching. (Prior line noted here as `16.x` with RSC default; superseded by the GA specifics above.) _Verified 2026-07-09: [nextjs.org/blog/next-16](https://nextjs.org/blog/next-16) · [Next.js 16 upgrade guide](https://nextjs.org/docs/app/guides/upgrading/version-16)._
 - **React 19** — Server Components + Actions are the baseline; treat the server as the primary render environment, ship minimal client JS.
 - **React Router v7** (Remix merged in) — lighter data-router alternative to Next.
 - **SvelteKit / Hugo / Eleventy** — Svelte preference / pure-static / minimal-build.

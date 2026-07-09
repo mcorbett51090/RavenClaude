@@ -13,7 +13,7 @@
       "name": "incident-response-dfir",
       "source": "./plugins/incident-response-dfir",
       "description": "Blue-team DFIR / SOC team \u2014 2 agents (dfir-response-lead, detection-and-forensics-engineer) for running a security incident end to end: the incident lifecycle per NIST SP 800-61r2 (preparation -> detection & analysis -> containment/eradication/recovery -> post-incident), triage & severity classification, containment strategy, breach coordination + comms + regulatory notification (GDPR 72h), tabletops; and detection engineering (SIEM/Sigma rules mapped to MITRE ATT&CK, alert tuning), hypothesis-driven threat hunting, evidence acquisition & forensics (order of volatility per RFC 3227, chain of custody), and malware triage. 5 skills, a knowledge bank with two Mermaid decision trees + a dated 2026 DFIR tooling map, 5 best-practices, 3 templates, 1 advisory hook. Seams: appsec/secure-coding -> security-engineering; governance/risk/audit -> cybersecurity-grc; reliability incidents -> observability-sre; platform abuse -> trust-and-safety. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "author": {
         "name": "Matt Corbett"
       },
@@ -118,7 +118,7 @@
       "name": "data-orchestration",
       "source": "./plugins/data-orchestration",
       "description": "Data-orchestration team \u2014 2 agents (orchestration-architect, pipeline-orchestration-engineer) for the layer that RUNS and SCHEDULES data pipelines: orchestrator selection (Airflow, Dagster, Prefect, Mage, Temporal-for-data; cloud-native MWAA/Step Functions, Azure Data Factory, Cloud Composer/Workflows), DAG and software-defined-asset design, scheduling/triggers (cron, sensor, data-aware), backfills and catchup, idempotency and retries with exponential backoff, partitioning, freshness SLAs and alerting, and lineage. 3 skills (choose-orchestrator, design-dag-and-dependencies, handle-backfills-and-retries), a 2-doc knowledge bank (a Mermaid selection tree + a 2026 patterns reference), and 2 templates. Distinct from data-platform (ELT/warehouse/BI), analytics-engineering (dbt), and data-streaming-engineering (real-time) \u2014 this is the scheduling/run layer they plug into. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "author": {
         "name": "Matt Corbett"
       },
@@ -232,7 +232,7 @@
       "name": "browser-extension-engineering",
       "source": "./plugins/browser-extension-engineering",
       "description": "Browser-extension-engineering team \u2014 2 agents (extension-architect, extension-implementation-engineer) for building, shipping, and maintaining cross-browser extensions on Manifest V3: the service-worker background model (and the MV2->MV3 lifecycle trap), content-script isolation + message passing, the permissions / host-permissions model and least-privilege posture, storage, the Chrome Web Store / Edge Add-ons / Firefox AMO review pipelines, and the WebExtensions cross-browser delta (Chrome callback vs Firefox browser.* promises). The extension runtime + manifest + store surface \u2014 distinct from frontend-engineering (app-grade React UI) and desktop-app-engineering (Electron/Tauri). 3 skills (manifest-permissions-audit, store-submission-readiness), a knowledge bank (MV3 architecture + a permissions-minimization decision tree + a dated cross-browser capability note), best-practices. Security verdicts escalate to security-engineering. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "author": {
         "name": "Matt Corbett"
       },
@@ -364,7 +364,7 @@
       "name": "web-design",
       "source": "./plugins/web-design",
       "description": "Web design & build specialist team \u2014 web architect (IA, stack, hosting), UX designer (wireframes, flows, conversion), visual designer (brand, typography, tokens), frontend implementer (HTML/CSS/JS, React, Astro, Next), content strategist (copy, microcopy, SEO content), accessibility auditor (WCAG 2.2 AA/AAA), and performance engineer (Core Web Vitals, image/font optimization). 13 skills (the gold-standard-website-pipeline gated build pipeline, static-site build, design-system audit, card/tile UI, accessibility review, Core Web Vitals tuning, technical SEO audit, information architecture, conversion design, content audit, design-tokens scaffolding, third-party hygiene, Fluent UI v9 + React implementation), 8 templates, 1 advisory hook, and a knowledge bank seeded with a curated 2026 reference set of \"cutting edge yet simple\" marketing-site donors \u2014 the design agents carry compact inline priors plus a pointer to the full brief. Inherits ravenclaude-core protocols.",
-      "version": "0.14.0",
+      "version": "0.14.1",
       "author": {
         "name": "Matt Corbett"
       },
@@ -554,7 +554,7 @@
       "name": "claude-app-engineering",
       "source": "./plugins/claude-app-engineering",
       "description": "Claude app-engineering specialist team \u2014 6 agents (claude-solution-architect, prompt-and-context-engineer, mcp-and-server-tools-engineer, agent-sdk-engineer, eval-engineer, claude-app-ops-engineer) for building production applications on the Claude API, the Claude Agent SDK, and MCP. Covers the build-surface decision (Messages API / Agent SDK / Managed Agents), model right-sizing (Opus 4.8 / Sonnet 4.6 / Haiku 4.5, 1M context), prompt caching, tool use + structured output, MCP server authoring + Anthropic-hosted server tools (computer use, code execution, Files API, memory, advisor tool), evals (golden sets, LLM-as-judge), and FinOps + reliability (batch, model routing, backoff, observability). 15-doc dated-and-cited knowledge bank, 6 templates, 1 advisory hook (14 house opinions). Seams: prompt-as-artifact, security, and cross-domain architecture escalate to ravenclaude-core. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.9.7",
+      "version": "0.9.8",
       "author": {
         "name": "Matt Corbett"
       },
@@ -904,7 +904,7 @@
       "name": "frontend-engineering",
       "source": "./plugins/frontend-engineering",
       "description": "Frontend-engineering team \u2014 4 agents (frontend-architect, react-implementation-engineer, frontend-state-and-data-engineer, frontend-performance-engineer) for building app-grade frontends (React/Next, TypeScript): component architecture and composition, the rendering-strategy choice (CSR/SSR/SSG/ISR/React Server Components), client state vs server-cache (TanStack Query/RSC) and form/validation, bundle/performance discipline (code-splitting, Core Web Vitals, hydration cost), and accessibility-in-code (semantic HTML, ARIA, keyboard, focus). TypeScript-first. 5 skills, a decision-tree knowledge bank (rendering-strategy + state-location trees + a dated 2026 map), 12 best-practices, 4 templates, 4 commands, 1 advisory hook. Distinct from web-design (brand/UX/marketing sites). Seams: design/brand/WCAG-audit -> web-design, auth UX -> auth-identity, API consumption -> api-engineering, native -> mobile-engineering. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.4.0",
+      "version": "0.4.1",
       "author": {
         "name": "Matt Corbett"
       },
@@ -927,7 +927,7 @@
       "name": "mobile-engineering",
       "source": "./plugins/mobile-engineering",
       "description": "Mobile-engineering team \u2014 4 agents (mobile-architect, ios-engineer, android-engineer, cross-platform-engineer) for native and cross-platform mobile apps: the native-vs-React-Native-vs-Flutter decision, iOS craft (Swift/SwiftUI, the app lifecycle, concurrency), Android craft (Kotlin/Jetpack Compose, lifecycle, coroutines), and the cross-cutting mobile concerns (offline-first + sync, secure on-device storage, push notifications/deep links, battery/network constraints, and the App Store / Play Store release pipeline + review). 5 skills, a decision-tree knowledge bank (platform-choice + offline-sync trees + a dated 2026 capability map), 12 best-practices, 4 templates, 4 commands, 1 advisory hook. Seams: shared web patterns -> frontend-engineering, the backend API -> api-engineering/backend-engineering, auth -> auth-identity, CI/CD signing -> devops-cicd. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.3.1",
+      "version": "0.3.2",
       "author": {
         "name": "Matt Corbett"
       },
@@ -1249,7 +1249,7 @@
       "name": "devops-cicd",
       "source": "./plugins/devops-cicd",
       "description": "DevOps & CI/CD delivery-pipeline team \u2014 4 agents (pipeline-engineer, release-engineer, gitops-engineer, build-and-artifact-engineer) for the path from commit to production: CI design (stages, caching, matrix, fail-fast, required checks), progressive delivery (blue-green, canary, feature-flagged rollouts, automated rollback), GitOps continuous delivery (Argo CD / Flux, desired-state in Git, drift detection), and build/artifact integrity (reproducible builds, semantic versioning, SBOM, provenance/SLSA, registry hygiene). 5 skills, a decision-tree knowledge bank (deploy-strategy + CI-vs-CD-boundary trees + a dated 2026 tooling map), 12 best-practices, 4 templates, 4 commands, 1 advisory hook. Seams: IaC -> terraform-iac, clusters -> cloud-native-kubernetes, telemetry/SLOs -> observability-sre, supply-chain verdicts -> ravenclaude-core/security-reviewer. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.3.1",
+      "version": "0.3.2",
       "author": {
         "name": "Matt Corbett"
       },
@@ -1944,7 +1944,7 @@
       "name": "finops-cloud-cost",
       "source": "./plugins/finops-cloud-cost",
       "description": "FinOps & Cloud Cost specialist team \u2014 4 agents (finops-lead, cost-allocation-analyst, commitment-planning-specialist, unit-economics-strategist), 5 skills, 4 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. A FinOps team for a cost lead or eng-finance partner accountable for cloud spend and unit economics \u2014 it allocates spend before optimizing it, reads unit economics over the total bill, treats commitments as a portfolio decision made after rightsizing, and kills waste first. Inherits ravenclaude-core protocols.",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "author": {
         "name": "Matt Corbett"
       },

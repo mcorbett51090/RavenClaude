@@ -2,6 +2,15 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.9.8] — 2026-07-09
+
+Research-sweep **default-model update** — **Claude Sonnet 5 (`claude-sonnet-5`) reached GA 2026-06-30** and is the new balanced/agentic default for most app work, superseding Sonnet 4.6. Native **1M-token context (default AND max)**, **128K max output**, adaptive thinking, positioned as the most-agentic Sonnet yet ("a cheaper way to run agents"); **intro pricing $2 / $10 per Mtok in/out through 2026-08-31, then $3 / $15** `[verify-at-use — intro→standard price step]`; new default for Free/Pro and available in Claude Code `[verify-at-use — THE default in Claude Code vs. merely available]`. Verified 2026-07-09 against [Claude Sonnet 5](https://www.anthropic.com/news/claude-sonnet-5), [What's new in Sonnet 5](https://platform.claude.com/docs/en/about-claude/models/whats-new-sonnet-5), [TechCrunch](https://techcrunch.com/2026/06/30/anthropic-launches-claude-sonnet-5-as-a-cheaper-way-to-run-agents/), and [Simon Willison](https://simonwillison.net/2026/Jun/30/claude-sonnet-5/).
+
+### Changed
+
+- **`knowledge/model-selection-and-2026-capability-map.md`** — added a **Sonnet 5** lineup row above Sonnet 4.6 as the new balanced/agentic default; demoted the Sonnet 4.6 row to "prior balanced default (superseded by Sonnet 5)" (4.6-specific facts like `budget_tokens` deprecation retained); updated the routing ladder (Haiku triage → Sonnet 5 balanced default → Opus 4.8 for the hard long-horizon tail); added Sonnet 5 to the Structured Outputs / adaptive-thinking / 1M-context capability-status rows; re-dated `Last reviewed` 2026-07-01 → 2026-07-09 with the Sonnet 5 sources. Dated-citation + `[verify-at-use]` discipline preserved (intro→standard price step; Claude-Code default vs. available). **Migration:** none — knowledge-file content only.
+- Version **0.9.7 → 0.9.8** in `.claude-plugin/plugin.json` **and** the `marketplace.json` catalog entry in lockstep (CI fails on drift).
+
 ## [0.9.7] — 2026-07-02
 
 ### Fixed

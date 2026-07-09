@@ -5,6 +5,8 @@
 
 The discipline: **is-it-an-incident? → severity (impact × scope) → containment path** — then run the NIST phases in order. Never jump to eradication before scoping and containing.
 
+> **⚠️ Doctrine update — NIST SP 800-61r3 supersedes r2 (retrieved 2026-07-09).** NIST **finalized SP 800-61 Revision 3 on 2025-04-03**, superseding the 2012 r2 *Computer Security Incident Handling Guide*. r3 deliberately moves **away** from r2's static four-phase lifecycle. Instead it is framed as a **NIST Cybersecurity Framework (CSF) 2.0 Community Profile**: it maps incident-response outcomes across all **six CSF 2.0 Functions — Govern, Identify, Protect, Detect, Respond, Recover** — on the reasoning that the detailed how-to of IR changes too fast to freeze in one static document, so r3 focuses on **risk-management outcomes** rather than a fixed phase sequence. The four-phase material below is retained as the **r2 model** — still a useful operational mental model for running a live incident, now **superseded by r3's CSF-2.0 framing**. Sources: <https://csrc.nist.gov/pubs/sp/800/61/r3/final> · <https://www.nist.gov/news-events/news/2025/04/nist-revises-sp-800-61-incident-response-recommendations-and-considerations> (retrieved 2026-07-09).
+
 ---
 
 ## Decision Tree: triage → severity → containment
@@ -35,7 +37,9 @@ flowchart TD
   LONG --> ERAD
 ```
 
-## The NIST SP 800-61r2 phases (run in order)
+## The NIST SP 800-61**r2** phases (run in order) — superseded by r3, retained as an operational model
+
+> These four phases are the **r2 (2012) lifecycle**, now superseded by SP 800-61**r3** (2025-04-03, see the doctrine note at the top). They remain a sound *operational* mental model for driving a live incident; for the current outcome-mapping doctrine, read them as the **Respond / Recover** work within r3's six CSF 2.0 Functions (Govern · Identify · Protect · Detect · Respond · Recover).
 
 ```mermaid
 flowchart LR
@@ -63,5 +67,5 @@ flowchart LR
 > Take the **higher** of impact/scope when in doubt. Regulated/personal data in scope escalates and starts the notification clock at *awareness*.
 
 ## Provenance
-- NIST SP 800-61r2 *Computer Security Incident Handling Guide* (the four-phase lifecycle). Severity model is an industry-common impact × scope classification (adapt thresholds per org). Notification obligations are legal — see [`../best-practices/notification-timelines-are-legal-deadlines-not-guidelines.md`](../best-practices/notification-timelines-are-legal-deadlines-not-guidelines.md). Last reviewed 2026-07-01.
+- NIST SP 800-61**r3** *Incident Response Recommendations and Considerations for Cybersecurity Risk Management* (finalized 2025-04-03) — a **CSF 2.0 Community Profile** mapping IR outcomes across the six CSF 2.0 Functions; it **supersedes** SP 800-61**r2** *Computer Security Incident Handling Guide* (2012, the four-phase lifecycle retained above as an operational model). Sources: <https://csrc.nist.gov/pubs/sp/800/61/r3/final>, <https://www.nist.gov/news-events/news/2025/04/nist-revises-sp-800-61-incident-response-recommendations-and-considerations> (retrieved 2026-07-09). Severity model is an industry-common impact × scope classification (adapt thresholds per org). Notification obligations are legal — see [`../best-practices/notification-timelines-are-legal-deadlines-not-guidelines.md`](../best-practices/notification-timelines-are-legal-deadlines-not-guidelines.md). Last reviewed 2026-07-01; r3 supersession note added 2026-07-09.
 - See also [`forensics-and-evidence-handling.md`](forensics-and-evidence-handling.md) for the evidence-capture gate.

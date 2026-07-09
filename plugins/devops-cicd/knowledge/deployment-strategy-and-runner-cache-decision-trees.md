@@ -95,3 +95,9 @@ flowchart TD
 | Flagger (Flux) progressive delivery | GA | Same canary-with-analysis model for Flux users |
 
 _Sources: [GitHub Actions runners docs](https://docs.github.com/en/actions/using-github-hosted-runners), [GitHub Actions caching docs](https://docs.github.com/en/actions/using-workflows/caching-dependencies-to-speed-up-workflows), [Docker build cache docs](https://docs.docker.com/build/cache/), [Argo Rollouts analysis docs](https://argo-rollouts.readthedocs.io/en/stable/features/analysis/) — all retrieved 2026-06-05; capability/version rows are volatile, re-confirm at use._
+
+### Runner runtime note — GitHub Actions Node.js 24 migration (dated 2026-07-09)
+
+GitHub-hosted runners are moving JavaScript actions off the Node.js 20 runtime. **On 2026-06-16 the runner default flips to the Node.js 24 runtime** for all JS actions; **on 2026-09-16 Node.js 20 is removed from the runner images entirely.** Any action still declaring `runs.using: node20` (composite/JS actions you author, or custom JS actions pinned to node20) must migrate to `runs.using: node24` before the removal date. Temporary opt-out: set env `ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true` — but this only works **until Node 20 is removed on 2026-09-16**, after which pinned-node20 actions fail regardless. Audit your workflows and any first-party actions for `node20` and bump them to `node24`.
+
+_Source: [Deprecation of Node 20 on GitHub Actions runners](https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/) — retrieved 2026-07-09; dates per GitHub's official changelog, re-confirm at use._

@@ -2,6 +2,12 @@
 
 All notable changes to this plugin are documented here. Format follows [Keep a Changelog](https://keepachangelog.com); this plugin versions per [SemVer](https://semver.org).
 
+## [0.1.1] — 2026-07-09
+
+### Changed
+
+- **Knowledge accuracy — NIST SP 800-61r3 supersession.** Added a dated doctrine note to [`knowledge/incident-lifecycle-decision-tree.md`](knowledge/incident-lifecycle-decision-tree.md): NIST **finalized SP 800-61 Revision 3 on 2025-04-03**, superseding the 2012 r2 four-phase *Computer Security Incident Handling Guide*. r3 reframes IR **away** from the static four-phase lifecycle into a **NIST CSF 2.0 Community Profile** mapping IR outcomes across the six CSF 2.0 Functions (Govern, Identify, Protect, Detect, Respond, Recover). The four-phase material is retained and relabeled as the **r2 model** (still a useful operational mental model, now superseded), and Provenance now cites r3. Sources dated (retrieved 2026-07-09).
+
 ## [0.1.0] — 2026-07-01
 
 ### Added

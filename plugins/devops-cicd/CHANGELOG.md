@@ -2,6 +2,10 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.2] — 2026-07-09
+
+- docs(knowledge): note the GitHub Actions Node.js 24 runner migration in `knowledge/deployment-strategy-and-runner-cache-decision-trees.md` — node24 becomes the runner default **2026-06-16**; Node 20 is removed from the runner images **2026-09-16**; migrate `runs.using: node20` actions to `node24` before then (temporary opt-out `ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true` works only until removal). Cited to GitHub's official changelog, retrieved 2026-07-09.
+
 ## [0.3.1] — 2026-06-22
 
 Version bump previously unlogged here; the change that set `0.3.1`:

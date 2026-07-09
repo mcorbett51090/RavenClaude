@@ -2,6 +2,10 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.2] — 2026-07-09
+
+- **App Store upload SDK mandate documented** in [`best-practices/the-store-is-part-of-the-pipeline.md`](best-practices/the-store-is-part-of-the-pipeline.md): from **2026-04-28**, App Store Connect uploads must be built with **Xcode 26 + the iOS/iPadOS/tvOS/visionOS/watchOS 26 SDK or later** (gates new submissions *and* updates; deployment target may stay lower). Notes the **Liquid Glass** default appearance side effect (design/QA implication). Dated citations to Apple's Upcoming Requirements + 9to5Mac (retrieved 2026-07-09).
+
 ## [0.3.1] — 2026-06-22
 
 Version bump previously unlogged here; the change that set `0.3.1`:

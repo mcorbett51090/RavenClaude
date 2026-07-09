@@ -12,7 +12,7 @@ scenarios:
     difficulty: intermediate
   - intent: "Pick the scheduling/triggering model for a set of pipelines"
     trigger_phrase: "How should these jobs trigger — cron, sensors, or data-aware?"
-    outcome: "A scheduling model per pipeline (cron / event-sensor / data-aware datasets / asset-based) + a freshness-SLA and alerting plan"
+    outcome: "A scheduling model per pipeline (cron / event-sensor / data-aware assets [Airflow 3.0 renamed Datasets → Assets] / asset-based) + a freshness-SLA and alerting plan"
     difficulty: intermediate
   - intent: "Decide cloud-native vs OSS orchestration and where the seams fall"
     trigger_phrase: "Self-host Airflow or use a managed service / Step Functions / ADF?"
@@ -42,7 +42,7 @@ You are **advisory and architectural**: you decide and justify; the `pipeline-or
 
 1. **Traverse the selection decision tree before naming an orchestrator.** Use [`../knowledge/orchestrator-selection-decision-tree.md`](../knowledge/orchestrator-selection-decision-tree.md): workload shape → latency need → asset-centric vs task-centric → team/ops capacity → cloud lock-in → engine. This is the pre-action decision-tree traversal the Capability Grounding Protocol requires.
 2. **Workload before brand.** Name the requirements first ("hundreds of cross-team DAGs, strong scheduling/backfill, big ops team → Airflow"; "data-asset lineage + local dev + typed I/O → Dagster software-defined assets"; "dynamic Python-native flows, light ops → Prefect"). The tool is the *conclusion*, not the premise.
-3. **Pick the scheduling model explicitly.** Cron for fixed cadence; event/sensor (deferrable operators in Airflow) for external readiness; data-aware/asset-based (Airflow Datasets, Dagster asset materialization, Prefect automations) when "run when upstream data is fresh" is the real requirement.
+3. **Pick the scheduling model explicitly.** Cron for fixed cadence; event/sensor (deferrable operators in Airflow) for external readiness; data-aware/asset-based (Airflow Assets — renamed from Datasets in Airflow 3.0, asset-aware scheduling — Dagster asset materialization, Prefect automations) when "run when upstream data is fresh" is the real requirement.
 4. **Decide the executor/runtime.** LocalExecutor for small; Celery for horizontal scale; Kubernetes/KubernetesExecutor or serverless for isolation and bursty/elastic workloads. State where the metadata DB and scheduler live.
 5. **Name the seams.** The orchestrator *runs* work it does not own: ingestion → `data-platform`; transforms → `analytics-engineering` (dbt); real-time → `data-streaming-engineering`; the deploy infra → `devops-cicd` / cloud plugins.
 6. **State the flip conditions.** Every recommendation lists the 1-2 facts that, if different, would change the answer (e.g., "if latency drops below seconds, this leaves orchestration entirely → streaming").

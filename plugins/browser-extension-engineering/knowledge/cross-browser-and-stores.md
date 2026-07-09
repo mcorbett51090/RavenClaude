@@ -46,6 +46,21 @@ const { settings } = await browser.storage.local.get("settings");
 - Common rejections: excessive/unjustified permissions, broad host access without
   need, listing/behavior mismatch, obfuscated code, remotely-hosted code.
 
+#### Manifest V2 is end-of-life on Chrome — MV3 is mandatory
+
+- **All remaining MV2 extensions are removed from the Chrome Web Store on
+  2026-08-31.** After that date an MV2 extension **cannot be reinstalled** from the
+  Web Store.
+- MV2 extensions already installed on **Chrome 138 or earlier remain installed**
+  but **receive no updates** — a frozen, unmaintainable end state.
+- The enterprise `ExtensionManifestV2Availability` policy that let admins keep MV2
+  running is on its **final phase-out** — it is not a durable escape hatch.
+- **Net: any MV2 extension work must migrate to Manifest V3.** Treat MV2 as
+  end-of-life on Chromium; there is no supported path that keeps it alive.
+- _Sources: <https://developer.chrome.com/docs/extensions/develop/migrate/mv2-deprecation-timeline>;
+  <https://9to5google.com/2026/07/08/google-chrome-will-remove-older-manifest-v2-extensions-in-august/>
+  — retrieved 2026-07-09; re-verify at use._
+
 ### Microsoft Edge Add-ons
 
 - Chromium-based — the **same MV3 package usually works**.
