@@ -26,7 +26,14 @@ import re
 import sys
 
 # Reads the target path straight from the positional arg with the ${var:-} idiom.
-_ARG_PATH = re.compile(r'^\s*(?:file|path|target)="\$\{1:-\}"')
+# Case-insensitive (2026-07-09): the uppercase `FILE="${1:-}"` idiom is used by
+# dozens of advisory hooks and was silently missed by a case-sensitive match, so
+# the gate passed while those hooks were inert. Also tolerate a leading
+# local/declare/readonly/export prefix so a scoped assignment still matches.
+_ARG_PATH = re.compile(
+    r'^\s*(?:local\s+|declare\s+|readonly\s+|export\s+)?(?:file|path|target)="\$\{1:-\}"',
+    re.IGNORECASE,
+)
 # The stdin-JSON fallback any correct file hook carries.
 _STDIN_FALLBACK = re.compile(r"tool_input\.file_path")
 

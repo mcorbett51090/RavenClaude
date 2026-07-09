@@ -1,6 +1,6 @@
 {
   "name": "platform-engineering-idp",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Platform Engineering (IDP) specialist team — 4 agents (platform-eng-lead, golden-path-architect, developer-experience-analyst, platform-reliability-specialist), 5 skills, 4 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. A platform-engineering team for a platform lead or eng director accountable for developer productivity and adoption — it treats the platform as a product with developers as customers, paves golden paths over mandates, measures DevEx with DORA and lead time, and runs the platform on SLOs and an error budget. Inherits ravenclaude-core protocols.",
   "author": {
     "name": "Matt Corbett"

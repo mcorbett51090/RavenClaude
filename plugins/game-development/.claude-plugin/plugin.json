@@ -1,6 +1,6 @@
 {
   "name": "game-development",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Game Development specialist team — 4 agents (gamedev-producer, game-designer, gameplay-engineer, live-ops-analyst), 5 skills, templates, commands, 1 advisory hook, 20 best-practice rules, a research-grounded knowledge bank with Mermaid decision trees (production/design/live-ops + runtime-performance frame/GC/draw-call/memory budgets + engine-selection/ECS-vs-OOP/networking-model), a scenarios bank (frame-time GC hitch, draw-call batching, netcode rollback, save-system migration), a stdlib frame/CPU-GPU/memory budget calculator (scripts/gamedev_budget.py), and a bundled C# (Roslyn, stdio) LSP config. Scopes to a vertical slice, designs core loops and economies that retain, runs production on milestones and risk burn-down, reads live-ops on retention/monetization, and diagnoses frame-budget/draw-call/netcode/save-migration problems. Inherits ravenclaude-core protocols.",
   "author": {
     "name": "Matt Corbett"

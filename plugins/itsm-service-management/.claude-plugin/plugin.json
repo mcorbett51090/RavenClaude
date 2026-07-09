@@ -1,6 +1,6 @@
 {
   "name": "itsm-service-management",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "IT Service Management (ITIL 4) team — 4 agents (service-management-lead, incident-and-problem-manager, change-and-release-manager, service-desk-and-request-manager) for running IT as a service: the ITIL 4 service value system and practice selection, incident vs problem vs major-incident handling, change enablement (standard/normal/emergency + the CAB) and release management, and the service desk — request fulfillment, SLAs/OLAs, knowledge management, the service catalog, and the CMDB/configuration management. 5 skills, a knowledge bank with Mermaid decision trees + a dated 2026 ITSM tooling map + an ITIL 4 practice reference, 8 best-practices, 4 templates, 4 commands, 1 advisory hook. Seams: engineering incident response/SRE/observability -> observability-sre, CI/CD release automation -> devops-cicd, security incidents/GRC -> cybersecurity-grc, cloud cost/asset -> finops-cloud-cost. Inherits ravenclaude-core protocols.",
   "author": {
     "name": "Matt Corbett"
