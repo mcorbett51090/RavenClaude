@@ -70,11 +70,11 @@ Example for Matt's setup:
 # Environment Context — power-platform
 
 ## Active environments (Matt's setup, 2026-05)
-- **DEV** (BTCSI-DEV): agent has sysadmin via SPN raven-claude-dev. Pre-authorized
+- **DEV** (Contoso-DEV): agent has sysadmin via SPN raven-claude-dev. Pre-authorized
   for: solution import/export, Web API calls, pac CLI, programmatic flow creation,
   temp solution lifecycle, plug-in registration.
-- **TEST** (BTCSI-TEST): same SPN, same posture.
-- **PROD** (BTCSI-PROD): READ ONLY. Any write action requires user confirmation.
+- **TEST** (Contoso-TEST): same SPN, same posture.
+- **PROD** (Contoso-PROD): READ ONLY. Any write action requires user confirmation.
 
 ## Default assumption
 In DEV/TEST, agent does NOT ask "can I do X?" for any action listed above.

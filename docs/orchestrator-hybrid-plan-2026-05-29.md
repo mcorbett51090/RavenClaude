@@ -28,7 +28,7 @@ in-host adapter it does NOT replace. The win is **dispatch quality** when invoke
 
 The devil's-advocate lens correctly noted the plan skipped problem validation. Before any spike runs:
 
-- **Enumerate the last 20 Copilot-CLI sessions on BTCSI** (or whatever active consumer repo Matt's been
+- **Enumerate the last 20 Copilot-CLI sessions on Contoso** (or whatever active consumer repo Matt's been
   driving) and count how many would have benefited from a Team-Lead fan-out vs. just opening a second
   terminal running `claude` directly.
 - **If the count is <3, park this plan as YAGNI** and revisit only when a real engagement surfaces the
@@ -304,7 +304,7 @@ artifacts that will go stale after the hybrid ships if not updated together:
 
 **Kill criteria** (the panel was right that "the thing works" isn't enough):
 
-- **Usage threshold:** Used in ≥3 real Copilot sessions on BTCSI within 30 days post-merge.
+- **Usage threshold:** Used in ≥3 real Copilot sessions on Contoso within 30 days post-merge.
 - **Kill:** If usage <3 at 60 days, the tool is deprecated. The MCP-config entry is removed in the
   next minor release. Document this commitment in the plan AND in the migration note so removal
   isn't a surprise.

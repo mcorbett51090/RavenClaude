@@ -97,7 +97,7 @@ A knowledge block should become a decision tree when it contains **any of these 
 
 ---
 
-## Concrete Reference Implementation (BTCSI repo)
+## Concrete Reference Implementation (Contoso repo)
 
 The PA flow fix tree was added to `docs/agent-memory.md` on 2026-05-21. It already demonstrates value: in prior sessions the agent used full solution reimport (5–20 min) for single broken flows. The tree makes the surgical path (~2 min) the default by forcing the "how many flows?" condition check first.
 
@@ -115,7 +115,7 @@ START: One or more PA flows are broken, off, misnamed, or have a trigger error
 │   ├─ How many flows are affected?
 │   │   ├─ 1–5 flows
 │   │   │     → SURGICAL TEMP SOLUTION (preferred, ~2 min)
-│   │   │       1. Create temp BTCSIFlowFix solution via Web API
+│   │   │       1. Create temp ContosoFlowFix solution via Web API
 │   │   │       2. AddSolutionComponent (type 29) for each affected flow only
 │   │   │       3. Export → pac unpack → edit JSON/XML → pac pack → import
 │   │   │       4. Delete temp solution

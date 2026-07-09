@@ -1,4 +1,4 @@
-# FORGE plan — Generalize BTCSI pac-import flow-activation hardening into `power-platform`
+# FORGE plan — Generalize Contoso pac-import flow-activation hardening into `power-platform`
 
 **Slug:** pac-solution-import-hardening · **Depth:** standard · **Models:** A=opus, B=sonnet
 **Date:** 2026-06-30 · **Owner:** Matt
@@ -12,7 +12,7 @@ Python file** (`managed_import.py`, underscore so it's importable) **co-located 
 reactivation + verify pass over the Dataverse Web API** — the genuinely novel, hard-to-get-right part
 that nobody else does — fully usable standalone (no `pac` needed); the `pac solution import`
 orchestration (`import` subcommand) is an **optional convenience** that composes preflight → baseline →
-import → poll → reactivate → verify. Every BTCSI hardcode (env URLs, settings paths, timezone,
+import → poll → reactivate → verify. Every Contoso hardcode (env URLs, settings paths, timezone,
 impersonation OID) is externalized to a committable, secret-free JSON config; secrets stay in env vars.
 Shipped alongside: a knowledge doc, one best-practice (house-opinion), one dated scenario, compact agent
 priors, bash-wrapped pure-logic tests, and the full CI-hygiene set — gated by a **mandatory
@@ -22,7 +22,7 @@ security-reviewer sign-off** (CLAUDE.md mandates it for SPN-secret-handling code
 
 - `--activate-plugins` + `--settings-file` are the **default** flags. `--publish-changes` and
   `--force-overwrite` are **opt-in only** — Microsoft's performance guidance discourages both for
-  managed imports. (Diverging from BTCSI's blanket usage is the correct generalization.)
+  managed imports. (Diverging from Contoso's blanket usage is the correct generalization.)
 - "Import drops flows to Draft" is **conditional**: the platform auto-reactivates only when flows were
   exported-on AND connection references are bound AND the importing identity has permission to the
   connections. **SPN-driven CI/CD frequently fails these → the explicit reactivation pass is precisely
@@ -116,7 +116,7 @@ testable with fakes. Subcommands: `import | preflight | baseline | reactivate | 
   folding the publish/force-overwrite flag-economy correction; cross-links (no duplication) to
   `alm-fresh-import-smoke-test-before-release.md`, `alm-connection-references-not-hardcoded-connections.md`.
   No new hook → no new house-opinions fixture (precedent: alm-fresh-import-smoke-test ships hookless).
-- `scenarios/2026-06-30-managed-import-flows-deactivated.md`: the BTCSI war-story, **zero customer
+- `scenarios/2026-06-30-managed-import-flows-deactivated.md`: the Contoso war-story, **zero customer
   specifics** ("the customer environment", no URLs/OIDs/org names).
 - Compact priors (in BODY, not description) on `flow-engineer`, `solution-alm-engineer`,
   `power-platform-admin` (T6) — **reference the skill, not script flags** (B GAP-12).
@@ -151,7 +151,7 @@ all cross-links resolve; new YAML validates with the generator's loader (FM3).
 | Operator copy-paste traps (no pac / no tzdata / wrong env) | Med | Med | FM7: pac pre-check + approved-before-tz + DEV/PROD label |
 
 ## 5. Alternatives considered
-1. **Generalized monolith (BTCSI shape, externalized config)** — most portable single file, but I/O woven
+1. **Generalized monolith (Contoso shape, externalized config)** — most portable single file, but I/O woven
    through logic = near-untestable. *Rejected*; recovered the portability via single-file + injected seam.
 2. **Pip-installable package (pyproject + entry points)** — most product-grade, but convention drift (no
    other plugin packages). *Deferred.*
@@ -177,6 +177,6 @@ all cross-links resolve; new YAML validates with the generator's loader (FM3).
 ## 7. Unverified claims carried forward (settling steps)
 - `statecode=1`/`statuscode=2`/`category=5` enum — `[unverified — training knowledge]`; settle by a live
   `workflow` EntityDefinitions / Web API query in a real org before trusting a 204; doc carries the marker.
-- 403 ConnectionAuthorizationFailed transient-vs-durable boundary — `[unverified — BTCSI-empirical + G1-consistent]`;
+- 403 ConnectionAuthorizationFailed transient-vs-durable boundary — `[unverified — Contoso-empirical + G1-consistent]`;
   settle by reproducing both causes in a target env; the two-cause handler degrades safely either way.
 - pac secret-input (env/file vs argv) on the target pac version — verify at build time; accept-risk+document if argv-only.

@@ -5,11 +5,11 @@
 > sessions and can't be overwritten/lost. See [[feedback_no_overwrite_redo_work]] (memory).
 
 ## Context
-Filing extraction pipeline: BTCSI Insight Power Platform app
+Filing extraction pipeline: Contoso Insight Power Platform app
 Flow: `FilingIntake-Process-Action-MultiSubmission` (FIPA)
 FIPA ID (DEV): `332049b0-ca53-f111-bec7-7ced8d663e7c`
-Draft: `src/flows-draft/BTCSIReporting/FilingIntake-Process-Action-MultiSubmission.json`
-DEV env: `https://btcsidev.crm3.dynamics.com`
+Draft: `src/flows-draft/ContosoReporting/FilingIntake-Process-Action-MultiSubmission.json`
+DEV env: `https://contosodev.crm3.dynamics.com`
 
 ## Symptom
 Only BS (Balance Sheet) and IS (Income Statement) extractor flows are being triggered.
@@ -31,41 +31,41 @@ have action branches for AR, CF, LIQ, AML, ARF, ARI or only BS and IS?
 
 Command to fetch live FIPA:
 ```
-GET https://btcsidev.crm3.dynamics.com/api/data/v9.2/workflows(332049b0-ca53-f111-bec7-7ced8d663e7c)?$select=clientdata,name
+GET https://contosodev.crm3.dynamics.com/api/data/v9.2/workflows(332049b0-ca53-f111-bec7-7ced8d663e7c)?$select=clientdata,name
 ```
 
 ### Q2: Is the classifier correctly identifying multi-filing submissions?
 The classifier flow (`FilingTypeClassifier-Trigger`) reads the document and sets
-`btcsi_filingtype` and `btcsi_ismultisubmission`. If it's not identifying AR/CF/LIQ sections,
+`contoso_filingtype` and `contoso_ismultisubmission`. If it's not identifying AR/CF/LIQ sections,
 FIPA won't dispatch those extractors.
 
-Check: `btcsi_filingintakes` records — what is `btcsi_filingtype` and `btcsi_classifiedsections`
+Check: `contoso_filingintakes` records — what is `contoso_filingtype` and `contoso_classifiedsections`
 on a recent run that was expected to have multiple filing types?
 
 ### Q3: MULTI_SUB_SECTIONS entity sets
 The UI queries these entity sets for section records:
-- BS:  `btcsi_balancesheets` (filter: `btcsi_filingintakeid`)
-- IS:  `btcsi_incomestatements` (filter: `btcsi_filingintakeid`)
-- CF:  `btcsi_cashflows` (filter: `btcsi_filingintakeid`)
-- LIQ: `btcsi_liquidityanalysises` (filter: `btcsi_filingintakeid`)
-- AR:  `btcsi_auditorsreports` (filter: `btcsi_filingintakeid`)
+- BS:  `contoso_balancesheets` (filter: `contoso_filingintakeid`)
+- IS:  `contoso_incomestatements` (filter: `contoso_filingintakeid`)
+- CF:  `contoso_cashflows` (filter: `contoso_filingintakeid`)
+- LIQ: `contoso_liquidityanalysises` (filter: `contoso_filingintakeid`)
+- AR:  `contoso_auditorsreports` (filter: `contoso_filingintakeid`)
 
 Are records being created in CF/LIQ/AR entity sets for any intake?
 
 ### Q4: AR outstanding schema issue
 AR extractor has a known open issue (AR-7 from architecture-tracker.md):
-`btcsi_auditorsreport` is missing the `btcsi_filingintakeid` lookup column.
+`contoso_auditorsreport` is missing the `contoso_filingintakeid` lookup column.
 Without this FK, FIPA cannot create or link AR records, and the AR extractor
 cannot be filtered by intake. This may be blocking AR entirely.
 
 ### Q5: Connection reference
-All extractor flows bind to `btcsi_sharedcommondataserviceforapps_spn`.
+All extractor flows bind to `contoso_sharedcommondataserviceforapps_spn`.
 If CF/LIQ/AR extractor flows are OFF (disabled) in DEV, FIPA will fail silently
 when trying to call them as child flows.
 
 Check flow states:
 ```
-GET btcsidev.crm3.dynamics.com/api/data/v9.2/workflows?$filter=category eq 5 and statecode eq 0
+GET contosodev.crm3.dynamics.com/api/data/v9.2/workflows?$filter=category eq 5 and statecode eq 0
     &$select=name,statecode,statuscode
 ```
 
@@ -80,9 +80,9 @@ GET btcsidev.crm3.dynamics.com/api/data/v9.2/workflows?$filter=category eq 5 and
 ## Recommended investigation steps (in priority order)
 1. Fetch live FIPA clientdata → map all action branches → confirm AR/CF/LIQ branches exist
 2. Check statecode of CF/LIQ/AR extractor flows — if OFF, activate them
-3. Check a recent failed/processed intake → what does `btcsi_classifiedsections` contain?
-4. Confirm AR-7 (btcsi_filingintakeid FK on btcsi_auditorsreport) status
+3. Check a recent failed/processed intake → what does `contoso_classifiedsections` contain?
+4. Confirm AR-7 (contoso_filingintakeid FK on contoso_auditorsreport) status
 5. Check if FIPA live version still has `Call_IS_Extractor_Existing` in IS FALSE-branch
 
 ## Draft file location
-`src/flows-draft/BTCSIReporting/FilingIntake-Process-Action-MultiSubmission.json`
+`src/flows-draft/ContosoReporting/FilingIntake-Process-Action-MultiSubmission.json`

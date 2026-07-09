@@ -34,7 +34,7 @@ A trust crisis underpins demand (models ~34% more confident when wrong — *unve
 
 ### T1 — Agent governance & assurance for non-developer small shops running Claude Code / Copilot CLI (TOP PICK)
 - **Demand evidence:** CISO "SOC 2 three years ago" framing (prefactor.tech); insurance exclusions live Jan 2026 (adversa.ai, traverselegal.com); only ~22% treat agents as distinct entities (Gravitee, unverified); dev-niche governance is thin (github.com/KbWen/agentic-os).
-- **Asset fit:** Near-perfect 1:1 — tribunal=Approval, comfort-posture=Permission, event substrate=Audit Trail, Ragnarök/reset=Kill Switch; cross-platform bridge already runs on a real consumer repo (BTCSI).
+- **Asset fit:** Near-perfect 1:1 — tribunal=Approval, comfort-posture=Permission, event substrate=Audit Trail, Ragnarök/reset=Kill Switch; cross-platform bridge already runs on a real consumer repo (Contoso).
 - **Whitespace:** Highest of all territories. Enterprise tier is crowded/funded (Galileo, Microsoft Toolkit); the *non-developer small-shop* seat is empty. Window estimated 12–18 months before identity/observability players expand down.
 - **Simplicity angle:** One promise — "your AI agents, on a leash you can see." Posture presets (strict/balanced/exploratory) so nobody authors a rule by hand; tribunal verdict log + audit dashboard as the visible trust signal in the first 5 minutes.
 

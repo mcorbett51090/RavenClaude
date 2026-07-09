@@ -110,7 +110,7 @@ These are the signals that should make the next session re-read this file:
 
 The next 90 days don't change the strategy; they execute it. In rough order:
 
-1. **Keep dogfooding `ravenclaude-core` on real engagements** — the BTCSI customer DEV run is the canonical loop. Every lesson learned ships back as a `knowledge/` entry on the right plugin.
+1. **Keep dogfooding `ravenclaude-core` on real engagements** — the Contoso customer DEV run is the canonical loop. Every lesson learned ships back as a `knowledge/` entry on the right plugin.
 2. **Ship a recognizable demo of the framework on the marketing site** (`ravenpower.net`) — the dashboard, the tribunal panel, the constellation aesthetic. The site is the front-door; right now it's an empty room.
 3. **Resist adding more domain plugins on speculation.** Twelve is already plenty. The next plugin earns its way in on a real engagement signal, not on "this would be cool to have."
 4. **Continue the v0.101.0 followup discipline** — small, focused PRs that close real gaps. The discipline of the marketplace's CI gates + audit-gates meta-test is exactly the *kind* of work the public layer should keep showing off.

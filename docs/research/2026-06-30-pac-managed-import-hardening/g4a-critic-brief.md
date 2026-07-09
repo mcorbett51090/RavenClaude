@@ -8,7 +8,7 @@ The gap-delta catches where A and B DISAGREE. This gate catches where they AGREE
 Both plans wrap `pac solution import` as the spine of the orchestrator. But that half is the LOW-value,
 HIGH-maintenance half: `pac`'s flag surface evolves (G1 already showed two flags Microsoft now
 discourages), and most real pipelines already run `pac import` via Power Platform Build Tools / ADO
-tasks. BTCSI's own notes say "ADO pipeline wiring lives ADO-side." The genuinely novel, hard-to-get-
+tasks. Contoso's own notes say "ADO pipeline wiring lives ADO-side." The genuinely novel, hard-to-get-
 right, nobody-else-does-it part is **baseline → reactivate (baseline-aware, retry) → verify** via the
 Dataverse Web API. **Mitigation:** make the reactivation+verify pass the spine and a fully usable
 standalone path (`reactivate`/`verify` subcommands work without ever calling `pac`); keep the
@@ -25,17 +25,17 @@ skill dir (like preflight.py); drop the new-scripts/-surface framing and the hea
 motivated.
 
 ### CE-3 — Both treat the `statecode` PATCH activation mechanism as settled; it is [unverified]
-Both inherit from BTCSI that reactivation = PATCH `statecode`/`statuscode` on the `workflow` row, and
+Both inherit from Contoso that reactivation = PATCH `statecode`/`statuscode` on the `workflow` row, and
 both add only a `[verify-at-use]` doc note. But the activation mechanism for MODERN cloud flows is the
 load-bearing assumption the whole tool rests on, and G1 could not surface the enum/mechanism from
-first-party docs (only that the Dataverse Web API is the supported transport). BTCSI confirmed it
+first-party docs (only that the Dataverse Web API is the supported transport). Contoso confirmed it
 EMPIRICALLY for one tenant. **Mitigation:** the script must (a) PATCH both statecode AND statuscode,
 (b) post-PATCH re-query to confirm it actually took (both panels have this — keep it), and (c) on a flow
 that won't activate, degrade to a clear actionable warning rather than asserting success; (d) the docs
 carry the [unverified] marker + the route to confirm (live query of `workflow` EntityDefinitions).
 
 ### CE-4 — Both conflate the two causes of `ConnectionAuthorizationFailed` (403)
-Both port BTCSI's "403 → retry with backoff (3×, 15s/45s)" as if every 403 is transient propagation lag.
+Both port Contoso's "403 → retry with backoff (3×, 15s/45s)" as if every 403 is transient propagation lag.
 But G1 claim 7 is explicit: the importing identity must HAVE PERMISSION to the connection to turn a flow
 on. So a 403 has TWO causes: (a) transient — the connection-reference binding hasn't propagated yet
 (retry fixes it); (b) durable — the SPN genuinely lacks permission to the connection (retry NEVER fixes
@@ -46,7 +46,7 @@ remediation ("share the connection with the importing identity / bind the connec
 a generic retry-failed message.
 
 ### CE-5 — Both ship impersonation as an available knob (privilege-escalation footgun)
-Both keep BTCSI's `--impersonate-oid` (acts as another Dataverse user via the caller header). BTCSI
+Both keep Contoso's `--impersonate-oid` (acts as another Dataverse user via the caller header). Contoso
 NEEDED it (flow-ownership requirement). But a generalized copy-paste tool that exposes "act as any
 user" by availability is exactly what ages into a security finding. **Mitigation:** OFF by default,
 GUID-validated, gated behind an explicit flag, documented `prvActOnBehalfOfAnotherUser` prerequisite +

@@ -44,7 +44,7 @@ Every load-bearing claim above either has a cited source verified this session O
 
 Owner: Matt. Effort: ~quarter-day (mostly memory + log review).
 
-- Read the `Copilot bridge in active use` memory + the BTCSI session logs (or whatever active consumer
+- Read the `Copilot bridge in active use` memory + the Contoso session logs (or whatever active consumer
   repo is the truth-source).
 - Enumerate the **last 20 Copilot-CLI sessions**.
 - For each, mark "would have benefited from Team Lead fan-out" Y/N with a one-line justification.
@@ -919,7 +919,7 @@ Phase 1's ~3.5 days displaces equivalent calendar time. Matt picks consciously b
 
 ## Open questions remaining (for Matt to answer before scheduling Phase 0)
 
-1. Is BTCSI the right truth-source for Phase −1 demand validation, or another active consumer?
+1. Is Contoso the right truth-source for Phase −1 demand validation, or another active consumer?
 2. If Phase 0 Probe 3 lands in "metered API key required" — is Matt willing to budget the per-call
    cost, or does that auto-kill the plan?
 3. Phase 5 (if usage <3 in 60 days): is deprecation-and-removal acceptable, or does Matt want a

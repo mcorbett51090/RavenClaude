@@ -6,7 +6,7 @@
 
 ## What the gate requires
 
-> Read the `Copilot bridge in active use` memory + the BTCSI session logs (or whatever active
+> Read the `Copilot bridge in active use` memory + the Contoso session logs (or whatever active
 > consumer repo is the truth-source). Enumerate the **last 20 Copilot-CLI sessions**. For each, mark
 > "would have benefited from Team Lead fan-out" Y/N. **Pass: ≥3 Y → proceed; else PARK.**
 
@@ -20,7 +20,7 @@ lives outside this marketplace repo.
 | `docs/session-log.md` | Marketplace-development sessions (building the plugins), **not** Copilot-CLI fan-out usage. Not the truth-source. |
 | User-scoped memory (`~/.claude/projects/*/memory/`) | No `Copilot bridge in active use` memory present in this container. |
 | `.ravenclaude/runs/` | Only this session's `runaway/` counters — no multi-seat / fan-out run artifacts. |
-| BTCSI session logs / active consumer repo | **Not accessible** from this ephemeral environment. |
+| Contoso session logs / active consumer repo | **Not accessible** from this ephemeral environment. |
 
 Conclusion: the data needed to enumerate 20 real Copilot-CLI sessions and mark fan-out benefit is
 **not available here**. Producing a 20-row table would require fabricating sessions — which the
@@ -33,7 +33,7 @@ the orchestrator hybrid is **PARKED**. It is *not* a "no": it is "not yet valida
 
 ## To clear the gate (one of)
 
-1. **Matt fills the table below** from the BTCSI / active-consumer Copilot-CLI history (last 20
+1. **Matt fills the table below** from the Contoso / active-consumer Copilot-CLI history (last 20
    sessions). If ≥3 are "Y", the gate passes and Phase 0 (feasibility spike) begins.
 2. **Point me at the session logs** (paste, or a path I can read) and I'll enumerate + score them
    here, then build if it passes.

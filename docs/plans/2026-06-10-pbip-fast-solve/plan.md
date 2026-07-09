@@ -6,7 +6,7 @@
 The PBIP knowledge is deep but **scattered** across ~10 `knowledge/` files with no symptom→fix router, so the agent trial-and-errors (the card-color bug = 6 attempts). Fix = a triage router + a graceful-degradation authoritative-source chain + a consult-first agent prior.
 
 ## ⚠️ Load-bearing constraint: MCP-optional, never MCP-dependent
-The owner's client org (BTCSIReporting) **bans all MCPs**. The Microsoft Learn MCP is therefore an **optional accelerator**, never the authoritative route. **Every official fact the router relies on must be either (a) captured in our reference, or (b) reachable by a cited direct URL (WebFetch) — never *only* via the MCP.** The system must work with MCPs banned AND degrade further if network egress is also restricted (our captured reference is the zero-dependency floor).
+The owner's client org (ContosoReporting) **bans all MCPs**. The Microsoft Learn MCP is therefore an **optional accelerator**, never the authoritative route. **Every official fact the router relies on must be either (a) captured in our reference, or (b) reachable by a cited direct URL (WebFetch) — never *only* via the MCP.** The system must work with MCPs banned AND degrade further if network egress is also restricted (our captured reference is the zero-dependency floor).
 
 ## Source precedence — graceful degradation (the heart of the design)
 | Tier | Source | Needs | Role |
