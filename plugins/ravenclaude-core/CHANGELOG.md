@@ -2,6 +2,12 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.188.0 — 2026-07-09
+
+### Added
+
+- **New best-practice: [`scope-a-skill-to-one-workflow-the-description-is-what-triggers-it.md`](best-practices/scope-a-skill-to-one-workflow-the-description-is-what-triggers-it.md)** (28 rules total). Scope a skill to **one workflow** and write its `description` as the **trigger** (`Use when …`), because the `name`+`description` is the only tier Claude preloads and matches on to decide whether the skill fires — the body loads only afterward. A skill that does too much fails both ways: it won't fire when it should (a compound/abstract description can't match a concrete request) and it fires at the wrong moment (it triggers on a request that wanted only one of its five jobs). The **scope/trigger** sibling of `keep-skill-bodies-lean` (which owns the body **token-budget** axis) and the skill-tier counterpart of the marketplace's own ≤300-char agent-description routing cap. Distilled from the 2026-07-09 Claude-community subreddit scan; grounded against the Anthropic Agent Skills primary docs. Additive markdown — no consumer migration.
+
 ## 0.187.4 — 2026-07-08
 
 ### Fixed
