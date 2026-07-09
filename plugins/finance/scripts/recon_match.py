@@ -49,6 +49,7 @@ human's attention by materiality; it does not certify the underlying transaction
 
 Stdlib only (csv/json/argparse). Python 3.8+.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -56,8 +57,8 @@ import csv
 import json
 import sys
 
-EXACT_EPS = 0.005          # "equal to the cent"
-DEFAULT_TOLERANCE = 1.00   # bank rounding / FX pennies band for a tolerance match
+EXACT_EPS = 0.005  # "equal to the cent"
+DEFAULT_TOLERANCE = 1.00  # bank rounding / FX pennies band for a tolerance match
 
 
 def _read_csv(path: str) -> list[dict]:
@@ -76,15 +77,17 @@ def load_lines(path: str, side: str) -> list[dict]:
             amount = round(float(row.get("amount") or 0), 2)
         except ValueError:
             raise SystemExit(f"{path}:{i} non-numeric amount for account {acct!r}")
-        out.append({
-            "id": f"{side}#{len(out) + 1}",
-            "side": side,
-            "account": acct,
-            "reference": (row.get("reference") or "").strip(),
-            "amount": amount,
-            "description": (row.get("description") or "").strip(),
-            "matched": False,
-        })
+        out.append(
+            {
+                "id": f"{side}#{len(out) + 1}",
+                "side": side,
+                "account": acct,
+                "reference": (row.get("reference") or "").strip(),
+                "amount": amount,
+                "description": (row.get("description") or "").strip(),
+                "matched": False,
+            }
+        )
     return out
 
 
@@ -97,8 +100,12 @@ def _by_account(lines: list[dict]) -> dict:
 
 def _line_ref(ln: dict) -> dict:
     """Compact, trail-safe view of a line (no internal mutable flags)."""
-    return {"id": ln["id"], "reference": ln["reference"],
-            "amount": ln["amount"], "description": ln["description"]}
+    return {
+        "id": ln["id"],
+        "reference": ln["reference"],
+        "amount": ln["amount"],
+        "description": ln["description"],
+    }
 
 
 def match_account(gl: list[dict], sub: list[dict], tolerance: float) -> dict:
@@ -110,15 +117,17 @@ def match_account(gl: list[dict], sub: list[dict], tolerance: float) -> dict:
             ln["matched"] = True
         g_amt = round(sum(x["amount"] for x in gl_lines), 2)
         s_amt = round(sum(x["amount"] for x in sub_lines), 2)
-        matches.append({
-            "type": mtype,
-            "reference": (gl_lines or sub_lines)[0]["reference"],
-            "gl": [_line_ref(x) for x in gl_lines],
-            "subledger": [_line_ref(x) for x in sub_lines],
-            "gl_amount": g_amt,
-            "subledger_amount": s_amt,
-            "delta": round(g_amt - s_amt, 2),
-        })
+        matches.append(
+            {
+                "type": mtype,
+                "reference": (gl_lines or sub_lines)[0]["reference"],
+                "gl": [_line_ref(x) for x in gl_lines],
+                "subledger": [_line_ref(x) for x in sub_lines],
+                "gl_amount": g_amt,
+                "subledger_amount": s_amt,
+                "delta": round(g_amt - s_amt, 2),
+            }
+        )
 
     # Stage 1 — exact (reference + amount to the cent).
     for g in gl:
@@ -160,9 +169,14 @@ def match_account(gl: list[dict], sub: list[dict], tolerance: float) -> dict:
             _record("grouped", gl_groups[ref], sub_groups[ref])
 
     breaks = [
-        {"side": ln["side"], "reference": ln["reference"], "amount": ln["amount"],
-         "description": ln["description"]}
-        for ln in gl + sub if not ln["matched"]
+        {
+            "side": ln["side"],
+            "reference": ln["reference"],
+            "amount": ln["amount"],
+            "description": ln["description"],
+        }
+        for ln in gl + sub
+        if not ln["matched"]
     ]
 
     gl_total = round(sum(x["amount"] for x in gl), 2)
@@ -174,8 +188,12 @@ def match_account(gl: list[dict], sub: list[dict], tolerance: float) -> dict:
     # items. Matched pairs cancel by construction; if this fails the ladder is buggy.
     unmatched_gl = round(sum(x["amount"] for x in gl if not x["matched"]), 2)
     unmatched_sub = round(sum(x["amount"] for x in sub if not x["matched"]), 2)
-    assert abs(residual - round(unmatched_gl - unmatched_sub, 2)) < 0.01, \
-        "residual != net of unmatched breaks (match-ladder invariant violated)"
+    # A bare `assert` is compiled out under `python -O`; raise explicitly so this
+    # match-ladder invariant survives an optimized run.
+    if abs(residual - round(unmatched_gl - unmatched_sub, 2)) >= 0.01:
+        raise SystemExit(
+            "internal error: residual != net of unmatched breaks (match-ladder invariant violated)"
+        )
 
     return {
         "gl_total": gl_total,
@@ -187,8 +205,9 @@ def match_account(gl: list[dict], sub: list[dict], tolerance: float) -> dict:
     }
 
 
-def reconcile(gl_lines: list[dict], sub_lines: list[dict], materiality: float,
-              tolerance: float) -> dict:
+def reconcile(
+    gl_lines: list[dict], sub_lines: list[dict], materiality: float, tolerance: float
+) -> dict:
     gl_by = _by_account(gl_lines)
     sub_by = _by_account(sub_lines)
     accounts = []
@@ -202,18 +221,21 @@ def reconcile(gl_lines: list[dict], sub_lines: list[dict], materiality: float,
         status = "AUTO-CERTIFIED" if auto else "FLAGGED"
         if auto:
             n_auto += 1
-            cert = (f"review-by-exception: unexplained residual "
-                    f"{res['residual']:,.2f} within materiality {materiality:,.2f}"
-                    f" — auto-certified.")
+            cert = (
+                f"review-by-exception: unexplained residual "
+                f"{res['residual']:,.2f} within materiality {materiality:,.2f}"
+                f" — auto-certified."
+            )
         else:
             n_flag += 1
-            cert = (f"FLAG for human: unexplained residual {res['residual']:,.2f} "
-                    f">= materiality {materiality:,.2f} — a controller must clear it.")
+            cert = (
+                f"FLAG for human: unexplained residual {res['residual']:,.2f} "
+                f">= materiality {materiality:,.2f} — a controller must clear it."
+            )
         for m in res["matches"]:
             tallies[m["type"]] += 1
         n_breaks += len(res["breaks"])
-        accounts.append({"account": acct, "status": status, **res,
-                         "certification": cert})
+        accounts.append({"account": acct, "status": status, **res, "certification": cert})
     tallies["total"] = tallies["exact"] + tallies["tolerance"] + tallies["grouped"]
     return {
         "materiality_threshold": materiality,
@@ -235,29 +257,47 @@ def reconcile(gl_lines: list[dict], sub_lines: list[dict], materiality: float,
     }
 
 
-def run(entity: dict, gl_path: str, sub_path: str, tolerance: float,
-        materiality_override=None) -> dict:
-    materiality = (float(materiality_override) if materiality_override is not None
-                   else float(entity.get("materiality_threshold", 0)))
-    result = reconcile(load_lines(gl_path, "GL"), load_lines(sub_path, "SUB"),
-                       materiality, tolerance)
-    result = {"entity": entity.get("entity_name"),
-              "period": entity.get("fiscal_period"), **result}
+def run(
+    entity: dict, gl_path: str, sub_path: str, tolerance: float, materiality_override=None
+) -> dict:
+    materiality = (
+        float(materiality_override)
+        if materiality_override is not None
+        else float(entity.get("materiality_threshold", 0))
+    )
+    result = reconcile(
+        load_lines(gl_path, "GL"), load_lines(sub_path, "SUB"), materiality, tolerance
+    )
+    result = {"entity": entity.get("entity_name"), "period": entity.get("fiscal_period"), **result}
     return result
 
 
 def main(argv=None) -> int:
     p = argparse.ArgumentParser(
-        description="Reconciliation auto-match + threshold auto-certification.")
+        description="Reconciliation auto-match + threshold auto-certification."
+    )
     p.add_argument("--entity", required=True, help="entity profile JSON (materiality source)")
-    p.add_argument("--gl", required=True, help="GL journal-line CSV: account,reference,amount[,description]")
+    p.add_argument(
+        "--gl", required=True, help="GL journal-line CSV: account,reference,amount[,description]"
+    )
     p.add_argument("--subledger", required=True, help="sub-ledger / bank line CSV (same columns)")
-    p.add_argument("--tolerance", type=float, default=DEFAULT_TOLERANCE,
-                   help=f"amount epsilon for a tolerance/grouped match (default {DEFAULT_TOLERANCE})")
-    p.add_argument("--materiality", type=float, default=None,
-                   help="override the entity's materiality_threshold")
-    p.add_argument("--strict", action="store_true",
-                   help="exit non-zero if any account is FLAGGED (blocks the close)")
+    p.add_argument(
+        "--tolerance",
+        type=float,
+        default=DEFAULT_TOLERANCE,
+        help=f"amount epsilon for a tolerance/grouped match (default {DEFAULT_TOLERANCE})",
+    )
+    p.add_argument(
+        "--materiality",
+        type=float,
+        default=None,
+        help="override the entity's materiality_threshold",
+    )
+    p.add_argument(
+        "--strict",
+        action="store_true",
+        help="exit non-zero if any account is FLAGGED (blocks the close)",
+    )
     p.add_argument("--out", help="write result JSON here (else stdout)")
     a = p.parse_args(argv)
 
@@ -269,9 +309,11 @@ def main(argv=None) -> int:
         with open(a.out, "w") as fh:
             fh.write(text + "\n")
         s = result["summary"]
-        print(f"wrote {a.out}  auto-certified {s['auto_certified']}/{s['accounts']} "
-              f"accounts, flagged {s['flagged']}, breaks {s['breaks']}, "
-              f"matches {s['matches']['total']}")
+        print(
+            f"wrote {a.out}  auto-certified {s['auto_certified']}/{s['accounts']} "
+            f"accounts, flagged {s['flagged']}, breaks {s['breaks']}, "
+            f"matches {s['matches']['total']}"
+        )
     else:
         print(text)
 
@@ -279,7 +321,8 @@ def main(argv=None) -> int:
         sys.stderr.write(
             f"BLOCKED (--strict): {result['summary']['flagged']} account(s) FLAGGED "
             f"above materiality — a human controller must clear them before the close "
-            f"can advance.\n")
+            f"can advance.\n"
+        )
         return 3
     return 0
 

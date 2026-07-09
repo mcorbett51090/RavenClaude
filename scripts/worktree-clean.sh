@@ -50,6 +50,10 @@ remove_one() {
     printf 'error: slug must match [A-Za-z0-9._-]+\n' >&2
     return 2
   fi
+  # The charset above permits '.' — explicitly reject the traversal slugs it would otherwise allow.
+  case "$slug" in
+    .|..) printf 'error: slug may not be . or ..\n' >&2; return 2 ;;
+  esac
   local wt_dir="$WT_ROOT/$slug"
   if [ ! -d "$wt_dir" ]; then
     printf 'error: worktree not found: %s\n' "$wt_dir" >&2

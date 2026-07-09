@@ -47,6 +47,16 @@ command -v _ee_resolve_session >/dev/null 2>&1 || _ee_resolve_session() {
   [ -n "$_sid" ] && { printf '%s' "$_sid"; return 0; }
   printf '%s' "unknown"
 }
+# Fallback path-safe sanitizer (2026-07-09 P2 review): this hook does
+# `mkdir -p`/`touch` under runs/$sess/, so an unsanitized traversal session id
+# (`.`/`..`) is an out-of-sandbox directory+file WRITE primitive. Apply the same
+# PR #363 hardening _emit_hook_event uses; MUST match guard-web-access.sh so the
+# writer and reader agree on the seen-file path.
+command -v _ee_sanitize_session >/dev/null 2>&1 || _ee_sanitize_session() {
+  local s; s="$(printf '%s' "${1:-}" | tr -dc 'A-Za-z0-9._-' | cut -c1-128)"
+  case "$s" in .|.. | "") s="unknown" ;; esac
+  printf '%s' "$s"
+}
 
 # Read the tool call as JSON on stdin. Only act on WebFetch.
 tool=""
@@ -79,7 +89,7 @@ proj="${CLAUDE_PROJECT_DIR:-$PWD}"
 # Resolve the session id exactly as guard-web-access.sh does (payload .session_id
 # on native Claude Code, where CLAUDE_SESSION_ID is not exported) so the writer
 # and reader agree on runs/<sess>/web-first-seen/<domain>.
-sess="$(_ee_resolve_session)"
+sess="$(_ee_sanitize_session "$(_ee_resolve_session)")"
 
 # Same per-session, per-domain seen-file path guard-web-access.sh consults.
 dom_slug="$(printf '%s' "$host" | tr -dc 'A-Za-z0-9.-' | cut -c1-80)"

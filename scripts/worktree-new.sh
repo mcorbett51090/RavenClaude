@@ -26,6 +26,10 @@ if ! printf '%s' "$SLUG" | grep -qE '^[A-Za-z0-9._-]+$'; then
   printf 'error: slug must match [A-Za-z0-9._-]+\n' >&2
   exit 2
 fi
+# The charset above permits '.' — explicitly reject the traversal slugs it would otherwise allow.
+case "$SLUG" in
+  .|..) printf 'error: slug may not be . or ..\n' >&2; exit 2 ;;
+esac
 
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 WT_DIR="$REPO_ROOT/.claude/worktrees/$SLUG"

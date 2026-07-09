@@ -38,6 +38,17 @@ command -v _ee_resolve_session >/dev/null 2>&1 || _ee_resolve_session() {
   [ -n "$_sid" ] && { printf '%s' "$_sid"; return 0; }
   printf '%s' "unknown"
 }
+# Fallback path-safe sanitizer (2026-07-09 P2 review): the resolved session id
+# is interpolated into runs/$sess/... paths below, so it MUST get the same
+# PR #363 hardening _emit_hook_event applies — strip to the allowlist, cap
+# length, reject the pure-dot ids `.`/`..` that would resolve the path OUT of
+# runs/. Without this a hostile session id is a traversal read primitive here
+# (and a mkdir/touch write primitive in mark-web-domain-seen.sh).
+command -v _ee_sanitize_session >/dev/null 2>&1 || _ee_sanitize_session() {
+  local s; s="$(printf '%s' "${1:-}" | tr -dc 'A-Za-z0-9._-' | cut -c1-128)"
+  case "$s" in .|.. | "") s="unknown" ;; esac
+  printf '%s' "$s"
+}
 
 # Read the tool call as JSON on stdin (canonical contract). Only act on WebFetch.
 tool=""
@@ -65,7 +76,7 @@ host="${host%.}"   # strip a trailing FQDN dot: `evil.com.` is DNS-equivalent to
 
 proj="${CLAUDE_PROJECT_DIR:-$PWD}"
 cfg="$proj/.ravenclaude/web-access.yaml"
-sess="$(_ee_resolve_session)"
+sess="$(_ee_sanitize_session "$(_ee_resolve_session)")"
 sess_allow="$proj/.ravenclaude/runs/$sess/web-allow.txt"
 
 # Does $1 match any of $2.. (exact host or a subdomain of the rule)?

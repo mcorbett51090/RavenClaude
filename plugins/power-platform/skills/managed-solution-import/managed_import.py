@@ -38,6 +38,7 @@ warning rather than asserting success, so a tenant that behaves differently fail
 silently green. Verified against pac 2.7.x / Dataverse Web API v9.2 on 2026-06-30 —
 re-verify on pac upgrades.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -220,7 +221,7 @@ def prod_guard_verdict(
         return False, f"{env_name} is not a PROD-guarded environment"
     if approved:
         return False, "PROD import explicitly --approved"
-    window = (pg.get("business_hours") or {})
+    window = pg.get("business_hours") or {}
     win = window.get("window") if isinstance(window, dict) else window
     if not win:
         return False, "no business-hours window configured"
@@ -283,8 +284,11 @@ def reactivation_targets(baseline_active: list[dict], current_flows: list[dict])
     targets = []
     for f in current_flows:
         key = flow_key(f)
-        if key is not None and key in active_keys \
-                and int(f.get("statecode", STATE_DRAFT)) == STATE_DRAFT:
+        if (
+            key is not None
+            and key in active_keys
+            and int(f.get("statecode", STATE_DRAFT)) == STATE_DRAFT
+        ):
             targets.append(f)
     return targets
 
@@ -329,8 +333,11 @@ def _build_opener(host_ok) -> urllib.request.OpenerDirector:  # noqa: ANN001
             new = (urlparse(newurl).hostname or "").lower()
             if new != old or not host_ok(new):
                 raise urllib.error.HTTPError(
-                    req.full_url, code,
-                    f"refused redirect to {new!r} (cross-host or not allow-listed)", headers, fp,
+                    req.full_url,
+                    code,
+                    f"refused redirect to {new!r} (cross-host or not allow-listed)",
+                    headers,
+                    fp,
                 )
             return super().redirect_request(req, fp, code, msg, headers, newurl)
 
@@ -351,9 +358,21 @@ def acquire_token(org_url: str) -> str:
         # Fall back to the az CLI path (knowledge file path 2) if it is present + logged in.
         try:
             out = subprocess.run(  # noqa: S603
-                ["az", "account", "get-access-token", "--resource", f"https://{host}",
-                 "--query", "accessToken", "-o", "tsv"],
-                capture_output=True, text=True, timeout=30, check=True,
+                [
+                    "az",
+                    "account",
+                    "get-access-token",
+                    "--resource",
+                    f"https://{host}",
+                    "--query",
+                    "accessToken",
+                    "-o",
+                    "tsv",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=30,
+                check=True,
             )
             tok = out.stdout.strip()
             if tok:
@@ -366,12 +385,17 @@ def acquire_token(org_url: str) -> str:
             "authenticated — see knowledge/dataverse-token-acquisition.md for the token ladder"
         )
     _register_secret(secret)
-    body = urllib.parse.urlencode({
-        "client_id": cid, "client_secret": secret, "grant_type": "client_credentials",
-        "scope": f"https://{host}/.default",
-    }).encode()
+    body = urllib.parse.urlencode(
+        {
+            "client_id": cid,
+            "client_secret": secret,
+            "grant_type": "client_credentials",
+            "scope": f"https://{host}/.default",
+        }
+    ).encode()
     req = urllib.request.Request(
-        f"https://login.microsoftonline.com/{tenant}/oauth2/v2.0/token", data=body,
+        f"https://login.microsoftonline.com/{tenant}/oauth2/v2.0/token",
+        data=body,
         headers={"Content-Type": "application/x-www-form-urlencoded"},
     )
     try:
@@ -389,30 +413,47 @@ def _api_base(org_url: str) -> str:
 
 def _headers(token: str, impersonate_oid: str | None) -> dict:
     h = {
-        "Authorization": f"Bearer {token}", "Accept": "application/json",
-        "Content-Type": "application/json", "OData-MaxVersion": "4.0", "OData-Version": "4.0",
+        "Authorization": f"Bearer {token}",
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+        "OData-MaxVersion": "4.0",
+        "OData-Version": "4.0",
     }
     if impersonate_oid:
         h["CallerObjectId"] = impersonate_oid  # AAD object-id impersonation [verify-at-use]
     return h
 
 
-def query_solution_flows(opener, org_url: str, token: str, impersonate_oid: str | None) -> list[dict]:
+def query_solution_flows(
+    opener, org_url: str, token: str, impersonate_oid: str | None
+) -> list[dict]:
     """Best-effort live query of category=5 workflows. Degrades on error like preflight.py."""
     url = (
         f"{_api_base(org_url)}/workflows?$select=workflowid,name,uniquename,statecode,statuscode"
         f"&$filter=category eq {FLOW_CATEGORY}"
     )
-    req = urllib.request.Request(url, headers=_headers(token, impersonate_oid))
-    with opener.open(req, timeout=60) as r:  # noqa: S310
-        return json.loads(r.read().decode()).get("value", [])
+    rows: list[dict] = []
+    # Dataverse pages at 5000 rows — follow @odata.nextLink until exhausted so a large
+    # environment's flows beyond the first page aren't silently missed. Every page reuses
+    # the SAME guarded opener / host-allowlist / auth headers as the initial request.
+    while url:
+        req = urllib.request.Request(url, headers=_headers(token, impersonate_oid))
+        with opener.open(req, timeout=60) as r:  # noqa: S310
+            page = json.loads(r.read().decode())
+        rows.extend(page.get("value", []))
+        url = page.get("@odata.nextLink")
+    return rows
 
 
-def patch_flow_active(opener, org_url: str, token: str, wid: str, impersonate_oid: str | None) -> None:
+def patch_flow_active(
+    opener, org_url: str, token: str, wid: str, impersonate_oid: str | None
+) -> None:
     body = json.dumps({"statecode": STATE_ACTIVE, "statuscode": STATUS_ACTIVE}).encode()
     req = urllib.request.Request(
-        f"{_api_base(org_url)}/workflows({wid})", data=body,
-        headers=_headers(token, impersonate_oid), method="PATCH",
+        f"{_api_base(org_url)}/workflows({wid})",
+        data=body,
+        headers=_headers(token, impersonate_oid),
+        method="PATCH",
     )
     opener.open(req, timeout=60).close()  # noqa: S310
 
@@ -475,8 +516,10 @@ def _read_baseline(args) -> list[dict]:
     try:
         return json.load(open(path, encoding="utf-8")).get("active_flows", [])
     except FileNotFoundError:
-        _eprint(f"[managed-import] baseline file {path} not found — run `baseline` first; "
-                "refusing to report success without a baseline (reactivation must be baseline-aware)")
+        _eprint(
+            f"[managed-import] baseline file {path} not found — run `baseline` first; "
+            "refusing to report success without a baseline (reactivation must be baseline-aware)"
+        )
         raise SystemExit(EXIT_USAGE) from None
 
 
@@ -486,11 +529,14 @@ def cmd_reactivate(args, cfg) -> int:
     token = acquire_token(env_url)
     opener = _build_opener(is_allowed_dataverse_host)
     current = query_solution_flows(opener, env_url, token, oid)
-    keyless = [f for f in current
-               if flow_key(f) is None and int(f.get("statecode", 0)) == STATE_DRAFT]
+    keyless = [
+        f for f in current if flow_key(f) is None and int(f.get("statecode", 0)) == STATE_DRAFT
+    ]
     if keyless:
-        _eprint(f"[managed-import] {len(keyless)} Draft flow(s) lack a solution unique name and "
-                "were skipped (cannot stably identify; refusing to match on display name)")
+        _eprint(
+            f"[managed-import] {len(keyless)} Draft flow(s) lack a solution unique name and "
+            "were skipped (cannot stably identify; refusing to match on display name)"
+        )
     targets = reactivation_targets(baseline_active, current)
     if not targets:
         print(json.dumps({"targeted": 0, "activated": 0, "note": "no Draft baseline-Active flows"}))
@@ -503,21 +549,30 @@ def cmd_reactivate(args, cfg) -> int:
         ok = False
         for attempt in range(args.max_retries):
             if args.dry_run:
-                _eprint(f"[dry-run] would PATCH {name} ({wid}) -> Active"); ok = True; break
+                _eprint(f"[dry-run] would PATCH {name} ({wid}) -> Active")
+                ok = True
+                break
             try:
                 patch_flow_active(opener, env_url, token, wid, oid)
                 # FM6: a 204 is not proof — re-query and assert BOTH codes.
                 again = query_solution_flows(opener, env_url, token, oid)
                 now = next((x for x in again if x["workflowid"] == wid), None)
-                if now and int(now.get("statecode", 0)) == STATE_ACTIVE \
-                        and int(now.get("statuscode", 0)) == STATUS_ACTIVE:
-                    ok = True; break
-                _eprint(f"[managed-import] {name}: PATCH returned but flow is not Active — retrying")
+                if (
+                    now
+                    and int(now.get("statecode", 0)) == STATE_ACTIVE
+                    and int(now.get("statuscode", 0)) == STATUS_ACTIVE
+                ):
+                    ok = True
+                    break
+                _eprint(
+                    f"[managed-import] {name}: PATCH returned but flow is not Active — retrying"
+                )
             except urllib.error.HTTPError as e:
                 if e.code == 403 and attempt < args.max_retries - 1:
                     w = waits[attempt] if attempt < len(waits) else waits[-1]
                     _eprint(f"[managed-import] {name}: 403 (attempt {attempt + 1}); waiting {w}s")
-                    time.sleep(w); continue
+                    time.sleep(w)
+                    continue
                 if e.code == 403:
                     _eprint(f"[managed-import] {name}: {is_durable_403(f'{e.code} {e.reason}')}")
                 else:
@@ -536,9 +591,15 @@ def cmd_verify(args, cfg) -> int:
     opener = _build_opener(is_allowed_dataverse_host)
     current = query_solution_flows(opener, env_url, token, oid)
     still_draft = reactivation_targets(baseline_active, current)
-    print(json.dumps({
-        "expected_active": len(baseline_active), "still_draft": [f.get("name") for f in still_draft],
-    }, indent=2))
+    print(
+        json.dumps(
+            {
+                "expected_active": len(baseline_active),
+                "still_draft": [f.get("name") for f in still_draft],
+            },
+            indent=2,
+        )
+    )
     return EXIT_OK if not still_draft else EXIT_PARTIAL
 
 
@@ -561,9 +622,13 @@ def cmd_preflight(args, cfg) -> int:
         logical = cr.get("LogicalName")
         if not logical:
             continue
-        safe = quote(str(logical).replace("'", "''"), safe="")  # OData-escape + URL-encode the value
-        url = (f"{base}/connectionreferences?$select=connectionreferenceid,connectionid"
-               f"&$filter=connectionreferencelogicalname eq '{safe}'")
+        safe = quote(
+            str(logical).replace("'", "''"), safe=""
+        )  # OData-escape + URL-encode the value
+        url = (
+            f"{base}/connectionreferences?$select=connectionreferenceid,connectionid"
+            f"&$filter=connectionreferencelogicalname eq '{safe}'"
+        )
         try:
             req = urllib.request.Request(url, headers=_headers(token, oid))
             rows = json.loads(opener.open(req, timeout=60).read().decode()).get("value", [])
@@ -573,8 +638,10 @@ def cmd_preflight(args, cfg) -> int:
         if not rows:
             missing.append(logical)
     if missing:
-        _eprint(f"[managed-import] preflight: {len(missing)} connection reference(s) absent in "
-                f"target env: {missing}")
+        _eprint(
+            f"[managed-import] preflight: {len(missing)} connection reference(s) absent in "
+            f"target env: {missing}"
+        )
         return EXIT_OK if args.force_preflight else EXIT_PREFLIGHT
     print(json.dumps({"preflight": "ok", "connection_references_checked": len(crefs)}, indent=2))
     return EXIT_OK
@@ -585,13 +652,16 @@ def cmd_import(args, cfg) -> int:
     # Step 0 — PROD guard (FM7: aware datetime; approved honored before tz can hard-fail).
     if _classified_prod(args.env, cfg):
         from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
         tzname = ((cfg.get("prod_guard") or {}).get("timezone")) or "UTC"
         try:
             now = datetime.now(ZoneInfo(tzname))
         except ZoneInfoNotFoundError:
             if not args.approved:
-                _eprint(f"[managed-import] PROD guard: timezone {tzname!r} unavailable "
-                        "(install tzdata) — cannot prove safe; pass --approved to override")
+                _eprint(
+                    f"[managed-import] PROD guard: timezone {tzname!r} unavailable "
+                    "(install tzdata) — cannot prove safe; pass --approved to override"
+                )
                 return EXIT_PROD_GUARD
             now = datetime.now().astimezone()
         blocked, reason = prod_guard_verdict(now, args.env, cfg.get("prod_guard"), args.approved)
@@ -610,8 +680,11 @@ def cmd_import(args, cfg) -> int:
     cmd_baseline(args, cfg)
     # Step 3 — pac import.
     argv = build_pac_argv(
-        args.solution_path, env_url, settings_file,
-        activate_plugins=True, publish_changes=args.publish_changes,
+        args.solution_path,
+        env_url,
+        settings_file,
+        activate_plugins=True,
+        publish_changes=args.publish_changes,
         force_overwrite=args.force_overwrite,
     )
     if args.dry_run:
@@ -630,23 +703,32 @@ def cmd_import(args, cfg) -> int:
 
 def _pac_on_path() -> bool:
     from shutil import which
+
     return which("pac") is not None
 
 
 # ── CLI ─────────────────────────────────────────────────────────────────────────
 def build_parser() -> argparse.ArgumentParser:
-    ap = argparse.ArgumentParser(prog="managed_import.py", description=__doc__,
-                                 formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap = argparse.ArgumentParser(
+        prog="managed_import.py",
+        description=__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
     sub = ap.add_subparsers(dest="cmd", required=True)
 
     def common(p):
         p.add_argument("--env-url", help="Dataverse org URL (https://org.crm.dynamics.com)")
         p.add_argument("--env", help="named env from --config (resolves url/settings/oid)")
         p.add_argument("--config", help="path to a secret-free JSON config file")
-        p.add_argument("--impersonate-oid", help="AAD object-id to impersonate (GUID; OFF by "
-                       "default — needs prvActOnBehalfOfAnotherUser; flows run under that user's "
-                       "connections)")
-        p.add_argument("--baseline-file", help="baseline JSON path (default ./pp-import-baseline.json)")
+        p.add_argument(
+            "--impersonate-oid",
+            help="AAD object-id to impersonate (GUID; OFF by "
+            "default — needs prvActOnBehalfOfAnotherUser; flows run under that user's "
+            "connections)",
+        )
+        p.add_argument(
+            "--baseline-file", help="baseline JSON path (default ./pp-import-baseline.json)"
+        )
         p.add_argument("--dry-run", action="store_true", help="print the plan; change nothing")
 
     for name, fn, helptext in [
@@ -654,31 +736,58 @@ def build_parser() -> argparse.ArgumentParser:
         ("verify", cmd_verify, "report flows still Draft vs baseline (exit 10 if any)"),
         ("baseline", cmd_baseline, "capture currently-Active solution flows"),
         ("preflight", cmd_preflight, "validate the settings file's connection refs vs the env"),
-        ("import", cmd_import, "full pipeline (guard->preflight->baseline->pac->reactivate->verify)"),
+        (
+            "import",
+            cmd_import,
+            "full pipeline (guard->preflight->baseline->pac->reactivate->verify)",
+        ),
     ]:
         p = sub.add_parser(name, help=helptext)
         common(p)
         p.set_defaults(_fn=fn)
         if name in ("reactivate", "verify", "import"):
-            p.add_argument("--max-retries", type=int, default=3, help="403 retry attempts (default 3)")
-            p.add_argument("--retry-wait", type=int, default=15, help="base backoff seconds (default 15)")
+            p.add_argument(
+                "--max-retries", type=int, default=3, help="403 retry attempts (default 3)"
+            )
+            p.add_argument(
+                "--retry-wait", type=int, default=15, help="base backoff seconds (default 15)"
+            )
         if name in ("preflight", "import"):
-            p.add_argument("--settings-file", help="deploymentSettings.json (connection refs/env vars)")
-            p.add_argument("--force-preflight", action="store_true", help="continue past preflight gaps")
+            p.add_argument(
+                "--settings-file", help="deploymentSettings.json (connection refs/env vars)"
+            )
+            p.add_argument(
+                "--force-preflight", action="store_true", help="continue past preflight gaps"
+            )
         if name == "import":
             p.add_argument("--solution-path", help="path to the managed solution .zip")
-            p.add_argument("--approved", action="store_true", help="override the PROD business-hours guard")
+            p.add_argument(
+                "--approved", action="store_true", help="override the PROD business-hours guard"
+            )
             p.add_argument("--skip-preflight", action="store_true")
-            p.add_argument("--publish-changes", action="store_true",
-                           help="OPT-IN: pass --publish-changes (discouraged for managed imports)")
-            p.add_argument("--force-overwrite", action="store_true",
-                           help="OPT-IN: pass --force-overwrite (discouraged; slows the import)")
+            p.add_argument(
+                "--publish-changes",
+                action="store_true",
+                help="OPT-IN: pass --publish-changes (discouraged for managed imports)",
+            )
+            p.add_argument(
+                "--force-overwrite",
+                action="store_true",
+                help="OPT-IN: pass --force-overwrite (discouraged; slows the import)",
+            )
     # ensure the non-import commands still expose settings/preflight attrs the resolver reads
     for p in sub.choices.values():
-        for attr, default in (("settings_file", None), ("force_preflight", False),
-                              ("max_retries", 3), ("retry_wait", 15), ("solution_path", None),
-                              ("approved", False), ("skip_preflight", False),
-                              ("publish_changes", False), ("force_overwrite", False)):
+        for attr, default in (
+            ("settings_file", None),
+            ("force_preflight", False),
+            ("max_retries", 3),
+            ("retry_wait", 15),
+            ("solution_path", None),
+            ("approved", False),
+            ("skip_preflight", False),
+            ("publish_changes", False),
+            ("force_overwrite", False),
+        ):
             if not any(a.dest == attr for a in p._actions):  # noqa: SLF001
                 p.set_defaults(**{attr: default})
     return ap
