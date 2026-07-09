@@ -69,4 +69,16 @@ python3 -m pip install --quiet --disable-pip-version-check qrcode >/dev/null 2>&
   && log "  done" \
   || log "  SKIP: qrcode not installed (serve-dashboards.py will print the URL + a hint instead)."
 
+# ── Terminal status indicators (dogfood the ravenclaude-core skill) ──────────
+# Wires VS Code tab 🔔 + chime + the idle-watcher so parallel agent terminals
+# announce when they need input. Idempotent; the installer only ADDS absent
+# settings keys and refreshes its own marker-bounded ~/.bashrc block in place.
+TI_SETUP="plugins/ravenclaude-core/skills/terminal-status-indicators/setup-terminal-indicators.sh"
+if [ -f "$TI_SETUP" ]; then
+  log "Installing terminal status indicators (bell + chime + idle-watcher)..."
+  bash "$TI_SETUP" --project "$PWD" >/dev/null 2>&1 \
+    && log "  done — open a new terminal, then 'watch-terminals'" \
+    || log "  SKIP: terminal-indicators setup failed (non-fatal)."
+fi
+
 log "Setup complete. Available tools: claude, gh, node."

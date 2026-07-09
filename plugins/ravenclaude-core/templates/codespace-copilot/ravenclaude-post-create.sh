@@ -103,4 +103,14 @@ fi
 log "Wiring this repo for Copilot (skills + hooks + MCP + posture + alias)..."
 bash "$RC_DIR/scripts/ravenclaude" setup --project "$PWD"
 
+# 5. Terminal status indicators — VS Code tab 🔔 + chime + idle-watcher so parallel
+#    agent terminals announce when they need input. Idempotent; non-fatal.
+TI_SETUP="$RC_DIR/plugins/ravenclaude-core/skills/terminal-status-indicators/setup-terminal-indicators.sh"
+if [ -f "$TI_SETUP" ]; then
+  log "Installing terminal status indicators (bell + chime + idle-watcher)..."
+  bash "$TI_SETUP" --project "$PWD" >/dev/null 2>&1 \
+    && log "  done — open a new terminal, then 'watch-terminals'" \
+    || log "  SKIP: terminal-indicators setup failed (non-fatal)."
+fi
+
 log "Setup complete. Open a NEW terminal and type 'rc' to launch Copilot with RavenClaude."

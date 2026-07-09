@@ -2,6 +2,25 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.189.0 — 2026-07-09
+
+### Added
+
+- **`terminal-status-indicators` skill** — makes VS Code terminal tabs show 🔔 + play a chime the
+  moment a background agent session needs input, across many parallel Copilot/Claude terminals. Three
+  layers: workspace settings (tab bell icon + audio cue + ⟳ shell-integration indicator), a `~/.bashrc`
+  prompt hook (bell on command completion, interactive shells only), and a background watcher
+  (`terminal-watcher.py`) that reads `/proc/<pid>/io` `wchar` and rings a terminal's PTY bell when its
+  agent process goes idle after responding. Ships an idempotent `setup-terminal-indicators.sh`
+  installer (non-destructive settings merge + marker-bounded shell block + version-agnostic watcher
+  path) wired into this repo's `.devcontainer/post-create.sh` and the `codespace-copilot` consumer
+  template so a new Codespace self-configures. The watcher carries fixes for six real failure modes
+  (accumulate-across-ticks so streaming responses ring; ring-once-per-PTY so a shell wrapper + binary
+  don't double-bell; PTY re-resolution; single-instance pidfile guard; no spurious startup bell;
+  interactive-shell guard) — design + proof-of-failure in
+  [`knowledge/vscode-terminal-status-indicators.md`](knowledge/vscode-terminal-status-indicators.md).
+  Skill count 47 → 48.
+
 ## 0.188.4 — 2026-07-09
 
 ### Changed
