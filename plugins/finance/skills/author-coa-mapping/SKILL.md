@@ -17,7 +17,7 @@ description: "Author and validate the per-entity chart-of-accounts → statement
 A CSV, one row per GL account:
 
 ```
-account,description,statement,section,line,normal_balance,cf_category,noncash
+account,description,statement,section,line,normal_balance
 ```
 
 - `statement` ∈ `IS` | `BS`
@@ -25,7 +25,6 @@ account,description,statement,section,line,normal_balance,cf_category,noncash
 - `section` (BS) ∈ `CurrentAssets` `NonCurrentAssets` `CurrentLiabilities` `NonCurrentLiabilities` `Equity`
 - `line` — the statement line label the account rolls into
 - `normal_balance` ∈ `debit` | `credit` (validation + documentation; presentation sign is derived from the **section**, which is what makes contra-accounts — e.g. accumulated depreciation — correct)
-- `cf_category` (optional) `operating` | `investing` | `financing`; `noncash` (optional) `true` for depreciation/amortization
 
 ## Authoring discipline
 
