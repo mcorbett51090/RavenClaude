@@ -2,6 +2,12 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.188.2 — 2026-07-09
+
+### Fixed
+
+- **`refine-to-rubric`: judge-graded hard gates are no longer silently unenforced** (2026-07-09 repo review, Decision 3 — approved). A library rubric row combining `hard_gate=yes` with a judge-only (empty / `_(judge)_`) `objective_signal` was parsed into a dimension carrying `hard_gate=true`, but `evaluate.py` routes empty-signal dims to `judge_dims` and never records a `hard_gates` entry — so that gate could never block convergence. `derive_rubric.py`'s `parse_library` now **warns and neutralizes** the unenforceable flag (downgrades it to a scored, non-gating dimension), matching the design invariant that objective gates are deterministic and judge scorecards are never tripwires. No shipped rubric declared this shape, so behavior on the shipped library is unchanged.
+
 ## 0.188.1 — 2026-07-09
 
 ### Fixed

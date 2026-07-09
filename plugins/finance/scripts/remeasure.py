@@ -257,8 +257,6 @@ def translate(entity: dict, mapping: dict, tb: list, rates: dict, presentation: 
             "section": "Equity",
             "line": CTA_LINE,
             "normal_balance": "credit",
-            "cf_category": "",
-            "noncash": False,
             "rate_class": "EQUITY_RE",
         }
         translated.append({"account": CTA_ACCT, "description": CTA_LINE, "debit": d, "credit": c})
@@ -279,8 +277,6 @@ def translate(entity: dict, mapping: dict, tb: list, rates: dict, presentation: 
             "section": "OtherIncomeExpense",
             "line": REMEAS_LINE,
             "normal_balance": "credit",
-            "cf_category": "",
-            "noncash": False,
             "rate_class": "REV_EXP",
         }
         translated.append(

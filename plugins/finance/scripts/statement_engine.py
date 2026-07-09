@@ -74,7 +74,7 @@ def _read_csv(path: str) -> list[dict]:
 
 
 def load_mapping(path: str) -> dict:
-    """account -> {statement, section, line, normal_balance, cf_category, noncash}."""
+    """account -> {statement, section, line, normal_balance}."""
     m: dict[str, dict] = {}
     for i, row in enumerate(_read_csv(path), 2):
         acct = (row.get("account") or "").strip()
@@ -87,8 +87,6 @@ def load_mapping(path: str) -> dict:
             "section": (row.get("section") or "").strip(),
             "line": (row.get("line") or "").strip(),
             "normal_balance": (row.get("normal_balance") or "").strip().lower(),
-            "cf_category": (row.get("cf_category") or "").strip().lower(),
-            "noncash": (row.get("noncash") or "").strip().lower() in ("1", "true", "yes"),
         }
     return m
 
