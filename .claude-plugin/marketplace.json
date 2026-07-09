@@ -322,7 +322,7 @@
     {
       "name": "finance",
       "source": "./plugins/finance",
-      "description": "Corporate finance & FP&A specialist team \u2014 FP&A analyst (budgets, forecasts, variance commentary), financial modeler (3-statement, DCF, scenarios), controller (close, JEs, reconciliations), treasury analyst (cash, covenants, FX), valuation analyst (DCF + comps + precedent), audit-prep specialist (PBC, walkthroughs, SOC1/2 narratives), and board-pack composer. 23 skills incl. a gold-standard NetSuite close (OAuth2 M2M + SuiteQL BS/IS trial balance, layperson runbook), 10 templates, a knowledge bank (ASC 805 / 718 / 740, accrual-cutoff, WACC, cost accounting, FP&A operating model + decision support, NetSuite integration landscape), 2 advisory hooks (hardcoded rates / plaintext PII / missing Sources / Assumptions; secrets-PII scan). Inherits ravenclaude-core protocols.",
+      "description": "Corporate finance & FP&A specialist team — FP&A analyst (budgets, forecasts, variance commentary), financial modeler (3-statement, DCF, scenarios), controller (close, JEs, reconciliations), treasury analyst (cash, covenants, FX), valuation analyst (DCF + comps + precedent), audit-prep specialist (PBC, walkthroughs, SOC1/2 narratives), and board-pack composer. 23 skills incl. a gold-standard NetSuite close (OAuth2 M2M + SuiteQL BS/IS trial balance, layperson runbook), 10 templates, a knowledge bank (ASC 805 / 718 / 740, accrual-cutoff, WACC, cost accounting, FP&A operating model + decision support, NetSuite integration landscape), 2 advisory hooks (hardcoded rates / plaintext PII / missing Sources / Assumptions; secrets-PII scan). Inherits ravenclaude-core protocols.",
       "version": "0.18.0",
       "author": {
         "name": "Matt Corbett"
@@ -3288,6 +3288,234 @@
         "reverse-etl",
         "instrumentation",
         "analytics"
+      ]
+    },
+    {
+      "name": "ai-red-teaming",
+      "source": "./plugins/ai-red-teaming",
+      "description": "AI/LLM red-teaming team — 2 agents (ai-redteam-lead, adversarial-testing-engineer) for the layer answering 'can this AI system be made to do harm, leak data, or exceed its authority — and how do we harden it?': threat modeling + rules of engagement, the attack taxonomy (OWASP LLM Top 10 2025 + MITRE ATLAS), direct vs indirect prompt injection, jailbreaks (roleplay/encoding/many-shot/crescendo), data exfiltration & training-data extraction, agentic tool-abuse / excessive agency, multimodal attacks, and defense-in-depth remediation. Fluent in automated red-team harnesses (PyRIT, Garak, Promptfoo red-team, Giskard) and likelihood×impact severity. 3 skills, a 2-doc knowledge bank (attack-taxonomy decision tree + 2026 patterns), and 2 templates. Distinct from llm-evaluation-engineering (quality-regression eval), trust-and-safety (content-moderation / T&S policy), and security-engineering (app/infra pentest) — the adversarial AI-security layer over model- and agent-based systems. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "ai-red-teaming",
+        "llm-security",
+        "prompt-injection",
+        "jailbreak",
+        "owasp-llm-top-10",
+        "mitre-atlas",
+        "ai-safety",
+        "adversarial-testing",
+        "pyrit",
+        "garak",
+        "agentic-security"
+      ]
+    },
+    {
+      "name": "technical-seo-engineering",
+      "source": "./plugins/technical-seo-engineering",
+      "description": "Technical-SEO & search-engineering team — 2 agents (seo-strategy-architect, seo-implementation-engineer) for the layer answering 'can search engines CRAWL, RENDER, INDEX, and UNDERSTAND this site, and will it RANK?': crawl-budget & log analysis, indexation control (robots.txt, meta robots, canonicalization, noindex), JS rendering (CSR/SSR/SSG, dynamic-rendering deprecation), structured data / schema.org (JSON-LD, rich-result eligibility), site architecture & internal linking, E-E-A-T, Core Web Vitals as a ranking factor (INP replaced FID in 2024), international SEO (hreflang), site migrations (redirect mapping, staging noindex), and topical authority. 3 skills, a 2-doc knowledge bank (strategy decision tree + 2026 patterns), and 2 templates. Distinct from search-relevance-engineering (internal site-search relevance), web-design (the full website build & visual design), and marketing-operations (paid ads / campaign strategy) — this is the organic-search-engineering layer. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "technical-seo",
+        "crawl-budget",
+        "indexation",
+        "structured-data",
+        "schema-org",
+        "core-web-vitals",
+        "hreflang",
+        "site-migration",
+        "internal-linking",
+        "e-e-a-t",
+        "search-console",
+        "topical-authority"
+      ]
+    },
+    {
+      "name": "self-storage-operations",
+      "source": "./plugins/self-storage-operations",
+      "description": "Self-storage operations team — 2 agents (self-storage-operations-lead for facility operations, staffing, access control/gate/cameras, climate, maintenance/curb appeal, move-in/out flow, remote-kiosk & multi-site; storage-revenue-and-occupancy-specialist for street vs in-place rate, ECRIs as the core profit lever, dynamic pricing, physical vs economic occupancy, unit-mix, the delinquency & lien process/auction, and tenant-insurance/ancillary revenue). Fluent in PMS platforms (Storable/SiteLink/storEDGE, Easy Storage Solutions, Yardi), aggregators (SpareFoot/Neighbor), auction platforms (StorageTreasures/Lockerfox), and REIT benchmarks (Public Storage, Extra Space, CubeSmart). 3 skills, a 2-doc knowledge bank (operations decision tree + 2026 patterns), and 2 templates. Distinct from commercial-real-estate (leasing/investment), property-management (residential), and field-service-management (dispatch). Lien law varies by US state and is not legal advice. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "self-storage",
+        "revenue-management",
+        "ecri",
+        "dynamic-pricing",
+        "occupancy",
+        "delinquency-lien",
+        "storage-auction",
+        "tenant-insurance",
+        "facility-operations",
+        "storable-sitelink",
+        "unit-mix",
+        "remote-storage"
+      ]
+    },
+    {
+      "name": "funeral-home-operations",
+      "source": "./plugins/funeral-home-operations",
+      "description": "Funeral-home & deathcare operations team — 2 grief-aware agents for a funeral director, owner, or manager. `funeral-operations-lead` runs the business: case flow (first call → removal → arrangement → preparation → services → billing → aftercare), staffing & on-call, capacity, pre-need, aftercare, and margins. `funeral-arrangement-and-compliance-specialist` owns the arrangement conference and the FTC Funeral Rule: General/Casket/Outer-Burial-Container price lists, itemization, telephone-price and embalming-not-required disclosures, cremation authorization & chain-of-custody, vital records, and permits across burial, cremation, aquamation, and green burial. 3 skills, a 2-doc knowledge bank (Mermaid compliance decision tree + 2026 operations patterns), 2 templates. Not cemetery interment (out of scope), not clinical grief therapy (behavioral-health-practice), not bookkeeping (accounting-bookkeeping). Requires ravenclaude-core@>=0.7.0. Not legal advice — deathcare law varies by state/country.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "funeral-home",
+        "deathcare",
+        "ftc-funeral-rule",
+        "general-price-list",
+        "arrangement-conference",
+        "cremation",
+        "pre-need",
+        "at-need",
+        "vital-records",
+        "disposition",
+        "funeral-operations"
+      ]
+    },
+    {
+      "name": "grants-management",
+      "source": "./plugins/grants-management",
+      "description": "Grantee-side grants-management team — 2 agents (grants-strategy-lead, grants-compliance-and-reporting-specialist) for the full grant lifecycle: pre-award PIPELINE & STRATEGY (prospect research + funder fit 'fit-before-effort', go/no-go, logic model, needs statement, SMART objectives, evaluation plan, budget narrative, LOI→full-proposal assembly) and post-award COMPLIANCE & REPORTING (2 CFR 200 cost principles, indirect rates / NICRA / de minimis, time & effort, procurement, SF-425 FFR + RPPR, subrecipient-vs-contractor determination & monitoring, Single Audit, closeout). Fluent in federal mechanics (SAM.gov, Grants.gov, SF-424 family, UEI) and grants systems (Fluxx, Submittable, Instrumentl). 3 skills, a 2-doc knowledge bank + 2 templates. NOT individual/major-donor fundraising (nonprofit-fundraising), NOT grantmaking policy design (public-sector-govtech), NOT general bookkeeping (accounting-bookkeeping). Not legal/accounting advice. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "grants-management",
+        "grant-writing",
+        "grant-compliance",
+        "uniform-guidance",
+        "2-cfr-200",
+        "indirect-cost-rate",
+        "grants-gov",
+        "sam-gov",
+        "subrecipient-monitoring",
+        "single-audit",
+        "nonprofit-grants",
+        "federal-grants"
+      ]
+    },
+    {
+      "name": "bioinformatics-engineering",
+      "source": "./plugins/bioinformatics-engineering",
+      "description": "Bioinformatics & genomics-pipeline team — 2 agents (bioinformatics-workflow-architect, genomics-pipeline-engineer) for the layer answering 'which workflow engine, reference, and compute strategy, and how do we build a reproducible, validated genomics pipeline?': engine choice (Nextflow/nf-core, Snakemake, WDL+Cromwell/miniwdl, CWL), reference build (GRCh38 vs T2T-CHM13) + core steps (QC, trimming, alignment BWA-MEM2/minimap2/STAR/Salmon, dedup, variant calling GATK/DeepVariant, joint genotyping), RNA-seq (DESeq2/edgeR) and single-cell (Scanpy/Seurat), reproducibility (Docker/Apptainer, Conda/Bioconda, pinned versions, FAIR, provenance), HPC-vs-cloud scaling and cost, and validation vs GIAB/hap.py truth sets. 3 skills, a 2-doc knowledge bank (pipeline decision tree + 2026 workflow-patterns reference), and 2 templates. Distinct from ml-engineering (generic MLOps/model training), clinical-trials (trial operations/regulatory), and data-platform (warehouse/BI). Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "bioinformatics",
+        "genomics",
+        "nextflow",
+        "nf-core",
+        "snakemake",
+        "wdl",
+        "variant-calling",
+        "gatk",
+        "rna-seq",
+        "reference-genome",
+        "reproducibility",
+        "ngs-pipeline"
+      ]
+    },
+    {
+      "name": "waste-recycling-operations",
+      "source": "./plugins/waste-recycling-operations",
+      "description": "Waste & recycling operations team — 2 agents (waste-operations-lead, route-and-diversion-specialist) answering 'how do we collect, haul, dispose of, and divert waste PROFITABLY, SAFELY, and in COMPLIANCE?': collection streams (MSW, recycling, organics, C&D; residential/commercial/roll-off), fleet (front/rear/side-load ASL, roll-off, RNG/EV), transfer stations & Subtitle D landfill (tipping fees, airspace), RCRA Subtitle D compliance, DOT/CDL safety — plus route optimization (density is the profit driver; static vs dynamic; RouteWare/Routeware-AMCS/Trux), diversion measurement, MRF & commodity economics (OCC/PET/HDPE/aluminum/mixed paper; contamination is the killer; post-National-Sword prices), and mandates (EPR, SB 1383, landfill bans). 3 skills, a 2-doc knowledge bank, 2 templates. Distinct from esg-sustainability-reporting (corporate disclosure), fleet-logistics (generic telematics/DOT), and hazardous-waste RCRA Subtitle C response (out of scope). Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "waste-management",
+        "recycling",
+        "route-optimization",
+        "diversion-rate",
+        "landfill-diversion",
+        "mrf",
+        "commodity-recycling",
+        "epr",
+        "organics-diversion",
+        "collection-fleet",
+        "tipping-fees",
+        "contamination"
+      ]
+    },
+    {
+      "name": "audio-dsp-engineering",
+      "source": "./plugins/audio-dsp-engineering",
+      "description": "Audio DSP engineering team — 2 agents (audio-dsp-architect, dsp-implementation-engineer) for the layer answering 'what processing architecture, at what latency, on what platform — and how do we make the audio callback real-time-safe and fast?': processing model (block vs sample-by-sample), latency & buffer budget, fixed vs float + denormals, algorithm approach (IIR biquads / FIR, FFT/STFT overlap-add, oversampling/anti-aliasing), plugin formats & frameworks (JUCE, VST3, AU/AUv3, AAX, CLAP, LV2), audio I/O (CoreAudio, ASIO, WASAPI, ALSA/JACK, Web Audio), lock-free parameter passing, spatial/binaural (HRTF), embedded DSP (CMSIS-DSP), SIMD, and measurement (null tests, THD+N, frequency response). 3 skills, a 2-doc knowledge bank (decision tree + 2026 patterns), and 2 templates. Distinct from streaming-media-engineering (codecs/delivery), conversational-ai-voice-engineering (voice AI agents), and embedded-iot-engineering (general firmware) — this is the real-time signal-processing layer. Needs ravenclaude-core.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "audio-dsp",
+        "real-time-audio",
+        "juce",
+        "vst3",
+        "clap",
+        "biquad-filters",
+        "fft-stft",
+        "denormals",
+        "simd-neon",
+        "oversampling",
+        "spatial-audio",
+        "audio-plugins"
+      ]
+    },
+    {
+      "name": "digital-twin-engineering",
+      "source": "./plugins/digital-twin-engineering",
+      "description": "Digital-twin engineering team — 2 agents (digital-twin-architect, twin-integration-engineer) for the layer answering 'what should this twin MODEL, at what FIDELITY, and does it MATCH the real asset?': twin taxonomy (asset vs process vs system-of-systems; descriptive/predictive/prescriptive; digital-shadow vs true bidirectional), only-as-much-fidelity-as-the-decision-needs, modeling approach (physics vs data-driven/surrogate/reduced-order vs hybrid), telemetry ingestion (MQTT/OPC-UA/Kafka, edge vs cloud), state sync/drift/calibration, simulation & what-if, and fidelity validation. Fluent in DTDL + Azure Digital Twins, ISO 23247, AAS, Eclipse Ditto, NVIDIA Omniverse, Unity/Unreal, Bentley/Siemens. 3 skills, a 2-doc knowledge bank (decision tree + 2026 patterns), and 2 templates. Distinct from embedded-iot-engineering (device firmware), robotics-autonomous-systems-engineering (robot control/autonomy), and data-platform (BI/warehouse). Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "digital-twin",
+        "dtdl",
+        "azure-digital-twins",
+        "iso-23247",
+        "asset-administration-shell",
+        "eclipse-ditto",
+        "nvidia-omniverse",
+        "physics-simulation",
+        "reduced-order-model",
+        "predictive-maintenance",
+        "telemetry-ingestion",
+        "twin-fidelity"
+      ]
+    },
+    {
+      "name": "museum-cultural-institution-operations",
+      "source": "./plugins/museum-cultural-institution-operations",
+      "description": "Museum & cultural-institution operations team — 2 agents (museum-operations-lead, collections-and-engagement-specialist) for running a museum/gallery/historic-site: admissions & timed ticketing, dynamic vs free-admission pricing, tiered membership & development, visitor experience & accessibility, facilities, board governance, AAM accreditation, and the earned-vs-contributed revenue mix on one side; collections stewardship (accessioning/deaccessioning ethics, cataloging, provenance & NAGPRA due diligence, condition/environmental controls, loans, insurance/valuation), exhibitions (permanent/temporary/traveling lifecycle), CMS systems (TMS/Axiell/PastPerfect/CollectionSpace), and digital collections/IIIF/open-access publishing on the other. 3 skills, a 2-doc knowledge bank + 2 templates. Distinct from nonprofit-fundraising (individual-donor strategy), event-management (event production), and grants-management (grant lifecycle) — the museum-operations layer. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "museum-operations",
+        "collections-management",
+        "exhibitions",
+        "provenance",
+        "nagpra",
+        "aam-accreditation",
+        "museum-membership",
+        "timed-ticketing",
+        "digital-collections",
+        "iiif",
+        "collections-cms",
+        "cultural-institution"
       ]
     }
   ]

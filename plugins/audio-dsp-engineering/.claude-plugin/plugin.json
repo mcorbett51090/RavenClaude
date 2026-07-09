@@ -1,0 +1,27 @@
+{
+  "name": "audio-dsp-engineering",
+  "version": "0.1.0",
+  "description": "Audio DSP engineering team — 2 agents (audio-dsp-architect, dsp-implementation-engineer) for the layer answering 'what processing architecture, at what latency, on what platform — and how do we make the audio callback real-time-safe and fast?': processing model (block vs sample-by-sample), latency & buffer budget, fixed vs float + denormals, algorithm approach (IIR biquads / FIR, FFT/STFT overlap-add, oversampling/anti-aliasing), plugin formats & frameworks (JUCE, VST3, AU/AUv3, AAX, CLAP, LV2), audio I/O (CoreAudio, ASIO, WASAPI, ALSA/JACK, Web Audio), lock-free parameter passing, spatial/binaural (HRTF), embedded DSP (CMSIS-DSP), SIMD, and measurement (null tests, THD+N, frequency response). 3 skills, a 2-doc knowledge bank (decision tree + 2026 patterns), and 2 templates. Distinct from streaming-media-engineering (codecs/delivery), conversational-ai-voice-engineering (voice AI agents), and embedded-iot-engineering (general firmware) — this is the real-time signal-processing layer. Needs ravenclaude-core.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "audio-dsp",
+    "real-time-audio",
+    "juce",
+    "vst3",
+    "clap",
+    "biquad-filters",
+    "fft-stft",
+    "denormals",
+    "simd-neon",
+    "oversampling",
+    "spatial-audio",
+    "audio-plugins"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}

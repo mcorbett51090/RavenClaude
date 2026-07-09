@@ -1,0 +1,26 @@
+{
+  "name": "funeral-home-operations",
+  "version": "0.1.0",
+  "description": "Funeral-home & deathcare operations team — 2 grief-aware agents for a funeral director, owner, or manager. `funeral-operations-lead` runs the business: case flow (first call → removal → arrangement → preparation → services → billing → aftercare), staffing & on-call, capacity, pre-need, aftercare, and margins. `funeral-arrangement-and-compliance-specialist` owns the arrangement conference and the FTC Funeral Rule: General/Casket/Outer-Burial-Container price lists, itemization, telephone-price and embalming-not-required disclosures, cremation authorization & chain-of-custody, vital records, and permits across burial, cremation, aquamation, and green burial. 3 skills, a 2-doc knowledge bank (Mermaid compliance decision tree + 2026 operations patterns), 2 templates. Not cemetery interment (out of scope), not clinical grief therapy (behavioral-health-practice), not bookkeeping (accounting-bookkeeping). Requires ravenclaude-core@>=0.7.0. Not legal advice — deathcare law varies by state/country.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "funeral-home",
+    "deathcare",
+    "ftc-funeral-rule",
+    "general-price-list",
+    "arrangement-conference",
+    "cremation",
+    "pre-need",
+    "at-need",
+    "vital-records",
+    "disposition",
+    "funeral-operations"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}
