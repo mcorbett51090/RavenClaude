@@ -77,8 +77,31 @@ TI_SETUP="plugins/ravenclaude-core/skills/terminal-status-indicators/setup-termi
 if [ -f "$TI_SETUP" ]; then
   log "Installing terminal status indicators (bell + chime + idle-watcher)..."
   bash "$TI_SETUP" --project "$PWD" >/dev/null 2>&1 \
-    && log "  done — open a new terminal, then 'watch-terminals'" \
+    && log "  done" \
     || log "  SKIP: terminal-indicators setup failed (non-fatal)."
+fi
+
+# ── Auto-start the idle-watcher in interactive terminals ─────────────────────
+# The installer only DEFINES watch-terminals (opt-in by design). Wire an
+# idempotent, marker-bounded autostart snippet into ~/.bashrc so every
+# interactive VS Code terminal starts the watcher automatically — no manual
+# 'watch-terminals' each session. watch-terminals itself no-ops if the watcher
+# is already running, so opening N terminals still starts exactly one.
+BASHRC="${HOME}/.bashrc"
+AUTOSTART_BEGIN="# >>> ravenclaude terminal-watcher autostart >>>"
+if [ -f "$BASHRC" ] && ! grep -qxF "$AUTOSTART_BEGIN" "$BASHRC" 2>/dev/null; then
+  log "Wiring idle-watcher autostart into ~/.bashrc..."
+  cat >>"$BASHRC" <<'RCAUTOSTART'
+# >>> ravenclaude terminal-watcher autostart >>>
+# Auto-start the idle-watcher in interactive VS Code terminals so the tab bell
+# fires without a manual 'watch-terminals'. Idempotent (watch-terminals no-ops
+# if already running); silenced so it never clutters the prompt.
+if [[ $- == *i* ]] && { [[ -n "${VSCODE_INJECTION:-}" ]] || [[ -n "${VSCODE_SHELL_INTEGRATION:-}" ]] || [[ "$TERM" == xterm* ]]; } && type watch-terminals >/dev/null 2>&1; then
+    watch-terminals >/dev/null 2>&1
+fi
+# <<< ravenclaude terminal-watcher autostart <<<
+RCAUTOSTART
+  log "  done"
 fi
 
 log "Setup complete. Available tools: claude, gh, node."
