@@ -1,6 +1,6 @@
 {
   "name": "sales-revops",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Sales & Revenue Operations specialist team — 4 agents (revops-lead, pipeline-forecast-analyst, funnel-conversion-strategist, quota-territory-architect), 5 skills, 4 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. A RevOps team for a sales-ops leader or founder accountable for pipeline, forecast accuracy, and quota attainment — it reads pipeline as coverage-against-quota, forecasts from stage-weighted history, designs quota to capacity, and treats win-rate and sales-cycle as a funnel system. Inherits ravenclaude-core protocols.",
   "author": {
     "name": "Matt Corbett"

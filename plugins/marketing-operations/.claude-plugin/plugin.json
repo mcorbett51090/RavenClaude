@@ -1,6 +1,6 @@
 {
   "name": "marketing-operations",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Marketing Operations specialist team — 4 agents (marketing-ops-lead, demand-gen-funnel-analyst, attribution-analytics-specialist, martech-campaign-architect), 6 skills (incl. a content-marketing engine: intent briefs, topic clusters, distribution, leading-vs-lagging measurement), 4 templates, 5 commands, 1 advisory hook, 10 best-practice rules, and a 5-file research-grounded knowledge bank. A marketing-ops team for a CMO, demand-gen analyst, or founder accountable for pipeline contribution and CAC efficiency — it reads the MQL→SQL→opp→win funnel as a system, states the attribution model before any number, gates spend on LTV:CAC and payback, and reports revenue contribution over lead volume. Inherits ravenclaude-core protocols.",
   "author": {
     "name": "Matt Corbett"

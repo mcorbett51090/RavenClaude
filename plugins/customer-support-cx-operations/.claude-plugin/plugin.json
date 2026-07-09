@@ -1,6 +1,6 @@
 {
   "name": "customer-support-cx-operations",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Customer Support & CX Operations specialist team — 4 agents (support-ops-lead, ticket-deflection-analyst, queue-staffing-specialist, csat-quality-strategist), 5 skills, 4 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. A support-ops team for a head of support, CX manager, or founder accountable for cost-to-serve and SLA attainment — it deflects before hiring, staffs to forecast and occupancy, reads CSAT segmented, and treats backlog as arrivals-against-capacity flow. Inherits ravenclaude-core protocols.",
   "author": {
     "name": "Matt Corbett"

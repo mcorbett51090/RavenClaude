@@ -1,6 +1,6 @@
 {
   "name": "k12-school-administration",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "K-12 School Administration specialist team — 4 agents (school-administration-lead, enrollment-attendance-analyst, staffing-budget-specialist, student-outcomes-specialist), 5 skills, 4 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. An administration team for a principal, business manager, or district administrator accountable for enrollment, budget, and student outcomes — it manages enrollment as a funded pipeline, reads attendance/ADA as funding and an outcome signal, fits staffing to the budget envelope, flags chronic absenteeism early, and reads outcomes segmented. Inherits ravenclaude-core protocols.",
   "author": {
     "name": "Matt Corbett"

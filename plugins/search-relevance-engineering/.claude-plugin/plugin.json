@@ -1,6 +1,6 @@
 {
   "name": "search-relevance-engineering",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Search & Relevance Engineering specialist team — 4 agents (search-relevance-lead, relevance-tuning-analyst, indexing-mapping-specialist, query-performance-specialist), 5 skills, 4 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. A search team for a relevance engineer or platform lead accountable for search quality, latency, and conversion — it measures relevance with NDCG/MRR, treats analyzer/mapping decisions as relevance decisions, builds a judgment list before tuning, and validates online with A/B. Inherits ravenclaude-core protocols.",
   "author": {
     "name": "Matt Corbett"

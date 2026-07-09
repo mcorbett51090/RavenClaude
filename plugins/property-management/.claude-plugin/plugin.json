@@ -1,6 +1,6 @@
 {
   "name": "property-management",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Property Management Operations specialist team — 4 agents (property-management-lead, occupancy-leasing-analyst, maintenance-operations-specialist, noi-financial-analyst), 5 skills, 4 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. A property-operations team for a property/asset manager accountable for occupancy, NOI, and resident retention — it reads occupancy as a leasing funnel plus renewals, treats delinquency as cash with an aging clock, manages unit-turn time as cost and retention, and scores the asset on NOI not gross rent. Inherits ravenclaude-core protocols.",
   "author": {
     "name": "Matt Corbett"

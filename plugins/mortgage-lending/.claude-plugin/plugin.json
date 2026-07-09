@@ -1,6 +1,6 @@
 {
   "name": "mortgage-lending",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Mortgage Lending Operations specialist team — 4 agents (mortgage-lending-lead, pipeline-pullthrough-analyst, processing-cycle-specialist, compliance-quality-specialist), 5 skills, 4 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. An operations team for a production or ops leader accountable for pull-through, cycle time, capacity, and cost-to-originate — it reads pull-through as the funnel and fixes the fallout stage, ties cycle time to capacity and satisfaction, manages lock/pipeline risk, holds cost-to-originate as the unit economic, and routes every compliance question to counsel. Inherits ravenclaude-core protocols.",
   "author": {
     "name": "Matt Corbett"

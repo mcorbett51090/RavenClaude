@@ -1,6 +1,6 @@
 {
   "name": "process-improvement",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Lean Six Sigma process-improvement team — 2 specialist agents (lean-six-sigma-blackbelt, process-analyst) that analyze a team's operational processes and improve them with Black-Belt rigor: DMAIC, Lean waste removal (the 8 wastes / DOWNTIME), data-proven root-cause analysis, statistical process control, and control plans that make the gain stick. Domain-neutral (support, onboarding, billing, deployment, hiring — any process). 6 skills, 5 templates, 21 best-practices, a stdlib calculator (Cp/Cpk/Ppk, sigma-level/DPMO, I-MR limits, COPQ), a control-then-capability triage command, an advisory anti-pattern hook, a scenarios bank, and a 4-doc knowledge bank with web-verified Mermaid decision trees (sigma/DPMO, Cp/Cpk, control-chart selection, common-vs-special-cause response, capability-fix, WE/Nelson rules). The inferential statistics seam (hypothesis tests, DOE, regression, Gage R&R) routes to applied-statistics; DMAIC project delivery routes to project-management. Requires ravenclaude-core@>=0.7.0.",
   "author": {
     "name": "Matt Corbett"
