@@ -1,6 +1,6 @@
 {
   "name": "hotel-hospitality-operations",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Hotel & Hospitality Operations specialist team — 4 agents (hotel-operations-lead, revenue-management-analyst, labor-productivity-specialist, guest-experience-specialist), 5 skills, 4 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. A hospitality-operations team for a GM, revenue manager, or owner accountable for RevPAR, GOPPAR, and guest satisfaction — it optimizes RevPAR as the product of ADR and occupancy, manages channel mix at net rate, reads the booking pace curve, staffs labor to occupancy, and scores profit on GOPPAR. Inherits ravenclaude-core protocols.",
   "author": {
     "name": "Matt Corbett"

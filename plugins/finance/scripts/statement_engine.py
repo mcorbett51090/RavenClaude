@@ -34,6 +34,7 @@ never contains an entity-specific fact. Stdlib only (csv/json/argparse). Python 
 
 Outputs are decision-support, not an accounting/audit/tax opinion (../CLAUDE.md sec.3).
 """
+
 from __future__ import annotations
 
 import argparse
@@ -42,8 +43,13 @@ import json
 import sys
 
 IS_SECTIONS = {"Revenue", "COGS", "OpEx", "OtherIncomeExpense", "Tax"}
-BS_SECTIONS = {"CurrentAssets", "NonCurrentAssets", "CurrentLiabilities",
-               "NonCurrentLiabilities", "Equity"}
+BS_SECTIONS = {
+    "CurrentAssets",
+    "NonCurrentAssets",
+    "CurrentLiabilities",
+    "NonCurrentLiabilities",
+    "Equity",
+}
 ASSET_SECTIONS = {"CurrentAssets", "NonCurrentAssets"}
 NORMAL = {"debit", "credit"}
 
@@ -53,8 +59,13 @@ NORMAL = {"debit", "credit"}
 # its (debit - credit) is NEGATIVE and correctly reduces net assets; a contra-
 # revenue (sales returns, a debit balance) reduces revenue the same way.
 DEBIT_POSITIVE = {"CurrentAssets", "NonCurrentAssets", "COGS", "OpEx", "Tax"}
-CREDIT_POSITIVE = {"CurrentLiabilities", "NonCurrentLiabilities", "Equity",
-                   "Revenue", "OtherIncomeExpense"}
+CREDIT_POSITIVE = {
+    "CurrentLiabilities",
+    "NonCurrentLiabilities",
+    "Equity",
+    "Revenue",
+    "OtherIncomeExpense",
+}
 
 
 def _read_csv(path: str) -> list[dict]:
@@ -63,7 +74,7 @@ def _read_csv(path: str) -> list[dict]:
 
 
 def load_mapping(path: str) -> dict:
-    """account -> {statement, section, line, normal_balance, cf_category, noncash}."""
+    """account -> {statement, section, line, normal_balance}."""
     m: dict[str, dict] = {}
     for i, row in enumerate(_read_csv(path), 2):
         acct = (row.get("account") or "").strip()
@@ -76,8 +87,6 @@ def load_mapping(path: str) -> dict:
             "section": (row.get("section") or "").strip(),
             "line": (row.get("line") or "").strip(),
             "normal_balance": (row.get("normal_balance") or "").strip().lower(),
-            "cf_category": (row.get("cf_category") or "").strip().lower(),
-            "noncash": (row.get("noncash") or "").strip().lower() in ("1", "true", "yes"),
         }
     return m
 
@@ -93,8 +102,14 @@ def load_tb(path: str) -> list[dict]:
             credit = float(row.get("credit") or 0)
         except ValueError:
             raise SystemExit(f"{path}:{i} non-numeric debit/credit for {acct!r}")
-        rows.append({"account": acct, "description": (row.get("description") or "").strip(),
-                     "debit": debit, "credit": credit})
+        rows.append(
+            {
+                "account": acct,
+                "description": (row.get("description") or "").strip(),
+                "debit": debit,
+                "credit": credit,
+            }
+        )
     return rows
 
 
@@ -104,16 +119,24 @@ def lint_mapping(tb: list[dict], mapping: dict) -> list[str]:
     tb_accts = {r["account"] for r in tb}
     for acct in sorted(tb_accts):
         if acct not in mapping:
-            errs.append(f"UNMAPPED account in TB: {acct!r} (every account must map to a statement line)")
+            errs.append(
+                f"UNMAPPED account in TB: {acct!r} (every account must map to a statement line)"
+            )
     for acct, mp in mapping.items():
         if mp["statement"] not in ("IS", "BS"):
             errs.append(f"{acct}: statement must be IS|BS, got {mp['statement']!r}")
         elif mp["statement"] == "IS" and mp["section"] not in IS_SECTIONS:
-            errs.append(f"{acct}: IS section must be one of {sorted(IS_SECTIONS)}, got {mp['section']!r}")
+            errs.append(
+                f"{acct}: IS section must be one of {sorted(IS_SECTIONS)}, got {mp['section']!r}"
+            )
         elif mp["statement"] == "BS" and mp["section"] not in BS_SECTIONS:
-            errs.append(f"{acct}: BS section must be one of {sorted(BS_SECTIONS)}, got {mp['section']!r}")
+            errs.append(
+                f"{acct}: BS section must be one of {sorted(BS_SECTIONS)}, got {mp['section']!r}"
+            )
         if mp["normal_balance"] not in NORMAL:
-            errs.append(f"{acct}: normal_balance must be debit|credit, got {mp['normal_balance']!r}")
+            errs.append(
+                f"{acct}: normal_balance must be debit|credit, got {mp['normal_balance']!r}"
+            )
     return errs
 
 
@@ -138,29 +161,50 @@ def build_income_statement(tb: list[dict], mapping: dict):
         amt = _present(r, mp["section"])
         lines[mp["line"]] = round(lines.get(mp["line"], 0.0) + amt, 2)
         section_totals[mp["section"]] += amt
-        ni_check += (r["credit"] - r["debit"])   # mapping-independent NI accumulator
-        trail.append({"account": r["account"], "line": mp["line"],
-                      "section": mp["section"], "amount": round(amt, 2)})
+        ni_check += r["credit"] - r["debit"]  # mapping-independent NI accumulator
+        trail.append(
+            {
+                "account": r["account"],
+                "line": mp["line"],
+                "section": mp["section"],
+                "amount": round(amt, 2),
+            }
+        )
     rev = round(section_totals["Revenue"], 2)
     cogs = round(section_totals["COGS"], 2)
     opex = round(section_totals["OpEx"], 2)
-    other = round(section_totals["OtherIncomeExpense"], 2)   # net (income +, expense -)
+    other = round(section_totals["OtherIncomeExpense"], 2)  # net (income +, expense -)
     tax = round(section_totals["Tax"], 2)
     gross_profit = round(rev - cogs, 2)
     operating_income = round(gross_profit - opex, 2)
     pretax_income = round(operating_income + other, 2)
     net_income = round(pretax_income - tax, 2)
-    # internal consistency: subtotal-derived NI must equal the mapping-independent one
-    assert abs(net_income - round(ni_check, 2)) < 0.01, "IS subtotal/NI inconsistency"
-    return {
-        "lines": lines,
-        "subtotals": {
-            "revenue": rev, "cogs": cogs, "gross_profit": gross_profit,
-            "operating_expenses": opex, "operating_income": operating_income,
-            "other_income_expense_net": other, "pretax_income": pretax_income,
-            "income_tax_expense": tax, "net_income": net_income,
+    # internal consistency: subtotal-derived NI must equal the mapping-independent one.
+    # A bare `assert` is compiled out under `python -O`, so raise explicitly to keep the
+    # cross-check alive in optimized runs.
+    if abs(net_income - round(ni_check, 2)) >= 0.01:
+        raise SystemExit(
+            f"internal error: IS subtotal-derived net income {net_income:,.2f} != "
+            f"mapping-independent net income {round(ni_check, 2):,.2f}"
+        )
+    return (
+        {
+            "lines": lines,
+            "subtotals": {
+                "revenue": rev,
+                "cogs": cogs,
+                "gross_profit": gross_profit,
+                "operating_expenses": opex,
+                "operating_income": operating_income,
+                "other_income_expense_net": other,
+                "pretax_income": pretax_income,
+                "income_tax_expense": tax,
+                "net_income": net_income,
+            },
         },
-    }, net_income, trail
+        net_income,
+        trail,
+    )
 
 
 def build_balance_sheet(tb: list[dict], mapping: dict, net_income: float):
@@ -174,50 +218,67 @@ def build_balance_sheet(tb: list[dict], mapping: dict, net_income: float):
         amt = _present(r, mp["section"])
         lines[mp["line"]] = round(lines.get(mp["line"], 0.0) + amt, 2)
         section_totals[mp["section"]] += amt
-        trail.append({"account": r["account"], "line": mp["line"],
-                      "section": mp["section"], "amount": round(amt, 2)})
+        trail.append(
+            {
+                "account": r["account"],
+                "line": mp["line"],
+                "section": mp["section"],
+                "amount": round(amt, 2),
+            }
+        )
     total_assets = round(sum(section_totals[s] for s in ASSET_SECTIONS), 2)
-    total_liabilities = round(section_totals["CurrentLiabilities"]
-                              + section_totals["NonCurrentLiabilities"], 2)
+    total_liabilities = round(
+        section_totals["CurrentLiabilities"] + section_totals["NonCurrentLiabilities"], 2
+    )
     equity_from_tb = round(section_totals["Equity"], 2)
-    total_equity = round(equity_from_tb + net_income, 2)   # current earnings -> equity
+    total_equity = round(equity_from_tb + net_income, 2)  # current earnings -> equity
     balance_delta = round(total_assets - (total_liabilities + total_equity), 2)
-    return {
-        "lines": lines,
-        "subtotals": {
-            "total_assets": total_assets,
-            "total_current_assets": round(section_totals["CurrentAssets"], 2),
-            "total_liabilities": total_liabilities,
-            "equity_beginning": equity_from_tb,
-            "current_period_net_income": round(net_income, 2),
-            "total_equity": total_equity,
-            "balance_delta": balance_delta,   # 0.00 by construction (see module docstring)
+    return (
+        {
+            "lines": lines,
+            "subtotals": {
+                "total_assets": total_assets,
+                "total_current_assets": round(section_totals["CurrentAssets"], 2),
+                "total_liabilities": total_liabilities,
+                "equity_beginning": equity_from_tb,
+                "current_period_net_income": round(net_income, 2),
+                "total_equity": total_equity,
+                "balance_delta": balance_delta,  # 0.00 by construction (see module docstring)
+            },
         },
-    }, trail, section_totals
+        trail,
+        section_totals,
+    )
 
 
 def build_cashflow_draft(cur_bs_sections, prior_tb, mapping, net_income, cur_bs_lines):
     """Best-effort indirect CF from two TBs. LABELED unaudited_draft - see docstring."""
     prior_is, prior_ni, _ = build_income_statement(prior_tb, mapping)
     _, prior_sect, prior_raw = build_balance_sheet(prior_tb, mapping, prior_ni)
+
     # Delta by BS section (current - prior), presentation-signed.
     def delt(sec):
         return round(cur_bs_sections[sec] - prior_raw[sec], 2)
-    d_ca = delt("CurrentAssets"); d_nca = delt("NonCurrentAssets")
-    d_cl = delt("CurrentLiabilities"); d_ncl = delt("NonCurrentLiabilities")
+
+    d_ca = delt("CurrentAssets")
+    d_nca = delt("NonCurrentAssets")
+    d_cl = delt("CurrentLiabilities")
+    d_ncl = delt("NonCurrentLiabilities")
     d_eq = delt("Equity")
     # Operating: NI + increase in current liabilities - increase in (non-cash) current assets.
     # NOTE: we cannot separate cash from other current assets reliably without tagging,
     # so this is deliberately coarse and flagged unaudited.
     operating = round(net_income + d_cl - d_ca, 2)
-    investing = round(-d_nca, 2)                    # asset increase = cash outflow
-    financing = round(d_ncl + d_eq, 2)              # NI already in operating; d_eq here is coarse
+    investing = round(-d_nca, 2)  # asset increase = cash outflow
+    financing = round(d_ncl + d_eq, 2)  # NI already in operating; d_eq here is coarse
     net_change = round(operating + investing + financing, 2)
     return {
         "label": "unaudited_draft",
-        "caveat": ("Indirect CF derived from two trial balances only. Operating/investing/"
-                   "financing splits and non-cash adjustments are NOT reliably derivable from "
-                   "a TB; treat as a draft sanity check, not a GAAP cash-flow statement."),
+        "caveat": (
+            "Indirect CF derived from two trial balances only. Operating/investing/"
+            "financing splits and non-cash adjustments are NOT reliably derivable from "
+            "a TB; treat as a draft sanity check, not a GAAP cash-flow statement."
+        ),
         "cash_from_operating": operating,
         "cash_from_investing": investing,
         "cash_from_financing": financing,
@@ -237,16 +298,17 @@ def run(entity, mapping_path, tb_path, gl_detail=None, prior_tb_path=None, stric
     tb_debits = round(sum(r["debit"] for r in tb), 2)
     tb_credits = round(sum(r["credit"] for r in tb), 2)
     if abs(tb_debits - tb_credits) >= 0.01:
-        sys.stderr.write(f"BLOCKED: trial balance is out of balance by "
-                         f"{tb_debits - tb_credits:,.2f} (debits {tb_debits:,.2f} != "
-                         f"credits {tb_credits:,.2f}).\n")
+        sys.stderr.write(
+            f"BLOCKED: trial balance is out of balance by "
+            f"{tb_debits - tb_credits:,.2f} (debits {tb_debits:,.2f} != "
+            f"credits {tb_credits:,.2f}).\n"
+        )
         raise SystemExit(4)
 
     is_stmt, net_income, is_trail = build_income_statement(tb, mapping)
     bs_stmt, bs_trail, bs_sections = build_balance_sheet(tb, mapping, net_income)
     traced = bool(gl_detail)
-    badge = ("GL-detail-traced" if traced
-             else "TB-only - NOT audit-traceable")
+    badge = "GL-detail-traced" if traced else "TB-only - NOT audit-traceable"
     out = {
         "entity": entity["entity_name"],
         "currency": entity["functional_currency"],
@@ -259,8 +321,21 @@ def run(entity, mapping_path, tb_path, gl_detail=None, prior_tb_path=None, stric
     }
     if prior_tb_path:
         prior_tb = load_tb(prior_tb_path)
-        out["cash_flow"] = build_cashflow_draft(bs_sections, prior_tb, mapping,
-                                                net_income, bs_stmt["lines"])
+        # The prior-period TB feeds the cash-flow draft directly; hold it to the same
+        # debits==credits invariant as the current TB, so an unbalanced prior TB BLOCKS
+        # rather than silently producing a garbage draft cash flow.
+        p_debits = round(sum(r["debit"] for r in prior_tb), 2)
+        p_credits = round(sum(r["credit"] for r in prior_tb), 2)
+        if abs(p_debits - p_credits) >= 0.01:
+            sys.stderr.write(
+                f"BLOCKED: prior-period trial balance is out of balance by "
+                f"{p_debits - p_credits:,.2f} (debits {p_debits:,.2f} != "
+                f"credits {p_credits:,.2f}).\n"
+            )
+            raise SystemExit(4)
+        out["cash_flow"] = build_cashflow_draft(
+            bs_sections, prior_tb, mapping, net_income, bs_stmt["lines"]
+        )
     if gl_detail:
         det = _read_csv(gl_detail)
         by_acct: dict[str, int] = {}
@@ -271,14 +346,18 @@ def run(entity, mapping_path, tb_path, gl_detail=None, prior_tb_path=None, stric
 
 
 def main(argv=None) -> int:
-    p = argparse.ArgumentParser(description="Trial balance -> GAAP statements (classification-tested).")
+    p = argparse.ArgumentParser(
+        description="Trial balance -> GAAP statements (classification-tested)."
+    )
     p.add_argument("--entity", required=True, help="entity profile JSON")
     p.add_argument("--coa", required=True, help="COA mapping CSV")
     p.add_argument("--tb", required=True, help="trial balance CSV")
     p.add_argument("--prior-tb", help="prior-period TB CSV (enables draft cash flow)")
     p.add_argument("--gl-detail", help="optional journal-line CSV for traceability")
     p.add_argument("--strict", action="store_true", help="block on unmapped/invalid accounts")
-    p.add_argument("--lint-map", action="store_true", help="only lint the mapping vs the TB, then exit")
+    p.add_argument(
+        "--lint-map", action="store_true", help="only lint the mapping vs the TB, then exit"
+    )
     p.add_argument("--out", help="write statements JSON here (else stdout)")
     a = p.parse_args(argv)
 
@@ -300,8 +379,10 @@ def main(argv=None) -> int:
     if a.out:
         with open(a.out, "w") as fh:
             fh.write(text + "\n")
-        print(f"wrote {a.out}  [{out['traceability_badge']}]  net income "
-              f"{out['income_statement']['subtotals']['net_income']:,.2f} {out['currency']}")
+        print(
+            f"wrote {a.out}  [{out['traceability_badge']}]  net income "
+            f"{out['income_statement']['subtotals']['net_income']:,.2f} {out['currency']}"
+        )
     else:
         print(text)
     return 0

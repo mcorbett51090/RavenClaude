@@ -1,6 +1,6 @@
 {
   "name": "procurement-sourcing",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Procurement & Sourcing specialist team — 4 agents (sourcing-lead, category-strategist, supplier-risk-specialist, spend-analytics-analyst), 5 skills, 3 templates, 5 commands, 1 advisory hook, 8 best-practice rules, and a 4-file research-grounded knowledge bank. A strategic-sourcing team for a procurement or category lead — it segments spend before it sources (the Kraljic should-cost lens), runs the sourcing event on total cost of ownership rather than unit price, manages supplier risk as a portfolio, and reads the spend cube the way a category manager who owns savings does. Inherits ravenclaude-core protocols.",
   "author": {
     "name": "Matt Corbett"

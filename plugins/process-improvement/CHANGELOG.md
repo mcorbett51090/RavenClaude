@@ -2,6 +2,12 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.2.1] — 2026-07-09
+
+### Fixed
+
+- **Advisory anti-pattern hook now fires under Claude Code.** `hooks/flag-process-improvement-antipatterns.sh` read the target path only from `$CLAUDE_TOOL_FILE_PATH` (`$1`) — not a real Claude Code hook variable — so under Claude Code it received an empty path and silently no-op'd. Added the canonical stdin-JSON `.tool_input.file_path` fallback so the hook inspects the written file as intended. Advisory-only (no gate/behavior change beyond the hook actually running now). From the 2026-07-09 autonomous repo review (Decision 1).
+
 ## [0.2.0] — 2026-06-05
 
 Value-add build-out against the full marketplace menu, mirroring the merged `veterinary-practice` recipe (scenarios + decision trees + stdlib calculator + a "Value-add completeness" table + CHANGELOG) and filling this plugin's commands/hooks gap. Net-new on top of PR #315 (which consolidated knowledge decision-trees + best-practices + templates).

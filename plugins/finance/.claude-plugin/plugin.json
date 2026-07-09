@@ -1,6 +1,6 @@
 {
   "name": "finance",
-  "version": "0.18.0",
+  "version": "0.18.2",
   "description": "Corporate finance & FP&A specialist team — FP&A analyst, financial modeler, controller, treasury analyst, valuation analyst, audit-prep specialist, and board-pack composer. Ships 23 skills including the controller-autopilot: a governed close-to-report cycle (GAAP statements, COA mapping, reconciliation auto-match, review→approve→lock workflow, ELT staging, consolidation, per-entity dashboard, close schedules) plus its live-integration tier (multi-currency remeasurement + CTA, OAuth GL connectors + drill-through lineage, warehouse/RLS dashboard, IdP-backed segregation of duties) and a gold-standard NetSuite close (OAuth2 M2M + SuiteQL BS/IS trial balance, COA-draft, tie-out doctor, changed-after-sign-off drift, layperson runbook). 10 templates, a knowledge bank, and 2 advisory hooks (anti-patterns + secrets/PII scan). Inherits ravenclaude-core protocols (Grounding, Structured Output, Cited-Adjudicator).",
   "author": {
     "name": "Matt Corbett"

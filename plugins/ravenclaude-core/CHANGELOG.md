@@ -2,6 +2,30 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.188.2 — 2026-07-09
+
+### Fixed
+
+- **`refine-to-rubric`: judge-graded hard gates are no longer silently unenforced** (2026-07-09 repo review, Decision 3 — approved). A library rubric row combining `hard_gate=yes` with a judge-only (empty / `_(judge)_`) `objective_signal` was parsed into a dimension carrying `hard_gate=true`, but `evaluate.py` routes empty-signal dims to `judge_dims` and never records a `hard_gates` entry — so that gate could never block convergence. `derive_rubric.py`'s `parse_library` now **warns and neutralizes** the unenforceable flag (downgrades it to a scored, non-gating dimension), matching the design invariant that objective gates are deterministic and judge scorecards are never tripwires. No shipped rubric declared this shape, so behavior on the shipped library is unchanged.
+
+## 0.188.1 — 2026-07-09
+
+### Fixed
+
+_From an autonomous 3-panel repo review (2026-07-09). Security + robustness fixes; the accompanying design-questions doc is [`docs/2026-07-09-repo-review-design-questions.md`](../../docs/2026-07-09-repo-review-design-questions.md)._
+
+- **P0 — guard bypass (`hooks/guard-destructive.sh`).** The git global-option strip was a curated allow-list that omitted the real short globals `-p` (`--paginate`) and `-P` (`--no-pager`), so `git -p push --force` / `git -P reset --hard` / `git -p branch -D main` / `git -p clean -f` dodged **every** git deny at once — a trivial, non-obvious full bypass of the consumer's primary irreversible-action guard. The strip now tolerates any dash-prefixed global while still consuming separate-token values (`-c key=val`, `--git-dir path`). Empirically reproduced; regression fixtures added to `audit-gates.sh` Gate 5.
+- **P1 — SessionStart banner injection (`scripts/capability-orientation.py`).** The stream classifier's suggestion / auto-switch path surfaced a raw registry **key** into the always-injected capability banner with no slug validation — a repo-planted `.ravenclaude/streams/registry.json` (not gitignored) key containing a newline + a `</ravenclaude-capabilities>` close tag + fake instructions could break the banner's data frame and inject into trusted session context. The suggestion/auto-switch id is now validated (`_SLUG_OK` + membership) exactly like the active pointer.
+- **P2 — tribunal self-disable evasion (`scripts/thing-decision.py`).** A >4 KiB `Edit`/`MultiEdit` to `comfort-posture.yaml` could push the disabling change past the `\A`-anchored 4000-char `screen_always` window (only the `Write` shape was parse-screened). `_posture_write_disables` now reconstructs the post-edit document from the on-disk file + the edits and screens it identically; an unreconstructable edit fails closed (DENY).
+- **P2 — web-access session-id traversal (`hooks/_emit-event.sh`, `hooks/guard-web-access.sh`, `hooks/mark-web-domain-seen.sh`).** Both web-access hooks built `runs/$sess/…` paths from an unsanitized session id, skipping the PR #363 `.`/`..` hardening (a `mkdir`/`touch` write primitive outside the sandbox via `mark-web-domain-seen.sh`). Factored `_ee_sanitize_session()` into the shared helper; both hooks (and `_emit_hook_event`) route through it.
+- **P3 — misc robustness.** `scripts/stream-ops.py`: dropped `stream_id` from `_ALLOWED_EVENT_FIELDS` so `extra={"stream_id":…}` can't desync the in-body id from its directory. `skills/pbir-layout-engine/lint.py`: `abspath`→`realpath` so an in-repo symlink can't escape the sandbox. `skills/declarative-visualization/lint.py`: the security-surface advisory now covers the canonical Vega `signals[].on[].update`/`test` expression shape.
+
+## 0.188.0 — 2026-07-09
+
+### Added
+
+- **New best-practice: [`scope-a-skill-to-one-workflow-the-description-is-what-triggers-it.md`](best-practices/scope-a-skill-to-one-workflow-the-description-is-what-triggers-it.md)** (28 rules total). Scope a skill to **one workflow** and write its `description` as the **trigger** (`Use when …`), because the `name`+`description` is the only tier Claude preloads and matches on to decide whether the skill fires — the body loads only afterward. A skill that does too much fails both ways: it won't fire when it should (a compound/abstract description can't match a concrete request) and it fires at the wrong moment (it triggers on a request that wanted only one of its five jobs). The **scope/trigger** sibling of `keep-skill-bodies-lean` (which owns the body **token-budget** axis) and the skill-tier counterpart of the marketplace's own ≤300-char agent-description routing cap. Distilled from the 2026-07-09 Claude-community subreddit scan; grounded against the Anthropic Agent Skills primary docs. Additive markdown — no consumer migration.
+
 ## 0.187.4 — 2026-07-08
 
 ### Fixed

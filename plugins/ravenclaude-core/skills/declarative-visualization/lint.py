@@ -49,36 +49,77 @@ import sys
 
 CHECKS = [
     # Tier 1 — security (always violations → exit 1)
-    ("data-url",              "data.url present (SSRF vector) — use data.name instead"),
-    ("transform-lookup",      "transform.lookup with remote from.data.url — use data.name + host-side join"),
-    ("loader-override",       "'loader' key present — custom loader can redirect all URL resolution"),
-    ("schema-remote",         "$schema references a non-vega.github.io host — only the official origin is allowed"),
-    ("svg-script",            "<script> element in SVG — script injection vector"),
-    ("svg-on-attr",           "on* attribute in SVG — inline JS event handler vector"),
-    ("svg-foreign-object",    "<foreignObject> element in SVG — XSS-escalation vector"),
-    ("svg-remote-href",       "remote or javascript: href/xlink:href in SVG — network call + potential JS"),
+    ("data-url", "data.url present (SSRF vector) — use data.name instead"),
+    (
+        "transform-lookup",
+        "transform.lookup with remote from.data.url — use data.name + host-side join",
+    ),
+    ("loader-override", "'loader' key present — custom loader can redirect all URL resolution"),
+    (
+        "schema-remote",
+        "$schema references a non-vega.github.io host — only the official origin is allowed",
+    ),
+    ("svg-script", "<script> element in SVG — script injection vector"),
+    ("svg-on-attr", "on* attribute in SVG — inline JS event handler vector"),
+    ("svg-foreign-object", "<foreignObject> element in SVG — XSS-escalation vector"),
+    (
+        "svg-remote-href",
+        "remote or javascript: href/xlink:href in SVG — network call + potential JS",
+    ),
     # Tier 2 — quality / correctness (violations → exit 1)
-    ("encoding-completeness", "mark type requires a positional channel (x or y) but encoding is missing both"),
-    ("spec-hygiene-mark",     "mark type is not in the Vega-Lite verified mark enum"),
+    (
+        "encoding-completeness",
+        "mark type requires a positional channel (x or y) but encoding is missing both",
+    ),
+    ("spec-hygiene-mark", "mark type is not in the Vega-Lite verified mark enum"),
     # Tier 2 — warnings (exit 0 without --strict)
     ("accessibility-channel", "color encodes a field with no redundant shape/size/pattern channel"),
-    ("security-surface-flag", "Vega signal/expr/calculate expression found — requires security-reviewer pass"),
+    (
+        "security-surface-flag",
+        "Vega signal/expr/calculate expression found — requires security-reviewer pass",
+    ),
 ]
 
 VEGA_SCHEMA_ALLOWED_HOST = "vega.github.io"
 
 # Vega-Lite mark types (training knowledge; verify at vega.github.io/vega-lite/docs/mark.html).
-_VEGALITE_MARK_TYPES = frozenset({
-    "bar", "line", "area", "point", "text", "tick", "rect", "rule",
-    "circle", "square", "geoshape", "arc", "image", "trail",
-    "boxplot", "errorbar", "errorband",
-})
+_VEGALITE_MARK_TYPES = frozenset(
+    {
+        "bar",
+        "line",
+        "area",
+        "point",
+        "text",
+        "tick",
+        "rect",
+        "rule",
+        "circle",
+        "square",
+        "geoshape",
+        "arc",
+        "image",
+        "trail",
+        "boxplot",
+        "errorbar",
+        "errorband",
+    }
+)
 
 # Marks that require at least one positional channel (x or y) to be meaningful.
 # arc, image, geoshape, text use different channel sets and are intentionally excluded.
-_POSITION_REQUIRED_MARKS = frozenset({
-    "bar", "line", "area", "point", "circle", "square", "tick", "trail", "rule",
-})
+_POSITION_REQUIRED_MARKS = frozenset(
+    {
+        "bar",
+        "line",
+        "area",
+        "point",
+        "circle",
+        "square",
+        "tick",
+        "trail",
+        "rule",
+    }
+)
 
 
 def list_checks() -> None:
@@ -89,12 +130,14 @@ def list_checks() -> None:
 
 # ── path safety ──────────────────────────────────────────────────────────────
 
+
 def _repo_root() -> str:
     here = os.path.dirname(os.path.abspath(__file__))
     root = here
     for _ in range(10):
-        if os.path.isfile(os.path.join(root, ".repo-layout.json")) or \
-           os.path.isfile(os.path.join(root, "AGENTS.md")):
+        if os.path.isfile(os.path.join(root, ".repo-layout.json")) or os.path.isfile(
+            os.path.join(root, "AGENTS.md")
+        ):
             return root
         parent = os.path.dirname(root)
         if parent == root:
@@ -117,6 +160,7 @@ def _safe_path(raw: str) -> str:
 
 
 # ── JSON traversal ────────────────────────────────────────────────────────────
+
 
 def _walk(obj, violations: list, path: str = "$") -> None:
     """Recursively walk a parsed JSON object, collecting violations."""
@@ -143,10 +187,9 @@ def _walk(obj, violations: list, path: str = "$") -> None:
                 if isinstance(t, dict) and t.get("lookup") is not None:
                     from_data = t.get("from", {}).get("data", {})
                     if isinstance(from_data, dict) and "url" in from_data:
-                        violations.append((
-                            "transform-lookup",
-                            f"{path}.transform[{i}].from.data.url"
-                        ))
+                        violations.append(
+                            ("transform-lookup", f"{path}.transform[{i}].from.data.url")
+                        )
 
         # recurse into all values
         for k, v in obj.items():
@@ -177,6 +220,7 @@ def _flag_url_if_data_source(obj: dict, violations: list, path: str) -> None:
 
 # ── Tier 2 quality / correctness ─────────────────────────────────────────────
 
+
 def _check_json_quality(obj: dict, violations: list, warnings: list) -> None:
     """Check top-level Vega-Lite spec for quality and correctness issues."""
     if not isinstance(obj, dict):
@@ -196,17 +240,21 @@ def _check_json_quality(obj: dict, violations: list, warnings: list) -> None:
         has_x = "x" in encoding or "x2" in encoding
         has_y = "y" in encoding or "y2" in encoding
         if not has_x and not has_y:
-            violations.append((
-                "encoding-completeness",
-                f"mark '{mark_type}' has no positional channel (x or y) in encoding"
-            ))
+            violations.append(
+                (
+                    "encoding-completeness",
+                    f"mark '{mark_type}' has no positional channel (x or y) in encoding",
+                )
+            )
 
     # (j) spec-hygiene-mark
     if mark_type and mark_type not in _VEGALITE_MARK_TYPES:
-        violations.append((
-            "spec-hygiene-mark",
-            f"mark type '{mark_type}' is not in the Vega-Lite verified mark enum"
-        ))
+        violations.append(
+            (
+                "spec-hygiene-mark",
+                f"mark type '{mark_type}' is not in the Vega-Lite verified mark enum",
+            )
+        )
 
     # (k) accessibility-channel — warning only
     if isinstance(encoding, dict):
@@ -217,31 +265,56 @@ def _check_json_quality(obj: dict, violations: list, warnings: list) -> None:
                 for ch in ("shape", "size", "pattern", "strokeDash", "opacity")
             )
             if not has_redundant:
-                warnings.append((
-                    "accessibility-channel",
-                    "color encodes a field with no redundant shape/size/pattern channel; "
-                    "data may be indistinguishable to colorblind viewers"
-                ))
+                warnings.append(
+                    (
+                        "accessibility-channel",
+                        "color encodes a field with no redundant shape/size/pattern channel; "
+                        "data may be indistinguishable to colorblind viewers",
+                    )
+                )
 
 
 def _walk_for_expressions(obj, warnings: list, path: str = "$") -> None:
     """Walk spec looking for Vega signal/expr/calculate expressions (warn by default)."""
     if isinstance(obj, dict):
         if "signal" in obj and isinstance(obj["signal"], (str, dict)):
-            warnings.append((
-                "security-surface-flag",
-                f"{path}.signal — Vega signal expression requires security-reviewer pass"
-            ))
+            warnings.append(
+                (
+                    "security-surface-flag",
+                    f"{path}.signal — Vega signal expression requires security-reviewer pass",
+                )
+            )
         if "calculate" in obj and isinstance(obj.get("calculate"), str):
-            warnings.append((
-                "security-surface-flag",
-                f"{path}.calculate — Vega-Lite calculate transform expression requires security-reviewer pass"
-            ))
+            warnings.append(
+                (
+                    "security-surface-flag",
+                    f"{path}.calculate — Vega-Lite calculate transform expression requires security-reviewer pass",
+                )
+            )
         if "expr" in obj and isinstance(obj.get("expr"), str):
-            warnings.append((
-                "security-surface-flag",
-                f"{path}.expr — Vega expr expression requires security-reviewer pass"
-            ))
+            warnings.append(
+                (
+                    "security-surface-flag",
+                    f"{path}.expr — Vega expr expression requires security-reviewer pass",
+                )
+            )
+        # Canonical Vega reactive form: signals:[{name, on:[{events, update:'<expr>'}]}].
+        # The on-handler carries the expression as `update` (and optionally `test`),
+        # keys the checks above never see — surface them with the same advisory tier.
+        if "update" in obj and isinstance(obj.get("update"), str):
+            warnings.append(
+                (
+                    "security-surface-flag",
+                    f"{path}.update — Vega signal on-handler update expression requires security-reviewer pass",
+                )
+            )
+        if "test" in obj and isinstance(obj.get("test"), str):
+            warnings.append(
+                (
+                    "security-surface-flag",
+                    f"{path}.test — Vega signal on-handler test expression requires security-reviewer pass",
+                )
+            )
         for k, v in obj.items():
             _walk_for_expressions(v, warnings, f"{path}.{k}")
     elif isinstance(obj, list):
@@ -251,20 +324,20 @@ def _walk_for_expressions(obj, warnings: list, path: str = "$") -> None:
 
 # ── SVG checks ────────────────────────────────────────────────────────────────
 
-_RE_SCRIPT_TAG      = re.compile(r"<script[\s/>]", re.IGNORECASE)
-_RE_ON_ATTR         = re.compile(r"\bon\w+\s*=", re.IGNORECASE)
-_RE_FOREIGN_OBJECT  = re.compile(r"<foreignObject[\s/>]", re.IGNORECASE)
+_RE_SCRIPT_TAG = re.compile(r"<script[\s/>]", re.IGNORECASE)
+_RE_ON_ATTR = re.compile(r"\bon\w+\s*=", re.IGNORECASE)
+_RE_FOREIGN_OBJECT = re.compile(r"<foreignObject[\s/>]", re.IGNORECASE)
 # Match href or xlink:href whose value begins with a remote scheme or javascript:.
 # Safe local fragment refs (href="#id") do NOT start with http/https/javascript,
 # so they are intentionally excluded from this pattern.
-_RE_REMOTE_HREF     = re.compile(
+_RE_REMOTE_HREF = re.compile(
     r"""(?:xlink:)?href\s*=\s*['"]?\s*(?:https?://|javascript:)""",
     re.IGNORECASE,
 )
 # Numeric XML character entity patterns — decoded before applying _RE_REMOTE_HREF
 # to prevent entity-encoding bypass (e.g., &#106;avascript:alert(1) → javascript:alert(1)).
-_RE_ENTITY_DEC  = re.compile(r"&#(\d+);")
-_RE_ENTITY_HEX  = re.compile(r"&#[xX]([0-9a-fA-F]+);")
+_RE_ENTITY_DEC = re.compile(r"&#(\d+);")
+_RE_ENTITY_HEX = re.compile(r"&#[xX]([0-9a-fA-F]+);")
 
 
 def _decode_numeric_entities(text: str) -> str:
@@ -287,6 +360,7 @@ def _check_svg(content: str, violations: list) -> None:
 
 
 # ── main ──────────────────────────────────────────────────────────────────────
+
 
 def main() -> int:
     args = sys.argv[1:]
@@ -337,8 +411,10 @@ def main() -> int:
             _check_svg(content, violations)
 
     if debug:
-        print(f"[debug] path={abs_path!r}, is_svg={is_svg}, "
-              f"violations={violations}, warnings={warnings}")
+        print(
+            f"[debug] path={abs_path!r}, is_svg={is_svg}, "
+            f"violations={violations}, warnings={warnings}"
+        )
 
     # Warnings: always emit to stderr; with --strict escalate to violations.
     for key, detail in warnings:

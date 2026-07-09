@@ -78,9 +78,15 @@ _MAX_TERMS = 64
 # A raw prompt/text/content/command field must never reach the history line.
 _FORBIDDEN_EVENT_KEYS = frozenset({"prompt", "text", "content", "command", "raw", "body"})
 
-# The only fields persisted to a history event (besides the auto schema/ts/kind).
+# The only fields persisted to a history event (besides the auto schema/ts/kind
+# AND the parameter-derived stream_id, which append_event always sets itself from
+# its `stream_id` argument — never from `extra`). stream_id is deliberately NOT
+# allow-listed here so `extra={"stream_id": "other"}` is rejected as non-allow-listed:
+# it can only ever desync the in-body field from the directory the event is written
+# into (which is always derived from the parameter), so a kwarg-supplied stream_id is
+# never legitimate.
 _ALLOWED_EVENT_FIELDS = frozenset(
-    {"label", "terms", "word_count", "summary", "session_id", "score", "stream_id"}
+    {"label", "terms", "word_count", "summary", "session_id", "score"}
 )
 
 
@@ -541,10 +547,7 @@ def read_state(project_root: str | os.PathLike, stream_id: str) -> str | None:
 def get_centroids(project_root: str | os.PathLike) -> dict[str, dict[str, float]]:
     """Return {stream_id: centroid} for all streams — the input to classify()."""
     registry = read_registry(project_root)
-    return {
-        sid: dict(meta.get("centroid", {}))
-        for sid, meta in registry["streams"].items()
-    }
+    return {sid: dict(meta.get("centroid", {})) for sid, meta in registry["streams"].items()}
 
 
 def set_centroid(

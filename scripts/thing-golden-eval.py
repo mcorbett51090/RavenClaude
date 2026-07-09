@@ -45,9 +45,18 @@ CORPUS = HERE / "thing-golden-set.jsonl"
 # A minimal posture that turns command-review ON for every category, with NO
 # dev_repo_exempt — i.e. exactly a default consumer's tribunal.
 _CATEGORIES = [
-    "file_edit_project", "file_edit_global", "file_read_project", "file_read_global",
-    "network_read", "network_write", "mcp_tools", "shell_readonly",
-    "shell_local_mutate", "shell_remote_mutate", "shell_code_exec", "shell_package_install",
+    "file_edit_project",
+    "file_edit_global",
+    "file_read_project",
+    "file_read_global",
+    "network_read",
+    "network_write",
+    "mcp_tools",
+    "shell_readonly",
+    "shell_local_mutate",
+    "shell_remote_mutate",
+    "shell_code_exec",
+    "shell_package_install",
 ]
 _POSTURE = "schema_version: 5\ncommand_review:\n  enabled: true\ncategories:\n" + "".join(
     f"  {c}:\n    project: allow\n    thing: on\n" for c in _CATEGORIES
@@ -65,7 +74,10 @@ def _engine(root: Path, *args: str, stdin: str | None = None) -> dict:
     try:
         out = subprocess.run(
             [sys.executable, str(ENGINE), "--root", str(root), *args],
-            input=stdin, capture_output=True, text=True, timeout=60,
+            input=stdin,
+            capture_output=True,
+            text=True,
+            timeout=60,
         )
     except subprocess.TimeoutExpired:
         return {"_engine_error": "engine timed out after 60s"}
@@ -80,16 +92,25 @@ def _decision(root: Path, entry: dict) -> dict:
     shape = entry.get("shape", "command")
     if shape == "command":
         return _engine(root, "preview", entry["cmd"])
-    tool_map = {"file": entry.get("tool_name", "Write"), "file-read": "Read",
-                "network": entry.get("tool_name", "WebFetch"), "mcp": entry.get("tool_name", "")}
-    payload = {"tool_name": tool_map.get(shape, entry.get("tool_name", "")),
-               "tool_input": entry.get("tool_input", {})}
+    tool_map = {
+        "file": entry.get("tool_name", "Write"),
+        "file-read": "Read",
+        "network": entry.get("tool_name", "WebFetch"),
+        "mcp": entry.get("tool_name", ""),
+    }
+    payload = {
+        "tool_name": tool_map.get(shape, entry.get("tool_name", "")),
+        "tool_input": entry.get("tool_input", {}),
+    }
     return _engine(root, "classify-payload", stdin=json.dumps(payload))
 
 
 def _disposition(d: dict) -> str:
     """Collapse an engine decision into ALLOW / DENY / PANEL (deterministic only)."""
-    if any(d.get(k) for k in ("self_disable_deny", "hard_rule_deny", "pre_llm_deny", "mcp_unverified_deny")):
+    if any(
+        d.get(k)
+        for k in ("self_disable_deny", "hard_rule_deny", "pre_llm_deny", "mcp_unverified_deny")
+    ):
         return "DENY"
     if d.get("panel_required"):
         return "PANEL"
@@ -168,23 +189,36 @@ def _run_deterministic_body(root: Path, corpus: Path) -> int:
     return 1 if fails else 0
 
 
-def _run_seat(payload: str, *, role: str = "mimir", model: str | None = None,
-              category: str = "shell_remote_mutate", mock: str | None = None) -> dict:
+def _run_seat(
+    payload: str,
+    *,
+    role: str = "mimir",
+    model: str | None = None,
+    category: str = "shell_remote_mutate",
+    mock: str | None = None,
+) -> dict:
     env_extra = {"THING_PAYLOAD": payload, "THING_SEAT_ROLE": role, "THING_CATEGORY": category}
     if model:
         env_extra["THING_MODEL"] = model
     if mock:
         env_extra["THING_SEAT_MOCK_VERDICT"] = mock
     import os
+
     env = {**os.environ, **env_extra}
     try:
-        out = subprocess.run(["bash", str(SEAT)], capture_output=True, text=True, env=env, timeout=120)
+        out = subprocess.run(
+            ["bash", str(SEAT)], capture_output=True, text=True, env=env, timeout=120
+        )
     except subprocess.TimeoutExpired:
         return {"_seat_error": "seat timed out after 120s", "_rc": None, "_stdout": ""}
     try:
         return json.loads(out.stdout)
     except (json.JSONDecodeError, ValueError):
-        return {"_seat_error": out.stderr.strip() or "no JSON", "_rc": out.returncode, "_stdout": out.stdout[:400]}
+        return {
+            "_seat_error": out.stderr.strip() or "no JSON",
+            "_rc": out.returncode,
+            "_stdout": out.stdout[:400],
+        }
 
 
 def run_probe() -> int:
@@ -196,14 +230,18 @@ def run_probe() -> int:
         print("     (fail-closed deny on high-stakes categories). See gap-closure plan Gap 4.")
         return 1
     if "verdict" in v:
-        print(f"  PASS probe: seat returned a parseable verdict ({v['verdict']}, conf={v.get('confidence')})")
+        print(
+            f"  PASS probe: seat returned a parseable verdict ({v['verdict']}, conf={v.get('confidence')})"
+        )
         return 0
     print(f"  FAIL probe: JSON returned but no 'verdict' field: {v}")
     return 1
 
 
 def run_live(models: list[str], corpus: Path = CORPUS) -> int:
-    entries = [json.loads(ln) for ln in corpus.read_text(encoding="utf-8").splitlines() if ln.strip()]
+    entries = [
+        json.loads(ln) for ln in corpus.read_text(encoding="utf-8").splitlines() if ln.strip()
+    ]
     live = [e for e in entries if e.get("lane") == "live"]
     fails = 0
     for model in models or [None]:
@@ -211,6 +249,10 @@ def run_live(models: list[str], corpus: Path = CORPUS) -> int:
         print(f"== live lane: model={label} ({len(live)} judgment entries) ==")
         for e in live:
             if e.get("shape", "command") != "command":
+                continue
+            if "cmd" not in e:
+                print(f"  FAIL {e.get('id', '<no id>')}: entry missing required 'cmd' field")
+                fails += 1
                 continue
             v = _run_seat(e["cmd"], role="forseti", model=model, category="shell_code_exec")
             if "_seat_error" in v:
@@ -227,11 +269,18 @@ def run_live(models: list[str], corpus: Path = CORPUS) -> int:
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--deterministic", action="store_true", help="CI lane (default if no mode given)")
+    ap.add_argument(
+        "--deterministic", action="store_true", help="CI lane (default if no mode given)"
+    )
     ap.add_argument("--probe", action="store_true", help="live: does claude -p run here?")
     ap.add_argument("--live", action="store_true", help="live: per-vendor seat quality")
     ap.add_argument("--model", action="append", default=[], help="model(s) for --live (repeatable)")
-    ap.add_argument("--corpus", type=Path, default=CORPUS, help="override the golden-set file (gate uses this for a known-bad fixture)")
+    ap.add_argument(
+        "--corpus",
+        type=Path,
+        default=CORPUS,
+        help="override the golden-set file (gate uses this for a known-bad fixture)",
+    )
     args = ap.parse_args()
     if args.probe:
         return run_probe()

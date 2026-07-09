@@ -25,8 +25,8 @@ These are baked into every agent and are the `salesforce-reviewer`'s rubric:
 3. Logic-less triggers — the trigger is a dispatch shell.
 4. Recursion control is mandatory on every handler.
 5. No hard-coded IDs (records, RecordTypes, profiles) — query or use custom metadata.
-6. `with sharing` by default; justify every `without sharing`.
-7. Enforce CRUD/FLS for user-context access (`WITH SECURITY_ENFORCED` / `Security.stripInaccessible`).
+6. `with sharing` by default; justify every `without sharing`. (At **API v67.0+ / Summer '26**, an omitted sharing keyword defaults to `with sharing` — keep declaring it explicitly.)
+7. Enforce CRUD/FLS for user-context access — prefer `WITH USER_MODE` (or `Security.stripInaccessible`). **At API v67.0+ `WITH SECURITY_ENFORCED` is removed and no longer compiles; DML/SOQL default to user mode** — migrate v67.0+ classes to `WITH USER_MODE`. `[verify-at-build]`
 8. Bind every SOQL variable — no string concatenation in dynamic SOQL.
 9. Test for bulk (200 records); assert outcomes, not coverage.
 10. No `@isTest(SeeAllData=true)` — use a TestDataFactory.

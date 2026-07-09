@@ -131,15 +131,34 @@ def parse_library(path):
                 continue
             hard_gate = hard_s.strip().lower() in ("yes", "true", "**yes**")
             signal = "" if sig in _JUDGE_TOKENS else sig
-            kinds.setdefault(cur_kind, []).append({
-                "id": did,
-                "title": title,
-                "weight": weight,
-                "source": "library",
-                "verified": True,
-                "hard_gate": hard_gate,
-                "objective_signal": signal,
-            })
+            # A judge-graded (empty objective_signal) dimension cannot be a hard
+            # gate: the evaluator routes empty-signal dims to judge_dims and never
+            # records a hard_gates entry, so a hard_gate=true here would silently
+            # never block convergence (2026-07-09 review, Decision 3). Objective
+            # gates are deterministic by design — judge scorecards are never
+            # tripwires. Warn and neutralize so the rubric reflects real behavior
+            # rather than carrying an unenforceable flag.
+            if hard_gate and not signal:
+                print(
+                    f"derive_rubric: warning: dimension {did!r} in kind {cur_kind!r} "
+                    "declares hard_gate=yes with no objective_signal — a judge-graded "
+                    "hard gate is not enforceable and is being downgraded to a scored "
+                    "(non-gating) dimension. Give it an objective_signal to make it a "
+                    "real hard gate.",
+                    file=sys.stderr,
+                )
+                hard_gate = False
+            kinds.setdefault(cur_kind, []).append(
+                {
+                    "id": did,
+                    "title": title,
+                    "weight": weight,
+                    "source": "library",
+                    "verified": True,
+                    "hard_gate": hard_gate,
+                    "objective_signal": signal,
+                }
+            )
     return kinds
 
 
@@ -179,16 +198,18 @@ def _normalize_derived(raw, existing_ids):
         except (TypeError, ValueError):
             weight = 1.0
         weight = max(0.0, min(weight, 5.0))  # derived dims are low-weight by contract
-        out.append({
-            "id": did,
-            "title": title,
-            "weight": weight,
-            "source": "derived",
-            "verified": False,  # forced — a model can never get a derived dim graded
-            "hard_gate": False,
-            "objective_signal": "",
-            "provenance": "[unverified — derived]",
-        })
+        out.append(
+            {
+                "id": did,
+                "title": title,
+                "weight": weight,
+                "source": "derived",
+                "verified": False,  # forced — a model can never get a derived dim graded
+                "hard_gate": False,
+                "objective_signal": "",
+                "provenance": "[unverified — derived]",
+            }
+        )
     return out
 
 
@@ -212,15 +233,17 @@ def derive_rubric(kind, kind_confidence="high", explicit=None, derived=None, lib
         # Delegated kinds (agent-file) are handled by the caller; we still emit a
         # valid rubric whose single dimension records the delegation so the
         # scorecard contract holds and the schema validates.
-        dims = [{
-            "id": "delegated",
-            "title": f"Delegated to {DELEGATED_KINDS[kind]}",
-            "weight": 100,
-            "source": "library",
-            "verified": True,
-            "hard_gate": False,
-            "objective_signal": DELEGATED_KINDS[kind],
-        }]
+        dims = [
+            {
+                "id": "delegated",
+                "title": f"Delegated to {DELEGATED_KINDS[kind]}",
+                "weight": 100,
+                "source": "library",
+                "verified": True,
+                "hard_gate": False,
+                "objective_signal": DELEGATED_KINDS[kind],
+            }
+        ]
     else:
         dims = [dict(d) for d in tables.get(effective_kind, tables.get("generic", []))]
 
@@ -264,10 +287,18 @@ def _library_version(path):
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description="Deterministically derive a convergence rubric.")
-    ap.add_argument("--kind", required=True, help="artifact kind (code/prose/visual-report/data/agent-file/generic)")
+    ap.add_argument(
+        "--kind",
+        required=True,
+        help="artifact kind (code/prose/visual-report/data/agent-file/generic)",
+    )
     ap.add_argument("--kind-confidence", default="high", choices=["low", "medium", "high"])
-    ap.add_argument("--explicit", action="append", default=[], help="an explicit user requirement (repeatable)")
-    ap.add_argument("--derived-json", help="path to a JSON array of model-proposed 'commonly-missed' dims")
+    ap.add_argument(
+        "--explicit", action="append", default=[], help="an explicit user requirement (repeatable)"
+    )
+    ap.add_argument(
+        "--derived-json", help="path to a JSON array of model-proposed 'commonly-missed' dims"
+    )
     ap.add_argument("--library", help="override the rubric library markdown path")
     args = ap.parse_args(argv)
 

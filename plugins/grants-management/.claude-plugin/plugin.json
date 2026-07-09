@@ -1,0 +1,27 @@
+{
+  "name": "grants-management",
+  "version": "0.1.0",
+  "description": "Grantee-side grants-management team — 2 agents (grants-strategy-lead, grants-compliance-and-reporting-specialist) for the full grant lifecycle: pre-award PIPELINE & STRATEGY (prospect research + funder fit 'fit-before-effort', go/no-go, logic model, needs statement, SMART objectives, evaluation plan, budget narrative, LOI→full-proposal assembly) and post-award COMPLIANCE & REPORTING (2 CFR 200 cost principles, indirect rates / NICRA / de minimis, time & effort, procurement, SF-425 FFR + RPPR, subrecipient-vs-contractor determination & monitoring, Single Audit, closeout). Fluent in federal mechanics (SAM.gov, Grants.gov, SF-424 family, UEI) and grants systems (Fluxx, Submittable, Instrumentl). 3 skills, a 2-doc knowledge bank + 2 templates. NOT individual/major-donor fundraising (nonprofit-fundraising), NOT grantmaking policy design (public-sector-govtech), NOT general bookkeeping (accounting-bookkeeping). Not legal/accounting advice. Requires ravenclaude-core@>=0.7.0.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "grants-management",
+    "grant-writing",
+    "grant-compliance",
+    "uniform-guidance",
+    "2-cfr-200",
+    "indirect-cost-rate",
+    "grants-gov",
+    "sam-gov",
+    "subrecipient-monitoring",
+    "single-audit",
+    "nonprofit-grants",
+    "federal-grants"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}

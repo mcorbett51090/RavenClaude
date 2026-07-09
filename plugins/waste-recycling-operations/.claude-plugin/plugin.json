@@ -1,0 +1,27 @@
+{
+  "name": "waste-recycling-operations",
+  "version": "0.1.0",
+  "description": "Waste & recycling operations team — 2 agents (waste-operations-lead, route-and-diversion-specialist) answering 'how do we collect, haul, dispose of, and divert waste PROFITABLY, SAFELY, and in COMPLIANCE?': collection streams (MSW, recycling, organics, C&D; residential/commercial/roll-off), fleet (front/rear/side-load ASL, roll-off, RNG/EV), transfer stations & Subtitle D landfill (tipping fees, airspace), RCRA Subtitle D compliance, DOT/CDL safety — plus route optimization (density is the profit driver; static vs dynamic; RouteWare/Routeware-AMCS/Trux), diversion measurement, MRF & commodity economics (OCC/PET/HDPE/aluminum/mixed paper; contamination is the killer; post-National-Sword prices), and mandates (EPR, SB 1383, landfill bans). 3 skills, a 2-doc knowledge bank, 2 templates. Distinct from esg-sustainability-reporting (corporate disclosure), fleet-logistics (generic telematics/DOT), and hazardous-waste RCRA Subtitle C response (out of scope). Requires ravenclaude-core@>=0.7.0.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "waste-management",
+    "recycling",
+    "route-optimization",
+    "diversion-rate",
+    "landfill-diversion",
+    "mrf",
+    "commodity-recycling",
+    "epr",
+    "organics-diversion",
+    "collection-fleet",
+    "tipping-fees",
+    "contamination"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}

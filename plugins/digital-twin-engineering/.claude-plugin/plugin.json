@@ -1,0 +1,27 @@
+{
+  "name": "digital-twin-engineering",
+  "version": "0.1.0",
+  "description": "Digital-twin engineering team — 2 agents (digital-twin-architect, twin-integration-engineer) for the layer answering 'what should this twin MODEL, at what FIDELITY, and does it MATCH the real asset?': twin taxonomy (asset vs process vs system-of-systems; descriptive/predictive/prescriptive; digital-shadow vs true bidirectional), only-as-much-fidelity-as-the-decision-needs, modeling approach (physics vs data-driven/surrogate/reduced-order vs hybrid), telemetry ingestion (MQTT/OPC-UA/Kafka, edge vs cloud), state sync/drift/calibration, simulation & what-if, and fidelity validation. Fluent in DTDL + Azure Digital Twins, ISO 23247, AAS, Eclipse Ditto, NVIDIA Omniverse, Unity/Unreal, Bentley/Siemens. 3 skills, a 2-doc knowledge bank (decision tree + 2026 patterns), and 2 templates. Distinct from embedded-iot-engineering (device firmware), robotics-autonomous-systems-engineering (robot control/autonomy), and data-platform (BI/warehouse). Requires ravenclaude-core@>=0.7.0.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "digital-twin",
+    "dtdl",
+    "azure-digital-twins",
+    "iso-23247",
+    "asset-administration-shell",
+    "eclipse-ditto",
+    "nvidia-omniverse",
+    "physics-simulation",
+    "reduced-order-model",
+    "predictive-maintenance",
+    "telemetry-ingestion",
+    "twin-fidelity"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}

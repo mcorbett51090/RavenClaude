@@ -1,6 +1,6 @@
 ---
 name: run-the-incident-lifecycle
-description: Run a security incident through the four NIST SP 800-61r2 phases in order — preparation, detection & analysis, containment/eradication/recovery, and post-incident activity — with the contain-before-eradicate and preserve-evidence-first gates enforced at the right steps. Returns a phase-by-phase runbook, the containment strategy, the recovery/eradication plan, and a blameless post-incident review. Used by `dfir-response-lead` (primary); shared with the forensics engineer at the analysis seam.
+description: Run a security incident through the four-phase incident-handling lifecycle in order — preparation, detection & analysis, containment/eradication/recovery, and post-incident activity — with the contain-before-eradicate and preserve-evidence-first gates enforced at the right steps. Returns a phase-by-phase runbook, the containment strategy, the recovery/eradication plan, and a blameless post-incident review. Used by `dfir-response-lead` (primary); shared with the forensics engineer at the analysis seam.
 ---
 
 # Skill: run-the-incident-lifecycle
@@ -19,7 +19,9 @@ Once triage ([`../triage-and-classify-an-incident/SKILL.md`](../triage-and-class
 
 A running runbook keyed to the four phases, a contemporaneous timeline, and the phase-exit gates. Each phase produces a concrete artifact.
 
-## Procedure — the four NIST SP 800-61r2 phases
+## Procedure — the four-phase incident-handling lifecycle
+
+> **Standard note (verified 2026-07-08).** The four-phase lifecycle below is the model from **NIST SP 800-61r2** (*Computer Security Incident Handling Guide*). r2 is **superseded by [SP 800-61r3](https://csrc.nist.gov/pubs/sp/800/61/r3/final)** (Apr 3 2025), which reframes incident response around the **NIST CSF 2.0 Functions** (Govern, Identify, Protect, Detect, Respond, Recover) instead of prescribing a single rigid lifecycle. The phased runbook here remains a sound *operational* structure and is fully compatible with r3 — but cite **r3** as the current NIST guidance, and map these phases to the CSF Functions when integrating IR into a broader risk-management program.
 
 1. **Preparation** (before the incident, revisited during). Confirm you have: the IR plan and roster, access to the tools/logs, out-of-band comms, and legal/regulatory contacts. If mid-incident you find a gap here, note it for the post-incident review — don't stall.
 2. **Detection & Analysis.** Validate and scope. Confirm the incident is real (from triage), determine the attack vector, identify affected systems/accounts/data, and build the timeline. Map observed behavior to MITRE ATT&CK (hand to [`../hunt-for-a-threat/SKILL.md`](../hunt-for-a-threat/SKILL.md) / [`../engineer-a-detection/SKILL.md`](../engineer-a-detection/SKILL.md) as needed). **Gate:** before touching a live system to contain, capture volatile evidence per [`../acquire-and-preserve-evidence/SKILL.md`](../acquire-and-preserve-evidence/SKILL.md).

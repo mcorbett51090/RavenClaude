@@ -50,15 +50,17 @@ flowchart TD
     MESH -->|No| MANAGED{On a managed cloud cluster<br/>and want the cloud LB integrated?}
     MANAGED -->|Yes| CLOUDGW[Cloud provider Gateway/Ingress controller<br/>AKS/EKS/GKE native — owned by the cloud plugin]
     MANAGED -->|No, cloud-agnostic| FEAT{Need advanced L7 features<br/>WAF, auth, rate-limit at the edge?}
-    FEAT -->|Yes| FEATURE[A feature-rich controller<br/>ingress-nginx, or an API-gateway-class controller<br/>verify Gateway-API conformance at use]
-    FEAT -->|No, standard HTTP| STANDARD[A conformant standard controller<br/>ingress-nginx or a Gateway-API reference impl]
+    FEAT -->|Yes| FEATURE[A feature-rich controller<br/>an API-gateway-class controller<br/>verify Gateway-API conformance at use]
+    FEAT -->|No, standard HTTP| STANDARD[A conformant Gateway-API<br/>reference impl or a supported controller]
 ```
+
+> **Do not pick community `ingress-nginx` for a new cluster.** The Kubernetes project **retired** the community `ingress-nginx` controller: best-effort maintenance ended **March 2026**, after which there are **no releases, bug fixes, or security patches** and the repos go read-only (per the [Nov 11 2025 retirement notice](https://kubernetes.io/blog/2025/11/11/ingress-nginx-retirement/) and the [Jan 29 2026 Steering/Security-Response statement](https://kubernetes.io/blog/2026/01/29/ingress-nginx-statement/)). Existing deployments keep functioning, but standing up `ingress-nginx` on a **new** cluster now signs up for un-patched CVEs. Migrate to the **Gateway API** (the recommended successor) or a supported/commercial ingress controller. `[verified 2026-07-08 — kubernetes.io]`
 
 **Rationale:**
 
 - _Mesh Gateway_ — if you already run Istio/Linkerd, route north-south through the mesh's gateway so you operate one data plane, not two. (Don't *add* a mesh just to get an ingress — see the architecture file's mesh-justification tree.)
 - _Cloud-native controller_ — on a managed cluster, the cloud's own Gateway/Ingress controller integrates the cloud load balancer + IAM cleanly; that selection is the **cloud plugin's** lane (`azure-cloud` / `aws-cloud` / `gcp-cloud`), this team consumes it.
-- _Feature-rich / standard controller_ — cloud-agnostic clusters pick a controller by feature need; **verify the controller's Gateway-API conformance level** before committing if you're on the Gateway API. `[verify-at-use]`
+- _Feature-rich / standard controller_ — cloud-agnostic clusters pick a controller by feature need; **verify the controller's Gateway-API conformance level** before committing if you're on the Gateway API. `[verify-at-use]` **Note the community `ingress-nginx` retirement (March 2026, no further security patches — see the callout above): prefer a Gateway-API implementation or a maintained/commercial controller for new builds.**
 
 ## Decision Tree: Debugging an Ingress that returns an error
 

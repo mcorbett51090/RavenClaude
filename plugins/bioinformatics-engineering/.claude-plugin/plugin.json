@@ -1,0 +1,27 @@
+{
+  "name": "bioinformatics-engineering",
+  "version": "0.1.0",
+  "description": "Bioinformatics & genomics-pipeline team — 2 agents (bioinformatics-workflow-architect, genomics-pipeline-engineer) for the layer answering 'which workflow engine, reference, and compute strategy, and how do we build a reproducible, validated genomics pipeline?': engine choice (Nextflow/nf-core, Snakemake, WDL+Cromwell/miniwdl, CWL), reference build (GRCh38 vs T2T-CHM13) + core steps (QC, trimming, alignment BWA-MEM2/minimap2/STAR/Salmon, dedup, variant calling GATK/DeepVariant, joint genotyping), RNA-seq (DESeq2/edgeR) and single-cell (Scanpy/Seurat), reproducibility (Docker/Apptainer, Conda/Bioconda, pinned versions, FAIR, provenance), HPC-vs-cloud scaling and cost, and validation vs GIAB/hap.py truth sets. 3 skills, a 2-doc knowledge bank (pipeline decision tree + 2026 workflow-patterns reference), and 2 templates. Distinct from ml-engineering (generic MLOps/model training), clinical-trials (trial operations/regulatory), and data-platform (warehouse/BI). Requires ravenclaude-core@>=0.7.0.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "bioinformatics",
+    "genomics",
+    "nextflow",
+    "nf-core",
+    "snakemake",
+    "wdl",
+    "variant-calling",
+    "gatk",
+    "rna-seq",
+    "reference-genome",
+    "reproducibility",
+    "ngs-pipeline"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}

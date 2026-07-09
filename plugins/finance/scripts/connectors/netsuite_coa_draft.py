@@ -9,7 +9,7 @@ pulls NetSuite's chart of accounts (via SuiteQL, replayed offline — see suiteq
 CLASSIFIES each account's `accttype` to the SAME mapping contract
 `skills/author-coa-mapping/SKILL.md` documents and `statement_engine.py --lint-map` validates:
 
-    account,description,statement,section,line,normal_balance,cf_category,noncash
+    account,description,statement,section,line,normal_balance
 
 It reuses suiteql.py's BALANCE_SHEET_TYPES / INCOME_STATEMENT_TYPES sets (NetSuite's
 documented `accttype` enum) as the single source of truth for the statement split, so this
@@ -29,6 +29,7 @@ first; absent a TB, the review queue falls back to account-number order.
 
 Stdlib only (csv/json/argparse/os/sys). Python 3.8+.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -51,35 +52,37 @@ COA_QUERY = "SELECT acctnumber, fullname, accttype, subsidiary FROM account"
 COA_FIXTURE = "netsuite_m2m/coa"
 
 MAPPING_HEADER = [
-    "account", "description", "statement", "section", "line",
-    "normal_balance", "cf_category", "noncash",
+    "account",
+    "description",
+    "statement",
+    "section",
+    "line",
+    "normal_balance",
 ]
 
-# NetSuite documented accttype -> (section, line, normal_balance, cf_category). Kept in the
-# SAME statement/section vocabulary statement_engine.py --lint-map validates
-# (IS_SECTIONS/BS_SECTIONS). `cf_category` is left "" for IS types the same way the worked
-# example (skills/produce-gaap-statements/examples/coa-mapping.csv) leaves revenue/COGS/opex
-# blank — cf classification of an IS account is a judgment call this rules pass does not make.
+# NetSuite documented accttype -> (section, line, normal_balance). Kept in the SAME
+# statement/section vocabulary statement_engine.py --lint-map validates
+# (IS_SECTIONS/BS_SECTIONS).
 ACCTTYPE_CLASSIFICATION = {
     # -- balance-sheet types --------------------------------------------------------------
-    "Bank":         ("CurrentAssets", "Cash and cash equivalents", "debit", "operating"),
-    "AcctRec":      ("CurrentAssets", "Accounts receivable, net", "debit", "operating"),
-    "OthCurrAsset": ("CurrentAssets", "Other current assets", "debit", "operating"),
-    "DeferExpense": ("CurrentAssets", "Prepaid & deferred expenses", "debit", "operating"),
-    "FixedAsset":   ("NonCurrentAssets", "Property, plant & equipment, net", "debit", "investing"),
-    "OthAsset":     ("NonCurrentAssets", "Other non-current assets", "debit", "investing"),
-    "AcctPay":      ("CurrentLiabilities", "Accounts payable", "credit", "operating"),
-    "CredCard":     ("CurrentLiabilities", "Credit card payable", "credit", "operating"),
-    "OthCurrLiab":  ("CurrentLiabilities", "Other current liabilities", "credit", "operating"),
-    "DeferRevenue": ("CurrentLiabilities", "Deferred revenue", "credit", "operating"),
-    "LongTermLiab": ("NonCurrentLiabilities", "Long-term liabilities", "credit", "financing"),
-    "Equity":       ("Equity", "Equity", "credit", "financing"),
+    "Bank": ("CurrentAssets", "Cash and cash equivalents", "debit"),
+    "AcctRec": ("CurrentAssets", "Accounts receivable, net", "debit"),
+    "OthCurrAsset": ("CurrentAssets", "Other current assets", "debit"),
+    "DeferExpense": ("CurrentAssets", "Prepaid & deferred expenses", "debit"),
+    "FixedAsset": ("NonCurrentAssets", "Property, plant & equipment, net", "debit"),
+    "OthAsset": ("NonCurrentAssets", "Other non-current assets", "debit"),
+    "AcctPay": ("CurrentLiabilities", "Accounts payable", "credit"),
+    "CredCard": ("CurrentLiabilities", "Credit card payable", "credit"),
+    "OthCurrLiab": ("CurrentLiabilities", "Other current liabilities", "credit"),
+    "DeferRevenue": ("CurrentLiabilities", "Deferred revenue", "credit"),
+    "LongTermLiab": ("NonCurrentLiabilities", "Long-term liabilities", "credit"),
+    "Equity": ("Equity", "Equity", "credit"),
     # -- income-statement types ------------------------------------------------------------
-    "Income":       ("Revenue", "Revenue", "credit", ""),
-    "COGS":         ("COGS", "Cost of goods sold", "debit", ""),
-    "Expense":      ("OpEx", "Operating expenses", "debit", ""),
-    "OthIncome":    ("OtherIncomeExpense", "Other income", "credit", ""),
-    "OthExpense":   ("OtherIncomeExpense", "Other expense", "debit", ""),
+    "Income": ("Revenue", "Revenue", "credit"),
+    "COGS": ("COGS", "Cost of goods sold", "debit"),
+    "Expense": ("OpEx", "Operating expenses", "debit"),
+    "OthIncome": ("OtherIncomeExpense", "Other income", "credit"),
+    "OthExpense": ("OtherIncomeExpense", "Other expense", "debit"),
 }
 assert set(ACCTTYPE_CLASSIFICATION) == (BALANCE_SHEET_TYPES | INCOME_STATEMENT_TYPES)
 
@@ -95,7 +98,11 @@ def pull_coa(transport, *, fixture_name: str = COA_FIXTURE, limit: int = 1000) -
         page = transport.suiteql(COA_QUERY, limit=limit, offset=offset, name=fixture_name)
         items = page.get("items", []) if isinstance(page, dict) else getattr(page, "items", [])
         rows.extend(items or [])
-        has_more = page.get("hasMore", False) if isinstance(page, dict) else getattr(page, "hasMore", False)
+        has_more = (
+            page.get("hasMore", False)
+            if isinstance(page, dict)
+            else getattr(page, "hasMore", False)
+        )
         if not has_more:
             break
         offset += limit
@@ -111,17 +118,26 @@ def classify_account(row: dict) -> dict:
     spec = ACCTTYPE_CLASSIFICATION.get(accttype)
     if spec is None:
         return {
-            "account": acct, "description": name, "statement": "", "section": "",
+            "account": acct,
+            "description": name,
+            "statement": "",
+            "section": "",
             "line": f"REVIEW REQUIRED — unknown accttype {accttype!r}",
-            "normal_balance": "", "cf_category": "", "noncash": "",
-            "flagged": True, "accttype": accttype,
+            "normal_balance": "",
+            "flagged": True,
+            "accttype": accttype,
         }
-    section, line, normal_balance, cf_category = spec
+    section, line, normal_balance = spec
     statement = "BS" if accttype in BALANCE_SHEET_TYPES else "IS"
     return {
-        "account": acct, "description": name, "statement": statement, "section": section,
-        "line": line, "normal_balance": normal_balance, "cf_category": cf_category,
-        "noncash": "", "flagged": False, "accttype": accttype,
+        "account": acct,
+        "description": name,
+        "statement": statement,
+        "section": section,
+        "line": line,
+        "normal_balance": normal_balance,
+        "flagged": False,
+        "accttype": accttype,
     }
 
 
@@ -183,8 +199,8 @@ def write_coverage_md(path: str, mapping_rows: list, weights: dict | None = None
     auto = [r for r in ordered if not r["flagged"]]
     sort_note = (
         "dollar-weighted by the supplied staged trial balance (largest balance first)"
-        if weights is not None else
-        "account-number order (no trial balance supplied to weight by dollar impact)"
+        if weights is not None
+        else "account-number order (no trial balance supplied to weight by dollar impact)"
     )
     lines = [
         "# NetSuite Chart-of-Accounts Draft — Coverage Report",
@@ -207,7 +223,9 @@ def write_coverage_md(path: str, mapping_rows: list, weights: dict | None = None
         lines.append("|---|---|---|---|")
         for r in flagged:
             w = f" (${weights.get(r['account'], 0.0):,.2f})" if weights is not None else ""
-            lines.append(f"| {r['account']}{w} | {r['description']} | {r['accttype']} | {r['line']} |")
+            lines.append(
+                f"| {r['account']}{w} | {r['description']} | {r['accttype']} | {r['line']} |"
+            )
     else:
         lines.append("_None — every pulled account matched a known accttype._")
     lines.append("")
@@ -230,14 +248,20 @@ def write_coverage_md(path: str, mapping_rows: list, weights: dict | None = None
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(
         description="Draft a NetSuite COA-mapping CSV (skills/author-coa-mapping contract) "
-                    "from a SuiteQL chart-of-accounts pull, plain-English coverage report."
+        "from a SuiteQL chart-of-accounts pull, plain-English coverage report."
     )
-    ap.add_argument("--fixture-dir", default=os.path.join(HERE, "fixtures"),
-                    help="ReplayTransport fixture directory (offline, zero-cred)")
+    ap.add_argument(
+        "--fixture-dir",
+        default=os.path.join(HERE, "fixtures"),
+        help="ReplayTransport fixture directory (offline, zero-cred)",
+    )
     ap.add_argument("--out-map", required=True, help="draft coa-mapping.csv to write")
     ap.add_argument("--out-coverage", required=True, help="coverage.md to write")
-    ap.add_argument("--tb", help="optional staged TB CSV (tb_stage.py canonical columns) "
-                                 "to dollar-weight the review queue")
+    ap.add_argument(
+        "--tb",
+        help="optional staged TB CSV (tb_stage.py canonical columns) "
+        "to dollar-weight the review queue",
+    )
     a = ap.parse_args(argv)
 
     transport = ReplayTransport(a.fixture_dir)

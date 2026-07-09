@@ -15,7 +15,7 @@ Creating a new Lightning Web Component that reads or writes Salesforce data.
 
 1. **Bundle trio.** Produce `<name>.html`, `<name>.js`, and `<name>.js-meta.xml` with the right `apiVersion`, targets, and exposure. See `templates/lwc-bundle.md`.
 2. **Wire data the lightning way.** Prefer `@wire` to a cacheable Apex method or to `getRecord`/UI API over imperative calls; reach for imperative Apex only for user-triggered actions.
-3. **FLS-aware controller.** The Apex controller method is `@AuraEnabled(cacheable=true)` for reads, uses `WITH SECURITY_ENFORCED` (or `Security.stripInaccessible`), and is `with sharing`. (House opinions #6-#7.)
+3. **FLS-aware controller.** The Apex controller method is `@AuraEnabled(cacheable=true)` for reads, uses `WITH USER_MODE` (or `Security.stripInaccessible`), and is `with sharing`. **At API v67.0+ `WITH SECURITY_ENFORCED` no longer compiles** — use `WITH USER_MODE`. (House opinions #6-#7.) `[verify-at-build]`
 4. **Bulk-safe controller.** No SOQL/DML in loops; accept and return collections where the UI is list-shaped.
 5. **Error handling.** Surface controller errors to the template; never swallow them.
 

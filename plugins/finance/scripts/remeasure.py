@@ -55,6 +55,7 @@ a live-rate-verified remeasurement. Sourcing the closing/average/historical rate
 IdP/warehouse wiring, and any real credentials are the consumer's step (../CLAUDE.md
 sec.3, sec.12).
 """
+
 from __future__ import annotations
 
 import argparse
@@ -67,8 +68,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import entity_config as ec  # noqa: E402
 import statement_engine as se  # noqa: E402
 
-RATE_CLASSES = {"MONETARY", "NONMONETARY", "EQUITY_CONTRIB", "EQUITY_RE",
-                "REV_EXP", "REV_EXP_HIST"}
+RATE_CLASSES = {"MONETARY", "NONMONETARY", "EQUITY_CONTRIB", "EQUITY_RE", "REV_EXP", "REV_EXP_HIST"}
 METHODS = {"current_rate", "temporal"}
 EQUITY_CLASSES = {"EQUITY_CONTRIB", "EQUITY_RE"}
 
@@ -81,11 +81,12 @@ REMEAS_LINE = "Remeasurement gain/(loss)"
 
 # Exit codes (distinct from statement_engine's 3/4 and consolidate's 2-6 so a caller
 # can tell WHY a translation blocked).
-RC_MAPPING = 3        # rate_class missing/invalid or base mapping lint failure
+RC_MAPPING = 3  # rate_class missing/invalid or base mapping lint failure
 RC_TB_UNBALANCED = 4  # functional trial balance is out of balance
 RC_CTA_SELFCHECK = 5  # BS-balancing plug != analytical CTA
-RC_ENTITY = 2         # invalid entity profile
+RC_ENTITY = 2  # invalid entity profile
 RC_HYPERINFLATION = 7  # highly_inflationary + current_rate refused (ASC 830 vs IAS 29)
+RC_RATES = 8  # rates.json missing/invalid a required rate key (closing/average/historical.default)
 
 
 def load_mapping_with_rate_class(path: str) -> dict:
@@ -108,17 +109,22 @@ def lint_rate_class(tb: list, mapping: dict) -> list:
             continue  # se.lint_mapping already reports the unmapped account
         rc = mp.get("rate_class", "")
         if rc not in RATE_CLASSES:
-            errs.append(f"{acct}: rate_class must be one of {sorted(RATE_CLASSES)}, "
-                        f"got {rc!r} (blank/invalid blocks like an unmapped account)")
+            errs.append(
+                f"{acct}: rate_class must be one of {sorted(RATE_CLASSES)}, "
+                f"got {rc!r} (blank/invalid blocks like an unmapped account)"
+            )
             continue
         # Coherence: rate_class must agree with the account's statement/section.
         stmt, section = mp["statement"], mp["section"]
         if rc in EQUITY_CLASSES and (stmt != "BS" or section != "Equity"):
-            errs.append(f"{acct}: rate_class {rc} requires a BS/Equity account, "
-                        f"got {stmt}/{section}")
+            errs.append(
+                f"{acct}: rate_class {rc} requires a BS/Equity account, got {stmt}/{section}"
+            )
         elif rc in ("MONETARY", "NONMONETARY") and (stmt != "BS" or section == "Equity"):
-            errs.append(f"{acct}: rate_class {rc} requires a BS asset/liability account, "
-                        f"got {stmt}/{section}")
+            errs.append(
+                f"{acct}: rate_class {rc} requires a BS asset/liability account, "
+                f"got {stmt}/{section}"
+            )
         elif rc in ("REV_EXP", "REV_EXP_HIST") and stmt != "IS":
             errs.append(f"{acct}: rate_class {rc} requires an IS account, got {stmt}")
     return errs
@@ -127,8 +133,10 @@ def lint_rate_class(tb: list, mapping: dict) -> list:
 def historical_rate(rates: dict, account: str) -> float:
     hist = rates.get("historical", {})
     if not isinstance(hist, dict) or "default" not in hist:
-        raise SystemExit("rates.historical must be an object with a 'default' key "
-                         "(and optional per-account overrides)")
+        raise SystemExit(
+            "rates.historical must be an object with a 'default' key "
+            "(and optional per-account overrides)"
+        )
     return float(hist.get(account, hist["default"]))
 
 
@@ -185,8 +193,7 @@ def analytical_cta(tb: list, mapping: dict, rates: dict, net_income_func: float)
     term_ni = net_income_func * (closing - average)
     div = rates.get("dividends") or {}
     div_amt = float(div.get("amount", 0) or 0)
-    decl = float(div.get("declaration_rate", historical_rate(rates, "default"))
-                 ) if div_amt else 0.0
+    decl = float(div.get("declaration_rate", historical_rate(rates, "default"))) if div_amt else 0.0
     term_div = -div_amt * (closing - decl)
     return round(term_bna + term_ni + term_div, 2)
 
@@ -197,8 +204,7 @@ def _num(x) -> str:
     return str(int(x)) if x == int(x) else f"{x:.2f}"
 
 
-def translate(entity: dict, mapping: dict, tb: list, rates: dict,
-              presentation: str) -> dict:
+def translate(entity: dict, mapping: dict, tb: list, rates: dict, presentation: str) -> dict:
     """Translate the functional TB to a presentation TB + plug; reuse statement_engine.
 
     Returns a dict carrying the balanced translated rows, the plug, statement_engine's
@@ -219,12 +225,21 @@ def translate(entity: dict, mapping: dict, tb: list, rates: dict,
         c = round(r["credit"] * rate, 2)
         usd_debit_sum += d
         usd_credit_sum += c
-        translated.append({"account": r["account"], "description": r["description"],
-                           "debit": d, "credit": c})
-        trail.append({"account": r["account"], "description": r["description"],
-                      "rate_class": rc, "rate": rate,
-                      "functional_debit": r["debit"], "functional_credit": r["credit"],
-                      "usd_debit": d, "usd_credit": c})
+        translated.append(
+            {"account": r["account"], "description": r["description"], "debit": d, "credit": c}
+        )
+        trail.append(
+            {
+                "account": r["account"],
+                "description": r["description"],
+                "rate_class": rc,
+                "rate": rate,
+                "functional_debit": r["debit"],
+                "functional_credit": r["credit"],
+                "usd_debit": d,
+                "usd_credit": c,
+            }
+        )
 
     imbalance = round(usd_debit_sum - usd_credit_sum, 2)  # +ve => debits exceed credits
 
@@ -237,25 +252,45 @@ def translate(entity: dict, mapping: dict, tb: list, rates: dict,
         # Plug is the CTA, in BS/Equity. Debit-excess => a credit CTA (gain), and
         # vice-versa; either way its section-signed presentation amount == imbalance.
         d, c = (0.0, imbalance) if imbalance >= 0 else (-imbalance, 0.0)
-        work_map[CTA_ACCT] = {"statement": "BS", "section": "Equity", "line": CTA_LINE,
-                              "normal_balance": "credit", "cf_category": "",
-                              "noncash": False, "rate_class": "EQUITY_RE"}
-        translated.append({"account": CTA_ACCT, "description": CTA_LINE,
-                           "debit": d, "credit": c})
-        plug = {"type": "CTA", "statement": "BS", "section": "Equity", "line": CTA_LINE,
-                "debit": d, "credit": c, "presentation_amount": imbalance}
+        work_map[CTA_ACCT] = {
+            "statement": "BS",
+            "section": "Equity",
+            "line": CTA_LINE,
+            "normal_balance": "credit",
+            "rate_class": "EQUITY_RE",
+        }
+        translated.append({"account": CTA_ACCT, "description": CTA_LINE, "debit": d, "credit": c})
+        plug = {
+            "type": "CTA",
+            "statement": "BS",
+            "section": "Equity",
+            "line": CTA_LINE,
+            "debit": d,
+            "credit": c,
+            "presentation_amount": imbalance,
+        }
     else:  # temporal
         # Plug is the remeasurement gain/(loss), in IS/OtherIncomeExpense -> net income.
         d, c = (0.0, imbalance) if imbalance >= 0 else (-imbalance, 0.0)
-        work_map[REMEAS_ACCT] = {"statement": "IS", "section": "OtherIncomeExpense",
-                                 "line": REMEAS_LINE, "normal_balance": "credit",
-                                 "cf_category": "", "noncash": False,
-                                 "rate_class": "REV_EXP"}
-        translated.append({"account": REMEAS_ACCT, "description": REMEAS_LINE,
-                           "debit": d, "credit": c})
-        plug = {"type": "remeasurement_gain_loss", "statement": "IS",
-                "section": "OtherIncomeExpense", "line": REMEAS_LINE,
-                "debit": d, "credit": c, "presentation_amount": imbalance}
+        work_map[REMEAS_ACCT] = {
+            "statement": "IS",
+            "section": "OtherIncomeExpense",
+            "line": REMEAS_LINE,
+            "normal_balance": "credit",
+            "rate_class": "REV_EXP",
+        }
+        translated.append(
+            {"account": REMEAS_ACCT, "description": REMEAS_LINE, "debit": d, "credit": c}
+        )
+        plug = {
+            "type": "remeasurement_gain_loss",
+            "statement": "IS",
+            "section": "OtherIncomeExpense",
+            "line": REMEAS_LINE,
+            "debit": d,
+            "credit": c,
+            "presentation_amount": imbalance,
+        }
 
     # Reuse statement_engine on the balanced translated TB (no new sign logic).
     is_stmt, net_income, is_trail = se.build_income_statement(translated, work_map)
@@ -266,36 +301,40 @@ def translate(entity: dict, mapping: dict, tb: list, rates: dict,
         "method": method,
         "functional_currency": entity["functional_currency"],
         "presentation_currency": presentation,
-        "rates": {"closing": rates["closing"], "average": rates["average"],
-                  "historical": rates.get("historical")},
+        "rates": {
+            "closing": rates["closing"],
+            "average": rates["average"],
+            "historical": rates.get("historical"),
+        },
         "plug": plug,
         "translated_income_statement": is_stmt["subtotals"],
         "translated_balance_sheet": bs_stmt["subtotals"],
         "translation_trail": trail,
         "reasoning_trail": {"income_statement": is_trail, "balance_sheet": bs_trail},
         "translated_tb": translated,
-        "caveat": ("Decision-support translation, NOT an audited remeasurement or a "
-                   "GAAP/IFRS determination. Closing/average/historical rates are the "
-                   "consumer's sourced inputs; live-rate verification, IdP/warehouse "
-                   "wiring, and real credentials are out of scope."),
+        "caveat": (
+            "Decision-support translation, NOT an audited remeasurement or a "
+            "GAAP/IFRS determination. Closing/average/historical rates are the "
+            "consumer's sourced inputs; live-rate verification, IdP/warehouse "
+            "wiring, and real credentials are out of scope."
+        ),
     }
 
     if method == "current_rate":
         theory = analytical_cta(tb, mapping, rates, net_income_func)
         passes = abs(theory - imbalance) < 0.01
-        out["cta_self_check"] = {"analytical": theory, "plug": imbalance,
-                                 "passes": passes}
+        out["cta_self_check"] = {"analytical": theory, "plug": imbalance, "passes": passes}
         if not passes:
             sys.stderr.write(
                 f"BLOCKED: CTA self-check failed - balancing plug {imbalance:,.2f} != "
                 f"analytical CTA {theory:,.2f} (begin_net_assets x (closing-historical) "
-                f"+ NI x (closing-average) - dividends x (closing-declaration)).\n")
+                f"+ NI x (closing-average) - dividends x (closing-declaration)).\n"
+            )
             raise SystemExit(RC_CTA_SELFCHECK)
     return out
 
 
-def run(entity_path: str, coa_path: str, tb_path: str, rates_path=None,
-        presentation="USD") -> dict:
+def run(entity_path: str, coa_path: str, tb_path: str, rates_path=None, presentation="USD") -> dict:
     profile = ec.load(entity_path)
     perrs = ec.validate(profile)
     if perrs:
@@ -311,18 +350,25 @@ def run(entity_path: str, coa_path: str, tb_path: str, rates_path=None,
         sys.stderr.write(
             f"BLOCKED: functional trial balance is out of balance by "
             f"{tb_debits - tb_credits:,.2f} (debits {tb_debits:,.2f} != credits "
-            f"{tb_credits:,.2f}). Translate only a balanced TB.\n")
+            f"{tb_credits:,.2f}). Translate only a balanced TB.\n"
+        )
         raise SystemExit(RC_TB_UNBALANCED)
 
     functional = profile["functional_currency"]
     if functional == presentation:
         # Zero-drift no-op: nothing to translate. Signalled to the caller so main() can
         # emit a byte-identical copy of the source TB.
-        return {"entity": profile["entity_name"], "method": None,
-                "functional_currency": functional, "presentation_currency": presentation,
-                "no_op": True,
-                "caveat": ("functional == presentation currency: no translation "
-                           "performed; the presentation TB is a byte-identical copy.")}
+        return {
+            "entity": profile["entity_name"],
+            "method": None,
+            "functional_currency": functional,
+            "presentation_currency": presentation,
+            "no_op": True,
+            "caveat": (
+                "functional == presentation currency: no translation "
+                "performed; the presentation TB is a byte-identical copy."
+            ),
+        }
 
     mapping = load_mapping_with_rate_class(coa_path)
     errs = se.lint_mapping(tb, mapping) + lint_rate_class(tb, mapping)
@@ -333,22 +379,51 @@ def run(entity_path: str, coa_path: str, tb_path: str, rates_path=None,
         raise SystemExit(RC_MAPPING)
 
     if rates_path is None:
-        raise SystemExit("BLOCKED: --rates is required when functional currency "
-                         f"({functional}) != presentation currency ({presentation}).")
+        raise SystemExit(
+            "BLOCKED: --rates is required when functional currency "
+            f"({functional}) != presentation currency ({presentation})."
+        )
     with open(rates_path) as fh:
         rates = json.load(fh)
 
     method = rates.get("method")
     if method not in METHODS:
-        raise SystemExit(f"BLOCKED: rates.method must be one of {sorted(METHODS)}, "
-                         f"got {method!r}")
+        raise SystemExit(f"BLOCKED: rates.method must be one of {sorted(METHODS)}, got {method!r}")
+
+    # Validate the required numeric rate keys up front so a missing/blank key BLOCKS with a
+    # worded message + dedicated RC code, rather than surfacing later as a raw KeyError inside
+    # rate_for()'s float(rates['closing'])/float(rates['average']). Both methods translate at
+    # closing/average and at historical (equity/non-monetary), so historical.default is always
+    # needed here — mirror historical_rate()'s own check.
+    rate_errs: list = []
+    for key in ("closing", "average"):
+        if key not in rates:
+            rate_errs.append(f"rates.{key} is required (a numeric FX rate)")
+        else:
+            try:
+                float(rates[key])
+            except (TypeError, ValueError):
+                rate_errs.append(f"rates.{key} must be numeric, got {rates[key]!r}")
+    hist = rates.get("historical")
+    if not isinstance(hist, dict) or "default" not in hist:
+        rate_errs.append(
+            "rates.historical must be an object with a 'default' key "
+            "(and optional per-account overrides)"
+        )
+    if rate_errs:
+        sys.stderr.write("BLOCKED: rates.json is missing/invalid a required rate key:\n")
+        for e in rate_errs:
+            sys.stderr.write(f"  - {e}\n")
+        raise SystemExit(RC_RATES)
+
     if rates.get("highly_inflationary") and method == "current_rate":
         sys.stderr.write(
             "REFUSED: highly_inflationary + current_rate is not permitted. Under ASC "
             "830 a highly inflationary economy's books are REMEASURED as if the "
             "reporting currency were functional (use method='temporal'), never "
             "translated at the current rate. IAS 29 (restate-for-inflation-then-"
-            "translate at closing) is a different framework and is OUT OF SCOPE here.\n")
+            "translate at closing) is a different framework and is OUT OF SCOPE here.\n"
+        )
         raise SystemExit(RC_HYPERINFLATION)
 
     return translate(profile, mapping, tb, rates, presentation)
@@ -357,24 +432,33 @@ def run(entity_path: str, coa_path: str, tb_path: str, rates_path=None,
 def _write_tb_csv(path: str, entity: dict, rows: list, presentation: str) -> None:
     with open(path, "w", newline="") as fh:
         w = csv.writer(fh)
-        w.writerow(["account", "description", "debit", "credit", "entity", "period",
-                    "currency"])
+        w.writerow(["account", "description", "debit", "credit", "entity", "period", "currency"])
         for r in rows:
-            w.writerow([r["account"], r["description"], _num(r["debit"]),
-                        _num(r["credit"]), entity.get("entity_name", ""),
-                        entity.get("fiscal_period", ""), presentation])
+            w.writerow(
+                [
+                    r["account"],
+                    r["description"],
+                    _num(r["debit"]),
+                    _num(r["credit"]),
+                    entity.get("entity_name", ""),
+                    entity.get("fiscal_period", ""),
+                    presentation,
+                ]
+            )
 
 
 def main(argv=None) -> int:
     p = argparse.ArgumentParser(
         description="Translate/remeasure one entity's functional-currency TB to a "
-                    "presentation-currency TB (current-rate or temporal).")
+        "presentation-currency TB (current-rate or temporal)."
+    )
     p.add_argument("--entity", required=True, help="entity profile JSON")
     p.add_argument("--coa", required=True, help="COA mapping CSV (with rate_class)")
     p.add_argument("--tb", required=True, help="functional-currency trial balance CSV")
     p.add_argument("--rates", help="rates.json (required when functional != presentation)")
-    p.add_argument("--presentation-currency", default="USD",
-                   help="group presentation currency (default USD)")
+    p.add_argument(
+        "--presentation-currency", default="USD", help="group presentation currency (default USD)"
+    )
     p.add_argument("--out", help="write the translation report JSON here (else stdout)")
     p.add_argument("--out-tb", help="write the presentation-currency TB CSV here")
     a = p.parse_args(argv)
@@ -390,8 +474,10 @@ def main(argv=None) -> int:
         if a.out:
             with open(a.out, "w") as fh:
                 fh.write(text + "\n")
-            print(f"no-op (functional == {a.presentation_currency}); presentation TB is "
-                  f"a byte-identical copy" + (f" -> {a.out_tb}" if a.out_tb else ""))
+            print(
+                f"no-op (functional == {a.presentation_currency}); presentation TB is "
+                f"a byte-identical copy" + (f" -> {a.out_tb}" if a.out_tb else "")
+            )
         else:
             print(text)
         return 0
@@ -407,9 +493,11 @@ def main(argv=None) -> int:
         plug = out["plug"]
         ni = out["translated_balance_sheet"]["current_period_net_income"]
         delta = out["translated_balance_sheet"]["balance_delta"]
-        print(f"wrote {a.out}  [{out['method']}]  {plug['type']} "
-              f"{plug['presentation_amount']:,.2f}  net income {ni:,.2f} "
-              f"{a.presentation_currency}  balance_delta {delta:,.2f}")
+        print(
+            f"wrote {a.out}  [{out['method']}]  {plug['type']} "
+            f"{plug['presentation_amount']:,.2f}  net income {ni:,.2f} "
+            f"{a.presentation_currency}  balance_delta {delta:,.2f}"
+        )
     else:
         print(text)
     return 0

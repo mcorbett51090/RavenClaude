@@ -1,6 +1,6 @@
 {
   "name": "hospice-referral-sales",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Hospice referral-sales / community-liaison team — 6 agents (referral-development-strategist, hospice-eligibility-educator, referral-account-manager, admissions-conversion-coach, goals-of-care-conversation-coach, hospice-sales-compliance-advisor) for a hospice sales / community-education rep who grows admissions by developing referral sources (hospitals, SNFs, physician practices, ACOs): territory planning, educating clinicians on hospice eligibility (LCD decline criteria by diagnosis — the rep educates, the physician certifies), referral-partner reviews, the referral-to-admission funnel, the goals-of-care 'hospice conversation', and clearing every touch against the Anti-Kickback / HIPAA line. 6 skills, 6 commands, a 4-doc knowledge bank (6 decision trees + glossary + LCD + compliance references), 14 best-practices, scenarios, and a runnable funnel / census / benefit-period calculator. Employer-neutral; public practice + CMS rules. Requires ravenclaude-core@>=0.7.0.",
   "author": {
     "name": "Matt Corbett"
