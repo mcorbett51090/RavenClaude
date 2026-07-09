@@ -2094,7 +2094,7 @@ Add extra fields shown on hover by adding a `Tooltips` role to any chart's `quer
 
 ## 13. `report.json` structure
 
-For the canonical, debug-tested `report.json` template, see [`pbir-enhanced-report-loading.md`](pbir-enhanced-report-loading.md) §"Correct `definition/report.json` template (schema 3.2.0)" — that file's template is what made a real BTCSI-engagement report load and is the authoritative shape for new reports. The structure below is the Copilot research's version (using `report/3.1.0`) — equivalent shape, slightly older schema.
+For the canonical, debug-tested `report.json` template, see [`pbir-enhanced-report-loading.md`](pbir-enhanced-report-loading.md) §"Correct `definition/report.json` template (schema 3.2.0)" — that file's template is what made a real Contoso-engagement report load and is the authoritative shape for new reports. The structure below is the Copilot research's version (using `report/3.1.0`) — equivalent shape, slightly older schema.
 
 ```json
 {

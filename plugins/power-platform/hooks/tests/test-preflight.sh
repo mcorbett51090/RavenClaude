@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Gate — dataverse-payload-preflight validate() (offline, fixture-driven).
-#   A bad payload surfaces ALL the BTCSI-retro violation classes in ONE pass
+#   A bad payload surfaces ALL the Contoso-retro violation classes in ONE pass
 #     (nonexistent-column, invalid-option-set, malformed-lookup-bind, lookup-needs-bind,
 #      missing-required, owner-not-provided).
 #   A clean payload validates with zero errors.

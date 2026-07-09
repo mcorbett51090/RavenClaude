@@ -2,7 +2,7 @@
 """dataverse-payload-preflight — validate a Dataverse create/update payload against LIVE
 entity metadata in ONE pass, so you never fix-one-field-and-retrigger.
 
-Born from the BTCSI assumption-rework retro (2026-06-24): create payloads failed one field at
+Born from the Contoso assumption-rework retro (2026-06-24): create payloads failed one field at
 a time across many human re-fires (empty lookup bind -> invalid option-set value -> undeclared
 columns -> "Owner was not provided"). A single metadata-vs-payload sweep finds them all at once.
 

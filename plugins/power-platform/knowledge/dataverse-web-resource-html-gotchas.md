@@ -1,7 +1,7 @@
 # HTML web resources in model-driven apps — the four gotchas that silently break a page
 
 > **Last reviewed:** 2026-06-11. Sources: production debugging lesson (a GitHub Copilot session
-> building Tesla-style HTML "workflow" web resources for a real customer model-driven app — BTCSI
+> building Tesla-style HTML "workflow" web resources for a real customer model-driven app — Contoso
 > Insight), reconciled against learn.microsoft.com on 2026-06-11 (URLs inline). Refresh when the
 > Dataverse web-resource URL contract, the `Xrm.WebApi` signature, or the `EntityDefinitions`
 > metadata API change. Companion to the [`dataverse-web-resources`](../skills/dataverse-web-resources/SKILL.md)

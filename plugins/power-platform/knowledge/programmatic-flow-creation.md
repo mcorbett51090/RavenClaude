@@ -22,14 +22,14 @@ flowchart TD
     Q2 -->|YES, 1-5 flows| SURGICAL["SURGICAL TEMP SOLUTION<br/>~2 min"]
     Q2 -->|YES, 6+ flows OR multi-entity| FULL["FULL SOLUTION REIMPORT<br/>5-20 min"]
     Q2 -->|NO, flow self-off after activate| CONNREF["Connection-reference rebind<br/>portal: Connections, bind CR, retry"]
-    SURGICAL --> CLEANUP["Delete temp BTCSIFlowFix solution<br/>after import succeeds"]
+    SURGICAL --> CLEANUP["Delete temp ContosoFlowFix solution<br/>after import succeeds"]
     FULL --> DIFFCHECK["git diff after portal pull<br/>before next session"]
 ```
 
 **Rationale per leaf:**
 
 - *TOGGLE* — if the portal accepts the toggle, the flow definition is intact; only the trigger registration was lost. No reimport needed.
-- *SURGICAL* — preferred for narrow blast radius. Touches only the named flows; reversible by deleting the temp solution. Steps: (1) create temp `BTCSIFlowFix` solution via Web API, (2) `AddSolutionComponent` (type 29) for each affected flow only, (3) export → `pac unpack` → edit JSON/XML → `pac pack` → import, (4) delete temp solution.
+- *SURGICAL* — preferred for narrow blast radius. Touches only the named flows; reversible by deleting the temp solution. Steps: (1) create temp `ContosoFlowFix` solution via Web API, (2) `AddSolutionComponent` (type 29) for each affected flow only, (3) export → `pac unpack` → edit JSON/XML → `pac pack` → import, (4) delete temp solution.
 - *FULL* — only when 6+ flows are affected or flows span multiple entities. ⚠ Overwrites portal changes since last export; always `git diff` after portal pull before next session.
 - *CONNREF* — flow self-off-after-activate means a missing connection-reference binding in this environment. Reimport will NOT fix this; only portal-side rebinding does.
 - *CLEANUP* — temp solutions clutter the env's solution list and confuse later imports. Always delete the temp solution after the surgical fix succeeds.

@@ -358,7 +358,7 @@ Same falsifiability bar as the other clauses: cite the this-session check that p
 worked (the output record, the green run), or mark it `[unverified — assumed-good reference]` and
 verify before you build on it.
 
-**Worked example (BTCSI document-extraction, 2026-06-24).** A multi-agent pipeline rebuild was anchored
+**Worked example (Contoso document-extraction, 2026-06-24).** A multi-agent pipeline rebuild was anchored
 on an `*Extract-Action` flow as the "golden working reference" and faithfully mirrored its OCR wiring —
 but that flow had **0 successful extraction records, ever**. The "0 records" signal was misread as
 *"the pipeline is broken, rebuild it"* instead of the accurate *"the reference is unproven; don't trust
@@ -738,7 +738,7 @@ This closes the failure mode where a user relaxes permissions to move faster and
 
 ## Tribunal denies now emit to the event substrate + substrate-wide secret scrub (added 2026-06-03, v0.110.0)
 
-**Phase 0 of the Copilot adapter diagnostic remediation.** Closes the dark-substrate failure mode that surfaced in a BTCSI Copilot session on 2026-06-03: a wall of generic "Blocked by RavenClaude guard" messages with **zero diagnostic signal** because the Thing tribunal's deny branches and `route-decision-review.sh`'s binding-verdict deny never called `_emit_hook_event` — the consumer's `.ravenclaude/runs/*/hook-events.jsonl` was empty for the most consequential deny class. Two halves:
+**Phase 0 of the Copilot adapter diagnostic remediation.** Closes the dark-substrate failure mode that surfaced in a Contoso Copilot session on 2026-06-03: a wall of generic "Blocked by RavenClaude guard" messages with **zero diagnostic signal** because the Thing tribunal's deny branches and `route-decision-review.sh`'s binding-verdict deny never called `_emit_hook_event` — the consumer's `.ravenclaude/runs/*/hook-events.jsonl` was empty for the most consequential deny class. Two halves:
 
 1. **`_emit_hook_event` wired into every Thing + decision-review deny path.** [`hooks/thing-orchestrator.sh`](hooks/thing-orchestrator.sh) deny branches (self-disable, pre-LLM hard-rule, panel-deny, abstain fail-closed, injection, EDIT-coerced) and [`hooks/route-decision-review.sh`](hooks/route-decision-review.sh)'s binding-verdict deny all emit a structured JSONL line naming the rule that fired (e.g. `pre-llm-hard-rule`, `self-disable`, `binding-verdict-yes`). This is the diagnostic substrate the next session uses to root-cause "why was `echo hello` blocked?" — without it, future debugging is blind. **Migration:** none — the substrate is additive; consumers see the same denials with one extra JSONL line per deny.
 
@@ -748,7 +748,7 @@ Sets up the diagnostic substrate that Phase 1 (PR A — the Copilot adapter stde
 
 ## Copilot adapter surfaces the real deny reason (added 2026-06-03, v0.111.0)
 
-**Phase 1 of the Copilot adapter diagnostic remediation.** With Phase 0 emitting structured JSONL on every Thing tribunal deny, this phase makes the deny **legible to the agent at deny time** — closing the "Blocked by RavenClaude guard" diagnostic-blindness root cause that drove the 2026-06-03 BTCSI triage. Six deltas on [`hooks/copilot-hook-adapter.sh`](hooks/copilot-hook-adapter.sh), [`hooks/route-decision-review.sh`](hooks/route-decision-review.sh), and [`scripts/thing-decide.py`](scripts/thing-decide.py):
+**Phase 1 of the Copilot adapter diagnostic remediation.** With Phase 0 emitting structured JSONL on every Thing tribunal deny, this phase makes the deny **legible to the agent at deny time** — closing the "Blocked by RavenClaude guard" diagnostic-blindness root cause that drove the 2026-06-03 Contoso triage. Six deltas on [`hooks/copilot-hook-adapter.sh`](hooks/copilot-hook-adapter.sh), [`hooks/route-decision-review.sh`](hooks/route-decision-review.sh), and [`scripts/thing-decide.py`](scripts/thing-decide.py):
 
 1. **Adapter stderr preservation (exit-2 path only).** `mktemp`-based capture replaces the `2>/dev/null` that previously discarded the real hook's stderr. The captured stderr passes through `_scrub_reason()` (Phase 0's substrate-wide invariant) before becoming the `permissionDecisionReason`, then the full reason is capped at 512 bytes. The JSON-emit branch (lines 64-75) is unchanged — it already forwarded the reason correctly; only the exit-2 path needed the change.
 2. **`CLAUDE_SESSION_ID` exported** from the Copilot payload's `.sessionId` BEFORE invoking the real hook, so `_emit_hook_event` lands its JSONL in `runs/<real-sid>/` instead of `runs/unknown/`. Closes RC-3 from the diagnostic.
@@ -769,7 +769,7 @@ Proven by **Gate 20** (`hooks/tests/test-gate20-adapter-diagnostics.sh`) — 7 s
 
 Proven by **Gate 60** (`hooks/tests/test-gate60-copilot-seat-cap.sh`) — 5 subtests: default unset → 45s/75s, `THING_HOST=copilot` → 90s/105s, `THING_HOST=claude-code` → unchanged, user `thing.yaml` override → preserved (60s wins over the bump), and a must-fail half that patches the bump block out and asserts the loader keeps the default (proves the gate has teeth). Registered in `scripts/audit-gates.sh` with `--check 60` per-gate runner.
 
-**Migration:** none required — opt-in via env signal set by Phase 1's adapter; consumers not running under Copilot CLI see no behavior change. Consumers with an explicit `thing.yaml` `seat_timeout_seconds` value see no change. With this PR, the **Copilot adapter diagnostic remediation is complete** — Phase 0 made denies legible in the audit log, Phase 1 made them legible to the agent at deny time, and Phase 2 prevents the latency-artifact false positives that the 2026-06-03 BTCSI triage surfaced. Full diagnostic in [`docs/research/2026-06-03-copilot-adapter-diagnostic/synthesis.md`](../../docs/research/2026-06-03-copilot-adapter-diagnostic/synthesis.md).
+**Migration:** none required — opt-in via env signal set by Phase 1's adapter; consumers not running under Copilot CLI see no behavior change. Consumers with an explicit `thing.yaml` `seat_timeout_seconds` value see no change. With this PR, the **Copilot adapter diagnostic remediation is complete** — Phase 0 made denies legible in the audit log, Phase 1 made them legible to the agent at deny time, and Phase 2 prevents the latency-artifact false positives that the 2026-06-03 Contoso triage surfaced. Full diagnostic in [`docs/research/2026-06-03-copilot-adapter-diagnostic/synthesis.md`](../../docs/research/2026-06-03-copilot-adapter-diagnostic/synthesis.md).
 
 ## Hardener follow-ups: scrub pattern coverage + multi-field injection + Unicode separators (added 2026-06-03, v0.113.1)
 
@@ -883,7 +883,7 @@ The deliberate follow-up the dispatch-evaluator Phase 2 milestone (v0.121.0) car
 
 ## `ravenclaude status` detects + self-heals missing dashboard launcher (added 2026-06-03, v0.113.2)
 
-Closes the PM panel's "`dashboard_launcher_present` check on `ravenclaude status`" recommendation from the 2026-06-03 Copilot adapter triage. Pre-v0.44.0 `ravenclaude setup` installs predate the per-repo dashboard launcher template — they wire skills + hooks + MCP + the `rc` alias, but never get `.ravenclaude/dashboard.sh`, `.ravenclaude/README.md`, or `.vscode/tasks.json`. Without these the consumer can't open the comfort-posture editor scoped to their repo (the dashboard server itself runs from the marketplace clone, but the per-repo launcher / VS Code task / README link are how a consumer discovers it). BTCSI was the worked case.
+Closes the PM panel's "`dashboard_launcher_present` check on `ravenclaude status`" recommendation from the 2026-06-03 Copilot adapter triage. Pre-v0.44.0 `ravenclaude setup` installs predate the per-repo dashboard launcher template — they wire skills + hooks + MCP + the `rc` alias, but never get `.ravenclaude/dashboard.sh`, `.ravenclaude/README.md`, or `.vscode/tasks.json`. Without these the consumer can't open the comfort-posture editor scoped to their repo (the dashboard server itself runs from the marketplace clone, but the per-repo launcher / VS Code task / README link are how a consumer discovers it). Contoso was the worked case.
 
 [`scripts/ravenclaude`](../../scripts/ravenclaude) `cmd_status` now checks all three files and prints `launcher: MISSING — run 'ravenclaude status --fix --project <repo>' to install` when any are absent (with per-file bullets so the consumer can see exactly what's missing). The new `--fix` flag calls the existing `wire_dashboard_launchers()` (the same function `setup` uses) so the self-heal is identical to a fresh install. The detection is read-only (no side effects without `--fix`).
 

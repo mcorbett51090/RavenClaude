@@ -1,6 +1,6 @@
 # PBIR Enhanced report won't load — `resourcePackages` + `version.json` + the `prototypeQuery` breaking change
 
-> **Last reviewed:** 2026-06-02. Source: production lesson learned debugging the `BMA-CSP-Risk-Scoring` report (BTCSI DEV workspace) on 2026-06-02 — infinite-spinner-on-load resolved at commit `8868af0` after a multi-phase debug loop. Refresh when (a) Microsoft updates the Fabric report-definition schema versions, (b) `prototypeQuery` is re-allowed or its replacement contract changes, or (c) the `version.json` `"2.0.0"` value changes (it lagged the `$schema` URL last time — easy to miss).
+> **Last reviewed:** 2026-06-02. Source: production lesson learned debugging the `BMA-CSP-Risk-Scoring` report (Contoso DEV workspace) on 2026-06-02 — infinite-spinner-on-load resolved at commit `8868af0` after a multi-phase debug loop. Refresh when (a) Microsoft updates the Fabric report-definition schema versions, (b) `prototypeQuery` is re-allowed or its replacement contract changes, or (c) the `version.json` `"2.0.0"` value changes (it lagged the `$schema` URL last time — easy to miss).
 >
 > **Claim-grounding note.** This file documents a Microsoft platform contract that has *already* changed once between May and June 2026. Treat the specific schema versions, the `additionalProperties: false` enforcement, and the `version.json` value as `[verify-at-use]` — re-check against a current real-world Enhanced report before quoting them into customer code.
 >

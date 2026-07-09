@@ -6,7 +6,7 @@ allowed-tools: Bash, Read
 
 # dataverse-payload-preflight — one-pass payload validation against live metadata
 
-> **Why this exists.** The BTCSI assumption-rework retro (2026-06-24): a `Create_BalanceSheet` failed
+> **Why this exists.** The Contoso assumption-rework retro (2026-06-24): a `Create_BalanceSheet` failed
 > **four times in a row, each on a different field** — empty lookup bind `/accounts()` → invalid
 > `sourcechannel` option value → undeclared `extractionrun` columns → "Owner was not provided" — each
 > needing a costly human re-fire. **A single metadata-vs-payload sweep finds them all at once.** This

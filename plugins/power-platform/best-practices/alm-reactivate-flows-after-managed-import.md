@@ -54,7 +54,7 @@ python3 "$SK" verify     --env-url https://yourorg.crm.dynamics.com   # gate: no
 
 ## Provenance
 
-Generalized from the BTCSI managed-import flow-activation engagement (2026-06-30). Auto-reactivation conditions and the `--publish-changes`/`--force-overwrite` managed-import guidance verified against Microsoft Learn ("Import a solution" FAQ; ALM performance-recommendations), retrieved 2026-06-30. Extends house opinion §3 #13 (test the import) and §3 #3 (connection references) into the post-import flow-state step.
+Generalized from the Contoso managed-import flow-activation engagement (2026-06-30). Auto-reactivation conditions and the `--publish-changes`/`--force-overwrite` managed-import guidance verified against Microsoft Learn ("Import a solution" FAQ; ALM performance-recommendations), retrieved 2026-06-30. Extends house opinion §3 #13 (test the import) and §3 #3 (connection references) into the post-import flow-state step.
 
 ---
 
