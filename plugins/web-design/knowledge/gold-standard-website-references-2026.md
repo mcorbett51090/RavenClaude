@@ -154,4 +154,4 @@ The 2025 Baymard Checkout UX Benchmark (41,000+ scored checkouts) is the single 
 ## Sources
 
 Full citation lists (URLs) live in the two research dossiers this doc distills:
-`docs/research/2026-06-25-btcsi-fipa-dispatch/` sibling session artifacts are unrelated; the source dossiers for this file were produced in the `website-pipeline` research run (2026-07-06) — see the dossiers' own "Sources consulted this session" sections for the full URL list (Awwwards, Baymard Institute, Work & Co, Figma/Linear/Notion engineering blogs, Anthropic engineering + research posts, and the named GitHub repos above).
+`docs/research/2026-06-25-contoso-fipa-dispatch/` sibling session artifacts are unrelated; the source dossiers for this file were produced in the `website-pipeline` research run (2026-07-06) — see the dossiers' own "Sources consulted this session" sections for the full URL list (Awwwards, Baymard Institute, Work & Co, Figma/Linear/Notion engineering blogs, Anthropic engineering + research posts, and the named GitHub repos above).

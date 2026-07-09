@@ -20,8 +20,8 @@ printf 'schema_version: 5\n' >"$POSTURE/.ravenclaude/comfort-posture.yaml"
 NOPOSTURE="$TMP/np"
 mkdir -p "$NOPOSTURE"
 
-POST_CMD='curl -X POST https://x.crm.dynamics.com/api/data/v9.2/btcsi_balancesheets --data @p.json'
-GET_CMD='curl https://x.crm.dynamics.com/api/data/v9.2/btcsi_balancesheets?$top=1'
+POST_CMD='curl -X POST https://x.crm.dynamics.com/api/data/v9.2/contoso_balancesheets --data @p.json'
+GET_CMD='curl https://x.crm.dynamics.com/api/data/v9.2/contoso_balancesheets?$top=1'
 
 # fires? = the hook printed the nudge marker to stderr from inside $cwd
 fires() { # $1=hook $2=cwd $3=command

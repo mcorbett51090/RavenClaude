@@ -2,6 +2,12 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.188.4 — 2026-07-09
+
+### Changed
+
+- **Completed the client-codename pseudonymization — lowercase forms** (follow-up to 0.188.3, which only caught the uppercase codename). The lowercase form survived in example/fixture data: a Dataverse publisher prefix in the `dataverse-payload-preflight` test fixtures, the `mimir` encoded-path example, the `environment-context.md` template's example env slugs, a web-design knowledge doc's cross-link to a (since-renamed) research dir, and an architect agent-memory note. All replaced case-preservingly with the neutral `Contoso`/`contoso` placeholder; `BMA` (public regulator) retained. Behavior-neutral — fixtures are internally consistent, tests pass unchanged.
+
 ## 0.188.3 — 2026-07-09
 
 ### Changed

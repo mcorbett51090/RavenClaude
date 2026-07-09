@@ -63,7 +63,7 @@ Worked examples:
 | --------------------------------------------------------- | ------------------------------------------------- |
 | `/workspaces/RavenClaude`                                 | `-workspaces-RavenClaude`                         |
 | `/workspaces/RavenClaude/.claude/worktrees/foo`           | `-workspaces-RavenClaude--claude-worktrees-foo`   |
-| `/home/codespace/btcsi`                                   | `-home-codespace-btcsi`                           |
+| `/home/codespace/contoso`                                   | `-home-codespace-contoso`                           |
 
 Note the worktree case: the embedded `/.` becomes `--` (one dash for the slash, one for the dot's slash). **Use `$CLAUDE_PROJECT_DIR` verbatim — never normalized.** See §"The worktree-aware rule".
 

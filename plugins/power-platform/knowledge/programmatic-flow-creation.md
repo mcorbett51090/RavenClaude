@@ -119,7 +119,7 @@ The most expensive pitfall: **`clientdata` is NOT the same shape as the PA Manag
       "shared_commondataserviceforapps": {
         "runtimeSource": "embedded",
         "connection": {
-          "connectionReferenceLogicalName": "btcsi_sharedcommondataserviceforapps_spn"
+          "connectionReferenceLogicalName": "contoso_sharedcommondataserviceforapps_spn"
         },
         "api": {
           "name": "shared_commondataserviceforapps"

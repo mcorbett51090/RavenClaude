@@ -18,36 +18,36 @@ TMP="$(mktemp -d)"
 
 cat >"$TMP/meta.json" <<'EOF'
 {
-  "logical_name": "btcsi_balancesheet", "entity_set": "btcsi_balancesheets",
-  "primary_id": "btcsi_balancesheetid", "ownership": "UserOwned",
+  "logical_name": "contoso_balancesheet", "entity_set": "contoso_balancesheets",
+  "primary_id": "contoso_balancesheetid", "ownership": "UserOwned",
   "attributes": {
-    "btcsi_name": {"type": "String", "required": "ApplicationRequired", "valid_for_create": true},
-    "btcsi_sourcechannel": {"type": "Picklist", "required": "None", "valid_for_create": true, "options": [1, 2, 3]},
-    "btcsi_accountid": {"type": "Lookup", "required": "None", "valid_for_create": true, "targets": ["account"]},
-    "btcsi_balancesheetid": {"type": "Uniqueidentifier", "required": "SystemRequired", "valid_for_create": true}
+    "contoso_name": {"type": "String", "required": "ApplicationRequired", "valid_for_create": true},
+    "contoso_sourcechannel": {"type": "Picklist", "required": "None", "valid_for_create": true, "options": [1, 2, 3]},
+    "contoso_accountid": {"type": "Lookup", "required": "None", "valid_for_create": true, "targets": ["account"]},
+    "contoso_balancesheetid": {"type": "Uniqueidentifier", "required": "SystemRequired", "valid_for_create": true}
   }
 }
 EOF
 
 cat >"$TMP/bad.json" <<'EOF'
 {
-  "btcsi_doesnotexist": "x",
-  "btcsi_sourcechannel": 942760000,
-  "btcsi_AccountId@odata.bind": "/accounts()",
-  "btcsi_accountid": "raw-guid"
+  "contoso_doesnotexist": "x",
+  "contoso_sourcechannel": 942760000,
+  "contoso_AccountId@odata.bind": "/accounts()",
+  "contoso_accountid": "raw-guid"
 }
 EOF
 
 cat >"$TMP/good.json" <<'EOF'
 {
-  "btcsi_name": "Q2 close",
-  "btcsi_sourcechannel": 2,
-  "btcsi_AccountId@odata.bind": "/accounts(11111111-1111-1111-1111-111111111111)",
+  "contoso_name": "Q2 close",
+  "contoso_sourcechannel": 2,
+  "contoso_AccountId@odata.bind": "/accounts(11111111-1111-1111-1111-111111111111)",
   "ownerid@odata.bind": "/systemusers(22222222-2222-2222-2222-222222222222)"
 }
 EOF
 
-run() { python3 "$1" --entity btcsi_balancesheet --metadata "$TMP/meta.json" --payload "$2" 2>/dev/null; }
+run() { python3 "$1" --entity contoso_balancesheet --metadata "$TMP/meta.json" --payload "$2" 2>/dev/null; }
 
 # A — bad payload surfaces every class
 outB="$(run "$SK" "$TMP/bad.json")"
