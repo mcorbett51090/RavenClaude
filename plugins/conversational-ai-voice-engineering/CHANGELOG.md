@@ -2,6 +2,12 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.1.1] — 2026-07-09
+
+### Changed
+
+- **Knowledge (`voice-ai-reference-2026.md`, §3 orchestration landscape)** — added a dated (retrieved 2026-07-09) note that native full-duplex speech-to-speech models (listen + speak simultaneously; e.g. OpenAI's GPT-Live family, announced 2026-07-08) are now a production alternative to the cascade STT→LLM→TTS pipeline. Primary-sourced (openai.com/index/introducing-gpt-live) and carries a `[verify-at-use — announced within days of retrieval; product names/availability may change; partly secondary-sourced]` marker. Lives only in the dated knowledge file.
+
 ## [0.1.0] — 2026-07-03
 
 Initial release.

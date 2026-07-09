@@ -114,6 +114,7 @@ _The workload stays in a private subnet; only the load balancer (or CloudFront) 
 | EventBridge / Step Functions | GA | Event routing + orchestration |
 | Savings Plans / RIs | GA | Rightsize FIRST |
 | Graviton (Arm) instances | GA — Graviton5 / EC2 M9g, M9gd GA 2026-06-10 | Prefer Arm for price-performance where the runtime/deps support Arm64; up to ~25% compute gain vs Graviton4. [AWS what's-new](https://aws.amazon.com/about-aws/whats-new/2026/06/ec2-m9g-m9gd-instances-graviton5-processors-available/) |
+| Amazon Linux 2 (AL2) end-of-support | EOS reached 2026-06-30 (retrieved 2026-07-09) | AL2 is past end-of-support — migrate node/instance OS to **Amazon Linux 2023** or **Bottlerocket**. EKS-optimized AL2 AMIs ended support 2025-11-26; **EKS Kubernetes 1.32 was the last version to support AL2 AMIs** `[verify-at-use]`. [AWS EKS AMI deprecation FAQ](https://docs.aws.amazon.com/eks/latest/userguide/eks-ami-deprecation-faqs.html) + Amazon Linux 2 FAQ. |
 
 ---
 

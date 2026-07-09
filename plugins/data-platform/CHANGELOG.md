@@ -2,6 +2,20 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.14.2] — 2026-07-09
+
+Snowflake AI/Cortex billing correction — as of **2026-04-01** Snowflake bills Cortex/AI in a **separate AI Credit currency at a flat rate ($2.00/credit global, $2.20 regional), edition-independent**; only Platform Credits (warehouse compute/storage) stay edition-priced. (Retrieved 2026-07-09; release-note 2026-04-06.)
+
+### Changed
+
+- **`knowledge/cloud-database-landscape-2026.md`** — added a dated AI-Credit note to the Snowflake section (source: `docs.snowflake.com/en/release-notes/2026/other/2026-04-06-ai-services-billing-breakout`; `[verify-at-use — pricing, subject to change; primary /pricing 403'd, secondary-sourced]`).
+- **`knowledge/snowflake-psm-dashboard-cost-model.md`** — corrected the stale edition-dependent Cortex-credit estimate ("~30 credits ≈ $60–90 depending on edition") to the flat, edition-independent AI-Credit model, pointing to the dated figure in the capability map rather than embedding a price. `[verify-at-use]`
+
+### Notes
+
+- Provenance stated inline: the primary `docs.snowflake.com/.../pricing` page 403'd automated fetch; the claim is cross-referenced via secondaries plus the 2026-04-06 release note.
+- No permanent price embedded in the cost model — it references the dated capability-map figure per the plugin's quarterly-volatility discipline (§3 #9).
+
 ## [0.14.0] — 2026-06-24
 
 OAuth-app / credential **registration walkthroughs** per ELT source — the connector docs stated the auth *mechanism* ("Connected App + OAuth 2.0", "OAuth 2.0 Authorization Code") but never how to register the app in the provider's developer portal, or who's allowed to.

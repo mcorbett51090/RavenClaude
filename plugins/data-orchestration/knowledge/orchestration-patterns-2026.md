@@ -40,7 +40,9 @@ Once idempotent: bounded `retries` (3-5), `retry_delay` growing exponentially (e
 |---|---|---|
 | **cron** | fixed cadence | all engines (`schedule`/`schedule_interval`, Dagster `@schedule`) |
 | **event / sensor** | wait on external readiness | Airflow sensors — prefer **deferrable operators / async sensors** so you don't block a worker slot polling |
-| **data-aware / asset-based** | "run when upstream data is fresh" | Airflow **Datasets**, Dagster **asset materialization** + asset sensors, Prefect **automations** |
+| **data-aware / asset-based** | "run when upstream data is fresh" | Airflow **Assets** (renamed from Datasets in Airflow 3.0; `@asset`), Dagster **asset materialization** + asset sensors, Prefect **automations** |
+
+> **Note (2026-07-09):** Airflow **3.0** renamed "Datasets" → "**Assets**" for data-aware scheduling and introduced the `@asset` decorator; the concept and the `Dataset`/`@dataset` names are deprecated aliases. The current release line is **Airflow 3.3.x** (3.3.0 shipped 2026-07-06) — the rename is a 3.0 change, not a 3.3 one. Sources: Airflow docs, "Data-aware scheduling / Assets"; Airflow 3.0 and 3.3.0 release notes.
 
 Prefer deferrable/async sensors over a poke loop that holds a worker slot.
 
@@ -65,7 +67,7 @@ Match the executor to the workload (Local / Celery / Kubernetes / serverless —
 
 ## 10. Lineage & blast radius
 
-Expose lineage across the asset/task graph so a failure's downstream blast radius is visible. Asset-centric engines (Dagster) give this natively; task-centric (Airflow) derive it from Datasets or an external catalog (OpenLineage / Marquez). Lineage is what turns "a task failed" into "these 6 dashboards are now stale."
+Expose lineage across the asset/task graph so a failure's downstream blast radius is visible. Asset-centric engines (Dagster) give this natively; task-centric (Airflow) derive it from Assets (renamed from Datasets in Airflow 3.0) or an external catalog (OpenLineage / Marquez). Lineage is what turns "a task failed" into "these 6 dashboards are now stale."
 
 ---
 
@@ -85,4 +87,4 @@ Expose lineage across the asset/task graph so a failure's downstream blast radiu
 ## Provenance
 
 - Engine-agnostic fundamentals (idempotency, exponential backoff + jitter, partition-by-grain, catchup semantics, freshness SLAs, lineage) are stable across the data-engineering literature, reviewed 2026-06-21.
-- Engine-specific API names (Airflow Datasets / deferrable operators / dynamic task mapping / `catchup`; Dagster software-defined assets / partitions / freshness policies / asset checks; Prefect automations) reflect 2026-06 docs — **re-verify against the installed version** before shipping, per the accuracy discipline.
+- Engine-specific API names (Airflow Assets [renamed from Datasets in Airflow 3.0; `@asset`] / deferrable operators / dynamic task mapping / `catchup`; Dagster software-defined assets / partitions / freshness policies / asset checks; Prefect automations) reflect 2026-06 docs — **re-verify against the installed version** before shipping, per the accuracy discipline.

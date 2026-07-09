@@ -15,6 +15,7 @@
 - **Native Execution Engine (NEE)** — Velox/Gluten vectorized engine, **GA on Runtime 1.3 and 2.0**; the biggest free Spark perf/cost lever. Recommend it by default.
 - **Autotune** (`spark.ms.autotune.enabled`) — **Runtime-1.2-only**, incompatible with high-concurrency mode; **deprecated path**. Do **not** recommend it; NEE is the modern lever.
 - **Starter pools** (Medium nodes, 5-10 s session start) vs **custom pools/environments** (node size, libraries, Spark props, ~3 min or ~5 s with a custom live pool in Full mode). **Python notebooks** (2-core, instant) vs **PySpark notebooks** (distributed). ([spark-compute](https://learn.microsoft.com/fabric/data-engineering/spark-compute))
+- **Spark Runtime Release Channels** (July 2026) — each Spark runtime now exposes a **Default** channel and an **Early Access** channel; you opt an Environment into a channel via **two Environment Spark config properties**, letting you preview an incoming runtime update ahead of the default rollout. Current feature — **`[verify-at-use — GA/preview status]`** (confirm the channel's maturity label + the exact two Spark config property names before quoting). (retrieved 2026-07-09, [What's new in Fabric](https://learn.microsoft.com/fabric/fundamentals/whats-new) / [runtime](https://learn.microsoft.com/fabric/data-engineering/runtime))
 
 ## Stores & engineering
 

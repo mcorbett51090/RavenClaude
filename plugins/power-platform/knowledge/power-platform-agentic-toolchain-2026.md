@@ -84,6 +84,24 @@ It also ships a **`power-automate-build`** skill that encodes a curated four-pha
 
 ---
 
+## Dataverse management MCP server — first-party discovery/compose surface for MCP servers
+
+**Source:** Microsoft Learn — Power Platform 2026 release wave 1 plan, Dataverse "Discover, build, customize, and extend with management MCP server" (retrieved 2026-07-09). `[verify-at-use — GA status + approx action count]`
+
+The **Dataverse management MCP server** is a **Microsoft first-party** MCP surface that went **GA in June 2026** (public preview began **2026-03-30** — a fast preview→GA promotion, so re-confirm the status against the live release plan before relying on it). Unlike the Canvas Authoring MCP (a local .NET process for `.pa.yaml`) or Flow Studio MCP (a community flow-authoring server), this is an **environment-scoped HTTP endpoint with no UI** — a management/meta layer that lets agents and developers:
+
+- **Discover** the Microsoft-certified and internal/custom MCP servers available in an environment.
+- **Query** the Dataverse-reachable action surface — roughly **~1,470+ connector actions** `[verify-at-use — approximate and dated; confirm the live count]` plus custom APIs and custom connectors.
+- **Compose / clone / publish** scenario-specific MCP servers (curated per-scenario tool bundles), with **DLP enforcement and per-tool access controls** applied.
+
+It is **usable from VS Code or Claude** (among other MCP clients). Because it is environment-scoped and applies DLP + per-tool access, it fits the §9a posture of "first-party preferred" cleanly — but as a management surface that can compose and publish tool servers, any credential/consent decision around it still routes through `ravenclaude-core/security-reviewer`.
+
+**When to reach for it:** an agent or developer needs to *discover what MCP servers/actions exist* in a Dataverse environment, or to *assemble a scoped MCP server* from certified/custom connector actions and custom APIs for a specific scenario — rather than authoring a bespoke server by hand. For live Dataverse **data** operations (list/query/write rows), the data-focused **official Dataverse MCP server** (§9a in [`../CLAUDE.md`](../CLAUDE.md)) remains the right surface; this management server is the discovery/compose layer above it.
+
+_Added 2026-07-09; verified against Microsoft Learn — Power Platform 2026 release wave 1 plan (Dataverse). `[verify-at-use — GA status + approx action count]`_
+
+---
+
 ## Daniel Kerridge `claude-code-power-platform-skills` — the Agent Team / `plan-with-team` pattern
 
 **Source:** https://github.com/DanielKerridge/claude-code-power-platform-skills (retrieved 2026-06-03; imported under MIT — see [`../NOTICE.md`](../NOTICE.md)).

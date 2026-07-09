@@ -31,7 +31,7 @@ flowchart TD
 
   %% ---- OSS branch ----
   OSS -->|Asset / data / lineage-first,<br/>typed I/O, strong local dev| DAG[Dagster<br/>· software-defined assets<br/>· partitions + asset checks]
-  OSS -->|Task-centric, large cross-team<br/>DAG estate, mature scheduling/backfill| AF[Apache Airflow<br/>· tasks/operators, sensors,<br/>· Datasets, dynamic task mapping]
+  OSS -->|Task-centric, large cross-team<br/>DAG estate, mature scheduling/backfill| AF[Apache Airflow<br/>· tasks/operators, sensors,<br/>· Assets (renamed from Datasets in 3.0), dynamic task mapping]
   OSS -->|Dynamic Python-native flows,<br/>light ops| PF[Prefect<br/>· flows/tasks + automations]
   OSS -->|Notebook / low-code data team| MAGE[Mage<br/>· notebook-style pipelines]
   OSS -->|Long-running, stateful,<br/>exactly-once WORKFLOWS<br/>not batch tables| TMP[Temporal-for-data<br/>· durable execution]
@@ -49,7 +49,7 @@ flowchart TD
 
   SCHED{Scheduling model?} -->|Fixed cadence| CRON[cron schedule]
   SCHED -->|External readiness| SENS[event/sensor<br/>· deferrable operators]
-  SCHED -->|Run when upstream data fresh| ASSET[data-aware / asset-based<br/>· Airflow Datasets · Dagster materialization · Prefect automations]
+  SCHED -->|Run when upstream data fresh| ASSET[data-aware / asset-based<br/>· Airflow Assets (renamed from Datasets in 3.0) · Dagster materialization · Prefect automations]
 ```
 
 ---
@@ -58,7 +58,7 @@ flowchart TD
 
 | Engine | Sweet spot | Watch out for |
 |---|---|---|
-| **Apache Airflow** | Large, cross-team DAG estates; mature scheduling, backfill, huge operator ecosystem | Heaviest ops if self-hosted; task-centric (lineage is bolt-on via Datasets); `catchup` default historically bites |
+| **Apache Airflow** | Large, cross-team DAG estates; mature scheduling, backfill, huge operator ecosystem | Heaviest ops if self-hosted; task-centric (lineage is bolt-on via Assets, renamed from Datasets in 3.0); `catchup` default historically bites |
 | **Dagster** | Asset/lineage-first work; typed I/O; local dev + asset checks; data-aware scheduling native | Newer ecosystem; asset mental model is a shift for task-centric teams |
 | **Prefect** | Dynamic, Python-native flows; light ops; pythonic control flow | Less of a fixed "DAG estate" model; smaller operator library than Airflow |
 | **Mage** | Notebook/low-code data teams wanting fast pipeline authoring | Smaller community; less suited to very large/complex estates |
@@ -93,5 +93,5 @@ State where the **scheduler** and **metadata DB** live; they are the reliability
 
 ## Provenance
 
-- OSS docs and consensus framing for Airflow (tasks/operators, sensors, deferrable operators, Datasets, dynamic task mapping, `catchup`), Dagster (software-defined assets, partitions, asset checks), and Prefect (flows/tasks, automations), reviewed 2026-06-21.
+- OSS docs and consensus framing for Airflow (tasks/operators, sensors, deferrable operators, Assets [renamed from Datasets in Airflow 3.0; `@asset`], dynamic task mapping, `catchup`), Dagster (software-defined assets, partitions, asset checks), and Prefect (flows/tasks, automations), reviewed 2026-06-21.
 - Managed/cloud-native: AWS MWAA + Step Functions, GCP Cloud Composer + Workflows, Azure Data Factory — vendor positioning as of 2026-06; **feature parity and pricing are volatile, re-verify before quoting.**

@@ -182,6 +182,7 @@ ORDER BY credits DESC;
    - **SUSPEND_IMMEDIATE at 100%** — better surprise than a $5k bill
 2. **Account-level Budget**
    - Catches serverless surprises (DT refreshes, auto-clustering, Cortex if anyone enables it)
+     - **Cortex/AI billing correction (effective 2026-04-01):** Cortex/AI now bills in a **separate AI Credit currency that is edition-independent (flat rate)** — see the dated figure in [`cloud-database-landscape-2026.md`](cloud-database-landscape-2026.md) (do not hardcode the rate here; it is quarterly-volatile). Any old edition-dependent Cortex-credit estimate (e.g. "~30 credits ≈ $60–90 depending on edition") **no longer applies**. Only warehouse-compute/storage Platform Credits stay edition-priced (so the per-warehouse quota above is unaffected). `[verify-at-use]`
    - Daily forecast alert to Slack via webhook
 3. **Resource Monitors fire post-hoc** (5–10 min lag in credit accounting) — backstop, not a hard cap. Set `STATEMENT_TIMEOUT_IN_SECONDS = 120` on the dashboard role for runaway-query protection.
 

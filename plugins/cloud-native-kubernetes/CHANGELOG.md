@@ -2,6 +2,15 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.7] — 2026-07-09
+
+Research-sweep **correction** (F13) — the capability map's Istio/Linkerd row said "ambient mode emerging", ~18 months stale. Istio's **ambient data plane reached GA in v1.24 (Nov 2024)** (sidecarless L4 by default + waypoints for L7); ambient multicluster reached **Beta in Istio 1.29 (Feb 2026)**. Verified 2026-07-09 against the istio.io ambient-reaches-ga blog (the 1.29 multicluster-Beta detail carries a `[verify-at-use]`).
+
+### Changed
+
+- `knowledge/cloud-native-kubernetes-decision-trees.md` — capability-map Istio/Linkerd row: replaced "ambient mode emerging" with ambient GA-since-1.24 (Nov 2024) + the 1.29 multicluster-Beta note, dated + cited.
+- Version **0.3.6 → 0.3.7** in `.claude-plugin/plugin.json`.
+
 ## [0.3.6] — 2026-07-08
 
 Research-sweep **correction** — the ingress/Gateway controller decision tree recommended community **`ingress-nginx`** for new clusters, but the Kubernetes project **retired** it: best-effort maintenance ended **March 2026**, after which there are no releases, bug fixes, or **security patches** (repos read-only). Recommending it for a new cluster now signs up for un-patched CVEs. Verified 2026-07-08 against [kubernetes.io](https://kubernetes.io/blog/2025/11/11/ingress-nginx-retirement/) (Nov 11 2025 notice + [Jan 29 2026 Steering/SRC statement](https://kubernetes.io/blog/2026/01/29/ingress-nginx-statement/)).

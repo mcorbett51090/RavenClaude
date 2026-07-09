@@ -128,6 +128,7 @@ For a 4-6 engagement/year solo consulting practice, the **minimum viable databas
 
 ### Snowflake
 - **Standard credits $2.00 on AWS US** on-demand; storage $23/TB/mo compressed
+- **AI/Cortex billing split out (effective 2026-04-01; retrieved 2026-07-09):** Snowflake now meters Cortex/AI features in a **separate AI Credit currency** at a **flat $2.00/credit (global) / $2.20 (regional), independent of edition**. Only **Platform Credits** (warehouse compute + storage, non-AI) remain edition-priced. Billing-breakout release note dated 2026-04-06: `docs.snowflake.com/en/release-notes/2026/other/2026-04-06-ai-services-billing-breakout`. `[verify-at-use — pricing, subject to change; primary docs.snowflake.com/.../pricing 403'd automated fetch, cross-referenced via secondaries]`
 - **Practical SMB monthly:** $250-$2,000 with auto-suspend (CloudZero / Definite analyses)
 - **Annual capacity contract reportedly $25k/year** minimum for committed pricing (secondary)
 - **Avoid as a default** for 4-6 engagement/year practice. Reach when client is already there.

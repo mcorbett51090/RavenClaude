@@ -103,7 +103,7 @@ _A namespace shares a kernel and nodes; it is not a security boundary against a 
 | HPA / VPA | GA | HPA on custom/external metrics; VPA for right-sizing |
 | Pod Security Admission | GA (replaced PSP) | baseline/restricted profiles |
 | OPA Gatekeeper / Kyverno | mature | policy-as-code admission |
-| Istio / Linkerd | GA | mTLS, traffic-split; weigh sidecar cost (ambient mode emerging) |
+| Istio / Linkerd | GA | mTLS, traffic-split; weigh sidecar cost. **Istio ambient (sidecarless L4 by default + waypoints for L7) is GA since Istio 1.24 (Nov 2024)** — no longer "emerging"; ambient multicluster reached Beta in Istio 1.29 (Feb 2026) `[verify-at-use]`. `[corrected 2026-07-09 — istio.io ambient-reaches-ga]` |
 | Distroless / minimal base images | mature | non-root, no shell; quiets CVE scans |
 | **DRA** (Dynamic Resource Allocation) | **GA since 1.34**; further enhancements GA in 1.36 | first-class GPU/accelerator scheduling — [1.34 DRA GA](https://kubernetes.io/blog/2025/09/01/kubernetes-v1-34-dra-updates/) |
 | **cgroup v1** | **removed** — nodes must run **cgroup v2** | exact removal minor (1.35 vs 1.36) `[verify-at-use]`; confirm node runtime is cgroup-v2 (and containerd ≥1.7) before upgrading clusters |

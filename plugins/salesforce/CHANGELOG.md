@@ -2,6 +2,15 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.6.5] — 2026-07-09
+
+Research-sweep **knowledge update** — recorded the Summer '26 Agentforce authoring shift in `knowledge/agentforce-determinism-and-trust.md` (the determinism & Trust doc). Led with the determinism-relevant angle: **Agent Script** (schema-driven language mixing deterministic expressions with agentic NL instructions) and the new **Agentforce Builder** are **GA in Summer '26** — a first-class surface for the "push work toward the deterministic end" discipline (house opinion #14). Also noted the legacy *New Agent* builder cutover (week of **2026-07-13**, tagged `[verify-at-use]`) and the Apache-2.0 open-sourcing of the Agent Script toolchain (`github.com/salesforce/agentscript`). Each sub-claim carries its own distinct citation; all tagged `[verify-at-build]`. Verified 2026-07-09.
+
+### Changed
+
+- `knowledge/agentforce-determinism-and-trust.md`: added a dated (2026-07-09) note under the Atlas / Agentforce-builder section plus three source links (Agent Script guide, Summer '26 release guide, `salesforce/agentscript` repo).
+- Version **0.6.4 → 0.6.5** in `.claude-plugin/plugin.json` (marketplace.json bumped separately in lockstep).
+
 ## [0.6.4] — 2026-07-08
 
 Research-sweep **correctness fix** — the plugin recommended `WITH SECURITY_ENFORCED` as the primary CRUD/FLS enforcement clause (house opinion #7, the reviewer rubric, two skills, the security decision tree, templates). Salesforce **Summer '26 / API v67.0** **removes `WITH SECURITY_ENFORCED`** — an Apex class set to v67.0+ that uses it **does not compile** — and defaults database operations to **user mode** and omitted sharing keywords to **`with sharing`**. Following the old guidance on a v67.0+ class produced non-deployable code. Verified 2026-07-08 against salesforce.com (Summer '26 architect highlights) + developer.salesforce.com.

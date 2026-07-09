@@ -2,6 +2,19 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.2] — 2026-07-09
+
+Knowledge refresh (finding F5) — **Clerk pricing correction** in [`knowledge/auth-provider-landscape-2026.md`](knowledge/auth-provider-landscape-2026.md). Two prior claims were wrong and are corrected.
+
+### Changed
+
+- **Clerk free tier: ~10K MAU → 50K MRU.** On **2026-02-05** Clerk replaced its old ~10,000-user free tier with **50,000 MRU** (Monthly Retained Users — only users who return ≥24h after signup count, so **MRU ≠ MAU** and is typically lower). Overage above 50K is **~$0.02/MRU**; Pro is $25/mo. The provider table row now states 50K MRU, the MRU≠MAU distinction explicitly, and carries a `[verify-at-use — pricing tier, subject to change; MRU≠MAU]` marker + clerk.com/pricing citation (retrieved 2026-07-09, secondary saasprices.net).
+- **Scale checkpoint corrected.** The old "at 50K MAU, Clerk ≈ $800/mo" was wrong (it assumed the retired ~10K free tier + per-MAU billing) — **Clerk is now ≈ $0 at 50K MRU**. The 100K figure is recomputed on the MRU model (only MRU above 50K bill) and marked verify-at-use.
+
+### Notes
+
+- Correction only touches the Clerk row + the scale-checkpoint line + the doc header review-date/sources; all other providers unchanged. Per-MAU/MRU pricing remains volatile — re-verify against the vendor page before quoting.
+
 ## [0.3.0] — 2026-06-24
 
 OAuth-app **registration walkthroughs** per social provider — closing the "someone has to register the app, but nothing tells them how to get there or whether they're allowed to" gap. Previously only Google had a full portal walkthrough; Apple/Microsoft/GitHub had a pointer + gotchas but no steps.

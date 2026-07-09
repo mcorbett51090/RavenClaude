@@ -2,6 +2,12 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.4] — 2026-07-09
+
+Dated-knowledge update (retrieved 2026-07-09).
+
+- **Amazon Linux 2 end-of-support recorded in the compute capability map.** `knowledge/aws-cloud-decision-trees.md` gains a dated row: AL2 reached EOS 2026-06-30; EKS-optimized AL2 AMIs ended support 2025-11-26, with EKS Kubernetes 1.32 the last version to support AL2 AMIs (`[verify-at-use]`). Migration target: **Amazon Linux 2023** or **Bottlerocket**. Cite: [AWS EKS AMI deprecation FAQ](https://docs.aws.amazon.com/eks/latest/userguide/eks-ami-deprecation-faqs.html) + Amazon Linux 2 FAQ.
+
 ## [0.3.1] — 2026-06-22
 
 Version bump previously unlogged here; the change that set `0.3.1`:

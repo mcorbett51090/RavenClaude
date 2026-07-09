@@ -2,6 +2,12 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.3] — 2026-07-09
+
+### Changed
+
+- **Capability map — React Native New Architecture row.** Updated from "GA-ing / verify per RN version" to state the New Architecture (Fabric/TurboModules) is the **sole** architecture since RN 0.82 (2025-10-08): the Legacy Architecture was removed from core and `newArchEnabled=false` / `RCT_NEW_ARCH_ENABLED=0` are now ignored. Ships React 19.1.1 + opt-in Hermes V1. Dated marker (2026-07-09) + `[verify-at-use]`. Source: [reactnative.dev/blog/2025/10/08/react-native-0.82](https://reactnative.dev/blog/2025/10/08/react-native-0.82).
+
 ## [0.3.1] — 2026-06-22
 
 Version bump previously unlogged here; the change that set `0.3.1`:

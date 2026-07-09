@@ -2,6 +2,12 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.1.1] — 2026-07-09
+
+### Changed
+
+- **Corrected a stale safety-standard citation in `robotics-reference-2026.md` §4.** Updated the "ISO 10218 (+ TS 15066)" pointer to reference **ISO 10218-1:2025 / ISO 10218-2:2025** (published Feb 2025, in force 2025-04-01). The 2025 revision folds the former ISO/TS 15066:2016 power-and-force-limiting / collaborative content into the standard (mostly into -2:2025) — TS 15066 no longer stands alone — and adds explicit functional-safety + cybersecurity requirements and new collaborative classifications. Cited iso.org, retrieved 2026-07-09, still `[verify-at-use]`.
+
 ## [0.1.0] — 2026-07-02
 
 Initial release.

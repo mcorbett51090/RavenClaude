@@ -4,6 +4,10 @@ Versioning is semver; bump on every user-visible change and keep it in sync with
 
 > Note: this file tracks the major arcs; the authoritative version history is the `version` field in `.claude-plugin/plugin.json` + git history (per the marketplace CHANGELOG convention). The 0.2.x–0.4.x bumps between the initial release and the build-out below were tracked in `plugin.json` + git, not back-filled here.
 
+## [0.5.6] — 2026-07-09
+
+News sweep (retrieved 2026-07-09) — dated addition to `knowledge/azure-2026-capability-map.md` (cost-management/governance section). **Azure Reserved VM Instances retired for select legacy VM series** (new purchase/renewal only; existing RIs honored to end-of-term), effective **2026-07-01**. Scoped to legacy SKUs (Av2/Amv2/Bv1/D/Ds/Dv2/Dsv2/F/Fs/Fsv2/G/Gs/Ls/Lsv2 for 1-year; Dv3/Dsv3/Ev3/Esv3 for 1-year **and** 3-year) — explicitly **not** a blanket "Azure RIs retired." Recommended path: Azure savings plan for compute, or modernize SKUs. Carries the `[verify-at-use — exact affected-series list; billing construct]` marker. Source: MS Learn "Transition guide for retired Azure Reserved VM Instances." **Migration:** none — knowledge-file content only.
+
 ## [0.5.5] — 2026-07-08
 
 Weekly Tier-A news sweep (2026-07-08) — **correction + additions** in `knowledge/azure-ai-foundry.md`. **Correction:** the `azure-ai-inference` retirement date was conflated with the Assistants API sunset — the package retires **2026-05-30** (migrate to the `openai` package); **2026-08-26** is the *separate* Assistants API sunset → Foundry Agents / Responses API. **Additions:** the new Microsoft Foundry portal is now **GA** (per-feature GA/preview split noted); Claude models (**Opus 4.8, Sonnet 5, Haiku 4.5**) are **GA hosted-on-Azure** in Microsoft Foundry (CCU-billed). Sources: MS Learn navigate-from-classic, Foundry GA overview, Claude-models-in-Foundry (Microsoft-Learn MCP). Routed through usefulness → review panels (both APPROVE). **Migration:** none — knowledge-file content only.

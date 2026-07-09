@@ -105,7 +105,7 @@ _Preferences stores are plaintext and the secure store is small — put secrets 
 |---|---|---|
 | SwiftUI + Swift Concurrency | GA | State-driven; actors for races |
 | Jetpack Compose + Coroutines/Flow | GA | State hoisting; lifecycle scopes |
-| React Native new architecture (Fabric/TurboModules) | GA-ing | Verify per RN version |
+| React Native New Architecture (Fabric/TurboModules) | Sole architecture since RN 0.82 (Legacy removed) `[verify-at-use]` | **Updated 2026-07-09:** as of RN 0.82 (2025-10-08) the New Architecture is the *only* architecture — the Legacy Architecture was removed from core, and `newArchEnabled=false` / `RCT_NEW_ARCH_ENABLED=0` are now ignored. Ships React 19.1.1 + opt-in Hermes V1. Source: [reactnative.dev/blog/2025/10/08/react-native-0.82](https://reactnative.dev/blog/2025/10/08/react-native-0.82). Older RN versions still support the toggle — verify per RN version. |
 | Flutter | GA | Const widgets; impeller renderer |
 | Keychain / Android Keystore | GA | Secure storage for secrets |
 | WorkManager / BGTaskScheduler | GA | Battery-respecting background |

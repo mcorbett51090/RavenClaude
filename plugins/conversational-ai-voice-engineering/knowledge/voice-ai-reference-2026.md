@@ -45,6 +45,8 @@
 
 > Platform feature sets, supported channels, tool-calling hooks, and pricing change frequently. Verify the platform supports your channel, mid-call tools, barge-in, and latency needs before committing, and isolate it behind seams.
 
+> **Native full-duplex speech-to-speech (retrieved 2026-07-09).** Beyond the cascade STT→LLM→TTS pipeline, native full-duplex speech-to-speech models that listen and speak simultaneously (continuous input while generating output; deciding many times/sec whether to speak/listen/pause/interrupt/tool-call, delegating deeper reasoning to a background model) are now a production alternative — e.g. OpenAI's GPT-Live family (announced 2026-07-08). Source: openai.com/index/introducing-gpt-live (primary). `[verify-at-use — announced within days of retrieval; product names/availability may change; partly secondary-sourced]`
+
 ---
 
 ## 4. Telephony protocols (SIP / PSTN / WebRTC)

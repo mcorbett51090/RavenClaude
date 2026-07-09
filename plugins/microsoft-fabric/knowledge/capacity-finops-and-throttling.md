@@ -25,6 +25,7 @@ OneLake **storage** is billed like ADLS (pay for data stored); OneLake **transac
 - **Bursting** — an operation may temporarily use **more** compute than the SKU provisions, so it finishes fast (a small SKU can run a large job). Warehouse burstable scale factor is 1×-32× on small SKUs, 1×-12× on F64+.
 - **Smoothing** — consumed CUs are **averaged over future time**: interactive ops over 5-64 min, **background ops over 24 h**. So you size to **average**, not peak. A background job consuming 6× the next-10-min budget still doesn't throttle, because its cost spreads across 2,880 30-sec timepoints.
 - **Throttling** — sustained overuse (above SKU limits after smoothing) delays then rejects operations. It is **per-capacity**: one overloaded capacity is throttled while others run normally.
+  - **Terminal branch — pay vs. throttle: Capacity Overage (PREVIEW).** An **opt-in** capacity setting that, when a capacity exceeds its SKU limits during a spike, **bills the excess usage instead of throttling** operations — the admin sets a configurable overage limit per **24 h** window, so a burst completes (paid) rather than being delayed/rejected. This turns the "sustained overuse → throttle" terminal into a "sustained overuse → *pay or throttle*" fork the admin chooses up front. **PREVIEW — terms/caps change; do not quote overage limits or billing behavior to a client without re-verifying** (retrieved 2026-07-09, [What's new in Fabric](https://learn.microsoft.com/fabric/fundamentals/whats-new)). `[verify-at-use]`
 
 ## FinOps playbook (`fabric-admin` prescribes)
 

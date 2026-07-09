@@ -2,6 +2,16 @@
 
 All notable changes to this plugin are documented here. Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.8.8] — 2026-07-09
+
+Weekly Tier-A news sweep (2026-07-09) — three dated **additions** from Microsoft Learn "What's new in Fabric", each carrying a retrieval date + cite + `[verify-at-use]`. **Migration:** none — knowledge-file content only.
+
+### Added
+
+- **`knowledge/capacity-finops-and-throttling.md`** — **Capacity Overage (PREVIEW)**: an opt-in capacity setting that **bills excess usage during spikes instead of throttling** (admin-configurable overage limit per 24 h window). Added as a new terminal branch on the throttling section (a "sustained overuse → *pay or throttle*" fork). PREVIEW label kept prominent (terms/caps change).
+- **`knowledge/fabric-2026-capability-map.md`** — **Spark Runtime Release Channels** (July 2026): each Spark runtime now exposes a **Default** and an **Early Access** channel, opted into via two Environment Spark config properties. Added to the Spark-runtimes section; maturity marked `[verify-at-use — GA/preview status]`.
+- **`knowledge/fabric-data-science-and-ai.md`** — **AI Functions (June 2026 GA)** now **default to `gpt-5-mini`** (low reasoning) for pandas/PySpark and support **`gpt-5.1`** for heavier transforms; pandas AI Functions **drop the hard `openai` package dependency**. Appended to the AI-functions line; model IDs marked `[verify-at-use — current default model]`, the dropped-dependency fact noted as durable.
+
 ## [0.8.7] — 2026-07-08
 
 Weekly Tier-A news sweep (2026-07-08) — **correction** in `knowledge/fabric-2026-capability-map.md`: the Eventstream **Apache Kafka + Azure Service Bus** source doc pages are no longer titled **"(preview)"** (the eventstream source table lists both without the tag) — the docs caught up to the June-2026 GA, so the prior "GA-announced / page-still-preview" caveat is resolved; treat the connectors as **GA**. Re-verified via the Microsoft-Learn MCP. **Migration:** none — knowledge-file content only.
