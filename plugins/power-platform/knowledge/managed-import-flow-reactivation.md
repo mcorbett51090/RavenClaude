@@ -1,6 +1,6 @@
 # Managed-import cloud-flow deactivation — the conditional model + the reactivation pass
 
-> **Last reviewed:** 2026-06-30. Source: generalized from a real engagement (BTCSI) where an
+> **Last reviewed:** 2026-06-30. Source: generalized from a real engagement where an
 > SPN-driven managed import left every Power Automate cloud flow in Draft and automations silently
 > stopped. Reconciled against Microsoft Learn ("Import a solution" FAQ + ALM performance-recommendations,
 > retrieved 2026-06-30). Refresh when (a) the Dataverse `workflow` activation contract changes, (b) `pac
@@ -93,4 +93,4 @@ script is built to fail loud (post-PATCH re-query + assert both codes) if a tena
   [pac solution reference](https://learn.microsoft.com/power-platform/developer/cli/reference/solution#pac-solution-import) (2026-06-30).
 - Dataverse Web API is the supported flow-management path (`api.flow.microsoft.com` unsupported):
   [Work with cloud flows using code](https://learn.microsoft.com/power-automate/manage-flows-with-code#import-flows) (2026-06-30).
-- Internal: generalized from the BTCSI managed-import flow-activation engagement, 2026-06-30.
+- Internal: generalized from a real managed-import flow-activation engagement, 2026-06-30.
