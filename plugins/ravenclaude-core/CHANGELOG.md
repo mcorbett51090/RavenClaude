@@ -2,6 +2,23 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.190.0 — 2026-07-11
+
+### Added
+
+- **New best-practice rule (→ 29): "A skill's body is the gotchas the model doesn't know — not the
+  happy path it does"** ([`best-practices/a-skills-body-is-the-gotchas-the-model-doesnt-know-not-the-happy-path.md`](best-practices/a-skills-body-is-the-gotchas-the-model-doesnt-know-not-the-happy-path.md)).
+  The third skill-authoring sibling and the **content-value** axis: `scope-a-skill-to-one-workflow`
+  owns the description (whether the skill fires), `keep-skill-bodies-lean` owns the body's length (how
+  much budget it costs), and this rule owns **which content earns a place in that lean body** — the
+  failure modes the model can't infer (an append-only table's "current" row, a field-name mismatch
+  across services, a staging endpoint that returns 200 when it didn't process), not the happy path it
+  already knows. Grounded in two Anthropic primaries (the *Lessons from building Claude Code: How we
+  use skills* engineering blog — "the highest-signal content in any skill is the Gotchas section" — and
+  the Skill authoring best-practices doc — "only add context Claude doesn't already have"). Sourced
+  from the 2026-07-11 Claude-subreddit scan ([`docs/research/2026-07-11-claude-subreddit-scan/README.md`](../../docs/research/2026-07-11-claude-subreddit-scan/README.md)).
+  Additive markdown only — **migration: none**.
+
 ## 0.189.0 — 2026-07-09
 
 ### Added
