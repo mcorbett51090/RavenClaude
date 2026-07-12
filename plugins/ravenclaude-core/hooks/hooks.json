@@ -161,6 +161,12 @@
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/capability-orientation.sh",
             "timeout": 10,
             "comment": "Injects a session-start capability banner via hookSpecificOutput.additionalContext so the agent opens every session aware of the project's external surface, its detected auth (env-var NAMES/presence only — never values), and its effective .claude/settings.json permissions. Local + cheap; the ONLY subprocess is a bounded, read-only git read (branch + recent commit subjects) used by the work-streams classifier, and only when .ravenclaude/streams/ has streams + none is active. A 10s timeout bounds any pathological config/git read (defense-in-depth). Points to the environment-discovery skill for deep enumeration. Fail-silent; never blocks (SessionStart hooks cannot). Salience boost for the Capability Grounding Protocol, not enforcement."
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/ensure-node.sh",
+            "timeout": 10,
+            "comment": "OPTIONAL Node.js provisioning (node is NOT needed by core itself — this is a convenience for consumer projects whose tooling/gates use node). Fast + network-free at SessionStart: if a system node >= 18 exists, no-op; if a RavenClaude-provisioned node exists (in CLAUDE_PLUGIN_DATA), add it to PATH for the session via CLAUDE_ENV_FILE; else, only when the project looks node-relevant (package.json / .mjs), inject a one-line nudge to run /ravenclaude-core:node-setup. The actual download (latest LTS from nodejs.org, checksum-verified, into the update-surviving plugin data dir) happens only in the explicit `--install` mode the command invokes — never automatically at session start. Fail-silent; never blocks (SessionStart hooks cannot)."
           }
         ]
       }

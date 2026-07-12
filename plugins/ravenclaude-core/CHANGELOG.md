@@ -2,6 +2,29 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.190.0 — 2026-07-12
+
+### Added
+
+- **Optional Node.js provisioning** (`hooks/ensure-node.sh` + `/node-setup` command) — a convenience
+  for consumer projects whose tooling/gates need `node` (core itself needs only python + bash).
+  Claude Code plugins have no install-time step and can't bundle per-platform binaries, so node is
+  fetched **on demand** into the plugin's persistent data dir (`CLAUDE_PLUGIN_DATA`, which survives
+  updates): `/ravenclaude-core:node-setup` downloads the latest LTS from nodejs.org for the detected
+  OS/arch, **verifies its SHASUMS256 checksum**, and symlinks `node`/`npm`/`npx`. A new `SessionStart`
+  hook then adds it to PATH each session via `CLAUDE_ENV_FILE` (fast + network-free; only nudges when
+  a project looks node-relevant and node is missing). macOS/Linux supported; Windows gets guidance.
+
+### Fixed
+
+- **`guard-destructive.sh` no longer aborts at parse time.** Its anti-obfuscation preprocessor ran a
+  `python3` heredoc **inside** a `$( … )` command substitution; bash's `$()` scanner desynced on the
+  Python source's apostrophes / `$'…'` regex and died with "syntax error near unexpected token `)'"
+  — a **parse-time** failure that disabled the hook and **blocked every Bash tool call** (and could
+  wedge session startup). Fixed by reading the Python into a variable with `read -d ''` and running it
+  via `python3 -c` (semantics preserved byte-for-byte; still blocks `rm -rf /`, obfuscated variants,
+  force-push refspecs, etc.).
+
 ## 0.189.0 — 2026-07-09
 
 ### Added

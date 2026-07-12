@@ -107,7 +107,18 @@ norm="$cmd"
 if command -v python3 >/dev/null 2>&1; then
   # Pass the raw command via env var to avoid the script's own heredoc EOF
   # marker interfering with heredocs INSIDE the command-under-inspection.
-  __preproc="$(__GUARD_RAW_CMD="$norm" python3 - <<'PY' 2>/dev/null
+  #
+  # The Python source is read into a variable via `read -d ''` and run with
+  # `python3 -c` rather than piped through a `<<'PY'` heredoc INSIDE a $( ... )
+  # command substitution. That older form is a bash parse hazard: the $()
+  # scanner walks the heredoc body to find the matching `)`, and the Python
+  # source's apostrophes / $'...' regex desync its paren counter, so it reads a
+  # `)` inside the body as the close of the substitution and dies with a
+  # "syntax error near unexpected token `)'" AT PARSE TIME — which aborts the
+  # whole hook and blocks every Bash tool call (and can wedge session startup).
+  # `read -d ''` is parse-safe (heredoc not nested in $()); `|| true` keeps its
+  # EOF-return non-zero from tripping set -e.
+  IFS= read -r -d '' __GUARD_PY <<'PY' || true
 import re, sys, os
 s = os.environ.get("__GUARD_RAW_CMD", "")
 # A quoted body "executes" only if it carries command substitution — $(...) or a
@@ -261,7 +272,7 @@ def _ansi_c_decode(m):
 s = re.sub(r"\$'((?:\\.|[^'\\])*)'", _ansi_c_decode, s)
 sys.stdout.write(s)
 PY
-)" || __preproc=""
+  __preproc="$(__GUARD_RAW_CMD="$norm" python3 -c "$__GUARD_PY" 2>/dev/null)" || __preproc=""
   # Only apply the preprocessed form if Python succeeded and produced output.
   # NB: the `|| __preproc=""` above is load-bearing — without it, a non-zero
   # exit from the python3 heredoc (e.g. an exotic UnicodeEncodeError) would trip
