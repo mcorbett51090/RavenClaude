@@ -383,6 +383,39 @@ rc=0; bash -n plugins/ravenclaude-core/hooks/guard-destructive.sh 2>/dev/null ||
 gate "bash-syntax (guard-destructive.sh)" must_pass "$rc"
 
 echo
+echo "── Gate 3b: No heredoc nested in \$() in hooks ────────────────────────────"
+# A `python3 - <<'PY' … PY` heredoc INSIDE a `$( … )` command substitution
+# parses fine on bash 5 but ABORTS AT PARSE TIME on bash 3.2.57 (the macOS
+# system bash): the `$()` parser scans the nested heredoc body for the matching
+# `)` and desyncs its quote/paren counter on quote/paren-heavy content. A
+# PreToolUse hook that aborts at parse time blocks EVERY Bash tool call in every
+# session sharing the plugin cache (a real 2026-07 field break in
+# guard-destructive.sh). `bash -n` on a modern bash CAN'T see this (Gate 3
+# passes), so this static lint targets the anti-pattern itself. The sanctioned
+# form is `read -r -d '' VAR <<'PY' … PY` (heredoc NOT nested in `$()`) then
+# `python3 -c "$VAR"`. Detector skips full-line comments (a mention of the
+# pattern in a comment is not the pattern).
+_lint_heredoc_cmdsub() {
+  local hits
+  hits="$(
+    for f in plugins/*/hooks/*.sh; do
+      grep -HnE "\\\$\(.*<<-?[[:space:]]*['\"]?[A-Za-z_]" "$f" 2>/dev/null \
+        | grep -vE '^[^:]+:[0-9]+:[[:space:]]*#'
+    done
+  )"
+  [ -z "$hits" ] && return 0
+  printf '%s\n' "$hits" >&2
+  return 1
+}
+rc=0; _lint_heredoc_cmdsub 2>/dev/null || rc=$?
+gate "no-heredoc-in-cmdsub (hooks clean)" must_pass "$rc"
+backup plugins/ravenclaude-core/hooks/guard-destructive.sh
+echo 'bad="$(cat <<EOF"' >> plugins/ravenclaude-core/hooks/guard-destructive.sh
+rc=0; _lint_heredoc_cmdsub 2>/dev/null || rc=$?
+gate "no-heredoc-in-cmdsub (detects injected)" must_fail "$rc"
+cp -p "$TMP/plugins_ravenclaude-core_hooks_guard-destructive.sh.bak" plugins/ravenclaude-core/hooks/guard-destructive.sh
+
+echo
 echo "── Gate 4: Hook executable bit ───────────────────────────────────────────"
 backup plugins/ravenclaude-core/hooks/guard-destructive.sh
 chmod -x plugins/ravenclaude-core/hooks/guard-destructive.sh

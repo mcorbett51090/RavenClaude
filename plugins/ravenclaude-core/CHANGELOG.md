@@ -2,6 +2,34 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.189.1 — 2026-07-12
+
+### Fixed
+
+- **`guard-destructive.sh` no longer parse-aborts on old bash — which was blocking ALL Bash tool
+  calls.** The anti-obfuscation preprocessor ran a `python3 - <<'PY' … PY` heredoc **inside** a
+  `$( … )` command substitution. That parses on bash 5 but **aborts at parse time on bash 3.2.57**
+  (the macOS system bash): the `$()` parser scans the nested heredoc body for the matching `)` and
+  desyncs on the quote/paren-heavy Python (the `$'…'` ANSI-C regex). Because this is a **PreToolUse**
+  hook, a parse abort blocks _every_ Bash command in any session sharing the plugin cache — including
+  a freshly launched `claude` in a new terminal ("claude won't start" and "every command is blocked"
+  were the same bug). Fixed by moving the heredoc **out** of `$()`: read the Python into a variable
+  with `read -r -d '' … <<'PY'` (heredoc not nested in `$()`), then run `python3 -c`. Behavior is
+  byte-identical (verified: still blocks `rm -rf /`, quoted-slash, ANSI-C `$'\057'`, force-push,
+  `\rm -rf ~`; still passes benign commands).
+
+- **Same latent anti-pattern removed from `dod-gate.sh` (×3) and `guard-web-access.sh` (×1)** — same
+  catastrophic failure mode had a bash-3.2 user toggled the DoD gate or web-access on.
+
+### Added
+
+- **`audit-gates.sh` Gate 3b — "no heredoc nested in `$()`" static lint** over `plugins/*/hooks/*.sh`
+  (comment-aware, with a must-fail teeth half). `bash -n` on a modern-bash CI runner **cannot** catch
+  this class (Gate 3 passed on the broken hook), so the gate targets the anti-pattern itself.
+
+**Migration:** none — hook behavior is byte-identical; only the parse shape (and old-bash robustness)
+changed.
+
 ## 0.189.0 — 2026-07-09
 
 ### Added

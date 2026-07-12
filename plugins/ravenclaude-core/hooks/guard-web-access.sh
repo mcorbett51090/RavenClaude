@@ -167,7 +167,9 @@ if match_host "$host" "${allow_list[@]:-}"; then
   posture="$proj/.ravenclaude/comfort-posture.yaml"
   web_trusted="false"
   if [ -f "$posture" ]; then
-    web_trusted="$(python3 - "$posture" <<'PY' 2>/dev/null || echo "false"
+    # Python via `read -d ''` + `python3 -c`, NOT a heredoc nested in `$()`
+    # (bash 3.2 mis-parses that nesting — see the audit-gates gate).
+    IFS= read -r -d '' __WEB_TRUSTED_PY <<'PY' || true
 import sys
 try:
     import yaml
@@ -177,7 +179,7 @@ except Exception:
 wa = d.get("web_access") or {}
 print("true" if (isinstance(wa, dict) and wa.get("trusted") is True) else "false")
 PY
-)"
+    web_trusted="$(python3 -c "$__WEB_TRUSTED_PY" "$posture" 2>/dev/null || echo "false")"
   fi
 
   if [ "$web_trusted" = "true" ]; then
