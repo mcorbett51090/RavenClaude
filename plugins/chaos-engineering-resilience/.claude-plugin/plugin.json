@@ -1,0 +1,27 @@
+{
+  "name": "chaos-engineering-resilience",
+  "version": "0.1.0",
+  "description": "Chaos-engineering & resilience team — 2 agents that make distributed systems survive failure. resilience-architect owns the DESIGN side: failure-mode analysis (FMEA), resilience patterns (timeouts, retries with backoff+jitter, bulkheads, circuit breakers, load shedding, graceful degradation, idempotency), the observability-maturity gate for whether you're ready to run chaos, and redundancy/DR (multi-AZ/region, failover, RTO/RPO). chaos-experiment-engineer owns the EXPERIMENT + VERIFICATION side: hypothesis-driven experiments, blast-radius containment (automatic abort/rollback), game days, fault injection (latency/error/resource/dependency-outage/partition/zone), and verifying the pattern held under load+fault. 3 skills, a 2-doc knowledge bank (decision trees + a dated 2026 patterns reference), 2 templates. Distinct from observability-sre (metrics/SLO/on-call — a hard prerequisite), devops-cicd (progressive delivery), performance-engineering (load), incident-response-dfir. Requires ravenclaude-core@>=0.7.0.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "chaos-engineering",
+    "resilience",
+    "fault-injection",
+    "circuit-breaker",
+    "retries-backoff-jitter",
+    "bulkhead",
+    "blast-radius",
+    "game-day",
+    "steady-state",
+    "failure-mode-analysis",
+    "graceful-degradation",
+    "disaster-recovery"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}
