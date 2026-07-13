@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-hooks.json",
+  "description": "Plugin-distributed hooks for brand-identity-studio. Auto-merged with the consumer's session hooks when the plugin is installed. Paths use ${CLAUDE_PLUGIN_ROOT} so they resolve to the plugin's install location, not the consumer's project root. The single hook is ADVISORY (stderr, always exit 0) — the real workflow gates are skill preconditions.",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/flag-brand-antipatterns.sh \"$CLAUDE_TOOL_FILE_PATH\"",
+            "comment": "Flag brand anti-patterns on brand-conventional files: non-self-hostable fonts in a token export, un-curated concepts in a client-facing file, logo regeneration-in-Firefly, and un-routed trademarkability/IP claims. Advisory only — prints to stderr, always exits 0, never blocks."
+          }
+        ]
+      }
+    ]
+  }
+}
