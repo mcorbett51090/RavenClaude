@@ -75,19 +75,25 @@ fi
 [[ -z "$PROVIDER" ]] && loud_skip "Missing --provider (xai|fal). See --help."
 [[ -z "$PROMPT" ]] && loud_skip "Missing --prompt. See --help."
 
+# jq builds the JSON payload safely (proper escaping of $PROMPT / $MODEL) — a
+# hand-built string breaks on any " or \ in the prompt. jq is a repo prerequisite.
+if ! command -v jq >/dev/null 2>&1; then
+  loud_skip "jq is not installed on this host. Install jq — it is used to build the JSON payload safely."
+fi
+
 case "$PROVIDER" in
   xai)
     [[ -z "${XAI_API_KEY:-}" ]] && loud_skip "XAI_API_KEY is not set. export XAI_API_KEY=… then re-run (Grok has NO IP indemnity — flag for client work)."
     MODEL="${MODEL:-grok-2-image}"
     endpoint="https://api.x.ai/v1/images/generations"
-    payload=$(printf '{"model":"%s","prompt":"%s"}' "$MODEL" "${PROMPT//\"/\\\"}")
+    payload=$(jq -n --arg model "$MODEL" --arg prompt "$PROMPT" '{model: $model, prompt: $prompt}')
     auth_header="Authorization: Bearer ${XAI_API_KEY}"
     ;;
   fal)
     [[ -z "${FAL_KEY:-}" ]] && loud_skip "FAL_KEY is not set. export FAL_KEY=… then re-run (or wire the fal MCP via /wire-media-substrate)."
     MODEL="${MODEL:-fal-ai/flux/schnell}"
     endpoint="https://queue.fal.run/${MODEL}"
-    payload=$(printf '{"prompt":"%s"}' "${PROMPT//\"/\\\"}")
+    payload=$(jq -n --arg prompt "$PROMPT" '{prompt: $prompt}')
     auth_header="Authorization: Key ${FAL_KEY}"
     ;;
   *)

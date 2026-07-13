@@ -67,11 +67,12 @@ tokens — the differentiator is that the brand survives the website (tokens del
 - **Consumer logo tools (Looka, Brandmark, Tailor Brands) have NO public generative API** — UI-only; an agent
   cannot orchestrate them (looka.com; logoai.com/logo-api; toolsforhumans.ai). This is why the agentic path is
   Claude-orchestrator-over-Recraft/Ideogram/Firefly, not a Looka resale.
-- **Agent-callable core:** Recraft (true SVG/vector; ~$0.04 raster / $0.08 vector `[unverified]`), Ideogram
-  (typography/wordmarks; ~$0.03–0.09 `[unverified]`), **Adobe Firefly Services** (~$0.02/img `[unverified]`;
-  the IP-indemnified option — imagery only), Gamma Generate (auto guideline docs; GA Jan 2026 `[verify-at-use]`),
-  Canva Connect (Enterprise-gated). Sources: developer.adobe.com/firefly-services; recraft.ai; docs.ideogram.ai;
-  developers.gamma.app; canva.dev.
+- **Agent-callable core:** Recraft (true SVG/vector), Ideogram (typography/wordmarks), **Adobe Firefly
+  Services** (the IP-indemnified option — imagery only), Gamma Generate (auto guideline docs; GA Jan 2026
+  `[verify-at-use]`), Canva Connect (Enterprise-gated). For current per-image prices (all `[unverified]`) see
+  `generative-web-media`'s `knowledge/provider-model-matrix-2026.md` — that is the single home for the provider
+  price/license matrix; this plugin does not restate them. Sources: developer.adobe.com/firefly-services;
+  recraft.ai; docs.ideogram.ai; developers.gamma.app; canva.dev.
 - **Claude Design + MCP** (launched ~Apr 17 2026 `[verify-at-use]`) generates design SYSTEMS/UI tokens and
   inherits org brand colors/fonts (support.claude.com/articles/14604416) — a compose point at the token layer,
   not a brand-identity creator.

@@ -16,7 +16,7 @@ substrate:
 routing:
   image_default: "grok" # Grok-lean WHERE competitive; read the matrix, don't hard-code
   indemnified_default: "firefly" # when indemnity_required is true
-  never_commercial: ["flux-dev", "flux.2-dev"] # the non-commercial trap — blocked on client sites
+  never_commercial: ["flux-dev", "flux.1-dev", "flux.2-dev"] # the non-commercial trap — blocked on client sites
   prefer_round_trip: true # inpaint/outpaint/bg-removal/upscale over a fresh generation
 
 # --- Cost tiering ----------------------------------------------------------

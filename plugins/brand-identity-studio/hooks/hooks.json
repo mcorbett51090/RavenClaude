@@ -8,7 +8,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/flag-brand-antipatterns.sh \"$CLAUDE_TOOL_FILE_PATH\"",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/flag-brand-antipatterns.sh",
             "comment": "Flag brand anti-patterns on brand-conventional files: non-self-hostable fonts in a token export, un-curated concepts in a client-facing file, logo regeneration-in-Firefly, and un-routed trademarkability/IP claims. Advisory only — prints to stderr, always exits 0, never blocks."
           }
         ]

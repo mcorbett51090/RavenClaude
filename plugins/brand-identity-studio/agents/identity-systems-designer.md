@@ -1,6 +1,6 @@
 ---
 name: identity-systems-designer
-description: "Directs the visual identity system: logo suite (lockups/clear-space/mono/B&W), color roles + WCAG-AA pairs, type + web-license class. Authors generation briefs for generative-web-media, curates concepts, delegates tokens to web-design, assembles the brand book. NOT strategy/voice → brand-strategist."
+description: "Directs the visual identity system: logo suite (lockups/clear-space/mono/B&W), color roles + WCAG-AA pairs, type + web-license class. Authors briefs for generative-web-media, curates concepts, delegates tokens to web-design, assembles brand book. NOT strategy/voice → brand-strategist."
 tools: Read, Edit, Write, Grep, Glob, Bash, WebFetch, WebSearch
 model: opus
 audience: [studio-owner, brand-designer, art-director, design-lead]

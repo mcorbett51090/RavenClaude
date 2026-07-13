@@ -8,7 +8,9 @@ record that lasts. This tool appends ledger entries and audits a project's ledge
 for the two failures that must never ship on a client site:
 
   1. The FLUX-dev NON-COMMERCIAL trap — an asset whose model/license marks it
-     non-commercial reaching a client project.
+     non-commercial reaching a client project. An entry may carry an explicit
+     `override` reason (e.g. it is actually served via the paid BFL API); that
+     downgrades the fatal failure to a printed, non-fatal WARNING for that entry.
   2. A missing provenance record — a required field absent.
 
 Stdlib only. PROBE-AND-DEGRADE: bad input fails LOUDLY (non-zero), never a silent
@@ -18,7 +20,7 @@ Usage:
   provenance.py record --ledger media/provenance.jsonl \\
       --asset media/hero-1600.avif --prompt "…" --model grok-image \\
       --provider xai --license commercial --indemnity none [--c2pa present] \\
-      [--client]
+      [--client] [--override "served via the paid BFL API"]
   provenance.py audit --ledger media/provenance.jsonl [--client]
   provenance.py audit --dir media           # audit every *.jsonl under a dir
 """
@@ -59,6 +61,7 @@ def cmd_record(args: argparse.Namespace) -> int:
         "c2pa": args.c2pa,
         "license_class": args.license_class,
         "for_client": bool(args.client),
+        "override": (args.override or "").strip(),
     }
     missing = [f for f in REQUIRED_FIELDS if not str(entry.get(f, "")).strip()]
     if missing:
@@ -87,8 +90,11 @@ def _read_ledger(path: Path) -> list[dict]:
     return entries
 
 
-def _audit_entries(entries: list[dict], source: str, client_scope: bool) -> list[str]:
+def _audit_entries(
+    entries: list[dict], source: str, client_scope: bool
+) -> tuple[list[str], list[str]]:
     problems: list[str] = []
+    warnings: list[str] = []
     for idx, e in enumerate(entries):
         asset = e.get("asset", f"<entry {idx}>")
         for f in REQUIRED_FIELDS:
@@ -97,12 +103,25 @@ def _audit_entries(entries: list[dict], source: str, client_scope: bool) -> list
         blob = f"{e.get('model', '')} {e.get('license', '')} {e.get('license_class', '')}".lower()
         is_client = client_scope or bool(e.get("for_client"))
         if is_client and any(m in blob for m in NON_COMMERCIAL_MARKERS):
-            problems.append(
-                f"{source}: {asset} — NON-COMMERCIAL model/license on a client asset "
-                f"(model='{e.get('model')}', license='{e.get('license')}') — the FLUX-dev trap. "
-                "Use the paid BFL API or a commercially-cleared model, or record an explicit override."
-            )
-    return problems
+            override = str(e.get("override", "")).strip()
+            if override:
+                # Escape hatch: a non-commercial marker with a recorded override reason
+                # (e.g. the asset is actually served via the paid BFL API / a commercial
+                # license) downgrades from a fatal problem to a printed, non-fatal WARNING.
+                warnings.append(
+                    f"{source}: {asset} — non-commercial model/license OVERRIDDEN "
+                    f"(model='{e.get('model')}', license='{e.get('license')}') — "
+                    f"override reason: {override}. "
+                    "Confirm the paid BFL API / a commercial license actually covers this asset."
+                )
+            else:
+                problems.append(
+                    f"{source}: {asset} — NON-COMMERCIAL model/license on a client asset "
+                    f"(model='{e.get('model')}', license='{e.get('license')}') — the FLUX-dev trap. "
+                    "Use the paid BFL API or a commercially-cleared model, or record an explicit "
+                    "override (record --override '<reason>')."
+                )
+    return problems, warnings
 
 
 def cmd_audit(args: argparse.Namespace) -> int:
@@ -123,6 +142,7 @@ def cmd_audit(args: argparse.Namespace) -> int:
         return _loud_fail("Provide --ledger <file> or --dir <directory>.")
 
     all_problems: list[str] = []
+    all_warnings: list[str] = []
     total = 0
     for lp in ledgers:
         try:
@@ -130,7 +150,15 @@ def cmd_audit(args: argparse.Namespace) -> int:
         except ValueError as exc:
             return _loud_fail(str(exc))
         total += len(entries)
-        all_problems.extend(_audit_entries(entries, str(lp), args.client))
+        p, w = _audit_entries(entries, str(lp), args.client)
+        all_problems.extend(p)
+        all_warnings.extend(w)
+
+    if all_warnings:
+        sys.stderr.write("[provenance] WARNINGS (non-fatal — recorded overrides):\n")
+        for w in all_warnings:
+            sys.stderr.write(f"  - {w}\n")
+        sys.stderr.write("\n")
 
     if all_problems:
         sys.stderr.write("[provenance] AUDIT FAILED — issues found:\n")
@@ -139,7 +167,16 @@ def cmd_audit(args: argparse.Namespace) -> int:
         sys.stderr.write("\nTHIS IS NOT A PASS.\n")
         return 1
     sys.stdout.write(
-        json.dumps({"ok": True, "ledgers": len(ledgers), "entries": total, "issues": 0}) + "\n"
+        json.dumps(
+            {
+                "ok": True,
+                "ledgers": len(ledgers),
+                "entries": total,
+                "issues": 0,
+                "warnings": len(all_warnings),
+            }
+        )
+        + "\n"
     )
     return 0
 
@@ -161,6 +198,12 @@ def main() -> int:
     rec.add_argument("--c2pa", default="unknown", help="present | absent | stripped | unknown")
     rec.add_argument("--license-class", dest="license_class", default="", help="e.g. client-resale")
     rec.add_argument("--client", action="store_true", help="asset is for a client/commercial site")
+    rec.add_argument(
+        "--override",
+        default="",
+        help="reason a non-commercial-marked asset is cleared (e.g. 'served via paid BFL API') "
+        "— downgrades the FLUX-dev audit failure to a non-fatal WARNING for this entry",
+    )
     rec.set_defaults(func=cmd_record)
 
     aud = sub.add_parser("audit", help="audit a ledger (or a dir of ledgers) for traps + gaps")

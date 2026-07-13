@@ -23,10 +23,10 @@
 set -euo pipefail
 
 file="${1:-}"
-# $CLAUDE_TOOL_FILE_PATH (passed as $1 by hooks.json) is NOT a real Claude Code
-# hook variable, so under Claude Code the arg is empty and the path arrives via
-# the canonical stdin JSON contract. Fall back to it (the dual-source pattern the
-# other domain hooks use).
+# The edited file's path arrives via the canonical stdin JSON contract
+# (.tool_input.file_path). hooks.json passes NO positional arg — there is no real
+# Claude Code hook variable for it — so stdin is the sole source. ($1 is still read
+# first for direct/manual invocation, but is empty under Claude Code.)
 if [[ -z "$file" ]] && [[ ! -t 0 ]] && command -v jq >/dev/null 2>&1; then
   payload="$(cat 2>/dev/null || true)"
   if [[ -n "$payload" ]]; then

@@ -39,12 +39,15 @@ function parseArgs(args) {
     if (a === "--in") out.in = next();
     else if (a === "--outdir") out.outdir = next();
     else if (a === "--name") out.name = next();
-    else if (a === "--widths")
-      out.widths = next()
+    else if (a === "--widths") {
+      const parsed = next()
         .split(",")
         .map((w) => parseInt(w.trim(), 10))
         .filter(Boolean);
-    else if (a === "--sizes") out.sizes = next();
+      // Fall back to the defaults if --widths parsed to nothing (e.g. "--widths abc"
+      // or "--widths ,,") — never let an empty list produce `hero-undefined.jpg`.
+      out.widths = parsed.length ? parsed : DEFAULT_WIDTHS;
+    } else if (a === "--sizes") out.sizes = next();
     else if (a === "--fallback") out.fallback = next();
     else if (a === "--lcp") out.lcp = true;
     else if (a === "--help" || a === "-h") out.help = true;
@@ -110,8 +113,18 @@ async function main() {
   await mkdir(opts.outdir, { recursive: true });
 
   const meta = await sharp(opts.in).metadata();
-  const intrinsicW = meta.width ?? Math.max(...opts.widths);
-  const intrinsicH = meta.height ?? Math.round(intrinsicW * 0.5625);
+  // CLS-safety is this tool's whole job — guessing a 16:9 aspect when the source
+  // has no intrinsic dimensions defeats it (the emitted width/height would be wrong,
+  // reintroducing layout shift). Fail loudly instead.
+  if (!meta.width || !meta.height) {
+    loudFail(
+      `Source image has no intrinsic dimensions (width=${meta.width}, height=${meta.height}).\n` +
+        "Cannot emit CLS-safe width/height without them — refusing to guess an aspect ratio.\n" +
+        "The source may be corrupt, an unsupported format, or an SVG without a viewBox.",
+    );
+  }
+  const intrinsicW = meta.width;
+  const intrinsicH = meta.height;
   const aspect = intrinsicH / intrinsicW;
 
   // Never upscale: cap requested widths at the source width.
