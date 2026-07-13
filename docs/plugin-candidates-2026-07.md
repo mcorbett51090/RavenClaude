@@ -153,3 +153,42 @@ single unattended pass; the roadmap makes builds 2–10 mechanical follow-ups.
 
 _Last reviewed: 2026-07-05 by `claude`. Demand reads are engineering-judgment
 `[estimate]`s, not measured statistics._
+
+---
+
+## Progress update — 2026-07-13 (second pass)
+
+This roadmap was revisited by a later scheduled routine. Since 2026-07-05 the roster
+grew and **two roadmap candidates have shipped**:
+
+| Candidate | Roadmap priority | Status (2026-07-13) |
+|---|---|---|
+| `graphql-engineering` | P0 (built 07-05) | **Shipped** — present in the roster. |
+| `technical-seo` → **`technical-seo-engineering`** | P1 | **Shipped** — present in the roster. |
+
+The remaining eight candidates are still **unbuilt** (verified with `ls plugins/`):
+`chaos-engineering-resilience`, `serverless-engineering`, `ux-research`,
+`design-systems-engineering`, `feature-flags-progressive-delivery`,
+`payroll-operations`, `pharmacovigilance-drug-safety` — plus the deferred runners-up.
+
+**Built in this second pass** (the top-3 unbuilt by the roadmap's own priority):
+
+| Plugin | Priority | Notes |
+|---|---|---|
+| `chaos-engineering-resilience` | **P0** | Next after the shipped P0. Hard seam to `observability-sre` (no chaos without steady-state signals). |
+| `serverless-engineering` | P1 | Cross-cloud *patterns*; provider IaC routes to `aws-cloud`/`gcp-cloud`/`azure-cloud`. |
+| `ux-research` | P1 | Research discipline distinct from `product-management` discovery / `web-design`. Participant-PII discipline built in. |
+
+**Template note:** these three follow the marketplace's **current lean 2-agent template**
+(the shape the most recent ~15 domain plugins use — `museum-cultural-institution-operations`,
+`digital-twin-engineering`, `audio-dsp-engineering`, `bioinformatics-engineering`,
+`waste-recycling-operations`): **2 agents · 3 skills · a Mermaid decision-tree + a dated
+patterns-2026 knowledge doc · 2 templates · README · CLAUDE.md · plugin.json**, rather than
+the heavier 3-agent/CHANGELOG/commands shape the 07-05 roadmap assumed. The 3 roles the
+roadmap specified per plugin are folded into 2 agents each; the seams are unchanged.
+
+The remaining five candidates (`design-systems-engineering`,
+`feature-flags-progressive-delivery`, `payroll-operations`, `pharmacovigilance-drug-safety`,
+and the runners-up) stay documented above as implementation-ready follow-ups.
+
+_Second pass reviewed 2026-07-13._
