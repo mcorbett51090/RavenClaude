@@ -1,0 +1,19 @@
+{
+  "recorded_at": "2026-07-13T00:00:00+00:00",
+  "asset": "media/hero-1600.avif",
+  "prompt": "sunlit vineyard rows at golden hour, cinematic, text-free",
+  "model": "grok-2-image",
+  "provider": "xai",
+  "license": "commercial",
+  "indemnity": "none",
+  "c2pa": "absent",
+  "license_class": "client-resale",
+  "for_client": true,
+  "_notes": {
+    "durable_record": "This internal ledger is the durable provenance record because C2PA is routinely stripped by platforms/recompression. Retain C2PA where present; do NOT add a c2patool re-embed binary.",
+    "flux_dev_trap": "If model/license contains 'flux-dev' or 'non-commercial' AND for_client is true, provenance.py audit FAILS loudly — the non-commercial trap.",
+    "license_neq_ownership": "license=commercial permits use/sale; it does NOT confer enforceable US copyright over the AI portions (Thaler).",
+    "price": "Any associated price is [unverified — confirm on provider pricing page]; prices are not stored in this ledger.",
+    "format": "The live ledger is JSON Lines (one entry object per line); this file is a single pretty-printed example. Append with scripts/provenance.py record."
+  }
+}

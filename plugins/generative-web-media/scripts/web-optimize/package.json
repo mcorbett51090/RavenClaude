@@ -1,0 +1,20 @@
+{
+  "name": "generative-web-media-optimize",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Deterministic web-optimization of generated images (AVIF/WebP/fallback responsive <picture>) for the generative-web-media plugin. Run on demand via npx; LOUD-SKIPs if sharp is absent.",
+  "bin": {
+    "optimize-image": "./optimize-image.mjs"
+  },
+  "scripts": {
+    "optimize": "node optimize-image.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "sharp": "^0.33.5"
+  },
+  "license": "MIT"
+}
