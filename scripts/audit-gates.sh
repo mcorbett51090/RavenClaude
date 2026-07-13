@@ -2580,6 +2580,14 @@ printf 'x = 1\n' > "$DH/fb-good.py"
 assert_hook_fires  "fabric anti-patterns" plugins/microsoft-fabric/hooks/check-fabric-anti-patterns.sh "$DH/fb-bad.py"
 assert_hook_silent "fabric anti-patterns" plugins/microsoft-fabric/hooks/check-fabric-anti-patterns.sh "$DH/fb-good.py"
 
+# 11. brand-identity-studio — a non-self-hostable font (Adobe Fonts) in a brand token file
+#     (advisory hook: stderr + always exit 0). Bad file names must match the hook's
+#     brand-conventional filter (*brand*/*token*); good file is brand-conventional but clean.
+printf '@import url(https://fonts.adobe.com/foo);\n' > "$DH/bad-brand-tokens.css"
+printf 'font-family: Inter; /* OFL, self-hostable */\n' > "$DH/good-brand-tokens.css"
+assert_hook_fires  "brand anti-patterns" plugins/brand-identity-studio/hooks/flag-brand-antipatterns.sh "$DH/bad-brand-tokens.css"
+assert_hook_silent "brand anti-patterns" plugins/brand-identity-studio/hooks/flag-brand-antipatterns.sh "$DH/good-brand-tokens.css"
+
 echo
 echo "── Gate 31: route-decision-review (decision tribunal routing) ─────────────"
 # The PreToolUse(AskUserQuestion) hook auto-resolves rule/fact-derivable yes/no
