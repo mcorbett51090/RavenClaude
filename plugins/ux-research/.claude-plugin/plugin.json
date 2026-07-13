@@ -1,0 +1,27 @@
+{
+  "name": "ux-research",
+  "version": "0.1.0",
+  "description": "UX-research team — 2 agents (ux-research-lead, research-execution-and-synthesis-specialist) that turn a fuzzy ask into a researchable question, pick a rigorous method (generative vs evaluative, qual vs quant, moderated vs unmoderated), run the study (usability tests, interviews, surveys), and synthesize evidence into decision-ready, bias-checked insight — without the research theater. The lead owns framing, method selection, the research plan, research-ops (recruiting, repository), and research ethics + participant-PII discipline (consent, anonymization). The specialist owns protocol & task design, non-leading moderation, survey design, and synthesis (affinity/thematic analysis, evidence strength, observation vs interpretation). 3 skills, a 2-doc knowledge bank + 2 templates. Distinct from product-management (roadmap/prioritization), web-design (visual/interaction/IA design), experimentation-growth-engineering (online A/B stats), data-science-research (advanced quant). Requires ravenclaude-core@>=0.7.0.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "ux-research",
+    "user-research",
+    "usability-testing",
+    "user-interviews",
+    "survey-design",
+    "research-methods",
+    "research-synthesis",
+    "research-ops",
+    "research-ethics",
+    "participant-pii",
+    "affinity-mapping",
+    "research-bias"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}
