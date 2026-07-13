@@ -99,7 +99,7 @@ Reference docs with `Last reviewed:` dates + confidence notation. Inline priors 
 
 | File | Read when |
 |---|---|
-| [`knowledge/ai-attack-taxonomy-decision-tree.md`](knowledge/ai-attack-taxonomy-decision-tree.md) | Scoping/prioritizing an engagement — the Mermaid decision tree (reads / does / knows / accepts / depends-on → attack class) + the OWASP LLM Top 10 2025 map + MITRE ATLAS anchor + likelihood×impact severity table + seams |
+| [`knowledge/ai-attack-taxonomy-decision-tree.md`](knowledge/ai-attack-taxonomy-decision-tree.md) | Scoping/prioritizing an engagement — the Mermaid decision tree (reads / does / knows / accepts / depends-on → attack class) + the OWASP LLM Top 10 2025 map + the OWASP Top 10 for Agentic Applications (ASI, 2026) companion map + MITRE ATLAS anchor + likelihood×impact severity table + seams |
 | [`knowledge/ai-red-teaming-patterns-2026.md`](knowledge/ai-red-teaming-patterns-2026.md) | Executing/hardening — safety-vs-security, the attack families, the jailbreak catalog, agentic tool-abuse, automated red-teaming, defense-in-depth, severity, responsible disclosure, and a dated 2026 tooling map |
 
 ---
