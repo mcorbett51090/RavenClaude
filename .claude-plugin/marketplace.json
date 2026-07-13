@@ -3611,6 +3611,33 @@
         "human-curation",
         "brand-guidelines"
       ]
+    },
+    {
+      "name": "generative-web-media",
+      "source": "./plugins/generative-web-media",
+      "description": "Generative web media team — 4 agents (generation-strategist, web-asset-pipeline-engineer, asset-provenance-guardian, brand-and-accessibility-reviewer) that take a creative brief and return on-brand, web-optimized, license-clean images/video/3D/audio behind a mandatory human curation gate. Provider-neutral, Grok-lean for images where competitive; images v1-deep (photoreal/vector/text-in-image + inpaint/outpaint/bg-removal/upscale round-trips), video/3D/audio routed. AVIF/WebP responsive <picture> + CWV-safe embeds; license pinning (the FLUX-dev non-commercial trap), C2PA + a provenance ledger, EU AI Act Art.50; brand-hex/style conformance + WCAG alt text. 6 skills, 4 knowledge docs (Mermaid decision trees; all prices [unverified]), 6 best-practices, 4 commands, 5 templates, 4 scripts. The shared foundation the brand-identity-studio plugin consumes; the DTCG token producer is web-design. Declarative fal MCP binding (set FAL_KEY). Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "generative-ai",
+        "image-generation",
+        "text-to-image",
+        "web-media",
+        "avif",
+        "webp",
+        "core-web-vitals",
+        "provenance",
+        "c2pa",
+        "license-compliance",
+        "eu-ai-act",
+        "brand-consistency",
+        "accessibility",
+        "wcag",
+        "fal-ai",
+        "grok"
+      ]
     }
   ]
 }

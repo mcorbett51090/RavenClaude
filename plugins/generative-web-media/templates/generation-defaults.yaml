@@ -1,0 +1,44 @@
+# generation-defaults.yaml — per-project defaults for generative-web-media.
+# Copy into a project and edit. Every price is [unverified — confirm on provider pricing page];
+# this file bakes in ZERO prices — you supply unit prices to gen-budget.py at spend time.
+
+project: "example-winery-site"
+
+# --- Substrate -------------------------------------------------------------
+substrate:
+  primary: "fal" # the declared fal MCP (set FAL_KEY in env)
+  # Fallbacks if the declarative binding can't carry the auth header:
+  #   - /wire-media-substrate  (claude mcp add with Authorization: Bearer $FAL_KEY)
+  #   - scripts/generate-via-provider.sh  (direct provider, e.g. xai on api.x.ai/v1)
+  direct_provider_keys: ["FAL_KEY", "XAI_API_KEY"] # read by NAME from env; never committed
+
+# --- Routing defaults ------------------------------------------------------
+routing:
+  image_default: "grok" # Grok-lean WHERE competitive; read the matrix, don't hard-code
+  indemnified_default: "firefly" # when indemnity_required is true
+  never_commercial: ["flux-dev", "flux.1-dev", "flux.2-dev"] # the non-commercial trap — blocked on client sites
+  prefer_round_trip: true # inpaint/outpaint/bg-removal/upscale over a fresh generation
+
+# --- Cost tiering ----------------------------------------------------------
+budget:
+  currency: "USD"
+  per_project_cap: 25.00 # a design input, not a surprise (your number)
+  draft_then_final: true # iterate cheap, spend once on the premium final
+  ledger: "media/spend.jsonl" # gen-budget.py appends here
+
+# --- Web pipeline ----------------------------------------------------------
+web:
+  delivery: "build-time" # Sharp for repo-owned static sites; "cdn" for CMS/uploads
+  formats: ["avif", "webp", "jpeg"] # AVIF primary -> WebP -> JPEG safety net (png for alpha)
+  responsive_widths: [480, 768, 1200, 1600]
+  lcp_hero:
+    eager: true
+    fetchpriority: "high" # cap 1-2 per page
+  below_fold_loading: "lazy"
+
+# --- Provenance + disclosure ----------------------------------------------
+provenance:
+  ledger: "media/provenance.jsonl" # provenance.py appends here (the durable record)
+  retain_c2pa: true # keep C2PA where present; do NOT add a c2patool re-embed binary
+eu_ai_act:
+  serves_eu_visitors: true # if true, add Art.50 disclosure copy (surface + route to counsel)
