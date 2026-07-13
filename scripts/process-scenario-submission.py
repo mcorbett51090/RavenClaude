@@ -222,8 +222,15 @@ def main() -> int:
 
     fields = parse_issue_form(body)
 
-    required = ["scenario_title", "plugin", "product", "problem", "resolution",
-                "scope_guess", "confidence"]
+    required = [
+        "scenario_title",
+        "plugin",
+        "product",
+        "problem",
+        "resolution",
+        "scope_guess",
+        "confidence",
+    ]
     missing = [f for f in required if not fields.get(f)]
     if missing:
         _write_decision("reject", None, None, f"missing required field(s): {', '.join(missing)}")
@@ -233,7 +240,24 @@ def main() -> int:
     # Gate on the SAME normalized text the staged file is built from (see
     # _normalize_intake) so an obfuscated secret can't pass the gate and then be
     # reconstructed into the quarantine file by the strip's own normalization.
-    combined = "\n".join(_normalize_intake(fields[f]) for f in ("scenario_title", "product", "problem", "resolution"))
+    # NB: `plugin` is included — it is a REQUIRED field whose only other check is a
+    # slug regex ([A-Za-z0-9._-]{1,64}), and common secret shapes (ghp_+36, npm_+36,
+    # AKIA+16, github_pat_) fit that charset+length, so a credential smuggled into the
+    # `### Plugin` field would otherwise pass unscanned and be written verbatim into the
+    # staged frontmatter (2026-07-13 review). scope_guess/confidence are constrained to
+    # tiny enums downstream, but are cheap to gate here too.
+    combined = "\n".join(
+        _normalize_intake(fields.get(f, ""))
+        for f in (
+            "scenario_title",
+            "plugin",
+            "product",
+            "problem",
+            "resolution",
+            "scope_guess",
+            "confidence",
+        )
+    )
     sec_reason = _has_secret_or_pii(combined)
     if sec_reason:
         _write_decision("reject", None, None, sec_reason)
@@ -303,7 +327,9 @@ def main() -> int:
     fm_text = "\n".join(frontmatter_lines)
     for banned in _BANNED_FIELD_NAMES:
         if re.search(rf"(?m)^{re.escape(banned)}\s*:", fm_text):
-            _write_decision("reject", None, None, f"internal error: banned field '{banned}' in frontmatter")
+            _write_decision(
+                "reject", None, None, f"internal error: banned field '{banned}' in frontmatter"
+            )
             return 0
 
     safe_title = title.replace("\n", " ")

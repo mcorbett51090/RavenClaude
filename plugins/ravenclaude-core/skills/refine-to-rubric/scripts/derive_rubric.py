@@ -126,8 +126,21 @@ def parse_library(path):
             if not re.fullmatch(r"[a-z0-9][a-z0-9_-]{0,63}", did or ""):
                 continue
             try:
-                weight = float(weight_s)
+                # Tolerate markdown emphasis on the weight cell (e.g. `**40**`),
+                # mirroring the hard_gate column which already accepts `**yes**` — bold
+                # is an established convention in these tables, so a bolded weight must
+                # not silently drop the whole dimension (and its hard gate) with valid
+                # JSON. Strip ONLY asterisks (never underscores — the `_(judge)_` signal
+                # sentinel is underscore-bearing). (2026-07-13 review)
+                weight = float(weight_s.strip("*"))
             except ValueError:
+                # A genuinely non-numeric weight is a real malformed row: WARN so it is
+                # visible rather than vanishing into well-formed-but-incomplete output.
+                print(
+                    f"derive_rubric: warning: dimension {did!r} in kind {cur_kind!r} has a "
+                    f"non-numeric weight {weight_s!r}; skipping this dimension.",
+                    file=sys.stderr,
+                )
                 continue
             hard_gate = hard_s.strip().lower() in ("yes", "true", "**yes**")
             signal = "" if sig in _JUDGE_TOKENS else sig

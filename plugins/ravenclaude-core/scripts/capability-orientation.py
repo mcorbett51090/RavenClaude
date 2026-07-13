@@ -465,7 +465,12 @@ def summarize_run_config(root: Path) -> dict | None:
     if not isinstance(data, dict) or data.get("enabled") is not True:
         return None
 
-    task_class = str(data.get("task_class") or "unknown")
+    # Every value below is inlined into the always-injected SessionStart banner, so it
+    # MUST be frame-break sanitized (CR/LF + close-tag strip) exactly like `rationale` —
+    # a hostile/cloned repo's run-config.json could otherwise smuggle a newline + literal
+    # </ravenclaude-capabilities> in task_class or a tier value to break out of the
+    # untrusted-data frame (2026-07-13 review; sibling `rationale` was already guarded).
+    task_class = _sanitize_banner_field(str(data.get("task_class") or "unknown")) or "unknown"
     tiers_obj = data.get("tiers") if isinstance(data.get("tiers"), dict) else {}
     rationale_raw = str(data.get("rationale") or "")
     # Scrub secrets, THEN frame-break sanitize (CR/LF + tag strip) before the
@@ -474,9 +479,9 @@ def summarize_run_config(root: Path) -> dict | None:
     rationale = _sanitize_banner_field(_scrub_run_config_rationale(rationale_raw), cap=512) or ""
     # Compact tiers summary: the three load-bearing phases per the plan.
     tiers_summary = {
-        "scope": str(tiers_obj.get("scope") or "?"),
-        "verify": str(tiers_obj.get("verify_default") or "?"),
-        "synthesize": str(tiers_obj.get("synthesize") or "?"),
+        "scope": _sanitize_banner_field(str(tiers_obj.get("scope") or "?")) or "?",
+        "verify": _sanitize_banner_field(str(tiers_obj.get("verify_default") or "?")) or "?",
+        "synthesize": _sanitize_banner_field(str(tiers_obj.get("synthesize") or "?")) or "?",
     }
     return {
         "task_class": task_class,

@@ -2,6 +2,15 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.189.1 — 2026-07-13
+
+### Fixed
+
+- **Security (P1):** `hooks/guard-destructive.sh` now blocks `curl|sh`-style pipe-to-shell RCE when the interpreter is **path-qualified** (`curl … | /bin/bash`, `| sudo /bin/sh`, `| /usr/bin/python3`, `| ./sh`). The two deny patterns anchored the interpreter name immediately after the pipe, so a leading `/bin/`/`./` path segment slipped the guard while the bare form was correctly blocked. An optional path-prefix group closes it; the audit-gates corpus gained path-qualified block fixtures + benign path-bearing pass fixtures.
+- **Security (P2):** `scripts/capability-orientation.py` now frame-break-sanitizes the run-config `task_class` and per-phase tier values before inlining them into the always-injected SessionStart banner — they were the only unsanitized siblings of the already-guarded `rationale`, so a hostile/cloned repo's `run-config.json` could break out of the untrusted-data frame.
+- **P3:** `skills/terminal-status-indicators/terminal-watcher.py` — a recycled PID no longer inherits its predecessor's stale controlling PTY (start-time identity check on `ProcState`), and `running_pid()` no longer crashes on a foreign-owned pidfile (EPERM from `os.kill(pid,0)` is treated as "alive"; the unlink is now fail-safe).
+- **P3:** `skills/refine-to-rubric/scripts/derive_rubric.py` tolerates a markdown-bold weight cell (`**40**`, mirroring the `**yes**` the hard_gate column already accepts) instead of silently dropping the whole dimension and its hard gate; a genuinely non-numeric weight now warns.
+
 ## 0.189.0 — 2026-07-09
 
 ### Added

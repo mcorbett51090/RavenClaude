@@ -30,8 +30,13 @@ import sys
 # dozens of advisory hooks and was silently missed by a case-sensitive match, so
 # the gate passed while those hooks were inert. Also tolerate a leading
 # local/declare/readonly/export prefix so a scoped assignment still matches.
+# Matches a positional-arg read in any common form — quoted or not, with or without
+# the ${1:-} default sugar and the braces: `="${1:-}"`, `="$1"`, `="${1}"`, `=$1`
+# (2026-07-13 review — the prior form matched ONLY `="${1:-}"`, so an equally-inert
+# `file="$1"` with no stdin fallback would have slipped the gate the gate exists for).
 _ARG_PATH = re.compile(
-    r'^\s*(?:local\s+|declare\s+|readonly\s+|export\s+)?(?:file|path|target)="\$\{1:-\}"',
+    r"^\s*(?:local\s+|declare\s+|readonly\s+|export\s+)?"
+    r'(?:file|path|target|filepath)="?\$\{?1(?::-[^}]*)?\}?"?',
     re.IGNORECASE,
 )
 # The stdin-JSON fallback any correct file hook carries.
