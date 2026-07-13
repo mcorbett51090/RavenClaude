@@ -3517,6 +3517,98 @@
         "collections-cms",
         "cultural-institution"
       ]
+    },
+    {
+      "name": "urgent-care-operations",
+      "source": "./plugins/urgent-care-operations",
+      "description": "Walk-in / episodic urgent care operations team — 2 agents (urgent-care-operations-lead for patient throughput and door-to-door time, split-flow/fast-track, provider & MA/tech staffing to the demand curve, ancillary services (on-site x-ray, POCT/labs, procedures), scope of service and multi-site; urgent-care-revenue-and-payer-specialist for payer mix and in-network contracting, occupational-medicine employer contracts, visit-level economics (E/M distribution, ancillary capture), and self-pay/price-transparency). Fluent in urgent-care EMR/PM (Experity, Athenahealth) and UCA benchmarks. 3 skills, a 2-doc knowledge bank (operations decision tree + 2026 patterns), and 2 templates. Distinct from medical-revenue-cycle (coding/billing/claims), behavioral-health-practice (therapy/psych), and senior-care-operations (residential senior living). Advisory only — clinical protocols, coding/billing, and licensing are flagged to a professional, not decided. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "urgent-care",
+        "walk-in-clinic",
+        "patient-throughput",
+        "door-to-door-time",
+        "split-flow",
+        "provider-staffing",
+        "occupational-medicine",
+        "payer-mix",
+        "point-of-care-testing",
+        "experity-emr",
+        "visit-economics",
+        "multi-site-operations"
+      ]
+    },
+    {
+      "name": "community-association-management",
+      "source": "./plugins/community-association-management",
+      "description": "Community association (HOA / condo-COA) management team for a volunteer board — 2 agents (association-management-lead for how the association runs: the annual budget, assessment setting, reserve study & reserve-funding adequacy, vendor/contract management, insurance/master policy, and meetings/notices logistics; governance-and-covenant-specialist for governance & enforcement: board fiduciary duty, elections/quorum, open-meeting/records rules, fair-and-consistent CC&R/architectural/rules enforcement, the delinquency-to-collections/lien ladder, and homeowner relations). 3 skills, a 2-doc knowledge bank (decision tree + 2026 patterns), and 2 templates. Distinct from property-management (owner/tenant residential leasing) and commercial-real-estate (asset-level investment). Reserve adequacy, fair enforcement, and collections/lien law are state-specific — this is operational guidance, NOT legal advice. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "hoa",
+        "condo-association",
+        "community-association",
+        "reserve-study",
+        "hoa-assessments",
+        "covenant-enforcement",
+        "ccr-enforcement",
+        "board-governance",
+        "fiduciary-duty",
+        "collections-lien",
+        "davis-stirling",
+        "cam-software"
+      ]
+    },
+    {
+      "name": "chaos-resilience-engineering",
+      "source": "./plugins/chaos-resilience-engineering",
+      "description": "Chaos & resilience engineering team — 2 agents (resilience-architect owns WHY/WHAT: steady-state hypothesis, failure-mode & dependency analysis, blast-radius design, resilience SLOs/error budgets, and the GameDay program; chaos-experiment-engineer owns HOW/RUN: fault-injection tooling, experiment automation, safety/abort/rollback, staging→prod progression, and CI/CD continuous verification). Fluent in Chaos Mesh, LitmusChaos, AWS FIS, Gremlin, Steadybit, Azure Chaos Studio, Chaos Toolkit, and resilience patterns (timeouts, retries+jitter, circuit breakers, bulkheads, load shedding). 3 skills, a 2-doc knowledge bank (decision tree + 2026 patterns), and 2 templates. NO experiment runs against prod without a steady-state hypothesis, a blast-radius limit, and an abort/rollback condition. Distinct from observability-sre (detects failure / on-call), performance-engineering (throughput/latency), and qa-test-automation (functional correctness). Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "chaos-engineering",
+        "resilience-engineering",
+        "fault-injection",
+        "steady-state-hypothesis",
+        "blast-radius",
+        "gameday",
+        "circuit-breaker",
+        "continuous-verification",
+        "chaos-mesh",
+        "aws-fis",
+        "litmuschaos",
+        "failure-mode-analysis"
+      ]
+    },
+    {
+      "name": "moving-relocation-operations",
+      "source": "./plugins/moving-relocation-operations",
+      "description": "Household-goods moving operations team — 2 agents (moving-operations-lead for estimating (cube sheet / weight vs volume; binding vs non-binding vs not-to-exceed), crew & truck scheduling and dispatch, capacity, and job-type mix (local vs long-distance/interstate vs corporate relocation); moving-compliance-and-claims-specialist for DOT/FMCSA operating authority (interstate) & state intrastate licensing, tariffs & rates, valuation coverage (released 60c/lb vs full-value) vs insurance, the Bill of Lading / federal disclosures, and claims/damage). Fluent in van-line vs independent models and moving software (SmartMoving, MoveitPro). 3 skills, a 2-doc knowledge bank (relocation decision tree + 2026 patterns), and 2 templates. Distinct from fleet-logistics (generic telematics), field-service-management (generic dispatch), and freight-forwarding-sales (freight, not household goods). Authority/tariff/valuation/licensing are regulated — operational guidance, not legal advice. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "moving-company",
+        "household-goods",
+        "relocation",
+        "move-estimate",
+        "cube-sheet",
+        "crew-dispatch",
+        "fmcsa-authority",
+        "valuation-coverage",
+        "bill-of-lading",
+        "moving-claims",
+        "interstate-moving",
+        "van-line"
+      ]
     }
   ]
 }

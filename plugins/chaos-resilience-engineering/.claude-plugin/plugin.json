@@ -1,0 +1,27 @@
+{
+  "name": "chaos-resilience-engineering",
+  "version": "0.1.0",
+  "description": "Chaos & resilience engineering team — 2 agents (resilience-architect owns WHY/WHAT: steady-state hypothesis, failure-mode & dependency analysis, blast-radius design, resilience SLOs/error budgets, and the GameDay program; chaos-experiment-engineer owns HOW/RUN: fault-injection tooling, experiment automation, safety/abort/rollback, staging→prod progression, and CI/CD continuous verification). Fluent in Chaos Mesh, LitmusChaos, AWS FIS, Gremlin, Steadybit, Azure Chaos Studio, Chaos Toolkit, and resilience patterns (timeouts, retries+jitter, circuit breakers, bulkheads, load shedding). 3 skills, a 2-doc knowledge bank (decision tree + 2026 patterns), and 2 templates. NO experiment runs against prod without a steady-state hypothesis, a blast-radius limit, and an abort/rollback condition. Distinct from observability-sre (detects failure / on-call), performance-engineering (throughput/latency), and qa-test-automation (functional correctness). Requires ravenclaude-core@>=0.7.0.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "chaos-engineering",
+    "resilience-engineering",
+    "fault-injection",
+    "steady-state-hypothesis",
+    "blast-radius",
+    "gameday",
+    "circuit-breaker",
+    "continuous-verification",
+    "chaos-mesh",
+    "aws-fis",
+    "litmuschaos",
+    "failure-mode-analysis"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "name": "moving-relocation-operations",
+  "version": "0.1.0",
+  "description": "Household-goods moving operations team — 2 agents (moving-operations-lead for estimating (cube sheet / weight vs volume; binding vs non-binding vs not-to-exceed), crew & truck scheduling and dispatch, capacity, and job-type mix (local vs long-distance/interstate vs corporate relocation); moving-compliance-and-claims-specialist for DOT/FMCSA operating authority (interstate) & state intrastate licensing, tariffs & rates, valuation coverage (released 60c/lb vs full-value) vs insurance, the Bill of Lading / federal disclosures, and claims/damage). Fluent in van-line vs independent models and moving software (SmartMoving, MoveitPro). 3 skills, a 2-doc knowledge bank (relocation decision tree + 2026 patterns), and 2 templates. Distinct from fleet-logistics (generic telematics), field-service-management (generic dispatch), and freight-forwarding-sales (freight, not household goods). Authority/tariff/valuation/licensing are regulated — operational guidance, not legal advice. Requires ravenclaude-core@>=0.7.0.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "moving-company",
+    "household-goods",
+    "relocation",
+    "move-estimate",
+    "cube-sheet",
+    "crew-dispatch",
+    "fmcsa-authority",
+    "valuation-coverage",
+    "bill-of-lading",
+    "moving-claims",
+    "interstate-moving",
+    "van-line"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}

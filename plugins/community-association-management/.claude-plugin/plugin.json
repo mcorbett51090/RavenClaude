@@ -1,0 +1,27 @@
+{
+  "name": "community-association-management",
+  "version": "0.1.0",
+  "description": "Community association (HOA / condo-COA) management team for a volunteer board — 2 agents (association-management-lead for how the association runs: the annual budget, assessment setting, reserve study & reserve-funding adequacy, vendor/contract management, insurance/master policy, and meetings/notices logistics; governance-and-covenant-specialist for governance & enforcement: board fiduciary duty, elections/quorum, open-meeting/records rules, fair-and-consistent CC&R/architectural/rules enforcement, the delinquency-to-collections/lien ladder, and homeowner relations). 3 skills, a 2-doc knowledge bank (decision tree + 2026 patterns), and 2 templates. Distinct from property-management (owner/tenant residential leasing) and commercial-real-estate (asset-level investment). Reserve adequacy, fair enforcement, and collections/lien law are state-specific — this is operational guidance, NOT legal advice. Requires ravenclaude-core@>=0.7.0.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "hoa",
+    "condo-association",
+    "community-association",
+    "reserve-study",
+    "hoa-assessments",
+    "covenant-enforcement",
+    "ccr-enforcement",
+    "board-governance",
+    "fiduciary-duty",
+    "collections-lien",
+    "davis-stirling",
+    "cam-software"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}
