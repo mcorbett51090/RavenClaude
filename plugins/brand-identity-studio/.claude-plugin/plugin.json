@@ -1,0 +1,30 @@
+{
+  "name": "brand-identity-studio",
+  "version": "0.1.0",
+  "description": "Standalone brand-CREATION service for a web studio's commission customers — 2 agents (brand-strategist, identity-systems-designer): strategy/positioning/archetype, naming & tagline, curated logo suite, color/type systems (WCAG-paired), brand book, legal/IP posture, collateral, sellable tiers. AI-drafts + MANDATORY human curation. Thin orchestration layer: delegates design tokens to web-design:design-tokens-scaffolding, raw generation + license/indemnity to generative-web-media, and hands the finished system to web-design:visual-designer. 5 skills, 4 commands, a 3-doc knowledge bank (Mermaid trees), 5 best-practices, 6 templates, a stdlib WCAG-pair checker, 1 advisory hook. Not legal advice — every IP / font-license / registrability claim routes to security-reviewer. Prices [unverified]. Requires ravenclaude-core@>=0.7.0.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "brand-identity",
+    "brand-strategy",
+    "logo-design",
+    "brand-book",
+    "naming",
+    "brand-voice",
+    "design-tokens",
+    "color-system",
+    "typography",
+    "font-licensing",
+    "wcag-contrast",
+    "ai-generated-logo",
+    "trademark",
+    "human-curation",
+    "brand-guidelines"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}
