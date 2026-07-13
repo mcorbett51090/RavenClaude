@@ -1,0 +1,42 @@
+<!--
+  model-viewer-3d-embed.html — accessible, CLS-safe web embed for a generated 3D model
+  (Meshy / Rodin / TRELLIS -> glTF/GLB). Uses Google's <model-viewer> web component.
+  Replace the sample src/poster/alt. glTF/GLB is the web-native 3D format.
+
+  <model-viewer> is loaded from a script module. Self-host the module in production
+  rather than a third-party CDN where your CSP forbids external hosts.
+-->
+
+<!-- Load the component (self-host /vendor/model-viewer.min.js in production). -->
+<script type="module" src="/vendor/model-viewer.min.js"></script>
+
+<model-viewer
+  src="/media/product.glb"
+  poster="/media/product-poster.avif"
+  alt="REPLACE: interactive 3D model of the product — describe it (WCAG)"
+  loading="lazy"
+  reveal="interaction"
+  camera-controls
+  disable-zoom
+  shadow-intensity="1"
+  style="width: 100%; aspect-ratio: 1 / 1; background: transparent"
+>
+  <!-- Fallback for no-JS / unsupported browsers: a static poster image. -->
+  <img
+    slot="poster"
+    src="/media/product-poster.avif"
+    width="800"
+    height="800"
+    alt="REPLACE: static product image (3D viewer fallback)"
+    loading="lazy"
+    decoding="async"
+  />
+</model-viewer>
+
+<!--
+  Notes:
+  - explicit aspect-ratio reserves layout space (CLS-safe).
+  - lazy + reveal="interaction" avoids loading the mesh until needed.
+  - the poster still is the pre-interaction paint (treat like an image).
+  - always provide a real alt; route to the accessibility gate for sign-off.
+-->
