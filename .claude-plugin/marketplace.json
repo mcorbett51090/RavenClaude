@@ -276,7 +276,7 @@
       "displayName": "RavenClaude Core",
       "source": "./plugins/ravenclaude-core",
       "description": "Domain-neutral Claude Code foundation: 15 specialist agents, 48 skills, gates, hooks, rules, templates. Capability Grounding Protocol, Structured Output Protocol, Researcher meta-skill, comfort-posture dashboard, opt-in command-review tribunal (the Thing), WebFetch sanitizer, branch-archive escape hatch, brand-extraction (homepage → brand kit), Problems & Resolutions view, declarative-visualization (Vega-Lite/Deneb/SVG, Gate 101 + Gate 103 svg-report-lint, viz-spec-reviewer), and Claude orchestrator escape hatch (/claude-orchestrate). Slash commands: /init-agent-ready, /wrap, /set-posture, /dashboard, /forge, /reset-plugin-cache.",
-      "version": "0.189.0",
+      "version": "0.189.1",
       "author": {
         "name": "Matt Corbett"
       },
@@ -302,7 +302,7 @@
       "name": "power-platform",
       "source": "./plugins/power-platform",
       "description": "Power Platform specialist team — 11 agents (incl. power-platform-tester, power-bi-engineer) and 23 skills, with strong ALM/git coverage for solutions, flows, and PBIP. A house-opinions hook flags 8 §3/§4 violations; the knowledge bank carries production decision trees (PA-flow recovery, Dataverse token-acquisition, PCF React surface, PBI deploy/refresh, custom-connector build-path, PBIR Enhanced infinite-spinner debug + full build reference, DAX silent-zero scoring via the `Domain` pattern, sempy.fabric notebook reference, Power BI Copilot report-readiness, Code Apps connector gotchas, PBIP deployment variables + #839, PBIR reference enrichment, PBIP report fast-solve triage router [MCP-optional], main-forms-are-Web-API-authorable grounding) plus a real-engagement scenarios bank. Bundles the community pbix-mcp server (d0nk3yhm/pbix-mcp, MIT) for .pbix/.pbit read/write/DAX-eval (`pip install pbix-mcp`); documents (not bundles) the official Microsoft Dataverse MCP (CLAUDE.md §9a). Extends ravenclaude-core.",
-      "version": "0.44.6",
+      "version": "0.44.7",
       "author": {
         "name": "Matt Corbett"
       },
@@ -323,7 +323,7 @@
       "name": "finance",
       "source": "./plugins/finance",
       "description": "Corporate finance & FP&A specialist team — FP&A analyst (budgets, forecasts, variance commentary), financial modeler (3-statement, DCF, scenarios), controller (close, JEs, reconciliations), treasury analyst (cash, covenants, FX), valuation analyst (DCF + comps + precedent), audit-prep specialist (PBC, walkthroughs, SOC1/2 narratives), and board-pack composer. 23 skills incl. a gold-standard NetSuite close (OAuth2 M2M + SuiteQL BS/IS trial balance, layperson runbook), 10 templates, a knowledge bank (ASC 805 / 718 / 740, accrual-cutoff, WACC, cost accounting, FP&A operating model + decision support, NetSuite integration landscape), 2 advisory hooks (hardcoded rates / plaintext PII / missing Sources / Assumptions; secrets-PII scan). Inherits ravenclaude-core protocols.",
-      "version": "0.18.2",
+      "version": "0.18.3",
       "author": {
         "name": "Matt Corbett"
       },
@@ -728,7 +728,7 @@
       "name": "project-management",
       "source": "./plugins/project-management",
       "description": "Project & delivery management team — four specialists across the predictive (PMBOK/PMP) and agile (Scrum/Kanban) tracks and the hybrid between: delivery-lead (charter, schedule, scope/change control, earned value), scrum-master (backlog, sprints, ceremonies, velocity, impediments), risk-and-raid-analyst (scored qual+quant risk, RAID depth, mitigation/contingency, issue triage), and stakeholder-comms-lead (stakeholder register, comms plan, status/exec reporting, escalation memos, steering packs). Deepens — does NOT replace — ravenclaude-core's domain-neutral project-manager (the lightweight RAID/status-hygiene default every plugin routes to); this is the deep PM craft layer. Knowledge: a predictive-vs-agile-vs-hybrid decision tree + a best-practices library. Seams: prose polish → ravenclaude-core/documentarian; system design → architect. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.4.0",
+      "version": "0.4.1",
       "author": {
         "name": "Matt Corbett"
       },

@@ -214,40 +214,46 @@ def load_report(report_root: str, findings: list[Finding]) -> ReportModel | None
     pages: dict = {}
     visual_name_owner: dict = {}
 
+    def _scan_visuals(page_path: str, entry: str) -> set:
+        """Collect a page's visual names into visual_name_owner (report-wide) — run for
+        EVERY page dir with a visuals/ subtree, regardless of whether page.json is
+        readable. A page whose page.json is absent but which HAS visuals must still
+        contribute to ref-6 report-wide uniqueness and the bookmark visual set; the prior
+        `continue`-before-scan silently dropped them, so a name collision with a visual
+        on another page went undetected as exit 0 (2026-07-13 review). Visual identity is
+        visual.json `name`, folder-name fallback (PBIR requires them to match)."""
+        names: set[str] = set()
+        visuals_dir = os.path.join(page_path, "visuals")
+        if os.path.isdir(visuals_dir):
+            for vdir in sorted(os.listdir(visuals_dir)):
+                vpath = os.path.join(visuals_dir, vdir)
+                if not os.path.isdir(vpath):
+                    continue
+                vjson = _read_json(
+                    os.path.join(vpath, "visual.json"),
+                    findings,
+                    f"pages/{entry}/visuals/{vdir}",
+                )
+                vname = vjson.get("name") if vjson is not None else None
+                vname = str(vname or vdir)
+                names.add(vname)
+                visual_name_owner.setdefault(vname, []).append(f"{entry}/{vdir}")
+        return names
+
     if os.path.isdir(pages_dir):
         for entry in sorted(os.listdir(pages_dir)):
             page_path = os.path.join(pages_dir, entry)
             if not os.path.isdir(page_path):
                 continue  # pages.json is a file, not a page dir
             page_json = _read_json(os.path.join(page_path, "page.json"), findings, f"pages/{entry}")
-            if page_json is None:
-                # A directory with no readable page.json still counts as a page id
-                # for page-order purposes, but carries no visuals.
-                page_ids.append(entry)
-                pages[entry] = {"page": {}, "visual_names": set()}
-                continue
             page_ids.append(entry)
-            visual_names: set[str] = set()
-            visuals_dir = os.path.join(page_path, "visuals")
-            if os.path.isdir(visuals_dir):
-                for vdir in sorted(os.listdir(visuals_dir)):
-                    vpath = os.path.join(visuals_dir, vdir)
-                    if not os.path.isdir(vpath):
-                        continue
-                    vjson = _read_json(
-                        os.path.join(vpath, "visual.json"),
-                        findings,
-                        f"pages/{entry}/visuals/{vdir}",
-                    )
-                    # The visual's identity is its `name`; PBIR requires the
-                    # folder name to match `name`, so fall back to the dir name.
-                    vname = None
-                    if vjson is not None:
-                        vname = vjson.get("name")
-                    vname = str(vname or vdir)
-                    visual_names.add(vname)
-                    visual_name_owner.setdefault(vname, []).append(f"{entry}/{vdir}")
-            pages[entry] = {"page": page_json, "visual_names": visual_names}
+            # Always scan visuals — even when page.json is absent/unreadable (page_json
+            # is None), so those visuals still enter report-wide uniqueness (ref-6).
+            visual_names = _scan_visuals(page_path, entry)
+            pages[entry] = {
+                "page": page_json if page_json is not None else {},
+                "visual_names": visual_names,
+            }
 
     pages_index = _read_json(os.path.join(pages_dir, "pages.json"), findings, "pages/pages.json")
 

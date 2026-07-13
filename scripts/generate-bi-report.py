@@ -581,10 +581,14 @@ def render_report(data: dict, plugin: str, tokens: str) -> str:
         )
         prows.append(drawer)
 
-    # data-quality banner
-    dq = list(
-        data.get("data_quality_flags", [])
-    )  # copy: don't mutate the parsed-JSON list (dedupe across calls)
+    # data-quality banner. Normalize each element to a {partner, issue} dict so a
+    # consumer who authors data_quality_flags as a list of plain issue STRINGS renders
+    # cleanly instead of raising AttributeError on x.get() (2026-07-13 review) — matching
+    # the fail-soft discipline (_num / band_of / legend unpack) used elsewhere here.
+    dq = [
+        (x if isinstance(x, dict) else {"partner": "", "issue": str(x)})
+        for x in data.get("data_quality_flags", [])
+    ]  # copy: don't mutate the parsed-JSON list (dedupe across calls)
     # also lift any partner rostering-stale flags into the banner
     for p in partners:
         for f in p.get("flags", []):
@@ -667,7 +671,7 @@ def render_report(data: dict, plugin: str, tokens: str) -> str:
     <h2>Where each partner sits vs. its peers
       <span class="info" tabindex="0" title="The shaded band is the middle half of the peer group (25th to 75th score). The line is the peer middle (median). Each dot is one partner.">?</span>
     </h2>
-    <p class="sub">Peer group: {esc(cohort.get("label", "—"))} · {cohort.get("size", "?")} partners. A dot to the right of the band is doing better than most peers.</p>
+    <p class="sub">Peer group: {esc(cohort.get("label", "—"))} · {esc(cohort.get("size", "?"))} partners. A dot to the right of the band is doing better than most peers.</p>
     {svg_cohort(partners, cohort) if cohort else ""}
   </div>
 

@@ -37,8 +37,13 @@ import sys
 _FLAGS = r"(?:\s+-[A-Za-z]+)*"
 _GREP_ERE = re.compile(rf"\begrep\b|grep{_FLAGS}\s+(?:-[A-Za-z]*E|--extended-regexp)")
 _GREP_PCRE = re.compile(rf"grep{_FLAGS}\s+(?:-[A-Za-z]*P|--perl-regexp)")
-# PCRE-only constructs that are dead inside POSIX ERE.
-_PCRE_CONSTRUCT = re.compile(r"\(\?[:!=<]|\[\\s\\S\]|\[\\S\\s\]")
+# PCRE-only constructs that are dead inside POSIX ERE. The `(?...)` family is matched
+# by its whole extension charset — non-capturing `(?:`, look-around `(?!`/`(?=`/`(?<`,
+# named capture `(?P<`, atomic `(?>`, comment `(?#`, and inline flags `(?i)`/`(?m)` —
+# not just the `[:!=<]` members (2026-07-13 review: `(?P<`, `(?>`, `(?#`, `(?i)` were
+# missed, so a `grep -E '(?P<v>…)'` misparsed by GNU grep slipped the gate). Any `(?X`
+# is invalid POSIX ERE, so widening the class introduces no false positives.
+_PCRE_CONSTRUCT = re.compile(r"\(\?[A-Za-z:!=<>#]|\[\\s\\S\]|\[\\S\\s\]")
 # Split a shell line into command segments so a benign sibling `grep -P` on the
 # SAME line can't exonerate a broken `grep -E` earlier on it (2026-07 review):
 # the per-line `not _GREP_PCRE.search(raw)` was evaluated over the whole line.

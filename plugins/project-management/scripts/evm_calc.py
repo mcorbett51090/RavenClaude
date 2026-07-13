@@ -81,7 +81,12 @@ def cmd_evm(args: argparse.Namespace) -> int:
     etc_trend = (args.bac - args.ev) / cpi
     vac = args.bac - eac_trend
     # TCPI to the original budget: work remaining / funds remaining
-    tcpi = (args.bac - args.ev) / (args.bac - args.ac) if (args.bac - args.ac) != 0 else float("inf")
+    # Guard the denominator against NON-POSITIVE remaining budget, not just exact zero:
+    # when AC >= BAC (the over-budget distress case this tool forecasts) the funds are
+    # exhausted and TCPI-to-BAC is undefined/unachievable, so route it into the inf
+    # branch instead of printing a meaningless negative "efficiency needed" (2026-07-13
+    # review).
+    tcpi = (args.bac - args.ev) / (args.bac - args.ac) if (args.bac - args.ac) > 0 else float("inf")
 
     print("Earned Value status + forecast")
     print(f"  BAC (budget at completion) : {args.bac:,.0f}")
@@ -90,25 +95,38 @@ def cmd_evm(args: argparse.Namespace) -> int:
     print(f"  AC  (actual cost)          : {args.ac:,.0f}")
     print("  ---- variances ----")
     print(f"  CV  = EV - AC              : {cv:,.0f}  ({'over' if cv < 0 else 'under'} budget)")
-    print(f"  SV  = EV - PV              : {sv:,.0f}  ({'behind' if sv < 0 else 'ahead of'} schedule)")
+    print(
+        f"  SV  = EV - PV              : {sv:,.0f}  ({'behind' if sv < 0 else 'ahead of'} schedule)"
+    )
     print("  ---- indices ----")
-    print(f"  CPI = EV / AC              : {cpi:.3f}  ({'<1 over budget' if cpi < 1 else '>=1 on/under'})")
+    print(
+        f"  CPI = EV / AC              : {cpi:.3f}  ({'<1 over budget' if cpi < 1 else '>=1 on/under'})"
+    )
     if spi == float("inf"):
         print("  SPI = EV / PV              : n/a  (PV is 0 — no schedule baseline yet)")
     else:
-        print(f"  SPI = EV / PV              : {spi:.3f}  ({'<1 behind' if spi < 1 else '>=1 on/ahead'})")
+        print(
+            f"  SPI = EV / PV              : {spi:.3f}  ({'<1 behind' if spi < 1 else '>=1 on/ahead'})"
+        )
     print("  ---- forecasts ----")
     print(f"  EAC1 = BAC / CPI           : {eac_trend:,.0f}  (cost trend continues — start here)")
     print(f"  EAC2 = AC + (BAC - EV)     : {eac_budget:,.0f}  (remainder at budgeted rate)")
     if eac_both == float("inf"):
         print("  EAC3 = AC + (BAC-EV)/(CPI*SPI): n/a")
     else:
-        print(f"  EAC3 = AC + (BAC-EV)/(CPI*SPI): {eac_both:,.0f}  (cost AND schedule drag remainder)")
+        print(
+            f"  EAC3 = AC + (BAC-EV)/(CPI*SPI): {eac_both:,.0f}  (cost AND schedule drag remainder)"
+        )
     print("  EAC4 = AC + bottom-up ETC  : (re-estimate the remainder when the model breaks)")
     print(f"  ETC  = (BAC - EV) / CPI    : {etc_trend:,.0f}  (cost to finish at current CPI)")
-    print(f"  VAC  = BAC - EAC1          : {vac:,.0f}  ({'overrun' if vac < 0 else 'underrun'} vs budget)")
+    print(
+        f"  VAC  = BAC - EAC1          : {vac:,.0f}  ({'overrun' if vac < 0 else 'underrun'} vs budget)"
+    )
     if tcpi == float("inf"):
-        print("  TCPI = (BAC-EV)/(BAC-AC)   : n/a  (no funds remaining)")
+        print(
+            "  TCPI = (BAC-EV)/(BAC-AC)   : n/a  (AC >= BAC: funds exhausted with work "
+            "remaining — the original budget is unrecoverable; re-baseline to EAC)"
+        )
     else:
         warn = ""
         if tcpi > 1.20:
@@ -152,8 +170,10 @@ def cmd_pert(args: argparse.Namespace) -> int:
     print(f"  ~68% (+/-1 sigma): {mean - sd:,.2f}  to  {mean + sd:,.2f}")
     print(f"  ~95% (+/-2 sigma): {mean - 2 * sd:,.2f}  to  {mean + 2 * sd:,.2f}")
     if mean:
-        print(f"  spread ratio (2 sigma / mean): {(2 * sd / mean):.0%}  "
-              "(wider => more uncertainty => more contingency)")
+        print(
+            f"  spread ratio (2 sigma / mean): {(2 * sd / mean):.0%}  "
+            "(wider => more uncertainty => more contingency)"
+        )
     print("  note: size the contingency reserve off the spread, not off the single")
     print("        most-likely figure. A wide band is a signal to decompose further")
     print("        or commit a range, not a false-precision point date.")
@@ -192,7 +212,9 @@ def cmd_forecast(args: argparse.Namespace) -> int:
     print("  ---- sprints to finish the remaining backlog ----")
     print(f"  optimistic (mean+1 sigma = {optimistic:.2f}/spr): {sprints(optimistic):.1f} sprints")
     print(f"  expected   (mean      = {mean:.2f}/spr): {sprints(mean):.1f} sprints")
-    print(f"  conservative (mean-1 sigma = {conservative:.2f}/spr): {sprints(conservative):.1f} sprints")
+    print(
+        f"  conservative (mean-1 sigma = {conservative:.2f}/spr): {sprints(conservative):.1f} sprints"
+    )
     print("  note: commit the conservative end externally; velocity is DESCRIPTIVE of")
     print("        past sprints, not a target to load the next one to. Use >=8-15 stable")
     print("        sprints; for a real probability distribution run a Monte Carlo, not")
@@ -213,20 +235,35 @@ def build_parser() -> argparse.ArgumentParser:
     evm = sub.add_parser("evm", help="Earned value status + EAC/ETC/VAC/TCPI forecast")
     evm.add_argument("--bac", type=float, required=True, help="budget at completion")
     evm.add_argument("--pv", type=float, required=True, help="planned value to date")
-    evm.add_argument("--ev", type=float, required=True, help="earned value to date (BAC * %% complete)")
+    evm.add_argument(
+        "--ev", type=float, required=True, help="earned value to date (BAC * %% complete)"
+    )
     evm.add_argument("--ac", type=float, required=True, help="actual cost to date")
     evm.set_defaults(func=cmd_evm)
 
     pert = sub.add_parser("pert", help="Three-point (PERT) estimate + confidence bands")
-    pert.add_argument("--optimistic", "-o", type=float, required=True, help="optimistic estimate (O)")
-    pert.add_argument("--most-likely", "-m", type=float, required=True, help="most-likely estimate (M)")
-    pert.add_argument("--pessimistic", "-p", type=float, required=True, help="pessimistic estimate (P)")
+    pert.add_argument(
+        "--optimistic", "-o", type=float, required=True, help="optimistic estimate (O)"
+    )
+    pert.add_argument(
+        "--most-likely", "-m", type=float, required=True, help="most-likely estimate (M)"
+    )
+    pert.add_argument(
+        "--pessimistic", "-p", type=float, required=True, help="pessimistic estimate (P)"
+    )
     pert.set_defaults(func=cmd_pert)
 
     fc = sub.add_parser("forecast", help="Agile completion forecast from throughput range")
-    fc.add_argument("--remaining", type=float, required=True, help="remaining backlog size (items or points)")
-    fc.add_argument("--throughput", type=float, nargs="+", required=True,
-                    help="recent per-sprint throughput (or velocity) sample, space-separated")
+    fc.add_argument(
+        "--remaining", type=float, required=True, help="remaining backlog size (items or points)"
+    )
+    fc.add_argument(
+        "--throughput",
+        type=float,
+        nargs="+",
+        required=True,
+        help="recent per-sprint throughput (or velocity) sample, space-separated",
+    )
     fc.set_defaults(func=cmd_forecast)
 
     return p
