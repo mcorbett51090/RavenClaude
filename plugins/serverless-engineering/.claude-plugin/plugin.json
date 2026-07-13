@@ -1,0 +1,26 @@
+{
+  "name": "serverless-engineering",
+  "version": "0.1.0",
+  "description": "Serverless engineering team — 2 agents for building on serverless the provider-neutral way. serverless-architect owns the design side: event-driven decomposition, FaaS-vs-containers-vs-managed-services and when serverless is the WRONG choice, sync/async, orchestration-vs-choreography, event contracts, the dual-write/outbox problem, and serverless-friendly storage. serverless-runtime-and-ops-engineer owns the runtime side: cold starts, concurrency & throttling, idempotency & exactly-once-effect, DLQs & poison messages, retries, per-invocation cost & the scale crossover, tracing in ephemeral runtimes, and local emulation. 3 skills, a 2-doc knowledge bank (a Mermaid decision tree + a dated 2026 patterns reference), 2 templates. Provider-neutral PATTERNS only — distinct from aws-cloud/gcp-cloud/azure-cloud (provider IaC/specifics), data-streaming-engineering (Kafka/Kinesis), devops-cicd (deploy pipeline), backend-engineering (the serverful alternative), observability-sre (SLOs). Requires ravenclaude-core@>=0.7.0.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "serverless",
+    "faas",
+    "event-driven",
+    "cold-start",
+    "concurrency",
+    "idempotency",
+    "dead-letter-queue",
+    "orchestration",
+    "outbox",
+    "serverless-cost",
+    "distributed-monolith"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}

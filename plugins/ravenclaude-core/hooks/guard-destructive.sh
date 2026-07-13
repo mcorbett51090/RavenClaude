@@ -431,13 +431,13 @@ deny_patterns=(
   # NB: git force-branch-delete is handled by _is_dangerous_git_branch_delete
   # (order-independent, incl. the `--delete --force` long form), not a pattern.
   # remote-code-exec via pipe / process- or command-substitution to an interpreter
-  '(curl|wget)[^|]*\|[[:space:]]*(sudo[[:space:]]+)?(env[[:space:]]+[^[:space:]]+[[:space:]]+)?([a-z]*sh|python[0-9.]*|perl|ruby|node)([[:space:]]|$)'
+  '(curl|wget)[^|]*\|[[:space:]]*(sudo[[:space:]]+)?(env[[:space:]]+[^[:space:]]+[[:space:]]+)?([^[:space:]|]*/)?([a-z]*sh|python[0-9.]*|perl|ruby|node)([[:space:]]|$)'
   # …and the multi-pipe / filter-then-execute evasion of the above: the single-pipe
   # form only inspects between curl/wget and the FIRST pipe, so `curl … | tee x | bash`
   # or `curl … | grep -v '#' | sh` slipped past. This catches an interpreter that is
   # the IMMEDIATE target of ANY pipe in a curl/wget chain (the interpreter right after
   # a `|`), so `… | grep python` is NOT matched (grep, not python, is the pipe target).
-  '(curl|wget).*\|[[:space:]]*(sudo[[:space:]]+)?(env[[:space:]]+[^[:space:]]+[[:space:]]+)?([a-z]*sh|python[0-9.]*|perl|ruby|node)([[:space:]]|$)'
+  '(curl|wget).*\|[[:space:]]*(sudo[[:space:]]+)?(env[[:space:]]+[^[:space:]]+[[:space:]]+)?([^[:space:]|]*/)?([a-z]*sh|python[0-9.]*|perl|ruby|node)([[:space:]]|$)'
   '<\([[:space:]]*(curl|wget)'                                    # bash <(curl …)
   '\$\([[:space:]]*(curl|wget)'                                   # sh -c "$(curl …)" (quotes stripped by norm)
   # whole-disk / filesystem destruction

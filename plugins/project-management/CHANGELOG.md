@@ -2,6 +2,10 @@
 
 All notable changes to the `project-management` plugin. Versions are semver; the authoritative version is `.claude-plugin/plugin.json` (mirrored in the root `marketplace.json`).
 
+## 0.4.1 — 2026-07-13
+
+Bug fix (2026-07-13 autonomous repo review): `scripts/evm_calc.py` TCPI no longer prints a nonsensical negative "efficiency needed to hit BAC" when actual cost exceeds the budget-at-completion (AC ≥ BAC). The denominator guard (`(BAC-AC) != 0` → `> 0`) now routes exhausted-budget cases into the undefined branch with an explicit "funds exhausted — the original budget is unrecoverable; re-baseline to EAC" message, instead of a misleading negative on the exact over-budget distress case the tool is meant to forecast.
+
 ## 0.4.0 — 2026-06-05
 
 Value-add build-out: scenarios bank enabled, two net-new decision trees, and a runnable EVM/PERT/forecast calculator.

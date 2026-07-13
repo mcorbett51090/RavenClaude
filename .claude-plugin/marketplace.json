@@ -276,7 +276,7 @@
       "displayName": "RavenClaude Core",
       "source": "./plugins/ravenclaude-core",
       "description": "Domain-neutral Claude Code foundation: 15 specialist agents, 48 skills, gates, hooks, rules, templates. Capability Grounding Protocol, Structured Output Protocol, Researcher meta-skill, comfort-posture dashboard, opt-in command-review tribunal (the Thing), WebFetch sanitizer, branch-archive escape hatch, brand-extraction (homepage → brand kit), Problems & Resolutions view, declarative-visualization (Vega-Lite/Deneb/SVG, Gate 101 + Gate 103 svg-report-lint, viz-spec-reviewer), and Claude orchestrator escape hatch (/claude-orchestrate). Slash commands: /init-agent-ready, /wrap, /set-posture, /dashboard, /forge, /reset-plugin-cache.",
-      "version": "0.189.0",
+      "version": "0.189.1",
       "author": {
         "name": "Matt Corbett"
       },
@@ -302,7 +302,7 @@
       "name": "power-platform",
       "source": "./plugins/power-platform",
       "description": "Power Platform specialist team — 11 agents (incl. power-platform-tester, power-bi-engineer) and 23 skills, with strong ALM/git coverage for solutions, flows, and PBIP. A house-opinions hook flags 8 §3/§4 violations; the knowledge bank carries production decision trees (PA-flow recovery, Dataverse token-acquisition, PCF React surface, PBI deploy/refresh, custom-connector build-path, PBIR Enhanced infinite-spinner debug + full build reference, DAX silent-zero scoring via the `Domain` pattern, sempy.fabric notebook reference, Power BI Copilot report-readiness, Code Apps connector gotchas, PBIP deployment variables + #839, PBIR reference enrichment, PBIP report fast-solve triage router [MCP-optional], main-forms-are-Web-API-authorable grounding) plus a real-engagement scenarios bank. Bundles the community pbix-mcp server (d0nk3yhm/pbix-mcp, MIT) for .pbix/.pbit read/write/DAX-eval (`pip install pbix-mcp`); documents (not bundles) the official Microsoft Dataverse MCP (CLAUDE.md §9a). Extends ravenclaude-core.",
-      "version": "0.44.6",
+      "version": "0.44.7",
       "author": {
         "name": "Matt Corbett"
       },
@@ -323,7 +323,7 @@
       "name": "finance",
       "source": "./plugins/finance",
       "description": "Corporate finance & FP&A specialist team — FP&A analyst (budgets, forecasts, variance commentary), financial modeler (3-statement, DCF, scenarios), controller (close, JEs, reconciliations), treasury analyst (cash, covenants, FX), valuation analyst (DCF + comps + precedent), audit-prep specialist (PBC, walkthroughs, SOC1/2 narratives), and board-pack composer. 23 skills incl. a gold-standard NetSuite close (OAuth2 M2M + SuiteQL BS/IS trial balance, layperson runbook), 10 templates, a knowledge bank (ASC 805 / 718 / 740, accrual-cutoff, WACC, cost accounting, FP&A operating model + decision support, NetSuite integration landscape), 2 advisory hooks (hardcoded rates / plaintext PII / missing Sources / Assumptions; secrets-PII scan). Inherits ravenclaude-core protocols.",
-      "version": "0.18.2",
+      "version": "0.18.3",
       "author": {
         "name": "Matt Corbett"
       },
@@ -728,7 +728,7 @@
       "name": "project-management",
       "source": "./plugins/project-management",
       "description": "Project & delivery management team — four specialists across the predictive (PMBOK/PMP) and agile (Scrum/Kanban) tracks and the hybrid between: delivery-lead (charter, schedule, scope/change control, earned value), scrum-master (backlog, sprints, ceremonies, velocity, impediments), risk-and-raid-analyst (scored qual+quant risk, RAID depth, mitigation/contingency, issue triage), and stakeholder-comms-lead (stakeholder register, comms plan, status/exec reporting, escalation memos, steering packs). Deepens — does NOT replace — ravenclaude-core's domain-neutral project-manager (the lightweight RAID/status-hygiene default every plugin routes to); this is the deep PM craft layer. Knowledge: a predictive-vs-agile-vs-hybrid decision tree + a best-practices library. Seams: prose polish → ravenclaude-core/documentarian; system design → architect. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.4.0",
+      "version": "0.4.1",
       "author": {
         "name": "Matt Corbett"
       },
@@ -3516,6 +3516,74 @@
         "iiif",
         "collections-cms",
         "cultural-institution"
+      ]
+    },
+    {
+      "name": "chaos-engineering-resilience",
+      "source": "./plugins/chaos-engineering-resilience",
+      "description": "Chaos-engineering & resilience team — 2 agents that make distributed systems survive failure. resilience-architect owns the DESIGN side: failure-mode analysis (FMEA), resilience patterns (timeouts, retries with backoff+jitter, bulkheads, circuit breakers, load shedding, graceful degradation, idempotency), the observability-maturity gate for whether you're ready to run chaos, and redundancy/DR (multi-AZ/region, failover, RTO/RPO). chaos-experiment-engineer owns the EXPERIMENT + VERIFICATION side: hypothesis-driven experiments, blast-radius containment (automatic abort/rollback), game days, fault injection (latency/error/resource/dependency-outage/partition/zone), and verifying the pattern held under load+fault. 3 skills, a 2-doc knowledge bank (decision trees + a dated 2026 patterns reference), 2 templates. Distinct from observability-sre (metrics/SLO/on-call — a hard prerequisite), devops-cicd (progressive delivery), performance-engineering (load), incident-response-dfir. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "chaos-engineering",
+        "resilience",
+        "fault-injection",
+        "circuit-breaker",
+        "retries-backoff-jitter",
+        "bulkhead",
+        "blast-radius",
+        "game-day",
+        "steady-state",
+        "failure-mode-analysis",
+        "graceful-degradation",
+        "disaster-recovery"
+      ]
+    },
+    {
+      "name": "serverless-engineering",
+      "source": "./plugins/serverless-engineering",
+      "description": "Serverless engineering team — 2 agents for building on serverless the provider-neutral way. serverless-architect owns the design side: event-driven decomposition, FaaS-vs-containers-vs-managed-services and when serverless is the WRONG choice, sync/async, orchestration-vs-choreography, event contracts, the dual-write/outbox problem, and serverless-friendly storage. serverless-runtime-and-ops-engineer owns the runtime side: cold starts, concurrency & throttling, idempotency & exactly-once-effect, DLQs & poison messages, retries, per-invocation cost & the scale crossover, tracing in ephemeral runtimes, and local emulation. 3 skills, a 2-doc knowledge bank (a Mermaid decision tree + a dated 2026 patterns reference), 2 templates. Provider-neutral PATTERNS only — distinct from aws-cloud/gcp-cloud/azure-cloud (provider IaC/specifics), data-streaming-engineering (Kafka/Kinesis), devops-cicd (deploy pipeline), backend-engineering (the serverful alternative), observability-sre (SLOs). Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "serverless",
+        "faas",
+        "event-driven",
+        "cold-start",
+        "concurrency",
+        "idempotency",
+        "dead-letter-queue",
+        "orchestration",
+        "outbox",
+        "serverless-cost",
+        "distributed-monolith"
+      ]
+    },
+    {
+      "name": "ux-research",
+      "source": "./plugins/ux-research",
+      "description": "UX-research team — 2 agents (ux-research-lead, research-execution-and-synthesis-specialist) that turn a fuzzy ask into a researchable question, pick a rigorous method (generative vs evaluative, qual vs quant, moderated vs unmoderated), run the study (usability tests, interviews, surveys), and synthesize evidence into decision-ready, bias-checked insight — without the research theater. The lead owns framing, method selection, the research plan, research-ops (recruiting, repository), and research ethics + participant-PII discipline (consent, anonymization). The specialist owns protocol & task design, non-leading moderation, survey design, and synthesis (affinity/thematic analysis, evidence strength, observation vs interpretation). 3 skills, a 2-doc knowledge bank + 2 templates. Distinct from product-management (roadmap/prioritization), web-design (visual/interaction/IA design), experimentation-growth-engineering (online A/B stats), data-science-research (advanced quant). Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "ux-research",
+        "user-research",
+        "usability-testing",
+        "user-interviews",
+        "survey-design",
+        "research-methods",
+        "research-synthesis",
+        "research-ops",
+        "research-ethics",
+        "participant-pii",
+        "affinity-mapping",
+        "research-bias"
       ]
     }
   ]

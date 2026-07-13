@@ -137,6 +137,7 @@ class ProcState:
     __slots__ = (
         "pid",
         "pty",
+        "starttime",
         "last_wchar",
         "active_bytes_total",
         "was_active",
@@ -147,6 +148,10 @@ class ProcState:
     def __init__(self, pid: int, pty: str | None) -> None:
         self.pid = pid
         self.pty = pty
+        # PID-reuse identity token (same one the pidfile guard uses): if the kernel
+        # recycles this PID for a different process, its start time differs, so the
+        # main loop can drop the stale state instead of ringing its old PTY.
+        self.starttime = proc_starttime(pid)
         self.last_wchar: int | None = None  # None until baseline established
         self.active_bytes_total = 0
         self.was_active = False
@@ -235,6 +240,17 @@ def _read_pidfile() -> tuple[int | None, str | None]:
         return None, None
 
 
+def _safe_unlink() -> None:
+    """Best-effort remove of the pidfile; never raise. `missing_ok` only suppresses
+    FileNotFoundError, so a foreign-owned pidfile under sticky /tmp (a multi-user host
+    sharing the default path) would otherwise raise PermissionError and crash the
+    single-instance probe (2026-07-13 review)."""
+    try:
+        PIDFILE.unlink(missing_ok=True)
+    except OSError:
+        pass
+
+
 def running_pid() -> int | None:
     """The PID in the pidfile if that exact process instance is alive, else None.
     Clears a stale/mismatched pidfile as a side effect."""
@@ -243,12 +259,20 @@ def running_pid() -> int | None:
         return None
     try:
         os.kill(pid, 0)  # signal 0 = existence check only
-    except (ProcessLookupError, PermissionError, OSError):
-        PIDFILE.unlink(missing_ok=True)
+    except ProcessLookupError:
+        _safe_unlink()  # no such process -> stale pidfile
+        return None
+    except PermissionError:
+        # EPERM means the process EXISTS but is owned by another user (a shared
+        # /tmp pidfile on a multi-user host). It is ALIVE — fall through to the
+        # start-time identity check, which reads world-readable /proc/<pid>/stat.
+        pass
+    except OSError:
+        _safe_unlink()
         return None
     # PID is alive — but is it OUR watcher, or a reused PID? Compare start times.
     if recorded_start is not None and proc_starttime(pid) != recorded_start:
-        PIDFILE.unlink(missing_ok=True)
+        _safe_unlink()
         return None
     return pid
 
@@ -317,9 +341,21 @@ def watch() -> None:
             now = time.monotonic()
             live = set(discover_pids())
 
-            # Drop states for processes that have exited.
-            for pid in [p for p in states if p not in live]:
-                del states[pid]
+            # Drop states for processes that have exited, OR whose PID was recycled for a
+            # DIFFERENT process (start-time mismatch) — a reused PID must not inherit its
+            # predecessor's stale controlling PTY and ring the wrong terminal (2026-07-13
+            # review). A transient None start-time (read race) is NOT treated as a mismatch.
+            for pid in list(states):
+                if pid not in live:
+                    del states[pid]
+                    continue
+                now_start = proc_starttime(pid)
+                if (
+                    now_start is not None
+                    and states[pid].starttime is not None
+                    and now_start != states[pid].starttime
+                ):
+                    del states[pid]
 
             # Add new processes, deduping by PTY at intake (B2, first line of defense).
             tracked_ptys = {s.pty for s in states.values() if s.pty}

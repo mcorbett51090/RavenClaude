@@ -133,15 +133,30 @@ def depreciation(rows: list[dict], period: str) -> dict:
         on_books_start = e >= 1
         b_cost = round(cost, 2) if on_books_start else 0.0
         months_before = min(e, life) if on_books_start else 0
-        b_accum = round(min(round(months_before * monthly, 2), base), 2)
+        # Beginning accumulated depreciation. Once the asset has been on the books for
+        # its full life it is FULLY depreciated -> accum is EXACTLY the depreciable base
+        # (cost - salvage). Deriving it from months_before*monthly would strand the
+        # monthly rounding remainder (base - life*monthly > 0 when monthly rounds down),
+        # so a period AFTER the final month would re-open with NBV above salvage
+        # (2026-07-13 review). Anchoring to base keeps ending(N) == beginning(N+1).
+        if months_before >= life:
+            b_accum = base
+        else:
+            b_accum = round(min(round(months_before * monthly, 2), base), 2)
         b_nbv = round(b_cost - b_accum, 2)
 
         addition = round(cost, 2) if e == 0 else 0.0
         disposed_here = dmon is not None and dmon == p
         if disposed_here or e >= life:
             dep = 0.0  # fully depreciated, or disposed this period
+        elif e == life - 1:
+            # Final depreciation month: drain the FULL remaining base so ending accum
+            # lands EXACTLY at base and NBV at salvage regardless of rounding direction
+            # (mirrors _ratable_item / _full_schedule's final-period catch-up). The prior
+            # min(monthly, base - b_accum) left a residual when monthly rounded down.
+            dep = round(base - b_accum, 2)
         else:
-            dep = round(min(monthly, base - b_accum), 2)  # final-month catch-up caps at base
+            dep = round(min(monthly, base - b_accum), 2)
         disp_cost = round(cost, 2) if disposed_here else 0.0
         disp_accum = b_accum if disposed_here else 0.0
         disp_nbv = round(disp_cost - disp_accum, 2)
@@ -232,6 +247,13 @@ def _ratable_item(total: float, term: int, start: str, period: str) -> tuple:
     s, p = _ym(start), _ym(period)
     k = p - s  # 0-based month index within the term
     if k <= 0:
+        opening = 0.0
+    elif k >= term:
+        # Past the term the item is fully drained (the k == term-1 period already
+        # took the full remaining balance), so it re-opens at exactly zero. Deriving
+        # opening from total - term*monthly would strand the rounding remainder
+        # (total - term*monthly > 0 when monthly rounds down) as a phantom balance
+        # that never clears (2026-07-13 review).
         opening = 0.0
     else:
         drawn_before = round(min(k, term) * monthly, 2)
