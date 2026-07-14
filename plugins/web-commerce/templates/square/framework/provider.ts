@@ -132,7 +132,7 @@ export function createSquareFrameworkProvider(idempotency: IdempotencyStore): Pa
       // reference is in the APPROVED (authorized, not yet captured) state.
       const config = readSquareConfig();
       const res = await squareFetch<{ payment: { status: string } }>(
-        `/v2/payments/${reference}`,
+        `/v2/payments/${encodeURIComponent(reference)}`,
         { method: "GET" },
         config,
       );
@@ -142,7 +142,7 @@ export function createSquareFrameworkProvider(idempotency: IdempotencyStore): Pa
     async capture(reference: string, _idempotencyKey: string): Promise<PaymentStatus> {
       const config = readSquareConfig();
       const res = await squareFetch<{ payment: { status: string } }>(
-        `/v2/payments/${reference}/complete`,
+        `/v2/payments/${encodeURIComponent(reference)}/complete`,
         { method: "POST" },
         config,
       );
@@ -152,7 +152,7 @@ export function createSquareFrameworkProvider(idempotency: IdempotencyStore): Pa
     async cancel(reference: string, _idempotencyKey: string): Promise<PaymentStatus> {
       const config = readSquareConfig();
       const res = await squareFetch<{ payment: { status: string } }>(
-        `/v2/payments/${reference}/cancel`,
+        `/v2/payments/${encodeURIComponent(reference)}/cancel`,
         { method: "POST" },
         config,
       );
