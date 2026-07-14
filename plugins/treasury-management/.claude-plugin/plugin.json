@@ -1,0 +1,27 @@
+{
+  "name": "treasury-management",
+  "version": "0.1.0",
+  "description": "Corporate treasury team — 2 agents (treasury-strategy-lead, cash-and-risk-operations-specialist) answering 'how much cash, where — who banks us, and how do we protect the money?': cash & liquidity forecasts (CCC, direct/indirect, 13-week), liquidity-buffer & facility policy, bank-relationship & account structure (ZBA, notional/physical pooling, in-house bank, AFP fees, BAI/ISO 20022), investment policy (IPS) & debt covenants, FX & rate hedging (transaction/translation/economic exposure, forwards/swaps/options/collars, ASC 815 / IFRS 9 hedge accounting), payments & fraud controls (positive pay, dual auth, BEC), working-capital & TMS selection. 3 skills, a 2-doc knowledge bank, and 2 templates. Distinct from finance (FP&A/budgeting), fintech-payments-engineering (rail code), and regulatory-compliance (AML/OFAC) — treasury owns the CASH and the BANK RELATIONSHIP. Not legal/tax/accounting advice; volatile hedge-accounting & bank/regulatory specifics carry a retrieval date + verify-at-use. Needs ravenclaude-core.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "treasury",
+    "cash-forecasting",
+    "liquidity",
+    "cash-pooling",
+    "fx-hedging",
+    "interest-rate-hedging",
+    "hedge-accounting",
+    "working-capital",
+    "positive-pay",
+    "iso-20022",
+    "bank-relationship",
+    "tms"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}
