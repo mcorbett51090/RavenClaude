@@ -34,6 +34,8 @@ Caching follows **tools → system → messages**; a change at one level busts t
 
 > **House opinion #1 — stable content above the breakpoint, volatile below; never mutate tool defs per request.** The dominant cause of a low hit rate in production is putting per-request content (timestamps, the incoming message, freshly-appended tool results) *above* the breakpoint, or reordering/regenerating tool definitions each call. Lay out: **tools (stable) → system (stable) → long static context (stable) → [BREAKPOINT] → conversation / per-request content (volatile).**
 
+> **Changing instructions mid-session without busting the cache (Opus 4.8) — mid-conversation system messages (2026-05-28, PRIMARY-VERIFIED 2026-06-30).** The classic cache-killer is mutating the top-level `system` prompt mid-session to change instructions — it invalidates the whole cached prefix. On **Opus 4.8** you can instead send `role:"system"` messages *after a user turn* (subject to [placement rules](https://platform.claude.com/docs/en/build-with-claude/mid-conversation-system-messages)) inside the `messages` array: instructions change while the cached `tools`+`system` prefix stays intact, **preserving prompt-cache hits**. No beta header. ([release notes](https://platform.claude.com/docs/en/release-notes/overview))
+
 ## What can / can't be cached
 ✅ tool definitions, system blocks, text/image/document blocks in messages, tool_use + tool_result blocks, prior-turn thinking blocks (counted as input on read).
 ❌ blocks below the minimum, empty text blocks, citations sub-blocks.
