@@ -39,16 +39,28 @@ sleep 1
 nohup python3 "$SERVER" --port "$PORT" >"$LOG" 2>&1 &
 disown 2>/dev/null || true
 
-# 3. Wait until it actually answers (up to ~10s), then resolve the URL.
+# 3. Wait until it answers, discovering the ACTUAL bound port. serve-dashboards.py
+#    falls back through PORT..PORT+5 when the requested port is busy, so never
+#    assume $PORT bound — probe the range and adopt the first port that responds.
+#    Reporting/opening the wrong port is exactly what orphans a dead tab whose
+#    Save then reports "no local server".
+bound_port=""
+for _ in $(seq 1 10); do
+  for cand in $(seq "$PORT" $((PORT + 5))); do
+    if curl -fsS -o /dev/null "http://127.0.0.1:${cand}/index.html" 2>/dev/null; then
+      bound_port="$cand"
+      break 2
+    fi
+  done
+  sleep 1
+done
+PORT="${bound_port:-$PORT}"
+
 if [ -n "${CODESPACE_NAME:-}" ]; then
   URL="https://${CODESPACE_NAME}-${PORT}.${GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN:-app.github.dev}/index.html"
 else
   URL="http://127.0.0.1:${PORT}/index.html"
 fi
-for _ in $(seq 1 10); do
-  if curl -fsS -o /dev/null "http://127.0.0.1:${PORT}/index.html" 2>/dev/null; then break; fi
-  sleep 1
-done
 
 # 4. Open it in a browser — but ONLY when attached to an interactive terminal.
 #    Under postStartCommand there is no controlling TTY (stdout is redirected to a

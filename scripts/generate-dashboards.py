@@ -5769,8 +5769,12 @@ _SETTINGS_TAB_TEMPLATE = """
         &#9888; This overwrites the <code>allow</code> / <code>ask</code> / <code>deny</code> rules in all three settings files. Hand-edits to those rules are replaced. The three files are: <code>~/.claude/settings.json</code> (User), <code>.claude/settings.local.json</code> (Local, gitignored), and <code>.claude/settings.json</code> (Project, committed/shared).
       </p>
       <p class="primary-help muted" id="no-server-help" hidden>
-        <strong>No local server behind this page.</strong> The published / static dashboard (e.g. on <code>github.io</code>) can&rsquo;t write to your repo, so <em>Save &amp; apply</em> won&rsquo;t work here. Start the local dashboard with <code>ravenclaude dashboard --project &lt;repo&gt;</code> (or <code>bash .ravenclaude/dashboard.sh</code>, or VS Code &rarr; Run Task &rarr; &ldquo;RavenClaude: Comfort-posture dashboard&rdquo;) and open the URL it prints &mdash; Save &amp; apply works there. Meanwhile, use <strong>Download</strong> below and drop the file into <code>.ravenclaude/comfort-posture.yaml</code>.
-        In a Codespace? Make sure you opened the <strong>forwarded</strong> URL the server printed (Ports panel &rarr; Open in Browser), not the static GitHub Pages copy.
+        <strong>No local server behind this page &mdash; Save &amp; apply is off.</strong>
+        The page isn&rsquo;t being served by the local dashboard server. Common causes: the <strong>published / static</strong> copy (e.g. <code>github.io</code>), which can&rsquo;t write to your repo; the VS&nbsp;Code <strong>Simple Browser</strong> / Live Preview sandbox; or a <strong>stale tab</strong> whose server was stopped or restarted on a different port.
+        <br />
+        <strong>Fix:</strong> start the local dashboard &mdash; <code>ravenclaude dashboard --project &lt;repo&gt;</code> (or <code>bash .ravenclaude/dashboard.sh</code>, or VS&nbsp;Code &rarr; Run Task &rarr; &ldquo;RavenClaude: Comfort-posture dashboard&rdquo;) &mdash; then open the URL <em>it prints</em> in a real browser tab and click <button type="button" class="link-btn" id="recheck-server-btn">Re-check for server</button>. In a Codespace, open the <strong>forwarded</strong> URL (Ports panel &rarr; Open in Browser), not the static Pages copy.
+        <br />
+        No server handy? Use <strong>Download</strong> below, drop the file into <code>.ravenclaude/comfort-posture.yaml</code>, and run <code>/set-posture</code>.
       </p>
       <div class="primary-help apply-error-block" id="apply-error-block" hidden>
         <strong>&#9888; YAML saved &mdash; settings.json was not updated.</strong>
@@ -7694,18 +7698,24 @@ _JS = r"""
    * POST. On a static host (GitHub Pages, file://) /__csrf 404s — `csrfHeaders`
    * resolves to `{}` and the downstream POSTs end up hitting a no-server path
    * that already 404/405s with a friendly "no local server" surface. */
-  const _csrfPromise = (async () => {
+  /* Refreshable CSRF token. Fetched once on load AND re-fetched on a 403 from
+   * /__save — a server restart rotates the per-process token, and a tab holding
+   * the old value would otherwise 403 every save for the life of the page. */
+  let _csrfToken = null;
+  async function fetchCsrf() {
     try {
       const res = await fetch("/__csrf", { headers: { "Accept": "application/json" } });
-      if (!res.ok) return null;
+      if (!res.ok) { _csrfToken = null; return null; }
       const j = await res.json();
-      return (j && typeof j.token === "string") ? j.token : null;
+      _csrfToken = (j && typeof j.token === "string") ? j.token : null;
     } catch (e) {
-      return null;
+      _csrfToken = null;
     }
-  })();
+    return _csrfToken;
+  }
+  const _csrfPromise = fetchCsrf();
   async function csrfHeaders() {
-    const t = await _csrfPromise;
+    const t = _csrfToken || (await _csrfPromise);
     return t ? { "X-CSRF-Token": t } : {};
   }
 
@@ -7734,23 +7744,31 @@ _JS = r"""
    * server isn't running). Explain it plainly and steer to the working paths
    * instead of surfacing a raw status code. */
   function showNoServer() {
+    applyServerPresence(false);
     setStatus("no local server — changes NOT saved", "status-error");
-    if (saveRepoBtn) saveRepoBtn.hidden = true;
-    if (saveRepoHelp) saveRepoHelp.hidden = true;
-    if (saveRepoWarn) saveRepoWarn.hidden = true;
-    if (noServerHelp) noServerHelp.hidden = false;
-    toast("No local server to save to — run 'ravenclaude dashboard', or use Download. See the note above.");
+    // Surface the always-works fallback instead of leaving it collapsed.
+    const alt = document.querySelector(".yaml-alt-actions");
+    if (alt) alt.open = true;
+    toast("No local server to save to — start it, then click “Re-check for server” in the note above. Or use Download.");
   }
 
   async function saveToRepo() {
     saveRepoBtn.disabled = true;
     setStatus("saving to repo…", "status-unsaved");
     try {
-      const res = await fetch("/__save", {
+      const doPost = async () => fetch("/__save", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...(await csrfHeaders()) },
         body: JSON.stringify({ path: REPO_TARGET, content: emitYaml() })
       });
+      let res = await doPost();
+      // A 403 usually means the server restarted and rotated its CSRF token, so
+      // this tab's cached token is stale. Refresh it once and retry before
+      // surfacing any error.
+      if (res.status === 403) {
+        await fetchCsrf();
+        res = await doPost();
+      }
       // 404/405 = there is no /__save endpoint behind this page (the published
       // static copy on github.io, or a plain file/http server). Don't leak a raw
       // status code — explain that this page has no server and offer the real paths.
@@ -7796,16 +7814,37 @@ _JS = r"""
 
   saveRepoBtn.addEventListener("click", saveToRepo);
 
-  /* Show or hide the save-to-repo button based on endpoint availability. */
-  probeRepoEndpoint().then(available => {
-    if (available) {
-      saveRepoBtn.hidden = false;
-      saveRepoHelp.hidden = false;
-      if (saveRepoWarn) saveRepoWarn.hidden = false;
-    } else {
-      noServerHelp.hidden = false;
+  /* Single place that flips the Save UI between "server present" and "no server".
+   * Called by the initial probe AND every re-probe (tab refocus, the Re-check
+   * button), so a tab that goes stale — server stopped, or restarted on a
+   * different port (the launcher falls back 8000→8005) — updates in place
+   * instead of dangling a Save button that only "no local server"s on click. */
+  function applyServerPresence(available) {
+    if (saveRepoBtn) saveRepoBtn.hidden = !available;
+    if (saveRepoHelp) saveRepoHelp.hidden = !available;
+    if (saveRepoWarn) saveRepoWarn.hidden = !available;
+    if (noServerHelp) noServerHelp.hidden = available;
+  }
+
+  async function recheckServer(announce) {
+    const available = await probeRepoEndpoint();
+    applyServerPresence(available);
+    if (available && announce) {
+      setStatus("ready — Save & apply available", "status-unsaved");
+      toast("Local server found — Save & apply is available.");
+    } else if (!available && announce) {
+      toast("Still no local server on this page. Start it, then click “Re-check for server”.");
     }
+    return available;
+  }
+
+  /* Initial probe + re-probe whenever the tab regains focus. */
+  recheckServer(false);
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") recheckServer(false);
   });
+  const recheckBtn = document.getElementById("recheck-server-btn");
+  if (recheckBtn) recheckBtn.addEventListener("click", () => recheckServer(true));
 
   /* ── Auto-save via File System Access API ───────────────────────── */
   /* Chrome/Edge/Opera: user picks a file once; we persist the handle in
