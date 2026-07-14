@@ -1,0 +1,9 @@
+{
+  "terminal.integrated.shellIntegration.enabled": true,
+  "terminal.integrated.tabs.title": "${task}${separator}${process}",
+  "terminal.integrated.tabs.description": "${workspaceFolder}",
+  "accessibility.signals.terminalBell": {
+    "sound": "on"
+  },
+  "terminal.integrated.enableVisualBell": true
+}
