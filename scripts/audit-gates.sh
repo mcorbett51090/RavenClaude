@@ -383,6 +383,39 @@ rc=0; bash -n plugins/ravenclaude-core/hooks/guard-destructive.sh 2>/dev/null ||
 gate "bash-syntax (guard-destructive.sh)" must_pass "$rc"
 
 echo
+echo "── Gate 3b: No heredoc nested in \$() in hooks ────────────────────────────"
+# A `python3 - <<'PY' … PY` heredoc INSIDE a `$( … )` command substitution
+# parses fine on bash 5 but ABORTS AT PARSE TIME on bash 3.2.57 (the macOS
+# system bash): the `$()` parser scans the nested heredoc body for the matching
+# `)` and desyncs its quote/paren counter on quote/paren-heavy content. A
+# PreToolUse hook that aborts at parse time blocks EVERY Bash tool call in every
+# session sharing the plugin cache (a real 2026-07 field break in
+# guard-destructive.sh). `bash -n` on a modern bash CAN'T see this (Gate 3
+# passes), so this static lint targets the anti-pattern itself. The sanctioned
+# form is `read -r -d '' VAR <<'PY' … PY` (heredoc NOT nested in `$()`) then
+# `python3 -c "$VAR"`. Detector skips full-line comments (a mention of the
+# pattern in a comment is not the pattern).
+_lint_heredoc_cmdsub() {
+  local hits
+  hits="$(
+    for f in plugins/*/hooks/*.sh; do
+      grep -HnE "\\\$\(.*<<-?[[:space:]]*['\"]?[A-Za-z_]" "$f" 2>/dev/null \
+        | grep -vE '^[^:]+:[0-9]+:[[:space:]]*#'
+    done
+  )"
+  [ -z "$hits" ] && return 0
+  printf '%s\n' "$hits" >&2
+  return 1
+}
+rc=0; _lint_heredoc_cmdsub 2>/dev/null || rc=$?
+gate "no-heredoc-in-cmdsub (hooks clean)" must_pass "$rc"
+backup plugins/ravenclaude-core/hooks/guard-destructive.sh
+echo 'bad="$(cat <<EOF"' >> plugins/ravenclaude-core/hooks/guard-destructive.sh
+rc=0; _lint_heredoc_cmdsub 2>/dev/null || rc=$?
+gate "no-heredoc-in-cmdsub (detects injected)" must_fail "$rc"
+cp -p "$TMP/plugins_ravenclaude-core_hooks_guard-destructive.sh.bak" plugins/ravenclaude-core/hooks/guard-destructive.sh
+
+echo
 echo "── Gate 4: Hook executable bit ───────────────────────────────────────────"
 backup plugins/ravenclaude-core/hooks/guard-destructive.sh
 chmod -x plugins/ravenclaude-core/hooks/guard-destructive.sh
@@ -1238,6 +1271,7 @@ cat > "$FM_OK/okdesc.md" <<'EOF'
 ---
 name: okdesc
 description: "Use this agent for the within-cap case — short, routable, under the 300-char agent-description budget. NOT for the over-budget case (toolong)."
+tools: Read, Grep
 audience: [dev]
 works_with: [other-agent]
 scenarios:
@@ -1252,6 +1286,56 @@ body
 EOF
 rc=0; python3 scripts/check-frontmatter.py --root "$TMP/fm-ok-agent" >/dev/null 2>&1 || rc=$?
 gate "frontmatter (agent description within 300-char cap)" must_pass "$rc"
+# must_fail (e): an agent that is schema-complete AND within the description cap
+# but declares NO `tools:` line must be detected — every agent must declare an
+# explicit tools allowlist (least-privilege; the tools line is the only bound on
+# a subagent's blast radius, since the permission mode is inherited from the
+# parent and, under bypassPermissions, cannot be overridden). The fixture is
+# valid in every other respect so the gate isolates the tools rule.
+FM_NOTOOLS="$TMP/fm-notools-agent/plugins/x/agents"
+mkdir -p "$FM_NOTOOLS"
+cat > "$FM_NOTOOLS/notools.md" <<'EOF'
+---
+name: notools
+description: "Schema-complete and within the cap, but with no tools line — the gate must reject this on the least-privilege rule alone."
+audience: [dev]
+works_with: [other-agent]
+scenarios:
+  - intent: "Prove the tools rule fires"
+    trigger_phrase: "no tools"
+    outcome: "gate rejects it"
+    difficulty: starter
+quickstart:
+  - "Trigger phrase: 'no tools'"
+---
+body
+EOF
+rc=0; python3 scripts/check-frontmatter.py --root "$TMP/fm-notools-agent" >/dev/null 2>&1 || rc=$?
+gate "frontmatter (agent missing tools allowlist)" must_fail "$rc"
+# ...and the same agent WITH an explicit tools line must PASS — the bidirectional
+# half proving the tools rule isn't just always-failing. `tools: "*"` counts as an
+# explicit opt-in (presence + non-emptiness is the contract, not a narrow set).
+FM_TOOLS_OK="$TMP/fm-tools-ok-agent/plugins/x/agents"
+mkdir -p "$FM_TOOLS_OK"
+cat > "$FM_TOOLS_OK/withtools.md" <<'EOF'
+---
+name: withtools
+description: "Schema-complete, within the cap, and declares an explicit tools allowlist — the gate must accept this."
+tools: "*"
+audience: [dev]
+works_with: [other-agent]
+scenarios:
+  - intent: "Prove the tools rule passes an explicit allowlist"
+    trigger_phrase: "with tools"
+    outcome: "gate accepts it"
+    difficulty: starter
+quickstart:
+  - "Trigger phrase: 'with tools'"
+---
+body
+EOF
+rc=0; python3 scripts/check-frontmatter.py --root "$TMP/fm-tools-ok-agent" >/dev/null 2>&1 || rc=$?
+gate "frontmatter (agent with explicit tools allowlist)" must_pass "$rc"
 rc=0; python3 scripts/check-frontmatter.py >/dev/null 2>&1 || rc=$?
 gate "frontmatter (real tree)" must_pass "$rc"
 

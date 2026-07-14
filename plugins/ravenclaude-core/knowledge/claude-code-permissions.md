@@ -1,6 +1,6 @@
 # Claude Code permissions — the load-bearing model
 
-> **Last reviewed:** 2026-05-25 against the Anthropic Claude Code documentation site at code.claude.com (permissions, permission-modes, settings, tools-reference, **hooks, hooks-guide, and agent-sdk/hooks** pages) AND the canonical GitHub Security Advisories at `github.com/anthropics/claude-code/security/advisories`. The 2026-05-25 pass added the **"Advanced JSON output protocol"** section below (PreToolUse `hookSpecificOutput` — `permissionDecision`, `updatedInput`, hook types, bypass interaction). The 2026-05-26 pass added the **"SessionStart hooks: `additionalContext`"** section (context injection, not gating). The **2026-06-08** pass added the full **"hook-event catalog"** (~30 events) + the **`PermissionRequest` `behavior ∈ {allow, deny}`-only** constraint, and expanded the **handler-types** table to the full five (`command`/`http`/`mcp_tool`/`prompt`/`agent`) — sourced from [hooks](https://code.claude.com/docs/en/hooks) + [plugins-reference](https://code.claude.com/docs/en/plugins-reference) (retrieved 2026-06-08). **Refresh when:** Anthropic ships a new permission mode, adds documented prompt-verbosity controls, changes the cross-layer merge rule, changes the hook output schema, or publishes a new security advisory affecting the permission model. Companion to [`../skills/permission-hygiene/SKILL.md`](../skills/permission-hygiene/SKILL.md).
+> **Last reviewed:** 2026-05-25 against the Anthropic Claude Code documentation site at code.claude.com (permissions, permission-modes, settings, tools-reference, **hooks, hooks-guide, and agent-sdk/hooks** pages) AND the canonical GitHub Security Advisories at `github.com/anthropics/claude-code/security/advisories`. The 2026-05-25 pass added the **"Advanced JSON output protocol"** section below (PreToolUse `hookSpecificOutput` — `permissionDecision`, `updatedInput`, hook types, bypass interaction). The 2026-05-26 pass added the **"SessionStart hooks: `additionalContext`"** section (context injection, not gating). The **2026-06-08** pass added the full **"hook-event catalog"** (~30 events) + the **`PermissionRequest` `behavior ∈ {allow, deny}`-only** constraint, and expanded the **handler-types** table to the full five (`command`/`http`/`mcp_tool`/`prompt`/`agent`) — sourced from [hooks](https://code.claude.com/docs/en/hooks) + [plugins-reference](https://code.claude.com/docs/en/plugins-reference) (retrieved 2026-06-08). The **2026-07-01** pass added the **"Subagents inherit the parent's permission mode"** section (subagent bypass-mode inheritance is non-overridable) — from the community Claude-subreddit scan of that date — and folded in five dated Claude Code CHANGELOG permission facts: `Tool(param:value)` / `Agent(model:opus)` rule syntax (v2.1.178) + the `Agent(type)` enforcement fix (v2.1.186), the `deny:["*"]` all-tools glob (v2.1.166), the `sandbox.credentials` setting (v2.1.187), the `post-session` lifecycle hook (v2.1.169), and the hyphenated-matcher exact-match fix (v2.1.195). The **2026-07-14** pass corrected the subagent section: a per-subagent `permissionMode` field **has since shipped** and can restrict a subagent below the parent — except under `bypassPermissions`/`acceptEdits`, where the parent mode still wins ([#20264](https://github.com/anthropics/claude-code/issues/20264) tracked the earlier gap). **Refresh when:** Anthropic ships a new permission mode, adds documented prompt-verbosity controls, changes the cross-layer merge rule, changes the hook output schema, or publishes a new security advisory affecting the permission model. Companion to [`../skills/permission-hygiene/SKILL.md`](../skills/permission-hygiene/SKILL.md).
 
 This document is the long-form "why these patterns" reference behind the [`permission-hygiene`](../skills/permission-hygiene/SKILL.md) skill. The skill tells you what to do; this file tells you what the model is and where the surprises live.
 
@@ -12,8 +12,11 @@ Permission rules live under `permissions.allow`, `permissions.ask`, and `permiss
 
 - `Tool` — the bare tool name (e.g. `Bash`, `WebSearch`)
 - `Tool(specifier)` — the tool name plus a tool-specific specifier (e.g. `Bash(git status:*)`, `WebFetch(domain:github.com)`, `Read(/etc/**)`)
+- `Tool(param:value)` — a parameter-keyed specifier that matches on a named tool argument rather than a positional/path pattern (v2.1.178, 2026-06-15) `[verify-at-use]`. The headline case is scoping the sub-agent tool by attribute, e.g. `Agent(model:opus)` (match dispatches to an Opus-backed subagent) or `Agent(type:security-reviewer)` (match a specific subagent type).
 
-A **bare-tool deny** like `deny: ["Bash"]` removes the tool from Claude's context entirely — Claude never sees it. A **scoped deny** like `Bash(rm *)` leaves the tool available and blocks matching calls. This is the most-surprising bit of the model: people add `deny: ["Bash"]` expecting "block destructive shell" and end up with "no shell at all."
+A **bare-tool deny** like `deny: ["Bash"]` removes the tool from Claude's context entirely — Claude never sees it. A **scoped deny** like `Bash(rm *)` leaves the tool available and blocks matching calls. This is the most-surprising bit of the model: people add `deny: ["Bash"]` expecting "block destructive shell" and end up with "no shell at all." A glob in the deny **tool-name** position is also legal — `deny: ["*"]` denies **all** tools (v2.1.166, 2026-06-06) `[verify-at-use]` — the tool-name analogue of the scoped-specifier `*`.
+
+The `Tool(param:value)` shape (v2.1.178, 2026-06-15) `[verify-at-use]` lets a rule bind to a tool's named argument instead of its positional specifier — most usefully `Agent(model:opus)` / `Agent(type:<subagent>)` to allow/ask/deny subagent dispatch by model or type. A follow-up (v2.1.186) `[verify-at-use]` fixed `Agent(type)` **enforcement** so a `type`-keyed rule is actually applied to the dispatch (it had been parsed but not enforced), making `Agent(type:...)` a reliable way to gate which subagents may be spawned.
 
 ## Precedence — the cross-layer merge rule
 
@@ -77,6 +80,21 @@ Source: `src/tools/BashTool/readOnlyValidation.ts` (per the Claude Code core `/f
 - Drops `Bash(*)`, `PowerShell(*)`, wildcarded interpreters like `Bash(python*)`, package-manager run wildcards (`npm run *`), all `Agent` allow rules. They restore when you leave auto mode.
 - `defaultMode: "auto"` is **ignored** in project-level settings — must be set in user-level `~/.claude/settings.json`.
 
+## Subagents inherit the parent's permission mode — and under `bypassPermissions` it can't be overridden
+
+> **Last verified 2026-07-01** against Anthropic's [Create custom subagents](https://code.claude.com/docs/en/sub-agents) doc + the open feature request [anthropics/claude-code#20264](https://github.com/anthropics/claude-code/issues/20264). Re-check when Anthropic ships a per-subagent permission mode.
+
+A subagent's `tools:` frontmatter bounds **which tools** it may call, but it does **not** bound the **permission mode** those tool calls run under. Anthropic's docs state it plainly: **"When using `bypassPermissions`, all subagents inherit this mode and it cannot be overridden."** A per-subagent `permissionMode` field has since shipped and can restrict a subagent below the parent — except under `bypassPermissions`/`acceptEdits`, where the parent mode takes precedence and cannot be overridden (verified against the sub-agents doc, 2026-07-14; #20264 tracked the earlier gap). So when the parent runs `bypassPermissions`/`acceptEdits`, a subagent still **can't** be restricted below it — the `tools:` line + hook `deny` remain the real bounds.
+
+**Why this matters for a plugin marketplace.** This repo ships 400+ subagents, each with a tight `tools:` allowlist. That allowlist is real defense — but it caps the *tool set*, not the *autonomy*. A consumer who launches with `--dangerously-skip-permissions` (or a `bypassPermissions` session) hands **every** dispatched subagent that same bypass, `tools:` allowlist notwithstanding. Third-party skills/plugins that spawn subagents therefore run at the session's privilege, without a second consent gate — the exact privilege-escalation surface #20264 is about.
+
+**What actually gates a subagent today** (both already documented in this file — this is why they're load-bearing, not nice-to-have):
+
+1. **A `PreToolUse` hook returning `permissionDecision: "deny"` fires before any permission-mode check and blocks the call even under `bypassPermissions`** (see the "hook `deny` beats permission-mode bypass" note below). A policy hook — e.g. this repo's `guard-destructive.sh` — is the one gate a bypass session cannot switch off. **This, not a subagent permission mode, is the enforceable boundary.**
+2. **`SubagentStart` audits the dispatch** (model / effort / tools) so a subagent inheriting bypass is at least observable rather than silent.
+
+**Operating rule:** don't reach for a subagent-level permission mode to contain an untrusted or third-party subagent — it doesn't exist yet. Contain with (a) hook-`deny` policy gates that survive bypass, and (b) not running untrusted subagents under `bypassPermissions` / `--dangerously-skip-permissions` in the first place. Revisit and simplify this section if #20264 (or any successor) ships a real per-subagent mode.
+
 ## Read/Edit path anchors (gitignore-style)
 
 Rules for `Read(...)` and `Edit(...)` follow gitignore semantics with four anchor types:
@@ -91,6 +109,8 @@ Rules for `Read(...)` and `Edit(...)` follow gitignore semantics with four ancho
 **`Edit(...)` implicitly grants `Read(...)` on the same path.** Don't write paired rules.
 
 **Critical gap:** `Read`/`Edit` rules **do not protect against subprocess access.** A `Read(**/.env)` deny does not stop a Python script Claude writes (`python -c "open('.env').read()"`) from reading the file. OS-level enforcement requires the Claude Code sandbox feature.
+
+**Partial mitigation — the `sandbox.credentials` setting (v2.1.187, 2026-06-23)** `[verify-at-use]`. When the sandbox is in use, `sandbox.credentials` blocks **sandboxed subprocesses** from reading credential files / secret environment variables — closing part of the subprocess gap above at the OS layer (a sandboxed script can no longer slurp `~/.aws` or `$OPENAI_API_KEY`). It only covers commands that actually run in the sandbox, so the container/worktree is still the real boundary; it is a defense-in-depth layer on top, not a replacement for the tool-layer denies.
 
 ## The "more prompt detail" question
 
@@ -251,6 +271,7 @@ Claude Code now fires roughly thirty lifecycle events. The ones a guardrail or o
 | `SessionStart` | A session begins (`startup`/`resume`/`clear`/`compact`). | Inject a capability banner (`additionalContext`). Cannot gate. |
 | `Setup` | One-time environment setup at session bootstrap. | Provision/verify the workspace. |
 | `SessionEnd` | A session ends. | Flush run artifacts, emit a summary. |
+| `post-session` | After a session, **before workspace deletion** (v2.1.169, 2026-06-08) `[verify-at-use]`. | Last-chance flush of any state that would be lost when the ephemeral workspace is torn down (fires later than `SessionEnd`). |
 | `UserPromptSubmit` | The user submits a prompt. | Pre-screen / annotate the prompt. |
 | `UserPromptExpansion` | A prompt's references/macros are expanded. | Inspect the expanded form. |
 | `InstructionsLoaded` | CLAUDE.md / AGENTS.md / rule files are loaded. | Audit which instruction files took effect. |
@@ -282,6 +303,10 @@ A `PermissionRequest` hook returns a `behavior` field whose **only** two legal v
 
 - **The Thing's defer-to-human intercept must NOT be migrated onto `PermissionRequest`.** The tribunal's whole value at the gate is its third disposition — `defer` (surface to the human) — alongside `allow`/`deny`/`edit`. A `PermissionRequest` hook is binary, so porting the auto-approver onto it would silently collapse every `defer` into an `allow` or a `deny`, destroying the human-in-the-loop path. The decision-review intercept stays on `AskUserQuestion` (`route-decision-review.sh`) and the command-review tribunal stays on `PreToolUse` (`thing-orchestrator.sh`), both of which can express `ask`.
 - `PermissionRequest`/`PermissionDenied` *are* the native equivalent of the comfort-posture deny/allow floor and are worth adopting for the binary cases (a hard allow-list or a hard deny-list), but they are not a drop-in for any guardrail that needs to hand a question back to the user.
+
+### Hook matchers — hyphenated identifiers now exact-match, not substring
+
+A hook's `matcher` (the tool-name / event pattern that decides whether the hook fires) once treated a **hyphenated identifier** as a substring match, so a matcher like `mcp__my-server` could over-fire on unrelated tool names sharing the hyphenated fragment. A fix (v2.1.195, 2026-06-26) `[verify-at-use]` makes hyphenated matcher identifiers **exact-match** rather than substring — so a hyphenated matcher now fires only on the exact identifier, not on any name that merely contains it. If you authored a matcher relying on the old substring behavior, widen it to an explicit pattern (`…*`).
 
 ### Timeouts fail OPEN
 
