@@ -453,7 +453,7 @@
       "name": "auth-identity",
       "source": "./plugins/auth-identity",
       "description": "End-user authentication & identity team — 2 agents (auth-architect, auth-implementation-engineer) for adding login to a web app (React/Next), an API, and an analytics dashboard. A variety of methods: Google, Apple, Microsoft, GitHub social SSO plus magic link, passkeys/WebAuthn, and email+password — via managed auth (leaning Supabase Auth, so adding a provider is config not architecture). 7 skills, 4 templates, 5 best-practices, and a 4-doc web-verified knowledge bank with 5 Mermaid decision trees (build-vs-buy, which-providers, OAuth-flow, token-storage, gate-the-dashboard). House rules: Authorization Code + PKCE never Implicit; never store tokens in localStorage; validate ID tokens server-side. The boundary: this plugin AUTHENTICATES the person; data-platform AUTHORIZES the data (RLS / embed-JWT); Microsoft/enterprise Entra seams to azure-cloud, concrete auth code to security-reviewer. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.3.1",
+      "version": "0.3.2",
       "author": {
         "name": "Matt Corbett"
       },
@@ -3643,7 +3643,7 @@
       "name": "web-commerce",
       "source": "./plugins/web-commerce",
       "description": "Web commerce integration specialist — scaffolds a production-ready payment/commerce backend (Stripe, Square, or Shopify; one provider per site) into static or JS-framework sites at full depth: catalog, cart, hosted or embedded checkout, signature-verified webhooks, idempotency, Square POS/inventory reconciliation, and order handling. Three first-class provider tracks behind a thin shared payment-lifecycle contract, not a leaky unified adapter; generates first-party code with PCI card-isolation, webhook verification, idempotency, and env-only secrets as generated-code invariants. The backend-integration lane that plugs into web-design's build pipeline; every payment/PII security verdict routes to ravenclaude-core/security-reviewer. Inherits ravenclaude-core protocols.",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "author": {
         "name": "Matt Corbett"
       },

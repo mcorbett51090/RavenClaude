@@ -77,3 +77,47 @@ Reference reconciliation loop for the Square track: `catalog.version.updated` + 
 - Square's exact **PCI SAQ level** → `[unverified — training knowledge]`.
 - Hydrogen's exact **React Router version** → **Low** (secondary sources); the core facts (Oxygen, GraphQL Storefront API, hosted checkout) are **High**.
 - `use-shopping-cart` shows a **maintenance conflict** (docs claim React 19 support; repo's last release Feb 2021) → generate first-party code, do not depend. Verify the repo's default-branch commit date before any dependency decision.
+
+---
+
+> **The three sections below are net-new (added 2026-07-14) from using this plugin on a live engagement** (scaffolded a Square store; designed shop packaging + product-on-site integration for a real site). They answer the customer-facing questions the selector (§2, and [`../skills/provider-track-selection/SKILL.md`](../skills/provider-track-selection/SKILL.md)) doesn't: *"will my products show on my own site?"*, *"what does it cost?"*, and *"do I bundle a shop into the plan or sell it as an add-on?"* They **complement** the provider/tier picker — read that skill first for **which** provider+tier; read here for how the result reflects on the site, what it costs, and how to package it.
+
+## 7. The reflect-on-site spectrum — "will my products show on my custom site?"
+
+A real, recurring customer question, and a **second axis** on top of provider+tier: *how* the chosen store surfaces on the merchant's own custom-designed site. Three integration depths, cheapest→richest. The key differentiator is **what happens when the merchant adds a NEW product** (not just edits an existing one).
+
+| Depth | What renders on the site | Edit existing product (price/stock/image) | **Add a NEW product** | Good up to | Best for |
+|---|---|---|---|---|---|
+| **Buy button / payment link** (light) | One embedded button/widget per product | **Syncs live** to the embedded button — no code change | **Requires embedding a new button** (a code/site edit each time) | A handful of hero products | A few fixed SKUs that rarely change |
+| **Collection embed / iframe** (default full store) | A whole collection renders inline | Syncs live | **New products auto-appear** in the collection — no site edit | **~15–20 products**, no filtering/search | A small catalog the merchant self-manages |
+| **Headless** — Shopify **Storefront API** / Square **Catalog API** (premium) | Full catalog rendered natively in the site's own design | Syncs live | Auto-appears, with search + filter, native styling | Large/filtered catalogs | A bespoke storefront experience — quote as a premium tier |
+
+Sources: Shopify Buy Button product page + buy-button blog <https://www.shopify.com/buy-button>; Shopify **Collection** Buy Button (whole-collection embed, new products auto-appear) <https://help.shopify.com/en/manual/online-sales-channels/buy-button/create-buy-buttons#create-a-collection-buy-button>; Shopify headless / Storefront API <https://shopify.dev/docs/storefronts/headless>; Square Catalog / Online API <https://developer.squareup.com/docs/online-api> (all retrieved 2026-07-14). The "new product needs a new button vs. auto-appears" contrast is the load-bearing decision driver and is confirmed by the buy-button vs. collection-embed docs above.
+
+**Routing:** map this to the tier from [`../skills/provider-track-selection/SKILL.md`](../skills/provider-track-selection/SKILL.md) — the **buy button / collection embed** depths are natural fits for the **static tier**; **headless** is a **framework-tier** build. Set the merchant's expectation on the "new product" behavior *before* scaffolding: a merchant who adds SKUs weekly should not be sold the buy-button depth (every new product is a site edit).
+
+## 8. Current fees + the pass-through principle
+
+**The pass-through principle (the doctrine that reframes packaging, §9):** card-processing fees settle against the **merchant's OWN processor account** — the integrator/agency **never eats the %**. The scaffolded code moves money into the merchant's Stripe/Square/Shopify account; the % is deducted there. So the fee table below is the *merchant's* cost of selling, **not** a cost line the agency carries or should mark up.
+
+| Provider | Card fee | Monthly | Notes / the trap |
+|---|---|---|---|
+| **Stripe** | **2.9% + $0.30** online | **$0** (no monthly) | Cleanest pay-as-you-go; no platform fee. <https://stripe.com/pricing> |
+| **Square** (in-person) | **2.6% + $0.15** | $0 | Square Online has a **free tier**. <https://squareup.com/us/en/pricing> |
+| **Square Online** (Free plan) | **3.3% + $0.30** | $0 | The free-tier online rate |
+| **Square Online** (Plus plan) | **2.9% + $0.30** | **$49/mo** | Plus buys the lower online rate + features |
+| **Shopify** (Basic) | **2.9% + $0.30** online **with Shopify Payments** | **$39/mo** ($29/mo billed annually) | **The trap ↓** |
+
+**The Shopify third-party-gateway surcharge trap:** on Shopify, using **any non-Shopify-Payments gateway** (e.g. routing to Stripe directly) adds a **~2% surcharge on top of the gateway's own card fee** — Shopify's platform toll for not using its rails. Default any Shopify build to **Shopify Payments** unless there's a hard reason not to, and flag the 2% explicitly if a merchant asks to bring their own gateway. Sources: Shopify pricing <https://www.shopify.com/pricing>; corroborated by demandsage Shopify-pricing-2026 and swipesum Square-fees-2026 (retrieved 2026-07-14). Exact plan prices drift — re-check the pricing pages before quoting a merchant; the **shapes** (Stripe no-monthly / Square free online tier / Shopify monthly + BYO-gateway surcharge) are the durable facts.
+
+## 9. Packaging heuristic — add-on vs bundled, and self-service ops
+
+Follows directly from the pass-through principle (§8): because the agency **doesn't** carry the card %, the real cost of "adding a shop" for the merchant is **build + ongoing ops + support** — not the transaction fee. That flips the packaging math.
+
+| Heuristic | Do | Why |
+|---|---|---|
+| **Shop is an add-on, not bundled** into a flat site plan | Price the shop as a separate line item | Bundling raises the base price for the **non-sellers**, and exposes a flat plan to **unbounded store variance** (support load scales with catalog size, not with a fixed fee). The card % isn't yours to bundle anyway (§8). |
+| **Build on Shopify / Square — not a bespoke store** | Stand the catalog up on the platform dashboard; the **merchant self-manages products** there | Ongoing ops for the agency drop to **≈ near-zero** — the merchant edits their own products/prices/stock in the platform UI; you're not the CMS for their inventory. |
+| **Low-build "light payments" path = Square static tier** | Hosted Payment Links + a thin Worker webhook (the §2 static tier) | Lowest build + lowest ongoing burden for a merchant with a few SKUs who wants to take a card without a full store. |
+
+**One-line rule of thumb:** *sell the shop as an add-on, host the catalog on the platform so the merchant self-serves, and reserve bespoke/headless (§7) for a premium quote.* This is a **packaging/labor-allocation** heuristic, not a pricing table — the specific dollar amounts are the agency's call; the **structure** (add-on, self-service, platform-hosted) is the reusable learning. `[unverified — training knowledge]` on any specific margin figure; the pass-through and self-service mechanics are grounded in §7–§8.
