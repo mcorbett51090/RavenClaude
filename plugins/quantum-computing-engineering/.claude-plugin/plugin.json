@@ -1,0 +1,27 @@
+{
+  "name": "quantum-computing-engineering",
+  "version": "0.1.0",
+  "description": "Quantum computing engineering team — 2 agents (quantum-solutions-architect, quantum-algorithm-engineer) answering 'is this even a quantum problem, and if so — which paradigm, modality, and algorithm, and can we trust the result?': hard TRIAGE (most problems win classically today), gate-model vs annealing, qubit modalities (superconducting/trapped-ion/neutral-atom/photonic), NISQ vs fault-tolerant (logical vs physical qubits, surface code), transpilation, VQE/QAOA, error MITIGATION (ZNE/PEC) vs CORRECTION, hybrid loops, and QPU access via SDKs (Qiskit/Cirq/PennyLane/Braket). 3 skills, a 2-doc knowledge bank, and 2 templates. Engineering judgment, not a benchmark; the device/SDK/qubit-count landscape is volatile — every version carries a retrieval date + [verify-at-use]. Distinct from ml-engineering (classical MLOps), hardware-electronics-engineering (control board/cryo), security-engineering/cybersecurity-grc (post-quantum crypto defense), and performance-engineering (HPC). Needs ravenclaude-core.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "quantum-computing",
+    "quantum-algorithms",
+    "qiskit",
+    "cirq",
+    "pennylane",
+    "amazon-braket",
+    "nisq",
+    "vqe-qaoa",
+    "error-mitigation",
+    "quantum-error-correction",
+    "transpilation",
+    "quantum-annealing"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}
