@@ -27,6 +27,23 @@ if command -v gh >/dev/null 2>&1; then
   fi
 fi
 
+# ── Core CLI tools not guaranteed on the slim base (jq) ──────────────
+# The old `universal` image bundled jq; the slim `base:ubuntu` image does not.
+# CI (validate-marketplace/layout/schemas) + many hooks + the generators need it.
+# `apt-get update` here also warms the package cache for the Chrome-deps step below
+# (a fresh base image has no apt cache, so a bare `apt-get install` would fail).
+if ! command -v jq >/dev/null 2>&1; then
+  log "Installing jq (required by CI + hooks)..."
+  if sudo -n true 2>/dev/null; then
+    sudo apt-get update -qq >/dev/null 2>&1 || true
+    sudo apt-get install -y jq >/dev/null 2>&1 \
+      && log "  done" \
+      || log "  WARN: jq install failed — CI/hooks that need jq may not work locally."
+  else
+    log "  SKIP: no passwordless sudo. Install manually: sudo apt-get install -y jq"
+  fi
+fi
+
 # ── Headless Chrome deps for mermaid-cli (dashboard generator) ──────
 # The dashboard generator (per docs/proposals/2026-05-22-003-per-plugin-dashboard.md
 # §4.8) pre-renders Mermaid decision trees to static SVG at build time via
@@ -104,4 +121,4 @@ RCAUTOSTART
   log "  done"
 fi
 
-log "Setup complete. Available tools: claude, gh, node."
+log "Setup complete. Available tools: claude, gh, node, python3, jq."
