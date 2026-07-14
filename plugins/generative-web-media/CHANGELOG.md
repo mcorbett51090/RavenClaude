@@ -2,6 +2,30 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.1.1] — 2026-07-14
+
+Robustness fixes from an autonomous repo review (fresh-surface pass over the two
+new v0.1.0 plugins, independently validated). No behavior change on the happy path;
+all three tighten a probe-and-degrade edge to fail *loudly and cleanly* per the house
+rule instead of aborting bare or mislabeling output.
+
+### Fixed
+
+- **`scripts/generate-via-provider.sh`** — a value-taking flag given as the **trailing
+  argument** (e.g. `… --provider` with no value) aborted with a bare `exit 1` under
+  `set -euo pipefail` (a `shift 2` with one positional left returns non-zero) instead of
+  reaching the intended `loud_skip`. Now `shift "$(($# > 1 ? 2 : 1))"` lets control fall
+  through to the empty-value guard, so the user gets the LOUD-SKIP + remediation (exit 3).
+- **`scripts/web-optimize/optimize-image.mjs`** — `--fallback` was unvalidated: an
+  unsupported value (e.g. `--fallback gif`) silently encoded JPEG while the JSON report's
+  `formats[]` / `produced[].fmt` mislabeled the artifact as the bogus format. Now rejects
+  anything but `jpeg`/`png` with a LOUD-SKIP before encoding; help text clarified to
+  `jpeg|png`.
+- **`scripts/gen-budget.py`, `scripts/provenance.py`** — a ledger line that is valid JSON
+  but **not an object** (e.g. a bare `42` or `[…]`) raised an uncaught `AttributeError`
+  traceback at `.get(...)`. Both `_read_*` helpers now raise a clean `ValueError` routed
+  through `_loud_fail` (`line N: line is valid JSON but not an object`).
+
 ## [0.1.0] — 2026-07-13
 
 Initial release.

@@ -88,7 +88,7 @@ const HELP = `optimize-image.mjs — raw image -> AVIF/WebP/fallback responsive 
   --name <base>     output basename, e.g. "hero" (required)
   --widths a,b,c    responsive widths (default 480,768,1200,1600)
   --sizes "<…>"     the <img> sizes attribute (default "100vw")
-  --fallback j|png  safety-net format: jpeg (default) or png (alpha)
+  --fallback jpeg|png  safety-net format: jpeg (default) or png (alpha)
   --lcp             emit LCP-hero markup (eager + fetchpriority=high)
 
 PROBE-AND-DEGRADE: needs Node>=18 + sharp; LOUD-SKIPs (non-zero) if sharp is absent.`;
@@ -102,6 +102,14 @@ async function main() {
   const missing = ["in", "outdir", "name"].filter((k) => !opts[k]);
   if (missing.length) {
     loudFail(`Missing required argument(s): ${missing.map((m) => `--${m}`).join(", ")}\n\n${HELP}`);
+  }
+  // Only jpeg/png are supported safety-net formats. Reject anything else loudly
+  // rather than silently encode JPEG while the JSON report claims the bogus format
+  // (produced[].fmt / formats[] would otherwise mislabel the actual artifact).
+  if (opts.fallback !== "jpeg" && opts.fallback !== "png") {
+    loudFail(
+      `--fallback must be "jpeg" or "png" (got ${JSON.stringify(opts.fallback)}).\n\n${HELP}`,
+    );
   }
   try {
     await access(opts.in);

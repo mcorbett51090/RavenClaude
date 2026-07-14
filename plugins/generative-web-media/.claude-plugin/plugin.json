@@ -1,6 +1,6 @@
 {
   "name": "generative-web-media",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "AI multimedia for brand & winery sites: a creative brief -> on-brand, web-optimized, license-clean images/video/3D/audio behind a mandatory human curation gate. 4 agents (generation-strategist, web-asset-pipeline-engineer, asset-provenance-guardian, brand-and-accessibility-reviewer) route a brief to the right generator (provider-neutral, Grok-lean for images where competitive; inpaint/outpaint/bg-removal/upscale first-class), turn raw output into AVIF/WebP responsive <picture> markup with LCP/CLS-safe embeds, pin commercial-use licenses (flags the FLUX-dev non-commercial trap; C2PA + a provenance ledger; EU AI Act Art.50 disclosure), and gate every asset on brand-hex/style conformance + WCAG alt text before ship. 6 skills, 4 knowledge docs (Mermaid decision trees; all prices [unverified]), 6 best-practices, 4 commands, 5 templates, 4 scripts. The shared foundation the brand-identity-studio plugin consumes. Declarative fal MCP binding (set FAL_KEY). Requires ravenclaude-core@>=0.7.0.",
   "author": {
     "name": "Matt Corbett"

@@ -84,9 +84,12 @@ def _read_ledger(path: Path) -> list[dict]:
         if not line:
             continue
         try:
-            entries.append(json.loads(line))
+            obj = json.loads(line)
         except json.JSONDecodeError as exc:
             raise ValueError(f"{path}:{i}: not valid JSON ({exc.msg})") from exc
+        if not isinstance(obj, dict):
+            raise ValueError(f"{path}:{i}: line is valid JSON but not an object")
+        entries.append(obj)
     return entries
 
 
