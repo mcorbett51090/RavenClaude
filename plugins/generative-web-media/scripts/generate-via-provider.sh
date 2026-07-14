@@ -46,10 +46,14 @@ EOF
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --provider) PROVIDER="${2:-}"; shift 2 ;;
-    --prompt) PROMPT="${2:-}"; shift 2 ;;
-    --model) MODEL="${2:-}"; shift 2 ;;
-    --out) OUT="${2:-}"; shift 2 ;;
+    # shift 2 when a value is present; shift 1 when the flag is the trailing arg,
+    # so control falls through to the empty-value guards below (a bare `shift 2`
+    # with one positional left returns non-zero and, under `set -e`, would abort
+    # with an unexplained exit 1 instead of the intended loud_skip).
+    --provider) PROVIDER="${2:-}"; shift "$(($# > 1 ? 2 : 1))" ;;
+    --prompt) PROMPT="${2:-}"; shift "$(($# > 1 ? 2 : 1))" ;;
+    --model) MODEL="${2:-}"; shift "$(($# > 1 ? 2 : 1))" ;;
+    --out) OUT="${2:-}"; shift "$(($# > 1 ? 2 : 1))" ;;
     --check) CHECK=1; shift ;;
     -h|--help) usage; exit 0 ;;
     *) loud_skip "Unknown argument: $1" ;;

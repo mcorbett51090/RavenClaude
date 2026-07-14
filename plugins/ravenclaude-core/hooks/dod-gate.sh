@@ -46,7 +46,10 @@ posture="${cwd}/.ravenclaude/comfort-posture.yaml"
 [ -f "$posture" ] || exit 0
 
 # Pull definition_of_done.cmd + max_blocks (PyYAML with a tolerant fallback).
-dod_cmd="$(python3 - "$posture" <<'PY' 2>/dev/null || true
+# Python read into a var + run via `python3 -c`, NOT a heredoc nested in `$()`
+# (bash 3.2 mis-parses that nesting — see guard-destructive.sh + the
+# audit-gates no-heredoc-in-cmd-substitution gate). read -d '' returns non-zero at EOF.
+IFS= read -r -d '' __DOD_CMD_PY <<'PY' || true
 import sys
 try:
     import yaml; d = yaml.safe_load(open(sys.argv[1], encoding="utf-8")) or {}
@@ -55,8 +58,8 @@ except Exception:
 dod = d.get("definition_of_done") or {}
 print(dod.get("cmd","") if isinstance(dod, dict) else "")
 PY
-)"
-max_blocks="$(python3 - "$posture" <<'PY' 2>/dev/null || echo 8
+dod_cmd="$(python3 -c "$__DOD_CMD_PY" "$posture" 2>/dev/null || true)"
+IFS= read -r -d '' __MAX_BLOCKS_PY <<'PY' || true
 import sys
 try:
     import yaml; d = yaml.safe_load(open(sys.argv[1], encoding="utf-8")) or {}
@@ -68,7 +71,7 @@ try: mb = int(mb)
 except Exception: mb = 8
 print(mb)
 PY
-)"
+max_blocks="$(python3 -c "$__MAX_BLOCKS_PY" "$posture" 2>/dev/null || echo 8)"
 [ -z "$dod_cmd" ] && exit 0    # no DoD configured -> advisory remind-tests handles the nudge
 case "$max_blocks" in (*[!0-9]*|"") max_blocks=8;; esac
 
@@ -103,7 +106,7 @@ case "$blocks" in (*[!0-9]*|"") blocks=0;; esac
 # Rotating the YAML cmd re-triggers (hash mismatch); a new session re-triggers
 # (safe_sid in path). Set `definition_of_done.trusted: true` in posture YAML
 # to skip the gate entirely (you've reviewed the YAML and accept silent exec).
-dod_trusted="$(python3 - "$posture" <<'PY' 2>/dev/null || echo "false"
+IFS= read -r -d '' __DOD_TRUSTED_PY <<'PY' || true
 import sys
 try:
     import yaml
@@ -113,7 +116,7 @@ except Exception:
 dod = d.get("definition_of_done") or {}
 print("true" if (isinstance(dod, dict) and dod.get("trusted") is True) else "false")
 PY
-)"
+dod_trusted="$(python3 -c "$__DOD_TRUSTED_PY" "$posture" 2>/dev/null || echo "false")"
 
 if [ "$dod_trusted" != "true" ]; then
   cmd_hash="$(printf '%s' "$dod_cmd" | sha256sum 2>/dev/null | cut -c1-16)"

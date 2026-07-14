@@ -66,9 +66,12 @@ def _read_lines(path: Path) -> list[dict]:
         if not raw:
             continue
         try:
-            out.append(json.loads(raw))
+            obj = json.loads(raw)
         except json.JSONDecodeError as exc:
             raise ValueError(f"{path}:{i}: not valid JSON ({exc.msg})") from exc
+        if not isinstance(obj, dict):
+            raise ValueError(f"{path}:{i}: line is valid JSON but not an object")
+        out.append(obj)
     return out
 
 

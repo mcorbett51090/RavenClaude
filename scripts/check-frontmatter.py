@@ -22,6 +22,19 @@ each have `intent` / `trigger_phrase` / `outcome` / `difficulty`, and a non-empt
 `quickstart`. The repo-guide generator surfaces these in per-agent cards and the
 Overview use-case lookup table, so a missing block ships a blank card silently.
 
+Agents also carry a least-privilege contract: every `agents/*.md` MUST declare an
+explicit `tools:` allowlist in its frontmatter. The `tools:` line is the only
+bound on a subagent's blast radius — under a parent running `bypassPermissions` /
+`acceptEdits`, a subagent inherits that mode and cannot be restricted below it, so
+the tool set (plus a hook `deny`) is what actually caps what a dispatched subagent
+can do (see plugins/ravenclaude-core/knowledge/claude-code-permissions.md). An
+agent with no `tools:` line silently gets ALL tools — the opposite of least
+privilege. To opt into all tools you must say so explicitly with `tools: "*"`;
+an omitted or empty `tools` value fails this gate. Copilot `.agent.md` adapters
+live under `plugins/*/copilot/agents/` and are NOT matched by the `plugins/*/
+agents/*.md` glob, so they are excluded from this check (they are generated and
+inherit their tool grant from the canonical agent).
+
 Usage:
     check-frontmatter.py [--root <dir>]
 """
@@ -122,6 +135,17 @@ def _violations(root: Path) -> list[tuple[str, str]]:
         if Path(f).parent.name == "agents":
             for why in _agent_scenario_violations(data):
                 bad.append((rel, why))
+            tools = data.get("tools")
+            if tools in (None, "", [], {}):
+                bad.append(
+                    (
+                        rel,
+                        "missing or empty 'tools' — every agent must declare an "
+                        "explicit tools allowlist (least-privilege; the tools line "
+                        "is the only bound on a subagent's blast radius). Use "
+                        "'tools: \"*\"' to opt into all tools explicitly.",
+                    )
+                )
             desc = data.get("description")
             if isinstance(desc, str) and len(desc) > _AGENT_DESCRIPTION_MAX_CHARS:
                 bad.append(
@@ -150,7 +174,9 @@ def _violations(root: Path) -> list[tuple[str, str]]:
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     ap.add_argument("--root", default=".", help="repo root")
     args = ap.parse_args()
     root = Path(args.root).resolve()
@@ -164,8 +190,9 @@ def main() -> int:
         return 1
     print(
         "Frontmatter OK — every skill/agent parses as strict YAML with a description, "
-        "every agent carries the scenario-authoring schema, and every agent description "
-        f"is within the {_AGENT_DESCRIPTION_MAX_CHARS}-char cap."
+        "every agent carries the scenario-authoring schema, declares an explicit tools "
+        "allowlist, and has a description within the "
+        f"{_AGENT_DESCRIPTION_MAX_CHARS}-char cap."
     )
     return 0
 
