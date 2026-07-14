@@ -1,0 +1,25 @@
+{
+  "name": "web-commerce",
+  "version": "0.1.0",
+  "description": "Web commerce integration specialist — scaffolds production-ready payment/commerce backends (Stripe, Square, or Shopify; one per site) into static or JS-framework sites at full depth: catalog, cart, hosted/embedded checkout, verified webhooks, idempotency, POS/inventory reconciliation, and order handling. Three first-class provider tracks behind a thin shared payment-lifecycle contract — NOT a leaky unified adapter. Generates first-party code (no dormant/deprecated deps), with PCI card-isolation, webhook signature verification, idempotency, and env-only secrets as GENERATED-CODE invariants. The backend-integration lane that plugs into web-design's build pipeline; every payment/PII security verdict routes to ravenclaude-core/security-reviewer. Inherits ravenclaude-core protocols.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "commerce",
+    "payments",
+    "stripe",
+    "square",
+    "shopify",
+    "checkout",
+    "webhooks",
+    "pci",
+    "pos-integration",
+    "ecommerce-integration"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}
