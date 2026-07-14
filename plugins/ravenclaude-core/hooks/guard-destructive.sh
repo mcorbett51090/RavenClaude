@@ -104,6 +104,12 @@ fi
 # This step happens BEFORE the existing wholesale quote-stripping (which is
 # doing real anti-obfuscation work — `rm -rf "/"` must still match `rm -rf /`).
 norm="$cmd"
+# Initialize before the python3 block so the `[ -n "$__preproc" ]` consume below
+# is always DEFINED under `set -u`, whichever branches run. Without this, an absent
+# python3 OR a failed mktemp skips the assignment; the unbound read then aborts the
+# guard with a non-2 exit -> Claude Code treats non-2 as non-blocking -> the command
+# runs UNCHECKED (a security hook failing OPEN). Fail-closed requires this default.
+__preproc=""
 if command -v python3 >/dev/null 2>&1; then
   # Pass the raw command via env var to avoid the script's own heredoc EOF
   # marker interfering with heredocs INSIDE the command-under-inspection.
@@ -112,7 +118,7 @@ if command -v python3 >/dev/null 2>&1; then
   # error -> exit 2 -> every Bash command wrongly blocked). Fix: write the
   # preprocessor to a temp file with a plain `cat <<'PY'` (outside $(), which
   # parses on every bash), then run that file inside the $() capture.
-  __guard_py="$(mktemp "${TMPDIR:-/tmp}/guard-preproc.XXXXXX")" || __guard_py=""
+  __guard_py="$(mktemp "${TMPDIR:-/tmp}/guard-preproc.XXXXXX" 2>/dev/null)" || __guard_py=""
   if [ -n "$__guard_py" ]; then
     cat >"$__guard_py" <<'PY' || :
 import re, sys, os

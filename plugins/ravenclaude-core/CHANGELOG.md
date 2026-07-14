@@ -7,8 +7,9 @@ All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the 
 ### Fixed
 
 - **Portability (macOS bash 3.2):** `hooks/guard-destructive.sh` now parses under macOS's stock **bash 3.2** (`/usr/bin/env bash` when no Homebrew bash is on PATH). The command preprocessor loaded its Python via a here-document nested inside `$(…)` command substitution — a construct bash 3.2 mis-parses (it starts reading the paren/quote-heavy Python regex as shell → `syntax error near unexpected token )`). A bash parse failure exits 2, and Claude Code treats exit 2 as **block**, so the un-parseable hook silently denied **every** Bash tool call. Fixed by writing the preprocessor to a temp file with a plain `cat <<'PY'` **outside** `$()`, then running that file inside the capture — the pattern parses on every bash. Behavior otherwise unchanged (verified under bash 3.2: benign allowed; plain and ANSI-C-obfuscated `rm -rf /` still blocked). CI runs bash 5.x, where the original construct is legal, so this was invisible in CI.
+- **Fail-closed hardening (`hooks/guard-destructive.sh`):** `__preproc` is now initialized before the `python3` preprocessing block, so the `[ -n "$__preproc" ]` consume is always defined under `set -u`. Previously, if `python3` was absent **or** `mktemp` failed (unwritable/full `$TMPDIR`), the assignment was skipped and the unbound read aborted the guard with a non-2 exit — which Claude Code treats as non-blocking, so a destructive command would run **unchecked** (fail-open). The guard now degrades to direct pattern-matching and still blocks (verified: with `mktemp` forced to fail, `rm -rf /` returns exit 2).
 
-**Migration:** none — consumers on bash 5.x see no change; consumers on stock macOS bash 3.2 get a hook that no longer blocks all Bash commands.
+**Migration:** none — consumers on bash 5.x see no change; consumers on stock macOS bash 3.2 get a hook that no longer blocks all Bash commands (and no longer fails open on a `mktemp`/`python3` failure).
 
 ## 0.189.1 — 2026-07-13
 
