@@ -6,7 +6,7 @@ Named, citable rules for the `security-engineering` plugin's specialists. Each f
 
 ## Index
 
-_22 rules._
+_23 rules._
 
 | Doc | Status | Use when |
 |---|---|---|
@@ -32,6 +32,7 @@ _22 rules._
 | [`dependency-updates-are-security-work.md`](./dependency-updates-are-security-work.md) | Pattern | Triaging dependency update PRs from Dependabot or Renovate |
 | [`policy-as-code-prevents-not-detects.md`](./policy-as-code-prevents-not-detects.md) | Pattern | Responding to recurring CSPM misconfiguration findings |
 | [`incident-response-includes-security-triage.md`](./incident-response-includes-security-triage.md) | Pattern | Running or reviewing any production incident |
+| [`a-denylist-is-only-as-good-as-its-coverage.md`](./a-denylist-is-only-as-good-as-its-coverage.md) | Pattern | Writing any denylist, input filter, or secret/PII scanner |
 
 ---
 
