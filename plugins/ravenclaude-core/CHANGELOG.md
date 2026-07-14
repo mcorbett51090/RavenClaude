@@ -2,6 +2,25 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.191.0 — 2026-07-14
+
+### Added
+
+Consolidated reland of the subagent-permission-inheritance knowledge + least-privilege tools gate + hook de-nesting (originally PRs #538, #615, and the rc-core portion of #536) into one landing.
+
+- **`knowledge/claude-code-permissions.md`** — new **"Subagents inherit the parent's permission mode"** section: a subagent's `tools:` line bounds its tool set but not its permission mode; under `bypassPermissions`/`acceptEdits` a subagent inherits the parent mode and cannot be restricted below it, so the `tools:` line + a hook `deny` are the real bounds. **Accuracy fix (2026-07-14):** a per-subagent `permissionMode` field *has* since shipped and can restrict a subagent below the parent — except under `bypassPermissions`/`acceptEdits` (verified against the sub-agents doc; #20264 tracked the earlier gap).
+- **`knowledge/claude-code-permissions.md`** — five dated Claude Code CHANGELOG permission facts folded into the existing sections: `Tool(param:value)` / `Agent(model:opus)` rule syntax (v2.1.178) + the `Agent(type)` enforcement fix (v2.1.186); `deny:["*"]` all-tools glob (v2.1.166); the `sandbox.credentials` setting (v2.1.187) blocking sandboxed subprocesses from reading credentials; the `post-session` lifecycle hook (v2.1.169) firing before workspace deletion; and the hyphenated-matcher exact-match fix (v2.1.195). Version-specific claims carry `[verify-at-use]`.
+- **`scripts/check-frontmatter.py`** — new least-privilege gate: every `agents/*.md` must declare an explicit `tools:` allowlist (`tools: "*"` is a valid explicit opt-in; Copilot `.agent.md` adapters are excluded). A missing/empty `tools` fails the build.
+- **`AGENTS.md`** — new item 9 in "Adding a new plugin": the explicit-`tools:` least-privilege rule, referencing the knowledge doc + noting `check-frontmatter.py` gates it.
+- **`scripts/audit-gates.sh`** — frontmatter tools fixtures (`notools.md` must-fail, `withtools.md` must-pass; `tools:` added to `okdesc.md`) + a new **Gate 3b** static lint that flags a `python3 - <<'PY' … PY` heredoc nested in `$()` in any `plugins/*/hooks/*.sh` (a bash-3.2 parse-abort footgun).
+- `docs/research/2026-07-01-claude-subreddit-scan/README.md` — the scan panel that sourced the subagent section.
+
+### Changed
+
+- **`hooks/dod-gate.sh`** (3 sites) and **`hooks/guard-web-access.sh`** (1 site) — de-nested the heredoc-in-`$()` anti-pattern to the sanctioned `read -r -d '' VAR <<'PY' … PY` + `python3 -c "$VAR"` form (behavior-preserving; `guard-destructive.sh` was already fixed).
+
+**Migration:** none — additive knowledge + gates + a behavior-preserving hook refactor.
+
 ## 0.190.0 — 2026-07-14
 
 ### Added
