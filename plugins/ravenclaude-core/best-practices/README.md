@@ -8,7 +8,7 @@ For the marketplace-wide best-practice library (CI gates, hook authoring, versio
 
 ## Index
 
-_28 rules._
+_29 rules._
 
 | Doc                                                                                                                                                | Status        | Use when                                                                                                                                                                                                                                                                                       |
 | -------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -40,6 +40,7 @@ _28 rules._
 | [`give-the-agent-a-verification-signal-it-can-read.md`](./give-the-agent-a-verification-signal-it-can-read.md)                                     | Pattern       | Framing a task (or about to hand work back) — give the agent a check that emits a machine-readable pass/fail and iterate to green before reporting done; the umbrella principle the DoD-gate / expensive-test / visual-loop / adversarial-reviewer rules each instantiate.                     |
 | [`compact-proactively-and-persist-state-before-compaction.md`](./compact-proactively-and-persist-state-before-compaction.md)                       | Pattern       | A long or multi-task session is filling the context window — compact at task boundaries (not at the 95% cliff) and persist load-bearing state (plans, decisions, rejected approaches) to a file/commit _before_ compaction discards it, because `/compact` keeps only a summary.               |
 | [`scope-a-skill-to-one-workflow-the-description-is-what-triggers-it.md`](./scope-a-skill-to-one-workflow-the-description-is-what-triggers-it.md) | Pattern | Authoring or reviewing a skill — scope it to one workflow and write its `description` as the trigger (`Use when …`), because the description is the only tier Claude matches on to fire the skill; a skill that does too much misfires or never fires. Sibling to keep-skill-bodies-lean (which owns the body token-budget axis). |
+| [`treat-repo-committed-claude-config-as-untrusted-input.md`](./treat-repo-committed-claude-config-as-untrusted-input.md)                       | Pattern       | About to open, trust, or check out a repo/branch from outside your team — or install a third-party plugin. A cloned repo's committed `.claude/settings.json`, `.mcp.json`, and hook scripts are executable config that can fire around the workspace-trust dialog (real 2026 RCE/exfil CVEs); audit those four surfaces before you open it. The _inbound_ sibling to permissions-are-deny-ask-allow. |
 
 ---
 

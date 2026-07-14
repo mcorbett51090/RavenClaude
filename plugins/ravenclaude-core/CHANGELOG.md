@@ -2,6 +2,12 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.190.0 — 2026-07-14
+
+### Added
+
+- **New best-practice — "A cloned repo's `.claude/` config runs before you do — audit it before you trust the workspace."** The 14th recurring Claude-subreddit scan surfaced the widely-discussed Check Point Research disclosure (RCE + API-key exfiltration through Claude Code project files: CVE-2025-59536 / CVE-2026-21852). The threat was already tabulated in `knowledge/claude-code-permissions.md` §_Past CVEs_ as a warning, but **no consumer-facing best-practice stated the actionable pre-open audit** — the same knowledge-names-it / no-rule-teaches-it gap the sandbox rule (0.183.0) closed one layer over. New rule adds the _inbound_ trust-boundary sibling to `permissions-are-deny-ask-allow` (which owns the outbound posture): read `.claude/settings.json`, `.claude/settings.local.json`, `.mcp.json`, and referenced hook scripts with `git show` before opening/trusting an untrusted repo or contributor branch — or installing a third-party plugin. Best-practice index → **29 rules**. Additive markdown only; no consumer breakage on `/plugin marketplace update`.
+
 ## 0.189.1 — 2026-07-13
 
 ### Fixed
