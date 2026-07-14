@@ -2,6 +2,16 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.189.2 — 2026-07-14
+
+### Fixed
+
+- **Portability (macOS bash 3.2):** `hooks/guard-destructive.sh` now parses under macOS's stock **bash 3.2** (`/usr/bin/env bash` when no Homebrew bash is on PATH). The command preprocessor loaded its Python via a here-document nested inside `$(…)` command substitution — a construct bash 3.2 mis-parses (it starts reading the paren/quote-heavy Python regex as shell → `syntax error near unexpected token )`). A bash parse failure exits 2, and Claude Code treats exit 2 as **block**, so the un-parseable hook silently denied **every** Bash tool call. Fixed by loading the preprocessor into a shell variable via a here-doc fed to `read` (a *simple* command, **not** nested in `$()`, so every bash parses it), then running it with `python3 -c` — **no temp file**. CI runs bash 5.x, where the original construct is legal, so this was invisible in CI.
+- **Fail-open closed — preprocessor has no filesystem dependency (security review):** using `python3 -c` (rather than a `mktemp`/`cat` temp-file loader) is deliberate. A temp-file loader silently no-ops the whole preprocessor whenever `$TMPDIR` is unwritable/full/read-only (common in CI, hardened containers, cleaned macOS `/var/folders`), which **drops the ANSI-C (`$'…'`) anti-obfuscation decode layer** — so an obfuscated destructive command (`rm -rf $'\057'` → `rm -rf /`, `git push origin $'\053HEAD:main'` → force-push) would be **allowed (exit 0)** with no warning. The `python3 -c` loader has no filesystem dependency, so the decoder runs whenever `python3` exists. A regression fixture in `scripts/audit-gates.sh` (Gate 5) asserts the ANSI-C payload still exits 2 under a hostile `TMPDIR`.
+- **Fail-closed under `set -u`:** `__preproc` is initialized before the `python3` block, so the `[ -n "$__preproc" ]` consume is always defined even when `python3` is absent (an unbound read would abort the guard with a non-2 exit → non-blocking → command runs unchecked).
+
+**Migration:** none — consumers on bash 5.x see no change; consumers on stock macOS bash 3.2 get a hook that no longer blocks all Bash commands.
+
 ## 0.189.1 — 2026-07-13
 
 ### Fixed
