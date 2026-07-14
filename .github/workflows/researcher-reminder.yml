@@ -32,7 +32,7 @@ jobs:
     steps:
       - name: Determine research type
         id: which
-        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |
             // Manual trigger uses the input; scheduled triggers use the cron expression
@@ -58,7 +58,7 @@ jobs:
 
       - name: Create Researcher Issue
         if: steps.which.outputs.type != 'skip'
-        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
           RESEARCH_TYPE: ${{ steps.which.outputs.type }}
         with:
