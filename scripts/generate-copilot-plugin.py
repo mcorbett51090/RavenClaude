@@ -435,7 +435,8 @@ def main() -> int:
     for relpath in sorted(generated):
         out_path = REPO_ROOT / relpath
         out_path.parent.mkdir(parents=True, exist_ok=True)
-        out_path.write_text(generated[relpath], encoding="utf-8", newline="\n")
+        # write_bytes, not write_text(newline=): Python 3.9 compat (LF preserved)
+        out_path.write_bytes(generated[relpath].encode("utf-8"))
         print(f"wrote {relpath} ({len(generated[relpath]):,} bytes)")
     return 0
 
