@@ -2,6 +2,21 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.190.0 — 2026-07-14
+
+### Added
+
+Consolidated the net-new best-practices from the 2026 Claude-subreddit-scan research campaign (originally proposed as PRs #531, #572, #575, #613, #632) into one landing — same end-state, one version bump. Roster grows 28 → 33 rules.
+
+- **`best-practices/output-styles-replace-the-system-prompt-keep-coding-instructions-when-still-coding.md`** — a custom Claude Code output style silently replaces the software-engineering system prompt unless `keep-coding-instructions: true` is set; keep it whenever the style is still doing coding work.
+- **`best-practices/precompact-hook-is-the-deterministic-enforcer-of-persist-before-compaction.md`** — register a `PreCompact` command hook (trigger `manual`/`auto`) that flushes plan/decisions/rejected-approaches to disk, turning the "persist before compaction" prose rule into a gate that fires whether or not the model remembers.
+- **`best-practices/subagent-isolates-clutter-skill-keeps-the-work-in-thread.md`** — choose skill-vs-subagent by the isolate-vs-steer axis (subagent when intermediate results are clutter; skill when you want to see and steer each step), not by "can it run in parallel."
+- **`best-practices/a-skills-body-is-the-gotchas-the-model-doesnt-know-not-the-happy-path.md`** — fill a skill body with the failure modes / gotchas the model can't infer, not the happy path it already knows; re-teaching the baseline just spends the on-invoke budget.
+- **`best-practices/treat-repo-committed-claude-config-as-untrusted-input.md`** — a cloned repo's committed `.claude/settings.json`, `.mcp.json`, and hook scripts are executable config that can fire around the workspace-trust dialog (real 2026 RCE/exfil CVEs); audit those four surfaces before opening it. The inbound sibling to `permissions-are-deny-ask-allow`.
+- The five dated `docs/research/2026-*-claude-subreddit-scan/README.md` scan panels that sourced these rules.
+
+**Migration:** none — additive documentation only.
+
 ## 0.189.2 — 2026-07-14
 
 ### Fixed
