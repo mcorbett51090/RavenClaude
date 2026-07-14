@@ -3638,6 +3638,27 @@
         "fal-ai",
         "grok"
       ]
+    },
+    {
+      "name": "web-commerce",
+      "source": "./plugins/web-commerce",
+      "description": "Web commerce integration specialist — scaffolds a production-ready payment/commerce backend (Stripe, Square, or Shopify; one provider per site) into static or JS-framework sites at full depth: catalog, cart, hosted or embedded checkout, signature-verified webhooks, idempotency, Square POS/inventory reconciliation, and order handling. Three first-class provider tracks behind a thin shared payment-lifecycle contract, not a leaky unified adapter; generates first-party code with PCI card-isolation, webhook verification, idempotency, and env-only secrets as generated-code invariants. The backend-integration lane that plugs into web-design's build pipeline; every payment/PII security verdict routes to ravenclaude-core/security-reviewer. Inherits ravenclaude-core protocols.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "commerce",
+        "payments",
+        "stripe",
+        "square",
+        "shopify",
+        "checkout",
+        "webhooks",
+        "pci",
+        "pos-integration",
+        "ecommerce-integration"
+      ]
     }
   ]
 }
