@@ -2,6 +2,14 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.6] — 2026-07-14
+
+Captured a generalizable security principle surfaced by an autonomous 3-panel repo review (PR #622, 2026-07-13), where a bare-name interpreter denylist was bypassed by a path-qualified pipe (`curl … | /bin/bash`) and a credential slipped through a scanner that checked only a subset of fields.
+
+### Added
+
+- **`best-practices/a-denylist-is-only-as-good-as-its-coverage.md`** — prefer allowlists; when you must denylist, match the thing in all its forms (bare / path-qualified / relative / `sudo`- or `env`-wrapped) and scan **every** field/path, not a sample; pin each bypass form as a test fixture so a future edit can't silently reopen it. Roster count updated 22 → 23.
+
 ## [0.3.5] — 2026-07-08
 
 Weekly Tier-A news sweep (2026-07-08) — **correction** in `knowledge/sast-dast-sca-scanner-selection-decision-tree.md` (+ CLAUDE.md §6.1): OSV-Scanner is **v2.4.0** (June 2026, adds CycloneDX 1.7 support), superseding the documented **v2.3.8**. Re-verified via the GitHub releases API. **Migration:** none — knowledge-file content only.
