@@ -107,7 +107,14 @@ norm="$cmd"
 if command -v python3 >/dev/null 2>&1; then
   # Pass the raw command via env var to avoid the script's own heredoc EOF
   # marker interfering with heredocs INSIDE the command-under-inspection.
-  __preproc="$(__GUARD_RAW_CMD="$norm" python3 - <<'PY' 2>/dev/null
+  # bash 3.2 (macOS system bash) mis-parses a here-doc nested inside $(...)
+  # command substitution and begins reading the Python below as shell (syntax
+  # error -> exit 2 -> every Bash command wrongly blocked). Fix: write the
+  # preprocessor to a temp file with a plain `cat <<'PY'` (outside $(), which
+  # parses on every bash), then run that file inside the $() capture.
+  __guard_py="$(mktemp "${TMPDIR:-/tmp}/guard-preproc.XXXXXX")" || __guard_py=""
+  if [ -n "$__guard_py" ]; then
+    cat >"$__guard_py" <<'PY' || :
 import re, sys, os
 s = os.environ.get("__GUARD_RAW_CMD", "")
 # A quoted body "executes" only if it carries command substitution — $(...) or a
@@ -261,7 +268,9 @@ def _ansi_c_decode(m):
 s = re.sub(r"\$'((?:\\.|[^'\\])*)'", _ansi_c_decode, s)
 sys.stdout.write(s)
 PY
-)" || __preproc=""
+    __preproc="$(__GUARD_RAW_CMD="$norm" python3 "$__guard_py" 2>/dev/null)" || __preproc=""
+    rm -f "$__guard_py"
+  fi
   # Only apply the preprocessed form if Python succeeded and produced output.
   # NB: the `|| __preproc=""` above is load-bearing — without it, a non-zero
   # exit from the python3 heredoc (e.g. an exotic UnicodeEncodeError) would trip

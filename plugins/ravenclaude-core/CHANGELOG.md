@@ -2,6 +2,14 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.189.2 — 2026-07-14
+
+### Fixed
+
+- **Portability (macOS bash 3.2):** `hooks/guard-destructive.sh` now parses under macOS's stock **bash 3.2** (`/usr/bin/env bash` when no Homebrew bash is on PATH). The command preprocessor loaded its Python via a here-document nested inside `$(…)` command substitution — a construct bash 3.2 mis-parses (it starts reading the paren/quote-heavy Python regex as shell → `syntax error near unexpected token )`). A bash parse failure exits 2, and Claude Code treats exit 2 as **block**, so the un-parseable hook silently denied **every** Bash tool call. Fixed by writing the preprocessor to a temp file with a plain `cat <<'PY'` **outside** `$()`, then running that file inside the capture — the pattern parses on every bash. Behavior otherwise unchanged (verified under bash 3.2: benign allowed; plain and ANSI-C-obfuscated `rm -rf /` still blocked). CI runs bash 5.x, where the original construct is legal, so this was invisible in CI.
+
+**Migration:** none — consumers on bash 5.x see no change; consumers on stock macOS bash 3.2 get a hook that no longer blocks all Bash commands.
+
 ## 0.189.1 — 2026-07-13
 
 ### Fixed
