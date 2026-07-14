@@ -2,6 +2,17 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.9.11] — 2026-07-14
+
+Reland of the additive dated facts from the 2026-06-30 research sweep (#536), applied to main's current framing (main's 2026-07-08 Fable-5-restored / Sonnet-5-GA framing is preserved everywhere; none of the branch's Fable-suspended regression was carried). Four net-new PRIMARY-VERIFIED release-notes facts added as dated capability-map rows plus their playbook cross-references:
+
+- **Workload Identity Federation (WIF) GA 2026-05-04** — short-lived OIDC tokens from your IdP replace long-lived static `sk-ant-` keys; new capability-map row + a Secrets bullet in the Security section of `knowledge/claude-app-finops-reliability-and-security.md` (strengthens house opinion #8).
+- **`code_execution_20260120` (2026-06-18)** — REPL state persistence + the minimum version for programmatic tool calling; no beta header; supported on Fable 5 / Mythos 5 / Opus 4.5+ / Sonnet 4.5+. New capability-map row + Code execution section of `knowledge/server-side-tools-and-files.md`.
+- **Mid-conversation system messages (Opus 4.8, 2026-05-28)** — change instructions mid-session while preserving prompt-cache hits; no beta header. New capability-map row + a note after House opinion #1 in `knowledge/prompt-caching-playbook.md`.
+- **`web_search_20260318` / `web_fetch_20260318` `response_inclusion` (2026-06-11)** — drops consumed result blocks from the API response (context/token saver); no beta header. New capability-map row + Web search/fetch section of `knowledge/server-side-tools-and-files.md`.
+
+The capability map's `Last reviewed` line folds in a 2026-06-30-sweep note without overwriting the existing 2026-07-08 note. Each version/date-specific claim carries `[verify-at-use]` per house opinion #14. The 2026-06-26 rate-limit/tier-consolidation fact was already on main and is not re-added. **Migration:** none — dated knowledge-bank additions; no default changed; main's 2026-07-08 Fable-5/Sonnet-5 framing preserved.
+
 ## [0.9.10] — 2026-07-08
 
 Weekly Tier-A news sweep (2026-07-08) — **corrections + addition** in `knowledge/model-selection-and-2026-capability-map.md`, following the 0.9.6 export-control update. **Correction (Fable 5):** the 2026-07-01 Claude Platform release note confirms restoration is **complete on Anthropic first-party surfaces** (Claude API/Platform, Claude.ai, Claude Code, Cowork) — the "in-progress / not yet confirmed complete" hedge is retired for those; third-party surfaces (Bedrock/Copilot/Foundry) still re-verify per-surface. **Correction (Mythos 5):** it did **NOT** restore globally — Anthropic redeployed it only to a vetted set of **~100 US critical-infrastructure organizations**, not general availability. **Addition:** with the redeployment Anthropic shipped a **new cybersecurity safety classifier** blocking the Amazon-reported jailbreak in **>99%** of cases (blocked Fable 5 requests route to Opus 4.8; tradeoff: more false positives on benign coding). Sources: Claude Platform release notes 2026-07-01 + Redeploying-Fable-5 statement, corroborated by Al Jazeera / The Hacker News / MarkTechPost / Cybersecurity Dive / Infosecurity Magazine (anthropic.com 403s automated fetch — repo's primary-403 → secondaries pattern). Routed through usefulness → review panels (both APPROVE). **Migration:** none — knowledge-file content only.
