@@ -1557,7 +1557,8 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 return
 
         out.parent.mkdir(parents=True, exist_ok=True)
-        out.write_text(content, encoding="utf-8", newline="\n")
+        # write_bytes, not write_text(newline=): Python 3.9 compat (LF preserved)
+        out.write_bytes(content.encode("utf-8"))
 
         payload = {"saved": str(out.relative_to(PROJECT_ROOT)), "bytes": len(content)}
         if target == POSTURE_TARGET:

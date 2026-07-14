@@ -11564,7 +11564,8 @@ def main() -> int:
             else:
                 print(f"fresh: {out_path}")
         else:
-            out_path.write_text(new_html, encoding="utf-8", newline="\n")
+            # write_bytes, not write_text(newline=): Python 3.9 compat (LF preserved)
+            out_path.write_bytes(new_html.encode("utf-8"))
             print(f"wrote {out_path} ({len(new_html):,} bytes)")
 
     return exit_code
