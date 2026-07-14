@@ -3659,6 +3659,75 @@
         "pos-integration",
         "ecommerce-integration"
       ]
+    },
+    {
+      "name": "internal-audit",
+      "source": "./plugins/internal-audit",
+      "description": "Internal audit team — 2 agents (internal-audit-lead, audit-engagement-specialist) for the independent assurance & advisory function over ALL risk, anchored on the IIA Global Internal Audit Standards (2024 — 5 domains / 15 principles), COSO Internal Control & COSO ERM, and the Three Lines Model. Covers the risk-based audit universe → annual plan → engagement lifecycle (planning memo/scope, risk & control matrix, test of design + operating effectiveness, attribute sampling, workpapers & evidence), findings via the 5 C's, impact×likelihood issue rating, the audit-committee report & management action plans, follow-up/remediation validation, and the QAIP + external quality assessment. Independence discipline: IA assures/advises, never owns controls. 3 skills, a 2-doc knowledge bank (decision tree + 2026 patterns), and 2 templates. Distinct from cybersecurity-grc (security-control assurance), regulatory-compliance (AML/financial regs), and esg-sustainability-reporting (ESG assurance). Needs ravenclaude-core.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "internal-audit",
+        "iia-standards",
+        "coso",
+        "coso-erm",
+        "three-lines-model",
+        "risk-based-audit",
+        "audit-universe",
+        "risk-and-control-matrix",
+        "attribute-sampling",
+        "issue-rating",
+        "audit-committee",
+        "qaip"
+      ]
+    },
+    {
+      "name": "treasury-management",
+      "source": "./plugins/treasury-management",
+      "description": "Corporate treasury team — 2 agents (treasury-strategy-lead, cash-and-risk-operations-specialist) answering 'how much cash, where — who banks us, and how do we protect the money?': cash & liquidity forecasts (CCC, direct/indirect, 13-week), liquidity-buffer & facility policy, bank-relationship & account structure (ZBA, notional/physical pooling, in-house bank, AFP fees, BAI/ISO 20022), investment policy (IPS) & debt covenants, FX & rate hedging (transaction/translation/economic exposure, forwards/swaps/options/collars, ASC 815 / IFRS 9 hedge accounting), payments & fraud controls (positive pay, dual auth, BEC), working-capital & TMS selection. 3 skills, a 2-doc knowledge bank, and 2 templates. Distinct from finance (FP&A/budgeting), fintech-payments-engineering (rail code), and regulatory-compliance (AML/OFAC) — treasury owns the CASH and the BANK RELATIONSHIP. Not legal/tax/accounting advice; volatile hedge-accounting & bank/regulatory specifics carry a retrieval date + verify-at-use. Needs ravenclaude-core.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "treasury",
+        "cash-forecasting",
+        "liquidity",
+        "cash-pooling",
+        "fx-hedging",
+        "interest-rate-hedging",
+        "hedge-accounting",
+        "working-capital",
+        "positive-pay",
+        "iso-20022",
+        "bank-relationship",
+        "tms"
+      ]
+    },
+    {
+      "name": "quantum-computing-engineering",
+      "source": "./plugins/quantum-computing-engineering",
+      "description": "Quantum computing engineering team — 2 agents (quantum-solutions-architect, quantum-algorithm-engineer) answering 'is this even a quantum problem, and if so — which paradigm, modality, and algorithm, and can we trust the result?': hard TRIAGE (most problems win classically today), gate-model vs annealing, qubit modalities (superconducting/trapped-ion/neutral-atom/photonic), NISQ vs fault-tolerant (logical vs physical qubits, surface code), transpilation, VQE/QAOA, error MITIGATION (ZNE/PEC) vs CORRECTION, hybrid loops, and QPU access via SDKs (Qiskit/Cirq/PennyLane/Braket). 3 skills, a 2-doc knowledge bank, and 2 templates. Engineering judgment, not a benchmark; the device/SDK/qubit-count landscape is volatile — every version carries a retrieval date + [verify-at-use]. Distinct from ml-engineering (classical MLOps), hardware-electronics-engineering (control board/cryo), security-engineering/cybersecurity-grc (post-quantum crypto defense), and performance-engineering (HPC). Needs ravenclaude-core.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "quantum-computing",
+        "quantum-algorithms",
+        "qiskit",
+        "cirq",
+        "pennylane",
+        "amazon-braket",
+        "nisq",
+        "vqe-qaoa",
+        "error-mitigation",
+        "quantum-error-correction",
+        "transpilation",
+        "quantum-annealing"
+      ]
     }
   ]
 }
