@@ -104,23 +104,23 @@ fi
 # This step happens BEFORE the existing wholesale quote-stripping (which is
 # doing real anti-obfuscation work — `rm -rf "/"` must still match `rm -rf /`).
 norm="$cmd"
-# Initialize before the python3 block so the `[ -n "$__preproc" ]` consume below
-# is always DEFINED under `set -u`, whichever branches run. Without this, an absent
-# python3 OR a failed mktemp skips the assignment; the unbound read then aborts the
-# guard with a non-2 exit -> Claude Code treats non-2 as non-blocking -> the command
-# runs UNCHECKED (a security hook failing OPEN). Fail-closed requires this default.
+# Initialize before the python3 block so the `[ -n "$__preproc" ]` consume below is
+# always DEFINED under `set -u` (an absent python3 skips the assignment; an unbound
+# read would abort the guard with a non-2 exit -> non-blocking -> command UNCHECKED).
 __preproc=""
 if command -v python3 >/dev/null 2>&1; then
-  # Pass the raw command via env var to avoid the script's own heredoc EOF
-  # marker interfering with heredocs INSIDE the command-under-inspection.
-  # bash 3.2 (macOS system bash) mis-parses a here-doc nested inside $(...)
-  # command substitution and begins reading the Python below as shell (syntax
-  # error -> exit 2 -> every Bash command wrongly blocked). Fix: write the
-  # preprocessor to a temp file with a plain `cat <<'PY'` (outside $(), which
-  # parses on every bash), then run that file inside the $() capture.
-  __guard_py="$(mktemp "${TMPDIR:-/tmp}/guard-preproc.XXXXXX" 2>/dev/null)" || __guard_py=""
-  if [ -n "$__guard_py" ]; then
-    cat >"$__guard_py" <<'PY' || :
+  # Load the preprocessor into a variable via a here-doc fed to `read` -- a SIMPLE
+  # command, NOT nested in $(). macOS's stock bash 3.2 mis-parses a here-doc nested
+  # inside $(...) and starts reading the Python below as shell (syntax error -> exit
+  # 2 -> every Bash command wrongly blocked); a here-doc to `read` parses on every
+  # bash. Then run it with `python3 -c` (NO temp file), so the decoder has no
+  # filesystem dependency and runs whenever python3 exists -- this closes the fail-
+  # OPEN where a failed mktemp/cat would silently drop the ANSI-C ($'...') anti-
+  # obfuscation layer and let an obfuscated destructive command through. `read -d ''`
+  # returns non-zero at EOF (no NUL) but still assigns; `|| :` keeps that from
+  # tripping `set -e`. The command under inspection travels via the __GUARD_RAW_CMD
+  # env var, never through this program text.
+  IFS= read -r -d '' __GUARD_PY <<'PY' || :
 import re, sys, os
 s = os.environ.get("__GUARD_RAW_CMD", "")
 # A quoted body "executes" only if it carries command substitution — $(...) or a
@@ -274,12 +274,10 @@ def _ansi_c_decode(m):
 s = re.sub(r"\$'((?:\\.|[^'\\])*)'", _ansi_c_decode, s)
 sys.stdout.write(s)
 PY
-    __preproc="$(__GUARD_RAW_CMD="$norm" python3 "$__guard_py" 2>/dev/null)" || __preproc=""
-    rm -f "$__guard_py"
-  fi
+  __preproc="$(__GUARD_RAW_CMD="$norm" python3 -c "$__GUARD_PY" 2>/dev/null)" || __preproc=""
   # Only apply the preprocessed form if Python succeeded and produced output.
   # NB: the `|| __preproc=""` above is load-bearing — without it, a non-zero
-  # exit from the python3 heredoc (e.g. an exotic UnicodeEncodeError) would trip
+  # exit from the `python3 -c` call (e.g. an exotic UnicodeEncodeError) would trip
   # `set -e` and ABORT the whole guard before the deny checks run, and Claude
   # Code treats a non-2 hook exit as non-blocking → the destructive command
   # would run unchecked. Failing the substitution just falls back to `norm`.

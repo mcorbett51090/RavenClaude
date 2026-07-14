@@ -540,6 +540,24 @@ else
   _skip_or_fail "guard-destructive no-jq fallback" "python3"
 fi
 
+# Preprocessor must have NO filesystem dependency (security review 2026-07-14): an
+# ANSI-C $'…'-obfuscated destructive command relies on the Python decode layer to be
+# caught. A temp-file loader (mktemp/cat) silently DROPPED that layer whenever TMPDIR
+# was unwritable/full/read-only -> the obfuscated command was ALLOWED (exit 0, a
+# fail-OPEN) while a plain `rm -rf /` still blocked — so a plain-command test gives
+# false confidence. The var + `python3 -c` loader has no temp file, so the decoder
+# runs whenever python3 exists. Assert the obfuscated payload still BLOCKS (exit 2)
+# even under a broken TMPDIR. Teeth: the temp-file version returned exit 0 here.
+if command -v jq >/dev/null 2>&1 && command -v python3 >/dev/null 2>&1; then
+  gd_obf_cmd="rm -rf \$'\\057'"   # ANSI-C octal -> decodes to: rm -rf /
+  rc=0; printf '{"tool_name":"Bash","tool_input":{"command":%s}}' "$(printf '%s' "$gd_obf_cmd" | jq -Rs .)" \
+    | TMPDIR=/nonexistent-gd-tmpdir-xyz bash plugins/ravenclaude-core/hooks/guard-destructive.sh >/dev/null 2>&1 || rc=$?
+  gd_obf_ok=0; [ "$rc" -eq 2 ] || gd_obf_ok=1
+  gate "guard-destructive: ANSI-C obfuscation blocks under hostile TMPDIR (no fs dep)" must_pass "$gd_obf_ok"
+else
+  _skip_or_fail "guard-destructive ANSI-C hostile-TMPDIR fixture" "jq/python3"
+fi
+
 echo
 echo "── Gate 5b: check-layout.py (the CI layout matcher, full-tree + diff) ─────"
 # The CI workflow validate-layout.yml calls scripts/check-layout.py for both its
