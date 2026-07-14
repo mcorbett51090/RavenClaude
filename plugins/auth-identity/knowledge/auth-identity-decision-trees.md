@@ -308,6 +308,7 @@ flowchart TD
 - [`../agents/auth-architect.md`](../agents/auth-architect.md) — the agent that traverses these trees
 - [`auth-provider-landscape-2026.md`](auth-provider-landscape-2026.md) — the build-vs-buy landscape behind tree (a)
 - [`oauth-oidc-and-google-sso.md`](oauth-oidc-and-google-sso.md) — the flow + Google-SSO detail behind trees (b)/(c)
+- [`edge-auth-on-cloudflare-workers-d1-2026.md`](edge-auth-on-cloudflare-workers-d1-2026.md) — the Cloudflare Workers + D1 branch: refines the session-storage tree (Better Auth #4203) and the gate-the-dashboard tree (Cloudflare Access is workforce, not customer, auth)
 - [`../CLAUDE.md`](../CLAUDE.md) §0 — the authenticate-the-person vs authorize-the-data boundary the trees respect
 - [`../../data-platform/CLAUDE.md`](../../data-platform/CLAUDE.md) §3 — the RLS / embed-JWT lane tree (d) seams to
 

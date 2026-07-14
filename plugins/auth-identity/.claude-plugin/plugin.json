@@ -1,6 +1,6 @@
 {
   "name": "auth-identity",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "End-user authentication & identity team — 2 agents (auth-architect, auth-implementation-engineer) for adding login to a web app (React/Next), an API, and a dashboard. Methods: Google/Apple/Microsoft/GitHub social SSO, magic link, passkeys/WebAuthn, email+password — via managed auth (leaning Supabase Auth). 7 skills, 4 templates, a best-practices index, a scenarios bank (4 unverified field notes), an advisory anti-pattern hook, a stdlib JWT/scope/cookie analyzer (scripts/auth_analyze.py), and a web-verified knowledge bank with Mermaid decision trees (build-vs-buy, which-providers, OAuth-flow, token-storage, gate-the-dashboard, logout, refresh-reuse, MFA-factor, step-up auth). House rules: Authorization Code + PKCE never Implicit; never store tokens in localStorage; validate ID tokens server-side. Boundary: AUTHENTICATES the person; data-platform AUTHORIZES the data (RLS/embed-JWT); Entra seams to azure-cloud, auth code to security-reviewer. Requires ravenclaude-core@>=0.7.0.",
   "author": {
     "name": "Matt Corbett"

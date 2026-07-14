@@ -2,6 +2,15 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.2] — 2026-07-14
+
+Captured field learnings from a live build (customer SSO — Google/Apple/Microsoft — on **Cloudflare Workers + D1** for an Astro app).
+
+### Added
+
+- **`knowledge/edge-auth-on-cloudflare-workers-d1-2026.md`** — "Authing customers on the Cloudflare edge (Workers + D1)". Four verified 2026-07-14 learnings: (1) Workers+D1 as a customer-auth substrate — **Better Auth** native D1 vs **Auth.js** non-Astro-first D1 adapter; (2) the **Better Auth #4203** trap (`cookieCache` + `secondaryStorage` → 5-minute logout) + a startup config assertion; (3) **Cloudflare Access is workforce (Zero Trust) auth, not customer auth** (50-user cap / $7-user / branding / reselling terms) — Access for the operator surface, real CIAM for end customers; (4) **Apple private-relay email breaks email-based account binding** → signed single-use short-TTL claim link to the on-file address. Cross-links existing best-practices/knowledge rather than restating them.
+- **`knowledge/auth-identity-decision-trees.md`** — one See-also pointer to the new doc (refines the session-storage + gate-the-dashboard trees; no tree logic changed).
+
 ## [0.3.0] — 2026-06-24
 
 OAuth-app **registration walkthroughs** per social provider — closing the "someone has to register the app, but nothing tells them how to get there or whether they're allowed to" gap. Previously only Google had a full portal walkthrough; Apple/Microsoft/GitHub had a pointer + gotchas but no steps.

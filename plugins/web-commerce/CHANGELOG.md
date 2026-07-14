@@ -2,6 +2,14 @@
 
 All notable changes to the `web-commerce` plugin. Versions follow semver; the plugin's `version` in `.claude-plugin/plugin.json` is the source of truth.
 
+## 0.1.1 — 2026-07-14
+
+Captured field learnings from using the plugin on a live engagement (scaffolded a Square store; designed shop packaging + product-on-site integration for a real site).
+
+### Added
+
+- **`knowledge/provider-tracks-2026.md`** — three net-new sections that answer the customer-facing questions the provider/tier selector doesn't: **§7 the reflect-on-site spectrum** (buy-button — edits sync but a new product needs a new embed; collection-embed/iframe — auto-appears to ~15–20; headless Storefront/Catalog API — full native catalog, premium); **§8 current 2026 fees + the pass-through principle** (card % settles against the merchant's own processor — the integrator never eats it) incl. the **Shopify non-Shopify-Payments ~2% surcharge trap**; **§9 the packaging heuristic** (shop as an add-on not bundled, platform-hosted so the merchant self-serves — because the real cost is build+ops+support, not the fee). All dated + sourced; complements `skills/provider-track-selection`.
+
 ## 0.1.0 — initial release (2026-07-13)
 
 First release. The backend-integration lane that scaffolds a payment/commerce provider into a website; plugs into `web-design`'s build pipeline, routes every payment/PII security verdict to `ravenclaude-core/security-reviewer`.
