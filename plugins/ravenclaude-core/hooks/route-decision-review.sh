@@ -147,7 +147,15 @@ saga="$(printf '%s' "$out" | jq -r '.saga_log // "n/a"' 2>/dev/null || echo 'n/a
 #
 # This is the shell mirror of `_sanitize_reasoning()` in thing-decide.py — the
 # two layers MUST stay in sync. See Gate 60 / Gate 20 for drift detection.
-reasoning="$(printf '%s' "$reasoning" | tr -d '\n\r\013\014' | sed -E 's/\xe2\x80(\xa8|\xa9)/ /g' 2>/dev/null || printf '%s' "$reasoning")"
+# PORTABILITY (2026-07-15): this used `sed -E 's/\xe2\x80(\xa8|\xa9)/ /g'`. BSD/macOS sed
+# does NOT support \xNN hex escapes — it ERRORS, and the `|| printf '%s' "$reasoning"`
+# fallback then returned the reasoning with its U+2028 / U+2029 separators INTACT.
+# Silent (exit 0), unconditional, every macOS session: one layer of the JudgeDeceiver
+# verdict-injection hardener was disabled with NO symptom. This file's own comment above
+# says the two layers MUST stay in sync — on macOS they were not.
+# perl handles \xNN natively and identically on GNU + BSD; the `tr` half is POSIX and was
+# always fine. Verified on bash 3.2 / BSD userland: U+2028 and U+2029 -> spaces.
+reasoning="$(printf '%s' "$reasoning" | tr -d '\n\r\013\014' | perl -pe 's/\xe2\x80[\xa8\xa9]/ /g' 2>/dev/null || printf '%s' "$reasoning")"
 if [ "${#reasoning}" -gt 256 ]; then
   reasoning="${reasoning:0:253}..."
 fi
