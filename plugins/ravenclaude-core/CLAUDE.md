@@ -1203,3 +1203,44 @@ What a repo *can* add — so the agent auto-knows **which** of the user's projec
 - **Gate 123** — bidirectional: surfaces-when-bound / guides-when-half-set / silent-when-absent / leak-safe / a must-fail half that neuters the design block and asserts the line disappears.
 
 This repo dogfoods it: `.ravenclaude/design-project.json` binds RavenClaude to its **"RavenClaude Design System"** project (dashboard + portal UI kits, tokens, core components). **Migration:** none — the binding file is optional (absent ⇒ banner unchanged), `/design-link` is opt-in, and access is platform-level; nothing in a consumer's installed plugin changes on `/plugin marketplace update` until they bind a project.
+
+## FORGE token efficiency — the artifact contract + progressive disclosure (added 2026-07-15, v0.192.0)
+
+`/forge` got measurably cheaper **without touching what any gate reasons over**. Two structural levers
+and one honest non-lever:
+
+1. **The artifact contract (§0 of [`skills/forge-pipeline/SKILL.md`](skills/forge-pipeline/SKILL.md)) —
+   the load-bearing change.** Gate payloads were being *relayed through the orchestrator*: G2/G3 each
+   "returned a complete phased plan", the session wrote `plan-A.md`/`plan-B.md`, and G4a/G5/G6 then
+   needed those plans again. So two full plans + the critic brief + the red-team sat **resident** in
+   context through G6 — paid once on return, then **re-paid on every subsequent turn**. Now each gate's
+   subagent **writes its own artifact** to the run dir and returns a **receipt only**
+   (`{gate,status,artifact,bytes,digest[≤5],blockers,confidence}`); a downstream gate is handed the
+   **path** and reads it itself. Every gate sees the **identical bytes** — the payload was never the
+   pass signal (fail-closed routes on `status` + `blockers` + non-empty artifact), so this is free.
+2. **Progressive disclosure.** The SKILL was loaded whole at every depth — a `micro` run paid ~3.7K
+   tokens to run three gates, including the standard-only critic/red-team text, the deep-only resume
+   rules, and a repo-specific CI regen list. Core now holds only the contract + ladder + the gates
+   every depth runs; the rest moved to `reference/` (`gates-standard.md`, `deep-resume.md`,
+   `regen-discipline.md`, `provenance.md`), loaded **only** when the depth reaches them.
+   [`commands/forge.md`](commands/forge.md) — which called itself "the thin entry" while restating all
+   11 gates — is now genuinely thin (1,612 → 567 tok).
+
+   Fixed prompt per invocation: **5,282 → 3,405 tok at the default `quick` depth (−35%)**; 4,219 at
+   standard (−20%), 4,577 at deep (−13%) — measured, char/4. The saving is largest exactly where the
+   pipeline is meant to be run most (`quick` is the default), and the deep runs that give back the most
+   fixed-prompt saving are the ones the §0 contract saves the most *resident* context on.
+
+3. **Deliberately NOT done:** trimming `ultrathink` off the critic/red-team, or collapsing G3 into a
+   review-of-A instead of an independent second plan. Both cut tokens by deleting the cross-model
+   divergence and adversarial depth FORGE exists for. §3 now says so explicitly, so a future
+   cost-cutting pass doesn't reach for them.
+
+**Latent bug fixed in passing:** the regen list told agents to run `scripts/generate-repo-guide.py` —
+**deleted in v0.124.0** along with `repo-guide.html` (Gate 11 retired; see `scripts/audit-gates.sh:761`),
+so the instruction had been dead for months — and it omitted the live `generate-index-dashboard.py`
+freshness gate. Corrected against the actual harness, with a staleness note pointing at
+`audit-gates.sh` as the source of truth.
+
+**Migration:** none — no gate semantics, no flag, no artifact path, and no skill/agent count changed;
+`/forge`'s behavior and outputs are the same, it just stops paying for them twice.
