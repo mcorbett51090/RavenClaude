@@ -1,7 +1,7 @@
 {
   "name": "ravenclaude-core",
   "description": "Domain-neutral Team Lead + specialist-agents pattern for Claude Code: 15 specialists, 48 skills, gates, hooks, rules, templates. Capability Grounding Protocol, Structured Output Protocol, Researcher meta-skill, comfort-posture dashboard, opt-in command-review tribunal (the Thing), WebFetch sanitizer, branch-archive escape hatch, brand-extraction (homepage → brand kit), and declarative-visualization (Vega-Lite/Deneb/SVG, Gate 101 + Gate 103 svg-report-lint, viz-spec-reviewer). Slash commands: /init-agent-ready, /wrap, /set-posture, /dashboard, /forge, /reset-plugin-cache.",
-  "version": "0.193.0",
+  "version": "0.194.0",
   "author": {
     "name": "Matt Corbett"
   },

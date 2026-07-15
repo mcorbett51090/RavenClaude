@@ -1306,3 +1306,65 @@ A macOS project that has been writing off-`allowed_globs` paths freely was never
 writes will now be **denied** (exit 2) with a suggested location. That is the hook working as designed;
 if the paths are legitimate, add them to `.repo-layout.json` `allowed_globs`. Linux/CI behavior is
 unchanged. No other platform is affected.
+## FORGE's "shared rubric" (F7) was false — corrected in all three files (added 2026-07-15, v0.194.0)
+
+Tiebreak F7 claimed FORGE shares the two-panel lens definitions, the P0/P1 severity rubric, and the
+routing-signal schema with the two-panel workflow "via a common constants module (one source of truth)".
+**False in every part** `[verified 2026-07-15]`: the workflow's `DEFAULT_SEVERITY_RUBRIC`,
+`DEFAULT_PANEL1_LENSES`, `DEFAULT_PANEL2_LENSES`, `GAP_SCHEMA` and `ROUTING_SCHEMA` are **module-private
+consts** (only `export const meta` is exported — nothing can import them), no shared module exists, and
+forge-pipeline carried no lens or severity text at all.
+
+**Corrected in all three files that asserted it** — [`skills/forge-pipeline/reference/provenance.md`](skills/forge-pipeline/reference/provenance.md)
+(F7 itself), [`skills/two-panel-plan-review/SKILL.md`](skills/two-panel-plan-review/SKILL.md), and
+[`knowledge/dynamic-workflows.md`](knowledge/dynamic-workflows.md) — plus the F7 instruction bullet
+deleted from [`commands/forge.md`](commands/forge.md).
+
+**The rubric was deliberately NOT ported, and the reasoning is recorded in-repo so a future reader
+doesn't "close the gap":** P0/P1/P2's tiers are anchored to build/merge semantics ("must-fix before
+merge", "blocks PR approval") that are meaningless when comparing two *unbuilt drafts*; the lens list is
+authored for reviewing a *pre-written* plan (different input contract) and ~half is already covered
+structurally (G1 ≈ evidence, the panels' acceptance tests ≈ testability, G4a's premise attack ≈ devil's
+advocate); and G4b's "top-N highest-impact" cap **demonstrably executes without a formal scale**.
+
+**One real gap fixed:** G5's loop-back trigger (`reference/gates-standard.md`) is the *only* place
+severity mechanically routes — a control-flow branch needs a bar, so it now has one, in G5's own words,
+standard+-only (micro/quick cost unchanged).
+
+### How this was found — the pipeline caught its own author
+
+Run `.ravenclaude/runs/forge/rubric-f7-fix/` (FORGE `standard`, dogfooding v0.192.0's artifact
+contract: every gate wrote its own artifact and returned a receipt; ~100 KB of plans never entered the
+orchestrator's context). The originating recommendation was *"port the severity rubric, skip the lenses,
+rewrite F7."* **G4a — the correlated-error critic — overturned most of it** by attacking the
+orchestrator's framing, which both panels had inherited verbatim:
+
+- The claim lived in **three** files; both panels' acceptance greps were scoped to `forge-pipeline/`
+  (inherited from the framing), so **both DoDs would have passed green** while two shipped files kept
+  asserting the falsehood one hop away. This is precisely the correlated error a disagreement-keyed
+  gap-delta structurally cannot see.
+- The stated rationale ("cross-model ranking inconsistency") was **fabricated** — G4b is executed once,
+  by one orchestrator; nothing ranks twice.
+- **Falsified empirically by the run itself:** its own gap-delta ranked 12 gaps and capped at 5 sensibly
+  **with no rubric**. Zero observed failures across FORGE's run history.
+
+**The critic was not authority either** — two of its findings were falsified by verification and are
+recorded in the run's `tiebreaks.md`: Gate 126 is a *file-mirror* gate and does not bear on the routing
+enum, and `"common constants module"` was **real** at `commands/forge.md:83` until v0.192.0 deleted it
+(the critic inferred fabrication from a disk-only read without checking git history — the same
+incomplete-read error class it correctly caught in us).
+
+**Two latent defects surfaced by the red-team, both fixed:**
+
+1. `check-md-links.py` **skips inline code spans before link extraction** (`strip_code()`), so a path in
+   backticks is **never validated on any host**. Reproduced directly: the identical broken path exits 1
+   as a link and 0 in backticks. Every shipped citation of the workflow is now a **link**, so Gate 29
+   actually checks it — and points at the **shipped** `skills/two-panel-plan-review/` copy, not the
+   marketplace-only `.claude/workflows/` path a consumer does not have.
+2. `check-md-links.py:88` used PEP-604 (`Path | None`) with no `from __future__ import annotations` →
+   **TypeError on Python 3.9**, making Gate 29 unrunnable locally (CI's python3 is 3.10+, so CI stayed
+   green — which is what made it easy to miss). One-line fix; teeth verified preserved.
+
+**Migration:** none — documentation corrections plus one severity bar and a one-line lint fix. No gate
+semantics, flag, artifact path, or count changed; skill count stays 48. Zero `.js` bytes touched, so
+Gate 126's byte-identity mirror is untouched.
