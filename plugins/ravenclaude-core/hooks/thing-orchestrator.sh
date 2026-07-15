@@ -294,9 +294,46 @@ _now_ms() {
 run_id="thing-$(date -u +%Y-%m-%dT%H-%M-%SZ)-$$"
 started_ms="$(_now_ms)"
 
-# Per-seat parsed verdicts (associative arrays keyed by role).
-declare -A SV SCONF SINJ SCITED SEDIT SREASON SSTATUS
+# Per-seat parsed verdicts, keyed by role.
+#
+# BASH 3.2 (macOS): `declare -A` does not exist — it returns rc=2 ("invalid option"),
+# and `set -euo pipefail` above turns that into an abort with ZERO stdout. Under the
+# hook protocol exit 2 = BLOCK, so EVERY Bash command in ANY `thing: on` category was
+# blocked on macOS with raw `declare: -A: invalid option` on stderr.
+#
+# DO NOT "fix" this by deleting `declare -A` and keeping MAP[$role]. bash then evaluates
+# the subscript ARITHMETICALLY: an unset name like `mimir` -> 0, so EVERY role collides
+# onto index 0 and a seat's `deny` silently reads back as another seat's `allow`. That is
+# a security control inverting its own verdict, with no error. Fixed slots prevent it.
+#
+# Sound because the key space is PROVABLY CLOSED: thing-decision.py builds convened_seats
+# by iterating the literal `_SEATS = ("forseti","mimir","heimdall","thor")` and filters
+# consumer thing.yaml overrides through `if s in _SEATS`, so a role can never be config-
+# or attacker-injected. An unknown role yields EMPTY + rc=1 (never slot 0) so the caller
+# fails CLOSED rather than silently aliasing a real seat.
+_ri() {
+  case "$1" in
+    forseti)  printf '0' ;;
+    mimir)    printf '1' ;;
+    heimdall) printf '2' ;;
+    thor)     printf '3' ;;
+    *)        return 1 ;;
+  esac
+}
+SV=("" "" "" ""); SCONF=("" "" "" ""); SINJ=("" "" "" ""); SCITED=("" "" "" "")
+SEDIT=("" "" "" ""); SREASON=("" "" "" ""); SSTATUS=("" "" "" "")
 seats_run=()
+
+# Stock-toolchain portability (macOS: bash 3.2, BSD userland, NO coreutils `timeout`).
+# Without this the seat calls below hit `timeout` -> exit 127 -> every seat abstains ->
+# the panel abstains -> the tribunal fails closed. Fail-safe: an absent helper degrades
+# to an UNBOUNDED run rather than a broken hook.
+_portable_helper="$(dirname "${BASH_SOURCE[0]}")/_portable.sh"
+if [ -f "$_portable_helper" ]; then
+  # shellcheck source=/dev/null
+  . "$_portable_helper" 2>/dev/null || true
+fi
+command -v _rc_timeout >/dev/null 2>&1 || _rc_timeout() { shift; "$@"; }
 
 # Run one seat: writes verdict JSON to $tmp/$role.json, rc to $tmp/$role.rc.
 run_seat() {  # run_seat <role> <model> <tmp> [peer_verdicts_json] [fallback_exclude_csv]
@@ -310,7 +347,7 @@ run_seat() {  # run_seat <role> <model> <tmp> [peer_verdicts_json] [fallback_exc
            MODEL_FALLBACK_EXCLUDE="$fb_exclude" THING_SEAT_RESOLVED_FILE="$tmp/$role.resolved" \
            THING_SEAT_RESOLVED_OVERRIDE="${THING_SEAT_RESOLVED_OVERRIDE:-}" \
            THING_SEAT_MOCK_VERDICT="${THING_SEAT_MOCK_VERDICT:-}" \
-           timeout --kill-after=5s "${seat_timeout}s" bash "$SEAT" 2>/dev/null)" || rc=$?
+           _rc_timeout "${seat_timeout}" bash "$SEAT" 2>/dev/null)" || rc=$?
   else
     out="$(THING_SEAT_ACTIVE=1 THING_PAYLOAD="$reviewed" THING_PAYLOAD_SHAPE="$payload_shape" \
            THING_CATEGORY="$category" \
@@ -318,7 +355,7 @@ run_seat() {  # run_seat <role> <model> <tmp> [peer_verdicts_json] [fallback_exc
            MODEL_FALLBACK_EXCLUDE="$fb_exclude" THING_SEAT_RESOLVED_FILE="$tmp/$role.resolved" \
            THING_SEAT_RESOLVED_OVERRIDE="${THING_SEAT_RESOLVED_OVERRIDE:-}" \
            THING_SEAT_MOCK_VERDICT="${THING_SEAT_MOCK_VERDICT:-}" \
-           timeout --kill-after=5s "${seat_timeout}s" bash "$SEAT" 2>/dev/null)" || rc=$?
+           _rc_timeout "${seat_timeout}" bash "$SEAT" 2>/dev/null)" || rc=$?
   fi
   printf '%s' "$out" > "$tmp/$role.json"
   printf '%s' "$rc" > "$tmp/$role.rc"
@@ -330,21 +367,21 @@ parse_seat() {  # parse_seat <role> <tmp>
   out="$(cat "$tmp/$role.json" 2>/dev/null || true)"
   rc="$(cat "$tmp/$role.rc" 2>/dev/null || echo 1)"
   if [ "$rc" != "0" ] || [ -z "$out" ] || ! printf '%s' "$out" | jq -e . >/dev/null 2>&1; then
-    SSTATUS[$role]="abstain"; SV[$role]="abstain"; SCONF[$role]="0"
-    SINJ[$role]="false"; SCITED[$role]="[]"; SEDIT[$role]="null"; SREASON[$role]=""
+    SSTATUS[$(_ri "$role")]="abstain"; SV[$(_ri "$role")]="abstain"; SCONF[$(_ri "$role")]="0"
+    SINJ[$(_ri "$role")]="false"; SCITED[$(_ri "$role")]="[]"; SEDIT[$(_ri "$role")]="null"; SREASON[$(_ri "$role")]=""
     return
   fi
-  SSTATUS[$role]="voted"
-  SV[$role]="$(printf '%s' "$out" | jq -r '.verdict // "abstain"')"
-  SCONF[$role]="$(printf '%s' "$out" | jq -r '.confidence // 0')"
-  SINJ[$role]="$(printf '%s' "$out" | jq -r '.injection_detected // false')"
-  SCITED[$role]="$(printf '%s' "$out" | jq -c '.concerns_cited // []')"
-  SEDIT[$role]="$(printf '%s' "$out" | jq -r '.edited_command // empty')"
+  SSTATUS[$(_ri "$role")]="voted"
+  SV[$(_ri "$role")]="$(printf '%s' "$out" | jq -r '.verdict // "abstain"')"
+  SCONF[$(_ri "$role")]="$(printf '%s' "$out" | jq -r '.confidence // 0')"
+  SINJ[$(_ri "$role")]="$(printf '%s' "$out" | jq -r '.injection_detected // false')"
+  SCITED[$(_ri "$role")]="$(printf '%s' "$out" | jq -c '.concerns_cited // []')"
+  SEDIT[$(_ri "$role")]="$(printf '%s' "$out" | jq -r '.edited_command // empty')"
   # Bound + strip control chars (assessment #13): a seat's reasoning is surfaced
   # into the user banner (esp. Thor's) and the Sága log. A prompt-injected seat
   # could return an over-long or newline/escape-laden string; cap at 200 chars and
   # drop control bytes at the source so every downstream use is already safe.
-  SREASON[$role]="$(printf '%s' "$out" | jq -r '.reasoning // ""' | tr -d '\000-\037' | cut -c1-200)"
+  SREASON[$(_ri "$role")]="$(printf '%s' "$out" | jq -r '.reasoning // ""' | tr -d '\000-\037' | cut -c1-200)"
   # ── Resolved-false concern strip (v0.97+). The orchestrator already
   #    deterministically resolves some concerns before the panel runs (e.g. the
   #    category `file_edit_project` proves the target path is INSIDE the tree —
@@ -354,19 +391,19 @@ parse_seat() {  # parse_seat <role> <tmp>
   #    abstain so the abstain-gate (and dev_repo_exempt's abstain-downgrade)
   #    catch it instead of a confident-but-wrong deny carrying. Real denies that
   #    cite other concerns alongside are unaffected.
-  local orig_cited="${SCITED[$role]}"
+  local orig_cited="${SCITED[$(_ri "$role")]}"
   local stripped_cited="$orig_cited"
   if [ "$category" = "file_edit_project" ]; then
     stripped_cited="$(printf '%s' "$orig_cited" | jq -c 'map(select(. != "xc.outside-project-tree"))')"
   fi
   if [ "$stripped_cited" != "$orig_cited" ]; then
-    SCITED[$role]="$stripped_cited"
+    SCITED[$(_ri "$role")]="$stripped_cited"
     local removed
     removed="$(jq -cn --argjson o "$orig_cited" --argjson s "$stripped_cited" '$o - $s')"
     RESOLVED_STRIPS="$(jq -cn --argjson a "${RESOLVED_STRIPS:-[]}" --arg seat "$role" --argjson removed "$removed" \
       '$a + [{seat:$seat, removed:$removed, reason:"category=file_edit_project proves in-tree"}]')"
-    if [ "${SV[$role]}" = "deny" ] && [ "$(printf '%s' "$stripped_cited" | jq -r 'length')" = "0" ]; then
-      SSTATUS[$role]="abstain"; SV[$role]="abstain"
+    if [ "${SV[$(_ri "$role")]}" = "deny" ] && [ "$(printf '%s' "$stripped_cited" | jq -r 'length')" = "0" ]; then
+      SSTATUS[$(_ri "$role")]="abstain"; SV[$(_ri "$role")]="abstain"
     fi
   fi
 }
@@ -471,17 +508,22 @@ else
 
   # ── Aggregate (design §B.3.2). ──────────────────────────────────────────────
   n_convened=0; n_abstain=0; any_injection="false"; low_conf="false"
-  declare -A seen_verdict
+  # seen_verdict's keys are the seats' RETURNED verdict strings — untrusted, unbounded,
+  # NOT a closed set — so a fixed slot is wrong by construction. It is only ever used to
+  # count DISTINCT verdicts and read the unanimous one, so a newline-delimited string +
+  # `sort -u` is bash-3.2-safe and treats the key as pure opaque data.
+  seen_verdicts=""
   all_cited="[]"
   for role in $convened; do
     n_convened=$((n_convened + 1))
-    if [ "${SSTATUS[$role]}" = "abstain" ]; then
+    if [ "${SSTATUS[$(_ri "$role")]}" = "abstain" ]; then
       n_abstain=$((n_abstain + 1)); continue
     fi
-    [ "${SINJ[$role]}" = "true" ] && any_injection="true"
-    awk -v c="${SCONF[$role]}" -v t="$threshold" 'BEGIN{exit !(c < t)}' && low_conf="true"
-    seen_verdict[${SV[$role]}]=1
-    all_cited="$(jq -cn --argjson a "$all_cited" --argjson b "${SCITED[$role]}" '$a + $b')"
+    [ "${SINJ[$(_ri "$role")]}" = "true" ] && any_injection="true"
+    awk -v c="${SCONF[$(_ri "$role")]}" -v t="$threshold" 'BEGIN{exit !(c < t)}' && low_conf="true"
+    seen_verdicts="$seen_verdicts${SV[$(_ri "$role")]}
+"
+    all_cited="$(jq -cn --argjson a "$all_cited" --argjson b "${SCITED[$(_ri "$role")]}" '$a + $b')"
   done
 
   # Runtime model-diversity gate (closes the P3 shared-ladder convergence the security
@@ -494,7 +536,7 @@ else
   if [ "$n_convened" -ge 2 ]; then
     _rmodels=""; _nvoted=0
     for role in $convened; do
-      [ "${SSTATUS[$role]}" = "voted" ] || continue
+      [ "${SSTATUS[$(_ri "$role")]}" = "voted" ] || continue
       _nvoted=$((_nvoted + 1))
       _rm="$(cat "$tmp/$role.resolved" 2>/dev/null || true)"
       [ -z "$_rm" ] && _rm="$(printf '%s' "$decision" | jq -r --arg r "$role" '.panel[$r].model // empty')"
@@ -529,38 +571,38 @@ else
                       | jq -r '.has_critical // false' 2>/dev/null || echo false)"
     fi
     # Distinct non-abstain verdicts -> split. Low confidence -> escalate too.
-    n_distinct="${#seen_verdict[@]}"
+    n_distinct="$(printf '%s' "$seen_verdicts" | sort -u | grep -c . || true)"
     escalate="false"
     { [ "$n_distinct" -gt 1 ] || [ "$low_conf" = "true" ]; } && escalate="true"
 
     if [ "$escalate" = "true" ]; then
       # 4. Convene Thor on the reasoning chains of the convened seats.
       peers="$(for role in $convened; do
-                 [ "${SSTATUS[$role]}" = "voted" ] && jq -cn --arg r "$role" --arg v "${SV[$role]}" \
-                   --argjson cf "${SCONF[$role]}" --argjson ci "${SCITED[$role]}" --arg rs "${SREASON[$role]}" \
+                 [ "${SSTATUS[$(_ri "$role")]}" = "voted" ] && jq -cn --arg r "$role" --arg v "${SV[$(_ri "$role")]}" \
+                   --argjson cf "${SCONF[$(_ri "$role")]}" --argjson ci "${SCITED[$(_ri "$role")]}" --arg rs "${SREASON[$(_ri "$role")]}" \
                    '{seat:$r,verdict:$v,confidence:$cf,concerns_cited:$ci,reasoning:$rs}'
                done | jq -cs '.')"
       thor_model="$(printf '%s' "$decision" | jq -r '.panel.thor.model // "claude-opus-4-8"')"
       seats_run+=("thor")
       run_seat "thor" "$thor_model" "$tmp" "$peers"
       parse_seat "thor" "$tmp"
-      tv="${SV[thor]}"
-      final_cited="${SCITED[thor]}"
-      if [ "${SSTATUS[thor]}" = "abstain" ]; then
+      tv="${SV[$(_ri thor)]}"
+      final_cited="${SCITED[$(_ri thor)]}"
+      if [ "${SSTATUS[$(_ri thor)]}" = "abstain" ]; then
         verdict="$posture"; reason="Command review: tie-breaker abstained; ${posture_phrase} for ${category}."
-      elif [ "${SINJ[thor]}" = "true" ]; then
-        verdict="deny"; reason="Command review: DENIED — tie-breaker detected injection. ${SREASON[thor]}"
+      elif [ "${SINJ[$(_ri thor)]}" = "true" ]; then
+        verdict="deny"; reason="Command review: DENIED — tie-breaker detected injection. ${SREASON[$(_ri thor)]}"
       elif [ "$tv" = "edit" ]; then
-        verdict="edit"; revised="${SEDIT[thor]}"; reason="Command review: tie-breaker EDIT. ${SREASON[thor]}"
+        verdict="edit"; revised="${SEDIT[$(_ri thor)]}"; reason="Command review: tie-breaker EDIT. ${SREASON[$(_ri thor)]}"
       elif [ "$tv" = "deny" ]; then
-        verdict="deny"; reason="Command review: DENIED by tie-breaker. ${SREASON[thor]}"
+        verdict="deny"; reason="Command review: DENIED by tie-breaker. ${SREASON[$(_ri thor)]}"
       else
-        verdict="allow"; reason="Command review: ALLOWED by tie-breaker. ${SREASON[thor]}"
+        verdict="allow"; reason="Command review: ALLOWED by tie-breaker. ${SREASON[$(_ri thor)]}"
       fi
     else
       # 5. Unanimous (non-abstain) verdict among the convened seats.
       the_verdict=""
-      for v in "${!seen_verdict[@]}"; do the_verdict="$v"; done
+      the_verdict="$(printf '%s' "$seen_verdicts" | sort -u | grep . | head -1 || true)"
       case "$the_verdict" in
         allow) verdict="allow"; reason="Command review: ALLOWED." ;;
         deny)  verdict="deny";  reason="Command review: DENIED."; final_cited="$all_cited" ;;
@@ -568,8 +610,8 @@ else
           verdict="edit"
           # Take the first convened seat's edit (by convening order).
           for role in $convened; do
-            if [ "${SV[$role]}" = "edit" ] && [ -n "${SEDIT[$role]}" ] && [ "${SEDIT[$role]}" != "null" ]; then
-              revised="${SEDIT[$role]}"; final_cited="${SCITED[$role]}"; break
+            if [ "${SV[$(_ri "$role")]}" = "edit" ] && [ -n "${SEDIT[$(_ri "$role")]}" ] && [ "${SEDIT[$(_ri "$role")]}" != "null" ]; then
+              revised="${SEDIT[$(_ri "$role")]}"; final_cited="${SCITED[$(_ri "$role")]}"; break
             fi
           done
           reason="Command review: EDIT proposed." ;;
@@ -653,10 +695,10 @@ for role in "${seats_run[@]:-}"; do
   # status, confidence, injection flag, cited concerns, the bounded reasoning,
   # and any proposed edit. jq --arg escapes the reasoning safely.
   seats_json="$(jq -cn --argjson a "$seats_json" \
-    --arg name "$role" --arg v "${SV[$role]:-abstain}" --arg st "${SSTATUS[$role]:-abstain}" \
-    --argjson cf "${SCONF[$role]:-0}" --arg inj "${SINJ[$role]:-false}" \
-    --argjson ci "${SCITED[$role]:-[]}" \
-    --arg rsn "${SREASON[$role]:-}" --arg ec "${SEDIT[$role]:-}" \
+    --arg name "$role" --arg v "${SV[$(_ri "$role")]:-abstain}" --arg st "${SSTATUS[$(_ri "$role")]:-abstain}" \
+    --argjson cf "${SCONF[$(_ri "$role")]:-0}" --arg inj "${SINJ[$(_ri "$role")]:-false}" \
+    --argjson ci "${SCITED[$(_ri "$role")]:-[]}" \
+    --arg rsn "${SREASON[$(_ri "$role")]:-}" --arg ec "${SEDIT[$(_ri "$role")]:-}" \
     '$a + [{name:$name,verdict:$v,status:$st,confidence:$cf,injection_detected:($inj=="true"),concerns_cited:$ci,reasoning:$rsn,edited_command:(if $ec=="" then null else $ec end)}]')"
 done
 # Write the Sága entry, capturing whether it actually persisted (assessment #10).

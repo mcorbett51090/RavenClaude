@@ -28,8 +28,13 @@ plan (a "what/why" doc), it:
 5. **Synthesize 2** — appends a **P0/P1 recommendations** section to the build plan.
 
 The two panels are deliberately independent (different lenses, fresh context) so the build-plan
-review can't inherit the strategic-plan panel's blind spots. It shares its lens / severity /
-routing rubric with the [`/forge`](../forge-pipeline/SKILL.md) pipeline. Bundling it as a skill
+review can't inherit the strategic-plan panel's blind spots. Its lens / severity / routing rubric
+lives **here**, in this workflow's own consts, and is **not** shared with the
+[`/forge`](../forge-pipeline/SKILL.md) pipeline — the two have different input contracts (this one
+reviews a *pre-written* plan with a specialist panel; FORGE turns a *raw idea* into a plan), so the
+rubric deliberately does not transfer. `[corrected 2026-07-15 — the prior "shares its rubric with
+/forge" claim was false: these consts are module-private and FORGE carries none of them. See
+forge-pipeline's provenance reference for the full ruling.]` Bundling it as a skill
 means a consumer who installs `ravenclaude-core` gets a runnable `/two-panel-plan-review` (or
 invokes it via the `ultracode` keyword) without copying files out of the marketplace.
 

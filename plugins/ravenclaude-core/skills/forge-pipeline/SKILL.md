@@ -6,44 +6,67 @@ description: "The FORGE gated-planning pipeline that /forge runs: depth-scaled g
 # Skill: forge-pipeline
 
 > Invoked by **`/forge`**. This skill holds the gate logic; the command file is the thin entry.
-> The whole pipeline is the formalization of the hand-run pattern: *clarify → research+verify →
-> two divergent panels (different models) → critic → gap-analysis → per-conflict expert tiebreak →
-> red-team → synthesize → route → exit.*
+> The whole pipeline formalizes the hand-run pattern: *clarify → research+verify → two divergent
+> panels (different models) → critic → gap-analysis → per-conflict expert tiebreak → red-team →
+> synthesize → route → exit.*
 
-## 0. Provenance & the two influences
+**This file is the always-loaded core: the artifact contract, the depth ladder, and the gates every
+depth runs.** Load a reference file **only** when the depth or the situation calls for it:
 
-- **Claude Code dynamic workflows / `ultracode`** — the community-named "Ultraplan deep-plan" shape
-  (parallel explore agents → synthesize → **single same-model critic** → revise → emit; plus
-  cloud-vs-local routing and the `ExitPlanMode`/cloud handoff) is now the **officially-documented**
-  dynamic-workflows feature — Claude writes a JS harness that orchestrates subagents. `[verified —
-  official docs https://code.claude.com/docs/en/workflows, retrieved 2026-06-04; the trigger keyword
-  is `ultracode` as of v2.1.160, was `workflow` before]`. The exact internal critic/revise loop of any
-  bundled workflow is still `[unverified — not enumerated in the docs]`. FORGE is a **static** harness
-  (hand-authored, run by the Team Lead — see [`../../knowledge/dynamic-workflows.md`](../../knowledge/dynamic-workflows.md))
-  that reproduces this shape and **improves it**: cross-model two-panel divergence (research shows
-  cross-model debate > self-critique), a fact-verification gate the bundled workflows don't expose, and
-  a binding tribunal instead of an opaque merge.
-- **OpenAI Codex** — its gate is a *graduated-trust ladder* (read-only → workspace-auto → full-access)
-  + explicit-only subagents. FORGE borrows the ladder (it maps onto routing/exit + comfort-posture)
-  and the explicit-spawn discipline (already enforced by `guard-recursive-spawn.sh`).
+| Load | When | Holds |
+|---|---|---|
+| [`reference/gates-standard.md`](reference/gates-standard.md) | depth ≥ **standard** | G4a critic · G4b tiebreak · G5 red-team |
+| [`reference/deep-resume.md`](reference/deep-resume.md) | depth = **deep**, or `--resume` | checkpoint/resume + the uncapped-conflict rules |
+| [`reference/regen-discipline.md`](reference/regen-discipline.md) | **G8 only**, and only if a phase adds/removes a skill, agent, or other counted artifact | the marketplace count/regen DoD criteria |
+| [`reference/provenance.md`](reference/provenance.md) | a human asks *why* FORGE is shaped this way | provenance, the shared rubric, honest scope |
+
+Never load a reference file the depth doesn't reach — that is the point of the split.
+
+## 0. The artifact contract — **read this before dispatching any gate**
+
+Every gate's payload lives **on disk**; only a **receipt** crosses back into this session.
+
+- The gate's subagent **writes its own artifact** to `.ravenclaude/runs/forge/<slug>/<artifact>.md`.
+  Put the absolute run-dir path in its brief. **The orchestrator does not write gate artifacts and
+  does not ask a subagent for its artifact's text.**
+- The subagent returns **only** this receipt — no plan body, no prose report:
+
+  ```
+  ---RESULT_START---
+  {"gate":"G3","status":"pass|fail|waived","artifact":"<abs path>","bytes":N,
+   "digest":["≤5 one-line findings a downstream gate must route on"],
+   "blockers":[],"confidence":0.0-1.0}
+  ---RESULT_END---
+  ```
+
+- A downstream gate that needs an upstream payload is handed the **path** and **reads it itself**.
+  Never paste `plan-A` / `plan-B` / `critic-brief` / `red-team` text into a brief.
+- **Fail-closed is preserved:** a gate advances on `status` + `blockers` + the artifact existing and
+  being non-empty. The payload was never the pass signal — so routing on a receipt loses nothing.
+
+**Why this is load-bearing.** A relayed artifact is paid for twice — once on return, then again in
+every later turn's resent context — and relaying pins two complete plans *plus* the critic *plus* the
+red-team in context through G6. Reading from disk hands each downstream gate the **identical bytes**
+at a fraction of the resident context. This buys efficiency with **no** loss of gate input; it is the
+single largest cost lever in the pipeline, and it is free.
 
 ## 1. Depth ladder — **the gate SET scales with depth** (tiebreak F4)
 
 A 0-call gate is just overhead, so depth *collapses* the pipeline, it doesn't thin it. `--depth quick`
 is the **default** (cheap-by-default so the command is used for *every* idea — tiebreak F1).
 
-| Depth | Gates run | ~calls | Use for |
-|-------|-----------|--------|---------|
-| **micro** | G0 · G6 · G7 | 1-2 | a truly atomic idea needing only a structured sanity pass |
-| **quick** *(default)* | G0 · G1-lite · G2 · G3 · G6 · G7 | 3-5 | most ideas (a new skill, a hook tweak, a knowledge doc) |
-| **standard** | + G4a critic · G4b tiebreak · G5 red-team | 6-10 | a non-trivial multi-file change |
-| **deep** | standard, no conflict cap, 2nd red-team, **checkpoint/resume** | 11-18 | a substantial multi-plugin build |
+| Depth | Gates run | ~calls | Also load | Use for |
+|-------|-----------|--------|-----------|---------|
+| **micro** | G0 · G6 · G7 · G8 | 1-2 | — | a truly atomic idea needing only a structured sanity pass |
+| **quick** *(default)* | G0 · G1-lite · G2 · G3 · G6 · G7 · G8 | 3-5 | — | most ideas (a new skill, a hook tweak, a knowledge doc) |
+| **standard** | + G4a · G4b · G5 | 6-10 | `gates-standard.md` | a non-trivial multi-file change |
+| **deep** | standard, no conflict cap, 2nd red-team, checkpoint/resume | 11-18 | `gates-standard.md` + `deep-resume.md` | a substantial multi-plugin build |
 
-## 2. The gates
+## 2. The gates every depth runs
 
-Each gate is **fail-closed** (no advance without an explicit pass or a recorded waiver) and **emits a
-typed artifact** into the Sága run dir `.ravenclaude/runs/forge/<slug>/`. Only `plan.md` (G6) is a
-candidate to land in the repo; the per-gate artifacts stay in the run dir (avoids `docs/` sprawl).
+Each gate is **fail-closed** (no advance without an explicit pass or a recorded waiver) and emits a
+typed artifact into the Sága run dir `.ravenclaude/runs/forge/<slug>/`, per §0. Only `plan.md` (G6)
+is a candidate to land in the repo; per-gate artifacts stay in the run dir (avoids `docs/` sprawl).
 
 ### G0 — Scope / Clarify + routing triage
 Ask ≤2-3 **batched** clarifying questions via `AskUserQuestion` (auto-routes through the
@@ -61,45 +84,32 @@ Build a claims table of every load-bearing fact the plan rests on. **Tiered enfo
   the model **just confirmed via a visible in-session tool call** — that *is* grounded; demanding a
   second citation is theater. If it wasn't confirmed in-session, it's BLOCK-tier.
 - **Skip** entirely at micro depth.
+
 → `claims-table.md` (columns: claim · tier · source/marker · settling-gate). This is the accuracy
 discipline from `docs/accuracy-near-guarantee-design.md` applied to planning: a plan must rest on
 **tested facts, not assumptions**.
 
 ### G2 / G3 — Two divergent panels (different models, in parallel)
 Dispatch **one worker subagent per panel**, models pinned per `--models` (B **must** differ from A —
-cross-model divergence is the improvement over Ultraplan's same-model critic). Each panel returns a
-complete phased plan that **must** include: per-phase acceptance tests + pre-build gates, a
+cross-model divergence is the improvement over Ultraplan's same-model critic). Each panel **writes**
+a complete phased plan that must include: per-phase acceptance tests + pre-build gates, a
 **dependency DAG** (what blocks what; what parallelizes; the critical path), and **≥2 alternative
 approaches** with one-line trade-offs (the Ultraplan deep-plan structural inheritance — a plan, not a
-task list). Panel **B additionally emits a gap-delta**: every place A and B disagree or one is silent,
-plus a note if A's sequencing over-serializes. → `plan-A.md`, `plan-B.md`, `gap-delta.md`.
+task list). Panel **B additionally writes a gap-delta**: every place A and B disagree or one is
+silent, plus a note if A's sequencing over-serializes. → `plan-A.md`, `plan-B.md`, `gap-delta.md`.
 
-### G4a — Critic (standard+; tiebreak F5) — catches *correlated* error
-A subagent that did **not** author either plan reads **both** and does what a gap-analysis structurally
-cannot: find **where A and B AGREE on something that's wrong** (shared-anchoring / correlated cross-model
-error — invisible to a disagreement-keyed gap-delta). It also attacks the **premise of the idea itself**
-and emits a probability×impact **risk matrix**. It produces **no third plan**. Distinct from red-team:
-the critic attacks the *input plans' shared premises before synthesis*; red-team attacks the *synthesized
-plan's execution failure modes*. → `critic-brief.md`.
-
-### G4b — Per-conflict expert tiebreak (standard+)
-For each real conflict (from `gap-delta.md` + `critic-brief.md`): a **clean yes/no** routes to the
-tribunal — `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/thing-decide.py` (binding/advisory/off per posture;
-high-blast/`defer`/preference → ask Matt). A **substantive design fork** gets **one expert subagent**
-ruling `A` / `B` / `synthesis` + a one-line rationale. Cap at the **top-N highest-impact** conflicts
-(N≈5 at standard; uncapped at deep). The rest are recorded "minor — defaulted to A". → `tiebreaks.md`.
-
-### G5 — Red-team / Risk (standard+, unless `--no-redteam`)
-A subagent surfaces **≥5 real, reproducible** failure modes — each with a trigger/repro, severity, and
-a mitigation *or* an accepted-risk waiver. **Not** performative dissent (research warns devil's-advocate
-agents fabricate opposition — demand real, reproducible modes). Reference the G4a risk matrix; verify,
-don't duplicate. An unmitigated **high-severity** with no waiver → loop back to G2/G4. → `red-team.md`.
+Both panels are dispatched in **one batch** (wall-clock ≈ the slower panel, not the sum). Per §0 each
+returns a receipt only. **Panel B is handed `plan-A.md`'s path** and reads it for the gap-delta —
+never A's text inline, and B must draft *its own* plan **before** reading A, or the divergence the
+whole design rests on collapses into anchoring.
 
 ### G6 — Synthesize
-Merge into a single `plan.md`: the reconciled **dependency DAG**, the **risk matrix** (critic +
-red-team), the **alternatives** section, every tiebreak verdict, every red-team mitigation. No dangling
-conflict; every G1 `[unverified]` claim carries the step that will settle it. This is the authoritative
-artifact.
+**Dispatch this as a subagent** and hand it the run-dir path; it reads the gate artifacts from disk
+and merges them into a single `plan.md`: the reconciled **dependency DAG**, the **risk matrix**
+(critic + red-team, when those gates ran), the **alternatives** section, every tiebreak verdict, every
+red-team mitigation. No dangling conflict; every G1 `[unverified]` claim carries the step that will
+settle it. This is the authoritative artifact — and the only one the orchestrator later reads in full
+(once, at G8).
 
 ### G7 — Route (deterministic — no model judgment)
 `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/forge-route.py --plan <run-dir>/plan.md --size
@@ -111,87 +121,47 @@ small|medium|large [--research-done] [--privacy clean|sensitive]` → JSON:
   PR/branch target) lands via a `forge/<slug>` **draft PR**; a pure design/analysis plan lands straight
   to **main** (tiebreak F3 — a stale pre-commitment must not sit canonically in main).
 
-The script also runs `--self-test` (its own fixtures) — a registered, citable canonical route.
+The script reads `plan.md` from disk — it never needs the plan in context. It also runs `--self-test`
+(its own fixtures) — a registered, citable canonical route.
 
 ### G8 — DoD / Exit
 Verify the plan carries its definition-of-done (acceptance tests, version bumps, layout allow-list,
-prettier/audit-gates per `AGENTS.md`). Then the single exit:
+prettier/audit-gates per `AGENTS.md`). **If any phase adds or removes a skill, agent, or other
+artifact whose count is encoded in marketplace prose, load
+[`reference/regen-discipline.md`](reference/regen-discipline.md) now** and fold its criteria into that
+phase's DoD — skipping this is what caused the 2026-06-03 three-PR hotfix chain (PRs #244-#247).
+
+Then the single exit:
 - `execution=use_local` → call **`ExitPlanMode(plan.md)`**.
 - `execution=lean_ultraplan`/`consider_ultraplan` → **decline `ExitPlanMode` with a "sending to
   Ultraplan" note** (the harness opens the browser session, seeded with `plan.md`).
 - `reject` (G5 left an unmitigated blocker, or G0 scope is incoherent) → report the blocker, no exit.
 - Land `plan.md` per the G7 `landing` verdict (main, or open the draft PR).
 
-**Per-phase regen discipline (lesson from 2026-06-03 hotfix chain, PRs #244-#247).** Whenever a
-phase adds/removes a **skill**, **agent**, or other artifact whose count is encoded in marketplace
-prose, plan.md must explicitly list these acceptance criteria in that phase's DoD — otherwise CI
-breaks on merge and a 3-PR hotfix chain follows. The discipline:
+## 3. Cost / latency controls
 
-1. **Quote `description:` in any SKILL.md / agent .md YAML frontmatter** that contains `:` / `{` /
-   `}` (the strict-YAML check via `scripts/check-frontmatter.py` parses unquoted scalars). The
-   common trip: a backtick-wrapped `enabled: false` etc. in the description.
-2. **Bump skill/agent count strings** in `.claude-plugin/marketplace.json` (top metadata.description
-   + the plugin's entry description) AND `plugins/<plugin>/.claude-plugin/plugin.json` description.
-   Gate 12 (`marketplace-claims`) compares these to the actual filesystem count.
-3. **Regenerate `dashboard.html`** via `python3 scripts/generate-dashboards.py` (Gate 13).
-4. **Regenerate `repo-guide.html`** via `python3 scripts/generate-repo-guide.py` (Gate 11).
-5. **Regenerate the Copilot package** via `python3 scripts/generate-copilot-plugin.py` (Gate "copilot
-   package freshness").
-6. **Update `scripts/audit-gates.sh`** fixture literals that hardcode the old skill count (look for
-   `s.replace('<N> skills', '20 skills', 1)` — the must_fail fixture mutates this literal; it must
-   point at the current real count or it becomes a no-op and the gate's bad-input test silently
-   passes where it should fail).
-7. **Strip session-bound mutations** (`.ravenclaude/comfort-posture.yaml` posture changes a hook
-   wrote while the session ran) before committing — only commit the substantive edits.
-
-`plugin-release-checklist` covers most of this for full releases; FORGE's per-phase plans MUST
-restate the relevant subset inline so the Phase-1 build agent doesn't repeat the hotfix chain.
-
-## 3. Resume / checkpoint (deep depth only — tiebreak F6)
-At **deep** depth, each gate writes its artifact **atomically** (`<artifact>.tmp` → rename on success),
-so a half-written file is never a valid skip signal. `/forge --resume <slug>` skips any gate whose
-artifact exists and is **non-empty**, restarting from the first missing/empty one. Resume is scoped to
-the **same `<slug>`** (same inputs); changed inputs mint a new slug. micro/quick/standard always restart
-from scratch (a restart there costs only a few calls — not worth the partial-state complexity).
-
-## 4. Cost / latency controls
-- **Depth default `quick`** + the gate-set scaling above are the primary levers.
-- **Conflict cap** top-N≈5 at standard (uncapped only at deep).
+- **The §0 artifact contract is the primary lever** — it bounds *resident* context, which every later
+  turn re-pays. Everything below trims *marginal* calls.
+- **Depth default `quick`** + the gate-set scaling (§1) + the reference-file split (load only what the
+  depth reaches).
+- **Conflict cap** top-N≈5 at standard (uncapped only at deep — see `deep-resume.md`).
 - **Claims cache:** G1 entries are content-addressed by `(claim, source-url)`; a re-run reuses verified
   claims whose retrieval date is < 90 days (matches the repo's knowledge-freshness contract). WebFetch
   is already 15-min URL-cached.
 - **Parallel where independent** (G1 explore subagents; G2/G3 panels = one batch of `Task` calls),
-  **serial where dependent** (G4→G5→G6). Wall-clock ≈ the slowest panel, not the sum.
+  **serial where dependent** (G4→G5→G6).
 - **Brakes reused:** `runaway-brake.sh` (PreToolUse call caps) + `guard-recursive-spawn.sh` (tree
   topology) fire automatically — a thrashing gate trips the brake deterministically.
 - **Fail-fast:** G1 BLOCK and a G7 `reject` short-circuit the expensive G2–G6 core when an idea is
   under-specified or non-viable.
 
-### Thinking budget for the reasoning gates (cost ↔ depth lever)
-The gates that do **adversarial reasoning over a whole plan** — the **G2/G3 divergent panels**, the
-**G4a critic** (correlated-error hunt), and the **G5 red-team** (failure-mode hunt) — are exactly the
-"complex decision / strategic analysis" case that benefits most from **extended thinking**. When you
-dispatch those subagents, **instruct them to engage maximum reasoning** — append the `ultrathink`
-keyword to the brief (Claude Code's documented one-prompt escalation; see
-[`docs/token-budget-playbook.md`](../../../../docs/token-budget-playbook.md)). Reserve it for *those*
-gates: G0 scope, G1 fact-lookup, G4b tiebreaks, and G7 routing are shallow/deterministic and do **not**
-warrant the extra tokens. This is a deliberate **cost ↔ depth** trade — scale it down with depth
-(`--depth quick` can skip the escalation; `standard`/`deep` should keep it on the critic + red-team,
-where a missed correlated error is the most expensive failure FORGE exists to catch).
+### Thinking budget (cost ↔ depth lever)
+Append the `ultrathink` keyword to a brief **only** for the gates that do adversarial reasoning over a
+whole plan: the **G2/G3 panels**, and — at standard+ — the **G4a critic** and **G5 red-team** (their
+policy travels with them in `gates-standard.md`). G0 scope, G1 fact-lookup, G4b tiebreaks, G6
+synthesis, and G7 routing are shallow or deterministic and do **not** warrant it. `--depth quick` may
+skip the escalation entirely. Rationale + the no-CLI-flag finding: `reference/provenance.md`.
 
-> **Why a brief instruction and not a CLI flag:** `claude -p` exposes **no** thinking-budget flag
-> (verified: `claude --help` shows only `--max-budget-usd`). The sanctioned lever on this surface is the
-> in-prompt `ultrathink` keyword — which is why this lives in the seat **briefs**, not in engine config.
-
-## 5. Shared rubric (tiebreak F7 — don't re-author)
-The two-panel lens definitions, the P0/P1 severity rubric, and the routing-signal schema are the **same**
-ones `.claude/workflows/two-panel-plan-review.js` uses. FORGE shares those constants (one source of
-truth) and adds the scope, critic, depth-tiering, and routing **layers** — it does **not** runtime-compose
-that workflow (it's a standalone harness entry point that consumes a *pre-written* strategic plan, a
-different input contract than FORGE's "raw idea → plan").
-
-## 6. Honest scope
-FORGE makes a plan **divergently reviewed, fact-grounded, critic-checked, and routed** — it raises the
-floor on plan quality and shifts the odds against a confidently-wrong plan. It does **not** guarantee the
-plan is correct (no process does); the critic + red-team + tiebreak reduce, not eliminate, the residual.
-Stating otherwise would be the over-claim the accuracy work in this repo exists to prevent.
+**Do not buy tokens here.** Trimming reasoning on the critic or red-team, or collapsing G3 into a
+review-of-A instead of an independent plan, saves tokens by deleting the divergence and adversarial
+depth the pipeline exists for. §0 and the depth/reference splits are free; these are not.
