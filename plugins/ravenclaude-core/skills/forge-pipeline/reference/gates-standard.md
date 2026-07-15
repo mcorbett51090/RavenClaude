@@ -18,8 +18,9 @@ gap-delta). It also attacks the **premise of the idea itself** and writes a prob
 Distinct from red-team: the critic attacks the *input plans' shared premises before synthesis*;
 red-team attacks the *synthesized plan's execution failure modes*.
 
-Dispatch with `ultrathink` — a missed correlated error is the most expensive failure FORGE exists to
-catch, and this is the gate that catches it. → `critic-brief.md`.
+Dispatch with **`effort: 'xhigh'`** (the dispatch option, not a brief keyword — see "Thinking budget"
+below) — a missed correlated error is the most expensive failure FORGE exists to catch, and this is the
+gate that catches it. → `critic-brief.md`.
 
 ## G4b — Per-conflict expert tiebreak
 
@@ -34,7 +35,8 @@ Cap at the **top-N highest-impact** conflicts (N≈5 at standard; uncapped at de
 [`deep-resume.md`](deep-resume.md)). The rest are recorded "minor — defaulted to A".
 
 A tiebreak is a **narrow, shallow ruling** — hand each expert only the one conflict it rules on (from
-the digest or a quoted span), never the whole plan, and **no `ultrathink`**. → `tiebreaks.md`.
+the digest or a quoted span), never the whole plan, and leave `effort` at the session default (do
+**not** raise it to `xhigh`). → `tiebreaks.md`.
 
 ## G5 — Red-team / Risk (unless `--no-redteam`)
 
@@ -51,13 +53,21 @@ plan's stated purpose, cause silent/unrecoverable failure or data loss, or breac
 *and you can name the trigger that reaches it*. Anything you cannot repro is not high-severity;
 over-classifying erodes the signal and loops the pipeline for nothing.
 
-Dispatch with `ultrathink`. → `red-team.md`.
+Dispatch with **`effort: 'xhigh'`**. → `red-team.md`.
 
 ## Thinking budget for these gates
 
-Both **G4a** and **G5** get `ultrathink` in their brief — they are the adversarial-reasoning-over-a-
+Both **G4a** and **G5** dispatch with **`effort: 'xhigh'`** — they are the adversarial-reasoning-over-a-
 whole-plan case, and a missed correlated error or an unfound failure mode is the most expensive thing
 FORGE exists to prevent. **G4b does not** — a tiebreak is a narrow ruling on one conflict.
 
+**The lever is the dispatch option, not the brief.** Set `effort` in the `Task`/`Agent` call's options
+(or `agent(prompt, {effort: 'xhigh'})` in a dynamic workflow). Do **not** append `ultrathink` to the
+brief text: Anthropic's Opus 4.8 guidance is to *"raise effort to `high` or `xhigh` rather than
+prompting around it"*, and `xhigh` is its recommended starting point for coding and agentic work
+(the API default is `high`). A brief keyword is the workaround this pipeline used when no flag
+existed; the flag exists now.
+
 This is the one place in the pipeline where you do **not** trade reasoning for tokens. See
-[`provenance.md`](provenance.md) for why the lever is an in-prompt keyword and not a CLI flag.
+[`provenance.md`](provenance.md) for the dated correction, the per-model effort inversion (Opus 4.8
+starts at `xhigh`; Fable 5 starts at `high`), and the `effortLevel` settings key.

@@ -71,9 +71,37 @@ floor on plan quality and shifts the odds against a confidently-wrong plan. It d
 plan is correct (no process does); the critic + red-team + tiebreak reduce, not eliminate, the residual.
 Stating otherwise would be the over-claim the accuracy work in this repo exists to prevent.
 
-## Why the thinking budget is a brief instruction, not a CLI flag
+## The thinking budget is `effort`, not a brief instruction — CORRECTED 2026-07-15
 
-`claude -p` exposes **no** thinking-budget flag (verified: `claude --help` shows only
-`--max-budget-usd`). The sanctioned lever on this surface is the in-prompt `ultrathink` keyword —
-which is why the budget policy lives in the seat **briefs**, not in engine config. Background:
-[`docs/token-budget-playbook.md`](../../../../../docs/token-budget-playbook.md).
+**This section previously asserted the opposite, and it was stale.** It read: *"`claude -p` exposes
+**no** thinking-budget flag (verified: `claude --help` shows only `--max-budget-usd`). The sanctioned
+lever on this surface is the in-prompt `ultrathink` keyword."* That was true when written. It is now
+false in both halves, and the fix is not cosmetic — the vendor explicitly tells you **not** to do what
+this section recommended.
+
+**The flag exists.** `claude --help` on **v2.1.210** shows `--effort <level>` — `low, medium, high,
+xhigh, max` `[verified this session: 2026-07-15]`. There is also a persisted settings key,
+**`effortLevel`** (`low`/`medium`/`high`/`xhigh`), written by `/effort`; `--effort` and
+`CLAUDE_CODE_EFFORT_LEVEL` override it for one session `[verified: code.claude.com/docs/en/settings,
+retrieved 2026-07-15]`.
+
+**A FORGE gate is not a `claude -p` call anyway.** G2/G3/G4a/G5 dispatch **subagents**, and the
+`Task`/`Agent` tool takes an `effort` parameter (`low`|`medium`|`high`|`xhigh`|`max`) directly — as does
+`agent(prompt, {effort})` inside a dynamic workflow. So the lever belongs in the **dispatch options**,
+not in the brief text. The old framing reasoned about the wrong surface.
+
+**Anthropic's guidance is now a direct rebuke of the brief-keyword approach.** [Prompting Claude Opus
+4.8](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-4-8)
+(retrieved 2026-07-15): *"If you observe shallow reasoning on complex problems, **raise effort to
+`high` or `xhigh` rather than prompting around it**."* Appending `ultrathink` to a brief **is**
+prompting around it. The same guide: *"Effort is likely to be more important for this model than for
+any prior Opus."* Its recommended starting point for coding and agentic work — which is what every
+FORGE gate does — is **`xhigh`**; the API default is `high`.
+
+**Note the per-model inversion before porting this anywhere.** Opus 4.8 wants `xhigh` as the starting
+point. [Claude Fable 5](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5)
+wants **`high`** (its default), reserving `xhigh` for capability-sensitive work, because *"lower effort
+settings on Claude Fable 5 still perform well and often exceed `xhigh` performance on prior models"*
+`[retrieved 2026-07-15]`. A future model swap must re-read the model's own effort guidance rather than
+inherit this one. Background: [`docs/token-budget-playbook.md`](../../../../../docs/token-budget-playbook.md)
+(predates `--effort`; treat its thinking-budget framing as superseded by this section).

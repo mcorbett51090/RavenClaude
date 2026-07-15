@@ -2,6 +2,23 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.199.0 — 2026-07-15
+
+### Fixed
+
+- **FORGE's thinking-budget lever was a workaround for a flag that now exists — and the vendor now tells you not to use it.** `reference/provenance.md` asserted that "`claude -p` exposes **no** thinking-budget flag (verified: `claude --help` shows only `--max-budget-usd`)" and that the sanctioned lever is the in-prompt `ultrathink` keyword. Both halves are now false. `claude --help` on **v2.1.210** exposes `--effort <level>` (`low`/`medium`/`high`/`xhigh`/`max`), there is a persisted `effortLevel` settings key, and the `Task`/`Agent` dispatch option takes `effort` directly `[verified 2026-07-15]`. More pointedly, [Prompting Claude Opus 4.8](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-4-8) says to *"raise effort to `high` or `xhigh` **rather than prompting around it**"* — appending `ultrathink` to a brief **is** prompting around it. G2/G3/G4a/G5 now dispatch with `effort: 'xhigh'` (the dispatch option, not brief text); G4b stays at the session default. Corrected in `SKILL.md`, `reference/gates-standard.md`, and `reference/provenance.md` (which carries the dated correction, the sources, and the reasoning).
+- **The old framing reasoned about the wrong surface.** A FORGE gate is a **subagent dispatch**, not a `claude -p` call — so even when the CLI genuinely had no flag, the `Task` `effort` option was the right lever, not the brief text.
+
+### Changed
+
+- **`.claude/settings.json` now sets `"effortLevel": "xhigh"`.** The repo had no effort key, so every dev session ran at the API default `high` while Anthropic's Opus 4.8 guidance is to *start* at `xhigh` for coding and agentic work — the exact workload this repo is. *"Effort is likely to be more important for this model than for any prior Opus."* This is a **cost/latency trade**: `xhigh` means measurably more tokens and longer turns per session. Drop it to `high` (or delete the key) if that isn't worth it here.
+- **Recorded the per-model effort inversion**, so a future model swap doesn't inherit the wrong posture: Opus 4.8 starts at `xhigh`; **Claude Fable 5 starts at `high`** (its default), reserving `xhigh` for capability-sensitive work, because *"lower effort settings on Claude Fable 5 still perform well and often exceed `xhigh` performance on prior models"* `[retrieved 2026-07-15]`. Porting an `xhigh`-everywhere posture to Fable overspends for nothing.
+
+### Notes
+
+- **Not fixed here:** `docs/session-log.md:13` still restates the stale no-flag finding. It is a dated historical record and the repo's convention leaves those as-is.
+- **CHANGELOG gap (pre-existing, not this change):** this file's prior top entry was **0.192.0** while `plugin.json` read **0.198.0** — versions 0.193.0–0.198.0 are absent here, though 0.193.0–0.196.0 carry `CLAUDE.md` milestones. Left for the author of those versions to backfill rather than reconstructed second-hand.
+
 ## 0.192.0 — 2026-07-15
 
 ### Added
