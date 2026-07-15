@@ -156,11 +156,18 @@ Then the single exit:
   under-specified or non-viable.
 
 ### Thinking budget (cost ↔ depth lever)
-Append the `ultrathink` keyword to a brief **only** for the gates that do adversarial reasoning over a
-whole plan: the **G2/G3 panels**, and — at standard+ — the **G4a critic** and **G5 red-team** (their
-policy travels with them in `gates-standard.md`). G0 scope, G1 fact-lookup, G4b tiebreaks, G6
-synthesis, and G7 routing are shallow or deterministic and do **not** warrant it. `--depth quick` may
-skip the escalation entirely. Rationale + the no-CLI-flag finding: `reference/provenance.md`.
+Raise **`effort`** — the `Task`/`Agent` dispatch option (`low`|`medium`|`high`|`xhigh`|`max`), **not** a
+brief keyword — to `xhigh` **only** for the gates that do adversarial reasoning over a whole plan: the
+**G2/G3 panels**, and — at standard+ — the **G4a critic** and **G5 red-team** (their policy travels with
+them in `gates-standard.md`). G0 scope, G1 fact-lookup, G4b tiebreaks, G6 synthesis, and G7 routing are
+shallow or deterministic and do **not** warrant it — leave them at the session default. `--depth quick`
+may skip the escalation entirely.
+
+Anthropic's Opus 4.8 guidance is to *"raise effort … rather than prompting around it"*, and `xhigh` is
+its recommended starting point for coding and agentic work (the API default is `high`). The pipeline's
+old `ultrathink`-in-the-brief instruction was a workaround for a flag that did not exist when it was
+written; `--effort` / `effortLevel` / the `Task` `effort` option all exist now. Dated correction, the
+per-model inversion (Opus 4.8 → `xhigh`, Fable 5 → `high`), and sources: `reference/provenance.md`.
 
 **Do not buy tokens here.** Trimming reasoning on the critic or red-team, or collapsing G3 into a
 review-of-A instead of an independent plan, saves tokens by deleting the divergence and adversarial
