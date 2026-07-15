@@ -1306,7 +1306,7 @@ A macOS project that has been writing off-`allowed_globs` paths freely was never
 writes will now be **denied** (exit 2) with a suggested location. That is the hook working as designed;
 if the paths are legitimate, add them to `.repo-layout.json` `allowed_globs`. Linux/CI behavior is
 unchanged. No other platform is affected.
-## FORGE's "shared rubric" (F7) was false — corrected in all three files (added 2026-07-15, v0.193.0)
+## FORGE's "shared rubric" (F7) was false — corrected in all three files (added 2026-07-15, v0.194.0)
 
 Tiebreak F7 claimed FORGE shares the two-panel lens definitions, the P0/P1 severity rubric, and the
 routing-signal schema with the two-panel workflow "via a common constants module (one source of truth)".
