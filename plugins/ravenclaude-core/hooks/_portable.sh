@@ -55,3 +55,39 @@ _rc_timeout() {
 _rc_upper() {
   printf '%s' "$1" | tr '[:lower:]' '[:upper:]'
 }
+
+# _rc_pcre_match FILE PATTERN — case-insensitive PCRE match over the WHOLE file.
+#
+# The portable replacement for the `grep -Pzi PAT FILE` idiom:
+#   -P  PCRE (lookaheads, \s, \b)      -z  whole file as ONE NUL-terminated record,
+#                                          so `[\s\S]` and lookaheads span lines
+#   -i  case-insensitive
+#
+# WHY: `grep -P` is a **GNU extension**. BSD/macOS grep exits **2** ("invalid option --
+# P") `[verified]`, and inside the callers' `if grep -Pzi …; then findings+=(…); fi`
+# shape an exit of 2 reads as **NO MATCH** — the finding is never emitted and the hook
+# exits 0. Silent, unconditional, every macOS session.
+#
+# Why perl and not "install GNU grep": perl **is** the PCRE engine and is stock on macOS
+# (/usr/bin/perl), so this gives REAL coverage. An "install GNU grep for full coverage"
+# advisory only moves the failure to every mac without it — the same fragility as
+# depending on a homebrew bash being ahead of /usr/bin on PATH.
+#
+# The BEGIN/END flag (rather than a bare `exit 0 if //`) is load-bearing: with -0777 an
+# EMPTY file yields zero records, so the body never runs and a naive shim would exit 0
+# = "match". Here $m stays 1 = no match. `[verified: empty file -> no-match]`
+#
+# The pattern crosses into perl via the ENVIRONMENT, never interpolated into the -e text,
+# so shell/perl quoting can't mangle it. Returns 0 = match, 1 = no match / unreadable /
+# no engine (fail to "no finding", matching the callers' existing contract).
+_rc_pcre_match() {
+  local _file="$1"
+  local _pat="$2"
+  [ -r "$_file" ] || return 1
+  if command -v perl >/dev/null 2>&1; then
+    RC_PCRE_PAT="$_pat" perl -0777 -ne 'BEGIN{$m=1} $m=0 if /$ENV{RC_PCRE_PAT}/i; END{exit $m}' -- "$_file" 2>/dev/null
+    return $?
+  fi
+  # No perl (unusual). Fall back to GNU grep -P if this grep has it.
+  grep -Pzi -- "$_pat" "$_file" >/dev/null 2>&1
+}

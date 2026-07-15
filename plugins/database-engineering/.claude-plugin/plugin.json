@@ -1,6 +1,6 @@
 {
   "name": "database-engineering",
-  "version": "0.3.5",
+  "version": "0.3.6",
   "description": "Database-engineering team — 4 agents (schema-architect, query-performance-engineer, migration-engineer, db-reliability-engineer) for the OPERATIONAL/transactional data layer (OLTP): relational schema design and normalization (and when to denormalize), indexing strategy and query/EXPLAIN-plan tuning, safe zero-downtime schema migrations (expand/contract), and connection-pooling, transactions/isolation, replication, and backup/restore reliability. Postgres-leaning, principles portable to MySQL/SQL Server; NoSQL access-pattern guidance where it fits. 5 skills, a decision-tree knowledge bank (index-choice + migration-safety trees + a dated 2026 capability map), 12 best-practices, 4 templates, 4 commands, 1 advisory hook. Distinct from data-platform (analytics/ELT/warehouse) and analytics-engineering (dbt). Seams: ELT/warehouse -> data-platform, ORM/app data-access -> backend-engineering, managed DB infra -> cloud plugins. Requires ravenclaude-core@>=0.7.0.",
   "author": {
     "name": "Matt Corbett"
