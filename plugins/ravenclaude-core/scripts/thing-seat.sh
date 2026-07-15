@@ -276,6 +276,12 @@ user_prompt="${user_prompt}
 Respond with the verdict JSON only."
 
 # Decide auth/isolation mode. --bare is only viable with an API key.
+# BASH 3.2 (macOS): expanding an EMPTY array as "${a[@]}" under `set -u` is an
+# "unbound variable" ERROR (fixed upstream in bash 4.4). bare_args is empty in the
+# DEFAULT auth mode, so every seat died here -> the orchestrator marked it abstain ->
+# the panel abstained -> the tribunal failed closed. Silent as a bug, loud as a block.
+# Use ${a[@]+"${a[@]}"} (the `+` form): 0 args when empty, the real args when set.
+# NOT "${a[@]:-}" — that injects a spurious empty "" argument into `claude -p`.
 bare_args=()
 if [ "${THING_SEAT_BARE:-}" = "1" ] || [ -n "${ANTHROPIC_API_KEY:-}" ]; then
   bare_args=(--bare)
@@ -300,7 +306,7 @@ _mf_helper="$(dirname "$0")/../hooks/_model-fallback.sh"
 _seat_run() {
   # --tools "" disables ALL tools (a seat only reasons + returns JSON) — holds on
   # the primary AND every fallback rung.
-  cd "$scratch" && claude -p "${bare_args[@]}" \
+  cd "$scratch" && claude -p ${bare_args[@]+"${bare_args[@]}"} \
     --output-format json \
     --model "$1" \
     --tools "" \
@@ -316,7 +322,7 @@ if declare -F _model_call_with_fallback >/dev/null 2>&1; then
   [ -n "${THING_SEAT_RESOLVED_FILE:-}" ] && { _MF_RESOLVED_FILE="$THING_SEAT_RESOLVED_FILE"; export _MF_RESOLVED_FILE; }
   raw="$(_model_call_with_fallback --runner _seat_run --exclude "${MODEL_FALLBACK_EXCLUDE:-}")" || { echo '{"error":"claude invocation failed"}' >&2; exit 5; }
 else
-  raw="$(cd "$scratch" && claude -p "${bare_args[@]}" \
+  raw="$(cd "$scratch" && claude -p ${bare_args[@]+"${bare_args[@]}"} \
     --output-format json \
     --model "$model" \
     --tools "" \
