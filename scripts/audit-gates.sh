@@ -723,7 +723,37 @@ echo "── Gate 10: Actionlint (parse + lint) ──────────�
 # reachable (offline) it LOUD-skips locally and hard-fails in CI — a skip is never
 # a pass. actionlint requires a git project, which audit-gates already runs inside.
 AL_VER=1.7.7
-AL_SHA=023070a287cd8cccd71515fedc843f1985bf96c436b7effaecce67290e7e0757
+# PER-PLATFORM asset + sha256, from the release's own actionlint_1.7.7_checksums.txt.
+# This gate previously hardcoded linux_amd64 unconditionally. On an arm64 mac curl AND the
+# checksum both SUCCEED — it is the right file for the WRONG MACHINE — so `al_bin` got set
+# and every actionlint run exited 126 ("cannot execute binary format"). That made
+# `must_fail` PASS FOR THE WRONG REASON (126 is non-zero, but because the binary cannot
+# run, not because it caught the injected error) while `must_pass` FAILED. One bug, a
+# false green AND a false red. (2026-07-15)
+#
+# Provenance: the linux_amd64 pin below is BYTE-IDENTICAL to the one this gate has always
+# carried — that is what makes pinning the other three from the same checksums file
+# trustworthy: the file agrees with a pin that was already human-verified.
+case "$(uname -s)/$(uname -m)" in
+  Linux/x86_64)              AL_ASSET=linux_amd64;  AL_SHA=023070a287cd8cccd71515fedc843f1985bf96c436b7effaecce67290e7e0757 ;;
+  Linux/aarch64|Linux/arm64) AL_ASSET=linux_arm64;  AL_SHA=401942f9c24ed71e4fe71b76c7d638f66d8633575c4016efd2977ce7c28317d0 ;;
+  Darwin/x86_64)             AL_ASSET=darwin_amd64; AL_SHA=28e5de5a05fc558474f638323d736d822fff183d2d492f0aecb2b73cc44584f5 ;;
+  Darwin/arm64)              AL_ASSET=darwin_arm64; AL_SHA=2693315b9093aeacb4ebd91a993fea54fc215057bf0da2659056b4bc033873db ;;
+  *)                         AL_ASSET=""; AL_SHA="" ;;   # unknown platform -> do not download
+esac
+
+# `sha256sum` is GNU-only. Stock macOS does NOT have it on the default PATH — it ships
+# `shasum` (perl), which Linux has too. Without this the verify silently fails the &&
+# chain on a stock mac. Prefer sha256sum, fall back to shasum -a 256.
+_al_sha_ok() { # $1=expected  $2=file
+  if command -v sha256sum >/dev/null 2>&1; then
+    printf '%s  %s\n' "$1" "$2" | sha256sum -c - >/dev/null 2>&1
+  elif command -v shasum >/dev/null 2>&1; then
+    printf '%s  %s\n' "$1" "$2" | shasum -a 256 -c - >/dev/null 2>&1
+  else
+    return 1
+  fi
+}
 al_bin=""
 if command -v actionlint >/dev/null 2>&1; then
   al_bin="$(command -v actionlint)"
@@ -731,12 +761,21 @@ elif [[ -x /tmp/actionlint ]]; then
   al_bin=/tmp/actionlint
 else
   al_tgz="$TMP/actionlint.tgz"
-  if curl -fsSL --connect-timeout 5 -m 30 "https://github.com/rhysd/actionlint/releases/download/v${AL_VER}/actionlint_${AL_VER}_linux_amd64.tar.gz" -o "$al_tgz" 2>/dev/null \
-    && printf '%s  %s\n' "$AL_SHA" "$al_tgz" | sha256sum -c - >/dev/null 2>&1 \
+  if [[ -n "$AL_ASSET" ]] \
+    && curl -fsSL --connect-timeout 5 -m 30 "https://github.com/rhysd/actionlint/releases/download/v${AL_VER}/actionlint_${AL_VER}_${AL_ASSET}.tar.gz" -o "$al_tgz" 2>/dev/null \
+    && _al_sha_ok "$AL_SHA" "$al_tgz" \
     && tar -xzf "$al_tgz" -C "$TMP" actionlint 2>/dev/null; then
     chmod +x "$TMP/actionlint"
     al_bin="$TMP/actionlint"
   fi
+fi
+# RUNNABILITY PROBE — the load-bearing safety fix, independent of the arch map above.
+# A binary we cannot EXECUTE must NEVER be treated as usable: that is exactly how this gate
+# reported a pass for the wrong reason. If it will not run (wrong arch, corrupt, no exec
+# bit, Gatekeeper), drop it and fall through to the CI-hard-fail / LOUD-skip path — an
+# honest skip beats a false green. This kills the whole class, not just the arm64 case.
+if [[ -n "$al_bin" ]] && ! "$al_bin" --version >/dev/null 2>&1; then
+  al_bin=""
 fi
 if [[ -n "$al_bin" ]]; then
   backup .github/workflows/validate-layout.yml
