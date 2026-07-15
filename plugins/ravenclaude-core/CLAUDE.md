@@ -1244,3 +1244,65 @@ freshness gate. Corrected against the actual harness, with a staleness note poin
 
 **Migration:** none — no gate semantics, no flag, no artifact path, and no skill/agent count changed;
 `/forge`'s behavior and outputs are the same, it just stops paying for them twice.
+
+## macOS: the layout gate was silently bypassed on every session (added 2026-07-15, v0.193.0)
+
+macOS ships **bash 3.2.57** at `/bin/bash` (frozen at GPLv2) and is a first-class Claude Code platform.
+`hooks/enforce-layout.sh:28` ran `shopt -s extglob globstar nullglob` — **`globstar` is bash 4.0+**.
+Under `set -e` an invalid shopt option exits **1**, and Claude Code treats a hook exit ≠ 2 as a
+**non-blocking error** — so the hook **silently no-opped on every macOS session** and the layout gate
+(one of the repo's two enforcement layers) was **bypassed**, leaving CI as the only net. The same file's
+three `mapfile` calls (bash 4.0, exit **127**) were unreachable behind it.
+
+**The fix is one word + three mechanical rewrites**, and `globstar` was never needed: `enforce-layout.sh`
+**documents in its own comment** that `shopt -s globstar` is *inert* inside `[[ == ]]` (`**` collapses to
+two `*` metacharacters). `extglob`/`nullglob` are 3.2-valid `[verified]`. `mapfile -t x < <(cmd)` →
+a 3.2-safe `while IFS= read -r` loop, with `|| [[ -n "$_line" ]]` to preserve mapfile's handling of a
+final line with no trailing newline.
+
+**Proof:** Gate 6 was **4/8 red** on macOS and is now **8/8 green**. Its deny subtests were previously
+passing with **exit=1** — green *for the wrong reason* (the hook was **crashing**, not denying); they now
+pass with **exit=2**, a real deny. Half that gate's teeth were fake on macOS.
+
+### Why `bash -n` never caught it
+The constructs are **syntactically valid** and fail at **runtime**, on **conditional code paths**, and CI
+runs Linux bash 5. `bash -n` (the repo's shell check) cannot see any of it — which is exactly why this
+shipped and survived.
+
+### The exit-code mechanics (they decide severity, and they are counter-intuitive)
+| Construct | Failure kind | Exit under `set -e` | Real behavior |
+|---|---|---|---|
+| `declare -A` | invalid **builtin option** | **2** | **BLOCKS** — fails CLOSED, loud, *safe* |
+| `shopt -s globstar` | invalid **shopt option** | **1** | **silent fail-open** |
+| `mapfile` | **command not found** | **127** | silent fail-open |
+| `${v^^}` | bad substitution | **1** | silent fail-open |
+
+The loud one (`declare -A`, which is what gets *reported*) is the safe one. The silent fail-opens are the
+dangerous ones and nobody reports them — because nothing is reported.
+
+### Not fixed here — bash 3.2 is one of THREE doors `[all verified 2026-07-15]`
+A FORGE `standard` run (`.ravenclaude/runs/forge/macos-bash32/`) found that "rewrite to bash 3.2" was
+itself an unexamined frame. The **stock macOS toolchain** breaks RavenClaude through three doors:
+
+1. **bash 3.2** — this PR fixes the one file where the bash fix is *complete on its own*.
+2. **`timeout` is ABSENT** on stock macOS (exit **127**) — 4 hooks depend on it, including
+   `thing-orchestrator.sh:313`. **Consequence:** fixing `thing-orchestrator.sh`'s `declare -A` alone is a
+   *no-op or worse* — every seat abstains → panel abstain → T5 fail-closed **DENY**; the tribunal stays
+   bricked, just politer. `route-decision-review.sh:194`'s `${verdict^^}` is **unreachable** for the same
+   reason (`:110`'s `timeout 80 python3` exits 127 → `|| echo ''` → `emit_allow`), so fixing it alone is a
+   literal no-op. **These MUST bundle with the `timeout` fix.**
+3. **BSD `grep` has no `-P`** (exit **2**, `invalid option -- P`) — **12** `check-*-anti-patterns.sh` hooks
+   across 12 plugins do `if grep -Pzi …; then findings+=(…); fi` → the `if` goes **false** → the finding is
+   never emitted → the hook exits **0**, silently. Same silent/unconditional/every-session profile as the
+   layout gate, ×12, and previously unowned.
+
+**Do not claim "macOS supported" until doors 2 and 3 close.** Sequencing: PR1 (this) → PR2 (`timeout` +
+thing-orchestrator + route-decision-review, together) → PR3 (`grep -P`, 12 hooks) → PR4 (a `macos-latest`
+CI runner that **executes** the hooks under `env -i PATH=/usr/bin:/bin` — a static linter catches none of
+doors 2-3 and is type-blind by construction: `${!assoc[@]}` and `${!indexed[@]}` are textually identical).
+
+**Migration (macOS consumers only, and it is real):** the layout gate now **actually enforces** on macOS.
+A macOS project that has been writing off-`allowed_globs` paths freely was never being denied — those
+writes will now be **denied** (exit 2) with a suggested location. That is the hook working as designed;
+if the paths are legitimate, add them to `.repo-layout.json` `allowed_globs`. Linux/CI behavior is
+unchanged. No other platform is affected.
