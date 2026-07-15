@@ -26,6 +26,13 @@ with a per-link report otherwise. Runs in CI (validate-marketplace.yml) and is
 exercised bidirectionally by audit-gates.sh.
 """
 
+# PEP-604 unions (`Path | None`) appear in annotations below. CI's python3 is 3.10+
+# where those evaluate natively, but a contributor on 3.9 hits a TypeError at import
+# and the gate becomes unrunnable LOCALLY (it stays green in CI, which is what made
+# this easy to miss). Deferring annotation evaluation costs nothing here — this module
+# does no runtime annotation introspection (no get_type_hints / __annotations__ reads).
+from __future__ import annotations
+
 import re
 import sys
 from pathlib import Path

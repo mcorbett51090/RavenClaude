@@ -20,19 +20,49 @@
   + explicit-only subagents. FORGE borrows the ladder (it maps onto routing/exit + comfort-posture)
   and the explicit-spawn discipline (already enforced by `guard-recursive-spawn.sh`).
 
-## Shared rubric (tiebreak F7 — don't re-author)
+## The two-panel rubric is NOT shared (tiebreak F7 — corrected 2026-07-15)
 
-The two-panel lens definitions, the P0/P1 severity rubric, and the routing-signal schema are the **same**
-ones `.claude/workflows/two-panel-plan-review.js` uses. FORGE shares those constants (one source of
-truth) and adds the scope, critic, depth-tiering, and routing **layers** — it does **not** runtime-compose
-that workflow (it's a standalone harness entry point that consumes a *pre-written* strategic plan, a
-different input contract than FORGE's "raw idea → plan").
+**F7 previously claimed** FORGE shares the two-panel lens definitions, the P0/P1 severity rubric, and
+the routing-signal schema with the two-panel workflow — stated here as *"FORGE shares those constants
+(one source of truth)"* and, until v0.192.0 deleted it, in `commands/forge.md` as *"via a common
+constants module"*. **That was false in every part**, and it was load-bearing enough to mislead: it told
+an agent not to re-author the rubric while giving no way to obtain it.
 
-> `[unverified — not re-checked this session]` The "shares those constants" claim describes intent, not
-> a located module: the constants live inside `.claude/workflows/two-panel-plan-review.js`, and no
-> extracted shared module was found in the tree. Treat F7 as *"don't re-author the rubric — go read it
-> there"* until a real module exists. Verifying route: `grep -n` the lens/severity constants in that
-> workflow file and check whether any importable module exports them.
+> `[verified 2026-07-15]` The workflow's `DEFAULT_SEVERITY_RUBRIC`, `DEFAULT_PANEL1_LENSES`,
+> `DEFAULT_PANEL2_LENSES`, `GAP_SCHEMA` and `ROUTING_SCHEMA` are **module-private consts** — only
+> `export const meta` is exported, so nothing can import them; no shared module exists anywhere in the
+> tree; and forge-pipeline contained no lens or severity text at all. The claim was additionally
+> asserted in two **shipped** files one hop away (this plugin's `two-panel-plan-review/SKILL.md` and
+> `knowledge/dynamic-workflows.md`) — both corrected in the same change.
+
+What is actually true, per item:
+
+- **Lens definitions — deliberately NOT shared.** The workflow's 8 role-bound lenses are authored for
+  *reviewing a pre-written plan* with a specialist panel. FORGE's panels **author** a plan from a raw
+  idea. Different input contract ⇒ the lenses don't transfer, and running 8 lens-agents would blow
+  FORGE's 6-10-call `standard` budget and collapse it into the workflow.
+- **Severity — NOT shared, and deliberately not ported.** The workflow's P0/P1/P2 tiers are anchored to
+  build/merge semantics ("must-fix before merge", "blocks PR approval") that are meaningless when
+  comparing two *unbuilt drafts*. FORGE defines a bar only where severity **mechanically routes** — G5's
+  loop-back trigger — in G5's own words. See [`gates-standard.md`](gates-standard.md).
+- **Routing — two independent implementations, no coupling.** FORGE routes via the deterministic
+  [`forge-route.py`](../../../scripts/forge-route.py); the workflow's `ROUTING_SCHEMA` is model-emitted.
+  They share a 3-value verdict vocabulary (`use_local` / `consider_ultraplan` / `lean_ultraplan`) and
+  **no code path** — different consumers, nothing to drift *functionally*. Keep the enum consistent by
+  hand; a gate would be ceremony.
+
+FORGE does **not** runtime-compose that workflow. The workflow ships as its own skill —
+[`two-panel-plan-review`](../../two-panel-plan-review/SKILL.md), whose runnable copy is
+[`two-panel-plan-review.js`](../../two-panel-plan-review/two-panel-plan-review.js) (a byte-identical
+mirror of the marketplace's `.claude/workflows/` copy, enforced by Gate 126).
+
+> **Why FORGE does not port the rubric — don't "close this gap".** Reviewed 2026-07-15 and rejected on
+> evidence, not taste: the severity tiers are anchored to semantics FORGE's gates don't have; the lens
+> list is 50% already covered structurally (G1 ≈ evidence, the panels' acceptance tests ≈ testability,
+> G4a's premise attack ≈ devil's advocate); and G4b's "top-N highest-impact" cap **demonstrably executes
+> without a formal scale** — the run that produced this correction ranked 12 gaps and capped at 5
+> sensibly, with no rubric. Zero observed failures across FORGE's run history. If you are about to port
+> P0/P1/P2 or the lenses here, first produce a FORGE run where their absence caused a wrong outcome.
 
 ## Honest scope
 

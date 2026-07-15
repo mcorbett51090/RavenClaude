@@ -45,7 +45,11 @@ mitigation *or* an accepted-risk waiver.
 **Not** performative dissent: research warns devil's-advocate agents fabricate opposition, so demand
 real, reproducible modes. Reference the G4a risk matrix (by path); verify, don't duplicate.
 
-An unmitigated **high-severity** with no waiver → loop back to G2/G4.
+An unmitigated **high-severity** with no waiver → loop back to G2/G4. **The bar** (this is the only
+place severity mechanically routes, so it needs one): a mode is **high-severity** if it would defeat the
+plan's stated purpose, cause silent/unrecoverable failure or data loss, or breach the safety floor —
+*and you can name the trigger that reaches it*. Anything you cannot repro is not high-severity;
+over-classifying erodes the signal and loops the pipeline for nothing.
 
 Dispatch with `ultrathink`. → `red-team.md`.
 

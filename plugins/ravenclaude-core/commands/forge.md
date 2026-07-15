@@ -30,5 +30,3 @@ the gates, because restating them means paying for the pipeline's description tw
 - Subagents are dispatched by **this** session only — `guard-recursive-spawn.sh` keeps the call graph
   a tree (a worker can't fan out a second generation), matching Codex's explicit-only spawn.
 - `runaway-brake.sh` caps total/consecutive tool calls — a thrashing gate trips the brake, not Matt.
-- Don't re-author the two-panel lens/severity/routing rubric (tiebreak F7) — see the skill's
-  `reference/provenance.md` for where it lives and what's actually verified about it.
