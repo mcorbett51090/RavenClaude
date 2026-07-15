@@ -2,6 +2,16 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.192.0 — 2026-07-15
+
+### Added
+
+- **`best-practices/drop-a-tier-for-grunt-work-subagents-strong-model-supervises.md`** — new consumer-facing best-practice (rule #34): at a subagent dispatch / workflow fan-out, set the model explicitly instead of default-inheriting the orchestrator's tier — fast (Haiku-class) for grunt legwork, frontier reserved for the hardest reasoning + the review/verify step (strong supervises, cheap executes). Covers the two-sided failure (under-tiering forces a redo) and the review-panel carve-out (panels want model _diversity_, not the cheapest tier). Operationalizes the `model-selection` knowledge concept at the dispatch decision — the knowledge-names-it / no-rule-teaches-it gap, per the 2026-07-15 subreddit-scan panel.
+- **`best-practices/README.md`** — index row + count 33 → 34.
+- **`docs/research/2026-07-15-claude-subreddit-scan/README.md`** — the 15th recurring Claude-community scan: research, documented Keep/Update/Deny panel, and build plan (4 findings surfaced → 1 approved, 3 denied-as-covered/volatile).
+
+**Migration:** none — additive markdown; nothing in a consumer's installed plugin changes on `/plugin marketplace update`.
+
 ## 0.191.0 — 2026-07-14
 
 ### Added

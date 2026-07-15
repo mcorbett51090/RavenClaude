@@ -8,7 +8,7 @@ For the marketplace-wide best-practice library (CI gates, hook authoring, versio
 
 ## Index
 
-_33 rules._
+_34 rules._
 
 | Doc                                                                                                                                                | Status        | Use when                                                                                                                                                                                                                                                                                       |
 | -------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -45,6 +45,7 @@ _33 rules._
 | [`subagent-isolates-clutter-skill-keeps-the-work-in-thread.md`](./subagent-isolates-clutter-skill-keeps-the-work-in-thread.md) | Pattern | Authoring a capability and deciding whether it should be a skill or a subagent — choose by the isolate-vs-steer axis (subagent when the intermediate results are clutter you won't reference again; skill when you want the procedure to play out in-thread so you can see and steer each step), not by "can it run in parallel." |
 | [`a-skills-body-is-the-gotchas-the-model-doesnt-know-not-the-happy-path.md`](./a-skills-body-is-the-gotchas-the-model-doesnt-know-not-the-happy-path.md) | Pattern | Writing a skill body — fill it with the failure modes / gotchas the model can't infer (an append-only table's "current" row, a field-name mismatch, a misleading success signal), not the happy path it already knows; the marginal value of a skill is the non-obvious knowledge, and re-teaching the baseline just spends the on-invoke budget. Content sibling to scope-a-skill (trigger) and keep-skill-bodies-lean (length). |
 | [`treat-repo-committed-claude-config-as-untrusted-input.md`](./treat-repo-committed-claude-config-as-untrusted-input.md) | Pattern | About to open, trust, or check out a repo/branch from outside your team — or install a third-party plugin. A cloned repo's committed `.claude/settings.json`, `.mcp.json`, and hook scripts are executable config that can fire around the workspace-trust dialog (real 2026 RCE/exfil CVEs); audit those four surfaces before you open it. The _inbound_ sibling to permissions-are-deny-ask-allow. |
+| [`drop-a-tier-for-grunt-work-subagents-strong-model-supervises.md`](./drop-a-tier-for-grunt-work-subagents-strong-model-supervises.md) | Pattern | Composing a subagent dispatch or a workflow fan-out — set the model explicitly instead of default-inheriting the orchestrator's tier: fast (Haiku-class) for grunt legwork (grep/fetch/scan), frontier reserved for the hardest reasoning + the review/verify step, so the strong model supervises while cheap workers execute. Tier to the sub-task's hardest step (under-tiering forces a redo); review panels want model _diversity_, not the cheapest tier. |
 
 ---
 
