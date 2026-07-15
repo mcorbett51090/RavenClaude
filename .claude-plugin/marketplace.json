@@ -276,7 +276,7 @@
       "displayName": "RavenClaude Core",
       "source": "./plugins/ravenclaude-core",
       "description": "Domain-neutral Claude Code foundation: 15 specialist agents, 48 skills, gates, hooks, rules, templates. Capability Grounding Protocol, Structured Output Protocol, Researcher meta-skill, comfort-posture dashboard, opt-in command-review tribunal (the Thing), WebFetch sanitizer, branch-archive escape hatch, brand-extraction (homepage → brand kit), Problems & Resolutions view, declarative-visualization (Vega-Lite/Deneb/SVG, Gate 101 + Gate 103 svg-report-lint, viz-spec-reviewer), and Claude orchestrator escape hatch (/claude-orchestrate). Slash commands: /init-agent-ready, /wrap, /set-posture, /dashboard, /forge, /reset-plugin-cache.",
-      "version": "0.197.0",
+      "version": "0.197.1",
       "author": {
         "name": "Matt Corbett"
       },
@@ -1698,7 +1698,7 @@
       "name": "hospice-referral-sales",
       "source": "./plugins/hospice-referral-sales",
       "description": "Hospice referral-sales / community-liaison team — 6 agents (referral-development-strategist, hospice-eligibility-educator, referral-account-manager, admissions-conversion-coach, goals-of-care-conversation-coach, hospice-sales-compliance-advisor) for a hospice sales / community-education rep who grows admissions by developing referral sources (hospitals, SNFs, physician practices, ACOs): territory planning, educating clinicians on hospice eligibility (LCD decline criteria by diagnosis — the rep educates, the physician certifies), referral-partner reviews, the referral-to-admission funnel, the goals-of-care 'hospice conversation', and clearing every touch against the Anti-Kickback / HIPAA line. 6 skills, 6 commands, a 4-doc knowledge bank (6 decision trees + glossary + LCD + compliance references), 14 best-practices, scenarios, and a runnable funnel / census / benefit-period calculator. Employer-neutral; public practice + CMS rules. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.1.2",
+      "version": "0.1.3",
       "author": {
         "name": "Matt Corbett"
       },

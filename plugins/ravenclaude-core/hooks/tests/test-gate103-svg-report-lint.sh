@@ -67,7 +67,10 @@ else
 fi
 
 # ── Teeth: a mutant that always exits 0 must let known-bad fixtures through ──
-MUT="$(mktemp --suffix=.py)"
+# PORTABILITY: `mktemp --suffix=` is a GNU long option; BSD/macOS mktemp rejects it
+# ("usage: mktemp ..."), which failed this gate on every mac. `mktemp -d` + a fixed
+# filename is portable and gives the same .py suffix. (2026-07-15)
+MUT="$(mktemp -d)/mut.py"
 trap 'rm -f "$MUT"' EXIT
 sed 's/sys.exit(main())/sys.exit(0)/' \
   plugins/ravenclaude-core/skills/svg-report-lint/lint.py >"$MUT"

@@ -256,7 +256,11 @@ tmp_patched="$(mktemp -d)"
 # Copy the data-platform hook into a tmp dir and patch its STRICT branch back
 # to `exit 1` (the pre-fix broken behavior).
 cp "$HOOK_DP" "$tmp_patched/flag-data-platform-smells.sh"
-sed -i 's/  exit 2$/  exit 1/' "$tmp_patched/flag-data-platform-smells.sh"
+# PORTABILITY: `sed -i` (no suffix arg) is GNU-only — BSD/macOS sed reads the NEXT TOKEN
+# as the backup suffix, so the s/// became the suffix and the file became the script:
+# "invalid command code f". The patch then never applied, the must-fail half did not fail,
+# and this teeth assertion silently had NO TEETH on macOS. perl -pi is identical on both.
+perl -pi -e 's/^  exit 2$/  exit 1/' "$tmp_patched/flag-data-platform-smells.sh"
 viol_patched="$tmp_patched/stack-decision-record.md"
 printf '# Stack decision\n\nUse Tableau Embedded for the dashboards.\n' > "$viol_patched"
 rc_patched=0
