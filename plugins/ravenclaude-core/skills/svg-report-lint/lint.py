@@ -26,6 +26,13 @@ Usage:
   python3 lint.py --list-checks
 """
 
+
+# PEP-604 unions (`X | None`) appear in annotations below. They are evaluated at RUNTIME,
+# so on Python 3.9 — which stock macOS ships — this module raises TypeError at import and
+# the caller sees a crash, not a lint result. CI runs 3.10+, where it works, which is what
+# made this easy to miss. Deferring annotation evaluation costs nothing here: this module
+# does no runtime annotation introspection. (2026-07-15)
+from __future__ import annotations
 import os
 import re
 import sys

@@ -70,7 +70,15 @@ else
 fi
 
 # teeth: a mutant that always reports passed=true must make a known-bad pass.
-MUT="$(mktemp --suffix=.py)"
+# PORTABILITY (2026-07-15) — TWO separate macOS defects lived in these four lines:
+#  1. `mktemp --suffix=` is a GNU long option; BSD/macOS mktemp rejects it outright
+#     ("usage: mktemp ..."), so the mutant was never even created.
+#  2. The mutant MUST sit in driver.py's OWN directory. driver.py:81 computes repo root as
+# "four directories up from __file__" — so the mutant only agrees with the real driver
+# at the SAME DEPTH. In $TMPDIR (or even a subdir here) it computes a different root and
+# rejects the repo's own fixtures with exit 2. On Linux /tmp/x.py -> 4-up -> '/', which
+# contains everything, so this passed by ACCIDENT; macOS's deep $TMPDIR exposed it.
+MUT="plugins/ravenclaude-core/skills/visual-feedback-loop/.mut-$$.py"
 trap 'rm -f "$MUT"' EXIT
 sed 's/"passed": verdict\["passed"\]/"passed": True/' \
   plugins/ravenclaude-core/skills/visual-feedback-loop/driver.py >"$MUT"
@@ -85,7 +93,7 @@ fi
 # parity teeth: a mutant that neuters the skeleton-divergence detection (always
 # reports the parity gate "pass") must let a known-divergent fixture through —
 # proving the parity fail is the diff logic, not luck.
-MUTP="$(mktemp --suffix=.py)"
+MUTP="plugins/ravenclaude-core/skills/visual-feedback-loop/.mutp-$$.py"
 trap 'rm -f "$MUT" "$MUTP"' EXIT
 sed 's/record\["status"\] = "fail" if deltas else "pass"/record["status"] = "pass"/' \
   plugins/ravenclaude-core/skills/visual-feedback-loop/driver.py >"$MUTP"
