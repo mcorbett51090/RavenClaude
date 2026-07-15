@@ -1296,10 +1296,16 @@ itself an unexamined frame. The **stock macOS toolchain** breaks RavenClaude thr
    never emitted → the hook exits **0**, silently. Same silent/unconditional/every-session profile as the
    layout gate, ×12, and previously unowned.
 
-**Do not claim "macOS supported" until doors 2 and 3 close.** Sequencing: PR1 (this) → PR2 (`timeout` +
-thing-orchestrator + route-decision-review, together) → PR3 (`grep -P`, 12 hooks) → PR4 (a `macos-latest`
-CI runner that **executes** the hooks under `env -i PATH=/usr/bin:/bin` — a static linter catches none of
-doors 2-3 and is type-blind by construction: `${!assoc[@]}` and `${!indexed[@]}` are textually identical).
+~~**Do not claim "macOS supported" until doors 2 and 3 close.**~~ **All four planned PRs shipped**
+(superseded 2026-07-15 — kept as the dated v0.193.0 record). The sequencing below was executed:
+**PR1** (this, v0.193.0) → **PR2** (`timeout`, v0.195.0; the thing-orchestrator half landed separately as
+[#672](https://github.com/mcorbett51090/RavenClaude/pull/672)/v0.197.0) → **PR3** (`grep -P`, 12 hooks,
+v0.196.0) → **PR4** (the `macos-latest` runner, [#679](https://github.com/mcorbett51090/RavenClaude/pull/679)/v0.197.1).
+Two doors not in the original plan were also found and closed: **door 4** (BSD `sed -i`, v0.196.0) and a
+BSD-`sed` hole in a JudgeDeceiver hardener ([#670](https://github.com/mcorbett51090/RavenClaude/pull/670),
+v0.196.1). Original sequencing note, still worth reading for *why* a static linter can't do this job:
+PR4's runner must **execute** the hooks under `env -i PATH=/usr/bin:/bin` — a static linter catches none of
+doors 2-3 and is type-blind by construction (`${!assoc[@]}` and `${!indexed[@]}` are textually identical).
 
 **Migration (macOS consumers only, and it is real):** the layout gate now **actually enforces** on macOS.
 A macOS project that has been writing off-`allowed_globs` paths freely was never being denied — those
@@ -1402,7 +1408,13 @@ timeout either way. If a caller ever needs to distinguish timed-out from failed,
 **unbounded** rather than not at all (a hook that runs without a ceiling beats one that silently no-ops),
 and `_rc_upper` falls back to inline `tr`.
 
-### Still open — door 2 is only half closed, and door 3 is untouched
+### ~~Still open~~ — RESOLVED; door 2 fully closed and door 3 closed (superseded 2026-07-15)
+
+> **SUPERSEDED (v0.199.0).** Both items below closed after this entry was written; the section is kept as
+> the dated v0.195.0 record. **Tribunal → fixed in [#672](https://github.com/mcorbett51090/RavenClaude/pull/672)
+> (v0.197.0)** — the C4 trap navigated, `declare -A` now only in warning comments `[verified 2026-07-15]`.
+> **Door 3 → closed in v0.196.0** (`_rc_pcre_match` via stock `/usr/bin/perl`). See the v0.196.0 entry's
+> supersession note for the full current state, including doors 4 and the BSD-`sed` hardener hole.
 
 - **`thing-orchestrator.sh` (the command-review tribunal) is NOT fixed here.** It needs the `timeout`
   shim **and** a rewrite of its 7 role-keyed `declare -A` maps (`:298`, `:474`) across **~50 call sites**
@@ -1414,7 +1426,8 @@ and `_rc_upper` falls back to inline `tr`.
 - **Door 3 — BSD `grep` has no `-P`** (exit 2): **12** `check-*-anti-patterns.sh` hooks across 12 plugins
   silently never fire. Unowned.
 
-**Do not claim "macOS supported" until the tribunal and door 3 close.**
+~~**Do not claim "macOS supported" until the tribunal and door 3 close.**~~ **Both closed** (#672 /
+v0.196.0) — this gate is met. See the v0.196.0 supersession note for what "macOS supported" now rests on.
 
 **Migration:** none — additive helper + two call-site swaps. Linux/CI behavior is byte-identical
 (`timeout` is present there, so branch 1 is taken exactly as before).
@@ -1471,14 +1484,35 @@ portable `grep -Eiq` and were never affected — these 12 were the outliers that
 `assert_hook_fires` / `assert_hook_silent`. **None of these 12 is gated.** And a Linux gate would not
 have caught it anyway — `grep -P` works there. **Only a `macos-latest` runner that EXECUTES the hooks
 under `env -i PATH=/usr/bin:/bin` catches this class**, which is why that runner (not a static linter)
-is the load-bearing regression gate. Still open.
+is the load-bearing regression gate. ~~Still open.~~ **Shipped** — see the supersession note below.
 
-**All three doors are now closed.** What remains before "macOS supported" is honest:
-1. **`thing-orchestrator.sh` (the tribunal)** — needs the door-2 shim **and** a rewrite of its 7
-   role-keyed `declare -A` maps across ~50 call sites, carrying the **C4 trap** (deleting `declare -A`
-   alone silently collides every role key on index 0). Deliberately unrushed.
-2. **The `macos-latest` CI runner** — without it, all three doors can regress silently, exactly as they
-   did.
+> **SUPERSEDED (v0.199.0, 2026-07-15) — both "remaining" items below have shipped. Read this note, not
+> the list.** The two-item list was accurate at **v0.196.0** and is **stale now**; it is kept as the dated
+> historical record per this file's convention (cf. the v0.114.0 entry). Current state:
+>
+> 1. **`thing-orchestrator.sh` — FIXED.** [`fix(security): the command-review tribunal now runs on macOS
+>    (bash 3.2)` (#672)](https://github.com/mcorbett51090/RavenClaude/pull/672), **v0.197.0**. The C4 trap
+>    was navigated, not dodged: `declare -A` now appears in that file **only inside comments warning
+>    against re-introducing it** `[verified 2026-07-15 — no live-code match]`, and the seat calls go
+>    through `_rc_timeout` (door 2's shim) with an inline fallback stub. [`fix(ci): doors 6+7 — the 4
+>    gates the tribunal fix unmasked` (#674)](https://github.com/mcorbett51090/RavenClaude/pull/674)
+>    cleaned up behind it (v0.197.1).
+> 2. **The `macos-latest` CI runner — SHIPPED.** [`feat(ci): run the macOS portability gate on
+>    macos-latest` (#679)](https://github.com/mcorbett51090/RavenClaude/pull/679), **v0.197.1** —
+>    `.github/workflows/validate-macos.yml`, `runs-on: macos-latest` `[verified 2026-07-15]`. Gate 131
+>    also runs it locally (LOUD-skips on Linux).
+>
+> Two more doors were found and closed after this entry was written: **door 4** (BSD `sed -i` killed
+> `audit-gates` at gate 7 of 87 — v0.196.0) and a **BSD `sed`** hole that silently disabled a
+> JudgeDeceiver hardener layer ([#670](https://github.com/mcorbett51090/RavenClaude/pull/670), v0.196.1).
+>
+> **Why this note exists, and it is not bookkeeping.** On 2026-07-15 an agent read the stale list, took
+> it at face value, and told the maintainer **twice** that his command-review tribunal was broken on
+> macOS — while it had been working since v0.197.0. That is this repo's own Claim-Grounding failure mode
+> (a confident claim sourced from an unverified prior) landing on the repo's own constitution, and the
+> reader it fooled was the constitution's primary audience: an agent. **A stale "Still open" in a file
+> every session loads is an active defect, not a bookkeeping lag.** When you close a door, supersede the
+> entry that says it's open in the same PR.
 
 **Migration:** none — the 12 hooks are **advisory** (exit 0 + a notice) and were emitting *nothing* on
 macOS. They now emit real findings there. Linux/CI is unchanged in outcome (perl and `grep -P` agree on
