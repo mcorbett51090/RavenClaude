@@ -1418,3 +1418,68 @@ and `_rc_upper` falls back to inline `tr`.
 
 **Migration:** none — additive helper + two call-site swaps. Linux/CI behavior is byte-identical
 (`timeout` is present there, so branch 1 is taken exactly as before).
+
+## macOS door 3 — BSD `grep` has no `-P`, so 12 anti-pattern hooks never fired (added 2026-07-15, v0.196.0)
+
+The last of the three stock-macOS doors (door 1 — bash 3.2 in the layout gate — v0.193.0; door 2 —
+absent `timeout` — v0.195.0). **`grep -P` is a GNU extension.** BSD/macOS grep exits **2**
+(`invalid option -- P`) `[verified]`, and inside the callers' shape —
+`if grep -Pzi "…" "$file"; then findings+=(…); fi` — an exit of **2 reads as NO MATCH**. The finding is
+never emitted and the hook exits **0**.
+
+**14 call sites across 12 `check-*-anti-patterns.sh` hooks in 12 plugins.** They were in two states,
+both amounting to **zero coverage on macOS**:
+
+| State | Hooks | Behavior on macOS |
+|---|---|---|
+| No probe | 10 | **silent** on bad *and* good input — completely dead |
+| `_pcre_ok` probe (from a 2026-07 review) | 2 | "fires" on bad **and good** — the only output is a *"checks skipped — install GNU grep"* advisory. Honest, but still no detection. |
+
+**Measured before/after** under `env -i PATH=/usr/bin:/bin` on known-bad/known-good fixtures:
+
+```
+BEFORE  terraform-iac         bad=silent  good=silent    <- dead
+BEFORE  database-engineering  bad=FIRES   good=FIRES     <- advisory noise, not detection
+AFTER   terraform-iac         bad=FIRES   good=silent    <- real detection
+AFTER   database-engineering  bad=FIRES   good=silent
+```
+
+### Why perl, and not "install GNU grep"
+
+The `_pcre_ok` advisory told the user to install GNU grep. That is **the same fragility this whole
+macOS effort exists to remove** — it only moves the failure to every mac without it, exactly as a
+`#!/usr/bin/env bash` shebang moves it to every mac without a homebrew bash. **Perl *is* the PCRE
+engine** (the `P` in `grep -P`) and is **stock on macOS** at `/usr/bin/perl`, so
+**`_rc_pcre_match`** (in [`hooks/_portable.sh`](hooks/_portable.sh)) gives **real coverage with no
+install step**. The probe + advisory branches are retired.
+
+`grep -E` was **not** an option: **12 of the 14 patterns use `(?!…)` negative lookahead** and 10 use
+`[\s\S]` multiline — neither is expressible in POSIX ERE. (The other 32 anti-pattern hooks already use
+portable `grep -Eiq` and were never affected — these 12 were the outliers that needed real PCRE.)
+
+**Two engineering details that keep this honest:**
+- **Pattern quoting is byte-identical.** Each pattern stayed in its original double quotes; re-quoting
+  `"\\s"` as `'\s'` would change what the shell hands the regex engine — that is how you silently break
+  14 regexes while every test still passes.
+- **The `BEGIN{$m=1}/END{exit $m}` flag is load-bearing.** With `-0777` an **empty file** yields zero
+  records, so a naive `perl -0777 -ne 'exit 0 if /…/'` never runs the body and exits **0 = match**.
+  `[verified: empty file → no-match]`
+
+### Why this survived: the 12 have NO gate coverage
+
+`audit-gates.sh` gates the `finance` / `web-design` / `edtech` anti-pattern hooks with
+`assert_hook_fires` / `assert_hook_silent`. **None of these 12 is gated.** And a Linux gate would not
+have caught it anyway — `grep -P` works there. **Only a `macos-latest` runner that EXECUTES the hooks
+under `env -i PATH=/usr/bin:/bin` catches this class**, which is why that runner (not a static linter)
+is the load-bearing regression gate. Still open.
+
+**All three doors are now closed.** What remains before "macOS supported" is honest:
+1. **`thing-orchestrator.sh` (the tribunal)** — needs the door-2 shim **and** a rewrite of its 7
+   role-keyed `declare -A` maps across ~50 call sites, carrying the **C4 trap** (deleting `declare -A`
+   alone silently collides every role key on index 0). Deliberately unrushed.
+2. **The `macos-latest` CI runner** — without it, all three doors can regress silently, exactly as they
+   did.
+
+**Migration:** none — the 12 hooks are **advisory** (exit 0 + a notice) and were emitting *nothing* on
+macOS. They now emit real findings there. Linux/CI is unchanged in outcome (perl and `grep -P` agree on
+these patterns; verified on 6 real-pattern fixtures incl. the empty-file edge).
