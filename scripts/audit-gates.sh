@@ -4098,6 +4098,22 @@ rm -f "$_mmut"
 gate "workflow-mirror byte-identity (one-sided drift caught)" must_fail "$rc"
 
 echo
+echo "── Gate 131: macOS portability runner (executes hooks on a stock mac; LOUD-skips on Linux) ──"
+# The three stock-macOS doors (bash 3.2 / absent `timeout` / BSD grep -P) are INVISIBLE on
+# ubuntu — all three shipped green here for months. This gate's teeth live on macos-latest
+# (.github/workflows/validate-macos.yml). On Linux it can only assert the script is present
+# and runnable; a Linux "pass" is NOT evidence a door is closed, and the script says so
+# itself when it LOUD-skips. Same discipline as Gate 10's actionlint skip.
+rc=0; bash -n scripts/check-macos-portability.sh || rc=$?
+gate "macos-portability script: syntax" must_pass "$rc"
+rc=0; bash scripts/check-macos-portability.sh >/dev/null 2>&1 || rc=$?
+gate "macos-portability script: runs (LOUD-skip on Linux, real gate on Darwin)" must_pass "$rc"
+# teeth: a syntactically broken script must fail the syntax gate
+_mp_mut="$(mktemp)"; { cat scripts/check-macos-portability.sh; echo "if ["; } > "$_mp_mut"
+rc=0; bash -n "$_mp_mut" 2>/dev/null || rc=$?
+gate "macos-portability: teeth (broken script is caught)" must_fail "$rc"
+rm -f "$_mp_mut"
+
 echo "── Gate 129: eval scoring harness self-test (evals/runner.py) ─────────────"
 # The eval harness was listed as a validate-marketplace build trigger but nothing in
 # CI ever ran it, so a regression in the four score_* functions (or _tiny_yaml) would
