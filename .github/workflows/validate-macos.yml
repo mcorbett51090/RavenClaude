@@ -1,0 +1,66 @@
+name: Validate macOS
+
+# WHY THIS WORKFLOW EXISTS
+# -----------------------
+# Three stock-macOS defects shipped and stayed GREEN in CI for months, because every
+# other workflow runs on ubuntu — which has bash 5, coreutils, and GNU grep, so all
+# three doors are invisible there:
+#
+#   door 1  bash 3.2      `shopt -s globstar` -> exit 1 -> enforce-layout silently
+#                         no-opped every macOS session; the layout gate was BYPASSED.
+#   door 2  no `timeout`  coreutils absent -> exit 127 -> route-decision-review's engine
+#                         was never consulted; every routed yes/no silently auto-allowed.
+#   door 3  BSD grep      no `-P` -> exit 2 -> reads as NO MATCH inside `if grep -Pzi`;
+#                         12 anti-pattern hooks silently never fired.
+#
+# `bash -n` cannot catch any of them (valid syntax, runtime failure, conditional paths),
+# and a static linter cannot either — doors 2-3 are an ABSENT BINARY and a FLAG
+# difference, not bash constructs. The only thing that catches this class is EXECUTING
+# the hooks on a real stock-macOS toolchain. That is this workflow's whole job.
+#
+# COST: macOS runners bill at 10x ubuntu minutes, so this is paths-filtered to the shell
+# surface it protects. It is NOT part of validate-marketplace.
+
+on:
+  pull_request:
+    paths:
+      - "plugins/**/hooks/**"
+      - "scripts/check-macos-portability.sh"
+      - ".github/workflows/validate-macos.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "plugins/**/hooks/**"
+      - "scripts/check-macos-portability.sh"
+      - ".github/workflows/validate-macos.yml"
+  workflow_dispatch:
+
+# Least-privilege GITHUB_TOKEN: this workflow only reads the repo to validate it.
+permissions:
+  contents: read
+
+jobs:
+  macos-portability:
+    name: Hooks run on a stock macOS toolchain (bash 3.2 / no coreutils / BSD grep)
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      # Recorded so a future image change is visible in the log rather than inferred from
+      # a mystery failure. The gate itself ASSERTS these and fails red if the baseline
+      # moves — a runner that quietly gains bash 4 would stop testing what it claims to.
+      - name: Record the toolchain baseline
+        run: |
+          echo "uname:      $(uname -s) $(uname -r)"
+          echo "/bin/bash:  $(/bin/bash --version | head -1)"
+          echo "timeout:    $(command -v timeout || echo 'absent (expected on stock macOS)')"
+          echo "grep -P:    $(printf x | /usr/bin/grep -P x >/dev/null 2>&1 && echo 'present (UNEXPECTED)' || echo 'absent (expected — BSD grep)')"
+          echo "perl:       $(command -v perl || echo 'ABSENT — the portability shim needs this')"
+
+      # Runs the real hooks under `env -i PATH=/usr/bin:/bin` with /bin/bash, and carries
+      # a must-fail half per door (re-introduce the defect, assert we catch it). Exits
+      # non-zero if any stock-macOS door is open.
+      - name: Prove every macOS door is closed
+        run: bash scripts/check-macos-portability.sh
