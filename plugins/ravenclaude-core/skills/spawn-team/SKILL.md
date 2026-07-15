@@ -1,6 +1,6 @@
 ---
 name: spawn-team
-description: Team Lead dispatch playbook. Given a feature or task, decide which specialized agents to dispatch, prepare their briefs, allocate worktrees, run them in the right order, and re-route on blockers. Load this skill whenever you (the Team Lead) are about to dispatch more than one agent on a request. Keeps routing consistent across sessions and avoids re-deriving the workflow each time.
+description: Team Lead dispatch playbook. Given a feature or task, decide which specialized agents to dispatch, prepare their briefs, allocate worktrees, run them in the right order, and re-route on blockers. Load this skill whenever you (the Team Lead) are about to dispatch more than one agent on a request — and also when you are weighing whether a request warrants delegation at all, since Step 1.5 argues that fork in both directions and the current model under-spawns by default. Keeps routing consistent across sessions and avoids re-deriving the workflow each time.
 ---
 
 # Skill: spawn-team
@@ -20,6 +20,49 @@ Write down, in your own words:
 - What's *out* of scope (explicit, to prevent drift).
 
 If you can't write these in three minutes, the request is unclear — ask the user before spawning anyone.
+
+---
+
+## Step 1.5 — Decide *whether* to delegate at all (this fork runs both ways)
+
+Every other lever in this playbook bounds you from spawning **too much**: the `parallelism` cap (Step 5)
+bounds breadth, the runaway brake bounds depth, [`agent-routing.md`](../../knowledge/agent-routing.md)'s
+tradeoffs table prices every specialist as a **"spawn cost"** to be justified, `guard-recursive-spawn.sh`
+warns on nesting, and the briefs carry reporting caps. Over-delegation is a real failure mode and it is
+well covered.
+
+**It is not the failure mode this model has.** *"Claude Opus 4.8 tends to spawn fewer subagents by
+default. However, this behavior is steerable through prompting; give Claude Opus 4.8 explicit guidance
+around when subagents are desirable"* — [Prompting Claude Opus 4.8](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-4-8),
+retrieved 2026-07-15. Stack an under-spawning model on a playbook whose every other lever restrains
+fan-out and the two **compound**: the model hesitates and the harness agrees with it. This step is the
+counterweight, and it is the only place here that argues *for* dispatch.
+
+**Do it yourself — don't spawn.** You can finish it in a single response: trivial Q&A, a ≤10-line
+single-file tweak, a refactor of a function already in your context, or anything where writing the brief
+costs more than doing the work. (This is the `(none — Team Lead direct)` row of the tradeoffs table.)
+
+**Spawn — and spawn several in the same turn — when any of these hold:**
+
+- **Fan-out across items.** N independent files, plugins, branches, or findings to read or check.
+  Dispatch N subagents in **one turn**. Reading all N into your own context yourself, or looping them
+  serially, is the under-delegation tell — not thrift.
+- **A gate owns it.** `security-reviewer`, `tester-qa`, `code-reviewer` are gates, not opinions. Doing
+  their job yourself doesn't save a dispatch; it removes the gate.
+- **Fresh context beats yours.** For verifying work *you* just did, a subagent that never saw you do it
+  is the point — self-critique inherits your premises. FORGE's G4a critic exists for exactly this.
+- **Context you shouldn't hold.** Bulk reading that would crowd your window is the cheapest thing to
+  delegate; the subagent returns the conclusion, not the transcript.
+
+**What this does NOT relax.** The `parallelism` cap still binds (Step 5) — honor the configured breadth.
+Sub-agents still never spawn peers (single-orchestrator, [`agent-collaboration.md`](../../rules/agent-collaboration.md)).
+The routing tree still decides **which** specialist. This step decides only **whether**, and "spawn more"
+is never a licence to skip the cap, the tree, or the shape choice in Step 2.
+
+**Re-check the direction on a model swap.** This counterweight is calibrated to Opus 4.8's under-spawn
+default. **Fable 5 inverts it** — it *"dispatches parallel subagents more readily than prior models"*
+`[Prompting Claude Fable 5, retrieved 2026-07-15]` — so on Fable the restraining levers do the work and
+this step needs re-reading, not copying.
 
 ---
 
