@@ -1203,3 +1203,283 @@ What a repo *can* add — so the agent auto-knows **which** of the user's projec
 - **Gate 123** — bidirectional: surfaces-when-bound / guides-when-half-set / silent-when-absent / leak-safe / a must-fail half that neuters the design block and asserts the line disappears.
 
 This repo dogfoods it: `.ravenclaude/design-project.json` binds RavenClaude to its **"RavenClaude Design System"** project (dashboard + portal UI kits, tokens, core components). **Migration:** none — the binding file is optional (absent ⇒ banner unchanged), `/design-link` is opt-in, and access is platform-level; nothing in a consumer's installed plugin changes on `/plugin marketplace update` until they bind a project.
+
+## FORGE token efficiency — the artifact contract + progressive disclosure (added 2026-07-15, v0.192.0)
+
+`/forge` got measurably cheaper **without touching what any gate reasons over**. Two structural levers
+and one honest non-lever:
+
+1. **The artifact contract (§0 of [`skills/forge-pipeline/SKILL.md`](skills/forge-pipeline/SKILL.md)) —
+   the load-bearing change.** Gate payloads were being *relayed through the orchestrator*: G2/G3 each
+   "returned a complete phased plan", the session wrote `plan-A.md`/`plan-B.md`, and G4a/G5/G6 then
+   needed those plans again. So two full plans + the critic brief + the red-team sat **resident** in
+   context through G6 — paid once on return, then **re-paid on every subsequent turn**. Now each gate's
+   subagent **writes its own artifact** to the run dir and returns a **receipt only**
+   (`{gate,status,artifact,bytes,digest[≤5],blockers,confidence}`); a downstream gate is handed the
+   **path** and reads it itself. Every gate sees the **identical bytes** — the payload was never the
+   pass signal (fail-closed routes on `status` + `blockers` + non-empty artifact), so this is free.
+2. **Progressive disclosure.** The SKILL was loaded whole at every depth — a `micro` run paid ~3.7K
+   tokens to run three gates, including the standard-only critic/red-team text, the deep-only resume
+   rules, and a repo-specific CI regen list. Core now holds only the contract + ladder + the gates
+   every depth runs; the rest moved to `reference/` (`gates-standard.md`, `deep-resume.md`,
+   `regen-discipline.md`, `provenance.md`), loaded **only** when the depth reaches them.
+   [`commands/forge.md`](commands/forge.md) — which called itself "the thin entry" while restating all
+   11 gates — is now genuinely thin (1,612 → 567 tok).
+
+   Fixed prompt per invocation: **5,282 → 3,405 tok at the default `quick` depth (−35%)**; 4,219 at
+   standard (−20%), 4,577 at deep (−13%) — measured, char/4. The saving is largest exactly where the
+   pipeline is meant to be run most (`quick` is the default), and the deep runs that give back the most
+   fixed-prompt saving are the ones the §0 contract saves the most *resident* context on.
+
+3. **Deliberately NOT done:** trimming `ultrathink` off the critic/red-team, or collapsing G3 into a
+   review-of-A instead of an independent second plan. Both cut tokens by deleting the cross-model
+   divergence and adversarial depth FORGE exists for. §3 now says so explicitly, so a future
+   cost-cutting pass doesn't reach for them.
+
+**Latent bug fixed in passing:** the regen list told agents to run `scripts/generate-repo-guide.py` —
+**deleted in v0.124.0** along with `repo-guide.html` (Gate 11 retired; see `scripts/audit-gates.sh:761`),
+so the instruction had been dead for months — and it omitted the live `generate-index-dashboard.py`
+freshness gate. Corrected against the actual harness, with a staleness note pointing at
+`audit-gates.sh` as the source of truth.
+
+**Migration:** none — no gate semantics, no flag, no artifact path, and no skill/agent count changed;
+`/forge`'s behavior and outputs are the same, it just stops paying for them twice.
+
+## macOS: the layout gate was silently bypassed on every session (added 2026-07-15, v0.193.0)
+
+macOS ships **bash 3.2.57** at `/bin/bash` (frozen at GPLv2) and is a first-class Claude Code platform.
+`hooks/enforce-layout.sh:28` ran `shopt -s extglob globstar nullglob` — **`globstar` is bash 4.0+**.
+Under `set -e` an invalid shopt option exits **1**, and Claude Code treats a hook exit ≠ 2 as a
+**non-blocking error** — so the hook **silently no-opped on every macOS session** and the layout gate
+(one of the repo's two enforcement layers) was **bypassed**, leaving CI as the only net. The same file's
+three `mapfile` calls (bash 4.0, exit **127**) were unreachable behind it.
+
+**The fix is one word + three mechanical rewrites**, and `globstar` was never needed: `enforce-layout.sh`
+**documents in its own comment** that `shopt -s globstar` is *inert* inside `[[ == ]]` (`**` collapses to
+two `*` metacharacters). `extglob`/`nullglob` are 3.2-valid `[verified]`. `mapfile -t x < <(cmd)` →
+a 3.2-safe `while IFS= read -r` loop, with `|| [[ -n "$_line" ]]` to preserve mapfile's handling of a
+final line with no trailing newline.
+
+**Proof:** Gate 6 was **4/8 red** on macOS and is now **8/8 green**. Its deny subtests were previously
+passing with **exit=1** — green *for the wrong reason* (the hook was **crashing**, not denying); they now
+pass with **exit=2**, a real deny. Half that gate's teeth were fake on macOS.
+
+### Why `bash -n` never caught it
+The constructs are **syntactically valid** and fail at **runtime**, on **conditional code paths**, and CI
+runs Linux bash 5. `bash -n` (the repo's shell check) cannot see any of it — which is exactly why this
+shipped and survived.
+
+### The exit-code mechanics (they decide severity, and they are counter-intuitive)
+| Construct | Failure kind | Exit under `set -e` | Real behavior |
+|---|---|---|---|
+| `declare -A` | invalid **builtin option** | **2** | **BLOCKS** — fails CLOSED, loud, *safe* |
+| `shopt -s globstar` | invalid **shopt option** | **1** | **silent fail-open** |
+| `mapfile` | **command not found** | **127** | silent fail-open |
+| `${v^^}` | bad substitution | **1** | silent fail-open |
+
+The loud one (`declare -A`, which is what gets *reported*) is the safe one. The silent fail-opens are the
+dangerous ones and nobody reports them — because nothing is reported.
+
+### Not fixed here — bash 3.2 is one of THREE doors `[all verified 2026-07-15]`
+A FORGE `standard` run (`.ravenclaude/runs/forge/macos-bash32/`) found that "rewrite to bash 3.2" was
+itself an unexamined frame. The **stock macOS toolchain** breaks RavenClaude through three doors:
+
+1. **bash 3.2** — this PR fixes the one file where the bash fix is *complete on its own*.
+2. **`timeout` is ABSENT** on stock macOS (exit **127**) — 4 hooks depend on it, including
+   `thing-orchestrator.sh:313`. **Consequence:** fixing `thing-orchestrator.sh`'s `declare -A` alone is a
+   *no-op or worse* — every seat abstains → panel abstain → T5 fail-closed **DENY**; the tribunal stays
+   bricked, just politer. `route-decision-review.sh:194`'s `${verdict^^}` is **unreachable** for the same
+   reason (`:110`'s `timeout 80 python3` exits 127 → `|| echo ''` → `emit_allow`), so fixing it alone is a
+   literal no-op. **These MUST bundle with the `timeout` fix.**
+3. **BSD `grep` has no `-P`** (exit **2**, `invalid option -- P`) — **12** `check-*-anti-patterns.sh` hooks
+   across 12 plugins do `if grep -Pzi …; then findings+=(…); fi` → the `if` goes **false** → the finding is
+   never emitted → the hook exits **0**, silently. Same silent/unconditional/every-session profile as the
+   layout gate, ×12, and previously unowned.
+
+**Do not claim "macOS supported" until doors 2 and 3 close.** Sequencing: PR1 (this) → PR2 (`timeout` +
+thing-orchestrator + route-decision-review, together) → PR3 (`grep -P`, 12 hooks) → PR4 (a `macos-latest`
+CI runner that **executes** the hooks under `env -i PATH=/usr/bin:/bin` — a static linter catches none of
+doors 2-3 and is type-blind by construction: `${!assoc[@]}` and `${!indexed[@]}` are textually identical).
+
+**Migration (macOS consumers only, and it is real):** the layout gate now **actually enforces** on macOS.
+A macOS project that has been writing off-`allowed_globs` paths freely was never being denied — those
+writes will now be **denied** (exit 2) with a suggested location. That is the hook working as designed;
+if the paths are legitimate, add them to `.repo-layout.json` `allowed_globs`. Linux/CI behavior is
+unchanged. No other platform is affected.
+## FORGE's "shared rubric" (F7) was false — corrected in all three files (added 2026-07-15, v0.194.0)
+
+Tiebreak F7 claimed FORGE shares the two-panel lens definitions, the P0/P1 severity rubric, and the
+routing-signal schema with the two-panel workflow "via a common constants module (one source of truth)".
+**False in every part** `[verified 2026-07-15]`: the workflow's `DEFAULT_SEVERITY_RUBRIC`,
+`DEFAULT_PANEL1_LENSES`, `DEFAULT_PANEL2_LENSES`, `GAP_SCHEMA` and `ROUTING_SCHEMA` are **module-private
+consts** (only `export const meta` is exported — nothing can import them), no shared module exists, and
+forge-pipeline carried no lens or severity text at all.
+
+**Corrected in all three files that asserted it** — [`skills/forge-pipeline/reference/provenance.md`](skills/forge-pipeline/reference/provenance.md)
+(F7 itself), [`skills/two-panel-plan-review/SKILL.md`](skills/two-panel-plan-review/SKILL.md), and
+[`knowledge/dynamic-workflows.md`](knowledge/dynamic-workflows.md) — plus the F7 instruction bullet
+deleted from [`commands/forge.md`](commands/forge.md).
+
+**The rubric was deliberately NOT ported, and the reasoning is recorded in-repo so a future reader
+doesn't "close the gap":** P0/P1/P2's tiers are anchored to build/merge semantics ("must-fix before
+merge", "blocks PR approval") that are meaningless when comparing two *unbuilt drafts*; the lens list is
+authored for reviewing a *pre-written* plan (different input contract) and ~half is already covered
+structurally (G1 ≈ evidence, the panels' acceptance tests ≈ testability, G4a's premise attack ≈ devil's
+advocate); and G4b's "top-N highest-impact" cap **demonstrably executes without a formal scale**.
+
+**One real gap fixed:** G5's loop-back trigger (`reference/gates-standard.md`) is the *only* place
+severity mechanically routes — a control-flow branch needs a bar, so it now has one, in G5's own words,
+standard+-only (micro/quick cost unchanged).
+
+### How this was found — the pipeline caught its own author
+
+Run `.ravenclaude/runs/forge/rubric-f7-fix/` (FORGE `standard`, dogfooding v0.192.0's artifact
+contract: every gate wrote its own artifact and returned a receipt; ~100 KB of plans never entered the
+orchestrator's context). The originating recommendation was *"port the severity rubric, skip the lenses,
+rewrite F7."* **G4a — the correlated-error critic — overturned most of it** by attacking the
+orchestrator's framing, which both panels had inherited verbatim:
+
+- The claim lived in **three** files; both panels' acceptance greps were scoped to `forge-pipeline/`
+  (inherited from the framing), so **both DoDs would have passed green** while two shipped files kept
+  asserting the falsehood one hop away. This is precisely the correlated error a disagreement-keyed
+  gap-delta structurally cannot see.
+- The stated rationale ("cross-model ranking inconsistency") was **fabricated** — G4b is executed once,
+  by one orchestrator; nothing ranks twice.
+- **Falsified empirically by the run itself:** its own gap-delta ranked 12 gaps and capped at 5 sensibly
+  **with no rubric**. Zero observed failures across FORGE's run history.
+
+**The critic was not authority either** — two of its findings were falsified by verification and are
+recorded in the run's `tiebreaks.md`: Gate 126 is a *file-mirror* gate and does not bear on the routing
+enum, and `"common constants module"` was **real** at `commands/forge.md:83` until v0.192.0 deleted it
+(the critic inferred fabrication from a disk-only read without checking git history — the same
+incomplete-read error class it correctly caught in us).
+
+**Two latent defects surfaced by the red-team, both fixed:**
+
+1. `check-md-links.py` **skips inline code spans before link extraction** (`strip_code()`), so a path in
+   backticks is **never validated on any host**. Reproduced directly: the identical broken path exits 1
+   as a link and 0 in backticks. Every shipped citation of the workflow is now a **link**, so Gate 29
+   actually checks it — and points at the **shipped** `skills/two-panel-plan-review/` copy, not the
+   marketplace-only `.claude/workflows/` path a consumer does not have.
+2. `check-md-links.py:88` used PEP-604 (`Path | None`) with no `from __future__ import annotations` →
+   **TypeError on Python 3.9**, making Gate 29 unrunnable locally (CI's python3 is 3.10+, so CI stayed
+   green — which is what made it easy to miss). One-line fix; teeth verified preserved.
+
+**Migration:** none — documentation corrections plus one severity bar and a one-line lint fix. No gate
+semantics, flag, artifact path, or count changed; skill count stays 48. Zero `.js` bytes touched, so
+Gate 126's byte-identity mirror is untouched.
+
+## macOS door 2 — `timeout` is absent, and it silently disarmed decision-review (added 2026-07-15, v0.195.0)
+
+The second of the three stock-macOS doors (door 1 — bash 3.2 in the layout gate — shipped in v0.193.0).
+**GNU coreutils `timeout` is ABSENT on stock macOS** `[verified: exit 127]`. Inside the repo's usual
+`out="$(timeout N cmd)" || echo ''` shape that is not a timeout — it is **command-not-found**, so the
+caller silently takes its **error path on every macOS session**:
+
+- `route-decision-review.sh:110` — `timeout 80 python3 "$engine"` → 127 → `|| echo ''` → `out=''` →
+  **`emit_allow`**. The decision-review tribunal was **never consulted**; every routed yes/no silently
+  allowed. `decision_review: binding` is on in this repo, so this was live.
+- `agent-dispatch-evaluator.sh:125` — the `claude -p` probe silently took its error path.
+
+**Proof (the exact shape `:110` uses, under `env -i PATH=/usr/bin:/bin`):** bare `timeout` → `out=[]`
+(engine never consulted); `_rc_timeout` → a real verdict JSON.
+
+### The fix: `hooks/_portable.sh` (a sourced helper, `_`-prefixed like `_scrub.sh` / `_emit-event.sh`)
+
+- **`_rc_timeout SECS CMD…`** resolves `timeout` → `gtimeout` → **`perl`** (stock on macOS at
+  `/usr/bin/perl`; `alarm` survives `execve` and SIGALRM's disposition resets to terminate) → unbounded.
+  Verified with **no coreutils on PATH**: `_rc_timeout 1 sleep 10` returns in **~1s**, not 10.
+- **`_rc_upper STR`** replaces `${verdict^^}` (bash 4.0; on 3.2 a "bad substitution" → exit 1 → a
+  **silent fail-open**), via POSIX `tr`.
+
+**Exit-code contract, stated honestly:** GNU `timeout` returns **124** on expiry; the perl fallback
+surfaces **142** (128+SIGALRM). **No caller in this repo branches on 124** `[verified: no `-eq 124` /
+`= 124` test exists in any hook]` — every one treats non-zero as abstain/error, which is correct for a
+timeout either way. If a caller ever needs to distinguish timed-out from failed, fix it **in the helper**
+(a fork+waitpid shim can return 124), not by assuming GNU semantics at the call site.
+
+**Fail-safe everywhere:** an absent `_portable.sh` degrades each caller to a stub — `_rc_timeout` runs
+**unbounded** rather than not at all (a hook that runs without a ceiling beats one that silently no-ops),
+and `_rc_upper` falls back to inline `tr`.
+
+### Still open — door 2 is only half closed, and door 3 is untouched
+
+- **`thing-orchestrator.sh` (the command-review tribunal) is NOT fixed here.** It needs the `timeout`
+  shim **and** a rewrite of its 7 role-keyed `declare -A` maps (`:298`, `:474`) across **~50 call sites**
+  — in a security control, carrying the **C4 trap**: deleting `declare -A` *alone* runs clean and
+  silently collides every role key on index 0 (bash evaluates the subscript arithmetically; `forseti` →
+  unset → 0), turning a loud exit-2 into **silent tribunal corruption** plus arithmetic-eval injection.
+  That rewrite is deliberately **not** rushed in alongside a shim. Note `seen_verdict`'s keys are
+  **untrusted seat output** and need a different treatment (a `sort -u` set) than the closed-key maps.
+- **Door 3 — BSD `grep` has no `-P`** (exit 2): **12** `check-*-anti-patterns.sh` hooks across 12 plugins
+  silently never fire. Unowned.
+
+**Do not claim "macOS supported" until the tribunal and door 3 close.**
+
+**Migration:** none — additive helper + two call-site swaps. Linux/CI behavior is byte-identical
+(`timeout` is present there, so branch 1 is taken exactly as before).
+
+## macOS door 3 — BSD `grep` has no `-P`, so 12 anti-pattern hooks never fired (added 2026-07-15, v0.196.0)
+
+The last of the three stock-macOS doors (door 1 — bash 3.2 in the layout gate — v0.193.0; door 2 —
+absent `timeout` — v0.195.0). **`grep -P` is a GNU extension.** BSD/macOS grep exits **2**
+(`invalid option -- P`) `[verified]`, and inside the callers' shape —
+`if grep -Pzi "…" "$file"; then findings+=(…); fi` — an exit of **2 reads as NO MATCH**. The finding is
+never emitted and the hook exits **0**.
+
+**14 call sites across 12 `check-*-anti-patterns.sh` hooks in 12 plugins.** They were in two states,
+both amounting to **zero coverage on macOS**:
+
+| State | Hooks | Behavior on macOS |
+|---|---|---|
+| No probe | 10 | **silent** on bad *and* good input — completely dead |
+| `_pcre_ok` probe (from a 2026-07 review) | 2 | "fires" on bad **and good** — the only output is a *"checks skipped — install GNU grep"* advisory. Honest, but still no detection. |
+
+**Measured before/after** under `env -i PATH=/usr/bin:/bin` on known-bad/known-good fixtures:
+
+```
+BEFORE  terraform-iac         bad=silent  good=silent    <- dead
+BEFORE  database-engineering  bad=FIRES   good=FIRES     <- advisory noise, not detection
+AFTER   terraform-iac         bad=FIRES   good=silent    <- real detection
+AFTER   database-engineering  bad=FIRES   good=silent
+```
+
+### Why perl, and not "install GNU grep"
+
+The `_pcre_ok` advisory told the user to install GNU grep. That is **the same fragility this whole
+macOS effort exists to remove** — it only moves the failure to every mac without it, exactly as a
+`#!/usr/bin/env bash` shebang moves it to every mac without a homebrew bash. **Perl *is* the PCRE
+engine** (the `P` in `grep -P`) and is **stock on macOS** at `/usr/bin/perl`, so
+**`_rc_pcre_match`** (in [`hooks/_portable.sh`](hooks/_portable.sh)) gives **real coverage with no
+install step**. The probe + advisory branches are retired.
+
+`grep -E` was **not** an option: **12 of the 14 patterns use `(?!…)` negative lookahead** and 10 use
+`[\s\S]` multiline — neither is expressible in POSIX ERE. (The other 32 anti-pattern hooks already use
+portable `grep -Eiq` and were never affected — these 12 were the outliers that needed real PCRE.)
+
+**Two engineering details that keep this honest:**
+- **Pattern quoting is byte-identical.** Each pattern stayed in its original double quotes; re-quoting
+  `"\\s"` as `'\s'` would change what the shell hands the regex engine — that is how you silently break
+  14 regexes while every test still passes.
+- **The `BEGIN{$m=1}/END{exit $m}` flag is load-bearing.** With `-0777` an **empty file** yields zero
+  records, so a naive `perl -0777 -ne 'exit 0 if /…/'` never runs the body and exits **0 = match**.
+  `[verified: empty file → no-match]`
+
+### Why this survived: the 12 have NO gate coverage
+
+`audit-gates.sh` gates the `finance` / `web-design` / `edtech` anti-pattern hooks with
+`assert_hook_fires` / `assert_hook_silent`. **None of these 12 is gated.** And a Linux gate would not
+have caught it anyway — `grep -P` works there. **Only a `macos-latest` runner that EXECUTES the hooks
+under `env -i PATH=/usr/bin:/bin` catches this class**, which is why that runner (not a static linter)
+is the load-bearing regression gate. Still open.
+
+**All three doors are now closed.** What remains before "macOS supported" is honest:
+1. **`thing-orchestrator.sh` (the tribunal)** — needs the door-2 shim **and** a rewrite of its 7
+   role-keyed `declare -A` maps across ~50 call sites, carrying the **C4 trap** (deleting `declare -A`
+   alone silently collides every role key on index 0). Deliberately unrushed.
+2. **The `macos-latest` CI runner** — without it, all three doors can regress silently, exactly as they
+   did.
+
+**Migration:** none — the 12 hooks are **advisory** (exit 0 + a notice) and were emitting *nothing* on
+macOS. They now emit real findings there. Linux/CI is unchanged in outcome (perl and `grep -P` agree on
+these patterns; verified on 6 real-pattern fixtures incl. the empty-file edge).

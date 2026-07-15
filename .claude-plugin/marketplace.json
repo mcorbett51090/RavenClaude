@@ -276,7 +276,7 @@
       "displayName": "RavenClaude Core",
       "source": "./plugins/ravenclaude-core",
       "description": "Domain-neutral Claude Code foundation: 15 specialist agents, 48 skills, gates, hooks, rules, templates. Capability Grounding Protocol, Structured Output Protocol, Researcher meta-skill, comfort-posture dashboard, opt-in command-review tribunal (the Thing), WebFetch sanitizer, branch-archive escape hatch, brand-extraction (homepage → brand kit), Problems & Resolutions view, declarative-visualization (Vega-Lite/Deneb/SVG, Gate 101 + Gate 103 svg-report-lint, viz-spec-reviewer), and Claude orchestrator escape hatch (/claude-orchestrate). Slash commands: /init-agent-ready, /wrap, /set-posture, /dashboard, /forge, /reset-plugin-cache.",
-      "version": "0.192.0",
+      "version": "0.198.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -858,7 +858,7 @@
       "name": "database-engineering",
       "source": "./plugins/database-engineering",
       "description": "Database-engineering team — 4 agents (schema-architect, query-performance-engineer, migration-engineer, db-reliability-engineer) for the OPERATIONAL/transactional data layer (OLTP): relational schema design and normalization (and when to denormalize), indexing strategy and query/EXPLAIN-plan tuning, safe zero-downtime schema migrations (expand/contract), and connection-pooling, transactions/isolation, replication, and backup/restore reliability. Postgres-leaning, principles portable to MySQL/SQL Server; NoSQL access-pattern guidance where it fits. 5 skills, a decision-tree knowledge bank (index-choice + migration-safety trees + a dated 2026 capability map), 12 best-practices, 4 templates, 4 commands, 1 advisory hook. Distinct from data-platform (analytics/ELT/warehouse) and analytics-engineering (dbt). Seams: ELT/warehouse -> data-platform, ORM/app data-access -> backend-engineering, managed DB infra -> cloud plugins. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.3.5",
+      "version": "0.3.6",
       "author": {
         "name": "Matt Corbett"
       },
@@ -881,7 +881,7 @@
       "name": "backend-engineering",
       "source": "./plugins/backend-engineering",
       "description": "Backend-engineering team — 4 agents (backend-architect, service-implementation-engineer, backend-data-access-engineer, backend-reliability-engineer) for the application/service layer behind an API: domain modeling and service boundaries (monolith vs services, where to split), business-logic implementation and error handling, the data-access layer (repository pattern, ORM use, transaction boundaries, killing N+1), caching strategy (cache-aside, invalidation, stampede), background jobs and async messaging (idempotent workers, outbox, DLQs), and backend reliability (timeouts, retries with backoff + jitter, circuit breakers, graceful degradation). Language-agnostic (examples in Node/Python/Go). 6 skills, a decision-tree knowledge bank (service-boundary + cache trees + a dated map), 12 best-practices, 4 templates, 4 commands, 1 advisory hook. Seams: the contract -> api-engineering, the schema/index -> database-engineering, deploy -> devops-cicd. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.3.3",
+      "version": "0.3.4",
       "author": {
         "name": "Matt Corbett"
       },
@@ -927,7 +927,7 @@
       "name": "mobile-engineering",
       "source": "./plugins/mobile-engineering",
       "description": "Mobile-engineering team — 4 agents (mobile-architect, ios-engineer, android-engineer, cross-platform-engineer) for native and cross-platform mobile apps: the native-vs-React-Native-vs-Flutter decision, iOS craft (Swift/SwiftUI, the app lifecycle, concurrency), Android craft (Kotlin/Jetpack Compose, lifecycle, coroutines), and the cross-cutting mobile concerns (offline-first + sync, secure on-device storage, push notifications/deep links, battery/network constraints, and the App Store / Play Store release pipeline + review). 5 skills, a decision-tree knowledge bank (platform-choice + offline-sync trees + a dated 2026 capability map), 12 best-practices, 4 templates, 4 commands, 1 advisory hook. Seams: shared web patterns -> frontend-engineering, the backend API -> api-engineering/backend-engineering, auth -> auth-identity, CI/CD signing -> devops-cicd. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.3.2",
+      "version": "0.3.3",
       "author": {
         "name": "Matt Corbett"
       },
@@ -973,7 +973,7 @@
       "name": "gcp-cloud",
       "source": "./plugins/gcp-cloud",
       "description": "Google Cloud (GCP) infrastructure & platform team — 4 agents (gcp-architect, gcp-iam-engineer, gcp-network-engineer, gcp-data-and-compute-engineer) for the GCP layer of a stack: the resource hierarchy (organization/folders/projects) and org policy constraints, least-privilege IAM (predefined over primitive roles, service accounts + Workload Identity Federation, no key files), VPC networking (Shared VPC, firewall rules, Private Service Connect, Cloud NAT), compute selection (Cloud Run / GKE / Cloud Functions / GCE), and the data services (BigQuery, Pub/Sub, Cloud SQL) at a selection level. 5 skills, a decision-tree knowledge bank (compute-selection + project-hierarchy trees + a dated 2026 capability map), 12 best-practices, 4 templates, 4 commands, 1 advisory hook. Multi-cloud seam to aws-cloud/azure-cloud; IaC -> terraform-iac; BigQuery analytics -> data-platform; security verdicts -> ravenclaude-core/security-reviewer. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.3.4",
+      "version": "0.3.5",
       "author": {
         "name": "Matt Corbett"
       },
@@ -996,7 +996,7 @@
       "name": "technical-writing-docs",
       "source": "./plugins/technical-writing-docs",
       "description": "Technical-writing & docs team — 3 agents (docs-architect, api-reference-writer, docs-site-engineer) for developer and product documentation that people actually use: the Diataxis framework (tutorial / how-to / reference / explanation — and not mixing them), docs-as-code (docs in the repo, reviewed and CI-checked, versioned with the product), accurate API/SDK reference (spec-driven, examples that run, errors documented), and a maintainable docs site (Docusaurus/Mintlify/MkDocs, IA, search, versioning). Deepens ravenclaude-core/documentarian. 5 skills, a decision-tree knowledge bank (doc-type, docs-tooling, Diataxis content-type, lint-in-CI-vs-manual + a dated 2026 map), a 4-scenario bank, 12 best-practices, 4 templates, 4 commands, 1 advisory hook, a prose-linter LSP tier (Vale-LS + Marksman) and a stdlib readability/prose checker. Seams: dev portal/SDK -> api-engineering, site design -> web-design, prose polish -> ravenclaude-core/documentarian. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.3.2",
+      "version": "0.3.3",
       "author": {
         "name": "Matt Corbett"
       },
@@ -1019,7 +1019,7 @@
       "name": "product-management",
       "source": "./plugins/product-management",
       "description": "Product-management team — 3 agents (product-strategist, product-discovery-lead, product-metrics-analyst) for deciding WHAT to build and WHY: product strategy and vision (positioning, the strategy stack, opportunity sizing), continuous discovery (customer interviews, opportunity-solution trees, assumption testing, JTBD), evidence-based prioritization (RICE/cost-of-delay over opinion), crisp PRDs/specs framed as problems + outcomes, and product metrics (a North Star + input metrics, not vanity). Distinct from project-management (delivery/schedule/RAID) — this is the what/why, that's the how/when. 5 skills, a decision-tree knowledge bank (build-vs-not + prioritization trees + a dated 2026 map), 12 best-practices, 4 templates, 4 commands, 1 advisory hook. Seams: delivery -> project-management, experiment validity -> applied-statistics, UX -> web-design, A/B+flags infra -> experimentation-growth-engineering. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.3.3",
+      "version": "0.3.4",
       "author": {
         "name": "Matt Corbett"
       },
@@ -1042,7 +1042,7 @@
       "name": "experimentation-growth-engineering",
       "source": "./plugins/experimentation-growth-engineering",
       "description": "Experimentation & growth-engineering team — 3 agents (experimentation-architect, feature-flag-engineer, product-analytics-instrumentation-engineer) for the APPARATUS that lets a team learn fast and ship safely: feature flags + progressive delivery (kill switches, targeting, flag lifecycle/debt), A/B-test plumbing (assignment, exposure logging, SRM checks, sequential-peeking guards, the results read), and trustworthy event instrumentation (a tracking plan, a consistent event schema, identity stitching, a CDP). The engineering of experimentation — statistical VALIDITY (power/MDE, significance) is applied-statistics'. 5 skills, a decision-tree knowledge bank (flag-vs-config + ship-decision trees + a dated 2026 map), 12 best-practices, 4 templates, 4 commands, 1 advisory hook. Seams: significance -> applied-statistics, hypothesis/outcome -> product-management, rollout -> devops-cicd, pipelines -> data-platform. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.3.2",
+      "version": "0.3.3",
       "author": {
         "name": "Matt Corbett"
       },
@@ -1088,7 +1088,7 @@
       "name": "analytics-engineering",
       "source": "./plugins/analytics-engineering",
       "description": "Analytics-engineering team — 3 agents (analytics-engineer, semantic-layer-engineer, data-quality-testing-engineer) for the TRANSFORMATION layer in the modern data stack: dbt modeling (staging -> intermediate -> marts, the medallion/Kimball split, incremental models, materializations), a governed semantic/metrics layer (one definition of revenue/active-user, metrics-as-code) so every tool agrees, and data quality (dbt tests, freshness, model contracts, anomaly checks) that gates the warehouse. Warehouse-neutral (Snowflake/BigQuery/Redshift/Databricks). 5 skills, a decision-tree knowledge bank (materialization + model-layer trees + a dated 2026 map), 12 best-practices, 4 templates, 4 commands, 1 advisory hook. Distinct from data-platform (ingestion/warehouse/BI) and database-engineering (OLTP). Seams: ELT/warehouse provisioning -> data-platform, OLTP -> database-engineering, BI -> tableau/data-platform, enterprise lakehouse -> microsoft-fabric. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.3.5",
+      "version": "0.3.6",
       "author": {
         "name": "Matt Corbett"
       },
@@ -1134,7 +1134,7 @@
       "name": "ml-engineering",
       "source": "./plugins/ml-engineering",
       "description": "ML-engineering (MLOps) team — 4 agents (ml-platform-architect, training-pipeline-engineer, model-serving-engineer, ml-monitoring-engineer) for the PRODUCTION lifecycle of ML models: the platform/architecture (build-vs-buy, the stack, the train->register->serve->monitor loop), reproducible training pipelines + experiment tracking + a model registry, feature stores and train/serve consistency (avoiding training-serving skew and leakage), model serving (online vs batch, the right deployment with shadow/canary), and monitoring (data + concept drift, performance decay, retraining triggers). 6 skills, a decision-tree knowledge bank (serving-pattern + retraining-trigger trees + a dated 2026 map), 12 best-practices, 4 templates, 4 commands, 1 advisory hook. Seams: 'is the result significant?' -> applied-statistics, data pipelines -> data-platform/data-streaming, LLM/agent apps -> claude-app-engineering, deploy infra -> devops-cicd/cloud-native-kubernetes. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.4.4",
+      "version": "0.4.5",
       "author": {
         "name": "Matt Corbett"
       },
@@ -1157,7 +1157,7 @@
       "name": "data-governance-privacy",
       "source": "./plugins/data-governance-privacy",
       "description": "Data governance & privacy team — 3 agents (data-governance-architect, privacy-compliance-engineer, data-catalog-lineage-engineer) for making data discoverable, trustworthy, and lawfully used: the governance operating model (ownership/stewardship, policies, classification scheme), privacy mechanics (GDPR/CCPA/-style data-subject rights — access/erasure/portability, consent + lawful basis, data minimization, retention, pseudonymization vs anonymization), and a data catalog with lineage + sensitive-data/PII discovery + access governance/DLP. The ENGINEERING of governance, not legal advice. 5 skills, a decision-tree knowledge bank (classification + DSR-handling trees + a dated 2026 map), 12 best-practices, 4 templates, 4 commands, 1 advisory hook. Seams: financial-regulatory -> regulatory-compliance, warehouse RLS -> data-platform, Purview-in-Fabric -> microsoft-fabric, security verdicts -> security-engineering. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.3.3",
+      "version": "0.3.4",
       "author": {
         "name": "Matt Corbett"
       },
@@ -1272,7 +1272,7 @@
       "name": "cloud-native-kubernetes",
       "source": "./plugins/cloud-native-kubernetes",
       "description": "Cloud-native & Kubernetes team — 4 agents (kubernetes-architect, container-build-engineer, k8s-platform-operator, service-mesh-networking-engineer) for running workloads on Kubernetes well: workload design (Deployment/StatefulSet/Job, probes, requests/limits, PDBs, HPA/VPA), container build hygiene (minimal non-root images, distroless, multi-stage), platform ops (namespaces, RBAC, network policies, resource quotas, admission control, upgrades), and service-mesh networking (ingress/gateway, mTLS, traffic-splitting, observability). Cloud-agnostic. 6 skills, a decision-tree knowledge bank (workload-type + ingress trees + a dated 2026 ecosystem map), 12 best-practices, 4 templates, 4 commands, 1 advisory hook. Seams: managed control plane (AKS/EKS/GKE) -> azure/aws/gcp-cloud, GitOps reconcile -> devops-cicd, telemetry/SLOs -> observability-sre. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.3.6",
+      "version": "0.3.7",
       "author": {
         "name": "Matt Corbett"
       },
@@ -1295,7 +1295,7 @@
       "name": "terraform-iac",
       "source": "./plugins/terraform-iac",
       "description": "Terraform & IaC team — 3 agents (iac-architect, terraform-module-engineer, iac-policy-and-state-engineer) for cloud-agnostic infrastructure-as-code: module design (composable, versioned, registry-published, the root-vs-child split), remote state and backend safety (locking, isolation by blast radius, no secrets in state), environment promotion (workspaces vs directories vs Terragrunt), drift detection, and policy-as-code guardrails (OPA/Sentinel/Conftest) in the plan pipeline. Terraform + OpenTofu. 5 skills, a decision-tree knowledge bank (state-isolation + module-boundary trees + a dated 2026 tooling map), 12 best-practices, 4 templates, 4 commands, 1 advisory hook. Seams: per-cloud resources -> azure-cloud (Bicep too)/aws-cloud/gcp-cloud, plan in CI -> devops-cicd, posture verdicts -> security-engineering. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.3.4",
+      "version": "0.3.5",
       "author": {
         "name": "Matt Corbett"
       },
@@ -1698,7 +1698,7 @@
       "name": "hospice-referral-sales",
       "source": "./plugins/hospice-referral-sales",
       "description": "Hospice referral-sales / community-liaison team — 6 agents (referral-development-strategist, hospice-eligibility-educator, referral-account-manager, admissions-conversion-coach, goals-of-care-conversation-coach, hospice-sales-compliance-advisor) for a hospice sales / community-education rep who grows admissions by developing referral sources (hospitals, SNFs, physician practices, ACOs): territory planning, educating clinicians on hospice eligibility (LCD decline criteria by diagnosis — the rep educates, the physician certifies), referral-partner reviews, the referral-to-admission funnel, the goals-of-care 'hospice conversation', and clearing every touch against the Anti-Kickback / HIPAA line. 6 skills, 6 commands, a 4-doc knowledge bank (6 decision trees + glossary + LCD + compliance references), 14 best-practices, scenarios, and a runnable funnel / census / benefit-period calculator. Employer-neutral; public practice + CMS rules. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.1.2",
+      "version": "0.1.3",
       "author": {
         "name": "Matt Corbett"
       },

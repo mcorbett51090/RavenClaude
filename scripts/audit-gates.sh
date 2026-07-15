@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+# PORTABILITY: use `perl -pi -e`, never `sed -i`. GNU sed reads -i as "in-place, no
+# backup"; BSD/macOS sed reads the NEXT TOKEN as the backup SUFFIX — so `sed -i 's/a/b/' f`
+# means "suffix s/a/b/" and `f` becomes the script -> "invalid command code", and this
+# harness DIED AT GATE 7 on macOS (9 of 87 gates reached) while reporting no failures,
+# because a dead run prints no ✗. perl -pi behaves identically on both. (2026-07-15)
 # audit-gates.sh — prove every CI gate can fail on a known-bad fixture
 # AND pass on a known-good fixture.
 #
@@ -654,7 +659,7 @@ gate "task-scope (empty in_scope -> fail-safe allow)" must_pass "$rc"
 echo
 echo "── Gate 7: Email-leak guard ──────────────────────────────────────────────"
 backup .claude-plugin/marketplace.json
-sed -i 's/"Matt Corbett"/"Matt Corbett","email":"matt@ravenpower.net"/' .claude-plugin/marketplace.json
+perl -pi -e 's/"Matt Corbett"/"Matt Corbett","email":"matt\@ravenpower.net"/' .claude-plugin/marketplace.json
 rc=0
 if grep -rn "matt@ravenpower.net" .claude-plugin/ plugins/*/.claude-plugin/ >/dev/null 2>&1; then rc=1; fi
 gate "email-leak-guard" must_fail "$rc"
@@ -718,7 +723,37 @@ echo "── Gate 10: Actionlint (parse + lint) ──────────�
 # reachable (offline) it LOUD-skips locally and hard-fails in CI — a skip is never
 # a pass. actionlint requires a git project, which audit-gates already runs inside.
 AL_VER=1.7.7
-AL_SHA=023070a287cd8cccd71515fedc843f1985bf96c436b7effaecce67290e7e0757
+# PER-PLATFORM asset + sha256, from the release's own actionlint_1.7.7_checksums.txt.
+# This gate previously hardcoded linux_amd64 unconditionally. On an arm64 mac curl AND the
+# checksum both SUCCEED — it is the right file for the WRONG MACHINE — so `al_bin` got set
+# and every actionlint run exited 126 ("cannot execute binary format"). That made
+# `must_fail` PASS FOR THE WRONG REASON (126 is non-zero, but because the binary cannot
+# run, not because it caught the injected error) while `must_pass` FAILED. One bug, a
+# false green AND a false red. (2026-07-15)
+#
+# Provenance: the linux_amd64 pin below is BYTE-IDENTICAL to the one this gate has always
+# carried — that is what makes pinning the other three from the same checksums file
+# trustworthy: the file agrees with a pin that was already human-verified.
+case "$(uname -s)/$(uname -m)" in
+  Linux/x86_64)              AL_ASSET=linux_amd64;  AL_SHA=023070a287cd8cccd71515fedc843f1985bf96c436b7effaecce67290e7e0757 ;;
+  Linux/aarch64|Linux/arm64) AL_ASSET=linux_arm64;  AL_SHA=401942f9c24ed71e4fe71b76c7d638f66d8633575c4016efd2977ce7c28317d0 ;;
+  Darwin/x86_64)             AL_ASSET=darwin_amd64; AL_SHA=28e5de5a05fc558474f638323d736d822fff183d2d492f0aecb2b73cc44584f5 ;;
+  Darwin/arm64)              AL_ASSET=darwin_arm64; AL_SHA=2693315b9093aeacb4ebd91a993fea54fc215057bf0da2659056b4bc033873db ;;
+  *)                         AL_ASSET=""; AL_SHA="" ;;   # unknown platform -> do not download
+esac
+
+# `sha256sum` is GNU-only. Stock macOS does NOT have it on the default PATH — it ships
+# `shasum` (perl), which Linux has too. Without this the verify silently fails the &&
+# chain on a stock mac. Prefer sha256sum, fall back to shasum -a 256.
+_al_sha_ok() { # $1=expected  $2=file
+  if command -v sha256sum >/dev/null 2>&1; then
+    printf '%s  %s\n' "$1" "$2" | sha256sum -c - >/dev/null 2>&1
+  elif command -v shasum >/dev/null 2>&1; then
+    printf '%s  %s\n' "$1" "$2" | shasum -a 256 -c - >/dev/null 2>&1
+  else
+    return 1
+  fi
+}
 al_bin=""
 if command -v actionlint >/dev/null 2>&1; then
   al_bin="$(command -v actionlint)"
@@ -726,16 +761,26 @@ elif [[ -x /tmp/actionlint ]]; then
   al_bin=/tmp/actionlint
 else
   al_tgz="$TMP/actionlint.tgz"
-  if curl -fsSL --connect-timeout 5 -m 30 "https://github.com/rhysd/actionlint/releases/download/v${AL_VER}/actionlint_${AL_VER}_linux_amd64.tar.gz" -o "$al_tgz" 2>/dev/null \
-    && printf '%s  %s\n' "$AL_SHA" "$al_tgz" | sha256sum -c - >/dev/null 2>&1 \
+  if [[ -n "$AL_ASSET" ]] \
+    && curl -fsSL --connect-timeout 5 -m 30 "https://github.com/rhysd/actionlint/releases/download/v${AL_VER}/actionlint_${AL_VER}_${AL_ASSET}.tar.gz" -o "$al_tgz" 2>/dev/null \
+    && _al_sha_ok "$AL_SHA" "$al_tgz" \
     && tar -xzf "$al_tgz" -C "$TMP" actionlint 2>/dev/null; then
     chmod +x "$TMP/actionlint"
     al_bin="$TMP/actionlint"
   fi
 fi
+# RUNNABILITY PROBE — the load-bearing safety fix, independent of the arch map above.
+# A binary we cannot EXECUTE must NEVER be treated as usable: that is exactly how this gate
+# reported a pass for the wrong reason. If it will not run (wrong arch, corrupt, no exec
+# bit, Gatekeeper), drop it and fall through to the CI-hard-fail / LOUD-skip path — an
+# honest skip beats a false green. This kills the whole class, not just the arm64 case.
+if [[ -n "$al_bin" ]] && ! "$al_bin" --version >/dev/null 2>&1; then
+  al_bin=""
+fi
 if [[ -n "$al_bin" ]]; then
   backup .github/workflows/validate-layout.yml
-  sed -i '5a\    BROKEN: **bad' .github/workflows/validate-layout.yml
+  # `5a\` = append AFTER line 5, i.e. print BEFORE line 6.
+  perl -pi -e 'print "    BROKEN: **bad\n" if $. == 6' .github/workflows/validate-layout.yml
   rc=0; "$al_bin" -color >/dev/null 2>&1 || rc=$?
   gate "actionlint (injected YAML parse error)" must_fail "$rc"
   cp -p "$TMP/.github_workflows_validate-layout.yml.bak" .github/workflows/validate-layout.yml
@@ -1998,7 +2043,7 @@ cp -p "$TMP/plugins_ravenclaude-core_concepts.json.bak" plugins/ravenclaude-core
 
 # concepts.py staleness: a platform-fact with an ancient last_verified must fail.
 backup plugins/ravenclaude-core/knowledge/concepts/permission-layers.md
-sed -i 's/^last_verified:.*/last_verified: 2000-01-01/' plugins/ravenclaude-core/knowledge/concepts/permission-layers.md
+perl -pi -e 's/^last_verified:.*/last_verified: 2000-01-01/' plugins/ravenclaude-core/knowledge/concepts/permission-layers.md
 rc=0; python3 scripts/concepts.py --check >/dev/null 2>&1 || rc=$?
 gate "concepts.py staleness (platform-fact > 90d)" must_fail "$rc"
 cp -p "$TMP/plugins_ravenclaude-core_knowledge_concepts_permission-layers.md.bak" plugins/ravenclaude-core/knowledge/concepts/permission-layers.md
@@ -4092,6 +4137,22 @@ rm -f "$_mmut"
 gate "workflow-mirror byte-identity (one-sided drift caught)" must_fail "$rc"
 
 echo
+echo "── Gate 131: macOS portability runner (executes hooks on a stock mac; LOUD-skips on Linux) ──"
+# The three stock-macOS doors (bash 3.2 / absent `timeout` / BSD grep -P) are INVISIBLE on
+# ubuntu — all three shipped green here for months. This gate's teeth live on macos-latest
+# (.github/workflows/validate-macos.yml). On Linux it can only assert the script is present
+# and runnable; a Linux "pass" is NOT evidence a door is closed, and the script says so
+# itself when it LOUD-skips. Same discipline as Gate 10's actionlint skip.
+rc=0; bash -n scripts/check-macos-portability.sh || rc=$?
+gate "macos-portability script: syntax" must_pass "$rc"
+rc=0; bash scripts/check-macos-portability.sh >/dev/null 2>&1 || rc=$?
+gate "macos-portability script: runs (LOUD-skip on Linux, real gate on Darwin)" must_pass "$rc"
+# teeth: a syntactically broken script must fail the syntax gate
+_mp_mut="$(mktemp)"; { cat scripts/check-macos-portability.sh; echo "if ["; } > "$_mp_mut"
+rc=0; bash -n "$_mp_mut" 2>/dev/null || rc=$?
+gate "macos-portability: teeth (broken script is caught)" must_fail "$rc"
+rm -f "$_mp_mut"
+
 echo "── Gate 129: eval scoring harness self-test (evals/runner.py) ─────────────"
 # The eval harness was listed as a validate-marketplace build trigger but nothing in
 # CI ever ran it, so a regression in the four score_* functions (or _tiny_yaml) would

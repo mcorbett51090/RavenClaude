@@ -36,6 +36,19 @@ if [ -f "$_emit_event_helper" ]; then
 fi
 command -v _emit_hook_event >/dev/null 2>&1 || _emit_hook_event() { :; }
 
+# 2b. Stock-toolchain portability (macOS ships bash 3.2 + BSD userland + NO coreutils
+#     `timeout`). Same fail-safe shape as the emit helper: an absent helper degrades to
+#     a stub rather than breaking the hook. The timeout stub runs UNBOUNDED (a hook that
+#     runs without a ceiling beats one that silently no-ops); `_rc_upper` falls back to
+#     `tr`, which is POSIX and always present.
+_portable_helper="$(dirname "${BASH_SOURCE[0]}")/_portable.sh"
+if [ -f "$_portable_helper" ]; then
+  # shellcheck source=/dev/null
+  . "$_portable_helper" 2>/dev/null || true
+fi
+command -v _rc_timeout >/dev/null 2>&1 || _rc_timeout() { shift; "$@"; }
+command -v _rc_upper >/dev/null 2>&1 || _rc_upper() { printf '%s' "$1" | tr '[:lower:]' '[:upper:]'; }
+
 payload="$(cat 2>/dev/null || true)"
 
 # --- helpers: always fail safe to ALLOW (let the human answer) ---
@@ -107,7 +120,7 @@ engine="${CLAUDE_PLUGIN_ROOT:-$root/plugins/ravenclaude-core}/scripts/thing-deci
 req="$(jq -nc --arg q "$qtext" --arg c "Binary user prompt intercepted by route-decision-review. Options: [$opt0 | $opt1]. Auto-resolve only if rule/fact-derivable." --argjson hb "$hb" '{question:$q,context:$c,high_blast:$hb}' 2>/dev/null || echo '')"
 [ -n "$req" ] || emit_allow
 
-out="$(printf '%s' "$req" | timeout 80 python3 "$engine" --root "$root" decide 2>/dev/null || echo '')"
+out="$(printf '%s' "$req" | _rc_timeout 80 python3 "$engine" --root "$root" decide 2>/dev/null || echo '')"
 [ -n "$out" ] || emit_allow
 
 verdict="$(printf '%s' "$out" | jq -r '.verdict // "defer"' 2>/dev/null || echo defer)"
@@ -134,7 +147,15 @@ saga="$(printf '%s' "$out" | jq -r '.saga_log // "n/a"' 2>/dev/null || echo 'n/a
 #
 # This is the shell mirror of `_sanitize_reasoning()` in thing-decide.py — the
 # two layers MUST stay in sync. See Gate 60 / Gate 20 for drift detection.
-reasoning="$(printf '%s' "$reasoning" | tr -d '\n\r\013\014' | sed -E 's/\xe2\x80(\xa8|\xa9)/ /g' 2>/dev/null || printf '%s' "$reasoning")"
+# PORTABILITY (2026-07-15): this used `sed -E 's/\xe2\x80(\xa8|\xa9)/ /g'`. BSD/macOS sed
+# does NOT support \xNN hex escapes — it ERRORS, and the `|| printf '%s' "$reasoning"`
+# fallback then returned the reasoning with its U+2028 / U+2029 separators INTACT.
+# Silent (exit 0), unconditional, every macOS session: one layer of the JudgeDeceiver
+# verdict-injection hardener was disabled with NO symptom. This file's own comment above
+# says the two layers MUST stay in sync — on macOS they were not.
+# perl handles \xNN natively and identically on GNU + BSD; the `tr` half is POSIX and was
+# always fine. Verified on bash 3.2 / BSD userland: U+2028 and U+2029 -> spaces.
+reasoning="$(printf '%s' "$reasoning" | tr -d '\n\r\013\014' | perl -pe 's/\xe2\x80[\xa8\xa9]/ /g' 2>/dev/null || printf '%s' "$reasoning")"
 if [ "${#reasoning}" -gt 256 ]; then
   reasoning="${reasoning:0:253}..."
 fi
@@ -191,7 +212,7 @@ if { [ "$verdict" = "yes" ] || [ "$verdict" = "no" ]; } && [ "$binding" = "true"
   fi
   # Ambiguous polarity (both same / neither recognized) -> the human answers.
   [ -n "$pick" ] || emit_allow
-  reason="Decision-review tribunal ($mode) auto-resolved this yes/no prompt so the user was NOT interrupted. Verdict: ${verdict^^} -> choose the \"$pick\" option and proceed; do NOT call AskUserQuestion again for this. Panel reasoning: ${reasoning}. (Sága: ${saga}.) If you believe this is wrong or a genuine preference, state so and proceed with the user's likely intent rather than re-prompting."
+  reason="Decision-review tribunal ($mode) auto-resolved this yes/no prompt so the user was NOT interrupted. Verdict: $(_rc_upper "$verdict") -> choose the \"$pick\" option and proceed; do NOT call AskUserQuestion again for this. Panel reasoning: ${reasoning}. (Sága: ${saga}.) If you believe this is wrong or a genuine preference, state so and proceed with the user's likely intent rather than re-prompting."
   _emit_hook_event "route-decision-review.sh" "deny" "AskUserQuestion" "$qtext" "binding-verdict-${verdict}" 2
   jq -nc --arg r "$reason" '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"deny",permissionDecisionReason:$r}}'
   exit 0
