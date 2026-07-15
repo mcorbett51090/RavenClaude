@@ -1368,3 +1368,53 @@ incomplete-read error class it correctly caught in us).
 **Migration:** none — documentation corrections plus one severity bar and a one-line lint fix. No gate
 semantics, flag, artifact path, or count changed; skill count stays 48. Zero `.js` bytes touched, so
 Gate 126's byte-identity mirror is untouched.
+
+## macOS door 2 — `timeout` is absent, and it silently disarmed decision-review (added 2026-07-15, v0.195.0)
+
+The second of the three stock-macOS doors (door 1 — bash 3.2 in the layout gate — shipped in v0.193.0).
+**GNU coreutils `timeout` is ABSENT on stock macOS** `[verified: exit 127]`. Inside the repo's usual
+`out="$(timeout N cmd)" || echo ''` shape that is not a timeout — it is **command-not-found**, so the
+caller silently takes its **error path on every macOS session**:
+
+- `route-decision-review.sh:110` — `timeout 80 python3 "$engine"` → 127 → `|| echo ''` → `out=''` →
+  **`emit_allow`**. The decision-review tribunal was **never consulted**; every routed yes/no silently
+  allowed. `decision_review: binding` is on in this repo, so this was live.
+- `agent-dispatch-evaluator.sh:125` — the `claude -p` probe silently took its error path.
+
+**Proof (the exact shape `:110` uses, under `env -i PATH=/usr/bin:/bin`):** bare `timeout` → `out=[]`
+(engine never consulted); `_rc_timeout` → a real verdict JSON.
+
+### The fix: `hooks/_portable.sh` (a sourced helper, `_`-prefixed like `_scrub.sh` / `_emit-event.sh`)
+
+- **`_rc_timeout SECS CMD…`** resolves `timeout` → `gtimeout` → **`perl`** (stock on macOS at
+  `/usr/bin/perl`; `alarm` survives `execve` and SIGALRM's disposition resets to terminate) → unbounded.
+  Verified with **no coreutils on PATH**: `_rc_timeout 1 sleep 10` returns in **~1s**, not 10.
+- **`_rc_upper STR`** replaces `${verdict^^}` (bash 4.0; on 3.2 a "bad substitution" → exit 1 → a
+  **silent fail-open**), via POSIX `tr`.
+
+**Exit-code contract, stated honestly:** GNU `timeout` returns **124** on expiry; the perl fallback
+surfaces **142** (128+SIGALRM). **No caller in this repo branches on 124** `[verified: no `-eq 124` /
+`= 124` test exists in any hook]` — every one treats non-zero as abstain/error, which is correct for a
+timeout either way. If a caller ever needs to distinguish timed-out from failed, fix it **in the helper**
+(a fork+waitpid shim can return 124), not by assuming GNU semantics at the call site.
+
+**Fail-safe everywhere:** an absent `_portable.sh` degrades each caller to a stub — `_rc_timeout` runs
+**unbounded** rather than not at all (a hook that runs without a ceiling beats one that silently no-ops),
+and `_rc_upper` falls back to inline `tr`.
+
+### Still open — door 2 is only half closed, and door 3 is untouched
+
+- **`thing-orchestrator.sh` (the command-review tribunal) is NOT fixed here.** It needs the `timeout`
+  shim **and** a rewrite of its 7 role-keyed `declare -A` maps (`:298`, `:474`) across **~50 call sites**
+  — in a security control, carrying the **C4 trap**: deleting `declare -A` *alone* runs clean and
+  silently collides every role key on index 0 (bash evaluates the subscript arithmetically; `forseti` →
+  unset → 0), turning a loud exit-2 into **silent tribunal corruption** plus arithmetic-eval injection.
+  That rewrite is deliberately **not** rushed in alongside a shim. Note `seen_verdict`'s keys are
+  **untrusted seat output** and need a different treatment (a `sort -u` set) than the closed-key maps.
+- **Door 3 — BSD `grep` has no `-P`** (exit 2): **12** `check-*-anti-patterns.sh` hooks across 12 plugins
+  silently never fire. Unowned.
+
+**Do not claim "macOS supported" until the tribunal and door 3 close.**
+
+**Migration:** none — additive helper + two call-site swaps. Linux/CI behavior is byte-identical
+(`timeout` is present there, so branch 1 is taken exactly as before).
