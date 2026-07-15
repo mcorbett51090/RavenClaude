@@ -33,6 +33,7 @@ Usage:
 # made this easy to miss. Deferring annotation evaluation costs nothing here: this module
 # does no runtime annotation introspection. (2026-07-15)
 from __future__ import annotations
+
 import os
 import re
 import sys
