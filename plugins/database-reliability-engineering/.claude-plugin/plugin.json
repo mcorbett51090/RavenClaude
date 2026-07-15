@@ -1,0 +1,30 @@
+{
+  "name": "database-reliability-engineering",
+  "version": "0.1.0",
+  "description": "Database Reliability Engineering (DBRE) team — 3 agents (dbre-architect, database-operations-engineer, database-incident-responder) that own the PRODUCTION database as a reliability surface, the layer database-engineering (schema/query design) doesn't: HA topology & failover from RPO/RTO, backup & point-in-time recovery with restore verification, disaster recovery, capacity planning, connection pooling; zero-downtime expand-contract migrations, backfills, replication management & failover drills, upgrades; and DB on-call (replication lag, lock contention, connection storms, runaway queries, disk-full), DB SLOs, blameless postmortems. 4 skills, a 2-doc knowledge bank with 4 Mermaid decision trees + a dated 2026 reference, 5 best-practices, 2 templates. Seams: schema/query → database-engineering; service SRE → observability-sre; provisioning → terraform-iac / cloud; pipelines → data-orchestration; access → security-engineering / auth-identity. Requires ravenclaude-core@>=0.7.0.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "database-reliability",
+    "dbre",
+    "high-availability",
+    "failover",
+    "replication",
+    "backup",
+    "point-in-time-recovery",
+    "rpo-rto",
+    "zero-downtime-migration",
+    "expand-contract",
+    "connection-pooling",
+    "database-incident",
+    "disaster-recovery",
+    "capacity-planning",
+    "database-slo"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}
