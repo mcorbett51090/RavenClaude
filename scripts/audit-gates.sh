@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+# PORTABILITY: use `perl -pi -e`, never `sed -i`. GNU sed reads -i as "in-place, no
+# backup"; BSD/macOS sed reads the NEXT TOKEN as the backup SUFFIX — so `sed -i 's/a/b/' f`
+# means "suffix s/a/b/" and `f` becomes the script -> "invalid command code", and this
+# harness DIED AT GATE 7 on macOS (9 of 87 gates reached) while reporting no failures,
+# because a dead run prints no ✗. perl -pi behaves identically on both. (2026-07-15)
 # audit-gates.sh — prove every CI gate can fail on a known-bad fixture
 # AND pass on a known-good fixture.
 #
@@ -654,7 +659,7 @@ gate "task-scope (empty in_scope -> fail-safe allow)" must_pass "$rc"
 echo
 echo "── Gate 7: Email-leak guard ──────────────────────────────────────────────"
 backup .claude-plugin/marketplace.json
-sed -i 's/"Matt Corbett"/"Matt Corbett","email":"matt@ravenpower.net"/' .claude-plugin/marketplace.json
+perl -pi -e 's/"Matt Corbett"/"Matt Corbett","email":"matt\@ravenpower.net"/' .claude-plugin/marketplace.json
 rc=0
 if grep -rn "matt@ravenpower.net" .claude-plugin/ plugins/*/.claude-plugin/ >/dev/null 2>&1; then rc=1; fi
 gate "email-leak-guard" must_fail "$rc"
@@ -735,7 +740,8 @@ else
 fi
 if [[ -n "$al_bin" ]]; then
   backup .github/workflows/validate-layout.yml
-  sed -i '5a\    BROKEN: **bad' .github/workflows/validate-layout.yml
+  # `5a\` = append AFTER line 5, i.e. print BEFORE line 6.
+  perl -pi -e 'print "    BROKEN: **bad\n" if $. == 6' .github/workflows/validate-layout.yml
   rc=0; "$al_bin" -color >/dev/null 2>&1 || rc=$?
   gate "actionlint (injected YAML parse error)" must_fail "$rc"
   cp -p "$TMP/.github_workflows_validate-layout.yml.bak" .github/workflows/validate-layout.yml
@@ -1998,7 +2004,7 @@ cp -p "$TMP/plugins_ravenclaude-core_concepts.json.bak" plugins/ravenclaude-core
 
 # concepts.py staleness: a platform-fact with an ancient last_verified must fail.
 backup plugins/ravenclaude-core/knowledge/concepts/permission-layers.md
-sed -i 's/^last_verified:.*/last_verified: 2000-01-01/' plugins/ravenclaude-core/knowledge/concepts/permission-layers.md
+perl -pi -e 's/^last_verified:.*/last_verified: 2000-01-01/' plugins/ravenclaude-core/knowledge/concepts/permission-layers.md
 rc=0; python3 scripts/concepts.py --check >/dev/null 2>&1 || rc=$?
 gate "concepts.py staleness (platform-fact > 90d)" must_fail "$rc"
 cp -p "$TMP/plugins_ravenclaude-core_knowledge_concepts_permission-layers.md.bak" plugins/ravenclaude-core/knowledge/concepts/permission-layers.md
