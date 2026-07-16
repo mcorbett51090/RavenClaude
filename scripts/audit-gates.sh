@@ -3510,7 +3510,7 @@ gate "phase0-emit-scrub: secret-containing JSONL is detectable (gate has teeth)"
 fi
 
 # ─────────────────────────────────────────────────────────────────────────────
-echo "── Gate 51: Unified portal shell router (index.html) ─────────────────────"
+echo "── Gate 51: Unified portal shell router + committed-route destinations ────"
 # Proves index.html still carries the native-merge contract: NAV has the
 # Dashboard + Catalog entries, DASH_SECTIONS lists every dashboard-owned
 # top-level route, payloadKind()/resolveNavActive()/route() drive the native
@@ -3518,6 +3518,17 @@ echo "── Gate 51: Unified portal shell router (index.html) ─────�
 # entry points are present. Bidirectional: must-fail half feeds an index.html
 # fixture with DASH_SECTIONS emptied → check-shell-router.mjs exits nonzero,
 # proving the gate has teeth. Must-pass runs against the real index.html.
+#
+# By-destination half (Phase 4a — docs/dashboard-redesign-plan.md §7): the
+# router existing is not enough — every committed `#/…` on BOTH surfaces must
+# resolve to a REAL destination (not the router's catch-all fallback). The
+# committed fixture tests/fixtures/routes/committed-routes.json enumerates every
+# `#/…` (188 dashboard hrefs / 202 index hrefs) → its resolved destination;
+# check-committed-routes.mjs re-derives that from the freshly-rendered temp
+# copies ($DASH_HTML/$IDX_HTML) and asserts the fixture still matches. Two
+# must-fail halves prove teeth in BOTH directions: a route deleted from the
+# fixture (enumeration) and a DASH_OWNER destination removed from the html
+# (resolution) each go red. This feeds Phase 2's "every #/… resolves" acceptance.
 if command -v node >/dev/null 2>&1; then
   # must_fail: an emptied DASH_SECTIONS must be detected (gate has teeth).
   SHELL_BAD="$TMP/index-broken-shell.html"
@@ -3539,6 +3550,33 @@ PY
   # must_pass: real index.html satisfies the contract.
   rc=0; node scripts/check-shell-router.mjs "$IDX_HTML" >/dev/null 2>&1 || rc=$?
   gate "shell-router (real index.html satisfies the contract)" must_pass "$rc"
+
+  # ── By-destination half (Phase 4a): every committed #/… resolves. ──────────
+  ROUTE_FIX="tests/fixtures/routes/committed-routes.json"
+  # must_pass: the committed fixture enumerates + resolves every #/… on both
+  # surfaces, checked against the freshly-rendered temp copies (hermetic).
+  rc=0; node scripts/check-committed-routes.mjs \
+    --dashboard "$DASH_HTML" --index "$IDX_HTML" --fixture "$ROUTE_FIX" >/dev/null 2>&1 || rc=$?
+  gate "committed-routes (every #/… resolves by destination, both surfaces)" must_pass "$rc"
+  # must_fail A (enumeration teeth): a route deleted from the fixture is detected
+  # — the fixture stops enumerating a route the html still commits.
+  ROUTE_FIX_BAD="$TMP/committed-routes-missing.json"
+  python3 - "$ROUTE_FIX" "$ROUTE_FIX_BAD" <<'PY'
+import json, sys
+d = json.load(open(sys.argv[1]))
+d["surfaces"]["index"]["static_href_routes"].pop()
+json.dump(d, open(sys.argv[2], "w"))
+PY
+  rc=0; node scripts/check-committed-routes.mjs \
+    --dashboard "$DASH_HTML" --index "$IDX_HTML" --fixture "$ROUTE_FIX_BAD" >/dev/null 2>&1 || rc=$?
+  gate "committed-routes (a route deleted from the fixture is detected)" must_fail "$rc"
+  # must_fail B (resolution teeth): a DASH_OWNER destination removed from the html
+  # → #/heimdall dead-ends on the router fallback instead of viewDashboard:heimdall.
+  IDX_ROUTE_BAD="$TMP/render-index-route-broken.html"
+  sed 's/heimdall: "observe", vidarr: "observe"/vidarr: "observe"/' "$IDX_HTML" > "$IDX_ROUTE_BAD"
+  rc=0; node scripts/check-committed-routes.mjs \
+    --dashboard "$DASH_HTML" --index "$IDX_ROUTE_BAD" --fixture "$ROUTE_FIX" >/dev/null 2>&1 || rc=$?
+  gate "committed-routes (a broken DASH_OWNER destination is detected)" must_fail "$rc"
 else
   _skip_or_fail "Gate 51 shell-router" node
 fi
