@@ -112,7 +112,9 @@ commitment; the enforced data floor lives in `claude-orchestrate.sh`.
 
 1. The host is not Claude Code (`THING_HOST != claude-code`).
 2. `.ravenclaude/comfort-posture.yaml` has `orchestrator_scope: all`.
-3. `orchestrator:` is `decide` or `full` (not `off`).
+3. `orchestrator:` is `decide` or `full`, **or the key is absent** (absent
+   defaults to `full` — see `CLAUDE.md` § "Claude orchestrator knob"); only an
+   explicit `off` disables relay eligibility.
 
 **When active — relay every user prompt to Claude, content-only:**
 
