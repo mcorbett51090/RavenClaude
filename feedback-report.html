@@ -19,25 +19,28 @@
  * tokens into the surface's <style> block. NO RUNTIME LOAD — every HTML
  * artifact stays self-contained.
  *
- * Aesthetic: a calm monochromatic canvas with two accents — gold
- * (dashboard, Norse-thematic) and teal (index + repo-guide). Depth is
- * hairline-led: surfaces lift off the canvas + a 1px border; shadows stay a
- * whisper. DARK IS THE DEFAULT (`:root` = the warm near-black #14110d
- * canvas); the light theme (Intercom-inspired cool near-white #f5f6f8) is
- * retained as an opt-in override under `[data-theme="light"]`.
+ * Aesthetic: borrows the RavenPower commerce site's visual language — a
+ * cool near-black canvas with a single signature GREEN accent (dashboard,
+ * primary identity) and a teal secondary (index + repo-guide). Depth is
+ * hairline-led: layered panels lift off pure-black + a rgba(255,255,255)
+ * hairline; shadows stay a whisper. DARK IS THE DEFAULT (`:root` = the cool
+ * near-black #07080a canvas + the commerce panel ladder); the light theme
+ * (Intercom-inspired cool near-white #f5f6f8) is retained as an opt-in
+ * override under `[data-theme="light"]`, re-tuned so the green reads on light.
  *
  * a11y discipline (contrast re-verified 2026-07-16 with a WCAG-2.2 calc):
- *   DEFAULT (dark, :root, --rc-bg #14110d):
- *   - --rc-gold #c9a249 on --rc-bg is 7.84:1 — AAA. Safe as body text; using
- *     it as body copy instead is an aesthetic-restraint call, NOT an a11y
- *     floor.
- *   - --rc-text on --rc-bg is 17.6:1; --rc-teal #3aa391 on --rc-bg is 6.12:1
- *     (AA, safe for body text).
+ *   DEFAULT (dark, :root, --rc-bg #07080a):
+ *   - --rc-accent (green #56D08A) on --rc-bg is 10.29:1 — AAA (10.79:1 on
+ *     pure #000). Comfortably safe as body text; reserving it for borders /
+ *     headings / icons / accent rules is aesthetic restraint, not an a11y
+ *     floor. --rc-gold is a back-compat ALIAS of --rc-accent (same green).
+ *   - --rc-text #f5f7fa on --rc-bg is 18.67:1; --rc-teal #3aa391 on --rc-bg
+ *     is 6.51:1 (AA, safe for body text).
  *   LIGHT ([data-theme="light"], --rc-bg #f5f6f8):
- *   - --rc-gold #a8882e on --rc-bg is 3.12:1 — AA-LARGE / UI-component only
- *     (>=3:1), genuinely BELOW the 4.5:1 body-text floor. So in the LIGHT
- *     theme --rc-gold is NEVER body text (borders / headings / icons /
- *     accent rules only). The prior "~3.6:1" note overstated it.
+ *   - --rc-accent (green #157a45) on --rc-bg is 4.98:1 — AA, clears the
+ *     4.5:1 body-text floor (a darker green than the dark theme, since the
+ *     bright #56D08A is tuned for dark backgrounds). This is BETTER than the
+ *     gold it replaces (the old light gold was 3.12:1, UI-only).
  *   - --rc-teal #1f7f78 on --rc-bg is 4.45:1 (~AA body / inline links).
  *   - --rc-warn #9a7010 on --rc-bg is 4.13:1 (borderline; for badges use the
  *     --rc-warn-bg / --rc-warn-fg pair, not --rc-warn on the canvas).
@@ -58,34 +61,44 @@
      differ. Typography / spacing / radii / type-scale are theme-independent
      and live only here. */
 
-  /* ── Neutrals — warm near-black base, not blue-black ─────────────── */
-  --rc-bg: #14110d;
-  --rc-surface: #1c1814;
-  --rc-surface-2: #25201a;
-  --rc-border: #3a342b;
-  --rc-border-strong: #4a4238;
+  /* ── Neutrals — cool near-black base + the commerce panel ladder.
+     Pure-black-adjacent canvas with layered panels lifting on top, hairlines
+     as translucent white (reads on any surface — the commerce approach). ── */
+  --rc-bg: #07080a; /* commerce --bg-1 (canvas; pure #000 also valid) */
+  --rc-surface: #0c0e12; /* commerce --bg-2 (panel) */
+  --rc-surface-2: #10131a; /* commerce --panel-2 (elevated panel) */
+  --rc-border: rgba(255, 255, 255, 0.07); /* commerce --line */
+  --rc-border-strong: rgba(255, 255, 255, 0.14); /* commerce --line-strong */
 
-  /* ── Text — warm near-white ──────────────────────────────────────── */
-  --rc-text: #faf7f0;
-  --rc-muted: #b8aea0;
-  --rc-faint: #7a7263;
+  /* ── Text — cool near-white (commerce --fg / --fg-muted / --fg-dim) ─── */
+  --rc-text: #f5f7fa;
+  --rc-muted: #9aa3b2;
+  --rc-faint: #8a909c;
 
   /* ── Ink — inverts on dark: light fill, dark text (charcoal primary
      button; re-inverts under [data-theme="light"]). ── */
   --rc-ink: #f0f2f5;
-  --rc-ink-fg: #14110d;
+  --rc-ink-fg: #07080a;
   --rc-ink-soft: #d4d8de;
 
-  /* ── Accent: gold (dashboard primary, Norse identity) ────────────── */
-  /* CONTRAST NOTE: --rc-gold #c9a249 is 7.84:1 on --rc-bg (#14110d) — AAA.
-     Safe as body text on the dark default; reserving it for borders /
-     headings / icons / accent rules is aesthetic restraint, not an a11y
-     floor. (In [data-theme="light"] it drops to 3.12:1 — see that block.) */
-  --rc-gold: #c9a249;
-  --rc-gold-soft: #e0c478;
+  /* ── Accent: the commerce signature GREEN (dashboard primary identity) ─
+     --rc-accent is the semantic name; --rc-gold is a back-compat ALIAS that
+     points at it (avoids churning every historical reference while fixing the
+     misleading "gold" name — same green resolves everywhere). */
+  /* CONTRAST NOTE: --rc-accent green #56D08A is 10.29:1 on --rc-bg (#07080a) —
+     AAA (10.79:1 on pure #000; verified). Comfortably safe as body text;
+     reserving it for borders / headings / icons / accent rules is aesthetic
+     restraint, not an a11y floor. (In [data-theme="light"] it darkens to
+     #157a45 = 4.98:1 AA — see that block.) */
+  --rc-accent: #56d08a; /* commerce --accent (the signature green) */
+  --rc-accent-2: #6ee0a1; /* commerce --accent-2 (hover / brighter) */
+  --rc-accent-soft: rgba(86, 208, 138, 0.16); /* commerce --accent-soft */
+  --rc-accent-glow: rgba(86, 208, 138, 0.35); /* commerce --accent-glow */
+  --rc-gold: var(--rc-accent); /* back-compat alias → green */
+  --rc-gold-soft: var(--rc-accent-2); /* back-compat alias → green */
 
-  /* ── Accent: teal (index + repo-guide primary) ───────────────────── */
-  /* CONTRAST NOTE: --rc-teal #3aa391 is 6.12:1 on --rc-bg — AA, safe for
+  /* ── Accent: teal (index + repo-guide secondary) ─────────────────── */
+  /* CONTRAST NOTE: --rc-teal #3aa391 is 6.51:1 on --rc-bg — AA, safe for
      body text and inline links. */
   --rc-teal: #3aa391;
   --rc-teal-soft: #5fbfae;
@@ -103,10 +116,16 @@
   --rc-warn-fg: #f0c060;
   --rc-danger-bg: #2e1a1a;
   --rc-danger-fg: #fca5a5;
-  --rc-neutral-bg: #2a2620;
-  --rc-neutral-fg: #c0b8a8;
+  --rc-neutral-bg: #1c2029;
+  --rc-neutral-fg: #b6bec9;
 
-  /* ── Typography ──────────────────────────────────────────────────── */
+  /* ── Typography ──────────────────────────────────────────────────────
+     Two faces: a display face (Space Grotesk, the commerce headline font)
+     for headings / eyebrows / display type, and Inter for body. Both are
+     loaded by each surface's <head> (Google Fonts) with a graceful system
+     fallback — offline, the stacks degrade to system-ui, no layout shift. */
+  --rc-font-display:
+    "Space Grotesk", "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --rc-font-sans:
     "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --rc-font-mono:
@@ -165,7 +184,12 @@
   /* ── Focus ring (a11y) — brighter accents on the dark base; light values
      under [data-theme="light"]. ── */
   --rc-focus-ring: 0 0 0 3px rgba(58, 163, 145, 0.45); /* teal (dark) */
-  --rc-focus-ring-gold: 0 0 0 3px rgba(201, 162, 73, 0.45); /* gold #c9a249 */
+  --rc-focus-ring-gold: 0 0 0 3px rgba(86, 208, 138, 0.45); /* green (dark) — alias name kept for back-compat */
+
+  /* ── Motion easing (the commerce curves) — a small, consistent set:
+     --rc-ease for through-states, --rc-ease-out for entrances. ── */
+  --rc-ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --rc-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* ──────────────────────────────────────────────────────────────────────
@@ -194,12 +218,17 @@
   --rc-ink-soft: #34393f;
 
   /* Accents */
-  /* CONTRAST NOTE: --rc-gold #a8882e is 3.12:1 on --rc-bg (#f5f6f8) —
-     AA-LARGE / UI-component only (>=3:1), BELOW the 4.5:1 body-text floor.
-     NEVER use --rc-gold as body text in the light theme; borders / headings
-     / icons / accent rules only. (The dark default is 7.84:1 — see :root.) */
-  --rc-gold: #a8882e;
-  --rc-gold-soft: #c9aa55;
+  /* CONTRAST NOTE: --rc-accent green #157a45 is 4.98:1 on --rc-bg (#f5f6f8) —
+     AA, clears the 4.5:1 body-text floor. It is a DARKER green than the dark
+     theme's #56D08A, because the bright commerce green is tuned for dark
+     backgrounds and washes out on near-white. This is stronger than the gold
+     it replaced (old light gold was 3.12:1, UI-only). --rc-gold aliases it. */
+  --rc-accent: #157a45; /* green, darkened for the light canvas — 4.98:1 AA */
+  --rc-accent-2: #1c8a54; /* hover / brighter — 4.04:1 (AA-large / UI) */
+  --rc-accent-soft: rgba(21, 122, 69, 0.1);
+  --rc-accent-glow: rgba(21, 122, 69, 0.24);
+  --rc-gold: var(--rc-accent); /* back-compat alias → green */
+  --rc-gold-soft: var(--rc-accent-2); /* back-compat alias → green */
   /* --rc-teal #1f7f78 is 4.45:1 on --rc-bg — ~AA body text / inline links. */
   --rc-teal: #1f7f78;
   --rc-teal-soft: #4a9590;
@@ -216,8 +245,8 @@
   --rc-warn-fg: #6b4c0a;
   --rc-danger-bg: #fbe5e5;
   --rc-danger-fg: #6b1414;
-  --rc-neutral-bg: #ece8e0;
-  --rc-neutral-fg: #4a4640;
+  --rc-neutral-bg: #e7eaee;
+  --rc-neutral-fg: #444a52;
 
   /* Shadows — Intercom-soft, COOL-tinted whisper on the near-white canvas.
      Cool tint (rgba(20, 28, 40, X)) reads natural on cool grey — a warm
@@ -229,9 +258,9 @@
   --rc-shadow-lg: 0 12px 28px rgba(20, 28, 40, 0.1), 0 4px 8px rgba(20, 28, 40, 0.05);
   --rc-shadow-xl: 0 20px 40px rgba(20, 28, 40, 0.12), 0 8px 16px rgba(20, 28, 40, 0.07);
 
-  /* Focus rings — teal / gold at .32 alpha on the light canvas */
+  /* Focus rings — teal / green at .32 alpha on the light canvas */
   --rc-focus-ring: 0 0 0 3px rgba(31, 127, 120, 0.32); /* teal at .32 */
-  --rc-focus-ring-gold: 0 0 0 3px rgba(168, 136, 46, 0.32); /* gold at .32 */
+  --rc-focus-ring-gold: 0 0 0 3px rgba(21, 122, 69, 0.32); /* green at .32 — alias name kept */
 }
 
 /* ── Shared component classes (prefixed .rc-* to avoid collision) ──── */
@@ -258,17 +287,19 @@
   transform: translateY(-2px);
 }
 /* Minimal-accent modifiers — a single thin rule, never a fill. Use sparingly
-   to flag a primary/active tile (Intercom keeps accent to a hairline). */
+   to flag a primary/active tile (Intercom keeps accent to a hairline). The
+   `--accent-gold` name is kept for back-compat; it now resolves to the green. */
 .rc-card--accent {
   border-left: 3px solid var(--rc-teal);
 }
 .rc-card--accent-gold {
-  border-left: 3px solid var(--rc-gold);
+  border-left: 3px solid var(--rc-accent);
 }
 
 /* Hairline accent rule — the horizontal/vertical accent line used to divide
-   sections or top-edge a panel. Teal by default; gold variant for the
-   dashboard. Gradient-faded ends so the rule reads as a whisper, not a bar. */
+   sections or top-edge a panel. Teal by default; the green (`--gold`-named)
+   variant for the dashboard. Gradient-faded ends so the rule reads as a
+   whisper, not a bar. */
 .rc-rule {
   height: 1px;
   border: 0;
@@ -343,9 +374,9 @@
   color: var(--rc-text);
   border-bottom-color: var(--rc-teal);
 }
-/* Gold variant for the dashboard's Norse tab strip */
+/* Green (`--gold`-named) variant for the dashboard's tab strip */
 .rc-tab.is-active.rc-tab--gold {
-  border-bottom-color: var(--rc-gold);
+  border-bottom-color: var(--rc-accent);
 }
 
 .rc-button {
@@ -384,14 +415,26 @@
   background: var(--rc-ink-soft);
   border-color: var(--rc-ink-soft);
 }
+/* Primary CTA — the commerce green pill. Resting: solid green fill, dark
+   text. Hover: brighter green + the commerce ring+glow beat (a soft accent
+   ring feathered into an outer glow). One memorable interactive beat, applied
+   consistently — not a per-button flourish. */
 .rc-button--gold {
-  background: var(--rc-gold);
+  background: var(--rc-accent);
   color: var(--rc-surface);
-  border-color: var(--rc-gold);
+  border-color: var(--rc-accent);
+  border-radius: var(--rc-radius-pill);
+  transition:
+    background 0.18s var(--rc-ease),
+    border-color 0.18s var(--rc-ease),
+    box-shadow 0.18s var(--rc-ease-out);
 }
 .rc-button--gold:hover {
-  background: var(--rc-gold-soft);
-  border-color: var(--rc-gold-soft);
+  background: var(--rc-accent-2);
+  border-color: var(--rc-accent-2);
+  box-shadow:
+    0 0 0 3px var(--rc-accent-soft),
+    0 0 20px var(--rc-accent-glow);
 }
 .rc-button--gold:focus-visible {
   box-shadow: var(--rc-focus-ring-gold);
@@ -561,7 +604,7 @@ table.t tr.r:hover { background: var(--surface-2); }
 .empty { padding: 24px; text-align: center; color: var(--faint); }
 .foot { margin-top: 30px; color: var(--faint); font-size: 0.78rem; }
 [data-theme="dark"] .splitbar .organic, [data-theme="dark"] .pill.organic,
-[data-theme="dark"] .toolbar .seg button[aria-pressed="true"] { color: #14110d; }
+[data-theme="dark"] .toolbar .seg button[aria-pressed="true"] { color: #07080a; }
 </style>
 </head>
 <body>
