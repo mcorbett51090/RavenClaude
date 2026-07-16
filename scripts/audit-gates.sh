@@ -273,9 +273,15 @@ PY
       python3 scripts/check-dom-budget.py --check
       exit $?
       ;;
+    133)
+      echo "── Gate 133: pipeline-map drift vs hooks.json (per-gate run) ─────────────"
+      rc=0; python3 scripts/check-pipeline-lanes.py || rc=$?
+      python3 scripts/check-pipeline-lanes.py --must-fail || rc=$?
+      exit $rc
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -4212,6 +4218,23 @@ for p in (m.DASHBOARD, m.INDEX):
         sys.exit(1)
 PY
 gate "dom-budget: SUM(panels)+shell == whole doc, 184 panels both surfaces" must_pass "$rc"
+
+echo
+echo "── Gate 133: pipeline-map drift vs hooks/hooks.json ───────────────────────"
+# The Pipeline tab (panel-pipeline) is a HAND-MAINTAINED curation of the guardrails
+# an agent passes through — its tooltips/ordering/copy have no source in hooks.json,
+# so it cannot be auto-generated. Before this gate NOTHING asserted the map still
+# matched the registered hook set, and it had drifted: two SHIPPED hooks
+# (delegation-nudge.sh, guard-web-access.sh) were absent from the map a user reads.
+# check-pipeline-lanes.py reconciles _PIPELINE_STAGE_HOOKS / _PIPELINE_EXCLUDED_HOOKS
+# against hooks.json bidirectionally (+ asserts the rendered artifact matches source).
+rc=0; python3 scripts/check-pipeline-lanes.py >/dev/null 2>&1 || rc=$?
+gate "pipeline-lanes: map matches hooks.json + rendered artifact" must_pass "$rc"
+
+# teeth: drop a shipped hook from BOTH the lanes and the exclusion list (the exact
+# live-drift bug) — the validator MUST catch it. --must-fail exits 0 when it does.
+rc=0; python3 scripts/check-pipeline-lanes.py --must-fail >/dev/null 2>&1 || rc=$?
+gate "pipeline-lanes teeth: a hook missing from the map is caught" must_pass "$rc"
 
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"
