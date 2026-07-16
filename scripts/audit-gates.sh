@@ -2863,8 +2863,9 @@ echo
 echo "── Gate 35: dashboard serializer round-trip + Pipeline-tab server validation ─"
 # (A) Guards the comfort-posture serializer (emitYaml) against the round-trip
 # data-loss class: the Pipeline tab's runaway / decision_review / definition_of_done
-# / dev_repo_exempt keys must survive emit + hydrate, and defaults must stay absent.
-# The test extracts the REAL functions from the generated dashboard.html (no DOM).
+# / dev_repo_exempt / stream_classify / stream_threshold keys must survive emit +
+# hydrate, and defaults must stay absent. The test extracts the REAL functions from
+# the generated dashboard.html (no DOM).
 RT="scripts/check-dashboard-roundtrip.mjs"
 if command -v node >/dev/null 2>&1; then
   # must_pass: the real, in-sync dashboard.
@@ -2877,6 +2878,20 @@ if command -v node >/dev/null 2>&1; then
   grep -v 'decision_review: ${state.decision_review}' index.html > "$RT_BAD"
   rc=0; node "$RT" "$RT_BAD" >/dev/null 2>&1 || rc=$?
   gate "dashboard round-trip (drifted: decision_review emit stripped)" must_fail "$rc"
+  # must_fail (F4): a drifted dashboard whose stream_classify emission is stripped —
+  # reproduces the exact defect this phase fixes (emitYaml silently dropping the
+  # Agentic Work-Streams keys on every Save). The gate must catch the regression.
+  RT_BAD_F4="$TMP/dashboard-drifted-f4.html"
+  grep -v 'stream_classify: \${state.stream_classify}' index.html > "$RT_BAD_F4"
+  rc=0; node "$RT" "$RT_BAD_F4" >/dev/null 2>&1 || rc=$?
+  gate "dashboard round-trip (F4 regression: stream_classify emit stripped)" must_fail "$rc"
+  # must_fail (P3): a drifted dashboard whose web-access serializer drops the deny
+  # key — proves Gate 35 now reaches emitWebAccessYaml(), the second serializer it
+  # was structurally blind to before this phase.
+  RT_BAD_P3="$TMP/dashboard-drifted-p3.html"
+  grep -v 'mk("deny", waLines(".wa-deny"))' index.html > "$RT_BAD_P3"
+  rc=0; node "$RT" "$RT_BAD_P3" >/dev/null 2>&1 || rc=$?
+  gate "dashboard round-trip (P3 regression: web-access deny emit stripped)" must_fail "$rc"
 else
   _skip_or_fail "Gate 35 (dashboard round-trip)" node
 fi
