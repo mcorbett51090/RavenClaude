@@ -3,8 +3,8 @@
   "generated_by": "scripts/check-committed-routes.mjs --emit",
   "surfaces": {
     "dashboard": {
-      "href_count": 16,
-      "distinct_static": 10,
+      "href_count": 9,
+      "distinct_static": 8,
       "distinct_dynamic": 0,
       "static_href_routes": [
         {
@@ -50,24 +50,10 @@
           "resolved": true
         },
         {
-          "route": "#/saga",
-          "section": "saga",
-          "sub": null,
-          "destination": "activate:saga",
-          "resolved": true
-        },
-        {
           "route": "#/settings",
           "section": "settings",
           "sub": null,
           "destination": "activate:settings",
-          "resolved": true
-        },
-        {
-          "route": "#/trees",
-          "section": "trees",
-          "sub": null,
-          "destination": "activate:trees",
           "resolved": true
         },
         {
@@ -82,8 +68,8 @@
       "nav_routes": []
     },
     "index": {
-      "href_count": 30,
-      "distinct_static": 14,
+      "href_count": 23,
+      "distinct_static": 12,
       "distinct_dynamic": 3,
       "static_href_routes": [
         {
@@ -150,13 +136,6 @@
           "resolved": true
         },
         {
-          "route": "#/saga",
-          "section": "saga",
-          "sub": null,
-          "destination": "viewDashboard:saga",
-          "resolved": true
-        },
-        {
           "route": "#/settings",
           "section": "settings",
           "sub": null,
@@ -168,13 +147,6 @@
           "section": "team",
           "sub": null,
           "destination": "viewTeam",
-          "resolved": true
-        },
-        {
-          "route": "#/trees",
-          "section": "trees",
-          "sub": null,
-          "destination": "viewDashboard:trees",
           "resolved": true
         },
         {
