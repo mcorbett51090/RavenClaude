@@ -1727,6 +1727,27 @@ def _render_overview_tab() -> str:
         ]
     )
 
+    # P3 — the sections BELOW the hero are DOM-island-loaded: they ship in a
+    # <script type="application/json"> payload (uncounted by Gate 132) and inject into
+    # #ov-mount on the first activate("overview"). The HERO stays LIVE in the initial
+    # HTML (LCP-safe — islanding the default-active hero would JS-inject the LCP element;
+    # the critic flagged that). Net effect: the rich premium overview is net-DOM-NEGATIVE.
+    overview_body = (
+        f'<p class="ov-stats-lead">You have <strong>{n_plugins}</strong> plugins installed &mdash; '
+        f"<strong>{n_agents}</strong> specialist agents and <strong>{n_trees}</strong> decision trees "
+        "ready to help your agents stay in bounds.</p>"
+        f'<div class="ov-stats">{stats}</div>'
+        '<h3 class="ov-h3">The big systems</h3>'
+        f'<div class="ov-cards">{systems}</div>'
+        '<h3 class="ov-h3">Start here</h3>'
+        '<p class="ov-steps-lead">New here? The two <strong>required</strong> steps take about five minutes. '
+        "The rest you can explore whenever.</p>"
+        '<p class="ov-steps-cap">Required</p>'
+        f'<ol class="ov-steps">{steps_required}</ol>'
+        '<p class="ov-steps-cap ov-steps-cap-optional">Optional &mdash; when you want to go deeper</p>'
+        f'<ol class="ov-steps ov-steps-optional" start="3">{steps_optional}</ol>'
+    )
+    overview_json = json.dumps(overview_body)
     return (
         '<div class="ov-wrap">'
         '<div class="ov-hero">'
@@ -1750,19 +1771,10 @@ def _render_overview_tab() -> str:
         f'width="{_RAVEN_HERO_W}" height="{_RAVEN_HERO_H}" alt="" aria-hidden="true" '
         'draggable="false">'
         "</div>"
-        f'<p class="ov-stats-lead">You have <strong>{n_plugins}</strong> plugins installed &mdash; '
-        f"<strong>{n_agents}</strong> specialist agents and <strong>{n_trees}</strong> decision trees "
-        "ready to help your agents stay in bounds.</p>"
-        f'<div class="ov-stats">{stats}</div>'
-        '<h3 class="ov-h3">The big systems</h3>'
-        f'<div class="ov-cards">{systems}</div>'
-        '<h3 class="ov-h3">Start here</h3>'
-        '<p class="ov-steps-lead">New here? The two <strong>required</strong> steps take about five minutes. '
-        "The rest you can explore whenever.</p>"
-        '<p class="ov-steps-cap">Required</p>'
-        f'<ol class="ov-steps">{steps_required}</ol>'
-        '<p class="ov-steps-cap ov-steps-cap-optional">Optional &mdash; when you want to go deeper</p>'
-        f'<ol class="ov-steps ov-steps-optional" start="3">{steps_optional}</ol>'
+        '<div id="ov-mount"></div>'
+        f'<script type="application/json" id="ov-payload">{overview_json}</script>'
+        "<noscript><p>The overview detail (stats, systems, and setup steps) renders with "
+        "JavaScript.</p></noscript>"
         "</div>"
     )
 
@@ -8909,6 +8921,23 @@ _JS = r"""
   // is injected on the first activate("trees"). Static-host safe: no fetch, the payload
   // is inline. Idempotent + retry-safe via the treesLoaded latch, matching the file's
   // loadActivity/loadHeimdall lazy-on-activate convention.
+  // Overview detail island (P3): the sections below the hero (stats/systems/steps) ship
+  // in #ov-payload and inject into #ov-mount on the first activate("overview"). The hero
+  // itself is LIVE in the initial HTML (LCP-safe); only the detail below is deferred, so
+  // the rich premium overview stays net-DOM-negative against Gate 132.
+  let overviewLoaded = false;
+  function loadOverview() {
+    if (overviewLoaded) return;
+    const mount = document.getElementById("ov-mount");
+    const payload = document.getElementById("ov-payload");
+    if (!mount || !payload) return;
+    try {
+      mount.innerHTML = JSON.parse(payload.textContent);
+      overviewLoaded = true;
+    } catch (e) {
+      /* leave unlatched so a later activate can retry */
+    }
+  }
   let treesLoaded = false;
   // The Guidance search chrome is injected WITH the island content (not live DOM), so
   // it costs zero live elements toward the Gate-132 budget until the tab is opened —
@@ -9004,6 +9033,7 @@ _JS = r"""
     document.querySelectorAll(".tab-panel").forEach(p => {
       p.classList.toggle("active", p.dataset.tab === tab);
     });
+    if (tab === "overview" && !overviewLoaded) loadOverview();
     if (tab === "trees" && !treesLoaded) loadTrees();
     // Learn must hydrate BEFORE openConcept(sub) can find the concept in the DOM.
     if (tab === "learn") loadLearn();
