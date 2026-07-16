@@ -268,9 +268,14 @@ PY
       bash plugins/ravenclaude-core/hooks/tests/test-gate127-pseudonymize.sh
       exit $?
       ;;
+    132)
+      echo "── Gate 132: DOM load budget — per-surface ratchet (per-gate run) ────────"
+      python3 scripts/check-dom-budget.py --check
+      exit $?
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -4165,6 +4170,48 @@ G129BAD="$TMP/evals-bad/cases/x"; mkdir -p "$G129BAD"
 printf 'case:\n  id: broken\n' > "$G129BAD/broken.yaml"
 rc=0; RUNNER_EVALS_DIR="$TMP/evals-bad" python3 evals/runner.py --self-test >/dev/null 2>&1 || rc=$?
 gate "eval-runner: --self-test fails on a schema-broken case" must_fail "$rc"
+
+echo
+echo "── Gate 132: DOM load budget — per-surface ratchet (html.parser) ──────────"
+# The DOM is the genuine defect this build exists to fix (57,330 / 50,945 elements
+# = 41.0x / 36.4x Lighthouse's 1,400 threshold). Gate 132 is the meter and the
+# ratchet: each phase appends a row to that surface's table and can only ever
+# lower the bar. Method + the reason it is html.parser and NOT a regex tag-token
+# counter (JSON escapes `"` but not `<`, so a regex counter is structurally blind
+# to islanding — the very mechanism it would be metering) is in the gate's own
+# header: scripts/check-dom-budget.py. Stdlib only — no node, no new dependency.
+#
+# F2: the gate binds BOTH surfaces against their OWN budgets. index.html's `trees`
+# is 13,521 vs the dashboard's 20,612 (include_trees=False), so a single shared
+# ratchet table would be wrong on both ends.
+rc=0; python3 scripts/check-dom-budget.py --check >/dev/null 2>&1 || rc=$?
+gate "dom-budget: both surfaces within their ratchet budgets" must_pass "$rc"
+
+# teeth, per surface. The must-fail bar is DERIVED as `count - 1`, never a literal:
+# plan A's literal 57,418 would have PASSED against the real 57,330 — a must-fail
+# half that cannot fail. Deriving it from the live count is what makes it teeth.
+for _surface in "plugins/ravenclaude-core/dashboard.html" "index.html"; do
+  _n="$(python3 scripts/check-dom-budget.py --count "$_surface")"
+  rc=0; python3 scripts/check-dom-budget.py --check --surface "$_surface" \
+    --budget-override "$(( _n - 1 ))" >/dev/null 2>&1 || rc=$?
+  gate "dom-budget teeth: $(basename "$_surface") over budget at count-1" must_fail "$rc"
+done
+
+# Structural identity: SUM(panels) + shell == the whole-document count. If this
+# drifts, per-panel attribution is broken and every per-panel budget downstream
+# is measuring the wrong thing — silently.
+rc=0; python3 - <<'PY' >/dev/null 2>&1 || rc=$?
+import importlib.util, sys
+s = importlib.util.spec_from_file_location("m", "scripts/check-dom-budget.py")
+m = importlib.util.module_from_spec(s); s.loader.exec_module(m)
+for p in (m.DASHBOARD, m.INDEX):
+    r = m.measure(p)
+    if sum(r["panels"].values()) + r["shell"] != r["total"]:
+        sys.exit(1)
+    if len(r["panels"]) != 184:
+        sys.exit(1)
+PY
+gate "dom-budget: SUM(panels)+shell == whole doc, 184 panels both surfaces" must_pass "$rc"
 
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"
