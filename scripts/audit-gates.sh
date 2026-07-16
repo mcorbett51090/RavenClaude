@@ -279,9 +279,15 @@ PY
       python3 scripts/check-pipeline-lanes.py --must-fail || rc=$?
       exit $rc
       ;;
+    134)
+      echo "── Gate 134: model-ID drift vs model-catalog.json (per-gate run) ─────────"
+      rc=0; python3 scripts/check-model-ids.py || rc=$?
+      python3 scripts/check-model-ids.py --self-test || rc=$?
+      exit $rc
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -4300,6 +4306,22 @@ gate "pipeline-lanes: map matches hooks.json + rendered artifact" must_pass "$rc
 # live-drift bug) — the validator MUST catch it. --must-fail exits 0 when it does.
 rc=0; python3 scripts/check-pipeline-lanes.py --must-fail >/dev/null 2>&1 || rc=$?
 gate "pipeline-lanes teeth: a hook missing from the map is caught" must_pass "$rc"
+
+echo
+echo "── Gate 134: model-ID drift vs knowledge/model-catalog.json ───────────────"
+# Single source of truth for the tribunal-seat/dashboard/template model IDs. Before
+# this gate the IDs were duplicated across generate-dashboards.py + thing-decision.py
+# + templates + configs and drifted (the dashboard offered claude-sonnet-4-6 / bare
+# claude-haiku-4-5, and this repo's own comfort-posture.yaml carried claude-opus-4-7).
+# check-model-ids.py scans every governed, git-tracked code/config file (repo-wide,
+# NOT a hand-copied list) token-anchored against the catalog's `current` values.
+rc=0; python3 scripts/check-model-ids.py >/dev/null 2>&1 || rc=$?
+gate "model-ids: every governed claude-* id is canonical" must_pass "$rc"
+
+# teeth: the --self-test proves a stale id is caught AND the canonical dated-haiku is
+# NOT false-flagged by the bare-haiku prefix collision (FM6) — both in-memory.
+rc=0; python3 scripts/check-model-ids.py --self-test >/dev/null 2>&1 || rc=$?
+gate "model-ids teeth: stale caught + dated-haiku prefix-collision guard" must_pass "$rc"
 
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"

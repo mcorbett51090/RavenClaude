@@ -62,7 +62,7 @@ orchestrator_pseudonymize: false
 # see plugins/ravenclaude-core/knowledge/model-fallback.md for the harness-outage runbook.
 # model_fallback:
 #   enabled: false
-#   ladder: [claude-haiku-4-5, claude-sonnet-4-6, claude-opus-4-8]
+#   ladder: [claude-haiku-4-5-20251001, claude-sonnet-5, claude-opus-4-8]
 #   max_retries: 2          # fallback attempts after the primary (hard cap 3)
 #   on_exhausted: fail-safe  # caller's existing abstain path; never silently wrong
 

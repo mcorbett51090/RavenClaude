@@ -59,10 +59,10 @@ panel:
     model: claude-opus-4-8
   mimir: # Correctness Watch
     agent: code-reviewer
-    model: claude-haiku-4-5
+    model: claude-haiku-4-5-20251001
   heimdall: # AlignmentCheck — prompt-injection detection
     agent: prompt-engineer
-    model: claude-haiku-4-5
+    model: claude-haiku-4-5-20251001
   thor: # Tie-breaker — convened only on a split or low-confidence panel
     agent: architect
     model: claude-opus-4-8

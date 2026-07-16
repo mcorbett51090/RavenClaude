@@ -37,7 +37,7 @@
 #                      (command|file|network|mcp; default "command").
 #   THING_CATEGORY     required — the comfort-posture category (e.g. shell_code_exec)
 #   THING_SEAT_ROLE    optional — forseti|mimir|heimdall|thor (default: mimir)
-#   THING_MODEL        optional — claude model alias/id (default: claude-haiku-4-5)
+#   THING_MODEL        optional — claude model alias/id (default: claude-haiku-4-5-20251001)
 #   THING_PEER_VERDICTS optional — JSON of the other seats' verdicts (Thor only)
 #   THING_SEAT_BARE    optional — "1" to force `--bare` (needs an API key)
 #   THING_SEAT_MOCK_VERDICT  optional — TEST HOOK. When set, NO real claude call
@@ -57,7 +57,7 @@ cmd="${THING_PAYLOAD:-${THING_CMD:-}}"
 shape="${THING_PAYLOAD_SHAPE:-command}"
 category="${THING_CATEGORY:-shell_readonly}"
 role="${THING_SEAT_ROLE:-mimir}"
-model="${THING_MODEL:-claude-haiku-4-5}"
+model="${THING_MODEL:-claude-haiku-4-5-20251001}"
 
 # §3a: the seat prompt is capped at SEAT_MAX_BYTES (with a [truncated] marker) —
 # but the egress backstop below + the orchestrator's local screen run on the FULL

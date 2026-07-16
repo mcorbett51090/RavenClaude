@@ -1,0 +1,11 @@
+{
+  "_comment": "Single source of truth for the tribunal-seat / dashboard / template model IDs. The drift gate (scripts/check-model-ids.py, audit-gates Gate 134) fails the build if any governed file references a token in `stale` or any claude-* id not in `current`'s values. Update `current` here (and regenerate the dashboards + copilot package) when a model is superseded; move the retired id into `stale`. See CLAUDE.md milestone 'Canonical model catalog + drift gate'.",
+  "schema_version": 1,
+  "current": {
+    "opus": "claude-opus-4-8",
+    "sonnet": "claude-sonnet-5",
+    "haiku": "claude-haiku-4-5-20251001",
+    "fable": "claude-fable-5"
+  },
+  "stale": ["claude-opus-4-7", "claude-sonnet-4-6", "claude-haiku-4-5"]
+}
