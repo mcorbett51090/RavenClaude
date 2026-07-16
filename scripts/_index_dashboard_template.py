@@ -115,7 +115,9 @@ TEMPLATE = r"""<!doctype html>
       .brand { display: flex; align-items: center; gap: 12px; padding: 16px 18px; height: var(--topbar-h); border-bottom: 1px solid var(--border); white-space: nowrap; }
       .brand .mark { flex: 0 0 auto; width: 36px; height: 36px; display: grid; place-items: center; color: var(--rc-text); }
       .brand .mark svg { width: 32px; height: 32px; }
-      .brand .name { font-weight: 700; font-size: 1.05rem; }
+      /* WebP raven mark (P0 asset) — green halo mirrors the commerce nav treatment. */
+      .brand .mark img { width: 34px; height: auto; display: block; object-fit: contain; filter: drop-shadow(0 0 8px var(--rc-accent-glow, rgba(86, 208, 138, 0.35))); }
+      .brand .name { font-family: var(--font-display); font-weight: 600; font-size: 1.05rem; letter-spacing: -0.01em; }
       .brand .name b { color: var(--teal-2); }
       .brand .tag { display: block; font-size: 0.66rem; color: var(--faint); font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; }
       body.sidebar-collapsed .brand .meta { display: none; }
@@ -140,13 +142,23 @@ TEMPLATE = r"""<!doctype html>
 
       /* ---------- Main ---------- */
       .main { min-width: 0; display: flex; flex-direction: column; }
+      /* Commerce nav treatment: transparent at the top, a saturate+blur veil once
+         the page scrolls past ~12px (the .is-scrolled toggle is JS-driven). */
       .topbar {
         position: sticky; top: 0; z-index: 30; height: var(--topbar-h);
         display: flex; align-items: center; gap: 14px; padding: 0 20px;
-        background: rgba(255, 255, 255, 0.82); backdrop-filter: blur(12px);
-        border-bottom: 1px solid var(--border);
+        background: transparent;
+        border-bottom: 1px solid transparent;
+        transition: background 0.35s var(--rc-ease, ease), border-color 0.35s var(--rc-ease, ease),
+          -webkit-backdrop-filter 0.35s var(--rc-ease, ease), backdrop-filter 0.35s var(--rc-ease, ease);
       }
-      [data-theme="dark"] .topbar { background: rgba(20, 17, 13, 0.82); }
+      .topbar.is-scrolled {
+        background: rgba(7, 8, 10, 0.72);
+        -webkit-backdrop-filter: saturate(160%) blur(14px);
+        backdrop-filter: saturate(160%) blur(14px);
+        border-bottom-color: var(--border);
+      }
+      [data-theme="light"] .topbar.is-scrolled { background: rgba(245, 246, 248, 0.82); }
       .icon-btn { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 10px; background: var(--surface); border: 1px solid var(--border); color: var(--muted); transition: 0.15s; }
       .icon-btn:hover { color: var(--text); border-color: var(--border-strong); background: var(--surface-2); }
       .icon-btn svg { width: 18px; height: 18px; }
@@ -202,18 +214,42 @@ TEMPLATE = r"""<!doctype html>
       .cols-3 { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
       .cols-4 { grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); }
 
-      /* Hero */
-      .hero { position: relative; overflow: hidden; border-radius: var(--radius); padding: clamp(28px, 5vw, 52px); margin-bottom: 28px;
-        background: var(--surface);
-        border: 1px solid var(--border); box-shadow: var(--rc-shadow-sm); }
+      /* Hero — bounded console band, photoreal raven right-docked. Mirrors the
+         standalone dashboard's .ov-hero (P2) and the commerce hero. */
+      .hero { position: relative; display: grid;
+        grid-template-columns: minmax(0, 1fr) clamp(180px, 26vw, 340px);
+        align-items: center; gap: 28px;
+        min-height: clamp(220px, 24vw, 320px);
+        overflow: hidden; border-radius: var(--radius);
+        padding: clamp(20px, 3vw, 44px); margin-bottom: 28px;
+        border: 1px solid var(--border); box-shadow: var(--rc-shadow-sm);
+        background:
+          radial-gradient(120% 140% at 88% 8%, var(--rc-accent-soft, rgba(86, 208, 138, 0.14)), transparent 55%),
+          linear-gradient(180deg, var(--surface-2), var(--surface)); }
       /* Signature thin teal hairline across the hero top edge (minimal accent). */
       .hero::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 2px;
-        background: linear-gradient(90deg, transparent, var(--teal) 50%, transparent); opacity: 0.55; }
+        background: linear-gradient(90deg, transparent, var(--teal) 50%, transparent); opacity: 0.55; z-index: 2; }
+      .hero__inner { position: relative; z-index: 1; min-width: 0; }
       .hero .pill { display: inline-flex; align-items: center; gap: 8px; font-size: 0.74rem; font-weight: 600; color: var(--teal-2); background: var(--teal-soft); border: 1px solid var(--border-strong); padding: 6px 12px; border-radius: 999px; }
-      .hero h1 { margin: 18px 0 10px; }
-      .hero h1 .accent { background: linear-gradient(90deg, var(--teal-2), var(--teal-dim)); -webkit-background-clip: text; background-clip: text; color: transparent; }
-      .hero p { color: var(--muted); max-width: 64ch; font-size: 1.05rem; }
-      .hero .hero-cta { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 22px; }
+      .eyebrow { display: inline-flex; align-items: center; gap: 10px; margin: 0 0 16px;
+        text-transform: uppercase; letter-spacing: 0.18em; font-size: 12px; font-weight: 500; color: var(--muted); }
+      .eyebrow__dot { width: 6px; height: 6px; border-radius: 50%;
+        background: var(--rc-accent, #56d08a); box-shadow: 0 0 12px var(--rc-accent-glow, rgba(86, 208, 138, 0.35)); }
+      .hero h1 { font-family: var(--font-display); font-weight: 600; letter-spacing: -0.025em; line-height: 1.05;
+        font-size: clamp(26px, 3.4vw, 42px); margin: 0 0 14px; text-wrap: balance; }
+      .hero h1 .accent { color: var(--teal-2); }
+      .hero p, .hero .hero__sub { color: var(--muted); max-width: 60ch; font-size: clamp(15px, 1.4vw, 16.5px); line-height: 1.6; margin: 0; }
+      .hero .hero-cta { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 24px; }
+      .hero__raven { justify-self: end; align-self: center;
+        width: 100%; max-width: clamp(180px, 26vw, 340px); height: auto; opacity: 0.92;
+        filter: drop-shadow(0 8px 30px var(--rc-accent-glow, rgba(86, 208, 138, 0.28)));
+        -webkit-mask-image: radial-gradient(closest-side, #000 78%, transparent 100%);
+        mask-image: radial-gradient(closest-side, #000 78%, transparent 100%);
+        user-select: none; -webkit-user-drag: none; }
+      @media (max-width: 720px) {
+        .hero { grid-template-columns: 1fr; }
+        .hero__raven { display: none; }
+      }
 
       /* Stat cards */
       .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 28px; }
@@ -604,7 +640,7 @@ TEMPLATE = r"""<!doctype html>
       <!-- ======================= SIDEBAR ======================= -->
       <aside class="sidebar" id="sidebar">
         <div class="brand">
-          <span class="mark" aria-hidden="true">__RAVEN_LOGO_SVG__</span>
+          <span class="mark" aria-hidden="true">__RAVEN_MARK_IMG__</span>
           <span class="meta">
             <span class="name">Raven<b>Claude</b></span>
             <span class="tag">Engineering Team Platform</span>
@@ -1001,14 +1037,17 @@ TEMPLATE = r"""<!doctype html>
           ${onboardingHtml()}
           ${spawnLogHtml()}
           <section class="hero">
-            <span class="pill">${svg("spark")} Private Claude Code marketplace · v${esc(D.marketplace_version)}</span>
-            <h1>The <span class="accent">AI Engineering Team</span> Platform</h1>
-            <p>One main helper that runs the show, plus ${s.plugins - 1} expert teams — for Microsoft, Salesforce, web, data, finance, and safety-and-rules work. They plug into Claude Code, and <strong>you</strong> decide what they can do on their own using simple point-and-click settings.</p>
-            <div class="hero-cta">
-              <a class="btn primary" href="#/discover">${svg("market")} Explore the Marketplace</a>
-              <a class="btn" href="#/configure">${svg("sliders")} Tune Comfort Posture</a>
-              <a class="btn ghost" href="#/discover">${svg("book")} Browse by use case</a>
+            <div class="hero__inner">
+              <p class="eyebrow"><span class="eyebrow__dot"></span>Private Claude Code marketplace · v${esc(D.marketplace_version)}</p>
+              <h1>The <span class="accent">AI Engineering Team</span> Platform</h1>
+              <p class="hero__sub">One main helper that runs the show, plus ${s.plugins - 1} expert teams — for Microsoft, Salesforce, web, data, finance, and safety-and-rules work. They plug into Claude Code, and <strong>you</strong> decide what they can do on their own using simple point-and-click settings.</p>
+              <div class="hero-cta">
+                <a class="btn primary" href="#/discover">${svg("market")} Explore the Marketplace</a>
+                <a class="btn" href="#/configure">${svg("sliders")} Tune Comfort Posture</a>
+                <a class="btn ghost" href="#/discover">${svg("book")} Browse by use case</a>
+              </div>
             </div>
+            __RAVEN_HERO_IMG__
           </section>
 
           <div class="section-title"><h2>Quick actions</h2><span class="hint">one click to the things you do most</span></div>
@@ -1681,6 +1720,14 @@ TEMPLATE = r"""<!doctype html>
       window.addEventListener("hashchange", route);
 
       /* ---------------- Chrome wiring ---------------- */
+      // Commerce nav scroll-blur: veil the topbar once the page scrolls past ~12px
+      // (ported from the commerce site's Nav.astro is-scrolled toggle).
+      const _topbar = $(".topbar");
+      if (_topbar) {
+        const onTopbarScroll = () => _topbar.classList.toggle("is-scrolled", window.scrollY > 12);
+        onTopbarScroll();
+        window.addEventListener("scroll", onTopbarScroll, { passive: true });
+      }
       // Sidebar collapse (persisted)
       if (localStorage.getItem("rc-sidebar") === "collapsed") document.body.classList.add("sidebar-collapsed");
       $("#collapse-toggle").addEventListener("click", () => {

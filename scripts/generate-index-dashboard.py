@@ -1028,6 +1028,24 @@ def render_html(data: dict) -> str:
     # Decision-tree store (moved off the dashboard Guidance tab onto plugin pages).
     gd = _load_sibling("generate-dashboards.py", "generate_dashboards")
     html = html.replace("<!--__DT_STORE__-->", _render_dt_store(gd))
+    # Portal shell mark + home-hero raven — reuse the P0 inlined WebP assets from the
+    # dashboard generator (base64 at generate-time; NO runtime fetch, per the
+    # self-contained-artifact rule). The sidebar mark swaps its inline SVG for a
+    # single <img> (banks -1 counted element on the initial HTML); the hero <img>
+    # lands in the JS-rendered Home view. Both data-URIs are base64 (no backtick /
+    # ${...}), so splicing into the JS template literal is safe; done before the
+    # RC_DATA payload splice so the markers are never re-scanned inside window.__RC_DATA__.
+    mark_img = (
+        f'<img src="{gd._RAVEN_MARK_WEBP_DATA_URI}" width="34" height="35" '
+        'alt="" aria-hidden="true" draggable="false">'
+    )
+    hero_img = (
+        f'<img class="hero__raven" src="{gd._RAVEN_HERO_DATA_URI}" '
+        f'width="{gd._RAVEN_HERO_W}" height="{gd._RAVEN_HERO_H}" '
+        'alt="" aria-hidden="true" draggable="false">'
+    )
+    html = html.replace("__RAVEN_MARK_IMG__", mark_img)
+    html = html.replace("__RAVEN_HERO_IMG__", hero_img)
     # Splice the DATA payload LAST — after every __MARKER__ / <!--__MARKER__--> /
     # comment-sentinel substitution above. The payload is built from repo-authored
     # free text (agent/skill/hook descriptions, scenario scope tags), so a field that
