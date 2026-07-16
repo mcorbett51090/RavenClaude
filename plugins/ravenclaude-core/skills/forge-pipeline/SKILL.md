@@ -15,7 +15,7 @@ depth runs.** Load a reference file **only** when the depth or the situation cal
 
 | Load | When | Holds |
 |---|---|---|
-| [`reference/gates-standard.md`](reference/gates-standard.md) | depth ≥ **standard** | G4a critic · G4b tiebreak · G5 red-team |
+| [`reference/gates-standard.md`](reference/gates-standard.md) | depth ≥ **standard** | the **domain-prior lens** (G2/G3) · G4a critic · G4b tiebreak · G5 red-team |
 | [`reference/deep-resume.md`](reference/deep-resume.md) | depth = **deep**, or `--resume` | checkpoint/resume + the uncapped-conflict rules |
 | [`reference/regen-discipline.md`](reference/regen-discipline.md) | **G8 only**, and only if a phase adds/removes a skill, agent, or other counted artifact | the marketplace count/regen DoD criteria |
 | [`reference/provenance.md`](reference/provenance.md) | a human asks *why* FORGE is shaped this way | provenance, the shared rubric, honest scope |
@@ -43,6 +43,9 @@ Every gate's payload lives **on disk**; only a **receipt** crosses back into thi
   Never paste `plan-A` / `plan-B` / `critic-brief` / `red-team` text into a brief.
 - **Fail-closed is preserved:** a gate advances on `status` + `blockers` + the artifact existing and
   being non-empty. The payload was never the pass signal — so routing on a receipt loses nothing.
+- **The Sága run record** (`commands/forge.md` Step 5) = each receipt appended verbatim (+ `model` /
+  `subagent_type`, `"generic"` today / `effort`) to `.ravenclaude/runs/forge/<slug>/run-log.jsonl`, one
+  line per gate. A pure append of data in hand.
 
 **Why this is load-bearing.** A relayed artifact is paid for twice — once on return, then again in
 every later turn's resent context — and relaying pins two complete plans *plus* the critic *plus* the
@@ -149,7 +152,9 @@ Then the single exit:
   claims whose retrieval date is < 90 days (matches the repo's knowledge-freshness contract). WebFetch
   is already 15-min URL-cached.
 - **Parallel where independent** (G1 explore subagents; G2/G3 panels = one batch of `Task` calls),
-  **serial where dependent** (G4→G5→G6).
+  **serial where dependent** (G4→G5→G6) — capped by the `.ravenclaude/comfort-posture.yaml`
+  `parallelism:` posture like [`spawn-team`](../spawn-team/SKILL.md) Step 5 (`enabled: false` → serial;
+  `max_workers: N` → batches of ≤N; absent → unchanged). A **cap, not a floor**.
 - **Brakes reused:** `runaway-brake.sh` (PreToolUse call caps) + `guard-recursive-spawn.sh` (tree
   topology) fire automatically — a thrashing gate trips the brake deterministically.
 - **Fail-fast:** G1 BLOCK and a G7 `reject` short-circuit the expensive G2–G6 core when an idea is
