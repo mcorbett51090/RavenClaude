@@ -5058,7 +5058,27 @@ footer.page-footer a:hover { text-decoration: underline; }
 }
 .ov-stat strong { font-size: 24px; color: var(--accent); line-height: 1; }
 .ov-stat span { font-size: 12px; color: var(--muted); }
-.ov-h3 { margin: 4px 0 0; font-size: 15px; }
+/* P4 — premium overview section heads: Space Grotesk display + a green rule accent. */
+.ov-h3 {
+  margin: 8px 0 0;
+  font-family: var(--rc-font-display, "Space Grotesk", sans-serif);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  font-size: clamp(16px, 1.6vw, 19px);
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.ov-h3::before {
+  content: "";
+  width: 18px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--rc-accent, #56d08a);
+  box-shadow: 0 0 10px var(--rc-accent-glow, rgba(86, 208, 138, 0.35));
+  flex: none;
+}
 .ov-cards {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
