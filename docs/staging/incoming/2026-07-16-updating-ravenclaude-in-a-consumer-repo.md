@@ -61,9 +61,9 @@ The `rc` alias (added to `~/.bashrc` by `ravenclaude setup`) combines update + l
 
 ## See also
 
-- [`plugins/ravenclaude-core/skills/update-ravenclaude/SKILL.md`](../../plugins/ravenclaude-core/skills/update-ravenclaude/SKILL.md) — the update skill.
-- [`plugins/ravenclaude-core/knowledge/copilot-cli-customization.md`](../../plugins/ravenclaude-core/knowledge/copilot-cli-customization.md) — how the Copilot adapter surfaces skills/hooks.
-- [`surface-credential-location-in-environment-context`](./surface-credential-location-in-environment-context.md) — companion Copilot-CLI session-start orientation pattern.
+- [`plugins/ravenclaude-core/skills/update-ravenclaude/SKILL.md`](../../../plugins/ravenclaude-core/skills/update-ravenclaude/SKILL.md) — the update skill.
+- [`plugins/ravenclaude-core/knowledge/copilot-cli-customization.md`](../../../plugins/ravenclaude-core/knowledge/copilot-cli-customization.md) — how the Copilot adapter surfaces skills/hooks.
+- `surface-credential-location-in-environment-context` — companion Copilot-CLI session-start orientation pattern (companion article planned; not yet written).
 
 ## Provenance
 
