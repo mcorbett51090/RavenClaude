@@ -2981,29 +2981,30 @@ _CSS = """
 
 :root {
   color-scheme: light;
-  /* Dashboard palette — light beige + gold (Norse identity preserved).
+  /* Dashboard palette — cool near-black + the commerce signature GREEN.
      Tokens alias the shared design system at plugins/ravenclaude-core/
-     dashboard-assets/shared-tokens.css. */
+     dashboard-assets/shared-tokens.css. --accent resolves to the green via
+     --rc-accent (--rc-gold is a back-compat alias of the same green). */
   --bg: var(--rc-bg);
   --surface: var(--rc-surface);
   --surface-2: var(--rc-surface-2);
   --border: var(--rc-border);
   --text: var(--rc-text);
   --muted: var(--rc-muted);
-  --accent: var(--rc-gold);
-  --accent-dim: var(--rc-gold);
-  --accent-2: var(--rc-gold-soft);
-  --accent-soft: rgba(168, 136, 46, 0.14);
-  --accent-glow: rgba(168, 136, 46, 0.28);
-  /* Semantic status colors — kept SEPARATE from the gold brand accent so
-     "allow / ok / safe" reads green, "ask" amber, "deny" red, regardless of
-     the navigation's gold theme. */
+  --accent: var(--rc-accent);
+  --accent-dim: var(--rc-accent);
+  --accent-2: var(--rc-accent-2);
+  --accent-soft: var(--rc-accent-soft);
+  --accent-glow: var(--rc-accent-glow);
+  /* Semantic status colors — kept SEPARATE from the green brand accent so
+     "allow / ok / safe" reads green-status, "ask" amber, "deny" red,
+     independent of the navigation's green accent theme. */
   --ok: var(--rc-ok);
   --ok-soft: rgba(31, 122, 63, 0.10);
   --warn: var(--rc-warn);
   --danger: var(--rc-danger);
   --font-sans: var(--rc-font-sans);
-  --font-display: var(--rc-font-sans);
+  --font-display: var(--rc-font-display);
   --font-mono: var(--rc-font-mono);
   --radius: var(--rc-radius);
   --radius-sm: var(--rc-radius-sm);
@@ -3014,9 +3015,9 @@ _CSS = """
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
 body {
-  /* Faint gold hero glow + the site's subtle graph-paper grid texture. */
+  /* Faint green hero glow + the site's subtle graph-paper grid texture. */
   background:
-    radial-gradient(60% 45% at 55% -8%, rgba(201, 162, 73, 0.06), transparent 60%),
+    radial-gradient(60% 45% at 55% -8%, rgba(86, 208, 138, 0.06), transparent 60%),
     var(--bg);
   color: var(--text);
   font-family: var(--font-sans);
@@ -3032,7 +3033,7 @@ h1, h2, h3 { font-family: var(--font-display); font-weight: 600; letter-spacing:
   border-bottom: 1px solid var(--border);
   background: var(--surface);
 }
-/* Gold hairline along the top edge — the site's signature section accent. */
+/* Green hairline along the top edge — the site's signature section accent. */
 .page-header::before {
   content: "";
   position: absolute;
@@ -3053,7 +3054,7 @@ h1, h2, h3 { font-family: var(--font-display); font-weight: 600; letter-spacing:
   display: grid;
   place-items: center;
   /* Inline raven SVG: body uses currentColor (dark on light, light on dark),
-     bolt is the gold accent. A PNG fallback is sized the same. */
+     bolt is the green accent. A PNG fallback is sized the same. */
   color: var(--text);
   filter: drop-shadow(0 0 6px var(--accent-glow));
 }
@@ -5368,7 +5369,7 @@ footer.page-footer a:hover { text-decoration: underline; }
 }
 .concept-badge svg { width: 11px; height: 11px; }
 .concept-badge.fact { color: var(--muted); border-color: var(--muted); background: rgba(148, 163, 184, 0.1); }
-.concept-badge.built { color: var(--accent); border-color: var(--accent); background: rgba(20, 184, 166, 0.1); }
+.concept-badge.built { color: var(--accent); border-color: var(--accent); background: rgba(86, 208, 138, 0.1); }
 .concept-deck { font-size: 13.5px; color: var(--muted); margin: 8px 0 12px; line-height: 1.5; }
 .concept-diagram-well {
   background: var(--surface-2); border: 1px solid var(--border);
