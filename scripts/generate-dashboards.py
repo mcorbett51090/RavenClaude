@@ -4809,6 +4809,18 @@ footer.page-footer a:hover { text-decoration: underline; }
 .guide-kind-bp { background: var(--surface-2); color: var(--muted); }
 .guide-title { font-size: 14px; }
 .guide-when { margin: 2px 0 0 56px; font-size: 12px; color: var(--muted); max-width: 70ch; }
+/* Guidance-tab data-side search (initTreesSearch): input in the shell, results
+   rendered from the islanded trees-payload — no network round trip. */
+.trees-search-wrap { display: flex; align-items: center; gap: 10px; margin: 0 0 12px; }
+.trees-search-input { flex: 1 1 auto; max-width: 480px; }
+.trees-results { list-style: none; margin: 0 0 16px; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.trees-result { width: 100%; text-align: left; background: var(--surface-1); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; cursor: pointer; display: flex; align-items: baseline; gap: 8px; color: var(--text); font: inherit; }
+.trees-result:hover, .trees-result:focus-visible { border-color: var(--accent); background: var(--surface-2); outline: none; }
+.trees-result-title { font-size: 14px; }
+.trees-result-meta { margin-left: auto; flex: none; font-size: 11px; color: var(--muted); }
+.trees-noresults { color: var(--muted); font-size: 14px; margin: 4px 0 16px; max-width: 70ch; }
+/* Momentary highlight on the item a search result deep-links to. */
+.guide-item.trees-hit { background: color-mix(in srgb, var(--accent) 14%, transparent); border-radius: 8px; box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 45%, transparent); transition: background 0.4s ease, box-shadow 0.4s ease; }
 /* Inline decision-tree diagram (pre-rendered SVG, collapsed by default) */
 .guide-tree-diagram { margin: 6px 0 0 56px; }
 .guide-tree-summary {
@@ -11710,6 +11722,12 @@ _PAGE_TEMPLATE = """<!doctype html>
 {commands_html}
   </section>
   <section class="tab-panel" id="panel-trees" data-tab="trees" role="tabpanel" aria-label="Decision trees and best practices">
+    <div class="trees-search-wrap">
+      <input type="search" id="trees-search" class="learn-search trees-search-input" placeholder="Search decision trees &amp; best practices&hellip;" aria-label="Search decision trees and best practices" aria-controls="trees-results" autocomplete="off" spellcheck="false">
+      <span class="learn-count" id="trees-search-count" role="status" aria-live="polite"></span>
+    </div>
+    <ol class="trees-results" id="trees-results" aria-label="Search results" hidden></ol>
+    <p class="trees-noresults" id="trees-noresults" role="status" hidden></p>
     <div id="trees-mount"></div>
     <script type="application/json" id="trees-payload">{trees_json}</script>
     <noscript><p>The decision-trees &amp; best-practices guidance renders with JavaScript. The source lives under <code>plugins/*/rules/</code> and <code>plugins/*/best-practices/</code>.</p></noscript>
