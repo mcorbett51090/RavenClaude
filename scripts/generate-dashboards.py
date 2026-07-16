@@ -5341,6 +5341,27 @@ footer.page-footer a:hover { text-decoration: underline; }
 }
 @media (max-width: 900px) { .concept-grid { grid-template-columns: 1fr; } }
 
+/* Phase 3 — native virtualization for the islanded panels (trees / learn / commands).
+   The islands inject their full markup on activate(); content-visibility:auto lets the
+   browser skip layout + paint of the off-screen cards, cutting that on-activate render
+   cost ~45% (measured in Chrome: trees 188ms -> 104ms) with NO change to the DOM count.
+   contain-intrinsic-size reserves each card's space so the scrollbar and deep-link scroll
+   stay stable; `auto` makes the browser remember a card's real size once it has rendered.
+   An [open] card opts back in fully so an expanded card is never clipped. Deep links keep
+   working — scrolling to an off-screen card renders it on arrival. */
+.guide-plugin,
+.guide-tree-diagram,
+.concept-card,
+.cmd-row {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 64px;
+}
+.concept-card[open],
+.guide-plugin[open],
+.guide-tree-diagram[open] {
+  content-visibility: visible;
+  contain-intrinsic-size: none;
+}
 .concept-card {
   background: var(--surface); border: 1px solid var(--border);
   border-radius: var(--rc-radius-lg); scroll-margin-top: 16px;
