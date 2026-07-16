@@ -32,6 +32,7 @@
     ".ravenclaude/dispatch-config.json",
     ".ravenclaude/plugins/*.yaml",
     ".ravenclaude/run-config.json",
+    ".ravenclaude/runs/**",
     ".ravenclaude/web-access.yaml",
     ".claude-plugin/marketplace.json",
     ".claude/settings.json",
@@ -76,10 +77,12 @@
     "scripts/serve-dashboards.py",
     "plugins/*/.lsp.json"
   ],
-  "forbidden_globs": [],
+  "forbidden_globs": [".ravenclaude/runs/thing/**", ".ravenclaude/runs/*/hook-events.jsonl"],
   "suggestions": {
     "Power Platform content inside ravenclaude-core": "Move to plugins/power-platform/ — ravenclaude-core stays domain-neutral.",
     "Finance / EdTech / Salesforce content inside ravenclaude-core": "Create a new domain plugin under plugins/<domain>/ and add it to .claude-plugin/marketplace.json.",
-    "New top-level directory": "Add the glob to .repo-layout.json allowed_globs first, with rationale in the PR description."
+    "New top-level directory": "Add the glob to .repo-layout.json allowed_globs first, with rationale in the PR description.",
+    ".ravenclaude/runs/thing/**": "Tribunal decision records are an audit substrate — written by thing-decide.py, never by an agent's Write. A tool-shaped write here would forge the decision log.",
+    ".ravenclaude/runs/*/hook-events.jsonl": "Guardrail event logs (runaway brake, Heimdall/Vidarr deny history) are an audit substrate — written by the hooks themselves. A tool-shaped write here would reset the brake or forge the deny history."
   }
 }
