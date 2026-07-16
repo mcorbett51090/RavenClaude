@@ -193,7 +193,17 @@ def _page_kwargs(plugin_dir: Path, schema: dict, include_trees: bool = True) -> 
         "learn_html": _render_learn_tab(plugin_dir),
         "saga_html": _render_saga_tab(),
         "commands_html": _render_commands_tab(),
-        "trees_html": _render_trees_tab(include_trees=include_trees),
+        # panel-trees is the single largest panel (~20,612 elements, ~36% of the whole
+        # DOM). It is DOM-island-loaded: its markup ships inside a <script
+        # type="application/json"> payload (html.parser puts that in CDATA, so its
+        # elements are NOT counted toward Lighthouse's DOM-size budget — Gate 132) and
+        # is injected into #trees-mount on the first activate("trees"), mirroring the
+        # file's existing lazy-on-activate pattern (loadActivity/loadHeimdall/…).
+        # Provably safe to island: verified zero load-time document.* binds targeting
+        # trees / dt-store / __openPlugin (the couplings the plan flagged). The
+        # <noscript> fallback is a POINTER, never the full markup — html.parser counts
+        # elements inside <noscript>, so inlining it there would defeat the island.
+        "trees_json": json.dumps(_render_trees_tab(include_trees=include_trees)),
         "activity_html": _render_activity_tab(),
         "heimdall_html": _render_heimdall_tab(),
         "vidarr_html": _render_vidarr_tab(),
@@ -8706,6 +8716,24 @@ _JS = r"""
     pageCat[b.dataset.tab] = b.dataset.cat;
     if (!(b.dataset.cat in catFirst)) catFirst[b.dataset.cat] = b.dataset.tab;
   });
+  // DOM-island loader for the Guidance (trees) tab. Its ~20,612-element markup ships
+  // inside <script type="application/json" id="trees-payload"> (uncounted CDATA) and
+  // is injected on the first activate("trees"). Static-host safe: no fetch, the payload
+  // is inline. Idempotent + retry-safe via the treesLoaded latch, matching the file's
+  // loadActivity/loadHeimdall lazy-on-activate convention.
+  let treesLoaded = false;
+  function loadTrees() {
+    if (treesLoaded) return;
+    const mount = document.getElementById("trees-mount");
+    const payload = document.getElementById("trees-payload");
+    if (!mount || !payload) return;
+    try {
+      mount.innerHTML = JSON.parse(payload.textContent);
+      treesLoaded = true;
+    } catch (e) {
+      /* leave unlatched so a later activate can retry */
+    }
+  }
   function setCategory(cat) {
     document.querySelectorAll('.cat-btn').forEach(c => {
       c.setAttribute('aria-pressed', c.dataset.cat === cat ? 'true' : 'false');
@@ -8733,6 +8761,7 @@ _JS = r"""
     document.querySelectorAll(".tab-panel").forEach(p => {
       p.classList.toggle("active", p.dataset.tab === tab);
     });
+    if (tab === "trees" && !treesLoaded) loadTrees();
     if (tab === "learn" && sub) openConcept(sub);
     if (tab === "saga" && !sagaLoaded) loadSaga();
     if (tab === "activity" && !activityLoaded) loadActivity();
@@ -11616,7 +11645,9 @@ _PAGE_TEMPLATE = """<!doctype html>
 {commands_html}
   </section>
   <section class="tab-panel" id="panel-trees" data-tab="trees" role="tabpanel" aria-label="Decision trees and best practices">
-{trees_html}
+    <div id="trees-mount"></div>
+    <script type="application/json" id="trees-payload">{trees_json}</script>
+    <noscript><p>The decision-trees &amp; best-practices guidance renders with JavaScript. The source lives under <code>plugins/*/rules/</code> and <code>plugins/*/best-practices/</code>.</p></noscript>
   </section>
   <section class="tab-panel" id="panel-activity" data-tab="activity" role="tabpanel" aria-label="Run feed">
 {activity_html}

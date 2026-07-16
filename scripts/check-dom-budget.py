@@ -112,10 +112,15 @@ RATCHET = {
     DASHBOARD: [
         ("Phase 0 -> 6", 57367, "Phase 0 baseline 57,330 (html.parser); +37 in Phase 6 for the two "
                                 "shipped hooks missing from the pipeline map (gap 1/4). Zero slack."),
+        ("Phase 2 (trees island)", 36762, "panel-trees (~20,612 elems) DOM-island-loaded into a "
+                                          "<script type=application/json> payload rendered on activate; its "
+                                          "elements leave the live-DOM count. 57,367 -> 36,762. Zero slack."),
     ],
     INDEX: [
         ("Phase 0 -> 6", 50982, "Phase 0 baseline 50,945; +37 in Phase 6 (same guard-web-access + "
                                 "delegation-nudge fragment). Zero slack."),
+        ("Phase 2 (trees island)", 37468, "portal fragment's trees payload islanded alongside the "
+                                          "standalone surface. 50,982 -> 37,468. Zero slack."),
     ],
 }
 
