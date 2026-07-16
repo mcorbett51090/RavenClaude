@@ -8771,14 +8771,25 @@ _JS = r"""
   // is inline. Idempotent + retry-safe via the treesLoaded latch, matching the file's
   // loadActivity/loadHeimdall lazy-on-activate convention.
   let treesLoaded = false;
+  // The Guidance search chrome is injected WITH the island content (not live DOM), so
+  // it costs zero live elements toward the Gate-132 budget until the tab is opened —
+  // the chrome belongs with the content it searches, and both are lazy.
+  const TREES_SEARCH_SHELL =
+    '<div class="trees-search-wrap">' +
+    '<input type="search" id="trees-search" class="learn-search trees-search-input" placeholder="Search decision trees & best practices…" aria-label="Search decision trees and best practices" aria-controls="trees-results" autocomplete="off" spellcheck="false">' +
+    '<span class="learn-count" id="trees-search-count" role="status" aria-live="polite"></span>' +
+    "</div>" +
+    '<ol class="trees-results" id="trees-results" aria-label="Search results" hidden></ol>' +
+    '<p class="trees-noresults" id="trees-noresults" role="status" hidden></p>';
   function loadTrees() {
     if (treesLoaded) return;
     const mount = document.getElementById("trees-mount");
     const payload = document.getElementById("trees-payload");
     if (!mount || !payload) return;
     try {
-      mount.innerHTML = JSON.parse(payload.textContent);
+      mount.innerHTML = TREES_SEARCH_SHELL + JSON.parse(payload.textContent);
       treesLoaded = true;
+      initTreesSearch(); // bind the search now that its input + the cards exist
     } catch (e) {
       /* leave unlatched so a later activate can retry */
     }
@@ -11392,9 +11403,9 @@ _JS = r"""
 
   /* Initial render */
   render();
-  // Guidance-tab search: bound at load (input lives in the static shell); the
-  // island index is built lazily on the first keystroke.
-  initTreesSearch();
+  // Guidance-tab search is bound by loadTrees() AFTER it injects the search chrome +
+  // the island cards on the first activate("trees") — not at load, since the input
+  // now lives inside the island (zero live-DOM cost until the tab opens).
 })();
 """.strip()
 
@@ -11879,12 +11890,6 @@ _PAGE_TEMPLATE = """<!doctype html>
 {commands_html}
   </section>
   <section class="tab-panel" id="panel-trees" data-tab="trees" role="tabpanel" aria-label="Decision trees and best practices">
-    <div class="trees-search-wrap">
-      <input type="search" id="trees-search" class="learn-search trees-search-input" placeholder="Search decision trees &amp; best practices&hellip;" aria-label="Search decision trees and best practices" aria-controls="trees-results" autocomplete="off" spellcheck="false">
-      <span class="learn-count" id="trees-search-count" role="status" aria-live="polite"></span>
-    </div>
-    <ol class="trees-results" id="trees-results" aria-label="Search results" hidden></ol>
-    <p class="trees-noresults" id="trees-noresults" role="status" hidden></p>
     <div id="trees-mount"></div>
     <script type="application/json" id="trees-payload">{trees_json}</script>
     <noscript><p>The decision-trees &amp; best-practices guidance renders with JavaScript. The source lives under <code>plugins/*/rules/</code> and <code>plugins/*/best-practices/</code>.</p></noscript>
