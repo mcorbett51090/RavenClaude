@@ -119,6 +119,10 @@ RATCHET = {
                                            "subsystems (search/widgets/steppers/node-links) re-pointed from "
                                            "load-time IIFEs to on-activate named functions. 36,762 -> 17,066 "
                                            "= 12.2x vs 1,400 (from 41.0x). Zero slack."),
+        ("Phase 2b (Commands island)", 10764, "panel-commands (~6,308 elems, the 2nd-largest panel) "
+                                              "DOM-island-loaded; its deferred .cmd-copy/.cmd-run binds "
+                                              "re-pointed to an on-activate initCommands() scoped to "
+                                              "#commands-mount. 17,066 -> 10,764 = 7.7x vs 1,400. Zero slack."),
     ],
     INDEX: [
         ("Phase 0 -> 6", 50982, "Phase 0 baseline 50,945; +37 in Phase 6 (same guard-web-access + "
@@ -127,6 +131,8 @@ RATCHET = {
                                           "standalone surface. 50,982 -> 37,468. Zero slack."),
         ("Phase 2L (Learn island)", 17772, "portal Learn payload islanded alongside the standalone "
                                            "surface. 37,468 -> 17,772 = 12.7x. Zero slack."),
+        ("Phase 2b (Commands island)", 11470, "portal fragment's commands payload islanded alongside "
+                                              "the standalone surface. 17,772 -> 11,470 = 8.2x. Zero slack."),
     ],
 }
 
