@@ -3,7 +3,7 @@
   "generated_by": "scripts/check-committed-routes.mjs --emit",
   "surfaces": {
     "dashboard": {
-      "href_count": 9,
+      "href_count": 10,
       "distinct_static": 8,
       "distinct_dynamic": 0,
       "static_href_routes": [
@@ -68,7 +68,7 @@
       "nav_routes": []
     },
     "index": {
-      "href_count": 23,
+      "href_count": 24,
       "distinct_static": 12,
       "distinct_dynamic": 3,
       "static_href_routes": [

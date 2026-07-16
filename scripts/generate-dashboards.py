@@ -37,7 +37,6 @@ import argparse
 import html
 import importlib.util
 import json
-import re
 import sys
 from pathlib import Path
 
@@ -56,29 +55,24 @@ _SHARED_TOKENS_PATH = (
     REPO_ROOT / "plugins" / "ravenclaude-core" / "dashboard-assets" / "shared-tokens.css"
 )
 
-_RAVEN_LOGO_PATH = (
-    REPO_ROOT / "plugins" / "ravenclaude-core" / "dashboard-assets" / "brand" / "raven-logo.svg"
-)
-
-
 def _load_raven_logo() -> str:
-    """Return brand-mark MARKUP: the inline SVG if raven-logo.svg exists (drop
-    the real artwork there to swap it), else an <img> of the bundled PNG.
+    """Return brand-mark MARKUP: a single self-contained WebP <img> of the raven
+    mark (base64 data URI, offline-safe — the same mark the commerce site nav
+    uses).
 
-    SVG `<!-- ... -->` comments are stripped before inlining. Here the asset
-    lands in static HTML, but the sibling generate-index-dashboard.py also
-    inlines it inside a JS template literal (the onboarding-card render fn) —
-    a backtick or ${...} in an SVG comment would close that literal early and
-    kill the entire script block. Comments never render visually; stripping
-    them insulates both generators from whatever artwork lands here.
+    Premium redesign, P1: this replaced the multi-node inline SVG. One <img>
+    node in place of <svg> + <path> banks exactly one element off the Gate-132
+    DOM budget on every surface this markup reaches (standalone dashboard.html
+    AND the folded portal index.html via render_fragment). Display size (~30px)
+    and the green halo live in CSS (.brand-mark img); the explicit intrinsic
+    width/height keep layout stable at parse time (CLS-safe). The sibling
+    generate-index-dashboard.py still inlines the SVG for the portal SHELL's own
+    brand mark (its separate _load_raven_logo) — that swap is a later phase.
     """
-    try:
-        raw = _RAVEN_LOGO_PATH.read_text(encoding="utf-8")
-    except OSError:
-        return (
-            f'<img src="{_RAVEN_MARK_DATA_URI}" width="28" height="28" alt="" aria-hidden="true">'
-        )
-    return re.sub(r"<!--.*?-->", "", raw, flags=re.DOTALL).strip()
+    return (
+        f'<img src="{_RAVEN_MARK_WEBP_DATA_URI}" width="{_RAVEN_MARK_W}" '
+        f'height="{_RAVEN_MARK_H}" alt="" aria-hidden="true">'
+    )
 
 
 def _load_shared_tokens_root() -> str:
@@ -3061,10 +3055,27 @@ body {
 h1, h2, h3 { font-family: var(--font-display); font-weight: 600; letter-spacing: -0.02em; }
 ::selection { background: var(--accent); color: #000; }
 .page-header {
-  position: relative;
+  /* Sticky app-nav with a scroll-triggered blur — commerce .nav language. */
+  position: sticky;
+  top: 0;
+  z-index: 20;
   padding: 24px 32px 0;
   border-bottom: 1px solid var(--border);
   background: var(--surface);
+  transition:
+    background 0.35s var(--rc-ease),
+    border-color 0.35s var(--rc-ease),
+    -webkit-backdrop-filter 0.35s var(--rc-ease),
+    backdrop-filter 0.35s var(--rc-ease);
+}
+/* Past a small scroll threshold the header goes translucent + blurred
+   (commerce .nav.is-scrolled). The class is toggled by initScrollBlur();
+   the global prefers-reduced-motion rule (near :root) zeroes the transition. */
+.page-header.is-scrolled {
+  background: rgba(0, 0, 0, 0.72);
+  -webkit-backdrop-filter: saturate(160%) blur(14px);
+  backdrop-filter: saturate(160%) blur(14px);
+  border-bottom-color: var(--border);
 }
 /* Green hairline along the top edge — the site's signature section accent. */
 .page-header::before {
@@ -3082,21 +3093,39 @@ h1, h2, h3 { font-family: var(--font-display); font-weight: 600; letter-spacing:
 }
 .brand-mark {
   flex-shrink: 0;
-  width: 28px;
-  height: 28px;
-  display: grid;
-  place-items: center;
-  /* Inline raven SVG: body uses currentColor (dark on light, light on dark),
-     bolt is the green accent. A PNG fallback is sized the same. */
-  color: var(--text);
-  filter: drop-shadow(0 0 6px var(--accent-glow));
+  display: inline-flex;
+  align-items: center;
+  /* Green halo around the raven mark — commerce .nav__mark language. */
+  filter: drop-shadow(0 0 8px rgba(86, 208, 138, 0.14));
 }
-.brand-mark svg,
 .brand-mark img {
-  width: 28px;
-  height: 28px;
+  width: 30px;
+  height: auto;
   display: block;
-  object-fit: contain;
+}
+/* Pill CTA on the brand row — commerce .nav__cta. Reuses the green .btn.btn-primary
+   fill, overriding its stacked full-width shape into a compact right-aligned pill. */
+.brand-row .brand-cta {
+  margin-left: auto;
+  width: auto;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 18px;
+  border-radius: 999px;
+  font-family: var(--font-display);
+  font-size: 13px;
+  letter-spacing: -0.01em;
+  text-decoration: none;
+  white-space: nowrap;
+  box-shadow: 0 0 0 0 var(--accent-glow);
+  transition:
+    background 0.18s var(--rc-ease),
+    box-shadow 0.18s var(--rc-ease-out);
+}
+.brand-row .brand-cta:hover {
+  background: var(--accent-2);
+  box-shadow: 0 0 20px var(--accent-glow);
 }
 .page-header h1 {
   margin: 0;
@@ -3127,6 +3156,7 @@ h1, h2, h3 { font-family: var(--font-display); font-weight: 600; letter-spacing:
 }
 .tab-bar::-webkit-scrollbar { display: none; }
 .tab-btn {
+  position: relative;
   background: transparent;
   border: none;
   color: var(--muted);
@@ -3139,6 +3169,21 @@ h1, h2, h3 { font-family: var(--font-display); font-weight: 600; letter-spacing:
   flex-shrink: 0;
   white-space: nowrap;
 }
+/* Underline-reveal wipe on hover — commerce .nav__links a::after (left→right).
+   The active tab keeps its solid accent border-bottom; the wipe is suppressed
+   there. The global prefers-reduced-motion rule zeroes the wipe transition. */
+.tab-btn::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 100%;
+  bottom: -2px;
+  height: 2px;
+  background: var(--accent);
+  transition: right 0.35s var(--rc-ease);
+}
+.tab-btn:hover::after { right: 0; }
+.tab-btn[aria-selected="true"]::after { content: none; }
 .tab-btn[aria-selected="true"] {
   color: var(--text);
   border-bottom-color: var(--accent);
@@ -9342,6 +9387,32 @@ _JS = r"""
     });
   })();
 
+  /* ── Scroll-triggered nav blur ─────────────────────────────────────────
+   * Toggle .is-scrolled on the sticky .page-header past a small threshold so
+   * it picks up the translucent backdrop-blur (commerce .nav.is-scrolled). A
+   * passive listener + rAF coalescing keeps it off the scroll critical path;
+   * the CSS transition is gated by the global prefers-reduced-motion rule. */
+  (function initScrollBlur() {
+    const header = document.querySelector(".page-header");
+    if (!header) return;
+    let ticking = false;
+    const sync = () => {
+      header.classList.toggle("is-scrolled", window.scrollY > 12);
+      ticking = false;
+    };
+    window.addEventListener(
+      "scroll",
+      () => {
+        if (!ticking) {
+          ticking = true;
+          window.requestAnimationFrame(sync);
+        }
+      },
+      { passive: true },
+    );
+    sync();
+  })();
+
   window.addEventListener("hashchange", applyHash);
   applyHash();
 
@@ -12045,6 +12116,7 @@ _PAGE_TEMPLATE = """<!doctype html>
   <div class="brand-row">
     <span class="brand-mark" aria-hidden="true">{raven_mark}</span>
     <h1>{title}</h1>
+    <a class="btn btn-primary brand-cta" href="#/settings">Settings</a>
   </div>
   <p class="page-desc">This is your control panel for Claude&nbsp;Code's safety rails. Use it to set what Claude is allowed to do, see what it's been doing, and add plugins. <a href="#/about" class="header-about-link">What is this?</a></p>
   <nav class="cat-bar" aria-label="Dashboard categories">
