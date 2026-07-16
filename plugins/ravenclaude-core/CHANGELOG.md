@@ -2,6 +2,20 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.202.0 — 2026-07-16
+
+### Added
+
+- **FORGE domain-prior lens (`skills/forge-pipeline`) — the orchestrator now brings a domain lens to its gates, the constitution-correct way.** At `standard`+ only (the default `quick` path is byte-identical), the pipeline derives a one-line domain tag and injects the **same** domain-concern prior into both G2/G3 panels (and optionally G4a/G4b/G5) — cross-model divergence (B≠A) untouched; `security` is a non-exclusive overlay, so a security signal always adds the security prior. It is **inject-prior only**: it names domain concerns + the always-present [`agent-routing.md`](knowledge/agent-routing.md), never a hard cross-plugin link, so a disabled/uninstalled domain plugin never degrades it. New machinery lives in `reference/gates-standard.md` (loaded only at standard+); `quick`/`micro` pay nothing.
+  - **Why not dispatch a real specialist `agentType`** (the seductive answer two panels proposed, and the pipeline's own G4a critic + G5 red-team both cut): the house-rule litmus ("core agent + right skill = indistinguishable"), most advisory specialists lack `Write` (a `Bash`-heredoc workaround silently passes §0's "non-empty" floor on a truncated artifact — a regression), specialists emit their native schema not FORGE's receipt, and a domain→`agentType` map rots with no CI gate. Real dispatch is **deferred** with explicit preconditions recorded inline in `gates-standard.md`.
+
+### Fixed
+
+- **FORGE now honors the `parallelism:` posture cap** (`SKILL.md` §3) exactly as `spawn-team` Step 5 does — previously FORGE was the one orchestrator in the marketplace that ignored it. A cap, not a floor (composes with the Opus 4.8 under-spawn tuning).
+- **The "Sága run record" promised by `commands/forge.md` Step 5 now has a concrete shape** (`SKILL.md` §0): each gate's receipt is appended to `.ravenclaude/runs/forge/<slug>/run-log.jsonl` with `model`/`subagent_type`/`effort`. It was named in `forge.md` but never defined in the skill's artifact contract — unimplementable as written.
+
+**Cost (honest, char/4):** the **domain-prior lens adds nothing to `quick`/`micro`** (it lives in `reference/gates-standard.md`, loaded only at `standard`+; ≈ +1,000 tok there). The two hygiene fixes above touch always-loaded core, so `quick`'s fixed prompt grows **≈ +130 tok (~4%)** — a deliberate trade for a real correctness fix (the parallelism cap) + a real observability fix (the run-log). **Migration:** none — additive + behavioral; the lens degrades to today's generic behavior on an unrecognized domain or a disabled plugin. Found by dogfooding `/forge` on FORGE itself.
+
 ## 0.199.1 — 2026-07-15
 
 ### Fixed
