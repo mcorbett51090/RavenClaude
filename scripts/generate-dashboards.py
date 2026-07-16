@@ -11108,6 +11108,160 @@ _JS = r"""
     syncToggle();
   }
 
+  /* ── Guidance (trees) tab: data-side search over the islanded payload ──
+     The 924 decision trees / 2,216 best-practices ship inside the
+     <script id="trees-payload"> island. This matcher JSON.parses that island
+     and reads its guide items as DATA (parsed in a detached <template>, never
+     inserted into the live document), so search works even before the panel is
+     activated and makes ZERO network requests — static-host safe. Mirrors the
+     #learn-search data-search shape; selecting a result hydrates the panel and
+     scrolls to the item. Bound at load (the input lives in the static shell). */
+  function initTreesSearch() {
+    const panel = document.querySelector('.tab-panel[data-tab="trees"]');
+    if (!panel) return;
+    const search = panel.querySelector("#trees-search");
+    const results = panel.querySelector("#trees-results");
+    const noResults = panel.querySelector("#trees-noresults");
+    const countEl = panel.querySelector("#trees-search-count");
+    const payload = panel.querySelector("#trees-payload");
+    if (!search || !results || !payload) return;
+
+    const MAX_RESULTS = 50;
+    let index = null; // built lazily on the first query
+
+    function buildIndex() {
+      if (index) return index;
+      index = [];
+      let markup;
+      try {
+        markup = JSON.parse(payload.textContent);
+      } catch (e) {
+        return index; // malformed payload -> empty index -> search no-ops
+      }
+      // Parse the payload markup as DATA in a detached <template> (its content
+      // is inert — scripts don't run, images/SVGs don't fetch, nothing is added
+      // to the live DOM). Read the items the generator tagged with data-search.
+      const tpl = document.createElement("template");
+      tpl.innerHTML = markup;
+      tpl.content.querySelectorAll("li.guide-item[id]").forEach(li => {
+        const titleEl = li.querySelector(".guide-title");
+        const kindEl = li.querySelector(".guide-kind");
+        index.push({
+          id: li.id,
+          title: titleEl ? titleEl.textContent.trim() : li.id,
+          owner: li.getAttribute("data-guide-owner") || "",
+          kind: li.getAttribute("data-guide-kind") || "",
+          kindLabel: kindEl ? kindEl.textContent.trim() : "",
+          hay: (li.getAttribute("data-search") || "").toLowerCase(),
+        });
+      });
+      return index;
+    }
+
+    // Ranked relevance: exact title > title-prefix > title-substring > owner >
+    // any-field (the pre-lowered data-search haystack). q is already lowercased.
+    function scoreItem(item, q) {
+      const title = item.title.toLowerCase();
+      if (title === q) return 100;
+      if (title.indexOf(q) === 0) return 80;
+      if (title.indexOf(q) !== -1) return 60;
+      if (item.owner.toLowerCase().indexOf(q) !== -1) return 40;
+      if (item.hay.indexOf(q) !== -1) return 20;
+      return 0;
+    }
+
+    function rank(q) {
+      const idx = buildIndex();
+      const scored = [];
+      for (let i = 0; i < idx.length; i++) {
+        const s = scoreItem(idx[i], q);
+        if (s > 0) scored.push({ item: idx[i], score: s, ord: i });
+      }
+      // Highest score first; stable (document order) within an equal score.
+      scored.sort((a, b) => b.score - a.score || a.ord - b.ord);
+      return scored;
+    }
+
+    // Deep-link + scroll: the item is in the island, so hydrate the panel first,
+    // then resolve the id in the now-rendered mount, open its <details>
+    // ancestors, scroll, and flash it.
+    function openGuideItem(id) {
+      if (typeof loadTrees === "function") loadTrees();
+      const el = document.getElementById(id);
+      if (!el) return;
+      let node = el;
+      while (node) {
+        if (node.tagName === "DETAILS") node.open = true;
+        node = node.parentElement;
+      }
+      el.scrollIntoView({ block: "center", behavior: "smooth" });
+      el.classList.remove("trees-hit");
+      void el.offsetWidth; /* restart the highlight animation */
+      el.classList.add("trees-hit");
+      el.setAttribute("tabindex", "-1");
+      try { el.focus({ preventScroll: true }); } catch (e) { /* focus optional */ }
+      window.setTimeout(() => el.classList.remove("trees-hit"), 2200);
+    }
+
+    function renderResults(q) {
+      results.textContent = "";
+      if (!q) {
+        results.hidden = true;
+        if (noResults) noResults.hidden = true;
+        if (countEl) countEl.textContent = "";
+        return;
+      }
+      const hits = rank(q);
+      if (countEl) {
+        countEl.textContent = hits.length + (hits.length === 1 ? " match" : " matches");
+      }
+      if (!hits.length) {
+        results.hidden = true;
+        if (noResults) {
+          noResults.textContent =
+            'No decision tree or best-practice matches “' + q + '”. ' +
+            "Try a plugin name or a shorter term — the full guidance is still " +
+            "browsable in the plugin list below.";
+          noResults.hidden = false;
+        }
+        return;
+      }
+      if (noResults) noResults.hidden = true;
+      hits.slice(0, MAX_RESULTS).forEach(h => {
+        const li = document.createElement("li");
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "trees-result";
+        const kindSpan = document.createElement("span");
+        kindSpan.className =
+          "guide-kind " + (h.item.kind === "tree" ? "guide-kind-tree" : "guide-kind-bp");
+        kindSpan.textContent = h.item.kindLabel || (h.item.kind === "tree" ? "tree" : "rule");
+        const titleSpan = document.createElement("span");
+        titleSpan.className = "trees-result-title";
+        titleSpan.textContent = h.item.title;
+        const metaSpan = document.createElement("span");
+        metaSpan.className = "trees-result-meta";
+        metaSpan.textContent = h.item.owner;
+        btn.appendChild(kindSpan);
+        btn.appendChild(titleSpan);
+        btn.appendChild(metaSpan);
+        btn.addEventListener("click", () => openGuideItem(h.item.id));
+        li.appendChild(btn);
+        results.appendChild(li);
+      });
+      results.hidden = false;
+    }
+
+    search.addEventListener("input", () => renderResults(search.value.trim().toLowerCase()));
+    // Enter jumps straight to the top-ranked result.
+    search.addEventListener("keydown", e => {
+      if (e.key === "Enter") {
+        const first = results.querySelector(".trees-result");
+        if (first) { e.preventDefault(); first.click(); }
+      }
+    });
+  }
+
   /* ── Learn tab: interactive concept widgets ────────────────────────── */
   function initConceptWidgets() {
     const LAYER_NAME = { managed: "Managed", project: "Project", local: "Local", user: "User" };
@@ -11238,6 +11392,9 @@ _JS = r"""
 
   /* Initial render */
   render();
+  // Guidance-tab search: bound at load (input lives in the static shell); the
+  // island index is built lazily on the first keystroke.
+  initTreesSearch();
 })();
 """.strip()
 
