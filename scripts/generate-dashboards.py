@@ -469,14 +469,30 @@ def _render_activity_tab() -> str:
 
 
 # ── Pipeline tab ─────────────────────────────────────────────────────────────
-# A visual map of EVERY guardrail an agent passes through (SessionStart →
-# PreToolUse → PostToolUse → Stop), grounded in hooks/hooks.json. Each stage
-# carries a live ON/OFF badge, a 5th-grade tooltip, and (where tunable) inline
-# editors. Posture-backed knobs round-trip the SAME comfort-posture.yaml the
-# Settings tab uses (shared `state` + emitYaml + /__save). The two file-backed
-# stages (.repo-layout.json, .ravenclaude/task-scope.json) round-trip via
-# /__read + /__save with server-side JSON validation. All JS lives in _JS; this
-# returns a static skeleton the JS hydrates on tab open.
+# A visual map of the guardrails an agent passes through (SessionStart →
+# PreToolUse → PostToolUse → Stop). Each stage carries a live ON/OFF badge, a
+# 5th-grade tooltip, and (where tunable) inline editors. Posture-backed knobs
+# round-trip the SAME comfort-posture.yaml the Settings tab uses (shared `state`
+# + emitYaml + /__save). The two file-backed stages (.repo-layout.json,
+# .ravenclaude/task-scope.json) round-trip via /__read + /__save with
+# server-side JSON validation. All JS lives in _JS; this returns a static
+# skeleton the JS hydrates on tab open.
+#
+# NOT auto-derived from hooks.json — these lanes are a HAND-MAINTAINED curation.
+# (The tooltips, step-by-step detail, ordering, badges and 5th-grade copy have no
+# source in hooks/hooks.json, so the list cannot be generated from it.) The map
+# is a *curated subset* of the registered hooks: it shows the user-facing
+# guardrails plus two BEHAVIORAL guardrails — `parallel-workers` and
+# `claude-orchestrator` — which are comfort-posture knobs read by spawn-team, NOT
+# hooks (see _PIPELINE_STAGE_HOOKS, where they map to None). Registered hooks
+# that are deliberately NOT in the map are enumerated in _PIPELINE_EXCLUDED_HOOKS
+# with a reason. Drift between this curation and hooks/hooks.json is caught by
+# Gate 133 (scripts/check-pipeline-lanes.py): every registered hook must be
+# either a stage here or in _PIPELINE_EXCLUDED_HOOKS, and every stage's mapped
+# hook must be a real registered hook. That gate — not this comment — is what
+# keeps the map honest against hooks.json; a shipped hook missing from BOTH lists
+# (the exact live-drift bug that hid `delegation-nudge`/`guard-web-access`) fails
+# the build.
 _PIPELINE_LANES = [
     {
         "event": "SessionStart",
@@ -631,6 +647,23 @@ _PIPELINE_LANES = [
                 },
             },
             {
+                "id": "guard-web-access",
+                "title": "Website guard",
+                "badge": "dynamic",
+                "badge_default": "Not set up",
+                "controls": "web",
+                "tip": "Lets you pick which websites the robot may open without asking, and which are always off-limits.",
+                "detail": {
+                    "steps": [
+                        "Before the robot fetches a web page, checks your allow / deny lists.",
+                        "An allowed site opens with no prompt; a denied site is blocked.",
+                        "A site on neither list falls through to the normal once / this-session / permanently / deny prompt.",
+                    ],
+                    "trip": "Blocks a denied site; otherwise it asks you the first time, exactly like today.",
+                    "set": "Set up allow / deny lists on the Web access page. “Not configured yet” is fine — sites just fall through to the normal ask prompt.",
+                },
+            },
+            {
                 "id": "claude-orchestrator",
                 "title": "Claude orchestrator",
                 "badge": "dynamic",
@@ -695,7 +728,22 @@ _PIPELINE_LANES = [
                         "Nudges if a source is missing.",
                     ],
                     "trip": "Advisory only — it nudges, it never blocks.",
-                    "set": "Active once command review is turned on.",
+                    "set": "No knob — fires whenever a comfort-posture exists.",
+                },
+            },
+            {
+                "id": "delegation-nudge",
+                "title": "Do-it-yourself nudge",
+                "badge": "advisory",
+                "tip": "Reminds the robot to run a check itself instead of telling you to go look, when it already has the access.",
+                "detail": {
+                    "steps": [
+                        "Reads knowledge / docs files the robot writes.",
+                        "Looks for “open the portal / check it yourself / verify manually” phrasing.",
+                        "Nudges the robot to run the check itself when it already holds the access.",
+                    ],
+                    "trip": "Advisory only — it nudges, it never blocks.",
+                    "set": "No knob — fires whenever a comfort-posture exists.",
                 },
             },
         ],
@@ -738,6 +786,45 @@ _PIPELINE_LANES = [
         ],
     },
 ]
+
+# ── The lane→hook contract (the ONLY thing that keeps the map "grounded") ─────
+# Maps every _PIPELINE_LANES stage id -> the registered hook basename it stands
+# for, or None for the two BEHAVIORAL guardrails (comfort-posture knobs read by
+# spawn-team at dispatch time, not hooks). Gate 133 asserts this dict's keys are
+# EXACTLY the set of stage ids in _PIPELINE_LANES — so a stage cannot be added
+# without declaring the hook it represents (or None) — and reconciles the mapped
+# hooks against hooks/hooks.json.
+_PIPELINE_STAGE_HOOKS = {
+    "reapply-posture": "reapply-posture.sh",
+    "ensure-default-mode": "ensure-default-mode.sh",
+    "capability-orientation": "capability-orientation.sh",
+    "guard-destructive": "guard-destructive.sh",
+    "thing": "thing-orchestrator.sh",
+    "runaway-brake": "runaway-brake.sh",
+    "parallel-workers": None,  # behavioral: spawn-team reads `parallelism:` — no hook
+    "enforce-layout": "enforce-layout.sh",
+    "route-decision-review": "route-decision-review.sh",
+    "guard-web-access": "guard-web-access.sh",
+    "claude-orchestrator": None,  # behavioral: spawn-team reads `orchestrator:` — no hook
+    "format-on-write": "format-on-write.sh",
+    "guard-recursive-spawn": "guard-recursive-spawn.sh",
+    "claim-grounding-lint": "claim-grounding-lint.sh",
+    "delegation-nudge": "delegation-nudge.sh",
+    "dod-gate": "dod-gate.sh",
+    "remind-tests": "remind-tests.sh",
+}
+
+# Registered hooks that are DELIBERATELY not user-facing pipeline stages. Gate 133
+# requires every registered hook to be either mapped above or listed here (with a
+# reason) — so a newly-registered hook lands in NEITHER list and fails the build,
+# which is exactly what would have caught the missing `delegation-nudge`.
+_PIPELINE_EXCLUDED_HOOKS = {
+    "regen-on-manifest-change.sh": "marketplace-internal artifact regen; not an agent guardrail",
+    "mark-web-domain-seen.sh": "internal consent-ordering bookkeeping for guard-web-access; not a distinct guardrail",
+    "stream-session-close.sh": "work-stream tracking (Stop); observability, not a guardrail",
+    "stream-prompt-attribute.sh": "work-stream tracking (UserPromptSubmit); observability, not a guardrail",
+    "agent-dispatch-evaluator.sh": "audit-only shadow (SubagentStart), opt-in; never denies",
+}
 
 _PIPELINE_CONTROLS = {
     "thing": (
@@ -843,6 +930,23 @@ _PIPELINE_CONTROLS = {
         'placeholder=\'{ "in_scope": ["src/**"], "spec": "SPEC.md" }\'></textarea>'
         '<span class="pipe-file-status" data-target=".ravenclaude/task-scope.json"></span></div>'
     ),
+    # guard-web-access's knob lives in .ravenclaude/web-access.yaml, which is
+    # OPTIONAL and absent by default (guard-web-access.sh fail-safes to "ask as
+    # normal" when absent). So this control renders the "not configured" state as
+    # its STATIC default and never assumes the file exists — the editor is the
+    # separate Web access page (do not duplicate it here). JS upgrades the state
+    # line + badge when served AND the file has rules (hydrateWebAccessBadge).
+    "web": (
+        '<div class="pipe-web">'
+        '<p class="pipe-web-state" id="pipe-web-state">Not configured yet — every website falls '
+        "through to the normal ask prompt (allow once / this session / permanently / deny). The guard "
+        "never blocks web access until you set up lists, so this is a safe default.</p>"
+        '<p class="pipe-hint">Set up allow / deny lists on the <a href="#/web-access">Web access</a> '
+        "page — saved to <code>.ravenclaude/web-access.yaml</code>, enforced by "
+        "<code>guard-web-access.sh</code>. Nothing to configure here; this is a shortcut to that "
+        "editor.</p>"
+        "</div>"
+    ),
 }
 
 
@@ -886,6 +990,7 @@ _PIPELINE_CSS = """<style>
 .pipe-ctl input[type=number] { width: 6rem; }
 .pipe-ctl input[type=text] { flex: 1 1 12rem; min-width: 10rem; }
 .pipe-hint { margin: .1rem 0 0; font-size: .78rem; color: var(--muted, #888); }
+.pipe-web-state { margin: .1rem 0 .2rem; font-size: .84rem; color: var(--text, #eee); }
 /* Expandable "How it works" subprocess detail (native <details>, accessible). */
 .pipe-more { margin: .4rem 0 0; }
 .pipe-more > summary { cursor: pointer; font-size: .8rem; font-weight: 600; color: var(--accent);
@@ -935,10 +1040,11 @@ def _render_pipeline_tab() -> str:
                 badge_html = '<span class="pipe-badge pipe-badge-on">Always on</span>'
             elif badge == "advisory":
                 badge_html = '<span class="pipe-badge pipe-badge-advisory">Advisory</span>'
-            else:  # dynamic — JS fills it
+            else:  # dynamic — JS fills it; badge_default is the pre-JS/static-host text
+                placeholder = html.escape(st.get("badge_default", "…"))
                 badge_html = (
                     f'<span class="pipe-badge pipe-badge-dynamic" '
-                    f'data-pipe-badge="{html.escape(st["id"])}">…</span>'
+                    f'data-pipe-badge="{html.escape(st["id"])}">{placeholder}</span>'
                 )
             controls = st.get("controls")
             controls_html = (
@@ -8931,6 +9037,42 @@ _JS = r"""
     el.classList.add(cls);
   }
 
+  /* guard-web-access: count allow/deny domains from the plain-YAML file WITHOUT
+   * a YAML parser (allow:/deny: sections, `- domain` list items). Fail-safe. */
+  function countWebAccess(text) {
+    let section = null, allow = 0, deny = 0;
+    for (const raw of String(text || "").split("\n")) {
+      const line = raw.replace(/\r$/, "");
+      if (/^allow:/.test(line)) { section = "allow"; continue; }
+      if (/^deny:/.test(line)) { section = "deny"; continue; }
+      if (/^\s*-\s+\S/.test(line)) { if (section === "allow") allow++; else if (section === "deny") deny++; }
+      else if (/^\S/.test(line)) { section = null; }  // a new top-level key ends the list
+    }
+    return { allow, deny };
+  }
+
+  /* Progressive enhancement only — the STATIC render is already the honest
+   * "not configured" state (badge "Not set up", #pipe-web-state explains the
+   * fall-through). .ravenclaude/web-access.yaml is OPTIONAL and absent by
+   * default, so we NEVER assume it exists: static host / no file / empty file /
+   * any error all KEEP the not-configured default. Only a served host with real
+   * allow|deny rules upgrades the badge + state line. */
+  async function hydrateWebAccessBadge() {
+    if (!pipelineServerAvailable) return;  // static host: keep "Not set up"
+    try {
+      const res = await fetch("/__read?path=" + encodeURIComponent(".ravenclaude/web-access.yaml"));
+      if (!res.ok) return;  // 404 (absent) or any non-OK -> keep "Not set up"
+      const j = await res.json();
+      const { allow, deny } = countWebAccess(j && j.content);
+      if (allow + deny === 0) return;  // present but empty -> keep "Not set up"
+      pipeBadge("guard-web-access", allow + " allow · " + deny + " deny", "pipe-badge-on");
+      const stateEl = document.getElementById("pipe-web-state");
+      if (stateEl) stateEl.textContent =
+        "Configured — " + allow + " site(s) auto-allowed, " + deny + " blocked. "
+        + "Unlisted sites still fall through to the normal ask prompt.";
+    } catch (e) { /* keep the not-configured default */ }
+  }
+
   function syncPipelineTab() {
     const cr = state.command_review;
     const en = document.getElementById("pipe-thing-enabled");
@@ -9081,6 +9223,7 @@ _JS = r"""
     const sb = document.getElementById("pipeline-save-btn");
     if (sb) sb.disabled = !pipelineServerAvailable;
     syncPipelineTab();
+    hydrateWebAccessBadge();
     loadConcernStats();
   }
   initPipelineTab();

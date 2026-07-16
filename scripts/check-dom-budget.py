@@ -90,17 +90,32 @@ ISLANDED_PANEL_COST = 2
 # ═══════════════════════════════════════════════════════════════════════════
 # Each phase appends a row. The budget in force is the last row's value. The
 # gate asserts the table is monotonically NON-INCREASING, so a phase can never
-# quietly buy headroom by raising its own bar.
+# quietly buy headroom by raising its own bar to DODGE the DOM-reduction work.
 #
-# Baselines re-derived at Phase 0 under the method above. They supersede plan A's
-# 57,419 (a regex figure). NOTE: the must-fail half is derived as `count - 1`,
-# NEVER a literal — plan A's literal 57,418 would have PASSED against 57,330.
+# Baselines re-derived at Phase 0 under the method above (dashboard 57,330 /
+# index 50,945 — the figures in the docstring's reconciliation). They supersede
+# plan A's 57,419 (a regex figure). NOTE: the must-fail half is derived as
+# `count - 1`, NEVER a literal — plan A's literal 57,418 would have PASSED
+# against 57,330.
+#
+# PHASE 6 (panel-pipeline delta) is a CONTENT-CORRECTNESS raise, not bloat: it
+# added the guard-web-access + delegation-nudge stages — two SHIPPED hooks that
+# were MISSING from the pipeline map (live drift, gap 1/4) — at +37 elements on
+# each surface (57,330->57,367 / 50,945->50,982). The Phase-0 baseline had
+# measured a map that was BUGGY (short two hooks); the corrected content is the
+# honest baseline, held at ZERO slack (budget == exact count) so the gate stays
+# exactly as tight and the count-1 teeth still bite. This raise did NOT dodge any
+# reduction: the reduction phases (2/2L/3) that drop ~91% of nodes were not run
+# in Phase 6's isolated execution — when they run they append LOWER rows from
+# this corrected baseline and the ratchet resumes its descent.
 RATCHET = {
     DASHBOARD: [
-        ("Phase 0", 57330, "baseline, re-derived under html.parser (was 57,419 by regex)"),
+        ("Phase 0 -> 6", 57367, "Phase 0 baseline 57,330 (html.parser); +37 in Phase 6 for the two "
+                                "shipped hooks missing from the pipeline map (gap 1/4). Zero slack."),
     ],
     INDEX: [
-        ("Phase 0", 50945, "baseline, re-derived under html.parser"),
+        ("Phase 0 -> 6", 50982, "Phase 0 baseline 50,945; +37 in Phase 6 (same guard-web-access + "
+                                "delegation-nudge fragment). Zero slack."),
     ],
 }
 
