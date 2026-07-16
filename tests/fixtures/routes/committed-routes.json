@@ -3,8 +3,8 @@
   "generated_by": "scripts/check-committed-routes.mjs --emit",
   "surfaces": {
     "dashboard": {
-      "href_count": 188,
-      "distinct_static": 48,
+      "href_count": 189,
+      "distinct_static": 49,
       "distinct_dynamic": 0,
       "static_href_routes": [
         {
@@ -342,14 +342,21 @@
           "sub": null,
           "destination": "activate:trees",
           "resolved": true
+        },
+        {
+          "route": "#/web-access",
+          "section": "web-access",
+          "sub": null,
+          "destination": "activate:web-access",
+          "resolved": true
         }
       ],
       "dynamic_href_templates": [],
       "nav_routes": []
     },
     "index": {
-      "href_count": 202,
-      "distinct_static": 52,
+      "href_count": 203,
+      "distinct_static": 53,
       "distinct_dynamic": 3,
       "static_href_routes": [
         {
@@ -714,6 +721,13 @@
           "section": "trees",
           "sub": null,
           "destination": "viewDashboard:trees",
+          "resolved": true
+        },
+        {
+          "route": "#/web-access",
+          "section": "web-access",
+          "sub": null,
+          "destination": "viewDashboard:web-access",
           "resolved": true
         }
       ],
