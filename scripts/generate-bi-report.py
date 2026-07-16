@@ -379,7 +379,7 @@ table.partners tr.prow:hover { background: var(--surface-2); }
 .kv dt { color: var(--muted); } .kv dd { margin: 0; font-weight: 600; }
 .hidden { display: none !important; }
 .foot { margin-top: 30px; color: var(--faint); font-size: 0.78rem; }
-[data-theme="dark"] .toolbar .seg button[aria-pressed="true"], [data-theme="dark"] .scorebadge { color: #14110d; }
+[data-theme="dark"] .toolbar .seg button[aria-pressed="true"], [data-theme="dark"] .scorebadge { color: #07080a; }
 """
 
 REPORT_JS = """

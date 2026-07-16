@@ -20,7 +20,7 @@ TEMPLATE = r"""<!doctype html>
     <title>RavenClaude — AI Engineering Team Platform</title>
     <meta name="description" content="RavenClaude is a private Claude Code plugin marketplace — a domain-neutral orchestration core plus specialist teams for Microsoft, Salesforce, web, data, finance and compliance. Browse plugins, the specialist roster, and the comfort-posture permission editor." />
     <meta name="color-scheme" content="light" />
-    <meta name="theme-color" content="#faf7f0" />
+    <meta name="theme-color" content="#07080a" />
     <meta name="robots" content="index, follow" />
     <link rel="canonical" href="index.html" />
     <!-- Open Graph / social -->
@@ -35,8 +35,9 @@ TEMPLATE = r"""<!doctype html>
       /*__SHARED_TOKENS__*/
 
       /* ── Local aliases — map the existing index.html variables onto the
-         shared tokens so the cascade lights this surface as light-beige +
-         teal (the index/landing accent). Per-surface overrides live below. */
+         shared tokens so the cascade lights this surface as cool near-black +
+         teal (the index/landing secondary accent; the dashboard carries the
+         commerce green). Per-surface overrides live below. */
       :root {
         --bg: var(--rc-bg);
         --bg-2: var(--rc-surface-2);
@@ -60,6 +61,7 @@ TEMPLATE = r"""<!doctype html>
         --ask: var(--rc-warn);
         --allow: var(--rc-ok);
         --font-sans: var(--rc-font-sans);
+        --font-display: var(--rc-font-display);
         --font-mono: var(--rc-font-mono);
         --radius: var(--rc-radius-lg);
         --radius-sm: var(--rc-radius-sm);
@@ -82,7 +84,7 @@ TEMPLATE = r"""<!doctype html>
       }
       a { color: var(--teal-2); text-decoration: none; }
       a:hover { color: var(--teal); }
-      h1, h2, h3, h4 { letter-spacing: -0.02em; line-height: 1.15; margin: 0; }
+      h1, h2, h3, h4 { font-family: var(--font-display); letter-spacing: -0.02em; line-height: 1.15; margin: 0; }
       h1 { font-size: clamp(1.9rem, 4vw, 2.8rem); }
       p { line-height: 1.6; }
       ::selection { background: var(--teal); color: #fff; }
@@ -457,7 +459,7 @@ TEMPLATE = r"""<!doctype html>
       }
       .scenario-card:hover { transform: translateY(-2px); box-shadow: var(--rc-shadow-md, var(--shadow)); border-color: var(--border-strong); }
       .scenario-card.active { box-shadow: var(--rc-shadow-md, var(--shadow)); }
-      .scenario-card[data-profile="strict"].active { border-color: var(--rc-gold, #b8923a); }
+      .scenario-card[data-profile="strict"].active { border-color: var(--rc-gold, #56d08a); }
       .scenario-card[data-profile="balanced"].active { border-color: var(--rc-teal, var(--teal)); }
       .scenario-card[data-profile="exploratory"].active { border-color: var(--rc-border-strong, var(--border-strong)); }
       .scenario-card[data-profile="autonomous"].active { border-color: #b5630a; }
@@ -478,7 +480,7 @@ TEMPLATE = r"""<!doctype html>
       .pcat-row-head .pc-info { flex: 1; min-width: 0; }
       .pcat-row-head .pc-info .t { font-weight: 600; font-size: 0.92rem; }
       .pcat-row-head .pc-info .d { color: var(--muted); font-size: 0.8rem; margin-top: 2px; }
-      .pcat-row-head .pc-drift { width: 8px; height: 8px; border-radius: 50%; background: var(--rc-gold, #b8923a); }
+      .pcat-row-head .pc-drift { width: 8px; height: 8px; border-radius: 50%; background: var(--rc-gold, #56d08a); }
       .pcat-why-btn { background: transparent; border: none; color: var(--faint); font-size: 0.78rem; cursor: pointer; padding: 6px 0 0 0; align-self: flex-start; }
       .pcat-why-btn:hover { color: var(--text); }
       .pcat-why { display: none; margin-top: 10px; padding: 10px 12px; background: var(--surface-2); border-radius: 8px; font-size: 0.82rem; color: var(--muted); line-height: 1.55; }
