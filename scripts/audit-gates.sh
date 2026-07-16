@@ -285,9 +285,20 @@ PY
       python3 scripts/check-model-ids.py --self-test || rc=$?
       exit $rc
       ;;
+    135)
+      echo "── Gate 135: seat stderr → Sága seat_error capture (per-gate run) ────────"
+      bash plugins/ravenclaude-core/hooks/tests/test-seat-stderr-capture.sh
+      exit $?
+      ;;
+    136)
+      echo "── Gate 136: thing-seat.sh JSON extractor, monotonic (per-gate run) ─────"
+      rc=0; python3 scripts/check-thing-seat-extractor.py || rc=$?
+      python3 scripts/check-thing-seat-extractor.py --must-fail || rc=$?
+      exit $rc
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -4322,6 +4333,33 @@ gate "model-ids: every governed claude-* id is canonical" must_pass "$rc"
 # NOT false-flagged by the bare-haiku prefix collision (FM6) — both in-memory.
 rc=0; python3 scripts/check-model-ids.py --self-test >/dev/null 2>&1 || rc=$?
 gate "model-ids teeth: stale caught + dated-haiku prefix-collision guard" must_pass "$rc"
+
+echo
+echo "── Gate 135: seat stderr → Sága seat_error capture (FM2 fail-closed) ───────"
+# P0: the tribunal used to `2>/dev/null` seat stderr, so a seat that ERRORED logged a
+# bare abstain indistinguishable from a timeout (KB kb-tribunal-seats-abstaining §4/§7).
+# Now parse_seat classifies the seat's exit code into seat_error; a fail-closed EXIT
+# trap converts an unexpected non-zero abort (which Claude Code treats as non-blocking
+# = fail-OPEN) into an explicit deny. The test drives the REAL orchestrator with mocked
+# seats + fault injection; it carries its own must-fail halves internally.
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-seat-stderr-capture.sh >/dev/null 2>&1 || rc=$?
+gate "seat-stderr: seat_error captured, fail-closed on abort, no secret leak (+teeth)" must_pass "$rc"
+
+echo
+echo "── Gate 136: thing-seat.sh JSON extractor — monotonic near-JSON salvage ────"
+# P1: the seat extractor gained a near-JSON second attempt (single quotes / trailing
+# commas / Python literals via ast.literal_eval). MONOTONIC (red-team FM1): a verdict
+# salvaged from repaired bytes may only TIGHTEN — a recovered `allow` is downgraded to
+# `abstain`, never a votable allow (which would convert the KB abstain-pair into a
+# unanimous allow, bypassing the 2-abstain floor). The gate extracts the REAL inline
+# extractor from thing-seat.sh and drives it; no other gate exercises this code.
+rc=0; python3 scripts/check-thing-seat-extractor.py >/dev/null 2>&1 || rc=$?
+gate "seat-extractor: near-JSON deny salvaged, bare-JSON byte-identical" must_pass "$rc"
+
+# teeth: a stripped monotonic-downgrade must let loose-allow vote allow (caught); a
+# stripped attempt-2 must lose the loose-deny salvage (caught).
+rc=0; python3 scripts/check-thing-seat-extractor.py --must-fail >/dev/null 2>&1 || rc=$?
+gate "seat-extractor teeth: monotonic-strip → allow + attempt2-strip → deny-lost" must_pass "$rc"
 
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"
