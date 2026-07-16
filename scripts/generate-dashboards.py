@@ -1922,6 +1922,17 @@ def _load_tree_svg(tree_id: str) -> str:
     return svg
 
 
+def _guide_search_blob(*parts: str) -> str:
+    """Lowercased, whitespace-collapsed, HTML-escaped haystack for a Guidance
+    search item's ``data-search`` attribute. Mirrors the Learn tab's
+    ``data-search`` convention (the ``#learn-search`` shape) so the Guidance
+    matcher can filter the islanded ``trees-payload`` as data — no sidecar index,
+    no network round trip — over the 924 trees / 2,216 best-practice items."""
+    blob = " ".join(p for p in parts if p)
+    blob = " ".join(blob.lower().split())
+    return html.escape(blob, quote=True)
+
+
 def _render_trees_tab(include_trees: bool = True) -> str:
     """Marketplace-wide Guidance tab: every plugin's decision trees + best practices.
 
@@ -1998,7 +2009,16 @@ def _render_trees_tab(include_trees: bool = True) -> str:
                 )
             else:
                 diagram = ""
-            tree_parts.append(f'<li class="guide-item">{link}{when}{diagram}</li>')
+            # id + data-search feed the Guidance tab's data-side search matcher
+            # (see initTreesSearch): the id is the scroll target after activate,
+            # data-search is the pre-lowered haystack (the #learn-search shape).
+            gid = html.escape(t["id"])
+            blob = _guide_search_blob(t["title"], t["when"], t["owner"], "decision tree")
+            tree_parts.append(
+                f'<li class="guide-item" id="guide-{gid}" data-search="{blob}" '
+                f'data-guide-kind="tree" data-guide-owner="{html.escape(t["owner"])}">'
+                f"{link}{when}{diagram}</li>"
+            )
         tree_items = "".join(tree_parts)
         bp_parts = []
         for idx, p in enumerate(op):
@@ -2015,10 +2035,19 @@ def _render_trees_tab(include_trees: bool = True) -> str:
                 if preview
                 else ""
             )
+            gid = f"guide-bp-{html.escape(p['owner'])}-{idx}"
+            blob = _guide_search_blob(
+                p["title"], preview, p["owner"], p["status"] or "rule", "best practice"
+            )
             bp_parts.append(
-                '<li class="guide-item"><a href="../../{path}" class="guide-link">'
+                '<li class="guide-item" id="{gid}" data-search="{blob}" '
+                'data-guide-kind="bp" data-guide-owner="{owner}">'
+                '<a href="../../{path}" class="guide-link">'
                 '<span class="guide-kind guide-kind-bp">{status}</span>'
                 '<span class="guide-title">{title}</span></a>{toggle}{preview}</li>'.format(
+                    gid=gid,
+                    blob=blob,
+                    owner=html.escape(p["owner"]),
                     path=html.escape(p["path"]),
                     title=html.escape(p["title"]),
                     status=html.escape(p["status"] or "rule"),
