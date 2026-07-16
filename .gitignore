@@ -38,3 +38,7 @@ evals/**/*.private.*
 # Bytecode for the new evals harness
 evals/__pycache__/
 .claude/worktrees/
+
+# browser-verification debris (Playwright)
+.playwright-mcp/
+*-rendered.png
