@@ -190,7 +190,15 @@ def _page_kwargs(plugin_dir: Path, schema: dict, include_trees: bool = True) -> 
         "install_html": _render_install_tab(),
         "simulator_html": _render_simulator_tab(),
         "web_access_html": _render_web_access_page(),
-        "learn_html": _render_learn_tab(plugin_dir),
+        # panel-learn (~19,702 elements) is DOM-island-loaded exactly like panel-trees:
+        # its markup ships in a <script type="application/json"> payload (CDATA, uncounted
+        # by Gate 132) and is injected into #learn-mount on the first activate("learn"),
+        # which then binds the four Learn subsystems (initLearn search/filter,
+        # initConceptWidgets, initConceptSteppers, initConceptNodeLinks) against the
+        # NOW-rendered DOM. Those four were load-time IIFEs; converting them to on-activate
+        # named functions is the "gets updated and fixed" work the §0.2 ruling funded.
+        # Their existing `if (!panel) return` guards make them safe to never-fire at load.
+        "learn_json": json.dumps(_render_learn_tab(plugin_dir)),
         "saga_html": _render_saga_tab(),
         "commands_html": _render_commands_tab(),
         # panel-trees is the single largest panel (~20,612 elements, ~36% of the whole
@@ -8734,6 +8742,30 @@ _JS = r"""
       /* leave unlatched so a later activate can retry */
     }
   }
+  // DOM-island loader for the Learn tab (~19,702 elements). Injects the payload,
+  // THEN binds the four Learn subsystems against the now-rendered DOM — the
+  // load-time IIFEs became named functions (initLearn/initConceptWidgets/
+  // initConceptSteppers/initConceptNodeLinks) for exactly this. Idempotent via the
+  // learnLoaded latch. This is the §0.2-funded "convert Learn": the panel's markup
+  // no longer sits in the live DOM at load, and its interactivity is wired on first
+  // activate("learn") instead of at page load.
+  let learnLoaded = false;
+  function loadLearn() {
+    if (learnLoaded) return;
+    const mount = document.getElementById("learn-mount");
+    const payload = document.getElementById("learn-payload");
+    if (!mount || !payload) return;
+    try {
+      mount.innerHTML = JSON.parse(payload.textContent);
+      learnLoaded = true;
+      initLearn();
+      initConceptWidgets();
+      initConceptSteppers();
+      initConceptNodeLinks();
+    } catch (e) {
+      /* leave unlatched so a later activate can retry */
+    }
+  }
   function setCategory(cat) {
     document.querySelectorAll('.cat-btn').forEach(c => {
       c.setAttribute('aria-pressed', c.dataset.cat === cat ? 'true' : 'false');
@@ -8762,6 +8794,8 @@ _JS = r"""
       p.classList.toggle("active", p.dataset.tab === tab);
     });
     if (tab === "trees" && !treesLoaded) loadTrees();
+    // Learn must hydrate BEFORE openConcept(sub) can find the concept in the DOM.
+    if (tab === "learn") loadLearn();
     if (tab === "learn" && sub) openConcept(sub);
     if (tab === "saga" && !sagaLoaded) loadSaga();
     if (tab === "activity" && !activityLoaded) loadActivity();
@@ -10967,7 +11001,7 @@ _JS = r"""
   });
 
   /* ── Learn tab: search · expand/collapse · no-results ──────────────── */
-  (function initLearn() {
+  function initLearn() {
     const panel = document.querySelector('.tab-panel[data-tab="learn"]');
     if (!panel) return;
     const search = panel.querySelector("#learn-search");
@@ -11031,10 +11065,10 @@ _JS = r"""
 
     applyFilter("");
     syncToggle();
-  })();
+  }
 
   /* ── Learn tab: interactive concept widgets ────────────────────────── */
-  (function initConceptWidgets() {
+  function initConceptWidgets() {
     const LAYER_NAME = { managed: "Managed", project: "Project", local: "Local", user: "User" };
     const ORDER = ["managed", "project", "local", "user"];
     document.querySelectorAll('[data-widget="permission-resolver"]').forEach(w => {
@@ -11075,10 +11109,10 @@ _JS = r"""
       selects.forEach(s => s.addEventListener("change", compute));
       compute();
     });
-  })();
+  }
 
   /* ── Learn tab: step-by-step concept diagrams (stepper) ────────────── */
-  (function initConceptSteppers() {
+  function initConceptSteppers() {
     const reduce = !!(window.matchMedia &&
       window.matchMedia("(prefers-reduced-motion: reduce)").matches);
     document.querySelectorAll(".concept-stepper").forEach(stepper => {
@@ -11129,10 +11163,10 @@ _JS = r"""
       }
       show(0);
     });
-  })();
+  }
 
   /* ── Learn tab: clickable diagram nodes (node_links → deep-link) ────── */
-  (function initConceptNodeLinks() {
+  function initConceptNodeLinks() {
     const data = document.getElementById("concepts-data");
     if (!data) return;
     let reg;
@@ -11159,7 +11193,7 @@ _JS = r"""
         });
       });
     });
-  })();
+  }
 
   /* Initial render */
   render();
@@ -11636,7 +11670,9 @@ _PAGE_TEMPLATE = """<!doctype html>
 {web_access_html}
   </section>
   <section class="tab-panel" id="panel-learn" data-tab="learn" role="tabpanel" aria-label="Learn">
-{learn_html}
+    <div id="learn-mount"></div>
+    <script type="application/json" id="learn-payload">{learn_json}</script>
+    <noscript><p>The Learn guidance renders with JavaScript. The concept source lives under <code>plugins/*/knowledge/concepts/</code>.</p></noscript>
   </section>
   <section class="tab-panel" id="panel-saga" data-tab="saga" role="tabpanel" aria-label="Review log">
 {saga_html}

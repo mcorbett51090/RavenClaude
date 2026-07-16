@@ -3640,12 +3640,24 @@ echo "── Gate 93: Learn-tab step-by-step diagram (stepper) render ───�
 if command -v node >/dev/null 2>&1; then
   rc=0; node scripts/check-stepper-render.mjs "$IDX_HTML" >/dev/null 2>&1 || rc=$?
   gate "stepper render (real dashboard.html)" must_pass "$rc"
-  # must_fail: a dashboard with the stepper markup stripped must be detected.
-  ST_BAD="$(mktemp)"; sed 's/class="concept-stepper"/class="concept-NOPE"/g' \
+  # must_fail (v2 — PAYLOAD path): Learn is now DOM-island-loaded, so the stepper
+  # markup lives JSON-ESCAPED inside <script id="learn-payload">. The gate must parse
+  # the payload to see it, so the must-fail fixture strips the stepper class IN ITS
+  # ESCAPED FORM (class=\"concept-stepper\"). A checker that only greps live HTML would
+  # miss this (the old live-form sed no longer matches), so this proves v2 actually
+  # traverses the parse path (plan §2L).
+  ST_BAD="$(mktemp)"; sed 's/class=\\"concept-stepper\\"/class=\\"concept-NOPE\\"/g' \
     index.html > "$ST_BAD"
   rc=0; node scripts/check-stepper-render.mjs "$ST_BAD" >/dev/null 2>&1 || rc=$?
-  gate "stepper render (stripped stepper markup is detected)" must_fail "$rc"
-  rm -f "$ST_BAD"
+  gate "stepper render (stripped stepper markup in the island payload is detected)" must_fail "$rc"
+  # must_fail (v2 — MALFORMED payload): a learn-payload that is not valid JSON must be
+  # rejected by the parse path, not silently no-op'd.
+  ST_BADJSON="$(mktemp)"
+  sed 's#<script type="application/json" id="learn-payload">#<script type="application/json" id="learn-payload">"unterminated #' \
+    index.html > "$ST_BADJSON"
+  rc=0; node scripts/check-stepper-render.mjs "$ST_BADJSON" >/dev/null 2>&1 || rc=$?
+  gate "stepper render (malformed learn-payload JSON is rejected)" must_fail "$rc"
+  rm -f "$ST_BAD" "$ST_BADJSON"
 else
   _skip_or_fail "Gate 93 stepper render" node
 fi

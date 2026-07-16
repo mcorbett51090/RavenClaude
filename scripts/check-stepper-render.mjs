@@ -32,8 +32,13 @@ function count(s, re) {
   return (s.match(re) || []).length;
 }
 
-/* Returns an array of failure messages (empty === contract holds). */
-function checkStepper(html) {
+/* Returns an array of failure messages (empty === contract holds).
+ * `markup` holds the stepper HTML (the decoded island payload on an islanded surface;
+ * the whole file pre-island). `jsSrc` holds the app JS that wires the steppers — it
+ * lives in the live <script>, NOT in the island payload, so on an islanded surface it
+ * is the raw file. Defaults to `markup` for the pre-island single-source shape. */
+function checkStepper(markup, jsSrc = markup) {
+  const html = markup;
   const f = [];
   const steppers = count(html, /class="concept-stepper"/g);
   if (steppers < 1) {
@@ -62,28 +67,76 @@ function checkStepper(html) {
   if (controlsHidden !== steppers)
     f.push(`controls must ship [hidden] per stepper (${steppers}); found ${controlsHidden}`);
 
-  // JS contract
-  if (!/function initConceptSteppers\(/.test(html))
+  // JS contract — checked against jsSrc (the live app JS), not the island payload.
+  if (!/function initConceptSteppers\(/.test(jsSrc))
     f.push("initConceptSteppers() not found in dashboard JS");
-  if (!/removeAttribute\("hidden"\)/.test(html))
+  if (!/removeAttribute\("hidden"\)/.test(jsSrc))
     f.push('stepper JS must reveal controls via removeAttribute("hidden")');
-  if (!/prefers-reduced-motion: reduce/.test(html))
+  if (!/prefers-reduced-motion: reduce/.test(jsSrc))
     f.push("stepper JS must carry the prefers-reduced-motion: reduce guard");
-  if (!/play\.remove\(\)/.test(html))
+  if (!/play\.remove\(\)/.test(jsSrc))
     f.push("reduced-motion branch must remove the Play button (play.remove())");
 
   return f;
 }
 
-const html = readFileSync(htmlPath, "utf8");
-const failures = checkStepper(html);
+/* Gate 93-v2: the Learn panel is DOM-island-loaded (Phase 2L) — its stepper markup
+ * ships inside <script type="application/json" id="learn-payload"> and is injected on
+ * activate("learn"), so it is NOT in the live DOM text this file reads. Extract and
+ * JSON-parse the payload (which unescapes the \"…\" the JSON encoding introduced),
+ * then run the SAME contract against the decoded markup. Fall back to the raw file for
+ * a pre-island surface (or one with no Learn island), so the checker stays correct on
+ * both shapes. */
+const raw = readFileSync(htmlPath, "utf8");
 
-/* Must-fail half (inline, self-proving): break the two invariants the gate
- * most cares about and confirm the SAME checks flag them. */
-{
-  const broken = html
+function extractLearnMarkup(fileText) {
+  const m = fileText.match(
+    /<script type="application\/json" id="learn-payload">([\s\S]*?)<\/script>/,
+  );
+  if (!m) return { html: fileText, islanded: false };
+  // JSON.parse throws on a malformed payload (unescaped quote / truncation) — that
+  // throw IS a contract violation and is caught by the caller.
+  return { html: JSON.parse(m[1]), islanded: true };
+}
+
+let failures;
+let islanded = false;
+try {
+  const ex = extractLearnMarkup(raw);
+  islanded = ex.islanded;
+  // markup from the payload; JS contract from the raw file (the app script is live).
+  failures = checkStepper(ex.html, raw);
+} catch (e) {
+  failures = [
+    "learn-payload did not parse as JSON (" +
+      e.message +
+      ") — an islanded Learn payload must be valid, escaped JSON",
+  ];
+}
+
+/* Must-fail half (inline, self-proving). v2 REQUIREMENT (plan §2L): on an islanded
+ * surface the must-fail half MUST exercise the PAYLOAD-PARSING path — a payload with a
+ * missing frame key or an unescaped quote — not just a live-HTML mutation that would
+ * pass even if the parse silently no-ops. */
+if (islanded) {
+  // (a) break a stepper invariant INSIDE the decoded payload
+  const { html: decoded } = extractLearnMarkup(raw);
+  const brokenDecoded = decoded.replace(/class="cs-frame"/, 'class="cs-frame active"');
+  if (checkStepper(brokenDecoded).length === 0)
+    failures.push(
+      "must-fail (payload path): an extra active frame in the decoded payload was NOT detected (gate has no teeth)",
+    );
+  // (b) a payload that is not valid JSON must be rejected by the parse path
+  let rejectedBadJson = false;
+  try {
+    JSON.parse('"unterminated');
+  } catch {
+    rejectedBadJson = true;
+  }
+  if (!rejectedBadJson) failures.push("must-fail (payload path): malformed JSON was not rejected");
+} else {
+  const broken = raw
     .replace(/prefers-reduced-motion: reduce/g, "prefers-XXX")
-    // force a second active frame so the "exactly one active" invariant breaks
     .replace(/class="cs-frame"/, 'class="cs-frame active"');
   if (checkStepper(broken).length === 0)
     failures.push(
