@@ -2,6 +2,12 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.200.0 — 2026-07-16
+
+### Added
+
+- **New best-practice — "Plan Mode is a tool-enforced read-only gate — enter it, don't just ask the agent to 'think first'."** ([`best-practices/plan-mode-is-a-tool-enforced-gate-not-an-advisory-think-first.md`](best-practices/plan-mode-is-a-tool-enforced-gate-not-an-advisory-think-first.md)) The 16th recurring Claude-community scan's one approved finding. Claude Code's **Plan Mode** is a hard, tool-enforced read-only state (explore/read only; Write/Edit/Bash-mutation blocked until you approve the plan) — categorically different from an advisory in-prompt "think first," which the model can talk itself past. The rule states the discipline: enter Plan Mode before the first edit on any change that's costly to get wrong (3+ files, a schema/migration/manifest, security-sensitive, or an unfamiliar/ambiguous area), skip it for small obvious edits, and treat it as the deterministic-gate form of think-before-you-code — a **correctness** gate, not a permission boundary. Closes the knowledge-names-it / no-rule-teaches-it gap: the root `CLAUDE.md` "Plan-mode default" + the `init-agent-ready` template already seed it as maintainer/setup guidance, but no consumer-facing best-practice taught the discipline. Best-practices index → **35 rules**. Full research + panel record: [`docs/research/2026-07-16-claude-subreddit-scan/README.md`](../../docs/research/2026-07-16-claude-subreddit-scan/README.md). Additive markdown only — **no migration.**
+
 ## 0.199.0 — 2026-07-15
 
 ### Fixed
