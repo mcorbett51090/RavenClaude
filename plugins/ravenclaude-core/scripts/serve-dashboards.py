@@ -250,18 +250,26 @@ DASH_PATH = "/dashboard.html"
 # Populated in main(). The state-changing/read endpoints check these so a malicious
 # web page the user is viewing can't drive this server cross-origin: a 127.0.0.1
 # bind does NOT stop a browser from POSTing to localhost, and a same-site cookie is
-# irrelevant here, so CSRF/DNS-rebinding is the real threat. We reject any request
-# whose Origin (always sent by browsers on cross-origin POST) isn't ours, or whose
-# Host isn't a known local/forwarded host. The legit dashboard is same-origin → passes.
+# irrelevant here, so CSRF/DNS-rebinding is the real threat. Any request whose Origin
+# isn't ours, or whose Host isn't a known local/forwarded host, is rejected; on top of
+# that a state-changing request must carry an Origin at all (see
+# _state_change_origin_ok — a browser always sends one on a POST, so only a non-browser
+# client can omit it). The legit dashboard is same-origin → passes.
 _ALLOWED_HOSTS: set[str] = set()
 _ALLOWED_ORIGINS: set[str] = set()
 
 # Per-process random CSRF token. Generated in main() once the server is bound.
-# Belt-and-suspenders on top of the Origin/Host check: a scripted HTTP client that
-# omits Origin (so the Origin guard passes) still has to present this token in the
-# X-CSRF-Token header on every state-changing POST. The token is exposed via the
-# GET /__csrf endpoint, which is itself behind the Origin/Host guard — so a
-# cross-origin page can't fetch the token, and the dashboard JS (same-origin) can.
+# Second layer under the Origin check on every state-changing POST: the token is
+# exposed via GET /__csrf, which a cross-origin page cannot read (this server sends
+# no CORS headers, and the guard rejects a foreign Origin) — so a malicious page can
+# neither forge an allowed Origin nor steal the token.
+#
+# It does NOT stop a local scripted client, and must not be described as if it did.
+# Such a client fetches the token from GET /__csrf itself: that bootstrap is a
+# same-origin GET, which per the Fetch standard carries no Origin header at all, so
+# it cannot be Origin-gated without breaking the dashboard. Any "a scripted client
+# that omits Origin still has to present this token" reasoning is CIRCULAR — the
+# same open door supplies the key. The honest boundary is in _state_change_origin_ok().
 _CSRF_TOKEN: str = ""
 
 
@@ -1370,8 +1378,49 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             return False
         return True
 
+    def _state_change_origin_ok(self) -> bool:
+        """Require a PRESENT and allow-listed Origin on state-changing requests.
+
+        This is the browser-CSRF / DNS-rebinding defense, and it is the one check
+        on this path a hostile web page cannot satisfy. Per the Fetch standard
+        (§"append a request `Origin` header"), the browser appends Origin to every
+        request whose method is neither GET nor HEAD, and a page can neither forge
+        nor suppress it. So a same-origin dashboard POST always carries
+        `Origin: http://127.0.0.1:<port>`, while an opaque origin (sandboxed iframe,
+        data: URL) sends the literal `null` — not in _ALLOWED_ORIGINS, so rejected.
+
+        Why this is separate from _local_request_ok() instead of folded into it:
+        that guard also runs on GETs, and the Fetch standard appends Origin to a GET
+        only when the request is CROSS-origin. The dashboard's own same-origin
+        `GET /__csrf` token bootstrap therefore carries no Origin at all — requiring
+        it there would break the token fetch and the entire dashboard with it.
+
+        Sec-Fetch-Site is deliberately NOT required to be present: it is absent on
+        Safari < 16.4 and other older browsers, so requiring it would break real
+        dashboard saves to buy a defense Origin already provides. _local_request_ok()
+        still rejects it when it IS present and says cross-site.
+
+        WHAT THIS DOES NOT STOP — do not overstate it: a local scripted process (the
+        coding agent included) can send any header it likes, so it satisfies this
+        check trivially — and it can write the target file directly with its own
+        tools regardless of this server. Every discriminator available here is
+        client-asserted, so there is NO design in which "the human can flip this but
+        a local script cannot." The threat this closes is the browser one: a
+        malicious page the user is viewing, or a DNS-rebinding attack, driving this
+        server on their behalf.
+        """
+        origin = self.headers.get("Origin")
+        return origin is not None and origin in _ALLOWED_ORIGINS
+
     def _csrf_ok(self) -> bool:
-        """Belt-and-suspenders CSRF check on top of the Origin/Host guard.
+        """Second layer under the Origin guard, NOT an independent defense.
+
+        Do not read this as "even a client with no Origin still needs the token" —
+        that is circular. A client that can reach GET /__csrf can read the token,
+        and that bootstrap cannot be Origin-gated (see the _CSRF_TOKEN comment).
+        Its real value is against the BROWSER threat, where it is redundant with
+        _state_change_origin_ok() by design: a cross-origin page cannot read the
+        token because this server sends no CORS headers.
 
         State-changing POSTs must carry the X-CSRF-Token header with the
         per-process token; constant-time compared so a scripted client can't
@@ -1502,8 +1551,15 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         self.send_error(405)
 
     def do_POST(self):
+        # do_POST is the single chokepoint for every state-changing endpoint
+        # (/__save, /__classify), so the strict Origin requirement goes here rather
+        # than in _local_request_ok() — which also gates read-only GETs that
+        # legitimately carry no Origin. See _state_change_origin_ok.
         if not self._local_request_ok():
             self.send_error(403, "refused: cross-origin or non-local Origin/Host")
+            return
+        if not self._state_change_origin_ok():
+            self.send_error(403, "refused: state-changing request requires a present, allowed Origin")
             return
         if not self._csrf_ok():
             self.send_error(403, "missing or invalid CSRF token")
