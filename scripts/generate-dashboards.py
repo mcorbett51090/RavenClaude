@@ -6745,6 +6745,15 @@ _JS = r"""
   const ORCHESTRATOR_DEFAULT = "full";
   const ORCHESTRATOR_SCOPE_VALUES = ["team", "all"];
   const ORCHESTRATOR_SCOPE_DEFAULT = "team";
+  /* Agentic Work-Streams — session-boundary classifier posture (read by
+   * scripts/stream-session-start.py). These are top-level scalars in
+   * comfort-posture.yaml; emitYaml MUST round-trip them or a Save destroys them
+   * (the v0.61.0 data-loss class — F4). */
+  const STREAM_CLASSIFY_VALUES = ["off", "label_only", "auto"];
+  const STREAM_CLASSIFY_DEFAULT = "label_only";
+  const STREAM_THRESHOLD_DEFAULT = 0.18;
+  const STREAM_THRESHOLD_MIN = 0.05;
+  const STREAM_THRESHOLD_MAX = 0.95;
 
   /* Per-tier panel defaults — mirror thing-decision.py's built-in tier table.
    * Seats are forseti | mimir | heimdall (thor is the tie-breaker, never a seat).
@@ -6821,6 +6830,10 @@ _JS = r"""
     orchestrator_zdr_confirmed: false,
     orchestrator_repo_pii: true,
     orchestrator_pseudonymize: false,
+    /* Agentic Work-Streams classifier posture (F4). Held in state so a Save
+     * round-trips them instead of silently dropping them. */
+    stream_classify: STREAM_CLASSIFY_DEFAULT,
+    stream_threshold: STREAM_THRESHOLD_DEFAULT,
     definition_of_done: Object.assign({}, DOD_DEFAULT),
     expanded: {},   /* category -> boolean */
   };
@@ -7210,6 +7223,18 @@ _JS = r"""
     if (typeof src.orchestrator_pseudonymize === "boolean") {
       state.orchestrator_pseudonymize = src.orchestrator_pseudonymize; touched = true;
     }
+    /* Agentic Work-Streams classifier posture (F4). Hydrated here so both the
+     * localStorage restore and the live /__read path pick them up via the shared
+     * validator, matching stream-session-start.py's parse (unknown mode ⇒ ignore,
+     * out-of-range threshold ⇒ clamped). */
+    if (STREAM_CLASSIFY_VALUES.includes(src.stream_classify)) {
+      state.stream_classify = src.stream_classify; touched = true;
+    }
+    const sth = parseFloat(src.stream_threshold);
+    if (Number.isFinite(sth)) {
+      state.stream_threshold = Math.min(STREAM_THRESHOLD_MAX, Math.max(STREAM_THRESHOLD_MIN, sth));
+      touched = true;
+    }
     const dod = src.definition_of_done;
     if (dod && typeof dod === "object") {
       if (typeof dod.cmd === "string") { state.definition_of_done.cmd = dod.cmd; touched = true; }
@@ -7363,6 +7388,23 @@ _JS = r"""
       lines.push("");
     }
 
+    /* Agentic Work-Streams classifier posture (F4). Emitted only when non-default
+     * so "absent ⇒ default" holds; read back by scripts/stream-session-start.py.
+     * Round-tripping these is the whole point of the fix — before it, every Save
+     * silently deleted a consumer's stream_classify / stream_threshold. */
+    if (STREAM_CLASSIFY_VALUES.includes(state.stream_classify)
+        && state.stream_classify !== STREAM_CLASSIFY_DEFAULT) {
+      lines.push("# Agentic Work-Streams — session-boundary classifier mode (off | label_only | auto).");
+      lines.push(`stream_classify: ${state.stream_classify}`);
+      lines.push("");
+    }
+    if (Number.isFinite(state.stream_threshold)
+        && state.stream_threshold !== STREAM_THRESHOLD_DEFAULT) {
+      lines.push("# Agentic Work-Streams — cosine floor for a confident classifier match (0.05–0.95).");
+      lines.push(`stream_threshold: ${state.stream_threshold}`);
+      lines.push("");
+    }
+
     const dod = state.definition_of_done;
     if (dod.cmd && dod.cmd.trim()) {
       lines.push("# Definition-of-done gate — runs on Stop; blocks 'done' until it passes.");
@@ -7428,6 +7470,8 @@ _JS = r"""
         orchestrator_zdr_confirmed: state.orchestrator_zdr_confirmed,
         orchestrator_repo_pii: state.orchestrator_repo_pii,
         orchestrator_pseudonymize: state.orchestrator_pseudonymize,
+        stream_classify: state.stream_classify,
+        stream_threshold: state.stream_threshold,
         definition_of_done: state.definition_of_done,
         expanded: state.expanded,
       }));
@@ -8783,8 +8827,12 @@ _JS = r"""
     const mk = (key, items) => items.length
       ? key + ":\n" + items.map(d => "  - " + d).join("\n") + "\n"
       : key + ": []\n";
+    /* allow/deny on separate lines so the round-trip gate (Gate 35, P3) can drop
+     * one key surgically and prove teeth without touching the other. */
+    const allowBlock = mk("allow", waLines(".wa-allow"));
+    const denyBlock = mk("deny", waLines(".wa-deny"));
     return "# Website access allow/deny lists — managed by the RavenClaude dashboard\n"
-      + mk("allow", waLines(".wa-allow")) + mk("deny", waLines(".wa-deny"));
+      + allowBlock + denyBlock;
   }
   function applyWebAccess(text) {
     const panel = waPanel();
