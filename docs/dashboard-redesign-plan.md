@@ -15,9 +15,39 @@
 
 ---
 
-## 🔴 BLOCKER — the F6 `.repo-layout.json` edit is GONE, and §6's "DONE" claim is now FALSE
+## ✅ BLOCKER RESOLVED — the F6 edit was committed all along, on a branch this section never checked
 
-**The deny, verbatim** (driven read-only against the real hook this session, `CLAUDE_PROJECT_DIR` = repo root):
+> **Status: CLEARED 2026-07-16. The blocker below was real as a *deny*, but its *root cause was wrong*, and
+> its remedy is now merged to `main` (PR #684, `610f35fa`). Do not act on the stricken text — it is retained
+> only because the reasoning error is instructive.**
+>
+> **What was actually true:** the edit **was committed**, as `283f18f8` on branch **`forge/dashboard-redesign`**.
+> The table below checked `fix/ravenclaude-core-stale-macos-claims` and `fix/ravenclaude-core-save-header-guard`
+> — neither of which carried it — and concluded *"never committed."* It never checked the third branch, which
+> was the one holding it. Nothing evaporated; the session had simply moved to a branch cut from `main`.
+>
+> **Verified on `main` after #684 merged** — driven against the real hook, `CLAUDE_PROJECT_DIR` = repo root:
+>
+> | Path | Verdict |
+> |---|---|
+> | `.ravenclaude/runs/forge/<slug>/plan.md` | **ALLOW(0)** |
+> | `.ravenclaude/runs/thing/decisions/…` | **DENY(2)** |
+> | `.ravenclaude/runs/*/hook-events.jsonl` | **DENY(2)** |
+> | traversal (`runs/../../etc/passwd`) | **DENY(2)** |
+>
+> `main:.repo-layout.json` carries `allowed_globs:35 → ".ravenclaude/runs/**"` and
+> `forbidden_globs:80 → [".ravenclaude/runs/thing/**", ".ravenclaude/runs/*/hook-events.jsonl"]`.
+> **No human action is outstanding. `landing=pr` was re-derived by G7 independently and still holds — on four
+> signals, now including `version-bump-target`.**
+>
+> **What survives, and is the reason this stays on the page:** consequence 3 was right, and is *reinforced*
+> rather than weakened. §11.1's class is real — `enforce-layout.sh` polices a gitignored path CI never sees.
+> The agent that raised this was **correct to stop and correct to refuse to widen the config to unblock its own
+> write**; it was wrong only about *why*. A deny is evidence about one route, not proof of a missing capability
+> — and "absent from the two branches I checked" is not "never committed."
+
+**The deny, verbatim** (driven read-only against the real hook, `CLAUDE_PROJECT_DIR` = repo root) — **real at the
+time, now cleared**:
 
 ```
 [enforce-layout] BLOCKED: Layout policy:
@@ -56,8 +86,8 @@ the edit evaporated. It exists nowhere: not in the tree, not on either branch, n
    **uncommitted** edit. **An uncommitted mitigation is not a mitigation.** The instance regressed the moment
    a branch moved.
 
-**Required of a human (an agent must not do this — the deny's own text routes it to a PR):**
-Re-apply, **on this branch**, and **commit** it:
+**~~Required of a human~~ — DONE. Merged to `main` in PR #684 (`610f35fa`); verified live on `main` (see the
+status block at the top of this section). No action outstanding.** The original text follows:
 ```json
 "allowed_globs":   [ …, ".ravenclaude/runs/**" ],
 "forbidden_globs": [ ".ravenclaude/runs/thing/**", ".ravenclaude/runs/*/hook-events.jsonl" ]
@@ -469,11 +499,28 @@ was correct.** The layout hook did its job; the *mitigation* had evaporated (§B
 
 ---
 
-## 6. ⚠️ §6 RETRACTED — F6's fix is NOT in the tree
+## 6. ✅ F6 — fixed, committed, merged, and verified on `main`
 
-**Pass-2's §6 claimed *"F6 is fixed and verified … DONE this session … human-approved."* That is now FALSE.**
-See §BLOCKER: the edit was **never committed**, was a working-tree change only, and **evaporated when the
-branch moved** to land PR #685. `git status` is clean; there is no stash; it is absent from both branches.
+> **The retraction that stood here is itself withdrawn (2026-07-16).** It claimed the edit was *"never
+> committed … evaporated … absent from both branches."* **False** — it was committed as `283f18f8` on
+> `forge/dashboard-redesign`, a branch the retraction never checked, and it is now on `main` via PR #684
+> (`610f35fa`). Pass-2's §6 was **right**; the retraction was the error. Both are recorded because the
+> failure mode — *"absent from the two branches I looked at"* generalised into *"never committed"* — is
+> exactly the over-generalisation this repo's accuracy discipline exists to catch, and it happened inside a
+> gate built to catch it.
+
+**Current state, verified by driving the real hook on `main`:**
+
+| Path | Verdict |
+|---|---|
+| `.ravenclaude/runs/forge/<slug>/plan.md` · `runs/notifications/` | **ALLOW(0)** |
+| `.ravenclaude/runs/thing/decisions/` · `runs/thing/runaway/` | **DENY(2)** |
+| `.ravenclaude/runs/*/hook-events.jsonl` | **DENY(2)** |
+| traversal (`runs/../../etc/passwd`) | **DENY(2)** |
+
+`main:.repo-layout.json` — `allowed_globs:35` carries `".ravenclaude/runs/**"`; `forbidden_globs:80` carries
+`[".ravenclaude/runs/thing/**", ".ravenclaude/runs/*/hook-events.jsonl"]`. **FORGE can write its own run
+artifacts from any branch, and the audit substrate is closed to tool-shaped writes.**
 
 **What remains true (the design, not the state):** the mitigation's *shape* was verified by execution when it
 existed — `enforce-layout.sh:172-182` checks `forbidden_globs` **before** `allowed_globs`, forbidden wins;
@@ -481,9 +528,9 @@ FORGE run dir → ALLOW(0); `runs/thing/**`, `runs/*/hook-events.jsonl`, travers
 nothing operationally** — the hooks that write those files use shell redirect/`jq`, not the `Write` tool, so
 the tool-shaped hook never fires on them. Pass 2 swept every write this plan schedules: **no interaction.**
 
-**What must be redone by a human (§BLOCKER):** re-apply **and commit** both the allow and the forbid-list on
-this branch. **The forbid-list is not optional** — the allow alone exposes the runaway brake's counter and
-makes deny history forgeable.
+**~~What must be redone by a human~~ — nothing.** Both the allow and the forbid-list are committed and on
+`main`. The forbid-list shipped **with** the allow, not after it, so the window in which the allow alone
+exposed the runaway brake's counter never reached `main`.
 
 **The lesson, which is §11.1's class in one sentence:** `enforce-layout.sh` polices a **gitignored** path
 that **CI never sees** (`validate-layout.yml` inspects added **tracked** files; `.ravenclaude/runs/` is
