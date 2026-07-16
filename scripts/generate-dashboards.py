@@ -200,7 +200,19 @@ def _page_kwargs(plugin_dir: Path, schema: dict, include_trees: bool = True) -> 
         # Their existing `if (!panel) return` guards make them safe to never-fire at load.
         "learn_json": json.dumps(_render_learn_tab(plugin_dir)),
         "saga_html": _render_saga_tab(),
-        "commands_html": _render_commands_tab(),
+        # panel-commands (~6,308 elements, the 2nd-largest panel) is DOM-island-loaded
+        # exactly like panel-trees / panel-learn: its card-grid markup ships in a
+        # <script type="application/json"> payload (CDATA, uncounted by Gate 132) and is
+        # injected into #commands-mount on the first activate("commands"), which then
+        # calls initCommands() to (re-)bind the DEFERRED command wiring against the
+        # NOW-rendered DOM. The commands panel's .cmd-copy[data-copy-for] and
+        # .cmd-run[data-run-action] buttons were bound at module scope (the universal copy
+        # handler + probeRunEndpoint + wireCommandRunNote) — those load-time binds cannot
+        # see an islanded panel, so initCommands re-points them, mirroring how loadLearn()
+        # calls initLearn()/initConceptSteppers() AFTER mount.innerHTML = ... The
+        # <noscript> fallback is a POINTER, never the full markup (html.parser counts
+        # elements inside <noscript>, so inlining it there would defeat the island).
+        "commands_json": json.dumps(_render_commands_tab()),
         # panel-trees is the single largest panel (~20,612 elements, ~36% of the whole
         # DOM). It is DOM-island-loaded: its markup ships inside a <script
         # type="application/json"> payload (html.parser puts that in CDATA, so its
@@ -8381,7 +8393,10 @@ _JS = r"""
    * only exists when scripts/serve-dashboards.py is serving the page. We detect
    * that with a HEAD /__run probe — exactly mirroring the Settings tab's
    * HEAD /__save probe. */
-  document.querySelectorAll(".cmd-copy[data-copy-for]").forEach(btn => {
+  // Copy-to-clipboard wiring, factored into a named binder so the DOM-islanded
+  // Commands panel (whose .cmd-copy buttons are absent at load) can re-bind its own
+  // buttons on activate via initCommands() — mirroring the loadLearn/initLearn split.
+  function wireCopyButton(btn) {
     btn.addEventListener("click", async () => {
       const code = document.getElementById(btn.dataset.copyFor);
       const text = code ? code.textContent : "";
@@ -8404,7 +8419,10 @@ _JS = r"""
         }
       }
     });
-  });
+  }
+  // Load-time binds every .cmd-copy in the LIVE DOM (Install tab et al.). The Commands
+  // panel is islanded, so its buttons are NOT matched here — initCommands binds those.
+  document.querySelectorAll(".cmd-copy[data-copy-for]").forEach(wireCopyButton);
 
   const RUN_ACTIONS = ["install", "update", "status"];
   const runButtons = Array.from(document.querySelectorAll("button[data-run-action]"));
@@ -8537,6 +8555,41 @@ _JS = r"""
       });
     });
   })();
+
+  /* ── Commands panel (DOM-islanded) — bind on activate ─────────────────
+   * panel-commands ships its card grid in a <script type="application/json">
+   * payload injected on the first activate("commands"). Its interactive buttons —
+   * .cmd-copy (copy the slash command) and .cmd-run (run the Class-A shell effect
+   * via /__run, served-only) — are bound at MODULE SCOPE above, which cannot see
+   * an islanded panel. initCommands re-points them against the just-injected DOM,
+   * scoped to #commands-mount so the already-wired live-DOM buttons (Install tab
+   * et al.) are never double-bound. Mirrors loadLearn -> initLearn. */
+  function initCommands() {
+    const mount = document.getElementById("commands-mount");
+    if (!mount) return;
+    mount.querySelectorAll(".cmd-copy[data-copy-for]").forEach(wireCopyButton);
+    const cmdRun = Array.from(mount.querySelectorAll(".cmd-run[data-run-action]"));
+    cmdRun.forEach(b => {
+      b.addEventListener("click", () => runAction(b.dataset.runAction));
+    });
+    // Enable when the root dev server serves /__run; otherwise keep disabled with an
+    // honest note. Combines the load-time probeRunEndpoint (enable) + wireCommandRunNote
+    // (note) effects the islanded buttons would otherwise miss.
+    if (cmdRun.length) {
+      fetch("/__run", { method: "HEAD" }).then(res => {
+        const served = res && res.ok;
+        cmdRun.forEach(b => {
+          b.disabled = !served;
+          if (!served) b.title = "Run is available only when served by the root dev server";
+        });
+      }).catch(() => {
+        cmdRun.forEach(b => {
+          b.disabled = true;
+          b.title = "Run is available only when served by the root dev server";
+        });
+      });
+    }
+  }
 
   /* ── Guidance — best-practice preview-on-click ────────────────────────
    * Build-time-embedded previews (no fetch — static-host safe). Each toggle
@@ -8819,6 +8872,26 @@ _JS = r"""
       /* leave unlatched so a later activate can retry */
     }
   }
+  // DOM-island loader for the Commands tab (~6,308 elements). Injects the payload,
+  // THEN calls initCommands() to (re-)bind the DEFERRED command wiring against the
+  // now-rendered DOM: the .cmd-copy[data-copy-for] copy handler and the
+  // .cmd-run[data-run-action] click+served-probe. Those were bound at module scope
+  // (which cannot see an islanded panel), so initCommands re-points them — mirroring
+  // loadLearn's post-innerHTML init pattern. Idempotent via the commandsLoaded latch.
+  let commandsLoaded = false;
+  function loadCommands() {
+    if (commandsLoaded) return;
+    const mount = document.getElementById("commands-mount");
+    const payload = document.getElementById("commands-payload");
+    if (!mount || !payload) return;
+    try {
+      mount.innerHTML = JSON.parse(payload.textContent);
+      commandsLoaded = true;
+      initCommands();
+    } catch (e) {
+      /* leave unlatched so a later activate can retry */
+    }
+  }
   function setCategory(cat) {
     document.querySelectorAll('.cat-btn').forEach(c => {
       c.setAttribute('aria-pressed', c.dataset.cat === cat ? 'true' : 'false');
@@ -8850,6 +8923,7 @@ _JS = r"""
     // Learn must hydrate BEFORE openConcept(sub) can find the concept in the DOM.
     if (tab === "learn") loadLearn();
     if (tab === "learn" && sub) openConcept(sub);
+    if (tab === "commands" && !commandsLoaded) loadCommands();
     if (tab === "saga" && !sagaLoaded) loadSaga();
     if (tab === "activity" && !activityLoaded) loadActivity();
     if (tab === "heimdall" && !heimdallLoaded) loadHeimdall();
@@ -11888,7 +11962,9 @@ _PAGE_TEMPLATE = """<!doctype html>
 {saga_html}
   </section>
   <section class="tab-panel" id="panel-commands" data-tab="commands" role="tabpanel" aria-label="Commands">
-{commands_html}
+    <div id="commands-mount"></div>
+    <script type="application/json" id="commands-payload">{commands_json}</script>
+    <noscript><p>The Commands catalog renders with JavaScript. The source lives under <code>plugins/*/commands/</code>.</p></noscript>
   </section>
   <section class="tab-panel" id="panel-trees" data-tab="trees" role="tabpanel" aria-label="Decision trees and best practices">
     <div id="trees-mount"></div>
