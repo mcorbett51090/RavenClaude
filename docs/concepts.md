@@ -1608,7 +1608,7 @@ flowchart TD
 
 **See also:** /wrap and the scenarios bank · External contribution intake
 
-**Sources:** [capture-run-context.py](plugins/ravenclaude-core/scripts/capture-run-context.py)
+**Sources:** [capture-run-context.py](scripts/capture-run-context.py)
 
 _Last verified: 2026-06-08_
 
