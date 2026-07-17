@@ -3806,6 +3806,36 @@
         "capacity-planning",
         "database-slo"
       ]
+    },
+    {
+      "name": "report-regeneration",
+      "source": "./plugins/report-regeneration",
+      "description": "Regenerates a review-ready report (HTML or Office/Word→PDF) from an old distributed report used as a template — infers the template's structure with no markup, re-binds it to new data (including Power BI data via XMLA, with a REST executeQueries fallback, and an embedded Power BI screenshot), and runs a gold-standard auto-QA gate: data accuracy vs source, template fidelity, WCAG/PDF-UA accessibility, consistency, and a blocking no-old-client-data-leak egress scan. It GUARANTEES only (a) no old-client-data leak and (b) that every low-confidence classification is surfaced for human review — it produces a draft; peer review, edits, and distribution stay with the human. Local-only for sensitive client data. 11 skills across the HTML → Office → Power-BI lanes; no agents of its own — reuses core reviewers (security-reviewer, code-reviewer) for QA. Requires ravenclaude-core@>=0.204.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "homepage": "https://github.com/mcorbett51090/RavenClaude",
+      "license": "MIT",
+      "keywords": [
+        "report-generation",
+        "report-templating",
+        "structure-inference",
+        "html-report",
+        "docx",
+        "pdf-ua",
+        "power-bi",
+        "xmla",
+        "accessibility",
+        "wcag",
+        "data-provenance",
+        "peer-review",
+        "document-automation",
+        "local-first"
+      ],
+      "requires": {
+        "plugins": ["ravenclaude-core@>=0.204.0"]
+      }
     }
   ]
 }

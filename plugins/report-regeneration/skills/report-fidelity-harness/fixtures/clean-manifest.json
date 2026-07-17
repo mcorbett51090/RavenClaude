@@ -1,0 +1,374 @@
+{
+  "manifest_version": "1.0.0",
+  "rsg_schema_version": "1.0.0",
+  "template_id": "acme-widgets-quarterly-report",
+  "format": "html",
+  "bindings": [
+    {
+      "node_id": "hdr-period",
+      "anchor": { "kind": "element_id", "value": "hdr-period" },
+      "class": "surgical",
+      "confidence": 0.98,
+      "provenance": {
+        "source": "acme-q1-2025",
+        "source_period": "2025-Q1",
+        "method": "rule-based",
+        "pbi_route": null
+      },
+      "data_query": {
+        "kind": "literal-from-new-source",
+        "expression": "meta.period_label",
+        "source_ref": "acme-q1-2025"
+      }
+    },
+    {
+      "node_id": "kpi-revenue",
+      "anchor": { "kind": "element_id", "value": "kpi-revenue" },
+      "class": "surgical",
+      "confidence": 0.99,
+      "provenance": {
+        "source": "acme-q1-2025",
+        "source_period": "2025-Q1",
+        "method": "rule-based",
+        "pbi_route": null
+      },
+      "data_query": {
+        "kind": "file-cell",
+        "expression": "revenue.total",
+        "source_ref": "acme-q1-2025"
+      }
+    },
+    {
+      "node_id": "kpi-revenue-growth",
+      "anchor": { "kind": "element_id", "value": "kpi-revenue-growth" },
+      "class": "surgical",
+      "confidence": 0.97,
+      "provenance": {
+        "source": "acme-q1-2025",
+        "source_period": "2025-Q1",
+        "method": "rule-based",
+        "pbi_route": null
+      },
+      "data_query": {
+        "kind": "file-cell",
+        "expression": "revenue.growth_yoy",
+        "source_ref": "acme-q1-2025"
+      }
+    },
+    {
+      "node_id": "kpi-operating-margin",
+      "anchor": { "kind": "element_id", "value": "kpi-operating-margin" },
+      "class": "surgical",
+      "confidence": 0.97,
+      "provenance": {
+        "source": "acme-q1-2025",
+        "source_period": "2025-Q1",
+        "method": "rule-based",
+        "pbi_route": null
+      },
+      "data_query": {
+        "kind": "file-cell",
+        "expression": "margin.operating",
+        "source_ref": "acme-q1-2025"
+      }
+    },
+    {
+      "node_id": "kpi-report-date",
+      "anchor": { "kind": "element_id", "value": "kpi-report-date" },
+      "class": "surgical",
+      "confidence": 0.96,
+      "provenance": {
+        "source": "acme-q1-2025",
+        "source_period": "2025-Q1",
+        "method": "rule-based",
+        "pbi_route": null
+      },
+      "data_query": {
+        "kind": "literal-from-new-source",
+        "expression": "meta.report_date",
+        "source_ref": "acme-q1-2025"
+      }
+    },
+    {
+      "node_id": "tbl-north-revenue",
+      "anchor": { "kind": "element_id", "value": "tbl-north-revenue" },
+      "class": "surgical",
+      "confidence": 0.99,
+      "provenance": {
+        "source": "acme-q1-2025",
+        "source_period": "2025-Q1",
+        "method": "rule-based",
+        "pbi_route": null
+      },
+      "data_query": {
+        "kind": "file-cell",
+        "expression": "revenue.region.north",
+        "source_ref": "acme-q1-2025"
+      }
+    },
+    {
+      "node_id": "tbl-north-share",
+      "anchor": { "kind": "element_id", "value": "tbl-north-share" },
+      "class": "surgical",
+      "confidence": 0.98,
+      "provenance": {
+        "source": "acme-q1-2025",
+        "source_period": "2025-Q1",
+        "method": "rule-based",
+        "pbi_route": null
+      },
+      "data_query": {
+        "kind": "file-cell",
+        "expression": "revenue.region.north_share",
+        "source_ref": "acme-q1-2025"
+      }
+    },
+    {
+      "node_id": "tbl-emea-revenue",
+      "anchor": { "kind": "element_id", "value": "tbl-emea-revenue" },
+      "class": "surgical",
+      "confidence": 0.99,
+      "provenance": {
+        "source": "acme-q1-2025",
+        "source_period": "2025-Q1",
+        "method": "rule-based",
+        "pbi_route": null
+      },
+      "data_query": {
+        "kind": "file-cell",
+        "expression": "revenue.region.emea",
+        "source_ref": "acme-q1-2025"
+      }
+    },
+    {
+      "node_id": "tbl-emea-share",
+      "anchor": { "kind": "element_id", "value": "tbl-emea-share" },
+      "class": "surgical",
+      "confidence": 0.98,
+      "provenance": {
+        "source": "acme-q1-2025",
+        "source_period": "2025-Q1",
+        "method": "rule-based",
+        "pbi_route": null
+      },
+      "data_query": {
+        "kind": "file-cell",
+        "expression": "revenue.region.emea_share",
+        "source_ref": "acme-q1-2025"
+      }
+    },
+    {
+      "node_id": "tbl-apac-revenue",
+      "anchor": { "kind": "element_id", "value": "tbl-apac-revenue" },
+      "class": "surgical",
+      "confidence": 0.99,
+      "provenance": {
+        "source": "acme-q1-2025",
+        "source_period": "2025-Q1",
+        "method": "rule-based",
+        "pbi_route": null
+      },
+      "data_query": {
+        "kind": "file-cell",
+        "expression": "revenue.region.apac",
+        "source_ref": "acme-q1-2025"
+      }
+    },
+    {
+      "node_id": "tbl-apac-share",
+      "anchor": { "kind": "element_id", "value": "tbl-apac-share" },
+      "class": "surgical",
+      "confidence": 0.98,
+      "provenance": {
+        "source": "acme-q1-2025",
+        "source_period": "2025-Q1",
+        "method": "rule-based",
+        "pbi_route": null
+      },
+      "data_query": {
+        "kind": "file-cell",
+        "expression": "revenue.region.apac_share",
+        "source_ref": "acme-q1-2025"
+      }
+    },
+    {
+      "node_id": "tbl-latam-revenue",
+      "anchor": { "kind": "element_id", "value": "tbl-latam-revenue" },
+      "class": "surgical",
+      "confidence": 0.99,
+      "provenance": {
+        "source": "acme-q1-2025",
+        "source_period": "2025-Q1",
+        "method": "rule-based",
+        "pbi_route": null
+      },
+      "data_query": {
+        "kind": "file-cell",
+        "expression": "revenue.region.latam",
+        "source_ref": "acme-q1-2025"
+      }
+    },
+    {
+      "node_id": "tbl-latam-share",
+      "anchor": { "kind": "element_id", "value": "tbl-latam-share" },
+      "class": "surgical",
+      "confidence": 0.98,
+      "provenance": {
+        "source": "acme-q1-2025",
+        "source_period": "2025-Q1",
+        "method": "rule-based",
+        "pbi_route": null
+      },
+      "data_query": {
+        "kind": "file-cell",
+        "expression": "revenue.region.latam_share",
+        "source_ref": "acme-q1-2025"
+      }
+    },
+    {
+      "node_id": "tbl-region-total",
+      "anchor": { "kind": "element_id", "value": "tbl-region-total" },
+      "class": "surgical",
+      "confidence": 0.99,
+      "provenance": {
+        "source": "acme-q1-2025",
+        "source_period": "2025-Q1",
+        "method": "rule-based",
+        "pbi_route": null
+      },
+      "data_query": {
+        "kind": "file-cell",
+        "expression": "revenue.total",
+        "source_ref": "acme-q1-2025"
+      }
+    },
+    {
+      "node_id": "xmla-figure-latest",
+      "anchor": { "kind": "element_id", "value": "xmla-figure-latest" },
+      "class": "surgical",
+      "confidence": 0.95,
+      "provenance": {
+        "source": "acme-pbi-model",
+        "source_period": "2025-Q1",
+        "method": "rule-based",
+        "pbi_route": "xmla"
+      },
+      "data_query": {
+        "kind": "dax",
+        "expression": "revenue.trend.latest_quarter",
+        "source_ref": "acme-pbi-model"
+      }
+    },
+    {
+      "node_id": "ftr-period",
+      "anchor": { "kind": "element_id", "value": "ftr-period" },
+      "class": "surgical",
+      "confidence": 0.98,
+      "provenance": {
+        "source": "acme-q1-2025",
+        "source_period": "2025-Q1",
+        "method": "rule-based",
+        "pbi_route": null
+      },
+      "data_query": {
+        "kind": "literal-from-new-source",
+        "expression": "meta.period_label",
+        "source_ref": "acme-q1-2025"
+      }
+    },
+    {
+      "node_id": "exec-summary-narrative",
+      "anchor": { "kind": "element_id", "value": "exec-summary-narrative" },
+      "class": "regenerate",
+      "confidence": 0.82,
+      "provenance": {
+        "source": "acme-q1-2025",
+        "source_period": "2025-Q1",
+        "method": "llm-labeled",
+        "pbi_route": null
+      },
+      "data_query": {
+        "kind": "literal-from-new-source",
+        "expression": "narrative.exec_summary",
+        "source_ref": "acme-q1-2025"
+      }
+    },
+    {
+      "node_id": "outlook-narrative",
+      "anchor": { "kind": "element_id", "value": "outlook-narrative" },
+      "class": "regenerate",
+      "confidence": 0.8,
+      "provenance": {
+        "source": "acme-q1-2025",
+        "source_period": "2025-Q1",
+        "method": "llm-labeled",
+        "pbi_route": null
+      },
+      "data_query": {
+        "kind": "literal-from-new-source",
+        "expression": "narrative.outlook",
+        "source_ref": "acme-q1-2025"
+      }
+    },
+    {
+      "node_id": "pbi-screenshot",
+      "anchor": { "kind": "element_id", "value": "pbi-screenshot" },
+      "class": "regenerate",
+      "confidence": 0.9,
+      "provenance": {
+        "source": "acme-pbi-report",
+        "source_period": "2025-Q1",
+        "method": "rule-based",
+        "pbi_route": "screenshot"
+      },
+      "data_query": {
+        "kind": "screenshot-capture",
+        "expression": "capture:revenue-trend",
+        "source_ref": "acme-pbi-report"
+      }
+    },
+    {
+      "node_id": "chart-region-mix",
+      "anchor": { "kind": "element_id", "value": "chart-region-mix" },
+      "class": "regenerate",
+      "confidence": 0.9,
+      "provenance": {
+        "source": "acme-q1-2025",
+        "source_period": "2025-Q1",
+        "method": "rule-based",
+        "pbi_route": null
+      },
+      "data_query": {
+        "kind": "screenshot-capture",
+        "expression": "capture:region-mix",
+        "source_ref": "acme-q1-2025"
+      }
+    },
+    {
+      "node_id": "logo-header",
+      "anchor": { "kind": "element_id", "value": "logo-header" },
+      "class": "frozen",
+      "confidence": 0.99,
+      "provenance": {
+        "source": "acme-brand-assets",
+        "source_period": null,
+        "method": "rule-based",
+        "pbi_route": null
+      },
+      "data_query": null
+    },
+    {
+      "node_id": "tagline-text",
+      "anchor": { "kind": "element_id", "value": "tagline-text" },
+      "class": "frozen",
+      "confidence": 0.75,
+      "provenance": {
+        "source": "acme-brand-assets",
+        "source_period": null,
+        "method": "rule-based",
+        "pbi_route": null
+      },
+      "data_query": null
+    }
+  ]
+}
