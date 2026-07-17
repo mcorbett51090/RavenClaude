@@ -197,6 +197,33 @@
       "x-on-label": "On — pause for design / architecture decisions",
       "x-off-label": "Off — nonstop; decide and report afterward"
     },
+    "decision_review": {
+      "type": "string",
+      "enum": ["off", "advisory", "binding"],
+      "default": "off",
+      "title": "Decision review",
+      "description": "Behavioral flag — NOT a tool-call permission (like design_checkins, and independent of the categories.* allow/ask/deny scale). Routes yes/no decisions through the command-review tribunal (the Thing) before they reach you. `off` (default) — you answer every yes/no. `advisory` — the panel suggests but you still answer. `binding` — the panel auto-decides the rule/fact-derivable calls and defers genuine preferences (and every high-blast / irreversible call) back to you. Setting every permission category to `allow` changes nothing here. Edited on the dashboard's Pipeline tab; read by hooks/route-decision-review.sh. Documented (non-driving) here so it carries a machine-readable description.",
+      "x-behavioral-flag": true,
+      "x-dashboard-tab": "pipeline"
+    },
+    "orchestrator": {
+      "type": "string",
+      "enum": ["off", "decide", "full"],
+      "default": "full",
+      "title": "Claude orchestrator",
+      "description": "Behavioral flag — NOT a tool-call permission. Routes Team-Lead orchestration to Claude via `claude -p` when the host CLI is NOT Claude Code (e.g. GitHub Copilot routing GPT/Grok); inert under Claude Code (host already IS Claude). `off` — host orchestrates (zero extra cost). `decide` — Claude returns a JSON dispatch plan the host executes (brain/hands split). `full` (default; absent also defaults to `full`) — Claude reasons through the task and returns artifact content the host writes. Read by skills/spawn-team at dispatch time; edited on the Pipeline tab. Documented (non-driving) here so it carries a machine-readable description.",
+      "x-behavioral-flag": true,
+      "x-dashboard-tab": "pipeline"
+    },
+    "orchestrator_scope": {
+      "type": "string",
+      "enum": ["team", "all"],
+      "default": "team",
+      "title": "Orchestrator scope",
+      "description": "Behavioral flag — NOT a tool-call permission. Sets WHEN the orchestrator fires. `team` (default) — only on a team-of-agents dispatch (lowest egress). `all` — relay EVERY prompt to Claude, content-only, guarded by the A-on-C PII egress floor (fails closed). Host-only; inert under Claude Code. Read by skills/spawn-team; edited on the Pipeline tab. Documented (non-driving) here so it carries a machine-readable description.",
+      "x-behavioral-flag": true,
+      "x-dashboard-tab": "pipeline"
+    },
     "_category_value_shape": {
       "description": "Documentation-only key (ignored by tooling). Each `categories.<name>` value can be (a) a plain string (v3/v4 legacy: single level for all layers), (b) an object `{ default, overrides }` (v4 per-pattern), or (c) an object `{ user, local, project }` with an optional `overrides` map (v5 per-layer, the canonical shape produced by the dashboard). Resolution: each layer independently resolves patterns (per-permission overrides win over the category-wide layer value); Claude Code merges user+local+project at runtime as deny > ask > allow.",
       "examples": [

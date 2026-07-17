@@ -850,6 +850,24 @@ _PIPELINE_EXCLUDED_HOOKS = {
     "agent-dispatch-evaluator.sh": "audit-only shadow (SubagentStart), opt-in; never denies",
 }
 
+def _render_behavioral_flag_badge() -> str:
+    """Shared badge marking a control as a BEHAVIORAL flag, not a tool-call
+    permission (P5a / Gate 138).
+
+    Rendered next to the ``design_checkins`` control (Settings tab) AND the
+    orchestrator / ``decision_review`` controls (Pipeline tab) so operators stop
+    conflating permission categories (allow / ask / deny, which gate tool-call
+    approval) with behavioral flags (which control whether Claude pauses for
+    design / decision judgment). Setting every permission to Allow changes no
+    behavioral flag.
+    """
+    return (
+        '<span class="behavioral-flag-badge" '
+        'title="Behavioral flag &mdash; does not gate a tool-call permission">'
+        "&#9881; Behavior, not permission</span>"
+    )
+
+
 _PIPELINE_CONTROLS = {
     "thing": (
         '<label class="pipe-ctl"><input type="checkbox" id="pipe-thing-enabled"> '
@@ -880,6 +898,7 @@ _PIPELINE_CONTROLS = {
         "Tick “No limit” for unlimited workers, or set a cap. Off keeps the work sequential.</p>"
     ),
     "decision": (
+        '<p class="pipe-flag-note">' + _render_behavioral_flag_badge() + "</p>"
         '<label class="pipe-ctl">Mode '
         '<select id="pipe-decision-review">'
         '<option value="off">off — you answer every yes/no</option>'
@@ -895,6 +914,7 @@ _PIPELINE_CONTROLS = {
         '<p class="pipe-hint">Leave the command empty to turn the done-check off.</p>'
     ),
     "orchestrator": (
+        '<p class="pipe-flag-note">' + _render_behavioral_flag_badge() + "</p>"
         '<label class="pipe-ctl">Mode '
         '<select id="pipe-orchestrator">'
         '<option value="off">off — host CLI orchestrates (default, zero extra cost)</option>'
@@ -2178,7 +2198,26 @@ def _render_settings_tab(properties: dict, presets: dict) -> str:
         "</p></div>"
     )
 
+    # P5a — a short explainer box distinguishing the two orthogonal surfaces
+    # (permission levels vs. behavioral flags), grounded in the intake doc's
+    # 4-row table. Rendered at the top of the Settings tab.
+    behavioral_explainer_html = (
+        '<div class="behavioral-explainer" role="note">'
+        "<p><strong>Two independent systems.</strong> The permission levels below "
+        "(<em>deny / ask / allow</em>) gate whether a <strong>tool call</strong> "
+        "needs your approval. <strong>Behavioral flags</strong> (marked "
+        + _render_behavioral_flag_badge()
+        + ") control whether Claude <strong>pauses for design / decision judgment</strong> "
+        "&mdash; <code>design_checkins</code> here, and <code>orchestrator</code> / "
+        "<code>decision_review</code> on the "
+        '<a href="#/pipeline">Pipeline</a> tab. Setting every permission to '
+        "<strong>Allow</strong> changes <strong>no</strong> behavioral flag &mdash; "
+        "if Claude still pauses on every turn, tune those flags, not the permissions.</p>"
+        "</div>"
+    )
+
     return _SETTINGS_TAB_TEMPLATE.format(
+        behavioral_explainer=behavioral_explainer_html,
         preset_buttons="".join(preset_buttons),
         design_checkins=design_checkins_html,
         thing_preview=_render_thing_preview(),
@@ -2283,10 +2322,14 @@ def _render_command_review_block() -> str:
         "</div>"
         '<div class="crb-master-row">'
         '<label class="crb-master-label" for="cr-master-enable">'
-        "Master enable &mdash; when off, all per-category toggles are paused (not cleared)"
+        "Master enable &mdash; turning on checks only the 4 high-stakes shell categories; "
+        "the other 8 stay per-category opt-in. Turning off clears all."
         "</label>"
         '<label class="dc-switch" title="Master enable for command review. '
-        "When off, review is paused globally; per-category settings are preserved."
+        "Turning ON enables review for the 4 high-stakes shell categories only "
+        "(code exec, remote mutate, package install, local mutate) &mdash; the other 8 "
+        "categories remain individual opt-in, and any you already checked stay checked. "
+        "Turning OFF clears every category."
         '">'
         '<input type="checkbox" id="cr-master-enable" checked '
         'aria-label="Command review master enable" aria-describedby="crb-master-state">'
@@ -2618,7 +2661,8 @@ def _render_design_checkins(prop: dict) -> str:
     return (
         '<div class="design-checkins-bar">'
         '<div class="dc-row">'
-        f'<div class="dc-text"><h3>{title}</h3><p>{desc}</p></div>'
+        f'<div class="dc-text"><h3>{title} {_render_behavioral_flag_badge()}</h3>'
+        f"<p>{desc}</p></div>"
         '<label class="dc-switch" title="Toggle design check-ins">'
         '<input type="checkbox" id="design-checkins-toggle" checked>'
         '<span class="dc-track"><span class="dc-thumb"></span></span>'
@@ -3291,6 +3335,33 @@ h1, h2, h3 { font-family: var(--font-display); font-weight: 600; letter-spacing:
   .modal-backdrop { padding: 12px; }
   .modal { padding: 16px; }
 }
+/* Behavioral-flag badge + explainer (P5a) — mark a control as a behavioral
+   flag (design/decision judgment) rather than a tool-call permission. */
+.behavioral-flag-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.4;
+  padding: 1px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--muted);
+  white-space: nowrap;
+  vertical-align: middle;
+}
+.behavioral-explainer {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent, #c47f17);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  margin-bottom: 16px;
+}
+.behavioral-explainer p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.6; }
+.pipe-flag-note { margin: 0 0 8px 0; }
 .preset-bar {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -6075,6 +6146,7 @@ footer.page-footer a:hover { text-decoration: underline; }
 _SETTINGS_TAB_TEMPLATE = """
 <div class="settings-layout">
   <div class="settings-form">
+    {behavioral_explainer}
     <div class="preset-bar">
       <h3>Apply a preset
         <button type="button" class="info-btn info-btn-section" id="layers-info-btn"
@@ -7825,22 +7897,35 @@ _JS = r"""
   }
 
   /* ── Form change wiring ─────────────────────────────────────────── */
-  /* Command-review master enable — cascades to every live per-category toggle.
-   * When the master is flipped, every non-disabled data-thing-category checkbox
-   * is set to match and its state entry is updated.  Per-category toggles remain
-   * independently operable after the cascade. */
+  /* Command-review master enable (P4a / Gate 137).
+   * Turning the master ON from an all-off state checks ONLY the 4 high-stakes
+   * shell categories; the other 8 stay per-category opt-in (an ON-flip only
+   * ever ADDS these 4 — it never clears a category the user already checked
+   * individually).  Turning the master OFF still clears every live toggle (no
+   * blast-radius asymmetry).  Per-category toggles remain independently
+   * operable after the cascade. */
   {
     const masterCb = document.getElementById("cr-master-enable");
+    const CR_MASTER_HIGH_STAKES = ["shell_code_exec", "shell_remote_mutate", "shell_package_install", "shell_local_mutate"];
     if (masterCb) {
       masterCb.addEventListener("change", () => {
         /* enabled: true is the default; only store/emit when false */
         state.command_review.enabled = masterCb.checked ? true : false;
-        /* Cascade master state down to every live per-category toggle */
         document.querySelectorAll('input[type="checkbox"][data-thing-category]').forEach(cb => {
           if (cb.disabled) return;
-          cb.checked = masterCb.checked;
           const cat = cb.dataset.thingCategory;
-          if (state.categories[cat]) state.categories[cat].thing = masterCb.checked;
+          if (masterCb.checked) {
+            /* ON-flip: add ONLY the 4 high-stakes categories; leave the other
+             * 8 exactly as they are, so a pre-checked one stays checked. */
+            if (CR_MASTER_HIGH_STAKES.includes(cat)) {
+              cb.checked = true;
+              if (state.categories[cat]) state.categories[cat].thing = true;
+            }
+          } else {
+            /* OFF-flip: clear every live per-category toggle (symmetric reset). */
+            cb.checked = false;
+            if (state.categories[cat]) state.categories[cat].thing = false;
+          }
         });
         syncMasterEnable();
         updateReviewIcons();
