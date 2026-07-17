@@ -1,0 +1,27 @@
+{
+  "name": "ai-agent-engineering",
+  "version": "0.1.0",
+  "description": "The engineering team that BUILDS production LLM-agent systems — 2 agents (agentic-systems-architect, agent-implementation-engineer) deciding agent topology (single-agent/ReAct, planner/executor, multi-agent, workflow/graph like LangGraph), framework/runtime (provider-neutral), tool/function-call boundary & contracts, memory/context strategy, guardrails, cost/latency budgets, tracing, and the agent-eval harness (offline sets, LLM-as-judge, regression gates, red-team). 3 skills, a 2-doc knowledge bank, and 2 templates. Distinct from ai-rag-engineering (retrieval), prompt-engineering (prompt/context craft), and llm-evaluation-engineering (eval methodology) — this is the SYSTEMS layer that COMPOSES prompts, retrieval, tools, and evals into a running agent. LLM/framework/pricing specifics are volatile — retrieval date + verify-at-use. Needs ravenclaude-core.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "ai-agents",
+    "agentic",
+    "llm-orchestration",
+    "tool-use",
+    "function-calling",
+    "multi-agent",
+    "langgraph",
+    "mcp",
+    "guardrails",
+    "agent-eval",
+    "agent-observability",
+    "cost-latency"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}
