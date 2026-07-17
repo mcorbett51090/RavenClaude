@@ -19,6 +19,22 @@ schema_version: 5
 # Pause for design / architectural decisions before implementing them?
 design_checkins: true
 
+# Worktree-hygiene guard (worktree_guard: off | warn | block). Fires on exactly two
+# locally-detectable conditions, per session, per working tree: CONTENTION (another
+# live Claude Code session is already operating in this same checkout) or ANCHOR-WORK
+# (this is the repo's primary checkout, worktrees already exist, and HEAD is on the
+# anchor branch). Everything else is silent — a lone checkout in a fresh Codespace/web
+# container satisfies neither by construction, which is why `warn` is a safe default
+# for every repo (not opt-in) and never nags a solo session.
+#   off   — fast no-op; nothing is written and git is never shelled out.
+#   warn  — (default) a throttled SessionStart + PreToolUse nudge; never blocks.
+#   block — additionally DENIES a mutating op (git commit/checkout/merge/rebase/…, or
+#           a Write/Edit under the tree) on contention/anchor-work; reads / git status
+#           / rcwt are never blocked. Escape hatch: RC_WORKTREE_GUARD_ACK=1.
+# Wired in hooks.json (SessionStart `register` + PreToolUse `check`) — no schema bump
+# (behavioral flag, like design_checkins / model_fallback above). Default warn.
+worktree_guard: warn
+
 # Claude orchestrator for non-Claude CLIs (off | decide | full).
 # No-op under Claude Code (host already IS Claude). Default: full (owner choice — route to Claude; costs more tokens).
 #   off    — host CLI orchestrates as today (zero extra cost).

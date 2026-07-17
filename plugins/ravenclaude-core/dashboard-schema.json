@@ -218,6 +218,13 @@
       "title": "Orchestrator scope",
       "description": "Behavioral flag (not a permission — marked ⚙). Sets WHEN the orchestrator fires (orchestrator sets HOW). team = only on a team-of-agents dispatch (lowest egress); all = relay every prompt to Claude, content-only, guarded by the relay-all egress floor. Host-only; inert under Claude Code."
     },
+    "worktree_guard": {
+      "type": "string",
+      "enum": ["off", "warn", "block"],
+      "default": "warn",
+      "title": "Worktree guard",
+      "description": "Behavioral flag (not a permission — marked ⚙ in the UI). Nudges — or, in block mode, denies a mutating op — when this working tree is already in use by another live session, or when you are mutating the repo's anchor checkout while worktrees exist. Prefer a dedicated git worktree to avoid collisions. off = silent; warn = a SessionStart / PreToolUse nudge on contention or anchor-work, never blocks; block = a mutating op (commit / add / checkout / switch / merge / rebase / rm / mv, or a Write / Edit under the tree) is denied on contention or anchor-work — reads and git status stay allowed, RC_WORKTREE_GUARD_ACK=1 overrides. A pristine single checkout stays completely silent. Setting every permission to Allow does not change this."
+    },
     "_category_value_shape": {
       "description": "Documentation-only key (ignored by tooling). Each `categories.<name>` value can be (a) a plain string (v3/v4 legacy: single level for all layers), (b) an object `{ default, overrides }` (v4 per-pattern), or (c) an object `{ user, local, project }` with an optional `overrides` map (v5 per-layer, the canonical shape produced by the dashboard). Resolution: each layer independently resolves patterns (per-permission overrides win over the category-wide layer value); Claude Code merges user+local+project at runtime as deny > ask > allow.",
       "examples": [

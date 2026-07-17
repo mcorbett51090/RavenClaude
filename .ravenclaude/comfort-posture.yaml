@@ -47,6 +47,11 @@ runaway: off
 # Yes/no decision routing through the tribunal (off | advisory | binding).
 decision_review: binding
 
+# Worktree-hygiene guard (off | warn | block). Nudges (warn) or denies a mutating op
+# (block) when a second live session shares this working tree, or on anchor-branch work
+# while worktrees exist; silent otherwise. Dogfooded at `warn`.
+worktree_guard: warn
+
 # Always-on deny rules — layer-independent floor.
 security_deny:
   - "Bash(rm -rf:*)"
