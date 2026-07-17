@@ -296,6 +296,12 @@ PY
       python3 scripts/check-thing-seat-extractor.py --must-fail || rc=$?
       exit $rc
       ;;
+    139)
+      echo "── Gate 139: orchestrator absent⇒full doc consistency (per-gate run) ────"
+      rc=0; python3 scripts/check-orchestrator-doc-consistency.py || rc=$?
+      python3 scripts/check-orchestrator-doc-consistency.py --self-test || rc=$?
+      exit $rc
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
       echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139. Run without --check to execute the full suite." >&2
@@ -4360,6 +4366,21 @@ gate "seat-extractor: near-JSON deny salvaged, bare-JSON byte-identical" must_pa
 # stripped attempt-2 must lose the loose-deny salvage (caught).
 rc=0; python3 scripts/check-thing-seat-extractor.py --must-fail >/dev/null 2>&1 || rc=$?
 gate "seat-extractor teeth: monotonic-strip → allow + attempt2-strip → deny-lost" must_pass "$rc"
+
+echo
+echo "── Gate 139: orchestrator absent⇒full doc consistency ─────────────────────"
+# P5b: CLAUDE.md documented the `orchestrator` knob's absent default as `full`, but
+# the GENERATED copilot/AGENTS.md relay condition 3 required the LITERAL key — so an
+# absent key silently failed relay eligibility (the intake-doc plugin bug). The fix is
+# in the generator (generate-copilot-plugin.py); this gate asserts three sources agree
+# that absent ⇒ full so the two docs can't drift apart again.
+rc=0; python3 scripts/check-orchestrator-doc-consistency.py >/dev/null 2>&1 || rc=$?
+gate "orchestrator-doc: CLAUDE.md + spawn-team + generator agree absent⇒full" must_pass "$rc"
+
+# teeth: stripping condition 3 back to literal-key-only (or removing the `full`
+# default) reintroduces the disagreement — the check must catch it.
+rc=0; python3 scripts/check-orchestrator-doc-consistency.py --self-test >/dev/null 2>&1 || rc=$?
+gate "orchestrator-doc teeth: a reintroduced disagreement is caught" must_pass "$rc"
 
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"
