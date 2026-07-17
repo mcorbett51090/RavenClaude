@@ -26,3 +26,13 @@ select = ["F", "E9", "B", "C4", "I", "UP"]
 ignore = ["B904", "UP031"]
 
 exclude = [".git", "__pycache__", "scripts/vendor"]
+
+[lint.per-file-ignores]
+# report-regeneration imports sibling stdlib modules across skill boundaries via
+# `sys.path.insert(...)` followed by the import (each inline-`# noqa: E402`'d) — a
+# load-bearing pattern for a plugin whose skills share a stdlib anchor/inference core
+# with no package install. isort (I001) would hoist those imports above the path setup
+# and break them at runtime, so import-sorting is disabled for this plugin's Python only.
+# Every correctness rule (F, E9, B, C4, UP) stays fully enforced; E402 stays caught by
+# the inline `# noqa`s. (15 files carry the pattern: 9 tests + 6 skill/scripts modules.)
+"plugins/report-regeneration/**/*.py" = ["I001"]

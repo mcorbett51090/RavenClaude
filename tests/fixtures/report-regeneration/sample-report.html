@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<!--
+  FIXTURE METADATA — report-regeneration Phase-0 seeded-defect corpus (W3-injectors).
+  This file is the "old" quarterly report used as a surgical-transplant TEMPLATE. It is entirely
+  synthetic: "Acme Widgets, Inc." is a fabricated company and every figure below is fabricated.
+  No real client data, no PII.
+
+  This document is ALSO the "clean control" — fed through the (separately-built) fidelity harness
+  UNMODIFIED, every BLOCKING leg (V1 value accuracy, V2 frozen-complement diff, V3 isomorphism,
+  V4 taint egress, V6 manifest-completeness, period-coherence) is expected to PASS. Use
+  `plugins/report-regeneration/scripts/seed_defects.py --defect Dn` to produce a copy with exactly
+  one named defect injected, which the corresponding harness leg is expected to CATCH.
+  See tests/fixtures/report-regeneration/README.md for the full contract.
+
+  TAINT DICTIONARY — literals from the PRIOR client artifact this template superseded ("Ridgeline
+  Fabricators Inc."). These strings/figures must NEVER appear anywhere in a regenerated output; the
+  D2/D6/D12 injectors below draw from this list to simulate a staleness/leak failure. They do not
+  appear anywhere else in this document's rendered body by default.
+    old_company:       "Ridgeline Fabricators Inc."
+    old_author:        "M. Hale, Controller"
+    old_source_file:   "ridgeline_q4_2023_final_report.docx"
+    old_revenue_total: "$3,102,450"
+    old_growth_yoy:    "-4.1%"
+
+  DELIBERATELY-TRICKY CASES BAKED INTO THIS "CLEAN" TEMPLATE (adversarial-by-design, not injector
+  defects — a harness engineer should expect these, not treat them as corpus bugs):
+    1. "Fiscal Year 2024" in the Outlook section — a number that IS a year. It is a static historical
+       reference (a closed reporting period being cited in prose) and must NOT be treated as a
+       data-bound token needing rebind to the new period.
+    2. "since 1998" in the brand tagline — a static founding-year reference, same trap as #1.
+    3. "100% Committed to Quality" in the brand tagline (#sec-tagline / #tagline-text) — a static
+       marketing label that IS percent-shaped. Per the plan's §2 hard rule ("frozen is EARNED... any
+       data-shaped literal in a candidate-frozen node force-demotes it to needs-review, regardless of
+       classifier confidence"), this node is CORRECTLY expected to surface as advisory needs-review
+       even in the clean control — that is not a corpus defect, it is the adversarial case working as
+       designed (a non-inference detector cannot tell "100%" the marketing line from "100%" a KPI).
+    4. #kpi-report-date carries data-role="surgical" (a genuine data-bound date) right next to
+       #sec-appendix's boilerplate prose, which contains no data-shaped literals at all and is safely
+       data-role="frozen" — the fixture deliberately places a real bind next to inert prose so a
+       coarse "everything near data is data" heuristic fails visibly.
+-->
+<title>Acme Widgets, Inc. — Q1 2025 Quarterly Report</title>
+<style>
+  body { font-family: Arial, Helvetica, sans-serif; color: rgb(30,30,30); background: rgb(255,255,255); margin: 0; padding: 0; }
+  .skip-link { position: absolute; left: -9999px; top: 0; }
+  .skip-link:focus { left: 8px; top: 8px; background: rgb(255,255,255); padding: 4px 8px; }
+  .report-header { display: flex; align-items: center; gap: 16px; padding: 16px 24px; border-bottom: 3px solid rgb(18,52,86); }
+  .report-title h1 { margin: 0; font-size: 22px; }
+  .report-title p { margin: 2px 0; }
+  main { padding: 8px 24px 32px; }
+  section { margin: 28px 0; }
+  h2 { border-bottom: 1px solid rgb(200,200,200); padding-bottom: 4px; }
+  .kpi-grid { display: flex; gap: 16px; flex-wrap: wrap; }
+  .kpi-card { border: 1px solid rgb(210,210,210); border-radius: 6px; padding: 12px 16px; min-width: 160px; }
+  .kpi-label { display: block; font-size: 12px; color: rgb(90,90,90); text-transform: uppercase; }
+  .kpi-value { display: block; font-size: 20px; font-weight: bold; margin-top: 4px; }
+  table { border-collapse: collapse; width: 100%; max-width: 640px; }
+  th, td { border: 1px solid rgb(210,210,210); padding: 6px 10px; text-align: left; }
+  thead th { background: rgb(240,240,240); }
+  tfoot th, tfoot td { font-weight: bold; background: rgb(248,248,248); }
+  .chart-placeholder { border: 1px dashed rgb(180,180,180); padding: 12px; max-width: 500px; }
+  .chart-caption { font-size: 13px; color: rgb(90,90,90); }
+  .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; }
+  .tagline { font-style: italic; color: rgb(60,60,60); }
+  .report-footer { border-top: 1px solid rgb(210,210,210); padding: 16px 24px; font-size: 12px; color: rgb(90,90,90); }
+  .footer-fine-print { margin-top: 4px; }
+</style>
+</head>
+<body>
+<a class="skip-link" href="#main-content">Skip to main content</a>
+<header class="report-header" id="report-header">
+  <img id="logo-header" data-role="frozen"
+       src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw=="
+       alt="Acme Widgets logo" width="160" height="40">
+  <div class="report-title">
+    <h1>Acme Widgets, Inc.</h1>
+    <p>Quarterly Business Report</p>
+    <p id="hdr-period" data-role="surgical" data-bind="meta.period_label" data-shape="period" data-period="2025-Q1">Q1 2025</p>
+  </div>
+</header>
+<main id="main-content">
+
+  <section id="sec-exec-summary" data-section-role="regenerate" data-section="executive-summary">
+    <h2>Executive Summary</h2>
+    <p id="exec-summary-narrative" data-role="regenerate">
+      Acme Widgets delivered <strong>$4,821,300</strong> in total revenue in Q1 2025, up
+      <strong>+12.4%</strong> year-over-year, driven by strong performance across all four regions.
+      Operating margin held at 18.7% despite continued investment in the APAC distribution network.
+    </p>
+  </section>
+
+  <section id="sec-financial-highlights" data-section-role="surgical" data-section="financial-highlights">
+    <h2>Financial Highlights</h2>
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <span class="kpi-label">Total Revenue</span>
+        <span id="kpi-revenue" class="kpi-value" data-role="surgical" data-bind="revenue.total" data-shape="currency" data-period="2025-Q1">$4,821,300</span>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-label">Revenue Growth (YoY)</span>
+        <span id="kpi-revenue-growth" class="kpi-value" data-role="surgical" data-bind="revenue.growth_yoy" data-shape="percent" data-period="2025-Q1">+12.4%</span>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-label">Operating Margin</span>
+        <span id="kpi-operating-margin" class="kpi-value" data-role="surgical" data-bind="margin.operating" data-shape="percent" data-period="2025-Q1">18.7%</span>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-label">Report Prepared</span>
+        <span id="kpi-report-date" class="kpi-value" data-role="surgical" data-bind="meta.report_date" data-shape="date" data-period="2025-Q1">April 4, 2025</span>
+      </div>
+    </div>
+  </section>
+
+  <section id="sec-region-table" data-section-role="surgical" data-section="revenue-by-region">
+    <h2>Revenue by Region</h2>
+    <table id="tbl-region-revenue">
+      <caption>Q1 2025 revenue by region (USD)</caption>
+      <thead>
+        <tr><th scope="col">Region</th><th scope="col">Revenue</th><th scope="col">Share of Total</th></tr>
+      </thead>
+      <tbody>
+        <tr><th scope="row">North America</th><td id="tbl-north-revenue" data-role="surgical" data-bind="revenue.region.north" data-shape="currency">$1,203,400</td><td id="tbl-north-share" data-role="surgical" data-bind="revenue.region.north_share" data-shape="percent">25.0%</td></tr>
+        <tr><th scope="row">EMEA</th><td id="tbl-emea-revenue" data-role="surgical" data-bind="revenue.region.emea" data-shape="currency">$982,900</td><td id="tbl-emea-share" data-role="surgical" data-bind="revenue.region.emea_share" data-shape="percent">20.4%</td></tr>
+        <tr><th scope="row">APAC</th><td id="tbl-apac-revenue" data-role="surgical" data-bind="revenue.region.apac" data-shape="currency">$1,540,700</td><td id="tbl-apac-share" data-role="surgical" data-bind="revenue.region.apac_share" data-shape="percent">32.0%</td></tr>
+        <tr><th scope="row">Latin America</th><td id="tbl-latam-revenue" data-role="surgical" data-bind="revenue.region.latam" data-shape="currency">$1,094,300</td><td id="tbl-latam-share" data-role="surgical" data-bind="revenue.region.latam_share" data-shape="percent">22.7%</td></tr>
+      </tbody>
+      <tfoot>
+        <tr><th scope="row">Total</th><td id="tbl-region-total" data-role="surgical" data-bind="revenue.total" data-shape="currency">$4,821,300</td><td>100.0%</td></tr>
+      </tfoot>
+    </table>
+  </section>
+
+  <section id="sec-chart" data-section-role="mixed" data-section="revenue-trend-chart">
+    <h2>Revenue Trend</h2>
+    <div class="chart-placeholder" id="chart-revenue-trend">
+      <img id="pbi-screenshot" class="pbi-screenshot" data-role="regenerate"
+           data-source="power-bi-screenshot" data-source-period="2025-Q1"
+           src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw=="
+           alt="Power BI screenshot: quarterly revenue trend, Q1 2025" width="480" height="220">
+      <p class="chart-caption">Figure 1. Quarterly revenue trend, trailing eight quarters (source: Power BI, XMLA).</p>
+      <span id="xmla-figure-latest" class="visually-hidden" data-role="surgical" data-bind="revenue.trend.latest_quarter" data-shape="currency" data-source="power-bi-xmla" data-source-period="2025-Q1">Latest plotted quarter: $4,821,300</span>
+    </div>
+    <img id="chart-region-mix" class="region-mix-chart" data-role="regenerate"
+         src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw=="
+         alt="Bar chart comparing Q1 2025 revenue share across North America, EMEA, APAC, and Latin America regions."
+         width="480" height="240">
+  </section>
+
+  <section id="sec-outlook" data-section-role="regenerate" data-section="outlook-and-risks">
+    <h2>Outlook &amp; Risk Factors</h2>
+    <p id="outlook-narrative" data-role="regenerate">
+      Fiscal Year 2024 targets were exceeded, with total bookings reaching $18.2M, and management
+      expects continued momentum through the remainder of 2025. Key risks for the coming quarter
+      include continued freight-cost volatility in the APAC lane and a competitive pricing response
+      from two regional entrants in EMEA. No new litigation or regulatory matters are outstanding.
+    </p>
+  </section>
+
+  <section id="sec-tagline" data-section-role="frozen" data-section="brand-tagline">
+    <p class="tagline" id="tagline-text" data-role="frozen">
+      100% Committed to Quality — Acme Widgets has proudly served customers since 1998.
+    </p>
+  </section>
+
+  <section id="sec-appendix" data-section-role="frozen" data-section="appendix-methodology">
+    <h2>Appendix: Methodology Notes</h2>
+    <p data-role="frozen">
+      Figures are reported in United States Dollars (USD) unless otherwise noted. Regional revenue
+      shares are rounded to one decimal place and may not sum exactly to 100% due to rounding.
+      This report is prepared for internal distribution and does not constitute investment advice.
+    </p>
+  </section>
+
+</main>
+<footer class="report-footer" id="report-footer">
+  <p>Acme Widgets, Inc. — Confidential —
+    <span id="ftr-period" data-role="surgical" data-bind="meta.period_label" data-shape="period" data-period="2025-Q1">Q1 2025</span>
+    Quarterly Report
+  </p>
+  <p class="footer-fine-print" data-role="frozen">Report ID: AW-QR-2025Q1-000482 | Generated April 4, 2025</p>
+</footer>
+</body>
+</html>
