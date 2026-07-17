@@ -1,12 +1,23 @@
 name: Validate Schemas
 
 on:
+  # NO `paths:` filter on pull_request — this is a REQUIRED status check (ruleset
+  # "main"), and GitHub leaves a path-skipped workflow's check Pending forever:
+  # "A pull request that requires those checks to be successful will be blocked
+  # from merging ... You should not use path or branch filtering to skip workflow
+  # runs if the workflow is required to pass before merging."
+  # https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/collaborating-on-repositories-with-code-quality-features/troubleshooting-required-status-checks
+  #
+  # The old filter (manifests + schemas/** only) meant most PRs skipped this —
+  # docs-only PRs like the external-intake bot's would have hung permanently once
+  # it became required. The job is ~33s, so running it on every PR is cheaper than
+  # any conditional worth maintaining. Do NOT re-add `paths:` here; gate individual
+  # STEPS with `if:` instead (a skipped job reports Success; a skipped workflow
+  # reports nothing).
+  #
+  # The `push:` filter below is deliberately KEPT — push runs are not required
+  # checks, so a path-skipped push run blocks nothing.
   pull_request:
-    paths:
-      - ".claude-plugin/marketplace.json"
-      - "plugins/*/.claude-plugin/plugin.json"
-      - "schemas/**"
-      - ".github/workflows/validate-schemas.yml"
   push:
     branches:
       - main
