@@ -69,8 +69,16 @@ _on_exit() {
   # Fail CLOSED only on a fail-OPEN exit code (non-zero AND not the deliberate
   # exit-2 block) that carried no verdict. exit 0 = a legitimate allow (or emit
   # already fired); exit 2 = an already-blocking deny — neither is touched.
+  #
+  # CRITICAL (claude-code-permissions.md:199/207): ONLY `exit 2` blocks a PreToolUse
+  # call. A `hookSpecificOutput` deny JSON is honored ONLY on exit 0; on ANY other
+  # non-zero exit the JSON is IGNORED and the command RUNS (non-blocking error). So an
+  # abort that merely printed a deny JSON but exited 1 would FAIL OPEN — the exact hole
+  # this trap exists to close. We therefore emit the reason to STDERR and `exit 2`
+  # (the exit-code protocol, which blocks regardless of stdout).
   if [ "$_emitted" != 1 ] && [ "$_ec" != 0 ] && [ "$_ec" != 2 ]; then
-    printf '%s\n' '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"Command review aborted unexpectedly; failing closed (deny)."}}'
+    printf '[Command review] aborted unexpectedly (exit %s); failing closed (deny).\n' "$_ec" >&2
+    exit 2
   fi
 }
 trap '_on_exit' EXIT

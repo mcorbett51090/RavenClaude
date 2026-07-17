@@ -388,12 +388,20 @@ for k in range(len(t)):
 if span:
     try:
         obj = ast.literal_eval(span)
-        if isinstance(obj, dict):
-            if obj.get("verdict") == "allow":
-                obj["verdict"] = "abstain"
+        # MONOTONIC-IN-RESTRICTIVENESS (red-team FM1 + security review). A verdict
+        # recovered from repaired bytes may become a VOTED seat ONLY if it is a `deny`
+        # — the one direction that can only tighten the outcome. Any OTHER salvaged
+        # verdict (allow / edit / abstain / unknown / missing) is DROPPED here, so the
+        # seat falls through to `exit 6` -> parse_seat records status=abstain, keeping
+        # the 2-abstain fail-closed floor intact. (Emitting a non-deny salvaged object
+        # made the seat count as *voted* — and the floor + tie-breaker key on STATUS,
+        # not the verdict string — so a salvaged abstain/unknown eroded the floor and
+        # reached the tie-breaker`s else->allow default. Deny-only closes that: repaired
+        # bytes can produce a voted DENY or an ABSTAIN, never a votable non-deny.)
+        if isinstance(obj, dict) and obj.get("verdict") == "deny":
             sys.stdout.write(json.dumps(obj))
-    except (ValueError, SyntaxError):
-        pass
+    except (ValueError, SyntaxError, RecursionError, TypeError, MemoryError):
+        pass  # any parse failure on adversarial near-JSON -> drop -> exit 6 -> abstain
 ' 2>/dev/null || true)"
 
 if [ -z "$verdict_json" ] || ! printf '%s' "$verdict_json" | jq -e . >/dev/null 2>&1; then

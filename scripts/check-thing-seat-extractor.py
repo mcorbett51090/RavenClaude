@@ -59,9 +59,16 @@ CASES = [
     # 2. fenced valid JSON -> salvaged by attempt 1 (fences aren't `{`) — regression guard
     ("fenced", '```json\n{"verdict":"deny","confidence":0.8}\n```', "deny", None),
     # 3. near-JSON deny (single quotes + trailing comma + Python literal) -> deny honored
+    #    (a voted DENY is the one safe direction repaired bytes may produce)
     ("loose-deny", "{'verdict':'deny','injection_detected':True,'confidence':0.7,}", "deny", None),
-    # 4. near-JSON ALLOW -> MUST resolve to abstain, NEVER allow (FM1 teeth)
-    ("loose-allow", "{'verdict':'allow','confidence':0.9,}", "abstain", None),
+    # 4. near-JSON ALLOW -> DROPPED to empty output (FM1 + security review). The seat
+    #    then exits 6 -> parse_seat status=abstain, so it can NEVER become a votable
+    #    allow OR a voted-abstain that erodes the 2-abstain floor. Empty, not "abstain".
+    ("loose-allow", "{'verdict':'allow','confidence':0.9,}", None, ""),
+    # 4b. near-JSON with an UNKNOWN verdict -> also DROPPED (never a voted non-deny)
+    ("loose-unknown", "{'verdict':'approve','confidence':0.9,}", None, ""),
+    # 4c. near-JSON with NO verdict key -> DROPPED (never a voted seat)
+    ("loose-noverdict", "{'note':'looks ok','confidence':0.9,}", None, ""),
     # 5. prose, no JSON -> empty output (the seat then exits 6, honest abstain)
     ("prose", "I think this command looks fine to me.", None, ""),
     # 6. valid JSON whose reasoning contains a brace -> correct object (must-fix #9 regression)
@@ -89,26 +96,28 @@ def main() -> int:
         for f in fails:
             print(f"  - {f}")
         return 1
-    print("Gate 136 OK — bare-JSON byte-identical; near-JSON deny salvaged; "
-          "near-JSON allow -> abstain (FM1); no-JSON empty; brace-in-reason correct.")
+    print("Gate 136 OK — bare-JSON byte-identical; near-JSON deny salvaged; near-JSON "
+          "allow/unknown/no-verdict -> DROPPED (deny-only, never a votable non-deny); "
+          "no-JSON empty; brace-in-reason correct.")
     return 0
 
 
 def must_fail() -> int:
     """Prove the teeth: two mutants of the real extractor must be caught.
-    (a) delete the monotonic downgrade -> loose-allow votes allow.
-    (b) delete attempt-2 entirely       -> loose-deny yields nothing."""
+    (a) relax the deny-only guard to honor ANY salvaged verdict -> loose-allow votes
+        allow (the security regression the deny-only rule prevents).
+    (b) delete attempt-2 entirely -> loose-deny yields nothing (no salvage at all)."""
     py = extract_py(SEAT.read_text(encoding="utf-8"))
-    # mutant (a): strip the FM1 downgrade line
-    mut_a = re.sub(r'\n\s*if obj\.get\("verdict"\) == "allow":\n\s*obj\["verdict"\] = "abstain"',
-                   "", py)
+    # mutant (a): widen `obj.get("verdict") == "deny"` to accept any dict -> a salvaged
+    # allow is emitted as a votable allow.
+    mut_a = py.replace('isinstance(obj, dict) and obj.get("verdict") == "deny"', "isinstance(obj, dict)")
     caught_a = mut_a != py and verdict_of(run(mut_a, "{'verdict':'allow','confidence':0.9,}")) == "allow"
     # mutant (b): cut everything from the attempt-2 marker onward
     idx = py.find("# Attempt 2")
     mut_b = py[:idx] if idx > 0 else py
     caught_b = idx > 0 and run(mut_b, "{'verdict':'deny',}") == ""
     if caught_a and caught_b:
-        print("Gate 136 --must-fail OK: monotonic-strip -> allow (caught); "
+        print("Gate 136 --must-fail OK: deny-only-relaxed -> loose-allow votes allow (caught); "
               "attempt2-strip -> deny lost (caught).")
         return 0
     print(f"Gate 136 --must-fail FAILED: caught_a={caught_a} caught_b={caught_b} "

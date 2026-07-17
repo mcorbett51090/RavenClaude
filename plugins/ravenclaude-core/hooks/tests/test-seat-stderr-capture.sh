@@ -121,6 +121,15 @@ run_mutant() { # $1=mutant $2=mock ($2="" -> stub claude) $3=cmd
     payload "$3" | CLAUDE_PLUGIN_ROOT="$PLUGIN" PATH="$STUB:$PATH" bash "$1" 2>/dev/null || true
   fi
 }
+# Same, but ECHO the orchestrator's EXIT CODE — the load-bearing gating signal
+# (only exit 2 blocks; a deny JSON on any other non-zero exit is IGNORED and the
+# command runs — claude-code-permissions.md:199/207).
+run_mutant_ec() { # $1=mutant $2=mock $3=cmd -> the exit code
+  fresh
+  local ec=0
+  payload "$3" | CLAUDE_PLUGIN_ROOT="$PLUGIN" THING_SEAT_MOCK_VERDICT="$2" bash "$1" >/dev/null 2>&1 || ec=$?
+  echo "$ec"
+}
 
 echo "── Gate 135: seat stderr → Sága seat_error capture (P0, FM2, FM7) ──────────"
 
@@ -171,25 +180,31 @@ n_emit="$(printf '%s' "$out" | grep -c 'permissionDecision' 2>/dev/null || true)
 check "3a: happy path emits exactly one verdict JSON" "${n_emit:-0}" "1"
 
 # 3b: force a non-zero-non-2 abort on the seat hot path (no verdict emitted) — the
-# REAL fail-closed _on_exit trap converts it to deny (NEVER a fail-open exit!=2).
+# REAL fail-closed _on_exit trap must make the orchestrator EXIT 2 (the only blocking
+# code; a deny JSON on any other non-zero exit is IGNORED and the command RUNS). Assert
+# the EXIT CODE, not stdout — the exit code is what actually gates the tool call.
 mk_mutant "$TMP/m_abort.sh" \
   '  _tmp_to_clean="$tmp"' '  _tmp_to_clean="$tmp"
   false  # FM2 forced abort (test injection)'
-out="$(run_mutant "$TMP/m_abort.sh" allow "git fetch origin")"
-check "3b: forced seat-path abort → deny (fail-closed trap fires)" "$(decision "$out")" "deny"
+check "3b: forced seat-path abort → orchestrator exits 2 (blocks, NOT fail-open)" \
+  "$(run_mutant_ec "$TMP/m_abort.sh" allow "git fetch origin")" "2"
 
-# 3c: the trap's guard, unit-tested on the REAL function body (extracted verbatim),
-# across the four exit-code / _emitted combinations.
+# 3c: the trap's guard, unit-tested on the REAL function body (extracted verbatim).
+# The fail-closed conversion is an EXIT-CODE 2 (the blocking signal); a legit early
+# allow (ec=0) or an already-emitted verdict must NOT be turned into a block.
 awk '/^_on_exit\(\) \{/{f=1} f{print} f&&/^\}$/{exit}' "$ORCH" > "$TMP/on_exit.snip"
-trap_emit() { # $1=_emitted $2=exit-code-to-simulate -> prints the trap's stdout
+trap_ec() { # $1=_emitted $2=simulated-exit-code -> the trap's resulting exit code
+  local ec=0
   bash -c 'source "$1"; _emitted="$2"; _tmp_to_clean=""; ( exit "$3" ); _on_exit' \
-    _ "$TMP/on_exit.snip" "$1" "$2" 2>/dev/null || true
+    _ "$TMP/on_exit.snip" "$1" "$2" >/dev/null 2>&1 || ec=$?
+  echo "$ec"
 }
-check "3c: trap on abort (ec=1, unemitted) → deny" \
-  "$(trap_emit 0 1 | jq -r '.hookSpecificOutput.permissionDecision // "none"' 2>/dev/null || echo none)" "deny"
-check "3c: trap on ec=0 (legit allow) → silent" "$(trap_emit 0 0)" ""
-check "3c: trap on ec=2 (already blocking) → silent" "$(trap_emit 0 2)" ""
-check "3c: trap when already emitted → silent" "$(trap_emit 1 1)" ""
+check "3c: trap on abort (ec=1, unemitted) → exits 2 (fail-closed block)" "$(trap_ec 0 1)" "2"
+check "3c: trap on ec=0 (legit allow) → does NOT block" "$(trap_ec 0 0)" "0"
+check "3c: trap when already emitted → does NOT block" "$(trap_ec 1 1)" "0"
+# and the trap emits its reason to STDERR (not stdout — stdout JSON is ignored on exit 2)
+stderr_txt="$(bash -c 'source "$1"; _emitted=0; _tmp_to_clean=""; ( exit 1 ); _on_exit' _ "$TMP/on_exit.snip" 2>&1 >/dev/null || true)"
+if printf '%s' "$stderr_txt" | grep -qi 'failing closed'; then ok "3c: trap reason goes to stderr"; else bad "3c: trap reason not on stderr"; fi
 
 # ── 4. FM7 — no secret leak ──────────────────────────────────────────────────
 # The unknown-mock path echoes the (attacker-controllable) mock value to the seat's
@@ -219,18 +234,21 @@ case "$se_rev" in
   *) bad "(a) unexpected seat_error under reverted capture: [$se_rev]" ;;
 esac
 
-# (b) neuter the fail-closed trap → the same forced abort now fails OPEN.
+# (b) neuter the fail-closed trap → the same forced abort now fails OPEN. The gating
+# signal is the EXIT CODE: the real trap makes the abort exit 2 (blocks); with the
+# guard neutered the abort exits its raw non-zero-non-2 code (1), which Claude Code
+# treats as non-blocking → the command RUNS (fail-open). Assert the exit code flips.
 mk_mutant "$TMP/m_abort_notrap.sh" \
   '  _tmp_to_clean="$tmp"' '  _tmp_to_clean="$tmp"
   false  # FM2 forced abort (test injection)' \
   'if [ "$_emitted" != 1 ] && [ "$_ec" != 0 ] && [ "$_ec" != 2 ]; then' 'if false; then'
-out="$(run_mutant "$TMP/m_abort_notrap.sh" allow "git fetch origin")"
-if printf '%s' "$out" | grep -q 'deny'; then
-  bad "(b) trap-removed mutant STILL denied — no teeth"
-elif [ -z "$out" ]; then
-  ok "(b) trap removed → forced abort fails OPEN (empty output, no deny)"
+ec_notrap="$(run_mutant_ec "$TMP/m_abort_notrap.sh" allow "git fetch origin")"
+if [ "$ec_notrap" = "2" ]; then
+  bad "(b) trap-removed mutant STILL exits 2 — no teeth (the guard isn't the thing blocking)"
+elif [ "$ec_notrap" != "0" ] && [ "$ec_notrap" != "2" ]; then
+  ok "(b) trap removed → forced abort exits $ec_notrap (non-2 = fail-OPEN; the real trap's exit-2 is what closes it)"
 else
-  bad "(b) trap-removed mutant emitted unexpected output: [$out]"
+  bad "(b) trap-removed mutant exited $ec_notrap (unexpected)"
 fi
 
 # (c) store raw stderr instead of the whitelist → the secret LEAKS.
