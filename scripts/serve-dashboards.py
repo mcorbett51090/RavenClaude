@@ -49,8 +49,10 @@ import hmac
 import json
 import os
 import secrets
+import signal
 import subprocess
 import sys
+import time
 import webbrowser
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -2119,6 +2121,104 @@ def _print_qr(url: str) -> bool:
     return True
 
 
+# ── Port reclamation ────────────────────────────────────────────────────────
+# Twin of the bundled plugin server's helpers (keep both copies in sync — the
+# plugin copy is hand-maintained, see Gate 32). The port walk below already
+# avoided EADDRINUSE, but it silently drifted the URL off 8000 even when the
+# holder was one of our OWN stale servers. Reclaiming ours first keeps the URL
+# stable across relaunches; a foreign process is NEVER signalled.
+
+
+def _port_holder_pids(port: int) -> list[int]:
+    """PIDs listening on `port`, excluding this process. Never raises: no lsof
+    (or any failure) yields [], and the caller falls back to a port walk."""
+    try:
+        out = subprocess.run(
+            ["lsof", "-nP", f"-iTCP:{port}", "-sTCP:LISTEN", "-t"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        ).stdout
+    except (OSError, subprocess.SubprocessError):
+        return []
+    pids = []
+    for tok in out.split():
+        try:
+            pid = int(tok)
+        except ValueError:
+            continue
+        if pid != os.getpid():
+            pids.append(pid)
+    return pids
+
+
+def _holder_cwd(pid: int) -> str | None:
+    """`pid`'s working directory, or None. Never raises."""
+    try:
+        out = subprocess.run(
+            ["lsof", "-a", "-p", str(pid), "-d", "cwd", "-Fn"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        ).stdout
+    except (OSError, subprocess.SubprocessError):
+        return None
+    for line in out.splitlines():
+        if line.startswith("n"):
+            return line[1:]
+    return None
+
+
+def _is_our_dashboard(pid: int) -> bool:
+    """True only when `pid` is a serve-dashboards.py serving THIS repo.
+
+    Both halves matter. The name check alone would also match a dashboard
+    another repo has open right now — reclaiming that would kill a live
+    session in an unrelated project to free a port we can just as easily
+    step around. So "ours" means "this repo's own stale server".
+
+    Fail-closed — any doubt (no ps/lsof, a failure, an unreadable cwd, a
+    mismatch) is False, so a process we haven't positively identified is
+    never signalled."""
+    try:
+        out = subprocess.run(
+            ["ps", "-p", str(pid), "-o", "command="],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        ).stdout
+    except (OSError, subprocess.SubprocessError):
+        return False
+    if "serve-dashboards.py" not in out:
+        return False
+    cwd = _holder_cwd(pid)
+    if cwd is None:
+        return False
+    try:
+        return Path(cwd).resolve() == REPO_ROOT.resolve()
+    except OSError:
+        return False
+
+
+def _reclaim_port(port: int) -> bool:
+    """SIGTERM our own stale dashboard server(s) on `port` and wait for the
+    socket to free. False if the holder isn't ours (or won't let go) — the
+    caller then walks to another port rather than escalating."""
+    pids = [p for p in _port_holder_pids(port) if _is_our_dashboard(p)]
+    if not pids:
+        return False
+    for pid in pids:
+        try:
+            os.kill(pid, signal.SIGTERM)
+        except OSError:
+            return False
+    for _ in range(20):  # ~2s: SIGTERM + socket teardown is not instant
+        time.sleep(0.1)
+        if not _port_holder_pids(port):
+            return True
+    return False
+
+
 def main() -> int:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--port", type=int, default=8000)
@@ -2163,11 +2263,16 @@ def main() -> int:
 
     os.chdir(REPO_ROOT)
 
-    # Stable port: try the requested port and up to 5 successive ones to find a
-    # free socket.  This avoids "address already in use" errors when the server
-    # is relaunched quickly or another process holds the default port.
+    # Stable port: try the requested port, reclaim it from one of our OWN stale
+    # servers if that's what holds it (keeps the URL stable across relaunches),
+    # then fall back to up to 5 successive ports. This avoids "address already
+    # in use" errors when the server is relaunched quickly or another process
+    # holds the default port.
     server = None
     actual_port = args.port
+    if _port_holder_pids(args.port):
+        if _reclaim_port(args.port):
+            print(f"  port {args.port} was held by a stale dashboard server — stopped it, rebinding")
     for candidate in range(args.port, args.port + 6):
         try:
             server = ThreadingHTTPServer((bind, candidate), DashboardHandler)

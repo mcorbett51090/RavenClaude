@@ -2312,6 +2312,16 @@ def _render_command_review_block() -> str:
         "</label>"
         "</div>"
         '<p class="crb-master-state" id="crb-master-state"></p>'
+        # The explicit all-12 path. Deliberately a SEPARATE control from the
+        # master switch: the master's narrowed 4-category cascade is an
+        # incident fix (FORGE P4a / Gate 137) and must keep its own semantics,
+        # but "review everything" is a legitimate intent that shouldn't cost 8
+        # individual clicks. One button, one click, no safety property lost.
+        '<div class="crb-bulk-row">'
+        '<button type="button" class="crb-bulk-btn" id="cr-enable-all">Enable all 12</button>'
+        '<button type="button" class="crb-bulk-btn" id="cr-disable-all">Disable all</button>'
+        '<span class="crb-bulk-hint" id="crb-bulk-hint"></span>'
+        "</div>"
         "</div>"
     )
 
@@ -3639,6 +3649,36 @@ h1, h2, h3 { font-family: var(--font-display); font-weight: 600; letter-spacing:
   font-size: 13px;
   color: var(--muted);
   cursor: pointer;
+}
+.crb-bulk-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0 0;
+  flex-wrap: wrap;
+}
+.crb-bulk-btn {
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+}
+.crb-bulk-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.crb-bulk-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.crb-bulk-hint {
+  font-size: 12px;
+  color: var(--muted);
 }
 .crb-master-state {
   margin: 6px 0 0;
@@ -7348,10 +7388,23 @@ _JS = r"""
     const lbl = document.getElementById("crb-master-state");
     const enabled = !!state.command_review.enabled;
     if (cb) cb.checked = enabled;
+    /* Count what is ACTUALLY on. Without this the narrowed master cascade is
+     * silent: you flip it, 4 of 12 light up, and nothing says the other 8 are
+     * opt-in — which reads as "the master toggle is broken". */
+    const boxes = Array.from(document.querySelectorAll('input[type="checkbox"][data-thing-category]'));
+    const onCount = boxes.filter(b => b.checked).length;
+    const total = boxes.length;
     if (lbl) {
       lbl.textContent = enabled
-        ? "On — reviews fire when a category’s toggle is on"
-        : "Paused — per-category toggles are preserved but no reviews will run";
+        ? `On — ${onCount} of ${total} categories enabled` +
+          (onCount < total ? ` · the other ${total - onCount} are per-category opt-in` : "")
+        : `Paused — ${onCount} of ${total} toggles preserved, but no reviews will run`;
+    }
+    const hint = document.getElementById("crb-bulk-hint");
+    if (hint) {
+      hint.textContent = onCount === total
+        ? "every category reviewed"
+        : `${total - onCount} not reviewed`;
     }
     /* Also update the header-level scales icon state */
     const headerIcon = document.querySelector(".command-review-block .crb-title-row .review-scales-icon");
@@ -7907,6 +7960,34 @@ _JS = r"""
         render();
       });
     }
+
+    /* Explicit bulk controls — a SEPARATE surface from the master switch.
+     * Gate 137 pins the master handler to the 4 high-stakes categories (an
+     * incident fix); these buttons are the deliberate "I actually mean all of
+     * them" path, so the one-click intent is served without widening the
+     * master's blast radius. Do NOT fold this back into masterCb's handler. */
+    function crSetAll(on) {
+      document.querySelectorAll('input[type="checkbox"][data-thing-category]').forEach(cb => {
+        if (cb.disabled) return;
+        cb.checked = on;
+        const cat = cb.dataset.thingCategory;
+        if (state.categories[cat]) state.categories[cat].thing = on;
+      });
+      /* Enabling all 12 while the master is off would review nothing, so the
+       * button turns the master on too — otherwise the click silently no-ops. */
+      if (on) {
+        state.command_review.enabled = true;
+        if (masterCb) masterCb.checked = true;
+      }
+      syncMasterEnable();
+      updateReviewIcons();
+      flagUnsaved();
+      render();
+    }
+    const enableAllBtn = document.getElementById("cr-enable-all");
+    if (enableAllBtn) enableAllBtn.addEventListener("click", () => crSetAll(true));
+    const disableAllBtn = document.getElementById("cr-disable-all");
+    if (disableAllBtn) disableAllBtn.addEventListener("click", () => crSetAll(false));
   }
 
   /* Design check-ins toggle (behavioral flag, not a permission) */
