@@ -1291,13 +1291,54 @@ def _read_knowledge_health(repo_root: Path) -> dict:
         return empty
 
 
+def _read_worktree_guard(project_root: Path) -> dict | None:
+    """Worktree-hygiene guard status for THIS checkout — whether it is the repo's
+    anchor, how many live Claude sessions share this working tree, and whether
+    there is contention (a latecomer joined a tree already in use). The SINGLE
+    SOURCE OF TRUTH is worktree-guard.sh `status --json`; this reader never
+    reimplements anchor/staleness detection in Python — it only shells the hook
+    and parses its JSON. Read-only and fail-open: a missing hook, a non-git
+    checkout, a missing git/jq/shasum, a timeout, or non-JSON output all yield
+    None (the Sleipnir widget simply omits the guard block), never raises.
+    Duplicated byte-identically in both server copies — keep them in sync (the
+    parity gate guards endpoint NAMES; this helper is duplicated, so edit both)."""
+    hook = project_root / "plugins" / "ravenclaude-core" / "hooks" / "worktree-guard.sh"
+    if not hook.is_file():
+        # Bundled-plugin install ships the hook alongside this server (../hooks).
+        hook = Path(__file__).resolve().parent.parent / "hooks" / "worktree-guard.sh"
+    if not hook.is_file():
+        return None
+    try:
+        proc = subprocess.run(
+            ["bash", str(hook), "status", "--json"],
+            cwd=str(project_root),
+            stdin=subprocess.DEVNULL,
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=False,
+        )
+    except (subprocess.SubprocessError, OSError):
+        return None
+    out = (proc.stdout or "").strip()
+    if not out:
+        return None
+    try:
+        data = json.loads(out)
+    except json.JSONDecodeError:
+        return None
+    return data if isinstance(data, dict) else None
+
+
 def _read_sleipnir(project_root: Path) -> dict:
-    """Sleipnir's stables — the current git worktrees under .claude/worktrees/.
-    Read-only directory listing (names + count), no git invocation. Reads only
-    under project_root (no root reference) so this is byte-identical in the root
-    and bundled plugin server — keep the two copies in sync (the parity gate
-    guards endpoint NAMES; this helper is duplicated, so edit both). Any failure
-    (missing dir, unreadable) degrades to an empty stable, never raises."""
+    """Sleipnir's stables — the current git worktrees under .claude/worktrees/,
+    plus the worktree-hygiene guard status for THIS checkout (is_anchor /
+    live_sessions / contention, via worktree-guard.sh status --json — the single
+    source of truth). The directory listing reads only under project_root; the
+    guard block is fail-open (absent on any git/hook failure). Byte-identical in
+    the root and bundled plugin server — keep the two copies in sync (the parity
+    gate guards endpoint NAMES; this helper is duplicated, so edit both). Any
+    failure (missing dir, unreadable) degrades to an empty stable, never raises."""
     out: dict = {"worktrees": [], "count": 0}
     wt_dir = project_root / ".claude" / "worktrees"
     if wt_dir.is_dir():
@@ -1307,6 +1348,9 @@ def _read_sleipnir(project_root: Path) -> dict:
             names = []
         out["worktrees"] = names
         out["count"] = len(names)
+    guard = _read_worktree_guard(project_root)
+    if guard is not None:
+        out["guard"] = guard
     return out
 
 

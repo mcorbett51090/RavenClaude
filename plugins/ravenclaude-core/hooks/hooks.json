@@ -77,6 +77,16 @@
         ]
       },
       {
+        "matcher": "Bash|Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/worktree-guard.sh check",
+            "comment": "Worktree-hygiene guard (check). Reads the `worktree_guard: off|warn|block` knob from .ravenclaude/comfort-posture.yaml (default warn when absent). On `block` DENIES (exit 2) ONLY a MUTATING op — git commit/add/checkout/switch/merge/rebase/cherry-pick/revert/stash/rm/mv, or a Write/Edit/MultiEdit under the working tree — and only when this session is contending with another live session in the same tree or is anchor-work; never a read / git status / rcwt. On `warn` (default) it emits a throttled (1/session/clause) stderr nudge and never blocks. Escape hatch: RC_WORKTREE_GUARD_ACK=1. `off` short-circuits before any git shell-out. Fail-open on missing git/jq; emits a hook-event audit line on a verdict."
+          }
+        ]
+      },
+      {
         "matcher": "WebFetch",
         "hooks": [
           {
@@ -161,6 +171,11 @@
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/capability-orientation.sh",
             "timeout": 10,
             "comment": "Injects a session-start capability banner via hookSpecificOutput.additionalContext so the agent opens every session aware of the project's external surface, its detected auth (env-var NAMES/presence only — never values), and its effective .claude/settings.json permissions. Local + cheap; the ONLY subprocess is a bounded, read-only git read (branch + recent commit subjects) used by the work-streams classifier, and only when .ravenclaude/streams/ has streams + none is active. A 10s timeout bounds any pathological config/git read (defense-in-depth). Points to the environment-discovery skill for deep enumeration. Fail-silent; never blocks (SessionStart hooks cannot). Salience boost for the Capability Grounding Protocol, not enforcement."
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/worktree-guard.sh register",
+            "comment": "Worktree-hygiene guard (register). Records this session's own registry file under ${RC_WORKTREE_GUARD_HOME:-$HOME/.ravenclaude/worktree-guard} and GC-sweeps its PATH_KEY bucket (never depends on Stop firing). Reads the `worktree_guard: off|warn|block` knob from .ravenclaude/comfort-posture.yaml (default warn when absent). On `warn`/`block` emits a SessionStart nudge only on real CONTENTION (another live session already operating in this same working tree) or ANCHOR-WORK (this is the primary checkout, worktrees already exist, and HEAD is on the anchor branch); a lone checkout in a fresh container satisfies neither and stays silent. `off` short-circuits before any git shell-out. Fail-open on missing git/jq; SessionStart cannot block (register only records intent). Emits a hook-event audit line on a verdict."
           }
         ]
       }

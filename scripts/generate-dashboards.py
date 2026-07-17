@@ -848,6 +848,8 @@ _PIPELINE_EXCLUDED_HOOKS = {
     "stream-session-close.sh": "work-stream tracking (Stop); observability, not a guardrail",
     "stream-prompt-attribute.sh": "work-stream tracking (UserPromptSubmit); observability, not a guardrail",
     "agent-dispatch-evaluator.sh": "audit-only shadow (SubagentStart), opt-in; never denies",
+    "worktree-guard.sh": "worktree_guard knob is surfaced Settings-only (DOM-budget-exempt panel) "
+    "+ its live status as the Activity-tab Sleipnir badges; deliberately NOT a Pipeline stage card",
 }
 
 _PIPELINE_CONTROLS = {
@@ -1083,9 +1085,11 @@ def _render_pipeline_tab() -> str:
                 if controls
                 else ""
             )
-            # P5a: mark the BEHAVIORAL-flag stages (decision_review, orchestrator) so
-            # the Pipeline surface makes the same permission-vs-behavior distinction the
-            # Settings tab does — these do NOT gate a tool-call permission.
+            # P5a: mark the BEHAVIORAL-flag stages (decision_review, orchestrator)
+            # so the Pipeline surface makes the same permission-vs-behavior
+            # distinction the Settings tab does — these do NOT gate a tool-call
+            # permission. (worktree_guard is a behavioral flag too, but it is
+            # surfaced Settings-only, so it carries the badge there, not here.)
             behavioral_html = (
                 _render_behavioral_flag_badge()
                 if controls in ("decision", "orchestrator")
@@ -5827,6 +5831,15 @@ footer.page-footer a:hover { text-decoration: underline; }
 .sleipnir-glyph { font-size: 15px; }
 .sleipnir-label { font-weight: 700; color: var(--text); }
 .sleipnir-body { color: var(--muted); font-family: var(--font-mono); font-size: 12px; word-break: break-word; }
+/* Worktree-guard status badges (is_anchor / live_sessions / contention) from
+   worktree-guard.sh status --json. Absent guard block renders none of these. */
+.sleipnir-guard { display: inline-flex; flex-wrap: wrap; gap: 5px; margin-left: auto; }
+.sleipnir-badge { font-size: 10.5px; font-weight: 600; padding: .08rem .38rem; border-radius: 9px;
+  white-space: nowrap; background: var(--rc-neutral-bg); color: var(--rc-neutral-fg);
+  border: 1px solid var(--border); }
+.sleipnir-badge-anchor { background: var(--rc-neutral-bg); color: var(--rc-neutral-fg); }
+.sleipnir-badge-live { background: var(--rc-ok-bg); color: var(--rc-ok-fg); }
+.sleipnir-badge-contention { background: var(--rc-danger-bg); color: var(--rc-danger-fg); }
 #activity-content { padding: 0 20px 20px; display: flex; flex-direction: column; gap: 12px; }
 .activity-card {
   background: var(--surface); border: 1px solid var(--border);
@@ -6738,6 +6751,7 @@ _ACTIVITY_TAB_TEMPLATE = """
     <span class="sleipnir-glyph" aria-hidden="true">&#128014;</span>
     <span class="sleipnir-label">Sleipnir&rsquo;s stables</span>
     <span class="sleipnir-body" id="sleipnir-body">&hellip;</span>
+    <span class="sleipnir-guard" id="sleipnir-guard"></span>
   </div>
   <div id="activity-content">
     <div class="saga-empty" id="activity-loading"><p>Loading activity&hellip;</p></div>
@@ -7162,6 +7176,11 @@ _JS = r"""
   const DOD_DEFAULT = Object.freeze({ cmd: "", max_blocks: 8 });
   const DECISION_REVIEW_VALUES = ["off", "advisory", "binding"];
   const DECISION_REVIEW_DEFAULT = "off";
+  /* Worktree-hygiene guard (read by hooks/worktree-guard.sh). Behavioral flag —
+   * default `warn` (all repos, not opt-in), so emitYaml writes it only when the
+   * user picks off or block, preserving "absent ⇒ warn". */
+  const WORKTREE_GUARD_VALUES = ["off", "warn", "block"];
+  const WORKTREE_GUARD_DEFAULT = "warn";
   const ORCHESTRATOR_VALUES = ["off", "decide", "full"];
   const ORCHESTRATOR_DEFAULT = "full";
   const ORCHESTRATOR_SCOPE_VALUES = ["team", "all"];
@@ -7246,6 +7265,7 @@ _JS = r"""
     runaway: Object.assign({}, RUNAWAY_DEFAULT),
     parallelism: Object.assign({}, PARALLELISM_DEFAULT),
     decision_review: DECISION_REVIEW_DEFAULT,
+    worktree_guard: WORKTREE_GUARD_DEFAULT,
     orchestrator: ORCHESTRATOR_DEFAULT,
     orchestrator_scope: ORCHESTRATOR_SCOPE_DEFAULT,
     orchestrator_zdr_confirmed: false,
@@ -7642,6 +7662,9 @@ _JS = r"""
     if (DECISION_REVIEW_VALUES.includes(src.decision_review)) {
       state.decision_review = src.decision_review; touched = true;
     }
+    if (WORKTREE_GUARD_VALUES.includes(src.worktree_guard)) {
+      state.worktree_guard = src.worktree_guard; touched = true;
+    }
     if (ORCHESTRATOR_VALUES.includes(src.orchestrator)) {
       state.orchestrator = src.orchestrator; touched = true;
     }
@@ -7790,6 +7813,13 @@ _JS = r"""
       lines.push("");
     }
 
+    if (WORKTREE_GUARD_VALUES.includes(state.worktree_guard)
+        && state.worktree_guard !== WORKTREE_GUARD_DEFAULT) {
+      lines.push("# Worktree-hygiene guard — nudge/deny when a working tree is shared or you're on the anchor (off | warn | block; default warn).");
+      lines.push(`worktree_guard: ${state.worktree_guard}`);
+      lines.push("");
+    }
+
     if (ORCHESTRATOR_VALUES.includes(state.orchestrator)
         && state.orchestrator !== ORCHESTRATOR_DEFAULT) {
       lines.push("# Claude orchestrator for non-Claude CLIs (off | decide | full). No-op under Claude Code.");
@@ -7899,6 +7929,7 @@ _JS = r"""
         runaway: state.runaway,
         parallelism: state.parallelism,
         decision_review: state.decision_review,
+        worktree_guard: state.worktree_guard,
         orchestrator: state.orchestrator,
         orchestrator_scope: state.orchestrator_scope,
         orchestrator_zdr_confirmed: state.orchestrator_zdr_confirmed,
@@ -10225,10 +10256,29 @@ _JS = r"""
     const n = (data && typeof data.count === "number") ? data.count : 0;
     if (n === 0) {
       body.textContent = "no active worktrees";
-      return;
+    } else {
+      const names = (data.worktrees || []).slice(0, 8).join(", ");
+      body.textContent = n + (n === 1 ? " worktree: " : " worktrees: ") + names;
     }
-    const names = (data.worktrees || []).slice(0, 8).join(", ");
-    body.textContent = n + (n === 1 ? " worktree: " : " worktrees: ") + names;
+    /* Worktree-guard status badges (is_anchor / live_sessions / contention),
+     * from worktree-guard.sh status --json via /__sleipnir. Fail-open: an absent
+     * guard block (non-git checkout / hook missing) or a missing badge host
+     * renders nothing new, so the widget looks exactly as it did before. */
+    const badges = document.getElementById("sleipnir-guard");
+    if (!badges) return;
+    badges.replaceChildren();
+    const g = data && data.guard;
+    if (!g || typeof g !== "object") return;
+    const add = (text, cls) => {
+      const s = document.createElement("span");
+      s.className = "sleipnir-badge " + cls;
+      s.textContent = text;
+      badges.appendChild(s);
+    };
+    if (g.is_anchor === true) add("anchor", "sleipnir-badge-anchor");
+    const live = (typeof g.live_sessions === "number") ? g.live_sessions : 0;
+    if (live >= 1) add(live + (live === 1 ? " live session" : " live sessions"), "sleipnir-badge-live");
+    if (g.contention === true) add("contention", "sleipnir-badge-contention");
   }
 
   /* fetch() has no built-in timeout — a server that accepts the connection but

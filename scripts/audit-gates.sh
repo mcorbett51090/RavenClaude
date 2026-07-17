@@ -314,9 +314,14 @@ PY
       python3 scripts/check-orchestrator-doc-consistency.py --self-test || rc=$?
       exit $rc
       ;;
+    140)
+      echo "── Gate 140: worktree-guard block-mode teeth (per-gate run) ──────────────"
+      bash plugins/ravenclaude-core/hooks/tests/test-gate140-worktree-guard.sh
+      exit $?
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -4444,6 +4449,19 @@ gate "orchestrator-doc: CLAUDE.md + spawn-team + generator agree absent⇒full" 
 # default) reintroduces the disagreement — the check must catch it.
 rc=0; python3 scripts/check-orchestrator-doc-consistency.py --self-test >/dev/null 2>&1 || rc=$?
 gate "orchestrator-doc teeth: a reintroduced disagreement is caught" must_pass "$rc"
+
+echo
+echo "── Gate 140: worktree-guard block-mode teeth ─────────────────────────────"
+# The worktree-hygiene guard (hooks/worktree-guard.sh) fires on exactly two locally
+# detectable conditions (contention with another live session, or anchor-work), and
+# in `block` mode DENIES (exit 2) only a MUTATING op — never a read, and never with
+# RC_WORKTREE_GUARD_ACK=1. The fixture drives the REAL script bidirectionally against
+# throwaway `git init` fixtures + a scratch RC_WORKTREE_GUARD_HOME: MUST-FAIL (block +
+# contention/anchor + a mutating op -> exit 2 deny) AND MUST-PASS (a solo checkout, a
+# read op, or ACK=1 -> exit 0), plus a teeth half that neuters the mutating classifier
+# and proves the deny then disappears.
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate140-worktree-guard.sh >/dev/null 2>&1 || rc=$?
+gate "worktree-guard block-mode teeth (deny mutating on contention/anchor; allow solo/read/ACK)" must_pass "$rc"
 
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"
