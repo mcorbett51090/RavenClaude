@@ -96,8 +96,19 @@ _wg_sha256() {
   fi
 }
 
-# mtime (epoch seconds) of a file, portably (BSD stat -f / GNU stat -c).
-_wg_mtime() { stat -f %m "$1" 2>/dev/null || stat -c %Y "$1" 2>/dev/null; }
+# mtime (epoch seconds) of a file, portably. GNU `stat -c` is tried FIRST: on Linux it
+# succeeds cleanly and short-circuits, whereas the BSD form `stat -f %m` on GNU means
+# `--file-system` and prints a multi-line filesystem block to stdout (while still failing
+# on the `%m` operand) — that garbage would fail the numeric guard in _wg_is_live and make
+# every liveness check read not-live. On macOS `stat -c` fails with no stdout, so the BSD
+# form runs. Leading-digits strip is a belt-and-suspenders against any stray trailing byte.
+_wg_mtime() {
+  local m
+  m="$(stat -c %Y "$1" 2>/dev/null)"                    # GNU / Linux
+  [ -n "$m" ] || m="$(stat -f %m "$1" 2>/dev/null)"     # BSD / macOS
+  m="${m%%[!0-9]*}"
+  printf '%s' "$m"
+}
 
 # extract a scalar field from a small record JSON (jq, else a grep/sed fallback).
 _wg_json_field() {
