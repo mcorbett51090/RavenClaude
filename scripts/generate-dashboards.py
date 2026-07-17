@@ -1009,6 +1009,13 @@ _PIPELINE_CSS = """<style>
 .pipe-badge-off { background: var(--rc-danger-bg); color: var(--rc-danger-fg); }
 .pipe-badge-advisory { background: var(--rc-neutral-bg); color: var(--rc-neutral-fg); }
 .pipe-badge-dynamic { background: var(--rc-neutral-bg); color: var(--rc-neutral-fg); }
+/* P5a — marks a control as a behavioral flag (not a permission). Shared by the
+   Settings design_checkins header and the Pipeline decision/orchestrator stages. */
+.behavioral-flag-badge { font-size: .66rem; font-weight: 600; padding: .1rem .4rem;
+  border-radius: 10px; white-space: nowrap; margin-left: .4rem; vertical-align: middle;
+  background: var(--rc-neutral-bg); color: var(--rc-neutral-fg);
+  border: 1px solid var(--border); }
+.behavioral-flag-explainer { font-size: .8rem; color: var(--muted); margin: .3rem 0 .5rem; }
 .pipe-controls { margin-top: .55rem; display: flex; flex-direction: column; gap: .4rem; }
 .pipe-ctl { display: flex; align-items: center; gap: .4rem; flex-wrap: wrap; font-size: .84rem; }
 .pipe-ctl input[type=number] { width: 6rem; }
@@ -1076,6 +1083,14 @@ def _render_pipeline_tab() -> str:
                 if controls
                 else ""
             )
+            # P5a: mark the BEHAVIORAL-flag stages (decision_review, orchestrator) so
+            # the Pipeline surface makes the same permission-vs-behavior distinction the
+            # Settings tab does — these do NOT gate a tool-call permission.
+            behavioral_html = (
+                _render_behavioral_flag_badge()
+                if controls in ("decision", "orchestrator")
+                else ""
+            )
             detail = st.get("detail")
             detail_html = ""
             if detail:
@@ -1093,7 +1108,7 @@ def _render_pipeline_tab() -> str:
                 f'<div class="pipe-stage" data-stage="{html.escape(st["id"])}">'
                 f'<div class="pipe-stage-head">'
                 f'<span class="pipe-stage-title">{html.escape(st["title"])}</span>'
-                f"{badge_html}</div>"
+                f"{behavioral_html}{badge_html}</div>"
                 f'<p class="pipe-tip">{html.escape(st["tip"])}</p>'
                 f"{detail_html}"
                 f"{controls_html}</div>"
@@ -2283,11 +2298,14 @@ def _render_command_review_block() -> str:
         "</div>"
         '<div class="crb-master-row">'
         '<label class="crb-master-label" for="cr-master-enable">'
-        "Master enable &mdash; when off, all per-category toggles are paused (not cleared)"
+        "Master enable &mdash; turning ON reviews only the 4 high-stakes categories "
+        "(code-exec, remote &amp; local mutate, package install); enable the rest "
+        "per-category. When off, all toggles are paused (not cleared)."
         "</label>"
-        '<label class="dc-switch" title="Master enable for command review. '
-        "When off, review is paused globally; per-category settings are preserved."
-        '">'
+        '<label class="dc-switch" title="Master enable for command review. Turning ON '
+        "enables review for the 4 high-stakes categories only (opt into the others "
+        "per-category); when off, review is paused globally and per-category settings "
+        'are preserved.">'
         '<input type="checkbox" id="cr-master-enable" checked '
         'aria-label="Command review master enable" aria-describedby="crb-master-state">'
         '<span class="dc-track"><span class="dc-thumb"></span></span>'
@@ -2389,14 +2407,15 @@ def _render_command_review_block() -> str:
 # Per-seat model choices offered by the dashboard's command-review panel section.
 _THING_MODEL_CHOICES = [
     ("claude-opus-4-8", "Opus 4.8 — most capable"),
-    ("claude-sonnet-4-6", "Sonnet 4.6 — balanced"),
-    ("claude-haiku-4-5", "Haiku 4.5 — fast / cheap"),
+    ("claude-sonnet-5", "Sonnet 5 — balanced"),
+    ("claude-haiku-4-5-20251001", "Haiku 4.5 — fast / cheap"),
+    ("claude-fable-5", "Fable 5 — fast reasoning"),
 ]
 # (seat key, display label, default model) — mirrors thing-decision.py defaults.
 _THING_SEAT_META = [
     ("forseti", "Forseti — Security", "claude-opus-4-8"),
-    ("mimir", "Mímir — Correctness", "claude-haiku-4-5"),
-    ("heimdall", "Heimdall — Injection watch", "claude-haiku-4-5"),
+    ("mimir", "Mímir — Correctness", "claude-haiku-4-5-20251001"),
+    ("heimdall", "Heimdall — Injection watch", "claude-haiku-4-5-20251001"),
     ("thor", "Thor — Tie-breaker", "claude-opus-4-8"),
 ]
 
@@ -2601,6 +2620,24 @@ def _render_tier_panel() -> str:
     )
 
 
+def _render_behavioral_flag_badge() -> str:
+    """A small badge marking a control as a BEHAVIORAL flag (it pauses Claude for
+    design / decision judgment) — NOT a permission (which gates a tool-call approval).
+    FORGE dashboard-process-hardening P5a: the two surfaces are orthogonal and easy to
+    conflate (intake doc 2026-07-16-comfort-posture-behavioral-flags-vs-permissions),
+    so this badge sits next to design_checkins (Settings) AND orchestrator /
+    decision_review (Pipeline) so an operator stops cranking every permission to Allow
+    expecting these to go quiet. Setting every permission to Allow changes NO
+    behavioral flag — they are decoupled by design.
+    """
+    return (
+        '<span class="behavioral-flag-badge" '
+        'title="Behavioral flag — does not gate a tool-call permission. '
+        'Setting every permission to Allow changes no behavioral flag.">'
+        "⚙ Behavior, not permission</span>"
+    )
+
+
 def _render_design_checkins(prop: dict) -> str:
     """Render the design-check-in toggle (a behavioral flag, NOT a permission).
 
@@ -2618,7 +2655,11 @@ def _render_design_checkins(prop: dict) -> str:
     return (
         '<div class="design-checkins-bar">'
         '<div class="dc-row">'
-        f'<div class="dc-text"><h3>{title}</h3><p>{desc}</p></div>'
+        f'<div class="dc-text"><h3>{title} {_render_behavioral_flag_badge()}</h3>'
+        '<p class="behavioral-flag-explainer">Two independent systems: permission '
+        "levels gate tool-call approval; behavioral flags (marked ⚙) control whether "
+        "Claude pauses for design / decision judgment. Setting every permission to "
+        f"Allow changes no behavioral flag.</p><p>{desc}</p></div>"
         '<label class="dc-switch" title="Toggle design check-ins">'
         '<input type="checkbox" id="design-checkins-toggle" checked>'
         '<span class="dc-track"><span class="dc-thumb"></span></span>'
@@ -7056,8 +7097,8 @@ _JS = r"""
      * Absent in storage / YAML ⇒ true (enabled). We only persist/emit when false. */
     enabled: true,
     forseti: "claude-opus-4-8",
-    mimir: "claude-haiku-4-5",
-    heimdall: "claude-haiku-4-5",
+    mimir: "claude-haiku-4-5-20251001",
+    heimdall: "claude-haiku-4-5-20251001",
     thor: "claude-opus-4-8",
     confidence_threshold: 0.5,
     gate_floor: "high",
@@ -7067,7 +7108,7 @@ _JS = r"""
     dev_repo_exempt: false,
   });
   const CR_SEATS = ["forseti", "mimir", "heimdall", "thor"];
-  const CR_MODELS = ["claude-opus-4-8", "claude-sonnet-4-6", "claude-haiku-4-5"];
+  const CR_MODELS = ["claude-opus-4-8", "claude-sonnet-5", "claude-haiku-4-5-20251001", "claude-fable-5"];
 
   /* gate_floor headline control — enum medium | high | extreme, default high. */
   const GATE_FLOORS = ["medium", "high", "extreme"];
@@ -7825,22 +7866,40 @@ _JS = r"""
   }
 
   /* ── Form change wiring ─────────────────────────────────────────── */
-  /* Command-review master enable — cascades to every live per-category toggle.
-   * When the master is flipped, every non-disabled data-thing-category checkbox
-   * is set to match and its state entry is updated.  Per-category toggles remain
-   * independently operable after the cascade. */
+  /* Command-review master enable — NARROWED cascade (FORGE P4a / KB
+   * kb-tribunal-seats-abstaining §2/§8.2). Turning the master ON no longer reviews
+   * ALL 12 categories in one click (the incident that put every shell/file/web/MCP
+   * call through a degraded panel); it enables ONLY the 4 high-stakes categories,
+   * and the other 8 are explicit per-category opt-in. Turning OFF still clears all
+   * (no blast-radius asymmetry). The ON-flip only ever ADDS the high-stakes set — a
+   * category the user already individually checked is never un-checked. */
   {
     const masterCb = document.getElementById("cr-master-enable");
+    const CR_HIGH_STAKES = [
+      "shell_code_exec",
+      "shell_remote_mutate",
+      "shell_package_install",
+      "shell_local_mutate",
+    ];
     if (masterCb) {
       masterCb.addEventListener("change", () => {
         /* enabled: true is the default; only store/emit when false */
         state.command_review.enabled = masterCb.checked ? true : false;
-        /* Cascade master state down to every live per-category toggle */
         document.querySelectorAll('input[type="checkbox"][data-thing-category]').forEach(cb => {
           if (cb.disabled) return;
-          cb.checked = masterCb.checked;
           const cat = cb.dataset.thingCategory;
-          if (state.categories[cat]) state.categories[cat].thing = masterCb.checked;
+          if (masterCb.checked) {
+            /* ON-flip: enable ONLY the high-stakes set; leave the other 8 exactly as
+             * they were (an already-checked category stays checked — never removed). */
+            if (CR_HIGH_STAKES.includes(cat)) {
+              cb.checked = true;
+              if (state.categories[cat]) state.categories[cat].thing = true;
+            }
+          } else {
+            /* OFF-flip: clear everything. */
+            cb.checked = false;
+            if (state.categories[cat]) state.categories[cat].thing = false;
+          }
         });
         syncMasterEnable();
         updateReviewIcons();

@@ -60,11 +60,20 @@ orchestrator_pseudonymize: false
 # SCOPE: RavenClaude's own `claude -p` calls only — it CANNOT rescue the harness
 # safety classifier or the main-loop model (the layer RavenClaude runs inside);
 # see plugins/ravenclaude-core/knowledge/model-fallback.md for the harness-outage runbook.
-# model_fallback:
-#   enabled: false
-#   ladder: [claude-haiku-4-5, claude-sonnet-4-6, claude-opus-4-8]
-#   max_retries: 2          # fallback attempts after the primary (hard cap 3)
-#   on_exhausted: fail-safe  # caller's existing abstain path; never silently wrong
+# Seeded ON for new repos (FORGE dashboard-process-hardening P4b) so a seat whose
+# model is briefly overloaded RETRIES instead of abstaining (the KB abstain-lockout
+# class). TEMPLATE-SEED ONLY: an existing consumer posture is never clobbered by
+# setup, so `/plugin marketplace update` is byte-identical for them; the CODE default
+# stays absent⇒OFF (Gate 121). Honest scope (FM5): the ladder carries all 4 distinct
+# backbones so an overloaded seat always has a NON-peer rung — but because the default
+# 3-seat panel already spans opus+haiku+sonnet and peer-exclude spreads them, this is
+# belt-and-suspenders for a partial/2-seat panel or a single overloaded seat, and a
+# near-no-op for the full panel by design. Not over-claimed.
+model_fallback:
+  enabled: true
+  ladder: [claude-haiku-4-5-20251001, claude-sonnet-5, claude-opus-4-8, claude-fable-5]
+  max_retries: 2 # fallback attempts after the primary (hard cap 3)
+  on_exhausted: fail-safe # caller's existing abstain path; never silently wrong
 
 # Definition-of-done gate (the ONE confident claim that IS machine-checkable).
 # The dod-gate.sh Stop hook runs this command and blocks "done" until it passes —

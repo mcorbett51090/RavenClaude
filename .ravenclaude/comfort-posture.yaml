@@ -17,13 +17,13 @@ command_review:
   enabled: false
   panel:
     forseti:
-      model: claude-opus-4-7
+      model: claude-opus-4-8
     mimir:
-      model: claude-haiku-4-5
+      model: claude-haiku-4-5-20251001
     heimdall:
-      model: claude-haiku-4-5
+      model: claude-haiku-4-5-20251001
     thor:
-      model: claude-opus-4-7
+      model: claude-opus-4-8
   confidence_threshold: 0.6
   gate_floor: high
   dev_repo_exempt: true

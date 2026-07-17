@@ -56,12 +56,40 @@ if [ ! -t 0 ]; then payload="$(cat)"; fi
 [ -z "$payload" ] && exit 0
 
 # ── Emit a Claude Code PreToolUse verdict and exit. ───────────────────────────
+# _emitted tracks whether a verdict reached stdout. The fail-closed EXIT trap below
+# (FM2) reads it: an UNEXPECTED `set -e` abort that emitted no verdict exits non-zero,
+# which Claude Code treats as a NON-blocking error (fail-OPEN) — so the trap converts
+# any such abort into an explicit deny. Legitimate early allows use `exit 0` (mapped
+# out below), so they are left untouched.
+_emitted=0
+_tmp_to_clean=""
+_on_exit() {
+  local _ec=$?
+  [ -n "$_tmp_to_clean" ] && rm -rf "$_tmp_to_clean" 2>/dev/null || true
+  # Fail CLOSED only on a fail-OPEN exit code (non-zero AND not the deliberate
+  # exit-2 block) that carried no verdict. exit 0 = a legitimate allow (or emit
+  # already fired); exit 2 = an already-blocking deny — neither is touched.
+  #
+  # CRITICAL (claude-code-permissions.md:199/207): ONLY `exit 2` blocks a PreToolUse
+  # call. A `hookSpecificOutput` deny JSON is honored ONLY on exit 0; on ANY other
+  # non-zero exit the JSON is IGNORED and the command RUNS (non-blocking error). So an
+  # abort that merely printed a deny JSON but exited 1 would FAIL OPEN — the exact hole
+  # this trap exists to close. We therefore emit the reason to STDERR and `exit 2`
+  # (the exit-code protocol, which blocks regardless of stdout).
+  if [ "$_emitted" != 1 ] && [ "$_ec" != 0 ] && [ "$_ec" != 2 ]; then
+    printf '[Command review] aborted unexpectedly (exit %s); failing closed (deny).\n' "$_ec" >&2
+    exit 2
+  fi
+}
+trap '_on_exit' EXIT
 emit() {  # emit <allow|deny|ask> <reason>
+  _emitted=1
   jq -cn --arg d "$1" --arg r "$2" \
     '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:$d,permissionDecisionReason:$r}}'
   exit 0
 }
 emit_edit() {  # emit_edit <revised-command> <reason>
+  _emitted=1
   jq -cn --arg c "$1" --arg r "$2" \
     '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"allow",permissionDecisionReason:$r,updatedInput:{command:$c}}}'
   exit 0
@@ -322,6 +350,12 @@ _ri() {
 }
 SV=("" "" "" ""); SCONF=("" "" "" ""); SINJ=("" "" "" ""); SCITED=("" "" "" "")
 SEDIT=("" "" "" ""); SREASON=("" "" "" ""); SSTATUS=("" "" "" "")
+# P0 (kb-tribunal-seats-abstaining §4/§7): a seat that ERRORS was indistinguishable
+# from one that timed out — both logged a bare `abstain` because the seat's stderr was
+# `2>/dev/null`'d and only a non-zero rc reached parse_seat. SERR carries the seat's
+# failure CLASS (derived from the seat exit code — a bounded, secret-free integer) so
+# the Sága log tells you WHY (exit 5 invocation error vs exit 6 unparseable verdict).
+SERR=("" "" "" "")
 seats_run=()
 
 # Stock-toolchain portability (macOS: bash 3.2, BSD userland, NO coreutils `timeout`).
@@ -347,7 +381,7 @@ run_seat() {  # run_seat <role> <model> <tmp> [peer_verdicts_json] [fallback_exc
            MODEL_FALLBACK_EXCLUDE="$fb_exclude" THING_SEAT_RESOLVED_FILE="$tmp/$role.resolved" \
            THING_SEAT_RESOLVED_OVERRIDE="${THING_SEAT_RESOLVED_OVERRIDE:-}" \
            THING_SEAT_MOCK_VERDICT="${THING_SEAT_MOCK_VERDICT:-}" \
-           _rc_timeout "${seat_timeout}" bash "$SEAT" 2>/dev/null)" || rc=$?
+           _rc_timeout "${seat_timeout}" bash "$SEAT" 2>"$tmp/$role.err")" || rc=$?
   else
     out="$(THING_SEAT_ACTIVE=1 THING_PAYLOAD="$reviewed" THING_PAYLOAD_SHAPE="$payload_shape" \
            THING_CATEGORY="$category" \
@@ -355,7 +389,7 @@ run_seat() {  # run_seat <role> <model> <tmp> [peer_verdicts_json] [fallback_exc
            MODEL_FALLBACK_EXCLUDE="$fb_exclude" THING_SEAT_RESOLVED_FILE="$tmp/$role.resolved" \
            THING_SEAT_RESOLVED_OVERRIDE="${THING_SEAT_RESOLVED_OVERRIDE:-}" \
            THING_SEAT_MOCK_VERDICT="${THING_SEAT_MOCK_VERDICT:-}" \
-           _rc_timeout "${seat_timeout}" bash "$SEAT" 2>/dev/null)" || rc=$?
+           _rc_timeout "${seat_timeout}" bash "$SEAT" 2>"$tmp/$role.err")" || rc=$?
   fi
   printf '%s' "$out" > "$tmp/$role.json"
   printf '%s' "$rc" > "$tmp/$role.rc"
@@ -367,6 +401,31 @@ parse_seat() {  # parse_seat <role> <tmp>
   out="$(cat "$tmp/$role.json" 2>/dev/null || true)"
   rc="$(cat "$tmp/$role.rc" 2>/dev/null || echo 1)"
   if [ "$rc" != "0" ] || [ -z "$out" ] || ! printf '%s' "$out" | jq -e . >/dev/null 2>&1; then
+    # P0 (FM7-safe, FM2-guarded): classify the seat's failure for the Sága log. The
+    # rc IS the class (thing-seat.sh exit codes) — a bounded, secret-free integer.
+    local _lbl _raw
+    case "$rc" in
+      3)       _lbl="bad payload / mock" ;;
+      4)       _lbl="claude CLI not found" ;;
+      5)       _lbl="claude invocation error (exit 5)" ;;
+      6)       _lbl="unparseable verdict (exit 6)" ;;
+      124|142) _lbl="timeout" ;;
+      7)       _lbl="recursion guard" ;;
+      8)       _lbl="secret in payload (egress backstop)" ;;
+      0)       _lbl="invalid verdict JSON" ;;
+      *)       _lbl="seat error (rc=${rc})" ;;
+    esac
+    # Enrich ONLY from a WHITELIST of the seat's own fixed {"error":...} labels via
+    # case-glob against the BOUNDED, || true-guarded stderr read — raw stderr (which
+    # could carry a secret echoed by claude) is NEVER stored (FM7); the read never
+    # aborts the set -e hot path (FM2).
+    _raw="$(head -c 512 "$tmp/$role.err" 2>/dev/null || true)"
+    case "$_raw" in
+      *'seat call returned is_error'*) _lbl="${_lbl} — is_error" ;;
+      *'claude invocation failed'*)    _lbl="${_lbl} — invocation failed" ;;
+      *'no payload'*)                  _lbl="${_lbl} — no payload" ;;
+    esac
+    SERR[$(_ri "$role")]="$_lbl"
     SSTATUS[$(_ri "$role")]="abstain"; SV[$(_ri "$role")]="abstain"; SCONF[$(_ri "$role")]="0"
     SINJ[$(_ri "$role")]="false"; SCITED[$(_ri "$role")]="[]"; SEDIT[$(_ri "$role")]="null"; SREASON[$(_ri "$role")]=""
     return
@@ -458,12 +517,15 @@ elif [ "$cache_hit" = "true" ]; then
   phase="T5-cache-hit"
 else
   tmp="$(mktemp -d)"
-  trap 'rm -rf "$tmp"' EXIT
+  # Hand $tmp to the single top-level fail-closed EXIT trap (_on_exit) rather than
+  # RE-setting the EXIT trap here (a second `trap ... EXIT` would OVERWRITE the
+  # fail-closed guard, reopening the FM2 fail-open hole on the panel path).
+  _tmp_to_clean="$tmp"
 
   # ── Fan the convened seats out in PARALLEL, bounded by the panel deadline. ──
   pids=()
   for role in $convened; do
-    model="$(printf '%s' "$decision" | jq -r --arg r "$role" '.panel[$r].model // "claude-haiku-4-5"')"
+    model="$(printf '%s' "$decision" | jq -r --arg r "$role" '.panel[$r].model // "claude-haiku-4-5-20251001"')"
     # Peer-exclude: the OTHER convened seats' models. Passed to the seat's
     # model-fallback so a fallback never lands on a peer's model — preserving the
     # >=2-distinct-backbone diversity invariant BY CONSTRUCTION (no post-hoc
@@ -699,7 +761,8 @@ for role in "${seats_run[@]:-}"; do
     --argjson cf "${SCONF[$(_ri "$role")]:-0}" --arg inj "${SINJ[$(_ri "$role")]:-false}" \
     --argjson ci "${SCITED[$(_ri "$role")]:-[]}" \
     --arg rsn "${SREASON[$(_ri "$role")]:-}" --arg ec "${SEDIT[$(_ri "$role")]:-}" \
-    '$a + [{name:$name,verdict:$v,status:$st,confidence:$cf,injection_detected:($inj=="true"),concerns_cited:$ci,reasoning:$rsn,edited_command:(if $ec=="" then null else $ec end)}]')"
+    --arg se "${SERR[$(_ri "$role")]:-}" \
+    '$a + [{name:$name,verdict:$v,status:$st,confidence:$cf,injection_detected:($inj=="true"),concerns_cited:$ci,reasoning:$rsn,edited_command:(if $ec=="" then null else $ec end),seat_error:(if $se=="" then null else $se end)}]')"
 done
 # Write the Sága entry, capturing whether it actually persisted (assessment #10).
 audit_written="false"

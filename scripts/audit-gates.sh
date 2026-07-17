@@ -279,9 +279,44 @@ PY
       python3 scripts/check-pipeline-lanes.py --must-fail || rc=$?
       exit $rc
       ;;
+    134)
+      echo "── Gate 134: model-ID drift vs model-catalog.json (per-gate run) ─────────"
+      rc=0; python3 scripts/check-model-ids.py || rc=$?
+      python3 scripts/check-model-ids.py --self-test || rc=$?
+      exit $rc
+      ;;
+    135)
+      echo "── Gate 135: seat stderr → Sága seat_error capture (per-gate run) ────────"
+      bash plugins/ravenclaude-core/hooks/tests/test-seat-stderr-capture.sh
+      exit $?
+      ;;
+    136)
+      echo "── Gate 136: thing-seat.sh JSON extractor, monotonic (per-gate run) ─────"
+      rc=0; python3 scripts/check-thing-seat-extractor.py || rc=$?
+      python3 scripts/check-thing-seat-extractor.py --must-fail || rc=$?
+      exit $rc
+      ;;
+    137)
+      echo "── Gate 137: cr-master cascade narrowed to 4 high-stakes (per-gate run) ──"
+      rc=0; node scripts/check-cr-master-cascade.mjs || rc=$?
+      node scripts/check-cr-master-cascade.mjs --must-fail || rc=$?
+      exit $rc
+      ;;
+    138)
+      echo "── Gate 138: behavioral-flag badge legibility (per-gate run) ────────────"
+      rc=0; node scripts/check-posture-legibility.mjs || rc=$?
+      node scripts/check-posture-legibility.mjs --must-fail || rc=$?
+      exit $rc
+      ;;
+    139)
+      echo "── Gate 139: orchestrator absent⇒full doc consistency (per-gate run) ────"
+      rc=0; python3 scripts/check-orchestrator-doc-consistency.py || rc=$?
+      python3 scripts/check-orchestrator-doc-consistency.py --self-test || rc=$?
+      exit $rc
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -4300,6 +4335,91 @@ gate "pipeline-lanes: map matches hooks.json + rendered artifact" must_pass "$rc
 # live-drift bug) — the validator MUST catch it. --must-fail exits 0 when it does.
 rc=0; python3 scripts/check-pipeline-lanes.py --must-fail >/dev/null 2>&1 || rc=$?
 gate "pipeline-lanes teeth: a hook missing from the map is caught" must_pass "$rc"
+
+echo
+echo "── Gate 134: model-ID drift vs knowledge/model-catalog.json ───────────────"
+# Single source of truth for the tribunal-seat/dashboard/template model IDs. Before
+# this gate the IDs were duplicated across generate-dashboards.py + thing-decision.py
+# + templates + configs and drifted (the dashboard offered claude-sonnet-4-6 / bare
+# claude-haiku-4-5, and this repo's own comfort-posture.yaml carried claude-opus-4-7).
+# check-model-ids.py scans every governed, git-tracked code/config file (repo-wide,
+# NOT a hand-copied list) token-anchored against the catalog's `current` values.
+rc=0; python3 scripts/check-model-ids.py >/dev/null 2>&1 || rc=$?
+gate "model-ids: every governed claude-* id is canonical" must_pass "$rc"
+
+# teeth: the --self-test proves a stale id is caught AND the canonical dated-haiku is
+# NOT false-flagged by the bare-haiku prefix collision (FM6) — both in-memory.
+rc=0; python3 scripts/check-model-ids.py --self-test >/dev/null 2>&1 || rc=$?
+gate "model-ids teeth: stale caught + dated-haiku prefix-collision guard" must_pass "$rc"
+
+echo
+echo "── Gate 135: seat stderr → Sága seat_error capture (FM2 fail-closed) ───────"
+# P0: the tribunal used to `2>/dev/null` seat stderr, so a seat that ERRORED logged a
+# bare abstain indistinguishable from a timeout (KB kb-tribunal-seats-abstaining §4/§7).
+# Now parse_seat classifies the seat's exit code into seat_error; a fail-closed EXIT
+# trap converts an unexpected non-zero abort (which Claude Code treats as non-blocking
+# = fail-OPEN) into an explicit deny. The test drives the REAL orchestrator with mocked
+# seats + fault injection; it carries its own must-fail halves internally.
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-seat-stderr-capture.sh >/dev/null 2>&1 || rc=$?
+gate "seat-stderr: seat_error captured, fail-closed on abort, no secret leak (+teeth)" must_pass "$rc"
+
+echo
+echo "── Gate 136: thing-seat.sh JSON extractor — monotonic near-JSON salvage ────"
+# P1: the seat extractor gained a near-JSON second attempt (single quotes / trailing
+# commas / Python literals via ast.literal_eval). MONOTONIC (red-team FM1): a verdict
+# salvaged from repaired bytes may only TIGHTEN — a recovered `allow` is downgraded to
+# `abstain`, never a votable allow (which would convert the KB abstain-pair into a
+# unanimous allow, bypassing the 2-abstain floor). The gate extracts the REAL inline
+# extractor from thing-seat.sh and drives it; no other gate exercises this code.
+rc=0; python3 scripts/check-thing-seat-extractor.py >/dev/null 2>&1 || rc=$?
+gate "seat-extractor: near-JSON deny salvaged, bare-JSON byte-identical" must_pass "$rc"
+
+# teeth: a stripped monotonic-downgrade must let loose-allow vote allow (caught); a
+# stripped attempt-2 must lose the loose-deny salvage (caught).
+rc=0; python3 scripts/check-thing-seat-extractor.py --must-fail >/dev/null 2>&1 || rc=$?
+gate "seat-extractor teeth: monotonic-strip → allow + attempt2-strip → deny-lost" must_pass "$rc"
+
+echo
+echo "── Gate 137: command-review master cascade narrowed to 4 high-stakes ──────"
+# P4a: the dashboard master switch used to enable ALL 12 review categories on one
+# click (KB kb-tribunal-seats-abstaining §2/§8.2 — the blast radius that put every
+# call through a degraded panel). The gate extracts the REAL master-switch handler +
+# the dashboard's own high-stakes list and executes it against a DOM-free mock.
+rc=0; node scripts/check-cr-master-cascade.mjs >/dev/null 2>&1 || rc=$?
+gate "cr-master-cascade: ON enables exactly the 4 high-stakes, keeps existing, OFF clears all" must_pass "$rc"
+
+# teeth: the reverted all-12 cascade checks 12, not 4 — the ON-flip assertion catches it.
+rc=0; node scripts/check-cr-master-cascade.mjs --must-fail >/dev/null 2>&1 || rc=$?
+gate "cr-master-cascade teeth: reverted all-12 cascade is caught" must_pass "$rc"
+
+echo
+echo "── Gate 138: behavioral-flags-vs-permissions legibility ───────────────────"
+# P5a: the ⚙ "Behavior, not permission" badge must mark the behavioral controls on
+# BOTH surfaces (design_checkins in Settings; decision_review + orchestrator in
+# Pipeline) so an operator stops cranking every permission to Allow expecting them to
+# go quiet. Per-location assertion (not a global grep) so removal from one is caught.
+rc=0; node scripts/check-posture-legibility.mjs >/dev/null 2>&1 || rc=$?
+gate "posture-legibility: behavioral badge in BOTH the Settings and Pipeline spans" must_pass "$rc"
+
+# teeth: stripping the badge from the Pipeline span only -> the per-location check
+# fails on Pipeline while Settings still passes (a global grep would miss it).
+rc=0; node scripts/check-posture-legibility.mjs --must-fail >/dev/null 2>&1 || rc=$?
+gate "posture-legibility teeth: badge stripped from one span is caught" must_pass "$rc"
+
+echo
+echo "── Gate 139: orchestrator absent⇒full doc consistency ─────────────────────"
+# P5b: CLAUDE.md documented the `orchestrator` knob's absent default as `full`, but
+# the GENERATED copilot/AGENTS.md relay condition 3 required the LITERAL key — so an
+# absent key silently failed relay eligibility (the intake-doc plugin bug). The fix is
+# in the generator (generate-copilot-plugin.py); this gate asserts three sources agree
+# that absent ⇒ full so the two docs can't drift apart again.
+rc=0; python3 scripts/check-orchestrator-doc-consistency.py >/dev/null 2>&1 || rc=$?
+gate "orchestrator-doc: CLAUDE.md + spawn-team + generator agree absent⇒full" must_pass "$rc"
+
+# teeth: stripping condition 3 back to literal-key-only (or removing the `full`
+# default) reintroduces the disagreement — the check must catch it.
+rc=0; python3 scripts/check-orchestrator-doc-consistency.py --self-test >/dev/null 2>&1 || rc=$?
+gate "orchestrator-doc teeth: a reintroduced disagreement is caught" must_pass "$rc"
 
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"

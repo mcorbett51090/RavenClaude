@@ -197,6 +197,27 @@
       "x-on-label": "On — pause for design / architecture decisions",
       "x-off-label": "Off — nonstop; decide and report afterward"
     },
+    "decision_review": {
+      "type": "string",
+      "enum": ["off", "advisory", "binding"],
+      "default": "off",
+      "title": "Decision review",
+      "description": "Behavioral flag (not a permission — marked ⚙ in the UI). Routes yes/no decisions through the command-review tribunal before they reach you. off = you decide every yes/no; advisory = the panel recommends, you still decide; binding = a confident, non-high-blast verdict stands (defer / high-blast still escapes to you). Setting every permission to Allow does not change this."
+    },
+    "orchestrator": {
+      "type": "string",
+      "enum": ["off", "decide", "full"],
+      "default": "full",
+      "title": "Claude orchestrator",
+      "description": "Behavioral flag (not a permission — marked ⚙). Routes team-lead orchestration to Claude via claude -p on non-Claude-Code hosts (e.g. Copilot CLI). Inert under Claude Code (host already IS Claude). ABSENT ⇒ full (reconciled 2026-07: an absent key defaults to full; only an explicit off disables relay eligibility). off = host orchestrates as today; decide = Claude returns a dispatch plan the host runs; full = Claude reasons through the task, host writes the files."
+    },
+    "orchestrator_scope": {
+      "type": "string",
+      "enum": ["team", "all"],
+      "default": "team",
+      "title": "Orchestrator scope",
+      "description": "Behavioral flag (not a permission — marked ⚙). Sets WHEN the orchestrator fires (orchestrator sets HOW). team = only on a team-of-agents dispatch (lowest egress); all = relay every prompt to Claude, content-only, guarded by the relay-all egress floor. Host-only; inert under Claude Code."
+    },
     "_category_value_shape": {
       "description": "Documentation-only key (ignored by tooling). Each `categories.<name>` value can be (a) a plain string (v3/v4 legacy: single level for all layers), (b) an object `{ default, overrides }` (v4 per-pattern), or (c) an object `{ user, local, project }` with an optional `overrides` map (v5 per-layer, the canonical shape produced by the dashboard). Resolution: each layer independently resolves patterns (per-permission overrides win over the category-wide layer value); Claude Code merges user+local+project at runtime as deny > ask > allow.",
       "examples": [
@@ -243,8 +264,8 @@
             "dev_repo_exempt": false,
             "panel": {
               "forseti": { "model": "claude-opus-4-8" },
-              "mimir": { "model": "claude-haiku-4-5" },
-              "heimdall": { "model": "claude-haiku-4-5" },
+              "mimir": { "model": "claude-haiku-4-5-20251001" },
+              "heimdall": { "model": "claude-haiku-4-5-20251001" },
               "thor": { "model": "claude-opus-4-8" }
             },
             "confidence_threshold": 0.5,
