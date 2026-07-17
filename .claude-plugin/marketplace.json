@@ -3806,6 +3806,121 @@
         "capacity-planning",
         "database-slo"
       ]
+    },
+    {
+      "name": "ai-agent-engineering",
+      "source": "./plugins/ai-agent-engineering",
+      "description": "The engineering team that BUILDS production LLM-agent systems — 2 agents (agentic-systems-architect, agent-implementation-engineer) deciding agent topology (single-agent/ReAct, planner/executor, multi-agent, workflow/graph like LangGraph), framework/runtime (provider-neutral), tool/function-call boundary & contracts, memory/context strategy, guardrails, cost/latency budgets, tracing, and the agent-eval harness (offline sets, LLM-as-judge, regression gates, red-team). 3 skills, a 2-doc knowledge bank, and 2 templates. Distinct from ai-rag-engineering (retrieval), prompt-engineering (prompt/context craft), and llm-evaluation-engineering (eval methodology) — this is the SYSTEMS layer that COMPOSES prompts, retrieval, tools, and evals into a running agent. LLM/framework/pricing specifics are volatile — retrieval date + verify-at-use. Needs ravenclaude-core.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "ai-agents",
+        "agentic",
+        "llm-orchestration",
+        "tool-use",
+        "function-calling",
+        "multi-agent",
+        "langgraph",
+        "mcp",
+        "guardrails",
+        "agent-eval",
+        "agent-observability",
+        "cost-latency"
+      ]
+    },
+    {
+      "name": "home-health-care-operations",
+      "source": "./plugins/home-health-care-operations",
+      "description": "Home-health / home-care agency operations — 2 agents (home-health-agency-lead, home-care-operations-specialist) covering intake & eligibility / benefit verification, the physician-order & certification gate, OASIS & the plan of care, PDGM period billing & RCM (Medicare / Medicaid waiver / private pay), caregiver scheduling with continuity, EVV capture & exceptions (21st Century Cures Act), conditions-of-participation & survey readiness, and quality (HHCAHPS, Star ratings, value-based purchasing) — across skilled home health and private-duty / non-medical home care. 3 skills, a 2-doc knowledge bank, and 2 templates. Distinct from hospice-referral-sales, senior-care-operations (facility-based senior living), and medical-revenue-cycle (hospital/physician RCM) — home health owns care delivered IN THE HOME and the agency that delivers it. Not medical/legal/reimbursement advice; volatile CMS/PDGM/OASIS/EVV/Medicaid specifics carry a retrieval date + verify-at-use. Needs ravenclaude-core.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "home-health",
+        "home-care",
+        "pdgm",
+        "oasis",
+        "evv",
+        "medicare",
+        "medicaid-waiver",
+        "plan-of-care",
+        "conditions-of-participation",
+        "hhcahps",
+        "caregiver-scheduling",
+        "value-based-purchasing"
+      ]
+    },
+    {
+      "name": "tax-preparation-practice",
+      "source": "./plugins/tax-preparation-practice",
+      "description": "CPA / EA tax-preparation & planning practice — 2 agents (tax-practice-lead, tax-preparation-specialist): the lead sets client-mix & niche, seasonal capacity, pricing/realization, review-standard & risk posture, and Circular 230 / PTIN / EFIN governance; the specialist runs the return pipeline — organizer & engagement letter, intake, preparation (1040 / 1120 / 1120-S / 1065), separate-eyes review, e-file, extensions & estimates, CP-notice response, and the planning calc (entity, QBI, retirement, timing). 3 skills, a 2-doc knowledge bank, and 2 templates. Distinct from accounting-bookkeeping (write-up / close), wealth-management-ria (advisory), and finance (FP&A) — this plugin owns TAX RETURN PREPARATION and the practice that produces it. Not tax, legal, or accounting advice and no substitute for a credentialed preparer: forms, thresholds, and deadlines are volatile and jurisdiction-specific — every rule carries a retrieval date + verify-at-use against current IRS/state guidance. Needs ravenclaude-core.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "tax-preparation",
+        "form-1040",
+        "form-1120",
+        "form-1065",
+        "e-file",
+        "irs-notices",
+        "tax-season",
+        "engagement-letter",
+        "circular-230",
+        "qbi",
+        "quarterly-estimates",
+        "tax-planning"
+      ]
+    },
+    {
+      "name": "hoa-community-association-management",
+      "source": "./plugins/hoa-community-association-management",
+      "description": "Community-association management team — 2 agents (association-management-lead, community-operations-specialist) running HOAs, condo associations (COAs), and POAs: board governance & fiduciary advisory, the annual budget & assessment (dues) setting, reserve studies & funding, covenant/CC&R enforcement & architectural review, assessment collections & the delinquency/lien process, vendor & common-area maintenance, meetings & official records, insurance, and developer-to-homeowner transition. 3 skills, a 2-doc knowledge bank, and 2 templates. Distinct from property-management (a landlord's rental units & leases), commercial-real-estate (CRE brokerage), and residential-real-estate-brokerage (buying/selling homes) — this owns the COMMUNITY ASSOCIATION and its common-interest governance. Not legal, financial, or insurance advice; volatile HOA/condo statutes, lien/foreclosure procedures, reserve-study standards, and fair-housing/collection rules carry a retrieval date + verify-at-use. Needs ravenclaude-core.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "hoa",
+        "condo-association",
+        "community-association",
+        "reserve-study",
+        "assessments",
+        "cc-and-r",
+        "covenant-enforcement",
+        "architectural-review",
+        "board-governance",
+        "delinquency-collections",
+        "common-area-maintenance",
+        "special-assessment"
+      ]
+    },
+    {
+      "name": "subscription-billing-revenue",
+      "source": "./plugins/subscription-billing-revenue",
+      "description": "Subscription billing & revenue engineering team — 2 agents (billing-systems-architect, billing-implementation-engineer) that turn a price into a recurring invoice, a collection, and recognized revenue: the plan & product catalog model (flat/tiered/per-seat/usage/hybrid), proration & plan changes, trials, coupons/discounts, tax (sales tax/VAT via provider), invoicing, build-vs-buy & billing-platform selection (Stripe Billing / Chargebee / Zuora / Recurly / Metronome — provider-neutral), webhooks & idempotency, dunning & failed-payment recovery, entitlements/feature-gating, usage metering & rating pipelines, and revenue recognition (ASC 606 five-step, deferred revenue, MRR/ARR/churn). 3 skills, a 2-doc knowledge bank, and 2 templates. Distinct from pricing-monetization (pricing STRATEGY), fintech-payments-engineering (payment RAILS/PSP/ledger code), and finance (FP&A). Not accounting, tax, or audit advice; volatile ASC 606 & tax specifics carry a retrieval date — verify at use. Needs ravenclaude-core.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "subscription-billing",
+        "recurring-revenue",
+        "stripe-billing",
+        "dunning",
+        "proration",
+        "usage-based-billing",
+        "metering",
+        "entitlements",
+        "revenue-recognition",
+        "asc-606",
+        "mrr-arr",
+        "invoicing"
+      ]
     }
   ]
 }

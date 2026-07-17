@@ -1,0 +1,27 @@
+{
+  "name": "home-health-care-operations",
+  "version": "0.1.0",
+  "description": "Home-health / home-care agency operations — 2 agents (home-health-agency-lead, home-care-operations-specialist) covering intake & eligibility / benefit verification, the physician-order & certification gate, OASIS & the plan of care, PDGM period billing & RCM (Medicare / Medicaid waiver / private pay), caregiver scheduling with continuity, EVV capture & exceptions (21st Century Cures Act), conditions-of-participation & survey readiness, and quality (HHCAHPS, Star ratings, value-based purchasing) — across skilled home health and private-duty / non-medical home care. 3 skills, a 2-doc knowledge bank, and 2 templates. Distinct from hospice-referral-sales, senior-care-operations (facility-based senior living), and medical-revenue-cycle (hospital/physician RCM) — home health owns care delivered IN THE HOME and the agency that delivers it. Not medical/legal/reimbursement advice; volatile CMS/PDGM/OASIS/EVV/Medicaid specifics carry a retrieval date + verify-at-use. Needs ravenclaude-core.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "home-health",
+    "home-care",
+    "pdgm",
+    "oasis",
+    "evv",
+    "medicare",
+    "medicaid-waiver",
+    "plan-of-care",
+    "conditions-of-participation",
+    "hhcahps",
+    "caregiver-scheduling",
+    "value-based-purchasing"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}

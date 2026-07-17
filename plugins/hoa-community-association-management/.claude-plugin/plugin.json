@@ -1,0 +1,27 @@
+{
+  "name": "hoa-community-association-management",
+  "version": "0.1.0",
+  "description": "Community-association management team — 2 agents (association-management-lead, community-operations-specialist) running HOAs, condo associations (COAs), and POAs: board governance & fiduciary advisory, the annual budget & assessment (dues) setting, reserve studies & funding, covenant/CC&R enforcement & architectural review, assessment collections & the delinquency/lien process, vendor & common-area maintenance, meetings & official records, insurance, and developer-to-homeowner transition. 3 skills, a 2-doc knowledge bank, and 2 templates. Distinct from property-management (a landlord's rental units & leases), commercial-real-estate (CRE brokerage), and residential-real-estate-brokerage (buying/selling homes) — this owns the COMMUNITY ASSOCIATION and its common-interest governance. Not legal, financial, or insurance advice; volatile HOA/condo statutes, lien/foreclosure procedures, reserve-study standards, and fair-housing/collection rules carry a retrieval date + verify-at-use. Needs ravenclaude-core.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "hoa",
+    "condo-association",
+    "community-association",
+    "reserve-study",
+    "assessments",
+    "cc-and-r",
+    "covenant-enforcement",
+    "architectural-review",
+    "board-governance",
+    "delinquency-collections",
+    "common-area-maintenance",
+    "special-assessment"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "name": "subscription-billing-revenue",
+  "version": "0.1.0",
+  "description": "Subscription billing & revenue engineering team — 2 agents (billing-systems-architect, billing-implementation-engineer) that turn a price into a recurring invoice, a collection, and recognized revenue: the plan & product catalog model (flat/tiered/per-seat/usage/hybrid), proration & plan changes, trials, coupons/discounts, tax (sales tax/VAT via provider), invoicing, build-vs-buy & billing-platform selection (Stripe Billing / Chargebee / Zuora / Recurly / Metronome — provider-neutral), webhooks & idempotency, dunning & failed-payment recovery, entitlements/feature-gating, usage metering & rating pipelines, and revenue recognition (ASC 606 five-step, deferred revenue, MRR/ARR/churn). 3 skills, a 2-doc knowledge bank, and 2 templates. Distinct from pricing-monetization (pricing STRATEGY), fintech-payments-engineering (payment RAILS/PSP/ledger code), and finance (FP&A). Not accounting, tax, or audit advice; volatile ASC 606 & tax specifics carry a retrieval date — verify at use. Needs ravenclaude-core.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "subscription-billing",
+    "recurring-revenue",
+    "stripe-billing",
+    "dunning",
+    "proration",
+    "usage-based-billing",
+    "metering",
+    "entitlements",
+    "revenue-recognition",
+    "asc-606",
+    "mrr-arr",
+    "invoicing"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}
