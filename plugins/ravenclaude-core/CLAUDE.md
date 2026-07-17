@@ -1585,3 +1585,49 @@ the command-review tribunal, all in `hooks/thing-orchestrator.sh` (+ a teeth moc
 
 **Migration:** none in practice — all three only convert already-rare error/edge paths from fail-open to
 fail-closed (deny); no normal verdict changes.
+
+## Dashboard launch UX — busy port, root route, and the all-12 path (added 2026-07-17, v0.205.3)
+
+Three reports from a `/dashboard` run that hit a busy port 8000. Two were real defects — both worse
+than reported — and the third was **not a defect at all**.
+
+- **Port 8000 was a hard crash, and the doc described a twin nobody runs.** The bundled plugin server
+  bound the port raw (`ThreadingHTTPServer((bind, args.port))`) and died with
+  `OSError: [Errno 48] Address already in use`. Meanwhile [`commands/dashboard.md`](commands/dashboard.md)
+  advertised automatic fallback to 8001-8005, a `--no-open` flag, and browser auto-open — **none of
+  which existed in the plugin copy**. All three *did* exist in the **root dev** server: this was Gate
+  32's hand-maintained twin drifting, and the doc documenting the copy consumers never execute. (Gate 32
+  checks `/__` endpoint **names** + the `_read_*`/`_mimir_*` reader bodies — it structurally cannot see
+  `main()` drift. That is why this survived.) Ported across, plus **reclaim-if-ours**: a stale dashboard
+  for **this project** is SIGTERM'd and 8000 rebound (URL stays stable across relaunches); anything
+  else — **including another project's live dashboard** — is left alone and we bind 8001-8010.
+  Identification is **fail-closed and two-part** (`ps` command name **AND** `lsof` cwd == this project);
+  any doubt → not ours → never signalled. "Ours" deliberately means *this project's own stale server*,
+  not *any* RavenClaude dashboard, so freeing a port never kills a live session in an unrelated repo.
+- **"It opened the directory, not the Dashboard."** The server serves `PLUGIN_DIR` statically, had **no
+  route for `/`**, and the plugin dir has no `index.html` — so bare `/` rendered a
+  `SimpleHTTPRequestHandler` **directory listing**. Added the root **302 → `/dashboard.html`** (the root
+  twin already had one) and the browser auto-open, which opens `DASH_PATH` directly, never `/`.
+- **The master toggle was NOT broken — it was silent.** Enabling only 4 of 12 categories is the
+  deliberate **narrowed cascade** (FORGE P4a, v0.205.0), pinned by **Gate 137** *and* a `--must-fail`
+  teeth test written specifically to catch an all-12 revert, after the KB traced the "every call through
+  a degraded panel" blast radius to this exact switch. The real defect was that nothing said so. Rather
+  than revert a one-day-old incident fix, the all-12 intent got its **own** control: an **"Enable all 12"
+  / "Disable all"** bulk row plus a live **"On — N of 12 categories enabled · the other N are
+  per-category opt-in"** count. **The master handler is untouched; Gate 137 and its teeth stay green.**
+  Do NOT fold the bulk buttons back into `masterCb`'s handler — that is the revert Gate 137 exists to
+  catch.
+
+**One latent bug fixed in passing:** the CSRF `_ALLOWED_HOSTS`/`_ALLOWED_ORIGINS` were keyed on
+`args.port`. On any fallback bind they would have allow-listed a port the server is **not** listening on
+and rejected **every** `/__save` — i.e. the port fix would have silently broken Save & apply. They are
+now keyed on the actually-bound port.
+
+`dashboard.html` + `index.html` are **generated** — the UI change lives in
+[`scripts/generate-dashboards.py`](../../scripts/generate-dashboards.py), never hand-edited.
+
+**Migration (consumer-visible, all improvements — nothing to do):** `/dashboard` now **auto-opens a
+browser** on a local/desktop run (it never did before; pass `--no-open` to suppress), a busy port 8000
+**recovers instead of crashing**, and bare `/` **redirects** instead of listing the plugin directory. A
+stale dashboard **for the same project** is stopped on relaunch; one for a **different** project is never
+touched. Comfort-posture semantics, the tribunal, and the master cascade are **unchanged**.
