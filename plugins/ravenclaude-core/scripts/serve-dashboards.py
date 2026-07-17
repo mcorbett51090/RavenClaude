@@ -33,13 +33,17 @@ Usage (normally via `/dashboard`):
 from __future__ import annotations
 
 import argparse
+import errno
 import functools
 import hmac
 import json
 import os
 import secrets
+import signal
 import subprocess
 import sys
+import time
+import webbrowser
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
@@ -1482,6 +1486,16 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         # dir). Any NEW data-returning GET endpoint added here MUST call
         # self._local_request_ok() first (as _handle_read does) — do not let it ride
         # the static path.
+        if self.path in ("/", ""):
+            # Redirect bare root to the dashboard page. PLUGIN_DIR has no
+            # index.html, so without this SimpleHTTPRequestHandler renders a
+            # directory listing of the plugin — the "it opened the directory,
+            # not the dashboard" report. main() injects the target.
+            target = getattr(self.server, "_dash_path", DASH_PATH)
+            self.send_response(302)
+            self.send_header("Location", target)
+            self.end_headers()
+            return
         if self.path.startswith("/__read"):
             self._handle_read()
             return
@@ -2003,9 +2017,146 @@ def _print_qr(url: str) -> bool:
     return True
 
 
+# ── Port acquisition ────────────────────────────────────────────────────────
+# This replaced a bare ThreadingHTTPServer((bind, port)) that raised an OSError
+# traceback the moment port 8000 was busy — while commands/dashboard.md already
+# advertised a fallback that did not exist. Two recovery paths, in order:
+#   1. the holder is one of OUR OWN dashboard servers -> stop it, reuse the port
+#      (a relaunch is the common case; keeps the URL stable)
+#   2. anything else -> walk up to the next free port
+# A process we have not positively identified as ours is NEVER signalled.
+
+
+def _port_holder_pids(port: int) -> list[int]:
+    """PIDs listening on `port`, excluding this process. Never raises: no lsof
+    (or any failure) yields [], and the caller falls back to a port walk."""
+    try:
+        out = subprocess.run(
+            ["lsof", "-nP", f"-iTCP:{port}", "-sTCP:LISTEN", "-t"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        ).stdout
+    except (OSError, subprocess.SubprocessError):
+        return []
+    pids = []
+    for tok in out.split():
+        try:
+            pid = int(tok)
+        except ValueError:
+            continue
+        if pid != os.getpid():
+            pids.append(pid)
+    return pids
+
+
+def _holder_cwd(pid: int) -> str | None:
+    """`pid`'s working directory, or None. Never raises."""
+    try:
+        out = subprocess.run(
+            ["lsof", "-a", "-p", str(pid), "-d", "cwd", "-Fn"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        ).stdout
+    except (OSError, subprocess.SubprocessError):
+        return None
+    for line in out.splitlines():
+        if line.startswith("n"):
+            return line[1:]
+    return None
+
+
+def _is_our_dashboard(pid: int) -> bool:
+    """True only when `pid` is a serve-dashboards.py serving THIS project.
+
+    Both halves matter. The name check alone would also match a dashboard
+    another repo has open right now — reclaiming that would kill a live
+    session in an unrelated project to free a port we can just as easily
+    step around. So "ours" means "this project's own stale server"; every
+    other dashboard is treated like any foreign process (fall back instead).
+
+    Fail-closed — any doubt (no ps/lsof, a failure, an unreadable cwd, a
+    mismatch) is False, so a process we haven't positively identified is
+    never signalled."""
+    try:
+        out = subprocess.run(
+            ["ps", "-p", str(pid), "-o", "command="],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        ).stdout
+    except (OSError, subprocess.SubprocessError):
+        return False
+    if "serve-dashboards.py" not in out:
+        return False
+    cwd = _holder_cwd(pid)
+    if cwd is None:
+        return False
+    try:
+        return Path(cwd).resolve() == PROJECT_ROOT.resolve()
+    except OSError:
+        return False
+
+
+def _reclaim_port(port: int) -> bool:
+    """SIGTERM our own stale dashboard server(s) on `port` and wait for the
+    socket to free. False if the holder isn't ours (or won't let go) — the
+    caller then walks to another port rather than escalating."""
+    pids = [p for p in _port_holder_pids(port) if _is_our_dashboard(p)]
+    if not pids:
+        return False
+    for pid in pids:
+        try:
+            os.kill(pid, signal.SIGTERM)
+        except OSError:
+            return False
+    for _ in range(20):  # ~2s: SIGTERM + socket teardown is not instant
+        time.sleep(0.1)
+        if not _port_holder_pids(port):
+            return True
+    return False
+
+
+def _bind_server(bind, port, handler, span=10):
+    """Bind `port`, reclaiming it from our own stale server or falling back to
+    the next free one. Returns (server, actual_port)."""
+    try:
+        return ThreadingHTTPServer((bind, port), handler), port
+    except OSError as exc:
+        if exc.errno != errno.EADDRINUSE:
+            raise
+
+    if _reclaim_port(port):
+        try:
+            srv = ThreadingHTTPServer((bind, port), handler)
+            print(f"  port {port} was held by a stale RavenClaude dashboard — stopped it, rebound {port}")
+            return srv, port
+        except OSError as exc:
+            if exc.errno != errno.EADDRINUSE:
+                raise
+
+    for candidate in range(port + 1, port + span + 1):
+        try:
+            srv = ThreadingHTTPServer((bind, candidate), handler)
+            print(f"  port {port} is held by another process — bound {candidate} instead")
+            return srv, candidate
+        except OSError as exc:
+            if exc.errno != errno.EADDRINUSE:
+                raise
+    raise SystemExit(
+        f"serve-dashboards: ports {port}-{port + span} are all in use. Free one, or pass --port N."
+    )
+
+
 def main() -> int:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--port", type=int, default=8000)
+    p.add_argument(
+        "--no-open",
+        action="store_true",
+        help="do not auto-open a browser (for scripts/CI). Matches the root dev server.",
+    )
     p.add_argument(
         "--bind",
         default=None,
@@ -2076,24 +2227,30 @@ def main() -> int:
         )
         return 2
 
-    server = ThreadingHTTPServer((bind, args.port), handler)
+    server, actual_port = _bind_server(bind, args.port, handler)
+    # The redirect target for bare "/" — read by do_GET. Without it the plugin
+    # dir (which has no index.html) renders as a directory listing.
+    server._dash_path = DASH_PATH
 
     # Generate the per-process CSRF token + build the Origin/Host allow-lists
     # before the server can take a single request. State-changing POSTs require
     # the token in the X-CSRF-Token header (belt-and-suspenders on the Origin
     # guard); the dashboard JS fetches it from GET /__csrf on load.
+    # NOTE: keyed on actual_port, not args.port — a fallback bind would
+    # otherwise allow-list a port we are not listening on and reject every POST.
     global _ALLOWED_HOSTS, _ALLOWED_ORIGINS, _CSRF_TOKEN
     _CSRF_TOKEN = secrets.token_urlsafe(32)
-    _ALLOWED_HOSTS = {f"127.0.0.1:{args.port}", f"localhost:{args.port}", "127.0.0.1", "localhost"}
-    _ALLOWED_ORIGINS = {f"http://127.0.0.1:{args.port}", f"http://localhost:{args.port}"}
+    _ALLOWED_HOSTS = {f"127.0.0.1:{actual_port}", f"localhost:{actual_port}", "127.0.0.1", "localhost"}
+    _ALLOWED_ORIGINS = {f"http://127.0.0.1:{actual_port}", f"http://localhost:{actual_port}"}
     if codespace:
-        _fwd = f"{codespace}-{args.port}.{domain}"
+        _fwd = f"{codespace}-{actual_port}.{domain}"
         _ALLOWED_HOSTS.add(_fwd)
         _ALLOWED_ORIGINS.add(f"https://{_fwd}")
 
+    local_url = f"http://127.0.0.1:{actual_port}{DASH_PATH}"
     print(f"serve-dashboards (plugin): serving {PLUGIN_DIR}")
     print(f"  project root (writes here): {PROJECT_ROOT}")
-    print(f"  local URL: http://127.0.0.1:{args.port}{DASH_PATH}  (bound to {bind})")
+    print(f"  local URL: {local_url}  (bound to {bind})")
     print("  POST /__save  - writes an allow-listed file under .ravenclaude/ + auto-applies")
     print("  GET  /__read  - hydrates the dashboard from your committed config")
     print("  GET  /__saga  - read-only Review-log feed from .ravenclaude/runs/thing/ (?limit=N, default 200)")
@@ -2102,7 +2259,7 @@ def main() -> int:
 
     phone_url = None
     if codespace:
-        phone_url = f"https://{codespace}-{args.port}.{domain}{DASH_PATH}"
+        phone_url = f"https://{codespace}-{actual_port}.{domain}{DASH_PATH}"
         print("\n  Codespace forwarded URL — open it via the Ports panel -> Open in Browser")
         print("  (that handles the GitHub auth; a raw paste needs you already signed in):")
         print(f"  {phone_url}")
@@ -2114,6 +2271,17 @@ def main() -> int:
             print("  ^ scan with your phone camera to open the dashboard there.")
         else:
             print("  (For a scannable QR code here, run: pip install qrcode)")
+
+    # Auto-open the browser on local/desktop runs (parity with the root dev
+    # server). In a Codespace the container has no display and VS Code's
+    # onAutoForward: openBrowser handles the forwarded port, so skip it there.
+    # Opens DASH_PATH, never "/" — the point is to land on the dashboard.
+    if not args.no_open and not codespace:
+        print(f"\n  Opening your browser at {local_url} ...")
+        try:
+            webbrowser.open(local_url)
+        except Exception:
+            pass  # silently fall back to the printed URL
 
     print("\n  Ctrl+C to stop.")
     sys.stdout.flush()

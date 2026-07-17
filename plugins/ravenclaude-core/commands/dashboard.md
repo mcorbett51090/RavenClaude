@@ -50,14 +50,23 @@ python3 "${CLAUDE_PLUGIN_ROOT}/scripts/serve-dashboards.py" --port 8000
 ```
 
 - Run it with the Bash tool's **background mode** (it's a long-running server).
-- If port 8000 is already in use, the server automatically tries 8001–8005; it prints
-  the actual port it bound. Pass `--no-open` to suppress browser auto-open in scripts.
-- Read the server's startup output and relay the exact **URL** it prints to the user.
+- **If port 8000 is already in use**, the server recovers on its own — it never dies with
+  an "address already in use" traceback, and it never signals a process it hasn't
+  positively identified as one of its own:
+  - held by a **stale RavenClaude dashboard** (the usual case — you relaunched) → it stops
+    that server and rebinds **8000**, so the URL stays stable;
+  - held by **anything else** → it leaves that process alone and binds the next free port
+    (**8001–8010**).
+- Pass `--no-open` to suppress the browser auto-open in scripts/CI.
+- Read the server's startup output and relay the exact **URL** it prints to the user — on a
+  fallback bind the port is *not* 8000.
 
 ## What to tell the user
 
-1. **Browser auto-opens** on a local machine; in a Codespace the forwarded tab opens
-   automatically via `onAutoForward`. If it doesn't, use the URL the server prints.
+1. **Browser auto-opens** on a local machine, straight to `/dashboard.html`; in a Codespace
+   the forwarded tab opens automatically via `onAutoForward`. If it doesn't, use the URL the
+   server prints. Bare `/` **302-redirects** to the dashboard, so a hand-typed
+   `localhost:8000` lands on the dashboard rather than a file listing.
 2. **Open it in a real browser tab** — *not* the VS Code "Simple Browser" / "Live Preview",
    which sandboxes the page and shows "content is blocked". In a Codespace, use the **Ports**
    panel → port → "Open in Browser", or click the forwarded URL and choose "Open in Browser".
