@@ -1,12 +1,3 @@
-<!-- RAVENCLAUDE-STAGING-METADATA
-type: best-practice
-topic: other
-proposed-by: consumer engagement — BTCSIReporting Codespace (Copilot CLI), updating ravenclaude-core skills/hooks in a project repo
-proposed-on: 2026-07-16
-target-file: docs/best-practices/updating-ravenclaude-in-a-consumer-repo.md
-status: pending
--->
-
 # Updating RavenClaude in a consumer repo (Copilot-CLI install): `git pull` + re-materialize symlinks, never a reinstall
 
 **Status:**
@@ -38,7 +29,7 @@ bash /home/codespace/RavenClaude/scripts/ravenclaude install --project .
 /skills reload      # or relaunch — Copilot caches the skills list at session start
 ```
 
-Then commit the re-wire: `git add -A && git commit -m "chore(ravenclaude): update skills + hooks to latest"`. Review `git diff --stat HEAD` first — expect updated `.claude/skills/*` symlinks, new `create mode 120000` entries for added skills, and a regenerated `.github/hooks/ravenclaude.json`.
+Then commit the re-wire: `git add .claude/skills .github/hooks/ravenclaude.json plugins && git commit -m "chore(ravenclaude): update skills + hooks to latest"` (narrow the add to the re-wired paths rather than `git add -A`, so no unrelated working-tree change is swept in). Review `git diff --stat HEAD` first — expect updated `.claude/skills/*` symlinks, new `create mode 120000` entries for added skills, and a regenerated `.github/hooks/ravenclaude.json`.
 
 The `rc` alias (added to `~/.bashrc` by `ravenclaude setup`) combines update + launch: `rc` pulls, regenerates, and starts Copilot in one command — but the per-project `install` step is still separate when you want the repo's committed symlinks refreshed.
 
@@ -61,13 +52,13 @@ The `rc` alias (added to `~/.bashrc` by `ravenclaude setup`) combines update + l
 
 ## See also
 
-- [`plugins/ravenclaude-core/skills/update-ravenclaude/SKILL.md`](../../../plugins/ravenclaude-core/skills/update-ravenclaude/SKILL.md) — the update skill.
-- [`plugins/ravenclaude-core/knowledge/copilot-cli-customization.md`](../../../plugins/ravenclaude-core/knowledge/copilot-cli-customization.md) — how the Copilot adapter surfaces skills/hooks.
-- [`surface-credential-location-in-environment-context`](2026-06-09-surface-credential-location-in-environment-context.md) — companion Copilot-CLI session-start orientation pattern.
+- [`plugins/ravenclaude-core/skills/update-ravenclaude/SKILL.md`](../../plugins/ravenclaude-core/skills/update-ravenclaude/SKILL.md) — the update skill.
+- [`plugins/ravenclaude-core/knowledge/copilot-cli-customization.md`](../../plugins/ravenclaude-core/knowledge/copilot-cli-customization.md) — how the Copilot adapter surfaces skills/hooks.
+- [`surface-credential-location-in-environment-context`](../staging/incoming/2026-06-09-surface-credential-location-in-environment-context.md) — companion Copilot-CLI session-start orientation pattern.
 
 ## Provenance
 
-Consumer Codespace engagement (BTCSIReporting, Copilot CLI), 2026-07-16: an update session documented the two-step `ravenclaude update` + `install` flow and diagnosed the recurring initial-setup failures — `package: MISSING`, the rotted `plugins` symlink (vscode-vs-codespace user path), inactive PATH, and the `/usr/local/bin` self-location trap. Consumer paths generalized; repo-specific identifiers removed.
+Consumer Codespace engagement (Copilot CLI), 2026-07-16: an update session documented the two-step `ravenclaude update` + `install` flow and diagnosed the recurring initial-setup failures — `package: MISSING`, the rotted `plugins` symlink (vscode-vs-codespace user path), inactive PATH, and the `/usr/local/bin` self-location trap. Consumer paths generalized; repo-specific identifiers removed.
 
 ---
 
