@@ -1517,3 +1517,47 @@ is the load-bearing regression gate. ~~Still open.~~ **Shipped** — see the sup
 **Migration:** none — the 12 hooks are **advisory** (exit 0 + a notice) and were emitting *nothing* on
 macOS. They now emit real findings there. Linux/CI is unchanged in outcome (perl and `grep -P` agree on
 these patterns; verified on 6 real-pattern fixtures incl. the empty-file edge).
+
+## Dashboard-process hardening — model catalog, seat observability, cascade + legibility (added 2026-07-16, v0.205.0)
+
+A FORGE `standard` run (`.ravenclaude/runs/forge/dashboard-process-hardening/`) over three source
+files — a command-review-tribunal bug KB (`kb-tribunal-seats-abstaining.md`) and two consumer intake
+best-practices — hardened the dashboard **and** the tribunal internals the KB implicated. The critic +
+red-team caught **two HIGH-severity security regressions** before build (encoded as hard requirements):
+a lenient JSON extractor that would salvage a garbage verdict into a **voted ALLOW** (bypassing the
+2-abstain fail-closed floor), and a new stderr read that would **fail OPEN** under `set -e`.
+
+- **Canonical model catalog + drift gate (134).** The seat/dashboard/template model IDs were duplicated
+  across `generate-dashboards.py` + `thing-decision.py` + templates + configs and had drifted — the
+  dashboard offered `claude-sonnet-4-6` / bare `claude-haiku-4-5`, and this repo's own
+  `comfort-posture.yaml` carried `claude-opus-4-7`. Now one source of truth
+  ([`knowledge/model-catalog.json`](knowledge/model-catalog.json) + `scripts/_model_catalog.py`);
+  every governed id is the current set (opus-4-8 / sonnet-5 / haiku-4-5-20251001 / fable-5), enforced
+  repo-wide, token-anchored, by **Gate 134** (the decision-review tier tables are a carved-out
+  design-checkin, not ID cleanup).
+- **Seat-error observability, fail-closed (Gates 135/136).** `thing-orchestrator.sh` stopped
+  `2>/dev/null`-ing seat stderr; `parse_seat` now classifies the seat's **exit code** (a bounded,
+  secret-free integer) into a `seat_error` Sága field, so an errored seat is no longer an
+  indistinguishable bare abstain (the KB's core diagnosability gap). A fail-closed EXIT trap converts an
+  unexpected non-zero abort (which Claude Code treats as non-blocking = fail-OPEN) into an explicit
+  deny. `thing-seat.sh`'s verdict extractor gained a **monotonic** near-JSON salvage: a verdict
+  recovered from repaired bytes may only tighten — a salvaged `allow` becomes `abstain`, never a votable
+  allow. Only additive; the 2-abstain floor + golden-eval (Gate 33) are byte-unchanged.
+- **Narrowed master cascade (Gate 137) + behavioral-flag legibility (Gate 138).** The dashboard master
+  switch no longer enables all 12 review categories on one click — it enables only the 4 high-stakes
+  categories (the rest are per-category opt-in). A ⚙ "Behavior, not permission" badge now marks
+  `design_checkins` / `decision_review` / `orchestrator` on both the Settings and Pipeline tabs.
+- **`orchestrator` absent⇒full reconciled (Gate 139).** `copilot/AGENTS.md`'s generated relay condition
+  now treats an absent `orchestrator:` key as `full` (only an explicit `off` disables relay
+  eligibility), reconciling the long-standing disagreement with `CLAUDE.md`'s documented default.
+- **New-repo posture defaults.** The balanced seed enables `model_fallback` with a 4-backbone ladder.
+
+**Migration (consumer-visible — all template-seed/dashboard-behavior, no forced change on an existing
+posture):**
+- **Master switch** now enables the **4 high-stakes** categories, not all 12. A persisted all-12
+  posture is untouched (the cascade fires only on a live click, never on disk hydration).
+- **Model-fallback** is seeded ON for **new** repos only; an existing `comfort-posture.yaml` is
+  byte-identical on `/plugin marketplace update` (the code default stays `absent ⇒ OFF`, Gate 121).
+- **Copilot relay:** a Copilot-host consumer who left `orchestrator:` **absent** _and_ set
+  `orchestrator_scope: all` now relays (was inert); `orchestrator_scope` still defaults `team`, so
+  relay-all does not fire by default.
