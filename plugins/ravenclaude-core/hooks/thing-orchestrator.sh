@@ -31,6 +31,31 @@
 
 set -euo pipefail
 
+# ── Fail-closed EXIT trap (FM2), armed FIRST (P3, security-review backlog) so an
+#    unexpected `set -e` abort ANYWHERE below — including the PLUGIN_ROOT resolution
+#    and the stdin read — fails CLOSED. _emitted tracks whether a verdict reached
+#    stdout; the trap converts a fail-OPEN abort (non-zero exit that carried no
+#    verdict) into an explicit deny.
+#
+# CRITICAL (claude-code-permissions.md:199/207): ONLY `exit 2` blocks a PreToolUse
+# call. A `hookSpecificOutput` deny JSON is honored ONLY on exit 0; on ANY other
+# non-zero exit the JSON is IGNORED and the command RUNS (non-blocking error). So an
+# abort that merely printed a deny JSON but exited 1 would FAIL OPEN — the exact hole
+# this trap closes. We emit the reason to STDERR and `exit 2` (the exit-code protocol,
+# which blocks regardless of stdout). Legitimate early allows use `exit 0` (mapped out
+# below) and exit 2 is an already-blocking deny — neither is touched.
+_emitted=0
+_tmp_to_clean=""
+_on_exit() {
+  local _ec=$?
+  [ -n "$_tmp_to_clean" ] && rm -rf "$_tmp_to_clean" 2>/dev/null || true
+  if [ "$_emitted" != 1 ] && [ "$_ec" != 0 ] && [ "$_ec" != 2 ]; then
+    printf '[Command review] aborted unexpectedly (exit %s); failing closed (deny).\n' "$_ec" >&2
+    exit 2
+  fi
+}
+trap '_on_exit' EXIT
+
 # ── Structured hook-event substrate (Phase 0). Source the emit helper so every
 #    deny path below can call _emit_hook_event. Fail-safe: a missing helper
 #    becomes a no-op stub so the emit calls can never throw or block the verdict.
@@ -55,43 +80,21 @@ payload=""
 if [ ! -t 0 ]; then payload="$(cat)"; fi
 [ -z "$payload" ] && exit 0
 
-# ── Emit a Claude Code PreToolUse verdict and exit. ───────────────────────────
-# _emitted tracks whether a verdict reached stdout. The fail-closed EXIT trap below
-# (FM2) reads it: an UNEXPECTED `set -e` abort that emitted no verdict exits non-zero,
-# which Claude Code treats as a NON-blocking error (fail-OPEN) — so the trap converts
-# any such abort into an explicit deny. Legitimate early allows use `exit 0` (mapped
-# out below), so they are left untouched.
-_emitted=0
-_tmp_to_clean=""
-_on_exit() {
-  local _ec=$?
-  [ -n "$_tmp_to_clean" ] && rm -rf "$_tmp_to_clean" 2>/dev/null || true
-  # Fail CLOSED only on a fail-OPEN exit code (non-zero AND not the deliberate
-  # exit-2 block) that carried no verdict. exit 0 = a legitimate allow (or emit
-  # already fired); exit 2 = an already-blocking deny — neither is touched.
-  #
-  # CRITICAL (claude-code-permissions.md:199/207): ONLY `exit 2` blocks a PreToolUse
-  # call. A `hookSpecificOutput` deny JSON is honored ONLY on exit 0; on ANY other
-  # non-zero exit the JSON is IGNORED and the command RUNS (non-blocking error). So an
-  # abort that merely printed a deny JSON but exited 1 would FAIL OPEN — the exact hole
-  # this trap exists to close. We therefore emit the reason to STDERR and `exit 2`
-  # (the exit-code protocol, which blocks regardless of stdout).
-  if [ "$_emitted" != 1 ] && [ "$_ec" != 0 ] && [ "$_ec" != 2 ]; then
-    printf '[Command review] aborted unexpectedly (exit %s); failing closed (deny).\n' "$_ec" >&2
-    exit 2
-  fi
-}
-trap '_on_exit' EXIT
+# ── Emit a Claude Code PreToolUse verdict and exit. (The fail-closed _on_exit trap
+#    that reads _emitted is armed at the top of the script, before any setup.) ──────
 emit() {  # emit <allow|deny|ask> <reason>
-  _emitted=1
+  # Set _emitted AFTER jq writes the verdict (P3, security-review backlog): if the
+  # serialization ever failed, `set -e` aborts here with _emitted still 0, so the
+  # fail-closed trap fires (exit 2) instead of a fail-open exit-1 with a half-verdict.
   jq -cn --arg d "$1" --arg r "$2" \
     '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:$d,permissionDecisionReason:$r}}'
+  _emitted=1
   exit 0
 }
 emit_edit() {  # emit_edit <revised-command> <reason>
-  _emitted=1
   jq -cn --arg c "$1" --arg r "$2" \
     '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"allow",permissionDecisionReason:$r,updatedInput:{command:$c}}}'
+  _emitted=1
   exit 0
 }
 
@@ -658,8 +661,16 @@ else
         verdict="edit"; revised="${SEDIT[$(_ri thor)]}"; reason="Command review: tie-breaker EDIT. ${SREASON[$(_ri thor)]}"
       elif [ "$tv" = "deny" ]; then
         verdict="deny"; reason="Command review: DENIED by tie-breaker. ${SREASON[$(_ri thor)]}"
-      else
+      elif [ "$tv" = "allow" ]; then
         verdict="allow"; reason="Command review: ALLOWED by tie-breaker. ${SREASON[$(_ri thor)]}"
+      else
+        # FAIL CLOSED (security review backlog): the tie-breaker returned a verdict
+        # OUTSIDE the {allow,deny,edit} protocol — an out-of-protocol string like
+        # "approve", or a voted "abstain" (status=voted, verdict-string=abstain). It
+        # must NOT default to ALLOW; resolve to the category's posture (deny for the
+        # high-stakes categories), matching the unanimous branch's `*)` fail-closed
+        # default. Only a literal "allow" verdict allows.
+        verdict="$posture"; reason="Command review: tie-breaker returned an out-of-protocol verdict ('${tv}'); ${posture_phrase} for ${category}."
       fi
     else
       # 5. Unanimous (non-abstain) verdict among the convened seats.

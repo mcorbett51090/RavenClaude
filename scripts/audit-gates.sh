@@ -1076,6 +1076,30 @@ gate "thing: unsafe EDIT -> deny (invariant fails closed)" must_pass "$rc"
 d=$(thing_decision split "$SHELL_TRUE")
 rc=0; { [[ "$d" == "deny" ]] && saga_has_thor; } || rc=1
 gate "thing: split panel -> Thor convened + defined verdict" must_pass "$rc"
+# (c2) split where Thor returns an OUT-OF-PROTOCOL verdict (valid JSON, verdict not in
+# {allow,deny,edit}) -> fail CLOSED to the category posture (deny for the high-stakes
+# SHELL_TRUE), NEVER the old tie-breaker else->allow default (security-review backlog).
+d=$(thing_decision split-oop "$SHELL_TRUE")
+rc=0; { [[ "$d" == "deny" ]] && saga_has_thor; } || rc=1
+gate "thing: split + Thor out-of-protocol verdict -> fail-closed (deny, not allow)" must_pass "$rc"
+# teeth: revert the tie-breaker to the pre-fix else->allow IN PLACE (so it runs via the
+# same in-tree harness that resolves all script paths), re-run, then restore. The
+# out-of-protocol Thor verdict must then NOT fail closed — it reaches the reverted
+# else-branch and resolves to allow/ask (gate_floor surfaces the high-stakes allow as
+# ask), never the deny the fix produces. This proves the positive assertion above
+# depends on the fail-closed fix.
+cp -p "$ORCH14" "$TMP/orch14-tiebreaker.bak"
+python3 - "$ORCH14" <<'PY'
+import sys
+p = sys.argv[1]; src = open(p).read()
+old = 'verdict="$posture"; reason="Command review: tie-breaker returned an out-of-protocol verdict'
+assert src.count(old) == 1, "tie-breaker fail-closed target not found (drifted)"
+open(p, "w").write(src.replace(old, 'verdict="allow"; reason="MUTANT pre-fix out-of-protocol'))
+PY
+d_oop_mut=$(thing_decision split-oop "$SHELL_TRUE")
+cp -p "$TMP/orch14-tiebreaker.bak" "$ORCH14"   # restore the real orchestrator immediately
+rc=0; { [[ "$d_oop_mut" != "deny" ]] && [[ "$d_oop_mut" != "none" ]]; } || rc=1
+gate "thing teeth: pre-fix else->allow does NOT fail closed (allow/ask, not deny)" must_pass "$rc"
 # (d) high-stakes category timeout fails CLOSED (deny, not ask)
 d=$(thing_decision timeout "git push origin main")
 rc=0; [[ "$d" == "deny" ]] || rc=1

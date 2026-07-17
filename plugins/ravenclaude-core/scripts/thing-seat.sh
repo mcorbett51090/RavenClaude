@@ -148,6 +148,23 @@ case "${THING_SEAT_MOCK_VERDICT:-}" in
         echo '{"verdict":"deny","edited_command":null,"concerns_cited":["srm.push-to-protected-branch"],"reasoning":"mock split: Thor breaks tie -> deny","confidence":0.95,"injection_detected":false}' ;;
     esac
     exit 0 ;;
+  split-oop)
+    # Like `split` so Thor convenes, but the tie-breaker returns an OUT-OF-PROTOCOL
+    # verdict string (valid JSON, verdict not in {allow,deny,edit}). Teeth for the
+    # tie-breaker fail-closed fix: the orchestrator must resolve this to the category
+    # posture (deny for high-stakes), NEVER the old else->allow default.
+    # mimir denies with NO cited concern so the post-tie-breaker critical-veto does NOT
+    # fire — the final verdict then depends PURELY on the tie-breaker's resolution of
+    # Thor's out-of-protocol verdict (the thing this teeth is testing), not on a veto.
+    case "$role" in
+      forseti | heimdall)
+        echo '{"verdict":"allow","edited_command":null,"concerns_cited":[],"reasoning":"mock split-oop: allow","confidence":0.9,"injection_detected":false}' ;;
+      mimir)
+        echo '{"verdict":"deny","edited_command":null,"concerns_cited":[],"reasoning":"mock split-oop: deny (no concern -> no critical veto)","confidence":0.9,"injection_detected":false}' ;;
+      thor)
+        echo '{"verdict":"approve","edited_command":null,"concerns_cited":[],"reasoning":"mock split-oop: Thor returns an out-of-protocol verdict","confidence":0.9,"injection_detected":false}' ;;
+    esac
+    exit 0 ;;
   malformed)
     echo 'this is not json'
     exit 0 ;;

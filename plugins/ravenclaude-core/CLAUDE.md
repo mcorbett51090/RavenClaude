@@ -1561,3 +1561,27 @@ posture):**
 - **Copilot relay:** a Copilot-host consumer who left `orchestrator:` **absent** _and_ set
   `orchestrator_scope: all` now relays (was inert); `orchestrator_scope` still defaults `team`, so
   relay-all does not fire by default.
+
+## Tribunal tie-breaker + trap fail-closed hardening (added 2026-07-17, v0.205.1)
+
+The security-review backlog from the v0.205.0 seat-hardening, closed. Three fail-closed hardenings of
+the command-review tribunal, all in `hooks/thing-orchestrator.sh` (+ a teeth mock in `thing-seat.sh`):
+
+- **Tie-breaker `else → allow` was a latent fail-open.** Every tie-breaker (Thor) branch failed safe
+  (abstain→posture, injection→deny, edit→edit, deny→deny) EXCEPT the final `else`, which resolved **any**
+  other verdict to `allow`. A valid-JSON but **out-of-protocol** verdict (`{"verdict":"approve"}`, or a
+  voted `abstain`) therefore defaulted to ALLOW — the pre-existing weakness the v0.205.0 review flagged
+  (and which the deny-only salvage made unreachable-via-salvage but did not itself fix). Now only a
+  literal `allow` allows; anything else resolves to the category **posture** (deny for the high-stakes
+  categories), matching the unanimous branch's `*)` fail-closed default. Proven by **Gate 14** (a new
+  `split-oop` mock drives Thor to an out-of-protocol verdict → deny, with a teeth half that reverts the
+  branch and shows it fails open — mimir denies with no cited concern so the outcome depends on the
+  tie-breaker, not the critical-veto).
+- **`emit()`/`emit_edit()` set `_emitted=1` AFTER the `jq` write** (was before) — so a serialization
+  failure aborts under `set -e` with `_emitted` still 0 and the fail-closed trap fires (exit 2), instead
+  of a fail-open exit-1 with a half-written verdict.
+- **The fail-closed EXIT trap is armed FIRST** (right after `set -euo pipefail`), before the
+  `PLUGIN_ROOT` resolution and stdin read — so an abort anywhere in setup fails closed.
+
+**Migration:** none in practice — all three only convert already-rare error/edge paths from fail-open to
+fail-closed (deny); no normal verdict changes.
