@@ -296,6 +296,18 @@ PY
       python3 scripts/check-thing-seat-extractor.py --must-fail || rc=$?
       exit $rc
       ;;
+    137)
+      echo "── Gate 137: cr-master cascade narrowed to 4 high-stakes (per-gate run) ──"
+      rc=0; node scripts/check-cr-master-cascade.mjs || rc=$?
+      node scripts/check-cr-master-cascade.mjs --must-fail || rc=$?
+      exit $rc
+      ;;
+    138)
+      echo "── Gate 138: behavioral-flag badge legibility (per-gate run) ────────────"
+      rc=0; node scripts/check-posture-legibility.mjs || rc=$?
+      node scripts/check-posture-legibility.mjs --must-fail || rc=$?
+      exit $rc
+      ;;
     139)
       echo "── Gate 139: orchestrator absent⇒full doc consistency (per-gate run) ────"
       rc=0; python3 scripts/check-orchestrator-doc-consistency.py || rc=$?
@@ -4366,6 +4378,33 @@ gate "seat-extractor: near-JSON deny salvaged, bare-JSON byte-identical" must_pa
 # stripped attempt-2 must lose the loose-deny salvage (caught).
 rc=0; python3 scripts/check-thing-seat-extractor.py --must-fail >/dev/null 2>&1 || rc=$?
 gate "seat-extractor teeth: monotonic-strip → allow + attempt2-strip → deny-lost" must_pass "$rc"
+
+echo
+echo "── Gate 137: command-review master cascade narrowed to 4 high-stakes ──────"
+# P4a: the dashboard master switch used to enable ALL 12 review categories on one
+# click (KB kb-tribunal-seats-abstaining §2/§8.2 — the blast radius that put every
+# call through a degraded panel). The gate extracts the REAL master-switch handler +
+# the dashboard's own high-stakes list and executes it against a DOM-free mock.
+rc=0; node scripts/check-cr-master-cascade.mjs >/dev/null 2>&1 || rc=$?
+gate "cr-master-cascade: ON enables exactly the 4 high-stakes, keeps existing, OFF clears all" must_pass "$rc"
+
+# teeth: the reverted all-12 cascade checks 12, not 4 — the ON-flip assertion catches it.
+rc=0; node scripts/check-cr-master-cascade.mjs --must-fail >/dev/null 2>&1 || rc=$?
+gate "cr-master-cascade teeth: reverted all-12 cascade is caught" must_pass "$rc"
+
+echo
+echo "── Gate 138: behavioral-flags-vs-permissions legibility ───────────────────"
+# P5a: the ⚙ "Behavior, not permission" badge must mark the behavioral controls on
+# BOTH surfaces (design_checkins in Settings; decision_review + orchestrator in
+# Pipeline) so an operator stops cranking every permission to Allow expecting them to
+# go quiet. Per-location assertion (not a global grep) so removal from one is caught.
+rc=0; node scripts/check-posture-legibility.mjs >/dev/null 2>&1 || rc=$?
+gate "posture-legibility: behavioral badge in BOTH the Settings and Pipeline spans" must_pass "$rc"
+
+# teeth: stripping the badge from the Pipeline span only -> the per-location check
+# fails on Pipeline while Settings still passes (a global grep would miss it).
+rc=0; node scripts/check-posture-legibility.mjs --must-fail >/dev/null 2>&1 || rc=$?
+gate "posture-legibility teeth: badge stripped from one span is caught" must_pass "$rc"
 
 echo
 echo "── Gate 139: orchestrator absent⇒full doc consistency ─────────────────────"
