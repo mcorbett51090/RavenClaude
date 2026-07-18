@@ -2,6 +2,12 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.207.0 — 2026-07-18
+
+### Added
+
+- **New best-practice: "A `PostToolUse` hook is the deterministic quarantine for untrusted tool output"** (`best-practices/` → 35 rules). Generalizes the WebFetch-only [`webfetch-hardening`](skills/webfetch-hardening/SKILL.md) floor to _every_ content-bearing channel (MCP issue/PR/ticket bodies, `WebFetch` responses, `Read`s of untrusted repos) by registering a `PostToolUse` hook that returns `hookSpecificOutput.updatedToolOutput` — which **replaces a tool's result before the model reads it** (verified against the current Claude Code hooks reference). Turns the skill's per-agent contract into a deterministic hook (the same prose/skill → hook shape as the `PreCompact` rule) and is the runtime-tool-output sibling to the 2026-07-14 [committed-config-as-untrusted](best-practices/treat-repo-committed-claude-config-as-untrusted-input.md) rule. Distilled from the recurring Claude-subreddit scan ([2026-07-18](../../docs/research/2026-07-18-claude-subreddit-scan/README.md)), where Lasso Security's open-source `PostToolUse` injection-defense hook surfaced. **Migration:** none — additive markdown; nothing in an installed plugin changes behaviorally on `/plugin marketplace update`.
+
 ## 0.202.0 — 2026-07-16
 
 ### Added
