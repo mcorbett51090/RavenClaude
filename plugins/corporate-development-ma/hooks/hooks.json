@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-hooks.json",
+  "description": "Plugin-distributed hooks for corporate-development-ma. Auto-merged with the consumer's session hooks when the plugin is installed. Paths use ${CLAUDE_PLUGIN_ROOT} so they resolve to the plugin's install location.",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/flag-corpdev-antipatterns.sh \"$CLAUDE_TOOL_FILE_PATH\"",
+            "comment": "Advisory: review this M&A deliverable against the §3 house opinions (thesis before model, owner+date on every synergy, triangulated valuation, source+date on every multiple, no MNPI). Set CORPORATE_DEVELOPMENT_MA_STRICT=1 to make it blocking."
+          }
+        ]
+      }
+    ]
+  }
+}

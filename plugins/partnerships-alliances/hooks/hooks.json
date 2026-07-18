@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-hooks.json",
+  "description": "Plugin-distributed hooks for partnerships-alliances. Auto-merged with the consumer's session hooks when the plugin is installed. Paths use ${CLAUDE_PLUGIN_ROOT} so they resolve to the plugin's install location.",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/flag-partnerships-antipatterns.sh \"$CLAUDE_TOOL_FILE_PATH\"",
+            "comment": "Advisory: review this partnerships deliverable against the §3 house opinions (sourced vs influenced kept separate, MDF measured, source+date on every external figure, no partner PII). Set PARTNERSHIPS_ALLIANCES_STRICT=1 to make it blocking."
+          }
+        ]
+      }
+    ]
+  }
+}
