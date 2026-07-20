@@ -1,0 +1,27 @@
+{
+  "name": "shopify-app-engineering",
+  "version": "0.1.0",
+  "description": "Shopify app & theme engineering team — 2 agents (shopify-app-architect, shopify-app-engineer) answering 'how do we build this on Shopify correctly, within the platform's rules, and so it survives review and scale?': public vs custom app choice, the Admin GraphQL API + webhooks + App Bridge/Polaris embedded model, OAuth & session tokens, Shopify Functions (discounts/checkout) replacing script tags, checkout extensibility & extensions, theme/Online Store 2.0 (Liquid, sections, metafields) vs Hydrogen/Storefront API headless, billing API, rate limits (GraphQL cost-based throttling), and webhook/data-protection + App Store review requirements. Engineering judgment, not a benchmark; Shopify's APIs/versions/review rules are volatile — every version carries a retrieval date + [verify-at-use]. Distinct from ecommerce-dtc (merchandising/retention ops), web-commerce (generic payment scaffold), frontend-engineering (generic React), and web-design (visual/IA). Needs ravenclaude-core.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "shopify",
+    "shopify-apps",
+    "admin-graphql-api",
+    "app-bridge",
+    "polaris",
+    "shopify-functions",
+    "checkout-extensibility",
+    "liquid",
+    "online-store-2-0",
+    "hydrogen",
+    "storefront-api",
+    "app-store-review"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}
