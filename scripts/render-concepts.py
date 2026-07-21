@@ -26,6 +26,7 @@ import argparse
 import hashlib
 import json
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -189,24 +190,34 @@ def main() -> int:
 
     vis = root / VISUALS_DIR
     vis.mkdir(parents=True, exist_ok=True)
-    # Clear stale generated SVGs before re-rendering (mirrors render-trees.py) so a
-    # concept that drops a step/mini block doesn't leave an orphan `<cid>.step-N.svg`
-    # committed forever — the manifest-keyed --check only catches a whole removed
-    # concept, not a shrunk step count (2026-07 review).
-    for old in vis.glob("*.svg"):
-        old.unlink()
+
+    # ── Render to a STAGING dir, then swap. Never delete before you can replace. ──
+    #
+    # This used to unlink every *.svg in visuals/ and only then start calling mmdc.
+    # If mmdc was missing or a single diagram failed, the run aborted having already
+    # destroyed all 186 committed SVGs, leaving an empty directory and git as the
+    # only recovery. That happened on 2026-07-21.
+    #
+    # The stale-orphan problem the original delete solved is real — a concept that
+    # drops a step leaves `<cid>.step-N.svg` behind forever, and the manifest-keyed
+    # --check only catches a whole removed concept. So the delete still happens; it
+    # just happens AFTER every render has succeeded, when there is something to put
+    # back. Same end state, no window in which the repo is worse off than when the
+    # command started.
     manifest = {"mmdc_version": MMDC_VERSION, "normalizer_version": NORMALIZER_VERSION, "concepts": {}}
     with tempfile.TemporaryDirectory() as td:
         tmp = Path(td)
+        staged = tmp / "_staged"
+        staged.mkdir()
         for c in concepts:
             cid = c["id"]
-            (vis / f"{cid}.svg").write_text(_render_one(c["diagram"], f"c-{cid}", tmp), encoding="utf-8")
+            (staged / f"{cid}.svg").write_text(_render_one(c["diagram"], f"c-{cid}", tmp), encoding="utf-8")
             if c["diagram_mini"]:
-                (vis / f"{cid}.mini.svg").write_text(
+                (staged / f"{cid}.mini.svg").write_text(
                     _render_one(c["diagram_mini"], f"c-{cid}-mini", tmp), encoding="utf-8"
                 )
             for idx, st in enumerate(c.get("steps", []), start=1):
-                (vis / f"{cid}.step-{idx}.svg").write_text(
+                (staged / f"{cid}.step-{idx}.svg").write_text(
                     _render_one(st["diagram"], f"c-{cid}-step{idx}", tmp), encoding="utf-8"
                 )
             manifest["concepts"][cid] = _source_hash(c)
@@ -216,6 +227,15 @@ def main() -> int:
             if c.get("steps"):
                 extras.append(f"+{len(c['steps'])} steps")
             print(f"  rendered {cid}" + (f"  ({', '.join(extras)})" if extras else ""))
+
+        # Every render succeeded. NOW it is safe to clear the old set and swap the
+        # staged one in — this is the only point at which the repo's committed SVGs
+        # are removed, and there is a complete replacement in hand when it happens.
+        for old_svg in vis.glob("*.svg"):
+            old_svg.unlink()
+        for new_svg in sorted(staged.glob("*.svg")):
+            shutil.move(str(new_svg), str(vis / new_svg.name))
+
     (vis / MANIFEST_NAME).write_text(
         json.dumps(manifest, indent=2, sort_keys=True, ensure_ascii=False) + "\n", encoding="utf-8"
     )
