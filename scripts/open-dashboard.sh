@@ -78,7 +78,14 @@ if [ -t 1 ]; then
     "${browser_cmd[@]}" "$URL" >/dev/null 2>&1 || true
   else
     # Time-bound so a terminal-browser fallback can never block, even interactively.
-    timeout 5 python3 -m webbrowser "$URL" >/dev/null 2>&1 || true
+    # `timeout` is absent on stock macOS (exit 127); a bare `timeout 5 …` there fails
+    # command-not-found and the `|| true` swallows it, so the tab silently never opens.
+    # Guard it (the inline pattern scripts/notify.sh uses); degrade to an unbounded open.
+    if command -v timeout >/dev/null 2>&1; then
+      timeout 5 python3 -m webbrowser "$URL" >/dev/null 2>&1 || true
+    else
+      python3 -m webbrowser "$URL" >/dev/null 2>&1 || true
+    fi
   fi
 fi
 
