@@ -10,6 +10,58 @@
   },
   "plugins": [
     {
+      "name": "subscription-billing-engineering",
+      "source": "./plugins/subscription-billing-engineering",
+      "description": "Subscription-billing-engineering team — the RECURRING-BILLING SYSTEM layer for SaaS. 2 agents (billing-systems-architect, billing-implementation-engineer) covering plan/price/entitlement modeling (flat, tiered, per-seat, usage/metered, hybrid), proration, trials & coupons, usage metering & rating, dunning & involuntary-churn recovery, idempotent webhook reconciliation, and the correctness seams to revenue recognition (ASC 606) + sales-tax/VAT. Stripe-Billing-leaning, portable to Chargebee/Recurly/Paddle. 3 skills, 2 Mermaid-backed knowledge docs, 2 runbook templates. Seams: payment rails → fintech-payments-engineering; pricing strategy → pricing-monetization; revrec → finance; tax → regulatory-compliance. House line: model before you integrate; idempotency before features. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "subscription-billing",
+        "recurring-billing",
+        "saas-billing",
+        "stripe-billing",
+        "usage-based-billing",
+        "metered-billing",
+        "proration",
+        "dunning",
+        "revenue-recognition",
+        "asc-606",
+        "sales-tax",
+        "webhook-idempotency",
+        "entitlements",
+        "chargebee",
+        "recurly"
+      ]
+    },
+    {
+      "name": "recommendation-systems-engineering",
+      "source": "./plugins/recommendation-systems-engineering",
+      "description": "Recommendation-systems-engineering team — the RECSYS layer that turns interaction data into ranked recommendations. 2 agents (recsys-architect, recsys-implementation-engineer) covering approach selection (popularity baseline, collaborative filtering, content-based, hybrid, two-tower/embedding retrieval, sequential), the candidate-generation → ranking → re-ranking pipeline, cold-start (new user/new item), offline evaluation (recall@k, nDCG, MAP, coverage/diversity) AND online A/B, feature stores with train/serve parity, low-latency serving, and feedback-loop/position bias. 3 skills, 2 Mermaid-backed knowledge docs, 2 templates. Seams: training infra → ml-engineering; keyword/semantic search → search-relevance-engineering; A/B + stats → experimentation-growth-engineering + applied-statistics. House line: baseline before a neural net; offline wins must survive an online A/B. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "recommendation-systems",
+        "recsys",
+        "collaborative-filtering",
+        "content-based-filtering",
+        "two-tower",
+        "candidate-generation",
+        "ranking",
+        "re-ranking",
+        "cold-start",
+        "ndcg",
+        "recall-at-k",
+        "embeddings",
+        "feature-store",
+        "online-evaluation",
+        "position-bias"
+      ]
+    },
+    {
       "name": "incident-response-dfir",
       "source": "./plugins/incident-response-dfir",
       "description": "Blue-team DFIR / SOC team — 2 agents (dfir-response-lead, detection-and-forensics-engineer) for running a security incident end to end: the incident lifecycle per NIST SP 800-61r3 (CSF 2.0-aligned; supersedes r2; 4 phases: preparation -> detection & analysis -> containment/eradication/recovery -> post-incident), triage & severity classification, containment strategy, breach coordination + comms + regulatory notification (GDPR 72h), tabletops; and detection engineering (SIEM/Sigma rules mapped to MITRE ATT&CK, alert tuning), hypothesis-driven threat hunting, evidence acquisition & forensics (order of volatility per RFC 3227, chain of custody), and malware triage. 5 skills, a knowledge bank with two Mermaid decision trees + a dated 2026 DFIR tooling map, 5 best-practices, 3 templates, 1 advisory hook. Seams: appsec/secure-coding -> security-engineering; governance/risk/audit -> cybersecurity-grc; reliability incidents -> observability-sre; platform abuse -> trust-and-safety. Requires ravenclaude-core@>=0.7.0.",
