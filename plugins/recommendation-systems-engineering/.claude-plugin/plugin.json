@@ -1,0 +1,30 @@
+{
+  "name": "recommendation-systems-engineering",
+  "version": "0.1.0",
+  "description": "Recommendation-systems-engineering team — the RECSYS layer that turns interaction data into ranked recommendations. 2 agents (recsys-architect, recsys-implementation-engineer) covering approach selection (popularity baseline, collaborative filtering, content-based, hybrid, two-tower/embedding retrieval, sequential), the candidate-generation → ranking → re-ranking pipeline, cold-start (new user/new item), offline evaluation (recall@k, nDCG, MAP, coverage/diversity) AND online A/B, feature stores with train/serve parity, low-latency serving, and feedback-loop/position bias. 3 skills, 2 Mermaid-backed knowledge docs, 2 templates. Seams: training infra → ml-engineering; keyword/semantic search → search-relevance-engineering; A/B + stats → experimentation-growth-engineering + applied-statistics. House line: baseline before a neural net; offline wins must survive an online A/B. Requires ravenclaude-core@>=0.7.0.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "recommendation-systems",
+    "recsys",
+    "collaborative-filtering",
+    "content-based-filtering",
+    "two-tower",
+    "candidate-generation",
+    "ranking",
+    "re-ranking",
+    "cold-start",
+    "ndcg",
+    "recall-at-k",
+    "embeddings",
+    "feature-store",
+    "online-evaluation",
+    "position-bias"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}
