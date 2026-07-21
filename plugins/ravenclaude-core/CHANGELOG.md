@@ -2,6 +2,14 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.207.0 — 2026-07-21
+
+### Added
+
+- **New best-practice — "Build a capability as CLI + Skill first; reach for MCP only when the state lives in someone else's running system"** ([`best-practices/build-cli-plus-skill-first-reach-for-mcp-for-live-external-state.md`](best-practices/build-cli-plus-skill-first-reach-for-mcp-for-live-external-state.md), rule 35). The design-time selection heuristic — a Skill answers "how do we do X _here_?", an MCP server answers "what is true right now _over there_?" — so build CLI + Skill by default and reach for MCP only when the agent needs a live view of state inside another running system. This is the **upstream** complement to the runtime [`mcp-tool-context-is-a-budget`](best-practices/mcp-tool-context-is-a-budget-enable-only-what-you-need.md) rule (that one prunes the servers you already enabled; this one decides whether to add one at all). Sourced from the recurring Claude-community scan ([2026-07-21](../../docs/research/2026-07-21-claude-subreddit-scan/README.md)); token figures marked `verify-at-use`, the discriminator is the durable part.
+
+**Cost:** none to any always-loaded surface — one additive best-practice file + a README index row (34 → 35 rules). **Migration:** none — additive markdown; nothing in a consumer's installed plugin changes behaviorally on `/plugin marketplace update`.
+
 ## 0.202.0 — 2026-07-16
 
 ### Added
