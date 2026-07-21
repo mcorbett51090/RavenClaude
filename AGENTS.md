@@ -34,7 +34,7 @@ RavenClaude/
 │   ├── ravenclaude-core/              domain-neutral plugin
 │   └── power-platform/                Microsoft Power Platform specialists
 ├── .claude/                           project config for working ON the marketplace
-├── .github/workflows/                 CI: validate-marketplace + validate-layout
+├── .github/workflows/                 CI: validate-marketplace + validate-layout + validate-schemas
 ├── docs/                              meta-repo docs
 └── AGENTS.md / CLAUDE.md / README.md  boundary files (root)
 ```
@@ -64,10 +64,10 @@ Every plugin **must** have `.claude-plugin/plugin.json`, `README.md`, and `CLAUD
 
 Claude Code loads the `name` + `description` of **every agent in every *enabled* plugin** into the orchestrator's system prompt so it can route to subagents (agent bodies load lazily, only when an agent is invoked). The combined descriptions count against a **~15K-token budget**; cross it and Claude Code warns *"agent descriptions are over the 15.0K token limit — /agents to free up context."*
 
-This marketplace ships **~100 plugins / 400+ agents**, so two levers keep the budget affordable — they're complementary, not either/or:
+This marketplace ships **~165 plugins / 400+ agents**, so two levers keep the budget affordable — they're complementary, not either/or:
 
 1. **Per-agent cap (this repo's job).** Every agent `description` is held to ≤ 300 chars (~75 tokens) by the `check-frontmatter.py` gate above. No single plugin is the problem; the cap is what lets a consumer enable *many* plugins before hitting the warning.
-2. **Enable only what you need (the consumer's job).** You cannot fit all ~100 plugins under 15K regardless of how tight the descriptions are — that's expected, not a defect. Enable the plugins relevant to your work and disable the rest via **`/agents`** (or `/plugin`). That's exactly what the warning's `/agents` hint points at, and it's the correct response to it. **Budget before you enable, not after the warning fires:** the `/plugin` **Discover** tab now surfaces a per-plugin **Context cost** estimate (the tokens a plugin adds to every turn — Claude Code v2.1.143+) and a **Will install** inventory of its commands/agents/skills/hooks/MCP+LSP servers (v2.1.145+), so you can see what a plugin costs the orchestrator prompt _before_ installing it rather than discovering the 15K overrun afterward. (Verified against [Discover and install plugins](https://code.claude.com/docs/en/discover-plugins), 2026-06-21.)
+2. **Enable only what you need (the consumer's job).** You cannot fit all ~165 plugins under 15K regardless of how tight the descriptions are — that's expected, not a defect. Enable the plugins relevant to your work and disable the rest via **`/agents`** (or `/plugin`). That's exactly what the warning's `/agents` hint points at, and it's the correct response to it. **Budget before you enable, not after the warning fires:** the `/plugin` **Discover** tab now surfaces a per-plugin **Context cost** estimate (the tokens a plugin adds to every turn — Claude Code v2.1.143+) and a **Will install** inventory of its commands/agents/skills/hooks/MCP+LSP servers (v2.1.145+), so you can see what a plugin costs the orchestrator prompt _before_ installing it rather than discovering the 15K overrun afterward. (Verified against [Discover and install plugins](https://code.claude.com/docs/en/discover-plugins), 2026-06-21.)
 
 ## Modifying an existing plugin
 
