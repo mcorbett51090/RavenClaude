@@ -53,7 +53,16 @@ done
 
 # Refresh the remote-tracking ref (bounded; offline degrades to an advisory skip).
 if [[ "$fetch" -eq 1 ]]; then
-  if ! timeout 10 git fetch -q "$REMOTE" "$BASE" 2>/dev/null; then
+  # `timeout` is absent on stock macOS (exit 127). A bare `timeout 10 git fetch`
+  # there fails command-not-found → the `if !` takes the "offline" skip path on
+  # EVERY macOS run, silently disabling the freshness check. Guard it (the same
+  # inline pattern scripts/notify.sh uses) so the fetch still runs, unbounded.
+  if command -v timeout >/dev/null 2>&1; then
+    fetch_cmd=(timeout 10 git fetch -q "$REMOTE" "$BASE")
+  else
+    fetch_cmd=(git fetch -q "$REMOTE" "$BASE")
+  fi
+  if ! "${fetch_cmd[@]}" 2>/dev/null; then
     echo "  ~ checkout-freshness: could not reach $REMOTE (offline?). Skipping check." >&2
     exit 0
   fi
