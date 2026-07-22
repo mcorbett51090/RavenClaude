@@ -3756,6 +3756,25 @@ PY
   rc=0; node scripts/check-shell-router.selftest.mjs --checker "$WEAK_CHECKER" "$IDX_HTML" >/dev/null 2>&1 || rc=$?
   gate "shell-router selftest (a weakened checker is caught)" must_fail "$rc"
 
+  # ── G2/G3: router-EXECUTION reachability. The gates above prove the router
+  # SCAFFOLD by reading source as text; NONE runs it — so dropping a sub-nav <a href>
+  # while the map literals stay well-formed sails through (the exact class that
+  # orphaned #/pipeline, #/web-access, Help, trees to hash-only access). This gate
+  # EXTRACTS the four maps + navChildren()/resolveNavActive() and EXECUTES them in a
+  # node:vm against the real D, asserting every FLOOR route stays click-reachable as a
+  # nav-subitem <a href> and highlights the right NAV section. (Eval is a deliberate,
+  # documented exception justified by the trusted same-org generated input.)
+  rc=0; node scripts/check-router-execution.mjs "$IDX_HTML" >/dev/null 2>&1 || rc=$?
+  gate "router-execution (every floor route click-reachable, executed)" must_pass "$rc"
+  # must_pass: the selftest proves the teeth EXTERNALLY (every floor-route mutation
+  # trips the gate as a subprocess) — the self-certification guard, mirroring the
+  # shell-router selftest. A gate that only asserts its own green is worthless.
+  rc=0; node scripts/check-router-execution.mjs --selftest "$IDX_HTML" >/dev/null 2>&1 || rc=$?
+  gate "router-execution selftest (all floor mutations trip the gate)" must_pass "$rc"
+  # must_fail (teeth): dropping a sub-nav link from the EXECUTED navChildren goes red.
+  rc=0; node scripts/check-router-execution.mjs --mutate '#/web-access' "$IDX_HTML" >/dev/null 2>&1 || rc=$?
+  gate "router-execution (a dropped sub-nav link is detected)" must_fail "$rc"
+
   # ── DASH_TAB_ALIAS-target validity teeth (P3, §11.2). DASH_TAB_ALIAS maps a
   # shell route → a FRAGMENT tab id; a mistyped value that is not a real tab blanks
   # the dashboard host with zero console error (invisible to both Gate 51 scripts
@@ -3766,6 +3785,12 @@ PY
   # sleipnir: "activity" — to a non-existent tab.)
   IDX_ALIAS_BAD="$TMP/render-index-badalias.html"
   sed 's/sleipnir: "activity"/sleipnir: "activityyy"/' "$IDX_HTML" > "$IDX_ALIAS_BAD"
+  # G7 (no-op guard): the mutation hardcodes the IA literal `sleipnir: "activity"`.
+  # If that alias ever drifts (renamed/reordered/removed — as `nidhoggr: "heimdall"`
+  # already did on the A-split un-merge), the sed matches NOTHING, bad==good, and the
+  # must_fail below would be exercising an UNMUTATED file — the teeth quietly gone.
+  # Assert the mutation actually changed the file (cmp returns nonzero == differ == good).
+  cmp_rc=0; cmp -s "$IDX_HTML" "$IDX_ALIAS_BAD" || cmp_rc=$?; gate "shell-router DASH_TAB_ALIAS mutation is not a no-op" must_fail "$cmp_rc"
   rc=0; node scripts/check-shell-router.mjs "$IDX_ALIAS_BAD" >/dev/null 2>&1 || rc=$?
   gate "shell-router (a mistyped DASH_TAB_ALIAS target is detected)" must_fail "$rc"
 
@@ -3792,9 +3817,45 @@ PY
   # → #/heimdall dead-ends on the router fallback instead of viewDashboard:heimdall.
   IDX_ROUTE_BAD="$TMP/render-index-route-broken.html"
   sed 's/heimdall: "guardrails", vidarr: "guardrails"/vidarr: "guardrails"/' "$IDX_HTML" > "$IDX_ROUTE_BAD"
+  # G7 (no-op guard): same latent class as the DASH_TAB_ALIAS mutation above — this
+  # hardcodes the exact adjacent-pair string `heimdall: "guardrails", vidarr: "guardrails"`,
+  # so a reorder / prettier reflow / owner change turns the sed into a no-op and the
+  # must_fail teeth would test an unmutated file. Assert the mutation changed the file.
+  cmp_rc=0; cmp -s "$IDX_HTML" "$IDX_ROUTE_BAD" || cmp_rc=$?; gate "committed-routes DASH_OWNER mutation is not a no-op" must_fail "$cmp_rc"
   rc=0; node scripts/check-committed-routes.mjs \
     --dashboard "$DASH_HTML" --index "$IDX_ROUTE_BAD" --fixture "$ROUTE_FIX" >/dev/null 2>&1 || rc=$?
   gate "committed-routes (a broken DASH_OWNER destination is detected)" must_fail "$rc"
+
+  # ── G12: committed-artifact version consistency. Asserts the ravenclaude-core
+  # plugin version embedded in the COMMITTED index.html (window.__RC_DATA__) equals
+  # the committed plugin.json version. Gate 13/97 catch this via regenerate+byte-
+  # compare, but that (a) needs a full regen and (b) was bypassed on the merge COMMIT
+  # for the 0.208.1-vs-0.209.0 drift that reached main via merge-skew. This is a cheap,
+  # committed-only, explicit-message tripwire (NOT the marketplace CATALOG version /
+  # foot-version, which is a separate field). Runs against $IDX_HTML (freshly rendered
+  # in the audit) so it also covers the fresh side. ──
+  _idx_rc_version() { # $1=html $2=want-version → exit 0 iff embedded == want
+    python3 - "$1" "$2" <<'PY'
+import json, re, sys
+html = open(sys.argv[1], encoding="utf-8").read()
+want = sys.argv[2]
+m = re.search(r"window\.__RC_DATA__ = (.*?);\s*\n\s*const D = window\.__RC_DATA__;", html, re.DOTALL)
+if not m:
+    sys.exit(2)
+data = json.loads(m.group(1))
+rc = next((p for p in data.get("plugins", []) if p.get("name") == "ravenclaude-core"), None)
+sys.exit(0 if (rc and rc.get("version") == want) else 1)
+PY
+  }
+  MANIFEST_V=$(python3 -c "import json;print(json.load(open('plugins/ravenclaude-core/.claude-plugin/plugin.json'))['version'])")
+  rc=0; _idx_rc_version "$IDX_HTML" "$MANIFEST_V" || rc=$?
+  gate "artifact-version (index.html embeds the manifest rc-core version)" must_pass "$rc"
+  # must_fail (teeth): an index.html embedding a DIFFERENT rc-core version is caught.
+  IDX_VER_BAD="$TMP/render-index-verdrift.html"
+  sed "s/\"name\":\"ravenclaude-core\",\"label\":\"Ravenclaude Core\",\"version\":\"$MANIFEST_V\"/\"name\":\"ravenclaude-core\",\"label\":\"Ravenclaude Core\",\"version\":\"0.0.0\"/" "$IDX_HTML" > "$IDX_VER_BAD"
+  cmp_rc=0; cmp -s "$IDX_HTML" "$IDX_VER_BAD" || cmp_rc=$?; gate "artifact-version mutation is not a no-op" must_fail "$cmp_rc"
+  rc=0; _idx_rc_version "$IDX_VER_BAD" "$MANIFEST_V" || rc=$?
+  gate "artifact-version (a drifted embedded rc-core version is detected)" must_fail "$rc"
 
   # ── required_routes floor half (PB-2): the anti-laundering control C5 needs. ──
   # must_fail 51-a (the sharpest): remove a required href from a rendered copy,
