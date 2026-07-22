@@ -3810,7 +3810,7 @@
     {
       "name": "report-regeneration",
       "source": "./plugins/report-regeneration",
-      "description": "Regenerates a review-ready report (HTML or Office/Word→PDF) from an old distributed report used as a template — infers the template's structure with no markup, re-binds it to new data (including Power BI data via XMLA, with a REST executeQueries fallback, and an embedded Power BI screenshot), and runs a gold-standard auto-QA gate: data accuracy vs source, template fidelity, WCAG/PDF-UA accessibility, consistency, and a blocking no-old-client-data-leak egress scan. It GUARANTEES only (a) no old-client-data leak and (b) that every low-confidence classification is surfaced for human review — it produces a draft; peer review, edits, and distribution stay with the human. Local-only for sensitive client data. 11 skills across the HTML → Office → Power-BI lanes; no agents of its own — reuses core reviewers (security-reviewer, code-reviewer) for QA. Requires ravenclaude-core@>=0.204.0.",
+      "description": "Regenerates a review-ready report (HTML or Office/Word\u2192PDF) from an old distributed report used as a template \u2014 infers the template's structure with no markup, re-binds it to new data (including Power BI data via XMLA, with a REST executeQueries fallback, and an embedded Power BI screenshot), and runs a gold-standard auto-QA gate: data accuracy vs source, template fidelity, WCAG/PDF-UA accessibility, consistency, and a blocking no-old-client-data-leak egress scan. It GUARANTEES only (a) no old-client-data leak and (b) that every low-confidence classification is surfaced for human review \u2014 it produces a draft; peer review, edits, and distribution stay with the human. Local-only for sensitive client data. 11 skills across the HTML \u2192 Office \u2192 Power-BI lanes; no agents of its own \u2014 reuses core reviewers (security-reviewer, code-reviewer) for QA. Requires ravenclaude-core@>=0.204.0.",
       "version": "0.1.0",
       "author": {
         "name": "Matt Corbett"
@@ -3836,6 +3836,29 @@
       "requires": {
         "plugins": ["ravenclaude-core@>=0.204.0"]
       }
+    },
+    {
+      "name": "ai-agent-engineering",
+      "source": "./plugins/ai-agent-engineering",
+      "description": "AI agent-engineering team \u2014 2 agents (agentic-systems-architect, agent-implementation-engineer) for BUILDING production agentic systems: hard TRIAGE (most tasks win as a fixed workflow or a single LLM call, not an agent), single-vs-multi-agent topology, framework selection (LangGraph / OpenAI Agents SDK / CrewAI / AutoGen / Claude Agent SDK), tool & function design, context/memory/state management, planning & reflection loops, human-in-the-loop, guardrails, cost/latency budgets, tracing/observability, and agent EVALS (trajectory, tool-use, task-completion). 3 skills, a 2-doc knowledge bank, and 2 templates. Engineering judgment, not a demo; the framework/model/API landscape is volatile \u2014 every version carries a retrieval date + [verify-at-use]. Distinct from ai-rag-engineering (retrieval), prompt-engineering (single-call prompt craft), llm-evaluation-engineering (general eval harnesses), and claude-app-engineering (Claude product apps). Needs ravenclaude-core.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "ai-agents",
+        "agentic-systems",
+        "agent-orchestration",
+        "multi-agent",
+        "tool-use",
+        "function-calling",
+        "langgraph",
+        "openai-agents-sdk",
+        "crewai",
+        "autogen",
+        "claude-agent-sdk",
+        "agent-evaluation"
+      ]
     }
   ]
 }

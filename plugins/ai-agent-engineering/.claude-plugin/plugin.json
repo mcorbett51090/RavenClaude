@@ -1,0 +1,27 @@
+{
+  "name": "ai-agent-engineering",
+  "version": "0.1.0",
+  "description": "AI agent-engineering team — 2 agents (agentic-systems-architect, agent-implementation-engineer) for BUILDING production agentic systems: hard TRIAGE (most tasks win as a fixed workflow or a single LLM call, not an agent), single-vs-multi-agent topology, framework selection (LangGraph / OpenAI Agents SDK / CrewAI / AutoGen / Claude Agent SDK), tool & function design, context/memory/state management, planning & reflection loops, human-in-the-loop, guardrails, cost/latency budgets, tracing/observability, and agent EVALS (trajectory, tool-use, task-completion). 3 skills, a 2-doc knowledge bank, and 2 templates. Engineering judgment, not a demo; the framework/model/API landscape is volatile — every version carries a retrieval date + [verify-at-use]. Distinct from ai-rag-engineering (retrieval), prompt-engineering (single-call prompt craft), llm-evaluation-engineering (general eval harnesses), and claude-app-engineering (Claude product apps). Needs ravenclaude-core.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "ai-agents",
+    "agentic-systems",
+    "agent-orchestration",
+    "multi-agent",
+    "tool-use",
+    "function-calling",
+    "langgraph",
+    "openai-agents-sdk",
+    "crewai",
+    "autogen",
+    "claude-agent-sdk",
+    "agent-evaluation"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}
