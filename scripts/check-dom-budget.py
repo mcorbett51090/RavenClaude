@@ -133,6 +133,12 @@ RATCHET = {
                                      "(+ the plugin-vars picker tab); role=tablist/role=tab + the roving-"
                                      "tabindex handler removed. Panels unchanged (P4/P5 merge/delete them). "
                                      "Measured 6,095 -> 6,081 (-14). Additions: zero. Zero slack."),
+        ("P4 (Observe merge)", 6076, "the Observe family is physically merged: the five tab-panel wrappers "
+                                     "panel-{saga,mimir,streams,norns,vidarr} are removed and their content "
+                                     "folded into panel-activity (saga/mimir/streams/norns) and panel-heimdall "
+                                     "(vidarr). Every mount id + render function is byte-identical; only the "
+                                     "five <section> wrappers left. Measured 6,081 -> 6,076 (-5). Additions: "
+                                     "zero. Zero slack."),
     ],
     INDEX: [
         ("Phase 0 -> 6", 50982, "Phase 0 baseline 50,945; +37 in Phase 6 (same guard-web-access + "
@@ -152,6 +158,10 @@ RATCHET = {
                                      "into #primary-nav (the committed-route floor for #/control, #/activity, "
                                      "#/guardrails, #/catalog; renderNav replaces them at load). Measured "
                                      "6,800 -> 6,790 (-10). Zero slack."),
+        ("P4 (Observe merge)", 6785, "the folded fragment's five Observe wrappers (panel-{saga,mimir,streams,"
+                                     "norns,vidarr}) removed and their content folded into panel-activity / "
+                                     "panel-heimdall (same merge as the standalone surface). Measured "
+                                     "6,790 -> 6,785 (-5). Additions: zero. Zero slack."),
     ],
 }
 

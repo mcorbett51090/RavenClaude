@@ -6683,7 +6683,7 @@ _INSTALL_TAB_TEMPLATE = """
 
 
 _SAGA_TAB_TEMPLATE = """
-<div class="saga-layout">
+<div class="saga-layout" id="saga">
   <div class="saga-hdr">
     <h2>&#9878; Review log</h2>
     <button type="button" class="saga-refresh" id="saga-refresh-btn">Refresh</button>
@@ -6788,7 +6788,7 @@ _HEIMDALL_TAB_TEMPLATE = """
 """.strip()
 
 _VIDARR_TAB_TEMPLATE = """
-<div class="vidarr-layout">
+<div class="vidarr-layout" id="vidarr">
   <div class="saga-hdr">
     <h2><span aria-hidden="true">&#128095;</span> Security log</h2>
     <button type="button" class="saga-refresh" id="vidarr-refresh-btn">Refresh</button>
@@ -6816,7 +6816,7 @@ _VIDARR_TAB_TEMPLATE = """
 """.strip()
 
 _NORNS_TAB_TEMPLATE = """
-<div class="norns-layout">
+<div class="norns-layout" id="norns">
   <div class="saga-hdr">
     <h2><span aria-hidden="true">&#127795;</span> Lineage</h2>
     <button type="button" class="saga-refresh" id="norns-refresh-btn">Refresh</button>
@@ -6841,7 +6841,7 @@ _NORNS_TAB_TEMPLATE = """
 """.strip()
 
 _MIMIR_TAB_TEMPLATE = """
-<div class="mimir-layout">
+<div class="mimir-layout" id="mimir">
   <div class="saga-hdr">
     <h2><span aria-hidden="true">&#127769;</span> Session</h2>
     <button type="button" class="saga-refresh" id="mimir-refresh-btn">Refresh</button>
@@ -6873,7 +6873,7 @@ _MIMIR_TAB_TEMPLATE = """
 """.strip()
 
 _STREAMS_TAB_TEMPLATE = """
-<div class="mimir-layout">
+<div class="mimir-layout" id="streams">
   <div class="saga-hdr">
     <h2><span aria-hidden="true">&#127754;</span> Streams</h2>
     <button type="button" class="saga-refresh" id="streams-refresh-btn">Refresh</button>
@@ -9228,13 +9228,33 @@ _JS = r"""
     if (tab === "learn") loadLearn();
     if (tab === "learn" && sub) openConcept(sub);
     if (tab === "commands" && !commandsLoaded) loadCommands();
-    if (tab === "saga" && !sagaLoaded) loadSaga();
-    if (tab === "activity" && !activityLoaded) loadActivity();
-    if (tab === "heimdall" && !heimdallLoaded) loadHeimdall();
-    if (tab === "vidarr" && !vidarrLoaded) loadVidarr();
-    if (tab === "norns" && !nornsLoaded) loadNorns();
-    if (tab === "mimir" && !mimirLoaded) loadMimir();
-    if (tab === "streams" && !streamsLoaded) loadStreams();
+    // P4 (dashboard-consumption): the Observe family is physically merged. Activity
+    // now contains the run feed + saga/mimir/streams/norns as anchored sections;
+    // Guardrails (Heimdall) contains its cards + vidarr (nidhoggr's debt card is
+    // already loaded inside loadHeimdall). Their old tab ids no longer exist (P3
+    // removed the tab-btns), so each loader runs through its new home destination.
+    // Each loader is guarded by its own *Loaded latch → exactly one GET per endpoint
+    // on activate, no duplicate fetches.
+    if (tab === "activity") {
+      if (!activityLoaded) loadActivity();
+      if (!sagaLoaded) loadSaga();
+      if (!mimirLoaded) loadMimir();
+      if (!streamsLoaded) loadStreams();
+      if (!nornsLoaded) loadNorns();
+    }
+    if (tab === "heimdall") {
+      if (!heimdallLoaded) loadHeimdall();
+      if (!vidarrLoaded) loadVidarr();
+    }
+    // A retired Observe route (#/saga … #/nidhoggr) resolves to its destination tab
+    // (shown above) and carries the merged section's anchor id in `sub`; scroll to it
+    // once the tab is visible so the deep-link lands on its block.
+    if (sub && (tab === "activity" || tab === "heimdall")) {
+      const anchorEl = document.getElementById(sub);
+      if (anchorEl && typeof anchorEl.scrollIntoView === "function") {
+        requestAnimationFrame(() => anchorEl.scrollIntoView({ block: "start", behavior: "smooth" }));
+      }
+    }
     if (tab === "pipeline") syncPipelineTab();
     if (tab === "plugin-vars") activatePluginVars(sub);
     if (tab === "web-access") hydrateWebAccess();
@@ -12359,9 +12379,6 @@ _PAGE_TEMPLATE = """<!doctype html>
     <script type="application/json" id="learn-payload">{learn_json}</script>
     <noscript><p>The Learn guidance renders with JavaScript. The concept source lives under <code>plugins/*/knowledge/concepts/</code>.</p></noscript>
   </section>
-  <section class="tab-panel" id="panel-saga" data-tab="saga" role="tabpanel" aria-label="Review log">
-{saga_html}
-  </section>
   <section class="tab-panel" id="panel-commands" data-tab="commands" role="tabpanel" aria-label="Commands">
     <div id="commands-mount"></div>
     <script type="application/json" id="commands-payload">{commands_json}</script>
@@ -12372,23 +12389,25 @@ _PAGE_TEMPLATE = """<!doctype html>
     <script type="application/json" id="trees-payload">{trees_json}</script>
     <noscript><p>The decision-trees &amp; best-practices guidance renders with JavaScript. The source lives under <code>plugins/*/rules/</code> and <code>plugins/*/best-practices/</code>.</p></noscript>
   </section>
+  <!-- P4 (dashboard-consumption): the Observe family is physically merged. Activity
+       absorbs the Review log (saga), Session (mimir), Streams and Lineage (norns) as
+       anchored blocks (id="saga"/"mimir"/"streams"/"norns" live on each skeleton's
+       outer div); Guardrails (Perimeter alerts / Heimdall) absorbs the Security log
+       (vidarr, id="vidarr") and already hosts the Níðhöggr debt card (#heimdall-debt).
+       Only the five enclosing <section> wrappers were removed — every mount id and
+       every render function is byte-identical, so the B15 render gates stay green. A
+       retired route (#/saga … #/nidhoggr) resolves to its destination tab and scrolls
+       to its anchor (see activate()'s sub handling + the portal's DASH_ANCHOR map). -->
   <section class="tab-panel" id="panel-activity" data-tab="activity" role="tabpanel" aria-label="Run feed">
 {activity_html}
+{saga_html}
+{mimir_html}
+{streams_html}
+{norns_html}
   </section>
   <section class="tab-panel" id="panel-heimdall" data-tab="heimdall" role="tabpanel" aria-label="Perimeter alerts">
 {heimdall_html}
-  </section>
-  <section class="tab-panel" id="panel-vidarr" data-tab="vidarr" role="tabpanel" aria-label="Security log">
 {vidarr_html}
-  </section>
-  <section class="tab-panel" id="panel-norns" data-tab="norns" role="tabpanel" aria-label="Plugin lineage">
-{norns_html}
-  </section>
-  <section class="tab-panel" id="panel-mimir" data-tab="mimir" role="tabpanel" aria-label="Session state">
-{mimir_html}
-  </section>
-  <section class="tab-panel" id="panel-streams" data-tab="streams" role="tabpanel" aria-label="Work-streams">
-{streams_html}
   </section>
   <section class="tab-panel" id="panel-bifrost" data-tab="bifrost" role="tabpanel" aria-label="Add plugin">
 {bifrost_html}

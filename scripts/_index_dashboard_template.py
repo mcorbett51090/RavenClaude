@@ -843,6 +843,21 @@ TEMPLATE = r"""<!doctype html>
       const DASH_TAB_ALIAS = {
         dashboard: "overview", "comfort-posture": "settings",
         nidhoggr: "heimdall", sleipnir: "activity", concepts: "learn",
+        // P4 (dashboard-consumption): the Observe family is physically merged, so
+        // these retired tab routes now resolve to their destination FRAGMENT tab —
+        // Activity (saga/mimir/streams/norns) or Guardrails/Heimdall (vidarr). Each
+        // value is a real .tab-btn[data-tab] (Gate 51's DASH_TAB_ALIAS-target check).
+        saga: "activity", mimir: "activity", streams: "activity",
+        norns: "activity", vidarr: "heimdall",
+      };
+      // Retired Observe sub-routes now live as anchored <section>s inside a destination
+      // tab (P4). A bare #/saga etc. has no sub-segment, so map the route name → its
+      // in-panel anchor id; viewDashboard passes it through activate()'s `sub`, which
+      // scrolls to it inside Activity/Guardrails. nidhoggr/sleipnir keep their existing
+      // in-panel mounts (the debt card / the stables banner).
+      const DASH_ANCHOR = {
+        saga: "saga", mimir: "mimir", streams: "streams", norns: "norns",
+        vidarr: "vidarr", nidhoggr: "heimdall-debt", sleipnir: "sleipnir-stables",
       };
       // Legacy top-level shell route → canonical NAV section (back-compat for
       // committed bookmarks, ⌘K quick-actions, and internal hrefs).
@@ -916,7 +931,10 @@ TEMPLATE = r"""<!doctype html>
       }
       function viewDashboard(section, sub) {
         showHost("dash");
-        if (window.__dashApp) window.__dashApp.show(DASH_TAB_ALIAS[section] || section, sub);
+        // A retired Observe route (#/saga … #/nidhoggr) carries no sub-segment; map it
+        // to its in-panel anchor id so activate() scrolls to the merged section (P4).
+        const anchor = sub || DASH_ANCHOR[section];
+        if (window.__dashApp) window.__dashApp.show(DASH_TAB_ALIAS[section] || section, anchor);
         // Banner only on live-data destinations (Activity + Guardrails + Control);
         // the Catalog/Help-area dashboard tabs work offline, so no banner there.
         const owner = DASH_OWNER[section] || "activity";
