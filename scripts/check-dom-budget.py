@@ -172,6 +172,12 @@ RATCHET = {
                                             "panel-overview + panel-simulator deleted; install/bifrost/about/"
                                             "commands folded into ONE panel-help drawer + the grouped C5 "
                                             "removed-routes table. Measured 6,785 -> 6,762 (-23). Zero slack."),
+        ("P6 (payload demotion)", 6759, "the three portal-only JSON payload islands learn-payload / "
+                                        "trees-payload / concepts-data stripped from the folded dashboard body "
+                                        "(portal Learn/Trees/Concepts are P5 named removals -> standalone + "
+                                        "Pages; the standalone keeps them inline, Gate 13 non-contact). Removing "
+                                        "three <script> ELEMENTS. Measured 6,762 -> 6,759 (-3). Additions: zero. "
+                                        "Zero slack."),
     ],
 }
 

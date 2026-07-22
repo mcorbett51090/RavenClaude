@@ -1041,6 +1041,42 @@ def _extract_detail_island(data: dict) -> dict:
     return {"plugins": island_plugins}
 
 
+# P6 (FORGE dashboard-consumption): the Learn / Guidance-trees / Concepts JSON
+# payload islands are portal DEAD WEIGHT. P5 turned the portal's Learn/Trees/Concepts
+# into NAMED REMOVALS pointing at the standalone `/dashboard` + the Pages copy
+# (docs/dashboard-removed-routes.md), so nothing in THIS document renders working
+# Learn/Trees/Concepts content: the folded dashboard JS's loadTrees()/loadLearn()/
+# initConceptNodeLinks()/initTreesSearch() readers are all null-safe (`if (!payload)
+# return;`), and no portal route or clickable affordance drives them here. The
+# standalone dashboard.html keeps these spans inline (generate-dashboards.py is
+# untouched -> Gate 13 non-contact by construction). Stripping the three spans from the
+# folded body drops ~7.19 MB of raw markup off index.html.
+#   WARN: only these three ids -- #dt-store and #plugin-detail-payload are index-only,
+#   emitted by THIS generator (not the fragment), and stay untouched.
+_PORTAL_ONLY_PAYLOAD_IDS = ("learn-payload", "trees-payload", "concepts-data")
+
+
+def _strip_portal_only_payloads(body: str) -> str:
+    """Remove the three portal-only `<script type="application/json" id="...">` payload
+    islands from the folded dashboard fragment body. Fail-loud: each id MUST match
+    exactly one span (the generator escapes `<`->`\\u003c` inside these payloads, so no
+    literal `</script` appears in the content -- a non-greedy first-match to the single
+    terminator is exact). A count != 1 means the fragment shape changed and the byte-diet
+    assumption no longer holds -- raise rather than silently under/over-strip."""
+    for pid in _PORTAL_ONLY_PAYLOAD_IDS:
+        pattern = re.compile(
+            r'<script\b[^>]*\bid="' + re.escape(pid) + r'"[^>]*>.*?</script>',
+            re.DOTALL,
+        )
+        body, n = pattern.subn("", body)
+        if n != 1:
+            raise RuntimeError(
+                f"_strip_portal_only_payloads: expected exactly 1 '{pid}' span in the "
+                f"folded dashboard body, found {n} -- fragment shape changed (P6 assumption broken)."
+            )
+    return body
+
+
 def render_html(data: dict) -> str:
     template = _TEMPLATE
     shared_tokens = _load_shared_tokens_root()
@@ -1070,6 +1106,9 @@ def render_html(data: dict) -> str:
     # Fold the dashboard sub-app in natively. Done LAST so the simple __MARKER__
     # substitutions above never touch the (large) fragment payload.
     frag = _load_fragments()
+    # P6: drop the portal-only Learn/Trees/Concepts payload islands (~7.19 MB)
+    # from the folded body BEFORE the splice. Standalone keeps them (Gate 13 safe).
+    frag["dash"]["body"] = _strip_portal_only_payloads(frag["dash"]["body"])
     html = html.replace("/*__DASH_CSS__*/", frag["dash"]["css"])
     html = html.replace("<!--__DASH_BODY__-->", frag["dash"]["body"])
     html = html.replace("/*__DASH_JS__*/", frag["dash"]["js"])
