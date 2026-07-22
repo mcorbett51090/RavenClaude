@@ -2,6 +2,14 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.208.0 — 2026-07-22
+
+### Added
+
+- **New best-practice: "A policy hook only gates if it fails closed — exit 2 or a JSON `deny`, never `exit 1`."** (`best-practices/a-policy-hook-only-gates-if-it-fails-closed.md`; index → **35 rules**.) The 16th recurring Claude-subreddit scan surfaced the `PreToolUse` exit-code contract as a top hook gotcha: a hook fails **open** by default — only `exit 2` or a `hookSpecificOutput.permissionDecision:"deny"` (on exit 0) blocks, while `exit 1`/crash/timeout is a _non-blocking_ error that silently lets the tool run. [`prefer-a-deterministic-gate-over-a-prose-rule`](best-practices/prefer-a-deterministic-gate-over-a-prose-rule.md) tells you to _build_ a hook gate; [`hook-lifecycle`](knowledge/concepts/hook-lifecycle.md) is the Learn-tab mechanic — but no consumer-facing rule taught the fail-closed authoring discipline the agent cites when it _writes_ a gate. Grounded in this repo's own hooks, including `guard-destructive.sh`'s recorded past fail-open bug (it "previously exited 1 and read `$1`, neither of which actually blocked" + a `jq`-absent "exited 0 = allow-all") — the exact regression a cited rule prevents. Research + documented panel decision (1 approved / 3 denied-as-covered): [`docs/research/2026-07-22-claude-subreddit-scan/`](../../docs/research/2026-07-22-claude-subreddit-scan/README.md).
+
+**Migration:** none — additive markdown (one new best-practice + index row). Nothing in an installed plugin changes behaviorally on `/plugin marketplace update`.
+
 ## 0.207.0 — 2026-07-21
 
 ### Added
