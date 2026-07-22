@@ -302,7 +302,7 @@
       "name": "power-platform",
       "source": "./plugins/power-platform",
       "description": "Power Platform specialist team — 11 agents (incl. power-platform-tester, power-bi-engineer) and 23 skills, with strong ALM/git coverage for solutions, flows, and PBIP. A house-opinions hook flags 8 §3/§4 violations; the knowledge bank carries production decision trees (PA-flow recovery, Dataverse token-acquisition, PCF React surface, PBI deploy/refresh, custom-connector build-path, PBIR Enhanced infinite-spinner debug + full build reference, DAX silent-zero scoring via the `Domain` pattern, sempy.fabric notebook reference, Power BI Copilot report-readiness, Code Apps connector gotchas, PBIP deployment variables + #839, PBIR reference enrichment, PBIP report fast-solve triage router [MCP-optional], main-forms-are-Web-API-authorable grounding) plus a real-engagement scenarios bank. Bundles the community pbix-mcp server (d0nk3yhm/pbix-mcp, MIT) for .pbix/.pbit read/write/DAX-eval (`pip install pbix-mcp`); documents (not bundles) the official Microsoft Dataverse MCP (CLAUDE.md §9a). Extends ravenclaude-core.",
-      "version": "0.44.7",
+      "version": "0.44.8",
       "author": {
         "name": "Matt Corbett"
       },
@@ -3616,7 +3616,7 @@
       "name": "generative-web-media",
       "source": "./plugins/generative-web-media",
       "description": "Generative web media team — 4 agents (generation-strategist, web-asset-pipeline-engineer, asset-provenance-guardian, brand-and-accessibility-reviewer) that take a creative brief and return on-brand, web-optimized, license-clean images/video/3D/audio behind a mandatory human curation gate. Provider-neutral, Grok-lean for images where competitive; images v1-deep (photoreal/vector/text-in-image + inpaint/outpaint/bg-removal/upscale round-trips), video/3D/audio routed. AVIF/WebP responsive <picture> + CWV-safe embeds; license pinning (the FLUX-dev non-commercial trap), C2PA + a provenance ledger, EU AI Act Art.50; brand-hex/style conformance + WCAG alt text. 6 skills, 4 knowledge docs (Mermaid decision trees; all prices [unverified]), 6 best-practices, 4 commands, 5 templates, 4 scripts. The shared foundation the brand-identity-studio plugin consumes; the DTCG token producer is web-design. Declarative fal MCP binding (set FAL_KEY). Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "author": {
         "name": "Matt Corbett"
       },

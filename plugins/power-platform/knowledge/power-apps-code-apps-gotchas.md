@@ -1,6 +1,6 @@
 # Power Apps Code Apps — Production Gotchas
 
-> **Last reviewed:** 2026-06-10
+> **Last reviewed:** 2026-07-22 (**corrected the Code Apps GA status** — the file had mislabeled it `PREVIEW as of 2026-06-10`; Microsoft declared **GA 2026-02-05**, so the preview label was wrong. Prior review 2026-06-10.)
 > **Source:** Alexander Siedler (zyborc — github.com/zyborc/power-apps-code-apps-skill; blog 2026-03) — hard-won production lessons credited here in full.
 > **Subsumption check:** 2026-06-10 against `microsoft/power-platform-skills` code-apps plugin (verified via rc-deep-research harness run `wf_e0543b9a-dde`, 104 agents). Gotchas 1 and 2 confirmed **absent** from Microsoft's official skill at that date.
 >
@@ -14,7 +14,7 @@
 
 ## SDK / CLI state [verify-at-use]
 
-Code Apps are **PREVIEW** as of 2026-06-10 [verified: Microsoft Learn, `power-apps/developer/code-apps/overview`].
+Code Apps are **GENERALLY AVAILABLE** — GA announced **2026-02-05** (Microsoft Power Platform blog, _"Generally available: host and run code apps in Power Apps"_; re-verified 2026-07-22). ⚠️ **Correction (2026-07-22):** an earlier note here read _"PREVIEW as of 2026-06-10"_ — that was **wrong** (GA predated it by ~4 months), so do not treat Code Apps as preview / not-for-production. (The connector commands such as `pac code add-data-source` remain a separately-GA'ing sub-feature — see the table below.)
 
 Starting with `@microsoft/power-apps` ≥ **1.0.4**, the SDK ships a new **npm-based CLI** that **replaces** `pac code` commands:
 

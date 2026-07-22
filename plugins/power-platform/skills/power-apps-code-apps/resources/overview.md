@@ -2,7 +2,7 @@
 
 ## What Are Code Apps?
 
-Code Apps are a **preview feature** in Power Apps that enable developers to build custom
+Code Apps are a **generally available** feature (GA 2026-02-05) in Power Apps that enable developers to build custom
 web applications using standard open-source web technologies (React, Vue, TypeScript)
 within VS Code, while running as first-class citizens on the Power Platform.
 
