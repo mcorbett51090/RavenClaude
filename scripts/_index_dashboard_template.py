@@ -600,6 +600,15 @@ TEMPLATE = r"""<!doctype html>
          header-strip left it empty). Standalone keeps it: that's where its tab-bar
          nav lives, and it has no #dash-root wrapper so this never matches there. */
       #dash-root .page-header { display: none !important; }
+      /* G11 (standalone → 4-dest sidebar): the SHIPPED standalone dashboard.html now
+         carries its OWN left <aside class="dash-sidebar"> (fixed, 248px) + a
+         .dash-main { margin-left: 248px } on its content. That whole payload folds
+         into #dash-root here, so — exactly like the tab-bar/page-header above — the
+         portal must hide the folded standalone sidebar (the shell already owns the
+         ONE real sidebar) and zero its content margin, or the portal would show two
+         sidebars + a 248px gap. The standalone (no #dash-root wrapper) is untouched. */
+      #dash-root .dash-sidebar { display: none !important; }
+      #dash-root .dash-main { margin-left: 0 !important; }
 
       /* ── Folded-in dashboard sub-app (scoped under #dash-root) ── */
       /*__DASH_CSS__*/

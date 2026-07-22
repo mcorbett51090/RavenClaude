@@ -19,10 +19,17 @@
   },
   "surfaces": {
     "dashboard": {
-      "href_count": 7,
-      "distinct_static": 6,
+      "href_count": 22,
+      "distinct_static": 15,
       "distinct_dynamic": 0,
       "static_href_routes": [
+        {
+          "route": "#/activity",
+          "section": "activity",
+          "sub": null,
+          "destination": "activate:activity",
+          "resolved": true
+        },
         {
           "route": "#/heimdall",
           "section": "heimdall",
@@ -45,6 +52,34 @@
           "resolved": true
         },
         {
+          "route": "#/mimir",
+          "section": "mimir",
+          "sub": null,
+          "destination": "activate:mimir",
+          "resolved": true
+        },
+        {
+          "route": "#/nidhoggr",
+          "section": "nidhoggr",
+          "sub": null,
+          "destination": "activate:nidhoggr",
+          "resolved": true
+        },
+        {
+          "route": "#/norns",
+          "section": "norns",
+          "sub": null,
+          "destination": "activate:norns",
+          "resolved": true
+        },
+        {
+          "route": "#/pipeline",
+          "section": "pipeline",
+          "sub": null,
+          "destination": "activate:pipeline",
+          "resolved": true
+        },
+        {
           "route": "#/plugin-vars",
           "section": "plugin-vars",
           "sub": null,
@@ -52,10 +87,38 @@
           "resolved": true
         },
         {
+          "route": "#/saga",
+          "section": "saga",
+          "sub": null,
+          "destination": "activate:saga",
+          "resolved": true
+        },
+        {
           "route": "#/settings",
           "section": "settings",
           "sub": null,
           "destination": "activate:settings",
+          "resolved": true
+        },
+        {
+          "route": "#/streams",
+          "section": "streams",
+          "sub": null,
+          "destination": "activate:streams",
+          "resolved": true
+        },
+        {
+          "route": "#/trees",
+          "section": "trees",
+          "sub": null,
+          "destination": "activate:trees",
+          "resolved": true
+        },
+        {
+          "route": "#/vidarr",
+          "section": "vidarr",
+          "sub": null,
+          "destination": "activate:vidarr",
           "resolved": true
         },
         {
@@ -70,7 +133,7 @@
       "nav_routes": []
     },
     "index": {
-      "href_count": 35,
+      "href_count": 50,
       "distinct_static": 22,
       "distinct_dynamic": 4,
       "static_href_routes": [
@@ -293,7 +356,8 @@
           "home": "control",
           "configure": "control",
           "overview": "control",
-          "simulator": "control"
+          "simulator": "control",
+          "concepts": "control"
         },
         "dash_owner": {
           "heimdall": "guardrails",
@@ -315,7 +379,6 @@
           "bifrost": "catalog",
           "install": "catalog",
           "about": "catalog",
-          "concepts": "catalog",
           "help": "catalog"
         }
       }
