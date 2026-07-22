@@ -1,0 +1,25 @@
+{
+  "name": "design-systems-engineering",
+  "version": "0.1.0",
+  "description": "Design-systems engineering team — 2 agents (design-systems-architect, design-tokens-and-component-engineer) answering 'what is the shared system every product surface builds from, and how is it versioned and adopted?': design-token architecture (primitive → semantic → component tiers, theming/dark-mode/multi-brand), component-library API design (composition vs configuration, controlled/uncontrolled, a11y baked in), Storybook/docs, Figma→code token pipeline (Style Dictionary), and versioning/adoption (semver, changesets, codemod-backed breaking changes, deprecation, governance, adoption metrics). 3 skills, a 2-doc knowledge bank (a Mermaid decision tree + a dated 2026 tooling reference). Distinct from frontend-engineering (builds apps that CONSUME the system), accessibility-engineering (WCAG compliance), and web-design (site visual design) — this team owns the SYSTEM those build from. Tooling specifics volatile: retrieval-dated + verify-at-use. Needs ravenclaude-core.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "design-systems",
+    "design-tokens",
+    "component-library",
+    "storybook",
+    "style-dictionary",
+    "theming",
+    "figma-to-code",
+    "semver",
+    "changesets",
+    "design-system-governance"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}
