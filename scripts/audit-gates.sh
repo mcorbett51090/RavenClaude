@@ -2905,6 +2905,80 @@ rc=0; python3 "$DSP" --root-server "$DSP_CSRF_BAD" >/dev/null 2>&1 || rc=$?
 gate "dashboard-server-parity (CSRF allow-list keyed on args.port is caught)" must_fail "$rc"
 
 echo
+echo "── Gate 142: C2 security floor (loopback /__save guard: cross-origin + Host + no-Origin -> 403) ──"
+# The launch lane (L) touches the /__save write surface, the loopback bind, and the
+# CSRF/DNS-rebinding guard — the C2 floor that must not weaken. This gate is the
+# machine-checked assertion suite: it grep-pins the no-CORS invariant + the launcher's
+# explicit --bind, then launches the ROOT server on a free high port (>=8015, NEVER
+# 8000) and drives the REAL Origin/Host guard with curl — every cross-origin /
+# no-Origin / evil-Host request to /__save|/__csrf must be refused 403 while a
+# same-origin GET is accepted. (Placed by Gate 32 for locality; both are server-floor.)
+
+# (a) grep -c Access-Control in both copies -> exactly 1 each. The single hit is the
+#     FORBIDDING comment in _local_request_ok; the cross-origin reject (no
+#     Access-Control-Allow-Origin header, ever) IS the DNS-rebinding defense.
+rc=0; [ "$(grep -c 'Access-Control' scripts/serve-dashboards.py)" = "1" ] || rc=1
+gate "C2: root server has exactly 1 Access-Control mention (no ACAO header)" must_pass "$rc"
+rc=0; [ "$(grep -c 'Access-Control' plugins/ravenclaude-core/scripts/serve-dashboards.py)" = "1" ] || rc=1
+gate "C2: plugin server has exactly 1 Access-Control mention (no ACAO header)" must_pass "$rc"
+
+# (b) the launcher passes an explicit --bind 127.0.0.1 off-Codespace (Gate 32
+#     structurally cannot see a launch-time flag). Bidirectional: present in the real
+#     launcher, gated by CODESPACE_NAME; a copy with it stripped fails the assertion.
+rc=0; { grep -q -- '--bind 127.0.0.1' scripts/open-dashboard.sh && grep -q 'CODESPACE_NAME' scripts/open-dashboard.sh; } || rc=1
+gate "C2: launcher passes explicit --bind 127.0.0.1 (Codespace-gated)" must_pass "$rc"
+C2_LAUNCH_BAD="$TMP/open-dashboard-nobind.sh"
+grep -v -- '--bind 127.0.0.1' scripts/open-dashboard.sh > "$C2_LAUNCH_BAD"
+rc=0; grep -q -- '--bind 127.0.0.1' "$C2_LAUNCH_BAD" || rc=1
+gate "C2: launcher --bind assertion has teeth (stripped --bind caught)" must_fail "$rc"
+
+# (c) LIVE guard: launch the ROOT server on a free port >=8015 (never 8000), bound to
+#     127.0.0.1, --no-open, --max-idle 0 (no self-exit mid-test), then assert the guard.
+C2_PORT=""
+for cand in $(seq 8015 8064); do
+  if python3 -c "import socket,sys; s=socket.socket(); r=s.connect_ex(('127.0.0.1',$cand)); s.close(); sys.exit(0 if r!=0 else 1)" 2>/dev/null; then
+    C2_PORT="$cand"; break
+  fi
+done
+if [ -z "$C2_PORT" ]; then
+  echo "  ‼ C2 live guard SKIPPED — no free port in 8015-8064 to bind a test server."
+  SKIP=$((SKIP + 1)); SKIPPED_GATES+=("C2 live /__save guard [no free port]")
+else
+  C2_LOG="$TMP/c2-serve.log"
+  python3 scripts/serve-dashboards.py --port "$C2_PORT" --bind 127.0.0.1 --no-open --max-idle 0 >"$C2_LOG" 2>&1 &
+  C2_PID=$!
+  c2_ready=0
+  for _ in $(seq 1 40); do
+    if curl -fsS -o /dev/null "http://127.0.0.1:${C2_PORT}/index.html" 2>/dev/null; then c2_ready=1; break; fi
+    sleep 0.25
+  done
+  if [ "$c2_ready" -ne 1 ]; then
+    echo "  ‼ C2 live guard SKIPPED — test server did not answer on 127.0.0.1:$C2_PORT (see $C2_LOG)."
+    SKIP=$((SKIP + 1)); SKIPPED_GATES+=("C2 live /__save guard [server did not start]")
+  else
+    C2_URL="http://127.0.0.1:${C2_PORT}"
+    # positive control: same-origin GET /__csrf (correct Host, no Origin) -> 200.
+    code=$(curl -s -o /dev/null -w '%{http_code}' "${C2_URL}/__csrf" 2>/dev/null || echo 000)
+    rc=0; [ "$code" = "200" ] || rc=1
+    gate "C2 live: same-origin GET /__csrf -> 200 (guard is not always-deny)" must_pass "$rc"
+    # evil Host on GET /__csrf -> 403 (DNS-rebinding defense).
+    code=$(curl -s -o /dev/null -w '%{http_code}' -H 'Host: evil.test' "${C2_URL}/__csrf" 2>/dev/null || echo 000)
+    rc=0; [ "$code" = "403" ] || rc=1
+    gate "C2 live: GET /__csrf with Host: evil.test -> 403" must_pass "$rc"
+    # cross-origin POST /__save (evil Origin) -> 403.
+    code=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' -H 'Origin: http://evil.test' --data '{"path":".ravenclaude/x","content":"y"}' "${C2_URL}/__save" 2>/dev/null || echo 000)
+    rc=0; [ "$code" = "403" ] || rc=1
+    gate "C2 live: POST /__save with Origin: http://evil.test -> 403" must_pass "$rc"
+    # POST /__save with NO Origin (valid Host) -> 403 (state-change requires a present Origin).
+    code=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' --data '{"path":".ravenclaude/x","content":"y"}' "${C2_URL}/__save" 2>/dev/null || echo 000)
+    rc=0; [ "$code" = "403" ] || rc=1
+    gate "C2 live: POST /__save with no Origin -> 403" must_pass "$rc"
+  fi
+  kill "$C2_PID" 2>/dev/null || true
+  wait "$C2_PID" 2>/dev/null || true
+fi
+
+echo
 echo "── Gate 33: command-review golden set (deterministic regression lane) ─────"
 # Gap 4: thing-golden-eval.py runs a corpus of {dangerous, benign, injection,
 # secret, scope} payloads through the REAL engine (thing-decision.py) and asserts
@@ -3774,7 +3848,12 @@ echo "── Gate 93: Learn-tab step-by-step diagram (stepper) render ───�
 # the JS reveals them + honors prefers-reduced-motion). The script ALSO runs an
 # inline must-fail half (proves its own teeth).
 if command -v node >/dev/null 2>&1; then
-  rc=0; node scripts/check-stepper-render.mjs "$IDX_HTML" >/dev/null 2>&1 || rc=$?
+  # Learn (the stepper's home) is now standalone-only — P6 (FORGE dashboard-
+  # consumption) stripped the learn-payload from the PORTAL (index.html) as dead
+  # weight, so the stepper contract lives ONLY in the standalone dashboard.html.
+  # Run the gate against $DASH_HTML (which matches this gate's own label) — the
+  # former $IDX_HTML target went content-less at P6 and would false-fail.
+  rc=0; node scripts/check-stepper-render.mjs "$DASH_HTML" >/dev/null 2>&1 || rc=$?
   gate "stepper render (real dashboard.html)" must_pass "$rc"
   # must_fail (v2 — PAYLOAD path): Learn is now DOM-island-loaded, so the stepper
   # markup lives JSON-ESCAPED inside <script id="learn-payload">. The gate must parse
@@ -3783,14 +3862,14 @@ if command -v node >/dev/null 2>&1; then
   # miss this (the old live-form sed no longer matches), so this proves v2 actually
   # traverses the parse path (plan §2L).
   ST_BAD="$(mktemp)"; sed 's/class=\\"concept-stepper\\"/class=\\"concept-NOPE\\"/g' \
-    index.html > "$ST_BAD"
+    "$DASH_HTML" > "$ST_BAD"
   rc=0; node scripts/check-stepper-render.mjs "$ST_BAD" >/dev/null 2>&1 || rc=$?
   gate "stepper render (stripped stepper markup in the island payload is detected)" must_fail "$rc"
   # must_fail (v2 — MALFORMED payload): a learn-payload that is not valid JSON must be
   # rejected by the parse path, not silently no-op'd.
   ST_BADJSON="$(mktemp)"
   sed 's#<script type="application/json" id="learn-payload">#<script type="application/json" id="learn-payload">"unterminated #' \
-    index.html > "$ST_BADJSON"
+    "$DASH_HTML" > "$ST_BADJSON"
   rc=0; node scripts/check-stepper-render.mjs "$ST_BADJSON" >/dev/null 2>&1 || rc=$?
   gate "stepper render (malformed learn-payload JSON is rejected)" must_fail "$rc"
   rm -f "$ST_BAD" "$ST_BADJSON"
@@ -4483,10 +4562,10 @@ for p in (m.DASHBOARD, m.INDEX):
     r = m.measure(p)
     if sum(r["panels"].values()) + r["shell"] != r["total"]:
         sys.exit(1)
-    if len(r["panels"]) != 185:
+    if len(r["panels"]) != 9:
         sys.exit(1)
 PY
-gate "dom-budget: SUM(panels)+shell == whole doc, 185 panels both surfaces" must_pass "$rc"
+gate "dom-budget: SUM(panels)+shell == whole doc, 9 panels both surfaces" must_pass "$rc"
 
 echo
 echo "── Gate 133: pipeline-map drift vs hooks/hooks.json ───────────────────────"

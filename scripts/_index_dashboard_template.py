@@ -938,6 +938,22 @@ TEMPLATE = r"""<!doctype html>
         const b = host.querySelector(".payload-banner .banner-copy");
         if (b) b.addEventListener("click", () => window.__copy(b.dataset.cmd || SERVED_CMD, "Command"));
       }
+      function reprobeServed() {
+        // probeServed() is memoized for the page's life. A detached, session-
+        // outliving dashboard server can be stopped (--stop) or idle-expire
+        // (--max-idle) while this tab stays open; on regaining visibility/focus,
+        // re-run the probe so a dead loopback server surfaces the "run the command"
+        // banner (the exact command to run) instead of a stale served state — and a
+        // restarted server clears it, recovering without a manual reload (E4/L4).
+        _served = null;
+        _servedP = null;
+        probeServed().then(() => {
+          const cur = location.hash.replace(/^#\/?/, "").split("/")[0];
+          const owner = DASH_OWNER[cur] || SECTION_ALIAS[cur] || cur;
+          const live = ["control", "activity", "guardrails"].includes(owner);
+          setServedBanner(live);
+        });
+      }
       function viewDashboard(section, sub) {
         showHost("dash");
         // A retired Observe route (#/saga … #/nidhoggr) carries no sub-segment; map it
@@ -1615,6 +1631,15 @@ TEMPLATE = r"""<!doctype html>
         if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") { e.preventDefault(); openPalette(); }
         else if (e.key === "/" && !inField) { e.preventDefault(); openPalette(); }
       });
+
+      // Re-probe served mode when the tab regains visibility/focus (E4/L4): a
+      // detached server can stop or idle-expire while the tab stays open, so a
+      // one-shot probe at load can go stale — this makes the failure state (and
+      // the recovery) self-correcting without a manual reload.
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") reprobeServed();
+      });
+      window.addEventListener("focus", reprobeServed);
 
       probeServed(); // resolve served/static early so the banner is flicker-free
       route();

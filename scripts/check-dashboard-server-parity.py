@@ -70,7 +70,13 @@ _BODY_DIFF_PREFIXES = ("_read_", "_mimir_")
 # logic must ship as a module-level named function present in BOTH copies and be
 # added here — logic left inline in `main()` is by construction ungated. When the
 # L lane lands `_default_bind()` and the idle-expiry reaper, append their names.
-_BODY_DIFF_NAMES = ("_port_holder_pids", "_holder_cwd", "_reclaim_port")
+_BODY_DIFF_NAMES = (
+    "_port_holder_pids",
+    "_holder_cwd",
+    "_reclaim_port",
+    "_default_bind",
+    "_idle_reaper",
+)
 
 # NOT compared — `main()` legitimately DIVERGES between the two copies in seven
 # documented ways, so byte-diffing it is unkeepable (this is why the contract is a
