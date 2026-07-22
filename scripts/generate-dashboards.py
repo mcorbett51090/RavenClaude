@@ -362,12 +362,13 @@ def _render_about_tab(description: str, plugin_name: str) -> str:
       <p class="about-lead">{desc}</p>
       <p class="about-note"><span class="plugin-name">{name}</span> &middot; static dashboard, no backend. Your edits stay in your browser until you click <strong>Download</strong>.</p>
       <h3>How the pages are organized</h3>
-      <p class="about-note">Pick a category in the top bar, then a page within it.</p>
+      <p class="about-note">Everything is reachable from the navigation. The pages group into a few areas:</p>
       <ul class="about-cats">
-        <li><strong>Set&nbsp;up</strong> — Overview, Settings (what Claude may do), Pipeline (the safety checks every command passes through), and Preview&nbsp;a&nbsp;review.</li>
-        <li><strong>Look&nbsp;back</strong> — Review&nbsp;log, Run&nbsp;feed, Perimeter&nbsp;alerts, Security&nbsp;log, and Lineage.</li>
-        <li><strong>Learn</strong> — plain-English explainers, ready-to-run command playbooks, and decision-tree guidance.</li>
-        <li><strong>Install&nbsp;&amp;&nbsp;help</strong> — two install &amp; update guides, one per tool: Claude&nbsp;Code (the Bifröst bridge) and GitHub&nbsp;Copilot&nbsp;CLI &mdash; plus this page.</li>
+        <li><strong>Control</strong> — The&nbsp;Thing (what Claude may do on its own), the guardrail Pipeline every command passes through, and Web&nbsp;access.</li>
+        <li><strong>Activity</strong> — the live Run&nbsp;feed, plus the Review&nbsp;log, Session, Streams, and Lineage.</li>
+        <li><strong>Guardrails</strong> — Perimeter&nbsp;alerts, the Security&nbsp;log, and Debt&nbsp;watch.</li>
+        <li><strong>Plugins</strong> — each installed plugin, the specialists it adds, and how to install more.</li>
+        <li><strong>Learn&nbsp;&amp;&nbsp;help</strong> — plain-English explainers, the command catalog, and install &amp; update guides for Claude&nbsp;Code and GitHub&nbsp;Copilot&nbsp;CLI &mdash; including this page.</li>
       </ul>
     </div>
     """
@@ -3064,30 +3065,6 @@ h1, h2, h3 { font-family: var(--font-display); font-weight: 600; letter-spacing:
   height: auto;
   display: block;
 }
-/* Pill CTA on the brand row — commerce .nav__cta. Reuses the green .btn.btn-primary
-   fill, overriding its stacked full-width shape into a compact right-aligned pill. */
-.brand-row .brand-cta {
-  margin-left: auto;
-  width: auto;
-  flex-direction: row;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 18px;
-  border-radius: 999px;
-  font-family: var(--font-display);
-  font-size: 13px;
-  letter-spacing: -0.01em;
-  text-decoration: none;
-  white-space: nowrap;
-  box-shadow: 0 0 0 0 var(--accent-glow);
-  transition:
-    background 0.18s var(--rc-ease),
-    box-shadow 0.18s var(--rc-ease-out);
-}
-.brand-row .brand-cta:hover {
-  background: var(--accent-2);
-  box-shadow: 0 0 20px var(--accent-glow);
-}
 .page-header h1 {
   margin: 0;
   font-size: 22px;
@@ -3179,7 +3156,6 @@ h1, h2, h3 { font-family: var(--font-display); font-weight: 600; letter-spacing:
    .in-cat page-hiding rule are gone; the tab-bar is now a flat, single-tier set
    of destination tabs. (The shell's own dash-root chrome-hide rule stays — it
    hides the folded copy's whole nav in the portal.) */
-.header-about-link { white-space: nowrap; }
 .about-wrap { max-width: 760px; }
 .about-lead { font-size: 15px; color: var(--text); line-height: 1.6; }
 .about-note { color: var(--muted); font-size: 13px; }
@@ -9184,10 +9160,10 @@ _JS = r"""
   document.querySelectorAll(".tab-btn").forEach(b => {
     b.addEventListener("click", () => goTo(b.dataset.tab));
   });
-  // Header "What is this?" link → Help drawer (About folded into panel-help, P5),
-  // without depending on hashchange.
-  const aboutLink = document.querySelector(".header-about-link");
-  if (aboutLink) aboutLink.addEventListener("click", e => { e.preventDefault(); goTo("help"); });
+  // (The header "What is this?" → Help wiring was removed with its element: #739
+  // stripped the .header-about-link/.brand-cta/h1 out of the page-header, so the
+  // querySelector only ever bound null. The Help drawer is reached from the portal
+  // topbar "?" affordance + the ⌘K palette, and from the standalone Help tab-btn.)
   // (P3: the WAI-ARIA tablist roving-tabindex handler was removed with the
   // tablist/tab ARIA chrome — the tab-btns are plain buttons, so Tab plus
   // Enter/Space operate them natively; no arrow-key roving contract to maintain.)
