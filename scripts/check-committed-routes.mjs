@@ -320,6 +320,18 @@ const surfaces = {
 };
 
 if (EMIT) {
+  // PB-2 (FORGE dashboard-consumption): --emit regenerates `surfaces` from the
+  // live HTML, but the hand-authored `required_routes` FLOOR must be carried
+  // through VERBATIM. Without this, removing a required route's href and
+  // re-emitting would silently launder the removal (the fixture would simply stop
+  // listing it) — the exact anti-laundering hole C5 needs closed. So read the
+  // prior fixture and preserve its floor unchanged.
+  let priorRequired;
+  try {
+    priorRequired = JSON.parse(readFileSync(FIXTURE_PATH, "utf8")).required_routes;
+  } catch {
+    priorRequired = undefined; // first emit / unreadable → no floor to carry
+  }
   const out = {
     _note:
       "Committed #/… route enumeration for BOTH portal surfaces → each route's " +
@@ -328,6 +340,7 @@ if (EMIT) {
       "the generated dashboard.html/index.html — regenerate them, then re-emit this " +
       "fixture. See docs/dashboard-redesign-plan.md §7 Phase 4a.",
     generated_by: "scripts/check-committed-routes.mjs --emit",
+    ...(priorRequired ? { required_routes: priorRequired } : {}),
     surfaces,
   };
   mkdirSync(dirname(FIXTURE_PATH), { recursive: true });
@@ -354,6 +367,40 @@ try {
 }
 assertSurface("dashboard", surfaces.dashboard, fixture.surfaces && fixture.surfaces.dashboard);
 assertSurface("index", surfaces.index, fixture.surfaces && fixture.surfaces.index);
+
+// required_routes floor (PB-2): a hand-authored, --emit-preserved set of routes
+// that MUST remain present AND resolved on each named surface. This is the
+// anti-laundering control C5 needs — deleting a required route's href from the
+// HTML and re-emitting updates `surfaces` (route gone) but leaves this floor
+// listing it, so the removal goes RED here instead of being silently laundered to
+// green. Each phase that legitimately retires a floor route must remove it here in
+// the same commit AND add a docs/dashboard-removed-routes.md row (a per-phase
+// discipline the floor makes visible). Keys beginning with `_` (e.g. `_note`) are
+// documentation, not surfaces — skipped so a naive walk can't misread them.
+if (fixture.required_routes) {
+  for (const [surf, required] of Object.entries(fixture.required_routes)) {
+    if (surf.startsWith("_")) continue;
+    const live = surfaces[surf];
+    if (!live) {
+      failures.push(`required_routes names unknown surface "${surf}"`);
+      continue;
+    }
+    const resolvedByRoute = new Map(live.static_href_routes.map((r) => [r.route, r.resolved]));
+    for (const route of required) {
+      if (!resolvedByRoute.has(route)) {
+        failures.push(
+          `required_routes floor: ${surf} must still commit "${route}" — it is gone from the ` +
+            `live surface (removed without a docs/dashboard-removed-routes.md entry + a floor edit?)`,
+        );
+      } else {
+        A(
+          resolvedByRoute.get(route) === true,
+          `required_routes floor: ${surf} route "${route}" no longer resolves (dead-ends on the fallback)`,
+        );
+      }
+    }
+  }
+}
 
 if (failures.length) {
   console.error(`FAIL: committed-route contract violations (${failures.length}):`);

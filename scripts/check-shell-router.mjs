@@ -229,23 +229,16 @@ assert(
   "served-mode probe must HEAD the same-origin /__csrf endpoint (no new cross-origin probe)",
 );
 
-/* ── Must-fail halves: NAV rename, emptied SECTION_ALIAS, and a dropped
- * chrome-hide rule must each trip the gate. */
-{
-  const navBad = NAV_TEXT.replace('id: "observe"', 'id: "observ"');
-  const navWouldPass = NAV_IDS.every((id) => new RegExp(`id:\\s*"${id}"`).test(navBad));
-  assert(!navWouldPass, "must-fail: a renamed NAV id should fail the NAV-section check");
-  const aliasBad = "const SECTION_ALIAS = {};";
-  const aliasWouldPass = Object.entries(expectedAliases).every(([l, t]) =>
-    new RegExp(`["']?${l}["']?\\s*:\\s*"${t}"`).test(aliasBad),
-  );
-  assert(!aliasWouldPass, "must-fail: an emptied SECTION_ALIAS should fail the back-compat check");
-  const chromeBad = html.replace(CHROME_HIDE_RE, "/* removed */");
-  assert(
-    !CHROME_HIDE_RE.test(chromeBad),
-    "must-fail: a dropped chrome-hide rule should fail the single-chrome check",
-  );
-}
+/* The gate's teeth (that a renamed NAV id, an emptied SECTION_ALIAS, or a
+ * dropped chrome-hide rule each trip it) are proven EXTERNALLY by
+ * check-shell-router.selftest.mjs, which mutates a fresh render and re-invokes
+ * THIS script as a subprocess. The former inline "must-fail" block tested a
+ * hardcoded bad string against the same regex the real assertion uses — it
+ * never re-ran the gate, so it certified nothing and a weakened re-authoring
+ * passed it. It was deleted (FORGE dashboard-consumption, PB-3). Do NOT
+ * re-introduce an in-process self-test here: teeth are proven by the external
+ * driver, precisely because the IA re-cut re-authors this file but must not
+ * touch that driver. */
 
 if (failures.length) {
   console.error("FAIL: shell router contract violations in " + htmlPath + ":");
@@ -253,5 +246,5 @@ if (failures.length) {
   process.exit(1);
 }
 console.log(
-  "OK: 6-section router contract holds (NAV + aliases + DASH_OWNER + route + single-chrome + section sub-nav + served probe, no iframe); all three must-fail checks detected.",
+  "OK: router contract holds (NAV + aliases + DASH_OWNER + route + single-chrome + section sub-nav + served probe, no iframe). Teeth proven externally by check-shell-router.selftest.mjs.",
 );

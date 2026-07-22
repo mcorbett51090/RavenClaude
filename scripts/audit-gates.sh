@@ -2885,6 +2885,24 @@ sed 's/def _read_mimir(project_root, claude_home)/def _read_mimir(project_root, 
   plugins/ravenclaude-core/scripts/serve-dashboards.py > "$DSP_BODY_BAD"
 rc=0; python3 "$DSP" --plugin-server "$DSP_BODY_BAD" >/dev/null 2>&1 || rc=$?
 gate "dashboard-server-parity body-diff (drifted: _read_mimir body mutated)" must_fail "$rc"
+# PB-1 (FORGE dashboard-consumption): the body-diff contract now also covers the
+# NAMED port/reclaim functions (`_port_holder_pids`/`_holder_cwd`/`_reclaim_port`),
+# so a one-copy edit to the bind/reclaim path can no longer ship different bytes to
+# consumers — the drift class behind v0.205.3, previously invisible (not `_read_*`).
+# 32-a: a mutated `_reclaim_port` body in one copy must be caught.
+DSP_PORT_BAD="$TMP/serve-dashboards-reclaim-drifted.py"
+sed 's/def _reclaim_port(/def _reclaim_port(  # ASYMMETRIC PORT EDIT\n#pad\ndef _reclaim_port_orig(/' \
+  plugins/ravenclaude-core/scripts/serve-dashboards.py > "$DSP_PORT_BAD"
+rc=0; python3 "$DSP" --plugin-server "$DSP_PORT_BAD" >/dev/null 2>&1 || rc=$?
+gate "dashboard-server-parity body-diff (drifted: _reclaim_port body mutated)" must_fail "$rc"
+# 32-c: a CSRF allow-list keyed on `args.port` (not `actual_port`) must be caught —
+# a fallback bind would else reject every same-origin /__save (DNS-rebinding defense
+# collapsed into a self-DoS).
+DSP_CSRF_BAD="$TMP/serve-dashboards-argsport.py"
+sed 's/f"127.0.0.1:{actual_port}", f"localhost:{actual_port}", "127.0.0.1"/f"127.0.0.1:{args.port}", f"localhost:{actual_port}", "127.0.0.1"/' \
+  scripts/serve-dashboards.py > "$DSP_CSRF_BAD"
+rc=0; python3 "$DSP" --root-server "$DSP_CSRF_BAD" >/dev/null 2>&1 || rc=$?
+gate "dashboard-server-parity (CSRF allow-list keyed on args.port is caught)" must_fail "$rc"
 
 echo
 echo "── Gate 33: command-review golden set (deterministic regression lane) ─────"
@@ -3636,6 +3654,34 @@ PY
   rc=0; node scripts/check-shell-router.mjs "$IDX_HTML" >/dev/null 2>&1 || rc=$?
   gate "shell-router (real index.html satisfies the contract)" must_pass "$rc"
 
+  # ── External teeth-check (PB-3): the shell-router gate's must-fail halves are
+  # proven by check-shell-router.selftest.mjs, NOT by an in-process block that
+  # tested a hardcoded bad string against its own regex (that block certified
+  # nothing — a weakened re-authoring passed it — and was deleted). The driver
+  # mutates a fresh render three structural ways (empty SECTION_ALIAS / rename a
+  # NAV id / strip the chrome-hide rule) and re-invokes check-shell-router.mjs as
+  # a subprocess, requiring non-zero each time. Because it locates those by shape,
+  # it needs no edit across the IA re-cut — so the IA commit re-authors the gate
+  # but must NOT touch this driver, which is what proves the re-authored gate is
+  # not weaker.
+  # must_pass: the real checker is tripped by all three mutations (green today).
+  rc=0; node scripts/check-shell-router.selftest.mjs "$IDX_HTML" >/dev/null 2>&1 || rc=$?
+  gate "shell-router selftest (real checker tripped by all 3 mutations)" must_pass "$rc"
+  # must_fail (the selftest's OWN teeth): point it at a checker whose SECTION_ALIAS
+  # assertion is neutered → that mutation no longer trips → the selftest goes red.
+  WEAK_CHECKER="$TMP/check-shell-router.weak.mjs"
+  python3 - scripts/check-shell-router.mjs "$WEAK_CHECKER" <<'PY'
+import sys
+src = open(sys.argv[1]).read()
+src = src.replace("re.test(SECTION_ALIAS_TEXT),",
+                  "true /* WEAKENED */ || re.test(SECTION_ALIAS_TEXT),", 1)
+src = src.replace("assert(NAV_IDS.includes(target), `alias target",
+                  "assert(true /* WEAKENED */ || NAV_IDS.includes(target), `alias target", 1)
+open(sys.argv[2], "w").write(src)
+PY
+  rc=0; node scripts/check-shell-router.selftest.mjs --checker "$WEAK_CHECKER" "$IDX_HTML" >/dev/null 2>&1 || rc=$?
+  gate "shell-router selftest (a weakened checker is caught)" must_fail "$rc"
+
   # ── By-destination half (Phase 4a): every committed #/… resolves. ──────────
   ROUTE_FIX="tests/fixtures/routes/committed-routes.json"
   # must_pass: the committed fixture enumerates + resolves every #/… on both
@@ -3662,6 +3708,22 @@ PY
   rc=0; node scripts/check-committed-routes.mjs \
     --dashboard "$DASH_HTML" --index "$IDX_ROUTE_BAD" --fixture "$ROUTE_FIX" >/dev/null 2>&1 || rc=$?
   gate "committed-routes (a broken DASH_OWNER destination is detected)" must_fail "$rc"
+
+  # ── required_routes floor half (PB-2): the anti-laundering control C5 needs. ──
+  # must_fail 51-a (the sharpest): remove a required href from a rendered copy,
+  # re-emit a fixture FROM that copy (which drops the route from `surfaces` — a
+  # plain enumeration would then pass, exit 0), then assert. The hand-authored
+  # floor is carried through --emit verbatim, so the removal goes RED instead of
+  # being silently laundered. Without the floor this exact pair measures exit 0.
+  FLOOR_DASH_BAD="$TMP/dash-floor-broken.html"
+  sed 's/href="#\/settings"/href="#"/g' "$DASH_HTML" > "$FLOOR_DASH_BAD"
+  FLOOR_FX="$TMP/floor-laundered.json"
+  cp "$ROUTE_FIX" "$FLOOR_FX"
+  node scripts/check-committed-routes.mjs --emit \
+    --fixture "$FLOOR_FX" --dashboard "$FLOOR_DASH_BAD" --index "$IDX_HTML" >/dev/null 2>&1
+  rc=0; node scripts/check-committed-routes.mjs \
+    --fixture "$FLOOR_FX" --dashboard "$FLOOR_DASH_BAD" --index "$IDX_HTML" >/dev/null 2>&1 || rc=$?
+  gate "committed-routes required_routes floor (a laundered removal is caught)" must_fail "$rc"
 else
   _skip_or_fail "Gate 51 shell-router" node
 fi
