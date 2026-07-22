@@ -1631,3 +1631,59 @@ browser** on a local/desktop run (it never did before; pass `--no-open` to suppr
 **recovers instead of crashing**, and bare `/` **redirects** instead of listing the plugin directory. A
 stale dashboard **for the same project** is stopped on relaunch; one for a **different** project is never
 touched. Comfort-posture semantics, the tribunal, and the master cascade are **unchanged**.
+
+## Dashboard consumption re-cut — 185 tabs → 4 destinations, −41% DOM, −61% bytes (added 2026-07-22, v0.207.0)
+
+A FORGE `deep` run (`.ravenclaude/runs/forge/dashboard-consumption/`) answered "I'm not happy with how
+I'm consuming the dashboard — simplify it." The complaint was **over-surfacing**, not features: the
+portal was a **12.5 MB / 185-tab** document. The re-cut organizes the surface around the **four jobs the
+owner actually does** (posture · agent activity · guardrails · plugin browsing) and is generator-only
+(`generate-dashboards.py` / `generate-index-dashboard.py` / `_index_dashboard_template.py`), never
+hand-edited HTML. Six IA phases + a launch lane, each one commit, each gated:
+
+- **P1 — the 167 per-plugin panels were unreachable dead code** (a live 167-route sweep proved 0/167
+  reachable; they were **42% of the portal DOM**). Collapsed to one `#/plugin-vars` **picker** (a `<select>`
+  + a client-rendered form from an inline JSON payload). The Save path stayed intact via **event
+  delegation** (the load-time `querySelectorAll` wiring would have silently broken Save on the
+  client-rendered button — verified end-to-end in a headless browser). **R2 (binding):** the picker
+  discloses that `.ravenclaude/plugins/<slug>.yaml` has **no reader** — 153/167 plugins expose only a
+  free-form textarea whose values no hook reads. The write-only-sink's real fix is routed out.
+- **P2 — islanded ~1.32 MB of detail-only `__RC_DATA__` fields** off the eager parse path into a lazy
+  `#plugin-detail-payload`, with a **key-presence hydration sentinel** + a `hydrateDetail()` that THROWS
+  (absent = unhydrated, `[]` = genuinely zero — 77/167 plugins have empty indexes). New **Gate 141** is
+  the "zero content loss" contract (renders rc-core's 9 sections; must-fail = rename the island id).
+- **P3 — re-cut NAV from 6 sections to 4 destinations** (Control / Activity / Guardrails / Catalog) + a
+  **Help drawer** (non-NAV overlay). Deleted the `cat-bar`; kept the `tab-bar` class (Gate 51's oracle).
+  **Gate 51 was re-authored in the same commit** — the self-certifying-change trap — proven not-weaker by
+  the **unchanged external `check-shell-router.selftest.mjs`** still tripping all three mutations.
+- **P4 — merged the Observe panels** (saga/mimir/streams/norns → Activity, vidarr → Guardrails) by moving
+  ONLY the `<section>` wrappers; every render function stayed byte-identical, so all eleven B15 render
+  gates pass **unmodified**.
+- **P5 — deleted the dead/duplicated/inert/false views** (viewHome, viewTeam, viewConfiguration and its
+  **167 fake always-checked "Plugin activation" toggles wired to nothing** — a straight defect removal,
+  panel-overview, panel-simulator). **Closed the G5-pass-2 HIGH-2 blank-host bug atomically:** the shared
+  `activate()` fallback was retargeted `overview → settings` in the same change that deletes
+  `panel-overview` (verified live: a bogus tab lands on Control, never a blank host). C5 ledger:
+  `docs/dashboard-removed-routes.md` + the Help-drawer table.
+- **P6 — byte diet:** stripped the portal-only Learn/Trees/Concepts payloads (the standalone keeps them,
+  so Gate 13 is non-contact). **index.html 12.48 MB → 4.82 MB raw; gzip (what Pages serves) ~1.055 MB.**
+- **L lane — launch ergonomics + the C2 floor.** No daemon/auto-start/hook (the amended tiebreak rejected
+  all three after G5). `open-dashboard.sh` rewritten: probe-then-reuse the **ROOT server of the current
+  checkout** (worktree-correct — never writes the wrong checkout's posture), explicit `--bind 127.0.0.1`,
+  port 8000, prints the bound URL, `--stop`/`--max-idle`. New **Gate 142** machine-checks the security
+  floor **live** (evil Origin/Host/no-Origin → 403; `Access-Control` = the forbidding comment only, never
+  an ACAO header — the cross-origin reject IS the DNS-rebinding defense).
+
+**Net:** 185 tabs → ~19; portal DOM 11,462 → 6,759 (−41%); standalone 10,757 → 6,053; index.html
+−61% bytes. Both G5-pass-2 HIGHs closed at runtime. Three pre-build gates (PB-1 Gate 32 port-fn parity,
+PB-2 Gate 51 anti-laundering `required_routes` floor, PB-3 the external shell-router selftest) landed
+first and guarded the re-cut. Full `audit-gates.sh` green.
+
+**Migration (consumer-visible, all improvements — nothing to do):** on `/plugin marketplace update` the
+dashboard is re-organized — 167 per-plugin tabs become one **Plugin variables** picker (the same Save →
+`.ravenclaude/plugins/<slug>.yaml` path, unchanged), the tabs collapse into four destinations + a Help
+drawer, and the standalone `dashboard.html` shrinks. **No route silently rots** — every retired bookmark
+redirects or is named in `docs/dashboard-removed-routes.md`. Posture-save, the tribunal, the security
+floor, and every `/__*` endpoint are **unchanged**. The launch command still exists (it is made reliable,
+not eliminated); the public Pages URL is a ritual-free **read-only** surface for browsing (jobs 2/3 render
+empty there — their data is per-machine runtime state, never inlined).
