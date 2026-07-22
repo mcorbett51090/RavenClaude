@@ -139,14 +139,14 @@ RATCHET = {
                                      "(vidarr). Every mount id + render function is byte-identical; only the "
                                      "five <section> wrappers left. Measured 6,081 -> 6,076 (-5). Additions: "
                                      "zero. Zero slack."),
-        ("P5 (shell-view deletions)", 6063, "panel-overview + panel-simulator deleted; the install/bifrost/"
+        ("P5 (shell-view deletions)", 6064, "panel-overview + panel-simulator deleted; the install/bifrost/"
                                             "about/commands panels folded into ONE panel-help drawer as "
                                             "collapsed <details> (their render fns + mount ids byte-identical). "
                                             "Addition: the panel-help wrapper + the grouped C5 removed-routes "
                                             "table (matches docs/dashboard-removed-routes.md). Net measured "
-                                            "6,076 -> 6,053 (-23). NOTE: value lifted 6,053 -> 6,063 to stay "
-                                            "monotonic through the sanctioned A-split +12 then PR-A +2 below."),
-        ("A-split (Observe un-merge)", 6063, "the Observe family is UN-merged back into one "
+                                            "6,076 -> 6,053 (-23). NOTE: value lifted 6,053 -> 6,064 to stay "
+                                            "monotonic through A-split +12, PR-A +2, PR-B +1 below."),
+        ("A-split (Observe un-merge)", 6064, "the Observe family is UN-merged back into one "
                                              "<section class=tab-panel> per sub-page (the exact inverse of P4): "
                                              "Activity -> Run feed / Saga / Session / Streams / Lineage; Guardrails "
                                              "-> Perimeter alerts / Security log / Debt watch (the Nidhoggr debt "
@@ -155,14 +155,21 @@ RATCHET = {
                                              "render function byte-identical, so the B15 render gates stay green "
                                              "with unmodified scripts. The one DELIBERATE, sanctioned +12 that "
                                              "reverses the P4 merge. Measured 6,053 -> 6,061 (+12); value lifted to "
-                                             "6,063 to stay monotonic through PR-A's +2 content raise below."),
-        ("PR-A (Help reachability + About accuracy)", 6063, "the About 'How the pages are organized' list was "
+                                             "6,064 to stay monotonic through PR-A/PR-B below."),
+        ("PR-A (Help reachability + About accuracy)", 6064, "the About 'How the pages are organized' list was "
                                              "re-cut to the 5 current areas (gap G6): stale pre-recut sections + "
                                              "the deleted Overview / Preview-a-review refs removed; 4 li -> 5 li "
                                              "(+2 elems: 1 <li> + 1 <strong>). The G1 Help-reachability affordance "
                                              "(topbar '?' + ⌘K entries) is PORTAL-shell only, so the standalone "
                                              "gains only this +2. Content-correctness raise (a self-contradicting, "
-                                             "stale help page is a defect); measured 6,061 -> 6,063 (+2). Zero slack."),
+                                             "stale help page is a defect); measured 6,061 -> 6,063 (+2); value "
+                                             "lifted to 6,064 to stay monotonic through PR-B below."),
+        ("PR-B (Guidance/trees wire-back)", 6064, "the Guidance (decision-trees + best-practices) tab was "
+                                             "orphaned on both surfaces — no tab-btn reached panel-trees (gap G4). "
+                                             "Added the tab-btn[data-tab=trees] to the tab-bar (visible + clickable "
+                                             "on the standalone /dashboard, whose payload was already populated; "
+                                             "hidden on the portal but makes 'trees' a valid tab). Standalone gains "
+                                             "only this +1 tab-btn. Measured 6,063 -> 6,064 (+1). Zero slack."),
     ],
     INDEX: [
         ("Phase 0 -> 6", 50982, "Phase 0 baseline 50,945; +37 in Phase 6 (same guard-web-access + "
@@ -186,19 +193,21 @@ RATCHET = {
                                      "norns,vidarr}) removed and their content folded into panel-activity / "
                                      "panel-heimdall (same merge as the standalone surface). Measured "
                                      "6,790 -> 6,785 (-5). Additions: zero. Zero slack."),
-        ("P5 (shell-view deletions)", 6774, "same shell-view deletions folded into the portal fragment: "
+        ("P5 (shell-view deletions)", 6776, "same shell-view deletions folded into the portal fragment: "
                                             "panel-overview + panel-simulator deleted; install/bifrost/about/"
                                             "commands folded into ONE panel-help drawer + the grouped C5 "
                                             "removed-routes table. Measured 6,785 -> 6,762 (-23). NOTE: value "
-                                            "lifted 6,762 -> 6,774 to stay monotonic through the sanctioned A-split "
-                                            "+12 then PR-A +7 below."),
-        ("P6 (payload demotion)", 6774, "the three portal-only JSON payload islands learn-payload / "
+                                            "lifted 6,762 -> 6,776 to stay monotonic through A-split +12, PR-A +7, "
+                                            "PR-B +2 below."),
+        ("P6 (payload demotion)", 6776, "the three portal-only JSON payload islands learn-payload / "
                                         "trees-payload / concepts-data stripped from the folded dashboard body "
                                         "(portal Learn/Trees/Concepts are P5 named removals -> standalone + "
                                         "Pages; the standalone keeps them inline, Gate 13 non-contact). Removing "
                                         "three <script> ELEMENTS. Measured 6,762 -> 6,759 (-3). NOTE: value "
-                                        "lifted 6,759 -> 6,774 to stay monotonic through A-split +12 then PR-A +7."),
-        ("A-split (Observe un-merge)", 6774, "the folded fragment's Observe family is UN-merged back into one "
+                                        "lifted 6,759 -> 6,776 to stay monotonic through A-split +12, PR-A +7, "
+                                        "PR-B +2 below. (PR-B later un-strips trees-payload — see its row + the "
+                                        "_PORTAL_ONLY_PAYLOAD_IDS change in generate-index-dashboard.py.)"),
+        ("A-split (Observe un-merge)", 6776, "the folded fragment's Observe family is UN-merged back into one "
                                              "<section class=tab-panel> per sub-page (the exact inverse of P4, same "
                                              "as the standalone surface): Activity -> Run feed / Saga / Session / "
                                              "Streams / Lineage; Guardrails -> Perimeter alerts / Security log / Debt "
@@ -206,14 +215,22 @@ RATCHET = {
                                              "Additions: 6 panel-* <section> wrappers + 6 sub-page tab-btns; every "
                                              "mount id + render function byte-identical. The one DELIBERATE, "
                                              "sanctioned +12 that reverses the P4 merge. Measured 6,755 -> 6,767 "
-                                             "(+12); value lifted to 6,774 to stay monotonic through PR-A below."),
-        ("PR-A (Help reachability + About accuracy)", 6774, "portal-only +7 vs the standalone's +2: the shared "
+                                             "(+12); value lifted to 6,776 to stay monotonic through PR-A/PR-B below."),
+        ("PR-A (Help reachability + About accuracy)", 6776, "portal-only +7 vs the standalone's +2: the shared "
                                              "About list re-cut 4 li -> 5 li (+2, gap G6) PLUS the G1 Help-"
                                              "reachability affordance in the shell topbar — an <a> '?' link + its "
                                              "inline <svg> (circle + '?' path + dot) = +5 — that makes the panel-help "
                                              "drawer (About / install guides / 525-command catalog) click-reachable "
                                              "again after #739 orphaned it to hash-only. Content-correctness raise; "
-                                             "measured 6,767 -> 6,774 (+7). Zero slack."),
+                                             "measured 6,767 -> 6,774 (+7); value lifted to 6,776 through PR-B below."),
+        ("PR-B (Guidance/trees wire-back)", 6776, "portal +2 vs the standalone's +1: the +1 tab-btn[data-tab=trees] "
+                                             "(same as the standalone) PLUS +1 for the restored trees-payload "
+                                             "<script> START TAG — G4 removed 'trees-payload' from the P6 portal "
+                                             "byte-diet so the portal KEEPS the consolidated 924-tree Guidance index "
+                                             "inline (render_fragment include_trees=True) for cross-plugin search, "
+                                             "reachable via the Catalog sub-nav 'Guidance' (#/trees). The trees "
+                                             "markup is CDATA (uncounted); only the <script> tag + tab-btn count. "
+                                             "Measured 6,774 -> 6,776 (+2). Zero slack."),
     ],
 }
 

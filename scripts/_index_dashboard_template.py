@@ -1048,8 +1048,16 @@ TEMPLATE = r"""<!doctype html>
           D.plugins.forEach((p) => { counts[p.category] = (counts[p.category] || 0) + 1; });
           const top = location.hash.replace(/^#\/?/, "").split("/")[0];
           const onTeam = top === "team";
+          const onTrees = top === "trees";
           const cur = (location.hash.split("/")[2] || "all");
-          const items = [`<a class="nav-subitem${onTeam ? " active" : ""}" href="#/team">Specialists</a>`];
+          // Literal hrefs (NOT a #/${tab} template) so Gate 51's committed-routes
+          // enumerates each. "Guidance" (#/trees) is the cross-plugin decision-tree +
+          // best-practice search — panel-trees, restored to the portal (G4). Its trees
+          // also live per-plugin in #dt-store; this is the marketplace-wide index.
+          const items = [
+            `<a class="nav-subitem${onTeam ? " active" : ""}" href="#/team">Specialists</a>`,
+            `<a class="nav-subitem${onTrees ? " active" : ""}" href="#/trees">Guidance</a>`,
+          ];
           items.push(
             ...[{ id: "all", label: "All plugins", count: D.plugins.length }]
               .concat(D.categories.map((c) => ({ id: c.id, label: c.label, count: counts[c.id] || 0 })))
