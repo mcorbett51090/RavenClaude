@@ -1029,34 +1029,37 @@ _PIPELINE_CONTROLS = {
 
 _PIPELINE_CSS = """<style>
 .pipeline-tab { max-width: 1120px; }
-.pipe-note { margin: .35rem 0 .6rem; padding: .5rem .7rem; border-radius: var(--rc-radius-sm);
+.pipeline-tab h2 { margin: .1rem 0 .35rem; }
+.pipeline-tab > .page-desc { margin: 0 0 .5rem; line-height: 1.4; }
+.pipeline-tab .behavioral-flag-explainer { margin: .2rem 0 .35rem; }
+.pipe-note { margin: .25rem 0 .4rem; padding: .35rem .6rem; border-radius: var(--rc-radius-sm);
   background: var(--surface-2); border: 1px solid var(--border);
-  color: var(--muted); font-size: .9rem; }
+  color: var(--muted); font-size: .86rem; line-height: 1.35; }
 /* Flow strip — the at-a-glance order an agent moves through. */
-.pipe-flow { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem .5rem;
-  margin: .4rem 0; padding: .55rem .7rem; border: 1px solid var(--border);
+.pipe-flow { display: flex; flex-wrap: wrap; align-items: center; gap: .3rem .4rem;
+  margin: .3rem 0; padding: .4rem .6rem; border: 1px solid var(--border);
   border-radius: var(--rc-radius-lg); background: var(--surface); box-shadow: var(--rc-shadow-sm); }
-.pipe-flow-step { font-size: .82rem; font-weight: 600; color: var(--text);
+.pipe-flow-step { font-size: .8rem; font-weight: 600; color: var(--text);
   background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--rc-radius-pill);
-  padding: .2rem .7rem; white-space: nowrap; }
+  padding: .15rem .6rem; white-space: nowrap; }
 .pipe-flow-step.pipe-flow-loop { border-color: var(--accent); }
 .pipe-flow-arr { color: var(--accent); font-weight: 700; }
-.pipe-readme { font-size: .86rem; }
+.pipe-readme { font-size: .84rem; }
 .pipe-lane { border: 1px solid var(--border); border-radius: var(--rc-radius-lg);
-  padding: .6rem .8rem; margin: 0; background: var(--surface); box-shadow: var(--rc-shadow-sm); }
+  padding: .4rem .6rem; margin: 0; background: var(--surface); box-shadow: var(--rc-shadow-sm); }
 .pipe-lane-head { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
 .pipe-lane-when { font-weight: 600; color: var(--text, #eee); }
-.pipe-lane-event { font-family: ui-monospace, monospace; font-size: .78rem;
+.pipe-lane-event { font-family: ui-monospace, monospace; font-size: .76rem;
   color: var(--muted, #999); background: var(--bg, #111); padding: .1rem .4rem;
   border-radius: 4px; }
-.pipe-lane-tip { margin: .2rem 0 .5rem; color: var(--muted, #aaa); font-size: .88rem; }
-.pipe-row { display: flex; flex-wrap: wrap; gap: .5rem; }
-.pipe-stage { flex: 1 1 240px; min-width: 210px; border: 1px solid var(--border);
-  border-radius: var(--rc-radius); padding: .45rem .6rem; background: var(--surface-2); }
+.pipe-lane-tip { margin: .15rem 0 .35rem; color: var(--muted, #aaa); font-size: .83rem; line-height: 1.32; }
+.pipe-row { display: flex; flex-wrap: wrap; gap: .35rem; }
+.pipe-stage { flex: 1 1 230px; min-width: 200px; border: 1px solid var(--border);
+  border-radius: var(--rc-radius); padding: .3rem .5rem; background: var(--surface-2); }
 .pipe-stage-head { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
-.pipe-stage-title { font-weight: 600; font-size: .92rem; }
-.pipe-tip { margin: .25rem 0 0; font-size: .82rem; color: var(--muted, #aaa); line-height: 1.3; }
-.pipe-badge { font-size: .7rem; font-weight: 600; padding: .12rem .42rem; border-radius: 10px;
+.pipe-stage-title { font-weight: 600; font-size: .88rem; }
+.pipe-tip { margin: .18rem 0 0; font-size: .8rem; color: var(--muted, #aaa); line-height: 1.25; }
+.pipe-badge { font-size: .7rem; font-weight: 600; padding: .1rem .42rem; border-radius: 10px;
   white-space: nowrap; }
 .pipe-badge-on { background: var(--rc-ok-bg); color: var(--rc-ok-fg); }
 .pipe-badge-off { background: var(--rc-danger-bg); color: var(--rc-danger-fg); }
@@ -1069,39 +1072,44 @@ _PIPELINE_CSS = """<style>
   background: var(--rc-neutral-bg); color: var(--rc-neutral-fg);
   border: 1px solid var(--border); }
 .behavioral-flag-explainer { font-size: .8rem; color: var(--muted); margin: .3rem 0 .5rem; }
-.pipe-controls { margin-top: .4rem; display: flex; flex-direction: column; gap: .3rem; }
-.pipe-ctl { display: flex; align-items: center; gap: .4rem; flex-wrap: wrap; font-size: .84rem; }
+.pipe-controls { margin-top: .3rem; display: flex; flex-direction: column; gap: .25rem; }
+.pipe-ctl { display: flex; align-items: center; gap: .4rem; flex-wrap: wrap; font-size: .82rem; }
 .pipe-ctl input[type=number] { width: 6rem; }
 .pipe-ctl input[type=text] { flex: 1 1 12rem; min-width: 10rem; }
-.pipe-hint { margin: .1rem 0 0; font-size: .78rem; color: var(--muted, #888); }
-.pipe-web-state { margin: .1rem 0 .2rem; font-size: .84rem; color: var(--text, #eee); }
+/* Native <select>s (orchestrator Mode / Scope) size to their LONGEST option text
+   ("off — host CLI orchestrates (default, zero extra cost)"), overflowing the card
+   + forcing a horizontal page scrollbar. Cap them to the container so the selected
+   value truncates in place instead of running off the right edge. */
+.pipe-ctl select { flex: 1 1 16rem; max-width: 100%; min-width: 0; }
+.pipe-hint { margin: .08rem 0 0; font-size: .76rem; color: var(--muted, #888); }
+.pipe-web-state { margin: .08rem 0 .15rem; font-size: .82rem; color: var(--text, #eee); }
 /* Expandable "How it works" subprocess detail (native <details>, accessible). */
-.pipe-more { margin: .4rem 0 0; }
+.pipe-more { margin: .3rem 0 0; }
 .pipe-more > summary { cursor: pointer; font-size: .8rem; font-weight: 600; color: var(--accent);
   list-style: none; display: inline-flex; align-items: center; gap: .3rem; user-select: none; }
 .pipe-more > summary::-webkit-details-marker { display: none; }
 .pipe-more > summary::before { content: "▸"; font-size: .7rem; transition: transform .15s ease; }
 .pipe-more[open] > summary::before { transform: rotate(90deg); }
-.pipe-steps { margin: .4rem 0 .3rem; padding-left: 1.15rem; font-size: .82rem; color: var(--muted);
-  line-height: 1.4; display: flex; flex-direction: column; gap: .2rem; }
-.pipe-more-line { margin: .25rem 0 0; font-size: .8rem; color: var(--muted); line-height: 1.4; }
+.pipe-steps { margin: .3rem 0 .25rem; padding-left: 1.15rem; font-size: .8rem; color: var(--muted);
+  line-height: 1.35; display: flex; flex-direction: column; gap: .15rem; }
+.pipe-more-line { margin: .2rem 0 0; font-size: .79rem; color: var(--muted); line-height: 1.35; }
 .pipe-more-lbl { font-weight: 700; color: var(--text); }
-.pipe-arrow { text-align: center; font-size: 1rem; color: var(--accent); margin: .1rem 0; }
-.pipe-file { margin-top: .5rem; }
+.pipe-arrow { text-align: center; font-size: .82rem; color: var(--accent); margin: 0; line-height: 1.1; }
+.pipe-file { margin-top: .35rem; }
 .pipe-file-head { display: flex; align-items: center; gap: .4rem; flex-wrap: wrap; font-size: .82rem; }
 .pipe-file-text { width: 100%; min-height: 6rem; font-family: ui-monospace, monospace;
   font-size: .78rem; margin-top: .3rem; box-sizing: border-box; }
 .pipe-file-status { font-size: .78rem; color: var(--muted, #999); }
-.pipe-savebar { display: flex; align-items: center; gap: .8rem; margin: 1.2rem 0 .5rem;
-  position: sticky; bottom: 0; padding: .6rem 0; background: linear-gradient(transparent, var(--bg, #111) 40%); }
-.pipe-save-status { font-size: .85rem; color: var(--muted, #aaa); }
-.concern-stats { margin-top: 1.8rem; padding: 1rem 1.1rem; border: 1px solid var(--border, #2a2a2a);
+.pipe-savebar { display: flex; align-items: center; gap: .8rem; margin: .5rem 0 .3rem;
+  position: sticky; bottom: 0; padding: .4rem 0; background: linear-gradient(transparent, var(--bg, #111) 40%); }
+.pipe-save-status { font-size: .84rem; color: var(--muted, #aaa); }
+.concern-stats { margin-top: .6rem; padding: .6rem .9rem; border: 1px solid var(--border, #2a2a2a);
   border-radius: 8px; background: var(--surface, #161616); }
-.concern-stats h3 { margin: 0 0 .4rem; font-size: 15px; }
-.concern-stats-state { font-size: 12.5px; color: var(--muted, #999); padding: .6rem 0; }
-.concern-stats-table { width: 100%; border-collapse: collapse; margin-top: .4rem; font-size: 12.5px; }
+.concern-stats h3 { margin: 0 0 .3rem; font-size: 14px; }
+.concern-stats-state { font-size: 12px; color: var(--muted, #999); padding: .4rem 0; }
+.concern-stats-table { width: 100%; border-collapse: collapse; margin-top: .3rem; font-size: 12px; }
 .concern-stats-table th, .concern-stats-table td {
-  text-align: left; padding: .35rem .5rem; border-bottom: 1px solid var(--border, #2a2a2a);
+  text-align: left; padding: .22rem .5rem; border-bottom: 1px solid var(--border, #2a2a2a);
 }
 .concern-stats-table th { color: var(--muted, #999); font-weight: 600; font-size: 11.5px;
   text-transform: uppercase; letter-spacing: .03em; }
@@ -3176,12 +3184,12 @@ h1, h2, h3 { font-family: var(--font-display); font-weight: 600; letter-spacing:
    the DOM — validTabs = querySelectorAll('.tab-btn') must keep finding them. */
 .page-header { display: none; }
 .tab-bar { display: none; }
-.dash-main { margin-left: 248px; }
+.dash-main { margin-left: 170px; }
 .dash-sidebar {
   position: fixed;
   left: 0;
   top: 0;
-  width: 248px;
+  width: 170px;
   height: 100vh;
   overflow-y: auto;
   z-index: 40;
@@ -6168,23 +6176,23 @@ footer.page-footer a:hover { text-decoration: underline; }
    ══════════════════════════════════════════════════════════════════════ */
 
 /* — Global page chrome (shortens every sub-page) — */
-.tab-panel { padding: 14px 28px; }
+.tab-panel { padding: 12px 24px; }
 .page-header { padding: 14px 32px 0; }
 .page-header h1 { font-size: 20px; }
 .page-header .page-desc { margin: 0 0 10px 0; }
 
 /* — Control · The Thing (the longest page): tighten every stacked block — */
-.preset-bar { padding: 11px 16px; margin-bottom: 10px; }
-.preset-bar p { margin: 0 0 8px 0; }
-.design-checkins-bar { padding: 10px 14px; margin-bottom: 10px; }
-.category-intro { padding: 9px 14px; margin-bottom: 10px; }
-.thing-preview { margin-bottom: 10px; }
-.command-review-panel { margin: 0 0 10px; }
-.command-review-block { margin-bottom: 10px; }
-.cat-card { margin: 0 0 6px; }
-.cat-card-summary { padding: 10px 14px; min-height: 44px; }
-.cat-card-body { padding: 10px 14px 12px; gap: 4px; }
-.layer-row { padding: 5px 0; }
+.preset-bar { padding: 9px 14px; margin-bottom: 8px; }
+.preset-bar p { margin: 0 0 6px 0; }
+.design-checkins-bar { padding: 9px 14px; margin-bottom: 8px; }
+.category-intro { padding: 8px 14px; margin-bottom: 8px; }
+.thing-preview { margin-bottom: 8px; }
+.command-review-panel { margin: 0 0 8px; }
+.command-review-block { margin-bottom: 8px; }
+.cat-card { margin: 0 0 4px; }
+.cat-card-summary { padding: 6px 14px; min-height: 36px; gap: 9px; }
+.cat-card-body { padding: 8px 14px 10px; gap: 3px; }
+.layer-row { padding: 4px 0; }
 
 /* — Feeds (Run feed / Saga / Perimeter / Security log / Lineage / Session /
      Streams / Bifröst): kill the doubled top padding + tighten card gaps.
@@ -6194,7 +6202,7 @@ footer.page-footer a:hover { text-decoration: underline; }
      are NOT JS-capped, so they bound unbounded page growth with a max-height +
      internal scroll (rule just below) instead. — */
 .saga-layout, .vidarr-layout, .norns-layout, .heimdall-layout,
-.bifrost-layout, .mimir-layout { padding: 14px 20px; }
+.bifrost-layout, .mimir-layout { padding: 12px 20px; }
 /* G9: the Observe log feeds render every row/card (no JS top-N cap), so on a
    busy project they grew the page unbounded — the condense goal is "not much
    scrolling". A generous max-height keeps normal data un-scrolled and only
@@ -6202,16 +6210,18 @@ footer.page-footer a:hover { text-decoration: underline; }
    both #mimir Session and #streams Streams; Saga/Heimdall/Bifröst are excluded
    — Saga is JS-capped, Heimdall is a card grid, Bifröst is a short guide.) */
 .vidarr-layout, .norns-layout, .mimir-layout { max-height: 78vh; overflow-y: auto; }
-.saga-hdr { margin-bottom: 8px; }
-.saga-filters { margin-bottom: 10px; }
-.saga-table th, .saga-table td { padding: 6px 10px; }
-#activity-content { gap: 8px; padding: 0 20px 16px; }
-.activity-card { padding: 10px 14px; }
-.activity-summary { margin: 6px 0 0; }
-.activity-intro { margin: 0 20px 10px; }
-.heimdall-grid { gap: 12px; padding: 0 20px 16px; }
-.heimdall-card { padding: 12px 14px; }
-.heimdall-sub { margin: 0 0 8px; }
+.saga-hdr { margin-bottom: 6px; }
+.saga-filters { margin-bottom: 8px; }
+.saga-table { line-height: 1.35; }
+.saga-table th, .saga-table td { padding: 4px 10px; }
+#activity-content { gap: 6px; padding: 0 20px 12px; }
+.activity-card { padding: 8px 14px; }
+.activity-summary { margin: 4px 0 0; }
+.activity-intro { margin: 0 20px 8px; line-height: 1.4; }
+.sleipnir-stables { margin: 0 20px 10px; }
+.heimdall-grid { gap: 10px; padding: 0 20px 12px; }
+.heimdall-card { padding: 10px 12px; }
+.heimdall-sub { margin: 0 0 6px; line-height: 1.35; }
 
 /* "Show all (N)" reveal control for the length-capped feeds (Run feed / Saga). */
 .feed-showall {
@@ -6223,6 +6233,138 @@ footer.page-footer a:hover { text-decoration: underline; }
 .feed-showall:hover { border-color: var(--accent); }
 .feed-showall:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .feed-showall-row td { text-align: center; padding: 8px 10px; border-bottom: none; }
+
+/* ══════════════════════════════════════════════════════════════════════
+   DEEPER CONDENSE — trailing content-density overrides (screenshot-driven).
+   Same-specificity, later-in-source rules that cut per-section vertical
+   space a further ~25-40% on the panel CONTENT (the settings/Thing stacks,
+   the Perimeter/Heimdall drift table, the feed rows/tables/cards) without
+   touching the left sidebar (.dash-sidebar / .ds-* / .dash-main), the DOM
+   element count, or the seg-control / .rec-badge posture-control geometry.
+   Vertical padding/margin/gap cut hardest; horizontal trimmed only lightly;
+   a few line-heights + font-sizes nudged down where the block is dense data
+   or muted secondary text — body/label text stays legible.
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* — Control · The Thing: the command-review + preset stacks — */
+.design-checkins-bar h3 { margin: 0 0 2px 0; }
+.dc-state { margin: 6px 0 0 0; }
+.command-review-panel { padding: 12px 16px; }
+.command-review-panel .crp-sub { margin: 0 0 8px 0; }
+.crp-hydrated { margin: 0 0 8px 0; }
+.command-review-block { padding: 11px 14px; }
+.crb-head { margin-bottom: 8px; }
+.crb-title-row { margin-bottom: 6px; }
+.crb-summary-section { margin: 8px 0; padding: 7px 0; }
+.crb-summary-title { margin-bottom: 6px; }
+.crb-advanced { margin-top: 6px; }
+.crb-advanced-body { padding: 8px 4px 2px; }
+.crb-adv-sub { margin: 0 0 8px; }
+.command-review-block p { margin: 0 0 6px; line-height: 1.42; }
+.tier-intro { margin: 0 0 8px; }
+.tier-card-head { margin-bottom: 6px; }
+
+/* — Permission category groups (FILES / NETWORK / OTHER / SHELL) — */
+.cat-group { padding: 10px 16px 4px; margin: 0 0 10px; }
+
+/* — Danger Zone: 20 always-visible rows are the settings page's tallest
+     block — trim row padding hardest, tighten the header/note, and nudge the
+     one-line rule descriptions' font/leading (12.5→12px stays legible). — */
+.danger-zone { margin: 12px 0 0; }
+.danger-zone-header { padding: 10px 16px 8px; }
+.danger-zone-subtitle { margin: 4px 0 0; line-height: 1.4; }
+.danger-zone-note { margin: 8px 0 0; padding: 9px 12px; }
+.danger-zone-note p { margin: 0 0 6px; font-size: 12.5px; line-height: 1.45; }
+.danger-zone-row { padding: 6px 16px; }
+.danger-zone-row-title { margin-bottom: 2px; }
+.danger-zone-row-desc { font-size: 12px; line-height: 1.35; }
+
+/* — Guardrails · Perimeter (Heimdall): the ~200-row plugin-drift table is
+     the dominant consumer — a tighter cell padding + leading + a 0.5px font
+     nudge (12→11.5px mono) reclaims the most page height while a dense data
+     table stays perfectly readable. — */
+.hm-hookgroup { margin-bottom: 8px; }
+.hm-hookname { margin: 0 0 4px; }
+.hm-evt { padding: 4px 8px; margin-bottom: 3px; }
+.hm-table { font-size: 11px; line-height: 1.25; }
+.hm-table th { padding: 3px 8px; }
+.hm-table td { padding: 2px 8px; }
+.hm-ci-row { padding: 4px 4px; }
+.nid-section { padding: 8px 12px; }
+.kh-tiles { gap: 8px; }
+.kh-tile { padding: 8px 12px; }
+.heimdall-card--wide #heimdall-debt { gap: 10px; }
+.heimdall-card--wide #heimdall-kh { gap: 8px; }
+
+/* — Observe log feeds (Security log / Lineage / Session): tighter table
+     cells + list leading, same legible-floor discipline. — */
+.vidarr-table th { padding: 4px 8px; }
+.vidarr-table td { padding: 4px 8px; }
+.norns-col h3, .mimir-card h3 { margin: 0 0 8px; }
+.mimir-recent-list li, .norns-itemlist li, .nid-list li { line-height: 1.35; }
+
+/* ══════════════════════════════════════════════════════════════════════
+   DEEPER CONDENSE v2 — a further density + text-size pass on the
+   content-rich pages (owner: "noticeably more density; shrink the
+   comfort-posture pane's text + rows so more of the posture list is
+   visible without scrolling"). Text on secondary/muted + dense-data
+   surfaces steps down ~0.5-1px; the segmented deny/ask/allow posture
+   controls shrink UNIFORMLY (padding + font + min-width together) so the
+   segments stay aligned and the Recommended badge keeps its clearance.
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* — The Thing · comfort-posture pane: smaller category text + tighter rows
+     so more of the 12-category posture list fits per screen. — */
+.cat-card-title { font-size: 13px; }
+.cat-card-desc { font-size: 11.5px; }
+.cat-card-badge { font-size: 11px; padding: 2px 8px; min-width: 66px; }
+.cat-card-arrow { font-size: 10px; }
+.cat-group { padding: 8px 14px 3px; }
+.cat-group legend { font-size: 11px; }
+.cat-thing-label { font-size: 12px; }
+.cat-thing-cost { font-size: 10.5px; }
+
+/* — Segmented deny/ask/allow posture controls (category rows + the gate-floor
+     Medium/High/Extreme control): shrink uniformly, keep segments aligned and
+     the ·Recommended· badge unclipped (badge offset tightened to match). — */
+.cat-row { padding: 9px 0 17px; gap: 12px; }
+.cat-title { font-size: 13px; }
+.cat-desc { font-size: 11.5px; }
+.seg-control { padding: 2px; }
+.seg-label { padding: 4px 11px 7px; font-size: 11.5px; min-width: 72px; }
+.rec-badge { bottom: -13px; font-size: 9px; }
+/* Keep the ·Recommended· badge (hangs ~13px below the control) clear of the
+   note that follows the gate-floor control — 16px > the badge's reach. */
+.seg-control.gate-floor-seg { margin-bottom: 16px; }
+.crp-gate-floor-note { line-height: 1.4; }
+
+/* — Command review + preset stacks: trim the prose leading/size a touch
+     more (13→12.5px muted body) — the block is the settings page's largest
+     text mass after the Danger Zone. — */
+.command-review-block p { font-size: 12px; line-height: 1.35; }
+.crb-adv-sub, .crp-sub, .tier-intro { font-size: 12px; }
+.preset-bar p, .design-checkins-bar .dc-text p, .category-intro p { font-size: 12.5px; line-height: 1.35; }
+.thing-preview p { line-height: 1.38; }
+.category-intro { margin-bottom: 6px; }
+.cat-group { margin: 0 0 8px; }
+
+/* — Danger Zone: 20 rows — nudge the rule text down 0.5px and tighten the
+     header/note copy so the block (the tallest on the page) shrinks more. — */
+.danger-zone-row { padding: 4px 16px; }
+.danger-zone-pattern { font-size: 12px; }
+.danger-zone-row-desc { font-size: 11.5px; line-height: 1.3; }
+.danger-zone-header { padding: 8px 16px 6px; }
+.danger-zone-note { padding: 8px 12px; }
+.danger-zone-note p { font-size: 12px; line-height: 1.35; margin: 0 0 5px; }
+.danger-zone-subtitle { font-size: 12.5px; }
+
+/* — Guardrails · Perimeter (Heimdall) + feeds: one more small step on the
+     drift table + card heads so table-driven pages land in the deeper band. — */
+.heimdall-card { padding: 9px 12px; }
+.heimdall-card h3 { font-size: 13px; }
+.hm-table td { padding: 2px 7px; }
+.hm-table th { padding: 2px 7px; }
+.saga-table th, .saga-table td { padding: 3px 9px; }
 """.strip()
 
 
