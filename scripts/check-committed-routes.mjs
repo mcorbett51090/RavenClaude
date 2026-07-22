@@ -9,16 +9,17 @@
  *
  * Two surfaces, two DIFFERENT routers (verified against the source, 2026-07-16):
  *   • index.html — the unified portal shell. A `#/section[/sub]` is dispatched by
- *     route(): LEGACY_VIEW → SECTION_ALIAS → plugin-* → observe/act → DASH_OWNER →
- *     the discover/configure/learn/home switch. An unknown section falls to
- *     viewHome() (a dead deep-link). `#/learn/<concept>` resolves to the Learn
- *     section; the concept sub-segment is dropped by the shell (honored only on
- *     the standalone surface).
+ *     route(): SECTION_ALIAS → plugin-* → observe/act → DASH_OWNER →
+ *     the catalog/discover/learn branches. The LIVE default lands on Control, but
+ *     this mirror treats an unknown section as UNRESOLVED to keep its teeth (see
+ *     resolveIndex). `#/learn/<concept>` resolves to the Learn section; the concept
+ *     sub-segment is dropped by the shell (honored only on the standalone surface).
  *   • plugins/ravenclaude-core/dashboard.html — the standalone, hashchange router.
- *     applyHash() → activate(seg0, seg1); activate() falls back to "overview" for
- *     any tab ∉ validTabs (the `.tab-btn[data-tab]` set). `#/learn/<concept>`
- *     opens the concept via openConcept(sub) — so the concept MUST exist
- *     (`data-concept`) for the route to reach its destination.
+ *     applyHash() → activate(seg0, seg1); activate() falls back to "settings" for
+ *     any tab ∉ validTabs (the `.tab-btn[data-tab]` set — P5 retarget off the
+ *     deleted "overview" panel). `#/learn/<concept>` opens the concept via
+ *     openConcept(sub) — so the concept MUST exist (`data-concept`) for the route
+ *     to reach its destination.
  *
  * The fixture (tests/fixtures/routes/committed-routes.json) is the committed
  * enumeration of every `#/…` on both surfaces → its destination. This checker
@@ -107,7 +108,6 @@ function parseIndexRouter(html) {
   };
   const alias = parseMap(sliceBetween(app, "const SECTION_ALIAS = ", "{"));
   const owner = parseMap(sliceBetween(app, "const DASH_OWNER = ", "{"));
-  const legacy = parseMap(sliceBetween(app, "const LEGACY_VIEW = ", "{"));
   const tabsText = sliceBetween(app, "const SECTION_TABS = ", "{");
   const navRoutes = uniqSort([...tabsText.matchAll(/route:\s*"(#\/[^"]*)"/g)].map((m) => m[1]));
   return {
@@ -115,14 +115,17 @@ function parseIndexRouter(html) {
     navValues: [...navValues],
     alias,
     owner,
-    legacy,
     navRoutes,
   };
 }
 // Mirrors index.html route() dispatch order exactly. Returns the destination
-// handler string, or UNRESOLVED when the section is unknown (falls to viewHome).
+// handler string, or UNRESOLVED when the section is genuinely unknown. NOTE (P5,
+// dashboard-consumption): the LIVE route() default now lands on Control (a real
+// destination), but this mirror keeps the unknown case UNRESOLVED on purpose — it
+// preserves the gate's teeth (a committed href that only reaches the catch-all
+// fails here), while the Control safety-net catches mistyped/non-committed deep
+// links (proven by the blank-host Playwright regression test, not this checker).
 function resolveIndex(section, R) {
-  if (R.legacy[section] === "viewTeam") return { resolved: true, destination: "viewTeam" };
   let s = section;
   if (R.alias[s]) s = R.alias[s];
   // #/plugin-vars (the P1 picker) is EXCLUDED from the plugin-* → __openPlugin
@@ -141,9 +144,9 @@ function resolveIndex(section, R) {
   if (R.owner[s]) return { resolved: true, destination: `viewDashboard:${s}` };
   if (s === "catalog" || s === "discover")
     return { resolved: true, destination: "viewMarketplace" };
-  if (s === "configure") return { resolved: true, destination: "viewConfiguration" };
   if (s === "learn") return { resolved: true, destination: "viewResources" };
-  if (s === "home") return { resolved: true, destination: "viewHome" };
+  // P5: #/configure and #/home resolve via SECTION_ALIAS → control above (viewHome /
+  // viewConfiguration were deleted). Anything still unknown here is a genuine dead-end.
   return { resolved: false, destination: "UNRESOLVED" };
 }
 
@@ -159,8 +162,9 @@ function parseDashRouter(html) {
   const concepts = new Set([...html.matchAll(/data-concept="([^"]+)"/g)].map((m) => m[1]));
   return { validTabs, concepts };
 }
-// Mirrors activate(tab, sub): unknown tab → overview (dead-end); learn+sub →
-// openConcept(sub) so the concept must exist.
+// Mirrors activate(tab, sub): unknown tab → "settings" (the P5 fallback); modeled
+// here as UNRESOLVED so a committed href to a non-existent tab still fails. learn+sub
+// → openConcept(sub), so the concept must exist.
 function resolveDash(section, sub, R) {
   if (!R.validTabs.has(section)) return { resolved: false, destination: "UNRESOLVED" };
   if (section === "learn" && sub) {

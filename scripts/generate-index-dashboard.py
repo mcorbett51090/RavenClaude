@@ -1087,13 +1087,9 @@ def render_html(data: dict) -> str:
         f'<img src="{gd._RAVEN_MARK_WEBP_DATA_URI}" width="34" height="35" '
         'alt="" aria-hidden="true" draggable="false">'
     )
-    hero_img = (
-        f'<img class="hero__raven" src="{gd._RAVEN_HERO_DATA_URI}" '
-        f'width="{gd._RAVEN_HERO_W}" height="{gd._RAVEN_HERO_H}" '
-        'alt="" aria-hidden="true" draggable="false">'
-    )
+    # P5 (dashboard-consumption): the __RAVEN_HERO_IMG__ placeholder lived only in the
+    # deleted viewHome marketing page, so its hero image (gd._RAVEN_HERO_*) is retired.
     html = html.replace("__RAVEN_MARK_IMG__", mark_img)
-    html = html.replace("__RAVEN_HERO_IMG__", hero_img)
     # Splice the DATA payload LAST — after every __MARKER__ / <!--__MARKER__--> /
     # comment-sentinel substitution above. The payload is built from repo-authored
     # free text (agent/skill/hook descriptions, scenario scope tags), so a field that

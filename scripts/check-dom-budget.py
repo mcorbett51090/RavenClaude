@@ -139,6 +139,12 @@ RATCHET = {
                                      "(vidarr). Every mount id + render function is byte-identical; only the "
                                      "five <section> wrappers left. Measured 6,081 -> 6,076 (-5). Additions: "
                                      "zero. Zero slack."),
+        ("P5 (shell-view deletions)", 6053, "panel-overview + panel-simulator deleted; the install/bifrost/"
+                                            "about/commands panels folded into ONE panel-help drawer as "
+                                            "collapsed <details> (their render fns + mount ids byte-identical). "
+                                            "Addition: the panel-help wrapper + the grouped C5 removed-routes "
+                                            "table (matches docs/dashboard-removed-routes.md). Net measured "
+                                            "6,076 -> 6,053 (-23). Zero slack."),
     ],
     INDEX: [
         ("Phase 0 -> 6", 50982, "Phase 0 baseline 50,945; +37 in Phase 6 (same guard-web-access + "
@@ -162,6 +168,10 @@ RATCHET = {
                                      "norns,vidarr}) removed and their content folded into panel-activity / "
                                      "panel-heimdall (same merge as the standalone surface). Measured "
                                      "6,790 -> 6,785 (-5). Additions: zero. Zero slack."),
+        ("P5 (shell-view deletions)", 6762, "same shell-view deletions folded into the portal fragment: "
+                                            "panel-overview + panel-simulator deleted; install/bifrost/about/"
+                                            "commands folded into ONE panel-help drawer + the grouped C5 "
+                                            "removed-routes table. Measured 6,785 -> 6,762 (-23). Zero slack."),
     ],
 }
 

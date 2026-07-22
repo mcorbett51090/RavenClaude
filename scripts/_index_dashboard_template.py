@@ -841,7 +841,7 @@ TEMPLATE = r"""<!doctype html>
       // Route name → real dashboard tab id where they differ (incl. the two
       // phantom routes: nidhoggr is a card in heimdall, sleipnir a banner in activity).
       const DASH_TAB_ALIAS = {
-        dashboard: "overview", "comfort-posture": "settings",
+        dashboard: "activity", "comfort-posture": "settings",
         nidhoggr: "heimdall", sleipnir: "activity", concepts: "learn",
         // P4 (dashboard-consumption): the Observe family is physically merged, so
         // these retired tab routes now resolve to their destination FRAGMENT tab —
@@ -849,6 +849,11 @@ TEMPLATE = r"""<!doctype html>
         // value is a real .tab-btn[data-tab] (Gate 51's DASH_TAB_ALIAS-target check).
         saga: "activity", mimir: "activity", streams: "activity",
         norns: "activity", vidarr: "heimdall",
+        // P5 (dashboard-consumption): install/bifrost/about/commands were folded into
+        // the Help drawer (panel-help, data-tab="help"), so their retired tab routes
+        // resolve to the "help" FRAGMENT tab. "dashboard" was retargeted off the
+        // deleted "overview" tab to "activity" (it is aliased to activity anyway).
+        about: "help", install: "help", bifrost: "help", commands: "help",
       };
       // Retired Observe sub-routes now live as anchored <section>s inside a destination
       // tab (P4). A bare #/saga etc. has no sub-segment, so map the route name → its
@@ -865,20 +870,24 @@ TEMPLATE = r"""<!doctype html>
         marketplace: "catalog", team: "catalog", "repo-guide": "catalog",
         discover: "catalog", configuration: "control", resources: "catalog",
         dashboard: "activity", home: "control",
+        // P5 (dashboard-consumption): the retired shell views resolve to Control as
+        // NAMED removals — #/configure (the deleted non-writing posture editor) and
+        // #/overview / #/simulator (deleted tabs) land on Settings (the real editor).
+        configure: "control", overview: "control", simulator: "control",
       };
-      // Legacy routes that keep their OWN shell view but light up a NAV section
-      // (Slice A: Team's roster + collab rules survive under Discover until Slice
-      // B merges them in; #/team bookmarks + ⌘K specialist links still resolve).
-      const LEGACY_VIEW = { team: "viewTeam" };
+      // LEGACY_VIEW retired (P5, dashboard-consumption): viewTeam was deleted, so no
+      // own-view legacy route remains — #/team resolves via SECTION_ALIAS (team→catalog).
       // Dashboard tab route → the NAV section that owns it (for highlight + dispatch).
       const DASH_OWNER = {
         heimdall: "guardrails", vidarr: "guardrails", nidhoggr: "guardrails",
         norns: "activity", mimir: "activity", saga: "activity", activity: "activity",
         streams: "activity", sleipnir: "activity",
         settings: "control", "comfort-posture": "control", "web-access": "control",
-        simulator: "control", pipeline: "control", overview: "control",
+        pipeline: "control",
+        // P5: overview/simulator tabs deleted (resolve via SECTION_ALIAS → Control);
+        // the Help drawer (install/bifrost/about/commands + help) is owned by Catalog.
         "plugin-vars": "catalog", commands: "catalog", trees: "catalog", bifrost: "catalog",
-        install: "catalog", about: "catalog", concepts: "catalog",
+        install: "catalog", about: "catalog", concepts: "catalog", help: "catalog",
       };
       // SECTION_TABS retired (P3, dashboard-consumption). The 6-section IA's
       // per-section sub-nav is gone: the shell now has four task destinations
@@ -1070,129 +1079,14 @@ TEMPLATE = r"""<!doctype html>
         </div>`;
       }
 
-      /* ---------------- HOME ---------------- */
-      function viewHome() {
-        const s = D.stats;
-        const qa = D.quick_actions.map((a) => {
-          const href = a.route || a.href || "#/home";
-          const onclick = a.command ? ` onclick="window.__copy('${esc(a.command)}','Command ${esc(a.command)}'); return ${a.href || a.route ? "true" : "false"};"` : "";
-          const tag = a.href ? "a" : a.route ? "a" : "button";
-          const attrs = a.href ? `href="${esc(a.href)}"` : a.route ? `href="${esc(a.route)}"` : "type=\"button\"";
-          return `<${tag} class="card"${onclick} ${attrs} style="display:block">
-            <div class="action-tile"><span class="ico">${svg(a.icon)}</span><span><span class="t">${esc(a.label)}</span><span class="d">${esc(a.desc)}</span></span></div>
-          </${tag}>`;
-        }).join("");
-
-        $("#view").innerHTML = `
-          ${onboardingHtml()}
-          ${spawnLogHtml()}
-          <section class="hero">
-            <div class="hero__inner">
-              <p class="eyebrow"><span class="eyebrow__dot"></span>Private Claude Code marketplace · v${esc(D.marketplace_version)}</p>
-              <h1>The <span class="accent">AI Engineering Team</span> Platform</h1>
-              <p class="hero__sub">One main helper that runs the show, plus ${s.plugins - 1} expert teams — for Microsoft, Salesforce, web, data, finance, and safety-and-rules work. They plug into Claude Code, and <strong>you</strong> decide what they can do on their own using simple point-and-click settings.</p>
-              <div class="hero-cta">
-                <a class="btn primary" href="#/discover">${svg("market")} Explore the Marketplace</a>
-                <a class="btn" href="#/configure">${svg("sliders")} Tune Comfort Posture</a>
-                <a class="btn ghost" href="#/discover">${svg("book")} Browse by use case</a>
-              </div>
-            </div>
-            __RAVEN_HERO_IMG__
-          </section>
-
-          <div class="section-title"><h2>Quick actions</h2><span class="hint">one click to the things you do most</span></div>
-          <div class="grid cols-4">${qa}</div>
-        `;
-        // Wire onboarding step buttons
-        const ob = $("#onboarding-card");
-        if (ob) {
-          $("#ob-dismiss").addEventListener("click", () => { localStorage.setItem("rc-onboarding-dismissed", "1"); ob.remove(); toast({ msg: "Onboarding hidden. Reopen via ⌘K → Show onboarding checklist" }); });
-          $$(".onboarding-step").forEach((step) => {
-            const id = parseInt(step.dataset.step, 10);
-            const act = step.dataset.action;
-            const cmd = step.dataset.cmd;
-            const href = step.dataset.href;
-            const rt = step.dataset.route;
-            const trigger = () => {
-              if (act === "copyCmd" && cmd) window.__copy(cmd, "Command");
-              else if (act === "href" && href) window.open(href, "_blank", "noopener");
-              else if (act === "route" && rt) location.hash = rt;
-              onboardingMark(id);
-              step.classList.add("done");
-              const check = step.querySelector(".step-check");
-              if (check && !check.innerHTML.trim()) check.innerHTML = svg("check");
-              // Update progress count
-              const pg = $(".onboarding-card .ob-progress");
-              if (pg) pg.textContent = `${ONBOARDING_STEPS.filter((s) => onboardingDone(s.id)).length} of ${ONBOARDING_STEPS.length}`;
-              // Auto-hide when complete
-              if (onboardingComplete()) {
-                setTimeout(() => { ob.remove(); toast({ msg: "Onboarding complete — nice work!" }); }, 800);
-              }
-            };
-            step.querySelector(".step-cta").addEventListener("click", (e) => { e.stopPropagation(); trigger(); });
-          });
-        }
-      }
-
-      /* ---------------- TEAM ---------------- */
-      const allAgents = () => D.plugins.flatMap((p) => p.agents.map((a) => ({ ...a, plugin: p.name, pluginLabel: p.label, domain: p.category_label })));
-      function viewTeam() {
-        const agents = allAgents();
-        const domains = [...new Set(agents.map((a) => a.domain))].sort();
-        $("#view").innerHTML = `
-          <div class="page-head"><span class="eyebrow">The Team</span><h1>Specialist roster &amp; collaboration</h1>
-            <p class="lede">${agents.length} agents across ${D.plugins.length} plugins. One agent — the Team Lead — hands out the work, and the expert agents do it. Search the list below, look through the skills they can use and the safety checks that run, and read the rules for how they pass work to each other.</p></div>
-
-          <div class="section-title"><h2>Agents roster</h2><span class="hint" id="roster-count"></span></div>
-          <div class="roster-controls">
-            <input type="search" id="roster-q" placeholder="Filter by name or description…" aria-label="Filter agents" />
-            <select id="roster-domain" aria-label="Filter by domain"><option value="">All domains</option>${domains.map((d) => `<option>${esc(d)}</option>`).join("")}</select>
-            <select id="roster-plugin" aria-label="Filter by plugin"><option value="">All plugins</option>${D.plugins.map((p) => `<option value="${esc(p.name)}">${esc(p.label)}</option>`).join("")}</select>
-          </div>
-          <div class="grid cols-3" id="roster-grid"></div>
-
-          <div class="section-title"><h2>Dispatch playbooks</h2><span class="hint">how work is routed</span></div>
-          <div class="grid cols-3">
-            ${[
-              { t: "Route by blast radius", d: "The Team Lead traverses the decision tree and picks the smaller-blast-radius specialist rather than keyword-matching the request to a method." },
-              { t: "Escalate across domains", d: "Cross-domain or security-sensitive work escalates to ravenclaude-core (architect / security-reviewer) before a specialist proceeds." },
-              { t: "Hand off structured", d: "Every hand-off carries the Structured Output Protocol envelope — summary, decisions, artifacts, open questions — so the next agent has full context." },
-            ].map((x) => `<div class="card"><div style="display:flex;gap:10px;align-items:center"><span class="ico" style="width:36px;height:36px;border-radius:10px;display:grid;place-items:center;background:var(--teal-soft);color:var(--teal-2);border:1px solid var(--border-strong)">${svg("tree")}</span><b>${esc(x.t)}</b></div><p style="color:var(--muted);font-size:.85rem;margin:10px 0 0">${esc(x.d)}</p></div>`).join("")}
-          </div>
-
-          <div class="section-title"><h2>Skills &amp; hooks library</h2><span class="hint">per plugin · ${D.stats.skills} skills · ${D.stats.hooks} hooks</span></div>
-          <div id="lib-list"></div>
-
-          <div class="section-title"><h2>Collaboration rules</h2><span class="hint">the constitution, summarized</span></div>
-          <div class="grid cols-2">
-            ${D.collab_rules.map((r) => `<div class="card"><div style="display:flex;gap:10px;align-items:center"><span style="color:var(--teal-2)">${svg("check")}</span><b>${esc(r.title)}</b></div><p style="color:var(--muted);font-size:.86rem;margin:10px 0 0">${esc(r.body)}</p></div>`).join("")}
-          </div>
-        `;
-        // Library
-        $("#lib-list").innerHTML = D.plugins.filter((p) => p.counts.skills || p.counts.hooks || p.counts.commands).map((p) => `
-          <details class="lib"><summary>${esc(p.label)} <span class="chip teal" style="margin-left:4px">${p.counts.skills} skills</span> <span class="chip">${p.counts.hooks} hooks</span> <span class="chip">${p.counts.commands} commands</span><span class="caret">${svg("tree")}</span></summary>
-            <div class="lib-body">${esc(p.short)}<div class="pill-row">${p.keywords.map((k) => `<span class="chip">${esc(k)}</span>`).join("")}</div></div></details>`).join("");
-
-        // Roster filtering
-        const grid = $("#roster-grid");
-        function renderRoster() {
-          const q = $("#roster-q").value.toLowerCase().trim();
-          const dom = $("#roster-domain").value;
-          const plg = $("#roster-plugin").value;
-          const list = agents.filter((a) =>
-            (!dom || a.domain === dom) && (!plg || a.plugin === plg) &&
-            (!q || a.label.toLowerCase().includes(q) || (a.description || "").toLowerCase().includes(q) || a.name.toLowerCase().includes(q)));
-          $("#roster-count").textContent = `${list.length} of ${agents.length}`;
-          grid.innerHTML = list.length ? list.map((a) => `
-            <div class="card agent-card">
-              <div class="ac-head"><span class="nm">${esc(a.label)}</span><span class="chip teal role">${esc(a.pluginLabel)}</span></div>
-              <div class="desc">${esc(a.description || "Specialist agent.")}</div>
-              ${a.triggers && a.triggers.length ? `<div class="trig">Try: <code>${esc(a.triggers[0])}</code></div>` : ""}
-            </div>`).join("") : `<div class="empty-state">No agents match those filters.</div>`;
-        }
-        ["roster-q", "roster-domain", "roster-plugin"].forEach((id) => { $("#" + id).addEventListener("input", renderRoster); });
-        renderRoster();
-      }
+      /* ---------------- Retired shell views (P5, dashboard-consumption) ----------------
+         viewHome (marketing hero + CTA grid + onboarding checklist), viewTeam (specialist
+         roster; + the allAgents helper) and viewConfiguration (the SECOND, non-writing
+         posture editor — incl. its 167 always-`checked` "Plugin activation" toggles wired
+         to nothing, a straight defect removal) were DELETED. #/home and #/configure now
+         resolve to Control (panel-settings, the one editor that writes) and #/team to
+         Catalog, via SECTION_ALIAS; route()'s default is Control. See
+         docs/dashboard-removed-routes.md. */
 
       /* ---------------- MARKETPLACE ---------------- */
       let mktState = { cat: "all", q: "" };
@@ -1375,138 +1269,6 @@ TEMPLATE = r"""<!doctype html>
         $("#view").focus();
         window.scrollTo({ top: 0, behavior: "smooth" });
       };
-
-      /* ---------------- CONFIGURATION ---------------- */
-      const posture = { levels: {}, design_checkins: true, global_default: "ask", activePreset: "client_delivery" };
-      function applyPreset(id) {
-        const pr = D.posture.presets.find((p) => p.id === id);
-        if (!pr) return;
-        posture.levels = { ...pr.levels };
-        posture.design_checkins = pr.design_checkins;
-        posture.global_default = pr.global_default;
-        posture.activePreset = id;
-      }
-      function postureYaml() {
-        const lines = ["# Generated by the RavenClaude comfort-posture editor", "# Drop into .ravenclaude/comfort-posture.yaml, then run apply-comfort-posture.py", "schema_version: 5", "", `design_checkins: ${posture.design_checkins}`, `global_default: ${posture.global_default}`, "", "security_deny:"];
-        D.posture.security_floor.forEach((r) => lines.push(`  - ${JSON.stringify(r)}`));
-        lines.push("", "categories:");
-        D.posture.categories.forEach((c) => {
-          const lvl = posture.levels[c.id] || posture.global_default;
-          lines.push(`  ${c.id}:`, "    user: inherit", "    local: inherit", `    project: ${lvl}`);
-        });
-        return lines.join("\n");
-      }
-      function viewConfiguration() {
-        if (!Object.keys(posture.levels).length) applyPreset(posture.activePreset);
-        // ⌘K palette can pre-stage a preset; apply if pending
-        if (window.__pendingPreset) {
-          const pid = window.__pendingPreset;
-          window.__pendingPreset = null;
-          if (D.posture.presets.some((p) => p.id === pid)) {
-            applyPreset(pid);
-            setTimeout(() => toast({ msg: `Applied "${(D.posture.presets.find((p) => p.id === pid) || {}).label || pid}"`, action: { label: "Save YAML", fn: () => copyText(postureYaml(), "comfort-posture.yaml") } }), 100);
-          }
-        }
-        const groups = {};
-        D.posture.categories.forEach((c) => { (groups[c.group] = groups[c.group] || []).push(c); });
-        // Scenario picker — visual cards with auto-generated "what this means" prose
-        const PROFILE_MAP = { strict_production: "strict", client_delivery: "balanced", exploratory: "exploratory", maximum_autonomy: "autonomous" };
-        const LEVEL_PHRASE = { deny: "always stops you", ask: "asks before acting", allow: "proceeds silently" };
-        function meansFor(preset) {
-          // Pick 3 highest-stakes categories (deny > ask > auto) and render via template.
-          // BUG #3 fix: when all levels collapse to a single value
-          // (e.g., maximum_autonomy where everything inherits allow), the sort
-          // produces arbitrary first-three rather than meaningful ones —
-          // emit one summary line instead.
-          const ranks = { deny: 3, ask: 2, allow: 1 };
-          const entries = D.posture.categories
-            .map((c) => ({ c, lv: (preset.levels && preset.levels[c.id]) || preset.global_default || "ask" }))
-            .sort((a, b) => (ranks[b.lv] || 0) - (ranks[a.lv] || 0));
-          const uniqueLevels = new Set(entries.map((e) => e.lv));
-          if (uniqueLevels.size === 1 && entries.length > 0) {
-            const lv = entries[0].lv;
-            return [`All categories: ${LEVEL_PHRASE[lv] || lv}`];
-          }
-          return entries.slice(0, 3).map((e) => `${e.c.title}: ${LEVEL_PHRASE[e.lv] || e.lv}`);
-        }
-        const scenarioGrid = D.posture.presets.map((p) => {
-          const profile = PROFILE_MAP[p.id] || "balanced";
-          const tag = p.id === "client_delivery" ? `<span class="sc-tag">Recommended</span>` : "";
-          const means = meansFor(p);
-          const lines = means.map((m) => `<div class="sm-line"><span class="sm-bullet">•</span><span>${esc(m)}</span></div>`).join("");
-          return `<button type="button" class="scenario-card${p.id === posture.activePreset ? " active" : ""}" data-preset="${esc(p.id)}" data-profile="${profile}" aria-pressed="${p.id === posture.activePreset}">
-            ${tag}
-            <div class="sc-name">${esc(p.label)}</div>
-            <div class="sc-blurb">${esc(p.blurb)}</div>
-            <div class="sc-means">${lines}</div>
-          </button>`;
-        }).join("");
-        const presetRow = D.posture.presets.map((p) => `<button class="preset-btn${p.id === posture.activePreset ? " active" : ""}" data-preset="${p.id}"><span>${esc(p.label)}</span><small>${esc(p.blurb)}</small></button>`).join("");
-        const groupHtml = Object.entries(groups).map(([g, cats]) => `
-          <div class="pcat-group"><h4>${esc(g)}</h4>${cats.map((c) => `
-            <div class="pcat" data-cat="${c.id}">
-              <div class="pc-info"><div class="t">${esc(c.title)}</div><div class="d">${esc(c.description)}${c.recommended ? ` · <span style="color:var(--teal-2)">recommended: ${esc(c.recommended)}</span>` : ""}</div></div>
-              <div class="seg" role="group" aria-label="${esc(c.title)} level">${D.posture.levels.map((lv) => `<button type="button" data-level="${lv}" data-cat="${c.id}">${lv}</button>`).join("")}</div>
-            </div>`).join("")}</div>`).join("");
-
-        $("#view").innerHTML = `
-          <div class="page-head"><span class="eyebrow">Configuration</span><h1>Comfort posture &amp; environment</h1>
-            <p class="lede">Decide how much your agents can do without stopping to ask you. For each kind of action, pick one of three levels: <b>deny</b> (never), <b>ask</b> (check with me first), or <b>allow</b> (go ahead). Start from a ready-made profile, change what you want, then copy the <code>comfort-posture.yaml</code> file it makes. A few always-on safety rules can never be turned off.</p></div>
-
-          <div class="callout" style="margin-bottom:20px">${svg("info")}<span>This editor produces the <b>project-layer</b> baseline. For the full per-layer (user / local / project) editor with live writes to <code>.claude/settings.json</code>, open the live <a href="#/settings">Settings tab</a> (served by <code>/dashboard</code>).</span></div>
-
-          <div class="section-title"><h2>Pick a scenario</h2><span class="hint">visual presets — fine-tune below if needed</span></div>
-          <div class="scenario-grid" id="scenario-grid">${scenarioGrid}</div>
-
-          <div class="section-title"><h2>Or browse all presets</h2><span class="hint">same content, compact form</span></div>
-          <div class="preset-row" id="preset-row">${presetRow}</div>
-
-          <div class="config-grid">
-            <div>
-              <div class="toggle-row"><label class="switch"><input type="checkbox" id="design-checkins" ${posture.design_checkins ? "checked" : ""}><span class="track"></span></label><div><div style="font-weight:600">Design check-ins</div><div style="color:var(--muted);font-size:.82rem">Pause for architectural decisions before implementing them.</div></div></div>
-              <div class="toggle-row"><div style="font-weight:600;min-width:120px">Global default</div><div class="seg" id="global-default" role="group" aria-label="Global default level">${D.posture.levels.map((lv) => `<button type="button" data-level="${lv}">${lv}</button>`).join("")}</div><div style="color:var(--muted);font-size:.82rem">Fallback for any category left unset.</div></div>
-              ${groupHtml}
-              <div class="section-title"><h2>Always-on security floor</h2><span class="hint">layer-independent · never relaxed</span></div>
-              <div class="floor-list">${D.posture.security_floor.map((r) => `<code>${esc(r)}</code>`).join("")}</div>
-            </div>
-            <div class="yaml-panel">
-              <div class="yp-head">${svg("sliders")}<b>comfort-posture.yaml</b></div>
-              <pre id="yaml-out"></pre>
-              <div class="pc-foot" style="margin-top:12px"><button class="btn primary" type="button" id="copy-yaml">${svg("copy")} Copy</button><button class="btn" type="button" id="dl-yaml">${svg("download")} Download</button></div>
-              <div class="section-title" style="margin-top:24px"><h2 style="font-size:1.05rem">Plugin activation</h2></div>
-              <div id="plugin-toggles"></div>
-            </div>
-          </div>
-
-          <div class="section-title"><h2>Environment context</h2><span class="hint">discovered at session start</span></div>
-          <div class="grid cols-2">
-            <div class="card"><b>Network policy</b><p style="color:var(--muted);font-size:.85rem;margin:8px 0 0">Outbound access is governed by the environment's network policy chosen at creation. See the <a href="https://code.claude.com/docs/en/claude-code-on-the-web" target="_blank" rel="noopener">Claude Code on the web docs ${svg("external")}</a>.</p></div>
-            <div class="card"><b>Run environment discovery</b><p style="color:var(--muted);font-size:.85rem;margin:8px 0 0">Map which credentials your environment can reach with the <code>environment-discovery</code> skill, then record it in <code>.ravenclaude/environment-context.md</code>.</p></div>
-          </div>`;
-
-        const yamlOut = $("#yaml-out");
-        function refresh() {
-          // segmented states
-          $$(".pcat .seg button").forEach((b) => b.classList.toggle("on", posture.levels[b.dataset.cat] === b.dataset.level));
-          $$("#global-default button").forEach((b) => b.classList.toggle("on", posture.global_default === b.dataset.level));
-          $$("#preset-row .preset-btn").forEach((b) => b.classList.toggle("active", b.dataset.preset === posture.activePreset));
-          $("#design-checkins").checked = posture.design_checkins;
-          yamlOut.textContent = postureYaml();
-        }
-        $("#preset-row").addEventListener("click", (e) => { const b = e.target.closest(".preset-btn"); if (!b) return; applyPreset(b.dataset.preset); refresh(); toast({ msg: `Applied "${b.querySelector("span").textContent}" profile`, action: { label: "Copy YAML", fn: () => copyText(postureYaml(), "comfort-posture.yaml") } }); });
-        $("#scenario-grid").addEventListener("click", (e) => { const b = e.target.closest(".scenario-card"); if (!b) return; const pid = b.dataset.preset; const preset = D.posture.presets.find((p) => p.id === pid); applyPreset(pid); refresh(); $$(".scenario-card").forEach((c) => c.classList.toggle("active", c.dataset.preset === pid)); toast({ msg: `Applied "${preset.label}"`, action: { label: "Copy YAML", fn: () => copyText(postureYaml(), "comfort-posture.yaml") } }); });
-        $$(".pcat .seg button").forEach((b) => b.addEventListener("click", () => { posture.levels[b.dataset.cat] = b.dataset.level; posture.activePreset = "custom"; refresh(); }));
-        $$("#global-default button").forEach((b) => b.addEventListener("click", () => { posture.global_default = b.dataset.level; refresh(); }));
-        $("#design-checkins").addEventListener("change", (e) => { posture.design_checkins = e.target.checked; refresh(); });
-        $("#copy-yaml").addEventListener("click", () => copyText(postureYaml(), "comfort-posture.yaml"));
-        $("#dl-yaml").addEventListener("click", () => {
-          const blob = new Blob([postureYaml()], { type: "text/yaml" });
-          const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "comfort-posture.yaml"; a.click(); URL.revokeObjectURL(a.href); toast("Downloaded comfort-posture.yaml");
-        });
-        $("#plugin-toggles").innerHTML = D.plugins.slice().sort((a, b) => a.label.localeCompare(b.label)).map((p) => `
-          <div class="toggle-row" style="padding:9px 0"><label class="switch"><input type="checkbox" ${p.name === "ravenclaude-core" ? "checked disabled" : "checked"}><span class="track"></span></label><div style="min-width:0"><div style="font-weight:600;font-size:.9rem">${esc(p.label)}</div><div style="color:var(--faint);font-size:.74rem">v${esc(p.version)}${p.name === "ravenclaude-core" ? " · required" : ""}</div></div></div>`).join("");
-        refresh();
-      }
 
       /* ---------------- RESOURCES ---------------- */
       function viewResources() {
@@ -1736,12 +1498,8 @@ TEMPLATE = r"""<!doctype html>
         // open); closing is handled by the sidebar click handler (a subcategory
         // leaf / a childless section / brand-footer link) and the scrim.
 
-        // Legacy own-view routes (e.g. #/team → roster, highlighted under Discover).
-        if (LEGACY_VIEW[section] === "viewTeam") {
-          showHost("view"); viewTeam(); $("#view").focus({ preventScroll: true });
-          window.scrollTo({ top: 0 }); return;
-        }
-        // Legacy top-level alias → canonical section (marketplace→discover, etc.).
+        // Legacy top-level alias → canonical section (marketplace→catalog, home→control,
+        // and the P5 named removals #/configure/#/overview/#/simulator → control).
         if (SECTION_ALIAS[section]) section = SECTION_ALIAS[section];
 
         if (section && section.startsWith("plugin-") && section !== "plugin-vars") {
@@ -1771,16 +1529,17 @@ TEMPLATE = r"""<!doctype html>
           viewDashboard("commands");
         } else if (DASH_OWNER[section]) {
           viewDashboard(section, sub);
+        } else if (section === "catalog" || section === "discover") {
+          showHost("view"); viewMarketplace(sub); $("#view").focus({ preventScroll: true });
+        } else if (section === "learn") {
+          showHost("view"); viewResources(); $("#view").focus({ preventScroll: true });
         } else {
-          showHost("view");
-          switch (section) {
-            case "catalog": case "discover": viewMarketplace(sub); break;
-            case "configure": viewConfiguration(); break;
-            case "learn": viewResources(); break;
-            case "home": viewHome(); break;
-            default: viewHome(); break;
-          }
-          $("#view").focus({ preventScroll: true });
+          // Unknown / retired top-level route → Control (job 1, the default landing).
+          // P5 (dashboard-consumption): viewHome/viewConfiguration/viewTeam were deleted;
+          // the shell default now agrees with the shared activate() fallback (panel-settings
+          // behind Control) so both land the user on the same visible surface — never a
+          // dead view or a blank host.
+          viewDashboard("settings", sub);
         }
         window.scrollTo({ top: 0 });
       }

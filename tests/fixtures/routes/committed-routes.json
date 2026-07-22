@@ -8,24 +8,10 @@
   },
   "surfaces": {
     "dashboard": {
-      "href_count": 11,
-      "distinct_static": 9,
+      "href_count": 9,
+      "distinct_static": 6,
       "distinct_dynamic": 0,
       "static_href_routes": [
-        {
-          "route": "#/about",
-          "section": "about",
-          "sub": null,
-          "destination": "activate:about",
-          "resolved": true
-        },
-        {
-          "route": "#/bifrost",
-          "section": "bifrost",
-          "sub": null,
-          "destination": "activate:bifrost",
-          "resolved": true
-        },
         {
           "route": "#/heimdall",
           "section": "heimdall",
@@ -34,10 +20,10 @@
           "resolved": true
         },
         {
-          "route": "#/install",
-          "section": "install",
+          "route": "#/help",
+          "section": "help",
           "sub": null,
-          "destination": "activate:install",
+          "destination": "activate:help",
           "resolved": true
         },
         {
@@ -45,13 +31,6 @@
           "section": "learn",
           "sub": null,
           "destination": "activate:learn",
-          "resolved": true
-        },
-        {
-          "route": "#/pipeline",
-          "section": "pipeline",
-          "sub": null,
-          "destination": "activate:pipeline",
           "resolved": true
         },
         {
@@ -80,29 +59,15 @@
       "nav_routes": []
     },
     "index": {
-      "href_count": 30,
-      "distinct_static": 17,
+      "href_count": 24,
+      "distinct_static": 14,
       "distinct_dynamic": 4,
       "static_href_routes": [
-        {
-          "route": "#/about",
-          "section": "about",
-          "sub": null,
-          "destination": "viewDashboard:about",
-          "resolved": true
-        },
         {
           "route": "#/activity",
           "section": "activity",
           "sub": null,
           "destination": "viewDashboard:activity",
-          "resolved": true
-        },
-        {
-          "route": "#/bifrost",
-          "section": "bifrost",
-          "sub": null,
-          "destination": "viewDashboard:bifrost",
           "resolved": true
         },
         {
@@ -116,7 +81,7 @@
           "route": "#/configure",
           "section": "configure",
           "sub": null,
-          "destination": "viewConfiguration",
+          "destination": "viewDashboard:settings",
           "resolved": true
         },
         {
@@ -148,10 +113,10 @@
           "resolved": true
         },
         {
-          "route": "#/install",
-          "section": "install",
+          "route": "#/help",
+          "section": "help",
           "sub": null,
-          "destination": "viewDashboard:install",
+          "destination": "viewDashboard:help",
           "resolved": true
         },
         {
@@ -166,13 +131,6 @@
           "section": "observe",
           "sub": null,
           "destination": "viewDashboard:activity",
-          "resolved": true
-        },
-        {
-          "route": "#/pipeline",
-          "section": "pipeline",
-          "sub": null,
-          "destination": "viewDashboard:pipeline",
           "resolved": true
         },
         {
@@ -193,7 +151,7 @@
           "route": "#/team",
           "section": "team",
           "sub": null,
-          "destination": "viewTeam",
+          "destination": "viewMarketplace",
           "resolved": true
         },
         {
@@ -265,7 +223,10 @@
           "configuration": "control",
           "resources": "catalog",
           "dashboard": "activity",
-          "home": "control"
+          "home": "control",
+          "configure": "control",
+          "overview": "control",
+          "simulator": "control"
         },
         "dash_owner": {
           "heimdall": "guardrails",
@@ -280,16 +241,15 @@
           "settings": "control",
           "comfort-posture": "control",
           "web-access": "control",
-          "simulator": "control",
           "pipeline": "control",
-          "overview": "control",
           "plugin-vars": "catalog",
           "commands": "catalog",
           "trees": "catalog",
           "bifrost": "catalog",
           "install": "catalog",
           "about": "catalog",
-          "concepts": "catalog"
+          "concepts": "catalog",
+          "help": "catalog"
         }
       }
     }
