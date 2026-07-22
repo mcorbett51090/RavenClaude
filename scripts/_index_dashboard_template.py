@@ -842,27 +842,29 @@ TEMPLATE = r"""<!doctype html>
       // phantom routes: nidhoggr is a card in heimdall, sleipnir a banner in activity).
       const DASH_TAB_ALIAS = {
         dashboard: "activity", "comfort-posture": "settings",
-        nidhoggr: "heimdall", sleipnir: "activity", concepts: "learn",
-        // P4 (dashboard-consumption): the Observe family is physically merged, so
-        // these retired tab routes now resolve to their destination FRAGMENT tab —
-        // Activity (saga/mimir/streams/norns) or Guardrails/Heimdall (vidarr). Each
-        // value is a real .tab-btn[data-tab] (Gate 51's DASH_TAB_ALIAS-target check).
-        saga: "activity", mimir: "activity", streams: "activity",
-        norns: "activity", vidarr: "heimdall",
+        sleipnir: "activity", concepts: "learn",
+        // A-split (dashboard-consumption follow-up): the Observe family is UN-merged —
+        // saga/mimir/streams/norns/vidarr/nidhoggr each have their OWN fragment tab now
+        // (a real .tab-btn[data-tab]), so they are NO LONGER aliased to a merged
+        // destination. A bare #/saga … #/nidhoggr falls through route()'s
+        // DASH_OWNER[section] branch → viewDashboard(section) → show(section) → its own
+        // panel. sleipnir stays aliased (it is a banner inside the Activity run feed,
+        // not its own panel).
         // P5 (dashboard-consumption): install/bifrost/about/commands were folded into
         // the Help drawer (panel-help, data-tab="help"), so their retired tab routes
         // resolve to the "help" FRAGMENT tab. "dashboard" was retargeted off the
         // deleted "overview" tab to "activity" (it is aliased to activity anyway).
         about: "help", install: "help", bifrost: "help", commands: "help",
       };
-      // Retired Observe sub-routes now live as anchored <section>s inside a destination
-      // tab (P4). A bare #/saga etc. has no sub-segment, so map the route name → its
-      // in-panel anchor id; viewDashboard passes it through activate()'s `sub`, which
-      // scrolls to it inside Activity/Guardrails. nidhoggr/sleipnir keep their existing
-      // in-panel mounts (the debt card / the stables banner).
+      // A-split (dashboard-consumption follow-up): the Observe sub-pages are UN-merged
+      // back into their own panels, so saga/mimir/streams/norns/vidarr/nidhoggr are NO
+      // LONGER anchored <section>s inside a shared tab — a bare #/saga … #/nidhoggr
+      // shows its own panel directly (no scroll-to-anchor). Only sleipnir remains an
+      // in-panel mount (the stables banner at the top of the Activity run feed), so it
+      // keeps its anchor; activate() no longer scrolls, so the anchor is a harmless
+      // pass-through that still lands #/sleipnir on the Activity run feed.
       const DASH_ANCHOR = {
-        saga: "saga", mimir: "mimir", streams: "streams", norns: "norns",
-        vidarr: "vidarr", nidhoggr: "heimdall-debt", sleipnir: "sleipnir-stables",
+        sleipnir: "sleipnir-stables",
       };
       // Legacy top-level shell route → canonical NAV section (back-compat for
       // committed bookmarks, ⌘K quick-actions, and internal hrefs).
@@ -995,10 +997,42 @@ TEMPLATE = r"""<!doctype html>
             `<a class="nav-subitem${a("web-access")}" href="#/web-access">Web access</a>`
           );
         }
+        // Activity gets a sub-nav for its Observe sub-pages (A-split un-merge): the
+        // run feed + the four panels that P4 had merged into it (Saga / Session /
+        // Streams / Lineage) are again their OWN tab/panel, reached by a plain #/<tab>
+        // href → route() → DASH_OWNER[tab]="activity" → viewDashboard(tab) → its own
+        // panel. Literal hrefs (NOT a #/${tab} template) so Gate 51's committed-routes
+        // enumerates + resolves each individually, mirroring the control branch.
+        if (id === "activity") {
+          const cur = location.hash.replace(/^#\/?/, "").split("/")[0];
+          const active = ["saga", "mimir", "streams", "norns"].includes(cur) ? cur : "activity";
+          const a = (tab) => (tab === active ? " active" : "");
+          return (
+            `<a class="nav-subitem${a("activity")}" href="#/activity">Run feed</a>` +
+            `<a class="nav-subitem${a("saga")}" href="#/saga">Saga</a>` +
+            `<a class="nav-subitem${a("mimir")}" href="#/mimir">Session</a>` +
+            `<a class="nav-subitem${a("streams")}" href="#/streams">Streams</a>` +
+            `<a class="nav-subitem${a("norns")}" href="#/norns">Lineage</a>`
+          );
+        }
+        // Guardrails gets a sub-nav for its Observe sub-pages (A-split un-merge):
+        // Perimeter alerts (Heimdall) + Security log (Víðarr) + Debt watch (Níðhöggr).
+        // The debt card was extracted from the Heimdall tab into its own panel-nidhoggr
+        // (its #heimdall-debt mount + renderNidhoggr are byte-identical). Same literal-
+        // href pattern as Control/Activity so each route is enumerated by Gate 51.
+        if (id === "guardrails") {
+          const cur = location.hash.replace(/^#\/?/, "").split("/")[0];
+          const active = ["vidarr", "nidhoggr"].includes(cur) ? cur : "heimdall";
+          const a = (tab) => (tab === active ? " active" : "");
+          return (
+            `<a class="nav-subitem${a("heimdall")}" href="#/heimdall">Perimeter alerts</a>` +
+            `<a class="nav-subitem${a("vidarr")}" href="#/vidarr">Security log</a>` +
+            `<a class="nav-subitem${a("nidhoggr")}" href="#/nidhoggr">Debt watch</a>`
+          );
+        }
         // Catalog keeps the plugin-category accordion (the old Discover sub-nav):
         // Specialists + one entry per plugin category. Deep-links (#/team,
-        // #/discover/<cat>) still resolve through the router. Activity + Guardrails
-        // have no sub-nav (their Observe panels were physically merged in P4).
+        // #/discover/<cat>) still resolve through the router.
         if (id === "catalog" && D.categories) {
           const counts = {};
           D.plugins.forEach((p) => { counts[p.category] = (counts[p.category] || 0) + 1; });

@@ -139,12 +139,23 @@ RATCHET = {
                                      "(vidarr). Every mount id + render function is byte-identical; only the "
                                      "five <section> wrappers left. Measured 6,081 -> 6,076 (-5). Additions: "
                                      "zero. Zero slack."),
-        ("P5 (shell-view deletions)", 6053, "panel-overview + panel-simulator deleted; the install/bifrost/"
+        ("P5 (shell-view deletions)", 6061, "panel-overview + panel-simulator deleted; the install/bifrost/"
                                             "about/commands panels folded into ONE panel-help drawer as "
                                             "collapsed <details> (their render fns + mount ids byte-identical). "
                                             "Addition: the panel-help wrapper + the grouped C5 removed-routes "
                                             "table (matches docs/dashboard-removed-routes.md). Net measured "
-                                            "6,076 -> 6,053 (-23). Zero slack."),
+                                            "6,076 -> 6,053 (-23). NOTE: floor raised 6,053 -> 6,061 by the "
+                                            "A-split un-merge below (kept monotonic through the sanctioned +12)."),
+        ("A-split (Observe un-merge)", 6061, "the Observe family is UN-merged back into one "
+                                             "<section class=tab-panel> per sub-page (the exact inverse of P4): "
+                                             "Activity -> Run feed / Saga / Session / Streams / Lineage; Guardrails "
+                                             "-> Perimeter alerts / Security log / Debt watch (the Nidhoggr debt "
+                                             "card extracted from Heimdall into its own panel-nidhoggr). Additions: "
+                                             "6 panel-* <section> wrappers + 6 sub-page tab-btns; every mount id + "
+                                             "render function byte-identical, so the B15 render gates stay green "
+                                             "with unmodified scripts. The one DELIBERATE, sanctioned +12 that "
+                                             "reverses the P4 merge; a follow-up condense step resumes the descent. "
+                                             "Measured 6,053 -> 6,061 (+12). Zero slack."),
     ],
     INDEX: [
         ("Phase 0 -> 6", 50982, "Phase 0 baseline 50,945; +37 in Phase 6 (same guard-web-access + "
@@ -168,16 +179,27 @@ RATCHET = {
                                      "norns,vidarr}) removed and their content folded into panel-activity / "
                                      "panel-heimdall (same merge as the standalone surface). Measured "
                                      "6,790 -> 6,785 (-5). Additions: zero. Zero slack."),
-        ("P5 (shell-view deletions)", 6762, "same shell-view deletions folded into the portal fragment: "
+        ("P5 (shell-view deletions)", 6767, "same shell-view deletions folded into the portal fragment: "
                                             "panel-overview + panel-simulator deleted; install/bifrost/about/"
                                             "commands folded into ONE panel-help drawer + the grouped C5 "
-                                            "removed-routes table. Measured 6,785 -> 6,762 (-23). Zero slack."),
-        ("P6 (payload demotion)", 6759, "the three portal-only JSON payload islands learn-payload / "
+                                            "removed-routes table. Measured 6,785 -> 6,762 (-23). NOTE: floor "
+                                            "raised 6,762 -> 6,767 by the A-split un-merge below (kept monotonic "
+                                            "through the sanctioned +12)."),
+        ("P6 (payload demotion)", 6767, "the three portal-only JSON payload islands learn-payload / "
                                         "trees-payload / concepts-data stripped from the folded dashboard body "
                                         "(portal Learn/Trees/Concepts are P5 named removals -> standalone + "
                                         "Pages; the standalone keeps them inline, Gate 13 non-contact). Removing "
-                                        "three <script> ELEMENTS. Measured 6,762 -> 6,759 (-3). Additions: zero. "
-                                        "Zero slack."),
+                                        "three <script> ELEMENTS. Measured 6,762 -> 6,759 (-3). NOTE: floor "
+                                        "raised 6,759 -> 6,767 by the A-split un-merge below."),
+        ("A-split (Observe un-merge)", 6767, "the folded fragment's Observe family is UN-merged back into one "
+                                             "<section class=tab-panel> per sub-page (the exact inverse of P4, same "
+                                             "as the standalone surface): Activity -> Run feed / Saga / Session / "
+                                             "Streams / Lineage; Guardrails -> Perimeter alerts / Security log / Debt "
+                                             "watch (the Nidhoggr debt card extracted into its own panel-nidhoggr). "
+                                             "Additions: 6 panel-* <section> wrappers + 6 sub-page tab-btns; every "
+                                             "mount id + render function byte-identical. The one DELIBERATE, "
+                                             "sanctioned +12 that reverses the P4 merge; a follow-up condense step "
+                                             "resumes the descent. Measured 6,755 -> 6,767 (+12). Zero slack."),
     ],
 }
 

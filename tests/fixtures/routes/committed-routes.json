@@ -59,8 +59,8 @@
       "nav_routes": []
     },
     "index": {
-      "href_count": 25,
-      "distinct_static": 15,
+      "href_count": 33,
+      "distinct_static": 21,
       "distinct_dynamic": 4,
       "static_href_routes": [
         {
@@ -127,6 +127,27 @@
           "resolved": true
         },
         {
+          "route": "#/mimir",
+          "section": "mimir",
+          "sub": null,
+          "destination": "viewDashboard:mimir",
+          "resolved": true
+        },
+        {
+          "route": "#/nidhoggr",
+          "section": "nidhoggr",
+          "sub": null,
+          "destination": "viewDashboard:nidhoggr",
+          "resolved": true
+        },
+        {
+          "route": "#/norns",
+          "section": "norns",
+          "sub": null,
+          "destination": "viewDashboard:norns",
+          "resolved": true
+        },
+        {
           "route": "#/observe",
           "section": "observe",
           "sub": null,
@@ -148,6 +169,13 @@
           "resolved": true
         },
         {
+          "route": "#/saga",
+          "section": "saga",
+          "sub": null,
+          "destination": "viewDashboard:saga",
+          "resolved": true
+        },
+        {
           "route": "#/settings",
           "section": "settings",
           "sub": null,
@@ -155,10 +183,24 @@
           "resolved": true
         },
         {
+          "route": "#/streams",
+          "section": "streams",
+          "sub": null,
+          "destination": "viewDashboard:streams",
+          "resolved": true
+        },
+        {
           "route": "#/team",
           "section": "team",
           "sub": null,
           "destination": "viewMarketplace",
+          "resolved": true
+        },
+        {
+          "route": "#/vidarr",
+          "section": "vidarr",
+          "sub": null,
+          "destination": "viewDashboard:vidarr",
           "resolved": true
         },
         {

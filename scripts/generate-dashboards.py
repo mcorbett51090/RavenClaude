@@ -222,6 +222,7 @@ def _page_kwargs(plugin_dir: Path, schema: dict, include_trees: bool = True) -> 
         "activity_html": _render_activity_tab(),
         "heimdall_html": _render_heimdall_tab(),
         "vidarr_html": _render_vidarr_tab(),
+        "nidhoggr_html": _render_nidhoggr_tab(),
         "norns_html": _render_norns_tab(),
         "mimir_html": _render_mimir_tab(),
         "streams_html": _render_streams_tab(),
@@ -476,6 +477,21 @@ def _render_vidarr_tab() -> str:
     returns a static skeleton the JS hydrates on open.
     """
     return _VIDARR_TAB_TEMPLATE
+
+
+def _render_nidhoggr_tab() -> str:
+    """Render the 'Debt watch' (Níðhöggr) sub-page — the low-noise marketplace
+    maintenance-debt card (stale plugins, ungated hooks, superseded decisions,
+    TODO/FIXME commits).
+
+    Formerly a card inside the Heimdall tab; split into its own Guardrails
+    sub-page (A-split). The #heimdall-debt mount id and the renderNidhoggr /
+    nidhoggrSection JS are byte-identical, so the Níðhöggr B15 render gate stays
+    green with an unmodified script. Data is fetched from /__nidhoggr (served-only
+    — git-derived signals vary by clone depth); on a static host it degrades to an
+    honest empty state.
+    """
+    return _NIDHOGGR_TAB_TEMPLATE
 
 
 def _render_norns_tab() -> str:
@@ -1004,13 +1020,13 @@ _PIPELINE_CONTROLS = {
 
 
 _PIPELINE_CSS = """<style>
-.pipeline-tab { max-width: 920px; }
-.pipe-note { margin: .5rem 0 1rem; padding: .6rem .8rem; border-radius: var(--rc-radius-sm);
+.pipeline-tab { max-width: 1120px; }
+.pipe-note { margin: .35rem 0 .6rem; padding: .5rem .7rem; border-radius: var(--rc-radius-sm);
   background: var(--surface-2); border: 1px solid var(--border);
   color: var(--muted); font-size: .9rem; }
 /* Flow strip — the at-a-glance order an agent moves through. */
 .pipe-flow { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem .5rem;
-  margin: .6rem 0; padding: .7rem .8rem; border: 1px solid var(--border);
+  margin: .4rem 0; padding: .55rem .7rem; border: 1px solid var(--border);
   border-radius: var(--rc-radius-lg); background: var(--surface); box-shadow: var(--rc-shadow-sm); }
 .pipe-flow-step { font-size: .82rem; font-weight: 600; color: var(--text);
   background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--rc-radius-pill);
@@ -1019,19 +1035,19 @@ _PIPELINE_CSS = """<style>
 .pipe-flow-arr { color: var(--accent); font-weight: 700; }
 .pipe-readme { font-size: .86rem; }
 .pipe-lane { border: 1px solid var(--border); border-radius: var(--rc-radius-lg);
-  padding: .85rem 1rem; margin: 0; background: var(--surface); box-shadow: var(--rc-shadow-sm); }
+  padding: .6rem .8rem; margin: 0; background: var(--surface); box-shadow: var(--rc-shadow-sm); }
 .pipe-lane-head { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
 .pipe-lane-when { font-weight: 600; color: var(--text, #eee); }
 .pipe-lane-event { font-family: ui-monospace, monospace; font-size: .78rem;
   color: var(--muted, #999); background: var(--bg, #111); padding: .1rem .4rem;
   border-radius: 4px; }
-.pipe-lane-tip { margin: .3rem 0 .7rem; color: var(--muted, #aaa); font-size: .88rem; }
-.pipe-row { display: flex; flex-wrap: wrap; gap: .6rem; }
+.pipe-lane-tip { margin: .2rem 0 .5rem; color: var(--muted, #aaa); font-size: .88rem; }
+.pipe-row { display: flex; flex-wrap: wrap; gap: .5rem; }
 .pipe-stage { flex: 1 1 240px; min-width: 210px; border: 1px solid var(--border);
-  border-radius: var(--rc-radius); padding: .6rem .7rem; background: var(--surface-2); }
+  border-radius: var(--rc-radius); padding: .45rem .6rem; background: var(--surface-2); }
 .pipe-stage-head { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
 .pipe-stage-title { font-weight: 600; font-size: .92rem; }
-.pipe-tip { margin: .35rem 0 0; font-size: .82rem; color: var(--muted, #aaa); line-height: 1.35; }
+.pipe-tip { margin: .25rem 0 0; font-size: .82rem; color: var(--muted, #aaa); line-height: 1.3; }
 .pipe-badge { font-size: .7rem; font-weight: 600; padding: .12rem .42rem; border-radius: 10px;
   white-space: nowrap; }
 .pipe-badge-on { background: var(--rc-ok-bg); color: var(--rc-ok-fg); }
@@ -1045,7 +1061,7 @@ _PIPELINE_CSS = """<style>
   background: var(--rc-neutral-bg); color: var(--rc-neutral-fg);
   border: 1px solid var(--border); }
 .behavioral-flag-explainer { font-size: .8rem; color: var(--muted); margin: .3rem 0 .5rem; }
-.pipe-controls { margin-top: .55rem; display: flex; flex-direction: column; gap: .4rem; }
+.pipe-controls { margin-top: .4rem; display: flex; flex-direction: column; gap: .3rem; }
 .pipe-ctl { display: flex; align-items: center; gap: .4rem; flex-wrap: wrap; font-size: .84rem; }
 .pipe-ctl input[type=number] { width: 6rem; }
 .pipe-ctl input[type=text] { flex: 1 1 12rem; min-width: 10rem; }
@@ -1062,7 +1078,7 @@ _PIPELINE_CSS = """<style>
   line-height: 1.4; display: flex; flex-direction: column; gap: .2rem; }
 .pipe-more-line { margin: .25rem 0 0; font-size: .8rem; color: var(--muted); line-height: 1.4; }
 .pipe-more-lbl { font-weight: 700; color: var(--text); }
-.pipe-arrow { text-align: center; font-size: 1.2rem; color: var(--accent); margin: .15rem 0; }
+.pipe-arrow { text-align: center; font-size: 1rem; color: var(--accent); margin: .1rem 0; }
 .pipe-file { margin-top: .5rem; }
 .pipe-file-head { display: flex; align-items: center; gap: .4rem; flex-wrap: wrap; font-size: .82rem; }
 .pipe-file-text { width: 100%; min-height: 6rem; font-family: ui-monospace, monospace;
@@ -6026,6 +6042,64 @@ footer.page-footer a:hover { text-decoration: underline; }
 .pp-status.status-unsaved { color: var(--warn); }
 .pp-noserver { margin: 12px 0 0; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--ok-soft); color: var(--muted); font-size: 12.5px; line-height: 1.5; }
 @media (max-width: 720px) { .pv-row { grid-template-columns: 1fr; } .pv-help { grid-column: 1; } .pp-cols { grid-template-columns: 1fr; } }
+
+/* ══════════════════════════════════════════════════════════════════════
+   DENSITY PASS (Sub-effort B — "tighten layout, keep it visible")
+   Trailing, same-specificity overrides that pack every dashboard sub-page
+   tighter so each fits ~a screen. Spacing/scale ONLY — nothing is hidden or
+   collapsed, no element is removed (DOM-neutral), and no body text drops
+   below the legible floor (body stays 15px; feed/label text unchanged).
+   Later source order wins at equal specificity, and scope_css prefixes
+   #dash-root uniformly so this ordering is preserved in the folded portal
+   too. One place to tune the whole dashboard's density.
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* — Global page chrome (shortens every sub-page) — */
+.tab-panel { padding: 14px 28px; }
+.page-header { padding: 14px 32px 0; }
+.page-header h1 { font-size: 20px; }
+.page-header .page-desc { margin: 0 0 10px 0; }
+
+/* — Control · The Thing (the longest page): tighten every stacked block — */
+.preset-bar { padding: 11px 16px; margin-bottom: 10px; }
+.preset-bar p { margin: 0 0 8px 0; }
+.design-checkins-bar { padding: 10px 14px; margin-bottom: 10px; }
+.category-intro { padding: 9px 14px; margin-bottom: 10px; }
+.thing-preview { margin-bottom: 10px; }
+.command-review-panel { margin: 0 0 10px; }
+.command-review-block { margin-bottom: 10px; }
+.cat-card { margin: 0 0 6px; }
+.cat-card-summary { padding: 10px 14px; min-height: 44px; }
+.cat-card-body { padding: 10px 14px 12px; gap: 4px; }
+.layer-row { padding: 5px 0; }
+
+/* — Feeds (Run feed / Saga / Perimeter / Security log / Lineage / Session /
+     Streams / Bifröst): kill the doubled top padding + tighten card gaps.
+     Row/card content stays legible; long feeds are additionally length-capped
+     in the render JS (top ~10 + "Show all"). — */
+.saga-layout, .vidarr-layout, .norns-layout, .heimdall-layout,
+.bifrost-layout, .mimir-layout { padding: 14px 20px; }
+.saga-hdr { margin-bottom: 8px; }
+.saga-filters { margin-bottom: 10px; }
+.saga-table th, .saga-table td { padding: 6px 10px; }
+#activity-content { gap: 8px; padding: 0 20px 16px; }
+.activity-card { padding: 10px 14px; }
+.activity-summary { margin: 6px 0 0; }
+.activity-intro { margin: 0 20px 10px; }
+.heimdall-grid { gap: 12px; padding: 0 20px 16px; }
+.heimdall-card { padding: 12px 14px; }
+.heimdall-sub { margin: 0 0 8px; }
+
+/* "Show all (N)" reveal control for the length-capped feeds (Run feed / Saga). */
+.feed-showall {
+  display: inline-flex; align-items: center; gap: 6px; align-self: flex-start;
+  margin: 2px 0 0; padding: 7px 14px; font: inherit; font-size: 12.5px; font-weight: 600;
+  color: var(--accent); background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: 999px; cursor: pointer;
+}
+.feed-showall:hover { border-color: var(--accent); }
+.feed-showall:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.feed-showall-row td { text-align: center; padding: 8px 10px; border-bottom: none; }
 """.strip()
 
 
@@ -6659,13 +6733,6 @@ _HEIMDALL_TAB_TEMPLATE = """
       <p class="heimdall-sub">The highest-severity signal currently flagged.</p>
       <div id="heimdall-alarm"></div>
     </section>
-    <section class="heimdall-card heimdall-card--wide" aria-labelledby="hm-debt-h">
-      <h3 id="hm-debt-h">Debt watch (Níðhöggr)</h3>
-      <p class="heimdall-sub">Slow-rotting bits at the foundations &mdash; low-noise marketplace maintenance signals.</p>
-      <div id="heimdall-debt">
-        <div class="saga-empty" id="heimdall-debt-loading"><p>Loading debt signals&hellip;</p></div>
-      </div>
-    </section>
     <section class="heimdall-card heimdall-card--wide" aria-labelledby="hm-kh-h">
       <h3 id="hm-kh-h">Knowledge health (Idunn)</h3>
       <p class="heimdall-sub">How current is the marketplace&rsquo;s knowledge layer? Click a bucket to drill into the files in it.</p>
@@ -6703,6 +6770,20 @@ _VIDARR_TAB_TEMPLATE = """
     <div class="saga-empty" id="vidarr-loading"><p>Loading security log&hellip;</p></div>
   </div>
 </div>
+""".strip()
+
+# Níðhöggr "Debt watch" — its OWN Guardrails sub-page (A-split). Its #heimdall-debt
+# mount id + renderNidhoggr/nidhoggrSection are byte-identical to when it lived inside
+# panel-heimdall, so the Níðhöggr B15 render gate stays green with an unmodified script;
+# only the enclosing <section class="tab-panel"> wrapper is new (see _PAGE_TEMPLATE).
+_NIDHOGGR_TAB_TEMPLATE = """
+<section class="heimdall-card heimdall-card--wide" aria-labelledby="hm-debt-h">
+  <h3 id="hm-debt-h">Debt watch (Níðhöggr)</h3>
+  <p class="heimdall-sub">Slow-rotting bits at the foundations &mdash; low-noise marketplace maintenance signals.</p>
+  <div id="heimdall-debt">
+    <div class="saga-empty" id="heimdall-debt-loading"><p>Loading debt signals&hellip;</p></div>
+  </div>
+</section>
 """.strip()
 
 _NORNS_TAB_TEMPLATE = """
@@ -8940,12 +9021,24 @@ _JS = r"""
   let activityLoaded = false;
   let heimdallLoaded = false;
   let vidarrLoaded = false;
+  let nidhoggrLoaded = false;
   let nornsLoaded = false;
   let mimirLoaded = false;
   let streamsLoaded = false;
   let vidarrEvents = [];
   let vidarrKindFilter = "all";
   let activityRecords = [];
+  /* Feed length caps (Sub-effort B "condense"): the two long, freely-growing
+   * client-rendered feeds — the Run feed (/__runs, up to 200) and the Saga
+   * review log (/__saga, up to 200) — render the top FEED_CAP rows with a
+   * "Show all (N)" toggle so a busy project never forces a long scroll.
+   * Everything stays on the page: the toggle reveals the rest client-side; the
+   * count still reports the TRUE total. The gated feeds (Víðarr/Norns/Streams/
+   * Mímir) are deliberately NOT capped here — their render fns are extracted +
+   * run in isolation by the B15 gates, so they stay byte-identical (CSS-only). */
+  const FEED_CAP = 10;
+  let activityShowAll = false;
+  let sagaShowAll = false;
   const activityContent = document.getElementById("activity-content");
   const activityCount   = document.getElementById("activity-count");
   const activityRefBtn  = document.getElementById("activity-refresh-btn");
@@ -9059,33 +9152,20 @@ _JS = r"""
     // card grid hydrates on the first activate("help"), keyed off the same
     // #commands-mount / #commands-payload ids (only the enclosing wrapper moved).
     if (tab === "help" && !commandsLoaded) loadCommands();
-    // P4 (dashboard-consumption): the Observe family is physically merged. Activity
-    // now contains the run feed + saga/mimir/streams/norns as anchored sections;
-    // Guardrails (Heimdall) contains its cards + vidarr (nidhoggr's debt card is
-    // already loaded inside loadHeimdall). Their old tab ids no longer exist (P3
-    // removed the tab-btns), so each loader runs through its new home destination.
-    // Each loader is guarded by its own *Loaded latch → exactly one GET per endpoint
-    // on activate, no duplicate fetches.
-    if (tab === "activity") {
-      if (!activityLoaded) loadActivity();
-      if (!sagaLoaded) loadSaga();
-      if (!mimirLoaded) loadMimir();
-      if (!streamsLoaded) loadStreams();
-      if (!nornsLoaded) loadNorns();
-    }
-    if (tab === "heimdall") {
-      if (!heimdallLoaded) loadHeimdall();
-      if (!vidarrLoaded) loadVidarr();
-    }
-    // A retired Observe route (#/saga … #/nidhoggr) resolves to its destination tab
-    // (shown above) and carries the merged section's anchor id in `sub`; scroll to it
-    // once the tab is visible so the deep-link lands on its block.
-    if (sub && (tab === "activity" || tab === "heimdall")) {
-      const anchorEl = document.getElementById(sub);
-      if (anchorEl && typeof anchorEl.scrollIntoView === "function") {
-        requestAnimationFrame(() => anchorEl.scrollIntoView({ block: "start", behavior: "smooth" }));
-      }
-    }
+    // A-split (dashboard-consumption follow-up): the Observe family is UN-merged, so
+    // each sub-page is its OWN tab/panel and loads ONLY its own section. Each loader
+    // is guarded by its own *Loaded latch → exactly one GET per endpoint on activate,
+    // no duplicate fetches. (The former merged scroll-to-anchor `sub` block is gone —
+    // saga/mimir/streams/norns/vidarr/nidhoggr are no longer anchored sections inside
+    // a shared panel, so there is nothing to scroll to.)
+    if (tab === "activity" && !activityLoaded) loadActivity();
+    if (tab === "saga" && !sagaLoaded) loadSaga();
+    if (tab === "mimir" && !mimirLoaded) loadMimir();
+    if (tab === "streams" && !streamsLoaded) loadStreams();
+    if (tab === "norns" && !nornsLoaded) loadNorns();
+    if (tab === "heimdall" && !heimdallLoaded) loadHeimdall();
+    if (tab === "vidarr" && !vidarrLoaded) loadVidarr();
+    if (tab === "nidhoggr" && !nidhoggrLoaded) loadNidhoggr();
     if (tab === "pipeline") syncPipelineTab();
     if (tab === "plugin-vars") activatePluginVars(sub);
     if (tab === "web-access") hydrateWebAccess();
@@ -9843,6 +9923,17 @@ _JS = r"""
   }
   window.sagaToggleDetail = sagaToggleDetail;
 
+  /* feedShowAll — the "Show all (N)" toggle for the length-capped feeds. Sets
+   * the feed's show-all flag and re-renders so the remaining rows appear in
+   * place (nothing is fetched; the data is already loaded). Exposed on window
+   * so the inline onclick can reach it from inside the IIFE, mirroring
+   * sagaToggleDetail. Only the two ungated feeds are wired here. */
+  function feedShowAll(which) {
+    if (which === "activity") { activityShowAll = true; renderActivity(activityRecords); }
+    else if (which === "saga") { sagaShowAll = true; filterAndRenderSaga(); }
+  }
+  window.feedShowAll = feedShowAll;
+
   /* Build a static "offline / empty" panel using only DOM methods — no
    * innerHTML / insertAdjacentHTML so there is no XSS sink even if this
    * helper is ever called from a new code path. */
@@ -9917,9 +10008,12 @@ _JS = r"""
     }
 
     /* Build the table rows as an HTML string. Every data field is passed through
-     * esc() before interpolation. Fixed class names and element tags are literals. */
+     * esc() before interpolation. Fixed class names and element tags are literals.
+     * Condense: render the top FEED_CAP matching rows; the rest reveal in place via
+     * the "Show all" row. The count above always reflects the TRUE match total. */
+    const shownCount = sagaShowAll ? filtered.length : Math.min(filtered.length, FEED_CAP);
     let rows = "";
-    for (let idx = 0; idx < filtered.length; idx++) {
+    for (let idx = 0; idx < shownCount; idx++) {
       const r = filtered[idx];
       const detailId = "saga-detail-" + idx;
 
@@ -10039,6 +10133,12 @@ _JS = r"""
         `<tr class="saga-detail-row" id="${esc(detailId)}">${detailPanel}</tr>`;
     }
 
+    if (!sagaShowAll && filtered.length > FEED_CAP) {
+      rows += '<tr class="feed-showall-row"><td colspan="7">'
+        + '<button type="button" class="feed-showall" onclick="feedShowAll(\'saga\')">'
+        + "Show all " + filtered.length + " entries</button></td></tr>";
+    }
+
     /* The outer skeleton is fixed HTML; only `rows` contains escaped data. */
     sagaContent.innerHTML =
       '<div class="saga-table-wrap"><table class="saga-table" aria-label="Review log">'
@@ -10057,6 +10157,7 @@ _JS = r"""
 
   async function loadSaga() {
     sagaLoaded = true;
+    sagaShowAll = false;
     if (sagaContent) sagaContent.replaceChildren(
       sagaEmptyPanel("Loading review log…")
     );
@@ -10085,8 +10186,9 @@ _JS = r"""
   }
 
   if (sagaRefBtn) sagaRefBtn.addEventListener("click", () => { sagaLoaded = false; loadSaga(); });
-  if (sagaVerdFil) sagaVerdFil.addEventListener("change", filterAndRenderSaga);
-  if (sagaCatFil)  sagaCatFil.addEventListener("change", filterAndRenderSaga);
+  /* Changing a filter resets the cap so a new result set starts at the top FEED_CAP. */
+  if (sagaVerdFil) sagaVerdFil.addEventListener("change", () => { sagaShowAll = false; filterAndRenderSaga(); });
+  if (sagaCatFil)  sagaCatFil.addEventListener("change", () => { sagaShowAll = false; filterAndRenderSaga(); });
 
   /* ── Activity tab — generalizes the Review log over .ravenclaude/runs/<id>/ ──
    * Reuses esc() + sagaEmptyPanel() (same IIFE scope). All /__runs data passes
@@ -10112,8 +10214,11 @@ _JS = r"""
       return;
     }
     if (activityCount) activityCount.textContent = records.length + (records.length === 1 ? " run" : " runs");
+    /* Condense: show the top FEED_CAP runs by default; the rest reveal in place
+     * via the "Show all" toggle. The count above always reflects the TRUE total. */
+    const shown = activityShowAll ? records : records.slice(0, FEED_CAP);
     let html = "";
-    for (const r of records) {
+    for (const r of shown) {
       let timeStr = r.timestamp || "";
       try { if (timeStr) timeStr = new Date(timeStr).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" }); } catch (_) { /* keep raw */ }
       const status = r.status || "—";
@@ -10131,6 +10236,10 @@ _JS = r"""
         + summary
         + '<div class="activity-arts">' + arts + evt + "</div>"
         + "</article>";
+    }
+    if (!activityShowAll && records.length > FEED_CAP) {
+      html += '<button type="button" class="feed-showall" onclick="feedShowAll(\'activity\')">'
+        + "Show all " + records.length + " runs</button>";
     }
     activityContent.innerHTML = html;
   }
@@ -10196,6 +10305,7 @@ _JS = r"""
 
   async function loadActivity() {
     activityLoaded = true;
+    activityShowAll = false;
     loadSleipnir();
     if (activityContent) activityContent.replaceChildren(sagaEmptyPanel("Loading activity…"));
     try {
@@ -10426,7 +10536,9 @@ _JS = r"""
     const inline = readHeimdallInline();
     renderVersionDrift(inline.versionDrift || []);
     fetchCiStatus();
-    loadNidhoggr();
+    // A-split: Debt watch (Níðhöggr) is now its OWN Guardrails sub-page (panel-nidhoggr),
+    // loaded on activate("nidhoggr") behind its own nidhoggrLoaded latch — no longer
+    // eager-loaded here from inside Perimeter alerts.
     loadKnowledgeHealth();
     /* Hook events + Gjallarhorn need the served endpoint. */
     const hookHost = document.getElementById("heimdall-hooks");
@@ -10491,12 +10603,14 @@ _JS = r"""
   }
 
   async function loadNidhoggr() {
+    nidhoggrLoaded = true;
     const host = document.getElementById("heimdall-debt");
     try {
       const res = await fetchT("/__nidhoggr");
       if (!res.ok) throw new Error("HTTP " + res.status);
       renderNidhoggr(await res.json());
     } catch (e) {
+      nidhoggrLoaded = false; /* allow retry on next visit */
       const served = await probeReadEndpoint();
       if (host) {
         host.replaceChildren(
@@ -12181,7 +12295,13 @@ _PAGE_TEMPLATE = """<!doctype html>
     <button class="tab-btn" type="button" id="tab-pipeline" data-tab="pipeline" aria-selected="false" title="Pipeline — the safety checks every command passes through">Pipeline</button>
     <button class="tab-btn" type="button" id="tab-web-access" data-tab="web-access" aria-selected="false" title="Web access — allow/deny which websites the agent may fetch">Web access</button>
     <button class="tab-btn" type="button" id="tab-activity" data-tab="activity" aria-selected="false" title="Run feed — what Claude is doing right now: runs &amp; worktrees">Run feed</button>
+    <button class="tab-btn" type="button" id="tab-saga" data-tab="saga" aria-selected="false" title="Saga — the command-review verdict log (Review log)">Saga</button>
+    <button class="tab-btn" type="button" id="tab-mimir" data-tab="mimir" aria-selected="false" title="Session — Claude Code session state for this project (Mímir's well)">Session</button>
+    <button class="tab-btn" type="button" id="tab-streams" data-tab="streams" aria-selected="false" title="Streams — the agentic work-streams for this project">Streams</button>
+    <button class="tab-btn" type="button" id="tab-norns" data-tab="norns" aria-selected="false" title="Lineage — plugin past / present / proposed future (The Norns)">Lineage</button>
     <button class="tab-btn" type="button" id="tab-heimdall" data-tab="heimdall" aria-selected="false" title="Perimeter alerts — what your guardrails caught at the edge (Heimdall)">Perimeter alerts</button>
+    <button class="tab-btn" type="button" id="tab-vidarr" data-tab="vidarr" aria-selected="false" title="Security log — posture changes &amp; security-relevant denials (Víðarr)">Security log</button>
+    <button class="tab-btn" type="button" id="tab-nidhoggr" data-tab="nidhoggr" aria-selected="false" title="Debt watch — low-noise marketplace maintenance signals (Níðhöggr)">Debt</button>
     <button class="tab-btn" type="button" id="tab-learn" data-tab="learn" aria-selected="false" title="Learn — plain-English explainers for each concept">Learn</button>
     <button class="tab-btn" type="button" id="tab-help" data-tab="help" aria-selected="false" title="Help — install &amp; update guides (Claude Code / Copilot CLI), the command catalog, and where retired tabs went">Help</button>
 {plugins_tabs}
@@ -12208,25 +12328,40 @@ _PAGE_TEMPLATE = """<!doctype html>
     <script type="application/json" id="trees-payload">{trees_json}</script>
     <noscript><p>The decision-trees &amp; best-practices guidance renders with JavaScript. The source lives under <code>plugins/*/rules/</code> and <code>plugins/*/best-practices/</code>.</p></noscript>
   </section>
-  <!-- P4 (dashboard-consumption): the Observe family is physically merged. Activity
-       absorbs the Review log (saga), Session (mimir), Streams and Lineage (norns) as
-       anchored blocks (id="saga"/"mimir"/"streams"/"norns" live on each skeleton's
-       outer div); Guardrails (Perimeter alerts / Heimdall) absorbs the Security log
-       (vidarr, id="vidarr") and already hosts the Níðhöggr debt card (#heimdall-debt).
-       Only the five enclosing <section> wrappers were removed — every mount id and
-       every render function is byte-identical, so the B15 render gates stay green. A
-       retired route (#/saga … #/nidhoggr) resolves to its destination tab and scrolls
-       to its anchor (see activate()'s sub handling + the portal's DASH_ANCHOR map). -->
+  <!-- A-split (dashboard-consumption follow-up): the Observe family is UN-merged back
+       into one <section class="tab-panel"> per sub-page, navigated by the shell's
+       Activity / Guardrails sub-navs (mirroring Control's [The Thing · Pipeline · Web
+       access] pattern). Activity → Run feed (activity) · Saga · Session (mimir) ·
+       Streams · Lineage (norns); Guardrails → Perimeter alerts (heimdall) · Security
+       log (vidarr) · Debt watch (nidhoggr). Every mount id (id="saga"/"mimir"/
+       "streams"/"norns"/"vidarr"/"heimdall-debt") and every render function is
+       byte-identical — only the enclosing <section> wrappers were ADDED, the exact
+       inverse of P4's merge, so the B15 render gates stay green with unmodified
+       scripts. Each sub-page loads ONLY its own section on activate() (own *Loaded
+       latch, one GET per endpoint). -->
   <section class="tab-panel" id="panel-activity" data-tab="activity" role="tabpanel" aria-label="Run feed">
 {activity_html}
+  </section>
+  <section class="tab-panel" id="panel-saga" data-tab="saga" role="tabpanel" aria-label="Saga">
 {saga_html}
+  </section>
+  <section class="tab-panel" id="panel-mimir" data-tab="mimir" role="tabpanel" aria-label="Session">
 {mimir_html}
+  </section>
+  <section class="tab-panel" id="panel-streams" data-tab="streams" role="tabpanel" aria-label="Streams">
 {streams_html}
+  </section>
+  <section class="tab-panel" id="panel-norns" data-tab="norns" role="tabpanel" aria-label="Lineage">
 {norns_html}
   </section>
   <section class="tab-panel" id="panel-heimdall" data-tab="heimdall" role="tabpanel" aria-label="Perimeter alerts">
 {heimdall_html}
+  </section>
+  <section class="tab-panel" id="panel-vidarr" data-tab="vidarr" role="tabpanel" aria-label="Security log">
 {vidarr_html}
+  </section>
+  <section class="tab-panel" id="panel-nidhoggr" data-tab="nidhoggr" role="tabpanel" aria-label="Debt watch">
+{nidhoggr_html}
   </section>
   <!-- P5 (dashboard-consumption): panel-help is the About/help drawer. It absorbs the
        former install / bifrost / about / commands tabs as collapsed <details> (their
