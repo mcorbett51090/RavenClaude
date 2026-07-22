@@ -179,10 +179,11 @@ def _page_kwargs(plugin_dir: Path, schema: dict, include_trees: bool = True) -> 
         "description": html.escape(description),
         "raven_mark": _load_raven_logo(),
         "css": _CSS,
-        "overview_html": _render_overview_tab(),
         "settings_html": _render_settings_tab(properties, presets),
         "install_html": _render_install_tab(),
-        "simulator_html": _render_simulator_tab(),
+        # P5 (dashboard-consumption): the "where things moved" ledger, rendered inside
+        # panel-help and kept in sync with docs/dashboard-removed-routes.md (C5).
+        "removed_routes_table": _render_removed_routes_table(),
         "web_access_html": _render_web_access_page(),
         # panel-learn (~19,702 elements) is DOM-island-loaded exactly like panel-trees:
         # its markup ships in a <script type="application/json"> payload (CDATA, uncounted
@@ -299,17 +300,43 @@ def render_fragment(plugin_dir: Path, schema: dict) -> dict:
     return {"css": css, "body": body, "js": js}
 
 
-def _render_simulator_tab() -> str:
-    """Render the 'Test a command' simulator tab.
+# P5 (dashboard-consumption): the C5 route-disposition ledger. EVERY route the dashboard
+# IA re-cut retired or folded, grouped by where it lands now. Rendered inside panel-help
+# AND in docs/dashboard-removed-routes.md — the two MUST stay in sync (same rows, same
+# order). Grouped (not one row per route) to keep panel-help net-DOM-negative (Gate 132).
+_REMOVED_ROUTES = [
+    (
+        "#/home · #/overview · #/configure · #/simulator",
+        "Control (Settings) — the marketing home, the Overview tab, the non-writing posture "
+        "editor (incl. its 167 always-checked “Plugin activation” toggles wired to nothing), "
+        "and the “Preview a review” tab were removed. Settings is the one editor that saves; "
+        "/__classify is kept for parity.",
+    ),
+    ("#/team", "Catalog — the specialist roster now lives in the marketplace."),
+    (
+        "#/about · #/bifrost · #/install · #/commands",
+        "Help — folded into this drawer as the About, Claude Code, Copilot CLI, and Commands "
+        "sections below.",
+    ),
+    (
+        "#/learn · #/trees · #/concepts",
+        "The standalone dashboard (rc dashboard → /dashboard) and the Pages copy — these Learn "
+        "/ decision-trees / Concepts payloads are not shipped in this portal.",
+    ),
+]
 
-    Answers "what would the Thing do with this command?" against the REAL engine
-    via POST /__classify (served mode only). The classification is NOT
-    reimplemented in JS — the tab always calls the endpoint. Availability is
-    probed with HEAD /__classify, mirroring the Settings tab's HEAD /__save and
-    the Install tab's HEAD /__run idioms; on a static host the button is disabled
-    and a help line points the user at scripts/serve-dashboards.py.
-    """
-    return _SIMULATOR_TAB_TEMPLATE
+
+def _render_removed_routes_table() -> str:
+    """The C5 ledger table (panel-help). Kept identical to docs/dashboard-removed-routes.md."""
+    rows = "".join(
+        f"<tr><td><code>{html.escape(route)}</code></td><td>{html.escape(where)}</td></tr>"
+        for route, where in _REMOVED_ROUTES
+    )
+    return (
+        '<table class="removed-routes"><thead>'
+        "<tr><th>Old link(s)</th><th>Where it is now</th></tr>"
+        f"</thead><tbody>{rows}</tbody></table>"
+    )
 
 
 def _render_stub_tab(name: str, when: str) -> str:
@@ -1652,143 +1679,6 @@ def _render_command_card(cmd: dict) -> str:
         f"{what_runs}"
         f'<div class="cmd-row">{actions}</div>'
         "</article>"
-    )
-
-
-def _render_overview_tab() -> str:
-    """Marketplace-wide Overview / 'Start here' tab — the default landing surface.
-    Build-time, generator-discovered (House Rule 1 — never hard-code counts/names),
-    so it renders identically on a static host and when served. The only live
-    element is the served/static banner (toggled by the HEAD /__save probe in JS)."""
-    plugin_dirs = sorted(p for p in PLUGINS_DIR.glob("*/.claude-plugin/plugin.json"))
-    n_plugins = len(plugin_dirs)
-    n_agents = len(list(PLUGINS_DIR.glob("*/agents/*.md")))
-    n_skills = len(
-        [p for p in PLUGINS_DIR.glob("*/skills/*") if p.is_dir()]
-        + [p for p in PLUGINS_DIR.glob("*/skills/*.md") if p.is_file()]
-    )
-    n_commands = len(_commands_inventory())
-    n_trees = len(_decision_trees_inventory())
-    n_practices = len(_best_practices_inventory())
-
-    stat = lambda n, label: (
-        f'<div class="ov-stat"><strong>{n}</strong><span>{html.escape(label)}</span></div>'
-    )
-    stats = "".join(
-        [
-            stat(n_plugins, "plugins"),
-            stat(n_agents, "agents"),
-            stat(n_skills, "skills"),
-            stat(n_commands, "commands"),
-            stat(n_trees, "decision trees"),
-            stat(n_practices, "best practices"),
-        ]
-    )
-
-    def card(title, body, target, cta):
-        return (
-            f'<a class="ov-card" href="#/{target}">'
-            f"<h4>{html.escape(title)}</h4>"
-            f"<p>{html.escape(body)}</p>"
-            f'<span class="ov-card-cta">{html.escape(cta)} &rarr;</span>'
-            "</a>"
-        )
-
-    systems = "".join(
-        [
-            card(
-                "Comfort posture",
-                "Tune how autonomous your agents are — per-category deny / ask / allow, "
-                "and the security floor that never relaxes.",
-                "settings",
-                "Open Settings",
-            ),
-            card(
-                "Guardrail pipeline",
-                "See every guard an action passes through — from session start, through "
-                "command review, to completion — with live on/off badges.",
-                "pipeline",
-                "Open Pipeline",
-            ),
-            card(
-                "Command-review tribunal",
-                "The Thing — RavenClaude's command-review engine — checks risky "
-                "commands and logs an allow / edit / deny verdict you can browse.",
-                "saga",
-                "Open Review log",
-            ),
-            card(
-                "Install & update",
-                "Two guides, one per tool: install &amp; update RavenClaude in Claude Code "
-                "(the Bifröst bridge) or in GitHub Copilot CLI.",
-                "bifrost",
-                "Open install guides",
-            ),
-        ]
-    )
-
-    steps_required = "".join(
-        [
-            '<li><a href="#/settings">Pick a posture preset</a> — set how much your agents do without asking.</li>',
-            '<li>Wire it into your tool — <a href="#/bifrost">Claude&nbsp;Code</a> or <a href="#/install">Copilot&nbsp;CLI</a>. One-time setup, then updates are a git pull.</li>',
-        ]
-    )
-    steps_optional = "".join(
-        [
-            '<li><a href="#/pipeline">See what the guardrails do</a> — the map of every check, in plain language.</li>',
-            '<li><a href="#/trees">Browse the guidance</a> — the decision trees + best practices each plugin gives your agents.</li>',
-        ]
-    )
-
-    # P3 — the sections BELOW the hero are DOM-island-loaded: they ship in a
-    # <script type="application/json"> payload (uncounted by Gate 132) and inject into
-    # #ov-mount on the first activate("overview"). The HERO stays LIVE in the initial
-    # HTML (LCP-safe — islanding the default-active hero would JS-inject the LCP element;
-    # the critic flagged that). Net effect: the rich premium overview is net-DOM-NEGATIVE.
-    overview_body = (
-        f'<p class="ov-stats-lead">You have <strong>{n_plugins}</strong> plugins installed &mdash; '
-        f"<strong>{n_agents}</strong> specialist agents and <strong>{n_trees}</strong> decision trees "
-        "ready to help your agents stay in bounds.</p>"
-        f'<div class="ov-stats">{stats}</div>'
-        '<h3 class="ov-h3">The big systems</h3>'
-        f'<div class="ov-cards">{systems}</div>'
-        '<h3 class="ov-h3">Start here</h3>'
-        '<p class="ov-steps-lead">New here? The two <strong>required</strong> steps take about five minutes. '
-        "The rest you can explore whenever.</p>"
-        '<p class="ov-steps-cap">Required</p>'
-        f'<ol class="ov-steps">{steps_required}</ol>'
-        '<p class="ov-steps-cap ov-steps-cap-optional">Optional &mdash; when you want to go deeper</p>'
-        f'<ol class="ov-steps ov-steps-optional" start="3">{steps_optional}</ol>'
-    )
-    overview_json = json.dumps(overview_body)
-    return (
-        '<div class="ov-wrap">'
-        '<div class="ov-hero">'
-        '<div class="ov-hero__copy">'
-        '<p class="eyebrow"><span class="eyebrow__dot"></span>RavenClaude</p>'
-        '<h2 class="ov-hero__title">Your control surface, '
-        '<span class="ov-hero__accent">in&nbsp;bounds</span>.</h2>'
-        '<p class="ov-hero__sub">Tune how autonomous your agents are, watch every guardrail '
-        "an action passes through, and wire the plugin into your tools. Your private Claude Code "
-        "<strong>plugin marketplace</strong> &mdash; the controls, not the catalog.</p>"
-        '<div class="ov-hero__actions">'
-        '<a class="btn btn-primary ov-cta" href="#/settings">Set your posture</a>'
-        '<a class="btn secondary ov-cta" href="#/pipeline">See the guardrails</a>'
-        "</div>"
-        '<div id="ov-mode-banner" class="ov-banner ov-banner-static">'
-        "<strong>Preview</strong> &mdash; this is a read-only view. Run the served dashboard "
-        "(<code>rc dashboard</code> or <code>python3 scripts/serve-dashboards.py</code>) to save changes to your repo."
-        "</div>"
-        "</div>"
-        f'<img class="ov-hero__raven" src="{_RAVEN_HERO_DATA_URI}" '
-        f'width="{_RAVEN_HERO_W}" height="{_RAVEN_HERO_H}" alt="" aria-hidden="true" '
-        'draggable="false">'
-        "</div>"
-        '<div id="ov-mount"></div>'
-        f'<script type="application/json" id="ov-payload">{overview_json}</script>'
-        "<noscript><p>The overview detail (stats, systems, and setup steps) renders with "
-        "JavaScript.</p></noscript>"
-        "</div>"
     )
 
 
@@ -3269,37 +3159,10 @@ h1, h2, h3 { font-family: var(--font-display); font-weight: 600; letter-spacing:
   margin: 6px 2px;
   background: var(--border);
 }
-/* ── Two-tier nav: top-level CATEGORIES reveal their pages (website-style) ── */
-.cat-bar {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-  margin: 4px 0 2px;
-}
-.cat-btn {
-  background: transparent;
-  border: 1px solid var(--border);
-  color: var(--muted);
-  font: inherit;
-  font-family: var(--font-display, inherit);
-  font-weight: 600;
-  font-size: 13px;
-  letter-spacing: -0.01em;
-  padding: 7px 15px;
-  border-radius: 999px;
-  cursor: pointer;
-  white-space: nowrap;
-}
-.cat-btn:hover { color: var(--text); border-color: var(--accent-2, var(--accent)); }
-.cat-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.cat-btn[aria-pressed="true"] {
-  color: #000;
-  background: var(--accent);
-  border-color: var(--accent);
-  box-shadow: 0 0 16px var(--accent-glow, transparent);
-}
-/* Only the active category's page tabs are shown in the tablist. */
-.tab-bar .tab-btn:not(.in-cat) { display: none; }
+/* Two-tier category nav retired (P3, dashboard-consumption): the cat-bar and its
+   .in-cat page-hiding rule are gone; the tab-bar is now a flat, single-tier set
+   of destination tabs. (The shell's own dash-root chrome-hide rule stays — it
+   hides the folded copy's whole nav in the portal.) */
 .header-about-link { white-space: nowrap; }
 .about-wrap { max-width: 760px; }
 .about-lead { font-size: 15px; color: var(--text); line-height: 1.6; }
@@ -6246,7 +6109,7 @@ _INSTALL_TAB_TEMPLATE = """
     <p class="install-intro">
       Follow these steps in order. Every command has a <strong>Copy</strong> button &mdash; you don&rsquo;t
       need to type anything. Each step tells you what to expect <em>after</em> you run it.
-      <strong>Using Claude Code instead?</strong> See the <a href="#/bifrost">Claude&nbsp;Code</a> page.
+      <strong>Using Claude Code instead?</strong> See the <a href="#/help">Claude&nbsp;Code</a> guide (Help).
     </p>
 
     <h3>What is this?</h3>
@@ -6710,7 +6573,7 @@ _INSTALL_TAB_TEMPLATE = """
 
 
 _SAGA_TAB_TEMPLATE = """
-<div class="saga-layout">
+<div class="saga-layout" id="saga">
   <div class="saga-hdr">
     <h2>&#9878; Review log</h2>
     <button type="button" class="saga-refresh" id="saga-refresh-btn">Refresh</button>
@@ -6815,7 +6678,7 @@ _HEIMDALL_TAB_TEMPLATE = """
 """.strip()
 
 _VIDARR_TAB_TEMPLATE = """
-<div class="vidarr-layout">
+<div class="vidarr-layout" id="vidarr">
   <div class="saga-hdr">
     <h2><span aria-hidden="true">&#128095;</span> Security log</h2>
     <button type="button" class="saga-refresh" id="vidarr-refresh-btn">Refresh</button>
@@ -6843,7 +6706,7 @@ _VIDARR_TAB_TEMPLATE = """
 """.strip()
 
 _NORNS_TAB_TEMPLATE = """
-<div class="norns-layout">
+<div class="norns-layout" id="norns">
   <div class="saga-hdr">
     <h2><span aria-hidden="true">&#127795;</span> Lineage</h2>
     <button type="button" class="saga-refresh" id="norns-refresh-btn">Refresh</button>
@@ -6868,7 +6731,7 @@ _NORNS_TAB_TEMPLATE = """
 """.strip()
 
 _MIMIR_TAB_TEMPLATE = """
-<div class="mimir-layout">
+<div class="mimir-layout" id="mimir">
   <div class="saga-hdr">
     <h2><span aria-hidden="true">&#127769;</span> Session</h2>
     <button type="button" class="saga-refresh" id="mimir-refresh-btn">Refresh</button>
@@ -6900,7 +6763,7 @@ _MIMIR_TAB_TEMPLATE = """
 """.strip()
 
 _STREAMS_TAB_TEMPLATE = """
-<div class="mimir-layout">
+<div class="mimir-layout" id="streams">
   <div class="saga-hdr">
     <h2><span aria-hidden="true">&#127754;</span> Streams</h2>
     <button type="button" class="saga-refresh" id="streams-refresh-btn">Refresh</button>
@@ -7009,7 +6872,7 @@ _BIFROST_TAB_TEMPLATE = (
   <div class="saga-hdr">
     <h2><span aria-hidden="true">&#127752;</span> Install &amp; Update &mdash; Claude Code</h2>
   </div>
-  <p class="activity-intro">Bifröst is the rainbow bridge between the marketplace and your Claude Code project. Follow these four steps to install a plugin, then see <a href="#bifrost-update">Updating an installed plugin</a> below. Each step is <strong>copy-paste only</strong> &mdash; Bifröst guides you, but you cross the bridge yourself. Nothing here runs a command for you; you run each in your Claude Code session and paste the result back so Bifröst can light the next step. <strong>Using GitHub Copilot CLI instead?</strong> See the <a href="#/install">Copilot&nbsp;CLI</a> page.</p>
+  <p class="activity-intro">Bifröst is the rainbow bridge between the marketplace and your Claude Code project. Follow these four steps to install a plugin, then see <a href="#bifrost-update">Updating an installed plugin</a> below. Each step is <strong>copy-paste only</strong> &mdash; Bifröst guides you, but you cross the bridge yourself. Nothing here runs a command for you; you run each in your Claude Code session and paste the result back so Bifröst can light the next step. <strong>Using GitHub Copilot CLI instead?</strong> See the <a href="#/help">Copilot&nbsp;CLI</a> guide (Help).</p>
   <ol class="bifrost-steps">
 """
     + "\n".join(_bifrost_step_html(*s) for s in _BIFROST_STEPS)
@@ -7060,59 +6923,6 @@ _BIFROST_TAB_TEMPLATE = (
 </div>
 """.rstrip()
 ).strip()
-
-_SIMULATOR_TAB_TEMPLATE = """
-<div class="sim-layout">
-  <section class="sim-intro">
-    <h2>Preview a command's review</h2>
-    <p>
-      Type any shell command to see how command review (the Thing) would handle it &mdash;
-      which category it lands in, its risk tier, which reviewers weigh in, and whether it
-      would be allowed, auto-fixed, surfaced to you, or denied. It runs the
-      <strong>real review engine</strong> &mdash; no command is run and no AI is called &mdash;
-      so it matches what happens for real.
-    </p>
-    <div class="sim-input-row">
-      <input type="text" id="sim-command" class="sim-input"
-        placeholder="e.g. git push --force origin main"
-        aria-label="Command to analyze" autocomplete="off" spellcheck="false">
-      <button type="button" class="btn sim-analyze" id="sim-analyze-btn">Analyze</button>
-    </div>
-    <p class="sim-disabled-help" id="sim-disabled-help" hidden>
-      Run <code>python3 scripts/serve-dashboards.py</code> to simulate against the live engine.
-    </p>
-  </section>
-
-  <section class="sim-result" id="sim-result" hidden>
-    <div class="sim-deny-banner" id="sim-deny-banner" hidden>
-      &#9940; DENIED before any model runs<span id="sim-deny-reason"></span>
-    </div>
-    <div class="sim-result-grid">
-      <div class="sim-field">
-        <span class="sim-field-label">Category</span>
-        <span class="sim-field-value" id="sim-category">&mdash;</span>
-      </div>
-      <div class="sim-field">
-        <span class="sim-field-label">Risk tier</span>
-        <span class="sim-tier-badge" id="sim-tier-badge">&mdash;</span>
-      </div>
-    </div>
-    <div class="sim-seats-block">
-      <span class="sim-field-label">Seats convened</span>
-      <div class="sim-seats" id="sim-seats"></div>
-    </div>
-    <div class="sim-concerns-block" id="sim-concerns-block" hidden>
-      <span class="sim-field-label">Concerns cited</span>
-      <div class="sim-concerns" id="sim-concerns"></div>
-    </div>
-    <div class="sim-gate" id="sim-gate">
-      <span class="sim-gate-label">Predicted outcome</span>
-      <p class="sim-gate-text" id="sim-gate-text"></p>
-    </div>
-  </section>
-</div>
-""".strip()
-
 
 _JS = r"""
 /* generate-dashboards.py output — Settings tab JS (v5 schema: per-layer cards)
@@ -9144,36 +8954,16 @@ _JS = r"""
   const REPO_OWNER = "mcorbett51090";
   const REPO_NAME  = "RavenClaude";
 
-  // Two-tier nav: derive each page's category from the DOM (data-cat on the tab
-  // buttons) and remember the first page of each category (for category clicks).
-  const pageCat = {};
-  const catFirst = {};
-  document.querySelectorAll('.tab-bar .tab-btn[data-cat]').forEach(b => {
-    pageCat[b.dataset.tab] = b.dataset.cat;
-    if (!(b.dataset.cat in catFirst)) catFirst[b.dataset.cat] = b.dataset.tab;
-  });
+  // (Two-tier category nav retired in P3 — the tab-bar is a flat destination set,
+  // so there is no per-page category to derive or remember.)
   // DOM-island loader for the Guidance (trees) tab. Its ~20,612-element markup ships
   // inside <script type="application/json" id="trees-payload"> (uncounted CDATA) and
   // is injected on the first activate("trees"). Static-host safe: no fetch, the payload
   // is inline. Idempotent + retry-safe via the treesLoaded latch, matching the file's
   // loadActivity/loadHeimdall lazy-on-activate convention.
-  // Overview detail island (P3): the sections below the hero (stats/systems/steps) ship
-  // in #ov-payload and inject into #ov-mount on the first activate("overview"). The hero
-  // itself is LIVE in the initial HTML (LCP-safe); only the detail below is deferred, so
-  // the rich premium overview stays net-DOM-negative against Gate 132.
-  let overviewLoaded = false;
-  function loadOverview() {
-    if (overviewLoaded) return;
-    const mount = document.getElementById("ov-mount");
-    const payload = document.getElementById("ov-payload");
-    if (!mount || !payload) return;
-    try {
-      mount.innerHTML = JSON.parse(payload.textContent);
-      overviewLoaded = true;
-    } catch (e) {
-      /* leave unlatched so a later activate can retry */
-    }
-  }
+  // (P5 dashboard-consumption: panel-overview + its #ov-payload island were deleted —
+  // Overview served none of the four jobs. loadOverview() went with it; the shared
+  // activate() fallback now lands on panel-settings, not a missing overview panel.)
   let treesLoaded = false;
   // The Guidance search chrome is injected WITH the island content (not live DOM), so
   // it costs zero live elements toward the Gate-132 budget until the tab is opened —
@@ -9242,48 +9032,62 @@ _JS = r"""
       /* leave unlatched so a later activate can retry */
     }
   }
-  function setCategory(cat) {
-    document.querySelectorAll('.cat-btn').forEach(c => {
-      c.setAttribute('aria-pressed', c.dataset.cat === cat ? 'true' : 'false');
-    });
-    // Only the active category's page tabs are shown (CSS hides :not(.in-cat)).
-    document.querySelectorAll('.tab-bar .tab-btn').forEach(b => {
-      b.classList.toggle('in-cat', b.dataset.cat === cat);
-    });
-  }
-
   // Core activation — switch the visible page. Runs SYNCHRONOUSLY on click so
   // navigation never depends on the hashchange event firing (which a sandboxed
   // preview / some webviews suppress). `sub` carries a deep-link sub-segment
-  // (e.g. #/learn/<concept>).
+  // (e.g. #/learn/<concept>). Panel-only + null-safe (P3): no category tier, no
+  // roving tabindex — the tab-btns are plain controls, natively keyboard-operable.
   function activate(tab, sub) {
-    if (!validTabs.includes(tab)) tab = "overview";
-    setCategory(pageCat[tab] || "setup");
+    // P5 (dashboard-consumption): the fallback target is "settings" (panel-settings,
+    // the permanently-present, exempt job-1 panel behind the Control destination), NOT
+    // the deleted "overview" panel. This is the HIGH-2 fix: an unrecognized/mistyped tab
+    // must land on a VISIBLE Control panel (exactly one .tab-panel.active), never a blank
+    // host — the shared render_fragment means a missing fallback target would blank BOTH
+    // surfaces with zero console error. Agrees with route()'s shell-level default (Control).
+    if (!validTabs.includes(tab)) tab = "settings";
     document.querySelectorAll(".tab-btn").forEach(b => {
-      const sel = b.dataset.tab === tab;
-      b.setAttribute("aria-selected", sel ? "true" : "false");
-      // Roving tabindex (WAI-ARIA tabs pattern): only the selected tab is in the
-      // Tab order; arrow keys move between the rest within the active category.
-      b.setAttribute("tabindex", sel ? "0" : "-1");
+      b.setAttribute("aria-selected", b.dataset.tab === tab ? "true" : "false");
     });
     document.querySelectorAll(".tab-panel").forEach(p => {
       p.classList.toggle("active", p.dataset.tab === tab);
     });
-    if (tab === "overview" && !overviewLoaded) loadOverview();
     if (tab === "trees" && !treesLoaded) loadTrees();
     // Learn must hydrate BEFORE openConcept(sub) can find the concept in the DOM.
     if (tab === "learn") loadLearn();
     if (tab === "learn" && sub) openConcept(sub);
-    if (tab === "commands" && !commandsLoaded) loadCommands();
-    if (tab === "saga" && !sagaLoaded) loadSaga();
-    if (tab === "activity" && !activityLoaded) loadActivity();
-    if (tab === "heimdall" && !heimdallLoaded) loadHeimdall();
-    if (tab === "vidarr" && !vidarrLoaded) loadVidarr();
-    if (tab === "norns" && !nornsLoaded) loadNorns();
-    if (tab === "mimir" && !mimirLoaded) loadMimir();
-    if (tab === "streams" && !streamsLoaded) loadStreams();
+    // P5: panel-commands was folded into panel-help (as a <details>); its islanded
+    // card grid hydrates on the first activate("help"), keyed off the same
+    // #commands-mount / #commands-payload ids (only the enclosing wrapper moved).
+    if (tab === "help" && !commandsLoaded) loadCommands();
+    // P4 (dashboard-consumption): the Observe family is physically merged. Activity
+    // now contains the run feed + saga/mimir/streams/norns as anchored sections;
+    // Guardrails (Heimdall) contains its cards + vidarr (nidhoggr's debt card is
+    // already loaded inside loadHeimdall). Their old tab ids no longer exist (P3
+    // removed the tab-btns), so each loader runs through its new home destination.
+    // Each loader is guarded by its own *Loaded latch → exactly one GET per endpoint
+    // on activate, no duplicate fetches.
+    if (tab === "activity") {
+      if (!activityLoaded) loadActivity();
+      if (!sagaLoaded) loadSaga();
+      if (!mimirLoaded) loadMimir();
+      if (!streamsLoaded) loadStreams();
+      if (!nornsLoaded) loadNorns();
+    }
+    if (tab === "heimdall") {
+      if (!heimdallLoaded) loadHeimdall();
+      if (!vidarrLoaded) loadVidarr();
+    }
+    // A retired Observe route (#/saga … #/nidhoggr) resolves to its destination tab
+    // (shown above) and carries the merged section's anchor id in `sub`; scroll to it
+    // once the tab is visible so the deep-link lands on its block.
+    if (sub && (tab === "activity" || tab === "heimdall")) {
+      const anchorEl = document.getElementById(sub);
+      if (anchorEl && typeof anchorEl.scrollIntoView === "function") {
+        requestAnimationFrame(() => anchorEl.scrollIntoView({ block: "start", behavior: "smooth" }));
+      }
+    }
     if (tab === "pipeline") syncPipelineTab();
-    if (tab.indexOf("plugin-") === 0) hydratePluginPage(tab.slice(7));
+    if (tab === "plugin-vars") activatePluginVars(sub);
     if (tab === "web-access") hydrateWebAccess();
   }
   // Navigate: activate immediately, then reflect the page in the URL hash for
@@ -9294,51 +9098,111 @@ _JS = r"""
     if (location.hash !== "#/" + tab) location.hash = "/" + tab;
   }
   function applyHash() {
-    const seg = (location.hash || "#/overview").replace(/^#\//, "").split("/");
+    const seg = (location.hash || "#/settings").replace(/^#\//, "").split("/");
     activate(seg[0], seg[1]);
   }
   document.querySelectorAll(".tab-btn").forEach(b => {
     b.addEventListener("click", () => goTo(b.dataset.tab));
   });
-  // Clicking a category reveals its pages and jumps to the first page in it.
-  document.querySelectorAll(".cat-btn").forEach(c => {
-    c.addEventListener("click", () => {
-      const cat = c.dataset.cat;
-      setCategory(cat);
-      const first = catFirst[cat];
-      if (first) goTo(first);
-    });
-  });
-  // Header "What is this?" link → About, without depending on hashchange.
+  // Header "What is this?" link → Help drawer (About folded into panel-help, P5),
+  // without depending on hashchange.
   const aboutLink = document.querySelector(".header-about-link");
-  if (aboutLink) aboutLink.addEventListener("click", e => { e.preventDefault(); goTo("about"); });
-  // Keyboard navigation for the tablist (WAI-ARIA Authoring Practices "Tabs"):
-  // Left/Right/Home/End move between the VISIBLE (active-category) tabs only.
-  const tablist = document.querySelector('.tab-bar[role="tablist"]');
-  if (tablist) {
-    tablist.addEventListener("keydown", e => {
-      const keys = ["ArrowLeft", "ArrowRight", "Home", "End"];
-      if (!keys.includes(e.key)) return;
-      const tabs = Array.from(tablist.querySelectorAll('.tab-btn[role="tab"]'))
-        .filter(t => t.classList.contains("in-cat"));
-      if (!tabs.length) return;
-      const cur = tabs.findIndex(t => t.getAttribute("aria-selected") === "true");
-      let next = cur < 0 ? 0 : cur;
-      if (e.key === "ArrowRight") next = (cur + 1) % tabs.length;
-      else if (e.key === "ArrowLeft") next = (cur - 1 + tabs.length) % tabs.length;
-      else if (e.key === "Home") next = 0;
-      else if (e.key === "End") next = tabs.length - 1;
-      e.preventDefault();
-      const target = tabs[next];
-      goTo(target.dataset.tab);
-      target.focus();
-    });
-  }
+  if (aboutLink) aboutLink.addEventListener("click", e => { e.preventDefault(); goTo("help"); });
+  // (P3: the WAI-ARIA tablist roving-tabindex handler was removed with the
+  // tablist/tab ARIA chrome — the tab-btns are plain buttons, so Tab plus
+  // Enter/Space operate them natively; no arrow-key roving contract to maintain.)
   /* ── Plugins category: per-plugin variable editor (portal → repo file) ─── */
+  // P1: the 167 per-plugin panels collapsed into ONE picker. renderPluginVarsForm()
+  // rebuilds the SAME .plugin-page markup _render_plugin_page used to emit — one
+  // plugin at a time, from the inline #plugin-vars-payload JSON — into
+  // #plugin-vars-mount, then hydrates it. emitPluginYaml/applyPluginConfig/
+  // hydratePluginPage/setPluginStatus below are UNCHANGED (they query the single
+  // mounted .plugin-page). Save/Download wire via EVENT DELEGATION (further down) —
+  // the buttons are created after load, so a load-time querySelectorAll would never
+  // bind them (the silent-Save hazard the collapse introduces).
   const PLUGIN_LS_PREFIX = "rc-plugin-vars:";
   const pluginPagesHydrated = {};
   function pluginPanel(plugin) {
     return document.querySelector('.plugin-page[data-plugin="' + plugin + '"]');
+  }
+  let _pluginVarsPayload = null;
+  function pluginVarsData() {
+    if (_pluginVarsPayload) return _pluginVarsPayload;
+    const el = document.getElementById("plugin-vars-payload");
+    try { _pluginVarsPayload = el ? JSON.parse(el.textContent) : {}; }
+    catch (e) { _pluginVarsPayload = {}; }
+    return _pluginVarsPayload;
+  }
+  function pvEsc(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, c =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  }
+  function renderPluginVarsControl(plugin, v) {
+    const key = v.key;
+    const cid = "pv-" + plugin + "-" + key;
+    const dflt = v.default == null ? "" : String(v.default);
+    let control;
+    if (v.type === "enum") {
+      const opts = (v.options || []).map(o =>
+        '<option value="' + pvEsc(o) + '"' + (o === v.default ? " selected" : "") + ">" + pvEsc(o) + "</option>"
+      ).join("");
+      control = '<select id="' + pvEsc(cid) + '" class="pv-control" data-pvar="' + pvEsc(key) +
+        '" data-ptype="enum" data-pdefault="' + pvEsc(dflt) + '">' + opts + "</select>";
+    } else {
+      const it = v.type === "number" ? "number" : "text";
+      control = '<input id="' + pvEsc(cid) + '" class="pv-control" type="' + it + '" data-pvar="' +
+        pvEsc(key) + '" data-ptype="' + pvEsc(v.type) + '" data-pdefault="' + pvEsc(dflt) +
+        '" value="' + pvEsc(dflt) + '">';
+    }
+    return '<div class="pv-row"><label class="pv-label" for="' + pvEsc(cid) + '">' + pvEsc(v.label) +
+      "</label>" + control + '<p class="pv-help">' + pvEsc(v.help || "") + "</p></div>";
+  }
+  function renderPluginVarsForm(name) {
+    const mount = document.getElementById("plugin-vars-mount");
+    if (!mount) return;
+    const data = pluginVarsData()[name];
+    if (!data) { mount.innerHTML = ""; return; }
+    const esc = pvEsc(name);
+    const target = pvEsc(data.target);
+    // R2 (plan §1.1): most plugins have NO curated knobs — the empty state says so,
+    // and that the free-form values are a write-only sink no hook reads.
+    const controls = (data.curated && data.curated.length)
+      ? data.curated.map(v => renderPluginVarsControl(name, v)).join("")
+      : '<p class="pv-help">No curated knobs for this plugin — the free-form values below are saved but not currently read by any hook. Add project variables in the free-form section.</p>';
+    mount.innerHTML =
+      '<div class="plugin-page" data-plugin="' + esc + '" data-target="' + target + '">' +
+        '<h2 class="pp-title">' + esc + "</h2>" +
+        '<p class="pp-sub">Configure <code>' + esc + "</code>'s variables here — they save to <code>" + target +
+          "</code> via the dashboard server (on the static copy, edits stay in your browser — use <strong>Download</strong>). For the full reference — agents, scenarios, skills, hooks, templates, best-practices — see this plugin in the portal's <strong>Marketplace</strong> section.</p>" +
+        '<section class="pp-section">' +
+          "<h3>Variables</h3>" +
+          '<div class="pv-curated">' + controls + "</div>" +
+          '<div class="pv-freeform">' +
+            "<h4>Free-form variables</h4>" +
+            '<p class="pv-help">One <code>key: value</code> per line (YAML). For project variables not covered by the curated knobs above.</p>' +
+            '<textarea class="pv-extra" data-plugin="' + esc + '" rows="5" spellcheck="false" placeholder="my_key: my value&#10;another_key: 123"></textarea>' +
+          "</div>" +
+          '<div class="pp-actions">' +
+            '<button type="button" class="pp-save" data-plugin="' + esc + '">Save to repo</button>' +
+            '<button type="button" class="pp-download" data-plugin="' + esc + '">Download .yaml</button>' +
+            '<span class="pp-status" data-plugin="' + esc + '" role="status"></span>' +
+          "</div>" +
+          '<p class="pp-noserver" data-plugin="' + esc + '" hidden>No local dashboard server behind this page, so <strong>Save to repo</strong> is off. Run <code>ravenclaude dashboard</code> (or <code>bash .ravenclaude/dashboard.sh</code>) and reopen, or use <strong>Download</strong> and drop the file into <code>' + target + "</code>.</p>" +
+        "</section>" +
+      "</div>";
+    // Re-render replaces the panel, so drop the hydrate latch to re-load this
+    // plugin's saved values against the freshly-mounted .plugin-page.
+    delete pluginPagesHydrated[name];
+    hydratePluginPage(name);
+  }
+  function activatePluginVars(name) {
+    const sel = document.getElementById("plugin-vars-select");
+    if (!sel) return;
+    const values = Array.from(sel.options).map(o => o.value);
+    if (!name || values.indexOf(name) < 0) name = sel.value || values[0];
+    if (!name) return;
+    if (sel.value !== name) sel.value = name;
+    renderPluginVarsForm(name);
   }
   function pluginYamlQuote(v) {
     v = String(v);
@@ -9418,48 +9282,64 @@ _JS = r"""
     el.textContent = msg;
     el.className = "pp-status " + (cls || "");
   }
-  document.querySelectorAll(".pp-save").forEach(btn => {
-    btn.addEventListener("click", async () => {
-      const plugin = btn.dataset.plugin;
-      const panel = pluginPanel(plugin);
-      const target = panel.dataset.target;
-      const yaml = emitPluginYaml(plugin);
-      localStorage.setItem(PLUGIN_LS_PREFIX + plugin, yaml);
-      setPluginStatus(plugin, "saving…", "status-unsaved");
-      try {
-        const res = await fetch("/__save", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", ...(await csrfHeaders()) },
-          body: JSON.stringify({ path: target, content: yaml })
-        });
-        if (res.status === 404 || res.status === 405) {
+  // Save / Download via EVENT DELEGATION on #plugin-vars-mount. The buttons live
+  // inside the client-rendered .plugin-page (created after load by
+  // renderPluginVarsForm), so a load-time querySelectorAll(".pp-save") would bind
+  // nothing and Save would silently no-op. One delegated listener on the mount
+  // fires for whichever plugin's form is currently rendered. Scoped to the mount
+  // (not document) so it never touches the web-access .wa-save/.wa-download
+  // buttons, which also carry .pp-save/.pp-download and own their own handler.
+  const pluginVarsMount = document.getElementById("plugin-vars-mount");
+  if (pluginVarsMount) {
+    pluginVarsMount.addEventListener("click", async (ev) => {
+      const saveBtn = ev.target.closest(".pp-save");
+      if (saveBtn) {
+        const plugin = saveBtn.dataset.plugin;
+        const panel = pluginPanel(plugin);
+        if (!panel) return;
+        const target = panel.dataset.target;
+        const yaml = emitPluginYaml(plugin);
+        localStorage.setItem(PLUGIN_LS_PREFIX + plugin, yaml);
+        setPluginStatus(plugin, "saving…", "status-unsaved");
+        try {
+          const res = await fetch("/__save", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", ...(await csrfHeaders()) },
+            body: JSON.stringify({ path: target, content: yaml })
+          });
+          if (res.status === 404 || res.status === 405) {
+            setPluginStatus(plugin, "saved in browser (no server)", "status-unsaved");
+            const ns = document.querySelector('.pp-noserver[data-plugin="' + plugin + '"]');
+            if (ns) ns.hidden = false;
+            return;
+          }
+          if (!res.ok) { setPluginStatus(plugin, "save failed (" + res.status + ")", "status-error"); return; }
+          setPluginStatus(plugin, "saved to " + target, "status-ok");
+        } catch (e) {
           setPluginStatus(plugin, "saved in browser (no server)", "status-unsaved");
           const ns = document.querySelector('.pp-noserver[data-plugin="' + plugin + '"]');
           if (ns) ns.hidden = false;
-          return;
         }
-        if (!res.ok) { setPluginStatus(plugin, "save failed (" + res.status + ")", "status-error"); return; }
-        setPluginStatus(plugin, "saved to " + target, "status-ok");
-      } catch (e) {
-        setPluginStatus(plugin, "saved in browser (no server)", "status-unsaved");
-        const ns = document.querySelector('.pp-noserver[data-plugin="' + plugin + '"]');
-        if (ns) ns.hidden = false;
+        return;
+      }
+      const dlBtn = ev.target.closest(".pp-download");
+      if (dlBtn) {
+        const plugin = dlBtn.dataset.plugin;
+        const yaml = emitPluginYaml(plugin);
+        const blob = new Blob([yaml], { type: "text/yaml" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url; a.download = plugin + ".yaml";
+        document.body.appendChild(a); a.click(); a.remove();
+        URL.revokeObjectURL(url);
+        setPluginStatus(plugin, "downloaded " + plugin + ".yaml", "status-ok");
       }
     });
-  });
-  document.querySelectorAll(".pp-download").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const plugin = btn.dataset.plugin;
-      const yaml = emitPluginYaml(plugin);
-      const blob = new Blob([yaml], { type: "text/yaml" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url; a.download = plugin + ".yaml";
-      document.body.appendChild(a); a.click(); a.remove();
-      URL.revokeObjectURL(url);
-      setPluginStatus(plugin, "downloaded " + plugin + ".yaml", "status-ok");
-    });
-  });
+  }
+  const pluginVarsSelect = document.getElementById("plugin-vars-select");
+  if (pluginVarsSelect) {
+    pluginVarsSelect.addEventListener("change", () => renderPluginVarsForm(pluginVarsSelect.value));
+  }
 
   /* ── Web access allow/deny editor (portal → .ravenclaude/web-access.yaml) ── */
   let webAccessHydrated = false;
@@ -11888,8 +11768,6 @@ _RAVEN_MARK_DATA_URI = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAjsAAAJLCA
 
 # --- P0 (premium redesign): raven hero + mark as self-contained WebP data URIs ---
 # generated by P0 — raven WebP data URIs (self-contained, build-time)
-_RAVEN_HERO_DATA_URI = 'data:image/webp;base64,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'
-_RAVEN_HERO_W, _RAVEN_HERO_H = 840, 840
 _RAVEN_MARK_WEBP_DATA_URI = 'data:image/webp;base64,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'
 _RAVEN_MARK_W, _RAVEN_MARK_H = 240, 247
 
@@ -12153,96 +12031,79 @@ def _gather_plugin_dir_names(plugin_dir: Path, sub: str, dirs: bool = False) -> 
     return sorted(p.stem for p in base.glob("*.md") if p.stem.lower() != "readme")
 
 
-def _render_plugin_var_control(plugin: str, var: dict) -> str:
-    """One curated-variable control (enum→select, number/text→input) carrying the
-    data-* attributes the editor JS reads on save."""
-    key = var["key"]
-    label = html.escape(var["label"])
-    help_txt = html.escape(var.get("help", ""))
-    default = html.escape(str(var.get("default", "")))
-    vtype = var["type"]
-    cid = f"pv-{plugin}-{key}"
-    if vtype == "enum":
-        opts = "".join(
-            f'<option value="{html.escape(o)}"{" selected" if o == var.get("default") else ""}>{html.escape(o)}</option>'
-            for o in var.get("options", [])
-        )
-        control = (
-            f'<select id="{cid}" class="pv-control" data-pvar="{html.escape(key)}" '
-            f'data-ptype="enum" data-pdefault="{default}">{opts}</select>'
-        )
-    else:
-        input_type = "number" if vtype == "number" else "text"
-        control = (
-            f'<input id="{cid}" class="pv-control" type="{input_type}" '
-            f'data-pvar="{html.escape(key)}" data-ptype="{html.escape(vtype)}" '
-            f'data-pdefault="{default}" value="{default}">'
-        )
-    return (
-        '<div class="pv-row">'
-        f'<label class="pv-label" for="{cid}">{label}</label>'
-        f"{control}"
-        f'<p class="pv-help">{help_txt}</p>'
-        "</div>"
+def _render_plugin_vars_payload(plugin_dirs: list[Path]) -> str:
+    """Inline JSON for the one #plugin-vars-payload script: per plugin, its save
+    target + curated variable specs. renderPluginVarsForm() (in _JS) reads this to
+    build the SAME editor markup _render_plugin_page used to emit, one plugin at a
+    time. `options` is present only for enum vars.
+
+    Escaped for a <script type="application/json"> block the same way schema_json /
+    concepts_json are (`<` → \\u003c), so a `</script` substring inside any string
+    can never break out of the element; the escape round-trips through JSON.parse."""
+    data: dict[str, dict] = {}
+    for pd in plugin_dirs:
+        name = pd.name
+        curated: list[dict] = []
+        for v in _plugin_curated_vars(name):
+            spec: dict = {
+                "key": v["key"],
+                "label": v["label"],
+                "help": v.get("help", ""),
+                "default": v.get("default", ""),
+                "type": v["type"],
+            }
+            if v["type"] == "enum":
+                spec["options"] = list(v.get("options", []))
+            curated.append(spec)
+        data[name] = {
+            "target": f".ravenclaude/plugins/{name}.yaml",
+            "curated": curated,
+        }
+    return json.dumps(data, ensure_ascii=False, separators=(",", ":")).replace(
+        "<", "\\u003c"
     )
-
-
-def _render_plugin_page(plugin_dir: Path) -> str:
-    """The full panel for one plugin: editable variables (curated + free-form)
-    wired to the /__save portal, plus best-practices, decision trees, agents and
-    skills for that plugin."""
-    name = plugin_dir.name
-    esc = html.escape(name)
-    curated = _plugin_curated_vars(name)
-    target = f".ravenclaude/plugins/{name}.yaml"
-
-    controls = "".join(_render_plugin_var_control(name, v) for v in curated) or (
-        '<p class="pv-help">No curated knobs for this plugin yet — use the free-form section below.</p>'
-    )
-
-    return f"""
-    <div class="plugin-page" data-plugin="{esc}" data-target="{html.escape(target)}">
-      <h2 class="pp-title">{esc}</h2>
-      <p class="pp-sub">Configure <code>{esc}</code>'s variables here — they save to <code>{html.escape(target)}</code> via the dashboard server (on the static copy, edits stay in your browser — use <strong>Download</strong>). For the full reference — agents, scenarios, skills, hooks, templates, best-practices — see this plugin in the portal's <strong>Marketplace</strong> section.</p>
-
-      <section class="pp-section">
-        <h3>Variables</h3>
-        <div class="pv-curated">{controls}</div>
-        <div class="pv-freeform">
-          <h4>Free-form variables</h4>
-          <p class="pv-help">One <code>key: value</code> per line (YAML). For project variables not covered by the curated knobs above.</p>
-          <textarea class="pv-extra" data-plugin="{esc}" rows="5" spellcheck="false" placeholder="my_key: my value&#10;another_key: 123"></textarea>
-        </div>
-        <div class="pp-actions">
-          <button type="button" class="pp-save" data-plugin="{esc}">Save to repo</button>
-          <button type="button" class="pp-download" data-plugin="{esc}">Download .yaml</button>
-          <span class="pp-status" data-plugin="{esc}" role="status"></span>
-        </div>
-        <p class="pp-noserver" data-plugin="{esc}" hidden>No local dashboard server behind this page, so <strong>Save to repo</strong> is off. Run <code>ravenclaude dashboard</code> (or <code>bash .ravenclaude/dashboard.sh</code>) and reopen, or use <strong>Download</strong> and drop the file into <code>{html.escape(target)}</code>.</p>
-      </section>
-    </div>
-    """
 
 
 def _render_plugins_category(plugin_dirs: list[Path]) -> tuple[str, str]:
-    """Return (tabs_html, panels_html) for the Plugins category — one tab-btn and
-    one tab-panel per plugin, matching the existing two-tier nav contract."""
-    tabs: list[str] = []
-    panels: list[str] = []
-    for pd in plugin_dirs:
-        name = pd.name
-        esc = html.escape(name)
-        tab_id = f"plugin-{name}"
-        tabs.append(
-            f'<button class="tab-btn" id="tab-{html.escape(tab_id)}" data-tab="{html.escape(tab_id)}" '
-            f'data-cat="plugins" role="tab" aria-selected="false" tabindex="-1" '
-            f'aria-controls="panel-{html.escape(tab_id)}" title="{esc} — variables, best practices, trees">{esc}</button>'
-        )
-        panels.append(
-            f'<section class="tab-panel" id="panel-{html.escape(tab_id)}" data-tab="{html.escape(tab_id)}" '
-            f'role="tabpanel" aria-label="{esc} plugin">{_render_plugin_page(pd)}</section>'
-        )
-    return "\n".join(tabs), "\n".join(panels)
+    """Return (tab_html, panel_html) for the Plugins category: ONE picker tab and
+    ONE panel (P1 — the 167 per-plugin panels collapsed into a single client-
+    rendered variable editor). Pick a plugin from the <select>; its editor form is
+    rendered into #plugin-vars-mount from the inline #plugin-vars-payload JSON by
+    renderPluginVarsForm(), and Save/Download wire via event delegation (see _JS).
+
+    R2 (plan §1.1, binding): the per-plugin editor writes .ravenclaude/plugins/
+    <slug>.yaml, which NO hook reads — 153 of 167 plugins expose only a free-form
+    textarea. The intro below discloses this in committed markup; do NOT describe
+    the collapse as "no capability is lost"."""
+    tab = (
+        '<button class="tab-btn" type="button" id="tab-plugin-vars" data-tab="plugin-vars" '
+        'aria-selected="false" title="Plugin variables">Plugin variables</button>'
+    )
+    options = "".join(
+        f'<option value="{html.escape(pd.name)}">{html.escape(pd.name)}</option>'
+        for pd in plugin_dirs
+    )
+    payload = _render_plugin_vars_payload(plugin_dirs)
+    panel = (
+        '<section class="tab-panel" id="panel-plugin-vars" data-tab="plugin-vars" '
+        'role="tabpanel" aria-label="Plugin variables">\n'
+        '  <div class="plugin-vars-picker">\n'
+        '    <h2 class="pp-title">Plugin variables</h2>\n'
+        '    <p class="pp-sub">Pick a plugin to edit its variables. Most plugins expose '
+        "<strong>no curated knobs</strong> — for those, the free-form values you enter are saved to "
+        "<code>.ravenclaude/plugins/&lt;plugin&gt;.yaml</code> but are <strong>not currently read by "
+        "any hook</strong> (153 of 167 plugins are free-form only). For the full reference — agents, "
+        "scenarios, skills, hooks, templates, best-practices — open the plugin in the portal's "
+        "<strong>Marketplace</strong> section. Deep-link: "
+        '<a href="#/plugin-vars">Plugin variables</a>.</p>\n'
+        '    <label class="pv-label" for="plugin-vars-select">Choose a plugin</label>\n'
+        f'    <select id="plugin-vars-select">{options}</select>\n'
+        '    <div id="plugin-vars-mount"></div>\n'
+        f'    <script type="application/json" id="plugin-vars-payload">{payload}</script>\n'
+        "  </div>\n"
+        "</section>"
+    )
+    return tab, panel
 
 
 def _all_plugin_dirs() -> list[Path]:
@@ -12308,52 +12169,25 @@ _PAGE_TEMPLATE = """<!doctype html>
     <h1>{title}</h1>
     <a class="btn btn-primary brand-cta" href="#/settings">Settings</a>
   </div>
-  <p class="page-desc">This is your control panel for Claude&nbsp;Code's safety rails. Use it to set what Claude is allowed to do, see what it's been doing, and add plugins. <a href="#/about" class="header-about-link">What is this?</a></p>
-  <nav class="cat-bar" aria-label="Dashboard categories">
-    <button class="cat-btn" type="button" data-cat="setup" aria-pressed="true" title="Set up — Overview, permissions, the safety pipeline, and a review preview">Set up</button>
-    <button class="cat-btn" type="button" data-cat="lookback" aria-pressed="false" title="Look back — review log, run feed, perimeter alerts, security log, lineage">Look back</button>
-    <button class="cat-btn" type="button" data-cat="learn" aria-pressed="false" title="Learn — explainers, command playbooks, decision-tree guidance">Learn</button>
-    <button class="cat-btn" type="button" data-cat="plugins" aria-pressed="false" title="Plugins — per-plugin variables, best practices, and decision trees">Plugins</button>
-    <button class="cat-btn" type="button" data-cat="install" aria-pressed="false" title="Install &amp; help — install &amp; update RavenClaude in Claude Code or GitHub Copilot CLI, plus help">Install &amp; help</button>
-  </nav>
-  <nav class="tab-bar" role="tablist" aria-label="Pages in the selected category">
-    <button class="tab-btn in-cat" id="tab-overview" data-tab="overview" data-cat="setup" role="tab" aria-selected="true" aria-controls="panel-overview" title="Overview — start here: what this dashboard is for">Overview</button>
-    <button class="tab-btn in-cat" id="tab-settings" data-tab="settings" data-cat="setup" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-settings" title="Settings — choose what Claude can do on its own (deny / ask / allow)">Settings</button>
-    <button class="tab-btn in-cat" id="tab-pipeline" data-tab="pipeline" data-cat="setup" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-pipeline" title="Pipeline — the safety checks every command passes through">Pipeline</button>
-    <button class="tab-btn in-cat" id="tab-simulator" data-tab="simulator" data-cat="setup" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-simulator" title="Preview a review — see how a command would be judged before you run it">Preview a review</button>
-    <button class="tab-btn in-cat" id="tab-web-access" data-tab="web-access" data-cat="setup" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-web-access" title="Web access — allow/deny which websites the agent may fetch">Web access</button>
-    <button class="tab-btn" id="tab-saga" data-tab="saga" data-cat="lookback" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-saga" title="Review log — past decisions the reviewer panel made (Sága)">&#9878; Review log</button>
-    <button class="tab-btn" id="tab-activity" data-tab="activity" data-cat="lookback" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-activity" title="Run feed — what Claude is doing right now: runs &amp; worktrees (Sleipnir)">Run feed</button>
-    <button class="tab-btn" id="tab-heimdall" data-tab="heimdall" data-cat="lookback" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-heimdall" title="Perimeter alerts — what your guardrails caught at the edge (Heimdall)">Perimeter alerts</button>
-    <button class="tab-btn" id="tab-vidarr" data-tab="vidarr" data-cat="lookback" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-vidarr" title="Security log — a record of your permission changes (Víðarr)">Security log</button>
-    <button class="tab-btn" id="tab-norns" data-tab="norns" data-cat="lookback" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-norns" title="Lineage — how your plugins connect and depend on each other (Norns)">Lineage</button>
-    <button class="tab-btn" id="tab-mimir" data-tab="mimir" data-cat="lookback" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-mimir" title="Session — what Claude Code knows about this session (M&iacute;mir's well)">Session</button>
-    <button class="tab-btn" id="tab-streams" data-tab="streams" data-cat="lookback" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-streams" title="Streams — your Agentic Work-Streams: which is active and its derived activity">Streams</button>
-    <button class="tab-btn" id="tab-learn" data-tab="learn" data-cat="learn" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-learn" title="Learn — plain-English explainers for each concept">Learn</button>
-    <button class="tab-btn" id="tab-commands" data-tab="commands" data-cat="learn" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-commands" title="Commands — ready-to-run slash-command playbooks">Commands</button>
-    <button class="tab-btn" id="tab-trees" data-tab="trees" data-cat="learn" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-trees" title="Guidance — decision trees and best practices">Guidance</button>
-    <button class="tab-btn" id="tab-bifrost" data-tab="bifrost" data-cat="install" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-bifrost" title="Claude Code — install &amp; update a plugin in Claude Code (the Bifröst bridge)">Claude&nbsp;Code</button>
-    <button class="tab-btn" id="tab-install" data-tab="install" data-cat="install" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-install" title="Copilot CLI — install &amp; update RavenClaude in GitHub Copilot CLI">Copilot&nbsp;CLI</button>
-    <button class="tab-btn" id="tab-about" data-tab="about" data-cat="install" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-about" title="About &amp; help — what this dashboard is and how it's organized">About &amp; help</button>
+  <p class="page-desc">This is your control panel for Claude&nbsp;Code's safety rails. Use it to set what Claude is allowed to do, see what it's been doing, and add plugins. <a href="#/help" class="header-about-link">What is this?</a></p>
+  <nav class="tab-bar" aria-label="Dashboard sections">
+    <button class="tab-btn" type="button" id="tab-settings" data-tab="settings" aria-selected="true" title="Settings — choose what Claude can do on its own (deny / ask / allow)">Settings</button>
+    <button class="tab-btn" type="button" id="tab-pipeline" data-tab="pipeline" aria-selected="false" title="Pipeline — the safety checks every command passes through">Pipeline</button>
+    <button class="tab-btn" type="button" id="tab-web-access" data-tab="web-access" aria-selected="false" title="Web access — allow/deny which websites the agent may fetch">Web access</button>
+    <button class="tab-btn" type="button" id="tab-activity" data-tab="activity" aria-selected="false" title="Run feed — what Claude is doing right now: runs &amp; worktrees">Run feed</button>
+    <button class="tab-btn" type="button" id="tab-heimdall" data-tab="heimdall" aria-selected="false" title="Perimeter alerts — what your guardrails caught at the edge (Heimdall)">Perimeter alerts</button>
+    <button class="tab-btn" type="button" id="tab-learn" data-tab="learn" aria-selected="false" title="Learn — plain-English explainers for each concept">Learn</button>
+    <button class="tab-btn" type="button" id="tab-help" data-tab="help" aria-selected="false" title="Help — install &amp; update guides (Claude Code / Copilot CLI), the command catalog, and where retired tabs went">Help</button>
 {plugins_tabs}
   </nav>
 </header>
 
 <main>
-  <section class="tab-panel active" id="panel-overview" data-tab="overview" role="tabpanel" aria-label="Overview">
-{overview_html}
-  </section>
-  <section class="tab-panel" id="panel-settings" data-tab="settings" role="tabpanel" aria-label="Settings">
+  <section class="tab-panel active" id="panel-settings" data-tab="settings" role="tabpanel" aria-label="Settings">
 {settings_html}
   </section>
   <section class="tab-panel" id="panel-pipeline" data-tab="pipeline" role="tabpanel" aria-label="Guardrail pipeline">
 {pipeline_html}
-  </section>
-  <section class="tab-panel" id="panel-install" data-tab="install" role="tabpanel" aria-label="Install and Update">
-{install_html}
-  </section>
-  <section class="tab-panel" id="panel-simulator" data-tab="simulator" role="tabpanel" aria-label="Preview a command's review">
-{simulator_html}
   </section>
   <section class="tab-panel" id="panel-web-access" data-tab="web-access" role="tabpanel" aria-label="Web access allow and deny lists">
 {web_access_html}
@@ -12363,42 +12197,65 @@ _PAGE_TEMPLATE = """<!doctype html>
     <script type="application/json" id="learn-payload">{learn_json}</script>
     <noscript><p>The Learn guidance renders with JavaScript. The concept source lives under <code>plugins/*/knowledge/concepts/</code>.</p></noscript>
   </section>
-  <section class="tab-panel" id="panel-saga" data-tab="saga" role="tabpanel" aria-label="Review log">
-{saga_html}
-  </section>
-  <section class="tab-panel" id="panel-commands" data-tab="commands" role="tabpanel" aria-label="Commands">
-    <div id="commands-mount"></div>
-    <script type="application/json" id="commands-payload">{commands_json}</script>
-    <noscript><p>The Commands catalog renders with JavaScript. The source lives under <code>plugins/*/commands/</code>.</p></noscript>
-  </section>
   <section class="tab-panel" id="panel-trees" data-tab="trees" role="tabpanel" aria-label="Decision trees and best practices">
     <div id="trees-mount"></div>
     <script type="application/json" id="trees-payload">{trees_json}</script>
     <noscript><p>The decision-trees &amp; best-practices guidance renders with JavaScript. The source lives under <code>plugins/*/rules/</code> and <code>plugins/*/best-practices/</code>.</p></noscript>
   </section>
+  <!-- P4 (dashboard-consumption): the Observe family is physically merged. Activity
+       absorbs the Review log (saga), Session (mimir), Streams and Lineage (norns) as
+       anchored blocks (id="saga"/"mimir"/"streams"/"norns" live on each skeleton's
+       outer div); Guardrails (Perimeter alerts / Heimdall) absorbs the Security log
+       (vidarr, id="vidarr") and already hosts the Níðhöggr debt card (#heimdall-debt).
+       Only the five enclosing <section> wrappers were removed — every mount id and
+       every render function is byte-identical, so the B15 render gates stay green. A
+       retired route (#/saga … #/nidhoggr) resolves to its destination tab and scrolls
+       to its anchor (see activate()'s sub handling + the portal's DASH_ANCHOR map). -->
   <section class="tab-panel" id="panel-activity" data-tab="activity" role="tabpanel" aria-label="Run feed">
 {activity_html}
+{saga_html}
+{mimir_html}
+{streams_html}
+{norns_html}
   </section>
   <section class="tab-panel" id="panel-heimdall" data-tab="heimdall" role="tabpanel" aria-label="Perimeter alerts">
 {heimdall_html}
-  </section>
-  <section class="tab-panel" id="panel-vidarr" data-tab="vidarr" role="tabpanel" aria-label="Security log">
 {vidarr_html}
   </section>
-  <section class="tab-panel" id="panel-norns" data-tab="norns" role="tabpanel" aria-label="Plugin lineage">
-{norns_html}
-  </section>
-  <section class="tab-panel" id="panel-mimir" data-tab="mimir" role="tabpanel" aria-label="Session state">
-{mimir_html}
-  </section>
-  <section class="tab-panel" id="panel-streams" data-tab="streams" role="tabpanel" aria-label="Work-streams">
-{streams_html}
-  </section>
-  <section class="tab-panel" id="panel-bifrost" data-tab="bifrost" role="tabpanel" aria-label="Add plugin">
-{bifrost_html}
-  </section>
-  <section class="tab-panel" id="panel-about" data-tab="about" role="tabpanel" aria-label="About and help">
+  <!-- P5 (dashboard-consumption): panel-help is the About/help drawer. It absorbs the
+       former install / bifrost / about / commands tabs as collapsed <details> (their
+       render functions + mount ids are byte-identical — only the enclosing wrapper moved,
+       so Gate 42 (Bifröst) stays green) and renders the same "where things moved" table
+       as docs/dashboard-removed-routes.md so a user with an old bookmark can see where a
+       retired tab went. Reached by the topbar "What is this?" / the Help tab-btn / ⌘K —
+       Help is a non-NAV drawer overlay, not a fifth shell destination. -->
+  <section class="tab-panel" id="panel-help" data-tab="help" role="tabpanel" aria-label="Help">
+    <div class="help-intro">
+      <h2>Help</h2>
+      <p class="help-lede">Install &amp; update guides, the full command catalog, and where the retired tabs went. Everything that used to have its own tab now lives here.</p>
+    </div>
+    <details class="help-section" id="help-moved">
+      <summary>Where things moved</summary>
+{removed_routes_table}
+    </details>
+    <details class="help-section" id="help-about" open>
+      <summary>About &amp; help — what this dashboard is</summary>
 {about_html}
+    </details>
+    <details class="help-section" id="help-bifrost">
+      <summary>Claude&nbsp;Code — install &amp; update a plugin (the Bifröst bridge)</summary>
+{bifrost_html}
+    </details>
+    <details class="help-section" id="help-install">
+      <summary>Copilot&nbsp;CLI — install &amp; update RavenClaude</summary>
+{install_html}
+    </details>
+    <details class="help-section" id="help-commands">
+      <summary>Commands — the marketplace slash-command catalog</summary>
+      <div id="commands-mount"></div>
+      <script type="application/json" id="commands-payload">{commands_json}</script>
+      <noscript><p>The Commands catalog renders with JavaScript. The source lives under <code>plugins/*/commands/</code>.</p></noscript>
+    </details>
   </section>
 {plugins_panels}
 </main>

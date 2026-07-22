@@ -2885,6 +2885,98 @@ sed 's/def _read_mimir(project_root, claude_home)/def _read_mimir(project_root, 
   plugins/ravenclaude-core/scripts/serve-dashboards.py > "$DSP_BODY_BAD"
 rc=0; python3 "$DSP" --plugin-server "$DSP_BODY_BAD" >/dev/null 2>&1 || rc=$?
 gate "dashboard-server-parity body-diff (drifted: _read_mimir body mutated)" must_fail "$rc"
+# PB-1 (FORGE dashboard-consumption): the body-diff contract now also covers the
+# NAMED port/reclaim functions (`_port_holder_pids`/`_holder_cwd`/`_reclaim_port`),
+# so a one-copy edit to the bind/reclaim path can no longer ship different bytes to
+# consumers — the drift class behind v0.205.3, previously invisible (not `_read_*`).
+# 32-a: a mutated `_reclaim_port` body in one copy must be caught.
+DSP_PORT_BAD="$TMP/serve-dashboards-reclaim-drifted.py"
+sed 's/def _reclaim_port(/def _reclaim_port(  # ASYMMETRIC PORT EDIT\n#pad\ndef _reclaim_port_orig(/' \
+  plugins/ravenclaude-core/scripts/serve-dashboards.py > "$DSP_PORT_BAD"
+rc=0; python3 "$DSP" --plugin-server "$DSP_PORT_BAD" >/dev/null 2>&1 || rc=$?
+gate "dashboard-server-parity body-diff (drifted: _reclaim_port body mutated)" must_fail "$rc"
+# 32-c: a CSRF allow-list keyed on `args.port` (not `actual_port`) must be caught —
+# a fallback bind would else reject every same-origin /__save (DNS-rebinding defense
+# collapsed into a self-DoS).
+DSP_CSRF_BAD="$TMP/serve-dashboards-argsport.py"
+sed 's/f"127.0.0.1:{actual_port}", f"localhost:{actual_port}", "127.0.0.1"/f"127.0.0.1:{args.port}", f"localhost:{actual_port}", "127.0.0.1"/' \
+  scripts/serve-dashboards.py > "$DSP_CSRF_BAD"
+rc=0; python3 "$DSP" --root-server "$DSP_CSRF_BAD" >/dev/null 2>&1 || rc=$?
+gate "dashboard-server-parity (CSRF allow-list keyed on args.port is caught)" must_fail "$rc"
+
+echo
+echo "── Gate 142: C2 security floor (loopback /__save guard: cross-origin + Host + no-Origin -> 403) ──"
+# The launch lane (L) touches the /__save write surface, the loopback bind, and the
+# CSRF/DNS-rebinding guard — the C2 floor that must not weaken. This gate is the
+# machine-checked assertion suite: it grep-pins the no-CORS invariant + the launcher's
+# explicit --bind, then launches the ROOT server on a free high port (>=8015, NEVER
+# 8000) and drives the REAL Origin/Host guard with curl — every cross-origin /
+# no-Origin / evil-Host request to /__save|/__csrf must be refused 403 while a
+# same-origin GET is accepted. (Placed by Gate 32 for locality; both are server-floor.)
+
+# (a) grep -c Access-Control in both copies -> exactly 1 each. The single hit is the
+#     FORBIDDING comment in _local_request_ok; the cross-origin reject (no
+#     Access-Control-Allow-Origin header, ever) IS the DNS-rebinding defense.
+rc=0; [ "$(grep -c 'Access-Control' scripts/serve-dashboards.py)" = "1" ] || rc=1
+gate "C2: root server has exactly 1 Access-Control mention (no ACAO header)" must_pass "$rc"
+rc=0; [ "$(grep -c 'Access-Control' plugins/ravenclaude-core/scripts/serve-dashboards.py)" = "1" ] || rc=1
+gate "C2: plugin server has exactly 1 Access-Control mention (no ACAO header)" must_pass "$rc"
+
+# (b) the launcher passes an explicit --bind 127.0.0.1 off-Codespace (Gate 32
+#     structurally cannot see a launch-time flag). Bidirectional: present in the real
+#     launcher, gated by CODESPACE_NAME; a copy with it stripped fails the assertion.
+rc=0; { grep -q -- '--bind 127.0.0.1' scripts/open-dashboard.sh && grep -q 'CODESPACE_NAME' scripts/open-dashboard.sh; } || rc=1
+gate "C2: launcher passes explicit --bind 127.0.0.1 (Codespace-gated)" must_pass "$rc"
+C2_LAUNCH_BAD="$TMP/open-dashboard-nobind.sh"
+grep -v -- '--bind 127.0.0.1' scripts/open-dashboard.sh > "$C2_LAUNCH_BAD"
+rc=0; grep -q -- '--bind 127.0.0.1' "$C2_LAUNCH_BAD" || rc=1
+gate "C2: launcher --bind assertion has teeth (stripped --bind caught)" must_fail "$rc"
+
+# (c) LIVE guard: launch the ROOT server on a free port >=8015 (never 8000), bound to
+#     127.0.0.1, --no-open, --max-idle 0 (no self-exit mid-test), then assert the guard.
+C2_PORT=""
+for cand in $(seq 8015 8064); do
+  if python3 -c "import socket,sys; s=socket.socket(); r=s.connect_ex(('127.0.0.1',$cand)); s.close(); sys.exit(0 if r!=0 else 1)" 2>/dev/null; then
+    C2_PORT="$cand"; break
+  fi
+done
+if [ -z "$C2_PORT" ]; then
+  echo "  ‼ C2 live guard SKIPPED — no free port in 8015-8064 to bind a test server."
+  SKIP=$((SKIP + 1)); SKIPPED_GATES+=("C2 live /__save guard [no free port]")
+else
+  C2_LOG="$TMP/c2-serve.log"
+  python3 scripts/serve-dashboards.py --port "$C2_PORT" --bind 127.0.0.1 --no-open --max-idle 0 >"$C2_LOG" 2>&1 &
+  C2_PID=$!
+  c2_ready=0
+  for _ in $(seq 1 40); do
+    if curl -fsS -o /dev/null "http://127.0.0.1:${C2_PORT}/index.html" 2>/dev/null; then c2_ready=1; break; fi
+    sleep 0.25
+  done
+  if [ "$c2_ready" -ne 1 ]; then
+    echo "  ‼ C2 live guard SKIPPED — test server did not answer on 127.0.0.1:$C2_PORT (see $C2_LOG)."
+    SKIP=$((SKIP + 1)); SKIPPED_GATES+=("C2 live /__save guard [server did not start]")
+  else
+    C2_URL="http://127.0.0.1:${C2_PORT}"
+    # positive control: same-origin GET /__csrf (correct Host, no Origin) -> 200.
+    code=$(curl -s -o /dev/null -w '%{http_code}' "${C2_URL}/__csrf" 2>/dev/null || echo 000)
+    rc=0; [ "$code" = "200" ] || rc=1
+    gate "C2 live: same-origin GET /__csrf -> 200 (guard is not always-deny)" must_pass "$rc"
+    # evil Host on GET /__csrf -> 403 (DNS-rebinding defense).
+    code=$(curl -s -o /dev/null -w '%{http_code}' -H 'Host: evil.test' "${C2_URL}/__csrf" 2>/dev/null || echo 000)
+    rc=0; [ "$code" = "403" ] || rc=1
+    gate "C2 live: GET /__csrf with Host: evil.test -> 403" must_pass "$rc"
+    # cross-origin POST /__save (evil Origin) -> 403.
+    code=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' -H 'Origin: http://evil.test' --data '{"path":".ravenclaude/x","content":"y"}' "${C2_URL}/__save" 2>/dev/null || echo 000)
+    rc=0; [ "$code" = "403" ] || rc=1
+    gate "C2 live: POST /__save with Origin: http://evil.test -> 403" must_pass "$rc"
+    # POST /__save with NO Origin (valid Host) -> 403 (state-change requires a present Origin).
+    code=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' --data '{"path":".ravenclaude/x","content":"y"}' "${C2_URL}/__save" 2>/dev/null || echo 000)
+    rc=0; [ "$code" = "403" ] || rc=1
+    gate "C2 live: POST /__save with no Origin -> 403" must_pass "$rc"
+  fi
+  kill "$C2_PID" 2>/dev/null || true
+  wait "$C2_PID" 2>/dev/null || true
+fi
 
 echo
 echo "── Gate 33: command-review golden set (deterministic regression lane) ─────"
@@ -3636,6 +3728,44 @@ PY
   rc=0; node scripts/check-shell-router.mjs "$IDX_HTML" >/dev/null 2>&1 || rc=$?
   gate "shell-router (real index.html satisfies the contract)" must_pass "$rc"
 
+  # ── External teeth-check (PB-3): the shell-router gate's must-fail halves are
+  # proven by check-shell-router.selftest.mjs, NOT by an in-process block that
+  # tested a hardcoded bad string against its own regex (that block certified
+  # nothing — a weakened re-authoring passed it — and was deleted). The driver
+  # mutates a fresh render three structural ways (empty SECTION_ALIAS / rename a
+  # NAV id / strip the chrome-hide rule) and re-invokes check-shell-router.mjs as
+  # a subprocess, requiring non-zero each time. Because it locates those by shape,
+  # it needs no edit across the IA re-cut — so the IA commit re-authors the gate
+  # but must NOT touch this driver, which is what proves the re-authored gate is
+  # not weaker.
+  # must_pass: the real checker is tripped by all three mutations (green today).
+  rc=0; node scripts/check-shell-router.selftest.mjs "$IDX_HTML" >/dev/null 2>&1 || rc=$?
+  gate "shell-router selftest (real checker tripped by all 3 mutations)" must_pass "$rc"
+  # must_fail (the selftest's OWN teeth): point it at a checker whose SECTION_ALIAS
+  # assertion is neutered → that mutation no longer trips → the selftest goes red.
+  WEAK_CHECKER="$TMP/check-shell-router.weak.mjs"
+  python3 - scripts/check-shell-router.mjs "$WEAK_CHECKER" <<'PY'
+import sys
+src = open(sys.argv[1]).read()
+src = src.replace("re.test(SECTION_ALIAS_TEXT),",
+                  "true /* WEAKENED */ || re.test(SECTION_ALIAS_TEXT),", 1)
+src = src.replace("assert(NAV_IDS.includes(target), `alias target",
+                  "assert(true /* WEAKENED */ || NAV_IDS.includes(target), `alias target", 1)
+open(sys.argv[2], "w").write(src)
+PY
+  rc=0; node scripts/check-shell-router.selftest.mjs --checker "$WEAK_CHECKER" "$IDX_HTML" >/dev/null 2>&1 || rc=$?
+  gate "shell-router selftest (a weakened checker is caught)" must_fail "$rc"
+
+  # ── DASH_TAB_ALIAS-target validity teeth (P3, §11.2). DASH_TAB_ALIAS maps a
+  # shell route → a FRAGMENT tab id; a mistyped value that is not a real tab blanks
+  # the dashboard host with zero console error (invisible to both Gate 51 scripts
+  # before P3, and the exact failure P4's DASH_TAB_ALIAS edit could ship). Point one
+  # value at a non-existent tab and assert the re-authored gate goes RED.
+  IDX_ALIAS_BAD="$TMP/render-index-badalias.html"
+  sed 's/nidhoggr: "heimdall"/nidhoggr: "heimdalll"/' "$IDX_HTML" > "$IDX_ALIAS_BAD"
+  rc=0; node scripts/check-shell-router.mjs "$IDX_ALIAS_BAD" >/dev/null 2>&1 || rc=$?
+  gate "shell-router (a mistyped DASH_TAB_ALIAS target is detected)" must_fail "$rc"
+
   # ── By-destination half (Phase 4a): every committed #/… resolves. ──────────
   ROUTE_FIX="tests/fixtures/routes/committed-routes.json"
   # must_pass: the committed fixture enumerates + resolves every #/… on both
@@ -3658,10 +3788,26 @@ PY
   # must_fail B (resolution teeth): a DASH_OWNER destination removed from the html
   # → #/heimdall dead-ends on the router fallback instead of viewDashboard:heimdall.
   IDX_ROUTE_BAD="$TMP/render-index-route-broken.html"
-  sed 's/heimdall: "observe", vidarr: "observe"/vidarr: "observe"/' "$IDX_HTML" > "$IDX_ROUTE_BAD"
+  sed 's/heimdall: "guardrails", vidarr: "guardrails"/vidarr: "guardrails"/' "$IDX_HTML" > "$IDX_ROUTE_BAD"
   rc=0; node scripts/check-committed-routes.mjs \
     --dashboard "$DASH_HTML" --index "$IDX_ROUTE_BAD" --fixture "$ROUTE_FIX" >/dev/null 2>&1 || rc=$?
   gate "committed-routes (a broken DASH_OWNER destination is detected)" must_fail "$rc"
+
+  # ── required_routes floor half (PB-2): the anti-laundering control C5 needs. ──
+  # must_fail 51-a (the sharpest): remove a required href from a rendered copy,
+  # re-emit a fixture FROM that copy (which drops the route from `surfaces` — a
+  # plain enumeration would then pass, exit 0), then assert. The hand-authored
+  # floor is carried through --emit verbatim, so the removal goes RED instead of
+  # being silently laundered. Without the floor this exact pair measures exit 0.
+  FLOOR_DASH_BAD="$TMP/dash-floor-broken.html"
+  sed 's/href="#\/settings"/href="#"/g' "$DASH_HTML" > "$FLOOR_DASH_BAD"
+  FLOOR_FX="$TMP/floor-laundered.json"
+  cp "$ROUTE_FIX" "$FLOOR_FX"
+  node scripts/check-committed-routes.mjs --emit \
+    --fixture "$FLOOR_FX" --dashboard "$FLOOR_DASH_BAD" --index "$IDX_HTML" >/dev/null 2>&1
+  rc=0; node scripts/check-committed-routes.mjs \
+    --fixture "$FLOOR_FX" --dashboard "$FLOOR_DASH_BAD" --index "$IDX_HTML" >/dev/null 2>&1 || rc=$?
+  gate "committed-routes required_routes floor (a laundered removal is caught)" must_fail "$rc"
 else
   _skip_or_fail "Gate 51 shell-router" node
 fi
@@ -3702,7 +3848,12 @@ echo "── Gate 93: Learn-tab step-by-step diagram (stepper) render ───�
 # the JS reveals them + honors prefers-reduced-motion). The script ALSO runs an
 # inline must-fail half (proves its own teeth).
 if command -v node >/dev/null 2>&1; then
-  rc=0; node scripts/check-stepper-render.mjs "$IDX_HTML" >/dev/null 2>&1 || rc=$?
+  # Learn (the stepper's home) is now standalone-only — P6 (FORGE dashboard-
+  # consumption) stripped the learn-payload from the PORTAL (index.html) as dead
+  # weight, so the stepper contract lives ONLY in the standalone dashboard.html.
+  # Run the gate against $DASH_HTML (which matches this gate's own label) — the
+  # former $IDX_HTML target went content-less at P6 and would false-fail.
+  rc=0; node scripts/check-stepper-render.mjs "$DASH_HTML" >/dev/null 2>&1 || rc=$?
   gate "stepper render (real dashboard.html)" must_pass "$rc"
   # must_fail (v2 — PAYLOAD path): Learn is now DOM-island-loaded, so the stepper
   # markup lives JSON-ESCAPED inside <script id="learn-payload">. The gate must parse
@@ -3711,14 +3862,14 @@ if command -v node >/dev/null 2>&1; then
   # miss this (the old live-form sed no longer matches), so this proves v2 actually
   # traverses the parse path (plan §2L).
   ST_BAD="$(mktemp)"; sed 's/class=\\"concept-stepper\\"/class=\\"concept-NOPE\\"/g' \
-    index.html > "$ST_BAD"
+    "$DASH_HTML" > "$ST_BAD"
   rc=0; node scripts/check-stepper-render.mjs "$ST_BAD" >/dev/null 2>&1 || rc=$?
   gate "stepper render (stripped stepper markup in the island payload is detected)" must_fail "$rc"
   # must_fail (v2 — MALFORMED payload): a learn-payload that is not valid JSON must be
   # rejected by the parse path, not silently no-op'd.
   ST_BADJSON="$(mktemp)"
   sed 's#<script type="application/json" id="learn-payload">#<script type="application/json" id="learn-payload">"unterminated #' \
-    index.html > "$ST_BADJSON"
+    "$DASH_HTML" > "$ST_BADJSON"
   rc=0; node scripts/check-stepper-render.mjs "$ST_BADJSON" >/dev/null 2>&1 || rc=$?
   gate "stepper render (malformed learn-payload JSON is rejected)" must_fail "$rc"
   rm -f "$ST_BAD" "$ST_BADJSON"
@@ -3744,6 +3895,74 @@ if command -v node >/dev/null 2>&1; then
   gate "concern-stats render (real dashboard.html + inline must-fail half)" must_pass "$rc"
 else
   _skip_or_fail "Gate 104 concern-stats render" node
+fi
+
+# ─────────────────────────────────────────────────────────────────────────────
+echo "── Gate 141: plugin-detail island render (H4 zero-content-loss) ──────────"
+# P2 (plan §1.4) moves the detail-only fields read SOLELY by window.__openPlugin
+# — agents[].scenarios/.quickstart/.works_with + plugins[].scripts_index /
+# .scenarios_index / .templates_index / .best_practices_index — off the eager
+# window.__RC_DATA__ parse path into a lazy <script id="plugin-detail-payload">
+# island. The H4 hazard: __openPlugin can count `(p.scripts_index||[]).length`
+# and `.filter(s => s.body)` on data that is NOT hydrated yet, so whole sections
+# vanish with ZERO count and NO error — invisible to any render-only /
+# no-console-errors test. So "zero content loss" IS this gate, not a console check.
+# Text/structural (no eval), like the sibling check-*-render.mjs gates, driven
+# against the freshly-rendered $IDX_HTML. Key PRESENCE is the hydration sentinel:
+# absent == not hydrated, [] == genuinely zero (77 plugins really have
+# scripts_index: [], so "assert non-empty" would be wrong on 46% of the catalog).
+#
+# Three must-fail halves prove teeth: (a) RENAME THE ISLAND ID — the literal H4
+# hydration-break scenario, silent today; (b) delete one plugin's island record;
+# (c) alter one committed baseline count. Each must go red.
+if command -v node >/dev/null 2>&1; then
+  # must_pass: ravenclaude-core (the ONLY plugin with all 8 data-backed sections
+  # non-empty) renders all nine section counts from the island + eager blob, and a
+  # genuinely-empty section is present-but-[] (absent at render, no error).
+  rc=0; node scripts/check-plugin-detail-render.mjs "$IDX_HTML" >/dev/null 2>&1 || rc=$?
+  gate "plugin-detail render (real index.html — nine section counts hydrate)" must_pass "$rc"
+
+  # must_fail (a): RENAME THE ISLAND ID. The element becomes unreachable by the
+  # id hydrateDetail() looks up → __openPlugin would count/filter unhydrated data
+  # and drop whole sections silently. This is the exact H4 break the gate exists
+  # to catch; renaming only the HTML attribute (not the JS getElementById arg)
+  # reproduces it faithfully.
+  PD_BAD_A="$TMP/index-detail-renamed-id.html"
+  sed 's/id="plugin-detail-payload"/id="plugin-detail-payload-RENAMED"/' "$IDX_HTML" > "$PD_BAD_A"
+  rc=0; node scripts/check-plugin-detail-render.mjs "$PD_BAD_A" >/dev/null 2>&1 || rc=$?
+  gate "plugin-detail render (renamed island id → H4 hydration break detected)" must_fail "$rc"
+
+  # must_fail (b): delete one plugin's island record → the completeness check
+  # (island plugin-set === eager plugin-set) goes red.
+  PD_BAD_B="$TMP/index-detail-dropped-record.html"
+  python3 - "$IDX_HTML" "$PD_BAD_B" <<'PY'
+import sys, re, json
+src = open(sys.argv[1]).read()
+m = re.search(r'(<script type="application/json" id="plugin-detail-payload">)([\s\S]*?)(</script>)', src)
+isl = json.loads(m.group(2))
+del isl["plugins"]["ravenclaude-core"]  # drop one plugin's island record
+new = m.group(1) + json.dumps(isl, ensure_ascii=False, separators=(",", ":")).replace("<", "\\u003c") + m.group(3)
+open(sys.argv[2], "w").write(src[:m.start()] + new + src[m.end():])
+PY
+  rc=0; node scripts/check-plugin-detail-render.mjs "$PD_BAD_B" >/dev/null 2>&1 || rc=$?
+  gate "plugin-detail render (deleted island record is detected)" must_fail "$rc"
+
+  # must_fail (c): alter one committed baseline count (ravenclaude-core's islanded
+  # scripts_index 17 -> 16) → the rc-core baseline + the counts invariant go red.
+  PD_BAD_C="$TMP/index-detail-altered-count.html"
+  python3 - "$IDX_HTML" "$PD_BAD_C" <<'PY'
+import sys, re, json
+src = open(sys.argv[1]).read()
+m = re.search(r'(<script type="application/json" id="plugin-detail-payload">)([\s\S]*?)(</script>)', src)
+isl = json.loads(m.group(2))
+isl["plugins"]["ravenclaude-core"]["scripts_index"].pop()  # 17 -> 16
+new = m.group(1) + json.dumps(isl, ensure_ascii=False, separators=(",", ":")).replace("<", "\\u003c") + m.group(3)
+open(sys.argv[2], "w").write(src[:m.start()] + new + src[m.end():])
+PY
+  rc=0; node scripts/check-plugin-detail-render.mjs "$PD_BAD_C" >/dev/null 2>&1 || rc=$?
+  gate "plugin-detail render (altered baseline count is detected)" must_fail "$rc"
+else
+  _skip_or_fail "Gate 141 (plugin-detail island render)" node
 fi
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -4343,10 +4562,10 @@ for p in (m.DASHBOARD, m.INDEX):
     r = m.measure(p)
     if sum(r["panels"].values()) + r["shell"] != r["total"]:
         sys.exit(1)
-    if len(r["panels"]) != 185:
+    if len(r["panels"]) != 9:
         sys.exit(1)
 PY
-gate "dom-budget: SUM(panels)+shell == whole doc, 185 panels both surfaces" must_pass "$rc"
+gate "dom-budget: SUM(panels)+shell == whole doc, 9 panels both surfaces" must_pass "$rc"
 
 echo
 echo "── Gate 133: pipeline-map drift vs hooks/hooks.json ───────────────────────"

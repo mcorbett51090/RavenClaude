@@ -646,7 +646,7 @@ TEMPLATE = r"""<!doctype html>
             <span class="tag">Engineering Team Platform</span>
           </span>
         </div>
-        <nav class="nav" id="primary-nav" aria-label="Primary"></nav>
+        <nav class="nav" id="primary-nav" aria-label="Primary"><a href="#/control" data-nav="control">Control</a><a href="#/activity" data-nav="activity">Activity</a><a href="#/guardrails" data-nav="guardrails">Guardrails</a><a href="#/catalog" data-nav="catalog">Catalog</a></nav>
         <div class="sidebar-foot">
           <div>v<span id="foot-version">__MKT_VERSION__</span></div>
           <div class="detail">Updated __GENERATED__</div>
@@ -718,16 +718,73 @@ TEMPLATE = r"""<!doctype html>
       /*__DASH_JS__*/
     </script>
 
-    <script>
-      window.__RC_DATA__ = /*__RC_DATA__*/;
-    </script>
+    <!-- Lazy detail island (H4 / plan §1.4). The detail-only fields read SOLELY by
+         window.__openPlugin — agents[].scenarios/.quickstart/.works_with and
+         plugins[].scripts_index/.scenarios_index/.templates_index/.best_practices_index
+         — are parked here as inert application/json so they never sit on the eager
+         window.__RC_DATA__ JS-parse path (~1.28 MB off it, zero content loss).
+         hydrateDetail() merges them back on demand and THROWS if this element is
+         renamed / missing / unparseable or lacks the plugin's record — the
+         silent-empty-section is the exact H4 failure it guards. <script> contents
+         are CDATA, so this is DOM-budget-neutral (the +1 element is offset by
+         folding the former standalone window.__RC_DATA__ <script> into the shell
+         script below, -1). -->
+    <script type="application/json" id="plugin-detail-payload">/*__PLUGIN_DETAIL_PAYLOAD__*/</script>
     <script>
       "use strict";
+      // window.__RC_DATA__ and the shell that reads it share ONE <script> so the
+      // detail island above is DOM-count-neutral. "use strict" stays the FIRST
+      // statement so strict mode still governs the whole shell.
+      window.__RC_DATA__ = /*__RC_DATA__*/;
       const D = window.__RC_DATA__;
       const $ = (s, r = document) => r.querySelector(s);
       const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
       const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
       const byName = (n) => D.plugins.find((p) => p.name === n);
+
+      /* ---- Lazy detail island — H4 hydration contract (plan §1.4) -------------
+       * The detail-only fields (agents[].scenarios/.quickstart/.works_with +
+       * plugins[].scripts_index/.scenarios_index/.templates_index/.best_practices_index)
+       * live in <script id="plugin-detail-payload"> to keep them off the eager
+       * __RC_DATA__ parse path. KEY PRESENCE is the hydration sentinel: an eager
+       * record does NOT carry these keys, so ABSENT means "not hydrated" and []
+       * means "genuinely zero". hydrateDetail() merges the island fields back onto
+       * a record BEFORE __openPlugin counts/filters them, and THROWS — never
+       * silently renders an empty section (that IS the H4 failure) — if the island
+       * element is renamed/missing, unparseable, or has no record for this plugin. */
+      let __detailIsland;
+      function __loadDetailIsland() {
+        if (__detailIsland) return __detailIsland;
+        const el = document.getElementById("plugin-detail-payload");
+        if (!el) throw new Error("hydrateDetail: #plugin-detail-payload island element is missing");
+        try {
+          __detailIsland = JSON.parse(el.textContent);
+        } catch (e) {
+          throw new Error("hydrateDetail: #plugin-detail-payload island is unparseable — " + e.message);
+        }
+        return __detailIsland;
+      }
+      function hydrateDetail(p) {
+        if (!p) return p; // unknown plugin name — not a hydration failure; caller returns
+        const rec = (__loadDetailIsland().plugins || {})[p.name];
+        if (!rec) throw new Error("hydrateDetail: island has no record for plugin '" + p.name + "'");
+        // Plugin-level islanded fields (explicit — never clobber the eager p.agents list).
+        p.scripts_index = rec.scripts_index;
+        p.scenarios_index = rec.scenarios_index;
+        p.templates_index = rec.templates_index;
+        p.best_practices_index = rec.best_practices_index;
+        // Agent-level islanded subfields (scenarios/quickstart/works_with), by name.
+        const arecs = rec.agents || {};
+        (p.agents || []).forEach((a) => { const ar = arecs[a.name]; if (ar) Object.assign(a, ar); });
+        // Free secondary invariant (measured: 0 mismatches across all 167 plugins):
+        // the eager counts MUST agree with the hydrated index lengths. Do NOT extend
+        // to templates (4 mismatches) or best_practices (no eager count) — plan §1.4.
+        if (p.counts.tools !== (p.scripts_index || []).length ||
+            p.counts.scenarios !== (p.scenarios_index || []).length) {
+          throw new Error("hydrateDetail: eager-count vs island-length mismatch for '" + p.name + "'");
+        }
+        return p;
+      }
 
       /* ---------------- Icons ---------------- */
       const ICONS = {
@@ -760,12 +817,10 @@ TEMPLATE = r"""<!doctype html>
 
       /* ---------------- Sidebar nav ---------------- */
       const NAV = [
-        { id: "home", label: "Home", icon: "home" },
-        { id: "discover", label: "Discover", icon: "market" },
-        { id: "configure", label: "Configure", icon: "sliders" },
-        { id: "observe", label: "Observe", icon: "chart" },
-        { id: "act", label: "Act", icon: "rocket", route: "commands" },
-        { id: "learn", label: "Learn", icon: "book" },
+        { id: "control", label: "Control", icon: "sliders" },
+        { id: "activity", label: "Activity", icon: "chart" },
+        { id: "guardrails", label: "Guardrails", icon: "shield" },
+        { id: "catalog", label: "Catalog", icon: "market" },
       ];
 
       // ── 6-section task IA + native-merged dashboard routing (Slice A) ──
@@ -786,59 +841,62 @@ TEMPLATE = r"""<!doctype html>
       // Route name → real dashboard tab id where they differ (incl. the two
       // phantom routes: nidhoggr is a card in heimdall, sleipnir a banner in activity).
       const DASH_TAB_ALIAS = {
-        dashboard: "overview", "comfort-posture": "settings",
+        dashboard: "activity", "comfort-posture": "settings",
         nidhoggr: "heimdall", sleipnir: "activity", concepts: "learn",
+        // P4 (dashboard-consumption): the Observe family is physically merged, so
+        // these retired tab routes now resolve to their destination FRAGMENT tab —
+        // Activity (saga/mimir/streams/norns) or Guardrails/Heimdall (vidarr). Each
+        // value is a real .tab-btn[data-tab] (Gate 51's DASH_TAB_ALIAS-target check).
+        saga: "activity", mimir: "activity", streams: "activity",
+        norns: "activity", vidarr: "heimdall",
+        // P5 (dashboard-consumption): install/bifrost/about/commands were folded into
+        // the Help drawer (panel-help, data-tab="help"), so their retired tab routes
+        // resolve to the "help" FRAGMENT tab. "dashboard" was retargeted off the
+        // deleted "overview" tab to "activity" (it is aliased to activity anyway).
+        about: "help", install: "help", bifrost: "help", commands: "help",
+      };
+      // Retired Observe sub-routes now live as anchored <section>s inside a destination
+      // tab (P4). A bare #/saga etc. has no sub-segment, so map the route name → its
+      // in-panel anchor id; viewDashboard passes it through activate()'s `sub`, which
+      // scrolls to it inside Activity/Guardrails. nidhoggr/sleipnir keep their existing
+      // in-panel mounts (the debt card / the stables banner).
+      const DASH_ANCHOR = {
+        saga: "saga", mimir: "mimir", streams: "streams", norns: "norns",
+        vidarr: "vidarr", nidhoggr: "heimdall-debt", sleipnir: "sleipnir-stables",
       };
       // Legacy top-level shell route → canonical NAV section (back-compat for
       // committed bookmarks, ⌘K quick-actions, and internal hrefs).
       const SECTION_ALIAS = {
-        marketplace: "discover", team: "discover", "repo-guide": "discover",
-        configuration: "configure", resources: "learn", dashboard: "observe",
+        marketplace: "catalog", team: "catalog", "repo-guide": "catalog",
+        discover: "catalog", configuration: "control", resources: "catalog",
+        dashboard: "activity", home: "control",
+        // P5 (dashboard-consumption): the retired shell views resolve to Control as
+        // NAMED removals — #/configure (the deleted non-writing posture editor) and
+        // #/overview / #/simulator (deleted tabs) land on Settings (the real editor).
+        configure: "control", overview: "control", simulator: "control",
       };
-      // Legacy routes that keep their OWN shell view but light up a NAV section
-      // (Slice A: Team's roster + collab rules survive under Discover until Slice
-      // B merges them in; #/team bookmarks + ⌘K specialist links still resolve).
-      const LEGACY_VIEW = { team: "viewTeam" };
+      // LEGACY_VIEW retired (P5, dashboard-consumption): viewTeam was deleted, so no
+      // own-view legacy route remains — #/team resolves via SECTION_ALIAS (team→catalog).
       // Dashboard tab route → the NAV section that owns it (for highlight + dispatch).
       const DASH_OWNER = {
-        heimdall: "observe", vidarr: "observe", norns: "observe", mimir: "observe",
-        saga: "observe", activity: "observe", nidhoggr: "observe", sleipnir: "observe",
-        settings: "configure", "comfort-posture": "configure", "web-access": "configure", simulator: "configure",
-        commands: "act", trees: "learn", pipeline: "configure", bifrost: "learn",
-        install: "learn", about: "learn", overview: "learn", concepts: "learn",
+        heimdall: "guardrails", vidarr: "guardrails", nidhoggr: "guardrails",
+        norns: "activity", mimir: "activity", saga: "activity", activity: "activity",
+        streams: "activity", sleipnir: "activity",
+        settings: "control", "comfort-posture": "control", "web-access": "control",
+        pipeline: "control",
+        // P5: overview/simulator tabs deleted (resolve via SECTION_ALIAS → Control);
+        // the Help drawer (install/bifrost/about/commands + help) is owned by Catalog.
+        "plugin-vars": "catalog", commands: "catalog", trees: "catalog", bifrost: "catalog",
+        install: "catalog", about: "catalog", concepts: "catalog", help: "catalog",
       };
-      // Slice B section sub-nav (plain labels — no Norse names): each section's
-      // ordered tabs, rendered in the sidebar (replacing the dashboard's hidden
-      // cat-bar/tab-bar). Items point at canonical routes the router already
-      // resolves; Discover keeps its plugin-category sub-nav (navChildren).
-      const SECTION_TABS = {
-        configure: [
-          { label: "Quick setup", route: "#/configure" },
-          { label: "Posture", route: "#/settings" },
-          { label: "Pipeline", route: "#/pipeline" },
-          { label: "Web access", route: "#/web-access" },
-          { label: "Review simulator", route: "#/simulator" },
-        ],
-        observe: [
-          { label: "Run feed", route: "#/activity" },
-          { label: "Perimeter alerts", route: "#/heimdall" },
-          { label: "Security log", route: "#/vidarr" },
-          { label: "Plugin lineage", route: "#/norns" },
-          { label: "Session state", route: "#/mimir" },
-          { label: "Review log", route: "#/saga" },
-        ],
-        act: [
-          { label: "Commands", route: "#/commands" },
-        ],
-        learn: [
-          { label: "Overview", route: "#/learn" },
-          { label: "Concepts", route: "#/concepts" },
-          { label: "Best practices", route: "#/trees" },
-          { label: "Claude Code", route: "#/bifrost" },
-          { label: "Copilot CLI", route: "#/install" },
-          { label: "About", route: "#/about" },
-        ],
-      };
+      // SECTION_TABS retired (P3, dashboard-consumption). The 6-section IA's
+      // per-section sub-nav is gone: the shell now has four task destinations
+      // (Control / Activity / Guardrails / Catalog) whose dashboard tabs are
+      // reached directly through DASH_OWNER + route(), not a section sub-nav.
+      // Kept as an empty object literal so navChildren()'s guard is a no-op and
+      // the two Gate-51 parsers (which anchor on the SECTION_TABS declaration)
+      // still slice it cleanly, finding zero sub-nav routes — which is correct.
+      const SECTION_TABS = {};
       function payloadKind(section) {
         // A dashboard-owned tab route (drives the #dash-root host). Bare "learn"
         // is intercepted by the NAV check in route() before this, so the Learn
@@ -880,17 +938,36 @@ TEMPLATE = r"""<!doctype html>
         const b = host.querySelector(".payload-banner .banner-copy");
         if (b) b.addEventListener("click", () => window.__copy(b.dataset.cmd || SERVED_CMD, "Command"));
       }
+      function reprobeServed() {
+        // probeServed() is memoized for the page's life. A detached, session-
+        // outliving dashboard server can be stopped (--stop) or idle-expire
+        // (--max-idle) while this tab stays open; on regaining visibility/focus,
+        // re-run the probe so a dead loopback server surfaces the "run the command"
+        // banner (the exact command to run) instead of a stale served state — and a
+        // restarted server clears it, recovering without a manual reload (E4/L4).
+        _served = null;
+        _servedP = null;
+        probeServed().then(() => {
+          const cur = location.hash.replace(/^#\/?/, "").split("/")[0];
+          const owner = DASH_OWNER[cur] || SECTION_ALIAS[cur] || cur;
+          const live = ["control", "activity", "guardrails"].includes(owner);
+          setServedBanner(live);
+        });
+      }
       function viewDashboard(section, sub) {
         showHost("dash");
-        if (window.__dashApp) window.__dashApp.show(DASH_TAB_ALIAS[section] || section, sub);
-        // Banner only on live-data sections (Observe + live Configure tabs); the
-        // Learn-area dashboard tabs work offline, so no banner there.
-        const owner = section === "observe" ? "observe" : (DASH_OWNER[section] || "observe");
-        const live = owner === "observe" || owner === "configure";
+        // A retired Observe route (#/saga … #/nidhoggr) carries no sub-segment; map it
+        // to its in-panel anchor id so activate() scrolls to the merged section (P4).
+        const anchor = sub || DASH_ANCHOR[section];
+        if (window.__dashApp) window.__dashApp.show(DASH_TAB_ALIAS[section] || section, anchor);
+        // Banner only on live-data destinations (Activity + Guardrails + Control);
+        // the Catalog/Help-area dashboard tabs work offline, so no banner there.
+        const owner = DASH_OWNER[section] || "activity";
+        const live = owner === "activity" || owner === "guardrails" || owner === "control";
         if (_served !== null) setServedBanner(live);
         else probeServed().then(() => {
           const cur = location.hash.replace(/^#\/?/, "").split("/")[0];
-          const stillDash = cur === "observe" || DASH_OWNER[cur] || SECTION_ALIAS[cur] === "observe";
+          const stillDash = DASH_OWNER[cur] || ["control", "activity", "guardrails"].includes(cur) || ["control", "activity", "guardrails"].includes(SECTION_ALIAS[cur]);
           if (stillDash) setServedBanner(live);
         });
       }
@@ -899,7 +976,11 @@ TEMPLATE = r"""<!doctype html>
       // routes). The accordion only renders under the ACTIVE top item, and only
       // when the sidebar is expanded (CSS hides .nav-sub when collapsed).
       function navChildren(id) {
-        if (id === "discover" && D.categories) {
+        // Catalog keeps the plugin-category accordion (the old Discover sub-nav):
+        // Specialists + one entry per plugin category. Deep-links (#/team,
+        // #/discover/<cat>) still resolve through the router. The other three
+        // destinations have no sub-nav (SECTION_TABS retired in P3).
+        if (id === "catalog" && D.categories) {
           const counts = {};
           D.plugins.forEach((p) => { counts[p.category] = (counts[p.category] || 0) + 1; });
           const top = location.hash.replace(/^#\/?/, "").split("/")[0];
@@ -912,12 +993,6 @@ TEMPLATE = r"""<!doctype html>
               .map((c) => `<a class="nav-subitem${!onTeam && c.id === cur ? " active" : ""}" href="#/discover/${c.id === "all" ? "" : c.id}">${esc(c.label)}<span class="count">${c.count}</span></a>`),
           );
           return items.join("");
-        }
-        if (SECTION_TABS[id]) {
-          const cur = "#/" + (location.hash.replace(/^#\/?/, "").split("/")[0] || "home");
-          return SECTION_TABS[id]
-            .map((t) => `<a class="nav-subitem${t.route === cur ? " active" : ""}" href="${t.route}">${esc(t.label)}</a>`)
-            .join("");
         }
         return "";
       }
@@ -1020,129 +1095,14 @@ TEMPLATE = r"""<!doctype html>
         </div>`;
       }
 
-      /* ---------------- HOME ---------------- */
-      function viewHome() {
-        const s = D.stats;
-        const qa = D.quick_actions.map((a) => {
-          const href = a.route || a.href || "#/home";
-          const onclick = a.command ? ` onclick="window.__copy('${esc(a.command)}','Command ${esc(a.command)}'); return ${a.href || a.route ? "true" : "false"};"` : "";
-          const tag = a.href ? "a" : a.route ? "a" : "button";
-          const attrs = a.href ? `href="${esc(a.href)}"` : a.route ? `href="${esc(a.route)}"` : "type=\"button\"";
-          return `<${tag} class="card"${onclick} ${attrs} style="display:block">
-            <div class="action-tile"><span class="ico">${svg(a.icon)}</span><span><span class="t">${esc(a.label)}</span><span class="d">${esc(a.desc)}</span></span></div>
-          </${tag}>`;
-        }).join("");
-
-        $("#view").innerHTML = `
-          ${onboardingHtml()}
-          ${spawnLogHtml()}
-          <section class="hero">
-            <div class="hero__inner">
-              <p class="eyebrow"><span class="eyebrow__dot"></span>Private Claude Code marketplace · v${esc(D.marketplace_version)}</p>
-              <h1>The <span class="accent">AI Engineering Team</span> Platform</h1>
-              <p class="hero__sub">One main helper that runs the show, plus ${s.plugins - 1} expert teams — for Microsoft, Salesforce, web, data, finance, and safety-and-rules work. They plug into Claude Code, and <strong>you</strong> decide what they can do on their own using simple point-and-click settings.</p>
-              <div class="hero-cta">
-                <a class="btn primary" href="#/discover">${svg("market")} Explore the Marketplace</a>
-                <a class="btn" href="#/configure">${svg("sliders")} Tune Comfort Posture</a>
-                <a class="btn ghost" href="#/discover">${svg("book")} Browse by use case</a>
-              </div>
-            </div>
-            __RAVEN_HERO_IMG__
-          </section>
-
-          <div class="section-title"><h2>Quick actions</h2><span class="hint">one click to the things you do most</span></div>
-          <div class="grid cols-4">${qa}</div>
-        `;
-        // Wire onboarding step buttons
-        const ob = $("#onboarding-card");
-        if (ob) {
-          $("#ob-dismiss").addEventListener("click", () => { localStorage.setItem("rc-onboarding-dismissed", "1"); ob.remove(); toast({ msg: "Onboarding hidden. Reopen via ⌘K → Show onboarding checklist" }); });
-          $$(".onboarding-step").forEach((step) => {
-            const id = parseInt(step.dataset.step, 10);
-            const act = step.dataset.action;
-            const cmd = step.dataset.cmd;
-            const href = step.dataset.href;
-            const rt = step.dataset.route;
-            const trigger = () => {
-              if (act === "copyCmd" && cmd) window.__copy(cmd, "Command");
-              else if (act === "href" && href) window.open(href, "_blank", "noopener");
-              else if (act === "route" && rt) location.hash = rt;
-              onboardingMark(id);
-              step.classList.add("done");
-              const check = step.querySelector(".step-check");
-              if (check && !check.innerHTML.trim()) check.innerHTML = svg("check");
-              // Update progress count
-              const pg = $(".onboarding-card .ob-progress");
-              if (pg) pg.textContent = `${ONBOARDING_STEPS.filter((s) => onboardingDone(s.id)).length} of ${ONBOARDING_STEPS.length}`;
-              // Auto-hide when complete
-              if (onboardingComplete()) {
-                setTimeout(() => { ob.remove(); toast({ msg: "Onboarding complete — nice work!" }); }, 800);
-              }
-            };
-            step.querySelector(".step-cta").addEventListener("click", (e) => { e.stopPropagation(); trigger(); });
-          });
-        }
-      }
-
-      /* ---------------- TEAM ---------------- */
-      const allAgents = () => D.plugins.flatMap((p) => p.agents.map((a) => ({ ...a, plugin: p.name, pluginLabel: p.label, domain: p.category_label })));
-      function viewTeam() {
-        const agents = allAgents();
-        const domains = [...new Set(agents.map((a) => a.domain))].sort();
-        $("#view").innerHTML = `
-          <div class="page-head"><span class="eyebrow">The Team</span><h1>Specialist roster &amp; collaboration</h1>
-            <p class="lede">${agents.length} agents across ${D.plugins.length} plugins. One agent — the Team Lead — hands out the work, and the expert agents do it. Search the list below, look through the skills they can use and the safety checks that run, and read the rules for how they pass work to each other.</p></div>
-
-          <div class="section-title"><h2>Agents roster</h2><span class="hint" id="roster-count"></span></div>
-          <div class="roster-controls">
-            <input type="search" id="roster-q" placeholder="Filter by name or description…" aria-label="Filter agents" />
-            <select id="roster-domain" aria-label="Filter by domain"><option value="">All domains</option>${domains.map((d) => `<option>${esc(d)}</option>`).join("")}</select>
-            <select id="roster-plugin" aria-label="Filter by plugin"><option value="">All plugins</option>${D.plugins.map((p) => `<option value="${esc(p.name)}">${esc(p.label)}</option>`).join("")}</select>
-          </div>
-          <div class="grid cols-3" id="roster-grid"></div>
-
-          <div class="section-title"><h2>Dispatch playbooks</h2><span class="hint">how work is routed</span></div>
-          <div class="grid cols-3">
-            ${[
-              { t: "Route by blast radius", d: "The Team Lead traverses the decision tree and picks the smaller-blast-radius specialist rather than keyword-matching the request to a method." },
-              { t: "Escalate across domains", d: "Cross-domain or security-sensitive work escalates to ravenclaude-core (architect / security-reviewer) before a specialist proceeds." },
-              { t: "Hand off structured", d: "Every hand-off carries the Structured Output Protocol envelope — summary, decisions, artifacts, open questions — so the next agent has full context." },
-            ].map((x) => `<div class="card"><div style="display:flex;gap:10px;align-items:center"><span class="ico" style="width:36px;height:36px;border-radius:10px;display:grid;place-items:center;background:var(--teal-soft);color:var(--teal-2);border:1px solid var(--border-strong)">${svg("tree")}</span><b>${esc(x.t)}</b></div><p style="color:var(--muted);font-size:.85rem;margin:10px 0 0">${esc(x.d)}</p></div>`).join("")}
-          </div>
-
-          <div class="section-title"><h2>Skills &amp; hooks library</h2><span class="hint">per plugin · ${D.stats.skills} skills · ${D.stats.hooks} hooks</span></div>
-          <div id="lib-list"></div>
-
-          <div class="section-title"><h2>Collaboration rules</h2><span class="hint">the constitution, summarized</span></div>
-          <div class="grid cols-2">
-            ${D.collab_rules.map((r) => `<div class="card"><div style="display:flex;gap:10px;align-items:center"><span style="color:var(--teal-2)">${svg("check")}</span><b>${esc(r.title)}</b></div><p style="color:var(--muted);font-size:.86rem;margin:10px 0 0">${esc(r.body)}</p></div>`).join("")}
-          </div>
-        `;
-        // Library
-        $("#lib-list").innerHTML = D.plugins.filter((p) => p.counts.skills || p.counts.hooks || p.counts.commands).map((p) => `
-          <details class="lib"><summary>${esc(p.label)} <span class="chip teal" style="margin-left:4px">${p.counts.skills} skills</span> <span class="chip">${p.counts.hooks} hooks</span> <span class="chip">${p.counts.commands} commands</span><span class="caret">${svg("tree")}</span></summary>
-            <div class="lib-body">${esc(p.short)}<div class="pill-row">${p.keywords.map((k) => `<span class="chip">${esc(k)}</span>`).join("")}</div></div></details>`).join("");
-
-        // Roster filtering
-        const grid = $("#roster-grid");
-        function renderRoster() {
-          const q = $("#roster-q").value.toLowerCase().trim();
-          const dom = $("#roster-domain").value;
-          const plg = $("#roster-plugin").value;
-          const list = agents.filter((a) =>
-            (!dom || a.domain === dom) && (!plg || a.plugin === plg) &&
-            (!q || a.label.toLowerCase().includes(q) || (a.description || "").toLowerCase().includes(q) || a.name.toLowerCase().includes(q)));
-          $("#roster-count").textContent = `${list.length} of ${agents.length}`;
-          grid.innerHTML = list.length ? list.map((a) => `
-            <div class="card agent-card">
-              <div class="ac-head"><span class="nm">${esc(a.label)}</span><span class="chip teal role">${esc(a.pluginLabel)}</span></div>
-              <div class="desc">${esc(a.description || "Specialist agent.")}</div>
-              ${a.triggers && a.triggers.length ? `<div class="trig">Try: <code>${esc(a.triggers[0])}</code></div>` : ""}
-            </div>`).join("") : `<div class="empty-state">No agents match those filters.</div>`;
-        }
-        ["roster-q", "roster-domain", "roster-plugin"].forEach((id) => { $("#" + id).addEventListener("input", renderRoster); });
-        renderRoster();
-      }
+      /* ---------------- Retired shell views (P5, dashboard-consumption) ----------------
+         viewHome (marketing hero + CTA grid + onboarding checklist), viewTeam (specialist
+         roster; + the allAgents helper) and viewConfiguration (the SECOND, non-writing
+         posture editor — incl. its 167 always-`checked` "Plugin activation" toggles wired
+         to nothing, a straight defect removal) were DELETED. #/home and #/configure now
+         resolve to Control (panel-settings, the one editor that writes) and #/team to
+         Catalog, via SECTION_ALIAS; route()'s default is Control. See
+         docs/dashboard-removed-routes.md. */
 
       /* ---------------- MARKETPLACE ---------------- */
       let mktState = { cat: "all", q: "" };
@@ -1234,7 +1194,10 @@ TEMPLATE = r"""<!doctype html>
       // comfort-posture editor (#/configure); the legacy #/plugin-* route still
       // resolves here for bookmarked/back-forward deep-links.
       window.__openPlugin = function (name) {
-        const p = byName(name); if (!p) return;
+        // Hydrate the detail-only island fields BEFORE building sectionDefs — if
+        // the plugin exists, hydrateDetail throws on a hydration failure (never
+        // renders a silent-empty section); an unknown name returns falsy and we exit.
+        const p = hydrateDetail(byName(name)); if (!p) return;
         showHost("view");
         const cats = D.categories;
         const catLabel = (cats.find((c) => c.id === p.category) || {}).label || "Marketplace";
@@ -1262,8 +1225,11 @@ TEMPLATE = r"""<!doctype html>
         // rendered as a collapsible dropdown with its pre-rendered Mermaid SVG.
         const trees = (() => {
           const store = document.getElementById("dt-store");
-          if (!store) return { count: 0, html: "" };
+          // #dt-store is emitted UNCONDITIONALLY (plan §1.3), so its absence is
+          // never legitimate — throw rather than silently drop the trees section.
+          if (!store) throw new Error("dt-store missing");
           const mine = Array.from(store.querySelectorAll('.dt-item[data-plugin="' + (window.CSS && CSS.escape ? CSS.escape(name) : name) + '"]'));
+          // A plugin with no trees is the legitimate empty case — stay silent.
           if (!mine.length) return { count: 0, html: "" };
           const one = (el) => {
             const title = el.getAttribute("data-title") || "Decision tree";
@@ -1300,6 +1266,7 @@ TEMPLATE = r"""<!doctype html>
             <p class="lede" style="max-width:none">${esc(p.description)}</p>
             <div class="hero-cta" style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
               <button class="btn primary" type="button" onclick="window.__copy('/plugin install ${esc(p.name)}@ravenclaude','Install command')">${svg("plus")} Copy install command</button>
+              <a class="btn" href="#/plugin-vars/${esc(p.name)}">${svg("sliders")} Edit variables</a>
               <a class="btn" href="#/configure">${svg("sliders")} Configure agents</a>
             </div></div>
           <nav class="mkt-nav pd-filters" id="pd-filters" aria-label="Filter this plugin's contents">${pdNav}</nav>
@@ -1318,138 +1285,6 @@ TEMPLATE = r"""<!doctype html>
         $("#view").focus();
         window.scrollTo({ top: 0, behavior: "smooth" });
       };
-
-      /* ---------------- CONFIGURATION ---------------- */
-      const posture = { levels: {}, design_checkins: true, global_default: "ask", activePreset: "client_delivery" };
-      function applyPreset(id) {
-        const pr = D.posture.presets.find((p) => p.id === id);
-        if (!pr) return;
-        posture.levels = { ...pr.levels };
-        posture.design_checkins = pr.design_checkins;
-        posture.global_default = pr.global_default;
-        posture.activePreset = id;
-      }
-      function postureYaml() {
-        const lines = ["# Generated by the RavenClaude comfort-posture editor", "# Drop into .ravenclaude/comfort-posture.yaml, then run apply-comfort-posture.py", "schema_version: 5", "", `design_checkins: ${posture.design_checkins}`, `global_default: ${posture.global_default}`, "", "security_deny:"];
-        D.posture.security_floor.forEach((r) => lines.push(`  - ${JSON.stringify(r)}`));
-        lines.push("", "categories:");
-        D.posture.categories.forEach((c) => {
-          const lvl = posture.levels[c.id] || posture.global_default;
-          lines.push(`  ${c.id}:`, "    user: inherit", "    local: inherit", `    project: ${lvl}`);
-        });
-        return lines.join("\n");
-      }
-      function viewConfiguration() {
-        if (!Object.keys(posture.levels).length) applyPreset(posture.activePreset);
-        // ⌘K palette can pre-stage a preset; apply if pending
-        if (window.__pendingPreset) {
-          const pid = window.__pendingPreset;
-          window.__pendingPreset = null;
-          if (D.posture.presets.some((p) => p.id === pid)) {
-            applyPreset(pid);
-            setTimeout(() => toast({ msg: `Applied "${(D.posture.presets.find((p) => p.id === pid) || {}).label || pid}"`, action: { label: "Save YAML", fn: () => copyText(postureYaml(), "comfort-posture.yaml") } }), 100);
-          }
-        }
-        const groups = {};
-        D.posture.categories.forEach((c) => { (groups[c.group] = groups[c.group] || []).push(c); });
-        // Scenario picker — visual cards with auto-generated "what this means" prose
-        const PROFILE_MAP = { strict_production: "strict", client_delivery: "balanced", exploratory: "exploratory", maximum_autonomy: "autonomous" };
-        const LEVEL_PHRASE = { deny: "always stops you", ask: "asks before acting", allow: "proceeds silently" };
-        function meansFor(preset) {
-          // Pick 3 highest-stakes categories (deny > ask > auto) and render via template.
-          // BUG #3 fix: when all levels collapse to a single value
-          // (e.g., maximum_autonomy where everything inherits allow), the sort
-          // produces arbitrary first-three rather than meaningful ones —
-          // emit one summary line instead.
-          const ranks = { deny: 3, ask: 2, allow: 1 };
-          const entries = D.posture.categories
-            .map((c) => ({ c, lv: (preset.levels && preset.levels[c.id]) || preset.global_default || "ask" }))
-            .sort((a, b) => (ranks[b.lv] || 0) - (ranks[a.lv] || 0));
-          const uniqueLevels = new Set(entries.map((e) => e.lv));
-          if (uniqueLevels.size === 1 && entries.length > 0) {
-            const lv = entries[0].lv;
-            return [`All categories: ${LEVEL_PHRASE[lv] || lv}`];
-          }
-          return entries.slice(0, 3).map((e) => `${e.c.title}: ${LEVEL_PHRASE[e.lv] || e.lv}`);
-        }
-        const scenarioGrid = D.posture.presets.map((p) => {
-          const profile = PROFILE_MAP[p.id] || "balanced";
-          const tag = p.id === "client_delivery" ? `<span class="sc-tag">Recommended</span>` : "";
-          const means = meansFor(p);
-          const lines = means.map((m) => `<div class="sm-line"><span class="sm-bullet">•</span><span>${esc(m)}</span></div>`).join("");
-          return `<button type="button" class="scenario-card${p.id === posture.activePreset ? " active" : ""}" data-preset="${esc(p.id)}" data-profile="${profile}" aria-pressed="${p.id === posture.activePreset}">
-            ${tag}
-            <div class="sc-name">${esc(p.label)}</div>
-            <div class="sc-blurb">${esc(p.blurb)}</div>
-            <div class="sc-means">${lines}</div>
-          </button>`;
-        }).join("");
-        const presetRow = D.posture.presets.map((p) => `<button class="preset-btn${p.id === posture.activePreset ? " active" : ""}" data-preset="${p.id}"><span>${esc(p.label)}</span><small>${esc(p.blurb)}</small></button>`).join("");
-        const groupHtml = Object.entries(groups).map(([g, cats]) => `
-          <div class="pcat-group"><h4>${esc(g)}</h4>${cats.map((c) => `
-            <div class="pcat" data-cat="${c.id}">
-              <div class="pc-info"><div class="t">${esc(c.title)}</div><div class="d">${esc(c.description)}${c.recommended ? ` · <span style="color:var(--teal-2)">recommended: ${esc(c.recommended)}</span>` : ""}</div></div>
-              <div class="seg" role="group" aria-label="${esc(c.title)} level">${D.posture.levels.map((lv) => `<button type="button" data-level="${lv}" data-cat="${c.id}">${lv}</button>`).join("")}</div>
-            </div>`).join("")}</div>`).join("");
-
-        $("#view").innerHTML = `
-          <div class="page-head"><span class="eyebrow">Configuration</span><h1>Comfort posture &amp; environment</h1>
-            <p class="lede">Decide how much your agents can do without stopping to ask you. For each kind of action, pick one of three levels: <b>deny</b> (never), <b>ask</b> (check with me first), or <b>allow</b> (go ahead). Start from a ready-made profile, change what you want, then copy the <code>comfort-posture.yaml</code> file it makes. A few always-on safety rules can never be turned off.</p></div>
-
-          <div class="callout" style="margin-bottom:20px">${svg("info")}<span>This editor produces the <b>project-layer</b> baseline. For the full per-layer (user / local / project) editor with live writes to <code>.claude/settings.json</code>, open the live <a href="#/settings">Settings tab</a> (served by <code>/dashboard</code>).</span></div>
-
-          <div class="section-title"><h2>Pick a scenario</h2><span class="hint">visual presets — fine-tune below if needed</span></div>
-          <div class="scenario-grid" id="scenario-grid">${scenarioGrid}</div>
-
-          <div class="section-title"><h2>Or browse all presets</h2><span class="hint">same content, compact form</span></div>
-          <div class="preset-row" id="preset-row">${presetRow}</div>
-
-          <div class="config-grid">
-            <div>
-              <div class="toggle-row"><label class="switch"><input type="checkbox" id="design-checkins" ${posture.design_checkins ? "checked" : ""}><span class="track"></span></label><div><div style="font-weight:600">Design check-ins</div><div style="color:var(--muted);font-size:.82rem">Pause for architectural decisions before implementing them.</div></div></div>
-              <div class="toggle-row"><div style="font-weight:600;min-width:120px">Global default</div><div class="seg" id="global-default" role="group" aria-label="Global default level">${D.posture.levels.map((lv) => `<button type="button" data-level="${lv}">${lv}</button>`).join("")}</div><div style="color:var(--muted);font-size:.82rem">Fallback for any category left unset.</div></div>
-              ${groupHtml}
-              <div class="section-title"><h2>Always-on security floor</h2><span class="hint">layer-independent · never relaxed</span></div>
-              <div class="floor-list">${D.posture.security_floor.map((r) => `<code>${esc(r)}</code>`).join("")}</div>
-            </div>
-            <div class="yaml-panel">
-              <div class="yp-head">${svg("sliders")}<b>comfort-posture.yaml</b></div>
-              <pre id="yaml-out"></pre>
-              <div class="pc-foot" style="margin-top:12px"><button class="btn primary" type="button" id="copy-yaml">${svg("copy")} Copy</button><button class="btn" type="button" id="dl-yaml">${svg("download")} Download</button></div>
-              <div class="section-title" style="margin-top:24px"><h2 style="font-size:1.05rem">Plugin activation</h2></div>
-              <div id="plugin-toggles"></div>
-            </div>
-          </div>
-
-          <div class="section-title"><h2>Environment context</h2><span class="hint">discovered at session start</span></div>
-          <div class="grid cols-2">
-            <div class="card"><b>Network policy</b><p style="color:var(--muted);font-size:.85rem;margin:8px 0 0">Outbound access is governed by the environment's network policy chosen at creation. See the <a href="https://code.claude.com/docs/en/claude-code-on-the-web" target="_blank" rel="noopener">Claude Code on the web docs ${svg("external")}</a>.</p></div>
-            <div class="card"><b>Run environment discovery</b><p style="color:var(--muted);font-size:.85rem;margin:8px 0 0">Map which credentials your environment can reach with the <code>environment-discovery</code> skill, then record it in <code>.ravenclaude/environment-context.md</code>.</p></div>
-          </div>`;
-
-        const yamlOut = $("#yaml-out");
-        function refresh() {
-          // segmented states
-          $$(".pcat .seg button").forEach((b) => b.classList.toggle("on", posture.levels[b.dataset.cat] === b.dataset.level));
-          $$("#global-default button").forEach((b) => b.classList.toggle("on", posture.global_default === b.dataset.level));
-          $$("#preset-row .preset-btn").forEach((b) => b.classList.toggle("active", b.dataset.preset === posture.activePreset));
-          $("#design-checkins").checked = posture.design_checkins;
-          yamlOut.textContent = postureYaml();
-        }
-        $("#preset-row").addEventListener("click", (e) => { const b = e.target.closest(".preset-btn"); if (!b) return; applyPreset(b.dataset.preset); refresh(); toast({ msg: `Applied "${b.querySelector("span").textContent}" profile`, action: { label: "Copy YAML", fn: () => copyText(postureYaml(), "comfort-posture.yaml") } }); });
-        $("#scenario-grid").addEventListener("click", (e) => { const b = e.target.closest(".scenario-card"); if (!b) return; const pid = b.dataset.preset; const preset = D.posture.presets.find((p) => p.id === pid); applyPreset(pid); refresh(); $$(".scenario-card").forEach((c) => c.classList.toggle("active", c.dataset.preset === pid)); toast({ msg: `Applied "${preset.label}"`, action: { label: "Copy YAML", fn: () => copyText(postureYaml(), "comfort-posture.yaml") } }); });
-        $$(".pcat .seg button").forEach((b) => b.addEventListener("click", () => { posture.levels[b.dataset.cat] = b.dataset.level; posture.activePreset = "custom"; refresh(); }));
-        $$("#global-default button").forEach((b) => b.addEventListener("click", () => { posture.global_default = b.dataset.level; refresh(); }));
-        $("#design-checkins").addEventListener("change", (e) => { posture.design_checkins = e.target.checked; refresh(); });
-        $("#copy-yaml").addEventListener("click", () => copyText(postureYaml(), "comfort-posture.yaml"));
-        $("#dl-yaml").addEventListener("click", () => {
-          const blob = new Blob([postureYaml()], { type: "text/yaml" });
-          const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "comfort-posture.yaml"; a.click(); URL.revokeObjectURL(a.href); toast("Downloaded comfort-posture.yaml");
-        });
-        $("#plugin-toggles").innerHTML = D.plugins.slice().sort((a, b) => a.label.localeCompare(b.label)).map((p) => `
-          <div class="toggle-row" style="padding:9px 0"><label class="switch"><input type="checkbox" ${p.name === "ravenclaude-core" ? "checked disabled" : "checked"}><span class="track"></span></label><div style="min-width:0"><div style="font-weight:600;font-size:.9rem">${esc(p.label)}</div><div style="color:var(--faint);font-size:.74rem">v${esc(p.version)}${p.name === "ravenclaude-core" ? " · required" : ""}</div></div></div>`).join("");
-        refresh();
-      }
 
       /* ---------------- RESOURCES ---------------- */
       function viewResources() {
@@ -1667,8 +1502,8 @@ TEMPLATE = r"""<!doctype html>
         if (SECTION_ALIAS[section]) section = SECTION_ALIAS[section];
         if (NAV.some((n) => n.id === section)) return section;
         if (DASH_OWNER[section]) return DASH_OWNER[section];
-        if (section && section.startsWith("plugin-")) return "discover";
-        return "home";
+        if (section && section.startsWith("plugin-")) return "catalog";
+        return "control";
       }
       function route() {
         const raw = location.hash.replace(/^#\/?/, "") || "home";
@@ -1679,41 +1514,48 @@ TEMPLATE = r"""<!doctype html>
         // open); closing is handled by the sidebar click handler (a subcategory
         // leaf / a childless section / brand-footer link) and the scrim.
 
-        // Legacy own-view routes (e.g. #/team → roster, highlighted under Discover).
-        if (LEGACY_VIEW[section] === "viewTeam") {
-          showHost("view"); viewTeam(); $("#view").focus({ preventScroll: true });
-          window.scrollTo({ top: 0 }); return;
-        }
-        // Legacy top-level alias → canonical section (marketplace→discover, etc.).
+        // Legacy top-level alias → canonical section (marketplace→catalog, home→control,
+        // and the P5 named removals #/configure/#/overview/#/simulator → control).
         if (SECTION_ALIAS[section]) section = SECTION_ALIAS[section];
 
-        if (section && section.startsWith("plugin-")) {
-          // Rich per-plugin REFERENCE lives in the shell (Discover). The CONFIGURE
-          // half (editable variables) stays on the dashboard host — Slice B
-          // reconciles the deep-link; for now Marketplace "Details" drives this.
+        if (section && section.startsWith("plugin-") && section !== "plugin-vars") {
+          // Rich per-plugin REFERENCE lives in the shell (Catalog). The CONFIGURE
+          // half (editable variables) stays on the dashboard host — Marketplace
+          // "Details" drives this. #/plugin-vars (the P1 picker) is EXCLUDED here —
+          // it is owned by the dashboard host via DASH_OWNER["plugin-vars"], so it
+          // falls to the DASH_OWNER branch → viewDashboard("plugin-vars", <plugin>).
           showHost("view");
           window.__openPlugin(section.slice(7));
           $("#view").focus({ preventScroll: true });
+        } else if (section === "control") {
+          // Control = posture/settings (job 1, the one write surface). Land on
+          // Settings; a sub-tab (#/pipeline, #/web-access) hits DASH_OWNER below.
+          viewDashboard("settings", sub);
+        } else if (section === "activity") {
+          // Activity = "what my agents did" (job 2). Land on the run feed.
+          viewDashboard("activity", sub);
+        } else if (section === "guardrails") {
+          // Guardrails = "what fired" (job 3). Land on perimeter alerts (Heimdall).
+          viewDashboard("heimdall", sub);
         } else if (section === "observe") {
-          // Observe = the live control panel. Default to the run feed; a dashboard
-          // sub-route (e.g. #/heimdall) is handled by the DASH_OWNER branch below.
+          // Retired route → Activity's run feed (back-compat for old bookmarks).
           viewDashboard("activity");
         } else if (section === "act") {
-          // Act = run things. Its sole tab is Commands (the nav item links straight
-          // to #/commands, which DASH_OWNER routes); this resolves a bare #/act.
+          // Retired route → Commands (back-compat for old bookmarks).
           viewDashboard("commands");
         } else if (DASH_OWNER[section]) {
           viewDashboard(section, sub);
+        } else if (section === "catalog" || section === "discover") {
+          showHost("view"); viewMarketplace(sub); $("#view").focus({ preventScroll: true });
+        } else if (section === "learn") {
+          showHost("view"); viewResources(); $("#view").focus({ preventScroll: true });
         } else {
-          showHost("view");
-          switch (section) {
-            case "discover": viewMarketplace(sub); break;
-            case "configure": viewConfiguration(); break;
-            case "learn": viewResources(); break;
-            case "home": viewHome(); break;
-            default: viewHome(); break;
-          }
-          $("#view").focus({ preventScroll: true });
+          // Unknown / retired top-level route → Control (job 1, the default landing).
+          // P5 (dashboard-consumption): viewHome/viewConfiguration/viewTeam were deleted;
+          // the shell default now agrees with the shared activate() fallback (panel-settings
+          // behind Control) so both land the user on the same visible surface — never a
+          // dead view or a blank host.
+          viewDashboard("settings", sub);
         }
         window.scrollTo({ top: 0 });
       }
@@ -1789,6 +1631,15 @@ TEMPLATE = r"""<!doctype html>
         if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") { e.preventDefault(); openPalette(); }
         else if (e.key === "/" && !inField) { e.preventDefault(); openPalette(); }
       });
+
+      // Re-probe served mode when the tab regains visibility/focus (E4/L4): a
+      // detached server can stop or idle-expire while the tab stays open, so a
+      // one-shot probe at load can go stale — this makes the failure state (and
+      // the recovery) self-correcting without a manual reload.
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") reprobeServed();
+      });
+      window.addEventListener("focus", reprobeServed);
 
       probeServed(); // resolve served/static early so the banner is flicker-free
       route();

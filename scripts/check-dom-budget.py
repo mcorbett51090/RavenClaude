@@ -123,6 +123,28 @@ RATCHET = {
                                               "DOM-island-loaded; its deferred .cmd-copy/.cmd-run binds "
                                               "re-pointed to an on-activate initCommands() scoped to "
                                               "#commands-mount. 17,066 -> 10,764 = 7.7x vs 1,400. Zero slack."),
+        ("P1 (plugin-panel collapse)", 6095, "the 167 panel-plugin-* sections (~4,843 elems) collapsed "
+                                             "into ONE #plugin-vars picker: a <select> of 167 plugins whose "
+                                             "editor form renders client-side into #plugin-vars-mount from the "
+                                             "inline #plugin-vars-payload JSON (uncounted CDATA). Measured "
+                                             "10,757 -> 6,095. Zero slack."),
+        ("P3 (chrome shrink)", 6081, "IA re-cut: the two-tier <nav class=cat-bar> (5 cat-btns) deleted and "
+                                     "the <nav class=tab-bar> shrunk from 18 core tabs to 10 destination tabs "
+                                     "(+ the plugin-vars picker tab); role=tablist/role=tab + the roving-"
+                                     "tabindex handler removed. Panels unchanged (P4/P5 merge/delete them). "
+                                     "Measured 6,095 -> 6,081 (-14). Additions: zero. Zero slack."),
+        ("P4 (Observe merge)", 6076, "the Observe family is physically merged: the five tab-panel wrappers "
+                                     "panel-{saga,mimir,streams,norns,vidarr} are removed and their content "
+                                     "folded into panel-activity (saga/mimir/streams/norns) and panel-heimdall "
+                                     "(vidarr). Every mount id + render function is byte-identical; only the "
+                                     "five <section> wrappers left. Measured 6,081 -> 6,076 (-5). Additions: "
+                                     "zero. Zero slack."),
+        ("P5 (shell-view deletions)", 6053, "panel-overview + panel-simulator deleted; the install/bifrost/"
+                                            "about/commands panels folded into ONE panel-help drawer as "
+                                            "collapsed <details> (their render fns + mount ids byte-identical). "
+                                            "Addition: the panel-help wrapper + the grouped C5 removed-routes "
+                                            "table (matches docs/dashboard-removed-routes.md). Net measured "
+                                            "6,076 -> 6,053 (-23). Zero slack."),
     ],
     INDEX: [
         ("Phase 0 -> 6", 50982, "Phase 0 baseline 50,945; +37 in Phase 6 (same guard-web-access + "
@@ -133,6 +155,29 @@ RATCHET = {
                                            "surface. 37,468 -> 17,772 = 12.7x. Zero slack."),
         ("Phase 2b (Commands island)", 11470, "portal fragment's commands payload islanded alongside "
                                               "the standalone surface. 17,772 -> 11,470 = 8.2x. Zero slack."),
+        ("P1 (plugin-panel collapse)", 6800, "the 167 panel-plugin-* sections collapsed into ONE "
+                                             "#plugin-vars picker in the merged dashboard fragment (same "
+                                             "collapse as the standalone surface). Measured 11,462 -> 6,800. "
+                                             "Zero slack."),
+        ("P3 (chrome shrink)", 6790, "the folded fragment's cat-bar + tab-bar shrink (-14, same as the "
+                                     "standalone surface) nets against +4 static destination anchors seeded "
+                                     "into #primary-nav (the committed-route floor for #/control, #/activity, "
+                                     "#/guardrails, #/catalog; renderNav replaces them at load). Measured "
+                                     "6,800 -> 6,790 (-10). Zero slack."),
+        ("P4 (Observe merge)", 6785, "the folded fragment's five Observe wrappers (panel-{saga,mimir,streams,"
+                                     "norns,vidarr}) removed and their content folded into panel-activity / "
+                                     "panel-heimdall (same merge as the standalone surface). Measured "
+                                     "6,790 -> 6,785 (-5). Additions: zero. Zero slack."),
+        ("P5 (shell-view deletions)", 6762, "same shell-view deletions folded into the portal fragment: "
+                                            "panel-overview + panel-simulator deleted; install/bifrost/about/"
+                                            "commands folded into ONE panel-help drawer + the grouped C5 "
+                                            "removed-routes table. Measured 6,785 -> 6,762 (-23). Zero slack."),
+        ("P6 (payload demotion)", 6759, "the three portal-only JSON payload islands learn-payload / "
+                                        "trees-payload / concepts-data stripped from the folded dashboard body "
+                                        "(portal Learn/Trees/Concepts are P5 named removals -> standalone + "
+                                        "Pages; the standalone keeps them inline, Gate 13 non-contact). Removing "
+                                        "three <script> ELEMENTS. Measured 6,762 -> 6,759 (-3). Additions: zero. "
+                                        "Zero slack."),
     ],
 }
 

@@ -42,6 +42,7 @@ import secrets
 import signal
 import subprocess
 import sys
+import threading
 import time
 import webbrowser
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
@@ -275,6 +276,11 @@ _ALLOWED_ORIGINS: set[str] = set()
 # that omits Origin still has to present this token" reasoning is CIRCULAR — the
 # same open door supplies the key. The honest boundary is in _state_change_origin_ok().
 _CSRF_TOKEN: str = ""
+
+# Monotonic clock of the last request, bumped by DashboardHandler.handle_one_request.
+# Read by _idle_reaper() to self-expire a forgotten (detached, session-outliving)
+# server after `--max-idle` minutes of inactivity. Initialised in main().
+_LAST_ACTIVITY: float = 0.0
 
 
 def _summarize_run(d: Path) -> dict:
@@ -1398,6 +1404,13 @@ class DashboardHandler(SimpleHTTPRequestHandler):
     def log_message(self, format, *args):
         sys.stderr.write("[%s] %s\n" % (self.log_date_time_string(), format % args))
 
+    def handle_one_request(self):
+        # Record activity for the --max-idle reaper on every incoming request
+        # (before parsing, so even a rejected request counts as "in use").
+        global _LAST_ACTIVITY
+        _LAST_ACTIVITY = time.monotonic()
+        super().handle_one_request()
+
     def _local_request_ok(self) -> bool:
         """Refuse cross-origin / DNS-rebinding requests to the write/read/classify
         endpoints. Checked on every state-changing or read request.
@@ -1674,7 +1687,11 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         # write_bytes, not write_text(newline=): Python 3.9 compat (LF preserved)
         out.write_bytes(content.encode("utf-8"))
 
-        payload = {"saved": str(out.relative_to(PROJECT_ROOT)), "bytes": len(content)}
+        payload = {
+            "saved": str(out.relative_to(PROJECT_ROOT)),
+            "root": str(PROJECT_ROOT),
+            "bytes": len(content),
+        }
         if target == POSTURE_TARGET:
             payload.update(self._apply_posture())
         self._json(200, payload)
@@ -2193,6 +2210,35 @@ def _bind_server(bind, port, handler, span=10):
     )
 
 
+def _default_bind() -> str:
+    """The bind address to use when --bind is not passed explicitly.
+
+    In a Codespace the port-forwarder cannot reach a 127.0.0.1-only socket, so
+    default to 0.0.0.0 there (kept safe by the Private forwarded port + the
+    Origin/Host CSRF guard, and defensible because nothing auto-starts); off a
+    Codespace stay loopback-only. An explicit --bind always wins over this."""
+    return "0.0.0.0" if os.environ.get("CODESPACE_NAME") else "127.0.0.1"
+
+
+def _idle_reaper(max_idle_minutes: float) -> None:
+    """Self-expire the process after `max_idle_minutes` with no request.
+
+    This is a detached, session-outliving server bound to the loopback /__save
+    write surface; the launch ruling bounds its lifetime rather than leaving it
+    open indefinitely. `max_idle_minutes <= 0` disables the reaper (the thread
+    never starts). Activity is the module-global `_LAST_ACTIVITY` monotonic clock,
+    bumped by the request handler on every request; a tab open across the expiry
+    recovers via the client-side re-probe."""
+    if max_idle_minutes <= 0:
+        return
+    idle_seconds = max_idle_minutes * 60
+    while True:
+        time.sleep(min(idle_seconds, 30))
+        if time.monotonic() - _LAST_ACTIVITY >= idle_seconds:
+            print(f"serve-dashboards: idle {max_idle_minutes:g} min — exiting (--max-idle).", flush=True)
+            os._exit(0)
+
+
 def main() -> int:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--port", type=int, default=8000)
@@ -2216,6 +2262,12 @@ def main() -> int:
         "--validate",
         action="store_true",
         help="Resolve + guard-check the project root, print it, and exit without serving.",
+    )
+    p.add_argument(
+        "--max-idle",
+        type=float,
+        default=120,
+        help="minutes of inactivity after which the server self-exits (bounds the detached /__save listener's lifetime); 0 disables. Default 120.",
     )
     args = p.parse_args()
 
@@ -2252,7 +2304,7 @@ def main() -> int:
     # In a Codespace the port-forwarder can't reach a 127.0.0.1-only socket, so default
     # to 0.0.0.0 there — kept safe by the Private forwarded port + the Origin/Host CSRF
     # guard below. Off-Codespace stay loopback-only. An explicit --bind always wins.
-    bind = args.bind or ("0.0.0.0" if codespace else "127.0.0.1")
+    bind = args.bind or _default_bind()
 
     # Refuse 0.0.0.0 when the Codespace forwarded port is set to Public — the
     # /__save surface would be reachable from the public internet on a path the
@@ -2282,8 +2334,14 @@ def main() -> int:
     # guard); the dashboard JS fetches it from GET /__csrf on load.
     # NOTE: keyed on actual_port, not args.port — a fallback bind would
     # otherwise allow-list a port we are not listening on and reject every POST.
-    global _ALLOWED_HOSTS, _ALLOWED_ORIGINS, _CSRF_TOKEN
+    global _ALLOWED_HOSTS, _ALLOWED_ORIGINS, _CSRF_TOKEN, _LAST_ACTIVITY
     _CSRF_TOKEN = secrets.token_urlsafe(32)
+    _LAST_ACTIVITY = time.monotonic()
+    # Self-expire after `--max-idle` minutes of inactivity so a forgotten detached
+    # server does not sit on the loopback /__save write surface indefinitely (the
+    # launch ruling bounds duration; a tab open across the expiry recovers via the
+    # client-side re-probe). --max-idle 0 disables (the thread never starts).
+    threading.Thread(target=_idle_reaper, args=(args.max_idle,), daemon=True).start()
     _ALLOWED_HOSTS = {f"127.0.0.1:{actual_port}", f"localhost:{actual_port}", "127.0.0.1", "localhost"}
     _ALLOWED_ORIGINS = {f"http://127.0.0.1:{actual_port}", f"http://localhost:{actual_port}"}
     if codespace:
