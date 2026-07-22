@@ -976,10 +976,29 @@ TEMPLATE = r"""<!doctype html>
       // routes). The accordion only renders under the ACTIVE top item, and only
       // when the sidebar is expanded (CSS hides .nav-sub when collapsed).
       function navChildren(id) {
+        // Control gets a sub-nav for its pages (dashboard-consumption follow-up):
+        // Pipeline + Web access were orphaned to hash-only access when P3 retired
+        // SECTION_TABS + the tab-bar is hidden on the portal, so nothing let a user
+        // CLICK to them. "The Thing" is the posture/command-review editor (the
+        // current settings page, renamed). Plain #/<tab> hrefs → route() → activate()
+        // (a real click between different hashes fires hashchange; same-hash re-click
+        // is a no-op, which is correct — you're already there).
+        if (id === "control") {
+          const cur = location.hash.replace(/^#\/?/, "").split("/")[0];
+          const active = cur === "pipeline" || cur === "web-access" ? cur : "settings";
+          // Literal hrefs (NOT a #/${tab} template) so Gate 51's committed-routes
+          // enumerates + resolves each individually.
+          const a = (tab) => (tab === active ? " active" : "");
+          return (
+            `<a class="nav-subitem${a("settings")}" href="#/settings">The Thing</a>` +
+            `<a class="nav-subitem${a("pipeline")}" href="#/pipeline">Pipeline</a>` +
+            `<a class="nav-subitem${a("web-access")}" href="#/web-access">Web access</a>`
+          );
+        }
         // Catalog keeps the plugin-category accordion (the old Discover sub-nav):
         // Specialists + one entry per plugin category. Deep-links (#/team,
-        // #/discover/<cat>) still resolve through the router. The other three
-        // destinations have no sub-nav (SECTION_TABS retired in P3).
+        // #/discover/<cat>) still resolve through the router. Activity + Guardrails
+        // have no sub-nav (their Observe panels were physically merged in P4).
         if (id === "catalog" && D.categories) {
           const counts = {};
           D.plugins.forEach((p) => { counts[p.category] = (counts[p.category] || 0) + 1; });

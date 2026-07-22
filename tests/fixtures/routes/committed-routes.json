@@ -8,7 +8,7 @@
   },
   "surfaces": {
     "dashboard": {
-      "href_count": 9,
+      "href_count": 7,
       "distinct_static": 6,
       "distinct_dynamic": 0,
       "static_href_routes": [
@@ -59,8 +59,8 @@
       "nav_routes": []
     },
     "index": {
-      "href_count": 24,
-      "distinct_static": 14,
+      "href_count": 25,
+      "distinct_static": 15,
       "distinct_dynamic": 4,
       "static_href_routes": [
         {
@@ -131,6 +131,13 @@
           "section": "observe",
           "sub": null,
           "destination": "viewDashboard:activity",
+          "resolved": true
+        },
+        {
+          "route": "#/pipeline",
+          "section": "pipeline",
+          "sub": null,
+          "destination": "viewDashboard:pipeline",
           "resolved": true
         },
         {
