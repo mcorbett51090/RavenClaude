@@ -1164,8 +1164,12 @@ TEMPLATE = r"""<!doctype html>
         const cats = D.categories;
         const counts = {};
         D.plugins.forEach((p) => { counts[p.category] = (counts[p.category] || 0) + 1; });
-        const navBtns = `<button data-cat="all" class="${mktState.cat === "all" ? "active" : ""}">${svg("market")} All plugins <span class="count">${D.plugins.length}</span></button>` +
-          cats.map((c) => `<button data-cat="${c.id}" class="${mktState.cat === c.id ? "active" : ""}">${svg(c.icon)} ${esc(c.label)} <span class="count">${counts[c.id] || 0}</span></button>`).join("");
+        // The in-page category nav pane was removed (dashboard-consumption follow-up):
+        // the dashboard's sidebar Catalog accordion (navChildren "catalog") already
+        // provides category navigation — All plugins + one #/discover/<cat> link per
+        // category — so the duplicate in-page <nav class="mkt-nav"> is gone. Clicking a
+        // sidebar category still routes to viewMarketplace(cat) below, which filters the
+        // grid; the category callout + search stay in the page.
 
         const featured = D.featured.map((f) => {
           const plugins = f.plugins.map(byName).filter(Boolean);
@@ -1191,10 +1195,7 @@ TEMPLATE = r"""<!doctype html>
           <div class="mkt-filters">
             <input type="search" id="mkt-q" placeholder="Search plugins by name, description or technology…" value="${esc(mktState.q)}" aria-label="Search plugins" />
           </div>
-          <div class="mkt">
-            <nav class="mkt-nav" id="mkt-nav" aria-label="Plugin categories">${navBtns}</nav>
-            <div id="mkt-grid"></div>
-          </div>
+          <div id="mkt-grid"></div>
           <div class="section-title" style="margin-top:28px"><h2>Featured plugin combinations</h2><span class="hint">teams that work well together</span></div>
           <div class="grid cols-2">${featured}</div>`;
 
@@ -1229,13 +1230,6 @@ TEMPLATE = r"""<!doctype html>
           const head = cat ? `<div class="callout" style="margin-bottom:18px">${svg("info")}<span><b>${esc(cat.label)}</b> — ${esc(cat.blurb)}</span></div>` : "";
           $("#mkt-grid").innerHTML = head + (list.length ? `<div class="grid cols-2">${list.map(pluginCard).join("")}</div>` : `<div class="empty-state">No plugins match “${esc(mktState.q)}”.</div>`);
         }
-        $("#mkt-nav").addEventListener("click", (e) => {
-          const b = e.target.closest("button"); if (!b) return;
-          mktState.cat = b.dataset.cat;
-          $$("#mkt-nav button").forEach((x) => x.classList.toggle("active", x === b));
-          if (mktState.cat === "all") { history.replaceState(null, "", "#/discover"); } else { history.replaceState(null, "", "#/discover/" + mktState.cat); }
-          renderGrid();
-        });
         $("#mkt-q").addEventListener("input", (e) => { mktState.q = e.target.value; renderGrid(); });
         renderGrid();
       }
