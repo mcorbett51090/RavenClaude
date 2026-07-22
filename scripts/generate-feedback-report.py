@@ -272,7 +272,7 @@ table.t tr.r:hover { background: var(--surface-2); }
 .empty { padding: 24px; text-align: center; color: var(--faint); }
 .foot { margin-top: 30px; color: var(--faint); font-size: 0.78rem; }
 [data-theme="dark"] .splitbar .organic, [data-theme="dark"] .pill.organic,
-[data-theme="dark"] .toolbar .seg button[aria-pressed="true"] { color: #14110d; }
+[data-theme="dark"] .toolbar .seg button[aria-pressed="true"] { color: #07080a; }
 """
 
 REPORT_JS = """

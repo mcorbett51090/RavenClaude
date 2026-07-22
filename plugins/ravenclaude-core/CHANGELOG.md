@@ -2,6 +2,37 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.207.0 — 2026-07-21
+
+### Added
+
+- **Dual-analytics default for HTML-serving templates.** `templates/repo-build-studio/marketing-page.html` (public) ships the **GA4 (Consent Mode v2) + Cloudflare Web Analytics** placeholder block — empty IDs ⇒ inert (no `<script>`, zero network); each beacon is independently PROD-host-gated **and** valid-id-gated (the guard rejects dummy shapes like `G-XXXXXXXXXX`, not just empty strings). `dashboard.html` (internal) ships the same block **commented-off by default** — authed/internal surfaces do not auto-fire. A domain-neutral pointer in `CLAUDE.md` + one conditional line in the `agent-ready-repo` `CLAUDE.md.template` route to the full policy in `web-design/skills/third-party-script-hygiene` §8–9 (this plugin stays domain-neutral). IDs are PUBLIC identifiers, never secrets.
+
+## 0.202.0 — 2026-07-16
+
+### Added
+
+- **FORGE domain-prior lens (`skills/forge-pipeline`) — the orchestrator now brings a domain lens to its gates, the constitution-correct way.** At `standard`+ only (the default `quick` path is byte-identical), the pipeline derives a one-line domain tag and injects the **same** domain-concern prior into both G2/G3 panels (and optionally G4a/G4b/G5) — cross-model divergence (B≠A) untouched; `security` is a non-exclusive overlay, so a security signal always adds the security prior. It is **inject-prior only**: it names domain concerns + the always-present [`agent-routing.md`](knowledge/agent-routing.md), never a hard cross-plugin link, so a disabled/uninstalled domain plugin never degrades it. New machinery lives in `reference/gates-standard.md` (loaded only at standard+); `quick`/`micro` pay nothing.
+  - **Why not dispatch a real specialist `agentType`** (the seductive answer two panels proposed, and the pipeline's own G4a critic + G5 red-team both cut): the house-rule litmus ("core agent + right skill = indistinguishable"), most advisory specialists lack `Write` (a `Bash`-heredoc workaround silently passes §0's "non-empty" floor on a truncated artifact — a regression), specialists emit their native schema not FORGE's receipt, and a domain→`agentType` map rots with no CI gate. Real dispatch is **deferred** with explicit preconditions recorded inline in `gates-standard.md`.
+
+### Fixed
+
+- **FORGE now honors the `parallelism:` posture cap** (`SKILL.md` §3) exactly as `spawn-team` Step 5 does — previously FORGE was the one orchestrator in the marketplace that ignored it. A cap, not a floor (composes with the Opus 4.8 under-spawn tuning).
+- **The "Sága run record" promised by `commands/forge.md` Step 5 now has a concrete shape** (`SKILL.md` §0): each gate's receipt is appended to `.ravenclaude/runs/forge/<slug>/run-log.jsonl` with `model`/`subagent_type`/`effort`. It was named in `forge.md` but never defined in the skill's artifact contract — unimplementable as written.
+
+**Cost (honest, char/4):** the **domain-prior lens adds nothing to `quick`/`micro`** (it lives in `reference/gates-standard.md`, loaded only at `standard`+; ≈ +1,000 tok there). The two hygiene fixes above touch always-loaded core, so `quick`'s fixed prompt grows **≈ +130 tok (~4%)** — a deliberate trade for a real correctness fix (the parallelism cap) + a real observability fix (the run-log). **Migration:** none — additive + behavioral; the lens degrades to today's generic behavior on an unrecognized domain or a disabled plugin. Found by dogfooding `/forge` on FORGE itself.
+
+## 0.199.1 — 2026-07-15
+
+### Fixed
+
+- **The constitution told every agent that loads it that the tribunal was broken on macOS. It wasn't — and this one had teeth.** `plugins/ravenclaude-core/CLAUDE.md`'s v0.193.0 / v0.195.0 / v0.196.0 milestones still carried *"`thing-orchestrator.sh` … is NOT fixed here"*, *"Still open"* for the `macos-latest` runner, and two **"Do not claim 'macOS supported' until…"** gates. **All shipped**: the tribunal in [#672](https://github.com/mcorbett51090/RavenClaude/pull/672) (v0.197.0 — the C4 trap navigated, `declare -A` now only in warning comments `[verified 2026-07-15 — no live-code match]`), the runner in [#679](https://github.com/mcorbett51090/RavenClaude/pull/679) (v0.197.1 — `.github/workflows/validate-macos.yml`, `runs-on: macos-latest` `[verified]`), door 3 in v0.196.0. Two doors found after those entries were written (door 4's BSD `sed -i`, and the BSD-`sed` JudgeDeceiver hole in [#670](https://github.com/mcorbett51090/RavenClaude/pull/670)) are now recorded there too. **Superseded in place, not deleted** — per this file's own convention (cf. the v0.114.0 entry), the dated record stays and a supersession note leads it.
+  - **Why this is a defect and not bookkeeping.** On 2026-07-15 an agent read the stale text, took it at face value, and told the maintainer **twice** that his command-review tribunal was broken on macOS — while it had been working since v0.197.0. That is this repo's own **Claim-Grounding** failure mode (a confident claim resting on an unverified prior) landing *on the repo's own constitution*, and the reader it fooled was the constitution's primary audience: an agent. A stale **"Still open"** in a file every session loads is an **active defect**. The rule now stated in-place: **when you close a door, supersede the entry that says it's open, in the same PR.**
+
+### Added
+
+- **CHANGELOG backfill — 0.193.0 through 0.198.0** (six versions, eight entries incl. two patches) were missing while `plugin.json` read 0.198.0. Reconstructed from **git history + PR numbers + the `CLAUDE.md` milestones** — never from memory. `AGENTS.md` names the `version` field plus git history as the authoritative record, so this is transcription, not reconstruction-by-inference; every entry links its PR so it stays falsifiable. Two honest gaps kept visible: **0.198.0 has no `CLAUDE.md` milestone**, and its commit subject is labelled `(v0.192.0)` — **stale** (PR [#655](https://github.com/mcorbett51090/RavenClaude/pull/655) was authored against 0.192.0 and landed at 0.198.0); `plugin.json` wins.
+
 ## 0.199.0 — 2026-07-15
 
 ### Fixed
@@ -29,7 +60,64 @@ All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the 
 - **Step 1.5 is behavioral, not enforced** — like `design_checkins`, `decision_review`, and the Agentic-Default Principle, no hook can see the intake fork (an under-delegation is the *absence* of a tool call, which is unobservable by construction). Stated plainly rather than implied to be a control.
 - **It is calibrated to Opus 4.8 and will invert.** Fable 5 *"dispatches parallel subagents more readily than prior models"* `[retrieved 2026-07-15]`, so on Fable the restraining levers do the work and Step 1.5 needs re-reading, not copying. The step says so in-place so a future model swap doesn't inherit the wrong direction.
 - **Not fixed here:** `docs/session-log.md:13` still restates the stale no-flag finding. It is a dated historical record and the repo's convention leaves those as-is.
-- **CHANGELOG gap (pre-existing, not this change):** this file's prior top entry was **0.192.0** while `plugin.json` read **0.198.0** — versions 0.193.0–0.198.0 are absent here, though 0.193.0–0.196.0 carry `CLAUDE.md` milestones. Left for the author of those versions to backfill rather than reconstructed second-hand.
+- **CHANGELOG gap (pre-existing, not this change):** this file's top entry was **0.192.0** while `plugin.json` read **0.198.0** — 0.193.0–0.198.0 were absent. Backfilled in **0.199.1**.
+
+## 0.198.0 — 2026-07-15
+
+### Added
+
+- **Best practice — drop a tier for grunt-work subagents** ([#655](https://github.com/mcorbett51090/RavenClaude/pull/655)). Set the model **explicitly** at a subagent dispatch / workflow fan-out: fast (Haiku-class) for grunt legwork, frontier reserved for the hardest reasoning. From the 15th recurring Claude-subreddit scan (4 findings → 1 approved, 3 denied). _No `CLAUDE.md` milestone. The commit subject is labelled `(v0.192.0)` — stale; it was authored against 0.192.0 and landed at 0.198.0._
+
+## 0.197.1 — 2026-07-15
+
+### Fixed
+
+- **macOS doors 6 + 7** — the 4 gates the tribunal fix unmasked now pass on macOS ([#674](https://github.com/mcorbett51090/RavenClaude/pull/674)).
+
+### Added
+
+- **The `macos-latest` CI runner** — `.github/workflows/validate-macos.yml`, which **executes** the hooks on a stock toolchain rather than linting them ([#679](https://github.com/mcorbett51090/RavenClaude/pull/679)). Closes the last item on the v0.196.0 "what remains before macOS supported" list.
+
+## 0.197.0 — 2026-07-15
+
+### Fixed
+
+- **The command-review tribunal now runs on macOS (bash 3.2)** ([#672](https://github.com/mcorbett51090/RavenClaude/pull/672)) — the last of the stock-macOS doors, and the one the v0.195.0 entry had deliberately left unrushed because it is a security control carrying the **C4 trap** (deleting `declare -A` alone silently collides every role key on index 0). Navigated, not dodged: `declare -A` now appears in `thing-orchestrator.sh` **only inside comments warning against re-introducing it**, and the seat calls route through door 2's `_rc_timeout` shim. See the `CLAUDE.md` v0.196.0 supersession note.
+
+## 0.196.1 — 2026-07-15
+
+### Fixed
+
+- **BSD `sed` silently disabled a JudgeDeceiver hardener layer on macOS** ([#670](https://github.com/mcorbett51090/RavenClaude/pull/670)) — a door not in the original three-door plan, found while closing them.
+
+## 0.196.0 — 2026-07-15
+
+### Fixed
+
+- **macOS door 3 — BSD `grep` has no `-P`**, so **12** `check-*-anti-patterns.sh` hooks across 12 plugins never fired (exit 2 reads as no-match; the hook then exits 0, silently) ([#666](https://github.com/mcorbett51090/RavenClaude/pull/666)). Fixed with `_rc_pcre_match` over stock `/usr/bin/perl` — perl **is** the PCRE engine, so no install step.
+- **macOS door 4 — BSD `sed -i` killed `audit-gates` at gate 7 of 87** ([#669](https://github.com/mcorbett51090/RavenClaude/pull/669)).
+
+### Added
+
+- **The macOS portability gate (Gate 131)** — a runner that **executes** the hooks on a stock toolchain; LOUD-skips on Linux ([#668](https://github.com/mcorbett51090/RavenClaude/pull/668)).
+
+## 0.195.0 — 2026-07-15
+
+### Fixed
+
+- **macOS door 2 — `timeout` is absent, and it silently disarmed decision-review** ([#664](https://github.com/mcorbett51090/RavenClaude/pull/664)). `route-decision-review.sh` took its error path on **every** macOS session, so the tribunal was never consulted and every routed yes/no silently allowed. Added `hooks/_portable.sh` (`_rc_timeout` via `timeout` → `gtimeout` → stock `/usr/bin/perl`; `_rc_upper` for bash-4-only `${v^^}`).
+
+## 0.194.0 — 2026-07-15
+
+### Fixed
+
+- **FORGE tiebreak F7's "shared rubric" claim was false** — corrected in all three files that asserted it ([#662](https://github.com/mcorbett51090/RavenClaude/pull/662)). The two-panel workflow's rubric/lens/schema consts are module-private; no shared module ever existed. The rubric was deliberately **not** ported, with the reasoning recorded in-repo so a future reader doesn't "close the gap".
+
+## 0.193.0 — 2026-07-15
+
+### Fixed
+
+- **macOS bash 3.2 silently bypassed the layout gate on every session** ([#660](https://github.com/mcorbett51090/RavenClaude/pull/660)). `enforce-layout.sh` ran `shopt -s globstar` (bash 4.0+); under `set -e` an invalid shopt option exits 1, which Claude Code treats as a non-blocking error — so one of the repo's two enforcement layers was dead on macOS. Gate 6 was 4/8 red and passing **for the wrong reason** (exit 1 = crash, not deny); now 8/8 with real exit-2 denies.
 
 ## 0.192.0 — 2026-07-15
 

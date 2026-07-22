@@ -19,6 +19,22 @@ schema_version: 5
 # Pause for design / architectural decisions before implementing them?
 design_checkins: true
 
+# Worktree-hygiene guard (worktree_guard: off | warn | block). Fires on exactly two
+# locally-detectable conditions, per session, per working tree: CONTENTION (another
+# live Claude Code session is already operating in this same checkout) or ANCHOR-WORK
+# (this is the repo's primary checkout, worktrees already exist, and HEAD is on the
+# anchor branch). Everything else is silent — a lone checkout in a fresh Codespace/web
+# container satisfies neither by construction, which is why `warn` is a safe default
+# for every repo (not opt-in) and never nags a solo session.
+#   off   — fast no-op; nothing is written and git is never shelled out.
+#   warn  — (default) a throttled SessionStart + PreToolUse nudge; never blocks.
+#   block — additionally DENIES a mutating op (git commit/checkout/merge/rebase/…, or
+#           a Write/Edit under the tree) on contention/anchor-work; reads / git status
+#           / rcwt are never blocked. Escape hatch: RC_WORKTREE_GUARD_ACK=1.
+# Wired in hooks.json (SessionStart `register` + PreToolUse `check`) — no schema bump
+# (behavioral flag, like design_checkins / model_fallback above). Default warn.
+worktree_guard: warn
+
 # Claude orchestrator for non-Claude CLIs (off | decide | full).
 # No-op under Claude Code (host already IS Claude). Default: full (owner choice — route to Claude; costs more tokens).
 #   off    — host CLI orchestrates as today (zero extra cost).
@@ -60,11 +76,20 @@ orchestrator_pseudonymize: false
 # SCOPE: RavenClaude's own `claude -p` calls only — it CANNOT rescue the harness
 # safety classifier or the main-loop model (the layer RavenClaude runs inside);
 # see plugins/ravenclaude-core/knowledge/model-fallback.md for the harness-outage runbook.
-# model_fallback:
-#   enabled: false
-#   ladder: [claude-haiku-4-5, claude-sonnet-4-6, claude-opus-4-8]
-#   max_retries: 2          # fallback attempts after the primary (hard cap 3)
-#   on_exhausted: fail-safe  # caller's existing abstain path; never silently wrong
+# Seeded ON for new repos (FORGE dashboard-process-hardening P4b) so a seat whose
+# model is briefly overloaded RETRIES instead of abstaining (the KB abstain-lockout
+# class). TEMPLATE-SEED ONLY: an existing consumer posture is never clobbered by
+# setup, so `/plugin marketplace update` is byte-identical for them; the CODE default
+# stays absent⇒OFF (Gate 121). Honest scope (FM5): the ladder carries all 4 distinct
+# backbones so an overloaded seat always has a NON-peer rung — but because the default
+# 3-seat panel already spans opus+haiku+sonnet and peer-exclude spreads them, this is
+# belt-and-suspenders for a partial/2-seat panel or a single overloaded seat, and a
+# near-no-op for the full panel by design. Not over-claimed.
+model_fallback:
+  enabled: true
+  ladder: [claude-haiku-4-5-20251001, claude-sonnet-5, claude-opus-4-8, claude-fable-5]
+  max_retries: 2 # fallback attempts after the primary (hard cap 3)
+  on_exhausted: fail-safe # caller's existing abstain path; never silently wrong
 
 # Definition-of-done gate (the ONE confident claim that IS machine-checkable).
 # The dod-gate.sh Stop hook runs this command and blocks "done" until it passes —

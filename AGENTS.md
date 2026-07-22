@@ -177,6 +177,20 @@ CI runs the same checks plus the gate-audit meta-test.
 - **Migration notes** — if the change could break a consumer's existing project on `/plugin marketplace update`, add a "Migration" section to the plugin's release notes.
 - **Privacy** — the marketplace is private by default. Don't push to a public-readable remote without removing the `email` field from `marketplace.json` and `plugin.json`.
 
+### Required status checks — never add `paths:` to a required workflow (added 2026-07-17)
+
+The `main` ruleset requires three checks before a PR can merge: **Validate manifests and hooks** (`validate-marketplace.yml`), **Validate file paths against .repo-layout.json** (`validate-layout.yml`), and **Validate plugin and marketplace JSON Schemas** (`validate-schemas.yml`).
+
+**None of these three may carry a `paths:` filter on its `pull_request` trigger.** GitHub: _"If a workflow is skipped due to path filtering, branch filtering or a commit message, then checks associated with that workflow will remain in a Pending state. A pull request that requires those checks to be successful will be blocked from merging"_ — and, explicitly, _"You should not use path or branch filtering to skip workflow runs if the workflow is required to pass before merging"_ ([troubleshooting required status checks](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/collaborating-on-repositories-with-code-quality-features/troubleshooting-required-status-checks), retrieved 2026-07-17). A path filter on a required check doesn't cost coverage — it **hangs the PR forever**.
+
+This is not hypothetical: `validate-schemas.yml` used to run only on manifest changes, so every docs-only PR (including the external-intake bot's `docs/staging/incoming/external/**` PRs) would have hung permanently the moment it became required. Both filters were removed when the checks were made required.
+
+The filters were also the wrong shape independently: `validate-marketplace.yml`'s gates (`prettier --check .`, `ruff check .`, `audit-gates.sh`) are **whole-tree readers**, so no glob list can be correct — that list was patched three times (2026-05-31, 2026-06-20, 2026-07-06) and still missed `index.html` / `tests/**` / `.repo-layout.json`. An allow-list that fails **open** (the gate silently never runs) is the wrong shape for a whole-tree validator.
+
+**If PR minutes ever need trimming, gate individual _steps_ with `if:` inside the job — never the workflow trigger.** A skipped *job* reports Success; a skipped *workflow* reports nothing at all. Adding a fourth required check? Check its trigger for `paths:` first.
+
+> **Admin bypass is deliberate.** `RepositoryRole 5` (admin) keeps `bypass_mode: always` on the ruleset — the documented docs-straight-to-main flow and the `[skip ci]` artifact commits both depend on it, and it is the escape hatch if a required check ever does hang. The trade-off is real and accepted: **required checks do not bind an admin merge**, so `gh pr merge --auto` as an admin can still land ahead of a running check. If you want CI to gate your own merge, wait for green before merging — the ruleset will not do it for you.
+
 ## House rules
 
 1. The `ravenclaude-core` plugin stays **domain-neutral**. Power Platform / finance / EdTech / Salesforce specifics live in their own plugins.

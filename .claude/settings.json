@@ -109,6 +109,16 @@
         ]
       },
       {
+        "matcher": "Bash|Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/worktree-guard.sh check",
+            "comment": "Marketplace-dev hook (dev-mirror of the plugin's hooks/hooks.json PreToolUse entry). Worktree-hygiene guard (check): reads `worktree_guard: off|warn|block` from .ravenclaude/comfort-posture.yaml (default warn; this repo dogfoods `worktree_guard: warn`, so it nudges but never blocks). On `block` DENIES (exit 2) ONLY a mutating op (git commit/add/checkout/switch/merge/rebase/cherry-pick/revert/stash/rm/mv, or a Write/Edit/MultiEdit under the tree) when another live session shares this working tree or this is anchor-work — never a read / git status / rcwt. Escape hatch: RC_WORKTREE_GUARD_ACK=1. `off` short-circuits before any git shell-out; fail-open on missing git/jq. Same script the plugin distributes to consumers via ${CLAUDE_PLUGIN_ROOT}."
+          }
+        ]
+      },
+      {
         "matcher": "WebFetch",
         "hooks": [
           {
@@ -204,6 +214,11 @@
             "command": "${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/capability-orientation.sh",
             "timeout": 10,
             "comment": "Marketplace-dev hook. Injects a session-start capability banner (project surface + detected auth by env-var NAME only + effective settings.json permissions + work-streams) via hookSpecificOutput.additionalContext. The only subprocess is a bounded read-only git read used by the streams classifier (gated on streams existing); the 10s timeout bounds any pathological read. The plugin's hooks/hooks.json registers the same script for consumers via ${CLAUDE_PLUGIN_ROOT}; both paths are safe because it is read-only, fail-silent, and emits nothing when there is nothing to report."
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/worktree-guard.sh register",
+            "comment": "Marketplace-dev hook (dev-mirror of the plugin's hooks/hooks.json SessionStart entry). Worktree-hygiene guard (register): records this session's registry file under ${RC_WORKTREE_GUARD_HOME:-$HOME/.ravenclaude/worktree-guard} + GC-sweeps its bucket. Reads `worktree_guard: off|warn|block` from .ravenclaude/comfort-posture.yaml (default warn; this repo dogfoods `worktree_guard: warn`). Nudges at SessionStart only on real contention (another live session in this same working tree) or anchor-work (primary checkout, worktrees exist, HEAD on the anchor branch); a lone checkout stays silent. `off` short-circuits before any git shell-out. Fail-open on missing git/jq; SessionStart cannot block. The plugin's hooks/hooks.json registers the same script for consumers via ${CLAUDE_PLUGIN_ROOT}."
           }
         ]
       }

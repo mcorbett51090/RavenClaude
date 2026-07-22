@@ -268,9 +268,60 @@ PY
       bash plugins/ravenclaude-core/hooks/tests/test-gate127-pseudonymize.sh
       exit $?
       ;;
+    132)
+      echo "── Gate 132: DOM load budget — per-surface ratchet (per-gate run) ────────"
+      python3 scripts/check-dom-budget.py --check
+      exit $?
+      ;;
+    133)
+      echo "── Gate 133: pipeline-map drift vs hooks.json (per-gate run) ─────────────"
+      rc=0; python3 scripts/check-pipeline-lanes.py || rc=$?
+      python3 scripts/check-pipeline-lanes.py --must-fail || rc=$?
+      exit $rc
+      ;;
+    134)
+      echo "── Gate 134: model-ID drift vs model-catalog.json (per-gate run) ─────────"
+      rc=0; python3 scripts/check-model-ids.py || rc=$?
+      python3 scripts/check-model-ids.py --self-test || rc=$?
+      exit $rc
+      ;;
+    135)
+      echo "── Gate 135: seat stderr → Sága seat_error capture (per-gate run) ────────"
+      bash plugins/ravenclaude-core/hooks/tests/test-seat-stderr-capture.sh
+      exit $?
+      ;;
+    136)
+      echo "── Gate 136: thing-seat.sh JSON extractor, monotonic (per-gate run) ─────"
+      rc=0; python3 scripts/check-thing-seat-extractor.py || rc=$?
+      python3 scripts/check-thing-seat-extractor.py --must-fail || rc=$?
+      exit $rc
+      ;;
+    137)
+      echo "── Gate 137: cr-master cascade narrowed to 4 high-stakes (per-gate run) ──"
+      rc=0; node scripts/check-cr-master-cascade.mjs || rc=$?
+      node scripts/check-cr-master-cascade.mjs --must-fail || rc=$?
+      exit $rc
+      ;;
+    138)
+      echo "── Gate 138: behavioral-flag badge legibility (per-gate run) ────────────"
+      rc=0; node scripts/check-posture-legibility.mjs || rc=$?
+      node scripts/check-posture-legibility.mjs --must-fail || rc=$?
+      exit $rc
+      ;;
+    139)
+      echo "── Gate 139: orchestrator absent⇒full doc consistency (per-gate run) ────"
+      rc=0; python3 scripts/check-orchestrator-doc-consistency.py || rc=$?
+      python3 scripts/check-orchestrator-doc-consistency.py --self-test || rc=$?
+      exit $rc
+      ;;
+    140)
+      echo "── Gate 140: worktree-guard block-mode teeth (per-gate run) ──────────────"
+      bash plugins/ravenclaude-core/hooks/tests/test-gate140-worktree-guard.sh
+      exit $?
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -1030,6 +1081,30 @@ gate "thing: unsafe EDIT -> deny (invariant fails closed)" must_pass "$rc"
 d=$(thing_decision split "$SHELL_TRUE")
 rc=0; { [[ "$d" == "deny" ]] && saga_has_thor; } || rc=1
 gate "thing: split panel -> Thor convened + defined verdict" must_pass "$rc"
+# (c2) split where Thor returns an OUT-OF-PROTOCOL verdict (valid JSON, verdict not in
+# {allow,deny,edit}) -> fail CLOSED to the category posture (deny for the high-stakes
+# SHELL_TRUE), NEVER the old tie-breaker else->allow default (security-review backlog).
+d=$(thing_decision split-oop "$SHELL_TRUE")
+rc=0; { [[ "$d" == "deny" ]] && saga_has_thor; } || rc=1
+gate "thing: split + Thor out-of-protocol verdict -> fail-closed (deny, not allow)" must_pass "$rc"
+# teeth: revert the tie-breaker to the pre-fix else->allow IN PLACE (so it runs via the
+# same in-tree harness that resolves all script paths), re-run, then restore. The
+# out-of-protocol Thor verdict must then NOT fail closed — it reaches the reverted
+# else-branch and resolves to allow/ask (gate_floor surfaces the high-stakes allow as
+# ask), never the deny the fix produces. This proves the positive assertion above
+# depends on the fail-closed fix.
+cp -p "$ORCH14" "$TMP/orch14-tiebreaker.bak"
+python3 - "$ORCH14" <<'PY'
+import sys
+p = sys.argv[1]; src = open(p).read()
+old = 'verdict="$posture"; reason="Command review: tie-breaker returned an out-of-protocol verdict'
+assert src.count(old) == 1, "tie-breaker fail-closed target not found (drifted)"
+open(p, "w").write(src.replace(old, 'verdict="allow"; reason="MUTANT pre-fix out-of-protocol'))
+PY
+d_oop_mut=$(thing_decision split-oop "$SHELL_TRUE")
+cp -p "$TMP/orch14-tiebreaker.bak" "$ORCH14"   # restore the real orchestrator immediately
+rc=0; { [[ "$d_oop_mut" != "deny" ]] && [[ "$d_oop_mut" != "none" ]]; } || rc=1
+gate "thing teeth: pre-fix else->allow does NOT fail closed (allow/ask, not deny)" must_pass "$rc"
 # (d) high-stakes category timeout fails CLOSED (deny, not ask)
 d=$(thing_decision timeout "git push origin main")
 rc=0; [[ "$d" == "deny" ]] || rc=1
@@ -2810,6 +2885,98 @@ sed 's/def _read_mimir(project_root, claude_home)/def _read_mimir(project_root, 
   plugins/ravenclaude-core/scripts/serve-dashboards.py > "$DSP_BODY_BAD"
 rc=0; python3 "$DSP" --plugin-server "$DSP_BODY_BAD" >/dev/null 2>&1 || rc=$?
 gate "dashboard-server-parity body-diff (drifted: _read_mimir body mutated)" must_fail "$rc"
+# PB-1 (FORGE dashboard-consumption): the body-diff contract now also covers the
+# NAMED port/reclaim functions (`_port_holder_pids`/`_holder_cwd`/`_reclaim_port`),
+# so a one-copy edit to the bind/reclaim path can no longer ship different bytes to
+# consumers — the drift class behind v0.205.3, previously invisible (not `_read_*`).
+# 32-a: a mutated `_reclaim_port` body in one copy must be caught.
+DSP_PORT_BAD="$TMP/serve-dashboards-reclaim-drifted.py"
+sed 's/def _reclaim_port(/def _reclaim_port(  # ASYMMETRIC PORT EDIT\n#pad\ndef _reclaim_port_orig(/' \
+  plugins/ravenclaude-core/scripts/serve-dashboards.py > "$DSP_PORT_BAD"
+rc=0; python3 "$DSP" --plugin-server "$DSP_PORT_BAD" >/dev/null 2>&1 || rc=$?
+gate "dashboard-server-parity body-diff (drifted: _reclaim_port body mutated)" must_fail "$rc"
+# 32-c: a CSRF allow-list keyed on `args.port` (not `actual_port`) must be caught —
+# a fallback bind would else reject every same-origin /__save (DNS-rebinding defense
+# collapsed into a self-DoS).
+DSP_CSRF_BAD="$TMP/serve-dashboards-argsport.py"
+sed 's/f"127.0.0.1:{actual_port}", f"localhost:{actual_port}", "127.0.0.1"/f"127.0.0.1:{args.port}", f"localhost:{actual_port}", "127.0.0.1"/' \
+  scripts/serve-dashboards.py > "$DSP_CSRF_BAD"
+rc=0; python3 "$DSP" --root-server "$DSP_CSRF_BAD" >/dev/null 2>&1 || rc=$?
+gate "dashboard-server-parity (CSRF allow-list keyed on args.port is caught)" must_fail "$rc"
+
+echo
+echo "── Gate 142: C2 security floor (loopback /__save guard: cross-origin + Host + no-Origin -> 403) ──"
+# The launch lane (L) touches the /__save write surface, the loopback bind, and the
+# CSRF/DNS-rebinding guard — the C2 floor that must not weaken. This gate is the
+# machine-checked assertion suite: it grep-pins the no-CORS invariant + the launcher's
+# explicit --bind, then launches the ROOT server on a free high port (>=8015, NEVER
+# 8000) and drives the REAL Origin/Host guard with curl — every cross-origin /
+# no-Origin / evil-Host request to /__save|/__csrf must be refused 403 while a
+# same-origin GET is accepted. (Placed by Gate 32 for locality; both are server-floor.)
+
+# (a) grep -c Access-Control in both copies -> exactly 1 each. The single hit is the
+#     FORBIDDING comment in _local_request_ok; the cross-origin reject (no
+#     Access-Control-Allow-Origin header, ever) IS the DNS-rebinding defense.
+rc=0; [ "$(grep -c 'Access-Control' scripts/serve-dashboards.py)" = "1" ] || rc=1
+gate "C2: root server has exactly 1 Access-Control mention (no ACAO header)" must_pass "$rc"
+rc=0; [ "$(grep -c 'Access-Control' plugins/ravenclaude-core/scripts/serve-dashboards.py)" = "1" ] || rc=1
+gate "C2: plugin server has exactly 1 Access-Control mention (no ACAO header)" must_pass "$rc"
+
+# (b) the launcher passes an explicit --bind 127.0.0.1 off-Codespace (Gate 32
+#     structurally cannot see a launch-time flag). Bidirectional: present in the real
+#     launcher, gated by CODESPACE_NAME; a copy with it stripped fails the assertion.
+rc=0; { grep -q -- '--bind 127.0.0.1' scripts/open-dashboard.sh && grep -q 'CODESPACE_NAME' scripts/open-dashboard.sh; } || rc=1
+gate "C2: launcher passes explicit --bind 127.0.0.1 (Codespace-gated)" must_pass "$rc"
+C2_LAUNCH_BAD="$TMP/open-dashboard-nobind.sh"
+grep -v -- '--bind 127.0.0.1' scripts/open-dashboard.sh > "$C2_LAUNCH_BAD"
+rc=0; grep -q -- '--bind 127.0.0.1' "$C2_LAUNCH_BAD" || rc=1
+gate "C2: launcher --bind assertion has teeth (stripped --bind caught)" must_fail "$rc"
+
+# (c) LIVE guard: launch the ROOT server on a free port >=8015 (never 8000), bound to
+#     127.0.0.1, --no-open, --max-idle 0 (no self-exit mid-test), then assert the guard.
+C2_PORT=""
+for cand in $(seq 8015 8064); do
+  if python3 -c "import socket,sys; s=socket.socket(); r=s.connect_ex(('127.0.0.1',$cand)); s.close(); sys.exit(0 if r!=0 else 1)" 2>/dev/null; then
+    C2_PORT="$cand"; break
+  fi
+done
+if [ -z "$C2_PORT" ]; then
+  echo "  ‼ C2 live guard SKIPPED — no free port in 8015-8064 to bind a test server."
+  SKIP=$((SKIP + 1)); SKIPPED_GATES+=("C2 live /__save guard [no free port]")
+else
+  C2_LOG="$TMP/c2-serve.log"
+  python3 scripts/serve-dashboards.py --port "$C2_PORT" --bind 127.0.0.1 --no-open --max-idle 0 >"$C2_LOG" 2>&1 &
+  C2_PID=$!
+  c2_ready=0
+  for _ in $(seq 1 40); do
+    if curl -fsS -o /dev/null "http://127.0.0.1:${C2_PORT}/index.html" 2>/dev/null; then c2_ready=1; break; fi
+    sleep 0.25
+  done
+  if [ "$c2_ready" -ne 1 ]; then
+    echo "  ‼ C2 live guard SKIPPED — test server did not answer on 127.0.0.1:$C2_PORT (see $C2_LOG)."
+    SKIP=$((SKIP + 1)); SKIPPED_GATES+=("C2 live /__save guard [server did not start]")
+  else
+    C2_URL="http://127.0.0.1:${C2_PORT}"
+    # positive control: same-origin GET /__csrf (correct Host, no Origin) -> 200.
+    code=$(curl -s -o /dev/null -w '%{http_code}' "${C2_URL}/__csrf" 2>/dev/null || echo 000)
+    rc=0; [ "$code" = "200" ] || rc=1
+    gate "C2 live: same-origin GET /__csrf -> 200 (guard is not always-deny)" must_pass "$rc"
+    # evil Host on GET /__csrf -> 403 (DNS-rebinding defense).
+    code=$(curl -s -o /dev/null -w '%{http_code}' -H 'Host: evil.test' "${C2_URL}/__csrf" 2>/dev/null || echo 000)
+    rc=0; [ "$code" = "403" ] || rc=1
+    gate "C2 live: GET /__csrf with Host: evil.test -> 403" must_pass "$rc"
+    # cross-origin POST /__save (evil Origin) -> 403.
+    code=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' -H 'Origin: http://evil.test' --data '{"path":".ravenclaude/x","content":"y"}' "${C2_URL}/__save" 2>/dev/null || echo 000)
+    rc=0; [ "$code" = "403" ] || rc=1
+    gate "C2 live: POST /__save with Origin: http://evil.test -> 403" must_pass "$rc"
+    # POST /__save with NO Origin (valid Host) -> 403 (state-change requires a present Origin).
+    code=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' --data '{"path":".ravenclaude/x","content":"y"}' "${C2_URL}/__save" 2>/dev/null || echo 000)
+    rc=0; [ "$code" = "403" ] || rc=1
+    gate "C2 live: POST /__save with no Origin -> 403" must_pass "$rc"
+  fi
+  kill "$C2_PID" 2>/dev/null || true
+  wait "$C2_PID" 2>/dev/null || true
+fi
 
 echo
 echo "── Gate 33: command-review golden set (deterministic regression lane) ─────"
@@ -2858,8 +3025,9 @@ echo
 echo "── Gate 35: dashboard serializer round-trip + Pipeline-tab server validation ─"
 # (A) Guards the comfort-posture serializer (emitYaml) against the round-trip
 # data-loss class: the Pipeline tab's runaway / decision_review / definition_of_done
-# / dev_repo_exempt keys must survive emit + hydrate, and defaults must stay absent.
-# The test extracts the REAL functions from the generated dashboard.html (no DOM).
+# / dev_repo_exempt / stream_classify / stream_threshold keys must survive emit +
+# hydrate, and defaults must stay absent. The test extracts the REAL functions from
+# the generated dashboard.html (no DOM).
 RT="scripts/check-dashboard-roundtrip.mjs"
 if command -v node >/dev/null 2>&1; then
   # must_pass: the real, in-sync dashboard.
@@ -2872,6 +3040,20 @@ if command -v node >/dev/null 2>&1; then
   grep -v 'decision_review: ${state.decision_review}' index.html > "$RT_BAD"
   rc=0; node "$RT" "$RT_BAD" >/dev/null 2>&1 || rc=$?
   gate "dashboard round-trip (drifted: decision_review emit stripped)" must_fail "$rc"
+  # must_fail (F4): a drifted dashboard whose stream_classify emission is stripped —
+  # reproduces the exact defect this phase fixes (emitYaml silently dropping the
+  # Agentic Work-Streams keys on every Save). The gate must catch the regression.
+  RT_BAD_F4="$TMP/dashboard-drifted-f4.html"
+  grep -v 'stream_classify: \${state.stream_classify}' index.html > "$RT_BAD_F4"
+  rc=0; node "$RT" "$RT_BAD_F4" >/dev/null 2>&1 || rc=$?
+  gate "dashboard round-trip (F4 regression: stream_classify emit stripped)" must_fail "$rc"
+  # must_fail (P3): a drifted dashboard whose web-access serializer drops the deny
+  # key — proves Gate 35 now reaches emitWebAccessYaml(), the second serializer it
+  # was structurally blind to before this phase.
+  RT_BAD_P3="$TMP/dashboard-drifted-p3.html"
+  grep -v 'mk("deny", waLines(".wa-deny"))' index.html > "$RT_BAD_P3"
+  rc=0; node "$RT" "$RT_BAD_P3" >/dev/null 2>&1 || rc=$?
+  gate "dashboard round-trip (P3 regression: web-access deny emit stripped)" must_fail "$rc"
 else
   _skip_or_fail "Gate 35 (dashboard round-trip)" node
 fi
@@ -3505,7 +3687,7 @@ gate "phase0-emit-scrub: secret-containing JSONL is detectable (gate has teeth)"
 fi
 
 # ─────────────────────────────────────────────────────────────────────────────
-echo "── Gate 51: Unified portal shell router (index.html) ─────────────────────"
+echo "── Gate 51: Unified portal shell router + committed-route destinations ────"
 # Proves index.html still carries the native-merge contract: NAV has the
 # Dashboard + Catalog entries, DASH_SECTIONS lists every dashboard-owned
 # top-level route, payloadKind()/resolveNavActive()/route() drive the native
@@ -3513,6 +3695,17 @@ echo "── Gate 51: Unified portal shell router (index.html) ─────�
 # entry points are present. Bidirectional: must-fail half feeds an index.html
 # fixture with DASH_SECTIONS emptied → check-shell-router.mjs exits nonzero,
 # proving the gate has teeth. Must-pass runs against the real index.html.
+#
+# By-destination half (Phase 4a — docs/dashboard-redesign-plan.md §7): the
+# router existing is not enough — every committed `#/…` on BOTH surfaces must
+# resolve to a REAL destination (not the router's catch-all fallback). The
+# committed fixture tests/fixtures/routes/committed-routes.json enumerates every
+# `#/…` (188 dashboard hrefs / 202 index hrefs) → its resolved destination;
+# check-committed-routes.mjs re-derives that from the freshly-rendered temp
+# copies ($DASH_HTML/$IDX_HTML) and asserts the fixture still matches. Two
+# must-fail halves prove teeth in BOTH directions: a route deleted from the
+# fixture (enumeration) and a DASH_OWNER destination removed from the html
+# (resolution) each go red. This feeds Phase 2's "every #/… resolves" acceptance.
 if command -v node >/dev/null 2>&1; then
   # must_fail: an emptied DASH_SECTIONS must be detected (gate has teeth).
   SHELL_BAD="$TMP/index-broken-shell.html"
@@ -3534,6 +3727,90 @@ PY
   # must_pass: real index.html satisfies the contract.
   rc=0; node scripts/check-shell-router.mjs "$IDX_HTML" >/dev/null 2>&1 || rc=$?
   gate "shell-router (real index.html satisfies the contract)" must_pass "$rc"
+
+  # ── External teeth-check (PB-3): the shell-router gate's must-fail halves are
+  # proven by check-shell-router.selftest.mjs, NOT by an in-process block that
+  # tested a hardcoded bad string against its own regex (that block certified
+  # nothing — a weakened re-authoring passed it — and was deleted). The driver
+  # mutates a fresh render three structural ways (empty SECTION_ALIAS / rename a
+  # NAV id / strip the chrome-hide rule) and re-invokes check-shell-router.mjs as
+  # a subprocess, requiring non-zero each time. Because it locates those by shape,
+  # it needs no edit across the IA re-cut — so the IA commit re-authors the gate
+  # but must NOT touch this driver, which is what proves the re-authored gate is
+  # not weaker.
+  # must_pass: the real checker is tripped by all three mutations (green today).
+  rc=0; node scripts/check-shell-router.selftest.mjs "$IDX_HTML" >/dev/null 2>&1 || rc=$?
+  gate "shell-router selftest (real checker tripped by all 3 mutations)" must_pass "$rc"
+  # must_fail (the selftest's OWN teeth): point it at a checker whose SECTION_ALIAS
+  # assertion is neutered → that mutation no longer trips → the selftest goes red.
+  WEAK_CHECKER="$TMP/check-shell-router.weak.mjs"
+  python3 - scripts/check-shell-router.mjs "$WEAK_CHECKER" <<'PY'
+import sys
+src = open(sys.argv[1]).read()
+src = src.replace("re.test(SECTION_ALIAS_TEXT),",
+                  "true /* WEAKENED */ || re.test(SECTION_ALIAS_TEXT),", 1)
+src = src.replace("assert(NAV_IDS.includes(target), `alias target",
+                  "assert(true /* WEAKENED */ || NAV_IDS.includes(target), `alias target", 1)
+open(sys.argv[2], "w").write(src)
+PY
+  rc=0; node scripts/check-shell-router.selftest.mjs --checker "$WEAK_CHECKER" "$IDX_HTML" >/dev/null 2>&1 || rc=$?
+  gate "shell-router selftest (a weakened checker is caught)" must_fail "$rc"
+
+  # ── DASH_TAB_ALIAS-target validity teeth (P3, §11.2). DASH_TAB_ALIAS maps a
+  # shell route → a FRAGMENT tab id; a mistyped value that is not a real tab blanks
+  # the dashboard host with zero console error (invisible to both Gate 51 scripts
+  # before P3, and the exact failure P4's DASH_TAB_ALIAS edit could ship). Point one
+  # value at a non-existent tab and assert the re-authored gate goes RED. (A-split,
+  # dashboard-consumption: the old `nidhoggr: "heimdall"` alias was removed when the
+  # Observe family un-merged into own tabs, so this now mutates a SURVIVING alias —
+  # sleipnir: "activity" — to a non-existent tab.)
+  IDX_ALIAS_BAD="$TMP/render-index-badalias.html"
+  sed 's/sleipnir: "activity"/sleipnir: "activityyy"/' "$IDX_HTML" > "$IDX_ALIAS_BAD"
+  rc=0; node scripts/check-shell-router.mjs "$IDX_ALIAS_BAD" >/dev/null 2>&1 || rc=$?
+  gate "shell-router (a mistyped DASH_TAB_ALIAS target is detected)" must_fail "$rc"
+
+  # ── By-destination half (Phase 4a): every committed #/… resolves. ──────────
+  ROUTE_FIX="tests/fixtures/routes/committed-routes.json"
+  # must_pass: the committed fixture enumerates + resolves every #/… on both
+  # surfaces, checked against the freshly-rendered temp copies (hermetic).
+  rc=0; node scripts/check-committed-routes.mjs \
+    --dashboard "$DASH_HTML" --index "$IDX_HTML" --fixture "$ROUTE_FIX" >/dev/null 2>&1 || rc=$?
+  gate "committed-routes (every #/… resolves by destination, both surfaces)" must_pass "$rc"
+  # must_fail A (enumeration teeth): a route deleted from the fixture is detected
+  # — the fixture stops enumerating a route the html still commits.
+  ROUTE_FIX_BAD="$TMP/committed-routes-missing.json"
+  python3 - "$ROUTE_FIX" "$ROUTE_FIX_BAD" <<'PY'
+import json, sys
+d = json.load(open(sys.argv[1]))
+d["surfaces"]["index"]["static_href_routes"].pop()
+json.dump(d, open(sys.argv[2], "w"))
+PY
+  rc=0; node scripts/check-committed-routes.mjs \
+    --dashboard "$DASH_HTML" --index "$IDX_HTML" --fixture "$ROUTE_FIX_BAD" >/dev/null 2>&1 || rc=$?
+  gate "committed-routes (a route deleted from the fixture is detected)" must_fail "$rc"
+  # must_fail B (resolution teeth): a DASH_OWNER destination removed from the html
+  # → #/heimdall dead-ends on the router fallback instead of viewDashboard:heimdall.
+  IDX_ROUTE_BAD="$TMP/render-index-route-broken.html"
+  sed 's/heimdall: "guardrails", vidarr: "guardrails"/vidarr: "guardrails"/' "$IDX_HTML" > "$IDX_ROUTE_BAD"
+  rc=0; node scripts/check-committed-routes.mjs \
+    --dashboard "$DASH_HTML" --index "$IDX_ROUTE_BAD" --fixture "$ROUTE_FIX" >/dev/null 2>&1 || rc=$?
+  gate "committed-routes (a broken DASH_OWNER destination is detected)" must_fail "$rc"
+
+  # ── required_routes floor half (PB-2): the anti-laundering control C5 needs. ──
+  # must_fail 51-a (the sharpest): remove a required href from a rendered copy,
+  # re-emit a fixture FROM that copy (which drops the route from `surfaces` — a
+  # plain enumeration would then pass, exit 0), then assert. The hand-authored
+  # floor is carried through --emit verbatim, so the removal goes RED instead of
+  # being silently laundered. Without the floor this exact pair measures exit 0.
+  FLOOR_DASH_BAD="$TMP/dash-floor-broken.html"
+  sed 's/href="#\/settings"/href="#"/g' "$DASH_HTML" > "$FLOOR_DASH_BAD"
+  FLOOR_FX="$TMP/floor-laundered.json"
+  cp "$ROUTE_FIX" "$FLOOR_FX"
+  node scripts/check-committed-routes.mjs --emit \
+    --fixture "$FLOOR_FX" --dashboard "$FLOOR_DASH_BAD" --index "$IDX_HTML" >/dev/null 2>&1
+  rc=0; node scripts/check-committed-routes.mjs \
+    --fixture "$FLOOR_FX" --dashboard "$FLOOR_DASH_BAD" --index "$IDX_HTML" >/dev/null 2>&1 || rc=$?
+  gate "committed-routes required_routes floor (a laundered removal is caught)" must_fail "$rc"
 else
   _skip_or_fail "Gate 51 shell-router" node
 fi
@@ -3574,14 +3851,31 @@ echo "── Gate 93: Learn-tab step-by-step diagram (stepper) render ───�
 # the JS reveals them + honors prefers-reduced-motion). The script ALSO runs an
 # inline must-fail half (proves its own teeth).
 if command -v node >/dev/null 2>&1; then
-  rc=0; node scripts/check-stepper-render.mjs "$IDX_HTML" >/dev/null 2>&1 || rc=$?
+  # Learn (the stepper's home) is now standalone-only — P6 (FORGE dashboard-
+  # consumption) stripped the learn-payload from the PORTAL (index.html) as dead
+  # weight, so the stepper contract lives ONLY in the standalone dashboard.html.
+  # Run the gate against $DASH_HTML (which matches this gate's own label) — the
+  # former $IDX_HTML target went content-less at P6 and would false-fail.
+  rc=0; node scripts/check-stepper-render.mjs "$DASH_HTML" >/dev/null 2>&1 || rc=$?
   gate "stepper render (real dashboard.html)" must_pass "$rc"
-  # must_fail: a dashboard with the stepper markup stripped must be detected.
-  ST_BAD="$(mktemp)"; sed 's/class="concept-stepper"/class="concept-NOPE"/g' \
-    index.html > "$ST_BAD"
+  # must_fail (v2 — PAYLOAD path): Learn is now DOM-island-loaded, so the stepper
+  # markup lives JSON-ESCAPED inside <script id="learn-payload">. The gate must parse
+  # the payload to see it, so the must-fail fixture strips the stepper class IN ITS
+  # ESCAPED FORM (class=\"concept-stepper\"). A checker that only greps live HTML would
+  # miss this (the old live-form sed no longer matches), so this proves v2 actually
+  # traverses the parse path (plan §2L).
+  ST_BAD="$(mktemp)"; sed 's/class=\\"concept-stepper\\"/class=\\"concept-NOPE\\"/g' \
+    "$DASH_HTML" > "$ST_BAD"
   rc=0; node scripts/check-stepper-render.mjs "$ST_BAD" >/dev/null 2>&1 || rc=$?
-  gate "stepper render (stripped stepper markup is detected)" must_fail "$rc"
-  rm -f "$ST_BAD"
+  gate "stepper render (stripped stepper markup in the island payload is detected)" must_fail "$rc"
+  # must_fail (v2 — MALFORMED payload): a learn-payload that is not valid JSON must be
+  # rejected by the parse path, not silently no-op'd.
+  ST_BADJSON="$(mktemp)"
+  sed 's#<script type="application/json" id="learn-payload">#<script type="application/json" id="learn-payload">"unterminated #' \
+    "$DASH_HTML" > "$ST_BADJSON"
+  rc=0; node scripts/check-stepper-render.mjs "$ST_BADJSON" >/dev/null 2>&1 || rc=$?
+  gate "stepper render (malformed learn-payload JSON is rejected)" must_fail "$rc"
+  rm -f "$ST_BAD" "$ST_BADJSON"
 else
   _skip_or_fail "Gate 93 stepper render" node
 fi
@@ -3604,6 +3898,74 @@ if command -v node >/dev/null 2>&1; then
   gate "concern-stats render (real dashboard.html + inline must-fail half)" must_pass "$rc"
 else
   _skip_or_fail "Gate 104 concern-stats render" node
+fi
+
+# ─────────────────────────────────────────────────────────────────────────────
+echo "── Gate 141: plugin-detail island render (H4 zero-content-loss) ──────────"
+# P2 (plan §1.4) moves the detail-only fields read SOLELY by window.__openPlugin
+# — agents[].scenarios/.quickstart/.works_with + plugins[].scripts_index /
+# .scenarios_index / .templates_index / .best_practices_index — off the eager
+# window.__RC_DATA__ parse path into a lazy <script id="plugin-detail-payload">
+# island. The H4 hazard: __openPlugin can count `(p.scripts_index||[]).length`
+# and `.filter(s => s.body)` on data that is NOT hydrated yet, so whole sections
+# vanish with ZERO count and NO error — invisible to any render-only /
+# no-console-errors test. So "zero content loss" IS this gate, not a console check.
+# Text/structural (no eval), like the sibling check-*-render.mjs gates, driven
+# against the freshly-rendered $IDX_HTML. Key PRESENCE is the hydration sentinel:
+# absent == not hydrated, [] == genuinely zero (77 plugins really have
+# scripts_index: [], so "assert non-empty" would be wrong on 46% of the catalog).
+#
+# Three must-fail halves prove teeth: (a) RENAME THE ISLAND ID — the literal H4
+# hydration-break scenario, silent today; (b) delete one plugin's island record;
+# (c) alter one committed baseline count. Each must go red.
+if command -v node >/dev/null 2>&1; then
+  # must_pass: ravenclaude-core (the ONLY plugin with all 8 data-backed sections
+  # non-empty) renders all nine section counts from the island + eager blob, and a
+  # genuinely-empty section is present-but-[] (absent at render, no error).
+  rc=0; node scripts/check-plugin-detail-render.mjs "$IDX_HTML" >/dev/null 2>&1 || rc=$?
+  gate "plugin-detail render (real index.html — nine section counts hydrate)" must_pass "$rc"
+
+  # must_fail (a): RENAME THE ISLAND ID. The element becomes unreachable by the
+  # id hydrateDetail() looks up → __openPlugin would count/filter unhydrated data
+  # and drop whole sections silently. This is the exact H4 break the gate exists
+  # to catch; renaming only the HTML attribute (not the JS getElementById arg)
+  # reproduces it faithfully.
+  PD_BAD_A="$TMP/index-detail-renamed-id.html"
+  sed 's/id="plugin-detail-payload"/id="plugin-detail-payload-RENAMED"/' "$IDX_HTML" > "$PD_BAD_A"
+  rc=0; node scripts/check-plugin-detail-render.mjs "$PD_BAD_A" >/dev/null 2>&1 || rc=$?
+  gate "plugin-detail render (renamed island id → H4 hydration break detected)" must_fail "$rc"
+
+  # must_fail (b): delete one plugin's island record → the completeness check
+  # (island plugin-set === eager plugin-set) goes red.
+  PD_BAD_B="$TMP/index-detail-dropped-record.html"
+  python3 - "$IDX_HTML" "$PD_BAD_B" <<'PY'
+import sys, re, json
+src = open(sys.argv[1]).read()
+m = re.search(r'(<script type="application/json" id="plugin-detail-payload">)([\s\S]*?)(</script>)', src)
+isl = json.loads(m.group(2))
+del isl["plugins"]["ravenclaude-core"]  # drop one plugin's island record
+new = m.group(1) + json.dumps(isl, ensure_ascii=False, separators=(",", ":")).replace("<", "\\u003c") + m.group(3)
+open(sys.argv[2], "w").write(src[:m.start()] + new + src[m.end():])
+PY
+  rc=0; node scripts/check-plugin-detail-render.mjs "$PD_BAD_B" >/dev/null 2>&1 || rc=$?
+  gate "plugin-detail render (deleted island record is detected)" must_fail "$rc"
+
+  # must_fail (c): alter one committed baseline count (ravenclaude-core's islanded
+  # scripts_index 17 -> 16) → the rc-core baseline + the counts invariant go red.
+  PD_BAD_C="$TMP/index-detail-altered-count.html"
+  python3 - "$IDX_HTML" "$PD_BAD_C" <<'PY'
+import sys, re, json
+src = open(sys.argv[1]).read()
+m = re.search(r'(<script type="application/json" id="plugin-detail-payload">)([\s\S]*?)(</script>)', src)
+isl = json.loads(m.group(2))
+isl["plugins"]["ravenclaude-core"]["scripts_index"].pop()  # 17 -> 16
+new = m.group(1) + json.dumps(isl, ensure_ascii=False, separators=(",", ":")).replace("<", "\\u003c") + m.group(3)
+open(sys.argv[2], "w").write(src[:m.start()] + new + src[m.end():])
+PY
+  rc=0; node scripts/check-plugin-detail-render.mjs "$PD_BAD_C" >/dev/null 2>&1 || rc=$?
+  gate "plugin-detail render (altered baseline count is detected)" must_fail "$rc"
+else
+  _skip_or_fail "Gate 141 (plugin-detail island render)" node
 fi
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -4165,6 +4527,163 @@ G129BAD="$TMP/evals-bad/cases/x"; mkdir -p "$G129BAD"
 printf 'case:\n  id: broken\n' > "$G129BAD/broken.yaml"
 rc=0; RUNNER_EVALS_DIR="$TMP/evals-bad" python3 evals/runner.py --self-test >/dev/null 2>&1 || rc=$?
 gate "eval-runner: --self-test fails on a schema-broken case" must_fail "$rc"
+
+echo
+echo "── Gate 132: DOM load budget — per-surface ratchet (html.parser) ──────────"
+# The DOM is the genuine defect this build exists to fix (57,330 / 50,945 elements
+# = 41.0x / 36.4x Lighthouse's 1,400 threshold). Gate 132 is the meter and the
+# ratchet: each phase appends a row to that surface's table and can only ever
+# lower the bar. Method + the reason it is html.parser and NOT a regex tag-token
+# counter (JSON escapes `"` but not `<`, so a regex counter is structurally blind
+# to islanding — the very mechanism it would be metering) is in the gate's own
+# header: scripts/check-dom-budget.py. Stdlib only — no node, no new dependency.
+#
+# F2: the gate binds BOTH surfaces against their OWN budgets. index.html's `trees`
+# is 13,521 vs the dashboard's 20,612 (include_trees=False), so a single shared
+# ratchet table would be wrong on both ends.
+rc=0; python3 scripts/check-dom-budget.py --check >/dev/null 2>&1 || rc=$?
+gate "dom-budget: both surfaces within their ratchet budgets" must_pass "$rc"
+
+# teeth, per surface. The must-fail bar is DERIVED as `count - 1`, never a literal:
+# plan A's literal 57,418 would have PASSED against the real 57,330 — a must-fail
+# half that cannot fail. Deriving it from the live count is what makes it teeth.
+for _surface in "plugins/ravenclaude-core/dashboard.html" "index.html"; do
+  _n="$(python3 scripts/check-dom-budget.py --count "$_surface")"
+  rc=0; python3 scripts/check-dom-budget.py --check --surface "$_surface" \
+    --budget-override "$(( _n - 1 ))" >/dev/null 2>&1 || rc=$?
+  gate "dom-budget teeth: $(basename "$_surface") over budget at count-1" must_fail "$rc"
+done
+
+# Structural identity: SUM(panels) + shell == the whole-document count. If this
+# drifts, per-panel attribution is broken and every per-panel budget downstream
+# is measuring the wrong thing — silently.
+rc=0; python3 - <<'PY' >/dev/null 2>&1 || rc=$?
+import importlib.util, sys
+s = importlib.util.spec_from_file_location("m", "scripts/check-dom-budget.py")
+m = importlib.util.module_from_spec(s); s.loader.exec_module(m)
+for p in (m.DASHBOARD, m.INDEX):
+    r = m.measure(p)
+    if sum(r["panels"].values()) + r["shell"] != r["total"]:
+        sys.exit(1)
+    if len(r["panels"]) != 15:
+        sys.exit(1)
+PY
+gate "dom-budget: SUM(panels)+shell == whole doc, 15 panels both surfaces" must_pass "$rc"
+
+echo
+echo "── Gate 133: pipeline-map drift vs hooks/hooks.json ───────────────────────"
+# The Pipeline tab (panel-pipeline) is a HAND-MAINTAINED curation of the guardrails
+# an agent passes through — its tooltips/ordering/copy have no source in hooks.json,
+# so it cannot be auto-generated. Before this gate NOTHING asserted the map still
+# matched the registered hook set, and it had drifted: two SHIPPED hooks
+# (delegation-nudge.sh, guard-web-access.sh) were absent from the map a user reads.
+# check-pipeline-lanes.py reconciles _PIPELINE_STAGE_HOOKS / _PIPELINE_EXCLUDED_HOOKS
+# against hooks.json bidirectionally (+ asserts the rendered artifact matches source).
+rc=0; python3 scripts/check-pipeline-lanes.py >/dev/null 2>&1 || rc=$?
+gate "pipeline-lanes: map matches hooks.json + rendered artifact" must_pass "$rc"
+
+# teeth: drop a shipped hook from BOTH the lanes and the exclusion list (the exact
+# live-drift bug) — the validator MUST catch it. --must-fail exits 0 when it does.
+rc=0; python3 scripts/check-pipeline-lanes.py --must-fail >/dev/null 2>&1 || rc=$?
+gate "pipeline-lanes teeth: a hook missing from the map is caught" must_pass "$rc"
+
+echo
+echo "── Gate 134: model-ID drift vs knowledge/model-catalog.json ───────────────"
+# Single source of truth for the tribunal-seat/dashboard/template model IDs. Before
+# this gate the IDs were duplicated across generate-dashboards.py + thing-decision.py
+# + templates + configs and drifted (the dashboard offered claude-sonnet-4-6 / bare
+# claude-haiku-4-5, and this repo's own comfort-posture.yaml carried claude-opus-4-7).
+# check-model-ids.py scans every governed, git-tracked code/config file (repo-wide,
+# NOT a hand-copied list) token-anchored against the catalog's `current` values.
+rc=0; python3 scripts/check-model-ids.py >/dev/null 2>&1 || rc=$?
+gate "model-ids: every governed claude-* id is canonical" must_pass "$rc"
+
+# teeth: the --self-test proves a stale id is caught AND the canonical dated-haiku is
+# NOT false-flagged by the bare-haiku prefix collision (FM6) — both in-memory.
+rc=0; python3 scripts/check-model-ids.py --self-test >/dev/null 2>&1 || rc=$?
+gate "model-ids teeth: stale caught + dated-haiku prefix-collision guard" must_pass "$rc"
+
+echo
+echo "── Gate 135: seat stderr → Sága seat_error capture (FM2 fail-closed) ───────"
+# P0: the tribunal used to `2>/dev/null` seat stderr, so a seat that ERRORED logged a
+# bare abstain indistinguishable from a timeout (KB kb-tribunal-seats-abstaining §4/§7).
+# Now parse_seat classifies the seat's exit code into seat_error; a fail-closed EXIT
+# trap converts an unexpected non-zero abort (which Claude Code treats as non-blocking
+# = fail-OPEN) into an explicit deny. The test drives the REAL orchestrator with mocked
+# seats + fault injection; it carries its own must-fail halves internally.
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-seat-stderr-capture.sh >/dev/null 2>&1 || rc=$?
+gate "seat-stderr: seat_error captured, fail-closed on abort, no secret leak (+teeth)" must_pass "$rc"
+
+echo
+echo "── Gate 136: thing-seat.sh JSON extractor — monotonic near-JSON salvage ────"
+# P1: the seat extractor gained a near-JSON second attempt (single quotes / trailing
+# commas / Python literals via ast.literal_eval). MONOTONIC (red-team FM1): a verdict
+# salvaged from repaired bytes may only TIGHTEN — a recovered `allow` is downgraded to
+# `abstain`, never a votable allow (which would convert the KB abstain-pair into a
+# unanimous allow, bypassing the 2-abstain floor). The gate extracts the REAL inline
+# extractor from thing-seat.sh and drives it; no other gate exercises this code.
+rc=0; python3 scripts/check-thing-seat-extractor.py >/dev/null 2>&1 || rc=$?
+gate "seat-extractor: near-JSON deny salvaged, bare-JSON byte-identical" must_pass "$rc"
+
+# teeth: a stripped monotonic-downgrade must let loose-allow vote allow (caught); a
+# stripped attempt-2 must lose the loose-deny salvage (caught).
+rc=0; python3 scripts/check-thing-seat-extractor.py --must-fail >/dev/null 2>&1 || rc=$?
+gate "seat-extractor teeth: monotonic-strip → allow + attempt2-strip → deny-lost" must_pass "$rc"
+
+echo
+echo "── Gate 137: command-review master cascade narrowed to 4 high-stakes ──────"
+# P4a: the dashboard master switch used to enable ALL 12 review categories on one
+# click (KB kb-tribunal-seats-abstaining §2/§8.2 — the blast radius that put every
+# call through a degraded panel). The gate extracts the REAL master-switch handler +
+# the dashboard's own high-stakes list and executes it against a DOM-free mock.
+rc=0; node scripts/check-cr-master-cascade.mjs >/dev/null 2>&1 || rc=$?
+gate "cr-master-cascade: ON enables exactly the 4 high-stakes, keeps existing, OFF clears all" must_pass "$rc"
+
+# teeth: the reverted all-12 cascade checks 12, not 4 — the ON-flip assertion catches it.
+rc=0; node scripts/check-cr-master-cascade.mjs --must-fail >/dev/null 2>&1 || rc=$?
+gate "cr-master-cascade teeth: reverted all-12 cascade is caught" must_pass "$rc"
+
+echo
+echo "── Gate 138: behavioral-flags-vs-permissions legibility ───────────────────"
+# P5a: the ⚙ "Behavior, not permission" badge must mark the behavioral controls on
+# BOTH surfaces (design_checkins in Settings; decision_review + orchestrator in
+# Pipeline) so an operator stops cranking every permission to Allow expecting them to
+# go quiet. Per-location assertion (not a global grep) so removal from one is caught.
+rc=0; node scripts/check-posture-legibility.mjs >/dev/null 2>&1 || rc=$?
+gate "posture-legibility: behavioral badge in BOTH the Settings and Pipeline spans" must_pass "$rc"
+
+# teeth: stripping the badge from the Pipeline span only -> the per-location check
+# fails on Pipeline while Settings still passes (a global grep would miss it).
+rc=0; node scripts/check-posture-legibility.mjs --must-fail >/dev/null 2>&1 || rc=$?
+gate "posture-legibility teeth: badge stripped from one span is caught" must_pass "$rc"
+
+echo
+echo "── Gate 139: orchestrator absent⇒full doc consistency ─────────────────────"
+# P5b: CLAUDE.md documented the `orchestrator` knob's absent default as `full`, but
+# the GENERATED copilot/AGENTS.md relay condition 3 required the LITERAL key — so an
+# absent key silently failed relay eligibility (the intake-doc plugin bug). The fix is
+# in the generator (generate-copilot-plugin.py); this gate asserts three sources agree
+# that absent ⇒ full so the two docs can't drift apart again.
+rc=0; python3 scripts/check-orchestrator-doc-consistency.py >/dev/null 2>&1 || rc=$?
+gate "orchestrator-doc: CLAUDE.md + spawn-team + generator agree absent⇒full" must_pass "$rc"
+
+# teeth: stripping condition 3 back to literal-key-only (or removing the `full`
+# default) reintroduces the disagreement — the check must catch it.
+rc=0; python3 scripts/check-orchestrator-doc-consistency.py --self-test >/dev/null 2>&1 || rc=$?
+gate "orchestrator-doc teeth: a reintroduced disagreement is caught" must_pass "$rc"
+
+echo
+echo "── Gate 140: worktree-guard block-mode teeth ─────────────────────────────"
+# The worktree-hygiene guard (hooks/worktree-guard.sh) fires on exactly two locally
+# detectable conditions (contention with another live session, or anchor-work), and
+# in `block` mode DENIES (exit 2) only a MUTATING op — never a read, and never with
+# RC_WORKTREE_GUARD_ACK=1. The fixture drives the REAL script bidirectionally against
+# throwaway `git init` fixtures + a scratch RC_WORKTREE_GUARD_HOME: MUST-FAIL (block +
+# contention/anchor + a mutating op -> exit 2 deny) AND MUST-PASS (a solo checkout, a
+# read op, or ACK=1 -> exit 0), plus a teeth half that neuters the mutating classifier
+# and proves the deny then disappears.
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate140-worktree-guard.sh >/dev/null 2>&1 || rc=$?
+gate "worktree-guard block-mode teeth (deny mutating on contention/anchor; allow solo/read/ACK)" must_pass "$rc"
 
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"

@@ -276,7 +276,7 @@
       "displayName": "RavenClaude Core",
       "source": "./plugins/ravenclaude-core",
       "description": "Domain-neutral Claude Code foundation: 15 specialist agents, 48 skills, gates, hooks, rules, templates. Capability Grounding Protocol, Structured Output Protocol, Researcher meta-skill, comfort-posture dashboard, opt-in command-review tribunal (the Thing), WebFetch sanitizer, branch-archive escape hatch, brand-extraction (homepage → brand kit), Problems & Resolutions view, declarative-visualization (Vega-Lite/Deneb/SVG, Gate 101 + Gate 103 svg-report-lint, viz-spec-reviewer), and Claude orchestrator escape hatch (/claude-orchestrate). Slash commands: /init-agent-ready, /wrap, /set-posture, /dashboard, /forge, /reset-plugin-cache.",
-      "version": "0.199.1",
+      "version": "0.209.2",
       "author": {
         "name": "Matt Corbett"
       },
@@ -364,7 +364,7 @@
       "name": "web-design",
       "source": "./plugins/web-design",
       "description": "Web design & build specialist team — web architect (IA, stack, hosting), UX designer (wireframes, flows, conversion), visual designer (brand, typography, tokens), frontend implementer (HTML/CSS/JS, React, Astro, Next), content strategist (copy, microcopy, SEO content), accessibility auditor (WCAG 2.2 AA/AAA), and performance engineer (Core Web Vitals, image/font optimization). 13 skills (the gold-standard-website-pipeline gated build pipeline, static-site build, design-system audit, card/tile UI, accessibility review, Core Web Vitals tuning, technical SEO audit, information architecture, conversion design, content audit, design-tokens scaffolding, third-party hygiene, Fluent UI v9 + React implementation), 8 templates, 1 advisory hook, and a knowledge bank seeded with a curated 2026 reference set of \"cutting edge yet simple\" marketing-site donors — the design agents carry compact inline priors plus a pointer to the full brief. Inherits ravenclaude-core protocols.",
-      "version": "0.14.3",
+      "version": "0.15.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -3806,6 +3806,36 @@
         "capacity-planning",
         "database-slo"
       ]
+    },
+    {
+      "name": "report-regeneration",
+      "source": "./plugins/report-regeneration",
+      "description": "Regenerates a review-ready report (HTML or Office/Word\u2192PDF) from an old distributed report used as a template \u2014 infers the template's structure with no markup, re-binds it to new data (including Power BI data via XMLA, with a REST executeQueries fallback, and an embedded Power BI screenshot), and runs a gold-standard auto-QA gate: data accuracy vs source, template fidelity, WCAG/PDF-UA accessibility, consistency, and a blocking no-old-client-data-leak egress scan. It GUARANTEES only (a) no old-client-data leak and (b) that every low-confidence classification is surfaced for human review \u2014 it produces a draft; peer review, edits, and distribution stay with the human. Local-only for sensitive client data. 11 skills across the HTML \u2192 Office \u2192 Power-BI lanes; no agents of its own \u2014 reuses core reviewers (security-reviewer, code-reviewer) for QA. Requires ravenclaude-core@>=0.204.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "homepage": "https://github.com/mcorbett51090/RavenClaude",
+      "license": "MIT",
+      "keywords": [
+        "report-generation",
+        "report-templating",
+        "structure-inference",
+        "html-report",
+        "docx",
+        "pdf-ua",
+        "power-bi",
+        "xmla",
+        "accessibility",
+        "wcag",
+        "data-provenance",
+        "peer-review",
+        "document-automation",
+        "local-first"
+      ],
+      "requires": {
+        "plugins": ["ravenclaude-core@>=0.204.0"]
+      }
     },
     {
       "name": "ai-agent-engineering",

@@ -38,3 +38,11 @@ evals/**/*.private.*
 # Bytecode for the new evals harness
 evals/__pycache__/
 .claude/worktrees/
+
+# browser-verification debris (Playwright)
+.playwright-mcp/
+*-rendered.png
+
+# report-regeneration test output — regenerated reports and QA artifacts written
+# by the plugin's skills during a run; never source, never committed.
+tests/fixtures/report-regeneration/_out/

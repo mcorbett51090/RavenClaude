@@ -49,8 +49,11 @@ import hmac
 import json
 import os
 import secrets
+import signal
 import subprocess
 import sys
+import threading
+import time
 import webbrowser
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -318,6 +321,11 @@ _ALLOWED_ORIGINS: set[str] = set()
 # that omits Origin still has to present this token" reasoning is CIRCULAR — the
 # same open door supplies the key. The honest boundary is in _state_change_origin_ok().
 _CSRF_TOKEN: str = ""
+
+# Monotonic clock of the last request, bumped by DashboardHandler.handle_one_request.
+# Read by _idle_reaper() to self-expire a forgotten (detached, session-outliving)
+# server after `--max-idle` minutes of inactivity. Initialised in main().
+_LAST_ACTIVITY: float = 0.0
 
 
 def _summarize_run(d: Path) -> dict:
@@ -1335,13 +1343,54 @@ def _read_knowledge_health(repo_root: Path) -> dict:
         return empty
 
 
+def _read_worktree_guard(project_root: Path) -> dict | None:
+    """Worktree-hygiene guard status for THIS checkout — whether it is the repo's
+    anchor, how many live Claude sessions share this working tree, and whether
+    there is contention (a latecomer joined a tree already in use). The SINGLE
+    SOURCE OF TRUTH is worktree-guard.sh `status --json`; this reader never
+    reimplements anchor/staleness detection in Python — it only shells the hook
+    and parses its JSON. Read-only and fail-open: a missing hook, a non-git
+    checkout, a missing git/jq/shasum, a timeout, or non-JSON output all yield
+    None (the Sleipnir widget simply omits the guard block), never raises.
+    Duplicated byte-identically in both server copies — keep them in sync (the
+    parity gate guards endpoint NAMES; this helper is duplicated, so edit both)."""
+    hook = project_root / "plugins" / "ravenclaude-core" / "hooks" / "worktree-guard.sh"
+    if not hook.is_file():
+        # Bundled-plugin install ships the hook alongside this server (../hooks).
+        hook = Path(__file__).resolve().parent.parent / "hooks" / "worktree-guard.sh"
+    if not hook.is_file():
+        return None
+    try:
+        proc = subprocess.run(
+            ["bash", str(hook), "status", "--json"],
+            cwd=str(project_root),
+            stdin=subprocess.DEVNULL,
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=False,
+        )
+    except (subprocess.SubprocessError, OSError):
+        return None
+    out = (proc.stdout or "").strip()
+    if not out:
+        return None
+    try:
+        data = json.loads(out)
+    except json.JSONDecodeError:
+        return None
+    return data if isinstance(data, dict) else None
+
+
 def _read_sleipnir(project_root: Path) -> dict:
-    """Sleipnir's stables — the current git worktrees under .claude/worktrees/.
-    Read-only directory listing (names + count), no git invocation. Reads only
-    under project_root (no root reference) so this is byte-identical in the root
-    and bundled plugin server — keep the two copies in sync (the parity gate
-    guards endpoint NAMES; this helper is duplicated, so edit both). Any failure
-    (missing dir, unreadable) degrades to an empty stable, never raises."""
+    """Sleipnir's stables — the current git worktrees under .claude/worktrees/,
+    plus the worktree-hygiene guard status for THIS checkout (is_anchor /
+    live_sessions / contention, via worktree-guard.sh status --json — the single
+    source of truth). The directory listing reads only under project_root; the
+    guard block is fail-open (absent on any git/hook failure). Byte-identical in
+    the root and bundled plugin server — keep the two copies in sync (the parity
+    gate guards endpoint NAMES; this helper is duplicated, so edit both). Any
+    failure (missing dir, unreadable) degrades to an empty stable, never raises."""
     out: dict = {"worktrees": [], "count": 0}
     wt_dir = project_root / ".claude" / "worktrees"
     if wt_dir.is_dir():
@@ -1351,6 +1400,9 @@ def _read_sleipnir(project_root: Path) -> dict:
             names = []
         out["worktrees"] = names
         out["count"] = len(names)
+    guard = _read_worktree_guard(project_root)
+    if guard is not None:
+        out["guard"] = guard
     return out
 
 
@@ -1399,6 +1451,13 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         sys.stderr.write(
             "[%s] %s\n" % (self.log_date_time_string(), format % args)
         )
+
+    def handle_one_request(self):
+        # Record activity for the --max-idle reaper on every incoming request
+        # (before parsing, so even a rejected request counts as "in use").
+        global _LAST_ACTIVITY
+        _LAST_ACTIVITY = time.monotonic()
+        super().handle_one_request()
 
     def _local_request_ok(self) -> bool:
         """Refuse cross-origin / DNS-rebinding requests to the dashboard endpoints.
@@ -1974,7 +2033,11 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         # write_bytes, not write_text(newline=): Python 3.9 compat (LF preserved)
         out.write_bytes(content.encode("utf-8"))
 
-        payload = {"saved": str(out.relative_to(REPO_ROOT)), "bytes": len(content)}
+        payload = {
+            "saved": str(out.relative_to(REPO_ROOT)),
+            "root": str(REPO_ROOT),
+            "bytes": len(content),
+        }
         # Auto-apply: saving the posture re-runs the translator so the change
         # lands in .claude/settings.json instantly (no manual /set-posture).
         if target == POSTURE_TARGET:
@@ -2119,6 +2182,133 @@ def _print_qr(url: str) -> bool:
     return True
 
 
+# ── Port reclamation ────────────────────────────────────────────────────────
+# Twin of the bundled plugin server's helpers (keep both copies in sync — the
+# plugin copy is hand-maintained, see Gate 32). The port walk below already
+# avoided EADDRINUSE, but it silently drifted the URL off 8000 even when the
+# holder was one of our OWN stale servers. Reclaiming ours first keeps the URL
+# stable across relaunches; a foreign process is NEVER signalled.
+
+
+def _port_holder_pids(port: int) -> list[int]:
+    """PIDs listening on `port`, excluding this process. Never raises: no lsof
+    (or any failure) yields [], and the caller falls back to a port walk."""
+    try:
+        out = subprocess.run(
+            ["lsof", "-nP", f"-iTCP:{port}", "-sTCP:LISTEN", "-t"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        ).stdout
+    except (OSError, subprocess.SubprocessError):
+        return []
+    pids = []
+    for tok in out.split():
+        try:
+            pid = int(tok)
+        except ValueError:
+            continue
+        if pid != os.getpid():
+            pids.append(pid)
+    return pids
+
+
+def _holder_cwd(pid: int) -> str | None:
+    """`pid`'s working directory, or None. Never raises."""
+    try:
+        out = subprocess.run(
+            ["lsof", "-a", "-p", str(pid), "-d", "cwd", "-Fn"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        ).stdout
+    except (OSError, subprocess.SubprocessError):
+        return None
+    for line in out.splitlines():
+        if line.startswith("n"):
+            return line[1:]
+    return None
+
+
+def _is_our_dashboard(pid: int) -> bool:
+    """True only when `pid` is a serve-dashboards.py serving THIS repo.
+
+    Both halves matter. The name check alone would also match a dashboard
+    another repo has open right now — reclaiming that would kill a live
+    session in an unrelated project to free a port we can just as easily
+    step around. So "ours" means "this repo's own stale server".
+
+    Fail-closed — any doubt (no ps/lsof, a failure, an unreadable cwd, a
+    mismatch) is False, so a process we haven't positively identified is
+    never signalled."""
+    try:
+        out = subprocess.run(
+            ["ps", "-p", str(pid), "-o", "command="],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        ).stdout
+    except (OSError, subprocess.SubprocessError):
+        return False
+    if "serve-dashboards.py" not in out:
+        return False
+    cwd = _holder_cwd(pid)
+    if cwd is None:
+        return False
+    try:
+        return Path(cwd).resolve() == REPO_ROOT.resolve()
+    except OSError:
+        return False
+
+
+def _reclaim_port(port: int) -> bool:
+    """SIGTERM our own stale dashboard server(s) on `port` and wait for the
+    socket to free. False if the holder isn't ours (or won't let go) — the
+    caller then walks to another port rather than escalating."""
+    pids = [p for p in _port_holder_pids(port) if _is_our_dashboard(p)]
+    if not pids:
+        return False
+    for pid in pids:
+        try:
+            os.kill(pid, signal.SIGTERM)
+        except OSError:
+            return False
+    for _ in range(20):  # ~2s: SIGTERM + socket teardown is not instant
+        time.sleep(0.1)
+        if not _port_holder_pids(port):
+            return True
+    return False
+
+
+def _default_bind() -> str:
+    """The bind address to use when --bind is not passed explicitly.
+
+    In a Codespace the port-forwarder cannot reach a 127.0.0.1-only socket, so
+    default to 0.0.0.0 there (kept safe by the Private forwarded port + the
+    Origin/Host CSRF guard, and defensible because nothing auto-starts); off a
+    Codespace stay loopback-only. An explicit --bind always wins over this."""
+    return "0.0.0.0" if os.environ.get("CODESPACE_NAME") else "127.0.0.1"
+
+
+def _idle_reaper(max_idle_minutes: float) -> None:
+    """Self-expire the process after `max_idle_minutes` with no request.
+
+    This is a detached, session-outliving server bound to the loopback /__save
+    write surface; the launch ruling bounds its lifetime rather than leaving it
+    open indefinitely. `max_idle_minutes <= 0` disables the reaper (the thread
+    never starts). Activity is the module-global `_LAST_ACTIVITY` monotonic clock,
+    bumped by the request handler on every request; a tab open across the expiry
+    recovers via the client-side re-probe."""
+    if max_idle_minutes <= 0:
+        return
+    idle_seconds = max_idle_minutes * 60
+    while True:
+        time.sleep(min(idle_seconds, 30))
+        if time.monotonic() - _LAST_ACTIVITY >= idle_seconds:
+            print(f"serve-dashboards: idle {max_idle_minutes:g} min — exiting (--max-idle).", flush=True)
+            os._exit(0)
+
+
 def main() -> int:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--port", type=int, default=8000)
@@ -2133,6 +2323,12 @@ def main() -> int:
         default=False,
         help="skip auto-opening the browser on start (auto-open is ON by default for local/desktop runs)",
     )
+    p.add_argument(
+        "--max-idle",
+        type=float,
+        default=120,
+        help="minutes of inactivity after which the server self-exits (bounds the detached /__save listener's lifetime); 0 disables. Default 120.",
+    )
     args = p.parse_args()
 
     codespace = os.environ.get("CODESPACE_NAME")
@@ -2140,7 +2336,7 @@ def main() -> int:
     # In a Codespace the port-forwarder can't reach a 127.0.0.1-only socket, so default
     # to 0.0.0.0 there — kept safe by the Private forwarded port + the Origin/Host CSRF
     # guard below. Off-Codespace stay loopback-only. An explicit --bind always wins.
-    bind = args.bind or ("0.0.0.0" if codespace else "127.0.0.1")
+    bind = args.bind or _default_bind()
 
     # Refuse 0.0.0.0 when the Codespace forwarded port is set to Public — the
     # /__save and /__run surfaces would be reachable from the public internet on
@@ -2163,11 +2359,16 @@ def main() -> int:
 
     os.chdir(REPO_ROOT)
 
-    # Stable port: try the requested port and up to 5 successive ones to find a
-    # free socket.  This avoids "address already in use" errors when the server
-    # is relaunched quickly or another process holds the default port.
+    # Stable port: try the requested port, reclaim it from one of our OWN stale
+    # servers if that's what holds it (keeps the URL stable across relaunches),
+    # then fall back to up to 5 successive ports. This avoids "address already
+    # in use" errors when the server is relaunched quickly or another process
+    # holds the default port.
     server = None
     actual_port = args.port
+    if _port_holder_pids(args.port):
+        if _reclaim_port(args.port):
+            print(f"  port {args.port} was held by a stale dashboard server — stopped it, rebinding")
     for candidate in range(args.port, args.port + 6):
         try:
             server = ThreadingHTTPServer((bind, candidate), DashboardHandler)
@@ -2186,8 +2387,14 @@ def main() -> int:
     # Generate the per-process CSRF token before the server can serve a single
     # request. The Origin/Host guard is set up alongside it; together they form
     # the two-layer defense for the state-changing POST surface.
-    global _ALLOWED_HOSTS, _ALLOWED_ORIGINS, _CSRF_TOKEN
+    global _ALLOWED_HOSTS, _ALLOWED_ORIGINS, _CSRF_TOKEN, _LAST_ACTIVITY
     _CSRF_TOKEN = secrets.token_urlsafe(32)
+    _LAST_ACTIVITY = time.monotonic()
+    # Self-expire after `--max-idle` minutes of inactivity so a forgotten detached
+    # server does not sit on the loopback /__save write surface indefinitely (the
+    # launch ruling bounds duration; a tab open across the expiry recovers via the
+    # client-side re-probe). --max-idle 0 disables (the thread never starts).
+    threading.Thread(target=_idle_reaper, args=(args.max_idle,), daemon=True).start()
     _ALLOWED_HOSTS = {f"127.0.0.1:{actual_port}", f"localhost:{actual_port}", "127.0.0.1", "localhost"}
     _ALLOWED_ORIGINS = {f"http://127.0.0.1:{actual_port}", f"http://localhost:{actual_port}"}
     if codespace:

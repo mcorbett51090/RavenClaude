@@ -184,12 +184,12 @@ function ok(cond, msg) {
 /* ── Fixture 1: POPULATED ─────────────────────────────────────────────── */
 loaded.renderMimirSettings({
   theme: "dark",
-  model: { configured: "claude-opus-4-8", last_used: "claude-sonnet-4-6" },
+  model: { configured: "claude-opus-4-8", last_used: "claude-sonnet-5" },
   permission_mode: "default",
 });
 ok(settings.flatText().includes("dark"), "populated: theme shows");
 ok(settings.flatText().includes("claude-opus-4-8"), "populated: configured model shows");
-ok(settings.flatText().includes("claude-sonnet-4-6"), "populated: last-used model shows");
+ok(settings.flatText().includes("claude-sonnet-5"), "populated: last-used model shows");
 ok(settings.flatText().includes("default"), "populated: permission mode shows");
 /* RM "honest empty state for unreachable" — reasoning effort must render as a
  * pill, NEVER as a dash. */

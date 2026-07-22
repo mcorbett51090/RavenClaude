@@ -1,0 +1,151 @@
+#!/usr/bin/env bash
+# rcwt — RavenClaude worktree helper (portable, canonical). One session = one
+# worktree = one branch. The primary/anchor checkout stays on main and is NEVER
+# worked in.
+#
+#   rcwt new <task> [base]   create <wt-root>/<task> on branch forge/<task> off origin/<base>
+#   rcwt ls                  list worktrees
+#   rcwt rm <task>           remove the worktree AND delete its branch if fully merged
+#   rcwt done <task>         alias for rm (keeps merged-only safety)
+#   rcwt anchor              print the repo's anchor (primary) checkout + branch, and
+#                            whether THIS working tree IS the anchor (never work in it)
+#   rcwt status [--json]     worktree-guard snapshot: the guard hook's `status --json`
+#                            when reachable, else a plain `git worktree list`
+#
+# WORKTREE-ROOT RESOLUTION (portable across any repo, T4):
+#   1. $RAVENCLAUDE_WORKTREE_ROOT  if set              (explicit override; its value IS the root)
+#   2. <repo>/.claude/worktrees    if that dir exists  (so RavenClaude's dashboard
+#                                                        "Sleipnir's stables" widget,
+#                                                        which reads .claude/worktrees/*,
+#                                                        sees rcwt's worktrees)
+#   3. <dirname repo>/<repo>-wt    otherwise           (the sibling-dir default)
+#
+# Safe by construction: `worktree add` never touches the primary checkout's HEAD
+# or index, so it cannot rug-pull a neighboring session. Branch off origin/<base>,
+# not local main.
+#
+# Portability: macOS bash 3.2 / BSD-safe. No declare -A / mapfile / grep -P /
+# timeout(1) / sed -i / ${x^^} / globstar.
+
+set -euo pipefail
+
+# Resolve this script's own directory (follow one symlink level for PATH installs),
+# so `rcwt status` can find the sibling worktree-guard.sh when run in-plugin.
+_src="${BASH_SOURCE[0]:-$0}"
+[ -L "$_src" ] && _src="$(readlink "$_src")"
+BIN_DIR="$(cd "$(dirname "$_src")" && pwd)"
+PLUGIN_ROOT="$(cd "$BIN_DIR/.." && pwd)"
+
+# Resolve the primary/anchor repo: $RCWT_PRIMARY if set, else the top-level of the
+# CWD's repo. A canonical, portable rcwt has no hard-coded repo fallback.
+PRIMARY="${RCWT_PRIMARY:-}"
+if [ -z "$PRIMARY" ]; then
+  if git rev-parse --show-toplevel >/dev/null 2>&1; then
+    PRIMARY="$(git rev-parse --show-toplevel)"
+  else
+    echo "rcwt: not inside a git repository (and \$RCWT_PRIMARY is unset)." >&2
+    exit 1
+  fi
+fi
+[ -d "$PRIMARY/.git" ] || [ -f "$PRIMARY/.git" ] || {
+  echo "rcwt: no git repo at $PRIMARY" >&2
+  exit 1
+}
+
+REPONAME="$(basename "$PRIMARY")"
+
+# Worktree root (see the T4 resolution note in the header).
+if [ -n "${RAVENCLAUDE_WORKTREE_ROOT:-}" ]; then
+  WT_ROOT="$RAVENCLAUDE_WORKTREE_ROOT"
+elif [ -d "$PRIMARY/.claude/worktrees" ]; then
+  WT_ROOT="$PRIMARY/.claude/worktrees"
+else
+  WT_ROOT="$(dirname "$PRIMARY")/${REPONAME}-wt"
+fi
+
+# realpath of a directory, portably (pwd -P resolves symlinks; no realpath(1)).
+_rcwt_realpath() { ( cd "$1" 2>/dev/null && pwd -P ) 2>/dev/null; }
+
+cmd="${1:-}"
+shift || true
+
+case "$cmd" in
+  new)
+    task="${1:?usage: rcwt new <task> [base-branch]}"
+    base="${2:-main}"
+    dest="$WT_ROOT/$task"
+    branch="forge/$task"
+    mkdir -p "$WT_ROOT"
+    git -C "$PRIMARY" fetch --prune origin "$base"
+    git -C "$PRIMARY" worktree add "$dest" -b "$branch" "origin/$base"
+    echo "OK worktree: $dest   (branch $branch off origin/$base)"
+    command -v code >/dev/null 2>&1 && code "$dest" || echo "  open it: code \"$dest\""
+    ;;
+
+  ls|list)
+    git -C "$PRIMARY" worktree list
+    ;;
+
+  rm|remove|done)
+    task="${1:?usage: rcwt rm <task>}"
+    dest="$WT_ROOT/$task"
+    branch="forge/$task"
+    git -C "$PRIMARY" worktree remove "$dest"
+    git -C "$PRIMARY" worktree prune
+    # `-d` deletes only if fully merged; it REFUSES unmerged work (safe by design).
+    if git -C "$PRIMARY" branch -d "$branch" 2>/dev/null; then
+      echo "OK removed worktree + merged branch $branch"
+    else
+      echo "OK removed worktree; branch $branch kept — it still has unmerged commits."
+      if [ -x "$PRIMARY/scripts/archive-branch.sh" ]; then
+        echo "  This repo blocks blanket force-delete. To retire it safely — tag the tip"
+        echo "  to origin, then delete — run from the primary checkout:"
+        echo "    (cd \"$PRIMARY\" && scripts/archive-branch.sh \"$branch\" --reason \"<why>\")"
+      else
+        echo "  Land it via PR/merge first, or retire it deliberately once it's disposable."
+      fi
+    fi
+    ;;
+
+  anchor)
+    # The anchor = the FIRST entry of `git worktree list --porcelain` (the primary
+    # checkout git tracks first) — the same definition the worktree-guard hook uses.
+    first="$(git -C "$PRIMARY" worktree list --porcelain 2>/dev/null | grep '^worktree ' | head -1 | sed 's/^worktree //')"
+    [ -n "$first" ] || first="$PRIMARY"
+    rp_first="$(_rcwt_realpath "$first")"; [ -n "$rp_first" ] || rp_first="$first"
+    rp_here="$(_rcwt_realpath "$PRIMARY")"; [ -n "$rp_here" ] || rp_here="$PRIMARY"
+    ab="$(git -C "$first" rev-parse --abbrev-ref HEAD 2>/dev/null || printf '?')"
+    echo "anchor checkout: $first   (branch $ab)"
+    echo "worktree root:   $WT_ROOT"
+    if [ "$rp_first" = "$rp_here" ]; then
+      echo "  -> you ARE in the anchor checkout. Don't work here; open a worktree:  rcwt new <task>"
+    else
+      echo "  -> you are in a worktree (not the anchor). Good."
+    fi
+    ;;
+
+  status)
+    # Prefer the worktree-guard hook's canonical `status --json` (single source of
+    # truth). Resolve it via $RCWT_GUARD, else the sibling hooks/ dir (works when
+    # rcwt runs in-plugin; a copy in ~/.local/bin won't find it -> plain fallback).
+    guard="${RCWT_GUARD:-$PLUGIN_ROOT/hooks/worktree-guard.sh}"
+    if [ -f "$guard" ]; then
+      # Feed a minimal payload so the guard keys on the right repo even without jq's
+      # $CLAUDE_PROJECT_DIR; run it from PRIMARY so the no-jq path also sees the repo.
+      ( cd "$PRIMARY" 2>/dev/null && printf '{"cwd":"%s"}\n' "$PRIMARY" | bash "$guard" status --json )
+    else
+      echo "rcwt: worktree-guard.sh not reachable (set \$RCWT_GUARD to override) — plain worktree list:" >&2
+      git -C "$PRIMARY" worktree list
+    fi
+    ;;
+
+  ""|-h|--help|help)
+    # Print the header usage block (lines 2-15), stripping the leading "# ".
+    sed -n '2,15p' "$_src" | sed 's/^# \{0,1\}//'
+    ;;
+
+  *)
+    echo "rcwt: unknown command '$cmd' (try: rcwt help)" >&2
+    exit 1
+    ;;
+esac

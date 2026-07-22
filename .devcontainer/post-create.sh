@@ -121,4 +121,18 @@ RCAUTOSTART
   log "  done"
 fi
 
+# ── Worktree-hygiene provisioning (idempotent, non-fatal) ────────────────────
+# Installs `rcwt` (-> ~/.local/bin) + git rebase-on-pull defaults + the PATH block
+# so one-session-one-worktree is the path of least resistance. We deliberately do
+# NOT pass --with-git-hook: a single-session container has no need for global git
+# surgery (core.hooksPath), which is high-blast (it touches every repo's git-hook
+# resolution). Same guarded/non-fatal shape as the terminal-indicators block above.
+WT_HYGIENE="scripts/setup-worktree-hygiene.sh"
+if [ -f "$WT_HYGIENE" ]; then
+  log "Provisioning worktree hygiene (rcwt + rebase defaults; no global git hook)..."
+  bash "$WT_HYGIENE" >/dev/null 2>&1 \
+    && log "  done" \
+    || log "  SKIP: worktree-hygiene setup failed (non-fatal)."
+fi
+
 log "Setup complete. Available tools: claude, gh, node, python3, jq."

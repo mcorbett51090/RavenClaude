@@ -122,8 +122,16 @@ if [ "${#branches[@]}" = "0" ]; then
   exit 2
 fi
 
-# de-dupe, preserving order
-mapfile -t branches < <(printf '%s\n' "${branches[@]}" | awk '!s[$0]++')
+# de-dupe, preserving order.
+# NOT `mapfile` — bash 4.0+, and macOS ships bash 3.2 at /bin/bash where it exits
+# 127 (command not found); under `set -e` that killed the script here. Same door-1
+# class as archive-branch.sh above and the v0.193.0 hook sweep, which scoped to
+# plugins/*/hooks/** and never looked at scripts/.
+_deduped=()
+while IFS= read -r _b || [[ -n "$_b" ]]; do
+  [[ -n "$_b" ]] && _deduped+=("$_b")
+done < <(printf '%s\n' "${branches[@]}" | awk '!s[$0]++')
+branches=("${_deduped[@]}")
 
 owner_repo=""
 if [ "$delete_remote" = "1" ]; then
