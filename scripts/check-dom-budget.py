@@ -123,6 +123,11 @@ RATCHET = {
                                               "DOM-island-loaded; its deferred .cmd-copy/.cmd-run binds "
                                               "re-pointed to an on-activate initCommands() scoped to "
                                               "#commands-mount. 17,066 -> 10,764 = 7.7x vs 1,400. Zero slack."),
+        ("P1 (plugin-panel collapse)", 6095, "the 167 panel-plugin-* sections (~4,843 elems) collapsed "
+                                             "into ONE #plugin-vars picker: a <select> of 167 plugins whose "
+                                             "editor form renders client-side into #plugin-vars-mount from the "
+                                             "inline #plugin-vars-payload JSON (uncounted CDATA). Measured "
+                                             "10,757 -> 6,095. Zero slack."),
     ],
     INDEX: [
         ("Phase 0 -> 6", 50982, "Phase 0 baseline 50,945; +37 in Phase 6 (same guard-web-access + "
@@ -133,6 +138,10 @@ RATCHET = {
                                            "surface. 37,468 -> 17,772 = 12.7x. Zero slack."),
         ("Phase 2b (Commands island)", 11470, "portal fragment's commands payload islanded alongside "
                                               "the standalone surface. 17,772 -> 11,470 = 8.2x. Zero slack."),
+        ("P1 (plugin-panel collapse)", 6800, "the 167 panel-plugin-* sections collapsed into ONE "
+                                             "#plugin-vars picker in the merged dashboard fragment (same "
+                                             "collapse as the standalone surface). Measured 11,462 -> 6,800. "
+                                             "Zero slack."),
     ],
 }
 

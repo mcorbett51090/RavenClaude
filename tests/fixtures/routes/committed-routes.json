@@ -3,13 +3,13 @@
   "generated_by": "scripts/check-committed-routes.mjs --emit",
   "required_routes": {
     "_note": "PB-2 floor (FORGE dashboard-consumption): routes that MUST stay present+resolved on each surface. Hand-authored; carried verbatim through --emit; asserted by Gate 51. Retiring one requires a docs/dashboard-removed-routes.md row + a floor edit in the same commit. Seed = named survivors (job-1 settings + Learn).",
-    "dashboard": ["#/settings", "#/learn"],
-    "index": ["#/settings"]
+    "dashboard": ["#/settings", "#/learn", "#/plugin-vars"],
+    "index": ["#/settings", "#/plugin-vars"]
   },
   "surfaces": {
     "dashboard": {
-      "href_count": 10,
-      "distinct_static": 8,
+      "href_count": 11,
+      "distinct_static": 9,
       "distinct_dynamic": 0,
       "static_href_routes": [
         {
@@ -55,6 +55,13 @@
           "resolved": true
         },
         {
+          "route": "#/plugin-vars",
+          "section": "plugin-vars",
+          "sub": null,
+          "destination": "activate:plugin-vars",
+          "resolved": true
+        },
+        {
           "route": "#/settings",
           "section": "settings",
           "sub": null,
@@ -73,9 +80,9 @@
       "nav_routes": []
     },
     "index": {
-      "href_count": 24,
-      "distinct_static": 12,
-      "distinct_dynamic": 3,
+      "href_count": 26,
+      "distinct_static": 13,
+      "distinct_dynamic": 4,
       "static_href_routes": [
         {
           "route": "#/about",
@@ -138,6 +145,13 @@
           "section": "pipeline",
           "sub": null,
           "destination": "viewDashboard:pipeline",
+          "resolved": true
+        },
+        {
+          "route": "#/plugin-vars",
+          "section": "plugin-vars",
+          "sub": null,
+          "destination": "viewDashboard:plugin-vars",
           "resolved": true
         },
         {
@@ -212,6 +226,13 @@
           "literal_section": "discover",
           "note": "literal section 'discover' → viewMarketplace",
           "destination": "viewMarketplace",
+          "resolved": true
+        },
+        {
+          "template": "#/plugin-vars/${esc(p.name)}",
+          "literal_section": "plugin-vars",
+          "note": "literal section 'plugin-vars' → viewDashboard:plugin-vars",
+          "destination": "viewDashboard:plugin-vars",
           "resolved": true
         }
       ],
@@ -366,6 +387,7 @@
           "comfort-posture": "configure",
           "web-access": "configure",
           "simulator": "configure",
+          "plugin-vars": "configure",
           "commands": "act",
           "trees": "learn",
           "pipeline": "configure",

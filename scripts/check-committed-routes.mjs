@@ -125,7 +125,11 @@ function resolveIndex(section, R) {
   if (R.legacy[section] === "viewTeam") return { resolved: true, destination: "viewTeam" };
   let s = section;
   if (R.alias[s]) s = R.alias[s];
-  if (s.startsWith("plugin-")) return { resolved: true, destination: "__openPlugin" };
+  // #/plugin-vars (the P1 picker) is EXCLUDED from the plugin-* → __openPlugin
+  // branch in route() — it is owned by the dashboard host via DASH_OWNER and
+  // dispatches through viewDashboard. Mirror that ordering exactly.
+  if (s.startsWith("plugin-") && s !== "plugin-vars")
+    return { resolved: true, destination: "__openPlugin" };
   if (s === "observe") return { resolved: true, destination: "viewDashboard:activity" };
   if (s === "act") return { resolved: true, destination: "viewDashboard:commands" };
   if (R.owner[s]) return { resolved: true, destination: `viewDashboard:${s}` };

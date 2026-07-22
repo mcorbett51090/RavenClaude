@@ -9283,7 +9283,7 @@ _JS = r"""
     if (tab === "mimir" && !mimirLoaded) loadMimir();
     if (tab === "streams" && !streamsLoaded) loadStreams();
     if (tab === "pipeline") syncPipelineTab();
-    if (tab.indexOf("plugin-") === 0) hydratePluginPage(tab.slice(7));
+    if (tab === "plugin-vars") activatePluginVars(sub);
     if (tab === "web-access") hydrateWebAccess();
   }
   // Navigate: activate immediately, then reflect the page in the URL hash for
@@ -9335,10 +9335,97 @@ _JS = r"""
     });
   }
   /* ── Plugins category: per-plugin variable editor (portal → repo file) ─── */
+  // P1: the 167 per-plugin panels collapsed into ONE picker. renderPluginVarsForm()
+  // rebuilds the SAME .plugin-page markup _render_plugin_page used to emit — one
+  // plugin at a time, from the inline #plugin-vars-payload JSON — into
+  // #plugin-vars-mount, then hydrates it. emitPluginYaml/applyPluginConfig/
+  // hydratePluginPage/setPluginStatus below are UNCHANGED (they query the single
+  // mounted .plugin-page). Save/Download wire via EVENT DELEGATION (further down) —
+  // the buttons are created after load, so a load-time querySelectorAll would never
+  // bind them (the silent-Save hazard the collapse introduces).
   const PLUGIN_LS_PREFIX = "rc-plugin-vars:";
   const pluginPagesHydrated = {};
   function pluginPanel(plugin) {
     return document.querySelector('.plugin-page[data-plugin="' + plugin + '"]');
+  }
+  let _pluginVarsPayload = null;
+  function pluginVarsData() {
+    if (_pluginVarsPayload) return _pluginVarsPayload;
+    const el = document.getElementById("plugin-vars-payload");
+    try { _pluginVarsPayload = el ? JSON.parse(el.textContent) : {}; }
+    catch (e) { _pluginVarsPayload = {}; }
+    return _pluginVarsPayload;
+  }
+  function pvEsc(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, c =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  }
+  function renderPluginVarsControl(plugin, v) {
+    const key = v.key;
+    const cid = "pv-" + plugin + "-" + key;
+    const dflt = v.default == null ? "" : String(v.default);
+    let control;
+    if (v.type === "enum") {
+      const opts = (v.options || []).map(o =>
+        '<option value="' + pvEsc(o) + '"' + (o === v.default ? " selected" : "") + ">" + pvEsc(o) + "</option>"
+      ).join("");
+      control = '<select id="' + pvEsc(cid) + '" class="pv-control" data-pvar="' + pvEsc(key) +
+        '" data-ptype="enum" data-pdefault="' + pvEsc(dflt) + '">' + opts + "</select>";
+    } else {
+      const it = v.type === "number" ? "number" : "text";
+      control = '<input id="' + pvEsc(cid) + '" class="pv-control" type="' + it + '" data-pvar="' +
+        pvEsc(key) + '" data-ptype="' + pvEsc(v.type) + '" data-pdefault="' + pvEsc(dflt) +
+        '" value="' + pvEsc(dflt) + '">';
+    }
+    return '<div class="pv-row"><label class="pv-label" for="' + pvEsc(cid) + '">' + pvEsc(v.label) +
+      "</label>" + control + '<p class="pv-help">' + pvEsc(v.help || "") + "</p></div>";
+  }
+  function renderPluginVarsForm(name) {
+    const mount = document.getElementById("plugin-vars-mount");
+    if (!mount) return;
+    const data = pluginVarsData()[name];
+    if (!data) { mount.innerHTML = ""; return; }
+    const esc = pvEsc(name);
+    const target = pvEsc(data.target);
+    // R2 (plan §1.1): most plugins have NO curated knobs — the empty state says so,
+    // and that the free-form values are a write-only sink no hook reads.
+    const controls = (data.curated && data.curated.length)
+      ? data.curated.map(v => renderPluginVarsControl(name, v)).join("")
+      : '<p class="pv-help">No curated knobs for this plugin — the free-form values below are saved but not currently read by any hook. Add project variables in the free-form section.</p>';
+    mount.innerHTML =
+      '<div class="plugin-page" data-plugin="' + esc + '" data-target="' + target + '">' +
+        '<h2 class="pp-title">' + esc + "</h2>" +
+        '<p class="pp-sub">Configure <code>' + esc + "</code>'s variables here — they save to <code>" + target +
+          "</code> via the dashboard server (on the static copy, edits stay in your browser — use <strong>Download</strong>). For the full reference — agents, scenarios, skills, hooks, templates, best-practices — see this plugin in the portal's <strong>Marketplace</strong> section.</p>" +
+        '<section class="pp-section">' +
+          "<h3>Variables</h3>" +
+          '<div class="pv-curated">' + controls + "</div>" +
+          '<div class="pv-freeform">' +
+            "<h4>Free-form variables</h4>" +
+            '<p class="pv-help">One <code>key: value</code> per line (YAML). For project variables not covered by the curated knobs above.</p>' +
+            '<textarea class="pv-extra" data-plugin="' + esc + '" rows="5" spellcheck="false" placeholder="my_key: my value&#10;another_key: 123"></textarea>' +
+          "</div>" +
+          '<div class="pp-actions">' +
+            '<button type="button" class="pp-save" data-plugin="' + esc + '">Save to repo</button>' +
+            '<button type="button" class="pp-download" data-plugin="' + esc + '">Download .yaml</button>' +
+            '<span class="pp-status" data-plugin="' + esc + '" role="status"></span>' +
+          "</div>" +
+          '<p class="pp-noserver" data-plugin="' + esc + '" hidden>No local dashboard server behind this page, so <strong>Save to repo</strong> is off. Run <code>ravenclaude dashboard</code> (or <code>bash .ravenclaude/dashboard.sh</code>) and reopen, or use <strong>Download</strong> and drop the file into <code>' + target + "</code>.</p>" +
+        "</section>" +
+      "</div>";
+    // Re-render replaces the panel, so drop the hydrate latch to re-load this
+    // plugin's saved values against the freshly-mounted .plugin-page.
+    delete pluginPagesHydrated[name];
+    hydratePluginPage(name);
+  }
+  function activatePluginVars(name) {
+    const sel = document.getElementById("plugin-vars-select");
+    if (!sel) return;
+    const values = Array.from(sel.options).map(o => o.value);
+    if (!name || values.indexOf(name) < 0) name = sel.value || values[0];
+    if (!name) return;
+    if (sel.value !== name) sel.value = name;
+    renderPluginVarsForm(name);
   }
   function pluginYamlQuote(v) {
     v = String(v);
@@ -9418,48 +9505,64 @@ _JS = r"""
     el.textContent = msg;
     el.className = "pp-status " + (cls || "");
   }
-  document.querySelectorAll(".pp-save").forEach(btn => {
-    btn.addEventListener("click", async () => {
-      const plugin = btn.dataset.plugin;
-      const panel = pluginPanel(plugin);
-      const target = panel.dataset.target;
-      const yaml = emitPluginYaml(plugin);
-      localStorage.setItem(PLUGIN_LS_PREFIX + plugin, yaml);
-      setPluginStatus(plugin, "saving…", "status-unsaved");
-      try {
-        const res = await fetch("/__save", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", ...(await csrfHeaders()) },
-          body: JSON.stringify({ path: target, content: yaml })
-        });
-        if (res.status === 404 || res.status === 405) {
+  // Save / Download via EVENT DELEGATION on #plugin-vars-mount. The buttons live
+  // inside the client-rendered .plugin-page (created after load by
+  // renderPluginVarsForm), so a load-time querySelectorAll(".pp-save") would bind
+  // nothing and Save would silently no-op. One delegated listener on the mount
+  // fires for whichever plugin's form is currently rendered. Scoped to the mount
+  // (not document) so it never touches the web-access .wa-save/.wa-download
+  // buttons, which also carry .pp-save/.pp-download and own their own handler.
+  const pluginVarsMount = document.getElementById("plugin-vars-mount");
+  if (pluginVarsMount) {
+    pluginVarsMount.addEventListener("click", async (ev) => {
+      const saveBtn = ev.target.closest(".pp-save");
+      if (saveBtn) {
+        const plugin = saveBtn.dataset.plugin;
+        const panel = pluginPanel(plugin);
+        if (!panel) return;
+        const target = panel.dataset.target;
+        const yaml = emitPluginYaml(plugin);
+        localStorage.setItem(PLUGIN_LS_PREFIX + plugin, yaml);
+        setPluginStatus(plugin, "saving…", "status-unsaved");
+        try {
+          const res = await fetch("/__save", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", ...(await csrfHeaders()) },
+            body: JSON.stringify({ path: target, content: yaml })
+          });
+          if (res.status === 404 || res.status === 405) {
+            setPluginStatus(plugin, "saved in browser (no server)", "status-unsaved");
+            const ns = document.querySelector('.pp-noserver[data-plugin="' + plugin + '"]');
+            if (ns) ns.hidden = false;
+            return;
+          }
+          if (!res.ok) { setPluginStatus(plugin, "save failed (" + res.status + ")", "status-error"); return; }
+          setPluginStatus(plugin, "saved to " + target, "status-ok");
+        } catch (e) {
           setPluginStatus(plugin, "saved in browser (no server)", "status-unsaved");
           const ns = document.querySelector('.pp-noserver[data-plugin="' + plugin + '"]');
           if (ns) ns.hidden = false;
-          return;
         }
-        if (!res.ok) { setPluginStatus(plugin, "save failed (" + res.status + ")", "status-error"); return; }
-        setPluginStatus(plugin, "saved to " + target, "status-ok");
-      } catch (e) {
-        setPluginStatus(plugin, "saved in browser (no server)", "status-unsaved");
-        const ns = document.querySelector('.pp-noserver[data-plugin="' + plugin + '"]');
-        if (ns) ns.hidden = false;
+        return;
+      }
+      const dlBtn = ev.target.closest(".pp-download");
+      if (dlBtn) {
+        const plugin = dlBtn.dataset.plugin;
+        const yaml = emitPluginYaml(plugin);
+        const blob = new Blob([yaml], { type: "text/yaml" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url; a.download = plugin + ".yaml";
+        document.body.appendChild(a); a.click(); a.remove();
+        URL.revokeObjectURL(url);
+        setPluginStatus(plugin, "downloaded " + plugin + ".yaml", "status-ok");
       }
     });
-  });
-  document.querySelectorAll(".pp-download").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const plugin = btn.dataset.plugin;
-      const yaml = emitPluginYaml(plugin);
-      const blob = new Blob([yaml], { type: "text/yaml" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url; a.download = plugin + ".yaml";
-      document.body.appendChild(a); a.click(); a.remove();
-      URL.revokeObjectURL(url);
-      setPluginStatus(plugin, "downloaded " + plugin + ".yaml", "status-ok");
-    });
-  });
+  }
+  const pluginVarsSelect = document.getElementById("plugin-vars-select");
+  if (pluginVarsSelect) {
+    pluginVarsSelect.addEventListener("change", () => renderPluginVarsForm(pluginVarsSelect.value));
+  }
 
   /* ── Web access allow/deny editor (portal → .ravenclaude/web-access.yaml) ── */
   let webAccessHydrated = false;
@@ -12153,96 +12256,80 @@ def _gather_plugin_dir_names(plugin_dir: Path, sub: str, dirs: bool = False) -> 
     return sorted(p.stem for p in base.glob("*.md") if p.stem.lower() != "readme")
 
 
-def _render_plugin_var_control(plugin: str, var: dict) -> str:
-    """One curated-variable control (enum→select, number/text→input) carrying the
-    data-* attributes the editor JS reads on save."""
-    key = var["key"]
-    label = html.escape(var["label"])
-    help_txt = html.escape(var.get("help", ""))
-    default = html.escape(str(var.get("default", "")))
-    vtype = var["type"]
-    cid = f"pv-{plugin}-{key}"
-    if vtype == "enum":
-        opts = "".join(
-            f'<option value="{html.escape(o)}"{" selected" if o == var.get("default") else ""}>{html.escape(o)}</option>'
-            for o in var.get("options", [])
-        )
-        control = (
-            f'<select id="{cid}" class="pv-control" data-pvar="{html.escape(key)}" '
-            f'data-ptype="enum" data-pdefault="{default}">{opts}</select>'
-        )
-    else:
-        input_type = "number" if vtype == "number" else "text"
-        control = (
-            f'<input id="{cid}" class="pv-control" type="{input_type}" '
-            f'data-pvar="{html.escape(key)}" data-ptype="{html.escape(vtype)}" '
-            f'data-pdefault="{default}" value="{default}">'
-        )
-    return (
-        '<div class="pv-row">'
-        f'<label class="pv-label" for="{cid}">{label}</label>'
-        f"{control}"
-        f'<p class="pv-help">{help_txt}</p>'
-        "</div>"
+def _render_plugin_vars_payload(plugin_dirs: list[Path]) -> str:
+    """Inline JSON for the one #plugin-vars-payload script: per plugin, its save
+    target + curated variable specs. renderPluginVarsForm() (in _JS) reads this to
+    build the SAME editor markup _render_plugin_page used to emit, one plugin at a
+    time. `options` is present only for enum vars.
+
+    Escaped for a <script type="application/json"> block the same way schema_json /
+    concepts_json are (`<` → \\u003c), so a `</script` substring inside any string
+    can never break out of the element; the escape round-trips through JSON.parse."""
+    data: dict[str, dict] = {}
+    for pd in plugin_dirs:
+        name = pd.name
+        curated: list[dict] = []
+        for v in _plugin_curated_vars(name):
+            spec: dict = {
+                "key": v["key"],
+                "label": v["label"],
+                "help": v.get("help", ""),
+                "default": v.get("default", ""),
+                "type": v["type"],
+            }
+            if v["type"] == "enum":
+                spec["options"] = list(v.get("options", []))
+            curated.append(spec)
+        data[name] = {
+            "target": f".ravenclaude/plugins/{name}.yaml",
+            "curated": curated,
+        }
+    return json.dumps(data, ensure_ascii=False, separators=(",", ":")).replace(
+        "<", "\\u003c"
     )
-
-
-def _render_plugin_page(plugin_dir: Path) -> str:
-    """The full panel for one plugin: editable variables (curated + free-form)
-    wired to the /__save portal, plus best-practices, decision trees, agents and
-    skills for that plugin."""
-    name = plugin_dir.name
-    esc = html.escape(name)
-    curated = _plugin_curated_vars(name)
-    target = f".ravenclaude/plugins/{name}.yaml"
-
-    controls = "".join(_render_plugin_var_control(name, v) for v in curated) or (
-        '<p class="pv-help">No curated knobs for this plugin yet — use the free-form section below.</p>'
-    )
-
-    return f"""
-    <div class="plugin-page" data-plugin="{esc}" data-target="{html.escape(target)}">
-      <h2 class="pp-title">{esc}</h2>
-      <p class="pp-sub">Configure <code>{esc}</code>'s variables here — they save to <code>{html.escape(target)}</code> via the dashboard server (on the static copy, edits stay in your browser — use <strong>Download</strong>). For the full reference — agents, scenarios, skills, hooks, templates, best-practices — see this plugin in the portal's <strong>Marketplace</strong> section.</p>
-
-      <section class="pp-section">
-        <h3>Variables</h3>
-        <div class="pv-curated">{controls}</div>
-        <div class="pv-freeform">
-          <h4>Free-form variables</h4>
-          <p class="pv-help">One <code>key: value</code> per line (YAML). For project variables not covered by the curated knobs above.</p>
-          <textarea class="pv-extra" data-plugin="{esc}" rows="5" spellcheck="false" placeholder="my_key: my value&#10;another_key: 123"></textarea>
-        </div>
-        <div class="pp-actions">
-          <button type="button" class="pp-save" data-plugin="{esc}">Save to repo</button>
-          <button type="button" class="pp-download" data-plugin="{esc}">Download .yaml</button>
-          <span class="pp-status" data-plugin="{esc}" role="status"></span>
-        </div>
-        <p class="pp-noserver" data-plugin="{esc}" hidden>No local dashboard server behind this page, so <strong>Save to repo</strong> is off. Run <code>ravenclaude dashboard</code> (or <code>bash .ravenclaude/dashboard.sh</code>) and reopen, or use <strong>Download</strong> and drop the file into <code>{html.escape(target)}</code>.</p>
-      </section>
-    </div>
-    """
 
 
 def _render_plugins_category(plugin_dirs: list[Path]) -> tuple[str, str]:
-    """Return (tabs_html, panels_html) for the Plugins category — one tab-btn and
-    one tab-panel per plugin, matching the existing two-tier nav contract."""
-    tabs: list[str] = []
-    panels: list[str] = []
-    for pd in plugin_dirs:
-        name = pd.name
-        esc = html.escape(name)
-        tab_id = f"plugin-{name}"
-        tabs.append(
-            f'<button class="tab-btn" id="tab-{html.escape(tab_id)}" data-tab="{html.escape(tab_id)}" '
-            f'data-cat="plugins" role="tab" aria-selected="false" tabindex="-1" '
-            f'aria-controls="panel-{html.escape(tab_id)}" title="{esc} — variables, best practices, trees">{esc}</button>'
-        )
-        panels.append(
-            f'<section class="tab-panel" id="panel-{html.escape(tab_id)}" data-tab="{html.escape(tab_id)}" '
-            f'role="tabpanel" aria-label="{esc} plugin">{_render_plugin_page(pd)}</section>'
-        )
-    return "\n".join(tabs), "\n".join(panels)
+    """Return (tab_html, panel_html) for the Plugins category: ONE picker tab and
+    ONE panel (P1 — the 167 per-plugin panels collapsed into a single client-
+    rendered variable editor). Pick a plugin from the <select>; its editor form is
+    rendered into #plugin-vars-mount from the inline #plugin-vars-payload JSON by
+    renderPluginVarsForm(), and Save/Download wire via event delegation (see _JS).
+
+    R2 (plan §1.1, binding): the per-plugin editor writes .ravenclaude/plugins/
+    <slug>.yaml, which NO hook reads — 153 of 167 plugins expose only a free-form
+    textarea. The intro below discloses this in committed markup; do NOT describe
+    the collapse as "no capability is lost"."""
+    tab = (
+        '<button class="tab-btn" id="tab-plugin-vars" data-tab="plugin-vars" '
+        'data-cat="plugins" role="tab" aria-selected="false" tabindex="-1" '
+        'aria-controls="panel-plugin-vars" title="Plugin variables">Plugin variables</button>'
+    )
+    options = "".join(
+        f'<option value="{html.escape(pd.name)}">{html.escape(pd.name)}</option>'
+        for pd in plugin_dirs
+    )
+    payload = _render_plugin_vars_payload(plugin_dirs)
+    panel = (
+        '<section class="tab-panel" id="panel-plugin-vars" data-tab="plugin-vars" '
+        'role="tabpanel" aria-label="Plugin variables">\n'
+        '  <div class="plugin-vars-picker">\n'
+        '    <h2 class="pp-title">Plugin variables</h2>\n'
+        '    <p class="pp-sub">Pick a plugin to edit its variables. Most plugins expose '
+        "<strong>no curated knobs</strong> — for those, the free-form values you enter are saved to "
+        "<code>.ravenclaude/plugins/&lt;plugin&gt;.yaml</code> but are <strong>not currently read by "
+        "any hook</strong> (153 of 167 plugins are free-form only). For the full reference — agents, "
+        "scenarios, skills, hooks, templates, best-practices — open the plugin in the portal's "
+        "<strong>Marketplace</strong> section. Deep-link: "
+        '<a href="#/plugin-vars">Plugin variables</a>.</p>\n'
+        '    <label class="pv-label" for="plugin-vars-select">Choose a plugin</label>\n'
+        f'    <select id="plugin-vars-select">{options}</select>\n'
+        '    <div id="plugin-vars-mount"></div>\n'
+        f'    <script type="application/json" id="plugin-vars-payload">{payload}</script>\n'
+        "  </div>\n"
+        "</section>"
+    )
+    return tab, panel
 
 
 def _all_plugin_dirs() -> list[Path]:

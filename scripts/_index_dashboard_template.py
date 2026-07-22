@@ -804,6 +804,7 @@ TEMPLATE = r"""<!doctype html>
         heimdall: "observe", vidarr: "observe", norns: "observe", mimir: "observe",
         saga: "observe", activity: "observe", nidhoggr: "observe", sleipnir: "observe",
         settings: "configure", "comfort-posture": "configure", "web-access": "configure", simulator: "configure",
+        "plugin-vars": "configure",
         commands: "act", trees: "learn", pipeline: "configure", bifrost: "learn",
         install: "learn", about: "learn", overview: "learn", concepts: "learn",
       };
@@ -1300,6 +1301,7 @@ TEMPLATE = r"""<!doctype html>
             <p class="lede" style="max-width:none">${esc(p.description)}</p>
             <div class="hero-cta" style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
               <button class="btn primary" type="button" onclick="window.__copy('/plugin install ${esc(p.name)}@ravenclaude','Install command')">${svg("plus")} Copy install command</button>
+              <a class="btn" href="#/plugin-vars/${esc(p.name)}">${svg("sliders")} Edit variables</a>
               <a class="btn" href="#/configure">${svg("sliders")} Configure agents</a>
             </div></div>
           <nav class="mkt-nav pd-filters" id="pd-filters" aria-label="Filter this plugin's contents">${pdNav}</nav>
@@ -1687,10 +1689,13 @@ TEMPLATE = r"""<!doctype html>
         // Legacy top-level alias → canonical section (marketplace→discover, etc.).
         if (SECTION_ALIAS[section]) section = SECTION_ALIAS[section];
 
-        if (section && section.startsWith("plugin-")) {
+        if (section && section.startsWith("plugin-") && section !== "plugin-vars") {
           // Rich per-plugin REFERENCE lives in the shell (Discover). The CONFIGURE
           // half (editable variables) stays on the dashboard host — Slice B
           // reconciles the deep-link; for now Marketplace "Details" drives this.
+          // #/plugin-vars (the P1 picker) is EXCLUDED here — it is owned by the
+          // dashboard host via DASH_OWNER["plugin-vars"], so it falls through to the
+          // DASH_OWNER branch below → viewDashboard("plugin-vars", <plugin>).
           showHost("view");
           window.__openPlugin(section.slice(7));
           $("#view").focus({ preventScroll: true });
