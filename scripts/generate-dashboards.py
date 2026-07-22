@@ -222,6 +222,7 @@ def _page_kwargs(plugin_dir: Path, schema: dict, include_trees: bool = True) -> 
         "activity_html": _render_activity_tab(),
         "heimdall_html": _render_heimdall_tab(),
         "vidarr_html": _render_vidarr_tab(),
+        "nidhoggr_html": _render_nidhoggr_tab(),
         "norns_html": _render_norns_tab(),
         "mimir_html": _render_mimir_tab(),
         "streams_html": _render_streams_tab(),
@@ -476,6 +477,21 @@ def _render_vidarr_tab() -> str:
     returns a static skeleton the JS hydrates on open.
     """
     return _VIDARR_TAB_TEMPLATE
+
+
+def _render_nidhoggr_tab() -> str:
+    """Render the 'Debt watch' (Níðhöggr) sub-page — the low-noise marketplace
+    maintenance-debt card (stale plugins, ungated hooks, superseded decisions,
+    TODO/FIXME commits).
+
+    Formerly a card inside the Heimdall tab; split into its own Guardrails
+    sub-page (A-split). The #heimdall-debt mount id and the renderNidhoggr /
+    nidhoggrSection JS are byte-identical, so the Níðhöggr B15 render gate stays
+    green with an unmodified script. Data is fetched from /__nidhoggr (served-only
+    — git-derived signals vary by clone depth); on a static host it degrades to an
+    honest empty state.
+    """
+    return _NIDHOGGR_TAB_TEMPLATE
 
 
 def _render_norns_tab() -> str:
@@ -6659,13 +6675,6 @@ _HEIMDALL_TAB_TEMPLATE = """
       <p class="heimdall-sub">The highest-severity signal currently flagged.</p>
       <div id="heimdall-alarm"></div>
     </section>
-    <section class="heimdall-card heimdall-card--wide" aria-labelledby="hm-debt-h">
-      <h3 id="hm-debt-h">Debt watch (Níðhöggr)</h3>
-      <p class="heimdall-sub">Slow-rotting bits at the foundations &mdash; low-noise marketplace maintenance signals.</p>
-      <div id="heimdall-debt">
-        <div class="saga-empty" id="heimdall-debt-loading"><p>Loading debt signals&hellip;</p></div>
-      </div>
-    </section>
     <section class="heimdall-card heimdall-card--wide" aria-labelledby="hm-kh-h">
       <h3 id="hm-kh-h">Knowledge health (Idunn)</h3>
       <p class="heimdall-sub">How current is the marketplace&rsquo;s knowledge layer? Click a bucket to drill into the files in it.</p>
@@ -6703,6 +6712,20 @@ _VIDARR_TAB_TEMPLATE = """
     <div class="saga-empty" id="vidarr-loading"><p>Loading security log&hellip;</p></div>
   </div>
 </div>
+""".strip()
+
+# Níðhöggr "Debt watch" — its OWN Guardrails sub-page (A-split). Its #heimdall-debt
+# mount id + renderNidhoggr/nidhoggrSection are byte-identical to when it lived inside
+# panel-heimdall, so the Níðhöggr B15 render gate stays green with an unmodified script;
+# only the enclosing <section class="tab-panel"> wrapper is new (see _PAGE_TEMPLATE).
+_NIDHOGGR_TAB_TEMPLATE = """
+<section class="heimdall-card heimdall-card--wide" aria-labelledby="hm-debt-h">
+  <h3 id="hm-debt-h">Debt watch (Níðhöggr)</h3>
+  <p class="heimdall-sub">Slow-rotting bits at the foundations &mdash; low-noise marketplace maintenance signals.</p>
+  <div id="heimdall-debt">
+    <div class="saga-empty" id="heimdall-debt-loading"><p>Loading debt signals&hellip;</p></div>
+  </div>
+</section>
 """.strip()
 
 _NORNS_TAB_TEMPLATE = """
@@ -8940,6 +8963,7 @@ _JS = r"""
   let activityLoaded = false;
   let heimdallLoaded = false;
   let vidarrLoaded = false;
+  let nidhoggrLoaded = false;
   let nornsLoaded = false;
   let mimirLoaded = false;
   let streamsLoaded = false;
@@ -9059,33 +9083,20 @@ _JS = r"""
     // card grid hydrates on the first activate("help"), keyed off the same
     // #commands-mount / #commands-payload ids (only the enclosing wrapper moved).
     if (tab === "help" && !commandsLoaded) loadCommands();
-    // P4 (dashboard-consumption): the Observe family is physically merged. Activity
-    // now contains the run feed + saga/mimir/streams/norns as anchored sections;
-    // Guardrails (Heimdall) contains its cards + vidarr (nidhoggr's debt card is
-    // already loaded inside loadHeimdall). Their old tab ids no longer exist (P3
-    // removed the tab-btns), so each loader runs through its new home destination.
-    // Each loader is guarded by its own *Loaded latch → exactly one GET per endpoint
-    // on activate, no duplicate fetches.
-    if (tab === "activity") {
-      if (!activityLoaded) loadActivity();
-      if (!sagaLoaded) loadSaga();
-      if (!mimirLoaded) loadMimir();
-      if (!streamsLoaded) loadStreams();
-      if (!nornsLoaded) loadNorns();
-    }
-    if (tab === "heimdall") {
-      if (!heimdallLoaded) loadHeimdall();
-      if (!vidarrLoaded) loadVidarr();
-    }
-    // A retired Observe route (#/saga … #/nidhoggr) resolves to its destination tab
-    // (shown above) and carries the merged section's anchor id in `sub`; scroll to it
-    // once the tab is visible so the deep-link lands on its block.
-    if (sub && (tab === "activity" || tab === "heimdall")) {
-      const anchorEl = document.getElementById(sub);
-      if (anchorEl && typeof anchorEl.scrollIntoView === "function") {
-        requestAnimationFrame(() => anchorEl.scrollIntoView({ block: "start", behavior: "smooth" }));
-      }
-    }
+    // A-split (dashboard-consumption follow-up): the Observe family is UN-merged, so
+    // each sub-page is its OWN tab/panel and loads ONLY its own section. Each loader
+    // is guarded by its own *Loaded latch → exactly one GET per endpoint on activate,
+    // no duplicate fetches. (The former merged scroll-to-anchor `sub` block is gone —
+    // saga/mimir/streams/norns/vidarr/nidhoggr are no longer anchored sections inside
+    // a shared panel, so there is nothing to scroll to.)
+    if (tab === "activity" && !activityLoaded) loadActivity();
+    if (tab === "saga" && !sagaLoaded) loadSaga();
+    if (tab === "mimir" && !mimirLoaded) loadMimir();
+    if (tab === "streams" && !streamsLoaded) loadStreams();
+    if (tab === "norns" && !nornsLoaded) loadNorns();
+    if (tab === "heimdall" && !heimdallLoaded) loadHeimdall();
+    if (tab === "vidarr" && !vidarrLoaded) loadVidarr();
+    if (tab === "nidhoggr" && !nidhoggrLoaded) loadNidhoggr();
     if (tab === "pipeline") syncPipelineTab();
     if (tab === "plugin-vars") activatePluginVars(sub);
     if (tab === "web-access") hydrateWebAccess();
@@ -10426,7 +10437,9 @@ _JS = r"""
     const inline = readHeimdallInline();
     renderVersionDrift(inline.versionDrift || []);
     fetchCiStatus();
-    loadNidhoggr();
+    // A-split: Debt watch (Níðhöggr) is now its OWN Guardrails sub-page (panel-nidhoggr),
+    // loaded on activate("nidhoggr") behind its own nidhoggrLoaded latch — no longer
+    // eager-loaded here from inside Perimeter alerts.
     loadKnowledgeHealth();
     /* Hook events + Gjallarhorn need the served endpoint. */
     const hookHost = document.getElementById("heimdall-hooks");
@@ -10491,12 +10504,14 @@ _JS = r"""
   }
 
   async function loadNidhoggr() {
+    nidhoggrLoaded = true;
     const host = document.getElementById("heimdall-debt");
     try {
       const res = await fetchT("/__nidhoggr");
       if (!res.ok) throw new Error("HTTP " + res.status);
       renderNidhoggr(await res.json());
     } catch (e) {
+      nidhoggrLoaded = false; /* allow retry on next visit */
       const served = await probeReadEndpoint();
       if (host) {
         host.replaceChildren(
@@ -12181,7 +12196,13 @@ _PAGE_TEMPLATE = """<!doctype html>
     <button class="tab-btn" type="button" id="tab-pipeline" data-tab="pipeline" aria-selected="false" title="Pipeline — the safety checks every command passes through">Pipeline</button>
     <button class="tab-btn" type="button" id="tab-web-access" data-tab="web-access" aria-selected="false" title="Web access — allow/deny which websites the agent may fetch">Web access</button>
     <button class="tab-btn" type="button" id="tab-activity" data-tab="activity" aria-selected="false" title="Run feed — what Claude is doing right now: runs &amp; worktrees">Run feed</button>
+    <button class="tab-btn" type="button" id="tab-saga" data-tab="saga" aria-selected="false" title="Saga — the command-review verdict log (Review log)">Saga</button>
+    <button class="tab-btn" type="button" id="tab-mimir" data-tab="mimir" aria-selected="false" title="Session — Claude Code session state for this project (Mímir's well)">Session</button>
+    <button class="tab-btn" type="button" id="tab-streams" data-tab="streams" aria-selected="false" title="Streams — the agentic work-streams for this project">Streams</button>
+    <button class="tab-btn" type="button" id="tab-norns" data-tab="norns" aria-selected="false" title="Lineage — plugin past / present / proposed future (The Norns)">Lineage</button>
     <button class="tab-btn" type="button" id="tab-heimdall" data-tab="heimdall" aria-selected="false" title="Perimeter alerts — what your guardrails caught at the edge (Heimdall)">Perimeter alerts</button>
+    <button class="tab-btn" type="button" id="tab-vidarr" data-tab="vidarr" aria-selected="false" title="Security log — posture changes &amp; security-relevant denials (Víðarr)">Security log</button>
+    <button class="tab-btn" type="button" id="tab-nidhoggr" data-tab="nidhoggr" aria-selected="false" title="Debt watch — low-noise marketplace maintenance signals (Níðhöggr)">Debt</button>
     <button class="tab-btn" type="button" id="tab-learn" data-tab="learn" aria-selected="false" title="Learn — plain-English explainers for each concept">Learn</button>
     <button class="tab-btn" type="button" id="tab-help" data-tab="help" aria-selected="false" title="Help — install &amp; update guides (Claude Code / Copilot CLI), the command catalog, and where retired tabs went">Help</button>
 {plugins_tabs}
@@ -12208,25 +12229,40 @@ _PAGE_TEMPLATE = """<!doctype html>
     <script type="application/json" id="trees-payload">{trees_json}</script>
     <noscript><p>The decision-trees &amp; best-practices guidance renders with JavaScript. The source lives under <code>plugins/*/rules/</code> and <code>plugins/*/best-practices/</code>.</p></noscript>
   </section>
-  <!-- P4 (dashboard-consumption): the Observe family is physically merged. Activity
-       absorbs the Review log (saga), Session (mimir), Streams and Lineage (norns) as
-       anchored blocks (id="saga"/"mimir"/"streams"/"norns" live on each skeleton's
-       outer div); Guardrails (Perimeter alerts / Heimdall) absorbs the Security log
-       (vidarr, id="vidarr") and already hosts the Níðhöggr debt card (#heimdall-debt).
-       Only the five enclosing <section> wrappers were removed — every mount id and
-       every render function is byte-identical, so the B15 render gates stay green. A
-       retired route (#/saga … #/nidhoggr) resolves to its destination tab and scrolls
-       to its anchor (see activate()'s sub handling + the portal's DASH_ANCHOR map). -->
+  <!-- A-split (dashboard-consumption follow-up): the Observe family is UN-merged back
+       into one <section class="tab-panel"> per sub-page, navigated by the shell's
+       Activity / Guardrails sub-navs (mirroring Control's [The Thing · Pipeline · Web
+       access] pattern). Activity → Run feed (activity) · Saga · Session (mimir) ·
+       Streams · Lineage (norns); Guardrails → Perimeter alerts (heimdall) · Security
+       log (vidarr) · Debt watch (nidhoggr). Every mount id (id="saga"/"mimir"/
+       "streams"/"norns"/"vidarr"/"heimdall-debt") and every render function is
+       byte-identical — only the enclosing <section> wrappers were ADDED, the exact
+       inverse of P4's merge, so the B15 render gates stay green with unmodified
+       scripts. Each sub-page loads ONLY its own section on activate() (own *Loaded
+       latch, one GET per endpoint). -->
   <section class="tab-panel" id="panel-activity" data-tab="activity" role="tabpanel" aria-label="Run feed">
 {activity_html}
+  </section>
+  <section class="tab-panel" id="panel-saga" data-tab="saga" role="tabpanel" aria-label="Saga">
 {saga_html}
+  </section>
+  <section class="tab-panel" id="panel-mimir" data-tab="mimir" role="tabpanel" aria-label="Session">
 {mimir_html}
+  </section>
+  <section class="tab-panel" id="panel-streams" data-tab="streams" role="tabpanel" aria-label="Streams">
 {streams_html}
+  </section>
+  <section class="tab-panel" id="panel-norns" data-tab="norns" role="tabpanel" aria-label="Lineage">
 {norns_html}
   </section>
   <section class="tab-panel" id="panel-heimdall" data-tab="heimdall" role="tabpanel" aria-label="Perimeter alerts">
 {heimdall_html}
+  </section>
+  <section class="tab-panel" id="panel-vidarr" data-tab="vidarr" role="tabpanel" aria-label="Security log">
 {vidarr_html}
+  </section>
+  <section class="tab-panel" id="panel-nidhoggr" data-tab="nidhoggr" role="tabpanel" aria-label="Debt watch">
+{nidhoggr_html}
   </section>
   <!-- P5 (dashboard-consumption): panel-help is the About/help drawer. It absorbs the
        former install / bifrost / about / commands tabs as collapsed <details> (their

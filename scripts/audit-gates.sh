@@ -3760,9 +3760,12 @@ PY
   # shell route → a FRAGMENT tab id; a mistyped value that is not a real tab blanks
   # the dashboard host with zero console error (invisible to both Gate 51 scripts
   # before P3, and the exact failure P4's DASH_TAB_ALIAS edit could ship). Point one
-  # value at a non-existent tab and assert the re-authored gate goes RED.
+  # value at a non-existent tab and assert the re-authored gate goes RED. (A-split,
+  # dashboard-consumption: the old `nidhoggr: "heimdall"` alias was removed when the
+  # Observe family un-merged into own tabs, so this now mutates a SURVIVING alias —
+  # sleipnir: "activity" — to a non-existent tab.)
   IDX_ALIAS_BAD="$TMP/render-index-badalias.html"
-  sed 's/nidhoggr: "heimdall"/nidhoggr: "heimdalll"/' "$IDX_HTML" > "$IDX_ALIAS_BAD"
+  sed 's/sleipnir: "activity"/sleipnir: "activityyy"/' "$IDX_HTML" > "$IDX_ALIAS_BAD"
   rc=0; node scripts/check-shell-router.mjs "$IDX_ALIAS_BAD" >/dev/null 2>&1 || rc=$?
   gate "shell-router (a mistyped DASH_TAB_ALIAS target is detected)" must_fail "$rc"
 
@@ -4562,10 +4565,10 @@ for p in (m.DASHBOARD, m.INDEX):
     r = m.measure(p)
     if sum(r["panels"].values()) + r["shell"] != r["total"]:
         sys.exit(1)
-    if len(r["panels"]) != 9:
+    if len(r["panels"]) != 15:
         sys.exit(1)
 PY
-gate "dom-budget: SUM(panels)+shell == whole doc, 9 panels both surfaces" must_pass "$rc"
+gate "dom-budget: SUM(panels)+shell == whole doc, 15 panels both surfaces" must_pass "$rc"
 
 echo
 echo "── Gate 133: pipeline-map drift vs hooks/hooks.json ───────────────────────"
