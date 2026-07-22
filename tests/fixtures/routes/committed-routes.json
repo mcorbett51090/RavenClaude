@@ -59,7 +59,7 @@
       "nav_routes": []
     },
     "index": {
-      "href_count": 33,
+      "href_count": 34,
       "distinct_static": 21,
       "distinct_dynamic": 4,
       "static_href_routes": [

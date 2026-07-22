@@ -593,6 +593,13 @@ TEMPLATE = r"""<!doctype html>
          selector is scoped to #dash-root so the SHIPPED standalone dashboard
          (whose CSS is NOT #dash-root-scoped) keeps its own nav for consumers. */
       #dash-root .cat-bar, #dash-root .tab-bar { display: none !important; }
+      /* …and hide the payload's whole <header class="page-header"> on the portal.
+         Its only children are the raven .brand-row (the shell already brands via
+         the sidebar + topbar) and the .tab-bar hidden just above — so on the portal
+         it renders as a content-free ~50px band atop every destination (the #739
+         header-strip left it empty). Standalone keeps it: that's where its tab-bar
+         nav lives, and it has no #dash-root wrapper so this never matches there. */
+      #dash-root .page-header { display: none !important; }
 
       /* ── Folded-in dashboard sub-app (scoped under #dash-root) ── */
       /*__DASH_CSS__*/
@@ -670,6 +677,9 @@ TEMPLATE = r"""<!doctype html>
             <kbd>⌘K</kbd>
           </button>
           <div class="actions">
+            <a class="icon-btn" href="#/help" aria-label="Help &amp; about" title="Help, install guides &amp; the command catalog">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
+            </a>
             <button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode" type="button">
               <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
               <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/></svg>
@@ -1410,6 +1420,9 @@ TEMPLATE = r"""<!doctype html>
           { kind: "action", label: "Toggle dark mode", meta: "Theme", hay: "toggle dark mode theme", action: "toggleTheme" },
           { kind: "action", label: "Show onboarding checklist", meta: "Onboarding", hay: "show onboarding checklist setup", action: "showOnboarding" },
           { kind: "action", label: "Browse by use case", meta: "Marketplace", hay: "browse use case i want to intent lookup", route: "#/discover" },
+          { kind: "action", label: "Open help & about", meta: "Help", hay: "help about faq what is this how pages organized where things moved", route: "#/help" },
+          { kind: "action", label: "Install a plugin (step-by-step guide)", meta: "Help", hay: "install a plugin bifrost bridge guide walkthrough setup add marketplace", route: "#/bifrost" },
+          { kind: "action", label: "Browse the command catalog", meta: "Help", hay: "commands command catalog slash reference list", route: "#/commands" },
         ];
         QA.forEach((q) => idx.push(q));
         // Plugins
