@@ -646,7 +646,7 @@ TEMPLATE = r"""<!doctype html>
             <span class="tag">Engineering Team Platform</span>
           </span>
         </div>
-        <nav class="nav" id="primary-nav" aria-label="Primary"></nav>
+        <nav class="nav" id="primary-nav" aria-label="Primary"><a href="#/control" data-nav="control">Control</a><a href="#/activity" data-nav="activity">Activity</a><a href="#/guardrails" data-nav="guardrails">Guardrails</a><a href="#/catalog" data-nav="catalog">Catalog</a></nav>
         <div class="sidebar-foot">
           <div>v<span id="foot-version">__MKT_VERSION__</span></div>
           <div class="detail">Updated __GENERATED__</div>
@@ -817,12 +817,10 @@ TEMPLATE = r"""<!doctype html>
 
       /* ---------------- Sidebar nav ---------------- */
       const NAV = [
-        { id: "home", label: "Home", icon: "home" },
-        { id: "discover", label: "Discover", icon: "market" },
-        { id: "configure", label: "Configure", icon: "sliders" },
-        { id: "observe", label: "Observe", icon: "chart" },
-        { id: "act", label: "Act", icon: "rocket", route: "commands" },
-        { id: "learn", label: "Learn", icon: "book" },
+        { id: "control", label: "Control", icon: "sliders" },
+        { id: "activity", label: "Activity", icon: "chart" },
+        { id: "guardrails", label: "Guardrails", icon: "shield" },
+        { id: "catalog", label: "Catalog", icon: "market" },
       ];
 
       // ── 6-section task IA + native-merged dashboard routing (Slice A) ──
@@ -849,8 +847,9 @@ TEMPLATE = r"""<!doctype html>
       // Legacy top-level shell route → canonical NAV section (back-compat for
       // committed bookmarks, ⌘K quick-actions, and internal hrefs).
       const SECTION_ALIAS = {
-        marketplace: "discover", team: "discover", "repo-guide": "discover",
-        configuration: "configure", resources: "learn", dashboard: "observe",
+        marketplace: "catalog", team: "catalog", "repo-guide": "catalog",
+        discover: "catalog", configuration: "control", resources: "catalog",
+        dashboard: "activity", home: "control",
       };
       // Legacy routes that keep their OWN shell view but light up a NAV section
       // (Slice A: Team's roster + collab rules survive under Discover until Slice
@@ -858,45 +857,22 @@ TEMPLATE = r"""<!doctype html>
       const LEGACY_VIEW = { team: "viewTeam" };
       // Dashboard tab route → the NAV section that owns it (for highlight + dispatch).
       const DASH_OWNER = {
-        heimdall: "observe", vidarr: "observe", norns: "observe", mimir: "observe",
-        saga: "observe", activity: "observe", nidhoggr: "observe", sleipnir: "observe",
-        settings: "configure", "comfort-posture": "configure", "web-access": "configure", simulator: "configure",
-        "plugin-vars": "configure",
-        commands: "act", trees: "learn", pipeline: "configure", bifrost: "learn",
-        install: "learn", about: "learn", overview: "learn", concepts: "learn",
+        heimdall: "guardrails", vidarr: "guardrails", nidhoggr: "guardrails",
+        norns: "activity", mimir: "activity", saga: "activity", activity: "activity",
+        streams: "activity", sleipnir: "activity",
+        settings: "control", "comfort-posture": "control", "web-access": "control",
+        simulator: "control", pipeline: "control", overview: "control",
+        "plugin-vars": "catalog", commands: "catalog", trees: "catalog", bifrost: "catalog",
+        install: "catalog", about: "catalog", concepts: "catalog",
       };
-      // Slice B section sub-nav (plain labels — no Norse names): each section's
-      // ordered tabs, rendered in the sidebar (replacing the dashboard's hidden
-      // cat-bar/tab-bar). Items point at canonical routes the router already
-      // resolves; Discover keeps its plugin-category sub-nav (navChildren).
-      const SECTION_TABS = {
-        configure: [
-          { label: "Quick setup", route: "#/configure" },
-          { label: "Posture", route: "#/settings" },
-          { label: "Pipeline", route: "#/pipeline" },
-          { label: "Web access", route: "#/web-access" },
-          { label: "Review simulator", route: "#/simulator" },
-        ],
-        observe: [
-          { label: "Run feed", route: "#/activity" },
-          { label: "Perimeter alerts", route: "#/heimdall" },
-          { label: "Security log", route: "#/vidarr" },
-          { label: "Plugin lineage", route: "#/norns" },
-          { label: "Session state", route: "#/mimir" },
-          { label: "Review log", route: "#/saga" },
-        ],
-        act: [
-          { label: "Commands", route: "#/commands" },
-        ],
-        learn: [
-          { label: "Overview", route: "#/learn" },
-          { label: "Concepts", route: "#/concepts" },
-          { label: "Best practices", route: "#/trees" },
-          { label: "Claude Code", route: "#/bifrost" },
-          { label: "Copilot CLI", route: "#/install" },
-          { label: "About", route: "#/about" },
-        ],
-      };
+      // SECTION_TABS retired (P3, dashboard-consumption). The 6-section IA's
+      // per-section sub-nav is gone: the shell now has four task destinations
+      // (Control / Activity / Guardrails / Catalog) whose dashboard tabs are
+      // reached directly through DASH_OWNER + route(), not a section sub-nav.
+      // Kept as an empty object literal so navChildren()'s guard is a no-op and
+      // the two Gate-51 parsers (which anchor on the SECTION_TABS declaration)
+      // still slice it cleanly, finding zero sub-nav routes — which is correct.
+      const SECTION_TABS = {};
       function payloadKind(section) {
         // A dashboard-owned tab route (drives the #dash-root host). Bare "learn"
         // is intercepted by the NAV check in route() before this, so the Learn
@@ -941,14 +917,14 @@ TEMPLATE = r"""<!doctype html>
       function viewDashboard(section, sub) {
         showHost("dash");
         if (window.__dashApp) window.__dashApp.show(DASH_TAB_ALIAS[section] || section, sub);
-        // Banner only on live-data sections (Observe + live Configure tabs); the
-        // Learn-area dashboard tabs work offline, so no banner there.
-        const owner = section === "observe" ? "observe" : (DASH_OWNER[section] || "observe");
-        const live = owner === "observe" || owner === "configure";
+        // Banner only on live-data destinations (Activity + Guardrails + Control);
+        // the Catalog/Help-area dashboard tabs work offline, so no banner there.
+        const owner = DASH_OWNER[section] || "activity";
+        const live = owner === "activity" || owner === "guardrails" || owner === "control";
         if (_served !== null) setServedBanner(live);
         else probeServed().then(() => {
           const cur = location.hash.replace(/^#\/?/, "").split("/")[0];
-          const stillDash = cur === "observe" || DASH_OWNER[cur] || SECTION_ALIAS[cur] === "observe";
+          const stillDash = DASH_OWNER[cur] || ["control", "activity", "guardrails"].includes(cur) || ["control", "activity", "guardrails"].includes(SECTION_ALIAS[cur]);
           if (stillDash) setServedBanner(live);
         });
       }
@@ -957,7 +933,11 @@ TEMPLATE = r"""<!doctype html>
       // routes). The accordion only renders under the ACTIVE top item, and only
       // when the sidebar is expanded (CSS hides .nav-sub when collapsed).
       function navChildren(id) {
-        if (id === "discover" && D.categories) {
+        // Catalog keeps the plugin-category accordion (the old Discover sub-nav):
+        // Specialists + one entry per plugin category. Deep-links (#/team,
+        // #/discover/<cat>) still resolve through the router. The other three
+        // destinations have no sub-nav (SECTION_TABS retired in P3).
+        if (id === "catalog" && D.categories) {
           const counts = {};
           D.plugins.forEach((p) => { counts[p.category] = (counts[p.category] || 0) + 1; });
           const top = location.hash.replace(/^#\/?/, "").split("/")[0];
@@ -970,12 +950,6 @@ TEMPLATE = r"""<!doctype html>
               .map((c) => `<a class="nav-subitem${!onTeam && c.id === cur ? " active" : ""}" href="#/discover/${c.id === "all" ? "" : c.id}">${esc(c.label)}<span class="count">${c.count}</span></a>`),
           );
           return items.join("");
-        }
-        if (SECTION_TABS[id]) {
-          const cur = "#/" + (location.hash.replace(/^#\/?/, "").split("/")[0] || "home");
-          return SECTION_TABS[id]
-            .map((t) => `<a class="nav-subitem${t.route === cur ? " active" : ""}" href="${t.route}">${esc(t.label)}</a>`)
-            .join("");
         }
         return "";
       }
@@ -1732,8 +1706,8 @@ TEMPLATE = r"""<!doctype html>
         if (SECTION_ALIAS[section]) section = SECTION_ALIAS[section];
         if (NAV.some((n) => n.id === section)) return section;
         if (DASH_OWNER[section]) return DASH_OWNER[section];
-        if (section && section.startsWith("plugin-")) return "discover";
-        return "home";
+        if (section && section.startsWith("plugin-")) return "catalog";
+        return "control";
       }
       function route() {
         const raw = location.hash.replace(/^#\/?/, "") || "home";
@@ -1753,29 +1727,36 @@ TEMPLATE = r"""<!doctype html>
         if (SECTION_ALIAS[section]) section = SECTION_ALIAS[section];
 
         if (section && section.startsWith("plugin-") && section !== "plugin-vars") {
-          // Rich per-plugin REFERENCE lives in the shell (Discover). The CONFIGURE
-          // half (editable variables) stays on the dashboard host — Slice B
-          // reconciles the deep-link; for now Marketplace "Details" drives this.
-          // #/plugin-vars (the P1 picker) is EXCLUDED here — it is owned by the
-          // dashboard host via DASH_OWNER["plugin-vars"], so it falls through to the
-          // DASH_OWNER branch below → viewDashboard("plugin-vars", <plugin>).
+          // Rich per-plugin REFERENCE lives in the shell (Catalog). The CONFIGURE
+          // half (editable variables) stays on the dashboard host — Marketplace
+          // "Details" drives this. #/plugin-vars (the P1 picker) is EXCLUDED here —
+          // it is owned by the dashboard host via DASH_OWNER["plugin-vars"], so it
+          // falls to the DASH_OWNER branch → viewDashboard("plugin-vars", <plugin>).
           showHost("view");
           window.__openPlugin(section.slice(7));
           $("#view").focus({ preventScroll: true });
+        } else if (section === "control") {
+          // Control = posture/settings (job 1, the one write surface). Land on
+          // Settings; a sub-tab (#/pipeline, #/web-access) hits DASH_OWNER below.
+          viewDashboard("settings", sub);
+        } else if (section === "activity") {
+          // Activity = "what my agents did" (job 2). Land on the run feed.
+          viewDashboard("activity", sub);
+        } else if (section === "guardrails") {
+          // Guardrails = "what fired" (job 3). Land on perimeter alerts (Heimdall).
+          viewDashboard("heimdall", sub);
         } else if (section === "observe") {
-          // Observe = the live control panel. Default to the run feed; a dashboard
-          // sub-route (e.g. #/heimdall) is handled by the DASH_OWNER branch below.
+          // Retired route → Activity's run feed (back-compat for old bookmarks).
           viewDashboard("activity");
         } else if (section === "act") {
-          // Act = run things. Its sole tab is Commands (the nav item links straight
-          // to #/commands, which DASH_OWNER routes); this resolves a bare #/act.
+          // Retired route → Commands (back-compat for old bookmarks).
           viewDashboard("commands");
         } else if (DASH_OWNER[section]) {
           viewDashboard(section, sub);
         } else {
           showHost("view");
           switch (section) {
-            case "discover": viewMarketplace(sub); break;
+            case "catalog": case "discover": viewMarketplace(sub); break;
             case "configure": viewConfiguration(); break;
             case "learn": viewResources(); break;
             case "home": viewHome(); break;

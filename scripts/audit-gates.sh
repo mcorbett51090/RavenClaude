@@ -3682,6 +3682,16 @@ PY
   rc=0; node scripts/check-shell-router.selftest.mjs --checker "$WEAK_CHECKER" "$IDX_HTML" >/dev/null 2>&1 || rc=$?
   gate "shell-router selftest (a weakened checker is caught)" must_fail "$rc"
 
+  # ── DASH_TAB_ALIAS-target validity teeth (P3, §11.2). DASH_TAB_ALIAS maps a
+  # shell route → a FRAGMENT tab id; a mistyped value that is not a real tab blanks
+  # the dashboard host with zero console error (invisible to both Gate 51 scripts
+  # before P3, and the exact failure P4's DASH_TAB_ALIAS edit could ship). Point one
+  # value at a non-existent tab and assert the re-authored gate goes RED.
+  IDX_ALIAS_BAD="$TMP/render-index-badalias.html"
+  sed 's/nidhoggr: "heimdall"/nidhoggr: "heimdalll"/' "$IDX_HTML" > "$IDX_ALIAS_BAD"
+  rc=0; node scripts/check-shell-router.mjs "$IDX_ALIAS_BAD" >/dev/null 2>&1 || rc=$?
+  gate "shell-router (a mistyped DASH_TAB_ALIAS target is detected)" must_fail "$rc"
+
   # ── By-destination half (Phase 4a): every committed #/… resolves. ──────────
   ROUTE_FIX="tests/fixtures/routes/committed-routes.json"
   # must_pass: the committed fixture enumerates + resolves every #/… on both
@@ -3704,7 +3714,7 @@ PY
   # must_fail B (resolution teeth): a DASH_OWNER destination removed from the html
   # → #/heimdall dead-ends on the router fallback instead of viewDashboard:heimdall.
   IDX_ROUTE_BAD="$TMP/render-index-route-broken.html"
-  sed 's/heimdall: "observe", vidarr: "observe"/vidarr: "observe"/' "$IDX_HTML" > "$IDX_ROUTE_BAD"
+  sed 's/heimdall: "guardrails", vidarr: "guardrails"/vidarr: "guardrails"/' "$IDX_HTML" > "$IDX_ROUTE_BAD"
   rc=0; node scripts/check-committed-routes.mjs \
     --dashboard "$DASH_HTML" --index "$IDX_ROUTE_BAD" --fixture "$ROUTE_FIX" >/dev/null 2>&1 || rc=$?
   gate "committed-routes (a broken DASH_OWNER destination is detected)" must_fail "$rc"

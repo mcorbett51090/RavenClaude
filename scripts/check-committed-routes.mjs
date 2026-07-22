@@ -130,10 +130,17 @@ function resolveIndex(section, R) {
   // dispatches through viewDashboard. Mirror that ordering exactly.
   if (s.startsWith("plugin-") && s !== "plugin-vars")
     return { resolved: true, destination: "__openPlugin" };
+  // P3 four-destination IA: the destinations land on a representative dashboard
+  // tab (control→settings, activity→run feed, guardrails→perimeter alerts) or the
+  // Marketplace shell view (catalog). Mirrors _index_dashboard_template.py route().
+  if (s === "control") return { resolved: true, destination: "viewDashboard:settings" };
+  if (s === "activity") return { resolved: true, destination: "viewDashboard:activity" };
+  if (s === "guardrails") return { resolved: true, destination: "viewDashboard:heimdall" };
   if (s === "observe") return { resolved: true, destination: "viewDashboard:activity" };
   if (s === "act") return { resolved: true, destination: "viewDashboard:commands" };
   if (R.owner[s]) return { resolved: true, destination: `viewDashboard:${s}` };
-  if (s === "discover") return { resolved: true, destination: "viewMarketplace" };
+  if (s === "catalog" || s === "discover")
+    return { resolved: true, destination: "viewMarketplace" };
   if (s === "configure") return { resolved: true, destination: "viewConfiguration" };
   if (s === "learn") return { resolved: true, destination: "viewResources" };
   if (s === "home") return { resolved: true, destination: "viewHome" };

@@ -128,6 +128,11 @@ RATCHET = {
                                              "editor form renders client-side into #plugin-vars-mount from the "
                                              "inline #plugin-vars-payload JSON (uncounted CDATA). Measured "
                                              "10,757 -> 6,095. Zero slack."),
+        ("P3 (chrome shrink)", 6081, "IA re-cut: the two-tier <nav class=cat-bar> (5 cat-btns) deleted and "
+                                     "the <nav class=tab-bar> shrunk from 18 core tabs to 10 destination tabs "
+                                     "(+ the plugin-vars picker tab); role=tablist/role=tab + the roving-"
+                                     "tabindex handler removed. Panels unchanged (P4/P5 merge/delete them). "
+                                     "Measured 6,095 -> 6,081 (-14). Additions: zero. Zero slack."),
     ],
     INDEX: [
         ("Phase 0 -> 6", 50982, "Phase 0 baseline 50,945; +37 in Phase 6 (same guard-web-access + "
@@ -142,6 +147,11 @@ RATCHET = {
                                              "#plugin-vars picker in the merged dashboard fragment (same "
                                              "collapse as the standalone surface). Measured 11,462 -> 6,800. "
                                              "Zero slack."),
+        ("P3 (chrome shrink)", 6790, "the folded fragment's cat-bar + tab-bar shrink (-14, same as the "
+                                     "standalone surface) nets against +4 static destination anchors seeded "
+                                     "into #primary-nav (the committed-route floor for #/control, #/activity, "
+                                     "#/guardrails, #/catalog; renderNav replaces them at load). Measured "
+                                     "6,800 -> 6,790 (-10). Zero slack."),
     ],
 }
 

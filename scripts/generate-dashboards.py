@@ -3269,37 +3269,10 @@ h1, h2, h3 { font-family: var(--font-display); font-weight: 600; letter-spacing:
   margin: 6px 2px;
   background: var(--border);
 }
-/* ── Two-tier nav: top-level CATEGORIES reveal their pages (website-style) ── */
-.cat-bar {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-  margin: 4px 0 2px;
-}
-.cat-btn {
-  background: transparent;
-  border: 1px solid var(--border);
-  color: var(--muted);
-  font: inherit;
-  font-family: var(--font-display, inherit);
-  font-weight: 600;
-  font-size: 13px;
-  letter-spacing: -0.01em;
-  padding: 7px 15px;
-  border-radius: 999px;
-  cursor: pointer;
-  white-space: nowrap;
-}
-.cat-btn:hover { color: var(--text); border-color: var(--accent-2, var(--accent)); }
-.cat-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.cat-btn[aria-pressed="true"] {
-  color: #000;
-  background: var(--accent);
-  border-color: var(--accent);
-  box-shadow: 0 0 16px var(--accent-glow, transparent);
-}
-/* Only the active category's page tabs are shown in the tablist. */
-.tab-bar .tab-btn:not(.in-cat) { display: none; }
+/* Two-tier category nav retired (P3, dashboard-consumption): the cat-bar and its
+   .in-cat page-hiding rule are gone; the tab-bar is now a flat, single-tier set
+   of destination tabs. (The shell's own dash-root chrome-hide rule stays — it
+   hides the folded copy's whole nav in the portal.) */
 .header-about-link { white-space: nowrap; }
 .about-wrap { max-width: 760px; }
 .about-lead { font-size: 15px; color: var(--text); line-height: 1.6; }
@@ -9144,14 +9117,8 @@ _JS = r"""
   const REPO_OWNER = "mcorbett51090";
   const REPO_NAME  = "RavenClaude";
 
-  // Two-tier nav: derive each page's category from the DOM (data-cat on the tab
-  // buttons) and remember the first page of each category (for category clicks).
-  const pageCat = {};
-  const catFirst = {};
-  document.querySelectorAll('.tab-bar .tab-btn[data-cat]').forEach(b => {
-    pageCat[b.dataset.tab] = b.dataset.cat;
-    if (!(b.dataset.cat in catFirst)) catFirst[b.dataset.cat] = b.dataset.tab;
-  });
+  // (Two-tier category nav retired in P3 — the tab-bar is a flat destination set,
+  // so there is no per-page category to derive or remember.)
   // DOM-island loader for the Guidance (trees) tab. Its ~20,612-element markup ships
   // inside <script type="application/json" id="trees-payload"> (uncounted CDATA) and
   // is injected on the first activate("trees"). Static-host safe: no fetch, the payload
@@ -9242,29 +9209,15 @@ _JS = r"""
       /* leave unlatched so a later activate can retry */
     }
   }
-  function setCategory(cat) {
-    document.querySelectorAll('.cat-btn').forEach(c => {
-      c.setAttribute('aria-pressed', c.dataset.cat === cat ? 'true' : 'false');
-    });
-    // Only the active category's page tabs are shown (CSS hides :not(.in-cat)).
-    document.querySelectorAll('.tab-bar .tab-btn').forEach(b => {
-      b.classList.toggle('in-cat', b.dataset.cat === cat);
-    });
-  }
-
   // Core activation — switch the visible page. Runs SYNCHRONOUSLY on click so
   // navigation never depends on the hashchange event firing (which a sandboxed
   // preview / some webviews suppress). `sub` carries a deep-link sub-segment
-  // (e.g. #/learn/<concept>).
+  // (e.g. #/learn/<concept>). Panel-only + null-safe (P3): no category tier, no
+  // roving tabindex — the tab-btns are plain controls, natively keyboard-operable.
   function activate(tab, sub) {
     if (!validTabs.includes(tab)) tab = "overview";
-    setCategory(pageCat[tab] || "setup");
     document.querySelectorAll(".tab-btn").forEach(b => {
-      const sel = b.dataset.tab === tab;
-      b.setAttribute("aria-selected", sel ? "true" : "false");
-      // Roving tabindex (WAI-ARIA tabs pattern): only the selected tab is in the
-      // Tab order; arrow keys move between the rest within the active category.
-      b.setAttribute("tabindex", sel ? "0" : "-1");
+      b.setAttribute("aria-selected", b.dataset.tab === tab ? "true" : "false");
     });
     document.querySelectorAll(".tab-panel").forEach(p => {
       p.classList.toggle("active", p.dataset.tab === tab);
@@ -9300,40 +9253,12 @@ _JS = r"""
   document.querySelectorAll(".tab-btn").forEach(b => {
     b.addEventListener("click", () => goTo(b.dataset.tab));
   });
-  // Clicking a category reveals its pages and jumps to the first page in it.
-  document.querySelectorAll(".cat-btn").forEach(c => {
-    c.addEventListener("click", () => {
-      const cat = c.dataset.cat;
-      setCategory(cat);
-      const first = catFirst[cat];
-      if (first) goTo(first);
-    });
-  });
   // Header "What is this?" link → About, without depending on hashchange.
   const aboutLink = document.querySelector(".header-about-link");
   if (aboutLink) aboutLink.addEventListener("click", e => { e.preventDefault(); goTo("about"); });
-  // Keyboard navigation for the tablist (WAI-ARIA Authoring Practices "Tabs"):
-  // Left/Right/Home/End move between the VISIBLE (active-category) tabs only.
-  const tablist = document.querySelector('.tab-bar[role="tablist"]');
-  if (tablist) {
-    tablist.addEventListener("keydown", e => {
-      const keys = ["ArrowLeft", "ArrowRight", "Home", "End"];
-      if (!keys.includes(e.key)) return;
-      const tabs = Array.from(tablist.querySelectorAll('.tab-btn[role="tab"]'))
-        .filter(t => t.classList.contains("in-cat"));
-      if (!tabs.length) return;
-      const cur = tabs.findIndex(t => t.getAttribute("aria-selected") === "true");
-      let next = cur < 0 ? 0 : cur;
-      if (e.key === "ArrowRight") next = (cur + 1) % tabs.length;
-      else if (e.key === "ArrowLeft") next = (cur - 1 + tabs.length) % tabs.length;
-      else if (e.key === "Home") next = 0;
-      else if (e.key === "End") next = tabs.length - 1;
-      e.preventDefault();
-      const target = tabs[next];
-      goTo(target.dataset.tab);
-      target.focus();
-    });
-  }
+  // (P3: the WAI-ARIA tablist roving-tabindex handler was removed with the
+  // tablist/tab ARIA chrome — the tab-btns are plain buttons, so Tab plus
+  // Enter/Space operate them natively; no arrow-key roving contract to maintain.)
   /* ── Plugins category: per-plugin variable editor (portal → repo file) ─── */
   // P1: the 167 per-plugin panels collapsed into ONE picker. renderPluginVarsForm()
   // rebuilds the SAME .plugin-page markup _render_plugin_page used to emit — one
@@ -12301,9 +12226,8 @@ def _render_plugins_category(plugin_dirs: list[Path]) -> tuple[str, str]:
     textarea. The intro below discloses this in committed markup; do NOT describe
     the collapse as "no capability is lost"."""
     tab = (
-        '<button class="tab-btn" id="tab-plugin-vars" data-tab="plugin-vars" '
-        'data-cat="plugins" role="tab" aria-selected="false" tabindex="-1" '
-        'aria-controls="panel-plugin-vars" title="Plugin variables">Plugin variables</button>'
+        '<button class="tab-btn" type="button" id="tab-plugin-vars" data-tab="plugin-vars" '
+        'aria-selected="false" title="Plugin variables">Plugin variables</button>'
     )
     options = "".join(
         f'<option value="{html.escape(pd.name)}">{html.escape(pd.name)}</option>'
@@ -12396,32 +12320,17 @@ _PAGE_TEMPLATE = """<!doctype html>
     <a class="btn btn-primary brand-cta" href="#/settings">Settings</a>
   </div>
   <p class="page-desc">This is your control panel for Claude&nbsp;Code's safety rails. Use it to set what Claude is allowed to do, see what it's been doing, and add plugins. <a href="#/about" class="header-about-link">What is this?</a></p>
-  <nav class="cat-bar" aria-label="Dashboard categories">
-    <button class="cat-btn" type="button" data-cat="setup" aria-pressed="true" title="Set up — Overview, permissions, the safety pipeline, and a review preview">Set up</button>
-    <button class="cat-btn" type="button" data-cat="lookback" aria-pressed="false" title="Look back — review log, run feed, perimeter alerts, security log, lineage">Look back</button>
-    <button class="cat-btn" type="button" data-cat="learn" aria-pressed="false" title="Learn — explainers, command playbooks, decision-tree guidance">Learn</button>
-    <button class="cat-btn" type="button" data-cat="plugins" aria-pressed="false" title="Plugins — per-plugin variables, best practices, and decision trees">Plugins</button>
-    <button class="cat-btn" type="button" data-cat="install" aria-pressed="false" title="Install &amp; help — install &amp; update RavenClaude in Claude Code or GitHub Copilot CLI, plus help">Install &amp; help</button>
-  </nav>
-  <nav class="tab-bar" role="tablist" aria-label="Pages in the selected category">
-    <button class="tab-btn in-cat" id="tab-overview" data-tab="overview" data-cat="setup" role="tab" aria-selected="true" aria-controls="panel-overview" title="Overview — start here: what this dashboard is for">Overview</button>
-    <button class="tab-btn in-cat" id="tab-settings" data-tab="settings" data-cat="setup" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-settings" title="Settings — choose what Claude can do on its own (deny / ask / allow)">Settings</button>
-    <button class="tab-btn in-cat" id="tab-pipeline" data-tab="pipeline" data-cat="setup" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-pipeline" title="Pipeline — the safety checks every command passes through">Pipeline</button>
-    <button class="tab-btn in-cat" id="tab-simulator" data-tab="simulator" data-cat="setup" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-simulator" title="Preview a review — see how a command would be judged before you run it">Preview a review</button>
-    <button class="tab-btn in-cat" id="tab-web-access" data-tab="web-access" data-cat="setup" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-web-access" title="Web access — allow/deny which websites the agent may fetch">Web access</button>
-    <button class="tab-btn" id="tab-saga" data-tab="saga" data-cat="lookback" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-saga" title="Review log — past decisions the reviewer panel made (Sága)">&#9878; Review log</button>
-    <button class="tab-btn" id="tab-activity" data-tab="activity" data-cat="lookback" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-activity" title="Run feed — what Claude is doing right now: runs &amp; worktrees (Sleipnir)">Run feed</button>
-    <button class="tab-btn" id="tab-heimdall" data-tab="heimdall" data-cat="lookback" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-heimdall" title="Perimeter alerts — what your guardrails caught at the edge (Heimdall)">Perimeter alerts</button>
-    <button class="tab-btn" id="tab-vidarr" data-tab="vidarr" data-cat="lookback" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-vidarr" title="Security log — a record of your permission changes (Víðarr)">Security log</button>
-    <button class="tab-btn" id="tab-norns" data-tab="norns" data-cat="lookback" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-norns" title="Lineage — how your plugins connect and depend on each other (Norns)">Lineage</button>
-    <button class="tab-btn" id="tab-mimir" data-tab="mimir" data-cat="lookback" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-mimir" title="Session — what Claude Code knows about this session (M&iacute;mir's well)">Session</button>
-    <button class="tab-btn" id="tab-streams" data-tab="streams" data-cat="lookback" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-streams" title="Streams — your Agentic Work-Streams: which is active and its derived activity">Streams</button>
-    <button class="tab-btn" id="tab-learn" data-tab="learn" data-cat="learn" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-learn" title="Learn — plain-English explainers for each concept">Learn</button>
-    <button class="tab-btn" id="tab-commands" data-tab="commands" data-cat="learn" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-commands" title="Commands — ready-to-run slash-command playbooks">Commands</button>
-    <button class="tab-btn" id="tab-trees" data-tab="trees" data-cat="learn" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-trees" title="Guidance — decision trees and best practices">Guidance</button>
-    <button class="tab-btn" id="tab-bifrost" data-tab="bifrost" data-cat="install" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-bifrost" title="Claude Code — install &amp; update a plugin in Claude Code (the Bifröst bridge)">Claude&nbsp;Code</button>
-    <button class="tab-btn" id="tab-install" data-tab="install" data-cat="install" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-install" title="Copilot CLI — install &amp; update RavenClaude in GitHub Copilot CLI">Copilot&nbsp;CLI</button>
-    <button class="tab-btn" id="tab-about" data-tab="about" data-cat="install" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-about" title="About &amp; help — what this dashboard is and how it's organized">About &amp; help</button>
+  <nav class="tab-bar" aria-label="Dashboard sections">
+    <button class="tab-btn" type="button" id="tab-overview" data-tab="overview" aria-selected="true" title="Overview — start here: what this dashboard is for">Overview</button>
+    <button class="tab-btn" type="button" id="tab-settings" data-tab="settings" aria-selected="false" title="Settings — choose what Claude can do on its own (deny / ask / allow)">Settings</button>
+    <button class="tab-btn" type="button" id="tab-pipeline" data-tab="pipeline" aria-selected="false" title="Pipeline — the safety checks every command passes through">Pipeline</button>
+    <button class="tab-btn" type="button" id="tab-web-access" data-tab="web-access" aria-selected="false" title="Web access — allow/deny which websites the agent may fetch">Web access</button>
+    <button class="tab-btn" type="button" id="tab-activity" data-tab="activity" aria-selected="false" title="Run feed — what Claude is doing right now: runs &amp; worktrees">Run feed</button>
+    <button class="tab-btn" type="button" id="tab-heimdall" data-tab="heimdall" aria-selected="false" title="Perimeter alerts — what your guardrails caught at the edge (Heimdall)">Perimeter alerts</button>
+    <button class="tab-btn" type="button" id="tab-learn" data-tab="learn" aria-selected="false" title="Learn — plain-English explainers for each concept">Learn</button>
+    <button class="tab-btn" type="button" id="tab-bifrost" data-tab="bifrost" aria-selected="false" title="Claude Code — install &amp; update a plugin in Claude Code (the Bifröst bridge)">Claude&nbsp;Code</button>
+    <button class="tab-btn" type="button" id="tab-install" data-tab="install" aria-selected="false" title="Copilot CLI — install &amp; update RavenClaude in GitHub Copilot CLI">Copilot&nbsp;CLI</button>
+    <button class="tab-btn" type="button" id="tab-about" data-tab="about" aria-selected="false" title="About &amp; help — what this dashboard is and how it's organized">About &amp; help</button>
 {plugins_tabs}
   </nav>
 </header>

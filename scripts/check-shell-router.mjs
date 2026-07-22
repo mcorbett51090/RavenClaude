@@ -14,23 +14,26 @@
  * for the regressions we care about (deleting the route set, renaming the
  * helpers, dropping a NAV item, removing the mount host or entry point).
  *
- * What this guards (Gate 51 — 6-section IA, Slices A+B):
- *   - NAV = the six task sections (home/discover/configure/observe/act/learn).
+ * What this guards (Gate 51 — 4-destination IA, P3 re-cut dashboard-consumption):
+ *   - NAV = the four task destinations (control/activity/guardrails/catalog).
+ *     Help is a NON-NAV drawer overlay, not a fifth NAV id.
  *   - DASH_SECTIONS still contains every dashboard-owned top-level route that
  *     committed bookmarks + the gjallarhorn-link + SessionStart capability
  *     banners point at. Removing one silently breaks deep-links.
- *   - SECTION_ALIAS maps every legacy top-level route (marketplace/team/
- *     configuration/resources/dashboard) to a REAL NAV section — destination
- *     asserted, not mere presence — so internal links + ⌘K + bookmarks survive.
- *   - DASH_OWNER maps each dashboard tab route to its owning NAV section
- *     (incl. the phantom routes nidhoggr→observe, sleipnir→observe).
+ *   - SECTION_ALIAS maps every legacy/retired top-level route (marketplace/team/
+ *     configuration/resources/dashboard/discover/home) to a REAL destination —
+ *     destination asserted, not mere presence — so links + ⌘K + bookmarks survive.
+ *     Help-drawer routes resolve to their nearest destination, never a drawer id.
+ *   - DASH_OWNER maps each dashboard tab route to its owning destination
+ *     (incl. the phantom routes nidhoggr→guardrails, sleipnir→activity).
  *   - resolveNavActive() / route() drive the native dashboard host (viewDashboard)
  *     + the shell views + plugin-* via __openPlugin, never iframes.
  *   - Mount host (#dash-root) + entry point (window.__dashApp) present; no <iframe>.
- *   - Slice B: the #dash-root chrome-hide CSS + the SECTION_TABS section sub-nav
- *     (plain labels) + the same-origin /__csrf served probe are present.
- *   - Three must-fail checks (renamed NAV id, emptied SECTION_ALIAS, dropped
- *     chrome-hide rule) each trip the gate — proves the regexes have teeth.
+ *   - The #dash-root chrome-hide CSS + the same-origin /__csrf served probe present.
+ *   - DASH_TAB_ALIAS-target validity: every alias VALUE is a real fragment tab
+ *     (§11.2) — a mistyped target would blank the dashboard host silently.
+ *   - Teeth proven EXTERNALLY by check-shell-router.selftest.mjs (renamed NAV id,
+ *     emptied SECTION_ALIAS, dropped chrome-hide rule each trip the gate).
  *
  * Usage: node scripts/check-shell-router.mjs [path/to/index.html]
  */
@@ -87,11 +90,13 @@ const DASH_OWNER_TEXT = sliceBetween(app, "const DASH_OWNER = ", "{");
 const RESOLVE_NAV_TEXT = sliceFunction(app, "function resolveNavActive(");
 const ROUTE_TEXT = sliceFunction(app, "function route(");
 
-/* NAV — the six task sections (Slice A IA). */
-const NAV_IDS = ["home", "discover", "configure", "observe", "act", "learn"];
+/* NAV — the four task destinations (P3 IA re-cut, dashboard-consumption). Help is
+ * a NON-NAV drawer overlay, not a fifth NAV id — its absorbed routes resolve via
+ * SECTION_ALIAS to a real destination, never a drawer target (see the alias check). */
+const NAV_IDS = ["control", "activity", "guardrails", "catalog"];
 for (const id of NAV_IDS) {
   const re = new RegExp(`id:\\s*"${id}"`);
-  assert(re.test(NAV_TEXT), `NAV regression: missing section id "${id}"`);
+  assert(re.test(NAV_TEXT), `NAV regression: missing destination id "${id}"`);
 }
 
 /* DASH_SECTIONS — every top-level dashboard route the committed-bookmark
@@ -122,11 +127,11 @@ for (const r of expectedDashboardRoutes) {
  * section, or internal links + bookmarks + ⌘K break on the rename. Destination
  * is asserted (not mere presence): the alias VALUE must be a real NAV id. */
 const expectedAliases = {
-  marketplace: "discover",
-  team: "discover",
-  configuration: "configure",
-  resources: "learn",
-  dashboard: "observe",
+  marketplace: "catalog",
+  team: "catalog",
+  configuration: "control",
+  resources: "catalog",
+  dashboard: "activity",
 };
 for (const [legacy, target] of Object.entries(expectedAliases)) {
   const re = new RegExp(`["']?${legacy}["']?\\s*:\\s*"${target}"`);
@@ -140,16 +145,16 @@ for (const [legacy, target] of Object.entries(expectedAliases)) {
 /* DASH_OWNER — each dashboard tab route resolves to its owning NAV section
  * (destination, not presence). Spot-check one per section + the phantom routes. */
 const expectedOwners = {
-  heimdall: "observe",
-  saga: "observe",
-  nidhoggr: "observe",
-  sleipnir: "observe",
-  settings: "configure",
-  "web-access": "configure",
-  simulator: "configure",
-  commands: "act",
-  trees: "learn",
-  pipeline: "configure",
+  heimdall: "guardrails",
+  vidarr: "guardrails",
+  nidhoggr: "guardrails",
+  saga: "activity",
+  mimir: "activity",
+  settings: "control",
+  "web-access": "control",
+  pipeline: "control",
+  commands: "catalog",
+  trees: "catalog",
 };
 for (const [tab, owner] of Object.entries(expectedOwners)) {
   const re = new RegExp(`["']?${tab}["']?\\s*:\\s*"${owner}"`);
@@ -200,28 +205,43 @@ assert(
 );
 assert(!/<iframe/i.test(html), "merged portal must contain no <iframe> (native merge)");
 
-/* ── Slice B — single chrome + shell section sub-nav ──────────────────────────
+/* ── Single chrome + DASH_TAB_ALIAS-target validity (P3 IA re-cut) ────────────
  * The folded dashboard's own cat-bar/tab-bar must be hidden (scoped to #dash-root
- * so the shipped standalone keeps its nav), and the shell must render a section
- * sub-nav (SECTION_TABS) so the dashboard tabs stay reachable + keyboard-navigable. */
+ * so the shipped standalone keeps its nav). SECTION_TABS is RETIRED: the four
+ * destinations reach their dashboard tabs through DASH_OWNER + route(), not a
+ * per-section sub-nav, so its former sub-nav assertions are gone with it. */
 const CHROME_HIDE_RE = /#dash-root \.cat-bar,\s*#dash-root \.tab-bar\s*\{\s*display:\s*none/;
-assert(CHROME_HIDE_RE.test(html), "Slice B: the #dash-root chrome-hide CSS rule must be present");
-const SECTION_TABS_TEXT = sliceBetween(app, "const SECTION_TABS = ", "{");
-for (const sec of ["configure", "observe", "act", "learn"]) {
-  assert(
-    new RegExp(`${sec}:\\s*\\[`).test(SECTION_TABS_TEXT),
-    `SECTION_TABS must define a sub-nav for "${sec}"`,
-  );
+assert(CHROME_HIDE_RE.test(html), "the #dash-root chrome-hide CSS rule must be present");
+
+/* DASH_TAB_ALIAS-target validity (§11.2). DASH_TAB_ALIAS maps a shell route to a
+ * FRAGMENT tab id; viewDashboard() calls __dashApp.show(DASH_TAB_ALIAS[section] ||
+ * section). A value that is NOT a real fragment tab blanks the dashboard host with
+ * zero console error — invisible to both Gate 51 scripts before P3, and the exact
+ * failure P4's DASH_TAB_ALIAS edit could ship. Assert every VALUE is a member of the
+ * fragment's valid-tab set: the <button class="tab-btn" data-tab="…"> list, the same
+ * validTabs mechanism activate() derives at generate-dashboards.py. "Destination,
+ * not mere presence" — the same discipline this file applies to SECTION_ALIAS/
+ * DASH_OWNER targets above. */
+const fragmentTabs = new Set();
+for (const btn of html.matchAll(/<button\b([^>]*)>/g)) {
+  const attrs = btn[1];
+  if (!/class="[^"]*\btab-btn\b/.test(attrs)) continue;
+  const dt = attrs.match(/\bdata-tab="([^"]+)"/);
+  if (dt) fragmentTabs.add(dt[1]);
 }
 assert(
-  /"Run feed"/.test(SECTION_TABS_TEXT) && /"Perimeter alerts"/.test(SECTION_TABS_TEXT),
-  "Observe sub-nav must list its live tabs (plain labels, no Norse names)",
+  fragmentTabs.size > 0,
+  'no <button class="tab-btn" data-tab="…"> in the fragment — the valid-tab set is empty (chrome deleted?)',
 );
-const NAV_CHILDREN_TEXT = sliceFunction(app, "function navChildren(");
-assert(
-  /SECTION_TABS\[id\]/.test(NAV_CHILDREN_TEXT),
-  "navChildren() must render SECTION_TABS for the active section",
-);
+const DASH_TAB_ALIAS_TEXT = sliceBetween(app, "const DASH_TAB_ALIAS = ", "{");
+for (const m of DASH_TAB_ALIAS_TEXT.matchAll(/["']?[A-Za-z0-9_-]+["']?\s*:\s*"([^"]+)"/g)) {
+  const target = m[1];
+  assert(
+    fragmentTabs.has(target),
+    `DASH_TAB_ALIAS target "${target}" is not a real fragment tab ` +
+      `(no <button class="tab-btn" data-tab="${target}">) — it would blank the dashboard host`,
+  );
+}
 /* Served-mode banner reuses the same-origin /__csrf signal — never a new
  * cross-origin probe (DNS-rebinding defense). */
 assert(
