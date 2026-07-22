@@ -11,7 +11,10 @@
       "#/activity",
       "#/guardrails",
       "#/catalog",
-      "#/trees"
+      "#/trees",
+      "#/pipeline",
+      "#/web-access",
+      "#/help"
     ]
   },
   "surfaces": {
