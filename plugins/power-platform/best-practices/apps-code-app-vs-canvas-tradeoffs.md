@@ -48,7 +48,7 @@ const contacts = await ContactService.getAll();   // generated typed service, OD
 
 ## Edge cases / when the rule does NOT apply
 
-- **Feature-set status is volatile** — code apps are a preview-stage feature; the unsupported list and CLI version move. `[unverified — re-check the skill's overview + MS Learn before quoting limits to a customer.]`
+- **Feature-set status is volatile** — code apps are **GA** (since 2026-02-05) but the unsupported list and CLI version still move. `[unverified — re-check the skill's overview + MS Learn before quoting limits to a customer.]`
 - **A field on a form, not a standalone app** — that's a PCF virtual control, not a code app; traverse the React-surface decision tree.
 - **Simple themed input / structured CRUD** — canvas or a model-driven form is cheaper; a code app is over-engineering there.
 
@@ -62,7 +62,7 @@ const contacts = await ContactService.getAll();   // generated typed service, OD
 
 ## Provenance
 
-From `skills/power-apps-code-apps/resources/overview.md` (Limitations table, "PCF Trap", comparison matrix, prerequisites, governance) shipped in `power-platform`, and the `power-fx-engineer` code-app scenario. Preview-status volatility carries the upstream uncertainty marker.
+From `skills/power-apps-code-apps/resources/overview.md` (Limitations table, "PCF Trap", comparison matrix, prerequisites, governance) shipped in `power-platform`, and the `power-fx-engineer` code-app scenario. Feature-set volatility (code apps are GA since 2026-02-05, but the unsupported list still moves) carries the upstream uncertainty marker.
 
 ---
 
