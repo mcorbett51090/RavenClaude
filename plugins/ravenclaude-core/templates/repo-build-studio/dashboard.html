@@ -127,6 +127,23 @@
         margin-top: 24px;
       }
     </style>
+    <!-- INTERNAL DASHBOARD — analytics OFF by default (authed/internal surfaces do not auto-fire; CE-1).
+         To enable on an internal surface you MUST add URL/query redaction + record explicit sign-off,
+         then uncomment the block below. Public marketing pages use marketing-page.html instead.
+         Full policy: web-design third-party-script-hygiene §8.
+      <script>
+        (function () {
+          var GA_ID = "", CF_TOKEN = "";
+          var host = location.hostname, dev = host === "" || host === "localhost" || host === "127.0.0.1" || host === "0.0.0.0" || /\.local$/.test(host);
+          function realGa(v){v=(v||"").trim();if(!/^G-[A-Z0-9]{6,}$/.test(v))return false;return !/^(.)\1*$/.test(v.slice(2));}
+          function realCf(v){return /^[0-9a-f]{32}$/.test((v||"").trim());}
+          window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);}
+          gtag("consent","default",{ad_storage:"denied",ad_user_data:"denied",ad_personalization:"denied",analytics_storage:"denied"});
+          if(!dev && realGa(GA_ID)){var s=document.createElement("script");s.async=true;s.src="https://www.googletagmanager.com/gtag/js?id="+GA_ID;document.head.appendChild(s);gtag("js",new Date());gtag("config",GA_ID);}
+          if(!dev && realCf(CF_TOKEN)){var b=document.createElement("script");b.defer=true;b.src="https://static.cloudflareinsights.com/beacon.min.js";b.setAttribute("data-cf-beacon",JSON.stringify({token:CF_TOKEN,spa:false}));document.body.appendChild(b);}
+        })();
+      </script>
+    -->
   </head>
   <body>
     <div class="wrap">

@@ -60,6 +60,7 @@ Signed: [name] — [YYYY-MM-DD]
 - [ ] Lint / type-check / unit tests all pass
 - [ ] Bundle size within budget
 - [ ] All third-party scripts catalogued + justified
+- [ ] Dual-analytics (GA4 consent-mode + Cloudflare Web Analytics) wired empty-until-provisioned, each independently PROD+valid-id guarded; authed/internal surfaces do NOT auto-fire (`[TF6]` default); CWV budget measured (`<50 ms` TBT, no LCP regress); CSP allow-list updated where a header CSP is possible — see [`../skills/third-party-script-hygiene/SKILL.md`](../skills/third-party-script-hygiene/SKILL.md) §8
 - [ ] Service worker / PWA config (if applicable)
 - [ ] Source maps shipped to error tracker, not to public
 - [ ] No secrets in client-side bundles

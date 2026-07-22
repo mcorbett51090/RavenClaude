@@ -917,6 +917,10 @@ Visual-output agents (web, dashboards, Power BI, Tableau) now carry an inherent 
 
 **Migration:** none — the priors degrade to a structural read when the optional MCP is absent (never stall), the referee defaults to `passed:null`/exit-0 with no evidence, and nothing in a consumer's installed plugin changes on `/plugin marketplace update` unless they wire the optional browser tool.
 
+## Dual-analytics default for HTML-serving templates (added 2026-07-21)
+
+Any plugin template that renders an HTML `<head>` (e.g. `templates/repo-build-studio/*.html`) ships the dual-analytics placeholder block (Google Analytics 4 + Cloudflare Web Analytics, **placeholder-until-provisioned** — empty IDs ship inert, zero network) by convention. The **full policy** — the snippet, the id/token validators, the integrity story, the EU + data-quality caveats, and the authenticated/internal-surface default — lives in `../web-design/skills/third-party-script-hygiene/SKILL.md` §8–9 (this plugin stays domain-neutral; that skill is the source of truth). A template with no HTML `<head>` (a CLI launcher, a data pipeline, `dashboard-launcher/`) is out of scope.
+
 ## Layout (plugin internal directories)
 
 `ravenclaude-core` uses the standard component directories:
@@ -1632,7 +1636,7 @@ browser** on a local/desktop run (it never did before; pass `--no-open` to suppr
 stale dashboard **for the same project** is stopped on relaunch; one for a **different** project is never
 touched. Comfort-posture semantics, the tribunal, and the master cascade are **unchanged**.
 
-## Dashboard consumption re-cut — 185 tabs → 4 destinations, −41% DOM, −61% bytes (added 2026-07-22, v0.207.0)
+## Dashboard consumption re-cut — 185 tabs → 4 destinations, −41% DOM, −61% bytes (added 2026-07-22, v0.208.0)
 
 A FORGE `deep` run (`.ravenclaude/runs/forge/dashboard-consumption/`) answered "I'm not happy with how
 I'm consuming the dashboard — simplify it." The complaint was **over-surfacing**, not features: the
