@@ -1041,19 +1041,24 @@ def _extract_detail_island(data: dict) -> dict:
     return {"plugins": island_plugins}
 
 
-# P6 (FORGE dashboard-consumption): the Learn / Guidance-trees / Concepts JSON
-# payload islands are portal DEAD WEIGHT. P5 turned the portal's Learn/Trees/Concepts
-# into NAMED REMOVALS pointing at the standalone `/dashboard` + the Pages copy
+# P6 (FORGE dashboard-consumption): the Learn / Concepts JSON payload islands are
+# portal DEAD WEIGHT. P5 turned the portal's Learn/Concepts into NAMED REMOVALS
+# pointing at the standalone `/dashboard` + the Pages copy
 # (docs/dashboard-removed-routes.md), so nothing in THIS document renders working
-# Learn/Trees/Concepts content: the folded dashboard JS's loadTrees()/loadLearn()/
-# initConceptNodeLinks()/initTreesSearch() readers are all null-safe (`if (!payload)
-# return;`), and no portal route or clickable affordance drives them here. The
-# standalone dashboard.html keeps these spans inline (generate-dashboards.py is
-# untouched -> Gate 13 non-contact by construction). Stripping the three spans from the
-# folded body drops ~7.19 MB of raw markup off index.html.
-#   WARN: only these three ids -- #dt-store and #plugin-detail-payload are index-only,
+# Learn/Concepts content: the folded dashboard JS's loadLearn()/initConceptNodeLinks()
+# readers are all null-safe (`if (!payload) return;`), and no portal route or clickable
+# affordance drives them here. The standalone dashboard.html keeps these spans inline
+# (generate-dashboards.py is untouched -> Gate 13 non-contact by construction).
+#   G4 (trees wire-back): `trees-payload` was REMOVED from this strip list — the owner
+#   restored the consolidated Guidance tab (panel-trees) to the portal with a real entry
+#   point (Catalog sub-nav "Guidance" -> #/trees), so the portal now KEEPS the full trees
+#   index inline (render_fragment passes include_trees=True). The trees are duplicated
+#   with #dt-store (per-plugin detail) by design: #dt-store is per-plugin browse, the
+#   Guidance tab is cross-plugin search. This reverses P6's trees byte-diet (~+3-4 MB on
+#   index.html); learn/concepts stay stripped.
+#   WARN: only these two ids -- #dt-store and #plugin-detail-payload are index-only,
 #   emitted by THIS generator (not the fragment), and stay untouched.
-_PORTAL_ONLY_PAYLOAD_IDS = ("learn-payload", "trees-payload", "concepts-data")
+_PORTAL_ONLY_PAYLOAD_IDS = ("learn-payload", "concepts-data")
 
 
 def _strip_portal_only_payloads(body: str) -> str:

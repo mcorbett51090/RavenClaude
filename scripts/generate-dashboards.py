@@ -270,8 +270,15 @@ def render_fragment(plugin_dir: Path, schema: dict) -> dict:
     - js: the dashboard script with its `hashchange` listener removed (the shell
       router owns the URL) and an `window.__dashApp.show()` entry point exposed,
       ready to be IIFE-wrapped by the shell so its globals can't collide.
+
+    include_trees=True: the portal Guidance tab (panel-trees) carries the FULL
+    consolidated trees index — the same 924-tree / 2,216-best-practice cross-plugin
+    search the standalone has (owner-restored: G4). The trees also live per-plugin in
+    #dt-store (plugin detail pages); the Guidance tab is the cross-plugin SEARCH over
+    all of them. This reverses the P6 trees-payload byte-diet on the portal — see the
+    matching `_PORTAL_ONLY_PAYLOAD_IDS` note in generate-index-dashboard.py.
     """
-    kw = _page_kwargs(plugin_dir, schema, include_trees=False)
+    kw = _page_kwargs(plugin_dir, schema, include_trees=True)
     start = _PAGE_TEMPLATE.index(_FRAG_BODY_START) + len(_FRAG_BODY_START)
     end = _PAGE_TEMPLATE.index(_FRAG_BODY_END)
     body = _PAGE_TEMPLATE[start:end].format(**kw)
@@ -12279,6 +12286,7 @@ _PAGE_TEMPLATE = """<!doctype html>
     <button class="tab-btn" type="button" id="tab-vidarr" data-tab="vidarr" aria-selected="false" title="Security log — posture changes &amp; security-relevant denials (Víðarr)">Security log</button>
     <button class="tab-btn" type="button" id="tab-nidhoggr" data-tab="nidhoggr" aria-selected="false" title="Debt watch — low-noise marketplace maintenance signals (Níðhöggr)">Debt</button>
     <button class="tab-btn" type="button" id="tab-learn" data-tab="learn" aria-selected="false" title="Learn — plain-English explainers for each concept">Learn</button>
+    <button class="tab-btn" type="button" id="tab-trees" data-tab="trees" aria-selected="false" title="Guidance — every plugin's decision trees (when-this-applies flows) and named best-practice rules, searchable across the marketplace">Guidance</button>
     <button class="tab-btn" type="button" id="tab-help" data-tab="help" aria-selected="false" title="Help — install &amp; update guides (Claude Code / Copilot CLI), the command catalog, and where retired tabs went">Help</button>
 {plugins_tabs}
   </nav>

@@ -4,7 +4,15 @@
   "required_routes": {
     "_note": "PB-2 floor (FORGE dashboard-consumption): routes that MUST stay present+resolved on each surface. Hand-authored; carried verbatim through --emit; asserted by Gate 51. Retiring one requires a docs/dashboard-removed-routes.md row + a floor edit in the same commit. Seed = named survivors (job-1 settings + Learn); P3 added the four task destinations (control/activity/guardrails/catalog), committed statically on the index shell nav.",
     "dashboard": ["#/settings", "#/learn", "#/plugin-vars"],
-    "index": ["#/settings", "#/plugin-vars", "#/control", "#/activity", "#/guardrails", "#/catalog"]
+    "index": [
+      "#/settings",
+      "#/plugin-vars",
+      "#/control",
+      "#/activity",
+      "#/guardrails",
+      "#/catalog",
+      "#/trees"
+    ]
   },
   "surfaces": {
     "dashboard": {
@@ -59,8 +67,8 @@
       "nav_routes": []
     },
     "index": {
-      "href_count": 34,
-      "distinct_static": 21,
+      "href_count": 35,
+      "distinct_static": 22,
       "distinct_dynamic": 4,
       "static_href_routes": [
         {
@@ -194,6 +202,13 @@
           "section": "team",
           "sub": null,
           "destination": "viewMarketplace",
+          "resolved": true
+        },
+        {
+          "route": "#/trees",
+          "section": "trees",
+          "sub": null,
+          "destination": "viewDashboard:trees",
           "resolved": true
         },
         {
