@@ -3163,6 +3163,136 @@ h1, h2, h3 { font-family: var(--font-display); font-weight: 600; letter-spacing:
    .in-cat page-hiding rule are gone; the tab-bar is now a flat, single-tier set
    of destination tabs. (The shell's own dash-root chrome-hide rule stays — it
    hides the folded copy's whole nav in the portal.) */
+
+/* ── Standalone left sidebar — the 4-destination IA (Control · Activity ·
+   Guardrails · Learn & Help) ──────────────────────────────────────────────
+   Matches the portal shell's .sidebar look (dark gradient, brand at top,
+   uppercase group labels, sub-items with a left accent bar when active).
+   The sidebar is position:fixed and the content margin lives on ONE named
+   selector (.dash-main) so the portal can fold this SAME payload into
+   #dash-root and hide the sidebar + zero the margin WITHOUT a DOM restructure
+   (the parent owns those #dash-root rules). The .page-header + .tab-bar are
+   hidden here (the sidebar drives navigation) but the .tab-btn buttons STAY in
+   the DOM — validTabs = querySelectorAll('.tab-btn') must keep finding them. */
+.page-header { display: none; }
+.tab-bar { display: none; }
+.dash-main { margin-left: 248px; }
+.dash-sidebar {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 248px;
+  height: 100vh;
+  overflow-y: auto;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(180deg, var(--surface-2), var(--bg));
+  border-right: 1px solid var(--border);
+}
+.ds-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 16px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.ds-mark {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  /* Same green halo the commerce nav + standalone .brand-mark use. */
+  filter: drop-shadow(0 0 8px var(--accent-glow));
+}
+.ds-mark img { width: 26px; height: auto; display: block; }
+.ds-word { display: flex; flex-direction: column; line-height: 1.15; min-width: 0; }
+.ds-name {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 16px;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+.ds-name b { color: var(--accent); font-weight: 600; }
+.ds-tag {
+  margin-top: 2px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  font-weight: 500;
+}
+.ds-nav {
+  flex: 1;
+  padding: 6px 12px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  overflow-y: auto;
+}
+.ds-group { display: flex; flex-direction: column; gap: 1px; margin-bottom: 4px; }
+/* Category headers: GREEN + extra-bold + uppercase so a destination reads as a
+   distinct tier from the pages under it, with a clear font-size gap (11px header
+   vs 14px page). Condensed enough to keep all 4 groups + 15 pages scroll-free. */
+.ds-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.11em;
+  color: var(--accent);
+  font-weight: 800;
+  padding: 10px 12px 4px;
+}
+.ds-sub {
+  position: relative;
+  display: block;
+  padding: 4px 12px;
+  border-radius: var(--radius-sm);
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+  transition:
+    background 0.15s var(--rc-ease),
+    color 0.15s var(--rc-ease);
+}
+.ds-sub:hover { background: var(--surface); color: var(--text); }
+.ds-sub:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.ds-sub.active {
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 600;
+}
+/* Left teal/green accent bar on the active destination (portal .nav-item.active). */
+.ds-sub.active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 5px;
+  bottom: 5px;
+  width: 3px;
+  border-radius: 3px;
+  background: var(--accent);
+}
+/* Mobile (<900px): the sidebar becomes a full-width top strip that wraps —
+   simplicity over polish, but never broken. Content margin drops to 0. */
+@media (max-width: 900px) {
+  .dash-sidebar {
+    position: static;
+    width: 100%;
+    height: auto;
+    overflow-y: visible;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+  .dash-main { margin-left: 0; }
+  .ds-nav { flex-direction: row; flex-wrap: wrap; gap: 4px 12px; padding: 8px 14px 12px; }
+  .ds-group { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 4px; margin-bottom: 0; }
+  .ds-label { padding: 4px 6px 4px 2px; }
+  .ds-sub { padding: 6px 10px; }
+  .ds-sub.active::before { display: none; }
+}
 .about-wrap { max-width: 760px; }
 .about-lead { font-size: 15px; color: var(--text); line-height: 1.6; }
 .about-note { color: var(--muted); font-size: 13px; }
@@ -9130,6 +9260,15 @@ _JS = r"""
   // preview / some webviews suppress). `sub` carries a deep-link sub-segment
   // (e.g. #/learn/<concept>). Panel-only + null-safe (P3): no category tier, no
   // roving tabindex — the tab-btns are plain controls, natively keyboard-operable.
+  // Sidebar active-highlight (standalone only). Clears .active on every left-nav
+  // .ds-sub link and sets it on the one matching the active tab. Null-safe: the
+  // portal folds this SAME payload WITHOUT the sidebar, so a missing .ds-sub is a
+  // no-op and this never throws there.
+  function syncSidebar(tab) {
+    document.querySelectorAll(".ds-sub").forEach(a => a.classList.remove("active"));
+    const el = document.querySelector('.ds-sub[data-tab="' + tab + '"]');
+    if (el) el.classList.add("active");
+  }
   function activate(tab, sub) {
     // P5 (dashboard-consumption): the fallback target is "settings" (panel-settings,
     // the permanently-present, exempt job-1 panel behind the Control destination), NOT
@@ -9138,6 +9277,7 @@ _JS = r"""
     // host — the shared render_fragment means a missing fallback target would blank BOTH
     // surfaces with zero console error. Agrees with route()'s shell-level default (Control).
     if (!validTabs.includes(tab)) tab = "settings";
+    syncSidebar(tab);
     document.querySelectorAll(".tab-btn").forEach(b => {
       b.setAttribute("aria-selected", b.dataset.tab === tab ? "true" : "false");
     });
@@ -12286,6 +12426,45 @@ _PAGE_TEMPLATE = """<!doctype html>
 </head>
 <body>
 
+<aside class="dash-sidebar" aria-label="Dashboard navigation">
+  <div class="ds-brand">
+    <span class="ds-mark" aria-hidden="true">{raven_mark}</span>
+    <span class="ds-word">
+      <span class="ds-name">Raven<b>Claude</b></span>
+      <span class="ds-tag">Dashboard</span>
+    </span>
+  </div>
+  <nav class="ds-nav" aria-label="Dashboard sections">
+    <div class="ds-group">
+      <div class="ds-label">Control</div>
+      <a class="ds-sub" href="#/settings" data-tab="settings">The Thing</a>
+      <a class="ds-sub" href="#/pipeline" data-tab="pipeline">Pipeline</a>
+      <a class="ds-sub" href="#/web-access" data-tab="web-access">Web access</a>
+    </div>
+    <div class="ds-group">
+      <div class="ds-label">Activity</div>
+      <a class="ds-sub" href="#/activity" data-tab="activity">Run feed</a>
+      <a class="ds-sub" href="#/saga" data-tab="saga">Saga</a>
+      <a class="ds-sub" href="#/mimir" data-tab="mimir">Session</a>
+      <a class="ds-sub" href="#/streams" data-tab="streams">Streams</a>
+      <a class="ds-sub" href="#/norns" data-tab="norns">Lineage</a>
+    </div>
+    <div class="ds-group">
+      <div class="ds-label">Guardrails</div>
+      <a class="ds-sub" href="#/heimdall" data-tab="heimdall">Perimeter alerts</a>
+      <a class="ds-sub" href="#/vidarr" data-tab="vidarr">Security log</a>
+      <a class="ds-sub" href="#/nidhoggr" data-tab="nidhoggr">Debt</a>
+    </div>
+    <div class="ds-group">
+      <div class="ds-label">Learn &amp; Help</div>
+      <a class="ds-sub" href="#/learn" data-tab="learn">Learn</a>
+      <a class="ds-sub" href="#/trees" data-tab="trees">Guidance</a>
+      <a class="ds-sub" href="#/help" data-tab="help">Help</a>
+      <a class="ds-sub" href="#/plugin-vars" data-tab="plugin-vars">Plugins</a>
+    </div>
+  </nav>
+</aside>
+
 <header class="page-header">
   <div class="brand-row">
     <span class="brand-mark" aria-hidden="true">{raven_mark}</span>
@@ -12309,7 +12488,7 @@ _PAGE_TEMPLATE = """<!doctype html>
   </nav>
 </header>
 
-<main>
+<main class="dash-main">
   <section class="tab-panel active" id="panel-settings" data-tab="settings" role="tabpanel" aria-label="The Thing">
 {settings_html}
   </section>

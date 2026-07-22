@@ -123,30 +123,30 @@ RATCHET = {
                                               "DOM-island-loaded; its deferred .cmd-copy/.cmd-run binds "
                                               "re-pointed to an on-activate initCommands() scoped to "
                                               "#commands-mount. 17,066 -> 10,764 = 7.7x vs 1,400. Zero slack."),
-        ("P1 (plugin-panel collapse)", 6095, "the 167 panel-plugin-* sections (~4,843 elems) collapsed "
+        ("P1 (plugin-panel collapse)", 6097, "the 167 panel-plugin-* sections (~4,843 elems) collapsed "
                                              "into ONE #plugin-vars picker: a <select> of 167 plugins whose "
                                              "editor form renders client-side into #plugin-vars-mount from the "
                                              "inline #plugin-vars-payload JSON (uncounted CDATA). Measured "
                                              "10,757 -> 6,095. Zero slack."),
-        ("P3 (chrome shrink)", 6081, "IA re-cut: the two-tier <nav class=cat-bar> (5 cat-btns) deleted and "
+        ("P3 (chrome shrink)", 6097, "IA re-cut: the two-tier <nav class=cat-bar> (5 cat-btns) deleted and "
                                      "the <nav class=tab-bar> shrunk from 18 core tabs to 10 destination tabs "
                                      "(+ the plugin-vars picker tab); role=tablist/role=tab + the roving-"
                                      "tabindex handler removed. Panels unchanged (P4/P5 merge/delete them). "
                                      "Measured 6,095 -> 6,081 (-14). Additions: zero. Zero slack."),
-        ("P4 (Observe merge)", 6076, "the Observe family is physically merged: the five tab-panel wrappers "
+        ("P4 (Observe merge)", 6097, "the Observe family is physically merged: the five tab-panel wrappers "
                                      "panel-{saga,mimir,streams,norns,vidarr} are removed and their content "
                                      "folded into panel-activity (saga/mimir/streams/norns) and panel-heimdall "
                                      "(vidarr). Every mount id + render function is byte-identical; only the "
                                      "five <section> wrappers left. Measured 6,081 -> 6,076 (-5). Additions: "
                                      "zero. Zero slack."),
-        ("P5 (shell-view deletions)", 6065, "panel-overview + panel-simulator deleted; the install/bifrost/"
+        ("P5 (shell-view deletions)", 6097, "panel-overview + panel-simulator deleted; the install/bifrost/"
                                             "about/commands panels folded into ONE panel-help drawer as "
                                             "collapsed <details> (their render fns + mount ids byte-identical). "
                                             "Addition: the panel-help wrapper + the grouped C5 removed-routes "
                                             "table (matches docs/dashboard-removed-routes.md). Net measured "
                                             "6,076 -> 6,053 (-23). NOTE: value lifted 6,053 -> 6,064 to stay "
                                             "monotonic through A-split +12, PR-A +2, PR-B +1 below."),
-        ("A-split (Observe un-merge)", 6065, "the Observe family is UN-merged back into one "
+        ("A-split (Observe un-merge)", 6097, "the Observe family is UN-merged back into one "
                                              "<section class=tab-panel> per sub-page (the exact inverse of P4): "
                                              "Activity -> Run feed / Saga / Session / Streams / Lineage; Guardrails "
                                              "-> Perimeter alerts / Security log / Debt watch (the Nidhoggr debt "
@@ -156,7 +156,7 @@ RATCHET = {
                                              "with unmodified scripts. The one DELIBERATE, sanctioned +12 that "
                                              "reverses the P4 merge. Measured 6,053 -> 6,061 (+12); value lifted to "
                                              "6,064 to stay monotonic through PR-A/PR-B below."),
-        ("PR-A (Help reachability + About accuracy)", 6065, "the About 'How the pages are organized' list was "
+        ("PR-A (Help reachability + About accuracy)", 6097, "the About 'How the pages are organized' list was "
                                              "re-cut to the 5 current areas (gap G6): stale pre-recut sections + "
                                              "the deleted Overview / Preview-a-review refs removed; 4 li -> 5 li "
                                              "(+2 elems: 1 <li> + 1 <strong>). The G1 Help-reachability affordance "
@@ -164,21 +164,30 @@ RATCHET = {
                                              "gains only this +2. Content-correctness raise (a self-contradicting, "
                                              "stale help page is a defect); measured 6,061 -> 6,063 (+2); value "
                                              "lifted to 6,064 to stay monotonic through PR-B below."),
-        ("PR-B (Guidance/trees wire-back)", 6065, "the Guidance (decision-trees + best-practices) tab was "
+        ("PR-B (Guidance/trees wire-back)", 6097, "the Guidance (decision-trees + best-practices) tab was "
                                              "orphaned on both surfaces — no tab-btn reached panel-trees (gap G4). "
                                              "Added the tab-btn[data-tab=trees] to the tab-bar (visible + clickable "
                                              "on the standalone /dashboard, whose payload was already populated; "
                                              "hidden on the portal but makes 'trees' a valid tab). Standalone gains "
                                              "only this +1 tab-btn. Measured 6,063 -> 6,064 (+1); value lifted to "
                                              "6,065 to stay monotonic through PR-C below."),
-        ("PR-C (cleanups + data refresh)", 6065, "PR-C's own changes are DOM-NEUTRAL — G8 (concepts routing "
+        ("PR-C (cleanups + data refresh)", 6097, "PR-C's own changes are DOM-NEUTRAL — G8 (concepts routing "
                                              "maps), G9 (feed-cap CSS + comment), G13 (sim-probe JS guard), G15 "
                                              "(serve-dashboards allow-list) touch only JS/CSS/server, no markup. The "
                                              "+1 is MARKETPLACE DATA growth: main's committed artifacts were stale "
                                              "at 6,064 while a fresh regen of current plugin data (167->168 plugins, "
                                              "590->592 specialists, landed post-PR-B via merge-skew) measures 6,065 "
                                              "— PR-C's mandatory regeneration refreshes them (also fixing that latent "
-                                             "Gate 13/97 drift). Measured 6,064 -> 6,065 (+1, data). Zero slack."),
+                                             "Gate 13/97 drift). Measured 6,064 -> 6,065 (+1, data); value lifted to "
+                                             "6,097 to stay monotonic through PR-E below."),
+        ("PR-E (standalone 4-dest sidebar)", 6097, "G11: the standalone dashboard.html gains a portal-style left "
+                                             "<aside class=dash-sidebar> (brand + 4 destinations Control/Activity/"
+                                             "Guardrails/Learn&Help -> 15 nav <a> links driving the EXISTING "
+                                             "activate() router). Additive ~+32 elems (aside + brand chrome + 4 "
+                                             "groups + 4 labels + 15 sub-links + nav wrapper); the flat .tab-bar is "
+                                             "hidden but its 15 tab-btns STAY in the DOM (validTabs, which the portal's "
+                                             "folded activate() also reads — removing them would break the portal). "
+                                             "Measured 6,065 -> 6,097 (+32). Zero slack."),
     ],
     INDEX: [
         ("Phase 0 -> 6", 50982, "Phase 0 baseline 50,945; +37 in Phase 6 (same guard-web-access + "
@@ -189,26 +198,26 @@ RATCHET = {
                                            "surface. 37,468 -> 17,772 = 12.7x. Zero slack."),
         ("Phase 2b (Commands island)", 11470, "portal fragment's commands payload islanded alongside "
                                               "the standalone surface. 17,772 -> 11,470 = 8.2x. Zero slack."),
-        ("P1 (plugin-panel collapse)", 6800, "the 167 panel-plugin-* sections collapsed into ONE "
+        ("P1 (plugin-panel collapse)", 6809, "the 167 panel-plugin-* sections collapsed into ONE "
                                              "#plugin-vars picker in the merged dashboard fragment (same "
                                              "collapse as the standalone surface). Measured 11,462 -> 6,800. "
                                              "Zero slack."),
-        ("P3 (chrome shrink)", 6790, "the folded fragment's cat-bar + tab-bar shrink (-14, same as the "
+        ("P3 (chrome shrink)", 6809, "the folded fragment's cat-bar + tab-bar shrink (-14, same as the "
                                      "standalone surface) nets against +4 static destination anchors seeded "
                                      "into #primary-nav (the committed-route floor for #/control, #/activity, "
                                      "#/guardrails, #/catalog; renderNav replaces them at load). Measured "
                                      "6,800 -> 6,790 (-10). Zero slack."),
-        ("P4 (Observe merge)", 6785, "the folded fragment's five Observe wrappers (panel-{saga,mimir,streams,"
+        ("P4 (Observe merge)", 6809, "the folded fragment's five Observe wrappers (panel-{saga,mimir,streams,"
                                      "norns,vidarr}) removed and their content folded into panel-activity / "
                                      "panel-heimdall (same merge as the standalone surface). Measured "
                                      "6,790 -> 6,785 (-5). Additions: zero. Zero slack."),
-        ("P5 (shell-view deletions)", 6777, "same shell-view deletions folded into the portal fragment: "
+        ("P5 (shell-view deletions)", 6809, "same shell-view deletions folded into the portal fragment: "
                                             "panel-overview + panel-simulator deleted; install/bifrost/about/"
                                             "commands folded into ONE panel-help drawer + the grouped C5 "
                                             "removed-routes table. Measured 6,785 -> 6,762 (-23). NOTE: value "
                                             "lifted 6,762 -> 6,776 to stay monotonic through A-split +12, PR-A +7, "
                                             "PR-B +2 below."),
-        ("P6 (payload demotion)", 6777, "the three portal-only JSON payload islands learn-payload / "
+        ("P6 (payload demotion)", 6809, "the three portal-only JSON payload islands learn-payload / "
                                         "trees-payload / concepts-data stripped from the folded dashboard body "
                                         "(portal Learn/Trees/Concepts are P5 named removals -> standalone + "
                                         "Pages; the standalone keeps them inline, Gate 13 non-contact). Removing "
@@ -216,7 +225,7 @@ RATCHET = {
                                         "lifted 6,759 -> 6,776 to stay monotonic through A-split +12, PR-A +7, "
                                         "PR-B +2 below. (PR-B later un-strips trees-payload — see its row + the "
                                         "_PORTAL_ONLY_PAYLOAD_IDS change in generate-index-dashboard.py.)"),
-        ("A-split (Observe un-merge)", 6777, "the folded fragment's Observe family is UN-merged back into one "
+        ("A-split (Observe un-merge)", 6809, "the folded fragment's Observe family is UN-merged back into one "
                                              "<section class=tab-panel> per sub-page (the exact inverse of P4, same "
                                              "as the standalone surface): Activity -> Run feed / Saga / Session / "
                                              "Streams / Lineage; Guardrails -> Perimeter alerts / Security log / Debt "
@@ -225,14 +234,14 @@ RATCHET = {
                                              "mount id + render function byte-identical. The one DELIBERATE, "
                                              "sanctioned +12 that reverses the P4 merge. Measured 6,755 -> 6,767 "
                                              "(+12); value lifted to 6,776 to stay monotonic through PR-A/PR-B below."),
-        ("PR-A (Help reachability + About accuracy)", 6777, "portal-only +7 vs the standalone's +2: the shared "
+        ("PR-A (Help reachability + About accuracy)", 6809, "portal-only +7 vs the standalone's +2: the shared "
                                              "About list re-cut 4 li -> 5 li (+2, gap G6) PLUS the G1 Help-"
                                              "reachability affordance in the shell topbar — an <a> '?' link + its "
                                              "inline <svg> (circle + '?' path + dot) = +5 — that makes the panel-help "
                                              "drawer (About / install guides / 525-command catalog) click-reachable "
                                              "again after #739 orphaned it to hash-only. Content-correctness raise; "
                                              "measured 6,767 -> 6,774 (+7); value lifted to 6,776 through PR-B below."),
-        ("PR-B (Guidance/trees wire-back)", 6777, "portal +2 vs the standalone's +1: the +1 tab-btn[data-tab=trees] "
+        ("PR-B (Guidance/trees wire-back)", 6809, "portal +2 vs the standalone's +1: the +1 tab-btn[data-tab=trees] "
                                              "(same as the standalone) PLUS +1 for the restored trees-payload "
                                              "<script> START TAG — G4 removed 'trees-payload' from the P6 portal "
                                              "byte-diet so the portal KEEPS the consolidated 924-tree Guidance index "
@@ -240,13 +249,19 @@ RATCHET = {
                                              "reachable via the Catalog sub-nav 'Guidance' (#/trees). The trees "
                                              "markup is CDATA (uncounted); only the <script> tag + tab-btn count. "
                                              "Measured 6,774 -> 6,776 (+2); value lifted to 6,777 through PR-C below."),
-        ("PR-C (cleanups + data refresh)", 6777, "PR-C's own changes are DOM-NEUTRAL (G8/G9/G13/G15 = JS/CSS/"
+        ("PR-C (cleanups + data refresh)", 6809, "PR-C's own changes are DOM-NEUTRAL (G8/G9/G13/G15 = JS/CSS/"
                                              "server only). The +1 is MARKETPLACE DATA growth: main's committed "
                                              "index.html was stale at 6,776 while a fresh regen of current plugin "
                                              "data (167->168 plugins, 590->592 specialists, landed post-PR-B via "
                                              "merge-skew) measures 6,777 — PR-C's mandatory regeneration refreshes "
                                              "it (fixing the latent Gate 13/97 drift). Measured 6,776 -> 6,777 "
-                                             "(+1, data). Zero slack."),
+                                             "(+1, data); value lifted to 6,809 through PR-E below."),
+        ("PR-E (standalone 4-dest sidebar)", 6809, "the portal folds the SAME standalone payload, so the new "
+                                             "<aside class=dash-sidebar> (+32, same as the standalone) lands in "
+                                             "index.html too — hidden by the shell's `#dash-root .dash-sidebar "
+                                             "{display:none}` + margin-zero, so the portal shows ONE sidebar. The "
+                                             "elements still count (hidden != removed). Measured 6,777 -> 6,809 "
+                                             "(+32). Zero slack."),
     ],
 }
 
