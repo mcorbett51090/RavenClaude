@@ -852,7 +852,7 @@ TEMPLATE = r"""<!doctype html>
       // phantom routes: nidhoggr is a card in heimdall, sleipnir a banner in activity).
       const DASH_TAB_ALIAS = {
         dashboard: "activity", "comfort-posture": "settings",
-        sleipnir: "activity", concepts: "learn",
+        sleipnir: "activity",
         // A-split (dashboard-consumption follow-up): the Observe family is UN-merged —
         // saga/mimir/streams/norns/vidarr/nidhoggr each have their OWN fragment tab now
         // (a real .tab-btn[data-tab]), so they are NO LONGER aliased to a merged
@@ -886,6 +886,12 @@ TEMPLATE = r"""<!doctype html>
         // NAMED removals — #/configure (the deleted non-writing posture editor) and
         // #/overview / #/simulator (deleted tabs) land on Settings (the real editor).
         configure: "control", overview: "control", simulator: "control",
+        // G8: #/concepts was aliased to the Learn TAB, but P6 stripped the portal
+        // learn-payload -> loadLearn() early-returned -> panel-learn rendered EMPTY
+        // (a blank host, violating "every retired route redirects to a surviving
+        // destination"). The Learn explainers now live on the standalone /dashboard;
+        // on the portal #/concepts is a NAMED removal -> Control, like the others.
+        concepts: "control",
       };
       // LEGACY_VIEW retired (P5, dashboard-consumption): viewTeam was deleted, so no
       // own-view legacy route remains — #/team resolves via SECTION_ALIAS (team→catalog).
@@ -899,7 +905,7 @@ TEMPLATE = r"""<!doctype html>
         // P5: overview/simulator tabs deleted (resolve via SECTION_ALIAS → Control);
         // the Help drawer (install/bifrost/about/commands + help) is owned by Catalog.
         "plugin-vars": "catalog", commands: "catalog", trees: "catalog", bifrost: "catalog",
-        install: "catalog", about: "catalog", concepts: "catalog", help: "catalog",
+        install: "catalog", about: "catalog", help: "catalog",
       };
       // SECTION_TABS retired (P3, dashboard-consumption). The 6-section IA's
       // per-section sub-nav is gone: the shell now has four task destinations
@@ -912,7 +918,8 @@ TEMPLATE = r"""<!doctype html>
       function payloadKind(section) {
         // A dashboard-owned tab route (drives the #dash-root host). Bare "learn"
         // is intercepted by the NAV check in route() before this, so the Learn
-        // section wins #/learn; the concepts tab is reached inside the Learn area.
+        // section wins #/learn (viewResources). (#/concepts is a G8 named removal
+        // -> Control via SECTION_ALIAS; it no longer aliases to the Learn tab.)
         if (DASH_OWNER[section]) return "dashboard";
         return null;
       }
