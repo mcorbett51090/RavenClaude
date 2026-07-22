@@ -9464,6 +9464,16 @@ _JS = r"""
     sync();
   })();
 
+  // TDZ fix (dashboard-consumption follow-up): syncPipelineTab() reads
+  // pipelineServerAvailable, and the initial applyHash() below reaches it via
+  // activate("pipeline") on a #/pipeline deep-link / reload — so these must be
+  // declared BEFORE applyHash() runs, the same guard the saga/activity state above
+  // uses. Left further down (after applyHash), a cold #/pipeline open threw
+  // "Cannot access 'pipelineServerAvailable' before initialization". Now that
+  // Pipeline is a click-reachable Control page, a reload on it is a common path.
+  let pipelineServerAvailable = false;
+  let pipelineWired = false;
+
   window.addEventListener("hashchange", applyHash);
   applyHash();
 
@@ -9472,9 +9482,8 @@ _JS = r"""
    * save through the same emitYaml()/saveToRepo() path as Settings (so the
    * serializer is the single source of truth). The two file-backed editors
    * round-trip .repo-layout.json / .ravenclaude/task-scope.json via /__read +
-   * /__save (server-validated). Read-only on a static host. */
-  let pipelineServerAvailable = false;
-  let pipelineWired = false;
+   * /__save (server-validated). Read-only on a static host.
+   * (pipelineServerAvailable / pipelineWired are declared above applyHash() — TDZ.) */
 
   function pipeBadge(id, text, cls) {
     const el = document.querySelector('[data-pipe-badge="' + id + '"]');
@@ -12166,12 +12175,9 @@ _PAGE_TEMPLATE = """<!doctype html>
 <header class="page-header">
   <div class="brand-row">
     <span class="brand-mark" aria-hidden="true">{raven_mark}</span>
-    <h1>{title}</h1>
-    <a class="btn btn-primary brand-cta" href="#/settings">Settings</a>
   </div>
-  <p class="page-desc">This is your control panel for Claude&nbsp;Code's safety rails. Use it to set what Claude is allowed to do, see what it's been doing, and add plugins. <a href="#/help" class="header-about-link">What is this?</a></p>
   <nav class="tab-bar" aria-label="Dashboard sections">
-    <button class="tab-btn" type="button" id="tab-settings" data-tab="settings" aria-selected="true" title="Settings — choose what Claude can do on its own (deny / ask / allow)">Settings</button>
+    <button class="tab-btn" type="button" id="tab-settings" data-tab="settings" aria-selected="true" title="The Thing — comfort-posture + command-review; choose what Claude can do on its own (deny / ask / allow)">The Thing</button>
     <button class="tab-btn" type="button" id="tab-pipeline" data-tab="pipeline" aria-selected="false" title="Pipeline — the safety checks every command passes through">Pipeline</button>
     <button class="tab-btn" type="button" id="tab-web-access" data-tab="web-access" aria-selected="false" title="Web access — allow/deny which websites the agent may fetch">Web access</button>
     <button class="tab-btn" type="button" id="tab-activity" data-tab="activity" aria-selected="false" title="Run feed — what Claude is doing right now: runs &amp; worktrees">Run feed</button>
@@ -12183,7 +12189,7 @@ _PAGE_TEMPLATE = """<!doctype html>
 </header>
 
 <main>
-  <section class="tab-panel active" id="panel-settings" data-tab="settings" role="tabpanel" aria-label="Settings">
+  <section class="tab-panel active" id="panel-settings" data-tab="settings" role="tabpanel" aria-label="The Thing">
 {settings_html}
   </section>
   <section class="tab-panel" id="panel-pipeline" data-tab="pipeline" role="tabpanel" aria-label="Guardrail pipeline">
