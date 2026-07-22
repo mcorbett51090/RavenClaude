@@ -718,16 +718,73 @@ TEMPLATE = r"""<!doctype html>
       /*__DASH_JS__*/
     </script>
 
-    <script>
-      window.__RC_DATA__ = /*__RC_DATA__*/;
-    </script>
+    <!-- Lazy detail island (H4 / plan §1.4). The detail-only fields read SOLELY by
+         window.__openPlugin — agents[].scenarios/.quickstart/.works_with and
+         plugins[].scripts_index/.scenarios_index/.templates_index/.best_practices_index
+         — are parked here as inert application/json so they never sit on the eager
+         window.__RC_DATA__ JS-parse path (~1.28 MB off it, zero content loss).
+         hydrateDetail() merges them back on demand and THROWS if this element is
+         renamed / missing / unparseable or lacks the plugin's record — the
+         silent-empty-section is the exact H4 failure it guards. <script> contents
+         are CDATA, so this is DOM-budget-neutral (the +1 element is offset by
+         folding the former standalone window.__RC_DATA__ <script> into the shell
+         script below, -1). -->
+    <script type="application/json" id="plugin-detail-payload">/*__PLUGIN_DETAIL_PAYLOAD__*/</script>
     <script>
       "use strict";
+      // window.__RC_DATA__ and the shell that reads it share ONE <script> so the
+      // detail island above is DOM-count-neutral. "use strict" stays the FIRST
+      // statement so strict mode still governs the whole shell.
+      window.__RC_DATA__ = /*__RC_DATA__*/;
       const D = window.__RC_DATA__;
       const $ = (s, r = document) => r.querySelector(s);
       const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
       const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
       const byName = (n) => D.plugins.find((p) => p.name === n);
+
+      /* ---- Lazy detail island — H4 hydration contract (plan §1.4) -------------
+       * The detail-only fields (agents[].scenarios/.quickstart/.works_with +
+       * plugins[].scripts_index/.scenarios_index/.templates_index/.best_practices_index)
+       * live in <script id="plugin-detail-payload"> to keep them off the eager
+       * __RC_DATA__ parse path. KEY PRESENCE is the hydration sentinel: an eager
+       * record does NOT carry these keys, so ABSENT means "not hydrated" and []
+       * means "genuinely zero". hydrateDetail() merges the island fields back onto
+       * a record BEFORE __openPlugin counts/filters them, and THROWS — never
+       * silently renders an empty section (that IS the H4 failure) — if the island
+       * element is renamed/missing, unparseable, or has no record for this plugin. */
+      let __detailIsland;
+      function __loadDetailIsland() {
+        if (__detailIsland) return __detailIsland;
+        const el = document.getElementById("plugin-detail-payload");
+        if (!el) throw new Error("hydrateDetail: #plugin-detail-payload island element is missing");
+        try {
+          __detailIsland = JSON.parse(el.textContent);
+        } catch (e) {
+          throw new Error("hydrateDetail: #plugin-detail-payload island is unparseable — " + e.message);
+        }
+        return __detailIsland;
+      }
+      function hydrateDetail(p) {
+        if (!p) return p; // unknown plugin name — not a hydration failure; caller returns
+        const rec = (__loadDetailIsland().plugins || {})[p.name];
+        if (!rec) throw new Error("hydrateDetail: island has no record for plugin '" + p.name + "'");
+        // Plugin-level islanded fields (explicit — never clobber the eager p.agents list).
+        p.scripts_index = rec.scripts_index;
+        p.scenarios_index = rec.scenarios_index;
+        p.templates_index = rec.templates_index;
+        p.best_practices_index = rec.best_practices_index;
+        // Agent-level islanded subfields (scenarios/quickstart/works_with), by name.
+        const arecs = rec.agents || {};
+        (p.agents || []).forEach((a) => { const ar = arecs[a.name]; if (ar) Object.assign(a, ar); });
+        // Free secondary invariant (measured: 0 mismatches across all 167 plugins):
+        // the eager counts MUST agree with the hydrated index lengths. Do NOT extend
+        // to templates (4 mismatches) or best_practices (no eager count) — plan §1.4.
+        if (p.counts.tools !== (p.scripts_index || []).length ||
+            p.counts.scenarios !== (p.scenarios_index || []).length) {
+          throw new Error("hydrateDetail: eager-count vs island-length mismatch for '" + p.name + "'");
+        }
+        return p;
+      }
 
       /* ---------------- Icons ---------------- */
       const ICONS = {
@@ -1235,7 +1292,10 @@ TEMPLATE = r"""<!doctype html>
       // comfort-posture editor (#/configure); the legacy #/plugin-* route still
       // resolves here for bookmarked/back-forward deep-links.
       window.__openPlugin = function (name) {
-        const p = byName(name); if (!p) return;
+        // Hydrate the detail-only island fields BEFORE building sectionDefs — if
+        // the plugin exists, hydrateDetail throws on a hydration failure (never
+        // renders a silent-empty section); an unknown name returns falsy and we exit.
+        const p = hydrateDetail(byName(name)); if (!p) return;
         showHost("view");
         const cats = D.categories;
         const catLabel = (cats.find((c) => c.id === p.category) || {}).label || "Marketplace";
@@ -1263,8 +1323,11 @@ TEMPLATE = r"""<!doctype html>
         // rendered as a collapsible dropdown with its pre-rendered Mermaid SVG.
         const trees = (() => {
           const store = document.getElementById("dt-store");
-          if (!store) return { count: 0, html: "" };
+          // #dt-store is emitted UNCONDITIONALLY (plan §1.3), so its absence is
+          // never legitimate — throw rather than silently drop the trees section.
+          if (!store) throw new Error("dt-store missing");
           const mine = Array.from(store.querySelectorAll('.dt-item[data-plugin="' + (window.CSS && CSS.escape ? CSS.escape(name) : name) + '"]'));
+          // A plugin with no trees is the legitimate empty case — stay silent.
           if (!mine.length) return { count: 0, html: "" };
           const one = (el) => {
             const title = el.getAttribute("data-title") || "Decision tree";

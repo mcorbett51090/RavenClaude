@@ -1003,16 +1003,64 @@ def _render_dt_store(gd) -> str:
     return "".join(parts)
 
 
+# P2 (plan §1.3/§1.4): the detail-only fields read SOLELY inside window.__openPlugin.
+# They are moved out of the eager window.__RC_DATA__ blob into a lazy island
+# (<script type="application/json" id="plugin-detail-payload">), cutting ~1.28 MB
+# off the eager JS-parse path with ZERO content loss. rules_index / skills_index /
+# hooks_index are DELIBERATELY NOT islanded — they are read elsewhere (rules at the
+# detail view's sectionDefs are eager-safe; skills_index + hooks_index feed the ⌘K
+# search palette), so islanding them would re-open H4 on an un-gated section.
+_ISLANDED_PLUGIN_KEYS = (
+    "scripts_index",
+    "scenarios_index",
+    "templates_index",
+    "best_practices_index",
+)
+_ISLANDED_AGENT_KEYS = ("scenarios", "quickstart", "works_with")
+
+
+def _extract_detail_island(data: dict) -> dict:
+    """Pop the detail-only fields off every eager plugin/agent record and return
+    them as a separate island keyed by plugin name (then agent name).
+
+    MUTATES `data`: the islanded keys are REMOVED from the eager records, so an
+    eager `D.plugins[i]` record after islanding must NOT contain them at all —
+    key ABSENCE is the H4 hydration sentinel (plan §1.4). The generator emits all
+    four `*_index` keys unconditionally on all 167 plugins, so every island record
+    carries all four (present == hydrated; `[]` == genuinely zero)."""
+    island_plugins: dict = {}
+    for p in data.get("plugins", []):
+        rec: dict = {k: p.pop(k) for k in _ISLANDED_PLUGIN_KEYS if k in p}
+        agents_rec: dict = {}
+        for a in p.get("agents", []):
+            arec = {k: a.pop(k) for k in _ISLANDED_AGENT_KEYS if k in a}
+            if arec:
+                agents_rec[a["name"]] = arec
+        rec["agents"] = agents_rec
+        island_plugins[p["name"]] = rec
+    return {"plugins": island_plugins}
+
+
 def render_html(data: dict) -> str:
     template = _TEMPLATE
     shared_tokens = _load_shared_tokens_root()
+    # P2 (plan §1.4): split the detail-only fields into the lazy island BEFORE
+    # serialising the eager blob. MUTATES `data` — the islanded keys are POPPED
+    # from every eager record so their key-ABSENCE is the H4 hydration sentinel
+    # (present == hydrated, [] == genuinely zero, absent == not hydrated).
+    island = _extract_detail_island(data)
     # Escape `<` as the JSON/JS `<` escape before splicing into the inline
     # <script> block. Repo-authored free-text (agent/skill descriptions) can
     # contain the literal substring `</script`, which the HTML parser treats as
     # the end of the raw-text script element regardless of JS string context —
     # truncating the script and turning the rest into parsed markup. `<`
     # round-trips to `<` for the JSON parser and never appears as a raw `<`.
+    # The SAME escape is applied to the detail island — it is *more* exposed:
+    # agents[].scenarios[].intent / quickstart are the freest text in the payload.
     payload = json.dumps(data, ensure_ascii=False, separators=(",", ":")).replace(
+        "<", "\\u003c"
+    )
+    island_payload = json.dumps(island, ensure_ascii=False, separators=(",", ":")).replace(
         "<", "\\u003c"
     )
     html = template.replace("/*__SHARED_TOKENS__*/", shared_tokens)
@@ -1051,10 +1099,26 @@ def render_html(data: dict) -> str:
     # free text (agent/skill/hook descriptions, scenario scope tags), so a field that
     # happens to equal a bare or comment-style sentinel (`/*__DASH_JS__*/`,
     # `__MKT_VERSION__`, …) must never be re-scanned and rewritten inside
-    # window.__RC_DATA__ — that would corrupt the JSON and break the portal's hydration.
+    # a payload — that would corrupt the JSON and break the portal's hydration.
     # (The `<`->< escaping already shields the `<!--__…__-->` markers; splicing
     # last closes the same gap for the sentinels that contain no `<`.)
-    html = html.replace("/*__RC_DATA__*/", payload)
+    #
+    # ⚠ Splice-ordering discipline (plan §11.4 / P2, finding F3): a SECOND
+    # sequential str.replace would re-scan the FIRST payload's already-spliced free
+    # text for the second marker — a real corruption class. re.sub does NOT re-scan
+    # replaced text, so folding BOTH the eager blob and the detail island into one
+    # final substitution gives the island the same last-substituted / no-re-scan
+    # guarantee __RC_DATA__ has always relied on. (Confirmed disjoint from the
+    # byte-diet's learn/trees/concepts payloads — different generator, plan §11.4.)
+    _final_payloads = {
+        "/*__RC_DATA__*/": payload,
+        "/*__PLUGIN_DETAIL_PAYLOAD__*/": island_payload,
+    }
+    html = re.sub(
+        r"/\*__RC_DATA__\*/|/\*__PLUGIN_DETAIL_PAYLOAD__\*/",
+        lambda m: _final_payloads[m.group(0)],
+        html,
+    )
     return html
 
 

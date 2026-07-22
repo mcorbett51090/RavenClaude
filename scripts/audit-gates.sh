@@ -3809,6 +3809,74 @@ else
 fi
 
 # ─────────────────────────────────────────────────────────────────────────────
+echo "── Gate 141: plugin-detail island render (H4 zero-content-loss) ──────────"
+# P2 (plan §1.4) moves the detail-only fields read SOLELY by window.__openPlugin
+# — agents[].scenarios/.quickstart/.works_with + plugins[].scripts_index /
+# .scenarios_index / .templates_index / .best_practices_index — off the eager
+# window.__RC_DATA__ parse path into a lazy <script id="plugin-detail-payload">
+# island. The H4 hazard: __openPlugin can count `(p.scripts_index||[]).length`
+# and `.filter(s => s.body)` on data that is NOT hydrated yet, so whole sections
+# vanish with ZERO count and NO error — invisible to any render-only /
+# no-console-errors test. So "zero content loss" IS this gate, not a console check.
+# Text/structural (no eval), like the sibling check-*-render.mjs gates, driven
+# against the freshly-rendered $IDX_HTML. Key PRESENCE is the hydration sentinel:
+# absent == not hydrated, [] == genuinely zero (77 plugins really have
+# scripts_index: [], so "assert non-empty" would be wrong on 46% of the catalog).
+#
+# Three must-fail halves prove teeth: (a) RENAME THE ISLAND ID — the literal H4
+# hydration-break scenario, silent today; (b) delete one plugin's island record;
+# (c) alter one committed baseline count. Each must go red.
+if command -v node >/dev/null 2>&1; then
+  # must_pass: ravenclaude-core (the ONLY plugin with all 8 data-backed sections
+  # non-empty) renders all nine section counts from the island + eager blob, and a
+  # genuinely-empty section is present-but-[] (absent at render, no error).
+  rc=0; node scripts/check-plugin-detail-render.mjs "$IDX_HTML" >/dev/null 2>&1 || rc=$?
+  gate "plugin-detail render (real index.html — nine section counts hydrate)" must_pass "$rc"
+
+  # must_fail (a): RENAME THE ISLAND ID. The element becomes unreachable by the
+  # id hydrateDetail() looks up → __openPlugin would count/filter unhydrated data
+  # and drop whole sections silently. This is the exact H4 break the gate exists
+  # to catch; renaming only the HTML attribute (not the JS getElementById arg)
+  # reproduces it faithfully.
+  PD_BAD_A="$TMP/index-detail-renamed-id.html"
+  sed 's/id="plugin-detail-payload"/id="plugin-detail-payload-RENAMED"/' "$IDX_HTML" > "$PD_BAD_A"
+  rc=0; node scripts/check-plugin-detail-render.mjs "$PD_BAD_A" >/dev/null 2>&1 || rc=$?
+  gate "plugin-detail render (renamed island id → H4 hydration break detected)" must_fail "$rc"
+
+  # must_fail (b): delete one plugin's island record → the completeness check
+  # (island plugin-set === eager plugin-set) goes red.
+  PD_BAD_B="$TMP/index-detail-dropped-record.html"
+  python3 - "$IDX_HTML" "$PD_BAD_B" <<'PY'
+import sys, re, json
+src = open(sys.argv[1]).read()
+m = re.search(r'(<script type="application/json" id="plugin-detail-payload">)([\s\S]*?)(</script>)', src)
+isl = json.loads(m.group(2))
+del isl["plugins"]["ravenclaude-core"]  # drop one plugin's island record
+new = m.group(1) + json.dumps(isl, ensure_ascii=False, separators=(",", ":")).replace("<", "\\u003c") + m.group(3)
+open(sys.argv[2], "w").write(src[:m.start()] + new + src[m.end():])
+PY
+  rc=0; node scripts/check-plugin-detail-render.mjs "$PD_BAD_B" >/dev/null 2>&1 || rc=$?
+  gate "plugin-detail render (deleted island record is detected)" must_fail "$rc"
+
+  # must_fail (c): alter one committed baseline count (ravenclaude-core's islanded
+  # scripts_index 17 -> 16) → the rc-core baseline + the counts invariant go red.
+  PD_BAD_C="$TMP/index-detail-altered-count.html"
+  python3 - "$IDX_HTML" "$PD_BAD_C" <<'PY'
+import sys, re, json
+src = open(sys.argv[1]).read()
+m = re.search(r'(<script type="application/json" id="plugin-detail-payload">)([\s\S]*?)(</script>)', src)
+isl = json.loads(m.group(2))
+isl["plugins"]["ravenclaude-core"]["scripts_index"].pop()  # 17 -> 16
+new = m.group(1) + json.dumps(isl, ensure_ascii=False, separators=(",", ":")).replace("<", "\\u003c") + m.group(3)
+open(sys.argv[2], "w").write(src[:m.start()] + new + src[m.end():])
+PY
+  rc=0; node scripts/check-plugin-detail-render.mjs "$PD_BAD_C" >/dev/null 2>&1 || rc=$?
+  gate "plugin-detail render (altered baseline count is detected)" must_fail "$rc"
+else
+  _skip_or_fail "Gate 141 (plugin-detail island render)" node
+fi
+
+# ─────────────────────────────────────────────────────────────────────────────
 echo "── Gate 97: index.html freshness (template round-trip, check-only) ───────"
 # The unified-shell drift lesson (forge/index-generator-drift, 2026-06-04):
 # index.html was hand-edited (PR #259/#302) and its generator template never
