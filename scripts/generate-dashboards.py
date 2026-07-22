@@ -6058,10 +6058,20 @@ footer.page-footer a:hover { text-decoration: underline; }
 
 /* — Feeds (Run feed / Saga / Perimeter / Security log / Lineage / Session /
      Streams / Bifröst): kill the doubled top padding + tighten card gaps.
-     Row/card content stays legible; long feeds are additionally length-capped
-     in the render JS (top ~10 + "Show all"). — */
+     Row/card content stays legible. Capping is split by feed shape (G9):
+     the Run feed + Saga are length-capped in the render JS (top ~10 + "Show
+     all"); the Observe log feeds (Security log / Lineage / Session / Streams)
+     are NOT JS-capped, so they bound unbounded page growth with a max-height +
+     internal scroll (rule just below) instead. — */
 .saga-layout, .vidarr-layout, .norns-layout, .heimdall-layout,
 .bifrost-layout, .mimir-layout { padding: 14px 20px; }
+/* G9: the Observe log feeds render every row/card (no JS top-N cap), so on a
+   busy project they grew the page unbounded — the condense goal is "not much
+   scrolling". A generous max-height keeps normal data un-scrolled and only
+   engages on large feeds, scrolling inside the panel. (.mimir-layout covers
+   both #mimir Session and #streams Streams; Saga/Heimdall/Bifröst are excluded
+   — Saga is JS-capped, Heimdall is a card grid, Bifröst is a short guide.) */
+.vidarr-layout, .norns-layout, .mimir-layout { max-height: 78vh; overflow-y: auto; }
 .saga-hdr { margin-bottom: 8px; }
 .saga-filters { margin-bottom: 10px; }
 .saga-table th, .saga-table td { padding: 6px 10px; }
@@ -8952,16 +8962,23 @@ _JS = r"""
     });
   }
 
-  probeClassifyEndpoint().then(available => {
-    if (available) {
-      if (simAnalyzeBtn) simAnalyzeBtn.disabled = false;
-      if (simDisabledHelp) simDisabledHelp.hidden = true;
-    } else {
-      if (simAnalyzeBtn) simAnalyzeBtn.disabled = true;
-      if (simCommand) simCommand.disabled = true;
-      if (simDisabledHelp) simDisabledHelp.hidden = false;
-    }
-  });
+  // G13: gate the on-load HEAD /__classify probe behind the sim panel's existence.
+  // panel-simulator was deleted (P5), so #sim-command is null on every surface and the
+  // whole handler above is inert — but this probe was UNCONDITIONAL, firing a doomed
+  // HEAD /__classify (404 on static / Pages hosts) on every dashboard load. The guard
+  // makes it a no-op today and self-reactivates if the sim panel ever returns.
+  if (simCommand) {
+    probeClassifyEndpoint().then(available => {
+      if (available) {
+        if (simAnalyzeBtn) simAnalyzeBtn.disabled = false;
+        if (simDisabledHelp) simDisabledHelp.hidden = true;
+      } else {
+        if (simAnalyzeBtn) simAnalyzeBtn.disabled = true;
+        if (simCommand) simCommand.disabled = true;
+        if (simDisabledHelp) simDisabledHelp.hidden = false;
+      }
+    });
+  }
 
   /* ── Tab routing ─────────────────────────────────────────────────── */
   // Derived from the DOM so new pages (e.g. the per-plugin Plugins category)

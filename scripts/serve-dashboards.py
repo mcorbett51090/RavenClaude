@@ -31,7 +31,6 @@ Save flow:
 
 Path whitelist (security: prevents arbitrary write):
   - .ravenclaude/comfort-posture.yaml
-  - .ravenclaude/environment-context.md
   - .ravenclaude/plugins/<slug>.yaml  (Plugins tab; matched by shape, YAML-validated)
   Add new entries to ALLOWED_TARGETS below as new YAML dashboards ship.
 
@@ -70,9 +69,13 @@ JSON_EDIT_TARGETS = {
 # Plain YAML-mapping config files (validated as a mapping before write).
 WEB_ACCESS_TARGET = ".ravenclaude/web-access.yaml"
 YAML_MAPPING_TARGETS = {WEB_ACCESS_TARGET}
+# G15: `.ravenclaude/environment-context.md` was removed here + from ALLOWED_READ.
+# Its dashboard UI producer (viewConfiguration's "Run environment discovery" card)
+# was deleted in P5, leaving a writable/readable backend target with no UI — dead
+# attack surface. The environment-discovery skill still authors the file via direct
+# file I/O (not this server's /__save), so nothing on the live path needs it.
 ALLOWED_TARGETS = {
     ".ravenclaude/comfort-posture.yaml",
-    ".ravenclaude/environment-context.md",
     WEB_ACCESS_TARGET,
 } | JSON_EDIT_TARGETS
 
@@ -126,7 +129,6 @@ ALLOWED_ACTIONS = set(RUN_ACTIONS)
 # (the server has Python+yaml) so the dashboard needs no JS YAML parser.
 ALLOWED_READ = {
     ".ravenclaude/comfort-posture.yaml",
-    ".ravenclaude/environment-context.md",
     WEB_ACCESS_TARGET,
 } | JSON_EDIT_TARGETS
 
