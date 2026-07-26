@@ -901,6 +901,8 @@ _PIPELINE_EXCLUDED_HOOKS = {
     "agent-dispatch-evaluator.sh": "audit-only shadow (SubagentStart), opt-in; never denies",
     "worktree-guard.sh": "worktree_guard knob is surfaced Settings-only (DOM-budget-exempt panel) "
     "+ its live status as the Activity-tab Sleipnir badges; deliberately NOT a Pipeline stage card",
+    "thing-denial-kb-sync.sh": "Muninn denial-KB materialiser (Stop); learns from tribunal denials, not itself a guardrail",
+    "thing-denial-kb-recall.sh": "Muninn denial-KB recall (SessionStart); surfaces known denials + fixes, not a guardrail",
 }
 
 _PIPELINE_CONTROLS = {
