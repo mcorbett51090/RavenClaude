@@ -2,13 +2,18 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.210.1 — 2026-07-26
+
+### Added
+
+- **Thing-denial knowledge base (Muninn)** — when the command/decision tribunal DENIES/DEFERS an action, a new per-repo KB turns the raw Sága records into a `denial shape → known resolution` lookup so a blocked agent can identify why it recurs and apply the fix. Engine [`scripts/thing-denial-kb.py`](scripts/thing-denial-kb.py) (`sync`/`recall`/`resolve`/`record`); seed [`knowledge/thing-denial-resolutions.json`](knowledge/thing-denial-resolutions.json); `thing-denial-kb` skill + [`knowledge/thing-denial-kb.md`](knowledge/thing-denial-kb.md). A `Stop` hook syncs from the Sága logs (hot-path-safe, read-only); a `SessionStart` hook surfaces the digest.
+  - **Security-hardened (2 blockers fixed in review), proven by Gate 143:** derived-labels-only banner (raw `sample` never auto-injected — only `recall --json`); `sample`+`reasoning` secret-scrubbed before storage (port of `hooks/_scrub.sh`); decision resolutions match on the derived reason class, correct-by-design rules first. **Migration:** none — additive, opt-in, fail-safe.
+
 ## 0.210.0 — 2026-07-26
 
 ### Added
 
-- **Thing-denial knowledge base (Muninn) — the agent learns from what the tribunal blocks.** When the command/decision tribunal DENIES a command or DEFERS/refuses a decision, a new per-repo KB turns the raw Sága audit records into a lookup of `denial shape → known resolution`, so a blocked agent can **quickly identify why it recurs and apply the fix**. New engine [`scripts/thing-denial-kb.py`](scripts/thing-denial-kb.py) (`sync`/`recall`/`resolve`/`record` — stdlib-only, fail-safe); seed resolutions map [`knowledge/thing-denial-resolutions.json`](knowledge/thing-denial-resolutions.json); the `thing-denial-kb` skill + [`knowledge/thing-denial-kb.md`](knowledge/thing-denial-kb.md). A `Stop` hook syncs denials from the Sága logs (hot-path-safe, read-only — never touches the tribunal's live emit path); a `SessionStart` hook surfaces the digest.
-  - **Security-hardened (two blockers found + fixed in review), proven by Gate 143:** the auto-injected banner is **derived-labels-only** (the raw denied `sample` is never auto-injected — it lives only in `recall --json`); `sample`+`reasoning` are **secret-scrubbed before storage** (port of `hooks/_scrub.sh`); decision resolutions match on the derived reason class, not attacker text, correct-by-design rules first.
-  - **Migration:** none — additive, opt-in, fail-safe; inert until the Thing denies in a consumer repo.
+- **FORGE always provisions a worktree + checkpoints.** `/forge` now provisions an isolated `forge/<slug>` git worktree and checkpoints its tracked work at every gate boundary, at **every depth** (`micro`→`deep`). New deterministic helper `scripts/forge-worktree.sh` (`init` / `checkpoint` / `--self-test`), `bash`-3.2-safe and free of GNU `timeout`/`grep -P`/`sed -i`. **Fail-safe by contract** — every can't-provision case (not-a-git-repo, already-in-worktree nesting-guard, opted-out) exits 0 with a status receipt so the pipeline proceeds in the primary checkout (a safety anchor, never a gate). Opt-out: `forge_worktree: off` in `.ravenclaude/comfort-posture.yaml` or `FORGE_WORKTREE=off` (absent ⇒ on). Wired into `skills/forge-pipeline/SKILL.md` §0.5, `commands/forge.md`, and reconciled with the deep-depth atomic-write/resume. **Migration:** additive + fail-safe; set `forge_worktree: off` to keep the prior in-place behavior.
 
 ## 0.207.0 — 2026-07-21
 

@@ -1692,40 +1692,70 @@ floor, and every `/__*` endpoint are **unchanged**. The launch command still exi
 not eliminated); the public Pages URL is a ritual-free **read-only** surface for browsing (jobs 2/3 render
 empty there — their data is per-machine runtime state, never inlined).
 
-## Thing-denial knowledge base — Muninn (added 2026-07-26, v0.210.0)
+## FORGE always provisions a worktree + checkpoints (added 2026-07-26, v0.210.0)
 
-The agent now **learns from what the tribunal blocks**. When the command-review or decision-review
-tribunal ("the Thing") DENIES a command or DEFERS/refuses a decision, a new per-repo knowledge base
-turns the raw Sága audit records into a lookup of `denial shape → known resolution` — so a blocked
-agent can **quickly identify why it recurs and apply the known fix** instead of retrying blindly or
-paging the human. Named **Muninn** (Odin's raven of *memory*). It is the learn-from-denials complement
-to Heimdall/Víðarr (which show *what* tripped and *when*) and the event substrate (which records deny
-verdicts): Muninn adds *why it recurs* and *the fix*.
+`/forge` now provisions an **isolated git worktree** and **checkpoints** its tracked work at every gate
+boundary — at **every depth** (`micro` → `deep`), not just `deep`. This folds the marketplace's existing
+worktree machinery ([`skills/new-worktree`](skills/new-worktree/SKILL.md), the `git worktree` /
+Sleipnir convention) into the pipeline as a first-class step, so a FORGE run's plan-landing and
+subsequent implementation never mutate the primary checkout's tree — which is exactly the collision the
+`worktree_guard` posture warns about when `/forge` is launched on `main` while other worktrees exist.
 
-- **Engine** — [`scripts/thing-denial-kb.py`](scripts/thing-denial-kb.py) (stdlib-only, py39,
-  fail-safe): `sync` / `recall` / `resolve` / `record`.
-- **Write-on-deny** — a `Stop` hook [`hooks/thing-denial-kb-sync.sh`](hooks/thing-denial-kb-sync.sh)
-  materialises new denials at end-of-turn. **Hot-path-safe:** it READS only the Sága records the
-  tribunal already writes under `.ravenclaude/runs/thing/` — it never touches
-  `thing-orchestrator.sh` / `route-decision-review.sh` or the live `PreToolUse` emit path, so a
-  verdict can never change. **Identify** — a `SessionStart` hook
-  [`hooks/thing-denial-kb-recall.sh`](hooks/thing-denial-kb-recall.sh) surfaces the recent shapes +
-  resolutions. **Solve/teach** — the shipped seed map
-  [`knowledge/thing-denial-resolutions.json`](knowledge/thing-denial-resolutions.json) + `resolve`.
-- **Safety envelope (hardened after a blocking security review), proven bidirectionally by
-  Gate 143** (`hooks/tests/test-thing-denial-kb.sh`): (1) the auto-injected SessionStart banner is
-  **derived-labels-only** — the raw denied command/question (`sample`) is never auto-injected into
-  context (it lives only in `recall --json`), matching the `capability-orientation.sh` /
-  `watch-run-state.sh` / Gate 19 invariant; (2) `sample`+`reasoning` are **secret-scrubbed before
-  storage** (a Python port of `hooks/_scrub.sh`), so a denied `curl … Bearer …` leaks no credential
-  to disk or context; (3) decision-review resolutions match on the **derived reason class** (from the
-  tribunal's own trusted fields), not attacker-influenceable text, with correct-by-design
-  (high-blast / security) rules ordered **first**. The KB must never teach defeating a genuine
-  security stop — correct-by-design denials resolve to *"surface to the human"*, only false-positive
-  shapes (the injection-defer over-trigger) resolve to a route-around. Full mechanism:
-  [`knowledge/thing-denial-kb.md`](knowledge/thing-denial-kb.md); skill:
-  [`skills/thing-denial-kb/SKILL.md`](skills/thing-denial-kb/SKILL.md).
+**The deterministic core — [`scripts/forge-worktree.sh`](scripts/forge-worktree.sh).** A stdlib-only
+bash helper (the FORGE-script precedent set by `forge-route.py`: self-tested, **not** a formal
+audit-gate), with three subcommands:
 
-**Migration:** none — additive engine + two opt-in, fail-safe hooks + a skill/knowledge/seed-map;
-nothing in a consumer's installed plugin changes on `/plugin marketplace update` until the Thing
-denies something in their repo, at which point the KB records locally (gitignored).
+- `init <slug>` — creates (or, on `--resume`, **reuses** — idempotent) the branch `forge/<slug>` in
+  the worktree `.claude/worktrees/forge-<slug>/`, off `main` (or the resolved base). Prints a JSON
+  receipt + a `FORGE_WORKTREE <abs-path>` line.
+- `checkpoint <slug> <label>` — commits the worktree's tracked changes as
+  `forge(<slug>): checkpoint — <label>`. No-op when nothing tracked has changed.
+- `--self-test` — 9 scratch-repo fixtures (create/reuse idempotency, nesting guard, empty-checkpoint
+  no-op, real-work commit, slug validation, env + comfort-posture opt-out, not-a-git-repo fail-safe).
+
+**The load-bearing invariant — provisioning is a safety anchor, never a gate.** Every case the script
+can't provision exits **0** with a `status` receipt so the pipeline **proceeds in the primary
+checkout** — never blocking a planning run: `not-a-git-repo`, `already-in-worktree` (the nesting guard
+— a FORGE run launched from inside a linked worktree does not nest a second), or opted out
+(`forge_worktree: off` in `.ravenclaude/comfort-posture.yaml`, or `FORGE_WORKTREE=off`; absent ⇒ **on**).
+Because `.ravenclaude/runs/` is git-ignored, most *planning*-phase checkpoints are no-ops; the
+checkpoints that carry weight are the landed `plan.md` and the implementation phases, where a
+commit-per-boundary makes an interrupted run recoverable from the branch.
+
+**Two checkpoint layers, one slug.** This git-checkpoint layer **composes with — does not replace —**
+the deep-depth atomic-write/resume ([`skills/forge-pipeline/reference/deep-resume.md`](skills/forge-pipeline/reference/deep-resume.md)),
+which remains the gate-skip layer over the git-ignored run-dir. They share `<slug>`; `init` is
+idempotent so `--resume <slug>` re-enters the same worktree.
+
+**Portability:** `forge-worktree.sh` is written `bash`-3.2-safe (no `declare -A` / `mapfile` / `${x^^}`
+/ `shopt -s globstar`) and free of GNU `timeout` / `grep -P` / `sed -i`, per the macOS-door milestones
+above — so it does not re-open any of the closed doors.
+
+Wired into [`skills/forge-pipeline/SKILL.md`](skills/forge-pipeline/SKILL.md) §0.5 (provisioning) + the
+depth ladder note, and [`commands/forge.md`](commands/forge.md) Steps 2.5 / 4 / 5. **Migration:**
+consumer-visible but additive and fail-safe — after `/plugin marketplace update`, `/forge` runs in a
+`forge/<slug>` worktree by default; set `forge_worktree: off` to keep the prior in-place behavior.
+Nothing else in the pipeline's gate semantics, flags, or artifact paths changed.
+
+## Thing-denial knowledge base — Muninn (added 2026-07-26, v0.210.1)
+
+When the command/decision tribunal ("the Thing") DENIES a command or DEFERS/refuses a decision, a new
+per-repo knowledge base turns the raw Sága audit records into a lookup of `denial shape → known
+resolution` — so a blocked agent can **quickly identify why it recurs and apply the fix** instead of
+retrying blindly or paging the human (named **Muninn**, Odin's raven of *memory*). Engine
+[`scripts/thing-denial-kb.py`](scripts/thing-denial-kb.py) (`sync`/`recall`/`resolve`/`record`;
+stdlib-only, fail-safe). A `Stop` hook [`hooks/thing-denial-kb-sync.sh`](hooks/thing-denial-kb-sync.sh)
+materialises denials from the Sága logs (**hot-path-safe** — reads only; never touches
+`thing-orchestrator.sh` / `route-decision-review.sh` or the live emit path); a `SessionStart` hook
+[`hooks/thing-denial-kb-recall.sh`](hooks/thing-denial-kb-recall.sh) surfaces the digest. Seed map
+[`knowledge/thing-denial-resolutions.json`](knowledge/thing-denial-resolutions.json) + the
+`thing-denial-kb` skill + [`knowledge/thing-denial-kb.md`](knowledge/thing-denial-kb.md).
+
+**Security envelope (hardened after a blocking review), proven bidirectionally by Gate 143**
+(`hooks/tests/test-thing-denial-kb.sh`): the auto-injected SessionStart banner is **derived-labels-only**
+(the raw denied `sample` is never auto-injected — only via `recall --json`), matching the
+`capability-orientation.sh` / `watch-run-state.sh` / Gate 19 invariant; `sample`+`reasoning` are
+**secret-scrubbed before storage** (a Python port of `hooks/_scrub.sh`); decision resolutions match on
+the **derived reason class** (trusted tribunal fields), not attacker text, correct-by-design rules
+first. The KB never teaches defeating a genuine security stop. **Migration:** none — additive, opt-in,
+fail-safe; inert until the Thing denies.
