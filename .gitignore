@@ -20,6 +20,7 @@ node_modules/
 
 # Editor / OS noise
 .DS_Store
+.vscode/
 
 # Local Claude Code runtime state
 .claude/scheduled_tasks.lock
