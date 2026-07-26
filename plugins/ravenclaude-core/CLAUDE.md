@@ -922,13 +922,13 @@ Visual-output agents (web, dashboards, Power BI, Tableau) now carry an inherent 
 `ravenclaude-core` uses the standard component directories:
 
 - `agents/` — 15 specialist agent definitions (includes `data-engineer` and `viz-spec-reviewer`)
-- `skills/` — dispatch playbook (spawn-team), worktree helpers, structured-output reference, run-full-test-suite, contribution-staging, agent-quality-rubric, knowledge-file-staleness-sweep, prompt-pattern-library, plugin-release-checklist, decision-review (route yes/no decisions through the tribunal), brand-extraction (website home page → reusable brand kit), pbir-layout-engine (deterministic PBIR/web-dashboard layout linter), visual-feedback-loop (the render→see→critique→iterate referee that merges the layout linter + agent-captured console/Lighthouse evidence into one pass/fail verdict — the runnable half of `knowledge/visual-feedback-loop.md`)
-- `hooks/` — format-on-write, guard-destructive, remind-tests, enforce-layout, guard-recursive-spawn, thing-orchestrator, ensure-default-mode, reapply-posture, capability-orientation, route-decision-review, runaway-brake, dod-gate, claim-grounding-lint, agent-dispatch-evaluator, guard-web-access, regen-on-manifest-change (all registered in `hooks/hooks.json` for plugin-level distribution), plus the sourced helper `_emit-event.sh` (the hook-event substrate — sourced by the verdict-emitting hooks, not a registered hook itself) and `tests/` (the hook-event fixture test)
+- `skills/` — dispatch playbook (spawn-team), worktree helpers, structured-output reference, run-full-test-suite, contribution-staging, agent-quality-rubric, knowledge-file-staleness-sweep, prompt-pattern-library, plugin-release-checklist, decision-review (route yes/no decisions through the tribunal), brand-extraction (website home page → reusable brand kit), pbir-layout-engine (deterministic PBIR/web-dashboard layout linter), visual-feedback-loop (the render→see→critique→iterate referee that merges the layout linter + agent-captured console/Lighthouse evidence into one pass/fail verdict — the runnable half of `knowledge/visual-feedback-loop.md`), thing-denial-kb (Muninn — recall/identify/solve/teach the fix when the Thing blocks you)
+- `hooks/` — format-on-write, guard-destructive, remind-tests, enforce-layout, guard-recursive-spawn, thing-orchestrator, ensure-default-mode, reapply-posture, capability-orientation, route-decision-review, runaway-brake, dod-gate, claim-grounding-lint, agent-dispatch-evaluator, guard-web-access, regen-on-manifest-change, thing-denial-kb-sync (Stop — materialise tribunal denials into the Muninn KB), thing-denial-kb-recall (SessionStart — surface known denials + resolutions) (all registered in `hooks/hooks.json` for plugin-level distribution), plus the sourced helper `_emit-event.sh` (the hook-event substrate — sourced by the verdict-emitting hooks, not a registered hook itself) and `tests/` (the hook-event fixture test)
 - `scripts/` — apply-comfort-posture.py (`/set-posture` translator), serve-dashboards.py (the consumer dashboard server launched by `/dashboard` — serves the version-matched `dashboard.html` and writes `.ravenclaude/` into the consumer's project; binds 127.0.0.1, CSRF-guarded; the write surface is `/__save` + `/__read` + `/__classify` plus the allow-listed `/__run` (install/update/status — no arbitrary shell), and the remaining `/__*` endpoints (`/__heimdall` `/__vidarr` `/__norns` `/__nidhoggr` `/__mimir` `/__sleipnir` `/__saga` `/__concern` `/__knowledge` `/__runs` `/__csrf`) are read-only observability feeds), thing-decision.py + thing-seat.sh (command-review tribunal — see the `thing` skill), thing-decide.py (decision-review tribunal — see the `decision-review` skill)
 - `rules/` — coding-standards, security, git-workflow, agent-collaboration, terminal-copy-to-tempfile (copy-me CLI text → a temp `.md` file the user can copy from, because terminal clipboard copy doesn't work)
 - `templates/` — memos, runbooks, design specs, RAID logs, partner-success, `agent-ready-repo/` templates used by `/init-agent-ready`, plus `thing.yaml` (command-review seat config)
 - `commands/` — slash commands shipped to consumers: `/init-agent-ready`, `/wrap`, `/set-posture`, `/dashboard` (launches the bundled `serve-dashboards.py` so the consumer gets the fully-functioning comfort-posture dashboard with one-click Save & apply), `/stream` (inspect/override the active Agentic Work-Stream — list/set/new/show/status, over the `rc streams` CLI), and `/reset-plugin-cache` (alias `/ragnarok`) — the high-blast-radius plugin-cache disaster-recovery command (see the callout below)
-- `knowledge/` — reference material the Researcher cross-checks (incl. `concerns-catalog.md`, the tribunal constitution; `visual-feedback-loop.md` — the render→see→critique→iterate canon for visual-output agents)
+- `knowledge/` — reference material the Researcher cross-checks (incl. `concerns-catalog.md`, the tribunal constitution; `visual-feedback-loop.md` — the render→see→critique→iterate canon for visual-output agents; `thing-denial-kb.md` + `thing-denial-resolutions.json` — the Muninn denial-KB mechanism + its seed resolutions map)
 - `monitors/` — reactive run-state monitor (`monitors.json` + `watch-run-state.sh`); declared via `experimental.monitors` in `plugin.json`. The push complement to the read-only Heimdall/Víðarr tabs — see the milestone above and [`knowledge/run-state-monitor.md`](knowledge/run-state-monitor.md). Claude-Code-only; scoped `on-skill-invoke:spawn-team`.
 
 ### Command review (the Thing) — tribunal T5 (updated 2026-05-26, v0.28.0)
@@ -1517,3 +1517,63 @@ is the load-bearing regression gate. ~~Still open.~~ **Shipped** — see the sup
 **Migration:** none — the 12 hooks are **advisory** (exit 0 + a notice) and were emitting *nothing* on
 macOS. They now emit real findings there. Linux/CI is unchanged in outcome (perl and `grep -P` agree on
 these patterns; verified on 6 real-pattern fixtures incl. the empty-file edge).
+
+## Thing-denial knowledge base — Muninn (added 2026-07-26, v0.204.3)
+
+The agent now **learns from what the tribunal blocks**. When the command-review or decision-review
+tribunal ("the Thing") DENIES a command or DEFERS/refuses a decision, a new per-repo knowledge base
+turns the raw Sága audit records into a lookup of `denial shape → known resolution` — so an agent
+that gets blocked can **quickly identify why it keeps happening and apply the known fix** instead of
+retrying blindly or paging the human. Named **Muninn** (Odin's raven of *memory*). It is the
+learn-from-denials complement to the existing observability surfaces: Heimdall/Víðarr show *what*
+tripped and *when* (pull); the event substrate records deny verdicts; Muninn adds *why it recurs* and
+*the fix*.
+
+- **Engine** — [`scripts/thing-denial-kb.py`](scripts/thing-denial-kb.py) (stdlib-only, py39,
+  fail-safe — every subcommand exits 0 even on error, so it can never break a hook): `sync`
+  (materialise new denials from the Sága logs), `recall` (`--unresolved`/`--json`/`--limit` — the
+  agent-facing digest), `resolve` (teach the KB a fix an agent discovered), `record` (direct capture).
+- **Seed resolutions (shipped, committed)** — [`knowledge/thing-denial-resolutions.json`](knowledge/thing-denial-resolutions.json):
+  first-match-wins rules keyed on `{source, verdict?, category?, pattern?}` → an **actionable**
+  resolution + doc pointer. Seeded with the real ones: force-push → `scripts/archive-branch.sh`,
+  `git branch -D` → the branch-archive skill, `rm -rf`/`git reset --hard`/`git clean -fd` guidance,
+  publish + network_write → the sanctioned route, the decision-review **injection-false-positive
+  defer** (the Forseti over-trigger — re-file with a sterile context / proceed if reversible), and
+  high-blast/low-confidence defers as **correct-by-design** ("surface to the human, don't route
+  around it"). Local `resolve`-authored fixes (`.ravenclaude/runs/thing/denial-learned.json`) win.
+- **Wiring (both paths, hot-path-safe)** — a `Stop` hook
+  [`hooks/thing-denial-kb-sync.sh`](hooks/thing-denial-kb-sync.sh) syncs at end-of-turn; a
+  `SessionStart` hook [`hooks/thing-denial-kb-recall.sh`](hooks/thing-denial-kb-recall.sh) surfaces
+  the recent shapes + resolutions via `additionalContext`. Both **only READ** the Sága records the
+  tribunal already writes (`.ravenclaude/runs/thing/decisions/*.json` + `*.json`) — **neither touches
+  `thing-orchestrator.sh` / `route-decision-review.sh` or the live `PreToolUse` emit path**, so a
+  verdict can never be changed or a hook's stdout corrupted. Registered in `hooks/hooks.json` **and**
+  the dev-mirror `.claude/settings.json`.
+- **Safety envelope (hardened after a blocking security review)** — opt-in (no-op unless
+  `.ravenclaude/comfort-posture.yaml` exists), silent when the KB is empty, and **leak-safe by two
+  invariants that match the rest of the substrate**: (1) the auto-injected SessionStart recall banner
+  is **derived-labels-only** — source / category / count / signature + the *trusted* resolution; the
+  raw denied command/question (`sample`) is **NEVER** auto-injected (it would turn a denied hostile
+  string into a durable injection surface — the exact thing `capability-orientation.sh` /
+  `watch-run-state.sh` / Gate 19 guard against). The sample is available on demand via `recall --json`
+  only. (2) `sample` + `reasoning` are **secret-scrubbed before storage** (a Python port of
+  `hooks/_scrub.sh` `_secret_patterns`, kept in sync), so a denied `curl … Bearer …` never lands in
+  the KB on disk or in `recall --json`. Decision-review resolutions match on the **derived reason
+  class** (from the tribunal's own trusted fields), not attacker-influenceable text, with the
+  correct-by-design (high-blast / security) rules ordered **first** so they can't be pre-empted. The
+  runtime KB lives under the gitignored `.ravenclaude/runs/thing/`. Both invariants are proven
+  bidirectionally by **Gate 134** (`hooks/tests/test-thing-denial-kb.sh`). Full mechanism + schema +
+  resolution-authoring guide:
+  [`knowledge/thing-denial-kb.md`](knowledge/thing-denial-kb.md); agent workflow:
+  [`skills/thing-denial-kb/SKILL.md`](skills/thing-denial-kb/SKILL.md).
+- **Discipline note (dogfooded during the build):** the KB must **never** teach an agent to defeat a
+  genuine security stop. Correct-by-design denials (force-push, `security_deny` floor, high-blast
+  defer) resolve to *"this is correct — surface it to the human"*, consistent with the
+  Capability-Grounding clause "Check why a constraint exists before obeying (or citing) it" and its
+  high-blast exception. Only false-positive shapes (e.g. the injection-defer over-trigger) resolve to
+  a route-around.
+
+**Migration:** none — additive engine + two opt-in, fail-safe hooks + a skill/knowledge/seed-map;
+nothing in a consumer's installed plugin changes on `/plugin marketplace update` until the Thing
+actually denies something in their repo, at which point the KB begins recording (locally, gitignored).
+Skill count 48 → 49; hook count → 22.

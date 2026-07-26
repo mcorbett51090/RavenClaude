@@ -147,6 +147,11 @@
             "type": "command",
             "command": "${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/stream-session-close.sh",
             "comment": "Marketplace-dev hook (dev-mirror). Agentic Work-Streams (P1): on session end, if a work-stream is active in .ravenclaude/streams/, append a derived session_closed event + refresh state.md (crash-resilience). DERIVED-ONLY, fail-safe, never blocks."
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/thing-denial-kb-sync.sh",
+            "comment": "Marketplace-dev hook (dev-mirror of the plugin's hooks/hooks.json entry). Thing-denial KB (Muninn): on session end, materialise new command/decision-tribunal denials/defers into .ravenclaude/runs/thing/denial-kb.jsonl by reading the existing Sága audit records (hot-path-safe). No-op unless a comfort-posture exists; never writes stdout; always exits 0."
           }
         ]
       }
@@ -204,6 +209,12 @@
             "command": "${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/capability-orientation.sh",
             "timeout": 10,
             "comment": "Marketplace-dev hook. Injects a session-start capability banner (project surface + detected auth by env-var NAME only + effective settings.json permissions + work-streams) via hookSpecificOutput.additionalContext. The only subprocess is a bounded read-only git read used by the streams classifier (gated on streams existing); the 10s timeout bounds any pathological read. The plugin's hooks/hooks.json registers the same script for consumers via ${CLAUDE_PLUGIN_ROOT}; both paths are safe because it is read-only, fail-silent, and emits nothing when there is nothing to report."
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/thing-denial-kb-recall.sh",
+            "timeout": 10,
+            "comment": "Marketplace-dev hook (dev-mirror of the plugin's hooks/hooks.json entry). Thing-denial KB (Muninn) recall: surfaces the most-recent tribunal-denial shapes + known resolutions via hookSpecificOutput.additionalContext so the agent opens knowing which blocks were raised here and how to clear them. Leak-safe (derived digest only); no-op unless a comfort-posture exists AND the KB is non-empty; always exits 0."
           }
         ]
       }

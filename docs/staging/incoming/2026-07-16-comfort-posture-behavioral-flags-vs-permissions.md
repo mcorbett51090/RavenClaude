@@ -59,10 +59,10 @@ The three surfaces at a glance:
 
 ## See also
 
-- [`plugins/ravenclaude-core/knowledge/concepts/comfort-posture.md`](../../plugins/ravenclaude-core/knowledge/concepts/comfort-posture.md) — the comfort-posture concept.
-- [`plugins/ravenclaude-core/copilot/AGENTS.md`](../../plugins/ravenclaude-core/copilot/AGENTS.md) § "Relay mode" — the three relay-activation conditions (condition 3 is the literal-key requirement).
-- [`plugins/ravenclaude-core/skills/set-posture/SKILL.md`](../../plugins/ravenclaude-core/skills/set-posture/SKILL.md) — the (category, level) → permission-rule translation pipeline.
-- [`plugins/ravenclaude-core/knowledge/orchestrator-data-egress.md`](../../plugins/ravenclaude-core/knowledge/orchestrator-data-egress.md) — orchestrator scopes + the ZDR attestation.
+- [`plugins/ravenclaude-core/knowledge/concepts/comfort-posture.md`](../../../plugins/ravenclaude-core/knowledge/concepts/comfort-posture.md) — the comfort-posture concept.
+- [`plugins/ravenclaude-core/copilot/AGENTS.md`](../../../plugins/ravenclaude-core/copilot/AGENTS.md) § "Relay mode" — the three relay-activation conditions (condition 3 is the literal-key requirement).
+- [`plugins/ravenclaude-core/skills/set-posture/SKILL.md`](../../../plugins/ravenclaude-core/skills/set-posture/SKILL.md) — the (category, level) → permission-rule translation pipeline.
+- [`plugins/ravenclaude-core/knowledge/orchestrator-data-egress.md`](../../../plugins/ravenclaude-core/knowledge/orchestrator-data-egress.md) — orchestrator scopes + the ZDR attestation.
 
 ## Provenance
 

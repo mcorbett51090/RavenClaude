@@ -2,6 +2,15 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.204.3 — 2026-07-26
+
+### Added
+
+- **Thing-denial knowledge base (Muninn) — the agent now learns from what the tribunal blocks.** When the command/decision tribunal DENIES a command or DEFERS/refuses a decision, a new per-repo KB turns the raw Sága audit records into a lookup of `denial shape → known resolution`, so an agent that gets blocked can **quickly identify why it keeps happening and apply the known fix** instead of retrying blindly or paging the human. New engine [`scripts/thing-denial-kb.py`](scripts/thing-denial-kb.py) (`sync`/`recall`/`resolve`/`record` — stdlib-only, fail-safe, always exits 0); a shipped seed resolutions map [`knowledge/thing-denial-resolutions.json`](knowledge/thing-denial-resolutions.json) (force-push→archive-branch, `git branch -D`→branch-archive skill, `rm -rf`/hard-reset guidance, network-write→sanctioned route, the decision-review injection-false-positive defer, high-blast defers as correct-by-design, …); the `thing-denial-kb` skill + [`knowledge/thing-denial-kb.md`](knowledge/thing-denial-kb.md).
+- **Two fail-safe hooks wire it in (both wirings):** a `Stop` hook (`thing-denial-kb-sync.sh`) materialises new denials into the KB at end-of-turn, and a `SessionStart` hook (`thing-denial-kb-recall.sh`) surfaces the most-recent denial shapes + resolutions via `additionalContext` so the agent opens already knowing the local blocks. **Hot-path-safe by design:** both only READ the Sága records the tribunal already writes (`.ravenclaude/runs/thing/decisions/*.json` + `*.json`) — neither touches `thing-orchestrator.sh` / `route-decision-review.sh` or the live PreToolUse emit path, so a verdict can never be changed. Opt-in (no-op without `.ravenclaude/comfort-posture.yaml`), Claude-Code + Copilot (dev-mirror registered). **Leak-safe by two invariants (hardened after a blocking security review):** the auto-injected recall banner is **derived-labels-only** — the raw denied command/question (`sample`) is never auto-injected into session context (available on demand via `recall --json` only), and `sample`+`reasoning` are **secret-scrubbed before storage** (a Python port of `hooks/_scrub.sh`), so a denied `curl … Bearer …` never lands in the KB or the banner. Decision resolutions match on the derived reason class (not attacker text), correct-by-design rules first. Proven bidirectionally by **Gate 134** (`hooks/tests/test-thing-denial-kb.sh`).
+
+**Migration:** none — additive engine + two opt-in, fail-safe hooks + a skill/knowledge/seed-map. Nothing in a consumer's installed plugin changes on `/plugin marketplace update` until the Thing actually denies something in their repo, at which point the KB begins recording (locally, gitignored). Skill count 48 → 49; hook count → 22.
+
 ## 0.202.0 — 2026-07-16
 
 ### Added

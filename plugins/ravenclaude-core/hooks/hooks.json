@@ -115,6 +115,11 @@
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/stream-session-close.sh",
             "comment": "Agentic Work-Streams (P1). On session end, if a work-stream is active in .ravenclaude/streams/, append ONE derived session_closed event + refresh that stream's state.md resume snapshot (crash-resilience). DERIVED-ONLY (session_id FK + counts; never prompt text). Fail-safe: no python3 / no active stream / any error -> silent no-op, never blocks the stop."
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/thing-denial-kb-sync.sh",
+            "comment": "Thing-denial knowledge base (Muninn). On session end, materialise any NEW command/decision-tribunal denials/defers into the per-repo denial KB (thing-denial-kb.py sync). Hot-path-safe: reads ONLY the Sága audit records the Thing already wrote under .ravenclaude/runs/thing/ (decisions/*.json + command-review *.json) — never touches the tribunal's live PreToolUse emit path. Enriches each distinct denial SHAPE with a known resolution from knowledge/thing-denial-resolutions.json. No-op unless .ravenclaude/comfort-posture.yaml exists; never writes stdout; always exits 0."
           }
         ]
       }
@@ -161,6 +166,12 @@
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/capability-orientation.sh",
             "timeout": 10,
             "comment": "Injects a session-start capability banner via hookSpecificOutput.additionalContext so the agent opens every session aware of the project's external surface, its detected auth (env-var NAMES/presence only — never values), and its effective .claude/settings.json permissions. Local + cheap; the ONLY subprocess is a bounded, read-only git read (branch + recent commit subjects) used by the work-streams classifier, and only when .ravenclaude/streams/ has streams + none is active. A 10s timeout bounds any pathological config/git read (defense-in-depth). Points to the environment-discovery skill for deep enumeration. Fail-silent; never blocks (SessionStart hooks cannot). Salience boost for the Capability Grounding Protocol, not enforcement."
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/thing-denial-kb-recall.sh",
+            "timeout": 10,
+            "comment": "Thing-denial knowledge base (Muninn) recall. Refreshes then surfaces the most-recent tribunal-denial SHAPES + their known resolutions via hookSpecificOutput.additionalContext, so the agent opens a session already knowing which blocks the Thing has raised in this repo and how to get past them. Leak-safe: emits only the derived digest (source/category/count/sample + resolution), never raw event content beyond the already-recorded sample. No-op unless .ravenclaude/comfort-posture.yaml exists AND the KB is non-empty; always exits 0; 10s timeout bounds the read."
           }
         ]
       }
