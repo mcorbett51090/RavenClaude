@@ -319,9 +319,14 @@ PY
       bash plugins/ravenclaude-core/hooks/tests/test-gate140-worktree-guard.sh
       exit $?
       ;;
+    143)
+      echo "── Gate 143: Thing-denial KB security contract (per-gate run) ────────────"
+      bash plugins/ravenclaude-core/hooks/tests/test-thing-denial-kb.sh
+      exit $?
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -4745,6 +4750,18 @@ echo "── Gate 140: worktree-guard block-mode teeth ────────�
 # and proves the deny then disappears.
 rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate140-worktree-guard.sh >/dev/null 2>&1 || rc=$?
 gate "worktree-guard block-mode teeth (deny mutating on contention/anchor; allow solo/read/ACK)" must_pass "$rc"
+
+echo
+echo "── Gate 143: Thing-denial KB (Muninn) security contract ──────────────────"
+# The recall banner is auto-injected into SessionStart context, so a raw denied
+# command/question (`sample`) must NEVER appear in it (the derived-labels-only
+# invariant shared with capability-orientation.sh / watch-run-state.sh / Gate 19),
+# and sample+reasoning must be secret-scrubbed BEFORE storage (the v0.110.0 substrate
+# scrub invariant). test-thing-denial-kb.sh proves both bidirectionally: two must-fail
+# halves re-add the sample line / strip the scrub and assert the injection text / JWT
+# then leak.
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-thing-denial-kb.sh >/dev/null 2>&1 || rc=$?
+gate "thing-denial-kb: banner derived-labels-only + secret-scrubbed (+ teeth)" must_pass "$rc"
 
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"

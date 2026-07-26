@@ -53,10 +53,10 @@ const ISLANDED_AGENT_KEYS = ["scenarios", "quickstart", "works_with"];
 const RC = "ravenclaude-core";
 const RC_BASELINE = {
   agents: 15,
-  skills: 48,
-  tools: 17,
+  skills: 49,
+  tools: 18,
   scenarios: 4,
-  hooks: 22,
+  hooks: 24,
   rules: 5,
   templates: 23,
   practices: 34,

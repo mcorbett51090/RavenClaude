@@ -2,6 +2,13 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.210.1 — 2026-07-26
+
+### Added
+
+- **Thing-denial knowledge base (Muninn)** — when the command/decision tribunal DENIES/DEFERS an action, a new per-repo KB turns the raw Sága records into a `denial shape → known resolution` lookup so a blocked agent can identify why it recurs and apply the fix. Engine [`scripts/thing-denial-kb.py`](scripts/thing-denial-kb.py) (`sync`/`recall`/`resolve`/`record`); seed [`knowledge/thing-denial-resolutions.json`](knowledge/thing-denial-resolutions.json); `thing-denial-kb` skill + [`knowledge/thing-denial-kb.md`](knowledge/thing-denial-kb.md). A `Stop` hook syncs from the Sága logs (hot-path-safe, read-only); a `SessionStart` hook surfaces the digest.
+  - **Security-hardened (2 blockers fixed in review), proven by Gate 143:** derived-labels-only banner (raw `sample` never auto-injected — only `recall --json`); `sample`+`reasoning` secret-scrubbed before storage (port of `hooks/_scrub.sh`); decision resolutions match on the derived reason class, correct-by-design rules first. **Migration:** none — additive, opt-in, fail-safe.
+
 ## 0.210.0 — 2026-07-26
 
 ### Added
