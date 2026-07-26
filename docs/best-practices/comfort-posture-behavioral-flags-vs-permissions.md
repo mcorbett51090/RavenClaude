@@ -1,12 +1,3 @@
-<!-- RAVENCLAUDE-STAGING-METADATA
-type: best-practice
-topic: architecture
-proposed-by: consumer engagement — BTCSIReporting (Copilot CLI) prompting on nearly every turn despite broad allow rules
-proposed-on: 2026-07-16
-target-file: docs/best-practices/comfort-posture-behavioral-flags-vs-permissions.md
-status: pending
--->
-
 # Comfort posture has two orthogonal surfaces — `allow` rules don't silence behavioral flags; tune `design_checkins` / `orchestrator` / `decision_review` separately
 
 **Status:**
@@ -66,7 +57,7 @@ The three surfaces at a glance:
 
 ## Provenance
 
-Consumer engagement (BTCSIReporting, Copilot CLI), 2026-07-16: the agent prompted on nearly every turn despite broad `allow` rules and `defaultMode: bypassPermissions`. Root-caused to three compounding behavioral flags — `design_checkins: true` (primary), an absent `orchestrator:` key defeating relay-mode condition 3, and `decision_review: binding`. Fixed (commit `5a90961c`, branch `dev`) by setting `design_checkins: false` and adding `orchestrator: full`; `decision_review: binding` left intact so PROD/destructive gates still block. The `copilot/AGENTS.md:69` literal-key requirement was re-confirmed against this repo's source on 2026-07-16.
+Consumer engagement (Copilot CLI), 2026-07-16: the agent prompted on nearly every turn despite broad `allow` rules and `defaultMode: bypassPermissions`. Root-caused to three compounding behavioral flags — `design_checkins: true` (primary), an absent `orchestrator:` key defeating relay-mode condition 3, and `decision_review: binding`. Fixed by setting `design_checkins: false` and adding `orchestrator: full`; `decision_review: binding` left intact so PROD/destructive gates still block. The `copilot/AGENTS.md:69` literal-key requirement was re-confirmed against this repo's source on 2026-07-16.
 
 ---
 

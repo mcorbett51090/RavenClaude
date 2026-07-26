@@ -221,7 +221,7 @@ if [ "$mode" = "decide" ]; then
   # --tools "" is the non-negotiable structural recursion guard (layer 3):
   # the nested session has ZERO tools, so a prompt-injected session cannot
   # call spawn-team, read files, or invoke hooks regardless of env vars.
-  model="${THING_MODEL:-claude-haiku-4-5}"
+  model="${THING_MODEL:-claude-haiku-4-5-20251001}"
   system_prompt="You are the RavenClaude Team Lead orchestration planner. Read the task brief and agent roster and return ONLY a structured JSON dispatch plan — no prose, no markdown fences.
 
 Plan shape: {\"agents\":[{\"role\":\"<role>\",\"brief\":\"<brief>\",\"depends_on\":[]},...],\"parallelism\":\"sequential|parallel\",\"reasoning\":\"<= 200 chars\"}
@@ -248,7 +248,7 @@ else
   # full: reason through the whole task and return artifact content.
   # Still uses --tools "" to bound the blast radius (no tool calls from the
   # nested session, regardless of injection). Bounded cost; the host writes.
-  model="${THING_MODEL:-claude-sonnet-4-6}"
+  model="${THING_MODEL:-claude-sonnet-5}"
   system_prompt="You are the RavenClaude Team Lead. Reason through the full task in the brief and return the artifact content directly — code, markdown, JSON, or whatever the task produces. The host handles all file writes.
 
 Rules:

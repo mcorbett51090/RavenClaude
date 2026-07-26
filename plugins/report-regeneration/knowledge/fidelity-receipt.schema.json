@@ -1,0 +1,138 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ravenclaude/report-regeneration/fidelity-receipt.schema.json",
+  "title": "Fidelity Harness Receipt",
+  "description": "A tiered QA receipt emitted by the fidelity harness. Inherits the accuracy-near-guarantee discipline verbatim: PROBE_ERROR is never a pass; a render/parse crash never reads as 'fidelity OK'; receipts are TTL'd and environment-fingerprinted; each leg is labeled 'proven' (deterministic) vs 'judged' (behavioral). The overall gate can be PASS only if every leg verdict is 'pass'.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "receipt_version",
+    "run_id",
+    "format",
+    "generated_at",
+    "ttl_seconds",
+    "env_fingerprint",
+    "overall_gate",
+    "legs"
+  ],
+  "properties": {
+    "receipt_version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "run_id": {
+      "type": "string"
+    },
+    "format": {
+      "type": "string",
+      "enum": ["html", "office"],
+      "description": "Output format certified. Both are locally certifiable; neither carries a 'not_captured' render gap."
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "ttl_seconds": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Receipt validity window; a receipt older than this is stale and must be re-run (W5 discipline)."
+    },
+    "env_fingerprint": {
+      "type": "string",
+      "description": "sha256 over the checker environment (tool versions/mtimes + key env vars). A receipt minted in a different environment cannot bless this run.",
+      "minLength": 1
+    },
+    "overall_gate": {
+      "type": "string",
+      "enum": ["PASS", "PARTIAL", "FAIL"],
+      "description": "PASS only if every leg verdict is 'pass'. Any leg fail/not_captured/PARTIAL/PROBE_ERROR forces PARTIAL or FAIL (fail-closed). A missing Tier-B leg yields PARTIAL, never PASS."
+    },
+    "manual_residue": {
+      "type": "array",
+      "description": "The enumerated manual-WCAG / human-review residue (alt-text quality, reading-order sense, plain-language, substantive judgment). An EMPTY residue on a shipped report is itself a defect (over-claim).",
+      "items": {
+        "type": "string"
+      }
+    },
+    "legs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/legReceipt"
+      }
+    }
+  },
+  "$defs": {
+    "legReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["leg", "verdict", "label", "inference_independent", "blocking"],
+      "properties": {
+        "leg": {
+          "type": "string",
+          "enum": ["V1", "V2", "V3", "V4", "V5", "V6", "period-coherence"],
+          "description": "V1 value-accuracy, V2 frozen-complement diff, V3 re-inference isomorphism, V4 taint-egress over decoded container, V5 render referee, V6 manifest-completeness/coverage, period-coherence."
+        },
+        "verdict": {
+          "type": "string",
+          "enum": ["pass", "fail", "not_captured", "PARTIAL", "PROBE_ERROR", "disabled"],
+          "description": "PROBE_ERROR (harness/parse crash), not_captured (leg could not run), and disabled (a blocking leg neutered by the test-only must-fail knob) are each distinct from pass and never count as pass; disabled additionally forces overall_gate off PASS. PARTIAL = ran degraded (e.g. V1 in binding-correctness mode with no live data route → Accurate fails closed)."
+        },
+        "label": {
+          "type": "string",
+          "enum": ["proven", "judged"],
+          "description": "proven = deterministic result; judged = behavioral/stochastic result. V2/V4/V6/period-coherence are always 'proven' and inference-independent."
+        },
+        "inference_independent": {
+          "type": "boolean",
+          "description": "true for the ML-free legs (V2, V4, V6, period-coherence) and the ML-free halves (V1 set-membership, V3 rule-based coarse cross-check). false for V1 recompute and V3 fine isomorphism."
+        },
+        "blocking": {
+          "type": "boolean",
+          "description": "true for V1, V2, V3, V4, V6, and period-coherence; V5 is proven-where-deterministic / judged-for-polish."
+        },
+        "repeat_count": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "N of repeated-agreement runs for stochastic sub-steps (W5 N-agreement rule)."
+        },
+        "judge_fingerprint": {
+          "type": "string",
+          "description": "Identity of the scoring judge for 'judged' legs, for reproducibility."
+        },
+        "evidence": {
+          "type": "string",
+          "description": "Human-readable evidence: the value located, the diff region, the token uncovered, the surviving taint match, etc."
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "description": "PROBE_ERROR != pass, enforced at the gate: overall_gate PASS forbids any non-pass leg verdict.",
+      "if": {
+        "properties": {
+          "overall_gate": {
+            "const": "PASS"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "legs": {
+            "not": {
+              "contains": {
+                "properties": {
+                  "verdict": {
+                    "enum": ["fail", "not_captured", "PARTIAL", "PROBE_ERROR", "disabled"]
+                  }
+                },
+                "required": ["verdict"]
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

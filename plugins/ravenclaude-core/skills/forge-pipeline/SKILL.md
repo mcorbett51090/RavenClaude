@@ -53,6 +53,39 @@ red-team in context through G6. Reading from disk hands each downstream gate the
 at a fraction of the resident context. This buys efficiency with **no** loss of gate input; it is the
 single largest cost lever in the pipeline, and it is free.
 
+## 0.5 Provisioning — **always a worktree, always checkpointed** (every depth)
+
+Before G0 at **every** depth, FORGE provisions an isolated git worktree and checkpoints the run's
+tracked work at each gate boundary. This is a **deterministic script step, not an LLM gate** — it
+dispatches no subagent and costs ~0 tokens, so it runs identically at `micro` through `deep`.
+
+**Provision (once, at run start).** Run
+`bash ${CLAUDE_PLUGIN_ROOT}/scripts/forge-worktree.sh init <slug>` — it creates (or, on a
+`--resume`, **reuses**) the branch `forge/<slug>` in the worktree `.claude/worktrees/forge-<slug>/`.
+The plan's landing (G7 `landing=pr` writes `plan.md` there) **and** any subsequent implementation
+happen on that branch, isolated from the primary checkout — which is exactly what the `worktree_guard`
+posture nudges toward, and what keeps two concurrent `/forge` runs (or a forge run + the user's own
+edits on `main`) from stomping one shared tree. It prints a JSON receipt and, on success, a
+`FORGE_WORKTREE <abs-path>` line; hand that path to the implementation phase.
+
+**Checkpoint (at each gate boundary and at exit).** After each gate and before the single exit, run
+`bash ${CLAUDE_PLUGIN_ROOT}/scripts/forge-worktree.sh checkpoint <slug> <gate>` — it commits the
+worktree's tracked changes as `forge(<slug>): checkpoint — <gate>`. During pure planning most
+checkpoints are **no-ops** (the run-dir under `.ravenclaude/runs/forge/<slug>/` is git-ignored, so
+there is nothing tracked to commit); the checkpoints that carry weight are the landed `plan.md` (G6/G7)
+and the implementation phases, where a commit-per-boundary makes an interrupted run recoverable from
+the branch. This is the **git-checkpoint layer**; it composes with — does not replace — the deep-depth
+atomic-write/resume in [`reference/deep-resume.md`](reference/deep-resume.md), which is the gate-skip
+layer over the (git-ignored) run-dir.
+
+**Fail-safe by contract — provisioning is a safety anchor, never a gate.** Every case the script
+can't provision exits 0 with a `status` receipt and FORGE **proceeds in the primary checkout**:
+`not-a-git-repo`, `already-in-worktree` (the nesting guard — a FORGE run launched from inside a linked
+worktree does not nest a second one), or opted out. **Opt-out:** `forge_worktree: off` in
+`.ravenclaude/comfort-posture.yaml`, or the `FORGE_WORKTREE=off` env var (absent ⇒ **on**, the
+default). The script is idempotent, `bash`-3.2-safe, and carries a `--self-test` (its own scratch-repo
+fixtures) — a registered, citable canonical route, mirroring `forge-route.py --self-test`.
+
 ## 1. Depth ladder — **the gate SET scales with depth** (tiebreak F4)
 
 A 0-call gate is just overhead, so depth *collapses* the pipeline, it doesn't thin it. `--depth quick`
@@ -64,6 +97,9 @@ is the **default** (cheap-by-default so the command is used for *every* idea —
 | **quick** *(default)* | G0 · G1-lite · G2 · G3 · G6 · G7 · G8 | 3-5 | — | most ideas (a new skill, a hook tweak, a knowledge doc) |
 | **standard** | + G4a · G4b · G5 | 6-10 | `gates-standard.md` | a non-trivial multi-file change |
 | **deep** | standard, no conflict cap, 2nd red-team, checkpoint/resume | 11-18 | `gates-standard.md` + `deep-resume.md` | a substantial multi-plugin build |
+
+**Before G0 at every depth**, §0.5 provisioning runs (worktree + checkpoints) — a deterministic
+script step, **not** counted in `~calls` (it dispatches no subagent).
 
 ## 2. The gates every depth runs
 

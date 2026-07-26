@@ -49,7 +49,7 @@ cat >"$TMP/good.js" <<'GOOD'
 // ╔═══════════════════════════════════════════════════════════════════════════╗
 // ║ BEGIN copied block — agent-dispatch-evaluator wrapper (Phase 2)            ║
 // ╚═══════════════════════════════════════════════════════════════════════════╝
-const DISPATCH_TIER_MODEL = { fast: "claude-haiku-4-5-20251001", balanced: "claude-sonnet-4-6", top: "claude-opus-4-8" };
+const DISPATCH_TIER_MODEL = { fast: "claude-haiku-4-5-20251001", balanced: "claude-sonnet-5", top: "claude-opus-4-8" };
 const _latency = { window: [], tripped: false };
 async function evaluatedAgent(prompt, opts = {}, dispatchCfg) {
   if (!dispatchCfg) return agent(prompt, opts);

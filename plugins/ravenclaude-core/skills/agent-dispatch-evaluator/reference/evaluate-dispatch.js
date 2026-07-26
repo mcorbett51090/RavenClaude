@@ -36,7 +36,7 @@ const _isoNow = () => "1970-01-01T00:00:00.000Z";
 // Do NOT re-author the table; copy updates from there.
 const TIER_MODEL = {
   fast: "claude-haiku-4-5-20251001",
-  balanced: "claude-sonnet-4-6",
+  balanced: "claude-sonnet-5",
   top: "claude-opus-4-8",
 };
 

@@ -37,7 +37,6 @@ import argparse
 import html
 import importlib.util
 import json
-import re
 import sys
 from pathlib import Path
 
@@ -56,29 +55,24 @@ _SHARED_TOKENS_PATH = (
     REPO_ROOT / "plugins" / "ravenclaude-core" / "dashboard-assets" / "shared-tokens.css"
 )
 
-_RAVEN_LOGO_PATH = (
-    REPO_ROOT / "plugins" / "ravenclaude-core" / "dashboard-assets" / "brand" / "raven-logo.svg"
-)
-
-
 def _load_raven_logo() -> str:
-    """Return brand-mark MARKUP: the inline SVG if raven-logo.svg exists (drop
-    the real artwork there to swap it), else an <img> of the bundled PNG.
+    """Return brand-mark MARKUP: a single self-contained WebP <img> of the raven
+    mark (base64 data URI, offline-safe — the same mark the commerce site nav
+    uses).
 
-    SVG `<!-- ... -->` comments are stripped before inlining. Here the asset
-    lands in static HTML, but the sibling generate-index-dashboard.py also
-    inlines it inside a JS template literal (the onboarding-card render fn) —
-    a backtick or ${...} in an SVG comment would close that literal early and
-    kill the entire script block. Comments never render visually; stripping
-    them insulates both generators from whatever artwork lands here.
+    Premium redesign, P1: this replaced the multi-node inline SVG. One <img>
+    node in place of <svg> + <path> banks exactly one element off the Gate-132
+    DOM budget on every surface this markup reaches (standalone dashboard.html
+    AND the folded portal index.html via render_fragment). Display size (~30px)
+    and the green halo live in CSS (.brand-mark img); the explicit intrinsic
+    width/height keep layout stable at parse time (CLS-safe). The sibling
+    generate-index-dashboard.py still inlines the SVG for the portal SHELL's own
+    brand mark (its separate _load_raven_logo) — that swap is a later phase.
     """
-    try:
-        raw = _RAVEN_LOGO_PATH.read_text(encoding="utf-8")
-    except OSError:
-        return (
-            f'<img src="{_RAVEN_MARK_DATA_URI}" width="28" height="28" alt="" aria-hidden="true">'
-        )
-    return re.sub(r"<!--.*?-->", "", raw, flags=re.DOTALL).strip()
+    return (
+        f'<img src="{_RAVEN_MARK_WEBP_DATA_URI}" width="{_RAVEN_MARK_W}" '
+        f'height="{_RAVEN_MARK_H}" alt="" aria-hidden="true">'
+    )
 
 
 def _load_shared_tokens_root() -> str:
@@ -185,11 +179,11 @@ def _page_kwargs(plugin_dir: Path, schema: dict, include_trees: bool = True) -> 
         "description": html.escape(description),
         "raven_mark": _load_raven_logo(),
         "css": _CSS,
-        "overview_html": _render_overview_tab(),
         "settings_html": _render_settings_tab(properties, presets),
         "install_html": _render_install_tab(),
-        "simulator_html": _render_simulator_tab(),
-        "prompt_builder_html": _render_prompt_builder_tab(),
+        # P5 (dashboard-consumption): the "where things moved" ledger, rendered inside
+        # panel-help and kept in sync with docs/dashboard-removed-routes.md (C5).
+        "removed_routes_table": _render_removed_routes_table(),
         "web_access_html": _render_web_access_page(),
         # panel-learn (~19,702 elements) is DOM-island-loaded exactly like panel-trees:
         # its markup ships in a <script type="application/json"> payload (CDATA, uncounted
@@ -228,6 +222,7 @@ def _page_kwargs(plugin_dir: Path, schema: dict, include_trees: bool = True) -> 
         "activity_html": _render_activity_tab(),
         "heimdall_html": _render_heimdall_tab(),
         "vidarr_html": _render_vidarr_tab(),
+        "nidhoggr_html": _render_nidhoggr_tab(),
         "norns_html": _render_norns_tab(),
         "mimir_html": _render_mimir_tab(),
         "streams_html": _render_streams_tab(),
@@ -275,8 +270,15 @@ def render_fragment(plugin_dir: Path, schema: dict) -> dict:
     - js: the dashboard script with its `hashchange` listener removed (the shell
       router owns the URL) and an `window.__dashApp.show()` entry point exposed,
       ready to be IIFE-wrapped by the shell so its globals can't collide.
+
+    include_trees=True: the portal Guidance tab (panel-trees) carries the FULL
+    consolidated trees index — the same 924-tree / 2,216-best-practice cross-plugin
+    search the standalone has (owner-restored: G4). The trees also live per-plugin in
+    #dt-store (plugin detail pages); the Guidance tab is the cross-plugin SEARCH over
+    all of them. This reverses the P6 trees-payload byte-diet on the portal — see the
+    matching `_PORTAL_ONLY_PAYLOAD_IDS` note in generate-index-dashboard.py.
     """
-    kw = _page_kwargs(plugin_dir, schema, include_trees=False)
+    kw = _page_kwargs(plugin_dir, schema, include_trees=True)
     start = _PAGE_TEMPLATE.index(_FRAG_BODY_START) + len(_FRAG_BODY_START)
     end = _PAGE_TEMPLATE.index(_FRAG_BODY_END)
     body = _PAGE_TEMPLATE[start:end].format(**kw)
@@ -306,17 +308,43 @@ def render_fragment(plugin_dir: Path, schema: dict) -> dict:
     return {"css": css, "body": body, "js": js}
 
 
-def _render_simulator_tab() -> str:
-    """Render the 'Test a command' simulator tab.
+# P5 (dashboard-consumption): the C5 route-disposition ledger. EVERY route the dashboard
+# IA re-cut retired or folded, grouped by where it lands now. Rendered inside panel-help
+# AND in docs/dashboard-removed-routes.md — the two MUST stay in sync (same rows, same
+# order). Grouped (not one row per route) to keep panel-help net-DOM-negative (Gate 132).
+_REMOVED_ROUTES = [
+    (
+        "#/home · #/overview · #/configure · #/simulator",
+        "Control (Settings) — the marketing home, the Overview tab, the non-writing posture "
+        "editor (incl. its 167 always-checked “Plugin activation” toggles wired to nothing), "
+        "and the “Preview a review” tab were removed. Settings is the one editor that saves; "
+        "/__classify is kept for parity.",
+    ),
+    ("#/team", "Catalog — the specialist roster now lives in the marketplace."),
+    (
+        "#/about · #/bifrost · #/install · #/commands",
+        "Help — folded into this drawer as the About, Claude Code, Copilot CLI, and Commands "
+        "sections below.",
+    ),
+    (
+        "#/learn · #/trees · #/concepts",
+        "The standalone dashboard (rc dashboard → /dashboard) and the Pages copy — these Learn "
+        "/ decision-trees / Concepts payloads are not shipped in this portal.",
+    ),
+]
 
-    Answers "what would the Thing do with this command?" against the REAL engine
-    via POST /__classify (served mode only). The classification is NOT
-    reimplemented in JS — the tab always calls the endpoint. Availability is
-    probed with HEAD /__classify, mirroring the Settings tab's HEAD /__save and
-    the Install tab's HEAD /__run idioms; on a static host the button is disabled
-    and a help line points the user at scripts/serve-dashboards.py.
-    """
-    return _SIMULATOR_TAB_TEMPLATE
+
+def _render_removed_routes_table() -> str:
+    """The C5 ledger table (panel-help). Kept identical to docs/dashboard-removed-routes.md."""
+    rows = "".join(
+        f"<tr><td><code>{html.escape(route)}</code></td><td>{html.escape(where)}</td></tr>"
+        for route, where in _REMOVED_ROUTES
+    )
+    return (
+        '<table class="removed-routes"><thead>'
+        "<tr><th>Old link(s)</th><th>Where it is now</th></tr>"
+        f"</thead><tbody>{rows}</tbody></table>"
+    )
 
 
 def _render_stub_tab(name: str, when: str) -> str:
@@ -327,21 +355,6 @@ def _render_stub_tab(name: str, when: str) -> str:
         f"See <code>docs/proposals/2026-05-22-003-per-plugin-dashboard.md</code> for the design.</p>"
         f"</div>"
     )
-
-
-def _render_prompt_builder_tab() -> str:
-    """The Prompt Builder tab (#/prompt-builder).
-
-    A deterministic, client-side tool that assembles a best-practice Claude prompt
-    from form inputs (Task / System / Few-shot modes) with a live preview, a cited
-    anti-folklore quality linter, a structure-completeness score, a rough token-size
-    gauge, presets + a pattern library, and copy/export. NO server, NO API, NO
-    external deps. The entire UI is built by JS (createElement/textContent only —
-    zero HTML-string sinks) into #pb-root on first activate("prompt-builder"), so
-    the static generated markup is just the mount shell (~4 elements) — keeping it
-    off the Gate-132 DOM budget. The security floor (no HTML-string sink anywhere in
-    the panel's JS) is enforced by scripts/check-prompt-builder-render.mjs."""
-    return _PROMPT_BUILDER_TAB_TEMPLATE
 
 
 def _render_about_tab(description: str, plugin_name: str) -> str:
@@ -356,12 +369,13 @@ def _render_about_tab(description: str, plugin_name: str) -> str:
       <p class="about-lead">{desc}</p>
       <p class="about-note"><span class="plugin-name">{name}</span> &middot; static dashboard, no backend. Your edits stay in your browser until you click <strong>Download</strong>.</p>
       <h3>How the pages are organized</h3>
-      <p class="about-note">Pick a category in the top bar, then a page within it.</p>
+      <p class="about-note">Everything is reachable from the navigation. The pages group into a few areas:</p>
       <ul class="about-cats">
-        <li><strong>Set&nbsp;up</strong> — Overview, Settings (what Claude may do), Pipeline (the safety checks every command passes through), and Preview&nbsp;a&nbsp;review.</li>
-        <li><strong>Look&nbsp;back</strong> — Review&nbsp;log, Run&nbsp;feed, Perimeter&nbsp;alerts, Security&nbsp;log, and Lineage.</li>
-        <li><strong>Learn</strong> — plain-English explainers, ready-to-run command playbooks, and decision-tree guidance.</li>
-        <li><strong>Install&nbsp;&amp;&nbsp;help</strong> — two install &amp; update guides, one per tool: Claude&nbsp;Code (the Bifröst bridge) and GitHub&nbsp;Copilot&nbsp;CLI &mdash; plus this page.</li>
+        <li><strong>Control</strong> — The&nbsp;Thing (what Claude may do on its own), the guardrail Pipeline every command passes through, and Web&nbsp;access.</li>
+        <li><strong>Activity</strong> — the live Run&nbsp;feed, plus the Review&nbsp;log, Session, Streams, and Lineage.</li>
+        <li><strong>Guardrails</strong> — Perimeter&nbsp;alerts, the Security&nbsp;log, and Debt&nbsp;watch.</li>
+        <li><strong>Plugins</strong> — each installed plugin, the specialists it adds, and how to install more.</li>
+        <li><strong>Learn&nbsp;&amp;&nbsp;help</strong> — plain-English explainers, the command catalog, and install &amp; update guides for Claude&nbsp;Code and GitHub&nbsp;Copilot&nbsp;CLI &mdash; including this page.</li>
       </ul>
     </div>
     """
@@ -471,6 +485,21 @@ def _render_vidarr_tab() -> str:
     returns a static skeleton the JS hydrates on open.
     """
     return _VIDARR_TAB_TEMPLATE
+
+
+def _render_nidhoggr_tab() -> str:
+    """Render the 'Debt watch' (Níðhöggr) sub-page — the low-noise marketplace
+    maintenance-debt card (stale plugins, ungated hooks, superseded decisions,
+    TODO/FIXME commits).
+
+    Formerly a card inside the Heimdall tab; split into its own Guardrails
+    sub-page (A-split). The #heimdall-debt mount id and the renderNidhoggr /
+    nidhoggrSection JS are byte-identical, so the Níðhöggr B15 render gate stays
+    green with an unmodified script. Data is fetched from /__nidhoggr (served-only
+    — git-derived signals vary by clone depth); on a static host it degrades to an
+    honest empty state.
+    """
+    return _NIDHOGGR_TAB_TEMPLATE
 
 
 def _render_norns_tab() -> str:
@@ -870,6 +899,8 @@ _PIPELINE_EXCLUDED_HOOKS = {
     "stream-session-close.sh": "work-stream tracking (Stop); observability, not a guardrail",
     "stream-prompt-attribute.sh": "work-stream tracking (UserPromptSubmit); observability, not a guardrail",
     "agent-dispatch-evaluator.sh": "audit-only shadow (SubagentStart), opt-in; never denies",
+    "worktree-guard.sh": "worktree_guard knob is surfaced Settings-only (DOM-budget-exempt panel) "
+    "+ its live status as the Activity-tab Sleipnir badges; deliberately NOT a Pipeline stage card",
 }
 
 _PIPELINE_CONTROLS = {
@@ -997,73 +1028,88 @@ _PIPELINE_CONTROLS = {
 
 
 _PIPELINE_CSS = """<style>
-.pipeline-tab { max-width: 920px; }
-.pipe-note { margin: .5rem 0 1rem; padding: .6rem .8rem; border-radius: var(--rc-radius-sm);
+.pipeline-tab { max-width: 1120px; }
+.pipeline-tab h2 { margin: .1rem 0 .35rem; }
+.pipeline-tab > .page-desc { margin: 0 0 .5rem; line-height: 1.4; }
+.pipeline-tab .behavioral-flag-explainer { margin: .2rem 0 .35rem; }
+.pipe-note { margin: .25rem 0 .4rem; padding: .35rem .6rem; border-radius: var(--rc-radius-sm);
   background: var(--surface-2); border: 1px solid var(--border);
-  color: var(--muted); font-size: .9rem; }
+  color: var(--muted); font-size: .86rem; line-height: 1.35; }
 /* Flow strip — the at-a-glance order an agent moves through. */
-.pipe-flow { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem .5rem;
-  margin: .6rem 0; padding: .7rem .8rem; border: 1px solid var(--border);
+.pipe-flow { display: flex; flex-wrap: wrap; align-items: center; gap: .3rem .4rem;
+  margin: .3rem 0; padding: .4rem .6rem; border: 1px solid var(--border);
   border-radius: var(--rc-radius-lg); background: var(--surface); box-shadow: var(--rc-shadow-sm); }
-.pipe-flow-step { font-size: .82rem; font-weight: 600; color: var(--text);
+.pipe-flow-step { font-size: .8rem; font-weight: 600; color: var(--text);
   background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--rc-radius-pill);
-  padding: .2rem .7rem; white-space: nowrap; }
+  padding: .15rem .6rem; white-space: nowrap; }
 .pipe-flow-step.pipe-flow-loop { border-color: var(--accent); }
 .pipe-flow-arr { color: var(--accent); font-weight: 700; }
-.pipe-readme { font-size: .86rem; }
+.pipe-readme { font-size: .84rem; }
 .pipe-lane { border: 1px solid var(--border); border-radius: var(--rc-radius-lg);
-  padding: .85rem 1rem; margin: 0; background: var(--surface); box-shadow: var(--rc-shadow-sm); }
+  padding: .4rem .6rem; margin: 0; background: var(--surface); box-shadow: var(--rc-shadow-sm); }
 .pipe-lane-head { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
 .pipe-lane-when { font-weight: 600; color: var(--text, #eee); }
-.pipe-lane-event { font-family: ui-monospace, monospace; font-size: .78rem;
+.pipe-lane-event { font-family: ui-monospace, monospace; font-size: .76rem;
   color: var(--muted, #999); background: var(--bg, #111); padding: .1rem .4rem;
   border-radius: 4px; }
-.pipe-lane-tip { margin: .3rem 0 .7rem; color: var(--muted, #aaa); font-size: .88rem; }
-.pipe-row { display: flex; flex-wrap: wrap; gap: .6rem; }
-.pipe-stage { flex: 1 1 240px; min-width: 210px; border: 1px solid var(--border);
-  border-radius: var(--rc-radius); padding: .6rem .7rem; background: var(--surface-2); }
+.pipe-lane-tip { margin: .15rem 0 .35rem; color: var(--muted, #aaa); font-size: .83rem; line-height: 1.32; }
+.pipe-row { display: flex; flex-wrap: wrap; gap: .35rem; }
+.pipe-stage { flex: 1 1 230px; min-width: 200px; border: 1px solid var(--border);
+  border-radius: var(--rc-radius); padding: .3rem .5rem; background: var(--surface-2); }
 .pipe-stage-head { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
-.pipe-stage-title { font-weight: 600; font-size: .92rem; }
-.pipe-tip { margin: .35rem 0 0; font-size: .82rem; color: var(--muted, #aaa); line-height: 1.35; }
-.pipe-badge { font-size: .7rem; font-weight: 600; padding: .12rem .42rem; border-radius: 10px;
+.pipe-stage-title { font-weight: 600; font-size: .88rem; }
+.pipe-tip { margin: .18rem 0 0; font-size: .8rem; color: var(--muted, #aaa); line-height: 1.25; }
+.pipe-badge { font-size: .7rem; font-weight: 600; padding: .1rem .42rem; border-radius: 10px;
   white-space: nowrap; }
 .pipe-badge-on { background: var(--rc-ok-bg); color: var(--rc-ok-fg); }
 .pipe-badge-off { background: var(--rc-danger-bg); color: var(--rc-danger-fg); }
 .pipe-badge-advisory { background: var(--rc-neutral-bg); color: var(--rc-neutral-fg); }
 .pipe-badge-dynamic { background: var(--rc-neutral-bg); color: var(--rc-neutral-fg); }
-.pipe-controls { margin-top: .55rem; display: flex; flex-direction: column; gap: .4rem; }
-.pipe-ctl { display: flex; align-items: center; gap: .4rem; flex-wrap: wrap; font-size: .84rem; }
+/* P5a — marks a control as a behavioral flag (not a permission). Shared by the
+   Settings design_checkins header and the Pipeline decision/orchestrator stages. */
+.behavioral-flag-badge { font-size: .66rem; font-weight: 600; padding: .1rem .4rem;
+  border-radius: 10px; white-space: nowrap; margin-left: .4rem; vertical-align: middle;
+  background: var(--rc-neutral-bg); color: var(--rc-neutral-fg);
+  border: 1px solid var(--border); }
+.behavioral-flag-explainer { font-size: .8rem; color: var(--muted); margin: .3rem 0 .5rem; }
+.pipe-controls { margin-top: .3rem; display: flex; flex-direction: column; gap: .25rem; }
+.pipe-ctl { display: flex; align-items: center; gap: .4rem; flex-wrap: wrap; font-size: .82rem; }
 .pipe-ctl input[type=number] { width: 6rem; }
 .pipe-ctl input[type=text] { flex: 1 1 12rem; min-width: 10rem; }
-.pipe-hint { margin: .1rem 0 0; font-size: .78rem; color: var(--muted, #888); }
-.pipe-web-state { margin: .1rem 0 .2rem; font-size: .84rem; color: var(--text, #eee); }
+/* Native <select>s (orchestrator Mode / Scope) size to their LONGEST option text
+   ("off — host CLI orchestrates (default, zero extra cost)"), overflowing the card
+   + forcing a horizontal page scrollbar. Cap them to the container so the selected
+   value truncates in place instead of running off the right edge. */
+.pipe-ctl select { flex: 1 1 16rem; max-width: 100%; min-width: 0; }
+.pipe-hint { margin: .08rem 0 0; font-size: .76rem; color: var(--muted, #888); }
+.pipe-web-state { margin: .08rem 0 .15rem; font-size: .82rem; color: var(--text, #eee); }
 /* Expandable "How it works" subprocess detail (native <details>, accessible). */
-.pipe-more { margin: .4rem 0 0; }
+.pipe-more { margin: .3rem 0 0; }
 .pipe-more > summary { cursor: pointer; font-size: .8rem; font-weight: 600; color: var(--accent);
   list-style: none; display: inline-flex; align-items: center; gap: .3rem; user-select: none; }
 .pipe-more > summary::-webkit-details-marker { display: none; }
 .pipe-more > summary::before { content: "▸"; font-size: .7rem; transition: transform .15s ease; }
 .pipe-more[open] > summary::before { transform: rotate(90deg); }
-.pipe-steps { margin: .4rem 0 .3rem; padding-left: 1.15rem; font-size: .82rem; color: var(--muted);
-  line-height: 1.4; display: flex; flex-direction: column; gap: .2rem; }
-.pipe-more-line { margin: .25rem 0 0; font-size: .8rem; color: var(--muted); line-height: 1.4; }
+.pipe-steps { margin: .3rem 0 .25rem; padding-left: 1.15rem; font-size: .8rem; color: var(--muted);
+  line-height: 1.35; display: flex; flex-direction: column; gap: .15rem; }
+.pipe-more-line { margin: .2rem 0 0; font-size: .79rem; color: var(--muted); line-height: 1.35; }
 .pipe-more-lbl { font-weight: 700; color: var(--text); }
-.pipe-arrow { text-align: center; font-size: 1.2rem; color: var(--accent); margin: .15rem 0; }
-.pipe-file { margin-top: .5rem; }
+.pipe-arrow { text-align: center; font-size: .82rem; color: var(--accent); margin: 0; line-height: 1.1; }
+.pipe-file { margin-top: .35rem; }
 .pipe-file-head { display: flex; align-items: center; gap: .4rem; flex-wrap: wrap; font-size: .82rem; }
 .pipe-file-text { width: 100%; min-height: 6rem; font-family: ui-monospace, monospace;
   font-size: .78rem; margin-top: .3rem; box-sizing: border-box; }
 .pipe-file-status { font-size: .78rem; color: var(--muted, #999); }
-.pipe-savebar { display: flex; align-items: center; gap: .8rem; margin: 1.2rem 0 .5rem;
-  position: sticky; bottom: 0; padding: .6rem 0; background: linear-gradient(transparent, var(--bg, #111) 40%); }
-.pipe-save-status { font-size: .85rem; color: var(--muted, #aaa); }
-.concern-stats { margin-top: 1.8rem; padding: 1rem 1.1rem; border: 1px solid var(--border, #2a2a2a);
+.pipe-savebar { display: flex; align-items: center; gap: .8rem; margin: .5rem 0 .3rem;
+  position: sticky; bottom: 0; padding: .4rem 0; background: linear-gradient(transparent, var(--bg, #111) 40%); }
+.pipe-save-status { font-size: .84rem; color: var(--muted, #aaa); }
+.concern-stats { margin-top: .6rem; padding: .6rem .9rem; border: 1px solid var(--border, #2a2a2a);
   border-radius: 8px; background: var(--surface, #161616); }
-.concern-stats h3 { margin: 0 0 .4rem; font-size: 15px; }
-.concern-stats-state { font-size: 12.5px; color: var(--muted, #999); padding: .6rem 0; }
-.concern-stats-table { width: 100%; border-collapse: collapse; margin-top: .4rem; font-size: 12.5px; }
+.concern-stats h3 { margin: 0 0 .3rem; font-size: 14px; }
+.concern-stats-state { font-size: 12px; color: var(--muted, #999); padding: .4rem 0; }
+.concern-stats-table { width: 100%; border-collapse: collapse; margin-top: .3rem; font-size: 12px; }
 .concern-stats-table th, .concern-stats-table td {
-  text-align: left; padding: .35rem .5rem; border-bottom: 1px solid var(--border, #2a2a2a);
+  text-align: left; padding: .22rem .5rem; border-bottom: 1px solid var(--border, #2a2a2a);
 }
 .concern-stats-table th { color: var(--muted, #999); font-weight: 600; font-size: 11.5px;
   text-transform: uppercase; letter-spacing: .03em; }
@@ -1098,6 +1144,16 @@ def _render_pipeline_tab() -> str:
                 if controls
                 else ""
             )
+            # P5a: mark the BEHAVIORAL-flag stages (decision_review, orchestrator)
+            # so the Pipeline surface makes the same permission-vs-behavior
+            # distinction the Settings tab does — these do NOT gate a tool-call
+            # permission. (worktree_guard is a behavioral flag too, but it is
+            # surfaced Settings-only, so it carries the badge there, not here.)
+            behavioral_html = (
+                _render_behavioral_flag_badge()
+                if controls in ("decision", "orchestrator")
+                else ""
+            )
             detail = st.get("detail")
             detail_html = ""
             if detail:
@@ -1115,7 +1171,7 @@ def _render_pipeline_tab() -> str:
                 f'<div class="pipe-stage" data-stage="{html.escape(st["id"])}">'
                 f'<div class="pipe-stage-head">'
                 f'<span class="pipe-stage-title">{html.escape(st["title"])}</span>'
-                f"{badge_html}</div>"
+                f"{behavioral_html}{badge_html}</div>"
                 f'<p class="pipe-tip">{html.escape(st["tip"])}</p>'
                 f"{detail_html}"
                 f"{controls_html}</div>"
@@ -1658,143 +1714,6 @@ def _render_command_card(cmd: dict) -> str:
     )
 
 
-def _render_overview_tab() -> str:
-    """Marketplace-wide Overview / 'Start here' tab — the default landing surface.
-    Build-time, generator-discovered (House Rule 1 — never hard-code counts/names),
-    so it renders identically on a static host and when served. The only live
-    element is the served/static banner (toggled by the HEAD /__save probe in JS)."""
-    plugin_dirs = sorted(p for p in PLUGINS_DIR.glob("*/.claude-plugin/plugin.json"))
-    n_plugins = len(plugin_dirs)
-    n_agents = len(list(PLUGINS_DIR.glob("*/agents/*.md")))
-    n_skills = len(
-        [p for p in PLUGINS_DIR.glob("*/skills/*") if p.is_dir()]
-        + [p for p in PLUGINS_DIR.glob("*/skills/*.md") if p.is_file()]
-    )
-    n_commands = len(_commands_inventory())
-    n_trees = len(_decision_trees_inventory())
-    n_practices = len(_best_practices_inventory())
-
-    stat = lambda n, label: (
-        f'<div class="ov-stat"><strong>{n}</strong><span>{html.escape(label)}</span></div>'
-    )
-    stats = "".join(
-        [
-            stat(n_plugins, "plugins"),
-            stat(n_agents, "agents"),
-            stat(n_skills, "skills"),
-            stat(n_commands, "commands"),
-            stat(n_trees, "decision trees"),
-            stat(n_practices, "best practices"),
-        ]
-    )
-
-    def card(title, body, target, cta):
-        return (
-            f'<a class="ov-card" href="#/{target}">'
-            f"<h4>{html.escape(title)}</h4>"
-            f"<p>{html.escape(body)}</p>"
-            f'<span class="ov-card-cta">{html.escape(cta)} &rarr;</span>'
-            "</a>"
-        )
-
-    systems = "".join(
-        [
-            card(
-                "Comfort posture",
-                "Tune how autonomous your agents are — per-category deny / ask / allow, "
-                "and the security floor that never relaxes.",
-                "settings",
-                "Open Settings",
-            ),
-            card(
-                "Guardrail pipeline",
-                "See every guard an action passes through — from session start, through "
-                "command review, to completion — with live on/off badges.",
-                "pipeline",
-                "Open Pipeline",
-            ),
-            card(
-                "Command-review tribunal",
-                "The Thing — RavenClaude's command-review engine — checks risky "
-                "commands and logs an allow / edit / deny verdict you can browse.",
-                "saga",
-                "Open Review log",
-            ),
-            card(
-                "Install & update",
-                "Two guides, one per tool: install &amp; update RavenClaude in Claude Code "
-                "(the Bifröst bridge) or in GitHub Copilot CLI.",
-                "bifrost",
-                "Open install guides",
-            ),
-        ]
-    )
-
-    steps_required = "".join(
-        [
-            '<li><a href="#/settings">Pick a posture preset</a> — set how much your agents do without asking.</li>',
-            '<li>Wire it into your tool — <a href="#/bifrost">Claude&nbsp;Code</a> or <a href="#/install">Copilot&nbsp;CLI</a>. One-time setup, then updates are a git pull.</li>',
-        ]
-    )
-    steps_optional = "".join(
-        [
-            '<li><a href="#/pipeline">See what the guardrails do</a> — the map of every check, in plain language.</li>',
-            '<li><a href="#/trees">Browse the guidance</a> — the decision trees + best practices each plugin gives your agents.</li>',
-        ]
-    )
-
-    # P3 — the sections BELOW the hero are DOM-island-loaded: they ship in a
-    # <script type="application/json"> payload (uncounted by Gate 132) and inject into
-    # #ov-mount on the first activate("overview"). The HERO stays LIVE in the initial
-    # HTML (LCP-safe — islanding the default-active hero would JS-inject the LCP element;
-    # the critic flagged that). Net effect: the rich premium overview is net-DOM-NEGATIVE.
-    overview_body = (
-        f'<p class="ov-stats-lead">You have <strong>{n_plugins}</strong> plugins installed &mdash; '
-        f"<strong>{n_agents}</strong> specialist agents and <strong>{n_trees}</strong> decision trees "
-        "ready to help your agents stay in bounds.</p>"
-        f'<div class="ov-stats">{stats}</div>'
-        '<h3 class="ov-h3">The big systems</h3>'
-        f'<div class="ov-cards">{systems}</div>'
-        '<h3 class="ov-h3">Start here</h3>'
-        '<p class="ov-steps-lead">New here? The two <strong>required</strong> steps take about five minutes. '
-        "The rest you can explore whenever.</p>"
-        '<p class="ov-steps-cap">Required</p>'
-        f'<ol class="ov-steps">{steps_required}</ol>'
-        '<p class="ov-steps-cap ov-steps-cap-optional">Optional &mdash; when you want to go deeper</p>'
-        f'<ol class="ov-steps ov-steps-optional" start="3">{steps_optional}</ol>'
-    )
-    overview_json = json.dumps(overview_body)
-    return (
-        '<div class="ov-wrap">'
-        '<div class="ov-hero">'
-        '<div class="ov-hero__copy">'
-        '<p class="eyebrow"><span class="eyebrow__dot"></span>RavenClaude</p>'
-        '<h2 class="ov-hero__title">Your control surface, '
-        '<span class="ov-hero__accent">in&nbsp;bounds</span>.</h2>'
-        '<p class="ov-hero__sub">Tune how autonomous your agents are, watch every guardrail '
-        "an action passes through, and wire the plugin into your tools. Your private Claude Code "
-        "<strong>plugin marketplace</strong> &mdash; the controls, not the catalog.</p>"
-        '<div class="ov-hero__actions">'
-        '<a class="btn btn-primary ov-cta" href="#/settings">Set your posture</a>'
-        '<a class="btn secondary ov-cta" href="#/pipeline">See the guardrails</a>'
-        "</div>"
-        '<div id="ov-mode-banner" class="ov-banner ov-banner-static">'
-        "<strong>Preview</strong> &mdash; this is a read-only view. Run the served dashboard "
-        "(<code>rc dashboard</code> or <code>python3 scripts/serve-dashboards.py</code>) to save changes to your repo."
-        "</div>"
-        "</div>"
-        f'<img class="ov-hero__raven" src="{_RAVEN_HERO_DATA_URI}" '
-        f'width="{_RAVEN_HERO_W}" height="{_RAVEN_HERO_H}" alt="" aria-hidden="true" '
-        'draggable="false">'
-        "</div>"
-        '<div id="ov-mount"></div>'
-        f'<script type="application/json" id="ov-payload">{overview_json}</script>'
-        "<noscript><p>The overview detail (stats, systems, and setup steps) renders with "
-        "JavaScript.</p></noscript>"
-        "</div>"
-    )
-
-
 def _render_commands_tab() -> str:
     """Render the Commands tab: a card grid of every marketplace slash command.
     Empty-state when no plugin ships a command."""
@@ -2305,17 +2224,30 @@ def _render_command_review_block() -> str:
         "</div>"
         '<div class="crb-master-row">'
         '<label class="crb-master-label" for="cr-master-enable">'
-        "Master enable &mdash; when off, all per-category toggles are paused (not cleared)"
+        "Master enable &mdash; turning ON reviews only the 4 high-stakes categories "
+        "(code-exec, remote &amp; local mutate, package install); enable the rest "
+        "per-category. When off, all toggles are paused (not cleared)."
         "</label>"
-        '<label class="dc-switch" title="Master enable for command review. '
-        "When off, review is paused globally; per-category settings are preserved."
-        '">'
+        '<label class="dc-switch" title="Master enable for command review. Turning ON '
+        "enables review for the 4 high-stakes categories only (opt into the others "
+        "per-category); when off, review is paused globally and per-category settings "
+        'are preserved.">'
         '<input type="checkbox" id="cr-master-enable" checked '
         'aria-label="Command review master enable" aria-describedby="crb-master-state">'
         '<span class="dc-track"><span class="dc-thumb"></span></span>'
         "</label>"
         "</div>"
         '<p class="crb-master-state" id="crb-master-state"></p>'
+        # The explicit all-12 path. Deliberately a SEPARATE control from the
+        # master switch: the master's narrowed 4-category cascade is an
+        # incident fix (FORGE P4a / Gate 137) and must keep its own semantics,
+        # but "review everything" is a legitimate intent that shouldn't cost 8
+        # individual clicks. One button, one click, no safety property lost.
+        '<div class="crb-bulk-row">'
+        '<button type="button" class="crb-bulk-btn" id="cr-enable-all">Enable all 12</button>'
+        '<button type="button" class="crb-bulk-btn" id="cr-disable-all">Disable all</button>'
+        '<span class="crb-bulk-hint" id="crb-bulk-hint"></span>'
+        "</div>"
         "</div>"
     )
 
@@ -2411,14 +2343,15 @@ def _render_command_review_block() -> str:
 # Per-seat model choices offered by the dashboard's command-review panel section.
 _THING_MODEL_CHOICES = [
     ("claude-opus-4-8", "Opus 4.8 — most capable"),
-    ("claude-sonnet-4-6", "Sonnet 4.6 — balanced"),
-    ("claude-haiku-4-5", "Haiku 4.5 — fast / cheap"),
+    ("claude-sonnet-5", "Sonnet 5 — balanced"),
+    ("claude-haiku-4-5-20251001", "Haiku 4.5 — fast / cheap"),
+    ("claude-fable-5", "Fable 5 — fast reasoning"),
 ]
 # (seat key, display label, default model) — mirrors thing-decision.py defaults.
 _THING_SEAT_META = [
     ("forseti", "Forseti — Security", "claude-opus-4-8"),
-    ("mimir", "Mímir — Correctness", "claude-haiku-4-5"),
-    ("heimdall", "Heimdall — Injection watch", "claude-haiku-4-5"),
+    ("mimir", "Mímir — Correctness", "claude-haiku-4-5-20251001"),
+    ("heimdall", "Heimdall — Injection watch", "claude-haiku-4-5-20251001"),
     ("thor", "Thor — Tie-breaker", "claude-opus-4-8"),
 ]
 
@@ -2623,6 +2556,24 @@ def _render_tier_panel() -> str:
     )
 
 
+def _render_behavioral_flag_badge() -> str:
+    """A small badge marking a control as a BEHAVIORAL flag (it pauses Claude for
+    design / decision judgment) — NOT a permission (which gates a tool-call approval).
+    FORGE dashboard-process-hardening P5a: the two surfaces are orthogonal and easy to
+    conflate (intake doc 2026-07-16-comfort-posture-behavioral-flags-vs-permissions),
+    so this badge sits next to design_checkins (Settings) AND orchestrator /
+    decision_review (Pipeline) so an operator stops cranking every permission to Allow
+    expecting these to go quiet. Setting every permission to Allow changes NO
+    behavioral flag — they are decoupled by design.
+    """
+    return (
+        '<span class="behavioral-flag-badge" '
+        'title="Behavioral flag — does not gate a tool-call permission. '
+        'Setting every permission to Allow changes no behavioral flag.">'
+        "⚙ Behavior, not permission</span>"
+    )
+
+
 def _render_design_checkins(prop: dict) -> str:
     """Render the design-check-in toggle (a behavioral flag, NOT a permission).
 
@@ -2640,7 +2591,11 @@ def _render_design_checkins(prop: dict) -> str:
     return (
         '<div class="design-checkins-bar">'
         '<div class="dc-row">'
-        f'<div class="dc-text"><h3>{title}</h3><p>{desc}</p></div>'
+        f'<div class="dc-text"><h3>{title} {_render_behavioral_flag_badge()}</h3>'
+        '<p class="behavioral-flag-explainer">Two independent systems: permission '
+        "levels gate tool-call approval; behavioral flags (marked ⚙) control whether "
+        "Claude pauses for design / decision judgment. Setting every permission to "
+        f"Allow changes no behavioral flag.</p><p>{desc}</p></div>"
         '<label class="dc-switch" title="Toggle design check-ins">'
         '<input type="checkbox" id="design-checkins-toggle" checked>'
         '<span class="dc-track"><span class="dc-thumb"></span></span>'
@@ -3077,10 +3032,27 @@ body {
 h1, h2, h3 { font-family: var(--font-display); font-weight: 600; letter-spacing: -0.02em; }
 ::selection { background: var(--accent); color: #000; }
 .page-header {
-  position: relative;
+  /* Sticky app-nav with a scroll-triggered blur — commerce .nav language. */
+  position: sticky;
+  top: 0;
+  z-index: 20;
   padding: 24px 32px 0;
   border-bottom: 1px solid var(--border);
   background: var(--surface);
+  transition:
+    background 0.35s var(--rc-ease),
+    border-color 0.35s var(--rc-ease),
+    -webkit-backdrop-filter 0.35s var(--rc-ease),
+    backdrop-filter 0.35s var(--rc-ease);
+}
+/* Past a small scroll threshold the header goes translucent + blurred
+   (commerce .nav.is-scrolled). The class is toggled by initScrollBlur();
+   the global prefers-reduced-motion rule (near :root) zeroes the transition. */
+.page-header.is-scrolled {
+  background: rgba(0, 0, 0, 0.72);
+  -webkit-backdrop-filter: saturate(160%) blur(14px);
+  backdrop-filter: saturate(160%) blur(14px);
+  border-bottom-color: var(--border);
 }
 /* Green hairline along the top edge — the site's signature section accent. */
 .page-header::before {
@@ -3098,21 +3070,15 @@ h1, h2, h3 { font-family: var(--font-display); font-weight: 600; letter-spacing:
 }
 .brand-mark {
   flex-shrink: 0;
-  width: 28px;
-  height: 28px;
-  display: grid;
-  place-items: center;
-  /* Inline raven SVG: body uses currentColor (dark on light, light on dark),
-     bolt is the green accent. A PNG fallback is sized the same. */
-  color: var(--text);
-  filter: drop-shadow(0 0 6px var(--accent-glow));
+  display: inline-flex;
+  align-items: center;
+  /* Green halo around the raven mark — commerce .nav__mark language. */
+  filter: drop-shadow(0 0 8px rgba(86, 208, 138, 0.14));
 }
-.brand-mark svg,
 .brand-mark img {
-  width: 28px;
-  height: 28px;
+  width: 30px;
+  height: auto;
   display: block;
-  object-fit: contain;
 }
 .page-header h1 {
   margin: 0;
@@ -3143,6 +3109,7 @@ h1, h2, h3 { font-family: var(--font-display); font-weight: 600; letter-spacing:
 }
 .tab-bar::-webkit-scrollbar { display: none; }
 .tab-btn {
+  position: relative;
   background: transparent;
   border: none;
   color: var(--muted);
@@ -3155,6 +3122,21 @@ h1, h2, h3 { font-family: var(--font-display); font-weight: 600; letter-spacing:
   flex-shrink: 0;
   white-space: nowrap;
 }
+/* Underline-reveal wipe on hover — commerce .nav__links a::after (left→right).
+   The active tab keeps its solid accent border-bottom; the wipe is suppressed
+   there. The global prefers-reduced-motion rule zeroes the wipe transition. */
+.tab-btn::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 100%;
+  bottom: -2px;
+  height: 2px;
+  background: var(--accent);
+  transition: right 0.35s var(--rc-ease);
+}
+.tab-btn:hover::after { right: 0; }
+.tab-btn[aria-selected="true"]::after { content: none; }
 .tab-btn[aria-selected="true"] {
   color: var(--text);
   border-bottom-color: var(--accent);
@@ -3185,38 +3167,140 @@ h1, h2, h3 { font-family: var(--font-display); font-weight: 600; letter-spacing:
   margin: 6px 2px;
   background: var(--border);
 }
-/* ── Two-tier nav: top-level CATEGORIES reveal their pages (website-style) ── */
-.cat-bar {
+/* Two-tier category nav retired (P3, dashboard-consumption): the cat-bar and its
+   .in-cat page-hiding rule are gone; the tab-bar is now a flat, single-tier set
+   of destination tabs. (The shell's own dash-root chrome-hide rule stays — it
+   hides the folded copy's whole nav in the portal.) */
+
+/* ── Standalone left sidebar — the 4-destination IA (Control · Activity ·
+   Guardrails · Learn & Help) ──────────────────────────────────────────────
+   Matches the portal shell's .sidebar look (dark gradient, brand at top,
+   uppercase group labels, sub-items with a left accent bar when active).
+   The sidebar is position:fixed and the content margin lives on ONE named
+   selector (.dash-main) so the portal can fold this SAME payload into
+   #dash-root and hide the sidebar + zero the margin WITHOUT a DOM restructure
+   (the parent owns those #dash-root rules). The .page-header + .tab-bar are
+   hidden here (the sidebar drives navigation) but the .tab-btn buttons STAY in
+   the DOM — validTabs = querySelectorAll('.tab-btn') must keep finding them. */
+.page-header { display: none; }
+.tab-bar { display: none; }
+.dash-main { margin-left: 170px; }
+.dash-sidebar {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 170px;
+  height: 100vh;
+  overflow-y: auto;
+  z-index: 40;
   display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-  margin: 4px 0 2px;
+  flex-direction: column;
+  background: linear-gradient(180deg, var(--surface-2), var(--bg));
+  border-right: 1px solid var(--border);
 }
-.cat-btn {
-  background: transparent;
-  border: 1px solid var(--border);
-  color: var(--muted);
-  font: inherit;
-  font-family: var(--font-display, inherit);
-  font-weight: 600;
-  font-size: 13px;
-  letter-spacing: -0.01em;
-  padding: 7px 15px;
-  border-radius: 999px;
-  cursor: pointer;
+.ds-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 16px;
+  border-bottom: 1px solid var(--border);
   white-space: nowrap;
 }
-.cat-btn:hover { color: var(--text); border-color: var(--accent-2, var(--accent)); }
-.cat-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.cat-btn[aria-pressed="true"] {
-  color: #000;
-  background: var(--accent);
-  border-color: var(--accent);
-  box-shadow: 0 0 16px var(--accent-glow, transparent);
+.ds-mark {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  /* Same green halo the commerce nav + standalone .brand-mark use. */
+  filter: drop-shadow(0 0 8px var(--accent-glow));
 }
-/* Only the active category's page tabs are shown in the tablist. */
-.tab-bar .tab-btn:not(.in-cat) { display: none; }
-.header-about-link { white-space: nowrap; }
+.ds-mark img { width: 26px; height: auto; display: block; }
+.ds-word { display: flex; flex-direction: column; line-height: 1.15; min-width: 0; }
+.ds-name {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 16px;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+.ds-name b { color: var(--accent); font-weight: 600; }
+.ds-tag {
+  margin-top: 2px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  font-weight: 500;
+}
+.ds-nav {
+  flex: 1;
+  padding: 6px 12px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  overflow-y: auto;
+}
+.ds-group { display: flex; flex-direction: column; gap: 1px; margin-bottom: 4px; }
+/* Category headers: GREEN + extra-bold + uppercase so a destination reads as a
+   distinct tier from the pages under it, with a clear font-size gap (11px header
+   vs 14px page). Condensed enough to keep all 4 groups + 15 pages scroll-free. */
+.ds-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.11em;
+  color: var(--accent);
+  font-weight: 800;
+  padding: 10px 12px 4px;
+}
+.ds-sub {
+  position: relative;
+  display: block;
+  padding: 4px 12px;
+  border-radius: var(--radius-sm);
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+  transition:
+    background 0.15s var(--rc-ease),
+    color 0.15s var(--rc-ease);
+}
+.ds-sub:hover { background: var(--surface); color: var(--text); }
+.ds-sub:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.ds-sub.active {
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 600;
+}
+/* Left teal/green accent bar on the active destination (portal .nav-item.active). */
+.ds-sub.active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 5px;
+  bottom: 5px;
+  width: 3px;
+  border-radius: 3px;
+  background: var(--accent);
+}
+/* Mobile (<900px): the sidebar becomes a full-width top strip that wraps —
+   simplicity over polish, but never broken. Content margin drops to 0. */
+@media (max-width: 900px) {
+  .dash-sidebar {
+    position: static;
+    width: 100%;
+    height: auto;
+    overflow-y: visible;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+  .dash-main { margin-left: 0; }
+  .ds-nav { flex-direction: row; flex-wrap: wrap; gap: 4px 12px; padding: 8px 14px 12px; }
+  .ds-group { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 4px; margin-bottom: 0; }
+  .ds-label { padding: 4px 6px 4px 2px; }
+  .ds-sub { padding: 6px 10px; }
+  .ds-sub.active::before { display: none; }
+}
 .about-wrap { max-width: 760px; }
 .about-lead { font-size: 15px; color: var(--text); line-height: 1.6; }
 .about-note { color: var(--muted); font-size: 13px; }
@@ -3569,6 +3653,36 @@ h1, h2, h3 { font-family: var(--font-display); font-weight: 600; letter-spacing:
   font-size: 13px;
   color: var(--muted);
   cursor: pointer;
+}
+.crb-bulk-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0 0;
+  flex-wrap: wrap;
+}
+.crb-bulk-btn {
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+}
+.crb-bulk-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.crb-bulk-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.crb-bulk-hint {
+  font-size: 12px;
+  color: var(--muted);
 }
 .crb-master-state {
   margin: 6px 0 0;
@@ -5717,6 +5831,15 @@ footer.page-footer a:hover { text-decoration: underline; }
 .sleipnir-glyph { font-size: 15px; }
 .sleipnir-label { font-weight: 700; color: var(--text); }
 .sleipnir-body { color: var(--muted); font-family: var(--font-mono); font-size: 12px; word-break: break-word; }
+/* Worktree-guard status badges (is_anchor / live_sessions / contention) from
+   worktree-guard.sh status --json. Absent guard block renders none of these. */
+.sleipnir-guard { display: inline-flex; flex-wrap: wrap; gap: 5px; margin-left: auto; }
+.sleipnir-badge { font-size: 10.5px; font-weight: 600; padding: .08rem .38rem; border-radius: 9px;
+  white-space: nowrap; background: var(--rc-neutral-bg); color: var(--rc-neutral-fg);
+  border: 1px solid var(--border); }
+.sleipnir-badge-anchor { background: var(--rc-neutral-bg); color: var(--rc-neutral-fg); }
+.sleipnir-badge-live { background: var(--rc-ok-bg); color: var(--rc-ok-fg); }
+.sleipnir-badge-contention { background: var(--rc-danger-bg); color: var(--rc-danger-fg); }
 #activity-content { padding: 0 20px 20px; display: flex; flex-direction: column; gap: 12px; }
 .activity-card {
   background: var(--surface); border: 1px solid var(--border);
@@ -6041,118 +6164,207 @@ footer.page-footer a:hover { text-decoration: underline; }
 .pp-noserver { margin: 12px 0 0; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--ok-soft); color: var(--muted); font-size: 12.5px; line-height: 1.5; }
 @media (max-width: 720px) { .pv-row { grid-template-columns: 1fr; } .pv-help { grid-column: 1; } .pp-cols { grid-template-columns: 1fr; } }
 
-/* ── Prompt Builder (#/prompt-builder) ───────────────────────────────────────
-   EVERY selector is `.pb-`-prefixed (no bare element selectors) so the portal's
-   scope_css(#dash-root) rewrite can't leak a rule across the folded page and
-   both shipped surfaces (dashboard.html + index.html) render identically. */
-.pb-root { display: flex; flex-direction: column; gap: 14px; }
-.pb-noscript { color: var(--muted); }
-.pb-intro { margin: 0; }
-.pb-intro h2 { margin: 0 0 4px; }
-.pb-intro .pb-lead { margin: 0; color: var(--muted); font-size: 13.5px; line-height: 1.5; }
+/* ══════════════════════════════════════════════════════════════════════
+   DENSITY PASS (Sub-effort B — "tighten layout, keep it visible")
+   Trailing, same-specificity overrides that pack every dashboard sub-page
+   tighter so each fits ~a screen. Spacing/scale ONLY — nothing is hidden or
+   collapsed, no element is removed (DOM-neutral), and no body text drops
+   below the legible floor (body stays 15px; feed/label text unchanged).
+   Later source order wins at equal specificity, and scope_css prefixes
+   #dash-root uniformly so this ordering is preserved in the folded portal
+   too. One place to tune the whole dashboard's density.
+   ══════════════════════════════════════════════════════════════════════ */
 
-.pb-controls { position: sticky; top: 0; z-index: 5; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; padding: 10px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
-.pb-controls .pb-spacer { flex: 1 1 auto; }
-.pb-seg { display: inline-flex; background: var(--surface-2); border: 1px solid var(--border); border-radius: 999px; padding: 3px; gap: 2px; }
-.pb-seg button { appearance: none; border: 0; background: transparent; color: var(--muted); font: inherit; font-size: 13px; font-weight: 600; padding: 6px 14px; border-radius: 999px; cursor: pointer; transition: color .15s, background .15s; }
-.pb-seg button[aria-selected="true"] { background: var(--accent); color: #fff; }
-.pb-seg button:hover:not([aria-selected="true"]) { color: var(--text); }
-.pb-seg button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* — Global page chrome (shortens every sub-page) — */
+.tab-panel { padding: 12px 24px; }
+.page-header { padding: 14px 32px 0; }
+.page-header h1 { font-size: 20px; }
+.page-header .page-desc { margin: 0 0 10px 0; }
 
-.pb-ctl { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--muted); }
-.pb-ctl label { font-weight: 600; }
-.pb-select, .pb-field select { appearance: none; background: var(--surface-2); color: var(--text); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 6px 26px 6px 10px; font: inherit; font-size: 13px; cursor: pointer; background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%); background-position: right 11px center, right 6px center; background-size: 5px 5px, 5px 5px; background-repeat: no-repeat; }
-.pb-select:focus-visible, .pb-field select:focus-visible, .pb-field textarea:focus-visible, .pb-field input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; border-color: var(--accent); }
+/* — Control · The Thing (the longest page): tighten every stacked block — */
+.preset-bar { padding: 9px 14px; margin-bottom: 8px; }
+.preset-bar p { margin: 0 0 6px 0; }
+.design-checkins-bar { padding: 9px 14px; margin-bottom: 8px; }
+.category-intro { padding: 8px 14px; margin-bottom: 8px; }
+.thing-preview { margin-bottom: 8px; }
+.command-review-panel { margin: 0 0 8px; }
+.command-review-block { margin-bottom: 8px; }
+.cat-card { margin: 0 0 4px; }
+.cat-card-summary { padding: 6px 14px; min-height: 36px; gap: 9px; }
+.cat-card-body { padding: 8px 14px 10px; gap: 3px; }
+.layer-row { padding: 4px 0; }
 
-.pb-token { display: inline-flex; align-items: baseline; gap: 5px; padding: 5px 10px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 999px; font-size: 12px; color: var(--muted); white-space: nowrap; }
-.pb-token strong { color: var(--text); font-variant-numeric: tabular-nums; }
-.pb-token .pb-token-band { font-size: 11px; opacity: .8; }
-.pb-info { display: inline-flex; align-items: center; justify-content: center; width: 15px; height: 15px; border-radius: 50%; border: 1px solid var(--border); color: var(--muted); font-size: 10px; font-weight: 700; cursor: help; }
+/* — Feeds (Run feed / Saga / Perimeter / Security log / Lineage / Session /
+     Streams / Bifröst): kill the doubled top padding + tighten card gaps.
+     Row/card content stays legible. Capping is split by feed shape (G9):
+     the Run feed + Saga are length-capped in the render JS (top ~10 + "Show
+     all"); the Observe log feeds (Security log / Lineage / Session / Streams)
+     are NOT JS-capped, so they bound unbounded page growth with a max-height +
+     internal scroll (rule just below) instead. — */
+.saga-layout, .vidarr-layout, .norns-layout, .heimdall-layout,
+.bifrost-layout, .mimir-layout { padding: 12px 20px; }
+/* G9: the Observe log feeds render every row/card (no JS top-N cap), so on a
+   busy project they grew the page unbounded — the condense goal is "not much
+   scrolling". A generous max-height keeps normal data un-scrolled and only
+   engages on large feeds, scrolling inside the panel. (.mimir-layout covers
+   both #mimir Session and #streams Streams; Saga/Heimdall/Bifröst are excluded
+   — Saga is JS-capped, Heimdall is a card grid, Bifröst is a short guide.) */
+.vidarr-layout, .norns-layout, .mimir-layout { max-height: 78vh; overflow-y: auto; }
+.saga-hdr { margin-bottom: 6px; }
+.saga-filters { margin-bottom: 8px; }
+.saga-table { line-height: 1.35; }
+.saga-table th, .saga-table td { padding: 4px 10px; }
+#activity-content { gap: 6px; padding: 0 20px 12px; }
+.activity-card { padding: 8px 14px; }
+.activity-summary { margin: 4px 0 0; }
+.activity-intro { margin: 0 20px 8px; line-height: 1.4; }
+.sleipnir-stables { margin: 0 20px 10px; }
+.heimdall-grid { gap: 10px; padding: 0 20px 12px; }
+.heimdall-card { padding: 10px 12px; }
+.heimdall-sub { margin: 0 0 6px; line-height: 1.35; }
 
-.pb-btn { appearance: none; font: inherit; font-size: 12.5px; font-weight: 600; padding: 6px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface-2); color: var(--text); cursor: pointer; transition: background .15s, border-color .15s; }
-.pb-btn:hover { border-color: var(--accent); }
-.pb-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.pb-btn.pb-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
-.pb-btn.pb-ghost { background: transparent; }
-.pb-btn.pb-danger:hover { border-color: var(--danger); color: var(--danger); }
+/* "Show all (N)" reveal control for the length-capped feeds (Run feed / Saga). */
+.feed-showall {
+  display: inline-flex; align-items: center; gap: 6px; align-self: flex-start;
+  margin: 2px 0 0; padding: 7px 14px; font: inherit; font-size: 12.5px; font-weight: 600;
+  color: var(--accent); background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: 999px; cursor: pointer;
+}
+.feed-showall:hover { border-color: var(--accent); }
+.feed-showall:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.feed-showall-row td { text-align: center; padding: 8px 10px; border-bottom: none; }
 
-.pb-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr) minmax(0, .85fr); gap: 14px; align-items: start; }
-.pb-pane { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; min-width: 0; }
-.pb-pane > h3 { margin: 0 0 10px; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
-.pb-pane-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 0 10px; }
-.pb-pane-head h3 { margin: 0; }
+/* ══════════════════════════════════════════════════════════════════════
+   DEEPER CONDENSE — trailing content-density overrides (screenshot-driven).
+   Same-specificity, later-in-source rules that cut per-section vertical
+   space a further ~25-40% on the panel CONTENT (the settings/Thing stacks,
+   the Perimeter/Heimdall drift table, the feed rows/tables/cards) without
+   touching the left sidebar (.dash-sidebar / .ds-* / .dash-main), the DOM
+   element count, or the seg-control / .rec-badge posture-control geometry.
+   Vertical padding/margin/gap cut hardest; horizontal trimmed only lightly;
+   a few line-heights + font-sizes nudged down where the block is dense data
+   or muted secondary text — body/label text stays legible.
+   ══════════════════════════════════════════════════════════════════════ */
 
-.pb-fields { display: flex; flex-direction: column; gap: 12px; }
-.pb-field { display: flex; flex-direction: column; gap: 4px; }
-.pb-field label { font-size: 12.5px; font-weight: 600; color: var(--text); display: flex; align-items: center; gap: 6px; }
-.pb-field .pb-req { color: var(--accent); }
-.pb-field .pb-hint { font-weight: 400; color: var(--muted); font-size: 11.5px; }
-.pb-field textarea, .pb-field input[type="text"] { width: 100%; box-sizing: border-box; background: var(--surface-2); color: var(--text); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 8px 10px; font: inherit; font-size: 13px; line-height: 1.5; resize: vertical; }
-.pb-field textarea { min-height: 60px; }
-.pb-field textarea.pb-sm { min-height: 40px; }
-.pb-field .pb-claim { font-size: 10.5px; color: var(--muted); opacity: .75; }
+/* — Control · The Thing: the command-review + preset stacks — */
+.design-checkins-bar h3 { margin: 0 0 2px 0; }
+.dc-state { margin: 6px 0 0 0; }
+.command-review-panel { padding: 12px 16px; }
+.command-review-panel .crp-sub { margin: 0 0 8px 0; }
+.crp-hydrated { margin: 0 0 8px 0; }
+.command-review-block { padding: 11px 14px; }
+.crb-head { margin-bottom: 8px; }
+.crb-title-row { margin-bottom: 6px; }
+.crb-summary-section { margin: 8px 0; padding: 7px 0; }
+.crb-summary-title { margin-bottom: 6px; }
+.crb-advanced { margin-top: 6px; }
+.crb-advanced-body { padding: 8px 4px 2px; }
+.crb-adv-sub { margin: 0 0 8px; }
+.command-review-block p { margin: 0 0 6px; line-height: 1.42; }
+.tier-intro { margin: 0 0 8px; }
+.tier-card-head { margin-bottom: 6px; }
 
-.pb-check { flex-direction: row; align-items: center; gap: 8px; }
-.pb-check input { width: 15px; height: 15px; accent-color: var(--accent); }
+/* — Permission category groups (FILES / NETWORK / OTHER / SHELL) — */
+.cat-group { padding: 10px 16px 4px; margin: 0 0 10px; }
 
-.pb-repeat { display: flex; flex-direction: column; gap: 8px; }
-.pb-repeat-item { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 8px; background: var(--surface-2); display: flex; flex-direction: column; gap: 6px; }
-.pb-repeat-item .pb-repeat-head { display: flex; align-items: center; justify-content: space-between; font-size: 11.5px; color: var(--muted); font-weight: 600; }
-.pb-repeat-ctl { display: inline-flex; gap: 4px; }
-.pb-icon-btn { appearance: none; border: 1px solid var(--border); background: var(--surface); color: var(--muted); border-radius: 5px; width: 24px; height: 22px; font-size: 12px; line-height: 1; cursor: pointer; }
-.pb-icon-btn:hover { color: var(--text); border-color: var(--accent); }
-.pb-icon-btn:disabled { opacity: .4; cursor: not-allowed; }
-.pb-count { font-variant-numeric: tabular-nums; }
-.pb-count.pb-ok { color: var(--ok); }
-.pb-count.pb-warn { color: var(--warn); }
+/* — Danger Zone: 20 always-visible rows are the settings page's tallest
+     block — trim row padding hardest, tighten the header/note, and nudge the
+     one-line rule descriptions' font/leading (12.5→12px stays legible). — */
+.danger-zone { margin: 12px 0 0; }
+.danger-zone-header { padding: 10px 16px 8px; }
+.danger-zone-subtitle { margin: 4px 0 0; line-height: 1.4; }
+.danger-zone-note { margin: 8px 0 0; padding: 9px 12px; }
+.danger-zone-note p { margin: 0 0 6px; font-size: 12.5px; line-height: 1.45; }
+.danger-zone-row { padding: 6px 16px; }
+.danger-zone-row-title { margin-bottom: 2px; }
+.danger-zone-row-desc { font-size: 12px; line-height: 1.35; }
 
-.pb-patterns { margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--border); }
-.pb-patterns .pb-plabel { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 0 0 6px; }
-.pb-chips { display: flex; flex-wrap: wrap; gap: 6px; }
-.pb-chip { appearance: none; font: inherit; font-size: 12px; padding: 5px 10px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text); cursor: pointer; }
-.pb-chip:hover { border-color: var(--accent); }
-.pb-chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.pb-chip.pb-deprecated { text-decoration: line-through; color: var(--muted); cursor: not-allowed; border-style: dashed; }
+/* — Guardrails · Perimeter (Heimdall): the ~200-row plugin-drift table is
+     the dominant consumer — a tighter cell padding + leading + a 0.5px font
+     nudge (12→11.5px mono) reclaims the most page height while a dense data
+     table stays perfectly readable. — */
+.hm-hookgroup { margin-bottom: 8px; }
+.hm-hookname { margin: 0 0 4px; }
+.hm-evt { padding: 4px 8px; margin-bottom: 3px; }
+.hm-table { font-size: 11px; line-height: 1.25; }
+.hm-table th { padding: 3px 8px; }
+.hm-table td { padding: 2px 8px; }
+.hm-ci-row { padding: 4px 4px; }
+.nid-section { padding: 8px 12px; }
+.kh-tiles { gap: 8px; }
+.kh-tile { padding: 8px 12px; }
+.heimdall-card--wide #heimdall-debt { gap: 10px; }
+.heimdall-card--wide #heimdall-kh { gap: 8px; }
 
-.pb-preview-wrap { display: flex; flex-direction: column; gap: 10px; }
-.pb-preview { margin: 0; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; font-family: var(--font-mono); font-size: 12.5px; line-height: 1.55; color: var(--text); white-space: pre-wrap; word-break: break-word; overflow-x: auto; max-height: 460px; overflow-y: auto; min-height: 120px; }
-.pb-preview:empty::before { content: attr(data-empty); color: var(--muted); font-style: italic; }
-.pb-preview-actions { display: flex; flex-wrap: wrap; gap: 8px; }
-.pb-note { margin: 0; padding: 8px 10px; border-radius: var(--radius-sm); background: var(--ok-soft, rgba(31,122,63,.10)); border: 1px solid var(--border); color: var(--muted); font-size: 12px; line-height: 1.45; }
-.pb-note.pb-note-info { display: flex; gap: 7px; }
+/* — Observe log feeds (Security log / Lineage / Session): tighter table
+     cells + list leading, same legible-floor discipline. — */
+.vidarr-table th { padding: 4px 8px; }
+.vidarr-table td { padding: 4px 8px; }
+.norns-col h3, .mimir-card h3 { margin: 0 0 8px; }
+.mimir-recent-list li, .norns-itemlist li, .nid-list li { line-height: 1.35; }
 
-.pb-quality { display: flex; flex-direction: column; gap: 12px; }
-.pb-gauge-row { display: flex; align-items: center; gap: 12px; }
-.pb-gauge { flex: 0 0 auto; width: 76px; height: 76px; }
-.pb-gauge circle.pb-gauge-track { stroke: var(--border); }
-.pb-gauge circle.pb-gauge-fill { stroke: var(--accent); stroke-linecap: round; transform: rotate(-90deg); transform-origin: center; transition: stroke-dashoffset .5s ease, stroke .3s; }
-.pb-gauge text { fill: var(--text); font-family: var(--font-sans); font-weight: 700; font-size: 20px; }
-.pb-gauge-fill.pb-band-ok { stroke: var(--ok); }
-.pb-gauge-fill.pb-band-warn { stroke: var(--warn); }
-.pb-gauge-fill.pb-band-bad { stroke: var(--danger); }
-.pb-gauge-meta { min-width: 0; }
-.pb-gauge-meta .pb-gauge-label { font-size: 12.5px; font-weight: 600; }
-.pb-gauge-meta .pb-gauge-sub { font-size: 11px; color: var(--muted); line-height: 1.4; }
+/* ══════════════════════════════════════════════════════════════════════
+   DEEPER CONDENSE v2 — a further density + text-size pass on the
+   content-rich pages (owner: "noticeably more density; shrink the
+   comfort-posture pane's text + rows so more of the posture list is
+   visible without scrolling"). Text on secondary/muted + dense-data
+   surfaces steps down ~0.5-1px; the segmented deny/ask/allow posture
+   controls shrink UNIFORMLY (padding + font + min-width together) so the
+   segments stay aligned and the Recommended badge keeps its clearance.
+   ══════════════════════════════════════════════════════════════════════ */
 
-.pb-issues { display: flex; flex-direction: column; gap: 7px; margin: 0; padding: 0; list-style: none; }
-.pb-issue { border: 1px solid var(--border); border-left-width: 3px; border-radius: var(--radius-sm); padding: 8px 10px; background: var(--surface-2); }
-.pb-issue.pb-sev-warn { border-left-color: var(--warn); }
-.pb-issue.pb-sev-bad { border-left-color: var(--danger); }
-.pb-issue.pb-sev-tip { border-left-color: var(--accent); }
-.pb-issue-title { font-size: 12.5px; font-weight: 600; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.pb-issue-why { font-size: 11.5px; color: var(--muted); line-height: 1.45; margin: 3px 0 0; }
-.pb-issue-fix { appearance: none; margin-top: 5px; font: inherit; font-size: 11.5px; font-weight: 600; color: var(--accent); background: none; border: 0; padding: 0; cursor: pointer; text-align: left; }
-.pb-issue-fix:hover { text-decoration: underline; }
-.pb-issue .pb-issue-claim { font-size: 10px; color: var(--muted); opacity: .7; }
-.pb-clean { color: var(--ok); font-size: 12.5px; font-weight: 600; }
+/* — The Thing · comfort-posture pane: smaller category text + tighter rows
+     so more of the 12-category posture list fits per screen. — */
+.cat-card-title { font-size: 13px; }
+.cat-card-desc { font-size: 11.5px; }
+.cat-card-badge { font-size: 11px; padding: 2px 8px; min-width: 66px; }
+.cat-card-arrow { font-size: 10px; }
+.cat-group { padding: 8px 14px 3px; }
+.cat-group legend { font-size: 11px; }
+.cat-thing-label { font-size: 12px; }
+.cat-thing-cost { font-size: 10.5px; }
 
-.pb-honesty { font-size: 11px; color: var(--muted); line-height: 1.45; padding: 8px 10px; background: var(--surface-2); border: 1px dashed var(--border); border-radius: var(--radius-sm); }
-.pb-degraded { font-size: 11.5px; color: var(--warn); padding: 6px 10px; border: 1px solid var(--warn); border-radius: var(--radius-sm); background: rgba(179,120,20,.08); }
-.pb-toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(8px); background: var(--text); color: var(--bg); padding: 8px 16px; border-radius: 999px; font-size: 13px; font-weight: 600; opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; z-index: 60; }
-.pb-toast.pb-show { opacity: 1; transform: translateX(-50%) translateY(0); }
+/* — Segmented deny/ask/allow posture controls (category rows + the gate-floor
+     Medium/High/Extreme control): shrink uniformly, keep segments aligned and
+     the ·Recommended· badge unclipped (badge offset tightened to match). — */
+.cat-row { padding: 9px 0 17px; gap: 12px; }
+.cat-title { font-size: 13px; }
+.cat-desc { font-size: 11.5px; }
+.seg-control { padding: 2px; }
+.seg-label { padding: 4px 11px 7px; font-size: 11.5px; min-width: 72px; }
+.rec-badge { bottom: -13px; font-size: 9px; }
+/* Keep the ·Recommended· badge (hangs ~13px below the control) clear of the
+   note that follows the gate-floor control — 16px > the badge's reach. */
+.seg-control.gate-floor-seg { margin-bottom: 16px; }
+.crp-gate-floor-note { line-height: 1.4; }
 
-@media (max-width: 960px) { .pb-grid { grid-template-columns: 1fr; } .pb-preview { max-height: 320px; } }
-@media (prefers-reduced-motion: reduce) { .pb-gauge circle.pb-gauge-fill { transition: none; } .pb-toast { transition: none; } }
+/* — Command review + preset stacks: trim the prose leading/size a touch
+     more (13→12.5px muted body) — the block is the settings page's largest
+     text mass after the Danger Zone. — */
+.command-review-block p { font-size: 12px; line-height: 1.35; }
+.crb-adv-sub, .crp-sub, .tier-intro { font-size: 12px; }
+.preset-bar p, .design-checkins-bar .dc-text p, .category-intro p { font-size: 12.5px; line-height: 1.35; }
+.thing-preview p { line-height: 1.38; }
+.category-intro { margin-bottom: 6px; }
+.cat-group { margin: 0 0 8px; }
+
+/* — Danger Zone: 20 rows — nudge the rule text down 0.5px and tighten the
+     header/note copy so the block (the tallest on the page) shrinks more. — */
+.danger-zone-row { padding: 4px 16px; }
+.danger-zone-pattern { font-size: 12px; }
+.danger-zone-row-desc { font-size: 11.5px; line-height: 1.3; }
+.danger-zone-header { padding: 8px 16px 6px; }
+.danger-zone-note { padding: 8px 12px; }
+.danger-zone-note p { font-size: 12px; line-height: 1.35; margin: 0 0 5px; }
+.danger-zone-subtitle { font-size: 12.5px; }
+
+/* — Guardrails · Perimeter (Heimdall) + feeds: one more small step on the
+     drift table + card heads so table-driven pages land in the deeper band. — */
+.heimdall-card { padding: 9px 12px; }
+.heimdall-card h3 { font-size: 13px; }
+.hm-table td { padding: 2px 7px; }
+.hm-table th { padding: 2px 7px; }
+.saga-table th, .saga-table td { padding: 3px 9px; }
 """.strip()
 
 
@@ -6236,7 +6448,7 @@ _INSTALL_TAB_TEMPLATE = """
     <p class="install-intro">
       Follow these steps in order. Every command has a <strong>Copy</strong> button &mdash; you don&rsquo;t
       need to type anything. Each step tells you what to expect <em>after</em> you run it.
-      <strong>Using Claude Code instead?</strong> See the <a href="#/bifrost">Claude&nbsp;Code</a> page.
+      <strong>Using Claude Code instead?</strong> See the <a href="#/help">Claude&nbsp;Code</a> guide (Help).
     </p>
 
     <h3>What is this?</h3>
@@ -6700,7 +6912,7 @@ _INSTALL_TAB_TEMPLATE = """
 
 
 _SAGA_TAB_TEMPLATE = """
-<div class="saga-layout">
+<div class="saga-layout" id="saga">
   <div class="saga-hdr">
     <h2>&#9878; Review log</h2>
     <button type="button" class="saga-refresh" id="saga-refresh-btn">Refresh</button>
@@ -6741,6 +6953,7 @@ _ACTIVITY_TAB_TEMPLATE = """
     <span class="sleipnir-glyph" aria-hidden="true">&#128014;</span>
     <span class="sleipnir-label">Sleipnir&rsquo;s stables</span>
     <span class="sleipnir-body" id="sleipnir-body">&hellip;</span>
+    <span class="sleipnir-guard" id="sleipnir-guard"></span>
   </div>
   <div id="activity-content">
     <div class="saga-empty" id="activity-loading"><p>Loading activity&hellip;</p></div>
@@ -6785,13 +6998,6 @@ _HEIMDALL_TAB_TEMPLATE = """
       <p class="heimdall-sub">The highest-severity signal currently flagged.</p>
       <div id="heimdall-alarm"></div>
     </section>
-    <section class="heimdall-card heimdall-card--wide" aria-labelledby="hm-debt-h">
-      <h3 id="hm-debt-h">Debt watch (Níðhöggr)</h3>
-      <p class="heimdall-sub">Slow-rotting bits at the foundations &mdash; low-noise marketplace maintenance signals.</p>
-      <div id="heimdall-debt">
-        <div class="saga-empty" id="heimdall-debt-loading"><p>Loading debt signals&hellip;</p></div>
-      </div>
-    </section>
     <section class="heimdall-card heimdall-card--wide" aria-labelledby="hm-kh-h">
       <h3 id="hm-kh-h">Knowledge health (Idunn)</h3>
       <p class="heimdall-sub">How current is the marketplace&rsquo;s knowledge layer? Click a bucket to drill into the files in it.</p>
@@ -6804,7 +7010,7 @@ _HEIMDALL_TAB_TEMPLATE = """
 """.strip()
 
 _VIDARR_TAB_TEMPLATE = """
-<div class="vidarr-layout">
+<div class="vidarr-layout" id="vidarr">
   <div class="saga-hdr">
     <h2><span aria-hidden="true">&#128095;</span> Security log</h2>
     <button type="button" class="saga-refresh" id="vidarr-refresh-btn">Refresh</button>
@@ -6831,8 +7037,22 @@ _VIDARR_TAB_TEMPLATE = """
 </div>
 """.strip()
 
+# Níðhöggr "Debt watch" — its OWN Guardrails sub-page (A-split). Its #heimdall-debt
+# mount id + renderNidhoggr/nidhoggrSection are byte-identical to when it lived inside
+# panel-heimdall, so the Níðhöggr B15 render gate stays green with an unmodified script;
+# only the enclosing <section class="tab-panel"> wrapper is new (see _PAGE_TEMPLATE).
+_NIDHOGGR_TAB_TEMPLATE = """
+<section class="heimdall-card heimdall-card--wide" aria-labelledby="hm-debt-h">
+  <h3 id="hm-debt-h">Debt watch (Níðhöggr)</h3>
+  <p class="heimdall-sub">Slow-rotting bits at the foundations &mdash; low-noise marketplace maintenance signals.</p>
+  <div id="heimdall-debt">
+    <div class="saga-empty" id="heimdall-debt-loading"><p>Loading debt signals&hellip;</p></div>
+  </div>
+</section>
+""".strip()
+
 _NORNS_TAB_TEMPLATE = """
-<div class="norns-layout">
+<div class="norns-layout" id="norns">
   <div class="saga-hdr">
     <h2><span aria-hidden="true">&#127795;</span> Lineage</h2>
     <button type="button" class="saga-refresh" id="norns-refresh-btn">Refresh</button>
@@ -6857,7 +7077,7 @@ _NORNS_TAB_TEMPLATE = """
 """.strip()
 
 _MIMIR_TAB_TEMPLATE = """
-<div class="mimir-layout">
+<div class="mimir-layout" id="mimir">
   <div class="saga-hdr">
     <h2><span aria-hidden="true">&#127769;</span> Session</h2>
     <button type="button" class="saga-refresh" id="mimir-refresh-btn">Refresh</button>
@@ -6889,7 +7109,7 @@ _MIMIR_TAB_TEMPLATE = """
 """.strip()
 
 _STREAMS_TAB_TEMPLATE = """
-<div class="mimir-layout">
+<div class="mimir-layout" id="streams">
   <div class="saga-hdr">
     <h2><span aria-hidden="true">&#127754;</span> Streams</h2>
     <button type="button" class="saga-refresh" id="streams-refresh-btn">Refresh</button>
@@ -6998,7 +7218,7 @@ _BIFROST_TAB_TEMPLATE = (
   <div class="saga-hdr">
     <h2><span aria-hidden="true">&#127752;</span> Install &amp; Update &mdash; Claude Code</h2>
   </div>
-  <p class="activity-intro">Bifröst is the rainbow bridge between the marketplace and your Claude Code project. Follow these four steps to install a plugin, then see <a href="#bifrost-update">Updating an installed plugin</a> below. Each step is <strong>copy-paste only</strong> &mdash; Bifröst guides you, but you cross the bridge yourself. Nothing here runs a command for you; you run each in your Claude Code session and paste the result back so Bifröst can light the next step. <strong>Using GitHub Copilot CLI instead?</strong> See the <a href="#/install">Copilot&nbsp;CLI</a> page.</p>
+  <p class="activity-intro">Bifröst is the rainbow bridge between the marketplace and your Claude Code project. Follow these four steps to install a plugin, then see <a href="#bifrost-update">Updating an installed plugin</a> below. Each step is <strong>copy-paste only</strong> &mdash; Bifröst guides you, but you cross the bridge yourself. Nothing here runs a command for you; you run each in your Claude Code session and paste the result back so Bifröst can light the next step. <strong>Using GitHub Copilot CLI instead?</strong> See the <a href="#/help">Copilot&nbsp;CLI</a> guide (Help).</p>
   <ol class="bifrost-steps">
 """
     + "\n".join(_bifrost_step_html(*s) for s in _BIFROST_STEPS)
@@ -7050,68 +7270,6 @@ _BIFROST_TAB_TEMPLATE = (
 """.rstrip()
 ).strip()
 
-_SIMULATOR_TAB_TEMPLATE = """
-<div class="sim-layout">
-  <section class="sim-intro">
-    <h2>Preview a command's review</h2>
-    <p>
-      Type any shell command to see how command review (the Thing) would handle it &mdash;
-      which category it lands in, its risk tier, which reviewers weigh in, and whether it
-      would be allowed, auto-fixed, surfaced to you, or denied. It runs the
-      <strong>real review engine</strong> &mdash; no command is run and no AI is called &mdash;
-      so it matches what happens for real.
-    </p>
-    <div class="sim-input-row">
-      <input type="text" id="sim-command" class="sim-input"
-        placeholder="e.g. git push --force origin main"
-        aria-label="Command to analyze" autocomplete="off" spellcheck="false">
-      <button type="button" class="btn sim-analyze" id="sim-analyze-btn">Analyze</button>
-    </div>
-    <p class="sim-disabled-help" id="sim-disabled-help" hidden>
-      Run <code>python3 scripts/serve-dashboards.py</code> to simulate against the live engine.
-    </p>
-  </section>
-
-  <section class="sim-result" id="sim-result" hidden>
-    <div class="sim-deny-banner" id="sim-deny-banner" hidden>
-      &#9940; DENIED before any model runs<span id="sim-deny-reason"></span>
-    </div>
-    <div class="sim-result-grid">
-      <div class="sim-field">
-        <span class="sim-field-label">Category</span>
-        <span class="sim-field-value" id="sim-category">&mdash;</span>
-      </div>
-      <div class="sim-field">
-        <span class="sim-field-label">Risk tier</span>
-        <span class="sim-tier-badge" id="sim-tier-badge">&mdash;</span>
-      </div>
-    </div>
-    <div class="sim-seats-block">
-      <span class="sim-field-label">Seats convened</span>
-      <div class="sim-seats" id="sim-seats"></div>
-    </div>
-    <div class="sim-concerns-block" id="sim-concerns-block" hidden>
-      <span class="sim-field-label">Concerns cited</span>
-      <div class="sim-concerns" id="sim-concerns"></div>
-    </div>
-    <div class="sim-gate" id="sim-gate">
-      <span class="sim-gate-label">Predicted outcome</span>
-      <p class="sim-gate-text" id="sim-gate-text"></p>
-    </div>
-  </section>
-</div>
-""".strip()
-
-
-# The Prompt Builder ships as a bare mount + a <noscript> pointer. The whole
-# interactive UI is built by initPromptBuilder() via createElement/textContent
-# (no HTML-string sink), so the static generated DOM stays ~4 elements (Gate 132).
-_PROMPT_BUILDER_TAB_TEMPLATE = """
-<div id="pb-root" class="pb-root"></div>
-<noscript><p class="pb-noscript">The Prompt Builder needs JavaScript. It assembles a Claude prompt from your inputs &mdash; entirely in your browser, with nothing sent anywhere.</p></noscript>
-""".strip()
-
-
 _JS = r"""
 /* generate-dashboards.py output — Settings tab JS (v5 schema: per-layer cards)
  * Vanilla; no dependencies. Reads the inline JSON Schema at #schema-data,
@@ -7149,8 +7307,8 @@ _JS = r"""
      * Absent in storage / YAML ⇒ true (enabled). We only persist/emit when false. */
     enabled: true,
     forseti: "claude-opus-4-8",
-    mimir: "claude-haiku-4-5",
-    heimdall: "claude-haiku-4-5",
+    mimir: "claude-haiku-4-5-20251001",
+    heimdall: "claude-haiku-4-5-20251001",
     thor: "claude-opus-4-8",
     confidence_threshold: 0.5,
     gate_floor: "high",
@@ -7160,7 +7318,7 @@ _JS = r"""
     dev_repo_exempt: false,
   });
   const CR_SEATS = ["forseti", "mimir", "heimdall", "thor"];
-  const CR_MODELS = ["claude-opus-4-8", "claude-sonnet-4-6", "claude-haiku-4-5"];
+  const CR_MODELS = ["claude-opus-4-8", "claude-sonnet-5", "claude-haiku-4-5-20251001", "claude-fable-5"];
 
   /* gate_floor headline control — enum medium | high | extreme, default high. */
   const GATE_FLOORS = ["medium", "high", "extreme"];
@@ -7174,6 +7332,11 @@ _JS = r"""
   const DOD_DEFAULT = Object.freeze({ cmd: "", max_blocks: 8 });
   const DECISION_REVIEW_VALUES = ["off", "advisory", "binding"];
   const DECISION_REVIEW_DEFAULT = "off";
+  /* Worktree-hygiene guard (read by hooks/worktree-guard.sh). Behavioral flag —
+   * default `warn` (all repos, not opt-in), so emitYaml writes it only when the
+   * user picks off or block, preserving "absent ⇒ warn". */
+  const WORKTREE_GUARD_VALUES = ["off", "warn", "block"];
+  const WORKTREE_GUARD_DEFAULT = "warn";
   const ORCHESTRATOR_VALUES = ["off", "decide", "full"];
   const ORCHESTRATOR_DEFAULT = "full";
   const ORCHESTRATOR_SCOPE_VALUES = ["team", "all"];
@@ -7258,6 +7421,7 @@ _JS = r"""
     runaway: Object.assign({}, RUNAWAY_DEFAULT),
     parallelism: Object.assign({}, PARALLELISM_DEFAULT),
     decision_review: DECISION_REVIEW_DEFAULT,
+    worktree_guard: WORKTREE_GUARD_DEFAULT,
     orchestrator: ORCHESTRATOR_DEFAULT,
     orchestrator_scope: ORCHESTRATOR_SCOPE_DEFAULT,
     orchestrator_zdr_confirmed: false,
@@ -7400,10 +7564,23 @@ _JS = r"""
     const lbl = document.getElementById("crb-master-state");
     const enabled = !!state.command_review.enabled;
     if (cb) cb.checked = enabled;
+    /* Count what is ACTUALLY on. Without this the narrowed master cascade is
+     * silent: you flip it, 4 of 12 light up, and nothing says the other 8 are
+     * opt-in — which reads as "the master toggle is broken". */
+    const boxes = Array.from(document.querySelectorAll('input[type="checkbox"][data-thing-category]'));
+    const onCount = boxes.filter(b => b.checked).length;
+    const total = boxes.length;
     if (lbl) {
       lbl.textContent = enabled
-        ? "On — reviews fire when a category’s toggle is on"
-        : "Paused — per-category toggles are preserved but no reviews will run";
+        ? `On — ${onCount} of ${total} categories enabled` +
+          (onCount < total ? ` · the other ${total - onCount} are per-category opt-in` : "")
+        : `Paused — ${onCount} of ${total} toggles preserved, but no reviews will run`;
+    }
+    const hint = document.getElementById("crb-bulk-hint");
+    if (hint) {
+      hint.textContent = onCount === total
+        ? "every category reviewed"
+        : `${total - onCount} not reviewed`;
     }
     /* Also update the header-level scales icon state */
     const headerIcon = document.querySelector(".command-review-block .crb-title-row .review-scales-icon");
@@ -7641,6 +7818,9 @@ _JS = r"""
     if (DECISION_REVIEW_VALUES.includes(src.decision_review)) {
       state.decision_review = src.decision_review; touched = true;
     }
+    if (WORKTREE_GUARD_VALUES.includes(src.worktree_guard)) {
+      state.worktree_guard = src.worktree_guard; touched = true;
+    }
     if (ORCHESTRATOR_VALUES.includes(src.orchestrator)) {
       state.orchestrator = src.orchestrator; touched = true;
     }
@@ -7789,6 +7969,13 @@ _JS = r"""
       lines.push("");
     }
 
+    if (WORKTREE_GUARD_VALUES.includes(state.worktree_guard)
+        && state.worktree_guard !== WORKTREE_GUARD_DEFAULT) {
+      lines.push("# Worktree-hygiene guard — nudge/deny when a working tree is shared or you're on the anchor (off | warn | block; default warn).");
+      lines.push(`worktree_guard: ${state.worktree_guard}`);
+      lines.push("");
+    }
+
     if (ORCHESTRATOR_VALUES.includes(state.orchestrator)
         && state.orchestrator !== ORCHESTRATOR_DEFAULT) {
       lines.push("# Claude orchestrator for non-Claude CLIs (off | decide | full). No-op under Claude Code.");
@@ -7898,6 +8085,7 @@ _JS = r"""
         runaway: state.runaway,
         parallelism: state.parallelism,
         decision_review: state.decision_review,
+        worktree_guard: state.worktree_guard,
         orchestrator: state.orchestrator,
         orchestrator_scope: state.orchestrator_scope,
         orchestrator_zdr_confirmed: state.orchestrator_zdr_confirmed,
@@ -7918,22 +8106,40 @@ _JS = r"""
   }
 
   /* ── Form change wiring ─────────────────────────────────────────── */
-  /* Command-review master enable — cascades to every live per-category toggle.
-   * When the master is flipped, every non-disabled data-thing-category checkbox
-   * is set to match and its state entry is updated.  Per-category toggles remain
-   * independently operable after the cascade. */
+  /* Command-review master enable — NARROWED cascade (FORGE P4a / KB
+   * kb-tribunal-seats-abstaining §2/§8.2). Turning the master ON no longer reviews
+   * ALL 12 categories in one click (the incident that put every shell/file/web/MCP
+   * call through a degraded panel); it enables ONLY the 4 high-stakes categories,
+   * and the other 8 are explicit per-category opt-in. Turning OFF still clears all
+   * (no blast-radius asymmetry). The ON-flip only ever ADDS the high-stakes set — a
+   * category the user already individually checked is never un-checked. */
   {
     const masterCb = document.getElementById("cr-master-enable");
+    const CR_HIGH_STAKES = [
+      "shell_code_exec",
+      "shell_remote_mutate",
+      "shell_package_install",
+      "shell_local_mutate",
+    ];
     if (masterCb) {
       masterCb.addEventListener("change", () => {
         /* enabled: true is the default; only store/emit when false */
         state.command_review.enabled = masterCb.checked ? true : false;
-        /* Cascade master state down to every live per-category toggle */
         document.querySelectorAll('input[type="checkbox"][data-thing-category]').forEach(cb => {
           if (cb.disabled) return;
-          cb.checked = masterCb.checked;
           const cat = cb.dataset.thingCategory;
-          if (state.categories[cat]) state.categories[cat].thing = masterCb.checked;
+          if (masterCb.checked) {
+            /* ON-flip: enable ONLY the high-stakes set; leave the other 8 exactly as
+             * they were (an already-checked category stays checked — never removed). */
+            if (CR_HIGH_STAKES.includes(cat)) {
+              cb.checked = true;
+              if (state.categories[cat]) state.categories[cat].thing = true;
+            }
+          } else {
+            /* OFF-flip: clear everything. */
+            cb.checked = false;
+            if (state.categories[cat]) state.categories[cat].thing = false;
+          }
         });
         syncMasterEnable();
         updateReviewIcons();
@@ -7941,6 +8147,34 @@ _JS = r"""
         render();
       });
     }
+
+    /* Explicit bulk controls — a SEPARATE surface from the master switch.
+     * Gate 137 pins the master handler to the 4 high-stakes categories (an
+     * incident fix); these buttons are the deliberate "I actually mean all of
+     * them" path, so the one-click intent is served without widening the
+     * master's blast radius. Do NOT fold this back into masterCb's handler. */
+    function crSetAll(on) {
+      document.querySelectorAll('input[type="checkbox"][data-thing-category]').forEach(cb => {
+        if (cb.disabled) return;
+        cb.checked = on;
+        const cat = cb.dataset.thingCategory;
+        if (state.categories[cat]) state.categories[cat].thing = on;
+      });
+      /* Enabling all 12 while the master is off would review nothing, so the
+       * button turns the master on too — otherwise the click silently no-ops. */
+      if (on) {
+        state.command_review.enabled = true;
+        if (masterCb) masterCb.checked = true;
+      }
+      syncMasterEnable();
+      updateReviewIcons();
+      flagUnsaved();
+      render();
+    }
+    const enableAllBtn = document.getElementById("cr-enable-all");
+    if (enableAllBtn) enableAllBtn.addEventListener("click", () => crSetAll(true));
+    const disableAllBtn = document.getElementById("cr-disable-all");
+    if (disableAllBtn) disableAllBtn.addEventListener("click", () => crSetAll(false));
   }
 
   /* Design check-ins toggle (behavioral flag, not a permission) */
@@ -9000,16 +9234,23 @@ _JS = r"""
     });
   }
 
-  probeClassifyEndpoint().then(available => {
-    if (available) {
-      if (simAnalyzeBtn) simAnalyzeBtn.disabled = false;
-      if (simDisabledHelp) simDisabledHelp.hidden = true;
-    } else {
-      if (simAnalyzeBtn) simAnalyzeBtn.disabled = true;
-      if (simCommand) simCommand.disabled = true;
-      if (simDisabledHelp) simDisabledHelp.hidden = false;
-    }
-  });
+  // G13: gate the on-load HEAD /__classify probe behind the sim panel's existence.
+  // panel-simulator was deleted (P5), so #sim-command is null on every surface and the
+  // whole handler above is inert — but this probe was UNCONDITIONAL, firing a doomed
+  // HEAD /__classify (404 on static / Pages hosts) on every dashboard load. The guard
+  // makes it a no-op today and self-reactivates if the sim panel ever returns.
+  if (simCommand) {
+    probeClassifyEndpoint().then(available => {
+      if (available) {
+        if (simAnalyzeBtn) simAnalyzeBtn.disabled = false;
+        if (simDisabledHelp) simDisabledHelp.hidden = true;
+      } else {
+        if (simAnalyzeBtn) simAnalyzeBtn.disabled = true;
+        if (simCommand) simCommand.disabled = true;
+        if (simDisabledHelp) simDisabledHelp.hidden = false;
+      }
+    });
+  }
 
   /* ── Tab routing ─────────────────────────────────────────────────── */
   // Derived from the DOM so new pages (e.g. the per-plugin Plugins category)
@@ -9052,13 +9293,24 @@ _JS = r"""
   let activityLoaded = false;
   let heimdallLoaded = false;
   let vidarrLoaded = false;
+  let nidhoggrLoaded = false;
   let nornsLoaded = false;
   let mimirLoaded = false;
   let streamsLoaded = false;
-  let pbLoaded = false;
   let vidarrEvents = [];
   let vidarrKindFilter = "all";
   let activityRecords = [];
+  /* Feed length caps (Sub-effort B "condense"): the two long, freely-growing
+   * client-rendered feeds — the Run feed (/__runs, up to 200) and the Saga
+   * review log (/__saga, up to 200) — render the top FEED_CAP rows with a
+   * "Show all (N)" toggle so a busy project never forces a long scroll.
+   * Everything stays on the page: the toggle reveals the rest client-side; the
+   * count still reports the TRUE total. The gated feeds (Víðarr/Norns/Streams/
+   * Mímir) are deliberately NOT capped here — their render fns are extracted +
+   * run in isolation by the B15 gates, so they stay byte-identical (CSS-only). */
+  const FEED_CAP = 10;
+  let activityShowAll = false;
+  let sagaShowAll = false;
   const activityContent = document.getElementById("activity-content");
   const activityCount   = document.getElementById("activity-count");
   const activityRefBtn  = document.getElementById("activity-refresh-btn");
@@ -9067,36 +9319,16 @@ _JS = r"""
   const REPO_OWNER = "mcorbett51090";
   const REPO_NAME  = "RavenClaude";
 
-  // Two-tier nav: derive each page's category from the DOM (data-cat on the tab
-  // buttons) and remember the first page of each category (for category clicks).
-  const pageCat = {};
-  const catFirst = {};
-  document.querySelectorAll('.tab-bar .tab-btn[data-cat]').forEach(b => {
-    pageCat[b.dataset.tab] = b.dataset.cat;
-    if (!(b.dataset.cat in catFirst)) catFirst[b.dataset.cat] = b.dataset.tab;
-  });
+  // (Two-tier category nav retired in P3 — the tab-bar is a flat destination set,
+  // so there is no per-page category to derive or remember.)
   // DOM-island loader for the Guidance (trees) tab. Its ~20,612-element markup ships
   // inside <script type="application/json" id="trees-payload"> (uncounted CDATA) and
   // is injected on the first activate("trees"). Static-host safe: no fetch, the payload
   // is inline. Idempotent + retry-safe via the treesLoaded latch, matching the file's
   // loadActivity/loadHeimdall lazy-on-activate convention.
-  // Overview detail island (P3): the sections below the hero (stats/systems/steps) ship
-  // in #ov-payload and inject into #ov-mount on the first activate("overview"). The hero
-  // itself is LIVE in the initial HTML (LCP-safe); only the detail below is deferred, so
-  // the rich premium overview stays net-DOM-negative against Gate 132.
-  let overviewLoaded = false;
-  function loadOverview() {
-    if (overviewLoaded) return;
-    const mount = document.getElementById("ov-mount");
-    const payload = document.getElementById("ov-payload");
-    if (!mount || !payload) return;
-    try {
-      mount.innerHTML = JSON.parse(payload.textContent);
-      overviewLoaded = true;
-    } catch (e) {
-      /* leave unlatched so a later activate can retry */
-    }
-  }
+  // (P5 dashboard-consumption: panel-overview + its #ov-payload island were deleted —
+  // Overview served none of the four jobs. loadOverview() went with it; the shared
+  // activate() fallback now lands on panel-settings, not a missing overview panel.)
   let treesLoaded = false;
   // The Guidance search chrome is injected WITH the island content (not live DOM), so
   // it costs zero live elements toward the Gate-132 budget until the tab is opened —
@@ -9165,50 +9397,60 @@ _JS = r"""
       /* leave unlatched so a later activate can retry */
     }
   }
-  function setCategory(cat) {
-    document.querySelectorAll('.cat-btn').forEach(c => {
-      c.setAttribute('aria-pressed', c.dataset.cat === cat ? 'true' : 'false');
-    });
-    // Only the active category's page tabs are shown (CSS hides :not(.in-cat)).
-    document.querySelectorAll('.tab-bar .tab-btn').forEach(b => {
-      b.classList.toggle('in-cat', b.dataset.cat === cat);
-    });
-  }
-
   // Core activation — switch the visible page. Runs SYNCHRONOUSLY on click so
   // navigation never depends on the hashchange event firing (which a sandboxed
   // preview / some webviews suppress). `sub` carries a deep-link sub-segment
-  // (e.g. #/learn/<concept>).
+  // (e.g. #/learn/<concept>). Panel-only + null-safe (P3): no category tier, no
+  // roving tabindex — the tab-btns are plain controls, natively keyboard-operable.
+  // Sidebar active-highlight (standalone only). Clears .active on every left-nav
+  // .ds-sub link and sets it on the one matching the active tab. Null-safe: the
+  // portal folds this SAME payload WITHOUT the sidebar, so a missing .ds-sub is a
+  // no-op and this never throws there.
+  function syncSidebar(tab) {
+    document.querySelectorAll(".ds-sub").forEach(a => a.classList.remove("active"));
+    const el = document.querySelector('.ds-sub[data-tab="' + tab + '"]');
+    if (el) el.classList.add("active");
+  }
   function activate(tab, sub) {
-    if (!validTabs.includes(tab)) tab = "overview";
-    setCategory(pageCat[tab] || "setup");
+    // P5 (dashboard-consumption): the fallback target is "settings" (panel-settings,
+    // the permanently-present, exempt job-1 panel behind the Control destination), NOT
+    // the deleted "overview" panel. This is the HIGH-2 fix: an unrecognized/mistyped tab
+    // must land on a VISIBLE Control panel (exactly one .tab-panel.active), never a blank
+    // host — the shared render_fragment means a missing fallback target would blank BOTH
+    // surfaces with zero console error. Agrees with route()'s shell-level default (Control).
+    if (!validTabs.includes(tab)) tab = "settings";
+    syncSidebar(tab);
     document.querySelectorAll(".tab-btn").forEach(b => {
-      const sel = b.dataset.tab === tab;
-      b.setAttribute("aria-selected", sel ? "true" : "false");
-      // Roving tabindex (WAI-ARIA tabs pattern): only the selected tab is in the
-      // Tab order; arrow keys move between the rest within the active category.
-      b.setAttribute("tabindex", sel ? "0" : "-1");
+      b.setAttribute("aria-selected", b.dataset.tab === tab ? "true" : "false");
     });
     document.querySelectorAll(".tab-panel").forEach(p => {
       p.classList.toggle("active", p.dataset.tab === tab);
     });
-    if (tab === "overview" && !overviewLoaded) loadOverview();
     if (tab === "trees" && !treesLoaded) loadTrees();
     // Learn must hydrate BEFORE openConcept(sub) can find the concept in the DOM.
     if (tab === "learn") loadLearn();
     if (tab === "learn" && sub) openConcept(sub);
-    if (tab === "commands" && !commandsLoaded) loadCommands();
-    if (tab === "saga" && !sagaLoaded) loadSaga();
+    // P5: panel-commands was folded into panel-help (as a <details>); its islanded
+    // card grid hydrates on the first activate("help"), keyed off the same
+    // #commands-mount / #commands-payload ids (only the enclosing wrapper moved).
+    if (tab === "help" && !commandsLoaded) loadCommands();
+    // A-split (dashboard-consumption follow-up): the Observe family is UN-merged, so
+    // each sub-page is its OWN tab/panel and loads ONLY its own section. Each loader
+    // is guarded by its own *Loaded latch → exactly one GET per endpoint on activate,
+    // no duplicate fetches. (The former merged scroll-to-anchor `sub` block is gone —
+    // saga/mimir/streams/norns/vidarr/nidhoggr are no longer anchored sections inside
+    // a shared panel, so there is nothing to scroll to.)
     if (tab === "activity" && !activityLoaded) loadActivity();
-    if (tab === "heimdall" && !heimdallLoaded) loadHeimdall();
-    if (tab === "vidarr" && !vidarrLoaded) loadVidarr();
-    if (tab === "norns" && !nornsLoaded) loadNorns();
+    if (tab === "saga" && !sagaLoaded) loadSaga();
     if (tab === "mimir" && !mimirLoaded) loadMimir();
     if (tab === "streams" && !streamsLoaded) loadStreams();
+    if (tab === "norns" && !nornsLoaded) loadNorns();
+    if (tab === "heimdall" && !heimdallLoaded) loadHeimdall();
+    if (tab === "vidarr" && !vidarrLoaded) loadVidarr();
+    if (tab === "nidhoggr" && !nidhoggrLoaded) loadNidhoggr();
     if (tab === "pipeline") syncPipelineTab();
-    if (tab.indexOf("plugin-") === 0) hydratePluginPage(tab.slice(7));
+    if (tab === "plugin-vars") activatePluginVars(sub);
     if (tab === "web-access") hydrateWebAccess();
-    if (tab === "prompt-builder" && !pbLoaded) { pbLoaded = true; initPromptBuilder(); }
   }
   // Navigate: activate immediately, then reflect the page in the URL hash for
   // deep-linking + browser back/forward. (The hashchange listener re-applies on
@@ -9218,51 +9460,111 @@ _JS = r"""
     if (location.hash !== "#/" + tab) location.hash = "/" + tab;
   }
   function applyHash() {
-    const seg = (location.hash || "#/overview").replace(/^#\//, "").split("/");
+    const seg = (location.hash || "#/settings").replace(/^#\//, "").split("/");
     activate(seg[0], seg[1]);
   }
   document.querySelectorAll(".tab-btn").forEach(b => {
     b.addEventListener("click", () => goTo(b.dataset.tab));
   });
-  // Clicking a category reveals its pages and jumps to the first page in it.
-  document.querySelectorAll(".cat-btn").forEach(c => {
-    c.addEventListener("click", () => {
-      const cat = c.dataset.cat;
-      setCategory(cat);
-      const first = catFirst[cat];
-      if (first) goTo(first);
-    });
-  });
-  // Header "What is this?" link → About, without depending on hashchange.
-  const aboutLink = document.querySelector(".header-about-link");
-  if (aboutLink) aboutLink.addEventListener("click", e => { e.preventDefault(); goTo("about"); });
-  // Keyboard navigation for the tablist (WAI-ARIA Authoring Practices "Tabs"):
-  // Left/Right/Home/End move between the VISIBLE (active-category) tabs only.
-  const tablist = document.querySelector('.tab-bar[role="tablist"]');
-  if (tablist) {
-    tablist.addEventListener("keydown", e => {
-      const keys = ["ArrowLeft", "ArrowRight", "Home", "End"];
-      if (!keys.includes(e.key)) return;
-      const tabs = Array.from(tablist.querySelectorAll('.tab-btn[role="tab"]'))
-        .filter(t => t.classList.contains("in-cat"));
-      if (!tabs.length) return;
-      const cur = tabs.findIndex(t => t.getAttribute("aria-selected") === "true");
-      let next = cur < 0 ? 0 : cur;
-      if (e.key === "ArrowRight") next = (cur + 1) % tabs.length;
-      else if (e.key === "ArrowLeft") next = (cur - 1 + tabs.length) % tabs.length;
-      else if (e.key === "Home") next = 0;
-      else if (e.key === "End") next = tabs.length - 1;
-      e.preventDefault();
-      const target = tabs[next];
-      goTo(target.dataset.tab);
-      target.focus();
-    });
-  }
+  // (The header "What is this?" → Help wiring was removed with its element: #739
+  // stripped the .header-about-link/.brand-cta/h1 out of the page-header, so the
+  // querySelector only ever bound null. The Help drawer is reached from the portal
+  // topbar "?" affordance + the ⌘K palette, and from the standalone Help tab-btn.)
+  // (P3: the WAI-ARIA tablist roving-tabindex handler was removed with the
+  // tablist/tab ARIA chrome — the tab-btns are plain buttons, so Tab plus
+  // Enter/Space operate them natively; no arrow-key roving contract to maintain.)
   /* ── Plugins category: per-plugin variable editor (portal → repo file) ─── */
+  // P1: the 167 per-plugin panels collapsed into ONE picker. renderPluginVarsForm()
+  // rebuilds the SAME .plugin-page markup _render_plugin_page used to emit — one
+  // plugin at a time, from the inline #plugin-vars-payload JSON — into
+  // #plugin-vars-mount, then hydrates it. emitPluginYaml/applyPluginConfig/
+  // hydratePluginPage/setPluginStatus below are UNCHANGED (they query the single
+  // mounted .plugin-page). Save/Download wire via EVENT DELEGATION (further down) —
+  // the buttons are created after load, so a load-time querySelectorAll would never
+  // bind them (the silent-Save hazard the collapse introduces).
   const PLUGIN_LS_PREFIX = "rc-plugin-vars:";
   const pluginPagesHydrated = {};
   function pluginPanel(plugin) {
     return document.querySelector('.plugin-page[data-plugin="' + plugin + '"]');
+  }
+  let _pluginVarsPayload = null;
+  function pluginVarsData() {
+    if (_pluginVarsPayload) return _pluginVarsPayload;
+    const el = document.getElementById("plugin-vars-payload");
+    try { _pluginVarsPayload = el ? JSON.parse(el.textContent) : {}; }
+    catch (e) { _pluginVarsPayload = {}; }
+    return _pluginVarsPayload;
+  }
+  function pvEsc(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, c =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  }
+  function renderPluginVarsControl(plugin, v) {
+    const key = v.key;
+    const cid = "pv-" + plugin + "-" + key;
+    const dflt = v.default == null ? "" : String(v.default);
+    let control;
+    if (v.type === "enum") {
+      const opts = (v.options || []).map(o =>
+        '<option value="' + pvEsc(o) + '"' + (o === v.default ? " selected" : "") + ">" + pvEsc(o) + "</option>"
+      ).join("");
+      control = '<select id="' + pvEsc(cid) + '" class="pv-control" data-pvar="' + pvEsc(key) +
+        '" data-ptype="enum" data-pdefault="' + pvEsc(dflt) + '">' + opts + "</select>";
+    } else {
+      const it = v.type === "number" ? "number" : "text";
+      control = '<input id="' + pvEsc(cid) + '" class="pv-control" type="' + it + '" data-pvar="' +
+        pvEsc(key) + '" data-ptype="' + pvEsc(v.type) + '" data-pdefault="' + pvEsc(dflt) +
+        '" value="' + pvEsc(dflt) + '">';
+    }
+    return '<div class="pv-row"><label class="pv-label" for="' + pvEsc(cid) + '">' + pvEsc(v.label) +
+      "</label>" + control + '<p class="pv-help">' + pvEsc(v.help || "") + "</p></div>";
+  }
+  function renderPluginVarsForm(name) {
+    const mount = document.getElementById("plugin-vars-mount");
+    if (!mount) return;
+    const data = pluginVarsData()[name];
+    if (!data) { mount.innerHTML = ""; return; }
+    const esc = pvEsc(name);
+    const target = pvEsc(data.target);
+    // R2 (plan §1.1): most plugins have NO curated knobs — the empty state says so,
+    // and that the free-form values are a write-only sink no hook reads.
+    const controls = (data.curated && data.curated.length)
+      ? data.curated.map(v => renderPluginVarsControl(name, v)).join("")
+      : '<p class="pv-help">No curated knobs for this plugin — the free-form values below are saved but not currently read by any hook. Add project variables in the free-form section.</p>';
+    mount.innerHTML =
+      '<div class="plugin-page" data-plugin="' + esc + '" data-target="' + target + '">' +
+        '<h2 class="pp-title">' + esc + "</h2>" +
+        '<p class="pp-sub">Configure <code>' + esc + "</code>'s variables here — they save to <code>" + target +
+          "</code> via the dashboard server (on the static copy, edits stay in your browser — use <strong>Download</strong>). For the full reference — agents, scenarios, skills, hooks, templates, best-practices — see this plugin in the portal's <strong>Marketplace</strong> section.</p>" +
+        '<section class="pp-section">' +
+          "<h3>Variables</h3>" +
+          '<div class="pv-curated">' + controls + "</div>" +
+          '<div class="pv-freeform">' +
+            "<h4>Free-form variables</h4>" +
+            '<p class="pv-help">One <code>key: value</code> per line (YAML). For project variables not covered by the curated knobs above.</p>' +
+            '<textarea class="pv-extra" data-plugin="' + esc + '" rows="5" spellcheck="false" placeholder="my_key: my value&#10;another_key: 123"></textarea>' +
+          "</div>" +
+          '<div class="pp-actions">' +
+            '<button type="button" class="pp-save" data-plugin="' + esc + '">Save to repo</button>' +
+            '<button type="button" class="pp-download" data-plugin="' + esc + '">Download .yaml</button>' +
+            '<span class="pp-status" data-plugin="' + esc + '" role="status"></span>' +
+          "</div>" +
+          '<p class="pp-noserver" data-plugin="' + esc + '" hidden>No local dashboard server behind this page, so <strong>Save to repo</strong> is off. Run <code>ravenclaude dashboard</code> (or <code>bash .ravenclaude/dashboard.sh</code>) and reopen, or use <strong>Download</strong> and drop the file into <code>' + target + "</code>.</p>" +
+        "</section>" +
+      "</div>";
+    // Re-render replaces the panel, so drop the hydrate latch to re-load this
+    // plugin's saved values against the freshly-mounted .plugin-page.
+    delete pluginPagesHydrated[name];
+    hydratePluginPage(name);
+  }
+  function activatePluginVars(name) {
+    const sel = document.getElementById("plugin-vars-select");
+    if (!sel) return;
+    const values = Array.from(sel.options).map(o => o.value);
+    if (!name || values.indexOf(name) < 0) name = sel.value || values[0];
+    if (!name) return;
+    if (sel.value !== name) sel.value = name;
+    renderPluginVarsForm(name);
   }
   function pluginYamlQuote(v) {
     v = String(v);
@@ -9342,48 +9644,64 @@ _JS = r"""
     el.textContent = msg;
     el.className = "pp-status " + (cls || "");
   }
-  document.querySelectorAll(".pp-save").forEach(btn => {
-    btn.addEventListener("click", async () => {
-      const plugin = btn.dataset.plugin;
-      const panel = pluginPanel(plugin);
-      const target = panel.dataset.target;
-      const yaml = emitPluginYaml(plugin);
-      localStorage.setItem(PLUGIN_LS_PREFIX + plugin, yaml);
-      setPluginStatus(plugin, "saving…", "status-unsaved");
-      try {
-        const res = await fetch("/__save", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", ...(await csrfHeaders()) },
-          body: JSON.stringify({ path: target, content: yaml })
-        });
-        if (res.status === 404 || res.status === 405) {
+  // Save / Download via EVENT DELEGATION on #plugin-vars-mount. The buttons live
+  // inside the client-rendered .plugin-page (created after load by
+  // renderPluginVarsForm), so a load-time querySelectorAll(".pp-save") would bind
+  // nothing and Save would silently no-op. One delegated listener on the mount
+  // fires for whichever plugin's form is currently rendered. Scoped to the mount
+  // (not document) so it never touches the web-access .wa-save/.wa-download
+  // buttons, which also carry .pp-save/.pp-download and own their own handler.
+  const pluginVarsMount = document.getElementById("plugin-vars-mount");
+  if (pluginVarsMount) {
+    pluginVarsMount.addEventListener("click", async (ev) => {
+      const saveBtn = ev.target.closest(".pp-save");
+      if (saveBtn) {
+        const plugin = saveBtn.dataset.plugin;
+        const panel = pluginPanel(plugin);
+        if (!panel) return;
+        const target = panel.dataset.target;
+        const yaml = emitPluginYaml(plugin);
+        localStorage.setItem(PLUGIN_LS_PREFIX + plugin, yaml);
+        setPluginStatus(plugin, "saving…", "status-unsaved");
+        try {
+          const res = await fetch("/__save", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", ...(await csrfHeaders()) },
+            body: JSON.stringify({ path: target, content: yaml })
+          });
+          if (res.status === 404 || res.status === 405) {
+            setPluginStatus(plugin, "saved in browser (no server)", "status-unsaved");
+            const ns = document.querySelector('.pp-noserver[data-plugin="' + plugin + '"]');
+            if (ns) ns.hidden = false;
+            return;
+          }
+          if (!res.ok) { setPluginStatus(plugin, "save failed (" + res.status + ")", "status-error"); return; }
+          setPluginStatus(plugin, "saved to " + target, "status-ok");
+        } catch (e) {
           setPluginStatus(plugin, "saved in browser (no server)", "status-unsaved");
           const ns = document.querySelector('.pp-noserver[data-plugin="' + plugin + '"]');
           if (ns) ns.hidden = false;
-          return;
         }
-        if (!res.ok) { setPluginStatus(plugin, "save failed (" + res.status + ")", "status-error"); return; }
-        setPluginStatus(plugin, "saved to " + target, "status-ok");
-      } catch (e) {
-        setPluginStatus(plugin, "saved in browser (no server)", "status-unsaved");
-        const ns = document.querySelector('.pp-noserver[data-plugin="' + plugin + '"]');
-        if (ns) ns.hidden = false;
+        return;
+      }
+      const dlBtn = ev.target.closest(".pp-download");
+      if (dlBtn) {
+        const plugin = dlBtn.dataset.plugin;
+        const yaml = emitPluginYaml(plugin);
+        const blob = new Blob([yaml], { type: "text/yaml" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url; a.download = plugin + ".yaml";
+        document.body.appendChild(a); a.click(); a.remove();
+        URL.revokeObjectURL(url);
+        setPluginStatus(plugin, "downloaded " + plugin + ".yaml", "status-ok");
       }
     });
-  });
-  document.querySelectorAll(".pp-download").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const plugin = btn.dataset.plugin;
-      const yaml = emitPluginYaml(plugin);
-      const blob = new Blob([yaml], { type: "text/yaml" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url; a.download = plugin + ".yaml";
-      document.body.appendChild(a); a.click(); a.remove();
-      URL.revokeObjectURL(url);
-      setPluginStatus(plugin, "downloaded " + plugin + ".yaml", "status-ok");
-    });
-  });
+  }
+  const pluginVarsSelect = document.getElementById("plugin-vars-select");
+  if (pluginVarsSelect) {
+    pluginVarsSelect.addEventListener("change", () => renderPluginVarsForm(pluginVarsSelect.value));
+  }
 
   /* ── Web access allow/deny editor (portal → .ravenclaude/web-access.yaml) ── */
   let webAccessHydrated = false;
@@ -9482,6 +9800,42 @@ _JS = r"""
     });
   })();
 
+  /* ── Scroll-triggered nav blur ─────────────────────────────────────────
+   * Toggle .is-scrolled on the sticky .page-header past a small threshold so
+   * it picks up the translucent backdrop-blur (commerce .nav.is-scrolled). A
+   * passive listener + rAF coalescing keeps it off the scroll critical path;
+   * the CSS transition is gated by the global prefers-reduced-motion rule. */
+  (function initScrollBlur() {
+    const header = document.querySelector(".page-header");
+    if (!header) return;
+    let ticking = false;
+    const sync = () => {
+      header.classList.toggle("is-scrolled", window.scrollY > 12);
+      ticking = false;
+    };
+    window.addEventListener(
+      "scroll",
+      () => {
+        if (!ticking) {
+          ticking = true;
+          window.requestAnimationFrame(sync);
+        }
+      },
+      { passive: true },
+    );
+    sync();
+  })();
+
+  // TDZ fix (dashboard-consumption follow-up): syncPipelineTab() reads
+  // pipelineServerAvailable, and the initial applyHash() below reaches it via
+  // activate("pipeline") on a #/pipeline deep-link / reload — so these must be
+  // declared BEFORE applyHash() runs, the same guard the saga/activity state above
+  // uses. Left further down (after applyHash), a cold #/pipeline open threw
+  // "Cannot access 'pipelineServerAvailable' before initialization". Now that
+  // Pipeline is a click-reachable Control page, a reload on it is a common path.
+  let pipelineServerAvailable = false;
+  let pipelineWired = false;
+
   window.addEventListener("hashchange", applyHash);
   applyHash();
 
@@ -9490,9 +9844,8 @@ _JS = r"""
    * save through the same emitYaml()/saveToRepo() path as Settings (so the
    * serializer is the single source of truth). The two file-backed editors
    * round-trip .repo-layout.json / .ravenclaude/task-scope.json via /__read +
-   * /__save (server-validated). Read-only on a static host. */
-  let pipelineServerAvailable = false;
-  let pipelineWired = false;
+   * /__save (server-validated). Read-only on a static host.
+   * (pipelineServerAvailable / pipelineWired are declared above applyHash() — TDZ.) */
 
   function pipeBadge(id, text, cls) {
     const el = document.querySelector('[data-pipe-badge="' + id + '"]');
@@ -9852,6 +10205,17 @@ _JS = r"""
   }
   window.sagaToggleDetail = sagaToggleDetail;
 
+  /* feedShowAll — the "Show all (N)" toggle for the length-capped feeds. Sets
+   * the feed's show-all flag and re-renders so the remaining rows appear in
+   * place (nothing is fetched; the data is already loaded). Exposed on window
+   * so the inline onclick can reach it from inside the IIFE, mirroring
+   * sagaToggleDetail. Only the two ungated feeds are wired here. */
+  function feedShowAll(which) {
+    if (which === "activity") { activityShowAll = true; renderActivity(activityRecords); }
+    else if (which === "saga") { sagaShowAll = true; filterAndRenderSaga(); }
+  }
+  window.feedShowAll = feedShowAll;
+
   /* Build a static "offline / empty" panel using only DOM methods — no
    * innerHTML / insertAdjacentHTML so there is no XSS sink even if this
    * helper is ever called from a new code path. */
@@ -9926,9 +10290,12 @@ _JS = r"""
     }
 
     /* Build the table rows as an HTML string. Every data field is passed through
-     * esc() before interpolation. Fixed class names and element tags are literals. */
+     * esc() before interpolation. Fixed class names and element tags are literals.
+     * Condense: render the top FEED_CAP matching rows; the rest reveal in place via
+     * the "Show all" row. The count above always reflects the TRUE match total. */
+    const shownCount = sagaShowAll ? filtered.length : Math.min(filtered.length, FEED_CAP);
     let rows = "";
-    for (let idx = 0; idx < filtered.length; idx++) {
+    for (let idx = 0; idx < shownCount; idx++) {
       const r = filtered[idx];
       const detailId = "saga-detail-" + idx;
 
@@ -10048,6 +10415,12 @@ _JS = r"""
         `<tr class="saga-detail-row" id="${esc(detailId)}">${detailPanel}</tr>`;
     }
 
+    if (!sagaShowAll && filtered.length > FEED_CAP) {
+      rows += '<tr class="feed-showall-row"><td colspan="7">'
+        + '<button type="button" class="feed-showall" onclick="feedShowAll(\'saga\')">'
+        + "Show all " + filtered.length + " entries</button></td></tr>";
+    }
+
     /* The outer skeleton is fixed HTML; only `rows` contains escaped data. */
     sagaContent.innerHTML =
       '<div class="saga-table-wrap"><table class="saga-table" aria-label="Review log">'
@@ -10066,6 +10439,7 @@ _JS = r"""
 
   async function loadSaga() {
     sagaLoaded = true;
+    sagaShowAll = false;
     if (sagaContent) sagaContent.replaceChildren(
       sagaEmptyPanel("Loading review log…")
     );
@@ -10094,8 +10468,9 @@ _JS = r"""
   }
 
   if (sagaRefBtn) sagaRefBtn.addEventListener("click", () => { sagaLoaded = false; loadSaga(); });
-  if (sagaVerdFil) sagaVerdFil.addEventListener("change", filterAndRenderSaga);
-  if (sagaCatFil)  sagaCatFil.addEventListener("change", filterAndRenderSaga);
+  /* Changing a filter resets the cap so a new result set starts at the top FEED_CAP. */
+  if (sagaVerdFil) sagaVerdFil.addEventListener("change", () => { sagaShowAll = false; filterAndRenderSaga(); });
+  if (sagaCatFil)  sagaCatFil.addEventListener("change", () => { sagaShowAll = false; filterAndRenderSaga(); });
 
   /* ── Activity tab — generalizes the Review log over .ravenclaude/runs/<id>/ ──
    * Reuses esc() + sagaEmptyPanel() (same IIFE scope). All /__runs data passes
@@ -10121,8 +10496,11 @@ _JS = r"""
       return;
     }
     if (activityCount) activityCount.textContent = records.length + (records.length === 1 ? " run" : " runs");
+    /* Condense: show the top FEED_CAP runs by default; the rest reveal in place
+     * via the "Show all" toggle. The count above always reflects the TRUE total. */
+    const shown = activityShowAll ? records : records.slice(0, FEED_CAP);
     let html = "";
-    for (const r of records) {
+    for (const r of shown) {
       let timeStr = r.timestamp || "";
       try { if (timeStr) timeStr = new Date(timeStr).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" }); } catch (_) { /* keep raw */ }
       const status = r.status || "—";
@@ -10141,6 +10519,10 @@ _JS = r"""
         + '<div class="activity-arts">' + arts + evt + "</div>"
         + "</article>";
     }
+    if (!activityShowAll && records.length > FEED_CAP) {
+      html += '<button type="button" class="feed-showall" onclick="feedShowAll(\'activity\')">'
+        + "Show all " + records.length + " runs</button>";
+    }
     activityContent.innerHTML = html;
   }
 
@@ -10154,10 +10536,29 @@ _JS = r"""
     const n = (data && typeof data.count === "number") ? data.count : 0;
     if (n === 0) {
       body.textContent = "no active worktrees";
-      return;
+    } else {
+      const names = (data.worktrees || []).slice(0, 8).join(", ");
+      body.textContent = n + (n === 1 ? " worktree: " : " worktrees: ") + names;
     }
-    const names = (data.worktrees || []).slice(0, 8).join(", ");
-    body.textContent = n + (n === 1 ? " worktree: " : " worktrees: ") + names;
+    /* Worktree-guard status badges (is_anchor / live_sessions / contention),
+     * from worktree-guard.sh status --json via /__sleipnir. Fail-open: an absent
+     * guard block (non-git checkout / hook missing) or a missing badge host
+     * renders nothing new, so the widget looks exactly as it did before. */
+    const badges = document.getElementById("sleipnir-guard");
+    if (!badges) return;
+    badges.replaceChildren();
+    const g = data && data.guard;
+    if (!g || typeof g !== "object") return;
+    const add = (text, cls) => {
+      const s = document.createElement("span");
+      s.className = "sleipnir-badge " + cls;
+      s.textContent = text;
+      badges.appendChild(s);
+    };
+    if (g.is_anchor === true) add("anchor", "sleipnir-badge-anchor");
+    const live = (typeof g.live_sessions === "number") ? g.live_sessions : 0;
+    if (live >= 1) add(live + (live === 1 ? " live session" : " live sessions"), "sleipnir-badge-live");
+    if (g.contention === true) add("contention", "sleipnir-badge-contention");
   }
 
   /* fetch() has no built-in timeout — a server that accepts the connection but
@@ -10186,6 +10587,7 @@ _JS = r"""
 
   async function loadActivity() {
     activityLoaded = true;
+    activityShowAll = false;
     loadSleipnir();
     if (activityContent) activityContent.replaceChildren(sagaEmptyPanel("Loading activity…"));
     try {
@@ -10416,7 +10818,9 @@ _JS = r"""
     const inline = readHeimdallInline();
     renderVersionDrift(inline.versionDrift || []);
     fetchCiStatus();
-    loadNidhoggr();
+    // A-split: Debt watch (Níðhöggr) is now its OWN Guardrails sub-page (panel-nidhoggr),
+    // loaded on activate("nidhoggr") behind its own nidhoggrLoaded latch — no longer
+    // eager-loaded here from inside Perimeter alerts.
     loadKnowledgeHealth();
     /* Hook events + Gjallarhorn need the served endpoint. */
     const hookHost = document.getElementById("heimdall-hooks");
@@ -10481,12 +10885,14 @@ _JS = r"""
   }
 
   async function loadNidhoggr() {
+    nidhoggrLoaded = true;
     const host = document.getElementById("heimdall-debt");
     try {
       const res = await fetchT("/__nidhoggr");
       if (!res.ok) throw new Error("HTTP " + res.status);
       renderNidhoggr(await res.json());
     } catch (e) {
+      nidhoggrLoaded = false; /* allow retry on next visit */
       const served = await probeReadEndpoint();
       if (host) {
         host.replaceChildren(
@@ -11756,511 +12162,6 @@ _JS = r"""
   // Guidance-tab search is bound by loadTrees() AFTER it injects the search chrome +
   // the island cards on the first activate("trees") — not at load, since the input
   // now lives inside the island (zero live-DOM cost until the tab opens).
-
-  /* PROMPT-BUILDER:START — the deterministic, client-side prompt builder (#/prompt-builder).
-   * SECURITY FLOOR (gated by scripts/check-prompt-builder-render.mjs): the entire UI below is
-   * built with createElement + textContent (the pbEl helper) — NO markup-string sink of any
-   * kind anywhere in this region. User input reaches the DOM only as a text node or the single
-   * whole-string preview textContent write, so it can never be parsed as markup. (The gate greps
-   * this region for the forbidden sink APIs, so this comment avoids naming them literally.)
-   * Claim ids (e.g. 1.4) trace to the FORGE G1 claims table (Anthropic prompting best practices). */
-
-  var PB_STORAGE_KEY = "ravenclaude-prompt-builder-v1";
-  var PB_SCAN_CAP = 16000; // cap scored/sniffed text length so a 50KB paste can't jank the loop
-
-  // Per-model divisor for the token ESTIMATE. [interpretation — community/training, claims 4.3/4.4]
-  // Anthropic publishes NO official chars-per-token ratio (4.1) — this is always an estimate.
-  // Claude 4.7+/5-family tokenize ~30% heavier (4.2), hence the split. Verify with the
-  // count_tokens API for billing-critical use; the number never gates any action.
-  var PB_MODELS = [
-    { id: "opus-5",    label: "Opus 5",    divisor: 3.6, hint: "Opus 5 is literal and can over-trigger on \"CRITICAL/MUST\" language — dial it back. It runs verbose by default (prompt for concision) and self-verifies (drop carried-over \"double-check your answer\" lines)." },
-    { id: "sonnet-5",  label: "Sonnet 5",  divisor: 3.6, hint: "Current tokenizer. Newer models follow the system prompt closely — be explicit about the output you want, not emphatic about it." },
-    { id: "opus-4-8",  label: "Opus 4.8",  divisor: 3.6, hint: "Current tokenizer generation. Prefer general instructions (\"think thoroughly\") over a prescriptive step list (1.6)." },
-    { id: "haiku-4-5", label: "Haiku 4.5", divisor: 4.0, hint: "Older tokenizer (pre-4.7). A smaller model can benefit from more explicit, decomposed instructions — heuristic, not Anthropic-stated (5.3)." },
-    { id: "fable-5",   label: "Fable 5",   divisor: 3.6, hint: "Current tokenizer; thinking is always on — reasoning depth is the effort parameter, not a prompt phrase (5.4)." }
-  ];
-  var PB_BAND = 0.20; // +/-20% band (claim 4.5); widened on code/CJK content
-
-  var PB_FOLKLORE = [/take a deep breath/i, /you are an expert/i, /i(?:'ll| will) tip/i, /\$\s?\d{2,}/, /best (?:ai |model )?in the world/i];
-
-  function pbEx() { return { input: "", output: "", reasoning: "" }; }
-  function pbDefault() {
-    return {
-      mode: "task", model: "opus-5", reasoning: false,
-      task:    { directive: "", context: "", dataTag: "input", data: "", constraints: "", outputFormat: "", success: "" },
-      system:  { role: "", rules: [""], tone: "", boundaries: "", outputPolicy: "" },
-      fewshot: { directive: "", outputFormat: "", examples: [pbEx(), pbEx(), pbEx()] }
-    };
-  }
-  var pbState = pbDefault();
-
-  // ── The field schema (one table; rendered client-side, never pre-rendered in markup) ──
-  var PB_FIELDS = {
-    task: [
-      { key: "directive",    label: "Task / instruction", type: "textarea", req: true, rows: 3, hint: "What should Claude do? Be specific and explicit.", claim: "1.2", ph: "Summarize the meeting notes below into owner-tagged action items." },
-      { key: "context",      label: "Context / motivation", type: "textarea", rows: 2, hint: "The “why” — background that helps Claude generalize correctly.", claim: "1.3", ph: "These go to executives who want decisions, not discussion." },
-      { key: "dataTag",      label: "Data tag name", type: "text", hint: "XML tag wrapping your input (letters, digits, _ or -).", claim: "1.4", ph: "input" },
-      { key: "data",         label: "Input data", type: "textarea", rows: 3, hint: "The variable content to act on — wrapped in the tag above.", claim: "1.4", ph: "Paste the document / text here…" },
-      { key: "constraints",  label: "Constraints (say what TO do)", type: "textarea", rows: 2, hint: "Positive framing beats “do not” (1.5).", claim: "1.5", ph: "Keep each action item to one sentence." },
-      { key: "outputFormat", label: "Output format", type: "textarea", rows: 2, hint: "Exactly how the answer should be shaped.", claim: "6.4", ph: "A numbered list. Output only the list." },
-      { key: "success",      label: "Success criteria (optional)", type: "textarea", rows: 2, hint: "What a good answer satisfies.", claim: "6.8", ph: "Every action item names an owner." }
-    ],
-    system: [
-      { key: "role",         label: "Role / persona", type: "textarea", req: true, rows: 2, hint: "Who Claude is — even one sentence helps (3.1).", claim: "3.1", ph: "You are a senior Python code reviewer." },
-      { key: "rules",        label: "Standing behavioral rules", type: "list", hint: "One durable rule each. Say what TO do (1.5).", claim: "3.2", ph: "Flag security issues before style issues." },
-      { key: "tone",         label: "Communication style", type: "text", hint: "Newer models run verbose — ask for concision (5.2).", claim: "5.2", ph: "Terse and direct; no preamble." },
-      { key: "boundaries",   label: "Boundaries / anti-hallucination", type: "textarea", rows: 2, hint: "How to handle uncertainty.", claim: "—", ph: "If unsure, say so and ask — never invent an API." },
-      { key: "outputPolicy", label: "Output / formatting policy", type: "textarea", rows: 2, hint: "A standing format rule for every response.", claim: "1.5", ph: "Respond in flowing prose, not bullet lists." }
-    ],
-    fewshot: [
-      { key: "directive",    label: "Task / instruction", type: "textarea", req: true, rows: 2, hint: "The task the examples demonstrate.", claim: "1.2", ph: "Classify the sentiment of each review." },
-      { key: "examples",     label: "Examples", type: "examples", hint: "3–5 work best (2.1); make them relevant + diverse (2.3).", claim: "2.1", ph: "" },
-      { key: "outputFormat", label: "Output format", type: "textarea", rows: 2, hint: "How the final answer should look.", claim: "6.4", ph: "One word: positive, negative, or neutral." }
-    ]
-  };
-
-  var PB_PRESETS = [
-    { id: "summarize", label: "Summarize", mode: "task", apply: function (s) { s.task.directive = "Summarize the text in <document> into the key points."; s.task.dataTag = "document"; s.task.outputFormat = "Three to five bullet points, each ≤ 20 words. Output only the bullets."; } },
-    { id: "extract", label: "Extract structured data", mode: "task", apply: function (s) { s.task.directive = "Extract the requested fields from the text in <document>."; s.task.dataTag = "document"; s.task.outputFormat = "Return a JSON object with the keys listed above. Output only valid JSON, no prose."; } },
-    { id: "classify", label: "Classify", mode: "task", apply: function (s) { s.task.directive = "Classify the text in <input> into exactly one category."; s.task.outputFormat = "Respond with exactly one label from: [label_a, label_b, label_c]. Output only the label."; } },
-    { id: "rewrite", label: "Rewrite / rephrase", mode: "task", apply: function (s) { s.task.directive = "Rewrite the text in <input> in a warmer, plain-language tone for a general audience."; s.task.outputFormat = "Return only the rewritten text."; } },
-    { id: "agent-system", label: "Agent system prompt", mode: "system", apply: function (s) { s.system.role = "You are a senior software engineering assistant."; s.system.rules = ["Prefer taking a well-reasoned next step over asking for confirmation when the path is clear.", "When unsure, investigate the code and docs before answering — do not guess."]; s.system.outputPolicy = "Respond in clear, flowing prose. Show code in fenced blocks."; } },
-    { id: "fewshot-classifier", label: "Few-shot classifier", mode: "fewshot", apply: function (s) { s.fewshot.directive = "Classify the sentiment of each review as positive, negative, or neutral."; s.fewshot.outputFormat = "One word: positive, negative, or neutral."; s.fewshot.examples = [{ input: "Loved it, would buy again!", output: "positive", reasoning: "" }, { input: "It broke after a day.", output: "negative", reasoning: "" }, { input: "It arrived on time.", output: "neutral", reasoning: "" }]; } }
-  ];
-
-  var PB_PATTERNS = [
-    { id: "cot", label: "+ Chain-of-thought", tip: "Ask Claude to reason before answering (1.6). On current models the primary lever is the effort parameter, not a phrase.", apply: function (s) { s.reasoning = true; } },
-    { id: "xml", label: "+ XML data tag", tip: "Wrap variable input in its own XML tag so Claude can't confuse instructions with data (1.4).", modes: { task: 1 }, apply: function (s) { if (!pbSafeTag(s.task.dataTag)) s.task.dataTag = "input"; } },
-    { id: "example", label: "+ Example", tip: "Add an example (2.2).", modes: { fewshot: 1 }, apply: function (s) { if (s.fewshot.examples.length < 8) s.fewshot.examples.push(pbEx()); } },
-    { id: "structured", label: "+ Structured-output block", tip: "Insert RavenClaude's house ---RESULT_START--- handoff block (R.1). A house convention for agent hand-offs, not a universal Claude rule.", apply: function (s) { var add = "\n\nEnd your response with a machine-readable block:\n---RESULT_START---\n{\"status\": \"complete|partial|blocked\", \"summary\": \"one sentence\"}\n---RESULT_END---"; var mk = s.mode === "system" ? "outputPolicy" : "outputFormat"; s[s.mode][mk] = (s[s.mode][mk] || "").replace(/\s+$/, "") + add; } },
-    { id: "prefill", label: "Response prefill", deprecated: true, tip: "Deprecated — prefilled assistant turns return a 400 error on Claude 4.6+ (1.9). Use the Structured-output block instead.", apply: function () { /* no-op: prefill is never emitted (1.9) */ } }
-  ];
-
-  // ── pbEl: the ONLY DOM factory. createElement + textContent + setAttribute; never a markup sink. ──
-  function pbEl(tag, props, kids) {
-    var el = document.createElement(tag);
-    if (props) {
-      for (var k in props) {
-        if (!Object.prototype.hasOwnProperty.call(props, k)) continue;
-        var v = props[k];
-        if (v == null || v === false) continue;
-        if (k === "class") el.className = v;
-        else if (k === "text") el.textContent = v; // safe text sink
-        else if (k === "for") el.htmlFor = v;
-        else if (k.charAt(0) === "o" && k.charAt(1) === "n" && typeof v === "function") el.addEventListener(k.slice(2), v);
-        else if (k.charAt(0) === "o" && k.charAt(1) === "n") continue; // never let an on* key become an inline-handler attribute (defense-in-depth)
-        else if (v === true) el.setAttribute(k, "");
-        else el.setAttribute(k, v);
-      }
-    }
-    if (kids != null) {
-      if (!Array.isArray(kids)) kids = [kids];
-      for (var i = 0; i < kids.length; i++) {
-        var c = kids[i];
-        if (c == null || c === false) continue;
-        el.appendChild(typeof c === "object" ? c : document.createTextNode(String(c)));
-      }
-    }
-    return el;
-  }
-  function pbClear(el) { while (el.firstChild) el.removeChild(el.firstChild); }
-  function pbSafeTag(v) { return String(v == null ? "" : v).replace(/[^A-Za-z0-9_-]/g, "").slice(0, 40); }
-  function pbModel(id) { for (var i = 0; i < PB_MODELS.length; i++) { if (PB_MODELS[i].id === id) return PB_MODELS[i]; } return PB_MODELS[0]; }
-
-  // ── Assembler: pure, deterministic, string-only (no DOM). Empty optional sections omitted. ──
-  function pbTag(name, content) { var c = (content || "").replace(/\s+$/, "").replace(/^\s+/, ""); return c ? "<" + name + ">\n" + c + "\n</" + name + ">" : ""; }
-  function pbJoin(parts) { var out = []; for (var i = 0; i < parts.length; i++) { if (parts[i] && parts[i].trim()) out.push(parts[i]); } return out.join("\n\n"); }
-  function pbAssemble(s) {
-    if (s.mode === "system") return pbAssembleSystem(s);
-    if (s.mode === "fewshot") return pbAssembleFewshot(s);
-    return pbAssembleTask(s);
-  }
-  function pbAssembleTask(s) {
-    var t = s.task, instr = (t.directive || "").trim();
-    if ((t.constraints || "").trim()) instr += "\n\n" + t.constraints.trim();
-    var dataTag = pbSafeTag(t.dataTag) || "input";
-    return pbJoin([
-      pbTag("instructions", instr),
-      pbTag("context", t.context),
-      pbTag(dataTag, t.data),
-      pbTag("output_format", t.outputFormat),
-      s.reasoning ? "Think through your approach step by step before you answer." : "",
-      pbTag("success_criteria", t.success)
-    ]);
-  }
-  function pbAssembleSystem(s) {
-    var y = s.system, parts = [(y.role || "").trim()];
-    var rules = (y.rules || []).filter(function (r) { return r && r.trim(); });
-    if (rules.length) parts.push("<behavioral_rules>\n" + rules.map(function (r) { return "- " + r.trim(); }).join("\n") + "\n</behavioral_rules>");
-    parts.push(pbTag("communication_style", y.tone));
-    parts.push(pbTag("boundaries", y.boundaries));
-    parts.push(pbTag("output_policy", y.outputPolicy));
-    return pbJoin(parts);
-  }
-  function pbAssembleFewshot(s) {
-    var f = s.fewshot;
-    var exs = (f.examples || []).filter(function (e) { return (e.input && e.input.trim()) || (e.output && e.output.trim()); });
-    var blocks = exs.map(function (e) {
-      var inner = "<input>\n" + (e.input || "").trim() + "\n</input>";
-      if ((e.reasoning || "").trim()) inner += "\n<thinking>\n" + e.reasoning.trim() + "\n</thinking>";
-      if ((e.output || "").trim()) inner += "\n<output>\n" + e.output.trim() + "\n</output>";
-      return "<example>\n" + inner + "\n</example>";
-    }).join("\n");
-    return pbJoin([
-      pbTag("instructions", (f.directive || "").trim()),
-      blocks ? "<examples>\n" + blocks + "\n</examples>" : "",
-      pbTag("output_format", f.outputFormat),
-      s.reasoning ? "Think step by step before answering." : ""
-    ]);
-  }
-
-  // ── Token size gauge: chars / per-model divisor, +/- band, labelled "estimate", never a gate. ──
-  function pbEstimate(text, modelId) {
-    var m = pbModel(modelId), len = text.length, est = Math.round(len / m.divisor), band = PB_BAND;
-    var sample = text.slice(0, PB_SCAN_CAP), sl = sample.length || 1;
-    var nonAscii = (sample.match(/[^\x00-\x7F]/g) || []).length;
-    var symbols = (sample.match(/[{}\[\]<>|`~]/g) || []).length;
-    if (nonAscii / sl > 0.15 || symbols / sl > 0.06) band = 0.35;
-    return { est: est, low: Math.round(est * (1 - band)), high: Math.round(est * (1 + band)), band: band };
-  }
-
-  // ── Linter: per-mode weighted 0-100 minus anti-folklore penalties. Structure, NOT semantics. ──
-  function pbAllText(s) {
-    var o = s[s.mode], parts = [];
-    for (var k in o) {
-      if (!Object.prototype.hasOwnProperty.call(o, k)) continue;
-      var v = o[k];
-      if (typeof v === "string") parts.push(v);
-      else if (Array.isArray(v)) v.forEach(function (it) { if (typeof it === "string") parts.push(it); else if (it) { for (var kk in it) { if (typeof it[kk] === "string") parts.push(it[kk]); } } });
-    }
-    return parts.join("\n").slice(0, PB_SCAN_CAP);
-  }
-  function pbCountImperatives(text) { var m = text.match(/\b(?:CRITICAL|MUST|IMPORTANT)\b/g); return m ? m.length : 0; }
-  function pbNegations(text) { var m = text.match(/\b(?:do not|don't|never|avoid|no longer)\b/gi); return m ? m.length : 0; }
-  function pbIsPrefill(text) { return /^\s*assistant\s*:\s*\S/i.test(text || ""); }
-  function pbSubstantive(text, min) { var t = (text || "").trim(); if (t.length < (min || 12)) return false; return !/^(?:help me|do something|help|please help|answer)\.?$/i.test(t); }
-  function pbDiversity(examples) {
-    var texts = examples.map(function (e) { return ((e.input || "") + " " + (e.output || "")).toLowerCase().slice(0, 2000); }).filter(function (t) { return t.trim(); });
-    if (texts.length < 2) return 1;
-    var sets = texts.map(function (t) { var s = {}; t.split(/\s+/).slice(0, 120).forEach(function (w) { if (w) s[w] = 1; }); return s; });
-    var pairs = 0, sum = 0;
-    for (var i = 0; i < sets.length; i++) { for (var j = i + 1; j < sets.length; j++) { sum += pbJaccard(sets[i], sets[j]); pairs++; } }
-    return 1 - Math.min(1, pairs ? sum / pairs : 0);
-  }
-  function pbJaccard(a, b) { var inter = 0, uni = 0, k; for (k in a) { uni++; if (b[k]) inter++; } for (k in b) { if (!a[k]) uni++; } return uni ? inter / uni : 0; }
-
-  function pbLint(s, assembled) {
-    var mode = s.mode, dims = [], all = pbAllText(s);
-    if (mode === "task") {
-      var t = s.task;
-      dims.push({ w: 25, f: pbSubstantive(t.directive) ? 1 : (t.directive.trim() ? 0.4 : 0), label: "Task is specific", why: "Vague tasks get vague answers — be explicit (1.2).", key: "directive" });
-      dims.push({ w: 15, f: t.context.trim() ? 1 : 0, label: "Context / motivation", why: "Explaining the “why” helps Claude generalize correctly (1.3).", key: "context" });
-      dims.push({ w: 15, f: t.data.trim() ? 1 : 0.6, label: "Input delimited", why: "Variable data belongs in its own XML tag (1.4).", key: "data", optional: true });
-      dims.push({ w: 20, f: t.outputFormat.trim() ? 1 : 0, label: "Output format explicit", why: "State exactly how the answer should be shaped (6.4).", key: "outputFormat" });
-      dims.push({ w: 15, f: pbFramingFrac(t.constraints + " " + t.directive), label: "Positive framing", why: "Tell Claude what TO do, not what not to do (1.5).", key: "constraints" });
-      dims.push({ w: 10, f: t.success.trim() ? 1 : 0, label: "Success criteria", why: "Define what a good answer satisfies (6.8).", key: "success", optional: true });
-    } else if (mode === "system") {
-      var y = s.system;
-      dims.push({ w: 35, f: pbSubstantive(y.role, 15) ? 1 : (y.role.trim() ? 0.4 : 0), label: "Role defined", why: "A clear persona focuses tone + behavior (3.1).", key: "role" });
-      var rc = (y.rules || []).filter(function (r) { return r.trim().length > 8; }).length;
-      dims.push({ w: 25, f: Math.min(1, rc / 2), label: "Standing rules", why: "Give the role durable rules of conduct (3.2).", key: "rules" });
-      dims.push({ w: 15, f: y.outputPolicy.trim() || y.tone.trim() ? 1 : 0, label: "Output / tone policy", why: "State a standing format + tone rule (1.5).", key: "outputPolicy", optional: true });
-      dims.push({ w: 15, f: pbFramingFrac(y.rules.join(" ") + " " + y.outputPolicy), label: "Positive framing", why: "Say what TO do (1.5).", key: "rules" });
-      dims.push({ w: 10, f: y.boundaries.trim() ? 1 : 0, label: "Boundaries clause", why: "Say how to handle uncertainty / refusals.", key: "boundaries", optional: true });
-    } else {
-      var f = s.fewshot, exs = (f.examples || []).filter(function (e) { return e.input.trim() || e.output.trim(); });
-      dims.push({ w: 20, f: pbSubstantive(f.directive) ? 1 : (f.directive.trim() ? 0.4 : 0), label: "Task is specific", why: "State the task the examples demonstrate (1.2).", key: "directive" });
-      dims.push({ w: 25, f: exs.length >= 3 ? 1 : exs.length / 3, label: "3–5 examples", why: "3–5 examples work best; more is fine (2.1).", key: "examples" });
-      var wf = exs.length ? exs.filter(function (e) { return e.input.trim() && e.output.trim(); }).length / exs.length : 0;
-      dims.push({ w: 20, f: wf, label: "Examples well-formed", why: "Each example needs both an input and an output (2.2).", key: "examples" });
-      dims.push({ w: 10, f: pbDiversity(exs), label: "Examples diverse", why: "Vary examples so Claude doesn't learn an accidental pattern — weak heuristic (2.3).", key: "examples", weak: true, optional: true });
-      dims.push({ w: 15, f: f.outputFormat.trim() ? 1 : 0, label: "Output format explicit", why: "State exactly how the answer should look (6.4).", key: "outputFormat" });
-      dims.push({ w: 10, f: pbFramingFrac(f.directive), label: "Positive framing", why: "Say what TO do (1.5).", key: "directive" });
-    }
-    var base = 0, wsum = 0, issues = [];
-    dims.forEach(function (d) { base += d.w * d.f; wsum += d.w; if (d.f < 0.99) issues.push({ sev: d.optional ? "tip" : "warn", label: (d.f > 0 ? "Improve: " : "Add: ") + d.label, why: d.why, key: d.key, weak: d.weak }); });
-    var score = wsum ? (base / wsum) * 100 : 0;
-
-    // Penalties — the anti-folklore firewall (the hero of the linter).
-    var imp = pbCountImperatives(all), penalty = 0, prefill = false;
-    if (imp > 2) { var p = Math.min(25, (imp - 2) * 5); penalty += p; issues.unshift({ sev: "bad", label: "Too much CRITICAL/MUST emphasis (×" + imp + ")", why: "Current models are literal and OVER-trigger on stacked emphasis — dial the language down (5.2 / 5.3).", key: null, claim: "6.9" }); }
-    (function () { var o = s[mode]; for (var k in o) { if (typeof o[k] === "string" && pbIsPrefill(o[k])) prefill = true; } })();
-    if (prefill) { penalty += 20; issues.unshift({ sev: "bad", label: "Looks like response prefilling", why: "Prefilled assistant turns return a 400 error on Claude 4.6+ — use a Structured-output block instead (1.9).", key: null, claim: "1.9" }); }
-    for (var i = 0; i < PB_FOLKLORE.length; i++) { if (PB_FOLKLORE[i].test(all)) { issues.push({ sev: "tip", label: "“Magic phrase” detected", why: "Folklore like “you are an expert” / “I'll tip $200” doesn't survive an A/B test on current models — it earns no credit (R.2).", key: null }); break; } }
-    if (mode === "task" && s.model === "opus-5" && s.task.success.trim()) issues.push({ sev: "tip", label: "Self-check may be redundant on Opus 5", why: "Opus 5 self-verifies — an explicit success-check can over-trigger (5.2).", key: "success" });
-    if (assembled.length / (pbModel(s.model).divisor) > 20000) issues.push({ sev: "tip", label: "Long prompt — consider data-first order", why: "Above ~20k tokens, putting long data at the top and the query at the end can improve quality up to ~30% (1.7).", key: null });
-
-    score = Math.max(0, Math.min(100, Math.round(score - penalty)));
-    return { score: score, issues: issues, prefill: prefill };
-  }
-  function pbFramingFrac(text) { if (!(text || "").trim()) return 0; var n = pbNegations(text); return n === 0 ? 1 : n <= 2 ? 0.6 : 0.2; }
-
-  // ── Rendering (all via pbEl) ──────────────────────────────────────────────
-  var pbRoot, pbPreviewEl, pbTokenEl, pbFieldsEl, pbIssuesEl, pbGaugeFill, pbGaugeText, pbGaugeSub, pbNoteEl, pbDegradedEl, pbModelHintEl, pbPresetSel, pbRaf = 0, pbToastEl = null, pbToastTimer = 0;
-  var PB_GAUGE_C = 2 * Math.PI * 32;
-
-  function pbField(f) {
-    if (f.type === "list") return pbListField(f);
-    if (f.type === "examples") return pbExamplesField(f);
-    var id = "pb-f-" + f.key;
-    var input;
-    var common = { id: id, "data-pb-key": f.key, oninput: pbOnInput, onchange: pbOnInput };
-    if (f.type === "text") { common.type = "text"; common.value = pbState[pbState.mode][f.key]; common.placeholder = f.ph || ""; common.autocomplete = "off"; common.spellcheck = "false"; input = pbEl("input", common); }
-    else { common.rows = f.rows || 2; common.placeholder = f.ph || ""; input = pbEl("textarea", common); input.value = pbState[pbState.mode][f.key]; }
-    return pbEl("div", { class: "pb-field" }, [
-      pbEl("label", { for: id }, [f.label, f.req ? pbEl("span", { class: "pb-req", "aria-label": "required", text: "*" }) : null, f.hint ? pbEl("span", { class: "pb-hint", text: "— " + f.hint }) : null]),
-      input,
-      f.claim && f.claim !== "—" ? pbEl("span", { class: "pb-claim", text: "best-practice " + f.claim }) : null
-    ]);
-  }
-  function pbListField(f) {
-    var wrap = pbEl("div", { class: "pb-field" });
-    wrap.appendChild(pbEl("label", {}, [f.label, pbEl("span", { class: "pb-hint", text: "— " + f.hint })]));
-    var list = pbEl("div", { class: "pb-repeat" });
-    var rules = pbState.system.rules;
-    rules.forEach(function (r, i) {
-      var input = pbEl("input", { type: "text", value: r, placeholder: f.ph, "data-pb-list": "rules", "data-pb-idx": i, "data-pb-key": "rules", oninput: pbOnInput, autocomplete: "off" });
-      var rm = pbEl("button", { type: "button", class: "pb-icon-btn", title: "Remove rule", "aria-label": "Remove rule", text: "×", onclick: function () { rules.splice(i, 1); if (!rules.length) rules.push(""); pbRebuildFields(); pbUpdate(); } });
-      list.appendChild(pbEl("div", { class: "pb-repeat-item" }, [pbEl("div", { style: "display:flex;gap:6px;align-items:center" }, [input, rm])]));
-    });
-    list.appendChild(pbEl("button", { type: "button", class: "pb-btn pb-ghost", text: "+ Add rule", onclick: function () { rules.push(""); pbRebuildFields(); } }));
-    wrap.appendChild(list);
-    return wrap;
-  }
-  function pbExamplesField(f) {
-    var wrap = pbEl("div", { class: "pb-field" });
-    var exs = pbState.fewshot.examples, n = exs.length;
-    var cls = n >= 3 && n <= 5 ? "pb-count pb-ok" : "pb-count pb-warn";
-    wrap.appendChild(pbEl("label", {}, [f.label, pbEl("span", { class: cls, text: " (" + n + ")" }), pbEl("span", { class: "pb-hint", text: "— " + f.hint })]));
-    var list = pbEl("div", { class: "pb-repeat" });
-    exs.forEach(function (e, i) {
-      var head = pbEl("div", { class: "pb-repeat-head" }, [
-        "Example " + (i + 1),
-        pbEl("span", { class: "pb-repeat-ctl" }, [
-          pbEl("button", { type: "button", class: "pb-icon-btn", title: "Move up", "aria-label": "Move example up", text: "↑", disabled: i === 0, onclick: function () { pbMoveExample(i, -1); } }),
-          pbEl("button", { type: "button", class: "pb-icon-btn", title: "Move down", "aria-label": "Move example down", text: "↓", disabled: i === n - 1, onclick: function () { pbMoveExample(i, 1); } }),
-          pbEl("button", { type: "button", class: "pb-icon-btn", title: "Remove", "aria-label": "Remove example", text: "×", disabled: n <= 1, onclick: function () { exs.splice(i, 1); pbRebuildFields(); pbUpdate(); } })
-        ])
-      ]);
-      var inp = pbEl("textarea", { class: "pb-sm", rows: 2, placeholder: "input", value: "", "data-pb-list": "examples", "data-pb-idx": i, "data-pb-sub": "input", "data-pb-key": "examples", oninput: pbOnInput }); inp.value = e.input;
-      var out = pbEl("textarea", { class: "pb-sm", rows: 2, placeholder: "output", value: "", "data-pb-list": "examples", "data-pb-idx": i, "data-pb-sub": "output", "data-pb-key": "examples", oninput: pbOnInput }); out.value = e.output;
-      var rsn = pbEl("textarea", { class: "pb-sm", rows: 1, placeholder: "reasoning (optional) — rendered as a <thinking> block (2.4)", value: "", "data-pb-list": "examples", "data-pb-idx": i, "data-pb-sub": "reasoning", "data-pb-key": "examples", oninput: pbOnInput }); rsn.value = e.reasoning;
-      list.appendChild(pbEl("div", { class: "pb-repeat-item" }, [head, inp, out, rsn]));
-    });
-    list.appendChild(pbEl("button", { type: "button", class: "pb-btn pb-ghost", text: "+ Add example", disabled: n >= 8, onclick: function () { exs.push(pbEx()); pbRebuildFields(); pbUpdate(); } }));
-    wrap.appendChild(list);
-    return wrap;
-  }
-  function pbMoveExample(i, dir) { var e = pbState.fewshot.examples, j = i + dir; if (j < 0 || j >= e.length) return; var tmp = e[i]; e[i] = e[j]; e[j] = tmp; pbRebuildFields(); pbUpdate(); }
-
-  function pbPatternsRail() {
-    var rail = pbEl("div", { class: "pb-patterns" });
-    rail.appendChild(pbEl("p", { class: "pb-plabel", text: "Insert a pattern" }));
-    var chips = pbEl("div", { class: "pb-chips" });
-    PB_PATTERNS.forEach(function (p) {
-      if (p.modes && !p.modes[pbState.mode]) return;
-      if (p.deprecated) { chips.appendChild(pbEl("button", { type: "button", class: "pb-chip pb-deprecated", title: p.tip, "aria-disabled": "true", disabled: true, text: p.label })); return; }
-      chips.appendChild(pbEl("button", { type: "button", class: "pb-chip", title: p.tip, text: p.label, onclick: function () { p.apply(pbState); pbRebuildFields(); pbSyncControls(); pbUpdate(); } }));
-    });
-    rail.appendChild(chips);
-    return rail;
-  }
-
-  function pbRebuildFields() {
-    pbClear(pbFieldsEl);
-    PB_FIELDS[pbState.mode].forEach(function (f) { pbFieldsEl.appendChild(pbField(f)); });
-    if (pbState.mode !== "system") {
-      pbFieldsEl.appendChild(pbEl("div", { class: "pb-field pb-check" }, [
-        pbEl("input", { type: "checkbox", id: "pb-reasoning", "data-pb-key": "reasoning", checked: pbState.reasoning, onchange: pbOnInput }),
-        pbEl("label", { for: "pb-reasoning", text: "Ask Claude to reason step by step first (1.6)" })
-      ]));
-    } else {
-      pbFieldsEl.appendChild(pbEl("p", { class: "pb-note", text: "This is a system prompt — pair it with a user message (try Task mode) carrying the actual request + data (3.3)." }));
-    }
-    pbFieldsEl.appendChild(pbPatternsRail());
-  }
-
-  function pbOnInput(e) {
-    var t = e.target; if (!t || !t.dataset || !t.dataset.pbKey) return;
-    var key = t.dataset.pbKey, val = t.type === "checkbox" ? t.checked : t.value;
-    if (t.dataset.pbList === "rules") pbState.system.rules[parseInt(t.dataset.pbIdx, 10)] = val;
-    else if (t.dataset.pbList === "examples") pbState.fewshot.examples[parseInt(t.dataset.pbIdx, 10)][t.dataset.pbSub] = val;
-    else if (key === "reasoning") pbState.reasoning = val;
-    else pbState[pbState.mode][key] = val;
-    pbScheduleUpdate();
-  }
-  function pbScheduleUpdate() { if (pbRaf) return; pbRaf = (window.requestAnimationFrame || function (cb) { return setTimeout(cb, 16); })(function () { pbRaf = 0; pbUpdate(); }); }
-
-  function pbUpdate() {
-    var assembled = pbAssemble(pbState);
-    pbPreviewEl.textContent = assembled; // THE single whole-string sink (structurally XSS-safe)
-    pbRenderToken(assembled);
-    pbRenderQuality(assembled);
-    pbSave();
-  }
-  function pbRenderToken(assembled) {
-    var e = pbEstimate(assembled, pbState.model);
-    pbClear(pbTokenEl);
-    pbTokenEl.appendChild(pbEl("strong", { text: "~" + e.est.toLocaleString() }));
-    pbTokenEl.appendChild(pbEl("span", { text: " tokens" }));
-    pbTokenEl.appendChild(pbEl("span", { class: "pb-token-band", text: "(est. " + e.low.toLocaleString() + "–" + e.high.toLocaleString() + ")" }));
-  }
-  function pbRenderQuality(assembled) {
-    var r = pbLint(pbState, assembled);
-    var band = r.score >= 80 ? "pb-band-ok" : r.score >= 50 ? "pb-band-warn" : "pb-band-bad";
-    pbGaugeFill.setAttribute("class", "pb-gauge-fill " + band);
-    pbGaugeFill.setAttribute("stroke-dasharray", PB_GAUGE_C.toFixed(1));
-    pbGaugeFill.setAttribute("stroke-dashoffset", (PB_GAUGE_C * (1 - r.score / 100)).toFixed(1));
-    pbGaugeText.textContent = String(r.score);
-    pbClear(pbIssuesEl);
-    if (!r.issues.length) { pbIssuesEl.appendChild(pbEl("li", { class: "pb-clean", text: "✓ All best-practice structure present." })); return; }
-    r.issues.forEach(function (is) {
-      pbIssuesEl.appendChild(pbEl("li", { class: "pb-issue pb-sev-" + is.sev }, [
-        pbEl("div", { class: "pb-issue-title" }, [pbEl("span", { text: is.label }), is.claim ? pbEl("span", { class: "pb-issue-claim", text: is.claim }) : null]),
-        pbEl("p", { class: "pb-issue-why", text: is.why }),
-        is.key ? pbEl("button", { type: "button", class: "pb-issue-fix", text: "Jump to field →", onclick: function () { pbFocusField(is.key); } }) : null
-      ]));
-    });
-  }
-  function pbFocusField(key) {
-    var el = document.getElementById("pb-f-" + key) || pbFieldsEl.querySelector('[data-pb-key="' + key + '"]');
-    if (el && el.focus) { el.focus(); if (el.scrollIntoView) el.scrollIntoView({ block: "center" }); }
-  }
-
-  function pbShowDegraded() { if (pbDegradedEl) pbDegradedEl.hidden = false; }
-  function pbHideDegraded() { if (pbDegradedEl) pbDegradedEl.hidden = true; }
-  function pbSave() { try { localStorage.setItem(PB_STORAGE_KEY, JSON.stringify(pbState)); pbHideDegraded(); } catch (e) { pbShowDegraded(); } }
-  function pbLoad() { try { var raw = localStorage.getItem(PB_STORAGE_KEY); if (raw) { var saved = JSON.parse(raw); if (saved && typeof saved === "object") pbState = pbMergeState(pbDefault(), saved); } } catch (e) { /* keep defaults on corrupt/unavailable storage */ } }
-  function pbMergeState(def, saved) {
-    if (saved.mode === "task" || saved.mode === "system" || saved.mode === "fewshot") def.mode = saved.mode;
-    if (typeof saved.model === "string") def.model = saved.model;
-    if (typeof saved.reasoning === "boolean") def.reasoning = saved.reasoning;
-    ["task", "system", "fewshot"].forEach(function (m) {
-      if (!saved[m] || typeof saved[m] !== "object") return;
-      for (var k in def[m]) {
-        if (k === "rules" && Array.isArray(saved[m].rules)) def[m].rules = saved[m].rules.map(String);
-        else if (k === "examples" && Array.isArray(saved[m].examples)) def[m].examples = saved[m].examples.map(function (e) { return { input: String((e && e.input) || ""), output: String((e && e.output) || ""), reasoning: String((e && e.reasoning) || "") }; });
-        else if (typeof saved[m][k] === "string") def[m][k] = saved[m][k];
-      }
-    });
-    if (!def.system.rules.length) def.system.rules = [""];
-    if (!def.fewshot.examples.length) def.fewshot.examples = [pbEx(), pbEx(), pbEx()];
-    if (pbModel(def.model).id !== def.model) def.model = "opus-5";
-    return def;
-  }
-
-  function pbSetMode(mode) {
-    pbState.mode = mode;
-    pbRoot.querySelectorAll(".pb-seg button").forEach(function (b) { b.setAttribute("aria-selected", b.dataset.mode === mode ? "true" : "false"); });
-    pbRebuildFields();
-  }
-  function pbSyncControls() {
-    if (pbPresetSel) pbPresetSel.value = "";
-    var ms = pbRoot.querySelector("#pb-model");
-    if (ms) ms.value = pbState.model;
-    pbRenderModelHint();
-  }
-  function pbRenderModelHint() { if (pbModelHintEl) pbModelHintEl.textContent = pbModel(pbState.model).hint; }
-
-  function pbToast(msg) {
-    if (!pbToastEl) { pbToastEl = pbEl("div", { class: "pb-toast", role: "status", "aria-live": "polite" }); (pbRoot || document.body).appendChild(pbToastEl); }
-    pbToastEl.textContent = msg; pbToastEl.classList.add("pb-show");
-    if (pbToastTimer) clearTimeout(pbToastTimer);
-    pbToastTimer = setTimeout(function () { pbToastEl.classList.remove("pb-show"); }, 1600);
-  }
-  function pbCopy() {
-    var text = pbAssemble(pbState);
-    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(function () { pbToast("Copied"); }, function () { pbFallbackCopy(text); });
-    else pbFallbackCopy(text);
-  }
-  function pbFallbackCopy(text) {
-    try { var ta = pbEl("textarea", { readonly: true, style: "position:fixed;top:-1000px;opacity:0" }); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); document.body.removeChild(ta); pbToast("Copied"); }
-    catch (e) { pbToast("Copy failed — select the text manually"); }
-  }
-  function pbDownload(name, mime, content) {
-    try { var url = URL.createObjectURL(new Blob([content], { type: mime })); var a = pbEl("a", { href: url, download: name }); document.body.appendChild(a); a.click(); document.body.removeChild(a); setTimeout(function () { URL.revokeObjectURL(url); }, 0); pbToast("Exported"); }
-    catch (e) { pbToast("Export failed"); }
-  }
-  function pbExportMd() { pbDownload("claude-prompt-" + pbState.mode + ".md", "text/markdown", "# Claude prompt (" + pbState.mode + " mode — " + pbModel(pbState.model).label + ")\n\n```\n" + pbAssemble(pbState) + "\n```\n"); }
-  function pbExportJson() {
-    var assembled = pbAssemble(pbState), lint = pbLint(pbState, assembled), est = pbEstimate(assembled, pbState.model);
-    pbDownload("claude-prompt-" + pbState.mode + ".json", "application/json", JSON.stringify({ schemaVersion: 1, mode: pbState.mode, model: pbState.model, fields: pbState[pbState.mode], reasoning: pbState.reasoning, assembled: assembled, score: lint.score, tokenEstimate: { estimate: est.est, low: est.low, high: est.high, band: est.band } }, null, 2));
-  }
-  function pbResetBtn(btn) {
-    if (btn.dataset.armed === "1") { pbState = pbDefault(); try { localStorage.removeItem(PB_STORAGE_KEY); } catch (e) { } pbSetMode(pbState.mode); pbSyncControls(); pbUpdate(); btn.dataset.armed = ""; btn.textContent = "Reset"; }
-    else { btn.dataset.armed = "1"; btn.textContent = "Really reset?"; setTimeout(function () { if (btn.dataset.armed === "1") { btn.dataset.armed = ""; btn.textContent = "Reset"; } }, 3000); }
-  }
-
-  function pbBuildControls() {
-    var seg = pbEl("div", { class: "pb-seg", role: "tablist", "aria-label": "Prompt mode" });
-    [["task", "Task"], ["system", "System"], ["fewshot", "Few-shot"]].forEach(function (m) {
-      seg.appendChild(pbEl("button", { type: "button", role: "tab", "data-mode": m[0], "aria-selected": m[0] === pbState.mode ? "true" : "false", "aria-controls": "pb-fields", text: m[1], onclick: function () { pbSetMode(m[0]); pbUpdate(); } }));
-    });
-    pbPresetSel = pbEl("select", { class: "pb-select", id: "pb-preset", "aria-label": "Load a preset", onchange: function (e) { var id = e.target.value; if (!id) return; var p = null; for (var i = 0; i < PB_PRESETS.length; i++) { if (PB_PRESETS[i].id === id) p = PB_PRESETS[i]; } if (p) { pbSetMode(p.mode); p.apply(pbState); pbRebuildFields(); } e.target.value = ""; pbSyncControls(); pbUpdate(); } });
-    pbPresetSel.appendChild(pbEl("option", { value: "", text: "Preset…" }));
-    PB_PRESETS.forEach(function (p) { pbPresetSel.appendChild(pbEl("option", { value: p.id, text: p.label })); });
-    var modelSel = pbEl("select", { class: "pb-select", id: "pb-model", "aria-label": "Target model", onchange: function (e) { pbState.model = e.target.value; pbRenderModelHint(); pbUpdate(); } });
-    PB_MODELS.forEach(function (m) { var o = pbEl("option", { value: m.id, text: m.label }); if (m.id === pbState.model) o.selected = true; modelSel.appendChild(o); });
-    pbTokenEl = pbEl("span", { class: "pb-token", title: "Rough size estimate — Anthropic publishes no official ratio (4.1); newer models tokenize ~30% heavier (4.2). Verify with count_tokens for billing." });
-    pbTokenEl.appendChild(pbEl("strong", { text: "~0" }));
-    pbTokenEl.appendChild(pbEl("span", { text: " tokens" }));
-    return pbEl("div", { class: "pb-controls" }, [
-      seg,
-      pbEl("span", { class: "pb-ctl" }, [pbPresetSel]),
-      pbEl("span", { class: "pb-ctl" }, [pbEl("label", { for: "pb-model", text: "Model" }), modelSel]),
-      pbEl("span", { class: "pb-spacer" }),
-      pbTokenEl,
-      pbEl("button", { type: "button", class: "pb-btn pb-ghost pb-danger", onclick: function (e) { pbResetBtn(e.currentTarget); }, text: "Reset" })
-    ]);
-  }
-  function pbBuildInputPane() {
-    pbFieldsEl = pbEl("div", { class: "pb-fields", id: "pb-fields", role: "tabpanel", "aria-label": "Prompt inputs" });
-    pbModelHintEl = pbEl("p", { class: "pb-note pb-note-info", text: pbModel(pbState.model).hint });
-    pbDegradedEl = pbEl("p", { class: "pb-degraded", hidden: true, text: "Autosave unavailable in this browser mode — your work won't persist across reloads." });
-    return pbEl("section", { class: "pb-pane" }, [pbEl("h3", { text: "Inputs" }), pbDegradedEl, pbFieldsEl, pbModelHintEl]);
-  }
-  function pbBuildPreviewPane() {
-    pbPreviewEl = pbEl("pre", { class: "pb-preview", id: "pb-preview", "data-empty": "Your assembled prompt appears here as you type…", tabindex: "0", "aria-label": "Assembled prompt preview" });
-    var actions = pbEl("div", { class: "pb-preview-actions" }, [
-      pbEl("button", { type: "button", class: "pb-btn pb-primary", onclick: pbCopy, text: "Copy" }),
-      pbEl("button", { type: "button", class: "pb-btn", onclick: pbExportMd, text: "Export .md" }),
-      pbEl("button", { type: "button", class: "pb-btn", onclick: pbExportJson, text: "Export .json" }),
-      pbEl("span", { class: "pb-hint", text: "Ctrl/⌘+Enter copies" })
-    ]);
-    return pbEl("section", { class: "pb-pane" }, [pbEl("h3", { text: "Live preview" }), pbEl("div", { class: "pb-preview-wrap" }, [actions, pbPreviewEl])]);
-  }
-  function pbSvg(tag, attrs) { var el = document.createElementNS("http://www.w3.org/2000/svg", tag); for (var k in attrs) { if (Object.prototype.hasOwnProperty.call(attrs, k)) el.setAttribute(k, attrs[k]); } return el; }
-  function pbBuildQualityPane() {
-    var svg = pbSvg("svg", { class: "pb-gauge", viewBox: "0 0 76 76", role: "img", "aria-label": "Structure completeness score" });
-    svg.appendChild(pbSvg("circle", { class: "pb-gauge-track", cx: "38", cy: "38", r: "32", fill: "none", "stroke-width": "7" }));
-    pbGaugeFill = pbSvg("circle", { class: "pb-gauge-fill pb-band-bad", cx: "38", cy: "38", r: "32", fill: "none", "stroke-width": "7", "stroke-dasharray": PB_GAUGE_C.toFixed(1), "stroke-dashoffset": PB_GAUGE_C.toFixed(1) });
-    svg.appendChild(pbGaugeFill);
-    pbGaugeText = pbSvg("text", { x: "38", y: "45", "text-anchor": "middle" }); pbGaugeText.textContent = "0"; svg.appendChild(pbGaugeText);
-    var meta = pbEl("div", { class: "pb-gauge-meta" }, [pbEl("div", { class: "pb-gauge-label", text: "Structure completeness" }), pbEl("div", { class: "pb-gauge-sub", text: "how many best-practice elements are present" })]);
-    pbIssuesEl = pbEl("ul", { class: "pb-issues", "aria-live": "polite", "aria-label": "Prompt quality issues" });
-    var honesty = pbEl("p", { class: "pb-honesty", text: "Heuristic structural score — it checks whether best-practice elements are present + flags anti-patterns, not the semantic quality of your writing. A 100 is not a guarantee of a good prompt; test it against the real model." });
-    return pbEl("section", { class: "pb-pane" }, [pbEl("h3", { text: "Quality" }), pbEl("div", { class: "pb-gauge-row" }, [svg, meta]), pbIssuesEl, honesty]);
-  }
-
-  function initPromptBuilder() {
-    pbRoot = document.getElementById("pb-root");
-    if (!pbRoot || pbRoot.getAttribute("data-pb-ready") === "1") return;
-    pbRoot.setAttribute("data-pb-ready", "1");
-    pbLoad();
-    pbClear(pbRoot);
-    pbRoot.appendChild(pbEl("div", { class: "pb-intro" }, [
-      pbEl("h2", { text: "Prompt Builder" }),
-      pbEl("p", { class: "pb-lead", text: "Fill in the inputs and watch a best-practice Claude prompt assemble live — with a quality score and a rough size estimate. Everything runs in your browser; nothing is sent anywhere." })
-    ]));
-    pbRoot.appendChild(pbBuildControls());
-    pbRoot.appendChild(pbEl("div", { class: "pb-grid" }, [pbBuildInputPane(), pbBuildPreviewPane(), pbBuildQualityPane()]));
-    pbRoot.addEventListener("keydown", function (e) { if ((e.ctrlKey || e.metaKey) && (e.key === "Enter" || e.keyCode === 13)) { e.preventDefault(); pbCopy(); } });
-    pbSetMode(pbState.mode);
-    pbSyncControls();
-    pbUpdate();
-  }
-  /* PROMPT-BUILDER:END */
-
 })();
 """.strip()
 
@@ -12272,9 +12173,7 @@ _RAVEN_MARK_DATA_URI = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAjsAAAJLCA
 
 # --- P0 (premium redesign): raven hero + mark as self-contained WebP data URIs ---
 # generated by P0 — raven WebP data URIs (self-contained, build-time)
-_RAVEN_HERO_DATA_URI = "data:image/webp;base64,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"
-_RAVEN_HERO_W, _RAVEN_HERO_H = 840, 840
-_RAVEN_MARK_WEBP_DATA_URI = "data:image/webp;base64,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"
+_RAVEN_MARK_WEBP_DATA_URI = 'data:image/webp;base64,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'
 _RAVEN_MARK_W, _RAVEN_MARK_H = 240, 247
 
 
@@ -12537,96 +12436,79 @@ def _gather_plugin_dir_names(plugin_dir: Path, sub: str, dirs: bool = False) -> 
     return sorted(p.stem for p in base.glob("*.md") if p.stem.lower() != "readme")
 
 
-def _render_plugin_var_control(plugin: str, var: dict) -> str:
-    """One curated-variable control (enum→select, number/text→input) carrying the
-    data-* attributes the editor JS reads on save."""
-    key = var["key"]
-    label = html.escape(var["label"])
-    help_txt = html.escape(var.get("help", ""))
-    default = html.escape(str(var.get("default", "")))
-    vtype = var["type"]
-    cid = f"pv-{plugin}-{key}"
-    if vtype == "enum":
-        opts = "".join(
-            f'<option value="{html.escape(o)}"{" selected" if o == var.get("default") else ""}>{html.escape(o)}</option>'
-            for o in var.get("options", [])
-        )
-        control = (
-            f'<select id="{cid}" class="pv-control" data-pvar="{html.escape(key)}" '
-            f'data-ptype="enum" data-pdefault="{default}">{opts}</select>'
-        )
-    else:
-        input_type = "number" if vtype == "number" else "text"
-        control = (
-            f'<input id="{cid}" class="pv-control" type="{input_type}" '
-            f'data-pvar="{html.escape(key)}" data-ptype="{html.escape(vtype)}" '
-            f'data-pdefault="{default}" value="{default}">'
-        )
-    return (
-        '<div class="pv-row">'
-        f'<label class="pv-label" for="{cid}">{label}</label>'
-        f"{control}"
-        f'<p class="pv-help">{help_txt}</p>'
-        "</div>"
+def _render_plugin_vars_payload(plugin_dirs: list[Path]) -> str:
+    """Inline JSON for the one #plugin-vars-payload script: per plugin, its save
+    target + curated variable specs. renderPluginVarsForm() (in _JS) reads this to
+    build the SAME editor markup _render_plugin_page used to emit, one plugin at a
+    time. `options` is present only for enum vars.
+
+    Escaped for a <script type="application/json"> block the same way schema_json /
+    concepts_json are (`<` → \\u003c), so a `</script` substring inside any string
+    can never break out of the element; the escape round-trips through JSON.parse."""
+    data: dict[str, dict] = {}
+    for pd in plugin_dirs:
+        name = pd.name
+        curated: list[dict] = []
+        for v in _plugin_curated_vars(name):
+            spec: dict = {
+                "key": v["key"],
+                "label": v["label"],
+                "help": v.get("help", ""),
+                "default": v.get("default", ""),
+                "type": v["type"],
+            }
+            if v["type"] == "enum":
+                spec["options"] = list(v.get("options", []))
+            curated.append(spec)
+        data[name] = {
+            "target": f".ravenclaude/plugins/{name}.yaml",
+            "curated": curated,
+        }
+    return json.dumps(data, ensure_ascii=False, separators=(",", ":")).replace(
+        "<", "\\u003c"
     )
-
-
-def _render_plugin_page(plugin_dir: Path) -> str:
-    """The full panel for one plugin: editable variables (curated + free-form)
-    wired to the /__save portal, plus best-practices, decision trees, agents and
-    skills for that plugin."""
-    name = plugin_dir.name
-    esc = html.escape(name)
-    curated = _plugin_curated_vars(name)
-    target = f".ravenclaude/plugins/{name}.yaml"
-
-    controls = "".join(_render_plugin_var_control(name, v) for v in curated) or (
-        '<p class="pv-help">No curated knobs for this plugin yet — use the free-form section below.</p>'
-    )
-
-    return f"""
-    <div class="plugin-page" data-plugin="{esc}" data-target="{html.escape(target)}">
-      <h2 class="pp-title">{esc}</h2>
-      <p class="pp-sub">Configure <code>{esc}</code>'s variables here — they save to <code>{html.escape(target)}</code> via the dashboard server (on the static copy, edits stay in your browser — use <strong>Download</strong>). For the full reference — agents, scenarios, skills, hooks, templates, best-practices — see this plugin in the portal's <strong>Marketplace</strong> section.</p>
-
-      <section class="pp-section">
-        <h3>Variables</h3>
-        <div class="pv-curated">{controls}</div>
-        <div class="pv-freeform">
-          <h4>Free-form variables</h4>
-          <p class="pv-help">One <code>key: value</code> per line (YAML). For project variables not covered by the curated knobs above.</p>
-          <textarea class="pv-extra" data-plugin="{esc}" rows="5" spellcheck="false" placeholder="my_key: my value&#10;another_key: 123"></textarea>
-        </div>
-        <div class="pp-actions">
-          <button type="button" class="pp-save" data-plugin="{esc}">Save to repo</button>
-          <button type="button" class="pp-download" data-plugin="{esc}">Download .yaml</button>
-          <span class="pp-status" data-plugin="{esc}" role="status"></span>
-        </div>
-        <p class="pp-noserver" data-plugin="{esc}" hidden>No local dashboard server behind this page, so <strong>Save to repo</strong> is off. Run <code>ravenclaude dashboard</code> (or <code>bash .ravenclaude/dashboard.sh</code>) and reopen, or use <strong>Download</strong> and drop the file into <code>{html.escape(target)}</code>.</p>
-      </section>
-    </div>
-    """
 
 
 def _render_plugins_category(plugin_dirs: list[Path]) -> tuple[str, str]:
-    """Return (tabs_html, panels_html) for the Plugins category — one tab-btn and
-    one tab-panel per plugin, matching the existing two-tier nav contract."""
-    tabs: list[str] = []
-    panels: list[str] = []
-    for pd in plugin_dirs:
-        name = pd.name
-        esc = html.escape(name)
-        tab_id = f"plugin-{name}"
-        tabs.append(
-            f'<button class="tab-btn" id="tab-{html.escape(tab_id)}" data-tab="{html.escape(tab_id)}" '
-            f'data-cat="plugins" role="tab" aria-selected="false" tabindex="-1" '
-            f'aria-controls="panel-{html.escape(tab_id)}" title="{esc} — variables, best practices, trees">{esc}</button>'
-        )
-        panels.append(
-            f'<section class="tab-panel" id="panel-{html.escape(tab_id)}" data-tab="{html.escape(tab_id)}" '
-            f'role="tabpanel" aria-label="{esc} plugin">{_render_plugin_page(pd)}</section>'
-        )
-    return "\n".join(tabs), "\n".join(panels)
+    """Return (tab_html, panel_html) for the Plugins category: ONE picker tab and
+    ONE panel (P1 — the 167 per-plugin panels collapsed into a single client-
+    rendered variable editor). Pick a plugin from the <select>; its editor form is
+    rendered into #plugin-vars-mount from the inline #plugin-vars-payload JSON by
+    renderPluginVarsForm(), and Save/Download wire via event delegation (see _JS).
+
+    R2 (plan §1.1, binding): the per-plugin editor writes .ravenclaude/plugins/
+    <slug>.yaml, which NO hook reads — 153 of 167 plugins expose only a free-form
+    textarea. The intro below discloses this in committed markup; do NOT describe
+    the collapse as "no capability is lost"."""
+    tab = (
+        '<button class="tab-btn" type="button" id="tab-plugin-vars" data-tab="plugin-vars" '
+        'aria-selected="false" title="Plugin variables">Plugin variables</button>'
+    )
+    options = "".join(
+        f'<option value="{html.escape(pd.name)}">{html.escape(pd.name)}</option>'
+        for pd in plugin_dirs
+    )
+    payload = _render_plugin_vars_payload(plugin_dirs)
+    panel = (
+        '<section class="tab-panel" id="panel-plugin-vars" data-tab="plugin-vars" '
+        'role="tabpanel" aria-label="Plugin variables">\n'
+        '  <div class="plugin-vars-picker">\n'
+        '    <h2 class="pp-title">Plugin variables</h2>\n'
+        '    <p class="pp-sub">Pick a plugin to edit its variables. Most plugins expose '
+        "<strong>no curated knobs</strong> — for those, the free-form values you enter are saved to "
+        "<code>.ravenclaude/plugins/&lt;plugin&gt;.yaml</code> but are <strong>not currently read by "
+        "any hook</strong> (153 of 167 plugins are free-form only). For the full reference — agents, "
+        "scenarios, skills, hooks, templates, best-practices — open the plugin in the portal's "
+        "<strong>Marketplace</strong> section. Deep-link: "
+        '<a href="#/plugin-vars">Plugin variables</a>.</p>\n'
+        '    <label class="pv-label" for="plugin-vars-select">Choose a plugin</label>\n'
+        f'    <select id="plugin-vars-select">{options}</select>\n'
+        '    <div id="plugin-vars-mount"></div>\n'
+        f'    <script type="application/json" id="plugin-vars-payload">{payload}</script>\n'
+        "  </div>\n"
+        "</section>"
+    )
+    return tab, panel
 
 
 def _all_plugin_dirs() -> list[Path]:
@@ -12686,58 +12568,74 @@ _PAGE_TEMPLATE = """<!doctype html>
 </head>
 <body>
 
+<aside class="dash-sidebar" aria-label="Dashboard navigation">
+  <div class="ds-brand">
+    <span class="ds-mark" aria-hidden="true">{raven_mark}</span>
+    <span class="ds-word">
+      <span class="ds-name">Raven<b>Claude</b></span>
+      <span class="ds-tag">Dashboard</span>
+    </span>
+  </div>
+  <nav class="ds-nav" aria-label="Dashboard sections">
+    <div class="ds-group">
+      <div class="ds-label">Control</div>
+      <a class="ds-sub" href="#/settings" data-tab="settings">The Thing</a>
+      <a class="ds-sub" href="#/pipeline" data-tab="pipeline">Pipeline</a>
+      <a class="ds-sub" href="#/web-access" data-tab="web-access">Web access</a>
+    </div>
+    <div class="ds-group">
+      <div class="ds-label">Activity</div>
+      <a class="ds-sub" href="#/activity" data-tab="activity">Run feed</a>
+      <a class="ds-sub" href="#/saga" data-tab="saga">Saga</a>
+      <a class="ds-sub" href="#/mimir" data-tab="mimir">Session</a>
+      <a class="ds-sub" href="#/streams" data-tab="streams">Streams</a>
+      <a class="ds-sub" href="#/norns" data-tab="norns">Lineage</a>
+    </div>
+    <div class="ds-group">
+      <div class="ds-label">Guardrails</div>
+      <a class="ds-sub" href="#/heimdall" data-tab="heimdall">Perimeter alerts</a>
+      <a class="ds-sub" href="#/vidarr" data-tab="vidarr">Security log</a>
+      <a class="ds-sub" href="#/nidhoggr" data-tab="nidhoggr">Debt</a>
+    </div>
+    <div class="ds-group">
+      <div class="ds-label">Learn &amp; Help</div>
+      <a class="ds-sub" href="#/learn" data-tab="learn">Learn</a>
+      <a class="ds-sub" href="#/trees" data-tab="trees">Guidance</a>
+      <a class="ds-sub" href="#/help" data-tab="help">Help</a>
+      <a class="ds-sub" href="#/plugin-vars" data-tab="plugin-vars">Plugins</a>
+    </div>
+  </nav>
+</aside>
+
 <header class="page-header">
   <div class="brand-row">
     <span class="brand-mark" aria-hidden="true">{raven_mark}</span>
-    <h1>{title}</h1>
   </div>
-  <p class="page-desc">This is your control panel for Claude&nbsp;Code's safety rails. Use it to set what Claude is allowed to do, see what it's been doing, and add plugins. <a href="#/about" class="header-about-link">What is this?</a></p>
-  <nav class="cat-bar" aria-label="Dashboard categories">
-    <button class="cat-btn" type="button" data-cat="setup" aria-pressed="true" title="Set up — Overview, permissions, the safety pipeline, and a review preview">Set up</button>
-    <button class="cat-btn" type="button" data-cat="lookback" aria-pressed="false" title="Look back — review log, run feed, perimeter alerts, security log, lineage">Look back</button>
-    <button class="cat-btn" type="button" data-cat="learn" aria-pressed="false" title="Learn — explainers, command playbooks, decision-tree guidance">Learn</button>
-    <button class="cat-btn" type="button" data-cat="plugins" aria-pressed="false" title="Plugins — per-plugin variables, best practices, and decision trees">Plugins</button>
-    <button class="cat-btn" type="button" data-cat="install" aria-pressed="false" title="Install &amp; help — install &amp; update RavenClaude in Claude Code or GitHub Copilot CLI, plus help">Install &amp; help</button>
-  </nav>
-  <nav class="tab-bar" role="tablist" aria-label="Pages in the selected category">
-    <button class="tab-btn in-cat" id="tab-overview" data-tab="overview" data-cat="setup" role="tab" aria-selected="true" aria-controls="panel-overview" title="Overview — start here: what this dashboard is for">Overview</button>
-    <button class="tab-btn in-cat" id="tab-settings" data-tab="settings" data-cat="setup" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-settings" title="Settings — choose what Claude can do on its own (deny / ask / allow)">Settings</button>
-    <button class="tab-btn in-cat" id="tab-pipeline" data-tab="pipeline" data-cat="setup" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-pipeline" title="Pipeline — the safety checks every command passes through">Pipeline</button>
-    <button class="tab-btn in-cat" id="tab-simulator" data-tab="simulator" data-cat="setup" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-simulator" title="Preview a review — see how a command would be judged before you run it">Preview a review</button>
-    <button class="tab-btn in-cat" id="tab-web-access" data-tab="web-access" data-cat="setup" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-web-access" title="Web access — allow/deny which websites the agent may fetch">Web access</button>
-    <button class="tab-btn" id="tab-saga" data-tab="saga" data-cat="lookback" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-saga" title="Review log — past decisions the reviewer panel made (Sága)">&#9878; Review log</button>
-    <button class="tab-btn" id="tab-activity" data-tab="activity" data-cat="lookback" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-activity" title="Run feed — what Claude is doing right now: runs &amp; worktrees (Sleipnir)">Run feed</button>
-    <button class="tab-btn" id="tab-heimdall" data-tab="heimdall" data-cat="lookback" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-heimdall" title="Perimeter alerts — what your guardrails caught at the edge (Heimdall)">Perimeter alerts</button>
-    <button class="tab-btn" id="tab-vidarr" data-tab="vidarr" data-cat="lookback" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-vidarr" title="Security log — a record of your permission changes (Víðarr)">Security log</button>
-    <button class="tab-btn" id="tab-norns" data-tab="norns" data-cat="lookback" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-norns" title="Lineage — how your plugins connect and depend on each other (Norns)">Lineage</button>
-    <button class="tab-btn" id="tab-mimir" data-tab="mimir" data-cat="lookback" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-mimir" title="Session — what Claude Code knows about this session (M&iacute;mir's well)">Session</button>
-    <button class="tab-btn" id="tab-streams" data-tab="streams" data-cat="lookback" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-streams" title="Streams — your Agentic Work-Streams: which is active and its derived activity">Streams</button>
-    <button class="tab-btn" id="tab-prompt-builder" data-tab="prompt-builder" data-cat="learn" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-prompt-builder" title="Prompt Builder — assemble a best-practice Claude prompt with a live quality score">Prompt Builder</button>
-    <button class="tab-btn" id="tab-learn" data-tab="learn" data-cat="learn" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-learn" title="Learn — plain-English explainers for each concept">Learn</button>
-    <button class="tab-btn" id="tab-commands" data-tab="commands" data-cat="learn" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-commands" title="Commands — ready-to-run slash-command playbooks">Commands</button>
-    <button class="tab-btn" id="tab-trees" data-tab="trees" data-cat="learn" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-trees" title="Guidance — decision trees and best practices">Guidance</button>
-    <button class="tab-btn" id="tab-bifrost" data-tab="bifrost" data-cat="install" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-bifrost" title="Claude Code — install &amp; update a plugin in Claude Code (the Bifröst bridge)">Claude&nbsp;Code</button>
-    <button class="tab-btn" id="tab-install" data-tab="install" data-cat="install" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-install" title="Copilot CLI — install &amp; update RavenClaude in GitHub Copilot CLI">Copilot&nbsp;CLI</button>
-    <button class="tab-btn" id="tab-about" data-tab="about" data-cat="install" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-about" title="About &amp; help — what this dashboard is and how it's organized">About &amp; help</button>
+  <nav class="tab-bar" aria-label="Dashboard sections">
+    <button class="tab-btn" type="button" id="tab-settings" data-tab="settings" aria-selected="true" title="The Thing — comfort-posture + command-review; choose what Claude can do on its own (deny / ask / allow)">The Thing</button>
+    <button class="tab-btn" type="button" id="tab-pipeline" data-tab="pipeline" aria-selected="false" title="Pipeline — the safety checks every command passes through">Pipeline</button>
+    <button class="tab-btn" type="button" id="tab-web-access" data-tab="web-access" aria-selected="false" title="Web access — allow/deny which websites the agent may fetch">Web access</button>
+    <button class="tab-btn" type="button" id="tab-activity" data-tab="activity" aria-selected="false" title="Run feed — what Claude is doing right now: runs &amp; worktrees">Run feed</button>
+    <button class="tab-btn" type="button" id="tab-saga" data-tab="saga" aria-selected="false" title="Saga — the command-review verdict log (Review log)">Saga</button>
+    <button class="tab-btn" type="button" id="tab-mimir" data-tab="mimir" aria-selected="false" title="Session — Claude Code session state for this project (Mímir's well)">Session</button>
+    <button class="tab-btn" type="button" id="tab-streams" data-tab="streams" aria-selected="false" title="Streams — the agentic work-streams for this project">Streams</button>
+    <button class="tab-btn" type="button" id="tab-norns" data-tab="norns" aria-selected="false" title="Lineage — plugin past / present / proposed future (The Norns)">Lineage</button>
+    <button class="tab-btn" type="button" id="tab-heimdall" data-tab="heimdall" aria-selected="false" title="Perimeter alerts — what your guardrails caught at the edge (Heimdall)">Perimeter alerts</button>
+    <button class="tab-btn" type="button" id="tab-vidarr" data-tab="vidarr" aria-selected="false" title="Security log — posture changes &amp; security-relevant denials (Víðarr)">Security log</button>
+    <button class="tab-btn" type="button" id="tab-nidhoggr" data-tab="nidhoggr" aria-selected="false" title="Debt watch — low-noise marketplace maintenance signals (Níðhöggr)">Debt</button>
+    <button class="tab-btn" type="button" id="tab-learn" data-tab="learn" aria-selected="false" title="Learn — plain-English explainers for each concept">Learn</button>
+    <button class="tab-btn" type="button" id="tab-trees" data-tab="trees" aria-selected="false" title="Guidance — every plugin's decision trees (when-this-applies flows) and named best-practice rules, searchable across the marketplace">Guidance</button>
+    <button class="tab-btn" type="button" id="tab-help" data-tab="help" aria-selected="false" title="Help — install &amp; update guides (Claude Code / Copilot CLI), the command catalog, and where retired tabs went">Help</button>
 {plugins_tabs}
   </nav>
 </header>
 
-<main>
-  <section class="tab-panel active" id="panel-overview" data-tab="overview" role="tabpanel" aria-label="Overview">
-{overview_html}
-  </section>
-  <section class="tab-panel" id="panel-settings" data-tab="settings" role="tabpanel" aria-label="Settings">
+<main class="dash-main">
+  <section class="tab-panel active" id="panel-settings" data-tab="settings" role="tabpanel" aria-label="The Thing">
 {settings_html}
   </section>
   <section class="tab-panel" id="panel-pipeline" data-tab="pipeline" role="tabpanel" aria-label="Guardrail pipeline">
 {pipeline_html}
-  </section>
-  <section class="tab-panel" id="panel-install" data-tab="install" role="tabpanel" aria-label="Install and Update">
-{install_html}
-  </section>
-  <section class="tab-panel" id="panel-simulator" data-tab="simulator" role="tabpanel" aria-label="Preview a command's review">
-{simulator_html}
   </section>
   <section class="tab-panel" id="panel-web-access" data-tab="web-access" role="tabpanel" aria-label="Web access allow and deny lists">
 {web_access_html}
@@ -12747,21 +12645,36 @@ _PAGE_TEMPLATE = """<!doctype html>
     <script type="application/json" id="learn-payload">{learn_json}</script>
     <noscript><p>The Learn guidance renders with JavaScript. The concept source lives under <code>plugins/*/knowledge/concepts/</code>.</p></noscript>
   </section>
-  <section class="tab-panel" id="panel-saga" data-tab="saga" role="tabpanel" aria-label="Review log">
-{saga_html}
-  </section>
-  <section class="tab-panel" id="panel-commands" data-tab="commands" role="tabpanel" aria-label="Commands">
-    <div id="commands-mount"></div>
-    <script type="application/json" id="commands-payload">{commands_json}</script>
-    <noscript><p>The Commands catalog renders with JavaScript. The source lives under <code>plugins/*/commands/</code>.</p></noscript>
-  </section>
   <section class="tab-panel" id="panel-trees" data-tab="trees" role="tabpanel" aria-label="Decision trees and best practices">
     <div id="trees-mount"></div>
     <script type="application/json" id="trees-payload">{trees_json}</script>
     <noscript><p>The decision-trees &amp; best-practices guidance renders with JavaScript. The source lives under <code>plugins/*/rules/</code> and <code>plugins/*/best-practices/</code>.</p></noscript>
   </section>
+  <!-- A-split (dashboard-consumption follow-up): the Observe family is UN-merged back
+       into one <section class="tab-panel"> per sub-page, navigated by the shell's
+       Activity / Guardrails sub-navs (mirroring Control's [The Thing · Pipeline · Web
+       access] pattern). Activity → Run feed (activity) · Saga · Session (mimir) ·
+       Streams · Lineage (norns); Guardrails → Perimeter alerts (heimdall) · Security
+       log (vidarr) · Debt watch (nidhoggr). Every mount id (id="saga"/"mimir"/
+       "streams"/"norns"/"vidarr"/"heimdall-debt") and every render function is
+       byte-identical — only the enclosing <section> wrappers were ADDED, the exact
+       inverse of P4's merge, so the B15 render gates stay green with unmodified
+       scripts. Each sub-page loads ONLY its own section on activate() (own *Loaded
+       latch, one GET per endpoint). -->
   <section class="tab-panel" id="panel-activity" data-tab="activity" role="tabpanel" aria-label="Run feed">
 {activity_html}
+  </section>
+  <section class="tab-panel" id="panel-saga" data-tab="saga" role="tabpanel" aria-label="Saga">
+{saga_html}
+  </section>
+  <section class="tab-panel" id="panel-mimir" data-tab="mimir" role="tabpanel" aria-label="Session">
+{mimir_html}
+  </section>
+  <section class="tab-panel" id="panel-streams" data-tab="streams" role="tabpanel" aria-label="Streams">
+{streams_html}
+  </section>
+  <section class="tab-panel" id="panel-norns" data-tab="norns" role="tabpanel" aria-label="Lineage">
+{norns_html}
   </section>
   <section class="tab-panel" id="panel-heimdall" data-tab="heimdall" role="tabpanel" aria-label="Perimeter alerts">
 {heimdall_html}
@@ -12769,23 +12682,43 @@ _PAGE_TEMPLATE = """<!doctype html>
   <section class="tab-panel" id="panel-vidarr" data-tab="vidarr" role="tabpanel" aria-label="Security log">
 {vidarr_html}
   </section>
-  <section class="tab-panel" id="panel-norns" data-tab="norns" role="tabpanel" aria-label="Plugin lineage">
-{norns_html}
+  <section class="tab-panel" id="panel-nidhoggr" data-tab="nidhoggr" role="tabpanel" aria-label="Debt watch">
+{nidhoggr_html}
   </section>
-  <section class="tab-panel" id="panel-mimir" data-tab="mimir" role="tabpanel" aria-label="Session state">
-{mimir_html}
-  </section>
-  <section class="tab-panel" id="panel-streams" data-tab="streams" role="tabpanel" aria-label="Work-streams">
-{streams_html}
-  </section>
-  <section class="tab-panel" id="panel-bifrost" data-tab="bifrost" role="tabpanel" aria-label="Add plugin">
-{bifrost_html}
-  </section>
-  <section class="tab-panel" id="panel-about" data-tab="about" role="tabpanel" aria-label="About and help">
+  <!-- P5 (dashboard-consumption): panel-help is the About/help drawer. It absorbs the
+       former install / bifrost / about / commands tabs as collapsed <details> (their
+       render functions + mount ids are byte-identical — only the enclosing wrapper moved,
+       so Gate 42 (Bifröst) stays green) and renders the same "where things moved" table
+       as docs/dashboard-removed-routes.md so a user with an old bookmark can see where a
+       retired tab went. Reached by the topbar "What is this?" / the Help tab-btn / ⌘K —
+       Help is a non-NAV drawer overlay, not a fifth shell destination. -->
+  <section class="tab-panel" id="panel-help" data-tab="help" role="tabpanel" aria-label="Help">
+    <div class="help-intro">
+      <h2>Help</h2>
+      <p class="help-lede">Install &amp; update guides, the full command catalog, and where the retired tabs went. Everything that used to have its own tab now lives here.</p>
+    </div>
+    <details class="help-section" id="help-moved">
+      <summary>Where things moved</summary>
+{removed_routes_table}
+    </details>
+    <details class="help-section" id="help-about" open>
+      <summary>About &amp; help — what this dashboard is</summary>
 {about_html}
-  </section>
-  <section class="tab-panel" id="panel-prompt-builder" data-tab="prompt-builder" role="tabpanel" aria-label="Prompt Builder">
-{prompt_builder_html}
+    </details>
+    <details class="help-section" id="help-bifrost">
+      <summary>Claude&nbsp;Code — install &amp; update a plugin (the Bifröst bridge)</summary>
+{bifrost_html}
+    </details>
+    <details class="help-section" id="help-install">
+      <summary>Copilot&nbsp;CLI — install &amp; update RavenClaude</summary>
+{install_html}
+    </details>
+    <details class="help-section" id="help-commands">
+      <summary>Commands — the marketplace slash-command catalog</summary>
+      <div id="commands-mount"></div>
+      <script type="application/json" id="commands-payload">{commands_json}</script>
+      <noscript><p>The Commands catalog renders with JavaScript. The source lives under <code>plugins/*/commands/</code>.</p></noscript>
+    </details>
   </section>
 {plugins_panels}
 </main>

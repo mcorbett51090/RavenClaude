@@ -480,6 +480,527 @@ _Last verified: 2026-05-26_
 ---
 
 
+## Shipping to production
+
+### What actually runs your site on Cloudflare · _platform fact_
+
+> Static files are served without running any code; a Worker is code that runs per request. A Pages Function IS a Worker. Workers are not Node — that is what breaks libraries.
+
+**The question to answer first: does anything have to _run_ when a visitor asks for this URL?**
+
+- **No** — the HTML, CSS, JS and images were built ahead of time. They are **static assets**. Cloudflare serves them straight off its network, and per the docs: _"If a requested URL matches a file in the static assets directory, that file will be served — without invoking Worker code."_ Those requests cost nothing: _"Requests to static assets are free and unlimited."_
+- **Yes** — a session must be checked, a database read, an API called, a page rendered from live data. That is a **Worker**: your code, executed once per request, before a response exists.
+
+**Pages and Workers are not two different runtimes.** A **Pages Function _is_ a Worker** — the docs define Functions as "executing code on the Cloudflare network with Cloudflare Workers." And Workers serve static assets natively: `wrangler` uploads your build output and "deploys both your Worker code and your static assets in a single operation." So one Workers project can be the entire site — the static files _and_ the handful of routes that need code.
+
+**Which one, then?** Cloudflare's own migration guide does **not** deprecate Pages, and it does not tell you to move. It publishes a feature split, and that split is the real decision:
+
+| Only on Workers | Only on Pages |
+| --- | --- |
+| Durable Objects, Cron Triggers, Queue consumers, Email Workers | File-based routing with no framework adapter |
+| Workers Logs, Logpush, Tail Workers, source maps | Early Hints (a workaround exists on Workers) |
+| Gradual deployments, remote development, the Vite plugin | Custom domains outside your Cloudflare zones |
+| Non-root routes, rate limiting, image resizing | Serving assets on a path without a workaround |
+
+Practical read: **start on Workers unless you specifically want Pages' file-based routing or need a custom domain on a zone you don't run.** Everything a growing app reaches for later — a durable coordination object, a cron job, a queue consumer, real logs — is on the Workers side of that table.
+
+**What "edge" actually means.** Not a metaphor: your code is deployed to _"a growing global network of thousands of machines distributed across hundreds of locations,"_ and _"each of these machines hosts an instance of the Workers runtime."_ A request is handled by whichever machine took the connection. The consequence people miss: your **compute** is everywhere, but your **data** usually isn't — a Worker in Sydney hitting a database in Virginia is still a trip to Virginia.
+
+**Cold starts.** Workers don't run a container per tenant; they run V8 **isolates**, and paying the runtime's startup cost once per machine _"eliminates the cold starts of the virtual machine model."_ An isolate _"can start around a hundred times faster than a Node process on a container or virtual machine."_ Stop designing around warm-up — there is nothing to keep warm.
+
+**Workers is not Node, and this is what breaks your libraries.** There is no Node runtime underneath. You opt into Node APIs with the `nodejs_compat` compatibility flag and a compatibility date of **2024-09-23 or later**; with it, much of the standard library really works — `node:crypto`, `Buffer`, streams, `path`, `http`/`https`, `net`, `AsyncLocalStorage`, `zlib`. What still breaks:
+
+- **Non-functional stubs** — `node:worker_threads`, `node:cluster`, `node:vm`, `node:http2` import fine and then do nothing. A library that reaches for them fails at runtime, not at build time.
+- **Anything assuming a long-lived process** — a background thread, an in-process job queue, a connection pool that outlives the request, a native addon.
+- **No flag, no Node.** Without `nodejs_compat` set, `node:` imports don't resolve at all.
+
+**The limits that actually bite.** **CPU time**, not wall-clock, is the ceiling: 10 ms per request on Free, 30 s by default on Paid (raisable to 5 min). Waiting on a database or an API isn't CPU time, and an HTTP request has "no limit" on duration while the client stays connected. Memory is **128 MB** per isolate. A script is capped at **3 MB** compressed on Free, **10 MB** on Paid — which is what a bundled headless-CMS SDK runs into.
+
+```mermaid
+flowchart TD
+  R[Request for a URL] --> M{Does a built file<br/>match this path?}
+  M -- yes --> A[Static asset served<br/>no code runs · free and unlimited]
+  M -- no --> W[Your Worker runs<br/>a Pages Function IS a Worker]
+  W --> N{Needs a Node<br/>runtime feature?}
+  N -- worker_threads · cluster · vm · http2 --> X[Non-functional stub · breaks at runtime]
+  N -- crypto · Buffer · streams · path --> OK[Works with nodejs_compat<br/>compat date 2024-09-23+]
+  W --> L[Budget: 128 MB memory<br/>CPU 10 ms free · 30 s paid]
+  class M,N fact
+  class A,W,X,OK,L built
+```
+
+**See also:** Where Cloudflare keeps your data · Who Cloudflare lets in
+
+**Sources:** [Cloudflare Docs — Static assets on Workers](https://developers.cloudflare.com/workers/static-assets/) · [Cloudflare Docs — Static assets: billing and limitations](https://developers.cloudflare.com/workers/static-assets/billing-and-limitations/) · [Cloudflare Docs — Pages Functions](https://developers.cloudflare.com/pages/functions/) · [Cloudflare Docs — Migrate from Pages to Workers](https://developers.cloudflare.com/workers/static-assets/migration-guides/migrate-from-pages/) · [Cloudflare Docs — How Workers works](https://developers.cloudflare.com/workers/reference/how-workers-works/) · [Cloudflare Docs — Node.js compatibility](https://developers.cloudflare.com/workers/runtime-apis/nodejs/) · [Cloudflare Docs — Workers limits](https://developers.cloudflare.com/workers/platform/limits/)
+
+_Last verified: 2026-07-21_
+
+
+---
+
+### Where Cloudflare keeps your data · _platform fact_
+
+> Five stores, one question each: rows you query = D1, files = R2 (egress is free), read-mostly config = KV (up to 60s stale), coordination = Durable Objects, work to hand off = Queues.
+
+Five stores, and the choice is almost never close once you name the shape of the data. Ask the question in the left column; the answer picks the product.
+
+| What you have | Store | The fact that decides it |
+| --- | --- | --- |
+| Rows you want to query and join | **D1** | SQLite semantics; 10 GB per database (Paid), 500 MB (Free) |
+| Files: uploads, images, backups, exports | **R2** | **Egress is free** — the whole reason to leave S3 |
+| Read-mostly config, flags, cached responses | **KV** | Writes can take **60 s or more** to show up elsewhere |
+| Many clients that must agree on one state | **Durable Objects** | One active instance per ID handles every request for it |
+| Work that shouldn't happen in the request | **Queues** | Guaranteed delivery, batching, retries, dead-letter queue |
+
+### D1 — rows you query
+
+_"D1 is Cloudflare's managed, serverless database with SQLite's SQL semantics."_ Real SQL, real joins, real constraints, queried from a Worker binding or over HTTP. Limits worth knowing before you design: **10 GB per database** on Workers Paid (500 MB Free), **1 TB total** per account (5 GB Free), **50,000 databases** (10 on Free), 30-second query duration, 2 MB max row.
+
+The load-bearing one is not a size: _"Each individual D1 database is inherently single-threaded, and processes queries one at a time."_ That is why there is no published rows-per-second figure — throughput is just one over your query duration. A slow query doesn't only hurt its own caller; it holds up everything behind it. The intended answer to a write-heavy workload is **more databases**, not a bigger one — Cloudflare specifically notes you can "create thousands of databases at no extra cost for isolation," so a per-tenant or per-shard database is the sanctioned pattern.
+
+### R2 — files, and the egress story
+
+Object storage, S3-API-compatible, and the differentiator is one line: **"Egress (data transfer to Internet)" is "Free."** No per-GB bandwidth bill for serving what you stored. That single fact is what makes user-uploaded media, public downloads, dataset hosting and video segments viable at a price S3 can't match, and it is the reason to migrate even when nothing else about R2 is better for you.
+
+You pay for storage and operations instead: **$0.015/GB-month** standard ($0.01 for Infrequent Access), **Class A $4.50/million** (writes and lists — `PutObject`, `ListObjects`, `CopyObject`, multipart), **Class B $0.36/million** (reads — `GetObject`, `HeadObject`). Deletes are free. The free tier is 10 GB-month plus 1M Class A and 10M Class B operations per month. The practical shape: **writes cost 12× what reads cost**, so batch uploads and stop listing a bucket on every page load.
+
+### KV — fast reads, and the trap
+
+KV _"achieves high performance by being eventually-consistent."_ A write is usually visible immediately where you made it, but _"changes may take up to 60 seconds or more to be visible in other global network locations."_ Reads are additionally cached with a `cacheTtl` defaulting to 60 seconds, and negative lookups are cached too — so a key you just created can keep reading as missing.
+
+**Never put anything needing read-after-write in KV.** Not a user's just-saved profile, not a session that a redirect immediately reads, not a counter, not a lock. Cloudflare says it plainly: KV is wrong for workloads needing _"atomic operations or where values must be read and written in a single transaction,"_ and wrong for write-heavy keys updated _"tens or hundreds of times per second."_ It is right for feature flags, routing tables, config, and cached API responses — things written rarely and read everywhere.
+
+### Durable Objects — one place where truth lives
+
+_"Each Durable Object has a globally-unique name, which allows you to send requests to a specific object from anywhere in the world"_ and — the property everything else rests on — _"each Durable Object has one active instance at any particular time. All requests sent to that Durable Object are handled by that same instance."_ That is the coordination primitive: give a chat room, a document, a game match, or a rate-limit bucket its own ID and every client converges on one authority instead of racing.
+
+Its storage is _"durable, transactional, and strongly consistent"_ (up to 10 GB per object), and the SQLite storage backend exposes both SQL and key-value APIs. The mistake to avoid: in-memory variables are a cache, not state — _"because in-memory state is not preserved across eviction or hibernation, persist anything important to storage."_
+
+### Queues — take it out of the request path
+
+_"Send and receive messages with guaranteed delivery,"_ with batching, delays, retries and a dead-letter queue for repeated failures. Reach for it when the user shouldn't wait: send the email, resize the image, sync the CRM, rebuild the index. No egress charges. Free plan gets 10,000 operations/day; Paid is $0.40/million with 1M included, where **an operation is each 64 KB written, read, or deleted** — so a 200 KB message is four operations on each hop, not one.
+
+```mermaid
+flowchart TD
+  Q{What shape is it?} -- rows you query --> D1[D1 · SQLite<br/>one query at a time per DB<br/>10 GB · shard by tenant]
+  Q -- a file --> R2[R2 · object storage<br/>EGRESS FREE · $0.015 per GB-month]
+  Q -- config read everywhere --> KV[KV · eventually consistent<br/>up to 60 s to propagate]
+  Q -- clients must agree --> DO[Durable Objects<br/>one instance per ID · strongly consistent]
+  Q -- work to defer --> QU[Queues · guaranteed delivery<br/>batch · retry · dead-letter]
+  KV --> W[Needs read-after-write?<br/>then NOT KV · use D1 or a Durable Object]
+  class Q fact
+  class D1,R2,KV,DO,QU,W built
+```
+
+**See also:** What actually runs your site on Cloudflare · Who Cloudflare lets in
+
+**Sources:** [Cloudflare Docs — D1 overview](https://developers.cloudflare.com/d1/) · [Cloudflare Docs — D1 limits](https://developers.cloudflare.com/d1/platform/limits/) · [Cloudflare Docs — R2 pricing](https://developers.cloudflare.com/r2/pricing/) · [Cloudflare Docs — How KV works](https://developers.cloudflare.com/kv/concepts/how-kv-works/) · [Cloudflare Docs — Durable Objects overview](https://developers.cloudflare.com/durable-objects/) · [Cloudflare Docs — Durable Objects in-memory state](https://developers.cloudflare.com/durable-objects/reference/in-memory-state/) · [Cloudflare Docs — Queues pricing](https://developers.cloudflare.com/queues/platform/pricing/)
+
+_Last verified: 2026-07-21_
+
+
+---
+
+### Who Cloudflare lets in · _platform fact_
+
+> Three products, three different questions: Access asks who you are, Turnstile asks whether a visitor is a human, the WAF asks whether a request is malicious. They stack; none substitutes.
+
+These three get confused constantly, and the confusion is expensive: people put a CAPTCHA in front of an admin panel that needed a login, or expect a firewall rule to stop credential stuffing from a real browser. Each answers a **different question**, and each has a different unit it judges.
+
+| Product | The question it answers | What it judges |
+| --- | --- | --- |
+| **Access** (Cloudflare One / Zero Trust) | *Who are you, and are you allowed in?* | A **person**, against an identity provider |
+| **Turnstile** | *Is this visitor a human?* | A **visitor** on a page, at one moment |
+| **WAF** | *Is this request trying to hurt me?* | A single **HTTP request** |
+
+### Access — identity in front of a whole application
+
+_"Cloudflare Access determines who can reach your application by applying the Access policies you configure."_ Unauthenticated visitors are stopped before the app is reached at all — **"Access is deny by default."** You are not writing auth code; you are putting a policy-enforced door in front of an existing app (self-hosted, SaaS, or non-HTTP).
+
+A policy is four parts: an **action** (Allow, Block, Bypass, or Service Auth), **rule types** that combine criteria, **selectors** — the attribute being checked, such as email domain, country, or device posture — and the **values** to match. Identity is validated against an IdP: the canonical example is allowing anyone _"with an `@example.com` email address, as validated against an IdP."_ Note the docs' own warning: Cloudflare _"does not recommend using Bypass to grant direct permanent access to your internal applications."_
+
+Use it for the staging site, the admin panel, the internal dashboard, the metrics endpoint. Do **not** reach for Turnstile there — a bot check does not know who someone is.
+
+### Turnstile — proving a visitor is a human, without a CAPTCHA
+
+_"Cloudflare's smart CAPTCHA alternative."_ It runs _"a series of small non-interactive JavaScript challenges to gather signals about the visitor or browser environment"_ instead of making people label traffic lights, and it is a drop-in replacement for reCAPTCHA and hCaptcha. Critically, **your site does not have to be on Cloudflare**: _"Turnstile can be embedded into any website without sending traffic through Cloudflare."_
+
+Two keys, and mixing them up is the classic failure:
+
+- **Sitekey — public.** _"Public key used to invoke the Turnstile widget on your site."_ It ships in your HTML. That is fine and by design.
+- **Secret key — private.** _"Private key used for server-side token validation,"_ with the docs' own rule: _"Never expose secret keys in client-side code."_
+
+**The widget alone proves nothing.** A rendered widget just hands the browser a token; anyone can POST your form without one. The check is the server-side call to `POST https://challenges.cloudflare.com/turnstile/v0/siteverify` with `secret` and `response`, and acting on `success`. Two properties shape your code: the token is **valid for 300 seconds (5 minutes)**, and it is **single-use** — _"a replayed token will be rejected."_ So verify once, at submit, on the server, and never cache or re-check a token.
+
+**Hostname behaviour catches people out.** A hostname you add covers itself *and everything under it*: _"the widget will work on that exact hostname and all of its subdomains."_ But you cannot express that with a glob — _"wildcard characters (such as `*`) are not supported in the hostname field."_ So add `example.com` and `app.example.com` and `staging.example.com` are already covered; typing `*.example.com` is not a pattern, it is a broken hostname.
+
+### WAF — blocking malicious requests
+
+The WAF _"checks incoming web and API requests and filters undesired traffic based on sets of rules called rulesets,"_ matching on request properties such as _"IP address, URL path, headers, and body content."_ Three rule families do the work: **Custom rules** you write, **Managed Rules** Cloudflare maintains and updates for zero-days, and **Rate limiting rules** that cap requests matching an expression.
+
+Plan matters here, so check before you design around it: Free gets custom rules, **one** rate limiting rule, IP access rules and sampled security events. **Managed Rules require Pro or above**; advanced rate limiting and account-level configuration are Enterprise.
+
+### They stack — and the order is the point
+
+A request can pass the WAF (it isn't a SQL injection), fail Turnstile (it's a scripted signup), and never reach Access (nobody logged in). Putting Turnstile on a login form does not authenticate anyone; putting Access on a public marketing site locks out your customers; a WAF rule cannot tell a legitimate user from a stolen password. Pick by the question you actually have.
+
+```mermaid
+flowchart TD
+  V[Incoming request] --> W{WAF · is this request malicious?<br/>IP · path · headers · body}
+  W -- matched a rule --> B1[Blocked or rate-limited]
+  W -- clean --> A{Access · who is this person?<br/>validated against your IdP}
+  A -- no identity --> B2[Deny by default · sent to login]
+  A -- allowed, or app is public --> T{Turnstile · is this visitor human?<br/>on the form that matters}
+  T -- token verified server-side --> OK[Request handled]
+  T -- no token · replayed · expired after 300 s --> B3[Rejected]
+  class W,A,T fact
+  class B1,B2,B3,OK built
+```
+
+**See also:** What actually runs your site on Cloudflare · Where Cloudflare keeps your data
+
+**Sources:** [Cloudflare Docs — Access policies](https://developers.cloudflare.com/cloudflare-one/policies/access/) · [Cloudflare Docs — Cloudflare One / Zero Trust](https://developers.cloudflare.com/cloudflare-one/) · [Cloudflare Docs — Turnstile: get started](https://developers.cloudflare.com/turnstile/get-started/) · [Cloudflare Docs — Turnstile server-side validation](https://developers.cloudflare.com/turnstile/get-started/server-side-validation/) · [Cloudflare Docs — Turnstile hostname management](https://developers.cloudflare.com/turnstile/concepts/hostname-management/) · [Cloudflare Docs — Cloudflare WAF](https://developers.cloudflare.com/waf/)
+
+_Last verified: 2026-07-21_
+
+
+---
+
+### How the internet finds your site · _platform fact_
+
+> A registrar holds the name, a DNS host answers the lookups, a CDN sits in front of the server. Knowing which is which is what tells you who to change, and where, to move a domain.
+
+You own a domain and you want it to point somewhere new — a new host, a new site, a new mail provider — without breaking the other two. The whole question is **who do I change, and where**. It is only hard because three separate jobs are usually sold by one company, so people merge them into a single mental "my domain."
+
+**Three roles. Learn to say which one you mean.**
+
+- **Registrar** — who you rent the *name* from (GoDaddy, Namecheap, Cloudflare Registrar). It holds exactly one thing that matters day to day: the list of **nameservers**. Nothing about your site's content lives here.
+- **DNS host** — the service that *answers the questions*: "what IP is example.com?", "where does its mail go?". Your records live here. Cloudflare's own setup guide draws the line: the registrar is where you "registered and own your domain"; the DNS provider is "the service managing your DNS records."
+- **CDN / proxy** — a network that sits *in front of* your server: terminates TLS, caches, filters. Entirely optional. Cloudflare can be all three at once, which is exactly why the three get merged.
+
+**Nameservers are the switch at the top.** An `NS` record "indicate[s] which server should be used for authoritative DNS." You set it **at the registrar**, and it decides which company gets asked everything else. Change it and every record moves at once. Cloudflare tells you to "wait up to 24 hours while your registrar updates your nameservers" — that lag is why the nameserver change is the one you plan, and the record change is the one you do casually.
+
+**The four records you will actually touch**, all at the DNS host:
+
+- **A / AAAA** — "map a domain name to one or multiple IPv4 or IPv6 address(es)." The literal "the site lives at this machine" record.
+- **CNAME** — "map[s] a domain name to another (canonical) domain name." Use it when your host gives you a hostname (`my-app.pages.dev`) instead of an IP.
+- **MX** — "required to deliver email to a mail server." **Email is a separate system from the website.** Moving your site does not touch MX; deleting MX by accident is how a site move takes the mail down with it.
+- **TXT** — "let you enter text into the DNS system." Domain-ownership proofs and email authentication (SPF / DKIM / DMARC) live here.
+
+**Proxied vs DNS-only is a real fork, not a display setting.** Proxied means "Cloudflare sits between your visitors and your server — optimizing, caching, and protecting traffic along the way": visitors resolve to Cloudflare's anycast IPs, never your origin. DNS-only records "respond with your server's actual IP address and do not route HTTP/HTTPS traffic through its network." Only address-resolving records qualify — "Other record types (such as MX or TXT) are always DNS-only." The part that bites: DDoS protection, caching, and "WAF rules, caching, and redirect rules" apply **only to proxied traffic**. A record you flipped to DNS-only while debugging is a record with no cache, no WAF, and your origin IP published.
+
+**SSL is automatic, and it is a property of the edge.** Cloudflare "issues — and renews — free, unshared, publicly trusted SSL certificates to all domains added to and activated on Cloudflare." On a full setup that covers the root domain and first-level subdomains; deeper names need more certificate. Because the edge presents it, the automatic certificate is for **proxied** hostnames — turn the proxy off and you are back to whatever certificate your origin holds.
+
+**Caching defaults surprise people in one specific direction.** "The Cloudflare CDN does not cache HTML or JSON by default." It caches by file extension — CSS, JS, images, fonts, PDFs. So your *assets* are cached at the edge and your *pages* are not, unless you asked. Cloudflare skips caching when `Cache-Control` is `private`, `no-store`, `no-cache`, or `max-age=0`, and caches when it is `public` with `max-age` greater than 0. Practical consequence: "I deployed and still see the old page" is usually your **browser**, not the CDN.
+
+**So: who do I change, and where.**
+
+| What you want | Where you do it |
+| --- | --- |
+| Move to a different DNS host | `NS` — at the **registrar** |
+| Point the site at a new server or host | `A` / `AAAA` / `CNAME` — at the **DNS host** |
+| Move email | `MX` — at the DNS host; unrelated to the website |
+| Turn the CDN on or off for one hostname | proxy status on that record — at the DNS host |
+| Prove ownership to a third party | `TXT` — at the DNS host |
+| Move to a different registrar | transfer — at the **registrar**; records are unaffected if the nameservers do not change |
+
+The sentence worth keeping: **the registrar decides who answers, the DNS host answers, and the proxy decides what happens after the answer.** Most "move my site" work is one row of A/CNAME edits at the DNS host — people reach for the nameservers, and the 24-hour clock, when they never needed to.
+
+```mermaid
+flowchart TD
+  U[Visitor types example.com] --> Q{Who is authoritative?}
+  Q --> REG[Registrar · owns the name<br/>holds the NS pointer]
+  REG -->|NS points here| DNS[DNS host · answers lookups<br/>A · AAAA · CNAME · MX · TXT]
+  DNS -->|A or CNAME · proxied| CDN[CDN edge · anycast IP<br/>auto TLS · cache · WAF]
+  DNS -->|A or CNAME · DNS-only| ORG[Your server · real IP published<br/>no cache · no WAF]
+  CDN --> ORG2[Your server · origin IP hidden]
+  DNS -->|MX · always DNS-only| MAIL[Mail provider · separate system]
+  class REG,DNS,CDN fact
+  class ORG,ORG2,MAIL built
+```
+
+**See also:** Cloudflare deployment traps that cost a day · Build-time config vs runtime config · Source control basics
+
+**Sources:** [Cloudflare DNS — proxy status (proxied vs DNS-only)](https://developers.cloudflare.com/dns/proxy-status/) · [Cloudflare DNS — DNS record types](https://developers.cloudflare.com/dns/manage-dns-records/reference/dns-record-types/) · [Cloudflare DNS — full setup, change your nameservers](https://developers.cloudflare.com/dns/zone-setups/full-setup/setup/) · [Cloudflare SSL — Universal SSL](https://developers.cloudflare.com/ssl/edge-certificates/universal-ssl/) · [Cloudflare Cache — default cache behavior](https://developers.cloudflare.com/cache/concepts/default-cache-behavior/)
+
+_Last verified: 2026-07-21_
+
+
+---
+
+### How subscription billing actually works · _platform fact_
+
+> Trial → first charge → renewal. Webhooks are at-least-once and unordered, so provisioning needs an event-ID ledger and a per-state guard — and a $0 invoice is not a payment.
+
+The failure you will actually meet is this: a customer paid, their browser died on the redirect, and they have no account. Or: they got billed once and provisioned three times. Or: someone on a free trial got the paid tier for free, forever, because a zero-amount invoice looked like a payment.
+
+None of those are edge cases. They are the default behaviour of a subscription integration that was written as though the money path runs through the browser. It doesn't. It runs through webhooks, and webhooks have properties you have to design around.
+
+## The lifecycle, in the order it happens
+
+**Creation.** Stripe creates a Subscription. If payment is due immediately, it also creates an Invoice and a PaymentIntent, and the subscription starts as `incomplete` — it becomes `active` only after the customer pays that first invoice.
+
+**Trial.** With a trial, the initial status is `trialing`, and Stripe *"automatically transitions to `active` when the trial ends and payment succeeds."* You get a heads-up first: `customer.subscription.trial_will_end` is *"Sent 3 days before the trial period ends."*
+
+**First real charge.** *"When the trial ends, if the subscription `status` isn't `paused`, we generate an invoice and send an `invoice.created` event notification. Approximately 1 hour later, we attempt to charge that invoice."* On success you get `invoice.paid`, described as: *"Sent when the invoice is successfully paid. You can provision access to your product when you receive this event and the subscription `status` is `active`."*
+
+**Renewal.** The subscription keeps generating an invoice every billing period, and the same `invoice.paid` / `invoice.payment_failed` pair keeps arriving. Renewal is not a special case in your code — it is the same handler as the first charge. If your first-charge path is a one-shot script, renewals will quietly not work.
+
+**Failure.** `invoice.payment_failed` fires; the subscription lands in `past_due` or `unpaid` depending on your dashboard settings. Downgrade on that signal, not on a timer.
+
+## Why the money path must be webhooks, not the success page
+
+Stripe puts this in a callout headed **"Webhooks are required"**:
+
+> *"You can't rely on triggering fulfillment only from your Checkout landing page, because your customers aren't guaranteed to visit that page. For example, someone can pay successfully in Checkout and then lose their connection to the internet before your landing page loads."*
+
+The browser is a *courtesy* channel: it tells the customer something happened. The webhook is the *authoritative* channel: it tells your server something happened, and it retries. Grant entitlements from the webhook only. It is fine for the success page to show a spinner and poll your own database — it is not fine for the success page to be the thing that writes the row.
+
+## At-least-once means you will get duplicates
+
+> *"Webhook endpoints might occasionally receive the same event more than once."*
+
+And Stripe is blunt that this is your problem to solve: *"Because of how this integration and the internet work, your `fulfill_checkout` function might be called multiple times, possibly concurrently, for the same Checkout Session."* Note **concurrently** — two deliveries can be in flight at once, so a read-then-write check ("have I seen this?" … "no" … "ok, provision") races itself and provisions twice.
+
+Stripe's recommended defence is an **idempotency ledger**: *"You can guard against duplicated event receipts by logging the event IDs you've processed, and then not processing already-logged events."*
+
+Build it **INSERT-first**, not check-first:
+
+1. `INSERT` the event id into a table with a **unique constraint** on that id.
+2. If the insert raises a uniqueness violation, this is a duplicate — **return 200 and do nothing**. Not an error; a no-op.
+3. Only if the insert succeeded do you run the side effect.
+
+The database's unique index is the lock. That is what makes it safe against concurrent deliveries, which an `if not exists` check is not. Return `200` on duplicates: a non-2xx makes Stripe retry, and retrying a duplicate forever is a self-inflicted outage.
+
+Stripe also notes that in some cases *two separate Event objects* describe the same thing, and suggests keying on *"the ID of the object in `data.object` along with the `event.type`"* — worth doing if you see double-provisioning that the event-id ledger doesn't catch.
+
+## Out-of-order means a replay must be a safe no-op
+
+> *"Stripe doesn't guarantee the delivery of events in the order that they're generated."*
+> *"Make sure that your event destination isn't dependent on receiving events in a specific order."*
+
+A cancellation can land before the renewal that preceded it. So the event-id ledger is not enough on its own — it stops the *same* event running twice, but not an *older* event overwriting a newer state.
+
+Add a **per-(subscription, state) guard**. Keep the subscription's current state in your own table, and make each handler a conditional transition: only move `subscription X` into state `active` if it isn't already there and the event isn't older than what you've recorded. Written that way, a replayed or late event finds the world already in the state it wanted and does nothing. That is the property you want: **every handler is safe to run at any time, in any order, any number of times.**
+
+## The trap: a $0 invoice is not a payment
+
+For a trial subscription, Stripe's free-trial documentation says plainly:
+
+> *"When creating a subscription with a trial period, you don't need to add a payment method. An immediate invoice is still created, but the amount is 0 and the Invoice Line descriptions include 'Free trial' verbiage."*
+
+So a zero-amount invoice exists, and it settles, and an invoice-settled event carrying **no money at all** can reach your handler. A handler that reads "invoice" and grants the paid tier gives away the product.
+
+This is exactly why Stripe's provisioning rule is **two-part**, and both parts matter: provision *"when you receive this event **and** the subscription `status` is `active`."* During a free trial the status is `trialing`, not `active` — the status check is what stops the $0 invoice from being mistaken for a payment. Belt and braces: check the amount is greater than zero **and** the subscription status before you grant anything paid.
+
+*(Verified this session: the $0 trial invoice is created, and the two-part provisioning rule is Stripe's own. The docs I checked do not state in one place that `invoice.paid` is emitted for that zero-amount invoice — so treat it as though it is. Coding for the conservative case costs nothing; assuming the event never arrives costs you the product.)*
+
+Trials should be provisioned from the trial itself (`trialing` is a real, grantable state with its own entitlements), never inferred from a settled invoice.
+
+```mermaid
+flowchart TD
+  W[Stripe webhook arrives] --> SIG[Verify the signature]
+  SIG --> LED{INSERT event id<br/>unique constraint}
+  LED -- "duplicate · unique violation" --> NOOP[200 OK · do nothing<br/>at-least-once handled]
+  LED -- "new" --> KIND{Which event?}
+  KIND -- invoice.paid --> AMT{amount not zero<br/>AND status active?}
+  AMT -- no --> TRIAL[Zero-amount / trialing<br/>NOT a payment · no paid grant]
+  AMT -- yes --> GUARD{Per subscription+state guard<br/>already in this state?}
+  GUARD -- yes --> NOOP2[No-op · replay or out-of-order]
+  GUARD -- no --> PROV[Provision · first charge OR renewal]
+  KIND -- invoice.payment_failed --> DOWN[past_due / unpaid · downgrade]
+  KIND -- trial_will_end --> NOTIFY[Warn · ensure payment method]
+  B[Browser hits success page] -.-> POLL[Read-only: poll your own DB]
+  POLL -.-> X[Never grants anything]
+  class NOOP,NOOP2,PROV,TRIAL,DOWN,NOTIFY,POLL,X built
+  class LED,KIND,AMT,GUARD fact
+```
+
+**See also:** Silent-green defects · What an OAuth scope actually costs you
+
+**Sources:** [Stripe — Receive Stripe events in your webhook endpoint (duplicates, ordering)](https://docs.stripe.com/webhooks) · [Stripe — How subscriptions work (lifecycle and statuses)](https://docs.stripe.com/billing/subscriptions/overview) · [Stripe — Subscription webhook events](https://docs.stripe.com/billing/subscriptions/webhooks) · [Stripe — Use free trial periods on subscriptions](https://docs.stripe.com/billing/subscriptions/trials/free-trials) · [Stripe — Fulfill orders (webhooks are required)](https://docs.stripe.com/checkout/fulfillment)
+
+_Last verified: 2026-07-21_
+
+
+---
+
+### What an OAuth scope actually costs you · _platform fact_
+
+> Google grades OAuth scopes recommended, sensitive, or restricted. Restricted adds verification plus a 12-monthly third-party security assessment — check the scope before you design the feature.
+
+You sketch a feature: *"we'll make a folder in the customer's Google Drive, they drop files in, and we read them."* One sentence, one afternoon of work. It is, in fact, a multi-week compliance project with a recurring annual bill — and nothing in the code tells you that. The scope does.
+
+**Check the scope before you design the feature.** The scope is not a checkbox you fill in at the end; it is the thing that decides whether the feature is cheap, expensive, or effectively off the table for a small team.
+
+## Google's three tiers
+
+Google sorts OAuth scopes into three buckets, and the bucket sets the price:
+
+- **Recommended / non-sensitive** — narrow, per-item access. No Google review. Ship today.
+- **Sensitive** — broader access to user data. *"Sensitive scopes require review by Google before any Google Account can grant access."* Weeks of back-and-forth, but no outside auditor.
+- **Restricted** — the highest-risk data. Verification **plus** an independent security assessment.
+
+The restricted tier is where the surprise lives. Google's own words: *"Every app that requests access to Google users' restricted data and has the ability to access data from or through a third-party server must go through a security assessment"* — standardised on the App Defense Alliance's **CASA** framework. And it does not end: *"apps must be reverified for compliance and complete a security assessment at least every 12 months after your assessor's Letter of Assessment (LOA) approval date."* Google warns that restricted-scope verification alone *"can potentially take several weeks to complete."*
+
+Read the trigger carefully: it fires on **the ability to access restricted data from or through a server**. A purely client-side toy might dodge it. Anything with a backend — which is to say, anything real — does not.
+
+## The Drive example, concretely
+
+`drive.file` is **non-sensitive**. Google describes what it grants exactly:
+
+> *"Create new Drive files, or modify existing files, that you open with an app or that the user shares with an app while using the Google Picker API or the app's file picker."*
+
+That wording is per-file, and it names exactly two ways a file enters your grant: **your app created it**, or **the user handed it to you through a picker**. Nothing else.
+
+So run the sketch through it. Your app creates the folder — fine, the app created that. The user then drags in twelve invoices. Your app did not create those files and the user never picked them, so they are simply not in the grant. There is no "the folder is mine, therefore its contents are mine" rule. The only way to enumerate whatever a user happens to put in a folder is a scope like `drive` or `drive.readonly` — and both are **restricted**. Your afternoon feature just bought you verification, a CASA assessment, and an annual re-audit forever.
+
+The cheap redesign is usually right there: keep `drive.file` and put a Google Picker in the flow, so the user *hands you* the files instead of you going to find them. Same user outcome, one tier down, no auditor.
+
+## Two honesty notes
+
+**Providers differ, and I only checked one.** Google's tiering, the CASA assessment, and the 12-month recertification were verified against Google's own documentation for this concept. Microsoft, Slack, GitHub, Dropbox and the rest each have their own review regimes, their own definitions of "sensitive", and their own audit requirements — some lighter, some heavier. Do not carry Google's rules across; go read the provider you are actually integrating with. Nothing here is verified for any provider other than **Google**.
+
+**This is engineering guidance, not legal or compliance advice.** The costs, timelines and audit terms are Google's published requirements as of the verification date, not a quote for your app.
+
+```mermaid
+flowchart TD
+  F[Feature idea] --> Q[Ask FIRST: which scope does this need?]
+  Q --> C{Google's scope tier}
+  C -- recommended / non-sensitive --> R[Ship it · no Google review]
+  C -- sensitive --> S[Google review · weeks · no outside auditor]
+  C -- restricted --> T{Server touches<br/>the data?}
+  T -- no --> V[Verification only]
+  T -- yes --> A[Verification + CASA security assessment<br/>+ re-audit every 12 months]
+  A --> RD[Redesign: Picker + drive.file<br/>drops you back to non-sensitive]
+  RD --> R
+  class R,S,V,A,RD built
+  class C,T fact
+```
+
+**See also:** Permission layers & precedence · Website access guardrail · Containment posture — the OS boundary
+
+**Sources:** [Google — Restricted scope verification (CASA security assessment)](https://developers.google.com/identity/protocols/oauth2/production-readiness/restricted-scope-verification) · [Google — Choose Google Drive API scopes](https://developers.google.com/workspace/drive/api/guides/api-specific-auth) · [Google — Sensitive scope verification](https://developers.google.com/identity/protocols/oauth2/production-readiness/sensitive-scope-verification)
+
+_Last verified: 2026-07-21_
+
+
+---
+
+
+## Shipping lessons
+
+### Cloudflare deployment traps that cost a day · _RavenClaude-built_
+
+> Six Cloudflare Pages behaviours that each cost real debugging time. They share one shape: every failure is silent and plausible, so you diagnose a wrong thing confidently for hours.
+
+Each of these was paid for with real debugging time on a live Cloudflare Pages project. None of them throws. That is the point — read the last section before you decide these are trivia.
+
+**1 — Secrets and D1 bindings attach at DEPLOY time.** Setting a secret or adding a binding changes nothing about what is currently running. Cloudflare says it plainly, once per binding type: *"Redeploy your project for the binding to take effect."* So the loop that feels obvious — set the secret, hit the endpoint, still broken, set it again — is testing the **old** value every time, and you will conclude the secret is wrong when it was right on the first try. Set it, **deploy**, then test.
+
+**2 — Functions propagate after static assets.** On a fresh deploy the pages render perfectly while every `/api/*` route still 404s, for roughly 30–60 seconds. You will spend that window convinced you broke routing. Deploy, wait, *then* diagnose — a 404 inside the propagation window is not evidence of anything. `[unverified — field-observed; the Pages known-issues page documents no propagation lag, so treat the exact window as an observation, not a contract]`
+
+**3 — Cloudflare routes by TLS SNI, so a forged `Host:` header proves nothing.** Certificate and zone selection happen during the TLS handshake, on the SNI hostname: *"Certificates and settings that match the SNI hostname exactly take precedence"*, and *"If no SNI is presented, Cloudflare uses certificate based on the IP address."* The HTTP `Host` header arrives **after** that choice is already made. This invalidates a whole category of test people write — `curl -H "Host: my-app.example.com" https://some-other-host/` does not put you on that zone's Worker, it puts you on whatever zone the SNI selected, holding a header nobody routed on. If you want to test a hostname, resolve to it or use `--resolve`; do not fake the header.
+
+**4 — Pages rejects a POST with no `content-type` before your Function runs.** It comes back as its own 403, treated as a cross-site form submission — and because the rejection is upstream of your code, **your handler's logs show nothing at all**. That silence reads exactly like "my route isn't wired up," which is the wrong hunt. Always send an explicit `content-type` on POST, including from `fetch`, scripts and health checks. `[unverified — field-observed; not documented in the Pages known-issues page]`
+
+**5 — `--env preview` on `wrangler pages secret put` is undocumented but load-bearing.** The Pages command reference lists only `[KEY]` and `--project-name` for `pages secret put`; `--env` is a *global* Wrangler flag, and omitting it means Wrangler "uses the top-level configuration." Pages, meanwhile, has exactly two environments — *"`production` and `preview` are the only two options available via `[env.<ENVIRONMENT>]`."* Net effect: the secret lands in one environment and you assume both. Preview then runs with a missing or stale value while production is fine, and the difference is invisible until a preview deploy behaves nothing like the branch it came from. Set it once per environment, explicitly.
+
+**6 — `preview_database_id` does not bind a preview deployment.** It is a *local development* key — D1's docs describe it as "a user-defined ID for your local test database." It is not how a deployed Pages preview picks a database, and nothing errors when you use it that way; the preview simply keeps whatever it had, which is usually **production**. That is a preview branch writing to the real database while everyone believes it is isolated. The documented Pages shape is an explicit environment override:
+
+```toml
+[[env.preview.d1_databases]]
+binding = "DB"
+database_name = "my-app-preview"
+database_id = "<PREVIEW_DATABASE_ID>"
+```
+
+**The unifying lesson, which is the actually portable part.** Every one of these fails **silently and plausibly**: no exception, no warning, and a symptom that points confidently at something else — a wrong secret, a broken route, an unwired handler, an isolated preview. That is why they cost a day rather than a minute. The defence is not memorising six Cloudflare facts; it is the habit of asking, before you start bisecting: *what would this look like if my mental model of when config attaches were wrong?* Deploy before you test a secret. Wait before you diagnose a 404. Don't trust a header the platform didn't route on. Don't trust a preview you never proved was pointed somewhere else.
+
+```mermaid
+flowchart TD
+  S[You change something] --> W{When does it take effect?}
+  W -->|secret or binding| D[Next DEPLOY · not now]
+  W -->|Functions| P[~30-60s AFTER static assets]
+  D --> T1[Trap · you test the OLD value]
+  P --> T2[Trap · /api 404s on a good deploy]
+  R[You write a test] --> H{What does the platform route on?}
+  H -->|TLS SNI| T3[Trap · forged Host header proves nothing]
+  H -->|no content-type on POST| T4[Trap · 403 before your code · no logs]
+  C[You set config] --> E{Which environment?}
+  E -->|--env omitted| T5[Trap · secret in one env only]
+  E -->|preview_database_id| T6[Trap · preview bound to PRODUCTION db]
+  T1 --> L[All six fail SILENTLY and PLAUSIBLY]
+  T2 --> L
+  T3 --> L
+  T4 --> L
+  T5 --> L
+  T6 --> L
+  class T1,T2,T3,T4,T5,T6 built
+  class L fact
+```
+
+**See also:** How the internet finds your site · Build-time config vs runtime config · Claim Grounding & Source Honesty
+
+**Sources:** [Cloudflare Pages — Functions bindings ('Redeploy your project for the binding to take effect')](https://developers.cloudflare.com/pages/functions/bindings/) · [Cloudflare Pages — Wrangler configuration (production and preview are the only two environments)](https://developers.cloudflare.com/pages/functions/wrangler-configuration/) · [Wrangler commands — pages secret put](https://developers.cloudflare.com/workers/wrangler/commands/pages/) · [Wrangler — environments and the --env flag](https://developers.cloudflare.com/workers/wrangler/environments/) · [Cloudflare SSL — certificate and hostname priority (SNI selection)](https://developers.cloudflare.com/ssl/reference/certificate-and-hostname-priority/) · [Cloudflare D1 — local development (preview_database_id)](https://developers.cloudflare.com/d1/configuration/local-development/)
+
+_Last verified: 2026-07-21_
+
+
+---
+
+### Build-time config vs runtime config · _RavenClaude-built_
+
+> A PUBLIC_ variable is baked into the JS bundle during the build. Set one as a runtime secret and it never reaches the browser — the code compiles, deploys, and silently ships an empty value.
+
+Every configuration value you set lands in one of two places, and they are not interchangeable:
+
+- **Build-time config** is *text substitution during the build*. The bundler finds `import.meta.env.PUBLIC_X` in your source and replaces it with a literal string. After that there is no variable — there is a string sitting in a `.js` file on a CDN.
+- **Runtime config** is *read while the request is being served*. Server code asks the environment for a value each time. Nothing is baked; change it and redeploy, and the next request sees the new value.
+
+Vite states the mechanism directly: variables prefixed `VITE_` "will be exposed in client-side source code after Vite bundling", and are "statically replaced at build time to make tree-shaking effective." Astro renames the prefix to `PUBLIC_` and inherits the same behaviour — "only environment variables prefixed with `PUBLIC_` are available in client-side code". Next.js uses `NEXT_PUBLIC_` and spells out the consequence better than anyone: *"After being built, your app will no longer respond to changes to these environment variables… all `NEXT_PUBLIC_` variables will be frozen with the value evaluated at build time."*
+
+**So a `PUBLIC_` variable set as a runtime secret is not "set late." It is not set at all.** The build ran without it, substituted an empty string, and shipped that. Your platform's secret store now holds a value that nothing will ever read, and the dashboard shows it present — which is why this survives review.
+
+**The failure it actually caused.** A Cloudflare Turnstile **sitekey** was set as a runtime secret. The sitekey is a client-side value by design — it goes in the markup as `data-sitekey` for the widget to render. With it inlined as empty, the widget never rendered, so the browser produced no token. The server half was configured correctly and kept doing its job: it demanded a token and rejected the request without one. Result: **every checkout failed with a captcha error**, on a build that compiled clean, deployed green, and logged nothing unusual. Both halves were individually "working." The split between them was the bug.
+
+**The test for telling which kind a variable is — two questions, in order.**
+
+1. **Does the browser need to read it?** If yes, it must be build-time (or fetched from an API at runtime — but then it is *that endpoint's* runtime config, not the bundle's). If no, keep it runtime and server-only.
+2. **Would you be relaxed about it appearing in View Source?** Build-time public values are published — Vite says it outright: `VITE_*` variables "should *not* contain sensitive information such as API keys… bundled into your source code at build time." If the honest answer is "no," it cannot be a public variable, and the design needs a server endpoint instead of a prefix.
+
+The mechanical confirmation takes ten seconds: **build, then grep the output bundle for the value.** Present in `dist/` ⇒ build-time, and public forever. Absent ⇒ it never reached the client, whatever the dashboard says. Do this once per public variable before you argue with the platform.
+
+**Two corollaries worth internalising.**
+
+- **Changing a build-time value requires a rebuild, not a restart.** The same trap as a Cloudflare Pages binding, where the docs say "Redeploy your project for the binding to take effect" — except here even a redeploy of the *same artifact* is not enough; the bundle must be built again with the value present.
+- **Public/secret pairs must live on opposite sides.** A sitekey/secret-key pair, a publishable/secret API key pair — the public half is build-time and shipped, the secret half is runtime and server-only. Putting both in the same place is wrong in one direction or the other every time.
+
+```mermaid
+flowchart TD
+  V[A config value] --> Q{Does the browser read it?}
+  Q -->|yes| B[BUILD-TIME · PUBLIC_ / VITE_ / NEXT_PUBLIC_]
+  Q -->|no| R[RUNTIME · server-only secret or binding]
+  B --> INL[Inlined as a literal during the build]
+  INL --> SHIP[Published in the JS bundle · public forever]
+  R --> READ[Read per request from the environment]
+  READ --> SAFE[Never sent to the browser]
+  X[Public value set as a RUNTIME secret] --> EMPTY[Build ran without it<br/>empty string inlined]
+  EMPTY --> FAIL[Widget never renders · server still demands a token<br/>every checkout fails · nothing errors]
+  class B,R fact
+  class X,EMPTY,FAIL built
+```
+
+**See also:** Cloudflare deployment traps that cost a day · How the internet finds your site · Claim Grounding & Source Honesty
+
+**Sources:** [Vite — env variables and modes ('statically replaced at build time')](https://vite.dev/guide/env-and-mode) · [Astro — environment variables (PUBLIC_ prefix)](https://docs.astro.build/en/guides/environment-variables/) · [Next.js — environment variables (NEXT_PUBLIC_ inlining)](https://nextjs.org/docs/app/guides/environment-variables) · [Cloudflare Pages — Functions bindings (redeploy for a binding to take effect)](https://developers.cloudflare.com/pages/functions/bindings/) · [Cloudflare Turnstile — client-side rendering (data-sitekey)](https://developers.cloudflare.com/turnstile/get-started/client-side-rendering/)
+
+_Last verified: 2026-07-21_
+
+
+---
+
+
 ## Security
 
 ### Comfort-posture dashboard · _RavenClaude-built_
@@ -703,6 +1224,69 @@ flowchart TD
 **Sources:** [dod-gate.sh hook](plugins/ravenclaude-core/hooks/dod-gate.sh) · [ravenclaude-core constitution — Auto-mode guardrails](plugins/ravenclaude-core/CLAUDE.md)
 
 _Last verified: 2026-06-08_
+
+
+---
+
+### Silent-green defects · _RavenClaude-built_
+
+> A silent-green defect is a check that passes loudest exactly when it should fail — a skipped suite, a grep over a deleted file, a stale build dir. Ask what it does when its subject is ABSENT.
+
+A **silent-green defect** is a check that **passes loudest exactly when it should fail**. Not a flaky test, not a check that misses an edge case — a check whose *failure mode is success*. The build is green, the suite is green, CI is green, and the thing being guarded is gone.
+
+This is the worst class of bug in a codebase full of automation, because every signal you would normally use to find a bug is the thing that is lying to you. You cannot test your way out of it by running the tests harder. It survives review because the diff looks correct in isolation, and it survives CI because CI is the victim.
+
+## Six real ones, all from a single project
+
+1. **A test suite that skips itself when its build artifact is missing.** The suite opened with a `skipIf()` guarding against a missing `dist/` directory. A skipped suite reports **green**. So every local run without a prior build reported success while asserting *nothing at all* — and the one environment that did build (CI) was the only place the assertions ever ran.
+2. **A grep-based gate over a file that no longer exists.** The gate ran a pattern over a source file and failed if the match count was wrong. Someone deleted the file. Zero matches. The gate **passed** — precisely, and only, because the thing it was guarding had been deleted.
+3. **Assertions run against a stale build directory.** The tests read the last successful build's output, not the current source. They described markup that had been removed weeks earlier. Every assertion passed, honestly and confidently, about a page that no longer existed.
+4. **A guard with no `else`.** `if (condition) { handle(); }` — and the unhandled case just falls through. No error, no log, no branch taken. The function returns as though it did its job.
+5. **`LIMIT 1` with no `ORDER BY`.** The database is free to return any row it likes. In testing, against a small table, it always returns the one you expect. In production, against a large one, it doesn't — occasionally, and unreproducibly.
+6. **Copy that promises behaviour no code implements.** A file-picker button, a nice upload affordance, a "your file has been received" message — with nothing behind it that uploads anything. Nothing failed, because nothing ran.
+
+Different-looking bugs, one shape.
+
+## The diagnostic that finds all six
+
+Ask one question of every check you own:
+
+> **What does this check do when the thing it checks is ABSENT?**
+
+Absent means: the file was deleted, the build never ran, the fixture didn't load, the config key isn't set, the branch was never taken, the row set came back empty, the feature flag is off. If the honest answer is *"it passes"*, you have a silent-green defect — today, whether or not anything is broken yet.
+
+Run it over each of the six and it lands every time: the skipped suite (no build → pass), the grep (no file → pass), the stale directory (no fresh build → pass), the missing `else` (no branch → pass), the `LIMIT 1` (no ordering → whatever, and "whatever" looks like a pass), the copy (no handler → pass).
+
+## The fix pattern: assert existence first, fail closed
+
+Two moves, in this order.
+
+**Assert the subject exists before you assert anything about it.** A check must first prove it has something to check: the artifact is present, the file is where the gate expects it, the build is newer than the source, the query returned a row, the branch was taken. Make that a *hard* assertion, not a skip. "I couldn't find it" must be a failure, never an absence of failure.
+
+**Fail closed.** When the check can't run — missing dependency, missing input, unhandled case — the outcome is a **failure**, not a pass. A tool that isn't installed makes the gate red, or at minimum shouts *"this is not a pass."* A guard with no matching branch raises. `LIMIT 1` gets an `ORDER BY` so "the row" is a defined thing rather than a coincidence.
+
+**And prove the check has teeth.** This is what a *must-fail half* is for: run every gate against a known-bad fixture and require it to go **red**, alongside the known-good fixture that requires it to go green. A gate that has only ever been observed passing has never been observed working. Both halves, or you're trusting a colour.
+
+```mermaid
+flowchart TD
+  C[A check runs] --> Q{Is the thing it checks<br/>present at all?}
+  Q -- "absent · missing file, no build,<br/>empty result, branch not taken" --> S{What does it report?}
+  S -- "PASS · skip, zero matches,<br/>stale data, silent fallthrough" --> BAD[SILENT-GREEN DEFECT<br/>green when it should be red]
+  S -- "FAIL · loud, explicit" --> GOOD[Fails closed · trustworthy]
+  Q -- present --> N[Normal check · pass or fail on merit]
+  BAD --> F1[Fix 1 · assert existence FIRST]
+  F1 --> F2[Fix 2 · fail closed when it can't run]
+  F2 --> F3[Fix 3 · must-fail half proves teeth]
+  F3 --> GOOD
+  class BAD,GOOD,N,F1,F2,F3 built
+  class Q,S fact
+```
+
+**See also:** Definition-of-done gate · The gate-audit meta-test · Task-scope gate — the breadth guard · Runaway brake — the depth guard
+
+**Sources:** [CI gate audit — every gate must fail on a known-bad fixture](docs/best-practices/ci-gate-audit.md) · [audit-gates.sh — the meta-test that proves each gate has teeth](scripts/audit-gates.sh) · [dod-gate.sh — the definition-of-done Stop gate](plugins/ravenclaude-core/hooks/dod-gate.sh)
+
+_Last verified: 2026-07-21_
 
 
 ---

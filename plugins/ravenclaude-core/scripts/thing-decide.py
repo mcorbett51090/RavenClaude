@@ -345,7 +345,7 @@ def _evaluator_shadow(
     mock = os.environ.get("THING_DECIDE_MOCK_EVAL", "")
     tier_model = {
         "fast": "claude-haiku-4-5-20251001",
-        "balanced": "claude-sonnet-4-6",
+        "balanced": "claude-sonnet-5",
         "top": "claude-opus-4-8",
     }
     if mock in {"keep", "upgrade", "downgrade"}:

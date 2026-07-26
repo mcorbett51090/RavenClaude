@@ -60,6 +60,34 @@ _ALLOWED_VARIANCE = [("REPO_ROOT", "PROJECT_ROOT")]
 # encoded-path resolver — the contract surfaces them as load-bearing).
 _BODY_DIFF_PREFIXES = ("_read_", "_mimir_")
 
+# Exact-name body-diff contract (FORGE dashboard-consumption, PB-1). The launch
+# lane rewrites the port/reclaim/bind/lifetime path in BOTH server copies; those
+# functions are NOT `_read_*`/`_mimir_*`, so the prefix filter above cannot see
+# them, and a one-copy edit to (say) `_reclaim_port` would ship different bind
+# behaviour to consumers silently — the exact drift class behind the v0.205.3
+# incident. These three are already byte-identical today, so naming them is green
+# at zero cost. CODE-SHAPE RULE (binding on the L lane): any NEW port/bind/idle
+# logic must ship as a module-level named function present in BOTH copies and be
+# added here — logic left inline in `main()` is by construction ungated. When the
+# L lane lands `_default_bind()` and the idle-expiry reaper, append their names.
+_BODY_DIFF_NAMES = (
+    "_port_holder_pids",
+    "_holder_cwd",
+    "_reclaim_port",
+    "_default_bind",
+    "_idle_reaper",
+)
+
+# NOT compared — `main()` legitimately DIVERGES between the two copies in seven
+# documented ways, so byte-diffing it is unkeepable (this is why the contract is a
+# named-function list, not a whole-main diff): (1) the root serves the repo root +
+# a landing path while the plugin serves PLUGIN_DIR/DASH_PATH; (2) the root accepts
+# --project-root/--validate, the plugin does not; (3) the root carries the
+# marketplace-write refusal guard; (4) root-only LAN/QR `_lan_ip` phone-URL block;
+# (5) plugin-only `_bind_server` helper; (6) the `/__run` banner wording differs;
+# (7) Codespace-refusal wording differs. New drift-prone logic goes in a named
+# function above, never inline in main().
+
 _DEF_RE = re.compile(r"^def\s+(\w+)\s*\(", re.MULTILINE)
 # Module-level boundaries: `def NAME(` OR `class NAME(`. The body-extractor uses
 # this to stop at the NEXT top-level boundary (not just the next def), so a
@@ -84,9 +112,12 @@ def _normalize(body: str) -> str:
     return out
 
 
-def extract_functions(src: str, prefixes: tuple[str, ...]) -> dict[str, str]:
+def extract_functions(
+    src: str, prefixes: tuple[str, ...], names: tuple[str, ...] = ()
+) -> dict[str, str]:
     """Return {name: body_text} for every top-level `def NAME(...)` whose name
-    starts with one of the given prefixes. The body is the slice from the `def`
+    starts with one of the given prefixes OR is an exact member of `names`. The
+    body is the slice from the `def`
     line up to (but not including) the next top-level `def` / `class` line, or
     end-of-file. Returns the literal source, including the `def` signature line
     — enough for a meaningful byte-diff.
@@ -101,7 +132,7 @@ def extract_functions(src: str, prefixes: tuple[str, ...]) -> dict[str, str]:
     boundaries = [m.start() for m in _BOUNDARY_RE.finditer(src)]
     for m in _DEF_RE.finditer(src):
         name = m.group(1)
-        if not any(name.startswith(p) for p in prefixes):
+        if not (any(name.startswith(p) for p in prefixes) or name in names):
             continue
         start = m.start()
         # Find the next module-level boundary STRICTLY after this def's start
@@ -187,10 +218,27 @@ def main() -> int:
     # mirrored is exactly the contract violation the gate is for).
     root_src = root_path.read_text(encoding="utf-8")
     plugin_src = plugin_path.read_text(encoding="utf-8")
-    root_fns = extract_functions(root_src, _BODY_DIFF_PREFIXES)
-    plugin_fns = extract_functions(plugin_src, _BODY_DIFF_PREFIXES)
+    root_fns = extract_functions(root_src, _BODY_DIFF_PREFIXES, _BODY_DIFF_NAMES)
+    plugin_fns = extract_functions(plugin_src, _BODY_DIFF_PREFIXES, _BODY_DIFF_NAMES)
 
     body_drift: list[str] = []
+
+    # CSRF-binding invariant (PB-1): both copies must key the allow-lists on the
+    # ACTUALLY-BOUND port (`actual_port`), never `args.port`. A fallback bind
+    # (port 8000 held → walk to 8001) makes `args.port` != the bound port, so an
+    # allow-list keyed on `args.port` would reject every same-origin /__save on
+    # the fallback port — the DNS-rebinding defense collapsed into a self-DoS.
+    # Green today (v0.205.3 keyed both on actual_port); this pins it so a later
+    # port edit cannot silently regress it in either copy.
+    for label, src_text in (("root", root_src), ("plugin", plugin_src)):
+        for ln in src_text.splitlines():
+            if "_ALLOWED_HOSTS" in ln or "_ALLOWED_ORIGINS" in ln:
+                if "args.port" in ln and "port" in ln:
+                    body_drift.append(
+                        f"{label} serve-dashboards.py keys an allow-list on `args.port`, "
+                        f"not `actual_port`: {ln.strip()!r}. A fallback bind would then "
+                        f"reject every same-origin /__save (CSRF self-DoS). Use actual_port."
+                    )
     only_in_root = sorted(set(root_fns) - set(plugin_fns))
     only_in_plugin = sorted(set(plugin_fns) - set(root_fns))
     if only_in_root:
