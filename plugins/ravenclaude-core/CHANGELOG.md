@@ -2,6 +2,13 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+=======
+## 0.210.2 — 2026-07-26
+
+### Fixed
+
+- **Command-card header wraps instead of clipping.** The dashboard/portal `.cmd-card-head` now wraps (`flex-wrap: wrap`, `gap: 6px 8px`) and `.cmd-card-title` takes a full-width flex row with `overflow-wrap: anywhere` (was `word-break: break-all` on a `space-between` row) — long mono command names/badges no longer collide or truncate awkwardly on narrow widths. Generator-only (`scripts/generate-dashboards.py`); `dashboard.html` + `index.html` regenerated.
+
 <<<<<<< HEAD
 ## 0.211.0 — 2026-07-26
 
@@ -32,7 +39,6 @@ All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the 
 
 **Migration:** none — a new read-only-to-the-repo tab (state is `localStorage` only). Reviewed by
 `code-reviewer` (approve-with-nits, all applied) + `security-reviewer` (DOM-XSS floor holds).
-=======
 ## 0.210.1 — 2026-07-26
 
 ### Added
