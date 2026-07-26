@@ -1517,3 +1517,44 @@ is the load-bearing regression gate. ~~Still open.~~ **Shipped** — see the sup
 **Migration:** none — the 12 hooks are **advisory** (exit 0 + a notice) and were emitting *nothing* on
 macOS. They now emit real findings there. Linux/CI is unchanged in outcome (perl and `grep -P` agree on
 these patterns; verified on 6 real-pattern fixtures incl. the empty-file edge).
+
+## Prompt Builder — a premium, deterministic, client-side prompt tab (added 2026-07-26, v0.205.0)
+
+A new dashboard tab (`#/prompt-builder`, in the **Learn** category) that assembles a best-practice
+**Claude** prompt from form inputs — **Task** / **System** / **Few-shot** modes — with a live preview,
+a **cited anti-folklore quality linter** (the hero), a structure-completeness score, a rough token-size
+estimate, starter presets + a one-click pattern library, and copy/export. It is 100% **deterministic and
+client-side** (no server, no API, no external deps) so it works fully on a static host, and it writes
+nothing to a consumer's repo (state is `localStorage` only). Built via `/forge` (two divergent cross-model
+design panels → correlated-error critic → red-team → synthesis); every best-practice claim traces to the
+consolidated Anthropic _Prompting best practices_ page (retrieved 2026-07-26).
+
+**Three research corrections are load-bearing** (the FORGE G1 gate caught them): **response prefilling is
+deprecated** (a 400 error on Claude 4.6+) — the builder never emits it and the linter *penalizes* a
+prefill-shaped draft (claim 1.9); the token number is honestly **an estimate** (no official Anthropic
+ratio — per-model divisor 3.6 for the current tokenizer generation / 4.0 for Haiku 4.5, both marked
+`[interpretation]`, ±20% band) that **never gates an action**; and model tuning is **inverted from
+folklore** — current models over-trigger on stacked `CRITICAL/MUST`, so the linter *penalizes* imperative
+stacking and gives magic phrases zero credit (claims 5.2/5.3/6.9).
+
+**The engineering spine — a self-auditing XSS floor.** The builder echoes user input into a live preview,
+so its #1 constraint is **no HTML-string sink anywhere in its JS**: the entire UI is built with a
+`createElement`/`textContent` factory (`pbEl`), the preview is a single whole-string `textContent` write,
+and the data-tag name is clamped to `[A-Za-z0-9_-]`. **Gate 134** (`scripts/check-prompt-builder-render.mjs`)
+enforces this **structurally** — a static source grep over the whole `PROMPT-BUILDER:START..END` region —
+because the shared render-gate DOM stub (`check-nidhoggr-render.mjs`'s `El` class) has **no `innerHTML`
+setter** and therefore cannot catch an `innerHTML` regression on its own (a "zero child elements" assertion
+still passes). This was the **correlated error** the FORGE G4a critic found in both design panels; the fix
+adopts the repo's own precedent (`check-concern-stats-render.mjs`'s static grep). The gate also
+behaviorally exercises the pure assembler / linter / token estimate and ships a must-fail half wired into
+`audit-gates.sh` (case arm + `Supported:` string + a body block that injects a sink into a *new* function
+and asserts the grep bites). Reviewed by `code-reviewer` (approve-with-nits — all applied) and
+`security-reviewer` (DOM-XSS floor holds, verified exhaustively).
+
+**DOM budget:** the panel ships as a ~4-element static mount; the whole interactive UI (fields, gauge,
+issues) is JS-rendered at `initPromptBuilder()` time, so it stays comfortably under the Gate-132 ratchet
+(dashboard 10,721/10,764, index 11,426/11,470) with no budget-row edit.
+
+**Migration:** none — a new tab that changes nothing in an installed plugin until a consumer opens it.
+Category is `learn` (the builder teaches best practices by construction and configures nothing); moving it
+to `setup` for more prominence is a one-line `data-cat` change.

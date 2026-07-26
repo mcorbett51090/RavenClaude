@@ -2,6 +2,35 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.205.0 — 2026-07-26
+
+### Added
+
+- **Prompt Builder — a new dashboard tab (`#/prompt-builder`, under Learn).** A deterministic, 100%
+  client-side tool that assembles a best-practice **Claude** prompt from form inputs, in three modes —
+  **Task** / **System** / **Few-shot** — with a live preview, a **cited anti-folklore quality linter**
+  (the hero surface), a structure-completeness score, a rough token-size estimate, starter presets + a
+  one-click pattern library, and copy/export (`.md`/`.json`). No server, no API, no external deps — it
+  works fully on a static host like the rest of the dashboard. Built via `/forge` (two-panel cross-model
+  design → correlated-error critic → red-team → synthesis); grounded in Anthropic's consolidated
+  _Prompting best practices_ (retrieved 2026-07-26). Notable groundings the research corrected: **response
+  prefilling is deprecated (400 on Claude 4.6+)** so the builder never emits it and the linter penalizes
+  it; the token number is **an estimate** (per-model divisor 3.6 current / 4.0 Haiku 4.5, `[interpretation]`,
+  ±20% band) that never gates an action; and the linter **penalizes** stacked `CRITICAL/MUST` emphasis
+  (current models over-trigger on it) rather than rewarding folklore.
+- **Gate 134 — `scripts/check-prompt-builder-render.mjs`.** The builder echoes user input into a live
+  preview, so its security floor is **no HTML-string sink anywhere in its JS** (the whole UI is built with
+  `createElement`/`textContent`). The gate enforces that **structurally** — a static source grep over the
+  whole `PROMPT-BUILDER:START..END` region — because the shared DOM-stub pattern (`check-nidhoggr-render.mjs`'s
+  `El` class) has no `innerHTML` setter and cannot catch an `innerHTML` regression on its own (precedent:
+  `check-concern-stats-render.mjs`). It also behaviorally exercises the pure assembler / linter / token
+  estimate, with a must-fail half wired into `audit-gates.sh` (registered in all three places).
+
+**Migration:** none — a new read-only-to-the-repo tab (it writes nothing to a consumer's project; state is
+`localStorage` only). Nothing in an installed plugin changes on `/plugin marketplace update` until a
+consumer opens the tab. Reviewed by `code-reviewer` (approve-with-nits, all applied) + `security-reviewer`
+(DOM-XSS floor holds).
+
 ## 0.202.0 — 2026-07-16
 
 ### Added

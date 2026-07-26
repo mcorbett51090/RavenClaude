@@ -3551,6 +3551,119 @@ footer.page-footer a:hover { text-decoration: underline; }
 .pp-status.status-unsaved { color: var(--warn); }
 .pp-noserver { margin: 12px 0 0; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--ok-soft); color: var(--muted); font-size: 12.5px; line-height: 1.5; }
 @media (max-width: 720px) { .pv-row { grid-template-columns: 1fr; } .pv-help { grid-column: 1; } .pp-cols { grid-template-columns: 1fr; } }
+
+/* ── Prompt Builder (#/prompt-builder) ───────────────────────────────────────
+   EVERY selector is `.pb-`-prefixed (no bare element selectors) so the portal's
+   scope_css(#dash-root) rewrite can't leak a rule across the folded page and
+   both shipped surfaces (dashboard.html + index.html) render identically. */
+.pb-root { display: flex; flex-direction: column; gap: 14px; }
+.pb-noscript { color: var(--muted); }
+.pb-intro { margin: 0; }
+.pb-intro h2 { margin: 0 0 4px; }
+.pb-intro .pb-lead { margin: 0; color: var(--muted); font-size: 13.5px; line-height: 1.5; }
+
+.pb-controls { position: sticky; top: 0; z-index: 5; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; padding: 10px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
+.pb-controls .pb-spacer { flex: 1 1 auto; }
+.pb-seg { display: inline-flex; background: var(--surface-2); border: 1px solid var(--border); border-radius: 999px; padding: 3px; gap: 2px; }
+.pb-seg button { appearance: none; border: 0; background: transparent; color: var(--muted); font: inherit; font-size: 13px; font-weight: 600; padding: 6px 14px; border-radius: 999px; cursor: pointer; transition: color .15s, background .15s; }
+.pb-seg button[aria-selected="true"] { background: var(--accent); color: #fff; }
+.pb-seg button:hover:not([aria-selected="true"]) { color: var(--text); }
+.pb-seg button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.pb-ctl { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--muted); }
+.pb-ctl label { font-weight: 600; }
+.pb-select, .pb-field select { appearance: none; background: var(--surface-2); color: var(--text); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 6px 26px 6px 10px; font: inherit; font-size: 13px; cursor: pointer; background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%); background-position: right 11px center, right 6px center; background-size: 5px 5px, 5px 5px; background-repeat: no-repeat; }
+.pb-select:focus-visible, .pb-field select:focus-visible, .pb-field textarea:focus-visible, .pb-field input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; border-color: var(--accent); }
+
+.pb-token { display: inline-flex; align-items: baseline; gap: 5px; padding: 5px 10px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 999px; font-size: 12px; color: var(--muted); white-space: nowrap; }
+.pb-token strong { color: var(--text); font-variant-numeric: tabular-nums; }
+.pb-token .pb-token-band { font-size: 11px; opacity: .8; }
+.pb-info { display: inline-flex; align-items: center; justify-content: center; width: 15px; height: 15px; border-radius: 50%; border: 1px solid var(--border); color: var(--muted); font-size: 10px; font-weight: 700; cursor: help; }
+
+.pb-btn { appearance: none; font: inherit; font-size: 12.5px; font-weight: 600; padding: 6px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface-2); color: var(--text); cursor: pointer; transition: background .15s, border-color .15s; }
+.pb-btn:hover { border-color: var(--accent); }
+.pb-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.pb-btn.pb-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.pb-btn.pb-ghost { background: transparent; }
+.pb-btn.pb-danger:hover { border-color: var(--danger); color: var(--danger); }
+
+.pb-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr) minmax(0, .85fr); gap: 14px; align-items: start; }
+.pb-pane { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; min-width: 0; }
+.pb-pane > h3 { margin: 0 0 10px; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.pb-pane-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 0 10px; }
+.pb-pane-head h3 { margin: 0; }
+
+.pb-fields { display: flex; flex-direction: column; gap: 12px; }
+.pb-field { display: flex; flex-direction: column; gap: 4px; }
+.pb-field label { font-size: 12.5px; font-weight: 600; color: var(--text); display: flex; align-items: center; gap: 6px; }
+.pb-field .pb-req { color: var(--accent); }
+.pb-field .pb-hint { font-weight: 400; color: var(--muted); font-size: 11.5px; }
+.pb-field textarea, .pb-field input[type="text"] { width: 100%; box-sizing: border-box; background: var(--surface-2); color: var(--text); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 8px 10px; font: inherit; font-size: 13px; line-height: 1.5; resize: vertical; }
+.pb-field textarea { min-height: 60px; }
+.pb-field textarea.pb-sm { min-height: 40px; }
+.pb-field .pb-claim { font-size: 10.5px; color: var(--muted); opacity: .75; }
+
+.pb-check { flex-direction: row; align-items: center; gap: 8px; }
+.pb-check input { width: 15px; height: 15px; accent-color: var(--accent); }
+
+.pb-repeat { display: flex; flex-direction: column; gap: 8px; }
+.pb-repeat-item { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 8px; background: var(--surface-2); display: flex; flex-direction: column; gap: 6px; }
+.pb-repeat-item .pb-repeat-head { display: flex; align-items: center; justify-content: space-between; font-size: 11.5px; color: var(--muted); font-weight: 600; }
+.pb-repeat-ctl { display: inline-flex; gap: 4px; }
+.pb-icon-btn { appearance: none; border: 1px solid var(--border); background: var(--surface); color: var(--muted); border-radius: 5px; width: 24px; height: 22px; font-size: 12px; line-height: 1; cursor: pointer; }
+.pb-icon-btn:hover { color: var(--text); border-color: var(--accent); }
+.pb-icon-btn:disabled { opacity: .4; cursor: not-allowed; }
+.pb-count { font-variant-numeric: tabular-nums; }
+.pb-count.pb-ok { color: var(--ok); }
+.pb-count.pb-warn { color: var(--warn); }
+
+.pb-patterns { margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--border); }
+.pb-patterns .pb-plabel { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 0 0 6px; }
+.pb-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.pb-chip { appearance: none; font: inherit; font-size: 12px; padding: 5px 10px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text); cursor: pointer; }
+.pb-chip:hover { border-color: var(--accent); }
+.pb-chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.pb-chip.pb-deprecated { text-decoration: line-through; color: var(--muted); cursor: not-allowed; border-style: dashed; }
+
+.pb-preview-wrap { display: flex; flex-direction: column; gap: 10px; }
+.pb-preview { margin: 0; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; font-family: var(--font-mono); font-size: 12.5px; line-height: 1.55; color: var(--text); white-space: pre-wrap; word-break: break-word; overflow-x: auto; max-height: 460px; overflow-y: auto; min-height: 120px; }
+.pb-preview:empty::before { content: attr(data-empty); color: var(--muted); font-style: italic; }
+.pb-preview-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.pb-note { margin: 0; padding: 8px 10px; border-radius: var(--radius-sm); background: var(--ok-soft, rgba(31,122,63,.10)); border: 1px solid var(--border); color: var(--muted); font-size: 12px; line-height: 1.45; }
+.pb-note.pb-note-info { display: flex; gap: 7px; }
+
+.pb-quality { display: flex; flex-direction: column; gap: 12px; }
+.pb-gauge-row { display: flex; align-items: center; gap: 12px; }
+.pb-gauge { flex: 0 0 auto; width: 76px; height: 76px; }
+.pb-gauge circle.pb-gauge-track { stroke: var(--border); }
+.pb-gauge circle.pb-gauge-fill { stroke: var(--accent); stroke-linecap: round; transform: rotate(-90deg); transform-origin: center; transition: stroke-dashoffset .5s ease, stroke .3s; }
+.pb-gauge text { fill: var(--text); font-family: var(--font-sans); font-weight: 700; font-size: 20px; }
+.pb-gauge-fill.pb-band-ok { stroke: var(--ok); }
+.pb-gauge-fill.pb-band-warn { stroke: var(--warn); }
+.pb-gauge-fill.pb-band-bad { stroke: var(--danger); }
+.pb-gauge-meta { min-width: 0; }
+.pb-gauge-meta .pb-gauge-label { font-size: 12.5px; font-weight: 600; }
+.pb-gauge-meta .pb-gauge-sub { font-size: 11px; color: var(--muted); line-height: 1.4; }
+
+.pb-issues { display: flex; flex-direction: column; gap: 7px; margin: 0; padding: 0; list-style: none; }
+.pb-issue { border: 1px solid var(--border); border-left-width: 3px; border-radius: var(--radius-sm); padding: 8px 10px; background: var(--surface-2); }
+.pb-issue.pb-sev-warn { border-left-color: var(--warn); }
+.pb-issue.pb-sev-bad { border-left-color: var(--danger); }
+.pb-issue.pb-sev-tip { border-left-color: var(--accent); }
+.pb-issue-title { font-size: 12.5px; font-weight: 600; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.pb-issue-why { font-size: 11.5px; color: var(--muted); line-height: 1.45; margin: 3px 0 0; }
+.pb-issue-fix { appearance: none; margin-top: 5px; font: inherit; font-size: 11.5px; font-weight: 600; color: var(--accent); background: none; border: 0; padding: 0; cursor: pointer; text-align: left; }
+.pb-issue-fix:hover { text-decoration: underline; }
+.pb-issue .pb-issue-claim { font-size: 10px; color: var(--muted); opacity: .7; }
+.pb-clean { color: var(--ok); font-size: 12.5px; font-weight: 600; }
+
+.pb-honesty { font-size: 11px; color: var(--muted); line-height: 1.45; padding: 8px 10px; background: var(--surface-2); border: 1px dashed var(--border); border-radius: var(--radius-sm); }
+.pb-degraded { font-size: 11.5px; color: var(--warn); padding: 6px 10px; border: 1px solid var(--warn); border-radius: var(--radius-sm); background: rgba(179,120,20,.08); }
+.pb-toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(8px); background: var(--text); color: var(--bg); padding: 8px 16px; border-radius: 999px; font-size: 13px; font-weight: 600; opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; z-index: 60; }
+.pb-toast.pb-show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+@media (max-width: 960px) { .pb-grid { grid-template-columns: 1fr; } .pb-preview { max-height: 320px; } }
+@media (prefers-reduced-motion: reduce) { .pb-gauge circle.pb-gauge-fill { transition: none; } .pb-toast { transition: none; } }
 </style>
 </head>
 <body>
@@ -3583,6 +3696,7 @@ footer.page-footer a:hover { text-decoration: underline; }
     <button class="tab-btn" id="tab-norns" data-tab="norns" data-cat="lookback" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-norns" title="Lineage — how your plugins connect and depend on each other (Norns)">Lineage</button>
     <button class="tab-btn" id="tab-mimir" data-tab="mimir" data-cat="lookback" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-mimir" title="Session — what Claude Code knows about this session (M&iacute;mir's well)">Session</button>
     <button class="tab-btn" id="tab-streams" data-tab="streams" data-cat="lookback" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-streams" title="Streams — your Agentic Work-Streams: which is active and its derived activity">Streams</button>
+    <button class="tab-btn" id="tab-prompt-builder" data-tab="prompt-builder" data-cat="learn" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-prompt-builder" title="Prompt Builder — assemble a best-practice Claude prompt with a live quality score">Prompt Builder</button>
     <button class="tab-btn" id="tab-learn" data-tab="learn" data-cat="learn" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-learn" title="Learn — plain-English explainers for each concept">Learn</button>
     <button class="tab-btn" id="tab-commands" data-tab="commands" data-cat="learn" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-commands" title="Commands — ready-to-run slash-command playbooks">Commands</button>
     <button class="tab-btn" id="tab-trees" data-tab="trees" data-cat="learn" role="tab" aria-selected="false" tabindex="-1" aria-controls="panel-trees" title="Guidance — decision trees and best practices">Guidance</button>
@@ -4861,6 +4975,10 @@ footer.page-footer a:hover { text-decoration: underline; }
       </ul>
     </div>
     
+  </section>
+  <section class="tab-panel" id="panel-prompt-builder" data-tab="prompt-builder" role="tabpanel" aria-label="Prompt Builder">
+<div id="pb-root" class="pb-root"></div>
+<noscript><p class="pb-noscript">The Prompt Builder needs JavaScript. It assembles a Claude prompt from your inputs &mdash; entirely in your browser, with nothing sent anywhere.</p></noscript>
   </section>
 <section class="tab-panel" id="panel-plugin-accessibility-engineering" data-tab="plugin-accessibility-engineering" role="tabpanel" aria-label="accessibility-engineering plugin">
     <div class="plugin-page" data-plugin="accessibility-engineering" data-target=".ravenclaude/plugins/accessibility-engineering.yaml">
@@ -12800,9 +12918,9 @@ footer.page-footer a:hover { text-decoration: underline; }
     },
     {
       "drift": false,
-      "marketplace_version": "0.204.1",
+      "marketplace_version": "0.205.0",
       "plugin": "ravenclaude-core",
-      "plugin_version": "0.204.1"
+      "plugin_version": "0.205.0"
     },
     {
       "drift": false,
@@ -14978,6 +15096,7 @@ footer.page-footer a:hover { text-decoration: underline; }
   let nornsLoaded = false;
   let mimirLoaded = false;
   let streamsLoaded = false;
+  let pbLoaded = false;
   let vidarrEvents = [];
   let vidarrKindFilter = "all";
   let activityRecords = [];
@@ -15130,6 +15249,7 @@ footer.page-footer a:hover { text-decoration: underline; }
     if (tab === "pipeline") syncPipelineTab();
     if (tab.indexOf("plugin-") === 0) hydratePluginPage(tab.slice(7));
     if (tab === "web-access") hydrateWebAccess();
+    if (tab === "prompt-builder" && !pbLoaded) { pbLoaded = true; initPromptBuilder(); }
   }
   // Navigate: activate immediately, then reflect the page in the URL hash for
   // deep-linking + browser back/forward. (The hashchange listener re-applies on
@@ -17677,6 +17797,511 @@ footer.page-footer a:hover { text-decoration: underline; }
   // Guidance-tab search is bound by loadTrees() AFTER it injects the search chrome +
   // the island cards on the first activate("trees") — not at load, since the input
   // now lives inside the island (zero live-DOM cost until the tab opens).
+
+  /* PROMPT-BUILDER:START — the deterministic, client-side prompt builder (#/prompt-builder).
+   * SECURITY FLOOR (gated by scripts/check-prompt-builder-render.mjs): the entire UI below is
+   * built with createElement + textContent (the pbEl helper) — NO markup-string sink of any
+   * kind anywhere in this region. User input reaches the DOM only as a text node or the single
+   * whole-string preview textContent write, so it can never be parsed as markup. (The gate greps
+   * this region for the forbidden sink APIs, so this comment avoids naming them literally.)
+   * Claim ids (e.g. 1.4) trace to the FORGE G1 claims table (Anthropic prompting best practices). */
+
+  var PB_STORAGE_KEY = "ravenclaude-prompt-builder-v1";
+  var PB_SCAN_CAP = 16000; // cap scored/sniffed text length so a 50KB paste can't jank the loop
+
+  // Per-model divisor for the token ESTIMATE. [interpretation — community/training, claims 4.3/4.4]
+  // Anthropic publishes NO official chars-per-token ratio (4.1) — this is always an estimate.
+  // Claude 4.7+/5-family tokenize ~30% heavier (4.2), hence the split. Verify with the
+  // count_tokens API for billing-critical use; the number never gates any action.
+  var PB_MODELS = [
+    { id: "opus-5",    label: "Opus 5",    divisor: 3.6, hint: "Opus 5 is literal and can over-trigger on \"CRITICAL/MUST\" language — dial it back. It runs verbose by default (prompt for concision) and self-verifies (drop carried-over \"double-check your answer\" lines)." },
+    { id: "sonnet-5",  label: "Sonnet 5",  divisor: 3.6, hint: "Current tokenizer. Newer models follow the system prompt closely — be explicit about the output you want, not emphatic about it." },
+    { id: "opus-4-8",  label: "Opus 4.8",  divisor: 3.6, hint: "Current tokenizer generation. Prefer general instructions (\"think thoroughly\") over a prescriptive step list (1.6)." },
+    { id: "haiku-4-5", label: "Haiku 4.5", divisor: 4.0, hint: "Older tokenizer (pre-4.7). A smaller model can benefit from more explicit, decomposed instructions — heuristic, not Anthropic-stated (5.3)." },
+    { id: "fable-5",   label: "Fable 5",   divisor: 3.6, hint: "Current tokenizer; thinking is always on — reasoning depth is the effort parameter, not a prompt phrase (5.4)." }
+  ];
+  var PB_BAND = 0.20; // +/-20% band (claim 4.5); widened on code/CJK content
+
+  var PB_FOLKLORE = [/take a deep breath/i, /you are an expert/i, /i(?:'ll| will) tip/i, /\$\s?\d{2,}/, /best (?:ai |model )?in the world/i];
+
+  function pbEx() { return { input: "", output: "", reasoning: "" }; }
+  function pbDefault() {
+    return {
+      mode: "task", model: "opus-5", reasoning: false,
+      task:    { directive: "", context: "", dataTag: "input", data: "", constraints: "", outputFormat: "", success: "" },
+      system:  { role: "", rules: [""], tone: "", boundaries: "", outputPolicy: "" },
+      fewshot: { directive: "", outputFormat: "", examples: [pbEx(), pbEx(), pbEx()] }
+    };
+  }
+  var pbState = pbDefault();
+
+  // ── The field schema (one table; rendered client-side, never pre-rendered in markup) ──
+  var PB_FIELDS = {
+    task: [
+      { key: "directive",    label: "Task / instruction", type: "textarea", req: true, rows: 3, hint: "What should Claude do? Be specific and explicit.", claim: "1.2", ph: "Summarize the meeting notes below into owner-tagged action items." },
+      { key: "context",      label: "Context / motivation", type: "textarea", rows: 2, hint: "The “why” — background that helps Claude generalize correctly.", claim: "1.3", ph: "These go to executives who want decisions, not discussion." },
+      { key: "dataTag",      label: "Data tag name", type: "text", hint: "XML tag wrapping your input (letters, digits, _ or -).", claim: "1.4", ph: "input" },
+      { key: "data",         label: "Input data", type: "textarea", rows: 3, hint: "The variable content to act on — wrapped in the tag above.", claim: "1.4", ph: "Paste the document / text here…" },
+      { key: "constraints",  label: "Constraints (say what TO do)", type: "textarea", rows: 2, hint: "Positive framing beats “do not” (1.5).", claim: "1.5", ph: "Keep each action item to one sentence." },
+      { key: "outputFormat", label: "Output format", type: "textarea", rows: 2, hint: "Exactly how the answer should be shaped.", claim: "6.4", ph: "A numbered list. Output only the list." },
+      { key: "success",      label: "Success criteria (optional)", type: "textarea", rows: 2, hint: "What a good answer satisfies.", claim: "6.8", ph: "Every action item names an owner." }
+    ],
+    system: [
+      { key: "role",         label: "Role / persona", type: "textarea", req: true, rows: 2, hint: "Who Claude is — even one sentence helps (3.1).", claim: "3.1", ph: "You are a senior Python code reviewer." },
+      { key: "rules",        label: "Standing behavioral rules", type: "list", hint: "One durable rule each. Say what TO do (1.5).", claim: "3.2", ph: "Flag security issues before style issues." },
+      { key: "tone",         label: "Communication style", type: "text", hint: "Newer models run verbose — ask for concision (5.2).", claim: "5.2", ph: "Terse and direct; no preamble." },
+      { key: "boundaries",   label: "Boundaries / anti-hallucination", type: "textarea", rows: 2, hint: "How to handle uncertainty.", claim: "—", ph: "If unsure, say so and ask — never invent an API." },
+      { key: "outputPolicy", label: "Output / formatting policy", type: "textarea", rows: 2, hint: "A standing format rule for every response.", claim: "1.5", ph: "Respond in flowing prose, not bullet lists." }
+    ],
+    fewshot: [
+      { key: "directive",    label: "Task / instruction", type: "textarea", req: true, rows: 2, hint: "The task the examples demonstrate.", claim: "1.2", ph: "Classify the sentiment of each review." },
+      { key: "examples",     label: "Examples", type: "examples", hint: "3–5 work best (2.1); make them relevant + diverse (2.3).", claim: "2.1", ph: "" },
+      { key: "outputFormat", label: "Output format", type: "textarea", rows: 2, hint: "How the final answer should look.", claim: "6.4", ph: "One word: positive, negative, or neutral." }
+    ]
+  };
+
+  var PB_PRESETS = [
+    { id: "summarize", label: "Summarize", mode: "task", apply: function (s) { s.task.directive = "Summarize the text in <document> into the key points."; s.task.dataTag = "document"; s.task.outputFormat = "Three to five bullet points, each ≤ 20 words. Output only the bullets."; } },
+    { id: "extract", label: "Extract structured data", mode: "task", apply: function (s) { s.task.directive = "Extract the requested fields from the text in <document>."; s.task.dataTag = "document"; s.task.outputFormat = "Return a JSON object with the keys listed above. Output only valid JSON, no prose."; } },
+    { id: "classify", label: "Classify", mode: "task", apply: function (s) { s.task.directive = "Classify the text in <input> into exactly one category."; s.task.outputFormat = "Respond with exactly one label from: [label_a, label_b, label_c]. Output only the label."; } },
+    { id: "rewrite", label: "Rewrite / rephrase", mode: "task", apply: function (s) { s.task.directive = "Rewrite the text in <input> in a warmer, plain-language tone for a general audience."; s.task.outputFormat = "Return only the rewritten text."; } },
+    { id: "agent-system", label: "Agent system prompt", mode: "system", apply: function (s) { s.system.role = "You are a senior software engineering assistant."; s.system.rules = ["Prefer taking a well-reasoned next step over asking for confirmation when the path is clear.", "When unsure, investigate the code and docs before answering — do not guess."]; s.system.outputPolicy = "Respond in clear, flowing prose. Show code in fenced blocks."; } },
+    { id: "fewshot-classifier", label: "Few-shot classifier", mode: "fewshot", apply: function (s) { s.fewshot.directive = "Classify the sentiment of each review as positive, negative, or neutral."; s.fewshot.outputFormat = "One word: positive, negative, or neutral."; s.fewshot.examples = [{ input: "Loved it, would buy again!", output: "positive", reasoning: "" }, { input: "It broke after a day.", output: "negative", reasoning: "" }, { input: "It arrived on time.", output: "neutral", reasoning: "" }]; } }
+  ];
+
+  var PB_PATTERNS = [
+    { id: "cot", label: "+ Chain-of-thought", tip: "Ask Claude to reason before answering (1.6). On current models the primary lever is the effort parameter, not a phrase.", apply: function (s) { s.reasoning = true; } },
+    { id: "xml", label: "+ XML data tag", tip: "Wrap variable input in its own XML tag so Claude can't confuse instructions with data (1.4).", modes: { task: 1 }, apply: function (s) { if (!pbSafeTag(s.task.dataTag)) s.task.dataTag = "input"; } },
+    { id: "example", label: "+ Example", tip: "Add an example (2.2).", modes: { fewshot: 1 }, apply: function (s) { if (s.fewshot.examples.length < 8) s.fewshot.examples.push(pbEx()); } },
+    { id: "structured", label: "+ Structured-output block", tip: "Insert RavenClaude's house ---RESULT_START--- handoff block (R.1). A house convention for agent hand-offs, not a universal Claude rule.", apply: function (s) { var add = "\n\nEnd your response with a machine-readable block:\n---RESULT_START---\n{\"status\": \"complete|partial|blocked\", \"summary\": \"one sentence\"}\n---RESULT_END---"; var mk = s.mode === "system" ? "outputPolicy" : "outputFormat"; s[s.mode][mk] = (s[s.mode][mk] || "").replace(/\s+$/, "") + add; } },
+    { id: "prefill", label: "Response prefill", deprecated: true, tip: "Deprecated — prefilled assistant turns return a 400 error on Claude 4.6+ (1.9). Use the Structured-output block instead.", apply: function () { /* no-op: prefill is never emitted (1.9) */ } }
+  ];
+
+  // ── pbEl: the ONLY DOM factory. createElement + textContent + setAttribute; never a markup sink. ──
+  function pbEl(tag, props, kids) {
+    var el = document.createElement(tag);
+    if (props) {
+      for (var k in props) {
+        if (!Object.prototype.hasOwnProperty.call(props, k)) continue;
+        var v = props[k];
+        if (v == null || v === false) continue;
+        if (k === "class") el.className = v;
+        else if (k === "text") el.textContent = v; // safe text sink
+        else if (k === "for") el.htmlFor = v;
+        else if (k.charAt(0) === "o" && k.charAt(1) === "n" && typeof v === "function") el.addEventListener(k.slice(2), v);
+        else if (k.charAt(0) === "o" && k.charAt(1) === "n") continue; // never let an on* key become an inline-handler attribute (defense-in-depth)
+        else if (v === true) el.setAttribute(k, "");
+        else el.setAttribute(k, v);
+      }
+    }
+    if (kids != null) {
+      if (!Array.isArray(kids)) kids = [kids];
+      for (var i = 0; i < kids.length; i++) {
+        var c = kids[i];
+        if (c == null || c === false) continue;
+        el.appendChild(typeof c === "object" ? c : document.createTextNode(String(c)));
+      }
+    }
+    return el;
+  }
+  function pbClear(el) { while (el.firstChild) el.removeChild(el.firstChild); }
+  function pbSafeTag(v) { return String(v == null ? "" : v).replace(/[^A-Za-z0-9_-]/g, "").slice(0, 40); }
+  function pbModel(id) { for (var i = 0; i < PB_MODELS.length; i++) { if (PB_MODELS[i].id === id) return PB_MODELS[i]; } return PB_MODELS[0]; }
+
+  // ── Assembler: pure, deterministic, string-only (no DOM). Empty optional sections omitted. ──
+  function pbTag(name, content) { var c = (content || "").replace(/\s+$/, "").replace(/^\s+/, ""); return c ? "<" + name + ">\n" + c + "\n</" + name + ">" : ""; }
+  function pbJoin(parts) { var out = []; for (var i = 0; i < parts.length; i++) { if (parts[i] && parts[i].trim()) out.push(parts[i]); } return out.join("\n\n"); }
+  function pbAssemble(s) {
+    if (s.mode === "system") return pbAssembleSystem(s);
+    if (s.mode === "fewshot") return pbAssembleFewshot(s);
+    return pbAssembleTask(s);
+  }
+  function pbAssembleTask(s) {
+    var t = s.task, instr = (t.directive || "").trim();
+    if ((t.constraints || "").trim()) instr += "\n\n" + t.constraints.trim();
+    var dataTag = pbSafeTag(t.dataTag) || "input";
+    return pbJoin([
+      pbTag("instructions", instr),
+      pbTag("context", t.context),
+      pbTag(dataTag, t.data),
+      pbTag("output_format", t.outputFormat),
+      s.reasoning ? "Think through your approach step by step before you answer." : "",
+      pbTag("success_criteria", t.success)
+    ]);
+  }
+  function pbAssembleSystem(s) {
+    var y = s.system, parts = [(y.role || "").trim()];
+    var rules = (y.rules || []).filter(function (r) { return r && r.trim(); });
+    if (rules.length) parts.push("<behavioral_rules>\n" + rules.map(function (r) { return "- " + r.trim(); }).join("\n") + "\n</behavioral_rules>");
+    parts.push(pbTag("communication_style", y.tone));
+    parts.push(pbTag("boundaries", y.boundaries));
+    parts.push(pbTag("output_policy", y.outputPolicy));
+    return pbJoin(parts);
+  }
+  function pbAssembleFewshot(s) {
+    var f = s.fewshot;
+    var exs = (f.examples || []).filter(function (e) { return (e.input && e.input.trim()) || (e.output && e.output.trim()); });
+    var blocks = exs.map(function (e) {
+      var inner = "<input>\n" + (e.input || "").trim() + "\n</input>";
+      if ((e.reasoning || "").trim()) inner += "\n<thinking>\n" + e.reasoning.trim() + "\n</thinking>";
+      if ((e.output || "").trim()) inner += "\n<output>\n" + e.output.trim() + "\n</output>";
+      return "<example>\n" + inner + "\n</example>";
+    }).join("\n");
+    return pbJoin([
+      pbTag("instructions", (f.directive || "").trim()),
+      blocks ? "<examples>\n" + blocks + "\n</examples>" : "",
+      pbTag("output_format", f.outputFormat),
+      s.reasoning ? "Think step by step before answering." : ""
+    ]);
+  }
+
+  // ── Token size gauge: chars / per-model divisor, +/- band, labelled "estimate", never a gate. ──
+  function pbEstimate(text, modelId) {
+    var m = pbModel(modelId), len = text.length, est = Math.round(len / m.divisor), band = PB_BAND;
+    var sample = text.slice(0, PB_SCAN_CAP), sl = sample.length || 1;
+    var nonAscii = (sample.match(/[^\x00-\x7F]/g) || []).length;
+    var symbols = (sample.match(/[{}\[\]<>|`~]/g) || []).length;
+    if (nonAscii / sl > 0.15 || symbols / sl > 0.06) band = 0.35;
+    return { est: est, low: Math.round(est * (1 - band)), high: Math.round(est * (1 + band)), band: band };
+  }
+
+  // ── Linter: per-mode weighted 0-100 minus anti-folklore penalties. Structure, NOT semantics. ──
+  function pbAllText(s) {
+    var o = s[s.mode], parts = [];
+    for (var k in o) {
+      if (!Object.prototype.hasOwnProperty.call(o, k)) continue;
+      var v = o[k];
+      if (typeof v === "string") parts.push(v);
+      else if (Array.isArray(v)) v.forEach(function (it) { if (typeof it === "string") parts.push(it); else if (it) { for (var kk in it) { if (typeof it[kk] === "string") parts.push(it[kk]); } } });
+    }
+    return parts.join("\n").slice(0, PB_SCAN_CAP);
+  }
+  function pbCountImperatives(text) { var m = text.match(/\b(?:CRITICAL|MUST|IMPORTANT)\b/g); return m ? m.length : 0; }
+  function pbNegations(text) { var m = text.match(/\b(?:do not|don't|never|avoid|no longer)\b/gi); return m ? m.length : 0; }
+  function pbIsPrefill(text) { return /^\s*assistant\s*:\s*\S/i.test(text || ""); }
+  function pbSubstantive(text, min) { var t = (text || "").trim(); if (t.length < (min || 12)) return false; return !/^(?:help me|do something|help|please help|answer)\.?$/i.test(t); }
+  function pbDiversity(examples) {
+    var texts = examples.map(function (e) { return ((e.input || "") + " " + (e.output || "")).toLowerCase().slice(0, 2000); }).filter(function (t) { return t.trim(); });
+    if (texts.length < 2) return 1;
+    var sets = texts.map(function (t) { var s = {}; t.split(/\s+/).slice(0, 120).forEach(function (w) { if (w) s[w] = 1; }); return s; });
+    var pairs = 0, sum = 0;
+    for (var i = 0; i < sets.length; i++) { for (var j = i + 1; j < sets.length; j++) { sum += pbJaccard(sets[i], sets[j]); pairs++; } }
+    return 1 - Math.min(1, pairs ? sum / pairs : 0);
+  }
+  function pbJaccard(a, b) { var inter = 0, uni = 0, k; for (k in a) { uni++; if (b[k]) inter++; } for (k in b) { if (!a[k]) uni++; } return uni ? inter / uni : 0; }
+
+  function pbLint(s, assembled) {
+    var mode = s.mode, dims = [], all = pbAllText(s);
+    if (mode === "task") {
+      var t = s.task;
+      dims.push({ w: 25, f: pbSubstantive(t.directive) ? 1 : (t.directive.trim() ? 0.4 : 0), label: "Task is specific", why: "Vague tasks get vague answers — be explicit (1.2).", key: "directive" });
+      dims.push({ w: 15, f: t.context.trim() ? 1 : 0, label: "Context / motivation", why: "Explaining the “why” helps Claude generalize correctly (1.3).", key: "context" });
+      dims.push({ w: 15, f: t.data.trim() ? 1 : 0.6, label: "Input delimited", why: "Variable data belongs in its own XML tag (1.4).", key: "data", optional: true });
+      dims.push({ w: 20, f: t.outputFormat.trim() ? 1 : 0, label: "Output format explicit", why: "State exactly how the answer should be shaped (6.4).", key: "outputFormat" });
+      dims.push({ w: 15, f: pbFramingFrac(t.constraints + " " + t.directive), label: "Positive framing", why: "Tell Claude what TO do, not what not to do (1.5).", key: "constraints" });
+      dims.push({ w: 10, f: t.success.trim() ? 1 : 0, label: "Success criteria", why: "Define what a good answer satisfies (6.8).", key: "success", optional: true });
+    } else if (mode === "system") {
+      var y = s.system;
+      dims.push({ w: 35, f: pbSubstantive(y.role, 15) ? 1 : (y.role.trim() ? 0.4 : 0), label: "Role defined", why: "A clear persona focuses tone + behavior (3.1).", key: "role" });
+      var rc = (y.rules || []).filter(function (r) { return r.trim().length > 8; }).length;
+      dims.push({ w: 25, f: Math.min(1, rc / 2), label: "Standing rules", why: "Give the role durable rules of conduct (3.2).", key: "rules" });
+      dims.push({ w: 15, f: y.outputPolicy.trim() || y.tone.trim() ? 1 : 0, label: "Output / tone policy", why: "State a standing format + tone rule (1.5).", key: "outputPolicy", optional: true });
+      dims.push({ w: 15, f: pbFramingFrac(y.rules.join(" ") + " " + y.outputPolicy), label: "Positive framing", why: "Say what TO do (1.5).", key: "rules" });
+      dims.push({ w: 10, f: y.boundaries.trim() ? 1 : 0, label: "Boundaries clause", why: "Say how to handle uncertainty / refusals.", key: "boundaries", optional: true });
+    } else {
+      var f = s.fewshot, exs = (f.examples || []).filter(function (e) { return e.input.trim() || e.output.trim(); });
+      dims.push({ w: 20, f: pbSubstantive(f.directive) ? 1 : (f.directive.trim() ? 0.4 : 0), label: "Task is specific", why: "State the task the examples demonstrate (1.2).", key: "directive" });
+      dims.push({ w: 25, f: exs.length >= 3 ? 1 : exs.length / 3, label: "3–5 examples", why: "3–5 examples work best; more is fine (2.1).", key: "examples" });
+      var wf = exs.length ? exs.filter(function (e) { return e.input.trim() && e.output.trim(); }).length / exs.length : 0;
+      dims.push({ w: 20, f: wf, label: "Examples well-formed", why: "Each example needs both an input and an output (2.2).", key: "examples" });
+      dims.push({ w: 10, f: pbDiversity(exs), label: "Examples diverse", why: "Vary examples so Claude doesn't learn an accidental pattern — weak heuristic (2.3).", key: "examples", weak: true, optional: true });
+      dims.push({ w: 15, f: f.outputFormat.trim() ? 1 : 0, label: "Output format explicit", why: "State exactly how the answer should look (6.4).", key: "outputFormat" });
+      dims.push({ w: 10, f: pbFramingFrac(f.directive), label: "Positive framing", why: "Say what TO do (1.5).", key: "directive" });
+    }
+    var base = 0, wsum = 0, issues = [];
+    dims.forEach(function (d) { base += d.w * d.f; wsum += d.w; if (d.f < 0.99) issues.push({ sev: d.optional ? "tip" : "warn", label: (d.f > 0 ? "Improve: " : "Add: ") + d.label, why: d.why, key: d.key, weak: d.weak }); });
+    var score = wsum ? (base / wsum) * 100 : 0;
+
+    // Penalties — the anti-folklore firewall (the hero of the linter).
+    var imp = pbCountImperatives(all), penalty = 0, prefill = false;
+    if (imp > 2) { var p = Math.min(25, (imp - 2) * 5); penalty += p; issues.unshift({ sev: "bad", label: "Too much CRITICAL/MUST emphasis (×" + imp + ")", why: "Current models are literal and OVER-trigger on stacked emphasis — dial the language down (5.2 / 5.3).", key: null, claim: "6.9" }); }
+    (function () { var o = s[mode]; for (var k in o) { if (typeof o[k] === "string" && pbIsPrefill(o[k])) prefill = true; } })();
+    if (prefill) { penalty += 20; issues.unshift({ sev: "bad", label: "Looks like response prefilling", why: "Prefilled assistant turns return a 400 error on Claude 4.6+ — use a Structured-output block instead (1.9).", key: null, claim: "1.9" }); }
+    for (var i = 0; i < PB_FOLKLORE.length; i++) { if (PB_FOLKLORE[i].test(all)) { issues.push({ sev: "tip", label: "“Magic phrase” detected", why: "Folklore like “you are an expert” / “I'll tip $200” doesn't survive an A/B test on current models — it earns no credit (R.2).", key: null }); break; } }
+    if (mode === "task" && s.model === "opus-5" && s.task.success.trim()) issues.push({ sev: "tip", label: "Self-check may be redundant on Opus 5", why: "Opus 5 self-verifies — an explicit success-check can over-trigger (5.2).", key: "success" });
+    if (assembled.length / (pbModel(s.model).divisor) > 20000) issues.push({ sev: "tip", label: "Long prompt — consider data-first order", why: "Above ~20k tokens, putting long data at the top and the query at the end can improve quality up to ~30% (1.7).", key: null });
+
+    score = Math.max(0, Math.min(100, Math.round(score - penalty)));
+    return { score: score, issues: issues, prefill: prefill };
+  }
+  function pbFramingFrac(text) { if (!(text || "").trim()) return 0; var n = pbNegations(text); return n === 0 ? 1 : n <= 2 ? 0.6 : 0.2; }
+
+  // ── Rendering (all via pbEl) ──────────────────────────────────────────────
+  var pbRoot, pbPreviewEl, pbTokenEl, pbFieldsEl, pbIssuesEl, pbGaugeFill, pbGaugeText, pbGaugeSub, pbNoteEl, pbDegradedEl, pbModelHintEl, pbPresetSel, pbRaf = 0, pbToastEl = null, pbToastTimer = 0;
+  var PB_GAUGE_C = 2 * Math.PI * 32;
+
+  function pbField(f) {
+    if (f.type === "list") return pbListField(f);
+    if (f.type === "examples") return pbExamplesField(f);
+    var id = "pb-f-" + f.key;
+    var input;
+    var common = { id: id, "data-pb-key": f.key, oninput: pbOnInput, onchange: pbOnInput };
+    if (f.type === "text") { common.type = "text"; common.value = pbState[pbState.mode][f.key]; common.placeholder = f.ph || ""; common.autocomplete = "off"; common.spellcheck = "false"; input = pbEl("input", common); }
+    else { common.rows = f.rows || 2; common.placeholder = f.ph || ""; input = pbEl("textarea", common); input.value = pbState[pbState.mode][f.key]; }
+    return pbEl("div", { class: "pb-field" }, [
+      pbEl("label", { for: id }, [f.label, f.req ? pbEl("span", { class: "pb-req", "aria-label": "required", text: "*" }) : null, f.hint ? pbEl("span", { class: "pb-hint", text: "— " + f.hint }) : null]),
+      input,
+      f.claim && f.claim !== "—" ? pbEl("span", { class: "pb-claim", text: "best-practice " + f.claim }) : null
+    ]);
+  }
+  function pbListField(f) {
+    var wrap = pbEl("div", { class: "pb-field" });
+    wrap.appendChild(pbEl("label", {}, [f.label, pbEl("span", { class: "pb-hint", text: "— " + f.hint })]));
+    var list = pbEl("div", { class: "pb-repeat" });
+    var rules = pbState.system.rules;
+    rules.forEach(function (r, i) {
+      var input = pbEl("input", { type: "text", value: r, placeholder: f.ph, "data-pb-list": "rules", "data-pb-idx": i, "data-pb-key": "rules", oninput: pbOnInput, autocomplete: "off" });
+      var rm = pbEl("button", { type: "button", class: "pb-icon-btn", title: "Remove rule", "aria-label": "Remove rule", text: "×", onclick: function () { rules.splice(i, 1); if (!rules.length) rules.push(""); pbRebuildFields(); pbUpdate(); } });
+      list.appendChild(pbEl("div", { class: "pb-repeat-item" }, [pbEl("div", { style: "display:flex;gap:6px;align-items:center" }, [input, rm])]));
+    });
+    list.appendChild(pbEl("button", { type: "button", class: "pb-btn pb-ghost", text: "+ Add rule", onclick: function () { rules.push(""); pbRebuildFields(); } }));
+    wrap.appendChild(list);
+    return wrap;
+  }
+  function pbExamplesField(f) {
+    var wrap = pbEl("div", { class: "pb-field" });
+    var exs = pbState.fewshot.examples, n = exs.length;
+    var cls = n >= 3 && n <= 5 ? "pb-count pb-ok" : "pb-count pb-warn";
+    wrap.appendChild(pbEl("label", {}, [f.label, pbEl("span", { class: cls, text: " (" + n + ")" }), pbEl("span", { class: "pb-hint", text: "— " + f.hint })]));
+    var list = pbEl("div", { class: "pb-repeat" });
+    exs.forEach(function (e, i) {
+      var head = pbEl("div", { class: "pb-repeat-head" }, [
+        "Example " + (i + 1),
+        pbEl("span", { class: "pb-repeat-ctl" }, [
+          pbEl("button", { type: "button", class: "pb-icon-btn", title: "Move up", "aria-label": "Move example up", text: "↑", disabled: i === 0, onclick: function () { pbMoveExample(i, -1); } }),
+          pbEl("button", { type: "button", class: "pb-icon-btn", title: "Move down", "aria-label": "Move example down", text: "↓", disabled: i === n - 1, onclick: function () { pbMoveExample(i, 1); } }),
+          pbEl("button", { type: "button", class: "pb-icon-btn", title: "Remove", "aria-label": "Remove example", text: "×", disabled: n <= 1, onclick: function () { exs.splice(i, 1); pbRebuildFields(); pbUpdate(); } })
+        ])
+      ]);
+      var inp = pbEl("textarea", { class: "pb-sm", rows: 2, placeholder: "input", value: "", "data-pb-list": "examples", "data-pb-idx": i, "data-pb-sub": "input", "data-pb-key": "examples", oninput: pbOnInput }); inp.value = e.input;
+      var out = pbEl("textarea", { class: "pb-sm", rows: 2, placeholder: "output", value: "", "data-pb-list": "examples", "data-pb-idx": i, "data-pb-sub": "output", "data-pb-key": "examples", oninput: pbOnInput }); out.value = e.output;
+      var rsn = pbEl("textarea", { class: "pb-sm", rows: 1, placeholder: "reasoning (optional) — rendered as a <thinking> block (2.4)", value: "", "data-pb-list": "examples", "data-pb-idx": i, "data-pb-sub": "reasoning", "data-pb-key": "examples", oninput: pbOnInput }); rsn.value = e.reasoning;
+      list.appendChild(pbEl("div", { class: "pb-repeat-item" }, [head, inp, out, rsn]));
+    });
+    list.appendChild(pbEl("button", { type: "button", class: "pb-btn pb-ghost", text: "+ Add example", disabled: n >= 8, onclick: function () { exs.push(pbEx()); pbRebuildFields(); pbUpdate(); } }));
+    wrap.appendChild(list);
+    return wrap;
+  }
+  function pbMoveExample(i, dir) { var e = pbState.fewshot.examples, j = i + dir; if (j < 0 || j >= e.length) return; var tmp = e[i]; e[i] = e[j]; e[j] = tmp; pbRebuildFields(); pbUpdate(); }
+
+  function pbPatternsRail() {
+    var rail = pbEl("div", { class: "pb-patterns" });
+    rail.appendChild(pbEl("p", { class: "pb-plabel", text: "Insert a pattern" }));
+    var chips = pbEl("div", { class: "pb-chips" });
+    PB_PATTERNS.forEach(function (p) {
+      if (p.modes && !p.modes[pbState.mode]) return;
+      if (p.deprecated) { chips.appendChild(pbEl("button", { type: "button", class: "pb-chip pb-deprecated", title: p.tip, "aria-disabled": "true", disabled: true, text: p.label })); return; }
+      chips.appendChild(pbEl("button", { type: "button", class: "pb-chip", title: p.tip, text: p.label, onclick: function () { p.apply(pbState); pbRebuildFields(); pbSyncControls(); pbUpdate(); } }));
+    });
+    rail.appendChild(chips);
+    return rail;
+  }
+
+  function pbRebuildFields() {
+    pbClear(pbFieldsEl);
+    PB_FIELDS[pbState.mode].forEach(function (f) { pbFieldsEl.appendChild(pbField(f)); });
+    if (pbState.mode !== "system") {
+      pbFieldsEl.appendChild(pbEl("div", { class: "pb-field pb-check" }, [
+        pbEl("input", { type: "checkbox", id: "pb-reasoning", "data-pb-key": "reasoning", checked: pbState.reasoning, onchange: pbOnInput }),
+        pbEl("label", { for: "pb-reasoning", text: "Ask Claude to reason step by step first (1.6)" })
+      ]));
+    } else {
+      pbFieldsEl.appendChild(pbEl("p", { class: "pb-note", text: "This is a system prompt — pair it with a user message (try Task mode) carrying the actual request + data (3.3)." }));
+    }
+    pbFieldsEl.appendChild(pbPatternsRail());
+  }
+
+  function pbOnInput(e) {
+    var t = e.target; if (!t || !t.dataset || !t.dataset.pbKey) return;
+    var key = t.dataset.pbKey, val = t.type === "checkbox" ? t.checked : t.value;
+    if (t.dataset.pbList === "rules") pbState.system.rules[parseInt(t.dataset.pbIdx, 10)] = val;
+    else if (t.dataset.pbList === "examples") pbState.fewshot.examples[parseInt(t.dataset.pbIdx, 10)][t.dataset.pbSub] = val;
+    else if (key === "reasoning") pbState.reasoning = val;
+    else pbState[pbState.mode][key] = val;
+    pbScheduleUpdate();
+  }
+  function pbScheduleUpdate() { if (pbRaf) return; pbRaf = (window.requestAnimationFrame || function (cb) { return setTimeout(cb, 16); })(function () { pbRaf = 0; pbUpdate(); }); }
+
+  function pbUpdate() {
+    var assembled = pbAssemble(pbState);
+    pbPreviewEl.textContent = assembled; // THE single whole-string sink (structurally XSS-safe)
+    pbRenderToken(assembled);
+    pbRenderQuality(assembled);
+    pbSave();
+  }
+  function pbRenderToken(assembled) {
+    var e = pbEstimate(assembled, pbState.model);
+    pbClear(pbTokenEl);
+    pbTokenEl.appendChild(pbEl("strong", { text: "~" + e.est.toLocaleString() }));
+    pbTokenEl.appendChild(pbEl("span", { text: " tokens" }));
+    pbTokenEl.appendChild(pbEl("span", { class: "pb-token-band", text: "(est. " + e.low.toLocaleString() + "–" + e.high.toLocaleString() + ")" }));
+  }
+  function pbRenderQuality(assembled) {
+    var r = pbLint(pbState, assembled);
+    var band = r.score >= 80 ? "pb-band-ok" : r.score >= 50 ? "pb-band-warn" : "pb-band-bad";
+    pbGaugeFill.setAttribute("class", "pb-gauge-fill " + band);
+    pbGaugeFill.setAttribute("stroke-dasharray", PB_GAUGE_C.toFixed(1));
+    pbGaugeFill.setAttribute("stroke-dashoffset", (PB_GAUGE_C * (1 - r.score / 100)).toFixed(1));
+    pbGaugeText.textContent = String(r.score);
+    pbClear(pbIssuesEl);
+    if (!r.issues.length) { pbIssuesEl.appendChild(pbEl("li", { class: "pb-clean", text: "✓ All best-practice structure present." })); return; }
+    r.issues.forEach(function (is) {
+      pbIssuesEl.appendChild(pbEl("li", { class: "pb-issue pb-sev-" + is.sev }, [
+        pbEl("div", { class: "pb-issue-title" }, [pbEl("span", { text: is.label }), is.claim ? pbEl("span", { class: "pb-issue-claim", text: is.claim }) : null]),
+        pbEl("p", { class: "pb-issue-why", text: is.why }),
+        is.key ? pbEl("button", { type: "button", class: "pb-issue-fix", text: "Jump to field →", onclick: function () { pbFocusField(is.key); } }) : null
+      ]));
+    });
+  }
+  function pbFocusField(key) {
+    var el = document.getElementById("pb-f-" + key) || pbFieldsEl.querySelector('[data-pb-key="' + key + '"]');
+    if (el && el.focus) { el.focus(); if (el.scrollIntoView) el.scrollIntoView({ block: "center" }); }
+  }
+
+  function pbShowDegraded() { if (pbDegradedEl) pbDegradedEl.hidden = false; }
+  function pbHideDegraded() { if (pbDegradedEl) pbDegradedEl.hidden = true; }
+  function pbSave() { try { localStorage.setItem(PB_STORAGE_KEY, JSON.stringify(pbState)); pbHideDegraded(); } catch (e) { pbShowDegraded(); } }
+  function pbLoad() { try { var raw = localStorage.getItem(PB_STORAGE_KEY); if (raw) { var saved = JSON.parse(raw); if (saved && typeof saved === "object") pbState = pbMergeState(pbDefault(), saved); } } catch (e) { /* keep defaults on corrupt/unavailable storage */ } }
+  function pbMergeState(def, saved) {
+    if (saved.mode === "task" || saved.mode === "system" || saved.mode === "fewshot") def.mode = saved.mode;
+    if (typeof saved.model === "string") def.model = saved.model;
+    if (typeof saved.reasoning === "boolean") def.reasoning = saved.reasoning;
+    ["task", "system", "fewshot"].forEach(function (m) {
+      if (!saved[m] || typeof saved[m] !== "object") return;
+      for (var k in def[m]) {
+        if (k === "rules" && Array.isArray(saved[m].rules)) def[m].rules = saved[m].rules.map(String);
+        else if (k === "examples" && Array.isArray(saved[m].examples)) def[m].examples = saved[m].examples.map(function (e) { return { input: String((e && e.input) || ""), output: String((e && e.output) || ""), reasoning: String((e && e.reasoning) || "") }; });
+        else if (typeof saved[m][k] === "string") def[m][k] = saved[m][k];
+      }
+    });
+    if (!def.system.rules.length) def.system.rules = [""];
+    if (!def.fewshot.examples.length) def.fewshot.examples = [pbEx(), pbEx(), pbEx()];
+    if (pbModel(def.model).id !== def.model) def.model = "opus-5";
+    return def;
+  }
+
+  function pbSetMode(mode) {
+    pbState.mode = mode;
+    pbRoot.querySelectorAll(".pb-seg button").forEach(function (b) { b.setAttribute("aria-selected", b.dataset.mode === mode ? "true" : "false"); });
+    pbRebuildFields();
+  }
+  function pbSyncControls() {
+    if (pbPresetSel) pbPresetSel.value = "";
+    var ms = pbRoot.querySelector("#pb-model");
+    if (ms) ms.value = pbState.model;
+    pbRenderModelHint();
+  }
+  function pbRenderModelHint() { if (pbModelHintEl) pbModelHintEl.textContent = pbModel(pbState.model).hint; }
+
+  function pbToast(msg) {
+    if (!pbToastEl) { pbToastEl = pbEl("div", { class: "pb-toast", role: "status", "aria-live": "polite" }); (pbRoot || document.body).appendChild(pbToastEl); }
+    pbToastEl.textContent = msg; pbToastEl.classList.add("pb-show");
+    if (pbToastTimer) clearTimeout(pbToastTimer);
+    pbToastTimer = setTimeout(function () { pbToastEl.classList.remove("pb-show"); }, 1600);
+  }
+  function pbCopy() {
+    var text = pbAssemble(pbState);
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(function () { pbToast("Copied"); }, function () { pbFallbackCopy(text); });
+    else pbFallbackCopy(text);
+  }
+  function pbFallbackCopy(text) {
+    try { var ta = pbEl("textarea", { readonly: true, style: "position:fixed;top:-1000px;opacity:0" }); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); document.body.removeChild(ta); pbToast("Copied"); }
+    catch (e) { pbToast("Copy failed — select the text manually"); }
+  }
+  function pbDownload(name, mime, content) {
+    try { var url = URL.createObjectURL(new Blob([content], { type: mime })); var a = pbEl("a", { href: url, download: name }); document.body.appendChild(a); a.click(); document.body.removeChild(a); setTimeout(function () { URL.revokeObjectURL(url); }, 0); pbToast("Exported"); }
+    catch (e) { pbToast("Export failed"); }
+  }
+  function pbExportMd() { pbDownload("claude-prompt-" + pbState.mode + ".md", "text/markdown", "# Claude prompt (" + pbState.mode + " mode — " + pbModel(pbState.model).label + ")\n\n```\n" + pbAssemble(pbState) + "\n```\n"); }
+  function pbExportJson() {
+    var assembled = pbAssemble(pbState), lint = pbLint(pbState, assembled), est = pbEstimate(assembled, pbState.model);
+    pbDownload("claude-prompt-" + pbState.mode + ".json", "application/json", JSON.stringify({ schemaVersion: 1, mode: pbState.mode, model: pbState.model, fields: pbState[pbState.mode], reasoning: pbState.reasoning, assembled: assembled, score: lint.score, tokenEstimate: { estimate: est.est, low: est.low, high: est.high, band: est.band } }, null, 2));
+  }
+  function pbResetBtn(btn) {
+    if (btn.dataset.armed === "1") { pbState = pbDefault(); try { localStorage.removeItem(PB_STORAGE_KEY); } catch (e) { } pbSetMode(pbState.mode); pbSyncControls(); pbUpdate(); btn.dataset.armed = ""; btn.textContent = "Reset"; }
+    else { btn.dataset.armed = "1"; btn.textContent = "Really reset?"; setTimeout(function () { if (btn.dataset.armed === "1") { btn.dataset.armed = ""; btn.textContent = "Reset"; } }, 3000); }
+  }
+
+  function pbBuildControls() {
+    var seg = pbEl("div", { class: "pb-seg", role: "tablist", "aria-label": "Prompt mode" });
+    [["task", "Task"], ["system", "System"], ["fewshot", "Few-shot"]].forEach(function (m) {
+      seg.appendChild(pbEl("button", { type: "button", role: "tab", "data-mode": m[0], "aria-selected": m[0] === pbState.mode ? "true" : "false", "aria-controls": "pb-fields", text: m[1], onclick: function () { pbSetMode(m[0]); pbUpdate(); } }));
+    });
+    pbPresetSel = pbEl("select", { class: "pb-select", id: "pb-preset", "aria-label": "Load a preset", onchange: function (e) { var id = e.target.value; if (!id) return; var p = null; for (var i = 0; i < PB_PRESETS.length; i++) { if (PB_PRESETS[i].id === id) p = PB_PRESETS[i]; } if (p) { pbSetMode(p.mode); p.apply(pbState); pbRebuildFields(); } e.target.value = ""; pbSyncControls(); pbUpdate(); } });
+    pbPresetSel.appendChild(pbEl("option", { value: "", text: "Preset…" }));
+    PB_PRESETS.forEach(function (p) { pbPresetSel.appendChild(pbEl("option", { value: p.id, text: p.label })); });
+    var modelSel = pbEl("select", { class: "pb-select", id: "pb-model", "aria-label": "Target model", onchange: function (e) { pbState.model = e.target.value; pbRenderModelHint(); pbUpdate(); } });
+    PB_MODELS.forEach(function (m) { var o = pbEl("option", { value: m.id, text: m.label }); if (m.id === pbState.model) o.selected = true; modelSel.appendChild(o); });
+    pbTokenEl = pbEl("span", { class: "pb-token", title: "Rough size estimate — Anthropic publishes no official ratio (4.1); newer models tokenize ~30% heavier (4.2). Verify with count_tokens for billing." });
+    pbTokenEl.appendChild(pbEl("strong", { text: "~0" }));
+    pbTokenEl.appendChild(pbEl("span", { text: " tokens" }));
+    return pbEl("div", { class: "pb-controls" }, [
+      seg,
+      pbEl("span", { class: "pb-ctl" }, [pbPresetSel]),
+      pbEl("span", { class: "pb-ctl" }, [pbEl("label", { for: "pb-model", text: "Model" }), modelSel]),
+      pbEl("span", { class: "pb-spacer" }),
+      pbTokenEl,
+      pbEl("button", { type: "button", class: "pb-btn pb-ghost pb-danger", onclick: function (e) { pbResetBtn(e.currentTarget); }, text: "Reset" })
+    ]);
+  }
+  function pbBuildInputPane() {
+    pbFieldsEl = pbEl("div", { class: "pb-fields", id: "pb-fields", role: "tabpanel", "aria-label": "Prompt inputs" });
+    pbModelHintEl = pbEl("p", { class: "pb-note pb-note-info", text: pbModel(pbState.model).hint });
+    pbDegradedEl = pbEl("p", { class: "pb-degraded", hidden: true, text: "Autosave unavailable in this browser mode — your work won't persist across reloads." });
+    return pbEl("section", { class: "pb-pane" }, [pbEl("h3", { text: "Inputs" }), pbDegradedEl, pbFieldsEl, pbModelHintEl]);
+  }
+  function pbBuildPreviewPane() {
+    pbPreviewEl = pbEl("pre", { class: "pb-preview", id: "pb-preview", "data-empty": "Your assembled prompt appears here as you type…", tabindex: "0", "aria-label": "Assembled prompt preview" });
+    var actions = pbEl("div", { class: "pb-preview-actions" }, [
+      pbEl("button", { type: "button", class: "pb-btn pb-primary", onclick: pbCopy, text: "Copy" }),
+      pbEl("button", { type: "button", class: "pb-btn", onclick: pbExportMd, text: "Export .md" }),
+      pbEl("button", { type: "button", class: "pb-btn", onclick: pbExportJson, text: "Export .json" }),
+      pbEl("span", { class: "pb-hint", text: "Ctrl/⌘+Enter copies" })
+    ]);
+    return pbEl("section", { class: "pb-pane" }, [pbEl("h3", { text: "Live preview" }), pbEl("div", { class: "pb-preview-wrap" }, [actions, pbPreviewEl])]);
+  }
+  function pbSvg(tag, attrs) { var el = document.createElementNS("http://www.w3.org/2000/svg", tag); for (var k in attrs) { if (Object.prototype.hasOwnProperty.call(attrs, k)) el.setAttribute(k, attrs[k]); } return el; }
+  function pbBuildQualityPane() {
+    var svg = pbSvg("svg", { class: "pb-gauge", viewBox: "0 0 76 76", role: "img", "aria-label": "Structure completeness score" });
+    svg.appendChild(pbSvg("circle", { class: "pb-gauge-track", cx: "38", cy: "38", r: "32", fill: "none", "stroke-width": "7" }));
+    pbGaugeFill = pbSvg("circle", { class: "pb-gauge-fill pb-band-bad", cx: "38", cy: "38", r: "32", fill: "none", "stroke-width": "7", "stroke-dasharray": PB_GAUGE_C.toFixed(1), "stroke-dashoffset": PB_GAUGE_C.toFixed(1) });
+    svg.appendChild(pbGaugeFill);
+    pbGaugeText = pbSvg("text", { x: "38", y: "45", "text-anchor": "middle" }); pbGaugeText.textContent = "0"; svg.appendChild(pbGaugeText);
+    var meta = pbEl("div", { class: "pb-gauge-meta" }, [pbEl("div", { class: "pb-gauge-label", text: "Structure completeness" }), pbEl("div", { class: "pb-gauge-sub", text: "how many best-practice elements are present" })]);
+    pbIssuesEl = pbEl("ul", { class: "pb-issues", "aria-live": "polite", "aria-label": "Prompt quality issues" });
+    var honesty = pbEl("p", { class: "pb-honesty", text: "Heuristic structural score — it checks whether best-practice elements are present + flags anti-patterns, not the semantic quality of your writing. A 100 is not a guarantee of a good prompt; test it against the real model." });
+    return pbEl("section", { class: "pb-pane" }, [pbEl("h3", { text: "Quality" }), pbEl("div", { class: "pb-gauge-row" }, [svg, meta]), pbIssuesEl, honesty]);
+  }
+
+  function initPromptBuilder() {
+    pbRoot = document.getElementById("pb-root");
+    if (!pbRoot || pbRoot.getAttribute("data-pb-ready") === "1") return;
+    pbRoot.setAttribute("data-pb-ready", "1");
+    pbLoad();
+    pbClear(pbRoot);
+    pbRoot.appendChild(pbEl("div", { class: "pb-intro" }, [
+      pbEl("h2", { text: "Prompt Builder" }),
+      pbEl("p", { class: "pb-lead", text: "Fill in the inputs and watch a best-practice Claude prompt assemble live — with a quality score and a rough size estimate. Everything runs in your browser; nothing is sent anywhere." })
+    ]));
+    pbRoot.appendChild(pbBuildControls());
+    pbRoot.appendChild(pbEl("div", { class: "pb-grid" }, [pbBuildInputPane(), pbBuildPreviewPane(), pbBuildQualityPane()]));
+    pbRoot.addEventListener("keydown", function (e) { if ((e.ctrlKey || e.metaKey) && (e.key === "Enter" || e.keyCode === 13)) { e.preventDefault(); pbCopy(); } });
+    pbSetMode(pbState.mode);
+    pbSyncControls();
+    pbUpdate();
+  }
+  /* PROMPT-BUILDER:END */
+
 })();
 </script>
 </body>
