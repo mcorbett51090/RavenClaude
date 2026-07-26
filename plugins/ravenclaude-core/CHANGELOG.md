@@ -2,6 +2,12 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.210.2 — 2026-07-26
+
+### Fixed
+
+- **Dashboard command cards: long `/command` titles now wrap instead of overflowing.** `.cmd-card-head` gains `flex-wrap: wrap` + `gap: 6px 8px`; `.cmd-card-title` gets `flex: 1 1 100%; min-width: 0` and `overflow-wrap: anywhere` (replacing `word-break: break-all`, which broke every line mid-character). The title takes its own row with the badge wrapping below — a net a11y improvement. Regenerated `dashboard.html` + `index.html`. Also gitignores `.vscode/` (editor-local). **Migration:** none — CSS-only + a gitignore entry.
+
 ## 0.210.1 — 2026-07-26
 
 ### Added

@@ -5035,16 +5035,18 @@ footer.page-footer a:hover { text-decoration: underline; }
 }
 .cmd-card-head {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
-  justify-content: space-between;
-  gap: 8px;
+  gap: 6px 8px;
 }
 .cmd-card-title {
   margin: 0;
+  flex: 1 1 100%;
+  min-width: 0;
   font-family: var(--font-mono);
   font-size: 15px;
   color: var(--accent);
-  word-break: break-all;
+  overflow-wrap: anywhere;
 }
 .cmd-card-badge {
   flex: 0 0 auto;
