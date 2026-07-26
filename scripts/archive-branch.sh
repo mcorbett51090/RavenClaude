@@ -243,7 +243,20 @@ indent_block() { printf '%s\n' "$1" | sed 's/^/  /'; }
   if [[ -n "$UNMERGED_LIST" ]]; then
     # Quote via an array so the SHA list isn't word-split / glob-expanded into the
     # audit log (correct-by-construction even if the source format ever changes).
-    mapfile -t _ub_shas < <(printf '%s\n' "$UNMERGED_LIST" | awk '{print $1}')
+    # NOT `mapfile` — that is bash 4.0+, and macOS ships bash 3.2 at /bin/bash, where
+    # it exits 127 (command not found). Under `set -e` that aborted the script HERE,
+    # inside the `{ … } > "$LOG"` block — one line before `git update-ref -d`. Net
+    # effect on macOS: the tag was created and pushed, the audit log was truncated,
+    # and the branch was NEVER deleted, so the repo's only sanctioned branch-deletion
+    # path (house rule 5 — `git branch -D` is guard-denied) silently half-completed
+    # on the maintainer's own platform. Same door-1 class as the v0.193.0 hook sweep,
+    # which scoped to plugins/*/hooks/** and never looked at scripts/.
+    # `|| [[ -n "$_ub_line" ]]` preserves mapfile's handling of a final line with no
+    # trailing newline.
+    _ub_shas=()
+    while IFS= read -r _ub_line || [[ -n "$_ub_line" ]]; do
+      [[ -n "$_ub_line" ]] && _ub_shas+=("$_ub_line")
+    done < <(printf '%s\n' "$UNMERGED_LIST" | awk '{print $1}')
     printf '  - %s\n' "${_ub_shas[@]}"
   else
     echo "  []"

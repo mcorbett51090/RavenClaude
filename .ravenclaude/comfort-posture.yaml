@@ -17,13 +17,13 @@ command_review:
   enabled: false
   panel:
     forseti:
-      model: claude-opus-4-7
+      model: claude-opus-4-8
     mimir:
-      model: claude-haiku-4-5
+      model: claude-haiku-4-5-20251001
     heimdall:
-      model: claude-haiku-4-5
+      model: claude-haiku-4-5-20251001
     thor:
-      model: claude-opus-4-7
+      model: claude-opus-4-8
   confidence_threshold: 0.6
   gate_floor: high
   dev_repo_exempt: true
@@ -46,6 +46,11 @@ runaway: off
 
 # Yes/no decision routing through the tribunal (off | advisory | binding).
 decision_review: binding
+
+# Worktree-hygiene guard (off | warn | block). Nudges (warn) or denies a mutating op
+# (block) when a second live session shares this working tree, or on anchor-branch work
+# while worktrees exist; silent otherwise. Dogfooded at `warn`.
+worktree_guard: warn
 
 # Always-on deny rules — layer-independent floor.
 security_deny:

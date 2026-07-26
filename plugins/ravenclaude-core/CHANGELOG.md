@@ -2,6 +2,12 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.207.0 — 2026-07-21
+
+### Added
+
+- **Dual-analytics default for HTML-serving templates.** `templates/repo-build-studio/marketing-page.html` (public) ships the **GA4 (Consent Mode v2) + Cloudflare Web Analytics** placeholder block — empty IDs ⇒ inert (no `<script>`, zero network); each beacon is independently PROD-host-gated **and** valid-id-gated (the guard rejects dummy shapes like `G-XXXXXXXXXX`, not just empty strings). `dashboard.html` (internal) ships the same block **commented-off by default** — authed/internal surfaces do not auto-fire. A domain-neutral pointer in `CLAUDE.md` + one conditional line in the `agent-ready-repo` `CLAUDE.md.template` route to the full policy in `web-design/skills/third-party-script-hygiene` §8–9 (this plugin stays domain-neutral). IDs are PUBLIC identifiers, never secrets.
+
 ## 0.202.0 — 2026-07-16
 
 ### Added

@@ -79,7 +79,7 @@ The single source of truth for `tier label → SKU` mapping. **Mark every SKU `[
 | Tier       | Claude `[verify-at-use — Claude col re-verified 2026-06-04]`           | Codex `[verify-at-use — 2026-05-31]`        | Copilot `[verify-at-use — 2026-05-31]`         |
 | ---------- | --------------------------------------------------------------------- | ------------------------------------------- | ---------------------------------------------- |
 | `fast`     | Haiku 4.5 (`claude-haiku-4-5-20251001`)                               | GPT-5.5 reasoning=low                       | Haiku 4.5 (cloud-agent fast tier) / GPT-5.4-mini |
-| `balanced` | Sonnet 4.6 (`claude-sonnet-4-6`) — adaptive thinking                  | GPT-5.5 reasoning=medium/high               | `Auto` or Sonnet 4.6                            |
+| `balanced` | Sonnet 5 (`claude-sonnet-5`) — adaptive thinking                  | GPT-5.5 reasoning=medium/high               | `Auto` or Sonnet 5                            |
 | `top`      | Opus 4.8 (`claude-opus-4-8`), current — escalate sparingly (Opus 4.7 is legacy-but-available) | GPT-5.5-Pro                                 | Opus 4.6                                        |
 
 **Adapter discipline:** the adapter holds the ONE mapping table. Workflow code never names a SKU directly. SKU rotation happens here; everything downstream stays substrate-neutral.
@@ -128,7 +128,7 @@ tools (stable — VERDICT_SCHEMA + classify_run tool def)
 
 The classifier prompt is intentionally **small**. Per [`prompt-caching-playbook.md`](../../../claude-app-engineering/knowledge/prompt-caching-playbook.md) §"Minimum cacheable tokens":
 
-- **Haiku 4.5 minimum: 4,096 tokens.** Sonnet 4.6 minimum: 1,024 tokens. Below the minimum, a request runs **without** caching even when `cache_control` is set.
+- **Haiku 4.5 minimum: 4,096 tokens.** Sonnet 5 minimum: 1,024 tokens. Below the minimum, a request runs **without** caching even when `cache_control` is set.
 - **Do NOT set `cache_control` on the classifier prompt today.** The tools+system block is well below 4,096 tokens (~600-800). Setting `cache_control` writes a cache the next call can't read → pure 1.25× write penalty for nothing.
 - **The threshold:** if the system rubric grows past **4,096 tokens** AND a workflow re-invokes the classifier for the same task within 5 minutes (e.g. a forge-pipeline that retries scoping), then `cache_control:{type:"ephemeral"}` on the last tool def + the system block is worth it. Document the threshold in the adapter comment, not the prompt.
 
@@ -136,7 +136,7 @@ The classifier prompt is intentionally **small**. Per [`prompt-caching-playbook.
 
 - Verify-phase system block: layout `tools (VERDICT_SCHEMA) → system [BREAKPOINT] → user (claim+vote)`.
 - **`ttl: "1h"`** when expected workflow duration ≥ ~3 minutes (the rc-deep-research baseline was 36 min; 5-min TTL expires mid-run and every post-expiry call pays the 1.25× write tax again). Eat the 2× write penalty on call #1 to keep the cache warm.
-- If the verify system block is below the model's minimum, the cache silently doesn't fire — RM1 in the plan. Phase-5 eval reports `cache_read / (cache_read + input)` per phase; if verify-phase hit rate < 0.5, escalate the verify-default tier from `fast` (Haiku 4.5, min 4,096) to `balanced` (Sonnet 4.6, min 1,024).
+- If the verify system block is below the model's minimum, the cache silently doesn't fire — RM1 in the plan. Phase-5 eval reports `cache_read / (cache_read + input)` per phase; if verify-phase hit rate < 0.5, escalate the verify-default tier from `fast` (Haiku 4.5, min 4,096) to `balanced` (Sonnet 5, min 1,024).
 
 ## The feature flag
 
@@ -201,7 +201,7 @@ These are the rails. Violating any of them is a regression — every one is tied
      const model = TIER_TO_SKU[tierLabel];                          // single source of truth
      const opts = { model };
      if (tierLabel !== "fast") {                                    // Haiku is fast; no thinking
-       opts.thinking = { type: "adaptive" };                        // budget_tokens deprecated on Sonnet 4.6
+       opts.thinking = { type: "adaptive" };                        // budget_tokens deprecated on Sonnet 5
      }
      // cache_control set by the caller (verify-system-block has its own discipline)
      return opts;

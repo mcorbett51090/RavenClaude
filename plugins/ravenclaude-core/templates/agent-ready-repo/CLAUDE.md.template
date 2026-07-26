@@ -40,3 +40,7 @@ To disable any of them, override in `.claude/settings.json`.
 ## Memory
 
 User-scoped memory lives under `~/.claude/projects/`. Update `MEMORY.md` when something durable about the user, project, or working style changes.
+
+## Web analytics (if this repo serves web pages)
+
+If `{{REPO_NAME}}` ships an HTML front-end, wire the dual-analytics default per `web-design/skills/third-party-script-hygiene/SKILL.md` §8 (Google Analytics 4 + Cloudflare Web Analytics, placeholder-until-provisioned; each self-activates only in a production build when its own valid ID/token is set). **Not applicable** to a CLI, library, or data-only repo.

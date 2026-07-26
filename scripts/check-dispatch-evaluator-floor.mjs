@@ -98,7 +98,7 @@ async function assertFloorPreservesOpts(evaluatedAgent, calls, dispatchCfg, labe
   const baselineOpts = {
     label: "scope",
     schema: { type: "object" },
-    model: "claude-sonnet-4-6",
+    model: "claude-sonnet-5",
     _run_config_phase: "scope",
   };
   const snapshot = JSON.stringify(baselineOpts);
@@ -117,10 +117,7 @@ async function assertFloorPreservesOpts(evaluatedAgent, calls, dispatchCfg, labe
     JSON.stringify(baselineOpts) === snapshot,
     `${label}: opts not mutated in place (model/keys unchanged)`,
   );
-  note(
-    forwarded.model === "claude-sonnet-4-6",
-    `${label}: opts.model is byte-identical to baseline`,
-  );
+  note(forwarded.model === "claude-sonnet-5", `${label}: opts.model is byte-identical to baseline`);
   note(calls[0].prompt === "a prompt", `${label}: prompt forwarded unchanged`);
 }
 
@@ -154,7 +151,7 @@ async function main() {
   } else {
     const mutant = await loadEvaluatedAgent(mutantBlock);
     mutant.__calls.length = 0;
-    const opts = { label: "scope", model: "claude-sonnet-4-6" };
+    const opts = { label: "scope", model: "claude-sonnet-5" };
     await mutant.evaluatedAgent("p", opts, { enabled: false });
     const forwarded = mutant.__calls[0]?.opts;
     const mutated = forwarded !== opts || forwarded?.model === "claude-haiku-4-5-20251001";
