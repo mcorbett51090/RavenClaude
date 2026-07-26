@@ -2,6 +2,36 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.211.0 — 2026-07-26
+
+### Added
+
+- **Prompt Builder — a new dashboard tab (`#/prompt-builder`, under Learn & Help).** A deterministic,
+  100% client-side tool that assembles a best-practice **Claude** prompt from form inputs, in three
+  modes — **Task** / **System** / **Few-shot** — with a live preview, a **cited anti-folklore quality
+  linter** (the hero surface), a structure-completeness score, a rough token-size estimate, starter
+  presets + a one-click pattern library, and copy/export (`.md`/`.json`). No server, no API, no external
+  deps. Built via `/forge` (two-panel cross-model design → correlated-error critic → red-team →
+  synthesis); grounded in Anthropic's consolidated _Prompting best practices_ (retrieved 2026-07-26).
+  Research-driven groundings: **prefilling is deprecated** (400 on Claude 4.6+) so the builder never
+  emits it and the linter penalizes it; the token number is honestly **an estimate** (per-model divisor
+  3.6/4.0, `[interpretation]`, ±20% band) that never gates an action; and the linter **penalizes**
+  stacked `CRITICAL/MUST` emphasis rather than rewarding folklore.
+- **Gate 143 — `scripts/check-prompt-builder-render.mjs`.** The builder echoes user input into a live
+  preview, so its security floor is **no HTML-string sink anywhere in its JS** (the whole UI is built via
+  a `createElement`/`textContent` factory, `pbEl`). The gate enforces it **structurally** — a static
+  source grep over the whole `PROMPT-BUILDER:START..END` region — because the shared render DOM-stub
+  (`check-nidhoggr-render.mjs`) has no `innerHTML` setter and can't catch an `innerHTML` regression on
+  its own (the correlated error the FORGE critic found in both design panels; precedent
+  `check-concern-stats-render.mjs`). It also behaviorally exercises the pure assembler / linter / token
+  logic, with a must-fail half wired into `audit-gates.sh`.
+- **DOM budget (Gate 132) raised +6** (dashboard 6,097→6,103, index 6,809→6,815) to seat the new tab —
+  the frozen zero-slack tail was lifted in lockstep to keep the ratchet monotonic; the interactive UI is
+  JS-built (uncounted), so only the ~6 nav+mount elements are added. Owner-approved.
+
+**Migration:** none — a new read-only-to-the-repo tab (state is `localStorage` only). Reviewed by
+`code-reviewer` (approve-with-nits, all applied) + `security-reviewer` (DOM-XSS floor holds).
+
 ## 0.210.0 — 2026-07-26
 
 ### Added

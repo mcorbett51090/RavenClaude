@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /* check-prompt-builder-render.mjs — render + security gate for the Prompt Builder tab
- * (#/prompt-builder), added in ravenclaude-core v0.205.0.
+ * (#/prompt-builder), added in ravenclaude-core v0.211.0.
  *
  * The Prompt Builder echoes user input into a live preview, so its #1 hard constraint
  * is: NO HTML-string sink anywhere in its JS (the entire UI is built with
