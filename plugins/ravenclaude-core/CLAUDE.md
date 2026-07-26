@@ -926,13 +926,13 @@ Any plugin template that renders an HTML `<head>` (e.g. `templates/repo-build-st
 `ravenclaude-core` uses the standard component directories:
 
 - `agents/` — 15 specialist agent definitions (includes `data-engineer` and `viz-spec-reviewer`)
-- `skills/` — dispatch playbook (spawn-team), worktree helpers, structured-output reference, run-full-test-suite, contribution-staging, agent-quality-rubric, knowledge-file-staleness-sweep, prompt-pattern-library, plugin-release-checklist, decision-review (route yes/no decisions through the tribunal), brand-extraction (website home page → reusable brand kit), pbir-layout-engine (deterministic PBIR/web-dashboard layout linter), visual-feedback-loop (the render→see→critique→iterate referee that merges the layout linter + agent-captured console/Lighthouse evidence into one pass/fail verdict — the runnable half of `knowledge/visual-feedback-loop.md`)
-- `hooks/` — format-on-write, guard-destructive, remind-tests, enforce-layout, guard-recursive-spawn, thing-orchestrator, ensure-default-mode, reapply-posture, capability-orientation, route-decision-review, runaway-brake, dod-gate, claim-grounding-lint, agent-dispatch-evaluator, guard-web-access, regen-on-manifest-change (all registered in `hooks/hooks.json` for plugin-level distribution), plus the sourced helper `_emit-event.sh` (the hook-event substrate — sourced by the verdict-emitting hooks, not a registered hook itself) and `tests/` (the hook-event fixture test)
+- `skills/` — dispatch playbook (spawn-team), worktree helpers, structured-output reference, run-full-test-suite, contribution-staging, agent-quality-rubric, knowledge-file-staleness-sweep, prompt-pattern-library, plugin-release-checklist, decision-review (route yes/no decisions through the tribunal), brand-extraction (website home page → reusable brand kit), pbir-layout-engine (deterministic PBIR/web-dashboard layout linter), visual-feedback-loop (the render→see→critique→iterate referee that merges the layout linter + agent-captured console/Lighthouse evidence into one pass/fail verdict — the runnable half of `knowledge/visual-feedback-loop.md`), thing-denial-kb (Muninn — recall/identify/solve/teach the fix when the Thing blocks you)
+- `hooks/` — format-on-write, guard-destructive, remind-tests, enforce-layout, guard-recursive-spawn, thing-orchestrator, ensure-default-mode, reapply-posture, capability-orientation, route-decision-review, runaway-brake, dod-gate, claim-grounding-lint, agent-dispatch-evaluator, guard-web-access, regen-on-manifest-change, thing-denial-kb-sync (Stop — materialise tribunal denials into the Muninn KB), thing-denial-kb-recall (SessionStart — surface known denials + resolutions) (all registered in `hooks/hooks.json` for plugin-level distribution), plus the sourced helper `_emit-event.sh` (the hook-event substrate — sourced by the verdict-emitting hooks, not a registered hook itself) and `tests/` (the hook-event fixture test)
 - `scripts/` — apply-comfort-posture.py (`/set-posture` translator), serve-dashboards.py (the consumer dashboard server launched by `/dashboard` — serves the version-matched `dashboard.html` and writes `.ravenclaude/` into the consumer's project; binds 127.0.0.1, CSRF-guarded; the write surface is `/__save` + `/__read` + `/__classify` plus the allow-listed `/__run` (install/update/status — no arbitrary shell), and the remaining `/__*` endpoints (`/__heimdall` `/__vidarr` `/__norns` `/__nidhoggr` `/__mimir` `/__sleipnir` `/__saga` `/__concern` `/__knowledge` `/__runs` `/__csrf`) are read-only observability feeds), thing-decision.py + thing-seat.sh (command-review tribunal — see the `thing` skill), thing-decide.py (decision-review tribunal — see the `decision-review` skill)
 - `rules/` — coding-standards, security, git-workflow, agent-collaboration, terminal-copy-to-tempfile (copy-me CLI text → a temp `.md` file the user can copy from, because terminal clipboard copy doesn't work)
 - `templates/` — memos, runbooks, design specs, RAID logs, partner-success, `agent-ready-repo/` templates used by `/init-agent-ready`, plus `thing.yaml` (command-review seat config)
 - `commands/` — slash commands shipped to consumers: `/init-agent-ready`, `/wrap`, `/set-posture`, `/dashboard` (launches the bundled `serve-dashboards.py` so the consumer gets the fully-functioning comfort-posture dashboard with one-click Save & apply), `/stream` (inspect/override the active Agentic Work-Stream — list/set/new/show/status, over the `rc streams` CLI), and `/reset-plugin-cache` (alias `/ragnarok`) — the high-blast-radius plugin-cache disaster-recovery command (see the callout below)
-- `knowledge/` — reference material the Researcher cross-checks (incl. `concerns-catalog.md`, the tribunal constitution; `visual-feedback-loop.md` — the render→see→critique→iterate canon for visual-output agents)
+- `knowledge/` — reference material the Researcher cross-checks (incl. `concerns-catalog.md`, the tribunal constitution; `visual-feedback-loop.md` — the render→see→critique→iterate canon for visual-output agents; `thing-denial-kb.md` + `thing-denial-resolutions.json` — the Muninn denial-KB mechanism + its seed resolutions map)
 - `monitors/` — reactive run-state monitor (`monitors.json` + `watch-run-state.sh`); declared via `experimental.monitors` in `plugin.json`. The push complement to the read-only Heimdall/Víðarr tabs — see the milestone above and [`knowledge/run-state-monitor.md`](knowledge/run-state-monitor.md). Claude-Code-only; scoped `on-skill-invoke:spawn-team`.
 
 ### Command review (the Thing) — tribunal T5 (updated 2026-05-26, v0.28.0)
@@ -1737,6 +1737,29 @@ consumer-visible but additive and fail-safe — after `/plugin marketplace updat
 `forge/<slug>` worktree by default; set `forge_worktree: off` to keep the prior in-place behavior.
 Nothing else in the pipeline's gate semantics, flags, or artifact paths changed.
 
+## Thing-denial knowledge base — Muninn (added 2026-07-26, v0.210.1)
+
+When the command/decision tribunal ("the Thing") DENIES a command or DEFERS/refuses a decision, a new
+per-repo knowledge base turns the raw Sága audit records into a lookup of `denial shape → known
+resolution` — so a blocked agent can **quickly identify why it recurs and apply the fix** instead of
+retrying blindly or paging the human (named **Muninn**, Odin's raven of *memory*). Engine
+[`scripts/thing-denial-kb.py`](scripts/thing-denial-kb.py) (`sync`/`recall`/`resolve`/`record`;
+stdlib-only, fail-safe). A `Stop` hook [`hooks/thing-denial-kb-sync.sh`](hooks/thing-denial-kb-sync.sh)
+materialises denials from the Sága logs (**hot-path-safe** — reads only; never touches
+`thing-orchestrator.sh` / `route-decision-review.sh` or the live emit path); a `SessionStart` hook
+[`hooks/thing-denial-kb-recall.sh`](hooks/thing-denial-kb-recall.sh) surfaces the digest. Seed map
+[`knowledge/thing-denial-resolutions.json`](knowledge/thing-denial-resolutions.json) + the
+`thing-denial-kb` skill + [`knowledge/thing-denial-kb.md`](knowledge/thing-denial-kb.md).
+
+**Security envelope (hardened after a blocking review), proven bidirectionally by Gate 143**
+(`hooks/tests/test-thing-denial-kb.sh`): the auto-injected SessionStart banner is **derived-labels-only**
+(the raw denied `sample` is never auto-injected — only via `recall --json`), matching the
+`capability-orientation.sh` / `watch-run-state.sh` / Gate 19 invariant; `sample`+`reasoning` are
+**secret-scrubbed before storage** (a Python port of `hooks/_scrub.sh`); decision resolutions match on
+the **derived reason class** (trusted tribunal fields), not attacker text, correct-by-design rules
+first. The KB never teaches defeating a genuine security stop. **Migration:** none — additive, opt-in,
+fail-safe; inert until the Thing denies.
+
 ## Prompt Builder — a premium, deterministic, client-side prompt tab (added 2026-07-26, v0.211.0)
 
 A new dashboard tab (`#/prompt-builder`, under the **Learn & Help** destination) that assembles a
@@ -1758,7 +1781,7 @@ imperative stacking and gives magic phrases zero credit (5.2/5.3/6.9).
 **The engineering spine — a self-auditing XSS floor.** The builder echoes user input into a live preview,
 so its #1 constraint is **no HTML-string sink anywhere in its JS**: the entire UI is built with a
 `createElement`/`textContent` factory (`pbEl`), the preview is a single whole-string `textContent` write,
-and the data-tag name is clamped to `[A-Za-z0-9_-]`. **Gate 143** (`scripts/check-prompt-builder-render.mjs`)
+and the data-tag name is clamped to `[A-Za-z0-9_-]`. **Gate 144** (`scripts/check-prompt-builder-render.mjs`)
 enforces this **structurally** — a static source grep over the whole `PROMPT-BUILDER:START..END` region —
 because the shared render-gate DOM stub (`check-nidhoggr-render.mjs`'s `El` class) has **no `innerHTML`
 setter** and cannot catch an `innerHTML` regression on its own. This was the **correlated error** the

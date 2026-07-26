@@ -320,13 +320,18 @@ PY
       exit $?
       ;;
     143)
-      echo "── Gate 143: Prompt Builder render + XSS floor (per-gate run) ────────────"
+      echo "── Gate 143: Thing-denial KB security contract (per-gate run) ────────────"
+      bash plugins/ravenclaude-core/hooks/tests/test-thing-denial-kb.sh
+      exit $?
+      ;;
+    144)
+      echo "── Gate 144: Prompt Builder render + XSS floor (per-gate run) ────────────"
       node scripts/check-prompt-builder-render.mjs plugins/ravenclaude-core/dashboard.html
       exit $?
       ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -4752,7 +4757,19 @@ rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate140-worktree-guard.sh >
 gate "worktree-guard block-mode teeth (deny mutating on contention/anchor; allow solo/read/ACK)" must_pass "$rc"
 
 echo
-echo "── Gate 143: Prompt Builder render + XSS floor (check-prompt-builder-render.mjs) ──"
+echo "── Gate 143: Thing-denial KB (Muninn) security contract ──────────────────"
+# The recall banner is auto-injected into SessionStart context, so a raw denied
+# command/question (`sample`) must NEVER appear in it (the derived-labels-only
+# invariant shared with capability-orientation.sh / watch-run-state.sh / Gate 19),
+# and sample+reasoning must be secret-scrubbed BEFORE storage (the v0.110.0 substrate
+# scrub invariant). test-thing-denial-kb.sh proves both bidirectionally: two must-fail
+# halves re-add the sample line / strip the scrub and assert the injection text / JWT
+# then leak.
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-thing-denial-kb.sh >/dev/null 2>&1 || rc=$?
+gate "thing-denial-kb: banner derived-labels-only + secret-scrubbed (+ teeth)" must_pass "$rc"
+
+echo
+echo "── Gate 144: Prompt Builder render + XSS floor (check-prompt-builder-render.mjs) ──"
 # The Prompt Builder echoes user input into a live preview, so its #1 hard constraint
 # is NO HTML-string sink anywhere in its JS. The shared DOM-stub pattern (the El class
 # in check-nidhoggr-render.mjs) has no innerHTML setter and CANNOT catch an innerHTML
@@ -4770,7 +4787,7 @@ if command -v node >/dev/null 2>&1; then
   rc=0; node scripts/check-prompt-builder-render.mjs "$PB_BAD" >/dev/null 2>&1 || rc=$?
   gate "prompt-builder teeth: a reintroduced innerHTML sink is caught" must_fail "$rc"
 else
-  _skip_or_fail "Gate 143 (prompt-builder render)" node
+  _skip_or_fail "Gate 144 (prompt-builder render)" node
 fi
 
 echo
