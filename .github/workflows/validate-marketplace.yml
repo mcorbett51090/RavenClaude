@@ -1,36 +1,30 @@
 name: Validate Marketplace
 
 on:
+  # NO `paths:` filter on pull_request — deliberate, and load-bearing twice over.
+  #
+  # 1. This workflow's gates are WHOLE-TREE readers: `prettier --check .`, `ruff
+  #    check .`, and audit-gates.sh (593 gates) read files across the entire repo,
+  #    not just the ones a PR touched. So there is no glob list that is correct —
+  #    the previous list was patched three times (2026-05-31 P1, 2026-06-20,
+  #    2026-07-06 P2) precisely because each version missed files a gate reads,
+  #    and it still missed index.html / tests/** / .repo-layout.json. An
+  #    ever-growing allow-list that fails OPEN (gate silently never runs) is the
+  #    wrong shape for a whole-tree validator; running always is the right one.
+  #
+  # 2. This is a REQUIRED status check (ruleset "main"). GitHub: "If a workflow is
+  #    skipped due to path filtering ... checks associated with that workflow will
+  #    remain in a Pending state. A pull request that requires those checks to be
+  #    successful will be blocked from merging" — and: "You should not use path or
+  #    branch filtering to skip workflow runs if the workflow is required to pass
+  #    before merging."
+  #    https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/collaborating-on-repositories-with-code-quality-features/troubleshooting-required-status-checks
+  #    A path filter here does not merely cost coverage — it hangs the PR forever.
+  #
+  # Do NOT re-add `paths:` to this trigger. If PR minutes ever need trimming, gate
+  # individual STEPS with `if:` inside the job (a skipped job reports Success, a
+  # skipped workflow reports nothing) — that is GitHub's documented alternative.
   pull_request:
-    paths:
-      # These globs MUST cover every file any gate in this workflow reads.
-      # check-marketplace-claims.py reads README.md + docs/architecture.md, and
-      # check-md-links.py reads README/AGENTS/CLAUDE.md + docs/** — so a PR that
-      # edits ONLY one of those must still trigger this workflow, or the gate
-      # never runs (two-panel audit 2026-05-31, P1).
-      - ".claude-plugin/**"
-      - "plugins/**"
-      - "scripts/**"
-      - "README.md"
-      - "AGENTS.md"
-      - "CLAUDE.md"
-      - "GETTING_STARTED.md"
-      - "STRATEGY.md"
-      - "docs/**"
-      - "evals/**"
-      - "schemas/**"
-      # The prettier (`--check .`) and ruff gates in this workflow read these
-      # config files; a PR that edits ONLY one of them must still trigger this
-      # workflow or the bad config merges unvalidated (repo-review 2026-06-20).
-      - ".prettierignore"
-      - ".prettierrc.json"
-      - "ruff.toml"
-      # actionlint (a gate in THIS workflow, direct step + audit-gates Gate 10)
-      # reads EVERY .github/workflows/*.yml — so a PR editing any OTHER workflow
-      # (e.g. quarantine-intake.yml, which ingests untrusted issue title/body)
-      # must trigger this workflow, or actionlint never lints the change and a
-      # script-injection could merge green (repo-review 2026-07-06, P2).
-      - ".github/workflows/**"
   push:
     branches:
       - main

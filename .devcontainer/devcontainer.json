@@ -14,7 +14,7 @@
   // the forwarded port is live the moment the Codespace is ready — no "how do I
   // find the dashboard?" hunt. Consumer repos use .ravenclaude/dashboard.sh; the
   // marketplace uses scripts/open-dashboard.sh.
-  "postStartCommand": "test -x scripts/open-dashboard.sh && bash scripts/open-dashboard.sh >/tmp/rc-dashboard-postStart.log 2>&1 || true",
+  "postStartCommand": "test -x scripts/open-dashboard.sh && bash scripts/open-dashboard.sh --no-open >/tmp/rc-dashboard-postStart.log 2>&1 || true",
   // The slim base image ships the `vscode` user (only the universal image used
   // `codespace`). $HOME becomes /home/vscode — see the post-rebuild checklist in
   // the PR: re-check the memory dir, npm-global, and the dashboard port after the

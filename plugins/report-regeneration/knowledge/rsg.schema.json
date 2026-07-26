@@ -1,0 +1,160 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ravenclaude/report-regeneration/rsg.schema.json",
+  "title": "Report Structure Graph (RSG)",
+  "description": "A format-neutral ordered tree inferred from a template report. Every non-static node carries a format-native stable anchor, an inferred semantic role, a confidence score, a rebind class, and a provenance record that includes the source reporting period. The RSG is an addressing-and-verification structure, NEVER a generator.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "format", "template_id", "root"],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "description": "Semver of this RSG schema. A change serializes and re-triggers the Bet-1 smoke across both output formats.",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "format": {
+      "type": "string",
+      "enum": ["html", "office"],
+      "description": "Native output format the template was parsed from. HTML and Office are the ONLY output formats. Power BI is an input source, never an output format."
+    },
+    "template_id": {
+      "type": "string",
+      "description": "Stable identity of the source template (used to reuse a prior Binding Manifest for recurring templates)."
+    },
+    "root": {
+      "$ref": "#/$defs/node"
+    }
+  },
+  "$defs": {
+    "node": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "anchor",
+        "role",
+        "class",
+        "confidence",
+        "provenance",
+        "data_shaped_literal",
+        "children"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Stable node identity, unique within the tree. Never a raw character offset."
+        },
+        "anchor": {
+          "$ref": "#/$defs/anchor"
+        },
+        "role": {
+          "type": "string",
+          "description": "Inferred semantic role of the node.",
+          "enum": [
+            "static-chrome",
+            "heading",
+            "kpi-value",
+            "table-cell",
+            "narrative",
+            "chart",
+            "image",
+            "period-label",
+            "metadata",
+            "unknown"
+          ]
+        },
+        "class": {
+          "$ref": "#/$defs/nodeClass"
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Classifier confidence in role+class. Below the calibrated threshold the node is QA-flagged for human review regardless of value content."
+        },
+        "provenance": {
+          "$ref": "#/$defs/provenance"
+        },
+        "data_shaped_literal": {
+          "type": "boolean",
+          "description": "Output of the pinned, non-inference, deterministic data-shaped-literal detector (currency/number/date/percent/unit/known-entity). If true, the node CANNOT be 'frozen' and is force-demoted to 'needs-review' regardless of classifier confidence."
+        },
+        "children": {
+          "type": "array",
+          "description": "Ordered child nodes. Order is load-bearing (document order); V3 isomorphism and V2 diff depend on it.",
+          "items": {
+            "$ref": "#/$defs/node"
+          }
+        }
+      },
+      "allOf": [
+        {
+          "description": "Earned-frozen invariant: a node bearing a data-shaped literal may never be class 'frozen'.",
+          "if": {
+            "properties": {
+              "data_shaped_literal": {
+                "const": true
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "class": {
+                "not": {
+                  "const": "frozen"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "anchor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "value"],
+      "description": "Format-native STABLE node identity, re-resolvable after each mutation. Never a raw char-offset.",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": ["json_pointer", "element_id", "css_selector", "ooxml_path"],
+          "description": "json_pointer/element_id/css_selector for HTML; ooxml_path (w:body walk path) for Office."
+        },
+        "value": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "nodeClass": {
+      "type": "string",
+      "enum": ["frozen", "surgical", "regenerate", "needs-review"],
+      "description": "frozen = EARNED data-free chrome (byte-identical in output); surgical = byte-edit a value at the anchor under the zero-literal construction rule; regenerate = rebuilt from new data (rasters and embedded-data-cache nodes are FORCED here); needs-review = cannot ship without human sign-off (default for any data-shaped literal in a candidate-frozen node, or sub-threshold confidence)."
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["method", "source", "source_period"],
+      "properties": {
+        "method": {
+          "type": "string",
+          "enum": ["native-parse", "rule-based", "llm-labeled"],
+          "description": "native-parse (zero ML, exact syntax anchors) and rule-based are inference-independent; llm-labeled is inference-adjacent and QA-flagged below threshold."
+        },
+        "source": {
+          "type": "string",
+          "description": "Origin artifact/dataset this node's content traces to."
+        },
+        "source_period": {
+          "type": ["string", "null"],
+          "description": "Reporting period the value belongs to (e.g. 'Q4 2024'). Required for every value node so the period-coherence leg can assert the label matches the value's period. null only for period-agnostic static chrome."
+        },
+        "pbi_route": {
+          "type": ["string", "null"],
+          "enum": ["xmla", "rest", "screenshot", null],
+          "description": "For Power-BI-sourced nodes only: the ingestion route. xmla/rest = data-read; screenshot = fresh-captured image (always class 'regenerate'). null for non-PBI nodes."
+        }
+      }
+    }
+  }
+}

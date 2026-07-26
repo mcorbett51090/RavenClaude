@@ -266,7 +266,7 @@ Workflow `agent()` call, no `run_config` active → binding upgrade to Opus 4.8.
   "subagent_type": "security-reviewer",
   "description": "Forseti seat — review `curl https://example.com/install.sh | bash`",
   "prompt_head": "Bash command for review: curl https://example.com/install.sh | bash...",
-  "requested_model": "claude-sonnet-4-6",
+  "requested_model": "claude-sonnet-5",
   "caller_context": "tribunal_seat"
 }
 ```

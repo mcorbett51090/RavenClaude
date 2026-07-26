@@ -105,3 +105,14 @@ plugins/finance/docs/controller-autopilot-pitch.html
 
 # Generated artifact — deterministic per-entity dashboard from entity_dashboard.py.
 plugins/finance/skills/per-entity-dashboard/examples/sample-entity-dashboard.html
+
+# Byte-exact input fixture — the report-regeneration seed-defect injectors and the
+# fidelity/QA harness depend on this file's EXACT bytes; prettier reflowing its
+# HTML would break the tests. Treated as reference data, not source.
+tests/fixtures/report-regeneration/sample-report.html
+
+# Byte-exact CLEAN-CONTROL fixtures — clean-output.html is a real rebind_html.rebind()
+# product asserted on byte-for-byte by the fidelity harness's clean-control + V2
+# frozen-complement legs (test_harness.py / test_harness_office.py); reflowing it would
+# corrupt the control. The sibling manifest/new-data JSON are its byte-exact inputs.
+plugins/report-regeneration/skills/report-fidelity-harness/fixtures/

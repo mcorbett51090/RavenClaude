@@ -789,12 +789,12 @@ def thing_enabled_for(posture: dict, category: str | None) -> bool:
 # the budget on the security + tie-break seats, run the fast seats on Haiku.
 _DEFAULT_PANEL = {
     "forseti": {"agent": "security-reviewer", "model": "claude-opus-4-8"},
-    "mimir": {"agent": "code-reviewer", "model": "claude-haiku-4-5"},
+    "mimir": {"agent": "code-reviewer", "model": "claude-haiku-4-5-20251001"},
     # Heimdall is the injection seat — the assessment (must-fix #4) flagged that
     # running the adversarial-content reviewer on the weakest model is exactly
     # where you don't want to economize. Bumped to Sonnet (Mímir, the correctness
     # seat, stays on the fast/cheap Haiku).
-    "heimdall": {"agent": "prompt-engineer", "model": "claude-sonnet-4-6"},
+    "heimdall": {"agent": "prompt-engineer", "model": "claude-sonnet-5"},
     "thor": {"agent": "architect", "model": "claude-opus-4-8"},
 }
 _DEFAULT_CONFIDENCE_THRESHOLD = 0.5
@@ -1077,7 +1077,7 @@ def resolve_tier_config(root: Path, posture: dict | None) -> tuple[dict, str | N
 # least two DISTINCT model backbones must run, so a single model's blind spot can't
 # pass the whole panel unseen. If a config collapsed the convened seats onto one
 # model, reassign one seat to a different (preferring equal-or-stronger) model.
-_DIVERSITY_PREF = ["claude-sonnet-4-6", "claude-opus-4-8", "claude-haiku-4-5"]
+_DIVERSITY_PREF = ["claude-sonnet-5", "claude-opus-4-8", "claude-haiku-4-5-20251001"]
 
 
 def _enforce_model_diversity(panel: dict, convened: list[str]) -> tuple[dict, bool]:
@@ -1088,7 +1088,7 @@ def _enforce_model_diversity(panel: dict, convened: list[str]) -> tuple[dict, bo
     if len({m for m in models if m}) >= 2:
         return panel, False  # already heterogeneous
     common = models[0]
-    alt = next((m for m in _DIVERSITY_PREF if m != common), "claude-sonnet-4-6")
+    alt = next((m for m in _DIVERSITY_PREF if m != common), "claude-sonnet-5")
     out = {k: dict(v) for k, v in panel.items()}
     out.setdefault(convened[-1], {})["model"] = alt  # diversify the last convened seat
     return out, True

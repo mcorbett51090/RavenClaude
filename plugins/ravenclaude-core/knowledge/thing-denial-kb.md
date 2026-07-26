@@ -86,7 +86,7 @@ Guidelines:
 ## Safety / fail-safe invariants
 
 These two are load-bearing (they were the blocking findings of the pre-merge security review) and are
-proven bidirectionally by **Gate 134** (`hooks/tests/test-thing-denial-kb.sh`):
+proven bidirectionally by **Gate 143** (`hooks/tests/test-thing-denial-kb.sh`):
 
 - **Derived-labels-only auto-injection.** The SessionStart recall banner injects the KB into session
   context, so — exactly like `capability-orientation.sh` / `watch-run-state.sh` / Gate 19 — it emits

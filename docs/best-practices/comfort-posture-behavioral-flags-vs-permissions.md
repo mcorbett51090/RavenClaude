@@ -1,12 +1,3 @@
-<!-- RAVENCLAUDE-STAGING-METADATA
-type: best-practice
-topic: architecture
-proposed-by: consumer engagement — BTCSIReporting (Copilot CLI) prompting on nearly every turn despite broad allow rules
-proposed-on: 2026-07-16
-target-file: docs/best-practices/comfort-posture-behavioral-flags-vs-permissions.md
-status: pending
--->
-
 # Comfort posture has two orthogonal surfaces — `allow` rules don't silence behavioral flags; tune `design_checkins` / `orchestrator` / `decision_review` separately
 
 **Status:**
@@ -59,14 +50,14 @@ The three surfaces at a glance:
 
 ## See also
 
-- [`plugins/ravenclaude-core/knowledge/concepts/comfort-posture.md`](../../../plugins/ravenclaude-core/knowledge/concepts/comfort-posture.md) — the comfort-posture concept.
-- [`plugins/ravenclaude-core/copilot/AGENTS.md`](../../../plugins/ravenclaude-core/copilot/AGENTS.md) § "Relay mode" — the three relay-activation conditions (condition 3 is the literal-key requirement).
-- [`plugins/ravenclaude-core/skills/set-posture/SKILL.md`](../../../plugins/ravenclaude-core/skills/set-posture/SKILL.md) — the (category, level) → permission-rule translation pipeline.
-- [`plugins/ravenclaude-core/knowledge/orchestrator-data-egress.md`](../../../plugins/ravenclaude-core/knowledge/orchestrator-data-egress.md) — orchestrator scopes + the ZDR attestation.
+- [`plugins/ravenclaude-core/knowledge/concepts/comfort-posture.md`](../../plugins/ravenclaude-core/knowledge/concepts/comfort-posture.md) — the comfort-posture concept.
+- [`plugins/ravenclaude-core/copilot/AGENTS.md`](../../plugins/ravenclaude-core/copilot/AGENTS.md) § "Relay mode" — the three relay-activation conditions (condition 3 is the literal-key requirement).
+- [`plugins/ravenclaude-core/skills/set-posture/SKILL.md`](../../plugins/ravenclaude-core/skills/set-posture/SKILL.md) — the (category, level) → permission-rule translation pipeline.
+- [`plugins/ravenclaude-core/knowledge/orchestrator-data-egress.md`](../../plugins/ravenclaude-core/knowledge/orchestrator-data-egress.md) — orchestrator scopes + the ZDR attestation.
 
 ## Provenance
 
-Consumer engagement (BTCSIReporting, Copilot CLI), 2026-07-16: the agent prompted on nearly every turn despite broad `allow` rules and `defaultMode: bypassPermissions`. Root-caused to three compounding behavioral flags — `design_checkins: true` (primary), an absent `orchestrator:` key defeating relay-mode condition 3, and `decision_review: binding`. Fixed (commit `5a90961c`, branch `dev`) by setting `design_checkins: false` and adding `orchestrator: full`; `decision_review: binding` left intact so PROD/destructive gates still block. The `copilot/AGENTS.md:69` literal-key requirement was re-confirmed against this repo's source on 2026-07-16.
+Consumer engagement (Copilot CLI), 2026-07-16: the agent prompted on nearly every turn despite broad `allow` rules and `defaultMode: bypassPermissions`. Root-caused to three compounding behavioral flags — `design_checkins: true` (primary), an absent `orchestrator:` key defeating relay-mode condition 3, and `decision_review: binding`. Fixed by setting `design_checkins: false` and adding `orchestrator: full`; `decision_review: binding` left intact so PROD/destructive gates still block. The `copilot/AGENTS.md:69` literal-key requirement was re-confirmed against this repo's source on 2026-07-16.
 
 ---
 

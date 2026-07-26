@@ -2,6 +2,16 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.15.0] — 2026-07-21
+
+### Added
+
+- **Dual-analytics standing standard (`dual-analytics-standard`).** `CLAUDE.md` §3 house-rule #11 gains a **bounded, standing exception**: the **GA4 (Consent Mode v2) + Cloudflare Web Analytics** house pair ships together as ONE "house analytics" inventory line in every new site, wired placeholder-until-provisioned (empty ⇒ inert, zero network), each independently PROD + valid-id guarded. A named exception, **not** a repeal — a third analytics tool is still forbidden. The full reference implementation — the snippet, the `isRealGaId`/`isRealCfToken` validators (which reject dummy shapes like `G-XXXXXXXXXX`), the per-stack PROD gates, the authed/internal-surface default (analytics never auto-fires on a logged-in/internal surface), the honest CSP/SRI story, the EU + data-quality caveats, and the measured CWV budget — is added as `skills/third-party-script-hygiene` **§8–9**. `gold-standard-website-pipeline` G5/G7 + `templates/launch-checklist.md` wire it in (G7 **measures** the pair against a `<50 ms` TBT budget, never blanket-passes it).
+
+### Changed
+
+- `third-party-script-hygiene` category-budget table: Analytics **`1 → 2 (bundled house default)`**; both the budget row and the "two analytics tools to compare data" anti-pattern now carry the sanctioned-pair carve-out (so the pipeline's own hygiene gate accepts the two beacons).
+
 ## [0.14.3] — 2026-07-09
 
 ### Changed
