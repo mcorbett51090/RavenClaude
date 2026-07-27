@@ -3936,11 +3936,15 @@ footer.page-footer a:hover { text-decoration: underline; }
 
 .pb-controls { position: sticky; top: 0; z-index: 5; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; padding: 10px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
 .pb-controls .pb-spacer { flex: 1 1 auto; }
-.pb-seg { display: inline-flex; background: var(--surface-2); border: 1px solid var(--border); border-radius: 999px; padding: 3px; gap: 2px; }
-.pb-seg button { appearance: none; border: 0; background: transparent; color: var(--muted); font: inherit; font-size: 13px; font-weight: 600; padding: 6px 14px; border-radius: 999px; cursor: pointer; transition: color .15s, background .15s; }
-.pb-seg button[aria-selected="true"] { background: var(--accent); color: #fff; }
-.pb-seg button:hover:not([aria-selected="true"]) { color: var(--text); }
-.pb-seg button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* One template toggle row replaces the old mode segmented control + preset dropdown. */
+.pb-templates { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; flex: 1 1 100%; }
+.pb-tpl-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin-right: 2px; }
+.pb-tpl { appearance: none; border: 1px solid var(--border); background: var(--surface-2); color: var(--muted); font: inherit; font-size: 12.5px; font-weight: 600; padding: 6px 12px; border-radius: 999px; cursor: pointer; transition: color .15s, background .15s, border-color .15s; }
+.pb-tpl:hover { color: var(--text); border-color: var(--accent); }
+.pb-tpl[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+.pb-tpl:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* Per-field "insert a canned item" picker — free text stays; this only fills/appends. */
+.pb-canned { align-self: flex-start; font-size: 12px; padding: 4px 24px 4px 8px; color: var(--muted); max-width: 100%; }
 
 .pb-ctl { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--muted); }
 .pb-ctl label { font-weight: 600; }
@@ -4051,6 +4055,7 @@ footer.page-footer a:hover { text-decoration: underline; }
   <nav class="ds-nav" aria-label="Dashboard sections">
     <div class="ds-group">
       <div class="ds-label">Control</div>
+      <a class="ds-sub" href="#/prompt-builder" data-tab="prompt-builder">Prompt Builder</a>
       <a class="ds-sub" href="#/settings" data-tab="settings">The Thing</a>
       <a class="ds-sub" href="#/pipeline" data-tab="pipeline">Pipeline</a>
       <a class="ds-sub" href="#/web-access" data-tab="web-access">Web access</a>
@@ -4072,7 +4077,6 @@ footer.page-footer a:hover { text-decoration: underline; }
     <div class="ds-group">
       <div class="ds-label">Learn &amp; Help</div>
       <a class="ds-sub" href="#/learn" data-tab="learn">Learn</a>
-      <a class="ds-sub" href="#/prompt-builder" data-tab="prompt-builder">Prompt Builder</a>
       <a class="ds-sub" href="#/trees" data-tab="trees">Guidance</a>
       <a class="ds-sub" href="#/help" data-tab="help">Help</a>
       <a class="ds-sub" href="#/plugin-vars" data-tab="plugin-vars">Plugins</a>
@@ -4085,6 +4089,7 @@ footer.page-footer a:hover { text-decoration: underline; }
     <span class="brand-mark" aria-hidden="true"><img src="data:image/webp;base64,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" width="240" height="247" alt="" aria-hidden="true"></span>
   </div>
   <nav class="tab-bar" aria-label="Dashboard sections">
+    <button class="tab-btn" type="button" id="tab-prompt-builder" data-tab="prompt-builder" aria-selected="false" title="Prompt Builder — assemble a best-practice Claude prompt with a live quality score">Prompt Builder</button>
     <button class="tab-btn" type="button" id="tab-settings" data-tab="settings" aria-selected="true" title="The Thing — comfort-posture + command-review; choose what Claude can do on its own (deny / ask / allow)">The Thing</button>
     <button class="tab-btn" type="button" id="tab-pipeline" data-tab="pipeline" aria-selected="false" title="Pipeline — the safety checks every command passes through">Pipeline</button>
     <button class="tab-btn" type="button" id="tab-web-access" data-tab="web-access" aria-selected="false" title="Web access — allow/deny which websites the agent may fetch">Web access</button>
@@ -4097,7 +4102,6 @@ footer.page-footer a:hover { text-decoration: underline; }
     <button class="tab-btn" type="button" id="tab-vidarr" data-tab="vidarr" aria-selected="false" title="Security log — posture changes &amp; security-relevant denials (Víðarr)">Security log</button>
     <button class="tab-btn" type="button" id="tab-nidhoggr" data-tab="nidhoggr" aria-selected="false" title="Debt watch — low-noise marketplace maintenance signals (Níðhöggr)">Debt</button>
     <button class="tab-btn" type="button" id="tab-learn" data-tab="learn" aria-selected="false" title="Learn — plain-English explainers for each concept">Learn</button>
-    <button class="tab-btn" type="button" id="tab-prompt-builder" data-tab="prompt-builder" aria-selected="false" title="Prompt Builder — assemble a best-practice Claude prompt with a live quality score">Prompt Builder</button>
     <button class="tab-btn" type="button" id="tab-trees" data-tab="trees" aria-selected="false" title="Guidance — every plugin's decision trees (when-this-applies flows) and named best-practice rules, searchable across the marketplace">Guidance</button>
     <button class="tab-btn" type="button" id="tab-help" data-tab="help" aria-selected="false" title="Help — install &amp; update guides (Claude Code / Copilot CLI), the command catalog, and where retired tabs went">Help</button>
 <button class="tab-btn" type="button" id="tab-plugin-vars" data-tab="plugin-vars" aria-selected="false" title="Plugin variables">Plugin variables</button>
@@ -10064,9 +10068,9 @@ footer.page-footer a:hover { text-decoration: underline; }
     },
     {
       "drift": false,
-      "marketplace_version": "0.213.0",
+      "marketplace_version": "0.214.0",
       "plugin": "ravenclaude-core",
-      "plugin_version": "0.213.0"
+      "plugin_version": "0.214.0"
     },
     {
       "drift": false,
@@ -15229,7 +15233,7 @@ footer.page-footer a:hover { text-decoration: underline; }
   function pbEx() { return { input: "", output: "", reasoning: "" }; }
   function pbDefault() {
     return {
-      mode: "task", model: "opus-5", reasoning: false,
+      mode: "task", model: "opus-5", reasoning: false, template: null,
       task:    { directive: "", context: "", dataTag: "input", data: "", constraints: "", outputFormat: "", success: "" },
       system:  { role: "", rules: [""], tone: "", boundaries: "", outputPolicy: "" },
       fewshot: { directive: "", outputFormat: "", examples: [pbEx(), pbEx(), pbEx()] }
@@ -15262,14 +15266,70 @@ footer.page-footer a:hover { text-decoration: underline; }
     ]
   };
 
+  // Templates (the toggle-row starting points). Agent system prompt is first — the
+  // most-used template (Matt, 2026-07-27). Each carries a `title` (button tooltip)
+  // and an `apply(state)` that sets the mode's starting fields. All copy is
+  // anti-folklore-clean: no "you are an expert", no stacked CRITICAL/MUST, positive
+  // framing (1.5) so a prompt built from a template scores well in the linter.
   var PB_PRESETS = [
-    { id: "summarize", label: "Summarize", mode: "task", apply: function (s) { s.task.directive = "Summarize the text in <document> into the key points."; s.task.dataTag = "document"; s.task.outputFormat = "Three to five bullet points, each ≤ 20 words. Output only the bullets."; } },
-    { id: "extract", label: "Extract structured data", mode: "task", apply: function (s) { s.task.directive = "Extract the requested fields from the text in <document>."; s.task.dataTag = "document"; s.task.outputFormat = "Return a JSON object with the keys listed above. Output only valid JSON, no prose."; } },
-    { id: "classify", label: "Classify", mode: "task", apply: function (s) { s.task.directive = "Classify the text in <input> into exactly one category."; s.task.outputFormat = "Respond with exactly one label from: [label_a, label_b, label_c]. Output only the label."; } },
-    { id: "rewrite", label: "Rewrite / rephrase", mode: "task", apply: function (s) { s.task.directive = "Rewrite the text in <input> in a warmer, plain-language tone for a general audience."; s.task.outputFormat = "Return only the rewritten text."; } },
-    { id: "agent-system", label: "Agent system prompt", mode: "system", apply: function (s) { s.system.role = "You are a senior software engineering assistant."; s.system.rules = ["Prefer taking a well-reasoned next step over asking for confirmation when the path is clear.", "When unsure, investigate the code and docs before answering — do not guess."]; s.system.outputPolicy = "Respond in clear, flowing prose. Show code in fenced blocks."; } },
-    { id: "fewshot-classifier", label: "Few-shot classifier", mode: "fewshot", apply: function (s) { s.fewshot.directive = "Classify the sentiment of each review as positive, negative, or neutral."; s.fewshot.outputFormat = "One word: positive, negative, or neutral."; s.fewshot.examples = [{ input: "Loved it, would buy again!", output: "positive", reasoning: "" }, { input: "It broke after a day.", output: "negative", reasoning: "" }, { input: "It arrived on time.", output: "neutral", reasoning: "" }]; } }
+    { id: "agent-system", label: "Agent system prompt", mode: "system", title: "A reusable agent system prompt — role, standing rules, output policy (3.1 / 3.2).", apply: function (s) { s.system.role = "You are a senior software engineering assistant."; s.system.rules = ["When the path is clear, take the next reasonable step instead of asking for confirmation.", "Investigate the code and docs before answering rather than guessing."]; s.system.outputPolicy = "Respond in clear, flowing prose. Show code in fenced blocks."; } },
+    { id: "summarize", label: "Summarize", mode: "task", title: "Condense a document into its key points.", apply: function (s) { s.task.directive = "Summarize the text in <document> into the key points."; s.task.dataTag = "document"; s.task.outputFormat = "Three to five bullet points, each ≤ 20 words. Output only the bullets."; } },
+    { id: "extract", label: "Extract structured data", mode: "task", title: "Pull named fields out of text as JSON.", apply: function (s) { s.task.directive = "Extract the requested fields from the text in <document>."; s.task.dataTag = "document"; s.task.outputFormat = "Return a JSON object with the keys listed above. Output only valid JSON, no prose."; } },
+    { id: "classify", label: "Classify", mode: "task", title: "Assign exactly one label from a fixed set.", apply: function (s) { s.task.directive = "Classify the text in <input> into exactly one category."; s.task.outputFormat = "Respond with exactly one label from: [label_a, label_b, label_c]. Output only the label."; } },
+    { id: "rewrite", label: "Rewrite / rephrase", mode: "task", title: "Rewrite text in a new tone or register.", apply: function (s) { s.task.directive = "Rewrite the text in <input> in a warmer, plain-language tone for a general audience."; s.task.outputFormat = "Return only the rewritten text."; } },
+    { id: "fewshot-classifier", label: "Few-shot classifier", mode: "fewshot", title: "Teach a labelling task from a handful of examples (2.1).", apply: function (s) { s.fewshot.directive = "Classify the sentiment of each review as positive, negative, or neutral."; s.fewshot.outputFormat = "One word: positive, negative, or neutral."; s.fewshot.examples = [{ input: "Loved it, would buy again!", output: "positive", reasoning: "" }, { input: "It broke after a day.", output: "negative", reasoning: "" }, { input: "It arrived on time.", output: "neutral", reasoning: "" }]; } }
   ];
+
+  // Per-field canned values — the "insert a canned item" pickers (Matt, 2026-07-27:
+  // free text, but also select from a pre-existing list). Keyed by mode → field key.
+  // System mode (the agent-system-prompt template) is populated because it's the
+  // most-used; task/few-shot can be seeded the same way later. Every value is
+  // best-practice-grounded (claim id in parentheses) and anti-folklore-clean.
+  var PB_CANNED = {
+    system: {
+      role: [ // 3.1 — a clear persona; deliberately "senior/…", never "an expert" (folklore)
+        { label: "Senior software engineer", text: "You are a senior software engineering assistant." },
+        { label: "Code reviewer", text: "You are a meticulous senior code reviewer." },
+        { label: "Data analyst", text: "You are a data analyst who works in SQL and Python." },
+        { label: "Technical writer", text: "You are a technical writer who produces clear developer documentation." },
+        { label: "DevOps / SRE", text: "You are a DevOps and site-reliability engineer." },
+        { label: "Product manager", text: "You are a pragmatic senior product manager." },
+        { label: "Support agent", text: "You are a friendly, accurate customer-support agent." },
+        { label: "Research assistant", text: "You are a rigorous research assistant who works from cited sources." },
+        { label: "Security reviewer", text: "You are an application-security reviewer." }
+      ],
+      rules: [ // 3.2 standing rules, 1.5 positive framing (say what TO do)
+        { label: "Take the next step", text: "When the path is clear, take the next reasonable step instead of asking for confirmation." },
+        { label: "Investigate first", text: "Investigate the code and docs before answering rather than guessing." },
+        { label: "State assumptions", text: "State any assumptions you make, and flag what you are unsure about." },
+        { label: "Ground claims", text: "Ground claims in sources you can point to; say when something is unverified." },
+        { label: "Match conventions", text: "Match the existing code's style, naming, and patterns." },
+        { label: "Confirm risky actions", text: "Confirm before any irreversible or destructive action." },
+        { label: "Be concise", text: "Keep responses concise; lead with the answer, then the detail." },
+        { label: "Ask when ambiguous", text: "When a request is ambiguous, ask one clarifying question before proceeding." }
+      ],
+      tone: [ // 5.2 — newer models run verbose; ask for the register you want
+        { label: "Terse & direct", text: "Terse and direct; skip the preamble." },
+        { label: "Warm & plain", text: "Warm and plain-language; explain jargon in passing." },
+        { label: "Formal & precise", text: "Formal and precise." },
+        { label: "Friendly & brief", text: "Friendly but brief." }
+      ],
+      boundaries: [ // anti-hallucination / uncertainty handling
+        { label: "Say when unsure", text: "If you are unsure, say so and ask rather than guessing." },
+        { label: "Verify before citing", text: "Only reference APIs, files, or facts you can verify; flag anything you are inferring." },
+        { label: "Stay in scope", text: "If a request falls outside your role, say so and point to where it belongs." },
+        { label: "Ask for missing input", text: "If required information is missing, ask for it before proceeding." },
+        { label: "Flag risky steps", text: "Call out steps that are risky or hard to reverse before taking them." }
+      ],
+      outputPolicy: [ // 1.5 — a standing format rule for every response
+        { label: "Prose, not bullets", text: "Respond in clear, flowing prose. Use bullet lists only when the content is genuinely a list." },
+        { label: "Fenced code blocks", text: "Show all code in fenced code blocks with a language tag." },
+        { label: "Lead with the answer", text: "Lead with the direct answer, then the supporting detail." },
+        { label: "Markdown headings", text: "Organize longer answers under short markdown headings." },
+        { label: "Structured handoff", text: "End with a machine-readable block:\n---RESULT_START---\n{\"status\": \"complete|partial|blocked\", \"summary\": \"one sentence\"}\n---RESULT_END---" }
+      ]
+    }
+  };
 
   var PB_PATTERNS = [
     { id: "cot", label: "+ Chain-of-thought", tip: "Ask Claude to reason before answering (1.6). On current models the primary lever is the effort parameter, not a phrase.", apply: function (s) { s.reasoning = true; } },
@@ -15439,8 +15499,36 @@ footer.page-footer a:hover { text-decoration: underline; }
   function pbFramingFrac(text) { if (!(text || "").trim()) return 0; var n = pbNegations(text); return n === 0 ? 1 : n <= 2 ? 0.6 : 0.2; }
 
   // ── Rendering (all via pbEl) ──────────────────────────────────────────────
-  var pbRoot, pbPreviewEl, pbTokenEl, pbFieldsEl, pbIssuesEl, pbGaugeFill, pbGaugeText, pbGaugeSub, pbNoteEl, pbDegradedEl, pbModelHintEl, pbPresetSel, pbRaf = 0, pbToastEl = null, pbToastTimer = 0;
+  var pbRoot, pbPreviewEl, pbTokenEl, pbFieldsEl, pbIssuesEl, pbGaugeFill, pbGaugeText, pbGaugeSub, pbNoteEl, pbDegradedEl, pbModelHintEl, pbTplRow, pbRaf = 0, pbToastEl = null, pbToastTimer = 0;
   var PB_GAUGE_C = 2 * Math.PI * 32;
+
+  // ── Per-field canned-value picker: a compact <select> that fills/appends a vetted
+  //    starting value into the field. The free-text input is untouched — the pick is
+  //    non-destructive: it fills an empty field, appends to a non-empty one, or adds
+  //    a new list item. Built with pbEl only — no markup-string sink (XSS floor). ──
+  function pbCannedNoun(key) { return ({ role: "role", rules: "rule", tone: "tone", boundaries: "boundary", outputPolicy: "policy" })[key] || "value"; }
+  function pbCannedPicker(f) {
+    var opts = (PB_CANNED[pbState.mode] || {})[f.key];
+    if (!opts || !opts.length) return null;
+    var noun = pbCannedNoun(f.key);
+    var sel = pbEl("select", { class: "pb-select pb-canned", "aria-label": "Insert a canned " + noun + " into " + f.label, onchange: function (e) { var i = parseInt(e.target.value, 10); e.target.value = ""; if (!isNaN(i) && opts[i]) pbInsertCanned(f, opts[i].text); } });
+    sel.appendChild(pbEl("option", { value: "", text: "Insert a canned " + noun + "…" }));
+    opts.forEach(function (o, i) { sel.appendChild(pbEl("option", { value: String(i), text: o.label })); });
+    return sel;
+  }
+  function pbInsertCanned(f, text) {
+    var slot = pbState[pbState.mode];
+    if (f.type === "list") {
+      var arr = slot[f.key];
+      if (arr.length === 1 && !String(arr[0]).trim()) arr[0] = text; else arr.push(text);
+    } else {
+      var cur = slot[f.key] || "";
+      slot[f.key] = cur.trim() ? cur.replace(/\s+$/, "") + (f.type === "text" ? ", " : "\n") + text : text;
+    }
+    pbRebuildFields();
+    pbUpdate();
+    pbFocusField(f.key);
+  }
 
   function pbField(f) {
     if (f.type === "list") return pbListField(f);
@@ -15452,6 +15540,7 @@ footer.page-footer a:hover { text-decoration: underline; }
     else { common.rows = f.rows || 2; common.placeholder = f.ph || ""; input = pbEl("textarea", common); input.value = pbState[pbState.mode][f.key]; }
     return pbEl("div", { class: "pb-field" }, [
       pbEl("label", { for: id }, [f.label, f.req ? pbEl("span", { class: "pb-req", "aria-label": "required", text: "*" }) : null, f.hint ? pbEl("span", { class: "pb-hint", text: "— " + f.hint }) : null]),
+      pbCannedPicker(f),
       input,
       f.claim && f.claim !== "—" ? pbEl("span", { class: "pb-claim", text: "best-practice " + f.claim }) : null
     ]);
@@ -15459,6 +15548,7 @@ footer.page-footer a:hover { text-decoration: underline; }
   function pbListField(f) {
     var wrap = pbEl("div", { class: "pb-field" });
     wrap.appendChild(pbEl("label", {}, [f.label, pbEl("span", { class: "pb-hint", text: "— " + f.hint })]));
+    var cp = pbCannedPicker(f); if (cp) wrap.appendChild(cp);
     var list = pbEl("div", { class: "pb-repeat" });
     var rules = pbState.system.rules;
     rules.forEach(function (r, i) {
@@ -15573,11 +15663,12 @@ footer.page-footer a:hover { text-decoration: underline; }
   function pbShowDegraded() { if (pbDegradedEl) pbDegradedEl.hidden = false; }
   function pbHideDegraded() { if (pbDegradedEl) pbDegradedEl.hidden = true; }
   function pbSave() { try { localStorage.setItem(PB_STORAGE_KEY, JSON.stringify(pbState)); pbHideDegraded(); } catch (e) { pbShowDegraded(); } }
-  function pbLoad() { try { var raw = localStorage.getItem(PB_STORAGE_KEY); if (raw) { var saved = JSON.parse(raw); if (saved && typeof saved === "object") pbState = pbMergeState(pbDefault(), saved); } } catch (e) { /* keep defaults on corrupt/unavailable storage */ } }
+  function pbLoad() { try { var raw = localStorage.getItem(PB_STORAGE_KEY); if (raw) { var saved = JSON.parse(raw); if (saved && typeof saved === "object") { pbState = pbMergeState(pbDefault(), saved); return true; } } } catch (e) { /* keep defaults on corrupt/unavailable storage */ } return false; }
   function pbMergeState(def, saved) {
     if (saved.mode === "task" || saved.mode === "system" || saved.mode === "fewshot") def.mode = saved.mode;
     if (typeof saved.model === "string") def.model = saved.model;
     if (typeof saved.reasoning === "boolean") def.reasoning = saved.reasoning;
+    if (typeof saved.template === "string") def.template = saved.template;
     ["task", "system", "fewshot"].forEach(function (m) {
       if (!saved[m] || typeof saved[m] !== "object") return;
       for (var k in def[m]) {
@@ -15594,11 +15685,24 @@ footer.page-footer a:hover { text-decoration: underline; }
 
   function pbSetMode(mode) {
     pbState.mode = mode;
-    pbRoot.querySelectorAll(".pb-seg button").forEach(function (b) { b.setAttribute("aria-selected", b.dataset.mode === mode ? "true" : "false"); });
     pbRebuildFields();
   }
+  // Load a template: set its mode, fill the starting fields, mark it active. This is
+  // the one "pick a starting point" action (the toggle row calls it) — mode is now
+  // implicit in the chosen template, so there is no separate mode control.
+  function pbApplyTemplate(p) {
+    if (!p) return;
+    pbState.template = p.id;
+    pbState.mode = p.mode;
+    p.apply(pbState);
+    pbRebuildFields();
+    pbSyncControls();
+    pbUpdate();
+  }
+  function pbApplyTemplateById(id) { for (var i = 0; i < PB_PRESETS.length; i++) { if (PB_PRESETS[i].id === id) { pbApplyTemplate(PB_PRESETS[i]); return; } } }
+  function pbSyncTemplateRow() { if (!pbTplRow) return; var btns = pbTplRow.querySelectorAll(".pb-tpl"); for (var i = 0; i < btns.length; i++) { btns[i].setAttribute("aria-pressed", btns[i].getAttribute("data-tpl") === pbState.template ? "true" : "false"); } }
   function pbSyncControls() {
-    if (pbPresetSel) pbPresetSel.value = "";
+    pbSyncTemplateRow();
     var ms = pbRoot.querySelector("#pb-model");
     if (ms) ms.value = pbState.model;
     pbRenderModelHint();
@@ -15635,21 +15739,20 @@ footer.page-footer a:hover { text-decoration: underline; }
   }
 
   function pbBuildControls() {
-    var seg = pbEl("div", { class: "pb-seg", role: "tablist", "aria-label": "Prompt mode" });
-    [["task", "Task"], ["system", "System"], ["fewshot", "Few-shot"]].forEach(function (m) {
-      seg.appendChild(pbEl("button", { type: "button", role: "tab", "data-mode": m[0], "aria-selected": m[0] === pbState.mode ? "true" : "false", "aria-controls": "pb-fields", text: m[1], onclick: function () { pbSetMode(m[0]); pbUpdate(); } }));
+    // One template toggle row (replaces the old Task/System/Few-shot segmented
+    // control + the separate "Preset…" dropdown). Each button loads a template.
+    pbTplRow = pbEl("div", { class: "pb-templates", role: "group", "aria-label": "Start from a template" });
+    pbTplRow.appendChild(pbEl("span", { class: "pb-tpl-label", text: "Template" }));
+    PB_PRESETS.forEach(function (p) {
+      pbTplRow.appendChild(pbEl("button", { type: "button", class: "pb-tpl", "data-tpl": p.id, "aria-pressed": p.id === pbState.template ? "true" : "false", title: p.title || "", text: p.label, onclick: function () { pbApplyTemplate(p); } }));
     });
-    pbPresetSel = pbEl("select", { class: "pb-select", id: "pb-preset", "aria-label": "Load a preset", onchange: function (e) { var id = e.target.value; if (!id) return; var p = null; for (var i = 0; i < PB_PRESETS.length; i++) { if (PB_PRESETS[i].id === id) p = PB_PRESETS[i]; } if (p) { pbSetMode(p.mode); p.apply(pbState); pbRebuildFields(); } e.target.value = ""; pbSyncControls(); pbUpdate(); } });
-    pbPresetSel.appendChild(pbEl("option", { value: "", text: "Preset…" }));
-    PB_PRESETS.forEach(function (p) { pbPresetSel.appendChild(pbEl("option", { value: p.id, text: p.label })); });
     var modelSel = pbEl("select", { class: "pb-select", id: "pb-model", "aria-label": "Target model", onchange: function (e) { pbState.model = e.target.value; pbRenderModelHint(); pbUpdate(); } });
     PB_MODELS.forEach(function (m) { var o = pbEl("option", { value: m.id, text: m.label }); if (m.id === pbState.model) o.selected = true; modelSel.appendChild(o); });
     pbTokenEl = pbEl("span", { class: "pb-token", title: "Rough size estimate — Anthropic publishes no official ratio (4.1); newer models tokenize ~30% heavier (4.2). Verify with count_tokens for billing." });
     pbTokenEl.appendChild(pbEl("strong", { text: "~0" }));
     pbTokenEl.appendChild(pbEl("span", { text: " tokens" }));
     return pbEl("div", { class: "pb-controls" }, [
-      seg,
-      pbEl("span", { class: "pb-ctl" }, [pbPresetSel]),
+      pbTplRow,
       pbEl("span", { class: "pb-ctl" }, [pbEl("label", { for: "pb-model", text: "Model" }), modelSel]),
       pbEl("span", { class: "pb-spacer" }),
       pbTokenEl,
@@ -15689,7 +15792,7 @@ footer.page-footer a:hover { text-decoration: underline; }
     pbRoot = document.getElementById("pb-root");
     if (!pbRoot || pbRoot.getAttribute("data-pb-ready") === "1") return;
     pbRoot.setAttribute("data-pb-ready", "1");
-    pbLoad();
+    var pbHadSaved = pbLoad();
     pbClear(pbRoot);
     pbRoot.appendChild(pbEl("div", { class: "pb-intro" }, [
       pbEl("h2", { text: "Prompt Builder" }),
@@ -15698,7 +15801,11 @@ footer.page-footer a:hover { text-decoration: underline; }
     pbRoot.appendChild(pbBuildControls());
     pbRoot.appendChild(pbEl("div", { class: "pb-grid" }, [pbBuildInputPane(), pbBuildPreviewPane(), pbBuildQualityPane()]));
     pbRoot.addEventListener("keydown", function (e) { if ((e.ctrlKey || e.metaKey) && (e.key === "Enter" || e.keyCode === 13)) { e.preventDefault(); pbCopy(); } });
-    pbSetMode(pbState.mode);
+    if (!pbHadSaved && !pbState.template) {
+      pbApplyTemplateById("agent-system"); // fresh visit → open on the most-used template
+    } else {
+      pbSetMode(pbState.mode);
+    }
     pbSyncControls();
     pbUpdate();
   }
