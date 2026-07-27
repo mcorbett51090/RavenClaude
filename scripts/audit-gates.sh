@@ -947,6 +947,11 @@ gate "marketplace-claims (clean tree, structural-only)" must_pass "$rc"
 # --fix repairs a derivable count drift (the post-merge self-heal mechanism). This
 # is the relocated must_pass for the count half: mutate a count, run --fix, assert
 # it exits 0 AND default-mode is clean afterward (the repair actually landed).
+# Snapshot the pre-existing dirty set FIRST, so the residue-restore below (which
+# undoes --fix's repo-wide tree mutations) never reverts a caller's own uncommitted
+# work — only what --fix itself touched.
+_predirty_fix="$TMP/predirty-marketplace-fix.txt"
+git diff --name-only >"$_predirty_fix" 2>/dev/null || : >"$_predirty_fix"
 backup plugins/data-platform/.claude-plugin/plugin.json
 python3 -c "p='plugins/data-platform/.claude-plugin/plugin.json';s=open(p).read();open(p,'w').write(s.replace('13 skills','99 skills',1))"
 rc=0; python3 scripts/check-marketplace-claims.py --fix >/dev/null 2>&1 || rc=$?
@@ -954,6 +959,23 @@ gate "marketplace-claims --fix repairs count drift" must_pass "$rc"
 rc=0; python3 scripts/check-marketplace-claims.py >/dev/null 2>&1 || rc=$?
 gate "marketplace-claims clean after --fix" must_pass "$rc"
 cp -p "$TMP/plugins_data-platform_.claude-plugin_plugin.json.bak" plugins/data-platform/.claude-plugin/plugin.json
+# Restore any OTHER file --fix repaired back to its committed state. --fix syncs
+# derivable counts REPO-WIDE (any plugin.json / marketplace.json / README whose
+# "N skills|hooks|…" claim trails reality), but only the data-platform fixture
+# above was backed up. A genuinely-stale COMMITTED count — which self-heals
+# post-merge, NOT on PRs — would otherwise be left mutated in the working tree here
+# and silently STALE a DOWNSTREAM generated-artifact gate: Gate 20's copilot
+# freshness reads the core plugin.json description VERBATIM, so a --fix bump of
+# "48 skills"→"49" ~600 lines up made the committed copilot/plugin.json look stale
+# and failed a REQUIRED check on every PR while the count was even one behind (the
+# root cause of PR #750's red-CI admin-merge). Validation must be side-effect-free
+# on tracked files (same hermetic rule as Gate 13's render prep). Restore --fix's
+# residue to committed, preserving any file already dirty before the test.
+git diff --name-only 2>/dev/null | while IFS= read -r _f; do
+  [ -n "$_f" ] || continue
+  if grep -Fxq "$_f" "$_predirty_fix"; then continue; fi
+  git checkout -- "$_f" 2>/dev/null || true
+done
 
 echo
 echo "── Gate 13: dashboard.html freshness + native-merge render prep ──────────"
