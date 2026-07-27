@@ -4636,10 +4636,10 @@ for p in (m.DASHBOARD, m.INDEX):
     r = m.measure(p)
     if sum(r["panels"].values()) + r["shell"] != r["total"]:
         sys.exit(1)
-    if len(r["panels"]) != 15:
+    if len(r["panels"]) != 16:
         sys.exit(1)
 PY
-gate "dom-budget: SUM(panels)+shell == whole doc, 15 panels both surfaces" must_pass "$rc"
+gate "dom-budget: SUM(panels)+shell == whole doc, 16 panels both surfaces" must_pass "$rc"
 
 echo
 echo "── Gate 133: pipeline-map drift vs hooks/hooks.json ───────────────────────"
