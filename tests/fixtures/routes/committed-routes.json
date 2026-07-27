@@ -19,8 +19,8 @@
   },
   "surfaces": {
     "dashboard": {
-      "href_count": 22,
-      "distinct_static": 15,
+      "href_count": 23,
+      "distinct_static": 16,
       "distinct_dynamic": 0,
       "static_href_routes": [
         {
@@ -87,6 +87,13 @@
           "resolved": true
         },
         {
+          "route": "#/prompt-builder",
+          "section": "prompt-builder",
+          "sub": null,
+          "destination": "activate:prompt-builder",
+          "resolved": true
+        },
+        {
           "route": "#/saga",
           "section": "saga",
           "sub": null,
@@ -133,8 +140,8 @@
       "nav_routes": []
     },
     "index": {
-      "href_count": 50,
-      "distinct_static": 22,
+      "href_count": 52,
+      "distinct_static": 23,
       "distinct_dynamic": 4,
       "static_href_routes": [
         {
@@ -240,6 +247,13 @@
           "section": "plugin-vars",
           "sub": null,
           "destination": "viewDashboard:plugin-vars",
+          "resolved": true
+        },
+        {
+          "route": "#/prompt-builder",
+          "section": "prompt-builder",
+          "sub": null,
+          "destination": "viewDashboard:prompt-builder",
           "resolved": true
         },
         {
@@ -374,6 +388,7 @@
           "web-access": "control",
           "pipeline": "control",
           "plugin-vars": "catalog",
+          "prompt-builder": "catalog",
           "commands": "catalog",
           "trees": "catalog",
           "bifrost": "catalog",

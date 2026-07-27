@@ -263,7 +263,26 @@ if (api) {
   else fail("per-model divisor had no effect");
 }
 
-// ── 6. Must-fail half: a reintroduced innerHTML sink MUST be caught ─────────
+// ── 6. Portal shell routing: on the shell (index.html), the shell router MUST own
+// #/prompt-builder — else the tab's panel/JS ship but the sidebar link falls through
+// to the default section (the exact regression this guards). Runs ONLY on the shell
+// (DASH_OWNER present); the standalone dashboard.html has no DASH_OWNER, so it skips.
+if (html.indexOf("const DASH_OWNER") !== -1) {
+  const dobStart = html.indexOf("const DASH_OWNER");
+  const dob = html.slice(dobStart, html.indexOf("}", dobStart) + 1);
+  if (/["']prompt-builder["']\s*:/.test(dob))
+    ok("portal shell router owns #/prompt-builder (DASH_OWNER)");
+  else
+    fail(
+      "portal shell has the tab but DASH_OWNER does not route #/prompt-builder — the sidebar link would fall to the default section",
+    );
+  if (html.indexOf('href="#/prompt-builder"') !== -1)
+    ok("portal sidebar surfaces a Prompt Builder link");
+  else
+    fail("portal shell has no #/prompt-builder nav link — the tab is unreachable from the sidebar");
+}
+
+// ── 7. Must-fail half: a reintroduced innerHTML sink MUST be caught ─────────
 const tampered = region.replace(
   "/* PROMPT-BUILDER:END */",
   "card.innerHTML = issue.label;\n/* PROMPT-BUILDER:END */",
