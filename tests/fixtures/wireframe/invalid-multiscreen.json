@@ -1,0 +1,5 @@
+{
+  "meta": { "title": "Bad v2", "type": "app-screen", "model_version": "2" },
+  "screens": [{ "id": "a", "regions": [{ "role": "main", "sections": [{ "kind": "k" }] }] }],
+  "flow_edges": [{ "from": "a" }]
+}

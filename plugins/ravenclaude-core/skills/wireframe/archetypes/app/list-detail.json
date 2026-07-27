@@ -1,0 +1,87 @@
+{
+  "meta": {
+    "title": "List + detail",
+    "type": "app-screen",
+    "viewport": "desktop",
+    "model_version": "1"
+  },
+  "regions": [
+    {
+      "role": "header",
+      "emphasis": "secondary",
+      "sections": [
+        {
+          "kind": "bar",
+          "heading": "Inbox",
+          "components": [
+            {
+              "type": "search",
+              "props": {
+                "label": "Filter"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "role": "sidebar",
+      "sections": [
+        {
+          "kind": "list",
+          "heading": "Messages",
+          "components": [
+            {
+              "type": "list",
+              "props": {
+                "label": "Thread A"
+              }
+            },
+            {
+              "type": "list",
+              "props": {
+                "label": "Thread B"
+              }
+            },
+            {
+              "type": "list",
+              "props": {
+                "label": "Thread C"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "role": "main",
+      "emphasis": "primary",
+      "sections": [
+        {
+          "kind": "detail",
+          "heading": "Thread A",
+          "components": [
+            {
+              "type": "card",
+              "props": {
+                "label": "Message body"
+              }
+            },
+            {
+              "type": "input",
+              "props": {
+                "label": "Reply"
+              }
+            },
+            {
+              "type": "button",
+              "props": {
+                "label": "Send"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

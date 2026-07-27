@@ -1,0 +1,80 @@
+{
+  "meta": {
+    "title": "Dashboard home",
+    "type": "app-screen",
+    "viewport": "desktop",
+    "model_version": "1"
+  },
+  "regions": [
+    {
+      "role": "header",
+      "layout": "row",
+      "layout_detail": "2",
+      "emphasis": "secondary",
+      "sections": [
+        {
+          "kind": "bar",
+          "heading": "Dashboard",
+          "components": [
+            {
+              "type": "search",
+              "props": {
+                "label": "Search"
+              }
+            },
+            {
+              "type": "avatar",
+              "props": {
+                "label": "You"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "role": "main",
+      "layout": "columns",
+      "layout_detail": "3",
+      "emphasis": "primary",
+      "sections": [
+        {
+          "kind": "stats",
+          "heading": "Overview",
+          "components": [
+            {
+              "type": "kpi-stat",
+              "props": {
+                "label": "MRR"
+              }
+            },
+            {
+              "type": "kpi-stat",
+              "props": {
+                "label": "Active users"
+              }
+            },
+            {
+              "type": "kpi-stat",
+              "props": {
+                "label": "Churn"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "recent",
+          "heading": "Recent activity",
+          "components": [
+            {
+              "type": "list",
+              "props": {
+                "label": "Latest events"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

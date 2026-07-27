@@ -345,9 +345,67 @@ PY
         { echo "  ✗ mermaid emit drifted from the committed golden"; _rc=1; }
       exit "$_rc"
       ;;
+    146)
+      echo "── Gate 146: /wireframe _layout box-packer (per-gate run) ────────────────"
+      python3 plugins/ravenclaude-core/skills/wireframe/_layout.py --self-test
+      exit $?
+      ;;
+    147)
+      echo "── Gate 147: /wireframe ASCII renderer (per-gate run) ────────────────────"
+      WFDIR=plugins/ravenclaude-core/skills/wireframe
+      _rc=0
+      python3 "$WFDIR/render_ascii.py" --self-test || _rc=1
+      python3 "$WFDIR/render_ascii.py" --emit tests/fixtures/wireframe/valid-page.json 2>/dev/null |
+        diff -q tests/fixtures/wireframe/layout-desktop.txt - >/dev/null 2>&1 ||
+        { echo "  ✗ ASCII render drifted from the committed golden"; _rc=1; }
+      exit "$_rc"
+      ;;
+    148)
+      echo "── Gate 148: /wireframe SVG renderer + Gate-103 clearance (per-gate run) ──"
+      WFDIR=plugins/ravenclaude-core/skills/wireframe
+      _rc=0
+      python3 "$WFDIR/render_svg.py" --self-test || _rc=1
+      python3 "$WFDIR/render_svg.py" --emit tests/fixtures/wireframe/valid-page.json 2>/dev/null |
+        diff -q tests/fixtures/wireframe/render-desktop.svg - >/dev/null 2>&1 ||
+        { echo "  ✗ SVG render drifted from the committed golden"; _rc=1; }
+      python3 "$WFDIR/../svg-report-lint/lint.py" tests/fixtures/wireframe/render-desktop.svg >/dev/null 2>&1 ||
+        { echo "  ✗ committed SVG golden fails svg-report-lint (Gate 103)"; _rc=1; }
+      if python3 "$WFDIR/../svg-report-lint/lint.py" tests/fixtures/wireframe/bad.svg >/dev/null 2>&1; then
+        echo "  ✗ known-bad SVG was NOT rejected by svg-report-lint — no teeth"; _rc=1
+      fi
+      exit "$_rc"
+      ;;
+    149)
+      echo "── Gate 149: /wireframe archetype library + scoring (per-gate run) ───────"
+      WFDIR=plugins/ravenclaude-core/skills/wireframe
+      _rc=0
+      python3 "$WFDIR/archetype_score.py" --self-test || _rc=1
+      for a in "$WFDIR"/archetypes/*/*.json; do
+        python3 "$WFDIR/archetype_score.py" --score "$a" >/dev/null 2>&1 ||
+          { echo "  ✗ committed archetype scored below 80: $a"; _rc=1; }
+      done
+      if python3 "$WFDIR/archetype_score.py" --score tests/fixtures/wireframe/archetype-degraded.json >/dev/null 2>&1; then
+        echo "  ✗ degraded fixture scored >= 80 — no teeth"; _rc=1
+      fi
+      exit "$_rc"
+      ;;
+    150)
+      echo "── Gate 150: /wireframe multi-screen v2 (per-gate run) ───────────────────"
+      WFDIR=plugins/ravenclaude-core/skills/wireframe
+      _rc=0
+      python3 "$WFDIR/wireframe_lint.py" --validate tests/fixtures/wireframe/multi-screen-model.json >/dev/null 2>&1 ||
+        { echo "  ✗ committed v2 model failed validation"; _rc=1; }
+      python3 "$WFDIR/wireframe_lint.py" --emit-screen-flow tests/fixtures/wireframe/multi-screen-model.json 2>/dev/null |
+        diff -q tests/fixtures/wireframe/screen-flow.golden.mmd - >/dev/null 2>&1 ||
+        { echo "  ✗ screen-flow emit drifted from the committed golden"; _rc=1; }
+      if python3 "$WFDIR/wireframe_lint.py" --validate tests/fixtures/wireframe/invalid-multiscreen.json >/dev/null 2>&1; then
+        echo "  ✗ malformed v2 model was NOT rejected — no teeth"; _rc=1
+      fi
+      exit "$_rc"
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -4850,6 +4908,85 @@ if command -v python3 >/dev/null 2>&1; then
   gate "wireframe_lint: flow emit byte-matches golden .mmd (determinism)" must_pass "$rc"
 else
   _skip_or_fail "Gate 145 (wireframe_lint)" python3
+fi
+
+echo
+echo "── Gate 146: /wireframe _layout.py box-packer (determinism + self-check teeth) ──"
+# The v1.1 coordinate spine. --self-test proves pack() is deterministic AND that the two-predicate
+# self-check (sibling AABB-disjoint + child-within-parent, mirroring pbir-layout-engine) has teeth:
+# a hand-built overlapping box-set MUST be flagged (a packer never emits overlap, so the teeth
+# cannot come from a model — FORGE red-team RT-8).
+WFDIR="plugins/ravenclaude-core/skills/wireframe"
+if command -v python3 >/dev/null 2>&1; then
+  rc=0; python3 "$WFDIR/_layout.py" --self-test >/dev/null 2>&1 || rc=$?
+  gate "_layout --self-test (pack determinism + overlap/canvas/containment teeth)" must_pass "$rc"
+else
+  _skip_or_fail "Gate 146 (_layout)" python3
+fi
+
+echo
+echo "── Gate 147: /wireframe ASCII renderer (byte-deterministic golden) ──"
+if command -v python3 >/dev/null 2>&1; then
+  rc=0; python3 "$WFDIR/render_ascii.py" --self-test >/dev/null 2>&1 || rc=$?
+  gate "render_ascii --self-test (determinism + ASCII-only + RT-4 minus-preservation)" must_pass "$rc"
+  rc=0
+  python3 "$WFDIR/render_ascii.py" --emit tests/fixtures/wireframe/valid-page.json 2>/dev/null |
+    diff -q tests/fixtures/wireframe/layout-desktop.txt - >/dev/null 2>&1 || rc=$?
+  gate "render_ascii: byte-matches committed layout-desktop.txt golden" must_pass "$rc"
+  rc=0
+  { python3 "$WFDIR/render_ascii.py" --emit tests/fixtures/wireframe/valid-page.json 2>/dev/null; echo "DRIFT"; } |
+    diff -q tests/fixtures/wireframe/layout-desktop.txt - >/dev/null 2>&1 || rc=$?
+  gate "render_ascii teeth: an altered render is detected" must_fail "$rc"
+else
+  _skip_or_fail "Gate 147 (render_ascii)" python3
+fi
+
+echo
+echo "── Gate 148: /wireframe SVG renderer (golden + svg-report-lint clearance) ──"
+if command -v python3 >/dev/null 2>&1; then
+  rc=0; python3 "$WFDIR/render_svg.py" --self-test >/dev/null 2>&1 || rc=$?
+  gate "render_svg --self-test (determinism + Gate-103 structure + aspect padding)" must_pass "$rc"
+  rc=0
+  python3 "$WFDIR/render_svg.py" --emit tests/fixtures/wireframe/valid-page.json 2>/dev/null |
+    diff -q tests/fixtures/wireframe/render-desktop.svg - >/dev/null 2>&1 || rc=$?
+  gate "render_svg: byte-matches committed render-desktop.svg golden" must_pass "$rc"
+  rc=0; python3 "$WFDIR/../svg-report-lint/lint.py" tests/fixtures/wireframe/render-desktop.svg >/dev/null 2>&1 || rc=$?
+  gate "render_svg: committed SVG golden clears svg-report-lint (Gate 103)" must_pass "$rc"
+  rc=0; python3 "$WFDIR/../svg-report-lint/lint.py" tests/fixtures/wireframe/bad.svg >/dev/null 2>&1 || rc=$?
+  gate "render_svg teeth: known-bad SVG is rejected by svg-report-lint" must_fail "$rc"
+else
+  _skip_or_fail "Gate 148 (render_svg)" python3
+fi
+
+echo
+echo "── Gate 149: /wireframe archetype library + scoring (must-pass + degraded teeth) ──"
+if command -v python3 >/dev/null 2>&1; then
+  rc=0; python3 "$WFDIR/archetype_score.py" --self-test >/dev/null 2>&1 || rc=$?
+  gate "archetype_score --self-test (good>=80, degraded<80, invalid=0)" must_pass "$rc"
+  rc=0
+  for a in "$WFDIR"/archetypes/*/*.json; do
+    python3 "$WFDIR/archetype_score.py" --score "$a" >/dev/null 2>&1 || rc=$?
+  done
+  gate "archetype library: every committed archetype scores >= 80" must_pass "$rc"
+  rc=0; python3 "$WFDIR/archetype_score.py" --score tests/fixtures/wireframe/archetype-degraded.json >/dev/null 2>&1 || rc=$?
+  gate "archetype_score teeth: degraded fixture scores < 80" must_fail "$rc"
+else
+  _skip_or_fail "Gate 149 (archetype_score)" python3
+fi
+
+echo
+echo "── Gate 150: /wireframe multi-screen v2 (validate + screen-flow golden) ──"
+if command -v python3 >/dev/null 2>&1; then
+  rc=0; python3 "$WFDIR/wireframe_lint.py" --validate tests/fixtures/wireframe/multi-screen-model.json >/dev/null 2>&1 || rc=$?
+  gate "wireframe_lint: committed v2 multi-screen model validates" must_pass "$rc"
+  rc=0
+  python3 "$WFDIR/wireframe_lint.py" --emit-screen-flow tests/fixtures/wireframe/multi-screen-model.json 2>/dev/null |
+    diff -q tests/fixtures/wireframe/screen-flow.golden.mmd - >/dev/null 2>&1 || rc=$?
+  gate "emit_screen_flow: byte-matches committed screen-flow.golden.mmd" must_pass "$rc"
+  rc=0; python3 "$WFDIR/wireframe_lint.py" --validate tests/fixtures/wireframe/invalid-multiscreen.json >/dev/null 2>&1 || rc=$?
+  gate "multi-screen teeth: malformed v2 model is rejected" must_fail "$rc"
+else
+  _skip_or_fail "Gate 150 (multi-screen)" python3
 fi
 
 echo

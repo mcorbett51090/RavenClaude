@@ -1,0 +1,89 @@
+{
+  "meta": {
+    "title": "Pricing page",
+    "type": "page",
+    "viewport": "desktop",
+    "model_version": "1"
+  },
+  "regions": [
+    {
+      "role": "header",
+      "emphasis": "secondary",
+      "sections": [
+        {
+          "kind": "nav",
+          "heading": "Acme",
+          "components": [
+            {
+              "type": "nav-item",
+              "props": {
+                "label": "Pricing"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "role": "main",
+      "layout": "columns",
+      "layout_detail": "3",
+      "emphasis": "primary",
+      "sections": [
+        {
+          "kind": "plans",
+          "heading": "Simple, transparent pricing",
+          "components": [
+            {
+              "type": "card",
+              "props": {
+                "label": "Starter — $0"
+              }
+            },
+            {
+              "type": "card",
+              "props": {
+                "label": "Pro — $29"
+              }
+            },
+            {
+              "type": "card",
+              "props": {
+                "label": "Team — $99"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "faq",
+          "heading": "Frequently asked",
+          "components": [
+            {
+              "type": "list",
+              "props": {
+                "label": "Billing FAQ"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "role": "footer",
+      "sections": [
+        {
+          "kind": "cta",
+          "heading": "Ready?",
+          "components": [
+            {
+              "type": "button",
+              "props": {
+                "label": "Start free trial"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

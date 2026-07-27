@@ -1,0 +1,87 @@
+{
+  "meta": {
+    "title": "Settings screen",
+    "type": "app-screen",
+    "viewport": "desktop",
+    "model_version": "1"
+  },
+  "regions": [
+    {
+      "role": "header",
+      "emphasis": "secondary",
+      "sections": [
+        {
+          "kind": "bar",
+          "heading": "Settings",
+          "components": [
+            {
+              "type": "breadcrumb",
+              "props": {
+                "label": "Account / Settings"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "role": "sidebar",
+      "sections": [
+        {
+          "kind": "nav",
+          "heading": "Sections",
+          "components": [
+            {
+              "type": "nav-item",
+              "props": {
+                "label": "Profile"
+              }
+            },
+            {
+              "type": "nav-item",
+              "props": {
+                "label": "Security"
+              }
+            },
+            {
+              "type": "nav-item",
+              "props": {
+                "label": "Billing"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "role": "main",
+      "emphasis": "primary",
+      "sections": [
+        {
+          "kind": "account",
+          "heading": "Account",
+          "components": [
+            {
+              "type": "input",
+              "props": {
+                "label": "Display name"
+              }
+            },
+            {
+              "type": "toggle",
+              "props": {
+                "label": "Email alerts"
+              }
+            },
+            {
+              "type": "button",
+              "props": {
+                "label": "Save changes"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
