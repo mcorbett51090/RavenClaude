@@ -141,7 +141,7 @@ RATCHET = {
         ),
         (
             "P1 (plugin-panel collapse)",
-            6103,
+            6114,
             "the 167 panel-plugin-* sections (~4,843 elems) collapsed "
             "into ONE #plugin-vars picker: a <select> of 167 plugins whose "
             "editor form renders client-side into #plugin-vars-mount from the "
@@ -150,7 +150,7 @@ RATCHET = {
         ),
         (
             "P3 (chrome shrink)",
-            6103,
+            6114,
             "IA re-cut: the two-tier <nav class=cat-bar> (5 cat-btns) deleted and "
             "the <nav class=tab-bar> shrunk from 18 core tabs to 10 destination tabs "
             "(+ the plugin-vars picker tab); role=tablist/role=tab + the roving-"
@@ -159,7 +159,7 @@ RATCHET = {
         ),
         (
             "P4 (Observe merge)",
-            6103,
+            6114,
             "the Observe family is physically merged: the five tab-panel wrappers "
             "panel-{saga,mimir,streams,norns,vidarr} are removed and their content "
             "folded into panel-activity (saga/mimir/streams/norns) and panel-heimdall "
@@ -169,7 +169,7 @@ RATCHET = {
         ),
         (
             "P5 (shell-view deletions)",
-            6103,
+            6114,
             "panel-overview + panel-simulator deleted; the install/bifrost/"
             "about/commands panels folded into ONE panel-help drawer as "
             "collapsed <details> (their render fns + mount ids byte-identical). "
@@ -180,7 +180,7 @@ RATCHET = {
         ),
         (
             "A-split (Observe un-merge)",
-            6103,
+            6114,
             "the Observe family is UN-merged back into one "
             "<section class=tab-panel> per sub-page (the exact inverse of P4): "
             "Activity -> Run feed / Saga / Session / Streams / Lineage; Guardrails "
@@ -194,7 +194,7 @@ RATCHET = {
         ),
         (
             "PR-A (Help reachability + About accuracy)",
-            6103,
+            6114,
             "the About 'How the pages are organized' list was "
             "re-cut to the 5 current areas (gap G6): stale pre-recut sections + "
             "the deleted Overview / Preview-a-review refs removed; 4 li -> 5 li "
@@ -206,7 +206,7 @@ RATCHET = {
         ),
         (
             "PR-B (Guidance/trees wire-back)",
-            6103,
+            6114,
             "the Guidance (decision-trees + best-practices) tab was "
             "orphaned on both surfaces — no tab-btn reached panel-trees (gap G4). "
             "Added the tab-btn[data-tab=trees] to the tab-bar (visible + clickable "
@@ -217,7 +217,7 @@ RATCHET = {
         ),
         (
             "PR-C (cleanups + data refresh)",
-            6103,
+            6114,
             "PR-C's own changes are DOM-NEUTRAL — G8 (concepts routing "
             "maps), G9 (feed-cap CSS + comment), G13 (sim-probe JS guard), G15 "
             "(serve-dashboards allow-list) touch only JS/CSS/server, no markup. The "
@@ -230,7 +230,7 @@ RATCHET = {
         ),
         (
             "PR-E (standalone 4-dest sidebar)",
-            6103,
+            6114,
             "G11: the standalone dashboard.html gains a portal-style left "
             "<aside class=dash-sidebar> (brand + 4 destinations Control/Activity/"
             "Guardrails/Learn&Help -> 15 nav <a> links driving the EXISTING "
@@ -242,8 +242,20 @@ RATCHET = {
         ),
         (
             "v0.211.0 (Prompt Builder tab)",
-            6103,
+            6114,
             "new #/prompt-builder Learn & Help tab: +6 static elements (sidebar link + tab-btn + panel section + #pb-root mount + noscript + p); the whole interactive UI is JS-built by initPromptBuilder() so it is uncounted. Owner-approved +6 raise off the frozen zero-slack tail (6,097 -> 6,103); the P1..PR-E rows above were lifted in lockstep to keep the ratchet monotonic.",
+        ),
+        (
+            "reland-11-plugins reflected in standalone dashboard",
+            6114,
+            "the standalone dashboard.html was stale at 168 plugins — #778 (the "
+            "11-plugin reland) regenerated index.html but NOT the standalone dashboard, "
+            "so its plugin-version-drift card never picked up the 11 relanded plugins. "
+            "A mandatory generate-dashboards.py regen (to propagate the corrected "
+            "capture-run-context.py source link into the learn-payload) surfaces the true "
+            "179-plugin count: +11 drift-card elements. Owner-approved +11 raise "
+            "(6,103 -> 6,114); the dashboard ratchet tail lifted in lockstep to stay "
+            "monotonic. index.html unaffected (already 7,000 from #778).",
         ),
     ],
     INDEX: [
