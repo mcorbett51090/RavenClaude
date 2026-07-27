@@ -2,6 +2,17 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.215.1 — 2026-07-27
+
+### Fixed
+
+- **Corrected a dead source link on the `run-context-bundle` Learn-tab concept** (relanded from the
+  stale routine PR #710): the `sources:` `url` pointed `capture-run-context.py` at
+  `plugins/ravenclaude-core/scripts/…`, which does not exist — the script lives at repo-root
+  `scripts/capture-run-context.py` (the convention every other repo-root-script source already uses).
+  The fix is in the concept source; the generated `concepts.json`, `docs/concepts.md`, `dashboard.html`,
+  and `index.html` were regenerated to match (no DOM-budget change — the source link is CDATA payload).
+
 ## 0.215.0 — 2026-07-27
 
 ### Added
