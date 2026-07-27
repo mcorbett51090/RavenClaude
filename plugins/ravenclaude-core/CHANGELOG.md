@@ -2,6 +2,24 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.214.0 — 2026-07-27
+
+### Changed
+
+- **Prompt Builder — one template toggle row, per-field canned pickers, and a Control-section home.**
+  The dashboard's Prompt Builder (`#/prompt-builder`) gets three changes: (1) the two overlapping
+  "starting point" controls — the Task/System/Few-shot mode toggle _and_ the separate "Preset…"
+  dropdown — collapse into **one toggle-button row of templates** (Agent system prompt first, the
+  most-used); picking a template sets the mode and fills the fields, so there is one control, not two.
+  (2) Each System-mode field (role, standing rules, tone, boundaries, output policy) gains an **"Insert
+  a canned …" dropdown** — a vetted, best-practice-grounded, anti-folklore-clean list you can drop in
+  and then edit freely; the free-text input is untouched (the pick fills an empty field, appends to a
+  non-empty one, or adds a list item). (3) The **Prompt Builder nav link moves from "Learn & Help" to
+  "Control"**, above The Thing, in the sidebar (and the mirrored tab-bar). Fresh visits now open on the
+  Agent system prompt template. Everything stays client-side, DOM built with
+  `createElement`/`textContent` (the XSS floor the render gate enforces). **Migration:** none — no
+  storage-key change; saved builder state loads unchanged (the new `template` marker defaults to null).
+
 ## 0.213.0 — 2026-07-27
 
 ### Added

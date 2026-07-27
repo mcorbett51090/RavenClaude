@@ -6397,11 +6397,15 @@ footer.page-footer a:hover { text-decoration: underline; }
 
 .pb-controls { position: sticky; top: 0; z-index: 5; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; padding: 10px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
 .pb-controls .pb-spacer { flex: 1 1 auto; }
-.pb-seg { display: inline-flex; background: var(--surface-2); border: 1px solid var(--border); border-radius: 999px; padding: 3px; gap: 2px; }
-.pb-seg button { appearance: none; border: 0; background: transparent; color: var(--muted); font: inherit; font-size: 13px; font-weight: 600; padding: 6px 14px; border-radius: 999px; cursor: pointer; transition: color .15s, background .15s; }
-.pb-seg button[aria-selected="true"] { background: var(--accent); color: #fff; }
-.pb-seg button:hover:not([aria-selected="true"]) { color: var(--text); }
-.pb-seg button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* One template toggle row replaces the old mode segmented control + preset dropdown. */
+.pb-templates { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; flex: 1 1 100%; }
+.pb-tpl-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin-right: 2px; }
+.pb-tpl { appearance: none; border: 1px solid var(--border); background: var(--surface-2); color: var(--muted); font: inherit; font-size: 12.5px; font-weight: 600; padding: 6px 12px; border-radius: 999px; cursor: pointer; transition: color .15s, background .15s, border-color .15s; }
+.pb-tpl:hover { color: var(--text); border-color: var(--accent); }
+.pb-tpl[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+.pb-tpl:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* Per-field "insert a canned item" picker — free text stays; this only fills/appends. */
+.pb-canned { align-self: flex-start; font-size: 12px; padding: 4px 24px 4px 8px; color: var(--muted); max-width: 100%; }
 
 .pb-ctl { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--muted); }
 .pb-ctl label { font-weight: 600; }
@@ -12335,7 +12339,7 @@ _JS = r"""
   function pbEx() { return { input: "", output: "", reasoning: "" }; }
   function pbDefault() {
     return {
-      mode: "task", model: "opus-5", reasoning: false,
+      mode: "task", model: "opus-5", reasoning: false, template: null,
       task:    { directive: "", context: "", dataTag: "input", data: "", constraints: "", outputFormat: "", success: "" },
       system:  { role: "", rules: [""], tone: "", boundaries: "", outputPolicy: "" },
       fewshot: { directive: "", outputFormat: "", examples: [pbEx(), pbEx(), pbEx()] }
@@ -12368,14 +12372,70 @@ _JS = r"""
     ]
   };
 
+  // Templates (the toggle-row starting points). Agent system prompt is first — the
+  // most-used template (Matt, 2026-07-27). Each carries a `title` (button tooltip)
+  // and an `apply(state)` that sets the mode's starting fields. All copy is
+  // anti-folklore-clean: no "you are an expert", no stacked CRITICAL/MUST, positive
+  // framing (1.5) so a prompt built from a template scores well in the linter.
   var PB_PRESETS = [
-    { id: "summarize", label: "Summarize", mode: "task", apply: function (s) { s.task.directive = "Summarize the text in <document> into the key points."; s.task.dataTag = "document"; s.task.outputFormat = "Three to five bullet points, each ≤ 20 words. Output only the bullets."; } },
-    { id: "extract", label: "Extract structured data", mode: "task", apply: function (s) { s.task.directive = "Extract the requested fields from the text in <document>."; s.task.dataTag = "document"; s.task.outputFormat = "Return a JSON object with the keys listed above. Output only valid JSON, no prose."; } },
-    { id: "classify", label: "Classify", mode: "task", apply: function (s) { s.task.directive = "Classify the text in <input> into exactly one category."; s.task.outputFormat = "Respond with exactly one label from: [label_a, label_b, label_c]. Output only the label."; } },
-    { id: "rewrite", label: "Rewrite / rephrase", mode: "task", apply: function (s) { s.task.directive = "Rewrite the text in <input> in a warmer, plain-language tone for a general audience."; s.task.outputFormat = "Return only the rewritten text."; } },
-    { id: "agent-system", label: "Agent system prompt", mode: "system", apply: function (s) { s.system.role = "You are a senior software engineering assistant."; s.system.rules = ["Prefer taking a well-reasoned next step over asking for confirmation when the path is clear.", "When unsure, investigate the code and docs before answering — do not guess."]; s.system.outputPolicy = "Respond in clear, flowing prose. Show code in fenced blocks."; } },
-    { id: "fewshot-classifier", label: "Few-shot classifier", mode: "fewshot", apply: function (s) { s.fewshot.directive = "Classify the sentiment of each review as positive, negative, or neutral."; s.fewshot.outputFormat = "One word: positive, negative, or neutral."; s.fewshot.examples = [{ input: "Loved it, would buy again!", output: "positive", reasoning: "" }, { input: "It broke after a day.", output: "negative", reasoning: "" }, { input: "It arrived on time.", output: "neutral", reasoning: "" }]; } }
+    { id: "agent-system", label: "Agent system prompt", mode: "system", title: "A reusable agent system prompt — role, standing rules, output policy (3.1 / 3.2).", apply: function (s) { s.system.role = "You are a senior software engineering assistant."; s.system.rules = ["When the path is clear, take the next reasonable step instead of asking for confirmation.", "Investigate the code and docs before answering rather than guessing."]; s.system.outputPolicy = "Respond in clear, flowing prose. Show code in fenced blocks."; } },
+    { id: "summarize", label: "Summarize", mode: "task", title: "Condense a document into its key points.", apply: function (s) { s.task.directive = "Summarize the text in <document> into the key points."; s.task.dataTag = "document"; s.task.outputFormat = "Three to five bullet points, each ≤ 20 words. Output only the bullets."; } },
+    { id: "extract", label: "Extract structured data", mode: "task", title: "Pull named fields out of text as JSON.", apply: function (s) { s.task.directive = "Extract the requested fields from the text in <document>."; s.task.dataTag = "document"; s.task.outputFormat = "Return a JSON object with the keys listed above. Output only valid JSON, no prose."; } },
+    { id: "classify", label: "Classify", mode: "task", title: "Assign exactly one label from a fixed set.", apply: function (s) { s.task.directive = "Classify the text in <input> into exactly one category."; s.task.outputFormat = "Respond with exactly one label from: [label_a, label_b, label_c]. Output only the label."; } },
+    { id: "rewrite", label: "Rewrite / rephrase", mode: "task", title: "Rewrite text in a new tone or register.", apply: function (s) { s.task.directive = "Rewrite the text in <input> in a warmer, plain-language tone for a general audience."; s.task.outputFormat = "Return only the rewritten text."; } },
+    { id: "fewshot-classifier", label: "Few-shot classifier", mode: "fewshot", title: "Teach a labelling task from a handful of examples (2.1).", apply: function (s) { s.fewshot.directive = "Classify the sentiment of each review as positive, negative, or neutral."; s.fewshot.outputFormat = "One word: positive, negative, or neutral."; s.fewshot.examples = [{ input: "Loved it, would buy again!", output: "positive", reasoning: "" }, { input: "It broke after a day.", output: "negative", reasoning: "" }, { input: "It arrived on time.", output: "neutral", reasoning: "" }]; } }
   ];
+
+  // Per-field canned values — the "insert a canned item" pickers (Matt, 2026-07-27:
+  // free text, but also select from a pre-existing list). Keyed by mode → field key.
+  // System mode (the agent-system-prompt template) is populated because it's the
+  // most-used; task/few-shot can be seeded the same way later. Every value is
+  // best-practice-grounded (claim id in parentheses) and anti-folklore-clean.
+  var PB_CANNED = {
+    system: {
+      role: [ // 3.1 — a clear persona; deliberately "senior/…", never "an expert" (folklore)
+        { label: "Senior software engineer", text: "You are a senior software engineering assistant." },
+        { label: "Code reviewer", text: "You are a meticulous senior code reviewer." },
+        { label: "Data analyst", text: "You are a data analyst who works in SQL and Python." },
+        { label: "Technical writer", text: "You are a technical writer who produces clear developer documentation." },
+        { label: "DevOps / SRE", text: "You are a DevOps and site-reliability engineer." },
+        { label: "Product manager", text: "You are a pragmatic senior product manager." },
+        { label: "Support agent", text: "You are a friendly, accurate customer-support agent." },
+        { label: "Research assistant", text: "You are a rigorous research assistant who works from cited sources." },
+        { label: "Security reviewer", text: "You are an application-security reviewer." }
+      ],
+      rules: [ // 3.2 standing rules, 1.5 positive framing (say what TO do)
+        { label: "Take the next step", text: "When the path is clear, take the next reasonable step instead of asking for confirmation." },
+        { label: "Investigate first", text: "Investigate the code and docs before answering rather than guessing." },
+        { label: "State assumptions", text: "State any assumptions you make, and flag what you are unsure about." },
+        { label: "Ground claims", text: "Ground claims in sources you can point to; say when something is unverified." },
+        { label: "Match conventions", text: "Match the existing code's style, naming, and patterns." },
+        { label: "Confirm risky actions", text: "Confirm before any irreversible or destructive action." },
+        { label: "Be concise", text: "Keep responses concise; lead with the answer, then the detail." },
+        { label: "Ask when ambiguous", text: "When a request is ambiguous, ask one clarifying question before proceeding." }
+      ],
+      tone: [ // 5.2 — newer models run verbose; ask for the register you want
+        { label: "Terse & direct", text: "Terse and direct; skip the preamble." },
+        { label: "Warm & plain", text: "Warm and plain-language; explain jargon in passing." },
+        { label: "Formal & precise", text: "Formal and precise." },
+        { label: "Friendly & brief", text: "Friendly but brief." }
+      ],
+      boundaries: [ // anti-hallucination / uncertainty handling
+        { label: "Say when unsure", text: "If you are unsure, say so and ask rather than guessing." },
+        { label: "Verify before citing", text: "Only reference APIs, files, or facts you can verify; flag anything you are inferring." },
+        { label: "Stay in scope", text: "If a request falls outside your role, say so and point to where it belongs." },
+        { label: "Ask for missing input", text: "If required information is missing, ask for it before proceeding." },
+        { label: "Flag risky steps", text: "Call out steps that are risky or hard to reverse before taking them." }
+      ],
+      outputPolicy: [ // 1.5 — a standing format rule for every response
+        { label: "Prose, not bullets", text: "Respond in clear, flowing prose. Use bullet lists only when the content is genuinely a list." },
+        { label: "Fenced code blocks", text: "Show all code in fenced code blocks with a language tag." },
+        { label: "Lead with the answer", text: "Lead with the direct answer, then the supporting detail." },
+        { label: "Markdown headings", text: "Organize longer answers under short markdown headings." },
+        { label: "Structured handoff", text: "End with a machine-readable block:\n---RESULT_START---\n{\"status\": \"complete|partial|blocked\", \"summary\": \"one sentence\"}\n---RESULT_END---" }
+      ]
+    }
+  };
 
   var PB_PATTERNS = [
     { id: "cot", label: "+ Chain-of-thought", tip: "Ask Claude to reason before answering (1.6). On current models the primary lever is the effort parameter, not a phrase.", apply: function (s) { s.reasoning = true; } },
@@ -12545,8 +12605,36 @@ _JS = r"""
   function pbFramingFrac(text) { if (!(text || "").trim()) return 0; var n = pbNegations(text); return n === 0 ? 1 : n <= 2 ? 0.6 : 0.2; }
 
   // ── Rendering (all via pbEl) ──────────────────────────────────────────────
-  var pbRoot, pbPreviewEl, pbTokenEl, pbFieldsEl, pbIssuesEl, pbGaugeFill, pbGaugeText, pbGaugeSub, pbNoteEl, pbDegradedEl, pbModelHintEl, pbPresetSel, pbRaf = 0, pbToastEl = null, pbToastTimer = 0;
+  var pbRoot, pbPreviewEl, pbTokenEl, pbFieldsEl, pbIssuesEl, pbGaugeFill, pbGaugeText, pbGaugeSub, pbNoteEl, pbDegradedEl, pbModelHintEl, pbTplRow, pbRaf = 0, pbToastEl = null, pbToastTimer = 0;
   var PB_GAUGE_C = 2 * Math.PI * 32;
+
+  // ── Per-field canned-value picker: a compact <select> that fills/appends a vetted
+  //    starting value into the field. The free-text input is untouched — the pick is
+  //    non-destructive: it fills an empty field, appends to a non-empty one, or adds
+  //    a new list item. Built with pbEl only — no markup-string sink (XSS floor). ──
+  function pbCannedNoun(key) { return ({ role: "role", rules: "rule", tone: "tone", boundaries: "boundary", outputPolicy: "policy" })[key] || "value"; }
+  function pbCannedPicker(f) {
+    var opts = (PB_CANNED[pbState.mode] || {})[f.key];
+    if (!opts || !opts.length) return null;
+    var noun = pbCannedNoun(f.key);
+    var sel = pbEl("select", { class: "pb-select pb-canned", "aria-label": "Insert a canned " + noun + " into " + f.label, onchange: function (e) { var i = parseInt(e.target.value, 10); e.target.value = ""; if (!isNaN(i) && opts[i]) pbInsertCanned(f, opts[i].text); } });
+    sel.appendChild(pbEl("option", { value: "", text: "Insert a canned " + noun + "…" }));
+    opts.forEach(function (o, i) { sel.appendChild(pbEl("option", { value: String(i), text: o.label })); });
+    return sel;
+  }
+  function pbInsertCanned(f, text) {
+    var slot = pbState[pbState.mode];
+    if (f.type === "list") {
+      var arr = slot[f.key];
+      if (arr.length === 1 && !String(arr[0]).trim()) arr[0] = text; else arr.push(text);
+    } else {
+      var cur = slot[f.key] || "";
+      slot[f.key] = cur.trim() ? cur.replace(/\s+$/, "") + (f.type === "text" ? ", " : "\n") + text : text;
+    }
+    pbRebuildFields();
+    pbUpdate();
+    pbFocusField(f.key);
+  }
 
   function pbField(f) {
     if (f.type === "list") return pbListField(f);
@@ -12558,6 +12646,7 @@ _JS = r"""
     else { common.rows = f.rows || 2; common.placeholder = f.ph || ""; input = pbEl("textarea", common); input.value = pbState[pbState.mode][f.key]; }
     return pbEl("div", { class: "pb-field" }, [
       pbEl("label", { for: id }, [f.label, f.req ? pbEl("span", { class: "pb-req", "aria-label": "required", text: "*" }) : null, f.hint ? pbEl("span", { class: "pb-hint", text: "— " + f.hint }) : null]),
+      pbCannedPicker(f),
       input,
       f.claim && f.claim !== "—" ? pbEl("span", { class: "pb-claim", text: "best-practice " + f.claim }) : null
     ]);
@@ -12565,6 +12654,7 @@ _JS = r"""
   function pbListField(f) {
     var wrap = pbEl("div", { class: "pb-field" });
     wrap.appendChild(pbEl("label", {}, [f.label, pbEl("span", { class: "pb-hint", text: "— " + f.hint })]));
+    var cp = pbCannedPicker(f); if (cp) wrap.appendChild(cp);
     var list = pbEl("div", { class: "pb-repeat" });
     var rules = pbState.system.rules;
     rules.forEach(function (r, i) {
@@ -12679,11 +12769,12 @@ _JS = r"""
   function pbShowDegraded() { if (pbDegradedEl) pbDegradedEl.hidden = false; }
   function pbHideDegraded() { if (pbDegradedEl) pbDegradedEl.hidden = true; }
   function pbSave() { try { localStorage.setItem(PB_STORAGE_KEY, JSON.stringify(pbState)); pbHideDegraded(); } catch (e) { pbShowDegraded(); } }
-  function pbLoad() { try { var raw = localStorage.getItem(PB_STORAGE_KEY); if (raw) { var saved = JSON.parse(raw); if (saved && typeof saved === "object") pbState = pbMergeState(pbDefault(), saved); } } catch (e) { /* keep defaults on corrupt/unavailable storage */ } }
+  function pbLoad() { try { var raw = localStorage.getItem(PB_STORAGE_KEY); if (raw) { var saved = JSON.parse(raw); if (saved && typeof saved === "object") { pbState = pbMergeState(pbDefault(), saved); return true; } } } catch (e) { /* keep defaults on corrupt/unavailable storage */ } return false; }
   function pbMergeState(def, saved) {
     if (saved.mode === "task" || saved.mode === "system" || saved.mode === "fewshot") def.mode = saved.mode;
     if (typeof saved.model === "string") def.model = saved.model;
     if (typeof saved.reasoning === "boolean") def.reasoning = saved.reasoning;
+    if (typeof saved.template === "string") def.template = saved.template;
     ["task", "system", "fewshot"].forEach(function (m) {
       if (!saved[m] || typeof saved[m] !== "object") return;
       for (var k in def[m]) {
@@ -12700,11 +12791,24 @@ _JS = r"""
 
   function pbSetMode(mode) {
     pbState.mode = mode;
-    pbRoot.querySelectorAll(".pb-seg button").forEach(function (b) { b.setAttribute("aria-selected", b.dataset.mode === mode ? "true" : "false"); });
     pbRebuildFields();
   }
+  // Load a template: set its mode, fill the starting fields, mark it active. This is
+  // the one "pick a starting point" action (the toggle row calls it) — mode is now
+  // implicit in the chosen template, so there is no separate mode control.
+  function pbApplyTemplate(p) {
+    if (!p) return;
+    pbState.template = p.id;
+    pbState.mode = p.mode;
+    p.apply(pbState);
+    pbRebuildFields();
+    pbSyncControls();
+    pbUpdate();
+  }
+  function pbApplyTemplateById(id) { for (var i = 0; i < PB_PRESETS.length; i++) { if (PB_PRESETS[i].id === id) { pbApplyTemplate(PB_PRESETS[i]); return; } } }
+  function pbSyncTemplateRow() { if (!pbTplRow) return; var btns = pbTplRow.querySelectorAll(".pb-tpl"); for (var i = 0; i < btns.length; i++) { btns[i].setAttribute("aria-pressed", btns[i].getAttribute("data-tpl") === pbState.template ? "true" : "false"); } }
   function pbSyncControls() {
-    if (pbPresetSel) pbPresetSel.value = "";
+    pbSyncTemplateRow();
     var ms = pbRoot.querySelector("#pb-model");
     if (ms) ms.value = pbState.model;
     pbRenderModelHint();
@@ -12741,21 +12845,20 @@ _JS = r"""
   }
 
   function pbBuildControls() {
-    var seg = pbEl("div", { class: "pb-seg", role: "tablist", "aria-label": "Prompt mode" });
-    [["task", "Task"], ["system", "System"], ["fewshot", "Few-shot"]].forEach(function (m) {
-      seg.appendChild(pbEl("button", { type: "button", role: "tab", "data-mode": m[0], "aria-selected": m[0] === pbState.mode ? "true" : "false", "aria-controls": "pb-fields", text: m[1], onclick: function () { pbSetMode(m[0]); pbUpdate(); } }));
+    // One template toggle row (replaces the old Task/System/Few-shot segmented
+    // control + the separate "Preset…" dropdown). Each button loads a template.
+    pbTplRow = pbEl("div", { class: "pb-templates", role: "group", "aria-label": "Start from a template" });
+    pbTplRow.appendChild(pbEl("span", { class: "pb-tpl-label", text: "Template" }));
+    PB_PRESETS.forEach(function (p) {
+      pbTplRow.appendChild(pbEl("button", { type: "button", class: "pb-tpl", "data-tpl": p.id, "aria-pressed": p.id === pbState.template ? "true" : "false", title: p.title || "", text: p.label, onclick: function () { pbApplyTemplate(p); } }));
     });
-    pbPresetSel = pbEl("select", { class: "pb-select", id: "pb-preset", "aria-label": "Load a preset", onchange: function (e) { var id = e.target.value; if (!id) return; var p = null; for (var i = 0; i < PB_PRESETS.length; i++) { if (PB_PRESETS[i].id === id) p = PB_PRESETS[i]; } if (p) { pbSetMode(p.mode); p.apply(pbState); pbRebuildFields(); } e.target.value = ""; pbSyncControls(); pbUpdate(); } });
-    pbPresetSel.appendChild(pbEl("option", { value: "", text: "Preset…" }));
-    PB_PRESETS.forEach(function (p) { pbPresetSel.appendChild(pbEl("option", { value: p.id, text: p.label })); });
     var modelSel = pbEl("select", { class: "pb-select", id: "pb-model", "aria-label": "Target model", onchange: function (e) { pbState.model = e.target.value; pbRenderModelHint(); pbUpdate(); } });
     PB_MODELS.forEach(function (m) { var o = pbEl("option", { value: m.id, text: m.label }); if (m.id === pbState.model) o.selected = true; modelSel.appendChild(o); });
     pbTokenEl = pbEl("span", { class: "pb-token", title: "Rough size estimate — Anthropic publishes no official ratio (4.1); newer models tokenize ~30% heavier (4.2). Verify with count_tokens for billing." });
     pbTokenEl.appendChild(pbEl("strong", { text: "~0" }));
     pbTokenEl.appendChild(pbEl("span", { text: " tokens" }));
     return pbEl("div", { class: "pb-controls" }, [
-      seg,
-      pbEl("span", { class: "pb-ctl" }, [pbPresetSel]),
+      pbTplRow,
       pbEl("span", { class: "pb-ctl" }, [pbEl("label", { for: "pb-model", text: "Model" }), modelSel]),
       pbEl("span", { class: "pb-spacer" }),
       pbTokenEl,
@@ -12795,7 +12898,7 @@ _JS = r"""
     pbRoot = document.getElementById("pb-root");
     if (!pbRoot || pbRoot.getAttribute("data-pb-ready") === "1") return;
     pbRoot.setAttribute("data-pb-ready", "1");
-    pbLoad();
+    var pbHadSaved = pbLoad();
     pbClear(pbRoot);
     pbRoot.appendChild(pbEl("div", { class: "pb-intro" }, [
       pbEl("h2", { text: "Prompt Builder" }),
@@ -12804,7 +12907,11 @@ _JS = r"""
     pbRoot.appendChild(pbBuildControls());
     pbRoot.appendChild(pbEl("div", { class: "pb-grid" }, [pbBuildInputPane(), pbBuildPreviewPane(), pbBuildQualityPane()]));
     pbRoot.addEventListener("keydown", function (e) { if ((e.ctrlKey || e.metaKey) && (e.key === "Enter" || e.keyCode === 13)) { e.preventDefault(); pbCopy(); } });
-    pbSetMode(pbState.mode);
+    if (!pbHadSaved && !pbState.template) {
+      pbApplyTemplateById("agent-system"); // fresh visit → open on the most-used template
+    } else {
+      pbSetMode(pbState.mode);
+    }
     pbSyncControls();
     pbUpdate();
   }
@@ -13225,6 +13332,7 @@ _PAGE_TEMPLATE = """<!doctype html>
   <nav class="ds-nav" aria-label="Dashboard sections">
     <div class="ds-group">
       <div class="ds-label">Control</div>
+      <a class="ds-sub" href="#/prompt-builder" data-tab="prompt-builder">Prompt Builder</a>
       <a class="ds-sub" href="#/settings" data-tab="settings">The Thing</a>
       <a class="ds-sub" href="#/pipeline" data-tab="pipeline">Pipeline</a>
       <a class="ds-sub" href="#/web-access" data-tab="web-access">Web access</a>
@@ -13246,7 +13354,6 @@ _PAGE_TEMPLATE = """<!doctype html>
     <div class="ds-group">
       <div class="ds-label">Learn &amp; Help</div>
       <a class="ds-sub" href="#/learn" data-tab="learn">Learn</a>
-      <a class="ds-sub" href="#/prompt-builder" data-tab="prompt-builder">Prompt Builder</a>
       <a class="ds-sub" href="#/trees" data-tab="trees">Guidance</a>
       <a class="ds-sub" href="#/help" data-tab="help">Help</a>
       <a class="ds-sub" href="#/plugin-vars" data-tab="plugin-vars">Plugins</a>
@@ -13259,6 +13366,7 @@ _PAGE_TEMPLATE = """<!doctype html>
     <span class="brand-mark" aria-hidden="true">{raven_mark}</span>
   </div>
   <nav class="tab-bar" aria-label="Dashboard sections">
+    <button class="tab-btn" type="button" id="tab-prompt-builder" data-tab="prompt-builder" aria-selected="false" title="Prompt Builder — assemble a best-practice Claude prompt with a live quality score">Prompt Builder</button>
     <button class="tab-btn" type="button" id="tab-settings" data-tab="settings" aria-selected="true" title="The Thing — comfort-posture + command-review; choose what Claude can do on its own (deny / ask / allow)">The Thing</button>
     <button class="tab-btn" type="button" id="tab-pipeline" data-tab="pipeline" aria-selected="false" title="Pipeline — the safety checks every command passes through">Pipeline</button>
     <button class="tab-btn" type="button" id="tab-web-access" data-tab="web-access" aria-selected="false" title="Web access — allow/deny which websites the agent may fetch">Web access</button>
@@ -13271,7 +13379,6 @@ _PAGE_TEMPLATE = """<!doctype html>
     <button class="tab-btn" type="button" id="tab-vidarr" data-tab="vidarr" aria-selected="false" title="Security log — posture changes &amp; security-relevant denials (Víðarr)">Security log</button>
     <button class="tab-btn" type="button" id="tab-nidhoggr" data-tab="nidhoggr" aria-selected="false" title="Debt watch — low-noise marketplace maintenance signals (Níðhöggr)">Debt</button>
     <button class="tab-btn" type="button" id="tab-learn" data-tab="learn" aria-selected="false" title="Learn — plain-English explainers for each concept">Learn</button>
-    <button class="tab-btn" type="button" id="tab-prompt-builder" data-tab="prompt-builder" aria-selected="false" title="Prompt Builder — assemble a best-practice Claude prompt with a live quality score">Prompt Builder</button>
     <button class="tab-btn" type="button" id="tab-trees" data-tab="trees" aria-selected="false" title="Guidance — every plugin's decision trees (when-this-applies flows) and named best-practice rules, searchable across the marketplace">Guidance</button>
     <button class="tab-btn" type="button" id="tab-help" data-tab="help" aria-selected="false" title="Help — install &amp; update guides (Claude Code / Copilot CLI), the command catalog, and where retired tabs went">Help</button>
 {plugins_tabs}
