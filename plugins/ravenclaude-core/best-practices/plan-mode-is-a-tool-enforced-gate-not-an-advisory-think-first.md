@@ -104,7 +104,7 @@ avoidable cost a one-minute read-only plan would have caught.
 ## Provenance
 
 Distilled from the recurring Claude-community scan (the
-[2026-07-16 subreddit scan](../../../docs/research/2026-07-16-claude-subreddit-scan/README.md)),
+2026-07-16 subreddit scan),
 where "use Plan Mode before you let it edit" recurred as consensus practitioner
 guidance — with the load-bearing distinction that Plan Mode is a **tool-enforced
 read-only constraint**, categorically different from an advisory "think first"

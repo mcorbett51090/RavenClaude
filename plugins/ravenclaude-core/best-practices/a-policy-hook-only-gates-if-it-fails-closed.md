@@ -124,7 +124,7 @@ because a non-2 exit produced a non-blocking error the run swallowed.
 ## Provenance
 
 Distilled from the recurring Claude-community scan (the
-[2026-07-22 subreddit scan](../../../docs/research/2026-07-22-claude-subreddit-scan/README.md)),
+2026-07-22 subreddit scan),
 where the `PreToolUse` `permissionDecision` / exit-2-vs-exit-1 contract recurred as
 a top hook gotcha (and a live bug surface — e.g.
 [anthropics/claude-code#37210](https://github.com/anthropics/claude-code/issues/37210),

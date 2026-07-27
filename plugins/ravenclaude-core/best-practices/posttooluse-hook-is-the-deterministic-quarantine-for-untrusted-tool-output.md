@@ -166,7 +166,7 @@ hook no-ops.
 ## Provenance
 
 Distilled from the recurring Claude-community scan (the
-[2026-07-18 subreddit scan](../../../docs/research/2026-07-18-claude-subreddit-scan/README.md)),
+2026-07-18 subreddit scan),
 where the widely-shared open-source `PostToolUse` injection-defense hook (Lasso
 Security's `claude-hooks`, which scans tool outputs for prompt-injection patterns
 before Claude processes them) surfaced as a community pattern. Grounded against the

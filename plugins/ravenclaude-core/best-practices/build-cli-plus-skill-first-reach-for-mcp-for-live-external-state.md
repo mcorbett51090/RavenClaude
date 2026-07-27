@@ -96,7 +96,7 @@ Ask the discriminator question about the capability you're adding:
 ## Provenance
 
 Distilled from the recurring Claude-community scan (the
-[2026-07-21 subreddit scan](../../../docs/research/2026-07-21-claude-subreddit-scan/README.md)).
+2026-07-21 subreddit scan).
 Reddit's first-party listings were unreachable this session (the OAuth2
 `scripts/reddit-scan.py` route `_die`s without `REDDIT_CLIENT_ID`/`SECRET`,
 and the crawler is UA-blocked from `reddit.com`), so the finding was sourced
