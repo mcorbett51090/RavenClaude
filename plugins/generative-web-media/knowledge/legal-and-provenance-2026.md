@@ -4,7 +4,7 @@
 >
 > **This is engineering guidance surfacing legal risk, NOT legal advice.** Hard calls, jurisdiction-specific questions, and any client-facing legal assertion route to counsel via `ravenclaude-core/security-reviewer`. Facts carry a retrieval date; re-confirm before relying on them.
 >
-> _Last reviewed: 2026-07-13 by `claude`. Sources cited inline._
+> _Last reviewed: 2026-07-22 by `claude` (added the Digital Omnibus Art. 50(2) marking-delay nuance). Sources cited inline._
 
 ---
 
@@ -59,7 +59,7 @@ Sources: contentauthenticity.org state-of-2026; aiipprotection.org stripping. Co
 
 ## 5. EU AI Act Article 50 — transparency & disclosure
 
-**EU AI Act Article 50** transparency/marking and deepfake-disclosure duties are **enforceable 2 Aug 2026**; penalties up to **€15M / 3% global turnover**. Scope: sites serving EU visitors must mark AI-generated/manipulated media as such.
+**EU AI Act Article 50** transparency and deepfake-disclosure duties are **enforceable 2 Aug 2026**; penalties up to **€15M / 3% global turnover**. Scope: sites serving EU visitors must mark AI-generated/manipulated media as such. **Marking-obligation nuance [verify-at-use, 2026-07-22]:** the EU _Digital Omnibus on AI_ (European Parliament 16 Jun 2026; Council final adoption 29 Jun 2026) grants a grace period on the **Art. 50(2) machine-readable marking/watermarking** obligation — delayed to **2 Dec 2026** for AI systems placed on the market **before 2 Aug 2026**. Systems placed on/after 2 Aug 2026, and the broader transparency + deepfake-disclosure duties, still bind at **2 Aug 2026**. Sourced to law-firm analyses (Gibson Dunn, Sidley) pending the Official Journal text — verify against the OJ before relying on the later date.
 
 **The guardian's role is to surface + route, not to certify compliance.** It adds visible AI-disclosure copy for EU-facing sites and states the obligation; it does **not** assert the site is legally compliant — that is counsel's call (`ravenclaude-core/security-reviewer`). Overreach here (copy that asserts compliance) is red-team RT7.
 
