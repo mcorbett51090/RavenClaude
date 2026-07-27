@@ -17,7 +17,7 @@ flowchart TD
     B -- "medical complaint or dx<br/>(dry eye, diabetic, glaucoma,<br/>foreign body, sudden change)" --> D{Documented medical<br/>findings + plan?}
     D -- no --> E[Document medical necessity FIRST<br/>then bill medical]
     D -- yes --> F[Medical insurance<br/>E/M or eye-exam code to the dx]
-    B -- "both components present" --> G{Payor rules allow split?<br/>[verify-at-use]}
+    B -- "both components present" --> G{"Payor rules allow split?<br/>[verify-at-use]"}
     G -- yes --> H[Split: medical for the condition,<br/>vision for refraction/materials]
     G -- no --> I[Route to the dominant<br/>reason for the visit]
 ```
