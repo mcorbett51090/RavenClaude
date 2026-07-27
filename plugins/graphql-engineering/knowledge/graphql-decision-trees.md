@@ -74,7 +74,7 @@ flowchart TD
     B -- "yes — validation,<br/>not-found, conflict,<br/>business rule" --> D{Should the client<br/>handle it typed?}
     D -- yes --> E[Errors-as-data<br/>union/result payload types]
     D -- "no — treat as fatal" --> C
-    E --> F[Mutation returns<br/>Success | DomainError union;<br/>client matches on __typename]
+    E --> F["Mutation returns<br/>Success | DomainError union;<br/>client matches on __typename"]
     C --> G[Map to error extensions/code;<br/>don't leak internals]
 ```
 
