@@ -3,6 +3,24 @@
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
 =======
+## 0.211.1 — 2026-07-27
+
+### Fixed
+
+- **Prompt Builder is now reachable in the marketplace portal (`index.html`), not just the standalone
+  dashboard.** The v0.211.0 tab worked in the standalone `dashboard.html` (whose `validTabs` derives from
+  the tab button) but the **portal shell router** never owned `#/prompt-builder`: `DASH_OWNER` (the
+  dashboard-tab → destination map that drives `route()`, `payloadKind()`, and nav-highlight) was missing
+  the entry, so the portal's sidebar link fell through to the default section (Settings). Fixed by adding
+  `"prompt-builder": "catalog"` to `DASH_OWNER` (in `scripts/_index_dashboard_template.py`) — which routes
+  `#/prompt-builder` to the dashboard host + highlights Catalog — plus a **Prompt Builder** link in the
+  Catalog sub-nav (its literal `href` also registers it as a Gate-51 committed route). Standalone
+  `dashboard.html` was already correct and is untouched.
+- **Regression guard:** `scripts/check-prompt-builder-render.mjs` (Gate 144) now, when run on the shell
+  (`index.html`), asserts `DASH_OWNER` routes `#/prompt-builder` and the sidebar surfaces the link — the
+  render gate already runs on both surfaces, so a future drop of the portal route is caught (verified
+  fail-on-tamper). The check no-ops on the standalone (no `DASH_OWNER`).
+
 ## 0.210.2 — 2026-07-26
 
 ### Fixed
