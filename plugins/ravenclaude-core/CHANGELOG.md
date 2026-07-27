@@ -2,6 +2,31 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.215.0 — 2026-07-27
+
+### Added
+
+- **Consolidated 4 subreddit-scan best-practices into one release** — relanded fresh off `main` from the
+  stale routine PRs #687 / #721 / #729 / #734 (each was 48–87 commits behind and un-mergeable), after a
+  read-only triage confirmed all four are genuine gaps not already on `main`:
+  - **Plan Mode is a tool-enforced gate, not advisory "think first"** — the enforcement is a real
+    permission gate, not a prose reminder.
+  - **A `PostToolUse` hook is the deterministic quarantine for untrusted tool output** — its central
+    claim (a `PostToolUse` hook can rewrite the result the model sees via
+    `hookSpecificOutput.updatedToolOutput`; the tool already ran, so side effects stick) was **verified
+    TRUE against the current Claude Code hooks reference this session** before shipping.
+  - **Build CLI + Skill first; reach for MCP only for live external-system state** — the design-time
+    discriminator upstream of the runtime MCP-context budget rule.
+  - **A policy hook only gates if it fails closed — exit 2 or a JSON `deny`, never `exit 1`.**
+
+### Fixed
+
+- **`docs/best-practices/hook-authoring.md` "Pick the right event" table had two wrong rows** (surfaced
+  by the two hook best-practices above): `PreToolUse` said "exit 1 blocks the call" — it is **exit 2**
+  that blocks; exit 1 is a _non-blocking_ error, so the tool still runs — and `PostToolUse` said "exit
+  code is logged only", omitting that `hookSpecificOutput.updatedToolOutput` **rewrites the result the
+  model sees**.
+
 ## 0.214.0 — 2026-07-27
 
 ### Changed

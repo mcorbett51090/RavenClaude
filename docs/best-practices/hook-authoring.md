@@ -18,8 +18,8 @@ Hooks are how the marketplace enforces behavior the model can't enforce itself �
 
 | Event | When it fires | Can block? | Use for |
 |---|---|---|---|
-| `PreToolUse` | Before a tool runs | **Yes** — exit 1 blocks the call | Guards (destructive command refusal, secret-leak prevention) |
-| `PostToolUse` | After a tool succeeds | No — exit code is logged only | Cleanup (auto-format, lint, regen artifacts) |
+| `PreToolUse` | Before a tool runs | **Yes** — exit **2** (or a JSON `deny`) blocks; **exit 1 is a _non-blocking_ error — the tool still runs** | Guards (destructive command refusal, secret-leak prevention) |
+| `PostToolUse` | After a tool succeeds | Exit code can't block, but a `hookSpecificOutput.updatedToolOutput` JSON **rewrites the result the model sees** (the tool already ran, so side effects stick) | Cleanup + sanitizing/redacting untrusted tool output (auto-format, lint, regen artifacts) |
 | `Stop` | When Claude finishes a turn | Can re-wake the model with exit 2 + `asyncRewake` | Reminders (run full test suite, commit-message hygiene) |
 
 There are other events (`PostToolUseFailure`, `Notification`, `PreCompact`, `UserPromptSubmit`, `SessionStart`) — see the full list in the settings schema. The three above cover ~90% of plugin needs.
