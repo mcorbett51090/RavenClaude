@@ -107,7 +107,7 @@ def _normalize(svg: str, svg_id: str) -> str:
         attrs = attrs.replace('class="', 'class="rc-tree-diagram ', 1)
     else:
         attrs = ' class="rc-tree-diagram"' + attrs
-    return f"<svg{attrs}>" + _theme_style(svg_id) + svg[m.end():]
+    return f"<svg{attrs}>" + _theme_style(svg_id) + svg[m.end() :]
 
 
 def _source_hash(tree: dict) -> str:
@@ -153,13 +153,23 @@ def _render_all(trees: list[dict], tmp: Path) -> dict[str, str]:
         blocks.append(f"```mermaid\n{t['mermaid']}\n```")
     md_path.write_text("\n\n---\n\n".join(blocks) + "\n", encoding="utf-8")
     cmd = [
-        "npx", "--yes", f"@mermaid-js/mermaid-cli@{MMDC_VERSION}",
-        "-i", str(md_path), "-o", str(out_path),
-        "-p", str(cfg_path), "-b", "transparent",
+        "npx",
+        "--yes",
+        f"@mermaid-js/mermaid-cli@{MMDC_VERSION}",
+        "-i",
+        str(md_path),
+        "-o",
+        str(out_path),
+        "-p",
+        str(cfg_path),
+        "-b",
+        "transparent",
     ]
     proc = subprocess.run(cmd, capture_output=True, text=True, timeout=900)
     if proc.returncode != 0:
-        raise RuntimeError(f"mermaid-cli failed:\n{proc.stderr.strip()[-1500:]}")
+        raise RuntimeError(
+            f"mermaid-cli failed:\n--STDERR--\n{proc.stderr.strip()}\n--STDOUT--\n{proc.stdout.strip()}"
+        )
     result: dict[str, str] = {}
     for i, t in enumerate(trees, start=1):
         svg_file = tmp / f"out-{i}.svg"
@@ -176,7 +186,9 @@ def _check(root: Path, trees: list[dict]) -> int:
     vis = root / VISUALS_DIR
     manifest_path = vis / MANIFEST_NAME
     if not manifest_path.exists():
-        print(f"tree render manifest missing ({VISUALS_DIR}/{MANIFEST_NAME}) — run: scripts/render-trees.py")
+        print(
+            f"tree render manifest missing ({VISUALS_DIR}/{MANIFEST_NAME}) — run: scripts/render-trees.py"
+        )
         return 1
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     recorded = manifest.get("trees", {})
@@ -185,13 +197,17 @@ def _check(root: Path, trees: list[dict]) -> int:
         tid = t["id"]
         want = _source_hash(t)
         if recorded.get(tid) != want:
-            problems.append(f"  ✗ {tid}: tree diagram changed since last render — re-run scripts/render-trees.py")
+            problems.append(
+                f"  ✗ {tid}: tree diagram changed since last render — re-run scripts/render-trees.py"
+            )
             continue
         if not (vis / f"{tid}.svg").exists():
             problems.append(f"  ✗ {tid}: {tid}.svg missing")
     stale = set(recorded) - {t["id"] for t in trees}
     for tid in sorted(stale):
-        problems.append(f"  ✗ {tid}: orphaned in manifest (tree removed) — re-run scripts/render-trees.py")
+        problems.append(
+            f"  ✗ {tid}: orphaned in manifest (tree removed) — re-run scripts/render-trees.py"
+        )
     if problems:
         print("Decision-tree SVG freshness gate FAILED:")
         print("\n".join(problems))
@@ -201,9 +217,13 @@ def _check(root: Path, trees: list[dict]) -> int:
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     ap.add_argument("--root", default=".", help="repo root")
-    ap.add_argument("--check", action="store_true", help="verify committed SVGs match source (no render)")
+    ap.add_argument(
+        "--check", action="store_true", help="verify committed SVGs match source (no render)"
+    )
     args = ap.parse_args()
     root = Path(args.root).resolve()
 
