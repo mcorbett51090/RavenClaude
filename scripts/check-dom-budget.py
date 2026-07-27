@@ -51,6 +51,31 @@ Usage:
     python3 scripts/check-dom-budget.py --report             # floor/residue/x table
     python3 scripts/check-dom-budget.py --count <file>       # element count only
     python3 scripts/check-dom-budget.py --check --surface <f> --budget-override N
+    python3 scripts/check-dom-budget.py --exempt-integrity   # F3/§0.2b rail (below)
+    python3 scripts/check-dom-budget.py --exempt-integrity --must-fail   # its teeth
+
+═══════════════════════════════════════════════════════════════════════════════
+THE F3 / §0.2b RAIL (--exempt-integrity) — why a budget gate is not enough.
+═══════════════════════════════════════════════════════════════════════════════
+
+The budget above rewards node REDUCTION, and islanding a panel is how nodes are
+reduced. But one panel must NEVER be islanded: `settings`. Its 144 posture radios
+bind at LOAD, module-scope and document-wide (the generator reads them into
+`state.categories` on first paint and wires per-radio listeners). Islanding it
+moves that markup into a <script type="application/json"> payload, so the load-time
+`querySelectorAll` returns an EMPTY NodeList, `forEach` throws NOTHING, no listener
+binds — and the next Save writes the corrupted in-memory posture to
+comfort-posture.yaml WHOLESALE (§2.2 / §0.2b / red-team F3).
+
+Neither existing gate catches it, verified:
+  * Gate 35 (posture round-trip) is DOM-free by its own header -> structurally blind.
+  * Gate 132's BUDGET goes GREENER when settings is islanded (its nodes leave the
+    live count) -> the meter rewards the very regression.
+
+Converting `settings` IS a real future option, but it is NOT authorized: §0.2b
+defers it behind the rendered-DOM meter (§11.2b) that makes its breakage LOUD.
+Until that exists, this rail enforces "not authorized" in code. It is the F3
+regression test the plan marks MANDATORY.
 """
 
 import argparse
@@ -80,6 +105,23 @@ FUNDED_PANELS = {
     # `learn`: fails the same sweep, but the risk owner accepted it (§0.2) and
     # the conversion work is funded (Phase 2L). Funded != exempt: it islands.
     "panel-learn": "funded conversion — Phase 2L (§0.2 ruling)",
+}
+
+# ── The F3 / §0.2b rail: panels that must stay LIVE, never silently islanded ──
+# A panel here has load-time, module-scope, document-wide DOM binds whose failure
+# is SILENT (empty NodeList throws nothing) and whose blast radius is a wholesale
+# corrupted-posture Save. Islanding it is NOT owner-authorized (§0.2b is deferred
+# behind the rendered-DOM meter, §11.2b). `live_selector` is the load-bound markup
+# whose disappearance proves the panel was islanded; `min_live` is a FLOOR (the
+# invariant is "present & live + cross-surface consistent", never an exact literal
+# that a legitimate posture-category change would make brittle).
+MUST_STAY_LIVE = {
+    "panel-settings": {
+        "reason": "144 posture radios bind at load, module-scope + document-wide; "
+        "islanding corrupts posture silently, every gate green (§2.2 / §0.2b / F3)",
+        "live_selector": "input[type=radio][data-category][data-layer]",
+        "min_live": 1,
+    },
 }
 
 # ── Cost of an islanded panel (§0.1): <section> + <script type=application/json>
@@ -283,6 +325,7 @@ class _Counter(HTMLParser):
         self.panels = {}  # panel id -> element count
         self.stack = []  # open panel ids (a panel-* nested in a panel-* is impossible today, but don't assume)
         self.islands = {}  # panel id -> [payload strings]
+        self.posture_radios = {}  # panel id -> count of LIVE input[type=radio][data-*]
         self._island_of = None
         self._depth = 0
         self._panel_depths = []
@@ -304,6 +347,20 @@ class _Counter(HTMLParser):
         # an island payload we will decode for the per-panel payload budget
         if tag == "script" and a.get("type") == "application/json" and self.stack:
             self._island_of = self.stack[-1]
+
+        # LIVE posture radios (the F3 rail). A radio inside an island is CDATA text
+        # inside the <script>, never parsed as an <input> here — so this counts only
+        # radios that are genuinely in the live DOM. If `settings` is islanded, its
+        # count drops to 0 and the rail reddens.
+        if (
+            tag == "input"
+            and a.get("type") == "radio"
+            and "data-category" in a
+            and "data-layer" in a
+            and self.stack
+        ):
+            pid_here = self.stack[-1]
+            self.posture_radios[pid_here] = self.posture_radios.get(pid_here, 0) + 1
 
         if tag not in _VOID:
             self._depth += 1
@@ -335,18 +392,29 @@ _VOID = {
 }
 
 
-def measure(path):
-    c = _Counter()
-    with open(path, encoding="utf-8") as fh:
-        c.feed(fh.read())
+def _summarize(c, label):
     shell = c.total - sum(c.panels.values())
     return {
-        "path": path,
+        "path": label,
         "total": c.total,
         "panels": c.panels,
         "shell": shell,
         "islands": c.islands,
+        "posture_radios": c.posture_radios,
     }
+
+
+def measure(path):
+    c = _Counter()
+    with open(path, encoding="utf-8") as fh:
+        c.feed(fh.read())
+    return _summarize(c, path)
+
+
+def measure_text(text, label="<memory>"):
+    c = _Counter()
+    c.feed(text)
+    return _summarize(c, label)
 
 
 def active_tab_of(path):
@@ -443,6 +511,93 @@ def check(surfaces, override=None):
     return rc
 
 
+# ═══════════════════════════════════════════════════════════════════════════
+def _integrity_verdict(measurements):
+    """The F3/§0.2b rule set, applied to already-taken measurements.
+
+    `measurements` is a list of summary dicts (each carries path/panels/islands/
+    posture_radios). Returns (rc, lines). Shared by the real check and its teeth
+    so both exercise identical logic.
+    """
+    rc = 0
+    lines = []
+    for m in measurements:
+        path = m["path"]
+        for pid, spec in MUST_STAY_LIVE.items():
+            if pid not in m["panels"]:
+                lines.append(f"FAIL: {path}: {pid} is MISSING — {spec['reason']}")
+                rc = 1
+                continue
+            if pid in m["islands"]:
+                lines.append(
+                    f"FAIL: {path}: {pid} has been ISLANDED "
+                    f"(<script type=application/json>). This is the F3 silent-"
+                    f"corruption trap and §0.2b is NOT owner-authorized — {spec['reason']}"
+                )
+                rc = 1
+            live = m["posture_radios"].get(pid, 0)
+            if live < spec["min_live"]:
+                lines.append(
+                    f"FAIL: {path}: {pid} has {live} live {spec['live_selector']} "
+                    f"(need >= {spec['min_live']}) — its load-time DOM binds are gone"
+                )
+                rc = 1
+    # cross-surface consistency — a regression on ONE surface must be caught
+    if len(measurements) > 1:
+        for pid in MUST_STAY_LIVE:
+            counts = {m["path"]: m["posture_radios"].get(pid, 0) for m in measurements}
+            if len(set(counts.values())) > 1:
+                lines.append(
+                    f"FAIL: {pid} live-radio count differs across surfaces "
+                    f"{counts} — one surface regressed relative to the other"
+                )
+                rc = 1
+    if rc == 0:
+        for pid in MUST_STAY_LIVE:
+            counts = {m["path"]: m["posture_radios"].get(pid, 0) for m in measurements}
+            lines.append(f"OK:   {pid} live on all surfaces, no island (radios: {counts}). F3 rail holds.")
+    return rc, lines
+
+
+def check_exempt_integrity(surfaces):
+    rc, lines = _integrity_verdict([measure(p) for p in surfaces])
+    for ln in lines:
+        print(ln)
+    return rc
+
+
+def exempt_integrity_selftest():
+    """Teeth: prove the rail passes a live settings panel AND catches an islanded
+    one. Fabricated in-memory — never touches the real artifacts. Exits 0 when the
+    guard behaves (live -> pass, islanded -> fail), mirroring the --must-fail idiom.
+    """
+    live_html = (
+        '<section class="tab-panel active" id="panel-settings">'
+        '<input type="radio" data-category="x" data-layer="allow">'
+        "</section>"
+    )
+    # islanded: the radio markup has moved into a JSON payload as text; no <input>
+    # is parsed, so the live-radio count is 0 and an island is present.
+    islanded_html = (
+        '<section class="tab-panel" id="panel-settings">'
+        '<script type="application/json" id="settings-payload">'
+        '"<input type=\\"radio\\" data-category=\\"x\\" data-layer=\\"allow\\">"'
+        "</script></section>"
+    )
+    live_rc, _ = _integrity_verdict([measure_text(live_html, "live-fixture")])
+    bad_rc, bad_lines = _integrity_verdict([measure_text(islanded_html, "islanded-fixture")])
+    if live_rc == 0 and bad_rc == 1:
+        print("OK:   F3 teeth — a live settings panel passes and an islanded one is caught.")
+        return 0
+    print(
+        "FAIL: F3 teeth misbehaved "
+        f"(live_rc={live_rc} expected 0, islanded_rc={bad_rc} expected 1)"
+    )
+    for ln in bad_lines:
+        print("  " + ln)
+    return 1
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--check", action="store_true", help="gate the surfaces against their budgets")
@@ -451,6 +606,10 @@ def main():
     ap.add_argument("--surface", metavar="FILE", help="restrict --check to one surface")
     ap.add_argument("--budget-override", type=int, metavar="N",
                     help="override the budget (the must-fail half derives count-1; never a literal)")
+    ap.add_argument("--exempt-integrity", action="store_true",
+                    help="F3/§0.2b rail: assert MUST_STAY_LIVE panels are never silently islanded")
+    ap.add_argument("--must-fail", action="store_true",
+                    help="with --exempt-integrity: run the teeth self-test (islanded fixture must be caught)")
     args = ap.parse_args()
 
     if args.count:
@@ -458,6 +617,11 @@ def main():
         return 0
 
     surfaces = [args.surface] if args.surface else [DASHBOARD, INDEX]
+
+    if args.exempt_integrity:
+        if args.must_fail:
+            return exempt_integrity_selftest()
+        return check_exempt_integrity(surfaces)
 
     if args.report:
         report(surfaces)

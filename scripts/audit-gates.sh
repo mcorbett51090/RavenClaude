@@ -270,8 +270,11 @@ PY
       ;;
     132)
       echo "── Gate 132: DOM load budget — per-surface ratchet (per-gate run) ────────"
-      python3 scripts/check-dom-budget.py --check
-      exit $?
+      rc=0
+      python3 scripts/check-dom-budget.py --check || rc=$?
+      python3 scripts/check-dom-budget.py --exempt-integrity || rc=$?
+      python3 scripts/check-dom-budget.py --exempt-integrity --must-fail || rc=$?
+      exit $rc
       ;;
     133)
       echo "── Gate 133: pipeline-map drift vs hooks.json (per-gate run) ─────────────"
@@ -4630,6 +4633,22 @@ for p in (m.DASHBOARD, m.INDEX):
         sys.exit(1)
 PY
 gate "dom-budget: SUM(panels)+shell == whole doc, 15 panels both surfaces" must_pass "$rc"
+
+# F3 / §0.2b rail: an EXEMPT panel (settings) must never be silently islanded.
+# Neither existing gate catches this — Gate 35 (posture round-trip) is DOM-free by
+# its own header, structurally blind; and Gate 132's BUDGET goes GREENER when
+# settings is islanded, because its 144 load-bound posture radios leave the live
+# count. Islanding it kills the posture editor SILENTLY (empty NodeList throws
+# nothing) and the next Save writes corrupted posture wholesale. Converting it is
+# NOT owner-authorized: §0.2b is deferred behind the rendered-DOM meter (§11.2b).
+# This is the F3 regression test the plan marks MANDATORY.
+rc=0; python3 scripts/check-dom-budget.py --exempt-integrity >/dev/null 2>&1 || rc=$?
+gate "dom-budget: exempt panel (settings) stays live, never silently islanded (F3/§0.2b)" must_pass "$rc"
+
+# teeth: fabricate an ISLANDED settings panel in-memory (radios -> JSON payload
+# text, live count 0) and confirm the rail reddens. --must-fail exits 0 when it does.
+rc=0; python3 scripts/check-dom-budget.py --exempt-integrity --must-fail >/dev/null 2>&1 || rc=$?
+gate "dom-budget teeth: islanding an exempt panel is caught (F3 regression)" must_pass "$rc"
 
 echo
 echo "── Gate 133: pipeline-map drift vs hooks/hooks.json ───────────────────────"
