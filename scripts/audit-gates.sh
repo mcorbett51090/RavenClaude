@@ -324,9 +324,14 @@ PY
       bash plugins/ravenclaude-core/hooks/tests/test-thing-denial-kb.sh
       exit $?
       ;;
+    144)
+      echo "── Gate 144: Prompt Builder render + XSS floor (per-gate run) ────────────"
+      node scripts/check-prompt-builder-render.mjs plugins/ravenclaude-core/dashboard.html
+      exit $?
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -4762,6 +4767,28 @@ echo "── Gate 143: Thing-denial KB (Muninn) security contract ────�
 # then leak.
 rc=0; bash plugins/ravenclaude-core/hooks/tests/test-thing-denial-kb.sh >/dev/null 2>&1 || rc=$?
 gate "thing-denial-kb: banner derived-labels-only + secret-scrubbed (+ teeth)" must_pass "$rc"
+
+echo
+echo "── Gate 144: Prompt Builder render + XSS floor (check-prompt-builder-render.mjs) ──"
+# The Prompt Builder echoes user input into a live preview, so its #1 hard constraint
+# is NO HTML-string sink anywhere in its JS. The shared DOM-stub pattern (the El class
+# in check-nidhoggr-render.mjs) has no innerHTML setter and CANNOT catch an innerHTML
+# regression on its own — so the real gate is a static source grep over the whole
+# PROMPT-BUILDER:START..END region (precedent: check-concern-stats-render.mjs). The gate
+# also behaviorally exercises the pure assembler / anti-folklore linter / token estimate.
+if command -v node >/dev/null 2>&1; then
+  rc=0; node scripts/check-prompt-builder-render.mjs "$DASH_HTML" >/dev/null 2>&1 || rc=$?
+  gate "prompt-builder render (dashboard.html: static sink grep + assembler/linter/token)" must_pass "$rc"
+  rc=0; node scripts/check-prompt-builder-render.mjs "$IDX_HTML" >/dev/null 2>&1 || rc=$?
+  gate "prompt-builder render (index.html portal: same region shipped)" must_pass "$rc"
+  # must_fail: a reintroduced HTML-string sink in the pb region MUST be caught by the grep.
+  PB_BAD="$TMP/dashboard-pb-innerhtml.html"
+  python3 -c "p='$DASH_HTML'; o='$PB_BAD'; s=open(p,encoding='utf-8').read(); s=s.replace('/* PROMPT-BUILDER:END */','function pbEvilSink(el, t) { el.innerHTML = t; }\n/* PROMPT-BUILDER:END */',1); open(o,'w',encoding='utf-8').write(s)"
+  rc=0; node scripts/check-prompt-builder-render.mjs "$PB_BAD" >/dev/null 2>&1 || rc=$?
+  gate "prompt-builder teeth: a reintroduced innerHTML sink is caught" must_fail "$rc"
+else
+  _skip_or_fail "Gate 144 (prompt-builder render)" node
+fi
 
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"

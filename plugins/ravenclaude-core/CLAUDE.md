@@ -1759,3 +1759,43 @@ materialises denials from the Sága logs (**hot-path-safe** — reads only; neve
 the **derived reason class** (trusted tribunal fields), not attacker text, correct-by-design rules
 first. The KB never teaches defeating a genuine security stop. **Migration:** none — additive, opt-in,
 fail-safe; inert until the Thing denies.
+
+## Prompt Builder — a premium, deterministic, client-side prompt tab (added 2026-07-26, v0.211.0)
+
+A new dashboard tab (`#/prompt-builder`, under the **Learn & Help** destination) that assembles a
+best-practice **Claude** prompt from form inputs — **Task** / **System** / **Few-shot** modes — with a
+live preview, a **cited anti-folklore quality linter** (the hero), a structure-completeness score, a
+rough token-size estimate, starter presets + a one-click pattern library, and copy/export. 100%
+**deterministic and client-side** (no server, no API, no external deps); writes nothing to a consumer's
+repo (state is `localStorage` only). Built via `/forge` (two divergent cross-model design panels →
+correlated-error critic → red-team → synthesis); every best-practice claim traces to the consolidated
+Anthropic _Prompting best practices_ page (retrieved 2026-07-26).
+
+**Three research corrections are load-bearing** (the FORGE G1 gate caught them): **response prefilling is
+deprecated** (400 on Claude 4.6+) — never emitted; the linter *penalizes* a prefill-shaped draft (1.9);
+the token number is honestly **an estimate** (no official Anthropic ratio — per-model divisor 3.6/4.0,
+both marked `[interpretation]`, ±20% band) that **never gates an action**; and model tuning is **inverted
+from folklore** — current models over-trigger on stacked `CRITICAL/MUST`, so the linter *penalizes*
+imperative stacking and gives magic phrases zero credit (5.2/5.3/6.9).
+
+**The engineering spine — a self-auditing XSS floor.** The builder echoes user input into a live preview,
+so its #1 constraint is **no HTML-string sink anywhere in its JS**: the entire UI is built with a
+`createElement`/`textContent` factory (`pbEl`), the preview is a single whole-string `textContent` write,
+and the data-tag name is clamped to `[A-Za-z0-9_-]`. **Gate 144** (`scripts/check-prompt-builder-render.mjs`)
+enforces this **structurally** — a static source grep over the whole `PROMPT-BUILDER:START..END` region —
+because the shared render-gate DOM stub (`check-nidhoggr-render.mjs`'s `El` class) has **no `innerHTML`
+setter** and cannot catch an `innerHTML` regression on its own. This was the **correlated error** the
+FORGE G4a critic found in both design panels; the fix adopts the repo's own precedent
+(`check-concern-stats-render.mjs`'s static grep). The gate also behaviorally exercises the pure assembler
+/ linter / token estimate and ships a must-fail half wired into `audit-gates.sh`. Reviewed by
+`code-reviewer` (approve-with-nits — all applied) and `security-reviewer` (DOM-XSS floor holds).
+
+**DOM budget.** The panel ships as a ~6-element static footprint (sidebar link + tab-btn + panel section
++ `#pb-root` mount + noscript + p); the whole interactive UI (fields, gauge, issues) is JS-rendered at
+`initPromptBuilder()` time (uncounted). Because the v0.208.0 re-cut froze the DOM budget at zero-slack
+with a monotonic ratchet, seating the tab required an **owner-approved +6 raise** (Gate 132: dashboard
+6,097→6,103, index 6,809→6,815) with the frozen P1..PR-E tail lifted in lockstep to keep the ratchet
+monotonic — documented as a new ratchet row.
+
+**Migration:** none — a new tab that changes nothing in an installed plugin until a consumer opens it.
+Placed under Learn & Help (the builder teaches best practices by construction and configures nothing).
