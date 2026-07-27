@@ -332,7 +332,18 @@ jobs:
         id: cpr
         uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
         with:
-          token: ${{ github.token }}
+          # LOAD-BEARING FIX (2026-07-27): open the PR with a PAT, not the default GITHUB_TOKEN.
+          # A PR opened by GITHUB_TOKEN does NOT trigger `pull_request` workflows (GitHub
+          # recursion-prevention), so the 3 REQUIRED checks never run on the bot PR — it sits
+          # BLOCKED with "no checks reported" and the merge step below can never satisfy them
+          # (this, NOT the [skip ci] that #759 removed, is why the self-heal failed every
+          # real-drift run). A PR opened by a PAT (a real identity) DOES trigger the checks, so
+          # they run + pass legitimately and the merge needs NO admin bypass. Falls back to
+          # GITHUB_TOKEN when the secret is unset → same non-auto-merging behavior as before this
+          # fix, so landing this workflow change is harmless until the secret exists.
+          # Required SELF_HEAL_PAT scopes: fine-grained (Contents: Read/Write + Pull requests:
+          # Read/Write on this repo) OR a classic PAT with `repo`. Owner-created; see the PR body.
+          token: ${{ secrets.SELF_HEAL_PAT || github.token }}
           branch: chore/self-heal-artifacts
           base: main
           delete-branch: true
@@ -353,17 +364,20 @@ jobs:
             generated-artifacts
 
       # The main ruleset REQUIRES 3 status checks (Validate manifests/layout/schemas).
-      # The self-heal PR now runs them (the [skip ci] that suppressed them was removed
-      # from the PR commit above), so wait for them to conclude and THEN squash-merge —
-      # a non-admin token can merge the instant the required checks are green (0
-      # approvals). The squash-merge SUBJECT keeps [skip ci] so landing on main does NOT
-      # re-trigger this workflow (belt-and-suspenders — the artifacts are already fresh,
-      # so a re-run would no-op anyway). A failing/incomplete check leaves the PR open
-      # for inspection rather than force-landing un-validated output.
+      # Because the PR above is opened by SELF_HEAL_PAT (a real identity), those
+      # `pull_request` checks now actually RUN on the bot PR — a GITHUB_TOKEN-opened PR
+      # would never trigger them (the 2026-07-27 root cause). Wait for them to conclude,
+      # then squash-merge — a token with contents+PR write merges the instant the required
+      # checks are green (0 approvals, NO admin bypass — the checks genuinely pass). The
+      # squash-merge SUBJECT keeps [skip ci] so landing on main does NOT re-trigger this
+      # workflow (belt-and-suspenders — the artifacts are already fresh, so a re-run would
+      # no-op anyway). A failing/incomplete check leaves the PR open for inspection rather
+      # than force-landing un-validated output. (Without the secret, the fallback GITHUB_TOKEN
+      # PR still won't get checks — same as before the fix — and this step leaves it open.)
       - name: Merge the self-heal PR once its required checks pass
         if: steps.cpr.outputs.pull-request-number != ''
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.SELF_HEAL_PAT || github.token }}
         run: |
           set -euo pipefail
           n="${{ steps.cpr.outputs.pull-request-number }}"
