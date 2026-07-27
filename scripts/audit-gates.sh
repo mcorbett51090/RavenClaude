@@ -822,10 +822,10 @@ echo "── Gate 9: Prettier format check ────────────�
 if command -v npx >/dev/null 2>&1; then
   backup .claude-plugin/marketplace.json
   echo '{   "x"  :  "y"   }' > .claude-plugin/marketplace.json
-  rc=0; npx --yes prettier --check .claude-plugin/marketplace.json --log-level error >/dev/null 2>&1 || rc=$?
+  rc=0; npx --yes prettier@3.9.4 --check .claude-plugin/marketplace.json --log-level error >/dev/null 2>&1 || rc=$?
   gate "prettier-check (intentional bad format)" must_fail "$rc"
   cp -p "$TMP/.claude-plugin_marketplace.json.bak" .claude-plugin/marketplace.json
-  rc=0; npx --yes prettier --check . --log-level error >/dev/null 2>&1 || rc=$?
+  rc=0; npx --yes prettier@3.9.4 --check . --log-level error >/dev/null 2>&1 || rc=$?
   gate "prettier-check (tree clean)" must_pass "$rc"
 else
   _skip_or_fail "Gate 9 (prettier)" npx

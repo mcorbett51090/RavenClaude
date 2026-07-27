@@ -59,7 +59,7 @@ const RC_BASELINE = {
   hooks: 24,
   rules: 5,
   templates: 23,
-  practices: 34,
+  practices: 38,
   trees: 4,
 };
 
