@@ -1841,3 +1841,49 @@ renderers (+ the shared box-packer), the full named-archetype library, and B's m
 extension — the model/schema/sanitizers/Mermaid emitter are the reusable substrate. `check-frontmatter.py`
 is N/A (no agent added). **Migration:** none — additive skill; nothing in a consumer's installed plugin
 changes on `/plugin marketplace update` until they invoke `/wireframe`.
+
+## `/wireframe` v1.1 — the deferred renderers, archetype library + multi-screen (added 2026-07-27, v0.213.0)
+
+The five items v1 deferred to v1.1 ship, **extending the existing `/wireframe` skill** (no new skill,
+no new agent → skill count stays **50**, the ~15K agent-description budget + `check-frontmatter.py`
+untouched; `.repo-layout.json` needed no edit). Built via `/forge` (two divergent cross-model panels →
+correlated-error critic → owner-ratified **all-five** scope → red-team; run in
+`.ravenclaude/runs/forge/wireframe-v1-1/`). Reuses the v1 substrate (model, schema, `wireframe_lint.py`).
+
+- **`_layout.py`** — the shared deterministic box-packer (integer grid units; container-relative sizing;
+  recursive rectangle subdivision → disjoint siblings **by construction**). The two-predicate self-check
+  (sibling AABB-disjoint + child-within-parent, mirroring `pbir-layout-engine`'s `check_no_overlap` /
+  `check_within_canvas`, which settles claims-table #11's in-repo grounding) is a **regression proof**;
+  its teeth is a hand-built overlapping box-set in `--self-test` (a packer never emits overlap, so the
+  teeth can't come from a model — red-team RT-8).
+- **`render_ascii.py`** + **`render_svg.py`** — deterministic ASCII and SVG renderers over the packed
+  layout. The **SVG clears `svg-report-lint`/Gate 103 by construction** (closed `<svg>/<g>/<rect>/<text>`
+  vocab, no script/handlers/remote refs, font ≥ 8px, and a **universal viewBox aspect-padding** into
+  0.05..20 — T1 union clamp — so single- OR multi-screen models never render as a sliver/pillar).
+- **`archetypes/` (3×4 = 12 models) + `archetype_score.py`** — a two-level named-archetype library
+  (`marketing`/`app`/`data`) scored on 6 weighted binary criteria → integer /100, schema-invalid → 0,
+  threshold ≥ 80. **Honest scope (critic CE-3):** the score measures **structural completeness, not
+  taste** — the real discriminating teeth is the degraded must-fail fixture, not the ≥ 80 self-check.
+- **Multi-screen (v2):** `wireframe_lint.py` learns `screens[]`/`flow_edges[]` (mutually exclusive with
+  top-level `regions`; `meta.model_version` widened to "1" | "2") + a new **`emit_screen_flow`** nav-map
+  emitter — distinct from `emit_mermaid` (whose CLI guards `meta.type=="flow"`, the reuse trap CE-2
+  flagged). `normalize_to_screens` unifies the renderer interface so a v1 or v2 model feeds either
+  renderer (RT-6). The top-level schema is the **synced reference doc**; enforcement lives in the
+  validator (RT-7).
+
+**Load-bearing red-team catches folded in:** committed goldens use prettier-ignored extensions
+(`.txt`/`.svg`/`.mmd`) because `prettier --check` inlines short JSON arrays while `json.dumps` expands
+them — a `.json` layout golden byte-diff is **unsatisfiable and would block every PR** (RT-1); the packer
+is **total** (defensive `layout_detail` parse, clamp-to-container, floor every dim at 1) so it never
+crashes on a model the validator accepts (RT-2/RT-3); `ascii_text` **does not strip `-`/`|`/`+`** (that
+inverted a KPI `-12%`→`12%`) — border-forgery is instead defeated by clipping labels to the cell interior
+(RT-4); all new modules carry `from __future__ import annotations` for stock-macOS Python 3.9 (RT-5); and
+`.gitattributes` pins the goldens to LF so a CRLF checkout can't drift the byte-diff forever (T11/R3).
+
+**Gates 146–150** (in `audit-gates.sh` main sequence **and** the `--check` dispatcher + `Supported:`
+list), each with must-fail teeth: 146 packer determinism + self-check overlap teeth; 147 ASCII golden +
+drift teeth; 148 SVG golden + **the golden independently clears svg-report-lint** + a known-bad-SVG-is-
+rejected teeth; 149 every archetype ≥ 80 + degraded < 80 teeth; 150 v2 validates + screen-flow golden +
+malformed-v2-rejected teeth. Proven by the `audit-gates.sh` meta-test. **Migration:** none — additive
+files under the existing skill; nothing in a consumer's installed plugin changes on `/plugin marketplace
+update` until they invoke the new renderers.

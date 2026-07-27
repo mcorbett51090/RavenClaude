@@ -1,0 +1,7 @@
+# Committed generated goldens must stay LF regardless of a contributor's core.autocrlf, or the
+# byte-diff freshness gates (audit-gates.sh 146-150) drift forever on a Windows/CRLF checkout
+# (FORGE /wireframe v1.1 tiebreak T11 / red-team R3): git would normalize a committed LF golden to
+# CRLF in the working tree while the emitter still produces LF, so the byte-diff can never match.
+*.mmd text eol=lf
+*.svg text eol=lf
+*.txt text eol=lf

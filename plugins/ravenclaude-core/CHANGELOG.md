@@ -2,6 +2,33 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.213.0 — 2026-07-27
+
+### Added
+
+- **`/wireframe` v1.1 — the deferred renderers, archetype library, and multi-screen extension.** Extends
+  the existing skill (no new skill/agent; skill count stays 50). Ships: the deterministic **`_layout.py`**
+  box-packer (integer grid units, overlap-free by construction, two-predicate self-check); **`render_ascii.py`**
+  and **`render_svg.py`** (the SVG clears `svg-report-lint`/Gate 103 by construction, with viewBox aspect
+  padded into 0.05..20); a two-level **named-archetype library** (`archetypes/`, 12 models across
+  marketing/app/data) + **`archetype_score.py`** (structural conformance ≥ 80, honest "completeness not
+  taste" scope); and the **multi-screen (v2)** `screens[]`/`flow_edges[]` model shape with a new
+  `emit_screen_flow` Mermaid nav-map emitter and an `ascii_text` sanitizer in `wireframe_lint.py`. New
+  must-fail **gates 146–150** in `audit-gates.sh`. Built via `/forge` (two-panel + critic + red-team).
+  Committed goldens use prettier-ignored extensions (`.txt`/`.svg`/`.mmd`) and are LF-pinned via
+  `.gitattributes`. **Migration:** none — additive files under the existing skill.
+
+## 0.212.0 — 2026-07-27
+
+### Added
+
+- **`/wireframe` skill (v1) — describe anything → validated model + high-fidelity HTML Artifact +
+  Mermaid.** A main-session skill in `ravenclaude-core` that turns a plain-language description into a
+  schema-validated wireframe model, a Claude-authored self-contained HTML Artifact (via `artifact-design`),
+  and a Mermaid flowchart for flows. Ships `schemas/wireframe-model.schema.json`, the stdlib-only
+  `wireframe_lint.py` (validator + context-aware sanitizers + deterministic Mermaid emitter), starter
+  skeletons, and **Gate 145**. No new agent (`check-frontmatter.py` N/A). **Migration:** none — additive.
+
 ## 0.211.1 — 2026-07-27
 
 ### Fixed

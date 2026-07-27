@@ -17,13 +17,18 @@ extract_brand.py precedent):
                        (blocks url() external-fetch + CSP break)
        - uri_scheme  : allowlist http/https/mailto/tel (blocks javascript:/data:)
        - mermaid_label: safe, quoted Mermaid label (RT-3);
-  3. a DETERMINISTIC Mermaid-flowchart emitter for `flow`-type models.
+       - ascii_text  : single-line, control-free label for the v1.1 ASCII renderer;
+  3. DETERMINISTIC emitters — a Mermaid `flowchart` for `flow`-type models (emit_mermaid) and a
+     Mermaid nav-map for v1.1 multi-screen (v2) models (emit_screen_flow).
+
+Also validates the v1.1 multi-screen (v2) shape: `screens[]` (mutually exclusive with top-level
+`regions`) + optional `flow_edges[]`, with `meta.model_version` widened to "1" | "2".
 
 CLI:
-  --self-test            run the bundled contract checks (validator + sanitizers +
-                         deterministic Mermaid emit); exit 0 iff all pass.
-  --validate FILE        validate a model JSON file; print errors; exit 0/1.
-  --emit-mermaid FILE    emit a Mermaid flowchart from a `flow` model to stdout.
+  --self-test              run the bundled contract checks; exit 0 iff all pass.
+  --validate FILE          validate a model JSON file; print errors; exit 0/1.
+  --emit-mermaid FILE      emit a Mermaid flowchart from a `flow` model to stdout.
+  --emit-screen-flow FILE  emit a Mermaid nav-map from a v2 (screens + flow_edges) model.
 """
 
 from __future__ import annotations
@@ -100,13 +105,21 @@ def validate_model(model: object) -> list[str]:
     if not isinstance(model, dict):
         return ["<root>: model must be a JSON object"]
 
-    extra = set(model) - {"meta", "regions", "$schema"}
+    extra = set(model) - {"meta", "regions", "screens", "flow_edges", "$schema"}
     if extra:
         _err(errors, "<root>", f"unknown keys: {sorted(extra)}")
     if "meta" not in model:
         _err(errors, "<root>", "missing required 'meta'")
-    if "regions" not in model:
-        _err(errors, "<root>", "missing required 'regions'")
+    # v1 uses top-level `regions`; v2 uses `screens` (+ optional `flow_edges`). They are
+    # mutually exclusive so the renderer never has to guess which shape to read (T8).
+    has_regions = "regions" in model
+    has_screens = "screens" in model
+    if has_regions and has_screens:
+        _err(errors, "<root>", "'regions' (v1) and 'screens' (v2) are mutually exclusive")
+    elif not has_regions and not has_screens:
+        _err(errors, "<root>", "missing required 'regions' (v1) or 'screens' (v2)")
+    if "flow_edges" in model and not has_screens:
+        _err(errors, "<root>", "'flow_edges' requires 'screens' (multi-screen navigation)")
 
     meta = model.get("meta")
     if isinstance(meta, dict):
@@ -117,8 +130,8 @@ def validate_model(model: object) -> list[str]:
         _enum_if_present(errors, "meta.viewport", meta.get("viewport"), VIEWPORTS)
         _enum_if_present(errors, "meta.theme", meta.get("theme"), THEMES)
         _enum_if_present(errors, "meta.fidelity", meta.get("fidelity"), FIDELITIES)
-        if "model_version" in meta and meta["model_version"] != "1":
-            _err(errors, "meta.model_version", 'must be the string "1" in v1')
+        if "model_version" in meta and meta["model_version"] not in ("1", "2"):
+            _err(errors, "meta.model_version", 'must be "1" (regions) or "2" (screens)')
         meta_extra = set(meta) - {
             "title",
             "type",
@@ -142,7 +155,54 @@ def validate_model(model: object) -> list[str]:
     elif regions is not None:
         _err(errors, "regions", "must be an array")
 
+    screens = model.get("screens")
+    if isinstance(screens, list):
+        if not screens:
+            _err(errors, "screens", "must have at least one screen")
+        for i, screen in enumerate(screens):
+            _validate_screen(errors, f"screens[{i}]", screen)
+    elif screens is not None:
+        _err(errors, "screens", "must be an array")
+
+    flow_edges = model.get("flow_edges")
+    if isinstance(flow_edges, list):
+        for i, edge in enumerate(flow_edges):
+            _validate_flow_edge(errors, f"flow_edges[{i}]", edge)
+    elif flow_edges is not None:
+        _err(errors, "flow_edges", "must be an array")
+
     return errors
+
+
+def _validate_screen(errors: list[str], path: str, screen: object) -> None:
+    if not isinstance(screen, dict):
+        _err(errors, path, "must be an object")
+        return
+    if not isinstance(screen.get("id"), str) or not screen.get("id", "").strip():
+        _err(errors, f"{path}.id", "required non-empty string (a stable screen id)")
+    regions = screen.get("regions")
+    if isinstance(regions, list):
+        if not regions:
+            _err(errors, f"{path}.regions", "must have at least one region")
+        for i, region in enumerate(regions):
+            _validate_region(errors, f"{path}.regions[{i}]", region)
+    else:
+        _err(errors, f"{path}.regions", "required array")
+    extra = set(screen) - {"id", "title", "regions"}
+    if extra:
+        _err(errors, path, f"unknown keys: {sorted(extra)}")
+
+
+def _validate_flow_edge(errors: list[str], path: str, edge: object) -> None:
+    if not isinstance(edge, dict):
+        _err(errors, path, "must be an object")
+        return
+    for key in ("from", "to"):
+        if not isinstance(edge.get(key), str) or not edge.get(key, "").strip():
+            _err(errors, f"{path}.{key}", "required non-empty string (a screen id)")
+    extra = set(edge) - {"from", "to", "label"}
+    if extra:
+        _err(errors, path, f"unknown keys: {sorted(extra)}")
 
 
 def _enum_if_present(errors, path, value, allowed) -> None:
@@ -260,6 +320,20 @@ def mermaid_label(s: str) -> str:
     return v.strip()
 
 
+def ascii_text(s: str) -> str:
+    """Single-line, control-free label for the ASCII renderer.
+
+    Strips C0 controls and collapses ALL whitespace (incl. newlines/tabs) to single spaces so
+    a label can never break the character-grid row structure. It deliberately does NOT strip the
+    frame glyphs ``- | +``: those are legitimate content (a KPI ``-12%``, a range ``A - B``), and
+    stripping ``-`` would invert ``-12%`` into ``12%`` (RT-4). Border-forgery is instead prevented
+    by the renderer CLIPPING every label to its cell interior width — a glyph inside a cell can
+    never extend the frame drawn at fixed columns.
+    """
+    text = re.sub(r"[\x00-\x1f\x7f]+", " ", str(s))
+    return re.sub(r"\s+", " ", text).strip()
+
+
 def _mermaid_id(raw: str) -> str:
     """A safe Mermaid node id: alnum + underscore, never a reserved word."""
     ident = re.sub(r"[^A-Za-z0-9_]", "_", str(raw)).strip("_") or "n"
@@ -300,6 +374,42 @@ def emit_mermaid(model: dict) -> str:
                     else:
                         edge_lines.append(f"    {frm} --> {to}")
     return "\n".join(["flowchart TD", *node_lines, *edge_lines]) + "\n"
+
+
+def emit_screen_flow(model: dict) -> str:
+    """Deterministic Mermaid nav-map (`flowchart LR`) from a v2 model's screens + flow_edges.
+
+    Distinct from emit_mermaid (which renders a `flow`-TYPE model's node/edge components, and
+    whose CLI path guards `meta.type == 'flow'` — so it cannot render a multi-screen page/app
+    model, the reuse trap RT/CE-2 flagged). This renders the SCREEN-to-SCREEN navigation of a
+    multi-screen (v2) model: each screen id is a node, each flow_edge an edge. Labels routed
+    through mermaid_label; document order, no sorting/timestamps (cross-platform-determinism).
+    """
+    node_lines: list[str] = []
+    edge_lines: list[str] = []
+    seen: list[str] = []
+    for scr in model.get("screens", []) or []:
+        if not isinstance(scr, dict):
+            continue
+        sid = _mermaid_id(scr.get("id") or "screen")
+        if sid in seen:
+            continue
+        seen.append(sid)
+        label = mermaid_label(scr.get("title") or scr.get("id") or sid)
+        node_lines.append(f'    {sid}["{label}"]')
+    for edge in model.get("flow_edges", []) or []:
+        if not isinstance(edge, dict):
+            continue
+        frm = _mermaid_id(edge["from"]) if edge.get("from") else None
+        to = _mermaid_id(edge["to"]) if edge.get("to") else None
+        if not frm or not to:
+            continue
+        elabel = edge.get("label")
+        if elabel:
+            edge_lines.append(f'    {frm} -->|"{mermaid_label(elabel)}"| {to}')
+        else:
+            edge_lines.append(f"    {frm} --> {to}")
+    return "\n".join(["flowchart LR", *node_lines, *edge_lines]) + "\n"
 
 
 # ── bundled self-test (self-contained; matches forge-route.py --self-test) ─────
@@ -401,6 +511,38 @@ def _self_test() -> int:
     if emit_mermaid(_FLOW_MODEL) != got:
         failures.append("mermaid emit is non-deterministic")
 
+    # ascii_text (RT-4): strips controls/newlines but PRESERVES structural glyphs
+    if ascii_text("-12%") != "-12%":
+        failures.append("ascii_text stripped a legitimate '-' (RT-4 regression)")
+    if ascii_text("a\nb\tc\x00d") != "a b c d":
+        failures.append("ascii_text did not collapse control/newline chars")
+
+    # v2 multi-screen validation
+    good_v2 = {
+        "meta": {"title": "App", "type": "app-screen", "model_version": "2"},
+        "screens": [
+            {"id": "home", "regions": [{"role": "main", "sections": [{"kind": "k"}]}]},
+            {"id": "detail", "regions": [{"role": "main", "sections": [{"kind": "k"}]}]},
+        ],
+        "flow_edges": [{"from": "home", "to": "detail", "label": "open"}],
+    }
+    if validate_model(good_v2):
+        failures.append(f"good v2 model rejected: {validate_model(good_v2)}")
+    if not validate_model({**good_v2, "regions": [{"role": "main", "sections": [{"kind": "k"}]}]}):
+        failures.append("regions+screens (mutually exclusive) NOT rejected")
+    if not validate_model({"meta": {"title": "x", "type": "page"}, "flow_edges": []}):
+        failures.append("flow_edges without screens NOT rejected")
+    bad_edge = {**good_v2, "flow_edges": [{"from": "home"}]}
+    if not validate_model(bad_edge):
+        failures.append("flow_edge missing 'to' NOT rejected")
+
+    # deterministic screen-flow emit
+    sf = emit_screen_flow(good_v2)
+    if emit_screen_flow(good_v2) != sf:
+        failures.append("emit_screen_flow is non-deterministic")
+    if "flowchart LR" not in sf or 'home["home"]' not in sf or "home -->" not in sf:
+        failures.append(f"emit_screen_flow output malformed:\n{sf}")
+
     if failures:
         print("wireframe_lint --self-test: FAIL")
         for f in failures:
@@ -425,6 +567,11 @@ def main(argv: list[str]) -> int:
     group.add_argument("--validate", metavar="FILE", help="validate a model JSON file")
     group.add_argument(
         "--emit-mermaid", metavar="FILE", help="emit a Mermaid flowchart from a flow model"
+    )
+    group.add_argument(
+        "--emit-screen-flow",
+        metavar="FILE",
+        help="emit a Mermaid nav-map from a v2 (screens + flow_edges) model",
     )
     args = parser.parse_args(argv)
 
@@ -460,6 +607,22 @@ def main(argv: list[str]) -> int:
             print("emit-mermaid expects a meta.type == 'flow' model", file=sys.stderr)
             return 1
         sys.stdout.write(emit_mermaid(model))
+        return 0
+
+    if args.emit_screen_flow:
+        try:
+            model = _load(args.emit_screen_flow)
+        except (OSError, json.JSONDecodeError) as exc:
+            print(f"could not read model: {exc}", file=sys.stderr)
+            return 1
+        errors = validate_model(model)
+        if errors:
+            print("refusing to emit a screen-flow from an invalid model", file=sys.stderr)
+            return 1
+        if not isinstance(model.get("screens"), list):
+            print("emit-screen-flow expects a v2 model with a 'screens' array", file=sys.stderr)
+            return 1
+        sys.stdout.write(emit_screen_flow(model))
         return 0
 
     return 2

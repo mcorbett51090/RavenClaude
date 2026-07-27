@@ -44,6 +44,19 @@ both for the same ask — pick the surface that matches the depth needed.
      Artifact contract in §"HTML rules" below.
    - **Mermaid (flow type):** run `wireframe_lint.py --emit-mermaid <model.json>` for a deterministic,
      sanitized `flowchart`. Do not hand-write Mermaid — the emitter escapes labels safely.
+   - **ASCII wireframe (structural, deterministic):** `python3 render_ascii.py --emit <model.json>` —
+     a byte-deterministic box-drawing frame. Good for a plaintext/terminal or diff-friendly sketch.
+   - **SVG wireframe (structural, deterministic, embeddable/CI-diffable):** `python3 render_svg.py
+     --emit <model.json>` — output clears `svg-report-lint` (Gate 103) **by construction** (closed
+     `<svg>/<g>/<rect>/<text>` vocab, no script/handlers/remote refs, viewBox aspect padded into
+     0.05..20). Both renderers share the deterministic `_layout.py` box-packer.
+   - **Named archetype:** start from a library model under `archetypes/<category>/<slug>.json`
+     (`marketing` / `app` / `data`) and adapt it; check structural completeness with
+     `archetype_score.py --score <model.json>` (≥ 80 = well-formed, **not** a taste judgement).
+   - **Multi-screen app (v2):** set `meta.model_version: "2"` and use `screens[]` (each `{id, regions}`)
+     plus optional `flow_edges[]` (`{from, to, label?}`) — **mutually exclusive** with top-level
+     `regions`. ASCII/SVG render every screen; the screen-to-screen nav map comes from
+     `wireframe_lint.py --emit-screen-flow <model.json>` (a Mermaid `flowchart LR`).
 
 ## Safety — route every runtime value through the gated sanitizers (binding)
 
@@ -57,6 +70,11 @@ When you author the HTML, you **must** route values through the sanitizers in `w
   `data:`).
 - **any user/description text in HTML → `html_text`** (entity-escape).
 - **flow node/edge labels → the Mermaid emitter** (which calls `mermaid_label`).
+- **any text in an ASCII render → `ascii_text`** (strips C0 controls + newlines; the renderer then
+  **clips** every label to its cell interior, so a `-`/`|`/`+` in content can't forge a frame border —
+  which is why `ascii_text` does NOT strip those glyphs and a KPI `-12%` survives intact).
+- **any text in an SVG render → `html_text`, any color → `css_value`** (the SVG renderer routes these,
+  and its output is held to `svg-report-lint`/Gate 103).
 
 **Honest scope (say this plainly if asked what's guaranteed):** the validator, the four sanitizers, and
 the Mermaid emitter are **mechanically gated** on committed fixtures (audit-gates.sh **Gate 145**). The
@@ -84,11 +102,23 @@ its safety/fidelity is a **required behavior you perform**, not something CI can
 - **Iterate:** on an edit, mutate `model.json` and **re-render only the surface currently in view** — not
   all of them.
 
-## Scope (v1)
+## Scope
 
-**In v1:** the model + high-fi HTML Artifact + Mermaid-for-flows + the `wireframe_lint.py` primitives.
-**Deferred to v1.1:** ASCII / SVG renderers, the full named-archetype library, and a multi-screen flow
-(app-navigation) extension. See [`docs/wireframe-studio-plan.md`](../../../../docs/wireframe-studio-plan.md).
+**Shipped (v1 + v1.1):** the model + `schemas/wireframe-model.schema.json`; the high-fi **HTML
+Artifact** + **Mermaid-for-flows**; the `wireframe_lint.py` primitives (validator + four sanitizers +
+`ascii_text` + Mermaid emitter + the `emit_screen_flow` nav-map emitter); the deterministic
+**`_layout.py`** box-packer; the **ASCII** (`render_ascii.py`) and **SVG** (`render_svg.py`) renderers
+(SVG held to `svg-report-lint`/Gate 103); the two-level **named-archetype library** (`archetypes/`) +
+`archetype_score.py`; and the **multi-screen (v2)** `screens[]`/`flow_edges[]` extension. Every
+deterministic surface is byte-stable (`cross-platform-determinism`) and gated by `audit-gates.sh`
+**145–150**. Full trail: [`docs/wireframe-studio-plan.md`](../../../../docs/wireframe-studio-plan.md).
+
+**Honest gate scope (mandatory to state if asked):** the validator, the sanitizers, the Mermaid +
+screen-flow emitters, the box-packer self-check, and the ASCII/SVG determinism goldens are
+**mechanically gated** on committed fixtures. `archetype_score` measures **structural completeness**,
+not aesthetic quality — a committed archetype scoring ≥ 80 means it is well-formed, not that it is good
+design (the discriminating teeth is the degraded must-fail fixture, not the ≥ 80 self-check). The final
+HTML Artifact remains free-hand at runtime (behavioral, refereed — never claimed as mechanically gated).
 
 **Out of scope:** real design-tool export (Figma/Sketch), turning a wireframe into production code, and
 any fabricated brand asset, logo, or real-sounding metric.
