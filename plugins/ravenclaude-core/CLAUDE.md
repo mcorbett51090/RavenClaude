@@ -1799,3 +1799,45 @@ monotonic — documented as a new ratchet row.
 
 **Migration:** none — a new tab that changes nothing in an installed plugin until a consumer opens it.
 Placed under Learn & Help (the builder teaches best practices by construction and configures nothing).
+
+## `/wireframe` — describe anything → validated model + high-fi Artifact + Mermaid (added 2026-07-27, v0.212.0)
+
+A new **main-session** skill ([`skills/wireframe/SKILL.md`](skills/wireframe/SKILL.md)) that turns a
+plain-language description of *anything* — a web page, an app/software screen, a dashboard, or a
+flow/diagram — into (1) a **schema-validated wireframe MODEL** (the contract), (2) a **high-fidelity,
+self-contained HTML Artifact** the executing Claude authors free-hand via the `artifact-design` skill,
+and (3) a **Mermaid flowchart** for `flow`-type wireframes. Built via `/forge` (two divergent
+cross-model panels → correlated-error critic → owner-ruled tiered-hybrid v1 → red-team); full trail in
+[`docs/wireframe-studio-plan.md`](../../docs/wireframe-studio-plan.md). Brings the skill count 49 → **50**.
+
+**A skill, not an agent (both panels + the critic converged).** Domain-neutral (house rule 1 — the
+`brand-extraction` precedent), zero agent-description-budget cost, no 169th catalog entry, and it reuses
+the existing `designer` agent + `artifact-design` skill rather than paralleling them (a **reciprocal**
+"when to use which" note is on both `SKILL.md` and `designer.md`). It is **main-session** because
+publishing an Artifact requires the Artifact tool, which the `designer` subagent's `tools:` grant lacks.
+
+**The load-bearing architecture call (critic CE-1 + owner ruling).** A deterministic Python script
+*cannot* produce a high-fi comp or "load a skill" — so the high-fi HTML is **Claude-authored**, never
+scripted. But the schema-validation claim and the CE-4 **context-aware escaping safety floor** (this is
+a *published, shareable* Artifact) need real enforced code paths, so v1 ships a **minimal stdlib-only
+helper** [`skills/wireframe/wireframe_lint.py`](skills/wireframe/wireframe_lint.py) — a hand-rolled
+model **validator** (no `jsonschema` dep), four **context-aware sanitizers** (`html_text`; `css_value`
+allowlist → validated `#hex`/`rgb()`/`hsl()`/keyword only, blocking `url()`/CSP-break; `uri_scheme`
+allowlist http/https/mailto/tel, blocking `javascript:`/`data:`; `mermaid_label`), and a
+**deterministic Mermaid emitter** — which the skill *requires* the HTML author route every
+brand-color/URI/user-text value through.
+
+**HONEST GATE-SCOPE STATEMENT (stated in `SKILL.md` + the plan, not glossed):** *mechanically gated* =
+the validator + sanitizer primitives + the Mermaid golden, exercised by **Gate 145**
+(`scripts/audit-gates.sh` + `--check 145`) over committed fixtures in `tests/fixtures/wireframe/` with a
+must-fail half; *behavioral (NOT gateable — the Artifact runtime output lands under gitignored
+`.ravenclaude/runs/` and never reaches CI)* = Claude's final free-hand HTML. We do **not** claim the
+final HTML is mechanically gated.
+
+**Schema + deferrals.** The model lives at top-level [`schemas/wireframe-model.schema.json`](../../schemas/wireframe-model.schema.json)
+(mirrors the `brand-kit.schema.json` sibling; `.repo-layout.json` needed no edit — `schemas/**`,
+`tests/fixtures/**`, `plugins/*/skills/**` already allowed). **Deferred to v1.1:** the ASCII + SVG
+renderers (+ the shared box-packer), the full named-archetype library, and B's multi-screen flow
+extension — the model/schema/sanitizers/Mermaid emitter are the reusable substrate. `check-frontmatter.py`
+is N/A (no agent added). **Migration:** none — additive skill; nothing in a consumer's installed plugin
+changes on `/plugin marketplace update` until they invoke `/wireframe`.

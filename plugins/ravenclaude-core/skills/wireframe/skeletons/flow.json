@@ -1,0 +1,29 @@
+{
+  "meta": { "title": "Untitled flow", "type": "flow", "model_version": "1" },
+  "regions": [
+    {
+      "role": "canvas",
+      "sections": [
+        {
+          "kind": "step",
+          "components": [
+            { "type": "node", "props": { "id": "start", "label": "Start" } },
+            { "type": "edge", "props": { "to": "decide" } }
+          ]
+        },
+        {
+          "kind": "decision",
+          "components": [
+            { "type": "node", "props": { "id": "decide", "label": "Is it valid?" } },
+            { "type": "edge", "props": { "to": "done", "label": "yes" } },
+            { "type": "edge", "props": { "to": "start", "label": "no" } }
+          ]
+        },
+        {
+          "kind": "step",
+          "components": [{ "type": "node", "props": { "id": "done", "label": "Done" } }]
+        }
+      ]
+    }
+  ]
+}

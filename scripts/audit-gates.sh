@@ -329,9 +329,25 @@ PY
       node scripts/check-prompt-builder-render.mjs plugins/ravenclaude-core/dashboard.html
       exit $?
       ;;
+    145)
+      echo "── Gate 145: /wireframe lint (per-gate run) ──────────────────────────────"
+      # Self-contained (the gate() helper is defined only after this dispatch block).
+      WFLINT="plugins/ravenclaude-core/skills/wireframe/wireframe_lint.py"
+      _rc=0
+      python3 "$WFLINT" --self-test || _rc=1
+      python3 "$WFLINT" --validate tests/fixtures/wireframe/valid-page.json >/dev/null 2>&1 ||
+        { echo "  ✗ committed valid model failed validation"; _rc=1; }
+      if python3 "$WFLINT" --validate tests/fixtures/wireframe/invalid-missing-type.json >/dev/null 2>&1; then
+        echo "  ✗ committed invalid model was NOT rejected — gate has no teeth"; _rc=1
+      fi
+      python3 "$WFLINT" --emit-mermaid tests/fixtures/wireframe/flow-model.json 2>/dev/null |
+        diff -q tests/fixtures/wireframe/flow.golden.mmd - >/dev/null 2>&1 ||
+        { echo "  ✗ mermaid emit drifted from the committed golden"; _rc=1; }
+      exit "$_rc"
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -4810,6 +4826,30 @@ if command -v node >/dev/null 2>&1; then
   gate "prompt-builder teeth: a reintroduced innerHTML sink is caught" must_fail "$rc"
 else
   _skip_or_fail "Gate 144 (prompt-builder render)" node
+fi
+
+echo
+echo "── Gate 145: /wireframe lint (wireframe_lint.py: validator + sanitizers + Mermaid) ──"
+# The /wireframe skill's ONLY mechanically-gateable primitives. The high-fi HTML
+# Artifact is behavioral by design (Claude free-hand via artifact-design; CE-1), and
+# .ravenclaude/runs/ is gitignored so runtime output never reaches CI. This gate
+# exercises wireframe_lint.py over COMMITTED fixtures with a must-fail half: --self-test
+# + a committed valid model pass; a committed invalid model MUST be rejected (teeth);
+# and the deterministic flow emitter must byte-match its committed golden .mmd.
+WFLINT="plugins/ravenclaude-core/skills/wireframe/wireframe_lint.py"
+if command -v python3 >/dev/null 2>&1; then
+  rc=0; python3 "$WFLINT" --self-test >/dev/null 2>&1 || rc=$?
+  gate "wireframe_lint --self-test (validator+sanitizers+mermaid)" must_pass "$rc"
+  rc=0; python3 "$WFLINT" --validate tests/fixtures/wireframe/valid-page.json >/dev/null 2>&1 || rc=$?
+  gate "wireframe_lint: committed valid model validates" must_pass "$rc"
+  rc=0; python3 "$WFLINT" --validate tests/fixtures/wireframe/invalid-missing-type.json >/dev/null 2>&1 || rc=$?
+  gate "wireframe_lint teeth: committed invalid model is rejected" must_fail "$rc"
+  rc=0
+  python3 "$WFLINT" --emit-mermaid tests/fixtures/wireframe/flow-model.json 2>/dev/null |
+    diff -q tests/fixtures/wireframe/flow.golden.mmd - >/dev/null 2>&1 || rc=$?
+  gate "wireframe_lint: flow emit byte-matches golden .mmd (determinism)" must_pass "$rc"
+else
+  _skip_or_fail "Gate 145 (wireframe_lint)" python3
 fi
 
 echo

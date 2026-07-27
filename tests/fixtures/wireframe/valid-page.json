@@ -1,0 +1,72 @@
+{
+  "meta": {
+    "title": "Acme Plumbing — landing page",
+    "type": "page",
+    "viewport": "responsive",
+    "theme": "auto",
+    "fidelity": "high",
+    "model_version": "1"
+  },
+  "regions": [
+    {
+      "role": "header",
+      "layout": "row",
+      "emphasis": "secondary",
+      "sections": [
+        {
+          "kind": "brand-bar",
+          "components": [
+            { "type": "nav-item", "props": { "label": "Services" } },
+            { "type": "nav-item", "props": { "label": "About" } },
+            { "type": "button", "props": { "label": "Call now", "variant": "primary" } }
+          ]
+        }
+      ]
+    },
+    {
+      "role": "hero",
+      "layout": "split",
+      "emphasis": "primary",
+      "sections": [
+        {
+          "kind": "value-prop",
+          "heading": "Fast, honest plumbing in Athens",
+          "emphasis": "primary",
+          "content_slots": [
+            { "slot": "text", "text": "Licensed, family-owned, 24/7 emergency callouts." },
+            { "slot": "image-box", "note": "hero photo of a service van" }
+          ],
+          "components": [
+            { "type": "button", "props": { "label": "Book a visit", "variant": "primary" } }
+          ]
+        }
+      ]
+    },
+    {
+      "role": "main",
+      "layout": "grid",
+      "layout_detail": "3",
+      "sections": [
+        {
+          "kind": "services",
+          "heading": "What we do",
+          "components": [
+            { "type": "card", "props": { "label": "Emergency repairs" } },
+            { "type": "card", "props": { "label": "Water heater install" } },
+            { "type": "card", "props": { "label": "Drain cleaning" } }
+          ]
+        }
+      ]
+    },
+    {
+      "role": "footer",
+      "emphasis": "tertiary",
+      "sections": [
+        {
+          "kind": "contact",
+          "content_slots": [{ "slot": "text", "text": "hi@acme.example · (706) 555-1212" }]
+        }
+      ]
+    }
+  ]
+}
