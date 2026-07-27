@@ -2,14 +2,39 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
-=======
-## 0.210.2 — 2026-07-26
+## 0.211.1 — 2026-07-27
 
 ### Fixed
 
-- **Command-card header wraps instead of clipping.** The dashboard/portal `.cmd-card-head` now wraps (`flex-wrap: wrap`, `gap: 6px 8px`) and `.cmd-card-title` takes a full-width flex row with `overflow-wrap: anywhere` (was `word-break: break-all` on a `space-between` row) — long mono command names/badges no longer collide or truncate awkwardly on narrow widths. Generator-only (`scripts/generate-dashboards.py`); `dashboard.html` + `index.html` regenerated.
+- **Prompt Builder is now reachable in the marketplace portal (`index.html`), not just the standalone
+  dashboard.** The v0.211.0 tab worked in the standalone `dashboard.html` (whose `validTabs` derives from
+  the tab button) but the **portal shell router** never owned `#/prompt-builder`: `DASH_OWNER` (the
+  dashboard-tab → destination map that drives `route()`, `payloadKind()`, and nav-highlight) was missing
+  the entry, so the portal's sidebar link fell through to the default section (Settings). Fixed by adding
+  `"prompt-builder": "catalog"` to `DASH_OWNER` (in `scripts/_index_dashboard_template.py`) — which routes
+  `#/prompt-builder` to the dashboard host + highlights Catalog — plus a **Prompt Builder** link in the
+  Catalog sub-nav (its literal `href` also registers it as a Gate-51 committed route). Standalone
+  `dashboard.html` was already correct and is untouched.
+- **Regression guard:** `scripts/check-prompt-builder-render.mjs` (Gate 144) now, when run on the shell
+  (`index.html`), asserts `DASH_OWNER` routes `#/prompt-builder` and the sidebar surfaces the link — the
+  render gate already runs on both surfaces, so a future drop of the portal route is caught (verified
+  fail-on-tamper). The check no-ops on the standalone (no `DASH_OWNER`).
+- **CI: greened three gates v0.211.0 shipped red** (it was admin-merged with CI failing). All three are
+  Prompt-Builder / self-heal artifacts surfaced by this version bump — none is a runtime change: (1)
+  **copilot package freshness** — the generated `copilot/plugin.json` was never regenerated for v0.211.0
+  (it sat at 0.210.2); regenerated. (2) **committed-routes fixture**
+  (`tests/fixtures/routes/committed-routes.json`) — the v0.211.0 `#/prompt-builder` tab added hrefs on
+  both surfaces without updating the fixture; re-emitted (the PB-2 anti-laundering `required_routes` floor
+  is carried through verbatim). (3) **DOM-budget structural check** (Gate 132) — the prompt-builder panel
+  is the **16th**; the hardcoded `SUM(panels)+shell, 15 panels` assertion in `scripts/audit-gates.sh` was
+  bumped 15 → 16 (the partition identity holds on both surfaces).
+- **Skill-count self-heal (48 → 49).** The core `plugin.json` + `marketplace.json` descriptions
+  undercounted skills (49 dirs, claimed 48) — a pre-existing drift on `main` that the full `audit-gates`
+  self-heal (`check-marketplace-claims.py --fix`) surfaces into the copilot-freshness gate for **every**
+  PR (which is why v0.211.0 had to be admin-merged). Synced to 49 via the sanctioned `--fix` and
+  regenerated copilot + dashboards, so the count is honest and CI is green. Also resolved stray git
+  conflict markers left in this CHANGELOG by the v0.211.0 re-integration.
 
-<<<<<<< HEAD
 ## 0.211.0 — 2026-07-26
 
 ### Added
@@ -39,13 +64,18 @@ All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the 
 
 **Migration:** none — a new read-only-to-the-repo tab (state is `localStorage` only). Reviewed by
 `code-reviewer` (approve-with-nits, all applied) + `security-reviewer` (DOM-XSS floor holds).
+## 0.210.2 — 2026-07-26
+
+### Fixed
+
+- **Command-card header wraps instead of clipping.** The dashboard/portal `.cmd-card-head` now wraps (`flex-wrap: wrap`, `gap: 6px 8px`) and `.cmd-card-title` takes a full-width flex row with `overflow-wrap: anywhere` (was `word-break: break-all` on a `space-between` row) — long mono command names/badges no longer collide or truncate awkwardly on narrow widths. Generator-only (`scripts/generate-dashboards.py`); `dashboard.html` + `index.html` regenerated.
+
 ## 0.210.1 — 2026-07-26
 
 ### Added
 
 - **Thing-denial knowledge base (Muninn)** — when the command/decision tribunal DENIES/DEFERS an action, a new per-repo KB turns the raw Sága records into a `denial shape → known resolution` lookup so a blocked agent can identify why it recurs and apply the fix. Engine [`scripts/thing-denial-kb.py`](scripts/thing-denial-kb.py) (`sync`/`recall`/`resolve`/`record`); seed [`knowledge/thing-denial-resolutions.json`](knowledge/thing-denial-resolutions.json); `thing-denial-kb` skill + [`knowledge/thing-denial-kb.md`](knowledge/thing-denial-kb.md). A `Stop` hook syncs from the Sága logs (hot-path-safe, read-only); a `SessionStart` hook surfaces the digest.
   - **Security-hardened (2 blockers fixed in review), proven by Gate 143:** derived-labels-only banner (raw `sample` never auto-injected — only `recall --json`); `sample`+`reasoning` secret-scrubbed before storage (port of `hooks/_scrub.sh`); decision resolutions match on the derived reason class, correct-by-design rules first. **Migration:** none — additive, opt-in, fail-safe.
->>>>>>> origin/main
 
 ## 0.210.0 — 2026-07-26
 

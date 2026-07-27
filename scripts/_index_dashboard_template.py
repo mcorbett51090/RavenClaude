@@ -913,7 +913,7 @@ TEMPLATE = r"""<!doctype html>
         pipeline: "control",
         // P5: overview/simulator tabs deleted (resolve via SECTION_ALIAS → Control);
         // the Help drawer (install/bifrost/about/commands + help) is owned by Catalog.
-        "plugin-vars": "catalog", commands: "catalog", trees: "catalog", bifrost: "catalog",
+        "plugin-vars": "catalog", "prompt-builder": "catalog", commands: "catalog", trees: "catalog", bifrost: "catalog",
         install: "catalog", about: "catalog", help: "catalog",
       };
       // SECTION_TABS retired (P3, dashboard-consumption). The 6-section IA's
@@ -1065,6 +1065,7 @@ TEMPLATE = r"""<!doctype html>
           const top = location.hash.replace(/^#\/?/, "").split("/")[0];
           const onTeam = top === "team";
           const onTrees = top === "trees";
+          const onPromptBuilder = top === "prompt-builder";
           const cur = (location.hash.split("/")[2] || "all");
           // Literal hrefs (NOT a #/${tab} template) so Gate 51's committed-routes
           // enumerates each. "Guidance" (#/trees) is the cross-plugin decision-tree +
@@ -1073,6 +1074,7 @@ TEMPLATE = r"""<!doctype html>
           const items = [
             `<a class="nav-subitem${onTeam ? " active" : ""}" href="#/team">Specialists</a>`,
             `<a class="nav-subitem${onTrees ? " active" : ""}" href="#/trees">Guidance</a>`,
+            `<a class="nav-subitem${onPromptBuilder ? " active" : ""}" href="#/prompt-builder">Prompt Builder</a>`,
           ];
           items.push(
             ...[{ id: "all", label: "All plugins", count: D.plugins.length }]
