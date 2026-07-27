@@ -1,0 +1,27 @@
+{
+  "name": "databricks-lakehouse-engineering",
+  "version": "0.1.0",
+  "description": "Databricks lakehouse engineering team — 2 agents (lakehouse-architect, databricks-platform-engineer) answering 'how do we build this on Databricks correctly and affordably?': medallion (bronze/silver/gold) architecture, Delta Lake table design (partitioning, liquid clustering, OPTIMIZE/Z-ORDER, VACUUM), Unity Catalog governance (catalogs/schemas/grants, lineage), Spark & PySpark job design and the shuffle/skew/spill failure modes, Structured Streaming & Auto Loader, DLT pipelines, Photon, Jobs/Workflows orchestration, and cluster/SQL-warehouse sizing & cost control (DBUs, autoscaling, spot, serverless). Engineering judgment, not a benchmark; DBR/runtime/pricing specifics are volatile — every version carries a retrieval date + [verify-at-use]. Distinct from microsoft-fabric (Fabric/OneLake), data-platform (generic ETL), data-orchestration (Airflow/Dagster), analytics-engineering (dbt/semantic layer), and ml-engineering (classical MLOps). Needs ravenclaude-core.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "databricks",
+    "lakehouse",
+    "delta-lake",
+    "unity-catalog",
+    "apache-spark",
+    "pyspark",
+    "structured-streaming",
+    "auto-loader",
+    "delta-live-tables",
+    "photon",
+    "medallion-architecture",
+    "dbu-cost"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}

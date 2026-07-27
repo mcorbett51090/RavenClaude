@@ -1,0 +1,27 @@
+{
+  "name": "corporate-development-ma",
+  "version": "0.1.0",
+  "description": "Corporate Development & M&A team — 3 agents (corpdev-lead, ma-diligence-lead, integration-pmi-strategist), 4 skills, 4 commands, 1 advisory hook, 7 best-practice rules, and a 3-file research-grounded knowledge bank. A buy-side deal team for a corp-dev, strategy, or finance lead: it frames the deal thesis before the model, triangulates valuation (DCF + trading comps + precedent transactions), runs diligence to confirm or kill the thesis, and prices integration risk pre-signing. Decision-support, not legal, tax, accounting, or a fairness opinion; multiples/comps/regulatory specifics are volatile + jurisdictional, retrieval-dated + verify-at-use; no MNPI. Distinct from startup-fundraising, finance, and treasury-management. Inherits ravenclaude-core protocols. Requires ravenclaude-core@>=0.7.0.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "corporate-development",
+    "mergers-acquisitions",
+    "m-and-a",
+    "deal-thesis",
+    "valuation",
+    "due-diligence",
+    "synergies",
+    "post-merger-integration",
+    "pmi",
+    "dcf",
+    "comparable-companies",
+    "buy-side"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}

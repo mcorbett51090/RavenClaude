@@ -1,0 +1,27 @@
+{
+  "name": "partnerships-alliances",
+  "version": "0.1.0",
+  "description": "Partnerships & Alliances GTM team — 3 agents (partnerships-lead, channel-program-manager, alliance-gtm-strategist), 4 skills, 4 commands, 1 advisory hook, 7 best-practice rules, and a 3-file research-grounded knowledge bank. The indirect-revenue engine for a partner/alliances leader: it tiers partners by obligation not logo, sizes partner-sourced pipeline honestly (sourced vs influenced), builds a co-sell motion around a named rep-to-rep play, and runs MDF/incentives and QBRs to a P&L. Operations decision-support, not legal or channel-conflict adjudication; incentive/tax/antitrust specifics are jurisdictional, retrieval-dated + verify-at-use. Distinct from sales-revops, sales-engineering, and developer-relations. Inherits ravenclaude-core protocols. Requires ravenclaude-core@>=0.7.0.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "partnerships",
+    "alliances",
+    "channel",
+    "co-sell",
+    "partner-program",
+    "partner-tiering",
+    "mdf",
+    "ecosystem",
+    "partner-sourced-pipeline",
+    "gtm",
+    "isv",
+    "reseller"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}

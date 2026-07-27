@@ -3859,6 +3859,261 @@
         "claude-agent-sdk",
         "agent-evaluation"
       ]
+    },
+    {
+      "name": "hoa-community-association-management",
+      "source": "./plugins/hoa-community-association-management",
+      "description": "Community-association management team — 2 agents (association-management-lead, community-operations-specialist) running HOAs, condo associations (COAs), and POAs: board governance & fiduciary advisory, the annual budget & assessment (dues) setting, reserve studies & funding, covenant/CC&R enforcement & architectural review, assessment collections & the delinquency/lien process, vendor & common-area maintenance, meetings & official records, insurance, and developer-to-homeowner transition. 3 skills, a 2-doc knowledge bank, and 2 templates. Distinct from property-management (a landlord's rental units & leases), commercial-real-estate (CRE brokerage), and residential-real-estate-brokerage (buying/selling homes) — this owns the COMMUNITY ASSOCIATION and its common-interest governance. Not legal, financial, or insurance advice; volatile HOA/condo statutes, lien/foreclosure procedures, reserve-study standards, and fair-housing/collection rules carry a retrieval date + verify-at-use. Needs ravenclaude-core.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "hoa",
+        "condo-association",
+        "community-association",
+        "reserve-study",
+        "assessments",
+        "cc-and-r",
+        "covenant-enforcement",
+        "architectural-review",
+        "board-governance",
+        "delinquency-collections",
+        "common-area-maintenance",
+        "special-assessment"
+      ]
+    },
+    {
+      "name": "home-health-care-operations",
+      "source": "./plugins/home-health-care-operations",
+      "description": "Home-health / home-care agency operations — 2 agents (home-health-agency-lead, home-care-operations-specialist) covering intake & eligibility / benefit verification, the physician-order & certification gate, OASIS & the plan of care, PDGM period billing & RCM (Medicare / Medicaid waiver / private pay), caregiver scheduling with continuity, EVV capture & exceptions (21st Century Cures Act), conditions-of-participation & survey readiness, and quality (HHCAHPS, Star ratings, value-based purchasing) — across skilled home health and private-duty / non-medical home care. 3 skills, a 2-doc knowledge bank, and 2 templates. Distinct from hospice-referral-sales, senior-care-operations (facility-based senior living), and medical-revenue-cycle (hospital/physician RCM) — home health owns care delivered IN THE HOME and the agency that delivers it. Not medical/legal/reimbursement advice; volatile CMS/PDGM/OASIS/EVV/Medicaid specifics carry a retrieval date + verify-at-use. Needs ravenclaude-core.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "home-health",
+        "home-care",
+        "pdgm",
+        "oasis",
+        "evv",
+        "medicare",
+        "medicaid-waiver",
+        "plan-of-care",
+        "conditions-of-participation",
+        "hhcahps",
+        "caregiver-scheduling",
+        "value-based-purchasing"
+      ]
+    },
+    {
+      "name": "tax-preparation-practice",
+      "source": "./plugins/tax-preparation-practice",
+      "description": "CPA / EA tax-preparation & planning practice — 2 agents (tax-practice-lead, tax-preparation-specialist): the lead sets client-mix & niche, seasonal capacity, pricing/realization, review-standard & risk posture, and Circular 230 / PTIN / EFIN governance; the specialist runs the return pipeline — organizer & engagement letter, intake, preparation (1040 / 1120 / 1120-S / 1065), separate-eyes review, e-file, extensions & estimates, CP-notice response, and the planning calc (entity, QBI, retirement, timing). 3 skills, a 2-doc knowledge bank, and 2 templates. Distinct from accounting-bookkeeping (write-up / close), wealth-management-ria (advisory), and finance (FP&A) — this plugin owns TAX RETURN PREPARATION and the practice that produces it. Not tax, legal, or accounting advice and no substitute for a credentialed preparer: forms, thresholds, and deadlines are volatile and jurisdiction-specific — every rule carries a retrieval date + verify-at-use against current IRS/state guidance. Needs ravenclaude-core.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "tax-preparation",
+        "form-1040",
+        "form-1120",
+        "form-1065",
+        "e-file",
+        "irs-notices",
+        "tax-season",
+        "engagement-letter",
+        "circular-230",
+        "qbi",
+        "quarterly-estimates",
+        "tax-planning"
+      ]
+    },
+    {
+      "name": "corporate-development-ma",
+      "source": "./plugins/corporate-development-ma",
+      "description": "Corporate Development & M&A team — 3 agents (corpdev-lead, ma-diligence-lead, integration-pmi-strategist), 4 skills, 4 commands, 1 advisory hook, 7 best-practice rules, and a 3-file research-grounded knowledge bank. A buy-side deal team for a corp-dev, strategy, or finance lead: it frames the deal thesis before the model, triangulates valuation (DCF + trading comps + precedent transactions), runs diligence to confirm or kill the thesis, and prices integration risk pre-signing. Decision-support, not legal, tax, accounting, or a fairness opinion; multiples/comps/regulatory specifics are volatile + jurisdictional, retrieval-dated + verify-at-use; no MNPI. Distinct from startup-fundraising, finance, and treasury-management. Inherits ravenclaude-core protocols. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "corporate-development",
+        "mergers-acquisitions",
+        "m-and-a",
+        "deal-thesis",
+        "valuation",
+        "due-diligence",
+        "synergies",
+        "post-merger-integration",
+        "pmi",
+        "dcf",
+        "comparable-companies",
+        "buy-side"
+      ]
+    },
+    {
+      "name": "partnerships-alliances",
+      "source": "./plugins/partnerships-alliances",
+      "description": "Partnerships & Alliances GTM team — 3 agents (partnerships-lead, channel-program-manager, alliance-gtm-strategist), 4 skills, 4 commands, 1 advisory hook, 7 best-practice rules, and a 3-file research-grounded knowledge bank. The indirect-revenue engine for a partner/alliances leader: it tiers partners by obligation not logo, sizes partner-sourced pipeline honestly (sourced vs influenced), builds a co-sell motion around a named rep-to-rep play, and runs MDF/incentives and QBRs to a P&L. Operations decision-support, not legal or channel-conflict adjudication; incentive/tax/antitrust specifics are jurisdictional, retrieval-dated + verify-at-use. Distinct from sales-revops, sales-engineering, and developer-relations. Inherits ravenclaude-core protocols. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "partnerships",
+        "alliances",
+        "channel",
+        "co-sell",
+        "partner-program",
+        "partner-tiering",
+        "mdf",
+        "ecosystem",
+        "partner-sourced-pipeline",
+        "gtm",
+        "isv",
+        "reseller"
+      ]
+    },
+    {
+      "name": "databricks-lakehouse-engineering",
+      "source": "./plugins/databricks-lakehouse-engineering",
+      "description": "Databricks lakehouse engineering team — 2 agents (lakehouse-architect, databricks-platform-engineer) answering 'how do we build this on Databricks correctly and affordably?': medallion (bronze/silver/gold) architecture, Delta Lake table design (partitioning, liquid clustering, OPTIMIZE/Z-ORDER, VACUUM), Unity Catalog governance (catalogs/schemas/grants, lineage), Spark & PySpark job design and the shuffle/skew/spill failure modes, Structured Streaming & Auto Loader, DLT pipelines, Photon, Jobs/Workflows orchestration, and cluster/SQL-warehouse sizing & cost control (DBUs, autoscaling, spot, serverless). Engineering judgment, not a benchmark; DBR/runtime/pricing specifics are volatile — every version carries a retrieval date + [verify-at-use]. Distinct from microsoft-fabric (Fabric/OneLake), data-platform (generic ETL), data-orchestration (Airflow/Dagster), analytics-engineering (dbt/semantic layer), and ml-engineering (classical MLOps). Needs ravenclaude-core.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "databricks",
+        "lakehouse",
+        "delta-lake",
+        "unity-catalog",
+        "apache-spark",
+        "pyspark",
+        "structured-streaming",
+        "auto-loader",
+        "delta-live-tables",
+        "photon",
+        "medallion-architecture",
+        "dbu-cost"
+      ]
+    },
+    {
+      "name": "shopify-app-engineering",
+      "source": "./plugins/shopify-app-engineering",
+      "description": "Shopify app & theme engineering team — 2 agents (shopify-app-architect, shopify-app-engineer) answering 'how do we build this on Shopify correctly, within the platform's rules, and so it survives review and scale?': public vs custom app choice, the Admin GraphQL API + webhooks + App Bridge/Polaris embedded model, OAuth & session tokens, Shopify Functions (discounts/checkout) replacing script tags, checkout extensibility & extensions, theme/Online Store 2.0 (Liquid, sections, metafields) vs Hydrogen/Storefront API headless, billing API, rate limits (GraphQL cost-based throttling), and webhook/data-protection + App Store review requirements. Engineering judgment, not a benchmark; Shopify's APIs/versions/review rules are volatile — every version carries a retrieval date + [verify-at-use]. Distinct from ecommerce-dtc (merchandising/retention ops), web-commerce (generic payment scaffold), frontend-engineering (generic React), and web-design (visual/IA). Needs ravenclaude-core.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "shopify",
+        "shopify-apps",
+        "admin-graphql-api",
+        "app-bridge",
+        "polaris",
+        "shopify-functions",
+        "checkout-extensibility",
+        "liquid",
+        "online-store-2-0",
+        "hydrogen",
+        "storefront-api",
+        "app-store-review"
+      ]
+    },
+    {
+      "name": "recommendation-systems-engineering",
+      "source": "./plugins/recommendation-systems-engineering",
+      "description": "Recommendation-systems-engineering team — the RECSYS layer that turns interaction data into ranked recommendations. 2 agents (recsys-architect, recsys-implementation-engineer) covering approach selection (popularity baseline, collaborative filtering, content-based, hybrid, two-tower/embedding retrieval, sequential), the candidate-generation → ranking → re-ranking pipeline, cold-start (new user/new item), offline evaluation (recall@k, nDCG, MAP, coverage/diversity) AND online A/B, feature stores with train/serve parity, low-latency serving, and feedback-loop/position bias. 3 skills, 2 Mermaid-backed knowledge docs, 2 templates. Seams: training infra → ml-engineering; keyword/semantic search → search-relevance-engineering; A/B + stats → experimentation-growth-engineering + applied-statistics. House line: baseline before a neural net; offline wins must survive an online A/B. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "recommendation-systems",
+        "recsys",
+        "collaborative-filtering",
+        "content-based-filtering",
+        "two-tower",
+        "candidate-generation",
+        "ranking",
+        "re-ranking",
+        "cold-start",
+        "ndcg",
+        "recall-at-k",
+        "embeddings",
+        "feature-store",
+        "online-evaluation",
+        "position-bias"
+      ]
+    },
+    {
+      "name": "subscription-billing-engineering",
+      "source": "./plugins/subscription-billing-engineering",
+      "description": "Subscription-billing-engineering team — the RECURRING-BILLING SYSTEM layer for SaaS. 2 agents (billing-systems-architect, billing-implementation-engineer) covering plan/price/entitlement modeling (flat, tiered, per-seat, usage/metered, hybrid), proration, trials & coupons, usage metering & rating, dunning & involuntary-churn recovery, idempotent webhook reconciliation, and the correctness seams to revenue recognition (ASC 606) + sales-tax/VAT. Stripe-Billing-leaning, portable to Chargebee/Recurly/Paddle. 3 skills, 2 Mermaid-backed knowledge docs, 2 runbook templates. Seams: payment rails → fintech-payments-engineering; pricing strategy → pricing-monetization; revrec → finance; tax → regulatory-compliance. House line: model before you integrate; idempotency before features. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "subscription-billing",
+        "recurring-billing",
+        "saas-billing",
+        "stripe-billing",
+        "usage-based-billing",
+        "metered-billing",
+        "proration",
+        "dunning",
+        "revenue-recognition",
+        "asc-606",
+        "sales-tax",
+        "webhook-idempotency",
+        "entitlements",
+        "chargebee",
+        "recurly"
+      ]
+    },
+    {
+      "name": "design-systems-engineering",
+      "source": "./plugins/design-systems-engineering",
+      "description": "Design-systems engineering team — 2 agents (design-systems-architect, design-tokens-and-component-engineer) answering 'what is the shared system every product surface builds from, and how is it versioned and adopted?': design-token architecture (primitive → semantic → component tiers, theming/dark-mode/multi-brand), component-library API design (composition vs configuration, controlled/uncontrolled, a11y baked in), Storybook/docs, Figma→code token pipeline (Style Dictionary), and versioning/adoption (semver, changesets, codemod-backed breaking changes, deprecation, governance, adoption metrics). 3 skills, a 2-doc knowledge bank (a Mermaid decision tree + a dated 2026 tooling reference). Distinct from frontend-engineering (builds apps that CONSUME the system), accessibility-engineering (WCAG compliance), and web-design (site visual design) — this team owns the SYSTEM those build from. Tooling specifics volatile: retrieval-dated + verify-at-use. Needs ravenclaude-core.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "design-systems",
+        "design-tokens",
+        "component-library",
+        "storybook",
+        "style-dictionary",
+        "theming",
+        "figma-to-code",
+        "semver",
+        "changesets",
+        "design-system-governance"
+      ]
+    },
+    {
+      "name": "web-scraping-data-extraction",
+      "source": "./plugins/web-scraping-data-extraction",
+      "description": "Web-scraping & data-extraction engineering team — 2 agents (extraction-architect, scraper-implementation-engineer) answering 'how do we acquire this web data legally, robustly, and at the right cost?': API-vs-scrape source choice, a legal/ethical gate (robots.txt, ToS, public-vs-authenticated, rate, PII/copyright) BEFORE any code, fetch strategy (HTTP vs headless, JSON-endpoint-first), resilient parsing (structured data over brittle selectors, validate-to-schema), change-detection & re-crawl scheduling, and the extract→validate→dedup→store pipeline with provenance. 3 skills, a 2-doc knowledge bank (a Mermaid decision tree + a dated 2026 tooling/legal reference). Distinct from data-orchestration/data-streaming (move data that ALREADY exists) and backend-engineering — this team owns ACQUIRING web data. Legality-first: anti-bot is a stop-signal, never evasion for abuse; ToS/robots specifics volatile + jurisdictional, retrieval-dated + verify-at-use. Needs ravenclaude-core.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "web-scraping",
+        "data-extraction",
+        "crawling",
+        "robots-txt",
+        "headless-browser",
+        "html-parsing",
+        "rate-limiting",
+        "change-detection",
+        "etl",
+        "data-pipeline"
+      ]
     }
   ]
 }

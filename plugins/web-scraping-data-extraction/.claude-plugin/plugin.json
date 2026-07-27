@@ -1,0 +1,25 @@
+{
+  "name": "web-scraping-data-extraction",
+  "version": "0.1.0",
+  "description": "Web-scraping & data-extraction engineering team — 2 agents (extraction-architect, scraper-implementation-engineer) answering 'how do we acquire this web data legally, robustly, and at the right cost?': API-vs-scrape source choice, a legal/ethical gate (robots.txt, ToS, public-vs-authenticated, rate, PII/copyright) BEFORE any code, fetch strategy (HTTP vs headless, JSON-endpoint-first), resilient parsing (structured data over brittle selectors, validate-to-schema), change-detection & re-crawl scheduling, and the extract→validate→dedup→store pipeline with provenance. 3 skills, a 2-doc knowledge bank (a Mermaid decision tree + a dated 2026 tooling/legal reference). Distinct from data-orchestration/data-streaming (move data that ALREADY exists) and backend-engineering — this team owns ACQUIRING web data. Legality-first: anti-bot is a stop-signal, never evasion for abuse; ToS/robots specifics volatile + jurisdictional, retrieval-dated + verify-at-use. Needs ravenclaude-core.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "web-scraping",
+    "data-extraction",
+    "crawling",
+    "robots-txt",
+    "headless-browser",
+    "html-parsing",
+    "rate-limiting",
+    "change-detection",
+    "etl",
+    "data-pipeline"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}
