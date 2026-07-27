@@ -115,7 +115,42 @@ jobs:
         with:
           node-version: "20"
 
+      # A stale decision-tree / concept SVG needs mermaid-cli, which launches Chromium via
+      # puppeteer. The puppeteer-downloaded chrome-headless-shell CANNOT launch on the runner —
+      # its system shared libraries are absent (`chrome-headless-shell: error while loading
+      # shared libraries: libglib-2.0.so.0: cannot open shared object file`), so every SVG render
+      # silently failed + reverted (2026-07-27 diagnosis; the `--no-sandbox` puppeteer config the
+      # render scripts already pass was never the issue). Fix: when — and ONLY when — a diagram is
+      # actually stale, install a real Chrome WITH its system deps and point puppeteer at it. The
+      # staleness gate preserves this workflow's fast-no-op design (a no-diagram merge never touches
+      # Chrome). `render-*.py --check` reads a source-hash manifest (no browser), so it is cheap.
+      - name: Detect whether any diagram needs rendering
+        id: diagrams
+        run: |
+          set -euo pipefail
+          if python3 scripts/render-concepts.py --check >/dev/null 2>&1 \
+            && python3 scripts/render-trees.py --check >/dev/null 2>&1; then
+            echo "stale=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "stale=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set up Chrome + system deps for mermaid-cli (only when a diagram is stale)
+        if: steps.diagrams.outputs.stale == 'true'
+        id: chrome
+        uses: browser-actions/setup-chrome@2e1d749697dd1612b833dba4a722266286fbefcd # v2.1.2
+        with:
+          chrome-version: stable
+          install-dependencies: true # apt-installs Chromium's shared libs — the actual fix
+
       - name: Self-heal generated artifacts (counts, SVGs, dashboard, index portal), commit if changed
+        env:
+          # Point mermaid-cli's puppeteer at the Chrome installed above (deps resolved), instead of
+          # the depless chrome-headless-shell it would otherwise download. Empty when no diagram was
+          # stale (the setup-chrome step was skipped) — harmless, because the render blocks below are
+          # skipped in that case too. The render scripts' `_PUPPETEER_CFG` still supplies --no-sandbox
+          # (a config file sets `args`; puppeteer takes executablePath from this env when unset there).
+          PUPPETEER_EXECUTABLE_PATH: ${{ steps.chrome.outputs.chrome-path }}
         run: |
           set -euo pipefail
 
