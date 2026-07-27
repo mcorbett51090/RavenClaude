@@ -67,7 +67,13 @@ on:
 
 # The job opens a PR with the regenerated artifacts (main is protected — direct
 # pushes are rejected by the "changes must be made through a pull request" ruleset),
-# then merges it immediately (the ruleset requires 0 approvals and no status checks).
+# lets that PR run the main ruleset's REQUIRED status checks, then squash-merges it
+# once they pass (0 approvals required). The self-heal PR used to carry [skip ci] and
+# merge immediately — that broke on 2026-07-17 when 3 checks became REQUIRED: [skip ci]
+# suppressed them so they stayed pending forever and a non-admin merge could never
+# satisfy them (self-heal PRs #720/#754 were left open + closed unmerged, so main went
+# UN-healed whenever there was real drift). Removing [skip ci] from the PR commit and
+# waiting for green is the fix.
 permissions:
   contents: write
   pull-requests: write
@@ -81,6 +87,9 @@ jobs:
   regenerate:
     name: Regenerate generated artifacts on main
     runs-on: ubuntu-latest
+    # Backstop for the "wait for the self-heal PR's checks" step below: the required
+    # checks run ~3-4 min, so 25 min is generous headroom while still bounding a hang.
+    timeout-minutes: 25
     steps:
       - name: Checkout (full history for accurate per-plugin "Last updated" dates)
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -283,7 +292,7 @@ jobs:
           branch: chore/self-heal-artifacts
           base: main
           delete-branch: true
-          commit-message: "chore(artifacts): self-heal generated artifacts after merge [skip ci]"
+          commit-message: "chore(artifacts): self-heal generated artifacts after merge"
           title: "chore(artifacts): self-heal generated artifacts"
           body: |
             Automated post-merge self-heal of repo-wide **generated** artifacts
@@ -292,23 +301,34 @@ jobs:
             report, `docs/concepts.md`).
 
             main is branch-protected, so this bot cannot push to it directly; it opens
-            this PR and merges it immediately (the ruleset requires 0 approvals and no
-            status checks). Contents are deterministic generator output and were
+            this PR, waits for the required status checks to pass, then squash-merges it
+            (0 approvals required). Contents are deterministic generator output and were
             validated (JSON + prettier) before commit.
           labels: |
             automated
             generated-artifacts
 
-      # The ruleset requires a PR but 0 approvals and no status checks, so the bot PR
-      # can merge right away. A GITHUB_TOKEN merge does not re-trigger this workflow
-      # (and even if it did, the artifacts are now fresh → a no-op), so no loop.
-      - name: Merge the self-heal PR
+      # The main ruleset REQUIRES 3 status checks (Validate manifests/layout/schemas).
+      # The self-heal PR now runs them (the [skip ci] that suppressed them was removed
+      # from the PR commit above), so wait for them to conclude and THEN squash-merge —
+      # a non-admin token can merge the instant the required checks are green (0
+      # approvals). The squash-merge SUBJECT keeps [skip ci] so landing on main does NOT
+      # re-trigger this workflow (belt-and-suspenders — the artifacts are already fresh,
+      # so a re-run would no-op anyway). A failing/incomplete check leaves the PR open
+      # for inspection rather than force-landing un-validated output.
+      - name: Merge the self-heal PR once its required checks pass
         if: steps.cpr.outputs.pull-request-number != ''
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           n="${{ steps.cpr.outputs.pull-request-number }}"
-          echo "Merging self-heal PR #$n (operation: ${{ steps.cpr.outputs.pull-request-operation }})"
+          echo "Waiting for required checks on self-heal PR #$n (operation: ${{ steps.cpr.outputs.pull-request-operation }})"
+          # Give the pull_request-triggered checks a moment to register before watching.
+          sleep 25
+          if ! gh pr checks "$n" --watch --interval 30; then
+            echo "::error::self-heal PR #$n has a failing/incomplete required check — leaving it open for inspection"
+            exit 1
+          fi
           gh pr merge "$n" --squash --delete-branch \
             --subject "chore(artifacts): self-heal generated artifacts (#$n) [skip ci]"
