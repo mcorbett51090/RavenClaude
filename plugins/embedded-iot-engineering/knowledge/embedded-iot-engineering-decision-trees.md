@@ -43,7 +43,7 @@ flowchart TD
 flowchart TD
     A[Pick connectivity] --> B{Range needed?}
     B -- "Wide-area / km" --> C{Data rate?}
-    C -- "Low (telemetry)" --> C1[LoRa(WAN) / NB-IoT —<br/>long-range low-power, §3 #6]
+    C -- "Low (telemetry)" --> C1["LoRa(WAN) / NB-IoT —<br/>long-range low-power, §3 #6"]
     C -- "High (stream)" --> C2[Cellular — high power+cost;<br/>confirm budget, §3 #6]
     B -- "Local / room" --> D{Power budget tight?}
     D -- "Battery, tight" --> D1[BLE — low power, moderate<br/>rate, §3 #6]

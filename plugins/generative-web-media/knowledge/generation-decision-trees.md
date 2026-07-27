@@ -79,7 +79,7 @@ flowchart TD
     A[Optimized image] --> B{Content type?}
     B -- "photographic hero / photoreal" --> C[AVIF primary, WebP fallback, JPEG safety net]
     B -- "flat illustration / few colors / UI" --> D[AVIF/WebP; consider SVG if truly vector]
-    B -- "logo / icon / line art" --> E[SVG (vector) - infinite scale, tiny, crisp]
+    B -- "logo / icon / line art" --> E["SVG (vector) - infinite scale, tiny, crisp"]
     B -- "needs transparency" --> F[WebP/AVIF with alpha; PNG safety net]
     C --> G[<picture>: 3-5 responsive widths, explicit width/height]
     D --> G

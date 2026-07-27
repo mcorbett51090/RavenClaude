@@ -28,7 +28,7 @@ flowchart TD
     Q1 -->|NO - enough total hours, just mis-allocated| REALLOC[Reallocate over-staffed halls to high-acuity need - no net add; this is the cheapest fix]
     Q1 -->|YES - genuine total shortfall| Q2{Is the shortfall temporary/seasonal or structural/ongoing?}
     Q2 -->|Temporary - census spike, LOA, FMLA coverage| AGENCY[Bridge with agency / overtime SHORT-TERM only - track it as a lagging quality + margin signal, set an exit date]
-    Q2 -->|Structural - sustained acuity rise| Q3{Does the residual gap (after reallocation) justify a permanent FTE vs the agency rate it displaces?}
+    Q2 -->|Structural - sustained acuity rise| Q3{"Does the residual gap (after reallocation) justify a permanent FTE vs the agency rate it displaces?"}
     Q3 -->|NO - sub-FTE residual| FLEX[Use a part-time / flex pool or cross-training before a full FTE]
     Q3 -->|YES - >= ~1 FTE of sustained need| HIRE[Hire permanent to the residual - model fully-loaded cost vs displaced agency spend - scripts/senior_calc.py ppd-staffing + agency comparison]
 ```

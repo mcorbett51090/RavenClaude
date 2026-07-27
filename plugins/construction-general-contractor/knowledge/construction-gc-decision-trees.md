@@ -16,8 +16,8 @@ flowchart TD
   B -->|No — I am dividing profit by REVENUE| D[That is MARGIN\nMargin % = Profit ÷ Revenue\nExample: $20 profit on $120 revenue = 16.7% margin]
   C --> E{Is my TARGET stated as markup or margin?}
   D --> E
-  E -->|Target is markup| F[Apply the markup %: Bid Price = Cost × (1 + Markup%)\nExample: 20% markup → Cost × 1.20]
-  E -->|Target is margin| G[Convert to markup first: Markup% = Margin% ÷ (1 - Margin%)\nExample: 20% margin → 20% ÷ 80% = 25% markup → Cost × 1.25]
+  E -->|Target is markup| F["Apply the markup %: Bid Price = Cost × (1 + Markup%)\nExample: 20% markup → Cost × 1.20"]
+  E -->|Target is margin| G["Convert to markup first: Markup% = Margin% ÷ (1 - Margin%)\nExample: 20% margin → 20% ÷ 80% = 25% markup → Cost × 1.25"]
   F --> H{Did I state the basis in the estimate or CO?}
   G --> H
   H -->|No| I[GO BACK — always state 'X% markup on cost' or 'Y% gross margin on revenue'\nConfusing them on a $5M job = $165K error at 20% target]
@@ -42,7 +42,7 @@ flowchart TD
   E -->|Neither — neutral to cost and schedule| F[Document it, but a $0 CO may still be needed to protect the schedule record\nFile the written record with the project docs]
   E -->|Adds cost or time| G{Is the dollar amount above the de-minimis threshold?\nTypical: >$500 or >contract-defined threshold}
   G -->|Below threshold| H[Absorb and document — note in daily report\nWatch for cumulative impact: many small absorptions = cardinal change]
-  G -->|Above threshold| I[Price and submit a Proposed Change Order (PCO)\nDirect cost + markup per contract + time impact]
+  G -->|Above threshold| I["Price and submit a Proposed Change Order (PCO)\nDirect cost + markup per contract + time impact"]
   I --> J{Is the scope clearly owner-caused?}
   J -->|Yes| K[Compensable: owner owes time AND money]
   J -->|No — concurrent or ambiguous cause| L[Excusable non-compensable: time extension only\nDocument concurrent GC delay if any — it limits recovery]

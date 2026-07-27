@@ -77,7 +77,7 @@ flowchart TD
   B -->|Mobile application| E[Applicable: WCAG 2.1 AA for mobile<br/>Test: VoiceOver/iOS, TalkBack/Android, touch target size, orientation]
   B -->|Electronic document PDF| F[Applicable: PDF/UA-1 + WCAG 2.1 AA equivalent<br/>Test: PAC 3 automated + Acrobat Accessibility Checker + screen reader]
   B -->|Video / multimedia| G[Applicable: Captions SC 1.2.2 + Audio Description SC 1.2.5<br/>Test: closed-caption accuracy, audio-description completeness]
-  B -->|Hardware / kiosk| H[Applicable: 508 Chapter 4 (hardware)<br/>Test: physical access, operable parts, biometric alternatives]
+  B -->|Hardware / kiosk| H["Applicable: 508 Chapter 4 (hardware)<br/>Test: physical access, operable parts, biometric alternatives"]
   C --> I{VPAT / ACR required by agency or solicitation?}
   D --> I
   E --> I

@@ -52,7 +52,7 @@ flowchart TD
     B -- Yes --> C[Use native structured output:<br/>pass the schema, get validated JSON]
     B -- No --> D{Does the model support<br/>tool / function calling?}
     D -- Yes --> E[Define the output AS a tool schema;<br/>force the tool call]
-    D -- No --> F{Can you run a constrained-decoding /<br/>grammar layer (e.g. GBNF)?}
+    D -- No --> F{"Can you run a constrained-decoding /<br/>grammar layer (e.g. GBNF)?"}
     F -- Yes --> G[Constrain decoding to the grammar]
     F -- No --> H[Last resort: prose + robust parser<br/>with delimiters]
     C --> V[ALWAYS: parse + validate + repair/retry path]
