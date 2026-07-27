@@ -115,6 +115,50 @@ jobs:
         with:
           node-version: "20"
 
+      # A stale decision-tree / concept SVG needs mermaid-cli, which launches Chromium via
+      # puppeteer. The puppeteer-downloaded chrome-headless-shell CANNOT launch on the runner —
+      # its system shared libraries are absent (`chrome-headless-shell: error while loading
+      # shared libraries: libglib-2.0.so.0: cannot open shared object file`), so every SVG render
+      # silently failed + reverted (2026-07-27 diagnosis; the `--no-sandbox` puppeteer config the
+      # render scripts already pass was never the issue). Fix: when — and ONLY when — a diagram is
+      # actually stale, install a real Chrome WITH its system deps and point puppeteer at it. The
+      # staleness gate preserves this workflow's fast-no-op design (a no-diagram merge never touches
+      # Chrome). `render-*.py --check` reads a source-hash manifest (no browser), so it is cheap.
+      - name: Detect whether any diagram needs rendering
+        id: diagrams
+        run: |
+          set -euo pipefail
+          if python3 scripts/render-concepts.py --check >/dev/null 2>&1 \
+            && python3 scripts/render-trees.py --check >/dev/null 2>&1; then
+            echo "stale=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "stale=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Install ONLY Chromium's system shared libraries — do NOT override the browser. mermaid-cli
+      # bundles a puppeteer that downloads its OWN version-matched chrome-headless-shell; pointing it
+      # at a newer stand-alone Chrome launches but then fails inside mermaid.js at render time
+      # (`renderMermaid → fromText`, a CDP/version mismatch — observed 2026-07-27). So we let
+      # mermaid-cli use its bundled, version-matched browser and just give it the libs it was missing
+      # (the exact 24.04 set that a proven Chrome install pulls; `libglib2.0-0t64` provides the
+      # `libglib-2.0.so.0` that was the first missing lib). Passwordless sudo is available on
+      # GitHub-hosted runners. Gated on staleness so a no-diagram merge never touches apt.
+      - name: Install Chromium system libraries for mermaid-cli (only when a diagram is stale)
+        if: steps.diagrams.outputs.stale == 'true'
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          # Chromium's shared libs (libglib2.0-0t64 provides the libglib-2.0.so.0 that was the first
+          # missing lib) PLUS fonts: mermaid measures text geometry at render time, and a fresh runner
+          # with no fonts makes that fail INSIDE mermaid.js (`renderMermaid → fromText`) even though the
+          # browser launches — the second, non-Chrome cause observed 2026-07-27. fonts-liberation +
+          # fontconfig give it a usable sans family.
+          sudo apt-get install -y --no-install-recommends \
+            libasound2t64 libatk-bridge2.0-0t64 libatk1.0-0t64 libcairo2 libcups2t64 \
+            libdbus-1-3 libexpat1 libgbm1 libglib2.0-0t64 libnss3 libpango-1.0-0 \
+            libxcomposite1 libxdamage1 libxfixes3 libxkbcommon0 libxrandr2 \
+            fonts-liberation fontconfig
+
       - name: Self-heal generated artifacts (counts, SVGs, dashboard, index portal), commit if changed
         run: |
           set -euo pipefail

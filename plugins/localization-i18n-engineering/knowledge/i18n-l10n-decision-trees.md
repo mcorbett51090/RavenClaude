@@ -20,17 +20,17 @@ flowchart TD
   E -->|ICU MessageFormat is the priority + FormatJS already in use| G[FormatJS / react-intl<br/>Strict ICU MessageFormat 2.0 compliance;<br/>smaller API surface; better TypeScript types]
   E -->|Minimal — simple key:value only, no plurals/gender needed| H[vue-i18n or Svelte-i18n<br/>Framework-native; evaluate ICU support first]
 
-  B -->|Angular| I[Angular i18n (built-in) or ngx-translate<br/>Angular i18n: ICU native; extraction: ng extract;<br/>ngx-translate: simpler but weaker ICU]
+  B -->|Angular| I["Angular i18n (built-in) or ngx-translate<br/>Angular i18n: ICU native; extraction: ng extract;<br/>ngx-translate: simpler but weaker ICU"]
 
-  C -->|Android| J[Android Resources (strings.xml / plurals.xml)<br/>Native platform format; extraction: Gradle plugin]
-  C -->|iOS / macOS| K[iOS Localizable.strings + .stringsdict<br/>Or: newer .xcstrings catalog (Xcode 15+)]
-  C -->|Flutter| L[Flutter ARB (Application Resource Bundle)<br/>gen-l10n; ICU MessageFormat supported]
+  C -->|Android| J["Android Resources (strings.xml / plurals.xml)<br/>Native platform format; extraction: Gradle plugin"]
+  C -->|iOS / macOS| K["iOS Localizable.strings + .stringsdict<br/>Or: newer .xcstrings catalog (Xcode 15+)"]
+  C -->|Flutter| L["Flutter ARB (Application Resource Bundle)<br/>gen-l10n; ICU MessageFormat supported"]
   C -->|React Native| F
 
   D -->|Python| M[gettext / Babel<br/>PO/POT files; xgettext extraction; wide TMS support]
   D -->|Node.js| F
   D -->|Java / Spring| N[Java ResourceBundle + MessageFormat<br/>Or: Spring MessageSource + ICU4J]
-  D -->|.NET| O[.NET Resource Files (.resx)<br/>Or: Humanizer for plurals; limited ICU support]
+  D -->|.NET| O[".NET Resource Files (.resx)<br/>Or: Humanizer for plurals; limited ICU support"]
 
   F --> P{TMS extraction tool compatible?}
   G --> P
@@ -56,11 +56,11 @@ flowchart TD
   D -->|Yes| E[Human translation preferred.<br/>MT + heavy post-edit acceptable if budget-constrained.]
   D -->|No| F{User-facing UI microcopy — buttons, labels, error messages?}
   F -->|Yes| G{Quality tier — consumer product or internal tool?}
-  G -->|Consumer product — brand-sensitive| H[MT (DeepL or Google Translate Neural MT) + human post-edit.<br/>Post-edit tier: light (fluency) for high-TM-leverage segments;<br/>full for no-match segments.]
+  G -->|Consumer product — brand-sensitive| H["MT (DeepL or Google Translate Neural MT) + human post-edit.<br/>Post-edit tier: light (fluency) for high-TM-leverage segments;<br/>full for no-match segments."]
   G -->|Internal tool — quality threshold is functional| I[MT-only with a human spot-check pass.<br/>Flag obvious errors with automated QA checks.]
   F -->|No| J{Documentation / help content?}
-  J -->|Yes| K[MT + human post-edit (full for user-guide sections;<br/>light for reference/API docs).]
-  J -->|No| L{Short, repetitive, high-TM-leverage content (release notes, changelogs)?}
+  J -->|Yes| K["MT + human post-edit (full for user-guide sections;<br/>light for reference/API docs)."]
+  J -->|No| L{"Short, repetitive, high-TM-leverage content (release notes, changelogs)?"}
   L -->|Yes| M[MT-only; TM leverage reduces cost; automated QA sufficient.]
   L -->|No| N[Evaluate content-specifically against quality threshold and cost.]
   H --> O[Track MT quality with BLEU/TER or translator acceptance rate]
@@ -85,7 +85,7 @@ flowchart TD
   B -->|No| D[Skip bidi variant for now]
 
   A --> E{Does the project target any long-text locale?}
-  E -->|Yes (de-DE, fi-FI, hi-IN, cs-CZ)| F[Include expansion pseudo-locale (140% of English length).<br/>This is the highest-ROI variant — run it first.]
+  E -->|Yes (de-DE, fi-FI, hi-IN, cs-CZ)| F["Include expansion pseudo-locale (140% of English length).<br/>This is the highest-ROI variant — run it first."]
   E -->|No| G[Still run expansion pseudo — it also catches hard-coded strings]
 
   F --> H[Always run: Accent pseudo-locale<br/>Detects un-externalized hard-coded strings]
@@ -93,7 +93,7 @@ flowchart TD
   C --> H
 
   H --> I{What type of application?}
-  I -->|Web SPA| J[Tool: pseudolocale npm / @formatjs/cli pseudo<br/>Generate: en-XA (expansion), en-XB (bidi)<br/>Test: Playwright screenshot diff against pseudo-locale]
+  I -->|Web SPA| J["Tool: pseudolocale npm / @formatjs/cli pseudo<br/>Generate: en-XA (expansion), en-XB (bidi)<br/>Test: Playwright screenshot diff against pseudo-locale"]
   I -->|Android| K[Enable en-XA and ar-XB pseudo-locales in Build Variants<br/>Run Espresso / screenshot tests against en-XA]
   I -->|iOS| L[Custom script: transform .strings files to pseudo<br/>Run XCUITest against pseudo-locale scheme]
   I -->|Flutter| M[Custom ARB transformer; run widget tests against pseudo ARB]

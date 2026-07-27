@@ -12,7 +12,7 @@ flowchart TD
     C -- "Not yet" --> C1[Check expectations / context /<br/>altitude / blockers / health, §3 #5]
     C1 --> D{System gap explains it?}
     D -- "Yes" --> D1[Fix the system: clarify<br/>expectations, unblock, §3 #5]
-    D -- "No — genuine gap" --> E{Is this an HR/legal<br/>instrument (PIP/term)?}
+    D -- "No — genuine gap" --> E{"Is this an HR/legal<br/>instrument (PIP/term)?"}
     C -- "Yes, system is fine" --> E
     E -- "Yes" --> E1[Route to people-operations-hr<br/>+ counsel, §2]
     E -- "No — coaching" --> E2[Fair expectations + support plan,<br/>dated, as a draft you own, §2]
@@ -49,7 +49,7 @@ flowchart TD
 flowchart TD
     A[Tech-debt vs roadmap] --> B{Is the pain measured,<br/>or just felt?}
     B -- "Felt only" --> B1[Measure: lead-time drift, change-fail,<br/>rework, hotspots, §3 #4 #7]
-    B -- "Measured" --> C{Is it on a hotspot<br/>(high churn × complexity)?}
+    B -- "Measured" --> C{"Is it on a hotspot<br/>(high churn × complexity)?"}
     C -- "No — stable code" --> C1[Low leverage; defer, log the<br/>carrying cost, §3 #7]
     C -- "Yes — hotspot" --> D{Sized the carrying cost<br/>+ payback?}
     D -- "Not sized" --> D1[Run tech-debt calc: carrying cost,<br/>payback periods, §3 #7]

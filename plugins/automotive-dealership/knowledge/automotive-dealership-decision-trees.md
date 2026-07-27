@@ -41,7 +41,7 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    A[Volume short] --> B{Traffic (ups)<br/>down?}
+    A[Volume short] --> B{"Traffic (ups)<br/>down?"}
     B -- "Ups low" --> B1[Marketing / inventory mix;<br/>then re-check funnel]
     B -- "Ups fine" --> C{Which step<br/>leaks?}
     C -- "Up->write-up" --> C1[Lead handling / response time]

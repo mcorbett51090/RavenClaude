@@ -73,7 +73,7 @@ graph TD
   SIZE -->|Small-to-mid, lean staff,<br/>tight budget, history/heritage| PP[PastPerfect<br/>· affordable, widely used by<br/>small museums & historical societies]
   SIZE -->|Want open-source, no license lock-in,<br/>tech capacity to host/configure| CS[CollectionSpace<br/>· open-source, configurable<br/>· needs implementation capacity]
 
-  ENT -->|Fine-art / large museum default| TMS[TMS (Gallery Systems)<br/>· deep art-museum feature set<br/>· registration/loans/exhibitions]
+  ENT -->|Fine-art / large museum default| TMS["TMS (Gallery Systems)<br/>· deep art-museum feature set<br/>· registration/loans/exhibitions"]
   ENT -->|Library/archive/heritage breadth,<br/>global support| AX[Axiell<br/>· museums + archives + libraries<br/>· EMu / Collections lines]
 
   TMS --> MIG
@@ -100,7 +100,7 @@ graph TD
   SENS -->|Yes| COMM[Consult source community<br/>· traditional-knowledge labels<br/>· restrict or contextualize]
   SENS -->|No| OPEN{Open access?}
 
-  OPEN -->|Yes — expand reach| OA[Open access / CC0 / CC-BY<br/>· IIIF image API + manifest<br/>· rights statement (rightsstatements.org)]
+  OPEN -->|Yes — expand reach| OA["Open access / CC0 / CC-BY<br/>· IIIF image API + manifest<br/>· rights statement (rightsstatements.org)"]
   OPEN -->|Rights-restricted display| RES[Publish under a clear license<br/>· IIIF with access terms<br/>· DAMS as source of truth]
 
   COMM --> RES
