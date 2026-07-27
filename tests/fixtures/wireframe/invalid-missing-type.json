@@ -1,0 +1,11 @@
+{
+  "meta": {
+    "title": "Missing its meta.type on purpose"
+  },
+  "regions": [
+    {
+      "role": "main",
+      "sections": [{ "kind": "body", "content_slots": [{ "slot": "text", "text": "x" }] }]
+    }
+  ]
+}

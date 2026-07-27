@@ -1,0 +1,21 @@
+{
+  "meta": { "title": "Checkout flow", "type": "flow" },
+  "regions": [
+    {
+      "role": "canvas",
+      "sections": [
+        {
+          "kind": "step",
+          "components": [
+            { "type": "node", "props": { "id": "cart", "label": "View cart" } },
+            { "type": "edge", "props": { "to": "pay", "label": "checkout" } }
+          ]
+        },
+        {
+          "kind": "step",
+          "components": [{ "type": "node", "props": { "id": "pay", "label": "Payment" } }]
+        }
+      ]
+    }
+  ]
+}
