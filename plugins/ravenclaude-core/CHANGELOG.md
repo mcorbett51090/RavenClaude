@@ -29,8 +29,18 @@ All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the 
   `off` then launches. The key is also wired into the dashboard's `state`/`emitYaml`/
   `applyGuardrailConfig` (covered by Gate 35) — **not** cosmetic: `emitYaml` rebuilds the whole
   posture file from `state`, so a key with no state slot is silently **deleted** on the next
-  Save & apply (the v0.61.0 data-loss class). No DOM control ships with it — Gate 132's budget is
-  at zero slack and a visible toggle costs an owner-approved ratchet raise.
+  Save & apply (the v0.61.0 data-loss class).
+- **…and it ships with a visible control** (Settings panel, beside the other behavioral flags): a
+  three-option select — *off* / *serve* / *open*. It was very nearly YAML-only, because Gate 132's
+  budget sat at exact zero slack — which would have reproduced the very discoverability problem that
+  started this release (a setting nobody can find is a setting nobody uses). **Owner-approved +6
+  ratchet raise** on both surfaces (6,114 → 6,120 and 7,000 → 7,006), tails lifted in lockstep to stay
+  monotonic. The +6 is **measured, not estimated**: the first cut came in at **ten** elements (a
+  behavioral-flag `<span>`, an explainer `<p>` and two `<b>`) and would have silently blown the
+  approved figure. It was trimmed to exactly six by making the ⚙ marker a *glyph in the heading text*
+  rather than the badge element, and moving the explainer into a `title=` attribute — both zero-cost
+  substitutions that keep the house conventions. Anyone adding a heading, description or icon here
+  must re-measure rather than assume +6 still holds.
 
 ### Changed
 

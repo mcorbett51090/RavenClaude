@@ -2125,7 +2125,9 @@ def _render_settings_tab(properties: dict, presets: dict) -> str:
 
     security_deny_html = _render_security_deny(properties.get("security_deny", {}))
 
-    design_checkins_html = _render_design_checkins(properties.get("design_checkins", {}))
+    design_checkins_html = _render_design_checkins(
+        properties.get("design_checkins", {})
+    ) + _render_dashboard_autostart()
 
     category_intro_html = (
         '<div class="category-intro"><p>'
@@ -2622,6 +2624,52 @@ def _render_design_checkins(prop: dict) -> str:
         "</label>"
         "</div>"
         '<p class="dc-state" id="design-checkins-state"></p>'
+        "</div>"
+    )
+
+
+def _render_dashboard_autostart() -> str:
+    """Render the `dashboard_autostart` control (a behavioral flag, NOT a permission).
+
+    Deliberately LEAN markup — 6 static elements (wrapper, h3, p, select, 3 options
+    minus the wrapper double-count) against a Gate-132 budget that sits at exact
+    zero slack, so every element here was owner-approved. No extra nesting, no
+    icon, no switch chrome: it reuses .design-checkins-bar's styling rather than
+    introducing its own.
+
+    Why a control at all: the knob shipped YAML-only in v0.216.0 because the DOM
+    budget was full, which reproduced the discoverability problem that started the
+    whole exercise — a feature nobody can find is a feature that does not exist.
+
+    The state/emit/hydrate wiring already exists (emitYaml + applyGuardrailConfig,
+    covered by Gate 35). That is not cosmetic: emitYaml rebuilds the WHOLE posture
+    from `state`, so a key with no state slot is silently DELETED on the next
+    Save & apply — the v0.61.0 data-loss class.
+    """
+    # EXACTLY 6 elements: wrapper, h3, select, 3 options. Counted, not estimated —
+    # the first cut measured TEN (a badge <span>, an explainer <p> and two <b>)
+    # and would have silently blown an owner-approved figure, which is the failure
+    # the red-team predicted for this control. Two zero-cost substitutions keep the
+    # house conventions without the elements:
+    #   - the ⚙ behavioral-flag marker is a GLYPH in the heading text, not the
+    #     _render_behavioral_flag_badge() <span> (same signal, one less element);
+    #   - the explainer lives in `title=` rather than a <p>, and the option labels
+    #     are written to be self-describing so the tooltip is a bonus, not a crutch.
+    tip = (
+        "Behavioral flag — does not gate any tool-call permission. "
+        "Serve starts the local server quietly; Open also opens a browser tab. "
+        "The port is checked first, so several sessions never stack up servers "
+        "or steal focus with a second tab."
+    )
+    return (
+        '<div class="design-checkins-bar" id="dash-autostart-bar">'
+        "<h3>⚙ Open this dashboard at session start</h3>"
+        f'<select id="dash-autostart-mode" title="{html.escape(tip)}" '
+        'aria-label="Dashboard autostart mode">'
+        "<option value=\"off\">Off — I'll launch it myself</option>"
+        '<option value="serve">Serve — start it quietly, no tab</option>'
+        '<option value="open">Open — start it and open a tab</option>'
+        "</select>"
         "</div>"
     )
 
@@ -7714,6 +7762,17 @@ _JS = r"""
     if (lbl) lbl.textContent = state.design_checkins ? DC_ON_LABEL : DC_OFF_LABEL;
   }
 
+  /* Dashboard autostart (behavioral flag, not a permission). Guarded against an
+     out-of-range persisted value so a hand-edited posture can never leave the
+     select showing a mode the hook will not honour. */
+  function syncDashAutostart() {
+    const sel = document.getElementById("dash-autostart-mode");
+    if (!sel) return;
+    sel.value = DASHBOARD_AUTOSTART_VALUES.includes(state.dashboard_autostart)
+      ? state.dashboard_autostart
+      : DASHBOARD_AUTOSTART_DEFAULT;
+  }
+
   /* Command-review master enable (AND-gate, not bulk-setter).
    * Syncs the checkbox + the status label beneath the master row.
    * Does NOT touch per-category `thing` values. */
@@ -7821,6 +7880,7 @@ _JS = r"""
       if (tcfg) inp.value = String(tcfg.confidence_threshold);
     });
     syncDesignCheckins();
+    syncDashAutostart();
     syncMasterEnable();
   }
   syncDomToState();
@@ -8354,6 +8414,20 @@ _JS = r"""
       dcToggle.addEventListener("change", () => {
         state.design_checkins = dcToggle.checked;
         syncDesignCheckins();
+        flagUnsaved();
+        render();
+      });
+    }
+  }
+
+  /* Dashboard autostart select (behavioral flag, not a permission) */
+  {
+    const asSel = document.getElementById("dash-autostart-mode");
+    if (asSel) {
+      asSel.addEventListener("change", () => {
+        if (!DASHBOARD_AUTOSTART_VALUES.includes(asSel.value)) return;
+        state.dashboard_autostart = asSel.value;
+        syncDashAutostart();
         flagUnsaved();
         render();
       });
