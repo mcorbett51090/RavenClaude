@@ -1190,7 +1190,15 @@ def _read_mimir(project_root, claude_home) -> dict:
         first_perm_mode = None
         for ev in newest_events:
             if ev.get("type") == "assistant":
-                m = ev.get("model")
+                # Claude Code NESTS model/usage under ev["message"]; the top-level
+                # read returned None on every assistant event (measured 2026-07-28:
+                # 0/6060 top-level vs 6060/6060 nested on a real 116 MB transcript),
+                # so "last used model" was permanently blank. Read nested FIRST,
+                # keep the flat read as a fallback for any other producer.
+                msg = ev.get("message")
+                m = msg.get("model") if isinstance(msg, dict) else None
+                if not isinstance(m, str):
+                    m = ev.get("model")
                 if isinstance(m, str):
                     last_model = m  # overwrite — keep newest seen in scanned slice
             if first_perm_mode is None and ev.get("type") == "permission-mode":
@@ -1225,7 +1233,12 @@ def _read_mimir(project_root, claude_home) -> dict:
             t = ev.get("type")
             if t == "assistant":
                 event_count += 1
-                usage = ev.get("usage")
+                # Same nesting as model above — this is why every session row
+                # reported 0 output tokens regardless of actual spend.
+                _msg = ev.get("message")
+                usage = _msg.get("usage") if isinstance(_msg, dict) else None
+                if not isinstance(usage, dict):
+                    usage = ev.get("usage")
                 if isinstance(usage, dict):
                     ot = usage.get("output_tokens")
                     if isinstance(ot, int):

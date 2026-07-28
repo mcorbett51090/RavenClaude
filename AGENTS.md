@@ -1,6 +1,19 @@
 # AGENTS.md — RavenClaude
 
-Cross-tool agent-instruction file. This is the canonical version of the marketplace's coding-agent guidance. `CLAUDE.md` imports this file and adds Claude-Code-specific notes. Cursor, OpenAI Codex CLI, Aider, GitHub Copilot, and Windsurf read this file natively.
+Cross-tool agent-instruction file. This is the canonical version of the marketplace's coding-agent guidance. `CLAUDE.md` imports this file and adds Claude-Code-specific notes.
+
+**Which tools actually read it** (corrected 2026-07-28 — the previous blanket claim that "Cursor, OpenAI Codex CLI, Aider, GitHub Copilot, and Windsurf read this file natively" was **false for Aider**, and the repo's own Claim-Grounding protocol had been applied to the Copilot claim but not to the ones beside it):
+
+| Tool | Reads `AGENTS.md` automatically? | Basis |
+|---|---|---|
+| **GitHub Copilot CLI** | **Yes** | `[docs-verified]` — see [`plugins/ravenclaude-core/knowledge/copilot-cli-customization.md`](plugins/ravenclaude-core/knowledge/copilot-cli-customization.md) §1, which cites the instruction-file precedence. |
+| **OpenAI Codex CLI** | **Yes** | `[docs-verified]` — Codex reads `AGENTS.md` from the repo root; see [`plugins/ravenclaude-core/skills/codex-onboarding/SKILL.md`](plugins/ravenclaude-core/skills/codex-onboarding/SKILL.md). |
+| **Claude Code** | Indirectly | `CLAUDE.md` `@`-imports this file. |
+| **Aider** | **NO — this was the false claim** | `[docs-verified 2026-07-28]` — [aider.chat/docs/usage/conventions.html](https://aider.chat/docs/usage/conventions.html) documents **`CONVENTIONS.md`**, loaded only on explicit opt-in (`aider --read CONVENTIONS.md` or `read:` in `.aider.conf.yml`). `AGENTS.md` is not mentioned on that page at all. An Aider user gets **nothing** from this file unless they opt in by hand. |
+| **Cursor** | `[unverified]` | Cursor's documented native mechanism is `.cursor/rules/*.mdc`. Whether it also auto-loads `AGENTS.md` was **not** verified; do not rely on it. |
+| **Windsurf** | `[unverified — and the product was renamed]` | Reported renamed to Devin Desktop (2026-06-02). Treat this lane as unmaintained until someone re-verifies it. |
+
+**The honest summary:** this file is reliably read by **Copilot CLI and Codex**, and reaches Claude Code by import. Every other lane is opt-in, unverified, or both. Do not add a tool to this table without a dated source — a false claim of support is worse than an admitted gap, because it stops anyone from building the bridge that would make it true.
 
 ## What this repo is
 
