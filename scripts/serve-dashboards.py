@@ -1417,6 +1417,78 @@ def _read_worktree_guard(project_root: Path) -> dict | None:
     return data if isinstance(data, dict) else None
 
 
+# ── /__host — which CLI launched this dashboard, and what is wired ───────────
+# Multi-host audit MH-14. Two hard rules, both from the red-team:
+#
+# 1. LEAK-SAFE BY CONSTRUCTION. The probe list below is a CLOSED LITERAL of env
+#    var NAMES. It never iterates os.environ, so a variable we did not name can
+#    never reach a browser page — the page is screenshot-shareable, unlike the
+#    agent-context capability banner that set the precedent. Only PRESENCE
+#    booleans are emitted, never values, and never a filesystem path.
+#
+# 2. IT REPORTS THE LAUNCH ENVIRONMENT, NOT "YOUR CURRENT SESSION".
+#    This is the honest resolution to the wrong-verdict problem. A dashboard
+#    server is long-lived and reusable: open-dashboard.sh reuses a live one and
+#    dashboard-autostart.sh deliberately never starts a second. So a server
+#    started under Claude Code and later reused from a Copilot session would, if
+#    it claimed to know "your" host, confidently say Claude Code and be wrong.
+#    It cannot know that. What it CAN know is the environment it inherited at
+#    launch — so that is exactly what it says, with started_at so staleness is
+#    visible. A narrower true claim beats a broader false one.
+#
+# COPILOT_DEBUG_NONCE IS DELIBERATELY NOT A SIGNAL: it was observed set INSIDE a
+# Claude Code session on 2026-07-28, so "any COPILOT_* implies Copilot" mislabels
+# a live session. Copilot is identifiable only via THING_HOST, which
+# copilot-hook-adapter.sh exports explicitly — an assertion, never an inference.
+_HOST_ENV_PROBES = (
+    "CLAUDECODE",
+    "CLAUDE_CODE_ENTRYPOINT",
+    "THING_HOST",
+    "CODEX_SESSION_ID",
+    "CODEX_PROJECT_ROOT",
+    "PLUGIN_ROOT",
+    "CLAUDE_PLUGIN_ROOT",
+    "CLAUDE_PROJECT_DIR",
+    "CLAUDE_SESSION_ID",
+)
+
+import datetime as _dt_mod  # module scope: the other _dt imports are function-local
+_SERVER_STARTED_AT = _dt_mod.datetime.now(_dt_mod.timezone.utc).isoformat(timespec="seconds")
+
+
+def _read_host() -> dict:
+    """Report the host environment THIS SERVER PROCESS was launched in.
+
+    Positive signals only; returns host=None (rendered "cannot determine") rather
+    than guessing. Byte-identical in the root and bundled plugin server — the
+    parity gate guards endpoint NAMES, this helper is duplicated, so edit both.
+    Never raises."""
+    import os as _os
+
+    present = {name: bool(_os.environ.get(name)) for name in _HOST_ENV_PROBES}
+    host = None
+    basis = None
+    th = _os.environ.get("THING_HOST") or ""
+    if th:
+        host, basis = th, "THING_HOST asserted by the host adapter"
+    elif present["CLAUDECODE"] or present["CLAUDE_CODE_ENTRYPOINT"]:
+        host, basis = "claude-code", "CLAUDECODE / CLAUDE_CODE_ENTRYPOINT present"
+    elif present["CODEX_SESSION_ID"] or present["CODEX_PROJECT_ROOT"]:
+        host, basis = "codex", "CODEX_* session variables present"
+    return {
+        "host": host,
+        "basis": basis,
+        "scope": "launch-environment",
+        "started_at": _SERVER_STARTED_AT,
+        "env_present": present,
+        "note": (
+            "This is the environment the dashboard server was STARTED in, not your "
+            "current session. A server can be reused across sessions and hosts, so it "
+            "cannot know which CLI is talking to it now."
+        ),
+    }
+
+
 def _read_sleipnir(project_root: Path) -> dict:
     """Sleipnir's stables — the current git worktrees under .claude/worktrees/,
     plus the worktree-hygiene guard status for THIS checkout (is_anchor /
@@ -1596,7 +1668,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         return length
 
     def do_HEAD(self):
-        if self.path in ("/__save", "/__run", "/__classify", "/__csrf") or self.path.startswith("/__read") or self.path.startswith("/__saga") or self.path.startswith("/__heimdall") or self.path.startswith("/__vidarr") or self.path.startswith("/__norns") or self.path.startswith("/__nidhoggr") or self.path.startswith("/__mimir") or self.path.startswith("/__streams") or self.path.startswith("/__knowledge-health") or self.path.startswith("/__sleipnir") or self.path.startswith("/__runs") or self.path.startswith("/__concern-stats"):
+        if self.path in ("/__save", "/__run", "/__classify", "/__csrf") or self.path.startswith("/__read") or self.path.startswith("/__saga") or self.path.startswith("/__heimdall") or self.path.startswith("/__vidarr") or self.path.startswith("/__norns") or self.path.startswith("/__nidhoggr") or self.path.startswith("/__mimir") or self.path.startswith("/__streams") or self.path.startswith("/__knowledge-health") or self.path.startswith("/__sleipnir") or self.path.startswith("/__runs") or self.path.startswith("/__concern-stats") or self.path.startswith("/__host"):
             self.send_response(200)
             self.send_header("Allow", "GET, POST, HEAD")
             self.send_header("Content-Length", "0")
@@ -1650,6 +1722,9 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             return
         if self.path.startswith("/__runs"):
             self._handle_runs()
+            return
+        if self.path.startswith("/__host"):
+            self._handle_host()
             return
         if self.path.startswith("/__concern-stats"):
             self._handle_concern_stats()
@@ -1818,6 +1893,16 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             })
 
         self._json(200, records)
+
+    def _handle_host(self):
+        """GET /__host — the environment THIS SERVER was launched in, plus which
+        RavenClaude wiring variables are present. Read-only; same Origin/Host CSRF
+        guard as /__read. Emits presence BOOLEANS only, from a closed literal probe
+        list — never an env value, never a path, never an os.environ walk."""
+        if not self._local_request_ok():
+            self.send_error(403, "refused: cross-origin or non-local Origin/Host")
+            return
+        self._json(200, _read_host())
 
     def _handle_runs(self):
         """GET /__runs[?limit=N] — recent multi-step runs from
