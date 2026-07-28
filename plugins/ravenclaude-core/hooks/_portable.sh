@@ -140,3 +140,23 @@ _rc_host() {
   if [ -n "${CODEX_SESSION_ID:-}" ] || [ -n "${CODEX_PROJECT_ROOT:-}" ]; then printf 'codex\n'; return 0; fi
   printf 'unknown\n'
 }
+
+# ── Normalise ON SOURCE. ──────────────────────────────────────────────────────
+# Deliberate: the alias is useless if every hook has to remember to call it, and
+# it shipped with ZERO callers. Running it here means every hook that already
+# sources this file is fixed without touching it, and any hook added later gets
+# it for free — the failure mode was hooks silently failing open on a variable
+# NAME, so the fix must not itself depend on being remembered.
+#
+# Safe to run at source time: it only ever FILLS BLANKS (never overwrites a
+# CLAUDE_* the host set), touches no shell options, and returns 0 unconditionally,
+# so it cannot alter a sourcing hook's control flow. That is why this file's
+# "carries no top-level `set`" contract is still honoured.
+#
+# NOT paired with a hard `exit 2` when PLUGIN_ROOT is absent, despite that being
+# the obvious fail-closed move. `.claude/settings.json`'s marketplace dev-mirror
+# invokes these hooks by `${CLAUDE_PROJECT_DIR}` path, where CLAUDE_PLUGIN_ROOT is
+# legitimately unset — a blanket exit 2 would block every tool call in the repo
+# that develops the plugin. Fail-closed on a variable that is *correctly* empty
+# in a supported configuration is not a guardrail, it is an outage.
+_rc_host_env
