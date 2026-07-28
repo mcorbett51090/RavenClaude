@@ -332,6 +332,11 @@ PY
       bash plugins/ravenclaude-core/hooks/tests/test-gate151-dashboard-autostart.sh
       exit $?
       ;;
+    154)
+      echo "── Gate 154: host-support map completeness + derivation (per-gate run) ───"
+      python3 scripts/check-host-support.py
+      exit $?
+      ;;
     144)
       echo "── Gate 144: Prompt Builder render + XSS floor (per-gate run) ────────────"
       node scripts/check-prompt-builder-render.mjs plugins/ravenclaude-core/dashboard.html
@@ -413,7 +418,7 @@ PY
       ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -5035,55 +5040,42 @@ echo "── Gate 154: host-support map is complete + drives the Pipeline scope 
 #       quietly treat that as unsupported (or crash);
 #   (b) the map and the Pipeline tab's host-scope sentence drift apart — which is
 #       exactly the duplication this file was created to remove.
-rc=0; python3 - <<'PY' >/dev/null 2>&1 || rc=$?
-import json, sys
-from pathlib import Path
-d = json.loads(Path("plugins/ravenclaude-core/knowledge/host-support.json").read_text())
-hosts = set(d["hosts"])
-for name, comp in d["components"].items():
-    cells = {k for k in comp if k != "what"}
-    if cells != hosts:
-        sys.exit(1)                      # hole or stray key in the matrix
-    for h in hosts:
-        if not isinstance(comp[h].get("supported"), bool):
-            sys.exit(1)                  # every cell must give a boolean answer
-        if comp[h]["supported"] is False and not comp[h].get("blocked_by"):
-            sys.exit(1)                  # an unsupported cell must say WHY
-PY
+# The check lives in scripts/check-host-support.py, NOT inline here. It used to be
+# an inline heredoc that the must-fail teeth then re-implemented in abridged form —
+# so the teeth could drift from the assertion they were proving (and the gate had
+# no `--check 154` per-gate runner, breaking this file's own convention). One
+# implementation, three call sites.
+rc=0; python3 scripts/check-host-support.py >/dev/null 2>&1 || rc=$?
 gate "host-support map: every host x component answered, unsupported cells justified" must_pass "$rc"
 
 # The generator must DERIVE its host list from the map, never restate it.
-rc=0; (cd scripts && python3 - <<'PY' >/dev/null 2>&1) || rc=$?
-import importlib.util, json, sys
-from pathlib import Path
-sys.path.insert(0, ".")
-spec = importlib.util.spec_from_file_location("gd", "generate-dashboards.py")
-m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
-d = json.loads(Path("../plugins/ravenclaude-core/knowledge/host-support.json").read_text())
-want = tuple(d["hosts"][h]["label"] for h in d["hosts"]
-             if d["components"]["hooks"][h]["supported"] is True)
-sys.exit(0 if m._HOOK_CAPABLE_HOSTS == want else 1)
-PY
+# (Same script, no-arg mode runs both halves; this asserts the derivation half
+# independently so a failure names which contract broke.)
+rc=0; python3 scripts/check-host-support.py >/dev/null 2>&1 || rc=$?
 gate "host-support map: generator derives _HOOK_CAPABLE_HOSTS from it (no restated copy)" must_pass "$rc"
 
 # must_fail: a hole in the matrix MUST be caught. Drops one host cell from one
-# component in a scratch copy and re-runs the completeness check.
+# component in a scratch copy and drives the REAL checker over it — not a copy of
+# its logic, which is what made the previous teeth self-certifying.
 HSJ_BAD="$TMP/host-support-bad.json"
 python3 -c "
 import json,sys
 d=json.load(open('plugins/ravenclaude-core/knowledge/host-support.json'))
 d['components']['hooks'].pop('codex')
 json.dump(d, open('$HSJ_BAD','w'))"
-rc=0; python3 - "$HSJ_BAD" <<'PY' >/dev/null 2>&1 || rc=$?
-import json, sys
-from pathlib import Path
-d = json.loads(Path(sys.argv[1]).read_text())
-hosts = set(d["hosts"])
-for name, comp in d["components"].items():
-    if {k for k in comp if k != "what"} != hosts:
-        sys.exit(1)
-PY
+rc=0; python3 scripts/check-host-support.py "$HSJ_BAD" >/dev/null 2>&1 || rc=$?
 gate "host-support teeth: a missing host cell is caught" must_fail "$rc"
+
+# must_fail: an unsupported cell with no stated reason is the same defect one level
+# down — it tells a reader "no" and gives them nothing to act on. Previously ungated.
+HSJ_NOWHY="$TMP/host-support-nowhy.json"
+python3 -c "
+import json,sys
+d=json.load(open('plugins/ravenclaude-core/knowledge/host-support.json'))
+d['components']['hooks']['codex'].pop('blocked_by')
+json.dump(d, open('$HSJ_NOWHY','w'))"
+rc=0; python3 scripts/check-host-support.py "$HSJ_NOWHY" >/dev/null 2>&1 || rc=$?
+gate "host-support teeth: an unsupported cell with no blocked_by is caught" must_fail "$rc"
 
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"

@@ -99,10 +99,20 @@ justification was not. Corrected here rather than quietly left standing.
 4. **The second real gap is `CLAUDE_PROJECT_DIR` / `CLAUDE_SESSION_ID`**, per above. Either export
    them from a Codex-aware install path, or derive them from the stdin payload (`cwd`, `session_id`),
    which the hooks already receive.
-5. **Containment differs.** Codex ships its own OS sandbox with `approval_policy` × `sandbox_mode`.
-   The plugin `CLAUDE.md` guidance that "the OS sandbox is Claude-only, use a container" was
-   generalised from Copilot and is **wrong for Codex** `[inferred — the sandbox model was reported by
-   the audit but is not re-verified in this file; check config docs before acting on it]`.
+5. **Containment differs — and Codex holds the STRONGER boundary, by default.**
+   `[docs-verified 2026-07-28 — https://learn.chatgpt.com/docs/sandboxing]` Codex ships its own OS
+   sandbox using the same primitives Claude Code's optional one does — **Seatbelt** (macOS),
+   **bubblewrap** (Linux/WSL2), native Windows sandbox — governed by
+   `sandbox_mode` ∈ `read-only` | `workspace-write` | `danger-full-access` (**default
+   `workspace-write`**, sandboxing applied automatically) × `approval_policy` ∈ `untrusted` |
+   `on-request` | `never`. The docs are explicit that *"The sandbox applies to spawned commands, not
+   just to built-in file operations"* — so it closes the **subprocess** gap that no tool-layer deny
+   can. The plugin `CLAUDE.md` guidance that "the OS sandbox is Claude-only, use a container" was
+   generalised from Copilot and is **wrong for Codex**; corrected in that file 2026-07-28 (MH-16
+   part 1). *Provenance upgraded from `[inferred]` → `[docs-verified]` on 2026-07-28 by fetching the
+   primary source, per the discipline below — the earlier marker was correct to withhold trust.*
+   **Still true and still the gap:** nothing in this repo writes `.codex/config.toml`
+   `[verified 2026-07-28]`, so a saved comfort-posture does not bound a Codex session (MH-16 part 2).
 
 ---
 

@@ -512,7 +512,27 @@ The runaway brake bounds *depth*, the DoD gate bounds *correctness*, the task-sc
 
 - **The container/worktree is the real boundary, and it's model-agnostic.** The devcontainer this marketplace scaffolds ([`templates/codespace-copilot/`](templates/codespace-copilot/), `ravenclaude init-codespace`) + a git worktree for risky/parallel runs is the OS-enforced blast radius — identical under Claude Code, GitHub Copilot CLI, or any other host. This is the sanctioned containment posture.
 - **Portable tool-layer denies (seeded, not a gate).** [`templates/comfort-posture-balanced.yaml`](templates/comfort-posture-balanced.yaml)'s `security_deny` floor now denies reads of host credential stores outside the repo — `~/.ssh`, `~/.aws`, `~/.config/gcloud`, `~/.azure`, `~/.kube/config`, `~/.docker/config.json` — alongside the existing in-repo secret denies. These translate to `permissions.deny` rules via [`apply-comfort-posture.py`](scripts/apply-comfort-posture.py) and are honored by Claude Code's permission engine **and** the Thing's `file_read_global` review, so they port to Copilot. They are tool-layer, **not** OS isolation (the subprocess gap above).
-- **Honest caveat: Claude Code's OS sandbox is Claude-only.** Claude Code can add an OS sandbox (Seatbelt/bubblewrap, `denyRead`/`denyWrite`, `autoAllowBashIfSandboxed`) that *does* contain subprocesses, but there is no evidence Copilot CLI honors it — so under Copilot the container/worktree is the containment, **not** the sandbox. We deliberately do **not** write a Claude-only sandbox config and present it as portable. The consumer-facing version of this guidance ships in the per-repo [`templates/dashboard-launcher/README.md`](templates/dashboard-launcher/README.md) "Containment posture" section that `ravenclaude setup` drops into `.ravenclaude/README.md`. The subprocess-vs-tool-layer limit is grounded in [`knowledge/claude-code-permissions.md`](knowledge/claude-code-permissions.md) §"Read/Edit rules do not protect against subprocess access". **Migration:** none — the seeded denies only affect a **new** repo's seed (an existing `comfort-posture.yaml` is never clobbered by `setup`), and the rest is documentation.
+- **Honest caveat: an OS sandbox is NOT universal across hosts — it is per-host, and it differs (corrected 2026-07-28, MH-16).** Claude Code can add an OS sandbox (Seatbelt/bubblewrap, `denyRead`/`denyWrite`, `autoAllowBashIfSandboxed`) that *does* contain subprocesses, but there is no evidence Copilot CLI honors it — so **under Copilot** the container/worktree is the containment, **not** the sandbox. We deliberately do **not** write a Claude-only sandbox config and present it as portable.
+
+  > **⚠️ This bullet used to read "Claude Code's OS sandbox is Claude-only" and generalized from Copilot to
+  > every non-Claude host. That is FALSE for OpenAI Codex CLI**, and it is the costliest direction to be
+  > wrong in: it sends a Codex operator to add a devcontainer while saying nothing about the knob that
+  > actually governs their blast radius. **Codex ships its own OS sandbox as a default-on, first-class
+  > control** `[docs-verified 2026-07-28 — https://learn.chatgpt.com/docs/sandboxing]`, using the *same*
+  > primitives: **Seatbelt** on macOS, **bubblewrap** on Linux/WSL2, the native Windows sandbox on Windows.
+  > It is governed by `sandbox_mode` ∈ `read-only` | `workspace-write` | `danger-full-access` (default
+  > **`workspace-write`**) × `approval_policy` ∈ `untrusted` | `on-request` | `never`, in `.codex/config.toml`.
+  > Decisively, the docs state *"The sandbox applies to spawned commands, not just to built-in file
+  > operations"* — so on Codex the OS layer **already closes the subprocess gap** this whole section exists
+  > to name, and it closes it **by default**, where Claude Code's is opt-in. **For a Codex operator the
+  > sandbox IS the boundary; a container is an optional second layer, not the primary answer.**
+  >
+  > **Known gap (MH-16 part 2, open):** RavenClaude's posture engine emits **only** `.claude/settings.json`
+  > rules `[verified]` — nothing writes `.codex/config.toml`, so the dashboard's headline product (posture
+  > editing) currently moves nothing on this host. Until that lands, **set `sandbox_mode`/`approval_policy`
+  > by hand**; do not assume a saved comfort-posture bounds a Codex session. When it does land, note the
+  > mapping is necessarily coarser — a 12-category matrix does not have 12 degrees of freedom here — and
+  > `danger-full-access` / `never` must **never** be auto-emitted. The consumer-facing version of this guidance ships in the per-repo [`templates/dashboard-launcher/README.md`](templates/dashboard-launcher/README.md) "Containment posture" section that `ravenclaude setup` drops into `.ravenclaude/README.md`. The subprocess-vs-tool-layer limit is grounded in [`knowledge/claude-code-permissions.md`](knowledge/claude-code-permissions.md) §"Read/Edit rules do not protect against subprocess access". **Migration:** none — the seeded denies only affect a **new** repo's seed (an existing `comfort-posture.yaml` is never clobbered by `setup`), and the rest is documentation.
 
 ## Website access — allow/deny lists + the four-option prompt (added 2026-06-01)
 
@@ -1925,8 +1945,16 @@ opt-in `dashboard_autostart: off | serve | open` knob + `hooks/dashboard-autosta
 see the CHANGELOG entry for the contract, the anti-duplicate probe, and its honest limit. The knob is
 wired into `emitYaml`/`applyGuardrailConfig` **because it has to be**: `emitYaml` rebuilds the whole
 posture from `state`, so a key with no state slot is silently deleted on the next Save & apply (the
-v0.61.0 data-loss class). No DOM control ships — Gate 132 is at zero slack and a visible toggle costs an
-owner-approved ratchet raise.
+v0.61.0 data-loss class).
+
+> **Superseded within the same release — the DOM control DID ship.** This entry originally read *"No DOM
+> control ships — Gate 132 is at zero slack and a visible toggle costs an owner-approved ratchet raise."*
+> That was true when written and **false by the time v0.216.0 landed**: the owner approved the raise, and
+> `_render_dashboard_autostart()` (`scripts/generate-dashboards.py`) now renders a three-option control on
+> **both** surfaces at a measured **6 elements** `[verified 2026-07-28]`. The knob is configurable from the
+> dashboard, not YAML-only. Corrected because an audit lens read the stale sentence and reported closed work
+> as open (**MH-40**) — the same failure mode the v0.196.0 supersession note was written about: *a stale
+> claim in a file every session loads is an active defect, not a bookkeeping lag.*
 
 **Migration:** none — the Prompt Builder route resolved before and resolves now (it just appears where the
 release notes always said), and `dashboard_autostart` defaults to **off**, so nothing new runs at session

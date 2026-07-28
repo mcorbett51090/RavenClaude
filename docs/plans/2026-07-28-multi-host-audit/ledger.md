@@ -604,7 +604,22 @@ MCP support, and the mapping section — *"the exact analytical work Copilot got
 ---
 
 #### MH-16 · Codex's trust/approval model does not map, and RavenClaude's containment guidance is *wrong* for Codex
-**Severity:** P1 · **Hosts:** OpenAI Codex CLI · **Reported by:** CX (P1-4) · **Effort:** L · **Status:** `OPEN`
+**Severity:** P1 · **Hosts:** OpenAI Codex CLI · **Reported by:** CX (P1-4) · **Effort:** L ·
+**Status:** ✅ **PART 1 FIXED 2026-07-28** · part 2 (`.codex/config.toml` emitter, L) `OPEN`
+
+> **Part 1 landed — and the claim was verified from the primary source before it was written, not taken
+> from this ledger.** `knowledge/codex-cli-customization.md` had marked the sandbox model `[inferred]` with
+> the standing rule *"must be verified before it is built on"* — writing a Codex row into the constitution
+> is building on it, so the doc was fetched first (`https://learn.chatgpt.com/docs/sandboxing`). It
+> **corroborated and strengthened** the finding: same primitives as Claude Code's optional sandbox
+> (Seatbelt / bubblewrap / Windows sandbox), **default-on** at `sandbox_mode = workspace-write`, and
+> explicitly *"applies to spawned commands"* — i.e. it closes the **subprocess** gap the containment
+> section exists to name, by default, where Claude Code's is opt-in. The plugin `CLAUDE.md` bullet
+> heading — *"Claude Code's OS sandbox is Claude-only"* — was the false generalization and is rewritten;
+> the Copilot half (genuinely unevidenced) is preserved intact. The `[inferred]` marker in the knowledge
+> file was upgraded to `[docs-verified]` in the same change, since leaving it stale is this audit's own
+> recurring defect. **Part 2 (the emitter) is unchanged and still open**, and the corrected section now
+> states plainly that a saved comfort-posture does **not** bound a Codex session today.
 
 **Evidence**
 - `[docs-verified]` Codex's actual controls are `approval_policy` ∈ {untrusted, on-request, never} ×
@@ -1264,8 +1279,12 @@ cited a `CLAUDE.md` line that `870fe226` superseded.
 > **This is itself a finding, and it is the repo's own documented failure mode.** The plugin `CLAUDE.md`
 > already carries an explicit warning about exactly this shape, added after the macOS-doors incident: *"A
 > stale 'Still open' in a file every session loads is an active defect, not a bookkeeping lag. When you
-> close a door, supersede the entry that says it's open in the same PR."* **Action: supersede the v0.216.0
-> line.** Effort: S.
+> close a door, supersede the entry that says it's open in the same PR."* ~~**Action: supersede the
+> v0.216.0 line.**~~ ✅ **DONE 2026-07-28** — the v0.216.0 entry now carries an inline supersession block
+> recording that the control DID ship at a measured 6 elements, with the ratchet raise, and naming MH-40 as
+> the lens that was misled. Verified before writing: `_render_dashboard_autostart()` exists in
+> `scripts/generate-dashboards.py` and renders 3 `dash-autostart` nodes on **each** surface.
+> **MH-40 is now fully closed — fix + supersession.**
 
 ---
 

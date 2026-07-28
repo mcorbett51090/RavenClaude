@@ -91,7 +91,8 @@
       "codex": {
         "supported": false,
         "blocked_by": "Codex reads .agents/skills, which the installer does not write",
-        "basis": "inferred — the .agents/skills path was reported by the audit and is NOT re-verified here; confirm before building the installer path"
+        "install_path_when_built": "$REPO_ROOT/.agents/skills/<skill>/SKILL.md — Codex scans .agents/skills in EVERY directory from cwd up to the repo root, then $HOME/.agents/skills, then /etc/codex/skills, then bundled. SKILL.md needs name+description frontmatter (same shape as .claude/skills), so the existing skills project across unchanged.",
+        "basis": "docs-verified 2026-07-28 (https://learn.chatgpt.com/docs/build-skills) — upgraded from [inferred]. NOTE: multiple third-party guides claim `.codex/skills`; the primary source says `.agents/skills`. Trust this row, not a blog."
       },
       "cursor": {
         "supported": false,

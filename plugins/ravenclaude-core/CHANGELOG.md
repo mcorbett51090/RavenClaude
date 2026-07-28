@@ -137,6 +137,25 @@ All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the 
   what is in it — so "where's the prompt builder?" in a Copilot terminal had nothing to route on
   and looked like a missing feature. The block now names it (`#/prompt-builder`, under Control),
   says plainly that nothing in a terminal session renders it, and points at `dashboard_autostart`.
+- **Two false claims in the plugin constitution, both of which had already misled a reader** (multi-host
+  audit MH-40 + MH-16 part 1). The shape is identical and is this repo's own documented failure mode — a
+  stale claim in a file every session loads is an active defect, not a bookkeeping lag:
+  - **`CLAUDE.md` said "No DOM control ships"** for `dashboard_autostart`. True when written, false hours
+    later: the owner approved the ratchet raise and `_render_dashboard_autostart()` shipped a three-option
+    control on **both** surfaces at a measured 6 elements. An audit lens read the stale sentence and
+    reported closed work as open. Superseded inline, after verifying the control actually renders.
+  - **`CLAUDE.md` said "Claude Code's OS sandbox is Claude-only"** and generalized from Copilot to every
+    non-Claude host. **False for OpenAI Codex CLI**, in the costliest direction: it sends a Codex operator
+    to add a devcontainer while saying nothing about the knob that actually bounds them. Codex ships the
+    *same* primitives (Seatbelt / bubblewrap / Windows sandbox) **default-on** at
+    `sandbox_mode = workspace-write`, and its docs state the sandbox *"applies to spawned commands"* — so it
+    closes the **subprocess** gap that section exists to name, by default, where Claude Code's is opt-in.
+    The Copilot half (genuinely unevidenced) is preserved. Verified against the primary source
+    (`learn.chatgpt.com/docs/sandboxing`) **before** writing, because `knowledge/codex-cli-customization.md`
+    had marked the model `[inferred]` with a standing "verify before building on it" rule; that marker was
+    upgraded to `[docs-verified]` in the same change. **The emitter half is still open** — nothing writes
+    `.codex/config.toml`, so the corrected section says plainly that a saved comfort-posture does not bound
+    a Codex session today.
 
 ## 0.215.1 — 2026-07-27
 
