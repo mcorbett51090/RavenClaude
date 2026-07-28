@@ -147,6 +147,52 @@ wire_plugin_skills() {
   echo "$n"
 }
 
+# wire_copilot_instructions <project>
+#
+# THE CLOSED LOOP THIS OPENS (multi-host audit MH-09, a P0).
+# generate-copilot-plugin.py projects the whole claim-grounding discipline — plus
+# the dashboard-launch instructions and the Relay-mode block — into
+# plugins/ravenclaude-core/copilot/AGENTS.md. Copilot reads AGENTS.md natively,
+# but ONLY from the user's own repo (knowledge/copilot-cli-customization.md §1).
+# The marketplace clone is not the user's repo, so unless something points Copilot
+# at it, that file is generated, freshness-gated, committed... and never loaded.
+#
+# The generated README told the user to export COPILOT_CUSTOM_INSTRUCTIONS_DIRS by
+# hand. `ravenclaude setup` never did it, and an env var a human must remember is
+# not wiring. Net effect: every Copilot session ran with NONE of the discipline the
+# rest of this installer works to deliver, and nothing anywhere said so.
+#
+# `.github/copilot-instructions.md` is used rather than the env var because it is
+# repo-local, survives a new shell, and travels with the project for teammates.
+# We write a POINTER, never a copy: a copy would silently rot the moment the
+# canonical AGENTS.md changed, and this repo has spent a whole release fixing
+# exactly that failure shape.
+wire_copilot_instructions() {
+  local project="$1"
+  local dest="$project/.github/copilot-instructions.md"
+  local src="$MARKET/plugins/ravenclaude-core/copilot/AGENTS.md"
+  if [ ! -f "$src" ]; then
+    warn "copilot/AGENTS.md not found at $src — instruction pointer skipped"
+    return 0
+  fi
+  mkdir -p "$project/.github" 2>/dev/null || true
+  # Never clobber a hand-authored file: append our marked block once, idempotently.
+  if [ -f "$dest" ] && grep -q 'RAVENCLAUDE-INSTRUCTIONS' "$dest" 2>/dev/null; then
+    return 0
+  fi
+  {
+    printf '\n<!-- RAVENCLAUDE-INSTRUCTIONS: managed pointer, safe to keep. -->\n'
+    printf '## RavenClaude agent discipline\n\n'
+    printf 'This project is wired to RavenClaude. Read the full cross-tool discipline —\n'
+    printf 'claim grounding, capability grounding, the dashboard launch command, and the\n'
+    printf 'relay-mode contract — at:\n\n'
+    printf '    %s\n\n' "$src"
+    printf 'That file is GENERATED from the canonical plugin and is freshness-gated, so it\n'
+    printf 'is always current. Do not copy its contents here; read it there.\n'
+  } >>"$dest"
+  return 0
+}
+
 cmd_install() {
   local project="$PWD"
   local extra_plugins=()
@@ -166,6 +212,11 @@ cmd_install() {
   local n_core
   n_core="$(wire_plugin_skills "$project" "ravenclaude-core")"
   ok "wired $n_core skills from ravenclaude-core into .claude/skills"
+
+  # 1b. Point Copilot at the projected discipline. Without this the generated
+  #     copilot/AGENTS.md is never loaded by any session (audit MH-09).
+  wire_copilot_instructions "$project"
+  ok "pointed .github/copilot-instructions.md at the projected agent discipline"
   if [ "${#extra_plugins[@]}" -gt 0 ]; then
     local plugin
     for plugin in "${extra_plugins[@]}"; do
