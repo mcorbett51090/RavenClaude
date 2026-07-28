@@ -9543,6 +9543,10 @@ _JS = r"""
   let streamsLoaded = false;
   let vidarrEvents = [];
   let vidarrKindFilter = "all";
+  /* Has the security-event emitter EVER written for this project? Distinguishes a
+     genuinely quiet perimeter from an unwatched one (audit MH-05). Starts false so
+     the honest state is the default and the reassuring one must be proven. */
+  let vidarrEmitterSeen = false;
   let activityRecords = [];
   /* Feed length caps (Sub-effort B "condense"): the two long, freely-growing
    * client-rendered feeds — the Run feed (/__runs, up to 200) and the Saga
@@ -10875,7 +10879,24 @@ _JS = r"""
     const byHook = (data && data.by_hook) || {};
     const hooks = Object.keys(byHook).sort();
     if (hooks.length === 0) {
-      host.replaceChildren(hmEmpty("No recent events — your perimeter has been quiet."));
+      /* QUIET vs UNWATCHED — do not conflate them (audit MH-05, a P0).
+         "Your perimeter has been quiet" asserts that guardrails RAN and found
+         nothing. If no hook has ever emitted here that assertion has no basis,
+         and on Codex / Cursor / Gemini / Aider / Windsurf it is the normal case:
+         no adapter wires them, so no hook can fire. Reassuring an operator that a
+         perimeter is clean when it is in fact unmonitored is the worst thing this
+         panel can do — strictly worse than saying nothing. `emitter_seen` is the
+         server's file-existence answer; absent (older server) we fall back to the
+         cautious wording rather than the flattering one. */
+      const seen = !!(data && data.emitter_seen);
+      host.replaceChildren(
+        seen
+          ? hmEmpty("No recent events — your perimeter has been quiet.")
+          : hmEmpty(
+              "No guardrail events have EVER been recorded for this project — this perimeter is UNWATCHED, not clean. " +
+                "Hooks fire under Claude Code, and under Copilot CLI via the adapter. Other hosts have no adapter yet, so nothing here can trip.",
+            ),
+      );
       return;
     }
     const frag = document.createDocumentFragment();
@@ -11307,7 +11328,18 @@ _JS = r"""
     );
     if (countEl) countEl.textContent = filtered.length ? filtered.length + " event" + (filtered.length === 1 ? "" : "s") : "";
     if (filtered.length === 0) {
-      host.replaceChildren(hmEmpty("No security events. Your perimeter has been quiet."));
+      /* Same quiet-vs-unwatched distinction as Heimdall (audit MH-05). This is the
+         SECURITY AUDIT LOG, so a false "quiet" is even less acceptable here: an
+         empty audit log that has never been written to is not evidence of safety.
+         vidarrEmitterSeen is set from the same server-side file-existence boolean. */
+      host.replaceChildren(
+        vidarrEmitterSeen
+          ? hmEmpty("No security events. Your perimeter has been quiet.")
+          : hmEmpty(
+              "This security log has never been written to — the perimeter is UNWATCHED, not clean. " +
+                "An empty audit log is not evidence of safety; it means no guardrail has ever reported here.",
+            ),
+      );
       return;
     }
     const table = document.createElement("table");
@@ -11360,6 +11392,10 @@ _JS = r"""
       if (!res.ok) throw new Error("HTTP " + res.status);
       const data = await res.json();
       vidarrEvents = (data && data.events) || [];
+      /* Defaults FALSE, and that is deliberate: an older server that does not send
+         emitter_seen must degrade to the cautious "unwatched" wording, never to the
+         reassuring "quiet" one. The flattering string has to be earned. */
+      vidarrEmitterSeen = !!(data && data.emitter_seen);
       renderVidarrTable(vidarrEvents);
     } catch (e) {
       vidarrLoaded = false; /* allow retry on next visit */

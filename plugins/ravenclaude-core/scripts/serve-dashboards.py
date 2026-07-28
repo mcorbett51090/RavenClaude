@@ -409,11 +409,21 @@ def _read_hook_events(runs_dir: Path, days: int = 30, per_hook: int = 10) -> dic
             enriched["tier"] = tier
             bucket.append(enriched)
 
+    # "quiet" and "unwatched" are NOT the same state, and conflating them made a
+    # SECURITY panel reassure an operator it had no basis to reassure (audit MH-05).
+    # An empty by_hook can mean either "hooks ran and nothing tripped" (genuinely
+    # quiet) or "no hook has EVER emitted here" — which on Codex/Cursor/Gemini/
+    # Aider/Windsurf is the normal case, because no adapter wires them at all.
+    # `emitter_seen` is the file-existence boolean that tells them apart: has the
+    # emitter ever written a hook-events.jsonl for this project? The client renders
+    # the honest empty state from it rather than defaulting to the flattering one.
+    emitter_seen = bool(runs_dir.is_dir() and any(runs_dir.glob("*/hook-events.jsonl")))
     return {
         "by_hook": by_hook,
         "total": len(rows),
         "gjallarhorn_tier": top,
         "window_days": days,
+        "emitter_seen": emitter_seen,
     }
 
 
@@ -516,10 +526,20 @@ def _read_vidarr_events(runs_dir: Path, posture_log: Path, days: int = 30) -> di
                 )
 
     events.sort(key=lambda e: e.get("ts", ""), reverse=True)
+    # Same quiet-vs-unwatched contract as Heimdall (audit MH-05). Vidarr draws on
+    # TWO sources, so "never written" means neither has produced a file: no
+    # hook-events.jsonl anywhere under runs/, AND no posture-events.jsonl. If both
+    # are absent this audit log has never been written to — and an empty audit log
+    # is not evidence of safety, which matters more here than anywhere else.
+    emitter_seen = bool(
+        (runs_dir.is_dir() and any(runs_dir.glob("*/hook-events.jsonl")))
+        or posture_log.exists()
+    )
     return {
         "events": events,
         "total": len(events),
         "window_days": days,
+        "emitter_seen": emitter_seen,
     }
 
 
