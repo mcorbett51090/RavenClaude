@@ -98,16 +98,27 @@ _rc_pcre_match() {
 # names, same stdin fields, the same hookSpecificOutput envelope, the same
 # `exit 2 + stderr = block`, and a loader that reads hooks/hooks.json directly.
 # It needs NO envelope adapter (unlike Copilot, which required a 456-line
-# generator plus ~300 lines of translation). What it does NOT share is the
-# ENV-VAR VOCABULARY: Codex supplies PLUGIN_ROOT / PROJECT_DIR / SESSION_ID
-# where these hooks read CLAUDE_PLUGIN_ROOT / CLAUDE_PROJECT_DIR /
-# CLAUDE_SESSION_ID (26 interpolations in hooks.json; 25 and 14 hook files).
+# generator plus ~300 lines of translation).
 #
-# The failure mode was silent and total: an unset CLAUDE_PLUGIN_ROOT makes a
-# hook resolve its helper to "/scripts/..." and exit non-zero — which Codex
-# reports and then CONTINUES past — so every guardrail failed OPEN. And
-# _emit-event.sh no-ops on an unset project dir, so the whole Guardrails
-# dashboard went dark with nothing written anywhere to say so.
+# CORRECTED 2026-07-28 after reading Codex's OWN hooks doc
+# (learn.chatgpt.com/docs/hooks; see knowledge/codex-cli-customization.md).
+# An earlier version of this comment claimed Codex supplies PLUGIN_ROOT *instead
+# of* CLAUDE_PLUGIN_ROOT, so every hook failed open on its helper path. THAT WAS
+# WRONG: Codex publishes CLAUDE_PLUGIN_ROOT and CLAUDE_PLUGIN_DATA as
+# legacy-compatibility names, so helper-path resolution works unaided.
+#
+# What IS genuinely absent under Codex — and why this shim is still correct:
+#   CLAUDE_PROJECT_DIR — not in the compatibility set. 25 hook files read it, and
+#                        _emit-event.sh no-ops without it, so NO hook event is ever
+#                        written and the Guardrails dashboard stays dark.
+#   CLAUDE_SESSION_ID  — not in the compatibility set. 14 hook files read it, so
+#                        events land under runs/unknown/ even if the dir resolved.
+# Codex passes session values (cwd, session_id) via STDIN JSON rather than the
+# environment, which is why an env-only reader finds nothing.
+#
+# The alias fills blanks only, so where Codex already supplies CLAUDE_PLUGIN_ROOT
+# it is a harmless no-op. The shim is right; one sentence of its original
+# justification was not, and is corrected rather than left standing.
 #
 # Deliberately a 3-line-per-var ALIAS, not an adapter. Adding a second
 # Copilot-shaped translation layer for a host that already speaks the contract
