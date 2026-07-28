@@ -43,6 +43,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import datetime as _dt_mod  # aliased: the other datetime uses are function-local
 import errno
 import hmac
 import json
@@ -1452,7 +1453,6 @@ _HOST_ENV_PROBES = (
     "CLAUDE_SESSION_ID",
 )
 
-import datetime as _dt_mod  # module scope: the other _dt imports are function-local
 _SERVER_STARTED_AT = _dt_mod.datetime.now(_dt_mod.timezone.utc).isoformat(timespec="seconds")
 
 
