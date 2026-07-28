@@ -91,7 +91,7 @@ PY
       exit $?
       ;;
     70)
-      echo "── Gate 70: Codex desktop trust review hooks (per-gate run) ──────────────"
+      echo "── Gate 70: external trust-review remediation (per-gate run) ─────────────"
       bash plugins/ravenclaude-core/hooks/tests/test-gate70-codex-trust-hooks.sh
       exit $?
       ;;
@@ -4187,7 +4187,14 @@ rc=0; python3 scripts/generate-index-dashboard.py --check -o "$IDX_HTML" >/dev/n
 gate "index freshness (fresh render round-trips)" must_pass "$rc"
 
 # ─────────────────────────────────────────────────────────────────────────────
-echo "── Gate 70: Codex desktop trust review hooks (Findings 1, 2, 5) ─────────"
+# MH-31 — RENAMED FROM "Codex desktop trust review hooks". That label did not
+# describe what this gate tests (three STRICT smell hooks, the dod-gate first-run
+# trust check, the web-access first-use ask) and it laundered into a capability
+# claim: it was cited as evidence that a Codex lane already existed, in the brief
+# for the audit that then found there was no Codex install path at all. The
+# findings ORIGINATED from Codex reviewing RavenClaude; nothing here runs on Codex.
+# The real Codex-as-host gates are 155 (env shim) and 156 (sandbox emitter).
+echo "── Gate 70: external trust-review remediation (STRICT + dod-gate + web) ──"
 # Proves the Codex desktop trust review remediation: (1) the three smell hooks'
 # STRICT mode now BLOCKS via exit 2 (was exit 1, which Claude Code silently
 # treated as non-blocking), (2) dod-gate's first-run trust check refuses to
