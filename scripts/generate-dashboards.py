@@ -603,11 +603,31 @@ def _render_activity_tab() -> str:
 #                 wires the hooks and none of them fire. NOT hook-capable yet.
 #   cursor / gemini / aider / windsurf — no adapter of any kind.
 #
-# WHEN A HOST GAINS AN INSTALL PATH, ADD IT HERE. This is deliberately ONE list
-# rather than a per-stage annotation: every stage below fires through the same
-# two mechanisms, so per-stage host lists would be 20 copies of one fact, all
-# free to rot independently the next time a hook is added.
-_HOOK_CAPABLE_HOSTS = ("Claude Code", "GitHub Copilot CLI")
+# DERIVED FROM knowledge/host-support.json (MH-21) — not hardcoded here.
+# This list was a literal tuple for about an hour, which was already one
+# duplicate too many: the same fact is needed by the Pipeline scope line, by any
+# future "what's wired" surface, and by the Codex/Copilot installers. A second
+# copy is how the estate ended up asserting guardrails on hosts that run none.
+# WHEN A HOST GAINS AN INSTALL PATH, EDIT THE JSON — this reads it.
+def _hook_capable_hosts() -> tuple:
+    """Labels of the hosts whose `hooks` component is actually supported today.
+
+    Fails LOUD rather than silently narrowing: if the map is missing or malformed
+    we raise, because quietly returning an empty tuple would render the Pipeline
+    tab claiming its guardrails fire nowhere — a different false statement, not a
+    safe default.
+    """
+    path = REPO_ROOT / "plugins" / "ravenclaude-core" / "knowledge" / "host-support.json"
+    data = json.loads(path.read_text(encoding="utf-8"))
+    hooks = data["components"]["hooks"]
+    return tuple(
+        data["hosts"][h]["label"]
+        for h in data["hosts"]
+        if isinstance(hooks.get(h), dict) and hooks[h].get("supported") is True
+    )
+
+
+_HOOK_CAPABLE_HOSTS = _hook_capable_hosts()
 
 _PIPELINE_LANES = [
     {

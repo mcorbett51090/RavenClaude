@@ -5026,6 +5026,66 @@ rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate151-dashboard-autostart
 gate "dashboard-autostart: opt-in default + anti-duplicate probe + serve/open modes (+ teeth)" must_pass "$rc"
 
 echo
+echo "── Gate 154: host-support map is complete + drives the Pipeline scope line ──"
+# MH-21. knowledge/host-support.json is the SINGLE source of truth for which
+# RavenClaude components actually run on which host. Two ways it can rot, both
+# silent, so both are gated:
+#   (a) a host or component is added and the matrix is left with a hole — a
+#       missing cell reads as "no answer", and the surfaces that consume it would
+#       quietly treat that as unsupported (or crash);
+#   (b) the map and the Pipeline tab's host-scope sentence drift apart — which is
+#       exactly the duplication this file was created to remove.
+rc=0; python3 - <<'PY' >/dev/null 2>&1 || rc=$?
+import json, sys
+from pathlib import Path
+d = json.loads(Path("plugins/ravenclaude-core/knowledge/host-support.json").read_text())
+hosts = set(d["hosts"])
+for name, comp in d["components"].items():
+    cells = {k for k in comp if k != "what"}
+    if cells != hosts:
+        sys.exit(1)                      # hole or stray key in the matrix
+    for h in hosts:
+        if not isinstance(comp[h].get("supported"), bool):
+            sys.exit(1)                  # every cell must give a boolean answer
+        if comp[h]["supported"] is False and not comp[h].get("blocked_by"):
+            sys.exit(1)                  # an unsupported cell must say WHY
+PY
+gate "host-support map: every host x component answered, unsupported cells justified" must_pass "$rc"
+
+# The generator must DERIVE its host list from the map, never restate it.
+rc=0; (cd scripts && python3 - <<'PY' >/dev/null 2>&1) || rc=$?
+import importlib.util, json, sys
+from pathlib import Path
+sys.path.insert(0, ".")
+spec = importlib.util.spec_from_file_location("gd", "generate-dashboards.py")
+m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
+d = json.loads(Path("../plugins/ravenclaude-core/knowledge/host-support.json").read_text())
+want = tuple(d["hosts"][h]["label"] for h in d["hosts"]
+             if d["components"]["hooks"][h]["supported"] is True)
+sys.exit(0 if m._HOOK_CAPABLE_HOSTS == want else 1)
+PY
+gate "host-support map: generator derives _HOOK_CAPABLE_HOSTS from it (no restated copy)" must_pass "$rc"
+
+# must_fail: a hole in the matrix MUST be caught. Drops one host cell from one
+# component in a scratch copy and re-runs the completeness check.
+HSJ_BAD="$TMP/host-support-bad.json"
+python3 -c "
+import json,sys
+d=json.load(open('plugins/ravenclaude-core/knowledge/host-support.json'))
+d['components']['hooks'].pop('codex')
+json.dump(d, open('$HSJ_BAD','w'))"
+rc=0; python3 - "$HSJ_BAD" <<'PY' >/dev/null 2>&1 || rc=$?
+import json, sys
+from pathlib import Path
+d = json.loads(Path(sys.argv[1]).read_text())
+hosts = set(d["hosts"])
+for name, comp in d["components"].items():
+    if {k for k in comp if k != "what"} != hosts:
+        sys.exit(1)
+PY
+gate "host-support teeth: a missing host cell is caught" must_fail "$rc"
+
+echo
 echo "═══════════════════════════════════════════════════════════════════════════"
 printf '  %d pass, %d fail, %d skipped\n' "$PASS" "$FAIL" "$SKIP"
 if [[ "$FAIL" -gt 0 ]]; then
