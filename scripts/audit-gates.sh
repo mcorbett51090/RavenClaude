@@ -337,6 +337,11 @@ PY
       python3 scripts/check-host-support.py
       exit $?
       ;;
+    155)
+      echo "── Gate 155: Codex env shim invariants (per-gate run) ────────────────────"
+      bash plugins/ravenclaude-core/hooks/tests/test-gate155-codex-hook-env.sh
+      exit $?
+      ;;
     144)
       echo "── Gate 144: Prompt Builder render + XSS floor (per-gate run) ────────────"
       node scripts/check-prompt-builder-render.mjs plugins/ravenclaude-core/dashboard.html
@@ -418,7 +423,7 @@ PY
       ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -5057,25 +5062,57 @@ gate "host-support map: generator derives _HOOK_CAPABLE_HOSTS from it (no restat
 # must_fail: a hole in the matrix MUST be caught. Drops one host cell from one
 # component in a scratch copy and drives the REAL checker over it — not a copy of
 # its logic, which is what made the previous teeth self-certifying.
+#
+# BOTH fixtures DERIVE their target rather than naming a host. The first version
+# hardcoded `hooks.codex`, and the moment Codex became supported (MH-07) the
+# second fixture crashed with KeyError: 'blocked_by' — the cell no longer had one.
+# A teeth fixture pinned to a specific cell is a fixture that breaks every time the
+# map legitimately changes, which trains a maintainer to "fix" the gate instead of
+# reading it.
 HSJ_BAD="$TMP/host-support-bad.json"
 python3 -c "
 import json,sys
 d=json.load(open('plugins/ravenclaude-core/knowledge/host-support.json'))
-d['components']['hooks'].pop('codex')
+comp=next(iter(d['components']))
+host=next(h for h in d['hosts'] if h in d['components'][comp])
+d['components'][comp].pop(host)
 json.dump(d, open('$HSJ_BAD','w'))"
 rc=0; python3 scripts/check-host-support.py "$HSJ_BAD" >/dev/null 2>&1 || rc=$?
 gate "host-support teeth: a missing host cell is caught" must_fail "$rc"
 
 # must_fail: an unsupported cell with no stated reason is the same defect one level
 # down — it tells a reader "no" and gives them nothing to act on. Previously ungated.
+# Finds ANY unsupported cell and strips its justification; skips (loudly) only if
+# every cell in the map is supported, which would make the assertion vacuous.
 HSJ_NOWHY="$TMP/host-support-nowhy.json"
 python3 -c "
 import json,sys
 d=json.load(open('plugins/ravenclaude-core/knowledge/host-support.json'))
-d['components']['hooks']['codex'].pop('blocked_by')
-json.dump(d, open('$HSJ_NOWHY','w'))"
-rc=0; python3 scripts/check-host-support.py "$HSJ_NOWHY" >/dev/null 2>&1 || rc=$?
-gate "host-support teeth: an unsupported cell with no blocked_by is caught" must_fail "$rc"
+for comp in d['components']:
+    for h in d['hosts']:
+        c=d['components'][comp].get(h)
+        if isinstance(c,dict) and c.get('supported') is False and 'blocked_by' in c:
+            c.pop('blocked_by')
+            json.dump(d, open('$HSJ_NOWHY','w')); sys.exit(0)
+sys.exit(3)" 2>/dev/null
+if [ $? -eq 3 ]; then
+  _skip_or_fail "host-support teeth: no unsupported cell exists to strip (assertion vacuous)"
+else
+  rc=0; python3 scripts/check-host-support.py "$HSJ_NOWHY" >/dev/null 2>&1 || rc=$?
+  gate "host-support teeth: an unsupported cell with no blocked_by is caught" must_fail "$rc"
+fi
+
+echo
+echo "── Gate 155: Codex env shim — stdin/exit-code/blanks-only invariants ──────"
+# MH-07/MH-08. hooks/codex-hook-env.sh sits in front of EVERY guardrail under
+# Codex. It is NOT an envelope adapter (Codex speaks the Claude contract natively);
+# its whole job is lifting cwd/session_id out of the stdin payload into
+# CLAUDE_PROJECT_DIR/CLAUDE_SESSION_ID, which Codex does not supply. If it drops a
+# stdin byte, clobbers a host-set value, or swallows an exit code, nothing fails
+# loudly — the enforcement layer just goes quiet for that host. The test drives the
+# REAL shim against recording stubs and carries two must-fail halves.
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate155-codex-hook-env.sh >/dev/null 2>&1 || rc=$?
+gate "codex-hook-env: stdin passthrough + blanks-only + exit-code propagation (+ teeth)" must_pass "$rc"
 
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"

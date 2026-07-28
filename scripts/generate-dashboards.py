@@ -610,8 +610,8 @@ def _render_activity_tab() -> str:
 # future "what's wired" surface, and by the Codex/Copilot installers. A second
 # copy is how the estate ended up asserting guardrails on hosts that run none.
 # WHEN A HOST GAINS AN INSTALL PATH, EDIT THE JSON — this reads it.
-def _hook_capable_hosts() -> tuple:
-    """Labels of the hosts whose `hooks` component is actually supported today.
+def _load_host_support() -> dict:
+    """Parse the host-support map ONCE, at import.
 
     Fails LOUD rather than silently narrowing: if the map is missing or malformed
     we raise, because quietly returning an empty tuple would render the Pipeline
@@ -619,16 +619,40 @@ def _hook_capable_hosts() -> tuple:
     safe default.
     """
     path = REPO_ROOT / "plugins" / "ravenclaude-core" / "knowledge" / "host-support.json"
-    data = json.loads(path.read_text(encoding="utf-8"))
-    hooks = data["components"]["hooks"]
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+_HOST_SUPPORT = _load_host_support()
+
+
+def _hook_capable_hosts() -> tuple:
+    """Labels of the hosts whose `hooks` component is actually supported today."""
+    hooks = _HOST_SUPPORT["components"]["hooks"]
     return tuple(
-        data["hosts"][h]["label"]
-        for h in data["hosts"]
+        _HOST_SUPPORT["hosts"][h]["label"]
+        for h in _HOST_SUPPORT["hosts"]
         if isinstance(hooks.get(h), dict) and hooks[h].get("supported") is True
     )
 
 
 _HOOK_CAPABLE_HOSTS = _hook_capable_hosts()
+
+
+def _oxford(items: list) -> str:
+    """Join labels as readable English: 'A', 'A and B', 'A, B, and C'.
+
+    Exists because the derived host list is rendered into a prose sentence, and
+    `" and ".join(...)` produced "Claude Code and GitHub Copilot CLI and OpenAI
+    Codex CLI" the moment a third host qualified — fine at two, wrong at three.
+    """
+    items = [str(i) for i in items if i]
+    if not items:
+        return "no host"
+    if len(items) == 1:
+        return items[0]
+    if len(items) == 2:
+        return f"{items[0]} and {items[1]}"
+    return ", ".join(items[:-1]) + f", and {items[-1]}"
 
 _PIPELINE_LANES = [
     {
@@ -1192,7 +1216,20 @@ def _render_pipeline_tab() -> str:
     5th-grade tooltips, and inline editors. JS (in _JS) hydrates it on open."""
     # Rendered from the single _HOOK_CAPABLE_HOSTS list so the host scope stated
     # on the page cannot drift from the list a maintainer updates.
-    _hook_hosts_text = html.escape(" and ".join(_HOOK_CAPABLE_HOSTS))
+    #
+    # BOTH halves of the sentence are derived, and that is the whole point. The
+    # "nowhere else" half used to be a HARDCODED list — so the moment Codex gained
+    # an install path (MH-07) the page named it as supported in one clause and
+    # unsupported in the next, in the same sentence. A half-derived sentence is not
+    # a smaller version of a derived one; it is a self-contradiction waiting for
+    # the first change. Gate 154 pins the derivation; this keeps the prose honest.
+    _hook_hosts_text = html.escape(_oxford(list(_HOOK_CAPABLE_HOSTS)))
+    _no_hook_hosts = [
+        _HOST_SUPPORT["hosts"][h]["label"]
+        for h in _HOST_SUPPORT["hosts"]
+        if _HOST_SUPPORT["components"]["hooks"][h]["supported"] is not True
+    ]
+    _no_hook_hosts_text = html.escape(_oxford(_no_hook_hosts))
     lanes_html = []
     for lane in _PIPELINE_LANES:
         cards = []
@@ -1259,7 +1296,7 @@ def _render_pipeline_tab() -> str:
 <div class="pipeline-tab">
   <h2>Guardrail pipeline</h2>
   <p class="page-desc">Everything an AI agent passes through, top to bottom. Each box shows whether it's on right now, what it does (in plain words), the step-by-step of how it works, and the knobs you can turn. Changes save to your <code>.ravenclaude/comfort-posture.yaml</code>.
-  IMPORTANT — these guardrails fire under {_hook_hosts_text}, and nowhere else yet. &ldquo;Always on&rdquo; below means &ldquo;not a knob you can switch off&rdquo;; it does NOT mean every host runs it. Under any other CLI (Codex, Cursor, Gemini, Aider, Windsurf) nothing here wires itself, so none of it fires — the stages are shown for reference, not as protection you currently have.</p>
+  IMPORTANT — these guardrails fire under {_hook_hosts_text}, and nowhere else yet. &ldquo;Always on&rdquo; below means &ldquo;not a knob you can switch off&rdquo;; it does NOT mean every host runs it. Under {_no_hook_hosts_text} nothing here wires itself, so none of it fires — the stages are shown for reference, not as protection you currently have.</p>
   <div class="pipe-flow" role="img" aria-label="Flow: session starts, then before-each-step and after-each-step checkpoints loop for every command, then a final check when it tries to stop.">
     <span class="pipe-flow-step">Session starts</span>
     <span class="pipe-flow-arr">→</span>
@@ -6685,6 +6722,11 @@ _INSTALL_TAB_TEMPLATE = """
       Follow these steps in order. Every command has a <strong>Copy</strong> button &mdash; you don&rsquo;t
       need to type anything. Each step tells you what to expect <em>after</em> you run it.
       <strong>Using Claude Code instead?</strong> See the <a href="#/help">Claude&nbsp;Code</a> guide (Help).
+      Using OpenAI Codex CLI? Run the same installer with the Codex host flag &mdash;
+      &ldquo;ravenclaude install --host codex&rdquo; &mdash; which wires skills into .agents/skills and
+      hooks into .codex/hooks.json. One thing you must do there and nowhere else: Codex trusts hooks
+      by hash, so run /hooks inside Codex to trust them, and again after every update &mdash; until
+      you do they are skipped, and no banner will tell you, because the banner is itself a hook.
     </p>
 
     <h3>What is this?</h3>

@@ -316,7 +316,36 @@ vouching for a safety state that does not hold."*
 ---
 
 #### MH-07 · There is no install or wiring path for Codex at all — the entire plugin is unreachable
-**Severity:** P0 · **Hosts:** OpenAI Codex CLI · **Reported by:** CX (P0-1, P1-1), DASH (P1-3) · **Effort:** M · **Status:** `OPEN`
+**Severity:** P0 · **Hosts:** OpenAI Codex CLI · **Reported by:** CX (P0-1, P1-1), DASH (P1-3) · **Effort:** M ·
+**Status:** ✅ **FIXED 2026-07-28** (installer + shim + Gate 155) · projection deferred, see below
+
+> **Shipped:** `ravenclaude install --host codex` — a **host dimension on the one installer**, not a
+> second installer, exactly as the remedy specified. Verified end-to-end in a scratch project: **50
+> skills** symlinked into `.agents/skills/`, **12 hooks** written to `.codex/hooks.json`, dashboard
+> launchers wired, MH-17 re-trust notice printed. `status` reports the Codex lane separately;
+> `update` fires the re-trust notice whenever `.codex/hooks.json` exists.
+>
+> **Host auto-detection resolves ambiguity to `copilot`.** If both CLIs are on PATH, or neither, the
+> install is byte-identical to yesterday's. A user who happens to have `codex` installed must not
+> silently get a different install than they got before — detection reports, it never surprises.
+>
+> **`.agents/skills` was verified from the primary source before a line was written**, because
+> host-support.json had it marked `[inferred]`. Worth recording: **multiple third-party guides claim
+> `.codex/skills`** — the primary source says `.agents/skills`. Had this been taken from a blog, the
+> installer would have wired 50 skills into a directory Codex never reads, and `install` would have
+> reported success — reproducing the exact "completes successfully, wires nothing" defect MH-07 is.
+>
+> **Deferred, deliberately and with the reason recorded — `scripts/generate-codex-plugin.py` + the
+> `plugins/*/codex/**` glob.** The remedy also asked for a generated projection carrying the 15
+> agents. **There is no verified Codex agent-file contract in this repo** — the format was never read
+> from a primary source. Projecting 15 agent files from a guessed schema is precisely the
+> Copilot-shaped mis-scoping MH-15 traced, and the same call made on the Copilot `tools:` P0: *do not
+> guess at a contract.* The `.repo-layout.json` glob is therefore NOT added either — the ledger says
+> it "must land in the same commit as the projection", and an unused glob is dead config that would
+> silently pre-authorize an unreviewed directory.
+>
+> **Also still open:** MCP (`.codex/config.toml` `[mcp]`) and the posture emitter (MH-16 part 2).
+> **The installer prints both gaps at install time** rather than leaving them to be discovered.
 
 **Evidence** `[verified]` + `[docs-verified]`
 - `scripts/ravenclaude:2` — *"install / update the RavenClaude plugins for **GitHub Copilot CLI**"*. It is
@@ -361,7 +390,33 @@ host switcher** — noting this costs an owner-approved Gate 132 DOM-ratchet rai
 ---
 
 #### MH-08 · The Codex env shim has ZERO callers — the foundation is wired to nothing
-**Severity:** P0 · **Hosts:** OpenAI Codex CLI · **Reported by:** CX (P0-2, remainder) · **Effort:** M · **Status:** `OPEN`
+**Severity:** P0 · **Hosts:** OpenAI Codex CLI · **Reported by:** CX (P0-2, remainder) · **Effort:** M ·
+**Status:** ✅ **FIXED 2026-07-28** — but NOT the way this entry proposed. Read the correction.
+
+> **The shim has callers now:** every entry in the generated `.codex/hooks.json` routes through
+> `codex-hook-env.sh` (in the plugin's hook directory). Proven by **Gate 155** — 14 assertions with
+> two must-fail halves.
+>
+> **⚠️ CORRECTION — open piece #1 of the table below is FALSE, and building on it would have wasted
+> the work.** It claims *"26 `${CLAUDE_PLUGIN_ROOT}` interpolations still resolve empty under Codex.
+> A generated `codex/hooks.json` must wrap each entry through the shim."* Re-read from the primary
+> source (`learn.chatgpt.com/docs/hooks`, 2026-07-28): **Codex publishes `CLAUDE_PLUGIN_ROOT` and
+> `CLAUDE_PLUGIN_DATA` as legacy-compatibility names.** Those interpolations resolve fine. This entry
+> inherited the same wrong premise that the portable helper's original comment carried, and which
+> `knowledge/codex-cli-customization.md` corrected on creation (MH-15) — the correction had not
+> propagated here.
+>
+> **Piece #2 was also mis-aimed.** It says *"every hook must source and call the shim."* The
+> genuinely-absent variables are `CLAUDE_PROJECT_DIR` and `CLAUDE_SESSION_ID`, and `_rc_host_env`
+> **cannot supply them**: its fallbacks (`CODEX_PROJECT_ROOT`, `SESSION_ID`, `PROJECT_DIR`) are
+> speculative names that are **not in Codex's documented environment**, so they resolve to nothing in
+> a real session. Touching all 18 hooks would have changed nothing. The documented, reliable source
+> is **stdin** — every payload carries `cwd` and `session_id` — so the wrapper lifts them there, and
+> no hook was modified at all.
+>
+> **Net: the fix was one ~100-line wrapper and an installer branch, not an 18-hook edit plus a
+> projection.** Two of this entry's four "open pieces" dissolved on contact with the primary source.
+> Pieces #3/#4 (the projection + its layout glob) are deferred with reasons under MH-07.
 
 **Evidence** `[verified — this session]`
 - A repo-wide search for `_rc_host_env` returns exactly **one** hit: `RC/hooks/_portable.sh:118` — its own
@@ -373,10 +428,10 @@ Four distinct pieces remain, each independently blocking:
 
 | # | Open piece | Note |
 |---|---|---|
-| 1 | **`hooks.json` interpolation** | 26 `${CLAUDE_PLUGIN_ROOT}` interpolations still resolve empty under Codex. A generated `codex/hooks.json` must wrap each entry through the shim. |
-| 2 | **Every hook must source and call the shim** | The alias is inert until the hooks that read `CLAUDE_*` call it at entry. |
-| 3 | **Generated projection** | `scripts/generate-codex-plugin.py` — does not exist (MH-07). |
-| 4 | **`.repo-layout.json` glob** | `plugins/*/codex/**` — must land in the same commit as the projection. |
+| 1 | ~~**`hooks.json` interpolation**~~ | ❌ **FALSE — do not build this.** Codex publishes `CLAUDE_PLUGIN_ROOT`/`CLAUDE_PLUGIN_DATA` as legacy-compat names `[docs-verified 2026-07-28]`, so the 26 interpolations resolve fine. This row inherited a wrong premise the MH-15 knowledge file had already corrected. |
+| 2 | ~~**Every hook must source and call the shim**~~ | ❌ **MIS-AIMED — would have changed nothing.** `_rc_host_env`'s fallbacks (`CODEX_PROJECT_ROOT`/`SESSION_ID`/`PROJECT_DIR`) are **not in Codex's documented environment**. The reliable source is **stdin** (`cwd`, `session_id`). ✅ Closed 2026-07-28 by a wrapper; **zero hooks modified**. |
+| 3 | **Generated projection** | `scripts/generate-codex-plugin.py` — still does not exist. **Deferred with cause:** no verified Codex agent-file contract in this repo; projecting 15 agents from a guessed schema is the mis-scoping MH-15 traced. |
+| 4 | **`.repo-layout.json` glob** | `plugins/*/codex/**` — **correctly NOT added**, since #3 did not ship. An unused glob is dead config that silently pre-authorizes an unreviewed directory. |
 
 **Remedy** — belt-and-braces from CX: have the shim **`exit 2` with a stderr reason when `PLUGIN_ROOT` is
 unset**, converting the failure mode from fail-open to loud. Verify field-by-field against the Codex hooks
@@ -652,7 +707,23 @@ degrees of freedom on this host.**
 ---
 
 #### MH-17 · Codex's hash-based hook trust turns "an update is just `git pull`" into a silent disarm
-**Severity:** P1 · **Hosts:** OpenAI Codex CLI · **Reported by:** CX (P1-5) · **Effort:** S (docs) / M (managed hooks) · **Status:** `OPEN`
+**Severity:** P1 · **Hosts:** OpenAI Codex CLI · **Reported by:** CX (P1-5) · **Effort:** S (docs) / M (managed hooks) ·
+**Status:** ✅ **FIXED 2026-07-28** — shipped in the SAME commit as MH-07, as this ledger required
+
+> Row 13 of the build order said MH-17 *"ships with MH-07; without it, every update silently disarms
+> the guardrails MH-08 just wired."* That was right, and it is why these landed together: shipping
+> the installer alone would have **manufactured** the silently-inert-guardrail class this whole audit
+> exists to close — on the very host it was closing it for.
+>
+> Four surfaces, chosen so the warning appears where the damage happens: install-time,
+> **update-time** (`ravenclaude update`, gated on `.codex/hooks.json` existing so a Copilot-only user
+> never sees a Codex instruction), `status` (reports hooks are wired **and must be TRUSTED** — the
+> distinction that matters), and the generated `.codex/hooks.json` `description` itself. Plus a full
+> section in `knowledge/codex-cli-customization.md`.
+>
+> **`--dangerously-bypass-hook-trust` is named only to refuse it**, per CX. It converts an honest
+> "your guardrails are off" into a dishonest "your guardrails are on" — strictly worse than the
+> problem. `requirements.toml` managed hooks are documented as the only unattended-survival path.
 
 **Evidence**
 - `[docs-verified]` *"Codex hashes each hook and tracks trust by hash. New **or modified** hooks are marked
@@ -1304,7 +1375,25 @@ section in `claude-app-engineering` alongside the existing Claude/Copilot/Grok g
 ---
 
 #### MH-42 · The tribunal's self-disable guard false-positives on documentation that cites substrate paths
-**Severity:** P3 · **Hosts:** all (authoring-time) · **Reported by:** *this ledger, `[verified]` — reproduced twice this session* · **Effort:** S · **Status:** `OPEN`
+**Severity:** P3 · **Hosts:** all (authoring-time) · **Reported by:** *this ledger, `[verified]` — reproduced twice at authoring, then TWICE MORE during the Codex build* · **Effort:** S · **Status:** `OPEN`
+
+> **Two further live reproductions, 2026-07-28, while implementing MH-07 — worth recording because
+> they show the cost is recurring, not one-off, and they refine the trigger shape:**
+>
+> 1. A **Bash** `chmod +x` on a newly-created file in the plugin's hook directory was denied. That is
+>    the guard working as designed (directory-level, mutation), but it means **a new hook cannot be
+>    made executable from inside a session at all** — and CI hard-fails a non-executable
+>    `plugins/*/hooks/*.sh`. The operation had to be handed to the human. No bypass was attempted; the
+>    smaller-blast-radius routes (Read/Write/Edit) genuinely cannot set a mode bit.
+> 2. An **Edit** to *this file* was denied — because the new prose contained a markdown link whose
+>    target was a plugin `hooks/` path. Confirms regex (1)'s blockquote/angle-bracket exposure extends
+>    to **ordinary markdown links**: `](` + a substrate path is enough. Rephrasing to a bare filename
+>    (`codex-hook-env.sh`, "in the plugin's hook directory") passed immediately.
+>
+> **Net effect on this build:** documenting the Codex shim accurately required *not naming its path*,
+> and shipping it required a human to run one `chmod`. Both are exactly the "documentation about the
+> substrate is treated as an attack on the substrate" shape this entry describes — and item 1 shows it
+> also blocks a legitimate *authoring* operation with no in-session alternative.
 
 **Evidence** `[verified — two independent denials]`
 - Sága `thing-2026-07-28T18-40-51Z-71592`:
@@ -1371,18 +1460,18 @@ Severity says *how bad*. This order says *what to do first*. Three items unblock
 | 7 | **MH-10** — project `tools:` into the Copilot agents | P0 | **S/M** | Shares MH-01's now-built vocabulary table. Restores least-privilege on **every** projected agent — including `security-reviewer`. |
 | 8 | **MH-24** — document the no-matcher asymmetry | P1 | **S** | Doc-only, and the **highest leverage in the ledger**: it is the guardrail against the *next* MH-01. |
 | 9 | **MH-01 residual** — fix the Gate 20 `"shell"` fixture | P0 | **S** | Closes the last artifact still encoding a guessed tool name. |
-| 10 | **MH-40 supersession** + **MH-42** fixture | P3 | **S** | Both are about the repo lying to its own agents; together they are ~an hour. |
+| 10 | ✅ **MH-40 supersession** (done) + **MH-42** fixture (open) | P3 | **S** | Both are about the repo lying to its own agents. MH-40's stale line is superseded; MH-42 gained **two more live reproductions** during the Codex build. |
 
 ### Wave 2 — the Codex lane, in dependency order
 
 | # | ID | Sev | Effort | Note |
 |---|---|---|---|---|
-| 11 | **MH-08** — wire the shim (hooks source it; loud `exit 2` when `PLUGIN_ROOT` is unset) | P0 | S | The alias currently has **zero callers**. Cheapest remaining P0. |
-| 12 | **MH-07** — `--host codex` installer + the Codex generator + the layout glob | P0 | M | **The glob must land in the same commit as the projection.** |
-| 13 | **MH-17** — hash-trust docs + the re-trust line on update | P1 | S | Ships with MH-07; without it, every update silently disarms the guardrails MH-08 just wired. |
+| 11 | ✅ **MH-08** — wire the shim | P0 | S | **DONE 2026-07-28.** Not as specified: the wrapper lifts `cwd`/`session_id` from **stdin**; no hook was modified and no `PLUGIN_ROOT` guard was needed (Codex supplies it). Gate 155. |
+| 12 | ✅ **MH-07** — `--host codex` installer | P0 | M | **DONE 2026-07-28** — 50 skills → `.agents/skills`, 12 hooks → `.codex/hooks.json`, verified end-to-end. Generator + glob deferred with cause (rows 3/4 above). |
+| 13 | ✅ **MH-17** — hash-trust docs + the re-trust line on update | P1 | S | **DONE 2026-07-28, in the same commit as MH-07 — exactly as this row required.** Four surfaces, incl. `update`, where the disarm actually happens. |
 | 14 | **MH-23** — split the onboarding skill; re-source or delete every version-floor row | P1 | M | Needs Wave 0 #3. |
 | 15 | **MH-31** — rename Gate 70 | P2 | S | Do it inside MH-23's commit — same confusion, same reader. |
-| 16 | **MH-16** — containment correction (part 1), then the `.codex/config.toml` emitter (part 2) | P1 | L | **Part 1 is S and correct on its own** — ship the doc fix early, defer the emitter. |
+| 16 | ✅ **MH-16 part 1** (done) → **part 2**, the `.codex/config.toml` emitter (open) | P1 | L | Part 1 shipped 2026-07-28, verified from the primary source first. **Part 2 is now the top open Codex item** — and the installer states plainly at install time that a saved posture does not bound a Codex session. |
 
 ### Wave 3 — the surfaces (all now cheap because Wave 0 exists)
 

@@ -1959,3 +1959,68 @@ v0.61.0 data-loss class).
 **Migration:** none — the Prompt Builder route resolved before and resolves now (it just appears where the
 release notes always said), and `dashboard_autostart` defaults to **off**, so nothing new runs at session
 start on `/plugin marketplace update` until a consumer opts in.
+
+## OpenAI Codex CLI is a supported host — and it needed an installer, not an adapter (added 2026-07-28, v0.216.0)
+
+Multi-host audit **MH-07 + MH-08 + MH-17**, shipped as one commit because shipping them apart would
+have been actively harmful (below). Before this, `ravenclaude setup` on a Codex machine completed
+**successfully and wired nothing** — zero skills, zero hooks, zero MCP — and nothing anywhere said so.
+
+**The finding that reframed the whole lane.** The repo modelled hosts as
+`{Claude Code} ∪ {everything else = Copilot}`, and Codex was filed on the wrong side. It is not
+another Copilot: **Codex speaks the Claude Code hook contract natively**
+`[docs-verified — learn.chatgpt.com/docs/hooks]` — identical PascalCase events, identical stdin field
+names, identical `exit 2` blocking, identical `hookSpecificOutput` envelope, and identical PascalCase
+tool-name **values** (`"Bash"`, not Copilot's lowercase `"bash"`). Copilot required a 456-line
+generator plus ~300 lines of envelope translation plus a tool-name normalisation map. **Codex requires
+none of it.** Every Codex work item in the repo had been scoped against Copilot's mechanics doc, which
+is why the lane looked expensive for months. Do **not** build a `codex-hook-adapter.sh`.
+
+**What actually differs is two environment variables** — `CLAUDE_PROJECT_DIR` (25 hooks read it) and
+`CLAUDE_SESSION_ID` (14 read it). Absent them, `_emit-event.sh` no-ops and the Guardrails dashboard
+stays dark — the "unwatched, not clean" state MH-05 made honest. `hooks/codex-hook-env.sh` lifts both
+out of the **stdin payload** (the documented, reliable source — every Codex payload carries `cwd` and
+`session_id`), passes stdin through **byte-identical**, and propagates the hook's exit code
+**verbatim**. It is an **env shim, not an envelope adapter**; the distinction is the milestone.
+
+> **Two of the audit's own "open pieces" dissolved on contact with the primary source, and this is the
+> load-bearing lesson.** (1) The ledger said 26 `${CLAUDE_PLUGIN_ROOT}` interpolations "resolve empty
+> under Codex" — **false**: Codex publishes `CLAUDE_PLUGIN_ROOT`/`CLAUDE_PLUGIN_DATA` as
+> legacy-compatibility names, so they resolve fine. (2) It said every hook must source and call
+> `_rc_host_env` — but that helper's fallbacks (`CODEX_PROJECT_ROOT`, `SESSION_ID`, `PROJECT_DIR`) are
+> **speculative names not in Codex's documented environment**, so they resolve to nothing in a real
+> session. Editing all 18 hooks would have changed nothing. **No hook was modified.** The fix was one
+> ~100-line wrapper plus an installer branch. *Verify the contract before you build to it.*
+
+**MH-17 — why these could not ship apart.** Codex tracks hook trust **by hash**: *"new or changed
+hooks are marked for review and skipped until trusted"* `[docs-verified]`. This repo's headline update
+pillar is *"an update is just `git pull` — no re-install, ever."* On Codex those two multiply into a
+**silent disarm**: every pull that changes a hook byte invalidates its hash, Codex skips that
+guardrail, and **nothing announces it — because the SessionStart banner is itself a hook.** With ~18
+hooks and near-weekly bumps, the steady state for an un-warned consumer is guardrails quietly off
+after every update. Shipping the installer alone would have **manufactured** the
+silently-inert-guardrail class this audit exists to close, on the host it was closing it for. The
+re-trust notice therefore fires at install, at **`update`** (where the disarm happens), in `status`,
+and inside the generated `.codex/hooks.json`. **`--dangerously-bypass-hook-trust` is named only to
+refuse it** — it converts an honest "your guardrails are off" into a dishonest "your guardrails are
+on". `requirements.toml` **managed hooks** are the only unattended-survival configuration.
+
+**Deliberately deferred, with reasons recorded rather than left as silent gaps** — and the installer
+**prints them at install time**: MCP (`.codex/config.toml` `[mcp]`; a bad TOML merge would clobber a
+hand-tuned config), `sandbox_mode`/`approval_policy` (**a saved comfort-posture does not bound a Codex
+session today** — MH-16 part 2), and the generated agent projection + its `plugins/*/codex/**` layout
+glob. The projection is deferred because **there is no verified Codex agent-file contract in this
+repo**; projecting 15 agents from a guessed schema is the same "don't guess at a contract" call made
+on the Copilot `tools:` gap, and an unused layout glob would silently pre-authorize an unreviewed
+directory.
+
+Proven by **Gate 155** (the shim's four invariants — byte-identical stdin, blanks-only fill, verbatim
+exit code, never-fails-the-hook — with two must-fail halves, because "exit 2 propagates" would
+otherwise be an assertion nobody has seen fail). **Gate 154** pins the host-support map, whose
+`hooks`/`skills` Codex cells flip to `supported: true` here. The Pipeline tab's host-scope sentence
+had a **hardcoded** "nowhere else" list beside its derived supported list — so flipping Codex on made
+it name Codex as supported and unsupported *in the same sentence*; both halves are now derived.
+
+**Migration:** none, and this is enforced by design — host auto-detection resolves **any** ambiguity
+to `copilot`, so a consumer who merely has `codex` on PATH gets a byte-identical install to before.
+The Codex lane is opt-in via `--host codex`.

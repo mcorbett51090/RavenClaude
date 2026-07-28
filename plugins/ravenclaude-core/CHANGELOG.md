@@ -137,6 +137,45 @@ All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the 
   what is in it — so "where's the prompt builder?" in a Copilot terminal had nothing to route on
   and looked like a missing feature. The block now names it (`#/prompt-builder`, under Control),
   says plainly that nothing in a terminal session renders it, and points at `dashboard_autostart`.
+- **OpenAI Codex CLI is a supported host** (multi-host audit MH-07 + MH-08 + MH-17, shipped together).
+  `ravenclaude install --host codex` wires the lane: all **50 skills** symlinked into
+  `<project>/.agents/skills/`, and `<project>/.codex/hooks.json` written in the **Claude-shaped**
+  schema. Verified end-to-end in a scratch project.
+  - **No adapter, and there must never be one.** Codex speaks the Claude hook contract natively —
+    identical PascalCase events, identical stdin fields, identical `exit 2` blocking, identical
+    PascalCase tool-name *values*. Copilot needed a 456-line generator plus ~300 lines of envelope
+    translation and a tool-name map; Codex needs none of it. Reading Codex through Copilot's model is
+    the mis-scoping that made this lane look expensive for months.
+  - **The one real difference is two absent environment variables.** `CLAUDE_PROJECT_DIR` (25 hooks
+    read it) and `CLAUDE_SESSION_ID` (14 read it) are not in Codex's environment, so the guardrail
+    substrate would stay dark. A new ~100-line wrapper lifts them out of the **stdin payload** — the
+    documented, reliable source — passing stdin through **byte-identical** and propagating the hook's
+    exit code **verbatim** (exit 2 = block). **Gate 155** proves all four invariants with two
+    must-fail halves; without them, "exit 2 propagates" would be an assertion nobody had seen fail.
+  - **Note what this avoided:** the existing `_rc_host_env` alias falls back to `CODEX_PROJECT_ROOT` /
+    `SESSION_ID` / `PROJECT_DIR` — **none of which are in Codex's documented environment.** It looked
+    like the fix and closed nothing. The audit's own remedy called for editing all 18 hooks to call
+    it; that would have changed nothing. **No hook was modified.**
+  - **MH-17 shipped in the same commit, deliberately.** Codex tracks hook trust **by hash**, so every
+    `git pull` — this repo's entire update model — invalidates each changed hook and Codex **skips it
+    until re-trusted**. Nothing announces it, because the SessionStart banner *is itself a hook*.
+    Shipping the installer alone would have manufactured the silently-inert-guardrail class this
+    audit exists to close, on the host it was closing it for. The re-trust notice fires at install,
+    at **`update`** (where the disarm actually happens), in `status`, and inside the generated file.
+    `--dangerously-bypass-hook-trust` is named **only to refuse it** — it turns an honest "your
+    guardrails are off" into a dishonest "your guardrails are on". `requirements.toml` managed hooks
+    are documented as the only unattended-survival path.
+  - **Backward compatible:** host auto-detection resolves *any* ambiguity to `copilot`, so an
+    existing user who happens to have `codex` on PATH gets a byte-identical install to yesterday's.
+  - **Honest gaps, printed at install time rather than discovered later:** MCP (`.codex/config.toml`
+    `[mcp]`) is not wired, and neither is `sandbox_mode`/`approval_policy` — **a saved comfort-posture
+    does not bound a Codex session today** (MH-16 part 2). The generated agent projection is
+    **deliberately deferred**: there is no verified Codex agent-file contract in this repo, and
+    projecting 15 agents from a guessed schema is the same "don't guess at a contract" call made on
+    the Copilot `tools:` gap.
+  - The Pipeline tab's host-scope sentence had a **hardcoded** "nowhere else" list beside its derived
+    supported list, so flipping Codex on made it name Codex as supported and unsupported *in the same
+    sentence*. Both halves are now derived from the map.
 - **Two false claims in the plugin constitution, both of which had already misled a reader** (multi-host
   audit MH-40 + MH-16 part 1). The shape is identical and is this repo's own documented failure mode — a
   stale claim in a file every session loads is an active defect, not a bookkeeping lag:

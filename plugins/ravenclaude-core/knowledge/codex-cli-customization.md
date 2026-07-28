@@ -87,18 +87,71 @@ justification was not. Corrected here rather than quietly left standing.
 
 ---
 
+## Hook TRUST is hash-based — and it inverts this repo's update pillar (MH-17)
+
+`[docs-verified 2026-07-28]` Codex records trust against **each hook's current hash**: *"new or
+changed hooks are marked for review and skipped until trusted."* Users review via `/hooks`.
+Plugin-bundled hooks use the same non-managed trust flow — **installing a plugin does not
+auto-trust its hooks.**
+
+Read that against this repo's headline update pillar — *"an update is just `git pull`. No
+re-install, ever."* — and the two multiply into a **silent disarm**:
+
+1. `git pull` changes a byte in any of the ~18 hook scripts.
+2. Every changed hook's hash is now unknown, so Codex **skips it**.
+3. The guardrail is off, and **nothing announces it** — because the SessionStart capability
+   banner that would have told you **is itself a hook**, skipped by the same mechanism.
+
+With near-weekly plugin bumps, the steady state for an un-warned Codex consumer is
+**guardrails silently off after every update.** This is the single most dangerous property of
+the Codex lane, and it is a property of the host, not a bug in the wiring.
+
+### What ships against it
+
+| Layer | Where | What it does |
+|---|---|---|
+| Install-time notice | `ravenclaude install --host codex` | names the hook count and says to run `/hooks` |
+| **Update-time notice** | `ravenclaude update` | fires whenever `.codex/hooks.json` exists — the moment the disarm actually happens |
+| Status | `ravenclaude status` | reports the count and that they must be **TRUSTED**, not merely wired |
+| Generated file | `.codex/hooks.json` `description` | carries the warning where a reader of the artifact will find it |
+
+### The fix we deliberately did NOT ship
+
+**`--dangerously-bypass-hook-trust`.** Turning off the trust check to make trust convenient is
+**governance theatre** — the exact anti-pattern [`skills/codex-onboarding/SKILL.md`](../skills/codex-onboarding/SKILL.md)
+lists by name. It converts an honest "your guardrails are off" into a dishonest "your guardrails
+are on", which is strictly worse than the problem.
+
+**For teams, the real answer is `requirements.toml` managed hooks** `[docs-verified]` — managed
+hooks are auto-trusted by policy and cannot be disabled, and are therefore *the only
+configuration in which RavenClaude's guardrails survive an update unattended on this host.*
+
+---
+
 ## What this means for the Codex lane (supersedes the Copilot-shaped plan)
 
 1. **No adapter.** Do not build a `codex-hook-adapter.sh`. The contract already matches.
 2. **No tool-name map.** Codex sends `"Bash"`, PascalCase — the same value
    `thing-orchestrator.sh:113-116` already dispatches on. The Copilot normalisation (`f55039ec`) is
    **Copilot-specific** and must not be generalised to Codex.
-3. **The real gap is the installer.** `scripts/ravenclaude` has **zero** Codex references
-   `[verified 2026-07-28]`, so `ravenclaude setup` completes and wires nothing. Codex reads skills
-   from `.agents/skills` and config from `.codex/config.toml` — neither is written today.
-4. **The second real gap is `CLAUDE_PROJECT_DIR` / `CLAUDE_SESSION_ID`**, per above. Either export
-   them from a Codex-aware install path, or derive them from the stdin payload (`cwd`, `session_id`),
-   which the hooks already receive.
+3. ~~**The real gap is the installer.**~~ ✅ **CLOSED 2026-07-28 (MH-07).**
+   `ravenclaude install --host codex` now wires the lane: all 50 skills symlinked into
+   `<project>/.agents/skills/` `[docs-verified — learn.chatgpt.com/docs/build-skills]`, and
+   `<project>/.codex/hooks.json` written in the **Claude-shaped** schema. Host is auto-detected,
+   but ambiguity resolves to `copilot` so no existing user's install silently changes.
+   **Still not wired, and the installer says so at install time:** MCP (`.codex/config.toml`
+   `[mcp]` — a bad TOML merge would clobber a hand-tuned config) and `sandbox_mode` /
+   `approval_policy` (MH-16 part 2).
+4. ~~**The second real gap is `CLAUDE_PROJECT_DIR` / `CLAUDE_SESSION_ID`.**~~ ✅ **CLOSED
+   2026-07-28** — via the stdin route, which is the one the docs actually support.
+   [`hooks/codex-hook-env.sh`](../hooks/codex-hook-env.sh) lifts `cwd` / `session_id` out of the
+   payload, passes stdin through **byte-identical**, and propagates the hook's exit code
+   **verbatim** (exit 2 = block). Proven by **Gate 155**, whose two must-fail halves show the
+   exit-code and blanks-only invariants aren't vacuous.
+   **Note the trap this avoided:** `_portable.sh`'s `_rc_host_env` falls back to
+   `CODEX_PROJECT_ROOT` / `SESSION_ID` / `PROJECT_DIR` — **none of which are in Codex's documented
+   environment.** Those fallbacks are harmless (fill-blanks-only) but they close nothing; the env
+   alias looked like the fix and was not. Stdin is the documented, reliable source.
 5. **Containment differs — and Codex holds the STRONGER boundary, by default.**
    `[docs-verified 2026-07-28 — https://learn.chatgpt.com/docs/sandboxing]` Codex ships its own OS
    sandbox using the same primitives Claude Code's optional one does — **Seatbelt** (macOS),
