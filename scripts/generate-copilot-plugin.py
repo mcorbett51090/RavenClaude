@@ -190,8 +190,23 @@ def parse_name_description(frontmatter: str, fallback_name: str) -> tuple[str, s
     """Extract `name` and `description` from a Claude agent's frontmatter.
 
     Only single-line `key: value` scalars are needed for these two fields in
-    the canonical agents; everything else (tools, model, audience, works_with,
-    scenarios, quickstart, ...) is intentionally dropped.
+    the canonical agents. `model`, `audience`, `works_with`, `scenarios` and
+    `quickstart` are dropped because Copilot's `.agent.md` frontmatter has no
+    equivalent — that part is genuinely inert.
+
+    `tools` is DIFFERENT and dropping it is NOT neutral. Copilot supports a
+    `tools` field, and per `knowledge/copilot-cli-customization.md` §2 an agent
+    "has **all** tools by default — a `tools` spec only *restricts*". So every
+    projected agent runs fully privileged, including review-only ones like
+    `security-reviewer` (canonically `Read, Grep, Glob, Bash, WebFetch`, with
+    Write/Edit deliberately withheld). AGENTS.md house rule 9 names this exact
+    hazard: "An omitted `tools:` line silently grants ALL tools."
+
+    It is not fixed here because the correct projection needs Copilot's exact
+    tool-name vocabulary (lowercase `bash`/`edit`/`view`, and the full list is
+    unpublished at a fetchable URL as of 2026-07-28). Emitting Claude's names
+    would either no-op or strip every agent of all tools — a worse regression.
+    See the KNOWN GAP block in the generated README for the settling probe.
     """
     name = ""
     description = ""
@@ -262,6 +277,32 @@ def build_readme() -> str:
         "  translated to Copilot's `.agent.md` form: YAML frontmatter carrying\n"
         "  only `name` + `description`, followed by the full original agent body\n"
         "  verbatim.\n"
+        "\n"
+        "> ### ⚠️ KNOWN GAP — agents run UNRESTRICTED here\n"
+        ">\n"
+        "> The canonical agents each carry a least-privilege `tools:` allowlist, and\n"
+        "> `AGENTS.md` house rule 9 is explicit that **an omitted `tools:` silently\n"
+        "> grants ALL tools**. This projection drops that field. Per RavenClaude's own\n"
+        "> docs-verified notes (`knowledge/copilot-cli-customization.md` §2), a Copilot\n"
+        "> agent **has every tool by default and a `tools:` spec only *restricts*** —\n"
+        "> so dropping it is not neutral, it is a least-privilege regression.\n"
+        ">\n"
+        "> Concretely: `security-reviewer` is canonically `Read, Grep, Glob, Bash,\n"
+        "> WebFetch` — deliberately **no Write/Edit** — and under Copilot it can write.\n"
+        "> The same applies to every review-only agent.\n"
+        ">\n"
+        "> **Why this is not simply fixed here:** projecting the allowlist requires\n"
+        "> Copilot's exact tool-name vocabulary, which differs from Claude's (Copilot\n"
+        "> documents lowercase `bash` / `edit` / `view`). Emitting Claude's names would\n"
+        "> either be ignored — no gain — or restrict to unrecognised names and leave\n"
+        "> every agent with NO tools, which is a worse regression than the one it fixes.\n"
+        "> GitHub has not published the complete list at a fetchable URL as of\n"
+        "> 2026-07-28 (two candidate doc pages returned 404).\n"
+        ">\n"
+        "> **The probe that closes this:** run `copilot` and enumerate the real tool\n"
+        "> names, then add a Claude→Copilot name map to `generate-copilot-plugin.py`\n"
+        "> mirroring the runtime map already in `hooks/copilot-hook-adapter.sh`.\n"
+        "> Until then, treat every agent under Copilot as fully privileged.\n"
         "- `AGENTS.md` — the cross-tool claim-grounding discipline, projected\n"
         "  verbatim from RavenClaude's root `AGENTS.md`. Copilot reads `AGENTS.md`\n"
         "  natively, but only from *your* repo — so this travels the discipline\n"

@@ -15,6 +15,32 @@ single source of truth; this package is regenerated from it.
   translated to Copilot's `.agent.md` form: YAML frontmatter carrying
   only `name` + `description`, followed by the full original agent body
   verbatim.
+
+> ### ⚠️ KNOWN GAP — agents run UNRESTRICTED here
+>
+> The canonical agents each carry a least-privilege `tools:` allowlist, and
+> `AGENTS.md` house rule 9 is explicit that **an omitted `tools:` silently
+> grants ALL tools**. This projection drops that field. Per RavenClaude's own
+> docs-verified notes (`knowledge/copilot-cli-customization.md` §2), a Copilot
+> agent **has every tool by default and a `tools:` spec only *restricts*** —
+> so dropping it is not neutral, it is a least-privilege regression.
+>
+> Concretely: `security-reviewer` is canonically `Read, Grep, Glob, Bash,
+> WebFetch` — deliberately **no Write/Edit** — and under Copilot it can write.
+> The same applies to every review-only agent.
+>
+> **Why this is not simply fixed here:** projecting the allowlist requires
+> Copilot's exact tool-name vocabulary, which differs from Claude's (Copilot
+> documents lowercase `bash` / `edit` / `view`). Emitting Claude's names would
+> either be ignored — no gain — or restrict to unrecognised names and leave
+> every agent with NO tools, which is a worse regression than the one it fixes.
+> GitHub has not published the complete list at a fetchable URL as of
+> 2026-07-28 (two candidate doc pages returned 404).
+>
+> **The probe that closes this:** run `copilot` and enumerate the real tool
+> names, then add a Claude→Copilot name map to `generate-copilot-plugin.py`
+> mirroring the runtime map already in `hooks/copilot-hook-adapter.sh`.
+> Until then, treat every agent under Copilot as fully privileged.
 - `AGENTS.md` — the cross-tool claim-grounding discipline, projected
   verbatim from RavenClaude's root `AGENTS.md`. Copilot reads `AGENTS.md`
   natively, but only from *your* repo — so this travels the discipline
