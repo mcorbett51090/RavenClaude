@@ -197,6 +197,32 @@ All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the 
   - The Pipeline tab's host-scope sentence had a **hardcoded** "nowhere else" list beside its derived
     supported list, so flipping Codex on made it name Codex as supported and unsupported *in the same
     sentence*. Both halves are now derived from the map.
+- **`codex-onboarding` → `external-agent-onboarding`, and its evidence base rebuilt** (MH-23).
+  **⚠ MIGRATION — the only breaking change in this release.** The skill directory is renamed, so a
+  consumer with the old skill symlinked will have a dangling link after `/plugin marketplace update`.
+  **Fix: re-run `ravenclaude install` (or `rc`)** — one command, and already the documented update
+  path. Skill count is unchanged at 50.
+  - **The old name was the defect.** It owned the Codex discovery keyword while the content was
+    almost entirely Copilot/Cursor — no Codex row in its version table, no `codex --version`, and no
+    mention of `.agents/skills`, `sandbox_mode`, or `/hooks`. Same name-laundering class as Gate 70
+    (MH-31), one directory away.
+  - **Every factual row cited `/tmp/research-codex-2026-updates.md` — a path that does not exist**
+    (`No such file or directory`, verified). This repo's own rule requires a durable claim to cite a
+    check a later reader can run; a `/tmp` path is unfalsifiable by construction.
+  - **The version table was not merely unsourced — it was wrong.** Re-derived verbatim from the
+    [copilot-cli changelog](https://github.com/github/copilot-cli/blob/main/changelog.md): the
+    claimed *"preToolUse silent-allow regression fixed (1.0.59)"* and *"diff-not-reported-to-ACP fixed
+    (1.0.48)"* **appear nowhere in it**, and the config-leak fix is **1.0.57**, not 1.0.56. Rows that
+    could not be re-sourced were **deleted, not re-dated**. The real safety floor is **1.0.52**
+    (*"Hooks … now fire correctly for sub-agent tool…"*) — below it a **sub-agent's tool calls are
+    not hooked at all**, so a subagent runs Bash past every guardrail while `install` reports success.
+  - **That floor is now enforced, not just documented.** `ravenclaude install`/`status` run
+    `copilot --version` and warn below 1.0.52 — the same silent-disarm shape as Codex hash-trust, on
+    the flagship non-Claude host, previously checked by nothing. **Gate 157**, two must-fail halves.
+  - **The check itself had to be made fail-safe, and that bug was real:** under `set -euo pipefail` a
+    bare `$(… | grep …)` on an unparseable version **aborted `ravenclaude status` outright** (verified
+    exit 1). A version check that kills the installer is strictly worse than none. Every degradation
+    path — absent, non-zero, unparseable, no output — now warns and continues.
 - **Two false claims in the plugin constitution, both of which had already misled a reader** (multi-host
   audit MH-40 + MH-16 part 1). The shape is identical and is this repo's own documented failure mode — a
   stale claim in a file every session loads is an active defect, not a bookkeeping lag:

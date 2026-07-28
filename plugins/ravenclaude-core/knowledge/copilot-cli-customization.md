@@ -158,7 +158,7 @@ The standalone file is the *fallback*, not the default — a bare `DOCUMENT-MAP.
 
 **Honesty note:** a consumer reported ~6 tool calls / ~45s → ~5s per lookup after adopting a map `[unverified — single foreign-repo anecdote, illustrative only]`. The real win is narrow — repos where a known-document lookup was genuinely multi-round; where one `grep` already finds it, a map is ceremony.
 
-**See also:** [`../../../docs/best-practices/agent-onboarding.md`](../../../docs/best-practices/agent-onboarding.md) — the cross-tool pattern · the [`codex-onboarding`](../skills/codex-onboarding/SKILL.md) skill wires the session-start read.
+**See also:** [`../../../docs/best-practices/agent-onboarding.md`](../../../docs/best-practices/agent-onboarding.md) — the cross-tool pattern · the [`external-agent-onboarding`](../skills/external-agent-onboarding/SKILL.md) skill wires the session-start read.
 
 ## Sources
 

@@ -4783,6 +4783,11 @@ footer.page-footer a:hover { text-decoration: underline; }
       Follow these steps in order. Every command has a <strong>Copy</strong> button &mdash; you don&rsquo;t
       need to type anything. Each step tells you what to expect <em>after</em> you run it.
       <strong>Using Claude Code instead?</strong> See the <a href="#/help">Claude&nbsp;Code</a> guide (Help).
+      Using OpenAI Codex CLI? Run the same installer with the Codex host flag &mdash;
+      &ldquo;ravenclaude install --host codex&rdquo; &mdash; which wires skills into .agents/skills and
+      hooks into .codex/hooks.json. One thing you must do there and nowhere else: Codex trusts hooks
+      by hash, so run /hooks inside Codex to trust them, and again after every update &mdash; until
+      you do they are skipped, and no banner will tell you, because the banner is itself a hook.
     </p>
 
     <h3>What is this?</h3>

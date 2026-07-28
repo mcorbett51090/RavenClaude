@@ -347,6 +347,11 @@ PY
       python3 scripts/emit-codex-config.py --self-test
       exit $?
       ;;
+    157)
+      echo "── Gate 157: Copilot version floor + fail-safe (per-gate run) ────────────"
+      bash plugins/ravenclaude-core/hooks/tests/test-gate157-copilot-version-floor.sh
+      exit $?
+      ;;
     144)
       echo "── Gate 144: Prompt Builder render + XSS floor (per-gate run) ────────────"
       node scripts/check-prompt-builder-render.mjs plugins/ravenclaude-core/dashboard.html
@@ -428,7 +433,7 @@ PY
       ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -5156,6 +5161,18 @@ CDX_MUT2="$TMP/emit-codex-mutant2.py"
 sed 's/^    if appended_root:$/    if False:/' scripts/emit-codex-config.py >"$CDX_MUT2"
 rc=0; python3 "$CDX_MUT2" --self-test >/dev/null 2>&1 || rc=$?
 gate "emit-codex-config teeth: dropping the root-key anchor is caught" must_fail "$rc"
+
+echo
+echo "── Gate 157: Copilot version floor is checked, and checking it is fail-safe ─"
+# MH-23. Below Copilot CLI 1.0.52 a SUB-AGENT's tool calls are not hooked at all,
+# so a subagent runs Bash past every guardrail this repo wires while `install`
+# reports success — the same silent-disarm shape as Codex hash-trust, on the
+# flagship non-Claude host, previously unchecked by anything.
+# The second half is the one that already bit: the first version of the check used
+# a bare $(… | grep …) under `set -euo pipefail`, so an unparseable version ABORTED
+# `ravenclaude status`. A version check that kills the installer is worse than none.
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate157-copilot-version-floor.sh >/dev/null 2>&1 || rc=$?
+gate "copilot version floor: fires below, accepts at/above, never fatal (+ teeth)" must_pass "$rc"
 
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"

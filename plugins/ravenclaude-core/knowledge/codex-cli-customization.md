@@ -118,7 +118,7 @@ the Codex lane, and it is a property of the host, not a bug in the wiring.
 ### The fix we deliberately did NOT ship
 
 **`--dangerously-bypass-hook-trust`.** Turning off the trust check to make trust convenient is
-**governance theatre** — the exact anti-pattern [`skills/codex-onboarding/SKILL.md`](../skills/codex-onboarding/SKILL.md)
+**governance theatre** — the exact anti-pattern [`skills/external-agent-onboarding/SKILL.md`](../skills/external-agent-onboarding/SKILL.md)
 lists by name. It converts an honest "your guardrails are off" into a dishonest "your guardrails
 are on", which is strictly worse than the problem.
 

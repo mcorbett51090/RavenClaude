@@ -57,6 +57,75 @@ detect_host() {
   printf 'copilot\n'
 }
 
+# copilot_version_check — warn when the running Copilot CLI is below the floor
+# where this repo's guardrails actually fire (multi-host audit MH-23).
+#
+# THE FLOOR IS 1.0.52, and it is a SAFETY floor, quoted verbatim from
+# https://github.com/github/copilot-cli/blob/main/changelog.md (retrieved 2026-07-28):
+#
+#   1.0.52 (2026-05-23) — "Hooks (preToolUse, postToolUse, subagentStart,
+#   subagentStop) now fire correctly for sub-agent tool…"
+#
+# Below it, a SUB-AGENT's tool calls are not hooked at all — so a subagent runs
+# Bash straight past the tribunal, guard-destructive, the runaway brake and the
+# layout gate, silently, while `install` reports success. Same silent-disarm shape
+# as Codex's hash-trust (MH-17), on the flagship non-Claude host, and until now
+# nothing anywhere checked it.
+#
+# 1.0.57 is the RECOMMENDED line ("Plugins auto-installed from repository settings
+# no longer leak into user global config") — hygiene, not safety, so it is a note.
+#
+# WHY THIS ONLY WARNS: every host-condition guard in this repo is fail-safe. An
+# install that works for everything except sub-agent hook coverage is still worth
+# completing; a hard block would strand users whose setup is otherwise fine. And
+# `copilot` absent / unparseable version / no `sort -V` all degrade to a note —
+# never a failed install, never a false "you are fine".
+COPILOT_FLOOR="1.0.52"
+COPILOT_RECOMMENDED="1.0.57"
+
+copilot_version_check() {
+  command -v copilot >/dev/null 2>&1 || {
+    note "copilot not on PATH — version floor unverified (need >= $COPILOT_FLOOR)"
+    return 0
+  }
+  local raw ver
+  # `|| true` ON BOTH PIPELINES IS LOAD-BEARING — do not "clean it up".
+  # This script runs under `set -euo pipefail`. A `copilot` that exits non-zero,
+  # or a `grep` that matches nothing (i.e. any unparseable version string), makes
+  # the pipeline non-zero, which under `pipefail` propagates to the assignment and
+  # under `set -e` ABORTS `ravenclaude status`/`install` outright. Verified: without
+  # these, a copilot printing unparseable output exited 1 and truncated the whole
+  # command. A version check that kills the installer is strictly worse than no
+  # version check — it is the same fail-in-the-dangerous-direction defect this
+  # whole audit exists to close, committed by the guard against it.
+  raw="$(copilot --version 2>/dev/null | head -1 || true)"
+  # First dotted triple anywhere in the output; tolerant of "copilot version X" etc.
+  ver="$(printf '%s' "$raw" | tr -c '0-9.\n' ' ' | tr ' ' '\n' | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | head -1 || true)"
+  if [ -z "$ver" ]; then
+    note "could not parse a version from 'copilot --version' — floor unverified (need >= $COPILOT_FLOOR)"
+    return 0
+  fi
+  # Pure-sort comparison: the LOWEST of {ver, floor} equals floor  =>  ver >= floor.
+  local lowest
+  lowest="$(printf '%s\n%s\n' "$ver" "$COPILOT_FLOOR" | sort -V 2>/dev/null | head -1)" || lowest=""
+  if [ -z "$lowest" ]; then
+    note "no 'sort -V' available — Copilot version $ver not compared against $COPILOT_FLOOR"
+    return 0
+  fi
+  if [ "$ver" != "$COPILOT_FLOOR" ] && [ "$lowest" = "$ver" ]; then
+    warn "Copilot CLI $ver is BELOW $COPILOT_FLOOR — sub-agent tool calls are NOT hooked."
+    note "  A sub-agent can run Bash past every guardrail wired here, silently."
+    note "  Fix: update Copilot CLI. Source: github/copilot-cli changelog, 1.0.52."
+    return 0
+  fi
+  lowest="$(printf '%s\n%s\n' "$ver" "$COPILOT_RECOMMENDED" | sort -V | head -1)"
+  if [ "$ver" != "$COPILOT_RECOMMENDED" ] && [ "$lowest" = "$ver" ]; then
+    note "copilot $ver — meets the $COPILOT_FLOOR safety floor; $COPILOT_RECOMMENDED recommended (repo plugin settings can leak into global config below it)"
+  else
+    ok "copilot $ver — meets the $COPILOT_FLOOR safety floor"
+  fi
+}
+
 # wire_codex_skills <project> <plugin-name>
 #
 # Codex discovers skills from `.agents/skills` in EVERY directory from the cwd up
@@ -499,6 +568,11 @@ cmd_install() {
   n_core="$(wire_plugin_skills "$project" "ravenclaude-core")"
   ok "wired $n_core skills from ravenclaude-core into .claude/skills"
 
+  # 1a. Is the running Copilot new enough for the guardrails below to actually
+  #     fire? Checked BEFORE wiring, so the warning is the first thing seen rather
+  #     than the last line after a wall of successes (audit MH-23).
+  copilot_version_check
+
   # 1b. Point Copilot at the projected discipline. Without this the generated
   #     copilot/AGENTS.md is never loaded by any session (audit MH-09).
   wire_copilot_instructions "$project"
@@ -624,6 +698,7 @@ cmd_status() {
     fi
   fi
   [ -f "${COPILOT_HOME:-$HOME/.copilot}/mcp-config.json" ] && note "mcp:     ~/.copilot/mcp-config.json present" || note "mcp:     not configured"
+  copilot_version_check
   [ -d "$COPILOT_PKG" ] && note "package: $COPILOT_PKG" || note "package: MISSING — run 'ravenclaude update' to generate it"
 
   # Dashboard launcher check (v0.113.2): added because pre-v0.44.0 `ravenclaude

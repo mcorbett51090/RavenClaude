@@ -949,7 +949,37 @@ data model — the P0 fix is copy-by-copy prose without it.
 ---
 
 #### MH-23 · `codex-onboarding` is a Copilot/Cursor skill wearing a Codex name, and its entire evidence base is a dead `/tmp` path
-**Severity:** P1 · **Hosts:** OpenAI Codex CLI (and every host the skill claims) · **Reported by:** CX (P1-2, P1-3, P3-1), CWA (P2-1) · **Effort:** M · **Status:** `OPEN`
+**Severity:** P1 · **Hosts:** OpenAI Codex CLI (and every host the skill claims) · **Reported by:** CX (P1-2, P1-3, P3-1), CWA (P2-1) · **Effort:** M ·
+**Status:** ✅ **FIXED 2026-07-28** — renamed `external-agent-onboarding`, evidence base rebuilt
+
+> **Renamed** (owner decision: rename + migration note, over a deprecated stub). Skill count stays 50.
+> Every live reference updated; historical records in `docs/plans/**` and the CHANGELOG left as-is.
+>
+> **The version table was not merely unsourced — it was WRONG, and that is the finding.** Re-derived
+> verbatim from the changelog: the claimed *"preToolUse silent-allow regression fixed (1.0.59)"* and
+> *"diff-not-reported-to-ACP fixed (1.0.48)"* **appear nowhere in it**; the config-leak fix is
+> **1.0.57**, not 1.0.56. Rows that could not be re-sourced were **deleted, not re-dated**, and the
+> deletions are listed with their reasons so nobody restores them from memory.
+>
+> **The real floor is 1.0.52** — *"Hooks (preToolUse, postToolUse, subagentStart, subagentStop) now
+> fire correctly for sub-agent tool…"*. **Below it a sub-agent's tool calls are not hooked at all**, so
+> a subagent runs Bash past the tribunal, guard-destructive, the runaway brake and the layout gate —
+> silently, while `install` prints success.
+>
+> **That turned a doc fix into a build.** This is the *same silent-disarm shape as Codex hash-trust
+> (MH-17)*, on the flagship non-Claude host, and **nothing anywhere checked it** `[verified: zero
+> version references in the installer]`. `install`/`status` now run `copilot --version` and warn below
+> the floor. **Gate 157**, two must-fail halves.
+>
+> **And the guard had to be saved from itself.** Under `set -euo pipefail`, the first version's bare
+> `$(… | grep …)` **aborted `ravenclaude status`** on an unparseable version `[verified exit 1, output
+> truncated mid-run]` — the fail-in-the-dangerous-direction defect this audit exists to close,
+> committed by the guard against it. Every degradation path now warns and continues; the teeth half
+> strips the `|| true` and proves the abort returns.
+>
+> **A third bug, in the gate's own harness:** `cmd | grep -q` under `pipefail` reports a MATCH as a
+> FAILURE, because `grep -q` closes the pipe and the upstream command takes SIGPIPE. It made a working
+> guard look broken. Capture-then-grep now, with the trap written down beside it.
 
 **Evidence** `[verified]` — all line refs are `RC/skills/codex-onboarding/SKILL.md`
 - `:45-52` "Tool-version floors" table rows: **GitHub Copilot CLI, Cursor, Claude Code, Aider, Devin.
@@ -1500,8 +1530,8 @@ Severity says *how bad*. This order says *what to do first*. Three items unblock
 | 11 | ✅ **MH-08** — wire the shim | P0 | S | **DONE 2026-07-28.** Not as specified: the wrapper lifts `cwd`/`session_id` from **stdin**; no hook was modified and no `PLUGIN_ROOT` guard was needed (Codex supplies it). Gate 155. |
 | 12 | ✅ **MH-07** — `--host codex` installer | P0 | M | **DONE 2026-07-28** — 50 skills → `.agents/skills`, 12 hooks → `.codex/hooks.json`, verified end-to-end. Generator + glob deferred with cause (rows 3/4 above). |
 | 13 | ✅ **MH-17** — hash-trust docs + the re-trust line on update | P1 | S | **DONE 2026-07-28, in the same commit as MH-07 — exactly as this row required.** Four surfaces, incl. `update`, where the disarm actually happens. |
-| 14 | **MH-23** — split the onboarding skill; re-source or delete every version-floor row | P1 | M | Needs Wave 0 #3. |
-| 15 | **MH-31** — rename Gate 70 | P2 | S | Do it inside MH-23's commit — same confusion, same reader. |
+| 14 | ✅ **MH-23** — renamed to `external-agent-onboarding`; version rows re-sourced or deleted | P1 | M | **DONE 2026-07-28.** Grew a build: the floor was wrong AND unchecked, so `install`/`status` now enforce it (Gate 157). |
+| 15 | ✅ **MH-31** — relabel Gate 70 | P2 | S | **DONE 2026-07-28.** Labels + fixture header; filename kept (tribunal-denied `git mv`, logged to MH-42). |
 | 16 | ✅ **MH-16** — containment correction (part 1) **and** the `.codex/config.toml` emitter (part 2) | P1 | L | **Both shipped 2026-07-28.** Schema verified from the primary source before a line was written; the never-weaken rule was an owner decision; Gate 156 carries two must-fail halves. |
 
 ### Wave 3 — the surfaces (all now cheap because Wave 0 exists)
