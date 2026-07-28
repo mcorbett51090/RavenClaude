@@ -167,9 +167,30 @@ All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the 
     are documented as the only unattended-survival path.
   - **Backward compatible:** host auto-detection resolves *any* ambiguity to `copilot`, so an
     existing user who happens to have `codex` on PATH gets a byte-identical install to yesterday's.
-  - **Honest gaps, printed at install time rather than discovered later:** MCP (`.codex/config.toml`
-    `[mcp]`) is not wired, and neither is `sandbox_mode`/`approval_policy` — **a saved comfort-posture
-    does not bound a Codex session today** (MH-16 part 2). The generated agent projection is
+  - **The comfort posture now reaches Codex's OS sandbox** (MH-16 part 2). `emit-codex-config.py`
+    projects it onto `sandbox_mode` / `approval_policy` / `[sandbox_workspace_write] network_access`.
+    **The governing rule is one-directional: never silently weaken** — write when absent, tighten
+    freely, and *refuse* to loosen a hand-set value, printing the exact line to change. The rejected
+    alternative (mirror the posture both ways) would let a dashboard click silently widen a sandbox
+    somebody had deliberately locked down. `danger-full-access` and `approval_policy = "never"` are
+    never emitted at any posture. **Gate 156**, two must-fail halves.
+    - **Two caveats stated at install time, not buried:** the mapping is **coarse** (two enum keys
+      cannot express twelve categories), and a project `.codex/config.toml` **loads only in trusted
+      projects** — a second trust gate beside the hook hashing, so writing the file is not the same as
+      bounding the session.
+    - **A TOML placement bug caught in testing:** a root key appended below an existing `[table]`
+      becomes a member of that table — valid TOML, wrong meaning, invisible in a diff, and Codex would
+      have fallen back to its default sandbox while the tool reported success. Fixed with a placement
+      anchor, pinned by a must-fail half, and verified with an independent TOML parser rather than by
+      eye. No `tomllib` is used at all: it is stdlib only on 3.11+, and stock macOS ships 3.9.6.
+    - **A second bug, and the sharper lesson:** `network_access` is a TOML **boolean**, so writing it
+      quoted produced the *string* `"false"` — not what Codex expects. It shipped broken in the
+      **tighten** path (the security-relevant direction), and **Gate 156 was green while it was live**,
+      because the self-test never exercised a boolean tighten. A gate is only as good as the paths it
+      reaches. Now asserted both directions and confirmed by a parser reporting `type: bool`.
+  - **Honest gap, printed at install time rather than discovered later:** MCP (`.codex/config.toml`
+    `[mcp_servers.*]`) is not wired — a bad merge would clobber a hand-tuned config. The generated
+    agent projection is
     **deliberately deferred**: there is no verified Codex agent-file contract in this repo, and
     projecting 15 agents from a guessed schema is the same "don't guess at a contract" call made on
     the Copilot `tools:` gap.

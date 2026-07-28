@@ -164,8 +164,68 @@ configuration in which RavenClaude's guardrails survive an update unattended on 
    generalised from Copilot and is **wrong for Codex**; corrected in that file 2026-07-28 (MH-16
    part 1). *Provenance upgraded from `[inferred]` → `[docs-verified]` on 2026-07-28 by fetching the
    primary source, per the discipline below — the earlier marker was correct to withhold trust.*
-   **Still true and still the gap:** nothing in this repo writes `.codex/config.toml`
-   `[verified 2026-07-28]`, so a saved comfort-posture does not bound a Codex session (MH-16 part 2).
+   ~~**Still true and still the gap:** nothing in this repo writes `.codex/config.toml`.~~
+   ✅ **CLOSED 2026-07-28 (MH-16 part 2)** — see the next section.
+
+---
+
+## The sandbox posture emitter — and the rule that governs it (MH-16 part 2)
+
+`ravenclaude install --host codex` projects the comfort posture onto Codex's two real controls via
+`scripts/emit-codex-config.py`. Verified schema
+`[docs-verified 2026-07-28 — learn.chatgpt.com/docs/config-file/config-reference]`:
+
+| Key | Where | Values |
+|---|---|---|
+| `sandbox_mode` | **top-level** | `read-only` · `workspace-write` · `danger-full-access` |
+| `approval_policy` | **top-level** | `untrusted` · `on-request` · `never` · granular object |
+| `network_access` | `[sandbox_workspace_write]` | boolean |
+
+### The governing rule: NEVER SILENTLY WEAKEN (owner decision)
+
+- absent → **write it**
+- posture stricter → **tighten it**
+- posture looser → **REFUSE**, printing the exact line to change by hand
+
+The failure direction is always toward safety, and a tightening is trivially reversible. Mirroring the
+posture in both directions was the rejected alternative: it would let a saved dashboard click silently
+widen a sandbox somebody had deliberately locked down, with no warning to the person who locked it.
+
+**`danger-full-access` and `approval_policy = "never"` are never emitted at any posture.** There is no
+posture that means "turn the OS boundary off"; anyone who wants that can type it and own it.
+
+### Three honesty caveats, all stated at install time
+
+1. **It is COARSE.** Two enum keys cannot express twelve posture categories. This is a projection, not
+   the parity the Claude lane has — and claiming otherwise would be the same false assurance the
+   Pipeline tab used to give (MH-04).
+2. **Layer aggregation takes the STRICTEST level**, not the permission engine's real layering. A
+   deliberate simplification: for an OS sandbox it is the only aggregation that cannot produce a
+   too-permissive boundary.
+3. **A project `.codex/config.toml` loads ONLY IN TRUSTED PROJECTS** `[docs-verified]` — a second trust
+   gate beside MH-17's hook hashing. **Writing the file is not the same as bounding the session**, and
+   the tool must never imply it is.
+
+### Two engineering notes worth keeping
+
+- **No `tomllib`.** It is stdlib only on Python 3.11+; stock macOS ships **3.9.6** `[verified this
+  session]`, and this repo has already paid for stock-macOS portability three times over. The reader is
+  a tiny line scanner that **refuses on anything it cannot confidently parse** rather than guessing — a
+  misparse here silently weakens an OS boundary.
+- **Root keys must be written ABOVE the first `[table]`.** In TOML every key belongs to the most recent
+  table, so appending `sandbox_mode` to the end of a file containing `[mcp_servers.github]` sets
+  `mcp_servers.github.sandbox_mode` — valid TOML, wrong meaning, invisible in a diff, and Codex would
+  fall back to its default while the tool reported success. Caught in testing; **Gate 156 carries a
+  must-fail half for it**, and the emitted output was verified with an independent TOML parser.
+- **`network_access` is a BOOLEAN, and quoting it silently breaks it.** `network_access = "false"` is
+  the TOML *string* `"false"`, not the boolean Codex expects. This shipped broken first in the
+  **tighten** path — i.e. the security-relevant direction produced the malformed value — and
+  **Gate 156 was GREEN while it was live**, because the self-test never exercised a boolean tighten.
+  A gate is only as good as the paths it reaches; the case is now asserted in both directions and
+  confirmed with a real parser (`type: bool`), not by reading the file.
+
+**Still not wired:** MCP servers (`[mcp_servers.*]`). A bad merge would clobber a hand-tuned config,
+and that surface is not yet worth the risk.
 
 ---
 

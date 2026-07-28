@@ -2005,10 +2005,45 @@ and inside the generated `.codex/hooks.json`. **`--dangerously-bypass-hook-trust
 refuse it** — it converts an honest "your guardrails are off" into a dishonest "your guardrails are
 on". `requirements.toml` **managed hooks** are the only unattended-survival configuration.
 
+**The comfort posture reaches Codex's OS sandbox (MH-16 part 2, same release).**
+`scripts/emit-codex-config.py` projects it onto the two controls Codex actually has — `sandbox_mode`
+and `approval_policy`, plus `[sandbox_workspace_write] network_access`. **The governing rule is
+one-directional and was an owner decision: NEVER SILENTLY WEAKEN.** Write when absent, **tighten**
+freely, and **refuse** to loosen a hand-set value — printing the exact line to change by hand. The
+rejected alternative (mirror the posture in both directions) would let one saved dashboard click
+silently widen a sandbox somebody had deliberately locked down, with no warning to the person who
+locked it. **`danger-full-access` and `approval_policy = "never"` are never emitted at any posture** —
+there is no posture that means "turn the OS boundary off". Proven by **Gate 156** with two must-fail
+halves.
+
+Three honesty caveats ship *in the installer's output*, not buried in a doc: the mapping is **coarse**
+(two enum keys cannot express twelve categories — claiming parity would be MH-04's false assurance
+again); layer aggregation takes the **strictest** level rather than reproducing the permission engine's
+layering, because for an OS sandbox that is the only aggregation that cannot produce a too-permissive
+boundary; and **a project `.codex/config.toml` loads ONLY IN TRUSTED PROJECTS** `[docs-verified]` — a
+*second* trust gate beside MH-17's hook hashing, so **writing the file is not the same as bounding the
+session.**
+
+> **Two engineering notes worth keeping.** `tomllib` is stdlib only on Python **3.11+** and stock macOS
+> ships **3.9.6** `[verified]`, so the reader is a tiny line scanner that **refuses on anything it
+> cannot confidently parse** rather than guessing — a misparse here silently weakens an OS boundary.
+> And **root keys must be written ABOVE the first `[table]`**: in TOML every key belongs to the most
+> recent table, so appending `sandbox_mode` to the end of a file containing `[mcp_servers.github]` sets
+> `mcp_servers.github.sandbox_mode` — valid TOML, wrong meaning, invisible in a diff, and Codex would
+> fall back to its default while the tool reported success. Caught in testing against a realistic
+> config, pinned by a must-fail half, and the output verified with an **independent TOML parser**
+> rather than by eye.
+>
+> **And one more, which is the sharper lesson:** `network_access` is a TOML **boolean**, so writing it
+> quoted yields the *string* `"false"` — not the boolean Codex expects. That shipped broken first in
+> the **tighten** path (the security-relevant direction), and **Gate 156 was GREEN while the bug was
+> live**, because the self-test never exercised a boolean tighten. *A gate is only as good as the paths
+> it reaches.* Now asserted in both directions and confirmed by a real parser reporting `type: bool`,
+> not by reading the file and believing it.
+
 **Deliberately deferred, with reasons recorded rather than left as silent gaps** — and the installer
-**prints them at install time**: MCP (`.codex/config.toml` `[mcp]`; a bad TOML merge would clobber a
-hand-tuned config), `sandbox_mode`/`approval_policy` (**a saved comfort-posture does not bound a Codex
-session today** — MH-16 part 2), and the generated agent projection + its `plugins/*/codex/**` layout
+**prints them at install time**: MCP (`.codex/config.toml` `[mcp_servers.*]`; a bad TOML merge would
+clobber a hand-tuned config), and the generated agent projection + its `plugins/*/codex/**` layout
 glob. The projection is deferred because **there is no verified Codex agent-file contract in this
 repo**; projecting 15 agents from a guessed schema is the same "don't guess at a contract" call made
 on the Copilot `tools:` gap, and an unused layout glob would silently pre-authorize an unreviewed

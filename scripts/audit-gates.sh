@@ -342,6 +342,11 @@ PY
       bash plugins/ravenclaude-core/hooks/tests/test-gate155-codex-hook-env.sh
       exit $?
       ;;
+    156)
+      echo "── Gate 156: Codex sandbox posture emitter (per-gate run) ────────────────"
+      python3 scripts/emit-codex-config.py --self-test
+      exit $?
+      ;;
     144)
       echo "── Gate 144: Prompt Builder render + XSS floor (per-gate run) ────────────"
       node scripts/check-prompt-builder-render.mjs plugins/ravenclaude-core/dashboard.html
@@ -423,7 +428,7 @@ PY
       ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -5113,6 +5118,37 @@ echo "── Gate 155: Codex env shim — stdin/exit-code/blanks-only invariants
 # REAL shim against recording stubs and carries two must-fail halves.
 rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate155-codex-hook-env.sh >/dev/null 2>&1 || rc=$?
 gate "codex-hook-env: stdin passthrough + blanks-only + exit-code propagation (+ teeth)" must_pass "$rc"
+
+echo
+echo "── Gate 156: Codex sandbox posture emitter — NEVER silently weakens ──────"
+# MH-16 part 2. emit-codex-config.py projects the comfort posture onto Codex's two
+# real controls (sandbox_mode / approval_policy). It writes an OS SANDBOX config,
+# so the governing rule is one-directional: write when absent, TIGHTEN freely,
+# REFUSE to loosen a hand-set value. A regression here does not fail loudly — it
+# silently widens a boundary somebody deliberately locked down.
+rc=0; python3 scripts/emit-codex-config.py --self-test >/dev/null 2>&1 || rc=$?
+gate "emit-codex-config --self-test (never-weaken, tighten, no-leak, idempotent)" must_pass "$rc"
+
+# must_fail #1 — TEETH on the governing rule. Neuter the loosen check so the
+# emitter mirrors the posture in both directions, then assert the self-test
+# catches it. Without this, "never weakens" is an assertion nobody has seen fail.
+CDX_MUT="$TMP/emit-codex-mutant.py"
+sed 's/^    if ranks\[want\] >= cur_rank:$/    if True:/' scripts/emit-codex-config.py >"$CDX_MUT"
+if ! grep -q '^    if True:$' "$CDX_MUT"; then
+  _skip_or_fail "emit-codex-config teeth: could not build the loosen-allowing mutant"
+else
+  rc=0; python3 "$CDX_MUT" --self-test >/dev/null 2>&1 || rc=$?
+  gate "emit-codex-config teeth: a mutant that loosens is caught" must_fail "$rc"
+fi
+
+# must_fail #2 — TEETH on the TOML placement bug this gate was written after.
+# Appending a root key below an existing [table] makes it a member of that table:
+# valid TOML, wrong meaning, invisible in a diff, and Codex would silently fall
+# back to its default sandbox while the tool reported success.
+CDX_MUT2="$TMP/emit-codex-mutant2.py"
+sed 's/^    if appended_root:$/    if False:/' scripts/emit-codex-config.py >"$CDX_MUT2"
+rc=0; python3 "$CDX_MUT2" --self-test >/dev/null 2>&1 || rc=$?
+gate "emit-codex-config teeth: dropping the root-key anchor is caught" must_fail "$rc"
 
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"

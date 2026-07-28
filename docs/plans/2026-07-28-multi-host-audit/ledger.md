@@ -660,7 +660,38 @@ MCP support, and the mapping section — *"the exact analytical work Copilot got
 
 #### MH-16 · Codex's trust/approval model does not map, and RavenClaude's containment guidance is *wrong* for Codex
 **Severity:** P1 · **Hosts:** OpenAI Codex CLI · **Reported by:** CX (P1-4) · **Effort:** L ·
-**Status:** ✅ **PART 1 FIXED 2026-07-28** · part 2 (`.codex/config.toml` emitter, L) `OPEN`
+**Status:** ✅ **FULLY FIXED 2026-07-28** — part 1 (containment correction) + part 2 (the emitter)
+
+> **Part 2 shipped:** `scripts/emit-codex-config.py`, wired into `install --host codex`, projecting the
+> posture onto `sandbox_mode` / `approval_policy` / `[sandbox_workspace_write] network_access`.
+> **Gate 156** with two must-fail halves.
+>
+> **The owner ruled on the governing question — never silently weaken.** Write when absent, tighten
+> freely, *refuse* to loosen a hand-set value and print the exact line to change. The rejected
+> alternative (mirror the posture both ways) would let a dashboard click silently widen a sandbox
+> somebody had deliberately locked down. `danger-full-access` and `approval_policy = "never"` are
+> never emitted at any posture.
+>
+> **Two things the build caught that the ledger's one-line remedy could not have:**
+> 1. **A project `.codex/config.toml` loads ONLY IN TRUSTED PROJECTS** `[docs-verified]` — a *second*
+>    trust gate beside MH-17's hook hashing. So the emitter's honest claim is bounded: writing the file
+>    is not the same as bounding the session, and the installer says exactly that.
+> 2. **A root key appended below an existing `[table]` becomes a member of that table.** Valid TOML,
+>    wrong meaning, invisible in a diff — Codex would silently fall back to its default sandbox while
+>    the tool reported success. Found in testing against a realistic config carrying `[mcp_servers.*]`;
+>    fixed with a placement anchor, pinned by a must-fail half, and the output verified with an
+>    independent TOML parser rather than by eye.
+> 3. **`network_access` is a TOML boolean; writing it quoted yields the string `"false"`.** Broken
+>    first in the **tighten** path — the security-relevant direction — and **Gate 156 was GREEN while
+>    the bug was live**, because the self-test never exercised a boolean tighten. This is the session's
+>    third instance of a passing gate over a real defect, and the through-line is the same each time:
+>    *a gate is only as good as the paths it reaches, and a fixture that agrees with the code it guards
+>    proves nothing.*
+>
+> **Stated honestly, at install time:** the mapping is COARSE (two enum keys cannot express twelve
+> categories — claiming parity would be MH-04's false assurance again), and layer aggregation takes the
+> **strictest** level rather than reproducing the permission engine's layering, because for an OS
+> sandbox that is the only aggregation that cannot produce a too-permissive boundary.
 
 > **Part 1 landed — and the claim was verified from the primary source before it was written, not taken
 > from this ledger.** `knowledge/codex-cli-customization.md` had marked the sandbox model `[inferred]` with
@@ -1471,7 +1502,7 @@ Severity says *how bad*. This order says *what to do first*. Three items unblock
 | 13 | ✅ **MH-17** — hash-trust docs + the re-trust line on update | P1 | S | **DONE 2026-07-28, in the same commit as MH-07 — exactly as this row required.** Four surfaces, incl. `update`, where the disarm actually happens. |
 | 14 | **MH-23** — split the onboarding skill; re-source or delete every version-floor row | P1 | M | Needs Wave 0 #3. |
 | 15 | **MH-31** — rename Gate 70 | P2 | S | Do it inside MH-23's commit — same confusion, same reader. |
-| 16 | ✅ **MH-16 part 1** (done) → **part 2**, the `.codex/config.toml` emitter (open) | P1 | L | Part 1 shipped 2026-07-28, verified from the primary source first. **Part 2 is now the top open Codex item** — and the installer states plainly at install time that a saved posture does not bound a Codex session. |
+| 16 | ✅ **MH-16** — containment correction (part 1) **and** the `.codex/config.toml` emitter (part 2) | P1 | L | **Both shipped 2026-07-28.** Schema verified from the primary source before a line was written; the never-weaken rule was an owner decision; Gate 156 carries two must-fail halves. |
 
 ### Wave 3 — the surfaces (all now cheap because Wave 0 exists)
 

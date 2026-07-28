@@ -462,12 +462,25 @@ cmd_install() {
     # unlike Copilot (MH-09) no instruction-pointer file is needed here.
     note "AGENTS.md is read natively by Codex from the repo root — no pointer needed."
 
-    # HONEST GAPS, stated at install time rather than discovered later:
+    # Sandbox posture (MH-16 part 2). Projects the comfort posture onto Codex's
+    # two real controls. NEVER silently weakens an existing value, and never emits
+    # danger-full-access / approval_policy = "never" at any posture.
+    local emitter="$MARKET/scripts/emit-codex-config.py"
+    if [ -f "$emitter" ] && [ -f "$project/.ravenclaude/comfort-posture.yaml" ]; then
+      python3 "$emitter" --project "$project" || true
+      ok "projected the comfort posture onto .codex/config.toml"
+      note "COARSE BY DESIGN: two enum keys cannot express 12 posture categories."
+      note "  Codex's OS sandbox (default-on, workspace-write) is your real boundary."
+      note "  A project .codex/config.toml loads ONLY IN TRUSTED PROJECTS — like the"
+      note "  hooks above, writing the file is not the same as bounding the session."
+    else
+      note "NOT wired: sandbox_mode / approval_policy — no comfort-posture.yaml here."
+      note "  Run 'ravenclaude setup' to seed one, or set the two keys by hand."
+    fi
+
+    # HONEST GAP, stated at install time rather than discovered later:
     note "NOT wired: MCP servers (.codex/config.toml [mcp]) — the TOML merge is not"
     note "  built yet; a bad merge would clobber a hand-tuned config. Add by hand."
-    note "NOT wired: sandbox_mode / approval_policy. A saved comfort-posture does"
-    note "  NOT bound a Codex session today (audit MH-16 part 2) — Codex's own OS"
-    note "  sandbox is default-on at workspace-write and IS your real boundary."
 
     wire_dashboard_launchers "$project"
     codex_retrust_notice "$project"
@@ -598,6 +611,16 @@ cmd_status() {
       note "codex:   $(codex_hook_count "$project/.codex/hooks.json") hooks in .codex/hooks.json — run /hooks in Codex to confirm they are TRUSTED"
     else
       note "codex:   hooks not wired (.codex/hooks.json absent)"
+    fi
+    # The sandbox is the boundary that actually bounds a Codex session, so status
+    # reports the live values rather than only what we wired. Read with the same
+    # top-level-key discipline the emitter uses (a key under a [table] is NOT it).
+    if [ -f "$project/.codex/config.toml" ]; then
+      local _sb; _sb="$(awk -F= '/^[[:space:]]*\[/{t=1} !t && /^[[:space:]]*sandbox_mode[[:space:]]*=/{print $2; exit}' "$project/.codex/config.toml" | tr -d ' "')"
+      local _ap; _ap="$(awk -F= '/^[[:space:]]*\[/{t=1} !t && /^[[:space:]]*approval_policy[[:space:]]*=/{print $2; exit}' "$project/.codex/config.toml" | tr -d ' "')"
+      note "codex:   sandbox ${_sb:-<unset>} · approval ${_ap:-<unset>} (loads only in TRUSTED projects)"
+    else
+      note "codex:   no .codex/config.toml — Codex's own default sandbox (workspace-write) applies"
     fi
   fi
   [ -f "${COPILOT_HOME:-$HOME/.copilot}/mcp-config.json" ] && note "mcp:     ~/.copilot/mcp-config.json present" || note "mcp:     not configured"
