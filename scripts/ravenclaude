@@ -39,16 +39,50 @@ note() { printf '  %s\n' "$*"; }
 ok()   { printf '\033[32m✓\033[0m %s\n' "$*"; }
 warn() { printf '\033[33m!\033[0m %s\n' "$*" >&2; }
 
-# Append the one-word `rc` launch alias (update + launch Copilot live) to ~/.bashrc.
-# Idempotent: skips if a matching alias line is already present.
+# Install the one-word `rc` launcher into ~/.bashrc — as a FUNCTION, not an alias.
+#
+# THE COLLISION THIS FIXES (multi-host audit MH-11, a P0).
+# This used to write `alias rc='… ravenclaude update && copilot --plugin-dir …'`,
+# which SQUATTED on the name of the real front-door dispatcher at
+# plugins/ravenclaude-core/bin/rc — the one that owns `rc dashboard`, `rc streams`
+# and `rc converge`. With the alias active, the dashboard's own self-repair
+# instruction — "open it via `rc dashboard`", the ONLY thing several empty states
+# tell you to run — expanded to:
+#
+#     … ravenclaude update && copilot --plugin-dir … dashboard
+#
+# i.e. an update, then Copilot launched with a stray `dashboard` argument. The
+# dashboard never opened. Worse, it misfired for precisely the users who ran the
+# Copilot installer — the flagship non-Claude host, and the audience least able to
+# tell that the instruction was wrong rather than the server being down.
+#
+# A function preserves BOTH documented behaviours instead of picking a winner:
+#   `rc`            → update + launch Copilot live   (the one-word launcher)
+#   `rc <verb> …`   → the real bin/rc dispatcher     (dashboard / streams / …)
+# No rename, so nothing a user has already learned stops working.
 add_rc_alias() {
   local bashrc="$HOME/.bashrc"
-  local line="alias rc='$MARKET/scripts/ravenclaude update && copilot --plugin-dir $COPILOT_PKG'"
-  if [ -f "$bashrc" ] && grep -qF 'scripts/ravenclaude update && copilot --plugin-dir' "$bashrc"; then
-    note "rc alias already in ~/.bashrc"
+  local marker='# RavenClaude — rc launcher (added by ravenclaude setup)'
+  if [ -f "$bashrc" ] && grep -qF 'RavenClaude — rc launcher' "$bashrc"; then
+    note "rc launcher already in ~/.bashrc"
   else
-    printf '\n# RavenClaude — launch Copilot with the live plugin (added by ravenclaude setup)\n%s\n' "$line" >> "$bashrc"
-    ok "added 'rc' alias to ~/.bashrc (run: source ~/.bashrc, then 'rc')"
+    if [ -f "$bashrc" ] && grep -qF 'scripts/ravenclaude update && copilot --plugin-dir' "$bashrc"; then
+      warn "an older 'alias rc=…' is present in ~/.bashrc — it SHADOWS 'rc dashboard'."
+      warn "Remove that line, then re-run; the function below supersedes it."
+    fi
+    {
+      printf '\n%s\n' "$marker"
+      printf 'rc() {\n'
+      printf '  if [ "$#" -gt 0 ]; then\n'
+      printf '    # any verb goes to the real front-door dispatcher (rc dashboard, rc streams…)\n'
+      printf '    command bash "%s/plugins/ravenclaude-core/bin/rc" "$@"\n' "$MARKET"
+      printf '  else\n'
+      printf '    # bare `rc` keeps the one-word "update and launch Copilot" behaviour\n'
+      printf '    "%s/scripts/ravenclaude" update && copilot --plugin-dir "%s"\n' "$MARKET" "$COPILOT_PKG"
+      printf '  fi\n'
+      printf '}\n'
+    } >>"$bashrc"
+    ok "added 'rc' function to ~/.bashrc — bare 'rc' launches Copilot, 'rc dashboard' opens the dashboard"
   fi
 }
 
