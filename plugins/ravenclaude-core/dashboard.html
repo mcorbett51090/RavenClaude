@@ -4312,7 +4312,8 @@ footer.page-footer a:hover { text-decoration: underline; }
 </style>
 <div class="pipeline-tab">
   <h2>Guardrail pipeline</h2>
-  <p class="page-desc">Everything an AI agent passes through, top to bottom. Each box shows whether it's on right now, what it does (in plain words), the step-by-step of how it works, and the knobs you can turn. Changes save to your <code>.ravenclaude/comfort-posture.yaml</code>.</p>
+  <p class="page-desc">Everything an AI agent passes through, top to bottom. Each box shows whether it's on right now, what it does (in plain words), the step-by-step of how it works, and the knobs you can turn. Changes save to your <code>.ravenclaude/comfort-posture.yaml</code>.
+  IMPORTANT — these guardrails fire under Claude Code and GitHub Copilot CLI, and nowhere else yet. &ldquo;Always on&rdquo; below means &ldquo;not a knob you can switch off&rdquo;; it does NOT mean every host runs it. Under any other CLI (Codex, Cursor, Gemini, Aider, Windsurf) nothing here wires itself, so none of it fires — the stages are shown for reference, not as protection you currently have.</p>
   <div class="pipe-flow" role="img" aria-label="Flow: session starts, then before-each-step and after-each-step checkpoints loop for every command, then a final check when it tries to stop.">
     <span class="pipe-flow-step">Session starts</span>
     <span class="pipe-flow-arr">→</span>

@@ -585,6 +585,30 @@ def _render_activity_tab() -> str:
 # keeps the map honest against hooks.json; a shipped hook missing from BOTH lists
 # (the exact live-drift bug that hid `delegation-nudge`/`guard-web-access`) fails
 # the build.
+# Which hosts can actually FIRE the hooks drawn on the Pipeline tab (audit MH-04).
+#
+# The tab renders every stage with an "Always on" badge. That badge is about
+# CONFIGURABILITY — it means "not a knob you can turn off" — but with no host
+# qualification anywhere on the panel it reads as "this guardrail is protecting
+# you", full stop. On a host where no hook can fire, that is a false assurance
+# about a safety surface, and it is the same failure as Heimdall's "quiet"
+# (MH-05): the panel asserting a protective state it has no basis for.
+#
+# DERIVED, not asserted — this is the set of hosts something actually wires:
+#   claude-code — reads hooks/hooks.json natively.
+#   copilot     — .github/hooks, wired by `ravenclaude install`, translated by
+#                 hooks/copilot-hook-adapter.sh.
+#   codex       — the env alias exists (_rc_host_env in hooks/_portable.sh) but
+#                 `scripts/ravenclaude` has NO Codex install path, so nothing
+#                 wires the hooks and none of them fire. NOT hook-capable yet.
+#   cursor / gemini / aider / windsurf — no adapter of any kind.
+#
+# WHEN A HOST GAINS AN INSTALL PATH, ADD IT HERE. This is deliberately ONE list
+# rather than a per-stage annotation: every stage below fires through the same
+# two mechanisms, so per-stage host lists would be 20 copies of one fact, all
+# free to rot independently the next time a hook is added.
+_HOOK_CAPABLE_HOSTS = ("Claude Code", "GitHub Copilot CLI")
+
 _PIPELINE_LANES = [
     {
         "event": "SessionStart",
@@ -1145,6 +1169,9 @@ _PIPELINE_CSS = """<style>
 def _render_pipeline_tab() -> str:
     """Render the Pipeline tab — the all-events guardrail flow with live state,
     5th-grade tooltips, and inline editors. JS (in _JS) hydrates it on open."""
+    # Rendered from the single _HOOK_CAPABLE_HOSTS list so the host scope stated
+    # on the page cannot drift from the list a maintainer updates.
+    _hook_hosts_text = html.escape(" and ".join(_HOOK_CAPABLE_HOSTS))
     lanes_html = []
     for lane in _PIPELINE_LANES:
         cards = []
@@ -1210,7 +1237,8 @@ def _render_pipeline_tab() -> str:
     return f"""{_PIPELINE_CSS}
 <div class="pipeline-tab">
   <h2>Guardrail pipeline</h2>
-  <p class="page-desc">Everything an AI agent passes through, top to bottom. Each box shows whether it's on right now, what it does (in plain words), the step-by-step of how it works, and the knobs you can turn. Changes save to your <code>.ravenclaude/comfort-posture.yaml</code>.</p>
+  <p class="page-desc">Everything an AI agent passes through, top to bottom. Each box shows whether it's on right now, what it does (in plain words), the step-by-step of how it works, and the knobs you can turn. Changes save to your <code>.ravenclaude/comfort-posture.yaml</code>.
+  IMPORTANT — these guardrails fire under {_hook_hosts_text}, and nowhere else yet. &ldquo;Always on&rdquo; below means &ldquo;not a knob you can switch off&rdquo;; it does NOT mean every host runs it. Under any other CLI (Codex, Cursor, Gemini, Aider, Windsurf) nothing here wires itself, so none of it fires — the stages are shown for reference, not as protection you currently have.</p>
   <div class="pipe-flow" role="img" aria-label="Flow: session starts, then before-each-step and after-each-step checkpoints loop for every command, then a final check when it tries to stop.">
     <span class="pipe-flow-step">Session starts</span>
     <span class="pipe-flow-arr">→</span>
