@@ -90,6 +90,15 @@ bash "$(find . "$HOME" /workspaces -path '*ravenclaude-core/bin/rc' 2>/dev/null 
   a **real browser tab** (not VS Code Simple Browser/Live Preview, which blocks it)
   and to keep the forwarded port **Private** — `/__save` writes files.
 - Stop it with Ctrl+C (or by ending the session).
+- **"Where is the Prompt Builder?"** — it is a **tab inside this dashboard**
+  (`#/prompt-builder`, first item under **Control**), not a CLI surface. Nothing in
+  a terminal session renders it, so launch the dashboard as above and open that
+  route; do not go hunting for a command or a file. Same for the posture editor
+  (**Control → The Thing**) and the guardrail logs (**Guardrails**).
+- The user can have it come up on its own: setting `dashboard_autostart: open`
+  (or `serve`) in `.ravenclaude/comfort-posture.yaml` starts it at session start.
+  It is **off unless set** — nothing auto-launches a dashboard by default outside a
+  Codespace, so "it didn't open by itself" is expected until they opt in.
 """
 
 # Self-gating "Relay mode" directive appended to copilot/AGENTS.md. Copilot reads

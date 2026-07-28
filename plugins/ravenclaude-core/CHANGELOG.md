@@ -2,6 +2,132 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.216.0 — 2026-07-28
+
+### Added
+
+- **`dashboard_autostart: off | serve | open` — the dashboard can now come up on its own at
+  session start.** The only auto-launch RavenClaude ever shipped was the Codespace devcontainer
+  (`postStartCommand` + `portsAttributes.onAutoForward: openBrowser`); on a local/desktop machine
+  **nothing** started the dashboard at session start, so "it didn't open automatically" was
+  correct-by-design and completely undiscoverable. New `SessionStart` hook
+  `hooks/dashboard-autostart.sh` reads the knob from `.ravenclaude/comfort-posture.yaml` —
+  `serve` starts the local server headless, `open` also opens a browser tab. **Opt-in;
+  absent ⇒ off**, and it no-ops after a single `grep` for everyone who hasn't set it, so an
+  update changes nothing until you opt in. **It never duplicates:** it probes
+  `127.0.0.1:<port>/__csrf` first and stands down if a dashboard already answers there, so
+  concurrent sessions in one project can't each spawn a server and steal focus with a new tab.
+  **Honest limit:** that probe answers "is a dashboard live on this port?", not "is it *this*
+  project's dashboard" — if another project holds the port, the hook stands down rather than
+  starting a competing one. Fail-safe (EXIT trap armed first; always exits 0 — a SessionStart
+  hook cannot block, and a dashboard that fails to launch must never be why a session doesn't
+  start), and bash-3.2/BSD-clean per the macOS-door milestones. **Gate 151**
+  (`hooks/tests/test-gate151-dashboard-autostart.sh`) drives the real hook against a recording
+  stub launcher: 5 must-not-launch cases (no posture / `off` / key absent / already-live /
+  an unrecognised value), 2 must-launch cases asserting `--no-open` is present for `serve` and
+  absent for `open`, every case exits 0, plus a teeth half that neuters the mode gate and proves
+  `off` then launches. The key is also wired into the dashboard's `state`/`emitYaml`/
+  `applyGuardrailConfig` (covered by Gate 35) — **not** cosmetic: `emitYaml` rebuilds the whole
+  posture file from `state`, so a key with no state slot is silently **deleted** on the next
+  Save & apply (the v0.61.0 data-loss class). No DOM control ships with it — Gate 132's budget is
+  at zero slack and a visible toggle costs an owner-approved ratchet raise.
+
+### Changed
+
+- **The portal is now on-brand with the RavenPower commerce site — the teal secondary accent is
+  retired.** `dashboard.html` already matched the site *exactly* (canvas `#07080a`, panel `#0c0e12`,
+  accent `#56D08A`, hover `#6EE0A1`, text `#f5f7fa`, muted `#9aa3b2` — 6/6 byte-identical, with both
+  Inter/Space Grotesk and both motion easings already shared). `index.html` was the one surface off
+  brand: it aliased its accent to `--rc-teal` (`#3aa391`). Its five `--teal*` variables now resolve to
+  the green tokens — a **repoint, not a rename**, so all ~20 usage rules are unchanged and none could
+  be missed. Teal was verified purely decorative on that surface (links, nav-active, brand mark, hero
+  hairline, chips, buttons) — no semantic distinction was collapsed.
+- **Radii pulled to the site's sharper scale** — `--rc-radius-sm` → `4px` and `--rc-radius-lg` → `10px`
+  now match the commerce `--radius` / `--radius-lg` exactly (dashboard was `8px`/`12px`), with the
+  intermediate steps tightened in proportion. This was the widest measured drift once the palette was
+  confirmed identical, and it is most of why the site reads crisp rather than soft. A 5-step scale is
+  kept (the site ships 2) because an admin surface has more component sizes than a marketing page.
+- **The commerce per-discipline tints are now tokens** — `--rc-tint-pp` (lavender), `--rc-tint-bi`
+  (teal-mint), `--rc-tint-web` (copper), plus `--rc-tint-ai` aliased to the accent. Declared only;
+  wiring them to plugin categories is deliberately a separate step.
+- **Deliberately NOT adopted: the site's spatial rhythm** (`--container`, `--gutter`,
+  `--section-y: clamp(80px, 12vw, 140px)`). That is marketing-page rhythm; applying it to a
+  6,114-element admin surface would multiply scroll length on the posture editor and run feeds and
+  partly reverse the v0.208.0 density re-cut. Owner-ratified: adopt the site's *proportions*, keep the
+  dashboard's density.
+- **Every change here is CSS/token-only, so Gate 132's DOM budget did not move** (6,114 / 7,000
+  unchanged) and no concept SVG re-render was triggered — the palette was already identical, so the
+  Mermaid→token normalizer is untouched.
+
+### Fixed
+
+- **Two accessibility defects surfaced and fixed by the accent unification** — one pre-existing, one
+  that would have been introduced:
+  - **Pre-existing:** the portal's primary button was `color: #fff` on teal — **3.08:1, already failing
+    WCAG AA** before this change. Now `var(--bg)` ink on green: **10.29:1 dark / 4.98:1 light**.
+  - **Nearly introduced:** mapping `--teal-2` to `--rc-accent-2` measured **4.04:1 on the light
+    canvas** — a regression for every inline link, since `--teal-2` is body-size *text* on that surface
+    (links, nav-active, eyebrows, chips). `--rc-accent-2` is documented as "AA-large / UI" only. It maps
+    to `--rc-accent` instead: **10.29:1 dark / 4.98:1 light** — also an improvement on the teal it
+    replaces, which was itself a marginal 4.45:1.
+  - The site hardcodes `color: #000` on its accent; we deliberately use `var(--bg)` instead, because the
+    site has no light theme and `#000` on the light green measures **3.9:1**. Mimic the intent, not the
+    literal value.
+  - **The focus ring collapsed to one colour.** Two rings existed because the system had two accents;
+    `--rc-focus-ring` was still teal in both themes and would have been the only teal left rendering.
+- **The Prompt Builder was homed under a different destination on each surface, so the portal
+  hid it.** v0.214.0 moved the nav link "Learn & Help" → **Control** on the standalone
+  `dashboard.html`, but the portal (`index.html`) was never moved with it: `DASH_OWNER` still
+  mapped `prompt-builder` → `catalog`, and the clickable link lived in the Catalog accordion —
+  which `renderNav` only emits when Catalog is the **active** nav item. So on the portal the
+  Prompt Builder was invisible until you first clicked Catalog, and it was absent from Control
+  where the release notes said to look. Fixed by homing it under `control` on the portal too,
+  first in the sub-nav (above The Thing), matching the standalone's slot exactly.
+- **Gate 144 could not see the skew — it asserted presence, not placement.** The portal half of
+  `scripts/check-prompt-builder-render.mjs` only checked that `DASH_OWNER` had *some* entry for
+  `prompt-builder` and that *some* `href="#/prompt-builder"` existed anywhere in the file; both
+  were true throughout the regression, so CI stayed green across v0.214.0 and v0.215.1. The gate
+  now **derives** the home destination from the folded standalone `ds-nav` chrome (present on both
+  surfaces, so it is a single source of truth rather than a hardcoded expectation) and asserts the
+  portal's `DASH_OWNER` **and** the destination's own sub-nav branch both agree with it. Two new
+  must-fail halves verified: regressing `DASH_OWNER` back to `catalog` and moving the link out of
+  the Control branch each fail the gate (exit 1). **Migration:** none — no storage-key or route
+  change; `#/prompt-builder` resolved before and resolves now.
+- **`scripts/render-concepts.py` could not render on a host where puppeteer fails to resolve its own
+  browser — which is every concept diagram, and the post-merge `regenerate-artifacts.yml` self-heal.**
+  mermaid-cli drives puppeteer-core, which locates Chrome itself; that resolution can fail even when the
+  browser is correctly installed (reproduced 2026-07-28 on macOS/arm64: Chrome 148.0.7778.97 present and
+  complete at 353 MB, yet every render died with `Could not find Chrome (ver. 148.0.7778.97)`). The script
+  passed no `env=` to `subprocess.run`, so there was no way to correct it short of exporting a variable by
+  hand. It now discovers a Puppeteer-managed Chrome and supplies `PUPPETEER_EXECUTABLE_PATH` — but only as
+  a **repair**, never as the default path:
+  - **Attempt 1 is byte-for-byte the historical invocation** (puppeteer's own resolution, `env` inherited).
+    Only if that fails does the fallback engage, and the chosen executable is then cached for the rest of
+    the run so the remaining diagrams don't each pay a doomed first attempt. **This ordering is
+    load-bearing:** committed SVGs are byte-compared and text metrics move with the browser build — the
+    same 2-node diagram rendered 12,520 bytes under Chrome 148 and 12,453 under 151 in testing, so
+    substituting a different engine on a host that already worked would silently churn every committed SVG.
+  - **An operator-set `PUPPETEER_EXECUTABLE_PATH` always wins** and is never second-guessed.
+  - **Truncated downloads are rejected, not handed over.** The cache entry that caused this held a
+    plausible 68 KB launcher stub at `Contents/MacOS/…` while missing `Contents/Frameworks` entirely — so
+    `is_file()` and `os.access(X_OK)` both passed on a browser that could never launch. `_looks_complete()`
+    requires the bundle's `Frameworks` payload (or, off macOS, a >1 MB executable); verified bidirectionally
+    against the real 353 MB good bundle (accepted) and the preserved 448 KB broken one (rejected).
+  - **Failures now carry an actionable hint** naming both observed causes — no managed Chrome at all, or a
+    truncated one, including the trap that `puppeteer browsers install` **silently no-ops** when the version
+    directory already exists (so it must be moved aside before reinstalling).
+  - Deliberately **no `shutil.which("google-chrome")` fallback**: a system Chrome is an arbitrary version,
+    and byte-reproducible SVGs are this renderer's contract. Failing loudly with an install hint beats
+    silently rendering against a different engine.
+  Verified end-to-end through the real `_render_one` path: fallback engages once and caches, an operator
+  override is honored on attempt 1, `--check` reports all 58 concepts in sync, and the mutated-manifest
+  gate still fails as designed. **No committed SVG changed.**
+- **The Copilot lane never said the Prompt Builder was a browser tab.** `copilot/AGENTS.md`'s
+  generated dashboard block told a Copilot session how to *launch* the dashboard but never named
+  what is in it — so "where's the prompt builder?" in a Copilot terminal had nothing to route on
+  and looked like a missing feature. The block now names it (`#/prompt-builder`, under Control),
+  says plainly that nothing in a terminal session renders it, and points at `dashboard_autostart`.
+
 ## 0.215.1 — 2026-07-27
 
 ### Fixed

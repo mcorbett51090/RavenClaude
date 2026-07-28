@@ -327,6 +327,11 @@ PY
       bash plugins/ravenclaude-core/hooks/tests/test-thing-denial-kb.sh
       exit $?
       ;;
+    151)
+      echo "── Gate 151: dashboard autostart opt-in contract (per-gate run) ──────────"
+      bash plugins/ravenclaude-core/hooks/tests/test-gate151-dashboard-autostart.sh
+      exit $?
+      ;;
     144)
       echo "── Gate 144: Prompt Builder render + XSS floor (per-gate run) ────────────"
       node scripts/check-prompt-builder-render.mjs plugins/ravenclaude-core/dashboard.html
@@ -408,7 +413,7 @@ PY
       ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -5007,6 +5012,18 @@ if command -v python3 >/dev/null 2>&1; then
 else
   _skip_or_fail "Gate 150 (multi-screen)" python3
 fi
+
+echo
+echo "── Gate 151: dashboard autostart is opt-in (absent => OFF) + never duplicates ──"
+# The hook runs on EVERY SessionStart, so its default must be a hard no-op: no
+# posture / `off` / the key absent / an unrecognised value must never start a
+# server, and an already-live dashboard must never get a second one (concurrent
+# sessions in one project would otherwise each spawn a server and steal focus with
+# a new tab). test-gate151 drives the REAL hook against a recording stub launcher
+# and carries a teeth half that neuters the mode gate and asserts `off` then
+# launches — so the no-op is proven to be real code, not a vacuous pass.
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate151-dashboard-autostart.sh >/dev/null 2>&1 || rc=$?
+gate "dashboard-autostart: opt-in default + anti-duplicate probe + serve/open modes (+ teeth)" must_pass "$rc"
 
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"

@@ -263,23 +263,83 @@ if (api) {
   else fail("per-model divisor had no effect");
 }
 
+// ── 5b. Where does the Prompt Builder LIVE? ────────────────────────────────
+// Derived, never hardcoded. BOTH surfaces carry the standalone `ds-nav` chrome (the
+// portal folds the standalone payload under #dash-root), so the `ds-label` group that
+// owns the `ds-sub` link is a single source of truth for the tab's home destination.
+// The portal's own router + sub-nav are then asserted AGAINST it below, which is what
+// ties the two IAs together: move it on one surface and the other surface fails loudly
+// instead of silently burying the link (the v0.214.0 Control-vs-Catalog skew).
+const GROUP_TO_DESTINATION = {
+  control: "control",
+  activity: "activity",
+  guardrails: "guardrails",
+  "learn & help": "catalog",
+};
+function homeDestination(src) {
+  const i = src.indexOf('<a class="ds-sub" href="#/prompt-builder"');
+  if (i === -1) return null;
+  const open = '<div class="ds-label">';
+  const j = src.lastIndexOf(open, i);
+  if (j === -1) return null;
+  const label = src
+    .slice(j + open.length, src.indexOf("</div>", j))
+    .replace(/&amp;/g, "&")
+    .trim()
+    .toLowerCase();
+  return GROUP_TO_DESTINATION[label] || null;
+}
+// Extract one `if (id === "<dest>") { … }` branch of navChildren(), bounded by the
+// next branch (or a generous cap when it is the last one).
+function navBranch(src, id) {
+  const marker = `if (id === "${id}")`;
+  const s = src.indexOf(marker);
+  if (s === -1) return null;
+  const nxt = src.indexOf('if (id === "', s + marker.length);
+  return src.slice(s, nxt === -1 ? Math.min(src.length, s + 4000) : nxt);
+}
+const HOME_DESTINATION = homeDestination(html);
+if (HOME_DESTINATION) ok(`Prompt Builder's home destination derives to '${HOME_DESTINATION}'`);
+else
+  fail(
+    "cannot derive the Prompt Builder's home destination — no ds-sub link under a known ds-label group (Control / Activity / Guardrails / Learn & Help)",
+  );
+
 // ── 6. Portal shell routing: on the shell (index.html), the shell router MUST own
 // #/prompt-builder — else the tab's panel/JS ship but the sidebar link falls through
 // to the default section (the exact regression this guards). Runs ONLY on the shell
 // (DASH_OWNER present); the standalone dashboard.html has no DASH_OWNER, so it skips.
-if (html.indexOf("const DASH_OWNER") !== -1) {
+if (html.indexOf("const DASH_OWNER") !== -1 && HOME_DESTINATION) {
   const dobStart = html.indexOf("const DASH_OWNER");
   const dob = html.slice(dobStart, html.indexOf("}", dobStart) + 1);
-  if (/["']prompt-builder["']\s*:/.test(dob))
-    ok("portal shell router owns #/prompt-builder (DASH_OWNER)");
-  else
+  const owner = /["']prompt-builder["']\s*:\s*["']([a-z-]+)["']/.exec(dob);
+  if (!owner)
     fail(
       "portal shell has the tab but DASH_OWNER does not route #/prompt-builder — the sidebar link would fall to the default section",
     );
+  else if (owner[1] !== HOME_DESTINATION)
+    // The v0.214.0 skew, made loud: the standalone moved Prompt Builder to Control
+    // while the portal kept homing it under Catalog, so the portal buried the link in
+    // an accordion that only renders when Catalog is the ACTIVE nav item. Both gates
+    // passed anyway, because presence — not placement — was all they asserted.
+    fail(
+      `portal DASH_OWNER homes #/prompt-builder under '${owner[1]}', but the standalone dashboard sidebar homes it under '${HOME_DESTINATION}' — the two surfaces must name the SAME home destination or the portal hides it`,
+    );
+  else ok(`portal shell router homes #/prompt-builder under '${HOME_DESTINATION}' (DASH_OWNER)`);
   if (html.indexOf('href="#/prompt-builder"') !== -1)
     ok("portal sidebar surfaces a Prompt Builder link");
   else
     fail("portal shell has no #/prompt-builder nav link — the tab is unreachable from the sidebar");
+  // …and the link must live in the matching destination's sub-nav, not merely exist.
+  const nav = navBranch(html, HOME_DESTINATION);
+  if (nav === null)
+    fail(`portal navChildren has no '${HOME_DESTINATION}' branch to hold the Prompt Builder link`);
+  else if (nav.indexOf('href="#/prompt-builder"') !== -1)
+    ok(`portal '${HOME_DESTINATION}' sub-nav carries the Prompt Builder link`);
+  else
+    fail(
+      `portal '${HOME_DESTINATION}' sub-nav does NOT carry the Prompt Builder link — DASH_OWNER highlights '${HOME_DESTINATION}' but the clickable link lives elsewhere`,
+    );
 }
 
 // ── 7. Must-fail half: a reintroduced innerHTML sink MUST be caught ─────────

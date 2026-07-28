@@ -920,6 +920,9 @@ _PIPELINE_EXCLUDED_HOOKS = {
     "+ its live status as the Activity-tab Sleipnir badges; deliberately NOT a Pipeline stage card",
     "thing-denial-kb-sync.sh": "Muninn denial-KB materialiser (Stop); learns from tribunal denials, not itself a guardrail",
     "thing-denial-kb-recall.sh": "Muninn denial-KB recall (SessionStart); surfaces known denials + fixes, not a guardrail",
+    "dashboard-autostart.sh": "opt-in convenience launcher (SessionStart) for the dashboard itself; "
+    "gates nothing, denies nothing, and never inspects a tool call — its knob is `dashboard_autostart` "
+    "in comfort-posture.yaml, deliberately NOT a Pipeline stage card",
 }
 
 _PIPELINE_CONTROLS = {
@@ -7482,6 +7485,15 @@ _JS = r"""
    * user picks off or block, preserving "absent ⇒ warn". */
   const WORKTREE_GUARD_VALUES = ["off", "warn", "block"];
   const WORKTREE_GUARD_DEFAULT = "warn";
+  /* Dashboard autostart (read by hooks/dashboard-autostart.sh). OPT-IN — default
+   * `off`, so emitYaml writes it only when the user picks serve or open,
+   * preserving "absent ⇒ off". Wired here for the same reason worktree_guard is:
+   * emitYaml rebuilds the WHOLE comfort-posture.yaml from `state`, so a key with
+   * no state slot is silently DELETED on the next Save (the v0.61.0 data-loss
+   * class). No DOM control ships with it — Gate 132's budget is at zero slack and
+   * a visible toggle costs an owner-approved ratchet raise. */
+  const DASHBOARD_AUTOSTART_VALUES = ["off", "serve", "open"];
+  const DASHBOARD_AUTOSTART_DEFAULT = "off";
   const ORCHESTRATOR_VALUES = ["off", "decide", "full"];
   const ORCHESTRATOR_DEFAULT = "full";
   const ORCHESTRATOR_SCOPE_VALUES = ["team", "all"];
@@ -7567,6 +7579,7 @@ _JS = r"""
     parallelism: Object.assign({}, PARALLELISM_DEFAULT),
     decision_review: DECISION_REVIEW_DEFAULT,
     worktree_guard: WORKTREE_GUARD_DEFAULT,
+    dashboard_autostart: DASHBOARD_AUTOSTART_DEFAULT,
     orchestrator: ORCHESTRATOR_DEFAULT,
     orchestrator_scope: ORCHESTRATOR_SCOPE_DEFAULT,
     orchestrator_zdr_confirmed: false,
@@ -7966,6 +7979,9 @@ _JS = r"""
     if (WORKTREE_GUARD_VALUES.includes(src.worktree_guard)) {
       state.worktree_guard = src.worktree_guard; touched = true;
     }
+    if (DASHBOARD_AUTOSTART_VALUES.includes(src.dashboard_autostart)) {
+      state.dashboard_autostart = src.dashboard_autostart; touched = true;
+    }
     if (ORCHESTRATOR_VALUES.includes(src.orchestrator)) {
       state.orchestrator = src.orchestrator; touched = true;
     }
@@ -8121,6 +8137,14 @@ _JS = r"""
       lines.push("");
     }
 
+    if (DASHBOARD_AUTOSTART_VALUES.includes(state.dashboard_autostart)
+        && state.dashboard_autostart !== DASHBOARD_AUTOSTART_DEFAULT) {
+      lines.push("# Bring this dashboard up at session start (off | serve | open; default off).");
+      lines.push("# serve = start the local server headless; open = also open a browser tab.");
+      lines.push(`dashboard_autostart: ${state.dashboard_autostart}`);
+      lines.push("");
+    }
+
     if (ORCHESTRATOR_VALUES.includes(state.orchestrator)
         && state.orchestrator !== ORCHESTRATOR_DEFAULT) {
       lines.push("# Claude orchestrator for non-Claude CLIs (off | decide | full). No-op under Claude Code.");
@@ -8231,6 +8255,7 @@ _JS = r"""
         parallelism: state.parallelism,
         decision_review: state.decision_review,
         worktree_guard: state.worktree_guard,
+        dashboard_autostart: state.dashboard_autostart,
         orchestrator: state.orchestrator,
         orchestrator_scope: state.orchestrator_scope,
         orchestrator_zdr_confirmed: state.orchestrator_zdr_confirmed,

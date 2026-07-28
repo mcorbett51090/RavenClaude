@@ -23,8 +23,10 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import functools
 import hashlib
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -45,6 +47,131 @@ MANIFEST_NAME = ".render-manifest.json"
 
 _PUPPETEER_CFG = '{"args":["--no-sandbox","--disable-setuid-sandbox"]}'
 _BG_WHITE_RE = re.compile(r"background-color:\s*white;?", re.IGNORECASE)
+
+# ── Chrome resolution ────────────────────────────────────────────────────────
+# mermaid-cli drives puppeteer-core, which resolves its own browser out of the
+# Puppeteer cache. That resolution CAN FAIL even when the browser is correctly
+# installed: observed 2026-07-28 on macOS/arm64 with Chrome 148.0.7778.97 present
+# and complete (353 MB), mermaid-cli still died with
+#   Error: Could not find Chrome (ver. 148.0.7778.97).
+# Passing PUPPETEER_EXECUTABLE_PATH explicitly is puppeteer's documented escape
+# hatch, and it is what actually renders. We therefore discover a cache-managed
+# browser ourselves and hand it over.
+#
+# DELIBERATELY puppeteer-cache-only — no `shutil.which("google-chrome")` fallback.
+# A system Chrome is an arbitrary version, and this renderer's whole contract is
+# byte-reproducible committed SVGs (text metrics move with the browser). Better to
+# fail loudly with an install hint than to silently render against a different
+# engine and churn every committed SVG.
+_CHROME_RELATIVE_CANDIDATES = {
+    "darwin": (
+        "chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing",
+        "chrome-mac-x64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing",
+        "chrome-headless-shell-mac-arm64/chrome-headless-shell",
+        "chrome-headless-shell-mac-x64/chrome-headless-shell",
+    ),
+    "linux": (
+        "chrome-linux64/chrome",
+        "chrome-headless-shell-linux64/chrome-headless-shell",
+    ),
+    "win32": (
+        "chrome-win64/chrome.exe",
+        "chrome-headless-shell-win64/chrome-headless-shell.exe",
+    ),
+}
+
+
+def _puppeteer_cache_root() -> Path:
+    """Where puppeteer keeps managed browsers (honors its own env override)."""
+    override = os.environ.get("PUPPETEER_CACHE_DIR")
+    if override:
+        return Path(override).expanduser()
+    return Path.home() / ".cache" / "puppeteer"
+
+
+def _looks_complete(exe: Path) -> bool:
+    """Reject a TRUNCATED browser download that still carries an executable stub.
+
+    Observed 2026-07-28: a 448 KB Chrome 148 cache entry kept a plausible 68 KB
+    launcher at `Contents/MacOS/Google Chrome for Testing` but was missing
+    `Contents/Frameworks` entirely — so `is_file()` and `os.access(X_OK)` BOTH passed
+    while every launch died with "Could not find Chrome". A complete macOS bundle is
+    ~350 MB with its payload under Contents/Frameworks; on other platforms (and for
+    chrome-headless-shell) the executable IS the payload, so a sub-megabyte file is
+    the same tell. This is what stops us handing puppeteer a path we know is broken.
+    """
+    if exe.parent.name == "MacOS" and exe.parent.parent.name == "Contents":
+        return (exe.parent.parent / "Frameworks").is_dir()
+    try:
+        return exe.stat().st_size > 1_000_000
+    except OSError:
+        return False
+
+
+@functools.lru_cache(maxsize=1)
+def _discover_chrome() -> str | None:
+    """Return a Puppeteer-managed Chrome executable path, or None if none is usable.
+
+    Version directories are walked NEWEST-FIRST and the choice is deterministic for a
+    given cache, so repeat runs on one machine pick the same engine and the committed
+    SVG bytes stay stable. Installing a newer Chrome CAN therefore change the chosen
+    engine — which is why the caller logs the pick.
+    """
+    plat = "linux"
+    if sys.platform.startswith("darwin"):
+        plat = "darwin"
+    elif sys.platform.startswith("win"):
+        plat = "win32"
+    relatives = _CHROME_RELATIVE_CANDIDATES[plat]
+
+    root = _puppeteer_cache_root()
+    for product in ("chrome", "chrome-headless-shell"):
+        product_dir = root / product
+        if not product_dir.is_dir():
+            continue
+        # Newest-first by directory name (e.g. mac_arm-151.0… before mac_arm-148.0…).
+        for version_dir in sorted(product_dir.iterdir(), key=lambda p: p.name, reverse=True):
+            if not version_dir.is_dir():
+                continue
+            for rel in relatives:
+                exe = version_dir / rel
+                if exe.is_file() and os.access(exe, os.X_OK) and _looks_complete(exe):
+                    return str(exe)
+    return None
+
+
+# Set once, the first time puppeteer's own resolution is proven broken this run, so
+# the remaining diagrams don't each pay a doomed first attempt.
+_FALLBACK_EXE: str | None = None
+
+
+def _render_env(exe: str | None) -> dict | None:
+    """None ⇒ inherit os.environ untouched (puppeteer resolves the browser itself)."""
+    if exe is None:
+        return None
+    env = os.environ.copy()
+    env["PUPPETEER_EXECUTABLE_PATH"] = exe
+    return env
+
+
+def _chrome_hint() -> str:
+    """An actionable hint for the two failure modes seen in the wild."""
+    root = _puppeteer_cache_root()
+    found = _discover_chrome()
+    if found:
+        return (
+            f"\n\nHINT: handed puppeteer PUPPETEER_EXECUTABLE_PATH={found!r} and it still failed. "
+            "If that directory is small (a complete Chrome is ~350 MB), it is a TRUNCATED download: "
+            "`puppeteer browsers install` SILENTLY NO-OPS when the version directory already exists, "
+            "so move it aside and reinstall:\n"
+            "    mv <that version dir> /tmp/chrome-broken\n"
+            "    npx --yes puppeteer browsers install chrome"
+        )
+    return (
+        f"\n\nHINT: no Puppeteer-managed Chrome found under {root}. Install one:\n"
+        "    npx --yes puppeteer browsers install chrome\n"
+        "(mermaid-cli needs full **chrome**; chrome-headless-shell alone is not enough.)"
+    )
 
 
 def _theme_style(svg_id: str) -> str:
@@ -133,9 +260,47 @@ def _render_one(mermaid_src: str, svg_id: str, tmp: Path) -> str:
         "-i", str(in_path), "-o", str(out_path),
         "-p", str(cfg_path), "-b", "transparent",
     ]
-    proc = subprocess.run(cmd, capture_output=True, text=True, timeout=180)
+    global _FALLBACK_EXE
+
+    def _run(exe: str | None):
+        return subprocess.run(
+            cmd, capture_output=True, text=True, timeout=180, env=_render_env(exe)
+        )
+
+    # ATTEMPT 1 — puppeteer's OWN resolution: byte-for-byte the historical path.
+    # Deliberately tried first, and skipped only once a fallback has already proven
+    # necessary this run. Rationale: committed SVGs are byte-compared, and text
+    # metrics move with the browser build — so on any host where resolution already
+    # works we must NOT substitute a different Chrome and silently churn every SVG.
+    # The fallback is a repair for hosts that would otherwise render nothing at all.
+    if _FALLBACK_EXE is None:
+        proc = _run(None)
+        if proc.returncode == 0 and out_path.exists():
+            return _normalize(out_path.read_text(encoding="utf-8"), svg_id)
+        # Resolution failed. An operator-set path already lost, so don't second-guess it.
+        if os.environ.get("PUPPETEER_EXECUTABLE_PATH"):
+            raise RuntimeError(
+                f"mermaid-cli failed for {svg_id} with an explicit "
+                f"PUPPETEER_EXECUTABLE_PATH:\n{proc.stderr.strip()[-800:]}{_chrome_hint()}"
+            )
+        found = _discover_chrome()
+        if not found:
+            raise RuntimeError(
+                f"mermaid-cli failed for {svg_id}:\n{proc.stderr.strip()[-800:]}{_chrome_hint()}"
+            )
+        _FALLBACK_EXE = found
+        print(
+            "[render-concepts] puppeteer could not resolve its own browser; falling back to "
+            f"PUPPETEER_EXECUTABLE_PATH={found}",
+            file=sys.stderr,
+        )
+
+    # ATTEMPT 2 — explicit executable (also the direct path for every later diagram).
+    proc = _run(_FALLBACK_EXE)
     if proc.returncode != 0 or not out_path.exists():
-        raise RuntimeError(f"mermaid-cli failed for {svg_id}:\n{proc.stderr.strip()[-800:]}")
+        raise RuntimeError(
+            f"mermaid-cli failed for {svg_id}:\n{proc.stderr.strip()[-800:]}{_chrome_hint()}"
+        )
     return _normalize(out_path.read_text(encoding="utf-8"), svg_id)
 
 

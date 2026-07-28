@@ -1887,3 +1887,47 @@ rejected teeth; 149 every archetype ≥ 80 + degraded < 80 teeth; 150 v2 validat
 malformed-v2-rejected teeth. Proven by the `audit-gates.sh` meta-test. **Migration:** none — additive
 files under the existing skill; nothing in a consumer's installed plugin changes on `/plugin marketplace
 update` until they invoke the new renderers.
+
+## The Prompt Builder was homed differently on each surface + `dashboard_autostart` (added 2026-07-28, v0.216.0)
+
+Two defects and one gap, all from the same report: *"I don't see the prompt builder … I also didn't see it
+open up automatically at the start of the session."* Both halves were real, and neither was what it looked
+like.
+
+**1 — The two surfaces disagreed about where the Prompt Builder lives, so the portal hid it.** v0.214.0
+moved the nav link "Learn & Help" → **Control** on the standalone `dashboard.html`. The portal
+(`index.html`) was never moved with it: `DASH_OWNER` still mapped `prompt-builder` → `catalog`, and the
+clickable link sat in the Catalog sub-nav — which `renderNav` only emits when Catalog is the **active**
+nav item (`const subs = n.id === active ? navChildren(n.id) : ""`). So on the portal the tab was invisible
+until you first clicked Catalog, and absent from Control where the release notes said to look. Fixed by
+homing it under `control` on the portal too, first in the sub-nav, matching the standalone's slot exactly.
+
+**2 — Gate 144 could not see it, because it asserted presence, not placement.** Its portal half checked
+only that `DASH_OWNER` had *some* entry for `prompt-builder` and that *some* `href="#/prompt-builder"`
+existed **anywhere in the file**. Both were true throughout, so CI stayed green across v0.214.0 **and**
+v0.215.1 — a textbook silent-green defect. The gate now **derives** the home destination from the folded
+standalone `ds-nav` chrome (present on *both* surfaces, because the portal folds the standalone payload —
+so it is a single source of truth rather than a hardcoded expectation) and asserts the portal's
+`DASH_OWNER` **and** that destination's own `navChildren` branch both agree with it. Move it on one
+surface now and the other fails loudly. Two must-fail halves verified at exit 1: regressing `DASH_OWNER`
+back to `catalog`, and moving the link out of the Control branch.
+
+> **The generalizable lesson (this is the third time this shape has shipped here).** v0.211.1 fixed
+> "the portal router doesn't own the route"; this fixes "the portal owns it but homes it somewhere else."
+> A gate that asks *does it exist?* cannot catch a **placement** regression. When a feature lives on two
+> generated surfaces, assert the surfaces against **each other** — derive the expectation from one and
+> check the other — never assert each independently against a constant.
+
+**3 — Nothing auto-opened the dashboard locally, and that was correct-by-design + undiscoverable.** The
+only auto-launch that ever existed is the Codespace devcontainer (`postStartCommand` +
+`portsAttributes.onAutoForward: openBrowser`); no `SessionStart` hook ever started it. Closed with the
+opt-in `dashboard_autostart: off | serve | open` knob + `hooks/dashboard-autostart.sh` (**Gate 151**) —
+see the CHANGELOG entry for the contract, the anti-duplicate probe, and its honest limit. The knob is
+wired into `emitYaml`/`applyGuardrailConfig` **because it has to be**: `emitYaml` rebuilds the whole
+posture from `state`, so a key with no state slot is silently deleted on the next Save & apply (the
+v0.61.0 data-loss class). No DOM control ships — Gate 132 is at zero slack and a visible toggle costs an
+owner-approved ratchet raise.
+
+**Migration:** none — the Prompt Builder route resolved before and resolves now (it just appears where the
+release notes always said), and `dashboard_autostart` defaults to **off**, so nothing new runs at session
+start on `/plugin marketplace update` until a consumer opts in.

@@ -1,18 +1,26 @@
 # Comfort-posture for Claude Code agents (v5 — per-layer).
 # Save to .ravenclaude/comfort-posture.yaml in your project root.
 # The /set-posture skill translates this into user/local/project settings files.
-#
-# Dev-repo note: `command_review.dev_repo_exempt: true` below is fork-safe — it
-# only activates when 3 signals AND-match (gh-authenticated repo owner is
-# mcorbett51090/RavenClaude AND .claude-plugin/marketplace.json parses with
-# name "ravenclaude"), and is inert with `command_review.enabled: false`. Full
-# contract: plugins/ravenclaude-core/CLAUDE.md → "Dev-repo lockout fix".
 schema_version: 5
 
 # Pause for design / architectural decisions? Behavioral flag, separate from permissions.
 design_checkins: true
 
 # Command-review tribunal panel (the Thing). Overrides .ravenclaude/thing.yaml.
+#
+# Dev-repo note: `command_review.dev_repo_exempt: true` below is fork-safe — it
+# only activates when 3 signals AND-match (gh-authenticated repo owner is
+# mcorbett51090/RavenClaude AND .claude-plugin/marketplace.json parses with
+# name "ravenclaude"), and is inert with `command_review.enabled: false`. Full
+# contract: plugins/ravenclaude-core/CLAUDE.md → "Dev-repo lockout fix".
+#
+# enabled: false — RESTORED 2026-07-28. A dashboard Save & apply had flipped this
+# to true, which turned the tribunal on against the repo that BUILDS it: every
+# edit to its own hooks/ or scripts/ hit the substrate self-disable guard, and
+# even read-only inspections were denied. The Thing is for the projects
+# RavenClaude is installed INTO. The hard safety floor (protected-branch force
+# push, piped-installer execution, secret egress, injection) is separate and
+# fires regardless of this flag.
 command_review:
   enabled: false
   panel:
@@ -44,13 +52,20 @@ command_review:
 # Runaway brake — disabled for this repo.
 runaway: off
 
+# Parallelism — allow fan-out workers (subagents / worktrees); cap how many run at once.
+parallelism:
+  enabled: true
+  max_workers: unlimited
+
 # Yes/no decision routing through the tribunal (off | advisory | binding).
 decision_review: binding
 
-# Worktree-hygiene guard (off | warn | block). Nudges (warn) or denies a mutating op
-# (block) when a second live session shares this working tree, or on anchor-branch work
-# while worktrees exist; silent otherwise. Dogfooded at `warn`.
-worktree_guard: warn
+# Claude orchestrator for non-Claude CLIs (off | decide | full). No-op under Claude Code.
+orchestrator: off
+
+# Bring this dashboard up at session start (off | serve | open; default off).
+# serve = start the local server headless; open = also open a browser tab.
+dashboard_autostart: open
 
 # Always-on deny rules — layer-independent floor.
 security_deny:
@@ -108,14 +123,17 @@ categories:
     user: allow
     local: allow
     project: inherit
+    thing: on
   shell_local_mutate:
     user: allow
     local: allow
     project: inherit
+    thing: on
   shell_package_install:
     user: allow
     local: allow
     project: inherit
+    thing: on
   shell_readonly:
     user: allow
     local: allow
@@ -124,3 +142,4 @@ categories:
     user: allow
     local: allow
     project: inherit
+    thing: on

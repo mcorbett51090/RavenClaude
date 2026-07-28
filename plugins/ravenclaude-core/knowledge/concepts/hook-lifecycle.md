@@ -6,7 +6,7 @@ kind: platform-fact
 order: 20
 summary: "Only exit 2 blocks a tool call; a hook deny beats bypass mode, but a hook allow can't override a settings deny."
 see_also: [permission-layers, command-review-tribunal]
-last_verified: 2026-05-25
+last_verified: 2026-07-28
 refresh_when: "Anthropic changes hook exit-code semantics, the hookSpecificOutput schema, or timeout behavior."
 sources:
   - label: "Hooks reference"

@@ -6,7 +6,7 @@ kind: platform-fact
 order: 15
 summary: "Six modes from default to bypassPermissions — but bypass still prompts on rm -rf /, and auto silently drops broad allow rules."
 see_also: [permission-layers, hook-lifecycle]
-last_verified: 2026-05-25
+last_verified: 2026-07-28
 refresh_when: "Anthropic adds/renames a permission mode or changes auto-mode's drop-broad-rules behavior."
 sources:
   - label: "Choose a permission mode"
