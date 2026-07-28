@@ -183,7 +183,7 @@ RATCHET = {
         ),
         (
             "P1 (plugin-panel collapse)",
-            6120,
+            6128,
             "the 167 panel-plugin-* sections (~4,843 elems) collapsed "
             "into ONE #plugin-vars picker: a <select> of 167 plugins whose "
             "editor form renders client-side into #plugin-vars-mount from the "
@@ -192,7 +192,7 @@ RATCHET = {
         ),
         (
             "P3 (chrome shrink)",
-            6120,
+            6128,
             "IA re-cut: the two-tier <nav class=cat-bar> (5 cat-btns) deleted and "
             "the <nav class=tab-bar> shrunk from 18 core tabs to 10 destination tabs "
             "(+ the plugin-vars picker tab); role=tablist/role=tab + the roving-"
@@ -201,7 +201,7 @@ RATCHET = {
         ),
         (
             "P4 (Observe merge)",
-            6120,
+            6128,
             "the Observe family is physically merged: the five tab-panel wrappers "
             "panel-{saga,mimir,streams,norns,vidarr} are removed and their content "
             "folded into panel-activity (saga/mimir/streams/norns) and panel-heimdall "
@@ -211,7 +211,7 @@ RATCHET = {
         ),
         (
             "P5 (shell-view deletions)",
-            6120,
+            6128,
             "panel-overview + panel-simulator deleted; the install/bifrost/"
             "about/commands panels folded into ONE panel-help drawer as "
             "collapsed <details> (their render fns + mount ids byte-identical). "
@@ -222,7 +222,7 @@ RATCHET = {
         ),
         (
             "A-split (Observe un-merge)",
-            6120,
+            6128,
             "the Observe family is UN-merged back into one "
             "<section class=tab-panel> per sub-page (the exact inverse of P4): "
             "Activity -> Run feed / Saga / Session / Streams / Lineage; Guardrails "
@@ -236,7 +236,7 @@ RATCHET = {
         ),
         (
             "PR-A (Help reachability + About accuracy)",
-            6120,
+            6128,
             "the About 'How the pages are organized' list was "
             "re-cut to the 5 current areas (gap G6): stale pre-recut sections + "
             "the deleted Overview / Preview-a-review refs removed; 4 li -> 5 li "
@@ -248,7 +248,7 @@ RATCHET = {
         ),
         (
             "PR-B (Guidance/trees wire-back)",
-            6120,
+            6128,
             "the Guidance (decision-trees + best-practices) tab was "
             "orphaned on both surfaces — no tab-btn reached panel-trees (gap G4). "
             "Added the tab-btn[data-tab=trees] to the tab-bar (visible + clickable "
@@ -259,7 +259,7 @@ RATCHET = {
         ),
         (
             "PR-C (cleanups + data refresh)",
-            6120,
+            6128,
             "PR-C's own changes are DOM-NEUTRAL — G8 (concepts routing "
             "maps), G9 (feed-cap CSS + comment), G13 (sim-probe JS guard), G15 "
             "(serve-dashboards allow-list) touch only JS/CSS/server, no markup. The "
@@ -272,7 +272,7 @@ RATCHET = {
         ),
         (
             "PR-E (standalone 4-dest sidebar)",
-            6120,
+            6128,
             "G11: the standalone dashboard.html gains a portal-style left "
             "<aside class=dash-sidebar> (brand + 4 destinations Control/Activity/"
             "Guardrails/Learn&Help -> 15 nav <a> links driving the EXISTING "
@@ -284,12 +284,12 @@ RATCHET = {
         ),
         (
             "v0.211.0 (Prompt Builder tab)",
-            6120,
+            6128,
             "new #/prompt-builder Learn & Help tab: +6 static elements (sidebar link + tab-btn + panel section + #pb-root mount + noscript + p); the whole interactive UI is JS-built by initPromptBuilder() so it is uncounted. Owner-approved +6 raise off the frozen zero-slack tail (6,097 -> 6,103); the P1..PR-E rows above were lifted in lockstep to keep the ratchet monotonic.",
         ),
         (
             "reland-11-plugins reflected in standalone dashboard",
-            6120,
+            6128,
             "the standalone dashboard.html was stale at 168 plugins — #778 (the "
             "11-plugin reland) regenerated index.html but NOT the standalone dashboard, "
             "so its plugin-version-drift card never picked up the 11 relanded plugins. "
@@ -301,7 +301,7 @@ RATCHET = {
         ),
         (
             "v0.216.0 (dashboard_autostart control)",
-            6120,
+            6128,
             "a 3-option select (off | serve | open) for the new `dashboard_autostart` "
             "posture knob, in the Settings panel beside the other behavioral flags. "
             "The knob shipped YAML-only earlier in v0.216.0 precisely BECAUSE the "
@@ -315,6 +315,17 @@ RATCHET = {
             "than the badge <span>, and moving the explainer into `title=`. If you add "
             "a heading, a description or an icon here, re-measure BEFORE assuming +6 "
             "still holds.",
+        ),
+        (
+            "v0.216.0 (Host & context page — MH-14)",
+            6128,
+            "the #/host-context Control page: panel section + #hc-root mount + noscript + p "
+            "+ the inlined host-support payload, plus the sidebar link, the mirrored tab-btn and "
+            "the portal sub-nav link = +8 MEASURED. (First measurement said +7; the tab-btn was added AFTERWARDS to make the route resolve, and re-measuring caught the extra element. Measure LAST, not mid-change.) The 7x6 support matrix itself costs ZERO counted elements — "
+            "it is JS-built from the payload by initHostContext(), the same trick that keeps the "
+            "Prompt Builder at 4. Owner-approved (budget latitude granted explicitly); "
+            "6,120 -> 6,128, tail lifted in lockstep. This lands the +7 the multi-host plan "
+            "reserved for the Control page + relink, so no further raise is owed for it.",
         ),
     ],
     INDEX: [
@@ -344,7 +355,7 @@ RATCHET = {
         ),
         (
             "P1 (plugin-panel collapse)",
-            7006,
+            7014,
             "the 167 panel-plugin-* sections collapsed into ONE "
             "#plugin-vars picker in the merged dashboard fragment (same "
             "collapse as the standalone surface). Measured 11,462 -> 6,800. "
@@ -352,7 +363,7 @@ RATCHET = {
         ),
         (
             "P3 (chrome shrink)",
-            7006,
+            7014,
             "the folded fragment's cat-bar + tab-bar shrink (-14, same as the "
             "standalone surface) nets against +4 static destination anchors seeded "
             "into #primary-nav (the committed-route floor for #/control, #/activity, "
@@ -361,7 +372,7 @@ RATCHET = {
         ),
         (
             "P4 (Observe merge)",
-            7006,
+            7014,
             "the folded fragment's five Observe wrappers (panel-{saga,mimir,streams,"
             "norns,vidarr}) removed and their content folded into panel-activity / "
             "panel-heimdall (same merge as the standalone surface). Measured "
@@ -369,7 +380,7 @@ RATCHET = {
         ),
         (
             "P5 (shell-view deletions)",
-            7006,
+            7014,
             "same shell-view deletions folded into the portal fragment: "
             "panel-overview + panel-simulator deleted; install/bifrost/about/"
             "commands folded into ONE panel-help drawer + the grouped C5 "
@@ -379,7 +390,7 @@ RATCHET = {
         ),
         (
             "P6 (payload demotion)",
-            7006,
+            7014,
             "the three portal-only JSON payload islands learn-payload / "
             "trees-payload / concepts-data stripped from the folded dashboard body "
             "(portal Learn/Trees/Concepts are P5 named removals -> standalone + "
@@ -391,7 +402,7 @@ RATCHET = {
         ),
         (
             "A-split (Observe un-merge)",
-            7006,
+            7014,
             "the folded fragment's Observe family is UN-merged back into one "
             "<section class=tab-panel> per sub-page (the exact inverse of P4, same "
             "as the standalone surface): Activity -> Run feed / Saga / Session / "
@@ -404,7 +415,7 @@ RATCHET = {
         ),
         (
             "PR-A (Help reachability + About accuracy)",
-            7006,
+            7014,
             "portal-only +7 vs the standalone's +2: the shared "
             "About list re-cut 4 li -> 5 li (+2, gap G6) PLUS the G1 Help-"
             "reachability affordance in the shell topbar — an <a> '?' link + its "
@@ -415,7 +426,7 @@ RATCHET = {
         ),
         (
             "PR-B (Guidance/trees wire-back)",
-            7006,
+            7014,
             "portal +2 vs the standalone's +1: the +1 tab-btn[data-tab=trees] "
             "(same as the standalone) PLUS +1 for the restored trees-payload "
             "<script> START TAG — G4 removed 'trees-payload' from the P6 portal "
@@ -427,7 +438,7 @@ RATCHET = {
         ),
         (
             "PR-C (cleanups + data refresh)",
-            7006,
+            7014,
             "PR-C's own changes are DOM-NEUTRAL (G8/G9/G13/G15 = JS/CSS/"
             "server only). The +1 is MARKETPLACE DATA growth: main's committed "
             "index.html was stale at 6,776 while a fresh regen of current plugin "
@@ -438,7 +449,7 @@ RATCHET = {
         ),
         (
             "PR-E (standalone 4-dest sidebar)",
-            7006,
+            7014,
             "the portal folds the SAME standalone payload, so the new "
             "<aside class=dash-sidebar> (+32, same as the standalone) lands in "
             "index.html too — hidden by the shell's `#dash-root .dash-sidebar "
@@ -448,17 +459,17 @@ RATCHET = {
         ),
         (
             "v0.211.0 (Prompt Builder tab)",
-            7006,
+            7014,
             "portal folds the same standalone payload: the +6 prompt-builder static elements land here too. Owner-approved +6 raise (6,809 -> 6,815); P1..PR-E lifted in lockstep to keep the ratchet monotonic.",
         ),
         (
             "render-fix (174 trees restored to portal)",
-            7006,
+            7014,
             "the self-heal's decision-tree SVG render had been broken for a while — mermaid 11.15.0 parse errors on 6 unquoted-special-char labels failed the whole single-batch 799-tree render, so it reverted every run. 174 decision trees added to newer plugins since the last successful render therefore had NO committed SVG (625 of 799 committed) and were ABSENT from the portal's per-plugin #dt-store tree-dropdowns. PR #772 quoted the 6 labels; the render now succeeds and commits all 799 SVGs, so the portal inlines 174 more <details>+<summary>+<img> dropdowns. Owner-approved +174 raise (6,815 -> 6,989) — legitimate content restoration (the trees were always meant to be in the portal), not new feature bloat. Measured 6,815 -> 6,989 (+174). Zero slack; the ratchet resumes its descent from this corrected baseline. dashboard.html is unaffected (6,103) — the per-plugin tree dropdowns are a portal-only surface.",
         ),
         (
             "reland-11-plugins (marketplace 168 -> 179)",
-            7006,
+            7014,
             "reland of 11 routine-proposed plugins (168 -> 179; PRs "
             "#709/#722/#725/#730/#736, deduped: dropped already-on-main "
             "ai-agent-engineering + one of two competing subscription-billing "
@@ -470,12 +481,18 @@ RATCHET = {
         ),
         (
             "v0.216.0 (dashboard_autostart control)",
-            7006,
+            7014,
             "the portal folds the SAME standalone payload, so the standalone's +6 "
             "dashboard_autostart select lands here too — the identical mechanism as the "
             "v0.211.0 Prompt Builder row. Owner-approved +6 raise (7,000 -> 7,006); the "
             "tail above lifted in lockstep to stay monotonic. Measured on both surfaces "
             "after the edit, not projected from the standalone.",
+        ),
+        (
+            "v0.216.0 (Host & context page — MH-14)",
+            7014,
+            "the portal folds the same standalone payload, so the +7 host-context elements land "
+            "here too. Measured on BOTH surfaces after the edit, not projected. 7,006 -> 7,014.",
         ),
     ],
 }

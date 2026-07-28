@@ -939,7 +939,7 @@ TEMPLATE = r"""<!doctype html>
         norns: "activity", mimir: "activity", saga: "activity", activity: "activity",
         streams: "activity", sleipnir: "activity",
         settings: "control", "comfort-posture": "control", "web-access": "control",
-        pipeline: "control", "prompt-builder": "control",
+        pipeline: "control", "prompt-builder": "control", "host-context": "control",
         // P5: overview/simulator tabs deleted (resolve via SECTION_ALIAS → Control);
         // the Help drawer (install/bifrost/about/commands + help) is owned by Catalog.
         "plugin-vars": "catalog", commands: "catalog", trees: "catalog", bifrost: "catalog",
@@ -1042,7 +1042,7 @@ TEMPLATE = r"""<!doctype html>
         // is a no-op, which is correct — you're already there).
         if (id === "control") {
           const cur = location.hash.replace(/^#\/?/, "").split("/")[0];
-          const active = ["pipeline", "web-access", "prompt-builder"].includes(cur) ? cur : "settings";
+          const active = ["pipeline", "web-access", "prompt-builder", "host-context"].includes(cur) ? cur : "settings";
           // Literal hrefs (NOT a #/${tab} template) so Gate 51's committed-routes
           // enumerates + resolves each individually.
           const a = (tab) => (tab === active ? " active" : "");
@@ -1052,6 +1052,7 @@ TEMPLATE = r"""<!doctype html>
           // behind an accordion. Both surfaces must name the same home destination.
           return (
             `<a class="nav-subitem${a("prompt-builder")}" href="#/prompt-builder">Prompt Builder</a>` +
+            `<a class="nav-subitem${a("host-context")}" href="#/host-context">Host &amp; context</a>` +
             `<a class="nav-subitem${a("settings")}" href="#/settings">The Thing</a>` +
             `<a class="nav-subitem${a("pipeline")}" href="#/pipeline">Pipeline</a>` +
             `<a class="nav-subitem${a("web-access")}" href="#/web-access">Web access</a>`

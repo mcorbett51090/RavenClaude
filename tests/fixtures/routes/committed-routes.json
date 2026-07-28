@@ -19,8 +19,8 @@
   },
   "surfaces": {
     "dashboard": {
-      "href_count": 23,
-      "distinct_static": 16,
+      "href_count": 24,
+      "distinct_static": 17,
       "distinct_dynamic": 0,
       "static_href_routes": [
         {
@@ -42,6 +42,13 @@
           "section": "help",
           "sub": null,
           "destination": "activate:help",
+          "resolved": true
+        },
+        {
+          "route": "#/host-context",
+          "section": "host-context",
+          "sub": null,
+          "destination": "activate:host-context",
           "resolved": true
         },
         {
@@ -140,8 +147,8 @@
       "nav_routes": []
     },
     "index": {
-      "href_count": 52,
-      "distinct_static": 23,
+      "href_count": 54,
+      "distinct_static": 24,
       "distinct_dynamic": 4,
       "static_href_routes": [
         {
@@ -198,6 +205,13 @@
           "section": "help",
           "sub": null,
           "destination": "viewDashboard:help",
+          "resolved": true
+        },
+        {
+          "route": "#/host-context",
+          "section": "host-context",
+          "sub": null,
+          "destination": "viewDashboard:host-context",
           "resolved": true
         },
         {
@@ -388,6 +402,7 @@
           "web-access": "control",
           "pipeline": "control",
           "prompt-builder": "control",
+          "host-context": "control",
           "plugin-vars": "catalog",
           "commands": "catalog",
           "trees": "catalog",

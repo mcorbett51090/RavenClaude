@@ -187,6 +187,7 @@ def _page_kwargs(plugin_dir: Path, schema: dict, include_trees: bool = True) -> 
         "removed_routes_table": _render_removed_routes_table(),
         "web_access_html": _render_web_access_page(),
         "prompt_builder_html": _render_prompt_builder_tab(),
+        "host_context_html": _render_host_context_tab(),
         # panel-learn (~19,702 elements) is DOM-island-loaded exactly like panel-trees:
         # its markup ships in a <script type="application/json"> payload (CDATA, uncounted
         # by Gate 132) and is injected into #learn-mount on the first activate("learn"),
@@ -7508,6 +7509,36 @@ _BIFROST_TAB_TEMPLATE = (
 # The Prompt Builder ships as a bare mount + a <noscript> pointer. The whole
 # interactive UI is built by initPromptBuilder() via createElement/textContent
 # (no HTML-string sink), so the static generated DOM stays ~4 elements (Gate 132).
+def _render_host_context_tab() -> str:
+    """Host & context (#/host-context) — MH-14 part 2.
+
+    Two things, deliberately different in kind:
+
+      1. The STATIC support matrix, inlined from knowledge/host-support.json. This
+         is the part that always works — served or on the GitHub-Pages copy, with
+         no server and no detection. It answers "does component X run on host Y,
+         and if not, why" without ever guessing about your session, so it cannot
+         be wrong about you.
+
+      2. The LIVE launch-environment reading from /__host, when served. Scoped
+         honestly: it reports the environment this SERVER was started in, not your
+         current session (a server outlives and is reused across sessions). Absent
+         or unreachable, the page still renders (1) and says so.
+
+    Lean markup on purpose — a mount, a noscript, and the payload. The matrix is
+    JS-built from the inlined JSON, so a 7x6 table costs no static elements; the
+    same trick that keeps the Prompt Builder at 4."""
+    path = REPO_ROOT / "plugins" / "ravenclaude-core" / "knowledge" / "host-support.json"
+    payload = json.dumps(json.loads(path.read_text(encoding="utf-8")), separators=(",", ":"))
+    return (
+        '<div id="hc-root" class="hc-root"></div>\n'
+        '<noscript><p>The host matrix needs JavaScript. The same data is in '
+        "<code>plugins/ravenclaude-core/knowledge/host-support.json</code>, which is the "
+        "single source of truth for which RavenClaude components run on which CLI.</p></noscript>\n"
+        f'<script type="application/json" id="host-support-payload">{payload}</script>'
+    )
+
+
 _PROMPT_BUILDER_TAB_TEMPLATE = """
 <div id="pb-root" class="pb-root"></div>
 <noscript><p class="pb-noscript">The Prompt Builder needs JavaScript. It assembles a Claude prompt from your inputs &mdash; entirely in your browser, with nothing sent anywhere.</p></noscript>
@@ -9749,6 +9780,7 @@ _JS = r"""
     if (tab === "plugin-vars") activatePluginVars(sub);
     if (tab === "web-access") hydrateWebAccess();
     if (tab === "prompt-builder" && !pbLoaded) { pbLoaded = true; initPromptBuilder(); }
+    if (tab === "host-context" && !hcLoaded) { hcLoaded = true; initHostContext(); }
   }
   // Navigate: activate immediately, then reflect the page in the URL hash for
   // deep-linking + browser back/forward. (The hashchange listener re-applies on
@@ -13077,6 +13109,95 @@ _JS = r"""
     return pbEl("section", { class: "pb-pane" }, [pbEl("h3", { text: "Quality" }), pbEl("div", { class: "pb-gauge-row" }, [svg, meta]), pbIssuesEl, honesty]);
   }
 
+  /* ── Host & context (#/host-context) — MH-14 part 2 ─────────────────────────
+     Built with createElement/textContent only. The matrix is UNTRUSTED-INPUT-FREE
+     (it is our own committed JSON) but the same no-HTML-string-sink discipline as
+     the Prompt Builder applies: a payload is still a payload. */
+  let hcLoaded = false;
+  function hcEl(tag, cls, text) {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  }
+  function initHostContext() {
+    const root = document.getElementById("hc-root");
+    if (!root) return;
+    let data = null;
+    try {
+      const node = document.getElementById("host-support-payload");
+      data = node ? JSON.parse(node.textContent) : null;
+    } catch (e) {
+      data = null;
+    }
+    root.replaceChildren();
+
+    /* 1 — the LIVE reading. Rendered first but treated as the LESS reliable of the
+       two: it needs a server, and it describes the server's launch environment
+       rather than the visitor's session. Absent, the page is still fully useful. */
+    const live = hcEl("div", "hc-live");
+    live.appendChild(hcEl("h3", null, "This dashboard server"));
+    const liveBody = hcEl("p", "hc-live-body", "Checking…");
+    live.appendChild(liveBody);
+    root.appendChild(live);
+
+    fetchT("/__host")
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error("HTTP " + r.status))))
+      .then((h) => {
+        const wired = Object.keys(h.env_present || {}).filter((k) => h.env_present[k]);
+        liveBody.textContent =
+          (h.host
+            ? "Launched from: " + h.host + " (" + (h.basis || "") + ")."
+            : "Cannot determine which CLI launched this server — no positive signal. That is an honest unknown, not a problem.") +
+          " Started " + (h.started_at || "unknown") + ". " + (h.note || "") +
+          (wired.length ? " Wiring variables present: " + wired.join(", ") + "." : " No RavenClaude wiring variables are set in this server's environment.");
+      })
+      .catch(() => {
+        liveBody.textContent =
+          "No live reading — this page is not being served by the dashboard server (or it is unreachable). " +
+          "The matrix below is static and remains accurate.";
+      });
+
+    /* 2 — the STATIC matrix. Always renders. */
+    if (!data || !data.components) {
+      root.appendChild(hcEl("p", null, "The host-support matrix payload is missing from this build."));
+      return;
+    }
+    const hostIds = Object.keys(data.hosts);
+    const intro = hcEl("p", "hc-intro",
+      "Which RavenClaude components actually run on which CLI. “Supported” means it runs TODAY as wired by " +
+      "`ravenclaude install` — not that the host is capable in principle. Where it is not supported, the reason is given.");
+    root.appendChild(intro);
+
+    const table = hcEl("table", "hc-table");
+    const thead = hcEl("thead");
+    const hrow = hcEl("tr");
+    hrow.appendChild(hcEl("th", null, "Component"));
+    hostIds.forEach((h) => hrow.appendChild(hcEl("th", null, data.hosts[h].label)));
+    thead.appendChild(hrow);
+    table.appendChild(thead);
+    const tbody = hcEl("tbody");
+    Object.keys(data.components).forEach((cn) => {
+      const comp = data.components[cn];
+      const tr = hcEl("tr");
+      const th = hcEl("th", null, cn.replace(/_/g, " "));
+      if (comp.what) th.title = comp.what;
+      tr.appendChild(th);
+      hostIds.forEach((h) => {
+        const cell = comp[h] || {};
+        const td = hcEl("td", cell.supported ? "hc-yes" : "hc-no", cell.supported ? "yes" : "no");
+        td.title = cell.supported ? (cell.how || "supported") : (cell.blocked_by || "not supported");
+        tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    root.appendChild(table);
+    root.appendChild(hcEl("p", "hc-src",
+      "Source: knowledge/host-support.json (updated " + (data.updated || "?") +
+      "). Hover any cell for the reason. Every claim carries a basis: verified / docs-verified / inferred."));
+  }
+
   function initPromptBuilder() {
     pbRoot = document.getElementById("pb-root");
     if (!pbRoot || pbRoot.getAttribute("data-pb-ready") === "1") return;
@@ -13516,6 +13637,7 @@ _PAGE_TEMPLATE = """<!doctype html>
     <div class="ds-group">
       <div class="ds-label">Control</div>
       <a class="ds-sub" href="#/prompt-builder" data-tab="prompt-builder">Prompt Builder</a>
+      <a class="ds-sub" href="#/host-context" data-tab="host-context">Host &amp; context</a>
       <a class="ds-sub" href="#/settings" data-tab="settings">The Thing</a>
       <a class="ds-sub" href="#/pipeline" data-tab="pipeline">Pipeline</a>
       <a class="ds-sub" href="#/web-access" data-tab="web-access">Web access</a>
@@ -13550,6 +13672,7 @@ _PAGE_TEMPLATE = """<!doctype html>
   </div>
   <nav class="tab-bar" aria-label="Dashboard sections">
     <button class="tab-btn" type="button" id="tab-prompt-builder" data-tab="prompt-builder" aria-selected="false" title="Prompt Builder — assemble a best-practice Claude prompt with a live quality score">Prompt Builder</button>
+    <button class="tab-btn" type="button" id="tab-host-context" data-tab="host-context" aria-selected="false" title="Host &amp; context — which CLI launched this server, and which RavenClaude components run on which host">Host &amp; context</button>
     <button class="tab-btn" type="button" id="tab-settings" data-tab="settings" aria-selected="true" title="The Thing — comfort-posture + command-review; choose what Claude can do on its own (deny / ask / allow)">The Thing</button>
     <button class="tab-btn" type="button" id="tab-pipeline" data-tab="pipeline" aria-selected="false" title="Pipeline — the safety checks every command passes through">Pipeline</button>
     <button class="tab-btn" type="button" id="tab-web-access" data-tab="web-access" aria-selected="false" title="Web access — allow/deny which websites the agent may fetch">Web access</button>
@@ -13660,6 +13783,9 @@ _PAGE_TEMPLATE = """<!doctype html>
   </section>
   <section class="tab-panel" id="panel-prompt-builder" data-tab="prompt-builder" role="tabpanel" aria-label="Prompt Builder">
 {prompt_builder_html}
+  </section>
+  <section class="tab-panel" id="panel-host-context" data-tab="host-context" role="tabpanel" aria-label="Host and context">
+{host_context_html}
   </section>
 {plugins_panels}
 </main>
