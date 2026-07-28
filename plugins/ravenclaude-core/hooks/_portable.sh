@@ -91,3 +91,52 @@ _rc_pcre_match() {
   # No perl (unusual). Fall back to GNU grep -P if this grep has it.
   grep -Pzi -- "$_pat" "$_file" >/dev/null 2>&1
 }
+
+# ── Host-env normalisation (added 2026-07-28 — multi-host audit, Codex P0) ────
+#
+# WHY: Codex CLI has converged on the CLAUDE CODE hook contract — same event
+# names, same stdin fields, the same hookSpecificOutput envelope, the same
+# `exit 2 + stderr = block`, and a loader that reads hooks/hooks.json directly.
+# It needs NO envelope adapter (unlike Copilot, which required a 456-line
+# generator plus ~300 lines of translation). What it does NOT share is the
+# ENV-VAR VOCABULARY: Codex supplies PLUGIN_ROOT / PROJECT_DIR / SESSION_ID
+# where these hooks read CLAUDE_PLUGIN_ROOT / CLAUDE_PROJECT_DIR /
+# CLAUDE_SESSION_ID (26 interpolations in hooks.json; 25 and 14 hook files).
+#
+# The failure mode was silent and total: an unset CLAUDE_PLUGIN_ROOT makes a
+# hook resolve its helper to "/scripts/..." and exit non-zero — which Codex
+# reports and then CONTINUES past — so every guardrail failed OPEN. And
+# _emit-event.sh no-ops on an unset project dir, so the whole Guardrails
+# dashboard went dark with nothing written anywhere to say so.
+#
+# Deliberately a 3-line-per-var ALIAS, not an adapter. Adding a second
+# Copilot-shaped translation layer for a host that already speaks the contract
+# would be the expensive wrong answer.
+#
+# INVARIANT: never overwrite a CLAUDE_* value the host already set. Claude Code
+# is authoritative about its own vocabulary; this fills genuine blanks only.
+_rc_host_env() {
+  [ -z "${CLAUDE_PLUGIN_ROOT:-}" ] && [ -n "${PLUGIN_ROOT:-}" ] && export CLAUDE_PLUGIN_ROOT="$PLUGIN_ROOT"
+  [ -z "${CLAUDE_PROJECT_DIR:-}" ] && [ -n "${PROJECT_DIR:-}" ] && export CLAUDE_PROJECT_DIR="$PROJECT_DIR"
+  [ -z "${CLAUDE_PROJECT_DIR:-}" ] && [ -n "${CODEX_PROJECT_ROOT:-}" ] && export CLAUDE_PROJECT_DIR="$CODEX_PROJECT_ROOT"
+  [ -z "${CLAUDE_SESSION_ID:-}" ] && [ -n "${SESSION_ID:-}" ] && export CLAUDE_SESSION_ID="$SESSION_ID"
+  [ -z "${CLAUDE_SESSION_ID:-}" ] && [ -n "${CODEX_SESSION_ID:-}" ] && export CLAUDE_SESSION_ID="$CODEX_SESSION_ID"
+  return 0
+}
+
+# _rc_host — POSITIVE-signal host identification. Prints exactly one of:
+#   claude-code | copilot | codex | unknown
+#
+# HONESTY, and it is load-bearing: this returns `unknown` rather than guessing.
+# An in-session probe on 2026-07-28 found COPILOT_DEBUG_NONCE set INSIDE a
+# Claude Code session, so "any COPILOT_* implies Copilot" would mislabel a live
+# session. Copilot is therefore identified ONLY by THING_HOST, which
+# copilot-hook-adapter.sh exports explicitly — an assertion made by the adapter,
+# never an inference from ambient environment. A wrong host verdict is worse
+# than no verdict, because callers branch on it.
+_rc_host() {
+  if [ -n "${THING_HOST:-}" ]; then printf '%s\n' "$THING_HOST"; return 0; fi
+  if [ -n "${CLAUDECODE:-}" ] || [ -n "${CLAUDE_CODE_ENTRYPOINT:-}" ]; then printf 'claude-code\n'; return 0; fi
+  if [ -n "${CODEX_SESSION_ID:-}" ] || [ -n "${CODEX_PROJECT_ROOT:-}" ]; then printf 'codex\n'; return 0; fi
+  printf 'unknown\n'
+}
