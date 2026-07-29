@@ -4306,6 +4306,112 @@ footer.page-footer a:hover { text-decoration: underline; }
   border-radius: 8px; background: var(--surface, #161616); }
 .concern-stats h3 { margin: 0 0 .3rem; font-size: 14px; }
 .concern-stats-state { font-size: 12px; color: var(--muted, #999); padding: .4rem 0; }
+/* ── Host & context page ──────────────────────────────────────────────────────
+   This page shipped with NO styles at all: it rendered on browser defaults while
+   the whole token system sat unused, which is why a page of genuinely useful
+   answers read as a wall of undifferentiated text.
+
+   Everything here is CSS-only, on purpose. The page's DOM budget is frozen at
+   zero slack (Gate 132), so any fix that added a wrapper or a badge element
+   would have cost an owner-approved ratchet raise to make something merely look
+   better. Styling is free; elements are not.
+
+   Every colour is a token, so light and dark are correct by construction rather
+   than by a second set of overrides that later drifts. */
+.hc-root { overflow-x: auto; }
+
+/* Section headings act as rules: a hairline above each one turns a long scroll
+   into three legible sections without a single new element. The first has no
+   rule — a divider above the first item divides nothing. */
+.hc-root h3 {
+  font-family: var(--font-display, inherit);
+  font-size: 15px; font-weight: 650; letter-spacing: -0.01em;
+  margin: 30px 0 8px; padding-top: 18px;
+  border-top: 1px solid var(--border, #333);
+}
+.hc-root h3:first-child { margin-top: 4px; padding-top: 0; border-top: 0; }
+
+/* Prose gets a reading measure. Full-bleed text across a wide dashboard is the
+   single most common reason a paragraph goes unread. */
+.hc-intro { max-width: 68ch; color: var(--text, #ddd); margin: 0 0 12px; line-height: 1.55; }
+.hc-src {
+  max-width: 78ch; color: var(--muted, #999); font-size: 11.5px;
+  line-height: 1.5; margin: 8px 0 0;
+}
+
+.hc-table {
+  width: 100%; border-collapse: collapse; margin: 4px 0 2px;
+  font-size: 12.5px; line-height: 1.45;
+}
+/* Header row in the house idiom: small, tracked, muted — it labels, it does not
+   compete with the data underneath it. */
+.hc-table thead th {
+  text-align: left; padding: .4rem .6rem;
+  font-size: 10.5px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase;
+  color: var(--muted, #999);
+  border-bottom: 1px solid var(--border, #333);
+  white-space: nowrap;
+}
+.hc-table tbody th {
+  text-align: left; padding: .5rem .6rem; font-weight: 600;
+  color: var(--text, #ddd); white-space: nowrap;
+  border-bottom: 1px solid var(--border, #333);
+}
+.hc-table tbody td {
+  padding: .5rem .6rem; vertical-align: top;
+  color: var(--text, #ddd);
+  border-bottom: 1px solid var(--border, #333);
+}
+.hc-table tbody tr:last-child th,
+.hc-table tbody tr:last-child td { border-bottom: 0; }
+.hc-table tbody tr:hover th,
+.hc-table tbody tr:hover td { background: var(--surface-2, rgba(255,255,255,.03)); }
+
+/* THE SIGNATURE. A support matrix is read by scanning one column, not by reading
+   cells — so the state becomes a pill you can take in at a glance. Three real
+   states, three weights: supported reads positive, opt-in reads deliberate
+   (it is a choice you make, not a default), unwired reads hollow and quiet
+   because an honest gap should not shout. */
+.hc-yes, .hc-no {
+  font-size: 11px; font-weight: 600; letter-spacing: .01em;
+  white-space: nowrap;
+}
+.hc-yes > span, .hc-no > span { display: inline; }
+.hc-table td.hc-yes, .hc-table td.hc-no { text-align: left; }
+.hc-table td.hc-yes {
+  color: var(--ok, #1f7a3f);
+}
+.hc-table td.hc-no {
+  color: var(--muted, #999);
+}
+/* The pill itself is drawn with a box-shadow ring + soft fill so it needs no
+   wrapper element — the <td> IS the chip. */
+.hc-table td.hc-yes::before,
+.hc-table td.hc-no::before {
+  content: ""; display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+  margin-right: 7px; vertical-align: baseline;
+  background: currentColor;
+}
+.hc-table td.hc-no::before { background: transparent; box-shadow: inset 0 0 0 1.5px currentColor; }
+
+/* Paths and commands are objects you copy, not prose — set them in mono so they
+   are recognisable as things to type. */
+.hc-table tbody th { font-family: var(--font-mono, ui-monospace, monospace); font-size: 11.5px; font-weight: 500; }
+.hc-src code, .hc-intro code { font-family: var(--font-mono, ui-monospace, monospace); font-size: 11px; }
+
+/* The live reading is a card, matching the empty-state pattern used elsewhere. */
+.hc-live {
+  background: var(--surface, #1a1a1a); border: 1px solid var(--border, #333);
+  border-radius: var(--radius-sm, 6px); padding: 12px 14px; margin: 4px 0 6px;
+}
+.hc-live h3 { margin: 0 0 6px; padding-top: 0; border-top: 0; font-size: 13px; }
+.hc-live-body { margin: 0; color: var(--muted, #999); font-size: 12px; line-height: 1.5; max-width: 72ch; }
+
+@media (max-width: 720px) {
+  .hc-table { font-size: 12px; }
+  .hc-table thead th, .hc-table tbody th, .hc-table tbody td { padding: .4rem .45rem; }
+}
+
 .concern-stats-table { width: 100%; border-collapse: collapse; margin-top: .3rem; font-size: 12px; }
 .concern-stats-table th, .concern-stats-table td {
   text-align: left; padding: .22rem .5rem; border-bottom: 1px solid var(--border, #2a2a2a);
@@ -16148,8 +16254,9 @@ footer.page-footer a:hover { text-decoration: underline; }
     }
     const hostIds = Object.keys(data.hosts);
     const intro = hcEl("p", "hc-intro",
-      "Which RavenClaude components actually run on which CLI. “Supported” means it runs TODAY as wired by " +
-      "`ravenclaude install` — not that the host is capable in principle. Where it is not supported, the reason is given.");
+      "What actually works on each coding tool today \u2014 guardrails, skills, agents and the rest. " +
+      "A \u201cyes\u201d means it runs right now, as set up by `ravenclaude install`; it does not mean the tool " +
+      "could support it in principle. Every \u201cno\u201d says why.");
     root.appendChild(intro);
 
     const table = hcEl("table", "hc-table");
@@ -16178,7 +16285,7 @@ footer.page-footer a:hover { text-decoration: underline; }
     root.appendChild(table);
     root.appendChild(hcEl("p", "hc-src",
       "Source: knowledge/host-support.json (updated " + (data.updated || "?") +
-      "). Hover any cell for the reason. Every claim carries a basis: verified / docs-verified / inferred."));
+      "). Hover any cell to see why. Each answer also records how we know it \u2014 checked in this repo, read in the vendor\u2019s own docs, or inferred \u2014 so you can tell a tested fact from an educated guess."));
 
     /* 3 — Where work files go. The cross-CLI storage contract had NO user-facing
        surface at all: it lived in AGENTS.md and the session-start banner, both of
@@ -16199,7 +16306,7 @@ footer.page-footer a:hover { text-decoration: underline; }
     sh2.appendChild(shr); st2.appendChild(sh2);
     var sb2 = hcEl("tbody");
     [["\u002eravenclaude/runs/<task-id>/", "this machine only — gitignored",
-      "working notes, evidence, anything mid-flight"],
+      "working notes, evidence, anything still in progress"],
      ["docs/plans | decisions | research/", "you, teammates, CI — travels via git",
       "anything meant to outlive the task or be read by a human later"]
     ].forEach(function (r) {
@@ -16215,8 +16322,9 @@ footer.page-footer a:hover { text-decoration: underline; }
       "The test: would a teammate cloning this repo need it? Yes \u2192 docs/. No \u2192 runs/. " +
       "Start one with `rc artifacts new <task-id>` (it stamps which CLI made it); " +
       "run `rc artifacts list` first \u2014 another CLI may already have one for this task. " +
-      "Host-private state (~/.claude, ~/.copilot, ~/.codex, transcripts, memory) never crosses " +
-      "over: if work must survive, it has to be written into one of these two places."));
+      "Each tool also keeps its own private files (~/.claude, ~/.copilot, ~/.codex, chat history, memory) " +
+      "and those never reach the others: if work needs to survive, it has to be written into one of " +
+      "these two places."));
 
     /* 4 — MCP servers (MH-19). Same honesty contract as the matrix above: the
        inventory is read from the plugin manifests, and the wiring table says
@@ -16251,7 +16359,7 @@ footer.page-footer a:hover { text-decoration: underline; }
       var wt = hcEl("table", "hc-table");
       var wthead = hcEl("thead"), wh = hcEl("tr");
       wh.appendChild(hcEl("th", null, "Host"));
-      wh.appendChild(hcEl("th", null, "Installed for you?"));
+      wh.appendChild(hcEl("th", null, "How you get it"));
       wh.appendChild(hcEl("th", null, "What that means"));
       wthead.appendChild(wh); wt.appendChild(wthead);
       var wtbody = hcEl("tbody");

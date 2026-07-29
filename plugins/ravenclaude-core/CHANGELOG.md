@@ -2,6 +2,43 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.233.0 — 2026-07-29
+
+**The Host & context page: made it look like the rest of the product, and made it readable.**
+
+### Fixed — the page had zero styling of its own
+
+Every `.hc-*` class the generator emits — the support matrix, the MCP table, the storage-contract
+table, the intro paragraphs, the live-probe card — had **no CSS rule anywhere**. The page rendered on
+browser defaults (Times New Roman tables, full-bleed paragraphs, no rhythm) while the design-token
+system it sits inside (`--surface`, `--border`, `--ok`, `--font-mono`, `--radius-sm`) went unused. Now
+styled in the house idiom: hairline section rules, a 68ch reading measure, uppercase tracked table
+headers, mono for paths, and a responsive breakpoint.
+
+**The signature element:** `.hc-yes` / `.hc-no` render as status dots via `::before` — filled for
+supported, a hollow ring for not-wired — so the matrix is scannable as a shape before it is read as
+text. Colour is not the only channel (the ✓/✗ glyph stays), so it survives a colour-blind read.
+
+**Cost: zero new elements.** Both surfaces held at 6,154 / 7,040 — no Gate 132 ratchet raise. That
+constraint is why this is `::before` on the existing cells rather than a wrapper span.
+
+### Changed — plain English
+
+The page explained itself in the vocabulary of the people who built it. Five fixes:
+
+- A column headed **"Installed for you?"** — a yes/no question — whose answers were *automatic*,
+  *opt-in (by name)*, and *not wired*. Now **"How you get it"**.
+- **"Every claim carries a basis: verified / docs-verified / inferred"** → *"how we know it — checked
+  in this repo, read in the vendor's own docs, or inferred — so you can tell a tested fact from an
+  educated guess."*
+- **"Which RavenClaude components actually run on which CLI"** → *"What actually works on each coding
+  tool today — guardrails, skills, agents and the rest."*
+- **"anything mid-flight"** → *"anything still in progress"*.
+- **"Host-private state … never crosses over"** → *"Each tool also keeps its own private files … and
+  those never reach the others."*
+
+Nothing was softened: the "no" cells still say why, and the gaps are still named as gaps.
+
 ## 0.232.2 — 2026-07-29
 
 **Looped code review over the ~4,400 lines added today, until two consecutive passes found nothing.**
