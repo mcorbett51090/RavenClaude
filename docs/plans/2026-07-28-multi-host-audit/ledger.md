@@ -1087,7 +1087,7 @@ doesn't fix a gap the way the hooks adapter would."*
 ---
 
 #### MH-26 · Aider's real mechanism (`CONVENTIONS.md`) still has no projection — the prose is corrected, the gap is not closed
-**Severity:** P1 · **Hosts:** Aider · **Reported by:** CWA (P0-1 real fix, P2-3) · **Effort:** M · **Status:** `OPEN`
+**Severity:** P1 · **Hosts:** Aider · **Reported by:** CWA (P0-1 real fix, P2-3) · **Effort:** M · **Status:** ✅ **FIXED 2026-07-28 (v0.220.0)** — `install --host aider` projects AGENTS.md → CONVENTIONS.md **and** writes the `.aider.conf.yml` `read:` opt-in. Both halves were required: a pointer would not be read, documentation alone would not opt in. Gate 161, two teeth halves. **The only lane that bridges no enforcement** — Aider has no hooks API, and the generated file says so.
 **Severity note:** CWA rated the composite finding **P0**. Its P0 element — the false claim — is **FIXED
 (MH-03)**. What remains is the buildable half, carried at **P1**. **This is a scope split, not a severity
 downgrade by this ledger.**

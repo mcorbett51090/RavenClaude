@@ -145,7 +145,18 @@ def project(manifest: dict, adapter: str, hooks_dir: str) -> tuple:
                         "an explicit skip with a reason."
                     )
                 args = _extra_args(command, script)
-                bash = f'"{adapter}" {mode} "{hooks_dir}/{script}"'
+                # `bash "<adapter>"` rather than executing it directly, matching the
+                # Codex and Cursor lanes: the wiring then survives a checkout that
+                # lost its exec bits (Windows, zip exports, the installer's own cp -r
+                # fallback).
+                #
+                # The failure this prevents is LOUD on Copilot and SILENT on Cursor,
+                # and the difference is worth knowing: Copilot's preToolUse "fails
+                # closed — an error/crash/timeout denies the tool", so a
+                # non-executable adapter there would deny everything and be noticed in
+                # seconds. Cursor fails OPEN, so the same breakage there is invisible.
+                # Same fix, very different blast radius.
+                bash = f'bash "{adapter}" {mode} "{hooks_dir}/{script}"'
                 if args:
                     bash += f" {args}"
                 item = {"type": "command", "bash": bash, "timeoutSec": 90}

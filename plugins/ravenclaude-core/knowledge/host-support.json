@@ -68,8 +68,8 @@
       },
       "aider": {
         "supported": false,
-        "blocked_by": "no adapter, no install path",
-        "basis": "verified"
+        "blocked_by": "Aider has no hooks API at all \u2014 there is no in-loop enforcement point to wire, so no guardrail in this marketplace can gate an Aider session. CI is the only backstop. This is the one host lane that bridges instruction files WITHOUT bridging enforcement, and the generated CONVENTIONS.md states that plainly rather than implying coverage.",
+        "basis": "verified (no adapter, no install path, no host hooks mechanism)"
       },
       "windsurf": {
         "supported": false,
@@ -257,9 +257,10 @@
         "basis": "verified"
       },
       "aider": {
-        "supported": false,
-        "blocked_by": "Aider documents CONVENTIONS.md, loaded ONLY on explicit opt-in (--read / .aider.conf.yml). AGENTS.md is not mentioned in its docs at all. AGENTS.md:3 previously claimed otherwise; corrected in a5d7e4bf.",
-        "basis": "docs-verified (https://aider.chat/docs/usage/conventions.html)"
+        "supported": true,
+        "how": "`ravenclaude install --host aider` projects AGENTS.md into CONVENTIONS.md (the file Aider actually reads) AND writes .aider.conf.yml with `read: [CONVENTIONS.md]` \u2014 the explicit opt-in Aider requires. Both halves are needed: a pointer file would not be read, and documentation alone would not opt in.",
+        "caveat": "Aider still does NOT read AGENTS.md \u2014 that claim was false and was corrected in a5d7e4bf. This lane works by projecting to Aider's own documented file, not by making AGENTS.md load. An existing .aider.conf.yml is OVERWRITTEN by the installer; merge other keys by hand.",
+        "basis": "docs-verified (https://aider.chat/docs/usage/conventions.html) + verified (installer wires it; Gate 161)"
       },
       "windsurf": {
         "supported": false,

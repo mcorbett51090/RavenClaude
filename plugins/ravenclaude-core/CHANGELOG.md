@@ -35,6 +35,21 @@ All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the 
   corroboration has now been wrong three times this release — `.codex/skills`, the Copilot version
   floors, and this — against zero times for a primary source.
 
+- **Aider gets its real mechanism** (MH-26). Aider reads `CONVENTIONS.md`, and **only on explicit
+  opt-in** — `--read`, or a `read:` entry in `.aider.conf.yml`. It does **not** read `AGENTS.md`; that
+  claim was false and was corrected in prose earlier, which left Aider users with nothing *actionable*.
+  `install --host aider` now projects `AGENTS.md` → `CONVENTIONS.md` **and** writes the opt-in. Both
+  halves were required: a pointer file would not be read, and documentation alone would not opt in.
+  A renamed upstream section **raises** rather than silently shipping a file with a hole (**Gate 161**).
+  - **This is the only lane that bridges no enforcement.** Aider has no hooks API, so nothing here can
+    gate an Aider session in-loop and CI is the only backstop. The generated file leads with that
+    rather than implying coverage — and the gate fails if that warning is ever removed.
+- **Both hook projectors now invoke their adapter via `bash "…"`** rather than executing it directly,
+  so the wiring survives a checkout that lost its exec bits (Windows, zip exports, the installer's own
+  `cp -r` fallback). Worth noting the asymmetry: on Copilot that failure is **loud** (`preToolUse`
+  fails closed, so a non-executable adapter denies everything and is noticed in seconds); on Cursor it
+  is **silent**. Same fix, very different blast radius.
+
 ### Honest scope
 
 `preToolUse`/`postToolUse` are **not** wired: their per-event payload fields were not published on the

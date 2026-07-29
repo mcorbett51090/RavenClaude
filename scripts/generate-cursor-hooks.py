@@ -129,7 +129,13 @@ def project(manifest: dict, adapter: str, hooks_dir: str) -> tuple:
                         "skip with a reason."
                     )
                 args = _extra_args(command, script)
-                cmd = f'"{adapter}" {mode} "{hooks_dir}/{script}"'
+                # Invoked as `bash "<adapter>"` rather than executing it directly,
+                # matching the Codex lane. The wiring then survives a checkout that
+                # lost its exec bits — Windows, some zip exports, the installer's own
+                # `cp -r` fallback where symlinks are unavailable. On a host that
+                # FAILS OPEN, a hook that cannot execute is a guardrail that silently
+                # is not there, so this is worth the four extra characters.
+                cmd = f'bash "{adapter}" {mode} "{hooks_dir}/{script}"'
                 if args:
                     cmd += f" {args}"
                 out.setdefault(cursor_event, []).append({"command": cmd, "timeout": 90})

@@ -589,10 +589,41 @@ cmd_install() {
     host="$(detect_host)"
   fi
   case "$host" in
-    copilot|codex|cursor) ;;
-    *) warn "unknown --host '$host' (expected: copilot | codex | cursor) — using copilot"; host="copilot" ;;
+    copilot|codex|cursor|aider) ;;
+    *) warn "unknown --host '$host' (expected: copilot | codex | cursor | aider) — using copilot"; host="copilot" ;;
   esac
   printf '== ravenclaude install (host: %s) -> %s ==\n' "$host" "$project"
+
+  # The Aider lane (MH-26). The ONLY lane that bridges no enforcement, because
+  # Aider has no hooks API — nothing here can gate an Aider session in-loop, and
+  # the generated file says so rather than implying coverage it does not have.
+  #
+  # Aider reads CONVENTIONS.md, and ONLY on explicit opt-in (`--read`, or a `read:`
+  # entry in .aider.conf.yml) — docs-verified. So a pointer file would not be read
+  # and documentation alone would not opt in. Both halves are required for the
+  # corrected claim to become actionable instead of merely honest.
+  if [ "$host" = "aider" ]; then
+    local agen="$MARKET/scripts/generate-aider-conventions.py"
+    if [ -f "$agen" ]; then
+      if python3 "$agen" --out "$project/CONVENTIONS.md" --conf-out "$project/.aider.conf.yml"; then
+        ok "projected AGENTS.md -> CONVENTIONS.md + wrote .aider.conf.yml (read: opt-in)"
+      else
+        warn "aider projection FAILED — CONVENTIONS.md not written"
+      fi
+    else
+      warn "generate-aider-conventions.py missing — Aider files NOT written"
+    fi
+    note "⚠ NO guardrail runs under Aider — it has no hooks API. CI is the only"
+    note "  backstop on this host, and CONVENTIONS.md states that plainly."
+    note "If .aider.conf.yml already existed it was OVERWRITTEN — merge by hand if"
+    note "  you had other keys in it."
+    wire_dashboard_launchers "$project"
+    if [ -z "${RC_FROM_SETUP:-}" ]; then
+      printf '\n'
+      ok "install complete. Launch: aider (it reads .aider.conf.yml from this dir)."
+    fi
+    return 0
+  fi
 
   # The Cursor lane (MH-13 + MH-25).
   if [ "$host" = "cursor" ]; then
