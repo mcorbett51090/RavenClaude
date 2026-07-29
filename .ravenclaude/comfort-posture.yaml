@@ -143,3 +143,17 @@ categories:
     local: allow
     project: inherit
     thing: on
+
+# ── The Stop gate (owner decision 2026-07-29) ────────────────────────────────
+# `hooks/dod-gate.sh` runs this on Stop whenever source files changed, and BLOCKS
+# the session from ending until it exits 0. This is the strongest follow-through
+# lever available: a CLI cannot declare success while it fails — and it fires on
+# every host, Copilot included, because the hook projects to all of them.
+#
+# The command is a WRAPPER, not a one-liner, on purpose: ruff often is not on
+# PATH, and a missing linter must not deadlock a session. See scripts/dod-fast.sh.
+# max_blocks is the anti-deadlock cap — after 8 consecutive blocks it force-allows
+# with a warning rather than trapping you.
+definition_of_done:
+  cmd: "bash scripts/dod-fast.sh"
+  max_blocks: 8

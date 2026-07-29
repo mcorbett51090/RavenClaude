@@ -1,5 +1,6 @@
 {
   "schema_version": 1,
+  "_generated_by": "scripts/generate-copilot-plugin.py \u2014 do not edit by hand; this file is rebuilt from every plugin's plugin.json mcpServers",
   "_note": "CATALOGUE ONLY \u2014 nothing here is installed unless you name it with `ravenclaude install --host copilot --with-mcp <server>`. Every entry is THIRD-PARTY software that runs on your machine. On Claude Code you get one of these by installing the plugin that ships it; Copilot's MCP config is global, so opting in by name is the equivalent consent step.",
   "servers": [
     {

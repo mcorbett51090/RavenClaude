@@ -387,6 +387,11 @@ PY
       bash plugins/ravenclaude-core/hooks/tests/test-gate164-gemini-adapter.sh
       exit $?
       ;;
+    173)
+      echo "── Gate 173: generated files declare themselves (per-gate run) ───────────"
+      python3 scripts/check-generated-headers.py
+      exit $?
+      ;;
     172)
       echo "── Gate 172: cross-CLI storage contract reaches every host ──────────────"
       python3 scripts/check-storage-contract.py
@@ -508,7 +513,7 @@ PY
       ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -5527,6 +5532,23 @@ gate "storage-contract: canonical, honest about gaps, carried by every lane" mus
 
 rc=0; python3 scripts/check-storage-contract.py --must-fail >/dev/null 2>&1 || rc=$?
 gate "storage-contract teeth: a lane silently losing the contract is caught" must_pass "$rc"
+
+echo "── Gate 173: every generated file says so, and says what to edit ─────────"
+# The ONE file stamp worth its cost. A general "who touched this, when" stamp
+# fails here: 1,560 tracked files cannot hold a comment at all, the generated
+# ones are byte-gated so a stamp breaks them, and `git blame` already answers it
+# DERIVED — un-stale-able. The test a stamp must pass is whether it changes what
+# the next CLI DOES, and this one does: without it a session edits a projected
+# file and the next regen silently reverts the work.
+#
+# The gate also requires a POINTER, not just the word GENERATED — "stop" with
+# nowhere to go is half a message. That stricter half immediately caught
+# dashboard.html, which said generated but never named its generator.
+rc=0; python3 scripts/check-generated-headers.py >/dev/null 2>&1 || rc=$?
+gate "generated-headers: every generated file declares itself + names its source" must_pass "$rc"
+
+rc=0; python3 scripts/check-generated-headers.py --must-fail >/dev/null 2>&1 || rc=$?
+gate "generated-headers teeth: a declaration the reader cannot see is caught" must_pass "$rc"
 
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"
