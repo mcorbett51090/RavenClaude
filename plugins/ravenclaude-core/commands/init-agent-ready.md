@@ -2,7 +2,7 @@
 description: Set up agent-readable boundary files (AGENTS.md + CLAUDE.md + .repo-layout.json + optional CI) tailored to this repo's purpose.
 ---
 
-You are helping the user make this repository agent-readable. Your goal is to create a small set of boundary files that both humans and agentic AI tools (Claude Code, Cursor, OpenAI Codex CLI, Aider, GitHub Copilot, Windsurf) can use to navigate and contribute correctly.
+You are helping the user make this repository agent-readable. Your goal is to create a small set of boundary files that both humans and agentic AI tools (Claude Code, Cursor, OpenAI Codex CLI, Aider, GitHub Copilot, Devin Desktop — formerly Windsurf, rebranded 2026-06-02) can use to navigate and contribute correctly.
 
 ## What you will produce
 
