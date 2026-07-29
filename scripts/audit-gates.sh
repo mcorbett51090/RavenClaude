@@ -387,6 +387,11 @@ PY
       bash plugins/ravenclaude-core/hooks/tests/test-gate164-gemini-adapter.sh
       exit $?
       ;;
+    172)
+      echo "── Gate 172: cross-CLI storage contract reaches every host ──────────────"
+      python3 scripts/check-storage-contract.py
+      exit $?
+      ;;
     171)
       echo "── Gate 171: Codex MCP merge is append-only (per-gate run) ───────────────"
       python3 scripts/check-codex-mcp-append.py
@@ -503,7 +508,7 @@ PY
       ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -5509,6 +5514,19 @@ gate "codex-mcp: append-only, hand-tuning preserved, idempotent, parses" must_pa
 
 rc=0; python3 scripts/check-codex-mcp-append.py --must-fail >/dev/null 2>&1 || rc=$?
 gate "codex-mcp teeth: a parse-and-rewrite implementation is caught" must_pass "$rc"
+
+echo "── Gate 172: where work files go — every CLI is told, identically ────────"
+# The contract that lets one CLI pick up another's work is worth exactly as much
+# as its WEAKEST lane: a Cursor or Aider session that never sees it writes its
+# output where nobody looks, which is indistinguishable from not doing the work.
+# That fails silently — nothing errors, the files are just not where the next
+# tool searches. Same accounting pattern as the hook-projection gates, and the
+# same reason: a discipline living in ONE host's file was assumed universal.
+rc=0; python3 scripts/check-storage-contract.py >/dev/null 2>&1 || rc=$?
+gate "storage-contract: canonical, honest about gaps, carried by every lane" must_pass "$rc"
+
+rc=0; python3 scripts/check-storage-contract.py --must-fail >/dev/null 2>&1 || rc=$?
+gate "storage-contract teeth: a lane silently losing the contract is caught" must_pass "$rc"
 
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"

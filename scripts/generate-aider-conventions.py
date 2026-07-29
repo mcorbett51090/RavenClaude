@@ -48,6 +48,7 @@ _AGENTS = _REPO / "AGENTS.md"
 _SECTIONS = [
     "## Code style",
     "## Layout & boundary rules",
+    "## Where work files go — the cross-CLI storage contract (READ THIS BEFORE WRITING ANY FILE)",
     "## Testing instructions",
     "## PR conventions",
     "## House rules",

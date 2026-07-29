@@ -2,6 +2,59 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.231.0 — 2026-07-29
+
+### Added
+
+- **A cross-CLI storage contract — every host is now told where work files go, identically.** Any CLI
+  may be the one working in a repo, and the next session may be a different one, so where a file is
+  put is the only thing that lets the next tool find it.
+  - **The convention existed, but only Claude Code was told.** It lived in
+    `plugins/ravenclaude-core/CLAUDE.md` — the Claude-only constitution. Codex, Cursor, Gemini and
+    Aider never saw it, and Copilot received only one unrelated section of that file. Root
+    `AGENTS.md`, the actual **cross-tool** file, had no file-organisation section at all; it mentioned
+    `.ravenclaude/runs/` exactly once, incidentally, inside a branch-deletion rule. Same shape as the
+    multi-host audit: a discipline in one host's file, assumed universal.
+  - **Two tiers, now named**, because they already existed and nothing said so:
+    | tier | path | visibility |
+    |---|---|---|
+    | local run | `.ravenclaude/runs/<task-id>/` | **this machine only** — gitignored |
+    | committed | `docs/plans|decisions|research/` | teammates + CI, via git |
+
+    The deciding test is written down: *would a teammate cloning this repo need it?*
+  - **It says what is NOT shared** — host-private state (`~/.claude/` transcripts and memory,
+    `~/.copilot/`, `~/.codex/`, conversation history, caches) never crosses over. An admitted gap
+    beats a false promise of parity.
+- **`rc artifacts list` / `rc artifacts new <id>`** — the index that makes the contract usable.
+  `list` shows both tiers, newest first, **with which CLI wrote each one**; `new` creates a directory
+  in the right shape stamped with the calling CLI.
+  - **The listing is derived by scanning, never maintained**, so it cannot go stale — a hand-kept
+    index is a file that goes wrong the first time somebody skips it, and a stale index is worse than
+    none because it is believed. This repo has been bitten by that class repeatedly.
+  - Host detection uses **positive signals only** and reports `unknown` rather than guessing; a wrong
+    provenance stamp is worse than an absent one, because it will be trusted.
+  - `new` **never clobbers** an existing directory (it reports who made it and tells you to continue
+    there — two half-records is the failure the contract forbids), and **only ever writes the
+    gitignored local tier**. Promoting to the committed tier stays a deliberate `git add`.
+  - Nested layouts resolve correctly: `.ravenclaude/runs/forge/<slug>/` is a *container*, and listing
+    it as one artifact under-reported by 12 directories and would have pointed the next CLI at the
+    wrong path.
+- **Gate 172** — the contract is canonical in `AGENTS.md`, names both tiers, says what is not shared,
+  and **every lane carries it**; plus the index finds both tiers with provenance and never clobbers.
+  **The teeth half removes it from one lane** — what adding a host, or tidying a projector's section
+  list, actually looks like.
+  - The gate is **lane-aware on purpose**: Copilot and Aider receive the section verbatim, so the
+    header must be present; Cursor reads neither `AGENTS.md` nor a projection, so what must be true
+    there is that its rule names the section **and states both tiers inline**. The first draft checked
+    all three identically and failed on correct work — a gate wrong about its own subject.
+
+### Fixed
+
+- **The Aider and Cursor lanes could not have received it.** Aider's projection carries a fixed list
+  of sections (the new one is added); Cursor's rule pointed at `AGENTS.md` but enumerated only
+  testing, layout and PR conventions — so a Cursor session had no reason to read the part that
+  matters here. It now names the section and carries the essentials inline.
+
 ## 0.230.0 — 2026-07-29
 
 ### Added
