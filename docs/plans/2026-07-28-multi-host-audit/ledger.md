@@ -781,7 +781,28 @@ Codex-host update path print the list of hooks whose hash changed and end with a
 ---
 
 #### MH-18 · Claude-only invocation is taught as universal, while the host-agnostic equivalent already ships
-**Severity:** P1 · **Hosts:** every non-Claude host · **Reported by:** DASH (P1-2, P1-4, P1-5), CX (P2-1, P3-3) · **Effort:** M · **Status:** `OPEN`
+**Severity:** P1 · **Hosts:** every non-Claude host · **Reported by:** DASH (P1-2, P1-4, P1-5), CX (P2-1, P3-3) · **Effort:** M ·
+**Status:** ✅ **FIXED 2026-07-28 (v0.217.0)** — items 1–3 shipped; item 4 is N-A, see below
+
+> **Two of this entry's own framings needed correcting before the fix, which is worth recording.**
+> 1. It cites *"All 4 shipped commands are Claude Code slash commands"* at `:1646`. That line is
+>    **gone** — the intro is dynamic (`{len(cmds)}`) and the catalog renders **533** cards, not 4
+>    (`ravenclaude-core` ships 8; the rest come from ~179 other plugins). The scale changes the remedy:
+>    the entry says *"where none exists, say **Claude Code only**"*, which at 533 cards means 530
+>    repetitions of a label those cards already carry (*"paste into Claude Code"*). Shipped instead as
+>    **one prominent scope statement in the tab intro** plus per-card equivalents where real ones exist.
+> 2. It implies this needs DOM budget. **It does not** — the Commands tab is JS-built from
+>    `#commands-payload`, so its cards are uncounted. Verified: both surfaces stayed at 6,128 / 7,014.
+>
+> **Only VERIFIED equivalents shipped.** `bin/rc` implements exactly three verbs (`dashboard`,
+> `streams`, `converge`) `[verified by reading its case statement]`, so exactly **two** commands get a
+> mapping. The entry lists `/set-posture` as a third — it is not: `scripts/ravenclaude` has no
+> `set-posture` subcommand, and that command already has a Run-here button. **Inventing a
+> plausible-looking equivalent would reproduce precisely the defect MH-18 is about.**
+>
+> **Item 4 (carry the dashboard block into `codex/AGENTS.md`) is N-A**: MH-07 shipped **without** a
+> `codex/` projection — deferred with cause, since no verified Codex agent-file contract exists in this
+> repo. There is no file to carry it into. It re-opens if and when that projection is built.
 
 Four surfaces, one root cause: **`RC/bin/rc` was built (v0.158.0) precisely to solve this for Copilot, and
 was never extended to the Commands catalog, the settings fallback, or the cross-tool instruction file.**

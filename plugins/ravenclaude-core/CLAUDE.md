@@ -2059,3 +2059,33 @@ it name Codex as supported and unsupported *in the same sentence*; both halves a
 **Migration:** none, and this is enforced by design — host auto-detection resolves **any** ambiguity
 to `copilot`, so a consumer who merely has `codex` on PATH gets a byte-identical install to before.
 The Codex lane is opt-in via `--host codex`.
+
+## Invocation is host-specific — teach it that way (added 2026-07-28, v0.217.0)
+
+Multi-host audit **MH-18**. `bin/rc` shipped in v0.158.0 to give non-Claude hosts a launch verb, and
+was never wired to the three surfaces that actually *teach* invocation: the Commands catalog (533 cards,
+every one saying *"paste into Claude Code"*), the posture editor (*"you pick Deny / Ask / Allow"*, with
+no note that Save & apply writes only `.claude/settings.json`), and root `AGENTS.md` § Setup — which
+showed only slash commands, so the first substantive thing a Codex agent read (its onboarding says
+*"read AGENTS.md end-to-end, don't skim"*) was a procedure it structurally could not run.
+
+All three now state their host scope, `AGENTS.md` carries a **three-row host table**, and cards render
+an **"any host:"** equivalent where one exists.
+
+> **The rule this establishes, and the reason it is in the constitution rather than a comment.**
+> `_HOST_EQUIVALENTS` (`scripts/generate-dashboards.py`) maps a command to a host-agnostic invocation
+> **only when that invocation has been read out of the launcher's own source.** `bin/rc` implements
+> exactly three verbs — `dashboard`, `streams`, `converge` — so exactly two commands have an entry.
+> The audit ledger itself listed `/set-posture` as a third; it is not (`scripts/ravenclaude` has no
+> such subcommand), and that row was dropped rather than shipped. **A missing entry is correct; a
+> guessed entry is the defect MH-18 exists to fix** — an invocation confidently taught to a host that
+> cannot run it. If you add a verb to `rc`, add its mapping here; never the reverse.
+
+**Also deliberate:** the other 530 cards are **not** stamped *"Claude Code only"*, even though the
+ledger's remedy says to. They already name the host in their own line, and 530 repetitions is noise
+that trains readers to skip the text. The scope statement is made **once**, in the tab intro, where it
+is read — and it says the absence of an equivalent is *"a gap, not a hidden feature."*
+
+**Zero DOM cost, verified:** the Commands tab is JS-built from `#commands-payload` (uncounted), and the
+posture note is plain text inside an existing element. Both surfaces held at 6,128 / 7,014 — no Gate
+132 ratchet raise. **Migration:** none; content-only.

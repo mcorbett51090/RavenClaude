@@ -26,16 +26,25 @@ Don't let them drift toward each other.
 
 ## Setup commands
 
-```shell
-# No package install — the marketplace is markdown + shell + JSON manifests.
-# Local development test:
-/plugin marketplace add ./    # from a separate Claude Code project
-/plugin install ravenclaude-core@ravenclaude
-```
+There is **no package install** — the marketplace is markdown + shell + JSON manifests. How you wire it in depends on your host, and **the three paths are not interchangeable** (corrected 2026-07-28, multi-host audit MH-18: this section previously showed only the Claude Code slash commands, so the first substantive thing a Codex or Copilot agent read was a procedure it structurally could not execute).
+
+| Your host | Wire it in with | Notes |
+|---|---|---|
+| **Claude Code** | `/plugin marketplace add ./` then `/plugin install ravenclaude-core@ravenclaude` | Run from a separate Claude Code project. Slash commands work here and only here. |
+| **GitHub Copilot CLI** | `bash <marketplace>/scripts/ravenclaude install --project <your-repo>` | Wires skills → `.claude/skills`, guardrails → `.github/hooks`, and points `.github/copilot-instructions.md` at the projected discipline. **Requires Copilot CLI ≥ 1.0.52** — below that a sub-agent's tool calls are not hooked at all; the installer checks and warns. |
+| **OpenAI Codex CLI** | `bash <marketplace>/scripts/ravenclaude install --host codex --project <your-repo>` | Wires skills → `.agents/skills` and guardrails → `.codex/hooks.json` (native contract, no adapter), and projects your comfort posture onto Codex's OS sandbox. **Then run `/hooks` inside Codex to trust them — and again after every update**, because Codex tracks hook trust by hash. |
 
 `jq` and `python3` are required for the CI workflows and the layout-enforcement hook. Both are present in the devcontainer.
 
-For a guided, copy-paste install (with per-step verification and a "if the bridge is down…" troubleshooting accordion), open the dashboard's **Install a plugin (Bifröst)** tab (`/dashboard` → `#/bifrost`) — it walks the four steps above and lights each one as you paste back the command output.
+**Opening the dashboard.** The host-agnostic launcher is `bin/rc` — invoke it by **full path**, because a plain `rc` may resolve to something else on your `PATH`:
+
+```shell
+bash plugins/ravenclaude-core/bin/rc dashboard
+```
+
+`/dashboard` is the Claude Code shorthand for exactly that command; it does not exist on any other host.
+
+For a guided, copy-paste install (with per-step verification and a "if the bridge is down…" troubleshooting accordion), open the dashboard's **Install a plugin (Bifröst)** tab (`#/bifrost`) — it walks the Claude Code steps above and lights each one as you paste back the command output.
 
 ## Repo layout
 

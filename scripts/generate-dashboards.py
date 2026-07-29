@@ -1752,6 +1752,29 @@ _RUN_ACTION_LITERAL = {
     "set-posture": "apply-comfort-posture.py",
 }
 
+# Host-agnostic equivalents (multi-host audit MH-18).
+#
+# THE GAP THIS CLOSES: every card told the reader to "paste into Claude Code",
+# and the catalog renders 533 commands. A Copilot or Codex operator browsing it
+# was handed instructions that cannot work on their host, with no signpost —
+# while `bin/rc` had shipped since v0.158.0 precisely to solve that, and was
+# never wired to this surface.
+#
+# ONLY VERIFIED VERBS APPEAR HERE. `bin/rc` implements exactly three
+# (`dashboard`, `streams`, `converge`) `[verified 2026-07-28 by reading its case
+# statement]`, and `scripts/ravenclaude` implements
+# {setup|install|update|status|dashboard|doctor|init-codespace}. Inventing a
+# plausible-looking equivalent would reproduce the exact defect MH-18 is about:
+# an invocation confidently taught to a host that cannot run it. If a command has
+# no real equivalent it gets NO entry, and the card keeps saying Claude Code.
+#
+# Keyed by the bare command name (the `name` field), not the namespaced slash
+# form, so a rename of the owning plugin does not silently drop the mapping.
+_HOST_EQUIVALENTS = {
+    "dashboard": "rc dashboard",
+    "stream": "rc streams",
+}
+
 
 def _render_command_card(cmd: dict) -> str:
     # Plugin commands are invoked NAMESPACED as /<plugin>:<command> — that form is
@@ -1791,11 +1814,28 @@ def _render_command_card(cmd: dict) -> str:
         # is no way for a web page to type into your Claude chat — verified against
         # Claude Code's docs). So the honest, working UX is: copy it, paste it into
         # Claude Code, and the command runs the whole multi-step job there.
+        # MH-18: name the host-agnostic equivalent where one genuinely exists.
+        # Appended as TEXT inside the existing <p> — the Commands tab is JS-built
+        # from #commands-payload so it is DOM-budget-uncounted either way, but
+        # keeping it in one element also keeps the card's shape stable.
+        equiv = _HOST_EQUIVALENTS.get(cmd["name"])
+        equiv_html = (
+            f' &middot; <span class="cmd-what-label">any host:</span> '
+            f"<code>{html.escape(equiv)}</code>"
+            if equiv
+            else ""
+        )
+        equiv_title = (
+            f" On Copilot CLI, Codex, or a plain terminal, run {equiv} instead — same job, no slash command needed."
+            if equiv
+            else " There is no non-Claude equivalent for this one."
+        )
         what_runs = (
             '<p class="cmd-what" '
-            f'title="This is a Claude Code command. A web page can&#39;t run it for you. Press Copy, then paste {html.escape(slash)} into Claude Code and press enter — Claude does the whole job for you there.">'
+            f'title="This is a Claude Code command. A web page can&#39;t run it for you. Press Copy, then paste {html.escape(slash)} into Claude Code and press enter — Claude does the whole job for you there.{html.escape(equiv_title)}">'
             '<span class="cmd-what-label">How to run it:</span> '
-            f"copy it, then paste into Claude Code &mdash; <code>{html.escape(slash)}</code></p>"
+            f"copy it, then paste into Claude Code &mdash; <code>{html.escape(slash)}</code>"
+            f"{equiv_html}</p>"
         )
         actions = (
             f'<code class="cmd-code" id="{cid}">{html.escape(slash)}</code>'
@@ -1839,10 +1879,24 @@ def _render_commands_tab() -> str:
         else " Each card shows exactly what it runs. Copy a command and paste it into your "
         "Claude Code session to run it — a browser can't launch a slash command."
     )
+    # MH-18 — the host-scope signpost. Stated ONCE, here, rather than stamping
+    # "Claude Code only" onto 500+ cards that already say "paste into Claude Code":
+    # that repetition would be noise, not honesty, and the per-card line already
+    # names the host. What was genuinely missing is a next step for someone who
+    # does not have a Claude Code session to paste into.
+    n_equiv = sum(1 for c in cmds if _HOST_EQUIVALENTS.get(c["name"]))
+    host_note = (
+        " <strong>Not on Claude Code?</strong> These are Claude Code slash commands; a Copilot CLI, "
+        "Codex, or plain-terminal session cannot run them. "
+        f"{n_equiv} of them have a host-agnostic equivalent, shown on the card as "
+        "&ldquo;any host&rdquo; &mdash; the launcher is <code>rc</code>, in "
+        "<code>plugins/ravenclaude-core/bin/rc</code>. The rest have no equivalent today; that is a "
+        "gap, not a hidden feature."
+    )
     intro = (
         '<div class="cmd-intro">'
         "<h2>Commands</h2>"
-        f"<p>{len(cmds)} command{plural} shipped by the marketplace plugins.{run_note}</p>"
+        f"<p>{len(cmds)} command{plural} shipped by the marketplace plugins.{run_note}{host_note}</p>"
         "</div>"
     )
     return intro + f'<div class="cmd-grid">{cards}</div>'
@@ -2224,6 +2278,19 @@ def _render_settings_tab(properties: dict, presets: dict) -> str:
         "or <strong>Allow</strong> (go ahead). Start from the "
         "<strong>&#9733; Recommended</strong> preset above and loosen or tighten "
         "from there as you build trust."
+        # MH-18 — HOST SCOPE. These levels describe enforcement that exactly one
+        # host delivers natively. Saying "you pick Deny/Ask/Allow" with no scope
+        # note told a Copilot or Codex operator they were setting a control that,
+        # on their host, is enforced by a different mechanism or not at all — the
+        # same false-assurance shape as the Pipeline tab's badges (MH-04).
+        # Plain text, no new tags: this panel IS statically rendered and counted
+        # against the Gate 132 ratchet, unlike the JS-built Commands cards.
+        " Where these actually bind: Save &amp; apply writes Claude Code&rsquo;s "
+        "permission engine, so under Claude Code they are enforced. Under GitHub "
+        "Copilot CLI enforcement comes instead from the wired hooks plus command "
+        "review. Under OpenAI Codex the real boundary is its own OS sandbox "
+        "(sandbox_mode / approval_policy), which the installer writes separately. "
+        "On any other host these levels are advisory and CI is the backstop."
         "</p></div>"
     )
 
