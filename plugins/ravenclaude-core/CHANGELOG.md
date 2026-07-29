@@ -2,6 +2,77 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.232.2 — 2026-07-29
+
+**Looped code review over the ~4,400 lines added today, until two consecutive passes found nothing.**
+Seven passes: **11 findings, all fixed.** Every finding came from *executing* the code, not reading it.
+
+### Fixed — P1
+
+- **TOML injection in the Codex MCP installer.** `render_server()` interpolated the server name
+  straight into `[mcp_servers.<name>]` with no validation. A name carrying `]` and a newline —
+  `ok]\n[mcp_servers.evil]` — **opens a second table**, installing a server the user never named.
+  That directly defeats the property the whole opt-in design rests on: *naming the server is the
+  consent*. Names come from a plugin's `plugin.json`, which is only as trustworthy as the plugin.
+  Server names, config keys and `env` keys are now validated (`[A-Za-z0-9_.-]`, ≤64) and **raise**
+  rather than render.
+- **The Copilot MCP installer silently destroyed a config it could not parse.** `load_installed()`
+  caught `JSONDecodeError` and returned `{}`, so a hand-broken or half-written
+  `~/.copilot/mcp-config.json` was **overwritten** — losing every server the user had configured by
+  hand, in their **global** config, with a success message. Now: absent → `{}`, present-but-unparseable
+  → **refuse**. *Note the asymmetry this exposed: the Codex sibling was given a structural
+  append-only guarantee and its JSON counterpart never got the equivalent promise.*
+
+### Fixed — P2
+
+- **The dispatch reader repeated a bug fixed hours earlier in the same file.** It read the log with
+  the 50 KiB *head* cap and no truncation flag — so a busy log reported a partial count as a total.
+  This is the identical defect corrected in the session scan (a 14.5 MB transcript whose first 50 KiB
+  held nothing), reintroduced in a reader written afterwards. Now bounded like the session scan, and
+  the UI says *"partial"* when the bound is hit.
+- **`rc artifacts` was wrong from any subdirectory** — `list` reported *"No work directories yet"*
+  while 84 sat one level up, and `new` would have created a **second** `.ravenclaude/runs/` inside the
+  subdirectory. A storage contract with two storage locations is not a contract. It now resolves the
+  project root (`.ravenclaude/` or `.git/`), bounded, falling back to cwd.
+- **The storage gate's Cursor assertion could pass on a gutted rule.** It searched the whole
+  `scripts/ravenclaude` file, where the tier strings appear **twice** in unrelated blocks — so the
+  Cursor rule could lose the contract entirely and the gate would stay green. Now scoped to the
+  `.mdc` heredoc, and verified to fail on a fully gutted rule.
+- **`check-generated-headers`' pointer assertion was satisfied by the marker itself.** The pattern
+  accepted a bare `\bedit\b`, which every header already contains (*"do not edit by hand"*) — so the
+  claim *"names the SOURCE to edit"* asserted almost nothing. Tightened to require a real source file
+  or directory path; `copilot/README.md`, the one file that passed only on the weak alternative, now
+  names its generator.
+- **Path traversal in the Codex agent generator.** The agent `name` became a filename with no
+  validation. Canonical agents are trusted and frontmatter-gated, so this was defence in depth — but a
+  generator that builds a path from unvalidated data is one bad frontmatter line from writing outside
+  its output directory.
+- **`rc artifacts new` crashed on a long task id** — a raw `OSError: File name too long` traceback
+  where a one-line message belongs. Capped at 64 characters.
+
+### Fixed — P3
+
+- **The Stop gate ran an arbitrary user command with no time bound.** A command that hangs (a suite
+  waiting on a port, anything touching the network) would wedge every session end, and `max_blocks`
+  could never advance because the command never returns. Now wrapped in the repo's portable
+  `_rc_timeout` shim at 600s — verified bounding a 30s command at 2s — with a fail-safe stub so a
+  missing helper cannot disable the gate.
+- **`dod-fast.sh` failed OPEN** if it could not resolve the repo: `|| exit 0` reports *"definition of
+  done met"* when the truth is *"the checks never ran"* — the exact dishonesty the gate exists to
+  prevent. Now blocks and says why.
+- **The artifact index followed symlinks** out of the project, listing a foreign directory as though
+  it were work in this repo.
+
+### Notes on the review itself
+
+- **One finding was reached by a flawed demonstration.** The Cursor-lane issue was first "proved" by a
+  mutant that removed *one* of two mentions of the tier — which proved nothing. The conclusion held
+  anyway (verified separately: the strings occur twice outside the rule, so a gutted rule really would
+  have passed), but the first demonstration was worthless and is recorded as such.
+- **Two probes produced false alarms**, both caught before being reported as defects: a malformed
+  cwd-independence test (argparse errors read as failures) and a `--dest /dev/null` status check
+  (which was the new unreadable-config guard working correctly).
+
 ## 0.232.1 — 2026-07-29
 
 **The dashboard was making three false claims about work shipped in the last few releases.** Found by

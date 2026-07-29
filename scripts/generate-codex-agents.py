@@ -180,10 +180,22 @@ def build_agent_toml(agent: dict) -> str:
     )
 
 
+# The agent `name` becomes a FILENAME. Canonical agents are trusted and gated by
+# check-frontmatter.py, so this is defence in depth rather than a live hole — but
+# a generator that writes a path built from data it did not validate is one bad
+# frontmatter line away from writing outside its output directory.
+_NAME_OK = re.compile(r"\A[A-Za-z0-9_-]{1,64}\Z")
+
+
 def build_tree() -> dict[str, str]:
     tree: dict[str, str] = {}
     for path in sorted(AGENTS_DIR.glob("*.md")):
         agent = parse_agent(path)
+        if not _NAME_OK.match(agent["name"]):
+            raise ValueError(
+                f"{path.name}: agent name {agent['name']!r} is not a safe filename "
+                "([A-Za-z0-9_-], <=64). Refusing to write a path built from it."
+            )
         tree[f"{agent['name']}.toml"] = build_agent_toml(agent)
     return tree
 

@@ -120,7 +120,23 @@ def run(mod, *, mutate_lane: bool = False) -> int:
         if HEADER not in lanes[lane]:
             bad(f"{lane} does not carry the storage contract section — that host "
                 "writes its work where no other CLI looks")
-    cursor = lanes["cursor (installer .mdc)"]
+    # SCOPE TO THE RULE, not the whole installer. The first version searched all of
+    # scripts/ravenclaude for the tier strings — and they appear in unrelated blocks
+    # (the Codex MCP wiring, the dashboard launcher), so the assertion passed even
+    # with the Cursor rule gutted. Verified: deleting the local-tier line from the
+    # rule left the gate green. A check that cannot fail is not a check.
+    installer = lanes["cursor (installer .mdc)"]
+    _mdc_start = installer.find(".cursor/rules/ravenclaude.mdc")
+    cursor = ""
+    if _mdc_start != -1:
+        _body = installer[_mdc_start:]
+        _open = _body.find("<<'MDC'")
+        _close = _body.find("\nMDC\n", _open + 1) if _open != -1 else -1
+        if _open != -1 and _close != -1:
+            cursor = _body[_open:_close]
+    if not cursor:
+        bad("could not locate the Cursor .mdc heredoc in scripts/ravenclaude — the "
+            "lane assertion below would be vacuous, so it is reported instead")
     if "Where work files go" not in cursor:
         bad("cursor (installer .mdc) does not name the storage contract")
     for tier in (LOCAL_TIER, COMMITTED_TIER):

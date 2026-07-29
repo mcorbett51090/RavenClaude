@@ -53,6 +53,26 @@ STANDARD_FILES: dict[str, str] = {
 }
 
 
+def find_project_root(start: Path) -> Path:
+    """Walk up to the project root, rather than trusting the caller's cwd.
+
+    Using cwd directly was wrong in both directions: `list` run from a
+    subdirectory reported "No work directories yet" while 84 sat one level up,
+    and `new` would have created a SECOND .ravenclaude/runs/ inside that
+    subdirectory — fragmenting the one place the contract exists to point every
+    CLI at. A storage contract with two storage locations is not a contract.
+
+    A directory is the root if it holds `.ravenclaude/` or `.git/`. The walk is
+    bounded by the filesystem root and falls back to `start`, so a project with
+    neither marker behaves exactly as before.
+    """
+    cur = start.resolve()
+    for candidate in [cur, *cur.parents]:
+        if (candidate / ".ravenclaude").is_dir() or (candidate / ".git").exists():
+            return candidate
+    return start
+
+
 def detect_host() -> str:
     """Name the CLI we are running under, from POSITIVE signals only.
 
@@ -136,7 +156,13 @@ def scan(root: Path, tier: str, base: Path, _depth: int = 0) -> list[dict]:
     if not full.is_dir():
         return out
     try:
-        entries = sorted(p for p in full.iterdir() if p.is_dir())
+        # NOT p.is_dir() alone: that follows symlinks, so a link under runs/ would
+        # list a directory outside the project as though it were work in it. The
+        # index exists to tell the next CLI where the work IS; pointing it out of
+        # the repo is worse than omitting the entry.
+        entries = sorted(
+            p for p in full.iterdir() if p.is_dir() and not p.is_symlink()
+        )
     except OSError:
         return out
     for d in entries:
@@ -201,6 +227,14 @@ def cmd_new(base: Path, task: str) -> int:
     if not safe:
         print("  task id must contain at least one letter, digit, '-' or '_'", file=sys.stderr)
         return 1
+    # Filesystems cap a path COMPONENT (255 bytes on ext4/APFS). Without this the
+    # command died with a raw OSError traceback — an unhandled crash where a
+    # one-line message belongs. Capped well below the limit so the files inside
+    # (meta.json, summary.md) cannot push the full path over either.
+    if len(safe) > 64:
+        print(f"  task id is {len(safe)} characters — keep it under 64 so the "
+              "directory name stays readable and portable", file=sys.stderr)
+        return 1
 
     d = base / LOCAL_ROOT / safe
     if d.exists():
@@ -242,7 +276,9 @@ def main() -> int:
     ap.add_argument("--base", type=Path, default=Path.cwd(), help=argparse.SUPPRESS)
     args = ap.parse_args()
 
-    base = args.base.resolve()
+    # An explicit --base is honoured verbatim (the gates pass a scratch dir);
+    # otherwise resolve the project root rather than trusting cwd.
+    base = args.base.resolve() if args.base != Path.cwd() else find_project_root(Path.cwd())
     if args.action == "list":
         return cmd_list(base, args.json)
     if not args.task:

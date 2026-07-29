@@ -42,8 +42,19 @@ set -uo pipefail
 # The script's own path is the one thing that cannot be wrong: it is at
 # <repo>/scripts/dod-fast.sh, so the repo root is one level up. No environment
 # variable, no cwd, no git invocation that could resolve somewhere else.
-REPO="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")/.." && pwd)" || exit 0
-cd "$REPO" || exit 0
+# FAIL CLOSED here, not open. `|| exit 0` would report "definition of done met"
+# when the truth is "the checks never ran" — the precise shape of dishonesty this
+# gate exists to prevent, and the same one the LOUD ruff skip below avoids. If we
+# cannot locate the repo we cannot assert anything about it; say so and block.
+# max_blocks (8) is what stops that from becoming a deadlock.
+if ! REPO="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")/.." && pwd)"; then
+  echo "dod: cannot resolve the repo root from \$0 — refusing to report success" >&2
+  exit 1
+fi
+if ! cd "$REPO"; then
+  echo "dod: cannot enter $REPO — refusing to report success" >&2
+  exit 1
+fi
 
 FAILED=0
 

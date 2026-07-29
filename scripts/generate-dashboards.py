@@ -12062,7 +12062,10 @@ _JS = r"""
     const p = document.createElement("p");
     if (d.state === "recorded") {
       const names = (d.by_type || []).map((t) => t.type + "\u00d7" + t.count).join(", ");
-      p.textContent = d.total + " dispatch record(s)" + (names ? " — " + names : "");
+      /* A hit scan cap makes the number a FLOOR. Saying so is the whole point of
+         this panel — a partial count presented as a total is the defect. */
+      p.textContent = d.total + (d.truncated ? "+ (partial — log too large to read fully)" : "")
+        + " dispatch record(s)" + (names ? " — " + names : "");
     } else if (d.state === "idle") {
       p.textContent =
         "The dispatch evaluator is ENABLED, but nothing has been recorded yet. " +
