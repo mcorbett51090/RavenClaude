@@ -870,13 +870,56 @@ def _mimir_scrub_tree(obj):
 # newest files are tail-scanned only for cheap per-session counts.
 _MIMIR_JSONL_READ_CAP = 50 * 1024  # 50 KiB
 
+# MH-20 — the ONLY characters a subagent-type label may contain before it is
+# allowed onto the dashboard. `subagent_type` is model-supplied: in practice it
+# is one of our own agent ids, but nothing structurally guarantees that, and this
+# reader's whole contract is that transcript content never becomes display text.
+# A label failing this check is counted as "unnamed" rather than dropped — the
+# DISPATCH still happened, and silently under-reporting it would be the worse
+# error. The prompt/description fields are never read at all, at any length.
+_MIMIR_LABEL_OK = frozenset(
+    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789:_-"
+)
+_MIMIR_LABEL_MAX = 64
+
+
+def _mimir_safe_label(value) -> str:
+    """Return `value` if it is a short, plain identifier; else 'unnamed'."""
+    if isinstance(value, str) and 0 < len(value) <= _MIMIR_LABEL_MAX:
+        if set(value) <= _MIMIR_LABEL_OK:
+            return value
+    return "unnamed"
+
 
 def _mimir_encode_key(project_root) -> str:
     """Stage 1 of the encoded-path algorithm (skill §"The encoded-path
-    algorithm + fallback"). Strip leading "/" and replace every "/" with "-".
-    Worktree-aware: feed $CLAUDE_PROJECT_DIR verbatim — never normalized."""
-    s = str(project_root)
-    return s.lstrip("/").replace("/", "-")
+    algorithm + fallback"). Replace every "/" AND every "." with "-".
+    Worktree-aware: feed $CLAUDE_PROJECT_DIR verbatim — never normalized.
+
+    The leading "/" is encoded like any other, so an absolute path yields a
+    LEADING "-": /Users/me/repo -> -Users-me-repo. This function used to
+    lstrip("/") first and leave "." alone, which produced a key that matched
+    nothing on any real machine — verified 2026-07-29 against 161 project dirs,
+    of which 161 begin with "-" and 0 contain a literal ".". The bug was
+    invisible because the reader's miss path returns exists:False, which the UI
+    renders as the same honest "no sessions yet" empty state a genuinely-new
+    host produces. A card that is *always* empty and a card that is *correctly*
+    empty looked identical, so nothing ever contradicted it.
+
+    This restores what the repo already documented: the worktree rule in the
+    `mimir` skill states /.claude/worktrees/foo -> --claude-worktrees-foo, and
+    the double dash is only reachable if BOTH the leading "/" and the "." encode.
+    """
+    return str(project_root).replace("/", "-").replace(".", "-")
+
+
+def _mimir_encode_key_legacy(project_root) -> str:
+    """The pre-fix key shape, still tried as a second candidate.
+
+    Kept so a host that really does use the stripped form keeps working rather
+    than silently losing its sessions — the exact failure being fixed above.
+    """
+    return str(project_root).lstrip("/").replace("/", "-")
 
 
 def _mimir_resolve_project_dir(claude_home, project_root):
@@ -888,24 +931,31 @@ def _mimir_resolve_project_dir(claude_home, project_root):
     projects = claude_home / "projects"
     if not projects.is_dir():
         return None
-    computed = projects / _mimir_encode_key(project_root)
-    try:
-        computed_resolved = computed.resolve()
-        projects_resolved = projects.resolve()
-        # Path-traversal defense in depth (RM8): resolved candidate MUST sit
-        # under claude_home/projects/. Reject anything that escapes.
-        computed_resolved.relative_to(projects_resolved)
-        if computed.is_dir():
-            return computed
-    except (ValueError, OSError):
-        pass
-    # Fallback: reverse-decode candidates.
+    # Canonical key first, then the legacy shape. Both go through the same
+    # containment check below — a second candidate must not mean a second
+    # chance to escape the projects dir.
+    for key in (_mimir_encode_key(project_root), _mimir_encode_key_legacy(project_root)):
+        computed = projects / key
+        try:
+            computed_resolved = computed.resolve()
+            projects_resolved = projects.resolve()
+            # Path-traversal defense in depth (RM8): resolved candidate MUST sit
+            # under claude_home/projects/. Reject anything that escapes.
+            computed_resolved.relative_to(projects_resolved)
+            if computed.is_dir():
+                return computed
+        except (ValueError, OSError):
+            continue
+    # Fallback: reverse-decode candidates. Lossy by construction — the encoding
+    # maps "/" and "." onto the same "-", so it cannot be inverted uniquely. It
+    # stays as a drift defense (RM1) and is expected to miss on any path whose
+    # own segments contain a dash or a dot; stage 1 is what normally answers.
     target = str(project_root)
     try:
         for candidate in projects.glob("*"):
             if not candidate.is_dir():
                 continue
-            decoded = "/" + candidate.name.replace("-", "/")
+            decoded = candidate.name.replace("-", "/")
             if decoded == target:
                 import sys as _sys
                 print(
@@ -968,6 +1018,95 @@ def _mimir_iter_jsonl_bounded(
             continue
         if isinstance(ev, dict):
             yield ev
+
+
+# Cap for the per-session SUMMARY scan (event/token/dispatch counts). This is a
+# different job from _MIMIR_JSONL_READ_CAP's 50 KiB peek and needs a different
+# bound: a real transcript's first 50 KiB is session preamble (attachments, the
+# file-history snapshot, the opening user turn) and contains ZERO assistant
+# events, so a 50 KiB head-read reported 0 events / 0 tokens / 0 dispatches for
+# every session on every machine — measured 2026-07-29 against a 14.5 MB
+# transcript whose first 50 KiB held no assistant event at all.
+#
+# The scan is affordable because of the byte-level prefilter below: parsing all
+# 14.8 MB of this project's three newest transcripts costs ~0.04 s, since
+# json.loads runs only on lines that could possibly matter. The cap bounds the
+# pathological case rather than the normal one, and truncation is REPORTED, not
+# silently absorbed.
+_MIMIR_SESSION_SCAN_CAP = 64 * 1024 * 1024  # 64 MiB
+
+
+def _mimir_scan_session(path, cap_bytes: int = _MIMIR_SESSION_SCAN_CAP) -> dict:
+    """Stream one session JSONL and return its derived summary counts.
+
+    DERIVED ONLY, and that is the contract, not a nicety: the return carries
+    counts, a token sum, a branch name, and validated subagent-type labels. No
+    transcript text is read into the result. `type=user` content is never
+    touched, and a Task block's `prompt`/`description` — the largest free-text
+    field in the file — is never read at any length.
+
+    Never raises: an unreadable file yields zeroes, and a torn or non-JSON line
+    is skipped, matching _mimir_iter_jsonl_bounded's per-line tolerance.
+    """
+    out = {
+        "event_count": 0,
+        "output_tokens": 0,
+        "git_branch": None,
+        "subagent_dispatches": 0,
+        "subagent_types": {},
+        "truncated": False,
+    }
+    try:
+        consumed = 0
+        with path.open("rb") as fh:
+            for raw in fh:
+                consumed += len(raw)
+                if consumed > cap_bytes:
+                    out["truncated"] = True
+                    break
+                # Byte-level prefilter — this is what makes an exact scan cheap.
+                # A line is only worth decoding if it could be an assistant event
+                # or could still supply the branch we have not found yet.
+                wants_branch = out["git_branch"] is None and b'"gitBranch"' in raw
+                if b'"assistant"' not in raw and not wants_branch:
+                    continue
+                try:
+                    ev = json.loads(raw.decode("utf-8", errors="replace"))
+                except (json.JSONDecodeError, ValueError):
+                    continue
+                if not isinstance(ev, dict):
+                    continue
+                if out["git_branch"] is None:
+                    gb = ev.get("gitBranch")
+                    if isinstance(gb, str) and gb:
+                        out["git_branch"] = gb
+                if ev.get("type") != "assistant":
+                    continue
+                out["event_count"] += 1
+                msg = ev.get("message")
+                usage = msg.get("usage") if isinstance(msg, dict) else None
+                if not isinstance(usage, dict):
+                    usage = ev.get("usage")
+                if isinstance(usage, dict):
+                    ot = usage.get("output_tokens")
+                    if isinstance(ot, int):
+                        out["output_tokens"] += ot
+                content = msg.get("content") if isinstance(msg, dict) else None
+                if not isinstance(content, list):
+                    continue
+                for blk in content:
+                    if not isinstance(blk, dict) or blk.get("type") != "tool_use":
+                        continue
+                    if blk.get("name") not in ("Task", "Agent"):
+                        continue
+                    out["subagent_dispatches"] += 1
+                    inp = blk.get("input")
+                    st = inp.get("subagent_type") if isinstance(inp, dict) else None
+                    label = _mimir_safe_label(st)
+                    out["subagent_types"][label] = out["subagent_types"].get(label, 0) + 1
+    except OSError:
+        pass
+    return out
 
 
 def _read_streams(project_root) -> dict:
@@ -1228,37 +1367,29 @@ def _read_mimir(project_root, claude_home) -> dict:
         except (OSError, ValueError, OverflowError):
             last_active = ""
 
-        event_count = 0
-        output_tokens = 0
-        git_branch = None
-        # NEVER reads type=user content — only metadata from user events
-        # (gitBranch), and assistant events for token/count.
-        for ev in _mimir_iter_jsonl_bounded(jf):
-            t = ev.get("type")
-            if t == "assistant":
-                event_count += 1
-                # Same nesting as model above — this is why every session row
-                # reported 0 output tokens regardless of actual spend.
-                _msg = ev.get("message")
-                usage = _msg.get("usage") if isinstance(_msg, dict) else None
-                if not isinstance(usage, dict):
-                    usage = ev.get("usage")
-                if isinstance(usage, dict):
-                    ot = usage.get("output_tokens")
-                    if isinstance(ot, int):
-                        output_tokens += ot
-            if git_branch is None:
-                gb = ev.get("gitBranch")
-                if isinstance(gb, str) and gb:
-                    git_branch = gb
+        # MH-20 + the 50-KiB-head defect: one bounded streaming scan replaces
+        # the old head-read loop. See _mimir_scan_session for why the head-read
+        # reported 0 events / 0 tokens for every session on every machine.
+        scan = _mimir_scan_session(jf)
 
         sid = jf.stem  # filename is the session UUID; truncate to 8 for display.
         base["recent_sessions"].append({
             "session_id": sid[:8] if isinstance(sid, str) else "",
             "last_active": last_active,
-            "event_count": event_count,
-            "output_tokens": output_tokens,
-            "git_branch": git_branch,
+            "event_count": scan["event_count"],
+            "output_tokens": scan["output_tokens"],
+            "git_branch": scan["git_branch"],
+            "subagent_dispatches": scan["subagent_dispatches"],
+            # Top 5 by count, then name, so the ordering is stable across reads.
+            "subagent_types": [
+                {"type": k, "count": v}
+                for k, v in sorted(
+                    scan["subagent_types"].items(), key=lambda kv: (-kv[1], kv[0])
+                )[:5]
+            ],
+            # True only if the 64 MiB scan cap was hit — the counts are then a
+            # floor, not a total, and the UI says so rather than rounding it off.
+            "counts_truncated": scan["truncated"],
         })
 
     # ── activity card (~/.claude/stats-cache.json) ──────────────────────────

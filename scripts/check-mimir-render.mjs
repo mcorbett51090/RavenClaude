@@ -161,6 +161,7 @@ const pieces = [
   extract(app, "function mimirDash("),
   extract(app, "function mimirInProcessPill("),
   extract(app, "function mimirDl("),
+  extract(app, "function mimirModeLabel("),
   extract(app, "function renderMimirSettings("),
   extract(app, "function renderMimirSession("),
   extract(app, "function renderMimirActivity("),
@@ -169,7 +170,7 @@ const pieces = [
 ];
 
 const loaded = new Function(
-  `${pieces.join("\n")}\n return { renderMimirSettings, renderMimirSession, renderMimirActivity, renderMimirRecent, renderMimirUnreachable };`,
+  `${pieces.join("\n")}\n return { renderMimirSettings, renderMimirSession, renderMimirActivity, renderMimirRecent, renderMimirUnreachable, mimirModeLabel };`,
 )();
 
 let failures = 0;
@@ -191,6 +192,25 @@ ok(settings.flatText().includes("dark"), "populated: theme shows");
 ok(settings.flatText().includes("claude-opus-4-8"), "populated: configured model shows");
 ok(settings.flatText().includes("claude-sonnet-5"), "populated: last-used model shows");
 ok(settings.flatText().includes("default"), "populated: permission mode shows");
+/* MH-32 — every permission mode renders with a plain-English meaning, and
+ * `plan` is NAMED among them. This is what makes the dashboard's silence mean
+ * "not currently in plan mode" rather than "cannot see plan mode". `plan` was
+ * never observed across 5,949 permission-mode events in 51 real transcripts,
+ * so it could be neither claimed as surfaced nor declared unreachable; naming
+ * it in the legend is the honest third option, and this asserts it stays. */
+ok(
+  loaded.mimirModeLabel("plan").includes("planning"),
+  "MH-32: `plan` renders with its meaning, not bare",
+);
+ok(
+  loaded.mimirModeLabel("bypassPermissions").includes("bypassed"),
+  "MH-32: bypassPermissions is glossed as bypassing the rules",
+);
+ok(
+  loaded.mimirModeLabel("someFutureMode") === "someFutureMode",
+  "MH-32: an unknown mode renders verbatim, never swallowed",
+);
+ok(settings.flatText().includes("allow/ask/deny"), "MH-32: the rendered mode carries its gloss");
 /* RM "honest empty state for unreachable" — reasoning effort must render as a
  * pill, NEVER as a dash. */
 ok(

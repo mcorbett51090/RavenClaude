@@ -848,7 +848,25 @@ all three hosts."*
 ---
 
 #### MH-19 · No MCP surface anywhere in the dashboard, though 6 plugins declare servers and the repo calls MCP lazy-loading a *permanent* trap
-**Severity:** P1 · **Hosts:** Claude Code (primarily) · **Reported by:** CC (P1-1) · **Effort:** M · **Status:** `OPEN`
+**Severity:** P1 · **Hosts:** Claude Code (primarily) · **Reported by:** CC (P1-1) · **Effort:** M · **Status:** ✅ **FIXED 2026-07-29 (v0.223.0)**
+
+> **Shipped 2026-07-29.** An MCP section on `#/host-context`, rendered from the existing inlined payload
+> (`_mcp_inventory()` in `scripts/generate-dashboards.py`) — **zero DOM cost**, so no Gate 132 raise.
+> Two tables: the 4 servers with their declaring plugins and maintainer party, and a **per-host wiring
+> table** answering "does installing actually give me this?".
+>
+> **The remedy's own framing was incomplete, and the build corrected it.** The ledger asked for
+> *name · scope · declared by* plus an in-process connection pill. Building it surfaced that the more
+> useful question is not *"is it connected?"* but ***"does this host receive it at all?"*** — and the
+> answer today is **Claude Code only**. `scripts/ravenclaude` merges `<copilot-package>/.mcp.json` into
+> `~/.copilot/mcp-config.json`, but **no generator writes that file**, so the step is a permanent no-op
+> behind `[ -f ... ]`; `status` then prints *"mcp: not configured"*, which reads as *"you haven't set it
+> up"* rather than *"this cannot be set up."* Every server also lives in a **non-core** plugin while the
+> Copilot projection covers only core. The UI names this as a gap with the manual workaround; the
+> projection is separate work.
+>
+> Leak floor honored: **names, declaring plugin, and party only** — never `args`, never `env`, never a
+> resolved path.
 
 **Evidence** `[verified]`
 - The dashboard server contains **zero** MCP references (case-insensitive grep).
@@ -876,7 +894,31 @@ published artifact, so the plan's §6.4 closed-allow-list discipline binds here 
 ---
 
 #### MH-20 · Subagent dispatch is invisible, though the attribution data is already sitting in the transcript
-**Severity:** P1 · **Hosts:** Claude Code · **Reported by:** CC (P1-2) · **Effort:** M · **Status:** `OPEN`
+**Severity:** P1 · **Hosts:** Claude Code · **Reported by:** CC (P1-2) · **Effort:** M · **Status:** ✅ **FIXED 2026-07-29 (v0.223.0)**
+
+> **Shipped 2026-07-29** as remedy (1), the cheap immediate one — **zero new endpoint, zero DOM cost**.
+> Each Mímir session row now carries `subagent_dispatches` + a top-5 `subagent_types` breakdown, counted
+> from `tool_use` blocks named `Task`/`Agent` in the assistant events the reader already walks. Live on
+> this project: `33 subagents (general-purpose×15, ravenclaude-core:backend-coder×7, …)`.
+>
+> **Derived-only, enforced:** type labels pass `_mimir_safe_label` (strict charset, ≤64 chars; anything
+> else counts as `unnamed` rather than being dropped — the dispatch happened, and under-reporting is the
+> worse error). The `Task` block's `prompt`/`description` is never read at any length.
+>
+> **Two blocking defects had to be fixed first, and neither was in this ledger** — the feature would have
+> shipped reading permanently-zero counts:
+> 1. `_mimir_encode_key` stripped the leading `/` and left `.` alone, so the project directory **never
+>    resolved on any real machine** (161/161 real dirs start with `-`; 0 contain a `.`). The miss path
+>    renders the same empty state as a genuinely-new host, so it was invisible; the fixtures built their
+>    directories *by calling the encoder*, so the tests were tautological, and test 4 hardcoded the
+>    broken convention as correct.
+> 2. The summary loop read the **first** 50 KiB of each transcript, which is preamble — 0 assistant
+>    events in the first 50 KiB of a 14.5 MB file vs 2,395 in the whole. Replaced with a bounded
+>    streaming scan (~0.04 s for 14.8 MB) that reports `counts_truncated` instead of passing a floor off
+>    as a total.
+>
+> Remedy (2) — the `/__dispatch` reader over `.ravenclaude/runs/dispatch-eval/` — remains **open** and is
+> tracked as the fuller version.
 
 **Evidence** `[verified]`
 - `RC/hooks/hooks.json:149-159` registers `SubagentStart` → `agent-dispatch-evaluator.sh`, which
@@ -1249,7 +1291,28 @@ findings came from. **Zero behavior change; it stops the name laundering into a 
 ---
 
 #### MH-32 · Plan mode has no representation, and its absence reads as "not applicable" rather than "not surfaced"
-**Severity:** P2 · **Hosts:** Claude Code · **Reported by:** CC (P2-1), DASH (P3-2, adjacent) · **Effort:** S · **Status:** `OPEN`
+**Severity:** P2 · **Hosts:** Claude Code · **Reported by:** CC (P2-1), DASH (P3-2, adjacent) · **Effort:** S · **Status:** ✅ **FIXED 2026-07-29 (v0.223.0)**
+
+> **Shipped 2026-07-29, and the finding was half wrong.** Two claims, settled separately:
+>
+> **(a) `ensure-default-mode.sh` never matching `plan` is CORRECT, not a gap.** The hook warns when a
+> session loads in a mode that makes the configured posture **weaker**; `plan` is strictly *more*
+> restrictive and bypasses nothing, so warning about it would be noise and "resetting" it would remove
+> a constraint the user chose. A comment now records the deliberate exclusion so the next audit does
+> not "fix" correct behaviour. **No code change.**
+>
+> **(b) `plan_mode` was NOT added to the `unreachable` list**, and the remedy's either/or was a false
+> choice. That list names *fields that do not exist on disk*; `plan` is a **value** of
+> `permission_mode`, a field that does exist and that the MH-06 tail scan already reports. Adding it
+> would have asserted "the dashboard cannot see plan mode" — unverified and probably false.
+> Measured instead: across **51 real transcripts / 5,949 `permission-mode` events**, the observed
+> values are `default` (405), `acceptEdits` (62), `auto` (5,482) — **`plan` never appears**
+> `[verified 2026-07-29]`. That is absence of evidence, not evidence of absence, so neither "surfaced"
+> nor "unreachable" could be claimed honestly.
+> **Shipped instead:** the mode now renders with a plain-English gloss and `plan` is named in the
+> legend (*"plan — agent is planning; no writes will be attempted"*), so silence means *"not currently
+> in plan mode"* rather than *"this dashboard cannot see plan mode"*. Unknown values render verbatim,
+> so a platform-added mode is shown rather than swallowed. Zero DOM cost.
 
 **Evidence** `[verified]` — `permission_mode` is the sole carrier (`RC/scripts/serve-dashboards.py:1073`,
 `:1148-1155`; rendered `scripts/generate-dashboards.py:11556`). The reader's own honest-unreachable list

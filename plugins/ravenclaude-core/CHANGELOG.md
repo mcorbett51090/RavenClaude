@@ -2,6 +2,74 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.223.0 — 2026-07-29
+
+### Fixed
+
+- **The Session card's "Recent project sessions" list was empty on every real machine, and looked
+  correct while doing it.** `_mimir_encode_key` computed the `~/.claude/projects/<key>/` directory
+  name by stripping the leading `/` and leaving `.` alone — so `/Users/me/repo` produced
+  `Users-me-repo` while the platform writes `-Users-me-repo`. It matched nothing, anywhere.
+  - **Why nothing caught it for ~7 months.** The miss path returns `exists: False`, which the UI
+    renders as the same honest *"no sessions yet"* empty state a genuinely-new host produces. **A card
+    that is always empty and a card that is correctly empty are pixel-identical**, so no one could
+    read the defect off the screen.
+  - **Why the tests couldn't catch it either.** `make_claude_home()` built its fixture directory by
+    calling `_mimir_encode_key` — fixture and reader agreed by construction, so the suite asserted
+    only that the encoder is self-consistent. Test 4 went further and hardcoded `"foo-bar-baz"` as the
+    expected canonical name, i.e. **asserted the broken convention as correct**. This is the same
+    fixture-agrees-with-reader trap the happy-path test's own comment already described for the
+    nested-`usage` shape, one function away.
+  - **The repo had documented the right answer all along:** the `mimir` skill's worktree rule states
+    `/.claude/worktrees/foo` → `--claude-worktrees-foo`, and that double dash is only reachable if the
+    leading `/` **and** the `.` both encode. The docs were right; the code never matched them.
+  - Re-derived from the platform artifact, not from the reader: of **161** real project dirs on this
+    machine, **161** begin with `-` and **0** contain a literal `.` `[verified 2026-07-29]`.
+  - Fix: encode every `/` and `.` as `-`, with the old stripped shape retained as a second candidate
+    so a host genuinely using it keeps working. New **test 3b** asserts the key against hand-written
+    literals with a *"do not rewrite these to call the encoder"* note; verified to fail (3 assertions,
+    exit 1) against the old encoder.
+- **Every session row reported 0 events and 0 output tokens — a second, independent cause.** The
+  summary loop read the **first** 50 KiB of each transcript, but a real transcript's opening 50 KiB is
+  session preamble (attachments, the file-history snapshot, the first user turn) and contains **zero**
+  assistant events. Measured against a 14.5 MB transcript: 0 assistant events in the first 50 KiB,
+  2,395 in the file. So the counts were structurally 0 regardless of activity — including after
+  0.222.x fixed the *nesting* those counts read from.
+  - Replaced with `_mimir_scan_session`, a bounded streaming scan with a byte-level prefilter that
+    runs `json.loads` only on lines that could matter: **14.8 MB across three transcripts parses in
+    ~0.04 s**. Bounded at 64 MiB/file, and hitting that bound sets `counts_truncated`, which the UI
+    renders as *"counts partial"* rather than presenting a floor as a total.
+
+### Added
+
+- **MCP servers are now visible, with an honest per-host wiring answer** (audit MH-19). The Host &
+  context page lists the 4 MCP servers this marketplace ships, which plugins ship them, and — the part
+  that matters — **which hosts actually receive them**. Today that is Claude Code only.
+  - This surfaced a live defect it now reports: `scripts/ravenclaude` merges
+    `<copilot-package>/.mcp.json` into `~/.copilot/mcp-config.json`, but **no generator ever writes
+    that file**, so the step is a permanent no-op guarded by `[ -f ... ]` — it fails silently, and
+    `status` says *"mcp: not configured"*, which reads as *"you haven't set it up"* rather than
+    *"this cannot be set up."* Every one of these servers also lives in a **non-core** plugin, and the
+    Copilot projection only covers core. Named in the UI with the manual workaround; the projection
+    itself is separate work.
+- **Subagent dispatch is visible** (audit MH-20). Each session row now shows how many subagents it
+  dispatched and of which types (e.g. `33 subagents (general-purpose×15, backend-coder×7, …)`).
+  Previously a session that fanned out to a dozen agents and one that did everything inline rendered
+  identically.
+  - **Derived-only, by contract:** a count and a type label validated against a strict charset
+    (anything else counts as `unnamed` — the dispatch still happened, and under-reporting it would be
+    the worse error). The `Task` block's `prompt`/`description` — the largest free-text field in the
+    transcript — is never read at any length.
+- Both additions cost **zero DOM elements** (6,140 / 7,026, unchanged): they render into the existing
+  `#hc-root` mount and the existing session `<li>`, so no Gate 132 ratchet raise was needed.
+
+### Notes
+
+- `ensure-default-mode.sh` gained a comment recording that **not** matching `plan` is deliberate, not
+  an omission (audit MH-32): the hook warns about modes that make the posture *weaker*, and `plan` is
+  strictly more restrictive. The audit read the absent branch as a gap; a future one should not
+  "fix" it.
+
 ## 0.222.3 — 2026-07-29
 
 ### Fixed

@@ -7618,6 +7618,74 @@ _BIFROST_TAB_TEMPLATE = (
 # The Prompt Builder ships as a bare mount + a <noscript> pointer. The whole
 # interactive UI is built by initPromptBuilder() via createElement/textContent
 # (no HTML-string sink), so the static generated DOM stays ~4 elements (Gate 132).
+def _mcp_inventory() -> dict:
+    """MH-19 — the MCP servers this marketplace ships, and which hosts get them.
+
+    Two halves, and the second is the one that matters. The INVENTORY is read
+    from every plugin's `plugin.json` `mcpServers` key, so it can't drift. The
+    WIRING is the honest per-host answer to "does installing actually give me
+    this?", and today that answer is "only on Claude Code" — stated here rather
+    than left for a consumer to discover by finding the tool absent.
+
+    The Copilot row is a live defect, not a design choice: `scripts/ravenclaude`
+    merges `<copilot-pkg>/.mcp.json` into `~/.copilot/mcp-config.json`, but no
+    generator ever writes that file, so the step is a permanent no-op. It is
+    guarded by `[ -f ... ]`, so it fails silently and `status` honestly reports
+    "not configured" -- which reads as "you haven't set it up yet" rather than
+    "this cannot be set up". Every server below also lives in a NON-core plugin,
+    and the Copilot projection only ever covers core. Fixing it means projecting
+    other plugins' servers, which is a separate piece of work.
+    """
+    servers: dict[str, dict] = {}
+    for manifest in sorted(REPO_ROOT.glob("plugins/*/.claude-plugin/plugin.json")):
+        try:
+            data = json.loads(manifest.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue  # a broken manifest is the manifest gate's problem, not ours
+        declared = data.get("mcpServers")
+        if not isinstance(declared, dict):
+            continue
+        plugin = manifest.parts[-3]
+        attribution = data.get("x-mcpAttribution") or {}
+        for name in declared:
+            entry = servers.setdefault(name, {"name": name, "plugins": [], "party": None})
+            entry["plugins"].append(plugin)
+            party = (attribution.get(name) or {}).get("party")
+            if party and not entry["party"]:
+                entry["party"] = party
+    return {
+        "servers": sorted(servers.values(), key=lambda s: s["name"]),
+        "wiring": [
+            {
+                "host": "Claude Code",
+                "wired": True,
+                "note": "Declared in the plugin's own plugin.json, so Claude Code loads it when you "
+                "/plugin install that plugin. Nothing extra to run.",
+            },
+            {
+                "host": "GitHub Copilot CLI",
+                "wired": False,
+                "note": "Not wired. The installer merges <copilot-package>/.mcp.json into "
+                "~/.copilot/mcp-config.json, but nothing generates that file — so the step "
+                "silently does nothing. Add the servers to ~/.copilot/mcp-config.json by hand.",
+            },
+            {
+                "host": "OpenAI Codex CLI",
+                "wired": False,
+                "note": "Not wired, deliberately. Codex reads [mcp_servers.*] from .codex/config.toml; "
+                "merging into a hand-tuned TOML file was judged too risky to automate. "
+                "Add them to .codex/config.toml by hand.",
+            },
+            {
+                "host": "Cursor / Gemini / Aider",
+                "wired": False,
+                "note": "Not wired. RavenClaude installs no MCP configuration on these hosts; "
+                "use each host's own MCP setup if it has one.",
+            },
+        ],
+    }
+
+
 def _render_host_context_tab() -> str:
     """Host & context (#/host-context) — MH-14 part 2.
 
@@ -7638,7 +7706,9 @@ def _render_host_context_tab() -> str:
     JS-built from the inlined JSON, so a 7x6 table costs no static elements; the
     same trick that keeps the Prompt Builder at 4."""
     path = REPO_ROOT / "plugins" / "ravenclaude-core" / "knowledge" / "host-support.json"
-    payload = json.dumps(json.loads(path.read_text(encoding="utf-8")), separators=(",", ":"))
+    data = json.loads(path.read_text(encoding="utf-8"))
+    data["mcp"] = _mcp_inventory()
+    payload = json.dumps(data, separators=(",", ":"))
     return (
         '<div id="hc-root" class="hc-root"></div>\n'
         '<noscript><p>The host matrix needs JavaScript. The same data is in '
@@ -11769,6 +11839,22 @@ _JS = r"""
     }
     return dl;
   }
+  /* MH-32 — plain-English gloss for each permission mode, `plan` included. The
+     map lives INSIDE the function so the render gate can extract this helper
+     standalone, the way it extracts every other mimir* function. Any value not
+     in the map renders verbatim, so a mode added by the platform is shown
+     rather than swallowed. */
+  function mimirModeLabel(v) {
+    if (!v) return v;
+    const meaning = {
+      "default": "default — the configured allow/ask/deny rules apply",
+      "plan": "plan — agent is planning; no writes will be attempted",
+      "acceptEdits": "acceptEdits — file edits auto-approve (rules partly bypassed)",
+      "bypassPermissions": "bypassPermissions — rules fully bypassed",
+      "auto": "auto — Claude Code decides per action",
+    };
+    return meaning[v] || v;
+  }
   function renderMimirSettings(s) {
     const host = document.getElementById("mimir-settings");
     if (!host) return;
@@ -11778,7 +11864,15 @@ _JS = r"""
       ["Theme", s.theme],
       ["Configured model", m.configured],
       ["Last-used model", m.last_used],
-      ["Permission mode", s.permission_mode],
+      /* MH-32 — say what the mode MEANS, and name `plan` among them.
+         `plan` is not a missing field needing an "unreachable" entry: it is a
+         VALUE of this field, which the tail scan already reports. It was never
+         observed across 5,949 permission-mode events in 51 real transcripts
+         (only default / acceptEdits / auto), so claiming it is unreachable
+         would be as unfounded as claiming it is surfaced. Naming it in the
+         legend makes the silence mean "not currently in plan mode" instead of
+         "this dashboard cannot see plan mode". */
+      ["Permission mode", mimirModeLabel(s.permission_mode)],
       ["Reasoning effort", mimirInProcessPill("in-process — /effort")],
     ]));
   }
@@ -11851,7 +11945,22 @@ _JS = r"""
       const ec  = (it && it.event_count != null) ? it.event_count : "—";
       const ot  = (it && it.output_tokens != null) ? it.output_tokens : "—";
       const br  = (it && it.git_branch) || "—";
-      li.textContent = sid + " · " + ts + " · " + ec + " events · " + ot + " output toks · " + br;
+      /* MH-20 — how much of this session was subagent work. Dispatches were
+         invisible here: a session that fanned out to twelve agents and one that
+         did everything inline read identically. Types are listed when known
+         (they are validated server-side); the brief each agent was given is
+         never read, so it can never appear. */
+      const sd  = (it && it.subagent_dispatches) || 0;
+      const sdt = Array.isArray(it && it.subagent_types) ? it.subagent_types : [];
+      let sub = " · no subagents";
+      if (sd > 0) {
+        const names = sdt.map((t) => t.type + "×" + t.count).join(", ");
+        sub = " · " + sd + " subagent" + (sd === 1 ? "" : "s") + (names ? " (" + names + ")" : "");
+      }
+      /* A hit scan cap makes every count a floor, not a total — say so rather
+         than presenting a partial number as complete. */
+      const trunc = (it && it.counts_truncated) ? " (counts partial — session too large to scan fully)" : "";
+      li.textContent = sid + " · " + ts + " · " + ec + " events · " + ot + " output toks · " + br + sub + trunc;
       ul.appendChild(li);
     }
     host.replaceChildren(ul);
@@ -13305,6 +13414,57 @@ _JS = r"""
     root.appendChild(hcEl("p", "hc-src",
       "Source: knowledge/host-support.json (updated " + (data.updated || "?") +
       "). Hover any cell for the reason. Every claim carries a basis: verified / docs-verified / inferred."));
+
+    /* 3 — MCP servers (MH-19). Same honesty contract as the matrix above: the
+       inventory is read from the plugin manifests, and the wiring table says
+       plainly which hosts actually receive them. Rendered here rather than as
+       its own tab because it answers the same question ("what do I get on THIS
+       host?") — and because reusing this mount costs zero static elements. */
+    var mcp = data.mcp;
+    if (mcp && mcp.servers) {
+      root.appendChild(hcEl("h3", null, "MCP servers"));
+      root.appendChild(hcEl("p", "hc-intro",
+        "MCP servers are extra tools a plugin can hand the agent — for example, live documentation " +
+        "lookup. This marketplace ships " + mcp.servers.length + " of them. Installing a plugin does " +
+        "NOT always install its MCP server: that depends on the host, and the second table says which."));
+
+      var st = hcEl("table", "hc-table");
+      var sthead = hcEl("thead"), sh = hcEl("tr");
+      sh.appendChild(hcEl("th", null, "Server"));
+      sh.appendChild(hcEl("th", null, "Shipped by"));
+      sh.appendChild(hcEl("th", null, "Who maintains it"));
+      sthead.appendChild(sh); st.appendChild(sthead);
+      var stbody = hcEl("tbody");
+      mcp.servers.forEach(function (s) {
+        var tr = hcEl("tr");
+        tr.appendChild(hcEl("th", null, s.name));
+        tr.appendChild(hcEl("td", null, s.plugins.join(", ")));
+        tr.appendChild(hcEl("td", null, s.party === "third-party" ? "third party" : (s.party || "unstated")));
+        stbody.appendChild(tr);
+      });
+      st.appendChild(stbody);
+      root.appendChild(st);
+
+      var wt = hcEl("table", "hc-table");
+      var wthead = hcEl("thead"), wh = hcEl("tr");
+      wh.appendChild(hcEl("th", null, "Host"));
+      wh.appendChild(hcEl("th", null, "Installed for you?"));
+      wh.appendChild(hcEl("th", null, "What that means"));
+      wthead.appendChild(wh); wt.appendChild(wthead);
+      var wtbody = hcEl("tbody");
+      (mcp.wiring || []).forEach(function (w) {
+        var tr = hcEl("tr");
+        tr.appendChild(hcEl("th", null, w.host));
+        tr.appendChild(hcEl("td", w.wired ? "hc-yes" : "hc-no", w.wired ? "yes" : "no"));
+        tr.appendChild(hcEl("td", null, w.note));
+        wtbody.appendChild(tr);
+      });
+      wt.appendChild(wtbody);
+      root.appendChild(wt);
+      root.appendChild(hcEl("p", "hc-src",
+        "Source: every plugin's own plugin.json. A “no” above is a real gap, not a hidden feature — " +
+        "the note says what to do by hand instead."));
+    }
   }
 
   function initPromptBuilder() {
