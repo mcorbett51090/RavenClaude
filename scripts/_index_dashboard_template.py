@@ -109,6 +109,14 @@ TEMPLATE = r"""<!doctype html>
       }
       a { color: var(--teal-2); text-decoration: none; }
       a:hover { color: var(--teal); }
+      /* --teal-2 against muted body text is ~1.3:1, so colour alone cannot mark a
+         link (WCAG 1.4.1). Underline prose links only; nav and link-buttons are
+         identifiable by position and shape. */
+      p a, li a, td a, dd a, footer a, blockquote a { text-decoration: underline; }
+      /* WCAG 2.2 2.5.8 — 24px minimum pointer target. These live in the shell, so the
+         dashboard stylesheet (scoped under #dash-root) never reaches them. */
+      summary { min-height: 24px; }
+      .sidebar-foot .detail a { display: inline-block; min-height: 24px; line-height: 24px; }
       h1, h2, h3, h4 { font-family: var(--font-display); letter-spacing: -0.02em; line-height: 1.15; margin: 0; }
       h1 { font-size: clamp(1.9rem, 4vw, 2.8rem); }
       p { line-height: 1.6; }
@@ -1263,7 +1271,7 @@ TEMPLATE = r"""<!doctype html>
             <summary style="cursor:pointer;font-weight:600">I want to… <span class="count">${D.use_cases.length}</span> <span style="color:var(--muted);font-weight:400;font-size:.85rem">— go from a task to the agent + plugin that does it</span></summary>
             <input type="search" id="uc-q" placeholder="What do you want to do? e.g. “forecast cash”, “review Apex”, “set up auth”…" aria-label="Search use cases" style="width:100%;margin-top:10px;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:.55rem .8rem;border-radius:8px" />
             <div style="max-height:360px;overflow:auto;margin-top:10px">
-              <table class="uc-table"><thead><tr><th>I want to…</th><th>Agent</th><th>Plugin</th><th>Level</th></tr></thead><tbody id="uc-body"></tbody></table>
+              <table class="uc-table"><thead><tr><th scope="col">I want to…</th><th scope="col">Agent</th><th scope="col">Plugin</th><th scope="col">Level</th></tr></thead><tbody id="uc-body"></tbody></table>
             </div>
           </details>
           <div class="mkt-filters">
