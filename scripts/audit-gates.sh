@@ -377,6 +377,21 @@ PY
       bash plugins/ravenclaude-core/hooks/tests/test-gate162-self-disable-scope.sh
       exit $?
       ;;
+    163)
+      echo "── Gate 163: Mimir tail-recency (per-gate run) ───────────────────────────"
+      python3 scripts/check-mimir-recency.py
+      exit $?
+      ;;
+    164)
+      echo "── Gate 164: Gemini shim (per-gate run) ──────────────────────────────────"
+      bash plugins/ravenclaude-core/hooks/tests/test-gate164-gemini-adapter.sh
+      exit $?
+      ;;
+    165)
+      echo "── Gate 165: Gemini hook projection (per-gate run) ───────────────────────"
+      python3 scripts/generate-gemini-hooks.py --check
+      exit $?
+      ;;
     144)
       echo "── Gate 144: Prompt Builder render + XSS floor (per-gate run) ────────────"
       node scripts/check-prompt-builder-render.mjs plugins/ravenclaude-core/dashboard.html
@@ -458,7 +473,7 @@ PY
       ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -5299,6 +5314,75 @@ echo "── Gate 162: self-disable screen — tampering DENIED, documentation A
 # canonicalization-based target-path screen still denies a substrate write.
 rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate162-self-disable-scope.sh >/dev/null 2>&1 || rc=$?
 gate "self-disable: denies substrate writes, permits substrate documentation (+ teeth)" must_pass "$rc"
+
+echo
+echo "── Gate 163: Mimir reads CURRENT state from the tail, not the head ────────"
+# MH-06 (P0). The session card reported the session's OPENING permission mode as
+# its current one — `default` while the session was in `auto`. Two causes, and
+# fixing either alone leaves the bug: the loop kept the FIRST permission-mode event
+# while deliberately keeping the NEWEST model two lines above, and the reader took
+# the first 50 KiB, so on any long transcript the scanned slice is the oldest part
+# of the session. A permissions surface reporting a LAXER state than reality is the
+# bad direction to be wrong in.
+rc=0; python3 scripts/check-mimir-recency.py >/dev/null 2>&1 || rc=$?
+gate "mimir: permission mode + last model come from the TAIL, both server copies" must_pass "$rc"
+
+# must_fail: a head-read mutant must be caught. Without this the gate could pass on
+# a fixture small enough that head and tail agree — which would prove nothing.
+MIM_MUT="$TMP/mimir-head-mutant.py"
+sed 's/_mimir_iter_jsonl_bounded(jsonls\[0\], from_end=True)/_mimir_iter_jsonl_bounded(jsonls[0])/' \
+  scripts/serve-dashboards.py >"$MIM_MUT"
+rc=0; python3 - "$MIM_MUT" <<'PYX' >/dev/null 2>&1 || rc=$?
+import importlib.util, json, sys, tempfile, pathlib
+spec = importlib.util.spec_from_file_location("mut", sys.argv[1])
+m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
+d = pathlib.Path(tempfile.mkdtemp()); f = d / "t.jsonl"
+lines = [json.dumps({"type": "permission-mode", "permissionMode": "default"})]
+pad = json.dumps({"type": "assistant", "message": {"model": "old"}, "filler": "x" * 400})
+while sum(len(x) + 1 for x in lines) < m._MIMIR_JSONL_READ_CAP * 2:
+    lines.append(pad)
+lines.append(json.dumps({"type": "permission-mode", "permissionMode": "auto"}))
+f.write_text("\n".join(lines) + "\n")
+head = list(m._mimir_iter_jsonl_bounded(f))
+modes = [e.get("permissionMode") for e in head if e.get("type") == "permission-mode"]
+# The mutant reads the head, so it must NOT see the late 'auto'. Exit 1 to signal
+# "the regression is present", which must_fail expects.
+sys.exit(1 if "auto" not in modes else 0)
+PYX
+gate "mimir teeth: a head-read mutant reports the stale opening mode" must_fail "$rc"
+
+echo
+echo "── Gate 164: Gemini shim — tool-name vocabulary + exit-2 passthrough ──────"
+# MH-30. Gemini's contract is nearly Claude's (identical stdin fields; exit 2 +
+# stderr IS its block mechanism), so this is a shim, not an adapter. The ONE real
+# translation is the tool-name vocabulary: Gemini sends run_shell_command /
+# read_file / write_file / replace, and the guardrails dispatch on Claude's
+# PascalCase and fall through to `*) exit 0` on anything unrecognised. That exact
+# mismatch is MH-01 — under Copilot the tribunal was fully wired and reviewed
+# NOTHING because `bash` is not `Bash`. Asserted name by name, with teeth.
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate164-gemini-adapter.sh >/dev/null 2>&1 || rc=$?
+gate "gemini-hook-adapter: tool-name normalisation + exit-2 passthrough (+ teeth)" must_pass "$rc"
+
+echo
+echo "── Gate 165: Gemini hook projection — accounting + enforcement floor ──────"
+# Third sibling of Gates 158/160. Also asserts every emitted matcher is in GEMINI's
+# vocabulary: a matcher left in Claude PascalCase would register a hook that can
+# never fire, which is indistinguishable from not shipping it.
+rc=0; python3 scripts/generate-gemini-hooks.py --check >/dev/null 2>&1 || rc=$?
+gate "gemini-hooks: all hooks accounted for, matchers translated, enforcement present" must_pass "$rc"
+
+GEM_MUT="$TMP/generate-gemini-hooks-mutant.py"
+python3 - "$GEM_MUT" <<'PYX'
+import sys, pathlib
+src = pathlib.Path("scripts/generate-gemini-hooks.py").read_text()
+out = src.replace("                gem_event, mode = _EVENT[event]",
+                  "                gem_event, mode = _EVENT[event]\n"
+                  "                if gem_event == \"BeforeTool\":\n"
+                  "                    skipped.append((script, event, \"mutant\")); continue")
+pathlib.Path(sys.argv[1]).write_text(out)
+PYX
+rc=0; python3 "$GEM_MUT" --check >/dev/null 2>&1 || rc=$?
+gate "gemini-hooks teeth: a lane that enforces NOTHING is caught" must_fail "$rc"
 
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"

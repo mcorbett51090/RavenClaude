@@ -919,19 +919,42 @@ def _mimir_resolve_project_dir(claude_home, project_root):
     return None
 
 
-def _mimir_iter_jsonl_bounded(path, cap_bytes: int = _MIMIR_JSONL_READ_CAP):
+def _mimir_iter_jsonl_bounded(
+    path, cap_bytes: int = _MIMIR_JSONL_READ_CAP, from_end: bool = False
+):
     """Yield dicts from a JSONL file, capping the read at `cap_bytes`. Per-line
     json.loads is try/except wrapped so a torn final line silently drops
-    (RM2 / gap-delta C4). Never raises — OSError yields nothing."""
+    (RM2 / gap-delta C4). Never raises — OSError yields nothing.
+
+    `from_end` reads the LAST `cap_bytes` instead of the first (audit MH-06).
+    Any caller that reports something as *current* or *most recent* must set it:
+    the head of a long transcript is the OLDEST state, so a head-read reports the
+    session's opening values no matter how the loop picks among them. Callers that
+    compute a bounded AGGREGATE (counts, token sums) leave it False — neither end
+    is more correct there, and flipping it would silently change reported numbers.
+    """
     try:
         with path.open("rb") as fh:
-            chunk = fh.read(cap_bytes)
+            if from_end:
+                fh.seek(0, os.SEEK_END)
+                size = fh.tell()
+                fh.seek(max(0, size - cap_bytes))
+                chunk = fh.read()
+                clipped = size > cap_bytes
+            else:
+                chunk = fh.read(cap_bytes)
+                clipped = False
         text = chunk.decode("utf-8", errors="replace")
     except OSError:
         return
-    # If we hit the cap mid-line, drop the truncated tail to avoid feeding
-    # a partial line to json.loads (which would just be torn-write equivalent).
-    if len(chunk) >= cap_bytes:
+    if from_end:
+        # We almost certainly landed mid-line; drop that leading fragment. (A
+        # head-read drops the trailing fragment instead — opposite end, same
+        # reason: never hand a partial line to json.loads.)
+        if clipped:
+            nl = text.find("\n")
+            text = text[nl + 1 :] if nl >= 0 else ""
+    elif len(chunk) >= cap_bytes:
         nl = text.rfind("\n")
         if nl >= 0:
             text = text[:nl]
@@ -1156,11 +1179,13 @@ def _read_mimir(project_root, claude_home) -> dict:
     # last-used model: newest JSONL's most-recent assistant event.
     if jsonls:
         try:
-            newest_events = list(_mimir_iter_jsonl_bounded(jsonls[0]))
+            # from_end: this block reports "last used" and "current" — both are
+            # TAIL facts. Reading the head returned the session's OPENING state.
+            newest_events = list(_mimir_iter_jsonl_bounded(jsonls[0], from_end=True))
         except Exception:
             newest_events = []
         last_model = None
-        first_perm_mode = None
+        last_perm_mode = None
         for ev in newest_events:
             if ev.get("type") == "assistant":
                 # Claude Code NESTS model/usage under ev["message"]; the top-level
@@ -1174,14 +1199,20 @@ def _read_mimir(project_root, claude_home) -> dict:
                     m = ev.get("model")
                 if isinstance(m, str):
                     last_model = m  # overwrite — keep newest seen in scanned slice
-            if first_perm_mode is None and ev.get("type") == "permission-mode":
+            # MH-06 — this was `if first_perm_mode is None`, i.e. FIRST-wins, in the
+            # very same loop that deliberately keeps the NEWEST model two lines
+            # above. So the card reported the session's OPENING permission mode as
+            # its current one, and said `default` while the session was in `auto` —
+            # a permissions surface asserting a laxer state than reality, which is
+            # the worst direction for that particular field to be wrong in.
+            if ev.get("type") == "permission-mode":
                 pm = ev.get("permissionMode")
                 if isinstance(pm, str):
-                    first_perm_mode = pm
+                    last_perm_mode = pm  # overwrite — keep newest, like last_model
         if last_model:
             base["settings"]["model"]["last_used"] = last_model
-        if first_perm_mode:
-            base["settings"]["permission_mode"] = first_perm_mode
+        if last_perm_mode:
+            base["settings"]["permission_mode"] = last_perm_mode
 
     # recent_sessions card (top 5 per the skill source-map).
     for jf in jsonls[:5]:

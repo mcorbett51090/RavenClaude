@@ -266,7 +266,7 @@ reads a green audit log that is structurally incapable of ever showing an event.
 ---
 
 #### MH-06 · Mímir reports the session's *opening* permission mode as current — and said `default` while the session was in `auto`
-**Severity:** P0 · **Hosts:** Claude Code · **Reported by:** CC (P0-2) · **Effort:** M · **Status:** `OPEN`
+**Severity:** P0 · **Hosts:** Claude Code · **Reported by:** CC (P0-2) · **Effort:** M · **Status:** ✅ **FIXED 2026-07-29 (v0.221.1)** — BOTH causes: the loop now keeps the LAST permission-mode event (it kept the first, in the same pass that deliberately kept the newest model), and the reader gained `from_end` so "current" fields read the TAIL. Fixing either alone leaves the bug on any transcript over the 50 KiB cap. Gate 163, with a head-read teeth half. `last_model` was wrong the same way and is fixed by the same change.
 
 **Evidence** `[verified]`
 - `RC/scripts/serve-dashboards.py:1148-1151`:
@@ -941,7 +941,7 @@ data model — the P0 fix is copy-by-copy prose without it.
 ---
 
 #### MH-22 · The consumer-facing dashboard points at a portal consumers do not have
-**Severity:** P1 · **Hosts:** Claude Code (consumers) · **Reported by:** CC (P1-3) · **Effort:** S (b) / M (a) · **Status:** `OPEN`
+**Severity:** P1 · **Hosts:** Claude Code (consumers) · **Reported by:** CC (P1-3) · **Effort:** S (b) / M (a) · **Status:** ✅ **FIXED 2026-07-29 (v0.222.1)** — the Plugin-variables intro no longer points consumers at a portal they do not have — it points at the plugin's own directory, and says what the old text got wrong.
 
 **Evidence** `[verified]`
 - `scripts/generate-dashboards.py:13350-13353` (the Plugin-variables intro, shipped into `dashboard.html`):
@@ -1132,7 +1132,7 @@ root-level Devin/Cascade rules; *"a projection would duplicate content the host 
 ---
 
 #### MH-28 · The claim-grounding double standard survives at two call sites the fix did not reach
-**Severity:** P1 · **Hosts:** Cursor · Aider · Windsurf/Devin · Codex · **Reported by:** CWA (P1-6), CX (P3-2) · **Effort:** S · **Status:** `OPEN`
+**Severity:** P1 · **Hosts:** Cursor · Aider · Windsurf/Devin · Codex · **Reported by:** CWA (P1-6), CX (P3-2) · **Effort:** S · **Status:** ✅ **FIXED 2026-07-29 (v0.222.1)** — both call sites closed. `init-agent-ready.md` now lists per-host basis instead of the blanket claim (it said Aider reads AGENTS.md natively — **false**); the onboarding-skill site was already fixed by the MH-23 rewrite.
 
 **Evidence** `[verified]`
 - The identically-shaped claim **for Copilot is verified in-repo, with an inline citation**:
@@ -1185,7 +1185,7 @@ one clarifying parenthetical wherever both names appear together.
 ---
 
 #### MH-30 · The Gemini lane is name-checked 17 times, supported zero times, and formally undecided
-**Severity:** P1 *(as reported — see the contest note)* · **Hosts:** Gemini CLI · **Reported by:** GEM (P1 ×2, P2 ×2) · **Effort:** S (unsupport) / M–L (build) · **Status:** `OPEN`
+**Severity:** P1 *(as reported — see the contest note)* · **Hosts:** Gemini CLI · **Reported by:** GEM (P1 ×2, P2 ×2) · **Effort:** S (unsupport) / M–L (build) · **Status:** ✅ **FIXED 2026-07-29 (v0.222.0)** — **BUILT, not unsupported** (owner decision). Gemini turned out to be the CHEAPEST lane: its hook contract is nearly Claude's — identical stdin fields, and `exit 2` + stderr IS its block mechanism. 17 hooks projected into `.gemini/settings.json`, GEMINI.md **@-imports** AGENTS.md (no projection, nothing to drift). Gates 164/165.
 
 > **Severity contested — by the reporting lens itself.** GEM rated this **P1** and no other lens covered
 > Gemini, so P1 stands under the highest-wins rule. But GEM's own **Honesty Notes** say: *"**No bridge is
@@ -1295,7 +1295,7 @@ asks for (`/__mcp`, `/__dispatch`, `/__host`).**
 ---
 
 #### MH-34 · The pre-PR testing checklist requires network installs a Codex sandbox blocks — and nothing names the cause
-**Severity:** P2 · **Hosts:** OpenAI Codex CLI · **Reported by:** CX (P2-2) · **Effort:** S · **Status:** `OPEN`
+**Severity:** P2 · **Hosts:** OpenAI Codex CLI · **Reported by:** CX (P2-2) · **Effort:** S · **Status:** ✅ **FIXED 2026-07-29 (v0.222.1)** — the testing-instructions block now NAMES `sandbox_mode` as the cause of a network failure on steps 3/4, with fixes cheapest-first — the repo's own CGP demands naming the mechanical cause, and nothing did.
 > ⚠ **Rests partly on `[inferred]` evidence — verify before building.** See §4.
 
 **Evidence**
@@ -1347,7 +1347,7 @@ reader that is currently wrong about the file it reads.
 ---
 
 #### MH-36 · The Power Platform visual-QA Gemini integration is undiscoverable
-**Severity:** P2 · **Hosts:** Gemini (as a model, not a host) · **Reported by:** GEM (P2) · **Effort:** S · **Status:** `OPEN`
+**Severity:** P2 · **Hosts:** Gemini (as a model, not a host) · **Reported by:** GEM (P2) · **Effort:** S · **Status:** ✅ **FIXED 2026-07-29 (v0.222.1)** — `AGENTS.md` now distinguishes the two Geminis: the supported HOST lane (MH-30) and the Power Platform visual-QA MODEL integration. They were conflated because the second was the repo's only Gemini anything.
 
 **Evidence** `[verified]` — `plugins/power-platform/skills/visual-qa/resources/gemini-review.md` is the
 **only real Gemini integration in the repo** and is buried in a skill resource: not advertised in the main
@@ -1442,7 +1442,7 @@ cited a `CLAUDE.md` line that `870fe226` superseded.
 ---
 
 #### MH-41 · No Gemini-specific MCP server or shared auth/config pattern
-**Severity:** P3 · **Hosts:** Gemini CLI · **Reported by:** GEM (P3) · **Effort:** M–L (only if MH-30 chooses "build") · **Status:** `OPEN`
+**Severity:** P3 · **Hosts:** Gemini CLI · **Reported by:** GEM (P3) · **Effort:** M–L (only if MH-30 chooses "build") · **Status:** ✅ **FIXED 2026-07-29 (v0.222.0)** — closed by MH-30 — the lane exists now, and MCP wiring rides the same `.gemini/settings.json` surface the hooks block was merged into rather than needing a separate pattern.
 > ⚠ **`[inferred]` — GEM self-rates 85% confidence.** *"Inferred from patterns, not from a config file
 > saying 'Gemini is not supported.' A deployed Gemini CLI agent trying to use the repo would confirm
 > this."* **Do not build from this without verification.** See §4.

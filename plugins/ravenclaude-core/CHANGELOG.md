@@ -2,7 +2,7 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
-## 0.221.1 — 2026-07-29
+## 0.222.2 — 2026-07-29
 
 ### Fixed
 
@@ -19,6 +19,99 @@ All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the 
   space-safe (`-print0` + NUL read). Behavior on Linux/CI is unchanged. **Migration:** none — a
   Claude-Code-only, opt-in (`on-skill-invoke:spawn-team`) monitor; macOS consumers now receive the
   guardrail notifications that were previously silently dropped.
+
+## 0.222.1 — 2026-07-29
+
+### Fixed
+
+Four surfaces that told a reader something untrue or unusable. All content; no behaviour change.
+
+- **MH-28 — the claim-grounding double standard's last call site.** `init-agent-ready.md` still told
+  every new repo that *"AGENTS.md is read by Cursor / Codex / Aider / Copilot natively"*. **That is
+  false for Aider** (it reads `CONVENTIONS.md`, opt-in only) and unconfirmed for Cursor. Replaced with
+  a per-host list carrying each basis, and a pointer to `host-support.json` as the authority. The
+  sibling call site was already closed by the MH-23 rewrite.
+- **MH-34 — the pre-PR checklist requires network installs a sandbox blocks, and nothing said so.**
+  `npx --yes prettier@…` and `pip install ruff` both download, and Codex's default
+  `sandbox_mode = workspace-write` has network **off**. An agent got a denial and no way to name the
+  cause — while this repo's own Capability Grounding Protocol requires *"read the actual error first
+  and name its specific mechanical cause."* The block now names `sandbox_mode`, lists fixes
+  cheapest-first, and says plainly **not** to skip the steps (CI runs them whole-tree anyway).
+- **MH-36 — two different Geminis were conflated.** `AGENTS.md` now separates the supported **host**
+  lane from the Power Platform visual-QA **model** integration. They ran together because the second
+  was the repo's only Gemini anything and was buried in a skill resource, so a reader looking for
+  "Gemini support" found neither.
+- **MH-22 — the consumer dashboard pointed at a portal consumers do not have.** The Plugin-variables
+  intro said to *"open the plugin in the portal's Marketplace section"* — but the portal is
+  `index.html` at the **marketplace repo** root, and a consumer who installs the plugin and runs the
+  dashboard gets that page and no portal at all. It now points at the plugin's own directory and says
+  what the old text got wrong. **Zero DOM**: the first draft came in at +1 and was trimmed rather than
+  spend a ratchet raise on one element.
+
+## 0.222.0 — 2026-07-29
+
+### Added
+
+- **Gemini CLI is a supported host** (multi-host audit MH-30 + MH-41). The audit framed this as a
+  decision — support it, or formally unsupport it and strip the 17 name-checks. **Build won**, and the
+  research is why: Gemini's hook contract turned out to be **nearer Claude Code's than Copilot's is**.
+
+  | | Claude Code | **Gemini CLI** | Copilot CLI |
+  |---|---|---|---|
+  | stdin fields | `session_id`, `cwd`, `tool_name`, `tool_input` | **identical names** | `toolName`, `toolArgs` (JSON *string*) |
+  | Blocking | `exit 2` + stderr | **identical** | JSON `permissionDecision` |
+  | Matcher | yes | **yes**, with regex | none in the native format |
+
+  - **So it is a shim, not an adapter** — blocking needs *no* translation, which is the opposite of
+    Cursor (where a malformed response silently allows, so the deny had to be a fixed literal).
+  - **The one real translation is the tool-name vocabulary**, and it is not optional. Gemini sends
+    `run_shell_command` / `read_file` / `write_file` / `replace`; the guardrails dispatch on Claude's
+    PascalCase and fall through to `*) exit 0` on anything unrecognised. **That exact mismatch is
+    MH-01** — under Copilot the tribunal was fully wired and reviewed *nothing* because `bash` is not
+    `Bash`. Shipping unnormalised would have reproduced it on a fifth host, looking wired throughout.
+    **Gate 164** asserts the mapping name by name, with teeth.
+  - **`GEMINI.md` @-imports `AGENTS.md`** rather than receiving a copy. Gemini supports `@file.md`
+    imports, making it the **only** non-Claude host that can include the canonical file — nothing to
+    project, nothing to drift. (Aider needed a real projection only because `CONVENTIONS.md` has no
+    import mechanism.)
+  - Hooks are **projected** from the canonical manifest (17 wired, 8 explicitly skipped) and **merged**
+    into `.gemini/settings.json` rather than overwriting it — that file also carries the user's model,
+    theme and MCP config. **Gate 165** additionally asserts every emitted matcher is in *Gemini's*
+    vocabulary: one left in PascalCase would register a hook that can never fire.
+
+### Honest scope
+
+The **layout gate is not enforced** on Gemini. Its path arrives as argv, and Gemini's `tool_input`
+path *field name* is unverified — the docs' rewrite example shows `filepath`, other tools may use
+`file_path`. Wiring it would have registered a guard that receives no path and **silently no-ops,
+which is worse than not wiring it because it would look enforced.** CI is the backstop, and the skip
+list ships inside `.gemini/settings.json`. One line to enable once the field name is read.
+`Stop` / `UserPromptSubmit` are unmapped for the same reason: `AfterAgent`/`BeforeAgent` are plausible
+by name, and mapping a lifecycle event by name-similarity is how a lane asserts coverage it lacks.
+**This lane is docs-verified but UNTESTED against a running Gemini CLI.**
+
+## 0.221.1 — 2026-07-29
+
+### Fixed
+
+- **P0 — the session card reported the session's *opening* permission mode as its current one**
+  (multi-host audit MH-06). It said `default` while the session was in `auto`. **A permissions surface
+  reporting a laxer state than reality is the bad direction to be wrong in** — it tells an operator
+  they are more constrained than they are.
+  - **Two independent causes, and fixing either alone leaves the bug.** The loop kept the *first*
+    `permission-mode` event — in the very same pass that deliberately *overwrites* to keep the newest
+    model, two lines above. One loop, two opposite policies, one of them wrong. And
+    `_mimir_iter_jsonl_bounded` read the first 50 KiB from offset 0, so on any transcript past the cap
+    the scanned slice is the **oldest** part of the session; even a correct last-wins loop would have
+    reported the last value *from the opening minutes*.
+  - The reader gained an opt-in `from_end`. Only the caller that claims *current* / *last used* sets
+    it; the aggregate caller (counts, token sums) stays on the head read, because neither end is more
+    correct there and flipping it would silently change reported numbers.
+  - **`last_model` was wrong the same way** and is fixed by the same change — its comment said "newest
+    seen in scanned slice", which was honest, but the slice was the wrong end of the file.
+  - **Gate 163** asserts both server copies, on a fixture deliberately larger than the cap so head and
+    tail genuinely differ — and asserts that *fixture validity* first, because on a small enough file
+    both ends agree and every other assertion would pass for free.
 
 ## 0.221.0 — 2026-07-28
 
