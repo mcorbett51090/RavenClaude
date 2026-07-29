@@ -228,7 +228,7 @@ and `_rc_host()` returning `unknown` rather than guessing. bash-3.2 safe.
 ---
 
 #### MH-05 · The dashboard asserts guardrails are LIVE, and renders *unwatched* as *clean*, on hosts where no hook ever fires
-**Severity:** P0 · **Hosts:** Codex · Cursor · Gemini · Aider · Windsurf/Devin (all); Copilot (when the installer was never run) · **Reported by:** DASH (P0-1, P0-2), CC (the through-line) · **Effort:** M (pipeline) + S (empty states) · **Status:** `OPEN`
+**Severity:** P0 · **Hosts:** Codex · Cursor · Gemini · Aider · Windsurf/Devin (all); Copilot (when the installer was never run) · **Reported by:** DASH (P0-1, P0-2), CC (the through-line) · **Effort:** M (pipeline) + S (empty states) · **Status:** ✅ **FIXED** `d9185f4e` — Heimdall/Vidarr now report an unwatched perimeter honestly instead of clean
 
 Two panels, one root cause: **the dashboard conditions on nothing about the host or the emitter.**
 
@@ -440,7 +440,7 @@ doc before writing a line — *"No JSON translation is needed in either directio
 ---
 
 #### MH-09 · The generated `copilot/AGENTS.md` never loads into a Copilot session by default — a closed loop
-**Severity:** P0 · **Hosts:** GitHub Copilot CLI · **Reported by:** CP (P0-3) · **Effort:** S · **Status:** `OPEN`
+**Severity:** P0 · **Hosts:** GitHub Copilot CLI · **Reported by:** CP (P0-3) · **Effort:** S · **Status:** ✅ **FIXED** `3486637e` — `ravenclaude install` writes .github/copilot-instructions.md pointing at the projected discipline
 
 **Evidence** `[verified]` + `[docs-verified]`
 - `scripts/ravenclaude` contains **zero** occurrences of `COPILOT_CUSTOM_INSTRUCTIONS_DIRS` (verified via
@@ -498,7 +498,7 @@ silently lose it in translation. Verify Copilot's `.agent.md` `tools:` value syn
 ---
 
 #### MH-11 · The dashboard's only self-repair instruction is broken by the dashboard's own Copilot onboarding
-**Severity:** P0 · **Hosts:** GitHub Copilot CLI (human path) · **Reported by:** DASH (P0-3) · **Effort:** S · **Status:** `OPEN`
+**Severity:** P0 · **Hosts:** GitHub Copilot CLI (human path) · **Reported by:** DASH (P0-3) · **Effort:** S · **Status:** ✅ **FIXED** `06cc5624` — the `rc` alias became a function, so `rc dashboard` reaches the real dispatcher
 
 **Evidence** `[verified]`
 - The launch remediation shown in ~10 empty states and the portal banner is literally `rc dashboard` —
@@ -584,7 +584,7 @@ guardrail enforcement in-loop, CI-only)."*
 ---
 
 #### MH-14 · There is no host verdict — and where one is planned it is an island with a two-host worldview
-**Severity:** P1 · **Hosts:** all · **Reported by:** DASH (P2-1 — rated P2), CX (P1-6), CWA (P1-5), CP (P2-1 — rated P2), CC (P2-2 — rated P2) · **Effort:** M · **Status:** `OPEN`
+**Severity:** P1 · **Hosts:** all · **Reported by:** DASH (P2-1 — rated P2), CX (P1-6), CWA (P1-5), CP (P2-1 — rated P2), CC (P2-2 — rated P2) · **Effort:** M · **Status:** ✅ **FIXED** `97e7baa9` — /__host endpoint + the Host & context page (part 1 d56aafec, part 2 97e7baa9)
 **Severity disagreement (recorded):** DASH, CP and CC each rated their slice **P2**; CX and CWA rated
 theirs **P1**. Carried at **P1** because it is the shared prerequisite for MH-05, MH-18 and MH-21.
 
@@ -629,7 +629,7 @@ theirs **P1**. Carried at **P1** because it is the shared prerequisite for MH-05
 ---
 
 #### MH-15 · The per-host knowledge file exists for exactly one host
-**Severity:** P1 · **Hosts:** Codex · Cursor · Aider · Windsurf/Devin · Gemini · **Reported by:** CX (P2-4 — rated P2), CWA (P1-1), GEM (P1) · **Effort:** M · **Status:** `OPEN`
+**Severity:** P1 · **Hosts:** Codex · Cursor · Aider · Windsurf/Devin · Gemini · **Reported by:** CX (P2-4 — rated P2), CWA (P1-1), GEM (P1) · **Effort:** M · **Status:** ✅ **FIXED** `16c2e6a5` — knowledge/codex-cli-customization.md — the per-host file Codex was missing
 **Severity disagreement (recorded):** CX rated its Codex slice **P2** — while simultaneously calling it
 *"the prerequisite artifact for P1-2, P1-4, and P1-6; sequence it first."* CWA and GEM rated **P1**.
 Carried at **P1**; CX's sequencing note is honored in §3.
@@ -905,7 +905,7 @@ the agent doing'."*
 ---
 
 #### MH-21 · No machine-readable per-component host-support map — and monitors are invisible *and* outside the drift gate's field of view
-**Severity:** P1 · **Hosts:** all · **Reported by:** CC (P1-4), DASH (P2-2 — rated P2) · **Effort:** M · **Status:** `OPEN`
+**Severity:** P1 · **Hosts:** all · **Reported by:** CC (P1-4), DASH (P2-2 — rated P2) · **Effort:** M · **Status:** ✅ **FIXED** `8ce8cad0` — knowledge/host-support.json, the single source of truth; Gate 154 pins it
 **Severity disagreement (recorded):** DASH rated its half **P2**. Carried at **P1** because it is MH-05's
 data model — the P0 fix is copy-by-copy prose without it.
 
@@ -1042,7 +1042,7 @@ re-dated.** Add a `last_verified` per row.
 ---
 
 #### MH-24 · Copilot's `hooks.json` has no per-tool `matcher` — undocumented, and it is the structural cause of MH-01
-**Severity:** P1 · **Hosts:** GitHub Copilot CLI · **Reported by:** CP (P1-2) · **Effort:** S (doc-only, high leverage) · **Status:** `OPEN`
+**Severity:** P1 · **Hosts:** GitHub Copilot CLI · **Reported by:** CP (P1-2) · **Effort:** S (doc-only, high leverage) · **Status:** ✅ **FIXED** `16c2e6a5` — the no-matcher asymmetry documented in copilot-cli-customization.md
 
 **Evidence** `[docs-verified]` + `[verified]` — the hooks-configuration example in
 `RC/knowledge/copilot-cli-customization.md` §4 (itself sourced from the docs, re-confirmed by that
@@ -1227,7 +1227,7 @@ practice that should be kept.**
 ---
 
 #### MH-31 · Gate 70 is named for Codex but tests nothing about Codex-as-host — and the name laundered into a capability claim
-**Severity:** P2 · **Hosts:** OpenAI Codex CLI (perception) · **Reported by:** CX (P2-3) · **Effort:** S · **Status:** `OPEN`
+**Severity:** P2 · **Hosts:** OpenAI Codex CLI (perception) · **Reported by:** CX (P2-3) · **Effort:** S · **Status:** ✅ **FIXED** `b2875286` — Gate 70 relabelled + fixture header rewritten; filename kept, logged to MH-42
 
 **Evidence** `[verified]`
 - `RC/hooks/tests/test-gate70-codex-trust-hooks.sh:2-3` — *"fixture tests for Gate 70 (**Codex desktop
