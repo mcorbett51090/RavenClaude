@@ -558,7 +558,7 @@ so, not silently.**
 ---
 
 #### MH-13 · Cursor's mature hooks API has zero RavenClaude guardrail port — the only finding that closes an actual in-loop enforcement gap
-**Severity:** P1 · **Hosts:** Cursor · **Reported by:** CWA (P1-3) · **Effort:** L · **Status:** `OPEN`
+**Severity:** P1 · **Hosts:** Cursor · **Reported by:** CWA (P1-3) · **Effort:** L · **Status:** ✅ **FIXED 2026-07-28 (v0.220.0)** — Cursor guardrails ship: `.cursor/hooks.json` projected from the manifest (20 wired, 5 skipped with reasons), the tribunal + guard-destructive + runaway brake + worktree guard all on `beforeShellExecution`. Gates 159/160. **The entry's event list was incomplete** — Cursor's real set is a superset including Claude-named events.
 
 **Evidence** `[docs-verified via web search, corroborated across GitButler's deep-dive, InfoQ, and Cursor's
 community forum]` — Cursor shipped a real hooks system in **Cursor 1.7 (October 2025)**:
@@ -1063,7 +1063,7 @@ this defect class."**
 ---
 
 #### MH-25 · Cursor's native `.cursor/rules/*.mdc` convention is completely unserved
-**Severity:** P1 · **Hosts:** Cursor · **Reported by:** CWA (P1-2) · **Effort:** M · **Status:** `OPEN`
+**Severity:** P1 · **Hosts:** Cursor · **Reported by:** CWA (P1-2) · **Effort:** M · **Status:** ✅ **FIXED 2026-07-28 (v0.220.0)** — `.cursor/rules/*.mdc` ship: an always-on discipline pointer plus the **glob-scoped layout rule** — the rule `.mdc` globs exist for, and the one a flat AGENTS.md structurally cannot express.
 
 **Evidence** `[docs-verified — cursor.com/docs, fetched live]` — Cursor's primary, current mechanism is
 `.cursor/rules/*.mdc` files with `description`/`globs`/`alwaysApply` frontmatter, with a stated precedence
@@ -1087,7 +1087,7 @@ doesn't fix a gap the way the hooks adapter would."*
 ---
 
 #### MH-26 · Aider's real mechanism (`CONVENTIONS.md`) still has no projection — the prose is corrected, the gap is not closed
-**Severity:** P1 · **Hosts:** Aider · **Reported by:** CWA (P0-1 real fix, P2-3) · **Effort:** M · **Status:** `OPEN`
+**Severity:** P1 · **Hosts:** Aider · **Reported by:** CWA (P0-1 real fix, P2-3) · **Effort:** M · **Status:** ✅ **FIXED 2026-07-28 (v0.220.0)** — `install --host aider` projects AGENTS.md → CONVENTIONS.md **and** writes the `.aider.conf.yml` `read:` opt-in. Both halves were required: a pointer would not be read, documentation alone would not opt in. Gate 161, two teeth halves. **The only lane that bridges no enforcement** — Aider has no hooks API, and the generated file says so.
 **Severity note:** CWA rated the composite finding **P0**. Its P0 element — the false claim — is **FIXED
 (MH-03)**. What remains is the buildable half, carried at **P1**. **This is a scope split, not a severity
 downgrade by this ledger.**

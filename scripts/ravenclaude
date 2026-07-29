@@ -126,6 +126,92 @@ copilot_version_check() {
   fi
 }
 
+# wire_cursor <project> — the Cursor lane (multi-host audit MH-13 + MH-25).
+#
+# Cursor had ZERO in-loop enforcement before this: not the layout gate, not
+# guard-destructive, not the command-review tribunal, not the runaway brake. CI was
+# the only backstop, and CI runs after the damage.
+#
+# TWO SURFACES, because Cursor has two and the repo served neither:
+#   .cursor/hooks.json   — guardrails, PROJECTED from the canonical manifest
+#   .cursor/rules/*.mdc  — Cursor's OWN rules convention, which its docs call the
+#                          scoped alternative to AGENTS.md (not a superset)
+#
+# ⚠ CURSOR FAILS OPEN — a malformed hook response silently ALLOWS the command
+# (verified against Cursor's bug tracker). Every other host here fails closed. The
+# adapter's deny verdict is therefore a fixed literal; see its header.
+wire_cursor() {
+  local project="$1"
+  local gen="$MARKET/scripts/generate-cursor-hooks.py"
+  local adapter="$CORE/hooks/cursor-hook-adapter.sh"
+  mkdir -p "$project/.cursor/rules"
+  if [ -f "$gen" ]; then
+    python3 "$gen" --adapter "$adapter" --hooks-dir "$CORE/hooks" \
+      --out "$project/.cursor/hooks.json" \
+      && ok "wired guardrails into .cursor/hooks.json (projected from the manifest)" \
+      || warn "cursor hook projection FAILED — no guardrails wired for this project"
+  else
+    warn "generate-cursor-hooks.py missing — Cursor guardrails NOT wired"
+  fi
+
+  # Rule 1 — the always-on discipline pointer.
+  cat >"$project/.cursor/rules/ravenclaude.mdc" <<'MDC'
+---
+description: RavenClaude cross-tool agent discipline for this repository.
+alwaysApply: true
+---
+
+Read `AGENTS.md` at the repository root end-to-end before making changes. It is the
+canonical cross-tool guidance: testing instructions, the layout allow-list
+discipline, and the PR conventions.
+
+Guardrails that DO run for you here: shell commands are screened in-loop via
+`.cursor/hooks.json` (`beforeShellExecution`). A blocked command returns
+`permission: deny` — do not retry it verbatim; adjust the command to satisfy the
+guard, or ask the user.
+
+Guardrails that DO NOT run for you here: the file-path layout gate and the
+web-access guard have no verified Cursor enforcement event. **CI is the backstop
+for those** — a write to a path outside `.repo-layout.json` `allowed_globs` will
+fail the build even though nothing stops it locally.
+MDC
+
+  # Rule 2 — the layout allow-list, GLOB-SCOPED. This is the rule .mdc globs exist
+  # for, and the reason serving only AGENTS.md shortchanged Cursor users: a flat
+  # always-on file cannot express "this applies when you touch these paths".
+  python3 - "$project/.cursor/rules/repo-layout.mdc" "$MARKET/.repo-layout.json" <<'PY2'
+import json, sys
+out, layout = sys.argv[1], sys.argv[2]
+try:
+    globs = json.load(open(layout)).get("allowed_globs", [])
+except Exception:
+    globs = []
+sample = ", ".join(globs[:12])
+body = f"""---
+description: Layout allow-list — every new file path must match .repo-layout.json.
+globs: ["**/*"]
+alwaysApply: false
+---
+
+Before creating a NEW file, confirm its path matches at least one glob in
+`.repo-layout.json` `allowed_globs`. CI (`validate-layout.yml`) fails the build on
+any added file that does not, and under Cursor **nothing stops it locally** — the
+path guard has no verified Cursor enforcement event, so this rule is the only
+warning you get before CI.
+
+Current allow-list ({len(globs)} globs; first few): {sample}
+
+Read the file itself for the authoritative list; this rule is generated and may lag.
+"""
+open(out, "w").write(body)
+PY2
+  ok "wired 2 Cursor rules into .cursor/rules/*.mdc (incl. the glob-scoped layout rule)"
+  note "NOT enforced under Cursor: the layout gate and web-access guard have no"
+  note "  verified enforcement event there. CI is the backstop; the rules say so."
+  note "⚠ Cursor FAILS OPEN on a malformed hook response — do not hand-edit"
+  note "  .cursor/hooks.json; re-run this installer instead."
+}
+
 # wire_codex_skills <project> <plugin-name>
 #
 # Codex discovers skills from `.agents/skills` in EVERY directory from the cwd up
@@ -503,10 +589,53 @@ cmd_install() {
     host="$(detect_host)"
   fi
   case "$host" in
-    copilot|codex) ;;
-    *) warn "unknown --host '$host' (expected: copilot | codex) — using copilot"; host="copilot" ;;
+    copilot|codex|cursor|aider) ;;
+    *) warn "unknown --host '$host' (expected: copilot | codex | cursor | aider) — using copilot"; host="copilot" ;;
   esac
   printf '== ravenclaude install (host: %s) -> %s ==\n' "$host" "$project"
+
+  # The Aider lane (MH-26). The ONLY lane that bridges no enforcement, because
+  # Aider has no hooks API — nothing here can gate an Aider session in-loop, and
+  # the generated file says so rather than implying coverage it does not have.
+  #
+  # Aider reads CONVENTIONS.md, and ONLY on explicit opt-in (`--read`, or a `read:`
+  # entry in .aider.conf.yml) — docs-verified. So a pointer file would not be read
+  # and documentation alone would not opt in. Both halves are required for the
+  # corrected claim to become actionable instead of merely honest.
+  if [ "$host" = "aider" ]; then
+    local agen="$MARKET/scripts/generate-aider-conventions.py"
+    if [ -f "$agen" ]; then
+      if python3 "$agen" --out "$project/CONVENTIONS.md" --conf-out "$project/.aider.conf.yml"; then
+        ok "projected AGENTS.md -> CONVENTIONS.md + wrote .aider.conf.yml (read: opt-in)"
+      else
+        warn "aider projection FAILED — CONVENTIONS.md not written"
+      fi
+    else
+      warn "generate-aider-conventions.py missing — Aider files NOT written"
+    fi
+    note "⚠ NO guardrail runs under Aider — it has no hooks API. CI is the only"
+    note "  backstop on this host, and CONVENTIONS.md states that plainly."
+    note "If .aider.conf.yml already existed it was OVERWRITTEN — merge by hand if"
+    note "  you had other keys in it."
+    wire_dashboard_launchers "$project"
+    if [ -z "${RC_FROM_SETUP:-}" ]; then
+      printf '\n'
+      ok "install complete. Launch: aider (it reads .aider.conf.yml from this dir)."
+    fi
+    return 0
+  fi
+
+  # The Cursor lane (MH-13 + MH-25).
+  if [ "$host" = "cursor" ]; then
+    wire_cursor "$project"
+    wire_dashboard_launchers "$project"
+    if [ -z "${RC_FROM_SETUP:-}" ]; then
+      printf '\n'
+      ok "install complete. Open this project in Cursor as usual."
+      note "Updates: run 'ravenclaude update' — hooks load live from this checkout."
+    fi
+    return 0
+  fi
 
   # The Codex lane. Kept as a HOST DIMENSION on the one installer rather than a
   # second installer (MH-07): the skills are the same 50 directories and the hooks

@@ -357,6 +357,21 @@ PY
       python3 scripts/generate-copilot-hooks.py --check
       exit $?
       ;;
+    159)
+      echo "── Gate 159: Cursor hook adapter (per-gate run) ──────────────────────────"
+      bash plugins/ravenclaude-core/hooks/tests/test-gate159-cursor-hook-adapter.sh
+      exit $?
+      ;;
+    160)
+      echo "── Gate 160: Cursor hook projection accounting (per-gate run) ────────────"
+      python3 scripts/generate-cursor-hooks.py --check
+      exit $?
+      ;;
+    161)
+      echo "── Gate 161: Aider CONVENTIONS.md projection (per-gate run) ──────────────"
+      python3 scripts/generate-aider-conventions.py --check
+      exit $?
+      ;;
     144)
       echo "── Gate 144: Prompt Builder render + XSS floor (per-gate run) ────────────"
       node scripts/check-prompt-builder-render.mjs plugins/ravenclaude-core/dashboard.html
@@ -438,7 +453,7 @@ PY
       ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -5203,6 +5218,65 @@ pathlib.Path(sys.argv[1]).write_text(out)
 PYX
 rc=0; python3 "$CPH_MUT" --check >/dev/null 2>&1 || rc=$?
 gate "copilot-hooks teeth: an emptied skip map is caught" must_fail "$rc"
+
+echo
+echo "── Gate 159: Cursor hook adapter — deny is unbreakable on a fail-OPEN host ─"
+# MH-13. Cursor FAILS OPEN: a malformed hook response silently ALLOWS the command
+# (Cursor's own bug tracker). Every other host here fails closed. So on Cursor a
+# guardrail that emits slightly-wrong JSON does not fail loudly — it vanishes.
+# The test therefore over-covers the deny path: valid JSON under a hostile command,
+# no payload content reaching the literal, and silence reserved for genuine allows.
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate159-cursor-hook-adapter.sh >/dev/null 2>&1 || rc=$?
+gate "cursor-hook-adapter: deny/allow translation + no-leak + fail-safe (+ teeth)" must_pass "$rc"
+
+echo
+echo "── Gate 160: Cursor hook projection — accounting + enforcement floor ──────"
+# Sibling of Gate 158. Same reason: MH-12 proved a hand-maintained host hook list
+# drifts silently, so Cursor's is projected too. This additionally asserts that
+# SOMETHING is wired to beforeShellExecution — a Cursor lane that enforces nothing
+# would still "pass" a pure accounting check while protecting the user from nothing.
+rc=0; python3 scripts/generate-cursor-hooks.py --check >/dev/null 2>&1 || rc=$?
+gate "cursor-hooks: every canonical hook wired or explicitly skipped, + enforcement present" must_pass "$rc"
+
+CUR_MUT="$TMP/generate-cursor-hooks-mutant.py"
+python3 - "$CUR_MUT" <<'PYX'
+import re, sys, pathlib
+src = pathlib.Path("scripts/generate-cursor-hooks.py").read_text()
+# Skip EVERY Bash-matched PreToolUse hook: accounting still balances, but nothing
+# enforces. The floor assertion must catch it.
+out = src.replace('if "Bash" not in matcher:', 'if True:')
+pathlib.Path(sys.argv[1]).write_text(out)
+PYX
+rc=0; python3 "$CUR_MUT" --check >/dev/null 2>&1 || rc=$?
+gate "cursor-hooks teeth: a lane that enforces NOTHING is caught" must_fail "$rc"
+
+echo
+echo "── Gate 161: Aider CONVENTIONS.md projection — complete + honest ──────────"
+# MH-26. Aider reads CONVENTIONS.md and ONLY on explicit opt-in; it does NOT read
+# AGENTS.md. The projection makes the corrected claim actionable. Two things must
+# hold: every section is present (a renamed upstream header must fail the build
+# loudly, not ship a file with a hole), and the no-enforcement warning survives —
+# Aider has no hooks API, so a CONVENTIONS.md that implied guardrail coverage would
+# be the same false assurance MH-04 was about.
+rc=0; python3 scripts/generate-aider-conventions.py --check >/dev/null 2>&1 || rc=$?
+gate "aider-conventions: all sections projected + no-enforcement warning present" must_pass "$rc"
+
+# must_fail #1 — a renamed upstream section must RAISE, not silently drop.
+AID_MUT="scripts/.aider-gate-mutant.py"
+sed 's|"## Code style",|"## Code style RENAMED",|' scripts/generate-aider-conventions.py >"$AID_MUT"
+rc=0; python3 "$AID_MUT" --check >/dev/null 2>&1 || rc=$?
+rm -f "$AID_MUT"
+gate "aider-conventions teeth: a renamed AGENTS.md section is caught" must_fail "$rc"
+
+# must_fail #2 — dropping the no-enforcement warning must be caught. Mutates ONLY
+# the preamble prose, never the assertion string (a mutant that moves both is
+# self-defeating and proves nothing — that mistake was made and caught here).
+AID_MUT2="scripts/.aider-gate-mutant2.py"
+sed 's|\*\*Aider has no hooks API, so none of|**Aider has full coverage, so all of|' \
+  scripts/generate-aider-conventions.py >"$AID_MUT2"
+rc=0; python3 "$AID_MUT2" --check >/dev/null 2>&1 || rc=$?
+rm -f "$AID_MUT2"
+gate "aider-conventions teeth: dropping the no-enforcement warning is caught" must_fail "$rc"
 
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"
