@@ -2,6 +2,37 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.222.3 — 2026-07-29
+
+### Fixed
+
+- **`GET /__sleipnir` returned HTTP 500 on the marketplace dev portal.** `do_GET` has dispatched it to
+  `self._handle_sleipnir()` since the endpoint shipped, but **that method existed only in the bundled
+  plugin copy** — the root dev server raised `AttributeError`, so the Activity tab's Sleipnir stables
+  widget was simply broken there. The plugin copy's own docstring described itself as a *"mirror of
+  the root dev server's `/__sleipnir`"* — of a method that did not exist.
+  - **Gate 32 passed the entire time**, because its endpoint check regexes the *string* `/__sleipnir`,
+    which appears in the dispatch line of **both** files. It compared endpoint **names** and never
+    asked whether a handler existed.
+  - Found by the MH-33 guard-coverage check below, which reported *"handler not found"* while looking
+    for something else entirely.
+- **MH-33 — two enforcement holes in the parity gate.**
+  - `_ENDPOINT_RE = r"/__\w+"` is **hyphen-blind** (`\w` excludes `-`), so `/__concern-stats` was
+    compared as `/__concern` and `/__knowledge-health` as `/__knowledge`. Two endpoints differing only
+    after a hyphen compared as **identical** — and the truncation was visible in the gate's own PASS
+    output all along, reading as if those were the real names.
+  - The server's invariant — *"any NEW data-returning GET endpoint MUST call
+    `self._local_request_ok()` first"* — was **a comment, enforced by nothing.** That guard is the
+    DNS-rebinding / cross-origin defense. It is now checked statically, scoped to `do_GET`'s body.
+    *(The first version scanned the whole file, flagged the POST-only `/__classify`, and looked
+    exactly like a real security hole — it was a broken check. Diagnose before concluding.)*
+- **MH-27 — the Copilot manifest advertised seven slash commands on a host that has none.** Its
+  `description` ended *"Slash commands: /init-agent-ready, /wrap, /set-posture, /dashboard, /forge,
+  /wireframe, /reset-plugin-cache"* while the plugin's own CLAUDE.md states plainly that Copilot CLI
+  has no user slash commands. Corrected **in the projector, not the canonical manifest** — the
+  sentence is true for Claude Code and false only for this host, so the host-specific correction
+  belongs in the host's projection; editing the canonical file would make it wrong for Claude Code.
+
 ## 0.222.2 — 2026-07-29
 
 ### Fixed

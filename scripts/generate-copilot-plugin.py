@@ -240,10 +240,31 @@ def build_agent_doc(name: str, description: str, body: str) -> str:
     return fm + body
 
 
+# The canonical description ends with a "Slash commands: /a, /b, …" inventory.
+# That sentence is TRUE for Claude Code and FALSE for Copilot CLI, which has no
+# user slash commands at all — the plugin's own CLAUDE.md says so plainly, and the
+# Commands catalog now says it too (MH-18). Projecting it verbatim shipped a
+# manifest advertising seven invocations that cannot be typed on that host
+# (multi-host audit MH-27).
+#
+# Corrected HERE rather than in the canonical manifest, because the claim is not
+# wrong — it is wrong *for this host*. Host-specific truth belongs in the host's
+# projection; editing the canonical file would make it wrong for Claude Code.
+_SLASH_SENTENCE_RE = re.compile(r"\s*Slash commands:[^.]*\.\s*$")
+
+_COPILOT_INVOCATION_NOTE = (
+    " Copilot CLI has no user slash commands: these ship as skills and documented "
+    "shell invocations instead — `rc dashboard` is the front door."
+)
+
+
 def build_manifest(canonical: dict) -> str:
     """Render the Copilot plugin.json. Version MIRRORS the canonical exactly.
-    description is reused (trimmed to <=1024 chars). No skills/hooks/mcpServers."""
+    description is reused, with the Claude-only slash-command inventory replaced by
+    the host-accurate note (MH-27), then trimmed to <=1024 chars."""
     description = canonical.get("description", "")
+    description = _SLASH_SENTENCE_RE.sub("", description).rstrip()
+    description += _COPILOT_INVOCATION_NOTE
     if len(description) > MAX_DESCRIPTION:
         description = description[:MAX_DESCRIPTION]
     manifest = {

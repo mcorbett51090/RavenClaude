@@ -1112,7 +1112,7 @@ root-level Devin/Cascade rules; *"a projection would duplicate content the host 
 ---
 
 #### MH-27 · FORGE and Wireframe have zero Copilot bridging, and `copilot/plugin.json` overclaims slash-command support
-**Severity:** P1 · **Hosts:** GitHub Copilot CLI · **Reported by:** CP (P1-3) · **Effort:** S/M · **Status:** `OPEN`
+**Severity:** P1 · **Hosts:** GitHub Copilot CLI · **Reported by:** CP (P1-3) · **Effort:** S/M · **Status:** ✅ **FIXED 2026-07-29 (v0.222.3)** — the Copilot manifest no longer advertises seven slash commands on a host with none. Corrected in the PROJECTOR, not the canonical manifest — the claim is true for Claude Code and false only for this host, so host-specific truth belongs in the host's projection.
 
 **Evidence** `[verified]`
 - `RC/copilot/plugin.json`'s `description` states: *"Slash commands: /init-agent-ready, /wrap,
@@ -1273,7 +1273,7 @@ no writes will be attempted"*); if the tail scan cannot establish it, **add `pla
 ---
 
 #### MH-33 · Land the D8 / Gate 142 route sweep independently — three currently-unenforced holes
-**Severity:** P2 · **Hosts:** Claude Code (disproportionate exposure) · **Reported by:** CC (P2-3) · **Effort:** S · **Status:** `OPEN`
+**Severity:** P2 · **Hosts:** Claude Code (disproportionate exposure) · **Reported by:** CC (P2-3) · **Effort:** S · **Status:** ✅ **FIXED 2026-07-29 (v0.222.3)** — Gate 32's `_ENDPOINT_RE` was hyphen-blind (`/__concern-stats` compared as `/__concern`); fixed. The do_GET `_local_request_ok()` invariant is now ENFORCED, not just commented. **And that new check found a live P0-shaped bug it wasn't looking for** — see below.
 
 **Evidence** `[verified]` — `plan.md` §6.3 items 4-6 (`:520-528`) document three real, currently unenforced
 holes:
