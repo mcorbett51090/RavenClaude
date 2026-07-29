@@ -2,6 +2,92 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.234.0 — 2026-07-29
+
+**Looped a measured UI/UX audit over both dashboard surfaces until two consecutive
+passes found nothing.** Every finding came from a headless Chrome measuring real
+computed layout — contrast ratios, pointer-target geometry, resolved tokens — across
+**21 routes × 3 viewports × 2 themes**, on the portal *and* the shipped standalone.
+**94 raw findings → 24 real defects fixed → 0.** Zero new DOM elements: 6,154 / 7,040
+unchanged, so no Gate 132 ratchet raise.
+
+### Fixed — P1: text that could not be read
+
+- **The shipped `dashboard.html` had no link colour rule at all.** Every inline link
+  in its prose fell back to the browser default `#0000EE` — about **2:1** on these
+  dark surfaces. 18 instances. The dev portal looked fine because the *shell* defines
+  `a { color: var(--teal-2) }`, so the broken surface was the one consumers actually
+  get from `rc dashboard`. `--teal-2` aliases `--rc-accent`, so the fix changes the
+  portal by nothing.
+- **`.cr-summary-micro[data-state="off"]` used `var(--border)` as a text colour** —
+  the 7%-alpha hairline token. The word **"off"**, i.e. the review state you most need
+  to notice, rendered at **1.17:1**. Now `--muted`: 7.7:1 dark / 5.9:1 light.
+- **`color: #fff` / `var(--rc-text)` on accent- and danger-filled controls** —
+  1.81–1.95:1 on the green, **2.76:1** on the dark-theme red. Six controls, including
+  the Prompt Builder's primary action and the Gjallarhorn alert banner. All now use
+  `var(--bg)`, this codebase's existing pairing (`.seg-label:checked`): **10.3:1** dark
+  / 5.0:1 light on accent, 7.3:1 / 5.4:1 on danger. Two were hardcoded `#fff`, which
+  could not follow the theme swap at all.
+- **A file path escaped its button at 375px.** `.btn-sub` rendered 417px wide inside a
+  297px button, spilling out both sides, where its on-accent dark text sat on the dark
+  panel — **1.00:1**. Now wraps.
+
+### Fixed — P1: layout that broke the page sideways
+
+- **`minmax(320px, 1fr)` in the Heimdall grid.** A track minimum cannot shrink below
+  itself, so a 287px container got 320px tracks and the cards hung off-screen,
+  scrolling the *whole page* horizontally on a phone. Now `minmax(min(320px, 100%), 1fr)`.
+- **A `flex-wrap: nowrap` stage header** pushed its trailing value pill 79px past the
+  card at 1280px. Now wraps.
+- **Two tables wider than a phone** (the 7-column concern-stats table, 464px min-content;
+  the plugin-drift table) now scroll inside their own container instead of widening the
+  document.
+
+### Fixed — P1: controls with no accessible name
+
+Five fields were announced as unnamed edit boxes: the web-access **Allow**/**Deny**
+lists, per-plugin extra variables, and the Prompt Builder's repeated rule rows. A
+`placeholder` is not a name — it disappears on input. Now `aria-label`led, including
+the few-shot example rows that share the defect but are not visible in the default mode.
+
+### Fixed — P2/P3
+
+- **`scope=` on every header cell** across 8 tables (4 applied in one pass over `#hc-root`
+  rather than at ~10 call sites).
+- **24px pointer targets** (WCAG 2.2 SC 2.5.8) for `select`, disclosure rows, the
+  Gjallarhorn link, a best-practice toggle, and the sidebar footer links. The 18px help
+  dot keeps its **visual** size — an `::after` with `inset: -3px` enlarges the *target*
+  to 24px, so density is unchanged. It also gained `flex: 0 0 auto`, having been
+  squeezed to **8px** wide by its siblings.
+- **Prose links are underlined.** Accent-on-body-text is only **1.31–1.70:1**, below the
+  3:1 that lets colour be the sole cue that something is a link (WCAG 1.4.1). Scoped to
+  prose containers, so nav items and link-buttons stay undecorated.
+- **A skipped heading level** (h2 → h4) on the Guidance tab.
+
+### On the audit itself — six of its own bugs were found and fixed first
+
+Raw output started at 94 findings and peaked at **3,337**; most were the harness lying,
+and each was corrected before any code was touched. Recorded because the wrong version
+of each check is the obvious one to write:
+
+| Wrong check | What it claimed | Why it was wrong |
+|---|---|---|
+| DOM-ancestor backdrop | `.rec-badge` invisible at 1.00:1 | An `absolute; bottom:-16px` badge paints over the page, not its parent's fill |
+| `elementsFromPoint` backdrop | amber/green backdrops behind ordinary body copy | It returns elements *above* the target; a fixed banner became the "backdrop" of the header behind it |
+| Accessible name without labels | 15 correctly-`<label for>`-ed inputs unnamed | Never resolved label association |
+| `el.focus()` + style diff | 3,187 elements with "no focus indicator" | `.focus()` does not match `:focus-visible`; and an *unfocused* element's computed `outlineStyle` is `none` for nearly everything |
+| Bare `bbox < 24x24` | 2,397 diagram toggles | Ignored SC 2.5.8's spacing/inline/UA exceptions |
+| Hand-rolled visibility | 185 "overlapping" targets | Chrome gives a **closed** `<details>` `content-visibility: hidden`, not `display: none`, so its contents keep layout boxes — 126 of 128 concept cards are closed, and their invisible contents pile up at the same coordinates |
+
+Two findings were verified as **correct by design** and deliberately not "fixed": routes
+that render identically because a section resolves to its own default tab, and the Help
+page's documented redirects. The dead-route check now only fires when two *primary* nav
+destinations collide.
+
+The harness was mutation-tested between the two clean passes — three defects
+reintroduced, all three caught — so the final zero is a measured result, not a broken
+checker.
+
 ## 0.233.0 — 2026-07-29
 
 **The Host & context page: made it look like the rest of the product, and made it readable.**

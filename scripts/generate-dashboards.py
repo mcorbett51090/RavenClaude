@@ -396,7 +396,7 @@ def _render_removed_routes_table() -> str:
     )
     return (
         '<table class="removed-routes"><thead>'
-        "<tr><th>Old link(s)</th><th>Where it is now</th></tr>"
+        '<tr><th scope="col">Old link(s)</th><th scope="col">Where it is now</th></tr>'
         f"</thead><tbody>{rows}</tbody></table>"
     )
 
@@ -1213,11 +1213,14 @@ _PIPELINE_CSS = """<style>
 .pipe-row { display: flex; flex-wrap: wrap; gap: .35rem; }
 .pipe-stage { flex: 1 1 230px; min-width: 200px; border: 1px solid var(--border);
   border-radius: var(--rc-radius); padding: .3rem .5rem; background: var(--surface-2); }
-.pipe-stage-head { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
+/* flex-wrap: wrap — this row holds a title plus up to two badges. With nowrap the
+   trailing value pill was pushed 79px past the stage card and scrolled the whole
+   page sideways at 1280px. Wrapping keeps it inside the card. */
+.pipe-stage-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem; }
 .pipe-stage-title { font-weight: 600; font-size: .88rem; }
 .pipe-tip { margin: .18rem 0 0; font-size: .8rem; color: var(--muted, #aaa); line-height: 1.25; }
 .pipe-badge { font-size: .7rem; font-weight: 600; padding: .1rem .42rem; border-radius: 10px;
-  white-space: nowrap; }
+  white-space: nowrap; max-width: 100%; }
 .pipe-badge-on { background: var(--rc-ok-bg); color: var(--rc-ok-fg); }
 .pipe-badge-off { background: var(--rc-danger-bg); color: var(--rc-danger-fg); }
 .pipe-badge-advisory { background: var(--rc-neutral-bg); color: var(--rc-neutral-fg); }
@@ -1370,6 +1373,10 @@ _PIPELINE_CSS = """<style>
   .hc-table thead th, .hc-table tbody th, .hc-table tbody td { padding: .4rem .45rem; }
 }
 
+/* The 7-column stats table has a 464px min-content width. Let it scroll inside its
+   own section rather than widening the document — a page that scrolls sideways on a
+   phone hides the nav and every other panel's content too. */
+.concern-stats { overflow-x: auto; }
 .concern-stats-table { width: 100%; border-collapse: collapse; margin-top: .3rem; font-size: 12px; }
 .concern-stats-table th, .concern-stats-table td {
   text-align: left; padding: .22rem .5rem; border-bottom: 1px solid var(--border, #2a2a2a);
@@ -2357,13 +2364,13 @@ def _render_trees_tab(include_trees: bool = True) -> str:
             )
         bp_items = "".join(bp_parts)
         tree_section = (
-            f'<h4 class="guide-subhd">Decision trees <span class="guide-count">{len(ot)}</span></h4>'
+            f'<h3 class="guide-subhd">Decision trees <span class="guide-count">{len(ot)}</span></h3>'
             f'<ul class="guide-list">{tree_items}</ul>'
             if ot
             else ""
         )
         bp_section = (
-            f'<h4 class="guide-subhd">Best practices <span class="guide-count">{len(op)}</span></h4>'
+            f'<h3 class="guide-subhd">Best practices <span class="guide-count">{len(op)}</span></h3>'
             f'<ul class="guide-list">{bp_items}</ul>'
             if op
             else ""
@@ -3376,6 +3383,25 @@ def _label_for(value: str) -> str:
 _CSS = """
 /*__SHARED_TOKENS__*/
 
+/* ── Links ────────────────────────────────────────────────────────────────────
+   The standalone dashboard.html shipped with NO `a` colour rule at all, so every
+   inline link in its prose fell back to the browser default #0000EE — roughly 2:1
+   on these dark surfaces, i.e. unreadable — and that is the copy consumers get from
+   `rc dashboard`. The portal only looked fine because the shell defines
+   `a { color: var(--teal-2) }`; --teal-2 aliases --rc-accent, the same token used
+   here, so this fixes the shipped page and changes the portal by nothing.
+
+   Prose links are also underlined, because --accent against --text is only 1.70:1 —
+   below the 3:1 that WCAG 1.4.1 requires before colour may be the sole cue that
+   something is a link. Scoped to prose containers so nav items and link-buttons,
+   which are identifiable by position and shape, stay undecorated. */
+a { color: var(--accent); }
+p a, li a, td a, dd a, footer a, .hc-intro a, .hc-src a, blockquote a { text-decoration: underline; }
+
+/* WCAG 2.2 2.5.8 — a <select> is a pointer target; the UA gives these 19-23px and
+   several sit directly beside other controls. 24px is the floor. */
+select { min-height: 24px; }
+
 :root {
   color-scheme: light;
   /* Dashboard palette — cool near-black + the commerce signature GREEN.
@@ -3955,7 +3981,7 @@ h1, h2, h3 { font-family: var(--font-display); font-weight: 600; letter-spacing:
 }
 .seg-control.gate-floor-seg { margin-bottom: 8px; }
 .seg-control input[type="radio"]:checked + .seg-label.gate-floor-medium { background: var(--warn); color: var(--bg); }
-.seg-control input[type="radio"]:checked + .seg-label.gate-floor-extreme { background: var(--danger); color: white; }
+.seg-control input[type="radio"]:checked + .seg-label.gate-floor-extreme { background: var(--danger); color: var(--bg); }
 .crp-gate-floor-note { margin: 0; font-size: 11.5px; color: var(--muted); line-height: 1.5; }
 /* Per-tier advanced expansion — tier cards with seat checkboxes + threshold. */
 .tier-details { margin: 14px 0 0; }
@@ -4159,7 +4185,12 @@ h1, h2, h3 { font-family: var(--font-display); font-weight: 600; letter-spacing:
 }
 /* Micro-label matching each state */
 .cr-summary-micro[data-state="reviewed"] { color: var(--accent); }
-.cr-summary-micro[data-state="off"] { color: var(--border); }
+/* NOT var(--border): that is the 7%-alpha hairline token, which rendered the word
+   "off" at 1.17:1 — the review state you most need to notice was invisible.
+   --muted measures 7.7:1 dark / 5.9:1 light. "off" and "paused" now share a colour;
+   they were never distinguished by colour to a screen reader anyway — the label text
+   and the scales icon's data-review-state are the real channels. */
+.cr-summary-micro[data-state="off"] { color: var(--muted); }
 .cr-summary-micro[data-state="paused"] { color: var(--muted); }
 /* Card-level scales icon (in cat-thing-row) */
 .cat-thing-scales { display: inline-flex; align-items: center; }
@@ -4211,6 +4242,10 @@ h1, h2, h3 { font-family: var(--font-display); font-weight: 600; letter-spacing:
   border: 1px solid var(--border);
   width: 18px;
   height: 18px;
+  /* flex:0 0 auto — width is not a floor in a flex row, and one of these was being
+     squeezed to 8px wide by its siblings. */
+  flex: 0 0 auto;
+  position: relative;
   font-size: 11px;
   font-weight: 700;
   border-radius: 50%;
@@ -4221,6 +4256,13 @@ h1, h2, h3 { font-family: var(--font-display); font-weight: 600; letter-spacing:
   justify-content: center;
   line-height: 1;
 }
+/* WCAG 2.2 SC 2.5.8 wants a 24x24 pointer target. Expand the TARGET, not the circle:
+   an 18px dot with inset:-3px is a 24px hit area, so touch/mouse accuracy improves
+   with zero change to visual density. */
+.info-btn::after { content: ""; position: absolute; inset: -3px; border-radius: 50%; }
+/* Same criterion for disclosure rows: these stack directly against each other, so a
+   23px row fails the spacing exception. 24px is the floor; it is a 1px change. */
+summary { min-height: 24px; }
 .info-btn:hover { color: var(--accent); border-color: var(--accent); }
 .info-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
@@ -4282,7 +4324,7 @@ h1, h2, h3 { font-family: var(--font-display); font-weight: 600; letter-spacing:
   font-weight: 600;
 }
 /* Restrictive levels get warning-tinted selection */
-.seg-control input[type="radio"]:checked + .seg-label.seg-deny { background: var(--danger); color: white; }
+.seg-control input[type="radio"]:checked + .seg-label.seg-deny { background: var(--danger); color: var(--bg); }
 .seg-control input[type="radio"]:checked + .seg-label.seg-ask { background: var(--warn); color: var(--bg); }
 .seg-control input[type="radio"]:checked + .seg-label.seg-allow { background: var(--ok); color: #04210f; }
 .seg-control input[type="radio"]:checked + .seg-label.seg-always-ask { background: var(--warn); color: var(--bg); }
@@ -4753,6 +4795,10 @@ h1, h2, h3 { font-family: var(--font-display); font-weight: 600; letter-spacing:
   opacity: 0.85;
   margin-top: 2px;
 }
+/* This sub-label is a file path, which has no ordinary break opportunities: at 375px
+   it rendered 417px wide inside a 297px button and spilled out both sides, where its
+   on-accent dark text sat on the dark panel and became unreadable. Let it wrap. */
+.btn-sub { max-width: 100%; min-width: 0; overflow-wrap: anywhere; }
 .primary-help {
   margin: 8px 0 0;
   font-size: 11px;
@@ -4922,7 +4968,10 @@ footer.page-footer {
   text-align: center;
   background: var(--surface);
 }
-footer.page-footer a { color: var(--accent); text-decoration: none; }
+/* underline, not none: this link sits mid-sentence ("Design: proposal 003."), and
+   accent-vs-muted-body is 1.31:1 — far below the 3:1 that lets colour be the only
+   cue that something is a link (WCAG 1.4.1). */
+footer.page-footer a { color: var(--accent); text-decoration: underline; }
 footer.page-footer a:hover { text-decoration: underline; }
 
 /* ── v5 Per-layer expandable cards ──────────────────────────────── */
@@ -5091,7 +5140,7 @@ footer.page-footer a:hover { text-decoration: underline; }
   white-space: nowrap;
 }
 .layer-radios input[type="radio"]:checked + .layer-opt { background: var(--accent); color: var(--bg); font-weight: 600; }
-.layer-radios input[type="radio"]:checked + .layer-opt-deny { background: var(--danger); color: white; }
+.layer-radios input[type="radio"]:checked + .layer-opt-deny { background: var(--danger); color: var(--bg); }
 .layer-radios input[type="radio"]:checked + .layer-opt-ask { background: var(--warn); color: var(--bg); }
 .layer-radios input[type="radio"]:checked + .layer-opt-inherit { background: var(--surface); color: var(--text); }
 .layer-radios input[type="radio"]:focus-visible + .layer-opt {
@@ -5647,6 +5696,8 @@ footer.page-footer a:hover { text-decoration: underline; }
 .guide-bp-toggle {
   background: none;
   border: none;
+  /* 24px minimum pointer target (WCAG 2.2 2.5.8) — this measured 46x12 next to a link. */
+  min-height: 24px;
   color: var(--accent);
   font-size: 11.5px;
   cursor: pointer;
@@ -5715,7 +5766,7 @@ footer.page-footer a:hover { text-decoration: underline; }
   border-radius: 10px;
 }
 .run-result-badge.badge-ok { color: #04210f; background: var(--ok); }
-.run-result-badge.badge-fail { color: white; background: var(--danger); }
+.run-result-badge.badge-fail { color: var(--bg); background: var(--danger); }
 .run-result-output,
 .status-output {
   margin: 0;
@@ -5809,7 +5860,10 @@ footer.page-footer a:hover { text-decoration: underline; }
 .sim-result { display: flex; flex-direction: column; gap: 16px; }
 .sim-deny-banner {
   background: var(--danger);
-  color: white;
+  /* var(--bg), not white: white on the dark-theme --danger (#f87171) is 2.76:1.
+     Filled surface -> var(--bg) text is the house pairing; .gjallarhorn--amber
+     beside it already did this correctly with a dark literal. */
+  color: var(--bg);
   border-radius: 6px;
   padding: 10px 14px;
   font-size: 13px;
@@ -6261,12 +6315,19 @@ footer.page-footer a:hover { text-decoration: underline; }
 /* ── Heimdall tab — perimeter alerts (reuses .saga-hdr/.saga-empty/.activity-intro) ── */
 .heimdall-layout { padding: 20px; }
 .heimdall-grid {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  display: grid;
+  /* min(320px, 100%) — NOT a bare 320px. A bare track minimum cannot shrink below
+     itself, so at a 375px viewport the 287px-wide container got 320px tracks and the
+     cards hung 9px off-screen, scrolling the whole page sideways. */
+  grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr));
   gap: 16px; padding: 0 20px 20px;
 }
 .heimdall-card {
   background: var(--surface); border: 1px solid var(--border);
   border-radius: var(--radius); padding: 14px 16px;
+  /* The drift table inside is wider than a phone. Scroll it in the card rather than
+     widening the document — same reasoning as .concern-stats. */
+  overflow-x: auto;
 }
 .heimdall-card h3 { margin: 0 0 2px; font-size: 14px; color: var(--text); }
 .heimdall-sub { margin: 0 0 12px; font-size: 12px; color: var(--muted); line-height: 1.4; }
@@ -6313,8 +6374,9 @@ footer.page-footer a:hover { text-decoration: underline; }
 .gjallarhorn[hidden] { display: none; }
 .gjallarhorn-glyph { font-size: 18px; }
 .gjallarhorn-text { flex: 1; }
-.gjallarhorn-link { color: inherit; text-decoration: underline; font-weight: 600; white-space: nowrap; }
-.gjallarhorn--red   { background: var(--danger); color: #fff; }
+/* min-height 24px: WCAG 2.2 2.5.8 — this sat at 20.25px right beside another link. */
+.gjallarhorn-link { color: inherit; text-decoration: underline; font-weight: 600; white-space: nowrap; min-height: 24px; }
+.gjallarhorn--red   { background: var(--danger); color: var(--bg); }
 .gjallarhorn--amber { background: var(--warn);   color: #1a1205; }
 .gjallarhorn--grey  { background: var(--surface-2); color: var(--text); border-bottom: 1px solid var(--border); }
 /* Níðhöggr "Debt watch" card (lives inside the Heimdall grid). */
@@ -6371,7 +6433,11 @@ footer.page-footer a:hover { text-decoration: underline; }
 .bifrost-paste-label { display: block; margin: 10px 0 2px; font-size: 12px; font-weight: 600; color: var(--text); }
 .bifrost-paste-hint { margin: 0 0 4px; font-size: 11.5px; color: var(--muted); }
 .bifrost-paste { width: 100%; box-sizing: border-box; font-family: var(--font-mono); font-size: 12px; padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface-2); color: var(--text); resize: vertical; }
-.bifrost-verify { margin-top: 8px; font: inherit; font-size: 12px; font-weight: 600; padding: 5px 14px; border-radius: 6px; border: 1px solid var(--accent); background: var(--accent); color: var(--rc-text); cursor: pointer; }
+/* color: var(--bg), not var(--rc-text) — --rc-text is the colour that contrasts with
+   the PAGE, so on an accent-filled button it measured 1.81:1. var(--bg) on var(--accent)
+   is this codebase's established pairing (see .seg-label:checked) and measures
+   10.3:1 dark / 5.0:1 light. */
+.bifrost-verify { margin-top: 8px; font: inherit; font-size: 12px; font-weight: 600; padding: 5px 14px; border-radius: 6px; border: 1px solid var(--accent); background: var(--accent); color: var(--bg); cursor: pointer; }
 .bifrost-faults { margin: 0 20px 20px; }
 .bifrost-faults > h3 { font-size: 13px; color: var(--text); margin: 0 0 8px; }
 .bifrost-fault { border: 1px solid var(--border); border-radius: 6px; margin-bottom: 6px; overflow: hidden; }
@@ -6397,7 +6463,7 @@ footer.page-footer a:hover { text-decoration: underline; }
   font: inherit; font-size: 11.5px; padding: 3px 11px; border-radius: 999px;
   border: 1px solid var(--border); background: var(--surface); color: var(--muted); cursor: pointer;
 }
-.vidarr-chip--active { background: var(--accent); color: var(--rc-text); border-color: var(--accent); font-weight: 600; }
+.vidarr-chip--active { background: var(--accent); color: var(--bg); border-color: var(--accent); font-weight: 600; }
 #vidarr-content { padding: 0 20px 20px; }
 .vidarr-table { width: 100%; border-collapse: collapse; font-size: 12px; }
 .vidarr-table th {
@@ -6778,7 +6844,9 @@ footer.page-footer a:hover { text-decoration: underline; }
 .pb-tpl-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin-right: 2px; }
 .pb-tpl { appearance: none; border: 1px solid var(--border); background: var(--surface-2); color: var(--muted); font: inherit; font-size: 12.5px; font-weight: 600; padding: 6px 12px; border-radius: 999px; cursor: pointer; transition: color .15s, background .15s, border-color .15s; }
 .pb-tpl:hover { color: var(--text); border-color: var(--accent); }
-.pb-tpl[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+/* var(--bg), not the theme-blind #fff literal: white on var(--accent) is 1.95:1,
+   and a hardcoded #fff cannot follow the light/dark token swap at all. */
+.pb-tpl[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--bg); }
 .pb-tpl:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 /* Per-field "insert a canned item" picker — free text stays; this only fills/appends. */
 .pb-canned { align-self: flex-start; font-size: 12px; padding: 4px 24px 4px 8px; color: var(--muted); max-width: 100%; }
@@ -6796,7 +6864,7 @@ footer.page-footer a:hover { text-decoration: underline; }
 .pb-btn { appearance: none; font: inherit; font-size: 12.5px; font-weight: 600; padding: 6px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface-2); color: var(--text); cursor: pointer; transition: background .15s, border-color .15s; }
 .pb-btn:hover { border-color: var(--accent); }
 .pb-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.pb-btn.pb-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.pb-btn.pb-primary { background: var(--accent); border-color: var(--accent); color: var(--bg); }
 .pb-btn.pb-ghost { background: transparent; }
 .pb-btn.pb-danger:hover { border-color: var(--danger); color: var(--danger); }
 
@@ -10226,7 +10294,9 @@ _JS = r"""
           '<div class="pv-freeform">' +
             "<h4>Free-form variables</h4>" +
             '<p class="pv-help">One <code>key: value</code> per line (YAML). For project variables not covered by the curated knobs above.</p>' +
-            '<textarea class="pv-extra" data-plugin="' + esc + '" rows="5" spellcheck="false" placeholder="my_key: my value&#10;another_key: 123"></textarea>' +
+            '<textarea class="pv-extra" data-plugin="' + esc + '" rows="5" spellcheck="false"'
+            ' aria-label="Extra variables for ' + esc + ' — one key: value per line"'
+            ' placeholder="my_key: my value&#10;another_key: 123"></textarea>' +
           "</div>" +
           '<div class="pp-actions">' +
             '<button type="button" class="pp-save" data-plugin="' + esc + '">Save to repo</button>' +
@@ -11379,6 +11449,7 @@ _JS = r"""
     const htr = document.createElement("tr");
     for (const label of ["Plugin", "Catalog", "Plugin.json", "Status"]) {
       const th = document.createElement("th");
+      th.scope = "col";
       th.textContent = label;
       htr.appendChild(th);
     }
@@ -11782,6 +11853,7 @@ _JS = r"""
     const htr = document.createElement("tr");
     for (const label of ["When", "Type", "Category", "Summary", "Source"]) {
       const th = document.createElement("th");
+      th.scope = "col";
       th.textContent = label;
       htr.appendChild(th);
     }
@@ -13320,7 +13392,9 @@ _JS = r"""
     var list = pbEl("div", { class: "pb-repeat" });
     var rules = pbState.system.rules;
     rules.forEach(function (r, i) {
-      var input = pbEl("input", { type: "text", value: r, placeholder: f.ph, "data-pb-list": "rules", "data-pb-idx": i, "data-pb-key": "rules", oninput: pbOnInput, autocomplete: "off" });
+      // aria-label per row: the group <label> above has no for= and cannot name a
+      // repeated field, so each row was announced as an unnamed edit box.
+      var input = pbEl("input", { type: "text", value: r, placeholder: f.ph, "aria-label": "Rule " + (i + 1), "data-pb-list": "rules", "data-pb-idx": i, "data-pb-key": "rules", oninput: pbOnInput, autocomplete: "off" });
       var rm = pbEl("button", { type: "button", class: "pb-icon-btn", title: "Remove rule", "aria-label": "Remove rule", text: "×", onclick: function () { rules.splice(i, 1); if (!rules.length) rules.push(""); pbRebuildFields(); pbUpdate(); } });
       list.appendChild(pbEl("div", { class: "pb-repeat-item" }, [pbEl("div", { style: "display:flex;gap:6px;align-items:center" }, [input, rm])]));
     });
@@ -13343,9 +13417,10 @@ _JS = r"""
           pbEl("button", { type: "button", class: "pb-icon-btn", title: "Remove", "aria-label": "Remove example", text: "×", disabled: n <= 1, onclick: function () { exs.splice(i, 1); pbRebuildFields(); pbUpdate(); } })
         ])
       ]);
-      var inp = pbEl("textarea", { class: "pb-sm", rows: 2, placeholder: "input", value: "", "data-pb-list": "examples", "data-pb-idx": i, "data-pb-sub": "input", "data-pb-key": "examples", oninput: pbOnInput }); inp.value = e.input;
-      var out = pbEl("textarea", { class: "pb-sm", rows: 2, placeholder: "output", value: "", "data-pb-list": "examples", "data-pb-idx": i, "data-pb-sub": "output", "data-pb-key": "examples", oninput: pbOnInput }); out.value = e.output;
-      var rsn = pbEl("textarea", { class: "pb-sm", rows: 1, placeholder: "reasoning (optional) — rendered as a <thinking> block (2.4)", value: "", "data-pb-list": "examples", "data-pb-idx": i, "data-pb-sub": "reasoning", "data-pb-key": "examples", oninput: pbOnInput }); rsn.value = e.reasoning;
+      // Same reason as the rules rows: a placeholder is not an accessible name.
+      var inp = pbEl("textarea", { class: "pb-sm", rows: 2, placeholder: "input", "aria-label": "Example " + (i + 1) + " input", value: "", "data-pb-list": "examples", "data-pb-idx": i, "data-pb-sub": "input", "data-pb-key": "examples", oninput: pbOnInput }); inp.value = e.input;
+      var out = pbEl("textarea", { class: "pb-sm", rows: 2, placeholder: "output", "aria-label": "Example " + (i + 1) + " output", value: "", "data-pb-list": "examples", "data-pb-idx": i, "data-pb-sub": "output", "data-pb-key": "examples", oninput: pbOnInput }); out.value = e.output;
+      var rsn = pbEl("textarea", { class: "pb-sm", rows: 1, placeholder: "reasoning (optional) — rendered as a <thinking> block (2.4)", "aria-label": "Example " + (i + 1) + " reasoning (optional)", value: "", "data-pb-list": "examples", "data-pb-idx": i, "data-pb-sub": "reasoning", "data-pb-key": "examples", oninput: pbOnInput }); rsn.value = e.reasoning;
       list.appendChild(pbEl("div", { class: "pb-repeat-item" }, [head, inp, out, rsn]));
     });
     list.appendChild(pbEl("button", { type: "button", class: "pb-btn pb-ghost", text: "+ Add example", disabled: n >= 8, onclick: function () { exs.push(pbEx()); pbRebuildFields(); pbUpdate(); } }));
@@ -13737,6 +13812,11 @@ _JS = r"""
         "Source: every plugin's own plugin.json. A “no” above is a real gap, not a hidden feature — " +
         "the note says what to do by hand instead."));
     }
+    // scope= on every header cell, applied once for all four tables rather than at
+    // ~10 hcEl call sites. Without it a screen reader has to guess which header
+    // belongs to a cell, and these tables are read cell-by-cell.
+    root.querySelectorAll("thead th").forEach((th) => th.setAttribute("scope", "col"));
+    root.querySelectorAll("tbody th").forEach((th) => th.setAttribute("scope", "row"));
   }
 
   function initPromptBuilder() {
@@ -14143,11 +14223,11 @@ def _render_web_access_page() -> str:
       <p class="pp-sub">Domains the agent may fetch <strong>without asking</strong> (allow) or <strong>never</strong> (deny). Saves to <code>{t}</code> via the dashboard server; the <code>guard-web-access.sh</code> hook enforces it for Claude when the plugin is installed, and any cloned CLI tool can read the same plain-YAML file. On the static/published copy edits stay in your browser — use <strong>Download</strong>. One domain per line; a rule matches the domain <em>and</em> its subdomains (e.g. <code>github.com</code> also allows <code>api.github.com</code>). Unlisted domains fall through to the agent's once / this-session / permanently / deny prompt.</p>
       <section class="pp-section">
         <h3>Allow <span class="pp-count">auto-approved</span></h3>
-        <textarea class="wa-allow pv-extra" rows="6" spellcheck="false" placeholder="github.com&#10;docs.anthropic.com"></textarea>
+        <textarea class="wa-allow pv-extra" rows="6" spellcheck="false" aria-label="Allow list — one domain per line" placeholder="github.com&#10;docs.anthropic.com"></textarea>
       </section>
       <section class="pp-section">
         <h3>Deny <span class="pp-count">always blocked</span></h3>
-        <textarea class="wa-deny pv-extra" rows="6" spellcheck="false" placeholder="ads.example.com"></textarea>
+        <textarea class="wa-deny pv-extra" rows="6" spellcheck="false" aria-label="Deny list — one domain per line" placeholder="ads.example.com"></textarea>
       </section>
       <div class="pp-actions">
         <button type="button" class="wa-save pp-save">Save to repo</button>
