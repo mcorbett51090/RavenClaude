@@ -145,6 +145,12 @@ def _validate_json_target(target: str, content: str) -> str | None:
 POSTURE_TARGET = ".ravenclaude/comfort-posture.yaml"
 APPLY_SCRIPT = PLUGIN_DIR / "scripts" / "apply-comfort-posture.py"
 
+# MH-16 part 2 (dashboard half): the Codex sandbox emitter, and the project it
+# targets. The emitter ships at the MARKETPLACE root, not inside the plugin —
+# absent (a consumer with no clone) it is skipped, never guessed at.
+CODEX_EMITTER = MARKETPLACE_ROOT / "scripts" / "emit-codex-config.py"
+PROJECT_TARGET = PROJECT_ROOT
+
 # The knowledge-health card under the Look back / Heimdall tab invokes this
 # script via subprocess and forwards its JSON. Single source of truth — the same
 # script is used by the /knowledge-health skill and the `ravenclaude doctor`
@@ -1964,6 +1970,10 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         }
         if target == POSTURE_TARGET:
             payload.update(self._apply_posture())
+            # MH-16 part 2 — the same save must also reach Codex, or the
+            # dashboard reports success while that host stays unbounded.
+            # Fail-safe and non-fatal by contract: see _apply_codex_posture.
+            payload.update(self._apply_codex_posture())
         self._json(200, payload)
 
     def _handle_read(self):
@@ -2103,6 +2113,79 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             })
 
         self._json(200, records)
+
+    def _apply_codex_posture(self) -> dict:
+        """Also project the saved posture onto Codex's OS sandbox.
+
+        WHY THIS EXISTS (audit MH-16 part 2, dashboard half). `emit-codex-config.py`
+        shipped, but it was invoked from exactly ONE place — `scripts/ravenclaude`,
+        the installer. Nothing on the dashboard's save path called it and
+        `apply-comfort-posture.py` has no Codex awareness at all, so a user could
+        tighten every category, click Save, watch it report success, and still be
+        running at Codex's default `workspace-write`. The dashboard's headline
+        product silently did nothing on that host.
+
+        THREE PROPERTIES, deliberately:
+
+        1. **Never weaken.** The emitter's own governing rule — absent key -> write,
+           stricter -> tighten, LOOSER -> refuse and print the line to change by
+           hand; `danger-full-access` / `approval_policy = "never"` are never
+           emitted at any posture. A refusal is reported here as a first-class
+           outcome, not swallowed as success.
+        2. **Do not litter.** Only runs when the project already uses Codex (a
+           `.codex/` directory or an existing `config.toml`). Writing an OS-sandbox
+           config into every repo that ever saves a posture would be a surprising
+           side effect on machines that have never seen Codex.
+        3. **Never break the save.** The YAML is already on disk by the time this
+           runs. Any failure is REPORTED, never raised — the posture save must not
+           fail because a secondary projection did.
+
+        Honest scope, carried into the response text: writing the file is not the
+        same as bounding the session. A project `.codex/config.toml` loads ONLY IN
+        TRUSTED PROJECTS, and two enum keys cannot express twelve posture
+        categories. Both caveats are the emitter's, restated where the user is.
+        """
+        if not CODEX_EMITTER.is_file():
+            return {"codex_applied": False, "codex_skipped": "emitter not found"}
+        codex_dir = PROJECT_TARGET / ".codex"
+        if not codex_dir.is_dir() and not (codex_dir / "config.toml").is_file():
+            return {"codex_applied": False, "codex_skipped": "not a Codex project"}
+        try:
+            proc = subprocess.run(
+                [sys.executable, str(CODEX_EMITTER), "--project", str(PROJECT_TARGET)],
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+        except (subprocess.SubprocessError, OSError) as e:
+            return {"codex_applied": False, "codex_error": f"could not run emitter: {e}"}
+        out = ((proc.stdout or "") + (proc.stderr or "")).strip()
+        if proc.returncode != 0:
+            # A refusal-to-weaken is the emitter working as designed, and the user
+            # needs to SEE it — silently reporting "saved" would recreate the exact
+            # false-assurance this whole change removes.
+            return {"codex_applied": False, "codex_error": out[:800] or "non-zero exit"}
+        # A REFUSAL EXITS 0 BY DESIGN — the emitter tightens what it can and
+        # declines the rest — so the return code alone would report unqualified
+        # success while some settings were deliberately NOT applied. Surface them.
+        # A partial apply reported as "applied" is precisely the false assurance
+        # this whole change exists to remove; it would just move it one layer out.
+        refusals = [ln.strip() for ln in out.splitlines() if "refusing to loosen" in ln]
+        result = {
+            "codex_applied": True,
+            "codex_summary": out[:800],
+            "codex_caveat": (
+                "Coarse by design: two Codex enum keys cannot express 12 posture "
+                "categories, and a project .codex/config.toml loads ONLY in trusted "
+                "projects — writing it is not the same as bounding the session."
+            ),
+        }
+        if refusals:
+            # Non-empty means your .codex/config.toml is STRICTER than the posture
+            # you just saved, and was left alone. Not an error — a deliberate
+            # decline that you must be told about.
+            result["codex_refusals"] = refusals[:10]
+        return result
 
     def _apply_posture(self) -> dict:
         """Re-run apply-comfort-posture.py against the CONSUMER's project after a save."""
