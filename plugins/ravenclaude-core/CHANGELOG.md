@@ -2,6 +2,48 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.232.1 — 2026-07-29
+
+**The dashboard was making three false claims about work shipped in the last few releases.** Found by
+asking "are the user interfaces up to date?" — they were not, and the failures were the same
+stale-claim class this repo keeps auditing itself for. **All fixed at zero DOM cost** (every one of
+these surfaces is JS-built from an inlined payload, so correcting the text costs no elements).
+
+### Fixed
+
+- **The MCP wiring table said Copilot and Codex were "not wired".** Both got opt-in wiring in 0.227.0
+  and 0.230.0. Worse, the table still gave the *old reasons* — *"nothing generates that file"* and
+  *"too risky to automate"* — which those releases explicitly corrected. The boolean `wired` is now a
+  three-state `automatic` / `opt-in (by name)` / `not wired`, because "yes/no" could not express the
+  consent model the whole design rests on.
+- **The host matrix said Codex agents don't exist** (`supported: false`, *"no generated Codex
+  projection exists"*). 0.228.0 shipped exactly that projection — 15 agents with per-agent
+  `sandbox_mode`. Flipped, with the honest caveat preserved: docs-verified but never watched being
+  enforced by a running Codex session.
+- **The Help drawer was wrong three ways in a single sentence** — while citing `host-support.json` as
+  its source of truth:
+  - *"Cursor … not wired at all — no hooks fire"* — **Cursor's hooks do fire**; the installer writes
+    `.cursor/hooks.json` and the matrix has said `supported: true` all along.
+  - **Gemini CLI was omitted entirely**, despite being a supported host since v0.222.0 with hooks.
+  - It implied **Aider** gets nothing; Aider receives a projected `CONVENTIONS.md`.
+  - **The durable fix: that sentence is now COMPUTED from `host-support.json`.** Prose that summarises
+    data must be derived from it, or it becomes a second source of truth that silently disagrees with
+    the first — which is exactly what happened here.
+
+### Added
+
+- **"Where work files go" now has a UI surface.** The cross-CLI storage contract (0.231.0) existed
+  only in `AGENTS.md` and the session-start banner — neither of which a human ever looks at. The Host
+  & context page now shows both tiers, who can see each, and the deciding test, rendered into the
+  existing mount for zero elements.
+
+### Notes
+
+- Two self-inflicted defects caught during the fix and worth recording: the derived sentence initially
+  used **two** `<strong>` tags where the hand-written one had one (+1 element against a zero-slack
+  budget — a derived summary must not quietly cost a ratchet raise), and spliced in with a full stop
+  where the template expected a semicolon, producing *"…hidden feature. the per-component truth…"*.
+
 ## 0.232.0 — 2026-07-29
 
 **Making the storage contract stick — enforcement, not more prose.**
