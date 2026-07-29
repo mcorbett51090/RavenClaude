@@ -2,6 +2,53 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.228.0 — 2026-07-29
+
+### Added
+
+- **The 15 agents now project to Codex custom agents, with least privilege enforced.**
+  `scripts/generate-codex-agents.py` emits `plugins/ravenclaude-core/codex/agents/*.toml`; the
+  installer copies them into a consumer's `.codex/agents/`. The 5 review-only agents
+  (`security-reviewer`, `code-reviewer`, `architect`, `deep-researcher`, `viz-spec-reviewer`) get
+  `sandbox_mode = "read-only"`; the 10 that declare a write tool get `workspace-write`.
+  - **Omission is the dangerous case, and that is what makes this a security fix.** Codex documents
+    `sandbox_mode` per agent and that **the parent turn's permission mode is inherited when it is
+    omitted** `[docs-verified 2026-07-29]`. So a file without it does **not** fail safe — a
+    review-only agent would run with whatever the session has. That is the identical shape to MH-10
+    on Copilot (an omitted `tools:` silently granted every tool): two hosts, two mechanisms, one bug.
+    `sandbox_mode` is therefore **always** emitted, never left to inheritance.
+  - **The recorded blocker was stale.** The deferral said *"there is no verified Codex agent-file
+    contract in this repo; projecting 15 agents from a guessed schema is the same don't-guess call
+    made on the Copilot `tools:` gap."* Correct at the time — and the contract **is** published, on
+    the page for local Codex clients including the CLI. That is the sixth blocker this audit has had
+    dissolve against a primary source.
+  - **TOML bodies use literal (`'''`) blocks, not basic (`"""`) blocks.** Agent bodies are markdown
+    full of backslashes and quotes, every one of which would need escaping in a basic string; a
+    literal block needs none. Its one hazard — the terminator, which cannot be escaped inside a
+    literal string — is handled by **raising** rather than emitting a corrupt file. No agent body
+    currently contains one.
+  - Output validated with a **real TOML parser**, not a substring scan — the lesson from the
+    `network_access`-written-as-a-string bug that shipped green in 0.216.0.
+- **Gate 170** — freshness, valid TOML, required fields non-empty, the agent body actually travelled,
+  no orphans, and the two that matter: `sandbox_mode` present on **every** file, and `read-only` for
+  every agent whose canonical `tools:` declares no write tool. Asserted against the **canonical
+  agents**, not against the generator — a gate that asks the generator what it meant to do proves
+  nothing. **The teeth half stops emitting `sandbox_mode`**, which is exactly what a "the default is
+  fine" edit looks like.
+
+### Notes
+
+- `[unverified — no Codex CLI on this machine]` Two things could not be settled by execution, and are
+  named at install time rather than assumed: whether a kebab-case `name` is accepted (the docs' one
+  example pairs `pr_explorer` with `pr-explorer.toml`, so name and filename may differ; a mismatch
+  fails **loudly** as agent-not-found, never as a silent privilege widening), and
+  [openai/codex#26868](https://github.com/openai/codex/issues/26868), which reports subagent `.toml`
+  files not always applying on spawn. Both settle by running Codex and spawning a projected agent —
+  the same route that settled the Copilot allowlist in 0.224.0.
+- `.repo-layout.json` gains `plugins/*/codex/**`. It is added **now that it is used** — an unused
+  allow-list glob silently pre-authorizes an unreviewed directory, which is why it was withheld
+  before.
+
 ## 0.227.0 — 2026-07-29
 
 ### Added
