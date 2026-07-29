@@ -387,6 +387,11 @@ PY
       bash plugins/ravenclaude-core/hooks/tests/test-gate164-gemini-adapter.sh
       exit $?
       ;;
+    167)
+      echo "── Gate 167: Copilot -> tribunal end-to-end (per-gate run) ───────────────"
+      bash plugins/ravenclaude-core/hooks/tests/test-gate167-copilot-tribunal-e2e.sh
+      exit $?
+      ;;
     166)
       echo "── Gate 166: Copilot agent tools projection (per-gate run) ───────────────"
       python3 scripts/check-copilot-agent-tools.py
@@ -478,7 +483,7 @@ PY
       ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -5403,6 +5408,20 @@ gate "copilot-agent-tools: least-privilege projected, no class escalation" must_
 
 rc=0; python3 scripts/check-copilot-agent-tools.py --must-fail >/dev/null 2>&1 || rc=$?
 gate "copilot-agent-tools teeth: a write-class name on a read-only row is caught" must_pass "$rc"
+
+echo "── Gate 167: Copilot payload -> tribunal, end to end ─────────────────────"
+# The MH-01 residual, finally built. MH-01 was the P0 where the tribunal was
+# "fully wired, reviewing nothing" under Copilot because the tool-name VALUE was
+# passed through unmapped and the orchestrator's case-sensitive dispatch fell to
+# `*) exit 0`. Gate 20 tests the ADAPTER's I/O shape; Gates 50/121/162 drive the
+# ORCHESTRATOR — but all of them with CLAUDE-shaped payloads. Nothing crossed the
+# seam where the bug actually lived, so a regression in the map would leave every
+# gate green while the tribunal went silently dark again.
+#
+# The teeth half is internal (G167.3): it defeats the tool-name map and asserts
+# the deny DISAPPEARS — reproducing MH-01 on demand.
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate167-copilot-tribunal-e2e.sh >/dev/null 2>&1 || rc=$?
+gate "copilot-tribunal-e2e: a Copilot force-push is still hard-denied (+ teeth)" must_pass "$rc"
 
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"

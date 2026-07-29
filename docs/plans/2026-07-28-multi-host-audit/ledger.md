@@ -134,13 +134,25 @@ every downstream script — which already expects Claude's names — works unmod
 **Residual open work split out:** MH-24 (the structural cause — no per-tool matcher, undocumented) and
 MH-37 (the Learn-tab card that overstated portability), plus the fixture below.
 
-> ⚠ **Verified residual, not covered by `f55039ec`.** The Gate 20 fixture at
-> `RC/hooks/tests/test-gate20-adapter-diagnostics.sh:51` still hard-codes `toolName:"shell"` — a **third**,
-> still-incorrect value that CP cited as proof the real one was never verified. **Confirmed still present
-> this session.** Replace it with the docs-verified `"bash"`, and add a fixture that drives the tribunal
-> orchestrator itself (not just adapter I/O shape) through a real Copilot-shaped payload, asserting a
-> force-push is still hard-denied. **Effort: S.** Tracked here rather than as its own row because it is the
-> same one-line vocabulary defect.
+> ✅ **Residual CLOSED 2026-07-29 (v0.225.0) — Gate 167.** Both halves are done. The Gate 20 fixture no
+> longer hard-codes `toolName:"shell"`; it reads the docs-verified `"bash"`. And the second half — *"a
+> fixture that drives the tribunal orchestrator itself … through a real Copilot-shaped payload"* — is now
+> **Gate 167**, which was genuinely missing.
+>
+> **The gap was structural, not an oversight.** Measured 2026-07-29: of all hook tests, **exactly one**
+> uses a Copilot-shaped `toolName` (Gate 20's), and it is **not** among the four that drive the
+> orchestrator (`test-gate121`, `test-gate162`, `test-phase0-emit-and-scrub`, `test-seat-stderr-capture`
+> — all Claude-shaped). Gate 20 asserts the adapter's I/O *shape*; it never asks whether a verdict comes
+> out the far end. **Nothing crossed the seam where the P0 actually lived**, so a regression in the
+> tool-name map would leave every gate green while the tribunal went dark again — silently, exactly as
+> the first time.
+>
+> Gate 167 asserts a control (Claude-shaped deny), the Copilot-shaped deny through the adapter, and — the
+> one that matters — a **teeth half that defeats the tool-name map and asserts the deny DISAPPEARS**,
+> reproducing MH-01 on demand. A gate for a silent failure is worth nothing until it has been watched
+> failing. Note the footnote below is now **stale in one direction**: `shell` is not a "third, invented"
+> name — it is a real name, in the *agent-profile* vocabulary (MH-10). It was simply the wrong vocabulary
+> for a *hook* fixture.
 
 ---
 
@@ -741,8 +753,21 @@ MCP support, and the mapping section — *"the exact analytical work Copilot got
 > heading — *"Claude Code's OS sandbox is Claude-only"* — was the false generalization and is rewritten;
 > the Copilot half (genuinely unevidenced) is preserved intact. The `[inferred]` marker in the knowledge
 > file was upgraded to `[docs-verified]` in the same change, since leaving it stale is this audit's own
-> recurring defect. **Part 2 (the emitter) is unchanged and still open**, and the corrected section now
-> states plainly that a saved comfort-posture does **not** bound a Codex session today.
+> recurring defect.
+>
+> **Part-2 status, corrected 2026-07-29 — it was half-stale, and only half.** The emitter **shipped**:
+> `scripts/emit-codex-config.py` exists and is gated by **Gate 156** (the never-silently-weaken rule).
+> So "the emitter is unchanged and still open" is **no longer true** and is struck.
+>
+> **But the consumer-facing half of the claim is still exactly true, and was re-verified rather than
+> assumed** `[verified 2026-07-29]`: the emitter is invoked from **one place only** —
+> `scripts/ravenclaude:736`, the installer. The dashboard's save path does **not** call it, and
+> `apply-comfort-posture.py` contains no Codex awareness at all. So **editing your posture in the
+> dashboard and clicking Save still moves nothing on a Codex host** — only a fresh
+> `ravenclaude install --host codex` does. The plugin `CLAUDE.md` sentence saying so is therefore
+> **accurate and must not be "corrected"**; flipping it on the strength of the emitter's existence would
+> have introduced a false claim, which is how this audit's stale-claim defects get made in the first
+> place. The remaining gap is tracked as **the dashboard→Codex save path**.
 
 **Evidence**
 - `[docs-verified]` Codex's actual controls are `approval_policy` ∈ {untrusted, on-request, never} ×
