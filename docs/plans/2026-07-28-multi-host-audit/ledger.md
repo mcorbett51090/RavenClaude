@@ -472,7 +472,44 @@ writer already produces, as a belt-and-suspenders second path.
 ---
 
 #### MH-10 · The least-privilege `tools:` allowlist is dropped when agents project to Copilot — every generated agent gets ALL tools
-**Severity:** P0 · **Hosts:** GitHub Copilot CLI · **Reported by:** CP (P0-4) · **Effort:** S/M · **Status:** `OPEN`
+**Severity:** P0 · **Hosts:** GitHub Copilot CLI · **Reported by:** CP (P0-4) · **Effort:** S/M · **Status:** ✅ **FIXED 2026-07-29 (v0.224.0)**
+
+> **Shipped — and the blocker was stale, not real.** `generate-copilot-plugin.py` now projects each
+> agent's least-privilege `tools:` allowlist. `security-reviewer` emits
+> `["read","view","grep","search","glob","shell","bash","powershell","web"]` — **no `edit`**, which is
+> the P0 closed.
+>
+> **The blocker dissolved against a primary source (the 5th time this audit).** The standing reason not
+> to fix it was *"the complete Copilot tool list is NOT published at a fetchable URL"*. True — of the
+> **hook `toolName`** vocabulary, whose doc pages did 404. The **agent-profile `tools:`** vocabulary is a
+> *different list* and **is** published, on
+> [custom-agents-configuration](https://docs.github.com/en/copilot/reference/custom-agents-configuration)
+> — the page the CLI's own custom-agents how-to designates as authoritative `[docs-verified 2026-07-29]`.
+> It confirms the field applies to *"the Copilot CLI"*, that omitting it *"defaults to all tools"*, and
+> that ***"All unrecognized tool names are ignored"***.
+>
+> **⚠ This ledger's own remedy would have shipped a wrong allowlist.** It said to translate *"through the
+> same tool-name vocabulary table `f55039ec` established"* — the hook table. The two overlap but differ:
+> `web_fetch`/`ask_user`/`create` are not agent-profile names, and `read`/`search`/`web`/`todo`/`agent`
+> are not hook names. Conflating them is the same two-vocabularies error MH-01 was about, one layer up.
+>
+> **VERIFIED AGAINST A RUNNING COPILOT SESSION** (CLI 1.0.70), not just the docs — owner-authorised:
+>
+> | Probe | Result |
+> |---|---|
+> | control agent, no `tools:` | created the file, via shell |
+> | restricted to `read,view,grep,search,glob` | `CANNOT_WRITE`, no file |
+> | same agent told to leak via `curl`/`git` | `LEAK_FAILED`, no file |
+>
+> **`read` and `search` were silently dropped** (the agent got exactly `view`/`grep`/`glob`) — the
+> ignored-names rule, observed. It is also the empirical case for the map's redundancy: a map guessing
+> `read` alone would have left every agent **with no file-reading tool**, a silent amputation no CI check
+> could see. And **an agent's self-report of its tools is not evidence** — the probe claimed `git` and
+> `curl`; neither exists. Test the behaviour, never the description.
+>
+> **Gate 166** holds the floor by **class subset**, not a max-privilege ceiling — a ceiling would license
+> `edit` for any agent declaring Bash, i.e. for `security-reviewer` itself. The first draft of the gate
+> used a ceiling and could not fail on its own worked example; the teeth half caught that.
 
 **Evidence** `[verified]`
 - `scripts/generate-copilot-plugin.py:189-209` (`parse_name_description`) extracts **only** `name` +
@@ -1383,7 +1420,31 @@ to `npx`/`pip`, *"so the happy path needs no network at all."*
 ---
 
 #### MH-35 · The pending plan adds zero runtime state, and applies its own honesty rule only to its own page
-**Severity:** P2 · **Hosts:** Claude Code · **Reported by:** CC (P2-2) · **Effort:** S to amend / M to execute · **Status:** `OPEN`
+**Severity:** P2 · **Hosts:** Claude Code · **Reported by:** CC (P2-2) · **Effort:** S to amend / M to execute · **Status:** ✅ **FIXED 2026-07-29 (v0.224.0)** — amended
+
+> **Amended as §6.2a of** `docs/plans/2026-07-28-prompt-engineering-learn/plan.md`.
+>
+> **The dependency is retired.** MH-06 fixed the head-vs-tail read (Gate 163) and v0.223.0 fixed two more
+> defects in the same reader (the encoded project-dir key matched nothing on any real machine; the counts
+> read a 50 KiB window holding no assistant events). The plan no longer leans on a reader that is wrong
+> about the file it reads.
+>
+> **One correction to this finding, from reading the code:** `_session_is_live()` does **not** touch the
+> encoded projects directory — it reads `~/.claude/sessions/<pid>.json` and matches `cwd` + `status`. The
+> encoding defect never reached it, so the coupling was narrower than stated here.
+>
+> **Measuring the probe changed the outcome** `[verified 2026-07-29]`. It requires
+> `session.cwd == project_root` **exactly**; measured during a live Claude Code session on this repo:
+> `cwd='/Users/matthewcorbett'` vs project root `'/Users/matthewcorbett/RavenClaude'` → **no match**, so
+> the planned detector would render *"cannot determine"* **while running inside the host it describes**.
+> Not an edge case: it fires for every `$HOME`-launched session, every monorepo subdirectory, and every
+> `.claude/worktrees/` path.
+>
+> It fails **safe** (§6.2's *"a wrong verdict is worse than no verdict"*), so this was surfaced as a
+> decision rather than patched. **Owner chose B — an ancestor cwd counts**, with liveness still required
+> so R5 stays closed; option C (drop liveness) is recorded as refused. Implementation notes are binding in
+> §6.2a: path containment rather than `startswith`, most-specific match wins, and Gate 152's inverse
+> must-fail must assert that an **ended** session still yields "cannot determine".
 
 **Evidence** `[verified]`
 - `plan.md` §6.2 (`:475-500`) is binding and excellent — *"a wrong verdict is worse than no verdict"* →

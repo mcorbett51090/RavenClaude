@@ -16,31 +16,58 @@ single source of truth; this package is regenerated from it.
   only `name` + `description`, followed by the full original agent body
   verbatim.
 
-> ### ⚠️ KNOWN GAP — agents run UNRESTRICTED here
+> ### Least-privilege `tools:` IS projected (MH-10, 2026-07-29)
 >
-> The canonical agents each carry a least-privilege `tools:` allowlist, and
+> Each canonical agent carries a least-privilege `tools:` allowlist, and
 > `AGENTS.md` house rule 9 is explicit that **an omitted `tools:` silently
-> grants ALL tools**. This projection drops that field. Per RavenClaude's own
-> docs-verified notes (`knowledge/copilot-cli-customization.md` §2), a Copilot
-> agent **has every tool by default and a `tools:` spec only *restricts*** —
-> so dropping it is not neutral, it is a least-privilege regression.
+> grants ALL tools**. This projection used to drop that field, so every
+> agent ran fully privileged here — `security-reviewer` is canonically
+> `Read, Grep, Glob, Bash, WebFetch` with Write/Edit **deliberately**
+> withheld, and under Copilot it could write. That is now fixed: the list
+> is translated into Copilot's agent-profile tool names and emitted.
 >
-> Concretely: `security-reviewer` is canonically `Read, Grep, Glob, Bash,
-> WebFetch` — deliberately **no Write/Edit** — and under Copilot it can write.
-> The same applies to every review-only agent.
+> **Source** — the page the Copilot CLI docs designate as authoritative
+> for this field, `docs.github.com/en/copilot/reference/custom-agents-
+> configuration` [docs-verified 2026-07-29]: the properties apply to
+> "agent profiles in GitHub.com, the Copilot CLI, and supported IDEs";
+> `tools` is "List of tool names the custom agent can use... If unset,
+> defaults to all tools"; and **"All unrecognized tool names are
+> ignored"**.
 >
-> **Why this is not simply fixed here:** projecting the allowlist requires
-> Copilot's exact tool-name vocabulary, which differs from Claude's (Copilot
-> documents lowercase `bash` / `edit` / `view`). Emitting Claude's names would
-> either be ignored — no gain — or restrict to unrecognised names and leave
-> every agent with NO tools, which is a worse regression than the one it fixes.
-> GitHub has not published the complete list at a fetchable URL as of
-> 2026-07-28 (two candidate doc pages returned 404).
+> **That last line sets the failure direction, and it is why this ships.**
+> A name we get wrong is DROPPED, never widened — the worst case is an
+> agent missing a capability (visible: it fails at its job), never one
+> that silently gains write or shell (invisible: the hole being closed).
+> Because wrong names cost nothing, each Claude tool maps to every
+> equal-privilege Copilot spelling rather than one guessed favourite.
 >
-> **The probe that closes this:** run `copilot` and enumerate the real tool
-> names, then add a Claude→Copilot name map to `generate-copilot-plugin.py`
-> mirroring the runtime map already in `hooks/copilot-hook-adapter.sh`.
-> Until then, treat every agent under Copilot as fully privileged.
+> **The earlier note that the vocabulary was unpublished was about the
+> HOOK `toolName` vocabulary** (whose doc pages did 404), which is a
+> *different* list from the agent-profile `tools:` vocabulary. Reusing the
+> hook map here — as the audit ledger originally proposed — would have
+> produced a wrong allowlist: `web_fetch`/`ask_user`/`create` are not
+> agent-profile names, and `read`/`search`/`web`/`todo` are not hook names.
+>
+> **VERIFIED AGAINST A RUNNING COPILOT SESSION** (CLI 1.0.70, 2026-07-29),
+> not just against the docs. Three probes in a scratch repo:
+>
+> | Probe | Result |
+> |---|---|
+> | control agent, no `tools:` | created the file (via shell) |
+> | restricted to `read,view,grep,search,glob` | `CANNOT_WRITE`, no file |
+> | same agent, told to leak via `curl`/`git` | `LEAK_FAILED`, no file |
+>
+> **`read` and `search` were silently ignored** — the restricted agent got
+> exactly `view` / `grep` / `glob`. That is the documented
+> unrecognized-names-are-ignored rule, observed, and it is why each Claude
+> tool maps to EVERY equal-privilege spelling: had the map guessed `read`
+> alone, every agent would have lost file reading outright. The redundancy
+> is load-bearing, not belt-and-braces decoration.
+>
+> **Do not trust an agent's self-report of its own tools.** Asked to list
+> them, the probe named `git` and `curl` — neither exists as a tool; the
+> follow-up leak attempt failed with "Skill 'curl' not found". Test the
+> BEHAVIOUR (can it write?), never the description.
 - `AGENTS.md` — the cross-tool claim-grounding discipline, projected
   verbatim from RavenClaude's root `AGENTS.md`. Copilot reads `AGENTS.md`
   natively, but only from *your* repo — so this travels the discipline

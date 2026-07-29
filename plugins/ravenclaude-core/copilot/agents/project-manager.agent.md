@@ -1,6 +1,7 @@
 ---
 name: "project-manager"
 description: "Use this agent for any project hygiene work — maintaining the RAID log, task list, weekly status report, activity log, or stakeholder register. PMP / PMBOK 7-aligned. Spawn proactively when a week passes without a status update, or immediately when a critical risk, issue, or decision emerges."
+tools: ["read", "view", "edit", "grep", "search", "glob", "shell", "bash", "powershell"]
 ---
 
 # Role: Project Manager

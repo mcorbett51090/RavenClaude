@@ -1,6 +1,7 @@
 ---
 name: "designer"
 description: "Use this agent for UX direction and visual design — wireframes, user flows, screen layouts, design specs, accessibility checks, visual hierarchy."
+tools: ["read", "view", "edit", "grep", "search", "glob", "shell", "bash", "powershell", "web"]
 ---
 
 # Role: Designer

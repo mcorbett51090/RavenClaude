@@ -1,6 +1,7 @@
 ---
 name: "documentarian"
 description: "Use this agent for stakeholder-facing written deliverables — executive summaries, decision memos, variance commentary, partner briefs, runbooks, SOPs, release notes, READMEs, onboarding guides, long-form writeups."
+tools: ["read", "view", "edit", "grep", "search", "glob", "shell", "bash", "powershell"]
 ---
 
 # Role: Documentarian
