@@ -2,6 +2,34 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.222.1 — 2026-07-29
+
+### Fixed
+
+Four surfaces that told a reader something untrue or unusable. All content; no behaviour change.
+
+- **MH-28 — the claim-grounding double standard's last call site.** `init-agent-ready.md` still told
+  every new repo that *"AGENTS.md is read by Cursor / Codex / Aider / Copilot natively"*. **That is
+  false for Aider** (it reads `CONVENTIONS.md`, opt-in only) and unconfirmed for Cursor. Replaced with
+  a per-host list carrying each basis, and a pointer to `host-support.json` as the authority. The
+  sibling call site was already closed by the MH-23 rewrite.
+- **MH-34 — the pre-PR checklist requires network installs a sandbox blocks, and nothing said so.**
+  `npx --yes prettier@…` and `pip install ruff` both download, and Codex's default
+  `sandbox_mode = workspace-write` has network **off**. An agent got a denial and no way to name the
+  cause — while this repo's own Capability Grounding Protocol requires *"read the actual error first
+  and name its specific mechanical cause."* The block now names `sandbox_mode`, lists fixes
+  cheapest-first, and says plainly **not** to skip the steps (CI runs them whole-tree anyway).
+- **MH-36 — two different Geminis were conflated.** `AGENTS.md` now separates the supported **host**
+  lane from the Power Platform visual-QA **model** integration. They ran together because the second
+  was the repo's only Gemini anything and was buried in a skill resource, so a reader looking for
+  "Gemini support" found neither.
+- **MH-22 — the consumer dashboard pointed at a portal consumers do not have.** The Plugin-variables
+  intro said to *"open the plugin in the portal's Marketplace section"* — but the portal is
+  `index.html` at the **marketplace repo** root, and a consumer who installs the plugin and runs the
+  dashboard gets that page and no portal at all. It now points at the plugin's own directory and says
+  what the old text got wrong. **Zero DOM**: the first draft came in at +1 and was trimmed rather than
+  spend a ratchet raise on one element.
+
 ## 0.222.0 — 2026-07-29
 
 ### Added

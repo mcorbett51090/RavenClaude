@@ -13,7 +13,18 @@ Cross-tool agent-instruction file. This is the canonical version of the marketpl
 | **Cursor** | `[unverified]` | Cursor's documented native mechanism is `.cursor/rules/*.mdc`. Whether it also auto-loads `AGENTS.md` was **not** verified; do not rely on it. |
 | **Windsurf** | `[unverified — and the product was renamed]` | Reported renamed to Devin Desktop (2026-06-02). Treat this lane as unmaintained until someone re-verifies it. |
 
-**The honest summary:** this file is reliably read by **Copilot CLI and Codex**, and reaches Claude Code by import. Every other lane is opt-in, unverified, or both. Do not add a tool to this table without a dated source — a false claim of support is worse than an admitted gap, because it stops anyone from building the bridge that would make it true.
+**The honest summary:** this file is reliably read by **Copilot CLI and Codex**, reaches **Gemini CLI** through a `GEMINI.md` `@AGENTS.md` import, and reaches Claude Code by import. **Aider** gets it only as a projected `CONVENTIONS.md`. Cursor and Devin Desktop remain opt-in, unverified, or both. Do not add a tool to this table without a dated source — a false claim of support is worse than an admitted gap, because it stops anyone from building the bridge that would make it true.
+
+> **Two Geminis, and they are not the same thing** (added 2026-07-29, audit MH-36 + MH-30):
+>
+> 1. **Gemini CLI is a supported HOST** since v0.222.0 — `ravenclaude install --host gemini` wires the
+>    guardrails into `.gemini/settings.json` and points `GEMINI.md` at this file.
+> 2. **Gemini is also used as a MODEL**, in exactly one place: the Power Platform `visual-qa` skill's
+>    optional Gemini API integration for test-recording review. That is a supplemental feature, not
+>    required, and it has nothing to do with host support.
+>
+> They were conflated because the second was the repo's only Gemini anything and was buried in a skill
+> resource — so a reader looking for "Gemini support" found neither the host lane nor the integration.
 
 ## What this repo is
 
@@ -111,6 +122,24 @@ A new file's path must match at least one glob in `.repo-layout.json` `allowed_g
 > Why a hook + CI instead of `paths:`-scoped rule files: Claude Code issue [#23478](https://github.com/anthropics/claude-code/issues/23478) — path-scoped rule files load on Read, not on Write, so they cannot block file *creation*. The hook + CI pair is the supported pattern.
 
 ## Testing instructions
+
+> **⚠️ If steps 3 or 4 fail with a network error, the cause is probably your host's sandbox — not a
+> broken checkout** (added 2026-07-29, audit MH-34). `npx --yes prettier@…` and `pip install ruff`
+> both **download**, and several hosts run the agent inside a sandbox that blocks outbound network by
+> default:
+>
+> - **OpenAI Codex CLI** — `sandbox_mode = workspace-write` (the default) has network **off** unless
+>   `[sandbox_workspace_write] network_access = true` `[docs-verified]`. You get a denial, not a lint
+>   result.
+> - **Cursor / Gemini** — may be sandboxed depending on configuration.
+>
+> This repo's own Capability Grounding Protocol tells you to *"read the actual error first and name
+> its specific mechanical cause"* — so here it is, named, because nothing used to say it and the
+> honest-looking conclusion ("linting is broken") is the wrong one. **Fixes, cheapest first:** run the
+> two commands outside the sandboxed session; or install `prettier`/`ruff` once so no download is
+> needed; or enable network for the workspace deliberately. **Do not skip the steps** — CI runs
+> `prettier --check .` and `ruff check .` on the whole tree, so a skipped local run just moves the
+> failure to the PR.
 
 Before opening a PR:
 
