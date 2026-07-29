@@ -153,6 +153,56 @@ def load_schema(plugin_dir: Path) -> dict:
     return json.loads(schema_path.read_text(encoding="utf-8"))
 
 
+def _other_hosts_sentence() -> str:
+    """The Help drawer's 'what is wired elsewhere' claim, DERIVED.
+
+    This sentence used to be hand-written, and it drifted into being wrong three
+    ways at once while still citing host-support.json as the source of truth:
+    it said Cursor is "not wired at all — no hooks fire" (its hooks DO fire), it
+    omitted Gemini entirely (a supported host since v0.222.0), and it implied
+    Aider gets nothing (it gets a projected CONVENTIONS.md).
+
+    Prose that summarises data must be COMPUTED from that data, or it becomes a
+    second source of truth that silently disagrees with the first. Gate 154 keeps
+    host-support.json canonical; this keeps the sentence honest to it.
+    """
+    import json as _json
+
+    path = REPO_ROOT / "plugins" / "ravenclaude-core" / "knowledge" / "host-support.json"
+    data = _json.loads(path.read_text(encoding="utf-8"))
+    comps, hosts = data["components"], data["hosts"]
+    label = {h: hosts[h].get("label", h) for h in hosts}
+
+    def supported(host: str, comp: str) -> bool:
+        return bool(comps.get(comp, {}).get(host, {}).get("supported"))
+
+    others = [h for h in hosts if h not in ("claude-code", "copilot", "codex")]
+    guarded = [label[h] for h in others if supported(h, "hooks")]
+    unguarded = [label[h] for h in others if not supported(h, "hooks")]
+    reads = [label[h] for h in others if supported(h, "instruction_files")]
+
+    def join(items: list) -> str:
+        if not items:
+            return "none"
+        if len(items) == 1:
+            return html.escape(items[0])
+        return html.escape(", ".join(items[:-1])) + " and " + html.escape(items[-1])
+
+    # ONE <strong>, matching the element count of the hand-written sentence this
+    # replaced — the DOM budget is at zero slack, and a derived sentence must not
+    # quietly cost a ratchet raise. Ends with a semicolon so the clause that
+    # follows it in the template still reads as one sentence.
+    return (
+        f"<strong>{join(guarded)}</strong> "
+        f"{'has' if len(guarded) == 1 else 'have'} guardrail hooks wired "
+        f"(shell commands are screened in-loop) but no skills mechanism; "
+        f"{join(unguarded)} {'has' if len(unguarded) == 1 else 'have'} no hooks at all, "
+        f"so CI is the only gate there. {join(reads)} still read the projected instruction "
+        f"files, so the discipline travels even where enforcement does not \u2014 a gap, "
+        f"not a hidden feature;"
+    )
+
+
 def _page_kwargs(plugin_dir: Path, schema: dict, include_trees: bool = True) -> dict:
     """Build the substitution dict shared by render_dashboard (full page) and
     render_fragment (the native-merge body for index.html). Single source of
@@ -173,6 +223,7 @@ def _page_kwargs(plugin_dir: Path, schema: dict, include_trees: bool = True) -> 
     plugins_tabs, plugins_panels = _render_plugins_category(_all_plugin_dirs())
 
     return {
+        "other_hosts_sentence": _other_hosts_sentence(),
         "plugins_tabs": plugins_tabs,
         "plugins_panels": plugins_panels,
         "plugin_name": html.escape(plugin_name),
@@ -7673,27 +7724,30 @@ def _mcp_inventory() -> dict:
         "wiring": [
             {
                 "host": "Claude Code",
-                "wired": True,
+                "state": "automatic",
                 "note": "Declared in the plugin's own plugin.json, so Claude Code loads it when you "
-                "/plugin install that plugin. Nothing extra to run.",
+                "/plugin install that plugin. Nothing extra to run — installing the plugin IS the "
+                "consent step.",
             },
             {
                 "host": "GitHub Copilot CLI",
-                "wired": False,
-                "note": "Not wired. The installer merges <copilot-package>/.mcp.json into "
-                "~/.copilot/mcp-config.json, but nothing generates that file — so the step "
-                "silently does nothing. Add the servers to ~/.copilot/mcp-config.json by hand.",
+                "state": "opt-in",
+                "note": "Install by name: `ravenclaude install --host copilot --with-mcp <server>`. "
+                "NOT installed by default, and that is deliberate: ~/.copilot/mcp-config.json is "
+                "GLOBAL, so there is no per-plugin step to hang consent on — naming the server IS "
+                "the consent. `ravenclaude status` lists what is available.",
             },
             {
                 "host": "OpenAI Codex CLI",
-                "wired": False,
-                "note": "Not wired, deliberately. Codex reads [mcp_servers.*] from .codex/config.toml; "
-                "merging into a hand-tuned TOML file was judged too risky to automate. "
-                "Add them to .codex/config.toml by hand.",
+                "state": "opt-in",
+                "note": "Install by name: `ravenclaude install --host codex --with-mcp <server>`. "
+                "Added to .codex/config.toml by pure APPEND, so it can never rewrite a hand-tuned "
+                "config. Note a project .codex/config.toml is read ONLY IN TRUSTED PROJECTS — "
+                "writing it is not the same as Codex loading it.",
             },
             {
                 "host": "Cursor / Gemini / Aider",
-                "wired": False,
+                "state": "no",
                 "note": "Not wired. RavenClaude installs no MCP configuration on these hosts; "
                 "use each host's own MCP setup if it has one.",
             },
@@ -13481,7 +13535,45 @@ _JS = r"""
       "Source: knowledge/host-support.json (updated " + (data.updated || "?") +
       "). Hover any cell for the reason. Every claim carries a basis: verified / docs-verified / inferred."));
 
-    /* 3 — MCP servers (MH-19). Same honesty contract as the matrix above: the
+    /* 3 — Where work files go. The cross-CLI storage contract had NO user-facing
+       surface at all: it lived in AGENTS.md and the session-start banner, both of
+       which a human never sees. This page is the right home — it already answers
+       "what do I get on THIS host", and the contract is the cross-host file
+       convention. Rendered into the same mount, so it costs zero static elements. */
+    root.appendChild(hcEl("h3", null, "Where work files go"));
+    root.appendChild(hcEl("p", "hc-intro",
+      "Any CLI may be the one working here, and the next session may be a different one. " +
+      "These two places are what let the next tool find the work — anything written elsewhere " +
+      "is invisible to it."));
+
+    var st2 = hcEl("table", "hc-table");
+    var sh2 = hcEl("thead"), shr = hcEl("tr");
+    shr.appendChild(hcEl("th", null, "Where"));
+    shr.appendChild(hcEl("th", null, "Who can see it"));
+    shr.appendChild(hcEl("th", null, "Use it for"));
+    sh2.appendChild(shr); st2.appendChild(sh2);
+    var sb2 = hcEl("tbody");
+    [["\u002eravenclaude/runs/<task-id>/", "this machine only — gitignored",
+      "working notes, evidence, anything mid-flight"],
+     ["docs/plans | decisions | research/", "you, teammates, CI — travels via git",
+      "anything meant to outlive the task or be read by a human later"]
+    ].forEach(function (r) {
+      var tr = hcEl("tr");
+      tr.appendChild(hcEl("th", null, r[0]));
+      tr.appendChild(hcEl("td", null, r[1]));
+      tr.appendChild(hcEl("td", null, r[2]));
+      sb2.appendChild(tr);
+    });
+    st2.appendChild(sb2);
+    root.appendChild(st2);
+    root.appendChild(hcEl("p", "hc-src",
+      "The test: would a teammate cloning this repo need it? Yes \u2192 docs/. No \u2192 runs/. " +
+      "Start one with `rc artifacts new <task-id>` (it stamps which CLI made it); " +
+      "run `rc artifacts list` first \u2014 another CLI may already have one for this task. " +
+      "Host-private state (~/.claude, ~/.copilot, ~/.codex, transcripts, memory) never crosses " +
+      "over: if work must survive, it has to be written into one of these two places."));
+
+    /* 4 — MCP servers (MH-19). Same honesty contract as the matrix above: the
        inventory is read from the plugin manifests, and the wiring table says
        plainly which hosts actually receive them. Rendered here rather than as
        its own tab because it answers the same question ("what do I get on THIS
@@ -13521,7 +13613,10 @@ _JS = r"""
       (mcp.wiring || []).forEach(function (w) {
         var tr = hcEl("tr");
         tr.appendChild(hcEl("th", null, w.host));
-        tr.appendChild(hcEl("td", w.wired ? "hc-yes" : "hc-no", w.wired ? "yes" : "no"));
+        var st = w.state || (w.wired ? "automatic" : "no");
+        var cls = st === "no" ? "hc-no" : "hc-yes";
+        tr.appendChild(hcEl("td", cls, st === "automatic" ? "automatic"
+          : st === "opt-in" ? "opt-in (by name)" : "not wired"));
         tr.appendChild(hcEl("td", null, w.note));
         wtbody.appendChild(tr);
       });
@@ -14126,7 +14221,7 @@ _PAGE_TEMPLATE = """<!doctype html>
     </details>
     <details class="help-section" id="help-other-hosts">
       <summary>Codex&nbsp;CLI &amp; other agents — what is wired, and what is not</summary>
-      <p>Two lanes above cover Claude Code and Copilot CLI. This is the rest of the world, stated honestly. <strong>OpenAI Codex CLI is supported:</strong> run <code>bash &lt;marketplace&gt;/scripts/ravenclaude install --host codex --project &lt;your-repo&gt;</code>. It wires the skills into <code>.agents/skills</code> and the guardrails into <code>.codex/hooks.json</code> — Codex speaks the same hook contract as Claude Code, so there is no adapter — and it projects your posture onto Codex&rsquo;s own OS sandbox. One thing you must do there and nowhere else: run <code>/hooks</code> inside Codex to <em>trust</em> them, and again after every update, because Codex tracks hook trust by hash and silently skips anything it does not recognise. <strong>Cursor, Aider and Devin Desktop (formerly Windsurf) are not wired at all</strong> — no hooks fire, no skills load, and CI is the only gate. That is a gap, not a hidden feature; the per-component truth is in <code>knowledge/host-support.json</code>, and the first-five-minutes ritual for any of them is the <code>external-agent-onboarding</code> skill.</p>
+      <p>Two lanes above cover Claude Code and Copilot CLI. This is the rest of the world, stated honestly. <strong>OpenAI Codex CLI is supported:</strong> run <code>bash &lt;marketplace&gt;/scripts/ravenclaude install --host codex --project &lt;your-repo&gt;</code>. It wires the skills into <code>.agents/skills</code> and the guardrails into <code>.codex/hooks.json</code> — Codex speaks the same hook contract as Claude Code, so there is no adapter — and it projects your posture onto Codex&rsquo;s own OS sandbox. One thing you must do there and nowhere else: run <code>/hooks</code> inside Codex to <em>trust</em> them, and again after every update, because Codex tracks hook trust by hash and silently skips anything it does not recognise. {other_hosts_sentence} the per-component truth is in <code>knowledge/host-support.json</code>, and the first-five-minutes ritual for any of them is the <code>external-agent-onboarding</code> skill.</p>
     </details>
     <details class="help-section" id="help-commands">
       <summary>Commands — the marketplace slash-command catalog</summary>
