@@ -2,6 +2,67 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.232.0 — 2026-07-29
+
+**Making the storage contract stick — enforcement, not more prose.**
+
+### Added
+
+- **The Stop gate is configured and live.** It was built long ago and never switched on. A session
+  that changed files now **cannot end** until `scripts/dod-fast.sh` passes, on every host. This is the
+  strongest follow-through lever in the repo: a CLI can announce success as often as it likes, the
+  gate decides.
+  - The command is a **wrapper, not a one-liner**, deliberately. `ruff` is frequently not on `PATH`,
+    so the obvious `cmd: "ruff check . && ..."` would block sessions on machines that never had it —
+    punishing the user for a missing tool. The storage-contract check is stdlib and **always binding**;
+    ruff **blocks when present** and **loudly skips when absent** (a skip is never silent).
+- **`storage-placement-nudge.sh`** — a PostToolUse advisory noting when a work file lands at the repo
+  root instead of one of the two tiers, where the next CLI would never look. **Deliberately narrow:**
+  only root-level *scratch names* (`notes.md`, `plan.md`, `output.txt`…). It stays silent on
+  `AGENTS.md`, `README.md`, `docs/` and all source files, because a nudge that cries wolf is trained
+  away within a day. Never blocks; opt out per-file with `placement-ok`.
+- **The storage contract is now INJECTED at session start**, not merely linked. A pointer is advisory
+  and the reported complaint is precisely that some hosts do not read what they are pointed at. The
+  capability banner is placed *into the model's context*, so it is not something a host can decline to
+  open.
+- **Gate 173 — every generated file must say so, and say what to edit.**
+  - **Why this is the one file-stamp worth its cost.** A general "who touched this, when" stamp fails
+    three ways here: **1,560 tracked files (16%)** cannot hold a comment at all (`.json`/`.svg`/`.png`/
+    `.jsonl`), so coverage is partial and an *absent* stamp becomes ambiguous; generated files carry
+    byte-exact freshness gates, so a stamp breaks them or must be excluded — removing provenance
+    exactly where confusion is highest; and **`git blame` already answers it, derived**, so it cannot
+    go stale the way a maintained stamp can.
+  - **The test a stamp must pass is whether it changes what the next CLI DOES.** *"claude-code edited
+    this at 3pm"* changes nothing. *"This is generated — edit the source"* changes everything.
+  - **And it was missing from half of them: 18 of 36**, including `index.html` and all 15 projected
+    Copilot agents. A session could edit `copilot/agents/architect.agent.md` and have the work
+    silently reverted by the next regen.
+  - The gate also requires a **pointer**, not just the word GENERATED — "stop" with nowhere to go is
+    half a message. That stricter half immediately caught a **19th** case: `dashboard.html` declared
+    itself but never named its generator.
+
+### Fixed
+
+- **`dod-fast.sh` linted the wrong directory — caught by the gate on its first real run.** It used
+  `cd "${CLAUDE_PROJECT_DIR:-…}"`, but that variable is the **session's** project directory, not the
+  repo the script lives in. With the CLI launched from `$HOME` — an entirely ordinary thing to do — it
+  ran `ruff check .` across the whole home directory, reported 81 errors from `~/.local/share/doc/node/`
+  and an unrelated sibling repo, and blocked the session over lint in files nobody here owns. It now
+  anchors on the script's own path (`<repo>/scripts/` → repo root is one level up), which no
+  environment variable or cwd can move. Verified from a foreign cwd *and* with `CLAUDE_PROJECT_DIR`
+  deliberately pointed at `$HOME`.
+
+### Notes
+
+- **Authorship is deliberately NOT recorded in files, and that is a design position.** A CLI that
+  learns *"Copilot wrote this, be suspicious"* has acquired a prejudice, not evidence — it would
+  distrust correct work and trust wrong work from a favoured tool. Quality in this repo has a real
+  answer (the gates), and it is about whether something is **verified**, not who vouched for it.
+- Owner-approved **+14 DOM** (6,140 → 6,154 / 7,026 → 7,040) to draw the new nudge in the Pipeline tab
+  beside its two already-drawn siblings; leaving it out would make the guardrail map read as though
+  the guardrail does not exist. **Measured, not estimated** — trimming the stage description from 4
+  steps to 2 saved only 2 elements, so ~12 is the stage's fixed cost.
+
 ## 0.231.0 — 2026-07-29
 
 ### Added

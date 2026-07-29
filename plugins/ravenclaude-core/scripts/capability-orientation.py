@@ -781,6 +781,39 @@ def build_banner(root: Path) -> str:
     # the choice — it points the agent at the priors it must consult before
     # picking a method, reconciled against the EFFECTIVE PERMISSIONS listed above.
     lines.append("")
+    # WHERE WORK FILES GO — injected, not left in a file to be read.
+    #
+    # The contract lives in AGENTS.md, and every host is pointed at it. But a
+    # pointer is advisory: a CLI that skips the file is not stopped by anything,
+    # and the observed complaint about Copilot is precisely that it does not read
+    # what it was told to read. This banner is INJECTED INTO THE MODEL'S CONTEXT
+    # at session start, so it is not something a host can decline to open — the
+    # only lever that meaningfully changes that behaviour short of a hard deny.
+    #
+    # Kept to a few lines on purpose: this is the one place every session pays
+    # for, on every host. The full rules stay in AGENTS.md; what is here is what
+    # changes the next file-write decision.
+    lines.append("WHERE WORK FILES GO (so another CLI can find them):")
+    lines.append(
+        "  Working notes for a task -> .ravenclaude/runs/<task-id>/  "
+        "(LOCAL ONLY: gitignored, never committed)."
+    )
+    lines.append(
+        "  Anything meant to be kept or read by a teammate -> docs/plans|decisions|research/ "
+        "(committed)."
+    )
+    lines.append(
+        "  Create a run dir with `bin/rc artifacts new <task-id>` — it stamps which CLI made it. "
+        "Run `bin/rc artifacts list` FIRST: another CLI may already have one for this task, and "
+        "you should continue in it rather than opening a parallel one."
+    )
+    lines.append(
+        "  A file written anywhere else is invisible to the next CLI. Host-private state "
+        "(~/.claude, ~/.copilot, ~/.codex, transcripts, memory) NEVER crosses over — if work "
+        "must survive, write it into one of the two paths above. Full rules: AGENTS.md "
+        '§ "Where work files go".'
+    )
+    lines.append("")
     lines.append("BEFORE PICKING A METHOD (route + permission discipline):")
     lines.append(
         "  If the active plugin's knowledge has a `## Decision Tree` for this goal, "
