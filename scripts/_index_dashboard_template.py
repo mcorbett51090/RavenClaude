@@ -225,7 +225,9 @@ TEMPLATE = r"""<!doctype html>
       .search-results .res .meta { color: var(--faint); font-size: 0.78rem; margin-left: auto; }
       .search-results .empty { padding: 16px; color: var(--faint); text-align: center; font-size: 0.85rem; }
 
-      .topbar .actions { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+      /* flex-wrap: at 320px this nowrap row pushed the primary CTA 45px past the
+         viewport and scrolled the whole page sideways. */
+      .topbar .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-left: auto; }
       .btn {
         display: inline-flex; align-items: center; gap: 8px; padding: 9px 14px; border-radius: 10px;
         font-size: 0.85rem; font-weight: 600; border: 1px solid var(--border); background: var(--surface); color: var(--text);
@@ -250,9 +252,9 @@ TEMPLATE = r"""<!doctype html>
       .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; box-shadow: var(--rc-shadow-sm); transition: box-shadow 0.18s ease, border-color 0.18s ease, transform 0.18s ease; }
       .card:hover { border-color: var(--border-strong); transform: translateY(-2px); box-shadow: var(--rc-shadow-md); }
       .grid { display: grid; gap: 16px; }
-      .cols-2 { grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); }
-      .cols-3 { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
-      .cols-4 { grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); }
+      .cols-2 { grid-template-columns: repeat(auto-fill, minmax(min(340px, 100%), 1fr)); }
+      .cols-3 { grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr)); }
+      .cols-4 { grid-template-columns: repeat(auto-fill, minmax(min(230px, 100%), 1fr)); }
 
       /* Hero — bounded console band, photoreal raven right-docked. Mirrors the
          standalone dashboard's .ov-hero (P2) and the commerce hero. */
@@ -292,7 +294,7 @@ TEMPLATE = r"""<!doctype html>
       }
 
       /* Stat cards */
-      .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 28px; }
+      .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr)); gap: 16px; margin-bottom: 28px; }
       .stat { display: flex; flex-direction: column; gap: 4px; }
       .stat .v { font-size: 2.1rem; font-weight: 700; color: var(--teal-2); line-height: 1; }
       .stat .k { color: var(--muted); font-size: 0.86rem; }
@@ -525,7 +527,7 @@ TEMPLATE = r"""<!doctype html>
       .palette-opener kbd { font-size: 0.68rem; color: var(--faint); border: 1px solid var(--border); border-radius: 6px; padding: 2px 6px; font-family: var(--font-mono); }
 
       /* ── Scenario picker (Configuration view) ──────────────────────── */
-      .scenario-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin-bottom: 24px; }
+      .scenario-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr)); gap: 14px; margin-bottom: 24px; }
       .scenario-card {
         position: relative; padding: 18px;
         background: var(--surface); border: 1px solid var(--border);
