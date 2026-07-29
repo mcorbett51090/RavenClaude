@@ -759,15 +759,27 @@ MCP support, and the mapping section — *"the exact analytical work Copilot got
 > `scripts/emit-codex-config.py` exists and is gated by **Gate 156** (the never-silently-weaken rule).
 > So "the emitter is unchanged and still open" is **no longer true** and is struck.
 >
-> **But the consumer-facing half of the claim is still exactly true, and was re-verified rather than
-> assumed** `[verified 2026-07-29]`: the emitter is invoked from **one place only** —
-> `scripts/ravenclaude:736`, the installer. The dashboard's save path does **not** call it, and
-> `apply-comfort-posture.py` contains no Codex awareness at all. So **editing your posture in the
-> dashboard and clicking Save still moves nothing on a Codex host** — only a fresh
-> `ravenclaude install --host codex` does. The plugin `CLAUDE.md` sentence saying so is therefore
-> **accurate and must not be "corrected"**; flipping it on the strength of the emitter's existence would
-> have introduced a false claim, which is how this audit's stale-claim defects get made in the first
-> place. The remaining gap is tracked as **the dashboard→Codex save path**.
+> **The consumer-facing half was still true when this was written, and was re-verified rather than
+> assumed** `[verified 2026-07-29]`: the emitter was invoked from **one place only** —
+> `scripts/ravenclaude:736`, the installer — so editing your posture in the dashboard and clicking Save
+> moved nothing on a Codex host. That is why the plugin `CLAUDE.md` sentence saying so was left alone at
+> the time: flipping it on the strength of the emitter merely *existing* would have introduced a false
+> claim, which is how this audit's stale-claim defects get made in the first place.
+>
+> ✅ **Dashboard half CLOSED 2026-07-29 (v0.226.0) — Gate 168.** `/__save` now runs the emitter too, so
+> the posture reaches Codex from the dashboard, not only from a reinstall. The `CLAUDE.md` block was
+> updated **in the same change that made it false** — the discipline this audit kept failing.
+>
+> **The honesty half needed the gate more than the wiring did.** A refusal-to-weaken **exits 0** (the
+> emitter tightens what it can and declines the rest), so the obvious wrapper reports unqualified success
+> while settings were deliberately skipped — the same false assurance, moved one layer out. Refusals are
+> surfaced as `codex_refusals`, and Gate 168's teeth half *is* that naive wrapper, caught. The gate also
+> pins that `danger-full-access` / `approval_policy = "never"` are never emitted, that a non-Codex project
+> is left untouched, and that both server copies carry the helper (the plugin copy is what consumers run,
+> so a root-only fix would have shipped nothing).
+>
+> **Still not parity, and the block says so:** coarse by design, and a project `.codex/config.toml` loads
+> **only in trusted projects** — writing it is not the same as bounding the session.
 
 **Evidence**
 - `[docs-verified]` Codex's actual controls are `approval_policy` ∈ {untrusted, on-request, never} ×

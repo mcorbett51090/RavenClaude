@@ -387,6 +387,11 @@ PY
       bash plugins/ravenclaude-core/hooks/tests/test-gate164-gemini-adapter.sh
       exit $?
       ;;
+    168)
+      echo "── Gate 168: dashboard Save reaches Codex (per-gate run) ─────────────────"
+      python3 scripts/check-codex-save-path.py
+      exit $?
+      ;;
     167)
       echo "── Gate 167: Copilot -> tribunal end-to-end (per-gate run) ───────────────"
       bash plugins/ravenclaude-core/hooks/tests/test-gate167-copilot-tribunal-e2e.sh
@@ -483,7 +488,7 @@ PY
       ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -5422,6 +5427,23 @@ echo "── Gate 167: Copilot payload -> tribunal, end to end ─────�
 # the deny DISAPPEARS — reproducing MH-01 on demand.
 rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate167-copilot-tribunal-e2e.sh >/dev/null 2>&1 || rc=$?
 gate "copilot-tribunal-e2e: a Copilot force-push is still hard-denied (+ teeth)" must_pass "$rc"
+
+echo "── Gate 168: dashboard Save also reaches Codex, honestly ─────────────────"
+# MH-16 part 2, dashboard half. emit-codex-config.py shipped but was called from
+# ONE place — the installer. Nothing on the save path invoked it, so a user could
+# set every category to deny, click Save, see success, and still be running at
+# Codex's default workspace-write.
+#
+# The honesty half needs the gate more than the wiring does: a refusal-to-weaken
+# EXITS 0 (the emitter tightens what it can and declines the rest), so a naive
+# wrapper reports unqualified success while settings were deliberately skipped —
+# the same false assurance, moved one layer out. The teeth half is exactly that
+# naive wrapper.
+rc=0; python3 scripts/check-codex-save-path.py >/dev/null 2>&1 || rc=$?
+gate "codex-save-path: posture reaches Codex; refusals surfaced, never silent" must_pass "$rc"
+
+rc=0; python3 scripts/check-codex-save-path.py --must-fail >/dev/null 2>&1 || rc=$?
+gate "codex-save-path teeth: a wrapper ignoring refusals is caught" must_pass "$rc"
 
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"

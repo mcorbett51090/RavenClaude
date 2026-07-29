@@ -2,6 +2,46 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.226.0 — 2026-07-29
+
+### Fixed
+
+- **Saving your posture in the dashboard now actually reaches Codex** (audit MH-16 part 2, dashboard
+  half). `emit-codex-config.py` shipped in 0.216.0, but it was invoked from **exactly one place** —
+  `scripts/ravenclaude`, the installer. Nothing on the save path called it, and
+  `apply-comfort-posture.py` has no Codex awareness at all. So you could set every category to `deny`,
+  click Save, watch it report success, and still be running at Codex's default `workspace-write`. The
+  product's headline feature silently did nothing on that host.
+  - **The honesty half needed the gate more than the wiring did.** The emitter's rule is *never
+    silently weaken*: a posture looser than what is already on disk is **refused**. But a refusal
+    **exits 0** — it tightens what it can and declines the rest — so the obvious wrapper reports
+    unqualified success while settings were deliberately skipped. That is the same false assurance,
+    moved one layer out. Refusals now come back as `codex_refusals`, and **Gate 168's teeth half is
+    exactly that naive wrapper**, caught.
+  - **Deliberately narrow:** only projects that already use Codex (a `.codex/` directory) are touched.
+    Writing an OS-sandbox config into every repo that ever saves a posture would be a surprising side
+    effect. And a failure here can never fail the save — the YAML is already on disk.
+  - **Still not parity, and it says so:** coarse by design (two enum keys cannot express twelve
+    categories), and a project `.codex/config.toml` loads **only in trusted projects** — writing the
+    file is not the same as bounding the session.
+
+### Added
+
+- **Gate 168** — pins all of it: a non-Codex project is left untouched, a Codex project gets the
+  projection, a stricter on-disk value **survives and the refusal is reported**,
+  `danger-full-access` / `approval_policy = "never"` are never emitted at any posture, and **both**
+  server copies carry the helper (the plugin copy is what consumers run, so a root-only fix would have
+  shipped nothing).
+  - The gate's own first draft failed on a *correct* emitter: it scanned the whole config for the
+    forbidden values and matched the **header comment**, which names them while promising never to
+    emit them. It now checks live config lines only.
+
+### Notes
+
+- The plugin `CLAUDE.md` "Known gap (MH-16 part 2, open)" block is **updated in the same change that
+  made it false** — the discipline this audit kept catching itself failing. Last release it was
+  deliberately left alone, because at that point it was still accurate.
+
 ## 0.225.0 — 2026-07-29
 
 ### Added

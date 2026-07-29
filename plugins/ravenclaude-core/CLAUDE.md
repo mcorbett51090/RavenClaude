@@ -527,12 +527,27 @@ The runaway brake bounds *depth*, the DoD gate bounds *correctness*, the task-sc
   > to name, and it closes it **by default**, where Claude Code's is opt-in. **For a Codex operator the
   > sandbox IS the boundary; a container is an optional second layer, not the primary answer.**
   >
-  > **Known gap (MH-16 part 2, open):** RavenClaude's posture engine emits **only** `.claude/settings.json`
-  > rules `[verified]` — nothing writes `.codex/config.toml`, so the dashboard's headline product (posture
-  > editing) currently moves nothing on this host. Until that lands, **set `sandbox_mode`/`approval_policy`
-  > by hand**; do not assume a saved comfort-posture bounds a Codex session. When it does land, note the
-  > mapping is necessarily coarser — a 12-category matrix does not have 12 degrees of freedom here — and
-  > `danger-full-access` / `never` must **never** be auto-emitted. The consumer-facing version of this guidance ships in the per-repo [`templates/dashboard-launcher/README.md`](templates/dashboard-launcher/README.md) "Containment posture" section that `ravenclaude setup` drops into `.ravenclaude/README.md`. The subprocess-vs-tool-layer limit is grounded in [`knowledge/claude-code-permissions.md`](knowledge/claude-code-permissions.md) §"Read/Edit rules do not protect against subprocess access". **Migration:** none — the seeded denies only affect a **new** repo's seed (an existing `comfort-posture.yaml` is never clobbered by `setup`), and the rest is documentation.
+  > **CLOSED 2026-07-29 (v0.226.0) — the posture now reaches Codex, including from the dashboard.**
+  > This block previously read *"nothing writes `.codex/config.toml`, so the dashboard's headline product
+  > (posture editing) currently moves nothing on this host."* Both halves are now wired:
+  > `scripts/emit-codex-config.py` (**Gate 156**) projects the posture, the installer runs it, and — the
+  > half that was still genuinely missing until v0.226.0 — **the dashboard's Save path runs it too**
+  > (**Gate 168**). Before that, the emitter existed but was invoked from exactly one place, so a user
+  > could set every category to `deny`, click Save, see success, and still be at Codex's default
+  > `workspace-write`.
+  >
+  > **The caveats did NOT go away, and they are the reason this is not parity:**
+  > - **Coarse by design** — two enum keys cannot express 12 posture categories. It is an honest
+  >   projection, not equivalence.
+  > - **NEVER SILENTLY WEAKEN** — absent key → write; posture stricter → tighten; posture **looser** →
+  >   **refuse** and print the line to change by hand. A refusal exits 0, so the dashboard surfaces it
+  >   explicitly (`codex_refusals`); a partial apply reported as "applied" would be the same false
+  >   assurance in a new place.
+  > - `danger-full-access` and `approval_policy = "never"` are **never** emitted at any posture.
+  > - **Writing the file is not the same as bounding the session** — a project `.codex/config.toml` loads
+  >   **only in trusted projects**. That trust gate is Codex's, not ours.
+  > - **Only projects that already use Codex are touched** (a `.codex/` dir must exist). We do not create
+  >   an OS-sandbox config in every repo that ever saves a posture. The consumer-facing version of this guidance ships in the per-repo [`templates/dashboard-launcher/README.md`](templates/dashboard-launcher/README.md) "Containment posture" section that `ravenclaude setup` drops into `.ravenclaude/README.md`. The subprocess-vs-tool-layer limit is grounded in [`knowledge/claude-code-permissions.md`](knowledge/claude-code-permissions.md) §"Read/Edit rules do not protect against subprocess access". **Migration:** none — the seeded denies only affect a **new** repo's seed (an existing `comfort-posture.yaml` is never clobbered by `setup`), and the rest is documentation.
 
 ## Website access — allow/deny lists + the four-option prompt (added 2026-06-01)
 
