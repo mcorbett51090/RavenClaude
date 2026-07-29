@@ -2,6 +2,24 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.222.2 — 2026-07-29
+
+### Fixed
+
+- **The run-state monitor was silently inert on macOS** (`monitors/watch-run-state.sh`). `newest_log()`
+  used `find … -printf '%T@\t%p\n'` to pick the newest `hook-events.jsonl`, but `-printf` is a GNU-find
+  extension — stock macOS/BSD `find` exits with `unknown primary -printf`, the `2>/dev/null` swallowed
+  it, and the pipeline returned empty. Result: on every macOS session the monitor idle-polled forever
+  and **never emitted a single push notification** — the entire push-notification complement to the
+  read-only Heimdall/Víðarr tabs was dead on that host. This is the same silent, unconditional,
+  every-macOS-session failure class the "macOS doors" milestones (v0.193.0–v0.199.0) exist to close,
+  and it was not covered by `check-macos-portability.sh`. Replaced with a portable enumeration that
+  resolves the newest file by mtime itself, using the repo's established `stat -c '%Y' || stat -f '%m'`
+  BSD fallback (as in `worktree-guard.sh`); bash-3.2-safe (no `mapfile`/assoc-arrays/`globstar`) and
+  space-safe (`-print0` + NUL read). Behavior on Linux/CI is unchanged. **Migration:** none — a
+  Claude-Code-only, opt-in (`on-skill-invoke:spawn-team`) monitor; macOS consumers now receive the
+  guardrail notifications that were previously silently dropped.
+
 ## 0.222.1 — 2026-07-29
 
 ### Fixed
