@@ -10,7 +10,7 @@ widget: permission-resolver
 try_it:
   label: "Set your own layers on the Settings tab"
   href: "#/settings"
-last_verified: 2026-05-25
+last_verified: 2026-07-28
 refresh_when: "Anthropic adds/removes a settings layer, or changes the cross-layer merge rule."
 sources:
   - label: "Configure permissions"

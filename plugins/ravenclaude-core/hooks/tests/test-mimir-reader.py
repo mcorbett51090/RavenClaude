@@ -105,8 +105,16 @@ def test_happy_path() -> None:
         write_jsonl(jsonl, [
             {"type": "permission-mode", "permissionMode": "default", "sessionId": "abc", "cwd": str(project_root), "gitBranch": "main"},
             {"type": "user", "message": {"content": "should-not-leak"}, "gitBranch": "main"},
-            {"type": "assistant", "model": "claude-opus-4-8", "usage": {"output_tokens": 42}},
-            {"type": "assistant", "model": "claude-opus-4-8", "usage": {"output_tokens": 8}},
+            # REAL Claude Code shape: model/usage are NESTED under `message`.
+            # This fixture previously wrote them FLAT, which is the shape the
+            # reader also assumed — so fixture and reader agreed with each other
+            # and both disagreed with the platform, and every gate passed while
+            # "last used model" was permanently blank and token sums were always 0.
+            # Measured on a real 116 MB transcript (2026-07-28): model at top
+            # level 0/6060 assistant events, nested under `message` 6060/6060.
+            # Re-derived from the platform artifact, not from the reader.
+            {"type": "assistant", "message": {"model": "claude-opus-4-8", "usage": {"output_tokens": 42}}},
+            {"type": "assistant", "message": {"model": "claude-opus-4-8", "usage": {"output_tokens": 8}}},
         ])
         out = _read_mimir(project_root, home)
         check(out["exists"] is True, "exists: True")

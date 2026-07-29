@@ -187,6 +187,7 @@ def _page_kwargs(plugin_dir: Path, schema: dict, include_trees: bool = True) -> 
         "removed_routes_table": _render_removed_routes_table(),
         "web_access_html": _render_web_access_page(),
         "prompt_builder_html": _render_prompt_builder_tab(),
+        "host_context_html": _render_host_context_tab(),
         # panel-learn (~19,702 elements) is DOM-island-loaded exactly like panel-trees:
         # its markup ships in a <script type="application/json"> payload (CDATA, uncounted
         # by Gate 132) and is injected into #learn-mount on the first activate("learn"),
@@ -585,6 +586,74 @@ def _render_activity_tab() -> str:
 # keeps the map honest against hooks.json; a shipped hook missing from BOTH lists
 # (the exact live-drift bug that hid `delegation-nudge`/`guard-web-access`) fails
 # the build.
+# Which hosts can actually FIRE the hooks drawn on the Pipeline tab (audit MH-04).
+#
+# The tab renders every stage with an "Always on" badge. That badge is about
+# CONFIGURABILITY — it means "not a knob you can turn off" — but with no host
+# qualification anywhere on the panel it reads as "this guardrail is protecting
+# you", full stop. On a host where no hook can fire, that is a false assurance
+# about a safety surface, and it is the same failure as Heimdall's "quiet"
+# (MH-05): the panel asserting a protective state it has no basis for.
+#
+# DERIVED, not asserted — this is the set of hosts something actually wires:
+#   claude-code — reads hooks/hooks.json natively.
+#   copilot     — .github/hooks, wired by `ravenclaude install`, translated by
+#                 hooks/copilot-hook-adapter.sh.
+#   codex       — the env alias exists (_rc_host_env in hooks/_portable.sh) but
+#                 `scripts/ravenclaude` has NO Codex install path, so nothing
+#                 wires the hooks and none of them fire. NOT hook-capable yet.
+#   cursor / gemini / aider / windsurf — no adapter of any kind.
+#
+# DERIVED FROM knowledge/host-support.json (MH-21) — not hardcoded here.
+# This list was a literal tuple for about an hour, which was already one
+# duplicate too many: the same fact is needed by the Pipeline scope line, by any
+# future "what's wired" surface, and by the Codex/Copilot installers. A second
+# copy is how the estate ended up asserting guardrails on hosts that run none.
+# WHEN A HOST GAINS AN INSTALL PATH, EDIT THE JSON — this reads it.
+def _load_host_support() -> dict:
+    """Parse the host-support map ONCE, at import.
+
+    Fails LOUD rather than silently narrowing: if the map is missing or malformed
+    we raise, because quietly returning an empty tuple would render the Pipeline
+    tab claiming its guardrails fire nowhere — a different false statement, not a
+    safe default.
+    """
+    path = REPO_ROOT / "plugins" / "ravenclaude-core" / "knowledge" / "host-support.json"
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+_HOST_SUPPORT = _load_host_support()
+
+
+def _hook_capable_hosts() -> tuple:
+    """Labels of the hosts whose `hooks` component is actually supported today."""
+    hooks = _HOST_SUPPORT["components"]["hooks"]
+    return tuple(
+        _HOST_SUPPORT["hosts"][h]["label"]
+        for h in _HOST_SUPPORT["hosts"]
+        if isinstance(hooks.get(h), dict) and hooks[h].get("supported") is True
+    )
+
+
+_HOOK_CAPABLE_HOSTS = _hook_capable_hosts()
+
+
+def _oxford(items: list) -> str:
+    """Join labels as readable English: 'A', 'A and B', 'A, B, and C'.
+
+    Exists because the derived host list is rendered into a prose sentence, and
+    `" and ".join(...)` produced "Claude Code and GitHub Copilot CLI and OpenAI
+    Codex CLI" the moment a third host qualified — fine at two, wrong at three.
+    """
+    items = [str(i) for i in items if i]
+    if not items:
+        return "no host"
+    if len(items) == 1:
+        return items[0]
+    if len(items) == 2:
+        return f"{items[0]} and {items[1]}"
+    return ", ".join(items[:-1]) + f", and {items[-1]}"
+
 _PIPELINE_LANES = [
     {
         "event": "SessionStart",
@@ -920,6 +989,9 @@ _PIPELINE_EXCLUDED_HOOKS = {
     "+ its live status as the Activity-tab Sleipnir badges; deliberately NOT a Pipeline stage card",
     "thing-denial-kb-sync.sh": "Muninn denial-KB materialiser (Stop); learns from tribunal denials, not itself a guardrail",
     "thing-denial-kb-recall.sh": "Muninn denial-KB recall (SessionStart); surfaces known denials + fixes, not a guardrail",
+    "dashboard-autostart.sh": "opt-in convenience launcher (SessionStart) for the dashboard itself; "
+    "gates nothing, denies nothing, and never inspects a tool call — its knob is `dashboard_autostart` "
+    "in comfort-posture.yaml, deliberately NOT a Pipeline stage card",
 }
 
 _PIPELINE_CONTROLS = {
@@ -1142,6 +1214,22 @@ _PIPELINE_CSS = """<style>
 def _render_pipeline_tab() -> str:
     """Render the Pipeline tab — the all-events guardrail flow with live state,
     5th-grade tooltips, and inline editors. JS (in _JS) hydrates it on open."""
+    # Rendered from the single _HOOK_CAPABLE_HOSTS list so the host scope stated
+    # on the page cannot drift from the list a maintainer updates.
+    #
+    # BOTH halves of the sentence are derived, and that is the whole point. The
+    # "nowhere else" half used to be a HARDCODED list — so the moment Codex gained
+    # an install path (MH-07) the page named it as supported in one clause and
+    # unsupported in the next, in the same sentence. A half-derived sentence is not
+    # a smaller version of a derived one; it is a self-contradiction waiting for
+    # the first change. Gate 154 pins the derivation; this keeps the prose honest.
+    _hook_hosts_text = html.escape(_oxford(list(_HOOK_CAPABLE_HOSTS)))
+    _no_hook_hosts = [
+        _HOST_SUPPORT["hosts"][h]["label"]
+        for h in _HOST_SUPPORT["hosts"]
+        if _HOST_SUPPORT["components"]["hooks"][h]["supported"] is not True
+    ]
+    _no_hook_hosts_text = html.escape(_oxford(_no_hook_hosts))
     lanes_html = []
     for lane in _PIPELINE_LANES:
         cards = []
@@ -1207,7 +1295,8 @@ def _render_pipeline_tab() -> str:
     return f"""{_PIPELINE_CSS}
 <div class="pipeline-tab">
   <h2>Guardrail pipeline</h2>
-  <p class="page-desc">Everything an AI agent passes through, top to bottom. Each box shows whether it's on right now, what it does (in plain words), the step-by-step of how it works, and the knobs you can turn. Changes save to your <code>.ravenclaude/comfort-posture.yaml</code>.</p>
+  <p class="page-desc">Everything an AI agent passes through, top to bottom. Each box shows whether it's on right now, what it does (in plain words), the step-by-step of how it works, and the knobs you can turn. Changes save to your <code>.ravenclaude/comfort-posture.yaml</code>.
+  IMPORTANT — these guardrails fire under {_hook_hosts_text}, and nowhere else yet. &ldquo;Always on&rdquo; below means &ldquo;not a knob you can switch off&rdquo;; it does NOT mean every host runs it. Under {_no_hook_hosts_text} nothing here wires itself, so none of it fires — the stages are shown for reference, not as protection you currently have.</p>
   <div class="pipe-flow" role="img" aria-label="Flow: session starts, then before-each-step and after-each-step checkpoints loop for every command, then a final check when it tries to stop.">
     <span class="pipe-flow-step">Session starts</span>
     <span class="pipe-flow-arr">→</span>
@@ -2122,7 +2211,9 @@ def _render_settings_tab(properties: dict, presets: dict) -> str:
 
     security_deny_html = _render_security_deny(properties.get("security_deny", {}))
 
-    design_checkins_html = _render_design_checkins(properties.get("design_checkins", {}))
+    design_checkins_html = _render_design_checkins(
+        properties.get("design_checkins", {})
+    ) + _render_dashboard_autostart()
 
     category_intro_html = (
         '<div class="category-intro"><p>'
@@ -2619,6 +2710,52 @@ def _render_design_checkins(prop: dict) -> str:
         "</label>"
         "</div>"
         '<p class="dc-state" id="design-checkins-state"></p>'
+        "</div>"
+    )
+
+
+def _render_dashboard_autostart() -> str:
+    """Render the `dashboard_autostart` control (a behavioral flag, NOT a permission).
+
+    Deliberately LEAN markup — 6 static elements (wrapper, h3, p, select, 3 options
+    minus the wrapper double-count) against a Gate-132 budget that sits at exact
+    zero slack, so every element here was owner-approved. No extra nesting, no
+    icon, no switch chrome: it reuses .design-checkins-bar's styling rather than
+    introducing its own.
+
+    Why a control at all: the knob shipped YAML-only in v0.216.0 because the DOM
+    budget was full, which reproduced the discoverability problem that started the
+    whole exercise — a feature nobody can find is a feature that does not exist.
+
+    The state/emit/hydrate wiring already exists (emitYaml + applyGuardrailConfig,
+    covered by Gate 35). That is not cosmetic: emitYaml rebuilds the WHOLE posture
+    from `state`, so a key with no state slot is silently DELETED on the next
+    Save & apply — the v0.61.0 data-loss class.
+    """
+    # EXACTLY 6 elements: wrapper, h3, select, 3 options. Counted, not estimated —
+    # the first cut measured TEN (a badge <span>, an explainer <p> and two <b>)
+    # and would have silently blown an owner-approved figure, which is the failure
+    # the red-team predicted for this control. Two zero-cost substitutions keep the
+    # house conventions without the elements:
+    #   - the ⚙ behavioral-flag marker is a GLYPH in the heading text, not the
+    #     _render_behavioral_flag_badge() <span> (same signal, one less element);
+    #   - the explainer lives in `title=` rather than a <p>, and the option labels
+    #     are written to be self-describing so the tooltip is a bonus, not a crutch.
+    tip = (
+        "Behavioral flag — does not gate any tool-call permission. "
+        "Serve starts the local server quietly; Open also opens a browser tab. "
+        "The port is checked first, so several sessions never stack up servers "
+        "or steal focus with a second tab."
+    )
+    return (
+        '<div class="design-checkins-bar" id="dash-autostart-bar">'
+        "<h3>⚙ Open this dashboard at session start</h3>"
+        f'<select id="dash-autostart-mode" title="{html.escape(tip)}" '
+        'aria-label="Dashboard autostart mode">'
+        "<option value=\"off\">Off — I'll launch it myself</option>"
+        '<option value="serve">Serve — start it quietly, no tab</option>'
+        '<option value="open">Open — start it and open a tab</option>'
+        "</select>"
         "</div>"
     )
 
@@ -6585,6 +6722,11 @@ _INSTALL_TAB_TEMPLATE = """
       Follow these steps in order. Every command has a <strong>Copy</strong> button &mdash; you don&rsquo;t
       need to type anything. Each step tells you what to expect <em>after</em> you run it.
       <strong>Using Claude Code instead?</strong> See the <a href="#/help">Claude&nbsp;Code</a> guide (Help).
+      Using OpenAI Codex CLI? Run the same installer with the Codex host flag &mdash;
+      &ldquo;ravenclaude install --host codex&rdquo; &mdash; which wires skills into .agents/skills and
+      hooks into .codex/hooks.json. One thing you must do there and nowhere else: Codex trusts hooks
+      by hash, so run /hooks inside Codex to trust them, and again after every update &mdash; until
+      you do they are skipped, and no banner will tell you, because the banner is itself a hook.
     </p>
 
     <h3>What is this?</h3>
@@ -7409,6 +7551,36 @@ _BIFROST_TAB_TEMPLATE = (
 # The Prompt Builder ships as a bare mount + a <noscript> pointer. The whole
 # interactive UI is built by initPromptBuilder() via createElement/textContent
 # (no HTML-string sink), so the static generated DOM stays ~4 elements (Gate 132).
+def _render_host_context_tab() -> str:
+    """Host & context (#/host-context) — MH-14 part 2.
+
+    Two things, deliberately different in kind:
+
+      1. The STATIC support matrix, inlined from knowledge/host-support.json. This
+         is the part that always works — served or on the GitHub-Pages copy, with
+         no server and no detection. It answers "does component X run on host Y,
+         and if not, why" without ever guessing about your session, so it cannot
+         be wrong about you.
+
+      2. The LIVE launch-environment reading from /__host, when served. Scoped
+         honestly: it reports the environment this SERVER was started in, not your
+         current session (a server outlives and is reused across sessions). Absent
+         or unreachable, the page still renders (1) and says so.
+
+    Lean markup on purpose — a mount, a noscript, and the payload. The matrix is
+    JS-built from the inlined JSON, so a 7x6 table costs no static elements; the
+    same trick that keeps the Prompt Builder at 4."""
+    path = REPO_ROOT / "plugins" / "ravenclaude-core" / "knowledge" / "host-support.json"
+    payload = json.dumps(json.loads(path.read_text(encoding="utf-8")), separators=(",", ":"))
+    return (
+        '<div id="hc-root" class="hc-root"></div>\n'
+        '<noscript><p>The host matrix needs JavaScript. The same data is in '
+        "<code>plugins/ravenclaude-core/knowledge/host-support.json</code>, which is the "
+        "single source of truth for which RavenClaude components run on which CLI.</p></noscript>\n"
+        f'<script type="application/json" id="host-support-payload">{payload}</script>'
+    )
+
+
 _PROMPT_BUILDER_TAB_TEMPLATE = """
 <div id="pb-root" class="pb-root"></div>
 <noscript><p class="pb-noscript">The Prompt Builder needs JavaScript. It assembles a Claude prompt from your inputs &mdash; entirely in your browser, with nothing sent anywhere.</p></noscript>
@@ -7482,6 +7654,15 @@ _JS = r"""
    * user picks off or block, preserving "absent ⇒ warn". */
   const WORKTREE_GUARD_VALUES = ["off", "warn", "block"];
   const WORKTREE_GUARD_DEFAULT = "warn";
+  /* Dashboard autostart (read by hooks/dashboard-autostart.sh). OPT-IN — default
+   * `off`, so emitYaml writes it only when the user picks serve or open,
+   * preserving "absent ⇒ off". Wired here for the same reason worktree_guard is:
+   * emitYaml rebuilds the WHOLE comfort-posture.yaml from `state`, so a key with
+   * no state slot is silently DELETED on the next Save (the v0.61.0 data-loss
+   * class). No DOM control ships with it — Gate 132's budget is at zero slack and
+   * a visible toggle costs an owner-approved ratchet raise. */
+  const DASHBOARD_AUTOSTART_VALUES = ["off", "serve", "open"];
+  const DASHBOARD_AUTOSTART_DEFAULT = "off";
   const ORCHESTRATOR_VALUES = ["off", "decide", "full"];
   const ORCHESTRATOR_DEFAULT = "full";
   const ORCHESTRATOR_SCOPE_VALUES = ["team", "all"];
@@ -7567,6 +7748,7 @@ _JS = r"""
     parallelism: Object.assign({}, PARALLELISM_DEFAULT),
     decision_review: DECISION_REVIEW_DEFAULT,
     worktree_guard: WORKTREE_GUARD_DEFAULT,
+    dashboard_autostart: DASHBOARD_AUTOSTART_DEFAULT,
     orchestrator: ORCHESTRATOR_DEFAULT,
     orchestrator_scope: ORCHESTRATOR_SCOPE_DEFAULT,
     orchestrator_zdr_confirmed: false,
@@ -7701,6 +7883,17 @@ _JS = r"""
     if (lbl) lbl.textContent = state.design_checkins ? DC_ON_LABEL : DC_OFF_LABEL;
   }
 
+  /* Dashboard autostart (behavioral flag, not a permission). Guarded against an
+     out-of-range persisted value so a hand-edited posture can never leave the
+     select showing a mode the hook will not honour. */
+  function syncDashAutostart() {
+    const sel = document.getElementById("dash-autostart-mode");
+    if (!sel) return;
+    sel.value = DASHBOARD_AUTOSTART_VALUES.includes(state.dashboard_autostart)
+      ? state.dashboard_autostart
+      : DASHBOARD_AUTOSTART_DEFAULT;
+  }
+
   /* Command-review master enable (AND-gate, not bulk-setter).
    * Syncs the checkbox + the status label beneath the master row.
    * Does NOT touch per-category `thing` values. */
@@ -7808,6 +8001,7 @@ _JS = r"""
       if (tcfg) inp.value = String(tcfg.confidence_threshold);
     });
     syncDesignCheckins();
+    syncDashAutostart();
     syncMasterEnable();
   }
   syncDomToState();
@@ -7966,6 +8160,9 @@ _JS = r"""
     if (WORKTREE_GUARD_VALUES.includes(src.worktree_guard)) {
       state.worktree_guard = src.worktree_guard; touched = true;
     }
+    if (DASHBOARD_AUTOSTART_VALUES.includes(src.dashboard_autostart)) {
+      state.dashboard_autostart = src.dashboard_autostart; touched = true;
+    }
     if (ORCHESTRATOR_VALUES.includes(src.orchestrator)) {
       state.orchestrator = src.orchestrator; touched = true;
     }
@@ -8121,6 +8318,14 @@ _JS = r"""
       lines.push("");
     }
 
+    if (DASHBOARD_AUTOSTART_VALUES.includes(state.dashboard_autostart)
+        && state.dashboard_autostart !== DASHBOARD_AUTOSTART_DEFAULT) {
+      lines.push("# Bring this dashboard up at session start (off | serve | open; default off).");
+      lines.push("# serve = start the local server headless; open = also open a browser tab.");
+      lines.push(`dashboard_autostart: ${state.dashboard_autostart}`);
+      lines.push("");
+    }
+
     if (ORCHESTRATOR_VALUES.includes(state.orchestrator)
         && state.orchestrator !== ORCHESTRATOR_DEFAULT) {
       lines.push("# Claude orchestrator for non-Claude CLIs (off | decide | full). No-op under Claude Code.");
@@ -8231,6 +8436,7 @@ _JS = r"""
         parallelism: state.parallelism,
         decision_review: state.decision_review,
         worktree_guard: state.worktree_guard,
+        dashboard_autostart: state.dashboard_autostart,
         orchestrator: state.orchestrator,
         orchestrator_scope: state.orchestrator_scope,
         orchestrator_zdr_confirmed: state.orchestrator_zdr_confirmed,
@@ -8329,6 +8535,20 @@ _JS = r"""
       dcToggle.addEventListener("change", () => {
         state.design_checkins = dcToggle.checked;
         syncDesignCheckins();
+        flagUnsaved();
+        render();
+      });
+    }
+  }
+
+  /* Dashboard autostart select (behavioral flag, not a permission) */
+  {
+    const asSel = document.getElementById("dash-autostart-mode");
+    if (asSel) {
+      asSel.addEventListener("change", () => {
+        if (!DASHBOARD_AUTOSTART_VALUES.includes(asSel.value)) return;
+        state.dashboard_autostart = asSel.value;
+        syncDashAutostart();
         flagUnsaved();
         render();
       });
@@ -9444,6 +9664,10 @@ _JS = r"""
   let streamsLoaded = false;
   let vidarrEvents = [];
   let vidarrKindFilter = "all";
+  /* Has the security-event emitter EVER written for this project? Distinguishes a
+     genuinely quiet perimeter from an unwatched one (audit MH-05). Starts false so
+     the honest state is the default and the reassuring one must be proven. */
+  let vidarrEmitterSeen = false;
   let activityRecords = [];
   /* Feed length caps (Sub-effort B "condense"): the two long, freely-growing
    * client-rendered feeds — the Run feed (/__runs, up to 200) and the Saga
@@ -9598,6 +9822,7 @@ _JS = r"""
     if (tab === "plugin-vars") activatePluginVars(sub);
     if (tab === "web-access") hydrateWebAccess();
     if (tab === "prompt-builder" && !pbLoaded) { pbLoaded = true; initPromptBuilder(); }
+    if (tab === "host-context" && !hcLoaded) { hcLoaded = true; initHostContext(); }
   }
   // Navigate: activate immediately, then reflect the page in the URL hash for
   // deep-linking + browser back/forward. (The hashchange listener re-applies on
@@ -10776,7 +11001,24 @@ _JS = r"""
     const byHook = (data && data.by_hook) || {};
     const hooks = Object.keys(byHook).sort();
     if (hooks.length === 0) {
-      host.replaceChildren(hmEmpty("No recent events — your perimeter has been quiet."));
+      /* QUIET vs UNWATCHED — do not conflate them (audit MH-05, a P0).
+         "Your perimeter has been quiet" asserts that guardrails RAN and found
+         nothing. If no hook has ever emitted here that assertion has no basis,
+         and on Codex / Cursor / Gemini / Aider / Windsurf it is the normal case:
+         no adapter wires them, so no hook can fire. Reassuring an operator that a
+         perimeter is clean when it is in fact unmonitored is the worst thing this
+         panel can do — strictly worse than saying nothing. `emitter_seen` is the
+         server's file-existence answer; absent (older server) we fall back to the
+         cautious wording rather than the flattering one. */
+      const seen = !!(data && data.emitter_seen);
+      host.replaceChildren(
+        seen
+          ? hmEmpty("No recent events — your perimeter has been quiet.")
+          : hmEmpty(
+              "No guardrail events have EVER been recorded for this project — this perimeter is UNWATCHED, not clean. " +
+                "Hooks fire under Claude Code, and under Copilot CLI via the adapter. Other hosts have no adapter yet, so nothing here can trip.",
+            ),
+      );
       return;
     }
     const frag = document.createDocumentFragment();
@@ -11208,7 +11450,18 @@ _JS = r"""
     );
     if (countEl) countEl.textContent = filtered.length ? filtered.length + " event" + (filtered.length === 1 ? "" : "s") : "";
     if (filtered.length === 0) {
-      host.replaceChildren(hmEmpty("No security events. Your perimeter has been quiet."));
+      /* Same quiet-vs-unwatched distinction as Heimdall (audit MH-05). This is the
+         SECURITY AUDIT LOG, so a false "quiet" is even less acceptable here: an
+         empty audit log that has never been written to is not evidence of safety.
+         vidarrEmitterSeen is set from the same server-side file-existence boolean. */
+      host.replaceChildren(
+        vidarrEmitterSeen
+          ? hmEmpty("No security events. Your perimeter has been quiet.")
+          : hmEmpty(
+              "This security log has never been written to — the perimeter is UNWATCHED, not clean. " +
+                "An empty audit log is not evidence of safety; it means no guardrail has ever reported here.",
+            ),
+      );
       return;
     }
     const table = document.createElement("table");
@@ -11261,6 +11514,10 @@ _JS = r"""
       if (!res.ok) throw new Error("HTTP " + res.status);
       const data = await res.json();
       vidarrEvents = (data && data.events) || [];
+      /* Defaults FALSE, and that is deliberate: an older server that does not send
+         emitter_seen must degrade to the cautious "unwatched" wording, never to the
+         reassuring "quiet" one. The flattering string has to be earned. */
+      vidarrEmitterSeen = !!(data && data.emitter_seen);
       renderVidarrTable(vidarrEvents);
     } catch (e) {
       vidarrLoaded = false; /* allow retry on next visit */
@@ -12894,6 +13151,95 @@ _JS = r"""
     return pbEl("section", { class: "pb-pane" }, [pbEl("h3", { text: "Quality" }), pbEl("div", { class: "pb-gauge-row" }, [svg, meta]), pbIssuesEl, honesty]);
   }
 
+  /* ── Host & context (#/host-context) — MH-14 part 2 ─────────────────────────
+     Built with createElement/textContent only. The matrix is UNTRUSTED-INPUT-FREE
+     (it is our own committed JSON) but the same no-HTML-string-sink discipline as
+     the Prompt Builder applies: a payload is still a payload. */
+  let hcLoaded = false;
+  function hcEl(tag, cls, text) {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  }
+  function initHostContext() {
+    const root = document.getElementById("hc-root");
+    if (!root) return;
+    let data = null;
+    try {
+      const node = document.getElementById("host-support-payload");
+      data = node ? JSON.parse(node.textContent) : null;
+    } catch (e) {
+      data = null;
+    }
+    root.replaceChildren();
+
+    /* 1 — the LIVE reading. Rendered first but treated as the LESS reliable of the
+       two: it needs a server, and it describes the server's launch environment
+       rather than the visitor's session. Absent, the page is still fully useful. */
+    const live = hcEl("div", "hc-live");
+    live.appendChild(hcEl("h3", null, "This dashboard server"));
+    const liveBody = hcEl("p", "hc-live-body", "Checking…");
+    live.appendChild(liveBody);
+    root.appendChild(live);
+
+    fetchT("/__host")
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error("HTTP " + r.status))))
+      .then((h) => {
+        const wired = Object.keys(h.env_present || {}).filter((k) => h.env_present[k]);
+        liveBody.textContent =
+          (h.host
+            ? "Launched from: " + h.host + " (" + (h.basis || "") + ")."
+            : "Cannot determine which CLI launched this server — no positive signal. That is an honest unknown, not a problem.") +
+          " Started " + (h.started_at || "unknown") + ". " + (h.note || "") +
+          (wired.length ? " Wiring variables present: " + wired.join(", ") + "." : " No RavenClaude wiring variables are set in this server's environment.");
+      })
+      .catch(() => {
+        liveBody.textContent =
+          "No live reading — this page is not being served by the dashboard server (or it is unreachable). " +
+          "The matrix below is static and remains accurate.";
+      });
+
+    /* 2 — the STATIC matrix. Always renders. */
+    if (!data || !data.components) {
+      root.appendChild(hcEl("p", null, "The host-support matrix payload is missing from this build."));
+      return;
+    }
+    const hostIds = Object.keys(data.hosts);
+    const intro = hcEl("p", "hc-intro",
+      "Which RavenClaude components actually run on which CLI. “Supported” means it runs TODAY as wired by " +
+      "`ravenclaude install` — not that the host is capable in principle. Where it is not supported, the reason is given.");
+    root.appendChild(intro);
+
+    const table = hcEl("table", "hc-table");
+    const thead = hcEl("thead");
+    const hrow = hcEl("tr");
+    hrow.appendChild(hcEl("th", null, "Component"));
+    hostIds.forEach((h) => hrow.appendChild(hcEl("th", null, data.hosts[h].label)));
+    thead.appendChild(hrow);
+    table.appendChild(thead);
+    const tbody = hcEl("tbody");
+    Object.keys(data.components).forEach((cn) => {
+      const comp = data.components[cn];
+      const tr = hcEl("tr");
+      const th = hcEl("th", null, cn.replace(/_/g, " "));
+      if (comp.what) th.title = comp.what;
+      tr.appendChild(th);
+      hostIds.forEach((h) => {
+        const cell = comp[h] || {};
+        const td = hcEl("td", cell.supported ? "hc-yes" : "hc-no", cell.supported ? "yes" : "no");
+        td.title = cell.supported ? (cell.how || "supported") : (cell.blocked_by || "not supported");
+        tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    root.appendChild(table);
+    root.appendChild(hcEl("p", "hc-src",
+      "Source: knowledge/host-support.json (updated " + (data.updated || "?") +
+      "). Hover any cell for the reason. Every claim carries a basis: verified / docs-verified / inferred."));
+  }
+
   function initPromptBuilder() {
     pbRoot = document.getElementById("pb-root");
     if (!pbRoot || pbRoot.getAttribute("data-pb-ready") === "1") return;
@@ -13333,6 +13679,7 @@ _PAGE_TEMPLATE = """<!doctype html>
     <div class="ds-group">
       <div class="ds-label">Control</div>
       <a class="ds-sub" href="#/prompt-builder" data-tab="prompt-builder">Prompt Builder</a>
+      <a class="ds-sub" href="#/host-context" data-tab="host-context">Host &amp; context</a>
       <a class="ds-sub" href="#/settings" data-tab="settings">The Thing</a>
       <a class="ds-sub" href="#/pipeline" data-tab="pipeline">Pipeline</a>
       <a class="ds-sub" href="#/web-access" data-tab="web-access">Web access</a>
@@ -13367,6 +13714,7 @@ _PAGE_TEMPLATE = """<!doctype html>
   </div>
   <nav class="tab-bar" aria-label="Dashboard sections">
     <button class="tab-btn" type="button" id="tab-prompt-builder" data-tab="prompt-builder" aria-selected="false" title="Prompt Builder — assemble a best-practice Claude prompt with a live quality score">Prompt Builder</button>
+    <button class="tab-btn" type="button" id="tab-host-context" data-tab="host-context" aria-selected="false" title="Host &amp; context — which CLI launched this server, and which RavenClaude components run on which host">Host &amp; context</button>
     <button class="tab-btn" type="button" id="tab-settings" data-tab="settings" aria-selected="true" title="The Thing — comfort-posture + command-review; choose what Claude can do on its own (deny / ask / allow)">The Thing</button>
     <button class="tab-btn" type="button" id="tab-pipeline" data-tab="pipeline" aria-selected="false" title="Pipeline — the safety checks every command passes through">Pipeline</button>
     <button class="tab-btn" type="button" id="tab-web-access" data-tab="web-access" aria-selected="false" title="Web access — allow/deny which websites the agent may fetch">Web access</button>
@@ -13477,6 +13825,9 @@ _PAGE_TEMPLATE = """<!doctype html>
   </section>
   <section class="tab-panel" id="panel-prompt-builder" data-tab="prompt-builder" role="tabpanel" aria-label="Prompt Builder">
 {prompt_builder_html}
+  </section>
+  <section class="tab-panel" id="panel-host-context" data-tab="host-context" role="tabpanel" aria-label="Host and context">
+{host_context_html}
   </section>
 {plugins_panels}
 </main>

@@ -15,8 +15,8 @@ Design discipline (matches the rest of the marketplace)
   inline SVG; interactivity (sort / filter / drill-down) is vanilla JS over an
   embedded copy of the data. Works by double-clicking the file.
 - **Shared design tokens.** Inlines plugins/ravenclaude-core/dashboard-assets/
-  shared-tokens.css at generate-time (teal accent — a consumer-facing surface),
-  so the report matches index.html.
+  shared-tokens.css at generate-time (the commerce green accent — a
+  consumer-facing surface), so the report matches index.html and the site.
 - **Static-first.** Every chart and the table render server-side (in Python) so
   the report is readable with JS disabled; JS only enhances sort/filter/drill.
 - **Plain language (≈5th-grade).** Labels lead with the everyday phrase; the
@@ -63,8 +63,12 @@ def esc(s) -> str:
 # shared tokens, so it wins. Values are validated to a safe colour grammar so a
 # data file can never inject arbitrary CSS.
 _THEME_MAP = {
-    "accent": "--rc-teal",
-    "accentSoft": "--rc-teal-soft",
+    # These MUST track whatever :root maps --accent to (2026-07-28: --rc-accent,
+    # the commerce green). If they drift back to --rc-teal the consumer override
+    # silently no-ops: data.json still validates, the CSS still emits, and the
+    # report just ignores it — the worst failure shape for a customisation hook.
+    "accent": "--rc-accent",
+    "accentSoft": "--rc-accent-soft",
     "bg": "--rc-bg",
     "surface": "--rc-surface",
     "surface2": "--rc-surface-2",
@@ -192,11 +196,11 @@ def svg_line(values, labels, w=620, h=180) -> str:
         out.append(
             f'<text x="{pad_l - 6}" y="{gy + 4:.1f}" text-anchor="end" font-size="10" fill="var(--rc-faint)">{gv}</text>'
         )
-    out.append(f'<polygon points="{area}" fill="var(--rc-teal)" opacity="0.10"/>')
+    out.append(f'<polygon points="{area}" fill="var(--accent)" opacity="0.10"/>')
     out.append(
-        f'<polyline points="{pts}" fill="none" stroke="var(--rc-teal)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>'
+        f'<polyline points="{pts}" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>'
     )
-    out.append(f'<circle cx="{xs[-1]:.1f}" cy="{ys[-1]:.1f}" r="4.5" fill="var(--rc-teal)"/>')
+    out.append(f'<circle cx="{xs[-1]:.1f}" cy="{ys[-1]:.1f}" r="4.5" fill="var(--accent)"/>')
     # first + last x labels
     out.append(
         f'<text x="{xs[0]:.1f}" y="{h - 8}" text-anchor="start" font-size="10" fill="var(--rc-faint)">{esc(labels[0])}</text>'
@@ -279,13 +283,13 @@ def svg_cohort(partners, cohort) -> str:
         f'<rect x="{pad_l}" y="{track_y - 4}" width="{iw}" height="8" rx="4" fill="var(--rc-border)"/>'
     )
     out.append(
-        f'<rect x="{x(p25):.1f}" y="{track_y - 9}" width="{x(p75) - x(p25):.1f}" height="18" rx="6" fill="var(--rc-teal)" opacity="0.16"/>'
+        f'<rect x="{x(p25):.1f}" y="{track_y - 9}" width="{x(p75) - x(p25):.1f}" height="18" rx="6" fill="var(--accent)" opacity="0.16"/>'
     )
     out.append(
-        f'<line x1="{x(med):.1f}" y1="{track_y - 14}" x2="{x(med):.1f}" y2="{track_y + 14}" stroke="var(--rc-teal)" stroke-width="2"/>'
+        f'<line x1="{x(med):.1f}" y1="{track_y - 14}" x2="{x(med):.1f}" y2="{track_y + 14}" stroke="var(--accent)" stroke-width="2"/>'
     )
     out.append(
-        f'<text x="{x(med):.1f}" y="{track_y - 18}" text-anchor="middle" font-size="10" fill="var(--rc-teal)">peer middle ({med})</text>'
+        f'<text x="{x(med):.1f}" y="{track_y - 18}" text-anchor="middle" font-size="10" fill="var(--accent)">peer middle ({med})</text>'
     )
     for p in partners:
         out.append(
@@ -306,7 +310,7 @@ REPORT_CSS = """
   --bg: var(--rc-bg); --surface: var(--rc-surface); --surface-2: var(--rc-surface-2);
   --border: var(--rc-border); --border-strong: var(--rc-border-strong);
   --text: var(--rc-text); --muted: var(--rc-muted); --faint: var(--rc-faint);
-  --accent: var(--rc-teal); --font-sans: var(--rc-font-sans); --font-mono: var(--rc-font-mono);
+  --accent: var(--rc-accent); --font-sans: var(--rc-font-sans); --font-mono: var(--rc-font-mono);
 }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--font-sans);
@@ -735,16 +739,32 @@ _COLOR = {
     "amber": "var(--rc-warn)",
     "danger": "var(--rc-danger)",
     "red": "var(--rc-danger)",
-    "teal": "var(--rc-teal)",
-    "accent": "var(--rc-teal)",
-    "gold": "var(--rc-gold)",
+    # 2026-07-28: the report moved onto the commerce GREEN with the rest of the
+    # estate. Two traps had to be avoided while doing it, both about SERIES
+    # distinguishability rather than brand:
+    #   1. `--rc-gold` is an ALIAS of `--rc-accent` (shared-tokens.css:90), so
+    #      naively pointing "accent" at green would have made "accent" and "gold"
+    #      render PIXEL-IDENTICAL — two series the reader cannot tell apart.
+    #      "gold" now takes the commerce copper tint, which is also far closer to
+    #      what the name ever meant.
+    #   2. `--rc-ok` (#4ade80) is itself a mid-green, so the signature accent and
+    #      the success colour sit close. Status names (ok/warn/danger) are kept on
+    #      their own tokens and OUT of the categorical set below, so a green series
+    #      is never mistaken for a green verdict.
+    # The three tints are the commerce site's own capability palette, so a series
+    # colour means the same thing here as it does on the website.
+    "teal": "var(--rc-tint-bi)",  # kept as a NAME, remapped to the mint tint
+    "accent": "var(--rc-accent)",  # the signature green
+    "gold": "var(--rc-tint-web)",  # copper — was an alias of accent (collision)
+    "lavender": "var(--rc-tint-pp)",
+    "mint": "var(--rc-tint-bi)",
     "muted": "var(--rc-faint)",
     "neutral": "var(--rc-faint)",
 }
 
 
 def color_of(c: str) -> str:
-    return _COLOR.get(c, c or "var(--rc-teal)")
+    return _COLOR.get(c, c or "var(--rc-accent)")
 
 
 def _render_kpis(kpis) -> str:
@@ -894,13 +914,13 @@ def svg_range2(cfg) -> str:
         f'<rect x="{pad}" y="{ty - 4}" width="{iw}" height="8" rx="4" fill="var(--rc-border)"/>'
     )
     out.append(
-        f'<rect x="{x(band[0]):.1f}" y="{ty - 9}" width="{x(band[1]) - x(band[0]):.1f}" height="18" rx="6" fill="var(--rc-teal)" opacity="0.16"/>'
+        f'<rect x="{x(band[0]):.1f}" y="{ty - 9}" width="{x(band[1]) - x(band[0]):.1f}" height="18" rx="6" fill="var(--accent)" opacity="0.16"/>'
     )
     out.append(
-        f'<line x1="{x(marker):.1f}" y1="{ty - 14}" x2="{x(marker):.1f}" y2="{ty + 14}" stroke="var(--rc-teal)" stroke-width="2"/>'
+        f'<line x1="{x(marker):.1f}" y1="{ty - 14}" x2="{x(marker):.1f}" y2="{ty + 14}" stroke="var(--accent)" stroke-width="2"/>'
     )
     out.append(
-        f'<text x="{x(marker):.1f}" y="{ty - 18}" text-anchor="middle" font-size="10" fill="var(--rc-teal)">{esc(cfg.get("markerLabel", "middle"))}</text>'
+        f'<text x="{x(marker):.1f}" y="{ty - 18}" text-anchor="middle" font-size="10" fill="var(--accent)">{esc(cfg.get("markerLabel", "middle"))}</text>'
     )
     for p in cfg.get("points", []):
         out.append(

@@ -226,11 +226,37 @@ loaded.renderGjallarhorn("grey");
 ok(banner.className.includes("gjallarhorn--grey"), "grey: banner carries --grey");
 ok(banner.getAttribute("aria-live") === "polite", "grey tier: aria-live=polite");
 
-/* Case 4: empty → banner hidden + quiet empty state */
-loaded.renderHookEvents({ by_hook: {}, total: 0, gjallarhorn_tier: null });
+/* Case 4: empty → banner hidden, and the empty state must distinguish
+   QUIET from UNWATCHED (audit MH-05). Empty-with-emitter means guardrails ran
+   and found nothing; empty-without means nothing has ever reported here — which
+   is the normal state on every host with no adapter. Telling an operator their
+   perimeter is clean when it is merely unmonitored is the worst thing this panel
+   can do, so both branches are asserted, not just the flattering one. */
+loaded.renderHookEvents({ by_hook: {}, total: 0, gjallarhorn_tier: null, emitter_seen: true });
 loaded.renderGjallarhorn(null);
 ok(banner.hidden === true, "empty: banner is hidden");
-ok(hookHost.flatText().toLowerCase().includes("quiet"), "empty: 'quiet' empty state shown");
+ok(
+  hookHost.flatText().toLowerCase().includes("quiet"),
+  "empty + emitter seen: 'quiet' empty state shown",
+);
+
+loaded.renderHookEvents({ by_hook: {}, total: 0, gjallarhorn_tier: null, emitter_seen: false });
+ok(
+  hookHost.flatText().toLowerCase().includes("unwatched"),
+  "empty + emitter NEVER seen: 'UNWATCHED' state shown, not 'quiet'",
+);
+ok(
+  !hookHost.flatText().toLowerCase().includes("has been quiet"),
+  "empty + emitter NEVER seen: must NOT claim the perimeter has been quiet",
+);
+
+/* Degradation: an older server omits emitter_seen entirely. The cautious wording
+   must win — the reassuring one has to be earned, never defaulted to. */
+loaded.renderHookEvents({ by_hook: {}, total: 0, gjallarhorn_tier: null });
+ok(
+  hookHost.flatText().toLowerCase().includes("unwatched"),
+  "empty + emitter_seen ABSENT: degrades to UNWATCHED, not to 'quiet'",
+);
 
 /* Case 5: version drift → DRIFT row + caption; clean → in-sync caption */
 loaded.renderVersionDrift([

@@ -1,0 +1,269 @@
+{
+  "_note": "MH-21 — the single source of truth for WHICH RAVENCLAUDE COMPONENTS ACTUALLY WORK ON WHICH HOST. Created 2026-07-28 by the multi-host audit. Before this file, every surface that needed the answer either hardcoded it (generate-dashboards.py's _HOOK_CAPABLE_HOSTS) or, more often, silently assumed 'everywhere' — which is how the Pipeline tab came to imply guardrails on hosts that run none, and how Heimdall came to report an unwatched perimeter as clean. A per-component annotation would have been ~20 copies of the same few facts, each free to rot independently; ONE map keeps them honest together.",
+  "_contract": "`supported` is a claim about whether the component RUNS on that host today, in this repo, as wired by `scripts/ravenclaude`. It is NOT a claim about whether the host is capable in principle — a host can speak a contract perfectly and still be unsupported here because nothing wires it, in which case `supported` is false and `blocked_by` says exactly that. Codex WAS this file's worked example of that distinction until 2026-07-28, when `--host codex` shipped and flipped its hooks + skills cells to true; Cursor is the current example. When a host gains an install path, update this file; do not add a second list somewhere else.",
+  "_provenance": "verified = confirmed in-repo this session by a visible tool call. docs-verified = read from the host's own documentation this session, url given. inferred = neither; MUST be verified before anything is built on it.",
+  "schema_version": 1,
+  "updated": "2026-07-28",
+  "hosts": {
+    "claude-code": {
+      "label": "Claude Code",
+      "native": true
+    },
+    "copilot": {
+      "label": "GitHub Copilot CLI",
+      "native": false
+    },
+    "codex": {
+      "label": "OpenAI Codex CLI",
+      "native": false
+    },
+    "cursor": {
+      "label": "Cursor",
+      "native": false
+    },
+    "gemini": {
+      "label": "Gemini CLI",
+      "native": false
+    },
+    "aider": {
+      "label": "Aider",
+      "native": false
+    },
+    "windsurf": {
+      "label": "Windsurf / Devin Desktop",
+      "native": false
+    }
+  },
+  "components": {
+    "hooks": {
+      "what": "PreToolUse / SessionStart / Stop guardrails — the tribunal, guard-destructive, runaway brake, layout gate, dod gate.",
+      "claude-code": {
+        "supported": true,
+        "how": "reads plugins/*/hooks/hooks.json natively",
+        "basis": "verified"
+      },
+      "copilot": {
+        "supported": true,
+        "how": "repo-level .github/hooks, wired by `ravenclaude install`, envelope translated by hooks/copilot-hook-adapter.sh",
+        "caveat": "PLUGIN-level hooks never fire (github/copilot-cli#2540), which is why they ship repo-level. Tool-name VALUES are lowercase and are normalised in the adapter (f55039ec) — before that fix the tribunal and web guard were silent no-ops.",
+        "basis": "verified + docs-verified (https://docs.github.com/en/copilot/concepts/agents/hooks)"
+      },
+      "codex": {
+        "supported": true,
+        "how": "`ravenclaude install --host codex` writes <project>/.codex/hooks.json in the CLAUDE-shaped schema, each entry wrapped through hooks/codex-hook-env.sh. NO envelope adapter: Codex speaks the Claude contract natively (identical PascalCase events, identical stdin fields, identical exit-2 blocking, identical PascalCase tool-name VALUES). The shim's ONLY job is lifting cwd/session_id from the stdin payload into CLAUDE_PROJECT_DIR/CLAUDE_SESSION_ID, which Codex does not supply.",
+        "caveat": "HASH-TRUST (MH-17): Codex tracks hook trust by hash, so any change to a hook script marks it for review and SKIPS it until the user re-trusts via /hooks. Because this repo's update model is `git pull`, the steady state for an un-warned user is guardrails silently off after every update — and no banner says so, because the SessionStart banner is itself a hook. The installer and `ravenclaude update` both print the re-trust notice; `requirements.toml` managed hooks are the only unattended-survival configuration.",
+        "note": "CLAUDE_PLUGIN_ROOT and CLAUDE_PLUGIN_DATA ARE supplied by Codex as legacy-compatibility names — an earlier claim in this repo that they were not was wrong and is corrected in knowledge/codex-cli-customization.md. NOTE that _portable.sh's _rc_host_env fallbacks (CODEX_PROJECT_ROOT/SESSION_ID) are speculative names NOT in Codex's documented environment; the shim, not the alias, is what actually closes the gap.",
+        "basis": "verified 2026-07-28 (installer wires it end-to-end; Gate 155 proves the shim's invariants) + docs-verified (https://learn.chatgpt.com/docs/hooks)"
+      },
+      "cursor": {
+        "supported": false,
+        "blocked_by": "no adapter and no install path. Cursor reportedly has its own hooks API (.cursor/hooks.json); unverified.",
+        "basis": "verified (absence in-repo); the Cursor hooks API itself is inferred"
+      },
+      "gemini": {
+        "supported": false,
+        "blocked_by": "no adapter, no install path",
+        "basis": "verified"
+      },
+      "aider": {
+        "supported": false,
+        "blocked_by": "no adapter, no install path",
+        "basis": "verified"
+      },
+      "windsurf": {
+        "supported": false,
+        "blocked_by": "no adapter, no install path",
+        "basis": "verified"
+      }
+    },
+    "skills": {
+      "what": "Agent Skills under .claude/skills — spawn-team, forge, thing, wireframe, and the rest.",
+      "claude-code": {
+        "supported": true,
+        "how": "reads .claude/skills",
+        "basis": "verified"
+      },
+      "copilot": {
+        "supported": true,
+        "how": "reads .claude/skills live; symlinked by `ravenclaude install`",
+        "basis": "verified"
+      },
+      "codex": {
+        "supported": true,
+        "how": "`ravenclaude install --host codex` symlinks all 50 skills into <project>/.agents/skills/. Codex scans .agents/skills in EVERY directory from cwd up to the repo root, then $HOME/.agents/skills, then /etc/codex/skills, then bundled. SKILL.md needs name+description frontmatter — the same shape as .claude/skills — so the existing skills project across unchanged, with no per-host rewriting.",
+        "caveat": "NOT `.claude/skills` — that is Copilot's and Claude's read path. Wiring a Codex user there is exactly how `ravenclaude setup` used to complete 'successfully' while wiring zero skills into their host (MH-07).",
+        "basis": "docs-verified 2026-07-28 (https://learn.chatgpt.com/docs/build-skills) + verified (installer wires it; 50 skills confirmed in a scratch install). NOTE: multiple third-party guides claim `.codex/skills`; the primary source says `.agents/skills`. Trust this row, not a blog."
+      },
+      "cursor": {
+        "supported": false,
+        "blocked_by": "no skills mechanism wired",
+        "basis": "verified"
+      },
+      "gemini": {
+        "supported": false,
+        "blocked_by": "no skills mechanism wired",
+        "basis": "verified"
+      },
+      "aider": {
+        "supported": false,
+        "blocked_by": "no skills mechanism wired",
+        "basis": "verified"
+      },
+      "windsurf": {
+        "supported": false,
+        "blocked_by": "no skills mechanism wired",
+        "basis": "verified"
+      }
+    },
+    "slash_commands": {
+      "what": "/forge, /dashboard, /wrap, /set-posture, /wireframe, /stream, /reset-plugin-cache.",
+      "claude-code": {
+        "supported": true,
+        "basis": "verified"
+      },
+      "copilot": {
+        "supported": false,
+        "blocked_by": "Copilot CLI has no user slash commands; these are documented shell invocations instead. `rc` is the front door.",
+        "basis": "verified (plugin CLAUDE.md states this)"
+      },
+      "codex": {
+        "supported": false,
+        "blocked_by": "no slash-command surface wired",
+        "basis": "verified"
+      },
+      "cursor": {
+        "supported": false,
+        "blocked_by": "no slash-command surface wired for this host",
+        "basis": "verified"
+      },
+      "gemini": {
+        "supported": false,
+        "blocked_by": "no slash-command surface wired for this host",
+        "basis": "verified"
+      },
+      "aider": {
+        "supported": false,
+        "blocked_by": "no slash-command surface wired for this host",
+        "basis": "verified"
+      },
+      "windsurf": {
+        "supported": false,
+        "blocked_by": "no slash-command surface wired for this host",
+        "basis": "verified"
+      }
+    },
+    "agents": {
+      "what": "The 15 specialist subagents.",
+      "claude-code": {
+        "supported": true,
+        "basis": "verified"
+      },
+      "copilot": {
+        "supported": true,
+        "how": "generated projection at plugins/ravenclaude-core/copilot/agents/*.agent.md",
+        "caveat": "SECURITY GAP — the least-privilege `tools:` allowlist is DROPPED in projection, and a Copilot agent has ALL tools by default (a `tools` spec only restricts). security-reviewer, canonically Read/Grep/Glob/Bash/WebFetch with Write/Edit withheld, can write. Not fixed because Copilot's complete tool vocabulary is unpublished; see the KNOWN GAP block in copilot/README.md.",
+        "basis": "verified"
+      },
+      "codex": {
+        "supported": false,
+        "blocked_by": "no generated Codex projection exists",
+        "basis": "verified"
+      },
+      "cursor": {
+        "supported": false,
+        "blocked_by": "no generated agent projection exists for this host",
+        "basis": "verified"
+      },
+      "gemini": {
+        "supported": false,
+        "blocked_by": "no generated agent projection exists for this host",
+        "basis": "verified"
+      },
+      "aider": {
+        "supported": false,
+        "blocked_by": "no generated agent projection exists for this host",
+        "basis": "verified"
+      },
+      "windsurf": {
+        "supported": false,
+        "blocked_by": "no generated agent projection exists for this host",
+        "basis": "verified"
+      }
+    },
+    "monitors": {
+      "what": "The reactive run-state monitor (push complement to the pull dashboards).",
+      "claude-code": {
+        "supported": true,
+        "basis": "verified"
+      },
+      "copilot": {
+        "supported": false,
+        "blocked_by": "Copilot CLI has no monitors component",
+        "basis": "verified (plugin CLAUDE.md states this)"
+      },
+      "codex": {
+        "supported": false,
+        "blocked_by": "no monitors component wired",
+        "basis": "verified"
+      },
+      "cursor": {
+        "supported": false,
+        "blocked_by": "no monitors component wired for this host",
+        "basis": "verified"
+      },
+      "gemini": {
+        "supported": false,
+        "blocked_by": "no monitors component wired for this host",
+        "basis": "verified"
+      },
+      "aider": {
+        "supported": false,
+        "blocked_by": "no monitors component wired for this host",
+        "basis": "verified"
+      },
+      "windsurf": {
+        "supported": false,
+        "blocked_by": "no monitors component wired for this host",
+        "basis": "verified"
+      }
+    },
+    "instruction_files": {
+      "what": "Does the host automatically read AGENTS.md (the cross-tool discipline)?",
+      "claude-code": {
+        "supported": true,
+        "how": "CLAUDE.md @-imports AGENTS.md",
+        "basis": "verified"
+      },
+      "copilot": {
+        "supported": true,
+        "how": "reads AGENTS.md natively, but only from the USER's repo — `ravenclaude install` now writes .github/copilot-instructions.md pointing at the projected copy (3486637e)",
+        "basis": "verified + docs-verified"
+      },
+      "codex": {
+        "supported": true,
+        "how": "reads AGENTS.md from the repo root",
+        "basis": "docs-verified"
+      },
+      "cursor": {
+        "supported": false,
+        "blocked_by": "Cursor's documented mechanism is .cursor/rules/*.mdc; AGENTS.md auto-load is unconfirmed",
+        "basis": "inferred — do not rely on it"
+      },
+      "gemini": {
+        "supported": false,
+        "blocked_by": "reads GEMINI.md; this repo provides none",
+        "basis": "verified"
+      },
+      "aider": {
+        "supported": false,
+        "blocked_by": "Aider documents CONVENTIONS.md, loaded ONLY on explicit opt-in (--read / .aider.conf.yml). AGENTS.md is not mentioned in its docs at all. AGENTS.md:3 previously claimed otherwise; corrected in a5d7e4bf.",
+        "basis": "docs-verified (https://aider.chat/docs/usage/conventions.html)"
+      },
+      "windsurf": {
+        "supported": false,
+        "blocked_by": "unverified, and the product was reportedly renamed to Devin Desktop (2026-06-02)",
+        "basis": "inferred"
+      }
+    }
+  }
+}

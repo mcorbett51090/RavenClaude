@@ -56,7 +56,7 @@ const RC_BASELINE = {
   skills: 50,
   tools: 18,
   scenarios: 4,
-  hooks: 24,
+  hooks: 25, // 24 -> 25: hooks/dashboard-autostart.sh (v0.216.0, opt-in dashboard autostart)
   rules: 5,
   templates: 23,
   practices: 38,

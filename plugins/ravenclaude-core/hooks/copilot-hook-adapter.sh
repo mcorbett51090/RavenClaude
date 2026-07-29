@@ -62,11 +62,58 @@ sid="$(printf '%s' "$payload" | jq -r '.sessionId // .session_id // empty' 2>/de
 case "$mode" in
   bash-pretool)
     # Copilot toolArgs is a JSON STRING; parse it, then re-shape to Claude stdin.
+    #
+    # TOOL-NAME NORMALISATION (added 2026-07-28 — this was a silent P0).
+    # The envelope was translated but the tool-name VALUE was passed through
+    # verbatim, and Copilot's vocabulary is not Claude's: GitHub documents its
+    # tools as lowercase `bash` / `edit` / `view`
+    # (docs.github.com/en/copilot/concepts/agents/hooks, retrieved 2026-07-28:
+    # "before the agent uses any tool (such as `bash`, `edit`, `view`)").
+    # thing-orchestrator.sh:113-116 dispatches on a CASE-SENSITIVE
+    # `Bash | Read | Write | Edit | MultiEdit | WebFetch | WebSearch | mcp__*`
+    # and falls to `*) exit 0` — "no decision, proceed". So under Copilot the
+    # command-review tribunal AND guard-web-access.sh were complete, silent
+    # no-ops: the flagship guardrails looked wired and reviewed nothing.
+    #
+    # The old `// "Bash"` default was wrong in BOTH directions — an ABSENT name
+    # was reviewed as Bash, while a PRESENT lowercase name was skipped. Now an
+    # absent name maps to "" and is handled by the unmapped branch below.
+    #
+    # SOURCING, stated honestly: `bash`/`edit`/`view` are docs-verified above.
+    # `create`, `str_replace`, `web_fetch`, `web_search` are NOT — GitHub's page
+    # gives only that partial "such as" list, so they are mapped defensively on
+    # the same lowercase convention and marked here so a future editor knows
+    # which lines rest on a source and which do not.
     claude_stdin="$(printf '%s' "$payload" | jq -c \
-      '{tool_name: (.toolName // .tool_name // "Bash"),
-        tool_input: ((.toolArgs // "{}") | (try fromjson catch {command: .})),
-        cwd: (.cwd // .workspaceRoot // "."),
-        session_id: (.sessionId // .session_id // "")}' 2>/dev/null)"
+      '(.toolName // .tool_name // "") as $raw
+       | ($raw | ascii_downcase) as $lc
+       | {
+           bash: "Bash", shell: "Bash",
+           view: "Read", read: "Read",
+           create: "Write", write: "Write",
+           edit: "Edit", str_replace: "Edit", multiedit: "MultiEdit",
+           web_fetch: "WebFetch", webfetch: "WebFetch",
+           web_search: "WebSearch", websearch: "WebSearch"
+         } as $map
+       | {tool_name: ($map[$lc] // $raw),
+          tool_input: ((.toolArgs // "{}") | (try fromjson catch {command: .})),
+          cwd: (.cwd // .workspaceRoot // "."),
+          session_id: (.sessionId // .session_id // "")}' 2>/dev/null)"
+    # An unmapped tool name still passes through UNCHANGED (behaviour preserved
+    # for anything not in the map) but must not be silent: a name we cannot map
+    # is precisely the gap that hid this P0 for so long. Record it so the blind
+    # spot is visible in the event substrate instead of being invisible.
+    _rawname="$(printf '%s' "$payload" | jq -r '.toolName // .tool_name // ""' 2>/dev/null)"
+    _mapped="$(printf '%s' "$claude_stdin" | jq -r '.tool_name // ""' 2>/dev/null)"
+    if [ -n "$_rawname" ] && [ "$_rawname" = "$_mapped" ] && ! printf '%s' "$_rawname" | grep -q '^mcp__'; then
+      case "$_rawname" in
+        Bash | Read | Write | Edit | MultiEdit | WebFetch | WebSearch) ;;
+        *)
+          printf 'RavenClaude: unmapped Copilot tool name %s — review shapes may not apply. Add it to the adapter map.\n' \
+            "$_rawname" >&2
+          ;;
+      esac
+    fi
     # (e) Signal to downstream hooks (PR B: per-seat cap raise) that we are running under Copilot.
     export THING_HOST=copilot
     # (a) Capture stderr separately so the real hook's deny reason is not swallowed.

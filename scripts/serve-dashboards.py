@@ -43,6 +43,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import datetime as _dt_mod  # aliased: the other datetime uses are function-local
 import errno
 import hmac
 import json
@@ -457,11 +458,21 @@ def _read_hook_events(runs_dir: Path, days: int = 30, per_hook: int = 10) -> dic
             enriched["tier"] = tier
             bucket.append(enriched)
 
+    # "quiet" and "unwatched" are NOT the same state, and conflating them made a
+    # SECURITY panel reassure an operator it had no basis to reassure (audit MH-05).
+    # An empty by_hook can mean either "hooks ran and nothing tripped" (genuinely
+    # quiet) or "no hook has EVER emitted here" — which on Codex/Cursor/Gemini/
+    # Aider/Windsurf is the normal case, because no adapter wires them at all.
+    # `emitter_seen` is the file-existence boolean that tells them apart: has the
+    # emitter ever written a hook-events.jsonl for this project? The client renders
+    # the honest empty state from it rather than defaulting to the flattering one.
+    emitter_seen = bool(runs_dir.is_dir() and any(runs_dir.glob("*/hook-events.jsonl")))
     return {
         "by_hook": by_hook,
         "total": len(rows),
         "gjallarhorn_tier": top,
         "window_days": days,
+        "emitter_seen": emitter_seen,
     }
 
 
@@ -564,10 +575,20 @@ def _read_vidarr_events(runs_dir: Path, posture_log: Path, days: int = 30) -> di
                 )
 
     events.sort(key=lambda e: e.get("ts", ""), reverse=True)
+    # Same quiet-vs-unwatched contract as Heimdall (audit MH-05). Vidarr draws on
+    # TWO sources, so "never written" means neither has produced a file: no
+    # hook-events.jsonl anywhere under runs/, AND no posture-events.jsonl. If both
+    # are absent this audit log has never been written to — and an empty audit log
+    # is not evidence of safety, which matters more here than anywhere else.
+    emitter_seen = bool(
+        (runs_dir.is_dir() and any(runs_dir.glob("*/hook-events.jsonl")))
+        or posture_log.exists()
+    )
     return {
         "events": events,
         "total": len(events),
         "window_days": days,
+        "emitter_seen": emitter_seen,
     }
 
 
@@ -1190,7 +1211,15 @@ def _read_mimir(project_root, claude_home) -> dict:
         first_perm_mode = None
         for ev in newest_events:
             if ev.get("type") == "assistant":
-                m = ev.get("model")
+                # Claude Code NESTS model/usage under ev["message"]; the top-level
+                # read returned None on every assistant event (measured 2026-07-28:
+                # 0/6060 top-level vs 6060/6060 nested on a real 116 MB transcript),
+                # so "last used model" was permanently blank. Read nested FIRST,
+                # keep the flat read as a fallback for any other producer.
+                msg = ev.get("message")
+                m = msg.get("model") if isinstance(msg, dict) else None
+                if not isinstance(m, str):
+                    m = ev.get("model")
                 if isinstance(m, str):
                     last_model = m  # overwrite — keep newest seen in scanned slice
             if first_perm_mode is None and ev.get("type") == "permission-mode":
@@ -1225,7 +1254,12 @@ def _read_mimir(project_root, claude_home) -> dict:
             t = ev.get("type")
             if t == "assistant":
                 event_count += 1
-                usage = ev.get("usage")
+                # Same nesting as model above — this is why every session row
+                # reported 0 output tokens regardless of actual spend.
+                _msg = ev.get("message")
+                usage = _msg.get("usage") if isinstance(_msg, dict) else None
+                if not isinstance(usage, dict):
+                    usage = ev.get("usage")
                 if isinstance(usage, dict):
                     ot = usage.get("output_tokens")
                     if isinstance(ot, int):
@@ -1382,6 +1416,77 @@ def _read_worktree_guard(project_root: Path) -> dict | None:
     except json.JSONDecodeError:
         return None
     return data if isinstance(data, dict) else None
+
+
+# ── /__host — which CLI launched this dashboard, and what is wired ───────────
+# Multi-host audit MH-14. Two hard rules, both from the red-team:
+#
+# 1. LEAK-SAFE BY CONSTRUCTION. The probe list below is a CLOSED LITERAL of env
+#    var NAMES. It never iterates os.environ, so a variable we did not name can
+#    never reach a browser page — the page is screenshot-shareable, unlike the
+#    agent-context capability banner that set the precedent. Only PRESENCE
+#    booleans are emitted, never values, and never a filesystem path.
+#
+# 2. IT REPORTS THE LAUNCH ENVIRONMENT, NOT "YOUR CURRENT SESSION".
+#    This is the honest resolution to the wrong-verdict problem. A dashboard
+#    server is long-lived and reusable: open-dashboard.sh reuses a live one and
+#    dashboard-autostart.sh deliberately never starts a second. So a server
+#    started under Claude Code and later reused from a Copilot session would, if
+#    it claimed to know "your" host, confidently say Claude Code and be wrong.
+#    It cannot know that. What it CAN know is the environment it inherited at
+#    launch — so that is exactly what it says, with started_at so staleness is
+#    visible. A narrower true claim beats a broader false one.
+#
+# COPILOT_DEBUG_NONCE IS DELIBERATELY NOT A SIGNAL: it was observed set INSIDE a
+# Claude Code session on 2026-07-28, so "any COPILOT_* implies Copilot" mislabels
+# a live session. Copilot is identifiable only via THING_HOST, which
+# copilot-hook-adapter.sh exports explicitly — an assertion, never an inference.
+_HOST_ENV_PROBES = (
+    "CLAUDECODE",
+    "CLAUDE_CODE_ENTRYPOINT",
+    "THING_HOST",
+    "CODEX_SESSION_ID",
+    "CODEX_PROJECT_ROOT",
+    "PLUGIN_ROOT",
+    "CLAUDE_PLUGIN_ROOT",
+    "CLAUDE_PROJECT_DIR",
+    "CLAUDE_SESSION_ID",
+)
+
+_SERVER_STARTED_AT = _dt_mod.datetime.now(_dt_mod.timezone.utc).isoformat(timespec="seconds")
+
+
+def _read_host() -> dict:
+    """Report the host environment THIS SERVER PROCESS was launched in.
+
+    Positive signals only; returns host=None (rendered "cannot determine") rather
+    than guessing. Byte-identical in the root and bundled plugin server — the
+    parity gate guards endpoint NAMES, this helper is duplicated, so edit both.
+    Never raises."""
+    import os as _os
+
+    present = {name: bool(_os.environ.get(name)) for name in _HOST_ENV_PROBES}
+    host = None
+    basis = None
+    th = _os.environ.get("THING_HOST") or ""
+    if th:
+        host, basis = th, "THING_HOST asserted by the host adapter"
+    elif present["CLAUDECODE"] or present["CLAUDE_CODE_ENTRYPOINT"]:
+        host, basis = "claude-code", "CLAUDECODE / CLAUDE_CODE_ENTRYPOINT present"
+    elif present["CODEX_SESSION_ID"] or present["CODEX_PROJECT_ROOT"]:
+        host, basis = "codex", "CODEX_* session variables present"
+    return {
+        "host": host,
+        "basis": basis,
+        "scope": "launch-environment",
+        "started_at": _SERVER_STARTED_AT,
+        "env_present": present,
+        "note": (
+            "This is the environment the dashboard server was STARTED in, not your "
+            "current session. A server can be reused across sessions and hosts, so it "
+            "cannot know which CLI is talking to it now."
+        ),
+    }
 
 
 def _read_sleipnir(project_root: Path) -> dict:
@@ -1563,7 +1668,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         return length
 
     def do_HEAD(self):
-        if self.path in ("/__save", "/__run", "/__classify", "/__csrf") or self.path.startswith("/__read") or self.path.startswith("/__saga") or self.path.startswith("/__heimdall") or self.path.startswith("/__vidarr") or self.path.startswith("/__norns") or self.path.startswith("/__nidhoggr") or self.path.startswith("/__mimir") or self.path.startswith("/__streams") or self.path.startswith("/__knowledge-health") or self.path.startswith("/__sleipnir") or self.path.startswith("/__runs") or self.path.startswith("/__concern-stats"):
+        if self.path in ("/__save", "/__run", "/__classify", "/__csrf") or self.path.startswith("/__read") or self.path.startswith("/__saga") or self.path.startswith("/__heimdall") or self.path.startswith("/__vidarr") or self.path.startswith("/__norns") or self.path.startswith("/__nidhoggr") or self.path.startswith("/__mimir") or self.path.startswith("/__streams") or self.path.startswith("/__knowledge-health") or self.path.startswith("/__sleipnir") or self.path.startswith("/__runs") or self.path.startswith("/__concern-stats") or self.path.startswith("/__host"):
             self.send_response(200)
             self.send_header("Allow", "GET, POST, HEAD")
             self.send_header("Content-Length", "0")
@@ -1617,6 +1722,9 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             return
         if self.path.startswith("/__runs"):
             self._handle_runs()
+            return
+        if self.path.startswith("/__host"):
+            self._handle_host()
             return
         if self.path.startswith("/__concern-stats"):
             self._handle_concern_stats()
@@ -1785,6 +1893,16 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             })
 
         self._json(200, records)
+
+    def _handle_host(self):
+        """GET /__host — the environment THIS SERVER was launched in, plus which
+        RavenClaude wiring variables are present. Read-only; same Origin/Host CSRF
+        guard as /__read. Emits presence BOOLEANS only, from a closed literal probe
+        list — never an env value, never a path, never an os.environ walk."""
+        if not self._local_request_ok():
+            self.send_error(403, "refused: cross-origin or non-local Origin/Host")
+            return
+        self._json(200, _read_host())
 
     def _handle_runs(self):
         """GET /__runs[?limit=N] — recent multi-step runs from

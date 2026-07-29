@@ -1,6 +1,23 @@
 #!/usr/bin/env bash
-# test-gate70-codex-trust-hooks.sh — fixture tests for Gate 70 (Codex desktop
-# trust review remediation: Findings 1, 2, 5).
+# test-gate70-codex-trust-hooks.sh — fixture tests for Gate 70:
+# EXTERNAL TRUST-REVIEW REMEDIATION (STRICT hooks + dod-gate + web-access).
+#
+# ⚠ THE FILENAME IS A MISNOMER AND IS KEPT ONLY FOR STABILITY (audit MH-31).
+#
+# "codex-trust-hooks" does NOT mean this tests Codex-as-a-host. It means these
+# fixtures remediate findings that Codex produced **while reviewing RavenClaude** —
+# good work, entirely unrelated to running ON Codex. Nothing below invokes a Codex
+# envelope, config file, path, or CLI; the six subtests exercise three STRICT smell
+# hooks, the dod-gate first-run trust check, and the web-access first-use ask.
+#
+# WHY THIS COMMENT EXISTS: the name laundered into a capability claim. It was cited
+# as evidence that a Codex lane already existed — in the brief for the very audit
+# that then found there was no Codex install path at all. A test name is read as a
+# support claim by anyone grepping for a host.
+#
+# The real Codex-as-host gates are **155** (the env shim's invariants) and **156**
+# (the sandbox posture emitter). If you are looking for what proves Codex support,
+# it is those two, not this file.
 #
 # Proves that:
 #   G70.1 — data-platform smell hook with STRICT=1 + violation exits 2 (BLOCK).

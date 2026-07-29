@@ -205,7 +205,7 @@ REPORT_CSS = """
   --bg: var(--rc-bg); --surface: var(--rc-surface); --surface-2: var(--rc-surface-2);
   --border: var(--rc-border); --border-strong: var(--rc-border-strong);
   --text: var(--rc-text); --muted: var(--rc-muted); --faint: var(--rc-faint);
-  --accent: var(--rc-teal); --font-sans: var(--rc-font-sans); --font-mono: var(--rc-font-mono);
+  --accent: var(--rc-accent); --font-sans: var(--rc-font-sans); --font-mono: var(--rc-font-mono);
 }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--font-sans);
@@ -232,7 +232,7 @@ a { color: var(--accent); }
 .panel .sub { color: var(--faint); font-size: 0.8rem; margin: 0 0 12px; }
 .splitbar { display: flex; height: 26px; border-radius: var(--rc-radius-pill); overflow: hidden; border: 1px solid var(--border); }
 .splitbar .seg { display: flex; align-items: center; justify-content: center; font-size: 0.74rem; font-weight: 700; color: #fff; white-space: nowrap; }
-.splitbar .organic { background: var(--rc-teal); }
+.splitbar .organic { background: var(--accent); }
 .splitbar .seed { background: var(--rc-faint); }
 .minilegend { display: flex; gap: 16px; margin-top: 8px; font-size: 0.8rem; color: var(--muted); }
 .minilegend .li { display: flex; align-items: center; gap: 6px; }
@@ -240,7 +240,7 @@ a { color: var(--accent); }
 .barlist { display: grid; gap: 6px; }
 .barlist .row { display: grid; grid-template-columns: 160px 1fr 40px; align-items: center; gap: 8px; font-size: 0.84rem; }
 .barlist .row .bar { background: var(--border); border-radius: var(--rc-radius-pill); height: 12px; overflow: hidden; }
-.barlist .row .bar > span { display: block; height: 100%; background: var(--rc-teal); }
+.barlist .row .bar > span { display: block; height: 100%; background: var(--accent); }
 .barlist .row .n { text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); }
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 @media (max-width: 880px) { .grid2 { grid-template-columns: 1fr; } }
@@ -264,7 +264,7 @@ table.t tr.r:hover { background: var(--surface-2); }
 .tag { font-size: 0.7rem; background: var(--surface-2); border: 1px solid var(--border); color: var(--muted);
   border-radius: var(--rc-radius-pill); padding: 1px 8px; }
 .pill { display: inline-block; font-size: 0.72rem; font-weight: 700; border-radius: var(--rc-radius-pill); padding: 2px 9px; white-space: nowrap; }
-.pill.organic { background: var(--rc-teal); color: #fff; }
+.pill.organic { background: var(--accent); color: #fff; }
 .pill.seed { background: var(--surface-2); color: var(--muted); border: 1px solid var(--border); }
 .scope { font-size: 0.78rem; color: var(--muted); }
 .meta { font-size: 0.76rem; color: var(--faint); font-family: var(--font-mono); white-space: nowrap; }
@@ -387,7 +387,7 @@ def render(records, seed_dates, tokens: str) -> str:
         f'{("seed " + str(n_seed)) if seed_pct >= 8 else ""}</div>'
         f"</div>"
         f'<div class="minilegend">'
-        f'<span class="li"><span class="sw" style="background:var(--rc-teal)"></span>'
+        f'<span class="li"><span class="sw" style="background:var(--accent)"></span>'
         f"Organic — {n_org} real problems from engagements</span>"
         f'<span class="li"><span class="sw" style="background:var(--rc-faint)"></span>'
         f"Seed — {n_seed} synthetic starter examples</span></div>"

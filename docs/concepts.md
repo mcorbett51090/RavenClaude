@@ -382,7 +382,7 @@ flowchart TD
 
 **Sources:** [Configure permissions](https://code.claude.com/docs/en/permissions) · [Claude Code settings](https://code.claude.com/docs/en/settings)
 
-_Last verified: 2026-05-25_
+_Last verified: 2026-07-28_
 
 
 ---
@@ -412,7 +412,7 @@ flowchart TD
 
 **Sources:** [Choose a permission mode](https://code.claude.com/docs/en/permission-modes) · [Configure permissions](https://code.claude.com/docs/en/permissions)
 
-_Last verified: 2026-05-25_
+_Last verified: 2026-07-28_
 
 
 ---
@@ -444,18 +444,18 @@ flowchart TD
 
 **Sources:** [Hooks reference](https://code.claude.com/docs/en/hooks) · [Hooks guide](https://code.claude.com/docs/en/hooks-guide)
 
-_Last verified: 2026-05-25_
+_Last verified: 2026-07-28_
 
 
 ---
 
 ### SessionStart context injection · _platform fact_
 
-> SessionStart hooks inject additionalContext into every session — additive only; they can't block or delay startup and are capped near 10k chars.
+> SessionStart hooks inject additionalContext into every session — additive only; they can't block or delay startup, and hook output is capped at 10,000 characters (overflow becomes a file preview).
 
 `PreToolUse` hooks gate tool calls; **`SessionStart` hooks can't gate anything.** Their job is to add text to the session via a different field — `hookSpecificOutput.additionalContext` — and nothing more. The output is read **only on exit 0**; a non-zero exit is a non-blocking error and the session still starts. A SessionStart hook can never block or delay a session; its output is purely additive.
 
-Rules that bite: `additionalContext` is **capped near ~10,000 characters** (it's injected every session, so it's a recurring token cost — keep it tight); **multiple SessionStart hooks run in parallel and their outputs are concatenated**; the optional `matcher` is `startup` / `resume` / `clear` / `compact`; and like other hooks it **fails open** on timeout. This is the mechanism RavenClaude's capability banner rides on.
+Rules that bite: hook output strings — `additionalContext`, `systemMessage`, and plain stdout — are **capped at 10,000 characters**; output past the cap isn't silently cut, it's **saved to a file and replaced with a preview plus the file path** (the same way an oversized tool result is handled). It's injected every session either way, so it's a recurring token cost — keep it tight. **multiple SessionStart hooks run in parallel and their outputs are concatenated**; the optional `matcher` is `startup` / `resume` / `clear` / `compact` / `fork`; and like other hooks it **fails open** on timeout. This is the mechanism RavenClaude's capability banner rides on.
 
 ```mermaid
 flowchart TD
@@ -474,7 +474,7 @@ flowchart TD
 
 **Sources:** [Hooks reference](https://code.claude.com/docs/en/hooks)
 
-_Last verified: 2026-05-26_
+_Last verified: 2026-07-28_
 
 
 ---

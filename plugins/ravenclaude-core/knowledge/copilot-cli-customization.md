@@ -67,6 +67,51 @@ External commands fired at lifecycle points (custom automation, security/policy 
   ```
 - **⚠️ Plugin-level hooks do NOT fire** — `preToolUse` hooks defined in a *plugin's* `hooks.json` never execute (main session or subagents): [github/copilot-cli#2540](https://github.com/github/copilot-cli/issues/2540). **Ship enforcement hooks repo-level (`.github/hooks/`)**, not plugin-level, until #2540 closes.
 
+### ⚠️ THE NO-MATCHER ASYMMETRY — read this before writing any hook that branches on a tool
+
+This is the structural difference that caused the single worst defect found in the
+2026-07-28 multi-host audit, and it will cause the next one if it is not understood.
+
+**Claude Code filters hooks by a per-tool `matcher` in `hooks.json`.** A hook registered
+for `Bash` is only ever invoked for `Bash`, so a hook may reasonably assume its own tool
+shape and treat an unexpected `tool_name` as "not mine — exit 0, no decision".
+
+**Copilot CLI has no per-tool matcher.** A `preToolUse` hook fires for **every** tool, and
+the hook itself must decide what it is looking at from the payload's `toolName`.
+
+Two consequences, and RavenClaude was bitten by both:
+
+1. **The Claude-shaped "unknown tool → exit 0" default becomes a silent security hole.**
+   Under Claude Code that default is safe, because the matcher guaranteed the tool was
+   already the right one. Under Copilot it means *anything the hook does not recognise
+   sails through unreviewed*. `thing-orchestrator.sh` dispatched on a case-sensitive
+   `Bash | Read | Write | Edit | MultiEdit | WebFetch | WebSearch | mcp__*` list and fell
+   to `*) exit 0`.
+
+2. **The tool NAMES differ, so nothing matched.** GitHub documents its tools lowercase —
+   *"before the agent uses any tool (such as `bash`, `edit`, `view`)"*
+   ([hooks](https://docs.github.com/en/copilot/concepts/agents/hooks), retrieved 2026-07-28).
+   `bash` is not `Bash`. Combined with (1), **the command-review tribunal and the
+   web-access guardrail were complete, silent no-ops under Copilot** — fully wired,
+   reviewing nothing. Fixed by normalising tool-name values in
+   `hooks/copilot-hook-adapter.sh` (commit `f55039ec`).
+
+**Rules that follow — apply these to every new hook and every new host:**
+
+- **Normalise the tool name at the adapter, once.** Never let a host's raw vocabulary
+  reach a hook that dispatches on Claude's names.
+- **An unrecognised tool name is a finding, not a default.** Log it. The blind spot that
+  hid this bug was that an unmapped name produced *silence*.
+- **Never let a test fixture invent a tool name.** Gate 20's fixture drove the adapter
+  with `toolName:"shell"` — a name in neither vocabulary — and passed. A fixture must be
+  derived from the platform's documented values, never from what the code expects.
+- **The complete Copilot tool list is NOT published at a fetchable URL** as of 2026-07-28
+  (two candidate doc pages 404'd). `bash` / `edit` / `view` are docs-verified; anything
+  else in the adapter's map is a defensive guess and is marked as such in the code.
+  **Settle it by running `copilot` and enumerating the real names** before relying on any
+  unverified entry — especially for a security boundary such as the agent `tools:`
+  allowlist, which is still unprojected for exactly this reason.
+
 ## 5. Runtime & config
 
 - **`settings.json`** and **`mcp-config.json`** live in **`~/.copilot/`** by default; **`COPILOT_HOME`** overrides that directory (so all of settings / MCP / hooks move with it).
@@ -113,7 +158,7 @@ The standalone file is the *fallback*, not the default — a bare `DOCUMENT-MAP.
 
 **Honesty note:** a consumer reported ~6 tool calls / ~45s → ~5s per lookup after adopting a map `[unverified — single foreign-repo anecdote, illustrative only]`. The real win is narrow — repos where a known-document lookup was genuinely multi-round; where one `grep` already finds it, a map is ceremony.
 
-**See also:** [`../../../docs/best-practices/agent-onboarding.md`](../../../docs/best-practices/agent-onboarding.md) — the cross-tool pattern · the [`codex-onboarding`](../skills/codex-onboarding/SKILL.md) skill wires the session-start read.
+**See also:** [`../../../docs/best-practices/agent-onboarding.md`](../../../docs/best-practices/agent-onboarding.md) — the cross-tool pattern · the [`external-agent-onboarding`](../skills/external-agent-onboarding/SKILL.md) skill wires the session-start read.
 
 ## Sources
 

@@ -34,21 +34,303 @@ COPILOT_PKG="$MARKET/plugins/ravenclaude-core/copilot"
 CORE="$MARKET/plugins/ravenclaude-core"
 SKILLS_SRC="$CORE/skills"
 GEN="$MARKET/scripts/generate-copilot-plugin.py"
+CODEX_SHIM="$CORE/hooks/codex-hook-env.sh"
 
 note() { printf '  %s\n' "$*"; }
 ok()   { printf '\033[32m✓\033[0m %s\n' "$*"; }
 warn() { printf '\033[33m!\033[0m %s\n' "$*" >&2; }
 
-# Append the one-word `rc` launch alias (update + launch Copilot live) to ~/.bashrc.
-# Idempotent: skips if a matching alias line is already present.
+# detect_host — which agentic CLI is this install for? (multi-host audit MH-07)
+#
+# BACKWARD-COMPATIBILITY INVARIANT: when the answer is at all ambiguous this
+# returns `copilot`, the historical and only prior behaviour. An existing user who
+# happens to have `codex` on PATH must not silently get a different install than
+# they got yesterday — so Codex is chosen ONLY when it is the sole host present,
+# and even then `--host` overrides. Detection reports; it never surprises.
+detect_host() {
+  local have_codex=0 have_copilot=0
+  command -v codex   >/dev/null 2>&1 && have_codex=1
+  command -v copilot >/dev/null 2>&1 && have_copilot=1
+  if [ "$have_codex" -eq 1 ] && [ "$have_copilot" -eq 0 ]; then
+    printf 'codex\n'; return 0
+  fi
+  printf 'copilot\n'
+}
+
+# copilot_version_check — warn when the running Copilot CLI is below the floor
+# where this repo's guardrails actually fire (multi-host audit MH-23).
+#
+# THE FLOOR IS 1.0.52, and it is a SAFETY floor, quoted verbatim from
+# https://github.com/github/copilot-cli/blob/main/changelog.md (retrieved 2026-07-28):
+#
+#   1.0.52 (2026-05-23) — "Hooks (preToolUse, postToolUse, subagentStart,
+#   subagentStop) now fire correctly for sub-agent tool…"
+#
+# Below it, a SUB-AGENT's tool calls are not hooked at all — so a subagent runs
+# Bash straight past the tribunal, guard-destructive, the runaway brake and the
+# layout gate, silently, while `install` reports success. Same silent-disarm shape
+# as Codex's hash-trust (MH-17), on the flagship non-Claude host, and until now
+# nothing anywhere checked it.
+#
+# 1.0.57 is the RECOMMENDED line ("Plugins auto-installed from repository settings
+# no longer leak into user global config") — hygiene, not safety, so it is a note.
+#
+# WHY THIS ONLY WARNS: every host-condition guard in this repo is fail-safe. An
+# install that works for everything except sub-agent hook coverage is still worth
+# completing; a hard block would strand users whose setup is otherwise fine. And
+# `copilot` absent / unparseable version / no `sort -V` all degrade to a note —
+# never a failed install, never a false "you are fine".
+COPILOT_FLOOR="1.0.52"
+COPILOT_RECOMMENDED="1.0.57"
+
+copilot_version_check() {
+  command -v copilot >/dev/null 2>&1 || {
+    note "copilot not on PATH — version floor unverified (need >= $COPILOT_FLOOR)"
+    return 0
+  }
+  local raw ver
+  # `|| true` ON BOTH PIPELINES IS LOAD-BEARING — do not "clean it up".
+  # This script runs under `set -euo pipefail`. A `copilot` that exits non-zero,
+  # or a `grep` that matches nothing (i.e. any unparseable version string), makes
+  # the pipeline non-zero, which under `pipefail` propagates to the assignment and
+  # under `set -e` ABORTS `ravenclaude status`/`install` outright. Verified: without
+  # these, a copilot printing unparseable output exited 1 and truncated the whole
+  # command. A version check that kills the installer is strictly worse than no
+  # version check — it is the same fail-in-the-dangerous-direction defect this
+  # whole audit exists to close, committed by the guard against it.
+  raw="$(copilot --version 2>/dev/null | head -1 || true)"
+  # First dotted triple anywhere in the output; tolerant of "copilot version X" etc.
+  ver="$(printf '%s' "$raw" | tr -c '0-9.\n' ' ' | tr ' ' '\n' | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | head -1 || true)"
+  if [ -z "$ver" ]; then
+    note "could not parse a version from 'copilot --version' — floor unverified (need >= $COPILOT_FLOOR)"
+    return 0
+  fi
+  # Pure-sort comparison: the LOWEST of {ver, floor} equals floor  =>  ver >= floor.
+  local lowest
+  lowest="$(printf '%s\n%s\n' "$ver" "$COPILOT_FLOOR" | sort -V 2>/dev/null | head -1)" || lowest=""
+  if [ -z "$lowest" ]; then
+    note "no 'sort -V' available — Copilot version $ver not compared against $COPILOT_FLOOR"
+    return 0
+  fi
+  if [ "$ver" != "$COPILOT_FLOOR" ] && [ "$lowest" = "$ver" ]; then
+    warn "Copilot CLI $ver is BELOW $COPILOT_FLOOR — sub-agent tool calls are NOT hooked."
+    note "  A sub-agent can run Bash past every guardrail wired here, silently."
+    note "  Fix: update Copilot CLI. Source: github/copilot-cli changelog, 1.0.52."
+    return 0
+  fi
+  lowest="$(printf '%s\n%s\n' "$ver" "$COPILOT_RECOMMENDED" | sort -V | head -1)"
+  if [ "$ver" != "$COPILOT_RECOMMENDED" ] && [ "$lowest" = "$ver" ]; then
+    note "copilot $ver — meets the $COPILOT_FLOOR safety floor; $COPILOT_RECOMMENDED recommended (repo plugin settings can leak into global config below it)"
+  else
+    ok "copilot $ver — meets the $COPILOT_FLOOR safety floor"
+  fi
+}
+
+# wire_codex_skills <project> <plugin-name>
+#
+# Codex discovers skills from `.agents/skills` in EVERY directory from the cwd up
+# to the repo root, then $HOME/.agents/skills, then /etc/codex/skills, then bundled
+# `[docs-verified 2026-07-28 — learn.chatgpt.com/docs/build-skills]`.
+#
+# NOT `.claude/skills` — that is Copilot's (and Claude's) read path, and wiring a
+# Codex user there is exactly how `ravenclaude setup` came to complete
+# "successfully" while wiring zero skills into their host (MH-07).
+#
+# WATCH OUT: several third-party guides claim Codex reads `.codex/skills`. The
+# primary source says `.agents/skills`. knowledge/host-support.json records this
+# and warns off the blogs; do not "fix" this path from a blog post.
+#
+# Repo-local is the deliberate default (team-shareable, travels with the project).
+# The SKILL.md shape is identical to .claude/skills, so the same 50 skills project
+# across untouched — no per-host rewriting.
+wire_codex_skills() {
+  local project="$1" plugin_name="$2"
+  local skills_src="$MARKET/plugins/$plugin_name/skills"
+  if [ ! -d "$skills_src" ]; then
+    warn "plugin '$plugin_name' has no skills/ directory (looked at $skills_src) — skipped"
+    echo 0; return 0
+  fi
+  mkdir -p "$project/.agents/skills"
+  local n=0
+  for d in "$skills_src"/*/; do
+    [ -d "$d" ] || continue
+    local name; name="$(basename "$d")"
+    local dest="$project/.agents/skills/$name"
+    rm -rf "$dest"
+    ln -s "$d" "$dest" 2>/dev/null || cp -r "$d" "$dest"
+    n=$((n + 1))
+  done
+  echo "$n"
+}
+
+# wire_codex_hooks <project>
+#
+# Writes <project>/.codex/hooks.json in the CLAUDE-SHAPED schema — because that is
+# literally what Codex reads. Codex speaks the Claude hook contract natively:
+# identical PascalCase events, identical stdin field names, identical `exit 2`
+# blocking, identical tool-name VALUES ("Bash", not Copilot's "bash")
+# `[docs-verified 2026-07-28 — learn.chatgpt.com/docs/hooks]`.
+#
+# SO THERE IS NO ADAPTER HERE, AND THERE MUST NOT BE ONE. Copilot needed a 456-line
+# generator plus ~300 lines of envelope translation and a tool-name normalisation
+# map. Building the same for Codex would be the expensive wrong answer, and the
+# mis-scoping that came from reading Codex through Copilot's model is the root
+# cause this whole audit traced (MH-15).
+#
+# The ONE thing that genuinely differs is two absent environment variables, which
+# hooks/codex-hook-env.sh lifts out of the stdin payload. See that file's header.
+#
+# Invoked as `bash "<shim>"` rather than executing the shim directly: the wiring
+# then survives a checkout that lost its exec bits (Windows, some zip exports, a
+# `cp -r` install fallback), which this installer already defends against for
+# skills.
+wire_codex_hooks() {
+  local project="$1"
+  mkdir -p "$project/.codex"
+  python3 - "$project/.codex/hooks.json" "$CODEX_SHIM" "$CORE" <<'PY'
+import json, sys
+out, shim, core = sys.argv[1], sys.argv[2], sys.argv[3]
+h = core + "/hooks"
+
+def cmd(script, arg=""):
+    # bash "<shim>" "<real hook>" [arg] — the shim lifts cwd/session_id from stdin
+    # into CLAUDE_PROJECT_DIR/CLAUDE_SESSION_ID, then passes stdin through byte-
+    # identical and propagates the hook's exit code verbatim (exit 2 = block).
+    tail = f' {arg}' if arg else ""
+    return {"type": "command", "command": f'bash "{shim}" "{h}/{script}"{tail}'}
+
+cfg = {
+    "$schema": "https://json.schemastore.org/claude-code-hooks.json",
+    "description": (
+        "RavenClaude guardrails for OpenAI Codex CLI. GENERATED by "
+        "`ravenclaude install --host codex` — do not hand-edit; re-run the installer. "
+        "Paths are absolute into the marketplace checkout so `git pull` updates "
+        "behaviour live. NOTE: Codex tracks hook trust BY HASH, so any change to a "
+        "hook script marks it for review and SKIPS it until you re-trust via /hooks."
+    ),
+    "hooks": {
+        "SessionStart": [
+            {"hooks": [cmd("capability-orientation.sh"),
+                       cmd("thing-denial-kb-recall.sh")]}
+        ],
+        "PreToolUse": [
+            {"matcher": "Bash",
+             "hooks": [cmd("guard-destructive.sh"),
+                       cmd("thing-orchestrator.sh"),
+                       cmd("runaway-brake.sh")]},
+            {"matcher": "Edit|Write|MultiEdit",
+             "hooks": [cmd("enforce-layout.sh")]},
+            {"matcher": "WebFetch",
+             "hooks": [cmd("guard-web-access.sh")]},
+        ],
+        "PostToolUse": [
+            {"matcher": "Edit|Write|MultiEdit",
+             "hooks": [cmd("format-on-write.sh", '"$CLAUDE_TOOL_FILE_PATH"'),
+                       cmd("claim-grounding-lint.sh", '"$CLAUDE_TOOL_FILE_PATH"')]}
+        ],
+        "Stop": [
+            {"hooks": [cmd("dod-gate.sh"),
+                       cmd("remind-tests.sh"),
+                       cmd("stream-session-close.sh")]}
+        ],
+    },
+}
+open(out, "w").write(json.dumps(cfg, indent=2) + "\n")
+PY
+}
+
+# codex_hook_count — how many hook scripts the Codex wiring references.
+# Used by the MH-17 re-trust notice; counts entries in the generated file so the
+# number can never drift from what was actually wired.
+codex_hook_count() {
+  local f="$1"
+  [ -f "$f" ] || { echo 0; return 0; }
+  python3 - "$f" <<'PY' 2>/dev/null || echo 0
+import json, sys
+d = json.load(open(sys.argv[1]))
+print(sum(len(g.get("hooks", [])) for ev in d.get("hooks", {}).values() for g in ev))
+PY
+}
+
+# codex_retrust_notice <project>
+#
+# MH-17 — the P1 that MUST ship with the installer, not after it.
+#
+# Codex records hook trust against each hook's HASH: "new or changed hooks are
+# marked for review and skipped until trusted" `[docs-verified 2026-07-28]`. This
+# repo's headline update pillar is "an update is just `git pull` — no re-install,
+# ever." On Codex those two facts multiply into a SILENT DISARM: every pull that
+# changes a byte of any hook invalidates its hash, and that guardrail stops running
+# until a human notices.
+#
+# And nothing will tell them — because the SessionStart banner that would have
+# announced it IS ITSELF A HOOK, so it is skipped by the same mechanism. Given ~18
+# hooks and near-weekly bumps, the steady state for an un-warned Codex consumer is
+# guardrails quietly off after every update.
+#
+# Shipping the installer without this notice would have manufactured exactly the
+# silently-inert-guardrail class this entire audit exists to close.
+#
+# We deliberately do NOT name `--dangerously-bypass-hook-trust` as the fix. Turning
+# off the trust check to make trust convenient is governance theatre, and the
+# onboarding skill lists that anti-pattern by name.
+codex_retrust_notice() {
+  local project="$1"
+  local n; n="$(codex_hook_count "$project/.codex/hooks.json")"
+  printf '\n'
+  warn "Codex trusts hooks BY HASH — re-trust after every update."
+  note "Run /hooks inside Codex and trust the $n RavenClaude hook(s)."
+  note "Until you do, they are SKIPPED — and no banner will say so, because the"
+  note "SessionStart banner is itself a hook. Re-run /hooks after every 'git pull'."
+  note "For teams: Codex's requirements.toml managed-hooks path auto-trusts by"
+  note "policy and is the only configuration where these survive an update"
+  note "unattended. Do NOT reach for --dangerously-bypass-hook-trust."
+}
+
+# Install the one-word `rc` launcher into ~/.bashrc — as a FUNCTION, not an alias.
+#
+# THE COLLISION THIS FIXES (multi-host audit MH-11, a P0).
+# This used to write `alias rc='… ravenclaude update && copilot --plugin-dir …'`,
+# which SQUATTED on the name of the real front-door dispatcher at
+# plugins/ravenclaude-core/bin/rc — the one that owns `rc dashboard`, `rc streams`
+# and `rc converge`. With the alias active, the dashboard's own self-repair
+# instruction — "open it via `rc dashboard`", the ONLY thing several empty states
+# tell you to run — expanded to:
+#
+#     … ravenclaude update && copilot --plugin-dir … dashboard
+#
+# i.e. an update, then Copilot launched with a stray `dashboard` argument. The
+# dashboard never opened. Worse, it misfired for precisely the users who ran the
+# Copilot installer — the flagship non-Claude host, and the audience least able to
+# tell that the instruction was wrong rather than the server being down.
+#
+# A function preserves BOTH documented behaviours instead of picking a winner:
+#   `rc`            → update + launch Copilot live   (the one-word launcher)
+#   `rc <verb> …`   → the real bin/rc dispatcher     (dashboard / streams / …)
+# No rename, so nothing a user has already learned stops working.
 add_rc_alias() {
   local bashrc="$HOME/.bashrc"
-  local line="alias rc='$MARKET/scripts/ravenclaude update && copilot --plugin-dir $COPILOT_PKG'"
-  if [ -f "$bashrc" ] && grep -qF 'scripts/ravenclaude update && copilot --plugin-dir' "$bashrc"; then
-    note "rc alias already in ~/.bashrc"
+  local marker='# RavenClaude — rc launcher (added by ravenclaude setup)'
+  if [ -f "$bashrc" ] && grep -qF 'RavenClaude — rc launcher' "$bashrc"; then
+    note "rc launcher already in ~/.bashrc"
   else
-    printf '\n# RavenClaude — launch Copilot with the live plugin (added by ravenclaude setup)\n%s\n' "$line" >> "$bashrc"
-    ok "added 'rc' alias to ~/.bashrc (run: source ~/.bashrc, then 'rc')"
+    if [ -f "$bashrc" ] && grep -qF 'scripts/ravenclaude update && copilot --plugin-dir' "$bashrc"; then
+      warn "an older 'alias rc=…' is present in ~/.bashrc — it SHADOWS 'rc dashboard'."
+      warn "Remove that line, then re-run; the function below supersedes it."
+    fi
+    {
+      printf '\n%s\n' "$marker"
+      printf 'rc() {\n'
+      printf '  if [ "$#" -gt 0 ]; then\n'
+      printf '    # any verb goes to the real front-door dispatcher (rc dashboard, rc streams…)\n'
+      printf '    command bash "%s/plugins/ravenclaude-core/bin/rc" "$@"\n' "$MARKET"
+      printf '  else\n'
+      printf '    # bare `rc` keeps the one-word "update and launch Copilot" behaviour\n'
+      printf '    "%s/scripts/ravenclaude" update && copilot --plugin-dir "%s"\n' "$MARKET" "$COPILOT_PKG"
+      printf '  fi\n'
+      printf '}\n'
+    } >>"$bashrc"
+    ok "added 'rc' function to ~/.bashrc — bare 'rc' launches Copilot, 'rc dashboard' opens the dashboard"
   fi
 }
 
@@ -118,6 +400,17 @@ cmd_update() {
       ;;
   esac
   ok "up to date. In your Copilot session run '/skills reload' (or relaunch) to apply."
+
+  # MH-17 — the update path is exactly where the Codex silent-disarm happens, so
+  # this is exactly where it has to be said. A pull that changed any hook byte just
+  # invalidated that hook's trust hash; Codex will SKIP it until re-trusted, and
+  # the banner that would have told you is itself a skipped hook.
+  #
+  # Gated on the project actually being Codex-wired so a Copilot-only user never
+  # sees a Codex instruction (the cross-host noise this audit is full of).
+  if [ -f "$project/.codex/hooks.json" ]; then
+    codex_retrust_notice "$project"
+  fi
 }
 
 # Symlink one plugin's skills into <project>/.claude/skills. Used by cmd_install
@@ -147,18 +440,126 @@ wire_plugin_skills() {
   echo "$n"
 }
 
+# wire_copilot_instructions <project>
+#
+# THE CLOSED LOOP THIS OPENS (multi-host audit MH-09, a P0).
+# generate-copilot-plugin.py projects the whole claim-grounding discipline — plus
+# the dashboard-launch instructions and the Relay-mode block — into
+# plugins/ravenclaude-core/copilot/AGENTS.md. Copilot reads AGENTS.md natively,
+# but ONLY from the user's own repo (knowledge/copilot-cli-customization.md §1).
+# The marketplace clone is not the user's repo, so unless something points Copilot
+# at it, that file is generated, freshness-gated, committed... and never loaded.
+#
+# The generated README told the user to export COPILOT_CUSTOM_INSTRUCTIONS_DIRS by
+# hand. `ravenclaude setup` never did it, and an env var a human must remember is
+# not wiring. Net effect: every Copilot session ran with NONE of the discipline the
+# rest of this installer works to deliver, and nothing anywhere said so.
+#
+# `.github/copilot-instructions.md` is used rather than the env var because it is
+# repo-local, survives a new shell, and travels with the project for teammates.
+# We write a POINTER, never a copy: a copy would silently rot the moment the
+# canonical AGENTS.md changed, and this repo has spent a whole release fixing
+# exactly that failure shape.
+wire_copilot_instructions() {
+  local project="$1"
+  local dest="$project/.github/copilot-instructions.md"
+  local src="$MARKET/plugins/ravenclaude-core/copilot/AGENTS.md"
+  if [ ! -f "$src" ]; then
+    warn "copilot/AGENTS.md not found at $src — instruction pointer skipped"
+    return 0
+  fi
+  mkdir -p "$project/.github" 2>/dev/null || true
+  # Never clobber a hand-authored file: append our marked block once, idempotently.
+  if [ -f "$dest" ] && grep -q 'RAVENCLAUDE-INSTRUCTIONS' "$dest" 2>/dev/null; then
+    return 0
+  fi
+  {
+    printf '\n<!-- RAVENCLAUDE-INSTRUCTIONS: managed pointer, safe to keep. -->\n'
+    printf '## RavenClaude agent discipline\n\n'
+    printf 'This project is wired to RavenClaude. Read the full cross-tool discipline —\n'
+    printf 'claim grounding, capability grounding, the dashboard launch command, and the\n'
+    printf 'relay-mode contract — at:\n\n'
+    printf '    %s\n\n' "$src"
+    printf 'That file is GENERATED from the canonical plugin and is freshness-gated, so it\n'
+    printf 'is always current. Do not copy its contents here; read it there.\n'
+  } >>"$dest"
+  return 0
+}
+
 cmd_install() {
   local project="$PWD"
   local extra_plugins=()
+  local host=""
   while [ $# -gt 0 ]; do
     case "$1" in
       --project) project="$2"; shift 2 ;;
       --with-plugin) extra_plugins+=("$2"); shift 2 ;;
+      --host) host="$2"; shift 2 ;;
       *) shift ;;
     esac
   done
   project="$(cd "$project" && pwd)"
-  printf '== ravenclaude install -> %s ==\n' "$project"
+  if [ -z "$host" ]; then
+    host="$(detect_host)"
+  fi
+  case "$host" in
+    copilot|codex) ;;
+    *) warn "unknown --host '$host' (expected: copilot | codex) — using copilot"; host="copilot" ;;
+  esac
+  printf '== ravenclaude install (host: %s) -> %s ==\n' "$host" "$project"
+
+  # The Codex lane. Kept as a HOST DIMENSION on the one installer rather than a
+  # second installer (MH-07): the skills are the same 50 directories and the hooks
+  # are the same 18 scripts — only the paths they are wired into differ.
+  if [ "$host" = "codex" ]; then
+    local n_codex
+    n_codex="$(wire_codex_skills "$project" "ravenclaude-core")"
+    ok "wired $n_codex skills from ravenclaude-core into .agents/skills"
+    if [ "${#extra_plugins[@]}" -gt 0 ]; then
+      local cplugin
+      for cplugin in "${extra_plugins[@]}"; do
+        [ -z "$cplugin" ] && continue
+        local n_cx; n_cx="$(wire_codex_skills "$project" "$cplugin")"
+        ok "wired $n_cx skills from $cplugin"
+      done
+    fi
+
+    wire_codex_hooks "$project"
+    ok "wired hooks into .codex/hooks.json (native contract — no adapter)"
+
+    # AGENTS.md is read natively from the repo root by Codex [docs-verified], so
+    # unlike Copilot (MH-09) no instruction-pointer file is needed here.
+    note "AGENTS.md is read natively by Codex from the repo root — no pointer needed."
+
+    # Sandbox posture (MH-16 part 2). Projects the comfort posture onto Codex's
+    # two real controls. NEVER silently weakens an existing value, and never emits
+    # danger-full-access / approval_policy = "never" at any posture.
+    local emitter="$MARKET/scripts/emit-codex-config.py"
+    if [ -f "$emitter" ] && [ -f "$project/.ravenclaude/comfort-posture.yaml" ]; then
+      python3 "$emitter" --project "$project" || true
+      ok "projected the comfort posture onto .codex/config.toml"
+      note "COARSE BY DESIGN: two enum keys cannot express 12 posture categories."
+      note "  Codex's OS sandbox (default-on, workspace-write) is your real boundary."
+      note "  A project .codex/config.toml loads ONLY IN TRUSTED PROJECTS — like the"
+      note "  hooks above, writing the file is not the same as bounding the session."
+    else
+      note "NOT wired: sandbox_mode / approval_policy — no comfort-posture.yaml here."
+      note "  Run 'ravenclaude setup' to seed one, or set the two keys by hand."
+    fi
+
+    # HONEST GAP, stated at install time rather than discovered later:
+    note "NOT wired: MCP servers (.codex/config.toml [mcp]) — the TOML merge is not"
+    note "  built yet; a bad merge would clobber a hand-tuned config. Add by hand."
+
+    wire_dashboard_launchers "$project"
+    codex_retrust_notice "$project"
+    if [ -z "${RC_FROM_SETUP:-}" ]; then
+      printf '\n'
+      ok "install complete. Launch Codex from $project as usual."
+      note "Updates: run 'ravenclaude update', then /hooks in Codex to re-trust."
+    fi
+    return 0
+  fi
 
   # 1. Skills — wire ravenclaude-core (the base kit) into <project>/.claude/skills,
   #    plus any extra plugins requested via --with-plugin. Skills are read live by
@@ -166,6 +567,16 @@ cmd_install() {
   local n_core
   n_core="$(wire_plugin_skills "$project" "ravenclaude-core")"
   ok "wired $n_core skills from ravenclaude-core into .claude/skills"
+
+  # 1a. Is the running Copilot new enough for the guardrails below to actually
+  #     fire? Checked BEFORE wiring, so the warning is the first thing seen rather
+  #     than the last line after a wall of successes (audit MH-23).
+  copilot_version_check
+
+  # 1b. Point Copilot at the projected discipline. Without this the generated
+  #     copilot/AGENTS.md is never loaded by any session (audit MH-09).
+  wire_copilot_instructions "$project"
+  ok "pointed .github/copilot-instructions.md at the projected agent discipline"
   if [ "${#extra_plugins[@]}" -gt 0 ]; then
     local plugin
     for plugin in "${extra_plugins[@]}"; do
@@ -263,7 +674,31 @@ cmd_status() {
   printf '== ravenclaude status -> %s ==\n' "$project"
   [ -d "$project/.claude/skills" ] && note "skills:  $(find "$project/.claude/skills" -maxdepth 1 -mindepth 1 -type l -o -maxdepth 1 -mindepth 1 -type d 2>/dev/null | wc -l | tr -d ' ') in .claude/skills" || note "skills:  not wired"
   [ -f "$project/.github/hooks/ravenclaude.json" ] && note "hooks:   .github/hooks/ravenclaude.json present" || note "hooks:   not wired"
+
+  # Codex lane (MH-07). Reported separately and only when present, so a
+  # Copilot-only project's status output is byte-identical to before.
+  if [ -d "$project/.agents/skills" ] || [ -f "$project/.codex/hooks.json" ]; then
+    [ -d "$project/.agents/skills" ] \
+      && note "codex:   $(find "$project/.agents/skills" -maxdepth 1 -mindepth 1 \( -type l -o -type d \) 2>/dev/null | wc -l | tr -d ' ') skills in .agents/skills" \
+      || note "codex:   skills not wired (.agents/skills absent)"
+    if [ -f "$project/.codex/hooks.json" ]; then
+      note "codex:   $(codex_hook_count "$project/.codex/hooks.json") hooks in .codex/hooks.json — run /hooks in Codex to confirm they are TRUSTED"
+    else
+      note "codex:   hooks not wired (.codex/hooks.json absent)"
+    fi
+    # The sandbox is the boundary that actually bounds a Codex session, so status
+    # reports the live values rather than only what we wired. Read with the same
+    # top-level-key discipline the emitter uses (a key under a [table] is NOT it).
+    if [ -f "$project/.codex/config.toml" ]; then
+      local _sb; _sb="$(awk -F= '/^[[:space:]]*\[/{t=1} !t && /^[[:space:]]*sandbox_mode[[:space:]]*=/{print $2; exit}' "$project/.codex/config.toml" | tr -d ' "')"
+      local _ap; _ap="$(awk -F= '/^[[:space:]]*\[/{t=1} !t && /^[[:space:]]*approval_policy[[:space:]]*=/{print $2; exit}' "$project/.codex/config.toml" | tr -d ' "')"
+      note "codex:   sandbox ${_sb:-<unset>} · approval ${_ap:-<unset>} (loads only in TRUSTED projects)"
+    else
+      note "codex:   no .codex/config.toml — Codex's own default sandbox (workspace-write) applies"
+    fi
+  fi
   [ -f "${COPILOT_HOME:-$HOME/.copilot}/mcp-config.json" ] && note "mcp:     ~/.copilot/mcp-config.json present" || note "mcp:     not configured"
+  copilot_version_check
   [ -d "$COPILOT_PKG" ] && note "package: $COPILOT_PKG" || note "package: MISSING — run 'ravenclaude update' to generate it"
 
   # Dashboard launcher check (v0.113.2): added because pre-v0.44.0 `ravenclaude

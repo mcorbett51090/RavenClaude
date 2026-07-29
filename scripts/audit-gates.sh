@@ -91,7 +91,7 @@ PY
       exit $?
       ;;
     70)
-      echo "── Gate 70: Codex desktop trust review hooks (per-gate run) ──────────────"
+      echo "── Gate 70: external trust-review remediation (per-gate run) ─────────────"
       bash plugins/ravenclaude-core/hooks/tests/test-gate70-codex-trust-hooks.sh
       exit $?
       ;;
@@ -327,6 +327,31 @@ PY
       bash plugins/ravenclaude-core/hooks/tests/test-thing-denial-kb.sh
       exit $?
       ;;
+    151)
+      echo "── Gate 151: dashboard autostart opt-in contract (per-gate run) ──────────"
+      bash plugins/ravenclaude-core/hooks/tests/test-gate151-dashboard-autostart.sh
+      exit $?
+      ;;
+    154)
+      echo "── Gate 154: host-support map completeness + derivation (per-gate run) ───"
+      python3 scripts/check-host-support.py
+      exit $?
+      ;;
+    155)
+      echo "── Gate 155: Codex env shim invariants (per-gate run) ────────────────────"
+      bash plugins/ravenclaude-core/hooks/tests/test-gate155-codex-hook-env.sh
+      exit $?
+      ;;
+    156)
+      echo "── Gate 156: Codex sandbox posture emitter (per-gate run) ────────────────"
+      python3 scripts/emit-codex-config.py --self-test
+      exit $?
+      ;;
+    157)
+      echo "── Gate 157: Copilot version floor + fail-safe (per-gate run) ────────────"
+      bash plugins/ravenclaude-core/hooks/tests/test-gate157-copilot-version-floor.sh
+      exit $?
+      ;;
     144)
       echo "── Gate 144: Prompt Builder render + XSS floor (per-gate run) ────────────"
       node scripts/check-prompt-builder-render.mjs plugins/ravenclaude-core/dashboard.html
@@ -408,7 +433,7 @@ PY
       ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -4167,7 +4192,14 @@ rc=0; python3 scripts/generate-index-dashboard.py --check -o "$IDX_HTML" >/dev/n
 gate "index freshness (fresh render round-trips)" must_pass "$rc"
 
 # ─────────────────────────────────────────────────────────────────────────────
-echo "── Gate 70: Codex desktop trust review hooks (Findings 1, 2, 5) ─────────"
+# MH-31 — RENAMED FROM "Codex desktop trust review hooks". That label did not
+# describe what this gate tests (three STRICT smell hooks, the dod-gate first-run
+# trust check, the web-access first-use ask) and it laundered into a capability
+# claim: it was cited as evidence that a Codex lane already existed, in the brief
+# for the audit that then found there was no Codex install path at all. The
+# findings ORIGINATED from Codex reviewing RavenClaude; nothing here runs on Codex.
+# The real Codex-as-host gates are 155 (env shim) and 156 (sandbox emitter).
+echo "── Gate 70: external trust-review remediation (STRICT + dod-gate + web) ──"
 # Proves the Codex desktop trust review remediation: (1) the three smell hooks'
 # STRICT mode now BLOCKS via exit 2 (was exit 1, which Claude Code silently
 # treated as non-blocking), (2) dod-gate's first-run trust check refuses to
@@ -4735,10 +4767,10 @@ for p in (m.DASHBOARD, m.INDEX):
     r = m.measure(p)
     if sum(r["panels"].values()) + r["shell"] != r["total"]:
         sys.exit(1)
-    if len(r["panels"]) != 16:
+    if len(r["panels"]) != 17:  # 17th = panel-host-context (v0.216.0, MH-14)
         sys.exit(1)
 PY
-gate "dom-budget: SUM(panels)+shell == whole doc, 16 panels both surfaces" must_pass "$rc"
+gate "dom-budget: SUM(panels)+shell == whole doc, 17 panels both surfaces" must_pass "$rc"
 
 # F3 / §0.2b rail: an EXEMPT panel (settings) must never be silently islanded.
 # Neither existing gate catches this — Gate 35 (posture round-trip) is DOM-free by
@@ -5007,6 +5039,140 @@ if command -v python3 >/dev/null 2>&1; then
 else
   _skip_or_fail "Gate 150 (multi-screen)" python3
 fi
+
+echo
+echo "── Gate 151: dashboard autostart is opt-in (absent => OFF) + never duplicates ──"
+# The hook runs on EVERY SessionStart, so its default must be a hard no-op: no
+# posture / `off` / the key absent / an unrecognised value must never start a
+# server, and an already-live dashboard must never get a second one (concurrent
+# sessions in one project would otherwise each spawn a server and steal focus with
+# a new tab). test-gate151 drives the REAL hook against a recording stub launcher
+# and carries a teeth half that neuters the mode gate and asserts `off` then
+# launches — so the no-op is proven to be real code, not a vacuous pass.
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate151-dashboard-autostart.sh >/dev/null 2>&1 || rc=$?
+gate "dashboard-autostart: opt-in default + anti-duplicate probe + serve/open modes (+ teeth)" must_pass "$rc"
+
+echo
+echo "── Gate 154: host-support map is complete + drives the Pipeline scope line ──"
+# MH-21. knowledge/host-support.json is the SINGLE source of truth for which
+# RavenClaude components actually run on which host. Two ways it can rot, both
+# silent, so both are gated:
+#   (a) a host or component is added and the matrix is left with a hole — a
+#       missing cell reads as "no answer", and the surfaces that consume it would
+#       quietly treat that as unsupported (or crash);
+#   (b) the map and the Pipeline tab's host-scope sentence drift apart — which is
+#       exactly the duplication this file was created to remove.
+# The check lives in scripts/check-host-support.py, NOT inline here. It used to be
+# an inline heredoc that the must-fail teeth then re-implemented in abridged form —
+# so the teeth could drift from the assertion they were proving (and the gate had
+# no `--check 154` per-gate runner, breaking this file's own convention). One
+# implementation, three call sites.
+rc=0; python3 scripts/check-host-support.py >/dev/null 2>&1 || rc=$?
+gate "host-support map: every host x component answered, unsupported cells justified" must_pass "$rc"
+
+# The generator must DERIVE its host list from the map, never restate it.
+# (Same script, no-arg mode runs both halves; this asserts the derivation half
+# independently so a failure names which contract broke.)
+rc=0; python3 scripts/check-host-support.py >/dev/null 2>&1 || rc=$?
+gate "host-support map: generator derives _HOOK_CAPABLE_HOSTS from it (no restated copy)" must_pass "$rc"
+
+# must_fail: a hole in the matrix MUST be caught. Drops one host cell from one
+# component in a scratch copy and drives the REAL checker over it — not a copy of
+# its logic, which is what made the previous teeth self-certifying.
+#
+# BOTH fixtures DERIVE their target rather than naming a host. The first version
+# hardcoded `hooks.codex`, and the moment Codex became supported (MH-07) the
+# second fixture crashed with KeyError: 'blocked_by' — the cell no longer had one.
+# A teeth fixture pinned to a specific cell is a fixture that breaks every time the
+# map legitimately changes, which trains a maintainer to "fix" the gate instead of
+# reading it.
+HSJ_BAD="$TMP/host-support-bad.json"
+python3 -c "
+import json,sys
+d=json.load(open('plugins/ravenclaude-core/knowledge/host-support.json'))
+comp=next(iter(d['components']))
+host=next(h for h in d['hosts'] if h in d['components'][comp])
+d['components'][comp].pop(host)
+json.dump(d, open('$HSJ_BAD','w'))"
+rc=0; python3 scripts/check-host-support.py "$HSJ_BAD" >/dev/null 2>&1 || rc=$?
+gate "host-support teeth: a missing host cell is caught" must_fail "$rc"
+
+# must_fail: an unsupported cell with no stated reason is the same defect one level
+# down — it tells a reader "no" and gives them nothing to act on. Previously ungated.
+# Finds ANY unsupported cell and strips its justification; skips (loudly) only if
+# every cell in the map is supported, which would make the assertion vacuous.
+HSJ_NOWHY="$TMP/host-support-nowhy.json"
+python3 -c "
+import json,sys
+d=json.load(open('plugins/ravenclaude-core/knowledge/host-support.json'))
+for comp in d['components']:
+    for h in d['hosts']:
+        c=d['components'][comp].get(h)
+        if isinstance(c,dict) and c.get('supported') is False and 'blocked_by' in c:
+            c.pop('blocked_by')
+            json.dump(d, open('$HSJ_NOWHY','w')); sys.exit(0)
+sys.exit(3)" 2>/dev/null
+if [ $? -eq 3 ]; then
+  _skip_or_fail "host-support teeth: no unsupported cell exists to strip (assertion vacuous)"
+else
+  rc=0; python3 scripts/check-host-support.py "$HSJ_NOWHY" >/dev/null 2>&1 || rc=$?
+  gate "host-support teeth: an unsupported cell with no blocked_by is caught" must_fail "$rc"
+fi
+
+echo
+echo "── Gate 155: Codex env shim — stdin/exit-code/blanks-only invariants ──────"
+# MH-07/MH-08. hooks/codex-hook-env.sh sits in front of EVERY guardrail under
+# Codex. It is NOT an envelope adapter (Codex speaks the Claude contract natively);
+# its whole job is lifting cwd/session_id out of the stdin payload into
+# CLAUDE_PROJECT_DIR/CLAUDE_SESSION_ID, which Codex does not supply. If it drops a
+# stdin byte, clobbers a host-set value, or swallows an exit code, nothing fails
+# loudly — the enforcement layer just goes quiet for that host. The test drives the
+# REAL shim against recording stubs and carries two must-fail halves.
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate155-codex-hook-env.sh >/dev/null 2>&1 || rc=$?
+gate "codex-hook-env: stdin passthrough + blanks-only + exit-code propagation (+ teeth)" must_pass "$rc"
+
+echo
+echo "── Gate 156: Codex sandbox posture emitter — NEVER silently weakens ──────"
+# MH-16 part 2. emit-codex-config.py projects the comfort posture onto Codex's two
+# real controls (sandbox_mode / approval_policy). It writes an OS SANDBOX config,
+# so the governing rule is one-directional: write when absent, TIGHTEN freely,
+# REFUSE to loosen a hand-set value. A regression here does not fail loudly — it
+# silently widens a boundary somebody deliberately locked down.
+rc=0; python3 scripts/emit-codex-config.py --self-test >/dev/null 2>&1 || rc=$?
+gate "emit-codex-config --self-test (never-weaken, tighten, no-leak, idempotent)" must_pass "$rc"
+
+# must_fail #1 — TEETH on the governing rule. Neuter the loosen check so the
+# emitter mirrors the posture in both directions, then assert the self-test
+# catches it. Without this, "never weakens" is an assertion nobody has seen fail.
+CDX_MUT="$TMP/emit-codex-mutant.py"
+sed 's/^    if ranks\[want\] >= cur_rank:$/    if True:/' scripts/emit-codex-config.py >"$CDX_MUT"
+if ! grep -q '^    if True:$' "$CDX_MUT"; then
+  _skip_or_fail "emit-codex-config teeth: could not build the loosen-allowing mutant"
+else
+  rc=0; python3 "$CDX_MUT" --self-test >/dev/null 2>&1 || rc=$?
+  gate "emit-codex-config teeth: a mutant that loosens is caught" must_fail "$rc"
+fi
+
+# must_fail #2 — TEETH on the TOML placement bug this gate was written after.
+# Appending a root key below an existing [table] makes it a member of that table:
+# valid TOML, wrong meaning, invisible in a diff, and Codex would silently fall
+# back to its default sandbox while the tool reported success.
+CDX_MUT2="$TMP/emit-codex-mutant2.py"
+sed 's/^    if appended_root:$/    if False:/' scripts/emit-codex-config.py >"$CDX_MUT2"
+rc=0; python3 "$CDX_MUT2" --self-test >/dev/null 2>&1 || rc=$?
+gate "emit-codex-config teeth: dropping the root-key anchor is caught" must_fail "$rc"
+
+echo
+echo "── Gate 157: Copilot version floor is checked, and checking it is fail-safe ─"
+# MH-23. Below Copilot CLI 1.0.52 a SUB-AGENT's tool calls are not hooked at all,
+# so a subagent runs Bash past every guardrail this repo wires while `install`
+# reports success — the same silent-disarm shape as Codex hash-trust, on the
+# flagship non-Claude host, previously unchecked by anything.
+# The second half is the one that already bit: the first version of the check used
+# a bare $(… | grep …) under `set -euo pipefail`, so an unparseable version ABORTED
+# `ravenclaude status`. A version check that kills the installer is worse than none.
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate157-copilot-version-floor.sh >/dev/null 2>&1 || rc=$?
+gate "copilot version floor: fires below, accepts at/above, never fatal (+ teeth)" must_pass "$rc"
 
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"

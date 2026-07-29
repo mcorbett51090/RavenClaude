@@ -187,6 +187,12 @@
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/thing-denial-kb-recall.sh",
             "timeout": 10,
             "comment": "Thing-denial knowledge base (Muninn) recall. Refreshes then surfaces the most-recent tribunal-denial SHAPES + their known resolutions via hookSpecificOutput.additionalContext, so the agent opens a session already knowing which blocks the Thing has raised in this repo and how to get past them. Leak-safe: emits only the DERIVED digest (source/category/count/signature + resolution), never the raw denied command/question. No-op unless .ravenclaude/comfort-posture.yaml exists AND the KB is non-empty; always exits 0; 10s timeout bounds the read."
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/dashboard-autostart.sh",
+            "timeout": 10,
+            "comment": "Optionally brings the comfort-posture dashboard up at session start. OPT-IN, absent => OFF: reads the `dashboard_autostart: off|serve|open` knob from .ravenclaude/comfort-posture.yaml and no-ops after a single grep for everyone who has not set it (`serve` starts the local server headless; `open` also opens a browser tab). Closes the gap where the ONLY auto-launch that existed was the Codespace devcontainer, so a local session never started it. Probes 127.0.0.1:<port>/__csrf first and stands down if a dashboard already answers there, so concurrent sessions never spawn a second server or steal focus with a second tab. Launches detached via bin/rc (no --project-root: cwd already resolves the repo, and --project-root is hard-guarded against the marketplace checkout). Fail-safe: EXIT trap armed first, always exits 0, never blocks; 10s timeout bounds the probe."
           }
         ]
       }

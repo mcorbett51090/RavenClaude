@@ -35,6 +35,16 @@ design_checkins: true
 # (behavioral flag, like design_checkins / model_fallback above). Default warn.
 worktree_guard: warn
 
+# Bring the comfort-posture dashboard up at session start (dashboard_autostart:
+# off | serve | open). Read by hooks/dashboard-autostart.sh. LEFT UNSET ON PURPOSE —
+# absent ⇒ off, because auto-launching a local server (and stealing focus with a
+# browser tab) is not a sane default for a repo you just cloned. Uncomment to opt in:
+#   serve — start the local server headless; open it yourself when you want it.
+#   open  — start it AND open a browser tab each session.
+# It probes 127.0.0.1:8000 first, so concurrent sessions never spawn a second
+# server or a second tab. Until you set this, `rc dashboard` stays the launch verb.
+# dashboard_autostart: open
+
 # Claude orchestrator for non-Claude CLIs (off | decide | full).
 # No-op under Claude Code (host already IS Claude). Default: full (owner choice — route to Claude; costs more tokens).
 #   off    — host CLI orchestrates as today (zero extra cost).

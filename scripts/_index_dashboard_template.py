@@ -36,8 +36,19 @@ TEMPLATE = r"""<!doctype html>
 
       /* ── Local aliases — map the existing index.html variables onto the
          shared tokens so the cascade lights this surface as cool near-black +
-         teal (the index/landing secondary accent; the dashboard carries the
-         commerce green). Per-surface overrides live below. */
+         the commerce GREEN, the same signature accent dashboard.html and the
+         RavenPower site both carry.
+
+         2026-07-28 — the teal secondary is RETIRED. index.html had been the one
+         RavenClaude surface off-brand from the commerce site: it aliased its
+         accent to --rc-teal (#3aa391) while dashboard.html and the site both use
+         #56D08A. The `--teal*` variable NAMES are kept (they are referenced from
+         ~20 rules below) but now resolve to green, so this is a repoint, not a
+         rename — no usage site changes and no chance of a missed one.
+
+         Teal here was purely decorative — links, active nav, brand mark, hero
+         hairline, chips, buttons. It carried NO semantic distinction that
+         collapsing to green would erase; that was checked before the swap. */
       :root {
         --bg: var(--rc-bg);
         --bg-2: var(--rc-surface-2);
@@ -49,11 +60,20 @@ TEMPLATE = r"""<!doctype html>
         --text: var(--rc-text);
         --muted: var(--rc-muted);
         --faint: var(--rc-faint);
-        --teal: var(--rc-teal);
-        --teal-2: var(--rc-teal);
-        --teal-dim: var(--rc-teal-soft);
-        --teal-soft: rgba(31, 127, 120, 0.10);
-        --teal-glow: rgba(31, 127, 120, 0.28);
+        --teal: var(--rc-accent); /* commerce --accent  #56D08A */
+        /* --teal-2 is TEXT on this surface (links, nav-active, brand, eyebrows,
+           chips, stat values), so it must clear AA in BOTH themes — it maps to
+           --rc-accent, NOT --rc-accent-2. --rc-accent-2 is documented in
+           shared-tokens.css as "AA-large / UI" and measures only 4.04:1 on the
+           light canvas, which would have quietly regressed every inline link.
+           --rc-accent gives 10.29:1 dark / 4.98:1 light — and 4.98 is also an
+           improvement on the teal it replaces (4.45:1, itself marginally under AA).
+           This also mirrors the ORIGINAL mapping, where --teal and --teal-2 were
+           both var(--rc-teal) — identical by design, not an oversight. */
+        --teal-2: var(--rc-accent);
+        --teal-dim: var(--rc-accent-soft);
+        --teal-soft: var(--rc-accent-soft); /* commerce --accent-soft */
+        --teal-glow: var(--rc-accent-glow); /* commerce --accent-glow */
         --ok: var(--rc-ok);
         --warn: var(--rc-warn);
         --danger: var(--rc-danger);
@@ -87,7 +107,12 @@ TEMPLATE = r"""<!doctype html>
       h1, h2, h3, h4 { font-family: var(--font-display); letter-spacing: -0.02em; line-height: 1.15; margin: 0; }
       h1 { font-size: clamp(1.9rem, 4vw, 2.8rem); }
       p { line-height: 1.6; }
-      ::selection { background: var(--teal); color: #fff; }
+      /* Ink on the accent is var(--bg), NOT a hardcoded #000. The commerce site
+         hardcodes #000 because it has no light theme; we do — and #000 on the
+         light theme's darker green (#157a45) measures 3.9:1, i.e. fails AA.
+         var(--bg) inverts with the theme: 10.29:1 dark, 4.98:1 light. Mimic the
+         site's INTENT (dark ink on the bright accent), not its literal value. */
+      ::selection { background: var(--teal); color: var(--bg); }
       :focus-visible { outline: none; box-shadow: var(--ring); border-radius: 8px; }
       button { font-family: inherit; cursor: pointer; }
 
@@ -195,7 +220,9 @@ TEMPLATE = r"""<!doctype html>
       }
       .btn svg { width: 16px; height: 16px; }
       .btn:hover { border-color: var(--border-strong); background: var(--surface-2); }
-      .btn.primary { background: var(--teal); color: #fff; border-color: var(--teal); box-shadow: var(--rc-shadow-sm); }
+      /* Was `color: #fff` on teal — 3.08:1, which FAILED AA before this change.
+         Green + var(--bg) ink takes it to 10.29:1 dark / 4.98:1 light. */
+      .btn.primary { background: var(--teal); color: var(--bg); border-color: var(--teal); box-shadow: var(--rc-shadow-sm); }
       .btn.primary:hover { background: var(--teal-dim); border-color: var(--teal-dim); }
       .btn.ghost { background: transparent; }
       .hide-sm { }
@@ -367,7 +394,7 @@ TEMPLATE = r"""<!doctype html>
       .payload-banner .ico svg { width: 16px; height: 16px; color: var(--teal-2); }
       .payload-banner code { font-family: var(--font-mono); font-size: 0.78rem; color: var(--text); background: var(--surface-2, var(--bg)); border: 1px solid var(--border); padding: 2px 6px; border-radius: 4px; }
       .payload-banner .msg { flex: 1; }
-      .payload-banner .banner-copy { background: var(--teal); color: white; border: 0; padding: 4px 10px; border-radius: 6px; font-size: 0.78rem; cursor: pointer; }
+      .payload-banner .banner-copy { background: var(--teal); color: var(--bg); border: 0; padding: 4px 10px; border-radius: 6px; font-size: 0.78rem; cursor: pointer; }
       .payload-banner .banner-copy:hover { filter: brightness(1.05); }
 
       .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--surface-3); border: 1px solid var(--teal); color: var(--text); padding: 12px 18px; border-radius: 10px; font-size: 0.86rem; box-shadow: var(--shadow); opacity: 0; pointer-events: none; transition: 0.25s; z-index: 90; }
@@ -496,7 +523,9 @@ TEMPLATE = r"""<!doctype html>
       .scenario-card:hover { transform: translateY(-2px); box-shadow: var(--rc-shadow-md, var(--shadow)); border-color: var(--border-strong); }
       .scenario-card.active { box-shadow: var(--rc-shadow-md, var(--shadow)); }
       .scenario-card[data-profile="strict"].active { border-color: var(--rc-gold, #56d08a); }
-      .scenario-card[data-profile="balanced"].active { border-color: var(--rc-teal, var(--teal)); }
+      /* Was var(--rc-teal, …) — the last direct teal reference on this surface,
+         which would have left one lone teal-bordered card on an all-green page. */
+      .scenario-card[data-profile="balanced"].active { border-color: var(--teal); }
       .scenario-card[data-profile="exploratory"].active { border-color: var(--rc-border-strong, var(--border-strong)); }
       .scenario-card[data-profile="autonomous"].active { border-color: #b5630a; }
       .scenario-card .sc-tag {
@@ -910,10 +939,10 @@ TEMPLATE = r"""<!doctype html>
         norns: "activity", mimir: "activity", saga: "activity", activity: "activity",
         streams: "activity", sleipnir: "activity",
         settings: "control", "comfort-posture": "control", "web-access": "control",
-        pipeline: "control",
+        pipeline: "control", "prompt-builder": "control", "host-context": "control",
         // P5: overview/simulator tabs deleted (resolve via SECTION_ALIAS → Control);
         // the Help drawer (install/bifrost/about/commands + help) is owned by Catalog.
-        "plugin-vars": "catalog", "prompt-builder": "catalog", commands: "catalog", trees: "catalog", bifrost: "catalog",
+        "plugin-vars": "catalog", commands: "catalog", trees: "catalog", bifrost: "catalog",
         install: "catalog", about: "catalog", help: "catalog",
       };
       // SECTION_TABS retired (P3, dashboard-consumption). The 6-section IA's
@@ -1013,11 +1042,17 @@ TEMPLATE = r"""<!doctype html>
         // is a no-op, which is correct — you're already there).
         if (id === "control") {
           const cur = location.hash.replace(/^#\/?/, "").split("/")[0];
-          const active = cur === "pipeline" || cur === "web-access" ? cur : "settings";
+          const active = ["pipeline", "web-access", "prompt-builder", "host-context"].includes(cur) ? cur : "settings";
           // Literal hrefs (NOT a #/${tab} template) so Gate 51's committed-routes
           // enumerates + resolves each individually.
           const a = (tab) => (tab === active ? " active" : "");
+          // Prompt Builder sits FIRST, above The Thing — the same slot the standalone
+          // dashboard.html sidebar uses. v0.214.0 moved it Learn & Help → Control on the
+          // standalone but left the portal homing it under Catalog, so the portal hid it
+          // behind an accordion. Both surfaces must name the same home destination.
           return (
+            `<a class="nav-subitem${a("prompt-builder")}" href="#/prompt-builder">Prompt Builder</a>` +
+            `<a class="nav-subitem${a("host-context")}" href="#/host-context">Host &amp; context</a>` +
             `<a class="nav-subitem${a("settings")}" href="#/settings">The Thing</a>` +
             `<a class="nav-subitem${a("pipeline")}" href="#/pipeline">Pipeline</a>` +
             `<a class="nav-subitem${a("web-access")}" href="#/web-access">Web access</a>`
@@ -1065,7 +1100,6 @@ TEMPLATE = r"""<!doctype html>
           const top = location.hash.replace(/^#\/?/, "").split("/")[0];
           const onTeam = top === "team";
           const onTrees = top === "trees";
-          const onPromptBuilder = top === "prompt-builder";
           const cur = (location.hash.split("/")[2] || "all");
           // Literal hrefs (NOT a #/${tab} template) so Gate 51's committed-routes
           // enumerates each. "Guidance" (#/trees) is the cross-plugin decision-tree +
@@ -1074,7 +1108,6 @@ TEMPLATE = r"""<!doctype html>
           const items = [
             `<a class="nav-subitem${onTeam ? " active" : ""}" href="#/team">Specialists</a>`,
             `<a class="nav-subitem${onTrees ? " active" : ""}" href="#/trees">Guidance</a>`,
-            `<a class="nav-subitem${onPromptBuilder ? " active" : ""}" href="#/prompt-builder">Prompt Builder</a>`,
           ];
           items.push(
             ...[{ id: "all", label: "All plugins", count: D.plugins.length }]

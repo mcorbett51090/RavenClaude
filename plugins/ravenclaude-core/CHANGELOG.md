@@ -2,6 +2,247 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.216.0 — 2026-07-28
+
+### Added
+
+- **`dashboard_autostart: off | serve | open` — the dashboard can now come up on its own at
+  session start.** The only auto-launch RavenClaude ever shipped was the Codespace devcontainer
+  (`postStartCommand` + `portsAttributes.onAutoForward: openBrowser`); on a local/desktop machine
+  **nothing** started the dashboard at session start, so "it didn't open automatically" was
+  correct-by-design and completely undiscoverable. New `SessionStart` hook
+  `hooks/dashboard-autostart.sh` reads the knob from `.ravenclaude/comfort-posture.yaml` —
+  `serve` starts the local server headless, `open` also opens a browser tab. **Opt-in;
+  absent ⇒ off**, and it no-ops after a single `grep` for everyone who hasn't set it, so an
+  update changes nothing until you opt in. **It never duplicates:** it probes
+  `127.0.0.1:<port>/__csrf` first and stands down if a dashboard already answers there, so
+  concurrent sessions in one project can't each spawn a server and steal focus with a new tab.
+  **Honest limit:** that probe answers "is a dashboard live on this port?", not "is it *this*
+  project's dashboard" — if another project holds the port, the hook stands down rather than
+  starting a competing one. Fail-safe (EXIT trap armed first; always exits 0 — a SessionStart
+  hook cannot block, and a dashboard that fails to launch must never be why a session doesn't
+  start), and bash-3.2/BSD-clean per the macOS-door milestones. **Gate 151**
+  (`hooks/tests/test-gate151-dashboard-autostart.sh`) drives the real hook against a recording
+  stub launcher: 5 must-not-launch cases (no posture / `off` / key absent / already-live /
+  an unrecognised value), 2 must-launch cases asserting `--no-open` is present for `serve` and
+  absent for `open`, every case exits 0, plus a teeth half that neuters the mode gate and proves
+  `off` then launches. The key is also wired into the dashboard's `state`/`emitYaml`/
+  `applyGuardrailConfig` (covered by Gate 35) — **not** cosmetic: `emitYaml` rebuilds the whole
+  posture file from `state`, so a key with no state slot is silently **deleted** on the next
+  Save & apply (the v0.61.0 data-loss class).
+- **…and it ships with a visible control** (Settings panel, beside the other behavioral flags): a
+  three-option select — *off* / *serve* / *open*. It was very nearly YAML-only, because Gate 132's
+  budget sat at exact zero slack — which would have reproduced the very discoverability problem that
+  started this release (a setting nobody can find is a setting nobody uses). **Owner-approved +6
+  ratchet raise** on both surfaces (6,114 → 6,120 and 7,000 → 7,006), tails lifted in lockstep to stay
+  monotonic. The +6 is **measured, not estimated**: the first cut came in at **ten** elements (a
+  behavioral-flag `<span>`, an explainer `<p>` and two `<b>`) and would have silently blown the
+  approved figure. It was trimmed to exactly six by making the ⚙ marker a *glyph in the heading text*
+  rather than the badge element, and moving the explainer into a `title=` attribute — both zero-cost
+  substitutions that keep the house conventions. Anyone adding a heading, description or icon here
+  must re-measure rather than assume +6 still holds.
+
+### Changed
+
+- **The portal is now on-brand with the RavenPower commerce site — the teal secondary accent is
+  retired.** `dashboard.html` already matched the site *exactly* (canvas `#07080a`, panel `#0c0e12`,
+  accent `#56D08A`, hover `#6EE0A1`, text `#f5f7fa`, muted `#9aa3b2` — 6/6 byte-identical, with both
+  Inter/Space Grotesk and both motion easings already shared). `index.html` was the one surface off
+  brand: it aliased its accent to `--rc-teal` (`#3aa391`). Its five `--teal*` variables now resolve to
+  the green tokens — a **repoint, not a rename**, so all ~20 usage rules are unchanged and none could
+  be missed. Teal was verified purely decorative on that surface (links, nav-active, brand mark, hero
+  hairline, chips, buttons) — no semantic distinction was collapsed.
+- **Radii pulled to the site's sharper scale** — `--rc-radius-sm` → `4px` and `--rc-radius-lg` → `10px`
+  now match the commerce `--radius` / `--radius-lg` exactly (dashboard was `8px`/`12px`), with the
+  intermediate steps tightened in proportion. This was the widest measured drift once the palette was
+  confirmed identical, and it is most of why the site reads crisp rather than soft. A 5-step scale is
+  kept (the site ships 2) because an admin surface has more component sizes than a marketing page.
+- **The commerce per-discipline tints are now tokens** — `--rc-tint-pp` (lavender), `--rc-tint-bi`
+  (teal-mint), `--rc-tint-web` (copper), plus `--rc-tint-ai` aliased to the accent. Declared only;
+  wiring them to plugin categories is deliberately a separate step.
+- **Deliberately NOT adopted: the site's spatial rhythm** (`--container`, `--gutter`,
+  `--section-y: clamp(80px, 12vw, 140px)`). That is marketing-page rhythm; applying it to a
+  6,114-element admin surface would multiply scroll length on the posture editor and run feeds and
+  partly reverse the v0.208.0 density re-cut. Owner-ratified: adopt the site's *proportions*, keep the
+  dashboard's density.
+- **Every change here is CSS/token-only, so Gate 132's DOM budget did not move** (6,114 / 7,000
+  unchanged) and no concept SVG re-render was triggered — the palette was already identical, so the
+  Mermaid→token normalizer is untouched.
+
+### Fixed
+
+- **Two accessibility defects surfaced and fixed by the accent unification** — one pre-existing, one
+  that would have been introduced:
+  - **Pre-existing:** the portal's primary button was `color: #fff` on teal — **3.08:1, already failing
+    WCAG AA** before this change. Now `var(--bg)` ink on green: **10.29:1 dark / 4.98:1 light**.
+  - **Nearly introduced:** mapping `--teal-2` to `--rc-accent-2` measured **4.04:1 on the light
+    canvas** — a regression for every inline link, since `--teal-2` is body-size *text* on that surface
+    (links, nav-active, eyebrows, chips). `--rc-accent-2` is documented as "AA-large / UI" only. It maps
+    to `--rc-accent` instead: **10.29:1 dark / 4.98:1 light** — also an improvement on the teal it
+    replaces, which was itself a marginal 4.45:1.
+  - The site hardcodes `color: #000` on its accent; we deliberately use `var(--bg)` instead, because the
+    site has no light theme and `#000` on the light green measures **3.9:1**. Mimic the intent, not the
+    literal value.
+  - **The focus ring collapsed to one colour.** Two rings existed because the system had two accents;
+    `--rc-focus-ring` was still teal in both themes and would have been the only teal left rendering.
+- **The Prompt Builder was homed under a different destination on each surface, so the portal
+  hid it.** v0.214.0 moved the nav link "Learn & Help" → **Control** on the standalone
+  `dashboard.html`, but the portal (`index.html`) was never moved with it: `DASH_OWNER` still
+  mapped `prompt-builder` → `catalog`, and the clickable link lived in the Catalog accordion —
+  which `renderNav` only emits when Catalog is the **active** nav item. So on the portal the
+  Prompt Builder was invisible until you first clicked Catalog, and it was absent from Control
+  where the release notes said to look. Fixed by homing it under `control` on the portal too,
+  first in the sub-nav (above The Thing), matching the standalone's slot exactly.
+- **Gate 144 could not see the skew — it asserted presence, not placement.** The portal half of
+  `scripts/check-prompt-builder-render.mjs` only checked that `DASH_OWNER` had *some* entry for
+  `prompt-builder` and that *some* `href="#/prompt-builder"` existed anywhere in the file; both
+  were true throughout the regression, so CI stayed green across v0.214.0 and v0.215.1. The gate
+  now **derives** the home destination from the folded standalone `ds-nav` chrome (present on both
+  surfaces, so it is a single source of truth rather than a hardcoded expectation) and asserts the
+  portal's `DASH_OWNER` **and** the destination's own sub-nav branch both agree with it. Two new
+  must-fail halves verified: regressing `DASH_OWNER` back to `catalog` and moving the link out of
+  the Control branch each fail the gate (exit 1). **Migration:** none — no storage-key or route
+  change; `#/prompt-builder` resolved before and resolves now.
+- **`scripts/render-concepts.py` could not render on a host where puppeteer fails to resolve its own
+  browser — which is every concept diagram, and the post-merge `regenerate-artifacts.yml` self-heal.**
+  mermaid-cli drives puppeteer-core, which locates Chrome itself; that resolution can fail even when the
+  browser is correctly installed (reproduced 2026-07-28 on macOS/arm64: Chrome 148.0.7778.97 present and
+  complete at 353 MB, yet every render died with `Could not find Chrome (ver. 148.0.7778.97)`). The script
+  passed no `env=` to `subprocess.run`, so there was no way to correct it short of exporting a variable by
+  hand. It now discovers a Puppeteer-managed Chrome and supplies `PUPPETEER_EXECUTABLE_PATH` — but only as
+  a **repair**, never as the default path:
+  - **Attempt 1 is byte-for-byte the historical invocation** (puppeteer's own resolution, `env` inherited).
+    Only if that fails does the fallback engage, and the chosen executable is then cached for the rest of
+    the run so the remaining diagrams don't each pay a doomed first attempt. **This ordering is
+    load-bearing:** committed SVGs are byte-compared and text metrics move with the browser build — the
+    same 2-node diagram rendered 12,520 bytes under Chrome 148 and 12,453 under 151 in testing, so
+    substituting a different engine on a host that already worked would silently churn every committed SVG.
+  - **An operator-set `PUPPETEER_EXECUTABLE_PATH` always wins** and is never second-guessed.
+  - **Truncated downloads are rejected, not handed over.** The cache entry that caused this held a
+    plausible 68 KB launcher stub at `Contents/MacOS/…` while missing `Contents/Frameworks` entirely — so
+    `is_file()` and `os.access(X_OK)` both passed on a browser that could never launch. `_looks_complete()`
+    requires the bundle's `Frameworks` payload (or, off macOS, a >1 MB executable); verified bidirectionally
+    against the real 353 MB good bundle (accepted) and the preserved 448 KB broken one (rejected).
+  - **Failures now carry an actionable hint** naming both observed causes — no managed Chrome at all, or a
+    truncated one, including the trap that `puppeteer browsers install` **silently no-ops** when the version
+    directory already exists (so it must be moved aside before reinstalling).
+  - Deliberately **no `shutil.which("google-chrome")` fallback**: a system Chrome is an arbitrary version,
+    and byte-reproducible SVGs are this renderer's contract. Failing loudly with an install hint beats
+    silently rendering against a different engine.
+  Verified end-to-end through the real `_render_one` path: fallback engages once and caches, an operator
+  override is honored on attempt 1, `--check` reports all 58 concepts in sync, and the mutated-manifest
+  gate still fails as designed. **No committed SVG changed.**
+- **The Copilot lane never said the Prompt Builder was a browser tab.** `copilot/AGENTS.md`'s
+  generated dashboard block told a Copilot session how to *launch* the dashboard but never named
+  what is in it — so "where's the prompt builder?" in a Copilot terminal had nothing to route on
+  and looked like a missing feature. The block now names it (`#/prompt-builder`, under Control),
+  says plainly that nothing in a terminal session renders it, and points at `dashboard_autostart`.
+- **OpenAI Codex CLI is a supported host** (multi-host audit MH-07 + MH-08 + MH-17, shipped together).
+  `ravenclaude install --host codex` wires the lane: all **50 skills** symlinked into
+  `<project>/.agents/skills/`, and `<project>/.codex/hooks.json` written in the **Claude-shaped**
+  schema. Verified end-to-end in a scratch project.
+  - **No adapter, and there must never be one.** Codex speaks the Claude hook contract natively —
+    identical PascalCase events, identical stdin fields, identical `exit 2` blocking, identical
+    PascalCase tool-name *values*. Copilot needed a 456-line generator plus ~300 lines of envelope
+    translation and a tool-name map; Codex needs none of it. Reading Codex through Copilot's model is
+    the mis-scoping that made this lane look expensive for months.
+  - **The one real difference is two absent environment variables.** `CLAUDE_PROJECT_DIR` (25 hooks
+    read it) and `CLAUDE_SESSION_ID` (14 read it) are not in Codex's environment, so the guardrail
+    substrate would stay dark. A new ~100-line wrapper lifts them out of the **stdin payload** — the
+    documented, reliable source — passing stdin through **byte-identical** and propagating the hook's
+    exit code **verbatim** (exit 2 = block). **Gate 155** proves all four invariants with two
+    must-fail halves; without them, "exit 2 propagates" would be an assertion nobody had seen fail.
+  - **Note what this avoided:** the existing `_rc_host_env` alias falls back to `CODEX_PROJECT_ROOT` /
+    `SESSION_ID` / `PROJECT_DIR` — **none of which are in Codex's documented environment.** It looked
+    like the fix and closed nothing. The audit's own remedy called for editing all 18 hooks to call
+    it; that would have changed nothing. **No hook was modified.**
+  - **MH-17 shipped in the same commit, deliberately.** Codex tracks hook trust **by hash**, so every
+    `git pull` — this repo's entire update model — invalidates each changed hook and Codex **skips it
+    until re-trusted**. Nothing announces it, because the SessionStart banner *is itself a hook*.
+    Shipping the installer alone would have manufactured the silently-inert-guardrail class this
+    audit exists to close, on the host it was closing it for. The re-trust notice fires at install,
+    at **`update`** (where the disarm actually happens), in `status`, and inside the generated file.
+    `--dangerously-bypass-hook-trust` is named **only to refuse it** — it turns an honest "your
+    guardrails are off" into a dishonest "your guardrails are on". `requirements.toml` managed hooks
+    are documented as the only unattended-survival path.
+  - **Backward compatible:** host auto-detection resolves *any* ambiguity to `copilot`, so an
+    existing user who happens to have `codex` on PATH gets a byte-identical install to yesterday's.
+  - **The comfort posture now reaches Codex's OS sandbox** (MH-16 part 2). `emit-codex-config.py`
+    projects it onto `sandbox_mode` / `approval_policy` / `[sandbox_workspace_write] network_access`.
+    **The governing rule is one-directional: never silently weaken** — write when absent, tighten
+    freely, and *refuse* to loosen a hand-set value, printing the exact line to change. The rejected
+    alternative (mirror the posture both ways) would let a dashboard click silently widen a sandbox
+    somebody had deliberately locked down. `danger-full-access` and `approval_policy = "never"` are
+    never emitted at any posture. **Gate 156**, two must-fail halves.
+    - **Two caveats stated at install time, not buried:** the mapping is **coarse** (two enum keys
+      cannot express twelve categories), and a project `.codex/config.toml` **loads only in trusted
+      projects** — a second trust gate beside the hook hashing, so writing the file is not the same as
+      bounding the session.
+    - **A TOML placement bug caught in testing:** a root key appended below an existing `[table]`
+      becomes a member of that table — valid TOML, wrong meaning, invisible in a diff, and Codex would
+      have fallen back to its default sandbox while the tool reported success. Fixed with a placement
+      anchor, pinned by a must-fail half, and verified with an independent TOML parser rather than by
+      eye. No `tomllib` is used at all: it is stdlib only on 3.11+, and stock macOS ships 3.9.6.
+    - **A second bug, and the sharper lesson:** `network_access` is a TOML **boolean**, so writing it
+      quoted produced the *string* `"false"` — not what Codex expects. It shipped broken in the
+      **tighten** path (the security-relevant direction), and **Gate 156 was green while it was live**,
+      because the self-test never exercised a boolean tighten. A gate is only as good as the paths it
+      reaches. Now asserted both directions and confirmed by a parser reporting `type: bool`.
+  - **Honest gap, printed at install time rather than discovered later:** MCP (`.codex/config.toml`
+    `[mcp_servers.*]`) is not wired — a bad merge would clobber a hand-tuned config. The generated
+    agent projection is
+    **deliberately deferred**: there is no verified Codex agent-file contract in this repo, and
+    projecting 15 agents from a guessed schema is the same "don't guess at a contract" call made on
+    the Copilot `tools:` gap.
+  - The Pipeline tab's host-scope sentence had a **hardcoded** "nowhere else" list beside its derived
+    supported list, so flipping Codex on made it name Codex as supported and unsupported *in the same
+    sentence*. Both halves are now derived from the map.
+- **`codex-onboarding` → `external-agent-onboarding`, and its evidence base rebuilt** (MH-23).
+  **⚠ MIGRATION — the only breaking change in this release.** The skill directory is renamed, so a
+  consumer with the old skill symlinked will have a dangling link after `/plugin marketplace update`.
+  **Fix: re-run `ravenclaude install` (or `rc`)** — one command, and already the documented update
+  path. Skill count is unchanged at 50.
+  - **The old name was the defect.** It owned the Codex discovery keyword while the content was
+    almost entirely Copilot/Cursor — no Codex row in its version table, no `codex --version`, and no
+    mention of `.agents/skills`, `sandbox_mode`, or `/hooks`. Same name-laundering class as Gate 70
+    (MH-31), one directory away.
+  - **Every factual row cited `/tmp/research-codex-2026-updates.md` — a path that does not exist**
+    (`No such file or directory`, verified). This repo's own rule requires a durable claim to cite a
+    check a later reader can run; a `/tmp` path is unfalsifiable by construction.
+  - **The version table was not merely unsourced — it was wrong.** Re-derived verbatim from the
+    [copilot-cli changelog](https://github.com/github/copilot-cli/blob/main/changelog.md): the
+    claimed *"preToolUse silent-allow regression fixed (1.0.59)"* and *"diff-not-reported-to-ACP fixed
+    (1.0.48)"* **appear nowhere in it**, and the config-leak fix is **1.0.57**, not 1.0.56. Rows that
+    could not be re-sourced were **deleted, not re-dated**. The real safety floor is **1.0.52**
+    (*"Hooks … now fire correctly for sub-agent tool…"*) — below it a **sub-agent's tool calls are
+    not hooked at all**, so a subagent runs Bash past every guardrail while `install` reports success.
+  - **That floor is now enforced, not just documented.** `ravenclaude install`/`status` run
+    `copilot --version` and warn below 1.0.52 — the same silent-disarm shape as Codex hash-trust, on
+    the flagship non-Claude host, previously checked by nothing. **Gate 157**, two must-fail halves.
+  - **The check itself had to be made fail-safe, and that bug was real:** under `set -euo pipefail` a
+    bare `$(… | grep …)` on an unparseable version **aborted `ravenclaude status` outright** (verified
+    exit 1). A version check that kills the installer is strictly worse than none. Every degradation
+    path — absent, non-zero, unparseable, no output — now warns and continues.
+- **Two false claims in the plugin constitution, both of which had already misled a reader** (multi-host
+  audit MH-40 + MH-16 part 1). The shape is identical and is this repo's own documented failure mode — a
+  stale claim in a file every session loads is an active defect, not a bookkeeping lag:
+  - **`CLAUDE.md` said "No DOM control ships"** for `dashboard_autostart`. True when written, false hours
+    later: the owner approved the ratchet raise and `_render_dashboard_autostart()` shipped a three-option
+    control on **both** surfaces at a measured 6 elements. An audit lens read the stale sentence and
+    reported closed work as open. Superseded inline, after verifying the control actually renders.
+  - **`CLAUDE.md` said "Claude Code's OS sandbox is Claude-only"** and generalized from Copilot to every
+    non-Claude host. **False for OpenAI Codex CLI**, in the costliest direction: it sends a Codex operator
+    to add a devcontainer while saying nothing about the knob that actually bounds them. Codex ships the
+    *same* primitives (Seatbelt / bubblewrap / Windows sandbox) **default-on** at
+    `sandbox_mode = workspace-write`, and its docs state the sandbox *"applies to spawned commands"* — so it
+    closes the **subprocess** gap that section exists to name, by default, where Claude Code's is opt-in.
+    The Copilot half (genuinely unevidenced) is preserved. Verified against the primary source
+    (`learn.chatgpt.com/docs/sandboxing`) **before** writing, because `knowledge/codex-cli-customization.md`
+    had marked the model `[inferred]` with a standing "verify before building on it" rule; that marker was
+    upgraded to `[docs-verified]` in the same change. **The emitter half is still open** — nothing writes
+    `.codex/config.toml`, so the corrected section says plainly that a saved comfort-posture does not bound
+    a Codex session today.
+
 ## 0.215.1 — 2026-07-27
 
 ### Fixed
