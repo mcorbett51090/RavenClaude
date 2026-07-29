@@ -64,7 +64,13 @@ EXEMPT: dict[str, str] = {}
 _MARKER = re.compile(r"GENERATED|AUTO-GENERATED|do not edit", re.I)
 # ...and it must say WHERE to go instead. A stamp that only says "stop"
 # leaves the reader with nowhere to make the change.
-_POINTER = re.compile(r"scripts/[\w./-]+\.py|\bedit\b", re.I)
+# Must name a REAL source: a generator script path, or an "edit <path>"
+# instruction. The first version also accepted a bare `\bedit\b`, which every
+# marker already contains ("do not edit by hand") — so the pointer check was
+# satisfied by the marker itself and asserted almost nothing. A gate whose
+# message is stronger than its assertion is the failure mode this repo audits
+# for; it does not get an exemption for being one of mine.
+_POINTER = re.compile(r"[\w./-]+\.(py|md|json|toml|sh)\b|\b[\w.-]+/[\w.-]*/", re.I)
 # Only the head is inspected: a declaration buried 400 lines down is not a
 # declaration, because nobody opening the file will see it.
 _HEAD_BYTES = 1500

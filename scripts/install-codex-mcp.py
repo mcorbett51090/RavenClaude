@@ -62,6 +62,14 @@ except ModuleNotFoundError:  # pragma: no cover - stock macOS ships 3.9
 
 _HEADER_RE = re.compile(r"^\s*\[\s*mcp_servers\s*\.\s*([A-Za-z0-9_.-]+)", re.M)
 
+# A server name and a config key both land in TOML STRUCTURE — `[mcp_servers.X]`
+# and `key = ...` — where escaping does not help, because the danger is a
+# newline or a `]` ENDING the construct early. A name like `ok]\\n[mcp_servers.evil]`
+# opens a SECOND table, which would install a server the user never named and
+# defeat the consent property this whole design rests on. Names come from a
+# plugin's plugin.json, which is only as trustworthy as the plugin.
+_IDENT_OK = re.compile(r"\A[A-Za-z0-9_.-]{1,64}\Z")
+
 
 def toml_str(value: str) -> str:
     return '"' + value.replace("\\", "\\\\").replace('"', '\\"') + '"'
@@ -73,9 +81,17 @@ def render_server(name: str, cfg: dict) -> str:
     Emits only shapes we can render correctly; anything else raises. Guessing at
     an unknown shape is how you produce valid TOML with the wrong meaning.
     """
+    if not _IDENT_OK.match(name):
+        raise ValueError(
+            f"refusing to render MCP server name {name!r}: only [A-Za-z0-9_.-] (<=64) "
+            "is allowed. A name carrying a newline or ']' would open a second TOML "
+            "table and install a server nobody named."
+        )
     lines = [f"[mcp_servers.{name}]"]
     env: dict = {}
     for key in sorted(cfg):
+        if not _IDENT_OK.match(key):
+            raise ValueError(f"{name}: refusing config key {key!r} — same structural risk")
         val = cfg[key]
         if key == "env":
             if not isinstance(val, dict):
@@ -103,6 +119,8 @@ def render_server(name: str, cfg: dict) -> str:
             v = env[k]
             if not isinstance(v, str):
                 raise ValueError(f"{name}: env.{k} must be a string")
+            if not _IDENT_OK.match(k):
+                raise ValueError(f"{name}: refusing env key {k!r} — same structural risk")
             lines.append(f"{k} = {toml_str(v)}")
     return "\n".join(lines) + "\n"
 

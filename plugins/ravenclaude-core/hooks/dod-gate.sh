@@ -146,8 +146,30 @@ EOF
   fi
 fi
 
-# Run the definition-of-done command.
-out="$(cd "$cwd" && bash -c "$dod_cmd" 2>&1)"; rc=$?
+# Run the definition-of-done command — BOUNDED.
+#
+# `$dod_cmd` is an arbitrary user-configured shell command, run on every Stop.
+# Unbounded, a command that hangs (a test suite waiting on a port, a linter on a
+# pathological input, anything touching the network) wedges the session with no
+# way out except the max_blocks counter — which never advances, because the
+# command never returns. A gate that can hang is worse than no gate: it blocks
+# work it was never meant to judge.
+#
+# _rc_timeout is the repo's portable shim (GNU timeout -> gtimeout -> perl),
+# added for stock macOS where `timeout` does not exist. Sourced fail-safe: if the
+# helper is missing the command still runs, unbounded, exactly as before — a
+# missing helper must not disable the gate.
+_dod_portable="$(dirname "${BASH_SOURCE[0]:-$0}")/_portable.sh"
+[ -f "$_dod_portable" ] && . "$_dod_portable" 2>/dev/null || true
+command -v _rc_timeout >/dev/null 2>&1 || _rc_timeout() { shift; "$@"; }
+
+# 600s: long enough for a real test suite, short enough that a hang is survivable.
+out="$(cd "$cwd" && _rc_timeout 600 bash -c "$dod_cmd" 2>&1)"; rc=$?
+if [ "$rc" -eq 124 ] || [ "$rc" -eq 142 ]; then
+  # GNU timeout reports 124; the perl fallback surfaces 142 (128+SIGALRM).
+  out="$out
+[dod-gate] the definition-of-done command exceeded 600s and was stopped."
+fi
 
 if [ "$rc" -eq 0 ]; then
   rm -f "$bf" 2>/dev/null || true

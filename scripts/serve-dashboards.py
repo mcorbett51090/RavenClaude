@@ -1320,18 +1320,46 @@ def _read_dispatch_eval(project_root) -> dict:
     eval_dir = root / ".ravenclaude" / "runs" / "dispatch-eval"
     counts: dict = {}
     total = 0
+    truncated = False
     if eval_dir.is_dir():
         for log in sorted(eval_dir.glob("*.jsonl")):
-            for ev in _mimir_iter_jsonl_bounded(log):
-                total += 1
-                label = _mimir_safe_label(ev.get("subagent_type"))
-                counts[label] = counts.get(label, 0) + 1
+            # Bounded like _mimir_scan_session, NOT with the 50 KiB head peek.
+            # The first version used _mimir_iter_jsonl_bounded's default cap, which
+            # reads the FIRST 50 KiB and reports no truncation — so a busy log
+            # would show a partial count as though it were the whole thing. That
+            # is the identical defect fixed in the session scan (a 14.5 MB
+            # transcript whose first 50 KiB held nothing), reintroduced here in a
+            # reader written afterwards. A partial number presented as a total is
+            # the failure this whole surface exists to avoid.
+            try:
+                consumed = 0
+                with log.open("rb") as fh:
+                    for raw in fh:
+                        consumed += len(raw)
+                        if consumed > _MIMIR_SESSION_SCAN_CAP:
+                            truncated = True
+                            break
+                        line = raw.strip()
+                        if not line:
+                            continue
+                        try:
+                            ev = json.loads(line.decode("utf-8", errors="replace"))
+                        except (json.JSONDecodeError, ValueError):
+                            continue
+                        if not isinstance(ev, dict):
+                            continue
+                        total += 1
+                        label = _mimir_safe_label(ev.get("subagent_type"))
+                        counts[label] = counts.get(label, 0) + 1
+            except OSError:
+                continue
 
     out["total"] = total
     out["by_type"] = [
         {"type": k, "count": v}
         for k, v in sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))[:8]
     ]
+    out["truncated"] = truncated
     if total:
         out["state"] = "recorded"
     elif enabled:
