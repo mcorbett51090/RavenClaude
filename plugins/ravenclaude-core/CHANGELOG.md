@@ -2,6 +2,50 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.227.0 — 2026-07-29
+
+### Added
+
+- **MCP servers can now reach the Copilot host — by name, never wholesale** (audit MH-19, Copilot
+  half). `ravenclaude install --host copilot --with-mcp <server>` installs exactly the servers you
+  name; the default installs **nothing**. `ravenclaude status` lists what is available, who ships it,
+  and what you have enabled.
+  - **Why opt-in is a security property here, not a preference.** On Claude Code you receive a
+    plugin's MCP server *because you installed that plugin* — consent is structural and per-plugin.
+    Copilot's `~/.copilot/mcp-config.json` is **global**; there is no per-plugin step. So wiring all
+    four wholesale would not restore parity, it would install third-party software from plugins you
+    never chose — including a write-capable one (`powerbi-editor`), which
+    `docs/best-practices/bundled-mcp-servers.md` treats as an Absolute-rule gate. **Naming the server
+    is the consent step**, standing in for the per-plugin choice the host does not offer.
+  - New `copilot/mcp-catalog.json` (generated) lists all 4 servers with provenance. **Deliberately
+    not named `.mcp.json`** — the installer's legacy auto-merge keys on that name, so the filename is
+    what stops the catalogue being swept into a global config by the old code path. The name *is* the
+    safety property, and Gate 169 asserts it.
+  - An **unknown server name fails loudly** and writes nothing. Asking for a server, getting none,
+    and being told "ok" is the exact failure shape this replaces.
+- **Gate 169** — catalogue completeness (no drift from what plugins declare), the filename property,
+  opt-in installs *that* server and no other, unknown names fail without mutating the config, and
+  every entry carries provenance. **The teeth half is the tempting refactor** — "just wire them all,
+  it's friendlier" — caught.
+
+### Fixed
+
+- **`ravenclaude status` said "mcp: not configured", which is misleading rather than wrong.** It
+  reads as *"you haven't set this up"*, when the truth is *"ravenclaude-core ships no MCP servers of
+  its own; the four that exist live in other plugins and are opt-in on this host."* It now says
+  which, and lists them.
+  - **The old auto-merge step was NOT a bug, read correctly** — it merged `<copilot-pkg>/.mcp.json`,
+    a file nothing generates, because it was written for core's own servers and **core ships none**.
+    It was correctly inert. Only the reporting was misleading. Recorded because "obviously broken,
+    delete it" was the wrong read, and the right fix followed from the accurate one.
+
+### Notes
+
+- `copilot/mcp-catalog.json` is added to `.prettierignore`. Python's `json.dumps` expands short
+  arrays one-per-line and prettier collapses them inline; both are valid JSON, but the generator's
+  `--check` gate is a **byte** comparison, so the two tools fight and the gate can never be
+  satisfied — the unsatisfiable-golden trap already recorded in the `/wireframe` v1.1 milestone.
+
 ## 0.226.0 — 2026-07-29
 
 ### Fixed

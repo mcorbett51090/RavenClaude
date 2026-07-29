@@ -536,6 +536,74 @@ def extract_section(text: str, header: str) -> str:
     return "\n".join(lines[start:end]).rstrip()
 
 
+# ── MH-19 · the MCP catalogue (opt-in, never auto-installed) ─────────────────
+#
+# The installer has always had a step that merges `<copilot-pkg>/.mcp.json` into
+# the user's GLOBAL ~/.copilot/mcp-config.json. That file has never been
+# generated — and the step is, read correctly, NOT a bug: it was written for
+# ravenclaude-core's own servers, and core ships none. It is correctly inert. The
+# defect was that it *looked* broken (`status` printed "mcp: not configured",
+# which reads as "you haven't set it up" rather than "there is nothing to set").
+#
+# The four real servers all live in NON-core plugins. Projecting them wholesale
+# would break the consent model rather than restore it:
+#
+#   Claude Code — you get a plugin's MCP server BECAUSE you installed that
+#                 plugin. Per-plugin opt-in, by construction.
+#   Copilot     — ~/.copilot/mcp-config.json is GLOBAL. There is no per-plugin
+#                 step to hang consent on.
+#
+# So a wholesale merge would install third-party servers from plugins the user
+# never chose — including a write-capable one — which `docs/best-practices/
+# bundled-mcp-servers.md` treats as an Absolute-rule security gate.
+#
+# OWNER DECISION (2026-07-29): emit a CATALOGUE, install NOTHING by default, and
+# let the user opt in BY NAME (`ravenclaude install --host copilot --with-mcp
+# <server>`). That reproduces Claude Code's per-plugin consent on a host that has
+# no per-plugin step.
+#
+# Deliberately named `mcp-catalog.json`, NOT `.mcp.json`: the installer's legacy
+# auto-merge keys on the latter, so the catalogue cannot be silently swept into a
+# global config by the old code path. The name IS the safety property.
+def build_mcp_catalog() -> str:
+    """Emit every MCP server any plugin declares, as an opt-in catalogue."""
+    servers: dict[str, dict] = {}
+    for manifest in sorted(REPO_ROOT.glob("plugins/*/.claude-plugin/plugin.json")):
+        try:
+            data = json.loads(manifest.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        declared = data.get("mcpServers")
+        if not isinstance(declared, dict):
+            continue
+        plugin = manifest.parts[-3]
+        attribution = data.get("x-mcpAttribution") or {}
+        for name, cfg in sorted(declared.items()):
+            entry = servers.setdefault(
+                name,
+                {
+                    "name": name,
+                    "shipped_by": [],
+                    "party": (attribution.get(name) or {}).get("party") or "unstated",
+                    "config": cfg,
+                },
+            )
+            if plugin not in entry["shipped_by"]:
+                entry["shipped_by"].append(plugin)
+    payload = {
+        "schema_version": 1,
+        "_note": (
+            "CATALOGUE ONLY — nothing here is installed unless you name it with "
+            "`ravenclaude install --host copilot --with-mcp <server>`. Every entry "
+            "is THIRD-PARTY software that runs on your machine. On Claude Code you "
+            "get one of these by installing the plugin that ships it; Copilot's MCP "
+            "config is global, so opting in by name is the equivalent consent step."
+        ),
+        "servers": [servers[k] for k in sorted(servers)],
+    }
+    return json.dumps(payload, indent=2, sort_keys=False) + "\n"
+
+
 def build_agents_md() -> str:
     """Render copilot/AGENTS.md: a fixed banner + the verbatim grounding section
     projected from the root AGENTS.md. Copilot reads this natively when the dir
@@ -581,6 +649,7 @@ def generate() -> dict[str, str]:
     tree[f"{rel_root}/plugin.json"] = build_manifest(canonical)
     tree[f"{rel_root}/README.md"] = build_readme()
     tree[f"{rel_root}/AGENTS.md"] = build_agents_md()
+    tree[f"{rel_root}/mcp-catalog.json"] = build_mcp_catalog()
 
     for agent_path in sorted(AGENTS_DIR.glob("*.md"), key=lambda p: p.name):
         if not agent_path.is_file():
