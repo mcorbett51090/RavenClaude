@@ -306,7 +306,7 @@ flowchart TD
 
 **See also:** Getting started · Layout enforcement
 
-**Sources:** [AGENTS.md — PR conventions](AGENTS.md) · [AGENTS.md — House rules (branch-archive)](AGENTS.md) · [branch-archive skill](plugins/ravenclaude-core/skills/branch-archive/SKILL.md) · [Pro Git — About Version Control](https://git-scm.com/book/en/v2/Getting-Started-About-Version-Control)
+**Sources:** [AGENTS.md — PR conventions](../AGENTS.md) · [AGENTS.md — House rules (branch-archive)](../AGENTS.md) · [branch-archive skill](../plugins/ravenclaude-core/skills/branch-archive/SKILL.md) · [Pro Git — About Version Control](https://git-scm.com/book/en/v2/Getting-Started-About-Version-Control)
 
 _Last verified: 2026-06-04_
 
@@ -342,7 +342,7 @@ flowchart TD
 
 **See also:** Comfort-posture dashboard · Capability-orientation banner
 
-**Sources:** [ravenclaude-core README](plugins/ravenclaude-core/README.md) · [AGENTS.md — Setup commands](AGENTS.md)
+**Sources:** [ravenclaude-core README](../plugins/ravenclaude-core/README.md) · [AGENTS.md — Setup commands](../AGENTS.md)
 
 _Last verified: 2026-05-26_
 
@@ -1025,7 +1025,7 @@ flowchart TD
 
 **See also:** Permission layers & precedence · Command-review tribunal (the Thing)
 
-**Sources:** [ravenclaude-core constitution](plugins/ravenclaude-core/CLAUDE.md) · [apply-comfort-posture translator](plugins/ravenclaude-core/scripts/apply-comfort-posture.py)
+**Sources:** [ravenclaude-core constitution](../plugins/ravenclaude-core/CLAUDE.md) · [apply-comfort-posture translator](../plugins/ravenclaude-core/scripts/apply-comfort-posture.py)
 
 _Last verified: 2026-05-26_
 
@@ -1065,7 +1065,7 @@ flowchart TD
 
 **See also:** Comfort-posture dashboard · Permission layers & precedence · Hooks: verdicts & exit codes
 
-**Sources:** [thing skill (operating reference)](plugins/ravenclaude-core/skills/thing/SKILL.md) · [Tribunal design](docs/tribunal-review-feature-design.md)
+**Sources:** [thing skill (operating reference)](../plugins/ravenclaude-core/skills/thing/SKILL.md) · [Tribunal design](../docs/tribunal-review-feature-design.md)
 
 _Last verified: 2026-05-26_
 
@@ -1091,7 +1091,7 @@ flowchart TD
 
 **See also:** Command-review tribunal (the Thing) · Model diversity on the panel
 
-**Sources:** [thing skill (operating reference)](plugins/ravenclaude-core/skills/thing/SKILL.md)
+**Sources:** [thing skill (operating reference)](../plugins/ravenclaude-core/skills/thing/SKILL.md)
 
 _Last verified: 2026-05-26_
 
@@ -1119,7 +1119,7 @@ flowchart TD
 
 **See also:** Command-review tribunal (the Thing)
 
-**Sources:** [ravenclaude-core constitution](plugins/ravenclaude-core/CLAUDE.md) · [Tribunal assessment & improvement plan](docs/tribunal-assessment-and-improvement-plan.md)
+**Sources:** [ravenclaude-core constitution](../plugins/ravenclaude-core/CLAUDE.md) · [Tribunal assessment & improvement plan](../docs/tribunal-assessment-and-improvement-plan.md)
 
 _Last verified: 2026-05-26_
 
@@ -1150,7 +1150,7 @@ flowchart TD
 
 **See also:** Command-review tribunal (the Thing) · Model diversity on the panel
 
-**Sources:** [Post-PR decision review](docs/post-pr-decision-review.md) · [ravenclaude-core constitution](plugins/ravenclaude-core/CLAUDE.md)
+**Sources:** [Post-PR decision review](../docs/post-pr-decision-review.md) · [ravenclaude-core constitution](../plugins/ravenclaude-core/CLAUDE.md)
 
 _Last verified: 2026-05-26_
 
@@ -1187,7 +1187,7 @@ flowchart TD
 
 **See also:** Definition-of-done gate · Task-scope gate — the breadth guard · Containment posture — the OS boundary · Command-review tribunal (the Thing) · Comfort-posture dashboard
 
-**Sources:** [runaway-brake.sh hook](plugins/ravenclaude-core/hooks/runaway-brake.sh) · [ravenclaude-core constitution — Auto-mode guardrails](plugins/ravenclaude-core/CLAUDE.md)
+**Sources:** [runaway-brake.sh hook](../plugins/ravenclaude-core/hooks/runaway-brake.sh) · [ravenclaude-core constitution — Auto-mode guardrails](../plugins/ravenclaude-core/CLAUDE.md)
 
 _Last verified: 2026-06-08_
 
@@ -1221,7 +1221,7 @@ flowchart TD
 
 **See also:** Runaway brake — the depth guard · Task-scope gate — the breadth guard · Containment posture — the OS boundary · Command-review tribunal (the Thing) · Comfort-posture dashboard
 
-**Sources:** [dod-gate.sh hook](plugins/ravenclaude-core/hooks/dod-gate.sh) · [ravenclaude-core constitution — Auto-mode guardrails](plugins/ravenclaude-core/CLAUDE.md)
+**Sources:** [dod-gate.sh hook](../plugins/ravenclaude-core/hooks/dod-gate.sh) · [ravenclaude-core constitution — Auto-mode guardrails](../plugins/ravenclaude-core/CLAUDE.md)
 
 _Last verified: 2026-06-08_
 
@@ -1284,7 +1284,7 @@ flowchart TD
 
 **See also:** Definition-of-done gate · The gate-audit meta-test · Task-scope gate — the breadth guard · Runaway brake — the depth guard
 
-**Sources:** [CI gate audit — every gate must fail on a known-bad fixture](docs/best-practices/ci-gate-audit.md) · [audit-gates.sh — the meta-test that proves each gate has teeth](scripts/audit-gates.sh) · [dod-gate.sh — the definition-of-done Stop gate](plugins/ravenclaude-core/hooks/dod-gate.sh)
+**Sources:** [CI gate audit — every gate must fail on a known-bad fixture](../docs/best-practices/ci-gate-audit.md) · [audit-gates.sh — the meta-test that proves each gate has teeth](../scripts/audit-gates.sh) · [dod-gate.sh — the definition-of-done Stop gate](../plugins/ravenclaude-core/hooks/dod-gate.sh)
 
 _Last verified: 2026-07-21_
 
@@ -1315,7 +1315,7 @@ flowchart TD
 
 **See also:** Runaway brake — the depth guard · Definition-of-done gate · Containment posture — the OS boundary · Layout enforcement · Command-review tribunal (the Thing)
 
-**Sources:** [enforce-layout.sh hook](plugins/ravenclaude-core/hooks/enforce-layout.sh) · [ravenclaude-core constitution — Auto-mode guardrails](plugins/ravenclaude-core/CLAUDE.md)
+**Sources:** [enforce-layout.sh hook](../plugins/ravenclaude-core/hooks/enforce-layout.sh) · [ravenclaude-core constitution — Auto-mode guardrails](../plugins/ravenclaude-core/CLAUDE.md)
 
 _Last verified: 2026-06-08_
 
@@ -1348,7 +1348,7 @@ flowchart TD
 
 **See also:** Runaway brake — the depth guard · Definition-of-done gate · Task-scope gate — the breadth guard · Containment posture — the OS boundary · Command-review tribunal (the Thing)
 
-**Sources:** [guard-web-access.sh hook](plugins/ravenclaude-core/hooks/guard-web-access.sh) · [ravenclaude-core constitution — Website access](plugins/ravenclaude-core/CLAUDE.md)
+**Sources:** [guard-web-access.sh hook](../plugins/ravenclaude-core/hooks/guard-web-access.sh) · [ravenclaude-core constitution — Website access](../plugins/ravenclaude-core/CLAUDE.md)
 
 _Last verified: 2026-06-08_
 
@@ -1379,7 +1379,7 @@ flowchart TD
 
 **See also:** Runaway brake — the depth guard · Definition-of-done gate · Task-scope gate — the breadth guard · Website access guardrail · Command-review tribunal (the Thing) · Comfort-posture dashboard
 
-**Sources:** [ravenclaude-core constitution — Containment posture](plugins/ravenclaude-core/CLAUDE.md) · [claude-code-permissions knowledge file](plugins/ravenclaude-core/knowledge/claude-code-permissions.md)
+**Sources:** [ravenclaude-core constitution — Containment posture](../plugins/ravenclaude-core/CLAUDE.md) · [claude-code-permissions knowledge file](../plugins/ravenclaude-core/knowledge/claude-code-permissions.md)
 
 _Last verified: 2026-06-08_
 
@@ -1413,7 +1413,7 @@ flowchart TD
 
 **See also:** Heimdall — perimeter alerts · Víðarr — security log · Norns — plugin lineage · The run-state monitor · The Sága audit log · Command-review tribunal (the Thing)
 
-**Sources:** [ravenclaude-core constitution — Structured event substrate](plugins/ravenclaude-core/CLAUDE.md) · [_emit-event.sh (the shared emitter)](plugins/ravenclaude-core/hooks/_emit-event.sh)
+**Sources:** [ravenclaude-core constitution — Structured event substrate](../plugins/ravenclaude-core/CLAUDE.md) · [_emit-event.sh (the shared emitter)](../plugins/ravenclaude-core/hooks/_emit-event.sh)
 
 _Last verified: 2026-06-08_
 
@@ -1443,7 +1443,7 @@ flowchart TD
 
 **See also:** The event substrate · Víðarr — security log · Norns — plugin lineage · Níðhöggr — debt watch · Command-review tribunal (the Thing) · The Sága audit log
 
-**Sources:** [ravenclaude-core constitution — Heimdall](plugins/ravenclaude-core/CLAUDE.md) · [generate-dashboards.py (the Heimdall tab + reader)](scripts/generate-dashboards.py)
+**Sources:** [ravenclaude-core constitution — Heimdall](../plugins/ravenclaude-core/CLAUDE.md) · [generate-dashboards.py (the Heimdall tab + reader)](../scripts/generate-dashboards.py)
 
 _Last verified: 2026-06-08_
 
@@ -1472,7 +1472,7 @@ flowchart TD
 
 **See also:** The event substrate · Heimdall — perimeter alerts · Norns — plugin lineage · Command-review tribunal (the Thing) · The Sága audit log
 
-**Sources:** [ravenclaude-core constitution — Víðarr](plugins/ravenclaude-core/CLAUDE.md) · [generate-dashboards.py (the Víðarr tab + reader)](scripts/generate-dashboards.py)
+**Sources:** [ravenclaude-core constitution — Víðarr](../plugins/ravenclaude-core/CLAUDE.md) · [generate-dashboards.py (the Víðarr tab + reader)](../scripts/generate-dashboards.py)
 
 _Last verified: 2026-06-08_
 
@@ -1503,7 +1503,7 @@ flowchart LR
 
 **See also:** The event substrate · Heimdall — perimeter alerts · Víðarr — security log · The Sága audit log · Command-review tribunal (the Thing)
 
-**Sources:** [ravenclaude-core constitution — Norns](plugins/ravenclaude-core/CLAUDE.md) · [generate-dashboards.py (the Norns tab + reader)](scripts/generate-dashboards.py)
+**Sources:** [ravenclaude-core constitution — Norns](../plugins/ravenclaude-core/CLAUDE.md) · [generate-dashboards.py (the Norns tab + reader)](../scripts/generate-dashboards.py)
 
 _Last verified: 2026-06-08_
 
@@ -1533,7 +1533,7 @@ flowchart TD
 
 **See also:** Heimdall — perimeter alerts · The event substrate · Víðarr — security log · Norns — plugin lineage · The gate-audit meta-test
 
-**Sources:** [ravenclaude-core constitution — Níðhöggr 'Debt watch'](plugins/ravenclaude-core/CLAUDE.md) · [generate-dashboards.py (the Níðhöggr card + reader)](scripts/generate-dashboards.py)
+**Sources:** [ravenclaude-core constitution — Níðhöggr 'Debt watch'](../plugins/ravenclaude-core/CLAUDE.md) · [generate-dashboards.py (the Níðhöggr card + reader)](../scripts/generate-dashboards.py)
 
 _Last verified: 2026-06-08_
 
@@ -1562,7 +1562,7 @@ flowchart TD
 
 **See also:** The event substrate · Heimdall — perimeter alerts · Víðarr — security log · Norns — plugin lineage · Command-review tribunal (the Thing)
 
-**Sources:** [ravenclaude-core constitution — Mímir Session-state dashboard tab](plugins/ravenclaude-core/CLAUDE.md) · [skills/mimir/SKILL.md (the reader contract)](plugins/ravenclaude-core/skills/mimir/SKILL.md)
+**Sources:** [ravenclaude-core constitution — Mímir Session-state dashboard tab](../plugins/ravenclaude-core/CLAUDE.md) · [skills/mimir/SKILL.md (the reader contract)](../plugins/ravenclaude-core/skills/mimir/SKILL.md)
 
 _Last verified: 2026-06-08_
 
@@ -1591,7 +1591,7 @@ flowchart TD
 
 **See also:** The event substrate · Heimdall — perimeter alerts · Víðarr — security log · Command-review tribunal (the Thing) · The Sága audit log
 
-**Sources:** [ravenclaude-core constitution — Reactive run-state monitor](plugins/ravenclaude-core/CLAUDE.md) · [monitors/watch-run-state.sh](plugins/ravenclaude-core/monitors/watch-run-state.sh)
+**Sources:** [ravenclaude-core constitution — Reactive run-state monitor](../plugins/ravenclaude-core/CLAUDE.md) · [monitors/watch-run-state.sh](../plugins/ravenclaude-core/monitors/watch-run-state.sh)
 
 _Last verified: 2026-06-08_
 
@@ -1625,7 +1625,7 @@ flowchart TD
 
 **See also:** SessionStart context injection · Comfort-posture dashboard
 
-**Sources:** [ravenclaude-core constitution](plugins/ravenclaude-core/CLAUDE.md) · [Claude Code permissions (SessionStart)](plugins/ravenclaude-core/knowledge/claude-code-permissions.md)
+**Sources:** [ravenclaude-core constitution](../plugins/ravenclaude-core/CLAUDE.md) · [Claude Code permissions (SessionStart)](../plugins/ravenclaude-core/knowledge/claude-code-permissions.md)
 
 _Last verified: 2026-05-26_
 
@@ -1654,7 +1654,7 @@ flowchart TD
 
 **See also:** Capability-orientation banner · Decision trees in knowledge files
 
-**Sources:** [ravenclaude-core constitution](plugins/ravenclaude-core/CLAUDE.md) · [environment-context template](plugins/ravenclaude-core/templates/environment-context.md)
+**Sources:** [ravenclaude-core constitution](../plugins/ravenclaude-core/CLAUDE.md) · [environment-context template](../plugins/ravenclaude-core/templates/environment-context.md)
 
 _Last verified: 2026-05-26_
 
@@ -1682,7 +1682,7 @@ flowchart TD
 
 **See also:** Environment context & discovery
 
-**Sources:** [Decision trees in knowledge files](docs/best-practices/decision-trees-in-knowledge-files.md) · [ravenclaude-core constitution](plugins/ravenclaude-core/CLAUDE.md)
+**Sources:** [Decision trees in knowledge files](../docs/best-practices/decision-trees-in-knowledge-files.md) · [ravenclaude-core constitution](../plugins/ravenclaude-core/CLAUDE.md)
 
 _Last verified: 2026-05-26_
 
@@ -1716,7 +1716,7 @@ flowchart TD
 
 **See also:** Structured Output Protocol · Last-Mile Completion Protocol · Claim Grounding & Source Honesty · Command-review tribunal (the Thing) · The Sága audit log
 
-**Sources:** [ravenclaude-core constitution — Capability Grounding Protocol](plugins/ravenclaude-core/CLAUDE.md) · [Alternate-methods grounding (root accuracy discipline)](AGENTS.md)
+**Sources:** [ravenclaude-core constitution — Capability Grounding Protocol](../plugins/ravenclaude-core/CLAUDE.md) · [Alternate-methods grounding (root accuracy discipline)](../AGENTS.md)
 
 _Last verified: 2026-06-08_
 
@@ -1753,7 +1753,7 @@ flowchart TD
 
 **See also:** Capability Grounding Protocol · Last-Mile Completion Protocol · Claim Grounding & Source Honesty · Command-review tribunal (the Thing) · The Sága audit log
 
-**Sources:** [ravenclaude-core constitution — Structured Output Protocol](plugins/ravenclaude-core/CLAUDE.md) · [structured-output skill (the operating reference)](plugins/ravenclaude-core/skills/structured-output/SKILL.md)
+**Sources:** [ravenclaude-core constitution — Structured Output Protocol](../plugins/ravenclaude-core/CLAUDE.md) · [structured-output skill (the operating reference)](../plugins/ravenclaude-core/skills/structured-output/SKILL.md)
 
 _Last verified: 2026-06-08_
 
@@ -1785,7 +1785,7 @@ flowchart TD
 
 **See also:** Capability Grounding Protocol · Structured Output Protocol · Claim Grounding & Source Honesty · Command-review tribunal (the Thing) · The Sága audit log
 
-**Sources:** [ravenclaude-core constitution — Last-Mile Completion Protocol](plugins/ravenclaude-core/CLAUDE.md) · [Capability Grounding Protocol (the floor it pairs with)](plugins/ravenclaude-core/CLAUDE.md)
+**Sources:** [ravenclaude-core constitution — Last-Mile Completion Protocol](../plugins/ravenclaude-core/CLAUDE.md) · [Capability Grounding Protocol (the floor it pairs with)](../plugins/ravenclaude-core/CLAUDE.md)
 
 _Last verified: 2026-06-08_
 
@@ -1815,7 +1815,7 @@ flowchart TD
 
 **See also:** Capability Grounding Protocol · Structured Output Protocol · Last-Mile Completion Protocol · Command-review tribunal (the Thing) · The Sága audit log
 
-**Sources:** [ravenclaude-core constitution — Claim Grounding & Source Honesty](plugins/ravenclaude-core/CLAUDE.md) · [Accuracy discipline (cross-tool pointer)](AGENTS.md)
+**Sources:** [ravenclaude-core constitution — Claim Grounding & Source Honesty](../plugins/ravenclaude-core/CLAUDE.md) · [Accuracy discipline (cross-tool pointer)](../AGENTS.md)
 
 _Last verified: 2026-06-08_
 
@@ -1849,7 +1849,7 @@ flowchart TD
 
 **See also:** Last-Mile Completion Protocol · Capability Grounding Protocol · Structured Output Protocol · Claim Grounding & Source Honesty · Runaway brake — the depth guard · The agent loop: one turn
 
-**Sources:** [visual-feedback-loop — the discipline canon](plugins/ravenclaude-core/knowledge/visual-feedback-loop.md) · [visual-feedback-loop skill — the runnable referee (driver.py)](plugins/ravenclaude-core/skills/visual-feedback-loop/SKILL.md) · [pbir-layout-engine — the deterministic layout linter](plugins/ravenclaude-core/skills/pbir-layout-engine/SKILL.md)
+**Sources:** [visual-feedback-loop — the discipline canon](../plugins/ravenclaude-core/knowledge/visual-feedback-loop.md) · [visual-feedback-loop skill — the runnable referee (driver.py)](../plugins/ravenclaude-core/skills/visual-feedback-loop/SKILL.md) · [pbir-layout-engine — the deterministic layout linter](../plugins/ravenclaude-core/skills/pbir-layout-engine/SKILL.md)
 
 _Last verified: 2026-06-09_
 
@@ -1883,7 +1883,7 @@ flowchart TD
 
 **See also:** The gate-audit meta-test · Hooks: verdicts & exit codes
 
-**Sources:** [AGENTS.md — Layout & boundary rules](AGENTS.md) · [Claude Code issue #23478](https://github.com/anthropics/claude-code/issues/23478)
+**Sources:** [AGENTS.md — Layout & boundary rules](../AGENTS.md) · [Claude Code issue #23478](https://github.com/anthropics/claude-code/issues/23478)
 
 _Last verified: 2026-05-26_
 
@@ -1914,7 +1914,7 @@ flowchart TD
 
 **See also:** Layout enforcement
 
-**Sources:** [CI gate audit](docs/best-practices/ci-gate-audit.md) · [AGENTS.md — Testing instructions](AGENTS.md)
+**Sources:** [CI gate audit](../docs/best-practices/ci-gate-audit.md) · [AGENTS.md — Testing instructions](../AGENTS.md)
 
 _Last verified: 2026-05-26_
 
@@ -1927,7 +1927,7 @@ _Last verified: 2026-05-26_
 
 Copilot CLI is itself a plugin host with the same lifecycle events (SessionStart / PreToolUse / …), Agent Skills, AGENTS.md, and MCP — so most of the plugin ports. Three pieces make it work: `generate-copilot-plugin.py` **projects** the canonical plugin into a Copilot package (generated, never hand-maintained, `--check`-gated like the dashboard); a **hook adapter** translates the I/O envelopes so the *unmodified* hook scripts run under Copilot — **for the hooks the installer actually wires** (mapping its `toolName`/`toolArgs` ⇄ Claude's `tool_name`/`tool_input`, the lowercase tool-name *values* ⇄ Claude's PascalCase, and the verdict shapes); and **enforcement hooks ship repo-level** in `.github/hooks/` because a Copilot bug stops plugin-level `preToolUse` hooks from firing.
 
-> **Scope, stated rather than implied** `[verified 2026-07-28 — multi-host audit MH-37]`. "Unmodified scripts run under Copilot" is true of the *translation*, not of the *coverage*: the Copilot hooks file is hand-maintained, and **12+ shipped hooks are not in it**, so they never fire on that host at all (MH-12, open). Read this card as "the bridge does not require forking the hooks", **not** as "every guardrail you see under Claude Code is also protecting you under Copilot". The authoritative per-component answer is [`../host-support.json`](../host-support.json), and it is the one to trust if this card and it ever disagree.
+> **Scope, stated rather than implied** `[verified 2026-07-28 — multi-host audit MH-37]`. "Unmodified scripts run under Copilot" is true of the *translation*, not of the *coverage*: the Copilot hooks file is hand-maintained, and **12+ shipped hooks are not in it**, so they never fire on that host at all (MH-12, open). Read this card as "the bridge does not require forking the hooks", **not** as "every guardrail you see under Claude Code is also protecting you under Copilot". The authoritative per-component answer is [`../host-support.json`](../plugins/ravenclaude-core/knowledge/host-support.json), and it is the one to trust if this card and it ever disagree.
 
 The design pillar is **frictionless updates**: instead of Copilot's re-install-to-update flow, the plugin loads **live** via `copilot --plugin-dir copilot/`, so an update is just **`git pull`** (`ravenclaude update`). No re-install, ever.
 
@@ -1945,7 +1945,7 @@ flowchart TD
 
 **See also:** Layout enforcement · Hooks: verdicts & exit codes
 
-**Sources:** [ravenclaude-core constitution — Copilot CLI bridge](plugins/ravenclaude-core/CLAUDE.md) · [Copilot CLI customization surface (canonical, docs-verified)](plugins/ravenclaude-core/knowledge/copilot-cli-customization.md) · [generate-copilot-plugin.py](scripts/generate-copilot-plugin.py)
+**Sources:** [ravenclaude-core constitution — Copilot CLI bridge](../plugins/ravenclaude-core/CLAUDE.md) · [Copilot CLI customization surface (canonical, docs-verified)](../plugins/ravenclaude-core/knowledge/copilot-cli-customization.md) · [generate-copilot-plugin.py](../scripts/generate-copilot-plugin.py)
 
 _Last verified: 2026-06-09_
 
@@ -1975,7 +1975,7 @@ flowchart TD
 
 **See also:** Getting started · GitHub Copilot CLI bridge
 
-**Sources:** [ravenclaude-core constitution §Bifröst install wizard](plugins/ravenclaude-core/CLAUDE.md)
+**Sources:** [ravenclaude-core constitution §Bifröst install wizard](../plugins/ravenclaude-core/CLAUDE.md)
 
 _Last verified: 2026-06-08_
 
@@ -2005,7 +2005,7 @@ flowchart TD
 
 **See also:** Command-review tribunal (the Thing) · Bifröst install wizard
 
-**Sources:** [ravenclaude-core constitution §High-blast-radius commands — Ragnarök](plugins/ravenclaude-core/CLAUDE.md)
+**Sources:** [ravenclaude-core constitution §High-blast-radius commands — Ragnarök](../plugins/ravenclaude-core/CLAUDE.md)
 
 _Last verified: 2026-06-08_
 
@@ -2034,7 +2034,7 @@ flowchart TD
 
 **See also:** GitHub Copilot CLI bridge · Layout enforcement
 
-**Sources:** [ravenclaude-core constitution §Sleipnir — the worktree-traversal labeling convention](plugins/ravenclaude-core/CLAUDE.md)
+**Sources:** [ravenclaude-core constitution §Sleipnir — the worktree-traversal labeling convention](../plugins/ravenclaude-core/CLAUDE.md)
 
 _Last verified: 2026-06-08_
 
@@ -2065,7 +2065,7 @@ flowchart TD
 
 **See also:** Problems & Resolutions report
 
-**Sources:** [brand-extraction skill](plugins/ravenclaude-core/skills/brand-extraction/SKILL.md)
+**Sources:** [brand-extraction skill](../plugins/ravenclaude-core/skills/brand-extraction/SKILL.md)
 
 _Last verified: 2026-06-08_
 
@@ -2100,7 +2100,7 @@ flowchart TD
 
 **See also:** Command-review tribunal (the Thing) · /wrap and the scenarios bank
 
-**Sources:** [forge-pipeline skill](plugins/ravenclaude-core/skills/forge-pipeline/SKILL.md) · [/forge command](plugins/ravenclaude-core/commands/forge.md)
+**Sources:** [forge-pipeline skill](../plugins/ravenclaude-core/skills/forge-pipeline/SKILL.md) · [/forge command](../plugins/ravenclaude-core/commands/forge.md)
 
 _Last verified: 2026-06-08_
 
@@ -2130,7 +2130,7 @@ flowchart TD
 
 **See also:** Problems & Resolutions report · The safe run-context bundle · External contribution intake
 
-**Sources:** [/wrap command](plugins/ravenclaude-core/commands/wrap.md) · [scenario-retrieval skill](plugins/ravenclaude-core/skills/scenario-retrieval/SKILL.md)
+**Sources:** [/wrap command](../plugins/ravenclaude-core/commands/wrap.md) · [scenario-retrieval skill](../plugins/ravenclaude-core/skills/scenario-retrieval/SKILL.md)
 
 _Last verified: 2026-06-08_
 
@@ -2160,7 +2160,7 @@ flowchart TD
 
 **See also:** /wrap and the scenarios bank · The safe run-context bundle
 
-**Sources:** [generate-feedback-report.py](scripts/generate-feedback-report.py)
+**Sources:** [generate-feedback-report.py](../scripts/generate-feedback-report.py)
 
 _Last verified: 2026-06-08_
 
@@ -2194,7 +2194,7 @@ flowchart TD
 
 **See also:** /wrap and the scenarios bank · External contribution intake
 
-**Sources:** [capture-run-context.py](scripts/capture-run-context.py)
+**Sources:** [capture-run-context.py](../scripts/capture-run-context.py)
 
 _Last verified: 2026-06-08_
 
@@ -2225,7 +2225,7 @@ flowchart TD
 
 **See also:** /wrap and the scenarios bank · The safe run-context bundle
 
-**Sources:** [quarantine-intake workflow](.github/workflows/quarantine-intake.yml) · [process-scenario-submission.py](scripts/process-scenario-submission.py)
+**Sources:** [quarantine-intake workflow](../.github/workflows/quarantine-intake.yml) · [process-scenario-submission.py](../scripts/process-scenario-submission.py)
 
 _Last verified: 2026-06-08_
 
