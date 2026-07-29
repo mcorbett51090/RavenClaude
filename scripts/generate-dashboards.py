@@ -13315,7 +13315,13 @@ _JS = r"""
     pbClear(pbRoot);
     pbRoot.appendChild(pbEl("div", { class: "pb-intro" }, [
       pbEl("h2", { text: "Prompt Builder" }),
-      pbEl("p", { class: "pb-lead", text: "Fill in the inputs and watch a best-practice Claude prompt assemble live — with a quality score and a rough size estimate. Everything runs in your browser; nothing is sent anywhere." })
+      // MH-39 — say WHICH models this targets. The linter's rules are
+      // Claude-version-specific (prefill is a 400 on Claude 4.6+, and the
+      // imperative-stacking penalty is tuned to current Claude behaviour). A
+      // Copilot operator routing GPT or Grok was being handed those as universal
+      // prompt hygiene. Most of it transfers; the deprecation and model-tuning
+      // rules do not necessarily, and the tool never said so.
+      pbEl("p", { class: "pb-lead", text: "Fill in the inputs and watch a best-practice Claude prompt assemble live — with a quality score and a rough size estimate. Everything runs in your browser; nothing is sent anywhere. Targets Claude models: the structure carries over to other models, but the deprecation and tuning rules are Claude-specific and may not." })
     ]));
     pbRoot.appendChild(pbBuildControls());
     pbRoot.appendChild(pbEl("div", { class: "pb-grid" }, [pbBuildInputPane(), pbBuildPreviewPane(), pbBuildQualityPane()]));
@@ -13882,6 +13888,10 @@ _PAGE_TEMPLATE = """<!doctype html>
     <details class="help-section" id="help-install">
       <summary>Copilot&nbsp;CLI — install &amp; update RavenClaude</summary>
 {install_html}
+    </details>
+    <details class="help-section" id="help-other-hosts">
+      <summary>Codex&nbsp;CLI &amp; other agents — what is wired, and what is not</summary>
+      <p>Two lanes above cover Claude Code and Copilot CLI. This is the rest of the world, stated honestly. <strong>OpenAI Codex CLI is supported:</strong> run <code>bash &lt;marketplace&gt;/scripts/ravenclaude install --host codex --project &lt;your-repo&gt;</code>. It wires the skills into <code>.agents/skills</code> and the guardrails into <code>.codex/hooks.json</code> — Codex speaks the same hook contract as Claude Code, so there is no adapter — and it projects your posture onto Codex&rsquo;s own OS sandbox. One thing you must do there and nowhere else: run <code>/hooks</code> inside Codex to <em>trust</em> them, and again after every update, because Codex tracks hook trust by hash and silently skips anything it does not recognise. <strong>Cursor, Aider and Devin Desktop (formerly Windsurf) are not wired at all</strong> — no hooks fire, no skills load, and CI is the only gate. That is a gap, not a hidden feature; the per-component truth is in <code>knowledge/host-support.json</code>, and the first-five-minutes ritual for any of them is the <code>external-agent-onboarding</code> skill.</p>
     </details>
     <details class="help-section" id="help-commands">
       <summary>Commands — the marketplace slash-command catalog</summary>

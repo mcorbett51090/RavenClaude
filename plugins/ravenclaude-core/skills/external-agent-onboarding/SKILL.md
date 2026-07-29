@@ -1,6 +1,6 @@
 ---
 name: external-agent-onboarding
-description: Onboards a non-Claude-Code coding agent (GitHub Copilot CLI / OpenAI Codex CLI / Cursor / Aider / Windsurf) to this repo at session start. Use when this repo will be operated on by an agent that does not natively read CLAUDE.md. Routes through AGENTS.md, then layers the per-host wiring, version floors, and failure-mode mitigations that host actually needs.
+description: Onboards a non-Claude-Code coding agent (GitHub Copilot CLI / OpenAI Codex CLI / Cursor / Aider / Devin Desktop) to this repo at session start. Use when this repo will be operated on by an agent that does not natively read CLAUDE.md. Routes through AGENTS.md, then layers the per-host wiring, version floors, and failure-mode mitigations that host actually needs.
 target_path: plugins/ravenclaude-core/skills/external-agent-onboarding/SKILL.md
 last_reviewed: 2026-07-28
 audience: [external-coding-agent, copilot-cli-user, codex-user, cursor-user, aider-user]
@@ -135,7 +135,7 @@ because a floor nobody checks is a floor that protects nobody.
 
 Full contract: [`../../knowledge/codex-cli-customization.md`](../../knowledge/codex-cli-customization.md).
 
-## Cursor · Aider · Windsurf
+## Cursor · Aider · Devin Desktop (formerly Windsurf)
 
 **Not wired. Nothing installs guardrails, skills, or agents for these hosts today**, and this file will
 not pretend otherwise — a false claim of support is worse than an admitted gap, because it stops
@@ -145,7 +145,12 @@ anyone from building the bridge that would make it true.
   does **not** auto-read `AGENTS.md`; this repo asserted otherwise until 2026-07-28 and was wrong
   `[docs-verified — aider.chat/docs/usage/conventions.html]`.
 - **Cursor**'s documented mechanism is `.cursor/rules/*.mdc`; `AGENTS.md` auto-load is unconfirmed.
-- **Windsurf** is unverified, and the product was reportedly renamed to Devin Desktop.
+- **Devin Desktop** is unverified here. Cognition rebranded **Windsurf → Devin Desktop on
+  2026-06-02**, and `docs.windsurf.com` now 307-redirects to `docs.devin.ai`. Its docs say it
+  auto-discovers `AGENTS.md` into the same Rules engine as `.devin/rules/`, so the lane may in
+  fact work — but nothing here wires or verifies it. **Do not treat "Windsurf" and "Devin" as
+  two hosts; they are one product under two names**, which is exactly how the old version-floor
+  table ended up with a Devin row and no Windsurf row.
 
 If you are on one of these, read `AGENTS.md` by hand and treat every guardrail in this repo as
 **advisory** — none of them will fire for you.

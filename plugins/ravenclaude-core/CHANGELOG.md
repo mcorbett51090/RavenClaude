@@ -2,6 +2,33 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.218.0 — 2026-07-28
+
+### Fixed
+
+- **Four surfaces that overstated their own scope** (multi-host audit MH-37 · MH-38 · MH-39 · MH-29).
+  One shape, four places: a surface describing a capability without saying where it stops.
+  - **The Learn concept card** taught, as settled fact, that *"a hook adapter translates the I/O
+    envelopes so the **unmodified** hook scripts run under Copilot"* — the marketplace's own teaching
+    surface making exactly the unhedged capability claim its Claim-Grounding protocol forbids. True of
+    the *translation*, false of the *coverage*: **12+ shipped hooks are not in the Copilot hooks file
+    at all** and never fire there (MH-12, still open). Now scoped to *"for the hooks the installer
+    actually wires"*, with `host-support.json` named as the authority if the two disagree.
+  - **The Help drawer held exactly two onboarding lanes** — Claude Code and Copilot CLI — that
+    cross-linked only each other, while its own self-description named them as the whole world. Codex
+    had become a genuinely supported host one release earlier. A **third lane** now covers Codex
+    (install command + the hash-trust warning, the one thing that silently disarms that host) and says
+    plainly that Cursor, Aider and Devin Desktop are **not wired at all** — *"a gap, not a hidden
+    feature."* Owner-approved **+12 DOM**; see the ratchet row for why the first estimate was 4× low.
+  - **The Prompt Builder never said which models it targets.** Its linter rules are
+    Claude-version-specific (prefill is a 400 on Claude 4.6+; the imperative-stacking penalty is tuned
+    to current Claude behaviour), and a Copilot operator routing GPT or Grok was handed them as
+    universal prompt hygiene. The lead now says so.
+  - **"Windsurf" was a stale brand** at the last two call sites — Cognition rebranded it **Devin
+    Desktop on 2026-06-02**, and `docs.windsurf.com` now 307-redirects to `docs.devin.ai`. A reader
+    would reasonably have taken "Windsurf" and "Devin" for two hosts on separate tracks. Both now name
+    the product currently, and say explicitly they are **one product under two names**.
+
 ## 0.217.0 — 2026-07-28
 
 ### Fixed

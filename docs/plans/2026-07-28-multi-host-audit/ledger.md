@@ -1158,7 +1158,7 @@ bridge that would make it true"* (now the repo's own words, in `AGENTS.md`).
 ---
 
 #### MH-29 · "Windsurf" is a stale brand name at the remaining call sites — rebranded Devin Desktop, 2026-06-02
-**Severity:** P1 · **Hosts:** Windsurf / Devin Desktop · **Reported by:** CWA (P1-4, P3-1) · **Effort:** S · **Status:** `OPEN`
+**Severity:** P1 · **Hosts:** Windsurf / Devin Desktop · **Reported by:** CWA (P1-4, P3-1) · **Effort:** S · **Status:** ✅ **FIXED 2026-07-28 (v0.218.0)** — every residual call site now names Devin Desktop with the 2026-06-02 rebrand; the stale 'Devin row, no Windsurf row' table was already deleted in MH-23.
 
 **Evidence** `[docs-verified this session by CWA]` — `docs.windsurf.com/windsurf/cascade/agents-md` now
 **307-redirects** to `docs.devin.ai/desktop/cascade/agents-md`. Cognition (maker of Devin) acquired
@@ -1366,7 +1366,7 @@ this with MH-30's scope decision, in the same commit — they are two halves of 
 ---
 
 #### MH-37 · The Learn-tab concept card overstates hook portability with no honesty hedge
-**Severity:** P3 · **Hosts:** GitHub Copilot CLI · **Reported by:** CP (P3-1) · **Effort:** S · **Status:** `OPEN` *(partially resolved by `f55039ec`)*
+**Severity:** P3 · **Hosts:** GitHub Copilot CLI · **Reported by:** CP (P3-1) · **Effort:** S · **Status:** ✅ **FIXED 2026-07-28 (v0.218.0)** — the concept card now scopes its claim to *the hooks the installer wires*, and points at host-support.json as the authority. Fully true once MH-12 lands. *(partially resolved by `f55039ec`)*
 
 **Evidence** `[verified]` — `RC/knowledge/concepts/copilot-bridge.md:20` teaches, as settled fact with **no
 `[verify-at-use]` marker**: *"a hook adapter translates the I/O envelopes so the *unmodified* hook scripts
@@ -1384,7 +1384,7 @@ hooks that are never wired into Copilot at all** (MH-12).
 ---
 
 #### MH-38 · "Learn & Help" self-description enumerates two hosts as the whole world
-**Severity:** P3 · **Hosts:** all non-Claude/Copilot · **Reported by:** DASH (P3-1, and the P1-3 lane it depends on) · **Effort:** S/M · **Status:** `OPEN`
+**Severity:** P3 · **Hosts:** all non-Claude/Copilot · **Reported by:** DASH (P3-1, and the P1-3 lane it depends on) · **Effort:** S/M · **Status:** ✅ **FIXED 2026-07-28 (v0.218.0)** — third Help-drawer lane — Codex (install + the hash-trust warning) and an honest 'not wired at all' for Cursor/Aider/Devin Desktop. Owner-approved +12 DOM.
 
 **Evidence** `[verified]` — `scripts/generate-dashboards.py:395` (*"install & update guides for Claude Code
 and GitHub Copilot CLI"*), `:328` (Help drawer sections: *"the About, Claude Code, Copilot CLI, and
@@ -1402,7 +1402,7 @@ heading moves.** Then update the two self-description strings alongside it.
 ---
 
 #### MH-39 · Prompt Builder never states it targets Claude models
-**Severity:** P3 · **Hosts:** Copilot (routing GPT/Grok) and every non-Claude host · **Reported by:** DASH (P3-3) · **Effort:** S · **Status:** `OPEN`
+**Severity:** P3 · **Hosts:** Copilot (routing GPT/Grok) and every non-Claude host · **Reported by:** DASH (P3-3) · **Effort:** S · **Status:** ✅ **FIXED 2026-07-28 (v0.218.0)** — the Prompt Builder lead now says it targets Claude models and that the deprecation/tuning rules may not carry to others.
 
 **Evidence** `[verified]` — `scripts/generate-dashboards.py:362-374` — the builder *"assembles a
 best-practice **Claude** prompt"* (docstring), and its linter rules are Claude-version-specific (prefill →
