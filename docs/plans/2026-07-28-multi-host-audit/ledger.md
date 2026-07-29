@@ -991,8 +991,20 @@ published artifact, so the plan's §6.4 closed-allow-list discipline binds here 
 >    streaming scan (~0.04 s for 14.8 MB) that reports `counts_truncated` instead of passing a floor off
 >    as a total.
 >
-> Remedy (2) — the `/__dispatch` reader over `.ravenclaude/runs/dispatch-eval/` — remains **open** and is
-> tracked as the fuller version.
+> ✅ **Remedy (2) shipped 2026-07-29 (v0.229.0), and building it changed its shape.** Before writing the
+> reader, the producer was checked: `agent-dispatch-evaluator.sh:77` **short-circuits** unless
+> `.ravenclaude/dispatch-config.json` carries `"enabled": true`, and line 28 states *"enabled:false is
+> the shipped default."* On this machine neither the config nor `runs/dispatch-eval/` exists.
+>
+> **So the fuller version as specified would have shipped a permanently-empty panel** — the exact defect
+> class this audit has been closing all session (the always-empty session card, the no-op MCP merge
+> reporting "not configured", the emitter nothing called). It is now a **three-state** card —
+> `off` / `idle` / `recorded` — because a bare "nothing recorded" is indistinguishable from a broken
+> reader, and that ambiguity *is* the bug. The `off` state says it is off and how to turn it on.
+>
+> Built with **zero DOM cost** (appended into the existing `#panel-mimir` container, no ratchet raise)
+> and **no new endpoint** — it rides `/__mimir`. Gate 49 gained assertions that keep the three states
+> distinct; verified to fail when they are collapsed into one generic empty message.
 
 **Evidence** `[verified]`
 - `RC/hooks/hooks.json:149-159` registers `SubagentStart` → `agent-dispatch-evaluator.sh`, which

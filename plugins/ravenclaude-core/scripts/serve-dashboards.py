@@ -1224,6 +1224,73 @@ def _read_streams(project_root) -> dict:
     return base
 
 
+def _read_dispatch_eval(project_root) -> dict:
+    """Summarise .ravenclaude/runs/dispatch-eval/ — the subagent-dispatch log.
+
+    THE HONEST-EMPTY CONTRACT, which is the whole reason this returns a state
+    rather than just a list. The producer is `agent-dispatch-evaluator.sh`, and it
+    SHORT-CIRCUITS unless `.ravenclaude/dispatch-config.json` contains
+    `"enabled": true` — `enabled:false` is the shipped default. So for almost
+    every consumer this directory does not exist, and a panel that simply
+    rendered "nothing here" would be indistinguishable from a broken reader.
+    That ambiguity is the exact defect this dashboard keeps being audited for
+    (the always-empty session card; the MCP step that reported "not configured").
+
+    So three states are reported distinctly:
+      off      — no config, or enabled != true. Nothing will EVER be recorded
+                 until the consumer opts in. The UI says how.
+      idle     — opted in, but nothing logged yet.
+      recorded — real events, summarised.
+
+    DERIVED ONLY: counts and validated subagent-type labels. The evaluator's
+    JSONL may carry a prompt or reasoning; neither is read.
+    """
+    from pathlib import Path as _P
+
+    root = _P(project_root)
+    cfg = root / ".ravenclaude" / "dispatch-config.json"
+    enabled = False
+    if cfg.is_file():
+        try:
+            enabled = bool(json.loads(cfg.read_text(encoding="utf-8")).get("enabled"))
+        except (OSError, json.JSONDecodeError, ValueError, AttributeError):
+            enabled = False
+
+    out = {
+        "state": "off",
+        "enabled": enabled,
+        "config_present": cfg.is_file(),
+        "total": 0,
+        "by_type": [],
+        "how_to_enable": (
+            'create .ravenclaude/dispatch-config.json containing {"enabled": true} '
+            "— the SubagentStart hook exits immediately without it, which is the "
+            "shipped default"
+        ),
+    }
+
+    eval_dir = root / ".ravenclaude" / "runs" / "dispatch-eval"
+    counts: dict = {}
+    total = 0
+    if eval_dir.is_dir():
+        for log in sorted(eval_dir.glob("*.jsonl")):
+            for ev in _mimir_iter_jsonl_bounded(log):
+                total += 1
+                label = _mimir_safe_label(ev.get("subagent_type"))
+                counts[label] = counts.get(label, 0) + 1
+
+    out["total"] = total
+    out["by_type"] = [
+        {"type": k, "count": v}
+        for k, v in sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))[:8]
+    ]
+    if total:
+        out["state"] = "recorded"
+    elif enabled:
+        out["state"] = "idle"
+    return out
+
+
 def _read_mimir(project_root, claude_home) -> dict:
     """Build the Mímir session-state payload from on-disk Claude Code sources.
 
@@ -1451,6 +1518,10 @@ def _read_mimir(project_root, claude_home) -> dict:
             base["session"]["pid"] = pid if isinstance(pid, int) else None
             base["session"]["found"] = True
             break
+
+    # MH-20 remedy (2) — the dispatch log, with a three-state honest empty
+    # state so "nothing here" can never be mistaken for a broken reader.
+    base["dispatch"] = _read_dispatch_eval(project_root)
 
     return base
 

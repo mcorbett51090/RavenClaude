@@ -2,6 +2,39 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.229.0 — 2026-07-29
+
+### Added
+
+- **Subagent dispatch log on the Session page, with a three-state honest empty state** (audit MH-20,
+  remedy 2 — the "fuller version" the ledger tracked as open).
+  - **Checking the producer first changed the design.** `agent-dispatch-evaluator.sh:77`
+    **short-circuits** unless `.ravenclaude/dispatch-config.json` carries `"enabled": true`, and line
+    28 states plainly *"enabled:false is the shipped default."* Neither that config nor
+    `runs/dispatch-eval/` exists on this machine. **So the reader as specified would have shipped a
+    permanently-empty panel** — the exact defect class this audit has spent the session closing (the
+    always-empty session card; the MCP step reporting "not configured"; the emitter nothing called).
+  - It therefore reports **three distinct states**, because a bare *"nothing recorded"* is
+    indistinguishable from a broken reader — and that ambiguity *is* the bug:
+    - **off** — nothing will ever be recorded until you opt in; says so, and how.
+    - **idle** — enabled, nothing logged yet.
+    - **recorded** — totals plus the agent types.
+  - **Zero DOM cost and no new endpoint.** The card is appended into the existing `#panel-mimir`
+    container and rides `/__mimir`, so no Gate 132 ratchet raise was needed (6,140 / 7,026 unchanged)
+    — better than the page-budget cost this option was quoted at.
+  - **Derived-only**, like the 0.223.0 counts: totals and validated agent-type labels. The evaluator's
+    JSONL may carry a prompt or reasoning; neither is read.
+- **Gate 49 extended** with assertions that keep the three states distinct — the `off` state must say
+  it is off *and* how to change it, and must not degrade to a bare empty message. **Verified to fail
+  (2 assertions) when the states are collapsed into one generic message**, which is what a
+  "simplify this" edit looks like.
+
+### Notes
+
+- Per-session subagent counts (shipped 0.223.0, read from transcripts) need **no** opt-in and remain
+  the surface most people will actually use; this log adds the evaluator's own records on top, for
+  anyone who has turned it on.
+
 ## 0.228.0 — 2026-07-29
 
 ### Added
