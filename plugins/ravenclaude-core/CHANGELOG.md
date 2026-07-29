@@ -2,6 +2,54 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.230.0 — 2026-07-29
+
+### Added
+
+- **MCP servers can now be wired for Codex too — opt-in by name, and by pure append** (audit MH-19,
+  Codex half; the last open piece of the multi-host audit).
+  `ravenclaude install --host codex --with-mcp <server>` adds `[mcp_servers.<name>]` tables to
+  `.codex/config.toml`. Nothing is added unless named — the same consent model as the Copilot half,
+  and for the same reason: neither `~/.codex/config.toml` nor a project one offers a per-plugin step.
+  - **The deferral said *"a bad TOML merge would clobber a hand-tuned config."* That worry was sound,
+    and it was retired by structure rather than by care.** This repo already records the sharper
+    version in 0.216.0: appending a **bare key** attaches it to the most recent table, so
+    `sandbox_mode` appended to a file containing `[mcp_servers.github]` silently became
+    `mcp_servers.github.sandbox_mode` — valid TOML, wrong meaning, invisible in a diff.
+  - **But bare keys and table headers are opposites in exactly that respect:**
+
+    | | |
+    |---|---|
+    | a bare key | position-**dependent** → appending is dangerous |
+    | a `[table]` header | position-**independent** → appending is safe |
+
+    An MCP server *is* a table. So it is added by **pure append**, and a pure append cannot clobber
+    because it never rewrites an existing byte. The safety argument is therefore a one-line
+    assertion, checked before every write: `new_text.startswith(original_text)`.
+  - Three rules make it total: a server whose table **already exists is skipped, never rewritten**
+    (it may be your own tuning, and a duplicate table is a TOML error); the result is **parsed before
+    it is saved** (the `network_access`-as-a-quoted-string lesson: verify with a parser, never by
+    eye); and only renderable shapes are emitted — anything else **raises** rather than guessing at
+    the TOML.
+- **Gate 171** — append-only asserted byte-for-byte, hand-tuned tables/root keys/**comments** all
+  survive (verified by parsing both sides), idempotent with no duplicate tables, result parses,
+  unknown names fail without writing. **The teeth half is the tidier-looking implementation** that
+  parses the file and re-emits it — which silently discards your comments and ordering.
+
+### Fixed
+
+- **The installer's own note about this was wrong in two ways.** It said MCP lived at
+  `.codex/config.toml` **`[mcp]`** — the table is **`[mcp_servers.<name>]`** `[docs-verified
+  2026-07-29]` — and it said the merge was unbuildable because it would clobber, which was a
+  statement about one possible implementation, not about the problem.
+
+### Notes
+
+- Both halves read the **same** generated catalogue, so one inventory serves both hosts.
+- Stated at install time, not buried: a project `.codex/config.toml` is read **only in trusted
+  projects**, so writing the file is not the same as Codex loading it — the same honest caveat the
+  hook-trust and sandbox work carries.
+
 ## 0.229.0 — 2026-07-29
 
 ### Added
