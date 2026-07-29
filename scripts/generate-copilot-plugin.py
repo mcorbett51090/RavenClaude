@@ -54,6 +54,11 @@ OUTPUT_DIR = CORE_DIR / "copilot"
 # (docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/add-custom-instructions).
 ROOT_AGENTS_MD = REPO_ROOT / "AGENTS.md"
 GROUNDING_SECTION_HEADER = "## Accuracy discipline (cross-tool pointer)"
+# MH-storage: where work files go. Projected alongside the grounding section
+# because a Copilot session writing artifacts somewhere no other CLI looks is
+# the same class of gap as one making unverified claims — invisible until the
+# next tool cannot find the work.
+STORAGE_SECTION_HEADER = "## Where work files go — the cross-CLI storage contract (READ THIS BEFORE WRITING ANY FILE)"
 
 # "Launch the dashboard" directive appended to copilot/AGENTS.md. The `/dashboard`
 # slash command is Claude-Code-only and does not exist in Copilot CLI, so without
@@ -609,7 +614,11 @@ def build_agents_md() -> str:
     projected from the root AGENTS.md. Copilot reads this natively when the dir
     is on COPILOT_CUSTOM_INSTRUCTIONS_DIRS, so the discipline travels with the
     installed agents instead of being left behind in RavenClaude's own repo."""
-    section = extract_section(read_text(ROOT_AGENTS_MD), GROUNDING_SECTION_HEADER)
+    root_agents = read_text(ROOT_AGENTS_MD)
+    section = extract_section(root_agents, GROUNDING_SECTION_HEADER)
+    # The storage contract travels too — a Copilot session that writes its work
+    # where no other CLI looks has produced nothing the next tool can use.
+    section = section.rstrip() + "\n\n" + extract_section(root_agents, STORAGE_SECTION_HEADER)
     banner = (
         "# ravenclaude-core — Copilot grounding instructions\n"
         "\n"

@@ -163,7 +163,18 @@ alwaysApply: true
 
 Read `AGENTS.md` at the repository root end-to-end before making changes. It is the
 canonical cross-tool guidance: testing instructions, the layout allow-list
-discipline, and the PR conventions.
+discipline, the PR conventions, and — read this before writing ANY file — the
+section "Where work files go", which is what lets another CLI find your work.
+
+Where work files go, in short (the full rules are in AGENTS.md):
+  .ravenclaude/runs/<task-id>/   working notes. GITIGNORED, this machine only.
+                                 Create with `bin/rc artifacts new <task-id>` so
+                                 it carries a meta.json stamp naming this CLI.
+  docs/plans|decisions|research/ anything meant to be kept or read by a teammate.
+                                 Committed, so it travels through git.
+Before starting, run `bin/rc artifacts list` — another CLI may already have a
+directory for this task. Continue in it; do not open a parallel one.
+Do NOT commit `.ravenclaude/runs/` — it is kept out of git deliberately.
 
 Guardrails that DO run for you here: shell commands are screened in-loop via
 `.cursor/hooks.json` (`beforeShellExecution`). A blocked command returns

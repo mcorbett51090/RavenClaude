@@ -74,6 +74,72 @@ RavenClaude/
 
 Every plugin **must** have `.claude-plugin/plugin.json`, `README.md`, and `CLAUDE.md`. It **may** have any of `agents/`, `skills/`, `hooks/`, `rules/`, `templates/`, `commands/`, `knowledge/`. It **may** add purpose-specific directories (e.g. `solutions/`, `flows/`) when justified — declare them in `plugin.json` and explain in the plugin's CLAUDE.md.
 
+## Where work files go — the cross-CLI storage contract (READ THIS BEFORE WRITING ANY FILE)
+
+**Any CLI may be the one working here — Claude Code, Copilot, Codex, Cursor, Gemini, Aider — and the
+next session may be a different one.** So where you put a file is not a personal preference: it is the
+only thing that lets the next tool find your work. Put it in the right tier, stamp it, and any other
+CLI can pick it up as if it had written it itself.
+
+This section is the canonical statement. It is projected into every host's own instruction file, so
+**edit it here, not in the projections.**
+
+### The two tiers, and how to choose
+
+| Tier | Path | Who can see it | Use it for |
+|---|---|---|---|
+| **Local run** | `.ravenclaude/runs/<task-id>/` | **this machine only** — gitignored | working notes, gate output, evidence, anything mid-flight |
+| **Committed** | `docs/plans/`, `docs/decisions/`, `docs/research/` | you, teammates, CI | anything meant to outlive the task or be read by a human later |
+
+**The test:** *would a teammate cloning this repo need it?* Yes → committed tier. No → local run tier.
+When unsure, start local and promote it later; promoting is a `git add`, but un-committing something
+that should not have travelled is not.
+
+> **`.ravenclaude/runs/` is gitignored on purpose.** Run artifacts carry command output, absolute
+> paths, branch names, and whatever the run happened to touch. That substrate is deliberately kept out
+> of git and secret-scrubbed. **Do not "helpfully" commit it** — that reverses a deliberate decision,
+> and it is a decision about other people's data, not just yours.
+
+### What a run directory looks like
+
+Create it with `bin/rc artifacts new <task-id>` so the shape and the provenance stamp are right
+without anyone memorising this:
+
+```
+.ravenclaude/runs/<task-id>/
+├── meta.json            who made it, which CLI, when   <- the provenance stamp
+├── summary.md           what was done, for a human
+├── decisions.md         choices + WHY (the part that is expensive to recover)
+├── structured-output.json   machine-readable result
+└── events.jsonl         chronological actions, one JSON object per line
+```
+
+Every file is optional except `meta.json`. **Write the ones you actually have content for** — an empty
+`decisions.md` is worse than none, because the next CLI reads it as "no decisions were made."
+
+### Picking work up from another CLI
+
+1. `bin/rc artifacts list` — shows both tiers, newest first, with **which CLI wrote each one**. It is
+   computed by scanning, so it cannot go stale.
+2. Read `meta.json` first. If it was written by a different CLI, nothing special is required — the
+   layout is identical — but knowing the origin tells you what *else* might exist (e.g. a Claude Code
+   session leaves transcripts that a Codex session does not).
+3. Continue in the **same directory**. Do not start a parallel one for the same task; two half-records
+   is the failure this contract exists to prevent.
+
+### What is NOT shared, and never will be
+
+Naming this is part of the contract — an honest gap beats a false promise of parity:
+
+| Host-private | Why |
+|---|---|
+| `~/.claude/` (session transcripts, memory), `~/.copilot/`, `~/.codex/` | each CLI's own state, in its own format, outside the repo |
+| Session/conversation history | not a file the other tools can read, and not portable |
+| A CLI's own caches | machine- and version-specific |
+
+If work needs to survive across CLIs, **it has to be written into one of the two tiers above.** Nothing
+in a host's private area crosses over — assume it is lost the moment the session ends.
+
 ## Code style
 
 - **Manifests** — JSON only, validated by `python3 -m json.tool` in CI. No trailing commas.
