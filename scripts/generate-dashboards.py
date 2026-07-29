@@ -13670,8 +13670,12 @@ def _render_plugins_category(plugin_dirs: list[Path]) -> tuple[str, str]:
         "<strong>no curated knobs</strong> — for those, the free-form values you enter are saved to "
         "<code>.ravenclaude/plugins/&lt;plugin&gt;.yaml</code> but are <strong>not currently read by "
         "any hook</strong> (153 of 167 plugins are free-form only). For the full reference — agents, "
-        "scenarios, skills, hooks, templates, best-practices — open the plugin in the portal's "
-        "<strong>Marketplace</strong> section. Deep-link: "
+        "scenarios, skills, hooks, templates, best-practices — read the plugin's own directory under "
+        "<code>plugins/&lt;name&gt;/</code>, or browse the marketplace repo's portal if you have a "
+        "clone of it. (Corrected 2026-07-29, audit MH-22: this used to say &ldquo;open the plugin in "
+        "the portal&rsquo;s Marketplace section&rdquo; — but the portal is index.html at "
+        "the MARKETPLACE repo root, and a consumer who installs the plugin and runs the dashboard gets "
+        "this page and no portal at all. It pointed at something you do not have.) Deep-link: "
         '<a href="#/plugin-vars">Plugin variables</a>.</p>\n'
         '    <label class="pv-label" for="plugin-vars-select">Choose a plugin</label>\n'
         f'    <select id="plugin-vars-select">{options}</select>\n'

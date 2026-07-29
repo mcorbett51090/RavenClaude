@@ -941,7 +941,7 @@ data model — the P0 fix is copy-by-copy prose without it.
 ---
 
 #### MH-22 · The consumer-facing dashboard points at a portal consumers do not have
-**Severity:** P1 · **Hosts:** Claude Code (consumers) · **Reported by:** CC (P1-3) · **Effort:** S (b) / M (a) · **Status:** `OPEN`
+**Severity:** P1 · **Hosts:** Claude Code (consumers) · **Reported by:** CC (P1-3) · **Effort:** S (b) / M (a) · **Status:** ✅ **FIXED 2026-07-29 (v0.222.1)** — the Plugin-variables intro no longer points consumers at a portal they do not have — it points at the plugin's own directory, and says what the old text got wrong.
 
 **Evidence** `[verified]`
 - `scripts/generate-dashboards.py:13350-13353` (the Plugin-variables intro, shipped into `dashboard.html`):
@@ -1132,7 +1132,7 @@ root-level Devin/Cascade rules; *"a projection would duplicate content the host 
 ---
 
 #### MH-28 · The claim-grounding double standard survives at two call sites the fix did not reach
-**Severity:** P1 · **Hosts:** Cursor · Aider · Windsurf/Devin · Codex · **Reported by:** CWA (P1-6), CX (P3-2) · **Effort:** S · **Status:** `OPEN`
+**Severity:** P1 · **Hosts:** Cursor · Aider · Windsurf/Devin · Codex · **Reported by:** CWA (P1-6), CX (P3-2) · **Effort:** S · **Status:** ✅ **FIXED 2026-07-29 (v0.222.1)** — both call sites closed. `init-agent-ready.md` now lists per-host basis instead of the blanket claim (it said Aider reads AGENTS.md natively — **false**); the onboarding-skill site was already fixed by the MH-23 rewrite.
 
 **Evidence** `[verified]`
 - The identically-shaped claim **for Copilot is verified in-repo, with an inline citation**:
@@ -1295,7 +1295,7 @@ asks for (`/__mcp`, `/__dispatch`, `/__host`).**
 ---
 
 #### MH-34 · The pre-PR testing checklist requires network installs a Codex sandbox blocks — and nothing names the cause
-**Severity:** P2 · **Hosts:** OpenAI Codex CLI · **Reported by:** CX (P2-2) · **Effort:** S · **Status:** `OPEN`
+**Severity:** P2 · **Hosts:** OpenAI Codex CLI · **Reported by:** CX (P2-2) · **Effort:** S · **Status:** ✅ **FIXED 2026-07-29 (v0.222.1)** — the testing-instructions block now NAMES `sandbox_mode` as the cause of a network failure on steps 3/4, with fixes cheapest-first — the repo's own CGP demands naming the mechanical cause, and nothing did.
 > ⚠ **Rests partly on `[inferred]` evidence — verify before building.** See §4.
 
 **Evidence**
@@ -1347,7 +1347,7 @@ reader that is currently wrong about the file it reads.
 ---
 
 #### MH-36 · The Power Platform visual-QA Gemini integration is undiscoverable
-**Severity:** P2 · **Hosts:** Gemini (as a model, not a host) · **Reported by:** GEM (P2) · **Effort:** S · **Status:** `OPEN`
+**Severity:** P2 · **Hosts:** Gemini (as a model, not a host) · **Reported by:** GEM (P2) · **Effort:** S · **Status:** ✅ **FIXED 2026-07-29 (v0.222.1)** — `AGENTS.md` now distinguishes the two Geminis: the supported HOST lane (MH-30) and the Power Platform visual-QA MODEL integration. They were conflated because the second was the repo's only Gemini anything.
 
 **Evidence** `[verified]` — `plugins/power-platform/skills/visual-qa/resources/gemini-review.md` is the
 **only real Gemini integration in the repo** and is buried in a skill resource: not advertised in the main
