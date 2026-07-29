@@ -3449,7 +3449,7 @@ body {
   min-height: 100vh;
 }
 h1, h2, h3 { font-family: var(--font-display); font-weight: 600; letter-spacing: -0.02em; }
-::selection { background: var(--accent); color: #000; }
+::selection { background: var(--accent); color: var(--bg); }
 .page-header {
   /* Sticky app-nav with a scroll-triggered blur — commerce .nav language. */
   position: sticky;
@@ -3915,7 +3915,7 @@ h1, h2, h3 { font-family: var(--font-display); font-weight: 600; letter-spacing:
 }
 .crp-seats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
   gap: 10px;
 }
 .cr-seat-row {
@@ -4137,7 +4137,7 @@ h1, h2, h3 { font-family: var(--font-display); font-weight: 600; letter-spacing:
 }
 .cr-summary-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(140px, 100%), 1fr));
   gap: 6px 8px;
 }
 .cr-summary-cell {
@@ -4175,7 +4175,9 @@ h1, h2, h3 { font-family: var(--font-display); font-weight: 600; letter-spacing:
 }
 /* off: per-category thing off (regardless of master) */
 .review-scales-icon[data-review-state="off"] {
-  color: var(--border);
+  /* NOT var(--border): 7%-alpha hairline token. Same defect as
+     .cr-summary-micro[data-state="off"] had — one found instance was a sample. */
+  color: var(--muted);
 }
 /* paused: thing on but master off — greyed with dashed outline affordance */
 .review-scales-icon[data-review-state="paused"] {
@@ -5110,6 +5112,8 @@ footer.page-footer a:hover { text-decoration: underline; }
 }
 .layer-radios {
   display: inline-flex;
+  /* At 320px this nowrap row reached 384px and scrolled the page sideways. */
+  flex-wrap: wrap;
   background: var(--surface-2);
   border: 1px solid var(--border);
   border-radius: 7px;
@@ -5454,7 +5458,7 @@ footer.page-footer a:hover { text-decoration: underline; }
 .guide-tree-svg svg, .guide-tree-img { max-width: 100%; height: auto; display: block; }
 .cmd-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr));
   gap: 14px;
 }
 .cmd-card {
@@ -5618,7 +5622,7 @@ footer.page-footer a:hover { text-decoration: underline; }
 }
 .ov-stats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(120px, 100%), 1fr));
   gap: 10px;
 }
 .ov-stat {
@@ -5655,7 +5659,7 @@ footer.page-footer a:hover { text-decoration: underline; }
 }
 .ov-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(230px, 100%), 1fr));
   gap: 14px;
 }
 .ov-card {
@@ -5872,7 +5876,7 @@ footer.page-footer a:hover { text-decoration: underline; }
 .sim-deny-banner span { font-weight: 500; }
 .sim-result-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));
   gap: 16px;
 }
 .sim-field { display: flex; flex-direction: column; gap: 6px; }
@@ -6011,7 +6015,7 @@ footer.page-footer a:hover { text-decoration: underline; }
   font-variant-numeric: tabular-nums;
 }
 .concept-grid {
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(min(420px, 100%), 1fr));
   gap: 16px; padding: 16px 0;
 }
 @media (max-width: 900px) { .concept-grid { grid-template-columns: 1fr; } }
@@ -6381,7 +6385,7 @@ footer.page-footer a:hover { text-decoration: underline; }
 .gjallarhorn--grey  { background: var(--surface-2); color: var(--text); border-bottom: 1px solid var(--border); }
 /* Níðhöggr "Debt watch" card (lives inside the Heimdall grid). */
 .heimdall-card--wide { grid-column: 1 / -1; }
-.heimdall-card--wide #heimdall-debt { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+.heimdall-card--wide #heimdall-debt { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); gap: 14px; }
 .nid-section { background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; }
 .nid-hdr { margin: 0 0 6px; font-size: 12px; font-weight: 700; color: var(--text); }
 .nid-clean { margin: 0; font-size: 12px; color: var(--accent); }
@@ -6389,7 +6393,7 @@ footer.page-footer a:hover { text-decoration: underline; }
 .nid-list li { font-size: 11.5px; font-family: var(--font-mono); color: var(--text); word-break: break-word; }
 /* Idunn "Knowledge health" card (also a wide card inside Heimdall). */
 .heimdall-card--wide #heimdall-kh { display: flex; flex-direction: column; gap: 12px; }
-.kh-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; }
+.kh-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(160px, 100%), 1fr)); gap: 10px; }
 .kh-tile { background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; text-align: left; cursor: pointer; font: inherit; color: var(--text); transition: border-color 120ms ease, box-shadow 120ms ease; }
 .kh-tile:hover, .kh-tile:focus-visible { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; outline: none; }
 .kh-tile[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
@@ -6486,7 +6490,7 @@ footer.page-footer a:hover { text-decoration: underline; }
 .norns-legend { margin: 0 20px 14px; font-size: 13px; color: var(--text); }
 .norns-sub { color: var(--muted); font-size: 0.9em; font-weight: 400; }
 .norns-cols {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
   gap: 16px; padding: 0 20px 20px;
 }
 .norns-col {
@@ -6509,7 +6513,7 @@ footer.page-footer a:hover { text-decoration: underline; }
 /* ── Mímir's well: Claude Code session-state surface ── */
 .mimir-layout { padding: 20px; }
 .mimir-grid {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
   gap: 16px; padding: 0 20px 20px;
 }
 .mimir-card {

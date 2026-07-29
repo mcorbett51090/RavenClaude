@@ -387,6 +387,11 @@ PY
       bash plugins/ravenclaude-core/hooks/tests/test-gate164-gemini-adapter.sh
       exit $?
       ;;
+    174)
+      echo "── Gate 174: CSS token hygiene — unreadable-by-construction (per-gate run) ─"
+      python3 scripts/check-css-token-hygiene.py
+      exit $?
+      ;;
     173)
       echo "── Gate 173: generated files declare themselves (per-gate run) ───────────"
       python3 scripts/check-generated-headers.py
@@ -513,7 +518,7 @@ PY
       ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -5549,6 +5554,24 @@ gate "generated-headers: every generated file declares itself + names its source
 
 rc=0; python3 scripts/check-generated-headers.py --must-fail >/dev/null 2>&1 || rc=$?
 gate "generated-headers teeth: a declaration the reader cannot see is caught" must_pass "$rc"
+
+echo
+echo "── Gate 174: CSS token hygiene — unreadable by construction ───────────────"
+# Three token-misuse shapes that render valid CSS a person cannot read, none of which
+# any prior gate could see: a 7%-alpha hairline token used as a foreground colour
+# (the word "off" at 1.17:1), a hardcoded #fff/#000 on a themed fill (1.95:1 on accent,
+# 2.76:1 on dark-theme danger, and blind to the theme swap by construction), and a bare
+# minmax() track minimum that scrolls the whole document sideways on a narrow viewport.
+# Plus: a generated dashboard surface with no bare-`a` colour rule — the defect that
+# shipped in dashboard.html while the portal shell masked it.
+# It does NOT compute contrast; that needs a browser, and a hand-rolled approximation
+# of one is what produced 3,337 findings of which ~99% were false. See
+# docs/best-practices/validating-a-measuring-instrument.md.
+rc=0; python3 scripts/check-css-token-hygiene.py >/dev/null 2>&1 || rc=$?
+gate "css-token-hygiene: no hairline-as-text, theme-blind fill, or bare minmax track" must_pass "$rc"
+
+rc=0; python3 scripts/check-css-token-hygiene.py --must-fail >/dev/null 2>&1 || rc=$?
+gate "css-token-hygiene teeth: 7 known-bad caught AND 8 known-good left alone" must_pass "$rc"
 
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"

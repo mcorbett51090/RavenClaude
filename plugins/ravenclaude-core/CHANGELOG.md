@@ -2,6 +2,79 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.235.0 — 2026-07-29
+
+**Turned this session's lessons into a gate, a rule, and eight more fixes.** The UI/UX audit
+in 0.234.0 found 24 defects on two surfaces. This release asks the question that matters
+more: *what did the audit teach, and where else does each defect class live?*
+
+### The lesson that generalises
+
+The audit harness produced **3,337 findings, ~99% of them false**, across six successive
+wrong checks — each of which is the version a competent person writes first. Acting on the
+batch would have made the product worse in four places. That is the
+[silent-green defect](CLAUDE.md) shape moved up one level, into the instrument you were
+going to use to *find* defects, where it corrupts every downstream conclusion.
+
+New **Primary diagnostic**:
+[`docs/best-practices/validating-a-measuring-instrument.md`](../../docs/best-practices/validating-a-measuring-instrument.md)
+— *a new measuring tool's first output is a claim about the tool, not about the subject.*
+Three cheap triage steps (implausible volume is a bug report about the checker · trace
+exactly one finding to source before fixing anything · ask the platform instead of
+modelling it), the six wrong checks as a table, and the mutation-test-between-clean-passes
+rule that makes "0 findings" mean something. Story form, with what was tried first, is a
+dated entry in [`docs/memory-bank/lessons-learned.md`](../../docs/memory-bank/lessons-learned.md),
+per this repo's own lessons-vs-best-practices convention.
+
+### Added — Gate 174: token misuse that renders unreadable
+
+[`scripts/check-css-token-hygiene.py`](../../scripts/check-css-token-hygiene.py). Three of
+0.234.0's classes were **wrong by construction** — no measurement needed to know the answer —
+so they are now gated statically, stdlib-only, no browser:
+
+1. a **hairline token as a foreground colour** (`--border` is 7% alpha → ~1.2:1),
+2. a **theme-blind literal on a themed fill** (`#fff` on `var(--accent)` is 1.95:1, and a
+   literal cannot follow the light/dark swap at all),
+3. a **bare `minmax(<N>px, 1fr)` track** in an `auto-fit`/`auto-fill` grid, which scrolls
+   the whole document sideways once a container is narrower than N,
+
+plus a generated dashboard surface with **no bare-`a` colour rule** — the defect that shipped
+in `dashboard.html` while the portal masked it.
+
+It **deliberately does not compute contrast**: that needs a browser, and a hand-rolled
+approximation of one is precisely what produced the 3,337 false findings. The scope
+statement is in the file's own header. `--must-fail` asserts **7 known-bad caught AND 8
+known-good left alone** — the inverted direction matters here, because an audit tool's
+costly failure is inventing defects, not missing them. Suite: **684 → 686 pass, 0 fail.**
+
+### Fixed — eight more instances, found by asking "how many siblings does this class have?"
+
+The audit found one `--border`-as-text-colour rule; a grep found a **second the browser
+could not see**, because it coloured an SVG icon rather than text. Applying that question to
+each class surfaced defects on surfaces the audit never visited:
+
+- **`.review-scales-icon[data-review-state="off"]`** — the same hairline-token defect, in the
+  review-state icon.
+- **`generate-bi-report.py` and `generate-feedback-report.py`** — three `#fff`-on-accent
+  controls (1.95:1) in **stakeholder-facing report generators that had never been audited**.
+- **`::selection`** — `#000` on accent is 3.9:1 in light theme; now `var(--bg)`.
+- **18 `minmax()` tracks** across four generators, and **two consumer templates**
+  (`repo-build-studio/{dashboard,marketing-page}.html`) — the class eliminated rather than
+  the two instances that happened to bite.
+- **Two `flex-wrap: nowrap` rows** (`.topbar .actions`, `.layer-radios`) that pushed content
+  45px and 64px past a 320px viewport.
+
+### On coverage, stated honestly
+
+0.234.0 tested 1280/768/375px. Extending the audit to **320px** flipped a negative result:
+"no `minmax` grid overflows — measured" was true at 375 and **false at 320**, where a 340px
+track blew out every route. A negative result without its coverage is not a result. All
+three surfaces (portal, standalone, `pitch.html`) are now clean at **4 widths × 2 themes**.
+
+Two findings were again verified **correct by design** and left alone, and one 1/64-pixel
+threshold artifact was resolved with a documented tolerance rather than `min-height: 25px` —
+CSS that lies about its intent is worse than a tolerance that states one.
+
 ## 0.234.0 — 2026-07-29
 
 **Looped a measured UI/UX audit over both dashboard surfaces until two consecutive

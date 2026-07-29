@@ -217,7 +217,7 @@ a { color: var(--accent); }
 .rhead .stamp { margin-left: auto; font-size: 0.78rem; color: var(--faint); text-align: right; }
 .lede { color: var(--muted); max-width: 78ch; margin: 4px 0 18px; }
 .rule { height: 1px; border: 0; background: linear-gradient(90deg, transparent, var(--accent) 50%, transparent); opacity: 0.5; margin: 22px 0; }
-.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-bottom: 8px; }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr)); gap: 14px; margin-bottom: 8px; }
 .kpi { background: var(--surface); border: 1px solid var(--border); border-radius: var(--rc-radius-lg);
   box-shadow: var(--rc-shadow-sm); padding: 16px 18px; }
 .kpi .k { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 0.8rem; }
@@ -250,7 +250,7 @@ a { color: var(--accent); }
 .toolbar input { flex: 1; min-width: 220px; }
 .toolbar .seg { display: inline-flex; border: 1px solid var(--border-strong); border-radius: var(--rc-radius-sm); overflow: hidden; }
 .toolbar .seg button { background: var(--surface); border: 0; padding: 8px 12px; font: inherit; font-size: 0.82rem; cursor: pointer; color: var(--muted); }
-.toolbar .seg button[aria-pressed="true"] { background: var(--accent); color: #fff; }
+.toolbar .seg button[aria-pressed="true"] { background: var(--accent); color: var(--bg); }
 .count { color: var(--faint); font-size: 0.82rem; margin-left: auto; }
 table.t { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
 table.t th { text-align: left; padding: 10px 10px; border-bottom: 1px solid var(--border-strong);
@@ -264,7 +264,7 @@ table.t tr.r:hover { background: var(--surface-2); }
 .tag { font-size: 0.7rem; background: var(--surface-2); border: 1px solid var(--border); color: var(--muted);
   border-radius: var(--rc-radius-pill); padding: 1px 8px; }
 .pill { display: inline-block; font-size: 0.72rem; font-weight: 700; border-radius: var(--rc-radius-pill); padding: 2px 9px; white-space: nowrap; }
-.pill.organic { background: var(--accent); color: #fff; }
+.pill.organic { background: var(--accent); color: var(--bg); }
 .pill.seed { background: var(--surface-2); color: var(--muted); border: 1px solid var(--border); }
 .scope { font-size: 0.78rem; color: var(--muted); }
 .meta { font-size: 0.76rem; color: var(--faint); font-family: var(--font-mono); white-space: nowrap; }
