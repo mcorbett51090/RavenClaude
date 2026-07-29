@@ -2,6 +2,48 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.220.0 — 2026-07-28
+
+### Added
+
+- **Cursor is a supported host** (multi-host audit MH-13 + MH-25). It had **zero in-loop enforcement**:
+  not the layout gate, not `guard-destructive`, not the command-review tribunal, not the runaway brake.
+  CI was the only backstop, and CI runs after the damage.
+  - `ravenclaude install --host cursor` wires **two** surfaces Cursor has and this repo served neither
+    of: `.cursor/hooks.json` (guardrails) and `.cursor/rules/*.mdc` (Cursor's own rules convention,
+    which its docs call the *scoped alternative* to `AGENTS.md`, not a superset).
+  - Hooks are **projected from the canonical manifest** — 20 wired, 5 explicitly skipped with reasons
+    that ship in the file. Not a second hand-maintained list: MH-12 had just proved those drift
+    silently, and repeating that on a new host was the obvious trap. **Gate 160** additionally asserts
+    something is actually wired to the enforcing event, because a lane that enforces nothing would pass
+    a pure accounting check while protecting nobody.
+  - The **glob-scoped layout rule** is the point of the `.mdc` half: a rule that fires on the paths it
+    governs is exactly what a flat, always-on `AGENTS.md` structurally cannot express.
+- **⚠ The safety fact that shaped every line of it: CURSOR FAILS OPEN.** *"malformed JSON response
+  silently allows command instead of blocking"* `[docs-verified — Cursor's own bug tracker]`. Every
+  other supported host fails **closed** on a broken hook. So on Cursor a guardrail that emits
+  slightly-wrong JSON does not fail loudly — **it vanishes.** The adapter therefore emits its deny
+  verdict as a **fixed literal with no interpolation**, carries **both** documented and
+  community-reported field spellings, and reserves silence for genuine allows. **Gate 159** over-covers
+  that path deliberately, including a hostile command string that must never reach the payload.
+
+### Fixed
+
+- **MH-13's own event list was incomplete.** It named five events from third-party write-ups; Cursor's
+  published set is a superset that includes Claude-named events (`preToolUse`, `postToolUse`,
+  `sessionStart`, `subagentStart`, `stop`, `preCompact`) and supports `matcher`. Third-party
+  corroboration has now been wrong three times this release — `.codex/skills`, the Copilot version
+  floors, and this — against zero times for a primary source.
+
+### Honest scope
+
+`preToolUse`/`postToolUse` are **not** wired: their per-event payload fields were not published on the
+page verified, and guessing a payload shape on a host that treats a wrong guess as *allow* is the trade
+this repo refuses. The layout gate and web-access guard are **not** enforced on Cursor either — no
+verified event carries a file path pre-write or an agent web fetch — and the generated rules say so
+rather than implying coverage. **This lane is docs-verified but UNTESTED against a running Cursor**;
+there is no Cursor binary here, and `host-support.json` records that limitation rather than eliding it.
+
 ## 0.219.0 — 2026-07-28
 
 ### Fixed

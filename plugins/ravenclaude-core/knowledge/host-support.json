@@ -1,6 +1,6 @@
 {
-  "_note": "MH-21 — the single source of truth for WHICH RAVENCLAUDE COMPONENTS ACTUALLY WORK ON WHICH HOST. Created 2026-07-28 by the multi-host audit. Before this file, every surface that needed the answer either hardcoded it (generate-dashboards.py's _HOOK_CAPABLE_HOSTS) or, more often, silently assumed 'everywhere' — which is how the Pipeline tab came to imply guardrails on hosts that run none, and how Heimdall came to report an unwatched perimeter as clean. A per-component annotation would have been ~20 copies of the same few facts, each free to rot independently; ONE map keeps them honest together.",
-  "_contract": "`supported` is a claim about whether the component RUNS on that host today, in this repo, as wired by `scripts/ravenclaude`. It is NOT a claim about whether the host is capable in principle — a host can speak a contract perfectly and still be unsupported here because nothing wires it, in which case `supported` is false and `blocked_by` says exactly that. Codex WAS this file's worked example of that distinction until 2026-07-28, when `--host codex` shipped and flipped its hooks + skills cells to true; Cursor is the current example. When a host gains an install path, update this file; do not add a second list somewhere else.",
+  "_note": "MH-21 \u2014 the single source of truth for WHICH RAVENCLAUDE COMPONENTS ACTUALLY WORK ON WHICH HOST. Created 2026-07-28 by the multi-host audit. Before this file, every surface that needed the answer either hardcoded it (generate-dashboards.py's _HOOK_CAPABLE_HOSTS) or, more often, silently assumed 'everywhere' \u2014 which is how the Pipeline tab came to imply guardrails on hosts that run none, and how Heimdall came to report an unwatched perimeter as clean. A per-component annotation would have been ~20 copies of the same few facts, each free to rot independently; ONE map keeps them honest together.",
+  "_contract": "`supported` is a claim about whether the component RUNS on that host today, in this repo, as wired by `scripts/ravenclaude`. It is NOT a claim about whether the host is capable in principle \u2014 a host can speak a contract perfectly and still be unsupported here because nothing wires it, in which case `supported` is false and `blocked_by` says exactly that. Codex WAS this file's worked example of that distinction until 2026-07-28, when `--host codex` shipped and flipped its hooks + skills cells to true; Cursor is the current example. When a host gains an install path, update this file; do not add a second list somewhere else.",
   "_provenance": "verified = confirmed in-repo this session by a visible tool call. docs-verified = read from the host's own documentation this session, url given. inferred = neither; MUST be verified before anything is built on it.",
   "schema_version": 1,
   "updated": "2026-07-28",
@@ -36,7 +36,7 @@
   },
   "components": {
     "hooks": {
-      "what": "PreToolUse / SessionStart / Stop guardrails — the tribunal, guard-destructive, runaway brake, layout gate, dod gate.",
+      "what": "PreToolUse / SessionStart / Stop guardrails \u2014 the tribunal, guard-destructive, runaway brake, layout gate, dod gate.",
       "claude-code": {
         "supported": true,
         "how": "reads plugins/*/hooks/hooks.json natively",
@@ -45,20 +45,21 @@
       "copilot": {
         "supported": true,
         "how": "repo-level .github/hooks, wired by `ravenclaude install`, envelope translated by hooks/copilot-hook-adapter.sh",
-        "caveat": "PLUGIN-level hooks never fire (github/copilot-cli#2540), which is why they ship repo-level. Tool-name VALUES are lowercase and are normalised in the adapter (f55039ec) — before that fix the tribunal and web guard were silent no-ops.",
+        "caveat": "PLUGIN-level hooks never fire (github/copilot-cli#2540), which is why they ship repo-level. Tool-name VALUES are lowercase and are normalised in the adapter (f55039ec) \u2014 before that fix the tribunal and web guard were silent no-ops.",
         "basis": "verified + docs-verified (https://docs.github.com/en/copilot/concepts/agents/hooks)"
       },
       "codex": {
         "supported": true,
         "how": "`ravenclaude install --host codex` writes <project>/.codex/hooks.json in the CLAUDE-shaped schema, each entry wrapped through hooks/codex-hook-env.sh. NO envelope adapter: Codex speaks the Claude contract natively (identical PascalCase events, identical stdin fields, identical exit-2 blocking, identical PascalCase tool-name VALUES). The shim's ONLY job is lifting cwd/session_id from the stdin payload into CLAUDE_PROJECT_DIR/CLAUDE_SESSION_ID, which Codex does not supply.",
-        "caveat": "HASH-TRUST (MH-17): Codex tracks hook trust by hash, so any change to a hook script marks it for review and SKIPS it until the user re-trusts via /hooks. Because this repo's update model is `git pull`, the steady state for an un-warned user is guardrails silently off after every update — and no banner says so, because the SessionStart banner is itself a hook. The installer and `ravenclaude update` both print the re-trust notice; `requirements.toml` managed hooks are the only unattended-survival configuration.",
-        "note": "CLAUDE_PLUGIN_ROOT and CLAUDE_PLUGIN_DATA ARE supplied by Codex as legacy-compatibility names — an earlier claim in this repo that they were not was wrong and is corrected in knowledge/codex-cli-customization.md. NOTE that _portable.sh's _rc_host_env fallbacks (CODEX_PROJECT_ROOT/SESSION_ID) are speculative names NOT in Codex's documented environment; the shim, not the alias, is what actually closes the gap.",
+        "caveat": "HASH-TRUST (MH-17): Codex tracks hook trust by hash, so any change to a hook script marks it for review and SKIPS it until the user re-trusts via /hooks. Because this repo's update model is `git pull`, the steady state for an un-warned user is guardrails silently off after every update \u2014 and no banner says so, because the SessionStart banner is itself a hook. The installer and `ravenclaude update` both print the re-trust notice; `requirements.toml` managed hooks are the only unattended-survival configuration.",
+        "note": "CLAUDE_PLUGIN_ROOT and CLAUDE_PLUGIN_DATA ARE supplied by Codex as legacy-compatibility names \u2014 an earlier claim in this repo that they were not was wrong and is corrected in knowledge/codex-cli-customization.md. NOTE that _portable.sh's _rc_host_env fallbacks (CODEX_PROJECT_ROOT/SESSION_ID) are speculative names NOT in Codex's documented environment; the shim, not the alias, is what actually closes the gap.",
         "basis": "verified 2026-07-28 (installer wires it end-to-end; Gate 155 proves the shim's invariants) + docs-verified (https://learn.chatgpt.com/docs/hooks)"
       },
       "cursor": {
-        "supported": false,
-        "blocked_by": "no adapter and no install path. Cursor reportedly has its own hooks API (.cursor/hooks.json); unverified.",
-        "basis": "verified (absence in-repo); the Cursor hooks API itself is inferred"
+        "supported": true,
+        "how": "`ravenclaude install --host cursor` writes <project>/.cursor/hooks.json, PROJECTED from the canonical manifest by scripts/generate-cursor-hooks.py, with each entry wrapped through hooks/cursor-hook-adapter.sh. 20 hooks wired, 5 explicitly skipped with reasons. The enforcing event is beforeShellExecution \u2014 the only one whose full input AND output schema Cursor publishes.",
+        "caveat": "\u26a0 CURSOR FAILS OPEN: a malformed hook response silently ALLOWS the command (Cursor's own bug tracker, verified 2026-07-28) \u2014 every other supported host fails CLOSED. The adapter's deny verdict is a fixed literal with no interpolation for exactly this reason. ALSO: the layout gate and web-access guard are NOT enforced here (no verified Cursor event carries a file path pre-write, or an agent web fetch); CI is the backstop and the generated .mdc rules say so. AND: this lane is docs-verified but UNTESTED against a running Cursor \u2014 there is no Cursor binary in this repo.",
+        "basis": "docs-verified 2026-07-28 (https://cursor.com/docs/agent/hooks) + verified (installer wires it end-to-end; Gates 159/160). NOT verified in a live Cursor session."
       },
       "gemini": {
         "supported": false,
@@ -77,7 +78,7 @@
       }
     },
     "skills": {
-      "what": "Agent Skills under .claude/skills — spawn-team, forge, thing, wireframe, and the rest.",
+      "what": "Agent Skills under .claude/skills \u2014 spawn-team, forge, thing, wireframe, and the rest.",
       "claude-code": {
         "supported": true,
         "how": "reads .claude/skills",
@@ -90,8 +91,8 @@
       },
       "codex": {
         "supported": true,
-        "how": "`ravenclaude install --host codex` symlinks all 50 skills into <project>/.agents/skills/. Codex scans .agents/skills in EVERY directory from cwd up to the repo root, then $HOME/.agents/skills, then /etc/codex/skills, then bundled. SKILL.md needs name+description frontmatter — the same shape as .claude/skills — so the existing skills project across unchanged, with no per-host rewriting.",
-        "caveat": "NOT `.claude/skills` — that is Copilot's and Claude's read path. Wiring a Codex user there is exactly how `ravenclaude setup` used to complete 'successfully' while wiring zero skills into their host (MH-07).",
+        "how": "`ravenclaude install --host codex` symlinks all 50 skills into <project>/.agents/skills/. Codex scans .agents/skills in EVERY directory from cwd up to the repo root, then $HOME/.agents/skills, then /etc/codex/skills, then bundled. SKILL.md needs name+description frontmatter \u2014 the same shape as .claude/skills \u2014 so the existing skills project across unchanged, with no per-host rewriting.",
+        "caveat": "NOT `.claude/skills` \u2014 that is Copilot's and Claude's read path. Wiring a Codex user there is exactly how `ravenclaude setup` used to complete 'successfully' while wiring zero skills into their host (MH-07).",
         "basis": "docs-verified 2026-07-28 (https://learn.chatgpt.com/docs/build-skills) + verified (installer wires it; 50 skills confirmed in a scratch install). NOTE: multiple third-party guides claim `.codex/skills`; the primary source says `.agents/skills`. Trust this row, not a blog."
       },
       "cursor": {
@@ -161,7 +162,7 @@
       "copilot": {
         "supported": true,
         "how": "generated projection at plugins/ravenclaude-core/copilot/agents/*.agent.md",
-        "caveat": "SECURITY GAP — the least-privilege `tools:` allowlist is DROPPED in projection, and a Copilot agent has ALL tools by default (a `tools` spec only restricts). security-reviewer, canonically Read/Grep/Glob/Bash/WebFetch with Write/Edit withheld, can write. Not fixed because Copilot's complete tool vocabulary is unpublished; see the KNOWN GAP block in copilot/README.md.",
+        "caveat": "SECURITY GAP \u2014 the least-privilege `tools:` allowlist is DROPPED in projection, and a Copilot agent has ALL tools by default (a `tools` spec only restricts). security-reviewer, canonically Read/Grep/Glob/Bash/WebFetch with Write/Edit withheld, can write. Not fixed because Copilot's complete tool vocabulary is unpublished; see the KNOWN GAP block in copilot/README.md.",
         "basis": "verified"
       },
       "codex": {
@@ -236,7 +237,7 @@
       },
       "copilot": {
         "supported": true,
-        "how": "reads AGENTS.md natively, but only from the USER's repo — `ravenclaude install` now writes .github/copilot-instructions.md pointing at the projected copy (3486637e)",
+        "how": "reads AGENTS.md natively, but only from the USER's repo \u2014 `ravenclaude install` now writes .github/copilot-instructions.md pointing at the projected copy (3486637e)",
         "basis": "verified + docs-verified"
       },
       "codex": {
@@ -245,9 +246,10 @@
         "basis": "docs-verified"
       },
       "cursor": {
-        "supported": false,
-        "blocked_by": "Cursor's documented mechanism is .cursor/rules/*.mdc; AGENTS.md auto-load is unconfirmed",
-        "basis": "inferred — do not rely on it"
+        "supported": true,
+        "how": "`ravenclaude install --host cursor` writes .cursor/rules/*.mdc \u2014 Cursor's OWN convention, which its docs describe as the scoped alternative to AGENTS.md rather than a superset. Two rules: an always-on discipline pointer, and a glob-scoped layout-allow-list rule (MH-25).",
+        "caveat": "AGENTS.md auto-load by Cursor remains unconfirmed; the .mdc rules are what this repo actually wires, so do not rely on AGENTS.md reaching a Cursor session on its own.",
+        "basis": "docs-verified 2026-07-28 (cursor.com/docs, rules) + verified (installer wires it)"
       },
       "gemini": {
         "supported": false,
