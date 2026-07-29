@@ -131,6 +131,11 @@ const session = mkHost("mimir-session");
 const activity = mkHost("mimir-activity");
 const recent = mkHost("mimir-recent");
 const unreach = mkHost("mimir-unreach");
+// MH-20: the dispatch card is appended into the EXISTING #panel-mimir
+// container (zero static DOM), so the stub must provide both the panel and
+// the host the renderer reuses on repeat calls.
+const panelMimir = mkHost("panel-mimir");
+const dispatchHost = mkHost("mimir-dispatch");
 
 global.document = {
   createElement: (t) => new El(t),
@@ -167,10 +172,11 @@ const pieces = [
   extract(app, "function renderMimirActivity("),
   extract(app, "function renderMimirRecent("),
   extract(app, "function renderMimirUnreachable("),
+  extract(app, "function renderMimirDispatch("),
 ];
 
 const loaded = new Function(
-  `${pieces.join("\n")}\n return { renderMimirSettings, renderMimirSession, renderMimirActivity, renderMimirRecent, renderMimirUnreachable, mimirModeLabel };`,
+  `${pieces.join("\n")}\n return { renderMimirSettings, renderMimirSession, renderMimirActivity, renderMimirRecent, renderMimirUnreachable, mimirModeLabel, renderMimirDispatch };`,
 )();
 
 let failures = 0;
@@ -308,6 +314,50 @@ ok(
   unreach.flatText().includes("made_up_field"),
   "unreachable-fields: unknown code rendered raw, no crash",
 );
+
+/* ── Fixture 3b: DISPATCH LOG — the three states must stay DISTINCT (MH-20).
+ *
+ * The producing hook short-circuits unless dispatch-config.json has
+ * "enabled": true, and off is the shipped default — so for almost everyone this
+ * log is empty forever. A bare "nothing recorded" would then be
+ * indistinguishable from a broken reader, which is precisely the ambiguity this
+ * dashboard has been audited for twice (the always-empty session card; the MCP
+ * step reporting "not configured"). The OFF state must therefore say it is OFF
+ * and say how to change it — collapsing the states back into one generic empty
+ * message is the regression these assertions exist to catch. */
+loaded.renderMimirDispatch({
+  state: "off",
+  enabled: false,
+  how_to_enable: 'create .ravenclaude/dispatch-config.json containing {"enabled": true}',
+});
+{
+  const t = dispatchHost.flatText();
+  ok(/\boff\b/i.test(t), "dispatch off: says it is OFF, not merely empty");
+  ok(t.toLowerCase().includes("dispatch-config.json"), "dispatch off: tells you how to turn it on");
+  ok(!/^\s*nothing recorded\.?\s*$/i.test(t), "dispatch off: not a bare 'nothing recorded'");
+}
+
+loaded.renderMimirDispatch({ state: "idle", enabled: true, total: 0 });
+ok(
+  /enabled/i.test(dispatchHost.flatText()) &&
+    !/dispatch-config\.json/i.test(dispatchHost.flatText()),
+  "dispatch idle: reports enabled-but-empty, and does NOT repeat the enable steps",
+);
+
+loaded.renderMimirDispatch({
+  state: "recorded",
+  enabled: true,
+  total: 7,
+  by_type: [
+    { type: "code-reviewer", count: 4 },
+    { type: "architect", count: 3 },
+  ],
+});
+{
+  const t = dispatchHost.flatText();
+  ok(t.includes("7"), "dispatch recorded: shows the total");
+  ok(t.includes("code-reviewer"), "dispatch recorded: names the agent types");
+}
 
 /* ── Fixture 4: WORKTREE-PATH — branch name carrying a worktree-style
  *    path renders verbatim (no client-side normalization; the server

@@ -11965,6 +11965,56 @@ _JS = r"""
     }
     host.replaceChildren(ul);
   }
+  /* MH-20 remedy (2) — the subagent dispatch log.
+     Appended into the EXISTING #panel-mimir container rather than given its own
+     panel, so it costs ZERO static elements (the Gate 132 budget is at zero
+     slack, and this surface is empty for anyone who has not opted in).
+
+     THE THREE STATES ARE THE POINT. The producing hook short-circuits unless
+     .ravenclaude/dispatch-config.json has "enabled": true, and off is the
+     shipped default — so a bare "nothing recorded" would be indistinguishable
+     from a broken reader, which is the exact ambiguity this dashboard keeps
+     being audited for. "off" says so and says how to change it. */
+  function renderMimirDispatch(d) {
+    const panel = document.getElementById("panel-mimir");
+    if (!panel) return;
+    let host = document.getElementById("mimir-dispatch");
+    if (!host) {
+      host = document.createElement("div");
+      host.id = "mimir-dispatch";
+      panel.appendChild(host);
+    }
+    host.replaceChildren();
+    d = d || {};
+    const h = document.createElement("h3");
+    h.textContent = "Subagent dispatch log";
+    host.appendChild(h);
+
+    const p = document.createElement("p");
+    if (d.state === "recorded") {
+      const names = (d.by_type || []).map((t) => t.type + "\u00d7" + t.count).join(", ");
+      p.textContent = d.total + " dispatch record(s)" + (names ? " — " + names : "");
+    } else if (d.state === "idle") {
+      p.textContent =
+        "The dispatch evaluator is ENABLED, but nothing has been recorded yet. " +
+        "Records appear after the next multi-agent run.";
+    } else {
+      /* Not "empty" — OFF. Say which, and how to change it. */
+      p.textContent =
+        "Nothing is recorded because the dispatch evaluator is OFF, which is the " +
+        "shipped default — not because this panel is broken. To turn it on: " +
+        (d.how_to_enable || "add .ravenclaude/dispatch-config.json with enabled true") +
+        ".";
+    }
+    host.appendChild(p);
+
+    const note = document.createElement("p");
+    note.className = "hc-src";
+    note.textContent =
+      "Counts and agent names only — the brief each agent was given is never read. " +
+      "Per-session subagent counts (which need no opt-in) are in Recent sessions above.";
+    host.appendChild(note);
+  }
   function renderMimirUnreachable(items) {
     const host = document.getElementById("mimir-unreach");
     if (!host) return;
@@ -11998,6 +12048,7 @@ _JS = r"""
       renderMimirActivity(data.activity);
       renderMimirRecent(data.recent_sessions);
       renderMimirUnreachable(data.unreachable);
+      renderMimirDispatch(data.dispatch);
     } catch (e) {
       mimirLoaded = false; /* allow retry on next visit */
       const served = await probeReadEndpoint();
