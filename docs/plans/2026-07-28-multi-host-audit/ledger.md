@@ -266,7 +266,7 @@ reads a green audit log that is structurally incapable of ever showing an event.
 ---
 
 #### MH-06 · Mímir reports the session's *opening* permission mode as current — and said `default` while the session was in `auto`
-**Severity:** P0 · **Hosts:** Claude Code · **Reported by:** CC (P0-2) · **Effort:** M · **Status:** `OPEN`
+**Severity:** P0 · **Hosts:** Claude Code · **Reported by:** CC (P0-2) · **Effort:** M · **Status:** ✅ **FIXED 2026-07-29 (v0.221.1)** — BOTH causes: the loop now keeps the LAST permission-mode event (it kept the first, in the same pass that deliberately kept the newest model), and the reader gained `from_end` so "current" fields read the TAIL. Fixing either alone leaves the bug on any transcript over the 50 KiB cap. Gate 163, with a head-read teeth half. `last_model` was wrong the same way and is fixed by the same change.
 
 **Evidence** `[verified]`
 - `RC/scripts/serve-dashboards.py:1148-1151`:

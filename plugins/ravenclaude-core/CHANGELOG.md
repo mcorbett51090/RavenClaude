@@ -2,6 +2,29 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.221.1 — 2026-07-29
+
+### Fixed
+
+- **P0 — the session card reported the session's *opening* permission mode as its current one**
+  (multi-host audit MH-06). It said `default` while the session was in `auto`. **A permissions surface
+  reporting a laxer state than reality is the bad direction to be wrong in** — it tells an operator
+  they are more constrained than they are.
+  - **Two independent causes, and fixing either alone leaves the bug.** The loop kept the *first*
+    `permission-mode` event — in the very same pass that deliberately *overwrites* to keep the newest
+    model, two lines above. One loop, two opposite policies, one of them wrong. And
+    `_mimir_iter_jsonl_bounded` read the first 50 KiB from offset 0, so on any transcript past the cap
+    the scanned slice is the **oldest** part of the session; even a correct last-wins loop would have
+    reported the last value *from the opening minutes*.
+  - The reader gained an opt-in `from_end`. Only the caller that claims *current* / *last used* sets
+    it; the aggregate caller (counts, token sums) stays on the head read, because neither end is more
+    correct there and flipping it would silently change reported numbers.
+  - **`last_model` was wrong the same way** and is fixed by the same change — its comment said "newest
+    seen in scanned slice", which was honest, but the slice was the wrong end of the file.
+  - **Gate 163** asserts both server copies, on a fixture deliberately larger than the cap so head and
+    tail genuinely differ — and asserts that *fixture validity* first, because on a small enough file
+    both ends agree and every other assertion would pass for free.
+
 ## 0.221.0 — 2026-07-28
 
 ### Fixed
