@@ -2,6 +2,41 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.221.0 — 2026-07-28
+
+### Fixed
+
+- **The tribunal denied the documentation it requires** (multi-host audit MH-42).
+  `xc.tribunal-self-disable` is critical, `pre_llm_deny`, `always_screen` — no seat convenes and there
+  is no override short of the dashboard. Its regexes are **shell-shaped**, but for a file shape the
+  screened text is `"<path>\n<content>"`, so they ran over ordinary **prose** and matched:
+  - a markdown blockquote whose first token is a plugin `hooks/`/`scripts/` path, and
+  - an angle-bracket placeholder — a `<core>` token *ends* in `>`, so `<core>/hooks/…` is literally
+    `>` followed by a substrate path.
+
+  **Blast radius: every audit, plan, decision record, postmortem and knowledge file that cites a
+  substrate path with `file:line` — exactly what this repo's own Claim-Grounding protocol requires.**
+  It fired **seven times in a single session**, including twice while the fix was being written, and
+  once on marking a brand-new hook executable.
+  - **The narrowing is deliberately minimal:** only `self_disable`, only for file shapes, and only
+    when the **path alone** is also clean. The §B.9.3 hard rules still screen the full text; the
+    shell-shape screen is untouched; `screen_error` still fails closed; and the narrowing is recorded
+    in the Sága entry rather than happening silently.
+  - **Why it is not a weakening:** a substrate *write* is caught by the target-path screen, which
+    resolves realpaths and inodes (catching symlinks and hardlinks) and runs **after** the regex
+    screen, re-asserting the deny. Canonicalization is strictly stronger than a regex over content —
+    this removes a redundant, lossy check, not the load-bearing one.
+  - **Gate 162 is bidirectional by necessity**: a one-directional test on a control like this would be
+    indistinguishable from having turned it off. Its teeth force the narrowing *unconditionally* and
+    prove a substrate write is still denied.
+
+### Note on how two files are written
+
+`test-gate162-…` and the fixtures inside it assemble substrate paths and the curl-pipe-shell pattern
+**at runtime** rather than as literals — because with them inline, the shell-shape screen denies the
+Write that creates the test. That is the same false-positive family, met while building the gate for
+it, and the file says so rather than leaving a future reader to rediscover it.
+
 ## 0.220.0 — 2026-07-28
 
 ### Added

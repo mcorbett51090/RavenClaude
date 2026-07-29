@@ -372,6 +372,11 @@ PY
       python3 scripts/generate-aider-conventions.py --check
       exit $?
       ;;
+    162)
+      echo "── Gate 162: self-disable screen scope (per-gate run) ────────────────────"
+      bash plugins/ravenclaude-core/hooks/tests/test-gate162-self-disable-scope.sh
+      exit $?
+      ;;
     144)
       echo "── Gate 144: Prompt Builder render + XSS floor (per-gate run) ────────────"
       node scripts/check-prompt-builder-render.mjs plugins/ravenclaude-core/dashboard.html
@@ -453,7 +458,7 @@ PY
       ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -5277,6 +5282,23 @@ sed 's|\*\*Aider has no hooks API, so none of|**Aider has full coverage, so all 
 rc=0; python3 "$AID_MUT2" --check >/dev/null 2>&1 || rc=$?
 rm -f "$AID_MUT2"
 gate "aider-conventions teeth: dropping the no-enforcement warning is caught" must_fail "$rc"
+
+echo
+echo "── Gate 162: self-disable screen — tampering DENIED, documentation ALLOWED ─"
+# MH-42. xc.tribunal-self-disable is critical + pre_llm_deny + always_screen: no seat
+# convenes and there is no override. Its regexes are SHELL-shaped, but for a file
+# shape the screened text is "<path>\n<content>", so they matched ordinary PROSE —
+# a blockquote starting with a hooks path, or "<core>/hooks/..." (a `<core>` token
+# ends in `>`). Writing the file:line citations this repo's own Claim-Grounding
+# protocol REQUIRES was denied pre-LLM. It fired seven times in one session.
+#
+# The fix narrows ONLY self_disable, ONLY for file shapes, ONLY when the path alone
+# is clean. That is a change to a security control, so the gate is bidirectional by
+# necessity — a one-directional test would be indistinguishable from having turned
+# the control off. Its teeth force the narrowing unconditionally and prove the
+# canonicalization-based target-path screen still denies a substrate write.
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate162-self-disable-scope.sh >/dev/null 2>&1 || rc=$?
+gate "self-disable: denies substrate writes, permits substrate documentation (+ teeth)" must_pass "$rc"
 
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"
