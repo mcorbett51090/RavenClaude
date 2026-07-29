@@ -2091,6 +2091,27 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             return
         self._json(200, _read_knowledge_health(REPO_ROOT))
 
+    def _handle_sleipnir(self):
+        """GET /__sleipnir — Sleipnir's stables: the current git worktrees under
+        .claude/worktrees/ (names + count). Read-only; same Origin/Host guard as
+        /__read.
+
+        ADDED 2026-07-29 (multi-host audit MH-33). do_GET has dispatched
+        `/__sleipnir` to this method since the endpoint shipped, but the method did
+        not exist in THIS copy — only in the bundled plugin copy — so a GET raised
+        AttributeError and returned HTTP 500 on the marketplace dev portal, and the
+        Activity tab's stables widget was simply broken there.
+
+        Gate 32 passed the whole time because its endpoint check regexes the STRING
+        `/__sleipnir`, which appears in the dispatch line of both files. It compared
+        endpoint NAMES and never asked whether a handler existed. Found by the
+        guard-coverage check added in the same change, which reported
+        "handler not found" while looking for something else entirely."""
+        if not self._local_request_ok():
+            self.send_error(403, "refused: cross-origin or non-local Origin/Host")
+            return
+        self._json(200, _read_sleipnir(REPO_ROOT))
+
     def _handle_concern_stats(self):
         """GET /__concern-stats — per-concern false-positive signals computed
         from .ravenclaude/runs/thing/*.json (the Sága log). Powers the
