@@ -2,6 +2,37 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.217.0 — 2026-07-28
+
+### Fixed
+
+- **Claude-only invocation was taught as universal** (multi-host audit MH-18). `bin/rc` shipped in
+  v0.158.0 precisely to give non-Claude hosts a launch verb, and was never wired to the surfaces that
+  teach invocation. Three of them, one root cause:
+  - **The Commands catalog** renders **533** cards, every one of which said *"copy it, then paste into
+    Claude Code"* — with no alternative even where one exists and is documented in the same file. Cards
+    now carry an **"any host:"** equivalent where a real one exists, and the tab intro says plainly that
+    the rest are Claude-Code-only and that this is *"a gap, not a hidden feature."*
+    **Only verified verbs appear:** `bin/rc` implements exactly three (`dashboard`, `streams`,
+    `converge`), so exactly two commands get a mapping. Inventing a plausible-looking equivalent would
+    reproduce the very defect — an invocation confidently taught to a host that cannot run it.
+    Deliberately **not** stamped "Claude Code only" onto the other 530 cards: they already name the
+    host, and 530 repetitions is noise, not honesty.
+  - **The posture editor** promised *"you pick Deny / Ask / Allow"* with no scope note, while Save &
+    apply writes only `.claude/settings.json`. It now states where those levels actually bind — Claude
+    Code natively, Copilot via the wired hooks + command review, Codex via its own OS sandbox, and
+    advisory everywhere else with CI as the backstop. Same false-assurance shape the Pipeline tab had
+    (MH-04).
+  - **`AGENTS.md` § Setup** showed only the Claude Code slash commands — so the first substantive thing
+    a Codex or Copilot agent read (their onboarding says *"read AGENTS.md end-to-end, don't skim"*) was
+    a procedure it structurally could not execute, followed by a pointer to a command that does not
+    exist on its host. Now a **three-row host table**, each row carrying the command that actually
+    works, with the launcher given by **full path** (per MH-11, a bare `rc` can be shadowed) and
+    `/dashboard` marked as the Claude Code shorthand.
+  - **Zero DOM cost**, verified: the Commands tab is JS-built from `#commands-payload` so its cards are
+    uncounted, and the posture note is plain text inside an existing element. Both surfaces stayed at
+    6,128 / 7,014 — no Gate 132 ratchet raise needed.
+
 ## 0.216.0 — 2026-07-28
 
 ### Added
