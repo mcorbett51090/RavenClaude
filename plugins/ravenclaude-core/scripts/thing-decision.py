@@ -1293,7 +1293,54 @@ def main() -> int:
     # INDEPENDENT. The orchestrator only reaches us when some category is toggled
     # on, so this is screened regardless of THIS payload's category or toggle.
     if not payload_too_large:
-        result.update(_screen_always(screened))
+        _sa = _screen_always(screened)
+
+        # ── MH-42: the self-disable screen false-positives on DOCUMENTATION ──
+        #
+        # For a file shape, `screened` is "<file_path>\n<content>" (the v0.37.0
+        # Track-B design). The catalog's self-disable regexes are SHELL-shaped —
+        # e.g. `(>>?|\btee\b)\s*\S*(<substrate alternation>)` — so running them over
+        # file CONTENT screens prose as though it were a command mutating the
+        # substrate. Two ordinary prose shapes match:
+        #   * a markdown blockquote whose first token is a plugin hooks/scripts path
+        #     ("> plugins/.../hooks/foo.sh …"), and
+        #   * an angle-bracket placeholder, because `<core>` ENDS in `>`, so
+        #     "<core>/hooks/thing-orchestrator.sh" is literally `>` + path.
+        #
+        # Blast radius: every audit, plan, decision record, postmortem and knowledge
+        # file that cites a substrate path with `file:line` — i.e. exactly what this
+        # repo's own Claim-Grounding protocol REQUIRES. It fired five times in one
+        # session, on documentation about the tribunal and on marking a NEW hook
+        # executable. `pre_llm_deny` means no seat convenes and there is no override.
+        #
+        # THE NARROWING, and why it does not weaken the control:
+        #   1. It applies ONLY to file shapes, and ONLY to `self_disable`. The
+        #      §B.9.3 hard rules (force-push, curl|sh) still screen the FULL text.
+        #   2. It only clears the verdict when the PATH ALONE is also clean — so a
+        #      Write/Edit whose TARGET is substrate is unaffected and still denied.
+        #   3. The real protection for a substrate write is the target-path screen
+        #      immediately below, which resolves realpaths and inodes (catching
+        #      symlinks and hardlinks). That is canonicalization-based and strictly
+        #      stronger than any regex over content — this narrowing removes a
+        #      redundant, lossy check, not the load-bearing one.
+        #   4. On `screen_error` (corrupt catalog, missing PyYAML) nothing is
+        #      narrowed: fail-closed is preserved exactly.
+        if (
+            args.cmd == "classify-payload"
+            and tool_name in ("Edit", "Write", "MultiEdit")
+            and _sa.get("self_disable_deny")
+            and not _sa.get("screen_error")
+        ):
+            _path_only = (tool_input or {}).get("file_path", "") or ""
+            _sa_path = _screen_always(_path_only)
+            if not _sa_path.get("self_disable_deny") and not _sa_path.get("screen_error"):
+                _sa["self_disable_deny"] = False
+                _sa["self_disable_concern"] = None
+                # Surfaced so a Sága record shows the narrowing happened rather than
+                # the screen silently having nothing to say.
+                _sa["self_disable_narrowed_to_path"] = True
+
+        result.update(_sa)
 
     # §2/§2a — FILE-shape self-disable: a Write/Edit/MultiEdit whose target is a
     # substrate path (or a Write that rewrites comfort-posture.yaml to disable a

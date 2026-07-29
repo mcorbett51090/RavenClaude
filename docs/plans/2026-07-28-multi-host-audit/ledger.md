@@ -1457,7 +1457,7 @@ section in `claude-app-engineering` alongside the existing Claude/Copilot/Grok g
 ---
 
 #### MH-42 · The tribunal's self-disable guard false-positives on documentation that cites substrate paths
-**Severity:** P3 · **Hosts:** all (authoring-time) · **Reported by:** *this ledger, `[verified]` — reproduced twice at authoring, then TWICE MORE during the Codex build* · **Effort:** S · **Status:** `OPEN`
+**Severity:** P3 · **Hosts:** all (authoring-time) · **Reported by:** *this ledger, `[verified]` — reproduced twice at authoring, then TWICE MORE during the Codex build* · **Effort:** S · **Status:** ✅ **FIXED 2026-07-28 (v0.221.0)** — remedy option 1 shipped: for file shapes the self-disable regexes screen the PATH ONLY, and only when the path alone is clean. Hard rules and the shell-shape screen are untouched. **Gate 162 is bidirectional by necessity** — its teeth force the narrowing unconditionally and prove the canonicalization-based target-path screen still denies a substrate write. **Seven live reproductions this session**, the last two encountered while writing the fix.
 
 > **Two further live reproductions, 2026-07-28, while implementing MH-07 — worth recording because
 > they show the cost is recurring, not one-off, and they refine the trigger shape:**
