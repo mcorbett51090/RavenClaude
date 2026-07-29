@@ -387,6 +387,11 @@ PY
       bash plugins/ravenclaude-core/hooks/tests/test-gate164-gemini-adapter.sh
       exit $?
       ;;
+    171)
+      echo "── Gate 171: Codex MCP merge is append-only (per-gate run) ───────────────"
+      python3 scripts/check-codex-mcp-append.py
+      exit $?
+      ;;
     170)
       echo "── Gate 170: Codex agent sandbox least-privilege (per-gate run) ──────────"
       python3 scripts/check-codex-agent-sandbox.py
@@ -498,7 +503,7 @@ PY
       ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -5487,6 +5492,23 @@ gate "codex-agents: explicit sandbox_mode, least privilege from canonical tools"
 
 rc=0; python3 scripts/check-codex-agent-sandbox.py --must-fail >/dev/null 2>&1 || rc=$?
 gate "codex-agents teeth: omitting sandbox_mode (parent inheritance) is caught" must_pass "$rc"
+
+echo "── Gate 171: Codex MCP is added by APPEND, never by rewrite ──────────────"
+# MH-19 Codex half. This was deferred because "a bad TOML merge would clobber a
+# hand-tuned config" — a sound worry (v0.216.0 records its sharper cousin, where
+# an appended BARE KEY silently became mcp_servers.github.sandbox_mode).
+#
+# But a bare key is position-DEPENDENT while a [table] header is position-
+# INDEPENDENT, so an MCP server can be added by pure append — and a pure append
+# cannot rewrite an existing byte. That turns "be careful" into an assertion:
+#     new_text.startswith(original_text)
+# The teeth half is the tidier-looking parse-and-re-emit implementation, which
+# silently discards the user's comments and ordering.
+rc=0; python3 scripts/check-codex-mcp-append.py >/dev/null 2>&1 || rc=$?
+gate "codex-mcp: append-only, hand-tuning preserved, idempotent, parses" must_pass "$rc"
+
+rc=0; python3 scripts/check-codex-mcp-append.py --must-fail >/dev/null 2>&1 || rc=$?
+gate "codex-mcp teeth: a parse-and-rewrite implementation is caught" must_pass "$rc"
 
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"

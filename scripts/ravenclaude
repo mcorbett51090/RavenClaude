@@ -771,9 +771,35 @@ PY2
       warn "codex/agents/ missing — run 'ravenclaude update' to generate it"
     fi
 
-    # HONEST GAP, stated at install time rather than discovered later:
-    note "NOT wired: MCP servers (.codex/config.toml [mcp]) — the TOML merge is not"
-    note "  built yet; a bad merge would clobber a hand-tuned config. Add by hand."
+    # MCP: OPT-IN ONLY, and APPEND-ONLY (MH-19, Codex half).
+    #
+    # The old note here said this was "NOT wired ... a bad merge would clobber a
+    # hand-tuned config", and named the table `[mcp]`. Both were wrong. The table
+    # is `[mcp_servers.<name>]` [docs-verified 2026-07-29], and clobbering is not
+    # a risk that had to be MANAGED — it is one that can be structurally removed:
+    # a bare key in TOML is position-dependent (the v0.216.0 trap), but a [table]
+    # header is position-INDEPENDENT, so a server can be added by pure append and
+    # a pure append cannot rewrite an existing byte. install-codex-mcp.py asserts
+    # exactly that before every write, and parses the result before saving it.
+    local codex_cfg="$project/.codex/config.toml"
+    local mcp_catalog_cx="$MARKET/plugins/ravenclaude-core/copilot/mcp-catalog.json"
+    if [ -n "${RC_WITH_MCP:-}" ]; then
+      if [ -f "$mcp_catalog_cx" ]; then
+        if python3 "$MARKET/scripts/install-codex-mcp.py" \
+             --catalog "$mcp_catalog_cx" --config "$codex_cfg" --servers "$RC_WITH_MCP"; then
+          ok "added the requested MCP server(s) to .codex/config.toml (append-only)"
+          note "THIRD-PARTY: these run on your machine. Delete the block to remove one."
+          note "  A project .codex/config.toml is read ONLY IN TRUSTED PROJECTS —"
+          note "  writing it is not the same as Codex loading it."
+        else
+          warn "no MCP server added — see the error above"
+        fi
+      else
+        warn "MCP catalogue missing — run 'ravenclaude update'"
+      fi
+    else
+      note "mcp: none added (opt in with --with-mcp <server>; 'ravenclaude status' lists them)"
+    fi
 
     wire_dashboard_launchers "$project"
     codex_retrust_notice "$project"
