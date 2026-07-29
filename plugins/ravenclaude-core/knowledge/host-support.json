@@ -62,9 +62,10 @@
         "basis": "docs-verified 2026-07-28 (https://cursor.com/docs/agent/hooks) + verified (installer wires it end-to-end; Gates 159/160). NOT verified in a live Cursor session."
       },
       "gemini": {
-        "supported": false,
-        "blocked_by": "no adapter, no install path",
-        "basis": "verified"
+        "supported": true,
+        "how": "`ravenclaude install --host gemini` merges a projected `hooks` block into <project>/.gemini/settings.json (17 wired, 8 explicitly skipped), each entry wrapped through hooks/gemini-hook-adapter.sh. Gemini's contract is nearly Claude's: identical stdin field names, and `exit 2` + stderr IS its block mechanism, so blocking needs NO translation. The shim's one real job is normalising the tool-name vocabulary (run_shell_command -> Bash, read_file -> Read, ...).",
+        "caveat": "The tool-name normalisation is not optional: guardrails dispatch on Claude's PascalCase and fall through to `*) exit 0` on anything else \u2014 that exact mismatch is MH-01, where the tribunal was fully wired under Copilot and reviewed nothing. NOT enforced here: the layout gate, because its path arrives as argv and Gemini's tool_input path FIELD NAME is unverified; wiring it would look enforced while silently no-opping. CI is the backstop. This lane is docs-verified but UNTESTED against a running Gemini CLI.",
+        "basis": "docs-verified 2026-07-29 (geminicli.com/docs/hooks/reference/) + verified (installer wires it; Gates 164/165)"
       },
       "aider": {
         "supported": false,
@@ -252,9 +253,10 @@
         "basis": "docs-verified 2026-07-28 (cursor.com/docs, rules) + verified (installer wires it)"
       },
       "gemini": {
-        "supported": false,
-        "blocked_by": "reads GEMINI.md; this repo provides none",
-        "basis": "verified"
+        "supported": true,
+        "how": "`ravenclaude install --host gemini` appends an @-import to <project>/GEMINI.md: `@AGENTS.md`. Gemini loads GEMINI.md automatically and supports `@file.md` imports, so this is the ONLY non-Claude host that can INCLUDE the canonical file rather than receive a projected copy \u2014 nothing to drift.",
+        "caveat": "Appended as a marked block; an existing GEMINI.md that already carries the marker is left alone.",
+        "basis": "docs-verified 2026-07-29 (geminicli.com/docs/cli/gemini-md/) + verified (installer wires it)"
       },
       "aider": {
         "supported": true,

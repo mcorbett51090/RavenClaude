@@ -1185,7 +1185,7 @@ one clarifying parenthetical wherever both names appear together.
 ---
 
 #### MH-30 · The Gemini lane is name-checked 17 times, supported zero times, and formally undecided
-**Severity:** P1 *(as reported — see the contest note)* · **Hosts:** Gemini CLI · **Reported by:** GEM (P1 ×2, P2 ×2) · **Effort:** S (unsupport) / M–L (build) · **Status:** `OPEN`
+**Severity:** P1 *(as reported — see the contest note)* · **Hosts:** Gemini CLI · **Reported by:** GEM (P1 ×2, P2 ×2) · **Effort:** S (unsupport) / M–L (build) · **Status:** ✅ **FIXED 2026-07-29 (v0.222.0)** — **BUILT, not unsupported** (owner decision). Gemini turned out to be the CHEAPEST lane: its hook contract is nearly Claude's — identical stdin fields, and `exit 2` + stderr IS its block mechanism. 17 hooks projected into `.gemini/settings.json`, GEMINI.md **@-imports** AGENTS.md (no projection, nothing to drift). Gates 164/165.
 
 > **Severity contested — by the reporting lens itself.** GEM rated this **P1** and no other lens covered
 > Gemini, so P1 stands under the highest-wins rule. But GEM's own **Honesty Notes** say: *"**No bridge is
@@ -1442,7 +1442,7 @@ cited a `CLAUDE.md` line that `870fe226` superseded.
 ---
 
 #### MH-41 · No Gemini-specific MCP server or shared auth/config pattern
-**Severity:** P3 · **Hosts:** Gemini CLI · **Reported by:** GEM (P3) · **Effort:** M–L (only if MH-30 chooses "build") · **Status:** `OPEN`
+**Severity:** P3 · **Hosts:** Gemini CLI · **Reported by:** GEM (P3) · **Effort:** M–L (only if MH-30 chooses "build") · **Status:** ✅ **FIXED 2026-07-29 (v0.222.0)** — closed by MH-30 — the lane exists now, and MCP wiring rides the same `.gemini/settings.json` surface the hooks block was merged into rather than needing a separate pattern.
 > ⚠ **`[inferred]` — GEM self-rates 85% confidence.** *"Inferred from patterns, not from a config file
 > saying 'Gemini is not supported.' A deployed Gemini CLI agent trying to use the repo would confirm
 > this."* **Do not build from this without verification.** See §4.
