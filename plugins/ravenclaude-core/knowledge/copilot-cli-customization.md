@@ -76,10 +76,31 @@ This is the structural difference that caused the single worst defect found in t
 for `Bash` is only ever invoked for `Bash`, so a hook may reasonably assume its own tool
 shape and treat an unexpected `tool_name` as "not mine — exit 0, no decision".
 
-**Copilot CLI has no per-tool matcher.** A `preToolUse` hook fires for **every** tool, and
-the hook itself must decide what it is looking at from the payload's `toolName`.
+**Copilot CLI has a per-tool matcher — but only in one of its two hook formats.**
 
-Two consequences, and RavenClaude was bitten by both:
+> ⚠️ **CORRECTED 2026-07-28.** This section previously said, flatly, *"Copilot CLI has no
+> per-tool matcher."* **That is false**, and it was itself the MH-24 fix — the entry the
+> audit's build order called *"the highest leverage in the ledger: the guardrail against
+> the next MH-01."* A guardrail against false claims that was itself a false claim.
+
+Copilot supports **two payload formats, selected by the casing of the event name**
+`[docs-verified 2026-07-28 — docs.github.com/en/copilot/reference/hooks-configuration]`:
+
+| Format | Event names | Per-tool matcher? |
+|---|---|---|
+| **native** | `preToolUse`, `sessionStart`, `agentStop`, `userPromptSubmitted` … | **No** — scoping is a native regex rule, not a tool matcher |
+| **Claude-compatible** | `PreToolUse`, `SessionStart`, `Stop` … (PascalCase) | **Yes** — *"apply Claude's matcher semantics"*; field names switch to snake_case |
+
+Corroborated independently by the changelog: **1.0.62** — *"PostToolUse hook matchers (e.g.
+`Edit|Write`) are now honored instead of silently dropped."* So matchers are honored from
+**1.0.62**; below it they are ignored and the hook fires for every tool.
+
+**RavenClaude's generated file has always used PascalCase keys** — so Claude matcher
+semantics were available the whole time and simply were not used. They are now projected
+from the canonical manifest (MH-12), which is what makes the two consequences below
+*historical* rather than ongoing.
+
+Two consequences, and RavenClaude was bitten by both **while running matcher-free**:
 
 1. **The Claude-shaped "unknown tool → exit 0" default becomes a silent security hole.**
    Under Claude Code that default is safe, because the matcher guaranteed the tool was

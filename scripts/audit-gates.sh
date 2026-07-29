@@ -352,6 +352,11 @@ PY
       bash plugins/ravenclaude-core/hooks/tests/test-gate157-copilot-version-floor.sh
       exit $?
       ;;
+    158)
+      echo "── Gate 158: Copilot hook projection accounting (per-gate run) ───────────"
+      python3 scripts/generate-copilot-hooks.py --check
+      exit $?
+      ;;
     144)
       echo "── Gate 144: Prompt Builder render + XSS floor (per-gate run) ────────────"
       node scripts/check-prompt-builder-render.mjs plugins/ravenclaude-core/dashboard.html
@@ -433,7 +438,7 @@ PY
       ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -5173,6 +5178,31 @@ echo "── Gate 157: Copilot version floor is checked, and checking it is fail
 # `ravenclaude status`. A version check that kills the installer is worse than none.
 rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate157-copilot-version-floor.sh >/dev/null 2>&1 || rc=$?
 gate "copilot version floor: fires below, accepts at/above, never fatal (+ teeth)" must_pass "$rc"
+
+echo
+echo "── Gate 158: Copilot hook projection — no canonical hook silently dropped ──"
+# MH-12. The Copilot wiring was a hand-maintained list inside the installer. It
+# wired 11 of 24 canonical hooks, so 14 shipped guardrails never fired on that host
+# at all, and NOTHING enforced that the two lists agreed — the drift was invisible
+# and grew with every release. The projection now derives the wiring; this gate is
+# what stops it drifting again: every canonical hook must be either wired or
+# EXPLICITLY skipped with a reason. A silent omission fails the build.
+rc=0; python3 scripts/generate-copilot-hooks.py --check >/dev/null 2>&1 || rc=$?
+gate "copilot-hooks: every canonical hook wired or explicitly skipped" must_pass "$rc"
+
+# must_fail: emptying the skip map must be CAUGHT, not silently tolerated. This is
+# the teeth for "explicitly skipped" — without it, the accounting could be
+# satisfied by a skip map that swallows anything.
+CPH_MUT="$TMP/generate-copilot-hooks-mutant.py"
+python3 - "$CPH_MUT" <<'PYX'
+import re, sys, pathlib
+src = pathlib.Path("scripts/generate-copilot-hooks.py").read_text()
+# Blank the skip map: the SubagentStart hook then has no lane and no excuse.
+out = re.sub(r"_SKIP = \{.*?\n\}", "_SKIP = {}", src, count=1, flags=re.S)
+pathlib.Path(sys.argv[1]).write_text(out)
+PYX
+rc=0; python3 "$CPH_MUT" --check >/dev/null 2>&1 || rc=$?
+gate "copilot-hooks teeth: an emptied skip map is caught" must_fail "$rc"
 
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"

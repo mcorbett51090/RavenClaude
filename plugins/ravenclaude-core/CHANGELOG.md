@@ -2,6 +2,37 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.219.0 — 2026-07-28
+
+### Fixed
+
+- **14 shipped guardrails never fired under GitHub Copilot CLI** (multi-host audit MH-12). The Copilot
+  hooks file was a hand-written list inside the installer. It wired **11**; the canonical manifest
+  registers **24**. Missing entirely: the web-access guard, the worktree guard (both modes), both
+  Muninn hooks, the delegation nudge, the recursive-spawn guard, the posture reapply, and more — and
+  **nothing enforced that the two lists agreed**, so the drift was invisible and grew every release.
+  - Now **projected** from the canonical manifest by `scripts/generate-copilot-hooks.py`: **23 wired**,
+    2 explicitly skipped **with reasons that ship in the generated file**, so a consumer can see what
+    is *not* protecting them. **Gate 158** fails the build if any canonical hook is neither wired nor
+    explicitly skipped — silent omission was the defect, so silence is what the gate forbids.
+  - The adapter **mode is derived**, not listed (`PreToolUse` + argv ⇒ `file-pretool`, else
+    `bash-pretool`, etc.), so adding a hook to the manifest is the only edit ever needed.
+- **"Copilot CLI has no per-tool matcher" was FALSE** (MH-24 — and that entry *was itself* the audit's
+  self-described *"highest leverage in the ledger: the guardrail against the next MH-01"*). Copilot
+  supports **two hook formats selected by event-name casing**: native camelCase has no tool matcher,
+  but **Claude-compatible PascalCase applies Claude's matcher semantics**
+  `[docs-verified — docs.github.com/en/copilot/reference/hooks-configuration]`, honored from **1.0.62**
+  (*"matchers … now honored instead of silently dropped"*). **The generated file has always used
+  PascalCase**, so matchers were available the whole time and simply unused. They are now projected.
+  Below 1.0.62 an unhonored matcher means the hook fires for every tool — exactly today's behaviour —
+  so this degrades safely and is applied unconditionally.
+- **A gate that tested the implementation instead of the outcome.** Gate 114's Copilot-parity check
+  grepped the installer for the literal strings `userpromptsubmit` / `stream-prompt-attribute.sh`.
+  When the wiring became a projection those literals vanished and the gate failed — while the hook was
+  still wired. It now **runs the projector and asserts the hook is in the emitted config**. A gate that
+  greps for *how* something is implemented breaks every time the implementation improves, and trains
+  the next maintainer to fix the gate rather than read it.
+
 ## 0.218.0 — 2026-07-28
 
 ### Fixed

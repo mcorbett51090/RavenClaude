@@ -587,44 +587,30 @@ cmd_install() {
     done
   fi
 
-  # 2. Hooks: write a Copilot-schema hooks file into <project>/.github/hooks that
-  #    routes each enforcement hook through the adapter (absolute paths into the
-  #    marketplace checkout, so a git pull updates the behavior live).
+  # 2. Hooks (multi-host audit MH-12). PROJECTED from the canonical manifest by
+  #    scripts/generate-copilot-hooks.py — no longer a hand-maintained list here.
+  #
+  #    WHY: this used to be an inline Python heredoc naming hooks one by one. It
+  #    wired 11; the canonical manifest registers 24. So FOURTEEN shipped
+  #    guardrails never fired under Copilot at all — the web-access guard, the
+  #    worktree guard, both Muninn hooks, the delegation nudge, and more — and
+  #    nothing enforced that the two lists agreed, so the drift was invisible and
+  #    grew with every release. The projector now derives the wiring, carries the
+  #    canonical MATCHERS through (Copilot applies Claude matcher semantics under
+  #    PascalCase event names), and Gate 158 fails the build if any canonical hook
+  #    is neither wired nor explicitly skipped with a reason.
   mkdir -p "$project/.github/hooks"
   local adapter="$CORE/hooks/copilot-hook-adapter.sh"
-  python3 - "$project/.github/hooks/ravenclaude.json" "$adapter" "$CORE" <<'PY'
-import json, sys
-out, adapter, core = sys.argv[1], sys.argv[2], sys.argv[3]
-h = core + "/hooks"
-def bash(mode, script, *extra):
-    return {"type": "command", "bash": f'"{adapter}" {mode} "{h}/{script}" ' + " ".join(extra),
-            "timeoutSec": 90}
-cfg = {
-    "version": 1,
-    "hooks": {
-        "SessionStart": [bash("sessionstart", "capability-orientation.sh")],
-        "PreToolUse": [
-            bash("bash-pretool", "guard-destructive.sh"),
-            bash("bash-pretool", "thing-orchestrator.sh"),
-            bash("bash-pretool", "runaway-brake.sh"),
-            bash("file-pretool", "enforce-layout.sh"),
-        ],
-        "PostToolUse": [
-            bash("posttool", "format-on-write.sh"),
-            bash("posttool", "claim-grounding-lint.sh"),
-        ],
-        "Stop": [
-            bash("stop", "dod-gate.sh"),
-            bash("stop", "remind-tests.sh"),
-            bash("stop", "stream-session-close.sh"),
-        ],
-        "UserPromptSubmit": [
-            bash("userpromptsubmit", "stream-prompt-attribute.sh"),
-        ],
-    },
-}
-open(out, "w").write(json.dumps(cfg, indent=2) + "\n")
-PY
+  local hookgen="$MARKET/scripts/generate-copilot-hooks.py"
+  if [ -f "$hookgen" ]; then
+    python3 "$hookgen" --adapter "$adapter" --hooks-dir "$CORE/hooks" \
+      --out "$project/.github/hooks/ravenclaude.json" || {
+        warn "hook projection failed — .github/hooks/ravenclaude.json NOT written"
+        warn "  Copilot guardrails are NOT wired for this project. Re-run after fixing."
+      }
+  else
+    warn "generate-copilot-hooks.py missing at $hookgen — hooks NOT wired"
+  fi
   ok "wired hooks into .github/hooks/ravenclaude.json (via the Copilot adapter)"
 
   # 3. MCP: merge the package's bundled servers into ~/.copilot/mcp-config.json.

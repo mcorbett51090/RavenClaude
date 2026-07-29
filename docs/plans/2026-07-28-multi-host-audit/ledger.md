@@ -529,7 +529,7 @@ unambiguous full-path form. One decision, then a mechanical sweep of `SERVED_CMD
 ---
 
 #### MH-12 · Copilot hook wiring is hand-maintained and has drifted badly — 12+ hooks unwired, no freshness gate
-**Severity:** P1 · **Hosts:** GitHub Copilot CLI · **Reported by:** CP (P1-1, P2-2) · **Effort:** M · **Status:** `OPEN`
+**Severity:** P1 · **Hosts:** GitHub Copilot CLI · **Reported by:** CP (P1-1, P2-2) · **Effort:** M · **Status:** ✅ **FIXED 2026-07-28 (v0.219.0)** — the Copilot hooks file is now PROJECTED from the canonical manifest — 23 wired (was 11), matchers carried through, 2 explicit skips with reasons, Gate 158 stops it drifting again.
 
 **Evidence** `[verified]` — the canonical `RC/hooks/hooks.json` registers **19** distinct hook scripts
 across 6 event types. The installer's embedded generator (`scripts/ravenclaude:184-216`, the Python
@@ -1042,7 +1042,7 @@ re-dated.** Add a `last_verified` per row.
 ---
 
 #### MH-24 · Copilot's `hooks.json` has no per-tool `matcher` — undocumented, and it is the structural cause of MH-01
-**Severity:** P1 · **Hosts:** GitHub Copilot CLI · **Reported by:** CP (P1-2) · **Effort:** S (doc-only, high leverage) · **Status:** ✅ **FIXED** `16c2e6a5` — the no-matcher asymmetry documented in copilot-cli-customization.md
+**Severity:** P1 · **Hosts:** GitHub Copilot CLI · **Reported by:** CP (P1-2) · **Effort:** S (doc-only, high leverage) · **Status:** ✅ **FIXED 2026-07-28 (v0.219.0)** — **CORRECTED — the MH-24 fix was itself false.** Copilot DOES have a per-tool matcher, in its Claude-compatible PascalCase format (docs-verified; honored from 1.0.62). The knowledge file said the opposite as settled fact.
 
 **Evidence** `[docs-verified]` + `[verified]` — the hooks-configuration example in
 `RC/knowledge/copilot-cli-customization.md` §4 (itself sourced from the docs, re-confirmed by that
