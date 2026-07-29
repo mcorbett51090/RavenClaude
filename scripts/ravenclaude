@@ -581,6 +581,8 @@ cmd_install() {
       --project) project="$2"; shift 2 ;;
       --with-plugin) extra_plugins+=("$2"); shift 2 ;;
       --host) host="$2"; shift 2 ;;
+      # MH-19 — opt in to third-party MCP servers BY NAME. Repeatable.
+      --with-mcp) RC_WITH_MCP="${RC_WITH_MCP:+$RC_WITH_MCP,}$2"; export RC_WITH_MCP; shift 2 ;;
       *) shift ;;
     esac
   done
@@ -812,27 +814,29 @@ PY2
   fi
   ok "wired hooks into .github/hooks/ravenclaude.json (via the Copilot adapter)"
 
-  # 3. MCP: merge the package's bundled servers into ~/.copilot/mcp-config.json.
-  local mcp_src="$COPILOT_PKG/.mcp.json"
+  # 3. MCP: OPT-IN ONLY (MH-19). Nothing is installed unless the user named it
+  #    with --with-mcp. Why wholesale merging would be wrong: on Claude Code you
+  #    get a plugin's MCP server BECAUSE you installed that plugin; Copilot's
+  #    ~/.copilot/mcp-config.json is GLOBAL and has no per-plugin step, so naming
+  #    the server IS the consent. Every catalogue entry is third-party software
+  #    that will run on this machine, and one of them is write-capable.
+  local mcp_catalog="$COPILOT_PKG/mcp-catalog.json"
   local mcp_dest="${COPILOT_HOME:-$HOME/.copilot}/mcp-config.json"
-  if [ -f "$mcp_src" ]; then
-    mkdir -p "$(dirname "$mcp_dest")"
-    python3 - "$mcp_src" "$mcp_dest" <<'PY'
-import json, sys
-src, dest = sys.argv[1], sys.argv[2]
-try:
-    add = json.load(open(src)).get("mcpServers", {})
-except Exception:
-    add = {}
-try:
-    cur = json.load(open(dest))
-except Exception:
-    cur = {}
-cur.setdefault("mcpServers", {}).update(add)
-open(dest, "w").write(json.dumps(cur, indent=2) + "\n")
-print(f"  merged {len(add)} MCP server(s) into {dest}")
-PY
-    ok "merged bundled MCP servers into $mcp_dest"
+  if [ -n "${RC_WITH_MCP:-}" ]; then
+    if [ -f "$mcp_catalog" ]; then
+      mkdir -p "$(dirname "$mcp_dest")"
+      if python3 "$MARKET/scripts/install-copilot-mcp.py" \
+           --catalog "$mcp_catalog" --dest "$mcp_dest" --servers "$RC_WITH_MCP"; then
+        ok "installed the requested MCP server(s) into $mcp_dest"
+        note "THIRD-PARTY: these run on your machine. Remove by editing that file."
+      else
+        warn "no MCP server installed — see the error above"
+      fi
+    else
+      warn "MCP catalogue missing at $mcp_catalog — run 'ravenclaude update'"
+    fi
+  else
+    note "mcp: none installed (opt in with --with-mcp <server>; 'ravenclaude status' lists them)"
   fi
 
   # 4. The launch alias — one command that updates then launches Copilot live.
@@ -882,7 +886,16 @@ cmd_status() {
       note "codex:   no .codex/config.toml — Codex's own default sandbox (workspace-write) applies"
     fi
   fi
-  [ -f "${COPILOT_HOME:-$HOME/.copilot}/mcp-config.json" ] && note "mcp:     ~/.copilot/mcp-config.json present" || note "mcp:     not configured"
+  # MH-19 — the old line printed "not configured", which reads as "you have not
+  # set it up" when the truth is "ravenclaude-core ships NO MCP servers; the four
+  # that exist live in other plugins and are opt-in here". Say which, and list them.
+  if [ -f "$COPILOT_PKG/mcp-catalog.json" ]; then
+    python3 "$MARKET/scripts/install-copilot-mcp.py" --catalog "$COPILOT_PKG/mcp-catalog.json" \
+      --dest "${COPILOT_HOME:-$HOME/.copilot}/mcp-config.json" --status 2>/dev/null \
+      | while IFS= read -r _l; do note "$_l"; done
+  else
+    note "mcp:     catalogue missing — run 'ravenclaude update'"
+  fi
   copilot_version_check
   [ -d "$COPILOT_PKG" ] && note "package: $COPILOT_PKG" || note "package: MISSING — run 'ravenclaude update' to generate it"
 

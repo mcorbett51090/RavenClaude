@@ -387,6 +387,11 @@ PY
       bash plugins/ravenclaude-core/hooks/tests/test-gate164-gemini-adapter.sh
       exit $?
       ;;
+    169)
+      echo "── Gate 169: Copilot MCP opt-in consent model (per-gate run) ─────────────"
+      python3 scripts/check-copilot-mcp-optin.py
+      exit $?
+      ;;
     168)
       echo "── Gate 168: dashboard Save reaches Codex (per-gate run) ─────────────────"
       python3 scripts/check-codex-save-path.py
@@ -488,7 +493,7 @@ PY
       ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -5444,6 +5449,22 @@ gate "codex-save-path: posture reaches Codex; refusals surfaced, never silent" m
 
 rc=0; python3 scripts/check-codex-save-path.py --must-fail >/dev/null 2>&1 || rc=$?
 gate "codex-save-path teeth: a wrapper ignoring refusals is caught" must_pass "$rc"
+
+echo "── Gate 169: Copilot MCP servers are OPT-IN, never wholesale ─────────────"
+# MH-19, Copilot half. On Claude Code you get a plugin's MCP server BECAUSE you
+# installed that plugin — consent is structural. Copilot's mcp-config.json is
+# GLOBAL with no per-plugin step, so naming the server IS the consent. Wiring all
+# four wholesale would install third-party software from plugins the user never
+# chose, including a write-capable one.
+#
+# "Installs nothing unless asked" is therefore a SECURITY property, and the
+# tempting refactor ("just wire them all, it's friendlier") is the regression.
+# The teeth half is precisely that refactor.
+rc=0; python3 scripts/check-copilot-mcp-optin.py >/dev/null 2>&1 || rc=$?
+gate "copilot-mcp: opt-in by name, complete catalogue, loud on unknown" must_pass "$rc"
+
+rc=0; python3 scripts/check-copilot-mcp-optin.py --must-fail >/dev/null 2>&1 || rc=$?
+gate "copilot-mcp teeth: a wholesale 'wire them all' refactor is caught" must_pass "$rc"
 
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"
