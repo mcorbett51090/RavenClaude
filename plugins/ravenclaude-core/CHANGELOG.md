@@ -2,6 +2,46 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.225.0 — 2026-07-29
+
+### Added
+
+- **Gate 167 — a Copilot payload now has to survive the whole path to the tribunal.** This is the
+  MH-01 residual the audit split out as P0/S and never built. MH-01 was the finding where the
+  command-review tribunal was *"fully wired, reviewing nothing"* under Copilot: the envelope was
+  translated but the tool-name **value** was not, and `thing-orchestrator.sh` dispatches on a
+  case-sensitive `Bash | Read | Write | …` list that falls to `*) exit 0`. Copilot sends `bash`.
+  - **The coverage gap was structural, not sloppiness** `[verified 2026-07-29]`. Of all hook tests,
+    **exactly one** uses a Copilot-shaped `toolName` — Gate 20's — and it is **not** among the four
+    that drive the orchestrator (`test-gate121`, `test-gate162`, `test-phase0-emit-and-scrub`,
+    `test-seat-stderr-capture`), all of which feed it Claude-shaped payloads. Gate 20 asserts the
+    adapter's **I/O shape**; it never asks whether a verdict comes out the far end. **No test crossed
+    the seam where the P0 actually lived**, so a regression in the tool-name map would have left every
+    gate green while the tribunal went dark again — silently, exactly as the first time.
+  - Three assertions: a control (the command really is deny-worthy in Claude shape), the same command
+    in a Copilot envelope through the adapter, and — **the one that matters** — a teeth half that
+    defeats the tool-name map and asserts the deny **disappears**. That reproduces MH-01 on demand.
+    A gate for a silent failure is worth nothing until it has been watched failing.
+  - The teeth half **fails loudly if its mutation anchor is ever missing**, rather than "mutating"
+    nothing and reporting teeth that don't exist.
+
+### Fixed (documentation — stale claims, which this repo treats as live defects)
+
+- **The MH-01 residual note said the Gate 20 fixture still hard-codes `toolName:"shell"`.** It does
+  not — it reads the docs-verified `"bash"`. Struck. Also corrected: `shell` was described as a
+  "third, invented" name. It is a **real** name — in the *agent-profile* tool vocabulary (see 0.224.0
+  / MH-10). It was simply the wrong vocabulary for a **hook** fixture.
+- **The MH-16 part-2 note said "the emitter is unchanged and still open".** Half-stale: the emitter
+  **shipped** (`scripts/emit-codex-config.py`, Gate 156).
+  - **But only half, and the other half was re-verified rather than assumed** `[verified 2026-07-29]`.
+    The emitter is invoked from exactly one place — `scripts/ravenclaude:736`, the installer. The
+    dashboard's save path never calls it and `apply-comfort-posture.py` has no Codex awareness at all.
+    So **editing your posture in the dashboard and clicking Save still changes nothing on a Codex
+    host**; only a fresh `ravenclaude install --host codex` does. The plugin `CLAUDE.md` sentence
+    saying exactly that is **accurate and was deliberately left alone** — flipping it on the strength
+    of the emitter merely existing would have introduced a false claim, which is precisely how
+    stale-claim defects get made. The remaining gap is tracked as the **dashboard→Codex save path**.
+
 ## 0.224.0 — 2026-07-29
 
 **The multi-host audit closes: 42 of 42 findings fixed.**
