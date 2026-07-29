@@ -80,8 +80,11 @@ are written **repo-level** to `.github/hooks/ravenclaude.json` and translated by
 1. **Plugin-level hooks do not fire.** [github/copilot-cli#2540](https://github.com/github/copilot-cli/issues/2540)
    — **still OPEN, re-checked 2026-07-28.** This is *why* the guardrails ship repo-level rather than
    bundled in the plugin. Do not "simplify" that; it is the workaround, not an oversight.
-2. **There is no per-tool `matcher`.** Copilot's hooks config has no tool-scoping field, so every
-   registered hook sees every tool call and must self-filter. See
+2. **There IS a per-tool `matcher` — in one of the two hook formats.** Copilot's *native*
+   (camelCase) events have none, but its **Claude-compatible PascalCase events apply Claude's
+   matcher semantics** `[docs-verified 2026-07-28]`, honored from **1.0.62**. This repo's generated
+   file has always used PascalCase, and now projects the canonical matchers through. *The repo
+   previously documented the opposite as settled fact; corrected 2026-07-28 (MH-24/MH-12).* See
    [`../../knowledge/copilot-cli-customization.md`](../../knowledge/copilot-cli-customization.md) §4.
 3. **Tool-name VALUES are lowercase** (`bash`, `edit`, `view`) where Claude sends PascalCase. The
    adapter normalises them; before that fix the tribunal and web guard were silent no-ops.
@@ -93,7 +96,14 @@ whose original justification could not be found in the changelog were **deleted.
 |---|---|---|---|
 | **≥ 1.0.52** (2026-05-23) | *"Hooks (preToolUse, postToolUse, subagentStart, subagentStop) now fire correctly for sub-agent tool…"* | **The safety floor.** Below it a sub-agent's tool calls are **not** hooked — a subagent runs Bash past every guardrail this repo wires, silently. | [changelog.md](https://github.com/github/copilot-cli/blob/main/changelog.md) · 2026-07-28 |
 | **≥ 1.0.57** recommended (2026-06-01) | *"Plugins auto-installed from repository settings no longer leak into user global config"* | Config hygiene — a repo's plugin settings otherwise bleed into your global config. | [changelog.md](https://github.com/github/copilot-cli/blob/main/changelog.md) · 2026-07-28 |
-| 1.0.62 informational (2026-06-13) | *"PostToolUse hook matchers (e.g. Edit-pipe-Write) are now honored instead of silently dropped"* | **NOT a floor for this repo** — our generated Copilot hooks file carries no matchers (see #2). Listed so nobody re-derives it as one. | [changelog.md](https://github.com/github/copilot-cli/blob/main/changelog.md) · 2026-07-28 |
+| **≥ 1.0.62** recommended (2026-06-13) | *"PostToolUse hook matchers (e.g. Edit-pipe-Write) are now honored instead of silently dropped"* | **Scoping.** The generated hooks file now carries the canonical matchers, so from 1.0.62 each guardrail is scoped exactly as under Claude Code. Below it matchers are ignored and every hook fires for every tool — safe (the hooks self-filter, and the adapter normalises tool names), just noisier. | [changelog.md](https://github.com/github/copilot-cli/blob/main/changelog.md) · 2026-07-28 |
+
+> **This row changed on 2026-07-28, and the reason is worth keeping.** It previously read *"NOT a
+> floor for this repo — our generated hooks file carries no matchers"*. That was accurate when
+> written and became wrong the same day: the file now projects matchers, because the belief that
+> Copilot had none turned out to be false (see #2). **A row scoped to what the repo happens to do
+> today expires the moment the repo changes** — which is why the floor rows above are anchored to
+> what the *host* does, not to what we do.
 
 > **DELETED rows, and why — do not restore them without a source.** The previous table claimed a
 > *"preToolUse silent-allow regression fixed (1.0.59)"* and a *"diff-not-reported-to-ACP bug fixed
