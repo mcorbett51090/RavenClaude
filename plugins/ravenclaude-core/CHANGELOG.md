@@ -2,6 +2,48 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.222.0 — 2026-07-29
+
+### Added
+
+- **Gemini CLI is a supported host** (multi-host audit MH-30 + MH-41). The audit framed this as a
+  decision — support it, or formally unsupport it and strip the 17 name-checks. **Build won**, and the
+  research is why: Gemini's hook contract turned out to be **nearer Claude Code's than Copilot's is**.
+
+  | | Claude Code | **Gemini CLI** | Copilot CLI |
+  |---|---|---|---|
+  | stdin fields | `session_id`, `cwd`, `tool_name`, `tool_input` | **identical names** | `toolName`, `toolArgs` (JSON *string*) |
+  | Blocking | `exit 2` + stderr | **identical** | JSON `permissionDecision` |
+  | Matcher | yes | **yes**, with regex | none in the native format |
+
+  - **So it is a shim, not an adapter** — blocking needs *no* translation, which is the opposite of
+    Cursor (where a malformed response silently allows, so the deny had to be a fixed literal).
+  - **The one real translation is the tool-name vocabulary**, and it is not optional. Gemini sends
+    `run_shell_command` / `read_file` / `write_file` / `replace`; the guardrails dispatch on Claude's
+    PascalCase and fall through to `*) exit 0` on anything unrecognised. **That exact mismatch is
+    MH-01** — under Copilot the tribunal was fully wired and reviewed *nothing* because `bash` is not
+    `Bash`. Shipping unnormalised would have reproduced it on a fifth host, looking wired throughout.
+    **Gate 164** asserts the mapping name by name, with teeth.
+  - **`GEMINI.md` @-imports `AGENTS.md`** rather than receiving a copy. Gemini supports `@file.md`
+    imports, making it the **only** non-Claude host that can include the canonical file — nothing to
+    project, nothing to drift. (Aider needed a real projection only because `CONVENTIONS.md` has no
+    import mechanism.)
+  - Hooks are **projected** from the canonical manifest (17 wired, 8 explicitly skipped) and **merged**
+    into `.gemini/settings.json` rather than overwriting it — that file also carries the user's model,
+    theme and MCP config. **Gate 165** additionally asserts every emitted matcher is in *Gemini's*
+    vocabulary: one left in PascalCase would register a hook that can never fire.
+
+### Honest scope
+
+The **layout gate is not enforced** on Gemini. Its path arrives as argv, and Gemini's `tool_input`
+path *field name* is unverified — the docs' rewrite example shows `filepath`, other tools may use
+`file_path`. Wiring it would have registered a guard that receives no path and **silently no-ops,
+which is worse than not wiring it because it would look enforced.** CI is the backstop, and the skip
+list ships inside `.gemini/settings.json`. One line to enable once the field name is read.
+`Stop` / `UserPromptSubmit` are unmapped for the same reason: `AfterAgent`/`BeforeAgent` are plausible
+by name, and mapping a lifecycle event by name-similarity is how a lane asserts coverage it lacks.
+**This lane is docs-verified but UNTESTED against a running Gemini CLI.**
+
 ## 0.221.1 — 2026-07-29
 
 ### Fixed

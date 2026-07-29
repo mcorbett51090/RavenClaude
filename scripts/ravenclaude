@@ -589,10 +589,80 @@ cmd_install() {
     host="$(detect_host)"
   fi
   case "$host" in
-    copilot|codex|cursor|aider) ;;
-    *) warn "unknown --host '$host' (expected: copilot | codex | cursor | aider) — using copilot"; host="copilot" ;;
+    copilot|codex|cursor|aider|gemini) ;;
+    *) warn "unknown --host '$host' (expected: copilot | codex | cursor | aider | gemini) — using copilot"; host="copilot" ;;
   esac
   printf '== ravenclaude install (host: %s) -> %s ==\n' "$host" "$project"
+
+  # The Gemini lane (MH-30). The CHEAPEST lane in the marketplace, because
+  # Gemini's hook contract is nearly Claude's: identical stdin field names, and
+  # `exit 2` + stderr is ALREADY its block mechanism. The shim only normalises the
+  # tool-name vocabulary (run_shell_command -> Bash, …) — which is not optional:
+  # that exact mismatch is MH-01, where the tribunal was fully wired and reviewed
+  # nothing because `bash` is not `Bash`.
+  #
+  # GEMINI.md IMPORTS AGENTS.md rather than copying it. Gemini supports `@file.md`
+  # imports, so this is the ONE non-Claude host that can include the canonical file
+  # directly — nothing to project, nothing to drift. Aider needed a real projection
+  # only because CONVENTIONS.md has no import mechanism.
+  if [ "$host" = "gemini" ]; then
+    local ggen="$MARKET/scripts/generate-gemini-hooks.py"
+    local gad="$CORE/hooks/gemini-hook-adapter.sh"
+    mkdir -p "$project/.gemini"
+    if [ -f "$ggen" ]; then
+      local tmpcfg="$project/.gemini/.ravenclaude-hooks.json"
+      if python3 "$ggen" --adapter "$gad" --hooks-dir "$CORE/hooks" --out "$tmpcfg"; then
+        # Merge into .gemini/settings.json rather than overwriting: that file also
+        # carries the user's model, theme and MCP config. Only the `hooks` key is
+        # replaced, and only ours.
+        python3 - "$project/.gemini/settings.json" "$tmpcfg" <<'PY2'
+import json, sys, pathlib
+dest, src = pathlib.Path(sys.argv[1]), pathlib.Path(sys.argv[2])
+try:
+    cur = json.loads(dest.read_text()) if dest.is_file() else {}
+    if not isinstance(cur, dict):
+        cur = {}
+except Exception:
+    cur = {}
+add = json.loads(src.read_text())
+cur["hooks"] = add.get("hooks", {})
+cur["_ravenclaude_not_wired"] = add.get("_not_wired", [])
+dest.write_text(json.dumps(cur, indent=2) + "\n")
+PY2
+        rm -f "$tmpcfg"
+        ok "wired guardrails into .gemini/settings.json (projected; merged, not clobbered)"
+      else
+        warn "gemini hook projection FAILED — no guardrails wired"
+      fi
+    else
+      warn "generate-gemini-hooks.py missing — Gemini guardrails NOT wired"
+    fi
+
+    # The instruction lane: an IMPORT, not a copy.
+    if [ -f "$project/GEMINI.md" ] && grep -q 'RAVENCLAUDE-IMPORT' "$project/GEMINI.md" 2>/dev/null; then
+      note "GEMINI.md already imports AGENTS.md — left alone"
+    else
+      {
+        printf '\n<!-- RAVENCLAUDE-IMPORT: managed pointer, safe to keep. -->\n'
+        printf '# Project context\n\n'
+        printf 'The canonical cross-tool guidance for this repository is AGENTS.md.\n'
+        printf 'It is imported below rather than copied, so it can never drift:\n\n'
+        printf '@AGENTS.md\n'
+      } >>"$project/GEMINI.md"
+      ok "GEMINI.md imports AGENTS.md via @-import (no copy, nothing to drift)"
+    fi
+
+    note "NOT enforced under Gemini: the layout gate. Its path arrives as argv and"
+    note "  Gemini's tool_input path FIELD NAME is unverified — wiring it would look"
+    note "  enforced while silently no-opping. CI is the backstop; see the skip list"
+    note "  in .gemini/settings.json (_ravenclaude_not_wired)."
+    wire_dashboard_launchers "$project"
+    if [ -z "${RC_FROM_SETUP:-}" ]; then
+      printf '\n'
+      ok "install complete. Launch: gemini (reads .gemini/settings.json from this dir)."
+    fi
+    return 0
+  fi
 
   # The Aider lane (MH-26). The ONLY lane that bridges no enforcement, because
   # Aider has no hooks API — nothing here can gate an Aider session in-loop, and
