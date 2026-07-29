@@ -748,6 +748,29 @@ PY2
       note "  Run 'ravenclaude setup' to seed one, or set the two keys by hand."
     fi
 
+    # Custom agents. Codex reads .codex/agents/*.toml [docs-verified 2026-07-29 —
+    # learn.chatgpt.com/docs/agent-configuration/subagents]. Each projected file
+    # carries an explicit `sandbox_mode`, because Codex INHERITS THE PARENT TURN's
+    # permission mode when it is omitted — so a review-only agent shipped without
+    # it would silently run with whatever the session has. Gate 170 holds that.
+    local codex_agents_src="$MARKET/plugins/ravenclaude-core/codex/agents"
+    if [ -d "$codex_agents_src" ]; then
+      mkdir -p "$project/.codex/agents"
+      local n_agents=0 _a
+      for _a in "$codex_agents_src"/*.toml; do
+        [ -f "$_a" ] || continue
+        cp "$_a" "$project/.codex/agents/$(basename "$_a")"
+        n_agents=$((n_agents + 1))
+      done
+      ok "wired $n_agents custom agents into .codex/agents/ (each with an explicit sandbox_mode)"
+      note "  review-only agents are read-only; omitting sandbox_mode would inherit"
+      note "  the parent turn's permissions, so it is always written explicitly."
+      note "  UNVERIFIED HERE: no Codex CLI on this machine, so the projection was"
+      note "  built to the documented contract but not watched being enforced."
+    else
+      warn "codex/agents/ missing — run 'ravenclaude update' to generate it"
+    fi
+
     # HONEST GAP, stated at install time rather than discovered later:
     note "NOT wired: MCP servers (.codex/config.toml [mcp]) — the TOML merge is not"
     note "  built yet; a bad merge would clobber a hand-tuned config. Add by hand."
