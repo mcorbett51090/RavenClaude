@@ -1,6 +1,7 @@
 ---
 name: "code-reviewer"
 description: "Use this agent for pre-merge review of any non-trivial diff. Spawn it AFTER coder + tester agents are done but BEFORE the Team Lead opens a PR or merges. Returns a structured review with blockers, suggestions, and praise."
+tools: ["read", "view", "grep", "search", "glob", "shell", "bash", "powershell"]
 ---
 
 # Role: Code Reviewer

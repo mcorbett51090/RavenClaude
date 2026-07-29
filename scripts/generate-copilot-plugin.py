@@ -15,8 +15,8 @@ Scoping (deliberate, do not change here):
     hooks to .github/hooks by `scripts/ravenclaude install`; plugin-level
     preToolUse hooks don't fire in Copilot today (github/copilot-cli#2540).
   - Each Claude `.md` agent becomes a Copilot `.agent.md` whose frontmatter
-    carries ONLY `name` + `description` (the two universally-supported Copilot
-    agent fields). The full original markdown body is preserved verbatim.
+    carries `name` + `description` + the projected least-privilege `tools:`
+    allowlist (MH-10). The full original markdown body is preserved verbatim.
 
 Byte-deterministic output: only `\n` line endings, sorted iteration, NO
 timestamps. `--check` regenerates the tree in memory and exits 1 if the
@@ -186,30 +186,125 @@ def scalar(raw: str) -> str:
     return s
 
 
-def parse_name_description(frontmatter: str, fallback_name: str) -> tuple[str, str]:
-    """Extract `name` and `description` from a Claude agent's frontmatter.
+# ── MH-10 · the least-privilege projection ────────────────────────────────────
+#
+# Claude tool name -> the Copilot agent-profile tool names that carry the SAME
+# privilege. Built from the page the Copilot CLI docs themselves designate as
+# authoritative for this field:
+#   https://docs.github.com/en/copilot/reference/custom-agents-configuration
+#   [docs-verified 2026-07-29]
+# which states the properties apply to "agent profiles in GitHub.com, the
+# Copilot CLI, and supported IDEs", documents `tools` as "List of tool names the
+# custom agent can use... If unset, defaults to all tools", and — the line that
+# makes this projection safe to ship — "All unrecognized tool names are ignored,
+# which allows product-specific tools to be specified in an agent profile
+# without causing problems."
+#
+# THAT SENTENCE SETS THE FAILURE DIRECTION, and it is why this is shippable at
+# all. A name we get wrong is DROPPED, never expanded: the worst case is an
+# agent that lacks a capability (visible, reported as a broken agent), never one
+# that silently gains write or shell (invisible, and the P0 being fixed here).
+# Because wrong names are free, each Claude tool maps to EVERY equal-privilege
+# Copilot spelling rather than one guessed favourite — belt and braces against
+# silent capability loss on a host we cannot execute here.
+#
+# ⚠ THE INVARIANT THAT MAKES THE BELT-AND-BRACES SAFE: every alias on a row must
+# be of EQUAL OR LESSER privilege than the Claude tool that heads it. Adding an
+# execute-class name (`execute`, `shell`, `bash`, `powershell`) to a non-Bash row
+# would hand arbitrary code execution to a review-only agent — the exact hole
+# this closes, reopened from the inside. `execute` is deliberately absent
+# everywhere: its scope is not documented, and `shell`/`bash` already cover Bash.
+# Gate 166 enforces this by class, so a future edit cannot quietly widen a row.
+#
+# NOTE — this is NOT the vocabulary MH-01/`f55039ec` established. That one is the
+# hook `toolName` event vocabulary (`bash`, `view`, `edit`, `web_fetch`,
+# `ask_user`, `task`, `create`); this is the agent-profile `tools:` vocabulary
+# (`read`, `edit`, `search`, `execute`, `shell`, `bash`, `powershell`, `agent`,
+# `web`, `todo`, `view`, `grep`, `glob`). They overlap but are NOT the same list
+# — `web_fetch`/`ask_user`/`create` are not agent-profile names, and
+# `read`/`search`/`web`/`todo`/`agent` are not hook names. The ledger's remedy
+# said to reuse MH-01's table; doing so would have produced a wrong allowlist.
+_TOOL_CLASS_EXEC = "exec"
+_TOOL_CLASS_WRITE = "write"
+_TOOL_CLASS_READ = "read"
 
-    Only single-line `key: value` scalars are needed for these two fields in
-    the canonical agents. `model`, `audience`, `works_with`, `scenarios` and
-    `quickstart` are dropped because Copilot's `.agent.md` frontmatter has no
-    equivalent — that part is genuinely inert.
+_AGENT_TOOL_MAP: dict[str, tuple[str, ...]] = {
+    # read-only
+    "Read": ("read", "view"),
+    "Grep": ("grep", "search"),
+    "Glob": ("glob",),
+    "WebFetch": ("web",),
+    "WebSearch": ("web",),
+    "NotebookRead": ("read",),
+    # write
+    "Edit": ("edit",),
+    "Write": ("edit",),
+    "MultiEdit": ("edit",),
+    # execute — `powershell` is included because it is the same privilege class
+    # on Windows; omitting it would silently strip shell from every agent on a
+    # Windows Copilot host while looking correct on macOS/Linux.
+    "Bash": ("shell", "bash", "powershell"),
+    # subagent dispatch
+    "Task": ("agent",),
+}
 
-    `tools` is DIFFERENT and dropping it is NOT neutral. Copilot supports a
-    `tools` field, and per `knowledge/copilot-cli-customization.md` §2 an agent
-    "has **all** tools by default — a `tools` spec only *restricts*". So every
-    projected agent runs fully privileged, including review-only ones like
-    `security-reviewer` (canonically `Read, Grep, Glob, Bash, WebFetch`, with
-    Write/Edit deliberately withheld). AGENTS.md house rule 9 names this exact
-    hazard: "An omitted `tools:` line silently grants ALL tools."
+# Privilege class of each Claude tool, and of each Copilot name we may emit.
+# Gate 166 cross-checks the two: the classes a row emits must be a SUBSET of
+# the classes the canonical agent declared. NOT a max-privilege ceiling — a
+# ceiling would let `security-reviewer` (which declares Bash) receive `edit`,
+# the exact grant it withholds.
+_CLAUDE_TOOL_CLASS = {
+    "Read": _TOOL_CLASS_READ, "Grep": _TOOL_CLASS_READ, "Glob": _TOOL_CLASS_READ,
+    "WebFetch": _TOOL_CLASS_READ, "WebSearch": _TOOL_CLASS_READ,
+    "NotebookRead": _TOOL_CLASS_READ,
+    "Edit": _TOOL_CLASS_WRITE, "Write": _TOOL_CLASS_WRITE, "MultiEdit": _TOOL_CLASS_WRITE,
+    "Bash": _TOOL_CLASS_EXEC, "Task": _TOOL_CLASS_WRITE,
+}
+_COPILOT_TOOL_CLASS = {
+    "read": _TOOL_CLASS_READ, "view": _TOOL_CLASS_READ, "grep": _TOOL_CLASS_READ,
+    "search": _TOOL_CLASS_READ, "glob": _TOOL_CLASS_READ, "web": _TOOL_CLASS_READ,
+    "todo": _TOOL_CLASS_READ,
+    "edit": _TOOL_CLASS_WRITE, "agent": _TOOL_CLASS_WRITE, "custom-agent": _TOOL_CLASS_WRITE,
+    "shell": _TOOL_CLASS_EXEC, "bash": _TOOL_CLASS_EXEC, "powershell": _TOOL_CLASS_EXEC,
+    "execute": _TOOL_CLASS_EXEC,
+}
 
-    It is not fixed here because the correct projection needs Copilot's exact
-    tool-name vocabulary (lowercase `bash`/`edit`/`view`, and the full list is
-    unpublished at a fetchable URL as of 2026-07-28). Emitting Claude's names
-    would either no-op or strip every agent of all tools — a worse regression.
-    See the KNOWN GAP block in the generated README for the settling probe.
+
+def project_tools(claude_tools: list[str]) -> list[str]:
+    """Translate a Claude `tools:` list into Copilot agent-profile tool names.
+
+    Returns [] for `*` (or an empty list), which the caller renders as NO
+    `tools:` line at all — i.e. all tools, which is what `*` means. That is the
+    one case where omitting the restriction is correct rather than a hole.
+
+    An unmapped Claude tool contributes nothing. That is deliberate: silently
+    inventing a name for a tool we have not verified is how a review-only agent
+    would get shell.
+    """
+    if not claude_tools or "*" in claude_tools:
+        return []
+    out: list[str] = []
+    for tool in claude_tools:
+        for mapped in _AGENT_TOOL_MAP.get(tool, ()):
+            if mapped not in out:
+                out.append(mapped)
+    return out
+
+
+def parse_agent_frontmatter(frontmatter: str, fallback_name: str) -> tuple[str, str, list[str]]:
+    """Extract `name`, `description` and `tools` from a Claude agent.
+
+    `model`, `audience`, `works_with`, `scenarios` and `quickstart` are still
+    dropped — Copilot's `.agent.md` has no equivalent, so that part is genuinely
+    inert. `tools` is NOT inert and is now projected (MH-10): Copilot defaults an
+    agent to ALL tools, so dropping the field handed `security-reviewer` —
+    canonically `Read, Grep, Glob, Bash, WebFetch`, with Write/Edit deliberately
+    withheld — unrestricted write and shell. AGENTS.md house rule 9 names this
+    exact hazard: "An omitted `tools:` line silently grants ALL tools."
     """
     name = ""
     description = ""
+    tools: list[str] = []
     for line in frontmatter.splitlines():
         kv = YAML_KV_RE.match(line)
         if not kv:
@@ -219,9 +314,14 @@ def parse_name_description(frontmatter: str, fallback_name: str) -> tuple[str, s
             name = scalar(raw)
         elif key == "description" and not description:
             description = scalar(raw)
+        elif key == "tools" and not tools:
+            # `tools: Read, Grep` and `tools: "*"` are the two shapes the
+            # canonical agents use (check-frontmatter.py gates the field's
+            # presence, so an absent one means a malformed agent, not "all").
+            tools = [t.strip() for t in scalar(raw).split(",") if t.strip()]
     if not name:
         name = fallback_name
-    return name, description
+    return name, description, tools
 
 
 def yaml_quote(value: str) -> str:
@@ -231,10 +331,19 @@ def yaml_quote(value: str) -> str:
     return f'"{escaped}"'
 
 
-def build_agent_doc(name: str, description: str, body: str) -> str:
-    """Render a Copilot .agent.md: name+description frontmatter, then the
-    verbatim original body."""
-    fm = f"---\nname: {yaml_quote(name)}\ndescription: {yaml_quote(description)}\n---\n"
+def build_agent_doc(name: str, description: str, body: str, tools: list[str] | None = None) -> str:
+    """Render a Copilot .agent.md: frontmatter, then the verbatim original body.
+
+    `tools` is the ALREADY-PROJECTED Copilot name list (see project_tools). An
+    empty list emits NO `tools:` line, which Copilot reads as all tools — correct
+    only for a canonical `*`, and never a silent default.
+    """
+    fm = f"---\nname: {yaml_quote(name)}\ndescription: {yaml_quote(description)}\n"
+    if tools:
+        # YAML flow sequence — the reference documents "both a comma separated
+        # string and yaml string array"; the array form is unambiguous.
+        fm += "tools: [" + ", ".join(yaml_quote(t) for t in tools) + "]\n"
+    fm += "---\n"
     # The canonical body already begins with a blank line after the closing
     # `---`; preserve it verbatim so the output is a faithful projection.
     return fm + body
@@ -299,31 +408,58 @@ def build_readme() -> str:
         "  only `name` + `description`, followed by the full original agent body\n"
         "  verbatim.\n"
         "\n"
-        "> ### ⚠️ KNOWN GAP — agents run UNRESTRICTED here\n"
+        "> ### Least-privilege `tools:` IS projected (MH-10, 2026-07-29)\n"
         ">\n"
-        "> The canonical agents each carry a least-privilege `tools:` allowlist, and\n"
+        "> Each canonical agent carries a least-privilege `tools:` allowlist, and\n"
         "> `AGENTS.md` house rule 9 is explicit that **an omitted `tools:` silently\n"
-        "> grants ALL tools**. This projection drops that field. Per RavenClaude's own\n"
-        "> docs-verified notes (`knowledge/copilot-cli-customization.md` §2), a Copilot\n"
-        "> agent **has every tool by default and a `tools:` spec only *restricts*** —\n"
-        "> so dropping it is not neutral, it is a least-privilege regression.\n"
+        "> grants ALL tools**. This projection used to drop that field, so every\n"
+        "> agent ran fully privileged here — `security-reviewer` is canonically\n"
+        "> `Read, Grep, Glob, Bash, WebFetch` with Write/Edit **deliberately**\n"
+        "> withheld, and under Copilot it could write. That is now fixed: the list\n"
+        "> is translated into Copilot's agent-profile tool names and emitted.\n"
         ">\n"
-        "> Concretely: `security-reviewer` is canonically `Read, Grep, Glob, Bash,\n"
-        "> WebFetch` — deliberately **no Write/Edit** — and under Copilot it can write.\n"
-        "> The same applies to every review-only agent.\n"
+        "> **Source** — the page the Copilot CLI docs designate as authoritative\n"
+        "> for this field, `docs.github.com/en/copilot/reference/custom-agents-\n"
+        "> configuration` [docs-verified 2026-07-29]: the properties apply to\n"
+        "> \"agent profiles in GitHub.com, the Copilot CLI, and supported IDEs\";\n"
+        "> `tools` is \"List of tool names the custom agent can use... If unset,\n"
+        "> defaults to all tools\"; and **\"All unrecognized tool names are\n"
+        "> ignored\"**.\n"
         ">\n"
-        "> **Why this is not simply fixed here:** projecting the allowlist requires\n"
-        "> Copilot's exact tool-name vocabulary, which differs from Claude's (Copilot\n"
-        "> documents lowercase `bash` / `edit` / `view`). Emitting Claude's names would\n"
-        "> either be ignored — no gain — or restrict to unrecognised names and leave\n"
-        "> every agent with NO tools, which is a worse regression than the one it fixes.\n"
-        "> GitHub has not published the complete list at a fetchable URL as of\n"
-        "> 2026-07-28 (two candidate doc pages returned 404).\n"
+        "> **That last line sets the failure direction, and it is why this ships.**\n"
+        "> A name we get wrong is DROPPED, never widened — the worst case is an\n"
+        "> agent missing a capability (visible: it fails at its job), never one\n"
+        "> that silently gains write or shell (invisible: the hole being closed).\n"
+        "> Because wrong names cost nothing, each Claude tool maps to every\n"
+        "> equal-privilege Copilot spelling rather than one guessed favourite.\n"
         ">\n"
-        "> **The probe that closes this:** run `copilot` and enumerate the real tool\n"
-        "> names, then add a Claude→Copilot name map to `generate-copilot-plugin.py`\n"
-        "> mirroring the runtime map already in `hooks/copilot-hook-adapter.sh`.\n"
-        "> Until then, treat every agent under Copilot as fully privileged.\n"
+        "> **The earlier note that the vocabulary was unpublished was about the\n"
+        "> HOOK `toolName` vocabulary** (whose doc pages did 404), which is a\n"
+        "> *different* list from the agent-profile `tools:` vocabulary. Reusing the\n"
+        "> hook map here — as the audit ledger originally proposed — would have\n"
+        "> produced a wrong allowlist: `web_fetch`/`ask_user`/`create` are not\n"
+        "> agent-profile names, and `read`/`search`/`web`/`todo` are not hook names.\n"
+        ">\n"
+        "> **VERIFIED AGAINST A RUNNING COPILOT SESSION** (CLI 1.0.70, 2026-07-29),\n"
+        "> not just against the docs. Three probes in a scratch repo:\n"
+        ">\n"
+        "> | Probe | Result |\n"
+        "> |---|---|\n"
+        "> | control agent, no `tools:` | created the file (via shell) |\n"
+        "> | restricted to `read,view,grep,search,glob` | `CANNOT_WRITE`, no file |\n"
+        "> | same agent, told to leak via `curl`/`git` | `LEAK_FAILED`, no file |\n"
+        ">\n"
+        "> **`read` and `search` were silently ignored** — the restricted agent got\n"
+        "> exactly `view` / `grep` / `glob`. That is the documented\n"
+        "> unrecognized-names-are-ignored rule, observed, and it is why each Claude\n"
+        "> tool maps to EVERY equal-privilege spelling: had the map guessed `read`\n"
+        "> alone, every agent would have lost file reading outright. The redundancy\n"
+        "> is load-bearing, not belt-and-braces decoration.\n"
+        ">\n"
+        "> **Do not trust an agent's self-report of its own tools.** Asked to list\n"
+        "> them, the probe named `git` and `curl` — neither exists as a tool; the\n"
+        "> follow-up leak attempt failed with \"Skill 'curl' not found\". Test the\n"
+        "> BEHAVIOUR (can it write?), never the description.\n"
         "- `AGENTS.md` — the cross-tool claim-grounding discipline, projected\n"
         "  verbatim from RavenClaude's root `AGENTS.md`. Copilot reads `AGENTS.md`\n"
         "  natively, but only from *your* repo — so this travels the discipline\n"
@@ -451,8 +587,8 @@ def generate() -> dict[str, str]:
             continue
         text = read_text(agent_path)
         frontmatter, body = split_frontmatter(text)
-        name, description = parse_name_description(frontmatter, agent_path.stem)
-        doc = build_agent_doc(name, description, body)
+        name, description, claude_tools = parse_agent_frontmatter(frontmatter, agent_path.stem)
+        doc = build_agent_doc(name, description, body, project_tools(claude_tools))
         tree[f"{rel_root}/agents/{agent_path.stem}.agent.md"] = doc
 
     return tree

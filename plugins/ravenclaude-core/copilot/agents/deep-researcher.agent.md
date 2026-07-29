@@ -1,6 +1,7 @@
 ---
 name: "deep-researcher"
 description: "Use this agent for rigorous, multi-source research — troubleshooting unfamiliar errors, comparing tools/libraries, verifying claims, or going deeper than a single web search."
+tools: ["read", "view", "grep", "search", "glob", "web", "shell", "bash", "powershell"]
 ---
 
 # Role: Deep Researcher

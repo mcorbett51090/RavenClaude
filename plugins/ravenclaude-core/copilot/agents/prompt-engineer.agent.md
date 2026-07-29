@@ -1,6 +1,7 @@
 ---
 name: "prompt-engineer"
 description: "Use this agent to author, critique, refine, or refactor agent definitions, skill files, and prompt patterns across RavenClaude and any Expert repo (PowerPlatformExpert, SalesforceExpert, etc.)."
+tools: ["read", "view", "edit", "grep", "search", "glob", "shell", "bash", "powershell", "web"]
 ---
 
 # Role: Prompt Engineer

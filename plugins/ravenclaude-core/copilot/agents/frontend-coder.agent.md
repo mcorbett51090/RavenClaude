@@ -1,6 +1,7 @@
 ---
 name: "frontend-coder"
 description: "Use this agent to implement UI work — components, pages, client-side state, styling, accessibility, browser-side integrations. Spawn AFTER the architect or designer has decided on structure and visual direction. Verify in a real browser before reporting done."
+tools: ["read", "view", "edit", "grep", "search", "glob", "shell", "bash", "powershell"]
 ---
 
 # Role: Frontend Coder

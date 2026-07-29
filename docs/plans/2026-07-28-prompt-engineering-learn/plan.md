@@ -504,6 +504,74 @@ reads "cannot determine" on the launch paths this repo itself ships — the VS C
 state as *"cannot determine **from this server's environment**"* and name which launch paths do and do not
 inherit; that turns a dead end into the teaching the page exists for.
 
+### 6.2a AMENDMENT (2026-07-29, audit MH-35) — the liveness probe was MEASURED, and it almost never matches
+
+MH-35's remedy was *"apply §6.2's rule retroactively to the Mímir panel (MH-06)"*. Both halves are now
+settled, and measuring the second one changed what this section has to decide.
+
+**The dependency is sound now.** §6.2 reuses `_read_mimir`'s reachability mechanism for
+`_session_is_live()`, and MH-35 objected that the plan *"imposes on `/__host` precisely the rule the
+Mímir panel is currently breaking, while taking a dependency on that same reader."* MH-06 fixed the
+head-vs-tail read (**Gate 163**), and **v0.223.0** fixed two further defects in the same reader — the
+encoded project-directory key never matched on any real machine, and the summary counts read a 50 KiB
+window containing no assistant events. The reader is no longer wrong about the file it reads.
+
+**One correction to the objection, from reading the code rather than the plan:** `_session_is_live()`
+does **not** touch the encoded projects directory. It reads `~/.claude/sessions/<pid>.json` and matches
+on `cwd` + `status`, a separate path — so the encoding defect never reached it. The dependency was
+narrower than MH-35 assumed. Recorded because the *reason* a risk is retired matters as much as the fact.
+
+**The measured finding — and it is the one that needs a decision** `[verified 2026-07-29]`. The probe
+requires `session.cwd == project_root` **exactly**. Measured live, in a Claude Code session working on
+this very repo:
+
+```
+~/.claude/sessions/26245.json   status='busy'   cwd='/Users/matthewcorbett'
+dashboard project_root                          '/Users/matthewcorbett/RavenClaude'
+```
+
+Exact equality fails, so `_session_is_live()` returns **False and the page renders "cannot determine"
+during a live Claude Code session on the project it is describing.** This is not an edge case: it fires
+whenever the session's working directory is an *ancestor* of the project root — launching `claude` from
+`$HOME` (as here), a monorepo subdirectory, and every `.claude/worktrees/` path. It also compounds with
+R6, whose whole concern was "honest but useless".
+
+**This fails SAFE, which is why it is a decision and not a defect.** §6.2's binding rule is *"a wrong
+verdict is worse than no verdict"*, and an over-strict liveness test errs toward "cannot determine" —
+exactly the direction the rule wants. The hazard is what happens *next*: someone will notice the page
+never identifies the host, and will loosen the test. Loosened carelessly (dropping liveness, or matching
+any live session regardless of directory) that reintroduces R5 — the confident wrong host on a reused
+server — which is the blocker this whole section exists to close.
+
+**So the choice is recorded here, before anyone meets the symptom:**
+
+| Option | Behaviour | Trade-off |
+|---|---|---|
+| **A — keep exact match** | Verdict only when the session's cwd *is* the project root | Maximum caution; the page says "cannot determine" in most real sessions, including this one |
+| **B — accept an ancestor cwd** | A live session whose cwd is an ancestor of the project root counts | Matches how people actually launch; still requires a **live** session, so R5 (reuse across hosts) stays closed — the verdict is about *which host*, and an ancestor-rooted session is genuinely that host |
+| **C — drop liveness** | Env signal alone | **Rejected — this is R5.** Recorded only so it is visibly refused. |
+
+**OWNER DECISION (2026-07-29): B — an ancestor cwd counts.** A live session whose working directory
+*contains* the project root satisfies `_session_is_live()`. Rationale, recorded so it is not re-litigated:
+the verdict this section produces is about **which host CLI**, not which project, and a session rooted at
+an ancestor directory genuinely *is* that host. R5 stays closed because **liveness is still required** — a
+server left over from an ended Claude session finds no `status == "busy"` record and still falls to
+"cannot determine". Option C (drop liveness) remains refused.
+
+**Binding implementation notes for B:**
+
+- Match by path containment, not string prefix: `project_root == session_cwd or session_cwd in
+  project_root.parents`. A `startswith` test would make `/a/b-old` match a session at `/a/b`.
+- Do **not** widen to "any live session anywhere". A session at `/` or `$HOME` legitimately contains
+  every project, which is the intended behaviour here (it is still that host) — but a session whose cwd
+  is *unrelated* to the project must not count.
+- Prefer the **most specific** match when several live sessions qualify, so a session actually rooted in
+  the project outranks one at `$HOME`.
+- **The always-visible inheritance caveat and the age-qualified headline in §6.2 remain mandatory**, and
+  Gate 152's inverse must-fail must cover B: assert that an ancestor-cwd session yields a verdict, and
+  that an **ended** one still yields "cannot determine". Ancestor matching widens *when* we answer; it
+  must not weaken *whether we are allowed to*.
+
 ### 6.3 The endpoint: `/__host` + `_read_host` (R3 — the blocker)
 
 Three verified defects in the gate both plans leaned on:

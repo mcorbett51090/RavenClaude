@@ -1,6 +1,7 @@
 ---
 name: "data-engineer"
 description: "Use for domain-neutral data work — pipeline design, data modeling, ETL/ELT, warehouse and lake schemas, query performance, data quality, lineage, ingestion connectors, and dbt-flavored transformations ('design this pipeline', 'this query is slow', 'make this dataset trustworthy')."
+tools: ["read", "view", "edit", "grep", "search", "glob", "shell", "bash", "powershell", "web"]
 ---
 
 # Role: Data Engineer

@@ -1,6 +1,7 @@
 ---
 name: "tester-qa"
 description: "Use this agent to design test plans, hunt flakes, plug coverage gaps, or harden tests around a new feature. Spawn it AFTER coder agents have a working diff but BEFORE code review. Also use for triaging mysterious test failures."
+tools: ["read", "view", "edit", "grep", "search", "glob", "shell", "bash", "powershell"]
 ---
 
 # Role: Tester / QA

@@ -1,6 +1,7 @@
 ---
 name: "fullstack-coder"
 description: "Use this agent only for changes that genuinely cross the client/server boundary in one cohesive unit (e.g., a new endpoint plus the UI that calls it). Prefer separate backend-coder + frontend-coder agents when the work can be split cleanly."
+tools: ["read", "view", "edit", "grep", "search", "glob", "shell", "bash", "powershell"]
 ---
 
 # Role: Fullstack Coder

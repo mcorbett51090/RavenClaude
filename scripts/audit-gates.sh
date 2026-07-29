@@ -387,6 +387,11 @@ PY
       bash plugins/ravenclaude-core/hooks/tests/test-gate164-gemini-adapter.sh
       exit $?
       ;;
+    166)
+      echo "── Gate 166: Copilot agent tools projection (per-gate run) ───────────────"
+      python3 scripts/check-copilot-agent-tools.py
+      exit $?
+      ;;
     165)
       echo "── Gate 165: Gemini hook projection (per-gate run) ───────────────────────"
       python3 scripts/generate-gemini-hooks.py --check
@@ -473,7 +478,7 @@ PY
       ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -5383,6 +5388,21 @@ pathlib.Path(sys.argv[1]).write_text(out)
 PYX
 rc=0; python3 "$GEM_MUT" --check >/dev/null 2>&1 || rc=$?
 gate "gemini-hooks teeth: a lane that enforces NOTHING is caught" must_fail "$rc"
+
+echo "── Gate 166: Copilot agent tools — least privilege survives projection ────"
+# MH-10. Copilot defaults an agent to ALL tools, so dropping the canonical
+# `tools:` allowlist was a silent least-privilege regression: `security-reviewer`
+# (canonically Read/Grep/Glob/Bash/WebFetch, Write/Edit deliberately withheld)
+# could write and run shell under Copilot. The allowlist is now projected.
+#
+# The floor this gate holds is CLASS SUBSET, not a max-privilege ceiling: a
+# ceiling would license `edit` for any agent declaring Bash — including the one
+# agent the finding is named after.
+rc=0; python3 scripts/check-copilot-agent-tools.py >/dev/null 2>&1 || rc=$?
+gate "copilot-agent-tools: least-privilege projected, no class escalation" must_pass "$rc"
+
+rc=0; python3 scripts/check-copilot-agent-tools.py --must-fail >/dev/null 2>&1 || rc=$?
+gate "copilot-agent-tools teeth: a write-class name on a read-only row is caught" must_pass "$rc"
 
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"

@@ -126,12 +126,59 @@ Two consequences, and RavenClaude was bitten by both **while running matcher-fre
 - **Never let a test fixture invent a tool name.** Gate 20's fixture drove the adapter
   with `toolName:"shell"` — a name in neither vocabulary — and passed. A fixture must be
   derived from the platform's documented values, never from what the code expects.
-- **The complete Copilot tool list is NOT published at a fetchable URL** as of 2026-07-28
-  (two candidate doc pages 404'd). `bash` / `edit` / `view` are docs-verified; anything
-  else in the adapter's map is a defensive guess and is marked as such in the code.
-  **Settle it by running `copilot` and enumerating the real names** before relying on any
-  unverified entry — especially for a security boundary such as the agent `tools:`
-  allowlist, which is still unprojected for exactly this reason.
+- **There are TWO tool vocabularies, and conflating them is its own bug** (corrected
+  2026-07-29, audit MH-10). The line below used to say the tool list was simply
+  "not published"; that was true of one vocabulary and false of the other, and the
+  audit ledger's own remedy for MH-10 inherited the confusion by proposing that the
+  agent allowlist reuse the hook map.
+
+  | Vocabulary | Used by | Names | Status |
+  |---|---|---|---|
+  | **Hook `toolName` event values** | `hooks-configuration`, consumed by `copilot-hook-adapter.sh` | `bash`, `view`, `edit`, `grep`, `glob`, `web_fetch`, `ask_user`, `task`, `create`, `powershell` | `bash`/`edit`/`view` **docs-verified**; the rest are defensive guesses marked in the code. **The complete list is still NOT published at a fetchable URL** (two candidate pages 404'd, 2026-07-28). Settle by running `copilot` and enumerating. |
+  | **Agent-profile `tools:` allowlist** | `.agent.md` frontmatter, emitted by `generate-copilot-plugin.py` | `read`, `edit`, `search`, `execute`, `shell`, `bash`, `powershell`, `agent`, `web`, `todo`, `view`, `grep`, `glob`, `custom-agent` | **`[docs-verified 2026-07-29]`** — [custom-agents-configuration](https://docs.github.com/en/copilot/reference/custom-agents-configuration), the page the CLI's own custom-agents how-to designates as authoritative. |
+
+  They **overlap but are not the same list**: `web_fetch` / `ask_user` / `create` are not
+  agent-profile names, and `read` / `search` / `web` / `todo` / `agent` are not hook names.
+
+- **The agent-profile reference settles the three things a security boundary needs**
+  `[docs-verified 2026-07-29]`: it applies to *"agent profiles in GitHub.com, the Copilot
+  CLI, and supported IDEs"*; `tools` is *"List of tool names the custom agent can use...
+  If unset, defaults to all tools"*; and — the load-bearing one — ***"All unrecognized tool
+  names are ignored, which allows product-specific tools to be specified in an agent
+  profile without causing problems."***
+
+  **That last sentence sets the failure direction and is why the allowlist is now
+  projected.** A wrong name is *dropped*, never widened: the worst case is an agent
+  lacking a capability (visible), never one silently gaining write or shell (invisible).
+  It also means extra equal-privilege spellings are free, so each Claude tool maps to
+  every equal-privilege Copilot name rather than one guessed favourite. **The invariant
+  that keeps that safe — never put a class on a row the canonical agent didn't declare —
+  is enforced by Gate 166, not by care.**
+
+- **The allowlist is ENFORCED — observed, not merely documented** `[verified 2026-07-29,
+  Copilot CLI 1.0.70]`. Three probes against a scratch repo with `--allow-all-tools` (so
+  permission prompts could not be mistaken for restriction):
+
+  | Probe | Result |
+  |---|---|
+  | control agent, no `tools:` | created the file, via a shell command |
+  | agent restricted to `read, view, grep, search, glob` | replied `CANNOT_WRITE`; no file created |
+  | same restricted agent, explicitly told to leak via `curl`/`git` | `LEAK_FAILED` (*"Skill 'curl' not found"*); no file created |
+
+  **`read` and `search` were silently dropped** — the restricted agent ended up with
+  exactly `view` / `grep` / `glob`. That is the *unrecognized-names-are-ignored* rule
+  observed in the wild, and it is the empirical case for mapping each Claude tool to
+  **every** equal-privilege spelling: a map that had guessed `read` alone would have left
+  every projected agent with **no file-reading tool at all** — a silent capability
+  amputation that nothing in CI could have caught.
+
+- **Never trust an agent's self-report of its own tools; test the behaviour.** Asked to
+  name its tools, the restricted probe listed `git` and `curl` alongside the real ones.
+  Neither exists — the follow-up leak attempt died with *"Skill 'curl' not found"*, and the
+  names it did print (`functions.sql`, `multi_tool_use.parallel`) are internal namespacing.
+  Taken at face value that self-report reads as a leaky allowlist and would have been filed
+  as a live security hole. **The question is "can it write?", never "what does it say it
+  has?"** — the same rule this file already states for test fixtures.
 
 ## 5. Runtime & config
 

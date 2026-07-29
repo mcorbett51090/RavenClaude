@@ -2,6 +2,57 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.224.0 — 2026-07-29
+
+**The multi-host audit closes: 42 of 42 findings fixed.**
+
+### Fixed
+
+- **Every agent projected to GitHub Copilot ran with ALL tools, including the ones built to have
+  none** (audit MH-10, P0). Copilot gives an agent every tool unless `tools:` restricts it, and the
+  projection dropped that field — so `security-reviewer`, canonically `Read, Grep, Glob, Bash,
+  WebFetch` with **Write/Edit deliberately withheld**, could write files and run shell the moment it
+  was used under Copilot. It now emits
+  `["read","view","grep","search","glob","shell","bash","powershell","web"]` — **no `edit`**.
+  - **The blocker was stale, not real.** The standing reason not to fix this was *"the complete
+    Copilot tool list is NOT published at a fetchable URL."* That is true of the **hook `toolName`**
+    vocabulary, whose doc pages 404. The **agent-profile `tools:`** vocabulary is a *different list*
+    and **is** published — on the page the CLI's own custom-agents how-to designates as authoritative
+    `[docs-verified 2026-07-29]`, which confirms the field applies to *"the Copilot CLI"*, that
+    omitting it *"defaults to all tools"*, and that ***"All unrecognized tool names are ignored."***
+  - **⚠ The audit's own prescribed remedy would have shipped a wrong allowlist**, by reusing the hook
+    vocabulary table. The two lists overlap but differ: `web_fetch`/`ask_user`/`create` are not
+    agent-profile names, and `read`/`search`/`web`/`todo`/`agent` are not hook names.
+  - **Verified against a running Copilot session** (CLI 1.0.70), not only the docs: a control agent
+    with no `tools:` created a file via shell; the restricted agent replied `CANNOT_WRITE` and created
+    nothing; and told explicitly to leak via `curl`/`git` it returned `LEAK_FAILED`.
+  - **`read` and `search` were silently dropped** — the restricted agent got exactly
+    `view`/`grep`/`glob`. That is the ignored-names rule observed in the wild, and it is why each
+    Claude tool maps to *every* equal-privilege spelling: a map that guessed `read` alone would have
+    left every agent **with no file-reading tool at all**, a silent amputation no CI check could see.
+  - **An agent's self-report of its own tools is not evidence.** Asked to list them, the probe named
+    `git` and `curl`; neither exists (the leak attempt died with *"Skill 'curl' not found"*). Taken at
+    face value that reads as a leaky allowlist and would have been filed as a live security hole.
+    Test the behaviour — *can it write?* — never the description.
+
+### Added
+
+- **Gate 166** — the least-privilege projection cannot silently regress. It holds the floor by **class
+  subset**, not a max-privilege ceiling: a ceiling would license `edit` for any agent declaring Bash,
+  i.e. for `security-reviewer` itself. The gate's first draft used a ceiling and **could not fail on
+  its own worked example**; its teeth half caught that before merge.
+
+### Notes
+
+- **MH-35** amended `docs/plans/2026-07-28-prompt-engineering-learn/plan.md` as §6.2a. Measuring the
+  planned host detector's liveness probe showed it requires `session.cwd == project_root` *exactly*,
+  and during a live Claude Code session on this repo (`cwd=/Users/matthewcorbett` vs project root
+  `/Users/matthewcorbett/RavenClaude`) it does not match — so the page would render *"cannot
+  determine"* while running inside the host it describes, for every `$HOME`-launched session, monorepo
+  subdirectory, and worktree. It fails *safe*, so it was surfaced as a decision: **owner chose to
+  accept an ancestor cwd**, with liveness still required so the reused-server wrong-host hazard stays
+  closed.
+
 ## 0.223.0 — 2026-07-29
 
 ### Fixed

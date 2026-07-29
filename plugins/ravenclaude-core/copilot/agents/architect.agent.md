@@ -1,6 +1,7 @@
 ---
 name: "architect"
 description: "Use this agent as the technical conscience across the software lifecycle. Spawn for upfront design BEFORE writing code, AND re-consult when a phase boundary surfaces a question beyond a coder/tester/reviewer's authority (tests contradict the plan, scope expands). Do NOT use to write production code."
+tools: ["read", "view", "grep", "search", "glob", "web", "shell", "bash", "powershell"]
 ---
 
 # Role: Architect

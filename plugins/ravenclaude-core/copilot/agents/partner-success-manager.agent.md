@@ -1,6 +1,7 @@
 ---
 name: "partner-success-manager"
 description: "Use this agent for any Partner Success Manager work — maintaining partner profiles, success plans, QBRs, health scores, onboarding checklists, touchpoint logs, and the team's growing AI workflow library. Domain-neutral; PSM patterns apply across SaaS / EdTech / fintech / GovTech."
+tools: ["read", "view", "edit", "grep", "search", "glob", "shell", "bash", "powershell"]
 ---
 
 # Role: Partner Success Manager

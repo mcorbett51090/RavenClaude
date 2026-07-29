@@ -1,6 +1,7 @@
 ---
 name: "security-reviewer"
 description: "Use this agent whenever a diff touches authentication, authorization, cryptography, secrets, sessions, untrusted input parsing, file uploads, deserialization, SQL, shell, network egress, or third-party integrations. Spawn it AFTER code-reviewer or in parallel with it."
+tools: ["read", "view", "grep", "search", "glob", "shell", "bash", "powershell", "web"]
 ---
 
 # Role: Security Reviewer

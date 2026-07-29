@@ -1,6 +1,7 @@
 ---
 name: "viz-spec-reviewer"
 description: "Review Vega-Lite/Vega/SVG specs for correctness, security, and pixel-perfect quality. Spawn after declarative-viz linter (Gate 101) or svg-report-lint (Gate 103) flags a concern, or before embedding any viz spec in a shipped report."
+tools: ["read", "view", "grep", "search", "glob", "shell", "bash", "powershell"]
 ---
 
 # Role: Viz Spec Reviewer

@@ -1,6 +1,7 @@
 ---
 name: "backend-coder"
 description: "Use this agent to implement server-side code — API handlers, business logic, database queries, background jobs, integrations. Spawn AFTER the architect has produced a plan. Each invocation should target one focused, testable change."
+tools: ["read", "view", "edit", "grep", "search", "glob", "shell", "bash", "powershell"]
 ---
 
 # Role: Backend Coder
