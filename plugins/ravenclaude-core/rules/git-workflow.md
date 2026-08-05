@@ -60,10 +60,27 @@ redundant — each catches a case the previous one already cleared:
 
 | # | Gate | Check | Catches |
 |---|---|---|---|
-| 1 | Merged | `git rev-list --count <base>..<branch>` is `0` | branches whose commits aren't in the base yet |
+| 1 | Merged | `git rev-list --count <base>..<branch>` is `0` **OR** a merged PR whose `headRefOid` equals the local tip | branches whose commits aren't in the base yet |
 | 2 | Worktree clean | `git -C <worktree> status --porcelain` is empty | **uncommitted work** — the real loss risk; the branch ref is recoverable, an uncommitted file is not |
 | 3 | No open PR | branch is not a `headRefName` in `gh pr list --state open` | deleting it **closes the PR** and loses its review thread |
 | 4 | Git's own veto | `git branch -d` (**never `-D`**) | git's independent second opinion on gate 1, incl. a remote ref behind the local branch |
+
+> **⚠ Ancestry alone is NOT proof of merged-ness — squash merges are invisible to it.**
+> A squash merge replays the branch as one *new* commit, so the originals are never
+> ancestors of the base and `rev-list` reports the branch as unmerged **forever**.
+> Two consequences, both load-bearing:
+>
+> - **Gate 1 needs the second proof** (merged PR whose head SHA equals the local tip —
+>   the pre-squash tip). The tip must *match*: `gh pr list --head <branch>` by name alone
+>   is unsound when branch names get reused, because a stale merged PR would then clear a
+>   branch carrying genuinely unmerged work.
+> - **Gate 4 (`git branch -d`) is blind the same way**, so a squash-merged branch cannot be
+>   retired with `-d` at all. That case routes to
+>   [`scripts/cleanup-branches.sh`](../../../scripts/cleanup-branches.sh), the **one**
+>   sanctioned `-D` escape hatch (house rule 5) — do not add a second force-delete path.
+>
+> This is not hypothetical: on 2026-08-05 a sweep reported **13 of 15** RavenPower branches
+> as "unmerged" when every one had been squash-merged. Ancestry-only had them backwards.
 
 Gate 4 is why this uses `-d`: it is a check by something that doesn't share your
 reasoning, and it is also why the sweep doesn't trip `guard-destructive.sh` (which

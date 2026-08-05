@@ -102,8 +102,28 @@ for b in $(git for-each-ref --format='%(refname:short)' refs/heads/); do
 
   sha="$(git rev-parse --short "$b")"
 
-  # --- Gate 1: every commit on this branch is already in the base ---
-  if [ "$(git rev-list --count "$BASE".."$b")" != "0" ]; then
+  # --- Gate 1: the branch's work is provably already in the base ---
+  # TWO sound proofs, because ancestry ALONE IS NOT ENOUGH: a squash merge
+  # replays the branch as one NEW commit, so the originals are never ancestors
+  # of the base and `rev-list` reports the branch as unmerged forever. (Found by
+  # running this script on its own squash-merged branch — it refused to retire
+  # it.) The second proof matches the merged PR's head SHA against the local
+  # tip, which is the pre-squash tip, so squash merges are covered.
+  #
+  # The tip must MATCH: `gh pr list --head <branch>` by name alone is unsound
+  # when branch names are reused (merge, delete, recreate with new work) — the
+  # stale merged PR would clear a branch carrying unmerged commits.
+  merged_proof=""
+  if [ "$(git rev-list --count "$BASE".."$b")" = "0" ]; then
+    merged_proof="all commits in $BASE"
+  elif [ "$PR_CHECK_OK" -eq 1 ]; then
+    tip="$(git rev-parse --verify --quiet "refs/heads/$b" 2>/dev/null || true)"
+    if [ -n "$tip" ] && gh pr list --state merged --head "$b" --json headRefOid 2>/dev/null \
+         | jq -e --arg t "$tip" 'any(.[]; .headRefOid == $t)' >/dev/null 2>&1; then
+      merged_proof="squash-merged (PR head tip matches)"
+    fi
+  fi
+  if [ -z "$merged_proof" ]; then
     printf "  HOLD    %-38s unmerged commits vs %s\n" "$b" "$BASE"; held=$((held+1)); continue
   fi
 
@@ -131,6 +151,14 @@ for b in $(git for-each-ref --format='%(refname:short)' refs/heads/); do
   fi
 
   if [ "$EXECUTE" -ne 1 ]; then
+    # Predict the squash case here too. Dry-run cannot consult gate 4 in
+    # general, but this one outcome IS knowable now, and printing "would
+    # delete" for something --execute will certainly refuse is a dry run that
+    # lies about its own next step.
+    if [ "$merged_proof" = "squash-merged (PR head tip matches)" ]; then
+      printf "  HOLD    %-38s squash-merged; git -d can't see it — use scripts/cleanup-branches.sh %s\n" "$b" "$b"
+      held=$((held+1)); continue
+    fi
     printf "  would delete  %-32s %s\n" "$b" "$sha"; deleted=$((deleted+1)); continue
   fi
 
@@ -143,7 +171,16 @@ for b in $(git for-each-ref --format='%(refname:short)' refs/heads/); do
     echo "$b $sha" >> "$LOG"
     printf "  deleted %-38s was %s\n" "$b" "$sha"; deleted=$((deleted+1))
   else
-    printf "  HOLD    %-38s git refused -d (not fully merged to HEAD or upstream)\n" "$b"
+    # `-d` shares gate 1's ancestry blindness, so a squash-merged branch lands
+    # here even though it IS merged. We deliberately do NOT fall back to `-D`:
+    # that is guard-destructive.sh's blocked pattern and its ONE sanctioned
+    # escape hatch is cleanup-branches.sh. Duplicating the escape here would
+    # give the repo two force-delete paths to keep correct instead of one.
+    if [ "$merged_proof" = "squash-merged (PR head tip matches)" ]; then
+      printf "  HOLD    %-38s squash-merged; git -d can't see it — use scripts/cleanup-branches.sh %s\n" "$b" "$b"
+    else
+      printf "  HOLD    %-38s git refused -d (not fully merged to HEAD or upstream)\n" "$b"
+    fi
     held=$((held+1))
   fi
 done
@@ -151,7 +188,9 @@ done
 echo
 if [ "$EXECUTE" -eq 1 ]; then
   echo "  deleted: $deleted    held: $held"
-  [ "$deleted" -gt 0 ] && echo "  record:  $LOG"
+  # An `x && y` tail is the LAST command, so under `set -e` a run that deleted
+  # nothing exits 1 — a clean "nothing to do" reported as a failure. Use `if`.
+  if [ "$deleted" -gt 0 ]; then echo "  record:  $LOG"; fi
 else
   echo "  would delete: $deleted    held: $held"
   echo "  (dry run — re-run with --execute to act)"
