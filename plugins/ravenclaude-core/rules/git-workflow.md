@@ -45,6 +45,48 @@ When a hook fails: **fix the underlying issue and create a NEW commit**. Never a
 - The Team Lead creates and tears down worktrees via [`new-worktree`](../skills/new-worktree/SKILL.md) and [`cleanup-worktrees`](../skills/cleanup-worktrees/SKILL.md).
 - Two agents, two worktrees. Never share.
 
+## Branch hygiene — retiring merged branches and worktrees
+
+**Default to `delete_branch_on_merge: true` on every repo.** It is the only fix that
+prevents the pile instead of clearing it. Verify with
+`gh api repos/OWNER/REPO --jq .delete_branch_on_merge`; set it with
+`gh api -X PATCH repos/OWNER/REPO -f delete_branch_on_merge=true`. This covers the
+remote side only — local branches and worktrees still accumulate, which is what the
+rest of this section is for.
+
+**Never sweep on "is it merged?" alone.** That question clears branches that still hold
+work. Run all four gates, in order, and delete only what passes every one. They are not
+redundant — each catches a case the previous one already cleared:
+
+| # | Gate | Check | Catches |
+|---|---|---|---|
+| 1 | Merged | `git rev-list --count <base>..<branch>` is `0` | branches whose commits aren't in the base yet |
+| 2 | Worktree clean | `git -C <worktree> status --porcelain` is empty | **uncommitted work** — the real loss risk; the branch ref is recoverable, an uncommitted file is not |
+| 3 | No open PR | branch is not a `headRefName` in `gh pr list --state open` | deleting it **closes the PR** and loses its review thread |
+| 4 | Git's own veto | `git branch -d` (**never `-D`**) | git's independent second opinion on gate 1, incl. a remote ref behind the local branch |
+
+Gate 4 is why this uses `-d`: it is a check by something that doesn't share your
+reasoning, and it is also why the sweep doesn't trip `guard-destructive.sh` (which
+blocks `-D`). Likewise use `git worktree remove` **without** `--force`, so a dirty
+worktree vetoes its own removal. Record branch names + SHAs before deleting.
+
+**Worked example (2026-08-04, RavenPower-Website, 31 branches).** Each of the last
+three gates caught something the previous had passed: `forge/configurator-v2` was
+fully merged but its worktree held an uncommitted file; `forge/page-allowance-reprice`
+was merged and clean but had open PR #184; `forge/portal-intake-tree` passed all three
+and git still refused `-d`. Result: 13 deleted, 3 saved that a merged-only sweep would
+have destroyed.
+
+**Run it:** [`scripts/branch-hygiene.sh`](../../../scripts/branch-hygiene.sh) implements
+all four gates, is **dry-run by default**, and fails closed if it can't reach `gh` (an
+unprovable gate is not a passed gate). Note dry-run is deliberately *looser* than
+`--execute`, since gate 4 only renders a verdict at delete time.
+
+**Scope — merged branches only.** For **unmerged/abandoned** work whose commits are not
+in the base, gate 1 correctly refuses; that case needs
+[`scripts/archive-branch.sh`](../../../scripts/archive-branch.sh), which tags the tip so
+it stays recoverable. See AGENTS.md house rule 5.
+
 ## Rebases vs. merges
 - Within an agent branch: rebase on top of `main` to keep history linear.
 - Integrating an agent branch into a feature branch: project preference. Default to fast-forward when possible, `--no-ff` when the feature branch wants explicit branch points for review.
