@@ -138,6 +138,7 @@ fi
 
 verdict_safe=()    # "branch<TAB>reason"
 verdict_unsafe=()  # "branch<TAB>reason"
+declare -A verdict_tips  # branch -> tip SHA the safety verdict was made against (TOCTOU re-check)
 
 for b in "${branches[@]}"; do
   if [ "$b" = "main" ] || [ "$b" = "master" ] || [ "$b" = "$default_branch" ]; then
@@ -191,6 +192,7 @@ for b in "${branches[@]}"; do
 
   if [ -n "$reason" ]; then
     verdict_safe+=("$b"$'\t'"$reason")
+    verdict_tips["$b"]="$local_tip"  # remember the tip the verdict was made against
   else
     verdict_unsafe+=("$b"$'\t'"no safety criterion met (no merged PR with matching tip, and not fully merged into $default_branch)")
   fi
@@ -234,6 +236,18 @@ for v in "${verdict_safe[@]}"; do
   # WRITE the recovery log line AFTER a confirmed delete — the log is the restore
   # record, so it must never claim a branch was deleted when the delete failed.
   _tip="$(git rev-parse --verify --quiet "refs/heads/$b" 2>/dev/null || echo unknown)"
+  # TOCTOU re-check (2026-08 review): gh calls in the verdict loop mean wall-clock
+  # time elapsed between the safety verdict and this delete. Refuse if the branch
+  # tip moved since the verdict was made against it — deleting against a stale
+  # verdict could drop commits added in the interim. (git already refuses -D on a
+  # branch checked out in another worktree, which blocks the concurrent-worktree
+  # case; this closes the same-dir sequential race.)
+  _vtip="${verdict_tips[$b]:-}"
+  if [ -n "$_vtip" ] && [ "$_tip" != "$_vtip" ]; then
+    echo "  ! skipped (tip changed since safety verdict: $_vtip -> $_tip): $b"
+    delete_failed=1
+    continue
+  fi
   if git branch -D "$b" >/dev/null 2>&1; then
     printf '%s\tdeleted\t%s\t%s\n' \
       "$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || echo unknown-ts)" "$b" "$_tip" \

@@ -30,6 +30,7 @@ from __future__ import annotations
 import argparse
 import base64
 import datetime as _dt
+import html
 import json
 import os
 import re
@@ -86,7 +87,9 @@ _NEUTRALS = {
 # --------------------------------------------------------------------------- #
 
 
-def _fetch(url: str, timeout: int, *, max_bytes: int) -> tuple[bytes | None, str | None, str | None]:
+def _fetch(
+    url: str, timeout: int, *, max_bytes: int
+) -> tuple[bytes | None, str | None, str | None]:
     """Return (body, content_type, error). On any failure body is None and error is set."""
     if url.startswith("data:"):
         try:
@@ -197,7 +200,14 @@ class _BrandParser(HTMLParser):
         content = a.get("content", "").strip()
         if not key or not content:
             return
-        if key in ("og:image", "og:image:url", "twitter:image", "theme-color", "og:site_name", "msapplication-tilecolor"):
+        if key in (
+            "og:image",
+            "og:image:url",
+            "twitter:image",
+            "theme-color",
+            "og:site_name",
+            "msapplication-tilecolor",
+        ):
             self.metas.setdefault(key, content)
 
     def _handle_img(self, a: dict) -> None:
@@ -261,7 +271,11 @@ def _collect_font_families(css_text: str) -> Counter:
     counts: Counter = Counter()
     for stack in _FONT_FAMILY_RE.findall(css_text):
         first = stack.split(",")[0].strip().strip("'\"")
-        if first and not first.startswith("var(") and first.lower() not in ("inherit", "initial", "unset"):
+        if (
+            first
+            and not first.startswith("var(")
+            and first.lower() not in ("inherit", "initial", "unset")
+        ):
             counts[first] += 1
     return counts
 
@@ -300,10 +314,14 @@ def _ext_from(ctype: str | None, url: str) -> str:
     return ext if ext else "img"
 
 
-def _build_logo_candidates(parser: _BrandParser, base_url: str, inline_svgs: list[str]) -> list[dict]:
+def _build_logo_candidates(
+    parser: _BrandParser, base_url: str, inline_svgs: list[str]
+) -> list[dict]:
     cands: list[dict] = []
 
-    def add(role: str, src: str, *, context: str = "", theme: str = "any", extra: dict | None = None) -> None:
+    def add(
+        role: str, src: str, *, context: str = "", theme: str = "any", extra: dict | None = None
+    ) -> None:
         item = {"role": role, "src": urljoin(base_url, src), "context": context, "theme": theme}
         if extra:
             item.update(extra)
@@ -317,15 +335,29 @@ def _build_logo_candidates(parser: _BrandParser, base_url: str, inline_svgs: lis
             role = "mask-icon"
         else:
             role = "favicon"
-        add(role, icon["href"], context=f"rel={rel} sizes={icon['sizes']}", extra={"declared_color": icon.get("color", "")})
+        add(
+            role,
+            icon["href"],
+            context=f"rel={rel} sizes={icon['sizes']}",
+            extra={"declared_color": icon.get("color", "")},
+        )
 
     for key, role in (("og:image", "og-image"), ("twitter:image", "twitter-image")):
         if key in parser.metas:
             add(role, parser.metas[key], context=f"meta {key}")
 
     for img in parser.img_logos:
-        role = "header-logo" if img["region"] in ("header", "nav") else ("footer-logo" if img["region"] == "footer" else "body-logo")
-        add(role, img["src"], context=f"<img> in <{img['region']}> alt={img['alt']!r}", extra={"width": img["width"], "height": img["height"]})
+        role = (
+            "header-logo"
+            if img["region"] in ("header", "nav")
+            else ("footer-logo" if img["region"] == "footer" else "body-logo")
+        )
+        add(
+            role,
+            img["src"],
+            context=f"<img> in <{img['region']}> alt={img['alt']!r}",
+            extra={"width": img["width"], "height": img["height"]},
+        )
 
     for src in parser.picture_sources:
         add("picture-source", src["srcset"], context="<picture><source>", theme=src["theme"])
@@ -360,7 +392,9 @@ def _build_logo_candidates(parser: _BrandParser, base_url: str, inline_svgs: lis
 # --------------------------------------------------------------------------- #
 
 
-def _rank_palette(color_counts: Counter, theme_color: str | None, custom_props: dict[str, str]) -> list[dict]:
+def _rank_palette(
+    color_counts: Counter, theme_color: str | None, custom_props: dict[str, str]
+) -> list[dict]:
     palette: list[dict] = []
     used: set[str] = set()
 
@@ -396,7 +430,14 @@ def _rank_palette(color_counts: Counter, theme_color: str | None, custom_props: 
     if theme_color:
         tc = _normalize_color(theme_color)
         if tc not in used:
-            palette.append({"value": tc, "role": "primary", "source": "theme-color-meta", "name": "theme-color"})
+            palette.append(
+                {
+                    "value": tc,
+                    "role": "primary",
+                    "source": "theme-color-meta",
+                    "name": "theme-color",
+                }
+            )
             used.add(tc)
 
     # 3. Frequency-ranked saturated colors as additional candidates.
@@ -436,7 +477,9 @@ def _font_roles_from_selectors(css_text: str) -> tuple[str | None, str | None]:
     return heading, body
 
 
-def _rank_fonts(font_counts: Counter, font_links: list[str], css_text: str) -> tuple[list[dict], list[str]]:
+def _rank_fonts(
+    font_counts: Counter, font_links: list[str], css_text: str
+) -> tuple[list[dict], list[str]]:
     google_families: list[str] = []
     for href in font_links:
         for fam in re.findall(r"family=([^&:]+)", href):
@@ -456,7 +499,9 @@ def _rank_fonts(font_counts: Counter, font_links: list[str], css_text: str) -> t
             role = "body"
         else:
             role = "unknown"
-        fonts.append({"family": fam, "source": "font-family", "count": font_counts[fam], "role": role})
+        fonts.append(
+            {"family": fam, "source": "font-family", "count": font_counts[fam], "role": role}
+        )
     # If selector context gave us nothing, fall back to frequency order (1st=heading, 2nd=body).
     if heading_fam is None and body_fam is None and len(fonts) >= 1:
         fonts[0]["role"] = "heading"
@@ -486,6 +531,20 @@ def _role_color(palette: list[dict], role: str, fallback: str) -> str:
     return fallback
 
 
+# Font-family names are read from the FETCHED site's CSS (untrusted). They are
+# interpolated into a double-quoted `--brand-font-*` declaration, so a name
+# carrying `"`, `;`, `{`, `}`, or a newline could break out of the declaration
+# and inject arbitrary CSS. _FONT_FAMILY_RE already strips `;{}` but NOT the
+# double-quote or line breaks — close that here before the value reaches the CSS.
+def _css_font_safe(name: str) -> str:
+    """Strip characters that would let a fetched font-family name break out of a
+    double-quoted CSS custom-property declaration."""
+    if not name:
+        return "system-ui"
+    cleaned = re.sub(r'[";{}\r\n]', "", str(name)).strip()
+    return cleaned or "system-ui"
+
+
 def _write_brand_css(brand: dict, path: str) -> None:
     palette = brand["colors"]["palette"]
     primary = _primary_color(palette)
@@ -493,8 +552,15 @@ def _write_brand_css(brand: dict, path: str) -> None:
     text = _role_color(palette, "text", "#1a1a1a")
     accent = _role_color(palette, "accent", primary)
     fonts = brand["typography"]["font_families"]
-    heading_font = next((f["family"] for f in fonts if f["role"] == "heading"), fonts[0]["family"] if fonts else "system-ui")
-    body_font = next((f["family"] for f in fonts if f["role"] == "body"), heading_font)
+    heading_font = _css_font_safe(
+        next(
+            (f["family"] for f in fonts if f["role"] == "heading"),
+            fonts[0]["family"] if fonts else "system-ui",
+        )
+    )
+    body_font = _css_font_safe(
+        next((f["family"] for f in fonts if f["role"] == "body"), heading_font)
+    )
     radius = brand["radii"][0] if brand["radii"] else "8px"
 
     lines = [
@@ -533,13 +599,22 @@ def _write_brand_css(brand: dict, path: str) -> None:
 
 
 def _write_report_template(brand: dict, path: str, logo_rel: str | None) -> None:
-    title = brand["source"].get("site_name") or brand["source"].get("title") or "Report"
+    # title / source URL come from the FETCHED site's <title>/og:site_name and are
+    # written verbatim into HTML attributes and text — HTMLParser decodes entities,
+    # so an entity-encoded `</title><script>…` would break out and execute when the
+    # generated report is opened. Escape every externally-sourced string (the report
+    # is the skill's stated deliverable, explicitly meant to be opened in a browser).
+    title = html.escape(
+        brand["source"].get("site_name") or brand["source"].get("title") or "Report",
+        quote=True,
+    )
+    source_url = html.escape(str(brand["source"].get("url") or ""), quote=True)
     logo_html = (
         f'<img src="{logo_rel}" alt="{title} logo" class="brand-logo" />'
         if logo_rel
         else f'<span class="brand-wordmark">{title}</span>'
     )
-    html = f"""<!doctype html>
+    doc = f"""<!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
@@ -583,7 +658,7 @@ def _write_report_template(brand: dict, path: str, logo_rel: str | None) -> None
     <main>
       <h1>Report title</h1>
       <p>Replace this body with your generated report content. The colors, fonts,
-        and logo above are pulled from <code>{brand['source']['url']}</code>.</p>
+        and logo above are pulled from <code>{source_url}</code>.</p>
       <div class="brand-card">
         <h2>Section</h2>
         <p>Cards, headings, and links inherit the brand tokens automatically.</p>
@@ -594,7 +669,7 @@ def _write_report_template(brand: dict, path: str, logo_rel: str | None) -> None
 </html>
 """
     with open(path, "w", encoding="utf-8") as fh:
-        fh.write(html)
+        fh.write(doc)
 
 
 def _write_summary(brand: dict, path: str) -> None:
@@ -616,7 +691,9 @@ def _write_summary(brand: dict, path: str) -> None:
         lines.append("|---|---|---|---|")
         for lg in logos:
             src = lg.get("src") or "(inline svg)"
-            local = lg.get("local_path") or ("logos/" + lg["role"] + ".svg" if lg.get("svg_markup") else "—")
+            local = lg.get("local_path") or (
+                "logos/" + lg["role"] + ".svg" if lg.get("svg_markup") else "—"
+            )
             lines.append(f"| {lg['role']} | {src} | {local} | {lg.get('theme', 'any')} |")
     else:
         lines.append("_No logo candidates were found — check the page manually._")
@@ -644,7 +721,7 @@ def _write_summary(brand: dict, path: str) -> None:
         "",
         "1. Review the ranked colors/fonts above and fix any mislabeled roles in `brand.json`.",
         "2. `brand.css` exposes `--brand-primary/-accent/-bg/-text` + every source custom property.",
-        "3. `report-template.html` is a working starter — `<link rel=\"stylesheet\" href=\"brand.css\">`"
+        '3. `report-template.html` is a working starter — `<link rel="stylesheet" href="brand.css">`'
         " and drop your report content into `<main>`.",
         "4. Logos are in `logos/` — pick the variant (light/dark, raster/svg) your report needs.",
         "",
@@ -687,7 +764,9 @@ def extract(url: str, out_dir: str, *, max_stylesheets: int, download: bool, tim
     fetched_sheets = 0
     for href in parser.stylesheet_hrefs:
         if fetched_sheets >= max_stylesheets:
-            notes.append(f"Stopped after {max_stylesheets} stylesheets (--max-stylesheets to raise).")
+            notes.append(
+                f"Stopped after {max_stylesheets} stylesheets (--max-stylesheets to raise)."
+            )
             break
         sheet_url = urljoin(url, href)
         body, _, sheet_err = _fetch(sheet_url, timeout, max_bytes=_MAX_CSS_BYTES)
@@ -702,7 +781,9 @@ def extract(url: str, out_dir: str, *, max_stylesheets: int, download: bool, tim
     custom_props = _collect_custom_properties(css_text)
     # Keep only custom properties whose value contains a color (the brand-relevant ones).
     color_props = {
-        n: v for n, v in custom_props.items() if any(rx.search(v) for rx in (_HEX_RE, _RGB_RE, _HSL_RE))
+        n: v
+        for n, v in custom_props.items()
+        if any(rx.search(v) for rx in (_HEX_RE, _RGB_RE, _HSL_RE))
     }
     font_counts = _collect_font_families(css_text)
     radius_counts = _collect_radii(css_text)
@@ -780,7 +861,9 @@ def extract(url: str, out_dir: str, *, max_stylesheets: int, download: bool, tim
         notes.append("Run without --no-download to fetch the logo asset bytes into logos/.")
 
     if not palette:
-        notes.append("No brand colors detected — the site may load CSS via JS or from blocked origins.")
+        notes.append(
+            "No brand colors detected — the site may load CSS via JS or from blocked origins."
+        )
     if not logos:
         notes.append("No logo candidates detected — inspect the page's header markup manually.")
     if not fonts:
@@ -792,7 +875,11 @@ def extract(url: str, out_dir: str, *, max_stylesheets: int, download: bool, tim
         fh.write("\n")
     _write_brand_css(brand, os.path.join(out_dir, "brand.css"))
     primary_logo = next(
-        (lg.get("local_path") for lg in logos if lg["role"] in ("header-logo", "inline-svg") and lg.get("local_path")),
+        (
+            lg.get("local_path")
+            for lg in logos
+            if lg["role"] in ("header-logo", "inline-svg") and lg.get("local_path")
+        ),
         next((lg.get("local_path") for lg in logos if lg.get("local_path")), None),
     )
     _write_report_template(brand, os.path.join(out_dir, "report-template.html"), primary_logo)
@@ -801,12 +888,26 @@ def extract(url: str, out_dir: str, *, max_stylesheets: int, download: bool, tim
 
 
 def main(argv: list[str] | None = None) -> int:
-    ap = argparse.ArgumentParser(description="Extract logos + brand design tokens from a website home page.")
+    ap = argparse.ArgumentParser(
+        description="Extract logos + brand design tokens from a website home page."
+    )
     ap.add_argument("url", help="Home page URL (scheme optional; https assumed).")
     ap.add_argument("--out", default="brand-kit", help="Output directory (default: brand-kit/).")
-    ap.add_argument("--max-stylesheets", type=int, default=8, help="Max external stylesheets to fetch (default: 8).")
-    ap.add_argument("--no-download", action="store_true", help="Inventory logos without downloading the bytes.")
-    ap.add_argument("--timeout", type=int, default=_DEFAULT_TIMEOUT, help=f"Per-request timeout (default: {_DEFAULT_TIMEOUT}s).")
+    ap.add_argument(
+        "--max-stylesheets",
+        type=int,
+        default=8,
+        help="Max external stylesheets to fetch (default: 8).",
+    )
+    ap.add_argument(
+        "--no-download", action="store_true", help="Inventory logos without downloading the bytes."
+    )
+    ap.add_argument(
+        "--timeout",
+        type=int,
+        default=_DEFAULT_TIMEOUT,
+        help=f"Per-request timeout (default: {_DEFAULT_TIMEOUT}s).",
+    )
     args = ap.parse_args(argv)
 
     brand = extract(

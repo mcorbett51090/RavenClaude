@@ -96,15 +96,30 @@ echo "$opts_lc" | grep -Eq '^(yes|no|proceed|cancel|approve|reject|confirm|deny|
 [ "$(echo "$opts_lc" | grep -Ecx '(yes|no|proceed|cancel|approve|reject|confirm|deny|do it|don.?t|continue|stop|accept|decline|merge|skip|enable|disable|allow|block)')" = "2" ] || emit_allow
 
 # --- 3. high-blast heuristic (engine also guards; belt + suspenders) ---
+# Scan $header and the per-option $description too — an AskUserQuestion
+# idiomatically states its real stakes in those fields, not only in the
+# question/labels. A high-blast decision can carry a bland qtext ("Continue?"
+# / "Yes"/"No") while the destructive detail lives entirely in the header
+# ("This will git push --force to main and discard 3 unmerged commits"). Both
+# deterministic defenses (this grep and the engine context below) must see them,
+# or a binding verdict can auto-resolve a destructive action the human never saw.
 hb=false
-if printf '%s %s %s' "$qtext" "$opt0" "$opt1" | grep -Eiq 'force[- ]?push|force-with-lease|reset --hard|\brm -rf\b|delete|\bdrop\b|\btruncate\b|\bwipe\b|\brevoke\b|\bpurge\b|prod(uction)?|publish|secret|credential|merge to main|push to main'; then hb=true; fi
+if printf '%s %s %s %s %s' "$qtext" "$opt0" "$opt1" "$header" "$description" | grep -Eiq 'force[- ]?push|force-with-lease|reset --hard|\brm -rf\b|delete|\bdrop\b|\btruncate\b|\bwipe\b|\brevoke\b|\bpurge\b|prod(uction)?|publish|secret|credential|merge to main|push to main'; then hb=true; fi
 
 # --- 4. Route through the tribunal engine (fail safe to allow on any error) ---
 engine="${CLAUDE_PLUGIN_ROOT:-$root/plugins/ravenclaude-core}/scripts/thing-decide.py"
 [ -f "$engine" ] || engine="$root/plugins/ravenclaude-core/scripts/thing-decide.py"
 [ -f "$engine" ] || emit_allow
 
-req="$(jq -nc --arg q "$qtext" --arg c "Binary user prompt intercepted by route-decision-review. Options: [$opt0 | $opt1]. Auto-resolve only if rule/fact-derivable." --argjson hb "$hb" '{question:$q,context:$c,high_blast:$hb}' 2>/dev/null || echo '')"
+# Feed $header + option $description into the engine context (size-capped) so its
+# own high-blast screen AND the LLM panel see the stakes the caller stated there,
+# not just the question/labels. jq --arg JSON-escapes the values, and the §4a
+# verdict-injection hardener below already treats header/description as untrusted
+# (it refuses a reasoning that echoes them), so this closes the blind spot without
+# weakening the injection defense.
+hdr_capped="${header:0:200}"
+desc_capped="${description:0:300}"
+req="$(jq -nc --arg q "$qtext" --arg c "Binary user prompt intercepted by route-decision-review. Options: [$opt0 | $opt1]. Header: ${hdr_capped}. Option details: ${desc_capped}. Auto-resolve only if rule/fact-derivable." --argjson hb "$hb" '{question:$q,context:$c,high_blast:$hb}' 2>/dev/null || echo '')"
 [ -n "$req" ] || emit_allow
 
 out="$(printf '%s' "$req" | timeout 80 python3 "$engine" --root "$root" decide 2>/dev/null || echo '')"

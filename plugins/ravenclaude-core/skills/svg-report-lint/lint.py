@@ -32,23 +32,34 @@ import sys
 import xml.etree.ElementTree as ET
 
 CHECKS = [
-    ("viewbox-present",     "root <svg> missing viewBox attribute — required for responsive scaling"),
-    ("viewbox-sane-aspect", "viewBox aspect ratio is outside the 0.05..20 range (may render as a sliver or pillar)"),
-    ("text-min-fontsize",   "<text> element has font-size below the minimum (illegible at typical report scale)"),
-    ("no-script",           "<script> element in SVG — script injection vector"),
-    ("no-inline-handlers",  "on* event attribute in SVG — inline JS event handler vector"),
-    ("no-foreign-object",   "<foreignObject> element in SVG — XSS-escalation vector"),
-    ("no-remote-href",      "remote or javascript: href/xlink:href in SVG — network call + potential JS"),
-    ("no-remote-use",       "<use> referencing a remote URL — network fetch + potential injection"),
+    ("viewbox-present", "root <svg> missing viewBox attribute — required for responsive scaling"),
+    (
+        "viewbox-sane-aspect",
+        "viewBox aspect ratio is outside the 0.05..20 range (may render as a sliver or pillar)",
+    ),
+    (
+        "text-min-fontsize",
+        "<text> element has font-size below the minimum (illegible at typical report scale)",
+    ),
+    ("no-script", "<script> element in SVG — script injection vector"),
+    ("no-inline-handlers", "on* event attribute in SVG — inline JS event handler vector"),
+    ("no-foreign-object", "<foreignObject> element in SVG — XSS-escalation vector"),
+    (
+        "no-remote-href",
+        "remote or javascript: href/xlink:href in SVG — network call + potential JS",
+    ),
+    ("no-remote-use", "<use> referencing a remote URL — network fetch + potential injection"),
 ]
 
 DEFAULT_MIN_FONTSIZE = 8
 SVG_NS = "http://www.w3.org/2000/svg"
 XLINK_NS = "http://www.w3.org/1999/xlink"
 
-_RE_ON_ATTR     = re.compile(r"\bon\w+\s*=", re.IGNORECASE)
+_RE_ON_ATTR = re.compile(r"\bon\w+\s*=", re.IGNORECASE)
+# Also flags PROTOCOL-RELATIVE hrefs (href="//host/x.svg") — they fetch a remote
+# resource under the page's scheme but do NOT start with http(s):// (2026-08 review).
 _RE_REMOTE_HREF = re.compile(
-    r"""(?:xlink:)?href\s*=\s*['"]?\s*(?:https?://|javascript:)""",
+    r"""(?:xlink:)?href\s*=\s*['"]?\s*(?:https?://|//|javascript:)""",
     re.IGNORECASE,
 )
 
@@ -61,12 +72,14 @@ def list_checks() -> None:
 
 # ── path safety ───────────────────────────────────────────────────────────────
 
+
 def _repo_root() -> str:
     here = os.path.dirname(os.path.abspath(__file__))
     root = here
     for _ in range(10):
-        if os.path.isfile(os.path.join(root, ".repo-layout.json")) or \
-           os.path.isfile(os.path.join(root, "AGENTS.md")):
+        if os.path.isfile(os.path.join(root, ".repo-layout.json")) or os.path.isfile(
+            os.path.join(root, "AGENTS.md")
+        ):
             return root
         parent = os.path.dirname(root)
         if parent == root:
@@ -90,6 +103,7 @@ def _safe_path(raw: str) -> str:
 
 # ── viewBox helpers ───────────────────────────────────────────────────────────
 
+
 def _parse_viewbox(vb: str):
     """Return (min_x, min_y, width, height) floats or None on parse error."""
     parts = vb.replace(",", " ").split()
@@ -103,10 +117,8 @@ def _parse_viewbox(vb: str):
 
 # ── font-size helpers ─────────────────────────────────────────────────────────
 
-_RE_FONTSIZE_ATTR  = re.compile(r"^(\d+(?:\.\d+)?)(px|pt|em|rem|%)?$", re.IGNORECASE)
-_RE_FONTSIZE_STYLE = re.compile(
-    r"font-size\s*:\s*(\d+(?:\.\d+)?)(px|pt|em|rem|%)?", re.IGNORECASE
-)
+_RE_FONTSIZE_ATTR = re.compile(r"^(\d+(?:\.\d+)?)(px|pt|em|rem|%)?$", re.IGNORECASE)
+_RE_FONTSIZE_STYLE = re.compile(r"font-size\s*:\s*(\d+(?:\.\d+)?)(px|pt|em|rem|%)?", re.IGNORECASE)
 
 
 def _fontsize_px(val_str: str) -> float | None:
@@ -147,6 +159,7 @@ def _element_fontsize(elem: ET.Element) -> float | None:
 
 # ── regex-based checks on raw content (catches namespace variants) ────────────
 
+
 def _check_raw(content: str, violations: list) -> None:
     """Regex-based checks that are robust to namespace variations."""
     if _RE_ON_ATTR.search(content):
@@ -157,13 +170,28 @@ def _check_raw(content: str, violations: list) -> None:
 
 # ── ElementTree-based checks ──────────────────────────────────────────────────
 
-_SCRIPT_TAGS   = {f"{{{SVG_NS}}}script", "script"}
-_FOREIGN_TAGS  = {f"{{{SVG_NS}}}foreignObject", "foreignObject"}
-_USE_TAGS      = {f"{{{SVG_NS}}}use", "use"}
-_TEXT_TAGS     = {f"{{{SVG_NS}}}text", "text",
-                  f"{{{SVG_NS}}}tspan", "tspan",
-                  f"{{{SVG_NS}}}tref", "tref"}
-_REMOTE_RE     = re.compile(r"^(?:https?://|javascript:)", re.IGNORECASE)
+_SCRIPT_TAGS = {f"{{{SVG_NS}}}script", "script"}
+_FOREIGN_TAGS = {f"{{{SVG_NS}}}foreignObject", "foreignObject"}
+_USE_TAGS = {f"{{{SVG_NS}}}use", "use"}
+_TEXT_TAGS = {
+    f"{{{SVG_NS}}}text",
+    "text",
+    f"{{{SVG_NS}}}tspan",
+    "tspan",
+    f"{{{SVG_NS}}}tref",
+    "tref",
+}
+_REMOTE_RE = re.compile(r"^(?:https?://|//|javascript:)", re.IGNORECASE)
+
+
+def _norm_scheme(v: str) -> str:
+    """Strip ASCII tab/CR/LF from a resolved href before scheme-matching.
+
+    A WHATWG URL parser strips tab/CR/LF while parsing the scheme, so
+    ``jav&#9;ascript:alert(1)`` (ElementTree decodes ``&#9;`` to a tab) executes
+    as ``javascript:`` in a browser even though the raw value fails ``^javascript:``.
+    Removing those control chars first closes that bypass (2026-08 review)."""
+    return re.sub(r"[\t\r\n]", "", v or "")
 
 
 def _check_tree(root: ET.Element, violations: list, min_fontsize: float) -> None:
@@ -180,11 +208,13 @@ def _check_tree(root: ET.Element, violations: list, min_fontsize: float) -> None
             if h > 0:
                 ratio = w / h
                 if ratio < 0.05 or ratio > 20:
-                    violations.append((
-                        "viewbox-sane-aspect",
-                        f"viewBox aspect ratio {ratio:.2f} is outside 0.05..20 "
-                        f"(width={w}, height={h})"
-                    ))
+                    violations.append(
+                        (
+                            "viewbox-sane-aspect",
+                            f"viewBox aspect ratio {ratio:.2f} is outside 0.05..20 "
+                            f"(width={w}, height={h})",
+                        )
+                    )
 
     for elem in root.iter():
         etag_bare = elem.tag.replace(f"{{{SVG_NS}}}", "").lower()
@@ -202,32 +232,36 @@ def _check_tree(root: ET.Element, violations: list, min_fontsize: float) -> None
         # ElementTree resolves XML character entities in attribute values during parsing,
         # so &#106;avascript:alert(1) becomes javascript:alert(1) here. This catches
         # entity-encoded schemes that the raw-text regex in _check_raw() cannot see.
-        href_resolved = (elem.get(f"{{{XLINK_NS}}}href") or elem.get("href") or "")
-        if href_resolved and _REMOTE_RE.match(href_resolved):
-            violations.append(("no-remote-href",
-                f"<{etag_bare}> href/xlink:href references remote or javascript: URL: "
-                f"{href_resolved!r}"))
+        href_resolved = elem.get(f"{{{XLINK_NS}}}href") or elem.get("href") or ""
+        if href_resolved and _REMOTE_RE.match(_norm_scheme(href_resolved)):
+            violations.append(
+                (
+                    "no-remote-href",
+                    f"<{etag_bare}> href/xlink:href references remote or javascript: URL: "
+                    f"{href_resolved!r}",
+                )
+            )
 
         # (h) no-remote-use
         if etag_full in _USE_TAGS or etag_bare == "use":
-            href = (elem.get(f"{{{XLINK_NS}}}href") or
-                    elem.get("href") or "")
-            if _REMOTE_RE.match(href):
-                violations.append(("no-remote-use",
-                    f"<use> references a remote URL: {href!r}"))
+            href = elem.get(f"{{{XLINK_NS}}}href") or elem.get("href") or ""
+            if _REMOTE_RE.match(_norm_scheme(href)):
+                violations.append(("no-remote-use", f"<use> references a remote URL: {href!r}"))
 
         # (c) text-min-fontsize
         if etag_full in _TEXT_TAGS or etag_bare in ("text", "tspan", "tref"):
             fs = _element_fontsize(elem)
             if fs is not None and fs < min_fontsize:
-                violations.append((
-                    "text-min-fontsize",
-                    f"<{etag_bare}> has font-size {fs:.1f}px "
-                    f"(minimum {min_fontsize}px)"
-                ))
+                violations.append(
+                    (
+                        "text-min-fontsize",
+                        f"<{etag_bare}> has font-size {fs:.1f}px (minimum {min_fontsize}px)",
+                    )
+                )
 
 
 # ── main ──────────────────────────────────────────────────────────────────────
+
 
 def main() -> int:
     args = sys.argv[1:]
@@ -247,10 +281,11 @@ def main() -> int:
         try:
             min_fontsize = float(args[idx + 1])
         except ValueError:
-            print(f"[error] --min-fontsize value is not numeric: {args[idx+1]!r}",
-                  file=sys.stderr)
+            print(
+                f"[error] --min-fontsize value is not numeric: {args[idx + 1]!r}", file=sys.stderr
+            )
             return 2
-        args = args[:idx] + args[idx + 2:]
+        args = args[:idx] + args[idx + 2 :]
 
     if not args:
         print("usage: lint.py <file.svg> [--min-fontsize N] [--debug]", file=sys.stderr)
@@ -284,8 +319,7 @@ def main() -> int:
     _check_tree(root, violations, min_fontsize)
 
     if debug:
-        print(f"[debug] path={abs_path!r}, min_fontsize={min_fontsize}, "
-              f"violations={violations}")
+        print(f"[debug] path={abs_path!r}, min_fontsize={min_fontsize}, violations={violations}")
 
     # Deduplicate (regex pass and tree pass may both catch the same issue)
     seen = set()
