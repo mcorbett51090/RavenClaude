@@ -334,6 +334,23 @@ jobs:
               npx --yes prettier@3.9.4 --check --log-level warn "${_existing[@]}" \
                 || { echo "::error::self-heal produced non-prettier-conforming output — aborting push (would break every subsequent PR's prettier gate)"; exit 1; }
             fi
+            # Layout allow-list (added after the 2026-08 review). This push carries
+            # [skip ci], so validate-layout.yml never runs on it — a generator that
+            # emitted an OFF-ALLOWLIST path (a brand-new artifact dir not yet in
+            # .repo-layout.json) would land on main un-gated and then fail every
+            # subsequent PR's layout gate. Check every changed/new path (tracked OR
+            # untracked) against the allow-list and abort, mirroring the JSON/prettier
+            # aborts above. Inline fnmatch (not check-layout.py --all, which sees only
+            # TRACKED files) so a freshly-created untracked artifact is covered too.
+            if [[ ${#_existing[@]} -gt 0 ]]; then
+              python3 -c 'import fnmatch,json,sys; a=json.load(open(".repo-layout.json"))["allowed_globs"]; bad=[f for f in sys.argv[1:] if f and not any(fnmatch.fnmatchcase(f,g) for g in a)]; sys.exit("off-allowlist paths: "+", ".join(bad)) if bad else None' "${_existing[@]}" \
+                || { echo "::error::self-heal produced an off-allowlist path — aborting push (would break every subsequent PR's layout gate)"; exit 1; }
+            fi
+            # Dangling relative markdown links in a regenerated doc (e.g. docs/concepts.md)
+            # would also slip past the [skip-ci] push; the md-links gate is whole-tree,
+            # deterministic, and offline, so run it and abort on failure.
+            python3 scripts/check-md-links.py \
+              || { echo "::error::self-heal produced a dangling markdown link — aborting push"; exit 1; }
           fi
 
           # 5. Report drift (informational). The changes are left UNCOMMITTED in the
