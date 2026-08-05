@@ -46,7 +46,7 @@
           {
             "type": "command",
             "command": "${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/guard-recursive-spawn.sh \"$CLAUDE_TOOL_FILE_PATH\"",
-            "comment": "Marketplace-dev hook (dev-mirror of the plugin's hooks/hooks.json entry). Advisory: warns when an edit to a plugin agent file looks like the agent is instructing itself to spawn a sub-agent. Set RC_GUARD_RECURSIVE_SPAWN_STRICT=1 to make it blocking."
+            "comment": "Marketplace-dev hook (dev-mirror of the plugin's hooks/hooks.json entry). Advisory: warns when an edit to a plugin agent file looks like the agent is instructing itself to spawn a sub-agent. This is a PostToolUse hook, so it CANNOT block/undo the edit; RC_GUARD_RECURSIVE_SPAWN_STRICT=1 surfaces it as a post-edit error, not a hard block."
           },
           {
             "type": "command",

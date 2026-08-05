@@ -14,7 +14,7 @@
           {
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/guard-recursive-spawn.sh \"$CLAUDE_TOOL_FILE_PATH\"",
-            "comment": "Advisory: warns when an edit to a plugin agent definition file looks like the agent is instructing itself to spawn another sub-agent — only the Team Lead dispatches. Set RC_GUARD_RECURSIVE_SPAWN_STRICT=1 to make this blocking."
+            "comment": "Advisory: warns when an edit to a plugin agent definition file looks like the agent is instructing itself to spawn another sub-agent — only the Team Lead dispatches. This is a PostToolUse hook, so it CANNOT block or undo the edit; RC_GUARD_RECURSIVE_SPAWN_STRICT=1 surfaces the warning as a post-edit error, not a hard block. Real prevention would require a PreToolUse redesign reading the proposed content."
           },
           {
             "type": "command",

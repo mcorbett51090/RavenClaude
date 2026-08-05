@@ -111,6 +111,7 @@ parse_section() {
         n = split(line, arr, ",")
         for (i = 1; i <= n; i++) {
           item = arr[i]
+          gsub(/[[:space:]]*#.*$/, "", item)   # strip an inline "# comment" (defensive; a domain can never contain #)
           gsub(/^[[:space:]]+|[[:space:]]+$/, "", item)
           gsub(/["'\'']/, "", item)
           if (item != "") print tolower(item)
@@ -123,6 +124,10 @@ parse_section() {
     }
     insec && /^[[:space:]]*-[[:space:]]*/ {
       gsub(/^[[:space:]]*-[[:space:]]*/, "")
+      gsub(/[[:space:]]*#.*$/, "")   # strip an inline "# comment" BEFORE the trailing-ws/quote strips:
+                                     # `- evil.com   # phishing` must parse as "evil.com", not the whole
+                                     # commented string (which matches no host → blacklist silently inert).
+                                     # A domain can never contain '#', so this is loss-free.
       gsub(/[[:space:]]+$/, "")
       gsub(/["'\'']/, "")
       if ($0 != "") print tolower($0)

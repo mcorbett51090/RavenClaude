@@ -260,9 +260,20 @@ if [ -n "$payload" ] && command -v jq >/dev/null 2>&1; then
 fi
 
 _wg_path_under_tree() {
-  local p="$1" d rp
+  local p="$1" d rp parent
   [ -n "$p" ] || return 1
   case "$p" in /*) d="$(dirname "$p")" ;; *) d="$cwd/$(dirname "$p")" ;; esac
+  # The target's parent dir may not exist yet — creating a brand-new file in a
+  # brand-new subdirectory is the normal case. `cd` into a non-existent dir fails,
+  # so walk UP to the nearest EXISTING ancestor and resolve that. Without this,
+  # a new-subdir Write resolves to "not under tree" and block mode wrongly ALLOWS
+  # a mutating write it should deny (resolving the ancestor keeps the outside-tree
+  # case correct too — an ancestor outside REAL_TOP still returns 1).
+  while [ -n "$d" ] && [ ! -d "$d" ]; do
+    parent="$(dirname "$d")"
+    [ "$parent" = "$d" ] && break   # reached the filesystem root; stop
+    d="$parent"
+  done
   rp="$( cd "$d" 2>/dev/null && pwd -P )" || return 1
   [ -n "$rp" ] || return 1
   [ "$rp" = "$REAL_TOP" ] && return 0
@@ -271,8 +282,11 @@ _wg_path_under_tree() {
 }
 
 # A MUTATING op = a Write/Edit/MultiEdit under the tree, OR a Bash git mutation
-# (commit/add/checkout/switch/merge/rebase/cherry-pick/revert/stash/rm/mv). NEVER
-# a read / git status / rcwt.
+# (commit/add/checkout/switch/merge/rebase/cherry-pick/revert/stash/rm/mv/
+# reset/restore/clean). NEVER a read / git status / rcwt. reset/restore/clean
+# discard or overwrite working-tree file contents — the same "yanks the tree out
+# from under everyone" collision hazard the guard already flags for checkout — so
+# they belong in this list (mirrors runaway-brake.sh's fuller mutating-token set).
 _wg_is_mutating() {
   case "$tn" in
     Write|Edit|MultiEdit)
@@ -285,7 +299,8 @@ _wg_is_mutating() {
   case " $cmd " in
     *"git commit"*|*"git add"*|*"git checkout"*|*"git switch"*|*"git merge"*|\
     *"git rebase"*|*"git cherry-pick"*|*"git revert"*|*"git stash"*|\
-    *"git rm "*|*"git mv "*) return 0 ;;
+    *"git rm "*|*"git mv "*|\
+    *"git reset"*|*"git restore"*|*"git clean"*) return 0 ;;
   esac
   return 1
 }
