@@ -119,7 +119,16 @@ PY
 dod_trusted="$(python3 -c "$__DOD_TRUSTED_PY" "$posture" 2>/dev/null || echo "false")"
 
 if [ "$dod_trusted" != "true" ]; then
-  cmd_hash="$(printf '%s' "$dod_cmd" | sha256sum 2>/dev/null | cut -c1-16)"
+  # Hash the cmd so the confirm token is per-cmd-value (a swapped cmd re-prompts).
+  # `sha256sum` is GNU-only and ABSENT on stock macOS — falling straight to the
+  # literal "nohash" made EVERY cmd value share the `confirmed-nohash` token, so one
+  # confirmation silently authorized any later (incl. maliciously swapped) command.
+  # Fall back sha256sum -> shasum -a 256 (stock macOS) -> cksum (POSIX, universal);
+  # tr keeps only hex/digit chars so the field survives each tool's output shape, and
+  # cut -c1-16 keeps the Linux sha256sum token byte-identical (existing confirms hold).
+  cmd_hash="$(printf '%s' "$dod_cmd" \
+    | { sha256sum 2>/dev/null || shasum -a 256 2>/dev/null || cksum 2>/dev/null; } \
+    | tr -dc '0-9a-f' | cut -c1-16)"
   [ -z "$cmd_hash" ] && cmd_hash="nohash"
   confirm_dir="${cwd}/.ravenclaude/runs/dod-gate/${safe_sid}"
   confirm_file="${confirm_dir}/confirmed-${cmd_hash}"

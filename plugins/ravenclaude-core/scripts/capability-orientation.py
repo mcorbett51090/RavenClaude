@@ -226,6 +226,22 @@ def summarize_permissions(root: Path) -> dict[str, list[str]] | None:
 # ── Recorded environment context — PRESENCE + date only (no content inlined) ──
 _DATE_RE = re.compile(r"(20\d{2}-\d{2}-\d{2})")
 
+# Size cap for the repo-controlled files this hook read-and-scans on EVERY
+# SessionStart (environment-context.md, run-config.json). An unbounded read +
+# regex-scan of a hostile/oversized file would make every session start pay a
+# proportional cost — mirrors apply-comfort-posture._POSTURE_MAX_BYTES. Over the
+# cap → treat the file as absent/degraded rather than read+scan it in full.
+_MAX_BANNER_READ_BYTES = 256 * 1024
+
+
+def _oversized(path: Path) -> bool:
+    """True if `path` exceeds the banner read cap (fail-safe: any stat error → False)."""
+    try:
+        return path.stat().st_size > _MAX_BANNER_READ_BYTES
+    except OSError:
+        return False
+
+
 # Characters that let a repo-controlled string break out of the untrusted-data
 # frame: any line-break the model may honor (ASCII CR/LF/VT/FF + the Unicode
 # separators) collapsed to a space, so the value can never terminate the banner
@@ -267,6 +283,15 @@ def summarize_env_context(root: Path) -> dict | None:
     path = root / ".ravenclaude" / "environment-context.md"
     if not path.exists():
         return {"present": False}
+    if _oversized(path):
+        # Present but too large to scan cheaply — surface presence, skip the read.
+        return {
+            "present": True,
+            "env_count": None,
+            "last_reviewed": None,
+            "stale": None,
+            "self_serve_count": None,
+        }
     try:
         text = path.read_text(encoding="utf-8")
     except Exception:
@@ -332,8 +357,15 @@ def _fmt_rules(rules: list[str], cap: int = 6) -> str:
     if not rules:
         return "none"
     shown = rules[:cap]
+    # Permission-rule strings come verbatim from a repo-controlled .claude/settings.json,
+    # so a rule carrying a newline + a literal </ravenclaude-capabilities> tag could
+    # break out of the banner's untrusted-data frame and inject out-of-frame text —
+    # the same break-out class the other repo-controlled fields defend against. Route
+    # each rule through the frame-break sanitizer before it reaches the banner (a bad
+    # rule sanitizes to None, which we render as an empty-string placeholder).
+    cleaned = [(_sanitize_banner_field(r) or "") for r in shown]
     suffix = f", +{len(rules) - cap} more" if len(rules) > cap else ""
-    return ", ".join(shown) + suffix
+    return ", ".join(cleaned) + suffix
 
 
 # ── Recent runtime activity — DERIVED COUNTS ONLY from the event substrate ────
@@ -399,7 +431,12 @@ def summarize_runtime_activity(root: Path) -> dict | None:
                     except Exception:
                         continue
                     ts = ev.get("ts") if isinstance(ev, dict) else None
-                    if isinstance(ts, str) and (last_posture is None or ts > last_posture):
+                    # `ts` is a free string from a (normally gitignored, but force-addable
+                    # / process-writable) posture-events.jsonl and is inlined into the
+                    # banner — frame-break sanitize it so a crafted ts can't close the
+                    # untrusted-data frame, matching every other repo/state-controlled field.
+                    ts = _sanitize_banner_field(ts, cap=64) if isinstance(ts, str) else None
+                    if ts and (last_posture is None or ts > last_posture):
                         last_posture = ts
         except OSError:
             pass
@@ -457,6 +494,8 @@ def summarize_run_config(root: Path) -> dict | None:
     try:
         cfg_path = root / ".ravenclaude" / "run-config.json"
         if not cfg_path.is_file():
+            return None
+        if _oversized(cfg_path):
             return None
         with cfg_path.open("r", encoding="utf-8") as f:
             data = json.load(f)

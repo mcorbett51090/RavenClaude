@@ -53,6 +53,30 @@ _FM = re.compile(r"^---\r?\n(.*?)\r?\n---", re.DOTALL)
 
 _SCENARIO_ITEM_KEYS = ("intent", "trigger_phrase", "outcome", "difficulty")
 
+# Basenames that are legitimate non-definition docs under skills/agents/commands
+# dirs — they carry no frontmatter and must not be required to. Mirrors
+# check-marketplace-claims._NON_DEFINITION_DOCS so the two gates agree.
+_NON_DEFINITION_DOCS = frozenset({"readme.md", "changelog.md", "notes.md"})
+
+
+def _is_blank(v: object) -> bool:
+    """True for a missing / empty / whitespace-only / boolean frontmatter value.
+
+    The prior `x in (None, "", [], {})` test was loose: `False in (None, "", [], {})`
+    is False (no tuple member equals False) and a whitespace string `" "` is not `""`,
+    so `tools: false` / `tools: " "` slipped past the 'missing or empty' gate — the
+    exact least-privilege control it exists to enforce. Treat None, any bool, a blank
+    string, and an empty list/dict as empty; a real scalar counts as present.
+    """
+    if v is None or isinstance(v, bool):
+        return True
+    if isinstance(v, str):
+        return not v.strip()
+    if isinstance(v, (list, dict)):
+        return len(v) == 0
+    return False
+
+
 # Agent `description` fields load into the orchestrator's system prompt for EVERY
 # enabled plugin so it can route to subagents — they count against Claude Code's
 # ~15K-token agent-description budget (the "/agents to free up context" warning).
@@ -66,7 +90,7 @@ def _agent_scenario_violations(data: dict) -> list[str]:
     problems: list[str] = []
 
     for key in ("audience", "works_with"):
-        if key not in data or data[key] in (None, "", [], {}):
+        if key not in data or _is_blank(data[key]):
             problems.append(f"missing or empty '{key}' (scenario-authoring schema)")
 
     scenarios = data.get("scenarios")
@@ -83,7 +107,7 @@ def _agent_scenario_violations(data: dict) -> list[str]:
                     problems.append(f"scenarios[{i}] missing or non-string '{k}'")
 
     quickstart = data.get("quickstart")
-    if quickstart in (None, "", [], {}):
+    if _is_blank(quickstart):
         problems.append("missing or empty 'quickstart' (scenario-authoring schema)")
 
     return problems
@@ -107,7 +131,12 @@ def _violations(root: Path) -> list[tuple[str, str]]:
         "plugins/*/agents/*.md",
         "plugins/*/commands/*.md",
     ]
-    files = sorted({f for p in patterns for f in glob.glob(str(root / p))})
+    files = sorted(
+        f
+        for p in patterns
+        for f in glob.glob(str(root / p))
+        if Path(f).name.casefold() not in _NON_DEFINITION_DOCS
+    )
     bad: list[tuple[str, str]] = []
     # Cross-plugin agent-name uniqueness: an agent `name` is the orchestrator's
     # routing key; two plugins shipping the same `name` collide in the subagent
@@ -136,7 +165,7 @@ def _violations(root: Path) -> list[tuple[str, str]]:
             for why in _agent_scenario_violations(data):
                 bad.append((rel, why))
             tools = data.get("tools")
-            if tools in (None, "", [], {}):
+            if _is_blank(tools):
                 bad.append(
                     (
                         rel,

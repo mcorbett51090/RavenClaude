@@ -94,6 +94,18 @@ done
 [[ -z "$BRANCH" ]] && { echo "archive-branch: <branch> is required" >&2; usage; }
 [[ -z "$REASON" ]] && { echo "archive-branch: --reason is required" >&2; usage; }
 
+# --skip-push + --delete-remote is unsafe by construction: with --skip-push the
+# archive tag is created LOCAL-ONLY (never pushed to origin, see the push guard
+# below), yet --delete-remote goes on to delete the branch on origin. The only
+# surviving copy of the commits is then a local tag that vanishes when an
+# ephemeral session/container is reclaimed — the branch becomes unrecoverable
+# from origin. This directly violates precondition 4 (the tag must be pushed
+# before a delete is safe). Refuse the combination rather than silently lose work.
+if [[ $DELETE_REMOTE -eq 1 && $SKIP_PUSH -eq 1 ]]; then
+  echo "archive-branch: REFUSED — --delete-remote requires the archive tag to be pushed to origin first; drop --skip-push (the local-only tag would be the sole copy of the branch's work and is lost when the workspace is reclaimed)." >&2
+  exit 1
+fi
+
 # ─── Preconditions ───────────────────────────────────────────────────────────
 cd "$(git rev-parse --show-toplevel)"
 
