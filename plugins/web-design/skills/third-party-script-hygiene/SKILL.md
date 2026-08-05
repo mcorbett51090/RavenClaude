@@ -44,7 +44,7 @@ Constraint creates clarity. Default category budgets for a marketing site:
 
 | Category | Default budget | Notes |
 |---|---|---|
-| **Analytics** | 1 | One tool. Plausible / Fathom / GA4 — pick one. Not all three. |
+| **Analytics** | 2 (bundled house default) | GA4 (consent-mode) + Cloudflare Web Analytics ship together as ONE "house analytics" inventory line — see CLAUDE.md §3 #11's standing exception + §8 below. Not two competing tools; do NOT add a THIRD without retiring one. Each is placeholder-until-provisioned + independently PROD+valid-id guarded. A build wanting zero client analytics (e.g. an internal tool) waives the pair explicitly at G9 sign-off. |
 | **Chat / support** | 1, conditional | Loaded only on pages where it earns its keep; lazy-load on interaction |
 | **A/B test / personalization** | 1 | Optimizely / VWO / GrowthBook. Two is paying twice for the same job. |
 | **Fonts** | max 2 families | Self-hosted from a CDN edge cache. Variable fonts let one file cover the weight palette. |
@@ -183,6 +183,73 @@ A third-party gets retired when:
 
 The retirement PR includes: removing the `<script>`, removing the CMP entry, removing the CSP entries, removing the vendor from data-processor list, archiving the DPA.
 
+## 8. The dual-analytics house pair — reference implementation (added 2026-07-21, `dual-analytics-standard`)
+
+The standing exception in `../../CLAUDE.md` §3 #11 ships **one** analytics inventory line: **GA4 (Consent Mode v2, default-denied) + Cloudflare Web Analytics**, wired *placeholder-until-provisioned*. This §8 is the single copy-paste source every scaffold generalises — guard semantics are byte-identical across stacks; only the mount mechanic and the `spa` flag differ.
+
+### 8.1 The two beacons
+
+GA4 — Consent Mode v2, **default-denied; `consent` MUST precede `config`** (order is load-bearing). With `analytics_storage:'denied'` GA4 runs cookieless (no client-ID stored):
+```html
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){ dataLayer.push(arguments); }
+  gtag('consent','default',{ ad_storage:'denied', ad_user_data:'denied',
+                             ad_personalization:'denied', analytics_storage:'denied' });
+</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+<script>
+  gtag('js', new Date());
+  gtag('config','G-XXXXXXXXXX');
+</script>
+```
+Cloudflare — cookieless, `spa:false` on static MPA sites, `spa:true` only on the Next portal. Works on any host with no CF proxy (so the GitHub-Pages fleet can adopt it). **No `integrity=`/SRI** — both hosts are versionless/auto-updating (see §8.4):
+```html
+<script defer src="https://static.cloudflareinsights.com/beacon.min.js"
+        data-cf-beacon='{"token":"<32-hex-token>","spa":false}'></script>
+```
+
+### 8.2 Placeholder-until-provisioned — empty default + validators that REJECT dummy shapes
+
+The placeholder is **empty `''`** — NEVER `G-XXXXXXXXXX` / `YOUR-CF-BEACON-TOKEN`. (A `[A-Z0-9]` dummy PASSES a naive `/^G-[A-Z0-9]{6,}$/` and would fire a live beacon to a dead property while claiming "inert".) The guard positively validates AND rejects dummies; there is **no unguarded `{{GA_ID}}` markup** — every mount renders the `<script>` only inside an enabled branch:
+```js
+function isRealGaId(raw) {
+  const id = (raw ?? '').trim();
+  if (!/^G-[A-Z0-9]{6,}$/.test(id)) return false;   // shape; rejects '', whitespace
+  return !/^(.)\1*$/.test(id.slice(2));              // rejects G-XXXXXXXXXX, G-000000, any all-one-char body
+}
+function isRealCfToken(raw) {
+  return /^[0-9a-f]{32}$/.test((raw ?? '').trim());  // POSITIVE shape: rejects '', 'YOUR-...', whitespace, non-hex
+}
+```
+Each beacon is **independently** PROD-gated AND valid-id-gated:
+
+| Stack | PROD gate | Emit GA when | Emit CF when |
+|---|---|---|---|
+| Astro | `import.meta.env.PROD` | `PROD && isRealGaId(gaId)` | `PROD && isRealCfToken(cfToken)` |
+| Next | `VERCEL_ENV==='production'` else `NODE_ENV==='production'` | `prodDeploy && isRealGaId(GA)` | `prodDeploy && isRealCfToken(CF)` |
+| No-build HTML | `location.hostname ∉ {localhost,127.0.0.1,0.0.0.0,'',*.local}` | `hostOk && isRealGaId(GA)` | `hostOk && isRealCfToken(CF)` |
+
+### 8.3 Authed/internal surfaces do NOT auto-fire (default)
+
+GA and CF **do not auto-fire on an authenticated or internal surface** (a logged-in app area, an internal dashboard) — full path+query there leaks order IDs / reset-link tokens to two third parties. Mount analytics only on genuinely-public routes (e.g. a Next `app/(public)/` route group; a public marketing template, never the internal-dashboard template). Instrumenting an authed/internal surface is a **documented, sign-off-gated exception requiring URL/query redaction** — never the silent default.
+
+### 8.4 Integrity — honest, host-dependent
+Both `<script>` are **SRI-exempt by design** (versionless auto-updating — a pinned hash breaks on the vendor's next update). On hosts that set response headers, a header CSP `script-src`/`connect-src` allow-list is the integrity control. **On GitHub Pages no header CSP is possible** — use a `<meta http-equiv>` CSP where feasible and record honestly that these two scripts run with **no enforced integrity control** there (accepted, documented exemption — not "CSP handles it").
+
+### 8.5 Perf is measured, not waived
+The pair is exempt from the "pick one" *count*, NOT the CWV budget: it must add **`< 50 ms` Total Blocking Time and not regress LCP**; GA loads `async`, CF `defer`, neither in a render-blocking `<head>`. The pipeline's performance gate measures this — do not blanket-pass the pair.
+
+### 8.6 gtag-safety (independent activation)
+GA and CF activate **independently** — a page may legitimately ship CF-only, so `window.gtag` may not exist. Any code calling `gtag()` MUST guard it or push to `window.dataLayer` (always safe to no-op). Never assume `gtag` exists because "analytics is on."
+
+## 9. EU consent + data quality (honesty guardrails)
+
+- **Consent-mode is NOT a CMP.** Cloudflare Web Analytics is genuinely cookieless and needs no banner; **GA4-with-consent-mode is not GDPR-sufficient on its own — it still needs a CMP/cookie-banner in the EU** ([developers.google.com/tag-platform/security/guides/consent](https://developers.google.com/tag-platform/security/guides/consent)). Never write "no cookie banner needed" as a blanket dual-analytics claim.
+- **Modeled data.** With consent default-denied and no CMP, GA4 stores no client ID, so user/session/returning counts are behavioral-model estimates for **all** traffic (not only the EU) and largely duplicate CF's cleaner count. **Cloudflare is the source of truth for raw pageviews; GA4 is for events/conversions once actually provisioned + a `gtag('consent','update',…)` path wired.**
+- **Pre-launch `Conditions:` (G9).** An EU-bound build wires a CMP + the consent-update path before GA counts are trusted. If EU traffic becomes material, run a follow-up `cmp-standard` engagement.
+- **Retention.** GA4 free-tier raw exploration history is capped at 14 months (GA property admin, not code) — don't promise unlimited free history.
+
 ## Hygiene checklist
 
 - [ ] Third-party inventory exists, every column populated
@@ -205,7 +272,7 @@ The retirement PR includes: removing the `<script>`, removing the CMP entry, rem
 - **No consent gate on EU traffic** — analytics / ad pixels firing pre-consent. Regulatory risk + reputational risk.
 - **Abandoned chat widget loading on every page** — costs every visitor; serves none. Retire or lazy-load.
 - **Google Tag Manager containing a dozen unaudited tags** — GTM is a Trojan horse for third-parties no one signed off on. Audit the container; treat each tag as its own inventory entry.
-- **Two analytics tools "to compare data"** — you'll never reconcile; pick one.
+- **Two analytics tools "to compare data"** — you'll never reconcile; pick one. **(Does NOT apply to the sanctioned GA4 + Cloudflare Web Analytics house pair — see CLAUDE.md §3 #11 and §8 below. Still applies to any THIRD analytics tool, or to two tools not drawn from this pair.)**
 - **Google Fonts loaded directly from `fonts.googleapis.com`** — third-party, blocking, GDPR-fraught. Self-host.
 - **YouTube embed in the hero** — 500 KB+ before the user clicks play. Use a lite-embed (just a thumbnail + click-to-load).
 - **`unsafe-eval` in the CSP "because the vendor requires it"** — vendor's problem to fix; threaten to replace them.

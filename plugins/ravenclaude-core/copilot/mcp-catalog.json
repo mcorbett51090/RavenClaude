@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "_generated_by": "scripts/generate-copilot-plugin.py \u2014 do not edit by hand; this file is rebuilt from every plugin's plugin.json mcpServers",
+  "_note": "CATALOGUE ONLY \u2014 nothing here is installed unless you name it with `ravenclaude install --host copilot --with-mcp <server>`. Every entry is THIRD-PARTY software that runs on your machine. On Claude Code you get one of these by installing the plugin that ships it; Copilot's MCP config is global, so opting in by name is the equivalent consent step.",
+  "servers": [
+    {
+      "name": "aws-documentation",
+      "shipped_by": [
+        "aws-cloud"
+      ],
+      "party": "third-party",
+      "config": {
+        "command": "uvx",
+        "args": [
+          "awslabs.aws-documentation-mcp-server@latest"
+        ],
+        "env": {
+          "FASTMCP_LOG_LEVEL": "ERROR"
+        }
+      }
+    },
+    {
+      "name": "fal",
+      "shipped_by": [
+        "generative-web-media"
+      ],
+      "party": "third-party",
+      "config": {
+        "type": "http",
+        "url": "https://mcp.fal.ai/mcp"
+      }
+    },
+    {
+      "name": "microsoft-learn",
+      "shipped_by": [
+        "microsoft-365-copilot",
+        "microsoft-fabric",
+        "microsoft-graph"
+      ],
+      "party": "third-party",
+      "config": {
+        "type": "http",
+        "url": "https://learn.microsoft.com/api/mcp"
+      }
+    },
+    {
+      "name": "powerbi-editor",
+      "shipped_by": [
+        "power-platform"
+      ],
+      "party": "third-party",
+      "config": {
+        "command": "pbix-mcp-server"
+      }
+    }
+  ]
+}

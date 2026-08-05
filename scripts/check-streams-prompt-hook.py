@@ -176,9 +176,36 @@ def check_copilot_parity() -> list[str]:
     adapter = ADAPTER.read_text(encoding="utf-8")
     if "userpromptsubmit)" not in adapter:
         errs.append("parity: copilot adapter has no userpromptsubmit mode")
-    installer = INSTALLER.read_text(encoding="utf-8")
-    if "userpromptsubmit" not in installer or "stream-prompt-attribute.sh" not in installer:
-        errs.append("parity: installer does not wire the userpromptsubmit hook into .github/hooks")
+    # ASSERT THE OUTCOME, NOT THE IMPLEMENTATION SHAPE (corrected 2026-07-28, MH-12).
+    #
+    # This used to grep `scripts/ravenclaude` for the literal strings
+    # "userpromptsubmit" and "stream-prompt-attribute.sh", because the Copilot
+    # wiring was a hand-written list inside the installer. When that list became a
+    # PROJECTION derived from the canonical manifest, the literals disappeared and
+    # this check failed — while the hook was, in fact, still wired.
+    #
+    # A gate that greps for how something is implemented breaks every time the
+    # implementation improves, and it trains the next maintainer to "fix the gate".
+    # So it now RUNS the projector and asserts the hook is actually in the emitted
+    # config, which is the thing that was ever worth guaranteeing.
+    try:
+        sys.path.insert(0, str(REPO / "scripts"))
+        spec = importlib.util.spec_from_file_location(
+            "gch", REPO / "scripts" / "generate-copilot-hooks.py"
+        )
+        gch = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(gch)
+        cfg, _wired, _skipped = gch.build("/ADAPTER", "/HOOKS")
+        emitted = json.dumps(cfg.get("hooks", {}).get("UserPromptSubmit", []))
+        if "stream-prompt-attribute.sh" not in emitted:
+            errs.append(
+                "parity: the Copilot projection does not emit stream-prompt-attribute.sh "
+                "under UserPromptSubmit"
+            )
+        if "userpromptsubmit" not in emitted:
+            errs.append("parity: the emitted hook does not use the userpromptsubmit adapter mode")
+    except Exception as exc:  # noqa: BLE001 — any projector failure is a parity failure
+        errs.append(f"parity: could not run the Copilot hook projection: {exc}")
     return errs
 
 

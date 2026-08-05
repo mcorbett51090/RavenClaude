@@ -512,7 +512,42 @@ The runaway brake bounds *depth*, the DoD gate bounds *correctness*, the task-sc
 
 - **The container/worktree is the real boundary, and it's model-agnostic.** The devcontainer this marketplace scaffolds ([`templates/codespace-copilot/`](templates/codespace-copilot/), `ravenclaude init-codespace`) + a git worktree for risky/parallel runs is the OS-enforced blast radius — identical under Claude Code, GitHub Copilot CLI, or any other host. This is the sanctioned containment posture.
 - **Portable tool-layer denies (seeded, not a gate).** [`templates/comfort-posture-balanced.yaml`](templates/comfort-posture-balanced.yaml)'s `security_deny` floor now denies reads of host credential stores outside the repo — `~/.ssh`, `~/.aws`, `~/.config/gcloud`, `~/.azure`, `~/.kube/config`, `~/.docker/config.json` — alongside the existing in-repo secret denies. These translate to `permissions.deny` rules via [`apply-comfort-posture.py`](scripts/apply-comfort-posture.py) and are honored by Claude Code's permission engine **and** the Thing's `file_read_global` review, so they port to Copilot. They are tool-layer, **not** OS isolation (the subprocess gap above).
-- **Honest caveat: Claude Code's OS sandbox is Claude-only.** Claude Code can add an OS sandbox (Seatbelt/bubblewrap, `denyRead`/`denyWrite`, `autoAllowBashIfSandboxed`) that *does* contain subprocesses, but there is no evidence Copilot CLI honors it — so under Copilot the container/worktree is the containment, **not** the sandbox. We deliberately do **not** write a Claude-only sandbox config and present it as portable. The consumer-facing version of this guidance ships in the per-repo [`templates/dashboard-launcher/README.md`](templates/dashboard-launcher/README.md) "Containment posture" section that `ravenclaude setup` drops into `.ravenclaude/README.md`. The subprocess-vs-tool-layer limit is grounded in [`knowledge/claude-code-permissions.md`](knowledge/claude-code-permissions.md) §"Read/Edit rules do not protect against subprocess access". **Migration:** none — the seeded denies only affect a **new** repo's seed (an existing `comfort-posture.yaml` is never clobbered by `setup`), and the rest is documentation.
+- **Honest caveat: an OS sandbox is NOT universal across hosts — it is per-host, and it differs (corrected 2026-07-28, MH-16).** Claude Code can add an OS sandbox (Seatbelt/bubblewrap, `denyRead`/`denyWrite`, `autoAllowBashIfSandboxed`) that *does* contain subprocesses, but there is no evidence Copilot CLI honors it — so **under Copilot** the container/worktree is the containment, **not** the sandbox. We deliberately do **not** write a Claude-only sandbox config and present it as portable.
+
+  > **⚠️ This bullet used to read "Claude Code's OS sandbox is Claude-only" and generalized from Copilot to
+  > every non-Claude host. That is FALSE for OpenAI Codex CLI**, and it is the costliest direction to be
+  > wrong in: it sends a Codex operator to add a devcontainer while saying nothing about the knob that
+  > actually governs their blast radius. **Codex ships its own OS sandbox as a default-on, first-class
+  > control** `[docs-verified 2026-07-28 — https://learn.chatgpt.com/docs/sandboxing]`, using the *same*
+  > primitives: **Seatbelt** on macOS, **bubblewrap** on Linux/WSL2, the native Windows sandbox on Windows.
+  > It is governed by `sandbox_mode` ∈ `read-only` | `workspace-write` | `danger-full-access` (default
+  > **`workspace-write`**) × `approval_policy` ∈ `untrusted` | `on-request` | `never`, in `.codex/config.toml`.
+  > Decisively, the docs state *"The sandbox applies to spawned commands, not just to built-in file
+  > operations"* — so on Codex the OS layer **already closes the subprocess gap** this whole section exists
+  > to name, and it closes it **by default**, where Claude Code's is opt-in. **For a Codex operator the
+  > sandbox IS the boundary; a container is an optional second layer, not the primary answer.**
+  >
+  > **CLOSED 2026-07-29 (v0.226.0) — the posture now reaches Codex, including from the dashboard.**
+  > This block previously read *"nothing writes `.codex/config.toml`, so the dashboard's headline product
+  > (posture editing) currently moves nothing on this host."* Both halves are now wired:
+  > `scripts/emit-codex-config.py` (**Gate 156**) projects the posture, the installer runs it, and — the
+  > half that was still genuinely missing until v0.226.0 — **the dashboard's Save path runs it too**
+  > (**Gate 168**). Before that, the emitter existed but was invoked from exactly one place, so a user
+  > could set every category to `deny`, click Save, see success, and still be at Codex's default
+  > `workspace-write`.
+  >
+  > **The caveats did NOT go away, and they are the reason this is not parity:**
+  > - **Coarse by design** — two enum keys cannot express 12 posture categories. It is an honest
+  >   projection, not equivalence.
+  > - **NEVER SILENTLY WEAKEN** — absent key → write; posture stricter → tighten; posture **looser** →
+  >   **refuse** and print the line to change by hand. A refusal exits 0, so the dashboard surfaces it
+  >   explicitly (`codex_refusals`); a partial apply reported as "applied" would be the same false
+  >   assurance in a new place.
+  > - `danger-full-access` and `approval_policy = "never"` are **never** emitted at any posture.
+  > - **Writing the file is not the same as bounding the session** — a project `.codex/config.toml` loads
+  >   **only in trusted projects**. That trust gate is Codex's, not ours.
+  > - **Only projects that already use Codex are touched** (a `.codex/` dir must exist). We do not create
+  >   an OS-sandbox config in every repo that ever saves a posture. The consumer-facing version of this guidance ships in the per-repo [`templates/dashboard-launcher/README.md`](templates/dashboard-launcher/README.md) "Containment posture" section that `ravenclaude setup` drops into `.ravenclaude/README.md`. The subprocess-vs-tool-layer limit is grounded in [`knowledge/claude-code-permissions.md`](knowledge/claude-code-permissions.md) §"Read/Edit rules do not protect against subprocess access". **Migration:** none — the seeded denies only affect a **new** repo's seed (an existing `comfort-posture.yaml` is never clobbered by `setup`), and the rest is documentation.
 
 ## Website access — allow/deny lists + the four-option prompt (added 2026-06-01)
 
@@ -917,18 +952,22 @@ Visual-output agents (web, dashboards, Power BI, Tableau) now carry an inherent 
 
 **Migration:** none — the priors degrade to a structural read when the optional MCP is absent (never stall), the referee defaults to `passed:null`/exit-0 with no evidence, and nothing in a consumer's installed plugin changes on `/plugin marketplace update` unless they wire the optional browser tool.
 
+## Dual-analytics default for HTML-serving templates (added 2026-07-21)
+
+Any plugin template that renders an HTML `<head>` (e.g. `templates/repo-build-studio/*.html`) ships the dual-analytics placeholder block (Google Analytics 4 + Cloudflare Web Analytics, **placeholder-until-provisioned** — empty IDs ship inert, zero network) by convention. The **full policy** — the snippet, the id/token validators, the integrity story, the EU + data-quality caveats, and the authenticated/internal-surface default — lives in `../web-design/skills/third-party-script-hygiene/SKILL.md` §8–9 (this plugin stays domain-neutral; that skill is the source of truth). A template with no HTML `<head>` (a CLI launcher, a data pipeline, `dashboard-launcher/`) is out of scope.
+
 ## Layout (plugin internal directories)
 
 `ravenclaude-core` uses the standard component directories:
 
 - `agents/` — 15 specialist agent definitions (includes `data-engineer` and `viz-spec-reviewer`)
-- `skills/` — dispatch playbook (spawn-team), worktree helpers, structured-output reference, run-full-test-suite, contribution-staging, agent-quality-rubric, knowledge-file-staleness-sweep, prompt-pattern-library, plugin-release-checklist, decision-review (route yes/no decisions through the tribunal), brand-extraction (website home page → reusable brand kit), pbir-layout-engine (deterministic PBIR/web-dashboard layout linter), visual-feedback-loop (the render→see→critique→iterate referee that merges the layout linter + agent-captured console/Lighthouse evidence into one pass/fail verdict — the runnable half of `knowledge/visual-feedback-loop.md`)
-- `hooks/` — format-on-write, guard-destructive, remind-tests, enforce-layout, guard-recursive-spawn, thing-orchestrator, ensure-default-mode, reapply-posture, capability-orientation, route-decision-review, runaway-brake, dod-gate, claim-grounding-lint, agent-dispatch-evaluator, guard-web-access, regen-on-manifest-change (all registered in `hooks/hooks.json` for plugin-level distribution), plus the sourced helper `_emit-event.sh` (the hook-event substrate — sourced by the verdict-emitting hooks, not a registered hook itself) and `tests/` (the hook-event fixture test)
+- `skills/` — dispatch playbook (spawn-team), worktree helpers, structured-output reference, run-full-test-suite, contribution-staging, agent-quality-rubric, knowledge-file-staleness-sweep, prompt-pattern-library, plugin-release-checklist, decision-review (route yes/no decisions through the tribunal), brand-extraction (website home page → reusable brand kit), pbir-layout-engine (deterministic PBIR/web-dashboard layout linter), visual-feedback-loop (the render→see→critique→iterate referee that merges the layout linter + agent-captured console/Lighthouse evidence into one pass/fail verdict — the runnable half of `knowledge/visual-feedback-loop.md`), thing-denial-kb (Muninn — recall/identify/solve/teach the fix when the Thing blocks you)
+- `hooks/` — format-on-write, guard-destructive, remind-tests, enforce-layout, guard-recursive-spawn, thing-orchestrator, ensure-default-mode, reapply-posture, capability-orientation, route-decision-review, runaway-brake, dod-gate, claim-grounding-lint, agent-dispatch-evaluator, guard-web-access, regen-on-manifest-change, thing-denial-kb-sync (Stop — materialise tribunal denials into the Muninn KB), thing-denial-kb-recall (SessionStart — surface known denials + resolutions) (all registered in `hooks/hooks.json` for plugin-level distribution), plus the sourced helper `_emit-event.sh` (the hook-event substrate — sourced by the verdict-emitting hooks, not a registered hook itself) and `tests/` (the hook-event fixture test)
 - `scripts/` — apply-comfort-posture.py (`/set-posture` translator), serve-dashboards.py (the consumer dashboard server launched by `/dashboard` — serves the version-matched `dashboard.html` and writes `.ravenclaude/` into the consumer's project; binds 127.0.0.1, CSRF-guarded; the write surface is `/__save` + `/__read` + `/__classify` plus the allow-listed `/__run` (install/update/status — no arbitrary shell), and the remaining `/__*` endpoints (`/__heimdall` `/__vidarr` `/__norns` `/__nidhoggr` `/__mimir` `/__sleipnir` `/__saga` `/__concern` `/__knowledge` `/__runs` `/__csrf`) are read-only observability feeds), thing-decision.py + thing-seat.sh (command-review tribunal — see the `thing` skill), thing-decide.py (decision-review tribunal — see the `decision-review` skill)
 - `rules/` — coding-standards, security, git-workflow, agent-collaboration, terminal-copy-to-tempfile (copy-me CLI text → a temp `.md` file the user can copy from, because terminal clipboard copy doesn't work)
 - `templates/` — memos, runbooks, design specs, RAID logs, partner-success, `agent-ready-repo/` templates used by `/init-agent-ready`, plus `thing.yaml` (command-review seat config)
 - `commands/` — slash commands shipped to consumers: `/init-agent-ready`, `/wrap`, `/set-posture`, `/dashboard` (launches the bundled `serve-dashboards.py` so the consumer gets the fully-functioning comfort-posture dashboard with one-click Save & apply), `/stream` (inspect/override the active Agentic Work-Stream — list/set/new/show/status, over the `rc streams` CLI), and `/reset-plugin-cache` (alias `/ragnarok`) — the high-blast-radius plugin-cache disaster-recovery command (see the callout below)
-- `knowledge/` — reference material the Researcher cross-checks (incl. `concerns-catalog.md`, the tribunal constitution; `visual-feedback-loop.md` — the render→see→critique→iterate canon for visual-output agents)
+- `knowledge/` — reference material the Researcher cross-checks (incl. `concerns-catalog.md`, the tribunal constitution; `visual-feedback-loop.md` — the render→see→critique→iterate canon for visual-output agents; `thing-denial-kb.md` + `thing-denial-resolutions.json` — the Muninn denial-KB mechanism + its seed resolutions map)
 - `monitors/` — reactive run-state monitor (`monitors.json` + `watch-run-state.sh`); declared via `experimental.monitors` in `plugin.json`. The push complement to the read-only Heimdall/Víðarr tabs — see the milestone above and [`knowledge/run-state-monitor.md`](knowledge/run-state-monitor.md). Claude-Code-only; scoped `on-skill-invoke:spawn-team`.
 
 ### Command review (the Thing) — tribunal T5 (updated 2026-05-26, v0.28.0)
@@ -1517,3 +1556,551 @@ is the load-bearing regression gate. ~~Still open.~~ **Shipped** — see the sup
 **Migration:** none — the 12 hooks are **advisory** (exit 0 + a notice) and were emitting *nothing* on
 macOS. They now emit real findings there. Linux/CI is unchanged in outcome (perl and `grep -P` agree on
 these patterns; verified on 6 real-pattern fixtures incl. the empty-file edge).
+
+## Dashboard-process hardening — model catalog, seat observability, cascade + legibility (added 2026-07-16, v0.205.0)
+
+A FORGE `standard` run (`.ravenclaude/runs/forge/dashboard-process-hardening/`) over three source
+files — a command-review-tribunal bug KB (`kb-tribunal-seats-abstaining.md`) and two consumer intake
+best-practices — hardened the dashboard **and** the tribunal internals the KB implicated. The critic +
+red-team caught **two HIGH-severity security regressions** before build (encoded as hard requirements):
+a lenient JSON extractor that would salvage a garbage verdict into a **voted ALLOW** (bypassing the
+2-abstain fail-closed floor), and a new stderr read that would **fail OPEN** under `set -e`.
+
+- **Canonical model catalog + drift gate (134).** The seat/dashboard/template model IDs were duplicated
+  across `generate-dashboards.py` + `thing-decision.py` + templates + configs and had drifted — the
+  dashboard offered `claude-sonnet-4-6` / bare `claude-haiku-4-5`, and this repo's own
+  `comfort-posture.yaml` carried `claude-opus-4-7`. Now one source of truth
+  ([`knowledge/model-catalog.json`](knowledge/model-catalog.json) + `scripts/_model_catalog.py`);
+  every governed id is the current set (opus-4-8 / sonnet-5 / haiku-4-5-20251001 / fable-5), enforced
+  repo-wide, token-anchored, by **Gate 134** (the decision-review tier tables are a carved-out
+  design-checkin, not ID cleanup).
+- **Seat-error observability, fail-closed (Gates 135/136).** `thing-orchestrator.sh` stopped
+  `2>/dev/null`-ing seat stderr; `parse_seat` now classifies the seat's **exit code** (a bounded,
+  secret-free integer) into a `seat_error` Sága field, so an errored seat is no longer an
+  indistinguishable bare abstain (the KB's core diagnosability gap). A fail-closed EXIT trap converts an
+  unexpected non-zero abort (which Claude Code treats as non-blocking = fail-OPEN) into an explicit
+  deny. `thing-seat.sh`'s verdict extractor gained a **monotonic** near-JSON salvage: a verdict
+  recovered from repaired bytes may only tighten — a salvaged `allow` becomes `abstain`, never a votable
+  allow. Only additive; the 2-abstain floor + golden-eval (Gate 33) are byte-unchanged.
+- **Narrowed master cascade (Gate 137) + behavioral-flag legibility (Gate 138).** The dashboard master
+  switch no longer enables all 12 review categories on one click — it enables only the 4 high-stakes
+  categories (the rest are per-category opt-in). A ⚙ "Behavior, not permission" badge now marks
+  `design_checkins` / `decision_review` / `orchestrator` on both the Settings and Pipeline tabs.
+- **`orchestrator` absent⇒full reconciled (Gate 139).** `copilot/AGENTS.md`'s generated relay condition
+  now treats an absent `orchestrator:` key as `full` (only an explicit `off` disables relay
+  eligibility), reconciling the long-standing disagreement with `CLAUDE.md`'s documented default.
+- **New-repo posture defaults.** The balanced seed enables `model_fallback` with a 4-backbone ladder.
+
+**Migration (consumer-visible — all template-seed/dashboard-behavior, no forced change on an existing
+posture):**
+- **Master switch** now enables the **4 high-stakes** categories, not all 12. A persisted all-12
+  posture is untouched (the cascade fires only on a live click, never on disk hydration).
+- **Model-fallback** is seeded ON for **new** repos only; an existing `comfort-posture.yaml` is
+  byte-identical on `/plugin marketplace update` (the code default stays `absent ⇒ OFF`, Gate 121).
+- **Copilot relay:** a Copilot-host consumer who left `orchestrator:` **absent** _and_ set
+  `orchestrator_scope: all` now relays (was inert); `orchestrator_scope` still defaults `team`, so
+  relay-all does not fire by default.
+
+## Tribunal tie-breaker + trap fail-closed hardening (added 2026-07-17, v0.205.1)
+
+The security-review backlog from the v0.205.0 seat-hardening, closed. Three fail-closed hardenings of
+the command-review tribunal, all in `hooks/thing-orchestrator.sh` (+ a teeth mock in `thing-seat.sh`):
+
+- **Tie-breaker `else → allow` was a latent fail-open.** Every tie-breaker (Thor) branch failed safe
+  (abstain→posture, injection→deny, edit→edit, deny→deny) EXCEPT the final `else`, which resolved **any**
+  other verdict to `allow`. A valid-JSON but **out-of-protocol** verdict (`{"verdict":"approve"}`, or a
+  voted `abstain`) therefore defaulted to ALLOW — the pre-existing weakness the v0.205.0 review flagged
+  (and which the deny-only salvage made unreachable-via-salvage but did not itself fix). Now only a
+  literal `allow` allows; anything else resolves to the category **posture** (deny for the high-stakes
+  categories), matching the unanimous branch's `*)` fail-closed default. Proven by **Gate 14** (a new
+  `split-oop` mock drives Thor to an out-of-protocol verdict → deny, with a teeth half that reverts the
+  branch and shows it fails open — mimir denies with no cited concern so the outcome depends on the
+  tie-breaker, not the critical-veto).
+- **`emit()`/`emit_edit()` set `_emitted=1` AFTER the `jq` write** (was before) — so a serialization
+  failure aborts under `set -e` with `_emitted` still 0 and the fail-closed trap fires (exit 2), instead
+  of a fail-open exit-1 with a half-written verdict.
+- **The fail-closed EXIT trap is armed FIRST** (right after `set -euo pipefail`), before the
+  `PLUGIN_ROOT` resolution and stdin read — so an abort anywhere in setup fails closed.
+
+**Migration:** none in practice — all three only convert already-rare error/edge paths from fail-open to
+fail-closed (deny); no normal verdict changes.
+
+## Dashboard launch UX — busy port, root route, and the all-12 path (added 2026-07-17, v0.205.3)
+
+Three reports from a `/dashboard` run that hit a busy port 8000. Two were real defects — both worse
+than reported — and the third was **not a defect at all**.
+
+- **Port 8000 was a hard crash, and the doc described a twin nobody runs.** The bundled plugin server
+  bound the port raw (`ThreadingHTTPServer((bind, args.port))`) and died with
+  `OSError: [Errno 48] Address already in use`. Meanwhile [`commands/dashboard.md`](commands/dashboard.md)
+  advertised automatic fallback to 8001-8005, a `--no-open` flag, and browser auto-open — **none of
+  which existed in the plugin copy**. All three *did* exist in the **root dev** server: this was Gate
+  32's hand-maintained twin drifting, and the doc documenting the copy consumers never execute. (Gate 32
+  checks `/__` endpoint **names** + the `_read_*`/`_mimir_*` reader bodies — it structurally cannot see
+  `main()` drift. That is why this survived.) Ported across, plus **reclaim-if-ours**: a stale dashboard
+  for **this project** is SIGTERM'd and 8000 rebound (URL stays stable across relaunches); anything
+  else — **including another project's live dashboard** — is left alone and we bind 8001-8010.
+  Identification is **fail-closed and two-part** (`ps` command name **AND** `lsof` cwd == this project);
+  any doubt → not ours → never signalled. "Ours" deliberately means *this project's own stale server*,
+  not *any* RavenClaude dashboard, so freeing a port never kills a live session in an unrelated repo.
+- **"It opened the directory, not the Dashboard."** The server serves `PLUGIN_DIR` statically, had **no
+  route for `/`**, and the plugin dir has no `index.html` — so bare `/` rendered a
+  `SimpleHTTPRequestHandler` **directory listing**. Added the root **302 → `/dashboard.html`** (the root
+  twin already had one) and the browser auto-open, which opens `DASH_PATH` directly, never `/`.
+- **The master toggle was NOT broken — it was silent.** Enabling only 4 of 12 categories is the
+  deliberate **narrowed cascade** (FORGE P4a, v0.205.0), pinned by **Gate 137** *and* a `--must-fail`
+  teeth test written specifically to catch an all-12 revert, after the KB traced the "every call through
+  a degraded panel" blast radius to this exact switch. The real defect was that nothing said so. Rather
+  than revert a one-day-old incident fix, the all-12 intent got its **own** control: an **"Enable all 12"
+  / "Disable all"** bulk row plus a live **"On — N of 12 categories enabled · the other N are
+  per-category opt-in"** count. **The master handler is untouched; Gate 137 and its teeth stay green.**
+  Do NOT fold the bulk buttons back into `masterCb`'s handler — that is the revert Gate 137 exists to
+  catch.
+
+**One latent bug fixed in passing:** the CSRF `_ALLOWED_HOSTS`/`_ALLOWED_ORIGINS` were keyed on
+`args.port`. On any fallback bind they would have allow-listed a port the server is **not** listening on
+and rejected **every** `/__save` — i.e. the port fix would have silently broken Save & apply. They are
+now keyed on the actually-bound port.
+
+`dashboard.html` + `index.html` are **generated** — the UI change lives in
+[`scripts/generate-dashboards.py`](../../scripts/generate-dashboards.py), never hand-edited.
+
+**Migration (consumer-visible, all improvements — nothing to do):** `/dashboard` now **auto-opens a
+browser** on a local/desktop run (it never did before; pass `--no-open` to suppress), a busy port 8000
+**recovers instead of crashing**, and bare `/` **redirects** instead of listing the plugin directory. A
+stale dashboard **for the same project** is stopped on relaunch; one for a **different** project is never
+touched. Comfort-posture semantics, the tribunal, and the master cascade are **unchanged**.
+
+## Dashboard consumption re-cut — 185 tabs → 4 destinations, −41% DOM, −61% bytes (added 2026-07-22, v0.208.0)
+
+A FORGE `deep` run (`.ravenclaude/runs/forge/dashboard-consumption/`) answered "I'm not happy with how
+I'm consuming the dashboard — simplify it." The complaint was **over-surfacing**, not features: the
+portal was a **12.5 MB / 185-tab** document. The re-cut organizes the surface around the **four jobs the
+owner actually does** (posture · agent activity · guardrails · plugin browsing) and is generator-only
+(`generate-dashboards.py` / `generate-index-dashboard.py` / `_index_dashboard_template.py`), never
+hand-edited HTML. Six IA phases + a launch lane, each one commit, each gated:
+
+- **P1 — the 167 per-plugin panels were unreachable dead code** (a live 167-route sweep proved 0/167
+  reachable; they were **42% of the portal DOM**). Collapsed to one `#/plugin-vars` **picker** (a `<select>`
+  + a client-rendered form from an inline JSON payload). The Save path stayed intact via **event
+  delegation** (the load-time `querySelectorAll` wiring would have silently broken Save on the
+  client-rendered button — verified end-to-end in a headless browser). **R2 (binding):** the picker
+  discloses that `.ravenclaude/plugins/<slug>.yaml` has **no reader** — 153/167 plugins expose only a
+  free-form textarea whose values no hook reads. The write-only-sink's real fix is routed out.
+- **P2 — islanded ~1.32 MB of detail-only `__RC_DATA__` fields** off the eager parse path into a lazy
+  `#plugin-detail-payload`, with a **key-presence hydration sentinel** + a `hydrateDetail()` that THROWS
+  (absent = unhydrated, `[]` = genuinely zero — 77/167 plugins have empty indexes). New **Gate 141** is
+  the "zero content loss" contract (renders rc-core's 9 sections; must-fail = rename the island id).
+- **P3 — re-cut NAV from 6 sections to 4 destinations** (Control / Activity / Guardrails / Catalog) + a
+  **Help drawer** (non-NAV overlay). Deleted the `cat-bar`; kept the `tab-bar` class (Gate 51's oracle).
+  **Gate 51 was re-authored in the same commit** — the self-certifying-change trap — proven not-weaker by
+  the **unchanged external `check-shell-router.selftest.mjs`** still tripping all three mutations.
+- **P4 — merged the Observe panels** (saga/mimir/streams/norns → Activity, vidarr → Guardrails) by moving
+  ONLY the `<section>` wrappers; every render function stayed byte-identical, so all eleven B15 render
+  gates pass **unmodified**.
+- **P5 — deleted the dead/duplicated/inert/false views** (viewHome, viewTeam, viewConfiguration and its
+  **167 fake always-checked "Plugin activation" toggles wired to nothing** — a straight defect removal,
+  panel-overview, panel-simulator). **Closed the G5-pass-2 HIGH-2 blank-host bug atomically:** the shared
+  `activate()` fallback was retargeted `overview → settings` in the same change that deletes
+  `panel-overview` (verified live: a bogus tab lands on Control, never a blank host). C5 ledger:
+  `docs/dashboard-removed-routes.md` + the Help-drawer table.
+- **P6 — byte diet:** stripped the portal-only Learn/Trees/Concepts payloads (the standalone keeps them,
+  so Gate 13 is non-contact). **index.html 12.48 MB → 4.82 MB raw; gzip (what Pages serves) ~1.055 MB.**
+- **L lane — launch ergonomics + the C2 floor.** No daemon/auto-start/hook (the amended tiebreak rejected
+  all three after G5). `open-dashboard.sh` rewritten: probe-then-reuse the **ROOT server of the current
+  checkout** (worktree-correct — never writes the wrong checkout's posture), explicit `--bind 127.0.0.1`,
+  port 8000, prints the bound URL, `--stop`/`--max-idle`. New **Gate 142** machine-checks the security
+  floor **live** (evil Origin/Host/no-Origin → 403; `Access-Control` = the forbidding comment only, never
+  an ACAO header — the cross-origin reject IS the DNS-rebinding defense).
+
+**Net:** 185 tabs → ~19; portal DOM 11,462 → 6,759 (−41%); standalone 10,757 → 6,053; index.html
+−61% bytes. Both G5-pass-2 HIGHs closed at runtime. Three pre-build gates (PB-1 Gate 32 port-fn parity,
+PB-2 Gate 51 anti-laundering `required_routes` floor, PB-3 the external shell-router selftest) landed
+first and guarded the re-cut. Full `audit-gates.sh` green.
+
+**Migration (consumer-visible, all improvements — nothing to do):** on `/plugin marketplace update` the
+dashboard is re-organized — 167 per-plugin tabs become one **Plugin variables** picker (the same Save →
+`.ravenclaude/plugins/<slug>.yaml` path, unchanged), the tabs collapse into four destinations + a Help
+drawer, and the standalone `dashboard.html` shrinks. **No route silently rots** — every retired bookmark
+redirects or is named in `docs/dashboard-removed-routes.md`. Posture-save, the tribunal, the security
+floor, and every `/__*` endpoint are **unchanged**. The launch command still exists (it is made reliable,
+not eliminated); the public Pages URL is a ritual-free **read-only** surface for browsing (jobs 2/3 render
+empty there — their data is per-machine runtime state, never inlined).
+
+## FORGE always provisions a worktree + checkpoints (added 2026-07-26, v0.210.0)
+
+`/forge` now provisions an **isolated git worktree** and **checkpoints** its tracked work at every gate
+boundary — at **every depth** (`micro` → `deep`), not just `deep`. This folds the marketplace's existing
+worktree machinery ([`skills/new-worktree`](skills/new-worktree/SKILL.md), the `git worktree` /
+Sleipnir convention) into the pipeline as a first-class step, so a FORGE run's plan-landing and
+subsequent implementation never mutate the primary checkout's tree — which is exactly the collision the
+`worktree_guard` posture warns about when `/forge` is launched on `main` while other worktrees exist.
+
+**The deterministic core — [`scripts/forge-worktree.sh`](scripts/forge-worktree.sh).** A stdlib-only
+bash helper (the FORGE-script precedent set by `forge-route.py`: self-tested, **not** a formal
+audit-gate), with three subcommands:
+
+- `init <slug>` — creates (or, on `--resume`, **reuses** — idempotent) the branch `forge/<slug>` in
+  the worktree `.claude/worktrees/forge-<slug>/`, off `main` (or the resolved base). Prints a JSON
+  receipt + a `FORGE_WORKTREE <abs-path>` line.
+- `checkpoint <slug> <label>` — commits the worktree's tracked changes as
+  `forge(<slug>): checkpoint — <label>`. No-op when nothing tracked has changed.
+- `--self-test` — 9 scratch-repo fixtures (create/reuse idempotency, nesting guard, empty-checkpoint
+  no-op, real-work commit, slug validation, env + comfort-posture opt-out, not-a-git-repo fail-safe).
+
+**The load-bearing invariant — provisioning is a safety anchor, never a gate.** Every case the script
+can't provision exits **0** with a `status` receipt so the pipeline **proceeds in the primary
+checkout** — never blocking a planning run: `not-a-git-repo`, `already-in-worktree` (the nesting guard
+— a FORGE run launched from inside a linked worktree does not nest a second), or opted out
+(`forge_worktree: off` in `.ravenclaude/comfort-posture.yaml`, or `FORGE_WORKTREE=off`; absent ⇒ **on**).
+Because `.ravenclaude/runs/` is git-ignored, most *planning*-phase checkpoints are no-ops; the
+checkpoints that carry weight are the landed `plan.md` and the implementation phases, where a
+commit-per-boundary makes an interrupted run recoverable from the branch.
+
+**Two checkpoint layers, one slug.** This git-checkpoint layer **composes with — does not replace —**
+the deep-depth atomic-write/resume ([`skills/forge-pipeline/reference/deep-resume.md`](skills/forge-pipeline/reference/deep-resume.md)),
+which remains the gate-skip layer over the git-ignored run-dir. They share `<slug>`; `init` is
+idempotent so `--resume <slug>` re-enters the same worktree.
+
+**Portability:** `forge-worktree.sh` is written `bash`-3.2-safe (no `declare -A` / `mapfile` / `${x^^}`
+/ `shopt -s globstar`) and free of GNU `timeout` / `grep -P` / `sed -i`, per the macOS-door milestones
+above — so it does not re-open any of the closed doors.
+
+Wired into [`skills/forge-pipeline/SKILL.md`](skills/forge-pipeline/SKILL.md) §0.5 (provisioning) + the
+depth ladder note, and [`commands/forge.md`](commands/forge.md) Steps 2.5 / 4 / 5. **Migration:**
+consumer-visible but additive and fail-safe — after `/plugin marketplace update`, `/forge` runs in a
+`forge/<slug>` worktree by default; set `forge_worktree: off` to keep the prior in-place behavior.
+Nothing else in the pipeline's gate semantics, flags, or artifact paths changed.
+
+## Thing-denial knowledge base — Muninn (added 2026-07-26, v0.210.1)
+
+When the command/decision tribunal ("the Thing") DENIES a command or DEFERS/refuses a decision, a new
+per-repo knowledge base turns the raw Sága audit records into a lookup of `denial shape → known
+resolution` — so a blocked agent can **quickly identify why it recurs and apply the fix** instead of
+retrying blindly or paging the human (named **Muninn**, Odin's raven of *memory*). Engine
+[`scripts/thing-denial-kb.py`](scripts/thing-denial-kb.py) (`sync`/`recall`/`resolve`/`record`;
+stdlib-only, fail-safe). A `Stop` hook [`hooks/thing-denial-kb-sync.sh`](hooks/thing-denial-kb-sync.sh)
+materialises denials from the Sága logs (**hot-path-safe** — reads only; never touches
+`thing-orchestrator.sh` / `route-decision-review.sh` or the live emit path); a `SessionStart` hook
+[`hooks/thing-denial-kb-recall.sh`](hooks/thing-denial-kb-recall.sh) surfaces the digest. Seed map
+[`knowledge/thing-denial-resolutions.json`](knowledge/thing-denial-resolutions.json) + the
+`thing-denial-kb` skill + [`knowledge/thing-denial-kb.md`](knowledge/thing-denial-kb.md).
+
+**Security envelope (hardened after a blocking review), proven bidirectionally by Gate 143**
+(`hooks/tests/test-thing-denial-kb.sh`): the auto-injected SessionStart banner is **derived-labels-only**
+(the raw denied `sample` is never auto-injected — only via `recall --json`), matching the
+`capability-orientation.sh` / `watch-run-state.sh` / Gate 19 invariant; `sample`+`reasoning` are
+**secret-scrubbed before storage** (a Python port of `hooks/_scrub.sh`); decision resolutions match on
+the **derived reason class** (trusted tribunal fields), not attacker text, correct-by-design rules
+first. The KB never teaches defeating a genuine security stop. **Migration:** none — additive, opt-in,
+fail-safe; inert until the Thing denies.
+
+## Prompt Builder — a premium, deterministic, client-side prompt tab (added 2026-07-26, v0.211.0)
+
+A new dashboard tab (`#/prompt-builder`, under the **Learn & Help** destination) that assembles a
+best-practice **Claude** prompt from form inputs — **Task** / **System** / **Few-shot** modes — with a
+live preview, a **cited anti-folklore quality linter** (the hero), a structure-completeness score, a
+rough token-size estimate, starter presets + a one-click pattern library, and copy/export. 100%
+**deterministic and client-side** (no server, no API, no external deps); writes nothing to a consumer's
+repo (state is `localStorage` only). Built via `/forge` (two divergent cross-model design panels →
+correlated-error critic → red-team → synthesis); every best-practice claim traces to the consolidated
+Anthropic _Prompting best practices_ page (retrieved 2026-07-26).
+
+**Three research corrections are load-bearing** (the FORGE G1 gate caught them): **response prefilling is
+deprecated** (400 on Claude 4.6+) — never emitted; the linter *penalizes* a prefill-shaped draft (1.9);
+the token number is honestly **an estimate** (no official Anthropic ratio — per-model divisor 3.6/4.0,
+both marked `[interpretation]`, ±20% band) that **never gates an action**; and model tuning is **inverted
+from folklore** — current models over-trigger on stacked `CRITICAL/MUST`, so the linter *penalizes*
+imperative stacking and gives magic phrases zero credit (5.2/5.3/6.9).
+
+**The engineering spine — a self-auditing XSS floor.** The builder echoes user input into a live preview,
+so its #1 constraint is **no HTML-string sink anywhere in its JS**: the entire UI is built with a
+`createElement`/`textContent` factory (`pbEl`), the preview is a single whole-string `textContent` write,
+and the data-tag name is clamped to `[A-Za-z0-9_-]`. **Gate 144** (`scripts/check-prompt-builder-render.mjs`)
+enforces this **structurally** — a static source grep over the whole `PROMPT-BUILDER:START..END` region —
+because the shared render-gate DOM stub (`check-nidhoggr-render.mjs`'s `El` class) has **no `innerHTML`
+setter** and cannot catch an `innerHTML` regression on its own. This was the **correlated error** the
+FORGE G4a critic found in both design panels; the fix adopts the repo's own precedent
+(`check-concern-stats-render.mjs`'s static grep). The gate also behaviorally exercises the pure assembler
+/ linter / token estimate and ships a must-fail half wired into `audit-gates.sh`. Reviewed by
+`code-reviewer` (approve-with-nits — all applied) and `security-reviewer` (DOM-XSS floor holds).
+
+**DOM budget.** The panel ships as a ~6-element static footprint (sidebar link + tab-btn + panel section
++ `#pb-root` mount + noscript + p); the whole interactive UI (fields, gauge, issues) is JS-rendered at
+`initPromptBuilder()` time (uncounted). Because the v0.208.0 re-cut froze the DOM budget at zero-slack
+with a monotonic ratchet, seating the tab required an **owner-approved +6 raise** (Gate 132: dashboard
+6,097→6,103, index 6,809→6,815) with the frozen P1..PR-E tail lifted in lockstep to keep the ratchet
+monotonic — documented as a new ratchet row.
+
+**Migration:** none — a new tab that changes nothing in an installed plugin until a consumer opens it.
+Placed under Learn & Help (the builder teaches best practices by construction and configures nothing).
+
+## `/wireframe` — describe anything → validated model + high-fi Artifact + Mermaid (added 2026-07-27, v0.212.0)
+
+A new **main-session** skill ([`skills/wireframe/SKILL.md`](skills/wireframe/SKILL.md)) that turns a
+plain-language description of *anything* — a web page, an app/software screen, a dashboard, or a
+flow/diagram — into (1) a **schema-validated wireframe MODEL** (the contract), (2) a **high-fidelity,
+self-contained HTML Artifact** the executing Claude authors free-hand via the `artifact-design` skill,
+and (3) a **Mermaid flowchart** for `flow`-type wireframes. Built via `/forge` (two divergent
+cross-model panels → correlated-error critic → owner-ruled tiered-hybrid v1 → red-team); full trail in
+[`docs/wireframe-studio-plan.md`](../../docs/wireframe-studio-plan.md). Brings the skill count 49 → **50**.
+
+**A skill, not an agent (both panels + the critic converged).** Domain-neutral (house rule 1 — the
+`brand-extraction` precedent), zero agent-description-budget cost, no 169th catalog entry, and it reuses
+the existing `designer` agent + `artifact-design` skill rather than paralleling them (a **reciprocal**
+"when to use which" note is on both `SKILL.md` and `designer.md`). It is **main-session** because
+publishing an Artifact requires the Artifact tool, which the `designer` subagent's `tools:` grant lacks.
+
+**The load-bearing architecture call (critic CE-1 + owner ruling).** A deterministic Python script
+*cannot* produce a high-fi comp or "load a skill" — so the high-fi HTML is **Claude-authored**, never
+scripted. But the schema-validation claim and the CE-4 **context-aware escaping safety floor** (this is
+a *published, shareable* Artifact) need real enforced code paths, so v1 ships a **minimal stdlib-only
+helper** [`skills/wireframe/wireframe_lint.py`](skills/wireframe/wireframe_lint.py) — a hand-rolled
+model **validator** (no `jsonschema` dep), four **context-aware sanitizers** (`html_text`; `css_value`
+allowlist → validated `#hex`/`rgb()`/`hsl()`/keyword only, blocking `url()`/CSP-break; `uri_scheme`
+allowlist http/https/mailto/tel, blocking `javascript:`/`data:`; `mermaid_label`), and a
+**deterministic Mermaid emitter** — which the skill *requires* the HTML author route every
+brand-color/URI/user-text value through.
+
+**HONEST GATE-SCOPE STATEMENT (stated in `SKILL.md` + the plan, not glossed):** *mechanically gated* =
+the validator + sanitizer primitives + the Mermaid golden, exercised by **Gate 145**
+(`scripts/audit-gates.sh` + `--check 145`) over committed fixtures in `tests/fixtures/wireframe/` with a
+must-fail half; *behavioral (NOT gateable — the Artifact runtime output lands under gitignored
+`.ravenclaude/runs/` and never reaches CI)* = Claude's final free-hand HTML. We do **not** claim the
+final HTML is mechanically gated.
+
+**Schema + deferrals.** The model lives at top-level [`schemas/wireframe-model.schema.json`](../../schemas/wireframe-model.schema.json)
+(mirrors the `brand-kit.schema.json` sibling; `.repo-layout.json` needed no edit — `schemas/**`,
+`tests/fixtures/**`, `plugins/*/skills/**` already allowed). **Deferred to v1.1:** the ASCII + SVG
+renderers (+ the shared box-packer), the full named-archetype library, and B's multi-screen flow
+extension — the model/schema/sanitizers/Mermaid emitter are the reusable substrate. `check-frontmatter.py`
+is N/A (no agent added). **Migration:** none — additive skill; nothing in a consumer's installed plugin
+changes on `/plugin marketplace update` until they invoke `/wireframe`.
+
+## `/wireframe` v1.1 — the deferred renderers, archetype library + multi-screen (added 2026-07-27, v0.213.0)
+
+The five items v1 deferred to v1.1 ship, **extending the existing `/wireframe` skill** (no new skill,
+no new agent → skill count stays **50**, the ~15K agent-description budget + `check-frontmatter.py`
+untouched; `.repo-layout.json` needed no edit). Built via `/forge` (two divergent cross-model panels →
+correlated-error critic → owner-ratified **all-five** scope → red-team; run in
+`.ravenclaude/runs/forge/wireframe-v1-1/`). Reuses the v1 substrate (model, schema, `wireframe_lint.py`).
+
+- **`_layout.py`** — the shared deterministic box-packer (integer grid units; container-relative sizing;
+  recursive rectangle subdivision → disjoint siblings **by construction**). The two-predicate self-check
+  (sibling AABB-disjoint + child-within-parent, mirroring `pbir-layout-engine`'s `check_no_overlap` /
+  `check_within_canvas`, which settles claims-table #11's in-repo grounding) is a **regression proof**;
+  its teeth is a hand-built overlapping box-set in `--self-test` (a packer never emits overlap, so the
+  teeth can't come from a model — red-team RT-8).
+- **`render_ascii.py`** + **`render_svg.py`** — deterministic ASCII and SVG renderers over the packed
+  layout. The **SVG clears `svg-report-lint`/Gate 103 by construction** (closed `<svg>/<g>/<rect>/<text>`
+  vocab, no script/handlers/remote refs, font ≥ 8px, and a **universal viewBox aspect-padding** into
+  0.05..20 — T1 union clamp — so single- OR multi-screen models never render as a sliver/pillar).
+- **`archetypes/` (3×4 = 12 models) + `archetype_score.py`** — a two-level named-archetype library
+  (`marketing`/`app`/`data`) scored on 6 weighted binary criteria → integer /100, schema-invalid → 0,
+  threshold ≥ 80. **Honest scope (critic CE-3):** the score measures **structural completeness, not
+  taste** — the real discriminating teeth is the degraded must-fail fixture, not the ≥ 80 self-check.
+- **Multi-screen (v2):** `wireframe_lint.py` learns `screens[]`/`flow_edges[]` (mutually exclusive with
+  top-level `regions`; `meta.model_version` widened to "1" | "2") + a new **`emit_screen_flow`** nav-map
+  emitter — distinct from `emit_mermaid` (whose CLI guards `meta.type=="flow"`, the reuse trap CE-2
+  flagged). `normalize_to_screens` unifies the renderer interface so a v1 or v2 model feeds either
+  renderer (RT-6). The top-level schema is the **synced reference doc**; enforcement lives in the
+  validator (RT-7).
+
+**Load-bearing red-team catches folded in:** committed goldens use prettier-ignored extensions
+(`.txt`/`.svg`/`.mmd`) because `prettier --check` inlines short JSON arrays while `json.dumps` expands
+them — a `.json` layout golden byte-diff is **unsatisfiable and would block every PR** (RT-1); the packer
+is **total** (defensive `layout_detail` parse, clamp-to-container, floor every dim at 1) so it never
+crashes on a model the validator accepts (RT-2/RT-3); `ascii_text` **does not strip `-`/`|`/`+`** (that
+inverted a KPI `-12%`→`12%`) — border-forgery is instead defeated by clipping labels to the cell interior
+(RT-4); all new modules carry `from __future__ import annotations` for stock-macOS Python 3.9 (RT-5); and
+`.gitattributes` pins the goldens to LF so a CRLF checkout can't drift the byte-diff forever (T11/R3).
+
+**Gates 146–150** (in `audit-gates.sh` main sequence **and** the `--check` dispatcher + `Supported:`
+list), each with must-fail teeth: 146 packer determinism + self-check overlap teeth; 147 ASCII golden +
+drift teeth; 148 SVG golden + **the golden independently clears svg-report-lint** + a known-bad-SVG-is-
+rejected teeth; 149 every archetype ≥ 80 + degraded < 80 teeth; 150 v2 validates + screen-flow golden +
+malformed-v2-rejected teeth. Proven by the `audit-gates.sh` meta-test. **Migration:** none — additive
+files under the existing skill; nothing in a consumer's installed plugin changes on `/plugin marketplace
+update` until they invoke the new renderers.
+
+## The Prompt Builder was homed differently on each surface + `dashboard_autostart` (added 2026-07-28, v0.216.0)
+
+Two defects and one gap, all from the same report: *"I don't see the prompt builder … I also didn't see it
+open up automatically at the start of the session."* Both halves were real, and neither was what it looked
+like.
+
+**1 — The two surfaces disagreed about where the Prompt Builder lives, so the portal hid it.** v0.214.0
+moved the nav link "Learn & Help" → **Control** on the standalone `dashboard.html`. The portal
+(`index.html`) was never moved with it: `DASH_OWNER` still mapped `prompt-builder` → `catalog`, and the
+clickable link sat in the Catalog sub-nav — which `renderNav` only emits when Catalog is the **active**
+nav item (`const subs = n.id === active ? navChildren(n.id) : ""`). So on the portal the tab was invisible
+until you first clicked Catalog, and absent from Control where the release notes said to look. Fixed by
+homing it under `control` on the portal too, first in the sub-nav, matching the standalone's slot exactly.
+
+**2 — Gate 144 could not see it, because it asserted presence, not placement.** Its portal half checked
+only that `DASH_OWNER` had *some* entry for `prompt-builder` and that *some* `href="#/prompt-builder"`
+existed **anywhere in the file**. Both were true throughout, so CI stayed green across v0.214.0 **and**
+v0.215.1 — a textbook silent-green defect. The gate now **derives** the home destination from the folded
+standalone `ds-nav` chrome (present on *both* surfaces, because the portal folds the standalone payload —
+so it is a single source of truth rather than a hardcoded expectation) and asserts the portal's
+`DASH_OWNER` **and** that destination's own `navChildren` branch both agree with it. Move it on one
+surface now and the other fails loudly. Two must-fail halves verified at exit 1: regressing `DASH_OWNER`
+back to `catalog`, and moving the link out of the Control branch.
+
+> **The generalizable lesson (this is the third time this shape has shipped here).** v0.211.1 fixed
+> "the portal router doesn't own the route"; this fixes "the portal owns it but homes it somewhere else."
+> A gate that asks *does it exist?* cannot catch a **placement** regression. When a feature lives on two
+> generated surfaces, assert the surfaces against **each other** — derive the expectation from one and
+> check the other — never assert each independently against a constant.
+
+**3 — Nothing auto-opened the dashboard locally, and that was correct-by-design + undiscoverable.** The
+only auto-launch that ever existed is the Codespace devcontainer (`postStartCommand` +
+`portsAttributes.onAutoForward: openBrowser`); no `SessionStart` hook ever started it. Closed with the
+opt-in `dashboard_autostart: off | serve | open` knob + `hooks/dashboard-autostart.sh` (**Gate 151**) —
+see the CHANGELOG entry for the contract, the anti-duplicate probe, and its honest limit. The knob is
+wired into `emitYaml`/`applyGuardrailConfig` **because it has to be**: `emitYaml` rebuilds the whole
+posture from `state`, so a key with no state slot is silently deleted on the next Save & apply (the
+v0.61.0 data-loss class).
+
+> **Superseded within the same release — the DOM control DID ship.** This entry originally read *"No DOM
+> control ships — Gate 132 is at zero slack and a visible toggle costs an owner-approved ratchet raise."*
+> That was true when written and **false by the time v0.216.0 landed**: the owner approved the raise, and
+> `_render_dashboard_autostart()` (`scripts/generate-dashboards.py`) now renders a three-option control on
+> **both** surfaces at a measured **6 elements** `[verified 2026-07-28]`. The knob is configurable from the
+> dashboard, not YAML-only. Corrected because an audit lens read the stale sentence and reported closed work
+> as open (**MH-40**) — the same failure mode the v0.196.0 supersession note was written about: *a stale
+> claim in a file every session loads is an active defect, not a bookkeeping lag.*
+
+**Migration:** none — the Prompt Builder route resolved before and resolves now (it just appears where the
+release notes always said), and `dashboard_autostart` defaults to **off**, so nothing new runs at session
+start on `/plugin marketplace update` until a consumer opts in.
+
+## OpenAI Codex CLI is a supported host — and it needed an installer, not an adapter (added 2026-07-28, v0.216.0)
+
+Multi-host audit **MH-07 + MH-08 + MH-17**, shipped as one commit because shipping them apart would
+have been actively harmful (below). Before this, `ravenclaude setup` on a Codex machine completed
+**successfully and wired nothing** — zero skills, zero hooks, zero MCP — and nothing anywhere said so.
+
+**The finding that reframed the whole lane.** The repo modelled hosts as
+`{Claude Code} ∪ {everything else = Copilot}`, and Codex was filed on the wrong side. It is not
+another Copilot: **Codex speaks the Claude Code hook contract natively**
+`[docs-verified — learn.chatgpt.com/docs/hooks]` — identical PascalCase events, identical stdin field
+names, identical `exit 2` blocking, identical `hookSpecificOutput` envelope, and identical PascalCase
+tool-name **values** (`"Bash"`, not Copilot's lowercase `"bash"`). Copilot required a 456-line
+generator plus ~300 lines of envelope translation plus a tool-name normalisation map. **Codex requires
+none of it.** Every Codex work item in the repo had been scoped against Copilot's mechanics doc, which
+is why the lane looked expensive for months. Do **not** build a `codex-hook-adapter.sh`.
+
+**What actually differs is two environment variables** — `CLAUDE_PROJECT_DIR` (25 hooks read it) and
+`CLAUDE_SESSION_ID` (14 read it). Absent them, `_emit-event.sh` no-ops and the Guardrails dashboard
+stays dark — the "unwatched, not clean" state MH-05 made honest. `hooks/codex-hook-env.sh` lifts both
+out of the **stdin payload** (the documented, reliable source — every Codex payload carries `cwd` and
+`session_id`), passes stdin through **byte-identical**, and propagates the hook's exit code
+**verbatim**. It is an **env shim, not an envelope adapter**; the distinction is the milestone.
+
+> **Two of the audit's own "open pieces" dissolved on contact with the primary source, and this is the
+> load-bearing lesson.** (1) The ledger said 26 `${CLAUDE_PLUGIN_ROOT}` interpolations "resolve empty
+> under Codex" — **false**: Codex publishes `CLAUDE_PLUGIN_ROOT`/`CLAUDE_PLUGIN_DATA` as
+> legacy-compatibility names, so they resolve fine. (2) It said every hook must source and call
+> `_rc_host_env` — but that helper's fallbacks (`CODEX_PROJECT_ROOT`, `SESSION_ID`, `PROJECT_DIR`) are
+> **speculative names not in Codex's documented environment**, so they resolve to nothing in a real
+> session. Editing all 18 hooks would have changed nothing. **No hook was modified.** The fix was one
+> ~100-line wrapper plus an installer branch. *Verify the contract before you build to it.*
+
+**MH-17 — why these could not ship apart.** Codex tracks hook trust **by hash**: *"new or changed
+hooks are marked for review and skipped until trusted"* `[docs-verified]`. This repo's headline update
+pillar is *"an update is just `git pull` — no re-install, ever."* On Codex those two multiply into a
+**silent disarm**: every pull that changes a hook byte invalidates its hash, Codex skips that
+guardrail, and **nothing announces it — because the SessionStart banner is itself a hook.** With ~18
+hooks and near-weekly bumps, the steady state for an un-warned consumer is guardrails quietly off
+after every update. Shipping the installer alone would have **manufactured** the
+silently-inert-guardrail class this audit exists to close, on the host it was closing it for. The
+re-trust notice therefore fires at install, at **`update`** (where the disarm happens), in `status`,
+and inside the generated `.codex/hooks.json`. **`--dangerously-bypass-hook-trust` is named only to
+refuse it** — it converts an honest "your guardrails are off" into a dishonest "your guardrails are
+on". `requirements.toml` **managed hooks** are the only unattended-survival configuration.
+
+**The comfort posture reaches Codex's OS sandbox (MH-16 part 2, same release).**
+`scripts/emit-codex-config.py` projects it onto the two controls Codex actually has — `sandbox_mode`
+and `approval_policy`, plus `[sandbox_workspace_write] network_access`. **The governing rule is
+one-directional and was an owner decision: NEVER SILENTLY WEAKEN.** Write when absent, **tighten**
+freely, and **refuse** to loosen a hand-set value — printing the exact line to change by hand. The
+rejected alternative (mirror the posture in both directions) would let one saved dashboard click
+silently widen a sandbox somebody had deliberately locked down, with no warning to the person who
+locked it. **`danger-full-access` and `approval_policy = "never"` are never emitted at any posture** —
+there is no posture that means "turn the OS boundary off". Proven by **Gate 156** with two must-fail
+halves.
+
+Three honesty caveats ship *in the installer's output*, not buried in a doc: the mapping is **coarse**
+(two enum keys cannot express twelve categories — claiming parity would be MH-04's false assurance
+again); layer aggregation takes the **strictest** level rather than reproducing the permission engine's
+layering, because for an OS sandbox that is the only aggregation that cannot produce a too-permissive
+boundary; and **a project `.codex/config.toml` loads ONLY IN TRUSTED PROJECTS** `[docs-verified]` — a
+*second* trust gate beside MH-17's hook hashing, so **writing the file is not the same as bounding the
+session.**
+
+> **Two engineering notes worth keeping.** `tomllib` is stdlib only on Python **3.11+** and stock macOS
+> ships **3.9.6** `[verified]`, so the reader is a tiny line scanner that **refuses on anything it
+> cannot confidently parse** rather than guessing — a misparse here silently weakens an OS boundary.
+> And **root keys must be written ABOVE the first `[table]`**: in TOML every key belongs to the most
+> recent table, so appending `sandbox_mode` to the end of a file containing `[mcp_servers.github]` sets
+> `mcp_servers.github.sandbox_mode` — valid TOML, wrong meaning, invisible in a diff, and Codex would
+> fall back to its default while the tool reported success. Caught in testing against a realistic
+> config, pinned by a must-fail half, and the output verified with an **independent TOML parser**
+> rather than by eye.
+>
+> **And one more, which is the sharper lesson:** `network_access` is a TOML **boolean**, so writing it
+> quoted yields the *string* `"false"` — not the boolean Codex expects. That shipped broken first in
+> the **tighten** path (the security-relevant direction), and **Gate 156 was GREEN while the bug was
+> live**, because the self-test never exercised a boolean tighten. *A gate is only as good as the paths
+> it reaches.* Now asserted in both directions and confirmed by a real parser reporting `type: bool`,
+> not by reading the file and believing it.
+
+**Deliberately deferred, with reasons recorded rather than left as silent gaps** — and the installer
+**prints them at install time**: MCP (`.codex/config.toml` `[mcp_servers.*]`; a bad TOML merge would
+clobber a hand-tuned config), and the generated agent projection + its `plugins/*/codex/**` layout
+glob. The projection is deferred because **there is no verified Codex agent-file contract in this
+repo**; projecting 15 agents from a guessed schema is the same "don't guess at a contract" call made
+on the Copilot `tools:` gap, and an unused layout glob would silently pre-authorize an unreviewed
+directory.
+
+Proven by **Gate 155** (the shim's four invariants — byte-identical stdin, blanks-only fill, verbatim
+exit code, never-fails-the-hook — with two must-fail halves, because "exit 2 propagates" would
+otherwise be an assertion nobody has seen fail). **Gate 154** pins the host-support map, whose
+`hooks`/`skills` Codex cells flip to `supported: true` here. The Pipeline tab's host-scope sentence
+had a **hardcoded** "nowhere else" list beside its derived supported list — so flipping Codex on made
+it name Codex as supported and unsupported *in the same sentence*; both halves are now derived.
+
+**Migration:** none, and this is enforced by design — host auto-detection resolves **any** ambiguity
+to `copilot`, so a consumer who merely has `codex` on PATH gets a byte-identical install to before.
+The Codex lane is opt-in via `--host codex`.
+
+## Invocation is host-specific — teach it that way (added 2026-07-28, v0.217.0)
+
+Multi-host audit **MH-18**. `bin/rc` shipped in v0.158.0 to give non-Claude hosts a launch verb, and
+was never wired to the three surfaces that actually *teach* invocation: the Commands catalog (533 cards,
+every one saying *"paste into Claude Code"*), the posture editor (*"you pick Deny / Ask / Allow"*, with
+no note that Save & apply writes only `.claude/settings.json`), and root `AGENTS.md` § Setup — which
+showed only slash commands, so the first substantive thing a Codex agent read (its onboarding says
+*"read AGENTS.md end-to-end, don't skim"*) was a procedure it structurally could not run.
+
+All three now state their host scope, `AGENTS.md` carries a **three-row host table**, and cards render
+an **"any host:"** equivalent where one exists.
+
+> **The rule this establishes, and the reason it is in the constitution rather than a comment.**
+> `_HOST_EQUIVALENTS` (`scripts/generate-dashboards.py`) maps a command to a host-agnostic invocation
+> **only when that invocation has been read out of the launcher's own source.** `bin/rc` implements
+> exactly three verbs — `dashboard`, `streams`, `converge` — so exactly two commands have an entry.
+> The audit ledger itself listed `/set-posture` as a third; it is not (`scripts/ravenclaude` has no
+> such subcommand), and that row was dropped rather than shipped. **A missing entry is correct; a
+> guessed entry is the defect MH-18 exists to fix** — an invocation confidently taught to a host that
+> cannot run it. If you add a verb to `rc`, add its mapping here; never the reverse.
+
+**Also deliberate:** the other 530 cards are **not** stamped *"Claude Code only"*, even though the
+ledger's remedy says to. They already name the host in their own line, and 530 repetitions is noise
+that trains readers to skip the text. The scope statement is made **once**, in the tab intro, where it
+is read — and it says the absence of an equivalent is *"a gap, not a hidden feature."*
+
+**Zero DOM cost, verified:** the Commands tab is JS-built from `#commands-payload` (uncounted), and the
+posture note is plain text inside an existing element. Both surfaces held at 6,128 / 7,014 — no Gate
+132 ratchet raise. **Migration:** none; content-only.

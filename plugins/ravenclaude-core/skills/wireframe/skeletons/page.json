@@ -1,0 +1,54 @@
+{
+  "meta": {
+    "title": "Untitled page",
+    "type": "page",
+    "viewport": "responsive",
+    "model_version": "1"
+  },
+  "regions": [
+    {
+      "role": "header",
+      "layout": "row",
+      "emphasis": "secondary",
+      "sections": [
+        {
+          "kind": "brand-bar",
+          "components": [{ "type": "nav-item", "props": { "label": "Home" } }]
+        }
+      ]
+    },
+    {
+      "role": "hero",
+      "emphasis": "primary",
+      "sections": [
+        {
+          "kind": "value-prop",
+          "heading": "Headline goes here",
+          "content_slots": [{ "slot": "text", "text": "One-sentence promise." }],
+          "components": [
+            { "type": "button", "props": { "label": "Primary action", "variant": "primary" } }
+          ]
+        }
+      ]
+    },
+    {
+      "role": "main",
+      "layout": "grid",
+      "layout_detail": "3",
+      "sections": [
+        {
+          "kind": "features",
+          "heading": "What you get",
+          "components": [{ "type": "card", "props": { "label": "Feature" } }]
+        }
+      ]
+    },
+    {
+      "role": "footer",
+      "emphasis": "tertiary",
+      "sections": [
+        { "kind": "contact", "content_slots": [{ "slot": "text", "text": "Contact details" }] }
+      ]
+    }
+  ]
+}

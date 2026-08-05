@@ -1,0 +1,81 @@
+{
+  "meta": {
+    "title": "Profile screen",
+    "type": "app-screen",
+    "viewport": "desktop",
+    "model_version": "1"
+  },
+  "regions": [
+    {
+      "role": "header",
+      "emphasis": "secondary",
+      "sections": [
+        {
+          "kind": "bar",
+          "heading": "Profile",
+          "components": [
+            {
+              "type": "breadcrumb",
+              "props": {
+                "label": "Home / Profile"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "role": "main",
+      "emphasis": "primary",
+      "sections": [
+        {
+          "kind": "identity",
+          "heading": "Jane Doe",
+          "content_slots": [
+            {
+              "slot": "text",
+              "text": "Product designer · Athens, GA"
+            }
+          ],
+          "components": [
+            {
+              "type": "avatar",
+              "props": {
+                "label": "JD"
+              }
+            },
+            {
+              "type": "badge",
+              "props": {
+                "label": "Pro"
+              }
+            },
+            {
+              "type": "button",
+              "props": {
+                "label": "Edit profile"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "role": "aside",
+      "sections": [
+        {
+          "kind": "activity",
+          "heading": "Activity",
+          "components": [
+            {
+              "type": "list",
+              "props": {
+                "label": "Recent posts"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

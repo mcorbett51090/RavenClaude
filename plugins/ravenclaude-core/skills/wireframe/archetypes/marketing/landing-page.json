@@ -1,0 +1,117 @@
+{
+  "meta": {
+    "title": "Landing page",
+    "type": "page",
+    "viewport": "desktop",
+    "model_version": "1"
+  },
+  "regions": [
+    {
+      "role": "header",
+      "layout": "row",
+      "layout_detail": "2",
+      "emphasis": "secondary",
+      "sections": [
+        {
+          "kind": "nav",
+          "heading": "Acme",
+          "components": [
+            {
+              "type": "nav-item",
+              "props": {
+                "label": "Product"
+              }
+            },
+            {
+              "type": "nav-item",
+              "props": {
+                "label": "Pricing"
+              }
+            },
+            {
+              "type": "button",
+              "props": {
+                "label": "Sign up"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "role": "hero",
+      "emphasis": "primary",
+      "sections": [
+        {
+          "kind": "value-prop",
+          "heading": "Ship faster with Acme",
+          "content_slots": [
+            {
+              "slot": "text",
+              "text": "The all-in-one platform for modern teams."
+            }
+          ],
+          "components": [
+            {
+              "type": "button",
+              "props": {
+                "label": "Start free"
+              }
+            },
+            {
+              "type": "button",
+              "props": {
+                "label": "Book a demo"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "role": "main",
+      "layout": "columns",
+      "layout_detail": "3",
+      "sections": [
+        {
+          "kind": "features",
+          "heading": "Why teams choose Acme",
+          "components": [
+            {
+              "type": "card",
+              "props": {
+                "label": "Fast"
+              }
+            },
+            {
+              "type": "card",
+              "props": {
+                "label": "Secure"
+              }
+            },
+            {
+              "type": "card",
+              "props": {
+                "label": "Simple"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "role": "footer",
+      "sections": [
+        {
+          "kind": "legal",
+          "content_slots": [
+            {
+              "slot": "text",
+              "text": "© Acme, Inc."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 528" width="960" height="528">
+<rect x="0" y="0" width="960" height="528" fill="#ffffff" />
+<rect x="0" y="0" width="960" height="120" fill="#eef2f7" stroke="#334155" stroke-width="1" />
+<text x="4" y="13" font-family="monospace" font-size="10" fill="#0f172a">HEADER</text>
+<rect x="8" y="16" width="472" height="96" fill="#f8fafc" stroke="#64748b" stroke-width="1" />
+<text x="12" y="29" font-family="monospace" font-size="10" fill="#0f172a">brand-bar</text>
+<rect x="16" y="32" width="456" height="24" fill="#ffffff" stroke="#94a3b8" stroke-width="1" />
+<text x="20" y="45" font-family="monospace" font-size="10" fill="#0f172a">nav-item: Services</text>
+<rect x="16" y="56" width="456" height="24" fill="#ffffff" stroke="#94a3b8" stroke-width="1" />
+<text x="20" y="69" font-family="monospace" font-size="10" fill="#0f172a">nav-item: About</text>
+<rect x="16" y="80" width="456" height="24" fill="#ffffff" stroke="#94a3b8" stroke-width="1" />
+<text x="20" y="93" font-family="monospace" font-size="10" fill="#0f172a">button: Call now</text>
+<rect x="0" y="120" width="960" height="144" fill="#eef2f7" stroke="#334155" stroke-width="1" />
+<text x="4" y="133" font-family="monospace" font-size="10" fill="#0f172a">HERO</text>
+<rect x="8" y="136" width="472" height="120" fill="#f8fafc" stroke="#64748b" stroke-width="1" />
+<text x="12" y="149" font-family="monospace" font-size="10" fill="#0f172a">Fast, honest plumbing in Athens</text>
+<rect x="16" y="152" width="456" height="24" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1" />
+<text x="20" y="165" font-family="monospace" font-size="10" fill="#0f172a">Licensed, family-owned, 24/7 emergency callouts.</text>
+<rect x="16" y="176" width="456" height="48" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1" />
+<text x="20" y="189" font-family="monospace" font-size="10" fill="#0f172a">image-box</text>
+<rect x="16" y="224" width="456" height="24" fill="#ffffff" stroke="#94a3b8" stroke-width="1" />
+<text x="20" y="237" font-family="monospace" font-size="10" fill="#0f172a">button: Book a visit</text>
+<rect x="0" y="264" width="960" height="192" fill="#eef2f7" stroke="#334155" stroke-width="1" />
+<text x="4" y="277" font-family="monospace" font-size="10" fill="#0f172a">MAIN</text>
+<rect x="8" y="280" width="312" height="168" fill="#f8fafc" stroke="#64748b" stroke-width="1" />
+<text x="12" y="293" font-family="monospace" font-size="10" fill="#0f172a">What we do</text>
+<rect x="16" y="296" width="296" height="48" fill="#ffffff" stroke="#94a3b8" stroke-width="1" />
+<text x="20" y="309" font-family="monospace" font-size="10" fill="#0f172a">card: Emergency repairs</text>
+<rect x="16" y="344" width="296" height="48" fill="#ffffff" stroke="#94a3b8" stroke-width="1" />
+<text x="20" y="357" font-family="monospace" font-size="10" fill="#0f172a">card: Water heater install</text>
+<rect x="16" y="392" width="296" height="48" fill="#ffffff" stroke="#94a3b8" stroke-width="1" />
+<text x="20" y="405" font-family="monospace" font-size="10" fill="#0f172a">card: Drain cleaning</text>
+<rect x="0" y="456" width="960" height="72" fill="#eef2f7" stroke="#334155" stroke-width="1" />
+<text x="4" y="469" font-family="monospace" font-size="10" fill="#0f172a">FOOTER</text>
+<rect x="8" y="472" width="944" height="48" fill="#f8fafc" stroke="#64748b" stroke-width="1" />
+<text x="12" y="485" font-family="monospace" font-size="10" fill="#0f172a">contact</text>
+<rect x="16" y="488" width="928" height="24" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1" />
+<text x="20" y="501" font-family="monospace" font-size="10" fill="#0f172a">hi@acme.example · (706) 555-1212</text>
+</svg>

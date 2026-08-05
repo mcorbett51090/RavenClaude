@@ -1,0 +1,83 @@
+{
+  "meta": {
+    "title": "Task app",
+    "type": "app-screen",
+    "viewport": "mobile",
+    "model_version": "2"
+  },
+  "screens": [
+    {
+      "id": "login",
+      "title": "Log in",
+      "regions": [
+        {
+          "role": "main",
+          "emphasis": "primary",
+          "sections": [
+            {
+              "kind": "form",
+              "heading": "Log in",
+              "components": [
+                { "type": "input", "props": { "label": "Email" } },
+                { "type": "input", "props": { "label": "Password" } },
+                { "type": "button", "props": { "label": "Continue" } }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "home",
+      "title": "Home",
+      "regions": [
+        {
+          "role": "header",
+          "sections": [
+            {
+              "kind": "bar",
+              "heading": "Tasks",
+              "components": [{ "type": "search", "props": { "label": "Search" } }]
+            }
+          ]
+        },
+        {
+          "role": "main",
+          "emphasis": "primary",
+          "sections": [
+            {
+              "kind": "list",
+              "heading": "Today",
+              "components": [{ "type": "list", "props": { "label": "Task list" } }]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "detail",
+      "title": "Task detail",
+      "regions": [
+        {
+          "role": "main",
+          "emphasis": "primary",
+          "sections": [
+            {
+              "kind": "detail",
+              "heading": "Task",
+              "components": [
+                { "type": "card", "props": { "label": "Description" } },
+                { "type": "toggle", "props": { "label": "Done" } }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "flow_edges": [
+    { "from": "login", "to": "home", "label": "sign in" },
+    { "from": "home", "to": "detail", "label": "open task" },
+    { "from": "detail", "to": "home", "label": "back" }
+  ]
+}

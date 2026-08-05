@@ -17,10 +17,10 @@ flowchart TD
     START[New app / solution — pick the data store] --> Q0{Is the data CURRENTLY in Excel / a flat file?}
     Q0 -->|YES| MIGRATE["Excel is a MIGRATION SOURCE, not a backend<br/>— continue the tree to pick the real store"]
     Q0 -->|NO| Q1
-    MIGRATE --> Q1{Need ANY of: auditing · field-level/hierarchical security · business units · CMK ·<br/>plug-ins · multi-environment managed-solution ALM ·<br/>a surface beyond Teams (Power Pages / model-driven / Dynamics 365)?}
+    MIGRATE --> Q1{"Need ANY of: auditing · field-level/hierarchical security · business units · CMK ·<br/>plug-ins · multi-environment managed-solution ALM ·<br/>a surface beyond Teams (Power Pages / model-driven / Dynamics 365)?"}
     Q1 -->|YES| DV["Dataverse (full)<br/>— only it offers these"]
-    Q1 -->|NO| Q2{Is the data RELATIONAL (real relationships, lookups, business rules)?}
-    Q2 -->|NO — flat tracking list| Q3{Volume + write pattern within SharePoint's healthy range?<br/>(lightweight tracking, not a high-write transactional app)}
+    Q1 -->|NO| Q2{"Is the data RELATIONAL (real relationships, lookups, business rules)?"}
+    Q2 -->|NO — flat tracking list| Q3{"Volume + write pattern within SharePoint's healthy range?<br/>(lightweight tracking, not a high-write transactional app)"}
     Q3 -->|YES| LISTS["Microsoft Lists / SharePoint<br/>(flat data, Teams/Lists/custom-code surface)"]
     Q3 -->|NO — transactional / past a few thousand rows| DV2["Dataverse (full)<br/>— SharePoint is not a transactional DB at scale"]
     Q2 -->|YES — relational| Q4{Teams-scoped app, < ~1M rows, no premium license,<br/>one unmanaged solution per env acceptable?}

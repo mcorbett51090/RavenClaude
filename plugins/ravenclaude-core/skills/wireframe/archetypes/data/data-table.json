@@ -1,0 +1,66 @@
+{
+  "meta": {
+    "title": "Data table report",
+    "type": "dashboard",
+    "viewport": "desktop",
+    "model_version": "1"
+  },
+  "regions": [
+    {
+      "role": "toolbar",
+      "layout": "row",
+      "layout_detail": "3",
+      "emphasis": "secondary",
+      "sections": [
+        {
+          "kind": "actions",
+          "heading": "Records",
+          "components": [
+            {
+              "type": "search",
+              "props": {
+                "label": "Search"
+              }
+            },
+            {
+              "type": "button",
+              "props": {
+                "label": "Export"
+              }
+            },
+            {
+              "type": "button",
+              "props": {
+                "label": "New"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "role": "main",
+      "emphasis": "primary",
+      "sections": [
+        {
+          "kind": "table",
+          "heading": "All records",
+          "components": [
+            {
+              "type": "table",
+              "props": {
+                "label": "Rows"
+              }
+            },
+            {
+              "type": "stepper",
+              "props": {
+                "label": "Pagination"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

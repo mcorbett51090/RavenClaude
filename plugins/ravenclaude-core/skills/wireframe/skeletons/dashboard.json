@@ -1,0 +1,48 @@
+{
+  "meta": {
+    "title": "Untitled dashboard",
+    "type": "dashboard",
+    "viewport": "desktop",
+    "model_version": "1"
+  },
+  "regions": [
+    {
+      "role": "sidebar",
+      "layout": "stack",
+      "emphasis": "secondary",
+      "sections": [
+        {
+          "kind": "nav",
+          "components": [
+            { "type": "nav-item", "props": { "label": "Overview" } },
+            { "type": "nav-item", "props": { "label": "Reports" } }
+          ]
+        }
+      ]
+    },
+    {
+      "role": "main",
+      "layout": "grid",
+      "layout_detail": "2x3",
+      "emphasis": "primary",
+      "sections": [
+        {
+          "kind": "kpi-row",
+          "heading": "This month",
+          "components": [
+            { "type": "kpi-stat", "props": { "label": "Revenue" } },
+            { "type": "kpi-stat", "props": { "label": "Active users" } },
+            { "type": "kpi-stat", "props": { "label": "Churn" } }
+          ]
+        },
+        {
+          "kind": "charts",
+          "components": [
+            { "type": "chart", "props": { "label": "Revenue over time" } },
+            { "type": "table", "props": { "label": "Recent activity" } }
+          ]
+        }
+      ]
+    }
+  ]
+}

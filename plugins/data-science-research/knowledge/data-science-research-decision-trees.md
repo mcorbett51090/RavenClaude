@@ -98,7 +98,7 @@ graph TD
   B -- No --> C[Fix hidden out-of-order state, or extract to a scripted pipeline - top-to-bottom is the only honest test]
   B -- Yes --> D{Environment pinned - Python + every dep at exact versions?}
   D -- No --> E[Lock it - a floating >= is a future irreproducibility]
-  D -- Yes --> F{Exact input data versioned - hash / snapshot, not "the latest table"?}
+  D -- Yes --> F{"Exact input data versioned - hash / snapshot, not #quot;the latest table#quot;?"}
   F -- No --> G[Version it with a content hash / DVC snapshot]
   F -- Yes --> H{Seed threaded through EVERY stochastic step - split, model, framework?}
   H -- No --> I[Thread the seed everywhere - a single global seed is not enough]

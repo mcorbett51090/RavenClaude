@@ -18,6 +18,8 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import os
+import re
 import sys
 from pathlib import Path
 
@@ -25,6 +27,49 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import concepts as concepts_mod  # noqa: E402
 
 DOC_PATH = "docs/concepts.md"
+
+# docs/concepts.md lives one directory below the repo root, but the concept
+# source is authored with links relative to the *repo root* (sources[].url —
+# e.g. "plugins/.../CLAUDE.md", correct for the dashboard, which is served from
+# the repo root) or relative to the *concept source dir* (inline body links).
+# Markdown resolves a relative link against the file it appears in, so emitting
+# either verbatim into docs/concepts.md makes it 404. These helpers rebase each
+# link so it resolves correctly from docs/. See the paired doc-freshness gate.
+_DOC_UP = "../"  # docs/concepts.md -> repo root is one level up
+# Concept sources all live here; an inline body link is relative to this dir.
+_CONCEPT_SRC_DIR = "plugins/ravenclaude-core/knowledge/concepts"
+_LINK_RE = re.compile(r"(\]\()([^)]+)(\))")
+
+
+def _is_local_link(target: str) -> bool:
+    """A markdown link target that points at a repo file (not web/anchor)."""
+    return bool(target) and not target.startswith(("http://", "https://", "#", "mailto:", "tel:"))
+
+
+def _rebase_root_relative(url: str) -> str:
+    """Rebase a repo-root-relative link (sources[].url) to resolve from docs/."""
+    if not _is_local_link(url):
+        return url
+    path, sep, anchor = url.partition("#")
+    return _DOC_UP + path + (("#" + anchor) if sep else "")
+
+
+def _rebase_body_links(body: str) -> str:
+    """Rebase inline body links (authored relative to the concept source dir)
+    so they resolve from docs/concepts.md: resolve against the concept dir to a
+    repo-root-relative path, then prefix the docs/ up-level."""
+
+    def _repl(m: re.Match) -> str:
+        target = m.group(2)
+        if not _is_local_link(target):
+            return m.group(0)
+        path, sep, anchor = target.partition("#")
+        resolved = os.path.normpath(os.path.join(_CONCEPT_SRC_DIR, path))
+        new_target = _DOC_UP + resolved + (("#" + anchor) if sep else "")
+        return m.group(1) + new_target + m.group(3)
+
+    return _LINK_RE.sub(_repl, body)
+
 
 _KIND_LABEL = {"platform-fact": "platform fact", "ravenclaude-built": "RavenClaude-built"}
 
@@ -66,13 +111,13 @@ def build_doc(root: Path) -> str:
             kind = _KIND_LABEL.get(c["kind"], c["kind"])
             parts.append(f"### {c['title']} · _{kind}_\n")
             parts.append(f"> {c['summary']}\n")
-            parts.append(c["body_md"] + "\n")
+            parts.append(_rebase_body_links(c["body_md"]) + "\n")
             parts.append("```mermaid\n" + c["diagram"] + "\n```\n")
             refs = [titles[r] for r in c.get("see_also", []) if r in titles]
             if refs:
                 parts.append("**See also:** " + " · ".join(refs) + "\n")
             sources = " · ".join(
-                f"[{s['label']}]({s['url']})" for s in c.get("sources", [])
+                f"[{s['label']}]({_rebase_root_relative(s['url'])})" for s in c.get("sources", [])
             )
             parts.append(f"**Sources:** {sources}\n")
             if c.get("last_verified"):
@@ -83,7 +128,9 @@ def build_doc(root: Path) -> str:
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     ap.add_argument("--root", default=".", help="repo root")
     ap.add_argument("--check", action="store_true", help="exit 1 if docs/concepts.md is stale")
     args = ap.parse_args()

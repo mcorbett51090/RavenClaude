@@ -1,0 +1,68 @@
+#!/usr/bin/env bash
+# pre-commit — RavenClaude global chain-through worktree-hygiene dispatcher.
+#
+# Installed ONLY by `scripts/setup-worktree-hygiene.sh --with-git-hook` into the
+# global hooks dir (git config --global core.hooksPath), so it runs at every
+# `git commit` in every repo that does not set its OWN core.hooksPath.
+#
+# PRECEDENCE (git rule, documented deliberately): a repository that sets its own
+# `core.hooksPath` (local config — Husky, lefthook, pre-commit.com, …) WINS. Git
+# consults exactly ONE hooks dir, so this global hook DOES NOT run in such a repo.
+# That is the intended, safe degradation: a project with its own hook management is
+# left untouched. This is why --with-git-hook is opt-in and high-blast.
+#
+# CHAIN-THROUGH: because a global core.hooksPath means git no longer runs a repo's
+# .git/hooks/pre-commit itself, this dispatcher runs that project-local hook FIRST
+# and PRESERVES its exit status (a non-zero from the project hook blocks the commit
+# exactly as it would have without core.hooksPath). Only if it passes (or none
+# exists) do we run the worktree-guard check, which can DENY (nonzero) under `block`.
+#
+# Portability: set -uo pipefail (NOT -e — a hook must control its own exit). macOS
+# bash 3.2 / BSD-safe. FAIL-OPEN: if the worktree-guard hook can't be located, the
+# commit is ALLOWED (a hygiene hook must never block a commit it can't reason about).
+
+set -uo pipefail
+
+# ── 1. Chain through the pre-existing project-local pre-commit hook ────────────
+# Skip if it resolves to THIS very file (e.g. a repo whose local hooksPath points
+# back at the global dir) to avoid infinite recursion.
+_self="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" 2>/dev/null && pwd)/$(basename "${BASH_SOURCE[0]:-$0}")"
+_git_dir="$(git rev-parse --git-dir 2>/dev/null || printf '.git')"
+_local_hook="$_git_dir/hooks/pre-commit"
+if [ -x "$_local_hook" ]; then
+  _local_real="$(cd "$(dirname "$_local_hook")" 2>/dev/null && pwd)/$(basename "$_local_hook")"
+  if [ "$_local_real" != "$_self" ]; then
+    "$_local_hook" "$@" || exit $?
+  fi
+fi
+
+# ── 2. Worktree-guard check (can DENY under `block` mode) ─────────────────────
+# Resolve the canonical guard hook (single source of truth for the detection
+# logic). Order: $RC_WORKTREE_GUARD_HOOK override -> a sibling copy next to this
+# hook -> a conventional RavenClaude clone. Not found -> FAIL-OPEN (allow).
+_guard="${RC_WORKTREE_GUARD_HOOK:-}"
+if [ -z "$_guard" ]; then
+  _hooks_self_dir="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" 2>/dev/null && pwd)"
+  for _cand in \
+    "$_hooks_self_dir/worktree-guard.sh" \
+    "${RAVENCLAUDE_HOME:-}/plugins/ravenclaude-core/hooks/worktree-guard.sh" \
+    "$HOME/RavenClaude/plugins/ravenclaude-core/hooks/worktree-guard.sh"; do
+    case "$_cand" in
+      /plugins/*) continue ;;   # skip an unset RAVENCLAUDE_HOME expansion
+    esac
+    if [ -n "$_cand" ] && [ -f "$_cand" ]; then
+      _guard="$_cand"
+      break
+    fi
+  done
+fi
+
+if [ -n "$_guard" ] && [ -f "$_guard" ]; then
+  # Feed the guard a minimal PreToolUse-shaped payload naming a mutating op (a
+  # git commit), so its `check` path evaluates the block-mode deny for a commit.
+  _top="$(git rev-parse --show-toplevel 2>/dev/null || printf '%s' "$PWD")"
+  printf '{"cwd":"%s","tool_name":"Bash","tool_input":{"command":"git commit"}}\n' "$_top" \
+    | bash "$_guard" check || exit $?
+fi
+
+exit 0

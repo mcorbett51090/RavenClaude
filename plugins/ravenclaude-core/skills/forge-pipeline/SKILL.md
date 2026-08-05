@@ -15,7 +15,7 @@ depth runs.** Load a reference file **only** when the depth or the situation cal
 
 | Load | When | Holds |
 |---|---|---|
-| [`reference/gates-standard.md`](reference/gates-standard.md) | depth ≥ **standard** | G4a critic · G4b tiebreak · G5 red-team |
+| [`reference/gates-standard.md`](reference/gates-standard.md) | depth ≥ **standard** | the **domain-prior lens** (G2/G3) · G4a critic · G4b tiebreak · G5 red-team |
 | [`reference/deep-resume.md`](reference/deep-resume.md) | depth = **deep**, or `--resume` | checkpoint/resume + the uncapped-conflict rules |
 | [`reference/regen-discipline.md`](reference/regen-discipline.md) | **G8 only**, and only if a phase adds/removes a skill, agent, or other counted artifact | the marketplace count/regen DoD criteria |
 | [`reference/provenance.md`](reference/provenance.md) | a human asks *why* FORGE is shaped this way | provenance, the shared rubric, honest scope |
@@ -43,12 +43,48 @@ Every gate's payload lives **on disk**; only a **receipt** crosses back into thi
   Never paste `plan-A` / `plan-B` / `critic-brief` / `red-team` text into a brief.
 - **Fail-closed is preserved:** a gate advances on `status` + `blockers` + the artifact existing and
   being non-empty. The payload was never the pass signal — so routing on a receipt loses nothing.
+- **The Sága run record** (`commands/forge.md` Step 5) = each receipt appended verbatim (+ `model` /
+  `subagent_type`, `"generic"` today / `effort`) to `.ravenclaude/runs/forge/<slug>/run-log.jsonl`, one
+  line per gate. A pure append of data in hand.
 
 **Why this is load-bearing.** A relayed artifact is paid for twice — once on return, then again in
 every later turn's resent context — and relaying pins two complete plans *plus* the critic *plus* the
 red-team in context through G6. Reading from disk hands each downstream gate the **identical bytes**
 at a fraction of the resident context. This buys efficiency with **no** loss of gate input; it is the
 single largest cost lever in the pipeline, and it is free.
+
+## 0.5 Provisioning — **always a worktree, always checkpointed** (every depth)
+
+Before G0 at **every** depth, FORGE provisions an isolated git worktree and checkpoints the run's
+tracked work at each gate boundary. This is a **deterministic script step, not an LLM gate** — it
+dispatches no subagent and costs ~0 tokens, so it runs identically at `micro` through `deep`.
+
+**Provision (once, at run start).** Run
+`bash ${CLAUDE_PLUGIN_ROOT}/scripts/forge-worktree.sh init <slug>` — it creates (or, on a
+`--resume`, **reuses**) the branch `forge/<slug>` in the worktree `.claude/worktrees/forge-<slug>/`.
+The plan's landing (G7 `landing=pr` writes `plan.md` there) **and** any subsequent implementation
+happen on that branch, isolated from the primary checkout — which is exactly what the `worktree_guard`
+posture nudges toward, and what keeps two concurrent `/forge` runs (or a forge run + the user's own
+edits on `main`) from stomping one shared tree. It prints a JSON receipt and, on success, a
+`FORGE_WORKTREE <abs-path>` line; hand that path to the implementation phase.
+
+**Checkpoint (at each gate boundary and at exit).** After each gate and before the single exit, run
+`bash ${CLAUDE_PLUGIN_ROOT}/scripts/forge-worktree.sh checkpoint <slug> <gate>` — it commits the
+worktree's tracked changes as `forge(<slug>): checkpoint — <gate>`. During pure planning most
+checkpoints are **no-ops** (the run-dir under `.ravenclaude/runs/forge/<slug>/` is git-ignored, so
+there is nothing tracked to commit); the checkpoints that carry weight are the landed `plan.md` (G6/G7)
+and the implementation phases, where a commit-per-boundary makes an interrupted run recoverable from
+the branch. This is the **git-checkpoint layer**; it composes with — does not replace — the deep-depth
+atomic-write/resume in [`reference/deep-resume.md`](reference/deep-resume.md), which is the gate-skip
+layer over the (git-ignored) run-dir.
+
+**Fail-safe by contract — provisioning is a safety anchor, never a gate.** Every case the script
+can't provision exits 0 with a `status` receipt and FORGE **proceeds in the primary checkout**:
+`not-a-git-repo`, `already-in-worktree` (the nesting guard — a FORGE run launched from inside a linked
+worktree does not nest a second one), or opted out. **Opt-out:** `forge_worktree: off` in
+`.ravenclaude/comfort-posture.yaml`, or the `FORGE_WORKTREE=off` env var (absent ⇒ **on**, the
+default). The script is idempotent, `bash`-3.2-safe, and carries a `--self-test` (its own scratch-repo
+fixtures) — a registered, citable canonical route, mirroring `forge-route.py --self-test`.
 
 ## 1. Depth ladder — **the gate SET scales with depth** (tiebreak F4)
 
@@ -61,6 +97,9 @@ is the **default** (cheap-by-default so the command is used for *every* idea —
 | **quick** *(default)* | G0 · G1-lite · G2 · G3 · G6 · G7 · G8 | 3-5 | — | most ideas (a new skill, a hook tweak, a knowledge doc) |
 | **standard** | + G4a · G4b · G5 | 6-10 | `gates-standard.md` | a non-trivial multi-file change |
 | **deep** | standard, no conflict cap, 2nd red-team, checkpoint/resume | 11-18 | `gates-standard.md` + `deep-resume.md` | a substantial multi-plugin build |
+
+**Before G0 at every depth**, §0.5 provisioning runs (worktree + checkpoints) — a deterministic
+script step, **not** counted in `~calls` (it dispatches no subagent).
 
 ## 2. The gates every depth runs
 
@@ -149,7 +188,9 @@ Then the single exit:
   claims whose retrieval date is < 90 days (matches the repo's knowledge-freshness contract). WebFetch
   is already 15-min URL-cached.
 - **Parallel where independent** (G1 explore subagents; G2/G3 panels = one batch of `Task` calls),
-  **serial where dependent** (G4→G5→G6).
+  **serial where dependent** (G4→G5→G6) — capped by the `.ravenclaude/comfort-posture.yaml`
+  `parallelism:` posture like [`spawn-team`](../spawn-team/SKILL.md) Step 5 (`enabled: false` → serial;
+  `max_workers: N` → batches of ≤N; absent → unchanged). A **cap, not a floor**.
 - **Brakes reused:** `runaway-brake.sh` (PreToolUse call caps) + `guard-recursive-spawn.sh` (tree
   topology) fire automatically — a thrashing gate trips the brake deterministically.
 - **Fail-fast:** G1 BLOCK and a G7 `reject` short-circuit the expensive G2–G6 core when an idea is

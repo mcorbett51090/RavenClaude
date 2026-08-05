@@ -7,6 +7,50 @@
 > the run dir and returns a **receipt only**; a gate that needs an upstream payload is handed the
 > **path** and reads it itself. Never paste `plan-A` / `plan-B` / `critic-brief` text into a brief.
 
+## Domain-prior lens (standard+) — inject a prior, do **not** dispatch a specialist
+
+After G1, before dispatching G2/G3, assign the plan **one domain tag** (plus the `security` overlay
+below) by weighing the scoped intent + claims table — orchestrator judgment folded into reasoning already
+in flight, **not** a script and **not** a subagent call, so `quick` (which never loads this file) pays
+nothing. Then inject the **same** one-line prior into the gate briefs: into **both** G2/G3 panels (the
+*identical* prior — divergence stays **cross-model**, never cross-domain; B still drafts before reading
+A), and optionally into the G4a/G4b/G5 briefs. The gate keeps its **existing generic worker** — FORGE
+does **not** swap in a domain `agentType`.
+
+> **Why inject-prior and not dispatch a real specialist** (this was the seductive wrong answer — two
+> panels proposed it and the critic + red-team both cut it): the house-rule litmus is *"a core agent +
+> the right skill = indistinguishable output"*; most advisory specialists (`threat-modeler`,
+> `schema-architect`, `api-design-architect`, …) **lack `Write`** and would break §0's write contract
+> (a `Bash`-heredoc workaround silently passes the "non-empty" floor on a truncated artifact — a
+> regression); a specialist emits its **native** schema, not FORGE's receipt; and a domain→`agentType`
+> map is an unowned artifact that **rots with no CI gate**. A real dispatch is a deliberately-**deferred**
+> future step, gated on (a) an observed FORGE run where a generic gate underperformed, (b) a
+> roster-availability check (many domain plugins are disabled on a real config), and (c) a referential-
+> integrity audit gate — none of which exist yet. Do not add it before they do.
+
+**`security` is a non-exclusive OVERLAY, not a bucket.** *Any* security signal (auth / secrets / PII /
+RLS / untrusted input / a new external surface) **always** adds the security prior *in addition to* the
+primary tag — mirroring [`agent-routing.md`](../../../knowledge/agent-routing.md)'s "earliest-**blocking**
+gate wins". A mis-tagged prior is otherwise harmless (a slightly-off framing sentence; the panels still
+author independently), so no classifier machinery is warranted.
+
+| Tag | Signal in scope/claims | Prior — the domain concerns the brief tells the gate to weigh |
+|---|---|---|
+| `security` (overlay) | auth · secrets · PII · RLS · untrusted input · new external surface | authorization (BOLA/BFLA), secret handling, injection/SSRF, the trust boundary |
+| `api` | endpoint · REST/GraphQL/gRPC · versioning · pagination · idempotency | contract & versioning, idempotency, an RFC-9457 error model, rate limits |
+| `data-schema` | relational schema · migration · normalization · index | normalization vs *named* denormalization cost, constraints, lock-aware migration |
+| `data-pipeline` | ETL/ELT · warehouse · dbt · lineage · ingestion | idempotent loads, schema drift, data-quality gates, backfill safety |
+| `performance` | latency · throughput · load · N+1 · caching · capacity | the workload model, the *measured* bottleneck, cache invalidation |
+| `backend` | service boundary · domain modeling · sync/async · resilience | boundary ownership, failure modes, timeouts/retries/idempotency |
+| `frontend` | UI · component · a11y · bundle · rendering · client state | rendering strategy, the bundle budget, server-vs-client state, a11y |
+| `ops` | SLO · error budget · alerting · incident · tracing | the SLI/SLO, symptom-based alerting, graceful degradation |
+| `ai` | LLM · prompt · eval · agent behavior · tool use | an eval/golden set, the prompt-injection trust boundary, judged failure modes |
+| `generic` (default) | none of the above clearly dominates | today's generic brief, unchanged |
+
+If an installed domain plugin has a more specific skill for the tag, the orchestrator **may** name it in
+the prior (the `agent-routing.md` precedence rule) — but the concerns above stand alone, so an
+uninstalled or disabled plugin never degrades the prior.
+
 ## G4a — Critic (tiebreak F5) — catches *correlated* error
 
 A subagent that did **not** author either plan is handed the paths to **both** plans and reads them

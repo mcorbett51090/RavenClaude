@@ -67,6 +67,119 @@ External commands fired at lifecycle points (custom automation, security/policy 
   ```
 - **⚠️ Plugin-level hooks do NOT fire** — `preToolUse` hooks defined in a *plugin's* `hooks.json` never execute (main session or subagents): [github/copilot-cli#2540](https://github.com/github/copilot-cli/issues/2540). **Ship enforcement hooks repo-level (`.github/hooks/`)**, not plugin-level, until #2540 closes.
 
+### ⚠️ THE NO-MATCHER ASYMMETRY — read this before writing any hook that branches on a tool
+
+This is the structural difference that caused the single worst defect found in the
+2026-07-28 multi-host audit, and it will cause the next one if it is not understood.
+
+**Claude Code filters hooks by a per-tool `matcher` in `hooks.json`.** A hook registered
+for `Bash` is only ever invoked for `Bash`, so a hook may reasonably assume its own tool
+shape and treat an unexpected `tool_name` as "not mine — exit 0, no decision".
+
+**Copilot CLI has a per-tool matcher — but only in one of its two hook formats.**
+
+> ⚠️ **CORRECTED 2026-07-28.** This section previously said, flatly, *"Copilot CLI has no
+> per-tool matcher."* **That is false**, and it was itself the MH-24 fix — the entry the
+> audit's build order called *"the highest leverage in the ledger: the guardrail against
+> the next MH-01."* A guardrail against false claims that was itself a false claim.
+
+Copilot supports **two payload formats, selected by the casing of the event name**
+`[docs-verified 2026-07-28 — docs.github.com/en/copilot/reference/hooks-configuration]`:
+
+| Format | Event names | Per-tool matcher? |
+|---|---|---|
+| **native** | `preToolUse`, `sessionStart`, `agentStop`, `userPromptSubmitted` … | **No** — scoping is a native regex rule, not a tool matcher |
+| **Claude-compatible** | `PreToolUse`, `SessionStart`, `Stop` … (PascalCase) | **Yes** — *"apply Claude's matcher semantics"*; field names switch to snake_case |
+
+Corroborated independently by the changelog: **1.0.62** — *"PostToolUse hook matchers (e.g.
+`Edit|Write`) are now honored instead of silently dropped."* So matchers are honored from
+**1.0.62**; below it they are ignored and the hook fires for every tool.
+
+**RavenClaude's generated file has always used PascalCase keys** — so Claude matcher
+semantics were available the whole time and simply were not used. They are now projected
+from the canonical manifest (MH-12), which is what makes the two consequences below
+*historical* rather than ongoing.
+
+Two consequences, and RavenClaude was bitten by both **while running matcher-free**:
+
+1. **The Claude-shaped "unknown tool → exit 0" default becomes a silent security hole.**
+   Under Claude Code that default is safe, because the matcher guaranteed the tool was
+   already the right one. Under Copilot it means *anything the hook does not recognise
+   sails through unreviewed*. `thing-orchestrator.sh` dispatched on a case-sensitive
+   `Bash | Read | Write | Edit | MultiEdit | WebFetch | WebSearch | mcp__*` list and fell
+   to `*) exit 0`.
+
+2. **The tool NAMES differ, so nothing matched.** GitHub documents its tools lowercase —
+   *"before the agent uses any tool (such as `bash`, `edit`, `view`)"*
+   ([hooks](https://docs.github.com/en/copilot/concepts/agents/hooks), retrieved 2026-07-28).
+   `bash` is not `Bash`. Combined with (1), **the command-review tribunal and the
+   web-access guardrail were complete, silent no-ops under Copilot** — fully wired,
+   reviewing nothing. Fixed by normalising tool-name values in
+   `hooks/copilot-hook-adapter.sh` (commit `f55039ec`).
+
+**Rules that follow — apply these to every new hook and every new host:**
+
+- **Normalise the tool name at the adapter, once.** Never let a host's raw vocabulary
+  reach a hook that dispatches on Claude's names.
+- **An unrecognised tool name is a finding, not a default.** Log it. The blind spot that
+  hid this bug was that an unmapped name produced *silence*.
+- **Never let a test fixture invent a tool name.** Gate 20's fixture drove the adapter
+  with `toolName:"shell"` — a name in neither vocabulary — and passed. A fixture must be
+  derived from the platform's documented values, never from what the code expects.
+- **There are TWO tool vocabularies, and conflating them is its own bug** (corrected
+  2026-07-29, audit MH-10). The line below used to say the tool list was simply
+  "not published"; that was true of one vocabulary and false of the other, and the
+  audit ledger's own remedy for MH-10 inherited the confusion by proposing that the
+  agent allowlist reuse the hook map.
+
+  | Vocabulary | Used by | Names | Status |
+  |---|---|---|---|
+  | **Hook `toolName` event values** | `hooks-configuration`, consumed by `copilot-hook-adapter.sh` | `bash`, `view`, `edit`, `grep`, `glob`, `web_fetch`, `ask_user`, `task`, `create`, `powershell` | `bash`/`edit`/`view` **docs-verified**; the rest are defensive guesses marked in the code. **The complete list is still NOT published at a fetchable URL** (two candidate pages 404'd, 2026-07-28). Settle by running `copilot` and enumerating. |
+  | **Agent-profile `tools:` allowlist** | `.agent.md` frontmatter, emitted by `generate-copilot-plugin.py` | `read`, `edit`, `search`, `execute`, `shell`, `bash`, `powershell`, `agent`, `web`, `todo`, `view`, `grep`, `glob`, `custom-agent` | **`[docs-verified 2026-07-29]`** — [custom-agents-configuration](https://docs.github.com/en/copilot/reference/custom-agents-configuration), the page the CLI's own custom-agents how-to designates as authoritative. |
+
+  They **overlap but are not the same list**: `web_fetch` / `ask_user` / `create` are not
+  agent-profile names, and `read` / `search` / `web` / `todo` / `agent` are not hook names.
+
+- **The agent-profile reference settles the three things a security boundary needs**
+  `[docs-verified 2026-07-29]`: it applies to *"agent profiles in GitHub.com, the Copilot
+  CLI, and supported IDEs"*; `tools` is *"List of tool names the custom agent can use...
+  If unset, defaults to all tools"*; and — the load-bearing one — ***"All unrecognized tool
+  names are ignored, which allows product-specific tools to be specified in an agent
+  profile without causing problems."***
+
+  **That last sentence sets the failure direction and is why the allowlist is now
+  projected.** A wrong name is *dropped*, never widened: the worst case is an agent
+  lacking a capability (visible), never one silently gaining write or shell (invisible).
+  It also means extra equal-privilege spellings are free, so each Claude tool maps to
+  every equal-privilege Copilot name rather than one guessed favourite. **The invariant
+  that keeps that safe — never put a class on a row the canonical agent didn't declare —
+  is enforced by Gate 166, not by care.**
+
+- **The allowlist is ENFORCED — observed, not merely documented** `[verified 2026-07-29,
+  Copilot CLI 1.0.70]`. Three probes against a scratch repo with `--allow-all-tools` (so
+  permission prompts could not be mistaken for restriction):
+
+  | Probe | Result |
+  |---|---|
+  | control agent, no `tools:` | created the file, via a shell command |
+  | agent restricted to `read, view, grep, search, glob` | replied `CANNOT_WRITE`; no file created |
+  | same restricted agent, explicitly told to leak via `curl`/`git` | `LEAK_FAILED` (*"Skill 'curl' not found"*); no file created |
+
+  **`read` and `search` were silently dropped** — the restricted agent ended up with
+  exactly `view` / `grep` / `glob`. That is the *unrecognized-names-are-ignored* rule
+  observed in the wild, and it is the empirical case for mapping each Claude tool to
+  **every** equal-privilege spelling: a map that had guessed `read` alone would have left
+  every projected agent with **no file-reading tool at all** — a silent capability
+  amputation that nothing in CI could have caught.
+
+- **Never trust an agent's self-report of its own tools; test the behaviour.** Asked to
+  name its tools, the restricted probe listed `git` and `curl` alongside the real ones.
+  Neither exists — the follow-up leak attempt died with *"Skill 'curl' not found"*, and the
+  names it did print (`functions.sql`, `multi_tool_use.parallel`) are internal namespacing.
+  Taken at face value that self-report reads as a leaky allowlist and would have been filed
+  as a live security hole. **The question is "can it write?", never "what does it say it
+  has?"** — the same rule this file already states for test fixtures.
+
 ## 5. Runtime & config
 
 - **`settings.json`** and **`mcp-config.json`** live in **`~/.copilot/`** by default; **`COPILOT_HOME`** overrides that directory (so all of settings / MCP / hooks move with it).
@@ -113,7 +226,7 @@ The standalone file is the *fallback*, not the default — a bare `DOCUMENT-MAP.
 
 **Honesty note:** a consumer reported ~6 tool calls / ~45s → ~5s per lookup after adopting a map `[unverified — single foreign-repo anecdote, illustrative only]`. The real win is narrow — repos where a known-document lookup was genuinely multi-round; where one `grep` already finds it, a map is ceremony.
 
-**See also:** [`../../../docs/best-practices/agent-onboarding.md`](../../../docs/best-practices/agent-onboarding.md) — the cross-tool pattern · the [`codex-onboarding`](../skills/codex-onboarding/SKILL.md) skill wires the session-start read.
+**See also:** [`../../../docs/best-practices/agent-onboarding.md`](../../../docs/best-practices/agent-onboarding.md) — the cross-tool pattern · the [`external-agent-onboarding`](../skills/external-agent-onboarding/SKILL.md) skill wires the session-start read.
 
 ## Sources
 

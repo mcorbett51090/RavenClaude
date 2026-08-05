@@ -24,6 +24,26 @@ Each entry is a dated section. Reverse-chronological order (newest first).
 
 ---
 
+## 2026-07-29 — A newly-written audit harness produced 3,337 findings, ~99% false. Verify the instrument before you fix the subject.
+
+**Context:** Looping a UI/UX audit over both dashboard surfaces (portal + the shipped standalone) until two consecutive passes came back clean. The harness drove headless Chrome and measured real computed layout — contrast ratios, pointer-target geometry, resolved tokens — across 21 routes x 4 viewports x 2 themes.
+
+**What we tried first:** Reading the harness's first report as a report about the *dashboard*. It opened at 94 findings, peaked at **3,337**, and every one carried precise, credible numbers ("contrast 1.00:1", "target 46x24 and crowded"). Nothing crashed; the tool exited 0.
+
+**Why it failed:** About 99% of those findings were the harness lying, across six successive wrong checks — and in each case the wrong implementation is the one a competent person writes first. A DOM-ancestor backdrop walk called a perfectly readable badge "invisible at 1.00:1" (an `absolute; bottom:-16px` badge paints over the page, not its parent's fill). Switching to `elementsFromPoint` was worse — it returns elements *above* the target, so a fixed banner became the "backdrop" of the header it covered. An accessible-name check that never resolved `<label for>` reported 15 correctly-labelled inputs as unnamed. `el.focus()` plus a computed-style diff reported 3,187 elements with "no focus indicator" — `.focus()` does not match `:focus-visible`, and an *unfocused* element's computed `outlineStyle` is `none` for nearly everything. A bare `bbox < 24x24` test flagged 2,397 diagram toggles because it implemented WCAG 2.5.8 without its spacing/inline/UA exceptions. And a hand-rolled visibility test manufactured 185 "overlapping targets": Chrome implements a **closed `<details>`** with `content-visibility: hidden`, not `display: none`, so 126 of 128 collapsed cards kept layout boxes and their invisible contents piled up at the same coordinates. Acting on the batch would have made the product worse in at least four places.
+
+**What works:** Treat a new measuring tool's first output as a claim about the tool. Three cheap steps, in order: (1) **implausible volume is a bug report about the checker** — 2,397 findings on one component is not credible for a codebase in daily use, and this alone caught three of the six; (2) **trace exactly one finding to its source** before fixing anything — six of six bugs fell to a single lookup each; (3) **ask the platform instead of modelling it** — `Element.checkVisibility()` existed and was correct, while the hand-rolled equivalent encoded our beliefs rather than the behaviour. Then **mutation-test between clean passes**: reintroduce two or three of the defects you just fixed and confirm each is caught, because otherwise "0 findings" and "the checker is broken" are indistinguishable.
+
+**How to apply:**
+- Before acting on a batch from any checker you just wrote, verify one finding against a source that did not come from the same code path (read the source it names, do the arithmetic, check the primary doc).
+- After fixing any real defect, spend one grep asking how many siblings its *class* has — the browser audit found `--border` used as a text colour in one rule; a grep found a second the browser could not see because it coloured an SVG icon.
+- Check the cause, not just the finding: a real 45px overflow named a correctly-scrolling 881px table as its culprit, because elements inside an `overflow-x: auto` container are legitimately wider than the viewport.
+- State the coverage of any negative result. "No `minmax` grid overflows" was true at 375px and false at 320px.
+
+**Trace:** Rule form: [`../best-practices/validating-a-measuring-instrument.md`](../best-practices/validating-a-measuring-instrument.md). Gate that came out of it: `scripts/check-css-token-hygiene.py` (Gate 174). PRs #814, #816.
+
+---
+
 ## 2026-05-21 (late) — The "did you try X?" round-trip is a smell. Agents must enumerate alternative paths before declaring blocked.
 
 **Context:** Matt ran ~136 cloud-flow creates in a customer DEV environment via service principal. The agent driving the script hit the Power Automate Management API with the SPN's token, got HTTP 401 (token `roles` claim was `null`), and stopped — reporting "this can't be done programmatically without Global Admin consent." Matt had to prompt the agent: *is there another way?* The agent then immediately found the Dataverse Web API workaround that was sitting right there with the same SPN already authorized.

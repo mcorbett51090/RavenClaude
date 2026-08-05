@@ -55,7 +55,7 @@ The mechanism, placement trade-offs (inline vs. standalone), sizing thresholds, 
 ## See also
 
 - [`../../plugins/ravenclaude-core/knowledge/copilot-cli-customization.md`](../../plugins/ravenclaude-core/knowledge/copilot-cli-customization.md) — §7 is the canonical mechanism.
-- [`../../plugins/ravenclaude-core/skills/codex-onboarding/SKILL.md`](../../plugins/ravenclaude-core/skills/codex-onboarding/SKILL.md) — wires the session-start read into a non-Claude-Code agent's first five minutes.
+- [`../../plugins/ravenclaude-core/skills/external-agent-onboarding/SKILL.md`](../../plugins/ravenclaude-core/skills/external-agent-onboarding/SKILL.md) — wires the session-start read into a non-Claude-Code agent's first five minutes.
 - [`lessons-vs-best-practices.md`](./lessons-vs-best-practices.md) — this is a rule (no story), so no companion lessons entry.
 
 ## Provenance

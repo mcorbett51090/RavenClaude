@@ -1,0 +1,80 @@
+{
+  "meta": {
+    "title": "KPI overview",
+    "type": "dashboard",
+    "viewport": "desktop",
+    "model_version": "1"
+  },
+  "regions": [
+    {
+      "role": "header",
+      "emphasis": "secondary",
+      "sections": [
+        {
+          "kind": "bar",
+          "heading": "KPIs",
+          "components": [
+            {
+              "type": "tabs",
+              "props": {
+                "label": "This quarter"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "role": "card-grid",
+      "layout": "grid",
+      "layout_detail": "2x2",
+      "emphasis": "primary",
+      "sections": [
+        {
+          "kind": "cards",
+          "heading": "Scorecards",
+          "components": [
+            {
+              "type": "kpi-stat",
+              "props": {
+                "label": "ARR"
+              }
+            },
+            {
+              "type": "kpi-stat",
+              "props": {
+                "label": "NRR"
+              }
+            },
+            {
+              "type": "kpi-stat",
+              "props": {
+                "label": "CAC"
+              }
+            },
+            {
+              "type": "kpi-stat",
+              "props": {
+                "label": "LTV"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "role": "footer",
+      "sections": [
+        {
+          "kind": "note",
+          "content_slots": [
+            {
+              "slot": "text",
+              "text": "Updated hourly"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

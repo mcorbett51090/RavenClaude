@@ -13,7 +13,7 @@
 ```mermaid
 flowchart TD
     A[Class softer than target] --> B{Where in the funnel?}
-    B -- "admits enrolling below plan<br/>(yield gap)" --> C{Aid competitive vs<br/>peer offers? [verify-at-use]}
+    B -- "admits enrolling below plan<br/>(yield gap)" --> C{"Aid competitive vs<br/>peer offers? [verify-at-use]"}
     C -- no --> D[Aid-leverage move on the<br/>responsive admit segment]
     C -- yes --> E{Yield gap by segment<br/>or across the board?}
     E -- "segment" --> F[Targeted recruitment / touch<br/>on the leaking segment]

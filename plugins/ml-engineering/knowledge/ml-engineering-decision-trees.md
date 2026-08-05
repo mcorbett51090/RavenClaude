@@ -47,7 +47,7 @@ Match the platform to ML maturity; don't over-build for one model or hand-run fi
 ```mermaid
 graph TD
   A[Need an ML platform] --> B{How many models in production, realistically?}
-  B -- Zero / first one --> C[Managed end-to-end SageMaker / Vertex (now Gemini Enterprise Agent Platform) / Databricks - cut undifferentiated ops]
+  B -- Zero / first one --> C["Managed end-to-end SageMaker / Vertex (now Gemini Enterprise Agent Platform) / Databricks - cut undifferentiated ops"]
   B -- A handful --> D{Strong existing cloud + small team?}
   D -- Yes --> C
   D -- No, need control/portability --> E[Managed registry+tracking, self-host orchestration as needed]

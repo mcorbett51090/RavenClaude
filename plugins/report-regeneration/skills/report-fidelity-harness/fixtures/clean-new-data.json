@@ -1,0 +1,24 @@
+{
+  "dataset_id": "acme-q1-2025",
+  "period": "2025-Q1",
+  "values": {
+    "meta.period_label": { "value": "Q1 2025", "type": "period", "period": "2025-Q1" },
+    "meta.report_date": { "value": "April 4, 2025", "type": "date", "period": "2025-Q1" },
+    "revenue.total": { "value": "$4,821,300", "type": "currency", "period": "2025-Q1" },
+    "revenue.growth_yoy": { "value": "+12.4%", "type": "percent", "period": "2025-Q1" },
+    "margin.operating": { "value": "18.7%", "type": "percent", "period": "2025-Q1" },
+    "revenue.region.north": { "value": "$1,203,400", "type": "currency", "period": "2025-Q1" },
+    "revenue.region.north_share": { "value": "25.0%", "type": "percent", "period": "2025-Q1" },
+    "revenue.region.emea": { "value": "$982,900", "type": "currency", "period": "2025-Q1" },
+    "revenue.region.emea_share": { "value": "20.4%", "type": "percent", "period": "2025-Q1" },
+    "revenue.region.apac": { "value": "$1,540,700", "type": "currency", "period": "2025-Q1" },
+    "revenue.region.apac_share": { "value": "32.0%", "type": "percent", "period": "2025-Q1" },
+    "revenue.region.latam": { "value": "$1,094,300", "type": "currency", "period": "2025-Q1" },
+    "revenue.region.latam_share": { "value": "22.7%", "type": "percent", "period": "2025-Q1" },
+    "revenue.trend.latest_quarter": {
+      "value": "$4,821,300",
+      "type": "currency",
+      "period": "2025-Q1"
+    }
+  }
+}

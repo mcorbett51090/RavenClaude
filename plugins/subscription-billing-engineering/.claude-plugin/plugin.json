@@ -1,0 +1,30 @@
+{
+  "name": "subscription-billing-engineering",
+  "version": "0.1.0",
+  "description": "Subscription-billing-engineering team — the RECURRING-BILLING SYSTEM layer for SaaS. 2 agents (billing-systems-architect, billing-implementation-engineer) covering plan/price/entitlement modeling (flat, tiered, per-seat, usage/metered, hybrid), proration, trials & coupons, usage metering & rating, dunning & involuntary-churn recovery, idempotent webhook reconciliation, and the correctness seams to revenue recognition (ASC 606) + sales-tax/VAT. Stripe-Billing-leaning, portable to Chargebee/Recurly/Paddle. 3 skills, 2 Mermaid-backed knowledge docs, 2 runbook templates. Seams: payment rails → fintech-payments-engineering; pricing strategy → pricing-monetization; revrec → finance; tax → regulatory-compliance. House line: model before you integrate; idempotency before features. Requires ravenclaude-core@>=0.7.0.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "subscription-billing",
+    "recurring-billing",
+    "saas-billing",
+    "stripe-billing",
+    "usage-based-billing",
+    "metered-billing",
+    "proration",
+    "dunning",
+    "revenue-recognition",
+    "asc-606",
+    "sales-tax",
+    "webhook-idempotency",
+    "entitlements",
+    "chargebee",
+    "recurly"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}

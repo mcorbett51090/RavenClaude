@@ -77,11 +77,24 @@ RUNS_DIR="$PROJECT_DIR/.ravenclaude/runs"
 # Newest = most-recently-modified, so a fresh run dir's log wins automatically.
 newest_log() {
   [ -d "$RUNS_DIR" ] || return 0
-  # -print0 / sort -z keep this safe for any path; we read only the winner.
-  find "$RUNS_DIR" -maxdepth 2 -name 'hook-events.jsonl' -type f -printf '%T@\t%p\n' 2>/dev/null \
-    | sort -rn 2>/dev/null \
-    | head -n1 \
-    | cut -f2-
+  # Enumerate with -print0 (space-safe) and pick the newest by mtime OURSELVES.
+  # We deliberately do NOT use `find -printf` — that is a GNU-find extension;
+  # stock macOS/BSD find exits with "unknown primary -printf", the 2>/dev/null
+  # swallows it, and the pipeline yields empty -> the monitor idle-polls forever
+  # and never emits a notification (silent, every macOS session — the exact
+  # macOS-door failure class the repo has closed elsewhere). mtime is read with
+  # the portable `stat -c '%Y' || stat -f '%m'` fallback already used in
+  # worktree-guard.sh. bash-3.2-safe: no mapfile / assoc arrays / globstar.
+  local newest="" newest_mt=0 _f _mt
+  while IFS= read -r -d '' _f; do
+    _mt="$(stat -c '%Y' "$_f" 2>/dev/null || stat -f '%m' "$_f" 2>/dev/null)" || continue
+    [ -n "$_mt" ] || continue
+    if [ "$_mt" -gt "$newest_mt" ] 2>/dev/null; then
+      newest_mt="$_mt"
+      newest="$_f"
+    fi
+  done < <(find "$RUNS_DIR" -maxdepth 2 -name 'hook-events.jsonl' -type f -print0 2>/dev/null)
+  [ -n "$newest" ] && printf '%s\n' "$newest"
 }
 
 # Derive and print ONE notification line from ONE jsonl line.

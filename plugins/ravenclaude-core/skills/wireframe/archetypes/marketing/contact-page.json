@@ -1,0 +1,79 @@
+{
+  "meta": {
+    "title": "Contact page",
+    "type": "page",
+    "viewport": "desktop",
+    "model_version": "1"
+  },
+  "regions": [
+    {
+      "role": "header",
+      "emphasis": "secondary",
+      "sections": [
+        {
+          "kind": "nav",
+          "heading": "Acme",
+          "components": [
+            {
+              "type": "nav-item",
+              "props": {
+                "label": "Contact"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "role": "main",
+      "emphasis": "primary",
+      "sections": [
+        {
+          "kind": "form",
+          "heading": "Get in touch",
+          "components": [
+            {
+              "type": "input",
+              "props": {
+                "label": "Name"
+              }
+            },
+            {
+              "type": "input",
+              "props": {
+                "label": "Email"
+              }
+            },
+            {
+              "type": "form",
+              "props": {
+                "label": "Message"
+              }
+            },
+            {
+              "type": "button",
+              "props": {
+                "label": "Send"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "role": "aside",
+      "sections": [
+        {
+          "kind": "details",
+          "heading": "Reach us",
+          "content_slots": [
+            {
+              "slot": "text",
+              "text": "hello@acme.example · Mon–Fri 9–5"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -28,7 +28,7 @@ flowchart TD
     C -- "No" --> C1[Forecast arrivals and measure<br/>AHT by channel first, §3 #2]
     C -- "Yes" --> D{Target occupancy<br/>set?}
     D -- "No / 100%" --> D1[Set a healthy band; 100% =<br/>burnout + AHT creep, §3 #2]
-    D -- "Healthy band" --> D2[Agents = workload ÷<br/>(interval × occupancy), §3 #2]
+    D -- "Healthy band" --> D2["Agents = workload ÷<br/>(interval × occupancy), §3 #2"]
     B1 --> E[Owner · date · staffing plan]
     C1 --> E
     D2 --> E

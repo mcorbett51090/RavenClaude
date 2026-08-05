@@ -91,3 +91,83 @@ _rc_pcre_match() {
   # No perl (unusual). Fall back to GNU grep -P if this grep has it.
   grep -Pzi -- "$_pat" "$_file" >/dev/null 2>&1
 }
+
+# ── Host-env normalisation (added 2026-07-28 — multi-host audit, Codex P0) ────
+#
+# WHY: Codex CLI has converged on the CLAUDE CODE hook contract — same event
+# names, same stdin fields, the same hookSpecificOutput envelope, the same
+# `exit 2 + stderr = block`, and a loader that reads hooks/hooks.json directly.
+# It needs NO envelope adapter (unlike Copilot, which required a 456-line
+# generator plus ~300 lines of translation).
+#
+# CORRECTED 2026-07-28 after reading Codex's OWN hooks doc
+# (learn.chatgpt.com/docs/hooks; see knowledge/codex-cli-customization.md).
+# An earlier version of this comment claimed Codex supplies PLUGIN_ROOT *instead
+# of* CLAUDE_PLUGIN_ROOT, so every hook failed open on its helper path. THAT WAS
+# WRONG: Codex publishes CLAUDE_PLUGIN_ROOT and CLAUDE_PLUGIN_DATA as
+# legacy-compatibility names, so helper-path resolution works unaided.
+#
+# What IS genuinely absent under Codex — and why this shim is still correct:
+#   CLAUDE_PROJECT_DIR — not in the compatibility set. 25 hook files read it, and
+#                        _emit-event.sh no-ops without it, so NO hook event is ever
+#                        written and the Guardrails dashboard stays dark.
+#   CLAUDE_SESSION_ID  — not in the compatibility set. 14 hook files read it, so
+#                        events land under runs/unknown/ even if the dir resolved.
+# Codex passes session values (cwd, session_id) via STDIN JSON rather than the
+# environment, which is why an env-only reader finds nothing.
+#
+# The alias fills blanks only, so where Codex already supplies CLAUDE_PLUGIN_ROOT
+# it is a harmless no-op. The shim is right; one sentence of its original
+# justification was not, and is corrected rather than left standing.
+#
+# Deliberately a 3-line-per-var ALIAS, not an adapter. Adding a second
+# Copilot-shaped translation layer for a host that already speaks the contract
+# would be the expensive wrong answer.
+#
+# INVARIANT: never overwrite a CLAUDE_* value the host already set. Claude Code
+# is authoritative about its own vocabulary; this fills genuine blanks only.
+_rc_host_env() {
+  [ -z "${CLAUDE_PLUGIN_ROOT:-}" ] && [ -n "${PLUGIN_ROOT:-}" ] && export CLAUDE_PLUGIN_ROOT="$PLUGIN_ROOT"
+  [ -z "${CLAUDE_PROJECT_DIR:-}" ] && [ -n "${PROJECT_DIR:-}" ] && export CLAUDE_PROJECT_DIR="$PROJECT_DIR"
+  [ -z "${CLAUDE_PROJECT_DIR:-}" ] && [ -n "${CODEX_PROJECT_ROOT:-}" ] && export CLAUDE_PROJECT_DIR="$CODEX_PROJECT_ROOT"
+  [ -z "${CLAUDE_SESSION_ID:-}" ] && [ -n "${SESSION_ID:-}" ] && export CLAUDE_SESSION_ID="$SESSION_ID"
+  [ -z "${CLAUDE_SESSION_ID:-}" ] && [ -n "${CODEX_SESSION_ID:-}" ] && export CLAUDE_SESSION_ID="$CODEX_SESSION_ID"
+  return 0
+}
+
+# _rc_host — POSITIVE-signal host identification. Prints exactly one of:
+#   claude-code | copilot | codex | unknown
+#
+# HONESTY, and it is load-bearing: this returns `unknown` rather than guessing.
+# An in-session probe on 2026-07-28 found COPILOT_DEBUG_NONCE set INSIDE a
+# Claude Code session, so "any COPILOT_* implies Copilot" would mislabel a live
+# session. Copilot is therefore identified ONLY by THING_HOST, which
+# copilot-hook-adapter.sh exports explicitly — an assertion made by the adapter,
+# never an inference from ambient environment. A wrong host verdict is worse
+# than no verdict, because callers branch on it.
+_rc_host() {
+  if [ -n "${THING_HOST:-}" ]; then printf '%s\n' "$THING_HOST"; return 0; fi
+  if [ -n "${CLAUDECODE:-}" ] || [ -n "${CLAUDE_CODE_ENTRYPOINT:-}" ]; then printf 'claude-code\n'; return 0; fi
+  if [ -n "${CODEX_SESSION_ID:-}" ] || [ -n "${CODEX_PROJECT_ROOT:-}" ]; then printf 'codex\n'; return 0; fi
+  printf 'unknown\n'
+}
+
+# ── Normalise ON SOURCE. ──────────────────────────────────────────────────────
+# Deliberate: the alias is useless if every hook has to remember to call it, and
+# it shipped with ZERO callers. Running it here means every hook that already
+# sources this file is fixed without touching it, and any hook added later gets
+# it for free — the failure mode was hooks silently failing open on a variable
+# NAME, so the fix must not itself depend on being remembered.
+#
+# Safe to run at source time: it only ever FILLS BLANKS (never overwrites a
+# CLAUDE_* the host set), touches no shell options, and returns 0 unconditionally,
+# so it cannot alter a sourcing hook's control flow. That is why this file's
+# "carries no top-level `set`" contract is still honoured.
+#
+# NOT paired with a hard `exit 2` when PLUGIN_ROOT is absent, despite that being
+# the obvious fail-closed move. `.claude/settings.json`'s marketplace dev-mirror
+# invokes these hooks by `${CLAUDE_PROJECT_DIR}` path, where CLAUDE_PLUGIN_ROOT is
+# legitimately unset — a blanket exit 2 would block every tool call in the repo
+# that develops the plugin. Fail-closed on a variable that is *correctly* empty
+# in a supported configuration is not a guardrail, it is an outage.
+_rc_host_env

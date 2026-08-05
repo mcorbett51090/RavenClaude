@@ -1,0 +1,89 @@
+{
+  "meta": {
+    "title": "About page",
+    "type": "page",
+    "viewport": "desktop",
+    "model_version": "1"
+  },
+  "regions": [
+    {
+      "role": "header",
+      "emphasis": "secondary",
+      "sections": [
+        {
+          "kind": "nav",
+          "heading": "Acme",
+          "components": [
+            {
+              "type": "nav-item",
+              "props": {
+                "label": "About"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "role": "hero",
+      "emphasis": "primary",
+      "sections": [
+        {
+          "kind": "mission",
+          "heading": "Our mission",
+          "content_slots": [
+            {
+              "slot": "text",
+              "text": "We help teams do their best work."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "role": "main",
+      "layout": "columns",
+      "layout_detail": "3",
+      "sections": [
+        {
+          "kind": "team",
+          "heading": "The team",
+          "components": [
+            {
+              "type": "avatar",
+              "props": {
+                "label": "Founder"
+              }
+            },
+            {
+              "type": "avatar",
+              "props": {
+                "label": "CTO"
+              }
+            },
+            {
+              "type": "avatar",
+              "props": {
+                "label": "Design lead"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "role": "footer",
+      "sections": [
+        {
+          "kind": "legal",
+          "content_slots": [
+            {
+              "slot": "text",
+              "text": "© Acme, Inc."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

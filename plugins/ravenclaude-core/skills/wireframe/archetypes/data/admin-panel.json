@@ -1,0 +1,93 @@
+{
+  "meta": {
+    "title": "Admin panel",
+    "type": "dashboard",
+    "viewport": "desktop",
+    "model_version": "1"
+  },
+  "regions": [
+    {
+      "role": "header",
+      "emphasis": "secondary",
+      "sections": [
+        {
+          "kind": "bar",
+          "heading": "Admin",
+          "components": [
+            {
+              "type": "breadcrumb",
+              "props": {
+                "label": "System / Admin"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "role": "sidebar",
+      "sections": [
+        {
+          "kind": "nav",
+          "heading": "Manage",
+          "components": [
+            {
+              "type": "nav-item",
+              "props": {
+                "label": "Users"
+              }
+            },
+            {
+              "type": "nav-item",
+              "props": {
+                "label": "Roles"
+              }
+            },
+            {
+              "type": "nav-item",
+              "props": {
+                "label": "Audit log"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "role": "main",
+      "emphasis": "primary",
+      "sections": [
+        {
+          "kind": "users",
+          "heading": "Users",
+          "components": [
+            {
+              "type": "table",
+              "props": {
+                "label": "User list"
+              }
+            },
+            {
+              "type": "button",
+              "props": {
+                "label": "Invite user"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "status",
+          "heading": "System status",
+          "components": [
+            {
+              "type": "kpi-stat",
+              "props": {
+                "label": "Uptime"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

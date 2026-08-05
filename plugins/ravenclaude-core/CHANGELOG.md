@@ -2,6 +2,1546 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.235.0 — 2026-07-29
+
+**Turned this session's lessons into a gate, a rule, and eight more fixes.** The UI/UX audit
+in 0.234.0 found 24 defects on two surfaces. This release asks the question that matters
+more: *what did the audit teach, and where else does each defect class live?*
+
+### The lesson that generalises
+
+The audit harness produced **3,337 findings, ~99% of them false**, across six successive
+wrong checks — each of which is the version a competent person writes first. Acting on the
+batch would have made the product worse in four places. That is the
+[silent-green defect](CLAUDE.md) shape moved up one level, into the instrument you were
+going to use to *find* defects, where it corrupts every downstream conclusion.
+
+New **Primary diagnostic**:
+[`docs/best-practices/validating-a-measuring-instrument.md`](../../docs/best-practices/validating-a-measuring-instrument.md)
+— *a new measuring tool's first output is a claim about the tool, not about the subject.*
+Three cheap triage steps (implausible volume is a bug report about the checker · trace
+exactly one finding to source before fixing anything · ask the platform instead of
+modelling it), the six wrong checks as a table, and the mutation-test-between-clean-passes
+rule that makes "0 findings" mean something. Story form, with what was tried first, is a
+dated entry in [`docs/memory-bank/lessons-learned.md`](../../docs/memory-bank/lessons-learned.md),
+per this repo's own lessons-vs-best-practices convention.
+
+### Added — Gate 174: token misuse that renders unreadable
+
+[`scripts/check-css-token-hygiene.py`](../../scripts/check-css-token-hygiene.py). Three of
+0.234.0's classes were **wrong by construction** — no measurement needed to know the answer —
+so they are now gated statically, stdlib-only, no browser:
+
+1. a **hairline token as a foreground colour** (`--border` is 7% alpha → ~1.2:1),
+2. a **theme-blind literal on a themed fill** (`#fff` on `var(--accent)` is 1.95:1, and a
+   literal cannot follow the light/dark swap at all),
+3. a **bare `minmax(<N>px, 1fr)` track** in an `auto-fit`/`auto-fill` grid, which scrolls
+   the whole document sideways once a container is narrower than N,
+
+plus a generated dashboard surface with **no bare-`a` colour rule** — the defect that shipped
+in `dashboard.html` while the portal masked it.
+
+It **deliberately does not compute contrast**: that needs a browser, and a hand-rolled
+approximation of one is precisely what produced the 3,337 false findings. The scope
+statement is in the file's own header. `--must-fail` asserts **7 known-bad caught AND 8
+known-good left alone** — the inverted direction matters here, because an audit tool's
+costly failure is inventing defects, not missing them. Suite: **684 → 686 pass, 0 fail.**
+
+### Fixed — eight more instances, found by asking "how many siblings does this class have?"
+
+The audit found one `--border`-as-text-colour rule; a grep found a **second the browser
+could not see**, because it coloured an SVG icon rather than text. Applying that question to
+each class surfaced defects on surfaces the audit never visited:
+
+- **`.review-scales-icon[data-review-state="off"]`** — the same hairline-token defect, in the
+  review-state icon.
+- **`generate-bi-report.py` and `generate-feedback-report.py`** — three `#fff`-on-accent
+  controls (1.95:1) in **stakeholder-facing report generators that had never been audited**.
+- **`::selection`** — `#000` on accent is 3.9:1 in light theme; now `var(--bg)`.
+- **18 `minmax()` tracks** across four generators, and **two consumer templates**
+  (`repo-build-studio/{dashboard,marketing-page}.html`) — the class eliminated rather than
+  the two instances that happened to bite.
+- **Two `flex-wrap: nowrap` rows** (`.topbar .actions`, `.layer-radios`) that pushed content
+  45px and 64px past a 320px viewport.
+
+### On coverage, stated honestly
+
+0.234.0 tested 1280/768/375px. Extending the audit to **320px** flipped a negative result:
+"no `minmax` grid overflows — measured" was true at 375 and **false at 320**, where a 340px
+track blew out every route. A negative result without its coverage is not a result. All
+three surfaces (portal, standalone, `pitch.html`) are now clean at **4 widths × 2 themes**.
+
+Two findings were again verified **correct by design** and left alone, and one 1/64-pixel
+threshold artifact was resolved with a documented tolerance rather than `min-height: 25px` —
+CSS that lies about its intent is worse than a tolerance that states one.
+
+## 0.234.0 — 2026-07-29
+
+**Looped a measured UI/UX audit over both dashboard surfaces until two consecutive
+passes found nothing.** Every finding came from a headless Chrome measuring real
+computed layout — contrast ratios, pointer-target geometry, resolved tokens — across
+**21 routes × 3 viewports × 2 themes**, on the portal *and* the shipped standalone.
+**94 raw findings → 24 real defects fixed → 0.** Zero new DOM elements: 6,154 / 7,040
+unchanged, so no Gate 132 ratchet raise.
+
+### Fixed — P1: text that could not be read
+
+- **The shipped `dashboard.html` had no link colour rule at all.** Every inline link
+  in its prose fell back to the browser default `#0000EE` — about **2:1** on these
+  dark surfaces. 18 instances. The dev portal looked fine because the *shell* defines
+  `a { color: var(--teal-2) }`, so the broken surface was the one consumers actually
+  get from `rc dashboard`. `--teal-2` aliases `--rc-accent`, so the fix changes the
+  portal by nothing.
+- **`.cr-summary-micro[data-state="off"]` used `var(--border)` as a text colour** —
+  the 7%-alpha hairline token. The word **"off"**, i.e. the review state you most need
+  to notice, rendered at **1.17:1**. Now `--muted`: 7.7:1 dark / 5.9:1 light.
+- **`color: #fff` / `var(--rc-text)` on accent- and danger-filled controls** —
+  1.81–1.95:1 on the green, **2.76:1** on the dark-theme red. Six controls, including
+  the Prompt Builder's primary action and the Gjallarhorn alert banner. All now use
+  `var(--bg)`, this codebase's existing pairing (`.seg-label:checked`): **10.3:1** dark
+  / 5.0:1 light on accent, 7.3:1 / 5.4:1 on danger. Two were hardcoded `#fff`, which
+  could not follow the theme swap at all.
+- **A file path escaped its button at 375px.** `.btn-sub` rendered 417px wide inside a
+  297px button, spilling out both sides, where its on-accent dark text sat on the dark
+  panel — **1.00:1**. Now wraps.
+
+### Fixed — P1: layout that broke the page sideways
+
+- **`minmax(320px, 1fr)` in the Heimdall grid.** A track minimum cannot shrink below
+  itself, so a 287px container got 320px tracks and the cards hung off-screen,
+  scrolling the *whole page* horizontally on a phone. Now `minmax(min(320px, 100%), 1fr)`.
+- **A `flex-wrap: nowrap` stage header** pushed its trailing value pill 79px past the
+  card at 1280px. Now wraps.
+- **Two tables wider than a phone** (the 7-column concern-stats table, 464px min-content;
+  the plugin-drift table) now scroll inside their own container instead of widening the
+  document.
+
+### Fixed — P1: controls with no accessible name
+
+Five fields were announced as unnamed edit boxes: the web-access **Allow**/**Deny**
+lists, per-plugin extra variables, and the Prompt Builder's repeated rule rows. A
+`placeholder` is not a name — it disappears on input. Now `aria-label`led, including
+the few-shot example rows that share the defect but are not visible in the default mode.
+
+### Fixed — P2/P3
+
+- **`scope=` on every header cell** across 8 tables (4 applied in one pass over `#hc-root`
+  rather than at ~10 call sites).
+- **24px pointer targets** (WCAG 2.2 SC 2.5.8) for `select`, disclosure rows, the
+  Gjallarhorn link, a best-practice toggle, and the sidebar footer links. The 18px help
+  dot keeps its **visual** size — an `::after` with `inset: -3px` enlarges the *target*
+  to 24px, so density is unchanged. It also gained `flex: 0 0 auto`, having been
+  squeezed to **8px** wide by its siblings.
+- **Prose links are underlined.** Accent-on-body-text is only **1.31–1.70:1**, below the
+  3:1 that lets colour be the sole cue that something is a link (WCAG 1.4.1). Scoped to
+  prose containers, so nav items and link-buttons stay undecorated.
+- **A skipped heading level** (h2 → h4) on the Guidance tab.
+
+### On the audit itself — six of its own bugs were found and fixed first
+
+Raw output started at 94 findings and peaked at **3,337**; most were the harness lying,
+and each was corrected before any code was touched. Recorded because the wrong version
+of each check is the obvious one to write:
+
+| Wrong check | What it claimed | Why it was wrong |
+|---|---|---|
+| DOM-ancestor backdrop | `.rec-badge` invisible at 1.00:1 | An `absolute; bottom:-16px` badge paints over the page, not its parent's fill |
+| `elementsFromPoint` backdrop | amber/green backdrops behind ordinary body copy | It returns elements *above* the target; a fixed banner became the "backdrop" of the header behind it |
+| Accessible name without labels | 15 correctly-`<label for>`-ed inputs unnamed | Never resolved label association |
+| `el.focus()` + style diff | 3,187 elements with "no focus indicator" | `.focus()` does not match `:focus-visible`; and an *unfocused* element's computed `outlineStyle` is `none` for nearly everything |
+| Bare `bbox < 24x24` | 2,397 diagram toggles | Ignored SC 2.5.8's spacing/inline/UA exceptions |
+| Hand-rolled visibility | 185 "overlapping" targets | Chrome gives a **closed** `<details>` `content-visibility: hidden`, not `display: none`, so its contents keep layout boxes — 126 of 128 concept cards are closed, and their invisible contents pile up at the same coordinates |
+
+Two findings were verified as **correct by design** and deliberately not "fixed": routes
+that render identically because a section resolves to its own default tab, and the Help
+page's documented redirects. The dead-route check now only fires when two *primary* nav
+destinations collide.
+
+The harness was mutation-tested between the two clean passes — three defects
+reintroduced, all three caught — so the final zero is a measured result, not a broken
+checker.
+
+## 0.233.0 — 2026-07-29
+
+**The Host & context page: made it look like the rest of the product, and made it readable.**
+
+### Fixed — the page had zero styling of its own
+
+Every `.hc-*` class the generator emits — the support matrix, the MCP table, the storage-contract
+table, the intro paragraphs, the live-probe card — had **no CSS rule anywhere**. The page rendered on
+browser defaults (Times New Roman tables, full-bleed paragraphs, no rhythm) while the design-token
+system it sits inside (`--surface`, `--border`, `--ok`, `--font-mono`, `--radius-sm`) went unused. Now
+styled in the house idiom: hairline section rules, a 68ch reading measure, uppercase tracked table
+headers, mono for paths, and a responsive breakpoint.
+
+**The signature element:** `.hc-yes` / `.hc-no` render as status dots via `::before` — filled for
+supported, a hollow ring for not-wired — so the matrix is scannable as a shape before it is read as
+text. Colour is not the only channel (the ✓/✗ glyph stays), so it survives a colour-blind read.
+
+**Cost: zero new elements.** Both surfaces held at 6,154 / 7,040 — no Gate 132 ratchet raise. That
+constraint is why this is `::before` on the existing cells rather than a wrapper span.
+
+### Changed — plain English
+
+The page explained itself in the vocabulary of the people who built it. Five fixes:
+
+- A column headed **"Installed for you?"** — a yes/no question — whose answers were *automatic*,
+  *opt-in (by name)*, and *not wired*. Now **"How you get it"**.
+- **"Every claim carries a basis: verified / docs-verified / inferred"** → *"how we know it — checked
+  in this repo, read in the vendor's own docs, or inferred — so you can tell a tested fact from an
+  educated guess."*
+- **"Which RavenClaude components actually run on which CLI"** → *"What actually works on each coding
+  tool today — guardrails, skills, agents and the rest."*
+- **"anything mid-flight"** → *"anything still in progress"*.
+- **"Host-private state … never crosses over"** → *"Each tool also keeps its own private files … and
+  those never reach the others."*
+
+Nothing was softened: the "no" cells still say why, and the gaps are still named as gaps.
+
+## 0.232.2 — 2026-07-29
+
+**Looped code review over the ~4,400 lines added today, until two consecutive passes found nothing.**
+Seven passes: **11 findings, all fixed.** Every finding came from *executing* the code, not reading it.
+
+### Fixed — P1
+
+- **TOML injection in the Codex MCP installer.** `render_server()` interpolated the server name
+  straight into `[mcp_servers.<name>]` with no validation. A name carrying `]` and a newline —
+  `ok]\n[mcp_servers.evil]` — **opens a second table**, installing a server the user never named.
+  That directly defeats the property the whole opt-in design rests on: *naming the server is the
+  consent*. Names come from a plugin's `plugin.json`, which is only as trustworthy as the plugin.
+  Server names, config keys and `env` keys are now validated (`[A-Za-z0-9_.-]`, ≤64) and **raise**
+  rather than render.
+- **The Copilot MCP installer silently destroyed a config it could not parse.** `load_installed()`
+  caught `JSONDecodeError` and returned `{}`, so a hand-broken or half-written
+  `~/.copilot/mcp-config.json` was **overwritten** — losing every server the user had configured by
+  hand, in their **global** config, with a success message. Now: absent → `{}`, present-but-unparseable
+  → **refuse**. *Note the asymmetry this exposed: the Codex sibling was given a structural
+  append-only guarantee and its JSON counterpart never got the equivalent promise.*
+
+### Fixed — P2
+
+- **The dispatch reader repeated a bug fixed hours earlier in the same file.** It read the log with
+  the 50 KiB *head* cap and no truncation flag — so a busy log reported a partial count as a total.
+  This is the identical defect corrected in the session scan (a 14.5 MB transcript whose first 50 KiB
+  held nothing), reintroduced in a reader written afterwards. Now bounded like the session scan, and
+  the UI says *"partial"* when the bound is hit.
+- **`rc artifacts` was wrong from any subdirectory** — `list` reported *"No work directories yet"*
+  while 84 sat one level up, and `new` would have created a **second** `.ravenclaude/runs/` inside the
+  subdirectory. A storage contract with two storage locations is not a contract. It now resolves the
+  project root (`.ravenclaude/` or `.git/`), bounded, falling back to cwd.
+- **The storage gate's Cursor assertion could pass on a gutted rule.** It searched the whole
+  `scripts/ravenclaude` file, where the tier strings appear **twice** in unrelated blocks — so the
+  Cursor rule could lose the contract entirely and the gate would stay green. Now scoped to the
+  `.mdc` heredoc, and verified to fail on a fully gutted rule.
+- **`check-generated-headers`' pointer assertion was satisfied by the marker itself.** The pattern
+  accepted a bare `\bedit\b`, which every header already contains (*"do not edit by hand"*) — so the
+  claim *"names the SOURCE to edit"* asserted almost nothing. Tightened to require a real source file
+  or directory path; `copilot/README.md`, the one file that passed only on the weak alternative, now
+  names its generator.
+- **Path traversal in the Codex agent generator.** The agent `name` became a filename with no
+  validation. Canonical agents are trusted and frontmatter-gated, so this was defence in depth — but a
+  generator that builds a path from unvalidated data is one bad frontmatter line from writing outside
+  its output directory.
+- **`rc artifacts new` crashed on a long task id** — a raw `OSError: File name too long` traceback
+  where a one-line message belongs. Capped at 64 characters.
+
+### Fixed — P3
+
+- **The Stop gate ran an arbitrary user command with no time bound.** A command that hangs (a suite
+  waiting on a port, anything touching the network) would wedge every session end, and `max_blocks`
+  could never advance because the command never returns. Now wrapped in the repo's portable
+  `_rc_timeout` shim at 600s — verified bounding a 30s command at 2s — with a fail-safe stub so a
+  missing helper cannot disable the gate.
+- **`dod-fast.sh` failed OPEN** if it could not resolve the repo: `|| exit 0` reports *"definition of
+  done met"* when the truth is *"the checks never ran"* — the exact dishonesty the gate exists to
+  prevent. Now blocks and says why.
+- **The artifact index followed symlinks** out of the project, listing a foreign directory as though
+  it were work in this repo.
+
+### Notes on the review itself
+
+- **One finding was reached by a flawed demonstration.** The Cursor-lane issue was first "proved" by a
+  mutant that removed *one* of two mentions of the tier — which proved nothing. The conclusion held
+  anyway (verified separately: the strings occur twice outside the rule, so a gutted rule really would
+  have passed), but the first demonstration was worthless and is recorded as such.
+- **Two probes produced false alarms**, both caught before being reported as defects: a malformed
+  cwd-independence test (argparse errors read as failures) and a `--dest /dev/null` status check
+  (which was the new unreadable-config guard working correctly).
+
+## 0.232.1 — 2026-07-29
+
+**The dashboard was making three false claims about work shipped in the last few releases.** Found by
+asking "are the user interfaces up to date?" — they were not, and the failures were the same
+stale-claim class this repo keeps auditing itself for. **All fixed at zero DOM cost** (every one of
+these surfaces is JS-built from an inlined payload, so correcting the text costs no elements).
+
+### Fixed
+
+- **The MCP wiring table said Copilot and Codex were "not wired".** Both got opt-in wiring in 0.227.0
+  and 0.230.0. Worse, the table still gave the *old reasons* — *"nothing generates that file"* and
+  *"too risky to automate"* — which those releases explicitly corrected. The boolean `wired` is now a
+  three-state `automatic` / `opt-in (by name)` / `not wired`, because "yes/no" could not express the
+  consent model the whole design rests on.
+- **The host matrix said Codex agents don't exist** (`supported: false`, *"no generated Codex
+  projection exists"*). 0.228.0 shipped exactly that projection — 15 agents with per-agent
+  `sandbox_mode`. Flipped, with the honest caveat preserved: docs-verified but never watched being
+  enforced by a running Codex session.
+- **The Help drawer was wrong three ways in a single sentence** — while citing `host-support.json` as
+  its source of truth:
+  - *"Cursor … not wired at all — no hooks fire"* — **Cursor's hooks do fire**; the installer writes
+    `.cursor/hooks.json` and the matrix has said `supported: true` all along.
+  - **Gemini CLI was omitted entirely**, despite being a supported host since v0.222.0 with hooks.
+  - It implied **Aider** gets nothing; Aider receives a projected `CONVENTIONS.md`.
+  - **The durable fix: that sentence is now COMPUTED from `host-support.json`.** Prose that summarises
+    data must be derived from it, or it becomes a second source of truth that silently disagrees with
+    the first — which is exactly what happened here.
+
+### Added
+
+- **"Where work files go" now has a UI surface.** The cross-CLI storage contract (0.231.0) existed
+  only in `AGENTS.md` and the session-start banner — neither of which a human ever looks at. The Host
+  & context page now shows both tiers, who can see each, and the deciding test, rendered into the
+  existing mount for zero elements.
+
+### Notes
+
+- Two self-inflicted defects caught during the fix and worth recording: the derived sentence initially
+  used **two** `<strong>` tags where the hand-written one had one (+1 element against a zero-slack
+  budget — a derived summary must not quietly cost a ratchet raise), and spliced in with a full stop
+  where the template expected a semicolon, producing *"…hidden feature. the per-component truth…"*.
+
+## 0.232.0 — 2026-07-29
+
+**Making the storage contract stick — enforcement, not more prose.**
+
+### Added
+
+- **The Stop gate is configured and live.** It was built long ago and never switched on. A session
+  that changed files now **cannot end** until `scripts/dod-fast.sh` passes, on every host. This is the
+  strongest follow-through lever in the repo: a CLI can announce success as often as it likes, the
+  gate decides.
+  - The command is a **wrapper, not a one-liner**, deliberately. `ruff` is frequently not on `PATH`,
+    so the obvious `cmd: "ruff check . && ..."` would block sessions on machines that never had it —
+    punishing the user for a missing tool. The storage-contract check is stdlib and **always binding**;
+    ruff **blocks when present** and **loudly skips when absent** (a skip is never silent).
+- **`storage-placement-nudge.sh`** — a PostToolUse advisory noting when a work file lands at the repo
+  root instead of one of the two tiers, where the next CLI would never look. **Deliberately narrow:**
+  only root-level *scratch names* (`notes.md`, `plan.md`, `output.txt`…). It stays silent on
+  `AGENTS.md`, `README.md`, `docs/` and all source files, because a nudge that cries wolf is trained
+  away within a day. Never blocks; opt out per-file with `placement-ok`.
+- **The storage contract is now INJECTED at session start**, not merely linked. A pointer is advisory
+  and the reported complaint is precisely that some hosts do not read what they are pointed at. The
+  capability banner is placed *into the model's context*, so it is not something a host can decline to
+  open.
+- **Gate 173 — every generated file must say so, and say what to edit.**
+  - **Why this is the one file-stamp worth its cost.** A general "who touched this, when" stamp fails
+    three ways here: **1,560 tracked files (16%)** cannot hold a comment at all (`.json`/`.svg`/`.png`/
+    `.jsonl`), so coverage is partial and an *absent* stamp becomes ambiguous; generated files carry
+    byte-exact freshness gates, so a stamp breaks them or must be excluded — removing provenance
+    exactly where confusion is highest; and **`git blame` already answers it, derived**, so it cannot
+    go stale the way a maintained stamp can.
+  - **The test a stamp must pass is whether it changes what the next CLI DOES.** *"claude-code edited
+    this at 3pm"* changes nothing. *"This is generated — edit the source"* changes everything.
+  - **And it was missing from half of them: 18 of 36**, including `index.html` and all 15 projected
+    Copilot agents. A session could edit `copilot/agents/architect.agent.md` and have the work
+    silently reverted by the next regen.
+  - The gate also requires a **pointer**, not just the word GENERATED — "stop" with nowhere to go is
+    half a message. That stricter half immediately caught a **19th** case: `dashboard.html` declared
+    itself but never named its generator.
+
+### Fixed
+
+- **`dod-fast.sh` linted the wrong directory — caught by the gate on its first real run.** It used
+  `cd "${CLAUDE_PROJECT_DIR:-…}"`, but that variable is the **session's** project directory, not the
+  repo the script lives in. With the CLI launched from `$HOME` — an entirely ordinary thing to do — it
+  ran `ruff check .` across the whole home directory, reported 81 errors from `~/.local/share/doc/node/`
+  and an unrelated sibling repo, and blocked the session over lint in files nobody here owns. It now
+  anchors on the script's own path (`<repo>/scripts/` → repo root is one level up), which no
+  environment variable or cwd can move. Verified from a foreign cwd *and* with `CLAUDE_PROJECT_DIR`
+  deliberately pointed at `$HOME`.
+
+### Notes
+
+- **Authorship is deliberately NOT recorded in files, and that is a design position.** A CLI that
+  learns *"Copilot wrote this, be suspicious"* has acquired a prejudice, not evidence — it would
+  distrust correct work and trust wrong work from a favoured tool. Quality in this repo has a real
+  answer (the gates), and it is about whether something is **verified**, not who vouched for it.
+- Owner-approved **+14 DOM** (6,140 → 6,154 / 7,026 → 7,040) to draw the new nudge in the Pipeline tab
+  beside its two already-drawn siblings; leaving it out would make the guardrail map read as though
+  the guardrail does not exist. **Measured, not estimated** — trimming the stage description from 4
+  steps to 2 saved only 2 elements, so ~12 is the stage's fixed cost.
+
+## 0.231.0 — 2026-07-29
+
+### Added
+
+- **A cross-CLI storage contract — every host is now told where work files go, identically.** Any CLI
+  may be the one working in a repo, and the next session may be a different one, so where a file is
+  put is the only thing that lets the next tool find it.
+  - **The convention existed, but only Claude Code was told.** It lived in
+    `plugins/ravenclaude-core/CLAUDE.md` — the Claude-only constitution. Codex, Cursor, Gemini and
+    Aider never saw it, and Copilot received only one unrelated section of that file. Root
+    `AGENTS.md`, the actual **cross-tool** file, had no file-organisation section at all; it mentioned
+    `.ravenclaude/runs/` exactly once, incidentally, inside a branch-deletion rule. Same shape as the
+    multi-host audit: a discipline in one host's file, assumed universal.
+  - **Two tiers, now named**, because they already existed and nothing said so:
+    | tier | path | visibility |
+    |---|---|---|
+    | local run | `.ravenclaude/runs/<task-id>/` | **this machine only** — gitignored |
+    | committed | `docs/plans|decisions|research/` | teammates + CI, via git |
+
+    The deciding test is written down: *would a teammate cloning this repo need it?*
+  - **It says what is NOT shared** — host-private state (`~/.claude/` transcripts and memory,
+    `~/.copilot/`, `~/.codex/`, conversation history, caches) never crosses over. An admitted gap
+    beats a false promise of parity.
+- **`rc artifacts list` / `rc artifacts new <id>`** — the index that makes the contract usable.
+  `list` shows both tiers, newest first, **with which CLI wrote each one**; `new` creates a directory
+  in the right shape stamped with the calling CLI.
+  - **The listing is derived by scanning, never maintained**, so it cannot go stale — a hand-kept
+    index is a file that goes wrong the first time somebody skips it, and a stale index is worse than
+    none because it is believed. This repo has been bitten by that class repeatedly.
+  - Host detection uses **positive signals only** and reports `unknown` rather than guessing; a wrong
+    provenance stamp is worse than an absent one, because it will be trusted.
+  - `new` **never clobbers** an existing directory (it reports who made it and tells you to continue
+    there — two half-records is the failure the contract forbids), and **only ever writes the
+    gitignored local tier**. Promoting to the committed tier stays a deliberate `git add`.
+  - Nested layouts resolve correctly: `.ravenclaude/runs/forge/<slug>/` is a *container*, and listing
+    it as one artifact under-reported by 12 directories and would have pointed the next CLI at the
+    wrong path.
+- **Gate 172** — the contract is canonical in `AGENTS.md`, names both tiers, says what is not shared,
+  and **every lane carries it**; plus the index finds both tiers with provenance and never clobbers.
+  **The teeth half removes it from one lane** — what adding a host, or tidying a projector's section
+  list, actually looks like.
+  - The gate is **lane-aware on purpose**: Copilot and Aider receive the section verbatim, so the
+    header must be present; Cursor reads neither `AGENTS.md` nor a projection, so what must be true
+    there is that its rule names the section **and states both tiers inline**. The first draft checked
+    all three identically and failed on correct work — a gate wrong about its own subject.
+
+### Fixed
+
+- **The Aider and Cursor lanes could not have received it.** Aider's projection carries a fixed list
+  of sections (the new one is added); Cursor's rule pointed at `AGENTS.md` but enumerated only
+  testing, layout and PR conventions — so a Cursor session had no reason to read the part that
+  matters here. It now names the section and carries the essentials inline.
+
+## 0.230.0 — 2026-07-29
+
+### Added
+
+- **MCP servers can now be wired for Codex too — opt-in by name, and by pure append** (audit MH-19,
+  Codex half; the last open piece of the multi-host audit).
+  `ravenclaude install --host codex --with-mcp <server>` adds `[mcp_servers.<name>]` tables to
+  `.codex/config.toml`. Nothing is added unless named — the same consent model as the Copilot half,
+  and for the same reason: neither `~/.codex/config.toml` nor a project one offers a per-plugin step.
+  - **The deferral said *"a bad TOML merge would clobber a hand-tuned config."* That worry was sound,
+    and it was retired by structure rather than by care.** This repo already records the sharper
+    version in 0.216.0: appending a **bare key** attaches it to the most recent table, so
+    `sandbox_mode` appended to a file containing `[mcp_servers.github]` silently became
+    `mcp_servers.github.sandbox_mode` — valid TOML, wrong meaning, invisible in a diff.
+  - **But bare keys and table headers are opposites in exactly that respect:**
+
+    | | |
+    |---|---|
+    | a bare key | position-**dependent** → appending is dangerous |
+    | a `[table]` header | position-**independent** → appending is safe |
+
+    An MCP server *is* a table. So it is added by **pure append**, and a pure append cannot clobber
+    because it never rewrites an existing byte. The safety argument is therefore a one-line
+    assertion, checked before every write: `new_text.startswith(original_text)`.
+  - Three rules make it total: a server whose table **already exists is skipped, never rewritten**
+    (it may be your own tuning, and a duplicate table is a TOML error); the result is **parsed before
+    it is saved** (the `network_access`-as-a-quoted-string lesson: verify with a parser, never by
+    eye); and only renderable shapes are emitted — anything else **raises** rather than guessing at
+    the TOML.
+- **Gate 171** — append-only asserted byte-for-byte, hand-tuned tables/root keys/**comments** all
+  survive (verified by parsing both sides), idempotent with no duplicate tables, result parses,
+  unknown names fail without writing. **The teeth half is the tidier-looking implementation** that
+  parses the file and re-emits it — which silently discards your comments and ordering.
+
+### Fixed
+
+- **The installer's own note about this was wrong in two ways.** It said MCP lived at
+  `.codex/config.toml` **`[mcp]`** — the table is **`[mcp_servers.<name>]`** `[docs-verified
+  2026-07-29]` — and it said the merge was unbuildable because it would clobber, which was a
+  statement about one possible implementation, not about the problem.
+
+### Notes
+
+- Both halves read the **same** generated catalogue, so one inventory serves both hosts.
+- Stated at install time, not buried: a project `.codex/config.toml` is read **only in trusted
+  projects**, so writing the file is not the same as Codex loading it — the same honest caveat the
+  hook-trust and sandbox work carries.
+
+## 0.229.0 — 2026-07-29
+
+### Added
+
+- **Subagent dispatch log on the Session page, with a three-state honest empty state** (audit MH-20,
+  remedy 2 — the "fuller version" the ledger tracked as open).
+  - **Checking the producer first changed the design.** `agent-dispatch-evaluator.sh:77`
+    **short-circuits** unless `.ravenclaude/dispatch-config.json` carries `"enabled": true`, and line
+    28 states plainly *"enabled:false is the shipped default."* Neither that config nor
+    `runs/dispatch-eval/` exists on this machine. **So the reader as specified would have shipped a
+    permanently-empty panel** — the exact defect class this audit has spent the session closing (the
+    always-empty session card; the MCP step reporting "not configured"; the emitter nothing called).
+  - It therefore reports **three distinct states**, because a bare *"nothing recorded"* is
+    indistinguishable from a broken reader — and that ambiguity *is* the bug:
+    - **off** — nothing will ever be recorded until you opt in; says so, and how.
+    - **idle** — enabled, nothing logged yet.
+    - **recorded** — totals plus the agent types.
+  - **Zero DOM cost and no new endpoint.** The card is appended into the existing `#panel-mimir`
+    container and rides `/__mimir`, so no Gate 132 ratchet raise was needed (6,140 / 7,026 unchanged)
+    — better than the page-budget cost this option was quoted at.
+  - **Derived-only**, like the 0.223.0 counts: totals and validated agent-type labels. The evaluator's
+    JSONL may carry a prompt or reasoning; neither is read.
+- **Gate 49 extended** with assertions that keep the three states distinct — the `off` state must say
+  it is off *and* how to change it, and must not degrade to a bare empty message. **Verified to fail
+  (2 assertions) when the states are collapsed into one generic message**, which is what a
+  "simplify this" edit looks like.
+
+### Notes
+
+- Per-session subagent counts (shipped 0.223.0, read from transcripts) need **no** opt-in and remain
+  the surface most people will actually use; this log adds the evaluator's own records on top, for
+  anyone who has turned it on.
+
+## 0.228.0 — 2026-07-29
+
+### Added
+
+- **The 15 agents now project to Codex custom agents, with least privilege enforced.**
+  `scripts/generate-codex-agents.py` emits `plugins/ravenclaude-core/codex/agents/*.toml`; the
+  installer copies them into a consumer's `.codex/agents/`. The 5 review-only agents
+  (`security-reviewer`, `code-reviewer`, `architect`, `deep-researcher`, `viz-spec-reviewer`) get
+  `sandbox_mode = "read-only"`; the 10 that declare a write tool get `workspace-write`.
+  - **Omission is the dangerous case, and that is what makes this a security fix.** Codex documents
+    `sandbox_mode` per agent and that **the parent turn's permission mode is inherited when it is
+    omitted** `[docs-verified 2026-07-29]`. So a file without it does **not** fail safe — a
+    review-only agent would run with whatever the session has. That is the identical shape to MH-10
+    on Copilot (an omitted `tools:` silently granted every tool): two hosts, two mechanisms, one bug.
+    `sandbox_mode` is therefore **always** emitted, never left to inheritance.
+  - **The recorded blocker was stale.** The deferral said *"there is no verified Codex agent-file
+    contract in this repo; projecting 15 agents from a guessed schema is the same don't-guess call
+    made on the Copilot `tools:` gap."* Correct at the time — and the contract **is** published, on
+    the page for local Codex clients including the CLI. That is the sixth blocker this audit has had
+    dissolve against a primary source.
+  - **TOML bodies use literal (`'''`) blocks, not basic (`"""`) blocks.** Agent bodies are markdown
+    full of backslashes and quotes, every one of which would need escaping in a basic string; a
+    literal block needs none. Its one hazard — the terminator, which cannot be escaped inside a
+    literal string — is handled by **raising** rather than emitting a corrupt file. No agent body
+    currently contains one.
+  - Output validated with a **real TOML parser**, not a substring scan — the lesson from the
+    `network_access`-written-as-a-string bug that shipped green in 0.216.0.
+- **Gate 170** — freshness, valid TOML, required fields non-empty, the agent body actually travelled,
+  no orphans, and the two that matter: `sandbox_mode` present on **every** file, and `read-only` for
+  every agent whose canonical `tools:` declares no write tool. Asserted against the **canonical
+  agents**, not against the generator — a gate that asks the generator what it meant to do proves
+  nothing. **The teeth half stops emitting `sandbox_mode`**, which is exactly what a "the default is
+  fine" edit looks like.
+
+### Notes
+
+- `[unverified — no Codex CLI on this machine]` Two things could not be settled by execution, and are
+  named at install time rather than assumed: whether a kebab-case `name` is accepted (the docs' one
+  example pairs `pr_explorer` with `pr-explorer.toml`, so name and filename may differ; a mismatch
+  fails **loudly** as agent-not-found, never as a silent privilege widening), and
+  [openai/codex#26868](https://github.com/openai/codex/issues/26868), which reports subagent `.toml`
+  files not always applying on spawn. Both settle by running Codex and spawning a projected agent —
+  the same route that settled the Copilot allowlist in 0.224.0.
+- `.repo-layout.json` gains `plugins/*/codex/**`. It is added **now that it is used** — an unused
+  allow-list glob silently pre-authorizes an unreviewed directory, which is why it was withheld
+  before.
+
+## 0.227.0 — 2026-07-29
+
+### Added
+
+- **MCP servers can now reach the Copilot host — by name, never wholesale** (audit MH-19, Copilot
+  half). `ravenclaude install --host copilot --with-mcp <server>` installs exactly the servers you
+  name; the default installs **nothing**. `ravenclaude status` lists what is available, who ships it,
+  and what you have enabled.
+  - **Why opt-in is a security property here, not a preference.** On Claude Code you receive a
+    plugin's MCP server *because you installed that plugin* — consent is structural and per-plugin.
+    Copilot's `~/.copilot/mcp-config.json` is **global**; there is no per-plugin step. So wiring all
+    four wholesale would not restore parity, it would install third-party software from plugins you
+    never chose — including a write-capable one (`powerbi-editor`), which
+    `docs/best-practices/bundled-mcp-servers.md` treats as an Absolute-rule gate. **Naming the server
+    is the consent step**, standing in for the per-plugin choice the host does not offer.
+  - New `copilot/mcp-catalog.json` (generated) lists all 4 servers with provenance. **Deliberately
+    not named `.mcp.json`** — the installer's legacy auto-merge keys on that name, so the filename is
+    what stops the catalogue being swept into a global config by the old code path. The name *is* the
+    safety property, and Gate 169 asserts it.
+  - An **unknown server name fails loudly** and writes nothing. Asking for a server, getting none,
+    and being told "ok" is the exact failure shape this replaces.
+- **Gate 169** — catalogue completeness (no drift from what plugins declare), the filename property,
+  opt-in installs *that* server and no other, unknown names fail without mutating the config, and
+  every entry carries provenance. **The teeth half is the tempting refactor** — "just wire them all,
+  it's friendlier" — caught.
+
+### Fixed
+
+- **`ravenclaude status` said "mcp: not configured", which is misleading rather than wrong.** It
+  reads as *"you haven't set this up"*, when the truth is *"ravenclaude-core ships no MCP servers of
+  its own; the four that exist live in other plugins and are opt-in on this host."* It now says
+  which, and lists them.
+  - **The old auto-merge step was NOT a bug, read correctly** — it merged `<copilot-pkg>/.mcp.json`,
+    a file nothing generates, because it was written for core's own servers and **core ships none**.
+    It was correctly inert. Only the reporting was misleading. Recorded because "obviously broken,
+    delete it" was the wrong read, and the right fix followed from the accurate one.
+
+### Notes
+
+- `copilot/mcp-catalog.json` is added to `.prettierignore`. Python's `json.dumps` expands short
+  arrays one-per-line and prettier collapses them inline; both are valid JSON, but the generator's
+  `--check` gate is a **byte** comparison, so the two tools fight and the gate can never be
+  satisfied — the unsatisfiable-golden trap already recorded in the `/wireframe` v1.1 milestone.
+
+## 0.226.0 — 2026-07-29
+
+### Fixed
+
+- **Saving your posture in the dashboard now actually reaches Codex** (audit MH-16 part 2, dashboard
+  half). `emit-codex-config.py` shipped in 0.216.0, but it was invoked from **exactly one place** —
+  `scripts/ravenclaude`, the installer. Nothing on the save path called it, and
+  `apply-comfort-posture.py` has no Codex awareness at all. So you could set every category to `deny`,
+  click Save, watch it report success, and still be running at Codex's default `workspace-write`. The
+  product's headline feature silently did nothing on that host.
+  - **The honesty half needed the gate more than the wiring did.** The emitter's rule is *never
+    silently weaken*: a posture looser than what is already on disk is **refused**. But a refusal
+    **exits 0** — it tightens what it can and declines the rest — so the obvious wrapper reports
+    unqualified success while settings were deliberately skipped. That is the same false assurance,
+    moved one layer out. Refusals now come back as `codex_refusals`, and **Gate 168's teeth half is
+    exactly that naive wrapper**, caught.
+  - **Deliberately narrow:** only projects that already use Codex (a `.codex/` directory) are touched.
+    Writing an OS-sandbox config into every repo that ever saves a posture would be a surprising side
+    effect. And a failure here can never fail the save — the YAML is already on disk.
+  - **Still not parity, and it says so:** coarse by design (two enum keys cannot express twelve
+    categories), and a project `.codex/config.toml` loads **only in trusted projects** — writing the
+    file is not the same as bounding the session.
+
+### Added
+
+- **Gate 168** — pins all of it: a non-Codex project is left untouched, a Codex project gets the
+  projection, a stricter on-disk value **survives and the refusal is reported**,
+  `danger-full-access` / `approval_policy = "never"` are never emitted at any posture, and **both**
+  server copies carry the helper (the plugin copy is what consumers run, so a root-only fix would have
+  shipped nothing).
+  - The gate's own first draft failed on a *correct* emitter: it scanned the whole config for the
+    forbidden values and matched the **header comment**, which names them while promising never to
+    emit them. It now checks live config lines only.
+
+### Notes
+
+- The plugin `CLAUDE.md` "Known gap (MH-16 part 2, open)" block is **updated in the same change that
+  made it false** — the discipline this audit kept catching itself failing. Last release it was
+  deliberately left alone, because at that point it was still accurate.
+
+## 0.225.0 — 2026-07-29
+
+### Added
+
+- **Gate 167 — a Copilot payload now has to survive the whole path to the tribunal.** This is the
+  MH-01 residual the audit split out as P0/S and never built. MH-01 was the finding where the
+  command-review tribunal was *"fully wired, reviewing nothing"* under Copilot: the envelope was
+  translated but the tool-name **value** was not, and `thing-orchestrator.sh` dispatches on a
+  case-sensitive `Bash | Read | Write | …` list that falls to `*) exit 0`. Copilot sends `bash`.
+  - **The coverage gap was structural, not sloppiness** `[verified 2026-07-29]`. Of all hook tests,
+    **exactly one** uses a Copilot-shaped `toolName` — Gate 20's — and it is **not** among the four
+    that drive the orchestrator (`test-gate121`, `test-gate162`, `test-phase0-emit-and-scrub`,
+    `test-seat-stderr-capture`), all of which feed it Claude-shaped payloads. Gate 20 asserts the
+    adapter's **I/O shape**; it never asks whether a verdict comes out the far end. **No test crossed
+    the seam where the P0 actually lived**, so a regression in the tool-name map would have left every
+    gate green while the tribunal went dark again — silently, exactly as the first time.
+  - Three assertions: a control (the command really is deny-worthy in Claude shape), the same command
+    in a Copilot envelope through the adapter, and — **the one that matters** — a teeth half that
+    defeats the tool-name map and asserts the deny **disappears**. That reproduces MH-01 on demand.
+    A gate for a silent failure is worth nothing until it has been watched failing.
+  - The teeth half **fails loudly if its mutation anchor is ever missing**, rather than "mutating"
+    nothing and reporting teeth that don't exist.
+
+### Fixed (documentation — stale claims, which this repo treats as live defects)
+
+- **The MH-01 residual note said the Gate 20 fixture still hard-codes `toolName:"shell"`.** It does
+  not — it reads the docs-verified `"bash"`. Struck. Also corrected: `shell` was described as a
+  "third, invented" name. It is a **real** name — in the *agent-profile* tool vocabulary (see 0.224.0
+  / MH-10). It was simply the wrong vocabulary for a **hook** fixture.
+- **The MH-16 part-2 note said "the emitter is unchanged and still open".** Half-stale: the emitter
+  **shipped** (`scripts/emit-codex-config.py`, Gate 156).
+  - **But only half, and the other half was re-verified rather than assumed** `[verified 2026-07-29]`.
+    The emitter is invoked from exactly one place — `scripts/ravenclaude:736`, the installer. The
+    dashboard's save path never calls it and `apply-comfort-posture.py` has no Codex awareness at all.
+    So **editing your posture in the dashboard and clicking Save still changes nothing on a Codex
+    host**; only a fresh `ravenclaude install --host codex` does. The plugin `CLAUDE.md` sentence
+    saying exactly that is **accurate and was deliberately left alone** — flipping it on the strength
+    of the emitter merely existing would have introduced a false claim, which is precisely how
+    stale-claim defects get made. The remaining gap is tracked as the **dashboard→Codex save path**.
+
+## 0.224.0 — 2026-07-29
+
+**The multi-host audit closes: 42 of 42 findings fixed.**
+
+### Fixed
+
+- **Every agent projected to GitHub Copilot ran with ALL tools, including the ones built to have
+  none** (audit MH-10, P0). Copilot gives an agent every tool unless `tools:` restricts it, and the
+  projection dropped that field — so `security-reviewer`, canonically `Read, Grep, Glob, Bash,
+  WebFetch` with **Write/Edit deliberately withheld**, could write files and run shell the moment it
+  was used under Copilot. It now emits
+  `["read","view","grep","search","glob","shell","bash","powershell","web"]` — **no `edit`**.
+  - **The blocker was stale, not real.** The standing reason not to fix this was *"the complete
+    Copilot tool list is NOT published at a fetchable URL."* That is true of the **hook `toolName`**
+    vocabulary, whose doc pages 404. The **agent-profile `tools:`** vocabulary is a *different list*
+    and **is** published — on the page the CLI's own custom-agents how-to designates as authoritative
+    `[docs-verified 2026-07-29]`, which confirms the field applies to *"the Copilot CLI"*, that
+    omitting it *"defaults to all tools"*, and that ***"All unrecognized tool names are ignored."***
+  - **⚠ The audit's own prescribed remedy would have shipped a wrong allowlist**, by reusing the hook
+    vocabulary table. The two lists overlap but differ: `web_fetch`/`ask_user`/`create` are not
+    agent-profile names, and `read`/`search`/`web`/`todo`/`agent` are not hook names.
+  - **Verified against a running Copilot session** (CLI 1.0.70), not only the docs: a control agent
+    with no `tools:` created a file via shell; the restricted agent replied `CANNOT_WRITE` and created
+    nothing; and told explicitly to leak via `curl`/`git` it returned `LEAK_FAILED`.
+  - **`read` and `search` were silently dropped** — the restricted agent got exactly
+    `view`/`grep`/`glob`. That is the ignored-names rule observed in the wild, and it is why each
+    Claude tool maps to *every* equal-privilege spelling: a map that guessed `read` alone would have
+    left every agent **with no file-reading tool at all**, a silent amputation no CI check could see.
+  - **An agent's self-report of its own tools is not evidence.** Asked to list them, the probe named
+    `git` and `curl`; neither exists (the leak attempt died with *"Skill 'curl' not found"*). Taken at
+    face value that reads as a leaky allowlist and would have been filed as a live security hole.
+    Test the behaviour — *can it write?* — never the description.
+
+### Added
+
+- **Gate 166** — the least-privilege projection cannot silently regress. It holds the floor by **class
+  subset**, not a max-privilege ceiling: a ceiling would license `edit` for any agent declaring Bash,
+  i.e. for `security-reviewer` itself. The gate's first draft used a ceiling and **could not fail on
+  its own worked example**; its teeth half caught that before merge.
+
+### Notes
+
+- **MH-35** amended `docs/plans/2026-07-28-prompt-engineering-learn/plan.md` as §6.2a. Measuring the
+  planned host detector's liveness probe showed it requires `session.cwd == project_root` *exactly*,
+  and during a live Claude Code session on this repo (`cwd=/Users/matthewcorbett` vs project root
+  `/Users/matthewcorbett/RavenClaude`) it does not match — so the page would render *"cannot
+  determine"* while running inside the host it describes, for every `$HOME`-launched session, monorepo
+  subdirectory, and worktree. It fails *safe*, so it was surfaced as a decision: **owner chose to
+  accept an ancestor cwd**, with liveness still required so the reused-server wrong-host hazard stays
+  closed.
+
+## 0.223.0 — 2026-07-29
+
+### Fixed
+
+- **The Session card's "Recent project sessions" list was empty on every real machine, and looked
+  correct while doing it.** `_mimir_encode_key` computed the `~/.claude/projects/<key>/` directory
+  name by stripping the leading `/` and leaving `.` alone — so `/Users/me/repo` produced
+  `Users-me-repo` while the platform writes `-Users-me-repo`. It matched nothing, anywhere.
+  - **Why nothing caught it for ~7 months.** The miss path returns `exists: False`, which the UI
+    renders as the same honest *"no sessions yet"* empty state a genuinely-new host produces. **A card
+    that is always empty and a card that is correctly empty are pixel-identical**, so no one could
+    read the defect off the screen.
+  - **Why the tests couldn't catch it either.** `make_claude_home()` built its fixture directory by
+    calling `_mimir_encode_key` — fixture and reader agreed by construction, so the suite asserted
+    only that the encoder is self-consistent. Test 4 went further and hardcoded `"foo-bar-baz"` as the
+    expected canonical name, i.e. **asserted the broken convention as correct**. This is the same
+    fixture-agrees-with-reader trap the happy-path test's own comment already described for the
+    nested-`usage` shape, one function away.
+  - **The repo had documented the right answer all along:** the `mimir` skill's worktree rule states
+    `/.claude/worktrees/foo` → `--claude-worktrees-foo`, and that double dash is only reachable if the
+    leading `/` **and** the `.` both encode. The docs were right; the code never matched them.
+  - Re-derived from the platform artifact, not from the reader: of **161** real project dirs on this
+    machine, **161** begin with `-` and **0** contain a literal `.` `[verified 2026-07-29]`.
+  - Fix: encode every `/` and `.` as `-`, with the old stripped shape retained as a second candidate
+    so a host genuinely using it keeps working. New **test 3b** asserts the key against hand-written
+    literals with a *"do not rewrite these to call the encoder"* note; verified to fail (3 assertions,
+    exit 1) against the old encoder.
+- **Every session row reported 0 events and 0 output tokens — a second, independent cause.** The
+  summary loop read the **first** 50 KiB of each transcript, but a real transcript's opening 50 KiB is
+  session preamble (attachments, the file-history snapshot, the first user turn) and contains **zero**
+  assistant events. Measured against a 14.5 MB transcript: 0 assistant events in the first 50 KiB,
+  2,395 in the file. So the counts were structurally 0 regardless of activity — including after
+  0.222.x fixed the *nesting* those counts read from.
+  - Replaced with `_mimir_scan_session`, a bounded streaming scan with a byte-level prefilter that
+    runs `json.loads` only on lines that could matter: **14.8 MB across three transcripts parses in
+    ~0.04 s**. Bounded at 64 MiB/file, and hitting that bound sets `counts_truncated`, which the UI
+    renders as *"counts partial"* rather than presenting a floor as a total.
+
+### Added
+
+- **MCP servers are now visible, with an honest per-host wiring answer** (audit MH-19). The Host &
+  context page lists the 4 MCP servers this marketplace ships, which plugins ship them, and — the part
+  that matters — **which hosts actually receive them**. Today that is Claude Code only.
+  - This surfaced a live defect it now reports: `scripts/ravenclaude` merges
+    `<copilot-package>/.mcp.json` into `~/.copilot/mcp-config.json`, but **no generator ever writes
+    that file**, so the step is a permanent no-op guarded by `[ -f ... ]` — it fails silently, and
+    `status` says *"mcp: not configured"*, which reads as *"you haven't set it up"* rather than
+    *"this cannot be set up."* Every one of these servers also lives in a **non-core** plugin, and the
+    Copilot projection only covers core. Named in the UI with the manual workaround; the projection
+    itself is separate work.
+- **Subagent dispatch is visible** (audit MH-20). Each session row now shows how many subagents it
+  dispatched and of which types (e.g. `33 subagents (general-purpose×15, backend-coder×7, …)`).
+  Previously a session that fanned out to a dozen agents and one that did everything inline rendered
+  identically.
+  - **Derived-only, by contract:** a count and a type label validated against a strict charset
+    (anything else counts as `unnamed` — the dispatch still happened, and under-reporting it would be
+    the worse error). The `Task` block's `prompt`/`description` — the largest free-text field in the
+    transcript — is never read at any length.
+- Both additions cost **zero DOM elements** (6,140 / 7,026, unchanged): they render into the existing
+  `#hc-root` mount and the existing session `<li>`, so no Gate 132 ratchet raise was needed.
+
+### Notes
+
+- `ensure-default-mode.sh` gained a comment recording that **not** matching `plan` is deliberate, not
+  an omission (audit MH-32): the hook warns about modes that make the posture *weaker*, and `plan` is
+  strictly more restrictive. The audit read the absent branch as a gap; a future one should not
+  "fix" it.
+
+## 0.222.3 — 2026-07-29
+
+### Fixed
+
+- **`GET /__sleipnir` returned HTTP 500 on the marketplace dev portal.** `do_GET` has dispatched it to
+  `self._handle_sleipnir()` since the endpoint shipped, but **that method existed only in the bundled
+  plugin copy** — the root dev server raised `AttributeError`, so the Activity tab's Sleipnir stables
+  widget was simply broken there. The plugin copy's own docstring described itself as a *"mirror of
+  the root dev server's `/__sleipnir`"* — of a method that did not exist.
+  - **Gate 32 passed the entire time**, because its endpoint check regexes the *string* `/__sleipnir`,
+    which appears in the dispatch line of **both** files. It compared endpoint **names** and never
+    asked whether a handler existed.
+  - Found by the MH-33 guard-coverage check below, which reported *"handler not found"* while looking
+    for something else entirely.
+- **MH-33 — two enforcement holes in the parity gate.**
+  - `_ENDPOINT_RE = r"/__\w+"` is **hyphen-blind** (`\w` excludes `-`), so `/__concern-stats` was
+    compared as `/__concern` and `/__knowledge-health` as `/__knowledge`. Two endpoints differing only
+    after a hyphen compared as **identical** — and the truncation was visible in the gate's own PASS
+    output all along, reading as if those were the real names.
+  - The server's invariant — *"any NEW data-returning GET endpoint MUST call
+    `self._local_request_ok()` first"* — was **a comment, enforced by nothing.** That guard is the
+    DNS-rebinding / cross-origin defense. It is now checked statically, scoped to `do_GET`'s body.
+    *(The first version scanned the whole file, flagged the POST-only `/__classify`, and looked
+    exactly like a real security hole — it was a broken check. Diagnose before concluding.)*
+- **MH-27 — the Copilot manifest advertised seven slash commands on a host that has none.** Its
+  `description` ended *"Slash commands: /init-agent-ready, /wrap, /set-posture, /dashboard, /forge,
+  /wireframe, /reset-plugin-cache"* while the plugin's own CLAUDE.md states plainly that Copilot CLI
+  has no user slash commands. Corrected **in the projector, not the canonical manifest** — the
+  sentence is true for Claude Code and false only for this host, so the host-specific correction
+  belongs in the host's projection; editing the canonical file would make it wrong for Claude Code.
+
+## 0.222.2 — 2026-07-29
+
+### Fixed
+
+- **The run-state monitor was silently inert on macOS** (`monitors/watch-run-state.sh`). `newest_log()`
+  used `find … -printf '%T@\t%p\n'` to pick the newest `hook-events.jsonl`, but `-printf` is a GNU-find
+  extension — stock macOS/BSD `find` exits with `unknown primary -printf`, the `2>/dev/null` swallowed
+  it, and the pipeline returned empty. Result: on every macOS session the monitor idle-polled forever
+  and **never emitted a single push notification** — the entire push-notification complement to the
+  read-only Heimdall/Víðarr tabs was dead on that host. This is the same silent, unconditional,
+  every-macOS-session failure class the "macOS doors" milestones (v0.193.0–v0.199.0) exist to close,
+  and it was not covered by `check-macos-portability.sh`. Replaced with a portable enumeration that
+  resolves the newest file by mtime itself, using the repo's established `stat -c '%Y' || stat -f '%m'`
+  BSD fallback (as in `worktree-guard.sh`); bash-3.2-safe (no `mapfile`/assoc-arrays/`globstar`) and
+  space-safe (`-print0` + NUL read). Behavior on Linux/CI is unchanged. **Migration:** none — a
+  Claude-Code-only, opt-in (`on-skill-invoke:spawn-team`) monitor; macOS consumers now receive the
+  guardrail notifications that were previously silently dropped.
+
+## 0.222.1 — 2026-07-29
+
+### Fixed
+
+Four surfaces that told a reader something untrue or unusable. All content; no behaviour change.
+
+- **MH-28 — the claim-grounding double standard's last call site.** `init-agent-ready.md` still told
+  every new repo that *"AGENTS.md is read by Cursor / Codex / Aider / Copilot natively"*. **That is
+  false for Aider** (it reads `CONVENTIONS.md`, opt-in only) and unconfirmed for Cursor. Replaced with
+  a per-host list carrying each basis, and a pointer to `host-support.json` as the authority. The
+  sibling call site was already closed by the MH-23 rewrite.
+- **MH-34 — the pre-PR checklist requires network installs a sandbox blocks, and nothing said so.**
+  `npx --yes prettier@…` and `pip install ruff` both download, and Codex's default
+  `sandbox_mode = workspace-write` has network **off**. An agent got a denial and no way to name the
+  cause — while this repo's own Capability Grounding Protocol requires *"read the actual error first
+  and name its specific mechanical cause."* The block now names `sandbox_mode`, lists fixes
+  cheapest-first, and says plainly **not** to skip the steps (CI runs them whole-tree anyway).
+- **MH-36 — two different Geminis were conflated.** `AGENTS.md` now separates the supported **host**
+  lane from the Power Platform visual-QA **model** integration. They ran together because the second
+  was the repo's only Gemini anything and was buried in a skill resource, so a reader looking for
+  "Gemini support" found neither.
+- **MH-22 — the consumer dashboard pointed at a portal consumers do not have.** The Plugin-variables
+  intro said to *"open the plugin in the portal's Marketplace section"* — but the portal is
+  `index.html` at the **marketplace repo** root, and a consumer who installs the plugin and runs the
+  dashboard gets that page and no portal at all. It now points at the plugin's own directory and says
+  what the old text got wrong. **Zero DOM**: the first draft came in at +1 and was trimmed rather than
+  spend a ratchet raise on one element.
+
+## 0.222.0 — 2026-07-29
+
+### Added
+
+- **Gemini CLI is a supported host** (multi-host audit MH-30 + MH-41). The audit framed this as a
+  decision — support it, or formally unsupport it and strip the 17 name-checks. **Build won**, and the
+  research is why: Gemini's hook contract turned out to be **nearer Claude Code's than Copilot's is**.
+
+  | | Claude Code | **Gemini CLI** | Copilot CLI |
+  |---|---|---|---|
+  | stdin fields | `session_id`, `cwd`, `tool_name`, `tool_input` | **identical names** | `toolName`, `toolArgs` (JSON *string*) |
+  | Blocking | `exit 2` + stderr | **identical** | JSON `permissionDecision` |
+  | Matcher | yes | **yes**, with regex | none in the native format |
+
+  - **So it is a shim, not an adapter** — blocking needs *no* translation, which is the opposite of
+    Cursor (where a malformed response silently allows, so the deny had to be a fixed literal).
+  - **The one real translation is the tool-name vocabulary**, and it is not optional. Gemini sends
+    `run_shell_command` / `read_file` / `write_file` / `replace`; the guardrails dispatch on Claude's
+    PascalCase and fall through to `*) exit 0` on anything unrecognised. **That exact mismatch is
+    MH-01** — under Copilot the tribunal was fully wired and reviewed *nothing* because `bash` is not
+    `Bash`. Shipping unnormalised would have reproduced it on a fifth host, looking wired throughout.
+    **Gate 164** asserts the mapping name by name, with teeth.
+  - **`GEMINI.md` @-imports `AGENTS.md`** rather than receiving a copy. Gemini supports `@file.md`
+    imports, making it the **only** non-Claude host that can include the canonical file — nothing to
+    project, nothing to drift. (Aider needed a real projection only because `CONVENTIONS.md` has no
+    import mechanism.)
+  - Hooks are **projected** from the canonical manifest (17 wired, 8 explicitly skipped) and **merged**
+    into `.gemini/settings.json` rather than overwriting it — that file also carries the user's model,
+    theme and MCP config. **Gate 165** additionally asserts every emitted matcher is in *Gemini's*
+    vocabulary: one left in PascalCase would register a hook that can never fire.
+
+### Honest scope
+
+The **layout gate is not enforced** on Gemini. Its path arrives as argv, and Gemini's `tool_input`
+path *field name* is unverified — the docs' rewrite example shows `filepath`, other tools may use
+`file_path`. Wiring it would have registered a guard that receives no path and **silently no-ops,
+which is worse than not wiring it because it would look enforced.** CI is the backstop, and the skip
+list ships inside `.gemini/settings.json`. One line to enable once the field name is read.
+`Stop` / `UserPromptSubmit` are unmapped for the same reason: `AfterAgent`/`BeforeAgent` are plausible
+by name, and mapping a lifecycle event by name-similarity is how a lane asserts coverage it lacks.
+**This lane is docs-verified but UNTESTED against a running Gemini CLI.**
+
+## 0.221.1 — 2026-07-29
+
+### Fixed
+
+- **P0 — the session card reported the session's *opening* permission mode as its current one**
+  (multi-host audit MH-06). It said `default` while the session was in `auto`. **A permissions surface
+  reporting a laxer state than reality is the bad direction to be wrong in** — it tells an operator
+  they are more constrained than they are.
+  - **Two independent causes, and fixing either alone leaves the bug.** The loop kept the *first*
+    `permission-mode` event — in the very same pass that deliberately *overwrites* to keep the newest
+    model, two lines above. One loop, two opposite policies, one of them wrong. And
+    `_mimir_iter_jsonl_bounded` read the first 50 KiB from offset 0, so on any transcript past the cap
+    the scanned slice is the **oldest** part of the session; even a correct last-wins loop would have
+    reported the last value *from the opening minutes*.
+  - The reader gained an opt-in `from_end`. Only the caller that claims *current* / *last used* sets
+    it; the aggregate caller (counts, token sums) stays on the head read, because neither end is more
+    correct there and flipping it would silently change reported numbers.
+  - **`last_model` was wrong the same way** and is fixed by the same change — its comment said "newest
+    seen in scanned slice", which was honest, but the slice was the wrong end of the file.
+  - **Gate 163** asserts both server copies, on a fixture deliberately larger than the cap so head and
+    tail genuinely differ — and asserts that *fixture validity* first, because on a small enough file
+    both ends agree and every other assertion would pass for free.
+
+## 0.221.0 — 2026-07-28
+
+### Fixed
+
+- **The tribunal denied the documentation it requires** (multi-host audit MH-42).
+  `xc.tribunal-self-disable` is critical, `pre_llm_deny`, `always_screen` — no seat convenes and there
+  is no override short of the dashboard. Its regexes are **shell-shaped**, but for a file shape the
+  screened text is `"<path>\n<content>"`, so they ran over ordinary **prose** and matched:
+  - a markdown blockquote whose first token is a plugin `hooks/`/`scripts/` path, and
+  - an angle-bracket placeholder — a `<core>` token *ends* in `>`, so `<core>/hooks/…` is literally
+    `>` followed by a substrate path.
+
+  **Blast radius: every audit, plan, decision record, postmortem and knowledge file that cites a
+  substrate path with `file:line` — exactly what this repo's own Claim-Grounding protocol requires.**
+  It fired **seven times in a single session**, including twice while the fix was being written, and
+  once on marking a brand-new hook executable.
+  - **The narrowing is deliberately minimal:** only `self_disable`, only for file shapes, and only
+    when the **path alone** is also clean. The §B.9.3 hard rules still screen the full text; the
+    shell-shape screen is untouched; `screen_error` still fails closed; and the narrowing is recorded
+    in the Sága entry rather than happening silently.
+  - **Why it is not a weakening:** a substrate *write* is caught by the target-path screen, which
+    resolves realpaths and inodes (catching symlinks and hardlinks) and runs **after** the regex
+    screen, re-asserting the deny. Canonicalization is strictly stronger than a regex over content —
+    this removes a redundant, lossy check, not the load-bearing one.
+  - **Gate 162 is bidirectional by necessity**: a one-directional test on a control like this would be
+    indistinguishable from having turned it off. Its teeth force the narrowing *unconditionally* and
+    prove a substrate write is still denied.
+
+### Note on how two files are written
+
+`test-gate162-…` and the fixtures inside it assemble substrate paths and the curl-pipe-shell pattern
+**at runtime** rather than as literals — because with them inline, the shell-shape screen denies the
+Write that creates the test. That is the same false-positive family, met while building the gate for
+it, and the file says so rather than leaving a future reader to rediscover it.
+
+## 0.220.0 — 2026-07-28
+
+### Added
+
+- **Cursor is a supported host** (multi-host audit MH-13 + MH-25). It had **zero in-loop enforcement**:
+  not the layout gate, not `guard-destructive`, not the command-review tribunal, not the runaway brake.
+  CI was the only backstop, and CI runs after the damage.
+  - `ravenclaude install --host cursor` wires **two** surfaces Cursor has and this repo served neither
+    of: `.cursor/hooks.json` (guardrails) and `.cursor/rules/*.mdc` (Cursor's own rules convention,
+    which its docs call the *scoped alternative* to `AGENTS.md`, not a superset).
+  - Hooks are **projected from the canonical manifest** — 20 wired, 5 explicitly skipped with reasons
+    that ship in the file. Not a second hand-maintained list: MH-12 had just proved those drift
+    silently, and repeating that on a new host was the obvious trap. **Gate 160** additionally asserts
+    something is actually wired to the enforcing event, because a lane that enforces nothing would pass
+    a pure accounting check while protecting nobody.
+  - The **glob-scoped layout rule** is the point of the `.mdc` half: a rule that fires on the paths it
+    governs is exactly what a flat, always-on `AGENTS.md` structurally cannot express.
+- **⚠ The safety fact that shaped every line of it: CURSOR FAILS OPEN.** *"malformed JSON response
+  silently allows command instead of blocking"* `[docs-verified — Cursor's own bug tracker]`. Every
+  other supported host fails **closed** on a broken hook. So on Cursor a guardrail that emits
+  slightly-wrong JSON does not fail loudly — **it vanishes.** The adapter therefore emits its deny
+  verdict as a **fixed literal with no interpolation**, carries **both** documented and
+  community-reported field spellings, and reserves silence for genuine allows. **Gate 159** over-covers
+  that path deliberately, including a hostile command string that must never reach the payload.
+
+### Fixed
+
+- **MH-13's own event list was incomplete.** It named five events from third-party write-ups; Cursor's
+  published set is a superset that includes Claude-named events (`preToolUse`, `postToolUse`,
+  `sessionStart`, `subagentStart`, `stop`, `preCompact`) and supports `matcher`. Third-party
+  corroboration has now been wrong three times this release — `.codex/skills`, the Copilot version
+  floors, and this — against zero times for a primary source.
+
+- **Aider gets its real mechanism** (MH-26). Aider reads `CONVENTIONS.md`, and **only on explicit
+  opt-in** — `--read`, or a `read:` entry in `.aider.conf.yml`. It does **not** read `AGENTS.md`; that
+  claim was false and was corrected in prose earlier, which left Aider users with nothing *actionable*.
+  `install --host aider` now projects `AGENTS.md` → `CONVENTIONS.md` **and** writes the opt-in. Both
+  halves were required: a pointer file would not be read, and documentation alone would not opt in.
+  A renamed upstream section **raises** rather than silently shipping a file with a hole (**Gate 161**).
+  - **This is the only lane that bridges no enforcement.** Aider has no hooks API, so nothing here can
+    gate an Aider session in-loop and CI is the only backstop. The generated file leads with that
+    rather than implying coverage — and the gate fails if that warning is ever removed.
+- **Both hook projectors now invoke their adapter via `bash "…"`** rather than executing it directly,
+  so the wiring survives a checkout that lost its exec bits (Windows, zip exports, the installer's own
+  `cp -r` fallback). Worth noting the asymmetry: on Copilot that failure is **loud** (`preToolUse`
+  fails closed, so a non-executable adapter denies everything and is noticed in seconds); on Cursor it
+  is **silent**. Same fix, very different blast radius.
+
+### Honest scope
+
+`preToolUse`/`postToolUse` are **not** wired: their per-event payload fields were not published on the
+page verified, and guessing a payload shape on a host that treats a wrong guess as *allow* is the trade
+this repo refuses. The layout gate and web-access guard are **not** enforced on Cursor either — no
+verified event carries a file path pre-write or an agent web fetch — and the generated rules say so
+rather than implying coverage. **This lane is docs-verified but UNTESTED against a running Cursor**;
+there is no Cursor binary here, and `host-support.json` records that limitation rather than eliding it.
+
+## 0.219.0 — 2026-07-28
+
+### Fixed
+
+- **14 shipped guardrails never fired under GitHub Copilot CLI** (multi-host audit MH-12). The Copilot
+  hooks file was a hand-written list inside the installer. It wired **11**; the canonical manifest
+  registers **24**. Missing entirely: the web-access guard, the worktree guard (both modes), both
+  Muninn hooks, the delegation nudge, the recursive-spawn guard, the posture reapply, and more — and
+  **nothing enforced that the two lists agreed**, so the drift was invisible and grew every release.
+  - Now **projected** from the canonical manifest by `scripts/generate-copilot-hooks.py`: **23 wired**,
+    2 explicitly skipped **with reasons that ship in the generated file**, so a consumer can see what
+    is *not* protecting them. **Gate 158** fails the build if any canonical hook is neither wired nor
+    explicitly skipped — silent omission was the defect, so silence is what the gate forbids.
+  - The adapter **mode is derived**, not listed (`PreToolUse` + argv ⇒ `file-pretool`, else
+    `bash-pretool`, etc.), so adding a hook to the manifest is the only edit ever needed.
+- **"Copilot CLI has no per-tool matcher" was FALSE** (MH-24 — and that entry *was itself* the audit's
+  self-described *"highest leverage in the ledger: the guardrail against the next MH-01"*). Copilot
+  supports **two hook formats selected by event-name casing**: native camelCase has no tool matcher,
+  but **Claude-compatible PascalCase applies Claude's matcher semantics**
+  `[docs-verified — docs.github.com/en/copilot/reference/hooks-configuration]`, honored from **1.0.62**
+  (*"matchers … now honored instead of silently dropped"*). **The generated file has always used
+  PascalCase**, so matchers were available the whole time and simply unused. They are now projected.
+  Below 1.0.62 an unhonored matcher means the hook fires for every tool — exactly today's behaviour —
+  so this degrades safely and is applied unconditionally.
+- **A gate that tested the implementation instead of the outcome.** Gate 114's Copilot-parity check
+  grepped the installer for the literal strings `userpromptsubmit` / `stream-prompt-attribute.sh`.
+  When the wiring became a projection those literals vanished and the gate failed — while the hook was
+  still wired. It now **runs the projector and asserts the hook is in the emitted config**. A gate that
+  greps for *how* something is implemented breaks every time the implementation improves, and trains
+  the next maintainer to fix the gate rather than read it.
+
+## 0.218.0 — 2026-07-28
+
+### Fixed
+
+- **Four surfaces that overstated their own scope** (multi-host audit MH-37 · MH-38 · MH-39 · MH-29).
+  One shape, four places: a surface describing a capability without saying where it stops.
+  - **The Learn concept card** taught, as settled fact, that *"a hook adapter translates the I/O
+    envelopes so the **unmodified** hook scripts run under Copilot"* — the marketplace's own teaching
+    surface making exactly the unhedged capability claim its Claim-Grounding protocol forbids. True of
+    the *translation*, false of the *coverage*: **12+ shipped hooks are not in the Copilot hooks file
+    at all** and never fire there (MH-12, still open). Now scoped to *"for the hooks the installer
+    actually wires"*, with `host-support.json` named as the authority if the two disagree.
+  - **The Help drawer held exactly two onboarding lanes** — Claude Code and Copilot CLI — that
+    cross-linked only each other, while its own self-description named them as the whole world. Codex
+    had become a genuinely supported host one release earlier. A **third lane** now covers Codex
+    (install command + the hash-trust warning, the one thing that silently disarms that host) and says
+    plainly that Cursor, Aider and Devin Desktop are **not wired at all** — *"a gap, not a hidden
+    feature."* Owner-approved **+12 DOM**; see the ratchet row for why the first estimate was 4× low.
+  - **The Prompt Builder never said which models it targets.** Its linter rules are
+    Claude-version-specific (prefill is a 400 on Claude 4.6+; the imperative-stacking penalty is tuned
+    to current Claude behaviour), and a Copilot operator routing GPT or Grok was handed them as
+    universal prompt hygiene. The lead now says so.
+  - **"Windsurf" was a stale brand** at the last two call sites — Cognition rebranded it **Devin
+    Desktop on 2026-06-02**, and `docs.windsurf.com` now 307-redirects to `docs.devin.ai`. A reader
+    would reasonably have taken "Windsurf" and "Devin" for two hosts on separate tracks. Both now name
+    the product currently, and say explicitly they are **one product under two names**.
+
+## 0.217.0 — 2026-07-28
+
+### Fixed
+
+- **Claude-only invocation was taught as universal** (multi-host audit MH-18). `bin/rc` shipped in
+  v0.158.0 precisely to give non-Claude hosts a launch verb, and was never wired to the surfaces that
+  teach invocation. Three of them, one root cause:
+  - **The Commands catalog** renders **533** cards, every one of which said *"copy it, then paste into
+    Claude Code"* — with no alternative even where one exists and is documented in the same file. Cards
+    now carry an **"any host:"** equivalent where a real one exists, and the tab intro says plainly that
+    the rest are Claude-Code-only and that this is *"a gap, not a hidden feature."*
+    **Only verified verbs appear:** `bin/rc` implements exactly three (`dashboard`, `streams`,
+    `converge`), so exactly two commands get a mapping. Inventing a plausible-looking equivalent would
+    reproduce the very defect — an invocation confidently taught to a host that cannot run it.
+    Deliberately **not** stamped "Claude Code only" onto the other 530 cards: they already name the
+    host, and 530 repetitions is noise, not honesty.
+  - **The posture editor** promised *"you pick Deny / Ask / Allow"* with no scope note, while Save &
+    apply writes only `.claude/settings.json`. It now states where those levels actually bind — Claude
+    Code natively, Copilot via the wired hooks + command review, Codex via its own OS sandbox, and
+    advisory everywhere else with CI as the backstop. Same false-assurance shape the Pipeline tab had
+    (MH-04).
+  - **`AGENTS.md` § Setup** showed only the Claude Code slash commands — so the first substantive thing
+    a Codex or Copilot agent read (their onboarding says *"read AGENTS.md end-to-end, don't skim"*) was
+    a procedure it structurally could not execute, followed by a pointer to a command that does not
+    exist on its host. Now a **three-row host table**, each row carrying the command that actually
+    works, with the launcher given by **full path** (per MH-11, a bare `rc` can be shadowed) and
+    `/dashboard` marked as the Claude Code shorthand.
+  - **Zero DOM cost**, verified: the Commands tab is JS-built from `#commands-payload` so its cards are
+    uncounted, and the posture note is plain text inside an existing element. Both surfaces stayed at
+    6,128 / 7,014 — no Gate 132 ratchet raise needed.
+
+## 0.216.0 — 2026-07-28
+
+### Added
+
+- **`dashboard_autostart: off | serve | open` — the dashboard can now come up on its own at
+  session start.** The only auto-launch RavenClaude ever shipped was the Codespace devcontainer
+  (`postStartCommand` + `portsAttributes.onAutoForward: openBrowser`); on a local/desktop machine
+  **nothing** started the dashboard at session start, so "it didn't open automatically" was
+  correct-by-design and completely undiscoverable. New `SessionStart` hook
+  `hooks/dashboard-autostart.sh` reads the knob from `.ravenclaude/comfort-posture.yaml` —
+  `serve` starts the local server headless, `open` also opens a browser tab. **Opt-in;
+  absent ⇒ off**, and it no-ops after a single `grep` for everyone who hasn't set it, so an
+  update changes nothing until you opt in. **It never duplicates:** it probes
+  `127.0.0.1:<port>/__csrf` first and stands down if a dashboard already answers there, so
+  concurrent sessions in one project can't each spawn a server and steal focus with a new tab.
+  **Honest limit:** that probe answers "is a dashboard live on this port?", not "is it *this*
+  project's dashboard" — if another project holds the port, the hook stands down rather than
+  starting a competing one. Fail-safe (EXIT trap armed first; always exits 0 — a SessionStart
+  hook cannot block, and a dashboard that fails to launch must never be why a session doesn't
+  start), and bash-3.2/BSD-clean per the macOS-door milestones. **Gate 151**
+  (`hooks/tests/test-gate151-dashboard-autostart.sh`) drives the real hook against a recording
+  stub launcher: 5 must-not-launch cases (no posture / `off` / key absent / already-live /
+  an unrecognised value), 2 must-launch cases asserting `--no-open` is present for `serve` and
+  absent for `open`, every case exits 0, plus a teeth half that neuters the mode gate and proves
+  `off` then launches. The key is also wired into the dashboard's `state`/`emitYaml`/
+  `applyGuardrailConfig` (covered by Gate 35) — **not** cosmetic: `emitYaml` rebuilds the whole
+  posture file from `state`, so a key with no state slot is silently **deleted** on the next
+  Save & apply (the v0.61.0 data-loss class).
+- **…and it ships with a visible control** (Settings panel, beside the other behavioral flags): a
+  three-option select — *off* / *serve* / *open*. It was very nearly YAML-only, because Gate 132's
+  budget sat at exact zero slack — which would have reproduced the very discoverability problem that
+  started this release (a setting nobody can find is a setting nobody uses). **Owner-approved +6
+  ratchet raise** on both surfaces (6,114 → 6,120 and 7,000 → 7,006), tails lifted in lockstep to stay
+  monotonic. The +6 is **measured, not estimated**: the first cut came in at **ten** elements (a
+  behavioral-flag `<span>`, an explainer `<p>` and two `<b>`) and would have silently blown the
+  approved figure. It was trimmed to exactly six by making the ⚙ marker a *glyph in the heading text*
+  rather than the badge element, and moving the explainer into a `title=` attribute — both zero-cost
+  substitutions that keep the house conventions. Anyone adding a heading, description or icon here
+  must re-measure rather than assume +6 still holds.
+
+### Changed
+
+- **The portal is now on-brand with the RavenPower commerce site — the teal secondary accent is
+  retired.** `dashboard.html` already matched the site *exactly* (canvas `#07080a`, panel `#0c0e12`,
+  accent `#56D08A`, hover `#6EE0A1`, text `#f5f7fa`, muted `#9aa3b2` — 6/6 byte-identical, with both
+  Inter/Space Grotesk and both motion easings already shared). `index.html` was the one surface off
+  brand: it aliased its accent to `--rc-teal` (`#3aa391`). Its five `--teal*` variables now resolve to
+  the green tokens — a **repoint, not a rename**, so all ~20 usage rules are unchanged and none could
+  be missed. Teal was verified purely decorative on that surface (links, nav-active, brand mark, hero
+  hairline, chips, buttons) — no semantic distinction was collapsed.
+- **Radii pulled to the site's sharper scale** — `--rc-radius-sm` → `4px` and `--rc-radius-lg` → `10px`
+  now match the commerce `--radius` / `--radius-lg` exactly (dashboard was `8px`/`12px`), with the
+  intermediate steps tightened in proportion. This was the widest measured drift once the palette was
+  confirmed identical, and it is most of why the site reads crisp rather than soft. A 5-step scale is
+  kept (the site ships 2) because an admin surface has more component sizes than a marketing page.
+- **The commerce per-discipline tints are now tokens** — `--rc-tint-pp` (lavender), `--rc-tint-bi`
+  (teal-mint), `--rc-tint-web` (copper), plus `--rc-tint-ai` aliased to the accent. Declared only;
+  wiring them to plugin categories is deliberately a separate step.
+- **Deliberately NOT adopted: the site's spatial rhythm** (`--container`, `--gutter`,
+  `--section-y: clamp(80px, 12vw, 140px)`). That is marketing-page rhythm; applying it to a
+  6,114-element admin surface would multiply scroll length on the posture editor and run feeds and
+  partly reverse the v0.208.0 density re-cut. Owner-ratified: adopt the site's *proportions*, keep the
+  dashboard's density.
+- **Every change here is CSS/token-only, so Gate 132's DOM budget did not move** (6,114 / 7,000
+  unchanged) and no concept SVG re-render was triggered — the palette was already identical, so the
+  Mermaid→token normalizer is untouched.
+
+### Fixed
+
+- **Two accessibility defects surfaced and fixed by the accent unification** — one pre-existing, one
+  that would have been introduced:
+  - **Pre-existing:** the portal's primary button was `color: #fff` on teal — **3.08:1, already failing
+    WCAG AA** before this change. Now `var(--bg)` ink on green: **10.29:1 dark / 4.98:1 light**.
+  - **Nearly introduced:** mapping `--teal-2` to `--rc-accent-2` measured **4.04:1 on the light
+    canvas** — a regression for every inline link, since `--teal-2` is body-size *text* on that surface
+    (links, nav-active, eyebrows, chips). `--rc-accent-2` is documented as "AA-large / UI" only. It maps
+    to `--rc-accent` instead: **10.29:1 dark / 4.98:1 light** — also an improvement on the teal it
+    replaces, which was itself a marginal 4.45:1.
+  - The site hardcodes `color: #000` on its accent; we deliberately use `var(--bg)` instead, because the
+    site has no light theme and `#000` on the light green measures **3.9:1**. Mimic the intent, not the
+    literal value.
+  - **The focus ring collapsed to one colour.** Two rings existed because the system had two accents;
+    `--rc-focus-ring` was still teal in both themes and would have been the only teal left rendering.
+- **The Prompt Builder was homed under a different destination on each surface, so the portal
+  hid it.** v0.214.0 moved the nav link "Learn & Help" → **Control** on the standalone
+  `dashboard.html`, but the portal (`index.html`) was never moved with it: `DASH_OWNER` still
+  mapped `prompt-builder` → `catalog`, and the clickable link lived in the Catalog accordion —
+  which `renderNav` only emits when Catalog is the **active** nav item. So on the portal the
+  Prompt Builder was invisible until you first clicked Catalog, and it was absent from Control
+  where the release notes said to look. Fixed by homing it under `control` on the portal too,
+  first in the sub-nav (above The Thing), matching the standalone's slot exactly.
+- **Gate 144 could not see the skew — it asserted presence, not placement.** The portal half of
+  `scripts/check-prompt-builder-render.mjs` only checked that `DASH_OWNER` had *some* entry for
+  `prompt-builder` and that *some* `href="#/prompt-builder"` existed anywhere in the file; both
+  were true throughout the regression, so CI stayed green across v0.214.0 and v0.215.1. The gate
+  now **derives** the home destination from the folded standalone `ds-nav` chrome (present on both
+  surfaces, so it is a single source of truth rather than a hardcoded expectation) and asserts the
+  portal's `DASH_OWNER` **and** the destination's own sub-nav branch both agree with it. Two new
+  must-fail halves verified: regressing `DASH_OWNER` back to `catalog` and moving the link out of
+  the Control branch each fail the gate (exit 1). **Migration:** none — no storage-key or route
+  change; `#/prompt-builder` resolved before and resolves now.
+- **`scripts/render-concepts.py` could not render on a host where puppeteer fails to resolve its own
+  browser — which is every concept diagram, and the post-merge `regenerate-artifacts.yml` self-heal.**
+  mermaid-cli drives puppeteer-core, which locates Chrome itself; that resolution can fail even when the
+  browser is correctly installed (reproduced 2026-07-28 on macOS/arm64: Chrome 148.0.7778.97 present and
+  complete at 353 MB, yet every render died with `Could not find Chrome (ver. 148.0.7778.97)`). The script
+  passed no `env=` to `subprocess.run`, so there was no way to correct it short of exporting a variable by
+  hand. It now discovers a Puppeteer-managed Chrome and supplies `PUPPETEER_EXECUTABLE_PATH` — but only as
+  a **repair**, never as the default path:
+  - **Attempt 1 is byte-for-byte the historical invocation** (puppeteer's own resolution, `env` inherited).
+    Only if that fails does the fallback engage, and the chosen executable is then cached for the rest of
+    the run so the remaining diagrams don't each pay a doomed first attempt. **This ordering is
+    load-bearing:** committed SVGs are byte-compared and text metrics move with the browser build — the
+    same 2-node diagram rendered 12,520 bytes under Chrome 148 and 12,453 under 151 in testing, so
+    substituting a different engine on a host that already worked would silently churn every committed SVG.
+  - **An operator-set `PUPPETEER_EXECUTABLE_PATH` always wins** and is never second-guessed.
+  - **Truncated downloads are rejected, not handed over.** The cache entry that caused this held a
+    plausible 68 KB launcher stub at `Contents/MacOS/…` while missing `Contents/Frameworks` entirely — so
+    `is_file()` and `os.access(X_OK)` both passed on a browser that could never launch. `_looks_complete()`
+    requires the bundle's `Frameworks` payload (or, off macOS, a >1 MB executable); verified bidirectionally
+    against the real 353 MB good bundle (accepted) and the preserved 448 KB broken one (rejected).
+  - **Failures now carry an actionable hint** naming both observed causes — no managed Chrome at all, or a
+    truncated one, including the trap that `puppeteer browsers install` **silently no-ops** when the version
+    directory already exists (so it must be moved aside before reinstalling).
+  - Deliberately **no `shutil.which("google-chrome")` fallback**: a system Chrome is an arbitrary version,
+    and byte-reproducible SVGs are this renderer's contract. Failing loudly with an install hint beats
+    silently rendering against a different engine.
+  Verified end-to-end through the real `_render_one` path: fallback engages once and caches, an operator
+  override is honored on attempt 1, `--check` reports all 58 concepts in sync, and the mutated-manifest
+  gate still fails as designed. **No committed SVG changed.**
+- **The Copilot lane never said the Prompt Builder was a browser tab.** `copilot/AGENTS.md`'s
+  generated dashboard block told a Copilot session how to *launch* the dashboard but never named
+  what is in it — so "where's the prompt builder?" in a Copilot terminal had nothing to route on
+  and looked like a missing feature. The block now names it (`#/prompt-builder`, under Control),
+  says plainly that nothing in a terminal session renders it, and points at `dashboard_autostart`.
+- **OpenAI Codex CLI is a supported host** (multi-host audit MH-07 + MH-08 + MH-17, shipped together).
+  `ravenclaude install --host codex` wires the lane: all **50 skills** symlinked into
+  `<project>/.agents/skills/`, and `<project>/.codex/hooks.json` written in the **Claude-shaped**
+  schema. Verified end-to-end in a scratch project.
+  - **No adapter, and there must never be one.** Codex speaks the Claude hook contract natively —
+    identical PascalCase events, identical stdin fields, identical `exit 2` blocking, identical
+    PascalCase tool-name *values*. Copilot needed a 456-line generator plus ~300 lines of envelope
+    translation and a tool-name map; Codex needs none of it. Reading Codex through Copilot's model is
+    the mis-scoping that made this lane look expensive for months.
+  - **The one real difference is two absent environment variables.** `CLAUDE_PROJECT_DIR` (25 hooks
+    read it) and `CLAUDE_SESSION_ID` (14 read it) are not in Codex's environment, so the guardrail
+    substrate would stay dark. A new ~100-line wrapper lifts them out of the **stdin payload** — the
+    documented, reliable source — passing stdin through **byte-identical** and propagating the hook's
+    exit code **verbatim** (exit 2 = block). **Gate 155** proves all four invariants with two
+    must-fail halves; without them, "exit 2 propagates" would be an assertion nobody had seen fail.
+  - **Note what this avoided:** the existing `_rc_host_env` alias falls back to `CODEX_PROJECT_ROOT` /
+    `SESSION_ID` / `PROJECT_DIR` — **none of which are in Codex's documented environment.** It looked
+    like the fix and closed nothing. The audit's own remedy called for editing all 18 hooks to call
+    it; that would have changed nothing. **No hook was modified.**
+  - **MH-17 shipped in the same commit, deliberately.** Codex tracks hook trust **by hash**, so every
+    `git pull` — this repo's entire update model — invalidates each changed hook and Codex **skips it
+    until re-trusted**. Nothing announces it, because the SessionStart banner *is itself a hook*.
+    Shipping the installer alone would have manufactured the silently-inert-guardrail class this
+    audit exists to close, on the host it was closing it for. The re-trust notice fires at install,
+    at **`update`** (where the disarm actually happens), in `status`, and inside the generated file.
+    `--dangerously-bypass-hook-trust` is named **only to refuse it** — it turns an honest "your
+    guardrails are off" into a dishonest "your guardrails are on". `requirements.toml` managed hooks
+    are documented as the only unattended-survival path.
+  - **Backward compatible:** host auto-detection resolves *any* ambiguity to `copilot`, so an
+    existing user who happens to have `codex` on PATH gets a byte-identical install to yesterday's.
+  - **The comfort posture now reaches Codex's OS sandbox** (MH-16 part 2). `emit-codex-config.py`
+    projects it onto `sandbox_mode` / `approval_policy` / `[sandbox_workspace_write] network_access`.
+    **The governing rule is one-directional: never silently weaken** — write when absent, tighten
+    freely, and *refuse* to loosen a hand-set value, printing the exact line to change. The rejected
+    alternative (mirror the posture both ways) would let a dashboard click silently widen a sandbox
+    somebody had deliberately locked down. `danger-full-access` and `approval_policy = "never"` are
+    never emitted at any posture. **Gate 156**, two must-fail halves.
+    - **Two caveats stated at install time, not buried:** the mapping is **coarse** (two enum keys
+      cannot express twelve categories), and a project `.codex/config.toml` **loads only in trusted
+      projects** — a second trust gate beside the hook hashing, so writing the file is not the same as
+      bounding the session.
+    - **A TOML placement bug caught in testing:** a root key appended below an existing `[table]`
+      becomes a member of that table — valid TOML, wrong meaning, invisible in a diff, and Codex would
+      have fallen back to its default sandbox while the tool reported success. Fixed with a placement
+      anchor, pinned by a must-fail half, and verified with an independent TOML parser rather than by
+      eye. No `tomllib` is used at all: it is stdlib only on 3.11+, and stock macOS ships 3.9.6.
+    - **A second bug, and the sharper lesson:** `network_access` is a TOML **boolean**, so writing it
+      quoted produced the *string* `"false"` — not what Codex expects. It shipped broken in the
+      **tighten** path (the security-relevant direction), and **Gate 156 was green while it was live**,
+      because the self-test never exercised a boolean tighten. A gate is only as good as the paths it
+      reaches. Now asserted both directions and confirmed by a parser reporting `type: bool`.
+  - **Honest gap, printed at install time rather than discovered later:** MCP (`.codex/config.toml`
+    `[mcp_servers.*]`) is not wired — a bad merge would clobber a hand-tuned config. The generated
+    agent projection is
+    **deliberately deferred**: there is no verified Codex agent-file contract in this repo, and
+    projecting 15 agents from a guessed schema is the same "don't guess at a contract" call made on
+    the Copilot `tools:` gap.
+  - The Pipeline tab's host-scope sentence had a **hardcoded** "nowhere else" list beside its derived
+    supported list, so flipping Codex on made it name Codex as supported and unsupported *in the same
+    sentence*. Both halves are now derived from the map.
+- **`codex-onboarding` → `external-agent-onboarding`, and its evidence base rebuilt** (MH-23).
+  **⚠ MIGRATION — the only breaking change in this release.** The skill directory is renamed, so a
+  consumer with the old skill symlinked will have a dangling link after `/plugin marketplace update`.
+  **Fix: re-run `ravenclaude install` (or `rc`)** — one command, and already the documented update
+  path. Skill count is unchanged at 50.
+  - **The old name was the defect.** It owned the Codex discovery keyword while the content was
+    almost entirely Copilot/Cursor — no Codex row in its version table, no `codex --version`, and no
+    mention of `.agents/skills`, `sandbox_mode`, or `/hooks`. Same name-laundering class as Gate 70
+    (MH-31), one directory away.
+  - **Every factual row cited `/tmp/research-codex-2026-updates.md` — a path that does not exist**
+    (`No such file or directory`, verified). This repo's own rule requires a durable claim to cite a
+    check a later reader can run; a `/tmp` path is unfalsifiable by construction.
+  - **The version table was not merely unsourced — it was wrong.** Re-derived verbatim from the
+    [copilot-cli changelog](https://github.com/github/copilot-cli/blob/main/changelog.md): the
+    claimed *"preToolUse silent-allow regression fixed (1.0.59)"* and *"diff-not-reported-to-ACP fixed
+    (1.0.48)"* **appear nowhere in it**, and the config-leak fix is **1.0.57**, not 1.0.56. Rows that
+    could not be re-sourced were **deleted, not re-dated**. The real safety floor is **1.0.52**
+    (*"Hooks … now fire correctly for sub-agent tool…"*) — below it a **sub-agent's tool calls are
+    not hooked at all**, so a subagent runs Bash past every guardrail while `install` reports success.
+  - **That floor is now enforced, not just documented.** `ravenclaude install`/`status` run
+    `copilot --version` and warn below 1.0.52 — the same silent-disarm shape as Codex hash-trust, on
+    the flagship non-Claude host, previously checked by nothing. **Gate 157**, two must-fail halves.
+  - **The check itself had to be made fail-safe, and that bug was real:** under `set -euo pipefail` a
+    bare `$(… | grep …)` on an unparseable version **aborted `ravenclaude status` outright** (verified
+    exit 1). A version check that kills the installer is strictly worse than none. Every degradation
+    path — absent, non-zero, unparseable, no output — now warns and continues.
+- **Two false claims in the plugin constitution, both of which had already misled a reader** (multi-host
+  audit MH-40 + MH-16 part 1). The shape is identical and is this repo's own documented failure mode — a
+  stale claim in a file every session loads is an active defect, not a bookkeeping lag:
+  - **`CLAUDE.md` said "No DOM control ships"** for `dashboard_autostart`. True when written, false hours
+    later: the owner approved the ratchet raise and `_render_dashboard_autostart()` shipped a three-option
+    control on **both** surfaces at a measured 6 elements. An audit lens read the stale sentence and
+    reported closed work as open. Superseded inline, after verifying the control actually renders.
+  - **`CLAUDE.md` said "Claude Code's OS sandbox is Claude-only"** and generalized from Copilot to every
+    non-Claude host. **False for OpenAI Codex CLI**, in the costliest direction: it sends a Codex operator
+    to add a devcontainer while saying nothing about the knob that actually bounds them. Codex ships the
+    *same* primitives (Seatbelt / bubblewrap / Windows sandbox) **default-on** at
+    `sandbox_mode = workspace-write`, and its docs state the sandbox *"applies to spawned commands"* — so it
+    closes the **subprocess** gap that section exists to name, by default, where Claude Code's is opt-in.
+    The Copilot half (genuinely unevidenced) is preserved. Verified against the primary source
+    (`learn.chatgpt.com/docs/sandboxing`) **before** writing, because `knowledge/codex-cli-customization.md`
+    had marked the model `[inferred]` with a standing "verify before building on it" rule; that marker was
+    upgraded to `[docs-verified]` in the same change. **The emitter half is still open** — nothing writes
+    `.codex/config.toml`, so the corrected section says plainly that a saved comfort-posture does not bound
+    a Codex session today.
+
+## 0.215.1 — 2026-07-27
+
+### Fixed
+
+- **Corrected a dead source link on the `run-context-bundle` Learn-tab concept** (relanded from the
+  stale routine PR #710): the `sources:` `url` pointed `capture-run-context.py` at
+  `plugins/ravenclaude-core/scripts/…`, which does not exist — the script lives at repo-root
+  `scripts/capture-run-context.py` (the convention every other repo-root-script source already uses).
+  The fix is in the concept source; the generated `concepts.json`, `docs/concepts.md`, `dashboard.html`,
+  and `index.html` were regenerated to match (no DOM-budget change — the source link is CDATA payload).
+
+## 0.215.0 — 2026-07-27
+
+### Added
+
+- **Consolidated 4 subreddit-scan best-practices into one release** — relanded fresh off `main` from the
+  stale routine PRs #687 / #721 / #729 / #734 (each was 48–87 commits behind and un-mergeable), after a
+  read-only triage confirmed all four are genuine gaps not already on `main`:
+  - **Plan Mode is a tool-enforced gate, not advisory "think first"** — the enforcement is a real
+    permission gate, not a prose reminder.
+  - **A `PostToolUse` hook is the deterministic quarantine for untrusted tool output** — its central
+    claim (a `PostToolUse` hook can rewrite the result the model sees via
+    `hookSpecificOutput.updatedToolOutput`; the tool already ran, so side effects stick) was **verified
+    TRUE against the current Claude Code hooks reference this session** before shipping.
+  - **Build CLI + Skill first; reach for MCP only for live external-system state** — the design-time
+    discriminator upstream of the runtime MCP-context budget rule.
+  - **A policy hook only gates if it fails closed — exit 2 or a JSON `deny`, never `exit 1`.**
+
+### Fixed
+
+- **`docs/best-practices/hook-authoring.md` "Pick the right event" table had two wrong rows** (surfaced
+  by the two hook best-practices above): `PreToolUse` said "exit 1 blocks the call" — it is **exit 2**
+  that blocks; exit 1 is a _non-blocking_ error, so the tool still runs — and `PostToolUse` said "exit
+  code is logged only", omitting that `hookSpecificOutput.updatedToolOutput` **rewrites the result the
+  model sees**.
+
+## 0.214.0 — 2026-07-27
+
+### Changed
+
+- **Prompt Builder — one template toggle row, per-field canned pickers, and a Control-section home.**
+  The dashboard's Prompt Builder (`#/prompt-builder`) gets three changes: (1) the two overlapping
+  "starting point" controls — the Task/System/Few-shot mode toggle _and_ the separate "Preset…"
+  dropdown — collapse into **one toggle-button row of templates** (Agent system prompt first, the
+  most-used); picking a template sets the mode and fills the fields, so there is one control, not two.
+  (2) Each System-mode field (role, standing rules, tone, boundaries, output policy) gains an **"Insert
+  a canned …" dropdown** — a vetted, best-practice-grounded, anti-folklore-clean list you can drop in
+  and then edit freely; the free-text input is untouched (the pick fills an empty field, appends to a
+  non-empty one, or adds a list item). (3) The **Prompt Builder nav link moves from "Learn & Help" to
+  "Control"**, above The Thing, in the sidebar (and the mirrored tab-bar). Fresh visits now open on the
+  Agent system prompt template. Everything stays client-side, DOM built with
+  `createElement`/`textContent` (the XSS floor the render gate enforces). **Migration:** none — no
+  storage-key change; saved builder state loads unchanged (the new `template` marker defaults to null).
+
+## 0.213.0 — 2026-07-27
+
+### Added
+
+- **`/wireframe` v1.1 — the deferred renderers, archetype library, and multi-screen extension.** Extends
+  the existing skill (no new skill/agent; skill count stays 50). Ships: the deterministic **`_layout.py`**
+  box-packer (integer grid units, overlap-free by construction, two-predicate self-check); **`render_ascii.py`**
+  and **`render_svg.py`** (the SVG clears `svg-report-lint`/Gate 103 by construction, with viewBox aspect
+  padded into 0.05..20); a two-level **named-archetype library** (`archetypes/`, 12 models across
+  marketing/app/data) + **`archetype_score.py`** (structural conformance ≥ 80, honest "completeness not
+  taste" scope); and the **multi-screen (v2)** `screens[]`/`flow_edges[]` model shape with a new
+  `emit_screen_flow` Mermaid nav-map emitter and an `ascii_text` sanitizer in `wireframe_lint.py`. New
+  must-fail **gates 146–150** in `audit-gates.sh`. Built via `/forge` (two-panel + critic + red-team).
+  Committed goldens use prettier-ignored extensions (`.txt`/`.svg`/`.mmd`) and are LF-pinned via
+  `.gitattributes`. **Migration:** none — additive files under the existing skill.
+
+## 0.212.0 — 2026-07-27
+
+### Added
+
+- **`/wireframe` skill (v1) — describe anything → validated model + high-fidelity HTML Artifact +
+  Mermaid.** A main-session skill in `ravenclaude-core` that turns a plain-language description into a
+  schema-validated wireframe model, a Claude-authored self-contained HTML Artifact (via `artifact-design`),
+  and a Mermaid flowchart for flows. Ships `schemas/wireframe-model.schema.json`, the stdlib-only
+  `wireframe_lint.py` (validator + context-aware sanitizers + deterministic Mermaid emitter), starter
+  skeletons, and **Gate 145**. No new agent (`check-frontmatter.py` N/A). **Migration:** none — additive.
+
+## 0.211.1 — 2026-07-27
+
+### Fixed
+
+- **Prompt Builder is now reachable in the marketplace portal (`index.html`), not just the standalone
+  dashboard.** The v0.211.0 tab worked in the standalone `dashboard.html` (whose `validTabs` derives from
+  the tab button) but the **portal shell router** never owned `#/prompt-builder`: `DASH_OWNER` (the
+  dashboard-tab → destination map that drives `route()`, `payloadKind()`, and nav-highlight) was missing
+  the entry, so the portal's sidebar link fell through to the default section (Settings). Fixed by adding
+  `"prompt-builder": "catalog"` to `DASH_OWNER` (in `scripts/_index_dashboard_template.py`) — which routes
+  `#/prompt-builder` to the dashboard host + highlights Catalog — plus a **Prompt Builder** link in the
+  Catalog sub-nav (its literal `href` also registers it as a Gate-51 committed route). Standalone
+  `dashboard.html` was already correct and is untouched.
+- **Regression guard:** `scripts/check-prompt-builder-render.mjs` (Gate 144) now, when run on the shell
+  (`index.html`), asserts `DASH_OWNER` routes `#/prompt-builder` and the sidebar surfaces the link — the
+  render gate already runs on both surfaces, so a future drop of the portal route is caught (verified
+  fail-on-tamper). The check no-ops on the standalone (no `DASH_OWNER`).
+- **CI: greened three gates v0.211.0 shipped red** (it was admin-merged with CI failing). All three are
+  Prompt-Builder / self-heal artifacts surfaced by this version bump — none is a runtime change: (1)
+  **copilot package freshness** — the generated `copilot/plugin.json` was never regenerated for v0.211.0
+  (it sat at 0.210.2); regenerated. (2) **committed-routes fixture**
+  (`tests/fixtures/routes/committed-routes.json`) — the v0.211.0 `#/prompt-builder` tab added hrefs on
+  both surfaces without updating the fixture; re-emitted (the PB-2 anti-laundering `required_routes` floor
+  is carried through verbatim). (3) **DOM-budget structural check** (Gate 132) — the prompt-builder panel
+  is the **16th**; the hardcoded `SUM(panels)+shell, 15 panels` assertion in `scripts/audit-gates.sh` was
+  bumped 15 → 16 (the partition identity holds on both surfaces).
+- **Skill-count self-heal (48 → 49).** The core `plugin.json` + `marketplace.json` descriptions
+  undercounted skills (49 dirs, claimed 48) — a pre-existing drift on `main` that the full `audit-gates`
+  self-heal (`check-marketplace-claims.py --fix`) surfaces into the copilot-freshness gate for **every**
+  PR (which is why v0.211.0 had to be admin-merged). Synced to 49 via the sanctioned `--fix` and
+  regenerated copilot + dashboards, so the count is honest and CI is green. Also resolved stray git
+  conflict markers left in this CHANGELOG by the v0.211.0 re-integration.
+
+## 0.211.0 — 2026-07-26
+
+### Added
+
+- **Prompt Builder — a new dashboard tab (`#/prompt-builder`, under Learn & Help).** A deterministic,
+  100% client-side tool that assembles a best-practice **Claude** prompt from form inputs, in three
+  modes — **Task** / **System** / **Few-shot** — with a live preview, a **cited anti-folklore quality
+  linter** (the hero surface), a structure-completeness score, a rough token-size estimate, starter
+  presets + a one-click pattern library, and copy/export (`.md`/`.json`). No server, no API, no external
+  deps. Built via `/forge` (two-panel cross-model design → correlated-error critic → red-team →
+  synthesis); grounded in Anthropic's consolidated _Prompting best practices_ (retrieved 2026-07-26).
+  Research-driven groundings: **prefilling is deprecated** (400 on Claude 4.6+) so the builder never
+  emits it and the linter penalizes it; the token number is honestly **an estimate** (per-model divisor
+  3.6/4.0, `[interpretation]`, ±20% band) that never gates an action; and the linter **penalizes**
+  stacked `CRITICAL/MUST` emphasis rather than rewarding folklore.
+- **Gate 144 — `scripts/check-prompt-builder-render.mjs`.** The builder echoes user input into a live
+  preview, so its security floor is **no HTML-string sink anywhere in its JS** (the whole UI is built via
+  a `createElement`/`textContent` factory, `pbEl`). The gate enforces it **structurally** — a static
+  source grep over the whole `PROMPT-BUILDER:START..END` region — because the shared render DOM-stub
+  (`check-nidhoggr-render.mjs`) has no `innerHTML` setter and can't catch an `innerHTML` regression on
+  its own (the correlated error the FORGE critic found in both design panels; precedent
+  `check-concern-stats-render.mjs`). It also behaviorally exercises the pure assembler / linter / token
+  logic, with a must-fail half wired into `audit-gates.sh`.
+- **DOM budget (Gate 132) raised +6** (dashboard 6,097→6,103, index 6,809→6,815) to seat the new tab —
+  the frozen zero-slack tail was lifted in lockstep to keep the ratchet monotonic; the interactive UI is
+  JS-built (uncounted), so only the ~6 nav+mount elements are added. Owner-approved.
+
+**Migration:** none — a new read-only-to-the-repo tab (state is `localStorage` only). Reviewed by
+`code-reviewer` (approve-with-nits, all applied) + `security-reviewer` (DOM-XSS floor holds).
+## 0.210.2 — 2026-07-26
+
+### Fixed
+
+- **Command-card header wraps instead of clipping.** The dashboard/portal `.cmd-card-head` now wraps (`flex-wrap: wrap`, `gap: 6px 8px`) and `.cmd-card-title` takes a full-width flex row with `overflow-wrap: anywhere` (was `word-break: break-all` on a `space-between` row) — long mono command names/badges no longer collide or truncate awkwardly on narrow widths. Generator-only (`scripts/generate-dashboards.py`); `dashboard.html` + `index.html` regenerated.
+
+## 0.210.1 — 2026-07-26
+
+### Added
+
+- **Thing-denial knowledge base (Muninn)** — when the command/decision tribunal DENIES/DEFERS an action, a new per-repo KB turns the raw Sága records into a `denial shape → known resolution` lookup so a blocked agent can identify why it recurs and apply the fix. Engine [`scripts/thing-denial-kb.py`](scripts/thing-denial-kb.py) (`sync`/`recall`/`resolve`/`record`); seed [`knowledge/thing-denial-resolutions.json`](knowledge/thing-denial-resolutions.json); `thing-denial-kb` skill + [`knowledge/thing-denial-kb.md`](knowledge/thing-denial-kb.md). A `Stop` hook syncs from the Sága logs (hot-path-safe, read-only); a `SessionStart` hook surfaces the digest.
+  - **Security-hardened (2 blockers fixed in review), proven by Gate 143:** derived-labels-only banner (raw `sample` never auto-injected — only `recall --json`); `sample`+`reasoning` secret-scrubbed before storage (port of `hooks/_scrub.sh`); decision resolutions match on the derived reason class, correct-by-design rules first. **Migration:** none — additive, opt-in, fail-safe.
+
+## 0.210.0 — 2026-07-26
+
+### Added
+
+- **FORGE always provisions a worktree + checkpoints.** `/forge` now provisions an isolated `forge/<slug>` git worktree and checkpoints its tracked work at every gate boundary, at **every depth** (`micro`→`deep`). New deterministic helper `scripts/forge-worktree.sh` (`init` / `checkpoint` / `--self-test`), `bash`-3.2-safe and free of GNU `timeout`/`grep -P`/`sed -i`. **Fail-safe by contract** — every can't-provision case (not-a-git-repo, already-in-worktree nesting-guard, opted-out) exits 0 with a status receipt so the pipeline proceeds in the primary checkout (a safety anchor, never a gate). Opt-out: `forge_worktree: off` in `.ravenclaude/comfort-posture.yaml` or `FORGE_WORKTREE=off` (absent ⇒ on). Wired into `skills/forge-pipeline/SKILL.md` §0.5, `commands/forge.md`, and reconciled with the deep-depth atomic-write/resume. **Migration:** additive + fail-safe; set `forge_worktree: off` to keep the prior in-place behavior.
+
+## 0.207.0 — 2026-07-21
+
+### Added
+
+- **Dual-analytics default for HTML-serving templates.** `templates/repo-build-studio/marketing-page.html` (public) ships the **GA4 (Consent Mode v2) + Cloudflare Web Analytics** placeholder block — empty IDs ⇒ inert (no `<script>`, zero network); each beacon is independently PROD-host-gated **and** valid-id-gated (the guard rejects dummy shapes like `G-XXXXXXXXXX`, not just empty strings). `dashboard.html` (internal) ships the same block **commented-off by default** — authed/internal surfaces do not auto-fire. A domain-neutral pointer in `CLAUDE.md` + one conditional line in the `agent-ready-repo` `CLAUDE.md.template` route to the full policy in `web-design/skills/third-party-script-hygiene` §8–9 (this plugin stays domain-neutral). IDs are PUBLIC identifiers, never secrets.
+
+## 0.202.0 — 2026-07-16
+
+### Added
+
+- **FORGE domain-prior lens (`skills/forge-pipeline`) — the orchestrator now brings a domain lens to its gates, the constitution-correct way.** At `standard`+ only (the default `quick` path is byte-identical), the pipeline derives a one-line domain tag and injects the **same** domain-concern prior into both G2/G3 panels (and optionally G4a/G4b/G5) — cross-model divergence (B≠A) untouched; `security` is a non-exclusive overlay, so a security signal always adds the security prior. It is **inject-prior only**: it names domain concerns + the always-present [`agent-routing.md`](knowledge/agent-routing.md), never a hard cross-plugin link, so a disabled/uninstalled domain plugin never degrades it. New machinery lives in `reference/gates-standard.md` (loaded only at standard+); `quick`/`micro` pay nothing.
+  - **Why not dispatch a real specialist `agentType`** (the seductive answer two panels proposed, and the pipeline's own G4a critic + G5 red-team both cut): the house-rule litmus ("core agent + right skill = indistinguishable"), most advisory specialists lack `Write` (a `Bash`-heredoc workaround silently passes §0's "non-empty" floor on a truncated artifact — a regression), specialists emit their native schema not FORGE's receipt, and a domain→`agentType` map rots with no CI gate. Real dispatch is **deferred** with explicit preconditions recorded inline in `gates-standard.md`.
+
+### Fixed
+
+- **FORGE now honors the `parallelism:` posture cap** (`SKILL.md` §3) exactly as `spawn-team` Step 5 does — previously FORGE was the one orchestrator in the marketplace that ignored it. A cap, not a floor (composes with the Opus 4.8 under-spawn tuning).
+- **The "Sága run record" promised by `commands/forge.md` Step 5 now has a concrete shape** (`SKILL.md` §0): each gate's receipt is appended to `.ravenclaude/runs/forge/<slug>/run-log.jsonl` with `model`/`subagent_type`/`effort`. It was named in `forge.md` but never defined in the skill's artifact contract — unimplementable as written.
+
+**Cost (honest, char/4):** the **domain-prior lens adds nothing to `quick`/`micro`** (it lives in `reference/gates-standard.md`, loaded only at `standard`+; ≈ +1,000 tok there). The two hygiene fixes above touch always-loaded core, so `quick`'s fixed prompt grows **≈ +130 tok (~4%)** — a deliberate trade for a real correctness fix (the parallelism cap) + a real observability fix (the run-log). **Migration:** none — additive + behavioral; the lens degrades to today's generic behavior on an unrecognized domain or a disabled plugin. Found by dogfooding `/forge` on FORGE itself.
+
 ## 0.199.1 — 2026-07-15
 
 ### Fixed

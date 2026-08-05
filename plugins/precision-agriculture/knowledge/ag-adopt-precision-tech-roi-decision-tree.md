@@ -22,7 +22,7 @@ flowchart TD
     Q2 -->|NO - yield maps uncleaned, zones unvalidated| VALIDATE[Clean yield maps and validate zones before any VR/sensor spend - knowledge: yield-map-cleaning-precedes-zone-delineation]
     Q2 -->|YES - validated variability| Q3{Does the projected per-acre saving x acres cover the amortized tool cost at THIS operation's costs?}
     Q3 -->|NO - saving too small at your costs| DEFER[Defer - the saving does not clear the capital at your scale and cost; re-check if cost/scale changes]
-    Q3 -->|YES - saving clears the capital| Q4{Can the lift be MEASURED, not assumed (check strip / control / ground-truth)?}
+    Q3 -->|YES - saving clears the capital| Q4{"Can the lift be MEASURED, not assumed (check strip / control / ground-truth)?"}
     Q4 -->|NO| MEASURE[Build the measurement in first - uniform check strip / control plot / ground-truth - so next season the ROI is a number]
     Q4 -->|YES| ADOPT[Adopt - and instrument the check so the realized ROI is measured against a control, not assumed - scripts/ag_calc.py]
 ```

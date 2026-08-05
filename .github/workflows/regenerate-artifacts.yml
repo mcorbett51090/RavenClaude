@@ -67,7 +67,13 @@ on:
 
 # The job opens a PR with the regenerated artifacts (main is protected — direct
 # pushes are rejected by the "changes must be made through a pull request" ruleset),
-# then merges it immediately (the ruleset requires 0 approvals and no status checks).
+# lets that PR run the main ruleset's REQUIRED status checks, then squash-merges it
+# once they pass (0 approvals required). The self-heal PR used to carry [skip ci] and
+# merge immediately — that broke on 2026-07-17 when 3 checks became REQUIRED: [skip ci]
+# suppressed them so they stayed pending forever and a non-admin merge could never
+# satisfy them (self-heal PRs #720/#754 were left open + closed unmerged, so main went
+# UN-healed whenever there was real drift). Removing [skip ci] from the PR commit and
+# waiting for green is the fix.
 permissions:
   contents: write
   pull-requests: write
@@ -81,14 +87,17 @@ jobs:
   regenerate:
     name: Regenerate generated artifacts on main
     runs-on: ubuntu-latest
+    # Backstop for the "wait for the self-heal PR's checks" step below: the required
+    # checks run ~3-4 min, so 25 min is generous headroom while still bounding a hang.
+    timeout-minutes: 25
     steps:
       - name: Checkout (full history for accurate per-plugin "Last updated" dates)
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
       - name: Set up Python
-        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.x"
 
@@ -102,9 +111,53 @@ jobs:
         run: python3 -m pip install --quiet pyyaml
 
       - name: Set up Node.js (mermaid-cli is fetched on demand by npx when an SVG is stale)
-        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "20"
+
+      # A stale decision-tree / concept SVG needs mermaid-cli, which launches Chromium via
+      # puppeteer. The puppeteer-downloaded chrome-headless-shell CANNOT launch on the runner —
+      # its system shared libraries are absent (`chrome-headless-shell: error while loading
+      # shared libraries: libglib-2.0.so.0: cannot open shared object file`), so every SVG render
+      # silently failed + reverted (2026-07-27 diagnosis; the `--no-sandbox` puppeteer config the
+      # render scripts already pass was never the issue). Fix: when — and ONLY when — a diagram is
+      # actually stale, install a real Chrome WITH its system deps and point puppeteer at it. The
+      # staleness gate preserves this workflow's fast-no-op design (a no-diagram merge never touches
+      # Chrome). `render-*.py --check` reads a source-hash manifest (no browser), so it is cheap.
+      - name: Detect whether any diagram needs rendering
+        id: diagrams
+        run: |
+          set -euo pipefail
+          if python3 scripts/render-concepts.py --check >/dev/null 2>&1 \
+            && python3 scripts/render-trees.py --check >/dev/null 2>&1; then
+            echo "stale=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "stale=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Install ONLY Chromium's system shared libraries — do NOT override the browser. mermaid-cli
+      # bundles a puppeteer that downloads its OWN version-matched chrome-headless-shell; pointing it
+      # at a newer stand-alone Chrome launches but then fails inside mermaid.js at render time
+      # (`renderMermaid → fromText`, a CDP/version mismatch — observed 2026-07-27). So we let
+      # mermaid-cli use its bundled, version-matched browser and just give it the libs it was missing
+      # (the exact 24.04 set that a proven Chrome install pulls; `libglib2.0-0t64` provides the
+      # `libglib-2.0.so.0` that was the first missing lib). Passwordless sudo is available on
+      # GitHub-hosted runners. Gated on staleness so a no-diagram merge never touches apt.
+      - name: Install Chromium system libraries for mermaid-cli (only when a diagram is stale)
+        if: steps.diagrams.outputs.stale == 'true'
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          # Chromium's shared libs (libglib2.0-0t64 provides the libglib-2.0.so.0 that was the first
+          # missing lib) PLUS fonts: mermaid measures text geometry at render time, and a fresh runner
+          # with no fonts makes that fail INSIDE mermaid.js (`renderMermaid → fromText`) even though the
+          # browser launches — the second, non-Chrome cause observed 2026-07-27. fonts-liberation +
+          # fontconfig give it a usable sans family.
+          sudo apt-get install -y --no-install-recommends \
+            libasound2t64 libatk-bridge2.0-0t64 libatk1.0-0t64 libcairo2 libcups2t64 \
+            libdbus-1-3 libexpat1 libgbm1 libglib2.0-0t64 libnss3 libpango-1.0-0 \
+            libxcomposite1 libxdamage1 libxfixes3 libxkbcommon0 libxrandr2 \
+            fonts-liberation fontconfig
 
       - name: Self-heal generated artifacts (counts, SVGs, dashboard, index portal), commit if changed
         run: |
@@ -122,10 +175,32 @@ jobs:
           #     markdown source. Must be fresh BEFORE the SVGs + dashboard below (which
           #     embed concept data). Pure Python (no browser). This is audit-gates'
           #     "concepts.py freshness (clean tree)" gate relocated off the PR path.
+          #     TWO FAILURE CLASSES, and they must NOT be treated alike (fixed
+          #     2026-07-28). `--check` evaluates STALENESS FIRST (concepts.py:301)
+          #     and returns 1 before it ever compares concepts.json. Regenerating
+          #     CANNOT clear a stale `last_verified` — only a human re-verifying the
+          #     fact and moving the date can. So a bare re-check under `set -e` turns
+          #     a content-freshness warning into a hard abort that skips EVERY step
+          #     below: SVGs, dashboard, index, BI reports, copilot package, feedback
+          #     report — all stop self-healing, silently. That is exactly the class of
+          #     bug the render steps fixed on 2026-06-08 ("left main UN-HEALED across
+          #     many merges"); step 1b never received the same treatment. It would
+          #     have detonated on 2026-08-23, when the first platform-facts age out.
+          #     Staleness  -> ::warning:: and CONTINUE (a human must re-verify).
+          #     Anything else -> still FATAL (a real generator failure).
           if ! python3 scripts/concepts.py --check >/dev/null 2>&1; then
             echo "concepts.json stale — regenerating from concept source."
             python3 scripts/concepts.py
-            python3 scripts/concepts.py --check
+            _cchk="$(python3 scripts/concepts.py --check 2>&1)" && _crc=0 || _crc=$?
+            if [ "$_crc" -ne 0 ]; then
+              printf '%s\n' "$_cchk"
+              if printf '%s' "$_cchk" | grep -q 'staleness gate FAILED'; then
+                echo "::warning::platform-fact concept(s) are past the 90-day staleness gate. Regeneration cannot fix this — a human must re-verify the fact against its source and move last_verified. Continuing the self-heal so every other artifact still heals."
+              else
+                echo "concepts.json still stale AFTER regeneration — that is a real generator failure, not content freshness."
+                exit "$_crc"
+              fi
+            fi
           fi
 
           # 2. Concept + decision-tree SVGs. --check reads a source-hash manifest
@@ -279,11 +354,22 @@ jobs:
         id: cpr
         uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
         with:
-          token: ${{ github.token }}
+          # LOAD-BEARING FIX (2026-07-27): open the PR with a PAT, not the default GITHUB_TOKEN.
+          # A PR opened by GITHUB_TOKEN does NOT trigger `pull_request` workflows (GitHub
+          # recursion-prevention), so the 3 REQUIRED checks never run on the bot PR — it sits
+          # BLOCKED with "no checks reported" and the merge step below can never satisfy them
+          # (this, NOT the [skip ci] that #759 removed, is why the self-heal failed every
+          # real-drift run). A PR opened by a PAT (a real identity) DOES trigger the checks, so
+          # they run + pass legitimately and the merge needs NO admin bypass. Falls back to
+          # GITHUB_TOKEN when the secret is unset → same non-auto-merging behavior as before this
+          # fix, so landing this workflow change is harmless until the secret exists.
+          # Required SELF_HEAL_PAT scopes: fine-grained (Contents: Read/Write + Pull requests:
+          # Read/Write on this repo) OR a classic PAT with `repo`. Owner-created; see the PR body.
+          token: ${{ secrets.SELF_HEAL_PAT || github.token }}
           branch: chore/self-heal-artifacts
           base: main
           delete-branch: true
-          commit-message: "chore(artifacts): self-heal generated artifacts after merge [skip ci]"
+          commit-message: "chore(artifacts): self-heal generated artifacts after merge"
           title: "chore(artifacts): self-heal generated artifacts"
           body: |
             Automated post-merge self-heal of repo-wide **generated** artifacts
@@ -292,23 +378,37 @@ jobs:
             report, `docs/concepts.md`).
 
             main is branch-protected, so this bot cannot push to it directly; it opens
-            this PR and merges it immediately (the ruleset requires 0 approvals and no
-            status checks). Contents are deterministic generator output and were
+            this PR, waits for the required status checks to pass, then squash-merges it
+            (0 approvals required). Contents are deterministic generator output and were
             validated (JSON + prettier) before commit.
           labels: |
             automated
             generated-artifacts
 
-      # The ruleset requires a PR but 0 approvals and no status checks, so the bot PR
-      # can merge right away. A GITHUB_TOKEN merge does not re-trigger this workflow
-      # (and even if it did, the artifacts are now fresh → a no-op), so no loop.
-      - name: Merge the self-heal PR
+      # The main ruleset REQUIRES 3 status checks (Validate manifests/layout/schemas).
+      # Because the PR above is opened by SELF_HEAL_PAT (a real identity), those
+      # `pull_request` checks now actually RUN on the bot PR — a GITHUB_TOKEN-opened PR
+      # would never trigger them (the 2026-07-27 root cause). Wait for them to conclude,
+      # then squash-merge — a token with contents+PR write merges the instant the required
+      # checks are green (0 approvals, NO admin bypass — the checks genuinely pass). The
+      # squash-merge SUBJECT keeps [skip ci] so landing on main does NOT re-trigger this
+      # workflow (belt-and-suspenders — the artifacts are already fresh, so a re-run would
+      # no-op anyway). A failing/incomplete check leaves the PR open for inspection rather
+      # than force-landing un-validated output. (Without the secret, the fallback GITHUB_TOKEN
+      # PR still won't get checks — same as before the fix — and this step leaves it open.)
+      - name: Merge the self-heal PR once its required checks pass
         if: steps.cpr.outputs.pull-request-number != ''
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.SELF_HEAL_PAT || github.token }}
         run: |
           set -euo pipefail
           n="${{ steps.cpr.outputs.pull-request-number }}"
-          echo "Merging self-heal PR #$n (operation: ${{ steps.cpr.outputs.pull-request-operation }})"
+          echo "Waiting for required checks on self-heal PR #$n (operation: ${{ steps.cpr.outputs.pull-request-operation }})"
+          # Give the pull_request-triggered checks a moment to register before watching.
+          sleep 25
+          if ! gh pr checks "$n" --watch --interval 30; then
+            echo "::error::self-heal PR #$n has a failing/incomplete required check — leaving it open for inspection"
+            exit 1
+          fi
           gh pr merge "$n" --squash --delete-branch \
             --subject "chore(artifacts): self-heal generated artifacts (#$n) [skip ci]"

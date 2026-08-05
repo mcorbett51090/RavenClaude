@@ -1,0 +1,14 @@
+{
+  "meta": { "title": "Thin", "type": "page" },
+  "regions": [
+    {
+      "role": "modal",
+      "sections": [
+        {
+          "kind": "x",
+          "components": [{ "type": "button" }, { "type": "button" }]
+        }
+      ]
+    }
+  ]
+}

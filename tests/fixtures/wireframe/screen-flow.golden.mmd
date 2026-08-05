@@ -1,0 +1,7 @@
+flowchart LR
+    login["Log in"]
+    home["Home"]
+    detail["Task detail"]
+    login -->|"sign in"| home
+    home -->|"open task"| detail
+    detail -->|"back"| home
