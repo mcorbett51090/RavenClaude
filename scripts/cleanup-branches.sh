@@ -162,6 +162,7 @@ for b in "${branches[@]}"; do
   fi
 
   reason=""
+  veto_reason=""
   local_tip="$(git rev-parse --verify --quiet "refs/heads/$b" 2>/dev/null || true)"
 
   # Check 1: a merged PR whose head tip EQUALS this branch's CURRENT tip.
@@ -197,6 +198,31 @@ for b in "${branches[@]}"; do
   # than deleted. If gh is unavailable, Check 1 simply doesn't fire and we fall
   # back to the sound ancestry proof — we refuse rather than default to "safe".
 
+  # VETO (added 2026-08-05): an OPEN PR overrides every check above.
+  #
+  # Checks 1-2 are "pass if ANY holds", which is right for proving merged-ness
+  # but cannot express "merged AND still has an open PR" — a real state whenever
+  # a PR's commits reach the default branch by another route (a sibling merge, a
+  # cherry-pick, a rebase-and-merge of a stacked branch). Check 2 then reports
+  # "all commits in main" and the branch is deleted, which CLOSES the PR and
+  # takes its review thread with it. The commits survive; the review does not.
+  #
+  # This is a veto, not another OR-branch: it must be able to overrule a reason
+  # that has already been established, so it runs last and clears $reason.
+  #
+  # Fails SAFE, not closed: if gh is unavailable we cannot prove a PR is open,
+  # but checks 1-2 already proved the commits are merged, so deleting is still
+  # sound — we only lose the courtesy of preserving an open PR. (Contrast
+  # branch-hygiene.sh, which fails CLOSED here because it also removes worktrees
+  # and therefore has more to lose.)
+  if [ -n "$reason" ] && command -v gh >/dev/null 2>&1; then
+    if gh pr list --state open --head "$b" --json number 2>/dev/null \
+         | jq -e 'length > 0' >/dev/null 2>&1; then
+      reason=""
+      veto_reason="merged, but has an OPEN pull request — deleting it would close the PR"
+    fi
+  fi
+
   if [ -n "$reason" ]; then
     # Carry the verdict-time tip SHA as a 3rd tab-field so the delete can be made
     # ATOMIC against the exact commit the safety check ran on (see the delete loop):
@@ -205,7 +231,9 @@ for b in "${branches[@]}"; do
     # `git branch -D` (no delete-time re-check) would then force-delete.
     verdict_safe+=("$b"$'\t'"$reason"$'\t'"$local_tip")
   else
-    verdict_unsafe+=("$b"$'\t'"no safety criterion met (no merged PR with matching tip, and not fully merged into $default_branch)")
+    # A veto reason must win over the generic one: the branch IS merged, so
+    # "not fully merged into main" would be a false explanation of the refusal.
+    verdict_unsafe+=("$b"$'\t'"${veto_reason:-no safety criterion met (no merged PR with matching tip, and not fully merged into $default_branch)}")
   fi
 done
 
