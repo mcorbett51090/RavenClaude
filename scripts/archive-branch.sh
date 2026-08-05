@@ -206,7 +206,13 @@ $(printf '%s\n' "${UNMERGED_LIST:-  (none — branch is fully merged)}" | sed 's
 PLAN
 
 if [[ $ASSUME_YES -ne 1 ]]; then
-  read -r -p "Proceed? [y/N] " ans
+  # Guard the read: on EOF / closed stdin (a non-TTY caller that forgot --yes),
+  # `read` returns non-zero and, left unguarded, `set -e` would abort the script
+  # right here with no message. Fail safe (no deletion) WITH the explanatory line
+  # rather than a bare non-zero exit the caller can't interpret.
+  if ! read -r -p "Proceed? [y/N] " ans; then
+    echo "archive-branch: aborted (no input on stdin — pass --yes for non-interactive use)"; exit 1
+  fi
   case "$ans" in
     y|Y|yes|YES) ;;
     *) echo "archive-branch: aborted by user"; exit 1 ;;
@@ -284,14 +290,31 @@ indent_block() { printf '%s\n' "$1" | sed 's/^/  /'; }
 # `git update-ref -d` primitive that the guard doesn't pattern-match. This is
 # the documented escape hatch — NOT a way to bypass the guard for any other
 # reason. The script's preconditions are what make this sound.
-if ! git update-ref -d "refs/heads/$BRANCH"; then
-  echo "archive-branch: local delete failed — tag '$TAG' was created, find it via 'git tag --list archive/$BRANCH-*'" >&2
+# SHA-guarded delete: pass the tip captured at plan time ($TIP) as update-ref's
+# expected old-value, so the delete is ATOMIC against that exact commit and fails
+# closed if the branch moved during the (possibly long) interactive confirmation.
+# Without the guard, a commit pushed to $BRANCH in that window (another worktree,
+# terminal, or background agent) is silently orphaned by the unconditional delete
+# while the script still prints SUCCESS — the archive tag was cut at the OLD $TIP.
+if ! git update-ref -d "refs/heads/$BRANCH" "$TIP"; then
+  echo "archive-branch: local delete failed (branch moved since the plan, or ref lock) — tag '$TAG' was created; re-check 'git log $BRANCH' then re-run, or find the tag via 'git tag --list archive/$BRANCH-*'" >&2
   exit 1
 fi
 
 # ─── Delete remote (if requested) ────────────────────────────────────────────
 if [[ $DELETE_REMOTE -eq 1 ]]; then
-  if git ls-remote --heads origin "$BRANCH" | grep -q .; then
+  # Check ls-remote's OWN exit status separately from the match. Under
+  # `set -o pipefail`, `ls-remote | grep -q .` reports GREP's status, so a real
+  # ls-remote failure (origin unreachable, auth expired, DNS) produces no stdout,
+  # grep exits 1, and the pipeline is indistinguishable from "branch absent" —
+  # the delete would be silently skipped and the run still report SUCCESS.
+  _lsr_rc=0
+  _remote_refs="$(git ls-remote --heads origin "$BRANCH")" || _lsr_rc=$?
+  if [[ $_lsr_rc -ne 0 ]]; then
+    echo "archive-branch: could not query origin (git ls-remote rc=$_lsr_rc) — remote delete NOT attempted; LOCAL branch is gone (recoverable via $TAG)" >&2
+    exit 1
+  fi
+  if [[ -n "$_remote_refs" ]]; then
     if ! git push origin --delete "$BRANCH" >&2; then
       echo "archive-branch: remote delete failed; LOCAL branch is gone (recoverable via $TAG)" >&2
       exit 1

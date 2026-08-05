@@ -426,11 +426,24 @@ def _minimal_yaml_parse(text: str) -> dict:
     return result
 
 
-def _parse_block(lines: list[str], start: int, base_indent: int):
+# Cap on the fallback parser's recursion depth. A real comfort-posture.yaml nests
+# only a handful of levels; a hostile file with thousands of deepening indents
+# (well within the 256 KB size cap) would otherwise recurse past Python's limit and
+# crash with a raw RecursionError instead of the clean, catchable ValueError every
+# other malformed-posture case raises (repo-review 2026-08-05).
+_MAX_PARSE_DEPTH = 50
+
+
+def _parse_block(lines: list[str], start: int, base_indent: int, depth: int = 0):
     """Parse a nested block. Returns (parsed_value, lines_consumed).
 
     Detects whether the block is a list (starts with `- `) or a mapping.
     """
+    if depth > _MAX_PARSE_DEPTH:
+        raise ValueError(
+            f"comfort-posture nesting exceeds {_MAX_PARSE_DEPTH} levels — refusing a "
+            "pathologically deep file (no-PyYAML fallback parser)"
+        )
     if start >= len(lines):
         return {}, 0
     first = None
@@ -480,7 +493,7 @@ def _parse_block(lines: list[str], start: int, base_indent: int):
         content = s.lstrip()
         if content.endswith(":"):
             key = content[:-1].strip().strip("'\"")
-            sub, used = _parse_block(lines, j + 1, base_indent=block_indent)
+            sub, used = _parse_block(lines, j + 1, base_indent=block_indent, depth=depth + 1)
             result_map[key] = sub
             consumed += 1 + used
             j += 1 + used

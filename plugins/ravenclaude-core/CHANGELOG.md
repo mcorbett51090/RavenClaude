@@ -2,6 +2,29 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.236.1 — 2026-08-05
+
+### Fixed
+
+- **Multi-panel repo review — gate-invisible defects in this plugin** (all objective CI gates were
+  green; each verified against the real code before fixing). `guard-web-access.sh`'s inline-comment
+  blacklist fix landed independently on `main` (0.236.0), so it is not repeated here.
+  - **`serve-dashboards.py` — static GET/HEAD fallback was un-gated (DNS-rebinding read primitive).**
+    The `/__*` endpoints called `_local_request_ok()`, but the `super().do_GET()`/`do_HEAD()` static
+    path did not, so a DNS-rebinding page could read `.git/config`, `.claude/settings.json`,
+    `.ravenclaude/runs/**`. Now gated (403 on a forged/rebind Host); every legitimate load still passes
+    (`_ALLOWED_HOSTS` already covers 127.0.0.1/localhost/forwarded-Codespace/LAN). Verified end-to-end.
+  - **`sanitize-webfetch-body.py` — a nested-decoy tag bypassed the `<system-reminder>`/
+    `<system-instruction>` strip.** The non-greedy `.*?` stopped at the first close, leaving the real
+    payload as bare text. Made greedy (consistent with the file's over-strip philosophy).
+  - **`worktree-guard.sh` (block mode)** — a Write into a not-yet-existing subdirectory was classed
+    "not under tree" and slipped the deny; and `git reset`/`restore`/`clean` were missing from the
+    mutating-command set. Both fixed.
+  - **`apply-comfort-posture.py`** — the no-PyYAML fallback parser now caps recursion depth and raises a
+    catchable `ValueError` instead of a raw `RecursionError` on a hostile deeply-nested posture file.
+  - **`guard-recursive-spawn.sh`** — corrected the misleading "STRICT mode makes it blocking" claim
+    (it's a `PostToolUse` hook; it surfaces a post-edit error, it cannot block/undo the edit).
+
 ## 0.235.0 — 2026-07-29
 
 **Turned this session's lessons into a gate, a rule, and eight more fixes.** The UI/UX audit
