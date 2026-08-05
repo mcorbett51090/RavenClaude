@@ -2,6 +2,32 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.215.2 — 2026-08-05
+
+### Fixed
+
+- **Multi-panel repo review — 6 gate-invisible defects fixed in this plugin** (all ~20 objective CI
+  gates were already green; each finding was verified against the real code before fixing):
+  - **`serve-dashboards.py` — static GET/HEAD fallback was un-gated (DNS-rebinding read primitive).**
+    The `/__*` endpoints called `_local_request_ok()`, but the `super().do_GET()`/`do_HEAD()` static
+    path did not, so a DNS-rebinding page could read `.git/config`, `.claude/settings.json`,
+    `.ravenclaude/runs/**`. Now gated (403 on a forged/rebind Host); every legitimate load still passes
+    (`_ALLOWED_HOSTS` already covers 127.0.0.1/localhost/forwarded-Codespace/LAN). Verified end-to-end.
+  - **`guard-web-access.sh` — an inline `# comment` on a `deny:` entry defeated the blacklist.** The awk
+    parser never stripped a trailing comment, so `- evil.com  # note` parsed as the whole string and
+    matched no host (silent fail-open). Now strips comments in both parser branches.
+  - **`sanitize-webfetch-body.py` — a nested-decoy tag bypassed the `<system-reminder>`/
+    `<system-instruction>` strip.** The non-greedy `.*?` stopped at the first close, leaving the real
+    payload as bare text. Made greedy (consistent with the file's over-strip philosophy).
+  - **`worktree-guard.sh` (block mode)** — a Write into a not-yet-existing subdirectory was classed
+    "not under tree" (its parent couldn't be realpath'd) and slipped the deny; and `git reset`/`restore`/
+    `clean` were missing from the mutating-command set. Both fixed.
+  - **`apply-comfort-posture.py`** — the no-PyYAML fallback parser now caps recursion depth and raises a
+    catchable `ValueError` instead of a raw `RecursionError` on a hostile deeply-nested posture file.
+  - **`guard-recursive-spawn.sh` + `hooks.json`** — corrected the misleading "STRICT mode makes it
+    blocking" claim: it's a `PostToolUse` hook, so it surfaces a post-edit error, it cannot block/undo
+    the edit (the policy is deliberately soft).
+
 ## 0.215.1 — 2026-07-27
 
 ### Fixed
