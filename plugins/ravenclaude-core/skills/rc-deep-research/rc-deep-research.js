@@ -1073,7 +1073,18 @@ const voted = (
                 ...adapterOpts(verifyPhaseName, runCfg),
               },
               dispatchCfg,
-            ),
+            ).catch((e) => {
+              // Mirror the search/fetch fan-out .catch(): VERIFY_PROMPT tells the
+              // voter to WebSearch for contradicting evidence, so one vote can
+              // reject (timeout / tool error). Unguarded, that rejection would
+              // propagate through this inner parallel() AND the outer
+              // parallel(rankedClaims.map(...)) and crash the whole Verify phase,
+              // discarding all completed Scope/Search/Fetch work. Degrade the vote
+              // to an abstain (null) — verdicts.filter(Boolean) below tolerates it.
+              // (Added after the 2026-08 review.)
+              log("verify vote failed: v" + v + " — " + (e && e.message ? e.message : e));
+              return null;
+            }),
         ),
       ).then(async (verdicts) => {
         const valid = verdicts.filter(Boolean);
@@ -1095,7 +1106,13 @@ const voted = (
               ...adapterOpts("verify_judgment", runCfg),
             },
             dispatchCfg,
-          );
+          ).catch((e) => {
+            // Same guard as the per-vote calls: a rejected escalation vote must
+            // not crash the Verify phase. Degrade to null; the `if (extra)` below
+            // already treats a null escalation as "no extra vote".
+            log("verify escalation failed — " + (e && e.message ? e.message : e));
+            return null;
+          });
           if (extra) {
             valid.push(extra);
             if (extra.refuted) {
