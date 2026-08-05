@@ -105,8 +105,16 @@ def test_happy_path() -> None:
         write_jsonl(jsonl, [
             {"type": "permission-mode", "permissionMode": "default", "sessionId": "abc", "cwd": str(project_root), "gitBranch": "main"},
             {"type": "user", "message": {"content": "should-not-leak"}, "gitBranch": "main"},
-            {"type": "assistant", "model": "claude-opus-4-8", "usage": {"output_tokens": 42}},
-            {"type": "assistant", "model": "claude-opus-4-8", "usage": {"output_tokens": 8}},
+            # REAL Claude Code shape: model/usage are NESTED under `message`.
+            # This fixture previously wrote them FLAT, which is the shape the
+            # reader also assumed — so fixture and reader agreed with each other
+            # and both disagreed with the platform, and every gate passed while
+            # "last used model" was permanently blank and token sums were always 0.
+            # Measured on a real 116 MB transcript (2026-07-28): model at top
+            # level 0/6060 assistant events, nested under `message` 6060/6060.
+            # Re-derived from the platform artifact, not from the reader.
+            {"type": "assistant", "message": {"model": "claude-opus-4-8", "usage": {"output_tokens": 42}}},
+            {"type": "assistant", "message": {"model": "claude-opus-4-8", "usage": {"output_tokens": 8}}},
         ])
         out = _read_mimir(project_root, home)
         check(out["exists"] is True, "exists: True")
@@ -172,6 +180,30 @@ def test_torn_write() -> None:
         check(out["recent_sessions"][0]["event_count"] == 2, "torn line dropped, 2 good events")
 
 
+# ── Test 3b: the encoded key matches the PLATFORM, not our own encoder ─────────
+def test_encode_key_literal() -> None:
+    """Assert the key against hand-written literals.
+
+    Every other test in this file builds its fixture directory by calling
+    _mimir_encode_key, so fixture and reader agree by construction and the suite
+    cannot see a wrong encoding — the same fixture-agrees-with-reader trap the
+    happy-path test's own comment describes for the nested-usage shape. For
+    ~7 months the encoder stripped the leading "/" and left "." alone, so it
+    matched nothing on any real machine, and every test still passed.
+
+    These literals were re-derived from the platform artifact on 2026-07-29:
+    of 161 real project dirs under ~/.claude/projects, 161 begin with "-" and
+    0 contain a literal ".". Do NOT rewrite them to call the encoder.
+    """
+    print("test 3b: encoded key matches the platform convention (literals)")
+    check(_mimir_encode_key("/Users/me/repo") == "-Users-me-repo",
+          f"absolute path keeps a LEADING dash (got {_mimir_encode_key('/Users/me/repo')!r})")
+    check(_mimir_encode_key("/a/.claude/worktrees/x") == "-a--claude-worktrees-x",
+          "the documented worktree rule: /.claude/ -> --claude- (dot encodes too) "
+          f"(got {_mimir_encode_key('/a/.claude/worktrees/x')!r})")
+    check("." not in _mimir_encode_key("/x/y.z/w"), "a dot never survives into the key")
+
+
 # ── Test 4: encoded-path fallback ──────────────────────────────────────────────
 def test_encoded_path_fallback() -> None:
     print("test 4: encoded-path fallback")
@@ -182,13 +214,27 @@ def test_encoded_path_fallback() -> None:
         home = tmp / ".claude"
         projects = home / "projects"
         projects.mkdir(parents=True)
-        # project_root = "/foo/bar/baz" → stage-1 computes "foo-bar-baz"
-        # Create the dir under the canonical name; resolver should find it.
-        canonical = projects / "foo-bar-baz"
+        # project_root = "/foo/bar/baz" → stage-1 computes "-foo-bar-baz".
+        # Written as a LITERAL (not via the encoder) for the reason in test 3b:
+        # this line previously read "foo-bar-baz" and so asserted the very
+        # convention that was broken.
+        canonical = projects / "-foo-bar-baz"
         canonical.mkdir()
         resolved = mod._mimir_resolve_project_dir(home, "/foo/bar/baz")
         check(resolved is not None, "resolver returns non-None on canonical hit")
-        check(resolved.name == "foo-bar-baz", "stage-1 resolved name")
+        check(resolved.name == "-foo-bar-baz", "stage-1 resolved the leading-dash name")
+
+        # A host still using the pre-fix shape must keep working — that is what
+        # the legacy candidate is for, and losing it would silently orphan those
+        # sessions exactly as the original bug did.
+        legacy = projects / "foo-bar-baz"
+        legacy.mkdir()
+        canonical.rename(projects / "-foo-bar-baz-moved")
+        resolved_legacy = mod._mimir_resolve_project_dir(home, "/foo/bar/baz")
+        check(resolved_legacy is not None and resolved_legacy.name == "foo-bar-baz",
+              "legacy stripped-form key still resolves")
+        legacy.rmdir()
+        (projects / "-foo-bar-baz-moved").rename(canonical)
 
         # Now exercise the fallback proper: rename canonical so stage-1 misses,
         # then ensure the candidate-scan reverse-decodes correctly.
@@ -274,6 +320,7 @@ def main() -> int:
     test_happy_path()
     test_missing_project_dir()
     test_torn_write()
+    test_encode_key_literal()
     test_encoded_path_fallback()
     test_worktree_path()
     test_sentinel_not_leaked()

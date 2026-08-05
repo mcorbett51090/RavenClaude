@@ -175,10 +175,32 @@ jobs:
           #     markdown source. Must be fresh BEFORE the SVGs + dashboard below (which
           #     embed concept data). Pure Python (no browser). This is audit-gates'
           #     "concepts.py freshness (clean tree)" gate relocated off the PR path.
+          #     TWO FAILURE CLASSES, and they must NOT be treated alike (fixed
+          #     2026-07-28). `--check` evaluates STALENESS FIRST (concepts.py:301)
+          #     and returns 1 before it ever compares concepts.json. Regenerating
+          #     CANNOT clear a stale `last_verified` — only a human re-verifying the
+          #     fact and moving the date can. So a bare re-check under `set -e` turns
+          #     a content-freshness warning into a hard abort that skips EVERY step
+          #     below: SVGs, dashboard, index, BI reports, copilot package, feedback
+          #     report — all stop self-healing, silently. That is exactly the class of
+          #     bug the render steps fixed on 2026-06-08 ("left main UN-HEALED across
+          #     many merges"); step 1b never received the same treatment. It would
+          #     have detonated on 2026-08-23, when the first platform-facts age out.
+          #     Staleness  -> ::warning:: and CONTINUE (a human must re-verify).
+          #     Anything else -> still FATAL (a real generator failure).
           if ! python3 scripts/concepts.py --check >/dev/null 2>&1; then
             echo "concepts.json stale — regenerating from concept source."
             python3 scripts/concepts.py
-            python3 scripts/concepts.py --check
+            _cchk="$(python3 scripts/concepts.py --check 2>&1)" && _crc=0 || _crc=$?
+            if [ "$_crc" -ne 0 ]; then
+              printf '%s\n' "$_cchk"
+              if printf '%s' "$_cchk" | grep -q 'staleness gate FAILED'; then
+                echo "::warning::platform-fact concept(s) are past the 90-day staleness gate. Regeneration cannot fix this — a human must re-verify the fact against its source and move last_verified. Continuing the self-heal so every other artifact still heals."
+              else
+                echo "concepts.json still stale AFTER regeneration — that is a real generator failure, not content freshness."
+                exit "$_crc"
+              fi
+            fi
           fi
 
           # 2. Concept + decision-tree SVGs. --check reads a source-hash manifest

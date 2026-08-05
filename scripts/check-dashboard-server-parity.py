@@ -43,7 +43,13 @@ PLUGIN_SERVER = REPO_ROOT / "plugins" / "ravenclaude-core" / "scripts" / "serve-
 # server's own module docstring. Keep this list in lockstep with that rationale.
 INTENTIONALLY_EXCLUDED = {"/__run"}
 
-_ENDPOINT_RE = re.compile(r"/__\w+")
+# `\w` does NOT match `-`, so the old `/__\w+` silently TRUNCATED every
+# hyphenated endpoint: `/__concern-stats` was compared as `/__concern`, and
+# `/__knowledge-health` as `/__knowledge` (multi-host audit MH-33). Two endpoints
+# differing only after a hyphen therefore compared as identical, which is exactly
+# the drift this gate exists to catch — and the truncation was visible in the
+# gate's own PASS output the whole time, reading as if those were the real names.
+_ENDPOINT_RE = re.compile(r"/__[\w-]+")
 
 # Names that legitimately differ between the two copies — the root server uses
 # REPO_ROOT (the marketplace clone), the plugin server uses PROJECT_ROOT (the
@@ -146,6 +152,50 @@ def extract_functions(
     return out
 
 
+def unguarded_get_handlers(path: Path) -> list[str]:
+    """Every `/__` GET endpoint whose handler does NOT call `_local_request_ok()`.
+
+    The server carries this invariant as a COMMENT in do_GET:
+
+        "Any NEW data-returning GET endpoint added here MUST call
+         self._local_request_ok() first — do not let it ride the static path."
+
+    Nothing enforced it (multi-host audit MH-33). That guard is the
+    DNS-rebinding / cross-origin defense: without it, a page on any other origin
+    can read the endpoint's JSON. A comment is not a control, and "the next person
+    will remember" is not a security posture — especially on a surface where five
+    new endpoints were added in a single day.
+
+    Deliberately a STATIC check on the dispatch table rather than a live request:
+    it runs in CI with no server, and it fails on the shape that actually recurs —
+    a new handler added without the guard line.
+    """
+    text = path.read_text(encoding="utf-8")
+    # SCOPE TO do_GET's BODY ONLY. Scanning the whole file conflates GET with POST:
+    # /__classify and /__save are dispatched from do_POST and are guarded by the CSRF
+    # check, not by _local_request_ok(). The first version of this check scanned
+    # globally, flagged the POST-only /__classify, and looked exactly like a real
+    # security hole — it was a broken check. Diagnose before concluding.
+    m_get = re.search(r"\n    def do_GET\(self\):.*?(?=\n    def )", text, re.S)
+    if not m_get:
+        return ["do_GET not found — the dispatch table moved; this check needs updating"]
+    get_body = m_get.group(0)
+    # `if self.path.startswith("/__x"):` (or `== "/__x"`) followed by `self._handle_y()`
+    dispatch = re.findall(
+        r'self\.path(?:\.startswith|\s*==)\s*\(?\s*"(/__[\w-]+)"\)?\s*:\s*\n\s*self\.(_handle_[\w]+)\(',
+        get_body,
+    )
+    unguarded = []
+    for endpoint, handler in dispatch:
+        m = re.search(rf"\n    def {re.escape(handler)}\(.*?(?=\n    def |\nclass |\Z)", text, re.S)
+        if not m:
+            unguarded.append(f"{endpoint} -> {handler} (handler not found)")
+            continue
+        if "_local_request_ok()" not in m.group(0):
+            unguarded.append(f"{endpoint} -> {handler}")
+    return unguarded
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
@@ -162,6 +212,12 @@ def main() -> int:
         if not p.is_file():
             print(f"ERROR: server file not found: {p}", file=sys.stderr)
             return 2
+
+    # MH-33 — enforce the do_GET invariant the server only documented.
+    guard_failures = []
+    for label, sp in (("root", root_path), ("plugin", plugin_path)):
+        for bad in unguarded_get_handlers(sp):
+            guard_failures.append(f"{label}: {bad}")
 
     root = endpoints(root_path)
     plugin = endpoints(plugin_path)
@@ -180,6 +236,23 @@ def main() -> int:
             "endpoint. If it was intentionally renamed, update both serve-dashboards.py "
             "copies AND the dashboard JS in scripts/generate-dashboards.py (search "
             "`/__csrf`).",
+            file=sys.stderr,
+        )
+        return 1
+
+    if guard_failures:
+        print(
+            "UNGUARDED ENDPOINT(S): a data-returning GET handler does not call "
+            "self._local_request_ok(). That guard is the DNS-rebinding / cross-origin "
+            "defense — without it any other origin can read the endpoint's JSON.",
+            file=sys.stderr,
+        )
+        for g in guard_failures:
+            print(f"  - {g}", file=sys.stderr)
+        print(
+            "  Fix: add `if not self._local_request_ok(): return` as the handler's "
+            "FIRST statement, as _handle_read does. do_GET documents this invariant; "
+            "MH-33 made it enforced.",
             file=sys.stderr,
         )
         return 1

@@ -20,8 +20,9 @@
  * artifact stays self-contained.
  *
  * Aesthetic: borrows the RavenPower commerce site's visual language — a
- * cool near-black canvas with a single signature GREEN accent (dashboard,
- * primary identity) and a teal secondary (index + repo-guide). Depth is
+ * cool near-black canvas with ONE signature GREEN accent across every surface.
+ * (Until 2026-07-28 the portal and both generated reports carried a teal
+ * "secondary"; that split is retired — the estate is single-accent now.) Depth is
  * hairline-led: layered panels lift off pure-black + a rgba(255,255,255)
  * hairline; shadows stay a whisper. DARK IS THE DEFAULT (`:root` = the cool
  * near-black #07080a canvas + the commerce panel ladder); the light theme
@@ -97,7 +98,20 @@
   --rc-gold: var(--rc-accent); /* back-compat alias → green */
   --rc-gold-soft: var(--rc-accent-2); /* back-compat alias → green */
 
-  /* ── Accent: teal (index + repo-guide secondary) ─────────────────── */
+  /* ── Accent: teal — RETIRED 2026-07-28, definition retained ───────────
+     No live consumer remains. Teal used to be the "secondary" accent: the portal
+     (index.html) aliased its accent to it, and both generated reports themed
+     their charts on it — which made every one of those surfaces off-brand from
+     the RavenPower commerce site, where dashboard.html and the site already
+     agreed on the green #56D08A. All of them were unified onto the green:
+     the portal, the BI report, the feedback report, and the four shared
+     component rules below (.rc-card--accent / .rc-rule / .rc-tab.is-active /
+     .rc-input:focus) that still hardcoded it.
+
+     The DEFINITION is deliberately kept, not deleted. It is cheap, and a
+     consumer's own data.json theme override or a downstream fork may still
+     reference the name. But do NOT reintroduce it as a UI accent without
+     re-opening the brand decision — one accent is the point. */
   /* CONTRAST NOTE: --rc-teal #3aa391 is 6.51:1 on --rc-bg — AA, safe for
      body text and inline links. */
   --rc-teal: #3aa391;
@@ -148,12 +162,31 @@
   --rc-space-7: 48px;
   --rc-space-8: 64px;
 
-  /* ── Radii ───────────────────────────────────────────────────────── */
-  --rc-radius-xs: 4px;
-  --rc-radius-sm: 8px;
-  --rc-radius: 10px;
-  --rc-radius-lg: 12px;
+  /* ── Radii ───────────────────────────────────────────────────────────
+     Pulled to the commerce site's SHARPER scale (2026-07-28) — its
+     `--radius: 4px` / `--radius-lg: 10px` is a large part of why that site
+     reads crisp rather than soft, and it was the widest measured drift
+     between the two design systems once the palette was confirmed identical.
+     We keep a 5-step scale (the site ships only 2) because an admin surface
+     has more component sizes than a marketing page; the two the site DOES
+     define now match it exactly. CSS-only — moves no DOM element (Gate 132). */
+  --rc-radius-xs: 3px;
+  --rc-radius-sm: 4px; /* commerce --radius */
+  --rc-radius: 6px;
+  --rc-radius-lg: 10px; /* commerce --radius-lg */
   --rc-radius-pill: 999px;
+
+  /* ── Per-discipline tints ────────────────────────────────────────────
+     The commerce site's capability-tile / project-tag palette, carried over
+     verbatim so a discipline reads the same colour on the site and in the
+     dashboard. Declared as tokens now; wiring them to plugin categories is a
+     separate, deliberate step — an unused token costs nothing, a miswired one
+     costs a colour-coding people have learned. --tint-ai is the signature
+     green, i.e. an alias of --rc-accent, not a fourth colour. */
+  --rc-tint-ai: var(--rc-accent); /* commerce --tint-ai (green, primary) */
+  --rc-tint-pp: #b79cff; /* commerce --tint-pp (lavender) */
+  --rc-tint-bi: #6fddc4; /* commerce --tint-bi (teal-mint) */
+  --rc-tint-web: #e8995a; /* commerce --tint-web (copper) */
 
   /* ── Shadows — 5-tier scale. Heavier opacity on the dark base so
      elevation still reads; [data-theme="light"] swaps in the cool-tinted
@@ -184,8 +217,13 @@
 
   /* ── Focus ring (a11y) — brighter accents on the dark base; light values
      under [data-theme="light"]. ── */
-  --rc-focus-ring: 0 0 0 3px rgba(58, 163, 145, 0.45); /* teal (dark) */
-  --rc-focus-ring-gold: 0 0 0 3px rgba(86, 208, 138, 0.45); /* green (dark) — alias name kept for back-compat */
+  /* 2026-07-28: collapsed to ONE ring. Two rings existed because the system had
+     two accents (teal for index, green for dashboard); with index unified onto
+     the commerce green there is one accent, so a teal focus ring would be the
+     only teal left on the page. Both names now resolve to the same green —
+     -gold is kept purely so existing rules don't have to be rewritten. */
+  --rc-focus-ring: 0 0 0 3px rgba(86, 208, 138, 0.45); /* green (dark) */
+  --rc-focus-ring-gold: 0 0 0 3px rgba(86, 208, 138, 0.45); /* alias, kept for back-compat */
 
   /* ── Motion easing (the commerce curves) — a small, consistent set:
      --rc-ease for through-states, --rc-ease-out for entrances. ── */
@@ -260,8 +298,8 @@
   --rc-shadow-xl: 0 20px 40px rgba(20, 28, 40, 0.12), 0 8px 16px rgba(20, 28, 40, 0.07);
 
   /* Focus rings — teal / green at .32 alpha on the light canvas */
-  --rc-focus-ring: 0 0 0 3px rgba(31, 127, 120, 0.32); /* teal at .32 */
-  --rc-focus-ring-gold: 0 0 0 3px rgba(21, 122, 69, 0.32); /* green at .32 — alias name kept */
+  --rc-focus-ring: 0 0 0 3px rgba(21, 122, 69, 0.32); /* green at .32 (light) */
+  --rc-focus-ring-gold: 0 0 0 3px rgba(21, 122, 69, 0.32); /* alias, kept for back-compat */
 }
 
 /* ── Shared component classes (prefixed .rc-* to avoid collision) ──── */
@@ -291,7 +329,7 @@
    to flag a primary/active tile (Intercom keeps accent to a hairline). The
    `--accent-gold` name is kept for back-compat; it now resolves to the green. */
 .rc-card--accent {
-  border-left: 3px solid var(--rc-teal);
+  border-left: 3px solid var(--rc-accent);
 }
 .rc-card--accent-gold {
   border-left: 3px solid var(--rc-accent);
@@ -304,7 +342,7 @@
 .rc-rule {
   height: 1px;
   border: 0;
-  background: linear-gradient(90deg, transparent, var(--rc-teal) 50%, transparent);
+  background: linear-gradient(90deg, transparent, var(--rc-accent) 50%, transparent);
   opacity: 0.5;
 }
 .rc-rule--gold {
@@ -373,7 +411,7 @@
 }
 .rc-tab.is-active {
   color: var(--rc-text);
-  border-bottom-color: var(--rc-teal);
+  border-bottom-color: var(--rc-accent);
 }
 /* Green (`--gold`-named) variant for the dashboard's tab strip */
 .rc-tab.is-active.rc-tab--gold {
@@ -456,7 +494,7 @@
 }
 .rc-input:focus {
   outline: none;
-  border-color: var(--rc-teal);
+  border-color: var(--rc-accent);
   box-shadow: var(--rc-focus-ring);
 }
 
@@ -538,7 +576,7 @@
   --bg: var(--rc-bg); --surface: var(--rc-surface); --surface-2: var(--rc-surface-2);
   --border: var(--rc-border); --border-strong: var(--rc-border-strong);
   --text: var(--rc-text); --muted: var(--rc-muted); --faint: var(--rc-faint);
-  --accent: var(--rc-teal); --font-sans: var(--rc-font-sans); --font-mono: var(--rc-font-mono);
+  --accent: var(--rc-accent); --font-sans: var(--rc-font-sans); --font-mono: var(--rc-font-mono);
 }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--font-sans);
@@ -556,7 +594,7 @@ a { color: var(--accent); }
 .dq { display: flex; gap: 10px; align-items: flex-start; background: var(--rc-warn-bg); color: var(--rc-warn-fg);
   border: 1px solid var(--rc-border); border-radius: var(--rc-radius); padding: 12px 14px; margin-bottom: 20px; font-size: 0.86rem; }
 .dq b { font-weight: 700; }
-.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; margin-bottom: 8px; }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(190px, 100%), 1fr)); gap: 14px; margin-bottom: 8px; }
 .kpi { background: var(--surface); border: 1px solid var(--border); border-radius: var(--rc-radius-lg);
   box-shadow: var(--rc-shadow-sm); padding: 16px 18px; transition: box-shadow .18s ease, transform .18s ease; }
 .kpi:hover { box-shadow: var(--rc-shadow-md); transform: translateY(-2px); }
@@ -584,7 +622,7 @@ a { color: var(--accent); }
 .toolbar input { flex: 1; min-width: 200px; }
 .toolbar .seg { display: inline-flex; border: 1px solid var(--border-strong); border-radius: var(--rc-radius-sm); overflow: hidden; }
 .toolbar .seg button { background: var(--surface); border: 0; padding: 8px 12px; font: inherit; font-size: 0.82rem; cursor: pointer; color: var(--muted); }
-.toolbar .seg button[aria-pressed="true"] { background: var(--accent); color: #fff; }
+.toolbar .seg button[aria-pressed="true"] { background: var(--accent); color: var(--bg); }
 table.partners { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
 table.partners th { text-align: left; padding: 10px 10px; border-bottom: 1px solid var(--border-strong);
   color: var(--muted); font-weight: 600; cursor: pointer; white-space: nowrap; user-select: none; }

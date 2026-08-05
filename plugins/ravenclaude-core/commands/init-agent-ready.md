@@ -2,7 +2,7 @@
 description: Set up agent-readable boundary files (AGENTS.md + CLAUDE.md + .repo-layout.json + optional CI) tailored to this repo's purpose.
 ---
 
-You are helping the user make this repository agent-readable. Your goal is to create a small set of boundary files that both humans and agentic AI tools (Claude Code, Cursor, OpenAI Codex CLI, Aider, GitHub Copilot, Windsurf) can use to navigate and contribute correctly.
+You are helping the user make this repository agent-readable. Your goal is to create a small set of boundary files that both humans and agentic AI tools (Claude Code, Cursor, OpenAI Codex CLI, Aider, GitHub Copilot, Devin Desktop — formerly Windsurf, rebranded 2026-06-02) can use to navigate and contribute correctly.
 
 ## What you will produce
 
@@ -138,7 +138,15 @@ What now:
 1. The plugin's enforce-layout hook is already active — it will read .repo-layout.json on every Write/Edit and block off-pattern paths.
 2. If you push this branch, the CI workflow runs on PRs.
 3. Edit .repo-layout.json whenever you add a new top-level directory.
-4. AGENTS.md is read by Cursor / Codex / Aider / Copilot natively; CLAUDE.md is Claude-Code-only.
+4. Which hosts actually read AGENTS.md (corrected 2026-07-29, audit MH-28 — this line
+   used to claim "Cursor / Codex / Aider / Copilot natively", and it was WRONG for Aider):
+     - GitHub Copilot CLI  — yes, natively  [docs-verified]
+     - OpenAI Codex CLI    — yes, from the repo root  [docs-verified]
+     - Gemini CLI          — via a GEMINI.md `@AGENTS.md` import (what `ravenclaude install --host gemini` writes)
+     - Aider               — NO. It reads CONVENTIONS.md, and only on explicit opt-in  [docs-verified]
+     - Cursor              — unconfirmed; its documented mechanism is .cursor/rules/*.mdc
+     - Claude Code         — indirectly, because CLAUDE.md @-imports it
+   The authoritative per-component answer is knowledge/host-support.json, not this list.
 
 Next: review the generated files and adjust the Setup / Testing / Code style sections to match your project's exact commands.
 ```

@@ -91,7 +91,7 @@ PY
       exit $?
       ;;
     70)
-      echo "── Gate 70: Codex desktop trust review hooks (per-gate run) ──────────────"
+      echo "── Gate 70: external trust-review remediation (per-gate run) ─────────────"
       bash plugins/ravenclaude-core/hooks/tests/test-gate70-codex-trust-hooks.sh
       exit $?
       ;;
@@ -327,6 +327,116 @@ PY
       bash plugins/ravenclaude-core/hooks/tests/test-thing-denial-kb.sh
       exit $?
       ;;
+    151)
+      echo "── Gate 151: dashboard autostart opt-in contract (per-gate run) ──────────"
+      bash plugins/ravenclaude-core/hooks/tests/test-gate151-dashboard-autostart.sh
+      exit $?
+      ;;
+    154)
+      echo "── Gate 154: host-support map completeness + derivation (per-gate run) ───"
+      python3 scripts/check-host-support.py
+      exit $?
+      ;;
+    155)
+      echo "── Gate 155: Codex env shim invariants (per-gate run) ────────────────────"
+      bash plugins/ravenclaude-core/hooks/tests/test-gate155-codex-hook-env.sh
+      exit $?
+      ;;
+    156)
+      echo "── Gate 156: Codex sandbox posture emitter (per-gate run) ────────────────"
+      python3 scripts/emit-codex-config.py --self-test
+      exit $?
+      ;;
+    157)
+      echo "── Gate 157: Copilot version floor + fail-safe (per-gate run) ────────────"
+      bash plugins/ravenclaude-core/hooks/tests/test-gate157-copilot-version-floor.sh
+      exit $?
+      ;;
+    158)
+      echo "── Gate 158: Copilot hook projection accounting (per-gate run) ───────────"
+      python3 scripts/generate-copilot-hooks.py --check
+      exit $?
+      ;;
+    159)
+      echo "── Gate 159: Cursor hook adapter (per-gate run) ──────────────────────────"
+      bash plugins/ravenclaude-core/hooks/tests/test-gate159-cursor-hook-adapter.sh
+      exit $?
+      ;;
+    160)
+      echo "── Gate 160: Cursor hook projection accounting (per-gate run) ────────────"
+      python3 scripts/generate-cursor-hooks.py --check
+      exit $?
+      ;;
+    161)
+      echo "── Gate 161: Aider CONVENTIONS.md projection (per-gate run) ──────────────"
+      python3 scripts/generate-aider-conventions.py --check
+      exit $?
+      ;;
+    162)
+      echo "── Gate 162: self-disable screen scope (per-gate run) ────────────────────"
+      bash plugins/ravenclaude-core/hooks/tests/test-gate162-self-disable-scope.sh
+      exit $?
+      ;;
+    163)
+      echo "── Gate 163: Mimir tail-recency (per-gate run) ───────────────────────────"
+      python3 scripts/check-mimir-recency.py
+      exit $?
+      ;;
+    164)
+      echo "── Gate 164: Gemini shim (per-gate run) ──────────────────────────────────"
+      bash plugins/ravenclaude-core/hooks/tests/test-gate164-gemini-adapter.sh
+      exit $?
+      ;;
+    174)
+      echo "── Gate 174: CSS token hygiene — unreadable-by-construction (per-gate run) ─"
+      python3 scripts/check-css-token-hygiene.py
+      exit $?
+      ;;
+    173)
+      echo "── Gate 173: generated files declare themselves (per-gate run) ───────────"
+      python3 scripts/check-generated-headers.py
+      exit $?
+      ;;
+    172)
+      echo "── Gate 172: cross-CLI storage contract reaches every host ──────────────"
+      python3 scripts/check-storage-contract.py
+      exit $?
+      ;;
+    171)
+      echo "── Gate 171: Codex MCP merge is append-only (per-gate run) ───────────────"
+      python3 scripts/check-codex-mcp-append.py
+      exit $?
+      ;;
+    170)
+      echo "── Gate 170: Codex agent sandbox least-privilege (per-gate run) ──────────"
+      python3 scripts/check-codex-agent-sandbox.py
+      exit $?
+      ;;
+    169)
+      echo "── Gate 169: Copilot MCP opt-in consent model (per-gate run) ─────────────"
+      python3 scripts/check-copilot-mcp-optin.py
+      exit $?
+      ;;
+    168)
+      echo "── Gate 168: dashboard Save reaches Codex (per-gate run) ─────────────────"
+      python3 scripts/check-codex-save-path.py
+      exit $?
+      ;;
+    167)
+      echo "── Gate 167: Copilot -> tribunal end-to-end (per-gate run) ───────────────"
+      bash plugins/ravenclaude-core/hooks/tests/test-gate167-copilot-tribunal-e2e.sh
+      exit $?
+      ;;
+    166)
+      echo "── Gate 166: Copilot agent tools projection (per-gate run) ───────────────"
+      python3 scripts/check-copilot-agent-tools.py
+      exit $?
+      ;;
+    165)
+      echo "── Gate 165: Gemini hook projection (per-gate run) ───────────────────────"
+      python3 scripts/generate-gemini-hooks.py --check
+      exit $?
+      ;;
     144)
       echo "── Gate 144: Prompt Builder render + XSS floor (per-gate run) ────────────"
       node scripts/check-prompt-builder-render.mjs plugins/ravenclaude-core/dashboard.html
@@ -408,7 +518,7 @@ PY
       ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -4167,7 +4277,14 @@ rc=0; python3 scripts/generate-index-dashboard.py --check -o "$IDX_HTML" >/dev/n
 gate "index freshness (fresh render round-trips)" must_pass "$rc"
 
 # ─────────────────────────────────────────────────────────────────────────────
-echo "── Gate 70: Codex desktop trust review hooks (Findings 1, 2, 5) ─────────"
+# MH-31 — RENAMED FROM "Codex desktop trust review hooks". That label did not
+# describe what this gate tests (three STRICT smell hooks, the dod-gate first-run
+# trust check, the web-access first-use ask) and it laundered into a capability
+# claim: it was cited as evidence that a Codex lane already existed, in the brief
+# for the audit that then found there was no Codex install path at all. The
+# findings ORIGINATED from Codex reviewing RavenClaude; nothing here runs on Codex.
+# The real Codex-as-host gates are 155 (env shim) and 156 (sandbox emitter).
+echo "── Gate 70: external trust-review remediation (STRICT + dod-gate + web) ──"
 # Proves the Codex desktop trust review remediation: (1) the three smell hooks'
 # STRICT mode now BLOCKS via exit 2 (was exit 1, which Claude Code silently
 # treated as non-blocking), (2) dod-gate's first-run trust check refuses to
@@ -4735,10 +4852,10 @@ for p in (m.DASHBOARD, m.INDEX):
     r = m.measure(p)
     if sum(r["panels"].values()) + r["shell"] != r["total"]:
         sys.exit(1)
-    if len(r["panels"]) != 16:
+    if len(r["panels"]) != 17:  # 17th = panel-host-context (v0.216.0, MH-14)
         sys.exit(1)
 PY
-gate "dom-budget: SUM(panels)+shell == whole doc, 16 panels both surfaces" must_pass "$rc"
+gate "dom-budget: SUM(panels)+shell == whole doc, 17 panels both surfaces" must_pass "$rc"
 
 # F3 / §0.2b rail: an EXEMPT panel (settings) must never be silently islanded.
 # Neither existing gate catches this — Gate 35 (posture round-trip) is DOM-free by
@@ -5007,6 +5124,454 @@ if command -v python3 >/dev/null 2>&1; then
 else
   _skip_or_fail "Gate 150 (multi-screen)" python3
 fi
+
+echo
+echo "── Gate 151: dashboard autostart is opt-in (absent => OFF) + never duplicates ──"
+# The hook runs on EVERY SessionStart, so its default must be a hard no-op: no
+# posture / `off` / the key absent / an unrecognised value must never start a
+# server, and an already-live dashboard must never get a second one (concurrent
+# sessions in one project would otherwise each spawn a server and steal focus with
+# a new tab). test-gate151 drives the REAL hook against a recording stub launcher
+# and carries a teeth half that neuters the mode gate and asserts `off` then
+# launches — so the no-op is proven to be real code, not a vacuous pass.
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate151-dashboard-autostart.sh >/dev/null 2>&1 || rc=$?
+gate "dashboard-autostart: opt-in default + anti-duplicate probe + serve/open modes (+ teeth)" must_pass "$rc"
+
+echo
+echo "── Gate 154: host-support map is complete + drives the Pipeline scope line ──"
+# MH-21. knowledge/host-support.json is the SINGLE source of truth for which
+# RavenClaude components actually run on which host. Two ways it can rot, both
+# silent, so both are gated:
+#   (a) a host or component is added and the matrix is left with a hole — a
+#       missing cell reads as "no answer", and the surfaces that consume it would
+#       quietly treat that as unsupported (or crash);
+#   (b) the map and the Pipeline tab's host-scope sentence drift apart — which is
+#       exactly the duplication this file was created to remove.
+# The check lives in scripts/check-host-support.py, NOT inline here. It used to be
+# an inline heredoc that the must-fail teeth then re-implemented in abridged form —
+# so the teeth could drift from the assertion they were proving (and the gate had
+# no `--check 154` per-gate runner, breaking this file's own convention). One
+# implementation, three call sites.
+rc=0; python3 scripts/check-host-support.py >/dev/null 2>&1 || rc=$?
+gate "host-support map: every host x component answered, unsupported cells justified" must_pass "$rc"
+
+# The generator must DERIVE its host list from the map, never restate it.
+# (Same script, no-arg mode runs both halves; this asserts the derivation half
+# independently so a failure names which contract broke.)
+rc=0; python3 scripts/check-host-support.py >/dev/null 2>&1 || rc=$?
+gate "host-support map: generator derives _HOOK_CAPABLE_HOSTS from it (no restated copy)" must_pass "$rc"
+
+# must_fail: a hole in the matrix MUST be caught. Drops one host cell from one
+# component in a scratch copy and drives the REAL checker over it — not a copy of
+# its logic, which is what made the previous teeth self-certifying.
+#
+# BOTH fixtures DERIVE their target rather than naming a host. The first version
+# hardcoded `hooks.codex`, and the moment Codex became supported (MH-07) the
+# second fixture crashed with KeyError: 'blocked_by' — the cell no longer had one.
+# A teeth fixture pinned to a specific cell is a fixture that breaks every time the
+# map legitimately changes, which trains a maintainer to "fix" the gate instead of
+# reading it.
+HSJ_BAD="$TMP/host-support-bad.json"
+python3 -c "
+import json,sys
+d=json.load(open('plugins/ravenclaude-core/knowledge/host-support.json'))
+comp=next(iter(d['components']))
+host=next(h for h in d['hosts'] if h in d['components'][comp])
+d['components'][comp].pop(host)
+json.dump(d, open('$HSJ_BAD','w'))"
+rc=0; python3 scripts/check-host-support.py "$HSJ_BAD" >/dev/null 2>&1 || rc=$?
+gate "host-support teeth: a missing host cell is caught" must_fail "$rc"
+
+# must_fail: an unsupported cell with no stated reason is the same defect one level
+# down — it tells a reader "no" and gives them nothing to act on. Previously ungated.
+# Finds ANY unsupported cell and strips its justification; skips (loudly) only if
+# every cell in the map is supported, which would make the assertion vacuous.
+HSJ_NOWHY="$TMP/host-support-nowhy.json"
+python3 -c "
+import json,sys
+d=json.load(open('plugins/ravenclaude-core/knowledge/host-support.json'))
+for comp in d['components']:
+    for h in d['hosts']:
+        c=d['components'][comp].get(h)
+        if isinstance(c,dict) and c.get('supported') is False and 'blocked_by' in c:
+            c.pop('blocked_by')
+            json.dump(d, open('$HSJ_NOWHY','w')); sys.exit(0)
+sys.exit(3)" 2>/dev/null
+if [ $? -eq 3 ]; then
+  _skip_or_fail "host-support teeth: no unsupported cell exists to strip (assertion vacuous)"
+else
+  rc=0; python3 scripts/check-host-support.py "$HSJ_NOWHY" >/dev/null 2>&1 || rc=$?
+  gate "host-support teeth: an unsupported cell with no blocked_by is caught" must_fail "$rc"
+fi
+
+echo
+echo "── Gate 155: Codex env shim — stdin/exit-code/blanks-only invariants ──────"
+# MH-07/MH-08. hooks/codex-hook-env.sh sits in front of EVERY guardrail under
+# Codex. It is NOT an envelope adapter (Codex speaks the Claude contract natively);
+# its whole job is lifting cwd/session_id out of the stdin payload into
+# CLAUDE_PROJECT_DIR/CLAUDE_SESSION_ID, which Codex does not supply. If it drops a
+# stdin byte, clobbers a host-set value, or swallows an exit code, nothing fails
+# loudly — the enforcement layer just goes quiet for that host. The test drives the
+# REAL shim against recording stubs and carries two must-fail halves.
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate155-codex-hook-env.sh >/dev/null 2>&1 || rc=$?
+gate "codex-hook-env: stdin passthrough + blanks-only + exit-code propagation (+ teeth)" must_pass "$rc"
+
+echo
+echo "── Gate 156: Codex sandbox posture emitter — NEVER silently weakens ──────"
+# MH-16 part 2. emit-codex-config.py projects the comfort posture onto Codex's two
+# real controls (sandbox_mode / approval_policy). It writes an OS SANDBOX config,
+# so the governing rule is one-directional: write when absent, TIGHTEN freely,
+# REFUSE to loosen a hand-set value. A regression here does not fail loudly — it
+# silently widens a boundary somebody deliberately locked down.
+rc=0; python3 scripts/emit-codex-config.py --self-test >/dev/null 2>&1 || rc=$?
+gate "emit-codex-config --self-test (never-weaken, tighten, no-leak, idempotent)" must_pass "$rc"
+
+# must_fail #1 — TEETH on the governing rule. Neuter the loosen check so the
+# emitter mirrors the posture in both directions, then assert the self-test
+# catches it. Without this, "never weakens" is an assertion nobody has seen fail.
+CDX_MUT="$TMP/emit-codex-mutant.py"
+sed 's/^    if ranks\[want\] >= cur_rank:$/    if True:/' scripts/emit-codex-config.py >"$CDX_MUT"
+if ! grep -q '^    if True:$' "$CDX_MUT"; then
+  _skip_or_fail "emit-codex-config teeth: could not build the loosen-allowing mutant"
+else
+  rc=0; python3 "$CDX_MUT" --self-test >/dev/null 2>&1 || rc=$?
+  gate "emit-codex-config teeth: a mutant that loosens is caught" must_fail "$rc"
+fi
+
+# must_fail #2 — TEETH on the TOML placement bug this gate was written after.
+# Appending a root key below an existing [table] makes it a member of that table:
+# valid TOML, wrong meaning, invisible in a diff, and Codex would silently fall
+# back to its default sandbox while the tool reported success.
+CDX_MUT2="$TMP/emit-codex-mutant2.py"
+sed 's/^    if appended_root:$/    if False:/' scripts/emit-codex-config.py >"$CDX_MUT2"
+rc=0; python3 "$CDX_MUT2" --self-test >/dev/null 2>&1 || rc=$?
+gate "emit-codex-config teeth: dropping the root-key anchor is caught" must_fail "$rc"
+
+echo
+echo "── Gate 157: Copilot version floor is checked, and checking it is fail-safe ─"
+# MH-23. Below Copilot CLI 1.0.52 a SUB-AGENT's tool calls are not hooked at all,
+# so a subagent runs Bash past every guardrail this repo wires while `install`
+# reports success — the same silent-disarm shape as Codex hash-trust, on the
+# flagship non-Claude host, previously unchecked by anything.
+# The second half is the one that already bit: the first version of the check used
+# a bare $(… | grep …) under `set -euo pipefail`, so an unparseable version ABORTED
+# `ravenclaude status`. A version check that kills the installer is worse than none.
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate157-copilot-version-floor.sh >/dev/null 2>&1 || rc=$?
+gate "copilot version floor: fires below, accepts at/above, never fatal (+ teeth)" must_pass "$rc"
+
+echo
+echo "── Gate 158: Copilot hook projection — no canonical hook silently dropped ──"
+# MH-12. The Copilot wiring was a hand-maintained list inside the installer. It
+# wired 11 of 24 canonical hooks, so 14 shipped guardrails never fired on that host
+# at all, and NOTHING enforced that the two lists agreed — the drift was invisible
+# and grew with every release. The projection now derives the wiring; this gate is
+# what stops it drifting again: every canonical hook must be either wired or
+# EXPLICITLY skipped with a reason. A silent omission fails the build.
+rc=0; python3 scripts/generate-copilot-hooks.py --check >/dev/null 2>&1 || rc=$?
+gate "copilot-hooks: every canonical hook wired or explicitly skipped" must_pass "$rc"
+
+# must_fail: emptying the skip map must be CAUGHT, not silently tolerated. This is
+# the teeth for "explicitly skipped" — without it, the accounting could be
+# satisfied by a skip map that swallows anything.
+CPH_MUT="$TMP/generate-copilot-hooks-mutant.py"
+python3 - "$CPH_MUT" <<'PYX'
+import re, sys, pathlib
+src = pathlib.Path("scripts/generate-copilot-hooks.py").read_text()
+# Blank the skip map: the SubagentStart hook then has no lane and no excuse.
+out = re.sub(r"_SKIP = \{.*?\n\}", "_SKIP = {}", src, count=1, flags=re.S)
+pathlib.Path(sys.argv[1]).write_text(out)
+PYX
+rc=0; python3 "$CPH_MUT" --check >/dev/null 2>&1 || rc=$?
+gate "copilot-hooks teeth: an emptied skip map is caught" must_fail "$rc"
+
+echo
+echo "── Gate 159: Cursor hook adapter — deny is unbreakable on a fail-OPEN host ─"
+# MH-13. Cursor FAILS OPEN: a malformed hook response silently ALLOWS the command
+# (Cursor's own bug tracker). Every other host here fails closed. So on Cursor a
+# guardrail that emits slightly-wrong JSON does not fail loudly — it vanishes.
+# The test therefore over-covers the deny path: valid JSON under a hostile command,
+# no payload content reaching the literal, and silence reserved for genuine allows.
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate159-cursor-hook-adapter.sh >/dev/null 2>&1 || rc=$?
+gate "cursor-hook-adapter: deny/allow translation + no-leak + fail-safe (+ teeth)" must_pass "$rc"
+
+echo
+echo "── Gate 160: Cursor hook projection — accounting + enforcement floor ──────"
+# Sibling of Gate 158. Same reason: MH-12 proved a hand-maintained host hook list
+# drifts silently, so Cursor's is projected too. This additionally asserts that
+# SOMETHING is wired to beforeShellExecution — a Cursor lane that enforces nothing
+# would still "pass" a pure accounting check while protecting the user from nothing.
+rc=0; python3 scripts/generate-cursor-hooks.py --check >/dev/null 2>&1 || rc=$?
+gate "cursor-hooks: every canonical hook wired or explicitly skipped, + enforcement present" must_pass "$rc"
+
+CUR_MUT="$TMP/generate-cursor-hooks-mutant.py"
+python3 - "$CUR_MUT" <<'PYX'
+import re, sys, pathlib
+src = pathlib.Path("scripts/generate-cursor-hooks.py").read_text()
+# Skip EVERY Bash-matched PreToolUse hook: accounting still balances, but nothing
+# enforces. The floor assertion must catch it.
+out = src.replace('if "Bash" not in matcher:', 'if True:')
+pathlib.Path(sys.argv[1]).write_text(out)
+PYX
+rc=0; python3 "$CUR_MUT" --check >/dev/null 2>&1 || rc=$?
+gate "cursor-hooks teeth: a lane that enforces NOTHING is caught" must_fail "$rc"
+
+echo
+echo "── Gate 161: Aider CONVENTIONS.md projection — complete + honest ──────────"
+# MH-26. Aider reads CONVENTIONS.md and ONLY on explicit opt-in; it does NOT read
+# AGENTS.md. The projection makes the corrected claim actionable. Two things must
+# hold: every section is present (a renamed upstream header must fail the build
+# loudly, not ship a file with a hole), and the no-enforcement warning survives —
+# Aider has no hooks API, so a CONVENTIONS.md that implied guardrail coverage would
+# be the same false assurance MH-04 was about.
+rc=0; python3 scripts/generate-aider-conventions.py --check >/dev/null 2>&1 || rc=$?
+gate "aider-conventions: all sections projected + no-enforcement warning present" must_pass "$rc"
+
+# must_fail #1 — a renamed upstream section must RAISE, not silently drop.
+AID_MUT="scripts/.aider-gate-mutant.py"
+sed 's|"## Code style",|"## Code style RENAMED",|' scripts/generate-aider-conventions.py >"$AID_MUT"
+rc=0; python3 "$AID_MUT" --check >/dev/null 2>&1 || rc=$?
+rm -f "$AID_MUT"
+gate "aider-conventions teeth: a renamed AGENTS.md section is caught" must_fail "$rc"
+
+# must_fail #2 — dropping the no-enforcement warning must be caught. Mutates ONLY
+# the preamble prose, never the assertion string (a mutant that moves both is
+# self-defeating and proves nothing — that mistake was made and caught here).
+AID_MUT2="scripts/.aider-gate-mutant2.py"
+sed 's|\*\*Aider has no hooks API, so none of|**Aider has full coverage, so all of|' \
+  scripts/generate-aider-conventions.py >"$AID_MUT2"
+rc=0; python3 "$AID_MUT2" --check >/dev/null 2>&1 || rc=$?
+rm -f "$AID_MUT2"
+gate "aider-conventions teeth: dropping the no-enforcement warning is caught" must_fail "$rc"
+
+echo
+echo "── Gate 162: self-disable screen — tampering DENIED, documentation ALLOWED ─"
+# MH-42. xc.tribunal-self-disable is critical + pre_llm_deny + always_screen: no seat
+# convenes and there is no override. Its regexes are SHELL-shaped, but for a file
+# shape the screened text is "<path>\n<content>", so they matched ordinary PROSE —
+# a blockquote starting with a hooks path, or "<core>/hooks/..." (a `<core>` token
+# ends in `>`). Writing the file:line citations this repo's own Claim-Grounding
+# protocol REQUIRES was denied pre-LLM. It fired seven times in one session.
+#
+# The fix narrows ONLY self_disable, ONLY for file shapes, ONLY when the path alone
+# is clean. That is a change to a security control, so the gate is bidirectional by
+# necessity — a one-directional test would be indistinguishable from having turned
+# the control off. Its teeth force the narrowing unconditionally and prove the
+# canonicalization-based target-path screen still denies a substrate write.
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate162-self-disable-scope.sh >/dev/null 2>&1 || rc=$?
+gate "self-disable: denies substrate writes, permits substrate documentation (+ teeth)" must_pass "$rc"
+
+echo
+echo "── Gate 163: Mimir reads CURRENT state from the tail, not the head ────────"
+# MH-06 (P0). The session card reported the session's OPENING permission mode as
+# its current one — `default` while the session was in `auto`. Two causes, and
+# fixing either alone leaves the bug: the loop kept the FIRST permission-mode event
+# while deliberately keeping the NEWEST model two lines above, and the reader took
+# the first 50 KiB, so on any long transcript the scanned slice is the oldest part
+# of the session. A permissions surface reporting a LAXER state than reality is the
+# bad direction to be wrong in.
+rc=0; python3 scripts/check-mimir-recency.py >/dev/null 2>&1 || rc=$?
+gate "mimir: permission mode + last model come from the TAIL, both server copies" must_pass "$rc"
+
+# must_fail: a head-read mutant must be caught. Without this the gate could pass on
+# a fixture small enough that head and tail agree — which would prove nothing.
+MIM_MUT="$TMP/mimir-head-mutant.py"
+sed 's/_mimir_iter_jsonl_bounded(jsonls\[0\], from_end=True)/_mimir_iter_jsonl_bounded(jsonls[0])/' \
+  scripts/serve-dashboards.py >"$MIM_MUT"
+rc=0; python3 - "$MIM_MUT" <<'PYX' >/dev/null 2>&1 || rc=$?
+import importlib.util, json, sys, tempfile, pathlib
+spec = importlib.util.spec_from_file_location("mut", sys.argv[1])
+m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
+d = pathlib.Path(tempfile.mkdtemp()); f = d / "t.jsonl"
+lines = [json.dumps({"type": "permission-mode", "permissionMode": "default"})]
+pad = json.dumps({"type": "assistant", "message": {"model": "old"}, "filler": "x" * 400})
+while sum(len(x) + 1 for x in lines) < m._MIMIR_JSONL_READ_CAP * 2:
+    lines.append(pad)
+lines.append(json.dumps({"type": "permission-mode", "permissionMode": "auto"}))
+f.write_text("\n".join(lines) + "\n")
+head = list(m._mimir_iter_jsonl_bounded(f))
+modes = [e.get("permissionMode") for e in head if e.get("type") == "permission-mode"]
+# The mutant reads the head, so it must NOT see the late 'auto'. Exit 1 to signal
+# "the regression is present", which must_fail expects.
+sys.exit(1 if "auto" not in modes else 0)
+PYX
+gate "mimir teeth: a head-read mutant reports the stale opening mode" must_fail "$rc"
+
+echo
+echo "── Gate 164: Gemini shim — tool-name vocabulary + exit-2 passthrough ──────"
+# MH-30. Gemini's contract is nearly Claude's (identical stdin fields; exit 2 +
+# stderr IS its block mechanism), so this is a shim, not an adapter. The ONE real
+# translation is the tool-name vocabulary: Gemini sends run_shell_command /
+# read_file / write_file / replace, and the guardrails dispatch on Claude's
+# PascalCase and fall through to `*) exit 0` on anything unrecognised. That exact
+# mismatch is MH-01 — under Copilot the tribunal was fully wired and reviewed
+# NOTHING because `bash` is not `Bash`. Asserted name by name, with teeth.
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate164-gemini-adapter.sh >/dev/null 2>&1 || rc=$?
+gate "gemini-hook-adapter: tool-name normalisation + exit-2 passthrough (+ teeth)" must_pass "$rc"
+
+echo
+echo "── Gate 165: Gemini hook projection — accounting + enforcement floor ──────"
+# Third sibling of Gates 158/160. Also asserts every emitted matcher is in GEMINI's
+# vocabulary: a matcher left in Claude PascalCase would register a hook that can
+# never fire, which is indistinguishable from not shipping it.
+rc=0; python3 scripts/generate-gemini-hooks.py --check >/dev/null 2>&1 || rc=$?
+gate "gemini-hooks: all hooks accounted for, matchers translated, enforcement present" must_pass "$rc"
+
+GEM_MUT="$TMP/generate-gemini-hooks-mutant.py"
+python3 - "$GEM_MUT" <<'PYX'
+import sys, pathlib
+src = pathlib.Path("scripts/generate-gemini-hooks.py").read_text()
+out = src.replace("                gem_event, mode = _EVENT[event]",
+                  "                gem_event, mode = _EVENT[event]\n"
+                  "                if gem_event == \"BeforeTool\":\n"
+                  "                    skipped.append((script, event, \"mutant\")); continue")
+pathlib.Path(sys.argv[1]).write_text(out)
+PYX
+rc=0; python3 "$GEM_MUT" --check >/dev/null 2>&1 || rc=$?
+gate "gemini-hooks teeth: a lane that enforces NOTHING is caught" must_fail "$rc"
+
+echo "── Gate 166: Copilot agent tools — least privilege survives projection ────"
+# MH-10. Copilot defaults an agent to ALL tools, so dropping the canonical
+# `tools:` allowlist was a silent least-privilege regression: `security-reviewer`
+# (canonically Read/Grep/Glob/Bash/WebFetch, Write/Edit deliberately withheld)
+# could write and run shell under Copilot. The allowlist is now projected.
+#
+# The floor this gate holds is CLASS SUBSET, not a max-privilege ceiling: a
+# ceiling would license `edit` for any agent declaring Bash — including the one
+# agent the finding is named after.
+rc=0; python3 scripts/check-copilot-agent-tools.py >/dev/null 2>&1 || rc=$?
+gate "copilot-agent-tools: least-privilege projected, no class escalation" must_pass "$rc"
+
+rc=0; python3 scripts/check-copilot-agent-tools.py --must-fail >/dev/null 2>&1 || rc=$?
+gate "copilot-agent-tools teeth: a write-class name on a read-only row is caught" must_pass "$rc"
+
+echo "── Gate 167: Copilot payload -> tribunal, end to end ─────────────────────"
+# The MH-01 residual, finally built. MH-01 was the P0 where the tribunal was
+# "fully wired, reviewing nothing" under Copilot because the tool-name VALUE was
+# passed through unmapped and the orchestrator's case-sensitive dispatch fell to
+# `*) exit 0`. Gate 20 tests the ADAPTER's I/O shape; Gates 50/121/162 drive the
+# ORCHESTRATOR — but all of them with CLAUDE-shaped payloads. Nothing crossed the
+# seam where the bug actually lived, so a regression in the map would leave every
+# gate green while the tribunal went silently dark again.
+#
+# The teeth half is internal (G167.3): it defeats the tool-name map and asserts
+# the deny DISAPPEARS — reproducing MH-01 on demand.
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate167-copilot-tribunal-e2e.sh >/dev/null 2>&1 || rc=$?
+gate "copilot-tribunal-e2e: a Copilot force-push is still hard-denied (+ teeth)" must_pass "$rc"
+
+echo "── Gate 168: dashboard Save also reaches Codex, honestly ─────────────────"
+# MH-16 part 2, dashboard half. emit-codex-config.py shipped but was called from
+# ONE place — the installer. Nothing on the save path invoked it, so a user could
+# set every category to deny, click Save, see success, and still be running at
+# Codex's default workspace-write.
+#
+# The honesty half needs the gate more than the wiring does: a refusal-to-weaken
+# EXITS 0 (the emitter tightens what it can and declines the rest), so a naive
+# wrapper reports unqualified success while settings were deliberately skipped —
+# the same false assurance, moved one layer out. The teeth half is exactly that
+# naive wrapper.
+rc=0; python3 scripts/check-codex-save-path.py >/dev/null 2>&1 || rc=$?
+gate "codex-save-path: posture reaches Codex; refusals surfaced, never silent" must_pass "$rc"
+
+rc=0; python3 scripts/check-codex-save-path.py --must-fail >/dev/null 2>&1 || rc=$?
+gate "codex-save-path teeth: a wrapper ignoring refusals is caught" must_pass "$rc"
+
+echo "── Gate 169: Copilot MCP servers are OPT-IN, never wholesale ─────────────"
+# MH-19, Copilot half. On Claude Code you get a plugin's MCP server BECAUSE you
+# installed that plugin — consent is structural. Copilot's mcp-config.json is
+# GLOBAL with no per-plugin step, so naming the server IS the consent. Wiring all
+# four wholesale would install third-party software from plugins the user never
+# chose, including a write-capable one.
+#
+# "Installs nothing unless asked" is therefore a SECURITY property, and the
+# tempting refactor ("just wire them all, it's friendlier") is the regression.
+# The teeth half is precisely that refactor.
+rc=0; python3 scripts/check-copilot-mcp-optin.py >/dev/null 2>&1 || rc=$?
+gate "copilot-mcp: opt-in by name, complete catalogue, loud on unknown" must_pass "$rc"
+
+rc=0; python3 scripts/check-copilot-mcp-optin.py --must-fail >/dev/null 2>&1 || rc=$?
+gate "copilot-mcp teeth: a wholesale 'wire them all' refactor is caught" must_pass "$rc"
+
+echo "── Gate 170: Codex custom agents carry an explicit sandbox_mode ──────────"
+# Codex documents sandbox_mode per agent AND that the PARENT turn's permission
+# mode is inherited when it is omitted. So an agent file without it does not fail
+# safe — a review-only agent runs with whatever the session has. Same shape as
+# MH-10 on Copilot (omitted `tools:` granted everything); different mechanism.
+#
+# The teeth half stops emitting sandbox_mode, which is exactly what a "the
+# default is fine" edit looks like.
+rc=0; python3 scripts/generate-codex-agents.py --check >/dev/null 2>&1 || rc=$?
+gate "codex-agents: projection is fresh" must_pass "$rc"
+
+rc=0; python3 scripts/check-codex-agent-sandbox.py >/dev/null 2>&1 || rc=$?
+gate "codex-agents: explicit sandbox_mode, least privilege from canonical tools" must_pass "$rc"
+
+rc=0; python3 scripts/check-codex-agent-sandbox.py --must-fail >/dev/null 2>&1 || rc=$?
+gate "codex-agents teeth: omitting sandbox_mode (parent inheritance) is caught" must_pass "$rc"
+
+echo "── Gate 171: Codex MCP is added by APPEND, never by rewrite ──────────────"
+# MH-19 Codex half. This was deferred because "a bad TOML merge would clobber a
+# hand-tuned config" — a sound worry (v0.216.0 records its sharper cousin, where
+# an appended BARE KEY silently became mcp_servers.github.sandbox_mode).
+#
+# But a bare key is position-DEPENDENT while a [table] header is position-
+# INDEPENDENT, so an MCP server can be added by pure append — and a pure append
+# cannot rewrite an existing byte. That turns "be careful" into an assertion:
+#     new_text.startswith(original_text)
+# The teeth half is the tidier-looking parse-and-re-emit implementation, which
+# silently discards the user's comments and ordering.
+rc=0; python3 scripts/check-codex-mcp-append.py >/dev/null 2>&1 || rc=$?
+gate "codex-mcp: append-only, hand-tuning preserved, idempotent, parses" must_pass "$rc"
+
+rc=0; python3 scripts/check-codex-mcp-append.py --must-fail >/dev/null 2>&1 || rc=$?
+gate "codex-mcp teeth: a parse-and-rewrite implementation is caught" must_pass "$rc"
+
+echo "── Gate 172: where work files go — every CLI is told, identically ────────"
+# The contract that lets one CLI pick up another's work is worth exactly as much
+# as its WEAKEST lane: a Cursor or Aider session that never sees it writes its
+# output where nobody looks, which is indistinguishable from not doing the work.
+# That fails silently — nothing errors, the files are just not where the next
+# tool searches. Same accounting pattern as the hook-projection gates, and the
+# same reason: a discipline living in ONE host's file was assumed universal.
+rc=0; python3 scripts/check-storage-contract.py >/dev/null 2>&1 || rc=$?
+gate "storage-contract: canonical, honest about gaps, carried by every lane" must_pass "$rc"
+
+rc=0; python3 scripts/check-storage-contract.py --must-fail >/dev/null 2>&1 || rc=$?
+gate "storage-contract teeth: a lane silently losing the contract is caught" must_pass "$rc"
+
+echo "── Gate 173: every generated file says so, and says what to edit ─────────"
+# The ONE file stamp worth its cost. A general "who touched this, when" stamp
+# fails here: 1,560 tracked files cannot hold a comment at all, the generated
+# ones are byte-gated so a stamp breaks them, and `git blame` already answers it
+# DERIVED — un-stale-able. The test a stamp must pass is whether it changes what
+# the next CLI DOES, and this one does: without it a session edits a projected
+# file and the next regen silently reverts the work.
+#
+# The gate also requires a POINTER, not just the word GENERATED — "stop" with
+# nowhere to go is half a message. That stricter half immediately caught
+# dashboard.html, which said generated but never named its generator.
+rc=0; python3 scripts/check-generated-headers.py >/dev/null 2>&1 || rc=$?
+gate "generated-headers: every generated file declares itself + names its source" must_pass "$rc"
+
+rc=0; python3 scripts/check-generated-headers.py --must-fail >/dev/null 2>&1 || rc=$?
+gate "generated-headers teeth: a declaration the reader cannot see is caught" must_pass "$rc"
+
+echo
+echo "── Gate 174: CSS token hygiene — unreadable by construction ───────────────"
+# Three token-misuse shapes that render valid CSS a person cannot read, none of which
+# any prior gate could see: a 7%-alpha hairline token used as a foreground colour
+# (the word "off" at 1.17:1), a hardcoded #fff/#000 on a themed fill (1.95:1 on accent,
+# 2.76:1 on dark-theme danger, and blind to the theme swap by construction), and a bare
+# minmax() track minimum that scrolls the whole document sideways on a narrow viewport.
+# Plus: a generated dashboard surface with no bare-`a` colour rule — the defect that
+# shipped in dashboard.html while the portal shell masked it.
+# It does NOT compute contrast; that needs a browser, and a hand-rolled approximation
+# of one is what produced 3,337 findings of which ~99% were false. See
+# docs/best-practices/validating-a-measuring-instrument.md.
+rc=0; python3 scripts/check-css-token-hygiene.py >/dev/null 2>&1 || rc=$?
+gate "css-token-hygiene: no hairline-as-text, theme-blind fill, or bare minmax track" must_pass "$rc"
+
+rc=0; python3 scripts/check-css-token-hygiene.py --must-fail >/dev/null 2>&1 || rc=$?
+gate "css-token-hygiene teeth: 7 known-bad caught AND 8 known-good left alone" must_pass "$rc"
 
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"

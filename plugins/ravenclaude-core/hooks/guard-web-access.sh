@@ -103,15 +103,19 @@ parse_section() {
   awk -v sec="$2" '
     /^[A-Za-z_]+:/ {
       is_sec = ($0 ~ "^"sec":")
-      # flow style: `sec: [a, b, c]` (or `sec: []`) — self-contained on one line.
+      # flow style: `sec: [a, b, c]` (or `sec: []`). Accumulate across lines until
+      # the closing `]` so a MULTI-LINE flow array (`sec: [\n  a,\n  b\n]`) — valid
+      # YAML — is parsed too. The prior one-line-only assumption dropped every item
+      # of a multi-line array, silently emptying the deny list (fail-OPEN blacklist).
       if (is_sec && $0 ~ ":[[:space:]]*\\[") {
         line = $0
         sub(/^[^[]*\[/, "", line)   # drop everything up to and including "["
+        while (line !~ /\]/ && (getline nxt) > 0) line = line " " nxt
         sub(/\].*$/, "", line)      # drop "]" and any trailing content
         n = split(line, arr, ",")
         for (i = 1; i <= n; i++) {
           item = arr[i]
-          gsub(/[[:space:]]*#.*$/, "", item)   # strip an inline "# comment" (defensive; a domain can never contain #)
+          sub(/[[:space:]]#.*$/, "", item)  # strip a trailing " # comment"
           gsub(/^[[:space:]]+|[[:space:]]+$/, "", item)
           gsub(/["'\'']/, "", item)
           if (item != "") print tolower(item)
@@ -124,10 +128,7 @@ parse_section() {
     }
     insec && /^[[:space:]]*-[[:space:]]*/ {
       gsub(/^[[:space:]]*-[[:space:]]*/, "")
-      gsub(/[[:space:]]*#.*$/, "")   # strip an inline "# comment" BEFORE the trailing-ws/quote strips:
-                                     # `- evil.com   # phishing` must parse as "evil.com", not the whole
-                                     # commented string (which matches no host → blacklist silently inert).
-                                     # A domain can never contain '#', so this is loss-free.
+      sub(/[[:space:]]#.*$/, "")   # strip a trailing " # comment" (else it corrupts the host)
       gsub(/[[:space:]]+$/, "")
       gsub(/["'\'']/, "")
       if ($0 != "") print tolower($0)

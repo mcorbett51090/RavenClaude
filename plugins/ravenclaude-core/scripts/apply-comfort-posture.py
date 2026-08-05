@@ -330,9 +330,21 @@ def parse_yaml(text: str) -> dict:
     # error propagated as a raw traceback out of main(). Re-raise as a ValueError so
     # main() surfaces it cleanly (mirrors the too-large / _load_settings_json paths).
     try:
-        return pyyaml.safe_load(text) or {}
+        loaded = pyyaml.safe_load(text)
     except pyyaml.YAMLError as exc:
         raise ValueError(f"invalid YAML: {exc}") from exc
+    if loaded is None:
+        return {}
+    # A syntactically-valid YAML whose top level is a list/scalar (e.g. `- foo`)
+    # is truthy, so `or {}` would NOT fire and a non-dict would reach main()'s
+    # `posture.get(...)`, raising a raw AttributeError traceback — the exact
+    # unfriendly failure this function's docstring says it prevents. Surface it as
+    # a clean ValueError (caught by main's _posture_error handler) instead.
+    if not isinstance(loaded, dict):
+        raise ValueError(
+            f"posture file must be a YAML mapping at the top level, got {type(loaded).__name__}"
+        )
+    return loaded
 
 
 def _load_settings_json(path: Path) -> dict:

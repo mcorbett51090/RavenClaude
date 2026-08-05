@@ -39,6 +39,8 @@ Usage:
                                         written there. Prints the URL it binds.
 
   rc streams [list]                     List logical work-streams in this project (default).
+
+  rc artifacts list|new <id>   where work files go, across CLIs
   rc streams show <id> [--limit N]      Show a stream's resume state + recent DERIVED history.
   rc streams status                     One-line summary: active stream + stream count.
   rc streams create <name>              Create a named stream (slugified).
@@ -135,7 +137,8 @@ PY
         _usage
         exit 0
         ;;
-      *)
+    
+  *)
         echo "rc streams: unknown subcommand '$sub'" >&2
         _usage
         exit 1
@@ -188,8 +191,29 @@ PY
     # No verb is an error (so scripts catch it); explicit help is a success.
     [ -z "$cmd" ] && exit 1 || exit 0
     ;;
+  artifacts)
+    shift
+    # The cross-CLI work-file index. Lives at the MARKETPLACE root scripts/ (not
+    # the plugin's) because it is a repo-organisation tool like the generators,
+    # not a plugin runtime component. bin/rc sits inside the clone, so the root
+    # is two levels up from the plugin.
+    market="$(cd "$PLUGIN_ROOT/../.." && pwd)"
+    art="$market/scripts/rc-artifacts.py"
+    if [ ! -f "$art" ]; then
+      echo "rc: cannot find rc-artifacts.py at $art" >&2
+      exit 1
+    fi
+    command -v python3 >/dev/null 2>&1 || {
+      echo "rc: python3 not found in PATH — 'rc artifacts' needs python3." >&2
+      exit 1
+    }
+    # NO cd: work directories belong to YOUR project, resolved from the caller's
+    # cwd, exactly like `rc dashboard` and `rc streams`.
+    exec python3 "$art" "$@"
+    ;;
+
   *)
-    echo "rc: unknown command '$cmd' (try: rc dashboard | rc streams | rc converge)" >&2
+    echo "rc: unknown command '$cmd' (try: rc dashboard | rc streams | rc converge | rc artifacts)" >&2
     _usage
     exit 1
     ;;

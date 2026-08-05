@@ -33,6 +33,7 @@ Usage (normally via `/dashboard`):
 from __future__ import annotations
 
 import argparse
+import datetime as _dt_mod  # aliased: the other datetime uses are function-local
 import errno
 import functools
 import hmac
@@ -143,6 +144,12 @@ def _validate_json_target(target: str, content: str) -> str | None:
 # .claude/settings.json reflects the new YAML without a manual /set-posture.
 POSTURE_TARGET = ".ravenclaude/comfort-posture.yaml"
 APPLY_SCRIPT = PLUGIN_DIR / "scripts" / "apply-comfort-posture.py"
+
+# MH-16 part 2 (dashboard half): the Codex sandbox emitter, and the project it
+# targets. The emitter ships at the MARKETPLACE root, not inside the plugin —
+# absent (a consumer with no clone) it is skipped, never guessed at.
+CODEX_EMITTER = MARKETPLACE_ROOT / "scripts" / "emit-codex-config.py"
+PROJECT_TARGET = PROJECT_ROOT
 
 # The knowledge-health card under the Look back / Heimdall tab invokes this
 # script via subprocess and forwards its JSON. Single source of truth — the same
@@ -409,11 +416,21 @@ def _read_hook_events(runs_dir: Path, days: int = 30, per_hook: int = 10) -> dic
             enriched["tier"] = tier
             bucket.append(enriched)
 
+    # "quiet" and "unwatched" are NOT the same state, and conflating them made a
+    # SECURITY panel reassure an operator it had no basis to reassure (audit MH-05).
+    # An empty by_hook can mean either "hooks ran and nothing tripped" (genuinely
+    # quiet) or "no hook has EVER emitted here" — which on Codex/Cursor/Gemini/
+    # Aider/Windsurf is the normal case, because no adapter wires them at all.
+    # `emitter_seen` is the file-existence boolean that tells them apart: has the
+    # emitter ever written a hook-events.jsonl for this project? The client renders
+    # the honest empty state from it rather than defaulting to the flattering one.
+    emitter_seen = bool(runs_dir.is_dir() and any(runs_dir.glob("*/hook-events.jsonl")))
     return {
         "by_hook": by_hook,
         "total": len(rows),
         "gjallarhorn_tier": top,
         "window_days": days,
+        "emitter_seen": emitter_seen,
     }
 
 
@@ -516,10 +533,20 @@ def _read_vidarr_events(runs_dir: Path, posture_log: Path, days: int = 30) -> di
                 )
 
     events.sort(key=lambda e: e.get("ts", ""), reverse=True)
+    # Same quiet-vs-unwatched contract as Heimdall (audit MH-05). Vidarr draws on
+    # TWO sources, so "never written" means neither has produced a file: no
+    # hook-events.jsonl anywhere under runs/, AND no posture-events.jsonl. If both
+    # are absent this audit log has never been written to — and an empty audit log
+    # is not evidence of safety, which matters more here than anywhere else.
+    emitter_seen = bool(
+        (runs_dir.is_dir() and any(runs_dir.glob("*/hook-events.jsonl")))
+        or posture_log.exists()
+    )
     return {
         "events": events,
         "total": len(events),
         "window_days": days,
+        "emitter_seen": emitter_seen,
     }
 
 
@@ -849,13 +876,56 @@ def _mimir_scrub_tree(obj):
 # newest files are tail-scanned only for cheap per-session counts.
 _MIMIR_JSONL_READ_CAP = 50 * 1024  # 50 KiB
 
+# MH-20 — the ONLY characters a subagent-type label may contain before it is
+# allowed onto the dashboard. `subagent_type` is model-supplied: in practice it
+# is one of our own agent ids, but nothing structurally guarantees that, and this
+# reader's whole contract is that transcript content never becomes display text.
+# A label failing this check is counted as "unnamed" rather than dropped — the
+# DISPATCH still happened, and silently under-reporting it would be the worse
+# error. The prompt/description fields are never read at all, at any length.
+_MIMIR_LABEL_OK = frozenset(
+    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789:_-"
+)
+_MIMIR_LABEL_MAX = 64
+
+
+def _mimir_safe_label(value) -> str:
+    """Return `value` if it is a short, plain identifier; else 'unnamed'."""
+    if isinstance(value, str) and 0 < len(value) <= _MIMIR_LABEL_MAX:
+        if set(value) <= _MIMIR_LABEL_OK:
+            return value
+    return "unnamed"
+
 
 def _mimir_encode_key(project_root) -> str:
     """Stage 1 of the encoded-path algorithm (skill §"The encoded-path
-    algorithm + fallback"). Strip leading "/" and replace every "/" with "-".
-    Worktree-aware: feed $CLAUDE_PROJECT_DIR verbatim — never normalized."""
-    s = str(project_root)
-    return s.lstrip("/").replace("/", "-")
+    algorithm + fallback"). Replace every "/" AND every "." with "-".
+    Worktree-aware: feed $CLAUDE_PROJECT_DIR verbatim — never normalized.
+
+    The leading "/" is encoded like any other, so an absolute path yields a
+    LEADING "-": /Users/me/repo -> -Users-me-repo. This function used to
+    lstrip("/") first and leave "." alone, which produced a key that matched
+    nothing on any real machine — verified 2026-07-29 against 161 project dirs,
+    of which 161 begin with "-" and 0 contain a literal ".". The bug was
+    invisible because the reader's miss path returns exists:False, which the UI
+    renders as the same honest "no sessions yet" empty state a genuinely-new
+    host produces. A card that is *always* empty and a card that is *correctly*
+    empty looked identical, so nothing ever contradicted it.
+
+    This restores what the repo already documented: the worktree rule in the
+    `mimir` skill states /.claude/worktrees/foo -> --claude-worktrees-foo, and
+    the double dash is only reachable if BOTH the leading "/" and the "." encode.
+    """
+    return str(project_root).replace("/", "-").replace(".", "-")
+
+
+def _mimir_encode_key_legacy(project_root) -> str:
+    """The pre-fix key shape, still tried as a second candidate.
+
+    Kept so a host that really does use the stripped form keeps working rather
+    than silently losing its sessions — the exact failure being fixed above.
+    """
+    return str(project_root).lstrip("/").replace("/", "-")
 
 
 def _mimir_resolve_project_dir(claude_home, project_root):
@@ -867,24 +937,31 @@ def _mimir_resolve_project_dir(claude_home, project_root):
     projects = claude_home / "projects"
     if not projects.is_dir():
         return None
-    computed = projects / _mimir_encode_key(project_root)
-    try:
-        computed_resolved = computed.resolve()
-        projects_resolved = projects.resolve()
-        # Path-traversal defense in depth (RM8): resolved candidate MUST sit
-        # under claude_home/projects/. Reject anything that escapes.
-        computed_resolved.relative_to(projects_resolved)
-        if computed.is_dir():
-            return computed
-    except (ValueError, OSError):
-        pass
-    # Fallback: reverse-decode candidates.
+    # Canonical key first, then the legacy shape. Both go through the same
+    # containment check below — a second candidate must not mean a second
+    # chance to escape the projects dir.
+    for key in (_mimir_encode_key(project_root), _mimir_encode_key_legacy(project_root)):
+        computed = projects / key
+        try:
+            computed_resolved = computed.resolve()
+            projects_resolved = projects.resolve()
+            # Path-traversal defense in depth (RM8): resolved candidate MUST sit
+            # under claude_home/projects/. Reject anything that escapes.
+            computed_resolved.relative_to(projects_resolved)
+            if computed.is_dir():
+                return computed
+        except (ValueError, OSError):
+            continue
+    # Fallback: reverse-decode candidates. Lossy by construction — the encoding
+    # maps "/" and "." onto the same "-", so it cannot be inverted uniquely. It
+    # stays as a drift defense (RM1) and is expected to miss on any path whose
+    # own segments contain a dash or a dot; stage 1 is what normally answers.
     target = str(project_root)
     try:
         for candidate in projects.glob("*"):
             if not candidate.is_dir():
                 continue
-            decoded = "/" + candidate.name.replace("-", "/")
+            decoded = candidate.name.replace("-", "/")
             if decoded == target:
                 import sys as _sys
                 print(
@@ -898,19 +975,42 @@ def _mimir_resolve_project_dir(claude_home, project_root):
     return None
 
 
-def _mimir_iter_jsonl_bounded(path, cap_bytes: int = _MIMIR_JSONL_READ_CAP):
+def _mimir_iter_jsonl_bounded(
+    path, cap_bytes: int = _MIMIR_JSONL_READ_CAP, from_end: bool = False
+):
     """Yield dicts from a JSONL file, capping the read at `cap_bytes`. Per-line
     json.loads is try/except wrapped so a torn final line silently drops
-    (RM2 / gap-delta C4). Never raises — OSError yields nothing."""
+    (RM2 / gap-delta C4). Never raises — OSError yields nothing.
+
+    `from_end` reads the LAST `cap_bytes` instead of the first (audit MH-06).
+    Any caller that reports something as *current* or *most recent* must set it:
+    the head of a long transcript is the OLDEST state, so a head-read reports the
+    session's opening values no matter how the loop picks among them. Callers that
+    compute a bounded AGGREGATE (counts, token sums) leave it False — neither end
+    is more correct there, and flipping it would silently change reported numbers.
+    """
     try:
         with path.open("rb") as fh:
-            chunk = fh.read(cap_bytes)
+            if from_end:
+                fh.seek(0, os.SEEK_END)
+                size = fh.tell()
+                fh.seek(max(0, size - cap_bytes))
+                chunk = fh.read()
+                clipped = size > cap_bytes
+            else:
+                chunk = fh.read(cap_bytes)
+                clipped = False
         text = chunk.decode("utf-8", errors="replace")
     except OSError:
         return
-    # If we hit the cap mid-line, drop the truncated tail to avoid feeding
-    # a partial line to json.loads (which would just be torn-write equivalent).
-    if len(chunk) >= cap_bytes:
+    if from_end:
+        # We almost certainly landed mid-line; drop that leading fragment. (A
+        # head-read drops the trailing fragment instead — opposite end, same
+        # reason: never hand a partial line to json.loads.)
+        if clipped:
+            nl = text.find("\n")
+            text = text[nl + 1 :] if nl >= 0 else ""
+    elif len(chunk) >= cap_bytes:
         nl = text.rfind("\n")
         if nl >= 0:
             text = text[:nl]
@@ -924,6 +1024,95 @@ def _mimir_iter_jsonl_bounded(path, cap_bytes: int = _MIMIR_JSONL_READ_CAP):
             continue
         if isinstance(ev, dict):
             yield ev
+
+
+# Cap for the per-session SUMMARY scan (event/token/dispatch counts). This is a
+# different job from _MIMIR_JSONL_READ_CAP's 50 KiB peek and needs a different
+# bound: a real transcript's first 50 KiB is session preamble (attachments, the
+# file-history snapshot, the opening user turn) and contains ZERO assistant
+# events, so a 50 KiB head-read reported 0 events / 0 tokens / 0 dispatches for
+# every session on every machine — measured 2026-07-29 against a 14.5 MB
+# transcript whose first 50 KiB held no assistant event at all.
+#
+# The scan is affordable because of the byte-level prefilter below: parsing all
+# 14.8 MB of this project's three newest transcripts costs ~0.04 s, since
+# json.loads runs only on lines that could possibly matter. The cap bounds the
+# pathological case rather than the normal one, and truncation is REPORTED, not
+# silently absorbed.
+_MIMIR_SESSION_SCAN_CAP = 64 * 1024 * 1024  # 64 MiB
+
+
+def _mimir_scan_session(path, cap_bytes: int = _MIMIR_SESSION_SCAN_CAP) -> dict:
+    """Stream one session JSONL and return its derived summary counts.
+
+    DERIVED ONLY, and that is the contract, not a nicety: the return carries
+    counts, a token sum, a branch name, and validated subagent-type labels. No
+    transcript text is read into the result. `type=user` content is never
+    touched, and a Task block's `prompt`/`description` — the largest free-text
+    field in the file — is never read at any length.
+
+    Never raises: an unreadable file yields zeroes, and a torn or non-JSON line
+    is skipped, matching _mimir_iter_jsonl_bounded's per-line tolerance.
+    """
+    out = {
+        "event_count": 0,
+        "output_tokens": 0,
+        "git_branch": None,
+        "subagent_dispatches": 0,
+        "subagent_types": {},
+        "truncated": False,
+    }
+    try:
+        consumed = 0
+        with path.open("rb") as fh:
+            for raw in fh:
+                consumed += len(raw)
+                if consumed > cap_bytes:
+                    out["truncated"] = True
+                    break
+                # Byte-level prefilter — this is what makes an exact scan cheap.
+                # A line is only worth decoding if it could be an assistant event
+                # or could still supply the branch we have not found yet.
+                wants_branch = out["git_branch"] is None and b'"gitBranch"' in raw
+                if b'"assistant"' not in raw and not wants_branch:
+                    continue
+                try:
+                    ev = json.loads(raw.decode("utf-8", errors="replace"))
+                except (json.JSONDecodeError, ValueError):
+                    continue
+                if not isinstance(ev, dict):
+                    continue
+                if out["git_branch"] is None:
+                    gb = ev.get("gitBranch")
+                    if isinstance(gb, str) and gb:
+                        out["git_branch"] = gb
+                if ev.get("type") != "assistant":
+                    continue
+                out["event_count"] += 1
+                msg = ev.get("message")
+                usage = msg.get("usage") if isinstance(msg, dict) else None
+                if not isinstance(usage, dict):
+                    usage = ev.get("usage")
+                if isinstance(usage, dict):
+                    ot = usage.get("output_tokens")
+                    if isinstance(ot, int):
+                        out["output_tokens"] += ot
+                content = msg.get("content") if isinstance(msg, dict) else None
+                if not isinstance(content, list):
+                    continue
+                for blk in content:
+                    if not isinstance(blk, dict) or blk.get("type") != "tool_use":
+                        continue
+                    if blk.get("name") not in ("Task", "Agent"):
+                        continue
+                    out["subagent_dispatches"] += 1
+                    inp = blk.get("input")
+                    st = inp.get("subagent_type") if isinstance(inp, dict) else None
+                    label = _mimir_safe_label(st)
+                    out["subagent_types"][label] = out["subagent_types"].get(label, 0) + 1
+    except OSError:
+        pass
+    return out
 
 
 def _read_streams(project_root) -> dict:
@@ -1035,6 +1224,101 @@ def _read_streams(project_root) -> dict:
     return base
 
 
+def _read_dispatch_eval(project_root) -> dict:
+    """Summarise .ravenclaude/runs/dispatch-eval/ — the subagent-dispatch log.
+
+    THE HONEST-EMPTY CONTRACT, which is the whole reason this returns a state
+    rather than just a list. The producer is `agent-dispatch-evaluator.sh`, and it
+    SHORT-CIRCUITS unless `.ravenclaude/dispatch-config.json` contains
+    `"enabled": true` — `enabled:false` is the shipped default. So for almost
+    every consumer this directory does not exist, and a panel that simply
+    rendered "nothing here" would be indistinguishable from a broken reader.
+    That ambiguity is the exact defect this dashboard keeps being audited for
+    (the always-empty session card; the MCP step that reported "not configured").
+
+    So three states are reported distinctly:
+      off      — no config, or enabled != true. Nothing will EVER be recorded
+                 until the consumer opts in. The UI says how.
+      idle     — opted in, but nothing logged yet.
+      recorded — real events, summarised.
+
+    DERIVED ONLY: counts and validated subagent-type labels. The evaluator's
+    JSONL may carry a prompt or reasoning; neither is read.
+    """
+    from pathlib import Path as _P
+
+    root = _P(project_root)
+    cfg = root / ".ravenclaude" / "dispatch-config.json"
+    enabled = False
+    if cfg.is_file():
+        try:
+            enabled = bool(json.loads(cfg.read_text(encoding="utf-8")).get("enabled"))
+        except (OSError, json.JSONDecodeError, ValueError, AttributeError):
+            enabled = False
+
+    out = {
+        "state": "off",
+        "enabled": enabled,
+        "config_present": cfg.is_file(),
+        "total": 0,
+        "by_type": [],
+        "how_to_enable": (
+            'create .ravenclaude/dispatch-config.json containing {"enabled": true} '
+            "— the SubagentStart hook exits immediately without it, which is the "
+            "shipped default"
+        ),
+    }
+
+    eval_dir = root / ".ravenclaude" / "runs" / "dispatch-eval"
+    counts: dict = {}
+    total = 0
+    truncated = False
+    if eval_dir.is_dir():
+        for log in sorted(eval_dir.glob("*.jsonl")):
+            # Bounded like _mimir_scan_session, NOT with the 50 KiB head peek.
+            # The first version used _mimir_iter_jsonl_bounded's default cap, which
+            # reads the FIRST 50 KiB and reports no truncation — so a busy log
+            # would show a partial count as though it were the whole thing. That
+            # is the identical defect fixed in the session scan (a 14.5 MB
+            # transcript whose first 50 KiB held nothing), reintroduced here in a
+            # reader written afterwards. A partial number presented as a total is
+            # the failure this whole surface exists to avoid.
+            try:
+                consumed = 0
+                with log.open("rb") as fh:
+                    for raw in fh:
+                        consumed += len(raw)
+                        if consumed > _MIMIR_SESSION_SCAN_CAP:
+                            truncated = True
+                            break
+                        line = raw.strip()
+                        if not line:
+                            continue
+                        try:
+                            ev = json.loads(line.decode("utf-8", errors="replace"))
+                        except (json.JSONDecodeError, ValueError):
+                            continue
+                        if not isinstance(ev, dict):
+                            continue
+                        total += 1
+                        label = _mimir_safe_label(ev.get("subagent_type"))
+                        counts[label] = counts.get(label, 0) + 1
+            except OSError:
+                continue
+
+    out["total"] = total
+    out["by_type"] = [
+        {"type": k, "count": v}
+        for k, v in sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))[:8]
+    ]
+    out["truncated"] = truncated
+    if total:
+        out["state"] = "recorded"
+    elif enabled:
+        out["state"] = "idle"
+    return out
+
+
 def _read_mimir(project_root, claude_home) -> dict:
     """Build the Mímir session-state payload from on-disk Claude Code sources.
 
@@ -1135,24 +1419,40 @@ def _read_mimir(project_root, claude_home) -> dict:
     # last-used model: newest JSONL's most-recent assistant event.
     if jsonls:
         try:
-            newest_events = list(_mimir_iter_jsonl_bounded(jsonls[0]))
+            # from_end: this block reports "last used" and "current" — both are
+            # TAIL facts. Reading the head returned the session's OPENING state.
+            newest_events = list(_mimir_iter_jsonl_bounded(jsonls[0], from_end=True))
         except Exception:
             newest_events = []
         last_model = None
-        first_perm_mode = None
+        last_perm_mode = None
         for ev in newest_events:
             if ev.get("type") == "assistant":
-                m = ev.get("model")
+                # Claude Code NESTS model/usage under ev["message"]; the top-level
+                # read returned None on every assistant event (measured 2026-07-28:
+                # 0/6060 top-level vs 6060/6060 nested on a real 116 MB transcript),
+                # so "last used model" was permanently blank. Read nested FIRST,
+                # keep the flat read as a fallback for any other producer.
+                msg = ev.get("message")
+                m = msg.get("model") if isinstance(msg, dict) else None
+                if not isinstance(m, str):
+                    m = ev.get("model")
                 if isinstance(m, str):
                     last_model = m  # overwrite — keep newest seen in scanned slice
-            if first_perm_mode is None and ev.get("type") == "permission-mode":
+            # MH-06 — this was `if first_perm_mode is None`, i.e. FIRST-wins, in the
+            # very same loop that deliberately keeps the NEWEST model two lines
+            # above. So the card reported the session's OPENING permission mode as
+            # its current one, and said `default` while the session was in `auto` —
+            # a permissions surface asserting a laxer state than reality, which is
+            # the worst direction for that particular field to be wrong in.
+            if ev.get("type") == "permission-mode":
                 pm = ev.get("permissionMode")
                 if isinstance(pm, str):
-                    first_perm_mode = pm
+                    last_perm_mode = pm  # overwrite — keep newest, like last_model
         if last_model:
             base["settings"]["model"]["last_used"] = last_model
-        if first_perm_mode:
-            base["settings"]["permission_mode"] = first_perm_mode
+        if last_perm_mode:
+            base["settings"]["permission_mode"] = last_perm_mode
 
     # recent_sessions card (top 5 per the skill source-map).
     for jf in jsonls[:5]:
@@ -1168,32 +1468,29 @@ def _read_mimir(project_root, claude_home) -> dict:
         except (OSError, ValueError, OverflowError):
             last_active = ""
 
-        event_count = 0
-        output_tokens = 0
-        git_branch = None
-        # NEVER reads type=user content — only metadata from user events
-        # (gitBranch), and assistant events for token/count.
-        for ev in _mimir_iter_jsonl_bounded(jf):
-            t = ev.get("type")
-            if t == "assistant":
-                event_count += 1
-                usage = ev.get("usage")
-                if isinstance(usage, dict):
-                    ot = usage.get("output_tokens")
-                    if isinstance(ot, int):
-                        output_tokens += ot
-            if git_branch is None:
-                gb = ev.get("gitBranch")
-                if isinstance(gb, str) and gb:
-                    git_branch = gb
+        # MH-20 + the 50-KiB-head defect: one bounded streaming scan replaces
+        # the old head-read loop. See _mimir_scan_session for why the head-read
+        # reported 0 events / 0 tokens for every session on every machine.
+        scan = _mimir_scan_session(jf)
 
         sid = jf.stem  # filename is the session UUID; truncate to 8 for display.
         base["recent_sessions"].append({
             "session_id": sid[:8] if isinstance(sid, str) else "",
             "last_active": last_active,
-            "event_count": event_count,
-            "output_tokens": output_tokens,
-            "git_branch": git_branch,
+            "event_count": scan["event_count"],
+            "output_tokens": scan["output_tokens"],
+            "git_branch": scan["git_branch"],
+            "subagent_dispatches": scan["subagent_dispatches"],
+            # Top 5 by count, then name, so the ordering is stable across reads.
+            "subagent_types": [
+                {"type": k, "count": v}
+                for k, v in sorted(
+                    scan["subagent_types"].items(), key=lambda kv: (-kv[1], kv[0])
+                )[:5]
+            ],
+            # True only if the 64 MiB scan cap was hit — the counts are then a
+            # floor, not a total, and the UI says so rather than rounding it off.
+            "counts_truncated": scan["truncated"],
         })
 
     # ── activity card (~/.claude/stats-cache.json) ──────────────────────────
@@ -1249,6 +1546,10 @@ def _read_mimir(project_root, claude_home) -> dict:
             base["session"]["pid"] = pid if isinstance(pid, int) else None
             base["session"]["found"] = True
             break
+
+    # MH-20 remedy (2) — the dispatch log, with a three-state honest empty
+    # state so "nothing here" can never be mistaken for a broken reader.
+    base["dispatch"] = _read_dispatch_eval(project_root)
 
     return base
 
@@ -1334,6 +1635,77 @@ def _read_worktree_guard(project_root: Path) -> dict | None:
     except json.JSONDecodeError:
         return None
     return data if isinstance(data, dict) else None
+
+
+# ── /__host — which CLI launched this dashboard, and what is wired ───────────
+# Multi-host audit MH-14. Two hard rules, both from the red-team:
+#
+# 1. LEAK-SAFE BY CONSTRUCTION. The probe list below is a CLOSED LITERAL of env
+#    var NAMES. It never iterates os.environ, so a variable we did not name can
+#    never reach a browser page — the page is screenshot-shareable, unlike the
+#    agent-context capability banner that set the precedent. Only PRESENCE
+#    booleans are emitted, never values, and never a filesystem path.
+#
+# 2. IT REPORTS THE LAUNCH ENVIRONMENT, NOT "YOUR CURRENT SESSION".
+#    This is the honest resolution to the wrong-verdict problem. A dashboard
+#    server is long-lived and reusable: open-dashboard.sh reuses a live one and
+#    dashboard-autostart.sh deliberately never starts a second. So a server
+#    started under Claude Code and later reused from a Copilot session would, if
+#    it claimed to know "your" host, confidently say Claude Code and be wrong.
+#    It cannot know that. What it CAN know is the environment it inherited at
+#    launch — so that is exactly what it says, with started_at so staleness is
+#    visible. A narrower true claim beats a broader false one.
+#
+# COPILOT_DEBUG_NONCE IS DELIBERATELY NOT A SIGNAL: it was observed set INSIDE a
+# Claude Code session on 2026-07-28, so "any COPILOT_* implies Copilot" mislabels
+# a live session. Copilot is identifiable only via THING_HOST, which
+# copilot-hook-adapter.sh exports explicitly — an assertion, never an inference.
+_HOST_ENV_PROBES = (
+    "CLAUDECODE",
+    "CLAUDE_CODE_ENTRYPOINT",
+    "THING_HOST",
+    "CODEX_SESSION_ID",
+    "CODEX_PROJECT_ROOT",
+    "PLUGIN_ROOT",
+    "CLAUDE_PLUGIN_ROOT",
+    "CLAUDE_PROJECT_DIR",
+    "CLAUDE_SESSION_ID",
+)
+
+_SERVER_STARTED_AT = _dt_mod.datetime.now(_dt_mod.timezone.utc).isoformat(timespec="seconds")
+
+
+def _read_host() -> dict:
+    """Report the host environment THIS SERVER PROCESS was launched in.
+
+    Positive signals only; returns host=None (rendered "cannot determine") rather
+    than guessing. Byte-identical in the root and bundled plugin server — the
+    parity gate guards endpoint NAMES, this helper is duplicated, so edit both.
+    Never raises."""
+    import os as _os
+
+    present = {name: bool(_os.environ.get(name)) for name in _HOST_ENV_PROBES}
+    host = None
+    basis = None
+    th = _os.environ.get("THING_HOST") or ""
+    if th:
+        host, basis = th, "THING_HOST asserted by the host adapter"
+    elif present["CLAUDECODE"] or present["CLAUDE_CODE_ENTRYPOINT"]:
+        host, basis = "claude-code", "CLAUDECODE / CLAUDE_CODE_ENTRYPOINT present"
+    elif present["CODEX_SESSION_ID"] or present["CODEX_PROJECT_ROOT"]:
+        host, basis = "codex", "CODEX_* session variables present"
+    return {
+        "host": host,
+        "basis": basis,
+        "scope": "launch-environment",
+        "started_at": _SERVER_STARTED_AT,
+        "env_present": present,
+        "note": (
+            "This is the environment the dashboard server was STARTED in, not your "
+            "current session. A server can be reused across sessions and hosts, so it "
+            "cannot know which CLI is talking to it now."
+        ),
+    }
 
 
 def _read_sleipnir(project_root: Path) -> dict:
@@ -1529,7 +1901,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             or self.path.startswith("/__knowledge-health")
             or self.path.startswith("/__sleipnir")
             or self.path.startswith("/__runs")
-            or self.path.startswith("/__concern-stats")
+            or self.path.startswith("/__concern-stats") or self.path.startswith("/__host")
         ):
             self.send_response(200)
             self.send_header("Allow", "GET, POST, HEAD")
@@ -1590,6 +1962,9 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             return
         if self.path.startswith("/__runs"):
             self._handle_runs()
+            return
+        if self.path.startswith("/__host"):
+            self._handle_host()
             return
         if self.path.startswith("/__concern-stats"):
             self._handle_concern_stats()
@@ -1711,6 +2086,10 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         }
         if target == POSTURE_TARGET:
             payload.update(self._apply_posture())
+            # MH-16 part 2 — the same save must also reach Codex, or the
+            # dashboard reports success while that host stays unbounded.
+            # Fail-safe and non-fatal by contract: see _apply_codex_posture.
+            payload.update(self._apply_codex_posture())
         self._json(200, payload)
 
     def _handle_read(self):
@@ -1851,6 +2230,79 @@ class DashboardHandler(SimpleHTTPRequestHandler):
 
         self._json(200, records)
 
+    def _apply_codex_posture(self) -> dict:
+        """Also project the saved posture onto Codex's OS sandbox.
+
+        WHY THIS EXISTS (audit MH-16 part 2, dashboard half). `emit-codex-config.py`
+        shipped, but it was invoked from exactly ONE place — `scripts/ravenclaude`,
+        the installer. Nothing on the dashboard's save path called it and
+        `apply-comfort-posture.py` has no Codex awareness at all, so a user could
+        tighten every category, click Save, watch it report success, and still be
+        running at Codex's default `workspace-write`. The dashboard's headline
+        product silently did nothing on that host.
+
+        THREE PROPERTIES, deliberately:
+
+        1. **Never weaken.** The emitter's own governing rule — absent key -> write,
+           stricter -> tighten, LOOSER -> refuse and print the line to change by
+           hand; `danger-full-access` / `approval_policy = "never"` are never
+           emitted at any posture. A refusal is reported here as a first-class
+           outcome, not swallowed as success.
+        2. **Do not litter.** Only runs when the project already uses Codex (a
+           `.codex/` directory or an existing `config.toml`). Writing an OS-sandbox
+           config into every repo that ever saves a posture would be a surprising
+           side effect on machines that have never seen Codex.
+        3. **Never break the save.** The YAML is already on disk by the time this
+           runs. Any failure is REPORTED, never raised — the posture save must not
+           fail because a secondary projection did.
+
+        Honest scope, carried into the response text: writing the file is not the
+        same as bounding the session. A project `.codex/config.toml` loads ONLY IN
+        TRUSTED PROJECTS, and two enum keys cannot express twelve posture
+        categories. Both caveats are the emitter's, restated where the user is.
+        """
+        if not CODEX_EMITTER.is_file():
+            return {"codex_applied": False, "codex_skipped": "emitter not found"}
+        codex_dir = PROJECT_TARGET / ".codex"
+        if not codex_dir.is_dir() and not (codex_dir / "config.toml").is_file():
+            return {"codex_applied": False, "codex_skipped": "not a Codex project"}
+        try:
+            proc = subprocess.run(
+                [sys.executable, str(CODEX_EMITTER), "--project", str(PROJECT_TARGET)],
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+        except (subprocess.SubprocessError, OSError) as e:
+            return {"codex_applied": False, "codex_error": f"could not run emitter: {e}"}
+        out = ((proc.stdout or "") + (proc.stderr or "")).strip()
+        if proc.returncode != 0:
+            # A refusal-to-weaken is the emitter working as designed, and the user
+            # needs to SEE it — silently reporting "saved" would recreate the exact
+            # false-assurance this whole change removes.
+            return {"codex_applied": False, "codex_error": out[:800] or "non-zero exit"}
+        # A REFUSAL EXITS 0 BY DESIGN — the emitter tightens what it can and
+        # declines the rest — so the return code alone would report unqualified
+        # success while some settings were deliberately NOT applied. Surface them.
+        # A partial apply reported as "applied" is precisely the false assurance
+        # this whole change exists to remove; it would just move it one layer out.
+        refusals = [ln.strip() for ln in out.splitlines() if "refusing to loosen" in ln]
+        result = {
+            "codex_applied": True,
+            "codex_summary": out[:800],
+            "codex_caveat": (
+                "Coarse by design: two Codex enum keys cannot express 12 posture "
+                "categories, and a project .codex/config.toml loads ONLY in trusted "
+                "projects — writing it is not the same as bounding the session."
+            ),
+        }
+        if refusals:
+            # Non-empty means your .codex/config.toml is STRICTER than the posture
+            # you just saved, and was left alone. Not an error — a deliberate
+            # decline that you must be told about.
+            result["codex_refusals"] = refusals[:10]
+        return result
+
     def _apply_posture(self) -> dict:
         """Re-run apply-comfort-posture.py against the CONSUMER's project after a save."""
         if not APPLY_SCRIPT.is_file():
@@ -1894,6 +2346,16 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             self._json(500, {"error": f"classify failed: {e}"})
             return
         self._json(200, decision)
+
+    def _handle_host(self):
+        """GET /__host — the environment THIS SERVER was launched in, plus which
+        RavenClaude wiring variables are present. Read-only; same Origin/Host CSRF
+        guard as /__read. Emits presence BOOLEANS only, from a closed literal probe
+        list — never an env value, never a path, never an os.environ walk."""
+        if not self._local_request_ok():
+            self.send_error(403, "refused: cross-origin or non-local Origin/Host")
+            return
+        self._json(200, _read_host())
 
     def _handle_runs(self):
         """GET /__runs[?limit=N] — recent multi-step runs from

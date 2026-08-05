@@ -153,6 +153,56 @@ def load_schema(plugin_dir: Path) -> dict:
     return json.loads(schema_path.read_text(encoding="utf-8"))
 
 
+def _other_hosts_sentence() -> str:
+    """The Help drawer's 'what is wired elsewhere' claim, DERIVED.
+
+    This sentence used to be hand-written, and it drifted into being wrong three
+    ways at once while still citing host-support.json as the source of truth:
+    it said Cursor is "not wired at all — no hooks fire" (its hooks DO fire), it
+    omitted Gemini entirely (a supported host since v0.222.0), and it implied
+    Aider gets nothing (it gets a projected CONVENTIONS.md).
+
+    Prose that summarises data must be COMPUTED from that data, or it becomes a
+    second source of truth that silently disagrees with the first. Gate 154 keeps
+    host-support.json canonical; this keeps the sentence honest to it.
+    """
+    import json as _json
+
+    path = REPO_ROOT / "plugins" / "ravenclaude-core" / "knowledge" / "host-support.json"
+    data = _json.loads(path.read_text(encoding="utf-8"))
+    comps, hosts = data["components"], data["hosts"]
+    label = {h: hosts[h].get("label", h) for h in hosts}
+
+    def supported(host: str, comp: str) -> bool:
+        return bool(comps.get(comp, {}).get(host, {}).get("supported"))
+
+    others = [h for h in hosts if h not in ("claude-code", "copilot", "codex")]
+    guarded = [label[h] for h in others if supported(h, "hooks")]
+    unguarded = [label[h] for h in others if not supported(h, "hooks")]
+    reads = [label[h] for h in others if supported(h, "instruction_files")]
+
+    def join(items: list) -> str:
+        if not items:
+            return "none"
+        if len(items) == 1:
+            return html.escape(items[0])
+        return html.escape(", ".join(items[:-1])) + " and " + html.escape(items[-1])
+
+    # ONE <strong>, matching the element count of the hand-written sentence this
+    # replaced — the DOM budget is at zero slack, and a derived sentence must not
+    # quietly cost a ratchet raise. Ends with a semicolon so the clause that
+    # follows it in the template still reads as one sentence.
+    return (
+        f"<strong>{join(guarded)}</strong> "
+        f"{'has' if len(guarded) == 1 else 'have'} guardrail hooks wired "
+        f"(shell commands are screened in-loop) but no skills mechanism; "
+        f"{join(unguarded)} {'has' if len(unguarded) == 1 else 'have'} no hooks at all, "
+        f"so CI is the only gate there. {join(reads)} still read the projected instruction "
+        f"files, so the discipline travels even where enforcement does not \u2014 a gap, "
+        f"not a hidden feature;"
+    )
+
+
 def _page_kwargs(plugin_dir: Path, schema: dict, include_trees: bool = True) -> dict:
     """Build the substitution dict shared by render_dashboard (full page) and
     render_fragment (the native-merge body for index.html). Single source of
@@ -173,6 +223,7 @@ def _page_kwargs(plugin_dir: Path, schema: dict, include_trees: bool = True) -> 
     plugins_tabs, plugins_panels = _render_plugins_category(_all_plugin_dirs())
 
     return {
+        "other_hosts_sentence": _other_hosts_sentence(),
         "plugins_tabs": plugins_tabs,
         "plugins_panels": plugins_panels,
         "plugin_name": html.escape(plugin_name),
@@ -187,6 +238,7 @@ def _page_kwargs(plugin_dir: Path, schema: dict, include_trees: bool = True) -> 
         "removed_routes_table": _render_removed_routes_table(),
         "web_access_html": _render_web_access_page(),
         "prompt_builder_html": _render_prompt_builder_tab(),
+        "host_context_html": _render_host_context_tab(),
         # panel-learn (~19,702 elements) is DOM-island-loaded exactly like panel-trees:
         # its markup ships in a <script type="application/json"> payload (CDATA, uncounted
         # by Gate 132) and is injected into #learn-mount on the first activate("learn"),
@@ -344,7 +396,7 @@ def _render_removed_routes_table() -> str:
     )
     return (
         '<table class="removed-routes"><thead>'
-        "<tr><th>Old link(s)</th><th>Where it is now</th></tr>"
+        '<tr><th scope="col">Old link(s)</th><th scope="col">Where it is now</th></tr>'
         f"</thead><tbody>{rows}</tbody></table>"
     )
 
@@ -585,6 +637,74 @@ def _render_activity_tab() -> str:
 # keeps the map honest against hooks.json; a shipped hook missing from BOTH lists
 # (the exact live-drift bug that hid `delegation-nudge`/`guard-web-access`) fails
 # the build.
+# Which hosts can actually FIRE the hooks drawn on the Pipeline tab (audit MH-04).
+#
+# The tab renders every stage with an "Always on" badge. That badge is about
+# CONFIGURABILITY — it means "not a knob you can turn off" — but with no host
+# qualification anywhere on the panel it reads as "this guardrail is protecting
+# you", full stop. On a host where no hook can fire, that is a false assurance
+# about a safety surface, and it is the same failure as Heimdall's "quiet"
+# (MH-05): the panel asserting a protective state it has no basis for.
+#
+# DERIVED, not asserted — this is the set of hosts something actually wires:
+#   claude-code — reads hooks/hooks.json natively.
+#   copilot     — .github/hooks, wired by `ravenclaude install`, translated by
+#                 hooks/copilot-hook-adapter.sh.
+#   codex       — the env alias exists (_rc_host_env in hooks/_portable.sh) but
+#                 `scripts/ravenclaude` has NO Codex install path, so nothing
+#                 wires the hooks and none of them fire. NOT hook-capable yet.
+#   cursor / gemini / aider / windsurf — no adapter of any kind.
+#
+# DERIVED FROM knowledge/host-support.json (MH-21) — not hardcoded here.
+# This list was a literal tuple for about an hour, which was already one
+# duplicate too many: the same fact is needed by the Pipeline scope line, by any
+# future "what's wired" surface, and by the Codex/Copilot installers. A second
+# copy is how the estate ended up asserting guardrails on hosts that run none.
+# WHEN A HOST GAINS AN INSTALL PATH, EDIT THE JSON — this reads it.
+def _load_host_support() -> dict:
+    """Parse the host-support map ONCE, at import.
+
+    Fails LOUD rather than silently narrowing: if the map is missing or malformed
+    we raise, because quietly returning an empty tuple would render the Pipeline
+    tab claiming its guardrails fire nowhere — a different false statement, not a
+    safe default.
+    """
+    path = REPO_ROOT / "plugins" / "ravenclaude-core" / "knowledge" / "host-support.json"
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+_HOST_SUPPORT = _load_host_support()
+
+
+def _hook_capable_hosts() -> tuple:
+    """Labels of the hosts whose `hooks` component is actually supported today."""
+    hooks = _HOST_SUPPORT["components"]["hooks"]
+    return tuple(
+        _HOST_SUPPORT["hosts"][h]["label"]
+        for h in _HOST_SUPPORT["hosts"]
+        if isinstance(hooks.get(h), dict) and hooks[h].get("supported") is True
+    )
+
+
+_HOOK_CAPABLE_HOSTS = _hook_capable_hosts()
+
+
+def _oxford(items: list) -> str:
+    """Join labels as readable English: 'A', 'A and B', 'A, B, and C'.
+
+    Exists because the derived host list is rendered into a prose sentence, and
+    `" and ".join(...)` produced "Claude Code and GitHub Copilot CLI and OpenAI
+    Codex CLI" the moment a third host qualified — fine at two, wrong at three.
+    """
+    items = [str(i) for i in items if i]
+    if not items:
+        return "no host"
+    if len(items) == 1:
+        return items[0]
+    if len(items) == 2:
+        return f"{items[0]} and {items[1]}"
+    return ", ".join(items[:-1]) + f", and {items[-1]}"
+
 _PIPELINE_LANES = [
     {
         "event": "SessionStart",
@@ -838,6 +958,20 @@ _PIPELINE_LANES = [
                     "set": "No knob — fires whenever a comfort-posture exists.",
                 },
             },
+            {
+                "id": "storage-placement-nudge",
+                "title": "Findable-by-the-next-tool check",
+                "badge": "advisory",
+                "tip": "Notices when a work file lands somewhere the NEXT CLI would never look for it.",
+                "detail": {
+                    "steps": [
+                        "Stays quiet for the two agreed places: .ravenclaude/runs/<task>/ and docs/.",
+                        "Speaks up only for a scratch-NAMED file at the repo root (notes.md, plan.md, output.txt), pointing at `rc artifacts new`.",
+                    ],
+                    "trip": "Advisory only — nothing is ever blocked. Deliberately narrow: a nudge that fires on everything gets ignored.",
+                    "set": "No knob — put `placement-ok` in a file to silence it for that file.",
+                },
+            },
         ],
     },
     {
@@ -902,6 +1036,7 @@ _PIPELINE_STAGE_HOOKS = {
     "guard-recursive-spawn": "guard-recursive-spawn.sh",
     "claim-grounding-lint": "claim-grounding-lint.sh",
     "delegation-nudge": "delegation-nudge.sh",
+    "storage-placement-nudge": "storage-placement-nudge.sh",
     "dod-gate": "dod-gate.sh",
     "remind-tests": "remind-tests.sh",
 }
@@ -920,6 +1055,9 @@ _PIPELINE_EXCLUDED_HOOKS = {
     "+ its live status as the Activity-tab Sleipnir badges; deliberately NOT a Pipeline stage card",
     "thing-denial-kb-sync.sh": "Muninn denial-KB materialiser (Stop); learns from tribunal denials, not itself a guardrail",
     "thing-denial-kb-recall.sh": "Muninn denial-KB recall (SessionStart); surfaces known denials + fixes, not a guardrail",
+    "dashboard-autostart.sh": "opt-in convenience launcher (SessionStart) for the dashboard itself; "
+    "gates nothing, denies nothing, and never inspects a tool call — its knob is `dashboard_autostart` "
+    "in comfort-posture.yaml, deliberately NOT a Pipeline stage card",
 }
 
 _PIPELINE_CONTROLS = {
@@ -1075,11 +1213,14 @@ _PIPELINE_CSS = """<style>
 .pipe-row { display: flex; flex-wrap: wrap; gap: .35rem; }
 .pipe-stage { flex: 1 1 230px; min-width: 200px; border: 1px solid var(--border);
   border-radius: var(--rc-radius); padding: .3rem .5rem; background: var(--surface-2); }
-.pipe-stage-head { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
+/* flex-wrap: wrap — this row holds a title plus up to two badges. With nowrap the
+   trailing value pill was pushed 79px past the stage card and scrolled the whole
+   page sideways at 1280px. Wrapping keeps it inside the card. */
+.pipe-stage-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem; }
 .pipe-stage-title { font-weight: 600; font-size: .88rem; }
 .pipe-tip { margin: .18rem 0 0; font-size: .8rem; color: var(--muted, #aaa); line-height: 1.25; }
 .pipe-badge { font-size: .7rem; font-weight: 600; padding: .1rem .42rem; border-radius: 10px;
-  white-space: nowrap; }
+  white-space: nowrap; max-width: 100%; }
 .pipe-badge-on { background: var(--rc-ok-bg); color: var(--rc-ok-fg); }
 .pipe-badge-off { background: var(--rc-danger-bg); color: var(--rc-danger-fg); }
 .pipe-badge-advisory { background: var(--rc-neutral-bg); color: var(--rc-neutral-fg); }
@@ -1126,6 +1267,116 @@ _PIPELINE_CSS = """<style>
   border-radius: 8px; background: var(--surface, #161616); }
 .concern-stats h3 { margin: 0 0 .3rem; font-size: 14px; }
 .concern-stats-state { font-size: 12px; color: var(--muted, #999); padding: .4rem 0; }
+/* ── Host & context page ──────────────────────────────────────────────────────
+   This page shipped with NO styles at all: it rendered on browser defaults while
+   the whole token system sat unused, which is why a page of genuinely useful
+   answers read as a wall of undifferentiated text.
+
+   Everything here is CSS-only, on purpose. The page's DOM budget is frozen at
+   zero slack (Gate 132), so any fix that added a wrapper or a badge element
+   would have cost an owner-approved ratchet raise to make something merely look
+   better. Styling is free; elements are not.
+
+   Every colour is a token, so light and dark are correct by construction rather
+   than by a second set of overrides that later drifts. */
+.hc-root { overflow-x: auto; }
+
+/* Section headings act as rules: a hairline above each one turns a long scroll
+   into three legible sections without a single new element. The first has no
+   rule — a divider above the first item divides nothing. */
+.hc-root h3 {
+  font-family: var(--font-display, inherit);
+  font-size: 15px; font-weight: 650; letter-spacing: -0.01em;
+  margin: 30px 0 8px; padding-top: 18px;
+  border-top: 1px solid var(--border, #333);
+}
+.hc-root h3:first-child { margin-top: 4px; padding-top: 0; border-top: 0; }
+
+/* Prose gets a reading measure. Full-bleed text across a wide dashboard is the
+   single most common reason a paragraph goes unread. */
+.hc-intro { max-width: 68ch; color: var(--text, #ddd); margin: 0 0 12px; line-height: 1.55; }
+.hc-src {
+  max-width: 78ch; color: var(--muted, #999); font-size: 11.5px;
+  line-height: 1.5; margin: 8px 0 0;
+}
+
+.hc-table {
+  width: 100%; border-collapse: collapse; margin: 4px 0 2px;
+  font-size: 12.5px; line-height: 1.45;
+}
+/* Header row in the house idiom: small, tracked, muted — it labels, it does not
+   compete with the data underneath it. */
+.hc-table thead th {
+  text-align: left; padding: .4rem .6rem;
+  font-size: 10.5px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase;
+  color: var(--muted, #999);
+  border-bottom: 1px solid var(--border, #333);
+  white-space: nowrap;
+}
+.hc-table tbody th {
+  text-align: left; padding: .5rem .6rem; font-weight: 600;
+  color: var(--text, #ddd); white-space: nowrap;
+  border-bottom: 1px solid var(--border, #333);
+}
+.hc-table tbody td {
+  padding: .5rem .6rem; vertical-align: top;
+  color: var(--text, #ddd);
+  border-bottom: 1px solid var(--border, #333);
+}
+.hc-table tbody tr:last-child th,
+.hc-table tbody tr:last-child td { border-bottom: 0; }
+.hc-table tbody tr:hover th,
+.hc-table tbody tr:hover td { background: var(--surface-2, rgba(255,255,255,.03)); }
+
+/* THE SIGNATURE. A support matrix is read by scanning one column, not by reading
+   cells — so the state becomes a pill you can take in at a glance. Three real
+   states, three weights: supported reads positive, opt-in reads deliberate
+   (it is a choice you make, not a default), unwired reads hollow and quiet
+   because an honest gap should not shout. */
+.hc-yes, .hc-no {
+  font-size: 11px; font-weight: 600; letter-spacing: .01em;
+  white-space: nowrap;
+}
+.hc-yes > span, .hc-no > span { display: inline; }
+.hc-table td.hc-yes, .hc-table td.hc-no { text-align: left; }
+.hc-table td.hc-yes {
+  color: var(--ok, #1f7a3f);
+}
+.hc-table td.hc-no {
+  color: var(--muted, #999);
+}
+/* The pill itself is drawn with a box-shadow ring + soft fill so it needs no
+   wrapper element — the <td> IS the chip. */
+.hc-table td.hc-yes::before,
+.hc-table td.hc-no::before {
+  content: ""; display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+  margin-right: 7px; vertical-align: baseline;
+  background: currentColor;
+}
+.hc-table td.hc-no::before { background: transparent; box-shadow: inset 0 0 0 1.5px currentColor; }
+
+/* Paths and commands are objects you copy, not prose — set them in mono so they
+   are recognisable as things to type. */
+.hc-table tbody th { font-family: var(--font-mono, ui-monospace, monospace); font-size: 11.5px; font-weight: 500; }
+.hc-src code, .hc-intro code { font-family: var(--font-mono, ui-monospace, monospace); font-size: 11px; }
+
+/* The live reading is a card, matching the empty-state pattern used elsewhere. */
+.hc-live {
+  background: var(--surface, #1a1a1a); border: 1px solid var(--border, #333);
+  border-radius: var(--radius-sm, 6px); padding: 12px 14px; margin: 4px 0 6px;
+}
+.hc-live h3 { margin: 0 0 6px; padding-top: 0; border-top: 0; font-size: 13px; }
+.hc-live-body { margin: 0; color: var(--muted, #999); font-size: 12px; line-height: 1.5; max-width: 72ch; }
+
+@media (max-width: 720px) {
+  .hc-table { font-size: 12px; }
+  .hc-table thead th, .hc-table tbody th, .hc-table tbody td { padding: .4rem .45rem; }
+}
+
+/* The 7-column stats table has a 464px min-content width. Let it scroll inside its
+   own section rather than widening the document — a page that scrolls sideways on a
+   phone hides the nav and every other panel's content too. */
+.concern-stats { overflow-x: auto; }
 .concern-stats-table { width: 100%; border-collapse: collapse; margin-top: .3rem; font-size: 12px; }
 .concern-stats-table th, .concern-stats-table td {
   text-align: left; padding: .22rem .5rem; border-bottom: 1px solid var(--border, #2a2a2a);
@@ -1142,6 +1393,22 @@ _PIPELINE_CSS = """<style>
 def _render_pipeline_tab() -> str:
     """Render the Pipeline tab — the all-events guardrail flow with live state,
     5th-grade tooltips, and inline editors. JS (in _JS) hydrates it on open."""
+    # Rendered from the single _HOOK_CAPABLE_HOSTS list so the host scope stated
+    # on the page cannot drift from the list a maintainer updates.
+    #
+    # BOTH halves of the sentence are derived, and that is the whole point. The
+    # "nowhere else" half used to be a HARDCODED list — so the moment Codex gained
+    # an install path (MH-07) the page named it as supported in one clause and
+    # unsupported in the next, in the same sentence. A half-derived sentence is not
+    # a smaller version of a derived one; it is a self-contradiction waiting for
+    # the first change. Gate 154 pins the derivation; this keeps the prose honest.
+    _hook_hosts_text = html.escape(_oxford(list(_HOOK_CAPABLE_HOSTS)))
+    _no_hook_hosts = [
+        _HOST_SUPPORT["hosts"][h]["label"]
+        for h in _HOST_SUPPORT["hosts"]
+        if _HOST_SUPPORT["components"]["hooks"][h]["supported"] is not True
+    ]
+    _no_hook_hosts_text = html.escape(_oxford(_no_hook_hosts))
     lanes_html = []
     for lane in _PIPELINE_LANES:
         cards = []
@@ -1207,7 +1474,8 @@ def _render_pipeline_tab() -> str:
     return f"""{_PIPELINE_CSS}
 <div class="pipeline-tab">
   <h2>Guardrail pipeline</h2>
-  <p class="page-desc">Everything an AI agent passes through, top to bottom. Each box shows whether it's on right now, what it does (in plain words), the step-by-step of how it works, and the knobs you can turn. Changes save to your <code>.ravenclaude/comfort-posture.yaml</code>.</p>
+  <p class="page-desc">Everything an AI agent passes through, top to bottom. Each box shows whether it's on right now, what it does (in plain words), the step-by-step of how it works, and the knobs you can turn. Changes save to your <code>.ravenclaude/comfort-posture.yaml</code>.
+  IMPORTANT — these guardrails fire under {_hook_hosts_text}, and nowhere else yet. &ldquo;Always on&rdquo; below means &ldquo;not a knob you can switch off&rdquo;; it does NOT mean every host runs it. Under {_no_hook_hosts_text} nothing here wires itself, so none of it fires — the stages are shown for reference, not as protection you currently have.</p>
   <div class="pipe-flow" role="img" aria-label="Flow: session starts, then before-each-step and after-each-step checkpoints loop for every command, then a final check when it tries to stop.">
     <span class="pipe-flow-step">Session starts</span>
     <span class="pipe-flow-arr">→</span>
@@ -1663,6 +1931,29 @@ _RUN_ACTION_LITERAL = {
     "set-posture": "apply-comfort-posture.py",
 }
 
+# Host-agnostic equivalents (multi-host audit MH-18).
+#
+# THE GAP THIS CLOSES: every card told the reader to "paste into Claude Code",
+# and the catalog renders 533 commands. A Copilot or Codex operator browsing it
+# was handed instructions that cannot work on their host, with no signpost —
+# while `bin/rc` had shipped since v0.158.0 precisely to solve that, and was
+# never wired to this surface.
+#
+# ONLY VERIFIED VERBS APPEAR HERE. `bin/rc` implements exactly three
+# (`dashboard`, `streams`, `converge`) `[verified 2026-07-28 by reading its case
+# statement]`, and `scripts/ravenclaude` implements
+# {setup|install|update|status|dashboard|doctor|init-codespace}. Inventing a
+# plausible-looking equivalent would reproduce the exact defect MH-18 is about:
+# an invocation confidently taught to a host that cannot run it. If a command has
+# no real equivalent it gets NO entry, and the card keeps saying Claude Code.
+#
+# Keyed by the bare command name (the `name` field), not the namespaced slash
+# form, so a rename of the owning plugin does not silently drop the mapping.
+_HOST_EQUIVALENTS = {
+    "dashboard": "rc dashboard",
+    "stream": "rc streams",
+}
+
 
 def _render_command_card(cmd: dict) -> str:
     # Plugin commands are invoked NAMESPACED as /<plugin>:<command> — that form is
@@ -1702,11 +1993,28 @@ def _render_command_card(cmd: dict) -> str:
         # is no way for a web page to type into your Claude chat — verified against
         # Claude Code's docs). So the honest, working UX is: copy it, paste it into
         # Claude Code, and the command runs the whole multi-step job there.
+        # MH-18: name the host-agnostic equivalent where one genuinely exists.
+        # Appended as TEXT inside the existing <p> — the Commands tab is JS-built
+        # from #commands-payload so it is DOM-budget-uncounted either way, but
+        # keeping it in one element also keeps the card's shape stable.
+        equiv = _HOST_EQUIVALENTS.get(cmd["name"])
+        equiv_html = (
+            f' &middot; <span class="cmd-what-label">any host:</span> '
+            f"<code>{html.escape(equiv)}</code>"
+            if equiv
+            else ""
+        )
+        equiv_title = (
+            f" On Copilot CLI, Codex, or a plain terminal, run {equiv} instead — same job, no slash command needed."
+            if equiv
+            else " There is no non-Claude equivalent for this one."
+        )
         what_runs = (
             '<p class="cmd-what" '
-            f'title="This is a Claude Code command. A web page can&#39;t run it for you. Press Copy, then paste {html.escape(slash)} into Claude Code and press enter — Claude does the whole job for you there.">'
+            f'title="This is a Claude Code command. A web page can&#39;t run it for you. Press Copy, then paste {html.escape(slash)} into Claude Code and press enter — Claude does the whole job for you there.{html.escape(equiv_title)}">'
             '<span class="cmd-what-label">How to run it:</span> '
-            f"copy it, then paste into Claude Code &mdash; <code>{html.escape(slash)}</code></p>"
+            f"copy it, then paste into Claude Code &mdash; <code>{html.escape(slash)}</code>"
+            f"{equiv_html}</p>"
         )
         actions = (
             f'<code class="cmd-code" id="{cid}">{html.escape(slash)}</code>'
@@ -1750,10 +2058,24 @@ def _render_commands_tab() -> str:
         else " Each card shows exactly what it runs. Copy a command and paste it into your "
         "Claude Code session to run it — a browser can't launch a slash command."
     )
+    # MH-18 — the host-scope signpost. Stated ONCE, here, rather than stamping
+    # "Claude Code only" onto 500+ cards that already say "paste into Claude Code":
+    # that repetition would be noise, not honesty, and the per-card line already
+    # names the host. What was genuinely missing is a next step for someone who
+    # does not have a Claude Code session to paste into.
+    n_equiv = sum(1 for c in cmds if _HOST_EQUIVALENTS.get(c["name"]))
+    host_note = (
+        " <strong>Not on Claude Code?</strong> These are Claude Code slash commands; a Copilot CLI, "
+        "Codex, or plain-terminal session cannot run them. "
+        f"{n_equiv} of them have a host-agnostic equivalent, shown on the card as "
+        "&ldquo;any host&rdquo; &mdash; the launcher is <code>rc</code>, in "
+        "<code>plugins/ravenclaude-core/bin/rc</code>. The rest have no equivalent today; that is a "
+        "gap, not a hidden feature."
+    )
     intro = (
         '<div class="cmd-intro">'
         "<h2>Commands</h2>"
-        f"<p>{len(cmds)} command{plural} shipped by the marketplace plugins.{run_note}</p>"
+        f"<p>{len(cmds)} command{plural} shipped by the marketplace plugins.{run_note}{host_note}</p>"
         "</div>"
     )
     return intro + f'<div class="cmd-grid">{cards}</div>'
@@ -2042,13 +2364,13 @@ def _render_trees_tab(include_trees: bool = True) -> str:
             )
         bp_items = "".join(bp_parts)
         tree_section = (
-            f'<h4 class="guide-subhd">Decision trees <span class="guide-count">{len(ot)}</span></h4>'
+            f'<h3 class="guide-subhd">Decision trees <span class="guide-count">{len(ot)}</span></h3>'
             f'<ul class="guide-list">{tree_items}</ul>'
             if ot
             else ""
         )
         bp_section = (
-            f'<h4 class="guide-subhd">Best practices <span class="guide-count">{len(op)}</span></h4>'
+            f'<h3 class="guide-subhd">Best practices <span class="guide-count">{len(op)}</span></h3>'
             f'<ul class="guide-list">{bp_items}</ul>'
             if op
             else ""
@@ -2122,7 +2444,9 @@ def _render_settings_tab(properties: dict, presets: dict) -> str:
 
     security_deny_html = _render_security_deny(properties.get("security_deny", {}))
 
-    design_checkins_html = _render_design_checkins(properties.get("design_checkins", {}))
+    design_checkins_html = _render_design_checkins(
+        properties.get("design_checkins", {})
+    ) + _render_dashboard_autostart()
 
     category_intro_html = (
         '<div class="category-intro"><p>'
@@ -2133,6 +2457,19 @@ def _render_settings_tab(properties: dict, presets: dict) -> str:
         "or <strong>Allow</strong> (go ahead). Start from the "
         "<strong>&#9733; Recommended</strong> preset above and loosen or tighten "
         "from there as you build trust."
+        # MH-18 — HOST SCOPE. These levels describe enforcement that exactly one
+        # host delivers natively. Saying "you pick Deny/Ask/Allow" with no scope
+        # note told a Copilot or Codex operator they were setting a control that,
+        # on their host, is enforced by a different mechanism or not at all — the
+        # same false-assurance shape as the Pipeline tab's badges (MH-04).
+        # Plain text, no new tags: this panel IS statically rendered and counted
+        # against the Gate 132 ratchet, unlike the JS-built Commands cards.
+        " Where these actually bind: Save &amp; apply writes Claude Code&rsquo;s "
+        "permission engine, so under Claude Code they are enforced. Under GitHub "
+        "Copilot CLI enforcement comes instead from the wired hooks plus command "
+        "review. Under OpenAI Codex the real boundary is its own OS sandbox "
+        "(sandbox_mode / approval_policy), which the installer writes separately. "
+        "On any other host these levels are advisory and CI is the backstop."
         "</p></div>"
     )
 
@@ -2623,6 +2960,52 @@ def _render_design_checkins(prop: dict) -> str:
     )
 
 
+def _render_dashboard_autostart() -> str:
+    """Render the `dashboard_autostart` control (a behavioral flag, NOT a permission).
+
+    Deliberately LEAN markup — 6 static elements (wrapper, h3, p, select, 3 options
+    minus the wrapper double-count) against a Gate-132 budget that sits at exact
+    zero slack, so every element here was owner-approved. No extra nesting, no
+    icon, no switch chrome: it reuses .design-checkins-bar's styling rather than
+    introducing its own.
+
+    Why a control at all: the knob shipped YAML-only in v0.216.0 because the DOM
+    budget was full, which reproduced the discoverability problem that started the
+    whole exercise — a feature nobody can find is a feature that does not exist.
+
+    The state/emit/hydrate wiring already exists (emitYaml + applyGuardrailConfig,
+    covered by Gate 35). That is not cosmetic: emitYaml rebuilds the WHOLE posture
+    from `state`, so a key with no state slot is silently DELETED on the next
+    Save & apply — the v0.61.0 data-loss class.
+    """
+    # EXACTLY 6 elements: wrapper, h3, select, 3 options. Counted, not estimated —
+    # the first cut measured TEN (a badge <span>, an explainer <p> and two <b>)
+    # and would have silently blown an owner-approved figure, which is the failure
+    # the red-team predicted for this control. Two zero-cost substitutions keep the
+    # house conventions without the elements:
+    #   - the ⚙ behavioral-flag marker is a GLYPH in the heading text, not the
+    #     _render_behavioral_flag_badge() <span> (same signal, one less element);
+    #   - the explainer lives in `title=` rather than a <p>, and the option labels
+    #     are written to be self-describing so the tooltip is a bonus, not a crutch.
+    tip = (
+        "Behavioral flag — does not gate any tool-call permission. "
+        "Serve starts the local server quietly; Open also opens a browser tab. "
+        "The port is checked first, so several sessions never stack up servers "
+        "or steal focus with a second tab."
+    )
+    return (
+        '<div class="design-checkins-bar" id="dash-autostart-bar">'
+        "<h3>⚙ Open this dashboard at session start</h3>"
+        f'<select id="dash-autostart-mode" title="{html.escape(tip)}" '
+        'aria-label="Dashboard autostart mode">'
+        "<option value=\"off\">Off — I'll launch it myself</option>"
+        '<option value="serve">Serve — start it quietly, no tab</option>'
+        '<option value="open">Open — start it and open a tab</option>'
+        "</select>"
+        "</div>"
+    )
+
+
 def _render_pattern_overrides(category: str) -> str:
     """Render the collapsible per-permission, per-layer overrides block (v0.19.0).
 
@@ -3000,6 +3383,25 @@ def _label_for(value: str) -> str:
 _CSS = """
 /*__SHARED_TOKENS__*/
 
+/* ── Links ────────────────────────────────────────────────────────────────────
+   The standalone dashboard.html shipped with NO `a` colour rule at all, so every
+   inline link in its prose fell back to the browser default #0000EE — roughly 2:1
+   on these dark surfaces, i.e. unreadable — and that is the copy consumers get from
+   `rc dashboard`. The portal only looked fine because the shell defines
+   `a { color: var(--teal-2) }`; --teal-2 aliases --rc-accent, the same token used
+   here, so this fixes the shipped page and changes the portal by nothing.
+
+   Prose links are also underlined, because --accent against --text is only 1.70:1 —
+   below the 3:1 that WCAG 1.4.1 requires before colour may be the sole cue that
+   something is a link. Scoped to prose containers so nav items and link-buttons,
+   which are identifiable by position and shape, stay undecorated. */
+a { color: var(--accent); }
+p a, li a, td a, dd a, footer a, .hc-intro a, .hc-src a, blockquote a { text-decoration: underline; }
+
+/* WCAG 2.2 2.5.8 — a <select> is a pointer target; the UA gives these 19-23px and
+   several sit directly beside other controls. 24px is the floor. */
+select { min-height: 24px; }
+
 :root {
   color-scheme: light;
   /* Dashboard palette — cool near-black + the commerce signature GREEN.
@@ -3047,7 +3449,7 @@ body {
   min-height: 100vh;
 }
 h1, h2, h3 { font-family: var(--font-display); font-weight: 600; letter-spacing: -0.02em; }
-::selection { background: var(--accent); color: #000; }
+::selection { background: var(--accent); color: var(--bg); }
 .page-header {
   /* Sticky app-nav with a scroll-triggered blur — commerce .nav language. */
   position: sticky;
@@ -3513,7 +3915,7 @@ h1, h2, h3 { font-family: var(--font-display); font-weight: 600; letter-spacing:
 }
 .crp-seats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
   gap: 10px;
 }
 .cr-seat-row {
@@ -3579,7 +3981,7 @@ h1, h2, h3 { font-family: var(--font-display); font-weight: 600; letter-spacing:
 }
 .seg-control.gate-floor-seg { margin-bottom: 8px; }
 .seg-control input[type="radio"]:checked + .seg-label.gate-floor-medium { background: var(--warn); color: var(--bg); }
-.seg-control input[type="radio"]:checked + .seg-label.gate-floor-extreme { background: var(--danger); color: white; }
+.seg-control input[type="radio"]:checked + .seg-label.gate-floor-extreme { background: var(--danger); color: var(--bg); }
 .crp-gate-floor-note { margin: 0; font-size: 11.5px; color: var(--muted); line-height: 1.5; }
 /* Per-tier advanced expansion — tier cards with seat checkboxes + threshold. */
 .tier-details { margin: 14px 0 0; }
@@ -3735,7 +4137,7 @@ h1, h2, h3 { font-family: var(--font-display); font-weight: 600; letter-spacing:
 }
 .cr-summary-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(140px, 100%), 1fr));
   gap: 6px 8px;
 }
 .cr-summary-cell {
@@ -3773,7 +4175,9 @@ h1, h2, h3 { font-family: var(--font-display); font-weight: 600; letter-spacing:
 }
 /* off: per-category thing off (regardless of master) */
 .review-scales-icon[data-review-state="off"] {
-  color: var(--border);
+  /* NOT var(--border): 7%-alpha hairline token. Same defect as
+     .cr-summary-micro[data-state="off"] had — one found instance was a sample. */
+  color: var(--muted);
 }
 /* paused: thing on but master off — greyed with dashed outline affordance */
 .review-scales-icon[data-review-state="paused"] {
@@ -3783,7 +4187,12 @@ h1, h2, h3 { font-family: var(--font-display); font-weight: 600; letter-spacing:
 }
 /* Micro-label matching each state */
 .cr-summary-micro[data-state="reviewed"] { color: var(--accent); }
-.cr-summary-micro[data-state="off"] { color: var(--border); }
+/* NOT var(--border): that is the 7%-alpha hairline token, which rendered the word
+   "off" at 1.17:1 — the review state you most need to notice was invisible.
+   --muted measures 7.7:1 dark / 5.9:1 light. "off" and "paused" now share a colour;
+   they were never distinguished by colour to a screen reader anyway — the label text
+   and the scales icon's data-review-state are the real channels. */
+.cr-summary-micro[data-state="off"] { color: var(--muted); }
 .cr-summary-micro[data-state="paused"] { color: var(--muted); }
 /* Card-level scales icon (in cat-thing-row) */
 .cat-thing-scales { display: inline-flex; align-items: center; }
@@ -3835,6 +4244,10 @@ h1, h2, h3 { font-family: var(--font-display); font-weight: 600; letter-spacing:
   border: 1px solid var(--border);
   width: 18px;
   height: 18px;
+  /* flex:0 0 auto — width is not a floor in a flex row, and one of these was being
+     squeezed to 8px wide by its siblings. */
+  flex: 0 0 auto;
+  position: relative;
   font-size: 11px;
   font-weight: 700;
   border-radius: 50%;
@@ -3845,6 +4258,13 @@ h1, h2, h3 { font-family: var(--font-display); font-weight: 600; letter-spacing:
   justify-content: center;
   line-height: 1;
 }
+/* WCAG 2.2 SC 2.5.8 wants a 24x24 pointer target. Expand the TARGET, not the circle:
+   an 18px dot with inset:-3px is a 24px hit area, so touch/mouse accuracy improves
+   with zero change to visual density. */
+.info-btn::after { content: ""; position: absolute; inset: -3px; border-radius: 50%; }
+/* Same criterion for disclosure rows: these stack directly against each other, so a
+   23px row fails the spacing exception. 24px is the floor; it is a 1px change. */
+summary { min-height: 24px; }
 .info-btn:hover { color: var(--accent); border-color: var(--accent); }
 .info-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
@@ -3906,7 +4326,7 @@ h1, h2, h3 { font-family: var(--font-display); font-weight: 600; letter-spacing:
   font-weight: 600;
 }
 /* Restrictive levels get warning-tinted selection */
-.seg-control input[type="radio"]:checked + .seg-label.seg-deny { background: var(--danger); color: white; }
+.seg-control input[type="radio"]:checked + .seg-label.seg-deny { background: var(--danger); color: var(--bg); }
 .seg-control input[type="radio"]:checked + .seg-label.seg-ask { background: var(--warn); color: var(--bg); }
 .seg-control input[type="radio"]:checked + .seg-label.seg-allow { background: var(--ok); color: #04210f; }
 .seg-control input[type="radio"]:checked + .seg-label.seg-always-ask { background: var(--warn); color: var(--bg); }
@@ -4377,6 +4797,10 @@ h1, h2, h3 { font-family: var(--font-display); font-weight: 600; letter-spacing:
   opacity: 0.85;
   margin-top: 2px;
 }
+/* This sub-label is a file path, which has no ordinary break opportunities: at 375px
+   it rendered 417px wide inside a 297px button and spilled out both sides, where its
+   on-accent dark text sat on the dark panel and became unreadable. Let it wrap. */
+.btn-sub { max-width: 100%; min-width: 0; overflow-wrap: anywhere; }
 .primary-help {
   margin: 8px 0 0;
   font-size: 11px;
@@ -4546,7 +4970,10 @@ footer.page-footer {
   text-align: center;
   background: var(--surface);
 }
-footer.page-footer a { color: var(--accent); text-decoration: none; }
+/* underline, not none: this link sits mid-sentence ("Design: proposal 003."), and
+   accent-vs-muted-body is 1.31:1 — far below the 3:1 that lets colour be the only
+   cue that something is a link (WCAG 1.4.1). */
+footer.page-footer a { color: var(--accent); text-decoration: underline; }
 footer.page-footer a:hover { text-decoration: underline; }
 
 /* ── v5 Per-layer expandable cards ──────────────────────────────── */
@@ -4685,6 +5112,8 @@ footer.page-footer a:hover { text-decoration: underline; }
 }
 .layer-radios {
   display: inline-flex;
+  /* At 320px this nowrap row reached 384px and scrolled the page sideways. */
+  flex-wrap: wrap;
   background: var(--surface-2);
   border: 1px solid var(--border);
   border-radius: 7px;
@@ -4715,7 +5144,7 @@ footer.page-footer a:hover { text-decoration: underline; }
   white-space: nowrap;
 }
 .layer-radios input[type="radio"]:checked + .layer-opt { background: var(--accent); color: var(--bg); font-weight: 600; }
-.layer-radios input[type="radio"]:checked + .layer-opt-deny { background: var(--danger); color: white; }
+.layer-radios input[type="radio"]:checked + .layer-opt-deny { background: var(--danger); color: var(--bg); }
 .layer-radios input[type="radio"]:checked + .layer-opt-ask { background: var(--warn); color: var(--bg); }
 .layer-radios input[type="radio"]:checked + .layer-opt-inherit { background: var(--surface); color: var(--text); }
 .layer-radios input[type="radio"]:focus-visible + .layer-opt {
@@ -5029,7 +5458,7 @@ footer.page-footer a:hover { text-decoration: underline; }
 .guide-tree-svg svg, .guide-tree-img { max-width: 100%; height: auto; display: block; }
 .cmd-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr));
   gap: 14px;
 }
 .cmd-card {
@@ -5193,7 +5622,7 @@ footer.page-footer a:hover { text-decoration: underline; }
 }
 .ov-stats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(120px, 100%), 1fr));
   gap: 10px;
 }
 .ov-stat {
@@ -5230,7 +5659,7 @@ footer.page-footer a:hover { text-decoration: underline; }
 }
 .ov-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(230px, 100%), 1fr));
   gap: 14px;
 }
 .ov-card {
@@ -5271,6 +5700,8 @@ footer.page-footer a:hover { text-decoration: underline; }
 .guide-bp-toggle {
   background: none;
   border: none;
+  /* 24px minimum pointer target (WCAG 2.2 2.5.8) — this measured 46x12 next to a link. */
+  min-height: 24px;
   color: var(--accent);
   font-size: 11.5px;
   cursor: pointer;
@@ -5339,7 +5770,7 @@ footer.page-footer a:hover { text-decoration: underline; }
   border-radius: 10px;
 }
 .run-result-badge.badge-ok { color: #04210f; background: var(--ok); }
-.run-result-badge.badge-fail { color: white; background: var(--danger); }
+.run-result-badge.badge-fail { color: var(--bg); background: var(--danger); }
 .run-result-output,
 .status-output {
   margin: 0;
@@ -5433,7 +5864,10 @@ footer.page-footer a:hover { text-decoration: underline; }
 .sim-result { display: flex; flex-direction: column; gap: 16px; }
 .sim-deny-banner {
   background: var(--danger);
-  color: white;
+  /* var(--bg), not white: white on the dark-theme --danger (#f87171) is 2.76:1.
+     Filled surface -> var(--bg) text is the house pairing; .gjallarhorn--amber
+     beside it already did this correctly with a dark literal. */
+  color: var(--bg);
   border-radius: 6px;
   padding: 10px 14px;
   font-size: 13px;
@@ -5442,7 +5876,7 @@ footer.page-footer a:hover { text-decoration: underline; }
 .sim-deny-banner span { font-weight: 500; }
 .sim-result-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));
   gap: 16px;
 }
 .sim-field { display: flex; flex-direction: column; gap: 6px; }
@@ -5581,7 +6015,7 @@ footer.page-footer a:hover { text-decoration: underline; }
   font-variant-numeric: tabular-nums;
 }
 .concept-grid {
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(min(420px, 100%), 1fr));
   gap: 16px; padding: 16px 0;
 }
 @media (max-width: 900px) { .concept-grid { grid-template-columns: 1fr; } }
@@ -5885,12 +6319,19 @@ footer.page-footer a:hover { text-decoration: underline; }
 /* ── Heimdall tab — perimeter alerts (reuses .saga-hdr/.saga-empty/.activity-intro) ── */
 .heimdall-layout { padding: 20px; }
 .heimdall-grid {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  display: grid;
+  /* min(320px, 100%) — NOT a bare 320px. A bare track minimum cannot shrink below
+     itself, so at a 375px viewport the 287px-wide container got 320px tracks and the
+     cards hung 9px off-screen, scrolling the whole page sideways. */
+  grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr));
   gap: 16px; padding: 0 20px 20px;
 }
 .heimdall-card {
   background: var(--surface); border: 1px solid var(--border);
   border-radius: var(--radius); padding: 14px 16px;
+  /* The drift table inside is wider than a phone. Scroll it in the card rather than
+     widening the document — same reasoning as .concern-stats. */
+  overflow-x: auto;
 }
 .heimdall-card h3 { margin: 0 0 2px; font-size: 14px; color: var(--text); }
 .heimdall-sub { margin: 0 0 12px; font-size: 12px; color: var(--muted); line-height: 1.4; }
@@ -5937,13 +6378,14 @@ footer.page-footer a:hover { text-decoration: underline; }
 .gjallarhorn[hidden] { display: none; }
 .gjallarhorn-glyph { font-size: 18px; }
 .gjallarhorn-text { flex: 1; }
-.gjallarhorn-link { color: inherit; text-decoration: underline; font-weight: 600; white-space: nowrap; }
-.gjallarhorn--red   { background: var(--danger); color: #fff; }
+/* min-height 24px: WCAG 2.2 2.5.8 — this sat at 20.25px right beside another link. */
+.gjallarhorn-link { color: inherit; text-decoration: underline; font-weight: 600; white-space: nowrap; min-height: 24px; }
+.gjallarhorn--red   { background: var(--danger); color: var(--bg); }
 .gjallarhorn--amber { background: var(--warn);   color: #1a1205; }
 .gjallarhorn--grey  { background: var(--surface-2); color: var(--text); border-bottom: 1px solid var(--border); }
 /* Níðhöggr "Debt watch" card (lives inside the Heimdall grid). */
 .heimdall-card--wide { grid-column: 1 / -1; }
-.heimdall-card--wide #heimdall-debt { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+.heimdall-card--wide #heimdall-debt { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); gap: 14px; }
 .nid-section { background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; }
 .nid-hdr { margin: 0 0 6px; font-size: 12px; font-weight: 700; color: var(--text); }
 .nid-clean { margin: 0; font-size: 12px; color: var(--accent); }
@@ -5951,7 +6393,7 @@ footer.page-footer a:hover { text-decoration: underline; }
 .nid-list li { font-size: 11.5px; font-family: var(--font-mono); color: var(--text); word-break: break-word; }
 /* Idunn "Knowledge health" card (also a wide card inside Heimdall). */
 .heimdall-card--wide #heimdall-kh { display: flex; flex-direction: column; gap: 12px; }
-.kh-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; }
+.kh-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(160px, 100%), 1fr)); gap: 10px; }
 .kh-tile { background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; text-align: left; cursor: pointer; font: inherit; color: var(--text); transition: border-color 120ms ease, box-shadow 120ms ease; }
 .kh-tile:hover, .kh-tile:focus-visible { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; outline: none; }
 .kh-tile[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
@@ -5995,7 +6437,11 @@ footer.page-footer a:hover { text-decoration: underline; }
 .bifrost-paste-label { display: block; margin: 10px 0 2px; font-size: 12px; font-weight: 600; color: var(--text); }
 .bifrost-paste-hint { margin: 0 0 4px; font-size: 11.5px; color: var(--muted); }
 .bifrost-paste { width: 100%; box-sizing: border-box; font-family: var(--font-mono); font-size: 12px; padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface-2); color: var(--text); resize: vertical; }
-.bifrost-verify { margin-top: 8px; font: inherit; font-size: 12px; font-weight: 600; padding: 5px 14px; border-radius: 6px; border: 1px solid var(--accent); background: var(--accent); color: var(--rc-text); cursor: pointer; }
+/* color: var(--bg), not var(--rc-text) — --rc-text is the colour that contrasts with
+   the PAGE, so on an accent-filled button it measured 1.81:1. var(--bg) on var(--accent)
+   is this codebase's established pairing (see .seg-label:checked) and measures
+   10.3:1 dark / 5.0:1 light. */
+.bifrost-verify { margin-top: 8px; font: inherit; font-size: 12px; font-weight: 600; padding: 5px 14px; border-radius: 6px; border: 1px solid var(--accent); background: var(--accent); color: var(--bg); cursor: pointer; }
 .bifrost-faults { margin: 0 20px 20px; }
 .bifrost-faults > h3 { font-size: 13px; color: var(--text); margin: 0 0 8px; }
 .bifrost-fault { border: 1px solid var(--border); border-radius: 6px; margin-bottom: 6px; overflow: hidden; }
@@ -6021,7 +6467,7 @@ footer.page-footer a:hover { text-decoration: underline; }
   font: inherit; font-size: 11.5px; padding: 3px 11px; border-radius: 999px;
   border: 1px solid var(--border); background: var(--surface); color: var(--muted); cursor: pointer;
 }
-.vidarr-chip--active { background: var(--accent); color: var(--rc-text); border-color: var(--accent); font-weight: 600; }
+.vidarr-chip--active { background: var(--accent); color: var(--bg); border-color: var(--accent); font-weight: 600; }
 #vidarr-content { padding: 0 20px 20px; }
 .vidarr-table { width: 100%; border-collapse: collapse; font-size: 12px; }
 .vidarr-table th {
@@ -6044,7 +6490,7 @@ footer.page-footer a:hover { text-decoration: underline; }
 .norns-legend { margin: 0 20px 14px; font-size: 13px; color: var(--text); }
 .norns-sub { color: var(--muted); font-size: 0.9em; font-weight: 400; }
 .norns-cols {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
   gap: 16px; padding: 0 20px 20px;
 }
 .norns-col {
@@ -6067,7 +6513,7 @@ footer.page-footer a:hover { text-decoration: underline; }
 /* ── Mímir's well: Claude Code session-state surface ── */
 .mimir-layout { padding: 20px; }
 .mimir-grid {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
   gap: 16px; padding: 0 20px 20px;
 }
 .mimir-card {
@@ -6402,7 +6848,9 @@ footer.page-footer a:hover { text-decoration: underline; }
 .pb-tpl-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin-right: 2px; }
 .pb-tpl { appearance: none; border: 1px solid var(--border); background: var(--surface-2); color: var(--muted); font: inherit; font-size: 12.5px; font-weight: 600; padding: 6px 12px; border-radius: 999px; cursor: pointer; transition: color .15s, background .15s, border-color .15s; }
 .pb-tpl:hover { color: var(--text); border-color: var(--accent); }
-.pb-tpl[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+/* var(--bg), not the theme-blind #fff literal: white on var(--accent) is 1.95:1,
+   and a hardcoded #fff cannot follow the light/dark token swap at all. */
+.pb-tpl[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--bg); }
 .pb-tpl:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 /* Per-field "insert a canned item" picker — free text stays; this only fills/appends. */
 .pb-canned { align-self: flex-start; font-size: 12px; padding: 4px 24px 4px 8px; color: var(--muted); max-width: 100%; }
@@ -6420,7 +6868,7 @@ footer.page-footer a:hover { text-decoration: underline; }
 .pb-btn { appearance: none; font: inherit; font-size: 12.5px; font-weight: 600; padding: 6px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface-2); color: var(--text); cursor: pointer; transition: background .15s, border-color .15s; }
 .pb-btn:hover { border-color: var(--accent); }
 .pb-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.pb-btn.pb-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.pb-btn.pb-primary { background: var(--accent); border-color: var(--accent); color: var(--bg); }
 .pb-btn.pb-ghost { background: transparent; }
 .pb-btn.pb-danger:hover { border-color: var(--danger); color: var(--danger); }
 
@@ -6585,6 +7033,11 @@ _INSTALL_TAB_TEMPLATE = """
       Follow these steps in order. Every command has a <strong>Copy</strong> button &mdash; you don&rsquo;t
       need to type anything. Each step tells you what to expect <em>after</em> you run it.
       <strong>Using Claude Code instead?</strong> See the <a href="#/help">Claude&nbsp;Code</a> guide (Help).
+      Using OpenAI Codex CLI? Run the same installer with the Codex host flag &mdash;
+      &ldquo;ravenclaude install --host codex&rdquo; &mdash; which wires skills into .agents/skills and
+      hooks into .codex/hooks.json. One thing you must do there and nowhere else: Codex trusts hooks
+      by hash, so run /hooks inside Codex to trust them, and again after every update &mdash; until
+      you do they are skipped, and no banner will tell you, because the banner is itself a hook.
     </p>
 
     <h3>What is this?</h3>
@@ -7409,6 +7862,109 @@ _BIFROST_TAB_TEMPLATE = (
 # The Prompt Builder ships as a bare mount + a <noscript> pointer. The whole
 # interactive UI is built by initPromptBuilder() via createElement/textContent
 # (no HTML-string sink), so the static generated DOM stays ~4 elements (Gate 132).
+def _mcp_inventory() -> dict:
+    """MH-19 — the MCP servers this marketplace ships, and which hosts get them.
+
+    Two halves, and the second is the one that matters. The INVENTORY is read
+    from every plugin's `plugin.json` `mcpServers` key, so it can't drift. The
+    WIRING is the honest per-host answer to "does installing actually give me
+    this?", and today that answer is "only on Claude Code" — stated here rather
+    than left for a consumer to discover by finding the tool absent.
+
+    The Copilot row is a live defect, not a design choice: `scripts/ravenclaude`
+    merges `<copilot-pkg>/.mcp.json` into `~/.copilot/mcp-config.json`, but no
+    generator ever writes that file, so the step is a permanent no-op. It is
+    guarded by `[ -f ... ]`, so it fails silently and `status` honestly reports
+    "not configured" -- which reads as "you haven't set it up yet" rather than
+    "this cannot be set up". Every server below also lives in a NON-core plugin,
+    and the Copilot projection only ever covers core. Fixing it means projecting
+    other plugins' servers, which is a separate piece of work.
+    """
+    servers: dict[str, dict] = {}
+    for manifest in sorted(REPO_ROOT.glob("plugins/*/.claude-plugin/plugin.json")):
+        try:
+            data = json.loads(manifest.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue  # a broken manifest is the manifest gate's problem, not ours
+        declared = data.get("mcpServers")
+        if not isinstance(declared, dict):
+            continue
+        plugin = manifest.parts[-3]
+        attribution = data.get("x-mcpAttribution") or {}
+        for name in declared:
+            entry = servers.setdefault(name, {"name": name, "plugins": [], "party": None})
+            entry["plugins"].append(plugin)
+            party = (attribution.get(name) or {}).get("party")
+            if party and not entry["party"]:
+                entry["party"] = party
+    return {
+        "servers": sorted(servers.values(), key=lambda s: s["name"]),
+        "wiring": [
+            {
+                "host": "Claude Code",
+                "state": "automatic",
+                "note": "Declared in the plugin's own plugin.json, so Claude Code loads it when you "
+                "/plugin install that plugin. Nothing extra to run — installing the plugin IS the "
+                "consent step.",
+            },
+            {
+                "host": "GitHub Copilot CLI",
+                "state": "opt-in",
+                "note": "Install by name: `ravenclaude install --host copilot --with-mcp <server>`. "
+                "NOT installed by default, and that is deliberate: ~/.copilot/mcp-config.json is "
+                "GLOBAL, so there is no per-plugin step to hang consent on — naming the server IS "
+                "the consent. `ravenclaude status` lists what is available.",
+            },
+            {
+                "host": "OpenAI Codex CLI",
+                "state": "opt-in",
+                "note": "Install by name: `ravenclaude install --host codex --with-mcp <server>`. "
+                "Added to .codex/config.toml by pure APPEND, so it can never rewrite a hand-tuned "
+                "config. Note a project .codex/config.toml is read ONLY IN TRUSTED PROJECTS — "
+                "writing it is not the same as Codex loading it.",
+            },
+            {
+                "host": "Cursor / Gemini / Aider",
+                "state": "no",
+                "note": "Not wired. RavenClaude installs no MCP configuration on these hosts; "
+                "use each host's own MCP setup if it has one.",
+            },
+        ],
+    }
+
+
+def _render_host_context_tab() -> str:
+    """Host & context (#/host-context) — MH-14 part 2.
+
+    Two things, deliberately different in kind:
+
+      1. The STATIC support matrix, inlined from knowledge/host-support.json. This
+         is the part that always works — served or on the GitHub-Pages copy, with
+         no server and no detection. It answers "does component X run on host Y,
+         and if not, why" without ever guessing about your session, so it cannot
+         be wrong about you.
+
+      2. The LIVE launch-environment reading from /__host, when served. Scoped
+         honestly: it reports the environment this SERVER was started in, not your
+         current session (a server outlives and is reused across sessions). Absent
+         or unreachable, the page still renders (1) and says so.
+
+    Lean markup on purpose — a mount, a noscript, and the payload. The matrix is
+    JS-built from the inlined JSON, so a 7x6 table costs no static elements; the
+    same trick that keeps the Prompt Builder at 4."""
+    path = REPO_ROOT / "plugins" / "ravenclaude-core" / "knowledge" / "host-support.json"
+    data = json.loads(path.read_text(encoding="utf-8"))
+    data["mcp"] = _mcp_inventory()
+    payload = json.dumps(data, separators=(",", ":"))
+    return (
+        '<div id="hc-root" class="hc-root"></div>\n'
+        '<noscript><p>The host matrix needs JavaScript. The same data is in '
+        "<code>plugins/ravenclaude-core/knowledge/host-support.json</code>, which is the "
+        "single source of truth for which RavenClaude components run on which CLI.</p></noscript>\n"
+        f'<script type="application/json" id="host-support-payload">{payload}</script>'
+    )
+
+
 _PROMPT_BUILDER_TAB_TEMPLATE = """
 <div id="pb-root" class="pb-root"></div>
 <noscript><p class="pb-noscript">The Prompt Builder needs JavaScript. It assembles a Claude prompt from your inputs &mdash; entirely in your browser, with nothing sent anywhere.</p></noscript>
@@ -7482,6 +8038,15 @@ _JS = r"""
    * user picks off or block, preserving "absent ⇒ warn". */
   const WORKTREE_GUARD_VALUES = ["off", "warn", "block"];
   const WORKTREE_GUARD_DEFAULT = "warn";
+  /* Dashboard autostart (read by hooks/dashboard-autostart.sh). OPT-IN — default
+   * `off`, so emitYaml writes it only when the user picks serve or open,
+   * preserving "absent ⇒ off". Wired here for the same reason worktree_guard is:
+   * emitYaml rebuilds the WHOLE comfort-posture.yaml from `state`, so a key with
+   * no state slot is silently DELETED on the next Save (the v0.61.0 data-loss
+   * class). No DOM control ships with it — Gate 132's budget is at zero slack and
+   * a visible toggle costs an owner-approved ratchet raise. */
+  const DASHBOARD_AUTOSTART_VALUES = ["off", "serve", "open"];
+  const DASHBOARD_AUTOSTART_DEFAULT = "off";
   const ORCHESTRATOR_VALUES = ["off", "decide", "full"];
   const ORCHESTRATOR_DEFAULT = "full";
   const ORCHESTRATOR_SCOPE_VALUES = ["team", "all"];
@@ -7567,6 +8132,7 @@ _JS = r"""
     parallelism: Object.assign({}, PARALLELISM_DEFAULT),
     decision_review: DECISION_REVIEW_DEFAULT,
     worktree_guard: WORKTREE_GUARD_DEFAULT,
+    dashboard_autostart: DASHBOARD_AUTOSTART_DEFAULT,
     orchestrator: ORCHESTRATOR_DEFAULT,
     orchestrator_scope: ORCHESTRATOR_SCOPE_DEFAULT,
     orchestrator_zdr_confirmed: false,
@@ -7701,6 +8267,17 @@ _JS = r"""
     if (lbl) lbl.textContent = state.design_checkins ? DC_ON_LABEL : DC_OFF_LABEL;
   }
 
+  /* Dashboard autostart (behavioral flag, not a permission). Guarded against an
+     out-of-range persisted value so a hand-edited posture can never leave the
+     select showing a mode the hook will not honour. */
+  function syncDashAutostart() {
+    const sel = document.getElementById("dash-autostart-mode");
+    if (!sel) return;
+    sel.value = DASHBOARD_AUTOSTART_VALUES.includes(state.dashboard_autostart)
+      ? state.dashboard_autostart
+      : DASHBOARD_AUTOSTART_DEFAULT;
+  }
+
   /* Command-review master enable (AND-gate, not bulk-setter).
    * Syncs the checkbox + the status label beneath the master row.
    * Does NOT touch per-category `thing` values. */
@@ -7808,6 +8385,7 @@ _JS = r"""
       if (tcfg) inp.value = String(tcfg.confidence_threshold);
     });
     syncDesignCheckins();
+    syncDashAutostart();
     syncMasterEnable();
   }
   syncDomToState();
@@ -7966,6 +8544,9 @@ _JS = r"""
     if (WORKTREE_GUARD_VALUES.includes(src.worktree_guard)) {
       state.worktree_guard = src.worktree_guard; touched = true;
     }
+    if (DASHBOARD_AUTOSTART_VALUES.includes(src.dashboard_autostart)) {
+      state.dashboard_autostart = src.dashboard_autostart; touched = true;
+    }
     if (ORCHESTRATOR_VALUES.includes(src.orchestrator)) {
       state.orchestrator = src.orchestrator; touched = true;
     }
@@ -8121,6 +8702,14 @@ _JS = r"""
       lines.push("");
     }
 
+    if (DASHBOARD_AUTOSTART_VALUES.includes(state.dashboard_autostart)
+        && state.dashboard_autostart !== DASHBOARD_AUTOSTART_DEFAULT) {
+      lines.push("# Bring this dashboard up at session start (off | serve | open; default off).");
+      lines.push("# serve = start the local server headless; open = also open a browser tab.");
+      lines.push(`dashboard_autostart: ${state.dashboard_autostart}`);
+      lines.push("");
+    }
+
     if (ORCHESTRATOR_VALUES.includes(state.orchestrator)
         && state.orchestrator !== ORCHESTRATOR_DEFAULT) {
       lines.push("# Claude orchestrator for non-Claude CLIs (off | decide | full). No-op under Claude Code.");
@@ -8231,6 +8820,7 @@ _JS = r"""
         parallelism: state.parallelism,
         decision_review: state.decision_review,
         worktree_guard: state.worktree_guard,
+        dashboard_autostart: state.dashboard_autostart,
         orchestrator: state.orchestrator,
         orchestrator_scope: state.orchestrator_scope,
         orchestrator_zdr_confirmed: state.orchestrator_zdr_confirmed,
@@ -8329,6 +8919,20 @@ _JS = r"""
       dcToggle.addEventListener("change", () => {
         state.design_checkins = dcToggle.checked;
         syncDesignCheckins();
+        flagUnsaved();
+        render();
+      });
+    }
+  }
+
+  /* Dashboard autostart select (behavioral flag, not a permission) */
+  {
+    const asSel = document.getElementById("dash-autostart-mode");
+    if (asSel) {
+      asSel.addEventListener("change", () => {
+        if (!DASHBOARD_AUTOSTART_VALUES.includes(asSel.value)) return;
+        state.dashboard_autostart = asSel.value;
+        syncDashAutostart();
         flagUnsaved();
         render();
       });
@@ -9444,6 +10048,10 @@ _JS = r"""
   let streamsLoaded = false;
   let vidarrEvents = [];
   let vidarrKindFilter = "all";
+  /* Has the security-event emitter EVER written for this project? Distinguishes a
+     genuinely quiet perimeter from an unwatched one (audit MH-05). Starts false so
+     the honest state is the default and the reassuring one must be proven. */
+  let vidarrEmitterSeen = false;
   let activityRecords = [];
   /* Feed length caps (Sub-effort B "condense"): the two long, freely-growing
    * client-rendered feeds — the Run feed (/__runs, up to 200) and the Saga
@@ -9598,6 +10206,7 @@ _JS = r"""
     if (tab === "plugin-vars") activatePluginVars(sub);
     if (tab === "web-access") hydrateWebAccess();
     if (tab === "prompt-builder" && !pbLoaded) { pbLoaded = true; initPromptBuilder(); }
+    if (tab === "host-context" && !hcLoaded) { hcLoaded = true; initHostContext(); }
   }
   // Navigate: activate immediately, then reflect the page in the URL hash for
   // deep-linking + browser back/forward. (The hashchange listener re-applies on
@@ -9689,7 +10298,9 @@ _JS = r"""
           '<div class="pv-freeform">' +
             "<h4>Free-form variables</h4>" +
             '<p class="pv-help">One <code>key: value</code> per line (YAML). For project variables not covered by the curated knobs above.</p>' +
-            '<textarea class="pv-extra" data-plugin="' + esc + '" rows="5" spellcheck="false" placeholder="my_key: my value&#10;another_key: 123"></textarea>' +
+            '<textarea class="pv-extra" data-plugin="' + esc + '" rows="5" spellcheck="false"'
+            ' aria-label="Extra variables for ' + esc + ' — one key: value per line"'
+            ' placeholder="my_key: my value&#10;another_key: 123"></textarea>' +
           "</div>" +
           '<div class="pp-actions">' +
             '<button type="button" class="pp-save" data-plugin="' + esc + '">Save to repo</button>' +
@@ -10776,7 +11387,24 @@ _JS = r"""
     const byHook = (data && data.by_hook) || {};
     const hooks = Object.keys(byHook).sort();
     if (hooks.length === 0) {
-      host.replaceChildren(hmEmpty("No recent events — your perimeter has been quiet."));
+      /* QUIET vs UNWATCHED — do not conflate them (audit MH-05, a P0).
+         "Your perimeter has been quiet" asserts that guardrails RAN and found
+         nothing. If no hook has ever emitted here that assertion has no basis,
+         and on Codex / Cursor / Gemini / Aider / Windsurf it is the normal case:
+         no adapter wires them, so no hook can fire. Reassuring an operator that a
+         perimeter is clean when it is in fact unmonitored is the worst thing this
+         panel can do — strictly worse than saying nothing. `emitter_seen` is the
+         server's file-existence answer; absent (older server) we fall back to the
+         cautious wording rather than the flattering one. */
+      const seen = !!(data && data.emitter_seen);
+      host.replaceChildren(
+        seen
+          ? hmEmpty("No recent events — your perimeter has been quiet.")
+          : hmEmpty(
+              "No guardrail events have EVER been recorded for this project — this perimeter is UNWATCHED, not clean. " +
+                "Hooks fire under Claude Code, and under Copilot CLI via the adapter. Other hosts have no adapter yet, so nothing here can trip.",
+            ),
+      );
       return;
     }
     const frag = document.createDocumentFragment();
@@ -10825,6 +11453,7 @@ _JS = r"""
     const htr = document.createElement("tr");
     for (const label of ["Plugin", "Catalog", "Plugin.json", "Status"]) {
       const th = document.createElement("th");
+      th.scope = "col";
       th.textContent = label;
       htr.appendChild(th);
     }
@@ -11208,7 +11837,18 @@ _JS = r"""
     );
     if (countEl) countEl.textContent = filtered.length ? filtered.length + " event" + (filtered.length === 1 ? "" : "s") : "";
     if (filtered.length === 0) {
-      host.replaceChildren(hmEmpty("No security events. Your perimeter has been quiet."));
+      /* Same quiet-vs-unwatched distinction as Heimdall (audit MH-05). This is the
+         SECURITY AUDIT LOG, so a false "quiet" is even less acceptable here: an
+         empty audit log that has never been written to is not evidence of safety.
+         vidarrEmitterSeen is set from the same server-side file-existence boolean. */
+      host.replaceChildren(
+        vidarrEmitterSeen
+          ? hmEmpty("No security events. Your perimeter has been quiet.")
+          : hmEmpty(
+              "This security log has never been written to — the perimeter is UNWATCHED, not clean. " +
+                "An empty audit log is not evidence of safety; it means no guardrail has ever reported here.",
+            ),
+      );
       return;
     }
     const table = document.createElement("table");
@@ -11217,6 +11857,7 @@ _JS = r"""
     const htr = document.createElement("tr");
     for (const label of ["When", "Type", "Category", "Summary", "Source"]) {
       const th = document.createElement("th");
+      th.scope = "col";
       th.textContent = label;
       htr.appendChild(th);
     }
@@ -11261,6 +11902,10 @@ _JS = r"""
       if (!res.ok) throw new Error("HTTP " + res.status);
       const data = await res.json();
       vidarrEvents = (data && data.events) || [];
+      /* Defaults FALSE, and that is deliberate: an older server that does not send
+         emitter_seen must degrade to the cautious "unwatched" wording, never to the
+         reassuring "quiet" one. The flattering string has to be earned. */
+      vidarrEmitterSeen = !!(data && data.emitter_seen);
       renderVidarrTable(vidarrEvents);
     } catch (e) {
       vidarrLoaded = false; /* allow retry on next visit */
@@ -11445,6 +12090,22 @@ _JS = r"""
     }
     return dl;
   }
+  /* MH-32 — plain-English gloss for each permission mode, `plan` included. The
+     map lives INSIDE the function so the render gate can extract this helper
+     standalone, the way it extracts every other mimir* function. Any value not
+     in the map renders verbatim, so a mode added by the platform is shown
+     rather than swallowed. */
+  function mimirModeLabel(v) {
+    if (!v) return v;
+    const meaning = {
+      "default": "default — the configured allow/ask/deny rules apply",
+      "plan": "plan — agent is planning; no writes will be attempted",
+      "acceptEdits": "acceptEdits — file edits auto-approve (rules partly bypassed)",
+      "bypassPermissions": "bypassPermissions — rules fully bypassed",
+      "auto": "auto — Claude Code decides per action",
+    };
+    return meaning[v] || v;
+  }
   function renderMimirSettings(s) {
     const host = document.getElementById("mimir-settings");
     if (!host) return;
@@ -11454,7 +12115,15 @@ _JS = r"""
       ["Theme", s.theme],
       ["Configured model", m.configured],
       ["Last-used model", m.last_used],
-      ["Permission mode", s.permission_mode],
+      /* MH-32 — say what the mode MEANS, and name `plan` among them.
+         `plan` is not a missing field needing an "unreachable" entry: it is a
+         VALUE of this field, which the tail scan already reports. It was never
+         observed across 5,949 permission-mode events in 51 real transcripts
+         (only default / acceptEdits / auto), so claiming it is unreachable
+         would be as unfounded as claiming it is surfaced. Naming it in the
+         legend makes the silence mean "not currently in plan mode" instead of
+         "this dashboard cannot see plan mode". */
+      ["Permission mode", mimirModeLabel(s.permission_mode)],
       ["Reasoning effort", mimirInProcessPill("in-process — /effort")],
     ]));
   }
@@ -11527,10 +12196,78 @@ _JS = r"""
       const ec  = (it && it.event_count != null) ? it.event_count : "—";
       const ot  = (it && it.output_tokens != null) ? it.output_tokens : "—";
       const br  = (it && it.git_branch) || "—";
-      li.textContent = sid + " · " + ts + " · " + ec + " events · " + ot + " output toks · " + br;
+      /* MH-20 — how much of this session was subagent work. Dispatches were
+         invisible here: a session that fanned out to twelve agents and one that
+         did everything inline read identically. Types are listed when known
+         (they are validated server-side); the brief each agent was given is
+         never read, so it can never appear. */
+      const sd  = (it && it.subagent_dispatches) || 0;
+      const sdt = Array.isArray(it && it.subagent_types) ? it.subagent_types : [];
+      let sub = " · no subagents";
+      if (sd > 0) {
+        const names = sdt.map((t) => t.type + "×" + t.count).join(", ");
+        sub = " · " + sd + " subagent" + (sd === 1 ? "" : "s") + (names ? " (" + names + ")" : "");
+      }
+      /* A hit scan cap makes every count a floor, not a total — say so rather
+         than presenting a partial number as complete. */
+      const trunc = (it && it.counts_truncated) ? " (counts partial — session too large to scan fully)" : "";
+      li.textContent = sid + " · " + ts + " · " + ec + " events · " + ot + " output toks · " + br + sub + trunc;
       ul.appendChild(li);
     }
     host.replaceChildren(ul);
+  }
+  /* MH-20 remedy (2) — the subagent dispatch log.
+     Appended into the EXISTING #panel-mimir container rather than given its own
+     panel, so it costs ZERO static elements (the Gate 132 budget is at zero
+     slack, and this surface is empty for anyone who has not opted in).
+
+     THE THREE STATES ARE THE POINT. The producing hook short-circuits unless
+     .ravenclaude/dispatch-config.json has "enabled": true, and off is the
+     shipped default — so a bare "nothing recorded" would be indistinguishable
+     from a broken reader, which is the exact ambiguity this dashboard keeps
+     being audited for. "off" says so and says how to change it. */
+  function renderMimirDispatch(d) {
+    const panel = document.getElementById("panel-mimir");
+    if (!panel) return;
+    let host = document.getElementById("mimir-dispatch");
+    if (!host) {
+      host = document.createElement("div");
+      host.id = "mimir-dispatch";
+      panel.appendChild(host);
+    }
+    host.replaceChildren();
+    d = d || {};
+    const h = document.createElement("h3");
+    h.textContent = "Subagent dispatch log";
+    host.appendChild(h);
+
+    const p = document.createElement("p");
+    if (d.state === "recorded") {
+      const names = (d.by_type || []).map((t) => t.type + "\u00d7" + t.count).join(", ");
+      /* A hit scan cap makes the number a FLOOR. Saying so is the whole point of
+         this panel — a partial count presented as a total is the defect. */
+      p.textContent = d.total + (d.truncated ? "+ (partial — log too large to read fully)" : "")
+        + " dispatch record(s)" + (names ? " — " + names : "");
+    } else if (d.state === "idle") {
+      p.textContent =
+        "The dispatch evaluator is ENABLED, but nothing has been recorded yet. " +
+        "Records appear after the next multi-agent run.";
+    } else {
+      /* Not "empty" — OFF. Say which, and how to change it. */
+      p.textContent =
+        "Nothing is recorded because the dispatch evaluator is OFF, which is the " +
+        "shipped default — not because this panel is broken. To turn it on: " +
+        (d.how_to_enable || "add .ravenclaude/dispatch-config.json with enabled true") +
+        ".";
+    }
+    host.appendChild(p);
+
+    const note = document.createElement("p");
+    note.className = "hc-src";
+    note.textContent =
+      "Counts and agent names only — the brief each agent was given is never read. " +
+      "Per-session subagent counts (which need no opt-in) are in Recent sessions above.";
+    host.appendChild(note);
   }
   function renderMimirUnreachable(items) {
     const host = document.getElementById("mimir-unreach");
@@ -11565,6 +12302,7 @@ _JS = r"""
       renderMimirActivity(data.activity);
       renderMimirRecent(data.recent_sessions);
       renderMimirUnreachable(data.unreachable);
+      renderMimirDispatch(data.dispatch);
     } catch (e) {
       mimirLoaded = false; /* allow retry on next visit */
       const served = await probeReadEndpoint();
@@ -12658,7 +13396,9 @@ _JS = r"""
     var list = pbEl("div", { class: "pb-repeat" });
     var rules = pbState.system.rules;
     rules.forEach(function (r, i) {
-      var input = pbEl("input", { type: "text", value: r, placeholder: f.ph, "data-pb-list": "rules", "data-pb-idx": i, "data-pb-key": "rules", oninput: pbOnInput, autocomplete: "off" });
+      // aria-label per row: the group <label> above has no for= and cannot name a
+      // repeated field, so each row was announced as an unnamed edit box.
+      var input = pbEl("input", { type: "text", value: r, placeholder: f.ph, "aria-label": "Rule " + (i + 1), "data-pb-list": "rules", "data-pb-idx": i, "data-pb-key": "rules", oninput: pbOnInput, autocomplete: "off" });
       var rm = pbEl("button", { type: "button", class: "pb-icon-btn", title: "Remove rule", "aria-label": "Remove rule", text: "×", onclick: function () { rules.splice(i, 1); if (!rules.length) rules.push(""); pbRebuildFields(); pbUpdate(); } });
       list.appendChild(pbEl("div", { class: "pb-repeat-item" }, [pbEl("div", { style: "display:flex;gap:6px;align-items:center" }, [input, rm])]));
     });
@@ -12681,9 +13421,10 @@ _JS = r"""
           pbEl("button", { type: "button", class: "pb-icon-btn", title: "Remove", "aria-label": "Remove example", text: "×", disabled: n <= 1, onclick: function () { exs.splice(i, 1); pbRebuildFields(); pbUpdate(); } })
         ])
       ]);
-      var inp = pbEl("textarea", { class: "pb-sm", rows: 2, placeholder: "input", value: "", "data-pb-list": "examples", "data-pb-idx": i, "data-pb-sub": "input", "data-pb-key": "examples", oninput: pbOnInput }); inp.value = e.input;
-      var out = pbEl("textarea", { class: "pb-sm", rows: 2, placeholder: "output", value: "", "data-pb-list": "examples", "data-pb-idx": i, "data-pb-sub": "output", "data-pb-key": "examples", oninput: pbOnInput }); out.value = e.output;
-      var rsn = pbEl("textarea", { class: "pb-sm", rows: 1, placeholder: "reasoning (optional) — rendered as a <thinking> block (2.4)", value: "", "data-pb-list": "examples", "data-pb-idx": i, "data-pb-sub": "reasoning", "data-pb-key": "examples", oninput: pbOnInput }); rsn.value = e.reasoning;
+      // Same reason as the rules rows: a placeholder is not an accessible name.
+      var inp = pbEl("textarea", { class: "pb-sm", rows: 2, placeholder: "input", "aria-label": "Example " + (i + 1) + " input", value: "", "data-pb-list": "examples", "data-pb-idx": i, "data-pb-sub": "input", "data-pb-key": "examples", oninput: pbOnInput }); inp.value = e.input;
+      var out = pbEl("textarea", { class: "pb-sm", rows: 2, placeholder: "output", "aria-label": "Example " + (i + 1) + " output", value: "", "data-pb-list": "examples", "data-pb-idx": i, "data-pb-sub": "output", "data-pb-key": "examples", oninput: pbOnInput }); out.value = e.output;
+      var rsn = pbEl("textarea", { class: "pb-sm", rows: 1, placeholder: "reasoning (optional) — rendered as a <thinking> block (2.4)", "aria-label": "Example " + (i + 1) + " reasoning (optional)", value: "", "data-pb-list": "examples", "data-pb-idx": i, "data-pb-sub": "reasoning", "data-pb-key": "examples", oninput: pbOnInput }); rsn.value = e.reasoning;
       list.appendChild(pbEl("div", { class: "pb-repeat-item" }, [head, inp, out, rsn]));
     });
     list.appendChild(pbEl("button", { type: "button", class: "pb-btn pb-ghost", text: "+ Add example", disabled: n >= 8, onclick: function () { exs.push(pbEx()); pbRebuildFields(); pbUpdate(); } }));
@@ -12894,6 +13635,194 @@ _JS = r"""
     return pbEl("section", { class: "pb-pane" }, [pbEl("h3", { text: "Quality" }), pbEl("div", { class: "pb-gauge-row" }, [svg, meta]), pbIssuesEl, honesty]);
   }
 
+  /* ── Host & context (#/host-context) — MH-14 part 2 ─────────────────────────
+     Built with createElement/textContent only. The matrix is UNTRUSTED-INPUT-FREE
+     (it is our own committed JSON) but the same no-HTML-string-sink discipline as
+     the Prompt Builder applies: a payload is still a payload. */
+  let hcLoaded = false;
+  function hcEl(tag, cls, text) {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  }
+  function initHostContext() {
+    const root = document.getElementById("hc-root");
+    if (!root) return;
+    let data = null;
+    try {
+      const node = document.getElementById("host-support-payload");
+      data = node ? JSON.parse(node.textContent) : null;
+    } catch (e) {
+      data = null;
+    }
+    root.replaceChildren();
+
+    /* 1 — the LIVE reading. Rendered first but treated as the LESS reliable of the
+       two: it needs a server, and it describes the server's launch environment
+       rather than the visitor's session. Absent, the page is still fully useful. */
+    const live = hcEl("div", "hc-live");
+    live.appendChild(hcEl("h3", null, "This dashboard server"));
+    const liveBody = hcEl("p", "hc-live-body", "Checking…");
+    live.appendChild(liveBody);
+    root.appendChild(live);
+
+    fetchT("/__host")
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error("HTTP " + r.status))))
+      .then((h) => {
+        const wired = Object.keys(h.env_present || {}).filter((k) => h.env_present[k]);
+        liveBody.textContent =
+          (h.host
+            ? "Launched from: " + h.host + " (" + (h.basis || "") + ")."
+            : "Cannot determine which CLI launched this server — no positive signal. That is an honest unknown, not a problem.") +
+          " Started " + (h.started_at || "unknown") + ". " + (h.note || "") +
+          (wired.length ? " Wiring variables present: " + wired.join(", ") + "." : " No RavenClaude wiring variables are set in this server's environment.");
+      })
+      .catch(() => {
+        liveBody.textContent =
+          "No live reading — this page is not being served by the dashboard server (or it is unreachable). " +
+          "The matrix below is static and remains accurate.";
+      });
+
+    /* 2 — the STATIC matrix. Always renders. */
+    if (!data || !data.components) {
+      root.appendChild(hcEl("p", null, "The host-support matrix payload is missing from this build."));
+      return;
+    }
+    const hostIds = Object.keys(data.hosts);
+    const intro = hcEl("p", "hc-intro",
+      "What actually works on each coding tool today \u2014 guardrails, skills, agents and the rest. " +
+      "A \u201cyes\u201d means it runs right now, as set up by `ravenclaude install`; it does not mean the tool " +
+      "could support it in principle. Every \u201cno\u201d says why.");
+    root.appendChild(intro);
+
+    const table = hcEl("table", "hc-table");
+    const thead = hcEl("thead");
+    const hrow = hcEl("tr");
+    hrow.appendChild(hcEl("th", null, "Component"));
+    hostIds.forEach((h) => hrow.appendChild(hcEl("th", null, data.hosts[h].label)));
+    thead.appendChild(hrow);
+    table.appendChild(thead);
+    const tbody = hcEl("tbody");
+    Object.keys(data.components).forEach((cn) => {
+      const comp = data.components[cn];
+      const tr = hcEl("tr");
+      const th = hcEl("th", null, cn.replace(/_/g, " "));
+      if (comp.what) th.title = comp.what;
+      tr.appendChild(th);
+      hostIds.forEach((h) => {
+        const cell = comp[h] || {};
+        const td = hcEl("td", cell.supported ? "hc-yes" : "hc-no", cell.supported ? "yes" : "no");
+        td.title = cell.supported ? (cell.how || "supported") : (cell.blocked_by || "not supported");
+        tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    root.appendChild(table);
+    root.appendChild(hcEl("p", "hc-src",
+      "Source: knowledge/host-support.json (updated " + (data.updated || "?") +
+      "). Hover any cell to see why. Each answer also records how we know it \u2014 checked in this repo, read in the vendor\u2019s own docs, or inferred \u2014 so you can tell a tested fact from an educated guess."));
+
+    /* 3 — Where work files go. The cross-CLI storage contract had NO user-facing
+       surface at all: it lived in AGENTS.md and the session-start banner, both of
+       which a human never sees. This page is the right home — it already answers
+       "what do I get on THIS host", and the contract is the cross-host file
+       convention. Rendered into the same mount, so it costs zero static elements. */
+    root.appendChild(hcEl("h3", null, "Where work files go"));
+    root.appendChild(hcEl("p", "hc-intro",
+      "Any CLI may be the one working here, and the next session may be a different one. " +
+      "These two places are what let the next tool find the work — anything written elsewhere " +
+      "is invisible to it."));
+
+    var st2 = hcEl("table", "hc-table");
+    var sh2 = hcEl("thead"), shr = hcEl("tr");
+    shr.appendChild(hcEl("th", null, "Where"));
+    shr.appendChild(hcEl("th", null, "Who can see it"));
+    shr.appendChild(hcEl("th", null, "Use it for"));
+    sh2.appendChild(shr); st2.appendChild(sh2);
+    var sb2 = hcEl("tbody");
+    [["\u002eravenclaude/runs/<task-id>/", "this machine only — gitignored",
+      "working notes, evidence, anything still in progress"],
+     ["docs/plans | decisions | research/", "you, teammates, CI — travels via git",
+      "anything meant to outlive the task or be read by a human later"]
+    ].forEach(function (r) {
+      var tr = hcEl("tr");
+      tr.appendChild(hcEl("th", null, r[0]));
+      tr.appendChild(hcEl("td", null, r[1]));
+      tr.appendChild(hcEl("td", null, r[2]));
+      sb2.appendChild(tr);
+    });
+    st2.appendChild(sb2);
+    root.appendChild(st2);
+    root.appendChild(hcEl("p", "hc-src",
+      "The test: would a teammate cloning this repo need it? Yes \u2192 docs/. No \u2192 runs/. " +
+      "Start one with `rc artifacts new <task-id>` (it stamps which CLI made it); " +
+      "run `rc artifacts list` first \u2014 another CLI may already have one for this task. " +
+      "Each tool also keeps its own private files (~/.claude, ~/.copilot, ~/.codex, chat history, memory) " +
+      "and those never reach the others: if work needs to survive, it has to be written into one of " +
+      "these two places."));
+
+    /* 4 — MCP servers (MH-19). Same honesty contract as the matrix above: the
+       inventory is read from the plugin manifests, and the wiring table says
+       plainly which hosts actually receive them. Rendered here rather than as
+       its own tab because it answers the same question ("what do I get on THIS
+       host?") — and because reusing this mount costs zero static elements. */
+    var mcp = data.mcp;
+    if (mcp && mcp.servers) {
+      root.appendChild(hcEl("h3", null, "MCP servers"));
+      root.appendChild(hcEl("p", "hc-intro",
+        "MCP servers are extra tools a plugin can hand the agent — for example, live documentation " +
+        "lookup. This marketplace ships " + mcp.servers.length + " of them. Installing a plugin does " +
+        "NOT always install its MCP server: that depends on the host, and the second table says which."));
+
+      var st = hcEl("table", "hc-table");
+      var sthead = hcEl("thead"), sh = hcEl("tr");
+      sh.appendChild(hcEl("th", null, "Server"));
+      sh.appendChild(hcEl("th", null, "Shipped by"));
+      sh.appendChild(hcEl("th", null, "Who maintains it"));
+      sthead.appendChild(sh); st.appendChild(sthead);
+      var stbody = hcEl("tbody");
+      mcp.servers.forEach(function (s) {
+        var tr = hcEl("tr");
+        tr.appendChild(hcEl("th", null, s.name));
+        tr.appendChild(hcEl("td", null, s.plugins.join(", ")));
+        tr.appendChild(hcEl("td", null, s.party === "third-party" ? "third party" : (s.party || "unstated")));
+        stbody.appendChild(tr);
+      });
+      st.appendChild(stbody);
+      root.appendChild(st);
+
+      var wt = hcEl("table", "hc-table");
+      var wthead = hcEl("thead"), wh = hcEl("tr");
+      wh.appendChild(hcEl("th", null, "Host"));
+      wh.appendChild(hcEl("th", null, "How you get it"));
+      wh.appendChild(hcEl("th", null, "What that means"));
+      wthead.appendChild(wh); wt.appendChild(wthead);
+      var wtbody = hcEl("tbody");
+      (mcp.wiring || []).forEach(function (w) {
+        var tr = hcEl("tr");
+        tr.appendChild(hcEl("th", null, w.host));
+        var st = w.state || (w.wired ? "automatic" : "no");
+        var cls = st === "no" ? "hc-no" : "hc-yes";
+        tr.appendChild(hcEl("td", cls, st === "automatic" ? "automatic"
+          : st === "opt-in" ? "opt-in (by name)" : "not wired"));
+        tr.appendChild(hcEl("td", null, w.note));
+        wtbody.appendChild(tr);
+      });
+      wt.appendChild(wtbody);
+      root.appendChild(wt);
+      root.appendChild(hcEl("p", "hc-src",
+        "Source: every plugin's own plugin.json. A “no” above is a real gap, not a hidden feature — " +
+        "the note says what to do by hand instead."));
+    }
+    // scope= on every header cell, applied once for all four tables rather than at
+    // ~10 hcEl call sites. Without it a screen reader has to guess which header
+    // belongs to a cell, and these tables are read cell-by-cell.
+    root.querySelectorAll("thead th").forEach((th) => th.setAttribute("scope", "col"));
+    root.querySelectorAll("tbody th").forEach((th) => th.setAttribute("scope", "row"));
+  }
+
   function initPromptBuilder() {
     pbRoot = document.getElementById("pb-root");
     if (!pbRoot || pbRoot.getAttribute("data-pb-ready") === "1") return;
@@ -12902,7 +13831,13 @@ _JS = r"""
     pbClear(pbRoot);
     pbRoot.appendChild(pbEl("div", { class: "pb-intro" }, [
       pbEl("h2", { text: "Prompt Builder" }),
-      pbEl("p", { class: "pb-lead", text: "Fill in the inputs and watch a best-practice Claude prompt assemble live — with a quality score and a rough size estimate. Everything runs in your browser; nothing is sent anywhere." })
+      // MH-39 — say WHICH models this targets. The linter's rules are
+      // Claude-version-specific (prefill is a 400 on Claude 4.6+, and the
+      // imperative-stacking penalty is tuned to current Claude behaviour). A
+      // Copilot operator routing GPT or Grok was being handed those as universal
+      // prompt hygiene. Most of it transfers; the deprecation and model-tuning
+      // rules do not necessarily, and the tool never said so.
+      pbEl("p", { class: "pb-lead", text: "Fill in the inputs and watch a best-practice Claude prompt assemble live — with a quality score and a rough size estimate. Everything runs in your browser; nothing is sent anywhere. Targets Claude models: the structure carries over to other models, but the deprecation and tuning rules are Claude-specific and may not." })
     ]));
     pbRoot.appendChild(pbBuildControls());
     pbRoot.appendChild(pbEl("div", { class: "pb-grid" }, [pbBuildInputPane(), pbBuildPreviewPane(), pbBuildQualityPane()]));
@@ -13251,8 +14186,12 @@ def _render_plugins_category(plugin_dirs: list[Path]) -> tuple[str, str]:
         "<strong>no curated knobs</strong> — for those, the free-form values you enter are saved to "
         "<code>.ravenclaude/plugins/&lt;plugin&gt;.yaml</code> but are <strong>not currently read by "
         "any hook</strong> (153 of 167 plugins are free-form only). For the full reference — agents, "
-        "scenarios, skills, hooks, templates, best-practices — open the plugin in the portal's "
-        "<strong>Marketplace</strong> section. Deep-link: "
+        "scenarios, skills, hooks, templates, best-practices — read the plugin's own directory under "
+        "<code>plugins/&lt;name&gt;/</code>, or browse the marketplace repo's portal if you have a "
+        "clone of it. (Corrected 2026-07-29, audit MH-22: this used to say &ldquo;open the plugin in "
+        "the portal&rsquo;s Marketplace section&rdquo; — but the portal is index.html at "
+        "the MARKETPLACE repo root, and a consumer who installs the plugin and runs the dashboard gets "
+        "this page and no portal at all. It pointed at something you do not have.) Deep-link: "
         '<a href="#/plugin-vars">Plugin variables</a>.</p>\n'
         '    <label class="pv-label" for="plugin-vars-select">Choose a plugin</label>\n'
         f'    <select id="plugin-vars-select">{options}</select>\n'
@@ -13288,11 +14227,11 @@ def _render_web_access_page() -> str:
       <p class="pp-sub">Domains the agent may fetch <strong>without asking</strong> (allow) or <strong>never</strong> (deny). Saves to <code>{t}</code> via the dashboard server; the <code>guard-web-access.sh</code> hook enforces it for Claude when the plugin is installed, and any cloned CLI tool can read the same plain-YAML file. On the static/published copy edits stay in your browser — use <strong>Download</strong>. One domain per line; a rule matches the domain <em>and</em> its subdomains (e.g. <code>github.com</code> also allows <code>api.github.com</code>). Unlisted domains fall through to the agent's once / this-session / permanently / deny prompt.</p>
       <section class="pp-section">
         <h3>Allow <span class="pp-count">auto-approved</span></h3>
-        <textarea class="wa-allow pv-extra" rows="6" spellcheck="false" placeholder="github.com&#10;docs.anthropic.com"></textarea>
+        <textarea class="wa-allow pv-extra" rows="6" spellcheck="false" aria-label="Allow list — one domain per line" placeholder="github.com&#10;docs.anthropic.com"></textarea>
       </section>
       <section class="pp-section">
         <h3>Deny <span class="pp-count">always blocked</span></h3>
-        <textarea class="wa-deny pv-extra" rows="6" spellcheck="false" placeholder="ads.example.com"></textarea>
+        <textarea class="wa-deny pv-extra" rows="6" spellcheck="false" aria-label="Deny list — one domain per line" placeholder="ads.example.com"></textarea>
       </section>
       <div class="pp-actions">
         <button type="button" class="wa-save pp-save">Save to repo</button>
@@ -13305,6 +14244,11 @@ def _render_web_access_page() -> str:
 
 
 _PAGE_TEMPLATE = """<!doctype html>
+<!-- GENERATED by scripts/generate-dashboards.py — do not edit by hand.
+     Edit that generator and regenerate; the freshness gate compares this
+     file BYTE FOR BYTE, so a hand-edit here fails CI and is reverted on the
+     next run. This page is also folded into index.html by
+     scripts/generate-index-dashboard.py. -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -13333,6 +14277,7 @@ _PAGE_TEMPLATE = """<!doctype html>
     <div class="ds-group">
       <div class="ds-label">Control</div>
       <a class="ds-sub" href="#/prompt-builder" data-tab="prompt-builder">Prompt Builder</a>
+      <a class="ds-sub" href="#/host-context" data-tab="host-context">Host &amp; context</a>
       <a class="ds-sub" href="#/settings" data-tab="settings">The Thing</a>
       <a class="ds-sub" href="#/pipeline" data-tab="pipeline">Pipeline</a>
       <a class="ds-sub" href="#/web-access" data-tab="web-access">Web access</a>
@@ -13367,6 +14312,7 @@ _PAGE_TEMPLATE = """<!doctype html>
   </div>
   <nav class="tab-bar" aria-label="Dashboard sections">
     <button class="tab-btn" type="button" id="tab-prompt-builder" data-tab="prompt-builder" aria-selected="false" title="Prompt Builder — assemble a best-practice Claude prompt with a live quality score">Prompt Builder</button>
+    <button class="tab-btn" type="button" id="tab-host-context" data-tab="host-context" aria-selected="false" title="Host &amp; context — which CLI launched this server, and which RavenClaude components run on which host">Host &amp; context</button>
     <button class="tab-btn" type="button" id="tab-settings" data-tab="settings" aria-selected="true" title="The Thing — comfort-posture + command-review; choose what Claude can do on its own (deny / ask / allow)">The Thing</button>
     <button class="tab-btn" type="button" id="tab-pipeline" data-tab="pipeline" aria-selected="false" title="Pipeline — the safety checks every command passes through">Pipeline</button>
     <button class="tab-btn" type="button" id="tab-web-access" data-tab="web-access" aria-selected="false" title="Web access — allow/deny which websites the agent may fetch">Web access</button>
@@ -13468,6 +14414,10 @@ _PAGE_TEMPLATE = """<!doctype html>
       <summary>Copilot&nbsp;CLI — install &amp; update RavenClaude</summary>
 {install_html}
     </details>
+    <details class="help-section" id="help-other-hosts">
+      <summary>Codex&nbsp;CLI &amp; other agents — what is wired, and what is not</summary>
+      <p>Two lanes above cover Claude Code and Copilot CLI. This is the rest of the world, stated honestly. <strong>OpenAI Codex CLI is supported:</strong> run <code>bash &lt;marketplace&gt;/scripts/ravenclaude install --host codex --project &lt;your-repo&gt;</code>. It wires the skills into <code>.agents/skills</code> and the guardrails into <code>.codex/hooks.json</code> — Codex speaks the same hook contract as Claude Code, so there is no adapter — and it projects your posture onto Codex&rsquo;s own OS sandbox. One thing you must do there and nowhere else: run <code>/hooks</code> inside Codex to <em>trust</em> them, and again after every update, because Codex tracks hook trust by hash and silently skips anything it does not recognise. {other_hosts_sentence} the per-component truth is in <code>knowledge/host-support.json</code>, and the first-five-minutes ritual for any of them is the <code>external-agent-onboarding</code> skill.</p>
+    </details>
     <details class="help-section" id="help-commands">
       <summary>Commands — the marketplace slash-command catalog</summary>
       <div id="commands-mount"></div>
@@ -13477,6 +14427,9 @@ _PAGE_TEMPLATE = """<!doctype html>
   </section>
   <section class="tab-panel" id="panel-prompt-builder" data-tab="prompt-builder" role="tabpanel" aria-label="Prompt Builder">
 {prompt_builder_html}
+  </section>
+  <section class="tab-panel" id="panel-host-context" data-tab="host-context" role="tabpanel" aria-label="Host and context">
+{host_context_html}
   </section>
 {plugins_panels}
 </main>

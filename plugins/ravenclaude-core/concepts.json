@@ -441,7 +441,7 @@
         "href": "#/settings"
       },
       "node_links": {},
-      "last_verified": "2026-05-25",
+      "last_verified": "2026-07-28",
       "refresh_when": "Anthropic adds/removes a settings layer, or changes the cross-layer merge rule.",
       "sources": [
         {
@@ -500,7 +500,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-05-25",
+      "last_verified": "2026-07-28",
       "refresh_when": "Anthropic adds/renames a permission mode or changes auto-mode's drop-broad-rules behavior.",
       "sources": [
         {
@@ -559,7 +559,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-05-25",
+      "last_verified": "2026-07-28",
       "refresh_when": "Anthropic changes hook exit-code semantics, the hookSpecificOutput schema, or timeout behavior.",
       "sources": [
         {
@@ -610,7 +610,7 @@
       "category": "Platform model",
       "kind": "platform-fact",
       "order": 22,
-      "summary": "SessionStart hooks inject additionalContext into every session — additive only; they can't block or delay startup and are capped near 10k chars.",
+      "summary": "SessionStart hooks inject additionalContext into every session — additive only; they can't block or delay startup, and hook output is capped at 10,000 characters (overflow becomes a file preview).",
       "see_also": [
         "hook-lifecycle",
         "capability-banner"
@@ -620,7 +620,7 @@
       "node_links": {
         "H": "hook-lifecycle"
       },
-      "last_verified": "2026-05-26",
+      "last_verified": "2026-07-28",
       "refresh_when": "Anthropic changes the SessionStart additionalContext field, its size cap, or matcher set.",
       "sources": [
         {
@@ -628,7 +628,7 @@
           "url": "https://code.claude.com/docs/en/hooks"
         }
       ],
-      "body_md": "`PreToolUse` hooks gate tool calls; **`SessionStart` hooks can't gate anything.** Their job is to add text to the session via a different field — `hookSpecificOutput.additionalContext` — and nothing more. The output is read **only on exit 0**; a non-zero exit is a non-blocking error and the session still starts. A SessionStart hook can never block or delay a session; its output is purely additive.\n\nRules that bite: `additionalContext` is **capped near ~10,000 characters** (it's injected every session, so it's a recurring token cost — keep it tight); **multiple SessionStart hooks run in parallel and their outputs are concatenated**; the optional `matcher` is `startup` / `resume` / `clear` / `compact`; and like other hooks it **fails open** on timeout. This is the mechanism RavenClaude's capability banner rides on.",
+      "body_md": "`PreToolUse` hooks gate tool calls; **`SessionStart` hooks can't gate anything.** Their job is to add text to the session via a different field — `hookSpecificOutput.additionalContext` — and nothing more. The output is read **only on exit 0**; a non-zero exit is a non-blocking error and the session still starts. A SessionStart hook can never block or delay a session; its output is purely additive.\n\nRules that bite: hook output strings — `additionalContext`, `systemMessage`, and plain stdout — are **capped at 10,000 characters**; output past the cap isn't silently cut, it's **saved to a file and replaced with a preview plus the file path** (the same way an oversized tool result is handled). It's injected every session either way, so it's a recurring token cost — keep it tight. **multiple SessionStart hooks run in parallel and their outputs are concatenated**; the optional `matcher` is `startup` / `resume` / `clear` / `compact` / `fork`; and like other hooks it **fails open** on timeout. This is the mechanism RavenClaude's capability banner rides on.",
       "diagram": "flowchart TD\n  S[Session starts] --> H[SessionStart hooks run in parallel]\n  H --> EX{exit 0?}\n  EX -- no --> SKIP[Non-blocking error · session starts anyway]\n  EX -- yes --> ADD[additionalContext concatenated into context]\n  ADD --> CAP[~10k char cap · injected every session]\n  CAP --> GO[Session proceeds · never blocked]\n  SKIP --> GO\n  class S,H,EX,SKIP,GO fact\n  class ADD,CAP built",
       "diagram_mini": "flowchart LR\n  S[SessionStart] --> A[additionalContext]\n  A --> C[added to context<br/>· can't block]\n  class A built",
       "steps": [
@@ -2418,7 +2418,7 @@
           "url": "scripts/generate-copilot-plugin.py"
         }
       ],
-      "body_md": "Copilot CLI is itself a plugin host with the same lifecycle events (SessionStart / PreToolUse / …), Agent Skills, AGENTS.md, and MCP — so most of the plugin ports. Three pieces make it work: `generate-copilot-plugin.py` **projects** the canonical plugin into a Copilot package (generated, never hand-maintained, `--check`-gated like the dashboard); a **hook adapter** translates the I/O envelopes so the *unmodified* hook scripts run under Copilot (mapping its `toolName`/`toolArgs` ⇄ Claude's `tool_name`/`tool_input`, and the verdict shapes); and **enforcement hooks ship repo-level** in `.github/hooks/` because a Copilot bug stops plugin-level `preToolUse` hooks from firing.\n\nThe design pillar is **frictionless updates**: instead of Copilot's re-install-to-update flow, the plugin loads **live** via `copilot --plugin-dir copilot/`, so an update is just **`git pull`** (`ravenclaude update`). No re-install, ever.",
+      "body_md": "Copilot CLI is itself a plugin host with the same lifecycle events (SessionStart / PreToolUse / …), Agent Skills, AGENTS.md, and MCP — so most of the plugin ports. Three pieces make it work: `generate-copilot-plugin.py` **projects** the canonical plugin into a Copilot package (generated, never hand-maintained, `--check`-gated like the dashboard); a **hook adapter** translates the I/O envelopes so the *unmodified* hook scripts run under Copilot — **for the hooks the installer actually wires** (mapping its `toolName`/`toolArgs` ⇄ Claude's `tool_name`/`tool_input`, the lowercase tool-name *values* ⇄ Claude's PascalCase, and the verdict shapes); and **enforcement hooks ship repo-level** in `.github/hooks/` because a Copilot bug stops plugin-level `preToolUse` hooks from firing.\n\n> **Scope, stated rather than implied** `[verified 2026-07-28 — multi-host audit MH-37]`. \"Unmodified scripts run under Copilot\" is true of the *translation*, not of the *coverage*: the Copilot hooks file is hand-maintained, and **12+ shipped hooks are not in it**, so they never fire on that host at all (MH-12, open). Read this card as \"the bridge does not require forking the hooks\", **not** as \"every guardrail you see under Claude Code is also protecting you under Copilot\". The authoritative per-component answer is [`../host-support.json`](../host-support.json), and it is the one to trust if this card and it ever disagree.\n\nThe design pillar is **frictionless updates**: instead of Copilot's re-install-to-update flow, the plugin loads **live** via `copilot --plugin-dir copilot/`, so an update is just **`git pull`** (`ravenclaude update`). No re-install, ever.",
       "diagram": "flowchart TD\n  CANON[Canonical plugin] --> GEN[generate-copilot-plugin.py]\n  GEN --> PKG[copilot/ package · --check gated]\n  CO[Copilot PreToolUse envelope] --> AD[hook adapter]\n  AD --> CL[unmodified hook scripts]\n  CL --> AD\n  UP[Update] --> PULL[git pull · loads live]\n  class CANON,GEN,PKG,AD,CL,UP,PULL built\n  class CO fact",
       "diagram_mini": "flowchart LR\n  C[Canonical plugin] --> A[adapter] --> CO[Copilot CLI]\n  C --> U[update = git pull]\n  class C,A,U built",
       "steps": [

@@ -94,7 +94,7 @@ Items called out explicitly as **new** for 2026:
 
 ## See also
 
-- `plugins/ravenclaude-core/skills/codex-onboarding/SKILL.md` — the cross-tool onboarding skill that consumes this doc.
+- `plugins/ravenclaude-core/skills/external-agent-onboarding/SKILL.md` — the cross-tool onboarding skill that consumes this doc.
 - `plugins/ravenclaude-core/skills/wall-handling/SKILL.md` — memory-wall recovery.
 - `plugins/ravenclaude-core/skills/spec-reread-ritual/SKILL.md` — anti-drift mechanic.
 - `plugins/ravenclaude-core/skills/diff-budget/SKILL.md` — fill-% gating + per-PR file budget.

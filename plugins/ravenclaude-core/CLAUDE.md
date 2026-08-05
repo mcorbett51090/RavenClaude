@@ -512,7 +512,42 @@ The runaway brake bounds *depth*, the DoD gate bounds *correctness*, the task-sc
 
 - **The container/worktree is the real boundary, and it's model-agnostic.** The devcontainer this marketplace scaffolds ([`templates/codespace-copilot/`](templates/codespace-copilot/), `ravenclaude init-codespace`) + a git worktree for risky/parallel runs is the OS-enforced blast radius — identical under Claude Code, GitHub Copilot CLI, or any other host. This is the sanctioned containment posture.
 - **Portable tool-layer denies (seeded, not a gate).** [`templates/comfort-posture-balanced.yaml`](templates/comfort-posture-balanced.yaml)'s `security_deny` floor now denies reads of host credential stores outside the repo — `~/.ssh`, `~/.aws`, `~/.config/gcloud`, `~/.azure`, `~/.kube/config`, `~/.docker/config.json` — alongside the existing in-repo secret denies. These translate to `permissions.deny` rules via [`apply-comfort-posture.py`](scripts/apply-comfort-posture.py) and are honored by Claude Code's permission engine **and** the Thing's `file_read_global` review, so they port to Copilot. They are tool-layer, **not** OS isolation (the subprocess gap above).
-- **Honest caveat: Claude Code's OS sandbox is Claude-only.** Claude Code can add an OS sandbox (Seatbelt/bubblewrap, `denyRead`/`denyWrite`, `autoAllowBashIfSandboxed`) that *does* contain subprocesses, but there is no evidence Copilot CLI honors it — so under Copilot the container/worktree is the containment, **not** the sandbox. We deliberately do **not** write a Claude-only sandbox config and present it as portable. The consumer-facing version of this guidance ships in the per-repo [`templates/dashboard-launcher/README.md`](templates/dashboard-launcher/README.md) "Containment posture" section that `ravenclaude setup` drops into `.ravenclaude/README.md`. The subprocess-vs-tool-layer limit is grounded in [`knowledge/claude-code-permissions.md`](knowledge/claude-code-permissions.md) §"Read/Edit rules do not protect against subprocess access". **Migration:** none — the seeded denies only affect a **new** repo's seed (an existing `comfort-posture.yaml` is never clobbered by `setup`), and the rest is documentation.
+- **Honest caveat: an OS sandbox is NOT universal across hosts — it is per-host, and it differs (corrected 2026-07-28, MH-16).** Claude Code can add an OS sandbox (Seatbelt/bubblewrap, `denyRead`/`denyWrite`, `autoAllowBashIfSandboxed`) that *does* contain subprocesses, but there is no evidence Copilot CLI honors it — so **under Copilot** the container/worktree is the containment, **not** the sandbox. We deliberately do **not** write a Claude-only sandbox config and present it as portable.
+
+  > **⚠️ This bullet used to read "Claude Code's OS sandbox is Claude-only" and generalized from Copilot to
+  > every non-Claude host. That is FALSE for OpenAI Codex CLI**, and it is the costliest direction to be
+  > wrong in: it sends a Codex operator to add a devcontainer while saying nothing about the knob that
+  > actually governs their blast radius. **Codex ships its own OS sandbox as a default-on, first-class
+  > control** `[docs-verified 2026-07-28 — https://learn.chatgpt.com/docs/sandboxing]`, using the *same*
+  > primitives: **Seatbelt** on macOS, **bubblewrap** on Linux/WSL2, the native Windows sandbox on Windows.
+  > It is governed by `sandbox_mode` ∈ `read-only` | `workspace-write` | `danger-full-access` (default
+  > **`workspace-write`**) × `approval_policy` ∈ `untrusted` | `on-request` | `never`, in `.codex/config.toml`.
+  > Decisively, the docs state *"The sandbox applies to spawned commands, not just to built-in file
+  > operations"* — so on Codex the OS layer **already closes the subprocess gap** this whole section exists
+  > to name, and it closes it **by default**, where Claude Code's is opt-in. **For a Codex operator the
+  > sandbox IS the boundary; a container is an optional second layer, not the primary answer.**
+  >
+  > **CLOSED 2026-07-29 (v0.226.0) — the posture now reaches Codex, including from the dashboard.**
+  > This block previously read *"nothing writes `.codex/config.toml`, so the dashboard's headline product
+  > (posture editing) currently moves nothing on this host."* Both halves are now wired:
+  > `scripts/emit-codex-config.py` (**Gate 156**) projects the posture, the installer runs it, and — the
+  > half that was still genuinely missing until v0.226.0 — **the dashboard's Save path runs it too**
+  > (**Gate 168**). Before that, the emitter existed but was invoked from exactly one place, so a user
+  > could set every category to `deny`, click Save, see success, and still be at Codex's default
+  > `workspace-write`.
+  >
+  > **The caveats did NOT go away, and they are the reason this is not parity:**
+  > - **Coarse by design** — two enum keys cannot express 12 posture categories. It is an honest
+  >   projection, not equivalence.
+  > - **NEVER SILENTLY WEAKEN** — absent key → write; posture stricter → tighten; posture **looser** →
+  >   **refuse** and print the line to change by hand. A refusal exits 0, so the dashboard surfaces it
+  >   explicitly (`codex_refusals`); a partial apply reported as "applied" would be the same false
+  >   assurance in a new place.
+  > - `danger-full-access` and `approval_policy = "never"` are **never** emitted at any posture.
+  > - **Writing the file is not the same as bounding the session** — a project `.codex/config.toml` loads
+  >   **only in trusted projects**. That trust gate is Codex's, not ours.
+  > - **Only projects that already use Codex are touched** (a `.codex/` dir must exist). We do not create
+  >   an OS-sandbox config in every repo that ever saves a posture. The consumer-facing version of this guidance ships in the per-repo [`templates/dashboard-launcher/README.md`](templates/dashboard-launcher/README.md) "Containment posture" section that `ravenclaude setup` drops into `.ravenclaude/README.md`. The subprocess-vs-tool-layer limit is grounded in [`knowledge/claude-code-permissions.md`](knowledge/claude-code-permissions.md) §"Read/Edit rules do not protect against subprocess access". **Migration:** none — the seeded denies only affect a **new** repo's seed (an existing `comfort-posture.yaml` is never clobbered by `setup`), and the rest is documentation.
 
 ## Website access — allow/deny lists + the four-option prompt (added 2026-06-01)
 
@@ -1887,3 +1922,185 @@ rejected teeth; 149 every archetype ≥ 80 + degraded < 80 teeth; 150 v2 validat
 malformed-v2-rejected teeth. Proven by the `audit-gates.sh` meta-test. **Migration:** none — additive
 files under the existing skill; nothing in a consumer's installed plugin changes on `/plugin marketplace
 update` until they invoke the new renderers.
+
+## The Prompt Builder was homed differently on each surface + `dashboard_autostart` (added 2026-07-28, v0.216.0)
+
+Two defects and one gap, all from the same report: *"I don't see the prompt builder … I also didn't see it
+open up automatically at the start of the session."* Both halves were real, and neither was what it looked
+like.
+
+**1 — The two surfaces disagreed about where the Prompt Builder lives, so the portal hid it.** v0.214.0
+moved the nav link "Learn & Help" → **Control** on the standalone `dashboard.html`. The portal
+(`index.html`) was never moved with it: `DASH_OWNER` still mapped `prompt-builder` → `catalog`, and the
+clickable link sat in the Catalog sub-nav — which `renderNav` only emits when Catalog is the **active**
+nav item (`const subs = n.id === active ? navChildren(n.id) : ""`). So on the portal the tab was invisible
+until you first clicked Catalog, and absent from Control where the release notes said to look. Fixed by
+homing it under `control` on the portal too, first in the sub-nav, matching the standalone's slot exactly.
+
+**2 — Gate 144 could not see it, because it asserted presence, not placement.** Its portal half checked
+only that `DASH_OWNER` had *some* entry for `prompt-builder` and that *some* `href="#/prompt-builder"`
+existed **anywhere in the file**. Both were true throughout, so CI stayed green across v0.214.0 **and**
+v0.215.1 — a textbook silent-green defect. The gate now **derives** the home destination from the folded
+standalone `ds-nav` chrome (present on *both* surfaces, because the portal folds the standalone payload —
+so it is a single source of truth rather than a hardcoded expectation) and asserts the portal's
+`DASH_OWNER` **and** that destination's own `navChildren` branch both agree with it. Move it on one
+surface now and the other fails loudly. Two must-fail halves verified at exit 1: regressing `DASH_OWNER`
+back to `catalog`, and moving the link out of the Control branch.
+
+> **The generalizable lesson (this is the third time this shape has shipped here).** v0.211.1 fixed
+> "the portal router doesn't own the route"; this fixes "the portal owns it but homes it somewhere else."
+> A gate that asks *does it exist?* cannot catch a **placement** regression. When a feature lives on two
+> generated surfaces, assert the surfaces against **each other** — derive the expectation from one and
+> check the other — never assert each independently against a constant.
+
+**3 — Nothing auto-opened the dashboard locally, and that was correct-by-design + undiscoverable.** The
+only auto-launch that ever existed is the Codespace devcontainer (`postStartCommand` +
+`portsAttributes.onAutoForward: openBrowser`); no `SessionStart` hook ever started it. Closed with the
+opt-in `dashboard_autostart: off | serve | open` knob + `hooks/dashboard-autostart.sh` (**Gate 151**) —
+see the CHANGELOG entry for the contract, the anti-duplicate probe, and its honest limit. The knob is
+wired into `emitYaml`/`applyGuardrailConfig` **because it has to be**: `emitYaml` rebuilds the whole
+posture from `state`, so a key with no state slot is silently deleted on the next Save & apply (the
+v0.61.0 data-loss class).
+
+> **Superseded within the same release — the DOM control DID ship.** This entry originally read *"No DOM
+> control ships — Gate 132 is at zero slack and a visible toggle costs an owner-approved ratchet raise."*
+> That was true when written and **false by the time v0.216.0 landed**: the owner approved the raise, and
+> `_render_dashboard_autostart()` (`scripts/generate-dashboards.py`) now renders a three-option control on
+> **both** surfaces at a measured **6 elements** `[verified 2026-07-28]`. The knob is configurable from the
+> dashboard, not YAML-only. Corrected because an audit lens read the stale sentence and reported closed work
+> as open (**MH-40**) — the same failure mode the v0.196.0 supersession note was written about: *a stale
+> claim in a file every session loads is an active defect, not a bookkeeping lag.*
+
+**Migration:** none — the Prompt Builder route resolved before and resolves now (it just appears where the
+release notes always said), and `dashboard_autostart` defaults to **off**, so nothing new runs at session
+start on `/plugin marketplace update` until a consumer opts in.
+
+## OpenAI Codex CLI is a supported host — and it needed an installer, not an adapter (added 2026-07-28, v0.216.0)
+
+Multi-host audit **MH-07 + MH-08 + MH-17**, shipped as one commit because shipping them apart would
+have been actively harmful (below). Before this, `ravenclaude setup` on a Codex machine completed
+**successfully and wired nothing** — zero skills, zero hooks, zero MCP — and nothing anywhere said so.
+
+**The finding that reframed the whole lane.** The repo modelled hosts as
+`{Claude Code} ∪ {everything else = Copilot}`, and Codex was filed on the wrong side. It is not
+another Copilot: **Codex speaks the Claude Code hook contract natively**
+`[docs-verified — learn.chatgpt.com/docs/hooks]` — identical PascalCase events, identical stdin field
+names, identical `exit 2` blocking, identical `hookSpecificOutput` envelope, and identical PascalCase
+tool-name **values** (`"Bash"`, not Copilot's lowercase `"bash"`). Copilot required a 456-line
+generator plus ~300 lines of envelope translation plus a tool-name normalisation map. **Codex requires
+none of it.** Every Codex work item in the repo had been scoped against Copilot's mechanics doc, which
+is why the lane looked expensive for months. Do **not** build a `codex-hook-adapter.sh`.
+
+**What actually differs is two environment variables** — `CLAUDE_PROJECT_DIR` (25 hooks read it) and
+`CLAUDE_SESSION_ID` (14 read it). Absent them, `_emit-event.sh` no-ops and the Guardrails dashboard
+stays dark — the "unwatched, not clean" state MH-05 made honest. `hooks/codex-hook-env.sh` lifts both
+out of the **stdin payload** (the documented, reliable source — every Codex payload carries `cwd` and
+`session_id`), passes stdin through **byte-identical**, and propagates the hook's exit code
+**verbatim**. It is an **env shim, not an envelope adapter**; the distinction is the milestone.
+
+> **Two of the audit's own "open pieces" dissolved on contact with the primary source, and this is the
+> load-bearing lesson.** (1) The ledger said 26 `${CLAUDE_PLUGIN_ROOT}` interpolations "resolve empty
+> under Codex" — **false**: Codex publishes `CLAUDE_PLUGIN_ROOT`/`CLAUDE_PLUGIN_DATA` as
+> legacy-compatibility names, so they resolve fine. (2) It said every hook must source and call
+> `_rc_host_env` — but that helper's fallbacks (`CODEX_PROJECT_ROOT`, `SESSION_ID`, `PROJECT_DIR`) are
+> **speculative names not in Codex's documented environment**, so they resolve to nothing in a real
+> session. Editing all 18 hooks would have changed nothing. **No hook was modified.** The fix was one
+> ~100-line wrapper plus an installer branch. *Verify the contract before you build to it.*
+
+**MH-17 — why these could not ship apart.** Codex tracks hook trust **by hash**: *"new or changed
+hooks are marked for review and skipped until trusted"* `[docs-verified]`. This repo's headline update
+pillar is *"an update is just `git pull` — no re-install, ever."* On Codex those two multiply into a
+**silent disarm**: every pull that changes a hook byte invalidates its hash, Codex skips that
+guardrail, and **nothing announces it — because the SessionStart banner is itself a hook.** With ~18
+hooks and near-weekly bumps, the steady state for an un-warned consumer is guardrails quietly off
+after every update. Shipping the installer alone would have **manufactured** the
+silently-inert-guardrail class this audit exists to close, on the host it was closing it for. The
+re-trust notice therefore fires at install, at **`update`** (where the disarm happens), in `status`,
+and inside the generated `.codex/hooks.json`. **`--dangerously-bypass-hook-trust` is named only to
+refuse it** — it converts an honest "your guardrails are off" into a dishonest "your guardrails are
+on". `requirements.toml` **managed hooks** are the only unattended-survival configuration.
+
+**The comfort posture reaches Codex's OS sandbox (MH-16 part 2, same release).**
+`scripts/emit-codex-config.py` projects it onto the two controls Codex actually has — `sandbox_mode`
+and `approval_policy`, plus `[sandbox_workspace_write] network_access`. **The governing rule is
+one-directional and was an owner decision: NEVER SILENTLY WEAKEN.** Write when absent, **tighten**
+freely, and **refuse** to loosen a hand-set value — printing the exact line to change by hand. The
+rejected alternative (mirror the posture in both directions) would let one saved dashboard click
+silently widen a sandbox somebody had deliberately locked down, with no warning to the person who
+locked it. **`danger-full-access` and `approval_policy = "never"` are never emitted at any posture** —
+there is no posture that means "turn the OS boundary off". Proven by **Gate 156** with two must-fail
+halves.
+
+Three honesty caveats ship *in the installer's output*, not buried in a doc: the mapping is **coarse**
+(two enum keys cannot express twelve categories — claiming parity would be MH-04's false assurance
+again); layer aggregation takes the **strictest** level rather than reproducing the permission engine's
+layering, because for an OS sandbox that is the only aggregation that cannot produce a too-permissive
+boundary; and **a project `.codex/config.toml` loads ONLY IN TRUSTED PROJECTS** `[docs-verified]` — a
+*second* trust gate beside MH-17's hook hashing, so **writing the file is not the same as bounding the
+session.**
+
+> **Two engineering notes worth keeping.** `tomllib` is stdlib only on Python **3.11+** and stock macOS
+> ships **3.9.6** `[verified]`, so the reader is a tiny line scanner that **refuses on anything it
+> cannot confidently parse** rather than guessing — a misparse here silently weakens an OS boundary.
+> And **root keys must be written ABOVE the first `[table]`**: in TOML every key belongs to the most
+> recent table, so appending `sandbox_mode` to the end of a file containing `[mcp_servers.github]` sets
+> `mcp_servers.github.sandbox_mode` — valid TOML, wrong meaning, invisible in a diff, and Codex would
+> fall back to its default while the tool reported success. Caught in testing against a realistic
+> config, pinned by a must-fail half, and the output verified with an **independent TOML parser**
+> rather than by eye.
+>
+> **And one more, which is the sharper lesson:** `network_access` is a TOML **boolean**, so writing it
+> quoted yields the *string* `"false"` — not the boolean Codex expects. That shipped broken first in
+> the **tighten** path (the security-relevant direction), and **Gate 156 was GREEN while the bug was
+> live**, because the self-test never exercised a boolean tighten. *A gate is only as good as the paths
+> it reaches.* Now asserted in both directions and confirmed by a real parser reporting `type: bool`,
+> not by reading the file and believing it.
+
+**Deliberately deferred, with reasons recorded rather than left as silent gaps** — and the installer
+**prints them at install time**: MCP (`.codex/config.toml` `[mcp_servers.*]`; a bad TOML merge would
+clobber a hand-tuned config), and the generated agent projection + its `plugins/*/codex/**` layout
+glob. The projection is deferred because **there is no verified Codex agent-file contract in this
+repo**; projecting 15 agents from a guessed schema is the same "don't guess at a contract" call made
+on the Copilot `tools:` gap, and an unused layout glob would silently pre-authorize an unreviewed
+directory.
+
+Proven by **Gate 155** (the shim's four invariants — byte-identical stdin, blanks-only fill, verbatim
+exit code, never-fails-the-hook — with two must-fail halves, because "exit 2 propagates" would
+otherwise be an assertion nobody has seen fail). **Gate 154** pins the host-support map, whose
+`hooks`/`skills` Codex cells flip to `supported: true` here. The Pipeline tab's host-scope sentence
+had a **hardcoded** "nowhere else" list beside its derived supported list — so flipping Codex on made
+it name Codex as supported and unsupported *in the same sentence*; both halves are now derived.
+
+**Migration:** none, and this is enforced by design — host auto-detection resolves **any** ambiguity
+to `copilot`, so a consumer who merely has `codex` on PATH gets a byte-identical install to before.
+The Codex lane is opt-in via `--host codex`.
+
+## Invocation is host-specific — teach it that way (added 2026-07-28, v0.217.0)
+
+Multi-host audit **MH-18**. `bin/rc` shipped in v0.158.0 to give non-Claude hosts a launch verb, and
+was never wired to the three surfaces that actually *teach* invocation: the Commands catalog (533 cards,
+every one saying *"paste into Claude Code"*), the posture editor (*"you pick Deny / Ask / Allow"*, with
+no note that Save & apply writes only `.claude/settings.json`), and root `AGENTS.md` § Setup — which
+showed only slash commands, so the first substantive thing a Codex agent read (its onboarding says
+*"read AGENTS.md end-to-end, don't skim"*) was a procedure it structurally could not run.
+
+All three now state their host scope, `AGENTS.md` carries a **three-row host table**, and cards render
+an **"any host:"** equivalent where one exists.
+
+> **The rule this establishes, and the reason it is in the constitution rather than a comment.**
+> `_HOST_EQUIVALENTS` (`scripts/generate-dashboards.py`) maps a command to a host-agnostic invocation
+> **only when that invocation has been read out of the launcher's own source.** `bin/rc` implements
+> exactly three verbs — `dashboard`, `streams`, `converge` — so exactly two commands have an entry.
+> The audit ledger itself listed `/set-posture` as a third; it is not (`scripts/ravenclaude` has no
+> such subcommand), and that row was dropped rather than shipped. **A missing entry is correct; a
+> guessed entry is the defect MH-18 exists to fix** — an invocation confidently taught to a host that
+> cannot run it. If you add a verb to `rc`, add its mapping here; never the reverse.
+
+**Also deliberate:** the other 530 cards are **not** stamped *"Claude Code only"*, even though the
+ledger's remedy says to. They already name the host in their own line, and 530 repetitions is noise
+that trains readers to skip the text. The scope statement is made **once**, in the tab intro, where it
+is read — and it says the absence of an equivalent is *"a gap, not a hidden feature."*
+
+**Zero DOM cost, verified:** the Commands tab is JS-built from `#commands-payload` (uncounted), and the
+posture note is plain text inside an existing element. Both surfaces held at 6,128 / 7,014 — no Gate
+132 ratchet raise. **Migration:** none; content-only.
