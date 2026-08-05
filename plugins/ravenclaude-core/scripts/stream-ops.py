@@ -165,6 +165,14 @@ def read_registry(project_root: str | os.PathLike) -> dict:
         data.setdefault("schema_version", REGISTRY_SCHEMA_VERSION)
         if not isinstance(data["streams"], dict):
             data["streams"] = {}
+        else:
+            # Drop any per-stream entry whose value isn't a dict. Every reader
+            # (list_streams / get_centroids / append_event) does `meta.get(...)` /
+            # `meta[...] = ...` on these values; a malformed (hand-edited, or a
+            # future-writer-bug) non-dict entry would raise AttributeError/TypeError
+            # straight to the caller, breaking the module's "never raise" contract.
+            # Degrade the bad entry to 'missing' instead of crashing every reader.
+            data["streams"] = {k: v for k, v in data["streams"].items() if isinstance(v, dict)}
         return data
     except (OSError, json.JSONDecodeError):
         return empty

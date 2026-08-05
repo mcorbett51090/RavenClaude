@@ -198,7 +198,12 @@ for b in "${branches[@]}"; do
   # back to the sound ancestry proof — we refuse rather than default to "safe".
 
   if [ -n "$reason" ]; then
-    verdict_safe+=("$b"$'\t'"$reason")
+    # Carry the verdict-time tip SHA as a 3rd tab-field so the delete can be made
+    # ATOMIC against the exact commit the safety check ran on (see the delete loop):
+    # a SHA-guarded delete fails closed if the branch moved after its verdict,
+    # closing the TOCTOU where a concurrent push lands unverified work that a bare
+    # `git branch -D` (no delete-time re-check) would then force-delete.
+    verdict_safe+=("$b"$'\t'"$reason"$'\t'"$local_tip")
   else
     verdict_unsafe+=("$b"$'\t'"no safety criterion met (no merged PR with matching tip, and not fully merged into $default_branch)")
   fi
@@ -207,7 +212,7 @@ done
 echo "=== cleanup-branches verdict ==="
 if [ "${#verdict_safe[@]}" -gt 0 ]; then
   echo "Safe:"
-  for v in "${verdict_safe[@]}"; do printf '  + %s\n' "$v"; done
+  for v in "${verdict_safe[@]}"; do printf '  + %s\n' "${v%$'\t'*}"; done
 fi
 if [ "${#verdict_unsafe[@]}" -gt 0 ]; then
   echo "Refused:"
@@ -235,14 +240,19 @@ _log_dir=".ravenclaude/runs/branch-cleanup"
 mkdir -p "$_log_dir" 2>/dev/null || true
 for v in "${verdict_safe[@]}"; do
   b="${v%%$'\t'*}"
-  # Record the tip SHA before deleting. `git branch -D` drops the branch reflog,
-  # so without this an accidental delete is recoverable only via `git fsck`
-  # spelunking; with it, `git branch <name> <sha>` restores in one step. Fail-safe.
-  # Capture the tip SHA BEFORE the delete (git branch -D drops the ref), but only
-  # WRITE the recovery log line AFTER a confirmed delete — the log is the restore
-  # record, so it must never claim a branch was deleted when the delete failed.
-  _tip="$(git rev-parse --verify --quiet "refs/heads/$b" 2>/dev/null || echo unknown)"
-  if git branch -D "$b" >/dev/null 2>&1; then
+  # The verdict-time tip SHA (3rd tab-field, captured when this branch's safety
+  # check ran). Serves two purposes: the recovery record (`git branch <name> <sha>`
+  # restores in one step, since the delete drops the reflog) AND the delete's
+  # atomicity guard below. `${v##*<tab>}` takes the field after the LAST tab.
+  _tip="${v##*$'\t'}"
+  # SHA-guarded delete: `git update-ref -d <ref> <oldvalue>` deletes ONLY if the
+  # ref still points at the verified tip, and fails closed otherwise — so a commit
+  # that landed on $b after its verdict (a concurrent worktree/agent still pushing)
+  # is never force-deleted unverified, the TOCTOU a bare `git branch -D` leaves open
+  # (git branch -D does no delete-time merge/ancestry re-check). `_tip` is non-empty
+  # here (line ~159 already verified the ref exists); an empty value would make
+  # update-ref error, which the `if` treats as a failed delete (fail-safe).
+  if [ -n "$_tip" ] && git update-ref -d "refs/heads/$b" "$_tip" >/dev/null 2>&1; then
     printf '%s\tdeleted\t%s\t%s\n' \
       "$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || echo unknown-ts)" "$b" "$_tip" \
       >> "$_log_dir/deleted.log" 2>/dev/null || true
