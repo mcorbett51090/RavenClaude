@@ -43,10 +43,13 @@ fi
 mkdir -p "$REPO_ROOT/.claude/worktrees"
 
 # If the branch already exists, attach to it; otherwise create from BASE_REF.
+# A literal `--` separates flags from the path/ref operands so an unvalidated,
+# flag-shaped BASE_REF (e.g. `--no-checkout`) is parsed as the commit-ish, not as
+# a git option — which would otherwise silently produce an empty, unusable worktree.
 if git -C "$REPO_ROOT" show-ref --verify --quiet "refs/heads/$BRANCH"; then
-  git -C "$REPO_ROOT" worktree add "$WT_DIR" "$BRANCH"
+  git -C "$REPO_ROOT" worktree add -- "$WT_DIR" "$BRANCH"
 else
-  git -C "$REPO_ROOT" worktree add -b "$BRANCH" "$WT_DIR" "$BASE_REF"
+  git -C "$REPO_ROOT" worktree add -b "$BRANCH" -- "$WT_DIR" "$BASE_REF"
 fi
 
 printf '\n== Worktree ready ==\n  path:   %s\n  branch: %s\n  base:   %s\n' \
