@@ -183,7 +183,7 @@ This is a **code/AI** domain, so the plugin carries a runtime tier. Each item be
 
 ### 11.1 The SDK prerequisite
 
-The agents recommend and emit code against the **Anthropic SDK** (`pip install anthropic` / `npm i @anthropic-ai/sdk`) and the **Claude Agent SDK** (`pip install claude-agent-sdk` / `npm i @anthropic-ai/claude-agent-sdk`), run by the developer with their own `ANTHROPIC_API_KEY` (or Bedrock/Vertex/Foundry creds). See [`knowledge/agent-sdk-and-managed-agents.md`](knowledge/agent-sdk-and-managed-agents.md). Default model `claude-opus-4-8`; adaptive thinking; pin the id; always set `max_tokens` (§3 #11). Model ids/prices/GA status live in the dated capability map, not baked into personas.
+The agents recommend and emit code against the **Anthropic SDK** (`pip install anthropic` / `npm i @anthropic-ai/sdk`) and the **Claude Agent SDK** (`pip install claude-agent-sdk` / `npm i @anthropic-ai/claude-agent-sdk`), run by the developer with their own `ANTHROPIC_API_KEY` (or Bedrock/Vertex/Foundry creds). See [`knowledge/agent-sdk-and-managed-agents.md`](knowledge/agent-sdk-and-managed-agents.md). Recommended default model **`claude-opus-5`** (the recommended Opus-tier default since GA 2026-07-24, superseding `claude-opus-4-8` at the same $5/$25 price; `[verify-at-use]` — see the capability map); adaptive thinking; pin the id; always set `max_tokens` (§3 #11). Model ids/prices/GA status live in the dated capability map, not baked into personas.
 
 ### 11.2 Recommended (not bundled) MCP servers — verified, no invented servers
 

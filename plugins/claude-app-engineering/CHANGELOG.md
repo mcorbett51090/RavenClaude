@@ -2,6 +2,16 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.9.12] — 2026-08-06
+
+Model-lineup refresh: **Claude Opus 5** (`claude-opus-5`) **GA 2026-07-24** — the new recommended Opus-tier default. Sourced via the repo's accepted "primary 403 → cross-reference" pattern (anthropic.com/news/claude-opus-5 403s automated fetch → Axios / TechCrunch / Fortune / Yahoo + pricing aggregators; `claude-opus-5` corroborated as a live id by the running harness). Reviewed through the two-panel expert process (usefulness → detailed review; both approved-with-edits, folded in).
+
+- **`knowledge/model-selection-and-2026-capability-map.md`** — new **Opus 5** lineup row above Opus 4.8 ($5/$25 in/out = same price as Opus 4.8; 1M ctx / 128K output; explicit low/medium/high effort toggle; near-Fable-5 quality at half Fable 5's price; SOTA on Frontier-Bench + GDPval-AA; behind Mythos 5 on cybersecurity; new default on Claude Max / strongest on Claude Pro). Routing ladder now tops out at Opus 5 with a "raise Opus 5's effort dial to high before escalating to Fable 5" step (house opinion #6). Refreshed the 1M-context + reasoning-effort capability rows, the `Last reviewed` stamp (→ 2026-08-06), and the lineup heading (→ 2026-08).
+- **Opus 4.8 retained, not deleted** — kept as documented predecessor **and** as the Fable-5 safety-fallback / cyber-classifier-fallback / advisor-pairing target (Anthropic server-side config; whether Opus 5 assumes those roles is unconfirmed → `[verify-at-use]`, not silently reassigned).
+- **`CLAUDE.md` §11.1** — SDK default-model note now points at `claude-opus-5` (superseding `claude-opus-4-8`).
+- Every new numeric/GA claim carries a retrieval date + `[verify-at-use]` rider per the plugin's citation discipline.
+- **Follow-up (out of scope here):** the secondary best-practices / decision-tree docs still name Sonnet 4.6 / Opus 4.8 and want a separate resync.
+
 ## [0.9.11] — 2026-07-14
 
 Reland of the additive dated facts from the 2026-06-30 research sweep (#536), applied to main's current framing (main's 2026-07-08 Fable-5-restored / Sonnet-5-GA framing is preserved everywhere; none of the branch's Fable-suspended regression was carried). Four net-new PRIMARY-VERIFIED release-notes facts added as dated capability-map rows plus their playbook cross-references:
