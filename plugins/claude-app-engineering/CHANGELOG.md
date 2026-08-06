@@ -2,6 +2,21 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.9.12] — 2026-08-06
+
+### Fixed
+
+**Verified false platform claims about the memory tool — corrected in seven places.** Anthropic ships **five distinct memory surfaces**; this plugin had collapsed two of them, and the collapse had reached the capability map (the bank's highest-trust surface, and the one every agent is told to cite).
+
+- **The Messages API memory tool is GA and requires no beta header** — `{"type": "memory_20250818", "name": "memory"}` is the entire configuration, it executes **client-side** (Claude *requests* file operations; your app performs them against storage you own), and it is available on all Claude 4+ models. Six locations described it as public beta: `knowledge/model-selection-and-2026-capability-map.md`, `knowledge/context-engineering-2026.md` (×2 — the lever list and the sources line), `knowledge/server-side-tools-and-files.md`, `best-practices/context-budget-the-1m-window.md`, and `agents/mcp-and-server-tools-engineer.md`.
+- **`managed-agents-2026-04-01` was attached to the wrong surface.** It belongs to Managed Agents **session** endpoints, not to the Messages API memory tool. The capability map and `knowledge/server-side-tools-and-files.md` carried that conflation; both now teach the two surfaces as two rows/sections.
+- **Managed Agents memory stores take two headers, not one** (`knowledge/agent-sdk-and-managed-agents.md`). The **beta status stated there was correct**; the header was half the picture — memory-store endpoints use `agent-memory-2026-07-22`, session endpoints (including *attaching* a store) use `managed-agents-2026-04-01`, and sending both on a memory-store request returns **400**.
+- Volatile header strings, statuses and limits are now **linked, not restated**, to [memory surfaces (2026)](../memory-engineering/knowledge/memory-surfaces-2026.md) so one file rots instead of six (house opinion #14). Every corrected claim carries a source URL + a 2026-08-06 retrieval date.
+
+The `[verify-at-build]` / "Re-verify … on the Researcher sweep" hedges that already sat beside these claims were **right and went unread**; they are kept, with the claim now correct beneath them.
+
+**Migration:** none — knowledge/best-practice/agent content only; no default, no schema, no script behaviour changed. Consumers who wired a beta header for the memory tool on the Messages API should remove it.
+
 ## [0.9.11] — 2026-07-14
 
 Reland of the additive dated facts from the 2026-06-30 research sweep (#536), applied to main's current framing (main's 2026-07-08 Fable-5-restored / Sonnet-5-GA framing is preserved everywhere; none of the branch's Fable-suspended regression was carried). Four net-new PRIMARY-VERIFIED release-notes facts added as dated capability-map rows plus their playbook cross-references:

@@ -35,7 +35,7 @@ assert estimate_tokens(system, messages) < BUDGET, "compact or retrieve a slice 
 **Do:**
 - Put long reference material **first** (cacheable, better recall); the question **last**; ask Claude to quote the relevant span before answering a long doc.
 - **Compact** long agent sessions — summarize old turns, drop superseded tool results — so the window holds *current* signal, not history (mind cache invalidation when you edit above a breakpoint).
-- Offload durable facts/state to the **memory tool** (public beta [verify-at-build]) with a redaction pass + eviction policy, instead of carrying them inline every turn.
+- Offload durable facts/state to the **memory tool** (**GA on the Messages API — no beta header**, verified 2026-08-06; [verify-at-build]) with a redaction pass + eviction policy, instead of carrying them inline every turn. It executes **client-side** — your app performs the file operations, so path-traversal defence is yours too ([memory surfaces (2026)](../../memory-engineering/knowledge/memory-surfaces-2026.md)).
 - Give each sub-agent a **focused slice**, not the whole history — fresh scoped context produces better per-task output and controls cost.
 
 **Don't:**
