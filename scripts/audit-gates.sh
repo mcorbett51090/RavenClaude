@@ -387,6 +387,46 @@ PY
       bash plugins/ravenclaude-core/hooks/tests/test-gate164-gemini-adapter.sh
       exit $?
       ;;
+    176)
+      echo "── Gate 176: memory errata regression — 12 debunked claims (per-gate run) ─"
+      _rc176=0
+      # must_pass: no banned formulation outside the errata block, and all 12
+      # patterns still live INSIDE it (zero in-region hits means the pattern
+      # broke, not that the tree is clean).
+      if python3 scripts/check-memory-errata-regression.py; then
+        echo "  ✓ errata regression check passed on the real tree"
+      else
+        echo "  ✗ errata regression check FAILED on the real tree"; _rc176=1
+      fi
+      # must_fail (teeth): the checker's own known-bad fixtures — A1 known-bad,
+      # a corrections-stripped block (A3), and the withdrawn grep-targets
+      # comment shape (A3b) — must all be caught.
+      if python3 scripts/check-memory-errata-regression.py --must-fail; then
+        echo "  ✓ known-bad / stripped / grep-targets fixtures are all caught"
+      else
+        echo "  ✗ a known-bad fixture was NOT caught — gate has no teeth"; _rc176=1
+      fi
+      exit "$_rc176"
+      ;;
+    175)
+      echo "── Gate 175: memory-security lane reachability (per-gate run) ────────────"
+      _rc175=0
+      # must_pass: all four TB-1 routes present on the real tree (routes are
+      # `n/a`, never FAIL, before plugins/memory-engineering/ exists).
+      if python3 scripts/check-memory-engineering-reachability.py; then
+        echo "  ✓ reachability check passed on the real tree"
+      else
+        echo "  ✗ reachability check FAILED on the real tree"; _rc175=1
+      fi
+      # must_fail (teeth): a synthesized tree with every route token stripped
+      # must be caught on every route, and the known-good twin left clean.
+      if python3 scripts/check-memory-engineering-reachability.py --must-fail; then
+        echo "  ✓ a stripped tree is caught on every route"
+      else
+        echo "  ✗ a stripped route was NOT caught — gate has no teeth"; _rc175=1
+      fi
+      exit "$_rc175"
+      ;;
     174)
       echo "── Gate 174: CSS token hygiene — unreadable-by-construction (per-gate run) ─"
       python3 scripts/check-css-token-hygiene.py
@@ -518,7 +558,7 @@ PY
       ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -5572,6 +5612,39 @@ gate "css-token-hygiene: no hairline-as-text, theme-blind fill, or bare minmax t
 
 rc=0; python3 scripts/check-css-token-hygiene.py --must-fail >/dev/null 2>&1 || rc=$?
 gate "css-token-hygiene teeth: 7 known-bad caught AND 8 known-good left alone" must_pass "$rc"
+
+echo
+echo "── Gate 175: the memory-security lane is REACHABLE (TB-1's premise) ───────"
+# TB-1 shipped memory security as a SKILL (`memory-poisoning-review`) rather than a
+# fourth agent, and conditioned that ruling on four routes to it existing. Nothing
+# in the repo checked them: check-md-links.py proves a link RESOLVES once written,
+# but no gate proved it was WRITTEN, and check-frontmatter.py validates a
+# `description`'s TYPE and LENGTH, never its CONTENT. Drop a route and the skill is
+# undiscoverable — the ruling's premise is false while every other gate stays green.
+# Not-applicable-safe by construction: every route reports `n/a`, never FAIL, until
+# plugins/memory-engineering/ exists, so it can never red main on its own.
+rc=0; python3 scripts/check-memory-engineering-reachability.py >/dev/null 2>&1 || rc=$?
+gate "memory-reachability: all four TB-1 routes present" must_pass "$rc"
+
+rc=0; python3 scripts/check-memory-engineering-reachability.py --must-fail >/dev/null 2>&1 || rc=$?
+gate "memory-reachability teeth: every route caught when stripped" must_pass "$rc"
+
+echo
+echo "── Gate 176: the 12 debunked memory claims stay inside the errata block ───"
+# The plugin is authored from a source thread carrying twelve verified-false claims.
+# Its `## Corrections` block states each falsehood beside its correction so a future
+# author meeting the same thread does not reintroduce it in good faith — and that
+# block is the ONLY place those formulations may appear. This is the mechanical
+# control for that. It replaces a hand-run `grep -E` sweep written with a PCRE
+# lookbehind: dead on BSD/ugrep (exit 2, zero files scanned) and match-nothing-with-a
+# -stderr-warning on GNU grep, so a clean run looked exactly like a pass.
+# The liveness half (A2) is why this is not another silent-green check: zero in-region
+# hits fails the build, because that means the PATTERN broke, not that the tree is clean.
+rc=0; python3 scripts/check-memory-errata-regression.py >/dev/null 2>&1 || rc=$?
+gate "memory-errata: 0 debunked claims outside the Corrections block" must_pass "$rc"
+
+rc=0; python3 scripts/check-memory-errata-regression.py --must-fail >/dev/null 2>&1 || rc=$?
+gate "memory-errata teeth: known-bad, corrections-stripped block and grep-targets comment all caught" must_pass "$rc"
 
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"
