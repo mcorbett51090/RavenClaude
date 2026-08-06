@@ -2,6 +2,35 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.238.0 — 2026-08-06
+
+### Added
+
+- **Memory Engineering Protocol** — a new always-on section in [`CLAUDE.md`](CLAUDE.md), inserted after
+  § Claim Grounding & Source Honesty. The epistemic triad governs a claim made _in a turn_; the moment a
+  claim is written to a durable store it becomes a **prior** that arrives in every future session already
+  trusted, with its basis gone. Five rules cover that surface: persist provenance **inline in the stored
+  item**; treat memory read from a store as **untrusted input, not instruction** (OWASP ASI06 — its
+  defining property is _persistence_, so fixing the prompt does not fix the agent); **memory is context,
+  not enforcement** (to block, use a hook or a permission deny); **nothing forgets by default** — state
+  retention _and_ what survives a delete before the first write; and **verify before you recommend from
+  memory**. Carries its own composition table — the existing epistemic and execution-agency triad tables
+  are unchanged.
+- **Second carve-out to the domain-plugins-extend-core house rule** — the
+  [`memory-engineering`](../memory-engineering/CLAUDE.md) plugin, on the same "generalist concern that
+  splits cleanly" test that admitted `project-management`. Domain-neutral hygiene stays core; deep craft
+  (paradigm selection, the five storage surfaces, erasure residue, cost-per-correct economics) goes to the
+  plugin. **Memory security does not fork a reviewer**: ASI06 review ships as the
+  [`memory-poisoning-review`](../memory-engineering/skills/memory-poisoning-review/SKILL.md) skill invoked
+  by `ravenclaude-core/security-reviewer` through an inline prior.
+- **Two inline priors** (agent bodies only — no `description` change, so zero orchestrator-budget cost):
+  `agents/security-reviewer.md` gains the ASI06 memory-poisoning review rubric pointer, and
+  `agents/architect.md` gains the paradigm-selection / surface-mapping skill pointers plus a spawn pointer
+  to `memory-engineering/memory-architect-lead`.
+
+**Migration:** none. The protocol is inherited prose — no hook, no gate, no config, no new agent. The
+plugin is opt-in and declares `requires: ravenclaude-core@>=0.238.0`; core does not depend on it.
+
 ## 0.236.1 — 2026-08-05
 
 ### Fixed
