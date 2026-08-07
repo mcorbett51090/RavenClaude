@@ -291,15 +291,27 @@ for v in "${verdict_safe[@]}"; do
   fi
 
   if [ "$delete_remote" = "1" ] && [ -n "$owner_repo" ]; then
-    if gh api "repos/$owner_repo/branches/$b" --silent 2>/dev/null; then
-      if gh api -X DELETE "repos/$owner_repo/git/refs/heads/$b" --silent 2>/dev/null; then
-        echo "    + remote deleted: $b"
-      else
-        echo "    ! remote delete failed: $b"
-        delete_failed=1
-      fi
-    else
+    # SHA-guard the remote delete so it mirrors the local update-ref guard above,
+    # instead of deleting unconditionally: fetch the remote head and delete ONLY if
+    # it still equals the verdict-time tip. The GitHub ref-delete API has no
+    # compare-and-swap, so this is a fetch-then-compare — a far smaller TOCTOU window
+    # than an unconditional delete — closing the case where someone pushed NEW,
+    # unverified commits to the remote branch after its verdict (the same
+    # concurrent-push hazard the local guard closes). Both `_tip` (from
+    # `git rev-parse --verify`, no --short) and gh's `.commit.sha` are full 40-char
+    # SHAs, so the equality test is exact. Fails SAFE — a mismatch refuses (fewer
+    # deleted than predicted), and never deletes more.
+    _remote_sha="$(gh api "repos/$owner_repo/branches/$b" --jq '.commit.sha' 2>/dev/null || true)"
+    if [ -z "$_remote_sha" ]; then
       echo "    (no remote branch: $b)"
+    elif [ "$_remote_sha" != "$_tip" ]; then
+      echo "    ! remote delete refused: $b (remote $_remote_sha != verified $_tip)"
+      delete_failed=1
+    elif gh api -X DELETE "repos/$owner_repo/git/refs/heads/$b" --silent 2>/dev/null; then
+      echo "    + remote deleted: $b"
+    else
+      echo "    ! remote delete failed: $b"
+      delete_failed=1
     fi
   fi
 done
