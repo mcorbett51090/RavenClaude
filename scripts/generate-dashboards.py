@@ -843,6 +843,25 @@ _PIPELINE_LANES = [
                 },
             },
             {
+                "id": "guard-premise",
+                "title": "Premise check",
+                "badge": "always",
+                "tip": "Stops the robot building something new on top of a result it never double-checked.",
+                "detail": {
+                    "steps": [
+                        "Watches for a check that came back empty or failed (a 404, a not-found, a search with no hits).",
+                        "If the robot then tries to CREATE a brand-new code file, it pauses.",
+                        "Asks for one more check that would come back differently if the robot were wrong.",
+                        "Run that check and the pause clears itself.",
+                    ],
+                    "trip": "Blocks only the creation of a NEW code file, and only while an unchecked "
+                    "failed result is outstanding. Editing existing files, notes and tests are never touched. "
+                    "If its recorder is missing it blocks anyway — it will not say 'all clear' when it cannot see.",
+                    "set": "Built in. Set RC_PREMISE_OVERRIDE=1 to go ahead anyway (it gets written down), "
+                    "or RC_PREMISE_CONTROL to name the check you already ran.",
+                },
+            },
+            {
                 "id": "route-decision-review",
                 "title": "Decision routing",
                 "badge": "dynamic",
@@ -897,6 +916,8 @@ _PIPELINE_LANES = [
     {
         "event": "PostToolUse",
         "when": "Right after a command runs or a file is saved",
+        # NOTE: `log-probe.sh` also runs here. It is the RECORDER half of the premise
+        # gate below and is deliberately not its own card — see _PIPELINE_EXCLUDED_HOOKS.
         "tip": "After something happens, these tidy up and double-check the work.",
         "stages": [
             {
@@ -1029,6 +1050,7 @@ _PIPELINE_STAGE_HOOKS = {
     "runaway-brake": "runaway-brake.sh",
     "parallel-workers": None,  # behavioral: spawn-team reads `parallelism:` — no hook
     "enforce-layout": "enforce-layout.sh",
+    "guard-premise": "guard-premise.sh",
     "route-decision-review": "route-decision-review.sh",
     "guard-web-access": "guard-web-access.sh",
     "claude-orchestrator": None,  # behavioral: spawn-team reads `orchestrator:` — no hook
@@ -1046,6 +1068,10 @@ _PIPELINE_STAGE_HOOKS = {
 # reason) — so a newly-registered hook lands in NEITHER list and fails the build,
 # which is exactly what would have caught the missing `delegation-nudge`.
 _PIPELINE_EXCLUDED_HOOKS = {
+    "log-probe.sh": "the RECORDER half of the premise gate (PostToolUse); it only writes a "
+    "derived negative-result ledger and never denies. Its own card would be noise — but it is "
+    "NOT optional: if it is missing, `guard-premise.sh` FAILS CLOSED rather than reporting "
+    "clean, because a check that cannot see must never allow. Surfaced on that stage's card",
     "regen-on-manifest-change.sh": "marketplace-internal artifact regen; not an agent guardrail",
     "mark-web-domain-seen.sh": "internal consent-ordering bookkeeping for guard-web-access; not a distinct guardrail",
     "stream-session-close.sh": "work-stream tracking (Stop); observability, not a guardrail",

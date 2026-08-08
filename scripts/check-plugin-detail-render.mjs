@@ -56,7 +56,7 @@ const RC_BASELINE = {
   skills: 50,
   tools: 18,
   scenarios: 4,
-  hooks: 26, // 25 -> 26: hooks/storage-placement-nudge.sh (v0.232.0, advisory cross-CLI placement note)
+  hooks: 28, // 26 -> 28: hooks/log-probe.sh + hooks/guard-premise.sh (v0.240.0, the premise gate)
   rules: 5,
   templates: 23,
   practices: 38,

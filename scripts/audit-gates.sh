@@ -556,9 +556,14 @@ PY
       fi
       exit "$_rc"
       ;;
+    177)
+      echo "── Gate 177: premise gate (per-gate run) ──────────────────────────────────"
+      bash plugins/ravenclaude-core/hooks/tests/test-premise-gate.sh
+      exit $?
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -5645,6 +5650,37 @@ gate "memory-errata: 0 debunked claims outside the Corrections block" must_pass 
 
 rc=0; python3 scripts/check-memory-errata-regression.py --must-fail >/dev/null 2>&1 || rc=$?
 gate "memory-errata teeth: known-bad, corrections-stripped block and grep-targets comment all caught" must_pass "$rc"
+
+echo "── Gate 177: the premise gate — no construction on an unfalsified premise ─"
+# 2026-08-08, RavenPower-Website. A probe of a Cloudflare email-obfuscation href
+# returned 404. From that ONE negative result an agent concluded "the decoder is
+# broken, every visitor is affected", then built an 85-line component, converted 10
+# call sites, wrapped 15 addresses, added an owner go-live checklist item and gave
+# two turns of architectural advice. That URL is a placeholder nothing fetches — it
+# is SUPPOSED to 404. One control probe (/cdn-cgi/trace -> 200) would have ended it
+# in ten seconds. No user ever experienced the reported defect.
+#
+# ⛔ The wrong hypothesis was cheap and normal. The damage came from the hypothesis
+# being silently promoted to a premise by being written down, with nothing ever
+# returning to test it. log-probe.sh records negative results from `tool_response`
+# (that it carries Bash stdout was settled BY MEASUREMENT — three documentation
+# fetches could not); guard-premise.sh then refuses to CREATE a new source module
+# while one is unresolved.
+#
+# ⛔ FAILS CLOSED when the recorder is missing. A check that cannot see must never
+# report clean — "clean" and "blind" are indistinguishable afterward, which is how a
+# green gate ends up protecting nothing.
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-premise-gate.sh >/dev/null 2>&1 || rc=$?
+gate "premise-gate: incident replay denies, control probe releases, fail-closed when blind" must_pass "$rc"
+
+# Teeth. Neuter the gate to `exit 0` and the suite MUST go red. Verified by hand:
+# 9 passed becomes 6 passed / 3 failed, and the three that break are the load-bearing
+# ones (deny on a negative, fail-closed when blind, override leaves a trace).
+_pg_tmp="$(mktemp -d)"
+cp -R plugins/ravenclaude-core/hooks "$_pg_tmp/hooks"
+printf '#!/usr/bin/env bash\nexit 0\n' > "$_pg_tmp/hooks/guard-premise.sh"
+rc=0; bash "$_pg_tmp/hooks/tests/test-premise-gate.sh" >/dev/null 2>&1 || rc=$?
+gate "premise-gate teeth: a neutered gate is caught" must_fail "$rc"
 
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"

@@ -87,3 +87,50 @@ inferring the contract — the same move that settled Incident 1.
 
 **Recommendation:** proceed with the five unblocked phases; hold `T-SHAPE` until the freshness
 decision is made. Do not build a detector whose blindness is invisible.
+
+---
+
+# ✅ ROUTE P CONFIRMED — measured, not read (2026-08-08, same session)
+
+**The lag hazard above is MOOT. `T-SHAPE` is unblocked and does not need the transcript at all.**
+
+Three documentation fetches returned "not documented / truncated / cannot confirm". The question was
+settled in ~2 minutes by **measuring it**: an isolated scratch project (never the live worktree's
+`.claude/settings.json`) with a `PostToolUse(Bash)` hook that dumps its entire stdin, driven by a
+headless `claude -p` session running Incident 1's own probe.
+
+What actually arrives:
+
+```
+TOP-LEVEL KEYS: ['cwd', 'duration_ms', 'effort', 'hook_event_name', 'permission_mode',
+                 'prompt_id', 'session_id', 'tool_input', 'tool_name', 'tool_response',
+                 'tool_use_id', 'transcript_path']
+
+tool_response PRESENT: True   (dict)
+  keys: ['interrupted', 'isImage', 'noOutputExpected', 'stderr', 'stdout']
+    stdout = '404'      ← the exact negative result that started Incident 1
+    stderr = ''
+    interrupted = False
+```
+
+**Why this beats Route T outright, rather than merely tying it:**
+
+| | Route T (transcript) | **Route P (tool_response)** |
+|---|---|---|
+| when the evidence lands | asynchronously, **may lag the current turn** | **synchronously, at tool completion** |
+| failure mode if it lags | reads a transcript missing the evidence, reports "clean" — **fails open, silently, canary still green** | none — the write happens before the next tool call can fire |
+| cost | bounded transcript tail read per new-file Write | ~2 ms per Bash call |
+| new matcher needed | no | **yes** — `PostToolUse` currently matches only `Edit\|Write\|MultiEdit` and `WebFetch` |
+
+The ~2 ms/Bash-call cost is real and is the price of not having a silent-blindness window. Owner
+decision 2026-08-08: **take the friction.** *"Failing silently is no bueno."*
+
+**Claims settled by this measurement:**
+- `tool_response` is present on `PostToolUse` for `Bash` — **CONFIRMED** (was `[unverified]` in plan.md §2.6)
+- it carries real `stdout` / `stderr`, so a 4xx/5xx, a "not found", or an empty result is detectable
+- `transcript_path` is present on `PostToolUse` too — Route T remains a *fallback*, not the primary
+- `duration_ms`, `effort`, `prompt_id`, `tool_use_id` are also available (unused, but free)
+
+⚠️ Scope of the claim: measured on **Claude Code 2.1.226, macOS**, one tool (`Bash`). Not verified for
+`WebFetch`, and not verified on other hosts. The `WebFetch` matcher already exists, so that half is
+cheap to confirm when it matters.
