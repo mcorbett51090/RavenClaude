@@ -183,7 +183,7 @@ def run(run_dir, blast_floor=BLAST_FLOOR_FILES, require_edges=True):
     try:
         claims = parse_claims(ct)
     except Exception as exc:  # noqa: BLE001 - any parse failure is could-not-run, not clean
-        return 1, {"error": "claims-table.md unreadable: {}".format(exc)}
+        return 1, {"error": f"claims-table.md unreadable: {exc}"}
 
     plans = [p for p in ("plan.md", "plan-A.md", "plan-B.md")
              if os.path.exists(os.path.join(run_dir, p))]
@@ -261,10 +261,10 @@ def self_test(broken=False):
     def chk(name, got, want):
         nonlocal ok
         if got == want:
-            print("  OK   {}".format(name))
+            print(f"  OK   {name}")
         else:
             ok = False
-            print("  FAIL {} (got {}, want {})".format(name, got, want))
+            print(f"  FAIL {name} (got {got}, want {want})")
 
     with tempfile.TemporaryDirectory() as tmp:
         floor = 0
@@ -302,7 +302,7 @@ def self_test(broken=False):
         chk("an unreadable claims table is could-not-run (1), never clean", code, 1)
 
     print()
-    print("  premise-gate self-test: {}".format("PASS" if ok else "FAIL"))
+    print("  premise-gate self-test: " + ("PASS" if ok else "FAIL"))
     return 0 if ok else 1
 
 
@@ -335,16 +335,16 @@ def main():
         print(json.dumps(res, indent=2))
     else:
         if code == 0:
-            print("premise-gate: CLEAN — {} claims, {} phases, no unsettled inference is "
-                  "load-bearing".format(res.get("claims"), res.get("phases")))
+            print(f"premise-gate: CLEAN — {res.get('claims')} claims, "
+                  f"{res.get('phases')} phases, no unsettled inference is load-bearing")
         elif code == 2:
             print("premise-gate: TRIPPED")
             for t in res["trips"]:
-                print("  phase {} -> claim {}: {}".format(t["phase"], t["claim"], t["why"]))
+                print(f"  phase {t['phase']} -> claim {t['claim']}: {t['why']}")
             print("\nTake one of the three exits (reference/premise-gate.md): run the probe, "
                   "run the cheapest partial, or owner-gate it.")
         else:
-            print("premise-gate: COULD NOT RUN — {}".format(res.get("error")))
+            print(f"premise-gate: COULD NOT RUN — {res.get('error')}")
             print("⛔ This is NOT a pass. A check that cannot see must not report clean.")
     return code
 

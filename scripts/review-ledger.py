@@ -341,7 +341,7 @@ def normalize_finding(raw: dict) -> dict:
         line = int(raw.get("line") or 0)
     except (TypeError, ValueError):
         raise LedgerError(f"finding `line` must be an integer: {raw.get('line')!r}")
-    item = {key: "" for key in _INPUT_KEYS}
+    item = dict.fromkeys(_INPUT_KEYS, "")
     item.update(
         {
             "id": str(raw.get("id") or "").strip(),
