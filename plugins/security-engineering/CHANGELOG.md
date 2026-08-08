@@ -2,6 +2,12 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.7] — 2026-08-08
+
+Weekly Tier-A news sweep (2026-08-08) — **correction** in `knowledge/security-engineering-decision-trees.md:113` (npm install-script hardening capability-map row). npm **v12.0.0 shipped GA on 2026-07-08**, so the row's "est. July 2026 / warnings today / preview" framing was stale, and the approval command it named (`npm approve-scripts --allow-scripts-pending`) was the **pre-GA preview** path. Corrected to the released date and the **GA approval flow** — `npm install-scripts approve` then `npm rebuild` — re-verified this session against the primary source ([npm v12.0.0 release](https://github.com/npm/cli/releases/tag/v12.0.0)); the `[verify-at-build]` hedge is retained. No sibling fan-out: `agents/supply-chain-security-engineer.md:46` already frames v12 as GA-adoptable and stays consistent. **Migration:** none — knowledge-file content only.
+
+Passed a three-panel funnel (usefulness → source-verified detail → tiebreak-not-required); audit trail in `docs/research/2026-08-08-plugin-news-research-panel-review.md`.
+
 ## [0.3.6] — 2026-07-14
 
 Captured a generalizable security principle surfaced by an autonomous 3-panel repo review (PR #622, 2026-07-13), where a bare-name interpreter denylist was bypassed by a path-qualified pipe (`curl … | /bin/bash`) and a credential slipped through a scanner that checked only a subset of fields.
