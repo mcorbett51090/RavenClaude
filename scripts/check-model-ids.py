@@ -30,8 +30,16 @@ ROOT = Path(__file__).resolve().parent.parent
 CATALOG = ROOT / "plugins" / "ravenclaude-core" / "knowledge" / "model-catalog.json"
 
 # A claude model id token: family + numeric version, optional dated suffix.
+# Two family shapes are matched:
+#   * letter-first  — claude-<name>-<major>[-<minor>]         (claude-opus-4-8, claude-haiku-4-5)
+#   * numeric-first — claude-<major>[-<minor>...]-<name>      (claude-3-5-sonnet, claude-3-opus)
+# The numeric-first alternation is what lets the gate catch Anthropic's legacy
+# naming scheme (e.g. claude-3-5-sonnet-20241022) — without it, a stale legacy id
+# in a governed file is silently never emitted by the regex and passes unchecked.
 # `claude-code` (product, no numeric version) is excluded by the required -[0-9].
-MODEL_RE = re.compile(r"claude-[a-z]+-[0-9]+(?:-[0-9]+)?(?:-[0-9]{8})?")
+MODEL_RE = re.compile(
+    r"claude-(?:[a-z]+-[0-9]+(?:-[0-9]+)?|[0-9]+(?:-[0-9]+)*-[a-z]+)(?:-[0-9]{8})?"
+)
 
 # Governed file extensions — code + config where a stale id is a real bug.
 GOVERNED_EXT = {".py", ".sh", ".json", ".yaml", ".yml", ".mjs", ".js"}
@@ -79,16 +87,24 @@ def self_test() -> int:
     false-flagged by a substring match."""
     current = set(json.loads(CATALOG.read_text(encoding="utf-8"))["current"].values())
     bad = scan_text('model: "claude-sonnet-4-6"  # and claude-opus-4-7', current)
+    legacy = scan_text("old: claude-3-5-sonnet-20241022 and claude-3-opus-20240229", current)
     good = scan_text(
-        'a: claude-opus-4-8  b: claude-sonnet-5  c: claude-haiku-4-5-20251001  d: claude-fable-5',
+        "a: claude-opus-4-8  b: claude-sonnet-5  c: claude-haiku-4-5-20251001  d: claude-fable-5",
         current,
     )
     ok_bad = {t for t, _ in bad} == {"claude-sonnet-4-6", "claude-opus-4-7"}
+    ok_legacy = {t for t, _ in legacy} == {
+        "claude-3-5-sonnet-20241022",
+        "claude-3-opus-20240229",
+    }
     ok_good = good == []
-    if ok_bad and ok_good:
-        print("check-model-ids --self-test: PASS (stale caught; canonical dated-haiku not flagged)")
+    if ok_bad and ok_legacy and ok_good:
+        print(
+            "check-model-ids --self-test: PASS (stale + legacy numeric-first caught; "
+            "canonical dated-haiku not flagged)"
+        )
         return 0
-    print(f"check-model-ids --self-test: FAIL bad={bad!r} good={good!r}")
+    print(f"check-model-ids --self-test: FAIL bad={bad!r} legacy={legacy!r} good={good!r}")
     return 1
 
 
