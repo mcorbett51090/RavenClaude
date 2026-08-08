@@ -215,6 +215,14 @@ so it published them in plain text to every harvester to repair nothing.
 a browser, an edge network, a CDN, a mail client, a device — **the source is not
 the artifact and `curl` is not a user.** Measure the rendered end state.
 
+**Run the control — don't rely on remembering to.** `rc probe http <url>` (or
+`scripts/probe-kit.sh`) probes the thing **and** a known-good control on the same subsystem, and tells
+you which of four situations you are in: negative confirmed · **control also failed** (your probe
+target is wrong, not the subject) · positive · inconclusive. `rc probe --explain` states what a
+negative result does and does not license. The control that would have killed this incident cost ten
+seconds, and nobody ran it — because running it required thinking of it first. That is what the kit
+removes.
+
 **And the deeper one: a 404 is not a diagnosis.** Before building on a negative
 result, establish that you probed the thing that carries the behaviour. One
 control request would have settled it in ten seconds — `/cdn-cgi/trace` returns

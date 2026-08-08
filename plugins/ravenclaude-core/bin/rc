@@ -38,6 +38,13 @@ Usage:
                                         Run it from your project root so .ravenclaude/ is
                                         written there. Prints the URL it binds.
 
+  rc probe http <url> | dns <host> | file <path> | cmd <name>
+                                        Probe a thing AND a known-good CONTROL on the same
+                                        subsystem, so a negative result can be told apart from
+                                        a probe that was never capable of succeeding.
+                                        A 404 is not a diagnosis until a control has passed.
+  rc probe --explain                    What a negative result does and does NOT license.
+
   rc streams [list]                     List logical work-streams in this project (default).
 
   rc artifacts list|new <id>   where work files go, across CLIs
@@ -66,6 +73,22 @@ EOF
 
 cmd="${1:-}"
 case "$cmd" in
+  probe)
+    shift
+    # The control-probe kit. A negative result is not a diagnosis until a
+    # positive-capable probe on the SAME subsystem has been observed — otherwise
+    # you cannot tell "the subject is broken" from "I probed the wrong thing."
+    # 2026-08-08: a 404 on an href PLACEHOLDER (supposed to 404) produced an
+    # 85-line component, 10 converted call sites and two turns of owner-facing
+    # architectural advice. One control probe would have cost ten seconds.
+    kit="$PLUGIN_ROOT/../../scripts/probe-kit.sh"
+    [ -f "$kit" ] || kit="$PLUGIN_ROOT/scripts/probe-kit.sh"
+    if [ ! -f "$kit" ]; then
+      echo "rc: cannot find probe-kit.sh (looked beside the marketplace root and in the plugin)" >&2
+      exit 1
+    fi
+    exec bash "$kit" "$@"
+    ;;
   dashboard)
     shift
     server="$PLUGIN_ROOT/scripts/serve-dashboards.py"

@@ -53,7 +53,7 @@ const ISLANDED_AGENT_KEYS = ["scenarios", "quickstart", "works_with"];
 const RC = "ravenclaude-core";
 const RC_BASELINE = {
   agents: 15,
-  skills: 50,
+  skills: 51, // 50 -> 51: skills/probe-kit (v0.240.0, the control-probe kit)
   tools: 18,
   scenarios: 4,
   hooks: 28, // 26 -> 28: hooks/log-probe.sh + hooks/guard-premise.sh (v0.240.0, the premise gate)

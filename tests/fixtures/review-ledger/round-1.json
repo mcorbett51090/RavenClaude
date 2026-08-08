@@ -1,0 +1,55 @@
+{
+  "_comment": "Round 1 of the measured Incident-3 history (docs/plans/2026-08-08-premise-gate/incidents.md): 7 findings, all closed in-round. Round 1 structurally cannot contain a reopen — nothing has been closed yet. Two of these (unchecked-null @ src/auth/session.ts, limit-without-order @ src/db/queries.ts) come BACK in round 2 at DIFFERENT line numbers; that is the line-shift case the fingerprint must survive. File paths and rule ids are example data.",
+  "round": 1,
+  "head": "a1b2c3d4",
+  "findings": [
+    {
+      "file": "src/auth/session.ts",
+      "line": 42,
+      "rule": "unchecked-null",
+      "summary": "session.user is dereferenced before the null guard",
+      "status": "closed"
+    },
+    {
+      "file": "src/auth/session.ts",
+      "line": 88,
+      "rule": "sleep-based-timing",
+      "summary": "the test waits with setTimeout instead of a fake clock",
+      "status": "closed"
+    },
+    {
+      "file": "src/api/upload.ts",
+      "line": 31,
+      "rule": "unvalidated-input",
+      "summary": "filename reaches Content-Disposition without validation",
+      "status": "closed"
+    },
+    {
+      "file": "src/api/upload.ts",
+      "line": 64,
+      "summary": "the error path returns 200 with an empty body",
+      "status": "closed"
+    },
+    {
+      "file": "src/db/queries.ts",
+      "line": 17,
+      "rule": "limit-without-order",
+      "summary": "LIMIT 1 with no ORDER BY, so the row returned is arbitrary",
+      "status": "closed"
+    },
+    {
+      "file": "src/db/queries.ts",
+      "line": 52,
+      "summary": "N+1 query inside the members loop",
+      "status": "closed"
+    },
+    {
+      "file": "web/report.tsx",
+      "line": 12,
+      "rule": "proxy-assertion",
+      "symbol": "ReportHeader",
+      "summary": "the test asserts the import is present, not that the component renders",
+      "status": "closed"
+    }
+  ]
+}

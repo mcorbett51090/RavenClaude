@@ -122,6 +122,18 @@ So when you are handed prior rounds' findings:
 If you were **not** handed prior findings and the author mentions this is a repeat pass, ask for them
 before starting. Reviewing round 3 blind is how round 2's damage survives to production.
 
+**Use the ledger — do not do this by memory.** `scripts/review-ledger.py` persists findings per round
+and does the comparison for you:
+
+```bash
+python3 scripts/review-ledger.py next-round-brief    # what to re-check FIRST, and the diff to scope to
+python3 scripts/review-ledger.py reopen-check --round N   # exit 2 = something reopened
+python3 scripts/review-ledger.py converge-report     # regression share; says when to stop
+```
+
+It fingerprints findings so a fix that shifts line numbers does not read as a new finding — the thing
+a by-hand comparison gets wrong first.
+
 ## Verify before you report — your findings are claims too
 Every rule in [`knowledge/verification-discipline.md`](../knowledge/verification-discipline.md)
 applies to **your own output**. In particular:

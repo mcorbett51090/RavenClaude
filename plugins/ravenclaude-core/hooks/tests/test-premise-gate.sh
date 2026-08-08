@@ -2,11 +2,19 @@
 # Gate 177 — the premise gate (log-probe.sh + guard-premise.sh).
 #
 # A gate that cannot FAIL proves nothing, so every must_pass here is paired with a
-# planted defect. Verified by neutering guard-premise.sh to `exit 0`: 8/8 becomes
-# 5 passed / 3 failed, and the three that go red are the load-bearing ones (deny on
-# a negative result, fail-closed when blind, override leaves a trace).
+# planted defect. Both neuterings were OBSERVED red, not assumed (2026-08-08):
+#
+#   guard-premise.sh -> `exit 0` (whole gate)   18/18 becomes 12 passed / 6 failed
+#   T-PROSE conjunct gate -> `if False:`        18/18 becomes 15 passed / 3 failed
+#
+# The second number is the one that matters structurally: with T-PROSE dead, all
+# NINE T-SHAPE assertions still pass and only the three T-PROSE denies go red. The
+# triggers are therefore genuinely OR-ed — neither is carrying the other.
 #
 # Test 1 IS Incident 1, replayed: probe -> 404 -> create Email.astro.
+# Section 6 is the same incident replayed on an EMPTY ledger, where T-SHAPE is
+# structurally blind (a prior session, or a context compaction) and only the
+# written-down premise remains to catch.
 #
 # NOTE: the hooks are fed with a here-string, NOT `printf ... | bash`. The pipe form
 # put a fetch command and `| bash` in one payload and the command-review tribunal
@@ -62,6 +70,40 @@ chk "RC_PREMISE_OVERRIDE=1 allows"            0 "$(RC_PREMISE_OVERRIDE=1 pre "$N
   && { echo "  OK   override left a trace"; pass=$((pass+1)); } \
   || { echo "  FAIL override was SILENT"; fail=$((fail+1)); }
 chk "RC_PREMISE_CONTROL resolves the subject"  0 "$(RC_PREMISE_CONTROL=www.ravenpower.net pre "$NEWSRC")"
+
+echo "-- 6. T-PROSE: a diagnosis written down as established fact --"
+# A FRESH project with an EMPTY probe ledger. That is deliberate and load-bearing:
+# T-SHAPE has nothing to fire on here, so every deny below is T-PROSE ALONE. This
+# is what proves the two triggers are OR-ed and not AND-ed — the contingency
+# defect the design exists to avoid.
+P=$(mktemp -d)
+mkdir -p "$P/plugins/ravenclaude-core/hooks" "$P/docs" "$P/scratch" "$P/.ravenclaude/runs/x" "$P/src"
+cp "$H/log-probe.sh" "$P/plugins/ravenclaude-core/hooks/"   # recorder installed, never ran
+export CLAUDE_PROJECT_DIR="$P"
+
+# Content-bearing Write payloads. `printf %s` does NOT expand escapes in its
+# ARGUMENTS, so the \n below survive into the JSON string as real JSON escapes.
+mkw(){ printf '{"session_id":"prose","tool_name":"Write","tool_input":{"file_path":"%s","content":"%s"}}' "$1" "$2"; }
+
+# The verbatim Incident-1 header. ⛔ The certainty stamp is the TRIGGER, not an
+# exemption: the author was CONFIDENT, with a real tool call behind them.
+INC='/* the decoder is broken - measured 2026-08-07 */'
+DIAG='The decoder is broken.\nEvery visitor sees a mangled address.\nmeasured 2026-08-07'
+
+chk "empty ledger + plain content -> T-SHAPE silent" 0 "$(pre "$(mkw "$P/src/Email.astro" '// TODO: wire this up')")"
+chk "verbatim incident header DENIED on an EMPTY ledger (OR, not AND)" \
+                                                    2 "$(pre "$(mkw "$P/src/Email.astro" "$INC")")"
+chk "durable docs/: diagnosis + stamp + no control -> DENIED" \
+                                                    2 "$(pre "$(mkw "$P/docs/finding.md" "$DIAG")")"
+chk "same content WITH a control-probe citation -> allowed" \
+     0 "$(pre "$(mkw "$P/docs/finding.md" "$DIAG\ncontrol: GET /cdn-cgi/trace -> 200 (edge healthy)")")"
+chk "same content under .ravenclaude/runs/ -> allowed" \
+                                                    0 "$(pre "$(mkw "$P/.ravenclaude/runs/x/notes.md" "$DIAG")")"
+chk "same content under a scratch/ path -> allowed"  0 "$(pre "$(mkw "$P/scratch/notes.md" "$DIAG")")"
+chk "diagnosis with NO certainty stamp -> allowed"   0 "$(pre "$(mkw "$P/docs/finding.md" 'The decoder is broken.\nEvery visitor sees a mangled address.')")"
+# An escape hatch nobody tested is one everybody uses.
+chk "premise-ok: with nothing after it -> DENIED"    2 "$(pre "$(mkw "$P/docs/finding.md" "$DIAG\npremise-ok:")")"
+chk "premise-ok: <named control> -> allowed"         0 "$(pre "$(mkw "$P/docs/finding.md" "$DIAG\npremise-ok: browser render check, run 2026-08-08")")"
 
 echo
 echo "  $pass passed, $fail failed"

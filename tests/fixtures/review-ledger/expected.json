@@ -1,0 +1,59 @@
+{
+  "_comment": "Committed expectations for `scripts/review-ledger.py --self-test`. The three `rounds` entries ARE the measured Incident-3 history (7 / 7 / 8 findings closed, 2 self-inflicted in each of rounds 2 and 3, a regression share that does not fall). The self-test asserts against this file rather than against inline constants so the expectation is reviewable on its own.",
+  "rounds": [
+    {
+      "round": 1,
+      "raised": 7,
+      "new": 7,
+      "reopened": 0,
+      "suspected": 0,
+      "regression_share": 0.0,
+      "reopened_rules": []
+    },
+    {
+      "round": 2,
+      "raised": 7,
+      "new": 5,
+      "reopened": 2,
+      "suspected": 0,
+      "regression_share": 0.286,
+      "reopened_rules": ["limit-without-order", "unchecked-null"]
+    },
+    {
+      "round": 3,
+      "raised": 8,
+      "new": 6,
+      "reopened": 2,
+      "suspected": 1,
+      "regression_share": 0.25,
+      "reopened_rules": ["lone-surrogate", "secret-in-log"]
+    }
+  ],
+  "line_shift_pairs": [
+    {
+      "rule": "unchecked-null",
+      "file": "src/auth/session.ts",
+      "first_line": 42,
+      "reopened_line": 57,
+      "rounds_seen": [1, 2]
+    },
+    {
+      "rule": "limit-without-order",
+      "file": "src/db/queries.ts",
+      "first_line": 17,
+      "reopened_line": 23,
+      "rounds_seen": [1, 2]
+    }
+  ],
+  "brief_min_recheck": 18,
+  "trend": "flat",
+  "falling": false,
+  "stop_recommended": false,
+  "stop_round": {
+    "round": 4,
+    "raised": 5,
+    "new": 1,
+    "reopened": 4,
+    "stop_recommended": true
+  }
+}
