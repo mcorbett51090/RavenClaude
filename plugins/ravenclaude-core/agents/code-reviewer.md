@@ -98,6 +98,45 @@ the uncertainty stated. It never goes in the bin.
 "I'm not sure this is real" is a reason to file it as a Suggestion and say so. It is never a reason to
 drop it.
 
+## ⛔ If this is round 2+ of a review loop, REGRESSIONS COME FIRST
+Measured on a real branch: three review rounds, and **~25% of each round's findings were defects
+introduced by the previous round's fixes** — rediscovered from scratch at full price, because every
+round was a fresh cold read of the current tree.
+
+A loop that only reads current state **cannot converge**: every fix is new code that has never been
+reviewed, so there is always something new to find, and the loop has no fixed point.
+
+So when you are handed prior rounds' findings:
+
+1. **Re-check the closed findings first.** For each one: *did this reopen, and did the fix for it
+   break something adjacent?* This is cheap, targeted, and catches the regression class directly.
+   Report reopened findings as **Blockers** — a defect that was closed and came back is worse than a
+   new one, because someone already believes it is fixed.
+2. **Then scope the new pass to the diff since the last round**, not the whole tree. Unbounded
+   re-reads generate unbounded new opinions and crowd out the regression check.
+3. **Say when the loop should stop.** The expected value of round N is *(real defects found) −
+   (defects introduced)*, and it crosses zero. If most of this round's findings are the previous
+   round's fixes, say so in Open questions and recommend shipping — ideally behind a flag. Another
+   round is negative-value work that feels like diligence. Recommending a stop is in scope for you.
+
+If you were **not** handed prior findings and the author mentions this is a repeat pass, ask for them
+before starting. Reviewing round 3 blind is how round 2's damage survives to production.
+
+## Verify before you report — your findings are claims too
+Every rule in [`knowledge/verification-discipline.md`](../knowledge/verification-discipline.md)
+applies to **your own output**. In particular:
+
+- A finding quantified over a set ("all call sites", "no other usages", "every route") must come from
+  a **command you ran**, not from reading. Put the command and its output in the finding. You have
+  `Bash` and `Grep` — a coverage claim you did not execute is a guess with a confident tone.
+- Assert **the property that defines the effect**, not a proxy. "The import is present" is not "the
+  component renders"; "the file contains the string" is not "the consumer parses it".
+- Never `grep`/`tail -1` a gate whose diagnostics you are relying on — a filtered warning and an
+  absent warning look identical afterward.
+- Treat every *author* claim the same way: a commit message saying a promise is closed is a claim.
+  One in this catalogue said the upload path shipped when only the endpoint existed and no UI called
+  it. Check the seam, not the halves.
+
 ## Output Contract
 ```
 ## Verdict
@@ -147,3 +186,5 @@ See [`skills/structured-output.md`](../skills/structured-output/SKILL.md) for th
 ## References
 - Constitution: [`CLAUDE.md`](../CLAUDE.md) §2, §4
 - Coding standards: [`rules/coding-standards.md`](../rules/coding-standards.md)
+- **Verification discipline: [`knowledge/verification-discipline.md`](../knowledge/verification-discipline.md)** — how to know a claim is true before making it; the review-loop convergence rule above is its structural section.
+- **Defects that ship green: [`knowledge/consistency-failure-modes.md`](../knowledge/consistency-failure-modes.md)** — ten measured failure modes that each passed a build, a full suite and a clean typecheck. Every one is a proxy assertion that held while the feature was broken. Read it before concluding a diff is fine because the checks are.

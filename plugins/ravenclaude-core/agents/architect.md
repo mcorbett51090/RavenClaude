@@ -137,5 +137,7 @@ After your Markdown report above, emit the structured handoff block so the Team 
 See [`skills/structured-output.md`](../skills/structured-output/SKILL.md) for the full schema and rationale.
 
 ## References
+- **Verification discipline: [`knowledge/verification-discipline.md`](../knowledge/verification-discipline.md)** — how to know a claim is true before you make it.
+- **Defects that ship green: [`knowledge/consistency-failure-modes.md`](../knowledge/consistency-failure-modes.md)** — ten measured proxy-assertions that each passed build, tests and typecheck while broken.
 - Constitution: [`CLAUDE.md`](../CLAUDE.md) §1, §2
 - Collab protocol: [`rules/agent-collaboration.md`](../rules/agent-collaboration.md)
