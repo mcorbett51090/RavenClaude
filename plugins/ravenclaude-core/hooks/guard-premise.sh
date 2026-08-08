@@ -223,7 +223,20 @@ if rel.startswith((".ravenclaude/", "docs/", "node_modules/", ".git/", ".claude/
 if any(seg in rel for seg in ("/test/", "/tests/", "/__tests__/", "/fixtures/")) or \
    rel.startswith(("test/", "tests/", "__tests__/", "fixtures/")):
     sys.exit(0)
-if "/tmp/" in path or path.startswith("/tmp") or "/scratchpad/" in path:
+# Scratch-area exemption — but ONLY for paths OUTSIDE the project.
+# ⛔ This was a bare `"/tmp/" in path` check and it was WRONG on Linux. macOS
+# `mktemp -d` yields /var/folders/...; Linux yields /tmp/tmp.XXXX. So on Linux the
+# project root ITSELF sat under /tmp, every path matched the exemption, and every
+# deny assertion passed VACUOUSLY — green locally on macOS, green-for-the-wrong-
+# reason in CI. Caught only because CI runs Linux. Anchor on the project-relative
+# path, so "is this scratch?" cannot be decided by where the project happens to live.
+_abs = os.path.abspath(path)
+_proj = os.path.abspath(proj)
+_inside = _abs == _proj or _abs.startswith(_proj + os.sep)
+if not _inside:
+    if _abs.startswith(("/tmp/", "/var/tmp/", "/private/tmp/")) or "/scratchpad/" in _abs:
+        sys.exit(0)
+if "/scratchpad/" in rel or rel.startswith(("tmp/", "scratch/")):
     sys.exit(0)
 SRC_EXT = (".py", ".sh", ".ts", ".tsx", ".js", ".jsx", ".astro", ".vue", ".svelte",
            ".go", ".rs", ".rb", ".java", ".kt", ".c", ".h", ".cpp", ".cs", ".php", ".mjs")

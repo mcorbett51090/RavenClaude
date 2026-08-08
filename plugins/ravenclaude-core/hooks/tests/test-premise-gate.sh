@@ -105,6 +105,26 @@ chk "diagnosis with NO certainty stamp -> allowed"   0 "$(pre "$(mkw "$P/docs/fi
 chk "premise-ok: with nothing after it -> DENIED"    2 "$(pre "$(mkw "$P/docs/finding.md" "$DIAG\npremise-ok:")")"
 chk "premise-ok: <named control> -> allowed"         0 "$(pre "$(mkw "$P/docs/finding.md" "$DIAG\npremise-ok: browser render check, run 2026-08-08")")"
 
+echo "-- 7. A project root that LIVES UNDER /tmp (the Linux mktemp shape) --"
+# ⛔ REGRESSION GUARD, and it is platform-independent ON PURPOSE. macOS `mktemp -d`
+# yields /var/folders/...; Linux yields /tmp/tmp.XXXX. The scratch exemption was once
+# a bare `"/tmp/" in path`, so on Linux the PROJECT ROOT ITSELF matched it and every
+# deny assertion above passed VACUOUSLY — 18/18 green on macOS, and green for the
+# wrong reason in CI. Every case above uses mktemp, so on macOS none of them can
+# reach this path. This one pins the root under /tmp explicitly, so the guard is
+# exercised on BOTH platforms.
+L="/tmp/pg-linuxshape-$$"
+mkdir -p "$L/src" "$L/plugins/ravenclaude-core/hooks"
+cp "$H/log-probe.sh" "$L/plugins/ravenclaude-core/hooks/"
+export CLAUDE_PROJECT_DIR="$L"
+post '{"session_id":"linuxshape","tool_name":"Bash","tool_input":{"command":"fetch https://x.test/a"},"tool_response":{"stdout":"404","stderr":""}}'
+chk "project root under /tmp: new module after a 404 still DENIED" \
+    2 "$(pre '{"session_id":"linuxshape","tool_name":"Write","tool_input":{"file_path":"'"$L"'/src/New.astro"}}')"
+# The exemption must still work for a genuine scratch write OUTSIDE the project.
+chk "out-of-project /tmp write is still exempt" \
+    0 "$(pre '{"session_id":"linuxshape","tool_name":"Write","tool_input":{"file_path":"/tmp/pg-elsewhere-'"$$"'/x.astro"}}')"
+rm -rf "$L"
+
 echo
 echo "  $pass passed, $fail failed"
 [ "$fail" -eq 0 ] || exit 1
