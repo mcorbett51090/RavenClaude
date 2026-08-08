@@ -556,9 +556,43 @@ PY
       fi
       exit "$_rc"
       ;;
+    177)
+      echo "── Gate 177: premise gate (per-gate run) ──────────────────────────────────"
+      bash plugins/ravenclaude-core/hooks/tests/test-premise-gate.sh
+      exit $?
+      ;;
+    178)
+      echo "── Gate 178: claim classifier (per-gate run) ─────────────────────────────"
+      python3 scripts/classify_claim.py --self-test && \
+      python3 scripts/classify_claim.py --must-fail && \
+      python3 -O scripts/classify_claim.py --self-test
+      exit $?
+      ;;
+    179)
+      echo "── Gate 179: FORGE G3b premise gate (per-gate run) ───────────────────────"
+      python3 scripts/premise-gate.py --self-test && python3 scripts/premise-gate.py --must-fail
+      exit $?
+      ;;
+    181)
+      echo "── Gate 181: probe-kit (per-gate run) ────────────────────────────────────"
+      bash scripts/probe-kit.sh --self-test
+      exit $?
+      ;;
+    182)
+      echo "── Gate 182: diff budget (per-gate run) ──────────────────────────────────"
+      python3 scripts/check-diff-budget.py --self-test && \
+      python3 scripts/check-diff-budget.py --must-fail && \
+      bash plugins/ravenclaude-core/hooks/tests/test-diff-budget.sh
+      exit $?
+      ;;
+    183)
+      echo "── Gate 183: review reopen-ledger (per-gate run) ─────────────────────────"
+      python3 scripts/review-ledger.py --self-test && python3 scripts/review-ledger.py --must-fail
+      exit $?
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -1832,7 +1866,13 @@ rc=0; printf '%s' "$g20a" | jq -e '.permissionDecision=="deny"' >/dev/null 2>&1 
 gate "copilot: adapter does not over-deny an allow" must_pass "$rc"
 # (d) generated Copilot package is fresh (committed == generator output)
 GENCP=scripts/generate-copilot-plugin.py
-rc=0; python3 "$GENCP" --check >/dev/null 2>&1 || rc=$?
+# ⛔ Do NOT send this to /dev/null. When it drifts, the ONLY thing that tells you
+# WHICH file drifted is this output — and a freshness failure you cannot diagnose
+# costs a push cycle per guess. (verification-discipline Rule 3: never grep or
+# discard the diagnostics of a gate you are relying on.)
+_cpout="$TMP/copilot-check.txt"
+rc=0; python3 "$GENCP" --check >"$_cpout" 2>&1 || rc=$?
+if [ "$rc" -ne 0 ]; then sed 's/^/    /' "$_cpout" | head -20; fi
 gate "copilot: package freshness (clean tree)" must_pass "$rc"
 # bidirectional: a stale committed package must be detected
 backup plugins/ravenclaude-core/copilot/plugin.json
@@ -5645,6 +5685,132 @@ gate "memory-errata: 0 debunked claims outside the Corrections block" must_pass 
 
 rc=0; python3 scripts/check-memory-errata-regression.py --must-fail >/dev/null 2>&1 || rc=$?
 gate "memory-errata teeth: known-bad, corrections-stripped block and grep-targets comment all caught" must_pass "$rc"
+
+echo "── Gate 177: the premise gate — no construction on an unfalsified premise ─"
+# 2026-08-08, RavenPower-Website. A probe of a Cloudflare email-obfuscation href
+# returned 404. From that ONE negative result an agent concluded "the decoder is
+# broken, every visitor is affected", then built an 85-line component, converted 10
+# call sites, wrapped 15 addresses, added an owner go-live checklist item and gave
+# two turns of architectural advice. That URL is a placeholder nothing fetches — it
+# is SUPPOSED to 404. One control probe (/cdn-cgi/trace -> 200) would have ended it
+# in ten seconds. No user ever experienced the reported defect.
+#
+# ⛔ The wrong hypothesis was cheap and normal. The damage came from the hypothesis
+# being silently promoted to a premise by being written down, with nothing ever
+# returning to test it. log-probe.sh records negative results from `tool_response`
+# (that it carries Bash stdout was settled BY MEASUREMENT — three documentation
+# fetches could not); guard-premise.sh then refuses to CREATE a new source module
+# while one is unresolved.
+#
+# ⛔ FAILS CLOSED when the recorder is missing. A check that cannot see must never
+# report clean — "clean" and "blind" are indistinguishable afterward, which is how a
+# green gate ends up protecting nothing.
+# TWO triggers, OR-ed. T-SHAPE = a negative probe then a new source module.
+# T-PROSE = a diagnosis written into a DURABLE artifact as established fact with no
+# control cited beside it — it reads no ledger, so it catches a premise formed in a
+# PRIOR session or before a compaction, which T-SHAPE structurally cannot see.
+# ⛔ OR-ed, never AND-ed: AND-ing would silence T-SHAPE whenever the prose is absent.
+# Proven mechanically — with T-PROSE neutered the suite goes 15/3 and the 3 reds are
+# exactly its own denies while all 9 T-SHAPE assertions stay green.
+# ⛔ The certainty stamp is the TRIGGER, not an exemption. The real header read
+# "measured 2026-08-07" beside a false claim; a hedged draft does not trip it.
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-premise-gate.sh >/dev/null 2>&1 || rc=$?
+gate "premise-gate: T-SHAPE replay denies, T-PROSE denies on an EMPTY ledger, control releases, fail-closed when blind" must_pass "$rc"
+
+# Teeth. Neuter the gate to `exit 0` and the suite MUST go red. Verified by hand:
+# 9 passed becomes 6 passed / 3 failed, and the three that break are the load-bearing
+# ones (deny on a negative, fail-closed when blind, override leaves a trace).
+_pg_tmp="$(mktemp -d)"
+cp -R plugins/ravenclaude-core/hooks "$_pg_tmp/hooks"
+printf '#!/usr/bin/env bash\nexit 0\n' > "$_pg_tmp/hooks/guard-premise.sh"
+rc=0; bash "$_pg_tmp/hooks/tests/test-premise-gate.sh" >/dev/null 2>&1 || rc=$?
+gate "premise-gate teeth: a neutered gate is caught" must_fail "$rc"
+
+echo "── Gate 181: probe-kit — a negative result is not a diagnosis ────────────"
+# The claim-#11-INDEPENDENT half of the design: it does not rest on "a fail-closed gate
+# beats prose". It makes the RIGHT action cheaper instead of making the wrong one harder.
+# The control that would have killed the 2026-08-08 incident cost ten seconds, and
+# nobody ran it — because running it required thinking of it first.
+#
+# ⛔ A RE-RUN IS NOT A CONTROL. Building this exposed the trap live: /cdn-cgi/trace
+# derived ITSELF as its control. A re-run moves in lockstep with the subject under
+# every hypothesis, so it distinguishes nothing while LOOKING like a passing control —
+# the exact shape this whole gate family exists to catch. An identical control now
+# returns exit 3 "NOT A CONTROL" rather than a verdict.
+rc=0; bash scripts/probe-kit.sh --self-test >/dev/null 2>&1 || rc=$?
+gate "probe-kit: 27 subtests — all four outcomes distinguishable, re-run-is-not-a-control refused" must_pass "$rc"
+
+echo "── Gate 182: diff budget — mass deletion is a stop, not a diff ───────────"
+# 2026-08-08: fixing four version-pin failures, an agent ran the whole
+# regenerate-artifacts battery instead of only what the change needed.
+# render-trees.py PRINTED "ok" and DELETED 800+ tree SVGs plus 186 concept visuals —
+# it needs a renderer absent on that host. It was caught by ACCIDENT, because an
+# unrelated gate had passed on an earlier run and failed on a later one. Nothing in
+# the commit path flagged that a docs change was about to delete 806 tracked files.
+#
+# ⛔ Exit codes are a contract: 0 within budget, 2 over budget, 1 COULD-NOT-RUN.
+# 1 is never "clean" — a checker that cannot see must not report clean.
+rc=0; python3 scripts/check-diff-budget.py --self-test >/dev/null 2>&1 || rc=$?
+gate "diff-budget: mass deletion trips, a single delete does not, non-repo is could-not-run" must_pass "$rc"
+
+rc=0; python3 scripts/check-diff-budget.py --must-fail >/dev/null 2>&1 || rc=$?
+gate "diff-budget teeth: a neutered deletion rule MISSES the known-bad case" must_pass "$rc"
+
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-diff-budget.sh >/dev/null 2>&1 || rc=$?
+gate "diff-budget shell harness: 22 assertions incl. the mutant check" must_pass "$rc"
+
+echo "── Gate 183: review reopen-ledger — why a review loop converges ──────────"
+# Measured on a real branch: round 1 closed 7 findings, round 2 closed 7 (2 of them
+# introduced by round 1's FIXES), round 3 closed 8 (2 introduced by round 2's).
+# ~25% self-inflicted every round, and the rate was NOT falling — because each round
+# was a fresh cold read of the CURRENT tree, so closed findings were never re-checked
+# and regressions were rediscovered at full price.
+#
+# A loop that only reads current state has NO FIXED POINT: every fix is new code that
+# has never been reviewed, so there is always something new to find. The ledger feeds
+# prior findings back in, checks REOPENS first, and says plainly when E[round N] has
+# crossed zero and the loop should stop and ship.
+rc=0; python3 scripts/review-ledger.py --self-test >/dev/null 2>&1 || rc=$?
+gate "review-ledger: replays the real 3-round history, detects both reopen waves" must_pass "$rc"
+
+rc=0; python3 scripts/review-ledger.py --must-fail >/dev/null 2>&1 || rc=$?
+gate "review-ledger teeth: without previously_closed, the reopens go undetected" must_pass "$rc"
+
+echo "── Gate 178: claim classifier — observation vs inference ─────────────────"
+# FORGE G1 validates PROVENANCE ("is it sourced?"). The costliest false claim this
+# repo has seen WAS sourced — an in-session curl returned 404, and from that true
+# OBSERVATION an agent drew the false INFERENCE "the decoder is broken, every visitor
+# is affected", then built 16 files on it. Grounding an observation is not grounding
+# an inference drawn from it. This classifier is that missing distinction, and it is
+# UPWARD-ONLY so an author can raise a row but never lower one.
+#
+# ⛔ Its canary uses an explicit raise, NOT `assert`: `python -O` strips asserts, which
+# would silently delete the very check that proves the classifier can still see.
+rc=0; python3 scripts/classify_claim.py --self-test >/dev/null 2>&1 || rc=$?
+gate "classify-claim: 45 assertions, canary ARMED, upward-only holds" must_pass "$rc"
+
+rc=0; python3 scripts/classify_claim.py --must-fail >/dev/null 2>&1 || rc=$?
+gate "classify-claim teeth: 7 planted defects (family deletion, blinding, downward re-type) all caught" must_pass "$rc"
+
+# The canary must survive -O, or it is not a canary.
+rc=0; python3 -O scripts/classify_claim.py --self-test >/dev/null 2>&1 || rc=$?
+gate "classify-claim: canary survives python -O (asserts stripped)" must_pass "$rc"
+
+echo "── Gate 179: FORGE G3b premise gate — plan/claims wiring ─────────────────"
+# G3b READS `depends_on_claims` off a plan. If the G2/G3 contract stops EMITTING it,
+# the gate runs, finds no edges, and passes green WHILE CHECKING NOTHING. That exact
+# defect shipped in a draft of this design, and its own gate supplied the field in a
+# SYNTHETIC FIXTURE — so it would have been green while inert in production. Hence the
+# UNWIRED verdict (exit 1) rather than clean, and hence this gate.
+rc=0; python3 scripts/premise-gate.py --self-test >/dev/null 2>&1 || rc=$?
+gate "premise-gate: incident replay trips, observations clean, unwired/unreadable never clean" must_pass "$rc"
+
+# Teeth. --must-fail neuters the INFERENCE check and asserts the self-test then FAILS.
+# ⛔ The first planted defect here was a raised blast floor and it did NOT bite (a phase
+# that creates a module is over-floor regardless), so the teeth reported failure on
+# themselves. A teeth check is only as good as the defect it plants.
+rc=0; python3 scripts/premise-gate.py --must-fail >/dev/null 2>&1 || rc=$?
+gate "premise-gate teeth: a neutered inference check is caught" must_pass "$rc"
 
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"

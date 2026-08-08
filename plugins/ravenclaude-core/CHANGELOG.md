@@ -2,6 +2,63 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.240.0 — 2026-08-08
+
+### Added
+
+- **The premise gate** — two hooks that stop construction on an unfalsified premise.
+  `log-probe.sh` (PostToolUse `Bash|WebFetch`) records negative results as **derived labels only** —
+  never the raw command or output. `guard-premise.sh` (PreToolUse `Write`) then refuses to **create a
+  new source module** while one is unresolved, and releases the moment a positive control on the same
+  subject lands.
+
+  ⛔ **The incident.** A probe of a Cloudflare email-obfuscation href returned 404. From that one
+  negative result: _"the decoder is broken, every visitor is affected."_ Then an 85-line component, 10
+  converted call sites, 15 addresses opted **out** of anti-scraping protection, an owner go-live
+  checklist item, and two turns of architectural advice. That URL is a placeholder nothing fetches — it
+  is _supposed_ to 404. `/cdn-cgi/trace` → 200 would have ended it in ten seconds. **No user ever
+  experienced the defect.** The wrong hypothesis was cheap and normal; the damage came from it being
+  silently promoted to a premise **by being written down**, with nothing ever returning to test it.
+
+  ⛔ **It fires when the author is certain.** At the moment of the incident the author was confident,
+  with a real tool call behind them — so anything keyed on self-reported doubt would never have fired.
+  The trigger reads only objective shape: a negative probe on the ledger, a Write that _creates_, a
+  source-module target. Confidence is not an input, so it cannot be an exemption.
+
+  ⛔ **Fails closed.** The recorder drops a liveness beacon; no beacon and no recorder installed means
+  **DENY, "I am blind"** — never "all clear". Owner ruling 2026-08-08: _"friction please. Failing
+  silently is no bueno."_ "Clean because I looked" and "clean because I couldn't see" are
+  indistinguishable afterward, which is how a green gate ends up protecting nothing.
+
+  Friction is bounded: one `test -e` short-circuits every edit to an existing file, every doc, every
+  test at any depth, every scratch write. Escape hatches: `RC_PREMISE_CONTROL` (name the control you
+  ran) and `RC_PREMISE_OVERRIDE=1` (proceed — and it is written to an override log, never silent).
+
+- **`knowledge/verification-discipline.md`** — seven rules for knowing a claim is true before making
+  it, each carrying the incident that produced it, **wired into five agents + `spawn-team`** rather
+  than left to be found. (Its companion `consistency-failure-modes.md` had been cited by *nothing*
+  since it landed; both are now referenced from the agents that need them.) Includes the structural
+  rule for why a review loop that only reads current state **cannot converge** — measured at ~25%
+  self-inflicted findings per round, not falling — and an honest statement of what does *not* go away.
+
+- **FORGE gate G3b** (`scripts/premise-gate.py` + `reference/premise-gate.md`) — the same discipline
+  inside the planning pipeline. G1 validates **provenance**, and the costly false claim *was*
+  provenanced; G1 has no notion of **inferential distance**. Claims tables now carry a
+  `kind: observation | inference` column typed by `scripts/classify_claim.py` (grammatical,
+  **upward-only**), and every plan phase declares `depends_on_claims: [...]`.
+
+  ⛔ **The field must be emitted, not just read.** A draft of this design specified the trigger against
+  a plan field the schema never added, and its gate supplied that field in a **synthetic fixture** — so
+  it would have gone green while inert in production. A fixture is not a wiring proof. Hence the
+  `UNWIRED` verdict (exit **1**, never 0) when a plan has phases but no claim edges at all.
+
+### Changed
+
+- **DOM ratchet +16** (dashboard 6,155 → 6,171; index 7,041 → 7,057), owner-approved. Raised rather
+  than hiding `guard-premise.sh` from `_PIPELINE_LANES`: a hook that **denies a user's write** and
+  cannot be seen or understood in the dashboard is exactly the unwatched-not-clean state the Pipeline
+  tab exists to prevent. The ratchet row states the one-step revert.
+
 ## 0.238.0 — 2026-08-06
 
 ### Added

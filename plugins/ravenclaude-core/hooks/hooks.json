@@ -47,6 +47,15 @@
             "comment": "Records the per-session first-use 'seen' marker for a YAML-whitelisted domain \u2014 but ONLY after the WebFetch actually proceeded (PostToolUse does not fire on a blocked/denied tool call). This is the consent-ordering complement to guard-web-access.sh's PreToolUse 'ask': a PreToolUse hook can't see its own ask's answer, so marking 'seen' there would silently auto-allow a domain the user just DENIED on the next retry. Recording consent post-allow here closes that inversion. Fail-safe: not WebFetch / no url / no jq -> no-op; never blocks."
           }
         ]
+      },
+      {
+        "matcher": "Bash|WebFetch",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/log-probe.sh"
+          }
+        ]
       }
     ],
     "PreToolUse": [
@@ -109,6 +118,15 @@
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/route-decision-review.sh",
             "timeout": 90,
             "comment": "Decision-review enforcement (the Thing, decision mode). No-ops (fast grep) unless `decision_review: advisory|binding` is set in .ravenclaude/comfort-posture.yaml (default off). When opted in AND the AskUserQuestion is a single, binary, non-multiselect yes/no-shaped question, routes it through thing-decide.py; on a BINDING yes/no verdict it DENIES the prompt with the verdict + reasoning so the agent proceeds without interrupting the user. Defer / advisory / high-blast / low-confidence / any error -> allow (the human answers). Every routed decision is Saga-logged under .ravenclaude/runs/thing/decisions/."
+          }
+        ]
+      },
+      {
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/guard-premise.sh"
           }
         ]
       }
