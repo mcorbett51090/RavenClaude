@@ -1866,7 +1866,13 @@ rc=0; printf '%s' "$g20a" | jq -e '.permissionDecision=="deny"' >/dev/null 2>&1 
 gate "copilot: adapter does not over-deny an allow" must_pass "$rc"
 # (d) generated Copilot package is fresh (committed == generator output)
 GENCP=scripts/generate-copilot-plugin.py
-rc=0; python3 "$GENCP" --check >/dev/null 2>&1 || rc=$?
+# ⛔ Do NOT send this to /dev/null. When it drifts, the ONLY thing that tells you
+# WHICH file drifted is this output — and a freshness failure you cannot diagnose
+# costs a push cycle per guess. (verification-discipline Rule 3: never grep or
+# discard the diagnostics of a gate you are relying on.)
+_cpout="$TMP/copilot-check.txt"
+rc=0; python3 "$GENCP" --check >"$_cpout" 2>&1 || rc=$?
+if [ "$rc" -ne 0 ]; then sed 's/^/    /' "$_cpout" | head -20; fi
 gate "copilot: package freshness (clean tree)" must_pass "$rc"
 # bidirectional: a stale committed package must be detected
 backup plugins/ravenclaude-core/copilot/plugin.json
