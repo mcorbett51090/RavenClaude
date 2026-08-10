@@ -34,4 +34,4 @@ CEAs carry host + (often) model cost on top of Copilot seats / PAYG — state it
 
 ## Refresh triggers
 - Agents SDK / Toolkit feature surface or CLI name changes.
-- Agent 365 SDK (Entra agent identity + governed MCP) reaches GA `[verify-at-build]`.
+- Agent 365 SDK (Entra agent identity + governed MCP) reaches GA `[verify-at-build]` — note the **product** Agent 365 is GA (2026-05-01), but the **SDK's** GA status is a distinct claim and remains unconfirmed (some developer tooling is still preview via the Frontier program); verify separately before relying on it.

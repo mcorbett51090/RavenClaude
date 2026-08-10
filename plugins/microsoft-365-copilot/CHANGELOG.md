@@ -2,6 +2,17 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.5.5] — 2026-08-10
+
+Research-sweep **correction** (Tier-A weekly news sweep) — a self-declared refresh trigger **fired**, caught late. `knowledge/copilot-admin-governance-2026.md` still described **Microsoft Agent 365** as "emerging `[verify-at-build]` … deferred until GA," and the 0.5.3 refresh-trigger note (2026-07-01) recorded it as "still pending GA" — but Agent 365 reached **GA on 2026-05-01** (per-user licensing; standalone or included in Microsoft 365 E7). Verified 2026-08-10 via the Microsoft-Learn MCP against [Microsoft Agent 365 overview](https://learn.microsoft.com/microsoft-agent-365/overview) ("As of May 1, 2026, Microsoft Agent 365 is generally available … on a per user basis") + [Partner Center May 2026](https://learn.microsoft.com/partner-center/announcements/2026-may). Panels: usefulness → USEFUL (unanimous 3/3); detailed source-verified review → IMPLEMENT (both seats); tiebreak not required.
+
+### Fixed
+
+- **`knowledge/copilot-admin-governance-2026.md`** — the "## Agent 365 (track, don't over-invest)" section now records Agent 365 as **GA 2026-05-01, per-user** with primary citations; the heading becomes "Agent 365 (GA 2026-05-01 — govern it)"; the confidence header + refresh-trigger list are updated to mark the GA trigger **fired**. Accuracy guardrails held: **no** per-user price is asserted (the prior "$15/user/mo" figure is not in Microsoft Learn), the **Agent 365 SDK/CLI** is **not** claimed GA (only the product/control plane is — SDK maturity stays `[verify-at-use]`, some features still preview via the Frontier program), and E5 (recommended prerequisite) is not conflated with E7 (the bundle that includes Agent 365).
+- **`knowledge/agents-sdk-and-toolkit-2026.md`** — the "Agent 365 SDK reaches GA" refresh trigger is split so the **product** GA (2026-05-01) does not falsely imply the **SDK** is GA (unconfirmed).
+- Version **0.5.4 → 0.5.5** in `.claude-plugin/plugin.json` **and** `marketplace.json` (lockstep). **Migration:** none — knowledge-file content only.
+- **Deliberately out of scope** (logged for the maintainer): whether GA now justifies building a v0.2.0 `agent-365-engineer` (a design decision, not a knowledge edit) — the `CLAUDE.md` / `agent-platform-decision-2026.md` deferral lines are left unchanged.
+
 ## [0.5.3] — 2026-07-01
 
 Research-sweep **refresh** (Tier-A weekly news sweep) — the PAYG-metering hedge's self-declared refresh trigger **fired**. `knowledge/copilot-admin-governance-2026.md` deferred "Pay-as-you-go (PAYG) metering for some agent consumption `[verify-at-build]`" to a future "when PAYG metering … reach GA" trigger; **Copilot Cowork went GA 2026-06-16 with usage-based "Copilot Credits" billing** (also the Work IQ API) — a concrete GA instance of that metering. Verified 2026-07-01 against MS Learn Cowork what's-new + Partner Center June 2026.
