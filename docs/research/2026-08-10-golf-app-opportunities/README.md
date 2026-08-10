@@ -49,6 +49,17 @@ should fix. Primary evidence is **GolfWRX** (retrieved via search-engine indexin
 which returns the discussion content, not just titles), with **The Hackers Paradise** as a second
 source. Every finding below traces to a linked thread.
 
+> **Closing the Reddit gap.** [`reddit-scan.py`](reddit-scan.py) in this directory harvests the same
+> complaint themes from Reddit through the official OAuth2 API, which is subject to the egress block
+> but *not* to the crawler block — so it runs unattended once two things are true: the environment's
+> network policy allowlists `www.reddit.com` and `oauth.reddit.com`, and `REDDIT_CLIENT_ID` /
+> `REDDIT_CLIENT_SECRET` are set. Run `python3 reddit-scan.py --preflight` first; it reports which of
+> the two blockers is in play rather than failing with a generic tunnel error.
+>
+> **Caveat, stated plainly:** its failure paths are verified against this environment, but **the
+> happy path has never executed** — the egress block prevented any successful call. Treat the first
+> real run as a test of the script, not only of the data.
+
 **How the 5-year filter was applied.** GolfWRX topic IDs increase monotonically, so the ID acts as a
 date proxy. Anchors observed this session:
 
@@ -501,8 +512,11 @@ complaint (tracking friction and subscription resentment), and the biggest unans
 **What to do before building anything.**
 - **Re-run the saturation scan.** It was accurate on 2026-08-10 and two categories closed within the
   last ~18 months.
-- **Search Reddit.** r/golf was blocked in this environment and is the highest-volume source in the
-  sport. It will add complaints this pass missed and may contradict some prioritization here.
+- **Search Reddit** using [`reddit-scan.py`](reddit-scan.py) (setup in its module docstring). r/golf
+  was blocked in this environment and is the highest-volume source in the sport, skewing younger and
+  more casual than GolfWRX's gear-focused low-handicappers. It will add complaints this pass missed
+  and may contradict some prioritization here — most likely the beginner/retention concepts
+  (#10 Right Tees, #15 First 20 Rounds, #28 Fairway Welcome), which rest on the thinnest evidence.
 - **Mine App Store reviews** of the incumbents (Arccos, 18Birdies, GolfShot, TheGrint). Forum posts tell
   you what people want; 2-star reviews tell you what they'd switch away from — a much better signal.
 - **Validate one gap directly.** The strongest claim here — that no consumer product converts your
