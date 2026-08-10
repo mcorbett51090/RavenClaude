@@ -44,8 +44,10 @@ WebSearch allowed_domains:["reddit.com"]
 → API Error 400: domains not accessible to our user agent
 ```
 
-So **r/golf was not searched at all** — a real gap, and the single biggest thing a follow-up pass
-should fix. Primary evidence is **GolfWRX** (retrieved via search-engine indexing of thread pages,
+So **r/golf could not be searched from this environment** — a real gap, and the single biggest thing
+a follow-up pass should fix. It was **partially closed the same day** by a 12-row browser-side spot
+check; see [Reddit cross-check](#reddit-cross-check-added-2026-08-10-same-day), which moved six
+judgements and surfaced three findings this corpus missed entirely. Primary evidence is **GolfWRX** (retrieved via search-engine indexing of thread pages,
 which returns the discussion content, not just titles), with **The Hackers Paradise** as a second
 source. Every finding below traces to a linked thread.
 
@@ -521,6 +523,67 @@ complaint (tracking friction and subscription resentment), and the biggest unans
   you what people want; 2-star reviews tell you what they'd switch away from — a much better signal.
 - **Validate one gap directly.** The strongest claim here — that no consumer product converts your
   dispersion into an aim point (#3) — is the one most worth trying to disprove before you invest in it.
+
+---
+
+## Reddit cross-check (added 2026-08-10, same day)
+
+The r/golf gap named above was **partially closed** the same day via a browser-side pass (searches on
+pace of play, tee times, golf app, sandbagger, beginner etiquette — Top/past year — plus a
+"what would you change about golf" sweep). Twelve complaint rows were returned with permalinks and
+vote counts. This is **not** the full sweep [`reddit-scan.py`](reddit-scan.py) would do — it's a
+12-row spot check — but it is enough to move several judgements, and it is the higher-engagement,
+more casual audience GolfWRX under-represents.
+
+**Its own limits, stated:** the collector was constrained to a single short verbatim quote, so all
+other rows are paraphrase — permalinks are the authority for exact wording. And two search terms
+("beginner etiquette", the literal phrase "what would you change about golf") returned little
+complaint-shaped content, so absence of support below is **weak** evidence, not disconfirmation.
+
+### Three findings the GolfWRX corpus missed entirely
+
+| Finding | Signal | Why it matters |
+|---|---|---|
+| **Golfers have no objective record of their own pace when staff accuse them.** One group was repeatedly told they were slow; it was only settled when the resort pulled its internal Tag Marshal data and showed they'd been keeping pace all along. | **~3,800** upvotes, Apr 2026 · [thread](https://reddit.com/r/golf/comments/1sxjk7o/played_the_most_miserable_round_of_my_life_at/) | This is a **new use case for #1 Pace Copilot and arguably its killer feature** — not coaching, *receipts*. The player is currently defenceless against a marshal's judgement because only the course holds the data. A player-side pace log flips that. Nothing in the GolfWRX corpus suggested it. |
+| **Being falsely accused of sandbagging is its own widespread grievance.** | **566** upvotes, Jun 2026 · [thread](https://reddit.com/r/golf/comments/1ugagcm/you_are_not_a_sandbagger_if/) | **#7 Verified Index was framed only as catching cheats.** This says it must equally serve **exoneration** — a good player carrying a legitimately low index needs to prove they're honest. That halves the product's political problem: it isn't an accusation tool, it's a defence tool that happens to expose fraud. |
+| **A large share of pace pain is caused by course scheduling, not player behaviour** — 8-minute tee intervals creating pileups. | **1,996** upvotes, Jun 2026 · [thread](https://reddit.com/r/golf/comments/1uf8qcs/abolish_tee_times_every_8_mins/) | Sharpens #1's honest scope: a player-side app **cannot fix** operator-caused congestion. What it can do is *measure and attribute* it — showing a golfer their slow round was structural, not their group's fault. Sell measurement and evidence, not just nudges. |
+
+### What moved
+
+| Concept | Before | After |
+|---|---|---|
+| **#1 Pace Copilot** | Strong (loudest complaint, operator-only supply) | **Strongest on the list.** Confirmed at scale, plus the evidence/receipts use case above, plus GPS-fiddling measured by one golfer as adding ~an hour to a round ([2,418](https://reddit.com/r/golf/comments/wdgmfi/12_feet_auto_putts_or_300_yard_straight_drives_i/)). |
+| **#15 First 20 Rounds** | Flagged as **thinnest evidence** | **Confirmed.** A beginner turning up with a *bucket of range balls* to play 18 drew [2,273](https://reddit.com/r/golf/comments/1mo6iv9/using_range_bucket_to_play_18/) upvotes. Nobody is teaching new golfers the basics before they're on the course. Promote it out of the thin-evidence list. |
+| **#7 Verified Index** | Strong, but incumbent Cap Patrol existed | **Stronger.** A club using Cap Patrol [called its algorithm bad](https://reddit.com/r/golf/comments/1oakfrg/the_club_sandbagger/nkc26xi/); the flagship [sandbagger thread](https://reddit.com/r/golf/comments/1oakfrg/the_club_sandbagger/) (296) is entirely about *knowing but being unable to prove*. Incumbent is weak, and the exoneration reframe above widens the market. |
+| **#4 Voice Diary** | Strong | **Confirmed with a caveat.** Interaction burden is real — one golfer abandoned tracking apps for a paper logbook and [called the round freeing](https://reddit.com/r/golf/comments/1uidrto/ive_abandoned_smart_golf_apps/) (182). Supports the zero-tap thesis, but warns that a segment wants *no* on-course tech at all. Voice must be genuinely invisible or it loses these users too. |
+| **#17 Fourth** · **#20 One Tee Sheet** | Partially served | **Confirmed.** Golfers get [paired blind with strangers](https://reddit.com/r/golf/comments/1n9lf6x/how_you_would_you_feel/ncnivqg/) for 4+ hours (199), some walking as singles to avoid it. And a golfer [reverse-engineered three booking platforms' APIs](https://reddit.com/r/golf/comments/1pl44d4/i_quit_my_job_and_built_a_free_app_for_golfers/ntq9ktq/) to script tee-time grabs (94) — scarcity is now an arms race. |
+| **#10 Right Tees** · **#28 Fairway Welcome** | Flagged as thin evidence | **Still thin — no support found.** But the searches that would have surfaced them returned little, so treat this as *not tested* rather than *disconfirmed*. These two remain the weakest-grounded concepts and should be validated before any build. |
+
+### Sharpened positioning on subscriptions
+
+The GolfWRX corpus showed price resentment (Arccos $155 → $199/yr). Reddit shows something angrier:
+users reporting **billing that continues after cancellation**, support going dark, and an
+[FTC complaint thread](https://reddit.com/r/golf/comments/1nqfsqn/reporting_arccos_shady_business_practices_to_ftc/ng6jbgu/)
+where the top comment is *"F these scummy subscription services. Tired of it."* (41).
+
+That is not a pricing objection, it is a **trust** objection — and trust is cheap to win. A one-time
+purchase, or a subscription with genuinely one-click cancellation stated on the pricing page, is a
+positioning wedge against the category leader that costs nothing to build.
+
+### One new candidate surfaced
+
+**Pre-order at the turn.** No way to order food/drink ahead for pickup at the halfway house, so
+golfers either skip it or lose time waiting — a commenter proposed a QR code on the 7th tee and was
+[baffled it isn't standard](https://reddit.com/r/golf/comments/1uf8qcs/abolish_tee_times_every_8_mins/otqnytv/)
+(72). Small, but it ties directly to pace and would need course partnerships. Logged as a **candidate
+#31** rather than renumbering the thirty.
+
+### What a full scan would still add
+
+This was 12 rows from 6 searches. [`reddit-scan.py`](reddit-scan.py) covers **12 themes / ~55 queries
+across 6 subreddits with comment harvesting** — roughly two orders of magnitude more coverage,
+including the equipment, cost, practice, and instruction themes this pass never touched. The spot
+check moved six judgements; the full scan should be run before committing engineering effort.
 
 ---
 
