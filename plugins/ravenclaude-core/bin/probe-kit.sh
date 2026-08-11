@@ -31,12 +31,12 @@
 # to be wrong, this still works — because it changes a cost, not a rule.
 #
 # Usage (one line, no setup, no config, no state):
-#   bash scripts/probe-kit.sh http <url>     probe the URL + a control on the same host
-#   bash scripts/probe-kit.sh dns  <host>    resolve the host + a control in the same zone
-#   bash scripts/probe-kit.sh file <path>    stat the path  + a control on the same tree
-#   bash scripts/probe-kit.sh cmd  <name>    look up a command + a control on the same PATH
-#   bash scripts/probe-kit.sh --explain [type]   what a negative does / does NOT license
-#   bash scripts/probe-kit.sh --self-test        prove the instrument before believing it
+#   rc probe http <url>     probe the URL + a control on the same host
+#   rc probe dns  <host>    resolve the host + a control in the same zone
+#   rc probe file <path>    stat the path  + a control on the same tree
+#   rc probe cmd  <name>    look up a command + a control on the same PATH
+#   rc probe --explain [type]   what a negative does / does NOT license
+#   rc probe --self-test        prove the instrument before believing it
 #
 # Options (after the target): --control <c>  --timeout <secs>
 #

@@ -81,10 +81,28 @@ case "$cmd" in
     # 2026-08-08: a 404 on an href PLACEHOLDER (supposed to 404) produced an
     # 85-line component, 10 converted call sites and two turns of owner-facing
     # architectural advice. One control probe would have cost ten seconds.
-    kit="$PLUGIN_ROOT/../../scripts/probe-kit.sh"
+    # ⛔ THE PLUGIN COPY IS TRIED FIRST, AND IT IS THE ONE THAT SHIPS.
+    # Until 0.241.0 the engine lived ONLY at the marketplace root's scripts/,
+    # which is not part of the distributed plugin — so from an installed cache
+    # `rc probe` found nothing and the whole control-probe feature was dead for
+    # every consumer, while the probe-kit SKILL shipped and told them to run it.
+    # It now lives in the plugin's bin/ (beside this launcher) so it travels with
+    # the install. The marketplace-root path is kept last, for a dev checkout
+    # that still has one.
+    #
+    # bin/ rather than scripts/ on purpose: probe-kit is a tool a human or agent
+    # INVOKES, like this launcher — not one of the Thing's engines. The plugin's
+    # scripts/ is the tribunal's own substrate and is write-guarded, so parking a
+    # general-purpose tool there would make every future edit fight that guard.
+    kit="$PLUGIN_ROOT/bin/probe-kit.sh"
     [ -f "$kit" ] || kit="$PLUGIN_ROOT/scripts/probe-kit.sh"
+    [ -f "$kit" ] || kit="$PLUGIN_ROOT/../../scripts/probe-kit.sh"
     if [ ! -f "$kit" ]; then
-      echo "rc: cannot find probe-kit.sh (looked beside the marketplace root and in the plugin)" >&2
+      # ⛔ EXIT 1, NOT 0. This used to exit 0, so a caller written as
+      # `rc probe … || fallback` took the SUCCESS branch having probed nothing —
+      # a control-runner that fails OPEN is worse than none, because the session
+      # believes it ran a control.
+      echo "rc: cannot find probe-kit.sh (looked in the plugin bin/, scripts/, and beside the marketplace root)" >&2
       exit 1
     fi
     exec bash "$kit" "$@"

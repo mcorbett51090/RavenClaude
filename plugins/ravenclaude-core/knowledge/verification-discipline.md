@@ -215,29 +215,34 @@ so it published them in plain text to every harvester to repair nothing.
 a browser, an edge network, a CDN, a mail client, a device — **the source is not
 the artifact and `curl` is not a user.** Measure the rendered end state.
 
-**Run the control — don't rely on remembering to.** `rc probe http <url>` (or
-`scripts/probe-kit.sh`) probes the thing **and** a known-good control on the same subsystem, and tells
+**Run the control — don't rely on remembering to.** `rc probe http <url>` (engine:
+the plugin's `bin/probe-kit.sh`) probes the thing **and** a known-good control on the same subsystem, and tells
 you which of four situations you are in: negative confirmed · **control also failed** (your probe
 target is wrong, not the subject) · positive · inconclusive. `rc probe --explain` states what a
 negative result does and does not license. The control that would have killed this incident cost ten
 seconds, and nobody ran it — because running it required thinking of it first. That is what the kit
 removes.
 
-> ⛔ **`rc probe` IS NOT SHIPPED IN THE INSTALLED PLUGIN, AND IT FAILS OPEN.** Do not cite it as an
-> available route without checking it first.
+> ⛔ **`rc probe` WAS DEAD FROM AN INSTALLED PLUGIN UNTIL 0.241.0, AND IT FAILED OPEN.**
+> Fixed; recorded because the shape recurs and the fix is not obvious from the symptom.
 >
 > ```
-> control: rc              -> usage text, exit 0   (launcher works; the invocation is fine)
->          rc probe --explain -> "rc: cannot find probe-kit.sh
->                                (looked beside the marketplace root and in the plugin)", EXIT 0
+> control: rc                 -> usage text, exit 0   (launcher works; the invocation was fine)
+>          rc probe --explain -> "cannot find probe-kit.sh", EXIT 0
 >          find <plugin-cache>/0.240.0 -name probe-kit.sh -> no match
 > ```
 >
-> `probe-kit.sh` lives in the marketplace checkout, not in the distributed plugin, so from an installed
-> cache the verb resolves to nothing. **The exit code is 0**, which is the part that bites: a caller
-> written as `rc probe … || fallback` takes the SUCCESS branch having probed nothing, and a session that
-> "ran the control" ran no control. Until it ships, **run the control by hand** — the discipline is the
-> point, the tool was only the convenience.
+> The engine lived at the **marketplace root's** `scripts/`, which is not part of the
+> distributed plugin — so the `probe-kit` SKILL shipped to every consumer, told them to run
+> the engine, and the file was not there. **A skill can ship without its engine and nothing
+> notices**, because a skill is prose and prose has no gate.
+>
+> **The exit code was the sharper half:** it exited **0**, so a caller written as
+> `rc probe … || fallback` took the SUCCESS branch having probed nothing. A control-runner
+> that fails OPEN is worse than none, because the session believes it ran a control. It now
+> exits 1, and the engine ships in the plugin's `bin/` beside `rc` so it travels with the
+> install. Verified after the move: `--self-test` -> **27 passed, 0 failed**;
+> `rc probe cmd timeout` -> negative CONFIRMED by control, exit 1.
 
 **And the deeper one: a 404 is not a diagnosis.** Before building on a negative
 result, establish that you probed the thing that carries the behaviour. One
