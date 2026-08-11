@@ -56,7 +56,8 @@ const RC_BASELINE = {
   skills: 51, // 50 -> 51: skills/probe-kit (v0.240.0, the control-probe kit)
   tools: 18,
   scenarios: 4,
-  hooks: 28, // 26 -> 28: hooks/log-probe.sh + hooks/guard-premise.sh (v0.240.0, the premise gate)
+  hooks: 29, // 26 -> 28: log-probe.sh + guard-premise.sh (v0.240.0, the premise gate);
+  //        28 -> 29: guard-memory-compaction.sh (v0.241.0, the Rule-4 control)
   rules: 5,
   templates: 23,
   practices: 38,

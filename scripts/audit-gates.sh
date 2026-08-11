@@ -562,7 +562,20 @@ PY
       exit $?
       ;;
     178)
-      echo "── Gate 178: claim classifier (per-gate run) ─────────────────────────────"
+      echo "── Gate 184: memory-compaction guard — a durable index is not disposable ─"
+# The Memory Engineering Protocol Rule 4 ("bound the growth or lose the index") shipped
+# as PROSE, and Rule 3 says prose is not a control. On 2026-08-10 an unreviewed agent edit
+# took a real MEMORY.md from 20,853 B to 12,324 B (-41%) with no git and no Time Machine
+# underneath it. This is the missing control: snapshot before every write to a memory
+# index, and deny a write that shrinks it past the threshold.
+#
+# The test carries its own must-fail half -- it builds a mutant with the deny branch
+# removed and FAILS unless that mutant lets the shrink through, so the assertion is
+# proven to be measuring the deny rather than passing for an unrelated reason.
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-memory-compaction-guard.sh >/dev/null 2>&1 || rc=$?
+gate "memory-compaction guard: blocks >15% index shrink, allows growth; teeth proven by mutant" must_pass "$rc"
+
+echo "── Gate 178: claim classifier (per-gate run) ─────────────────────────────"
       python3 scripts/classify_claim.py --self-test && \
       python3 scripts/classify_claim.py --must-fail && \
       python3 -O scripts/classify_claim.py --self-test
@@ -590,9 +603,14 @@ PY
       python3 scripts/review-ledger.py --self-test && python3 scripts/review-ledger.py --must-fail
       exit $?
       ;;
+    184)
+      echo "── Gate 184: memory-compaction guard (per-gate run) ──────────────────────"
+      bash plugins/ravenclaude-core/hooks/tests/test-memory-compaction-guard.sh
+      exit $?
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
