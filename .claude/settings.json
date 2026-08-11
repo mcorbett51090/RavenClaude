@@ -118,6 +118,10 @@
             "type": "command",
             "command": "${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/enforce-layout.sh \"$CLAUDE_TOOL_FILE_PATH\"",
             "comment": "Layout enforcement: deny writes that don't match .repo-layout.json. Same script the plugin distributes to consumers."
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/guard-memory-compaction.sh"
           }
         ]
       },

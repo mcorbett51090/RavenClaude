@@ -2139,3 +2139,51 @@ is read — and it says the absence of an equivalent is *"a gap, not a hidden fe
 **Zero DOM cost, verified:** the Commands tab is JS-built from `#commands-payload` (uncounted), and the
 posture note is plain text inside an existing element. Both surfaces held at 6,128 / 7,014 — no Gate
 132 ratchet raise. **Migration:** none; content-only.
+
+## Rule 4 finally has a mechanism — the memory-compaction guard (added 2026-08-11, v0.241.0)
+
+The Memory Engineering Protocol above states **Rule 3** — *"Memory is context, not enforcement… to
+actually **block** an action, use a hook or a permission deny. **Never cite a memory, an instruction
+file, or a stored policy as the control that prevents something**"* — and then states **Rule 4**
+(*"bound the growth or lose the index… an unbounded store is a decision that was never made"*) **as
+prose, with no hook behind it.** By its own Rule 3, Rule 4 was not a control. It was a wish.
+
+**It failed exactly where it was written.** On 2026-08-10, in the maintainer's own store, an agent
+rewrote `MEMORY.md` from **20,853 B → 12,324 B (−41%, 57 → 51 lines) in one unreviewed edit,
+seventeen minutes wide.** The memory directory is not a git repo and `tmutil destinationinfo` returns
+*"No destinations configured"* — **there was no undo of any kind.** Eight prose clauses were destroyed
+store-wide, recoverable only from an undocumented content-addressed cache under a session UUID.
+
+⛔ **What was lost is the tell.** Not trivia — **provenance and owner rulings**: *"Byte-equivalent
+rollback RETIRED by owner"*, the gate-ladder's one-command escape hatch, a merge-skew PR reference.
+Compaction preserves what reads as *content* and discards what reads as *bookkeeping*, and in this
+corpus the bookkeeping **is** the knowledge. A measured pass showed negation surviving at 83% while
+**ISO dates survived at 19% and PR references at 46%** — the model does not know that a date is the
+difference between a fact and a rumour.
+
+`hooks/guard-memory-compaction.sh` (PreToolUse `Write|Edit|MultiEdit`) closes it in two moves, and
+**the first matters more than the second**:
+
+1. **Snapshot before any write** to a guarded memory index, into the run dir. This runs whether or not
+   the write is blocked. It is the half that converts *unrecoverable* into *recoverable*, and it would
+   have made the 2026-08-10 incident a non-event.
+2. **Deny a shrink** past `memory_guard.max_shrink_pct` (default 15%), with a diff-first remedy.
+
+**It never blocks growth or small edits.** Appending is the normal path and must stay frictionless —
+*a guard that fires constantly gets disabled, and a disabled guard protects nothing.* The escape
+hatches are deliberately explicit (`compaction-approved` in the content, or
+`RC_MEMORY_COMPACTION_OK=1`) because the target is the **silent** compaction, never the considered one.
+
+**Fail-safe:** every error path exits 0; the only non-zero exit is the deliberate deny (exit **2** —
+the one blocking code; exit 1 is a *non-blocking* error and would silently allow, which is the
+v0.193.0 macOS-door failure in a new place). bash 3.2-safe, no GNU `timeout` / `grep -P` / `sed -i`.
+
+**Gate 184** carries its own **must-fail half** — it builds a mutant with the deny branch removed and
+fails unless that mutant lets the shrink through, so the gate is proven to be measuring the deny
+rather than passing for an unrelated reason. Registered in **both** the `--check` dispatcher and the
+main sequence, because this repo's own record says a gate nothing runs and a gate that asserts nothing
+both report green.
+
+**Migration:** none — a new hook that fires only on `*/memory/MEMORY.md`-shaped paths, only on a
+>15% shrink, and defaults to allow on every error path. Nothing changes on `/plugin marketplace
+update` unless an agent tries to silently rewrite a memory index.

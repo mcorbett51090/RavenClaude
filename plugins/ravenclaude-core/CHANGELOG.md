@@ -2,6 +2,62 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.241.0 — 2026-08-11
+
+### Added
+
+- **`guard-memory-compaction.sh`** — the missing control for Memory Engineering Protocol **Rule 4**.
+  Rule 4 (*"bound the growth or lose the index… an unbounded store is a decision that was never
+  made"*) shipped as **prose only**, and **Rule 3** of the same protocol says prose is not a control:
+  *"to actually block an action, use a hook or a permission deny."* This is that hook.
+
+  ⛔ **The incident, on the maintainer's own machine.** On 2026-08-10 an agent rewrote `MEMORY.md`
+  from **20,853 B to 12,324 B — −41%, 57 → 51 lines — in one unreviewed edit seventeen minutes
+  wide**. The directory is not a git repo, and `tmutil destinationinfo` returns *"No destinations
+  configured"*: there was **no undo of any kind**. Eight prose clauses were destroyed store-wide and
+  had to be recovered from an undocumented content-addressed cache under a session UUID. What was
+  lost was not trivia — it was **provenance and owner rulings**: *"⛔ Byte-equivalent rollback RETIRED
+  by owner"*, a gate-ladder escape hatch, a merge-skew PR reference.
+
+  **What it does.** Two things, and the first matters more than the second:
+
+  1. **Snapshots** the file before **any** write to a guarded memory index. This runs whether or not
+     the write is blocked, and it is what converts *unrecoverable* into *recoverable*.
+  2. **Denies** a write that shrinks the index past `memory_guard.max_shrink_pct` (default **15%**),
+     with the diff-first remedy in the deny message.
+
+  **What it deliberately does not do.** It never blocks growth and never blocks small edits.
+  Appending a memory is the normal path and must stay frictionless — *a guard that fires constantly
+  gets disabled, and a disabled guard protects nothing.* Escape hatches are explicit, because the
+  target is the **silent** compaction, not the considered one: `compaction-approved` in the content,
+  or `RC_MEMORY_COMPACTION_OK=1`.
+
+  **Fail-safe by contract.** Every error path exits 0. A guard that cannot parse its input must not
+  block the session; the snapshot is best-effort for the same reason. The **only** non-zero exit is
+  the deliberate shrink deny (exit **2** — the one code Claude Code treats as blocking; exit 1 is a
+  *non-blocking* error and would silently allow).
+
+  **Portability.** bash 3.2-safe, and free of GNU `timeout` / `grep -P` / `sed -i` — re-introducing
+  any of those would silently disarm it on every macOS session, which is precisely the four-door
+  failure the v0.193.0–v0.197.1 arc closed.
+
+  **Gate 184** (`hooks/tests/test-memory-compaction-guard.sh`), registered in the `--check` dispatcher
+  **and** the main sequence. It carries its own **must-fail half**: it builds a mutant with the deny
+  branch removed and fails unless that mutant lets the shrink through — so the assertion is proven to
+  be measuring the deny, not passing for an unrelated reason.
+
+### Known limitation (discovered while building this, not fixed here)
+
+- **`guard-premise.sh`'s advertised resolution path does not reach its own ledger.** The gate tells
+  you *"run the control → the ledger resolves itself"*, and `family(subject)` groups by **host**. But
+  the recorder derives a URL subject from **`WebFetch`**, not from a shell command — so a positive
+  control run via `curl` **can never resolve the family**, and the gate keeps firing on every new
+  source module. Observed twice this session; worked around with the recorded
+  `RC_PREMISE_OVERRIDE=1` escape. Related: the same ledger recorded
+  `pypi.org/pypi/graphiti-core/json` as a **negative (404)** for a package that demonstrably exists
+  (0.29.3) — a throttle artifact from a run that also logged `http-429` and `http-453`, i.e. **the
+  ledger can record rate-limiting as absence.**
+
 ## 0.240.0 — 2026-08-08
 
 ### Added
