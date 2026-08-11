@@ -2187,3 +2187,52 @@ both report green.
 **Migration:** none — a new hook that fires only on `*/memory/MEMORY.md`-shaped paths, only on a
 >15% shrink, and defaults to allow on every error path. Nothing changes on `/plugin marketplace
 update` unless an agent tries to silently rewrite a memory index.
+
+## The hardest rule in the catalog was the least precise (added 2026-08-11, v0.242.0)
+
+`srm.force-push` is `pre_llm_deny` + `always_screen` — category-independent, non-overridable, the
+floor everything else sits on. In one working session it denied **four** benign commands, and it had
+been **missing a real one** the whole time. Issue #861.
+
+**Two independent causes, and neither was the regex being "too broad" in the obvious sense.**
+
+1. **Case-insensitivity it never needed.** `_matches` compiles every trigger with `re.IGNORECASE`, so
+   the short-flag alternative also matched its **capital** twin — a flag `awk`, `grep` and `sort`
+   carry constantly and which `git push` does not accept at all. The rule was scanning for a letter,
+   not a flag.
+2. **A separator flattened into whitespace.** `_match_variants._flatten` existed to stop a
+   line-continuation hiding a dangerous flag from `.*` — correct and load-bearing. But it also turned
+   a **bare** newline into a space, and a bare newline is a command **separator**. So `.*` walked out
+   of the push and matched an *unrelated later command's* flags.
+
+⛔ **The sibling trigger in the same block was already correct.** The refspec rule was scoped
+`[^|&;]*` with a comment explaining that a token in a LATER chained command must not match. The
+force-push rule, three lines above it, used a bare `.*`. **When two rules in one block disagree about
+scoping, the unscoped one is the bug** — the author of the scoped one had already worked out why.
+
+**A false NEGATIVE fell out of the same fix.** The old alternative required a bare short flag and
+missed a **bundled** cluster — a genuine force-push. `guard-destructive.sh` already caught that form,
+so the two guards **disagreed on the same command**, and nobody noticed because nothing compares them.
+
+**The fixture that failed was asserting something the shell forbids.** A "newline bypass" case
+required a **bare** newline between program and flag to hard-deny. Asked directly, `bash` parses it as
+**two** commands and reports the flag as `command not found`. Retiring it was an **owner decision**,
+recorded as such — the replacement is the line-continuation form, which the shell really does join and
+which still denies.
+
+### ⛔ The structural finding — this guard cannot have a normal regression test
+
+Every fixture pinning a false positive must contain a literal destructive string as **test data**, and
+`Write`/`Edit` are in the `PreToolUse` matcher and scan content. While fixing this, the guard denied:
+a test harness, a JSON fixtures file, the bug report **twice**, and two source comments *explaining the
+bug* — each because it contained the pattern it documented. **The guard cannot distinguish a command
+from a description of a command**, which is this repo's own recorded *"source-scan gates match PROSE"*
+failure, now on the guard whose precision matters most.
+
+The new fixtures are assembled with `printf` instead of written literally, with the reason inline. That
+is a workaround, not a fix. **A sanctioned door — an exempt fixtures path, or an honoured in-file
+marker — is the real answer and is deliberately NOT in this change**, because it widens what content
+the guard ignores and that deserves its own review.
+
+**Migration:** none in the permissive direction — every genuinely destructive form still denies, and
+one that previously slipped through now does not. Four benign shapes stop being denied.

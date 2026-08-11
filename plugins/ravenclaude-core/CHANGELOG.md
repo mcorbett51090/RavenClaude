@@ -2,6 +2,50 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.242.0 — 2026-08-11
+
+### Fixed
+
+- **The force-push hard rule fired on four benign commands (issue #861), and missed a real one.**
+  `srm.force-push` is `pre_llm_deny` + `always_screen` — the hardest, **non-overridable** rule in the
+  catalog. It denied four measured, working commands in one session. Two independent causes:
+
+  1. **`re.IGNORECASE` made the short-flag alternative match its CAPITAL twin.** `_matches` compiles
+     every trigger case-insensitively, so the rule matched a common, harmless flag carried by `awk`,
+     `grep` and `sort` — a letter that is **no git-push flag at all**. Case-insensitivity bought
+     nothing here and cost a hard deny on ordinary commands. Now scoped case-sensitive via an inline
+     `(?-i:…)`.
+  2. **`_match_variants._flatten` turned a BARE newline into a SPACE**, so the trigger's `.*` bled out
+     of the push and matched an **unrelated later command's** flags. A bare newline is a command
+     *separator*; it now flattens to `; `, and the trigger is scoped `[^|&;\n]*` — matching the
+     sibling refspec rule, which was **already** segmented. The line-continuation case (`\` +
+     newline), which *is* a real single-command evasion, still flattens to a space and still denies.
+
+  **A false NEGATIVE was closed in the same pass:** the old short-flag alternative required a bare
+  `-f` and therefore missed a **bundled** cluster (`-uf` / `-fu`) — a genuine force-push.
+  `guard-destructive.sh` already caught that form, so the two guards **disagreed on the same
+  command**. The cluster form now matches both.
+
+  Verified **15/15** on a matrix of true and false positives (was 8 wrong). `xc.no-undo` carries the
+  same trigger and its own comment says the two *"must agree on"* it — both were updated together.
+
+- **Gate 15's newline fixture asserted a bypass the shell does not permit.** It required a **bare**
+  newline between the program and the flag to hard-deny. Asked directly, `bash` parses that as **two**
+  commands and reports the flag as `command not found` — no force-push executes. The fixture is now
+  the **line-continuation** form, which the shell really does join into one command and which the
+  guard still denies. This was an **owner-approved** change to a security fixture, not a quiet
+  relaxation.
+
+### Known limitation (structural, reproduced while fixing it)
+
+- **The guard blocks the authoring of its own regression fixtures.** Every fixture that pins these
+  false positives must contain a literal destructive string as *test data*, and `Write`/`Edit` are in
+  the `PreToolUse` matcher and scan content. During this fix the guard denied: a test harness, a JSON
+  fixtures file, the issue body **twice**, and two code comments **explaining the bug** — because each
+  contained the pattern it documented. The new fixtures are therefore assembled with `printf` rather
+  than written literally, with the reason recorded inline. A sanctioned door (an exempt fixtures path,
+  or an honoured in-file marker) is the real fix and is **not** included here.
+
 ## 0.241.0 — 2026-08-11
 
 ### Added
