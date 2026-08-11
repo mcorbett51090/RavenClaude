@@ -588,7 +588,7 @@ echo "── Gate 178: claim classifier (per-gate run) ────────�
       ;;
     181)
       echo "── Gate 181: probe-kit (per-gate run) ────────────────────────────────────"
-      bash scripts/probe-kit.sh --self-test
+      bash plugins/ravenclaude-core/bin/probe-kit.sh --self-test
       exit $?
       ;;
     182)
@@ -5755,7 +5755,7 @@ echo "── Gate 181: probe-kit — a negative result is not a diagnosis ──
 # every hypothesis, so it distinguishes nothing while LOOKING like a passing control —
 # the exact shape this whole gate family exists to catch. An identical control now
 # returns exit 3 "NOT A CONTROL" rather than a verdict.
-rc=0; bash scripts/probe-kit.sh --self-test >/dev/null 2>&1 || rc=$?
+rc=0; bash plugins/ravenclaude-core/bin/probe-kit.sh --self-test >/dev/null 2>&1 || rc=$?
 gate "probe-kit: 27 subtests — all four outcomes distinguishable, re-run-is-not-a-control refused" must_pass "$rc"
 
 echo "── Gate 182: diff budget — mass deletion is a stop, not a diff ───────────"

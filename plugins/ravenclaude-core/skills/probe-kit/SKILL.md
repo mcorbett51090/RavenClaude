@@ -27,12 +27,12 @@ the same subsystem that is *expected to succeed*. If the control succeeds, your 
 the control **also** fails, you have learned about your instrument and **nothing** about the subject.
 
 ```shell
-bash scripts/probe-kit.sh http https://host/some/path    # + a control on the same host
-bash scripts/probe-kit.sh dns  api.example.com           # + the parent zone
-bash scripts/probe-kit.sh file /some/path                # + the containing directory
-bash scripts/probe-kit.sh cmd  timeout                   # + a command that must exist
-bash scripts/probe-kit.sh --explain [http|dns|file|cmd]  # what a negative does NOT license
-bash scripts/probe-kit.sh --self-test                    # prove the instrument first
+rc probe http https://host/some/path    # + a control on the same host
+rc probe dns  api.example.com           # + the parent zone
+rc probe file /some/path                # + the containing directory
+rc probe cmd  timeout                   # + a command that must exist
+rc probe --explain [http|dns|file|cmd]  # what a negative does NOT license
+rc probe --self-test                    # prove the instrument first
 ```
 
 One line, no setup, no config, no state. It prints both probes side by side, a verdict, and a
@@ -76,7 +76,7 @@ construction cost hours and touched **16 files**. The observation (`404`) was **
 the thinking-of-it part, pre-done. Replayed today it is one command:
 
 ```
-$ bash scripts/probe-kit.sh http https://www.ravenpower.net/cdn-cgi/l/email-protection
+$ rc probe http https://www.ravenpower.net/cdn-cgi/l/email-protection
   SUBJECT  GET .../cdn-cgi/l/email-protection  ->  HTTP 404   [NEGATIVE]
   CONTROL  GET .../cdn-cgi/trace               ->  HTTP 200   [POSITIVE]
   VERDICT  negative result CONFIRMED by control
@@ -147,7 +147,7 @@ skip is printed as `LOUD SKIP (NOT A PASS)`, never counted as a pass.
 
 ## References
 
-- Engine: [`scripts/probe-kit.sh`](../../../../scripts/probe-kit.sh) (bash 3.2 / stock-macOS safe;
+- Engine: [`bin/probe-kit.sh`](../../bin/probe-kit.sh) (bash 3.2 / stock-macOS safe;
   no GNU `timeout`, `grep -P` or `sed -i`; every probe carries its own ceiling so nothing hangs)
 - The rule in context: [`knowledge/verification-discipline.md`](../../knowledge/verification-discipline.md) Rule 6
 - Evidence base: [`docs/plans/2026-08-08-premise-gate/incidents.md`](../../../../docs/plans/2026-08-08-premise-gate/incidents.md)
