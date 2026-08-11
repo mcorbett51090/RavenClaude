@@ -248,7 +248,7 @@ cross_cutting:
       regex:
         # --force-with-lease is reversible-ish (it refuses to clobber unseen work),
         # so exclude it — matching srm.force-push, which the two concerns must agree on.
-        - 'git push\b.*(--force(?!-with-lease)\b|\s-f\b)'
+        - 'git push\b[^|&;\n]*(--force(?!-with-lease)\b|(?-i:\s-[A-Za-z]*f[A-Za-z]*(\s|$)))'
         - 'rm\s+-[a-z]*r[a-z]*f[a-z]*|rm\s+-[a-z]*f[a-z]*r[a-z]*'
         - '(npm|pnpm|yarn)\s+publish'
         - 'cargo\s+publish'
@@ -736,8 +736,8 @@ categories:
         # It is scoped to the push segment ([^|&;]) so a ` +token` in a LATER
         # chained command (`git push origin main && echo "+1"`) does not match.
         regex:
-          - 'git\s+push\b.*(--force(?!-with-lease)\b|\s-f\b)'
-          - 'git\s+push\b[^|&;]*\s\+\S'
+          - 'git\s+push\b[^|&;\n]*(--force(?!-with-lease)\b|(?-i:\s-[A-Za-z]*f[A-Za-z]*(\s|$)))'
+          - 'git\s+push\b[^|&;\n]*\s\+\S'
     - id: srm.pr-merge-without-checks
       name: gh pr merge on a PR whose CI is not passing
       severity: high
