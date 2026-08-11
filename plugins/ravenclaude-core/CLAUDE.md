@@ -2306,3 +2306,45 @@ move across 6 call sites plus the citations, and it earns its own diff.
 
 **Migration:** none — a gate that was not running now runs (it has always passed when invoked
 directly), and the recorder stops recording two shapes as absences they never were.
+
+## Half a fix is a fix that has not shipped (added 2026-08-11, v0.244.0)
+
+v0.242.0 fixed `srm.force-push`'s unscoped `.*` and **left the identical defect in
+`sce.curl-pipe-shell`** — the *other* `pre_llm_deny` + `always_screen` rule, the other half of the
+floor. It was found the only way it could be: it **blocked ordinary work**. Shipping a plain Python
+file was hard-denied because its docstring mentioned a fetch tool and its code carried a
+file-extension alternation, so the bare `.*` walked from prose into a **pipe character inside a regex
+literal**. Nothing was piped to anything.
+
+⛔ **Fixing one instance of a defect class and stopping is not fixing the class.** The v0.242.0
+milestone even states the generalizable rule — *"when two rules in one block disagree about scoping,
+the unscoped one is the bug"* — and there were two more unscoped rules one screen away. **When you fix
+a pattern, enumerate every instance of that pattern before you close it.**
+
+### ⛔ The correct fix here is NOT the sibling's fix
+
+Force-push excludes `|` outright: a push flag never crosses a pipe. Copying that here would have
+created a **false negative**, because a fetch routed through an intermediate stage and then into an
+interpreter is a real attack. This rule must **allow** `|` and exclude only the command separators.
+
+**Same defect class, opposite correct remedy.** A fix is not portable just because the bug is —
+read what the rule is *for* before reusing a sibling's patch.
+
+**One check that is not optional here:** every catalog trigger was re-compiled after the edit, because
+`_matches` swallows a malformed regex (`except re.error: continue`). A typo in a hard rule does not
+fail loudly — it **silently disables the rule**. 131 triggers, 0 malformed, verified explicitly.
+
+### ⛔ Three more instances of the self-reference problem, in one release
+
+The guard denied, in order: the **Edit that fixes the rule**, a **comment explaining the correct
+behaviour** (it contained the dangerous form as an example), and the **test that verifies the fix**
+(its regex literal **matches itself** — the pattern contains a fetch tool, a pipe, and an interpreter
+name). Add the earlier count and this session alone produced **nine** blocks of work whose only sin
+was describing the thing accurately.
+
+**This is no longer an anecdote; it is the guard's dominant failure mode in maintenance.** The
+sanctioned door stays unbuilt on purpose — it widens what the guard ignores, which is a security
+decision, not a convenience one — but the cost is now measured rather than asserted.
+
+**Migration:** none in the permissive direction. Every genuine pipe-to-shell still denies, including
+through an intermediate stage; ordinary files that merely *mention* a fetch tool stop being denied.

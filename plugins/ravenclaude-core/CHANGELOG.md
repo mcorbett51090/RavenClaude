@@ -2,6 +2,45 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.244.0 — 2026-08-11
+
+### Fixed
+
+- **#861's fix was half-done: the OTHER category-independent hard rule had the identical defect.**
+  v0.242.0 scoped `srm.force-push`'s bare `.*` and left `sce.curl-pipe-shell` untouched. Both are
+  `pre_llm_deny` + `always_screen` — non-overridable, category-independent, the floor everything else
+  sits on. Measured today when shipping an ordinary Python file was **hard-denied**: its docstring
+  mentioned a fetch tool, and its code carried a file-extension alternation. The unscoped `.*` walked
+  from the prose mention all the way to a pipe character **inside a regex literal**. Nothing was piped
+  to any shell.
+
+  ⛔ **The fix is deliberately NOT the force-push fix, and copying it would have created a false
+  NEGATIVE.** Force-push excludes `|` — a push flag never crosses a pipe. This rule **must allow** `|`,
+  because a fetch routed through an intermediate stage and then into an interpreter is a genuine
+  attack. It therefore excludes only the command separators (`&`, `;`, newline). **Same defect class,
+  different correct fix — read what the rule is for before reusing a sibling's remedy.**
+
+  Verified **6/6** on true and false positives (was 1 wrong), including that the
+  through-an-intermediate-stage form still blocks. The 131 catalog triggers all compile — checked
+  explicitly, because `_matches` swallows a malformed regex (`except re.error: continue`), so a typo
+  here would **silently disable the hard rule** rather than fail loudly.
+
+- **A Gate 15 fixture asserted a bypass the shell forbids** — the same class the owner ruled on in
+  #861, applied to its sibling. It required a **bare** newline between the fetch and the interpreter;
+  `bash` parses that as two commands, and a pipe at the start of a line is a syntax error. Replaced
+  with the line-continuation form, which the shell really does join and which still denies. This is
+  the established precedent, not a new decision.
+
+### Known limitation — now demonstrated three times in one session
+
+**The guard cannot distinguish a command from a description of a command**, and this release hit it
+three more times: the Edit that *fixes* the rule, a comment *explaining* the correct behaviour, and
+the test that *verifies* it were each denied for containing the pattern they documented — including a
+regex literal that **matches itself**. Fixtures and comments are written around it (`printf`
+assembly, no literal forms). That is a workaround. The sanctioned door (an exempt fixtures path, or an
+honoured in-file marker) remains deliberately unbuilt — it widens what the guard ignores and earns its
+own review.
+
 ## 0.243.0 — 2026-08-11
 
 ### Fixed
