@@ -827,6 +827,21 @@ _PIPELINE_LANES = [
                 },
             },
             {
+                "id": "memory-compaction",
+                "title": "Memory safety net",
+                "badge": "dynamic",
+                "controls": "files",
+                "tip": "Keeps a copy of the robot's long-term notes before it rewrites them, and stops it from throwing most of them away in one go.",
+                "detail": {
+                    "steps": [
+                        "Saves a copy of the robot's long-term notes before every rewrite.",
+                        "Stops a rewrite that would delete more than 15% of them, and asks for a diff instead.",
+                    ],
+                    "trip": "Growing the notes, or trimming a little, is always fine — only a big one-shot deletion is stopped.",
+                    "set": "Set `memory_guard: max_shrink_pct: N`, or allow one deliberate cleanup with RC_MEMORY_COMPACTION_OK=1.",
+                },
+            },
+            {
                 "id": "enforce-layout",
                 "title": "Folder & task limits",
                 "badge": "dynamic",
@@ -1050,6 +1065,7 @@ _PIPELINE_STAGE_HOOKS = {
     "runaway-brake": "runaway-brake.sh",
     "parallel-workers": None,  # behavioral: spawn-team reads `parallelism:` — no hook
     "enforce-layout": "enforce-layout.sh",
+    "memory-compaction": "guard-memory-compaction.sh",
     "guard-premise": "guard-premise.sh",
     "route-decision-review": "route-decision-review.sh",
     "guard-web-access": "guard-web-access.sh",
