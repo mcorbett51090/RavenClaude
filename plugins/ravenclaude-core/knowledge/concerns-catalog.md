@@ -789,8 +789,8 @@ categories:
       resolution: DENY.
       triggers:
         regex:
-          - 'curl\b.*\|\s*(sudo\s+)?(sh|bash)\b'
-          - 'wget\b.*\|\s*(sudo\s+)?(sh|bash)\b'
+          - 'curl\b[^&;\n]*\|\s*(sudo\s+)?(sh|bash)\b'
+          - 'wget\b[^&;\n]*\|\s*(sudo\s+)?(sh|bash)\b'
     - id: sce.embedded-base64-payload
       name: Code body contains a base64 string > 100 chars decoding to a shell command
       severity: critical
