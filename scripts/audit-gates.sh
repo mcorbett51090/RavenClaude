@@ -562,23 +562,15 @@ PY
       exit $?
       ;;
     178)
-      echo "── Gate 184: memory-compaction guard — a durable index is not disposable ─"
-# The Memory Engineering Protocol Rule 4 ("bound the growth or lose the index") shipped
-# as PROSE, and Rule 3 says prose is not a control. On 2026-08-10 an unreviewed agent edit
-# took a real MEMORY.md from 20,853 B to 12,324 B (-41%) with no git and no Time Machine
-# underneath it. This is the missing control: snapshot before every write to a memory
-# index, and deny a write that shrinks it past the threshold.
-#
-# The test carries its own must-fail half -- it builds a mutant with the deny branch
-# removed and FAILS unless that mutant lets the shrink through, so the assertion is
-# proven to be measuring the deny rather than passing for an unrelated reason.
-rc=0; bash plugins/ravenclaude-core/hooks/tests/test-memory-compaction-guard.sh >/dev/null 2>&1 || rc=$?
-gate "memory-compaction guard: blocks >15% index shrink, allows growth; teeth proven by mutant" must_pass "$rc"
-
-echo "── Gate 178: claim classifier (per-gate run) ─────────────────────────────"
+      echo "── Gate 178: claim classifier (per-gate run) ─────────────────────────────"
       python3 scripts/classify_claim.py --self-test && \
       python3 scripts/classify_claim.py --must-fail && \
       python3 -O scripts/classify_claim.py --self-test
+      exit $?
+      ;;
+    185)
+      echo "── Gate 185: probe verdict classes (per-gate run) ────────────────────────"
+      bash plugins/ravenclaude-core/hooks/tests/test-probe-verdict-classes.sh
       exit $?
       ;;
     179)
@@ -610,7 +602,7 @@ echo "── Gate 178: claim classifier (per-gate run) ────────�
       ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -5852,6 +5844,33 @@ gate "premise-gate: incident replay trips, observations clean, unwired/unreadabl
 # themselves. A teeth check is only as good as the defect it plants.
 rc=0; python3 scripts/premise-gate.py --must-fail >/dev/null 2>&1 || rc=$?
 gate "premise-gate teeth: a neutered inference check is caught" must_pass "$rc"
+
+echo "── Gate 184: memory-compaction guard — a durable index is not disposable ─"
+# ⛔ THIS BLOCK WAS UNREACHABLE FOR ONE RELEASE, AND THAT IS THE LESSON.
+# v0.241.0 inserted it INSIDE the `--check` dispatcher, between the `178)` case label
+# and its body. Two silent consequences: Gate 184 never ran in the full suite (grep of
+# the suite output: 0 matches), and `--check 178` ran this block and then died on
+# `gate: command not found` (a main-sequence helper, absent in the dispatcher).
+# The suite reported 701 pass throughout — green with the gate ABSENT.
+#
+# That is this repo's own recorded "unrun variant" — a gate nothing runs reports green —
+# shipped in the very PR whose milestone claims it was "registered in BOTH the --check
+# dispatcher and the main sequence". Writing the claim is not the same as placing the
+# code. When adding a gate, RUN THE FULL SUITE AND GREP ITS OUTPUT FOR THE NEW GATE:
+# a passing suite is not evidence your gate is in it.
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-memory-compaction-guard.sh >/dev/null 2>&1 || rc=$?
+gate "memory-compaction guard: blocks >15% index shrink, allows growth; teeth proven by mutant" must_pass "$rc"
+
+echo "── Gate 185: probe verdict classes — a non-result is not an absence ──────"
+# The premise recorder checked its NEGATIVE list first, over the whole combined output
+# of one tool call, so two shapes were mis-classified into false premises:
+#   a BIDIRECTIONAL CONTROL (one command emitting a 2xx AND a 4xx) recorded as
+#   `negative` — yet that command is exactly the disconfirming probe the gate demands,
+#   so following the printed remedy ADDED an unresolved negative instead of clearing one;
+#   and RATE-LIMITING recorded as `negative` — "I could not ask" stated as "it is not
+#   there", unclearable on retry, leaving the override as the only exit.
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-probe-verdict-classes.sh >/dev/null 2>&1 || rc=$?
+gate "probe verdicts: non-result -> indeterminate, bidirectional control -> positive, real absence still negative" must_pass "$rc"
 
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"

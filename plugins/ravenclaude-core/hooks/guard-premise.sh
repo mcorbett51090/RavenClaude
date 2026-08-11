@@ -279,6 +279,14 @@ def family(subject):
     s = str(subject)
     return s.split("/")[0] if "/" in s else s
 
+# ⛔ `indeterminate` (rate-limited / server-error / timeout / unreachable) is
+# DELIBERATELY neither arm below. It is a NON-result — the probe never reached
+# the question — so it is not evidence of absence and must not block, and it
+# proves no capability so it must not resolve. Do NOT "complete" this by
+# folding it into the negative arm: a rate-limited probe returns the same 429
+# on every retry, so it would be an unclearable block whose only exit is
+# RC_PREMISE_OVERRIDE — and a gate whose sole remedy is its own override
+# teaches the override, which costs more than the case it covers.
 resolved, unresolved = set(), {}
 for e in entries:
     fam = family(e.get("subject", ""))

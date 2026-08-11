@@ -2236,3 +2236,73 @@ the guard ignores and that deserves its own review.
 
 **Migration:** none in the permissive direction — every genuinely destructive form still denies, and
 one that previously slipped through now does not. Four benign shapes stop being denied.
+
+## The gate that never ran, and the control that punished its own remedy (added 2026-08-11, v0.243.0)
+
+Two defects, found while fixing a third. Both are the same shape: **a mechanism reporting success
+while doing nothing, or the opposite of what it says.**
+
+### ⛔ Gate 184 was unreachable for a whole release
+
+v0.241.0 put the memory-compaction guard's **main-sequence** block *inside* the `--check`
+dispatcher — between the `178)` case label and its body. So the gate **never ran in the full
+suite** (grep of the suite output: **0** matches), and **`--check 178`** ran the memory block and
+died on `gate: command not found`. The suite reported **701 pass** throughout.
+
+⛔ **The milestone for that release states the gate was "registered in BOTH the `--check`
+dispatcher and the main sequence."** It was written, and it was false. **Writing the claim is not
+the same as placing the code** — and a passing suite is not evidence your gate is in it, because
+the suite passes *identically* when the gate is absent. This is the repo's own recorded *unrun
+variant*, committed by the author of the entry warning about it.
+
+**The check that would have caught it, now written into the gate's own comment:** after adding a
+gate, run the full suite and **grep its output for the new gate by name**. The fix here is proved
+that way, plus the assertion count moving **701 → 703** — the delta *is* the evidence.
+
+### ⛔ The premise recorder punished the remedy the premise gate prints
+
+`guard-premise.sh` denies a new source module while an unresolved negative probe is on the ledger,
+and prints: *"send ONE probe that would come out DIFFERENTLY if your hypothesis were false — a
+positive control on the same subject."*
+
+`log-probe.sh` matched its NEGATIVE list **first**, over the whole combined output of one tool
+call. So the control it asks for — one command probing a known-good **and** a known-absent
+subject, emitting a 2xx **and** a 4xx — matched the 4xx and recorded as **`negative`**. Running
+the prescribed remedy **added** an unresolved negative instead of clearing one, and **the more
+thorough the control, the more stuck the author became.**
+
+⛔ **A gate whose printed remedy is unreachable by following the gate is worse than no gate** — it
+converts a correct instinct into evidence against the person who followed it. Both present now
+means `positive` (`control-bidirectional`), which is the gate's own stated semantic: the probe
+demonstrated it was *capable of returning something else*.
+
+**The second half: a non-result is not an absence.** Rate-limiting recorded as `negative` — "I
+could not ask" written down as "it is not there". New `indeterminate` class (429 / 5xx / timeout /
+unreachable), checked first, which **neither blocks nor resolves**. Deliberately not a block: a 429
+returns 429 on every retry, so treating it as a negative is an **unclearable** gate whose only exit
+is its own override — and a gate that teaches its override costs more than the case it covers.
+`guard-premise.sh` carries a comment forbidding a future "completion" of that branch.
+
+A real 404 and a `command not found` still record `negative` and still block. 10/10 against the
+live recorder; **Gate 185** pins it with an end-to-end assertion.
+
+### ⛔ I corrected my own bug report
+
+#860 claimed a shell `curl` control "can never resolve the family". **False** — `family()` collapses
+a subject to its **host**, and the subject regex reads `tool_input.command` for `Bash`, not just
+`url` for `WebFetch`. A curl control on the same host *does* resolve; the real cause was the
+verdict mis-classification. **A filed issue is a claim like any other, and mine was wrong on the
+mechanism while right that something was broken.** Read the code before building to the report —
+including your own.
+
+### Still open, stated precisely
+
+`premise-gate.py` and `classify_claim.py` live at the **marketplace-root** `scripts/` and are cited
+**repo-relative** in `forge-pipeline/SKILL.md`, so they resolve here and **cannot** resolve in a
+consumer repo. Their siblings `forge-route.py` / `forge-worktree.sh` ship inside the plugin and are
+cited `${CLAUDE_PLUGIN_ROOT}/scripts/…` — the pattern is established; these two are the outliers,
+and the plan that specified them named the plugin path. Deferred deliberately: it is a packaging
+move across 6 call sites plus the citations, and it earns its own diff.
+
+**Migration:** none — a gate that was not running now runs (it has always passed when invoked
+directly), and the recorder stops recording two shapes as absences they never were.
