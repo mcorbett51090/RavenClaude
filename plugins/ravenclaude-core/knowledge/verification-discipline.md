@@ -223,12 +223,114 @@ negative result does and does not license. The control that would have killed th
 seconds, and nobody ran it — because running it required thinking of it first. That is what the kit
 removes.
 
+> ⛔ **`rc probe` IS NOT SHIPPED IN THE INSTALLED PLUGIN, AND IT FAILS OPEN.** Do not cite it as an
+> available route without checking it first.
+>
+> ```
+> control: rc              -> usage text, exit 0   (launcher works; the invocation is fine)
+>          rc probe --explain -> "rc: cannot find probe-kit.sh
+>                                (looked beside the marketplace root and in the plugin)", EXIT 0
+>          find <plugin-cache>/0.240.0 -name probe-kit.sh -> no match
+> ```
+>
+> `probe-kit.sh` lives in the marketplace checkout, not in the distributed plugin, so from an installed
+> cache the verb resolves to nothing. **The exit code is 0**, which is the part that bites: a caller
+> written as `rc probe … || fallback` takes the SUCCESS branch having probed nothing, and a session that
+> "ran the control" ran no control. Until it ships, **run the control by hand** — the discipline is the
+> point, the tool was only the convenience.
+
 **And the deeper one: a 404 is not a diagnosis.** Before building on a negative
 result, establish that you probed the thing that carries the behaviour. One
 control request would have settled it in ten seconds — `/cdn-cgi/trace` returns
 200, so the edge was healthy and the theory was dead. **Cheap disconfirming probes
 come first, because the cost of the wrong ones compounds into everything built on
 top.**
+
+---
+
+## Rule 8 — A NAME is not the THING. Measure the rendered artifact, not the text that describes it
+
+**Incidents (one session, 2026-08-11, all on the same repo).** Each of these *looked* like measuring the
+artifact, and none of them was:
+
+| what was measured | what it actually said |
+|---|---|
+| `curl \| grep "psection__lede"` to count elements | matched an inlined `<style>` block and a source comment — **zero** real elements |
+| `grep -c "pacct__filter"` to test presence | counted the CSS rule, not the input |
+| class names present in the served HTML | the sidebar was icon-only and the account picker was absent entirely |
+| `getBoundingClientRect().width > 0` ⇒ "visible" | the labels were clipped out of sight by an ancestor's `overflow` |
+| a code comment stating "this file is outside that closure" | it is **inside** — the test adds it by name; a planted defect proved it |
+| a memory note stating a gate was inert | a control returned 7 then 8 elements — not zero |
+
+Rule 2 already forbids "the string is in the file" as a proxy. **Rule 8 is the subtler variant that got
+past it:** the string was in the *served output*, which feels like the artifact. It is not. Rendered HTML
+contains the stylesheet, the comments, and the framework's own scaffolding — so a name found there may
+belong to a rule, a comment, or a script, and never to an element a user can see.
+
+**The rule.** If the claim is about what a user experiences, read it from the **live object model**:
+`getComputedStyle`, `getBoundingClientRect`, `checkVisibility()`, `elementFromPoint`, `querySelectorAll`
+— never from source text or served text. Text search answers *"is this string present"*, which is a
+different question from *"does the resolved value behave this way"*.
+
+**Three corollaries, each paid for separately:**
+
+- **`width > 0` is not visibility.** It ignores `display`, `visibility`, opacity, and — the one that
+  actually bit — an ancestor whose `overflow` clips the element out of view. Use `checkVisibility()`
+  **and** test the ancestor clip; a non-zero box inside a hidden parent is a box nobody sees.
+- **A comment is a claim ABOUT the code, not the code.** Two durable-artifact errors in one session
+  came from quoting a file's own comment and a memory note as established fact. When a comment and the
+  behaviour disagree, **plant a defect and see which one moves.** (This is Claim-Grounding Rule 1
+  applied inward: the repo's own prose needs a citation exactly as much as an external claim does.)
+- **Point the harness at a dead port and read which host it dials.** Do not conclude a tool honours an
+  env var because its siblings do. A sweep intended for `localhost` ran against **production** because
+  that one harness ignored the variable and defaulted to the live hostname; nothing was written only
+  because its own read-only guard aborted all 416 requests, 9 of them mutating POSTs. Grepping for the
+  variable's *name* answers "is this string present" — the Rule 8 trap, one level up.
+
+---
+
+## Rule 9 — Do not hand-roll a probe. The defences you skip are the ones already paid for
+
+**Incident.** In one session an agent hand-rolled roughly a dozen throwaway browser probes and
+reintroduced, in nearly every one, a bug the repo's real gates had already solved. Measured on that
+tree: **17** scripts hand-rolled browser resolution, **12** hand-rolled the session cookie, and **1**
+removed the dev-tool overlay that wins `elementFromPoint` at the bottom of the viewport. Twelve scripts
+hit-tested; one defended. The throwaway probes had none of the defences and no way to know they existed.
+
+Four of that session's wrong answers came straight from the gap: a probe that never opened the drawer it
+was measuring (reported "9 unreachable"), one aimed at an unauthenticated port so every route was
+silently the login page (reported "0 destinations"), one whose session cookie was dropped for a missing
+`Secure` flag, and one that read its own tool's output from stdout while the tool wrote to stderr
+(reported "0 findings" about a populated tree).
+
+**The rule.** Measurement primitives belong in **one shared module** that every probe imports —
+throwaway probes included. A one-off probe is exactly where the defences get skipped, and exactly where
+a wrong answer is most likely to be believed, because nobody reviews a script they are about to delete.
+
+What belongs in the module is whatever your environment has already been burned by. The recurring
+shapes:
+
+- **Resolve the tool by every name the environment might use** — honouring only one of two env vars
+  meant CI's explicit pin was ignored and resolution fell through to a lucky default.
+- **Carry the whole session, not the obvious half** — an httpOnly session cookie plus whatever
+  *separate*, client-readable hint the UI actually keys off. Setting one and not the other rendered a
+  signed-in page with a signed-out control, and was very nearly reported as a product bug.
+- **Strip dev-only chrome before any hit test, and COUNT the removal both ways** — a rename turns a
+  silent no-op into a green run that measured a tool overlay instead of the product.
+- **Refuse the API shape that silently drops your argument.** Some evaluate-in-page APIs take a string
+  form that binds nothing; the expression sees `undefined` and the reading is meaningless while looking
+  clean. Make the wrapper reject the unsafe form outright.
+- **Turn a silent zero into a loud one.** Every count a conclusion rests on goes through an
+  assert-non-empty. This is Rule 6, made callable.
+
+**And enforce it, because a rule with no gate rots.** A source scan is enough: any script that
+hit-tests must also strip dev chrome; any browser probe must resolve its tool portably. Ship it with a
+**shrinking baseline** rather than a big-bang migration — list today's violations by `file::rule`, fail
+on anything new, and **fail when a baseline entry stops violating** so the list can never become a
+permanent amnesty. Give the gate a `--self-test` that plants each defect and requires the rule to catch
+it, and **verify the gate's own findings before you baseline them** — the first draft of exactly such a
+gate produced 6 false positives out of 18, on files that could not have the defect. A gate that cries
+wolf gets skimmed, which is how the real finding is missed.
 
 ---
 
@@ -280,6 +382,15 @@ Stated plainly so nobody plans around a fix that does not exist.
   When a fix would touch ten call sites late in a session, the smallest correct
   change is usually one file, and the honest move is often to stop.
 
-These are the residual ~30%. Rules 1–7 address the other ~70%, and that share is
+These are the residual ~30%. Rules 1–9 address the other ~70%, and that share is
 not theoretical — it is the share of the session's false claims that a script, a
 control, or an unfiltered gate would have caught before they were spoken.
+
+**One closing warning, because it is the failure this file is most likely to suffer.** Every rule here
+was written by someone who had just been wrong, and the rules are therefore easy to *agree with* and
+hard to *execute* — the 2026-08-11 session that produced Rules 8 and 9 had most of them available, in a
+memory file, and broke them anyway. Agreement is not adherence. The rules that actually fired that day
+were the ones with **machinery** behind them: a premise gate that refused a durable write, a ratchet
+that counted, a self-test that planted a defect. The ones that lived only as prose did not fire once.
+**When you add a rule here, ask what will make it fail loudly — and if the answer is "the reader will
+remember", you have written a preference, not a discipline.**
