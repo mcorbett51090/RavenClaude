@@ -2,6 +2,65 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.243.0 — 2026-08-11
+
+### Fixed
+
+- **⛔ Gate 184 never ran. It was unreachable for a whole release, and the suite reported green.**
+  v0.241.0 inserted the memory-compaction guard's **main-sequence** block *inside* the `--check`
+  dispatcher, between the `178)` case label and its body. Two silent consequences, both measured:
+  a full-suite run contained **0** references to the gate, and **`--check 178`** (the claim
+  classifier) ran the memory block and then died on `gate: command not found`. The suite said
+  **701 pass** with a security-adjacent gate entirely absent.
+
+  This is this repo's own recorded *"unrun variant"* — *a gate nothing runs reports green* —
+  shipped in the very PR whose milestone claims it was *"registered in **both** the `--check`
+  dispatcher and the main sequence."* **Writing the claim is not the same as placing the code.**
+  Both gates are now in both places, and the fix is proved by the assertion count moving
+  **701 → 703** plus a grep of the suite output for each gate by name. That grep is now written
+  into the gate's own comment as the required step when adding a gate.
+
+- **A non-result was recorded as an absence (issue #860).** `log-probe.sh` matched its NEGATIVE
+  list first, over the whole combined output of one tool call. Two shapes were mis-classified,
+  and both manufacture the exact false premise the mechanism exists to stop:
+
+  1. **A bidirectional control recorded as `negative`.** One command probing a known-good *and* a
+     known-absent subject emits a 2xx **and** a 4xx; the 4xx matched first. But that command is
+     precisely the disconfirming probe the gate demands — it proves the probe **can** return
+     something else. So running the printed remedy **added** an unresolved negative instead of
+     clearing one, and the more thorough the control, the more stuck the author became. **The gate
+     printed a remedy its own recorder punished.** Now: both present ⇒ `positive`
+     (`control-bidirectional`), in either order.
+  2. **Rate-limiting recorded as `negative`** — "I could not ask" stated as "it is not there". New
+     `indeterminate` class, checked first, covering 429 / 5xx / timeout / unreachable. It neither
+     blocks (a non-result is not evidence of absence) nor resolves (it proves no capability). A
+     429 returns 429 on every retry, so treating it as a negative would be an **unclearable** block
+     whose only exit is `RC_PREMISE_OVERRIDE` — and a gate whose sole remedy is its own override
+     teaches the override. `guard-premise.sh` carries a comment forbidding a future "completion"
+     of that branch.
+
+  A **real** 404 and a `command not found` still record as `negative` and still block. Verified
+  10/10 against the live recorder; pinned by new **Gate 185** with an end-to-end assertion.
+
+### Corrected in the issue itself
+
+- **#860's claim that a shell `curl` control "can never resolve the family" was wrong.**
+  `guard-premise.sh`'s `family()` collapses a subject to its **host**, and the subject regex runs on
+  `tool_input.command` for `Bash` as well as `url` for `WebFetch` — so a curl control on the same
+  host *does* resolve. The real cause was the verdict mis-classification above.
+
+### Known limitation (deferred, with the diagnosis corrected)
+
+- **`premise-gate.py` and `classify_claim.py` do not ship to consumers.** Both live at the
+  **marketplace-root** `scripts/`, and `forge-pipeline/SKILL.md` cites them repo-relative
+  (`python3 scripts/premise-gate.py`) — which resolves inside RavenClaude and **cannot** resolve in
+  a consumer repo. Their siblings `forge-route.py` and `forge-worktree.sh` ship inside the plugin
+  and are cited `${CLAUDE_PLUGIN_ROOT}/scripts/…`, so the pattern is established and these two are
+  the outliers. The plan that specified them even says *"Build. `plugins/ravenclaude-core/scripts/
+  classify_claim.py`"* — the implementation drifted from its own plan. **Not fixed here:** moving
+  them is a packaging change touching 6 `audit-gates.sh` call sites plus the SKILL citations, and
+  it deserves its own diff rather than riding along with a verdict-classification fix.
+
 ## 0.242.0 — 2026-08-11
 
 ### Fixed

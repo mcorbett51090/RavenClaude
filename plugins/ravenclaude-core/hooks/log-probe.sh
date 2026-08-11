@@ -89,7 +89,7 @@ else:
 if not subject:
     subject = "cmd:" + re.sub(r"\s+", " ", cmd.strip())[:40]
 
-# ── VERDICT: negative | positive | neutral ──────────────────────────────────
+# ── VERDICT: negative | positive | indeterminate | neutral ──────────────────
 # A NEGATIVE is a result that invites the inference "X is broken/absent".
 NEG = [
     (r"(?:^|\s|\b)([45]\d\d)(?:\s|$)", "http-{0}"),
@@ -100,19 +100,60 @@ NEG = [
     (r"\bPermission denied\b", "permission-denied"),
     (r"\b(?:0 hits|no matches found|0 results)\b", "zero-match"),
 ]
+
+# ── INDETERMINATE, CHECKED FIRST — a NON-result, not a negative result. ─────
+# The probe never reached the question: rate-limited, the server errored, the
+# connection failed, it timed out. Recording these as `negative` states the
+# opposite of what happened — "X is absent" instead of "I could not ask" — and
+# an absence-claim the probe never earned is exactly the false premise this
+# whole mechanism exists to stop. It also cannot be cleared: re-running a
+# rate-limited probe returns the same 429, so a permanent block is the one
+# outcome guaranteed to train override-reflex, which costs more safety than it
+# buys. 429 is carved OUT of the 4xx pattern for this reason.
+INDET = [
+    (r"(?:^|\s|\b)429(?:\s|$)", "rate-limited"),
+    (r"\b(?:rate.?limit(?:ed|ing)?|too many requests)\b", "rate-limited"),
+    (r"(?:^|\s|\b)5\d\d(?:\s|$)", "server-error"),
+    (r"\b(?:timed out|timeout|Operation timed out)\b", "timeout"),
+    (r"\b(?:Connection refused|Connection reset|Could not resolve host"
+     r"|Temporary failure in name resolution|Network is unreachable)\b", "unreachable"),
+]
+
 verdict, label = "neutral", ""
-for pat, lab in NEG:
+for pat, lab in INDET:
     mm = re.search(pat, out, re.I | re.M)
     if mm:
-        verdict = "negative"
-        label = lab.format(*mm.groups()) if "{0}" in lab else lab
+        verdict, label = "indeterminate", lab
         break
 
 # A POSITIVE-CAPABLE CONTROL: same subject family, demonstrably able to succeed.
+_pos = bool(re.search(r"(?:^|\s|\b)(2\d\d|3\d\d)(?:\s|$)", out, re.M))
+
 if verdict == "neutral":
-    if re.search(r"(?:^|\s|\b)(2\d\d|3\d\d)(?:\s|$)", out, re.M) or (out.strip() and tool == "Bash"):
-        verdict = "positive"
-        label = "ok"
+    _neg = None
+    for pat, lab in NEG:
+        mm = re.search(pat, out, re.I | re.M)
+        if mm:
+            _neg = lab.format(*mm.groups()) if "{0}" in lab else lab
+            break
+
+    # ⛔ BOTH present => this IS the control probe, and it is POSITIVE.
+    # NOTE: no apostrophes in this block — the whole interpreter body is a
+    # single-quoted shell string, so one would end it (use \x27 if ever needed).
+    # In the words of the gate itself: "a negative result is not a diagnosis
+    # until a positive control on the same subject shows the probe was CAPABLE
+    # of returning something else." One command showing a 2xx AND a 4xx has
+    # demonstrated exactly that capability — it is the disconfirming probe the
+    # gate demands. Checking NEG first recorded it as `negative`, so running
+    # the prescribed control ADDED an unresolved negative instead of clearing
+    # one, and the more thorough the probe the more stuck the author became.
+    # The remedy the gate prints was unreachable by following the gate.
+    if _pos and _neg:
+        verdict, label = "positive", "control-bidirectional"
+    elif _neg:
+        verdict, label = "negative", _neg
+    elif _pos or (out.strip() and tool == "Bash"):
+        verdict, label = "positive", "ok"
 
 # A zero-match search with EMPTY output is still a negative result.
 if verdict == "neutral" and not out.strip() and re.search(r"\b(grep|rg|find)\b", cmd):
