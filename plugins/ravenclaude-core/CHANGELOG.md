@@ -2,6 +2,47 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.245.1 — 2026-08-12
+
+### Fixed
+
+- **The premise gate fired on a section header no author wrote.** `## Edge cases / when the rule
+  does NOT apply` is boilerplate in **all 35** best-practice files, and it parses as
+  `<named subject> + <failure predicate>` — `_SUBJ` matches `the rule`, `_FAILS` matches
+  `does NOT apply`. So T-PROSE tripped on any such file that happened to carry a date inside
+  the ±6-line `_STAMP` window: **4 of 35** measured on 2026-08-12. It fires on the file's own
+  structure, which is the definition of a false positive.
+
+  **The fix is a conditional-clause guard, not a predicate deletion.** `when the rule does not
+  apply` states a **case**; `the rule does not apply` states a **fact**. Only the second is a
+  premise, and this gate exists for premises. A new `_COND` check skips a match preceded on the
+  same line by `when`/`whenever`/`if`/`unless`/`whether`/`where`/`in case`, within a 24-char
+  window that breaks on `.!?` **and `,`**.
+
+  ⛔ **Both tempting fixes were worse, and were rejected on inspection:** dropping
+  `apply|applies` from `_FAILS` loses a genuine predicate ("the patch does not apply"), and
+  skipping markdown headings loses *more* — this repo routinely states real diagnoses in
+  headings (`## macOS door 2 — timeout is absent…`, `## The gate that never ran`), which are
+  exactly the confident claims the trigger is for. The comma in the window is load-bearing too:
+  without it, *"When we checked, the decoder is broken"* would be skipped, and that is an
+  assertion with a temporal preamble, not a conditional.
+
+  **Gate 177** gains three fixtures that differ *only* in what precedes an identical
+  subject+predicate span — the boilerplate heading (allowed), the bare assertion (still
+  DENIED), and the temporal preamble (still DENIED) — so the discriminator itself is what is
+  under test. 20 → **23 assertions**, and all four previously-tripping best-practice files were
+  re-run through the real hook and now pass.
+
+- **⛔ Caught in the act: one apostrophe in a comment silently disarmed the whole gate.** The
+  first draft of the fix put `(3)'s` and `FILE'S OWN` in the new comment block. That Python is
+  embedded in a **single-quoted** bash `$(...)`, so the apostrophe closed the string and the
+  hook died with `bad substitution` → **exit 1** — which Claude Code treats as a *non-blocking*
+  error, so the premise gate **failed open and silently stopped gating every write**. Gate 177
+  went 23/23 → 0/23 and caught it immediately. The prohibition is now written into the block
+  itself, next to the pre-existing `doesn\x27t` that was already there for this reason. This is
+  the v0.193.0 exit-code lesson (a loud exit-2 is safe; exit 1 is the silent fail-open) landing
+  on a *comment*.
+
 ## 0.245.0 — 2026-08-12
 
 ### Added

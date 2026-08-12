@@ -186,6 +186,35 @@ if content and durable:
         r"(?i:\bcontrol\s*(?::|probe)|\bpositive\s+control\b"
         r"|\bpremise-ok:[ \t]*\S|\bdisconfirm(?:ing|ed|s)?\b|\brc\s+probe\b)"
     )
+    # (5) A CONDITIONAL CLAUSE IS NOT AN ASSERTION. "when the rule does not apply"
+    #     states a CASE; "the rule does not apply" states a FACT. Only the second is
+    #     a premise, and this gate exists for premises. Measured 2026-08-12: the
+    #     boilerplate heading "## Edge cases / when the rule does NOT apply" is in ALL
+    #     35 best-practice files and parses as <subject>+<failure predicate>, so it
+    #     tripped (2) on any file with a date inside the +/-6-line window of (3) —
+    #     4 of 35 on that day — firing on the section header of the file itself,
+    #     which no author chose. Scoped to the text BEFORE the match on the SAME
+    #     line, so a real assertion later in the file is untouched.
+    #
+    #     ⛔ NO APOSTROPHES ANYWHERE IN THIS PYTHON BLOCK. It is embedded in a
+    #     single-quoted bash $(...), so one apostrophe in a COMMENT closes the
+    #     string and the whole hook dies with "bad substitution" -> exit 1, which
+    #     Claude Code treats as a NON-BLOCKING error, i.e. the gate fails OPEN and
+    #     silently stops gating. That is why the code above writes doesn\x27t.
+    #
+    #     ⛔ The tempting fixes are both worse. Dropping `apply|applies` from _FAILS
+    #     loses a genuine predicate ("the patch does not apply"). Skipping markdown
+    #     headings loses MORE: this repo routinely states real diagnoses in headings
+    #     ("## macOS door 2 — `timeout` is absent…", "## The gate that never ran"),
+    #     which are exactly the confident claims (2) is for.
+    #     The window excludes `,` as well as `.!?` on purpose: without the comma,
+    #     "When we checked, the decoder is broken" would be skipped, and that is an
+    #     ASSERTION with a temporal preamble, not a conditional. Narrower is right —
+    #     a missed skip costs one `control:` line; a missed DENY costs a false premise.
+    _COND = re.compile(
+        r"(?i:\b(?:when|whenever|if|unless|whether|where|in\s+case|cases?\s+where)\b)"
+        r"[^.!?,]{0,24}$"
+    )
 
     lines = [_ln[:2000] for _ln in content.split("\n")[:4000]]
     prose_ctrl = os.environ.get("RC_PREMISE_CONTROL", "")
@@ -197,6 +226,8 @@ if content and durable:
                 break
         if not dm:
             continue
+        if _COND.search(_ln[:dm.start()]):
+            continue                  # (5) conditional clause -> a case, not a premise
         block = "\n".join(lines[max(0, i - 6):i + 7])
         if not _STAMP.search(block):
             continue                  # (3) unstamped -> a hypothesis, not a premise
