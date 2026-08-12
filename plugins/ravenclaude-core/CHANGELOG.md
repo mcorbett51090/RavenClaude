@@ -2,6 +2,54 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.244.1 — 2026-08-12
+
+### Fixed
+
+- **A prescriptive best-practice told agents to build a hook that solves a problem that does not
+  exist — and mis-stated the one safety fact that matters about it.**
+  `precompact-hook-is-the-deterministic-enforcer-of-persist-before-compaction.md` instructed authors
+  to register a `PreCompact` command hook that "flushes the plan / open decisions / rejected
+  approaches to disk," on the premise that compaction destroys them. Reviewed **before** implementing
+  it here; two independent checks falsified it.
+
+  1. **`PreCompact` CAN block.** The file said it is *"not a place to block compaction … not a veto."*
+     The current [hooks reference](https://code.claude.com/docs/en/hooks) (retrieved 2026-08-12) lists
+     `PreCompact` → **Can block? Yes**, exit 2 → blocks compaction. That inverts the hazard model: a
+     hook that exits non-zero on any error path does not merely fail to persist, it **wedges a session
+     whose window is already full**. Anyone following the old file would have written it fail-closed.
+  2. **Nothing is destroyed.** Compaction **appends**. Measured on this project's own transcripts: 44
+     `compact_boundary` records; one 12,398-line transcript with its first boundary at line 4031 and
+     **1,942 pre-boundary turns still present**; every block type retained including **939 `thinking`
+     blocks**; and the boundary record itself carrying `preTokens 1000599 → postTokens 32828`,
+     `cumulativeDroppedTokens`, and a `preservedSegment` naming the surviving span **by UUID**.
+
+  ⛔ **The remedy was also unmechanizable, which is the sharper lesson.** A command hook receives a
+  JSON payload on stdin and nothing else — it has no access to "the model's plan." The prescribed
+  `flush-plan-state.sh` could only ever have appended a timestamp and a path: this repo's own
+  *gate-that-asserts-nothing* class, shipped as advice. **A prose rule being real does not mean a
+  hook-shaped answer exists.**
+
+  The real gap is **addressability, not durability** — the post-compact agent does not know the record
+  exists or where the boundary fell. The file now teaches retrieval (`grep compact_boundary
+  "$transcript_path"`) and points at `SessionStart` with a `compact` matcher, the only surface whose
+  stdout reaches the model. **No hook was added**: adding one would have been the defect this review
+  found.
+
+- **The false framing had propagated to three citing surfaces**, all corrected in the same change:
+  `best-practices/README.md` (the index entry repeated the prescription verbatim),
+  `a-policy-hook-only-gates-if-it-fails-closed.md` (cited it as *"a concrete deterministic-enforcer
+  hook"* — it is now labelled as that rule's **documented exception**, since `PreCompact` must fail
+  **open**), and `posttooluse-hook-is-the-deterministic-quarantine-for-untrusted-tool-output.md`
+  (twice — it claimed the PreCompact rule *"closed"* the compaction gap, and cited it as the same
+  mechanization shape; it is now the counter-example). `compact-proactively-and-persist-state-before-compaction.md`
+  keeps its *when to compact* half and gets a scoping correction: the loss is to the **window**, not
+  the **disk**, and the reason to write decisions down is legibility + cross-CLI reach, not rescue.
+
+  The filename is retained deliberately — six files link to it, two are dated research records this
+  repo's convention says not to rewrite. **The name asserts the retracted claim; the content is the
+  correction**, per the v0.196.0 supersession rule.
+
 ## 0.244.0 — 2026-08-11
 
 ### Fixed
