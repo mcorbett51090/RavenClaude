@@ -1,0 +1,274 @@
+#!/usr/bin/env bash
+# setup-branch-protection.sh — DRY-RUN by default. Prints the `gh api` repository-
+# ruleset body that would protect your default branch, and self-checks that none of
+# the four gold-standard GitHub-protocol workflows carries a paths:/branches: filter
+# on its pull_request trigger (a filtered would-be-required check stays Pending and
+# hangs every PR forever — see knowledge/github-actions-hardening.md Rule 5).
+#
+# Scaffolded by RavenClaude's /init-agent-ready (gold-standard GitHub protocol tier).
+# It is guidance-first: it changes NOTHING unless you pass --apply, and --apply is
+# never satisfiable by an agent (it requires a live `gh` login AND a typed, terminal-
+# only confirmation).
+#
+# ── API SHAPE — VERIFIED THIS SESSION (2026-08-12) ──────────────────────────────
+# The repository-rulesets REST endpoint + body shape were confirmed LIVE against a
+# real repo this session:
+#     gh api repos/<owner>/<repo>/rulesets/<id>
+# returned a `rules[]` array whose entries are objects of type "pull_request"
+# (parameters.required_approving_review_count, allowed_merge_methods, …),
+# "required_status_checks" (parameters.required_status_checks[].context),
+# "non_fast_forward", and "deletion", under conditions.ref_name.include =
+# ["refs/heads/<branch>"]. This script emits exactly that verified shape via
+#     POST /repos/{owner}/{repo}/rulesets
+# The OPTIONAL --linear-history rule ("required_linear_history") is from GitHub's
+# documented ruleset rule vocabulary but was NOT present in the live sample —
+# ⚠ VERIFY it against the current GitHub REST docs (Repository rulesets) before
+# relying on --apply --linear-history.
+#
+# CONSUMER: keep the required-check CONTEXT strings below in sync with each
+# github-protocol-*.yml workflow's job `name:` — GitHub keys a required status check
+# by the job's display name, not the file or job id. If you rename a job's `name:`,
+# rename its context here too, or the check will never match and the PR will hang.
+#
+# Portability: bash 3.2-safe (no declare -A / mapfile / ${x^^} / shopt globstar);
+# no GNU-only timeout / grep -P / sed -i. Uses only gh, git, and awk.
+set -euo pipefail
+
+# ── the four gold-standard workflows and their required-check CONTEXTS ──
+# CONTEXT == the workflow job's `name:` (what shows up as the check on a PR).
+WF_FILES="github-protocol-workflow-hygiene.yml github-protocol-pr-title.yml github-protocol-commit-lint.yml github-protocol-secret-scan.yml"
+REQUIRED_CHECKS_0="Lint workflow permissions + action pins"
+REQUIRED_CHECKS_1="Semantic PR title (Conventional Commits)"
+REQUIRED_CHECKS_2="Conventional Commits over the PR range"
+REQUIRED_CHECKS_3="Scan for committed secrets (TruffleHog)"
+REQUIRED_CHECKS_N=4
+
+APPLY=0
+LINEAR=0
+CODEOWNER=0
+REPO_SLUG=""
+BRANCH="main"
+WF_DIR=".github/workflows"
+RULESET_NAME=""
+
+die() { printf 'setup-branch-protection: %s\n' "$*" >&2; exit 1; }
+
+usage() {
+  cat <<'USAGE'
+Usage: setup-branch-protection.sh [options]
+
+  (no options)                 DRY-RUN: print the ruleset body + self-check, change nothing.
+  --apply                      Create/replace the ruleset. Requires a live `gh` login AND a
+                               typed confirmation in an interactive terminal (never auto-applied).
+  --linear-history             Also require linear history (adds a "required_linear_history" rule).
+                               ⚠ Verify this rule type against current GitHub REST docs first.
+  --require-codeowner-review   Set require_code_owner_review:true (pairs with CODEOWNERS.template).
+  --repo OWNER/REPO            Target repo (default: resolved from `gh` / the git remote).
+  --branch NAME                Protected branch (default: main).
+  --workflows DIR              Workflow dir to self-check (default: .github/workflows).
+  -h, --help                   This help.
+USAGE
+}
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --apply) APPLY=1 ;;
+    --linear-history) LINEAR=1 ;;
+    --require-codeowner-review) CODEOWNER=1 ;;
+    --repo) shift; REPO_SLUG="${1:-}" ;;
+    --branch) shift; BRANCH="${1:-}" ;;
+    --workflows) shift; WF_DIR="${1:-}" ;;
+    -h|--help) usage; exit 0 ;;
+    *) printf 'unknown option: %s\n\n' "$1" >&2; usage >&2; exit 2 ;;
+  esac
+  shift
+done
+[ -n "$BRANCH" ] || die "--branch needs a value"
+[ -n "$WF_DIR" ] || die "--workflows needs a value"
+RULESET_NAME="$BRANCH"
+
+# ── resolve OWNER/REPO (read-only) ──
+resolve_repo() {
+  if [ -n "$REPO_SLUG" ]; then printf '%s' "$REPO_SLUG"; return 0; fi
+  if command -v gh >/dev/null 2>&1; then
+    _slug="$(gh repo view --json nameWithOwner -q .nameWithOwner 2>/dev/null || true)"
+    if [ -n "$_slug" ]; then printf '%s' "$_slug"; return 0; fi
+  fi
+  _url="$(git config --get remote.origin.url 2>/dev/null || true)"
+  _url="${_url%.git}"
+  case "$_url" in
+    *github.com[:/]*) _slug="${_url##*github.com[:/]}" ;;
+    *) _slug="" ;;
+  esac
+  # keep it only if it is exactly owner/repo (one slash, both parts non-empty)
+  case "$_slug" in
+    */*/*) _slug="" ;;
+    */?*) : ;;
+    *) _slug="" ;;
+  esac
+  printf '%s' "$_slug"
+}
+
+# ── self-check: does a workflow put a paths/branches filter on its pull_request trigger? ──
+# awk exits 3 if a filter is found on the pull_request trigger, 0 if clean, 2 on read error.
+# YAML indentation is spaces-only, so plain-space patterns are sufficient (and portable).
+has_pr_filter() {
+  awk '
+    function indent(s,   n){ n=0; while (substr(s, n + 1, 1) == " ") n++; return n }
+    BEGIN { in_on=0; in_pr=0; pr_indent=0; found=0 }
+    {
+      line=$0
+      sub(/\r$/, "", line)
+      trimmed=line; sub(/^ +/, "", trimmed)
+      if (trimmed == "" || substr(trimmed, 1, 1) == "#") next
+      ind=indent(line)
+      if (ind == 0) {
+        if (line ~ /^on:/ || line ~ /^"on":/) { in_on=1; in_pr=0 } else { in_on=0; in_pr=0 }
+        next
+      }
+      if (!in_on) next
+      if (in_pr) {
+        if (ind <= pr_indent) { in_pr=0 }
+        else if (line ~ /^ *paths:/ || line ~ /^ *paths-ignore:/ || line ~ /^ *branches:/ || line ~ /^ *branches-ignore:/) { found=1 }
+      }
+      if (!in_pr && line ~ /^ *pull_request:/) { in_pr=1; pr_indent=ind }
+    }
+    END { exit (found ? 3 : 0) }
+  ' "$1"
+}
+
+run_self_check() {
+  # prints a report; sets SELF_CHECK_UNSAFE=1 if any present workflow is path-filtered.
+  SELF_CHECK_UNSAFE=0
+  _any_present=0
+  printf 'Self-check — no paths:/branches: filter on the required workflows (Rule 5):\n'
+  for _wf in $WF_FILES; do
+    _path="$WF_DIR/$_wf"
+    if [ ! -f "$_path" ]; then
+      printf '  -  %-42s (not present — skipped)\n' "$_wf"
+      continue
+    fi
+    _any_present=1
+    _rc=0
+    has_pr_filter "$_path" || _rc=$?
+    if [ "$_rc" -eq 0 ]; then
+      printf '  OK %-42s no pull_request filter\n' "$_wf"
+    elif [ "$_rc" -eq 3 ]; then
+      printf '  ⛔ %-42s PATH/BRANCH FILTER on pull_request — would hang the PR\n' "$_wf"
+      SELF_CHECK_UNSAFE=1
+    else
+      printf '  ?? %-42s could not scan (awk error) — inspect by hand\n' "$_wf"
+      SELF_CHECK_UNSAFE=1
+    fi
+  done
+  if [ "$_any_present" -eq 0 ]; then
+    printf '  (none of the four github-protocol-*.yml workflows are in %s yet)\n' "$WF_DIR"
+  fi
+  printf '\n'
+}
+
+# ── emit the ruleset JSON body (verified shape) ──
+emit_body() {
+  _checks=""
+  _i=0
+  while [ "$_i" -lt "$REQUIRED_CHECKS_N" ]; do
+    eval "_ctx=\$REQUIRED_CHECKS_$_i"
+    _sep=","
+    if [ "$_i" -eq "$((REQUIRED_CHECKS_N - 1))" ]; then _sep=""; fi
+    _checks="$_checks          { \"context\": \"$_ctx\" }$_sep
+"
+    _i=$((_i + 1))
+  done
+
+  _linear=""
+  if [ "$LINEAR" -eq 1 ]; then
+    _linear='    { "type": "required_linear_history" },
+'
+  fi
+
+  _codeowner="false"
+  if [ "$CODEOWNER" -eq 1 ]; then _codeowner="true"; fi
+
+  cat <<EOF
+{
+  "name": "$RULESET_NAME",
+  "target": "branch",
+  "enforcement": "active",
+  "conditions": {
+    "ref_name": {
+      "include": ["refs/heads/$BRANCH"],
+      "exclude": []
+    }
+  },
+  "rules": [
+    { "type": "deletion" },
+    { "type": "non_fast_forward" },
+$_linear    {
+      "type": "pull_request",
+      "parameters": {
+        "required_approving_review_count": 0,
+        "dismiss_stale_reviews_on_push": false,
+        "require_code_owner_review": $_codeowner,
+        "require_last_push_approval": false,
+        "required_review_thread_resolution": false,
+        "allowed_merge_methods": ["merge", "squash", "rebase"]
+      }
+    },
+    {
+      "type": "required_status_checks",
+      "parameters": {
+        "strict_required_status_checks_policy": false,
+        "do_not_enforce_on_create": false,
+        "required_status_checks": [
+$_checks        ]
+      }
+    }
+  ]
+}
+EOF
+}
+
+SLUG="$(resolve_repo)"
+
+if [ "$APPLY" -eq 0 ]; then
+  # ── DRY-RUN ──
+  printf '=== DRY-RUN — nothing is changed. Pass --apply to create the ruleset. ===\n\n'
+  run_self_check
+  _target_slug="${SLUG:-<owner>/<repo>}"
+  printf 'Would POST to: repos/%s/rulesets   (branch: %s)\n' "$_target_slug" "$BRANCH"
+  printf 'Command it would run:\n'
+  printf '  gh api --method POST -H "Accept: application/vnd.github+json" \\\n'
+  printf '    repos/%s/rulesets --input -   # (body on stdin, shown below)\n\n' "$_target_slug"
+  printf 'Ruleset body:\n'
+  emit_body
+  printf '\n'
+  if [ "${SELF_CHECK_UNSAFE:-0}" -ne 0 ]; then
+    printf '⛔ Self-check FAILED — fix the path/branch filter(s) above before --apply\n'
+    printf '   (gate the STEP with `if:` inside the job, never the pull_request trigger).\n\n'
+  fi
+  printf 'To apply (you run this — an agent cannot):\n'
+  printf '  1. gh auth status          # confirm you are logged in\n'
+  printf '  2. setup-branch-protection.sh --apply   # then type the repo slug when prompted\n'
+  exit 0
+fi
+
+# ── APPLY (user-only; never auto-applied) ──
+command -v gh >/dev/null 2>&1 || die "gh CLI not found — install GitHub CLI and 'gh auth login', then re-run --apply."
+gh auth status >/dev/null 2>&1 || die "not authenticated — run 'gh auth status' / 'gh auth login' first. Refusing --apply."
+[ -n "$SLUG" ] || die "could not resolve owner/repo — pass --repo OWNER/REPO."
+
+run_self_check
+if [ "${SELF_CHECK_UNSAFE:-0}" -ne 0 ]; then
+  die "a required workflow carries a paths:/branches: filter — applying would leave it Pending and hang every PR. Fix it first (gate the step with 'if:', not the trigger)."
+fi
+
+[ -t 0 ] || die "--apply needs an interactive terminal for typed confirmation (this is deliberate — it can never be auto-applied)."
+printf 'About to create/replace ruleset "%s" on %s (branch %s).\n' "$RULESET_NAME" "$SLUG" "$BRANCH"
+printf 'Type the repo slug exactly (%s) to confirm, or anything else to abort: ' "$SLUG"
+_reply=""
+IFS= read -r _reply || _reply=""
+[ "$_reply" = "$SLUG" ] || die "confirmation did not match ('$_reply' != '$SLUG') — aborted. Nothing changed."
+
+printf 'Applying…\n'
+emit_body | gh api --method POST -H "Accept: application/vnd.github+json" "repos/$SLUG/rulesets" --input -
+printf 'Done. Verify at: https://github.com/%s/settings/rules\n' "$SLUG"

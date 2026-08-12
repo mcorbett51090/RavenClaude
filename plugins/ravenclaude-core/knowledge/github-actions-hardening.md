@@ -98,6 +98,17 @@ Those two triggers run **in the base-repo context, with repo secrets and a write
 
 ---
 
+## Branch protection — how to set it
+
+The rules above (Rule 5 on never path-filtering a required check, and Rule 6 on the merge queue + CODEOWNERS) say *what* a protected branch should require. The **setup procedure** is scaffolded, guidance-first, by the [`/init-agent-ready`](../commands/init-agent-ready.md) gold-standard tier — it is a helper you run, never a default-on control:
+
+- **[`../templates/agent-ready-repo/setup-branch-protection.sh.template`](../templates/agent-ready-repo/setup-branch-protection.sh.template)** — a **dry-run-by-default** helper. It prints the `gh api` repository-ruleset body it *would* POST (require-a-PR-before-merge + the four `github-protocol-*` workflows as required status checks + optional linear history) and **self-checks that none of those four workflows carries a `paths:`/`branches:` filter on its `pull_request` trigger** — the Rule-5 trap, applied to the exact checks about to become required. `--apply` is deliberately un-automatable: it requires a live `gh auth status` **and** a typed, terminal-only confirmation, and it refuses outright if the self-check finds a filter. The required-check *context* strings in the script are each workflow's job `name:` (that is how GitHub keys a required check).
+- **[`../templates/agent-ready-repo/CODEOWNERS.template`](../templates/agent-ready-repo/CODEOWNERS.template)** — a commented-out starter for the path-scoped ownership Rule 6 describes; `setup-branch-protection.sh --require-codeowner-review` is what turns a code-owner's approval into a *required* one.
+
+The ruleset REST shape the helper emits (`POST /repos/{owner}/{repo}/rulesets`, a `rules[]` array of `pull_request` / `required_status_checks` / `non_fast_forward` / `deletion`) was verified live on 2026-08-12; the optional `required_linear_history` rule is documented-but-unobserved and carries a verify-against-current-docs note in the script header.
+
+---
+
 ## Copy-verbatim exemplars
 
 When you need a hardened workflow to model, **copy from a file that was read whole and verified this session** rather than reconstructing from memory:
