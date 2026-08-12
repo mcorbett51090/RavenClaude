@@ -51,4 +51,4 @@ graph TD
 
 ## Refresh triggers
 - A new manifest schema version ships (monthly cadence) → re-check the hard limits + build-tool names.
-- Agent 365 / Agent 365 SDK (Entra agent identity + governed MCP) reaches GA → re-evaluate a v0.2.0 `agent-365-engineer` `[verify-at-build]`.
+- Agent 365 **SDK / registry-sync** reaches GA → re-evaluate a v0.2.0 `agent-365-engineer` `[verify-at-build]`. (The Agent 365 *control-plane service* GA'd **2026-05-01**; the SDK/registry-sync developer surface is still partly preview.)
