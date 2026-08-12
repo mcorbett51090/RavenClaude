@@ -7,8 +7,11 @@
 # block-branch deny neutralized lets a block-knob violation through (so the
 # block assertion is measuring the deny, not passing for an unrelated reason).
 #
-# The hook is invoked via `bash` (it needs no executable bit — the exec bit is
-# handed to the user as a `!` chmod; this test passes without it).
+# This test invokes the hook via `bash "$HOOK"`, so it passes regardless of the
+# hook's executable bit — that is a property of THIS TEST HARNESS, not of the
+# shipped hook. Production (Claude Code direct-exec) and CI's executability gate DO
+# require enforce-git-protocol.sh to carry the exec bit; it is handed to the user as
+# a `!` chmod (the guarded-substrate dir blocks an agent chmod there).
 #
 # bash 3.2 safe. No GNU-only tools.
 set -uo pipefail
@@ -85,6 +88,14 @@ _assert_exit "checkout -b off-convention @block"   2
 
 _run "$HOOK" "$PROJ" 'git commit -m "fix(hooks): correct the regex"'
 _assert_silent "commit CC @block still silent"
+
+# git's OWN generated subjects (revert/merge/autosquash) are exempt — never flagged,
+# even at block (Fix 1's carve-out: git authored them, so there is no subject to fix).
+_run "$HOOK" "$PROJ" 'git commit -m "Revert \"feat: add widget\""'
+_assert_silent "git-generated Revert subject @block not flagged"
+
+_run "$HOOK" "$PROJ" "git commit -m \"Merge branch 'topic'\""
+_assert_silent "git-generated Merge subject @block not flagged"
 
 _run "$HOOK" "$PROJ" 'git push origin main'
 _assert_exit "push-to-main @block NEVER blocks"    0

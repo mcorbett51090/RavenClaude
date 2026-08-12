@@ -12,7 +12,9 @@
 #      `type(scope): subject` (types: feat|fix|chore|docs|refactor|test|build|ci|
 #      perf|style|revert). Default warn; blocks (exit 2) ONLY when the knob is
 #      `block`. A commit with no inline message (editor, or -F <file>) is not
-#      inspected — there is no subject to see.
+#      inspected — there is no subject to see. Git's OWN generated subjects
+#      (Revert "…" / Merge … / fixup! / squash!) are EXEMPT — they are produced by
+#      git (revert/merge/autosquash), not authored, so they never warn or block.
 #   2. branch-name — on a NEW-BRANCH creation (checkout -b <name> / switch -c
 #      <name> / plain `branch <name>`), WARN when <name> does not match the repo's
 #      prefix convention `^(feat|fix|chore|docs|refactor|agent)/` (rules/git-workflow.md).
@@ -109,6 +111,10 @@ CC_RE = re.compile(
 )
 # This repo's branch-prefix convention (rules/git-workflow.md).
 BR_RE = re.compile(r"^(?:feat|fix|chore|docs|refactor|agent)/")
+# Git's OWN generated commit subjects — the shapes `git revert` / `git merge` /
+# `--fixup` / `--squash` emit. They are not human-authored, so they are exempt from
+# the Conventional-Commits check (never warn, never block — no subject to fix).
+GIT_GENERATED_RE = re.compile(r'^(?:Revert "|Merge |fixup! |squash! )')
 
 # git global options that consume a FOLLOWING value token when not =-attached.
 _VALUE_GLOBALS = {"-C", "-c", "--git-dir", "--work-tree", "--namespace",
@@ -225,7 +231,7 @@ if tokens:
             subj = commit_subject(args)
             if subj is not None:
                 first = subj.split("\n", 1)[0].strip()
-                if first and not CC_RE.match(first):
+                if first and not CC_RE.match(first) and not GIT_GENERATED_RE.match(first):
                     findings.append(("commit-message", first))
         elif sub in ("checkout", "switch", "branch"):
             name = new_branch_name(sub, args)

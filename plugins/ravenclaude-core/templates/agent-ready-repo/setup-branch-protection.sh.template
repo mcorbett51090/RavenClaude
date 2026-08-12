@@ -31,7 +31,7 @@
 # rename its context here too, or the check will never match and the PR will hang.
 #
 # Portability: bash 3.2-safe (no declare -A / mapfile / ${x^^} / shopt globstar);
-# no GNU-only timeout / grep -P / sed -i. Uses only gh, git, and awk.
+# no GNU-only timeout / grep -P / sed -i. Uses gh, git, awk, and jq.
 set -euo pipefail
 
 # ── the four gold-standard workflows and their required-check CONTEXTS ──
@@ -86,6 +86,11 @@ done
 [ -n "$BRANCH" ] || die "--branch needs a value"
 [ -n "$WF_DIR" ] || die "--workflows needs a value"
 RULESET_NAME="$BRANCH"
+
+# jq builds the ruleset JSON body with the user-supplied branch name safely escaped
+# (a git ref name may legally contain a JSON metacharacter, and --branch/--repo are
+# arbitrary user input). Required for both the dry-run render and --apply.
+command -v jq >/dev/null 2>&1 || die "jq not found — install jq (used to safely build the ruleset JSON body)."
 
 # ── resolve OWNER/REPO (read-only) ──
 resolve_repo() {
@@ -169,6 +174,14 @@ run_self_check() {
 
 # ── emit the ruleset JSON body (verified shape) ──
 emit_body() {
+  # JSON-escape the user-supplied branch / ruleset name. A git ref name may legally
+  # contain a JSON metacharacter (a double-quote or backslash), and --branch/--repo
+  # are arbitrary user input — interpolating either raw could emit a malformed body.
+  # `jq -R -s '.'` reads the raw value and emits a fully-escaped, self-quoted JSON
+  # string literal; it is substituted verbatim (bash does not re-expand the result).
+  _name_json="$(printf '%s' "$RULESET_NAME" | jq -R -s '.')"
+  _ref_json="$(printf 'refs/heads/%s' "$BRANCH" | jq -R -s '.')"
+
   _checks=""
   _i=0
   while [ "$_i" -lt "$REQUIRED_CHECKS_N" ]; do
@@ -191,12 +204,12 @@ emit_body() {
 
   cat <<EOF
 {
-  "name": "$RULESET_NAME",
+  "name": $_name_json,
   "target": "branch",
   "enforcement": "active",
   "conditions": {
     "ref_name": {
-      "include": ["refs/heads/$BRANCH"],
+      "include": [$_ref_json],
       "exclude": []
     }
   },
