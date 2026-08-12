@@ -2400,3 +2400,49 @@ v0.196.0 supersession rule.
 
 **Migration:** none. The docs correction changes no code; the new hook fires only when a session
 resumes from a compaction, emits only derived values, and exits 0 on every error path.
+
+## A default-warn in-loop git-protocol nudge (added 2026-08-12)
+
+A new `PreToolUse(Bash)` hook — [`hooks/enforce-git-protocol.sh`](hooks/enforce-git-protocol.sh) —
+nudges toward this repo's own git conventions **in the loop**, where a CI check only catches them after
+the push. Default **WARN**. Exactly three checks, each anchored to the *mutating* git subcommand token
+so a read-only `git log`/`status`/`diff`/`show`/`fetch` never fires:
+
+1. **commit-message shape** — a `git commit` carrying an inline `-m`/`--message` whose subject is not
+   Conventional-Commits `type(scope): subject`
+   (feat|fix|chore|docs|refactor|test|build|ci|perf|style|revert) → WARN. A commit with no inline
+   message (editor / `-F <file>`) is not inspected — there is no subject to see.
+2. **branch-name** — a new-branch creation (`checkout -b` / `switch -c` / a plain `branch <name>`) off
+   the `(feat|fix|chore|docs|refactor|agent)/` prefix table in
+   [`rules/git-workflow.md`](rules/git-workflow.md) → WARN. Listing / deleting / renaming a branch is
+   not a creation and is not flagged.
+3. **push-to-a-protected-branch** — a direct **non-force** push whose refspec targets `main`/`master`
+   is **advisory-only** and **NEVER blocks at any knob value** (this repo's own `main` ruleset is
+   bypass_mode:always by design; force operations belong to `guard-destructive.sh`).
+
+**Knob:** `git_protocol: off | warn | block` in `.ravenclaude/comfort-posture.yaml` (read with the same
+minimal-scalar `sed` idiom `worktree-guard.sh` uses for its `worktree_guard:` knob — no PyYAML). Only
+when the knob is `block` do checks 1–2 DENY (exit 2) with a remediation hint; push-to-main stays
+advisory at every knob.
+
+**Scope / non-collision (deliberate).** It does **not** touch force operations, branch force-delete,
+recursive-remove, or hard reset — `guard-destructive.sh` owns those, and a force push (or a `+`-refspec)
+is **force-EXCLUDED** here so the two guards can never collide or double-fire. No commit-body / length /
+trailer / casing pedantry; no secret scanning. **Fail-open:** any error / missing `git` / missing
+`python3` / **absent posture file** → exit 0 (no-op). Registered `PreToolUse(Bash)` in both
+[`hooks/hooks.json`](hooks/hooks.json) (`${CLAUDE_PLUGIN_ROOT}`) and the dev-mirror `.claude/settings.json`
+(`${CLAUDE_PROJECT_DIR}`). bash 3.2-safe (no `declare -A` / `mapfile` / `${x^^}` / `shopt -s globstar`);
+no GNU `timeout` / `grep -P` / `sed -i`. Proven by **Gate 189**
+([`hooks/tests/test-enforce-git-protocol.sh`](hooks/tests/test-enforce-git-protocol.sh)) — warn / block /
+off / absent-posture behaviour + push-to-main-never-blocks, with a self-contained **must-fail half** (a
+mutant with the block-branch deny neutered MUST let a block-knob violation through, or the `@block`
+assertions are toothless).
+
+**Migration (consumer-visible — the one behavior change).** On `/plugin marketplace update`, a consumer
+who **already has** a `.ravenclaude/comfort-posture.yaml` will see a **new, non-blocking** stderr nudge
+on a `git commit -m` with a non-conventional subject, or on a `checkout -b` / `branch <name>` off the
+prefix convention — WARN only, exit 0, nothing blocked. It is **opt-in by presence of the posture
+file**: with **no** `.ravenclaude/comfort-posture.yaml` the hook **no-ops entirely**, so nothing changes
+for anyone who has not set up a posture. To silence it while keeping a posture file, set
+`git_protocol: off`; to make checks 1–2 hard-block (exit 2), set `git_protocol: block`. A push to
+`main`/`master` is never blocked at any setting.

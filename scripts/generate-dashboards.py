@@ -1104,6 +1104,12 @@ _PIPELINE_EXCLUDED_HOOKS = {
     "injects the transcript path + boundary line so the post-compact agent knows its earlier turns "
     "are still on disk. Same class as thing-denial-kb-recall.sh — informational context, gates "
     "nothing, denies nothing, never inspects a tool call — so deliberately NOT a Pipeline stage card",
+    "enforce-git-protocol.sh": "advisory git-convention nudge (PreToolUse Bash) governed by the "
+    "`git_protocol:` comfort-posture knob — default WARN on a non-Conventional-Commits `git commit -m` "
+    "subject or an off-convention new branch, denies only at `git_protocol: block`, and a push to "
+    "main/master is always advisory. Its knob is surfaced with the other posture settings and it "
+    "enforces commit/branch STYLE conventions rather than the safety floor the drawn PreToolUse cards "
+    "represent, so — like worktree-guard.sh — it is deliberately NOT a Pipeline stage card",
 }
 
 _PIPELINE_CONTROLS = {
