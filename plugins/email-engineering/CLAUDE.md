@@ -117,8 +117,9 @@ Advisory by default (`exit 0` + stderr). Set `EMAIL_ENG_STRICT=1` to make it blo
 | [`knowledge/deliverability-fundamentals.md`](knowledge/deliverability-fundamentals.md) | The stable model — the deliverability stack, reputation, warm-up, stream separation, the two rates, one-click unsubscribe |
 | [`knowledge/esp-capability-map-2026.md`](knowledge/esp-capability-map-2026.md) | Choosing an ESP — dated, `[verify-at-use]` vendor comparison + the durable selection checklist |
 | [`knowledge/transport-security-mta-sts-tls-rpt.md`](knowledge/transport-security-mta-sts-tls-rpt.md) | Hardening SMTP transport beyond DMARC — MTA-STS (RFC 8461) enforce-ramp + policy file, TLS-RPT (RFC 8460) reporting, and the ARF (RFC 5965) feedback-loop format behind suppression |
+| [`knowledge/inbox-categorization.md`](knowledge/inbox-categorization.md) | Gmail tabs (Primary/Promotions/Updates/Social/Forums), categorization signals (headers/content/sender pattern/per-user learning), Promotions annotations, Outlook Focused Inbox, Apple Mail on-device categorization, and a decision tree for "which tab should this mail target?" — all with `[verify-at-use]` riders since provider models update without announcement |
 
-**Templates:** `dmarc-rollout-plan.md`, `transactional-email-spec.md`, `deliverability-incident-runbook.md`. **Best-practices:** 8 rules + README. **Scenarios:** 2 dated narratives + README. **Script:** `scripts/email_auth_lint.py`.
+**Templates:** `dmarc-rollout-plan.md`, `transactional-email-spec.md`, `deliverability-incident-runbook.md`. **Best-practices:** 10 rules + README. **Scenarios:** 2 dated narratives + README. **Script:** `scripts/email_auth_lint.py`.
 
 ---
 
@@ -140,8 +141,8 @@ Advisory by default (`exit 0` + stderr). Set `EMAIL_ENG_STRICT=1` to make it blo
 | --- | --- | --- |
 | 2 agents | **BUILT** | architect (strategy/DNS) + engineer (send path/templates), full scenario-authoring frontmatter. |
 | 5 skills | **BUILT** | auth-setup, deliverability-audit, transactional-integration, template-engineering, suppression. |
-| Knowledge (Mermaid trees) | **BUILT** | 4 docs; 3 Mermaid trees (setup / diagnosis / ESP-choice) + dated capability map + transport-security (MTA-STS/TLS-RPT). |
-| best-practices / templates / commands | **BUILT** | 9 best-practices, 3 templates, 4 commands. |
+| Knowledge (Mermaid trees) | **BUILT** | 5 docs; 3 Mermaid trees (setup / diagnosis / ESP-choice) + dated capability map + transport-security (MTA-STS/TLS-RPT) + inbox categorization (Gmail tabs / Outlook / Apple). |
+| best-practices / templates / commands | **BUILT** | 10 best-practices, 3 templates, 4 commands. |
 | Scenarios bank | **BUILT** | README + 2 dated, scope-tagged scenarios (DMARC/forwarding, Gmail/Yahoo bulk). |
 | Runnable script | **BUILT** | `email_auth_lint.py` — SPF/DMARC record linter, stdlib only, ruff-clean, no DNS lookups. |
 | Advisory hook | **BUILT** | `flag-email-smells.sh` — 4 mechanical checks. |
@@ -155,3 +156,4 @@ Advisory by default (`exit 0` + stderr). Set `EMAIL_ENG_STRICT=1` to make it blo
 - **v0.1.0** — initial build: 2 agents, 5 skills, a 3-doc knowledge bank (3 Mermaid trees + dated ESP map), 8 best-practices, 3 templates, 4 commands, a scenarios bank (2), a stdlib auth linter, and 1 advisory hook. Seams to marketing-operations, backend/api-engineering, the cloud plugins, and security-engineering.
 - **v0.2.0** — transport-security layer (ported from the `email-deliverability-engineering` proposal, PR #435, which was retired as a duplicate): a new `transport-security-mta-sts-tls-rpt.md` knowledge doc (MTA-STS RFC 8461 enforce-ramp + policy file, TLS-RPT RFC 8460 reporting, ARF RFC 5965 feedback-loop format) + the `enforce-transport-security-with-mta-sts` best-practice rule. Closes the one genuine gap the duplicate covered (the auth bank had SPF/DKIM/DMARC/BIMI but not the transport layer).
 - **v0.3.0** — reputation-monitoring completeness (folded the one genuinely-additive idea from a retired `marketing-operations` email-deliverability draft; the rest it carried was already covered here, often deeper): **Microsoft SNDS + JMRP** added as a first-class reputation surface alongside Google Postmaster Tools + DMARC RUA. A Postmaster-only diagnosis is blind to Outlook/Hotmail, whose reputation moves independently of Gmail's. New "Where you read reputation" section in `deliverability-fundamentals.md`, threaded into the `deliverability-audit` skill and the `warm-up-new-sending-domains` best-practice. No agents/skills/templates/commands added; no frontmatter changed.
+- **v0.3.3** — inbox categorization: a new `knowledge/inbox-categorization.md` (Gmail tabs + categorization signals + Promotions annotations + Outlook Focused Inbox + Apple Mail + decision tree) and `best-practices/know-which-tab-your-mail-lands-in.md` (the two-rule model: transactional → Primary signals; marketing → Promotions is correct). A genuine gap: the plugin covered auth, reputation, and transport, but not how providers sort mail within the inbox after delivery.
