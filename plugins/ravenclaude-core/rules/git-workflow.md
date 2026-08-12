@@ -76,7 +76,7 @@ redundant — each catches a case the previous one already cleared:
 >   branch carrying genuinely unmerged work.
 > - **Gate 4 (`git branch -d`) is blind the same way**, so a squash-merged branch cannot be
 >   retired with `-d` at all. That case routes to
->   [`scripts/cleanup-branches.sh`](../../../scripts/cleanup-branches.sh), the **one**
+>   [`${CLAUDE_PLUGIN_ROOT}/scripts/cleanup-branches.sh`](../scripts/cleanup-branches.sh), the **one**
 >   sanctioned `-D` escape hatch (house rule 5) — do not add a second force-delete path.
 >
 > This is not hypothetical: on 2026-08-05 a sweep reported **13 of 15** RavenPower branches
@@ -94,14 +94,15 @@ was merged and clean but had open PR #184; `forge/portal-intake-tree` passed all
 and git still refused `-d`. Result: 13 deleted, 3 saved that a merged-only sweep would
 have destroyed.
 
-**Run it:** [`scripts/branch-hygiene.sh`](../../../scripts/branch-hygiene.sh) implements
+**Run it:** [`${CLAUDE_PLUGIN_ROOT}/scripts/branch-hygiene.sh`](../scripts/branch-hygiene.sh) implements
 all four gates, is **dry-run by default**, and fails closed if it can't reach `gh` (an
-unprovable gate is not a passed gate). Note dry-run is deliberately *looser* than
+unprovable gate is not a passed gate). _(Consumer fallback if `${CLAUDE_PLUGIN_ROOT}` is unset:
+`find ~/.claude/plugins/cache -name branch-hygiene.sh -path '*ravenclaude-core*'`, mirroring `bin/rc`.)_ Note dry-run is deliberately *looser* than
 `--execute`, since gate 4 only renders a verdict at delete time.
 
 **Scope — merged branches only.** For **unmerged/abandoned** work whose commits are not
 in the base, gate 1 correctly refuses; that case needs
-[`scripts/archive-branch.sh`](../../../scripts/archive-branch.sh), which tags the tip so
+[`${CLAUDE_PLUGIN_ROOT}/scripts/archive-branch.sh`](../scripts/archive-branch.sh), which tags the tip so
 it stays recoverable. See AGENTS.md house rule 5.
 
 ## Rebases vs. merges
