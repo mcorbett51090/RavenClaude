@@ -747,6 +747,11 @@ PY
       rm -rf "$_g188_dest"
       exit "$_rc188"
       ;;
+    190)
+      echo "── Gate 190: premise ledger scoping (per-gate run) ───────────────────────"
+      bash plugins/ravenclaude-core/hooks/tests/test-premise-scoping.sh
+      exit $?
+      ;;
     189)
       echo "── Gate 189: git-protocol nudge (per-gate run) ───────────────────────────"
       bash plugins/ravenclaude-core/hooks/tests/test-enforce-git-protocol.sh
@@ -754,7 +759,7 @@ PY
       ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -6117,6 +6122,63 @@ echo "── Gate 189: git-protocol nudge — default-warn, block-only-on-knob �
 # release while the suite reported green).
 rc=0; bash plugins/ravenclaude-core/hooks/tests/test-enforce-git-protocol.sh >/dev/null 2>&1 || rc=$?
 gate "git-protocol: warn/block/off/absent behave per spec, push-to-main never blocks; teeth proven by mutant" must_pass "$rc"
+
+echo "── Gate 190: premise ledger blast radius — one agent must not gate another ─"
+# The ledger was keyed on (project, session_id). MEASURED 2026-08-12 against a real
+# 6-agent parallel run, not inferred: ONE session_id carried 14,322 transcript events
+# spanning 49 distinct `cwd` values across 15+ git worktrees, and the single ledger it
+# produced held 2,825 entries with 50 UNRESOLVED negative families. Neither key
+# component varies per agent, so every sibling appended to one file and a negative
+# recorded in worktree A denied an unrelated new module in worktree B.
+#
+# ⛔ A guardrail whose only exit is unreachable does not get respected — it gets
+# tunnelled. RC_PREMISE_CONTROL / RC_PREMISE_OVERRIDE are ENVIRONMENT variables, and a
+# variable exported inside a Bash call never reaches the hook process, so a dispatched
+# subagent that had genuinely run the control could not say so. In the measured run one
+# agent lost finished work rather than tunnel and one wrote files through Bash heredocs
+# to dodge the Write hook. The file-based control is the reachable, RECORDED exit.
+#
+# ⛔ THE TEST CARRIES BOTH HALVES AND NEITHER IS MEANINGFUL ALONE: a negative in A must
+# not block B (the fix) AND must still block A (proof it is not a weakening). Scoping
+# without the second half is indistinguishable from switching the gate off.
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-premise-scoping.sh >/dev/null 2>&1 || rc=$?
+gate "premise scoping: A does not gate B, A still gates A, file-control clears + is recorded, incomplete clears nothing" must_pass "$rc"
+
+# Teeth 1 — collapse the scope key in BOTH hooks and the cross-worktree half must go
+# red. Observed: 22/0 becomes 16 passed / 6 failed, and the reds are exactly the
+# cross-worktree assertions. `sed -i` is deliberately avoided (BSD/macOS door 4).
+_ps_tmp="$(mktemp -d)"
+cp -R plugins/ravenclaude-core/hooks "$_ps_tmp/hooks"
+python3 - "$_ps_tmp" <<'PY' >/dev/null 2>&1
+import pathlib, sys
+t = pathlib.Path(sys.argv[1])
+old = '    return (slug or "root") + "-" + digest'
+for n in ("guard-premise.sh", "log-probe.sh"):
+    p = t / "hooks" / n
+    s = p.read_text()
+    assert old in s, n
+    p.write_text(s.replace(old, '    return "collapsed"'))
+PY
+rc=0; bash "$_ps_tmp/hooks/tests/test-premise-scoping.sh" >/dev/null 2>&1 || rc=$?
+gate "premise scoping teeth: a collapsed scope key is caught" must_fail "$rc"
+
+# Teeth 2 — the escape must have a bar. Make every control file "valid" and the
+# incomplete-file assertions must go red. Observed: 22/0 becomes 19 passed / 3 failed.
+_ps_tmp2="$(mktemp -d)"
+cp -R plugins/ravenclaude-core/hooks "$_ps_tmp2/hooks"
+python3 - "$_ps_tmp2" <<'PY' >/dev/null 2>&1
+import pathlib, sys
+t = pathlib.Path(sys.argv[1])
+p = t / "hooks" / "guard-premise.sh"
+s = p.read_text()
+old = '        fc["valid"] = bool(fc["who"] and fc["subject"] and fc["control"] and fc["subjects"])'
+assert old in s
+p.write_text(s.replace(old, '        fc["valid"] = True'))
+PY
+rc=0; bash "$_ps_tmp2/hooks/tests/test-premise-scoping.sh" >/dev/null 2>&1 || rc=$?
+gate "premise scoping teeth: an unvalidated control file is caught" must_fail "$rc"
+
+echo
 
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"

@@ -49,10 +49,15 @@ print(json.dumps({
   "tool_response": {"stdout": sys.argv[1], "stderr": ""},
 }))
 PY
-  python3 - "$PROJ/.ravenclaude/runs/premise/$sid/probe-ledger.jsonl" <<'PY'
-import json, sys
+  python3 - "$PROJ/.ravenclaude/runs/premise/$sid" <<'PY'
+import glob, json, os, sys
+# The ledger is scoped per git WORKTREE as of v0.245.0 — <sid>/scopes/<scope>/probe-ledger.jsonl —
+# so one agent laptop-full of parallel siblings cannot fill one shared file. This test drives one
+# recorder invocation per session id from a single cwd, so exactly one scope dir exists; glob it
+# rather than hard-coding the key, which would re-break the moment the derivation changes.
+cands = sorted(glob.glob(os.path.join(sys.argv[1], "scopes", "*", "probe-ledger.jsonl")))
 try:
-    print(json.loads(open(sys.argv[1]).read().strip().splitlines()[-1])["verdict"])
+    print(json.loads(open(cands[-1]).read().strip().splitlines()[-1])["verdict"])
 except Exception:
     print("(none)")
 PY
