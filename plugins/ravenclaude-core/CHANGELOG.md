@@ -2,6 +2,196 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.247.0 — 2026-08-12
+
+> **Gate renumbered 186 → 190 on integration.** `main` already shipped Gate 186 (compact-anchor, #871) before this branch merged; two arms sharing one number makes the `--check` dispatcher reach only the first and silently strand the other.
+
+### Fixed
+
+- **The premise gate's ledger was shared by every parallel agent, and its only escape was
+  unreachable from the agents that needed it.** The ledger was keyed on
+  `(CLAUDE_PROJECT_DIR, session_id)` — `guard-premise.sh:246` and `log-probe.sh:162` — and neither
+  component varies per agent. Measured against a real 6-agent parallel run (not inferred): **one**
+  `session_id` carried **14,322** transcript events spanning **49 distinct `cwd` values** across
+  **15+ git worktrees**, and the single ledger it produced held **2,825 entries with 50 unresolved
+  negative families**. A negative recorded by the agent in worktree A therefore denied an unrelated
+  new module in worktree B. Three agents hit it in one run; one lost finished work rather than
+  tunnel, and one routed around the hook by writing files through Bash heredocs.
+
+  The ledger is now scoped to the **git worktree root** containing the payload's `cwd` (a linked
+  worktree carries its own `.git` **file**, so the walk stops at the worktree, not the primary
+  checkout) — `…/runs/premise/<sid>/scopes/<scope>/probe-ledger.jsonl`. `cwd` is the one payload
+  field that varies per agent. The `recorder-alive` beacon deliberately stays **session-level**: a
+  per-scope beacon would make a never-probed worktree indistinguishable from an unwired recorder,
+  and the gate fails closed on that, so every fresh worktree's first write would be denied as blind.
+
+  **This narrows WHO a negative blocks, never WHAT counts as one.** A probe and the module built on
+  it share a working context, so the incident the gate was built from still trips it — pinned by the
+  second half of the new gate, without which "scoping" would be indistinguishable from switching the
+  gate off.
+
+### Added
+
+- **A file-based control the escape a subagent can actually reach.** `RC_PREMISE_CONTROL` and
+  `RC_PREMISE_OVERRIDE` are **environment variables**, and a variable exported inside a `Bash` tool
+  call never reaches the `PreToolUse(Write)` hook process — so a dispatched subagent that had
+  genuinely done the control work had **no** sanctioned way to say so. A guardrail whose only exit is
+  unreachable does not get respected; it gets tunnelled.
+
+  Every deny now prints the exact path to write with the `Write` tool
+  (`…/runs/premise/<sid>/scopes/<scope>/control.md`), and the file clears the gate only when it
+  carries **all four** keys with non-empty values:
+
+  ```
+  premise-control: <subject this covers, or * for all>
+  who: <which agent/session ran the control>
+  subject: <the claim that was under test>
+  control: <the probe you ran -> the result it returned>
+  ```
+
+  It is scoped to one session **and** one worktree, so it cannot clear a sibling agent; a
+  subject-scoped entry clears only matching families; only an explicit `premise-control: *` clears
+  the BLIND state (blindness is not a claim about one subject). Every use appends a `file-control`
+  line naming who/subject/control/cleared to the existing
+  `.ravenclaude/runs/premise/overrides.log`, deduped by content signature — **the escape is
+  recorded, not silent**. An incomplete file clears nothing and the deny says which key is missing by
+  name, because an escape hatch nobody tested is one everybody uses.
+
+- **Gate 190** (`hooks/tests/test-premise-scoping.sh`, registered in both the `--check` dispatcher
+  and the main sequence) — 22 assertions over **real `git worktree add` worktrees**, not simulated
+  ones, since the detector keys on the real `.git` file. It carries both halves plus two teeth:
+  collapsing the scope key in both hooks turns 22/0 into 16/6, and making every control file "valid"
+  turns it into 19/3.
+
+
+## 0.245.1 — 2026-08-12
+
+### Fixed
+
+- **The premise gate fired on a section header no author wrote.** `## Edge cases / when the rule
+  does NOT apply` is boilerplate in **all 35** best-practice files, and it parses as
+  `<named subject> + <failure predicate>` — `_SUBJ` matches `the rule`, `_FAILS` matches
+  `does NOT apply`. So T-PROSE tripped on any such file that happened to carry a date inside
+  the ±6-line `_STAMP` window: **4 of 35** measured on 2026-08-12. It fires on the file's own
+  structure, which is the definition of a false positive.
+
+  **The fix is a conditional-clause guard, not a predicate deletion.** `when the rule does not
+  apply` states a **case**; `the rule does not apply` states a **fact**. Only the second is a
+  premise, and this gate exists for premises. A new `_COND` check skips a match preceded on the
+  same line by `when`/`whenever`/`if`/`unless`/`whether`/`where`/`in case`, within a 24-char
+  window that breaks on `.!?` **and `,`**.
+
+  ⛔ **Both tempting fixes were worse, and were rejected on inspection:** dropping
+  `apply|applies` from `_FAILS` loses a genuine predicate ("the patch does not apply"), and
+  skipping markdown headings loses *more* — this repo routinely states real diagnoses in
+  headings (`## macOS door 2 — timeout is absent…`, `## The gate that never ran`), which are
+  exactly the confident claims the trigger is for. The comma in the window is load-bearing too:
+  without it, *"When we checked, the decoder is broken"* would be skipped, and that is an
+  assertion with a temporal preamble, not a conditional.
+
+  **Gate 177** gains three fixtures that differ *only* in what precedes an identical
+  subject+predicate span — the boilerplate heading (allowed), the bare assertion (still
+  DENIED), and the temporal preamble (still DENIED) — so the discriminator itself is what is
+  under test. 20 → **23 assertions**, and all four previously-tripping best-practice files were
+  re-run through the real hook and now pass.
+
+- **⛔ Caught in the act: one apostrophe in a comment silently disarmed the whole gate.** The
+  first draft of the fix put `(3)'s` and `FILE'S OWN` in the new comment block. That Python is
+  embedded in a **single-quoted** bash `$(...)`, so the apostrophe closed the string and the
+  hook died with `bad substitution` → **exit 1** — which Claude Code treats as a *non-blocking*
+  error, so the premise gate **failed open and silently stopped gating every write**. Gate 177
+  went 23/23 → 0/23 and caught it immediately. The prohibition is now written into the block
+  itself, next to the pre-existing `doesn\x27t` that was already there for this reason. This is
+  the v0.193.0 exit-code lesson (a loud exit-2 is safe; exit 1 is the silent fail-open) landing
+  on a *comment*.
+
+## 0.245.0 — 2026-08-12
+
+### Added
+
+- **`compact-anchor` — the SessionStart(compact) addressability pointer.** The build that
+  v0.244.1's retraction identified as the *actual* gap. v0.244.1 established that compaction is
+  **append-only** — the transcript keeps every pre-boundary turn, so the post-compaction agent does
+  not lack the data, it lacks the **knowledge that the data exists**. That is an addressability
+  problem, and it needs one line of injected context, not a persistence mechanism.
+
+  `hooks/compact-anchor.sh` + `scripts/compact-anchor.py`, registered on `SessionStart` with
+  `matcher: "compact"` in both wiring paths. On a compacted session it emits the transcript path,
+  which line the last boundary fell on (of how many), how many compactions this session has had, the
+  `preTokens → postTokens` accounting, and the two-command grep recipe for searching the pre-boundary
+  half. **`SessionStart` is the only placement that works** — `PreCompact`'s stdout is not injected;
+  only `UserPromptSubmit` / `UserPromptExpansion` / `SessionStart` have theirs added as context.
+
+  ⛔ **The load-bearing invariant is DERIVED VALUES ONLY.** This hook's stdout goes straight into the
+  model's context, and the transcript holds tool results and fetched web bodies from earlier turns —
+  untrusted text. Every emitted byte is one of exactly four things: a fixed string authored in the
+  script, an integer validated as an integer, a `trigger` matched against a two-item allowlist, or
+  the path from the trusted harness payload. **No line of transcript content is ever echoed** — the
+  same rule the capability banner, the run-state monitor and the Muninn recall digest follow.
+
+  **Fail-safe:** the EXIT trap is armed first and `-e` is deliberately absent, so a missing field,
+  unreadable file, torn line, oversized transcript or non-JSON stdin all end in a silent `exit 0`.
+  Scoped to `compact` by the matcher *and* re-checked against `payload.source` in the engine, so a
+  matcher-less wiring cannot make it fire on every session start. bash 3.2-safe; no GNU `timeout`,
+  `grep -P` or `sed -i`.
+
+  **Gate 186** (`hooks/tests/test-compact-anchor.sh`, 22 assertions) plants a sentinel inside a
+  `tool_result` **before** the cut and asserts it never reaches the output; the `--must-fail-leak`
+  half mutates the emitter to append a raw transcript line and requires the no-leak assertion to
+  catch it. Registered in **both** the main sequence and the `--check` dispatcher, and the full
+  suite's output was grepped for the gate by name — per v0.243.0, a passing suite is not evidence
+  your gate is in it.
+
+  **Migration:** none — a new hook that fires only when a session resumes from a compaction, emits
+  only derived values, and exits 0 on every error path.
+
+## 0.244.1 — 2026-08-12
+
+### Fixed
+
+- **A prescriptive best-practice told agents to build a hook that solves a problem that does not
+  exist — and mis-stated the one safety fact that matters about it.**
+  `precompact-hook-is-the-deterministic-enforcer-of-persist-before-compaction.md` instructed authors
+  to register a `PreCompact` command hook that "flushes the plan / open decisions / rejected
+  approaches to disk," on the premise that compaction destroys them. Reviewed **before** implementing
+  it here; two independent checks falsified it.
+
+  1. **`PreCompact` CAN block.** The file said it is *"not a place to block compaction … not a veto."*
+     The current [hooks reference](https://code.claude.com/docs/en/hooks) (retrieved 2026-08-12) lists
+     `PreCompact` → **Can block? Yes**, exit 2 → blocks compaction. That inverts the hazard model: a
+     hook that exits non-zero on any error path does not merely fail to persist, it **wedges a session
+     whose window is already full**. Anyone following the old file would have written it fail-closed.
+  2. **Nothing is destroyed.** Compaction **appends**. Measured on this project's own transcripts: 44
+     `compact_boundary` records; one 12,398-line transcript with its first boundary at line 4031 and
+     **1,942 pre-boundary turns still present**; every block type retained including **939 `thinking`
+     blocks**; and the boundary record itself carrying `preTokens 1000599 → postTokens 32828`,
+     `cumulativeDroppedTokens`, and a `preservedSegment` naming the surviving span **by UUID**.
+
+  ⛔ **The remedy was also unmechanizable, which is the sharper lesson.** A command hook receives a
+  JSON payload on stdin and nothing else — it has no access to "the model's plan." The prescribed
+  `flush-plan-state.sh` could only ever have appended a timestamp and a path: this repo's own
+  *gate-that-asserts-nothing* class, shipped as advice. **A prose rule being real does not mean a
+  hook-shaped answer exists.**
+
+  The real gap is **addressability, not durability** — the post-compact agent does not know the record
+  exists or where the boundary fell. The file now teaches retrieval (`grep compact_boundary
+  "$transcript_path"`) and points at `SessionStart` with a `compact` matcher, the only surface whose
+  stdout reaches the model. **No hook was added**: adding one would have been the defect this review
+  found.
+
+- **The false framing had propagated to three citing surfaces**, all corrected in the same change:
+  `best-practices/README.md` (the index entry repeated the prescription verbatim),
+  `a-policy-hook-only-gates-if-it-fails-closed.md` (cited it as *"a concrete deterministic-enforcer
+  hook"* — it is now labelled as that rule's **documented exception**, since `PreCompact` must fail
+  **open**), and `posttooluse-hook-is-the-deterministic-quarantine-for-untrusted-tool-output.md`
+  (twice — it claimed the PreCompact rule *"closed"* the compaction gap, and cited it as the same
+  mechanization shape; it is now the counter-example). `compact-proactively-and-persist-state-before-compaction.md`
+  keeps its *when to compact* half and gets a scoping correction: the loss is to the **window**, not
+  the **disk**, and the reason to write decisions down is legibility + cross-CLI reach, not rescue.
+
+  The filename is retained deliberately — six files link to it, two are dated research records this
+  repo's convention says not to rewrite. **The name asserts the retracted claim; the content is the
+  correction**, per the v0.196.0 supersession rule.
 ## 0.244.0 — 2026-08-11
 
 ### Fixed

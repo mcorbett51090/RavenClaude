@@ -1,0 +1,54 @@
+# github-protocol-commit-lint.yml — every commit in the PR range must be
+# Conventional-Commits-shaped (subject line only; merge commits skipped).
+#
+# Part of RavenClaude's gold-standard GitHub protocol tier (scaffolded by
+# /init-agent-ready). Dogfoods knowledge/github-actions-hardening.md: a deny-all
+# top-level permissions floor, actions/checkout pinned to a 40-hex commit SHA,
+# an inline grep check (no heavy third-party action), and NO paths/branches
+# filter on the pull_request trigger. The base/head SHAs reach the script via
+# `env:`, not interpolated into a run line.
+#
+# CONSUMER: verify the pinned checkout SHA is current for your adoption date;
+# keep any would-be-required trigger path-filter-free.
+name: GitHub protocol — commit lint
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  commit-lint:
+    name: Conventional Commits over the PR range
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: Lint commit messages
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          if [ -z "${BASE_SHA}" ] || [ -z "${HEAD_SHA}" ]; then
+            echo "Not a pull_request event — nothing to lint."
+            exit 0
+          fi
+          pattern='^(build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test)(\([^)]+\))?!?: .+'
+          status=0
+          while IFS= read -r subject; do
+            [ -z "${subject}" ] && continue
+            if printf '%s' "${subject}" | grep -Eq "${pattern}"; then
+              echo "OK ${subject}"
+            else
+              echo "::error::commit subject is not Conventional-Commits-shaped: ${subject}"
+              status=1
+            fi
+          done < <(git log --no-merges --format=%s "${BASE_SHA}..${HEAD_SHA}")
+          exit "${status}"

@@ -997,7 +997,7 @@ Any plugin template that renders an HTML `<head>` (e.g. `templates/repo-build-st
 
 - `agents/` — 15 specialist agent definitions (includes `data-engineer` and `viz-spec-reviewer`)
 - `skills/` — dispatch playbook (spawn-team), worktree helpers, structured-output reference, run-full-test-suite, contribution-staging, agent-quality-rubric, knowledge-file-staleness-sweep, prompt-pattern-library, plugin-release-checklist, decision-review (route yes/no decisions through the tribunal), brand-extraction (website home page → reusable brand kit), pbir-layout-engine (deterministic PBIR/web-dashboard layout linter), visual-feedback-loop (the render→see→critique→iterate referee that merges the layout linter + agent-captured console/Lighthouse evidence into one pass/fail verdict — the runnable half of `knowledge/visual-feedback-loop.md`), thing-denial-kb (Muninn — recall/identify/solve/teach the fix when the Thing blocks you)
-- `hooks/` — format-on-write, guard-destructive, remind-tests, enforce-layout, guard-recursive-spawn, thing-orchestrator, ensure-default-mode, reapply-posture, capability-orientation, route-decision-review, runaway-brake, dod-gate, claim-grounding-lint, agent-dispatch-evaluator, guard-web-access, regen-on-manifest-change, thing-denial-kb-sync (Stop — materialise tribunal denials into the Muninn KB), thing-denial-kb-recall (SessionStart — surface known denials + resolutions) (all registered in `hooks/hooks.json` for plugin-level distribution), plus the sourced helper `_emit-event.sh` (the hook-event substrate — sourced by the verdict-emitting hooks, not a registered hook itself) and `tests/` (the hook-event fixture test)
+- `hooks/` — format-on-write, guard-destructive, remind-tests, enforce-layout, guard-recursive-spawn, thing-orchestrator, ensure-default-mode, reapply-posture, capability-orientation, route-decision-review, runaway-brake, dod-gate, claim-grounding-lint, agent-dispatch-evaluator, guard-web-access, regen-on-manifest-change, thing-denial-kb-sync (Stop — materialise tribunal denials into the Muninn KB), thing-denial-kb-recall (SessionStart — surface known denials + resolutions), compact-anchor (SessionStart `matcher: "compact"` — the post-compaction addressability pointer; derived values only, never transcript content) (all registered in `hooks/hooks.json` for plugin-level distribution), plus the sourced helper `_emit-event.sh` (the hook-event substrate — sourced by the verdict-emitting hooks, not a registered hook itself) and `tests/` (the hook-event fixture test)
 - `scripts/` — apply-comfort-posture.py (`/set-posture` translator), serve-dashboards.py (the consumer dashboard server launched by `/dashboard` — serves the version-matched `dashboard.html` and writes `.ravenclaude/` into the consumer's project; binds 127.0.0.1, CSRF-guarded; the write surface is `/__save` + `/__read` + `/__classify` plus the allow-listed `/__run` (install/update/status — no arbitrary shell), and the remaining `/__*` endpoints (`/__heimdall` `/__vidarr` `/__norns` `/__nidhoggr` `/__mimir` `/__sleipnir` `/__saga` `/__concern` `/__knowledge` `/__runs` `/__csrf`) are read-only observability feeds), thing-decision.py + thing-seat.sh (command-review tribunal — see the `thing` skill), thing-decide.py (decision-review tribunal — see the `decision-review` skill)
 - `rules/` — coding-standards, security, git-workflow, agent-collaboration, terminal-copy-to-tempfile (copy-me CLI text → a temp `.md` file the user can copy from, because terminal clipboard copy doesn't work)
 - `templates/` — memos, runbooks, design specs, RAID logs, partner-success, `agent-ready-repo/` templates used by `/init-agent-ready`, plus `thing.yaml` (command-review seat config)
@@ -2348,3 +2348,173 @@ decision, not a convenience one — but the cost is now measured rather than ass
 
 **Migration:** none in the permissive direction. Every genuine pipe-to-shell still denies, including
 through an intermediate stage; ordinary files that merely *mention* a fetch tool stop being denied.
+
+## A best-practice prescribed a hook for a problem that does not exist (added 2026-08-12, v0.244.1 + v0.245.0)
+
+`precompact-hook-is-the-deterministic-enforcer-of-persist-before-compaction.md` told agents to
+register a `PreCompact` hook that "flushes the plan / open decisions / rejected-approaches to disk,"
+because compaction destroys them. It was reviewed **before** being implemented here. Both halves were
+false, and the retraction (v0.244.1) plus the build the review actually justified (v0.245.0) ship as
+one arc.
+
+**1 — `PreCompact` CAN block, and the file said the opposite** (*"not a place to block compaction …
+not a veto"*). The current hooks reference `[docs-verified 2026-08-12]` lists it **Can block? Yes**,
+exit 2 → blocks compaction. That inverts the hazard: a hook that exits non-zero on any error path does
+not merely fail to persist, it **wedges a session whose window is already full**. Anyone following the
+old file would have written it fail-*closed*.
+
+**2 — Nothing is destroyed. Compaction APPENDS.** Measured on this project's transcripts: **44**
+`compact_boundary` records; a 12,398-line transcript with its first boundary at line 4031 and **1,942
+pre-boundary turns still present**; **939 `thinking` blocks** retained alongside text/tool_use/
+tool_result; and the boundary record itself carrying `preTokens 1000599 → postTokens 32828`,
+`cumulativeDroppedTokens`, and a `preservedSegment` naming the surviving span **by UUID**.
+
+⛔ **And the remedy was unmechanizable regardless.** A command hook receives a JSON payload on stdin
+and nothing else — it has no access to "the model's plan." `flush-plan-state.sh` could only ever have
+appended a timestamp and a path: this repo's own **gate-that-asserts-nothing** class, shipped as
+prescriptive advice for thirteen months. **A prose rule being real does not mean a hook-shaped answer
+exists** — and this file is now the counter-example that
+[`prefer-a-deterministic-gate-over-a-prose-rule.md`](best-practices/prefer-a-deterministic-gate-over-a-prose-rule.md)
+points at.
+
+**What the review actually justified — addressability, not durability.** The post-compaction agent
+does not lack the data; it lacks the knowledge that the data exists and where the boundary fell. That
+is one line of injected context. `hooks/compact-anchor.sh` + `scripts/compact-anchor.py` (v0.245.0)
+emit the transcript path, the boundary line, the token accounting and the grep recipe on
+`SessionStart` with `matcher: "compact"` — **the only placement that works**, because `PreCompact`'s
+stdout is not injected and only `UserPromptSubmit` / `UserPromptExpansion` / `SessionStart` have
+theirs added as context.
+
+⛔ **Its invariant is DERIVED VALUES ONLY.** The hook's stdout lands in the model's context and the
+transcript holds tool results and fetched web bodies — untrusted text. Every emitted byte is a fixed
+string, a validated integer, an allowlisted `trigger`, or the path from the trusted payload.
+**Gate 186** plants a sentinel inside a `tool_result` before the cut and proves it never reaches the
+output, with a mutant half that echoes a raw line so the assertion is proven to measure the invariant.
+
+**The filename was kept deliberately** (six inbound links, two dated research records this repo's
+convention says not to rewrite): the name asserts the retracted claim, the content is the correction —
+and the three surfaces that had inherited the false framing (`best-practices/README.md`, the
+fail-closed rule that cited it as *"a concrete deterministic-enforcer hook"*, and the PostToolUse
+quarantine rule that twice cited a gap it *"closed"*) were corrected in the same change, per the
+v0.196.0 supersession rule.
+
+**Migration:** none. The docs correction changes no code; the new hook fires only when a session
+resumes from a compaction, emits only derived values, and exits 0 on every error path.
+
+## A default-warn in-loop git-protocol nudge (added 2026-08-12)
+
+A new `PreToolUse(Bash)` hook — [`hooks/enforce-git-protocol.sh`](hooks/enforce-git-protocol.sh) —
+nudges toward this repo's own git conventions **in the loop**, where a CI check only catches them after
+the push. Default **WARN**. Exactly three checks, each anchored to the *mutating* git subcommand token
+so a read-only `git log`/`status`/`diff`/`show`/`fetch` never fires:
+
+1. **commit-message shape** — a `git commit` carrying an inline `-m`/`--message` whose subject is not
+   Conventional-Commits `type(scope): subject`
+   (feat|fix|chore|docs|refactor|test|build|ci|perf|style|revert) → WARN. A commit with no inline
+   message (editor / `-F <file>`) is not inspected — there is no subject to see.
+2. **branch-name** — a new-branch creation (`checkout -b` / `switch -c` / a plain `branch <name>`) off
+   the `(feat|fix|chore|docs|refactor|agent)/` prefix table in
+   [`rules/git-workflow.md`](rules/git-workflow.md) → WARN. Listing / deleting / renaming a branch is
+   not a creation and is not flagged.
+3. **push-to-a-protected-branch** — a direct **non-force** push whose refspec targets `main`/`master`
+   is **advisory-only** and **NEVER blocks at any knob value** (this repo's own `main` ruleset is
+   bypass_mode:always by design; force operations belong to `guard-destructive.sh`).
+
+**Knob:** `git_protocol: off | warn | block` in `.ravenclaude/comfort-posture.yaml` (read with the same
+minimal-scalar `sed` idiom `worktree-guard.sh` uses for its `worktree_guard:` knob — no PyYAML). Only
+when the knob is `block` do checks 1–2 DENY (exit 2) with a remediation hint; push-to-main stays
+advisory at every knob.
+
+**Scope / non-collision (deliberate).** It does **not** touch force operations, branch force-delete,
+recursive-remove, or hard reset — `guard-destructive.sh` owns those, and a force push (or a `+`-refspec)
+is **force-EXCLUDED** here so the two guards can never collide or double-fire. No commit-body / length /
+trailer / casing pedantry; no secret scanning. **Fail-open:** any error / missing `git` / missing
+`python3` / **absent posture file** → exit 0 (no-op). Registered `PreToolUse(Bash)` in both
+[`hooks/hooks.json`](hooks/hooks.json) (`${CLAUDE_PLUGIN_ROOT}`) and the dev-mirror `.claude/settings.json`
+(`${CLAUDE_PROJECT_DIR}`). bash 3.2-safe (no `declare -A` / `mapfile` / `${x^^}` / `shopt -s globstar`);
+no GNU `timeout` / `grep -P` / `sed -i`. Proven by **Gate 189**
+([`hooks/tests/test-enforce-git-protocol.sh`](hooks/tests/test-enforce-git-protocol.sh)) — warn / block /
+off / absent-posture behaviour + push-to-main-never-blocks, with a self-contained **must-fail half** (a
+mutant with the block-branch deny neutered MUST let a block-knob violation through, or the `@block`
+assertions are toothless).
+
+**Migration (consumer-visible — the one behavior change).** On `/plugin marketplace update`, a consumer
+who **already has** a `.ravenclaude/comfort-posture.yaml` will see a **new, non-blocking** stderr nudge
+on a `git commit -m` with a non-conventional subject, or on a `checkout -b` / `branch <name>` off the
+prefix convention — WARN only, exit 0, nothing blocked. It is **opt-in by presence of the posture
+file**: with **no** `.ravenclaude/comfort-posture.yaml` the hook **no-ops entirely**, so nothing changes
+for anyone who has not set up a posture. To silence it while keeping a posture file, set
+`git_protocol: off`; to make checks 1–2 hard-block (exit 2), set `git_protocol: block`. A push to
+`main`/`master` is never blocked at any setting.
+## A guardrail whose only exit is unreachable gets tunnelled (added 2026-08-12, v0.245.0)
+
+The premise gate's ledger was keyed on `(CLAUDE_PROJECT_DIR, session_id)` — `guard-premise.sh:246`
+and `log-probe.sh:162`, the same expression in both. **Neither component varies per agent**, so a
+parallel run collapsed every sibling onto one file.
+
+control: enumerated `~/.claude/projects/<proj>/<session>.jsonl` for a real 6-agent run → **14,322
+events under ONE `session_id`, spanning 49 distinct `cwd` values and 15+ git worktrees**, and the
+matching ledger held **2,825 entries with 50 unresolved negative families**. The same probe on a
+single-agent session returned 3 `cwd` values and 12 entries — it was capable of returning "they do
+not collide", and did not.
+
+The consequence was concrete and it was measured, not modelled: a negative recorded by the agent in
+worktree A **denied an unrelated new module in worktree B**. Three agents hit it in one run. One
+ended its session with a finished, self-testing harness stranded in a scratchpad rather than tunnel.
+One **routed around the hook** by writing files through `Bash` heredocs instead of the `Write` tool.
+
+### ⛔ The escape was unreachable from the agents that needed it
+
+`RC_PREMISE_CONTROL` and `RC_PREMISE_OVERRIDE` are **environment variables**. A variable exported
+inside a `Bash` tool call does not reach the `PreToolUse(Write)` hook process — they are different
+processes, and the hook's environment is the harness's, not the tool's. So a dispatched subagent that
+had **genuinely run the control probe** had no sanctioned way to say so. The one that refused to
+tunnel put it exactly right: *"writing it via Bash with `RC_PREMISE_OVERRIDE=1` was correctly denied
+as tunnelling."* It was correct, and it had nowhere left to go.
+
+**A guardrail whose only exit is unreachable does not get respected — it gets tunnelled.** That is
+not a statement about those agents' discipline; two of the three had good discipline and paid for it.
+It is a statement about the gate: an escape that exists only for the main session is, for every
+subagent, a gate with no escape at all.
+
+### The two changes, and the line between them
+
+1. **Scope the ledger to the git worktree**, derived from the payload's `cwd` — the one field that
+   varies per agent (49 values in that one session). A **linked** worktree carries its own `.git`
+   **file**, so walking up from `cwd` stops at the worktree rather than the primary checkout, which
+   is exactly the boundary being scoped. The guard falls back to the **write target** when `cwd` is
+   absent, so recorder and gate agree by construction; both derive the key with the same block, and
+   that block carries a keep-in-sync warning in each file, because a recorder and a gate that
+   disagree on the key produce a ledger nobody writes and a gate that reports clean forever.
+
+   ⛔ **The `recorder-alive` beacon deliberately stays SESSION-level, not per-scope.** A per-scope
+   beacon would make a never-probed worktree indistinguishable from an unwired recorder — and this
+   gate fails **closed** on that — so the first write in every fresh worktree would be denied as
+   blind. Blindness is a property of the recorder, not of a scope.
+
+2. **A file-based control**, at the path every deny now prints verbatim:
+   `…/runs/premise/<sid>/scopes/<scope>/control.md`. It lives under `.ravenclaude/`, which both
+   triggers already exempt, so it is writable with the `Write` tool. It clears nothing unless it
+   carries **all four** of `premise-control:` / `who:` / `subject:` / `control:` with non-empty
+   values, and every use appends a `file-control` line naming who/subject/control/cleared to
+   `overrides.log`, deduped by content signature. It is scoped to one session **and** one worktree,
+   so it cannot clear a sibling; only an explicit `premise-control: *` clears the BLIND state.
+
+⛔ **This narrows WHO a negative blocks. It does not narrow WHAT counts as one.** A probe and the
+module built on it share a working context, so the 2026-08-07 incident still trips the gate — and
+that is not an assertion, it is the second half of Gate 186. **Scoping without that half is
+indistinguishable from switching the gate off**, which is why the test asserts *both* (A does not
+gate B **and** A still gates A, B still gates B) and why collapsing the scope key must turn it red.
+
+### ⛔ An escape hatch nobody tested is one everybody uses
+
+The gate's own header has said that since it shipped, about `premise-ok:`. So the new escape ships
+with its refusals tested first: a file missing `control:`, a file whose `control:` value is empty, a
+file with no `premise-control:` line, a control in A applied to B, and a subject-scoped control
+against a non-matching family — all still deny, and the deny names the missing key rather than
+failing silently. The teeth half proves it: make every control file "valid" and 22/0 becomes 19/3.
+
+**Migration:** none in the permissive direction. Every ledger starts empty at the new path, so the
+stale cross-agent negatives from earlier sessions stop blocking — but a negative and a build in the
+same worktree deny exactly as before, and the new escape is strictly more auditable than the
+environment variables it complements (same power, plus who/subject/control on the record).

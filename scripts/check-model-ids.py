@@ -29,9 +29,22 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 CATALOG = ROOT / "plugins" / "ravenclaude-core" / "knowledge" / "model-catalog.json"
 
-# A claude model id token: family + numeric version, optional dated suffix.
-# `claude-code` (product, no numeric version) is excluded by the required -[0-9].
-MODEL_RE = re.compile(r"claude-[a-z]+-[0-9]+(?:-[0-9]+)?(?:-[0-9]{8})?")
+# A claude model id token. Two naming eras, one regex (alternation):
+#   branch A — family-first (current naming): claude-sonnet-4-8, claude-opus-4-7,
+#              claude-haiku-4-5-20251001
+#   branch B — version-first (the claude-3.x / claude-3-5 dated generation):
+#              claude-3-5-sonnet-20241022, claude-3-opus-20240229, claude-3-haiku-20240307
+# `claude-code` (product, no numeric version) is still excluded — both branches
+# require a numeric segment, so a bare word after `claude-` never matches. Branch B
+# was added 2026-07-31 after review found the old family-first-only pattern silently
+# missed every claude-3.x id (a digit-first family), so the gate reported clean on a
+# governed file that referenced one — a fail-open against this gate's own docstring.
+# (claude-2.1 / claude-instant-1.2 — dotted, family-less — are intentionally out of
+# scope: pre-2026 ids that shape differently and realistically never appear in a
+# governed 2026 file; widening to them would need a third, over-broad branch.)
+MODEL_RE = re.compile(
+    r"claude-(?:[a-z]+-[0-9]+(?:-[0-9]+)?|[0-9]+(?:[.-][0-9]+)?-[a-z]+)(?:-[0-9]{8})?"
+)
 
 # Governed file extensions — code + config where a stale id is a real bug.
 GOVERNED_EXT = {".py", ".sh", ".json", ".yaml", ".yml", ".mjs", ".js"}
@@ -80,15 +93,29 @@ def self_test() -> int:
     current = set(json.loads(CATALOG.read_text(encoding="utf-8"))["current"].values())
     bad = scan_text('model: "claude-sonnet-4-6"  # and claude-opus-4-7', current)
     good = scan_text(
-        'a: claude-opus-4-8  b: claude-sonnet-5  c: claude-haiku-4-5-20251001  d: claude-fable-5',
+        "a: claude-opus-4-8  b: claude-sonnet-5  c: claude-haiku-4-5-20251001  d: claude-fable-5",
+        current,
+    )
+    # Branch-B teeth: the version-first claude-3.x / claude-3-5 dated generation must
+    # be caught as UNKNOWN. The old family-first-only regex missed all of these.
+    old_gen = scan_text(
+        'a: "claude-3-5-sonnet-20241022"  b: claude-3-opus-20240229  c: claude-3-haiku-20240307',
         current,
     )
     ok_bad = {t for t, _ in bad} == {"claude-sonnet-4-6", "claude-opus-4-7"}
     ok_good = good == []
-    if ok_bad and ok_good:
-        print("check-model-ids --self-test: PASS (stale caught; canonical dated-haiku not flagged)")
+    ok_old = {t for t, _ in old_gen} == {
+        "claude-3-5-sonnet-20241022",
+        "claude-3-opus-20240229",
+        "claude-3-haiku-20240307",
+    } and all(k == "UNKNOWN" for _, k in old_gen)
+    if ok_bad and ok_good and ok_old:
+        print(
+            "check-model-ids --self-test: PASS (stale caught; canonical dated-haiku not "
+            "flagged; claude-3.x dated generation caught)"
+        )
         return 0
-    print(f"check-model-ids --self-test: FAIL bad={bad!r} good={good!r}")
+    print(f"check-model-ids --self-test: FAIL bad={bad!r} good={good!r} old_gen={old_gen!r}")
     return 1
 
 
