@@ -240,7 +240,15 @@ npx --yes prettier@3.9.4 --check . --log-level warn   # verify clean — must re
 #    and inside audit-gates.sh. Same whole-tree discipline as prettier: a ruff violation
 #    landing in main can surface as a surprise CI failure on a later PR, so lint before pushing
 #    any branch that touches .py files. (audit-gates Gate 9b _skip_or_fail's if ruff is absent.)
-pip install --quiet ruff && ruff check .   # must return exit 0
+#    ⚠️ Use `python3 -m pip`, NOT bare `pip`. On a stock macOS toolchain `pip` is
+#    `command not found` (only `pip3`/`python3 -m pip` exist), so the bare form fails
+#    at the INSTALL step and the honest-looking conclusion — "ruff is unavailable here,
+#    Gate 9b has to stay skipped" — is wrong. Verified 2026-08-12: bare `pip` → not
+#    found; `python3 -m pip install --user ruff` → installed, `ruff check .` clean.
+python3 -m pip install --quiet --user ruff   # bare `pip` is absent on stock macOS
+ruff check .                                 # must return exit 0
+#    If `ruff` is then not on PATH, it installed to the user scheme — either add
+#    `$(python3 -m site --user-base)/bin` to PATH, or run it as `python3 -m ruff check .`
 
 # 5. Audit every gate (the meta-test)
 scripts/audit-gates.sh
