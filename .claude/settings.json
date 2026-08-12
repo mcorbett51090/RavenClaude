@@ -112,6 +112,16 @@
         ]
       },
       {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/enforce-git-protocol.sh",
+            "comment": "Marketplace-dev hook (dev-mirror of the plugin's hooks/hooks.json PreToolUse(Bash) entry). Git-protocol nudge (default WARN): no-ops unless .ravenclaude/comfort-posture.yaml is present (this repo has none, so it no-ops), then reads the `git_protocol: off|warn|block` knob (default warn). WARNs on a non-Conventional-Commits `git commit -m` subject or a new-branch creation off the (feat|fix|chore|docs|refactor|agent)/ prefix convention; BLOCKS (exit 2) only when the knob is `block`. A direct non-force push to main/master is advisory-only and NEVER blocks. Does NOT touch force operations / branch force-delete / recursive-remove / hard reset (guard-destructive.sh owns those). Fail-open on any error / missing git / missing python3 / absent posture. Same script the plugin distributes to consumers via ${CLAUDE_PLUGIN_ROOT}."
+          }
+        ]
+      },
+      {
         "matcher": "Write|Edit|MultiEdit",
         "hooks": [
           {

@@ -747,9 +747,14 @@ PY
       rm -rf "$_g188_dest"
       exit "$_rc188"
       ;;
+    189)
+      echo "── Gate 189: git-protocol nudge (per-gate run) ───────────────────────────"
+      bash plugins/ravenclaude-core/hooks/tests/test-enforce-git-protocol.sh
+      exit $?
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -6093,6 +6098,25 @@ else
   SKIP=$((SKIP + 1))
   SKIPPED_GATES+=("github-protocol actionlint [no binary/offline]")
 fi
+
+echo "── Gate 189: git-protocol nudge — default-warn, block-only-on-knob ────────"
+# The in-loop git-protocol hook (default WARN). It WARNs on a non-Conventional-
+# Commits `git commit -m` subject or a new-branch creation off the repo's own
+# (feat|fix|chore|docs|refactor|agent)/ prefix convention, and BLOCKS (exit 2) only
+# when the `git_protocol: block` knob is set. A direct non-force push to
+# main/master is advisory-only and NEVER blocks. It deliberately does not touch
+# force operations (guard-destructive.sh owns those). The test invokes the hook via
+# `bash` (no executable bit required — that bit is handed to the user as a chmod)
+# and SELF-CONTAINS its own must-fail half: a mutant with the block-branch deny
+# neutered MUST let a block-knob violation through, or the @block assertions are
+# toothless (the test fails if the mutant still exits 2).
+#
+# ⛔ Registered in BOTH this main sequence AND the --check dispatcher above. After
+# adding a gate, run the full suite and GREP ITS OUTPUT FOR "189" — a passing suite
+# is not evidence your gate is in it (v0.243.0: Gate 184 was unreachable for a whole
+# release while the suite reported green).
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-enforce-git-protocol.sh >/dev/null 2>&1 || rc=$?
+gate "git-protocol: warn/block/off/absent behave per spec, push-to-main never blocks; teeth proven by mutant" must_pass "$rc"
 
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"
