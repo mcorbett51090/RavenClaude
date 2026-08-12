@@ -2,7 +2,16 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
-## [0.9.12] — 2026-08-06
+## [0.9.13] — 2026-08-12
+
+### Changed
+
+**Recorded a new flagship-Opus GA in the model-selection capability map: Claude Opus 5 supersedes Opus 4.8.** Verified 2026-08-12 against the [platform.claude.com models overview](https://platform.claude.com/docs/en/about-claude/models/overview) (GA date corroborated by [9to5Mac 2026-07-24](https://9to5mac.com/2026/07/24/anthropic-upgrades-claude-with-new-opus-5-model-details-here/), which the overview page does not carry).
+
+- **`knowledge/model-selection-and-2026-capability-map.md`** — added **Opus 5** (`claude-opus-5`) to the lineup table as the current recommended Opus-tier default ($5/$25 per Mtok, 1M context / 128K output, adaptive thinking on / no extended-thinking mode, `effort` defaults to `high` on Claude API + Claude Code, reliable knowledge cutoff May 2026); demoted **Opus 4.8** to prior default (Anthropic now lists it under **Legacy models** with a "Migrating to Claude Opus 5" guide); updated the routing ladder to reserve **Opus 5** for the hard tail; added Opus 5 / Sonnet 5 to the 1M-context capability row; re-stamped **Last reviewed 2026-08-12** with citations + a `[verify-at-use]` rider.
+- **Left intact:** the Fable-5 safety-fallback-target references to Opus 4.8 (still correct per the platform docs) and all operational/runtime model IDs. The doc now carries an **operational-vs-advisory** note: the decision-review tribunal + dashboards still run on Opus 4.8 (`model-catalog.json`) until the maintainer runs the operational catalog bump — that bump is deferred as a high-blast governance decision.
+
+
 
 ### Fixed
 
