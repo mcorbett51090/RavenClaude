@@ -300,8 +300,22 @@ When an agent surfaces a problem, route by the *type* of problem, not by which a
 
 ## Step 7 — Reconcile reports
 
+- **⛔ Run the gate yourself after every handoff — build, typecheck and tests — before the work is
+  committed, passed on, or described to the user as done.** Not the diff: the gate. Measured on a real
+  branch, **twice in one session** a subagent reported its task complete having left a hard compile
+  error in the tree (once a symbol referenced but never imported). Both were caught in ~30 seconds by
+  running the typecheck. Neither was caught by reading the report, which was confident and detailed.
+  A subagent's report is a **claim**, never evidence — see
+  [`knowledge/verification-discipline.md`](../../knowledge/verification-discipline.md).
+  ⛔ Do not `grep` the gate's output for "error": a filtered warning and an absent warning are
+  indistinguishable afterward, and in the same session that filter hid the only evidence a feature had
+  never been wired up.
 - Read every diff yourself before reporting to the user. Self-reports describe intent, not always reality.
+- **Check the seam, not the halves.** Two agents can each finish correctly and leave nothing joining
+  them — an endpoint with no caller passes every per-agent check and every per-file review.
 - If reports disagree (e.g. tester says ❌, coder says ✅), the test result wins until proven otherwise.
+  The disagreement runs both ways: an agent may also report failure on work that is fine. Check the
+  tree, not the prose.
 - Merge worktrees back via fast-forward or `--no-ff` per the project's branching style.
 
 ---

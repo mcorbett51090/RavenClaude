@@ -205,8 +205,8 @@
     {
       "name": "email-engineering",
       "source": "./plugins/email-engineering",
-      "description": "Email-engineering team \u2014 2 agents (email-deliverability-architect, email-sending-engineer) for getting legitimate mail to the inbox: domain authentication (SPF, DKIM, DMARC alignment + a staged p=none -> quarantine -> reject rollout, BIMI), transport security (MTA-STS RFC 8461 + TLS-RPT RFC 8460), deliverability (subdomain stream separation, domain/IP warm-up, reputation, Gmail/Yahoo bulk-sender rules), ESP integration (SES/SendGrid/Postmark/Resend) with idempotent sends + verified webhook handling, MJML templates, and the feedback loop (bounce/complaint classification, ARF, suppression lists, one-click unsubscribe per RFC 8058). 5 skills, a 4-doc knowledge bank (Mermaid auth + diagnosis trees + dated 2026 ESP map + transport security), 9 best-practices, 3 templates, 4 commands, a scenarios bank, a stdlib auth-record linter, and 1 advisory hook. Seams: strategy -> marketing-operations, infra -> backend-engineering, DNS -> cloud plugins, security -> security-engineering. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.3.2",
+      "description": "Email-engineering team \u2014 2 agents (email-deliverability-architect, email-sending-engineer) for getting legitimate mail to the inbox: domain authentication (SPF, DKIM, DMARC alignment + a staged p=none -> quarantine -> reject rollout, BIMI), transport security (MTA-STS RFC 8461 + TLS-RPT RFC 8460), deliverability (subdomain stream separation, domain/IP warm-up, reputation, Gmail/Yahoo bulk-sender rules), inbox categorization (Gmail tabs, Outlook Focused Inbox, Apple Mail), ESP integration (SES/SendGrid/Postmark/Resend) with idempotent sends + verified webhook handling, MJML templates, and the feedback loop (bounce/complaint classification, ARF, suppression lists, one-click unsubscribe per RFC 8058). 5 skills, a 5-doc knowledge bank, 10 best-practices, 3 templates, 4 commands, a scenarios bank, a stdlib auth-record linter, and 1 advisory hook. Seams: strategy -> marketing-operations, infra -> backend-engineering, DNS -> cloud plugins, security -> security-engineering. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.3.3",
       "author": {
         "name": "Matt Corbett"
       },
@@ -275,8 +275,8 @@
       "name": "ravenclaude-core",
       "displayName": "RavenClaude Core",
       "source": "./plugins/ravenclaude-core",
-      "description": "Domain-neutral Claude Code foundation: 15 specialist agents, 50 skills, gates, hooks, rules, templates. Capability Grounding Protocol, Structured Output Protocol, Researcher meta-skill, comfort-posture dashboard, opt-in command-review tribunal (the Thing), WebFetch sanitizer, branch-archive escape hatch, brand-extraction (homepage \u2192 brand kit), /wireframe (describe anything \u2192 validated model + high-fi Artifact + Mermaid), Problems & Resolutions view, declarative-visualization (Vega-Lite/Deneb/SVG, Gate 101 + Gate 103 svg-report-lint, viz-spec-reviewer), and Claude orchestrator escape hatch (/claude-orchestrate). Slash commands: /init-agent-ready, /wrap, /set-posture, /dashboard, /forge, /wireframe, /reset-plugin-cache.",
-      "version": "0.235.0",
+      "description": "Domain-neutral Claude Code foundation: 15 specialist agents, 52 skills, gates, hooks, rules, templates. Capability Grounding Protocol, Structured Output Protocol, Researcher meta-skill, comfort-posture dashboard, opt-in command-review tribunal (the Thing), WebFetch sanitizer, branch-archive escape hatch, brand-extraction (homepage \u2192 brand kit), /wireframe (describe anything \u2192 validated model + high-fi Artifact + Mermaid), Problems & Resolutions view, declarative-visualization (Vega-Lite/Deneb/SVG, Gate 101 + Gate 103 svg-report-lint, viz-spec-reviewer), and Claude orchestrator escape hatch (/claude-orchestrate). Slash commands: /init-agent-ready, /wrap, /set-posture, /dashboard, /forge, /wireframe, /reset-plugin-cache.",
+      "version": "0.247.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -302,7 +302,7 @@
       "name": "power-platform",
       "source": "./plugins/power-platform",
       "description": "Power Platform specialist team \u2014 11 agents (incl. power-platform-tester, power-bi-engineer) and 23 skills, with strong ALM/git coverage for solutions, flows, and PBIP. A house-opinions hook flags 8 \u00a73/\u00a74 violations; the knowledge bank carries production decision trees (PA-flow recovery, Dataverse token-acquisition, PCF React surface, PBI deploy/refresh, custom-connector build-path, PBIR Enhanced infinite-spinner debug + full build reference, DAX silent-zero scoring via the `Domain` pattern, sempy.fabric notebook reference, Power BI Copilot report-readiness, Code Apps connector gotchas, PBIP deployment variables + #839, PBIR reference enrichment, PBIP report fast-solve triage router [MCP-optional], main-forms-are-Web-API-authorable grounding) plus a real-engagement scenarios bank. Bundles the community pbix-mcp server (d0nk3yhm/pbix-mcp, MIT) for .pbix/.pbit read/write/DAX-eval (`pip install pbix-mcp`); documents (not bundles) the official Microsoft Dataverse MCP (CLAUDE.md \u00a79a). Extends ravenclaude-core.",
-      "version": "0.44.8",
+      "version": "0.44.9",
       "author": {
         "name": "Matt Corbett"
       },
@@ -554,7 +554,7 @@
       "name": "claude-app-engineering",
       "source": "./plugins/claude-app-engineering",
       "description": "Claude app-engineering specialist team \u2014 6 agents (claude-solution-architect, prompt-and-context-engineer, mcp-and-server-tools-engineer, agent-sdk-engineer, eval-engineer, claude-app-ops-engineer) for building production applications on the Claude API, the Claude Agent SDK, and MCP. Covers the build-surface decision (Messages API / Agent SDK / Managed Agents), model right-sizing (Opus 4.8 / Sonnet 4.6 / Haiku 4.5, 1M context), prompt caching, tool use + structured output, MCP server authoring + Anthropic-hosted server tools (computer use, code execution, Files API, memory, advisor tool), evals (golden sets, LLM-as-judge), and FinOps + reliability (batch, model routing, backoff, observability). 15-doc dated-and-cited knowledge bank, 6 templates, 1 advisory hook (14 house opinions). Seams: prompt-as-artifact, security, and cross-domain architecture escalate to ravenclaude-core. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.9.11",
+      "version": "0.9.13",
       "author": {
         "name": "Matt Corbett"
       },
@@ -1203,7 +1203,7 @@
       "name": "security-engineering",
       "source": "./plugins/security-engineering",
       "description": "Security-engineering (AppSec) team \u2014 4 agents (appsec-engineer, threat-modeler, supply-chain-security-engineer, cloud-security-engineer) for building security INTO software: threat modeling (STRIDE, data-flow diagrams, trust boundaries), application security testing (SAST/DAST/IAST/SCA in CI, OWASP Top 10 web), secrets management (detection, rotation, vaulting, no plaintext), software supply-chain integrity (SBOM consumption, dependency CVEs, SLSA verification, pinning), and cloud security posture (CSPM, IAM least-privilege, network exposure). 5 skills, a decision-tree knowledge bank (vuln-triage + secrets-handling trees + a dated 2026 tooling map), 12 best-practices, 4 templates, 4 commands, 1 advisory hook. **Proposes controls; every ship/no-ship security VERDICT escalates to ravenclaude-core/security-reviewer.** Seams: API OWASP -> api-engineering, identity -> auth-identity, data privacy -> data-governance-privacy. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.3.6",
+      "version": "0.3.7",
       "author": {
         "name": "Matt Corbett"
       },
@@ -4113,6 +4113,27 @@
         "change-detection",
         "etl",
         "data-pipeline"
+      ]
+    },
+    {
+      "name": "memory-engineering",
+      "source": "./plugins/memory-engineering",
+      "description": "Memory engineering team \u2014 3 agents (memory-architect-lead, memory-retention-and-erasure-engineer, memory-eval-cost-analyst) for the decisions behind a durable memory store: what earns a write, which paradigm, which surface holds the bytes, what makes it forget, what a delete leaves behind, cost per correct answer. 6 skills, 6 commands, 5 dated knowledge files, 8 best-practices, 4 templates, 3 scenarios, 1 advisory hook, 1 stdlib calculator. Advisory only \u2014 it never reads or mutates a real store. Seams: ai-agent-engineering decides whether an agent should remember at all and where state sits in its topology, this engineers the memory system itself; ai-red-teaming owns the ASI06 attack taxonomy and offensive testing, this owns the defensive design half; data-governance-privacy owns DSAR and legal basis, this owns erasure residue in embeddings and version history; retrieval \u2192 ai-rag-engineering; evals \u2192 llm-evaluation-engineering; the Claude app \u2192 claude-app-engineering. Requires ravenclaude-core@>=0.238.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "agent-memory",
+        "memory-store",
+        "context-engineering",
+        "retention",
+        "erasure",
+        "forgetting-policy",
+        "memory-poisoning",
+        "asi06",
+        "cost-per-correct",
+        "memory-eval"
       ]
     }
   ]

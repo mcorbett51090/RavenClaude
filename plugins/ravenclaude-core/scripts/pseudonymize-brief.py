@@ -73,8 +73,13 @@ _BUILTIN = [
         None,
     ),
     (
+        # 2-letter country + 2 check digits + BBAN. The BBAN is matched allowing an
+        # OPTIONAL single space before each character so the standard space-grouped
+        # print form (`DE89 3704 0044 0532 0130 00`) is tokenized, not just the
+        # compact `DE89370400440532013000`. Without this the spaced form (which
+        # fails Luhn, so CARD doesn't rescue it) egressed verbatim — a real PII leak.
         "IBAN",
-        re.compile(r"\b[A-Z]{2}\d{2}[A-Z0-9]{11,30}\b"),
+        re.compile(r"\b[A-Z]{2}\d{2}(?:[ ]?[A-Z0-9]){11,30}\b"),
         None,
     ),
     (
@@ -191,7 +196,8 @@ def decode(text, map_file):
 def _self_test():
     sample = (
         "Email jane.doe@acme.com, SSN 123-45-6789, card 4111 1111 1111 1111, "
-        "call +1 (415) 555-2671. Amount 4200 in 2026 is not PII."
+        "call +1 (415) 555-2671, IBAN DE89 3704 0044 0532 0130 00. "
+        "Amount 4200 in 2026 is not PII."
     )
     import tempfile
 
@@ -202,6 +208,7 @@ def _self_test():
     assert "123-45-6789" not in enc, "ssn leaked"
     assert "4111 1111 1111 1111" not in enc, "card leaked"
     assert "555-2671" not in enc, "phone leaked"
+    assert "DE89 3704 0044 0532 0130 00" not in enc, "space-grouped IBAN leaked"
     # conservative: bare amounts/years preserved
     assert "4200" in enc, "amount over-tokenized"
     assert "2026" in enc, "year over-tokenized"

@@ -1,0 +1,64 @@
+{
+  "purpose": "MUST type `inference`. `families` declares which grammatical families must actually fire — asserting the verdict alone would let a right answer come from the wrong family (verification-discipline Rule 2). Each `single_signal: true` case trips EXACTLY ONE family, which is what makes `--must-fail`'s family-deletion mutants detectable: a family with no single-signal case could be deleted wholesale and every test would stay green.",
+  "source": "docs/plans/2026-08-08-premise-gate/claims-table.md",
+  "cases": [
+    {
+      "id": "claim-5",
+      "text": "The decoder is broken, therefore every visitor sees a mangled address",
+      "families": ["causal", "defect", "quantifier", "population"],
+      "note": "claims-table #5 — THE incident. Four families; it types inference under any author."
+    },
+    {
+      "id": "claim-4",
+      "text": "Therefore no visitor experiences the reported defect",
+      "families": ["causal", "quantifier", "population"],
+      "note": "claims-table #4 — a TRUE inference still types inference; truth is not the axis"
+    },
+    {
+      "id": "single-causal",
+      "text": "The build passed, therefore the deploy is safe",
+      "families": ["causal"],
+      "single_signal": true
+    },
+    {
+      "id": "single-defect",
+      "text": "The `/api/health` endpoint is broken.",
+      "families": ["defect"],
+      "single_signal": true
+    },
+    {
+      "id": "single-quantifier",
+      "text": "Every row in the export carries a timestamp.",
+      "families": ["quantifier"],
+      "single_signal": true
+    },
+    {
+      "id": "single-population",
+      "text": "The customer sees a stale price on the summary screen.",
+      "families": ["population"],
+      "single_signal": true
+    },
+    {
+      "id": "single-modal",
+      "text": "FORGE G1 as written would have passed claim 5",
+      "families": ["modal"],
+      "single_signal": true,
+      "note": "claims-table #6, whose author typed it inference — and grammar agrees, on `would` alone"
+    },
+    {
+      "id": "multi-means-that",
+      "text": "The 404 means that the decoder is dead for all users",
+      "families": ["causal", "defect", "quantifier", "population"]
+    },
+    {
+      "id": "multi-modal-causal",
+      "text": "Nobody can reach the portal, so the DNS record must be wrong",
+      "families": ["causal", "population", "modal"]
+    },
+    {
+      "id": "multi-which-means",
+      "text": "The header comment is missing, which means the component was never wired up",
+      "families": ["causal", "defect"]
+    }
+  ]
+}
