@@ -13,6 +13,7 @@ You are helping the user make this repository agent-readable. Your goal is to cr
 5. **(optional) `.github/workflows/validate-layout.yml`** — CI backstop that fails PRs adding files outside the allow-list. Recommended for any repo with a GitHub remote.
 6. **(optional) CI-hygiene scaffold** — `.prettierrc.json`, `.prettierignore`, and `scripts/audit-gates.sh` (the gate-audit scaffold defined by [`audit-ci-gates`](../skills/audit-ci-gates/SKILL.md)). Recommended for any repo that ships CI workflows meant to enforce properties — see [`docs/best-practices/ci-gate-audit.md`](https://github.com/mcorbett51090/RavenClaude/blob/main/docs/best-practices/ci-gate-audit.md) in the marketplace for the rule this scaffold encodes.
 7. **(optional) Portable quality gates** — `.github/workflows/validate-quality.yml` (a language-agnostic LINT / FORMAT / SYNTAX CI: Prettier format-check, **Ruff** Python lint+format, shell `bash -n`, JSON/YAML config-parse, and checksum-pinned actionlint) plus `ruff.toml` (a conservative starting ruleset). This is the installable version of the gates RavenClaude runs on itself — each step is a real gate (fails on bad input, passes on good). Recommended for any repo with a GitHub remote; tailor by deleting jobs for languages you don't use.
+8. **(default-selected) Gold-standard GitHub protocol** — the highest-leverage GitHub hardening as opt-in-but-default-selected CI: four workflows (`github-protocol-workflow-hygiene.yml`, `github-protocol-pr-title.yml`, `github-protocol-commit-lint.yml`, `github-protocol-secret-scan.yml`) + the stdlib-only `check-workflow-hygiene.py` scanner. Each workflow **dogfoods** the rules in [`../knowledge/github-actions-hardening.md`](../knowledge/github-actions-hardening.md): a deny-all top-level `permissions:` floor, every third-party action pinned to a 40-hex commit SHA, and **no `paths:`/`branches:` filter on any `pull_request` trigger** (the trap that hangs a would-be-required check forever). Recommended for any repo with a GitHub remote.
 
 ## How to proceed
 
@@ -31,15 +32,16 @@ Inspect the working directory. Note which of these already exist: `AGENTS.md`, `
 - `notebooks/`, `dvc.yaml`, `mlflow/` → data / ML pipeline
 - `.claude-plugin/marketplace.json` → Claude Code plugin marketplace (this is RavenClaude itself or similar)
 
-### Step 2 — Ask the user four questions (use AskUserQuestion)
+### Step 2 — Ask the user (use AskUserQuestion)
 
 Ask in one batch:
 
 1. **What kind of repo is this?** Options: application, library, monorepo, documentation, data/ML pipeline, infrastructure-as-code, plugin marketplace, other. Pre-select the most likely option based on your detection in Step 1.
 2. **Should we add the CI workflow `.github/workflows/validate-layout.yml`?** Options: yes (recommended) / no.
-3. **Should we add the portable quality gates (`.github/workflows/validate-quality.yml` + `ruff.toml`)?** Options: yes (recommended) / no. This is the lint/format/syntax CI — Prettier, Ruff (Python), shell `bash -n`, config-parse, actionlint. Mention the conservative-ruleset-first discipline: the first `ruff check --fix . && ruff format .` will surface and fix a lot on a never-linted codebase, so run it once and commit before turning the gate on.
-4. **Should we add the CI-hygiene scaffold (`.prettierrc.json`, `.prettierignore`, `scripts/audit-gates.sh`)?** Options: yes (recommended if your repo has CI workflows that enforce properties) / no. Adding `audit-gates.sh` as a scaffold ships with one example fixture — fill in real gates (incl. fixtures for the quality gates above) as you wire CI.
-5. **For any boundary file that already exists, what should we do?** Options: skip / overwrite / merge intelligently. Only ask this if at least one already exists.
+3. **Should we add the gold-standard GitHub protocol workflows?** Options: **yes (default — pre-select this)** / no. Only ask (and only default to yes) if the repo has a GitHub remote. This scaffolds the four `github-protocol-*.yml` workflows (workflow-hygiene, PR-title, commit-lint, secret-scan) + `check-workflow-hygiene.py` — the highest-leverage GitHub hardening, each dogfooding a deny-all `permissions:` floor, SHA-pinned actions, and path-filter-free triggers. Tell the user they must SHA-pin each action to the current release for their adoption date and keep any would-be-required trigger path-filter-free.
+4. **Should we add the portable quality gates (`.github/workflows/validate-quality.yml` + `ruff.toml`)?** Options: yes (recommended) / no. This is the lint/format/syntax CI — Prettier, Ruff (Python), shell `bash -n`, config-parse, actionlint. Mention the conservative-ruleset-first discipline: the first `ruff check --fix . && ruff format .` will surface and fix a lot on a never-linted codebase, so run it once and commit before turning the gate on.
+5. **Should we add the CI-hygiene scaffold (`.prettierrc.json`, `.prettierignore`, `scripts/audit-gates.sh`)?** Options: yes (recommended if your repo has CI workflows that enforce properties) / no. Adding `audit-gates.sh` as a scaffold ships with one example fixture — fill in real gates (incl. fixtures for the quality gates above) as you wire CI.
+6. **For any boundary file that already exists, what should we do?** Options: skip / overwrite / merge intelligently. Only ask this if at least one already exists.
 
 ### Step 3 — Plan the files and show Keep / Update / Deny
 
@@ -50,9 +52,14 @@ About to create / update:
 - AGENTS.md           (NEW, ~80 lines)
 - CLAUDE.md           (NEW, ~30 lines)
 - .repo-layout.json   (NEW, allow-list tailored to <repo-type>)
-- .github/workflows/validate-layout.yml   (NEW, optional CI gate)
-- .github/workflows/validate-quality.yml  (NEW, optional lint/format/syntax gates)
-- ruff.toml                                (NEW, optional — Python repos only)
+- .github/workflows/validate-layout.yml            (NEW, optional CI gate)
+- .github/workflows/github-protocol-workflow-hygiene.yml  (NEW, gold-standard — default-selected)
+- .github/workflows/github-protocol-pr-title.yml          (NEW, gold-standard — default-selected)
+- .github/workflows/github-protocol-commit-lint.yml       (NEW, gold-standard — default-selected)
+- .github/workflows/github-protocol-secret-scan.yml       (NEW, gold-standard — default-selected)
+- .github/scripts/check-workflow-hygiene.py               (NEW, gold-standard — default-selected)
+- .github/workflows/validate-quality.yml           (NEW, optional lint/format/syntax gates)
+- ruff.toml                                        (NEW, optional — Python repos only)
 ```
 
 Then ask the user via AskUserQuestion: Keep all / Update specific files / Deny.
@@ -109,6 +116,21 @@ Tailor `allowed_globs` per repo type. Use these starter sets:
 Always include `AGENTS.md`, `CLAUDE.md`, `README.md`, `.repo-layout.json`, and `docs/team-constitution.md` in `allowed_globs`.
 
 **`.github/workflows/validate-layout.yml`** (only if user approved): copy the structure from RavenClaude's own workflow at `${CLAUDE_PLUGIN_ROOT}/templates/agent-ready-repo/validate-layout.yml.template` — adjust nothing except header comments.
+
+**Gold-standard GitHub protocol** (default-selected — write these UNLESS the user opted out): copy five files from `${CLAUDE_PLUGIN_ROOT}/templates/agent-ready-repo/` (strip the `.template` suffix on each):
+
+- `github-protocol-workflow-hygiene.yml.template` → `.github/workflows/github-protocol-workflow-hygiene.yml`
+- `github-protocol-pr-title.yml.template` → `.github/workflows/github-protocol-pr-title.yml`
+- `github-protocol-commit-lint.yml.template` → `.github/workflows/github-protocol-commit-lint.yml`
+- `github-protocol-secret-scan.yml.template` → `.github/workflows/github-protocol-secret-scan.yml`
+- `check-workflow-hygiene.py.template` → `.github/scripts/check-workflow-hygiene.py` (the stdlib-only scanner the hygiene workflow runs — no `chmod` needed; the workflow invokes it as `python3 …`).
+
+Then, in the same pass:
+
+- **Ensure `.github/**` is in `.repo-layout.json` `allowed_globs`** (every starter set already includes it; if the consumer uses a narrower list, add `.github/workflows/**` and `.github/scripts/**`).
+- **Instruct the consumer to SHA-pin each action to the CURRENT release for their adoption date.** The templates ship real 40-hex pins (`actions/checkout`, and TruffleHog in the secret-scan workflow) that were current when the templates were authored — a consumer should re-resolve each tag to its latest commit SHA (`gh api repos/<owner>/<repo>/commits/<tag> --jq .sha`) and re-pin, keeping the `# vX.Y.Z` trailing comment. **Keep every would-be-required trigger path-filter-free** (a `paths:`/`branches:` filter on a `pull_request` trigger that later becomes a required check leaves it Pending and hangs the PR forever).
+- **Native secret-scanning push protection** is the stronger complement to the PR-time secret-scan workflow — a repo Settings toggle the template can't set. Point the consumer at **Settings → Code security → Secret scanning → Push protection**.
+- **Point the consumer at the [`audit-ci-gates`](../skills/audit-ci-gates/SKILL.md) skill** to add a fail-on-bad/pass-on-good fixture per gate — the same discipline RavenClaude proves these very templates with (its Gate 188 renders each `github-protocol-*.yml.template`, asserts the top-level `permissions:` floor + every `uses:` SHA-pinned + no path-filtered `pull_request` trigger, and runs actionlint over them).
 
 **Portable quality gates** (only if user approved): copy two files from `${CLAUDE_PLUGIN_ROOT}/templates/agent-ready-repo/`:
 

@@ -1,0 +1,32 @@
+# github-protocol-workflow-hygiene.yml — run check-workflow-hygiene.py on PRs.
+#
+# Part of RavenClaude's gold-standard GitHub protocol tier (scaffolded by
+# /init-agent-ready). Encodes knowledge/github-actions-hardening.md: a deny-all
+# top-level permissions floor (Rule 1), every third-party action pinned to a
+# 40-hex commit SHA (Rule 2), and NO paths/branches filter on the pull_request
+# trigger (Rule 5 — a would-be-required check carrying a path filter stays
+# Pending and blocks the PR forever).
+#
+# CONSUMER: verify each pinned SHA is current for your adoption date; keep any
+# would-be-required trigger path-filter-free. This workflow dogfoods its own
+# rules — it is itself clean under check-workflow-hygiene.py.
+name: GitHub protocol — workflow hygiene
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  workflow-hygiene:
+    name: Lint workflow permissions + action pins
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Check workflow hygiene
+        run: python3 .github/scripts/check-workflow-hygiene.py .github/workflows
