@@ -210,10 +210,10 @@ The pin survives `/plugin marketplace update` — the pinned SHA is the catalog'
 | Component | Count | Where |
 |-----------|-------|-------|
 | Specialist agents | 15 | `plugins/ravenclaude-core/agents/` |
-| Skills | 50 (incl. dispatch via `spawn-team`, `new-worktree` / `cleanup-worktrees`, `create-pr`, `run-full-test-suite`, `draft-agent-brief`, `structured-output`; the cross-domain staging loop `contribute-finding` / `review-staged-contributions`; the tribunal `thing` / `decision-review`; posture + capability skills `set-posture`, `permission-hygiene`, `environment-discovery`; quality skills `agent-quality-rubric`, `audit-ci-gates`, `cross-platform-determinism`, `knowledge-file-staleness-sweep`, `plugin-release-checklist`, `prompt-pattern-library`, `scenario-retrieval`; plus the `researcher/` meta-skill) | `plugins/ravenclaude-core/skills/` |
-| Hooks | 26 (incl. format-on-write, guard-destructive, remind-tests, enforce-layout, guard-recursive-spawn, capability-orientation, ensure-default-mode, reapply-posture, route-decision-review, thing-orchestrator, claim-grounding-lint, dod-gate, runaway-brake, agent-dispatch-evaluator, guard-web-access, regen-on-manifest-change) | `plugins/ravenclaude-core/hooks/` |
+| Skills | 52 | `plugins/ravenclaude-core/skills/` — see the plugin's own [README](plugins/ravenclaude-core/README.md) for the full, gate-checked list |
+| Hooks | 34 | `plugins/ravenclaude-core/hooks/` — see the plugin's own [README](plugins/ravenclaude-core/README.md) for the full, gate-checked list |
 | Rules | 5 (coding-standards, security, git-workflow, agent-collaboration, terminal-copy-to-tempfile) | `plugins/ravenclaude-core/rules/` |
-| Commands | 8 (`/init-agent-ready`, `/dashboard`, `/set-posture`, `/wrap`, `/forge`, `/stream`, `/ragnarok`, `/reset-plugin-cache`) | `plugins/ravenclaude-core/commands/` |
+| Commands | 8 (`/init-agent-ready`, `/dashboard`, `/set-posture`, `/wrap`, `/forge`, `/stream`, `/reset-plugin-cache` (alias `/ragnarok`)) | `plugins/ravenclaude-core/commands/` |
 | Templates | memos, runbooks, design specs, RAID logs, partner-success artifacts, agent-ready-repo scaffold | `plugins/ravenclaude-core/templates/` |
 
 The team rules ship inside the plugin as [`plugins/ravenclaude-core/CLAUDE.md`](plugins/ravenclaude-core/CLAUDE.md). Copy or adapt that into your consumer project's root `CLAUDE.md` and fill in your project's stack-specific gates (formatter, linter, type-checker, test runner).
