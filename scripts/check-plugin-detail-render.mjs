@@ -53,12 +53,14 @@ const ISLANDED_AGENT_KEYS = ["scenarios", "quickstart", "works_with"];
 const RC = "ravenclaude-core";
 const RC_BASELINE = {
   agents: 15,
-  skills: 51, // 50 -> 51: skills/probe-kit (v0.240.0, the control-probe kit)
+  skills: 52, // 50 -> 51: skills/probe-kit (v0.240.0, the control-probe kit)
+  //        51 -> 52: skills/github-gold-standard (v0.246.0, the gold-standard scorecard)
   tools: 19, // 18 -> 19: scripts/compact-anchor.py (v0.245.0, the SessionStart(compact) pointer)
   scenarios: 4,
-  hooks: 30, // 26 -> 28: log-probe.sh + guard-premise.sh (v0.240.0, the premise gate);
+  hooks: 31, // 26 -> 28: log-probe.sh + guard-premise.sh (v0.240.0, the premise gate);
   //        28 -> 29: guard-memory-compaction.sh (v0.241.0, the Rule-4 control);
   //        29 -> 30: compact-anchor.sh (v0.245.0, the post-compaction addressability pointer)
+  //        30 -> 31: enforce-git-protocol.sh (v0.246.0, the in-loop git-protocol hook)
   rules: 5,
   templates: 23,
   practices: 38,
