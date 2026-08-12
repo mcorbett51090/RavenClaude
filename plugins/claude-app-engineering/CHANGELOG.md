@@ -2,6 +2,30 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.9.13] — 2026-08-12
+
+### Changed
+
+**Recorded a new flagship-Opus GA in the model-selection capability map: Claude Opus 5 supersedes Opus 4.8.** Verified 2026-08-12 against the [platform.claude.com models overview](https://platform.claude.com/docs/en/about-claude/models/overview) (GA date corroborated by [9to5Mac 2026-07-24](https://9to5mac.com/2026/07/24/anthropic-upgrades-claude-with-new-opus-5-model-details-here/), which the overview page does not carry).
+
+- **`knowledge/model-selection-and-2026-capability-map.md`** — added **Opus 5** (`claude-opus-5`) to the lineup table as the current recommended Opus-tier default ($5/$25 per Mtok, 1M context / 128K output, adaptive thinking on / no extended-thinking mode, `effort` defaults to `high` on Claude API + Claude Code, reliable knowledge cutoff May 2026); demoted **Opus 4.8** to prior default (Anthropic now lists it under **Legacy models** with a "Migrating to Claude Opus 5" guide); updated the routing ladder to reserve **Opus 5** for the hard tail; added Opus 5 / Sonnet 5 to the 1M-context capability row; re-stamped **Last reviewed 2026-08-12** with citations + a `[verify-at-use]` rider.
+- **Left intact:** the Fable-5 safety-fallback-target references to Opus 4.8 (still correct per the platform docs) and all operational/runtime model IDs. The doc now carries an **operational-vs-advisory** note: the decision-review tribunal + dashboards still run on Opus 4.8 (`model-catalog.json`) until the maintainer runs the operational catalog bump — that bump is deferred as a high-blast governance decision.
+
+
+
+### Fixed
+
+**Verified false platform claims about the memory tool — corrected in seven places.** Anthropic ships **five distinct memory surfaces**; this plugin had collapsed two of them, and the collapse had reached the capability map (the bank's highest-trust surface, and the one every agent is told to cite).
+
+- **The Messages API memory tool is GA and requires no beta header** — `{"type": "memory_20250818", "name": "memory"}` is the entire configuration, it executes **client-side** (Claude *requests* file operations; your app performs them against storage you own), and it is available on all Claude 4+ models. Six locations described it as public beta: `knowledge/model-selection-and-2026-capability-map.md`, `knowledge/context-engineering-2026.md` (×2 — the lever list and the sources line), `knowledge/server-side-tools-and-files.md`, `best-practices/context-budget-the-1m-window.md`, and `agents/mcp-and-server-tools-engineer.md`.
+- **`managed-agents-2026-04-01` was attached to the wrong surface.** It belongs to Managed Agents **session** endpoints, not to the Messages API memory tool. The capability map and `knowledge/server-side-tools-and-files.md` carried that conflation; both now teach the two surfaces as two rows/sections.
+- **Managed Agents memory stores take two headers, not one** (`knowledge/agent-sdk-and-managed-agents.md`). The **beta status stated there was correct**; the header was half the picture — memory-store endpoints use `agent-memory-2026-07-22`, session endpoints (including *attaching* a store) use `managed-agents-2026-04-01`, and sending both on a memory-store request returns **400**.
+- Volatile header strings, statuses and limits are now **linked, not restated**, to [memory surfaces (2026)](../memory-engineering/knowledge/memory-surfaces-2026.md) so one file rots instead of six (house opinion #14). Every corrected claim carries a source URL + a 2026-08-06 retrieval date.
+
+The `[verify-at-build]` / "Re-verify … on the Researcher sweep" hedges that already sat beside these claims were **right and went unread**; they are kept, with the claim now correct beneath them.
+
+**Migration:** none — knowledge/best-practice/agent content only; no default, no schema, no script behaviour changed. Consumers who wired a beta header for the memory tool on the Messages API should remove it.
+
 ## [0.9.11] — 2026-07-14
 
 Reland of the additive dated facts from the 2026-06-30 research sweep (#536), applied to main's current framing (main's 2026-07-08 Fable-5-restored / Sonnet-5-GA framing is preserved everywhere; none of the branch's Fable-suspended regression was carried). Four net-new PRIMARY-VERIFIED release-notes facts added as dated capability-map rows plus their playbook cross-references:

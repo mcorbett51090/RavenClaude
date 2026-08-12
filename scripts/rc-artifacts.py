@@ -160,9 +160,7 @@ def scan(root: Path, tier: str, base: Path, _depth: int = 0) -> list[dict]:
         # list a directory outside the project as though it were work in it. The
         # index exists to tell the next CLI where the work IS; pointing it out of
         # the repo is worse than omitting the entry.
-        entries = sorted(
-            p for p in full.iterdir() if p.is_dir() and not p.is_symlink()
-        )
+        entries = sorted(p for p in full.iterdir() if p.is_dir() and not p.is_symlink())
     except OSError:
         return out
     for d in entries:
@@ -232,8 +230,11 @@ def cmd_new(base: Path, task: str) -> int:
     # one-line message belongs. Capped well below the limit so the files inside
     # (meta.json, summary.md) cannot push the full path over either.
     if len(safe) > 64:
-        print(f"  task id is {len(safe)} characters — keep it under 64 so the "
-              "directory name stays readable and portable", file=sys.stderr)
+        print(
+            f"  task id is {len(safe)} characters — keep it under 64 so the "
+            "directory name stays readable and portable",
+            file=sys.stderr,
+        )
         return 1
 
     d = base / LOCAL_ROOT / safe
@@ -241,7 +242,9 @@ def cmd_new(base: Path, task: str) -> int:
         # Continuing an existing task is CORRECT per the contract — two
         # half-records is the failure it exists to prevent. Never clobber.
         meta = read_meta(d)
-        print(f"  {d.relative_to(base)} already exists — continue in it, do not start a parallel one")
+        print(
+            f"  {d.relative_to(base)} already exists — continue in it, do not start a parallel one"
+        )
         print(f"  created by: {meta.get('host', 'unstamped')}  on {meta.get('created', '?')}")
         return 0
 
@@ -273,12 +276,15 @@ def main() -> int:
     ap.add_argument("action", choices=["list", "new"])
     ap.add_argument("task", nargs="?")
     ap.add_argument("--json", action="store_true", help="machine-readable listing")
-    ap.add_argument("--base", type=Path, default=Path.cwd(), help=argparse.SUPPRESS)
+    ap.add_argument("--base", type=Path, default=None, help=argparse.SUPPRESS)
     args = ap.parse_args()
 
     # An explicit --base is honoured verbatim (the gates pass a scratch dir);
-    # otherwise resolve the project root rather than trusting cwd.
-    base = args.base.resolve() if args.base != Path.cwd() else find_project_root(Path.cwd())
+    # otherwise resolve the project root rather than trusting cwd. Track
+    # explicitness by default=None rather than comparing to Path.cwd(): the
+    # equality test silently took the resolve-root branch when a caller passed
+    # `--base "$PWD"` on purpose (e.g. to pin the base to a non-.git subdir).
+    base = args.base.resolve() if args.base is not None else find_project_root(Path.cwd())
     if args.action == "list":
         return cmd_list(base, args.json)
     if not args.task:

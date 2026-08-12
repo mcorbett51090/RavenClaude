@@ -1,74 +1,83 @@
-# Comprehensive repo review — findings (2026-08-05)
+# Repository review — 2026-08-05 (autonomous three-panel + implementation)
 
-**Scope:** the whole RavenClaude marketplace at `00c5f20` (179 plugins, 631 agents, 916 skills, 9,575 tracked files).
-**Method:** the full deterministic gate suite (ground truth) + a three-panel expert review (find → validate → tie-break) + targeted manual verification.
-**Headline:** the repo is in **excellent mechanical health** — every CI gate, lint, format, schema, and link check passes. The only confirmed defect class is **stale aggregate counts in living docs**; one instance is fixed in the accompanying PR, the rest are routed below with their blast-radius noted.
+**Run shape:** Panel 1 (six partitioned `sonnet` finder agents, high effort) → Panel 2/3
+(adversarial verification + priority validation by the `opus` orchestrator, each finding
+re-read against the real code and, where a hook/regex was involved, empirically reproduced)
+→ implementation of the confirmed non-design fixes on `claude/stoic-fermat-w2gcma`.
 
----
+## Mechanical health (pre-review sweep) — all green
 
-## 1. What passed (ground-truth health check)
+Every CI gate passed on the tree at `3a0106f` before the semantic review began, so all
+findings below are logic/robustness defects the structural gates cannot catch:
 
-Run this session, all green:
+- JSON validity (marketplace / all 166 `plugin.json` / repo-layout): OK
+- `check-frontmatter.py`, `check-marketplace-claims.py`, `check-layout.py --all`,
+  `check-md-links.py`, `check-mcp-attribution.py`, `check-grep-ere-pcre.py`,
+  `check-hook-stdin-fallback.py`: OK
+- `prettier@3.9.4 --check .` (whole tree): exit 0 · `ruff check .`: passed
+- Version drift (166 marketplace entries vs `plugin.json`): none
+- TODO/FIXME/HACK markers in code: all in vendored `mermaid.min.js`, test fixtures, or
+  intentional anti-pattern grep strings — no real debt markers.
 
-| Check | Result |
-|---|---|
-| `scripts/audit-gates.sh` (the gate meta-test) | **682 pass / 0 fail** (1 skipped only for a missing `jsonschema` module — re-run below, all valid) |
-| Marketplace + all 179 `plugin.json` JSON validity | pass |
-| JSON Schema validation (`schemas/plugin.schema.json`, `marketplace.schema.json`) | pass (all 179 + marketplace) |
-| Version drift (plugin.json ↔ marketplace.json) across 179 plugins | **no drift** |
-| `check-frontmatter.py` (scenario schema, `tools:` allowlist, ≤300-char descriptions) | pass |
-| `scripts/check-marketplace-claims.py` (README counts, architecture roster, skill/agent counts) | pass |
-| `scripts/check-md-links.py` (all relative markdown links resolve) | pass |
-| `prettier --check .` (whole tree) | pass (exit 0) |
-| `ruff check .` (whole tree) | pass |
-| Shell syntax (`bash -n`) + hook executability | pass |
+## Scope reviewed
 
-There were **no** P0 or P1 findings — nothing breaks a consumer, CI, or the security floor.
+~40 logic/safety scripts across six partitions: security/safety shell hooks, the tribunal
+decision engine, comfort-posture + capability + web-sanitize, pseudonymize + streams, the
+CI gate scripts, and the repo-root shell utilities. The ~11K-line generated dashboard,
+vendored code, and per-plugin markdown were out of scope (generated/tested elsewhere).
 
----
+## Confirmed findings & disposition
 
-## 2. Confirmed findings
+Panel 1 raised 25 candidate findings; Panel 2/3 confirmed 20 (5 were rejected as
+false-positives — already-guarded paths, misread line numbers, or harmless). Of the 20
+confirmed, **17 were mechanical and are fixed in this PR**; **3 need design input** and are
+written up in [`2026-08-05-repo-review-design-questions.md`](2026-08-05-repo-review-design-questions.md).
 
-### P2 — `doc-accuracy` — AGENTS.md understates marketplace size (FIXED in this PR)
+### Fixed in this PR (grouped by priority)
 
-- **Where:** [`AGENTS.md:166`](../../AGENTS.md) and [`AGENTS.md:169`](../../AGENTS.md), section *"The agent-description token budget (~15K)"*.
-- **Was:** *"This marketplace ships **~100 plugins / 400+ agents**…"* and *"You cannot fit all ~100 plugins under 15K…"*.
-- **Reality:** 179 plugins / 631 agents. [`README.md:23`](../../README.md) already says **179 plugins** — and that count is **gate-enforced** by `check-marketplace-claims.py`, which is exactly why README stayed correct while this un-gated prose in a *different* file drifted.
-- **Impact:** AGENTS.md is a canonical boundary file read natively by external hosts (Codex, Copilot CLI). The wrong number sits inside a *load-bearing argument* ("you can't fit all N under 15K") — and the argument is only stronger at the true, larger N. A boundary doc contradicting the gate-enforced README is a real accuracy defect.
-- **Fix applied:** updated both to **~180 plugins / 630+ agents** (mirrors the existing "~/+" phrasing, ages gracefully as the catalog grows). No plugin version bump or artifact regen — AGENTS.md is a root boundary file, not shipped plugin content.
-- **Effort:** S. **Needs design input:** no.
+**P1 — correctness / security / data-loss**
 
-### P3 — `doc-accuracy` — best-practices files carry the same stale counts (recommended follow-up, NOT bundled here)
+| # | File:line | Defect |
+|---|---|---|
+| 1 | `scripts/archive-branch.sh:268` | `--skip-push --delete-remote` deleted the remote branch while the archive tag was local-only (never pushed) → unrecoverable work when an ephemeral session is reclaimed. Now refused. |
+| 2 | `plugins/ravenclaude-core/scripts/pseudonymize-brief.py:77` | IBAN regex matched only the compact form; a standard space-grouped IBAN leaked verbatim through the pseudonymizer (PII egress). Now tokenized; self-test fixture added. |
+| 3 | `plugins/ravenclaude-core/scripts/capability-orientation.py:651` | `.claude/settings.json` permission-rule strings were echoed into the SessionStart banner **unsanitized**, so a hostile/cloned repo could break the untrusted-data frame and inject a fake `<system-reminder>`. Now frame-break sanitized like every other field. |
+| 4 | `plugins/ravenclaude-core/scripts/capability-orientation.py:730` | `last_posture` (`ts` from `posture-events.jsonl`) inlined into the banner unsanitized — same frame-break class. Now sanitized. |
+| 5 | `plugins/ravenclaude-core/scripts/thing-decide.py:437` | `_parse_seat` called `.strip()` on a non-string seat `result`, raising an uncaught `AttributeError` that crashes the panel (and fails **open** for decision-review). Now returns the fail-safe ABSTAIN. |
+| 6 | `plugins/ravenclaude-core/hooks/guard-destructive.sh:359` | `rm -rf ../../` (and deeper) bypassed the guard — only a single `../` segment was matched. Now catches any multi-segment nav; scoped paths still allowed. |
+| 7 | `plugins/ravenclaude-core/hooks/guard-destructive.sh:370` | `chmod -R 4777/2777/6777/1777` (setuid/setgid/sticky + world-writable) bypassed while `777` was caught. Now caught. |
+| 8 | `plugins/ravenclaude-core/hooks/dod-gate.sh:122` | `sha256sum` is absent on stock macOS → every cmd hashed to the literal `"nohash"`, so one confirmation authorized any later (incl. swapped) command. Now falls back `sha256sum → shasum -a 256 → cksum`; Linux tokens unchanged. |
+| 9 | `plugins/ravenclaude-core/hooks/guard-web-access.sh:107` | A multi-line YAML flow array (`deny: [\n …\n]`) parsed to zero entries → silently empties the blacklist (fail-open). Now accumulated across lines. |
 
-- **Where (living plugin guidance, not dated records):**
-  - [`plugins/ravenclaude-core/best-practices/a-skills-body-is-the-gotchas-the-model-doesnt-know-not-the-happy-path.md:40-41`](../../plugins/ravenclaude-core/best-practices/a-skills-body-is-the-gotchas-the-model-doesnt-know-not-the-happy-path.md) — "~670 `SKILL.md` files across ~100 plugins".
-  - [`plugins/ravenclaude-core/best-practices/keep-skill-bodies-lean-let-progressive-disclosure-carry-the-detail.md:31,113`](../../plugins/ravenclaude-core/best-practices/keep-skill-bodies-lean-let-progressive-disclosure-carry-the-detail.md) — "~670 `SKILL.md` files … across ~100 plugins".
-  - [`plugins/ravenclaude-core/best-practices/scope-a-skill-to-one-workflow-the-description-is-what-triggers-it.md:42`](../../plugins/ravenclaude-core/best-practices/scope-a-skill-to-one-workflow-the-description-is-what-triggers-it.md) — "~670 `SKILL.md` files across ~100 plugins".
-- **Reality:** ~916 `SKILL.md` files across 179 plugins. The "~" softens these to approximations, and each makes a "at this scale, be lean" argument that only holds *harder* at the true numbers — so they are drift, not falsehoods, and the argument is unaffected.
-- **Why it is NOT in this PR (blast radius, deliberate):** these are shipped plugin content, so the house rule *"bump the plugin's semver on every user-visible change"* applies. A `ravenclaude-core` version bump ripples the version string into the generated `dashboard.html` / `index.html` / Copilot package and engages the freshness-gate ↔ post-merge self-heal machinery (`regenerate-artifacts.yml`) — a disproportionate footprint for a "~"-approximated prose polish. Verified this session that the stale phrases themselves do **not** reach the generated HTML (`_bp_preview` extracts only each file's "Why this exists" first paragraph), so the churn would be the version string, not the counts.
-- **Recommendation:** update "~670 → ~910" and "~100 plugins → ~180 plugins" (or make them count-agnostic — "many hundreds of `SKILL.md` files across well over a hundred plugins") in a **dedicated `chore(ravenclaude-core)` PR** that bumps the version and lets the standard artifact self-heal run. Bundling it into a doc-accuracy change would have muddied a clean diff.
-- **Effort:** S (edit) + M (version bump + artifact self-heal coordination). **Needs design input:** no — but wants its own PR.
+**P2 — edge-case bugs / robustness**
 
-### Correctly NOT touched — dated historical records
+| # | File:line | Defect |
+|---|---|---|
+| 10 | `scripts/check-frontmatter.py:168` | `tools in (None, "", [], {})` let `tools: false` / `tools: " "` bypass the least-privilege gate (`False`/whitespace ∉ the tuple). New `_is_blank()` helper used at all three sites (tools/audience/works_with/quickstart). |
+| 11 | `plugins/ravenclaude-core/scripts/apply-comfort-posture.py:333` | `parse_yaml` returned a top-level list/scalar unchanged → raw `AttributeError` traceback downstream. Now raises a clean `ValueError`. |
+| 12 | `plugins/ravenclaude-core/hooks/guard-web-access.sh:124` | A trailing `# comment` on a block-style deny entry corrupted the host string, silently disabling that entry. Now stripped. |
+| 13 | `plugins/ravenclaude-core/scripts/stream-ops.py:166` | `read_registry` didn't validate each per-stream value is a dict; a malformed entry crashed every reader (`list_streams`/`get_centroids`/`append_event`), violating the "never raise" contract. Malformed entries now dropped. |
+| 14 | `plugins/ravenclaude-core/scripts/pseudonymize.py:273` | Surrogate collision guard compared a multi-word candidate against a set of single words → the FM4 "surrogate ≠ any input word" guarantee never fired. Now checks each constituent word. |
 
-The same "~100 plugins" string appears in **dated** `docs/` artifacts — e.g. [`docs/proposals/2026-06-12-ten-new-plugin-candidates.md`](../proposals/2026-06-12-ten-new-plugin-candidates.md), [`docs/research/2026-06-21-claude-subreddit-scan/README.md`](../research/2026-06-21-claude-subreddit-scan/README.md), [`docs/plugin-candidates-2026-06.md`](../plugin-candidates-2026-06.md), [`docs/reviews/2026-06-22-repo-review-findings.md`](2026-06-22-repo-review-findings.md). These were **accurate as of their date**; the cross-CLI storage contract treats `docs/` as durable point-in-time records. Rewriting them would falsify history, so they were left as-is by design.
+**P3 — latent hardening**
 
----
+| # | File:line | Defect |
+|---|---|---|
+| 15 | `scripts/check-frontmatter.py:134` | Flat-file skill/agent/command globs didn't exclude `README/CHANGELOG/NOTES` like the sibling `check-marketplace-claims.py` does — a roster README would hard-fail the gate. Now excluded. |
+| 16 | `scripts/worktree-new.sh:49` | Unvalidated `BASE_REF` passed with no `--` separator; a flag-shaped ref (`--no-checkout`) silently produced an empty worktree. Now `--`-separated (rejected loudly). |
+| 17 | `plugins/ravenclaude-core/scripts/capability-orientation.py` | No size cap on the repo-controlled `environment-context.md` / `run-config.json` read+scanned every SessionStart. Added a 256 KiB cap mirroring `_POSTURE_MAX_BYTES`. |
 
-## 3. Coverage caveat — read this before trusting "clean"
+### Verification
 
-The three-panel review was run as a background dynamic workflow with seven expert finders (root-docs, core-hooks, check-scripts, manifests, ci-workflows, agents-skills, generated-artifacts). **The dispatched subagents could not use their tools in this environment** — every `Read`/`Grep`/`Bash` call returned a permission-handler error that stripped the tool parameters (*"the required parameter … is missing"*). Six of seven finders reported "environment broken" instead of reviewing; only the root-docs slice partially succeeded and surfaced the AGENTS.md finding above.
+Each hook/regex fix was empirically reproduced before and after (guard-destructive rm/chmod
+tables, web-access parser on 4 config forms, dod-gate hash under a `sha256sum`-less PATH,
+worktree `--` rejection). Python fixes carry unit checks (`_is_blank` matrix, `parse_yaml`
+non-mapping, pseudonymize self-tests incl. the new IBAN fixture, stream-ops malformed
+registry). Full local suite green: shell `bash -n`, `ruff`, `prettier --check .`,
+`check-frontmatter/md-links/marketplace-claims/layout`, and `audit-gates.sh`.
 
-**Consequently, the panel did not deep-review these slices:** `core-hooks`, `check-scripts`, `manifests`, `ci-workflows`, `generated-artifacts`. What *does* cover them is the deterministic gate suite in §1 (audit-gates exercises 174 gates with known-good/known-bad fixtures, and it is green), plus the main-session manual checks (schemas, links, format, lint, version drift — all run directly, not via the broken subagents). So the mechanical surface of those slices is verified; a fresh line-by-line expert reading of their prose/logic is **not** — worth a re-run in an environment where dispatched subagents can read files.
+## Secondary observation (no code change)
 
----
-
-## 4. Open items for your decision (design input / housekeeping)
-
-1. **Best-practices count refresh (§2, P3):** approve a separate `ravenclaude-core` version-bump PR to update the "~670 / ~100 plugins" figures? (My recommendation: yes, as its own PR.)
-2. **Pre-existing uncommitted change:** the working tree arrived this session with an unstaged `.claude/settings.json` edit that normalizes unicode escapes (`—` → `—`, `á` → `á`) in hook comment strings — **not authored by this run**. It is semantically identical JSON and prettier-clean. I **stashed** it (recoverable via `git stash list`) to keep this PR focused. Restore-and-commit it, or drop it?
-3. **Panel re-run (§3):** want the five uncovered slices re-reviewed once the subagent-tool environment issue is resolved?
-
----
-
-*Generated by an automated repo-review routine. Fixes implemented autonomously per §2 (P2); everything above P3-or-design routed here for your call.*
+The two `docs/follow-ups/` parked-work items have **re-check dates now in the past**
+(2026-06-18 and 2026-07-16, vs today 2026-08-05). They are multi-session design workflows,
+not review findings — flagged for the maintainer to re-park or close.

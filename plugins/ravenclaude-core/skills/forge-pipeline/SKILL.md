@@ -94,7 +94,7 @@ is the **default** (cheap-by-default so the command is used for *every* idea —
 | Depth | Gates run | ~calls | Also load | Use for |
 |-------|-----------|--------|-----------|---------|
 | **micro** | G0 · G6 · G7 · G8 | 1-2 | — | a truly atomic idea needing only a structured sanity pass |
-| **quick** *(default)* | G0 · G1-lite · G2 · G3 · G6 · G7 · G8 | 3-5 | — | most ideas (a new skill, a hook tweak, a knowledge doc) |
+| **quick** *(default)* | G0 · G1-lite · G2 · G3 · **G3b** · G6 · G7 · G8 | 3-5 | — | most ideas (a new skill, a hook tweak, a knowledge doc) |
 | **standard** | + G4a · G4b · G5 | 6-10 | `gates-standard.md` | a non-trivial multi-file change |
 | **deep** | standard, no conflict cap, 2nd red-team, checkpoint/resume | 11-18 | `gates-standard.md` + `deep-resume.md` | a substantial multi-plugin build |
 
@@ -124,7 +124,15 @@ Build a claims table of every load-bearing fact the plan rests on. **Tiered enfo
   second citation is theater. If it wasn't confirmed in-session, it's BLOCK-tier.
 - **Skip** entirely at micro depth.
 
-→ `claims-table.md` (columns: claim · tier · source/marker · settling-gate). This is the accuracy
+**Every row also carries `kind` ∈ `observation` | `inference`** — the gap that let a false premise
+through. G1's BLOCK/WARN split keys on *provenance* ("is it sourced?"), and the costliest false claim
+this pipeline has seen **was** sourced: an in-session `curl` returned 404, and from that true
+OBSERVATION an agent drew the false INFERENCE "the decoder is broken, every visitor is affected" —
+then built 16 files on it. Grounding an observation ≠ grounding an inference drawn from it. Type each
+row with `python3 scripts/classify_claim.py` (grammatical, **upward-only** — an author may raise a row
+to `inference`, never lower it) and settle any `inference` a build phase depends on at **G3b**.
+
+→ `claims-table.md` (columns: claim · **kind** · tier · source/marker · settling-gate). This is the accuracy
 discipline from `docs/accuracy-near-guarantee-design.md` applied to planning: a plan must rest on
 **tested facts, not assumptions**.
 
@@ -132,15 +140,34 @@ discipline from `docs/accuracy-near-guarantee-design.md` applied to planning: a 
 Dispatch **one worker subagent per panel**, models pinned per `--models` (B **must** differ from A —
 cross-model divergence is the improvement over Ultraplan's same-model critic). Each panel **writes**
 a complete phased plan that must include: per-phase acceptance tests + pre-build gates, a
-**dependency DAG** (what blocks what; what parallelizes; the critical path), and **≥2 alternative
+**dependency DAG** (what blocks what; what parallelizes; the critical path), **≥2 alternative
 approaches** with one-line trade-offs (the Ultraplan deep-plan structural inheritance — a plan, not a
-task list). Panel **B additionally writes a gap-delta**: every place A and B disagree or one is
+task list), and — **required, this is load-bearing** — a `depends_on_claims: [<row ids>]` line on every
+phase, naming the `claims-table.md` rows that phase rests on. A phase resting on nothing says
+`depends_on_claims: []` explicitly; silence is not an answer.
+
+⛔ **Do not treat this as bookkeeping.** G3b's trigger READS this field, so a plan that omits it makes
+the premise gate structurally unsatisfiable — the gate runs, finds no claim edges, and passes green
+while checking nothing. That exact defect shipped in a draft of this design: the trigger was specified
+against a field the plan schema never emitted, and the accompanying gate supplied it in a **synthetic
+fixture**, so the gate would have gone green while the mechanism was inert in production. A fixture is
+not a wiring proof. Panel **B additionally writes a gap-delta**: every place A and B disagree or one is
 silent, plus a note if A's sequencing over-serializes. → `plan-A.md`, `plan-B.md`, `gap-delta.md`.
 
 Both panels are dispatched in **one batch** (wall-clock ≈ the slower panel, not the sum). Per §0 each
 returns a receipt only. **Panel B is handed `plan-A.md`'s path** and reads it for the gap-delta —
 never A's text inline, and B must draft *its own* plan **before** reading A, or the divergence the
 whole design rests on collapses into anchoring.
+
+### G3b — Premise gate (deterministic — no model judgment)
+`python3 scripts/premise-gate.py --run-dir <run-dir>` after the panels, **before** G6. Fails closed
+when a phase's `depends_on_claims` names a row that is `kind: inference` **and** unsettled **and** the
+phase's blast radius is over the floor. Three exits, none of which is "block and stop": run the probe
+(`cost ≤ CHEAP_FLOOR`), run the **cheapest partial** (mandatory when the full kill-shot needs prod or
+credentials), or **owner-gate** it — which *reshapes* rather than blocks: citing phases are capped to
+one reversible file and flagged, non-citing work proceeds. Every exit other than a run probe writes an
+inline `[unverified — premise not disconfirmed: <reason>]` marker into the artifact.
+Full contract, conjuncts and escape syntax: [`reference/premise-gate.md`](reference/premise-gate.md).
 
 ### G6 — Synthesize
 **Dispatch this as a subagent** and hand it the run-dir path; it reads the gate artifacts from disk

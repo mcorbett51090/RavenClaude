@@ -163,7 +163,7 @@ in a host's private area crosses over — assume it is lost the moment the sessi
 
 Claude Code loads the `name` + `description` of **every agent in every *enabled* plugin** into the orchestrator's system prompt so it can route to subagents (agent bodies load lazily, only when an agent is invoked). The combined descriptions count against a **~15K-token budget**; cross it and Claude Code warns *"agent descriptions are over the 15.0K token limit — /agents to free up context."*
 
-This marketplace ships **~180 plugins / 630+ agents**, so two levers keep the budget affordable — they're complementary, not either/or:
+This marketplace ships **~180 plugins / 600+ agents**, so two levers keep the budget affordable — they're complementary, not either/or:
 
 1. **Per-agent cap (this repo's job).** Every agent `description` is held to ≤ 300 chars (~75 tokens) by the `check-frontmatter.py` gate above. No single plugin is the problem; the cap is what lets a consumer enable *many* plugins before hitting the warning.
 2. **Enable only what you need (the consumer's job).** You cannot fit all ~180 plugins under 15K regardless of how tight the descriptions are — that's expected, not a defect. Enable the plugins relevant to your work and disable the rest via **`/agents`** (or `/plugin`). That's exactly what the warning's `/agents` hint points at, and it's the correct response to it. **Budget before you enable, not after the warning fires:** the `/plugin` **Discover** tab now surfaces a per-plugin **Context cost** estimate (the tokens a plugin adds to every turn — Claude Code v2.1.143+) and a **Will install** inventory of its commands/agents/skills/hooks/MCP+LSP servers (v2.1.145+), so you can see what a plugin costs the orchestrator prompt _before_ installing it rather than discovering the 15K overrun afterward. (Verified against [Discover and install plugins](https://code.claude.com/docs/en/discover-plugins), 2026-06-21.)
@@ -240,7 +240,15 @@ npx --yes prettier@3.9.4 --check . --log-level warn   # verify clean — must re
 #    and inside audit-gates.sh. Same whole-tree discipline as prettier: a ruff violation
 #    landing in main can surface as a surprise CI failure on a later PR, so lint before pushing
 #    any branch that touches .py files. (audit-gates Gate 9b _skip_or_fail's if ruff is absent.)
-pip install --quiet ruff && ruff check .   # must return exit 0
+#    ⚠️ Use `python3 -m pip`, NOT bare `pip`. On a stock macOS toolchain `pip` is
+#    `command not found` (only `pip3`/`python3 -m pip` exist), so the bare form fails
+#    at the INSTALL step and the honest-looking conclusion — "ruff is unavailable here,
+#    Gate 9b has to stay skipped" — is wrong. Verified 2026-08-12: bare `pip` → not
+#    found; `python3 -m pip install --user ruff` → installed, `ruff check .` clean.
+python3 -m pip install --quiet --user ruff   # bare `pip` is absent on stock macOS
+ruff check .                                 # must return exit 0
+#    If `ruff` is then not on PATH, it installed to the user scheme — either add
+#    `$(python3 -m site --user-base)/bin` to PATH, or run it as `python3 -m ruff check .`
 
 # 5. Audit every gate (the meta-test)
 scripts/audit-gates.sh

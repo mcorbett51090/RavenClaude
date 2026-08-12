@@ -1,0 +1,42 @@
+{
+  "_comment": "NOT part of the measured history — a synthetic round 4 whose only job is to prove the stop signal is not dead code. 5 findings: 4 are previously-closed findings coming back, 1 is new. reopened (4) >= new (1), so E[round 5] has crossed zero and converge-report must say STOP AND SHIP in words. Without this fixture the stop branch would ship untested, which is the defect class this whole plan exists to close.",
+  "round": 4,
+  "head": "d4e5f6a7",
+  "findings": [
+    {
+      "file": "src/auth/session.ts",
+      "line": 61,
+      "rule": "unchecked-null",
+      "summary": "the round-3 fix removed the guard a third time",
+      "status": "closed"
+    },
+    {
+      "file": "src/db/queries.ts",
+      "line": 29,
+      "rule": "limit-without-order",
+      "summary": "ORDER BY dropped again by the pagination change",
+      "status": "closed"
+    },
+    {
+      "file": "src/db/queries.ts",
+      "line": 68,
+      "rule": "unbounded-loop",
+      "summary": "the members loop lost its page size once more",
+      "status": "closed"
+    },
+    {
+      "file": "src/api/upload.ts",
+      "line": 101,
+      "rule": "swallowed-error",
+      "summary": "the catch block swallows the write error again after the retry rewrite",
+      "status": "closed"
+    },
+    {
+      "file": "src/api/upload.ts",
+      "line": 118,
+      "rule": "missing-content-length",
+      "summary": "the streamed response omits Content-Length",
+      "status": "closed"
+    }
+  ]
+}
