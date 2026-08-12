@@ -15,7 +15,7 @@ Expands on §3 of CLAUDE.md.
 Slug: kebab-case, ≤ 40 chars, descriptive but tight. `feat/auth-refresh-rotation`, not `feat/stuff`.
 
 ## Commits
-- Conventional Commits: `type(scope): subject`.
+- **Conventional Commits — the gate, not just a convention.** Every commit subject is `type(scope): subject` (spec: conventionalcommits.org, retrieved 2026-08-12 — see the catalog below). The `type` prefix is what makes the changelog and the next version **machine-derivable**: `fix:` → a **PATCH** bump, `feat:` → a **MINOR** bump, and a `BREAKING CHANGE:` footer (or a `!` after the type/scope) → a **MAJOR** bump. Keep the mapping honest and a release tool (changesets / semantic-release / release-please) can cut the version and CHANGELOG from history with no hand-editing. **Enforceable:** a semantic-PR-title / commit-message CI check (widely gated — `vitejs/vite`, `django/django`, `microsoft/vscode`, `renovate`, `pnpm`, `cli/cli` all run one). **Teachable:** pick the `type` by the *user-visible effect* of the change, not the size of the diff.
 - Subject: imperative, ≤ 72 chars, no trailing period. Capitalize the first word after the colon? Match the repo's existing style.
 - Body: wrap at 80 chars. Explain *why*. Reference issues with `Refs #123` or `Fixes #123`.
 - One logical change per commit. If a commit has "and" in the subject, split it.
@@ -115,3 +115,7 @@ it stays recoverable. See AGENTS.md house rule 5.
 - Title in Conventional Commit format, ≤ 72 chars.
 - Body uses the template in [`create-pr`](../skills/create-pr/SKILL.md).
 - Don't merge your own PR without an explicit user "ship it." Even on solo projects, the human approves the merge.
+
+## See also — CI & GitHub-development hardening
+- [`../knowledge/github-actions-hardening.md`](../knowledge/github-actions-hardening.md) — the rules behind every gold-standard Actions gate (least-privilege `permissions:`, SHA-pinned actions, OIDC, the required-check `paths:`-filter trap, merge queue + CODEOWNERS).
+- [`../knowledge/github-gold-standard-repos.md`](../knowledge/github-gold-standard-repos.md) — the durable best-practices catalog + the dated 30-repo exemplar snapshot the rules were extracted from.
