@@ -264,6 +264,17 @@
             "comment": "Marketplace-dev hook (dev-mirror of the plugin's hooks/hooks.json entry). Dashboard autostart: reads `dashboard_autostart: off|serve|open` from .ravenclaude/comfort-posture.yaml and no-ops after one grep when unset (absent => OFF). Probes 127.0.0.1:<port>/__csrf and stands down if a dashboard is already live, so concurrent sessions never spawn a second server or a second tab. Fail-safe; always exits 0."
           }
         ]
+      },
+      {
+        "matcher": "compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/compact-anchor.sh",
+            "timeout": 10,
+            "comment": "Marketplace-dev hook (dev-mirror of the plugin's hooks/hooks.json entry). Post-compaction addressability pointer, scoped `matcher: \"compact\"`. Injects the transcript path + boundary line + how to grep it, so the post-compaction agent knows its own pre-compaction record is still on disk. DERIVED VALUES ONLY — never transcript content (Gate 186). Fail-safe; always exits 0."
+          }
+        ]
       }
     ]
   }

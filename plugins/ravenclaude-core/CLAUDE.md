@@ -997,7 +997,7 @@ Any plugin template that renders an HTML `<head>` (e.g. `templates/repo-build-st
 
 - `agents/` — 15 specialist agent definitions (includes `data-engineer` and `viz-spec-reviewer`)
 - `skills/` — dispatch playbook (spawn-team), worktree helpers, structured-output reference, run-full-test-suite, contribution-staging, agent-quality-rubric, knowledge-file-staleness-sweep, prompt-pattern-library, plugin-release-checklist, decision-review (route yes/no decisions through the tribunal), brand-extraction (website home page → reusable brand kit), pbir-layout-engine (deterministic PBIR/web-dashboard layout linter), visual-feedback-loop (the render→see→critique→iterate referee that merges the layout linter + agent-captured console/Lighthouse evidence into one pass/fail verdict — the runnable half of `knowledge/visual-feedback-loop.md`), thing-denial-kb (Muninn — recall/identify/solve/teach the fix when the Thing blocks you)
-- `hooks/` — format-on-write, guard-destructive, remind-tests, enforce-layout, guard-recursive-spawn, thing-orchestrator, ensure-default-mode, reapply-posture, capability-orientation, route-decision-review, runaway-brake, dod-gate, claim-grounding-lint, agent-dispatch-evaluator, guard-web-access, regen-on-manifest-change, thing-denial-kb-sync (Stop — materialise tribunal denials into the Muninn KB), thing-denial-kb-recall (SessionStart — surface known denials + resolutions) (all registered in `hooks/hooks.json` for plugin-level distribution), plus the sourced helper `_emit-event.sh` (the hook-event substrate — sourced by the verdict-emitting hooks, not a registered hook itself) and `tests/` (the hook-event fixture test)
+- `hooks/` — format-on-write, guard-destructive, remind-tests, enforce-layout, guard-recursive-spawn, thing-orchestrator, ensure-default-mode, reapply-posture, capability-orientation, route-decision-review, runaway-brake, dod-gate, claim-grounding-lint, agent-dispatch-evaluator, guard-web-access, regen-on-manifest-change, thing-denial-kb-sync (Stop — materialise tribunal denials into the Muninn KB), thing-denial-kb-recall (SessionStart — surface known denials + resolutions), compact-anchor (SessionStart `matcher: "compact"` — the post-compaction addressability pointer; derived values only, never transcript content) (all registered in `hooks/hooks.json` for plugin-level distribution), plus the sourced helper `_emit-event.sh` (the hook-event substrate — sourced by the verdict-emitting hooks, not a registered hook itself) and `tests/` (the hook-event fixture test)
 - `scripts/` — apply-comfort-posture.py (`/set-posture` translator), serve-dashboards.py (the consumer dashboard server launched by `/dashboard` — serves the version-matched `dashboard.html` and writes `.ravenclaude/` into the consumer's project; binds 127.0.0.1, CSRF-guarded; the write surface is `/__save` + `/__read` + `/__classify` plus the allow-listed `/__run` (install/update/status — no arbitrary shell), and the remaining `/__*` endpoints (`/__heimdall` `/__vidarr` `/__norns` `/__nidhoggr` `/__mimir` `/__sleipnir` `/__saga` `/__concern` `/__knowledge` `/__runs` `/__csrf`) are read-only observability feeds), thing-decision.py + thing-seat.sh (command-review tribunal — see the `thing` skill), thing-decide.py (decision-review tribunal — see the `decision-review` skill)
 - `rules/` — coding-standards, security, git-workflow, agent-collaboration, terminal-copy-to-tempfile (copy-me CLI text → a temp `.md` file the user can copy from, because terminal clipboard copy doesn't work)
 - `templates/` — memos, runbooks, design specs, RAID logs, partner-success, `agent-ready-repo/` templates used by `/init-agent-ready`, plus `thing.yaml` (command-review seat config)
@@ -2348,3 +2348,55 @@ decision, not a convenience one — but the cost is now measured rather than ass
 
 **Migration:** none in the permissive direction. Every genuine pipe-to-shell still denies, including
 through an intermediate stage; ordinary files that merely *mention* a fetch tool stop being denied.
+
+## A best-practice prescribed a hook for a problem that does not exist (added 2026-08-12, v0.244.1 + v0.245.0)
+
+`precompact-hook-is-the-deterministic-enforcer-of-persist-before-compaction.md` told agents to
+register a `PreCompact` hook that "flushes the plan / open decisions / rejected-approaches to disk,"
+because compaction destroys them. It was reviewed **before** being implemented here. Both halves were
+false, and the retraction (v0.244.1) plus the build the review actually justified (v0.245.0) ship as
+one arc.
+
+**1 — `PreCompact` CAN block, and the file said the opposite** (*"not a place to block compaction …
+not a veto"*). The current hooks reference `[docs-verified 2026-08-12]` lists it **Can block? Yes**,
+exit 2 → blocks compaction. That inverts the hazard: a hook that exits non-zero on any error path does
+not merely fail to persist, it **wedges a session whose window is already full**. Anyone following the
+old file would have written it fail-*closed*.
+
+**2 — Nothing is destroyed. Compaction APPENDS.** Measured on this project's transcripts: **44**
+`compact_boundary` records; a 12,398-line transcript with its first boundary at line 4031 and **1,942
+pre-boundary turns still present**; **939 `thinking` blocks** retained alongside text/tool_use/
+tool_result; and the boundary record itself carrying `preTokens 1000599 → postTokens 32828`,
+`cumulativeDroppedTokens`, and a `preservedSegment` naming the surviving span **by UUID**.
+
+⛔ **And the remedy was unmechanizable regardless.** A command hook receives a JSON payload on stdin
+and nothing else — it has no access to "the model's plan." `flush-plan-state.sh` could only ever have
+appended a timestamp and a path: this repo's own **gate-that-asserts-nothing** class, shipped as
+prescriptive advice for thirteen months. **A prose rule being real does not mean a hook-shaped answer
+exists** — and this file is now the counter-example that
+[`prefer-a-deterministic-gate-over-a-prose-rule.md`](best-practices/prefer-a-deterministic-gate-over-a-prose-rule.md)
+points at.
+
+**What the review actually justified — addressability, not durability.** The post-compaction agent
+does not lack the data; it lacks the knowledge that the data exists and where the boundary fell. That
+is one line of injected context. `hooks/compact-anchor.sh` + `scripts/compact-anchor.py` (v0.245.0)
+emit the transcript path, the boundary line, the token accounting and the grep recipe on
+`SessionStart` with `matcher: "compact"` — **the only placement that works**, because `PreCompact`'s
+stdout is not injected and only `UserPromptSubmit` / `UserPromptExpansion` / `SessionStart` have
+theirs added as context.
+
+⛔ **Its invariant is DERIVED VALUES ONLY.** The hook's stdout lands in the model's context and the
+transcript holds tool results and fetched web bodies — untrusted text. Every emitted byte is a fixed
+string, a validated integer, an allowlisted `trigger`, or the path from the trusted payload.
+**Gate 186** plants a sentinel inside a `tool_result` before the cut and proves it never reaches the
+output, with a mutant half that echoes a raw line so the assertion is proven to measure the invariant.
+
+**The filename was kept deliberately** (six inbound links, two dated research records this repo's
+convention says not to rewrite): the name asserts the retracted claim, the content is the correction —
+and the three surfaces that had inherited the false framing (`best-practices/README.md`, the
+fail-closed rule that cited it as *"a concrete deterministic-enforcer hook"*, and the PostToolUse
+quarantine rule that twice cited a gap it *"closed"*) were corrected in the same change, per the
+v0.196.0 supersession rule.
+
+**Migration:** none. The docs correction changes no code; the new hook fires only when a session
+resumes from a compaction, emits only derived values, and exits 0 on every error path.

@@ -2,6 +2,46 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.245.0 — 2026-08-12
+
+### Added
+
+- **`compact-anchor` — the SessionStart(compact) addressability pointer.** The build that
+  v0.244.1's retraction identified as the *actual* gap. v0.244.1 established that compaction is
+  **append-only** — the transcript keeps every pre-boundary turn, so the post-compaction agent does
+  not lack the data, it lacks the **knowledge that the data exists**. That is an addressability
+  problem, and it needs one line of injected context, not a persistence mechanism.
+
+  `hooks/compact-anchor.sh` + `scripts/compact-anchor.py`, registered on `SessionStart` with
+  `matcher: "compact"` in both wiring paths. On a compacted session it emits the transcript path,
+  which line the last boundary fell on (of how many), how many compactions this session has had, the
+  `preTokens → postTokens` accounting, and the two-command grep recipe for searching the pre-boundary
+  half. **`SessionStart` is the only placement that works** — `PreCompact`'s stdout is not injected;
+  only `UserPromptSubmit` / `UserPromptExpansion` / `SessionStart` have theirs added as context.
+
+  ⛔ **The load-bearing invariant is DERIVED VALUES ONLY.** This hook's stdout goes straight into the
+  model's context, and the transcript holds tool results and fetched web bodies from earlier turns —
+  untrusted text. Every emitted byte is one of exactly four things: a fixed string authored in the
+  script, an integer validated as an integer, a `trigger` matched against a two-item allowlist, or
+  the path from the trusted harness payload. **No line of transcript content is ever echoed** — the
+  same rule the capability banner, the run-state monitor and the Muninn recall digest follow.
+
+  **Fail-safe:** the EXIT trap is armed first and `-e` is deliberately absent, so a missing field,
+  unreadable file, torn line, oversized transcript or non-JSON stdin all end in a silent `exit 0`.
+  Scoped to `compact` by the matcher *and* re-checked against `payload.source` in the engine, so a
+  matcher-less wiring cannot make it fire on every session start. bash 3.2-safe; no GNU `timeout`,
+  `grep -P` or `sed -i`.
+
+  **Gate 186** (`hooks/tests/test-compact-anchor.sh`, 22 assertions) plants a sentinel inside a
+  `tool_result` **before** the cut and asserts it never reaches the output; the `--must-fail-leak`
+  half mutates the emitter to append a raw transcript line and requires the no-leak assertion to
+  catch it. Registered in **both** the main sequence and the `--check` dispatcher, and the full
+  suite's output was grepped for the gate by name — per v0.243.0, a passing suite is not evidence
+  your gate is in it.
+
+  **Migration:** none — a new hook that fires only when a session resumes from a compaction, emits
+  only derived values, and exits 0 on every error path.
+
 ## 0.244.1 — 2026-08-12
 
 ### Fixed
