@@ -997,7 +997,7 @@ Any plugin template that renders an HTML `<head>` (e.g. `templates/repo-build-st
 
 - `agents/` — 15 specialist agent definitions (includes `data-engineer` and `viz-spec-reviewer`)
 - `skills/` — dispatch playbook (spawn-team), worktree helpers, structured-output reference, run-full-test-suite, contribution-staging, agent-quality-rubric, knowledge-file-staleness-sweep, prompt-pattern-library, plugin-release-checklist, decision-review (route yes/no decisions through the tribunal), brand-extraction (website home page → reusable brand kit), pbir-layout-engine (deterministic PBIR/web-dashboard layout linter), visual-feedback-loop (the render→see→critique→iterate referee that merges the layout linter + agent-captured console/Lighthouse evidence into one pass/fail verdict — the runnable half of `knowledge/visual-feedback-loop.md`), thing-denial-kb (Muninn — recall/identify/solve/teach the fix when the Thing blocks you)
-- `hooks/` — format-on-write, guard-destructive, remind-tests, enforce-layout, guard-recursive-spawn, thing-orchestrator, ensure-default-mode, reapply-posture, capability-orientation, route-decision-review, runaway-brake, dod-gate, claim-grounding-lint, agent-dispatch-evaluator, guard-web-access, regen-on-manifest-change, thing-denial-kb-sync (Stop — materialise tribunal denials into the Muninn KB), thing-denial-kb-recall (SessionStart — surface known denials + resolutions) (all registered in `hooks/hooks.json` for plugin-level distribution), plus the sourced helper `_emit-event.sh` (the hook-event substrate — sourced by the verdict-emitting hooks, not a registered hook itself) and `tests/` (the hook-event fixture test)
+- `hooks/` — format-on-write, guard-destructive, remind-tests, enforce-layout, guard-recursive-spawn, thing-orchestrator, ensure-default-mode, reapply-posture, capability-orientation, route-decision-review, runaway-brake, dod-gate, claim-grounding-lint, agent-dispatch-evaluator, guard-web-access, regen-on-manifest-change, thing-denial-kb-sync (Stop — materialise tribunal denials into the Muninn KB), thing-denial-kb-recall (SessionStart — surface known denials + resolutions), compact-anchor (SessionStart `matcher: "compact"` — the post-compaction addressability pointer; derived values only, never transcript content) (all registered in `hooks/hooks.json` for plugin-level distribution), plus the sourced helper `_emit-event.sh` (the hook-event substrate — sourced by the verdict-emitting hooks, not a registered hook itself) and `tests/` (the hook-event fixture test)
 - `scripts/` — apply-comfort-posture.py (`/set-posture` translator), serve-dashboards.py (the consumer dashboard server launched by `/dashboard` — serves the version-matched `dashboard.html` and writes `.ravenclaude/` into the consumer's project; binds 127.0.0.1, CSRF-guarded; the write surface is `/__save` + `/__read` + `/__classify` plus the allow-listed `/__run` (install/update/status — no arbitrary shell), and the remaining `/__*` endpoints (`/__heimdall` `/__vidarr` `/__norns` `/__nidhoggr` `/__mimir` `/__sleipnir` `/__saga` `/__concern` `/__knowledge` `/__runs` `/__csrf`) are read-only observability feeds), thing-decision.py + thing-seat.sh (command-review tribunal — see the `thing` skill), thing-decide.py (decision-review tribunal — see the `decision-review` skill)
 - `rules/` — coding-standards, security, git-workflow, agent-collaboration, terminal-copy-to-tempfile (copy-me CLI text → a temp `.md` file the user can copy from, because terminal clipboard copy doesn't work)
 - `templates/` — memos, runbooks, design specs, RAID logs, partner-success, `agent-ready-repo/` templates used by `/init-agent-ready`, plus `thing.yaml` (command-review seat config)
@@ -2139,3 +2139,310 @@ is read — and it says the absence of an equivalent is *"a gap, not a hidden fe
 **Zero DOM cost, verified:** the Commands tab is JS-built from `#commands-payload` (uncounted), and the
 posture note is plain text inside an existing element. Both surfaces held at 6,128 / 7,014 — no Gate
 132 ratchet raise. **Migration:** none; content-only.
+
+## Rule 4 finally has a mechanism — the memory-compaction guard (added 2026-08-11, v0.241.0)
+
+The Memory Engineering Protocol above states **Rule 3** — *"Memory is context, not enforcement… to
+actually **block** an action, use a hook or a permission deny. **Never cite a memory, an instruction
+file, or a stored policy as the control that prevents something**"* — and then states **Rule 4**
+(*"bound the growth or lose the index… an unbounded store is a decision that was never made"*) **as
+prose, with no hook behind it.** By its own Rule 3, Rule 4 was not a control. It was a wish.
+
+**It failed exactly where it was written.** On 2026-08-10, in the maintainer's own store, an agent
+rewrote `MEMORY.md` from **20,853 B → 12,324 B (−41%, 57 → 51 lines) in one unreviewed edit,
+seventeen minutes wide.** The memory directory is not a git repo and `tmutil destinationinfo` returns
+*"No destinations configured"* — **there was no undo of any kind.** Eight prose clauses were destroyed
+store-wide, recoverable only from an undocumented content-addressed cache under a session UUID.
+
+⛔ **What was lost is the tell.** Not trivia — **provenance and owner rulings**: *"Byte-equivalent
+rollback RETIRED by owner"*, the gate-ladder's one-command escape hatch, a merge-skew PR reference.
+Compaction preserves what reads as *content* and discards what reads as *bookkeeping*, and in this
+corpus the bookkeeping **is** the knowledge. A measured pass showed negation surviving at 83% while
+**ISO dates survived at 19% and PR references at 46%** — the model does not know that a date is the
+difference between a fact and a rumour.
+
+`hooks/guard-memory-compaction.sh` (PreToolUse `Write|Edit|MultiEdit`) closes it in two moves, and
+**the first matters more than the second**:
+
+1. **Snapshot before any write** to a guarded memory index, into the run dir. This runs whether or not
+   the write is blocked. It is the half that converts *unrecoverable* into *recoverable*, and it would
+   have made the 2026-08-10 incident a non-event.
+2. **Deny a shrink** past `memory_guard.max_shrink_pct` (default 15%), with a diff-first remedy.
+
+**It never blocks growth or small edits.** Appending is the normal path and must stay frictionless —
+*a guard that fires constantly gets disabled, and a disabled guard protects nothing.* The escape
+hatches are deliberately explicit (`compaction-approved` in the content, or
+`RC_MEMORY_COMPACTION_OK=1`) because the target is the **silent** compaction, never the considered one.
+
+**Fail-safe:** every error path exits 0; the only non-zero exit is the deliberate deny (exit **2** —
+the one blocking code; exit 1 is a *non-blocking* error and would silently allow, which is the
+v0.193.0 macOS-door failure in a new place). bash 3.2-safe, no GNU `timeout` / `grep -P` / `sed -i`.
+
+**Gate 184** carries its own **must-fail half** — it builds a mutant with the deny branch removed and
+fails unless that mutant lets the shrink through, so the gate is proven to be measuring the deny
+rather than passing for an unrelated reason. Registered in **both** the `--check` dispatcher and the
+main sequence, because this repo's own record says a gate nothing runs and a gate that asserts nothing
+both report green.
+
+**Migration:** none — a new hook that fires only on `*/memory/MEMORY.md`-shaped paths, only on a
+>15% shrink, and defaults to allow on every error path. Nothing changes on `/plugin marketplace
+update` unless an agent tries to silently rewrite a memory index.
+
+## The hardest rule in the catalog was the least precise (added 2026-08-11, v0.242.0)
+
+`srm.force-push` is `pre_llm_deny` + `always_screen` — category-independent, non-overridable, the
+floor everything else sits on. In one working session it denied **four** benign commands, and it had
+been **missing a real one** the whole time. Issue #861.
+
+**Two independent causes, and neither was the regex being "too broad" in the obvious sense.**
+
+1. **Case-insensitivity it never needed.** `_matches` compiles every trigger with `re.IGNORECASE`, so
+   the short-flag alternative also matched its **capital** twin — a flag `awk`, `grep` and `sort`
+   carry constantly and which `git push` does not accept at all. The rule was scanning for a letter,
+   not a flag.
+2. **A separator flattened into whitespace.** `_match_variants._flatten` existed to stop a
+   line-continuation hiding a dangerous flag from `.*` — correct and load-bearing. But it also turned
+   a **bare** newline into a space, and a bare newline is a command **separator**. So `.*` walked out
+   of the push and matched an *unrelated later command's* flags.
+
+⛔ **The sibling trigger in the same block was already correct.** The refspec rule was scoped
+`[^|&;]*` with a comment explaining that a token in a LATER chained command must not match. The
+force-push rule, three lines above it, used a bare `.*`. **When two rules in one block disagree about
+scoping, the unscoped one is the bug** — the author of the scoped one had already worked out why.
+
+**A false NEGATIVE fell out of the same fix.** The old alternative required a bare short flag and
+missed a **bundled** cluster — a genuine force-push. `guard-destructive.sh` already caught that form,
+so the two guards **disagreed on the same command**, and nobody noticed because nothing compares them.
+
+**The fixture that failed was asserting something the shell forbids.** A "newline bypass" case
+required a **bare** newline between program and flag to hard-deny. Asked directly, `bash` parses it as
+**two** commands and reports the flag as `command not found`. Retiring it was an **owner decision**,
+recorded as such — the replacement is the line-continuation form, which the shell really does join and
+which still denies.
+
+### ⛔ The structural finding — this guard cannot have a normal regression test
+
+Every fixture pinning a false positive must contain a literal destructive string as **test data**, and
+`Write`/`Edit` are in the `PreToolUse` matcher and scan content. While fixing this, the guard denied:
+a test harness, a JSON fixtures file, the bug report **twice**, and two source comments *explaining the
+bug* — each because it contained the pattern it documented. **The guard cannot distinguish a command
+from a description of a command**, which is this repo's own recorded *"source-scan gates match PROSE"*
+failure, now on the guard whose precision matters most.
+
+The new fixtures are assembled with `printf` instead of written literally, with the reason inline. That
+is a workaround, not a fix. **A sanctioned door — an exempt fixtures path, or an honoured in-file
+marker — is the real answer and is deliberately NOT in this change**, because it widens what content
+the guard ignores and that deserves its own review.
+
+**Migration:** none in the permissive direction — every genuinely destructive form still denies, and
+one that previously slipped through now does not. Four benign shapes stop being denied.
+
+## The gate that never ran, and the control that punished its own remedy (added 2026-08-11, v0.243.0)
+
+Two defects, found while fixing a third. Both are the same shape: **a mechanism reporting success
+while doing nothing, or the opposite of what it says.**
+
+### ⛔ Gate 184 was unreachable for a whole release
+
+v0.241.0 put the memory-compaction guard's **main-sequence** block *inside* the `--check`
+dispatcher — between the `178)` case label and its body. So the gate **never ran in the full
+suite** (grep of the suite output: **0** matches), and **`--check 178`** ran the memory block and
+died on `gate: command not found`. The suite reported **701 pass** throughout.
+
+⛔ **The milestone for that release states the gate was "registered in BOTH the `--check`
+dispatcher and the main sequence."** It was written, and it was false. **Writing the claim is not
+the same as placing the code** — and a passing suite is not evidence your gate is in it, because
+the suite passes *identically* when the gate is absent. This is the repo's own recorded *unrun
+variant*, committed by the author of the entry warning about it.
+
+**The check that would have caught it, now written into the gate's own comment:** after adding a
+gate, run the full suite and **grep its output for the new gate by name**. The fix here is proved
+that way, plus the assertion count moving **701 → 703** — the delta *is* the evidence.
+
+### ⛔ The premise recorder punished the remedy the premise gate prints
+
+`guard-premise.sh` denies a new source module while an unresolved negative probe is on the ledger,
+and prints: *"send ONE probe that would come out DIFFERENTLY if your hypothesis were false — a
+positive control on the same subject."*
+
+`log-probe.sh` matched its NEGATIVE list **first**, over the whole combined output of one tool
+call. So the control it asks for — one command probing a known-good **and** a known-absent
+subject, emitting a 2xx **and** a 4xx — matched the 4xx and recorded as **`negative`**. Running
+the prescribed remedy **added** an unresolved negative instead of clearing one, and **the more
+thorough the control, the more stuck the author became.**
+
+⛔ **A gate whose printed remedy is unreachable by following the gate is worse than no gate** — it
+converts a correct instinct into evidence against the person who followed it. Both present now
+means `positive` (`control-bidirectional`), which is the gate's own stated semantic: the probe
+demonstrated it was *capable of returning something else*.
+
+**The second half: a non-result is not an absence.** Rate-limiting recorded as `negative` — "I
+could not ask" written down as "it is not there". New `indeterminate` class (429 / 5xx / timeout /
+unreachable), checked first, which **neither blocks nor resolves**. Deliberately not a block: a 429
+returns 429 on every retry, so treating it as a negative is an **unclearable** gate whose only exit
+is its own override — and a gate that teaches its override costs more than the case it covers.
+`guard-premise.sh` carries a comment forbidding a future "completion" of that branch.
+
+A real 404 and a `command not found` still record `negative` and still block. 10/10 against the
+live recorder; **Gate 185** pins it with an end-to-end assertion.
+
+### ⛔ I corrected my own bug report
+
+#860 claimed a shell `curl` control "can never resolve the family". **False** — `family()` collapses
+a subject to its **host**, and the subject regex reads `tool_input.command` for `Bash`, not just
+`url` for `WebFetch`. A curl control on the same host *does* resolve; the real cause was the
+verdict mis-classification. **A filed issue is a claim like any other, and mine was wrong on the
+mechanism while right that something was broken.** Read the code before building to the report —
+including your own.
+
+### Still open, stated precisely
+
+`premise-gate.py` and `classify_claim.py` live at the **marketplace-root** `scripts/` and are cited
+**repo-relative** in `forge-pipeline/SKILL.md`, so they resolve here and **cannot** resolve in a
+consumer repo. Their siblings `forge-route.py` / `forge-worktree.sh` ship inside the plugin and are
+cited `${CLAUDE_PLUGIN_ROOT}/scripts/…` — the pattern is established; these two are the outliers,
+and the plan that specified them named the plugin path. Deferred deliberately: it is a packaging
+move across 6 call sites plus the citations, and it earns its own diff.
+
+**Migration:** none — a gate that was not running now runs (it has always passed when invoked
+directly), and the recorder stops recording two shapes as absences they never were.
+
+## Half a fix is a fix that has not shipped (added 2026-08-11, v0.244.0)
+
+v0.242.0 fixed `srm.force-push`'s unscoped `.*` and **left the identical defect in
+`sce.curl-pipe-shell`** — the *other* `pre_llm_deny` + `always_screen` rule, the other half of the
+floor. It was found the only way it could be: it **blocked ordinary work**. Shipping a plain Python
+file was hard-denied because its docstring mentioned a fetch tool and its code carried a
+file-extension alternation, so the bare `.*` walked from prose into a **pipe character inside a regex
+literal**. Nothing was piped to anything.
+
+⛔ **Fixing one instance of a defect class and stopping is not fixing the class.** The v0.242.0
+milestone even states the generalizable rule — *"when two rules in one block disagree about scoping,
+the unscoped one is the bug"* — and there were two more unscoped rules one screen away. **When you fix
+a pattern, enumerate every instance of that pattern before you close it.**
+
+### ⛔ The correct fix here is NOT the sibling's fix
+
+Force-push excludes `|` outright: a push flag never crosses a pipe. Copying that here would have
+created a **false negative**, because a fetch routed through an intermediate stage and then into an
+interpreter is a real attack. This rule must **allow** `|` and exclude only the command separators.
+
+**Same defect class, opposite correct remedy.** A fix is not portable just because the bug is —
+read what the rule is *for* before reusing a sibling's patch.
+
+**One check that is not optional here:** every catalog trigger was re-compiled after the edit, because
+`_matches` swallows a malformed regex (`except re.error: continue`). A typo in a hard rule does not
+fail loudly — it **silently disables the rule**. 131 triggers, 0 malformed, verified explicitly.
+
+### ⛔ Three more instances of the self-reference problem, in one release
+
+The guard denied, in order: the **Edit that fixes the rule**, a **comment explaining the correct
+behaviour** (it contained the dangerous form as an example), and the **test that verifies the fix**
+(its regex literal **matches itself** — the pattern contains a fetch tool, a pipe, and an interpreter
+name). Add the earlier count and this session alone produced **nine** blocks of work whose only sin
+was describing the thing accurately.
+
+**This is no longer an anecdote; it is the guard's dominant failure mode in maintenance.** The
+sanctioned door stays unbuilt on purpose — it widens what the guard ignores, which is a security
+decision, not a convenience one — but the cost is now measured rather than asserted.
+
+**Migration:** none in the permissive direction. Every genuine pipe-to-shell still denies, including
+through an intermediate stage; ordinary files that merely *mention* a fetch tool stop being denied.
+
+## A best-practice prescribed a hook for a problem that does not exist (added 2026-08-12, v0.244.1 + v0.245.0)
+
+`precompact-hook-is-the-deterministic-enforcer-of-persist-before-compaction.md` told agents to
+register a `PreCompact` hook that "flushes the plan / open decisions / rejected-approaches to disk,"
+because compaction destroys them. It was reviewed **before** being implemented here. Both halves were
+false, and the retraction (v0.244.1) plus the build the review actually justified (v0.245.0) ship as
+one arc.
+
+**1 — `PreCompact` CAN block, and the file said the opposite** (*"not a place to block compaction …
+not a veto"*). The current hooks reference `[docs-verified 2026-08-12]` lists it **Can block? Yes**,
+exit 2 → blocks compaction. That inverts the hazard: a hook that exits non-zero on any error path does
+not merely fail to persist, it **wedges a session whose window is already full**. Anyone following the
+old file would have written it fail-*closed*.
+
+**2 — Nothing is destroyed. Compaction APPENDS.** Measured on this project's transcripts: **44**
+`compact_boundary` records; a 12,398-line transcript with its first boundary at line 4031 and **1,942
+pre-boundary turns still present**; **939 `thinking` blocks** retained alongside text/tool_use/
+tool_result; and the boundary record itself carrying `preTokens 1000599 → postTokens 32828`,
+`cumulativeDroppedTokens`, and a `preservedSegment` naming the surviving span **by UUID**.
+
+⛔ **And the remedy was unmechanizable regardless.** A command hook receives a JSON payload on stdin
+and nothing else — it has no access to "the model's plan." `flush-plan-state.sh` could only ever have
+appended a timestamp and a path: this repo's own **gate-that-asserts-nothing** class, shipped as
+prescriptive advice for thirteen months. **A prose rule being real does not mean a hook-shaped answer
+exists** — and this file is now the counter-example that
+[`prefer-a-deterministic-gate-over-a-prose-rule.md`](best-practices/prefer-a-deterministic-gate-over-a-prose-rule.md)
+points at.
+
+**What the review actually justified — addressability, not durability.** The post-compaction agent
+does not lack the data; it lacks the knowledge that the data exists and where the boundary fell. That
+is one line of injected context. `hooks/compact-anchor.sh` + `scripts/compact-anchor.py` (v0.245.0)
+emit the transcript path, the boundary line, the token accounting and the grep recipe on
+`SessionStart` with `matcher: "compact"` — **the only placement that works**, because `PreCompact`'s
+stdout is not injected and only `UserPromptSubmit` / `UserPromptExpansion` / `SessionStart` have
+theirs added as context.
+
+⛔ **Its invariant is DERIVED VALUES ONLY.** The hook's stdout lands in the model's context and the
+transcript holds tool results and fetched web bodies — untrusted text. Every emitted byte is a fixed
+string, a validated integer, an allowlisted `trigger`, or the path from the trusted payload.
+**Gate 186** plants a sentinel inside a `tool_result` before the cut and proves it never reaches the
+output, with a mutant half that echoes a raw line so the assertion is proven to measure the invariant.
+
+**The filename was kept deliberately** (six inbound links, two dated research records this repo's
+convention says not to rewrite): the name asserts the retracted claim, the content is the correction —
+and the three surfaces that had inherited the false framing (`best-practices/README.md`, the
+fail-closed rule that cited it as *"a concrete deterministic-enforcer hook"*, and the PostToolUse
+quarantine rule that twice cited a gap it *"closed"*) were corrected in the same change, per the
+v0.196.0 supersession rule.
+
+**Migration:** none. The docs correction changes no code; the new hook fires only when a session
+resumes from a compaction, emits only derived values, and exits 0 on every error path.
+
+## A default-warn in-loop git-protocol nudge (added 2026-08-12)
+
+A new `PreToolUse(Bash)` hook — [`hooks/enforce-git-protocol.sh`](hooks/enforce-git-protocol.sh) —
+nudges toward this repo's own git conventions **in the loop**, where a CI check only catches them after
+the push. Default **WARN**. Exactly three checks, each anchored to the *mutating* git subcommand token
+so a read-only `git log`/`status`/`diff`/`show`/`fetch` never fires:
+
+1. **commit-message shape** — a `git commit` carrying an inline `-m`/`--message` whose subject is not
+   Conventional-Commits `type(scope): subject`
+   (feat|fix|chore|docs|refactor|test|build|ci|perf|style|revert) → WARN. A commit with no inline
+   message (editor / `-F <file>`) is not inspected — there is no subject to see.
+2. **branch-name** — a new-branch creation (`checkout -b` / `switch -c` / a plain `branch <name>`) off
+   the `(feat|fix|chore|docs|refactor|agent)/` prefix table in
+   [`rules/git-workflow.md`](rules/git-workflow.md) → WARN. Listing / deleting / renaming a branch is
+   not a creation and is not flagged.
+3. **push-to-a-protected-branch** — a direct **non-force** push whose refspec targets `main`/`master`
+   is **advisory-only** and **NEVER blocks at any knob value** (this repo's own `main` ruleset is
+   bypass_mode:always by design; force operations belong to `guard-destructive.sh`).
+
+**Knob:** `git_protocol: off | warn | block` in `.ravenclaude/comfort-posture.yaml` (read with the same
+minimal-scalar `sed` idiom `worktree-guard.sh` uses for its `worktree_guard:` knob — no PyYAML). Only
+when the knob is `block` do checks 1–2 DENY (exit 2) with a remediation hint; push-to-main stays
+advisory at every knob.
+
+**Scope / non-collision (deliberate).** It does **not** touch force operations, branch force-delete,
+recursive-remove, or hard reset — `guard-destructive.sh` owns those, and a force push (or a `+`-refspec)
+is **force-EXCLUDED** here so the two guards can never collide or double-fire. No commit-body / length /
+trailer / casing pedantry; no secret scanning. **Fail-open:** any error / missing `git` / missing
+`python3` / **absent posture file** → exit 0 (no-op). Registered `PreToolUse(Bash)` in both
+[`hooks/hooks.json`](hooks/hooks.json) (`${CLAUDE_PLUGIN_ROOT}`) and the dev-mirror `.claude/settings.json`
+(`${CLAUDE_PROJECT_DIR}`). bash 3.2-safe (no `declare -A` / `mapfile` / `${x^^}` / `shopt -s globstar`);
+no GNU `timeout` / `grep -P` / `sed -i`. Proven by **Gate 189**
+([`hooks/tests/test-enforce-git-protocol.sh`](hooks/tests/test-enforce-git-protocol.sh)) — warn / block /
+off / absent-posture behaviour + push-to-main-never-blocks, with a self-contained **must-fail half** (a
+mutant with the block-branch deny neutered MUST let a block-knob violation through, or the `@block`
+assertions are toothless).
+
+**Migration (consumer-visible — the one behavior change).** On `/plugin marketplace update`, a consumer
+who **already has** a `.ravenclaude/comfort-posture.yaml` will see a **new, non-blocking** stderr nudge
+on a `git commit -m` with a non-conventional subject, or on a `checkout -b` / `branch <name>` off the
+prefix convention — WARN only, exit 0, nothing blocked. It is **opt-in by presence of the posture
+file**: with **no** `.ravenclaude/comfort-posture.yaml` the hook **no-ops entirely**, so nothing changes
+for anyone who has not set up a posture. To silence it while keeping a posture file, set
+`git_protocol: off`; to make checks 1–2 hard-block (exit 2), set `git_protocol: block`. A push to
+`main`/`master` is never blocked at any setting.

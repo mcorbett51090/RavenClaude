@@ -1,0 +1,50 @@
+# github-protocol-pr-title.yml — require a Conventional-Commits-shaped PR title.
+#
+# Part of RavenClaude's gold-standard GitHub protocol tier (scaffolded by
+# /init-agent-ready). Dogfoods knowledge/github-actions-hardening.md: a deny-all
+# top-level permissions floor, an inline python check (no third-party action to
+# pin), and NO paths/branches filter on the pull_request trigger. The untrusted
+# PR title reaches the script ONLY via `env:`, never interpolated into a run
+# line (the injection-safe pattern).
+#
+# CONSUMER: keep any would-be-required trigger path-filter-free. Tune the allowed
+# types in the regex below to your commit convention if it differs.
+name: GitHub protocol — PR title
+
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  pr-title:
+    name: Semantic PR title (Conventional Commits)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Validate PR title
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          python3 - <<'PY'
+          import os
+          import re
+          import sys
+
+          title = os.environ.get("PR_TITLE", "")
+          pattern = re.compile(
+              r"^(build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test)"
+              r"(\([\w .,/-]+\))?!?: .+"
+          )
+          if not title:
+              print("No PR title in the event payload — skipping.")
+              sys.exit(0)
+          if not pattern.match(title):
+              print(f"::error::PR title is not Conventional-Commits-shaped: {title!r}")
+              print("Expected e.g. 'feat(api): add pagination' or 'fix: correct typo'.")
+              sys.exit(1)
+          print(f"OK PR title: {title}")
+          PY

@@ -2,6 +2,333 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.245.1 — 2026-08-12
+
+### Fixed
+
+- **The premise gate fired on a section header no author wrote.** `## Edge cases / when the rule
+  does NOT apply` is boilerplate in **all 35** best-practice files, and it parses as
+  `<named subject> + <failure predicate>` — `_SUBJ` matches `the rule`, `_FAILS` matches
+  `does NOT apply`. So T-PROSE tripped on any such file that happened to carry a date inside
+  the ±6-line `_STAMP` window: **4 of 35** measured on 2026-08-12. It fires on the file's own
+  structure, which is the definition of a false positive.
+
+  **The fix is a conditional-clause guard, not a predicate deletion.** `when the rule does not
+  apply` states a **case**; `the rule does not apply` states a **fact**. Only the second is a
+  premise, and this gate exists for premises. A new `_COND` check skips a match preceded on the
+  same line by `when`/`whenever`/`if`/`unless`/`whether`/`where`/`in case`, within a 24-char
+  window that breaks on `.!?` **and `,`**.
+
+  ⛔ **Both tempting fixes were worse, and were rejected on inspection:** dropping
+  `apply|applies` from `_FAILS` loses a genuine predicate ("the patch does not apply"), and
+  skipping markdown headings loses *more* — this repo routinely states real diagnoses in
+  headings (`## macOS door 2 — timeout is absent…`, `## The gate that never ran`), which are
+  exactly the confident claims the trigger is for. The comma in the window is load-bearing too:
+  without it, *"When we checked, the decoder is broken"* would be skipped, and that is an
+  assertion with a temporal preamble, not a conditional.
+
+  **Gate 177** gains three fixtures that differ *only* in what precedes an identical
+  subject+predicate span — the boilerplate heading (allowed), the bare assertion (still
+  DENIED), and the temporal preamble (still DENIED) — so the discriminator itself is what is
+  under test. 20 → **23 assertions**, and all four previously-tripping best-practice files were
+  re-run through the real hook and now pass.
+
+- **⛔ Caught in the act: one apostrophe in a comment silently disarmed the whole gate.** The
+  first draft of the fix put `(3)'s` and `FILE'S OWN` in the new comment block. That Python is
+  embedded in a **single-quoted** bash `$(...)`, so the apostrophe closed the string and the
+  hook died with `bad substitution` → **exit 1** — which Claude Code treats as a *non-blocking*
+  error, so the premise gate **failed open and silently stopped gating every write**. Gate 177
+  went 23/23 → 0/23 and caught it immediately. The prohibition is now written into the block
+  itself, next to the pre-existing `doesn\x27t` that was already there for this reason. This is
+  the v0.193.0 exit-code lesson (a loud exit-2 is safe; exit 1 is the silent fail-open) landing
+  on a *comment*.
+
+## 0.245.0 — 2026-08-12
+
+### Added
+
+- **`compact-anchor` — the SessionStart(compact) addressability pointer.** The build that
+  v0.244.1's retraction identified as the *actual* gap. v0.244.1 established that compaction is
+  **append-only** — the transcript keeps every pre-boundary turn, so the post-compaction agent does
+  not lack the data, it lacks the **knowledge that the data exists**. That is an addressability
+  problem, and it needs one line of injected context, not a persistence mechanism.
+
+  `hooks/compact-anchor.sh` + `scripts/compact-anchor.py`, registered on `SessionStart` with
+  `matcher: "compact"` in both wiring paths. On a compacted session it emits the transcript path,
+  which line the last boundary fell on (of how many), how many compactions this session has had, the
+  `preTokens → postTokens` accounting, and the two-command grep recipe for searching the pre-boundary
+  half. **`SessionStart` is the only placement that works** — `PreCompact`'s stdout is not injected;
+  only `UserPromptSubmit` / `UserPromptExpansion` / `SessionStart` have theirs added as context.
+
+  ⛔ **The load-bearing invariant is DERIVED VALUES ONLY.** This hook's stdout goes straight into the
+  model's context, and the transcript holds tool results and fetched web bodies from earlier turns —
+  untrusted text. Every emitted byte is one of exactly four things: a fixed string authored in the
+  script, an integer validated as an integer, a `trigger` matched against a two-item allowlist, or
+  the path from the trusted harness payload. **No line of transcript content is ever echoed** — the
+  same rule the capability banner, the run-state monitor and the Muninn recall digest follow.
+
+  **Fail-safe:** the EXIT trap is armed first and `-e` is deliberately absent, so a missing field,
+  unreadable file, torn line, oversized transcript or non-JSON stdin all end in a silent `exit 0`.
+  Scoped to `compact` by the matcher *and* re-checked against `payload.source` in the engine, so a
+  matcher-less wiring cannot make it fire on every session start. bash 3.2-safe; no GNU `timeout`,
+  `grep -P` or `sed -i`.
+
+  **Gate 186** (`hooks/tests/test-compact-anchor.sh`, 22 assertions) plants a sentinel inside a
+  `tool_result` **before** the cut and asserts it never reaches the output; the `--must-fail-leak`
+  half mutates the emitter to append a raw transcript line and requires the no-leak assertion to
+  catch it. Registered in **both** the main sequence and the `--check` dispatcher, and the full
+  suite's output was grepped for the gate by name — per v0.243.0, a passing suite is not evidence
+  your gate is in it.
+
+  **Migration:** none — a new hook that fires only when a session resumes from a compaction, emits
+  only derived values, and exits 0 on every error path.
+
+## 0.244.1 — 2026-08-12
+
+### Fixed
+
+- **A prescriptive best-practice told agents to build a hook that solves a problem that does not
+  exist — and mis-stated the one safety fact that matters about it.**
+  `precompact-hook-is-the-deterministic-enforcer-of-persist-before-compaction.md` instructed authors
+  to register a `PreCompact` command hook that "flushes the plan / open decisions / rejected
+  approaches to disk," on the premise that compaction destroys them. Reviewed **before** implementing
+  it here; two independent checks falsified it.
+
+  1. **`PreCompact` CAN block.** The file said it is *"not a place to block compaction … not a veto."*
+     The current [hooks reference](https://code.claude.com/docs/en/hooks) (retrieved 2026-08-12) lists
+     `PreCompact` → **Can block? Yes**, exit 2 → blocks compaction. That inverts the hazard model: a
+     hook that exits non-zero on any error path does not merely fail to persist, it **wedges a session
+     whose window is already full**. Anyone following the old file would have written it fail-closed.
+  2. **Nothing is destroyed.** Compaction **appends**. Measured on this project's own transcripts: 44
+     `compact_boundary` records; one 12,398-line transcript with its first boundary at line 4031 and
+     **1,942 pre-boundary turns still present**; every block type retained including **939 `thinking`
+     blocks**; and the boundary record itself carrying `preTokens 1000599 → postTokens 32828`,
+     `cumulativeDroppedTokens`, and a `preservedSegment` naming the surviving span **by UUID**.
+
+  ⛔ **The remedy was also unmechanizable, which is the sharper lesson.** A command hook receives a
+  JSON payload on stdin and nothing else — it has no access to "the model's plan." The prescribed
+  `flush-plan-state.sh` could only ever have appended a timestamp and a path: this repo's own
+  *gate-that-asserts-nothing* class, shipped as advice. **A prose rule being real does not mean a
+  hook-shaped answer exists.**
+
+  The real gap is **addressability, not durability** — the post-compact agent does not know the record
+  exists or where the boundary fell. The file now teaches retrieval (`grep compact_boundary
+  "$transcript_path"`) and points at `SessionStart` with a `compact` matcher, the only surface whose
+  stdout reaches the model. **No hook was added**: adding one would have been the defect this review
+  found.
+
+- **The false framing had propagated to three citing surfaces**, all corrected in the same change:
+  `best-practices/README.md` (the index entry repeated the prescription verbatim),
+  `a-policy-hook-only-gates-if-it-fails-closed.md` (cited it as *"a concrete deterministic-enforcer
+  hook"* — it is now labelled as that rule's **documented exception**, since `PreCompact` must fail
+  **open**), and `posttooluse-hook-is-the-deterministic-quarantine-for-untrusted-tool-output.md`
+  (twice — it claimed the PreCompact rule *"closed"* the compaction gap, and cited it as the same
+  mechanization shape; it is now the counter-example). `compact-proactively-and-persist-state-before-compaction.md`
+  keeps its *when to compact* half and gets a scoping correction: the loss is to the **window**, not
+  the **disk**, and the reason to write decisions down is legibility + cross-CLI reach, not rescue.
+
+  The filename is retained deliberately — six files link to it, two are dated research records this
+  repo's convention says not to rewrite. **The name asserts the retracted claim; the content is the
+  correction**, per the v0.196.0 supersession rule.
+
+## 0.244.0 — 2026-08-11
+
+### Fixed
+
+- **#861's fix was half-done: the OTHER category-independent hard rule had the identical defect.**
+  v0.242.0 scoped `srm.force-push`'s bare `.*` and left `sce.curl-pipe-shell` untouched. Both are
+  `pre_llm_deny` + `always_screen` — non-overridable, category-independent, the floor everything else
+  sits on. Measured today when shipping an ordinary Python file was **hard-denied**: its docstring
+  mentioned a fetch tool, and its code carried a file-extension alternation. The unscoped `.*` walked
+  from the prose mention all the way to a pipe character **inside a regex literal**. Nothing was piped
+  to any shell.
+
+  ⛔ **The fix is deliberately NOT the force-push fix, and copying it would have created a false
+  NEGATIVE.** Force-push excludes `|` — a push flag never crosses a pipe. This rule **must allow** `|`,
+  because a fetch routed through an intermediate stage and then into an interpreter is a genuine
+  attack. It therefore excludes only the command separators (`&`, `;`, newline). **Same defect class,
+  different correct fix — read what the rule is for before reusing a sibling's remedy.**
+
+  Verified **6/6** on true and false positives (was 1 wrong), including that the
+  through-an-intermediate-stage form still blocks. The 131 catalog triggers all compile — checked
+  explicitly, because `_matches` swallows a malformed regex (`except re.error: continue`), so a typo
+  here would **silently disable the hard rule** rather than fail loudly.
+
+- **A Gate 15 fixture asserted a bypass the shell forbids** — the same class the owner ruled on in
+  #861, applied to its sibling. It required a **bare** newline between the fetch and the interpreter;
+  `bash` parses that as two commands, and a pipe at the start of a line is a syntax error. Replaced
+  with the line-continuation form, which the shell really does join and which still denies. This is
+  the established precedent, not a new decision.
+
+### Known limitation — now demonstrated three times in one session
+
+**The guard cannot distinguish a command from a description of a command**, and this release hit it
+three more times: the Edit that *fixes* the rule, a comment *explaining* the correct behaviour, and
+the test that *verifies* it were each denied for containing the pattern they documented — including a
+regex literal that **matches itself**. Fixtures and comments are written around it (`printf`
+assembly, no literal forms). That is a workaround. The sanctioned door (an exempt fixtures path, or an
+honoured in-file marker) remains deliberately unbuilt — it widens what the guard ignores and earns its
+own review.
+
+## 0.243.0 — 2026-08-11
+
+### Fixed
+
+- **⛔ Gate 184 never ran. It was unreachable for a whole release, and the suite reported green.**
+  v0.241.0 inserted the memory-compaction guard's **main-sequence** block *inside* the `--check`
+  dispatcher, between the `178)` case label and its body. Two silent consequences, both measured:
+  a full-suite run contained **0** references to the gate, and **`--check 178`** (the claim
+  classifier) ran the memory block and then died on `gate: command not found`. The suite said
+  **701 pass** with a security-adjacent gate entirely absent.
+
+  This is this repo's own recorded *"unrun variant"* — *a gate nothing runs reports green* —
+  shipped in the very PR whose milestone claims it was *"registered in **both** the `--check`
+  dispatcher and the main sequence."* **Writing the claim is not the same as placing the code.**
+  Both gates are now in both places, and the fix is proved by the assertion count moving
+  **701 → 703** plus a grep of the suite output for each gate by name. That grep is now written
+  into the gate's own comment as the required step when adding a gate.
+
+- **A non-result was recorded as an absence (issue #860).** `log-probe.sh` matched its NEGATIVE
+  list first, over the whole combined output of one tool call. Two shapes were mis-classified,
+  and both manufacture the exact false premise the mechanism exists to stop:
+
+  1. **A bidirectional control recorded as `negative`.** One command probing a known-good *and* a
+     known-absent subject emits a 2xx **and** a 4xx; the 4xx matched first. But that command is
+     precisely the disconfirming probe the gate demands — it proves the probe **can** return
+     something else. So running the printed remedy **added** an unresolved negative instead of
+     clearing one, and the more thorough the control, the more stuck the author became. **The gate
+     printed a remedy its own recorder punished.** Now: both present ⇒ `positive`
+     (`control-bidirectional`), in either order.
+  2. **Rate-limiting recorded as `negative`** — "I could not ask" stated as "it is not there". New
+     `indeterminate` class, checked first, covering 429 / 5xx / timeout / unreachable. It neither
+     blocks (a non-result is not evidence of absence) nor resolves (it proves no capability). A
+     429 returns 429 on every retry, so treating it as a negative would be an **unclearable** block
+     whose only exit is `RC_PREMISE_OVERRIDE` — and a gate whose sole remedy is its own override
+     teaches the override. `guard-premise.sh` carries a comment forbidding a future "completion"
+     of that branch.
+
+  A **real** 404 and a `command not found` still record as `negative` and still block. Verified
+  10/10 against the live recorder; pinned by new **Gate 185** with an end-to-end assertion.
+
+### Corrected in the issue itself
+
+- **#860's claim that a shell `curl` control "can never resolve the family" was wrong.**
+  `guard-premise.sh`'s `family()` collapses a subject to its **host**, and the subject regex runs on
+  `tool_input.command` for `Bash` as well as `url` for `WebFetch` — so a curl control on the same
+  host *does* resolve. The real cause was the verdict mis-classification above.
+
+### Known limitation (deferred, with the diagnosis corrected)
+
+- **`premise-gate.py` and `classify_claim.py` do not ship to consumers.** Both live at the
+  **marketplace-root** `scripts/`, and `forge-pipeline/SKILL.md` cites them repo-relative
+  (`python3 scripts/premise-gate.py`) — which resolves inside RavenClaude and **cannot** resolve in
+  a consumer repo. Their siblings `forge-route.py` and `forge-worktree.sh` ship inside the plugin
+  and are cited `${CLAUDE_PLUGIN_ROOT}/scripts/…`, so the pattern is established and these two are
+  the outliers. The plan that specified them even says *"Build. `plugins/ravenclaude-core/scripts/
+  classify_claim.py`"* — the implementation drifted from its own plan. **Not fixed here:** moving
+  them is a packaging change touching 6 `audit-gates.sh` call sites plus the SKILL citations, and
+  it deserves its own diff rather than riding along with a verdict-classification fix.
+
+## 0.242.0 — 2026-08-11
+
+### Fixed
+
+- **The force-push hard rule fired on four benign commands (issue #861), and missed a real one.**
+  `srm.force-push` is `pre_llm_deny` + `always_screen` — the hardest, **non-overridable** rule in the
+  catalog. It denied four measured, working commands in one session. Two independent causes:
+
+  1. **`re.IGNORECASE` made the short-flag alternative match its CAPITAL twin.** `_matches` compiles
+     every trigger case-insensitively, so the rule matched a common, harmless flag carried by `awk`,
+     `grep` and `sort` — a letter that is **no git-push flag at all**. Case-insensitivity bought
+     nothing here and cost a hard deny on ordinary commands. Now scoped case-sensitive via an inline
+     `(?-i:…)`.
+  2. **`_match_variants._flatten` turned a BARE newline into a SPACE**, so the trigger's `.*` bled out
+     of the push and matched an **unrelated later command's** flags. A bare newline is a command
+     *separator*; it now flattens to `; `, and the trigger is scoped `[^|&;\n]*` — matching the
+     sibling refspec rule, which was **already** segmented. The line-continuation case (`\` +
+     newline), which *is* a real single-command evasion, still flattens to a space and still denies.
+
+  **A false NEGATIVE was closed in the same pass:** the old short-flag alternative required a bare
+  `-f` and therefore missed a **bundled** cluster (`-uf` / `-fu`) — a genuine force-push.
+  `guard-destructive.sh` already caught that form, so the two guards **disagreed on the same
+  command**. The cluster form now matches both.
+
+  Verified **15/15** on a matrix of true and false positives (was 8 wrong). `xc.no-undo` carries the
+  same trigger and its own comment says the two *"must agree on"* it — both were updated together.
+
+- **Gate 15's newline fixture asserted a bypass the shell does not permit.** It required a **bare**
+  newline between the program and the flag to hard-deny. Asked directly, `bash` parses that as **two**
+  commands and reports the flag as `command not found` — no force-push executes. The fixture is now
+  the **line-continuation** form, which the shell really does join into one command and which the
+  guard still denies. This was an **owner-approved** change to a security fixture, not a quiet
+  relaxation.
+
+### Known limitation (structural, reproduced while fixing it)
+
+- **The guard blocks the authoring of its own regression fixtures.** Every fixture that pins these
+  false positives must contain a literal destructive string as *test data*, and `Write`/`Edit` are in
+  the `PreToolUse` matcher and scan content. During this fix the guard denied: a test harness, a JSON
+  fixtures file, the issue body **twice**, and two code comments **explaining the bug** — because each
+  contained the pattern it documented. The new fixtures are therefore assembled with `printf` rather
+  than written literally, with the reason recorded inline. A sanctioned door (an exempt fixtures path,
+  or an honoured in-file marker) is the real fix and is **not** included here.
+
+## 0.241.0 — 2026-08-11
+
+### Added
+
+- **`guard-memory-compaction.sh`** — the missing control for Memory Engineering Protocol **Rule 4**.
+  Rule 4 (*"bound the growth or lose the index… an unbounded store is a decision that was never
+  made"*) shipped as **prose only**, and **Rule 3** of the same protocol says prose is not a control:
+  *"to actually block an action, use a hook or a permission deny."* This is that hook.
+
+  ⛔ **The incident, on the maintainer's own machine.** On 2026-08-10 an agent rewrote `MEMORY.md`
+  from **20,853 B to 12,324 B — −41%, 57 → 51 lines — in one unreviewed edit seventeen minutes
+  wide**. The directory is not a git repo, and `tmutil destinationinfo` returns *"No destinations
+  configured"*: there was **no undo of any kind**. Eight prose clauses were destroyed store-wide and
+  had to be recovered from an undocumented content-addressed cache under a session UUID. What was
+  lost was not trivia — it was **provenance and owner rulings**: *"⛔ Byte-equivalent rollback RETIRED
+  by owner"*, a gate-ladder escape hatch, a merge-skew PR reference.
+
+  **What it does.** Two things, and the first matters more than the second:
+
+  1. **Snapshots** the file before **any** write to a guarded memory index. This runs whether or not
+     the write is blocked, and it is what converts *unrecoverable* into *recoverable*.
+  2. **Denies** a write that shrinks the index past `memory_guard.max_shrink_pct` (default **15%**),
+     with the diff-first remedy in the deny message.
+
+  **What it deliberately does not do.** It never blocks growth and never blocks small edits.
+  Appending a memory is the normal path and must stay frictionless — *a guard that fires constantly
+  gets disabled, and a disabled guard protects nothing.* Escape hatches are explicit, because the
+  target is the **silent** compaction, not the considered one: `compaction-approved` in the content,
+  or `RC_MEMORY_COMPACTION_OK=1`.
+
+  **Fail-safe by contract.** Every error path exits 0. A guard that cannot parse its input must not
+  block the session; the snapshot is best-effort for the same reason. The **only** non-zero exit is
+  the deliberate shrink deny (exit **2** — the one code Claude Code treats as blocking; exit 1 is a
+  *non-blocking* error and would silently allow).
+
+  **Portability.** bash 3.2-safe, and free of GNU `timeout` / `grep -P` / `sed -i` — re-introducing
+  any of those would silently disarm it on every macOS session, which is precisely the four-door
+  failure the v0.193.0–v0.197.1 arc closed.
+
+  **Gate 184** (`hooks/tests/test-memory-compaction-guard.sh`), registered in the `--check` dispatcher
+  **and** the main sequence. It carries its own **must-fail half**: it builds a mutant with the deny
+  branch removed and fails unless that mutant lets the shrink through — so the assertion is proven to
+  be measuring the deny, not passing for an unrelated reason.
+
+### Known limitation (discovered while building this, not fixed here)
+
+- **`guard-premise.sh`'s advertised resolution path does not reach its own ledger.** The gate tells
+  you *"run the control → the ledger resolves itself"*, and `family(subject)` groups by **host**. But
+  the recorder derives a URL subject from **`WebFetch`**, not from a shell command — so a positive
+  control run via `curl` **can never resolve the family**, and the gate keeps firing on every new
+  source module. Observed twice this session; worked around with the recorded
+  `RC_PREMISE_OVERRIDE=1` escape. Related: the same ledger recorded
+  `pypi.org/pypi/graphiti-core/json` as a **negative (404)** for a package that demonstrably exists
+  (0.29.3) — a throttle artifact from a run that also logged `http-429` and `http-453`, i.e. **the
+  ledger can record rate-limiting as absence.**
+
 ## 0.240.0 — 2026-08-08
 
 ### Added

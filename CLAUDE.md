@@ -32,6 +32,32 @@ The capability chain (last verified 2026-07-06):
 
 **Owner/repo casing:** the git remote reads `mcorbett51090/RavenClaude` (capital R); the MCP scope is `mcorbett51090/ravenclaude` (lowercase). GitHub is case-insensitive, so either works — don't hard-fail on the mismatch.
 
+## ⛔ Verify the branch before you write — a denied compound command leaves you where you were
+
+On 2026-08-11 a session ran `git checkout <branch> && git mv …` **in this repo**. The command-review
+tribunal denied it — correctly, the destination was `plugins/ravenclaude-core/scripts/`, its own
+substrate — but it denied **the whole command, so the `checkout` never ran either**. The session
+carried on believing it was on the feature branch. Six file operations later the work was sitting on
+`main`, which this repo's multi-session convention keeps as the shared anchor. Nothing failed;
+the work simply landed in the wrong place, and it surfaced only by chance.
+
+1. **`&&` means the right-hand side never ran.** After any denied, blocked, or non-zero compound
+   command, **re-establish the state it was supposed to create.** A hook denial, a tribunal DENY and
+   a plain failure are identical in this respect — and a tribunal DENY is *more* likely to be
+   compound, because the risky verb is usually the second half.
+2. **Print the branch before a run of edits.** `git branch --show-current` costs nothing. It prints
+   **empty** on a detached HEAD — indistinguishable from a failure — so an empty answer is a state to
+   resolve, never a pass.
+3. **`~/RavenClaude` is the anchor.** Work goes in a worktree (`rcwt`) or on a branch. If you find
+   uncommitted plugin changes on `main` here, that is the defect above, not a workflow.
+
+This is prose, and prose has no gate — which is exactly the objection
+[`verification-discipline.md`](plugins/ravenclaude-core/knowledge/verification-discipline.md) closes
+with. The enforceable half shipped in the consumer repo that hit it hardest
+(`RavenPower-Website`'s `check:branch`, wired into `npm run check`, failing on modified tracked files
+on `main` with an `RP_ALLOW_MAIN=1` escape). Porting that as a marketplace gate is a live follow-up,
+not a claim.
+
 ## Plan-mode default
 
 For non-trivial changes touching more than two files (or any manifest), enter plan mode first and present a Keep / Update / Deny structure before writing. This matches Matt's documented preference; Cursor/Codex users won't see this guidance and don't need to.
