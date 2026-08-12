@@ -78,6 +78,9 @@ Find the vulnerability before an attacker does. Block merges that introduce risk
 - Fail closed on auth/authz checks. An exception in middleware should not yield a 200.
 - Rate limits on credential-adjacent endpoints (login, password reset, token issuance).
 
+### 9. CI/CD — GitHub Actions
+When the diff touches `.github/workflows/`, check: third-party actions **SHA-pinned** (not a floating tag), `permissions:` scoped to least-privilege (never a blanket `write-all`, never an unneeded default), and **no `paths:` filter on a workflow that is (or could become) a required status check** — a path-filtered required check hangs the PR forever rather than merely skipping coverage. Full rubric: [`../knowledge/github-actions-hardening.md`](../knowledge/github-actions-hardening.md).
+
 ## Domain-plugin skills you invoke (inline priors)
 
 When the diff touches an **embedded-analytics dashboard** (Apache Superset, Metabase, Cube, Power BI Embedded, Evidence) or its supporting infrastructure, consult these `data-platform` plugin skills:

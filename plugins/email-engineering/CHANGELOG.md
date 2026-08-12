@@ -2,6 +2,15 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.3] — 2026-08-10
+
+Inbox categorization — a new knowledge file + best-practice covering how Gmail tabs (Primary/Promotions/Updates/Social/Forums), Outlook Focused Inbox, and Apple Mail categories work, what header and content signals drive placement, and how to send the right signals per email class.
+
+- **New knowledge doc** `knowledge/inbox-categorization.md` — Gmail tab breakdown, categorization signals (headers: `List-Unsubscribe`/`Precedence:bulk`/ESP headers; content; sender pattern; per-user moves), Gmail Promotions annotations (JSON-LD/schema.org), Outlook Focused Inbox (per-user model, SNDS reputation link), Apple Mail on-device categorization, a Mermaid decision tree for "which tab should my mail land in?", and a volatility note since provider models update without announcement.
+- **New best-practice** `best-practices/know-which-tab-your-mail-lands-in.md` — the two-rule model (transactional mail → Primary signals; marketing mail → Promotions is correct), what to check in an audit, and a cross-reference to the knowledge doc.
+
+No agents or skills changed.
+
 ## [0.3.0] — 2026-06-22
 
 Reputation-monitoring completeness — folded the one genuinely-additive idea from a retired `marketing-operations` email-deliverability draft (everything else it carried was already covered here, often more deeply).
@@ -9,6 +18,15 @@ Reputation-monitoring completeness — folded the one genuinely-additive idea fr
 - **Microsoft SNDS + JMRP as a first-class reputation surface.** The knowledge bank and audit skill leaned entirely on Google Postmaster Tools + DMARC RUA; a Postmaster-only check is blind to Outlook/Hotmail, whose reputation moves independently of Gmail's. Added a "Where you read reputation (the monitoring surfaces)" section to `knowledge/deliverability-fundamentals.md` (Postmaster / SNDS+JMRP / RUA), and threaded SNDS into the `deliverability-audit` skill's reputation step and the `warm-up-new-sending-domains` best-practice.
 
 No agents, skills, templates, or commands added; no frontmatter changed. Knowledge/skill/best-practice text edits only.
+
+## [0.2.0] — 2026-06-22
+
+Transport-security layer — ported from a retired `email-deliverability-engineering` proposal (PR #435).
+
+- **New knowledge doc** `knowledge/transport-security-mta-sts-tls-rpt.md` — MTA-STS (RFC 8461) enforce-ramp + policy file, TLS-RPT (RFC 8460) reporting, and the ARF (RFC 5965) feedback-loop format behind suppression.
+- **New best-practice** `best-practices/enforce-transport-security-with-mta-sts.md` — rule for hardening SMTP transport beyond DMARC.
+
+No agents or skills changed.
 
 ## [0.1.0] — 2026-06-13
 

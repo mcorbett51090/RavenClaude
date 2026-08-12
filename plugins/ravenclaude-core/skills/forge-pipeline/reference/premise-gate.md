@@ -80,7 +80,7 @@ been observed — otherwise you cannot tell "the subject is broken" from "I prob
 
 Each claim therefore carries `expected_if_true` and `expected_if_false`, and **they must differ**. If
 they do not, the probe cannot discriminate and does not settle anything, however green it comes back.
-`scripts/probe-kit.sh` ships ready-made control probes for the common subsystems.
+`rc probe` (engine: the plugin's `bin/probe-kit.sh`) ships ready-made control probes for the common subsystems.
 
 ## Exit codes (a contract — do not conflate)
 
