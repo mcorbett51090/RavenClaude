@@ -36,7 +36,10 @@ The script aborts before step 4 if any of steps 1-3 fail. There is no "force" va
 ## Invocation
 
 ```bash
-scripts/archive-branch.sh <branch> --reason "<one-line why>" [options]
+# Shipped path (canonical, inside the plugin) — invoked via `bash` so no execute bit is required:
+bash "${CLAUDE_PLUGIN_ROOT}"/scripts/archive-branch.sh <branch> --reason "<one-line why>" [options]
+# If ${CLAUDE_PLUGIN_ROOT} is unset (some hosts), resolve from the plugin cache (mirrors bin/rc):
+#   bash "$(find ~/.claude/plugins/cache -name archive-branch.sh -path '*ravenclaude-core*' | head -1)" ...
 ```
 
 | Option | Effect |
@@ -91,6 +94,6 @@ The marketplace's destructive-action discipline (in [`plugins/ravenclaude-core/C
 ## Provenance
 
 - Sanctioned 2026-06-02 after the agent hit the guard during routine branch cleanup. The branch in question (`fix/copilot-installer-status-project-flag`) had real unmerged commits that *should* have been preserved — the guard was correct to block, and the archive pattern is the right next step instead of bypass.
-- Script: [`scripts/archive-branch.sh`](../../../../scripts/archive-branch.sh).
+- Script: [`${CLAUDE_PLUGIN_ROOT}/scripts/archive-branch.sh`](../../scripts/archive-branch.sh) (ships inside the plugin; a thin shim at the marketplace-root `scripts/` keeps the marketplace's own references resolving).
 - Pattern: tag-first / audit-log / lower-level-delete-primitive. Mirrors the pattern from [`reset-plugin-cache.py`](../../scripts/reset-plugin-cache.py) (snapshot before mutate; atomic swap; recoverable rollback).
 - Not (yet) wired into audit-gates — script's behaviour is well-bounded but a future enhancement could ship `bad-attempt-without-reason.fixture` + `good-with-all-args.fixture` for bidirectional verification.

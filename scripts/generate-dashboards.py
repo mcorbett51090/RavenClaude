@@ -827,6 +827,21 @@ _PIPELINE_LANES = [
                 },
             },
             {
+                "id": "memory-compaction",
+                "title": "Memory safety net",
+                "badge": "dynamic",
+                "controls": "files",
+                "tip": "Keeps a copy of the robot's long-term notes before it rewrites them, and stops it from throwing most of them away in one go.",
+                "detail": {
+                    "steps": [
+                        "Saves a copy of the robot's long-term notes before every rewrite.",
+                        "Stops a rewrite that would delete more than 15% of them, and asks for a diff instead.",
+                    ],
+                    "trip": "Growing the notes, or trimming a little, is always fine — only a big one-shot deletion is stopped.",
+                    "set": "Set `memory_guard: max_shrink_pct: N`, or allow one deliberate cleanup with RC_MEMORY_COMPACTION_OK=1.",
+                },
+            },
+            {
                 "id": "enforce-layout",
                 "title": "Folder & task limits",
                 "badge": "dynamic",
@@ -840,6 +855,25 @@ _PIPELINE_LANES = [
                     ],
                     "trip": "Blocks the write and suggests the correct folder.",
                     "set": "Edit the two file lists in the boxes below.",
+                },
+            },
+            {
+                "id": "guard-premise",
+                "title": "Premise check",
+                "badge": "always",
+                "tip": "Stops the robot building something new on top of a result it never double-checked.",
+                "detail": {
+                    "steps": [
+                        "Watches for a check that came back empty or failed (a 404, a not-found, a search with no hits).",
+                        "If the robot then tries to CREATE a brand-new code file, it pauses.",
+                        "Asks for one more check that would come back differently if the robot were wrong.",
+                        "Run that check and the pause clears itself.",
+                    ],
+                    "trip": "Blocks only the creation of a NEW code file, and only while an unchecked "
+                    "failed result is outstanding. Editing existing files, notes and tests are never touched. "
+                    "If its recorder is missing it blocks anyway — it will not say 'all clear' when it cannot see.",
+                    "set": "Built in. Set RC_PREMISE_OVERRIDE=1 to go ahead anyway (it gets written down), "
+                    "or RC_PREMISE_CONTROL to name the check you already ran.",
                 },
             },
             {
@@ -897,6 +931,8 @@ _PIPELINE_LANES = [
     {
         "event": "PostToolUse",
         "when": "Right after a command runs or a file is saved",
+        # NOTE: `log-probe.sh` also runs here. It is the RECORDER half of the premise
+        # gate below and is deliberately not its own card — see _PIPELINE_EXCLUDED_HOOKS.
         "tip": "After something happens, these tidy up and double-check the work.",
         "stages": [
             {
@@ -1029,6 +1065,8 @@ _PIPELINE_STAGE_HOOKS = {
     "runaway-brake": "runaway-brake.sh",
     "parallel-workers": None,  # behavioral: spawn-team reads `parallelism:` — no hook
     "enforce-layout": "enforce-layout.sh",
+    "memory-compaction": "guard-memory-compaction.sh",
+    "guard-premise": "guard-premise.sh",
     "route-decision-review": "route-decision-review.sh",
     "guard-web-access": "guard-web-access.sh",
     "claude-orchestrator": None,  # behavioral: spawn-team reads `orchestrator:` — no hook
@@ -1046,6 +1084,10 @@ _PIPELINE_STAGE_HOOKS = {
 # reason) — so a newly-registered hook lands in NEITHER list and fails the build,
 # which is exactly what would have caught the missing `delegation-nudge`.
 _PIPELINE_EXCLUDED_HOOKS = {
+    "log-probe.sh": "the RECORDER half of the premise gate (PostToolUse); it only writes a "
+    "derived negative-result ledger and never denies. Its own card would be noise — but it is "
+    "NOT optional: if it is missing, `guard-premise.sh` FAILS CLOSED rather than reporting "
+    "clean, because a check that cannot see must never allow. Surfaced on that stage's card",
     "regen-on-manifest-change.sh": "marketplace-internal artifact regen; not an agent guardrail",
     "mark-web-domain-seen.sh": "internal consent-ordering bookkeeping for guard-web-access; not a distinct guardrail",
     "stream-session-close.sh": "work-stream tracking (Stop); observability, not a guardrail",
@@ -1058,6 +1100,16 @@ _PIPELINE_EXCLUDED_HOOKS = {
     "dashboard-autostart.sh": "opt-in convenience launcher (SessionStart) for the dashboard itself; "
     "gates nothing, denies nothing, and never inspects a tool call — its knob is `dashboard_autostart` "
     "in comfort-posture.yaml, deliberately NOT a Pipeline stage card",
+    "compact-anchor.sh": "post-compaction addressability pointer (SessionStart, matcher `compact`); "
+    "injects the transcript path + boundary line so the post-compact agent knows its earlier turns "
+    "are still on disk. Same class as thing-denial-kb-recall.sh — informational context, gates "
+    "nothing, denies nothing, never inspects a tool call — so deliberately NOT a Pipeline stage card",
+    "enforce-git-protocol.sh": "advisory git-convention nudge (PreToolUse Bash) governed by the "
+    "`git_protocol:` comfort-posture knob — default WARN on a non-Conventional-Commits `git commit -m` "
+    "subject or an off-convention new branch, denies only at `git_protocol: block`, and a push to "
+    "main/master is always advisory. Its knob is surfaced with the other posture settings and it "
+    "enforces commit/branch STYLE conventions rather than the safety floor the drawn PreToolUse cards "
+    "represent, so — like worktree-guard.sh — it is deliberately NOT a Pipeline stage card",
 }
 
 _PIPELINE_CONTROLS = {

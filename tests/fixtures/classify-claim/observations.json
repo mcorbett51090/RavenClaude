@@ -1,0 +1,66 @@
+{
+  "purpose": "MUST type `observation`. This is the OVER-TRIGGER half of the gate (plan.md risk R-7): a classifier that types every row `inference` is as useless as one that types none. Rows 1-5 are lifted verbatim from docs/plans/2026-08-08-premise-gate/claims-table.md, where their author typed them `observation`; the rest are bare <cmd> -> <output> measurements.",
+  "source": "docs/plans/2026-08-08-premise-gate/claims-table.md",
+  "cases": [
+    {
+      "id": "claim-1",
+      "text": "`/cdn-cgi/l/email-protection` returns 404 on the zone",
+      "note": "claims-table #1 — the true observation the false inference was drawn from"
+    },
+    {
+      "id": "claim-2",
+      "text": "`/cdn-cgi/trace` and the real decode script both return 200",
+      "note": "claims-table #2 — `both` is enumerated, not an unenumerated quantifier"
+    },
+    {
+      "id": "claim-3",
+      "text": "A real browser renders `matt@ravenpower.net` with a working `mailto:` on prod",
+      "note": "claims-table #3 — `a working` has no copula, so it is not a defect predicate"
+    },
+    {
+      "id": "claim-7",
+      "text": "`consistency-failure-modes.md` is cited by nothing",
+      "note": "claims-table #7 — `nothing` is deliberately outside the quantifier family; this row was produced by a script (Rule 1), which is why its author typed it observation"
+    },
+    {
+      "id": "claim-9",
+      "text": "audit-gates.sh carries 688 gates, each with must_pass/must_fail teeth",
+      "note": "claims-table #9 — deliberately UNBACKTICKED so it proves the word-boundary handling: must_pass must not trip the modal family and must_fail must not trip the defect family"
+    },
+    {
+      "id": "literal-trace-probe",
+      "text": "`curl -sI https://ravenpower.net/cdn-cgi/trace` -> HTTP/2 200",
+      "note": "the control probe that would have settled Incident 1 in ten seconds"
+    },
+    {
+      "id": "literal-gate-audit",
+      "text": "`scripts/audit-gates.sh` -> 688 pass, 0 fail, 1 skipped",
+      "note": "`0 fail` is a COUNT, not a diagnosis — the defect family matches only the predicative `fails`"
+    },
+    {
+      "id": "literal-grep-zero-hits",
+      "text": "`grep -rn depends_on_claims plugins/ravenclaude-core/skills/forge-pipeline/` -> 0 hits",
+      "note": "a zero-match search is a measurement; what is INFERRED from it is not"
+    },
+    {
+      "id": "literal-branch",
+      "text": "`git branch --show-current` -> feat/verification-discipline"
+    },
+    {
+      "id": "literal-json-tool",
+      "text": "`python3 -m json.tool .repo-layout.json` -> exit 0"
+    },
+    {
+      "id": "literal-browser-eval",
+      "text": "Playwright eval on prod returned span.__cf_email__ remaining ... 0"
+    },
+    {
+      "id": "literal-diff-count",
+      "text": "The staged diff removes 806 files"
+    },
+    {
+      "id": "literal-portable-shim",
+      "text": "`hooks/_portable.sh` defines _rc_timeout at line 37"
+    }
+  ]
+}
