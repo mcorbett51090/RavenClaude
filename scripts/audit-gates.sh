@@ -611,9 +611,15 @@ PY
       bash plugins/ravenclaude-core/hooks/tests/test-memory-compaction-guard.sh
       exit $?
       ;;
+    187)
+      echo "── Gate 187: shipped references resolve (per-gate run) ────────────────────"
+      python3 scripts/check-shipped-references-resolve.py --self-test && \
+      python3 scripts/check-shipped-references-resolve.py
+      exit $?
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -5919,6 +5925,37 @@ rc=0; bash plugins/ravenclaude-core/hooks/tests/test-compact-anchor.sh >/dev/nul
 gate "compact-anchor: fires only on compact, derived values only, never echoes transcript content" must_pass "$rc"
 rc=0; bash plugins/ravenclaude-core/hooks/tests/test-compact-anchor.sh --must-fail-leak >/dev/null 2>&1 || rc=$?
 gate "compact-anchor teeth: a mutant that echoes a raw transcript line IS caught" must_fail "$rc"
+
+echo "── Gate 187: shipped references resolve — a plugin can't cite what it doesn't ship ─"
+# Closes the CLASS of the P1 defect: a file that ships inside the plugin points
+# at a script/hook by a path a consumer cannot resolve because the target does
+# not ship in the plugin (the guard-destructive escape hatch; and the still-open
+# premise-gate.py / classify_claim.py forge citations). The checker verifies
+# three forms — ${CLAUDE_PLUGIN_ROOT}/(scripts|hooks)/X, in-plugin markdown
+# links, and bare marketplace-root references in operational surfaces — all
+# against "does plugins/ravenclaude-core/(scripts|hooks)/<basename> exist".
+#
+# ⛔ Registered in BOTH this main sequence AND the --check dispatcher above. After
+# adding a gate, run the full suite and GREP ITS OUTPUT FOR "187" — a passing
+# suite is not evidence your gate is in it (v0.243.0: Gate 184 was unreachable
+# for a whole release while the suite reported green).
+#
+# self-test proves teeth: a planted bad reference of each class (A/B/C) is caught
+# and the good references pass.
+rc=0; python3 scripts/check-shipped-references-resolve.py --self-test >/dev/null 2>&1 || rc=$?
+gate "shipped-refs self-test: planted A/B/C bad references caught, good passes" must_pass "$rc"
+# pass-on-good: the current post-P1 tree resolves clean.
+rc=0; python3 scripts/check-shipped-references-resolve.py >/dev/null 2>&1 || rc=$?
+gate "shipped-refs: current tree resolves clean" must_pass "$rc"
+# teeth on the REAL tree: plant a bare non-shipping recovery-script reference into
+# a shipped operational file; the checker MUST catch it (the exact P1 shape).
+backup plugins/ravenclaude-core/rules/git-workflow.md
+printf '\n> Recovery: `bash scripts/__forge_p2_planted_missing__.sh --reason x`\n' >> plugins/ravenclaude-core/rules/git-workflow.md
+rc=0; python3 scripts/check-shipped-references-resolve.py >/dev/null 2>&1 || rc=$?
+gate "shipped-refs teeth: a planted bare non-shipping reference IS caught" must_fail "$rc"
+cp -p "$TMP/plugins_ravenclaude-core_rules_git-workflow.md.bak" plugins/ravenclaude-core/rules/git-workflow.md
+rc=0; python3 scripts/check-shipped-references-resolve.py >/dev/null 2>&1 || rc=$?
+gate "shipped-refs: tree clean after restore" must_pass "$rc"
 
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"
