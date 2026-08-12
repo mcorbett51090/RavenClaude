@@ -2,6 +2,65 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.245.0 — 2026-08-12
+
+### Fixed
+
+- **The premise gate's ledger was shared by every parallel agent, and its only escape was
+  unreachable from the agents that needed it.** The ledger was keyed on
+  `(CLAUDE_PROJECT_DIR, session_id)` — `guard-premise.sh:246` and `log-probe.sh:162` — and neither
+  component varies per agent. Measured against a real 6-agent parallel run (not inferred): **one**
+  `session_id` carried **14,322** transcript events spanning **49 distinct `cwd` values** across
+  **15+ git worktrees**, and the single ledger it produced held **2,825 entries with 50 unresolved
+  negative families**. A negative recorded by the agent in worktree A therefore denied an unrelated
+  new module in worktree B. Three agents hit it in one run; one lost finished work rather than
+  tunnel, and one routed around the hook by writing files through Bash heredocs.
+
+  The ledger is now scoped to the **git worktree root** containing the payload's `cwd` (a linked
+  worktree carries its own `.git` **file**, so the walk stops at the worktree, not the primary
+  checkout) — `…/runs/premise/<sid>/scopes/<scope>/probe-ledger.jsonl`. `cwd` is the one payload
+  field that varies per agent. The `recorder-alive` beacon deliberately stays **session-level**: a
+  per-scope beacon would make a never-probed worktree indistinguishable from an unwired recorder,
+  and the gate fails closed on that, so every fresh worktree's first write would be denied as blind.
+
+  **This narrows WHO a negative blocks, never WHAT counts as one.** A probe and the module built on
+  it share a working context, so the incident the gate was built from still trips it — pinned by the
+  second half of the new gate, without which "scoping" would be indistinguishable from switching the
+  gate off.
+
+### Added
+
+- **A file-based control the escape a subagent can actually reach.** `RC_PREMISE_CONTROL` and
+  `RC_PREMISE_OVERRIDE` are **environment variables**, and a variable exported inside a `Bash` tool
+  call never reaches the `PreToolUse(Write)` hook process — so a dispatched subagent that had
+  genuinely done the control work had **no** sanctioned way to say so. A guardrail whose only exit is
+  unreachable does not get respected; it gets tunnelled.
+
+  Every deny now prints the exact path to write with the `Write` tool
+  (`…/runs/premise/<sid>/scopes/<scope>/control.md`), and the file clears the gate only when it
+  carries **all four** keys with non-empty values:
+
+  ```
+  premise-control: <subject this covers, or * for all>
+  who: <which agent/session ran the control>
+  subject: <the claim that was under test>
+  control: <the probe you ran -> the result it returned>
+  ```
+
+  It is scoped to one session **and** one worktree, so it cannot clear a sibling agent; a
+  subject-scoped entry clears only matching families; only an explicit `premise-control: *` clears
+  the BLIND state (blindness is not a claim about one subject). Every use appends a `file-control`
+  line naming who/subject/control/cleared to the existing
+  `.ravenclaude/runs/premise/overrides.log`, deduped by content signature — **the escape is
+  recorded, not silent**. An incomplete file clears nothing and the deny says which key is missing by
+  name, because an escape hatch nobody tested is one everybody uses.
+
+- **Gate 186** (`hooks/tests/test-premise-scoping.sh`, registered in both the `--check` dispatcher
+  and the main sequence) — 22 assertions over **real `git worktree add` worktrees**, not simulated
+  ones, since the detector keys on the real `.git` file. It carries both halves plus two teeth:
+  collapsing the scope key in both hooks turns 22/0 into 16/6, and making every control file "valid"
+  turns it into 19/3.
+
 ## 0.244.0 — 2026-08-11
 
 ### Fixed

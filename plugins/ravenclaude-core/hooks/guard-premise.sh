@@ -76,13 +76,19 @@
 # line, and it exits at conjunct 1 for every run-dir and scratch write. A Write
 # with no content, or content carrying no defect predicate, costs one pass.
 #
-# ── ESCAPE HATCHES (all four are recorded, none is silent) ──────────────────
-#   RC_PREMISE_CONTROL="<subject>"  the control you ran; resolves that subject
-#   RC_PREMISE_OVERRIDE=1           proceed anyway; writes an override marker
+# ── ESCAPE HATCHES (all five are recorded, none is silent) ──────────────────
 #   run the control probe           the natural exit — the ledger clears itself
 #   premise-ok: <named control>     T-PROSE only, written INTO the artifact.
 #                                   EMPTY does NOT clear — an escape hatch
 #                                   nobody tested is one everybody uses.
+#   RC_PREMISE_CONTROL="<subject>"  the control you ran; resolves that subject
+#   RC_PREMISE_OVERRIDE=1           proceed anyway; writes an override marker
+#   .../scopes/<scope>/control.md   the FILE-BASED control — the only one of
+#                                   these a dispatched SUBAGENT can reach, since
+#                                   a variable exported inside a Bash call never
+#                                   reaches this hook process. Requires
+#                                   premise-control: / who: / subject: / control:
+#                                   and appends to overrides.log on every use.
 #
 # Deny mechanism matches enforce-layout.sh: hookSpecificOutput JSON on stdout
 # (Claude Code issue #40580) AND exit 2 for older clients.
@@ -95,7 +101,7 @@ _input="$(cat 2>/dev/null || true)"
 _dir="${CLAUDE_PROJECT_DIR:-$PWD}"
 
 _verdict="$(printf '%s' "$_input" | python3 -c '
-import json, os, re, sys
+import hashlib, json, os, re, sys
 
 try:
     d = json.load(sys.stdin)
@@ -112,6 +118,153 @@ sid  = d.get("session_id", "nosession")
 
 if not path:
     sys.exit(0)
+
+# ═══ SCOPE — WHOSE LEDGER IS THIS? ═════════════════════════════════════════
+# ⛔ KEEP THIS BLOCK IN SYNC WITH ITS TWIN IN log-probe.sh. The recorder and the
+# gate must derive the SAME key, or the gate reads a ledger nobody writes and
+# reports clean forever.
+#
+# The ledger used to be keyed on (project, session_id). MEASURED 2026-08-12 on a
+# real 6-agent parallel run: ONE session_id carried 14,322 transcript events
+# spanning 49 distinct `cwd` values across 15+ git worktrees, and its single
+# ledger held 2,825 entries with 50 UNRESOLVED negative families. Neither key
+# component varies per agent, so every sibling agent shared one ledger and a
+# negative recorded in worktree A denied an unrelated new module in worktree B.
+#
+# `cwd` is the one payload field that DOES vary per agent, so the scope is the git
+# worktree root containing it (a LINKED worktree carries its own `.git` FILE, so
+# the walk stops at the worktree, not the primary checkout). When the payload
+# carries no `cwd`, the WRITE TARGET stands in — it is the other thing that is
+# always present and always agent-specific.
+#
+# ⛔ This narrows WHO a negative blocks. It does not narrow WHAT counts as one:
+# a probe and the module built on it share a working context, so the incident
+# this gate was built from still trips it.
+def rc_worktree_root(start, fallback):
+    try:
+        p = os.path.abspath(str(start))
+        if not os.path.isdir(p):
+            p = os.path.dirname(p)
+        for _ in range(48):
+            if os.path.exists(os.path.join(p, ".git")):
+                return p
+            up = os.path.dirname(p)
+            if up == p:
+                break
+            p = up
+    except Exception:
+        pass
+    return os.path.abspath(str(fallback))
+
+def rc_scope_key(start, fallback):
+    forced = os.environ.get("RC_PREMISE_SCOPE", "").strip()
+    base = forced if forced else rc_worktree_root(start, fallback)
+    slug = re.sub(r"[^A-Za-z0-9._-]", "-", os.path.basename(str(base).rstrip("/")))[:32]
+    digest = hashlib.sha1(str(base).encode("utf-8", "replace")).hexdigest()[:10]
+    return (slug or "root") + "-" + digest
+
+sess_dir  = os.path.join(proj, ".ravenclaude", "runs", "premise", sid)
+scope     = rc_scope_key(str(d.get("cwd", "") or "") or path, proj)
+run       = os.path.join(sess_dir, "scopes", scope)
+ctrl_path = os.path.join(run, "control.md")
+
+# ═══ THE FILE-BASED CONTROL — the escape a SUBAGENT can actually reach ═════
+# ⛔ RC_PREMISE_CONTROL and RC_PREMISE_OVERRIDE are ENVIRONMENT VARIABLES, and a
+# variable exported inside a Bash tool call does not reach this hook process. So
+# a dispatched subagent that has genuinely run the control work had NO sanctioned
+# way to say so. Measured consequence (2026-08-12): one agent lost a finished
+# harness rather than tunnel, and one agent routed around the hook by writing via
+# Bash heredocs instead of the Write tool. A guardrail whose only exit is
+# unreachable does not get respected — it gets tunnelled.
+#
+# The file is reachable with the Write tool (it lives under `.ravenclaude/`, which
+# both triggers already exempt), it is scoped to ONE session and ONE worktree so
+# it cannot clear anybody else, and it is INERT unless it names who ran the
+# control, what subject it covers, and what the control was.
+#
+# ⛔ An escape hatch nobody tested is one everybody uses: a file missing any of
+# who: / subject: / control: (or with an EMPTY value after the colon) clears
+# NOTHING, and the deny says so by name rather than failing silently.
+_CTRL_CACHE = {}
+
+def rc_load_control():
+    if _CTRL_CACHE:
+        return _CTRL_CACHE
+    fc = {"exists": False, "valid": False, "subjects": [],
+          "who": "", "subject": "", "control": "", "sig": ""}
+    try:
+        with open(ctrl_path) as fh:
+            txt = fh.read(65536)
+        fc["exists"] = True
+    except Exception:
+        txt = ""
+    if txt:
+        def kv(key):
+            m = re.search(r"(?im)^[ \t>*-]*" + key + r"[ \t]*:[ \t]*(\S.*)$", txt)
+            return m.group(1).strip() if m else ""
+        fc["who"] = kv("who")
+        fc["subject"] = kv("subject")
+        fc["control"] = kv("control")
+        fc["subjects"] = [s.strip() for s in re.findall(
+            r"(?im)^[ \t>*-]*premise-control[ \t]*:[ \t]*(\S.*)$", txt) if s.strip()]
+        fc["sig"] = hashlib.sha1(txt.encode("utf-8", "replace")).hexdigest()[:16]
+        fc["valid"] = bool(fc["who"] and fc["subject"] and fc["control"] and fc["subjects"])
+    _CTRL_CACHE.update(fc)
+    return _CTRL_CACHE
+
+def rc_control_blanket(fc):
+    return "*" in [s.strip() for s in fc.get("subjects", [])]
+
+def rc_control_covers(fc, target):
+    if rc_control_blanket(fc):
+        return True
+    t = str(target).lower()
+    for want in fc.get("subjects", []):
+        w = str(want).strip().lower()
+        if w and (w in t or t in w):
+            return True
+    return False
+
+def rc_record_control(fc, cleared):
+    """Durable, deduped audit line. Recording is the price of the escape."""
+    applied = os.path.join(run, "control.applied")
+    try:
+        prev = open(applied).read().strip()
+    except Exception:
+        prev = ""
+    if prev == fc.get("sig", ""):
+        return
+    line = ("file-control\tscope=%s\twho=%s\tsubject=%s\tcontrol=%s\tclears=%s"
+            % (scope, fc.get("who", ""), fc.get("subject", ""),
+               fc.get("control", ""), cleared))
+    line = re.sub(r"[\r\n]+", " ", line)[:1000]
+    try:
+        os.makedirs(os.path.join(proj, ".ravenclaude", "runs", "premise"), exist_ok=True)
+        import time as _t
+        with open(os.path.join(proj, ".ravenclaude", "runs", "premise",
+                               "overrides.log"), "a") as fh:
+            fh.write(_t.strftime("%Y-%m-%dT%H:%M:%SZ", _t.gmtime()) + "\t" + line + "\n")
+        os.makedirs(run, exist_ok=True)
+        open(applied, "w").write(fc.get("sig", ""))
+    except Exception:
+        pass
+
+def rc_note():
+    """One line naming a control file that exists but clears nothing, and why."""
+    fc = rc_load_control()
+    if not fc.get("exists") or fc.get("valid"):
+        return ""
+    missing = [k for k in ("who", "subject", "control") if not fc.get(k)]
+    if not fc.get("subjects"):
+        missing.append("premise-control")
+    return ("a control file EXISTS but is INERT: missing a non-empty "
+            + " / ".join(missing) + " line")
+
+def say(kind, fname, why, note=""):
+    def flat(s):
+        return re.sub(r"[\t\r\n]+", " ", str(s))
+    print("%s\t%s\t%s\t%s\t%s" % (flat(kind), flat(fname), flat(why),
+                                  flat(ctrl_path), flat(note)))
 
 # ═══ T-PROSE ═══════════════════════════════════════════════════════════════
 # Evaluated FIRST and independently. OR-ed with T-SHAPE below, never AND-ed:
@@ -202,9 +355,14 @@ if content and durable:
             continue                  # (3) unstamped -> a hypothesis, not a premise
         if prose_ctrl or _CTRL.search(block):
             continue                  # (4) a control IS cited -> allowed
-        say = re.sub(r"\s+", " ", dm.group(0)).strip()[:120]
-        print("PROSE\t%s\t%s" % (os.path.basename(path),
-              "line %d writes a diagnosis as established fact: %s" % (i + 1, say)))
+        claim = re.sub(r"\s+", " ", dm.group(0)).strip()[:120]
+        _fc = rc_load_control()
+        if _fc.get("valid") and rc_control_covers(_fc, claim):
+            rc_record_control(_fc, "prose:" + claim[:60])
+            continue                  # a durable, attributed control file covers it
+        say("PROSE", os.path.basename(path),
+            "line %d writes a diagnosis as established fact: %s" % (i + 1, claim),
+            rc_note())
         sys.exit(0)
 
 # (b) CREATES a file — an edit to something that exists is not a new premise-bearer.
@@ -243,9 +401,12 @@ SRC_EXT = (".py", ".sh", ".ts", ".tsx", ".js", ".jsx", ".astro", ".vue", ".svelt
 if not path.endswith(SRC_EXT):
     sys.exit(0)
 
-run    = os.path.join(proj, ".ravenclaude", "runs", "premise", sid)
 ledger = os.path.join(run, "probe-ledger.jsonl")
-beacon = os.path.join(run, "recorder-alive")
+# ⛔ The beacon is SESSION-level, not per-scope. A per-scope beacon would make a
+# never-probed worktree indistinguishable from an unwired recorder, and this gate
+# fails CLOSED on that — so the first write in every fresh worktree would be
+# denied as blind. Blindness is a property of the recorder, not of a scope.
+beacon = os.path.join(sess_dir, "recorder-alive")
 
 # ── FAIL CLOSED: is the recorder alive at all? ─────────────────────────────
 if not os.path.exists(beacon):
@@ -256,8 +417,17 @@ if not os.path.exists(beacon):
     rec = os.path.join(proj, "plugins", "ravenclaude-core", "hooks", "log-probe.sh")
     if os.path.exists(rec):
         sys.exit(0)
-    print("BLIND\t\t" + "the premise recorder (log-probe.sh) is not installed, "
-          "so this check cannot see whether an unresolved negative probe exists")
+    # A BLANKET control file is the recorded, attributed equivalent of
+    # RC_PREMISE_OVERRIDE=1 — same power, reachable from a subagent, and it names
+    # who took the decision. A subject-scoped file does NOT clear blindness:
+    # blindness is not a claim about one subject.
+    _fcb = rc_load_control()
+    if _fcb.get("valid") and rc_control_blanket(_fcb):
+        rc_record_control(_fcb, "blind")
+        sys.exit(0)
+    say("BLIND", "",
+        "the premise recorder (log-probe.sh) is not installed, so this check "
+        "cannot see whether an unresolved negative probe exists", rc_note())
     sys.exit(0)
 
 # ── (a) unresolved negative: a negative with no later positive on the SAME subject
@@ -301,9 +471,19 @@ if ctrl:
     unresolved.pop(family(ctrl), None)
 
 if unresolved:
+    _fc = rc_load_control()
+    if _fc.get("valid"):
+        _cleared = [f for f in list(unresolved) if rc_control_covers(_fc, f)]
+        for f in _cleared:
+            unresolved.pop(f, None)
+        if _cleared:
+            rc_record_control(_fc, ",".join(str(c)[:40] for c in _cleared[:5]))
+
+if unresolved:
     fam, e = next(iter(unresolved.items()))
-    print("DENY\t%s\t%s" % (os.path.basename(path),
-          "%s returned %s (%s)" % (e.get("subject"), e.get("label"), e.get("tool"))))
+    say("DENY", os.path.basename(path),
+        "%s returned %s (%s)" % (e.get("subject"), e.get("label"), e.get("tool")),
+        rc_note())
 ' "$_dir" 2>/dev/null || true)"
 
 [ -z "$_verdict" ] && exit 0
@@ -311,6 +491,30 @@ if unresolved:
 _kind="$(printf '%s' "$_verdict" | cut -f1)"
 _file="$(printf '%s' "$_verdict" | cut -f2)"
 _why="$(printf '%s' "$_verdict" | cut -f3)"
+_ctrl="$(printf '%s' "$_verdict" | cut -f4)"
+_note="$(printf '%s' "$_verdict" | cut -f5)"
+
+# The file-based escape, printed VERBATIM in every deny. It is the only exit a
+# dispatched subagent can actually take: RC_PREMISE_* are environment variables,
+# and a variable exported inside a Bash call never reaches this hook process.
+# ⛔ It is scoped to this session AND this worktree, so it cannot clear a sibling
+# agent, and it is INERT unless all four keys carry a non-empty value.
+_ESCAPE="  FILE-BASED CONTROL (works from a SUBAGENT — the env vars do not).
+  Write this file with the Write tool, then retry:
+
+    $_ctrl
+
+    premise-control: <subject this covers, or * for all>
+    who: <which agent/session ran the control>
+    subject: <the claim that was under test>
+    control: <the probe you ran -> the result it returned>
+
+  All four keys are REQUIRED and an empty value clears nothing. Every use is
+  appended to .ravenclaude/runs/premise/overrides.log — the escape is recorded,
+  not silent."
+[ -n "$_note" ] && _ESCAPE="⚠ $_note
+
+$_ESCAPE"
 
 if [ "${RC_PREMISE_OVERRIDE:-0}" = "1" ]; then
   # An override is a decision, not a bypass — it leaves a trace on purpose.
@@ -326,7 +530,11 @@ if [ "$_kind" = "BLIND" ]; then
 $_why
 
 A check that cannot see must never allow. Install/wire log-probe.sh, or set
-RC_PREMISE_OVERRIDE=1 to proceed and record the override."
+RC_PREMISE_OVERRIDE=1 to proceed and record the override.
+
+$_ESCAPE
+  (blindness is not a claim about one subject, so only \`premise-control: *\`
+   clears it here.)"
 elif [ "$_kind" = "PROSE" ]; then
   _reason="⛔ PREMISE GATE: a diagnosis is being written down as established fact.
 
@@ -349,7 +557,9 @@ cite it in the same block:
   1. control: <probe> -> <result>    a positive control on the same subject
   2. premise-ok: <named control>     you already ran it (EMPTY does NOT clear)
   3. RC_PREMISE_CONTROL='<subject>'  same, supplied out of band
-  4. RC_PREMISE_OVERRIDE=1           proceed anyway; the override is recorded"
+  4. RC_PREMISE_OVERRIDE=1           proceed anyway; the override is recorded
+
+$_ESCAPE"
 else
   _reason="⛔ PREMISE GATE: creating a new source module on an unresolved negative result.
 
@@ -367,7 +577,12 @@ user ever experienced. The control probe would have cost ten seconds.
 
   1. run the control   → the ledger resolves itself, nothing else needed
   2. RC_PREMISE_CONTROL='<subject>'  → you already ran it
-  3. RC_PREMISE_OVERRIDE=1           → proceed anyway; the override is recorded"
+  3. RC_PREMISE_OVERRIDE=1           → proceed anyway; the override is recorded
+
+⛔ The ledger is scoped to THIS git worktree, so what you see above was recorded
+by work in this tree — not by a sibling agent in another one.
+
+$_ESCAPE"
 fi
 
 printf '%s' "$(python3 -c '

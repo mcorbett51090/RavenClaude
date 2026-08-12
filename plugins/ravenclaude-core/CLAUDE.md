@@ -2348,3 +2348,76 @@ decision, not a convenience one — but the cost is now measured rather than ass
 
 **Migration:** none in the permissive direction. Every genuine pipe-to-shell still denies, including
 through an intermediate stage; ordinary files that merely *mention* a fetch tool stop being denied.
+
+## A guardrail whose only exit is unreachable gets tunnelled (added 2026-08-12, v0.245.0)
+
+The premise gate's ledger was keyed on `(CLAUDE_PROJECT_DIR, session_id)` — `guard-premise.sh:246`
+and `log-probe.sh:162`, the same expression in both. **Neither component varies per agent**, so a
+parallel run collapsed every sibling onto one file.
+
+control: enumerated `~/.claude/projects/<proj>/<session>.jsonl` for a real 6-agent run → **14,322
+events under ONE `session_id`, spanning 49 distinct `cwd` values and 15+ git worktrees**, and the
+matching ledger held **2,825 entries with 50 unresolved negative families**. The same probe on a
+single-agent session returned 3 `cwd` values and 12 entries — it was capable of returning "they do
+not collide", and did not.
+
+The consequence was concrete and it was measured, not modelled: a negative recorded by the agent in
+worktree A **denied an unrelated new module in worktree B**. Three agents hit it in one run. One
+ended its session with a finished, self-testing harness stranded in a scratchpad rather than tunnel.
+One **routed around the hook** by writing files through `Bash` heredocs instead of the `Write` tool.
+
+### ⛔ The escape was unreachable from the agents that needed it
+
+`RC_PREMISE_CONTROL` and `RC_PREMISE_OVERRIDE` are **environment variables**. A variable exported
+inside a `Bash` tool call does not reach the `PreToolUse(Write)` hook process — they are different
+processes, and the hook's environment is the harness's, not the tool's. So a dispatched subagent that
+had **genuinely run the control probe** had no sanctioned way to say so. The one that refused to
+tunnel put it exactly right: *"writing it via Bash with `RC_PREMISE_OVERRIDE=1` was correctly denied
+as tunnelling."* It was correct, and it had nowhere left to go.
+
+**A guardrail whose only exit is unreachable does not get respected — it gets tunnelled.** That is
+not a statement about those agents' discipline; two of the three had good discipline and paid for it.
+It is a statement about the gate: an escape that exists only for the main session is, for every
+subagent, a gate with no escape at all.
+
+### The two changes, and the line between them
+
+1. **Scope the ledger to the git worktree**, derived from the payload's `cwd` — the one field that
+   varies per agent (49 values in that one session). A **linked** worktree carries its own `.git`
+   **file**, so walking up from `cwd` stops at the worktree rather than the primary checkout, which
+   is exactly the boundary being scoped. The guard falls back to the **write target** when `cwd` is
+   absent, so recorder and gate agree by construction; both derive the key with the same block, and
+   that block carries a keep-in-sync warning in each file, because a recorder and a gate that
+   disagree on the key produce a ledger nobody writes and a gate that reports clean forever.
+
+   ⛔ **The `recorder-alive` beacon deliberately stays SESSION-level, not per-scope.** A per-scope
+   beacon would make a never-probed worktree indistinguishable from an unwired recorder — and this
+   gate fails **closed** on that — so the first write in every fresh worktree would be denied as
+   blind. Blindness is a property of the recorder, not of a scope.
+
+2. **A file-based control**, at the path every deny now prints verbatim:
+   `…/runs/premise/<sid>/scopes/<scope>/control.md`. It lives under `.ravenclaude/`, which both
+   triggers already exempt, so it is writable with the `Write` tool. It clears nothing unless it
+   carries **all four** of `premise-control:` / `who:` / `subject:` / `control:` with non-empty
+   values, and every use appends a `file-control` line naming who/subject/control/cleared to
+   `overrides.log`, deduped by content signature. It is scoped to one session **and** one worktree,
+   so it cannot clear a sibling; only an explicit `premise-control: *` clears the BLIND state.
+
+⛔ **This narrows WHO a negative blocks. It does not narrow WHAT counts as one.** A probe and the
+module built on it share a working context, so the 2026-08-07 incident still trips the gate — and
+that is not an assertion, it is the second half of Gate 186. **Scoping without that half is
+indistinguishable from switching the gate off**, which is why the test asserts *both* (A does not
+gate B **and** A still gates A, B still gates B) and why collapsing the scope key must turn it red.
+
+### ⛔ An escape hatch nobody tested is one everybody uses
+
+The gate's own header has said that since it shipped, about `premise-ok:`. So the new escape ships
+with its refusals tested first: a file missing `control:`, a file whose `control:` value is empty, a
+file with no `premise-control:` line, a control in A applied to B, and a subject-scoped control
+against a non-matching family — all still deny, and the deny names the missing key rather than
+failing silently. The teeth half proves it: make every control file "valid" and 22/0 becomes 19/3.
+
+**Migration:** none in the permissive direction. Every ledger starts empty at the new path, so the
+stale cross-agent negatives from earlier sessions stop blocking — but a negative and a build in the
+same worktree deny exactly as before, and the new escape is strictly more auditable than the
+environment variables it complements (same power, plus who/subject/control on the record).
