@@ -1021,9 +1021,7 @@ def main():
         )
         check(
             "first run stages a balanced canonical TB and writes a manifest + watermark",
-            res1["status"] == "staged" and not netsuite_doctor.read_staged_tb.__self__
-            if False
-            else True,
+            res1["status"] == "staged",
         )
         errs = []
         try:

@@ -1227,8 +1227,15 @@ def main(argv=None) -> int:
         try:
             data = json.loads(data_file.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError) as e:
+            # Degrade THIS plugin only (append + continue), consistent with the
+            # render-failure path below — one malformed/unreadable data.json must
+            # not abort the batch for every OTHER plugin (nor, in --check, dump a
+            # traceback-shaped early exit). The non-empty `failed` list still makes
+            # the overall run exit 2 at the end, so the broken input is never
+            # silently dropped.
             print(f"[error] {name}: cannot read {data_file}: {e}", file=sys.stderr)
-            return 2
+            failed.append(name)
+            continue
         # Wrap the render so a malformed-but-valid-JSON data.json degrades THIS
         # plugin only, instead of an uncaught exception aborting the run for every
         # plugin (and in --check, dumping a traceback instead of a clean status).

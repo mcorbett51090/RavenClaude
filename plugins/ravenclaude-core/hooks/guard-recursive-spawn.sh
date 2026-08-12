@@ -32,9 +32,16 @@
 #
 # Behavior
 # --------
-# Advisory by default — prints warnings to stderr and exits 0. To enforce
-# hard-block on violations, flip the final `exit 0` to `exit 1` (or set
-# RC_GUARD_RECURSIVE_SPAWN_STRICT=1 in the environment).
+# Advisory by design — prints warnings to stderr and exits 0. This hook runs
+# PostToolUse, so the Write/Edit has ALREADY been applied by the time it fires:
+# a non-zero exit here surfaces an error to the model AFTER the fact — it does
+# NOT block or undo the edit (only a PreToolUse hook exiting 2 can block a tool
+# call). The recursive-spawn policy is deliberately SOFT (see ravenclaude-core/
+# CLAUDE.md, "enforced soft ... warn, not block"). RC_GUARD_RECURSIVE_SPAWN_STRICT=1
+# (or flipping the final `exit 0` to a non-zero) turns the advisory into a
+# SURFACED ERROR, not a hard block — do not read "strict" as prevention. Real
+# prevention would require moving this to PreToolUse and reading the PROPOSED
+# edit from tool_input (see docs; a design change, not a config flip).
 
 set -euo pipefail
 
@@ -130,9 +137,10 @@ EOF
   the Output Contract section of the agent's CLAUDE.md). Lines that
   mention "escalate", "handoff", or "the Team Lead" are not flagged.
 
-  This hook is advisory — the edit was not blocked. To enforce, set
-  RC_GUARD_RECURSIVE_SPAWN_STRICT=1 or change `exit 0` to `exit 1` at
-  the bottom of this script.
+  This hook is advisory and runs PostToolUse — the edit was NOT blocked
+  (and cannot be: a PostToolUse exit code can't undo an applied edit).
+  RC_GUARD_RECURSIVE_SPAWN_STRICT=1 (or `exit 0` -> non-zero at the
+  bottom) surfaces this as an error AFTER the edit, not a hard block.
 ────────────────────────────────────────────────────────────────────
 
 EOF

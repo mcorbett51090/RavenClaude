@@ -123,8 +123,14 @@ announce_and_open() { # $1 = bound port
     # Resolve the first word of $BROWSER via PATH so a bare command name (BROWSER=firefox)
     # is honored, not just an absolute path. Time-bound the fallback so a terminal browser
     # can never block. Skipped when there is no controlling TTY (postStartCommand / CI).
-    browser_bin="$(command -v "${BROWSER%% *}" 2>/dev/null || true)"
-    if [ -n "${BROWSER:-}" ] && [ -n "$browser_bin" ]; then
+    # Use the nounset-safe default form: `${BROWSER%% *}` is a pattern-removal
+    # expansion, which is NOT exempt from `set -u`, so a plain unset $BROWSER (the
+    # common case — most hosts never export it) would abort the whole script here,
+    # AFTER the server already started, with a cryptic "BROWSER: unbound variable"
+    # and no "Dashboard: <url>" line — a working launch looking like total failure.
+    _browser="${BROWSER:-}"
+    browser_bin="$(command -v "${_browser%% *}" 2>/dev/null || true)"
+    if [ -n "$_browser" ] && [ -n "$browser_bin" ]; then
       read -ra browser_cmd <<<"$BROWSER"
       "${browser_cmd[@]}" "$url" >/dev/null 2>&1 || true
     else

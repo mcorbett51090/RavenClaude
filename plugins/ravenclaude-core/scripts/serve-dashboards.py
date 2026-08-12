@@ -1908,6 +1908,11 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             self.send_header("Content-Length", "0")
             self.end_headers()
             return
+        # Gate the static HEAD fallback too — a HEAD probes file existence, so leaving
+        # it un-gated leaks the tree's shape to a DNS-rebinding page (see do_GET).
+        if not self._local_request_ok():
+            self.send_error(403, "cross-origin/forged-host request refused")
+            return
         super().do_HEAD()
 
     def do_GET(self):
@@ -1966,6 +1971,18 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             return
         if self.path == "/__csrf":
             self._handle_csrf()
+            return
+        # Gate the STATIC fallback with the same Origin/Host check the /__* endpoints
+        # use. A plain SimpleHTTPRequestHandler serves the whole served dir with no
+        # validation, so an un-gated static path is a DNS-rebinding read primitive: a
+        # malicious page the user is viewing rebinds its host to 127.0.0.1 and reads
+        # the consumer's repo files (.git/config, .ravenclaude/**, etc.) same-origin.
+        # _ALLOWED_HOSTS already covers 127.0.0.1/localhost + the forwarded Codespace
+        # host, so every legitimate load still passes (a real top-nav GET sends no
+        # Origin and a correct Host); only a forged/rebind Host is refused (repo-review
+        # 2026-08-05). Do NOT relax this into an ACAO header — see _local_request_ok.
+        if not self._local_request_ok():
+            self.send_error(403, "cross-origin/forged-host request refused")
             return
         super().do_GET()
 

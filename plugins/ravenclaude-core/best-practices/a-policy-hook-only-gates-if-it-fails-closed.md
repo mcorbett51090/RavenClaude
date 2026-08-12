@@ -115,7 +115,7 @@ because a non-2 exit produced a non-blocking error the run swallowed.
 ## See also
 
 - [`./prefer-a-deterministic-gate-over-a-prose-rule.md`](./prefer-a-deterministic-gate-over-a-prose-rule.md) — the parent rule that says _use a hook as the gate_; this rule is how you make that hook actually gate.
-- [`./precompact-hook-is-the-deterministic-enforcer-of-persist-before-compaction.md`](./precompact-hook-is-the-deterministic-enforcer-of-persist-before-compaction.md) — a concrete deterministic-enforcer hook; the fail-closed discipline applies to its authoring too.
+- [`./precompact-hook-is-the-deterministic-enforcer-of-persist-before-compaction.md`](./precompact-hook-is-the-deterministic-enforcer-of-persist-before-compaction.md) — **the documented exception to this rule** (and, since 2026-08-12, a retraction of the hook it once prescribed). `PreCompact` is not a policy hook: exit 2 there blocks compaction on an already-full window, so its correct posture is fail-**open**. Read that file before applying this one to a `PreCompact` handler.
 - [`./treat-repo-committed-claude-config-as-untrusted-input.md`](./treat-repo-committed-claude-config-as-untrusted-input.md) — the inbound-trust sibling; a repo-committed hook runs with host privileges, so a fail-open policy hook from an untrusted repo is doubly dangerous.
 - [`./permissions-are-deny-ask-allow-not-an-on-off-switch.md`](./permissions-are-deny-ask-allow-not-an-on-off-switch.md) — the settings-layer `deny` a hook `allow` can never override (hooks tighten-only).
 - [`../knowledge/concepts/hook-lifecycle.md`](../knowledge/concepts/hook-lifecycle.md) — the Learn-tab mechanic (exit codes, the `permissionDecision` priority `deny` > `defer` > `ask` > `allow`, fail-open) this rule operationalizes.

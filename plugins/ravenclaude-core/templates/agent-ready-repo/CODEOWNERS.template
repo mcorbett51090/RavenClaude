@@ -1,0 +1,31 @@
+# CODEOWNERS — starter. Scaffolded by RavenClaude's /init-agent-ready (gold-standard
+# GitHub protocol tier). Everything here is COMMENTED OUT: uncomment a line, replace
+# the placeholder owner with a real @user / @org/team, and commit.
+#
+# Path-scoped ownership: each line is "<path-pattern>  <owner> [<owner> ...]". The
+# LAST matching pattern wins for a given file, so put the broadest rule first and
+# narrower overrides below it. An owner must have write access or the rule is ignored.
+# Place this file at the repo root, in .github/, or in docs/.
+#
+# Enforcement is separate: listing an owner here only REQUESTS their review. To make
+# a code-owner's approval REQUIRED to merge, turn on code-owner review in the branch
+# ruleset — the companion setup-branch-protection.sh --require-codeowner-review sets
+# require_code_owner_review:true.
+#
+# Docs: https://docs.github.com/en/repositories/managing-your-repositories-permissions-and-settings/customizing-your-repository/about-code-owners
+#
+# ── Examples (uncomment + edit) ─────────────────────────────────────────────────
+#
+# Default owners for everything in the repo (broadest — keep it first):
+# *                       @OWNER-PLACEHOLDER
+#
+# Scope a directory to a team:
+# /src/                   @ORG-PLACEHOLDER/backend
+# /docs/                  @ORG-PLACEHOLDER/docs
+#
+# Guard the CI + dependency surface with extra reviewers (narrower — put below *):
+# /.github/               @ORG-PLACEHOLDER/platform
+# /.github/workflows/     @ORG-PLACEHOLDER/platform @ORG-PLACEHOLDER/security
+# package.json            @ORG-PLACEHOLDER/platform
+# go.mod                  @ORG-PLACEHOLDER/platform
+# go.sum                  @ORG-PLACEHOLDER/platform
