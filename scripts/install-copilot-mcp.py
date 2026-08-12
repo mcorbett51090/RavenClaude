@@ -113,14 +113,24 @@ def cmd_install(catalog: dict[str, dict], dest: Path, wanted_raw: str) -> int:
         return 1
     servers = cur.setdefault("mcpServers", {})
     if not isinstance(servers, dict):
-        print("  existing mcp-config.json has a non-object mcpServers — refusing to overwrite",
-              file=sys.stderr)
+        print(
+            "  existing mcp-config.json has a non-object mcpServers — refusing to overwrite",
+            file=sys.stderr,
+        )
         return 1
+    added = []
     for name in wanted:
+        if name in servers:
+            # Never rewrite an existing entry: it may be the user's own tuning
+            # (a hand-edited env var, different args). Mirror install-codex-mcp.py,
+            # which already protects hand-tuning this way.
+            print(f"  = {name} already configured — left untouched")
+            continue
         servers[name] = catalog[name]["config"]
+        added.append(name)
     dest.parent.mkdir(parents=True, exist_ok=True)
     dest.write_text(json.dumps(cur, indent=2) + "\n", encoding="utf-8")
-    for name in wanted:
+    for name in added:
         by = ", ".join(catalog[name].get("shipped_by") or []) or "?"
         print(f"  + {name} ({catalog[name].get('party', 'unstated')}, from {by})")
     return 0

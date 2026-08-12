@@ -50,6 +50,7 @@ Use this template. Fill every section; delete sections that genuinely don't appl
 - `gh pr create --title "<type(scope): subject>" --body "$(cat <<'EOF' … EOF)"`.
 - Title follows Conventional Commits, ≤ 72 chars.
 - Return the PR URL to the user.
+- If the remote/PR route seems blocked (remote/sandboxed/web session), see [`../../knowledge/remote-mcp-pr-landing.md`](../../knowledge/remote-mcp-pr-landing.md) — probe `gh` → API → GitHub MCP before concluding blocked.
 
 ## Don'ts
 - Don't merge. Even on a green PR with one commit. The user merges.
