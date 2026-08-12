@@ -573,6 +573,17 @@ PY
       bash plugins/ravenclaude-core/hooks/tests/test-probe-verdict-classes.sh
       exit $?
       ;;
+    186)
+      echo "── Gate 186: compact-anchor (per-gate run) ───────────────────────────────"
+      bash plugins/ravenclaude-core/hooks/tests/test-compact-anchor.sh || exit $?
+      echo "── Gate 186 teeth: the mutant MUST leak ──────────────────────────────────"
+      if bash plugins/ravenclaude-core/hooks/tests/test-compact-anchor.sh --must-fail-leak; then
+        echo "TEETH FAILED: the mutant did not leak — the no-leak assertion is toothless" >&2
+        exit 1
+      fi
+      echo "teeth ok (the mutant leaked, so the assertion measures the invariant)"
+      exit 0
+      ;;
     179)
       echo "── Gate 179: FORGE G3b premise gate (per-gate run) ───────────────────────"
       python3 scripts/premise-gate.py --self-test && python3 scripts/premise-gate.py --must-fail
@@ -602,7 +613,7 @@ PY
       ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -5890,6 +5901,24 @@ echo "── Gate 185: probe verdict classes — a non-result is not an absence 
 #   there", unclearable on retry, leaving the override as the only exit.
 rc=0; bash plugins/ravenclaude-core/hooks/tests/test-probe-verdict-classes.sh >/dev/null 2>&1 || rc=$?
 gate "probe verdicts: non-result -> indeterminate, bidirectional control -> positive, real absence still negative" must_pass "$rc"
+
+echo "── Gate 186: compact-anchor — the pointer never echoes transcript content ─"
+# The SessionStart(compact) addressability pointer. Compaction is append-only, so the
+# post-compaction agent does not lack its earlier turns — it lacks the knowledge that
+# they are still on disk. This hook injects the path, the boundary line and the grep
+# recipe. Its stdout goes straight into the model's context and the transcript holds
+# tool results + fetched web bodies, so the load-bearing invariant is DERIVED VALUES
+# ONLY. The must-fail half plants a sentinel inside a tool_result and mutates the
+# emitter to echo a raw line; the no-leak assertion must catch it, or it is decorative.
+#
+# ⛔ Registered in BOTH this main sequence AND the --check dispatcher above. After
+# adding a gate, run the full suite and GREP ITS OUTPUT FOR THE GATE BY NAME — a
+# passing suite is not evidence your gate is in it (v0.243.0: Gate 184 was unreachable
+# for a whole release while the suite reported 701 pass).
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-compact-anchor.sh >/dev/null 2>&1 || rc=$?
+gate "compact-anchor: fires only on compact, derived values only, never echoes transcript content" must_pass "$rc"
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-compact-anchor.sh --must-fail-leak >/dev/null 2>&1 || rc=$?
+gate "compact-anchor teeth: a mutant that echoes a raw transcript line IS caught" must_fail "$rc"
 
 echo
 echo "═══════════════════════════════════════════════════════════════════════════"
