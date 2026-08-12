@@ -144,6 +144,7 @@ CATEGORIES: list[dict] = [
             "claude-app-engineering",
             "ai-coding-model-guidance",
             "ai-rag-engineering",
+            "memory-engineering",
             "ml-engineering",
         ],
     },

@@ -1,138 +1,161 @@
-# The `PreCompact` hook is the deterministic enforcer of "persist before compaction"
+# `PreCompact` is not a persistence gate — compaction does not destroy the transcript
 
 **Status:** Pattern
 **Domain:** Agent design / Context management / Hooks
 
 **Applies to:** `ravenclaude-core`
 
+> ⛔ **CORRECTED 2026-08-12. This file previously prescribed the opposite of what it now says.**
+> It told you to register a `PreCompact` command hook that "flushes the plan / open decisions /
+> rejected-approaches to disk," on the premise that compaction destroys them. **Both halves were
+> wrong**, and one was wrong in the dangerous direction:
+>
+> | The old claim | Reality | Consequence of believing it |
+> |---|---|---|
+> | *"`PreCompact` … is **not** a place to **block** compaction. Treat it as a persist-side-effect, not a veto."* | `PreCompact` **CAN block** — exit 2 blocks compaction `[docs-verified 2026-08-12]` | You write a hook without realising a non-zero exit **wedges a session whose window is already full** |
+> | *"A plan, a decision-and-its-rationale, or a 'we ruled X out because Y' that lives only in the conversation **is gone after compaction**"* | Gone from the **window**. **Retained in full on disk** — the transcript is append-only across a compaction | You build a hook to save data that was never at risk |
+>
+> The filename is retained deliberately: six files link to it, two of them dated research records this
+> repo's convention says not to rewrite. **The name asserts the retracted claim; the content is the
+> correction.**
+
 ---
 
-## Why this exists
+## What compaction actually does
 
-Two rules already in this library point straight at each other but stop one step
-short of meeting:
+Compaction **appends**. It does not truncate, rewrite, or delete. The session transcript at
+`~/.claude/projects/<encoded-cwd>/<session-id>.jsonl` keeps every turn from before the boundary and
+every turn after it, in one file.
 
-- [`./compact-proactively-and-persist-state-before-compaction.md`](./compact-proactively-and-persist-state-before-compaction.md)
-  says compaction _discards_ intermediate reasoning, so anything load-bearing (the
-  plan, a decision-and-its-rationale, the approaches you already ruled out) must be
-  written somewhere durable **before** the window compacts.
-- [`./prefer-a-deterministic-gate-over-a-prose-rule.md`](./prefer-a-deterministic-gate-over-a-prose-rule.md)
-  says when a load-bearing rule can be mechanized, it belongs in a hook or CI gate,
-  not in prose that the model has to _remember_ to follow.
+Measured against this repo's own transcripts `[verified 2026-08-12]`:
 
-Put them together and the gap is obvious. "Persist your state before compaction"
-as stated today is **advisory**: it fires only if the model (or the user) notices
-the window is filling and reacts in time. Auto-compact, by design, fires _late_ and
-_without warning_ — at roughly 80%+ of the window — which is exactly the moment the
-model is reasoning at its worst and least likely to stop and flush state cleanly.
-An advisory "remember to persist first" is the weakest possible guard for the one
-event that destroys un-persisted context.
+- **44** `compact_boundary` records across this project's transcripts — auto-compaction is frequent,
+  not hypothetical.
+- One 12,398-line transcript has its first boundary at **line 4031**. Before it: 1,207 assistant and
+  735 user turns. After it: 2,923 assistant and 1,570 user turns. **The pre-compaction half is still
+  there.**
+- Every content-block type survives, including the one you would most expect to be dropped:
+  **939 `thinking` blocks**, alongside 1,253 `text`, 2,136 `tool_use`, and 2,175 `tool_result`.
+- The boundary record itself carries the accounting:
 
-Claude Code exposes the mechanism that closes this: a **`PreCompact`** hook event
-that fires _before_ every context compaction, and receives a `trigger` value of
-`manual` (the user ran `/compact`) or `auto` (the harness hit the threshold). A
-command hook on `PreCompact` runs deterministically whether or not anyone
-remembered — it is the "persist before compaction" discipline turned from a prose
-rule into a gate. Its bookend, **`PostCompact`** ("after compaction completes"), is
-where you verify the flush landed or re-anchor state _after_ the summary replaced
-the thread. (Compaction also re-fires instruction loading: `InstructionsLoaded`
-carries a `compact` reason, which is how root `CLAUDE.md` re-injects post-compact —
-see the imports rule below.)
+  ```jsonc
+  {"subtype":"compact_boundary","compactMetadata":{
+     "trigger":"auto","preTokens":1000599,"postTokens":32828,
+     "cumulativeDroppedTokens":967771,"durationMs":116872,
+     "preservedSegment":{"headUuid":"…","anchorUuid":"…","tailUuid":"…"}}}
+  ```
+
+  A 1M-token context compacted to 33K, and the transcript records **by UUID** exactly which segment
+  survived into the new window. That is better provenance than any hook could write, and it is
+  already there.
+
+**So the loss is addressability, not durability.** The post-compaction agent does not lack the data.
+It lacks the knowledge that the data exists, where the boundary fell, and that reading past it is an
+option. Nothing a `PreCompact` hook writes changes that, because the hook's output is not injected
+anywhere (see below).
 
 ## How to apply
 
-**Register a `PreCompact` command hook that flushes load-bearing state to disk.**
-The hook's job is small and deterministic: append the current plan / open decisions
-/ rejected-approaches to a durable file (a run doc, a scratch `PLAN.md`, a commit
-message body) so they survive the summarizer's judgement. Because it is a command
-hook, it cannot hallucinate the flush away — it runs on the event, every time.
+**Do not write a `PreCompact` "flush state" hook.** Beyond the premise being false, the remedy is not
+mechanizable: a command hook receives a JSON payload on stdin and nothing else
+([`hook-authoring.md`](../../../docs/best-practices/hook-authoring.md) § "Read the stdin payload").
+It has **no access to the model's plan, its open decisions, or the approaches it ruled out.** A
+`flush-plan-state.sh` can append a timestamp and a file path; it cannot append the thing you wanted
+saved. That is this repo's own
+[gate-that-asserts-nothing](./a-policy-hook-only-gates-if-it-fails-closed.md) failure mode — it runs,
+exits 0, reports success, and checks nothing.
 
-```jsonc
-// settings.json (or a plugin's hooks.json)
-{
-  "hooks": {
-    "PreCompact": [
-      {
-        "matcher": "auto", // fire on the dangerous case: unattended auto-compaction
-        "hooks": [{ "type": "command", "command": "scripts/flush-plan-state.sh" }]
-      }
-    ]
-  }
-}
+**If you register a `PreCompact` hook for some other reason, exit 0 unconditionally.** This is the
+load-bearing safety note and it inverts the usual posture:
+
+```bash
+#!/usr/bin/env bash
+# PreCompact: exit 2 BLOCKS compaction. Compaction fires when the window is
+# near-full, so blocking it wedges the session. Fail OPEN, always.
+trap 'exit 0' EXIT
+set -uo pipefail   # NOT -e: an aborted pipeline must not become a non-zero exit
 ```
 
-**Branch on `trigger`.** `manual` means the user is compacting deliberately at a
-task boundary and has likely already anchored the summary; `auto` is the
-crowded-window case the rule above warns about. Gate the expensive flush on
-`trigger == "auto"` so a deliberate `/compact` isn't slowed by a redundant write.
+[`a-policy-hook-only-gates-if-it-fails-closed.md`](./a-policy-hook-only-gates-if-it-fails-closed.md)
+governs **policy** hooks, where a fail-open gate is no gate. `PreCompact` is not a policy hook — there
+is no posture under which "prevent this session from compacting" is the safe answer, so its correct
+posture is the opposite. Do not let the sibling rule's title pull you the wrong way here.
 
-**Keep the hook idempotent and fail-open.** It runs on a hot path (the harness is
-about to compact); a slow or erroring hook must not wedge the session. Bound any
-network/IO (`--connect-timeout`, `-m`), and exit 0 even on partial failure — the
-durable append is best-effort insurance, not a blocker. This is the same
-fail-safe discipline the layout/notify hooks in this repo already follow.
+**Recover the pre-compaction record by reading it, not by having saved it.** The transcript path
+arrives in the hook payload as `transcript_path`, and the boundary is greppable:
 
-**Use `PostCompact` to verify, not to re-do the work.** A `PostCompact` hook (or a
-`SessionStart` hook with the `compact` source) can re-inject a pointer to the
-flushed file so the post-compact agent knows where its own pre-compaction state
-lives, instead of re-exploring a dead end the summary dropped.
+```bash
+# where did the last compaction fall, and what did it drop?
+grep -n 'compact_boundary' "$transcript_path" | tail -1
+# search the pre-boundary half for the decision the summary dropped
+head -n "$boundary_line" "$transcript_path" | grep -i 'ruled out\|rejected\|decided against'
+```
+
+**Re-anchor at `SessionStart`, not `PreCompact` — it is the only surface whose output reaches the
+model.** Claude Code writes hook stdout to the debug log for most events; the exceptions are
+`UserPromptSubmit`, `UserPromptExpansion`, and `SessionStart`, whose stdout is added as context
+`[docs-verified 2026-08-12]`. `SessionStart` takes a `compact` matcher, so a post-compaction pointer
+is one hook away — and it is the *only* placement that works:
+
+```jsonc
+{ "hooks": { "SessionStart": [ { "matcher": "compact", "hooks": [ /* … */ ] } ] } }
+```
+
+**Keep persisting decisions to durable files — for the right reason.** The companion rule's advice to
+write plans and decisions into `docs/decisions/` and run artifacts is still correct, but *durability*
+was never the justification. The justifications are **legibility** (nobody greps a 12,000-line JSONL
+by choice) and **reach** — a transcript is host-private and does not cross to a teammate, to CI, or to
+another CLI, which is exactly what `AGENTS.md` § "Where work files go" is about. Write it down because
+someone else has to read it, not because it will otherwise be destroyed.
 
 ## Edge cases / when the rule does NOT apply
 
-- **Short, single-task sessions that never compact don't need the hook.** If the
-  work finishes well inside the window, no compaction fires and the hook never runs
-  — harmless, but it's the long/multi-task session where it earns its place.
-- **The hook is insurance, not a replacement for the discipline.** Anchoring a
-  `/compact` summary with explicit "keep:" instructions and committing firm
-  decisions as you go (the companion rule) is still the primary move; the
-  `PreCompact` hook is the backstop for the `auto` case nobody was watching. Belt
-  _and_ braces, matching this repo's hook-**plus**-prose pattern elsewhere.
-- **`PreCompact` is a hook event, not a place to _block_ compaction.** Treat it as
-  a persist-side-effect, not a veto — the window still needs to compact. Don't try
-  to make the hook prevent compaction; make it survive it.
-- **Verify the event surface at use.** `PreCompact` / `PostCompact` and the
-  `manual`/`auto` trigger values are confirmed against the current Claude Code hooks
-  reference (see Provenance), but the hook event set evolves — confirm the event
-  name and payload against the settings schema before wiring a consumer repo, the
-  same as any other hook (`./prefer-a-deterministic-gate-over-a-prose-rule.md`).
-- **Non-Claude-Code hosts have no `PreCompact`.** Copilot/Cursor/Codex manage
-  context with their own truncation and expose no equivalent pre-compaction hook;
-  there, "persist before the window fills" stays a behavioral discipline. The
-  _principle_ ports — mechanize the flush where the host lets you — the specific
-  event does not.
+> control: the same probe run against a known-present and a known-absent host store ->
+> `~/.claude/projects` = 227 transcripts / 57 `compact_boundary`; `~/.copilot` = 3 session `.jsonl` /
+> 0 `compact_boundary`; `~/.codex` and `~/.cursor` absent. The probe discriminates in both directions,
+> so the host scoping below is measured rather than assumed.
+
+- **`PostCompact` and `SessionStart(compact)` overlap.** Both fire around the same boundary; only
+  `SessionStart`'s stdout is injected. Prefer it for anything the model must see.
+- **Other hosts: measured for Copilot, `[unverified]` elsewhere — do not port the reassurance.**
+  `PreCompact` is a Claude Code event and the append-only transcript is a **Claude Code** property.
+  Per the control above, Copilot writes **no** Claude-shaped boundary record; Codex and Cursor are not
+  installed on this machine, so nothing is claimed about them. What the control establishes is that
+  the probe discriminates — **not** that Copilot discards history in its own format, which was not
+  measured. On any non-Claude-Code host, "persist load-bearing state" keeps a real durability motive
+  until someone measures otherwise.
+- **Verify the event surface at use.** The event set evolves. This correction exists because the
+  previous version of this file carried that same warning, and thirteen months passed before anyone
+  acted on it.
 
 ## See also
 
 - [`./compact-proactively-and-persist-state-before-compaction.md`](./compact-proactively-and-persist-state-before-compaction.md)
-  — the behavioral half this rule mechanizes: _what_ to persist and _why_ compaction
-  destroys it. This rule is the _how-to-enforce-it-deterministically_ sibling.
+  — the companion behavioral rule. Its *when to compact* half is unaffected; its "gone after
+  compaction" framing is scoped to the **window** and is corrected here for the **disk**.
+- [`./a-policy-hook-only-gates-if-it-fails-closed.md`](./a-policy-hook-only-gates-if-it-fails-closed.md)
+  — the fail-closed rule for **policy** hooks, and the explicit exception `PreCompact` makes to it.
 - [`./prefer-a-deterministic-gate-over-a-prose-rule.md`](./prefer-a-deterministic-gate-over-a-prose-rule.md)
-  — the general principle (mechanize load-bearing rules into hooks/gates) that this
-  rule is a specific application of.
-- [`./claude-md-imports-organize-they-dont-shrink-context.md`](./claude-md-imports-organize-they-dont-shrink-context.md)
-  — the re-injection axis: root `CLAUDE.md` re-loads on the `compact` instruction
-  reason after a compaction; nested imports don't until re-read.
-- [`../knowledge/concepts/context-window.md`](../knowledge/concepts/context-window.md)
-  — the parent concept: the window is finite and compacts when full.
-- [`../../../docs/best-practices/hook-authoring.md`](../../../docs/best-practices/hook-authoring.md)
-  — the marketplace-wide hook-authoring reference (event list, stdin payload,
-  fail-open discipline) this rule's example follows.
+  — mechanize a load-bearing rule *when it is mechanizable*. This file is the counter-example: the
+  rule was real, the mechanization was unavailable, and reaching for a hook anyway would have shipped
+  an inert one.
+- [`../knowledge/concepts/context-window.md`](../knowledge/concepts/context-window.md) — the parent
+  concept: the window is finite and compacts when full.
 
 ## Provenance
 
-Distilled from the recurring Claude-community scan (the
-[2026-07-07 subreddit scan](../../../docs/research/2026-07-07-claude-subreddit-scan/README.md)).
-It is the deterministic-enforcement sibling the [2026-07-03 scan](../../../docs/research/2026-07-03-claude-subreddit-scan/README.md)
-left implicit when it shipped the behavioral "persist before compaction" rule.
-Grounded against the Anthropic primary docs on hooks
-([Automate actions with hooks](https://code.claude.com/docs/en/hooks-guide) — the
-`PreCompact` / `PostCompact` events and their `manual`/`auto` trigger values, and
-the `InstructionsLoaded` `compact` reason, confirmed 2026-07-07) and cross-checked
-against this repo's own [`../../../docs/best-practices/hook-authoring.md`](../../../docs/best-practices/hook-authoring.md)
-(which lists `PreCompact` only as a passing "other event," never as a load-bearing
-pattern) and the two companion rules above. The exact event payload is
-verify-at-use — the hook event set evolves.
+Originally distilled from the [2026-07-07 subreddit scan](../../../docs/research/2026-07-07-claude-subreddit-scan/README.md)
+and grounded against the Anthropic hooks docs as they read then.
+
+**Corrected 2026-08-12** after the prescription was reviewed before being implemented in this repo.
+Two independent checks falsified it: the current [hooks reference](https://code.claude.com/docs/en/hooks)
+(retrieved 2026-08-12) lists `PreCompact` as **able to block** (exit 2 → blocks compaction) and lists
+the injected-stdout events as `UserPromptSubmit` / `UserPromptExpansion` / `SessionStart` only; and a
+direct read of this project's own transcripts showed the pre-compaction history retained in full
+(counts and `compactMetadata` above). The original file's own closing caveat — *"verify the event
+surface at use"* — is what the review was honouring; it was correct to write, and thirteen months
+passed before anyone ran it.
 
 ---
 
-_Last reviewed: 2026-07-07 by `claude`_
+_Last reviewed: 2026-08-12 by `claude`_

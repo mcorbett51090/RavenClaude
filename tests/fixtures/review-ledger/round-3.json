@@ -1,0 +1,62 @@
+{
+  "_comment": "Round 3: 8 findings closed, of which 2 were defects introduced by round 2's FIXES (again at shifted lines: 40->46, 104->119). One further finding is a REWORDED, rule-less restatement of a round-2 finding at src/api/upload.ts — it cannot fingerprint-match, so it must surface through the weaker near-match layer as SUSPECTED. The web/report.tsx entry deliberately shares a rule with round 1's but names a different symbol, proving `symbol` disambiguates two instances of one rule in one file rather than collapsing them.",
+  "round": 3,
+  "head": "c3d4e5f6",
+  "findings": [
+    {
+      "file": "src/api/upload.ts",
+      "line": 46,
+      "rule": "lone-surrogate",
+      "summary": "the round-2 refactor reintroduced the raw slice(0, 255) truncation",
+      "status": "closed"
+    },
+    {
+      "file": "src/auth/session.ts",
+      "line": 119,
+      "rule": "secret-in-log",
+      "summary": "the new debug line logs the refresh token again",
+      "status": "closed"
+    },
+    {
+      "file": "src/api/upload.ts",
+      "line": 80,
+      "summary": "the guard added has no else branch, so a failed check falls through",
+      "status": "closed"
+    },
+    {
+      "file": "src/api/upload.ts",
+      "line": 95,
+      "rule": "swallowed-error",
+      "summary": "the catch block swallows the write error and returns success",
+      "status": "closed"
+    },
+    {
+      "file": "src/db/queries.ts",
+      "line": 74,
+      "summary": "the pagination cursor is compared with == across types",
+      "status": "closed"
+    },
+    {
+      "file": "web/report.tsx",
+      "line": 48,
+      "rule": "proxy-assertion",
+      "symbol": "ReportFooter",
+      "summary": "the new test asserts pixels changed, not the computed property",
+      "status": "closed"
+    },
+    {
+      "file": "src/auth/session.ts",
+      "line": 132,
+      "rule": "missing-await",
+      "summary": "the token rotation promise is never awaited",
+      "status": "closed"
+    },
+    {
+      "file": "src/db/queries.ts",
+      "line": 90,
+      "rule": "dropped-index",
+      "summary": "the migration drops the index the new query relies on",
+      "status": "closed"
+    }
+  ]
+}
