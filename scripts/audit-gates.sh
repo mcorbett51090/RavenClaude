@@ -913,9 +913,15 @@ PY
         python3 scripts/check-guard-state-scope.py
       exit $?
       ;;
+    202)
+      echo "── Gate 202: constitution claims not contradicted by the tree (per-gate) ─"
+      python3 scripts/check-constitution-claim-staleness.py --self-test && \
+        python3 scripts/check-constitution-claim-staleness.py
+      exit $?
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -6723,6 +6729,65 @@ cp -R plugins "$_g201_ctl/plugins"
 cp -R scripts "$_g201_ctl/scripts"
 rc=0; (cd "$_g201_ctl" && python3 scripts/check-guard-state-scope.py) >/dev/null 2>&1 || rc=$?
 gate "guard-state teeth control: the unmutated copy is clean (the mutant's red is the mutation)" must_pass "$rc"
+
+echo "── Gate 202: a constitution claim the tree contradicts is a live defect ───"
+# P19. CLAUDE.md / AGENTS.md / plugins/*/CLAUDE.md load into EVERY session, so a
+# claim in one of them is a prior every future agent starts out believing. This
+# repo's own v0.196.0 note says it plainly — "a stale 'Still open' in a file every
+# session loads is an active defect, not a bookkeeping lag" — and that note exists
+# because an agent read a stale list and told the maintainer TWICE that his
+# command-review tribunal was broken on macOS while it had been working for
+# releases. The rule was already written. It had no mechanism. This is it.
+#
+# SCOPE IS DELIBERATELY ONE THING: a claim that a named artifact is MISSING where
+# it is in fact present (a script on disk; a gate registered in this file). Both
+# halves are binary. It does NOT try to decide whether a "Still open" item is
+# genuinely still open — that is a judgment about the world, not a fact about the
+# tree, and guessing at it produces the false finding this initiative exists to
+# prevent.
+#
+# ⛔ BOTH LIVE HITS FROM THE FIRST DRAFT WERE FALSE, and each is now suppressed
+# AND pinned by a fixture rebuilt from the real sentence that produced it:
+#   (1) a CONDITIONAL — prose describing what a hook does WHEN a manifest is
+#       missing is a statement about a code path, not a claim the file is gone;
+#   (2) PAST-TENSE HISTORY — a milestone recording that a gate HAD been unreachable
+#       and was then fixed. This repo KEEPS superseded entries as dated records, so
+#       that prose is the convention working, not drift.
+# After both suppressions the tree is clean, so this ships as a REGRESSION
+# PREVENTER, not a remediation — stated plainly rather than dressed up.
+#
+# ⛔ Registered in BOTH this main sequence AND the --check dispatcher above + the
+# Supported: string. After adding a gate, run the full suite and GREP ITS OUTPUT
+# FOR "202" — a passing suite is not evidence your gate is in it.
+rc=0; python3 scripts/check-constitution-claim-staleness.py --self-test >/dev/null 2>&1 || rc=$?
+gate "constitution-staleness: teeth (contradicted path + contradicted gate caught; conditional, past-tense, true-claim and opt-out all silent)" must_pass "$rc"
+rc=0; python3 scripts/check-constitution-claim-staleness.py >/dev/null 2>&1 || rc=$?
+gate "constitution-staleness: no every-session claim is contradicted by the tree" must_pass "$rc"
+
+# Teeth over the LIVE tree: plant a contradicted claim in a real constitution file
+# and the checker must go red. Without this, a checker that silently stopped
+# reading the live files would still pass its own fixtures.
+_g202_tmp="$(mktemp -d)"
+cp -R plugins "$_g202_tmp/plugins"
+cp -R scripts "$_g202_tmp/scripts"
+cp CLAUDE.md AGENTS.md "$_g202_tmp/"
+python3 - "$_g202_tmp" <<'PY' >/dev/null 2>&1
+import pathlib, sys
+t = pathlib.Path(sys.argv[1])
+# Assembled, not written literally, so this heredoc is not itself a stale claim.
+claim = "The launcher `scripts/" + "audit-gates.sh` does not " + "exist.\n"
+with (t / "CLAUDE.md").open("a", encoding="utf-8") as fh:
+    fh.write("\n" + claim)
+PY
+rc=0; (cd "$_g202_tmp" && python3 scripts/check-constitution-claim-staleness.py) >/dev/null 2>&1 || rc=$?
+gate "constitution-staleness teeth: a planted contradicted claim in a LIVE constitution file IS caught" must_fail "$rc"
+# The same copy unmutated must be clean, or the mutant's red proves nothing.
+_g202_ctl="$(mktemp -d)"
+cp -R plugins "$_g202_ctl/plugins"
+cp -R scripts "$_g202_ctl/scripts"
+cp CLAUDE.md AGENTS.md "$_g202_ctl/"
+rc=0; (cd "$_g202_ctl" && python3 scripts/check-constitution-claim-staleness.py) >/dev/null 2>&1 || rc=$?
+gate "constitution-staleness teeth control: the unmutated copy is clean (the red is the plant)" must_pass "$rc"
 
 echo
 
