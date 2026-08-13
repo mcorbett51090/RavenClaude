@@ -1,4 +1,16 @@
 #!/usr/bin/env bash
+#
+# rc-state-key: cwd-anchored ledger dir + a scope digest derived from the path's
+#               .ravenclaude/ segment (see rc_rel) — varies per worktree
+# rc-state-scope: worktree
+# rc-state-rationale: the decision is about SOURCE FILES IN ONE WORKING TREE. Keyed
+#   on (project, session_id) it was measurably wrong: one session_id carried 14,322
+#   events across 49 cwd values and 15+ worktrees into a single 2,825-entry ledger,
+#   so a negative recorded in worktree A denied an unrelated new module in B.
+# rc-state-escape: a premise control.md file under the run dir — file-based on
+#   purpose, because RC_PREMISE_CONTROL as an env var never reached this process
+#   from a dispatched subagent's Bash call, and an unreachable exit gets tunnelled.
+#
 # guard-premise.sh — PreToolUse(Write). TWO independent triggers, OR-ed:
 #
 #   T-SHAPE  Blocks a NEW SOURCE MODULE from being created while an unresolved

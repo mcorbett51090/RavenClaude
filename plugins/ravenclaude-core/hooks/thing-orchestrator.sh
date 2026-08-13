@@ -1,4 +1,16 @@
 #!/usr/bin/env bash
+#
+# rc-state-key: "${cwd}/.ravenclaude/runs/thing" for the Saga audit records, and
+#               "${cwd}/${audit_dir_rel}/fatigue" + session_id for the fatigue counter
+# rc-state-scope: worktree
+# rc-state-rationale: the fatigue counter GATES — at threshold it flips an `ask`
+#   verdict to allow — so its key has to be as fine-grained as the work it is
+#   counting. cwd supplies that. The audit records are append-only and gate
+#   nothing, but share the cwd root so one worktree's log stays readable on its own.
+# rc-state-escape: the comfort-posture file — command review is turned off in
+#   .ravenclaude/comfort-posture.yaml, a file the operator can write, not an env
+#   var this process would never see.
+#
 # thing-orchestrator.sh — the "Lawspeaker" of the command-review tribunal ("the Thing").
 #
 # A PreToolUse(Bash) hook. When command review is toggled ON for a command's

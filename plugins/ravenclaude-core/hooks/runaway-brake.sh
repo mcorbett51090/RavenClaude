@@ -1,4 +1,15 @@
 #!/usr/bin/env bash
+#
+# rc-state-key: "${cwd}/.ravenclaude/runs/thing/runaway" + session_id
+# rc-state-scope: worktree
+# rc-state-rationale: the counter answers "is THIS working tree in a loop", so the
+#   cwd component is what makes it correct. Two agents in two worktrees under one
+#   session_id must not share a brake — a session-only key would let sibling A's
+#   retries trip the brake on sibling B's first call.
+# rc-state-escape: none — a runaway brake with a user-side exit is not a brake. It
+#   is bounded and self-clearing (a new session_id starts fresh), so no escape is
+#   needed for the operator to make progress.
+#
 # runaway-brake.sh — PreToolUse deterministic runaway / rabbit-hole brake.
 #
 # Replaces the native Claude Code `auto`-mode 3-consecutive / 20-total block

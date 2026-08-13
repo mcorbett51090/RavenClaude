@@ -1,4 +1,18 @@
 #!/usr/bin/env bash
+#
+# rc-state-key: PATH_KEY = sha256(realpath of the git toplevel), then
+#               "$GUARD_HOME/{sessions,throttle}/$PATH_KEY/<session_id>.json"
+# rc-state-scope: worktree
+# rc-state-rationale: PATH_KEY IS the per-worktree component — it hashes each
+#   checkout's own toplevel, so two worktrees of one repo land in different
+#   buckets by construction. That is required, because the question the guard
+#   answers ("is another live session already on this working tree?") is only
+#   meaningful within one checkout.
+#   ⚑ The state root is $HOME/.ravenclaude/worktree-guard/, NOT .ravenclaude/runs/ —
+#   deliberately, since it must be visible ACROSS checkouts to count siblings.
+# rc-state-escape: the comfort-posture file — 'worktree_guard: off' in
+#   .ravenclaude/comfort-posture.yaml; the default posture is warn, not deny.
+#
 # worktree-guard.sh — portable worktree-hygiene guard (the CORE detection engine).
 #
 # Fires on exactly TWO locally-detectable conditions, per session, per working
