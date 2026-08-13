@@ -675,7 +675,11 @@ if isinstance(old, dict):
         if kept_blocks:
             preserved[event] = kept_blocks
 elif old:
-    # A non-dict, non-empty hooks value we don't understand: preserve verbatim
+    # A non-dict, non-empty hooks value we cannot interpret: preserve verbatim.
+    # NOTE: keep this here-doc free of the apostrophe character. It sits inside
+    # a $( ) command substitution, and bash 3.2 (stock macOS) lexes the body for
+    # quotes even under a quoted <<PY2 tag, so ONE unpaired apostrophe swallows
+    # the rest of the FILE and the whole installer stops parsing. See PR #828.
     # under a side key rather than silently discard it, and flag it.
     cur["_ravenclaude_preserved_unknown_hooks"] = old
     foreign += 1

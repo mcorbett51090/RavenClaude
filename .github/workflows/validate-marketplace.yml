@@ -115,10 +115,22 @@ jobs:
           set -euo pipefail
           status=0
           shopt -s nullglob
-          # Cover both the plugin hooks AND the top-level scripts/*.sh (archive /
-          # cleanup / worktree / notify tooling) — a syntax error in the latter
-          # would otherwise land on green CI and only surface at invocation time.
-          hooks=(plugins/*/hooks/*.sh scripts/*.sh)
+          # Cover the plugin hooks, the top-level scripts/*.sh (archive / cleanup /
+          # worktree / notify tooling), AND the EXTENSIONLESS entry points — a syntax
+          # error in any of them would otherwise land on green CI and only surface at
+          # invocation time.
+          #
+          # ⛔ The extensionless ones are listed BY NAME because `scripts/*.sh` does not
+          # match them. This comment used to claim it covered "the top-level scripts"
+          # while the glob silently excluded the largest one — `scripts/ravenclaude`,
+          # the installer every Copilot/Codex/Gemini consumer runs. It shipped
+          # unparseable on 2026-08-12 (PR #828) and no net saw it.
+          #
+          # ⛔ AND THIS STEP ALONE IS NOT ENOUGH: it runs on ubuntu/bash 5, which parses
+          # constructs bash 3.2 rejects. The bug that motivated this line was green here
+          # the whole time. The real guard is door 5 in scripts/check-macos-portability.sh,
+          # which parses these same files under stock /bin/bash on macos-latest.
+          hooks=(plugins/*/hooks/*.sh scripts/*.sh scripts/ravenclaude plugins/*/bin/rc)
           if [[ ${#hooks[@]} -eq 0 ]]; then
             echo "No shell scripts found — skipping."
             exit 0
