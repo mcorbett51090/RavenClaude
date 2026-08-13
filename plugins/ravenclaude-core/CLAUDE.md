@@ -2558,6 +2558,18 @@ target's brand, but overall look-and-feel is exactly what pixel-faithful mimicry
 tool cannot detect; a clean `identity_flags[]` is not legal clearance, and distinctiveness calls route
 to `security-reviewer`. Not legal advice.
 
-**Migration:** none — additive skill + additive collectors (existing `brand.json`/report byte-identical)
-+ agent-body priors; nothing in an installed plugin changes on `/plugin marketplace update` until a
-consumer invokes the new capability. `web-design` bumped 0.15.0 → 0.16.0 alongside.
+**Migration:** none in the token path — additive skill + additive collectors (existing
+`brand.json`/report/summary byte-identical) + agent-body priors; nothing in an installed plugin changes
+on `/plugin marketplace update` until a consumer invokes the new capability. `web-design` bumped
+0.15.0 → 0.16.0 alongside. **One behavior change to name honestly (code-review P3):** `brand.css`'s
+custom-property emit is now sanitizer-gated, so a value that is not *wholly* a matched
+color/length/number/shadow is **dropped** — this catches a hostile `url()` beacon (the security fix)
+**and** a legitimate complex declaration (`linear-gradient(...)`, a multi-value shorthand, an
+`!important`), which now no longer round-trips into `brand.css`. `brand.css` was deliberately excluded
+from the byte-identical floor for exactly this reason.
+
+**Known residuals (reviewer-accepted, backlogged — not merge blockers):** the `_fetch` SSRF guard is
+resolve-then-connect, so a DNS-rebinding record is a standard TOCTOU residual (closing it fully needs a
+pinned custom connector; size-cap + timeout bound the blast radius, and this is an offline dev tool);
+and `getaddrinfo` is not bounded by the fetch timeout (a low-risk DNS hang). Both are tracked for a
+follow-up, alongside the deferred `check-design-schema.py` packaging move.
