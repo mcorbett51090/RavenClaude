@@ -862,6 +862,11 @@ PY
       rm -rf "$_g192_a" "$_g192_b" "$_g192_c" "$_g192_d" "$_g192_mutd"
       exit "$_rc192"
       ;;
+    193)
+      echo "── Gate 193: static schema extractor + fetch/emit hardening (per-gate run) ─"
+      bash plugins/ravenclaude-core/skills/brand-extraction/tests/test-gate193.sh
+      exit $?
+      ;;
     194)
       echo "── Gate 194: design-clone apply-path bidirectional teeth (per-gate run) ──"
       bash plugins/ravenclaude-core/skills/design-clone/tests/test-gate194.sh
@@ -869,7 +874,7 @@ PY
       ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 194. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -6375,6 +6380,28 @@ PY
 _g192_mnc="$TMP/gate192-mutant-nc"; mkdir -p "$_g192_mnc"
 rc=0; _gate192_noclobber_preserved "$_g192_mut" "$_g192_mnc" || rc=$?
 gate "init-agent-ci no-clobber teeth (guard-removed mutant clobbers)" must_fail "$rc"
+
+echo "── Gate 193: static schema extractor + fetch/emit hardening (P2) ──────────"
+# P2 extends brand-extraction with the DESIGN schema (spacing/type/grid/elevation/
+# component collectors → design-schema.json, capture_method:"static" per dimension) AND
+# closes the two pre-existing holes this diff amplifies: [RT1-#4] _fetch is http(s)-only
+# with a resolved-host guard (a hostile `file://`/metadata sub-resource is refused before
+# any socket), and [RT1-#5] every brand.css custom-property value is routed through the
+# ported allowlist sanitizers (a url() beacon is dropped whole). The driver is property-
+# based (NO .json byte-golden — the prettier-vs-json.dumps trap) over pre-saved HTML
+# fixtures (NO port bind / no http.server — the macOS `timeout` + CI-flake door), asserts
+# per-dimension null on the IRREGULAR fixture (not "no crash"), proves brand.json/report/
+# summary byte-identical to pre-P2 HEAD (regression floor), and self-contains 7 must-fail
+# mutants (≥ per-collector): a spacing collector hardcoding base_unit, _derive_type_scale→
+# empty, a _fetch keeping FileHandler, a neutered emit sanitizer, and empty shadows/
+# breakpoints/components collectors — each MUST break its assertion, or the gate is toothless.
+#
+# ⛔ Registered in BOTH this main sequence AND the --check dispatcher above + the Supported:
+# string. After adding a gate, run the full suite and GREP ITS OUTPUT FOR "193" — a passing
+# suite is not evidence your gate is in it (v0.243.0: Gate 184 was unreachable for a whole
+# release while the suite reported green).
+rc=0; bash plugins/ravenclaude-core/skills/brand-extraction/tests/test-gate193.sh >/dev/null 2>&1 || rc=$?
+gate "brand-extraction: static design schema + fetch/emit hardening; teeth by 7 mutants" must_pass "$rc"
 
 echo "── Gate 194: design-clone apply-path — BIDIRECTIONAL teeth (survive + neutralize) ──"
 # P3 CRITICAL PATH. The apply path clones the reference's structural craft (spacing/type/
