@@ -86,6 +86,32 @@ expect "copilot exiting non-zero does not abort" \
 expect "copilot printing nothing does not abort" \
   'true' 0 'could not parse a version'
 
+# ── the diagnostic is ACTIONABLE, not merely non-fatal ──────────────────────
+# The three assertions above prove only that we did not abort and did not claim
+# the floor is met. They pass just as happily on a bare one-line shrug, so
+# without the four below the "clear error" contract is UNGATED and a regression
+# that drops the raw output or the expected format stays green forever.
+expect "unparseable error quotes the RAW copilot output verbatim" \
+  'echo "copilot build nightly-xyz"' 0 'raw output.*nightly-xyz'
+expect "unparseable error states the EXPECTED version format" \
+  'echo "copilot build nightly-xyz"' 0 'expected.*x\.y\.z'
+expect "unparseable error states the REQUIRED floor" \
+  'echo "copilot build nightly-xyz"' 0 'required.*>= 1\.0\.52'
+expect "empty output reads as '(no output)', never a blank quote" \
+  'true' 0 'raw output.*\(no output\)'
+
+# ── build-qualified versions parse (the bug this gate could not see) ────────
+# `1.0.52.3` is ABOVE the floor, but the pre-fix whole-token parser matched
+# NOTHING and reported "could not parse" — a silently-unverified floor on a
+# compliant copilot. The floor being unverified is the failure mode this whole
+# gate exists to prevent, and it was reachable through the parser.
+expect "four-component version parses to its first three (1.0.52.3)" \
+  'echo "copilot version 1.0.52.3"' 0 'copilot 1\.0\.52 .* meets the 1\.0\.52 safety floor'
+expect "prerelease-suffixed version parses (v1.0.75-beta.1)" \
+  'echo "copilot version v1.0.75-beta.1"' 0 'copilot 1\.0\.75 .* meets the 1\.0\.52 safety floor'
+expect "four-component version BELOW the floor still warns (1.0.41.9)" \
+  'echo "copilot version 1.0.41.9"' 0 'BELOW 1\.0\.52'
+
 # copilot entirely absent from PATH.
 out="$(PATH="/usr/bin:/bin" bash "$RC" status --project "$PROJ" 2>&1)"; rc=$?
 if [ "$rc" -eq 0 ] && printf '%s' "$out" | grep -q 'not on PATH'; then
@@ -127,6 +153,25 @@ if printf '%s' "$mut2_out" | grep -q 'BELOW 9\.9\.9'; then
   ok "teeth: raising the floor flips a previously-passing version to BELOW"
 else
   bad "teeth: floor appears not to drive the comparison"
+fi
+
+# 3. Drop the `-o` from the version extractor — the one flag that makes it
+#    capture the TOKEN rather than the whole matching line — and prove the
+#    build-qualified assertions above are what catch it. Without this half those
+#    assertions could be passing for some unrelated reason.
+MUT3="$TMP/ravenclaude-mutant3"
+sed 's/grep -Eo /grep -E /' "$RC" >"$MUT3"
+if ! grep -q "grep -E '\[0-9\]" "$MUT3"; then
+  bad "teeth: could not build the extractor mutant (extractor text changed?)"
+else
+  printf '#!/bin/sh\necho "copilot version 1.0.52.3"\n' >"$BIN/copilot"; chmod +x "$BIN/copilot"
+  # CAPTURE THEN GREP — never `cmd | grep -q` under `set -o pipefail` (see above).
+  mut3_out="$(PATH="$BIN:$PATH" bash "$MUT3" status --project "$PROJ" 2>&1 || true)"
+  if printf '%s' "$mut3_out" | grep -qE 'copilot 1\.0\.52 .* meets'; then
+    bad "teeth: without 'grep -Eo' the build-qualified version still parsed cleanly"
+  else
+    ok "teeth: without 'grep -Eo' the four-component version no longer parses"
+  fi
 fi
 
 printf '\n  %d pass, %d fail\n' "$PASS" "$FAIL"
