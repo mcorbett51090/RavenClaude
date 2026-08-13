@@ -48,6 +48,11 @@ jobs:
     name: Hooks run on a stock macOS toolchain (bash 3.2 / no coreutils / BSD grep)
     runs-on: macos-latest
     steps:
+      # NOTE: the fail-closed audit runs on BOTH platforms — see the
+      # `hook-failclosed` job below. A hook that fails closed on Linux and open
+      # on macOS is precisely how the original doors hid, so asserting identical
+      # outcomes across the two IS the check; a single-platform run would be
+      # a coin-flip dressed as a gate.
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -67,3 +72,34 @@ jobs:
       # non-zero if any stock-macOS door is open.
       - name: Prove every macOS door is closed
         run: bash scripts/check-macos-portability.sh
+
+  hook-failclosed:
+    # The SAME audit on BOTH platforms. A guardrail that fails closed on one and
+    # open on the other is exactly how the stock-macOS doors survived eighteen
+    # commits — so a platform divergence in the outcome is itself the finding,
+    # and a single-OS run could not see it.
+    name: Every PreToolUse hook fails closed (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Drive every PreToolUse hook with input it was never written for
+        # Asserts the exit is 0 (safe no-op) or 2 (deny) and never 1 — the
+        # harness treats any non-2 non-zero as a NON-blocking error, so an
+        # errored guard fails OPEN. Runs each hook under `env -i PATH=/usr/bin:/bin`
+        # against a throwaway project dir, time-bounded, so nothing touches the
+        # real tree. --self-test additionally proves the runner's own teeth.
+        run: |
+          bash scripts/check-hook-failclosed.sh --self-test
+
+      - name: Static — no permissive verdict default, no late-armed EXIT trap
+        # The two fail-open shapes execution cannot reach, because they fire only
+        # on a branch a synthetic payload does not take.
+        run: |
+          python3 scripts/check-verdict-default-nonpermissive.py --self-test
+          python3 scripts/check-verdict-default-nonpermissive.py
