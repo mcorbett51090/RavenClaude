@@ -126,19 +126,28 @@ _scrub_helper="$(dirname "$0")/../hooks/_scrub.sh"
 
 # Inline fallback: if _scrub.sh was not sourced, define the patterns locally.
 if ! declare -p _secret_patterns >/dev/null 2>&1; then
+  # Kept byte-for-byte in sync with hooks/_scrub.sh _secret_patterns (and the
+  # thing-seat.sh fallback) — the backstop must not silently miss a secret type
+  # the canonical list covers. Last synced 2026-08 review.
   _secret_patterns=(
     'AKIA[0-9A-Z]{12,}'
     'sk-(ant-)?[A-Za-z0-9-]{20,}'
     'sk_live_[A-Za-z0-9]{24,}'
+    'rk_live_[A-Za-z0-9]{24,}'
     'ghp_[A-Za-z0-9]{30,}'
     'github_pat_[A-Za-z0-9_]{20,}'
     'glpat-[A-Za-z0-9_-]{15,}'
     'xox[baprs]-[A-Za-z0-9-]{10,}'
     'AIza[0-9A-Za-z_-]{30,}'
+    'npm_[A-Za-z0-9]{30,}'
+    'hf_[A-Za-z0-9]{30,}'
+    'AccountKey=[A-Za-z0-9+/=]{20,}'
     'eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{20,}'
     '-----BEGIN [A-Z ]*PRIVATE KEY-----'
     '--password[=[:space:]][^[:space:]]+'
     '--token[=[:space:]][^[:space:]]+'
+    '(^|[[:space:]])-p[^[:space:][:digit:]][^[:space:]]{15,}'
+    '(https?|postgres(ql)?|mysql|mongodb|redis|amqp|smtp)s?://[A-Za-z0-9._-]{2,}:[A-Za-z0-9._%+-]{4,}@'
   )
 fi
 

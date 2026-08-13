@@ -2,6 +2,43 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.249.0 — 2026-08-12
+
+> **Landed from PR #833.** Renumbered on integration — the non-substrate subset of this review
+> already shipped via #835/#845/#846, so what remains here is the tribunal-substrate half
+> (`guard-destructive.sh`, `route-decision-review.sh`, `thing-concerns.py`, `thing-seat.sh`,
+> `claude-orchestrate.sh`) plus the `summarize_permissions` precedence fix.
+
+Security + robustness fixes from the autonomous three-panel repo review (find →
+adversarially verify → analyze → tie-break; 31 confirmed findings). Full report +
+the design-input items deferred for maintainer decision:
+[`docs/reviews/2026-08-05-three-panel-repo-review.md`](../../docs/reviews/2026-08-05-three-panel-repo-review.md).
+
+### Fixed — P0 (security-critical)
+
+- **`scripts/thing-concerns.py`** — the category-independent `screen_always()` hard-rule/self-disable screen now decodes base64 payloads (shared `_iter_decoded_texts` generator), closing a bypass where a base64-obfuscated `curl|sh` / force-push / self-disable command that classified to `None`/an untoggled category evaded the screen entirely. `evaluate()`'s decode path is unchanged (Gates 14/15/24 green).
+- **`hooks/route-decision-review.sh`** — the AskUserQuestion `header` + option `description` now feed both the local high-blast grep and the tribunal engine context (size-capped), so a high-blast decision stating its stakes there can no longer auto-resolve without the human. The §4a injection-echo hardener already treats those fields as untrusted.
+- **`hooks/guard-destructive.sh`** — added an order-independent deny for remote-branch deletion (`git push <remote> --delete <ref>` / `git push <remote> :<ref>`), an always-on guard gap for a destructive op in its stated scope.
+
+### Fixed — P1 (high)
+
+- **`hooks/guard-destructive.sh`** — `git clean -d -f` (separated-token force flag) now denied via order-independent `_is_dangerous_git_clean` (the old contiguous-anchor regex missed it). Audit-gates fixtures added for both new guards.
+- **`scripts/capability-orientation.py`** — SessionStart banner permission-rule strings now routed through `_sanitize_banner_field` (a committed rule with a newline + frame tag could otherwise break the untrusted-data frame).
+- **`skills/rc-deep-research/rc-deep-research.js`** (both copies) — Verify-phase adversarial `agent()` calls now carry the `.catch()` the search/fetch phases already had (one rejected vote no longer crashes the run). Dispatch-evaluator floor (Gate 52) untouched.
+- **`skills/two-panel-plan-review/two-panel-plan-review.js`** — Panel 1/2 lens fan-outs now per-agent `.catch()`-guarded.
+- **`skills/brand-extraction/extract_brand.py`** — fetched title/site_name/URL are `html.escape`d and font-family names stripped of CSS-breakout chars (was stored HTML/CSS injection into the generated report).
+- **`skills/svg-report-lint/lint.py` + `skills/declarative-visualization/lint.py`** — the remote-href "security floor" now flags protocol-relative URLs (`//host`) and strips tab/CR/LF before scheme-matching (closes the `jav&#9;ascript:` bypass).
+- **`skills/visual-feedback-loop/driver.py`** — path guard now uses `realpath` (not `abspath`) on both sides, restoring the symlink-escape parity it claims with the layout linter.
+
+### Fixed — P2 / P3
+
+- **`scripts/generate-bi-report.py`** — column `key` constrained to a safe identifier grammar before use as an HTML attribute name (attribute-name injection); shipped reports byte-identical.
+- **`scripts/capability-orientation.py`** — EFFECTIVE PERMISSIONS banner now reconciles project+local layers with deny>ask>allow precedence (a rule could previously appear under both allow and deny).
+- **`scripts/thing-seat.sh` + `scripts/claude-orchestrate.sh`** — inline secret-scrub fallback arrays re-synced byte-for-byte with the canonical `hooks/_scrub.sh` (were missing several newer secret types).
+- **`skills/pbir-layout-engine/lint.py`** — `check_column_alignment` now honors the caller-supplied tolerance when grouping rows (was hardcoded 1px).
+
+**Migration:** `guard-destructive.sh` now denies two additional destructive command shapes for any consumer who has it wired — `git push <remote> --delete <ref>` / `:<ref>` (remote-branch deletion) and `git clean -d -f` (separated-token). Both are unarguable destructive ops; the sanctioned branch-deletion path (`scripts/archive-branch.sh`, GitHub's UI) is unaffected. Everything else is internal robustness/security hardening with no consumer-facing surface change.
+
 ## 0.248.0 — 2026-08-12
 
 > **Landed from PR #835 (authored as 0.237.0).** Renumbered on integration — `main` had moved

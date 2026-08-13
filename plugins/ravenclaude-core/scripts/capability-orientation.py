@@ -207,8 +207,17 @@ def summarize_permissions(root: Path) -> dict[str, list[str]] | None:
         root / ".claude" / "settings.json",
         root / ".claude" / "settings.local.json",
     ]
-    buckets: dict[str, list[str]] = {"allow": [], "ask": [], "deny": []}
-    seen: dict[str, set[str]] = {"allow": set(), "ask": set(), "deny": set()}
+    # Reconcile the same rule across buckets/layers with Claude Code's real
+    # precedence — deny > ask > allow — so each pattern lands in exactly ONE
+    # effective bucket (the one the permission engine would actually apply). The
+    # prior code deduped only WITHIN a bucket, so a rule denied by settings.json
+    # and allowed by settings.local.json rendered under BOTH "allow" and "deny",
+    # misleading an agent into attempting a pre-denied action and eating an
+    # attempt-then-deny round trip. Mirrors compute_effective_v5's rank in
+    # apply-comfort-posture.py.
+    _RANK = {"allow": 1, "ask": 2, "deny": 3}
+    winner: dict[str, str] = {}  # rule -> highest-rank bucket seen
+    order: list[str] = []  # first-seen order, for stable output
     found_any = False
     for p in layers:
         perms = _read_perms(p) if p.exists() else None
@@ -217,10 +226,19 @@ def summarize_permissions(root: Path) -> dict[str, list[str]] | None:
         found_any = True
         for bucket in ("allow", "ask", "deny"):
             for rule in perms.get(bucket, []) or []:
-                if isinstance(rule, str) and rule not in seen[bucket]:
-                    seen[bucket].add(rule)
-                    buckets[bucket].append(rule)
-    return buckets if found_any else None
+                if not isinstance(rule, str):
+                    continue
+                if rule not in winner:
+                    order.append(rule)
+                    winner[rule] = bucket
+                elif _RANK[bucket] > _RANK[winner[rule]]:
+                    winner[rule] = bucket
+    if not found_any:
+        return None
+    buckets: dict[str, list[str]] = {"allow": [], "ask": [], "deny": []}
+    for rule in order:
+        buckets[winner[rule]].append(rule)
+    return buckets
 
 
 # ── Recorded environment context — PRESENCE + date only (no content inlined) ──

@@ -84,19 +84,29 @@ _scrub_helper="$(dirname "$0")/../hooks/_scrub.sh"
 # Fallback: if _scrub.sh was not sourced (e.g. path not resolved), define the
 # patterns inline to preserve the never-egress invariant.
 if ! declare -p _secret_patterns >/dev/null 2>&1; then
+  # Kept byte-for-byte in sync with hooks/_scrub.sh _secret_patterns — this is the
+  # backstop used only when _scrub.sh could not be sourced, exactly the moment the
+  # egress guard must not silently degrade. Any pattern change to _scrub.sh must be
+  # mirrored here (and in claude-orchestrate.sh). Last synced 2026-08 review.
   _secret_patterns=(
     'AKIA[0-9A-Z]{12,}'
     'sk-(ant-)?[A-Za-z0-9-]{20,}'
+    'sk_live_[A-Za-z0-9]{24,}'
+    'rk_live_[A-Za-z0-9]{24,}'
     'ghp_[A-Za-z0-9]{30,}'
     'github_pat_[A-Za-z0-9_]{20,}'
     'glpat-[A-Za-z0-9_-]{15,}'
     'xox[baprs]-[A-Za-z0-9-]{10,}'
     'AIza[0-9A-Za-z_-]{30,}'
-    'eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{6,}'
+    'npm_[A-Za-z0-9]{30,}'
+    'hf_[A-Za-z0-9]{30,}'
+    'AccountKey=[A-Za-z0-9+/=]{20,}'
+    'eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{20,}'
     '-----BEGIN [A-Z ]*PRIVATE KEY-----'
     '--password[=[:space:]][^[:space:]]+'
     '--token[=[:space:]][^[:space:]]+'
-    '(^|[[:space:]])-p[^[:space:]]{6,}'
+    '(^|[[:space:]])-p[^[:space:][:digit:]][^[:space:]]{15,}'
+    '(https?|postgres(ql)?|mysql|mongodb|redis|amqp|smtp)s?://[A-Za-z0-9._-]{2,}:[A-Za-z0-9._%+-]{4,}@'
   )
 fi
 _scan="${cmd} ${THING_PEER_VERDICTS:-}"

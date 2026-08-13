@@ -189,21 +189,20 @@ DECODE_MAX_RUNS = 200
 DECODE_MAX_BYTES = 256 * 1024
 
 
-def _decoded_payload_concerns(
-    catalog: dict, command: str, category: str | None, _depth: int = 0, _budget: dict | None = None
-) -> set[str]:
-    """Base64-decode long tokens in the command and re-check the DECODED text for
-    concerns (assessment #14 — base64 is a common obfuscation vector; the raw
-    triggers only see the encoded blob). Returns the concern ids found inside any
-    decoded payload (excluding the base64 concern itself). Bounded recursion for
-    nested encodings AND bounded by DECODE_MAX_RUNS / DECODE_MAX_BYTES; only acts
-    when a token decodes to mostly-printable text, so a benign binary blob adds
-    nothing (we escalate on CONTENT, not mere length)."""
+def _iter_decoded_texts(command: str, _depth: int = 0, _budget: dict | None = None):
+    """Yield the base64-decoded, mostly-printable texts embedded in `command`.
+
+    Base64 is a common obfuscation vector; the raw triggers only see the encoded
+    blob (assessment #14). Bounded recursion for nested encodings AND bounded by
+    DECODE_MAX_RUNS / DECODE_MAX_BYTES (shared across the whole DFS via `_budget`);
+    only yields a token that decodes to mostly-printable text, so a benign binary
+    blob is skipped (we escalate on CONTENT, not mere length). Shared by the
+    evaluate() concern-decode pass and the category-independent `screen_always`
+    decode pass so both see the same decoded surface."""
     if _depth > 1:
-        return set()
+        return
     if _budget is None:
         _budget = {"runs": 0, "bytes": 0}
-    found: set[str] = set()
     for m in _B64_RUN.finditer(command):
         remaining = DECODE_MAX_BYTES - _budget["bytes"]
         if _budget["runs"] >= DECODE_MAX_RUNS or remaining <= 0:
@@ -225,10 +224,20 @@ def _decoded_payload_concerns(
         printable = sum(c.isprintable() or c.isspace() for c in text)
         if printable / len(text) < 0.8:
             continue  # binary noise, not a hidden command
-        for c in _concerns_for(catalog, category):
+        yield text
+        yield from _iter_decoded_texts(text, _depth + 1, _budget)
+
+
+def _decoded_payload_concerns(catalog: dict, command: str, category: str | None) -> set[str]:
+    """Base64-decode long tokens in the command and re-check the DECODED text for
+    concerns. Returns the concern ids found inside any decoded payload (excluding
+    the base64 concern itself)."""
+    concerns = _concerns_for(catalog, category)
+    found: set[str] = set()
+    for text in _iter_decoded_texts(command):
+        for c in concerns:
             if c["id"] != "sce.embedded-base64-payload" and _matches(c, text):
                 found.add(c["id"])
-        found |= _decoded_payload_concerns(catalog, text, category, _depth + 1, _budget)
     return found
 
 
@@ -353,10 +362,23 @@ def screen_always(catalog: dict, command: str) -> dict:
 
     Scans cross-cutting AND every category's concern list (a hard-rule concern
     like srm.force-push lives under a category). Matching unions the raw and
-    normalized command. Returns the self-disable verdict (unchanged contract) AND
-    a parallel hard-rule verdict; the orchestrator denies pre-LLM on either.
+    normalized command AND the base64-DECODED forms of the command — so an
+    obfuscated hard-rule / self-disable command (e.g. `source <(echo <b64> |
+    base64 -d)` decoding to `curl … | sh`) that classifies to None / an
+    untoggled category — and therefore never reaches evaluate()'s decode pass —
+    is still caught here, closing the "cannot be evaded via mis-classification"
+    invariant this screen exists to hold. Returns the self-disable verdict
+    (unchanged contract) AND a parallel hard-rule verdict; the orchestrator denies
+    pre-LLM on either.
     """
-    variants = _match_variants(command)
+    variants: list[str] = list(_match_variants(command))
+    # Extend the scanned surface with the decoded payloads (each normalized the
+    # same way as the raw command), mirroring evaluate()'s base64 pass but applied
+    # to the always_screen pools. Bounded by DECODE_MAX_RUNS / DECODE_MAX_BYTES.
+    for _decoded in _iter_decoded_texts(command):
+        for _v in _match_variants(_decoded):
+            if _v not in variants:
+                variants.append(_v)
     pools: list[list] = [catalog.get("cross_cutting") or []]
     for cat_concerns in (catalog.get("categories") or {}).values():
         if isinstance(cat_concerns, list):
