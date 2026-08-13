@@ -115,6 +115,7 @@ it stays recoverable. See AGENTS.md house rule 5.
 - Title in Conventional Commit format, ≤ 72 chars.
 - Body uses the template in [`create-pr`](../skills/create-pr/SKILL.md).
 - Don't merge your own PR without an explicit user "ship it." Even on solo projects, the human approves the merge.
+- **Once the human has approved**, the *mechanics* of landing the PR (including arming auto-merge from a remote/sandboxed session) live in [`../knowledge/remote-mcp-pr-landing.md`](../knowledge/remote-mcp-pr-landing.md) § "Arm auto-merge" — a mechanic that runs **after** approval, never a substitute for it.
 
 ## See also — CI & GitHub-development hardening
 - [`../knowledge/github-actions-hardening.md`](../knowledge/github-actions-hardening.md) — the rules behind every gold-standard Actions gate (least-privilege `permissions:`, SHA-pinned actions, OIDC, the required-check `paths:`-filter trap, merge queue + CODEOWNERS).

@@ -86,7 +86,11 @@ _resolve_actionlint() { # sets global AL_BIN
 _GP_TEMPLATE_DIR="plugins/ravenclaude-core/templates/agent-ready-repo"
 _gate188_render() { # $1=dest dir
   local dest="$1" f base
-  for f in "$_GP_TEMPLATE_DIR"/github-protocol-*.yml.template; do
+  # The gold-standard github-protocol-* tier, PLUS the opt-in agent-in-CI
+  # anti-self-approval workflow (agent-approval-check.yml.template) — it falls
+  # outside the github-protocol-* glob, so it is named explicitly here.
+  for f in "$_GP_TEMPLATE_DIR"/github-protocol-*.yml.template \
+           "$_GP_TEMPLATE_DIR"/agent-approval-check.yml.template; do
     [[ -e "$f" ]] || continue
     base="$(basename "$f" .template)"
     cp "$f" "$dest/$base"
@@ -706,7 +710,7 @@ PY
       _g188_dest="$(mktemp -d)"
       _gate188_render "$_g188_dest"
       _rc188=0; _g188_n=0
-      for _wf in "$_g188_dest"/github-protocol-*.yml; do
+      for _wf in "$_g188_dest"/github-protocol-*.yml "$_g188_dest"/agent-approval-check.yml; do
         [ -e "$_wf" ] || continue
         _g188_n=$((_g188_n + 1))
         if _gate188_file_ok "$_wf"; then
@@ -733,7 +737,7 @@ PY
       # actionlint over the shipped templates (RT-6: fail-CLOSED in CI, LOUD-skip local)
       _resolve_actionlint
       if [[ -n "${AL_BIN:-}" ]]; then
-        _alrc=0; "$AL_BIN" "$_g188_dest"/github-protocol-*.yml >/dev/null 2>&1 || _alrc=$?
+        _alrc=0; "$AL_BIN" "$_g188_dest"/github-protocol-*.yml "$_g188_dest"/agent-approval-check.yml >/dev/null 2>&1 || _alrc=$?
         if [[ "$_alrc" -eq 0 ]]; then
           echo "  ✓ actionlint clean over the shipped templates"
         else
@@ -757,9 +761,14 @@ PY
       bash plugins/ravenclaude-core/hooks/tests/test-enforce-git-protocol.sh
       exit $?
       ;;
+    191)
+      echo "── Gate 191: workflow-hygiene template self-test (per-gate run) ───────────"
+      bash plugins/ravenclaude-core/hooks/tests/test-check-workflow-hygiene.sh
+      exit $?
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -6090,7 +6099,7 @@ mkdir -p "$_g188_dest"
 _gate188_render "$_g188_dest"
 # pass-on-good: every shipped github-protocol template is hygienic.
 _g188_bad=0; _g188_n=0
-for _wf in "$_g188_dest"/github-protocol-*.yml; do
+for _wf in "$_g188_dest"/github-protocol-*.yml "$_g188_dest"/agent-approval-check.yml; do
   [ -e "$_wf" ] || continue
   _g188_n=$((_g188_n + 1))
   _gate188_file_ok "$_wf" || _g188_bad=1
@@ -6109,7 +6118,7 @@ gate "github-protocol (paths: filter IS caught)" must_fail "$rc"
 # actionlint over the shipped templates (reuse Gate 10 resolver; RT-6 fail-closed).
 _resolve_actionlint
 if [[ -n "${AL_BIN:-}" ]]; then
-  rc=0; "$AL_BIN" "$_g188_dest"/github-protocol-*.yml >/dev/null 2>&1 || rc=$?
+  rc=0; "$AL_BIN" "$_g188_dest"/github-protocol-*.yml "$_g188_dest"/agent-approval-check.yml >/dev/null 2>&1 || rc=$?
   gate "github-protocol templates pass actionlint" must_pass "$rc"
 elif [[ -n "${CI:-}" ]]; then
   printf '  ✗ %-40s %s\n' "github-protocol actionlint" "UNRUNNABLE in CI — could not obtain pinned actionlint binary v$AL_VER"
@@ -6195,6 +6204,18 @@ p.write_text(s.replace(old, '        fc["valid"] = True'))
 PY
 rc=0; bash "$_ps_tmp2/hooks/tests/test-premise-scoping.sh" >/dev/null 2>&1 || rc=$?
 gate "premise scoping teeth: an unvalidated control file is caught" must_fail "$rc"
+
+echo "── Gate 191: workflow-hygiene template ships a Rule-3-testing self-test ────"
+# P8: check-workflow-hygiene.py.template gained an advisory Rule 3 (the default-
+# GITHUB_TOKEN downstream-suppression trap) + a --self-test harness. Rule 3 is
+# ADVISORY only — it must NEVER produce a HARD finding (RT-5), or a false positive
+# would exit-1 a consumer's required check. The self-test proves the per-rule
+# verdicts; the teeth mutant (Rule-3 detection neutered) proves the self-test
+# actually tests Rule 3.
+# ⛔ Registered in BOTH this main sequence AND the --check dispatcher above. After
+# adding a gate, run the full suite and GREP ITS OUTPUT FOR "191".
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-check-workflow-hygiene.sh >/dev/null 2>&1 || rc=$?
+gate "workflow-hygiene template: --self-test passes AND a Rule-3-neutered mutant fails it (teeth)" must_pass "$rc"
 
 echo
 
