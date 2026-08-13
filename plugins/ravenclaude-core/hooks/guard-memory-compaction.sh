@@ -1,4 +1,17 @@
 #!/usr/bin/env bash
+#
+# rc-state-key: "${CLAUDE_PROJECT_DIR:-$HOME}/.ravenclaude/runs/${CLAUDE_SESSION_ID:-unknown}/memory-snapshots"
+# rc-state-scope: session
+# rc-state-rationale: a snapshot is a BEFORE-IMAGE of this session's write, so the
+#   session component is exactly right and a finer key would fragment the very
+#   history the restore path reads. Note the protected resource — the memory index
+#   — is a single global directory, so unlike a per-worktree ledger there is no
+#   sibling to collide with: two agents editing it are editing the same file, and
+#   the guard is supposed to see both.
+# rc-state-escape: none — the guard denies only a >15% unreviewed shrink and the
+#   sanctioned path is to make the write smaller or do it in reviewed steps, not
+#   to bypass. It was built after a real -41% unreviewed rewrite with no backup.
+#
 # guard-memory-compaction.sh
 # PreToolUse hook for Write|Edit|MultiEdit. Guards the agent's own durable memory
 # index against an UNREVIEWED LOSSY REWRITE.

@@ -907,9 +907,15 @@ PY
         python3 scripts/check-surface-parity.py
       exit $?
       ;;
+    201)
+      echo "── Gate 201: stateful guards declare a checked state key (per-gate run) ─"
+      python3 scripts/check-guard-state-scope.py --self-test && \
+        python3 scripts/check-guard-state-scope.py
+      exit $?
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -6651,6 +6657,72 @@ rc=0; python3 scripts/check-surface-parity.py --self-test >/dev/null 2>&1 || rc=
 gate "surface-parity: teeth (placement disagreement + unrouted tab caught; agreement clean; every exemption reasoned; empty derivation fails closed)" must_pass "$rc"
 rc=0; python3 scripts/check-surface-parity.py >/dev/null 2>&1 || rc=$?
 gate "surface-parity: all 16 non-exempt routes homed identically by the standalone chrome and the portal router" must_pass "$rc"
+
+echo "── Gate 201: every stateful guard DECLARES what its state is keyed on ─────"
+# P9. A guard that records a decision and replays it has a key, and when that key
+# is coarser than the resource the decision is about, one agent's negative denies
+# an unrelated sibling. MEASURED, not inferred: the premise ledger keyed on
+# (project, session_id) put 2,825 entries with 50 unresolved negative families
+# into ONE file spanning 49 cwd values across 15+ worktrees. Gate 190 proves the
+# fix for THAT guard; this gate asks the same question of the whole population, so
+# the next stateful guard cannot ship with an unstated key.
+#
+# The contract is a DECLARATION (rc-state-key / -scope / -rationale) checked against
+# itself: a hook claiming `worktree` scope whose key carries no cwd- or toplevel-
+# derived component is the collision, caught statically. Inference was rejected on
+# purpose — the scope is a design fact only the author knows, and 3 of the 5 live
+# stateful guards are correctly session- or globally-keyed, so a blanket "must vary
+# per worktree" rule would have been wrong about most of the population.
+#
+# ⛔ THE ESCAPE HALF IS NOT COSMETIC. A guardrail whose only exit is unreachable
+# does not get respected — it gets tunnelled. RC_PREMISE_CONTROL was an env var,
+# and a variable exported inside a Bash call never reaches the hook process, so in
+# the measured run one agent lost finished work and another wrote files through
+# Bash heredocs to dodge the Write hook. A declared escape must also be
+# CORROBORATED by a real file read: a marker alone is a claim, not an implementation.
+#
+# ⛔ FOUR INSTRUMENT BUGS WERE FOUND AND FIXED BY DRY-RUNNING THIS BEFORE WIRING IT,
+# each of which would have shipped a false reading: (1) scoping discovery to
+# `runs/` reported worktree-guard.sh — which keys a real registry on
+# sha256(toplevel) under $HOME/.ravenclaude/ — as STATELESS; (2) a one-pass
+# "assigned a .ravenclaude/ path" rule called 10 of 11 hooks stateful by matching
+# CONFIG READS; (3) comments were scanned as code, so a header sentence made a
+# hook with zero writes look stateful; (4) a loose write pattern matched "$mode)"
+# followed by prose. Discovery now agrees with hand verification in BOTH
+# directions on all 11 PreToolUse hooks — 5 stateful, 6 not.
+#
+# ⛔ Registered in BOTH this main sequence AND the --check dispatcher above + the
+# Supported: string. After adding a gate, run the full suite and GREP ITS OUTPUT
+# FOR "201" — a passing suite is not evidence your gate is in it.
+rc=0; python3 scripts/check-guard-state-scope.py --self-test >/dev/null 2>&1 || rc=$?
+gate "guard-state: teeth (undeclared key, scope/key mismatch, env-only escape, uncorroborated escape, unjustified global all caught; good + stateless silent)" must_pass "$rc"
+rc=0; python3 scripts/check-guard-state-scope.py >/dev/null 2>&1 || rc=$?
+gate "guard-state: every stateful PreToolUse guard declares a key its stated scope can deliver" must_pass "$rc"
+
+# Teeth over the LIVE tree, not just fixtures: downgrade a real guard's declared
+# scope and the checker must go red. Without this, a checker that silently stopped
+# reading the live hooks would still pass on its own fixtures. `sed -i` is
+# deliberately avoided (BSD/macOS door 4) — python3 rewrites the copy.
+_g201_tmp="$(mktemp -d)"
+cp -R plugins "$_g201_tmp/plugins"
+cp -R scripts "$_g201_tmp/scripts"
+python3 - "$_g201_tmp" <<'PY' >/dev/null 2>&1
+import pathlib, sys
+p = pathlib.Path(sys.argv[1]) / "plugins/ravenclaude-core/hooks/guard-premise.sh"
+s = p.read_text()
+old = "# rc-state-scope: worktree"
+assert old in s, "guard-premise declaration drifted — update the Gate 201 mutant"
+p.write_text(s.replace(old, "# rc-state-scope: session", 1))
+PY
+rc=0; (cd "$_g201_tmp" && python3 scripts/check-guard-state-scope.py) >/dev/null 2>&1 || rc=$?
+gate "guard-state teeth: a live guard's scope downgraded to session IS caught" must_fail "$rc"
+# And the same copy UNMUTATED must be clean, or the mutant's red proves nothing
+# (a broken copy would fail for the wrong reason and read as teeth).
+_g201_ctl="$(mktemp -d)"
+cp -R plugins "$_g201_ctl/plugins"
+cp -R scripts "$_g201_ctl/scripts"
+rc=0; (cd "$_g201_ctl" && python3 scripts/check-guard-state-scope.py) >/dev/null 2>&1 || rc=$?
+gate "guard-state teeth control: the unmutated copy is clean (the mutant's red is the mutation)" must_pass "$rc"
 
 echo
 
