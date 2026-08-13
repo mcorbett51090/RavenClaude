@@ -22,6 +22,9 @@
 #                                         open the comfort-posture dashboard scoped to a repo
 #   ravenclaude init-codespace [--project DIR]
 #                                         stamp the Codespace auto-setup .devcontainer/ into a repo
+#   ravenclaude init-agent-ci [--project DIR] [--only <list>] [--force]
+#                                         scaffold the agent-in-CI GitHub protocol templates into a repo
+#                                         (host-agnostic; --only cherry-picks; never overwrites without --force)
 #
 # Re-running any subcommand is safe (idempotent). After `update`, run `/skills reload`
 # in your Copilot session (or relaunch) to pick up changes — no re-install ever.
@@ -1050,6 +1053,24 @@ cmd_status() {
       [ ! -f "$vstask" ]   && note "          ↳ .vscode/tasks.json absent"
     fi
   fi
+
+  # Agent-in-CI protocol scaffold (v0.252.0) — the github-protocol / agent-approval
+  # workflows a consumer adopts via `ravenclaude init-agent-ci`. Reported like the
+  # other lanes: present -> count; absent -> the one command that scaffolds it. These
+  # are host-agnostic GitHub artifacts (a non-Claude host reads the knowledge as
+  # context, not as an enforced hook), so this line is not host-conditional.
+  # Guard the dir first: under `set -euo pipefail`, a `find` over a missing dir exits
+  # non-zero and pipefail propagates it, which would abort cmd_status (matches the
+  # `[ -d ] && … || …` guard the skills/codex lines above already use).
+  local _aci_n=0
+  if [ -d "$project/.github/workflows" ]; then
+    _aci_n="$(find "$project/.github/workflows" -maxdepth 1 -type f \( -name 'github-protocol-*.yml' -o -name 'agent-approval-check.yml' \) 2>/dev/null | wc -l | tr -d ' ')"
+  fi
+  if [ "${_aci_n:-0}" -gt 0 ]; then
+    note "agent-ci: $_aci_n github-protocol/agent-approval workflow(s) in .github/workflows"
+  else
+    note "agent-ci: not scaffolded — run 'ravenclaude init-agent-ci' to add the agent-in-CI protocol (opt-in, host-agnostic)"
+  fi
 }
 
 cmd_setup() {
@@ -1192,6 +1213,110 @@ PY
   chmod +x "$project/.devcontainer/ravenclaude-post-create.sh"
   ok "wrote .devcontainer/ravenclaude-post-create.sh"
   note "Commit .devcontainer/ and (re)build the Codespace — setup then runs automatically."
+}
+
+# init-agent-ci: scaffold the agent-in-CI GitHub protocol templates into a CONSUMER's
+# .github/ so a Copilot/Codex (or any bash) consumer can adopt what only Claude Code's
+# /init-agent-ready reaches today. Reads the canonical source templates/agent-ready-repo/
+# and writes ONLY into the consumer's repo — never into a generated plugin dir.
+# bash-3.2-safe by construction (no `declare -A` / `mapfile` / `${x^^}`); non-destructive
+# (skip-if-exists unless --force). `--only <comma-list>` cherry-picks by target basename.
+cmd_init_agent_ci() {
+  local project="$PWD" only="" only_set=0 force=0
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --project) project="$2"; shift 2 ;;
+      --only)    only="$2"; only_set=1; shift 2 ;;
+      --force)   force=1; shift ;;
+      *)         project="$1"; shift ;;
+    esac
+  done
+  local _proj_in="$project"
+  if ! project="$(cd "$project" 2>/dev/null && pwd)"; then
+    warn "init-agent-ci: no such project dir: $_proj_in"; return 1
+  fi
+  printf '== ravenclaude init-agent-ci -> %s ==\n' "$project"
+  local tpl="$CORE/templates/agent-ready-repo"
+  [ -d "$tpl" ] || { warn "template dir missing: $tpl"; return 1; }
+
+  # Fixed allow-list of TARGET basenames (RT-G5-5a — never derive a path from raw input).
+  local allow="github-protocol-workflow-hygiene.yml github-protocol-pr-title.yml github-protocol-commit-lint.yml github-protocol-secret-scan.yml agent-approval-check.yml agent_pr_template.md check-workflow-hygiene.py"
+  local want="" tok
+  if [ "$only_set" -eq 1 ]; then
+    for tok in $(printf '%s' "$only" | tr ',' ' '); do
+      case " $allow " in
+        *" $tok "*) want="$want $tok" ;;
+        *) warn "--only: unknown template '$tok'. Allowed:"; warn "  $allow"; return 2 ;;
+      esac
+    done
+    # --only was given but parsed to nothing (empty / all-commas / whitespace):
+    # the caller asked for a SUBSET, so copying all 7 would violate the cherry-pick
+    # contract. Treat it as an error, not "no filter". (A valid token leaves $want
+    # non-empty — it accumulates with a leading space.)
+    if [ -z "$want" ]; then
+      warn "--only: no valid template names in '$only'. Allowed:"; warn "  $allow"; return 2
+    fi
+  fi
+
+  # Copy set (CE-1): 7 files across 3 target dirs. The companion check-workflow-hygiene.py
+  # is REQUIRED — the copied github-protocol-workflow-hygiene.yml invokes it at runtime.
+  # Rows are src-basename|target-subdir|target-basename (bash-3.2-safe while-read, no arrays).
+  local copied=0 skipped=0 src sub dst target
+  while IFS='|' read -r src sub dst; do
+    [ -n "$src" ] || continue
+    if [ -n "$want" ]; then
+      case " $want " in *" $dst "*) : ;; *) continue ;; esac
+    fi
+    target="$project/$sub/$dst"
+    mkdir -p "$project/$sub"
+    if [ -f "$target" ] && [ "$force" -ne 1 ]; then
+      warn "skip (exists): $sub/$dst — re-run with --force to overwrite"
+      skipped=$((skipped + 1)); continue
+    fi
+    # --force path only (no-force already skipped above): remove the target first
+    # so cp writes a fresh regular file and never follows a pre-existing symlink
+    # to write OUTSIDE .github/. `-L` also catches a dangling symlink.
+    if [ "$force" -eq 1 ] && { [ -e "$target" ] || [ -L "$target" ]; }; then
+      rm -f "$target"
+    fi
+    cp "$tpl/$src" "$target"
+    ok "wrote $sub/$dst"
+    copied=$((copied + 1))
+  done <<'ROWS'
+github-protocol-workflow-hygiene.yml.template|.github/workflows|github-protocol-workflow-hygiene.yml
+github-protocol-pr-title.yml.template|.github/workflows|github-protocol-pr-title.yml
+github-protocol-commit-lint.yml.template|.github/workflows|github-protocol-commit-lint.yml
+github-protocol-secret-scan.yml.template|.github/workflows|github-protocol-secret-scan.yml
+agent-approval-check.yml.template|.github/workflows|agent-approval-check.yml
+PULL_REQUEST_TEMPLATE-agent.md.template|.github/PULL_REQUEST_TEMPLATE|agent_pr_template.md
+check-workflow-hygiene.py.template|.github/scripts|check-workflow-hygiene.py
+ROWS
+  printf '  (%d written, %d skipped)\n' "$copied" "$skipped"
+
+  # RT-G5-5b: the consumer's own layout allow-list must admit these paths.
+  if [ -f "$project/.repo-layout.json" ] && ! grep -q '.github/' "$project/.repo-layout.json" 2>/dev/null; then
+    warn ".repo-layout.json has no .github/ glob — add '.github/**' (or .github/workflows/** + .github/scripts/**), or your next commit trips your own validate-layout."
+  fi
+
+  # RT-G5-1: the hygiene workflow scans ALL of .github/workflows/* with HARD rules.
+  note ""
+  note "Heads-up: github-protocol-workflow-hygiene.yml runs the copied scanner over ALL of"
+  note "  .github/workflows/* and enforces a top-level permissions: floor + 40-hex SHA-pinned actions,"
+  note "  so any pre-existing workflow that isn't compliant will fail that check on your next PR."
+  note "  Preview now:  python3 .github/scripts/check-workflow-hygiene.py .github/workflows"
+
+  # NEW-2: the anti-self-approval control is inert until the consumer wires it.
+  note ""
+  note "agent-approval-check.yml is inert until you CODEOWNERS-protect it, make it a REQUIRED status"
+  note "  check, and add your agent's login to its EXCLUDED_APPROVERS — see plugins/ravenclaude-core/"
+  note "  knowledge/claude-in-ci.md. Optional manual bootstrap (not copied here):"
+  note "  templates/agent-ready-repo/setup-branch-protection.sh."
+
+  # claim 18: honest cross-host limit (noun forms only).
+  note ""
+  note "These are host-agnostic GitHub artifacts you now own — they work regardless of which agent CLI"
+  note "  you run. A non-Claude host reads the accompanying knowledge as context, never as an enforced"
+  note "  hook. SHA-pin each action to the current release for your adoption date before you rely on it."
 }
 
 cmd_dashboard() {
@@ -1362,5 +1487,6 @@ case "${1:-}" in
   dashboard)      shift; cmd_dashboard "$@" ;;
   doctor)         shift; cmd_doctor "$@" ;;
   init-codespace) shift; cmd_init_codespace "$@" ;;
-  *) printf 'usage: ravenclaude {setup|install|update|status|dashboard|doctor|init-codespace} [--project DIR]\n'; exit 2 ;;
+  init-agent-ci)  shift; cmd_init_agent_ci "$@" ;;
+  *) printf 'usage: ravenclaude {setup|install|update|status|dashboard|doctor|init-codespace|init-agent-ci} [--project DIR]\n'; exit 2 ;;
 esac

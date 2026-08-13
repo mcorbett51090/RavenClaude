@@ -2,6 +2,53 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.252.0 — 2026-08-13
+
+### Added
+
+- **Agent issue-triage knowledge** (`knowledge/agent-issue-triage.md`) — how an agent operates
+  GitHub Issues as a primary actor (triage, labeling, closing with a reference), grounded in the
+  frontier issue-resolution shape (OpenHands / SWE-agent) and GitHub's own API semantics: closing
+  keywords cross-reference an issue only from a **default-branch** PR, and `state_reason` is
+  silently dropped unless `state` also changes. Pairs with the existing
+  `srm.issue-close-without-reference` tribunal anchor rather than adding a new hook.
+- **`ravenclaude init-agent-ci`** — a host-agnostic installer subcommand that scaffolds the
+  agent-in-CI GitHub protocol set (the `github-protocol-*` workflows, the anti-self-approval
+  `agent-approval-check.yml` **plus its companion `check-workflow-hygiene.py`**, and an agent PR
+  template) into a consumer's `.github/`. This is the path a **Copilot or Codex** consumer uses to
+  adopt what only Claude Code's `/init-agent-ready` reached before. Opt-in and non-destructive
+  (never overwrites without `--force`; `--only <list>` cherry-picks). Surfaced in `ravenclaude
+  status`, the root `AGENTS.md`, and the generated `copilot/AGENTS.md`.
+- **Gate 192** (`audit-gates.sh`) — proves the `init-agent-ci` scaffold is **runnable**, not merely
+  present: every copied workflow's local script dependency must resolve on disk (catching the
+  "green-but-broken" scaffold where the hygiene workflow's companion `.py` is missing), and a
+  pre-existing target is never overwritten without `--force`. Both invariants carry must-fail
+  mutants, and the gate executes a real scaffold so a future bash-4-ism fails under `validate-macos`.
+
+### Changed
+
+- **Agent-identity runbook** — `claude-in-ci.md §6` extended into a verified-commit-signing
+  operational runbook (three signing paths, minimum GitHub-App permissions, `id-token: write` for
+  OIDC only); `agent-pr-identity.md` points at it. Guidance-only — no App-manifest template.
+- **Tribunal issue-mutation anchors sharpened** — `srm.issue-close-without-reference` and
+  `shr.gh-api-rate-limit-risk` in `concerns-catalog.md` gained resolution + see-also detail.
+
+### Migration
+
+None — additive and opt-in. `init-agent-ci` does nothing until explicitly invoked; nothing
+auto-installs into a consumer's `.github/`.
+
+## 0.251.0 — 2026-08-13
+
+### Added
+
+- **Agent-as-primary-GitHub-operator gold-standard pass** (PR #887) — new knowledge
+  (`claude-in-ci.md`, `github-mcp-tool-surface.md`, `agent-pr-identity.md`) plus agent-ready
+  templates: an `agent-approval-check.yml` anti-self-approval workflow (trusted-approver filter,
+  fail-closed quorum), an agent PR template, and a `check-workflow-hygiene.py` scanner with a
+  Rule-3 default-`GITHUB_TOKEN` downstream-suppression advisory + a `--self-test`. Gate 191 proves
+  the self-test has teeth (a Rule-3-neutered mutant fails it).
+
 ## 0.250.0 — 2026-08-12
 
 ### Fixed

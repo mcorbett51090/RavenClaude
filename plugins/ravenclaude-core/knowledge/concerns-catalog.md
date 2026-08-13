@@ -605,7 +605,12 @@ categories:
       severity: medium
       judgment_only: true
       description: GitHub API has rate limits; agents in loops have hit them and broken downstream tooling.
-      resolution: EDIT to batch via gh api graphql if N > 10. ALLOW otherwise.
+      resolution: >-
+        EDIT to batch via gh api graphql if N > 10. ALLOW otherwise. The
+        rate-conscious pattern also means SEARCHING existing issues before
+        creating a new one (dedupe via a search query first) — so a triage loop
+        neither burns calls it could have avoided nor files duplicates that a
+        prior search would have surfaced.
     - id: shr.git-log-sensitive-files
       name: git log / git show on a file matching secret heuristics
       severity: medium
@@ -766,7 +771,16 @@ categories:
       severity: medium
       judgment_only: true
       description: Closes an issue with no audit trail. Reversible but ugly.
-      resolution: EDIT to include `--comment "closing because <reason>"` minimum. ALLOW with banner.
+      resolution: >-
+        EDIT to include `--comment "closing because <reason>"` minimum, plus a
+        reference to the resolving PR/commit. ALLOW with banner. Two API traps a
+        triage agent must clear before trusting the close: `state_reason`
+        (completed / not_planned / duplicate, with `duplicate_issue_id` on a
+        dupe) is IGNORED unless the issue's `state` also changes in the same
+        call, and the issues API SILENTLY DROPS a mutation the token lacks
+        permission for — so a "close" can be a no-op. The agent must send a
+        reference AND verify the close actually landed, never assume it did.
+      see_also: knowledge/agent-issue-triage.md
     - id: srm.pr-comment-on-closed
       name: gh pr comment on a PR that's already merged or closed
       severity: low
