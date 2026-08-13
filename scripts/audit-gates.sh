@@ -884,9 +884,14 @@ PY
         python3 scripts/check-regex-catalog-compiles.py --self-test
       exit $?
       ;;
+    197)
+      echo "── Gate 197: guard-premise scope + read/mutate discriminator (per-gate run) ──"
+      bash plugins/ravenclaude-core/hooks/tests/test-guard-premise-scope.sh
+      exit $?
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -6504,6 +6509,30 @@ rc=0; python3 scripts/check-regex-catalog-compiles.py >/dev/null 2>&1 || rc=$?
 gate "regex-catalog: 140 regexes across concerns-catalog + thing-denial-resolutions all compile" must_pass "$rc"
 rc=0; python3 scripts/check-regex-catalog-compiles.py --self-test >/dev/null 2>&1 || rc=$?
 gate "regex-catalog: teeth (malformed/zero-match/unparseable/missing all caught, live registry clean)" must_pass "$rc"
+
+echo
+echo "── Gate 197: guard-premise scope + read/mutate discriminator ──────────────"
+# Three false-positive fixes on guards that deny NON-overridably and pre-LLM, so
+# every false positive is a wall with no door — which is how a session ends up
+# tunnelling around a guard instead of using it.
+#   scope  — the project-relative path was computed by SUBSTRING removal at TWO
+#            call sites, so in a nested worktree a genuine `.ravenclaude/runs/**`
+#            artifact resolved to `.claude/worktrees/<wt>/.ravenclaude/…` and the
+#            exemption evaporated. Both sites asserted (fixing one is the P8 trap).
+#   tool   — the screen ran on Write only, so the identical prose via Edit or
+#            MultiEdit evaded it: a false negative AND the tunnelling surface.
+#   verb   — the self-disable trigger lumped sed/perl/awk (READ by default) in
+#            with verbs that have no read mode, hard-denying ordinary reads of the
+#            Thing's own files. It now requires an in-place flag.
+# The discriminators NARROW; they never disable. Every mutation still denies, and
+# the test asserts both directions — a scoping change that only proves "allowed
+# now" is indistinguishable from switching the guard off.
+#
+# ⛔ Registered in BOTH this main sequence AND the --check dispatcher above + the
+# Supported: string. After adding a gate, run the full suite and GREP ITS OUTPUT
+# FOR "197" — a passing suite is not evidence your gate is in it.
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-guard-premise-scope.sh >/dev/null 2>&1 || rc=$?
+gate "guard-premise: nested-worktree scope (both call sites) + Edit/MultiEdit screened + reads released; teeth by 2 mutants" must_pass "$rc"
 
 echo
 

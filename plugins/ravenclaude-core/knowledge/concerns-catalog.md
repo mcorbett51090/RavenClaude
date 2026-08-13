@@ -180,8 +180,25 @@ cross_cutting:
       # (1) redirection / tee INTO a substrate path
       regex:
         - '(>>?|\btee\b)\s*\S*(ravenclaude-core/(hooks|scripts)|thing-orchestrator\.sh|thing-seat\.sh|thing-concerns\.py|thing-decision\.py|\.ravenclaude/thing\.yaml)'
-        # (2) a mutating verb (incl. tee, tolerant of intervening flags) on a substrate path
-        - '(?s)\b(rm|unlink|shred|mv|cp|install|ln|tee|sed|perl|awk|truncate|dd|chmod|chown|patch|sponge)\b.{0,200}(ravenclaude-core/(hooks|scripts)|thing-orchestrator\.sh|thing-seat\.sh|thing-concerns\.py|thing-decision\.py|\.ravenclaude/thing\.yaml)'
+        # (2a) an INHERENTLY-mutating verb (incl. tee, tolerant of intervening
+        #      flags) on a substrate path. These verbs have no read mode — naming
+        #      one alongside a substrate path is already the mutation.
+        - '(?s)\b(rm|unlink|shred|mv|cp|install|ln|tee|truncate|dd|chmod|chown|patch|sponge)\b.{0,200}(ravenclaude-core/(hooks|scripts)|thing-orchestrator\.sh|thing-seat\.sh|thing-concerns\.py|thing-decision\.py|\.ravenclaude/thing\.yaml)'
+        # (2b) a STREAM EDITOR on a substrate path — but only in IN-PLACE mode.
+        #      sed/perl/awk are read-by-default: without an in-place flag they
+        #      write to stdout, so a pattern-print or line-range print of a hook
+        #      is a READ. Lumping them in with (2a) hard-denied ordinary
+        #      verification reads of the Thing's own files, pre-LLM and
+        #      non-overridably — which is how a session ends up tunnelling around
+        #      the guard instead of using it.
+        #      ⛔ Do NOT "complete" this by treating print-mode as a mutation
+        #      signal: print-mode without the in-place flag writes to stdout, so
+        #      such a rule would re-deny exactly the reads this discriminator
+        #      releases. The window is separator-bounded so an in-place flag in a
+        #      LATER chained command cannot arm a read in an earlier one.
+        #      Fail-closed is preserved: the in-place flag still denies here, and
+        #      a redirect or a tee-pipe onto a substrate path is trigger (1)/(2a).
+        - '(?s)\b(sed|perl|awk)\b[^;|&\n]{0,120}?(?:--in-place|-[A-Za-z0-9.]*i[A-Za-z0-9.]*\b|\binplace\b)[^;|&\n]{0,120}?(ravenclaude-core/(hooks|scripts)|thing-orchestrator\.sh|thing-seat\.sh|thing-concerns\.py|thing-decision\.py|\.ravenclaude/thing\.yaml)'
         # (3) turning the per-category toggle OFF in comfort-posture.yaml (bounded
         #     lookaheads so a large heredoc body is not scanned twice unbounded)
         - '(?s)\A(?=.{0,4000}comfort-posture\.yaml)(?=.{0,4000}thing:\s*(off|false|no)\b)'
