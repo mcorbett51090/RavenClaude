@@ -1,0 +1,39 @@
+{
+  "$schema": "https://github.com/mcorbett51090/RavenClaude/schemas/design-schema.schema.json",
+  "source": {
+    "url": "https://candidate.example.com",
+    "fetched_at": "2026-08-13T00:00:00Z",
+    "title": "Candidate — declares the same design system (plus benign additions)"
+  },
+  "capture_method": "static",
+  "spacing": {
+    "base_unit": 8,
+    "scale": [8, 16, 24, 32, 40],
+    "capture_method": "static"
+  },
+  "type_scale": {
+    "base_size": 16,
+    "ratio": 1.26,
+    "sizes": [16, 20, 25],
+    "capture_method": "static"
+  },
+  "grid": {
+    "breakpoints": ["768px", "1024px", "1440px"],
+    "columns": 12,
+    "gutter": "24px",
+    "container_max": "1200px",
+    "capture_method": "static"
+  },
+  "elevation": {
+    "shadows": [
+      "0 1px 2px rgba(0,0,0,0.1)",
+      "0 2px 8px rgba(0,0,0,0.1)",
+      "0 8px 24px rgba(0,0,0,0.2)",
+      "0 16px 48px rgba(0,0,0,0.3)"
+    ],
+    "capture_method": "static"
+  },
+  "components": [{ "name": "button" }, { "name": "card" }, { "name": "nav" }, { "name": "input" }],
+  "identity_flags": [],
+  "confidence_notes": []
+}
