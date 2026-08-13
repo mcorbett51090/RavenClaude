@@ -39,6 +39,84 @@ All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the 
   bidirectionally: the extended gate scores 18/0 against the fix and 11/7 against the pre-fix
   parser.
 
+## 0.253.0 — 2026-08-13
+
+> **Backfilled 2026-08-13, after the fact.** This release shipped in PR #890 (`e56b1261`) without a
+> CHANGELOG entry, leaving a version gap between `0.253.1` and `0.252.0`. Reconstructed from that
+> squash commit's five phase messages and the `CLAUDE.md` milestone — **not** written by the author of
+> the change. Treat `CLAUDE.md` § "`design-clone`" and the commit itself as authoritative if they
+> disagree with anything here.
+
+### Added
+
+- **`design-clone` skill** (`skills/design-clone/`) — the capture-and-apply contract for mimicking a
+  site's design *schema*, not just its tokens. `apply_schema.py` carries a **hard structural no-read
+  identity invariant**: `apply()` never reads the reference's `logos[]` or `palette`, and a
+  shadow/border color is neutralized to a target token — so the reference's identity is unreachable by
+  construction rather than by policy, with `flag_identity_risks` as the advisory second layer.
+  `sanitizers.py` adds strict `css_length` / `css_shadow` / `css_number` allowlists that
+  **reject-on-unknown with no partial salvage**.
+- **Design-schema contract** — `schemas/design-schema.schema.json` (Draft-07) plus the stdlib
+  `scripts/check-design-schema.py` validator (`--self-test`, named per-field errors).
+- **Five design-schema collectors in `brand-extraction`** (`extract_brand.py`) — spacing scale, type
+  scale, grid, elevation and component recipes, emitted as a schema-valid `design-schema.json`
+  alongside the existing brand kit. **Every dimension is stamped `capture_method: "static"`**: static
+  parsing cannot resolve the cascade or computed styles, so the schema is a seed, never fidelity.
+- **Gates 193 and 194** — 193 covers the collectors (7 per-collector must-fail mutants + a
+  byte-identical regression proof that the existing brand kit is unchanged); 194 covers the apply path
+  with **bidirectional** teeth: a legitimate `8px` / `box-shadow` / `1200px` must survive verbatim
+  **and** a hostile `url(javascript:)` / `expression()` / exfil must be dropped whole. The
+  false-negative half is load-bearing — a sanitizer that dropped everything would otherwise ship an
+  empty stylesheet green.
+
+### Changed
+
+- **`visual-feedback-loop` gained a render-compare pair** (`driver.py`): an offline structural
+  design-schema diff — the **floor**, a "declares the same design system" sanity check that is
+  deliberately never called fidelity — and a browser-captured `ssim_score` gate, the actual fidelity
+  verifier. When ssim is absent the driver degrades **loudly** ("visual fidelity not verified — no
+  browser tool") rather than silently passing. Folded into Gate 100 (+3 must-fail mutants) rather than
+  taking a new gate number.
+- **Design-schema mimicry priors** added to the two existing `web-design` agents
+  (`visual-designer`, `frontend-implementer`) — body-only, no new agent, so the ~15K
+  agent-description budget is untouched. `web-design` bumped 0.15.0 → 0.16.0 alongside.
+
+### Fixed
+
+- **`_fetch` was not SSRF-bounded.** Now **http(s)-only** (drops `FileHandler`/`FTPHandler`), blocks
+  private / loopback / cloud-metadata destinations, and **re-validates after redirects** — so a
+  `file://` or `169.254.169.254` sub-resource is refused rather than followed.
+- **`ssim_score` is domain-clamped to `[0,1]`**, so a page-controllable `5.0` or `NaN` can never fake
+  a pass. The same clamp closes an inherited hole in `_gate_lighthouse`.
+
+### Security
+
+- **The custom-property emit is now sanitizer-gated**, so a `url()` beacon can no longer reach
+  `brand.css` via a `<link>`-ed stylesheet.
+
+  **This has a consumer-visible side effect, named honestly:** a value that is not *wholly* a matched
+  color / length / number / shadow is **dropped**. That catches the hostile beacon (the point) **and**
+  a legitimate complex declaration — `linear-gradient(...)`, a multi-value shorthand, an `!important`
+  — which no longer round-trips into `brand.css`. `brand.css` was deliberately excluded from the
+  byte-identical regression floor for exactly this reason.
+
+### Known residuals (reviewer-accepted, not merge blockers)
+
+- The `_fetch` SSRF guard is **resolve-then-connect**, so a DNS-rebinding record is a standard TOCTOU
+  residual. Closing it fully needs a pinned custom connector; the size cap and timeout bound the blast
+  radius, and this is an offline dev tool.
+- `getaddrinfo` is not bounded by the fetch timeout (a low-risk DNS hang).
+- The `check-design-schema.py` packaging move (marketplace-root → plugin) is deferred.
+
+### Owner disclosures (accepted at merge)
+
+- **Fidelity is browser-gated.** The offline path is a structural sanity check; stdlib cannot compare
+  pixels.
+- **Trade-dress residual risk is the owner's.** The tool clones functional craft and re-skins with the
+  target's brand, but overall look-and-feel is exactly what pixel-faithful mimicry reproduces, and the
+  tool cannot detect it. A clean `identity_flags[]` is **not** legal clearance; distinctiveness calls
+  route to `security-reviewer`. Not legal advice.
+
 ## 0.252.0 — 2026-08-13
 
 ### Added
