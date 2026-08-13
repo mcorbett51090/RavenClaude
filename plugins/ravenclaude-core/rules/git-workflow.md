@@ -15,7 +15,7 @@ Expands on §3 of CLAUDE.md.
 Slug: kebab-case, ≤ 40 chars, descriptive but tight. `feat/auth-refresh-rotation`, not `feat/stuff`.
 
 ## Commits
-- Conventional Commits: `type(scope): subject`.
+- **Conventional Commits — the gate, not just a convention.** Every commit subject is `type(scope): subject` (spec: conventionalcommits.org, retrieved 2026-08-12 — see the catalog below). The `type` prefix is what makes the changelog and the next version **machine-derivable**: `fix:` → a **PATCH** bump, `feat:` → a **MINOR** bump, and a `BREAKING CHANGE:` footer (or a `!` after the type/scope) → a **MAJOR** bump. Keep the mapping honest and a release tool (changesets / semantic-release / release-please) can cut the version and CHANGELOG from history with no hand-editing. **Enforceable:** a semantic-PR-title / commit-message CI check (widely gated — `vitejs/vite`, `django/django`, `microsoft/vscode`, `renovate`, `pnpm`, `cli/cli` all run one). **Teachable:** pick the `type` by the *user-visible effect* of the change, not the size of the diff.
 - Subject: imperative, ≤ 72 chars, no trailing period. Capitalize the first word after the colon? Match the repo's existing style.
 - Body: wrap at 80 chars. Explain *why*. Reference issues with `Refs #123` or `Fixes #123`.
 - One logical change per commit. If a commit has "and" in the subject, split it.
@@ -76,7 +76,7 @@ redundant — each catches a case the previous one already cleared:
 >   branch carrying genuinely unmerged work.
 > - **Gate 4 (`git branch -d`) is blind the same way**, so a squash-merged branch cannot be
 >   retired with `-d` at all. That case routes to
->   [`scripts/cleanup-branches.sh`](../../../scripts/cleanup-branches.sh), the **one**
+>   [`${CLAUDE_PLUGIN_ROOT}/scripts/cleanup-branches.sh`](../scripts/cleanup-branches.sh), the **one**
 >   sanctioned `-D` escape hatch (house rule 5) — do not add a second force-delete path.
 >
 > This is not hypothetical: on 2026-08-05 a sweep reported **13 of 15** RavenPower branches
@@ -94,14 +94,15 @@ was merged and clean but had open PR #184; `forge/portal-intake-tree` passed all
 and git still refused `-d`. Result: 13 deleted, 3 saved that a merged-only sweep would
 have destroyed.
 
-**Run it:** [`scripts/branch-hygiene.sh`](../../../scripts/branch-hygiene.sh) implements
+**Run it:** [`${CLAUDE_PLUGIN_ROOT}/scripts/branch-hygiene.sh`](../scripts/branch-hygiene.sh) implements
 all four gates, is **dry-run by default**, and fails closed if it can't reach `gh` (an
-unprovable gate is not a passed gate). Note dry-run is deliberately *looser* than
+unprovable gate is not a passed gate). _(Consumer fallback if `${CLAUDE_PLUGIN_ROOT}` is unset:
+`find ~/.claude/plugins/cache -name branch-hygiene.sh -path '*ravenclaude-core*'`, mirroring `bin/rc`.)_ Note dry-run is deliberately *looser* than
 `--execute`, since gate 4 only renders a verdict at delete time.
 
 **Scope — merged branches only.** For **unmerged/abandoned** work whose commits are not
 in the base, gate 1 correctly refuses; that case needs
-[`scripts/archive-branch.sh`](../../../scripts/archive-branch.sh), which tags the tip so
+[`${CLAUDE_PLUGIN_ROOT}/scripts/archive-branch.sh`](../scripts/archive-branch.sh), which tags the tip so
 it stays recoverable. See AGENTS.md house rule 5.
 
 ## Rebases vs. merges
@@ -114,3 +115,7 @@ it stays recoverable. See AGENTS.md house rule 5.
 - Title in Conventional Commit format, ≤ 72 chars.
 - Body uses the template in [`create-pr`](../skills/create-pr/SKILL.md).
 - Don't merge your own PR without an explicit user "ship it." Even on solo projects, the human approves the merge.
+
+## See also — CI & GitHub-development hardening
+- [`../knowledge/github-actions-hardening.md`](../knowledge/github-actions-hardening.md) — the rules behind every gold-standard Actions gate (least-privilege `permissions:`, SHA-pinned actions, OIDC, the required-check `paths:`-filter trap, merge queue + CODEOWNERS).
+- [`../knowledge/github-gold-standard-repos.md`](../knowledge/github-gold-standard-repos.md) — the durable best-practices catalog + the dated 30-repo exemplar snapshot the rules were extracted from.

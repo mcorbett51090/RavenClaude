@@ -1,0 +1,46 @@
+{
+  "purpose": "UPWARD-ONLY reconciliation. The author's own `kind` may be RAISED by the grammar and may never be LOWERED by it. `claim-5-author-observation` is the load-bearing row: the Incident-1 sentence types `inference` under an author who insisted it was an observation, which is what makes the verdict not-a-self-report.",
+  "source": "docs/plans/2026-08-08-premise-gate/claims-table.md",
+  "cases": [
+    {
+      "id": "claim-5-author-observation",
+      "text": "The decoder is broken, therefore every visitor sees a mangled address",
+      "author_kind": "observation",
+      "expect": "inference",
+      "note": "THE requirement — a confident author cannot type this back down"
+    },
+    {
+      "id": "claim-5-author-none",
+      "text": "The decoder is broken, therefore every visitor sees a mangled address",
+      "author_kind": null,
+      "expect": "inference"
+    },
+    {
+      "id": "claim-6-author-observation",
+      "text": "FORGE G1 as written would have passed claim 5",
+      "author_kind": "observation",
+      "expect": "inference",
+      "note": "one family (modal) is enough to raise it"
+    },
+    {
+      "id": "claim-1-author-inference",
+      "text": "`/cdn-cgi/l/email-protection` returns 404 on the zone",
+      "author_kind": "inference",
+      "expect": "inference",
+      "note": "the author's RAISE survives — grammar is a floor, not a ceiling"
+    },
+    {
+      "id": "claim-1-author-observation",
+      "text": "`/cdn-cgi/l/email-protection` returns 404 on the zone",
+      "author_kind": "observation",
+      "expect": "observation",
+      "note": "the honest case must stay cheap, or the gate gets disabled (risk R-8)"
+    },
+    {
+      "id": "claim-1-author-none",
+      "text": "`/cdn-cgi/l/email-protection` returns 404 on the zone",
+      "author_kind": null,
+      "expect": "observation"
+    }
+  ]
+}

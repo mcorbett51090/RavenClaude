@@ -49,7 +49,19 @@ _OPT_IN = re.compile(r"<!--\s*lineup-citations:\s*enforce", re.IGNORECASE)
 
 # A quoted number that demands grounding: a money amount or a token-context magnitude.
 _MONEY = re.compile(r"\$\s?\d")
-_CONTEXT = re.compile(r"\b\d+\s?M\b|\b\d+\s?[Kk]\s*(?:tok|token)")
+# K/M-abbreviated magnitudes AND raw-digit token/context counts. The raw-digit
+# clause (2026-08 review) closes a hole where a row stating the same volatile fact
+# without the K/M idiom — "1,000,000 tokens", "200000-token context window",
+# "128000 context" — matched neither pattern and was silently treated as not
+# needing a citation, defeating the gate's whole anti-stale-fact purpose. The
+# raw-digit run is 4+ chars (a real context window is ≥1000), so a version number
+# ("1.2.3", dots break the run) or a date ("2026-07-15", the trailing token isn't
+# tok/token/context) does not match.
+_CONTEXT = re.compile(
+    r"\b\d+\s?M\b"
+    r"|\b\d+\s?[Kk]\s*(?:tok|token)"
+    r"|\b\d[\d,_]{3,}\b\s*[-–]?\s*(?i:tok|token|context)"
+)
 
 # Grounding signals — any one of these on the same row satisfies the gate.
 _LINK = re.compile(r"\]\(https?://")

@@ -90,11 +90,19 @@ def _repo_root() -> str:
 
 
 def _resolve_safe(input_path: str) -> str:
-    """Reject '..' components and paths resolving outside the repo root."""
+    """Reject '..' components and paths resolving outside the repo root.
+
+    Uses os.path.realpath (NOT abspath) on BOTH the input and the root — abspath
+    does not resolve symlinks, so an in-repo path that is a SYMLINK to a file
+    outside the repo passes a commonpath check on its own (symlink) path while
+    open() follows the link out of the sandbox. realpath collapses the link first,
+    so the containment check sees the true target. This restores the sandbox parity
+    with pbir-layout-engine/lint.py that driver.py's docstring claims (2026-08 review;
+    Gate 100 gained a symlink-escape fixture to enforce the parity)."""
     if ".." in input_path.split(os.sep):
         raise InputError(f"path component '..' is not allowed: {input_path!r}")
-    resolved = os.path.abspath(input_path)
-    root = _repo_root()
+    resolved = os.path.realpath(input_path)
+    root = os.path.realpath(_repo_root())
     if os.path.commonpath([resolved, root]) != root:
         raise InputError(f"path resolves outside repo root: {resolved!r}")
     return resolved
@@ -108,9 +116,7 @@ def _load_json_bounded(path: str, *, what: str) -> object:
     except OSError as exc:
         raise InputError(f"cannot stat {what}: {exc}") from exc
     if size > MAX_EVIDENCE_BYTES:
-        raise InputError(
-            f"{what} exceeds size ceiling ({size} > {MAX_EVIDENCE_BYTES} bytes)"
-        )
+        raise InputError(f"{what} exceeds size ceiling ({size} > {MAX_EVIDENCE_BYTES} bytes)")
     try:
         with open(resolved, encoding="utf-8") as fh:
             return json.load(fh)
@@ -187,11 +193,7 @@ def _gate_console(data: object, max_errors: int) -> dict:
         record["status"] = "not_captured"
         record["note"] = "console-evidence-unrecognized-shape"
         return record
-    errors = sum(
-        1
-        for m in data["messages"]
-        if isinstance(m, dict) and m.get("level") == "error"
-    )
+    errors = sum(1 for m in data["messages"] if isinstance(m, dict) and m.get("level") == "error")
     record["count"] = errors
     record["status"] = "pass" if errors <= max_errors else "fail"
     return record
@@ -298,8 +300,10 @@ def _pbir_skeleton(visual_obj: object) -> dict | None:
             object_keys.add(k)
             # Fully-$id'd iff the key has items AND every item carries `$id`
             # (the schema requires it per item — `all`, never `any`).
-            if isinstance(items, list) and items and all(
-                isinstance(it, dict) and "$id" in it for it in items
+            if (
+                isinstance(items, list)
+                and items
+                and all(isinstance(it, dict) and "$id" in it for it in items)
             ):
                 id_keys.add(k)
     return {
@@ -331,9 +335,7 @@ def _gate_parity(candidate_path: str, reference_path: str) -> dict:
     if cs is None or rs is None:
         record["status"] = "not_captured"
         record["note"] = (
-            "parity-candidate-non-pbir-shape"
-            if cs is None
-            else "parity-reference-non-pbir-shape"
+            "parity-candidate-non-pbir-shape" if cs is None else "parity-reference-non-pbir-shape"
         )
         return record
     if cs["visualType"] != rs["visualType"]:
@@ -402,8 +404,7 @@ def _synthesize(surface: str, gates: list[dict]) -> dict:
     determinate = [g for g in gates if g.get("status") in _DETERMINATE]
     any_fail = any(g["status"] in ("fail", "error") for g in determinate)
     has_runtime_evidence = any(
-        g["gate"].startswith(("console", "lighthouse"))
-        and g.get("status") in _DETERMINATE
+        g["gate"].startswith(("console", "lighthouse")) and g.get("status") in _DETERMINATE
         for g in gates
     )
     degraded = [g for g in gates if g.get("status") == "degraded"]

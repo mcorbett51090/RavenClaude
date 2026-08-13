@@ -418,6 +418,18 @@ jobs:
         # and the generated copilot/ tree). See scripts/check-md-links.py.
         run: python3 scripts/check-md-links.py
 
+      - name: Verify shipped plugin files only cite scripts/hooks they ship
+        # Closes the CLASS of the P1 defect: a file shipped inside the plugin
+        # (skills/rules/commands/agents/templates/hooks) points at a script or
+        # hook by a path a CONSUMER cannot resolve, because the target lives only
+        # at the marketplace-root scripts/ and never ships in the plugin (the
+        # guard-destructive branch-recovery escape hatch was exactly this). Checks
+        # ${CLAUDE_PLUGIN_ROOT}/(scripts|hooks)/X, in-plugin markdown links, and
+        # bare marketplace-root references in operational surfaces against "does
+        # plugins/ravenclaude-core/(scripts|hooks)/<basename> ship". Teeth audited
+        # in audit-gates.sh Gate 187. See scripts/check-shipped-references-resolve.py.
+        run: python3 scripts/check-shipped-references-resolve.py
+
       - name: Verify no PCRE constructs inside grep -E (dead-check guard)
         # A PCRE-only construct ((?:..)/(?!..)/[\s\S]) inside `grep -E` (POSIX ERE)
         # is silently misparsed by GNU grep, so the advisory-hook check is DEAD and
