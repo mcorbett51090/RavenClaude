@@ -901,9 +901,15 @@ PY
         python3 scripts/check-verdict-default-nonpermissive.py
       exit $?
       ;;
+    200)
+      echo "── Gate 200: surface parity — routes homed identically (per-gate run) ──"
+      python3 scripts/check-surface-parity.py --self-test && \
+        python3 scripts/check-surface-parity.py
+      exit $?
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -6610,6 +6616,41 @@ rc=0; python3 scripts/check-verdict-default-nonpermissive.py --self-test >/dev/n
 gate "fail-closed static: teeth (permissive default / no default arm / late-armed trap caught; correct shapes clean)" must_pass "$rc"
 rc=0; python3 scripts/check-verdict-default-nonpermissive.py >/dev/null 2>&1 || rc=$?
 gate "fail-closed static: the live hooks default non-permissively and arm their traps first" must_pass "$rc"
+
+echo
+echo "── Gate 200: where two surfaces must agree, assert them against EACH OTHER ─"
+# A gate that checks each surface independently against a hardcoded constant
+# cannot catch the surfaces DISAGREEING. That shape has shipped here three times:
+# the portal router not owning a route; the portal owning it but homing it
+# somewhere else; and a hand-maintained twin drifting in the half nothing
+# compared. In each case both surfaces passed their own assertion.
+#
+# Gate 144 does this for ONE route (the Prompt Builder). This generalises it to
+# ALL 17: the destination the standalone ds-label/ds-sub chrome homes each route
+# under — carried by BOTH surfaces, so it is a single source of truth rather than
+# an expectation typed twice — must equal the destination the portal's DASH_OWNER
+# routes it to. Neither side is a constant, so neither can quietly become wrong.
+#
+# ⛔ A TWIN-SERVER INSTANCE WAS BUILT AND DELIBERATELY REMOVED. It asserted the
+# two serve-dashboards.py copies expose the same CLI flags and routes; every
+# finding was BY DESIGN, and the bundled copy says so in its own source ("No
+# /__run endpoint" — its /__runs is a different, plural endpoint). Surface
+# equality is the WRONG assertion for two copies that intentionally differ, and
+# a gate that floods on intentional differences gets switched off. The real twin
+# defect (a main() feature in one copy and not the other) needs a TARGETED check
+# of what each copy's docs claim, and is its own build unit. Do not "complete"
+# this gate by adding the wrong half back — see the script header.
+#
+# Exemptions are DECLARED with a stated reason and the teeth assert the reason is
+# substantive; an empty reason is a silenced finding, not an exemption.
+#
+# ⛔ Registered in BOTH this main sequence AND the --check dispatcher above + the
+# Supported: string. After adding a gate, run the full suite and GREP ITS OUTPUT
+# FOR "200" — a passing suite is not evidence your gate is in it.
+rc=0; python3 scripts/check-surface-parity.py --self-test >/dev/null 2>&1 || rc=$?
+gate "surface-parity: teeth (placement disagreement + unrouted tab caught; agreement clean; every exemption reasoned; empty derivation fails closed)" must_pass "$rc"
+rc=0; python3 scripts/check-surface-parity.py >/dev/null 2>&1 || rc=$?
+gate "surface-parity: all 16 non-exempt routes homed identically by the standalone chrome and the portal router" must_pass "$rc"
 
 echo
 
