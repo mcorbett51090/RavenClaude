@@ -421,8 +421,36 @@ jobs:
           set -euo pipefail
           n="${{ steps.cpr.outputs.pull-request-number }}"
           echo "Waiting for required checks on self-heal PR #$n (operation: ${{ steps.cpr.outputs.pull-request-operation }})"
-          # Give the pull_request-triggered checks a moment to register before watching.
-          sleep 25
+          # ⛔ A flat `sleep 25` here was a RACE, and it fired for real on 2026-08-13
+          # (run 31655977109). `gh pr checks --watch` does NOT wait for checks to
+          # APPEAR — it exits non-zero immediately on "no checks reported". So when
+          # registration took longer than the sleep, this step failed 26s in, left
+          # #881 open, and `main` shipped stale dashboards (0.248.0 vs a 0.250.0
+          # manifest) until a human noticed 13 minutes later. The same PR's checks
+          # took ~270s to settle when polled by hand — the checks were fine; only
+          # the wait was wrong.
+          #
+          # It is intermittent, which is the dangerous part: #879 and #880 landed
+          # clean the same hour. And it fails ONLY when there is work to do — a
+          # no-op run has no PR and skips this step entirely — so the failure mode
+          # is invisible except exactly when it matters.
+          #
+          # Poll for checks to REGISTER (bounded), then hand off to --watch for the
+          # conclusion. Registration and completion are two different waits and
+          # conflating them is what broke.
+          registered=0
+          for _i in $(seq 1 20); do            # 20 x 15s = 5 min ceiling
+            if gh pr checks "$n" >/dev/null 2>&1; then registered=1; break; fi
+            sleep 15
+          done
+          if [ "$registered" -ne 1 ]; then
+            # Genuinely no checks after 5 minutes. Do NOT merge — that is the
+            # 2026-07-27 root cause (a GITHUB_TOKEN-opened PR never gets checks),
+            # and force-landing unvalidated output is the one outcome worse than
+            # a stale dashboard.
+            echo "::error::self-heal PR #$n registered NO checks after 5min — leaving it open (is SELF_HEAL_PAT set?)"
+            exit 1
+          fi
           if ! gh pr checks "$n" --watch --interval 30; then
             echo "::error::self-heal PR #$n has a failing/incomplete required check — leaving it open for inspection"
             exit 1
