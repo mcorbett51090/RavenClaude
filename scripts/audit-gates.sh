@@ -894,9 +894,16 @@ PY
       bash plugins/ravenclaude-core/hooks/tests/test-enforce-portability.sh
       exit $?
       ;;
+    199)
+      echo "── Gate 199: hook fail-closed exit-code audit (per-gate run) ──"
+      bash scripts/check-hook-failclosed.sh --self-test && \
+        python3 scripts/check-verdict-default-nonpermissive.py --self-test && \
+        python3 scripts/check-verdict-default-nonpermissive.py
+      exit $?
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -6566,6 +6573,43 @@ echo "── Gate 198: macOS-portability lint (in-loop hook + CI backstop) ─�
 # FOR "198" — a passing suite is not evidence your gate is in it.
 rc=0; bash plugins/ravenclaude-core/hooks/tests/test-enforce-portability.sh >/dev/null 2>&1 || rc=$?
 gate "portability-lint: warn/block/off knob + shim+sentinel+comment not flagged + extension-less screened + shared-table parity; teeth by 1 mutant" must_pass "$rc"
+
+echo
+echo "── Gate 199: every PreToolUse hook fails CLOSED ───────────────────────────"
+# The harness treats exit 2 as a BLOCK and any other non-zero as a NON-blocking
+# error — so a guard that errors with exit 1 does not fail safe, it fails OPEN:
+# the call proceeds and nothing is reported. Only 0 (deliberate safe no-op) and
+# 2 (deliberate deny) are honest outcomes on an input a hook was never written
+# for. 127 is the stock-macOS shape of the same thing.
+#
+# A STATIC CHECK PROVABLY CANNOT SEE THIS CLASS — the constructs are valid and
+# fail only at runtime, on conditional paths, under a specific toolchain. So the
+# first half EXECUTES all 11 registered PreToolUse hooks against 7 malformed /
+# empty / wrong-type payloads under `env -i PATH=/usr/bin:/bin`, bounded and
+# pointed at a throwaway project dir so nothing touches the real tree.
+#
+# The second half covers the two shapes execution cannot reach because they fire
+# only on a branch a synthetic payload does not take: a PERMISSIVE `*)` default
+# on a verdict chain (the v0.205.1 tie-breaker fix — every branch failed safe
+# except the final else), and an EXIT trap armed AFTER the first fallible
+# operation (an abort during setup then exits non-zero without the deny).
+#
+# ⛔ A uniform result across the whole population is a claim about the INSTRUMENT
+# until proven otherwise. The first draft of the runner reported all 11 hooks
+# failing open with an identical exit 127 — the bound was placed inside `env -i`,
+# which can only exec a binary, so the shell-function shim never ran and no hook
+# was ever driven. Both teeth halves (a planted exit-1 mutant MUST be caught, a
+# correct safe-no-op MUST NOT be flagged) exist because of that.
+#
+# ⛔ Registered in BOTH this main sequence AND the --check dispatcher above + the
+# Supported: string. After adding a gate, run the full suite and GREP ITS OUTPUT
+# FOR "199" — a passing suite is not evidence your gate is in it.
+rc=0; bash scripts/check-hook-failclosed.sh --self-test >/dev/null 2>&1 || rc=$?
+gate "fail-closed: all 11 PreToolUse hooks exit 0-or-2 on 7 hostile payloads; teeth by a planted exit-1 mutant + a no-flood control" must_pass "$rc"
+rc=0; python3 scripts/check-verdict-default-nonpermissive.py --self-test >/dev/null 2>&1 || rc=$?
+gate "fail-closed static: teeth (permissive default / no default arm / late-armed trap caught; correct shapes clean)" must_pass "$rc"
+rc=0; python3 scripts/check-verdict-default-nonpermissive.py >/dev/null 2>&1 || rc=$?
+gate "fail-closed static: the live hooks default non-permissively and arm their traps first" must_pass "$rc"
 
 echo
 
