@@ -2,6 +2,12 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.16.0] — 2026-08-13
+
+### Added
+
+- **Design-schema mimicry priors** on `visual-designer` + `frontend-implementer` (body-only; no frontmatter change). Each agent gains a `## Design-schema mimicry` section in the exact slot/style of the existing `## Visual feedback loop` prior, pointing at the new `ravenclaude-core/skills/design-clone` skill: **clone the craft, swap the identity**, with the browser-gated-fidelity boundary stated up front (offline structural diff = a "declares the same design system" sanity check; the `ssim_score` render-compare gate is the fidelity verifier, present only with a browser tool). A cross-plugin row was added to the §8a knowledge-bank table.
+
 ## [0.15.0] — 2026-07-21
 
 ### Added

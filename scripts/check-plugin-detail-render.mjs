@@ -53,7 +53,7 @@ const ISLANDED_AGENT_KEYS = ["scenarios", "quickstart", "works_with"];
 const RC = "ravenclaude-core";
 const RC_BASELINE = {
   agents: 15,
-  skills: 52, // 50 -> 51: skills/probe-kit (v0.240.0, the control-probe kit)
+  skills: 53, // 52 -> 53: skills/design-clone (v0.253.0, design-schema capture+apply)
   //        51 -> 52: skills/github-gold-standard (v0.246.0, the gold-standard scorecard)
   tools: 19, // 18 -> 19: scripts/compact-anchor.py (v0.245.0, the SessionStart(compact) pointer)
   scenarios: 4,
