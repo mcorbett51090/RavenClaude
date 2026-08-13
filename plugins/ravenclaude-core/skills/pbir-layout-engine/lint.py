@@ -360,7 +360,13 @@ def check_column_alignment(page: str, visuals: list[dict], tolerance: float) -> 
         for i, v in enumerate(visuals)
         if _pos(v) and not _ignored(v, "check-4")
     ]
-    rows = _rows([(vid, p) for vid, p in boxes], tol=max(DEFAULT_ALIGN_TOLERANCE_PX, 1))
+    # Group into rows using the caller-supplied tolerance (matching the sibling
+    # check_equal_gap at line ~329), NOT a hardcoded 1px. The prior
+    # max(DEFAULT_ALIGN_TOLERANCE_PX, 1) ignored a page's column_align_px override:
+    # visuals meant to be one row but carrying legitimate vertical jitter were split
+    # into separate rows at 1px, so a genuine x-misalignment between them was never
+    # compared — a false negative (2026-08 review).
+    rows = _rows([(vid, p) for vid, p in boxes], tol=max(tolerance, 1))
     if len(rows) < 2:
         return findings  # single row → no columns to compare
     # Column index by ordinal position within each row.
