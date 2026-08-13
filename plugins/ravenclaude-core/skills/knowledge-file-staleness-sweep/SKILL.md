@@ -18,7 +18,48 @@ This skill is the operational arm of the Researcher meta-skill ([`researcher.md`
 
 ## Scope
 
-The sweep runs against three surfaces:
+> **⛔ SWEEP THE CONSTITUTION FILES FIRST — they are the highest-priority surface.**
+>
+> `CLAUDE.md`, `AGENTS.md` and every `plugins/*/CLAUDE.md` are loaded into **every
+> session**, so a stale claim in one of them is not a documentation lag — it is a
+> **prior that every future agent starts out believing**, with nobody left to
+> cross-examine it. The knowledge files below are read on demand; these are read
+> unconditionally, which makes them the worst place for drift and the first place
+> to look.
+>
+> This is not hypothetical. An agent read a stale "Still open" list in one of these
+> files, took it at face value, and told the maintainer **twice** that his
+> command-review tribunal was broken on macOS — while it had been working for
+> releases. The reader it fooled was the constitution's primary audience: an agent.
+>
+> **What to look for here is different from a `last-verified` date.** These files
+> carry no freshness stamps; they carry *status claims*. Sweep for:
+>
+> | Claim shape | How to test it |
+> | --- | --- |
+> | "Still open" / "not yet built" / "unowned" | find the artifact — did it ship? |
+> | "Gate N is unrun / never registered" | grep `audit-gates.sh` for the gate |
+> | "`path/to/file` was deleted / is a phantom" | is it on disk? |
+> | a milestone's "Next:" or "Deferred:" list | did a later milestone close it? |
+>
+> **The rule, already stated in the v0.196.0 supersession note:** *when you close a
+> door, supersede the entry that says it's open **in the same PR**.* A sweep that
+> finds a closed door still described as open should fix it there, not file it.
+>
+> **Gate 202** (`scripts/check-constitution-claim-staleness.py`) mechanizes the
+> narrow, binary subset of this — a claim that a named artifact is *missing* where
+> it is in fact present. It deliberately does **not** judge whether a "Still open"
+> item is genuinely still open; that needs a judgment about the world, not a fact
+> about the tree. **That judgment is this sweep's job**, and the gate is the floor
+> beneath it, not a replacement for it.
+>
+> **Two phrasings are correct and must not be "fixed":** a *conditional* ("the hook
+> allows everything **if** the manifest is absent" — a statement about a code path)
+> and *past-tense history* ("Gate 184 **was** unreachable" inside a milestone that
+> records the fix). Both were real false positives caught before Gate 202 shipped.
+> This repo keeps superseded entries as dated records on purpose.
+
+The knowledge-file sweep then runs against three surfaces:
 
 1. **`plugins/*/knowledge/*.md`** — long-form curated reference material.
 2. **`plugins/*/skills/*.md`** — skill files with explicit `last-verified:` dates (most skills don't carry these, but some do).
