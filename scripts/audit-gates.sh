@@ -115,6 +115,52 @@ _gate188_file_ok() { # $1=rendered .yml — returns 0 if hygienic, prints reason
   return "$rc"
 }
 
+# ── Gate 192 helpers: `ravenclaude init-agent-ci` scaffold runnability ────────
+# The consumer-facing installer subcommand copies the 7-file / 3-dir agent-in-CI
+# set from templates/agent-ready-repo/ into a consumer's .github/. The invariant
+# is SCAFFOLD RUNNABILITY, not a file count (CE-1b: a count gate stays green on
+# the broken scaffold where a copied workflow's companion script is missing, and
+# cements the defect). Shared by the --check dispatcher AND the main sequence.
+# bash-3.2-safe by construction (no declare -A / mapfile / ${x^^}; a python3
+# parser, not grep -P) so the gate runs identically under validate-macos.
+_RC_INSTALLER="scripts/ravenclaude"
+
+_gate192_scaffold() { # $1=installer script  $2=dest — silent full scaffold
+  bash "$1" init-agent-ci --project "$2" >/dev/null 2>&1
+}
+
+_gate192_deps_ok() { # $1=scaffolded consumer dir — 0 iff every workflow-referenced local script exists on disk
+  python3 - "$1" <<'PY'
+import re, sys, pathlib
+dest = pathlib.Path(sys.argv[1])
+wf = dest / ".github" / "workflows"
+# Pinned to a local .github/scripts/<file>.(py|sh) reference. The bare directory arg
+# on the same run: line (`… check-workflow-hygiene.py .github/workflows`) has no
+# .py/.sh suffix and is deliberately NOT matched (RT-G5-3) — matching it would
+# false-fail; counting matches would false-pass and re-open CE-1.
+pat = re.compile(r'\.github/scripts/[A-Za-z0-9._-]+\.(?:py|sh)\b')
+missing = []
+for y in sorted(wf.glob("*.yml")):
+    for m in pat.finditer(y.read_text()):
+        ref = m.group(0)
+        if not (dest / ref).exists():
+            missing.append((y.name, ref))
+for w, r in missing:
+    sys.stderr.write("  MISSING DEP: %s -> %s\n" % (w, r))
+sys.exit(1 if missing else 0)
+PY
+}
+
+_gate192_noclobber_preserved() { # $1=installer script  $2=dest — 0 iff a pre-existing target survives a no-force re-run
+  local sentinel="RC_GATE192_SENTINEL_DO_NOT_CLOBBER"
+  _gate192_scaffold "$1" "$2" || return 2
+  local victim="$2/.github/workflows/agent-approval-check.yml"
+  [ -f "$victim" ] || return 2
+  printf '\n# %s\n' "$sentinel" >> "$victim"
+  _gate192_scaffold "$1" "$2"      # second run, NO --force
+  grep -q "$sentinel" "$victim"    # present => preserved (0); absent => clobbered (1)
+}
+
 # ── Optional per-gate filter: --check <gate_number> ──────────────────────────
 # Usage: bash scripts/audit-gates.sh --check 50
 # Runs only the named gate's fixture test directly and exits, bypassing the full
@@ -766,9 +812,59 @@ PY
       bash plugins/ravenclaude-core/hooks/tests/test-check-workflow-hygiene.sh
       exit $?
       ;;
+    192)
+      echo "── Gate 192: init-agent-ci scaffold runnability (per-gate run) ────────────"
+      _rc192=0
+      # (1) pass-on-good: the real scaffold lands + every workflow script-dep resolves
+      _g192_a="$(mktemp -d)"
+      if _gate192_scaffold "$_RC_INSTALLER" "$_g192_a" && _gate192_deps_ok "$_g192_a"; then
+        echo "  ✓ scaffold lands + workflow script-deps resolve on disk"
+      else
+        echo "  ✗ scaffold missing files or an unresolved workflow script-dep"; _rc192=1
+      fi
+      # (2) must-fail (CE-1 fixture a): drop the companion .py → dep-check MUST go red
+      rm -f "$_g192_a/.github/scripts/check-workflow-hygiene.py"
+      if _gate192_deps_ok "$_g192_a" 2>/dev/null; then
+        echo "  ✗ teeth: a missing companion .py was NOT caught (CE-1)"; _rc192=1
+      else
+        echo "  ✓ teeth: a missing companion .py is caught (CE-1)"
+      fi
+      # (3) must-fail (fixture b): a copied workflow references an omitted script → red
+      _g192_b="$(mktemp -d)"; _gate192_scaffold "$_RC_INSTALLER" "$_g192_b"
+      printf 'name: x\non:\n  pull_request:\njobs:\n  y:\n    runs-on: ubuntu-latest\n    steps:\n      - run: python3 .github/scripts/does-not-exist.py\n' > "$_g192_b/.github/workflows/_bad-ref.yml"
+      if _gate192_deps_ok "$_g192_b" 2>/dev/null; then
+        echo "  ✗ teeth: a workflow referencing an omitted script was NOT caught"; _rc192=1
+      else
+        echo "  ✓ teeth: a workflow referencing an omitted script is caught"
+      fi
+      # (4) no-clobber (RT-G5-2): a pre-existing target survives a no-force re-run
+      _g192_c="$(mktemp -d)"
+      if _gate192_noclobber_preserved "$_RC_INSTALLER" "$_g192_c"; then
+        echo "  ✓ no-clobber: a pre-existing target survives a no-force re-run"
+      else
+        echo "  ✗ no-clobber: a pre-existing target was clobbered without --force"; _rc192=1
+      fi
+      # (5) no-clobber teeth: a guard-removed mutant DOES clobber
+      _g192_mutd="$(mktemp -d)"; _g192_mut="$_g192_mutd/ravenclaude"
+      python3 - "$_RC_INSTALLER" "$_g192_mut" <<'PY'
+import sys, pathlib
+src = pathlib.Path(sys.argv[1]).read_text()
+old = 'if [ -f "$target" ] && [ "$force" -ne 1 ]; then'
+assert old in src, "no-clobber guard not found (source drifted) — update the Gate 192 mutant"
+pathlib.Path(sys.argv[2]).write_text(src.replace(old, 'if false; then'))
+PY
+      _g192_d="$(mktemp -d)"
+      if _gate192_noclobber_preserved "$_g192_mut" "$_g192_d"; then
+        echo "  ✗ teeth: guard-removed mutant did NOT clobber (no-clobber assertion is toothless)"; _rc192=1
+      else
+        echo "  ✓ teeth: guard-removed mutant clobbers (no-clobber assertion has teeth)"
+      fi
+      rm -rf "$_g192_a" "$_g192_b" "$_g192_c" "$_g192_d" "$_g192_mutd"
+      exit "$_rc192"
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -6216,6 +6312,64 @@ echo "── Gate 191: workflow-hygiene template ships a Rule-3-testing self-tes
 # adding a gate, run the full suite and GREP ITS OUTPUT FOR "191".
 rc=0; bash plugins/ravenclaude-core/hooks/tests/test-check-workflow-hygiene.sh >/dev/null 2>&1 || rc=$?
 gate "workflow-hygiene template: --self-test passes AND a Rule-3-neutered mutant fails it (teeth)" must_pass "$rc"
+
+echo "── Gate 192: init-agent-ci produces a RUNNABLE scaffold (not a file count) ─"
+# `ravenclaude init-agent-ci` copies the agent-in-CI protocol set into a consumer's
+# .github/ so a non-Claude host (Copilot/Codex) can adopt what only /init-agent-ready
+# reached before. The invariant is SCAFFOLD RUNNABILITY: every copied workflow's local
+# script-dep must exist on disk. CE-1 (the repo's own "ships green" defect): a copied
+# github-protocol-workflow-hygiene.yml invokes .github/scripts/check-workflow-hygiene.py
+# — a count-only gate stays green when that companion is missing and cements a scaffold
+# whose first consumer PR is red. The must-fail halves prove the dep-check + no-clobber
+# guard have teeth. Runs a REAL scaffold (not parse-only) so a future bash-4-ism in the
+# subcommand fails here under validate-macos (macos-latest), not silently at a consumer.
+# ⛔ Registered in BOTH this main sequence AND the --check dispatcher above. After adding
+# a gate, run the full suite and GREP ITS OUTPUT FOR "192" (v0.243.0: Gate 184 was
+# unreachable for a whole release while the suite reported green).
+_g192_good="$TMP/gate192-good"; mkdir -p "$_g192_good"
+_gate192_scaffold "$_RC_INSTALLER" "$_g192_good"
+# pass-on-good (a): the 7-file / 3-dir set lands.
+_g192_land=0
+for _rel in \
+  .github/workflows/github-protocol-workflow-hygiene.yml \
+  .github/workflows/github-protocol-pr-title.yml \
+  .github/workflows/github-protocol-commit-lint.yml \
+  .github/workflows/github-protocol-secret-scan.yml \
+  .github/workflows/agent-approval-check.yml \
+  .github/PULL_REQUEST_TEMPLATE/agent_pr_template.md \
+  .github/scripts/check-workflow-hygiene.py; do
+  [ -f "$_g192_good/$_rel" ] || { _g192_land=1; echo "    (missing: $_rel)"; }
+done
+gate "init-agent-ci lands the 7-file / 3-dir set" must_pass "$_g192_land"
+# pass-on-good (b): every workflow script-dep resolves on disk.
+rc=0; _gate192_deps_ok "$_g192_good" >/dev/null 2>&1 || rc=$?
+gate "init-agent-ci scaffold: workflow script-deps resolve" must_pass "$rc"
+# must-fail (CE-1 fixture a): drop the companion .py → dep-check IS caught.
+rm -f "$_g192_good/.github/scripts/check-workflow-hygiene.py"
+rc=0; _gate192_deps_ok "$_g192_good" >/dev/null 2>&1 || rc=$?
+gate "init-agent-ci dep-check (missing companion .py IS caught)" must_fail "$rc"
+# must-fail (fixture b): a copied workflow references a script the copy-set omits.
+_g192_badref="$TMP/gate192-badref"; mkdir -p "$_g192_badref"
+_gate192_scaffold "$_RC_INSTALLER" "$_g192_badref"
+printf 'name: x\non:\n  pull_request:\njobs:\n  y:\n    runs-on: ubuntu-latest\n    steps:\n      - run: python3 .github/scripts/does-not-exist.py\n' > "$_g192_badref/.github/workflows/_bad-ref.yml"
+rc=0; _gate192_deps_ok "$_g192_badref" >/dev/null 2>&1 || rc=$?
+gate "init-agent-ci dep-check (workflow referencing an omitted script IS caught)" must_fail "$rc"
+# no-clobber (RT-G5-2): a pre-existing target survives a no-force re-run.
+_g192_nc="$TMP/gate192-nc"; mkdir -p "$_g192_nc"
+rc=0; _gate192_noclobber_preserved "$_RC_INSTALLER" "$_g192_nc" || rc=$?
+gate "init-agent-ci no-clobber (pre-existing target survives no-force re-run)" must_pass "$rc"
+# no-clobber teeth: a guard-removed mutant DOES clobber (proves the assertion is not free).
+_g192_mut="$TMP/gate192-mutant-ravenclaude"
+python3 - "$_RC_INSTALLER" "$_g192_mut" <<'PY'
+import sys, pathlib
+src = pathlib.Path(sys.argv[1]).read_text()
+old = 'if [ -f "$target" ] && [ "$force" -ne 1 ]; then'
+assert old in src, "no-clobber guard not found (source drifted) — update the Gate 192 mutant"
+pathlib.Path(sys.argv[2]).write_text(src.replace(old, 'if false; then'))
+PY
+_g192_mnc="$TMP/gate192-mutant-nc"; mkdir -p "$_g192_mnc"
+rc=0; _gate192_noclobber_preserved "$_g192_mut" "$_g192_mnc" || rc=$?
+gate "init-agent-ci no-clobber teeth (guard-removed mutant clobbers)" must_fail "$rc"
 
 echo
 

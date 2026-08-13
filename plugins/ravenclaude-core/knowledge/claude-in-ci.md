@@ -1,5 +1,10 @@
 # Claude in CI — wiring an agent in as the GitHub actor, safely
 
+> **Last verified:** 2026-08-13. **Refresh trigger:** re-verify if `anthropics/claude-code-action`'s
+> signing / permissions model or GitHub's commit-signature-verification behavior changes. The §6
+> signing & minimum-permission facts were sourced this session and live in the run's
+> `research/external.md` §2.
+
 **Audience:** an autonomous agent that operates GitHub *from inside CI* — the agent **is** the CI
 actor that pushes, reviews, files issues, opens PRs, and (sometimes) merges. This is host-general;
 `anthropics/claude-code-action` is the worked example throughout because it ships this posture as
@@ -9,6 +14,7 @@ code, not prose. `[inf]`
 sources, `[unverified — training knowledge]` = recalled only, verify before building on it.
 
 > **Companion files:** identity, signing & attribution → [agent-pr-identity.md](agent-pr-identity.md);
+> issue triage as a primary actor → [agent-issue-triage.md](agent-issue-triage.md);
 > the Actions-hardening rules this leans on → [github-actions-hardening.md](github-actions-hardening.md);
 > who-merges → [git-workflow.md](../rules/git-workflow.md).
 
@@ -65,12 +71,55 @@ and the human clicks it `[obs, claim 7]`. Same spirit as RavenClaude's own rule 
 the merge; see [git-workflow.md](../rules/git-workflow.md), "Pull requests." The agent is a PR
 *proposer*, not a self-serve merger.
 
-## 6. Verified commit signing
+## 6. Verified commit signing — operational runbook
 
-`use_commit_signing: true` signs commits through the GitHub API, so they show as **verified** — but
-that API path cannot rebase or cherry-pick. An SSH signing key is the git-CLI alternative when you
-need history operations `[obs, claim 8]`. Which identity signs, and how attribution should read, is
-[agent-pr-identity.md](agent-pr-identity.md).
+`use_commit_signing: true` signs commits through the GitHub API, so they show as **verified**. Which
+path an agent should use — and what each costs — depends on its git needs and whether it wants a
+verified badge under its own name. This section is **guidance only**: it names the three items below
+and their trade-offs; it ships **no App-manifest template and no credential scaffold** (App creation
+and credential custody stay a deliberate manual step — see [agent-pr-identity.md](agent-pr-identity.md)
+§3).
+
+**(a) GitHub-App API-signed commits (`use_commit_signing: true`).** Commits are created **through the
+GitHub API**, so GitHub signs them server-side with its own web-flow key and marks them **Verified as
+the App** — **zero key custody** (there is no signing key to attach or steward). Because it uses the
+API and **not** the git CLI, it **precludes the `rebase` operation, cherry-pick semantics, and
+interactive-history rewriting** — the API path can create branches, commit files, and open PRs, and
+nothing more `[obs, claim 5]`. Reach for it when the agent's git needs are create-branch +
+commit-files + open-PR only (the common case).
+
+**(b) Dedicated account + an SSH/GPG signing key.** A bot with its **own account** and a signing key
+tied to it gets commits **Verified under the bot's own name** with **full local git** available
+(history operations included) — the Devin pattern. The cost is provisioning and stewarding a **second
+account** and its key. GitHub verifies a signature against the **author identity**, which is exactly
+why a bot that wants its own verified name needs its own account `[obs, claim 6]`. Reach for it only
+when the agent must run history operations locally **and** wants Verified under its own name `[inf]`.
+
+**Reconciling the apparent "GitHub can't sign on your behalf" conflict.** GitHub's
+signature-verification page says *"GitHub doesn't have access to the committer's private signing keys,
+so it can't sign the commit on the user's behalf."* That statement is **scoped to locally-authored
+commits** pushed via git — GitHub cannot sign *those*. It does **not** contradict path (a): a commit
+**created through the API** is authored by GitHub's **web-flow identity**, so GitHub signs it with its
+own key and marks it Verified. Both statements are true; they describe different commit-creation paths
+`[obs, claim 5]`.
+
+**(c) Minimum App permissions (least-privilege) for open-PRs + triage-issues.** Grant only these three
+repository permissions:
+
+| Permission | Level | Why |
+|---|---|---|
+| **Contents** | Read & Write | Create branches / commits / files (the fix) `[obs, claim 7]` |
+| **Issues** | Read & Write | Read, comment, label, and close/relabel during triage `[obs, claim 7]` |
+| **Pull requests** | Read & Write | Open / update PRs and comment `[obs, claim 7]` |
+
+Plus **`id-token: write`** at the **workflow** level — **only** when the workflow authenticates via
+OIDC / Workload Identity Federation; it is **not needed** for direct-API auth `[obs, claim 7]`.
+**Not needed for the minimum — don't grant them:** Discussions, Actions, Checks, and Workflows are
+future-feature scopes the App *may* request but that open-PR + triage do **not** require. The official
+Claude GitHub App / app-manifest auto-configures the three above; a hand-rolled custom App must set
+them explicitly, and least-privilege means stopping there `[obs, claim 7]`.
+
+Which identity signs, and how attribution should read, is [agent-pr-identity.md](agent-pr-identity.md).
 
 ## 7. Structural anti-self-approval
 

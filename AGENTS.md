@@ -47,6 +47,8 @@ There is **no package install** — the marketplace is markdown + shell + JSON m
 
 `jq` and `python3` are required for the CI workflows and the layout-enforcement hook. Both are present in the devcontainer.
 
+**Scaffolding the agent-in-CI protocol (any host).** After install, `bash <marketplace>/scripts/ravenclaude init-agent-ci --project <your-repo>` copies the agent-in-CI GitHub protocol set into your repo's `.github/`: the `github-protocol-*` workflows, the anti-self-approval `agent-approval-check.yml` **plus its companion `check-workflow-hygiene.py`** (the workflow invokes it — copied together so the scaffold is runnable, not green-but-broken), and an agent PR template. It is **opt-in and non-destructive** — it never overwrites an existing file without `--force`, and `--only <comma-list>` cherry-picks a subset. This is the path a **Copilot or Codex** consumer uses to adopt what only Claude Code's `/init-agent-ready` scaffolded before. **Honest limit:** these are **host-agnostic GitHub Actions artifacts** — they run in _your_ CI regardless of which agent CLI you use, but a non-Claude host reads the accompanying knowledge (identity, issue-triage, CI-signing) as **context, not as an enforced hook**. The anti-self-approval workflow stays inert until you CODEOWNERS-protect it, make it a required status check, and set its `EXCLUDED_APPROVERS` — see [`plugins/ravenclaude-core/knowledge/claude-in-ci.md`](plugins/ravenclaude-core/knowledge/claude-in-ci.md).
+
 **Opening the dashboard.** The host-agnostic launcher is `bin/rc` — invoke it by **full path**, because a plain `rc` may resolve to something else on your `PATH`:
 
 ```shell

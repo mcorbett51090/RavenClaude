@@ -131,6 +131,29 @@ bash "$(find . "$HOME" /workspaces -path '*ravenclaude-core/bin/rc' 2>/dev/null 
 
 ---
 
+## Scaffold the agent-in-CI GitHub protocol
+
+When the user wants their repo's CI to enforce the **agent-in-CI protocol** — the
+`github-protocol-*` workflows, the anti-self-approval `agent-approval-check.yml`, and
+an agent PR template — run the installer subcommand from their **project root**:
+
+```shell
+bash <marketplace-clone>/scripts/ravenclaude init-agent-ci --project .
+```
+
+- It copies the set into `.github/` (`workflows/`, `PULL_REQUEST_TEMPLATE/`, `scripts/`),
+  **including** `check-workflow-hygiene.py` — the hygiene workflow invokes it, so they are
+  copied together (a scaffold missing it is green-but-broken on the first PR).
+- It is **opt-in and non-destructive**: it never overwrites an existing file without
+  `--force`, and `--only <comma-list>` cherry-picks a subset.
+- **Honest limit (host-agnostic):** these are **GitHub Actions artifacts** — they run in
+  the repo's CI regardless of which agent CLI is used, but Copilot reads the accompanying
+  knowledge (identity, issue-triage, CI-signing) as **context, not as an enforced hook**.
+  The anti-self-approval workflow stays inert until it is CODEOWNERS-protected, made a
+  required status check, and given an `EXCLUDED_APPROVERS` list.
+
+---
+
 ## Relay mode — orchestrator_scope (host-only; opt-in)
 
 GitHub Copilot CLI directive **only**. Inert under Claude Code (the host is already

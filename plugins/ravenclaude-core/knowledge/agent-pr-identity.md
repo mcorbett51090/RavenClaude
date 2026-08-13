@@ -1,6 +1,6 @@
 # Agent-PR identity & attribution — how an agent-authored PR names itself
 
-> **Last verified:** 2026-08-12. **Refresh trigger:** re-verify if GitHub's signature-verification model, the `create-pr` skill's footer, or the frontier agents' identity docs (Devin / aider) change. The external facts here were verified via `gh api` + WebFetch on 2026-08-12 and live in the run's `research/agentic-github-gold-standard.md` + `claims-table.md`.
+> **Last verified:** 2026-08-13. **Refresh trigger:** re-verify if GitHub's signature-verification model, the `create-pr` skill's footer, or the frontier agents' identity docs (Devin / aider) change. The external facts here were verified via `gh api` + WebFetch on 2026-08-12 and live in the run's `research/agentic-github-gold-standard.md` + `claims-table.md`.
 
 This file is the **identity half** of "an agent as a GitHub actor" — the companion to [`github-actions-hardening.md`](github-actions-hardening.md) (the workflow-security half). It answers one question: **when a RavenClaude agent opens a pull request, whose name is on it, and how is that made legible to a reviewer?**
 
@@ -69,3 +69,5 @@ An agent PR needs a **different body** than a human PR: it should surface what t
 4. **Fill the agent PR template if the repo has one** — the [scaffold](../templates/agent-ready-repo/PULL_REQUEST_TEMPLATE-agent.md.template) or the consumer's `.github/PULL_REQUEST_TEMPLATE/<agent>_pr_template.md`; prefer it over the human template **[obs, #28]**.
 5. **Do not self-merge.** Surface the green PR and let the human land it — the [`create-pr`](../skills/create-pr/SKILL.md) skill enforces this **[obs]**.
 6. **Only if verified signatures are required**, escalate to the GitHub-App signing / dedicated-identity path in [`claude-in-ci.md`](claude-in-ci.md) — a considered upgrade, not the default **[obs, #8/#27]**.
+7. **If you also triage issues here**, the minimal comment→label→link→close-with-a-reference shape and the closing-keyword / `state_reason` traps are in [`agent-issue-triage.md`](agent-issue-triage.md) **[inf]**.
+8. **For the verified-signing setup**, the three-path runbook + the minimum-App-permissions table is the [`claude-in-ci.md`](claude-in-ci.md) §6 operational runbook **[obs, #8]**.

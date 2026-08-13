@@ -106,6 +106,37 @@ bash "$(find . "$HOME" /workspaces -path '*ravenclaude-core/bin/rc' 2>/dev/null 
   Codespace, so "it didn't open by itself" is expected until they opt in.
 """
 
+# "Scaffold the agent-in-CI protocol" directive appended to copilot/AGENTS.md.
+# `init-agent-ci` is a plain-bash installer subcommand (no slash command exists on
+# any host), and it is the ONLY path a Copilot/Codex consumer has to the agent-in-CI
+# GitHub protocol templates that Claude Code's /init-agent-ready scaffolds. Always
+# applicable (like DASHBOARD_BLOCK, not gated like Relay mode). States claim-18's
+# host-agnostic honest limit so Copilot does not present the artifacts as enforced hooks.
+AGENT_CI_BLOCK = """
+---
+
+## Scaffold the agent-in-CI GitHub protocol
+
+When the user wants their repo's CI to enforce the **agent-in-CI protocol** — the
+`github-protocol-*` workflows, the anti-self-approval `agent-approval-check.yml`, and
+an agent PR template — run the installer subcommand from their **project root**:
+
+```shell
+bash <marketplace-clone>/scripts/ravenclaude init-agent-ci --project .
+```
+
+- It copies the set into `.github/` (`workflows/`, `PULL_REQUEST_TEMPLATE/`, `scripts/`),
+  **including** `check-workflow-hygiene.py` — the hygiene workflow invokes it, so they are
+  copied together (a scaffold missing it is green-but-broken on the first PR).
+- It is **opt-in and non-destructive**: it never overwrites an existing file without
+  `--force`, and `--only <comma-list>` cherry-picks a subset.
+- **Honest limit (host-agnostic):** these are **GitHub Actions artifacts** — they run in
+  the repo's CI regardless of which agent CLI is used, but Copilot reads the accompanying
+  knowledge (identity, issue-triage, CI-signing) as **context, not as an enforced hook**.
+  The anti-self-approval workflow stays inert until it is CODEOWNERS-protected, made a
+  required status check, and given an `EXCLUDED_APPROVERS` list.
+"""
+
 # Self-gating "Relay mode" directive appended to copilot/AGENTS.md. Copilot reads
 # this natively; it is INERT under Claude Code and does nothing unless the consumer
 # opts in via `orchestrator_scope: all`. It is a behavioral commitment (like
@@ -666,7 +697,7 @@ def build_agents_md() -> str:
         "---\n"
         "\n"
     )
-    return banner + section + "\n" + DASHBOARD_BLOCK + RELAY_MODE_BLOCK
+    return banner + section + "\n" + DASHBOARD_BLOCK + AGENT_CI_BLOCK + RELAY_MODE_BLOCK
 
 
 def generate() -> dict[str, str]:
