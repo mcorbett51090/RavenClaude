@@ -114,11 +114,20 @@ def search(query: str, count: int, freshness: str | None, site: str | None) -> l
                 return parse_brave(json.loads(resp.read().decode()))
         except urllib.error.HTTPError as e:
             if e.code == 429:  # rate limited — back off
-                time.sleep(2 ** attempt)
+                time.sleep(2**attempt)
                 continue
-            _die(f"search API HTTP {e.code} for {query!r}: {e.read().decode(errors='replace')[:200]}")
+            _die(
+                f"search API HTTP {e.code} for {query!r}: {e.read().decode(errors='replace')[:200]}"
+            )
         except urllib.error.URLError as e:
             _die(f"could not reach search API ({e.reason}). Check SEARCH_API_URL / network.")
+        except json.JSONDecodeError as e:
+            # A 2xx with a non-JSON body (HTML interstitial / captcha / proxy block
+            # page served as 200) — mirror reddit-scan.py's get_token() guard so the
+            # failure is the module's clean diagnostic, not a raw traceback.
+            _die(
+                f"search API returned a non-JSON body for {query!r} ({e}). Check SEARCH_API_URL / token."
+            )
     _die(f"search API rate-limited after retries for {query!r}")
     return []  # unreachable
 
@@ -177,6 +186,29 @@ def _host_is_public(url: str) -> bool:
     return True
 
 
+class _GuardedRedirectHandler(urllib.request.HTTPRedirectHandler):
+    """Re-validate EVERY redirect hop before following it.
+
+    urllib follows 3xx transparently, so screening only the initial and final URL
+    left two holes (2026-08 review): (a) a non-LinkedIn/Reddit result that
+    redirects onto linkedin.com/reddit.com bypassed the NEVER_FETCH boundary
+    entirely — the post-urlopen check re-ran _host_is_public but never
+    _is_never_fetch, so a single hop was enough to land (and excerpt) a LinkedIn
+    body; (b) an intermediate hop to a private/loopback/link-local/metadata
+    address (169.254.169.254) received a live GET before any final-URL check.
+    Screen scheme + never-fetch + host-public on each Location; a failing hop
+    returns None, which makes urllib raise (caught by the caller -> '')."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        if urllib.parse.urlparse(newurl).scheme not in ("http", "https"):
+            return None
+        if _is_never_fetch(newurl):
+            return None
+        if not _host_is_public(newurl):
+            return None
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
 def fetch_body_excerpt(url: str) -> str:
     """Fetch an OPEN-WEB article and return a crude text excerpt. Never called
     for NEVER_FETCH hosts. Fail-safe: returns '' on any error."""
@@ -185,18 +217,24 @@ def fetch_body_excerpt(url: str) -> str:
     # hostile search result can't coax a local-file or non-web fetch, AND refuse
     # any host that resolves to a private/loopback/link-local/reserved IP so it
     # can't coax an internal-network GET (cloud metadata, localhost services).
-    # Both checks are repeated on the FINAL resolved URL after urlopen, because
-    # urllib follows redirects by default and the input-URL check alone wouldn't
-    # catch a 3xx that lands on a non-web scheme or an internal host.
+    # Every 3xx hop is re-screened by _GuardedRedirectHandler (scheme +
+    # never-fetch + host-public), and the checks are repeated once more on the
+    # FINAL resolved URL below — the input-URL check alone can't see a redirect
+    # that lands on a NEVER_FETCH host, a non-web scheme, or an internal host.
     if urllib.parse.urlparse(url).scheme not in ("http", "https"):
+        return ""
+    if _is_never_fetch(url):
         return ""
     if not _host_is_public(url):
         return ""
     req = urllib.request.Request(url, headers={"User-Agent": UA})
+    opener = urllib.request.build_opener(_GuardedRedirectHandler)
     try:
-        with urllib.request.urlopen(req, timeout=30) as resp:
+        with opener.open(req, timeout=30) as resp:
             final = getattr(resp, "url", None) or url
             if urllib.parse.urlparse(final).scheme not in ("http", "https"):
+                return ""
+            if _is_never_fetch(final):
                 return ""
             if not _host_is_public(final):
                 return ""
@@ -217,12 +255,22 @@ def slug(s: str) -> str:
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser(description="Discover + digest articles on a topic via a search API.")
+    ap = argparse.ArgumentParser(
+        description="Discover + digest articles on a topic via a search API."
+    )
     ap.add_argument("--queries", nargs="+", required=True, help="one or more topic queries")
     ap.add_argument("--count", type=int, default=15, help="results per query (<=20)")
-    ap.add_argument("--freshness", default=None, choices=["pd", "pw", "pm", "py"], help="recency window")
-    ap.add_argument("--site", default=None, help="restrict to one domain (e.g. linkedin.com for discovery-only)")
-    ap.add_argument("--fetch-bodies", action="store_true", help="fetch full text of OPEN-WEB results (skips LinkedIn/Reddit)")
+    ap.add_argument(
+        "--freshness", default=None, choices=["pd", "pw", "pm", "py"], help="recency window"
+    )
+    ap.add_argument(
+        "--site", default=None, help="restrict to one domain (e.g. linkedin.com for discovery-only)"
+    )
+    ap.add_argument(
+        "--fetch-bodies",
+        action="store_true",
+        help="fetch full text of OPEN-WEB results (skips LinkedIn/Reddit)",
+    )
     ap.add_argument("--out", default=None, help="output dir; if unset, prints digest to stdout")
     args = ap.parse_args()
 
@@ -240,7 +288,9 @@ def main() -> None:
         if args.out:
             os.makedirs(args.out, exist_ok=True)
             with open(os.path.join(args.out, f"{slug(q)}.json"), "w", encoding="utf-8") as f:
-                json.dump([r for r in all_results if r["query"] == q], f, indent=2, ensure_ascii=False)
+                json.dump(
+                    [r for r in all_results if r["query"] == q], f, indent=2, ensure_ascii=False
+                )
         time.sleep(1)
 
     digest = _render_digest(all_results, args)

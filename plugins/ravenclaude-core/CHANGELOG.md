@@ -2,6 +2,50 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.248.0 — 2026-08-12
+
+> **Landed from PR #835 (authored as 0.237.0).** Renumbered on integration — `main` had moved
+> to 0.247.0 while the branch was open. All 16 code files merged clean; the only conflicts were
+> the three version manifests and this file.
+
+### Fixed
+
+- **Three-panel repo review — the landable (non-substrate) subset.** A scheduled whole-repo review
+  (find → adversarially verify → analyze → tie-break) raised 32 findings; this release lands every
+  confirmed fix that does **not** touch the tribunal's own substrate (`hooks/` + plugin `scripts/`).
+  The 3 **P0** fixes all live in that substrate and could not be applied in the headless review
+  environment (the `xc.tribunal-self-disable` guard blocks substrate edits when `gh` is absent, so the
+  dev-repo exemption cannot verify ownership); they are written up as ready-to-apply patches in
+  [`docs/reviews/2026-08-05-three-panel-repo-review.md`](../../docs/reviews/2026-08-05-three-panel-repo-review.md)
+  for an interactive session. Three findings were **already fixed (as well or better) on current
+  `main`** and were re-verified and dropped: `serve-dashboards.py` static-fallback gating and
+  `capability-orientation.py` `_fmt_rules` (both v0.236.1), and the `cleanup-branches.sh` delete TOCTOU
+  (current `main` already uses an atomic SHA-guarded `git update-ref -d`, stronger than the reviewed fix).
+  - **`svg-report-lint` + `declarative-visualization` lint** — the `href`/URL sanitizer now also
+    rejects protocol-relative (`//host`) URLs and strips embedded tab/CR/LF control characters, closing
+    two ways a crafted link slipped the scheme allow-list.
+  - **`brand-extraction/extract_brand.py`** — the generated `brand.css` / report now HTML- and
+    CSS-escape the extracted title/URL and validate font values (`_css_font_safe`), so a hostile home
+    page cannot inject markup/CSS into the emitted kit.
+  - **`visual-feedback-loop/driver.py`** — `_resolve_safe` uses `os.path.realpath` (not `abspath`) on
+    both the input and the repo root, so an in-repo **symlink** pointing outside the sandbox is caught
+    (restoring the containment parity the docstring claimed).
+  - **`pbir-layout-engine/lint.py`** — overlap tolerance is floored at 1 (`max(tolerance, 1)`), so a
+    zero/negative tolerance can no longer disable the overlap check.
+  - **`content-scan.py`** — SSRF guard now re-screens **every** redirect hop (`_GuardedRedirectHandler`)
+    rather than only the final URL, plus a `JSONDecodeError` guard on the search response.
+  - **`generate-bi-report.py`** — data-attribute names are sanitized to a safe key charset
+    (`_safe_attr_key`) before interpolation into HTML.
+  - **`check-lineup-citations.py`** / **`check-run-actions-argv.py`** — broadened citation-context
+    matching to raw-digit magnitudes; added a `len >= 2` argv-shape guard.
+  - **`rc-deep-research.js`** (both copies) + **`two-panel-plan-review.js`** — `.catch()` guards on
+    `agent()` dispatch so one failed subagent can no longer reject the whole workflow.
+  - **`.github/workflows/regenerate-artifacts.yml`** — the self-heal step now runs the layout allow-list
+    check and the markdown-link gate before committing regenerated artifacts.
+  - **`.repo-layout.json`** — allow-listed `.ravenclaude/task-scope.json` + `.ravenclaude/self-heal-setup.md`;
+    removed 3 globs already covered by a broader entry (`tests/fixtures/data-viz/**`,
+    `scripts/generate-dashboards.py`, `scripts/serve-dashboards.py`).
+
 ## 0.247.0 — 2026-08-12
 
 > **Gate renumbered 186 → 190 on integration.** `main` already shipped Gate 186 (compact-anchor, #871) before this branch merged; two arms sharing one number makes the `--check` dispatcher reach only the first and silently strand the other.

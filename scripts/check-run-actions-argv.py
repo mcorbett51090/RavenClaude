@@ -26,6 +26,7 @@ Usage:
   python3 scripts/check-run-actions-argv.py            # check the real file
   python3 scripts/check-run-actions-argv.py --file X   # check a fixture (gate audit)
 """
+
 from __future__ import annotations
 
 import argparse
@@ -131,6 +132,15 @@ def check(path: Path) -> int:
             return _fail(f"action key is not a string literal: {ast.dump(key)}")
         if not isinstance(val, ast.List) or not val.elts:
             return _fail(f"action {kname!r} value is not a non-empty list literal")
+        # serve-dashboards.py._handle_run indexes argv[1] UNCONDITIONALLY (outside any
+        # try/except), so a one-element argv passes this gate but raises an uncaught
+        # IndexError on the first button click — exactly the class of malformed entry
+        # this gate exists to keep out of the file (2026-08 review).
+        if len(val.elts) < 2:
+            return _fail(
+                f"action {kname!r} has argv of length {len(val.elts)} (< 2) — "
+                f"serve-dashboards.py._handle_run indexes argv[1] unconditionally"
+            )
         # bash/sh are only safe with no `-c`-form anywhere — catch every spelling
         # (`-c`, `-lc`, `-ec`, `--login -c`, … at any index), not just argv[1].
         argv0_lit = _const_str(val.elts[0]) if val.elts else None
@@ -147,9 +157,7 @@ def check(path: Path) -> int:
                 # Any later short-flag cluster bearing `c` (`-c`/`-lc`/`-ec`/…) turns
                 # a following element into an inline script — forbidden for a shell.
                 if argv0_is_shell and i >= 1 and re.fullmatch(r"-[A-Za-z]*c[A-Za-z]*", lit):
-                    return _fail(
-                        f"action {kname!r} uses a shell -c form (argv[{i}] == {lit!r})"
-                    )
+                    return _fail(f"action {kname!r} uses a shell -c form (argv[{i}] == {lit!r})")
                 continue
             # non-literal element — only the whitelisted constant expressions pass
             if _is_allowed_dynamic(elt):
@@ -167,7 +175,9 @@ def check(path: Path) -> int:
         elif not _is_allowed_dynamic(first):
             return _fail(f"action {kname!r} argv[0] is not a known launcher")
 
-    print(f"run-actions argv-integrity: {len(run_actions.keys)} actions, all fixed-argv (no shell/interpolation)")
+    print(
+        f"run-actions argv-integrity: {len(run_actions.keys)} actions, all fixed-argv (no shell/interpolation)"
+    )
     return 0
 
 

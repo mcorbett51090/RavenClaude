@@ -423,7 +423,16 @@ const panel1 = await parallel(
           agentType: L.agentType,
           schema: GAP_SCHEMA,
         },
-      ),
+      ).catch((e) => {
+        // An agent() promise can reject (WebSearch timeout / tool error /
+        // schema-validation reject); unguarded, one failed lens rejects through
+        // parallel() and aborts the whole review, discarding the routing analysis.
+        // Degrade the lens to null — okP1's .filter(Boolean) + the "missing lens"
+        // path below already tolerate it. (Added after the 2026-08 review; mirrors
+        // the rc-deep-research search/fetch .catch().)
+        log(`panel1 lens failed: ${L.key} — ${e && e.message ? e.message : e}`);
+        return null;
+      }),
   ),
 );
 
@@ -572,7 +581,13 @@ const panel2 = await parallel(
           agentType: L.agentType,
           schema: GAP_SCHEMA,
         },
-      ),
+      ).catch((e) => {
+        // Same guard as Panel 1: one failed lens must not reject through
+        // parallel() and discard Panel 1 + the synthesis-1 deliverable. Degrade to
+        // null — okP2's .filter(Boolean) + the missingPanel2 path tolerate it.
+        log(`panel2 lens failed: ${L.key} — ${e && e.message ? e.message : e}`);
+        return null;
+      }),
   ),
 );
 
