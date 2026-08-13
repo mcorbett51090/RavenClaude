@@ -66,6 +66,18 @@ import re
 import sys
 from pathlib import Path
 
+# Best-effort TOML parser for the parse-before-write guard in emit(). Stdlib tomllib
+# is py3.11+; stock-macOS py3.9 has neither it nor (usually) tomli, so the guard is
+# skipped there — the structural insertion in emit() already prevents the known
+# duplicate-table corruption without needing a parser.
+try:
+    import tomllib as _toml  # py3.11+
+except ModuleNotFoundError:  # pragma: no cover
+    try:
+        import tomli as _toml  # py3.9/3.10 if installed
+    except ModuleNotFoundError:
+        _toml = None
+
 # ── strictness ladders ──────────────────────────────────────────────────────
 # Higher rank == stricter. The never-weaken rule is a rank comparison, so these
 # orderings ARE the security policy; changing one changes what can be loosened.
@@ -90,9 +102,9 @@ def render_value(key: str, val: str) -> str:
     return val if key in BOOL_KEYS else f'"{val}"'
 
 
-_SIMPLE_KV = re.compile(r'^\s*([A-Za-z0-9_-]+)\s*=\s*(.+?)\s*$')
-_TABLE = re.compile(r'^\s*\[([^\]]+)\]\s*$')
-_LEVEL = re.compile(r'^\s*(user|local|project)\s*:\s*([A-Za-z]+)\s*$')
+_SIMPLE_KV = re.compile(r"^\s*([A-Za-z0-9_-]+)\s*=\s*(.+?)\s*$")
+_TABLE = re.compile(r"^\s*\[([^\]]+)\]\s*$")
+_LEVEL = re.compile(r"^\s*(user|local|project)\s*:\s*([A-Za-z]+)\s*$")
 
 
 class Refuse(Exception):
@@ -161,6 +173,7 @@ def map_posture(cats: dict) -> dict:
       approval_policy -- must it ask before anything that can mutate?
       network_access  -- may sandboxed commands reach the network?
     """
+
     def allowed(name: str) -> bool:
         # Absent == not opted in. A category nobody configured must never be read
         # as permission; that assumption is how "everywhere" defaults happen.
@@ -249,7 +262,7 @@ MANAGED_HEADER = (
     "# ── RavenClaude: projected from .ravenclaude/comfort-posture.yaml ──\n"
     "# Managed by `ravenclaude install --host codex`. Re-run it to refresh.\n"
     "# This tool NEVER weakens an existing value and never emits\n"
-    "# danger-full-access or approval_policy = \"never\".\n"
+    '# danger-full-access or approval_policy = "never".\n'
     "# NOTE: a project-scoped .codex/config.toml loads only in TRUSTED projects.\n"
 )
 
@@ -290,9 +303,9 @@ def emit(project: Path, dry_run: bool = False) -> int:
 
     for key, _table, val, action, detail in plan:
         if action == "tighten":
-            print(f"  ✓ tightened {key} -> \"{val}\" (was \"{detail[0]}\")")
+            print(f'  ✓ tightened {key} -> "{val}" (was "{detail[0]}")')
         else:
-            print(f"  ✓ set {key} -> \"{val}\"")
+            print(f'  ✓ set {key} -> "{val}"')
     for r in refusals:
         print(f"  ! {r}", file=sys.stderr)
     if not plan and not refusals:
@@ -309,11 +322,13 @@ def emit(project: Path, dry_run: bool = False) -> int:
         if action == "tighten":
             lines[detail[1]] = f"{key} = {render_value(key, val)}"
     appended_root = [
-        f"{key} = {render_value(key, val)}" for key, table, val, action, _ in plan
+        f"{key} = {render_value(key, val)}"
+        for key, table, val, action, _ in plan
         if action == "write" and table == ""
     ]
     appended_nested = [
-        (render_value(key, val), key) for key, table, val, action, _ in plan
+        (render_value(key, val), key)
+        for key, table, val, action, _ in plan
         if action == "write" and table == "sandbox_workspace_write"
     ]
     # ROOT-LEVEL KEYS MUST GO ABOVE THE FIRST TABLE HEADER.
@@ -340,14 +355,55 @@ def emit(project: Path, dry_run: bool = False) -> int:
                 lines.append("")
             lines.extend(block)
     if appended_nested:
-        if lines and lines[-1].strip():
-            lines.append("")
-        if ("sandbox_workspace_write", "network_access") not in existing:
+        new_nested = [f"{key} = {val}" for val, key in appended_nested]
+        # Locate an existing [sandbox_workspace_write] table HEADER, not just the
+        # network_access key. The old guard only checked for the specific
+        # (sandbox_workspace_write, network_access) key, so a config that already had
+        # a [sandbox_workspace_write] table carrying OTHER keys (e.g. writable_roots)
+        # but no network_access got a SECOND [sandbox_workspace_write] header appended
+        # — a duplicate table, which is INVALID TOML. Codex then rejects the whole
+        # file and falls back to defaults, so the sandbox_mode/approval_policy this
+        # tool just reported as set bound nothing: the exact silent-weakening the
+        # module exists to prevent.
+        swt_idx = next(
+            (
+                i
+                for i, ln in enumerate(lines)
+                if (m := _TABLE.match(ln.split("#", 1)[0].rstrip()))
+                and m.group(1).strip() == "sandbox_workspace_write"
+            ),
+            None,
+        )
+        if swt_idx is None:
+            # No such table yet: append a fresh, self-scoping one at EOF.
+            if lines and lines[-1].strip():
+                lines.append("")
             lines.append("[sandbox_workspace_write]")
-        for val, key in appended_nested:
-            lines.append(f"{key} = {val}")
+            lines.extend(new_nested)
+        else:
+            # Table exists: insert the new key(s) directly under its header, so a
+            # nested key is never emitted as a duplicate table header NOR appended
+            # bare at EOF (where it would bind to whatever the last table is — the
+            # same root-key-below-table hazard handled for root keys above).
+            lines[swt_idx + 1 : swt_idx + 1] = new_nested
+    new_text = "\n".join(lines).rstrip("\n") + "\n"
+    # Parse before writing: a file we cannot parse is a file we must not ship (mirrors
+    # install-codex-mcp.py). Best-effort — skipped when no TOML parser is importable
+    # (stock-macOS py3.9 without tomli), where the structural insertion above already
+    # prevents the known duplicate-table corruption.
+    if _toml is not None:
+        try:
+            _toml.loads(new_text)
+        except Exception as exc:  # noqa: BLE001 — any parse failure must fail closed
+            print(
+                f"emit-codex-config: refusing to write {cfg_path} — the projected "
+                f"result did not parse as TOML ({exc}); leaving the existing file "
+                f"unchanged.",
+                file=sys.stderr,
+            )
+            return 1
     cfg_path.parent.mkdir(parents=True, exist_ok=True)
-    cfg_path.write_text("\n".join(lines).rstrip("\n") + "\n", encoding="utf-8")
+    cfg_path.write_text(new_text, encoding="utf-8")
     return 0
 
 
@@ -458,11 +514,37 @@ def self_test() -> int:
     emit(d)
     check("appended boolean is unquoted", 'network_access = "' not in cfg(d))
 
+    # 4c. THE DUPLICATE-TABLE BUG: an existing [sandbox_workspace_write] table with a
+    #     DIFFERENT key (no network_access) must NOT get a SECOND header appended —
+    #     that is invalid TOML and Codex rejects the whole file (silent weakening).
+    #     The new key must land under the existing header, and the result must parse.
+    d = setup(
+        _POSTURE_WRITES,
+        '[sandbox_workspace_write]\nwritable_roots = ["/home/user/project"]\n',
+    )
+    emit(d)
+    t = cfg(d)
+    check(
+        "no duplicate [sandbox_workspace_write] header", t.count("[sandbox_workspace_write]") == 1
+    )
+    check("existing table key is preserved", "writable_roots" in t)
+    check("network_access added under the existing table", "network_access = false" in t)
+    if _toml is not None:
+        try:
+            _toml.loads(t)
+            _parsed = True
+        except Exception:
+            _parsed = False
+        check("projected config parses as valid TOML", _parsed)
+
     # 5. Never emit the escape hatches, at any posture.
     check("danger-full-access is never emitted", "danger-full-access" in NEVER_EMIT["sandbox_mode"])
     check("approval_policy=never is never emitted", "never" in NEVER_EMIT["approval_policy"])
     all_texts = cfg(d)
-    check("no danger-full-access in output", "danger-full-access" not in all_texts.replace(MANAGED_HEADER, ""))
+    check(
+        "no danger-full-access in output",
+        "danger-full-access" not in all_texts.replace(MANAGED_HEADER, ""),
+    )
 
     # 6. Idempotent — a second run must change nothing.
     d = setup(_POSTURE_WRITES)
