@@ -1,0 +1,99 @@
+{
+  "schema_version": 1,
+  "_note": "SINGLE SOURCE OF TRUTH for the macOS-portability banned-token set. Read by BOTH the in-loop hook (hooks/enforce-portability.sh) and the CI backstop (scripts/check-portability-lint.py). Neither hard-codes a pattern, so the two surfaces cannot drift — the parity is structural, not asserted. Patterns are PYTHON re dialect; both consumers match with python3. Add a token here and both surfaces gain it.",
+  "_why_this_exists": "Stock macOS ships bash 3.2 and BSD userland, and is a first-class Claude Code platform. The costly failure mode is not a crash — it is a SILENT no-op: under `set -e` an invalid shopt exits 1 and an absent command exits 127, and the harness treats a hook exit other than 2 as a NON-blocking error, so the guard simply never runs and nothing is reported. The loud failure (declare -A, exit 2) is the safe one. Eighteen separate commits have closed one of these doors; the two most recent breaks were OUTSIDE hooks/, which is why the CI scope reaches scripts and entrypoints too.",
+  "premise-ok": "control run 2026-08-13 under `env -i PATH=/usr/bin:/bin` on this machine, bidirectional so the probe is shown able to return the opposite: timeout -> ABSENT and gtimeout -> ABSENT, while perl -> /usr/bin/perl, python3 -> /usr/bin/python3, grep -> /usr/bin/grep, sed -> /usr/bin/sed and readlink -> /usr/bin/readlink all resolved; `grep -P` -> exit 2 'invalid option -- P'; `bash --version` -> 3.2.57(1)-release; `declare -A` -> exit 2; `${v^^}` -> 'bad substitution'. Every `failure` field below is that measurement, not recall.",
+  "tokens": [
+    {
+      "id": "assoc-array",
+      "pattern": "(?m)^[^#\\n]*\\bdeclare\\s+-[A-Za-z]*A[A-Za-z]*\\s",
+      "why": "associative arrays are bash 4.0+; the system bash measured here is 3.2.57",
+      "failure": "measured exit 2 (invalid builtin option) — fails CLOSED and loud, so this is the SAFE one",
+      "shim": "parallel indexed arrays, or a `sort -u` set for untrusted keys. NEVER just delete `declare -A`: bash then evaluates the subscript arithmetically and collides every non-numeric key on index 0 — a loud failure becomes silent corruption."
+    },
+    {
+      "id": "mapfile",
+      "pattern": "(?m)^[^#\\n]*\\b(mapfile|readarray)\\b",
+      "why": "mapfile/readarray are bash 4.0+",
+      "failure": "exit 127 (command not found) — SILENT fail-open under the harness",
+      "shim": "while IFS= read -r line; do ...; done < <(cmd), with `|| [ -n \"$line\" ]` so a final unterminated line is not dropped"
+    },
+    {
+      "id": "case-expansion",
+      "pattern": "\\$\\{[A-Za-z_][A-Za-z0-9_]*(\\^\\^?|,,?)[^}]*\\}",
+      "why": "${x^^} / ${x,,} case conversion is bash 4.0+",
+      "failure": "measured 'bad substitution' -> exit 1 — SILENT fail-open",
+      "shim": "_rc_upper from hooks/_portable.sh (POSIX tr)",
+      "mode": "expansion"
+    },
+    {
+      "id": "globstar",
+      "pattern": "(?m)^[^#\\n]*\\bshopt\\s+-[su][a-z]*\\s+[^\\n;]*\\bglobstar\\b",
+      "why": "globstar is bash 4.0+",
+      "failure": "exit 1 (invalid shopt option) — SILENT fail-open; this is the one that bypassed the layout gate on every macOS session",
+      "shim": "usually unnecessary — `**` collapses to two `*` metacharacters inside [[ == ]] anyway. Otherwise use find."
+    },
+    {
+      "id": "gnu-timeout",
+      "pattern": "(?m)^[^#\\n]*(?<![\\w./-])timeout\\s+-?\\d+[smhd]?\\s+\\S",
+      "why": "GNU coreutils `timeout` did not resolve on the stock toolchain measured above (neither did gtimeout), while every other command probed alongside it did",
+      "failure": "exit 127 — and inside the usual `out=$(timeout N cmd) || echo ''` shape that is command-not-found, so the caller silently takes its ERROR path on every such session",
+      "shim": "_rc_timeout from hooks/_portable.sh (timeout -> gtimeout -> perl alarm -> unbounded)"
+    },
+    {
+      "id": "pcre-grep",
+      "pattern": "(?m)^[^#\\n]*\\bgrep\\s+(?:-[A-Za-z]*\\s+)*-[A-Za-z]*P",
+      "why": "grep -P (PCRE) is a GNU extension; the BSD grep measured above rejects it",
+      "failure": "measured exit 2 'invalid option -- P'. Inside `if grep -P ...; then` an exit of 2 reads as NO MATCH, so the finding is never emitted and the hook exits 0 — silent",
+      "shim": "_rc_pcre_match from hooks/_portable.sh (perl IS the PCRE engine and resolved on the stock toolchain)"
+    },
+    {
+      "id": "sed-in-place",
+      "pattern": "(?m)^[^#\\n]*\\bsed\\s+(?:-[A-Za-z]*\\s+)*(?:-[A-Za-z]*i(?![A-Za-z])|--in-place)",
+      "why": "BSD sed's -i takes a mandatory backup-suffix argument where GNU's does not, so `sed -i 's/a/b/' f` is not the same command on the two platforms",
+      "failure": "BSD consumes the next argument as the suffix and then misparses the script — platform-dependent corruption or error",
+      "shim": "write to a temp file and mv, or perl -pi -e (perl's -i is portable)"
+    },
+    {
+      "id": "gnu-find",
+      "pattern": "(?m)^[^#\\n]*\\bfind\\b[^\\n]*\\s-(?:printf|regextype|newermt)\\b",
+      "why": "-printf / -regextype / -newermt are GNU find extensions",
+      "failure": "BSD find errors out",
+      "shim": "-exec stat/printf, or restructure with a shell loop"
+    },
+    {
+      "id": "readlink-f",
+      "pattern": "(?m)^[^#\\n]*\\breadlink\\s+(?:-[A-Za-z]*\\s+)*-[A-Za-z]*f",
+      "why": "readlink -f is a late addition on macOS and is not safe to assume across the versions this marketplace supports",
+      "failure": "where unsupported: exit 1 with empty output, so a path silently becomes empty rather than failing loudly",
+      "shim": "cd \"$(dirname \"$p\")\" && pwd -P, or python3 -c 'import os,sys;print(os.path.realpath(sys.argv[1]))'",
+      "portable_pair": "pwd\\s+-P|os\\.path\\.realpath",
+      "portable_pair_note": "A GNU form with its BSD counterpart within a few lines is portable BY CONSTRUCTION, not a defect. Verified live: worktree-guard.sh pairs `stat -c` with `stat -f` on the next line."
+    },
+    {
+      "id": "gnu-date",
+      "pattern": "(?m)^[^#\\n]*\\bdate\\s+(?:-[A-Za-z]*\\s+)*-d(?![A-Za-z])",
+      "why": "date -d is GNU; BSD date spells the same job -v / -j -f",
+      "failure": "BSD date errors",
+      "shim": "python3 for date arithmetic, or emit ISO timestamps and compare as strings",
+      "portable_pair": "date\\s+-(v|j)\\b",
+      "portable_pair_note": "A GNU form with its BSD counterpart within a few lines is portable BY CONSTRUCTION, not a defect. Verified live: worktree-guard.sh pairs `stat -c` with `stat -f` on the next line."
+    },
+    {
+      "id": "gnu-stat",
+      "pattern": "(?m)^[^#\\n]*\\bstat\\s+(?:-[A-Za-z]*\\s+)*-c(?![A-Za-z])",
+      "why": "stat -c is GNU; BSD stat spells it -f",
+      "failure": "BSD stat errors",
+      "shim": "wc -c for size, or python3 os.stat",
+      "portable_pair": "stat\\s+-f",
+      "portable_pair_note": "A GNU form with its BSD counterpart within a few lines is portable BY CONSTRUCTION, not a defect. Verified live: worktree-guard.sh pairs `stat -c` with `stat -f` on the next line."
+    },
+    {
+      "id": "gnu-base64-wrap",
+      "pattern": "(?m)^[^#\\n]*\\bbase64\\s+(?:-[A-Za-z]*\\s+)*-w(?![A-Za-z])",
+      "why": "base64 -w (wrap) is GNU; BSD base64 has no -w",
+      "failure": "BSD base64 errors",
+      "shim": "pipe through tr -d '\\n' rather than asking base64 not to wrap"
+    }
+  ]
+}
