@@ -919,9 +919,15 @@ PY
         python3 scripts/check-constitution-claim-staleness.py
       exit $?
       ;;
+    203)
+      echo "── Gate 203: self-heal has no direct-to-protected push path (per-gate) ──"
+      python3 scripts/check-selfheal-push-safety.py --self-test && \
+        python3 scripts/check-selfheal-push-safety.py
+      exit $?
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -6788,6 +6794,73 @@ cp -R scripts "$_g202_ctl/scripts"
 cp CLAUDE.md AGENTS.md "$_g202_ctl/"
 rc=0; (cd "$_g202_ctl" && python3 scripts/check-constitution-claim-staleness.py) >/dev/null 2>&1 || rc=$?
 gate "constitution-staleness teeth control: the unmutated copy is clean (the red is the plant)" must_pass "$rc"
+
+echo "── Gate 203: a self-heal workflow must never gain a direct-to-main push ──"
+# P14. regenerate-artifacts.yml runs after EVERY merge and writes generated
+# artifacts back to main. It reaches main the safe way — opens a PR from a bot
+# branch, waits for the ruleset's REQUIRED checks, squash-merges that. Nothing
+# gated the shape, so an edit that "simplified" it back to a direct push would
+# look tidier, pass review, and quietly convert a checked path into an unchecked
+# one on the one workflow that runs after every single merge.
+#
+# ⛔ HONEST BOUND, stated in the script header too: this is a PROXY-STRING SCAN,
+# NOT a behavioural proof. The runtime guarantee is and remains the branch-
+# protection ruleset. The scan cannot see a computed-ref push, a `gh api` commit,
+# or an admin bypass by another route. It is PAIRED with the ruleset, never a
+# replacement — claiming more would be the false-assurance failure this
+# initiative exists to close.
+#
+# FOUR SHAPES, because one literal would leave three uncaught: the plain
+# push-to-main, the HEAD:main form, the :refs/heads/main form, and an admin-merge
+# bypass. A single-literal fixture would pass a workflow using any of the other
+# three — the "gate that asserts less than it appears to" trap, reproduced inside
+# the very check meant to prevent it.
+#
+# ⛔ TWO FALSE-POSITIVE CLASSES, BOTH FOUND IN THE LIVE TREE BEFORE WIRING:
+#   (1) the scope predicate matched `validate-marketplace.yml` — a pure VALIDATION
+#       workflow that writes nothing — because its COMMENTS explain that artifacts
+#       are "regenerated post-merge". Scoping a checker by a word appearing in the
+#       explanation of the rule pulled an unrelated workflow in and produced three
+#       false findings. The action marker is now matched on comment-stripped source.
+#   (2) `validate-marketplace.yml` also carries quoted push commands as FIXTURE DATA
+#       for the destructive-command guard. They sit inside a `run:` block, so block
+#       membership alone does not exclude them — the whole-line quoting does.
+# Scope is now exactly one workflow, verified by name rather than by count.
+#
+# ⛔ Registered in BOTH this main sequence AND the --check dispatcher above + the
+# Supported: string. After adding a gate, run the full suite and GREP ITS OUTPUT
+# FOR "203" — a passing suite is not evidence your gate is in it.
+rc=0; python3 scripts/check-selfheal-push-safety.py --self-test >/dev/null 2>&1 || rc=$?
+gate "selfheal-push-safety: teeth (all four push shapes caught; sanctioned PR-merge, rule-documenting comment, quoted fixture data and sentinel all silent)" must_pass "$rc"
+rc=0; python3 scripts/check-selfheal-push-safety.py >/dev/null 2>&1 || rc=$?
+gate "selfheal-push-safety: the live self-heal workflow has no direct-to-protected push path" must_pass "$rc"
+
+# Teeth over the LIVE workflow: reintroduce a direct push into the real file and
+# the checker must go red. An empty scope also fails closed (the checker exits 2
+# when its predicate matches nothing), so a silent scope collapse cannot read green.
+_g203_tmp="$(mktemp -d)"
+mkdir -p "$_g203_tmp/.github/workflows" "$_g203_tmp/scripts"
+cp .github/workflows/*.yml "$_g203_tmp/.github/workflows/"
+cp scripts/check-selfheal-push-safety.py "$_g203_tmp/scripts/"
+python3 - "$_g203_tmp" <<'PY' >/dev/null 2>&1
+import pathlib, sys
+p = pathlib.Path(sys.argv[1]) / ".github/workflows/regenerate-artifacts.yml"
+s = p.read_text()
+anchor = "      - name: Open self-heal PR"
+assert anchor in s, "self-heal workflow drifted — update the Gate 203 mutant"
+# Assembled, not literal, so this heredoc is not itself a direct-push command.
+bad = "      - name: mutant\n        run: |\n          git " + "push origin HEAD:main\n"
+p.write_text(s.replace(anchor, bad + anchor, 1))
+PY
+rc=0; (cd "$_g203_tmp" && python3 scripts/check-selfheal-push-safety.py) >/dev/null 2>&1 || rc=$?
+gate "selfheal-push-safety teeth: a direct push reintroduced into the LIVE workflow IS caught" must_fail "$rc"
+# The same copy unmutated must be clean, or the mutant's red proves nothing.
+_g203_ctl="$(mktemp -d)"
+mkdir -p "$_g203_ctl/.github/workflows" "$_g203_ctl/scripts"
+cp .github/workflows/*.yml "$_g203_ctl/.github/workflows/"
+cp scripts/check-selfheal-push-safety.py "$_g203_ctl/scripts/"
+rc=0; (cd "$_g203_ctl" && python3 scripts/check-selfheal-push-safety.py) >/dev/null 2>&1 || rc=$?
+gate "selfheal-push-safety teeth control: the unmutated copy is clean (the red is the mutation)" must_pass "$rc"
 
 echo
 
