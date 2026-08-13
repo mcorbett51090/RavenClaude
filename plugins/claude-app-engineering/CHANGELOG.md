@@ -2,6 +2,21 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## 0.9.14 — 2026-08-12
+
+### Changed
+
+- **`mcp-server-authoring.md` — the 2026-07-28 MCP spec revision (stateless core).** Landed from
+  PR #826, renumbered from its authored 0.9.12 (`main` had moved to 0.9.13). Adds the protocol-level
+  rewrite note: the `Mcp-Session-Id` header and the `initialize`/`initialized` handshake are removed,
+  Multi Round-Trip Requests replace held-open server-initiated requests, Tasks move to an extension,
+  and Sampling / Roots / legacy HTTP+SSE enter a 12-month deprecation window. Framed as
+  *spec published, SDKs still catching up* — author against the version your client negotiates.
+
+⛔ PR #826's second hunk (the model-selection capability map) was **rejected, not merged**: `main`
+already documents Opus 5 and its review date is newer (2026-08-12 vs the branch's 2026-08-05), so
+taking the branch's side would have rolled the file backwards.
+
 ## [0.9.13] — 2026-08-12
 
 ### Changed
