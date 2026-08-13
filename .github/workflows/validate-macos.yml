@@ -20,6 +20,11 @@ on:
       - "plugins/**/hooks/**"
       - "scripts/check-macos-portability.sh"
       - ".github/workflows/validate-macos.yml"
+      # door 5: the extensionless entry points. Without these, a change to the
+      # installer could not trigger the ONE workflow that parses it under bash 3.2 —
+      # which is exactly how PR #828 shipped an unparseable scripts/ravenclaude.
+      - "scripts/ravenclaude"
+      - "plugins/*/bin/rc"
   push:
     branches:
       - main
@@ -27,6 +32,11 @@ on:
       - "plugins/**/hooks/**"
       - "scripts/check-macos-portability.sh"
       - ".github/workflows/validate-macos.yml"
+      # door 5: the extensionless entry points. Without these, a change to the
+      # installer could not trigger the ONE workflow that parses it under bash 3.2 —
+      # which is exactly how PR #828 shipped an unparseable scripts/ravenclaude.
+      - "scripts/ravenclaude"
+      - "plugins/*/bin/rc"
   workflow_dispatch:
 
 # Least-privilege GITHUB_TOKEN: this workflow only reads the repo to validate it.
