@@ -1,0 +1,195 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/mcorbett51090/RavenClaude/schemas/design-schema.schema.json",
+  "title": "Design schema",
+  "description": "The design-system contract captured by the design-clone skill's extractor and consumed by its apply path (ravenclaude-core): spacing scale, type scale, grid/breakpoints, elevation, and component recipes — beyond brand-kit's logo/color/typography tokens. Every value self-declares HOW it was captured via `capture_method`, carried both document-level (the ceiling of what this extraction pass could produce) and per-dimension (the honesty pivot: v1's static producer stamps every dimension \"static\"; a dimension may never claim a fidelity its document-level pass could not have produced). Instance-conformance is enforced by scripts/check-design-schema.py, NOT by validate-schemas.yml. See docs/plans (FORGE design-schema-mimicry) and plugins/ravenclaude-core/skills/design-clone/SKILL.md.",
+  "type": "object",
+  "required": [
+    "source",
+    "capture_method",
+    "spacing",
+    "type_scale",
+    "grid",
+    "elevation",
+    "components",
+    "identity_flags",
+    "confidence_notes"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string" },
+    "source": {
+      "type": "object",
+      "description": "Provenance of the reference page this schema was captured from.",
+      "required": ["url", "fetched_at"],
+      "additionalProperties": false,
+      "properties": {
+        "url": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The reference page this schema was captured from."
+        },
+        "fetched_at": {
+          "type": "string",
+          "minLength": 1,
+          "description": "UTC ISO-8601 timestamp of capture."
+        },
+        "title": { "type": "string", "description": "Page <title> text, if captured." }
+      }
+    },
+    "capture_method": {
+      "$ref": "#/definitions/capture_method",
+      "description": "Document-level capture method: the CEILING of fidelity this extraction pass could produce. v1 ships only \"static\" (declared-CSS parsing, no browser CSSOM); \"computed\" is reserved for a future browser-driven producer. No per-dimension capture_method may exceed this ceiling — see check-design-schema.py's provenance-honesty check."
+    },
+    "spacing": {
+      "type": "object",
+      "description": "The derived spacing scale (margin/padding/gap literals clustered to a base unit).",
+      "required": ["scale", "capture_method"],
+      "additionalProperties": false,
+      "properties": {
+        "base_unit": {
+          "type": ["integer", "null"],
+          "description": "Fitted base unit in px (e.g. 8), or null when no clean base-unit fit was found (degrade honestly, see confidence_notes)."
+        },
+        "scale": {
+          "type": "array",
+          "description": "Sorted distinct spacing values observed (px), possibly empty on degrade.",
+          "items": { "type": "number" }
+        },
+        "capture_method": { "$ref": "#/definitions/capture_method" }
+      }
+    },
+    "type_scale": {
+      "type": "object",
+      "description": "The derived type scale (font-size literals clustered to a ratio).",
+      "required": ["sizes", "capture_method"],
+      "additionalProperties": false,
+      "properties": {
+        "base_size": {
+          "type": ["number", "null"],
+          "description": "Fitted base font size in px, or null on degrade."
+        },
+        "ratio": {
+          "type": ["number", "null"],
+          "description": "Fitted scale ratio (e.g. 1.25), or null when no ratio fit was within tolerance (degrade honestly, raw sizes still carried)."
+        },
+        "sizes": {
+          "type": "array",
+          "description": "Sorted distinct font-size values observed (px), possibly empty on degrade.",
+          "items": { "type": "number" }
+        },
+        "capture_method": { "$ref": "#/definitions/capture_method" }
+      }
+    },
+    "grid": {
+      "type": "object",
+      "description": "The derived grid/breakpoint system (declared @media values + container max-width).",
+      "required": ["breakpoints", "capture_method"],
+      "additionalProperties": false,
+      "properties": {
+        "breakpoints": {
+          "type": "array",
+          "description": "Declared @media breakpoint values (raw, e.g. \"768px\"), possibly empty on degrade.",
+          "items": { "type": ["string", "number"] }
+        },
+        "columns": {
+          "type": ["integer", "null"],
+          "description": "Column count, when a declared grid-template-columns count was found; null on degrade."
+        },
+        "gutter": {
+          "type": ["string", "null"],
+          "description": "Declared gutter/gap value (raw CSS length), or null."
+        },
+        "container_max": {
+          "type": ["string", "null"],
+          "description": "Declared container max-width (raw CSS length), or null."
+        },
+        "capture_method": { "$ref": "#/definitions/capture_method" }
+      }
+    },
+    "elevation": {
+      "type": "object",
+      "description": "The derived elevation/shadow ramp.",
+      "required": ["shadows", "capture_method"],
+      "additionalProperties": false,
+      "properties": {
+        "shadows": {
+          "type": "array",
+          "description": "Distinct box-shadow declarations (raw CSS), ordered as an ascending ramp by parsed blur/spread; possibly empty on degrade.",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "capture_method": { "$ref": "#/definitions/capture_method" }
+      }
+    },
+    "components": {
+      "type": "array",
+      "description": "Recurring component recipes found in declared CSS (structure only, e.g. button/card/nav/input).",
+      "items": { "$ref": "#/definitions/component" }
+    },
+    "brand_kit_ref": {
+      "type": ["string", "null"],
+      "description": "Optional pointer (path or URL) to a sibling brand-kit.schema.json instance captured from the same reference."
+    },
+    "identity_flags": {
+      "type": "array",
+      "description": "Advisory flags for anything the apply path must never carry over verbatim (logos, signature colors, mascots). Never auto-approves; action is always a human/reviewer call.",
+      "items": { "$ref": "#/definitions/identity_flag" }
+    },
+    "confidence_notes": {
+      "type": "array",
+      "description": "Free-text notes on degraded/uncertain derivations (e.g. why base_unit or ratio came back null).",
+      "items": { "type": "string" }
+    }
+  },
+  "definitions": {
+    "capture_method": {
+      "type": "string",
+      "enum": ["static", "computed"],
+      "description": "\"static\" = parsed from declared CSS only (stdlib, no browser). \"computed\" = read from a browser's rendered CSSOM (getComputedStyle) — reserved; v1 ships no computed producer."
+    },
+    "component": {
+      "type": "object",
+      "required": ["name"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Component archetype, e.g. \"button\", \"card\", \"nav\", \"input\"."
+        },
+        "anatomy": {
+          "type": "array",
+          "description": "Structural parts recognized within the component, e.g. [\"icon\", \"label\"].",
+          "items": { "type": "string" }
+        },
+        "recipe": {
+          "type": "object",
+          "description": "Declared CSS property/value pairs for this component (e.g. padding, border-radius, box-shadow). Open map: property names are not enumerable ahead of time.",
+          "additionalProperties": { "type": "string" }
+        }
+      }
+    },
+    "identity_flag": {
+      "type": "object",
+      "required": ["kind", "evidence", "action"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "type": "string",
+          "minLength": 1,
+          "description": "What was flagged, e.g. \"logo\", \"saturated-color\", \"mascot\", \"shadow-embedded-color\"."
+        },
+        "evidence": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Why this was flagged (selector, frequency, or heuristic that fired)."
+        },
+        "action": {
+          "type": "string",
+          "enum": ["swap", "omit", "human-decision"],
+          "description": "Recommended handling. Never auto-applied by the extractor; the apply path's hard no-read invariant is the actual defense, this is the advisory layer."
+        }
+      }
+    }
+  }
+}

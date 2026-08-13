@@ -91,6 +91,13 @@ _MARKETPLACE_DEV_TOOLING = {
 _DEFERRED_PACKAGING = {
     "premise-gate.py",
     "classify_claim.py",
+    # check-design-schema.py (v0.253.0) — same class: the design-schema conformance
+    # validator lives at the marketplace root and is cited from design-clone/SKILL.md
+    # as the contract's conformance point. It is a CI/dev validator (apply_schema.py
+    # does NOT invoke it at runtime), so it ships alongside its sibling schemas/*.json
+    # at the root; the move into the plugin (or repoint to ${CLAUDE_PLUGIN_ROOT}) is
+    # deferred with premise-gate.py's. REMOVE when that packaging move lands.
+    "check-design-schema.py",
 }
 IGNORED_BASENAMES = _MARKETPLACE_DEV_TOOLING | _DEFERRED_PACKAGING
 

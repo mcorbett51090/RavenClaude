@@ -1,0 +1,7 @@
+{
+  "surface": "web",
+  "design_schema": {
+    "candidate": "../../etc/passwd",
+    "reference": "tests/fixtures/visual-feedback-loop/design-schema/reference.json"
+  }
+}

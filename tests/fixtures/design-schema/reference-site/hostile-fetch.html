@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Hostile Fetch Reference</title>
+    <!-- [RT1-#4] Two hostile sub-resource stylesheet links: a local-file read and a
+         cloud-metadata SSRF. _fetch must REFUSE both (scheme + resolved-host guard), so
+         their bytes never enter css_text / design-schema.json / brand.json. -->
+    <link rel="stylesheet" href="file:///etc/passwd" />
+    <link rel="stylesheet" href="http://169.254.169.254/latest/meta-data/" />
+    <style>
+      body {
+        color: #123456;
+        font-size: 16px;
+      }
+    </style>
+  </head>
+  <body>
+    <p>Hostile fetch fixture.</p>
+  </body>
+</html>

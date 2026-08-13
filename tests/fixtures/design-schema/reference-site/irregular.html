@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Irregular Reference Co.</title>
+    <style>
+      /* Deliberately NO clean base-unit and NO modular type ratio, and NO @media /
+         container max-width — every derived dimension must degrade to null HONESTLY. */
+      body {
+        margin: 5px;
+        font-size: 13px;
+        color: #333;
+      }
+      .a {
+        padding: 11px 13px;
+      }
+      .b {
+        gap: 27px;
+        margin-top: 3px;
+      }
+      h1 {
+        font-size: 60px;
+      }
+      h2 {
+        font-size: 33px;
+      }
+      h3 {
+        font-size: 28px;
+      }
+      h4 {
+        font-size: 15px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Irregular Reference</h1>
+    <div class="a"><span class="b">text</span></div>
+  </body>
+</html>

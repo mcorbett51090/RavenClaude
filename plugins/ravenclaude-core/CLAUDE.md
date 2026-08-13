@@ -2518,3 +2518,58 @@ failing silently. The teeth half proves it: make every control file "valid" and 
 stale cross-agent negatives from earlier sessions stop blocking — but a negative and a build in the
 same worktree deny exactly as before, and the new escape is strictly more auditable than the
 environment variables it complements (same power, plus who/subject/control on the record).
+
+## `design-clone` — capture a site's full design schema + apply it, honestly (added 2026-08-13, v0.253.0)
+
+A FORGE `deep` run (`.ravenclaude/runs/forge/design-schema-mimicry/`) answered *"mimic a website's
+design exactly — enhance the plugins first."* The gap: `brand-extraction` captured **tokens** (colors,
+fonts, radii) but not the **design schema** — spacing/type scales, grid, elevation, component recipes —
+so a portal had the right paint and the wrong architecture. Built across three surfaces + two fidelity
+mechanisms, with **every red-team blocker a gate acceptance criterion, not a footnote**:
+
+- **`brand-extraction` extended** (`extract_brand.py`) — five stdlib collectors emit a schema-valid
+  `design-schema.json` alongside the brand kit, **every dimension stamped `capture_method:"static"`**
+  (the declared-CSS ceiling: static parsing can't resolve the cascade/computed styles — the schema is a
+  seed, never fidelity). Two pre-existing holes it amplified are closed in the same pass: `_fetch` is
+  **http(s)-only + SSRF/metadata-blocked + redirect-revalidated** (a `file://`/`169.254.169.254`
+  sub-resource is refused), and the custom-property emit is **sanitized** (no `url()` beacon into a
+  `<link>`-ed stylesheet). **Gate 193**, 7 per-collector must-fail mutants + a byte-identical
+  brand-kit regression proof.
+- **New `design-clone` skill** — the capture+apply contract. `apply_schema.py` carries a **hard
+  structural no-read identity invariant** (`apply()` never reads the reference's `logos[]`/`palette`;
+  a shadow/border color is neutralized to a target token — so the reference's identity is
+  *unreachable by construction*, with `flag_identity_risks` the advisory second layer). `sanitizers.py`
+  adds strict `css_length`/`css_shadow`/`css_number` allowlists (reject-on-unknown, **no partial
+  salvage**). **Gate 194** teeth are **bidirectional** — a legit `8px`/`box-shadow`/`1200px` survives
+  verbatim AND every hostile `url(javascript:)`/`expression()`/exfil is dropped whole (the false-negative
+  half is load-bearing: a drop-everything sanitizer would ship an empty stylesheet green).
+- **`visual-feedback-loop` render-compare** — `driver.py` gains an offline structural design-schema diff
+  (the **floor** — a "declares the same design system" check, never called fidelity) **and** a
+  browser-captured `ssim_score` gate (**the fidelity verifier**), domain-clamped `[0,1]` so a
+  page-controllable `5.0`/NaN can never fake a pass — the same clamp closing the inherited
+  `_gate_lighthouse` hole. When ssim is absent it degrades **loudly** ("visual fidelity not verified —
+  no browser tool"). Folds into **Gate 100** (no new number), +3 must-fail mutants.
+- **Priors** on the two existing `web-design` agents (no new agent — the ~15K budget untouched) + canon.
+
+**The owner-disclosures, stated plainly and accepted (owner chose "pixel-faithful clone"):**
+**fidelity is browser-gated** (offline is a structural sanity check; stdlib cannot compare pixels), and
+**trade-dress residual risk is the owner's** — the tool clones functional craft and re-skins with the
+target's brand, but overall look-and-feel is exactly what pixel-faithful mimicry reproduces and the
+tool cannot detect; a clean `identity_flags[]` is not legal clearance, and distinctiveness calls route
+to `security-reviewer`. Not legal advice.
+
+**Migration:** none in the token path — additive skill + additive collectors (existing
+`brand.json`/report/summary byte-identical) + agent-body priors; nothing in an installed plugin changes
+on `/plugin marketplace update` until a consumer invokes the new capability. `web-design` bumped
+0.15.0 → 0.16.0 alongside. **One behavior change to name honestly (code-review P3):** `brand.css`'s
+custom-property emit is now sanitizer-gated, so a value that is not *wholly* a matched
+color/length/number/shadow is **dropped** — this catches a hostile `url()` beacon (the security fix)
+**and** a legitimate complex declaration (`linear-gradient(...)`, a multi-value shorthand, an
+`!important`), which now no longer round-trips into `brand.css`. `brand.css` was deliberately excluded
+from the byte-identical floor for exactly this reason.
+
+**Known residuals (reviewer-accepted, backlogged — not merge blockers):** the `_fetch` SSRF guard is
+resolve-then-connect, so a DNS-rebinding record is a standard TOCTOU residual (closing it fully needs a
+pinned custom connector; size-cap + timeout bound the blast radius, and this is an offline dev tool);
+and `getaddrinfo` is not bounded by the fetch timeout (a low-risk DNS hang). Both are tracked for a
+follow-up, alongside the deferred `check-design-schema.py` packaging move.

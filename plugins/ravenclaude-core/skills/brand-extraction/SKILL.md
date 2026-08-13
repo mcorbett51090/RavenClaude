@@ -57,6 +57,24 @@ guess) plus families named in Google Fonts / Typekit `<link>`s.
 
 **Radii:** the most common `border-radius` values (the brand's corner-rounding scale).
 
+## The design schema — a second output (`design-schema.json`)
+
+Alongside `brand.json`/`brand.css`, the extractor now emits **`design-schema.json`** — the full
+design **schema** beyond brand tokens: a **spacing scale** (clustered margin/padding/gap literals +
+inferred 4/8px base unit), a **type scale** (clustered `font-size` + detected modular ratio), a
+**grid** (declared `@media` breakpoints + container max-width), an **elevation** ramp (distinct
+`box-shadow`s ordered by blur/spread), and **component recipes** (button/card/nav/input structural
+hints). It is validated by `scripts/check-design-schema.py` and consumed by the **`design-clone`**
+skill (apply → a target) and the **`visual-feedback-loop`** render-compare loop (verify).
+
+⛔ **The declared-only ceiling (honesty pivot).** Static parsing (`urllib`/`html.parser`/`re`)
+recovers only the site's **declared** CSS — it cannot resolve the cascade, media-query-at-viewport,
+`var()`/`calc()`, or JS-applied styles; those need a browser's `getComputedStyle`. So **every
+dimension is stamped `capture_method: "static"`** — the schema is a legitimate *seed*, never
+ground-truth fidelity. When a value can't be inferred cleanly (no base unit, no ratio), the field is
+`null` with a `confidence_notes` entry rather than a guess. The browser-computed fidelity path is the
+`ssim_score` render-compare gate, not this extractor.
+
 ## Using the kit on generated reports
 
 Once the kit exists, every HTML document you generate for that project should:
