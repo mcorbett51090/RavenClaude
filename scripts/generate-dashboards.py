@@ -1110,6 +1110,12 @@ _PIPELINE_EXCLUDED_HOOKS = {
     "main/master is always advisory. Its knob is surfaced with the other posture settings and it "
     "enforces commit/branch STYLE conventions rather than the safety floor the drawn PreToolUse cards "
     "represent, so — like worktree-guard.sh — it is deliberately NOT a Pipeline stage card",
+    "enforce-portability.sh": "in-loop macOS-portability lint (PreToolUse Write|Edit|MultiEdit) "
+    "governed by the `macos_portability_lint:` comfort-posture knob — default WARN on a bash-4 / "
+    "GNU-only construct in a shell surface, denies only at `block`. Same class as "
+    "enforce-git-protocol.sh: it enforces an authoring CONVENTION (portability) rather than the "
+    "safety floor the drawn PreToolUse cards represent, and its knob is surfaced with the other "
+    "posture settings — so it is deliberately NOT a Pipeline stage card",
 }
 
 _PIPELINE_CONTROLS = {

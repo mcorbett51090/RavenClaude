@@ -341,6 +341,21 @@ jobs:
           python3 -m pip install --quiet 'ruff==0.15.8'
           ruff check .
 
+      - name: macOS-portability lint (banned bash-4 / GNU-only tokens)
+        # The CI backstop for the in-loop enforce-portability hook. Both read the
+        # SAME token table (plugins/ravenclaude-core/knowledge/portability-tokens.json),
+        # so the two surfaces cannot drift — neither hard-codes a pattern.
+        #
+        # A STEP inside this required workflow, deliberately NOT a new workflow and
+        # NOT a paths: filter: a path filter on a required check leaves it Pending
+        # forever, and this reads a whole-tree glob set anyway, so no glob list could
+        # be correct. A skipped job reports Success; a skipped workflow reports nothing.
+        #
+        # Scope reaches past hooks/** on purpose — the two most recent real breaks
+        # were an extension-less installer and a monitors script.
+        run: |
+          python3 scripts/check-portability-lint.py
+
       - name: Install jsonschema (for audit-gates Gate 47 validate-schemas fixtures)
         # audit-gates Gate 47 shells out to `python3 -m jsonschema` against the
         # {good,bad}-{plugin,marketplace}.json fixtures. Without the module on

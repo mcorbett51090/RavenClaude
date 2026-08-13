@@ -889,9 +889,14 @@ PY
       bash plugins/ravenclaude-core/hooks/tests/test-guard-premise-scope.sh
       exit $?
       ;;
+    198)
+      echo "── Gate 198: macOS-portability lint (per-gate run) ──"
+      bash plugins/ravenclaude-core/hooks/tests/test-enforce-portability.sh
+      exit $?
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -6533,6 +6538,34 @@ echo "── Gate 197: guard-premise scope + read/mutate discriminator ───
 # FOR "197" — a passing suite is not evidence your gate is in it.
 rc=0; bash plugins/ravenclaude-core/hooks/tests/test-guard-premise-scope.sh >/dev/null 2>&1 || rc=$?
 gate "guard-premise: nested-worktree scope (both call sites) + Edit/MultiEdit screened + reads released; teeth by 2 mutants" must_pass "$rc"
+
+echo
+echo "── Gate 198: macOS-portability lint (in-loop hook + CI backstop) ──────────"
+# The highest-recurrence class in the inventory — eighteen commits have closed a
+# stock-macOS door — and the failure is the quiet kind: an invalid shopt exits 1
+# and an absent command exits 127, neither of which is the blocking code, so the
+# guard never runs and nothing is reported. Measured on the stock toolchain while
+# building this: `timeout`/`gtimeout` absent while perl/python3/grep/sed/readlink
+# resolved, `grep -P` exit 2, bash 3.2.57, `declare -A` exit 2, `${v^^}` bad
+# substitution.
+#
+# TWO SURFACES, ONE TABLE. The in-loop hook and the CI linter both read
+# knowledge/portability-tokens.json; neither hard-codes a pattern, so they cannot
+# drift — the parity is structural, and this gate asserts it (a hard-coded
+# pattern in either surface fails). Two hand-maintained lists is exactly the
+# drift this initiative exists to prevent.
+#
+# Default posture is WARN (mirroring the shipped git_protocol precedent): a lint
+# that hard-blocks on day one over a repo-wide token set gets switched off, and a
+# switched-off guard protects nothing. Scope deliberately reaches past hooks/** —
+# the two most recent real breaks were an extension-less installer and a monitors
+# script, both of which a `*.sh` glob silently misses.
+#
+# ⛔ Registered in BOTH this main sequence AND the --check dispatcher above + the
+# Supported: string. After adding a gate, run the full suite and GREP ITS OUTPUT
+# FOR "198" — a passing suite is not evidence your gate is in it.
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-enforce-portability.sh >/dev/null 2>&1 || rc=$?
+gate "portability-lint: warn/block/off knob + shim+sentinel+comment not flagged + extension-less screened + shared-table parity; teeth by 1 mutant" must_pass "$rc"
 
 echo
 
