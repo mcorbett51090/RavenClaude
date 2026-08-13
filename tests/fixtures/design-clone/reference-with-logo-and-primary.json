@@ -1,0 +1,18 @@
+{
+  "source": { "url": "https://ref.example", "fetched_at": "2026-08-13T00:00:00Z" },
+  "capture_method": "static",
+  "spacing": { "base_unit": 8, "scale": [8, 16], "capture_method": "static" },
+  "type_scale": { "sizes": [16, 20], "capture_method": "static" },
+  "grid": { "breakpoints": ["768px"], "container_max": "1200px", "capture_method": "static" },
+  "elevation": { "shadows": ["0 2px 8px rgba(0,0,0,0.1)"], "capture_method": "static" },
+  "components": [{ "name": "button" }],
+  "colors": {
+    "palette": [
+      { "value": "#e10098", "role": "primary" },
+      { "value": "#00b3a4", "role": "accent" }
+    ]
+  },
+  "logos": [{ "role": "header-logo", "src": "https://ref.example/logo.svg", "alt": "Ref mascot" }],
+  "identity_flags": [],
+  "confidence_notes": []
+}

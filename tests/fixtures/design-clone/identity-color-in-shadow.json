@@ -1,0 +1,12 @@
+{
+  "source": { "url": "https://ref.example", "fetched_at": "2026-08-13T00:00:00Z" },
+  "capture_method": "static",
+  "spacing": { "scale": [8], "capture_method": "static" },
+  "type_scale": { "sizes": [16], "capture_method": "static" },
+  "grid": { "breakpoints": [], "capture_method": "static" },
+  "elevation": { "shadows": ["0 0 12px #e10098"], "capture_method": "static" },
+  "components": [],
+  "colors": { "palette": [{ "value": "#e10098", "role": "accent" }] },
+  "identity_flags": [],
+  "confidence_notes": []
+}

@@ -1,0 +1,18 @@
+{
+  "$schema": "../../../schemas/brand-kit.schema.json",
+  "source": { "url": "https://target.example", "fetched_at": "2026-08-13T00:00:00Z" },
+  "colors": {
+    "palette": [
+      { "value": "#0055ff", "role": "primary" },
+      { "value": "#ffffff", "role": "background" },
+      { "value": "#0b1020", "role": "text" },
+      { "value": "#00c2a8", "role": "accent" }
+    ]
+  },
+  "typography": {
+    "font_families": [
+      { "family": "Inter", "role": "heading" },
+      { "family": "Georgia", "role": "body" }
+    ]
+  }
+}
