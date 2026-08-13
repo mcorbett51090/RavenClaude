@@ -1,0 +1,27 @@
+{
+  "name": "tax-preparation-practice",
+  "version": "0.1.0",
+  "description": "CPA / EA tax-preparation & planning practice — 2 agents (tax-practice-lead, tax-preparation-specialist): the lead sets client-mix & niche, seasonal capacity, pricing/realization, review-standard & risk posture, and Circular 230 / PTIN / EFIN governance; the specialist runs the return pipeline — organizer & engagement letter, intake, preparation (1040 / 1120 / 1120-S / 1065), separate-eyes review, e-file, extensions & estimates, CP-notice response, and the planning calc (entity, QBI, retirement, timing). 3 skills, a 2-doc knowledge bank, and 2 templates. Distinct from accounting-bookkeeping (write-up / close), wealth-management-ria (advisory), and finance (FP&A) — this plugin owns TAX RETURN PREPARATION and the practice that produces it. Not tax, legal, or accounting advice and no substitute for a credentialed preparer: forms, thresholds, and deadlines are volatile and jurisdiction-specific — every rule carries a retrieval date + verify-at-use against current IRS/state guidance. Needs ravenclaude-core.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "tax-preparation",
+    "form-1040",
+    "form-1120",
+    "form-1065",
+    "e-file",
+    "irs-notices",
+    "tax-season",
+    "engagement-letter",
+    "circular-230",
+    "qbi",
+    "quarterly-estimates",
+    "tax-planning"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}

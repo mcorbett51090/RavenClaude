@@ -48,7 +48,7 @@ copilot_payload() {
   local cmd="${2:-benign-cmd}"
   local cwd="${3:-/tmp}"
   jq -cn --arg sid "$sid" --arg cmd "$cmd" --arg cwd "$cwd" \
-    '{toolName:"shell",toolArgs:({command:$cmd}|tostring),cwd:$cwd,sessionId:$sid}'
+    '{toolName:"bash",toolArgs:({command:$cmd}|tostring),cwd:$cwd,sessionId:$sid}'
 }
 
 # ── G20.A — stderr preservation on exit-2 ────────────────────────────────────

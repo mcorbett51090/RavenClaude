@@ -10,7 +10,7 @@
 
 > 🎛 **[▶ Open the RavenClaude dashboard](https://mcorbett51090.github.io/RavenClaude/plugins/ravenclaude-core/dashboard.html)** — point-and-click editor for your `.ravenclaude/comfort-posture.yaml`: set per-tool file, network, shell, and package autonomy across three levels (deny → ask → allow) — per layer (user / local / project) and per individual permission — without editing YAML by hand. _(That link is the published, read-only preview; to use it for real — where **Save & apply** writes your repo's config — run **`rc dashboard`** from your project, the one canonical launcher across Claude Code, Copilot CLI, and a bare terminal.)_
 
-> 🖥 **Working on this repo?** Launch the **functional local dashboard** (where **Save & apply** actually writes this repo's config) with one command: `bash scripts/open-dashboard.sh`. It kills any running dashboard server, starts a fresh one, and opens it in your browser automatically. _(VS Code users: a `.vscode/tasks.json` wired as the default build task — Ctrl/Cmd+Shift+B — runs the same script; `.vscode/` is gitignored, so add it locally if you want the keybinding.)_
+> 🖥 **Working on this repo?** Launch the **functional local dashboard** (where **Save & apply** actually writes this repo's config) with one command: `bash scripts/open-dashboard.sh`. If a dashboard is already serving this checkout it **reuses** it; otherwise it starts one, prints the bound URL, and opens it in your browser. It never signals a server it hasn't positively identified as this checkout's own. Stop it with `bash scripts/open-dashboard.sh --stop`, or let it self-expire after `--max-idle` minutes idle.
 
 > 📖 **[▶ Open the RavenClaude portal](https://mcorbett51090.github.io/RavenClaude/)** — one self-contained page: browse every plugin, agent, skill, hook, rule, and template in the **Marketplace** section (with an “I want to…” use-case lookup), tune the comfort-posture **Dashboard**, and more. Regenerated from the manifests on every release.
 >
@@ -20,9 +20,9 @@
 
 > 🌐 **[▶ Raven Power ↗](https://ravenpower.net)** — the consulting front door behind RavenClaude. This marketplace is the proof-of-craft; the website is where the engagements live.
 
-Today this marketplace ships **164 plugins**:
+Today this marketplace ships **180 plugins**:
 
-- **[`ravenclaude-core`](plugins/ravenclaude-core/)** — domain-neutral Team Lead + 14 specialists (architect, coders, reviewers, designer, documentarian, deep-researcher, project-manager, partner-success-manager, prompt-engineer, data-engineer, etc.), plus dispatch playbooks (with a Cross-plugin dispatch section), gates, 43 skills, 16 hooks, templates, and the **cross-project contribution-staging loop**.
+- **[`ravenclaude-core`](plugins/ravenclaude-core/)** — domain-neutral Team Lead + 15 specialists (architect, coders, reviewers, designer, documentarian, deep-researcher, project-manager, partner-success-manager, prompt-engineer, data-engineer, etc.), plus dispatch playbooks (with a Cross-plugin dispatch section), gates, 52 skills, 34 hooks, templates, and the **cross-project contribution-staging loop**.
 - **[`power-platform`](plugins/power-platform/)** — 11 Microsoft Power Platform specialists (Power Fx, flows, Power BI, Dataverse, model-driven, PCF, Copilot Studio, Power Pages, admin, ALM, tester), 21 skills, an advisory house-opinions hook covering 8 checks, and the bundled `pbix-mcp` MCP server.
 - **[`finance`](plugins/finance/)** — 7 corporate-finance & FP&A specialists (FP&A analyst, financial modeler, controller, treasury, valuation, audit-prep, board-pack composer), 9 skills, templates, advisory anti-pattern hook.
 - **[`regulatory-compliance`](plugins/regulatory-compliance/)** — 12 financial-regulatory specialists (6 function: AML/KYC, regulatory reporting, risk-and-controls, policy & procedure writer, examination prep, Bermuda-insurance; plus 6 jurisdiction: BMA, CIMA Cayman, Bahamas, Channel Islands, UK PRA, US), 10 skills, templates, defensive PII-scrub hook.
@@ -174,7 +174,7 @@ You lose auto-update and version pinning. To update, `git pull` and re-copy. Oth
 
 ## Updating and version pinning
 
-The marketplace ships **semver-versioned** plugins (`plugin.json` `version` + matching `marketplace.json` entry, CI-gated for drift). 163 of the 164 plugins declare `requires.ravenclaude-core` — a minimum `ravenclaude-core` version they expect, surfaced in the per-plugin card of the portal’s **Marketplace** section ([`index.html`](index.html)).
+The marketplace ships **semver-versioned** plugins (`plugin.json` `version` + matching `marketplace.json` entry, CI-gated for drift). 179 of the 180 plugins declare `requires.ravenclaude-core` — a minimum `ravenclaude-core` version they expect, surfaced in the per-plugin card of the portal’s **Marketplace** section ([`index.html`](index.html)).
 
 **To update everything to the marketplace's latest:**
 
@@ -209,11 +209,11 @@ The pin survives `/plugin marketplace update` — the pinned SHA is the catalog'
 
 | Component | Count | Where |
 |-----------|-------|-------|
-| Specialist agents | 14 | `plugins/ravenclaude-core/agents/` |
-| Skills | 40 (incl. dispatch via `spawn-team`, `new-worktree` / `cleanup-worktrees`, `create-pr`, `run-full-test-suite`, `draft-agent-brief`, `structured-output`; the cross-domain staging loop `contribute-finding` / `review-staged-contributions`; the tribunal `thing` / `decision-review`; posture + capability skills `set-posture`, `permission-hygiene`, `environment-discovery`; quality skills `agent-quality-rubric`, `audit-ci-gates`, `cross-platform-determinism`, `knowledge-file-staleness-sweep`, `plugin-release-checklist`, `prompt-pattern-library`, `scenario-retrieval`; plus the `researcher/` meta-skill) | `plugins/ravenclaude-core/skills/` |
-| Hooks | 16 (format-on-write, guard-destructive, remind-tests, enforce-layout, guard-recursive-spawn, capability-orientation, ensure-default-mode, reapply-posture, route-decision-review, thing-orchestrator, claim-grounding-lint, dod-gate, runaway-brake, agent-dispatch-evaluator, guard-web-access, regen-on-manifest-change) | `plugins/ravenclaude-core/hooks/` |
+| Specialist agents | 15 | `plugins/ravenclaude-core/agents/` |
+| Skills | 52 | `plugins/ravenclaude-core/skills/` — see the plugin's own [README](plugins/ravenclaude-core/README.md) for the full, gate-checked list |
+| Hooks | 34 | `plugins/ravenclaude-core/hooks/` — see the plugin's own [README](plugins/ravenclaude-core/README.md) for the full, gate-checked list |
 | Rules | 5 (coding-standards, security, git-workflow, agent-collaboration, terminal-copy-to-tempfile) | `plugins/ravenclaude-core/rules/` |
-| Commands | 7 (`/init-agent-ready`, `/dashboard`, `/set-posture`, `/wrap`, `/forge`, `/ragnarok`, `/reset-plugin-cache`) | `plugins/ravenclaude-core/commands/` |
+| Commands | 8 (`/init-agent-ready`, `/dashboard`, `/set-posture`, `/wrap`, `/forge`, `/stream`, `/reset-plugin-cache` (alias `/ragnarok`)) | `plugins/ravenclaude-core/commands/` |
 | Templates | memos, runbooks, design specs, RAID logs, partner-success artifacts, agent-ready-repo scaffold | `plugins/ravenclaude-core/templates/` |
 
 The team rules ship inside the plugin as [`plugins/ravenclaude-core/CLAUDE.md`](plugins/ravenclaude-core/CLAUDE.md). Copy or adapt that into your consumer project's root `CLAUDE.md` and fill in your project's stack-specific gates (formatter, linter, type-checker, test runner).
@@ -393,7 +393,7 @@ The container at `.devcontainer/` auto-installs the Claude Code CLI on rebuild, 
 
 **Shipped since the original roadmap:** `finance`, `regulatory-compliance`, `web-design`, `edtech-partner-success`, `data-platform`, `applied-statistics`, `microsoft-fabric` (the enterprise-Microsoft data-platform lane — OneLake / Lakehouse / Warehouse / Data Factory / Real-Time Intelligence / Direct Lake / capacity FinOps, from [`docs/microsoft-fabric-plugin-analysis.md`](docs/microsoft-fabric-plugin-analysis.md)), `claude-app-engineering` (building on the Claude API + Agent SDK + MCP, from [`docs/claude-app-engineering-plugin-analysis.md`](docs/claude-app-engineering-plugin-analysis.md)), and `azure-cloud` (Azure infrastructure & platform, from [`docs/azure-cloud-plugin-analysis.md`](docs/azure-cloud-plugin-analysis.md)).
 
-`salesforce` (Apex, Flow, Agentforce, platform-architecture specialists) has since **shipped** as well — it is now one of the 164 plugins above, no longer planned-only.
+`salesforce` (Apex, Flow, Agentforce, platform-architecture specialists) has since **shipped** as well — it is now one of the 180 plugins above, no longer planned-only.
 
 Each builds on top of `ravenclaude-core` (which provides the neutral team) and adds domain-specific agents that the consumer can choose to install or skip. `power-platform` is the reference implementation of this pattern.
 

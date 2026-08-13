@@ -23,7 +23,7 @@ flowchart TD
 ```mermaid
 flowchart TD
     A[Spend outpaces revenue] --> B{Allocated to a<br/>unit denominator?}
-    B -- "No unit" --> B1[Pick the unit (customer/txn/<br/>feature) and allocate, §3 #1 #2]
+    B -- "No unit" --> B1["Pick the unit (customer/txn/<br/>feature) and allocate, §3 #1 #2"]
     B -- "Has units" --> C{Cost per unit<br/>trend?}
     C -- "Falling" --> C1[Healthy: growth is buying<br/>efficiency; forecast it, §3 #2 #7]
     C -- "Rising" --> D{Which service<br/>drives it?}

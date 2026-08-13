@@ -26,7 +26,7 @@ flowchart TD
     A[Wrong answers] --> B{Recall@k:<br/>is the passage retrieved?}
     B -- "Low recall" --> C{Why is retrieval<br/>missing it?}
     C -- "Answer split across chunks" --> C1[Chunking bug: structure-aware<br/>chunking, route to ingestion, §3 #2]
-    C -- "Keyword/ID query" --> C2[Add hybrid (BM25 + vector),<br/>§3 #6]
+    C -- "Keyword/ID query" --> C2["Add hybrid (BM25 + vector),<br/>§3 #6"]
     C -- "Semantic gap" --> C3[Embedding choice; benchmark<br/>on the corpus, §3 #4]
     B -- "High recall, still wrong" --> D{Faithful to the<br/>retrieved context?}
     D -- "Not grounded" --> D1[Grounding/guardrail problem:<br/>citations + refuse-on-empty, §3 #7]

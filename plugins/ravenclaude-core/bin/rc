@@ -38,7 +38,16 @@ Usage:
                                         Run it from your project root so .ravenclaude/ is
                                         written there. Prints the URL it binds.
 
+  rc probe http <url> | dns <host> | file <path> | cmd <name>
+                                        Probe a thing AND a known-good CONTROL on the same
+                                        subsystem, so a negative result can be told apart from
+                                        a probe that was never capable of succeeding.
+                                        A 404 is not a diagnosis until a control has passed.
+  rc probe --explain                    What a negative result does and does NOT license.
+
   rc streams [list]                     List logical work-streams in this project (default).
+
+  rc artifacts list|new <id>   where work files go, across CLIs
   rc streams show <id> [--limit N]      Show a stream's resume state + recent DERIVED history.
   rc streams status                     One-line summary: active stream + stream count.
   rc streams create <name>              Create a named stream (slugified).
@@ -64,6 +73,40 @@ EOF
 
 cmd="${1:-}"
 case "$cmd" in
+  probe)
+    shift
+    # The control-probe kit. A negative result is not a diagnosis until a
+    # positive-capable probe on the SAME subsystem has been observed — otherwise
+    # you cannot tell "the subject is broken" from "I probed the wrong thing."
+    # 2026-08-08: a 404 on an href PLACEHOLDER (supposed to 404) produced an
+    # 85-line component, 10 converted call sites and two turns of owner-facing
+    # architectural advice. One control probe would have cost ten seconds.
+    # ⛔ THE PLUGIN COPY IS TRIED FIRST, AND IT IS THE ONE THAT SHIPS.
+    # Until 0.241.0 the engine lived ONLY at the marketplace root's scripts/,
+    # which is not part of the distributed plugin — so from an installed cache
+    # `rc probe` found nothing and the whole control-probe feature was dead for
+    # every consumer, while the probe-kit SKILL shipped and told them to run it.
+    # It now lives in the plugin's bin/ (beside this launcher) so it travels with
+    # the install. The marketplace-root path is kept last, for a dev checkout
+    # that still has one.
+    #
+    # bin/ rather than scripts/ on purpose: probe-kit is a tool a human or agent
+    # INVOKES, like this launcher — not one of the Thing's engines. The plugin's
+    # scripts/ is the tribunal's own substrate and is write-guarded, so parking a
+    # general-purpose tool there would make every future edit fight that guard.
+    kit="$PLUGIN_ROOT/bin/probe-kit.sh"
+    [ -f "$kit" ] || kit="$PLUGIN_ROOT/scripts/probe-kit.sh"
+    [ -f "$kit" ] || kit="$PLUGIN_ROOT/../../scripts/probe-kit.sh"
+    if [ ! -f "$kit" ]; then
+      # ⛔ EXIT 1, NOT 0. This used to exit 0, so a caller written as
+      # `rc probe … || fallback` took the SUCCESS branch having probed nothing —
+      # a control-runner that fails OPEN is worse than none, because the session
+      # believes it ran a control.
+      echo "rc: cannot find probe-kit.sh (looked in the plugin bin/, scripts/, and beside the marketplace root)" >&2
+      exit 1
+    fi
+    exec bash "$kit" "$@"
+    ;;
   dashboard)
     shift
     server="$PLUGIN_ROOT/scripts/serve-dashboards.py"
@@ -135,7 +178,8 @@ PY
         _usage
         exit 0
         ;;
-      *)
+    
+  *)
         echo "rc streams: unknown subcommand '$sub'" >&2
         _usage
         exit 1
@@ -188,8 +232,29 @@ PY
     # No verb is an error (so scripts catch it); explicit help is a success.
     [ -z "$cmd" ] && exit 1 || exit 0
     ;;
+  artifacts)
+    shift
+    # The cross-CLI work-file index. Lives at the MARKETPLACE root scripts/ (not
+    # the plugin's) because it is a repo-organisation tool like the generators,
+    # not a plugin runtime component. bin/rc sits inside the clone, so the root
+    # is two levels up from the plugin.
+    market="$(cd "$PLUGIN_ROOT/../.." && pwd)"
+    art="$market/scripts/rc-artifacts.py"
+    if [ ! -f "$art" ]; then
+      echo "rc: cannot find rc-artifacts.py at $art" >&2
+      exit 1
+    fi
+    command -v python3 >/dev/null 2>&1 || {
+      echo "rc: python3 not found in PATH — 'rc artifacts' needs python3." >&2
+      exit 1
+    }
+    # NO cd: work directories belong to YOUR project, resolved from the caller's
+    # cwd, exactly like `rc dashboard` and `rc streams`.
+    exec python3 "$art" "$@"
+    ;;
+
   *)
-    echo "rc: unknown command '$cmd' (try: rc dashboard | rc streams | rc converge)" >&2
+    echo "rc: unknown command '$cmd' (try: rc dashboard | rc streams | rc converge | rc artifacts)" >&2
     _usage
     exit 1
     ;;

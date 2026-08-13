@@ -1,0 +1,92 @@
+{
+  "meta": {
+    "title": "Analytics dashboard",
+    "type": "dashboard",
+    "viewport": "desktop",
+    "model_version": "1"
+  },
+  "regions": [
+    {
+      "role": "toolbar",
+      "layout": "row",
+      "layout_detail": "2",
+      "emphasis": "secondary",
+      "sections": [
+        {
+          "kind": "filters",
+          "heading": "Filters",
+          "components": [
+            {
+              "type": "search",
+              "props": {
+                "label": "Segment"
+              }
+            },
+            {
+              "type": "tabs",
+              "props": {
+                "label": "Range"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "role": "main",
+      "layout": "grid",
+      "layout_detail": "2x2",
+      "emphasis": "primary",
+      "sections": [
+        {
+          "kind": "kpis",
+          "heading": "Key metrics",
+          "components": [
+            {
+              "type": "kpi-stat",
+              "props": {
+                "label": "Sessions"
+              }
+            },
+            {
+              "type": "kpi-stat",
+              "props": {
+                "label": "Conversion"
+              }
+            },
+            {
+              "type": "kpi-stat",
+              "props": {
+                "label": "Revenue"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "trend",
+          "heading": "Trend",
+          "components": [
+            {
+              "type": "chart",
+              "props": {
+                "label": "Sessions over time"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "breakdown",
+          "heading": "By channel",
+          "components": [
+            {
+              "type": "table",
+              "props": {
+                "label": "Channel breakdown"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

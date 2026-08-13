@@ -60,6 +60,14 @@ flowchart TD
 
 **Tradeoffs summary:**
 
+> **This table answers *which* specialist, not *whether* to delegate at all.** It prices each agent as a
+> **spawn cost** to be justified — the right frame for models that over-dispatch, and the wrong one to
+> read alone on **Opus 4.8, which already spawns fewer subagents by default** and needs *"explicit
+> guidance around when subagents are desirable"* `[Prompting Claude Opus 4.8, retrieved 2026-07-15]`.
+> Read the whether-fork first — [`spawn-team`](../skills/spawn-team/SKILL.md) **Step 1.5** — which argues
+> both directions; then use this table to pick the specialist. Skipping a gate row (security-reviewer,
+> tester-qa, code-reviewer) is never a saving: it removes the gate.
+
 | Agent                     | Spawn cost (tokens / latency) | When to spawn                                                       | Blocks merge?                            |
 | ------------------------- | ----------------------------- | ------------------------------------------------------------------- | ---------------------------------------- |
 | (none — Team Lead direct) | 0                             | Trivial Q&A or ≤10-line single-file tweak                           | No                                       |

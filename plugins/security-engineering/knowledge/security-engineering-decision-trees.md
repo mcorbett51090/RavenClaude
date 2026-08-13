@@ -1,6 +1,6 @@
 # Security Engineering — Decision Trees
 
-_Decision trees + a dated capability map. Capability rows are `[verify-at-build]` — re-check against the vendor before quoting. Last reviewed: 2026-06-04._
+_Decision trees + a dated capability map. Capability rows are `[verify-at-build]` — re-check against the vendor before quoting. Last reviewed: 2026-06-04 (npm-v12 row corrected 2026-08-08: est.→GA 2026-07-08, GA approval command)._
 
 Traverse before triaging a finding or handling a secret. Remember: this team proposes; security-reviewer decides.
 
@@ -110,7 +110,7 @@ _A 9.8 in an unreachable path waits; a 6.5 unauthenticated and exploited-in-the-
 | SLSA | v1.0 | Build levels; verify provenance on consume |
 | CSPM | mature across clouds | Misconfig is #1 breach cause |
 | Policy-as-code (OPA/Conftest, cloud policy) | GA | Preventive > detective; wire via terraform-iac |
-| npm install-script hardening | **npm v12 (est. July 2026): install scripts OFF by default** | `allowScripts` defaults off (blocks pre/install/postinstall **and the implicit `node-gyp rebuild` a `binding.gyp` triggers** — closes the June-2026 "Phantom Gyp"/Miasma worm vector); Git deps opt-in `--allow-git`, remote URLs opt-in `--allow-remote`. Warnings today on npm ≥ 11.16.0; preview with `npm approve-scripts --allow-scripts-pending`. **CI: allow-list native-build deps before upgrading.** [GitHub Changelog 2026-06-09](https://github.blog/changelog/2026-06-09-upcoming-breaking-changes-for-npm-v12/) `[verify-at-build]` |
+| npm install-script hardening | **npm v12 (released 2026-07-08): install scripts OFF by default** | `allowScripts` defaults off (blocks pre/install/postinstall **and the implicit `node-gyp rebuild` a `binding.gyp` triggers** — closes the June-2026 "Phantom Gyp"/Miasma worm vector); Git deps opt-in `--allow-git`, remote URLs opt-in `--allow-remote`. Approve trusted scripts with `npm install-scripts approve`, then `npm rebuild` to run the newly-approved ones (the GA flow; the pre-GA `npm approve-scripts --allow-scripts-pending` preview surfaced behind warnings on npm ≥ 11.16.0 was superseded at GA). **CI: allow-list native-build deps before upgrading.** [npm v12.0.0 release 2026-07-08](https://github.com/npm/cli/releases/tag/v12.0.0); [GitHub Changelog 2026-06-09](https://github.blog/changelog/2026-06-09-upcoming-breaking-changes-for-npm-v12/) `[verify-at-build]` |
 
 ## Decision Tree: Should a dependency update be emergency or scheduled?
 

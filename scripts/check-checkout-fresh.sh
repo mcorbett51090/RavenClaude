@@ -32,6 +32,18 @@ set -euo pipefail
 top=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0
 cd "$top" || exit 0
 
+# Portable bounded-timeout helper (timeout → gtimeout → perl alarm → unbounded).
+# Source the shared helper so the fetch below is bounded even on stock macOS
+# (no GNU `timeout`); degrade to an unbounded stub if the helper is unavailable
+# so this advisory check never breaks the dev loop.
+_ccf_portable="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../plugins/ravenclaude-core/hooks/_portable.sh"
+# shellcheck source=/dev/null
+[[ -r "$_ccf_portable" ]] && . "$_ccf_portable"
+command -v _rc_timeout >/dev/null 2>&1 || _rc_timeout() {
+  shift
+  "$@"
+}
+
 REMOTE=origin
 BASE=main
 
@@ -53,7 +65,11 @@ done
 
 # Refresh the remote-tracking ref (bounded; offline degrades to an advisory skip).
 if [[ "$fetch" -eq 1 ]]; then
-  if ! timeout 10 git fetch -q "$REMOTE" "$BASE" 2>/dev/null; then
+  # `timeout` is absent on stock macOS (command-not-found → exit 127). `_rc_timeout`
+  # resolves timeout → gtimeout → perl alarm → unbounded, so the fetch is bounded on
+  # every host (perl is stock on macOS), not just where GNU `timeout` exists. A real
+  # timeout surfaces as non-zero, which the `if !` correctly reads as "could not reach".
+  if ! _rc_timeout 10 git fetch -q "$REMOTE" "$BASE" 2>/dev/null; then
     echo "  ~ checkout-freshness: could not reach $REMOTE (offline?). Skipping check." >&2
     exit 0
   fi

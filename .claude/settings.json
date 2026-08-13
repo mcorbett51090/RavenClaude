@@ -1,6 +1,7 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "model": "claude-opus-4-8",
+  "effortLevel": "xhigh",
   "permissions": {
     "allow": [],
     "deny": [
@@ -45,7 +46,7 @@
           {
             "type": "command",
             "command": "${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/guard-recursive-spawn.sh \"$CLAUDE_TOOL_FILE_PATH\"",
-            "comment": "Marketplace-dev hook (dev-mirror of the plugin's hooks/hooks.json entry). Advisory: warns when an edit to a plugin agent file looks like the agent is instructing itself to spawn a sub-agent. Set RC_GUARD_RECURSIVE_SPAWN_STRICT=1 to make it blocking."
+            "comment": "Marketplace-dev hook (dev-mirror of the plugin's hooks/hooks.json entry). Advisory: warns when an edit to a plugin agent file looks like the agent is instructing itself to spawn a sub-agent. This is a PostToolUse hook, so it CANNOT block/undo the edit; RC_GUARD_RECURSIVE_SPAWN_STRICT=1 surfaces it as a post-edit error, not a hard block."
           },
           {
             "type": "command",
@@ -61,6 +62,10 @@
             "type": "command",
             "command": "${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/regen-on-manifest-change.sh \"$CLAUDE_TOOL_FILE_PATH\"",
             "comment": "Marketplace-dev hook (dev-mirror of the plugin's hooks/hooks.json entry). When a plugin.json or marketplace.json version changes inside this marketplace clone, regenerates the Copilot package + dashboard.html + repo-guide.html — the artifacts CI freshness gates check. No-op on non-manifest edits and when version is unchanged."
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/storage-placement-nudge.sh"
           }
         ]
       },
@@ -71,6 +76,15 @@
             "type": "command",
             "command": "${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/mark-web-domain-seen.sh",
             "comment": "Marketplace-dev mirror of the plugin's PostToolUse WebFetch entry. Records the per-session 'seen' marker for a whitelisted domain ONLY after the fetch actually proceeded (PostToolUse doesn't fire on a blocked call) — the consent-ordering complement to guard-web-access.sh so a denied first fetch re-prompts instead of silently auto-allowing. Fail-safe; never blocks."
+          }
+        ]
+      },
+      {
+        "matcher": "Bash|WebFetch",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/log-probe.sh"
           }
         ]
       }
@@ -98,12 +112,36 @@
         ]
       },
       {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/enforce-git-protocol.sh",
+            "comment": "Marketplace-dev hook (dev-mirror of the plugin's hooks/hooks.json PreToolUse(Bash) entry). Git-protocol nudge (default WARN): no-ops unless .ravenclaude/comfort-posture.yaml is present (this repo has none, so it no-ops), then reads the `git_protocol: off|warn|block` knob (default warn). WARNs on a non-Conventional-Commits `git commit -m` subject or a new-branch creation off the (feat|fix|chore|docs|refactor|agent)/ prefix convention; BLOCKS (exit 2) only when the knob is `block`. A direct non-force push to main/master is advisory-only and NEVER blocks. Does NOT touch force operations / branch force-delete / recursive-remove / hard reset (guard-destructive.sh owns those). Fail-open on any error / missing git / missing python3 / absent posture. Same script the plugin distributes to consumers via ${CLAUDE_PLUGIN_ROOT}."
+          }
+        ]
+      },
+      {
         "matcher": "Write|Edit|MultiEdit",
         "hooks": [
           {
             "type": "command",
             "command": "${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/enforce-layout.sh \"$CLAUDE_TOOL_FILE_PATH\"",
             "comment": "Layout enforcement: deny writes that don't match .repo-layout.json. Same script the plugin distributes to consumers."
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/guard-memory-compaction.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash|Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/worktree-guard.sh check",
+            "comment": "Marketplace-dev hook (dev-mirror of the plugin's hooks/hooks.json PreToolUse entry). Worktree-hygiene guard (check): reads `worktree_guard: off|warn|block` from .ravenclaude/comfort-posture.yaml (default warn; this repo dogfoods `worktree_guard: warn`, so it nudges but never blocks). On `block` DENIES (exit 2) ONLY a mutating op (git commit/add/checkout/switch/merge/rebase/cherry-pick/revert/stash/rm/mv, or a Write/Edit/MultiEdit under the tree) when another live session shares this working tree or this is anchor-work — never a read / git status / rcwt. Escape hatch: RC_WORKTREE_GUARD_ACK=1. `off` short-circuits before any git shell-out; fail-open on missing git/jq. Same script the plugin distributes to consumers via ${CLAUDE_PLUGIN_ROOT}."
           }
         ]
       },
@@ -127,6 +165,15 @@
             "comment": "Marketplace-dev hook. Decision-review enforcement (the Thing, decision mode). No-ops (fast grep) unless `decision_review: advisory|binding` is set in .ravenclaude/comfort-posture.yaml (default off; this repo has no such file so it no-ops). When opted in AND the AskUserQuestion is a single binary non-multiselect yes/no-shaped question, routes it through thing-decide.py and on a BINDING yes/no DENIES the prompt with the verdict so the agent proceeds without interrupting the user; defer/advisory/high-blast/error -> allow. Same script the plugin distributes to consumers via ${CLAUDE_PLUGIN_ROOT}."
           }
         ]
+      },
+      {
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/guard-premise.sh"
+          }
+        ]
       }
     ],
     "Stop": [
@@ -146,6 +193,11 @@
             "type": "command",
             "command": "${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/stream-session-close.sh",
             "comment": "Marketplace-dev hook (dev-mirror). Agentic Work-Streams (P1): on session end, if a work-stream is active in .ravenclaude/streams/, append a derived session_closed event + refresh state.md (crash-resilience). DERIVED-ONLY, fail-safe, never blocks."
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/thing-denial-kb-sync.sh",
+            "comment": "Marketplace-dev hook (dev-mirror of the plugin's hooks/hooks.json entry). Thing-denial KB (Muninn): on session end, materialise new command/decision-tribunal denials/defers into .ravenclaude/runs/thing/denial-kb.jsonl by reading the existing Sága audit records (hot-path-safe). No-op unless a comfort-posture exists; never writes stdout; always exits 0."
           }
         ]
       }
@@ -203,6 +255,34 @@
             "command": "${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/capability-orientation.sh",
             "timeout": 10,
             "comment": "Marketplace-dev hook. Injects a session-start capability banner (project surface + detected auth by env-var NAME only + effective settings.json permissions + work-streams) via hookSpecificOutput.additionalContext. The only subprocess is a bounded read-only git read used by the streams classifier (gated on streams existing); the 10s timeout bounds any pathological read. The plugin's hooks/hooks.json registers the same script for consumers via ${CLAUDE_PLUGIN_ROOT}; both paths are safe because it is read-only, fail-silent, and emits nothing when there is nothing to report."
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/worktree-guard.sh register",
+            "comment": "Marketplace-dev hook (dev-mirror of the plugin's hooks/hooks.json SessionStart entry). Worktree-hygiene guard (register): records this session's registry file under ${RC_WORKTREE_GUARD_HOME:-$HOME/.ravenclaude/worktree-guard} + GC-sweeps its bucket. Reads `worktree_guard: off|warn|block` from .ravenclaude/comfort-posture.yaml (default warn; this repo dogfoods `worktree_guard: warn`). Nudges at SessionStart only on real contention (another live session in this same working tree) or anchor-work (primary checkout, worktrees exist, HEAD on the anchor branch); a lone checkout stays silent. `off` short-circuits before any git shell-out. Fail-open on missing git/jq; SessionStart cannot block. The plugin's hooks/hooks.json registers the same script for consumers via ${CLAUDE_PLUGIN_ROOT}."
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/thing-denial-kb-recall.sh",
+            "timeout": 10,
+            "comment": "Marketplace-dev hook (dev-mirror of the plugin's hooks/hooks.json entry). Thing-denial KB (Muninn) recall: surfaces the most-recent tribunal-denial shapes + known resolutions via hookSpecificOutput.additionalContext. Leak-safe (derived digest only); no-op unless a comfort-posture exists AND the KB is non-empty; always exits 0."
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/dashboard-autostart.sh",
+            "timeout": 10,
+            "comment": "Marketplace-dev hook (dev-mirror of the plugin's hooks/hooks.json entry). Dashboard autostart: reads `dashboard_autostart: off|serve|open` from .ravenclaude/comfort-posture.yaml and no-ops after one grep when unset (absent => OFF). Probes 127.0.0.1:<port>/__csrf and stands down if a dashboard is already live, so concurrent sessions never spawn a second server or a second tab. Fail-safe; always exits 0."
+          }
+        ]
+      },
+      {
+        "matcher": "compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/compact-anchor.sh",
+            "timeout": 10,
+            "comment": "Marketplace-dev hook (dev-mirror of the plugin's hooks/hooks.json entry). Post-compaction addressability pointer, scoped `matcher: \"compact\"`. Injects the transcript path + boundary line + how to grep it, so the post-compaction agent knows its own pre-compaction record is still on disk. DERIVED VALUES ONLY — never transcript content (Gate 186). Fail-safe; always exits 0."
           }
         ]
       }

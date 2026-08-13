@@ -37,7 +37,7 @@
 #                      (command|file|network|mcp; default "command").
 #   THING_CATEGORY     required — the comfort-posture category (e.g. shell_code_exec)
 #   THING_SEAT_ROLE    optional — forseti|mimir|heimdall|thor (default: mimir)
-#   THING_MODEL        optional — claude model alias/id (default: claude-haiku-4-5)
+#   THING_MODEL        optional — claude model alias/id (default: claude-haiku-4-5-20251001)
 #   THING_PEER_VERDICTS optional — JSON of the other seats' verdicts (Thor only)
 #   THING_SEAT_BARE    optional — "1" to force `--bare` (needs an API key)
 #   THING_SEAT_MOCK_VERDICT  optional — TEST HOOK. When set, NO real claude call
@@ -57,7 +57,7 @@ cmd="${THING_PAYLOAD:-${THING_CMD:-}}"
 shape="${THING_PAYLOAD_SHAPE:-command}"
 category="${THING_CATEGORY:-shell_readonly}"
 role="${THING_SEAT_ROLE:-mimir}"
-model="${THING_MODEL:-claude-haiku-4-5}"
+model="${THING_MODEL:-claude-haiku-4-5-20251001}"
 
 # §3a: the seat prompt is capped at SEAT_MAX_BYTES (with a [truncated] marker) —
 # but the egress backstop below + the orchestrator's local screen run on the FULL
@@ -156,6 +156,23 @@ case "${THING_SEAT_MOCK_VERDICT:-}" in
         echo '{"verdict":"deny","edited_command":null,"concerns_cited":["srm.push-to-protected-branch"],"reasoning":"mock split: deny","confidence":0.9,"injection_detected":false}' ;;
       thor)
         echo '{"verdict":"deny","edited_command":null,"concerns_cited":["srm.push-to-protected-branch"],"reasoning":"mock split: Thor breaks tie -> deny","confidence":0.95,"injection_detected":false}' ;;
+    esac
+    exit 0 ;;
+  split-oop)
+    # Like `split` so Thor convenes, but the tie-breaker returns an OUT-OF-PROTOCOL
+    # verdict string (valid JSON, verdict not in {allow,deny,edit}). Teeth for the
+    # tie-breaker fail-closed fix: the orchestrator must resolve this to the category
+    # posture (deny for high-stakes), NEVER the old else->allow default.
+    # mimir denies with NO cited concern so the post-tie-breaker critical-veto does NOT
+    # fire — the final verdict then depends PURELY on the tie-breaker's resolution of
+    # Thor's out-of-protocol verdict (the thing this teeth is testing), not on a veto.
+    case "$role" in
+      forseti | heimdall)
+        echo '{"verdict":"allow","edited_command":null,"concerns_cited":[],"reasoning":"mock split-oop: allow","confidence":0.9,"injection_detected":false}' ;;
+      mimir)
+        echo '{"verdict":"deny","edited_command":null,"concerns_cited":[],"reasoning":"mock split-oop: deny (no concern -> no critical veto)","confidence":0.9,"injection_detected":false}' ;;
+      thor)
+        echo '{"verdict":"approve","edited_command":null,"concerns_cited":[],"reasoning":"mock split-oop: Thor returns an out-of-protocol verdict","confidence":0.9,"injection_detected":false}' ;;
     esac
     exit 0 ;;
   malformed)
@@ -286,6 +303,12 @@ user_prompt="${user_prompt}
 Respond with the verdict JSON only."
 
 # Decide auth/isolation mode. --bare is only viable with an API key.
+# BASH 3.2 (macOS): expanding an EMPTY array as "${a[@]}" under `set -u` is an
+# "unbound variable" ERROR (fixed upstream in bash 4.4). bare_args is empty in the
+# DEFAULT auth mode, so every seat died here -> the orchestrator marked it abstain ->
+# the panel abstained -> the tribunal failed closed. Silent as a bug, loud as a block.
+# Use ${a[@]+"${a[@]}"} (the `+` form): 0 args when empty, the real args when set.
+# NOT "${a[@]:-}" — that injects a spurious empty "" argument into `claude -p`.
 bare_args=()
 if [ "${THING_SEAT_BARE:-}" = "1" ] || [ -n "${ANTHROPIC_API_KEY:-}" ]; then
   bare_args=(--bare)
@@ -310,7 +333,7 @@ _mf_helper="$(dirname "$0")/../hooks/_model-fallback.sh"
 _seat_run() {
   # --tools "" disables ALL tools (a seat only reasons + returns JSON) — holds on
   # the primary AND every fallback rung.
-  cd "$scratch" && claude -p "${bare_args[@]}" \
+  cd "$scratch" && claude -p ${bare_args[@]+"${bare_args[@]}"} \
     --output-format json \
     --model "$1" \
     --tools "" \
@@ -326,7 +349,7 @@ if declare -F _model_call_with_fallback >/dev/null 2>&1; then
   [ -n "${THING_SEAT_RESOLVED_FILE:-}" ] && { _MF_RESOLVED_FILE="$THING_SEAT_RESOLVED_FILE"; export _MF_RESOLVED_FILE; }
   raw="$(_model_call_with_fallback --runner _seat_run --exclude "${MODEL_FALLBACK_EXCLUDE:-}")" || { echo '{"error":"claude invocation failed"}' >&2; exit 5; }
 else
-  raw="$(cd "$scratch" && claude -p "${bare_args[@]}" \
+  raw="$(cd "$scratch" && claude -p ${bare_args[@]+"${bare_args[@]}"} \
     --output-format json \
     --model "$model" \
     --tools "" \
@@ -351,8 +374,10 @@ text="$(printf '%s' "$raw" | jq -r '.result // empty' 2>/dev/null || true)"
 # STRING-AWARE scan (json.JSONDecoder.raw_decode) that returns the LAST valid
 # top-level JSON object — correct even when braces appear inside string values.
 verdict_json="$(printf '%s' "$text" | python3 -c '
-import sys, json
+import sys, json, ast
 t = sys.stdin.read()
+# Attempt 1 (UNCHANGED, byte-identical happy path): string-aware scan for the LAST
+# valid top-level JSON object. Full fidelity — a valid allow stays allow.
 dec = json.JSONDecoder()
 best, i = "", 0
 while True:
@@ -364,7 +389,46 @@ while True:
         best, i = t[j:end], end
     except json.JSONDecodeError:
         i = j + 1
-sys.stdout.write(best)
+if best:
+    sys.stdout.write(best)
+    sys.exit(0)
+# Attempt 2 (near-JSON salvage, LOW-TRUST — red-team FM1). Entered ONLY when the
+# strict scan found nothing. Isolate the largest brace-balanced {...} span via an
+# O(n) counter (NO backtracking regex — honors the ReDoS lesson), then parse it
+# with ast.literal_eval (safe: literals only, no code exec), which natively
+# tolerates single-quoted keys/strings, trailing commas, and Python True/False/None.
+# MONOTONIC-IN-RESTRICTIVENESS: a verdict recovered from repaired bytes may ONLY
+# tighten. A salvaged "allow" is downgraded to "abstain" so a model confused by an
+# injection (which tends to emit malformed output) can NEVER manufacture a votable
+# allow from garbage; deny/edit/abstain pass through and are re-validated downstream.
+span, depth, start = "", 0, 0
+for k in range(len(t)):
+    c = t[k]
+    if c == "{":
+        if depth == 0:
+            start = k
+        depth += 1
+    elif c == "}" and depth > 0:
+        depth -= 1
+        if depth == 0 and (k + 1 - start) > len(span):
+            span = t[start:k + 1]
+if span:
+    try:
+        obj = ast.literal_eval(span)
+        # MONOTONIC-IN-RESTRICTIVENESS (red-team FM1 + security review). A verdict
+        # recovered from repaired bytes may become a VOTED seat ONLY if it is a `deny`
+        # — the one direction that can only tighten the outcome. Any OTHER salvaged
+        # verdict (allow / edit / abstain / unknown / missing) is DROPPED here, so the
+        # seat falls through to `exit 6` -> parse_seat records status=abstain, keeping
+        # the 2-abstain fail-closed floor intact. (Emitting a non-deny salvaged object
+        # made the seat count as *voted* — and the floor + tie-breaker key on STATUS,
+        # not the verdict string — so a salvaged abstain/unknown eroded the floor and
+        # reached the tie-breaker`s else->allow default. Deny-only closes that: repaired
+        # bytes can produce a voted DENY or an ABSTAIN, never a votable non-deny.)
+        if isinstance(obj, dict) and obj.get("verdict") == "deny":
+            sys.stdout.write(json.dumps(obj))
+    except (ValueError, SyntaxError, RecursionError, TypeError, MemoryError):
+        pass  # any parse failure on adversarial near-JSON -> drop -> exit 6 -> abstain
 ' 2>/dev/null || true)"
 
 if [ -z "$verdict_json" ] || ! printf '%s' "$verdict_json" | jq -e . >/dev/null 2>&1; then

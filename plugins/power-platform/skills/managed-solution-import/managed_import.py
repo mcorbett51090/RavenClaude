@@ -234,7 +234,20 @@ def prod_guard_verdict(
         return False, f"{now:%A} is not a guarded weekday"
     minutes = now.hour * 60 + now.minute
     start, end = sh * 60 + sm, eh * 60 + em
-    if start <= minutes < end:
+    # A window that WRAPS MIDNIGHT (e.g. 22:00-06:00) has start > end. The plain
+    # `start <= minutes < end` test can never be true for such a window, so the
+    # guard would report "outside business hours" at EVERY time — including squarely
+    # inside the guarded overnight window — silently failing OPEN (the opposite of
+    # the fail-closed FM7 intent). Treat end <= start as a wraparound: inside means
+    # after start OR before end.
+    if start <= end:
+        # Normal same-day window (start == end is a degenerate empty window:
+        # never inside — preserves the prior behavior for that degenerate case).
+        inside = start <= minutes < end
+    else:
+        # Wraparound: after start OR before end.
+        inside = minutes >= start or minutes < end
+    if inside:
         return True, (
             f"PROD import blocked during business hours {win} "
             f"(now {now:%H:%M} {now.tzname() or ''}) — pass --approved to override"

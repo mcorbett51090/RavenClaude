@@ -1,0 +1,39 @@
+{
+  "meta": {
+    "title": "Untitled screen",
+    "type": "app-screen",
+    "viewport": "mobile",
+    "model_version": "1"
+  },
+  "regions": [
+    {
+      "role": "toolbar",
+      "layout": "row",
+      "sections": [
+        {
+          "kind": "top-bar",
+          "components": [
+            { "type": "breadcrumb", "props": { "label": "Settings" } },
+            { "type": "search" }
+          ]
+        }
+      ]
+    },
+    {
+      "role": "main",
+      "layout": "stack",
+      "emphasis": "primary",
+      "sections": [
+        {
+          "kind": "settings-form",
+          "heading": "Account",
+          "components": [
+            { "type": "input", "props": { "label": "Name", "placeholder_text": "Your name" } },
+            { "type": "toggle", "props": { "label": "Email notifications", "state": "on" } },
+            { "type": "button", "props": { "label": "Save", "variant": "primary" } }
+          ]
+        }
+      ]
+    }
+  ]
+}

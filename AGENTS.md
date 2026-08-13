@@ -1,6 +1,30 @@
 # AGENTS.md — RavenClaude
 
-Cross-tool agent-instruction file. This is the canonical version of the marketplace's coding-agent guidance. `CLAUDE.md` imports this file and adds Claude-Code-specific notes. Cursor, OpenAI Codex CLI, Aider, GitHub Copilot, and Windsurf read this file natively.
+Cross-tool agent-instruction file. This is the canonical version of the marketplace's coding-agent guidance. `CLAUDE.md` imports this file and adds Claude-Code-specific notes.
+
+**Which tools actually read it** (corrected 2026-07-28 — the previous blanket claim that "Cursor, OpenAI Codex CLI, Aider, GitHub Copilot, and Windsurf read this file natively" was **false for Aider**, and the repo's own Claim-Grounding protocol had been applied to the Copilot claim but not to the ones beside it):
+
+| Tool | Reads `AGENTS.md` automatically? | Basis |
+|---|---|---|
+| **GitHub Copilot CLI** | **Yes** | `[docs-verified]` — see [`plugins/ravenclaude-core/knowledge/copilot-cli-customization.md`](plugins/ravenclaude-core/knowledge/copilot-cli-customization.md) §1, which cites the instruction-file precedence. |
+| **OpenAI Codex CLI** | **Yes** | `[docs-verified]` — Codex reads `AGENTS.md` from the repo root; see [`plugins/ravenclaude-core/skills/external-agent-onboarding/SKILL.md`](plugins/ravenclaude-core/skills/external-agent-onboarding/SKILL.md). |
+| **Claude Code** | Indirectly | `CLAUDE.md` `@`-imports this file. |
+| **Aider** | **NO — this was the false claim** | `[docs-verified 2026-07-28]` — [aider.chat/docs/usage/conventions.html](https://aider.chat/docs/usage/conventions.html) documents **`CONVENTIONS.md`**, loaded only on explicit opt-in (`aider --read CONVENTIONS.md` or `read:` in `.aider.conf.yml`). `AGENTS.md` is not mentioned on that page at all. An Aider user gets **nothing** from this file unless they opt in by hand. |
+| **Cursor** | `[unverified]` | Cursor's documented native mechanism is `.cursor/rules/*.mdc`. Whether it also auto-loads `AGENTS.md` was **not** verified; do not rely on it. |
+| **Windsurf** | `[unverified — and the product was renamed]` | Reported renamed to Devin Desktop (2026-06-02). Treat this lane as unmaintained until someone re-verifies it. |
+
+**The honest summary:** this file is reliably read by **Copilot CLI and Codex**, reaches **Gemini CLI** through a `GEMINI.md` `@AGENTS.md` import, and reaches Claude Code by import. **Aider** gets it only as a projected `CONVENTIONS.md`. Cursor and Devin Desktop remain opt-in, unverified, or both. Do not add a tool to this table without a dated source — a false claim of support is worse than an admitted gap, because it stops anyone from building the bridge that would make it true.
+
+> **Two Geminis, and they are not the same thing** (added 2026-07-29, audit MH-36 + MH-30):
+>
+> 1. **Gemini CLI is a supported HOST** since v0.222.0 — `ravenclaude install --host gemini` wires the
+>    guardrails into `.gemini/settings.json` and points `GEMINI.md` at this file.
+> 2. **Gemini is also used as a MODEL**, in exactly one place: the Power Platform `visual-qa` skill's
+>    optional Gemini API integration for test-recording review. That is a supplemental feature, not
+>    required, and it has nothing to do with host support.
+>
+> They were conflated because the second was the repo's only Gemini anything and was buried in a skill
+> resource — so a reader looking for "Gemini support" found neither the host lane nor the integration.
 
 ## What this repo is
 
@@ -13,16 +37,25 @@ Don't let them drift toward each other.
 
 ## Setup commands
 
-```shell
-# No package install — the marketplace is markdown + shell + JSON manifests.
-# Local development test:
-/plugin marketplace add ./    # from a separate Claude Code project
-/plugin install ravenclaude-core@ravenclaude
-```
+There is **no package install** — the marketplace is markdown + shell + JSON manifests. How you wire it in depends on your host, and **the three paths are not interchangeable** (corrected 2026-07-28, multi-host audit MH-18: this section previously showed only the Claude Code slash commands, so the first substantive thing a Codex or Copilot agent read was a procedure it structurally could not execute).
+
+| Your host | Wire it in with | Notes |
+|---|---|---|
+| **Claude Code** | `/plugin marketplace add ./` then `/plugin install ravenclaude-core@ravenclaude` | Run from a separate Claude Code project. Slash commands work here and only here. |
+| **GitHub Copilot CLI** | `bash <marketplace>/scripts/ravenclaude install --project <your-repo>` | Wires skills → `.claude/skills`, guardrails → `.github/hooks`, and points `.github/copilot-instructions.md` at the projected discipline. **Requires Copilot CLI ≥ 1.0.52** — below that a sub-agent's tool calls are not hooked at all; the installer checks and warns. |
+| **OpenAI Codex CLI** | `bash <marketplace>/scripts/ravenclaude install --host codex --project <your-repo>` | Wires skills → `.agents/skills` and guardrails → `.codex/hooks.json` (native contract, no adapter), and projects your comfort posture onto Codex's OS sandbox. **Then run `/hooks` inside Codex to trust them — and again after every update**, because Codex tracks hook trust by hash. |
 
 `jq` and `python3` are required for the CI workflows and the layout-enforcement hook. Both are present in the devcontainer.
 
-For a guided, copy-paste install (with per-step verification and a "if the bridge is down…" troubleshooting accordion), open the dashboard's **Install a plugin (Bifröst)** tab (`/dashboard` → `#/bifrost`) — it walks the four steps above and lights each one as you paste back the command output.
+**Opening the dashboard.** The host-agnostic launcher is `bin/rc` — invoke it by **full path**, because a plain `rc` may resolve to something else on your `PATH`:
+
+```shell
+bash plugins/ravenclaude-core/bin/rc dashboard
+```
+
+`/dashboard` is the Claude Code shorthand for exactly that command; it does not exist on any other host.
+
+For a guided, copy-paste install (with per-step verification and a "if the bridge is down…" troubleshooting accordion), open the dashboard's **Install a plugin (Bifröst)** tab (`#/bifrost`) — it walks the Claude Code steps above and lights each one as you paste back the command output.
 
 ## Repo layout
 
@@ -40,6 +73,72 @@ RavenClaude/
 ```
 
 Every plugin **must** have `.claude-plugin/plugin.json`, `README.md`, and `CLAUDE.md`. It **may** have any of `agents/`, `skills/`, `hooks/`, `rules/`, `templates/`, `commands/`, `knowledge/`. It **may** add purpose-specific directories (e.g. `solutions/`, `flows/`) when justified — declare them in `plugin.json` and explain in the plugin's CLAUDE.md.
+
+## Where work files go — the cross-CLI storage contract (READ THIS BEFORE WRITING ANY FILE)
+
+**Any CLI may be the one working here — Claude Code, Copilot, Codex, Cursor, Gemini, Aider — and the
+next session may be a different one.** So where you put a file is not a personal preference: it is the
+only thing that lets the next tool find your work. Put it in the right tier, stamp it, and any other
+CLI can pick it up as if it had written it itself.
+
+This section is the canonical statement. It is projected into every host's own instruction file, so
+**edit it here, not in the projections.**
+
+### The two tiers, and how to choose
+
+| Tier | Path | Who can see it | Use it for |
+|---|---|---|---|
+| **Local run** | `.ravenclaude/runs/<task-id>/` | **this machine only** — gitignored | working notes, gate output, evidence, anything mid-flight |
+| **Committed** | `docs/plans/`, `docs/decisions/`, `docs/research/` | you, teammates, CI | anything meant to outlive the task or be read by a human later |
+
+**The test:** *would a teammate cloning this repo need it?* Yes → committed tier. No → local run tier.
+When unsure, start local and promote it later; promoting is a `git add`, but un-committing something
+that should not have travelled is not.
+
+> **`.ravenclaude/runs/` is gitignored on purpose.** Run artifacts carry command output, absolute
+> paths, branch names, and whatever the run happened to touch. That substrate is deliberately kept out
+> of git and secret-scrubbed. **Do not "helpfully" commit it** — that reverses a deliberate decision,
+> and it is a decision about other people's data, not just yours.
+
+### What a run directory looks like
+
+Create it with `bin/rc artifacts new <task-id>` so the shape and the provenance stamp are right
+without anyone memorising this:
+
+```
+.ravenclaude/runs/<task-id>/
+├── meta.json            who made it, which CLI, when   <- the provenance stamp
+├── summary.md           what was done, for a human
+├── decisions.md         choices + WHY (the part that is expensive to recover)
+├── structured-output.json   machine-readable result
+└── events.jsonl         chronological actions, one JSON object per line
+```
+
+Every file is optional except `meta.json`. **Write the ones you actually have content for** — an empty
+`decisions.md` is worse than none, because the next CLI reads it as "no decisions were made."
+
+### Picking work up from another CLI
+
+1. `bin/rc artifacts list` — shows both tiers, newest first, with **which CLI wrote each one**. It is
+   computed by scanning, so it cannot go stale.
+2. Read `meta.json` first. If it was written by a different CLI, nothing special is required — the
+   layout is identical — but knowing the origin tells you what *else* might exist (e.g. a Claude Code
+   session leaves transcripts that a Codex session does not).
+3. Continue in the **same directory**. Do not start a parallel one for the same task; two half-records
+   is the failure this contract exists to prevent.
+
+### What is NOT shared, and never will be
+
+Naming this is part of the contract — an honest gap beats a false promise of parity:
+
+| Host-private | Why |
+|---|---|
+| `~/.claude/` (session transcripts, memory), `~/.copilot/`, `~/.codex/` | each CLI's own state, in its own format, outside the repo |
+| Session/conversation history | not a file the other tools can read, and not portable |
+| A CLI's own caches | machine- and version-specific |
+
+If work needs to survive across CLIs, **it has to be written into one of the two tiers above.** Nothing
+in a host's private area crosses over — assume it is lost the moment the session ends.
 
 ## Code style
 
@@ -64,10 +163,10 @@ Every plugin **must** have `.claude-plugin/plugin.json`, `README.md`, and `CLAUD
 
 Claude Code loads the `name` + `description` of **every agent in every *enabled* plugin** into the orchestrator's system prompt so it can route to subagents (agent bodies load lazily, only when an agent is invoked). The combined descriptions count against a **~15K-token budget**; cross it and Claude Code warns *"agent descriptions are over the 15.0K token limit — /agents to free up context."*
 
-This marketplace ships **~100 plugins / 400+ agents**, so two levers keep the budget affordable — they're complementary, not either/or:
+This marketplace ships **~180 plugins / 600+ agents**, so two levers keep the budget affordable — they're complementary, not either/or:
 
 1. **Per-agent cap (this repo's job).** Every agent `description` is held to ≤ 300 chars (~75 tokens) by the `check-frontmatter.py` gate above. No single plugin is the problem; the cap is what lets a consumer enable *many* plugins before hitting the warning.
-2. **Enable only what you need (the consumer's job).** You cannot fit all ~100 plugins under 15K regardless of how tight the descriptions are — that's expected, not a defect. Enable the plugins relevant to your work and disable the rest via **`/agents`** (or `/plugin`). That's exactly what the warning's `/agents` hint points at, and it's the correct response to it. **Budget before you enable, not after the warning fires:** the `/plugin` **Discover** tab now surfaces a per-plugin **Context cost** estimate (the tokens a plugin adds to every turn — Claude Code v2.1.143+) and a **Will install** inventory of its commands/agents/skills/hooks/MCP+LSP servers (v2.1.145+), so you can see what a plugin costs the orchestrator prompt _before_ installing it rather than discovering the 15K overrun afterward. (Verified against [Discover and install plugins](https://code.claude.com/docs/en/discover-plugins), 2026-06-21.)
+2. **Enable only what you need (the consumer's job).** You cannot fit all ~180 plugins under 15K regardless of how tight the descriptions are — that's expected, not a defect. Enable the plugins relevant to your work and disable the rest via **`/agents`** (or `/plugin`). That's exactly what the warning's `/agents` hint points at, and it's the correct response to it. **Budget before you enable, not after the warning fires:** the `/plugin` **Discover** tab now surfaces a per-plugin **Context cost** estimate (the tokens a plugin adds to every turn — Claude Code v2.1.143+) and a **Will install** inventory of its commands/agents/skills/hooks/MCP+LSP servers (v2.1.145+), so you can see what a plugin costs the orchestrator prompt _before_ installing it rather than discovering the 15K overrun afterward. (Verified against [Discover and install plugins](https://code.claude.com/docs/en/discover-plugins), 2026-06-21.)
 
 ## Modifying an existing plugin
 
@@ -89,6 +188,24 @@ A new file's path must match at least one glob in `.repo-layout.json` `allowed_g
 > Why a hook + CI instead of `paths:`-scoped rule files: Claude Code issue [#23478](https://github.com/anthropics/claude-code/issues/23478) — path-scoped rule files load on Read, not on Write, so they cannot block file *creation*. The hook + CI pair is the supported pattern.
 
 ## Testing instructions
+
+> **⚠️ If steps 3 or 4 fail with a network error, the cause is probably your host's sandbox — not a
+> broken checkout** (added 2026-07-29, audit MH-34). `npx --yes prettier@…` and `pip install ruff`
+> both **download**, and several hosts run the agent inside a sandbox that blocks outbound network by
+> default:
+>
+> - **OpenAI Codex CLI** — `sandbox_mode = workspace-write` (the default) has network **off** unless
+>   `[sandbox_workspace_write] network_access = true` `[docs-verified]`. You get a denial, not a lint
+>   result.
+> - **Cursor / Gemini** — may be sandboxed depending on configuration.
+>
+> This repo's own Capability Grounding Protocol tells you to *"read the actual error first and name
+> its specific mechanical cause"* — so here it is, named, because nothing used to say it and the
+> honest-looking conclusion ("linting is broken") is the wrong one. **Fixes, cheapest first:** run the
+> two commands outside the sandboxed session; or install `prettier`/`ruff` once so no download is
+> needed; or enable network for the workspace deliberately. **Do not skip the steps** — CI runs
+> `prettier --check .` and `ruff check .` on the whole tree, so a skipped local run just moves the
+> failure to the PR.
 
 Before opening a PR:
 
@@ -123,7 +240,15 @@ npx --yes prettier@3.9.4 --check . --log-level warn   # verify clean — must re
 #    and inside audit-gates.sh. Same whole-tree discipline as prettier: a ruff violation
 #    landing in main can surface as a surprise CI failure on a later PR, so lint before pushing
 #    any branch that touches .py files. (audit-gates Gate 9b _skip_or_fail's if ruff is absent.)
-pip install --quiet ruff && ruff check .   # must return exit 0
+#    ⚠️ Use `python3 -m pip`, NOT bare `pip`. On a stock macOS toolchain `pip` is
+#    `command not found` (only `pip3`/`python3 -m pip` exist), so the bare form fails
+#    at the INSTALL step and the honest-looking conclusion — "ruff is unavailable here,
+#    Gate 9b has to stay skipped" — is wrong. Verified 2026-08-12: bare `pip` → not
+#    found; `python3 -m pip install --user ruff` → installed, `ruff check .` clean.
+python3 -m pip install --quiet --user ruff   # bare `pip` is absent on stock macOS
+ruff check .                                 # must return exit 0
+#    If `ruff` is then not on PATH, it installed to the user scheme — either add
+#    `$(python3 -m site --user-base)/bin` to PATH, or run it as `python3 -m ruff check .`
 
 # 5. Audit every gate (the meta-test)
 scripts/audit-gates.sh
@@ -176,6 +301,20 @@ CI runs the same checks plus the gate-audit meta-test.
 - **Versioning** — bump the plugin's semver on every user-visible change.
 - **Migration notes** — if the change could break a consumer's existing project on `/plugin marketplace update`, add a "Migration" section to the plugin's release notes.
 - **Privacy** — the marketplace is private by default. Don't push to a public-readable remote without removing the `email` field from `marketplace.json` and `plugin.json`.
+
+### Required status checks — never add `paths:` to a required workflow (added 2026-07-17)
+
+The `main` ruleset requires three checks before a PR can merge: **Validate manifests and hooks** (`validate-marketplace.yml`), **Validate file paths against .repo-layout.json** (`validate-layout.yml`), and **Validate plugin and marketplace JSON Schemas** (`validate-schemas.yml`).
+
+**None of these three may carry a `paths:` filter on its `pull_request` trigger.** GitHub: _"If a workflow is skipped due to path filtering, branch filtering or a commit message, then checks associated with that workflow will remain in a Pending state. A pull request that requires those checks to be successful will be blocked from merging"_ — and, explicitly, _"You should not use path or branch filtering to skip workflow runs if the workflow is required to pass before merging"_ ([troubleshooting required status checks](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/collaborating-on-repositories-with-code-quality-features/troubleshooting-required-status-checks), retrieved 2026-07-17). A path filter on a required check doesn't cost coverage — it **hangs the PR forever**.
+
+This is not hypothetical: `validate-schemas.yml` used to run only on manifest changes, so every docs-only PR (including the external-intake bot's `docs/staging/incoming/external/**` PRs) would have hung permanently the moment it became required. Both filters were removed when the checks were made required.
+
+The filters were also the wrong shape independently: `validate-marketplace.yml`'s gates (`prettier --check .`, `ruff check .`, `audit-gates.sh`) are **whole-tree readers**, so no glob list can be correct — that list was patched three times (2026-05-31, 2026-06-20, 2026-07-06) and still missed `index.html` / `tests/**` / `.repo-layout.json`. An allow-list that fails **open** (the gate silently never runs) is the wrong shape for a whole-tree validator.
+
+**If PR minutes ever need trimming, gate individual _steps_ with `if:` inside the job — never the workflow trigger.** A skipped *job* reports Success; a skipped *workflow* reports nothing at all. Adding a fourth required check? Check its trigger for `paths:` first.
+
+> **Admin bypass is deliberate.** `RepositoryRole 5` (admin) keeps `bypass_mode: always` on the ruleset — the documented docs-straight-to-main flow and the `[skip ci]` artifact commits both depend on it, and it is the escape hatch if a required check ever does hang. The trade-off is real and accepted: **required checks do not bind an admin merge**, so `gh pr merge --auto` as an admin can still land ahead of a running check. If you want CI to gate your own merge, wait for green before merging — the ruleset will not do it for you.
 
 ## House rules
 

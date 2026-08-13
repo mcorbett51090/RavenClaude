@@ -18,6 +18,19 @@ fi
 [ -z "$file" ] && exit 0
 [ ! -f "$file" ] && exit 0
 
+# Stock-toolchain portability: `grep -P` (PCRE) is a GNU extension — BSD/macOS grep exits
+# 2, which inside `if grep -Pzi ...; then` reads as NO MATCH, so these checks silently
+# never fired on macOS. `_rc_pcre_match` uses perl (the PCRE engine, stock on macOS) for
+# REAL coverage. Fail-safe: an absent helper degrades to an inline perl equivalent.
+_rc_portable="${CLAUDE_PLUGIN_ROOT:-}/hooks/_portable.sh"
+[ -f "$_rc_portable" ] || _rc_portable="$(dirname "${BASH_SOURCE[0]}")/../../ravenclaude-core/hooks/_portable.sh"
+# shellcheck source=/dev/null
+[ -f "$_rc_portable" ] && . "$_rc_portable" 2>/dev/null || true
+command -v _rc_pcre_match >/dev/null 2>&1 || _rc_pcre_match() {
+  [ -r "$1" ] || return 1
+  RC_PCRE_PAT="$2" perl -0777 -ne 'BEGIN{$m=1} $m=0 if /$ENV{RC_PCRE_PAT}/i; END{exit $m}' -- "$1" 2>/dev/null
+}
+
 findings=()
 if grep -nEi "(access_key|secret_key|password)\\s*=\\s*\\\"[^\\\"]+\\\"" "$file" >/dev/null 2>&1; then
   findings+=("Hardcoded credential in Terraform — source from a secrets manager + mark sensitive; never commit it (and it lands in state).")
@@ -25,7 +38,7 @@ fi
 if grep -nEi "^\\s*count\\s*=" "$file" >/dev/null 2>&1; then
   findings+=("Resource uses 'count' — for collections prefer for_each (count recreates on reorder); count is fine only for a 0/1 conditional.")
 fi
-if grep -Pzi "(source\\s*=\\s*\\\"[^\\\"]+\\\"(?![\\s\\S]{0,80}version\\s*=))" "$file" >/dev/null 2>&1; then
+if _rc_pcre_match "$file" "(source\\s*=\\s*\\\"[^\\\"]+\\\"(?![\\s\\S]{0,80}version\\s*=))"; then
   findings+=("Module source without a pinned version nearby — pin module versions for reproducible init.")
 fi
 if grep -nEi "backend\\s+\\\"local\\\"" "$file" >/dev/null 2>&1; then

@@ -14,7 +14,7 @@
 flowchart TD
     A[Defect / encumbrance found in exam] --> B{Can it be eliminated<br/>with reasonable effort?}
     B -- "yes (payoff+release,<br/>corrective deed, affidavit)" --> C[CURE it<br/>-> Schedule B-I requirement]
-    B -- "no / impractical" --> D{Risk acceptable to<br/>the underwriter?<br/>[verify-at-use]}
+    B -- "no / impractical" --> D{"Risk acceptable to<br/>the underwriter?<br/>[verify-at-use]"}
     D -- "yes, within guidelines" --> E{Underwriter approval<br/>obtained?}
     E -- no --> F[Get written approval FIRST<br/>often + indemnity]
     E -- yes --> G[INSURE OVER<br/>documented approval on file]
@@ -37,7 +37,7 @@ flowchart TD
     D -- no --> E[HOLD — satisfy lender conditions]
     D -- yes --> F{Settlement statement<br/>balances to lender CD?}
     F -- no --> G[HOLD — reconcile the variance<br/>before signing]
-    F -- yes --> H{Funds COLLECTED / good,<br/>not merely deposited?<br/>[verify-at-use good-funds rule]}
+    F -- yes --> H{"Funds COLLECTED / good,<br/>not merely deposited?<br/>[verify-at-use good-funds rule]"}
     H -- no --> I[HOLD — wait for collected funds]
     H -- yes --> J{Every wire destination<br/>verified by callback?}
     J -- no --> K[HOLD — verify the wire<br/>out-of-band first]

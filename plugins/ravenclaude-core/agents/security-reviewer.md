@@ -78,6 +78,9 @@ Find the vulnerability before an attacker does. Block merges that introduce risk
 - Fail closed on auth/authz checks. An exception in middleware should not yield a 200.
 - Rate limits on credential-adjacent endpoints (login, password reset, token issuance).
 
+### 9. CI/CD — GitHub Actions
+When the diff touches `.github/workflows/`, check: third-party actions **SHA-pinned** (not a floating tag), `permissions:` scoped to least-privilege (never a blanket `write-all`, never an unneeded default), and **no `paths:` filter on a workflow that is (or could become) a required status check** — a path-filtered required check hangs the PR forever rather than merely skipping coverage. Full rubric: [`../knowledge/github-actions-hardening.md`](../knowledge/github-actions-hardening.md).
+
 ## Domain-plugin skills you invoke (inline priors)
 
 When the diff touches an **embedded-analytics dashboard** (Apache Superset, Metabase, Cube, Power BI Embedded, Evidence) or its supporting infrastructure, consult these `data-platform` plugin skills:
@@ -87,6 +90,12 @@ When the diff touches an **embedded-analytics dashboard** (Apache Superset, Meta
 - [`../../data-platform/skills/embed-csp-and-iframe-sandboxing/SKILL.md`](../../data-platform/skills/embed-csp-and-iframe-sandboxing/SKILL.md) — CSP `frame-ancestors`; iframe `sandbox` attributes; postMessage origin checks; web-component shadow-DOM boundary; tool-specific patterns.
 
 These three skills extend §4 (Sessions & tokens) and §5 (Database) above with embed-analytics-specific depth. Pattern: domain plugins extend core via skills, not parallel agents (the `data-platform` plugin's house rule, established 2026-05-21 — see `../CLAUDE.md`).
+
+When the diff **writes to, reads from, or deletes from a persistent agent memory store** — an auto-memory directory, a `MEMORY.md` and its topic files, a memory-tool file path, a vector/embedding row, a managed memory store, or any summary that replaces the turns it summarizes — consult the `memory-engineering` plugin skill:
+
+- [`../../memory-engineering/skills/memory-poisoning-review/SKILL.md`](../../memory-engineering/skills/memory-poisoning-review/SKILL.md) — the OWASP **ASI06 (Memory & Context Poisoning)** review rubric: enumerate every write path reachable from untrusted input (tool results, fetched pages, files, subagents, other users), classify each mount read-only vs read-write, verify an audit trail and a rollback path exist, and test that a poisoned entry is *detectable* — not merely that the prompt was patched. ASI06's defining property is **persistence**: fixing the prompt does not fix the agent, because the poisoned entry keeps arriving in every later session as trusted memory.
+
+This is a review rubric, not a fourth reviewer: memory security does **not** fork a security-reviewer (core `CLAUDE.md` § "Second carve-out — the `memory-engineering` plugin"). The plugin's own agents own the *design* half — write-path trust boundaries (`memory-architect-lead`) and erasure residue (`memory-retention-and-erasure-engineer`); you own the review.
 
 
 ### WebFetch return-envelope hardening (deterministic floor)

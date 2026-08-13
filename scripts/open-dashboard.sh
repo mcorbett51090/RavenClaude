@@ -1,86 +1,223 @@
 #!/usr/bin/env bash
-# open-dashboard.sh — one command to (re)launch the comfort-posture dashboard.
+# open-dashboard.sh — one command to open the marketplace's own comfort-posture
+# dashboard (the unified index.html portal, served with live /__* endpoints).
 #
-#   1. kills any dashboard server already running,
-#   2. starts a fresh one on port 8000 (background, survives this script),
-#   3. opens the dashboard in your browser automatically.
+#   (default)   probe for a dashboard already serving THIS checkout and REUSE it;
+#               otherwise start one on port 8000 (background, survives this script)
+#               and print the actually-bound URL.
+#   --stop      stop this checkout's dashboard server(s) found on the 8000 walk range.
+#   --stop-all  stop every dashboard server that belongs to THIS checkout, any port.
+#   --no-open   do not open a browser (postStartCommand / CI / non-interactive).
+#   --port N    use port N instead of 8000 (a bare numeric first arg also works).
+#   -h, --help  show this help.
 #
-# Run it however is easiest:
-#   - VS Code: Ctrl/Cmd+Shift+B  (this is the default build task)
-#   - VS Code: Terminal → Run Task → "RavenClaude: Open dashboard"
-#   - Terminal: bash scripts/open-dashboard.sh
-#
-# This launches the MARKETPLACE's own dashboard (edits this repo's
-# .ravenclaude/comfort-posture.yaml). Consumer repos use .ravenclaude/dashboard.sh.
+# It launches the ROOT dev server (scripts/serve-dashboards.py). That server's
+# REPO_ROOT is derived from its own __file__ and os.chdir'd, so it always serves
+# THIS checkout — run it from a worktree and it edits THAT worktree's
+# .ravenclaude/comfort-posture.yaml. It NEVER kills a process it has not positively
+# identified as this checkout's own server (a fail-closed ps-command + cwd match).
+# Consumer repos use .ravenclaude/dashboard.sh / `rc dashboard` instead.
 set -euo pipefail
 
-PORT="${1:-8000}"
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-# Root dev server serves the repo root, so /index.html (the unified portal
-# with the dashboard + catalog folded in) is reachable with live /__* endpoints.
+usage() {
+  sed -n '2,18p' "${BASH_SOURCE[0]}" | sed 's/^#\{1,\} \{0,1\}//'
+}
+
+# ── Resolve this checkout's root + its ROOT server ──────────────────────────────
+# Prefer the git top-level (worktree-correct — the plan's H1 reason for spawning the
+# ROOT server of the current checkout); fall back to the script's own location when
+# git is unavailable or points at a tree without our server.
+_git_root="$(git rev-parse --show-toplevel 2>/dev/null || true)"
+_script_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+if [ -n "$_git_root" ] && [ -f "$_git_root/scripts/serve-dashboards.py" ]; then
+  ROOT="$_git_root"
+else
+  ROOT="$_script_root"
+fi
 SERVER="$ROOT/scripts/serve-dashboards.py"
+[ -f "$SERVER" ] || {
+  echo "dashboard server not found: $SERVER" >&2
+  exit 1
+}
+
+# Portable bounded-timeout helper (timeout → gtimeout → perl alarm → unbounded).
+# Without it, the browser-open fallback below runs a bare `timeout`, which on stock
+# macOS is command-not-found (exit 127) — swallowed by `|| true`, so the browser
+# silently never opens with no error. Degrade to an unbounded stub if unavailable.
+# shellcheck source=/dev/null
+[ -r "$ROOT/plugins/ravenclaude-core/hooks/_portable.sh" ] &&
+  . "$ROOT/plugins/ravenclaude-core/hooks/_portable.sh"
+command -v _rc_timeout >/dev/null 2>&1 || _rc_timeout() {
+  shift
+  "$@"
+}
+
+# ── Parse args ──────────────────────────────────────────────────────────────────
+PORT=8000
+ACTION=start
+OPEN=1
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --stop) ACTION=stop ;;
+    --stop-all) ACTION=stop_all ;;
+    --no-open) OPEN=0 ;;
+    --port)
+      shift
+      PORT="${1:?--port needs a value}"
+      # Validate the flag form too, not just the bare-positional form below: an
+      # unvalidated non-numeric PORT flows into `seq "$PORT" …` / `$((PORT + WALK))`
+      # and silently makes every port loop iterate zero times, ending in the
+      # misleading "dashboard server did not come up" instead of a clear error.
+      case "$PORT" in
+      '' | *[!0-9]*)
+        echo "--port needs a numeric value, got: $PORT" >&2
+        exit 2
+        ;;
+      esac
+      ;;
+    -h | --help)
+      usage
+      exit 0
+      ;;
+    '' | *[!0-9]*)
+      echo "unknown argument: $1 (see --help)" >&2
+      exit 2
+      ;;
+    *) PORT="$1" ;; # a bare all-digits token is the port (back-compat)
+  esac
+  shift
+done
+# The ROOT server walks range(PORT, PORT+6) = 6 ports; poll/scan the same span so a
+# fallback bind is still found (deletes the old 6-vs-11 poll-range mismatch).
+WALK=5
+
+# ── Mirror serve-dashboards.py's _port_holder_pids / _holder_cwd / _is_our_dashboard ──
+# The launcher is bash, so it shells out to lsof/ps rather than importing them. The
+# check is FAIL-CLOSED and two-part — a serve-dashboards.py process whose resolved cwd
+# equals THIS checkout — so we never signal an unrelated server (another project's live
+# dashboard included).
+_holder_pids() { # $1 = port -> PIDs LISTENing on it
+  lsof -nP -iTCP:"$1" -sTCP:LISTEN -t 2>/dev/null || true
+}
+_is_our_dashboard() { # $1 = pid -> 0 iff it is a serve-dashboards.py serving THIS checkout
+  local pid="$1" cmd cwd
+  cmd="$(ps -p "$pid" -o command= 2>/dev/null || true)"
+  case "$cmd" in
+    *serve-dashboards.py*) ;;
+    *) return 1 ;;
+  esac
+  cwd="$(lsof -a -p "$pid" -d cwd -Fn 2>/dev/null | sed -n 's/^n//p' | head -1)"
+  [ -n "$cwd" ] || return 1
+  [ "$(cd "$cwd" 2>/dev/null && pwd -P || true)" = "$(cd "$ROOT" && pwd -P)" ]
+}
+
+# ── --stop / --stop-all: SIGTERM ONLY this checkout's own servers ────────────────
+if [ "$ACTION" = stop ] || [ "$ACTION" = stop_all ]; then
+  pids=""
+  if [ "$ACTION" = stop_all ]; then
+    pids="$(pgrep -f 'serve-dashboards\.py' 2>/dev/null || true)"
+  else
+    for cand in $(seq "$PORT" $((PORT + WALK))); do
+      pids="$pids $(_holder_pids "$cand")"
+    done
+  fi
+  stopped=0
+  for pid in $(printf '%s\n' $pids | sort -un); do
+    if _is_our_dashboard "$pid"; then
+      if kill "$pid" 2>/dev/null; then
+        echo "stopped serve-dashboards.py (pid $pid) for $ROOT"
+        stopped=$((stopped + 1))
+      fi
+    fi
+  done
+  [ "$stopped" -gt 0 ] || echo "no running dashboard server for this checkout ($ROOT)"
+  exit 0
+fi
+
+announce_and_open() { # $1 = bound port
+  local port="$1" url browser_bin
+  if [ -n "${CODESPACE_NAME:-}" ]; then
+    url="https://${CODESPACE_NAME}-${port}.${GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN:-app.github.dev}/index.html"
+  else
+    url="http://127.0.0.1:${port}/index.html"
+  fi
+  if [ "$OPEN" -eq 1 ] && [ -t 1 ]; then
+    # Resolve the first word of $BROWSER via PATH so a bare command name (BROWSER=firefox)
+    # is honored, not just an absolute path. Time-bound the fallback so a terminal browser
+    # can never block. Skipped when there is no controlling TTY (postStartCommand / CI).
+    # Use the nounset-safe default form: `${BROWSER%% *}` is a pattern-removal
+    # expansion, which is NOT exempt from `set -u`, so a plain unset $BROWSER (the
+    # common case — most hosts never export it) would abort the whole script here,
+    # AFTER the server already started, with a cryptic "BROWSER: unbound variable"
+    # and no "Dashboard: <url>" line — a working launch looking like total failure.
+    _browser="${BROWSER:-}"
+    browser_bin="$(command -v "${_browser%% *}" 2>/dev/null || true)"
+    if [ -n "$_browser" ] && [ -n "$browser_bin" ]; then
+      read -ra browser_cmd <<<"$BROWSER"
+      "${browser_cmd[@]}" "$url" >/dev/null 2>&1 || true
+    else
+      _rc_timeout 5 python3 -m webbrowser "$url" >/dev/null 2>&1 || true
+    fi
+  fi
+  echo "Dashboard: $url"
+}
+
+# ── Probe-then-reuse: adopt a live server that already serves THIS checkout ──────
+find_our_live_port() {
+  local cand pid
+  for cand in $(seq "$PORT" $((PORT + WALK))); do
+    if curl -fsS -o /dev/null "http://127.0.0.1:${cand}/index.html" 2>/dev/null; then
+      for pid in $(_holder_pids "$cand"); do
+        if _is_our_dashboard "$pid"; then
+          echo "$cand"
+          return 0
+        fi
+      done
+    fi
+  done
+  return 1
+}
+
+if reuse_port="$(find_our_live_port)"; then
+  echo "Reusing the dashboard already serving this checkout ($ROOT)."
+  announce_and_open "$reuse_port"
+  exit 0
+fi
+
+# ── Spawn the ROOT server, fully detached so it outlives this script ─────────────
 # Create the log via mktemp (O_EXCL, unpredictable suffix) rather than a fixed,
-# world-predictable /tmp path opened with ">" — a plain redirect follows a symlink,
-# so a local attacker pre-planting /tmp/rc-dashboard-<port>.log could redirect the
-# write. LOG is only the redirect target + the informational echo below (the restart
-# uses pkill, not this path), so a fresh unique file per run is safe.
+# world-predictable /tmp path opened with ">" — a plain redirect follows a symlink.
 LOG="$(mktemp "/tmp/rc-dashboard-${PORT}-XXXXXX.log" 2>/dev/null)" || LOG="/tmp/rc-dashboard-${PORT}.$$.log"
-
-[ -f "$SERVER" ] || { echo "dashboard server not found: $SERVER" >&2; exit 1; }
-
-# 1. Kill any server already bound to THIS port (ignore "no match"). The port is
-#    end-anchored (\$) and the dot is escaped so `--port 800` can't substring-match
-#    a running `--port 8000` — pkill -f is an unanchored regex over the whole
-#    command line, and the nohup line below puts --port last, so `$` is exact.
-pkill -f "serve-dashboards\.py --port ${PORT}\$" 2>/dev/null || true
-sleep 1
-
-# 2. Start fresh in the background, fully detached so it outlives this script.
-nohup python3 "$SERVER" --port "$PORT" >"$LOG" 2>&1 &
+bind_args=()
+if [ -z "${CODESPACE_NAME:-}" ]; then
+  # Explicit loopback bind off-Codespace (C2 — stronger than relying on the default).
+  # In a Codespace let the server default to 0.0.0.0 so the forwarded port is
+  # reachable — the pre-existing deliberate branch, safe because nothing auto-starts.
+  bind_args=(--bind 127.0.0.1)
+fi
+# `${bind_args[@]+"${bind_args[@]}"}` is the set-u-safe expansion of a possibly-empty
+# array: on bash 3.2 (the stock-macOS portability target) a bare "${bind_args[@]}" on
+# an empty array raises "unbound variable" under `set -u`. The empty case (a Codespace,
+# where the server defaults to 0.0.0.0) only happens on modern bash today, so this is
+# latent — but the guard makes the safety explicit rather than resting on that coincidence.
+nohup python3 "$SERVER" --port "$PORT" --no-open ${bind_args[@]+"${bind_args[@]}"} >"$LOG" 2>&1 &
 disown 2>/dev/null || true
 
-# 3. Wait until it answers, discovering the ACTUAL bound port. serve-dashboards.py
-#    falls back through PORT..PORT+5 when the requested port is busy, so never
-#    assume $PORT bound — probe the range and adopt the first port that responds.
-#    Reporting/opening the wrong port is exactly what orphans a dead tab whose
-#    Save then reports "no local server".
+# Wait until it answers, discovering the ACTUAL bound port. The server reclaims a
+# stale server OF OURS on $PORT, else walks PORT..PORT+5, so never assume $PORT bound.
 bound_port=""
-for _ in $(seq 1 10); do
-  for cand in $(seq "$PORT" $((PORT + 5))); do
+for _ in $(seq 1 20); do
+  for cand in $(seq "$PORT" $((PORT + WALK))); do
     if curl -fsS -o /dev/null "http://127.0.0.1:${cand}/index.html" 2>/dev/null; then
       bound_port="$cand"
       break 2
     fi
   done
-  sleep 1
+  sleep 0.5
 done
-PORT="${bound_port:-$PORT}"
-
-if [ -n "${CODESPACE_NAME:-}" ]; then
-  URL="https://${CODESPACE_NAME}-${PORT}.${GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN:-app.github.dev}/index.html"
-else
-  URL="http://127.0.0.1:${PORT}/index.html"
+if [ -z "$bound_port" ]; then
+  echo "dashboard server did not come up — see $LOG" >&2
+  exit 1
 fi
-
-# 4. Open it in a browser — but ONLY when attached to an interactive terminal.
-#    Under postStartCommand there is no controlling TTY (stdout is redirected to a
-#    log) and $BROWSER isn't populated yet (the VS Code client hasn't attached), so
-#    the fallback below would launch a terminal browser (www-browser) that never
-#    exits and hangs the whole lifecycle command. Codespaces already auto-opens the
-#    forwarded port via onAutoForward: openBrowser, so skipping here loses nothing.
-if [ -t 1 ]; then
-  # Resolve the first word of $BROWSER via PATH (not as a cwd-relative path), so a bare
-  # command name (BROWSER=firefox) is honored, not just an absolute path. `command -v`
-  # handles both a PATH name and an absolute path uniformly (Finding 24).
-  browser_bin="$(command -v "${BROWSER%% *}" 2>/dev/null)"
-  if [ -n "${BROWSER:-}" ] && [ -n "$browser_bin" ]; then
-    read -ra browser_cmd <<<"$BROWSER"
-    "${browser_cmd[@]}" "$URL" >/dev/null 2>&1 || true
-  else
-    # Time-bound so a terminal-browser fallback can never block, even interactively.
-    timeout 5 python3 -m webbrowser "$URL" >/dev/null 2>&1 || true
-  fi
-fi
-
-echo "Dashboard: $URL"
-echo "(server log: $LOG — press the same task/command again to restart it)"
+announce_and_open "$bound_port"
+echo "(server log: $LOG — run 'bash scripts/open-dashboard.sh --stop' to stop it)"

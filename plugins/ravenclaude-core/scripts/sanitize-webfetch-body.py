@@ -79,9 +79,19 @@ MAX_INPUT_BYTES = 8 * 1024 * 1024
 # attempts vary case.
 INJECTION_PATTERNS = [
     # 1. <system-reminder> ... </system-reminder> — the exact tag observed.
-    re.compile(r"<system-reminder\b[^>]*>.*?</system-reminder>", re.DOTALL | re.IGNORECASE),
-    # 2. <system-instruction> ... </system-instruction> — common variant.
-    re.compile(r"<system-instruction\b[^>]*>.*?</system-instruction>", re.DOTALL | re.IGNORECASE),
+    #    GREEDY (`.*`, not `.*?`): a non-greedy match stops at the FIRST closing
+    #    tag, so a NESTED DECOY — `<system-reminder>x<system-reminder>y</system-
+    #    reminder> REAL PAYLOAD</system-reminder>` — strips only up to the inner
+    #    close and leaves " REAL PAYLOAD</system-reminder>" as bare, now
+    #    unwrapped-and-more-trustworthy-looking text (verified bypass, repo-review
+    #    2026-08-05). Greedy spans to the LAST close, removing the whole block. The
+    #    trade-off (two SEPARATE same-tag blocks with legit text between are merged
+    #    and the middle stripped) is exactly the over-stripping this floor's own
+    #    docstring already accepts ("prefer the floor").
+    re.compile(r"<system-reminder\b[^>]*>.*</system-reminder>", re.DOTALL | re.IGNORECASE),
+    # 2. <system-instruction> ... </system-instruction> — common variant. Greedy
+    #    for the same nested-decoy reason as pattern 1.
+    re.compile(r"<system-instruction\b[^>]*>.*</system-instruction>", re.DOTALL | re.IGNORECASE),
     # 3. <important> ... </important> when followed by an imperative — the
     #    "IMPORTANT: do X" shape. We only strip the tag wrapper, leaving the
     #    text neutered. (This is the most generous pattern; many real docs use

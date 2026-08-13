@@ -38,6 +38,13 @@
 
 set -euo pipefail
 
+# Stock-toolchain portability: coreutils `timeout` is ABSENT on macOS (exit 127), which
+# would make the `claude -p` probe below silently take its error path on every macOS
+# session. Fail-safe: an absent helper degrades to an unbounded run, never a broken hook.
+_portable_helper="$(dirname "${BASH_SOURCE[0]}")/_portable.sh"
+[ -f "$_portable_helper" ] && . "$_portable_helper" 2>/dev/null || true
+command -v _rc_timeout >/dev/null 2>&1 || _rc_timeout() { shift; "$@"; }
+
 # ── Structured hook-event substrate. Source the emit helper so every shadow verdict is
 #    recorded in hook-events.jsonl. Fail-safe: absent helper -> no-op stub.
 _emit_event_helper="$(dirname "${BASH_SOURCE[0]}")/_emit-event.sh"
@@ -122,7 +129,7 @@ envelope="$(jq -nc \
 [ -n "$envelope" ] || emit_allow
 
 classifier_instr='You are a dispatch evaluator. Given this dispatch envelope, return ONLY a JSON object with fields: verdict ("keep"|"upgrade"|"downgrade"), suggested_tier ("fast"|"balanced"|"top"), confidence ("low"|"medium"|"high"), rationale (one sentence). Envelope: '
-raw="$(timeout 3 claude -p --bare --output-format json --model claude-haiku-4-5-20251001 \
+raw="$(_rc_timeout 3 claude -p --bare --output-format json --model claude-haiku-4-5-20251001 \
   "${classifier_instr}${envelope}" 2>/dev/null || echo '')"
 [ -n "$raw" ] || emit_allow
 

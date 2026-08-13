@@ -34,7 +34,12 @@ import sys
 # from `grep` and the whole check silently missed the line (2026-07 review).
 # `egrep` is the historical ERE alias (== `grep -E`), so an `egrep '(?:…)'`
 # carries the same dead-PCRE-in-ERE bug and is recognized too (2026-07 review).
-_FLAGS = r"(?:\s+-[A-Za-z]+)*"
+# Match any run of intervening flags — short clusters (`-v`, `-rn`) AND long
+# options (`--color=auto`, `--null-data`) — between `grep` and the dialect flag.
+# Long-option support added after a review found `grep --color=auto -E '(?:x)'`
+# slipped the gate: `-[A-Za-z]+` can't consume a `--long` token, so the whole
+# line failed to match `_GREP_ERE` and its dead-PCRE construct went undetected.
+_FLAGS = r"(?:\s+(?:--[A-Za-z][A-Za-z0-9-]*(?:=\S+)?|-[A-Za-z]+))*"
 _GREP_ERE = re.compile(rf"\begrep\b|grep{_FLAGS}\s+(?:-[A-Za-z]*E|--extended-regexp)")
 _GREP_PCRE = re.compile(rf"grep{_FLAGS}\s+(?:-[A-Za-z]*P|--perl-regexp)")
 # PCRE-only constructs that are dead inside POSIX ERE. The `(?...)` family is matched

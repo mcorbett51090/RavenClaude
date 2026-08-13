@@ -789,12 +789,12 @@ def thing_enabled_for(posture: dict, category: str | None) -> bool:
 # the budget on the security + tie-break seats, run the fast seats on Haiku.
 _DEFAULT_PANEL = {
     "forseti": {"agent": "security-reviewer", "model": "claude-opus-4-8"},
-    "mimir": {"agent": "code-reviewer", "model": "claude-haiku-4-5"},
+    "mimir": {"agent": "code-reviewer", "model": "claude-haiku-4-5-20251001"},
     # Heimdall is the injection seat — the assessment (must-fix #4) flagged that
     # running the adversarial-content reviewer on the weakest model is exactly
     # where you don't want to economize. Bumped to Sonnet (Mímir, the correctness
     # seat, stays on the fast/cheap Haiku).
-    "heimdall": {"agent": "prompt-engineer", "model": "claude-sonnet-4-6"},
+    "heimdall": {"agent": "prompt-engineer", "model": "claude-sonnet-5"},
     "thor": {"agent": "architect", "model": "claude-opus-4-8"},
 }
 _DEFAULT_CONFIDENCE_THRESHOLD = 0.5
@@ -1077,7 +1077,7 @@ def resolve_tier_config(root: Path, posture: dict | None) -> tuple[dict, str | N
 # least two DISTINCT model backbones must run, so a single model's blind spot can't
 # pass the whole panel unseen. If a config collapsed the convened seats onto one
 # model, reassign one seat to a different (preferring equal-or-stronger) model.
-_DIVERSITY_PREF = ["claude-sonnet-4-6", "claude-opus-4-8", "claude-haiku-4-5"]
+_DIVERSITY_PREF = ["claude-sonnet-5", "claude-opus-4-8", "claude-haiku-4-5-20251001"]
 
 
 def _enforce_model_diversity(panel: dict, convened: list[str]) -> tuple[dict, bool]:
@@ -1088,7 +1088,7 @@ def _enforce_model_diversity(panel: dict, convened: list[str]) -> tuple[dict, bo
     if len({m for m in models if m}) >= 2:
         return panel, False  # already heterogeneous
     common = models[0]
-    alt = next((m for m in _DIVERSITY_PREF if m != common), "claude-sonnet-4-6")
+    alt = next((m for m in _DIVERSITY_PREF if m != common), "claude-sonnet-5")
     out = {k: dict(v) for k, v in panel.items()}
     out.setdefault(convened[-1], {})["model"] = alt  # diversify the last convened seat
     return out, True
@@ -1293,7 +1293,54 @@ def main() -> int:
     # INDEPENDENT. The orchestrator only reaches us when some category is toggled
     # on, so this is screened regardless of THIS payload's category or toggle.
     if not payload_too_large:
-        result.update(_screen_always(screened))
+        _sa = _screen_always(screened)
+
+        # ── MH-42: the self-disable screen false-positives on DOCUMENTATION ──
+        #
+        # For a file shape, `screened` is "<file_path>\n<content>" (the v0.37.0
+        # Track-B design). The catalog's self-disable regexes are SHELL-shaped —
+        # e.g. `(>>?|\btee\b)\s*\S*(<substrate alternation>)` — so running them over
+        # file CONTENT screens prose as though it were a command mutating the
+        # substrate. Two ordinary prose shapes match:
+        #   * a markdown blockquote whose first token is a plugin hooks/scripts path
+        #     ("> plugins/.../hooks/foo.sh …"), and
+        #   * an angle-bracket placeholder, because `<core>` ENDS in `>`, so
+        #     "<core>/hooks/thing-orchestrator.sh" is literally `>` + path.
+        #
+        # Blast radius: every audit, plan, decision record, postmortem and knowledge
+        # file that cites a substrate path with `file:line` — i.e. exactly what this
+        # repo's own Claim-Grounding protocol REQUIRES. It fired five times in one
+        # session, on documentation about the tribunal and on marking a NEW hook
+        # executable. `pre_llm_deny` means no seat convenes and there is no override.
+        #
+        # THE NARROWING, and why it does not weaken the control:
+        #   1. It applies ONLY to file shapes, and ONLY to `self_disable`. The
+        #      §B.9.3 hard rules (force-push, curl|sh) still screen the FULL text.
+        #   2. It only clears the verdict when the PATH ALONE is also clean — so a
+        #      Write/Edit whose TARGET is substrate is unaffected and still denied.
+        #   3. The real protection for a substrate write is the target-path screen
+        #      immediately below, which resolves realpaths and inodes (catching
+        #      symlinks and hardlinks). That is canonicalization-based and strictly
+        #      stronger than any regex over content — this narrowing removes a
+        #      redundant, lossy check, not the load-bearing one.
+        #   4. On `screen_error` (corrupt catalog, missing PyYAML) nothing is
+        #      narrowed: fail-closed is preserved exactly.
+        if (
+            args.cmd == "classify-payload"
+            and tool_name in ("Edit", "Write", "MultiEdit")
+            and _sa.get("self_disable_deny")
+            and not _sa.get("screen_error")
+        ):
+            _path_only = (tool_input or {}).get("file_path", "") or ""
+            _sa_path = _screen_always(_path_only)
+            if not _sa_path.get("self_disable_deny") and not _sa_path.get("screen_error"):
+                _sa["self_disable_deny"] = False
+                _sa["self_disable_concern"] = None
+                # Surfaced so a Sága record shows the narrowing happened rather than
+                # the screen silently having nothing to say.
+                _sa["self_disable_narrowed_to_path"] = True
+
+        result.update(_sa)
 
     # §2/§2a — FILE-shape self-disable: a Write/Edit/MultiEdit whose target is a
     # substrate path (or a Write that rewrites comfort-posture.yaml to disable a

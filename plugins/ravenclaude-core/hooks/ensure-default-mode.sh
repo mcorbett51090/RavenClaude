@@ -15,6 +15,14 @@
 #
 # Output goes to stderr — Claude sees it as a system notice, the user sees it
 # in the transcript. Always exits 0 (advisory only; never blocks a session).
+#
+# WHY `plan` IS DELIBERATELY NOT MATCHED (noted 2026-07-29, audit MH-32).
+# The match list below is acceptEdits|bypassPermissions and that is CORRECT, not
+# an omission. This hook warns about modes that make the configured posture
+# WEAKER than intended. `plan` is strictly MORE restrictive than default — it
+# bypasses nothing — so warning about it would be noise, and "resetting" it would
+# actively remove a constraint the user chose. The audit read the absent `plan`
+# branch as a gap; it is a deliberate exclusion. Do not add it.
 
 set -euo pipefail
 

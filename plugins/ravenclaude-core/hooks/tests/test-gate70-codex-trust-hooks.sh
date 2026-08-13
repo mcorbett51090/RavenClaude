@@ -1,6 +1,23 @@
 #!/usr/bin/env bash
-# test-gate70-codex-trust-hooks.sh — fixture tests for Gate 70 (Codex desktop
-# trust review remediation: Findings 1, 2, 5).
+# test-gate70-codex-trust-hooks.sh — fixture tests for Gate 70:
+# EXTERNAL TRUST-REVIEW REMEDIATION (STRICT hooks + dod-gate + web-access).
+#
+# ⚠ THE FILENAME IS A MISNOMER AND IS KEPT ONLY FOR STABILITY (audit MH-31).
+#
+# "codex-trust-hooks" does NOT mean this tests Codex-as-a-host. It means these
+# fixtures remediate findings that Codex produced **while reviewing RavenClaude** —
+# good work, entirely unrelated to running ON Codex. Nothing below invokes a Codex
+# envelope, config file, path, or CLI; the six subtests exercise three STRICT smell
+# hooks, the dod-gate first-run trust check, and the web-access first-use ask.
+#
+# WHY THIS COMMENT EXISTS: the name laundered into a capability claim. It was cited
+# as evidence that a Codex lane already existed — in the brief for the very audit
+# that then found there was no Codex install path at all. A test name is read as a
+# support claim by anyone grepping for a host.
+#
+# The real Codex-as-host gates are **155** (the env shim's invariants) and **156**
+# (the sandbox posture emitter). If you are looking for what proves Codex support,
+# it is those two, not this file.
 #
 # Proves that:
 #   G70.1 — data-platform smell hook with STRICT=1 + violation exits 2 (BLOCK).
@@ -256,7 +273,11 @@ tmp_patched="$(mktemp -d)"
 # Copy the data-platform hook into a tmp dir and patch its STRICT branch back
 # to `exit 1` (the pre-fix broken behavior).
 cp "$HOOK_DP" "$tmp_patched/flag-data-platform-smells.sh"
-sed -i 's/  exit 2$/  exit 1/' "$tmp_patched/flag-data-platform-smells.sh"
+# PORTABILITY: `sed -i` (no suffix arg) is GNU-only — BSD/macOS sed reads the NEXT TOKEN
+# as the backup suffix, so the s/// became the suffix and the file became the script:
+# "invalid command code f". The patch then never applied, the must-fail half did not fail,
+# and this teeth assertion silently had NO TEETH on macOS. perl -pi is identical on both.
+perl -pi -e 's/^  exit 2$/  exit 1/' "$tmp_patched/flag-data-platform-smells.sh"
 viol_patched="$tmp_patched/stack-decision-record.md"
 printf '# Stack decision\n\nUse Tableau Embedded for the dashboards.\n' > "$viol_patched"
 rc_patched=0

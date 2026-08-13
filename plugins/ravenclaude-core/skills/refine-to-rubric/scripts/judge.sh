@@ -46,7 +46,7 @@ set -euo pipefail
 artifact="${JUDGE_ARTIFACT:-}"
 dims="${JUDGE_DIMENSIONS:-[]}"
 author_model="${JUDGE_AUTHOR_MODEL:-}"
-judge_model="${JUDGE_MODEL:-claude-haiku-4-5}"
+judge_model="${JUDGE_MODEL:-claude-haiku-4-5-20251001}"
 JUDGE_MAX_BYTES="${JUDGE_MAX_BYTES:-$((64 * 1024))}"
 
 [ -z "$artifact" ] && { echo '{"error":"no artifact"}' >&2; exit 3; }

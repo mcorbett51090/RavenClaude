@@ -1,0 +1,231 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/mcorbett51090/RavenClaude/schemas/wireframe-model.schema.json",
+  "title": "Wireframe model",
+  "description": "The single JSON contract the /wireframe skill (ravenclaude-core) produces from a plain-language description and every surface consumes: the Claude-authored high-fidelity HTML Artifact and the deterministic Mermaid-for-flows emitter. One model, many renderers. See docs/wireframe-studio-plan.md and plugins/ravenclaude-core/skills/wireframe/SKILL.md.",
+  "type": "object",
+  "required": ["meta"],
+  "additionalProperties": false,
+  "oneOf": [
+    { "required": ["regions"], "not": { "required": ["screens"] } },
+    { "required": ["screens"], "not": { "required": ["regions"] } }
+  ],
+  "properties": {
+    "$schema": { "type": "string" },
+    "meta": {
+      "type": "object",
+      "required": ["title", "type"],
+      "additionalProperties": false,
+      "properties": {
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Human title of the thing being wireframed."
+        },
+        "type": {
+          "type": "string",
+          "enum": ["page", "app-screen", "dashboard", "flow"],
+          "description": "Selects the starter skeleton and the natural renderer (flow → Mermaid)."
+        },
+        "viewport": {
+          "type": "string",
+          "enum": ["desktop", "mobile", "tablet", "responsive"],
+          "default": "responsive",
+          "description": "Renderers parameterize box-packing on this."
+        },
+        "theme": { "type": "string", "enum": ["auto", "light", "dark"], "default": "auto" },
+        "fidelity": { "type": "string", "enum": ["high", "structural"], "default": "high" },
+        "model_version": {
+          "type": "string",
+          "enum": ["1", "2"],
+          "description": "\"1\" = v1 regions shape; \"2\" = v1.1 multi-screen (screens) shape. Seam for the validate-and-migrate pass (RT-6)."
+        },
+        "brand": {
+          "type": "object",
+          "description": "Optional forward-hook for composing with the brand-extraction skill.",
+          "additionalProperties": false,
+          "properties": {
+            "palette": { "type": "array", "items": { "type": "string" } },
+            "type_scale": { "type": "string" },
+            "radius": { "type": "string" }
+          }
+        }
+      }
+    },
+    "regions": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Top-level layout areas, in document order (v1 shape).",
+      "items": { "$ref": "#/definitions/region" }
+    },
+    "screens": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Named screens (v1.1 multi-screen shape). Mutually exclusive with `regions`.",
+      "items": { "$ref": "#/definitions/screen" }
+    },
+    "flow_edges": {
+      "type": "array",
+      "description": "Screen-to-screen navigation edges (requires `screens`); rendered by emit_screen_flow.",
+      "items": { "$ref": "#/definitions/flow_edge" }
+    }
+  },
+  "definitions": {
+    "emphasis": {
+      "type": "string",
+      "enum": ["primary", "secondary", "tertiary"],
+      "description": "designer's information-hierarchy, machine-readable: primary = largest + highest-contrast."
+    },
+    "screen": {
+      "type": "object",
+      "required": ["id", "regions"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Stable screen id that flow_edges reference."
+        },
+        "title": { "type": "string" },
+        "regions": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/definitions/region" }
+        }
+      }
+    },
+    "flow_edge": {
+      "type": "object",
+      "required": ["from", "to"],
+      "additionalProperties": false,
+      "properties": {
+        "from": { "type": "string", "description": "Source screen id." },
+        "to": { "type": "string", "description": "Target screen id." },
+        "label": { "type": "string" }
+      }
+    },
+    "region": {
+      "type": "object",
+      "required": ["role", "sections"],
+      "additionalProperties": false,
+      "properties": {
+        "role": {
+          "type": "string",
+          "enum": [
+            "header",
+            "nav",
+            "sidebar",
+            "main",
+            "aside",
+            "footer",
+            "hero",
+            "toolbar",
+            "filter-bar",
+            "canvas",
+            "card-grid",
+            "modal"
+          ]
+        },
+        "layout": {
+          "type": "string",
+          "enum": ["stack", "row", "columns", "grid", "split"],
+          "default": "stack",
+          "description": "columns/grid detail carried in `layout_detail` (e.g. '3' or '2x3')."
+        },
+        "layout_detail": {
+          "type": "string",
+          "description": "Free-form modifier for columns:N / grid:RxC."
+        },
+        "emphasis": { "$ref": "#/definitions/emphasis" },
+        "sections": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/definitions/section" }
+        }
+      }
+    },
+    "section": {
+      "type": "object",
+      "required": ["kind"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Semantic label, e.g. 'value-prop', 'kpi-row', 'settings-form', 'decision-step'."
+        },
+        "heading": { "type": "string" },
+        "emphasis": { "$ref": "#/definitions/emphasis" },
+        "content_slots": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/slot" }
+        },
+        "components": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/component" }
+        }
+      }
+    },
+    "slot": {
+      "type": "object",
+      "required": ["slot"],
+      "additionalProperties": false,
+      "properties": {
+        "slot": { "type": "string", "enum": ["text", "image-box", "data-shape"] },
+        "text": {
+          "type": "string",
+          "description": "Realistic placeholder copy (never lorem, never a real brand's claims)."
+        },
+        "note": { "type": "string" }
+      }
+    },
+    "component": {
+      "type": "object",
+      "required": ["type"],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "button",
+            "input",
+            "form",
+            "card",
+            "table",
+            "chart",
+            "kpi-stat",
+            "list",
+            "tabs",
+            "breadcrumb",
+            "search",
+            "avatar",
+            "badge",
+            "toggle",
+            "stepper",
+            "nav-item",
+            "node",
+            "edge"
+          ]
+        },
+        "props": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "label": { "type": "string" },
+            "placeholder_text": { "type": "string" },
+            "variant": { "type": "string" },
+            "state": { "type": "string" },
+            "size": { "type": "string" },
+            "icon": { "type": "string" },
+            "to": { "type": "string", "description": "For `edge`: the target node id." },
+            "id": { "type": "string", "description": "For `node`: a stable id edges reference." },
+            "href": {
+              "type": "string",
+              "description": "Routed through the uri_scheme sanitizer at render."
+            }
+          }
+        }
+      }
+    }
+  }
+}

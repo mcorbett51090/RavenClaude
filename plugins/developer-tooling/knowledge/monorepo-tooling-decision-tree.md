@@ -27,7 +27,7 @@ flowchart TD
     Q2 -->|"Mid–large, also want generators,\nmodule-boundary lint, richer graph"| Nx[Nx + pnpm workspaces]
     Q2 -->|"Just need workspaces + linking,\nno task-graph caching yet"| WS[pnpm / yarn / npm workspaces only\n— add a task runner later if pain appears]
 
-    Q3 -->|"Yes — large org, many languages,\nreproducibility is a hard requirement"| Bazel[Bazel or Buck2\n— content-addressable, hermetic\n(pay the BUILD-file config tax)]
+    Q3 -->|"Yes — large org, many languages,\nreproducibility is a hard requirement"| Bazel["Bazel or Buck2\n— content-addressable, hermetic\n(pay the BUILD-file config tax)"]
     Q3 -->|"No — want a lighter polyglot\ntask runner with caching"| Moon[Moon\n— polyglot task runner, simpler than Bazel]
 
     Turbo --> Cache[[Then: configure the task graph\n+ caching — see build-caching doc]]

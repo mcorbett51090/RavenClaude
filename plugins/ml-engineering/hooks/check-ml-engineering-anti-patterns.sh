@@ -18,11 +18,24 @@ fi
 [ -z "$file" ] && exit 0
 [ ! -f "$file" ] && exit 0
 
+# Stock-toolchain portability: `grep -P` (PCRE) is a GNU extension — BSD/macOS grep exits
+# 2, which inside `if grep -Pzi ...; then` reads as NO MATCH, so these checks silently
+# never fired on macOS. `_rc_pcre_match` uses perl (the PCRE engine, stock on macOS) for
+# REAL coverage. Fail-safe: an absent helper degrades to an inline perl equivalent.
+_rc_portable="${CLAUDE_PLUGIN_ROOT:-}/hooks/_portable.sh"
+[ -f "$_rc_portable" ] || _rc_portable="$(dirname "${BASH_SOURCE[0]}")/../../ravenclaude-core/hooks/_portable.sh"
+# shellcheck source=/dev/null
+[ -f "$_rc_portable" ] && . "$_rc_portable" 2>/dev/null || true
+command -v _rc_pcre_match >/dev/null 2>&1 || _rc_pcre_match() {
+  [ -r "$1" ] || return 1
+  RC_PCRE_PAT="$2" perl -0777 -ne 'BEGIN{$m=1} $m=0 if /$ENV{RC_PCRE_PAT}/i; END{exit $m}' -- "$1" 2>/dev/null
+}
+
 findings=()
 if grep -nEi "(train_test_split|sample)\\([\\s\\S]{0,80}(shuffle\\s*=\\s*True)[\\s\\S]{0,80}(time|date|timestamp)" "$file" >/dev/null 2>&1; then
   findings+=("Shuffled split on temporal data — use a time-aware split to avoid leaking future information into training.")
 fi
-if grep -Pzi "(fit_transform|scaler\\.fit|StandardScaler\\(\\)\\.fit)[\\s\\S]{0,120}(X|data)(?![\\s\\S]{0,40}train)" "$file" >/dev/null 2>&1; then
+if _rc_pcre_match "$file" "(fit_transform|scaler\\.fit|StandardScaler\\(\\)\\.fit)[\\s\\S]{0,120}(X|data)(?![\\s\\S]{0,40}train)"; then
   findings+=("Possible fitting a transform on the full dataset before splitting — fit on train only, or you leak test statistics.")
 fi
 if grep -nEi "\\.predict\\([\\s\\S]{0,120}(read_csv|read_sql|requests\\.get)" "$file" >/dev/null 2>&1; then

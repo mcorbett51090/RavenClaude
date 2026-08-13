@@ -77,8 +77,11 @@ SECRET_RE = [re.compile(p, re.IGNORECASE) for p in SECRET_PATTERNS]
 # match REJECTS (these are unambiguous client-identifying data).
 PII_PATTERNS = [
     r"\b\d{3}-\d{2}-\d{4}\b",  # US SSN
-    # Real email address, excluding placeholder domains.
-    r"\b[A-Za-z0-9._%+-]+@(?!example\.com|example\.org|contoso\.com|test\.com)[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b",
+    # Real email address, excluding placeholder domains. The exclusion lookahead is
+    # anchored to the WHOLE domain (trailing `(?![A-Za-z0-9.-])`) so a real domain that
+    # merely *starts* with a placeholder — `contoso.com.au`, `test.comcast.net`,
+    # `example.commerce.io` — is still flagged; only an exact placeholder domain is exempt.
+    r"\b[A-Za-z0-9._%+-]+@(?!(?:example\.com|example\.org|contoso\.com|test\.com)(?![A-Za-z0-9.-]))[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b",
 ]
 PII_RE = [re.compile(p, re.IGNORECASE) for p in PII_PATTERNS]
 

@@ -1,12 +1,23 @@
 name: Validate Schemas
 
 on:
+  # NO `paths:` filter on pull_request — this is a REQUIRED status check (ruleset
+  # "main"), and GitHub leaves a path-skipped workflow's check Pending forever:
+  # "A pull request that requires those checks to be successful will be blocked
+  # from merging ... You should not use path or branch filtering to skip workflow
+  # runs if the workflow is required to pass before merging."
+  # https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/collaborating-on-repositories-with-code-quality-features/troubleshooting-required-status-checks
+  #
+  # The old filter (manifests + schemas/** only) meant most PRs skipped this —
+  # docs-only PRs like the external-intake bot's would have hung permanently once
+  # it became required. The job is ~33s, so running it on every PR is cheaper than
+  # any conditional worth maintaining. Do NOT re-add `paths:` here; gate individual
+  # STEPS with `if:` instead (a skipped job reports Success; a skipped workflow
+  # reports nothing).
+  #
+  # The `push:` filter below is deliberately KEPT — push runs are not required
+  # checks, so a path-skipped push run blocks nothing.
   pull_request:
-    paths:
-      - ".claude-plugin/marketplace.json"
-      - "plugins/*/.claude-plugin/plugin.json"
-      - "schemas/**"
-      - ".github/workflows/validate-schemas.yml"
   push:
     branches:
       - main
@@ -27,10 +38,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up Python
-        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.x"
 

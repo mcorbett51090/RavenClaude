@@ -18,6 +18,19 @@ fi
 [ -z "$file" ] && exit 0
 [ ! -f "$file" ] && exit 0
 
+# Stock-toolchain portability: `grep -P` (PCRE) is a GNU extension — BSD/macOS grep exits
+# 2, which inside `if grep -Pzi ...; then` reads as NO MATCH, so these checks silently
+# never fired on macOS. `_rc_pcre_match` uses perl (the PCRE engine, stock on macOS) for
+# REAL coverage. Fail-safe: an absent helper degrades to an inline perl equivalent.
+_rc_portable="${CLAUDE_PLUGIN_ROOT:-}/hooks/_portable.sh"
+[ -f "$_rc_portable" ] || _rc_portable="$(dirname "${BASH_SOURCE[0]}")/../../ravenclaude-core/hooks/_portable.sh"
+# shellcheck source=/dev/null
+[ -f "$_rc_portable" ] && . "$_rc_portable" 2>/dev/null || true
+command -v _rc_pcre_match >/dev/null 2>&1 || _rc_pcre_match() {
+  [ -r "$1" ] || return 1
+  RC_PCRE_PAT="$2" perl -0777 -ne 'BEGIN{$m=1} $m=0 if /$ENV{RC_PCRE_PAT}/i; END{exit $m}' -- "$1" 2>/dev/null
+}
+
 findings=()
 if grep -nEi "(p[_-]?value|p\\s*<\\s*0\\.0?5|statistically significant|significant at)" "$file" >/dev/null 2>&1; then
   findings+=("Computing/asserting statistical significance here — route significance (power/MDE/p-value) to applied-statistics; this layer produces clean data, not verdicts.")
@@ -25,7 +38,7 @@ fi
 if grep -nEi "(stop.*experiment.*significan|peek|check.*results.*daily.*stop)" "$file" >/dev/null 2>&1; then
   findings+=("Possible peeking-to-stop — pre-register duration or use a sequential method (with applied-statistics); peeking inflates false positives.")
 fi
-if grep -Pzi "(flag|feature)\\s*[:=].*(true|enabled)(?![\\s\\S]{0,120}(owner|remove|expire|kill))" "$file" >/dev/null 2>&1; then
+if _rc_pcre_match "$file" "(flag|feature)\\s*[:=].*(true|enabled)(?![\\s\\S]{0,120}(owner|remove|expire|kill))"; then
   findings+=("Feature flag without an apparent owner/removal/kill-switch nearby — every temp flag needs an owner + removal date; risky ones need a kill switch.")
 fi
 if grep -nEi "(track|capture|logEvent)\\([\\s\\S]{0,40}[\\\"'][A-Z ]{2,}|track\\([\\s\\S]{0,40}[\\\"'][a-z]+ [a-z]+" "$file" >/dev/null 2>&1; then

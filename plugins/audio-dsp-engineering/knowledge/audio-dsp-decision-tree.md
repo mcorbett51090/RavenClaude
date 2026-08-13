@@ -27,7 +27,7 @@ graph TD
   SBS --> DOMAIN
 
   DOMAIN{Time-domain or frequency-domain effect?} -->|Resonant EQ / filter / dynamics / delay| TIME{Phase / ring-length need?}
-  DOMAIN -->|Spectral: linear-phase EQ, spectral gate,<br/>convolution reverb, pitch/time-stretch| FREQ[FFT / STFT + overlap-add<br/>· pick FFT size & hop for<br/>freq/time resolution vs latency<br/>· windowed (Hann/COLA)]
+  DOMAIN -->|Spectral: linear-phase EQ, spectral gate,<br/>convolution reverb, pitch/time-stretch| FREQ["FFT / STFT + overlap-add<br/>· pick FFT size & hop for<br/>freq/time resolution vs latency<br/>· windowed (Hann/COLA)"]
 
   TIME -->|Minimum-phase, cheap| IIR[IIR biquads<br/>· Direct Form II transposed<br/>· cascade for higher order]
   TIME -->|Linear-phase / exact impulse| FIR[FIR / convolution<br/>· partitioned convolution for long IRs<br/>· latency = taps/2]

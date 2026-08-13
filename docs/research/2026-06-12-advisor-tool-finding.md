@@ -21,6 +21,8 @@ Three seats (production Claude-agent developer · marketplace knowledge-curator 
 > Actionable, in-scope routing-ladder/FinOps capability (house opinions #3, #14), a verified zero-duplication gap, groundable against primary + blog + SDK samples, audience-relevant. Beta status is an already-accepted shape in this bank (Memory tool "public beta", Dynamic Workflows "research preview").
 > **CONDITION:** ship dated + `[verify-at-use]`-marked, and surface the **platform-availability restriction** (Claude API + Claude Platform on AWS only; NOT Bedrock/Vertex/Foundry) as a prominent first-class caveat so it doesn't produce dead-end recommendations for Bedrock/Vertex-locked clients. **DISSENT: none.**
 
+> **Superseding note added 2026-08-06 — the record above is deliberately unchanged.** This is a dated archive of what was believed on 2026-06-12, not live guidance. One incidental fact in the Panel 1 verdict is **now known to be false**: the Messages API **memory tool is generally available and requires no beta header** — it was never correct to file it beside Dynamic Workflows as an accepted beta shape, and the plugin content that carried that claim was corrected in `claude-app-engineering` 0.9.12. The advisor-tool finding itself is untouched by this. Current status: [memory surfaces (2026)](../../plugins/memory-engineering/knowledge/memory-surfaces-2026.md) and the [capability map](../../plugins/claude-app-engineering/knowledge/model-selection-and-2026-capability-map.md).
+
 ## Panel 2 — Detailed review
 
 Three seats (technical-correctness · accuracy/citation · editorial-fit).

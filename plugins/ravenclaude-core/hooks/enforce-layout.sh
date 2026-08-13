@@ -25,7 +25,12 @@
 # convention used by the other hooks in this plugin.
 
 set -euo pipefail
-shopt -s extglob globstar nullglob
+# NOTE: `globstar` is bash-4.0+ and macOS ships bash 3.2 — under `set -e` an invalid
+# shopt option exits 1, which Claude Code treats as a NON-blocking error, so this hook
+# silently no-opped on EVERY macOS session and the layout gate was bypassed. It was also
+# never needed: see the comment at the `[[ == $pat ]]` match below — globstar is inert
+# inside [[ == ]] ('**' collapses to two '*' metacharacters). extglob/nullglob are 3.2-valid.
+shopt -s extglob nullglob
 
 file="${1:-}"
 # $CLAUDE_TOOL_FILE_PATH (passed as $1 by hooks.json) is NOT a real Claude Code
@@ -113,7 +118,9 @@ fi
 # it is never short-circuited by the layout's forbid-only `exit 0`. Fail-safe:
 # an absent file, an absent/empty in_scope list, or unparseable JSON → no-op.
 if [[ -f "$task_scope" ]]; then
-  mapfile -t in_scope < <(jq -r '.in_scope[]?' "$task_scope" 2>/dev/null)
+  in_scope=()
+  while IFS= read -r _line || [[ -n "$_line" ]]; do in_scope+=("$_line"); done \
+    < <(jq -r '.in_scope[]?' "$task_scope" 2>/dev/null)
   if [[ "${#in_scope[@]}" -gt 0 ]]; then
     scope_ok=0
     for pat in "${in_scope[@]}"; do
@@ -154,8 +161,12 @@ if [[ -f "$manifest" ]] && ! jq -e . "$manifest" >/dev/null 2>&1; then
   exit 0
 fi
 
-mapfile -t forbidden < <(jq -r '.forbidden_globs[]?' "$manifest" 2>/dev/null)
-mapfile -t allowed < <(jq -r '.allowed_globs[]?' "$manifest" 2>/dev/null)
+forbidden=()
+while IFS= read -r _line || [[ -n "$_line" ]]; do forbidden+=("$_line"); done \
+  < <(jq -r '.forbidden_globs[]?' "$manifest" 2>/dev/null)
+allowed=()
+while IFS= read -r _line || [[ -n "$_line" ]]; do allowed+=("$_line"); done \
+  < <(jq -r '.allowed_globs[]?' "$manifest" 2>/dev/null)
 
 # Forbidden takes precedence.
 for pat in "${forbidden[@]:-}"; do

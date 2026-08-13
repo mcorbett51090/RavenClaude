@@ -33,13 +33,19 @@ Usage (normally via `/dashboard`):
 from __future__ import annotations
 
 import argparse
+import datetime as _dt_mod  # aliased: the other datetime uses are function-local
+import errno
 import functools
 import hmac
 import json
 import os
 import secrets
+import signal
 import subprocess
 import sys
+import threading
+import time
+import webbrowser
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
@@ -138,6 +144,12 @@ def _validate_json_target(target: str, content: str) -> str | None:
 # .claude/settings.json reflects the new YAML without a manual /set-posture.
 POSTURE_TARGET = ".ravenclaude/comfort-posture.yaml"
 APPLY_SCRIPT = PLUGIN_DIR / "scripts" / "apply-comfort-posture.py"
+
+# MH-16 part 2 (dashboard half): the Codex sandbox emitter, and the project it
+# targets. The emitter ships at the MARKETPLACE root, not inside the plugin —
+# absent (a consumer with no clone) it is skipped, never guessed at.
+CODEX_EMITTER = MARKETPLACE_ROOT / "scripts" / "emit-codex-config.py"
+PROJECT_TARGET = PROJECT_ROOT
 
 # The knowledge-health card under the Look back / Heimdall tab invokes this
 # script via subprocess and forwards its JSON. Single source of truth — the same
@@ -250,19 +262,32 @@ DASH_PATH = "/dashboard.html"
 # Populated in main(). The state-changing/read endpoints check these so a malicious
 # web page the user is viewing can't drive this server cross-origin: a 127.0.0.1
 # bind does NOT stop a browser from POSTing to localhost, and a same-site cookie is
-# irrelevant here, so CSRF/DNS-rebinding is the real threat. We reject any request
-# whose Origin (always sent by browsers on cross-origin POST) isn't ours, or whose
-# Host isn't a known local/forwarded host. The legit dashboard is same-origin → passes.
+# irrelevant here, so CSRF/DNS-rebinding is the real threat. Any request whose Origin
+# isn't ours, or whose Host isn't a known local/forwarded host, is rejected; on top of
+# that a state-changing request must carry an Origin at all (see
+# _state_change_origin_ok — a browser always sends one on a POST, so only a non-browser
+# client can omit it). The legit dashboard is same-origin → passes.
 _ALLOWED_HOSTS: set[str] = set()
 _ALLOWED_ORIGINS: set[str] = set()
 
 # Per-process random CSRF token. Generated in main() once the server is bound.
-# Belt-and-suspenders on top of the Origin/Host check: a scripted HTTP client that
-# omits Origin (so the Origin guard passes) still has to present this token in the
-# X-CSRF-Token header on every state-changing POST. The token is exposed via the
-# GET /__csrf endpoint, which is itself behind the Origin/Host guard — so a
-# cross-origin page can't fetch the token, and the dashboard JS (same-origin) can.
+# Second layer under the Origin check on every state-changing POST: the token is
+# exposed via GET /__csrf, which a cross-origin page cannot read (this server sends
+# no CORS headers, and the guard rejects a foreign Origin) — so a malicious page can
+# neither forge an allowed Origin nor steal the token.
+#
+# It does NOT stop a local scripted client, and must not be described as if it did.
+# Such a client fetches the token from GET /__csrf itself: that bootstrap is a
+# same-origin GET, which per the Fetch standard carries no Origin header at all, so
+# it cannot be Origin-gated without breaking the dashboard. Any "a scripted client
+# that omits Origin still has to present this token" reasoning is CIRCULAR — the
+# same open door supplies the key. The honest boundary is in _state_change_origin_ok().
 _CSRF_TOKEN: str = ""
+
+# Monotonic clock of the last request, bumped by DashboardHandler.handle_one_request.
+# Read by _idle_reaper() to self-expire a forgotten (detached, session-outliving)
+# server after `--max-idle` minutes of inactivity. Initialised in main().
+_LAST_ACTIVITY: float = 0.0
 
 
 def _summarize_run(d: Path) -> dict:
@@ -391,11 +416,21 @@ def _read_hook_events(runs_dir: Path, days: int = 30, per_hook: int = 10) -> dic
             enriched["tier"] = tier
             bucket.append(enriched)
 
+    # "quiet" and "unwatched" are NOT the same state, and conflating them made a
+    # SECURITY panel reassure an operator it had no basis to reassure (audit MH-05).
+    # An empty by_hook can mean either "hooks ran and nothing tripped" (genuinely
+    # quiet) or "no hook has EVER emitted here" — which on Codex/Cursor/Gemini/
+    # Aider/Windsurf is the normal case, because no adapter wires them at all.
+    # `emitter_seen` is the file-existence boolean that tells them apart: has the
+    # emitter ever written a hook-events.jsonl for this project? The client renders
+    # the honest empty state from it rather than defaulting to the flattering one.
+    emitter_seen = bool(runs_dir.is_dir() and any(runs_dir.glob("*/hook-events.jsonl")))
     return {
         "by_hook": by_hook,
         "total": len(rows),
         "gjallarhorn_tier": top,
         "window_days": days,
+        "emitter_seen": emitter_seen,
     }
 
 
@@ -498,10 +533,20 @@ def _read_vidarr_events(runs_dir: Path, posture_log: Path, days: int = 30) -> di
                 )
 
     events.sort(key=lambda e: e.get("ts", ""), reverse=True)
+    # Same quiet-vs-unwatched contract as Heimdall (audit MH-05). Vidarr draws on
+    # TWO sources, so "never written" means neither has produced a file: no
+    # hook-events.jsonl anywhere under runs/, AND no posture-events.jsonl. If both
+    # are absent this audit log has never been written to — and an empty audit log
+    # is not evidence of safety, which matters more here than anywhere else.
+    emitter_seen = bool(
+        (runs_dir.is_dir() and any(runs_dir.glob("*/hook-events.jsonl")))
+        or posture_log.exists()
+    )
     return {
         "events": events,
         "total": len(events),
         "window_days": days,
+        "emitter_seen": emitter_seen,
     }
 
 
@@ -831,13 +876,56 @@ def _mimir_scrub_tree(obj):
 # newest files are tail-scanned only for cheap per-session counts.
 _MIMIR_JSONL_READ_CAP = 50 * 1024  # 50 KiB
 
+# MH-20 — the ONLY characters a subagent-type label may contain before it is
+# allowed onto the dashboard. `subagent_type` is model-supplied: in practice it
+# is one of our own agent ids, but nothing structurally guarantees that, and this
+# reader's whole contract is that transcript content never becomes display text.
+# A label failing this check is counted as "unnamed" rather than dropped — the
+# DISPATCH still happened, and silently under-reporting it would be the worse
+# error. The prompt/description fields are never read at all, at any length.
+_MIMIR_LABEL_OK = frozenset(
+    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789:_-"
+)
+_MIMIR_LABEL_MAX = 64
+
+
+def _mimir_safe_label(value) -> str:
+    """Return `value` if it is a short, plain identifier; else 'unnamed'."""
+    if isinstance(value, str) and 0 < len(value) <= _MIMIR_LABEL_MAX:
+        if set(value) <= _MIMIR_LABEL_OK:
+            return value
+    return "unnamed"
+
 
 def _mimir_encode_key(project_root) -> str:
     """Stage 1 of the encoded-path algorithm (skill §"The encoded-path
-    algorithm + fallback"). Strip leading "/" and replace every "/" with "-".
-    Worktree-aware: feed $CLAUDE_PROJECT_DIR verbatim — never normalized."""
-    s = str(project_root)
-    return s.lstrip("/").replace("/", "-")
+    algorithm + fallback"). Replace every "/" AND every "." with "-".
+    Worktree-aware: feed $CLAUDE_PROJECT_DIR verbatim — never normalized.
+
+    The leading "/" is encoded like any other, so an absolute path yields a
+    LEADING "-": /Users/me/repo -> -Users-me-repo. This function used to
+    lstrip("/") first and leave "." alone, which produced a key that matched
+    nothing on any real machine — verified 2026-07-29 against 161 project dirs,
+    of which 161 begin with "-" and 0 contain a literal ".". The bug was
+    invisible because the reader's miss path returns exists:False, which the UI
+    renders as the same honest "no sessions yet" empty state a genuinely-new
+    host produces. A card that is *always* empty and a card that is *correctly*
+    empty looked identical, so nothing ever contradicted it.
+
+    This restores what the repo already documented: the worktree rule in the
+    `mimir` skill states /.claude/worktrees/foo -> --claude-worktrees-foo, and
+    the double dash is only reachable if BOTH the leading "/" and the "." encode.
+    """
+    return str(project_root).replace("/", "-").replace(".", "-")
+
+
+def _mimir_encode_key_legacy(project_root) -> str:
+    """The pre-fix key shape, still tried as a second candidate.
+
+    Kept so a host that really does use the stripped form keeps working rather
+    than silently losing its sessions — the exact failure being fixed above.
+    """
+    return str(project_root).lstrip("/").replace("/", "-")
 
 
 def _mimir_resolve_project_dir(claude_home, project_root):
@@ -849,24 +937,31 @@ def _mimir_resolve_project_dir(claude_home, project_root):
     projects = claude_home / "projects"
     if not projects.is_dir():
         return None
-    computed = projects / _mimir_encode_key(project_root)
-    try:
-        computed_resolved = computed.resolve()
-        projects_resolved = projects.resolve()
-        # Path-traversal defense in depth (RM8): resolved candidate MUST sit
-        # under claude_home/projects/. Reject anything that escapes.
-        computed_resolved.relative_to(projects_resolved)
-        if computed.is_dir():
-            return computed
-    except (ValueError, OSError):
-        pass
-    # Fallback: reverse-decode candidates.
+    # Canonical key first, then the legacy shape. Both go through the same
+    # containment check below — a second candidate must not mean a second
+    # chance to escape the projects dir.
+    for key in (_mimir_encode_key(project_root), _mimir_encode_key_legacy(project_root)):
+        computed = projects / key
+        try:
+            computed_resolved = computed.resolve()
+            projects_resolved = projects.resolve()
+            # Path-traversal defense in depth (RM8): resolved candidate MUST sit
+            # under claude_home/projects/. Reject anything that escapes.
+            computed_resolved.relative_to(projects_resolved)
+            if computed.is_dir():
+                return computed
+        except (ValueError, OSError):
+            continue
+    # Fallback: reverse-decode candidates. Lossy by construction — the encoding
+    # maps "/" and "." onto the same "-", so it cannot be inverted uniquely. It
+    # stays as a drift defense (RM1) and is expected to miss on any path whose
+    # own segments contain a dash or a dot; stage 1 is what normally answers.
     target = str(project_root)
     try:
         for candidate in projects.glob("*"):
             if not candidate.is_dir():
                 continue
-            decoded = "/" + candidate.name.replace("-", "/")
+            decoded = candidate.name.replace("-", "/")
             if decoded == target:
                 import sys as _sys
                 print(
@@ -880,19 +975,42 @@ def _mimir_resolve_project_dir(claude_home, project_root):
     return None
 
 
-def _mimir_iter_jsonl_bounded(path, cap_bytes: int = _MIMIR_JSONL_READ_CAP):
+def _mimir_iter_jsonl_bounded(
+    path, cap_bytes: int = _MIMIR_JSONL_READ_CAP, from_end: bool = False
+):
     """Yield dicts from a JSONL file, capping the read at `cap_bytes`. Per-line
     json.loads is try/except wrapped so a torn final line silently drops
-    (RM2 / gap-delta C4). Never raises — OSError yields nothing."""
+    (RM2 / gap-delta C4). Never raises — OSError yields nothing.
+
+    `from_end` reads the LAST `cap_bytes` instead of the first (audit MH-06).
+    Any caller that reports something as *current* or *most recent* must set it:
+    the head of a long transcript is the OLDEST state, so a head-read reports the
+    session's opening values no matter how the loop picks among them. Callers that
+    compute a bounded AGGREGATE (counts, token sums) leave it False — neither end
+    is more correct there, and flipping it would silently change reported numbers.
+    """
     try:
         with path.open("rb") as fh:
-            chunk = fh.read(cap_bytes)
+            if from_end:
+                fh.seek(0, os.SEEK_END)
+                size = fh.tell()
+                fh.seek(max(0, size - cap_bytes))
+                chunk = fh.read()
+                clipped = size > cap_bytes
+            else:
+                chunk = fh.read(cap_bytes)
+                clipped = False
         text = chunk.decode("utf-8", errors="replace")
     except OSError:
         return
-    # If we hit the cap mid-line, drop the truncated tail to avoid feeding
-    # a partial line to json.loads (which would just be torn-write equivalent).
-    if len(chunk) >= cap_bytes:
+    if from_end:
+        # We almost certainly landed mid-line; drop that leading fragment. (A
+        # head-read drops the trailing fragment instead — opposite end, same
+        # reason: never hand a partial line to json.loads.)
+        if clipped:
+            nl = text.find("\n")
+            text = text[nl + 1 :] if nl >= 0 else ""
+    elif len(chunk) >= cap_bytes:
         nl = text.rfind("\n")
         if nl >= 0:
             text = text[:nl]
@@ -906,6 +1024,95 @@ def _mimir_iter_jsonl_bounded(path, cap_bytes: int = _MIMIR_JSONL_READ_CAP):
             continue
         if isinstance(ev, dict):
             yield ev
+
+
+# Cap for the per-session SUMMARY scan (event/token/dispatch counts). This is a
+# different job from _MIMIR_JSONL_READ_CAP's 50 KiB peek and needs a different
+# bound: a real transcript's first 50 KiB is session preamble (attachments, the
+# file-history snapshot, the opening user turn) and contains ZERO assistant
+# events, so a 50 KiB head-read reported 0 events / 0 tokens / 0 dispatches for
+# every session on every machine — measured 2026-07-29 against a 14.5 MB
+# transcript whose first 50 KiB held no assistant event at all.
+#
+# The scan is affordable because of the byte-level prefilter below: parsing all
+# 14.8 MB of this project's three newest transcripts costs ~0.04 s, since
+# json.loads runs only on lines that could possibly matter. The cap bounds the
+# pathological case rather than the normal one, and truncation is REPORTED, not
+# silently absorbed.
+_MIMIR_SESSION_SCAN_CAP = 64 * 1024 * 1024  # 64 MiB
+
+
+def _mimir_scan_session(path, cap_bytes: int = _MIMIR_SESSION_SCAN_CAP) -> dict:
+    """Stream one session JSONL and return its derived summary counts.
+
+    DERIVED ONLY, and that is the contract, not a nicety: the return carries
+    counts, a token sum, a branch name, and validated subagent-type labels. No
+    transcript text is read into the result. `type=user` content is never
+    touched, and a Task block's `prompt`/`description` — the largest free-text
+    field in the file — is never read at any length.
+
+    Never raises: an unreadable file yields zeroes, and a torn or non-JSON line
+    is skipped, matching _mimir_iter_jsonl_bounded's per-line tolerance.
+    """
+    out = {
+        "event_count": 0,
+        "output_tokens": 0,
+        "git_branch": None,
+        "subagent_dispatches": 0,
+        "subagent_types": {},
+        "truncated": False,
+    }
+    try:
+        consumed = 0
+        with path.open("rb") as fh:
+            for raw in fh:
+                consumed += len(raw)
+                if consumed > cap_bytes:
+                    out["truncated"] = True
+                    break
+                # Byte-level prefilter — this is what makes an exact scan cheap.
+                # A line is only worth decoding if it could be an assistant event
+                # or could still supply the branch we have not found yet.
+                wants_branch = out["git_branch"] is None and b'"gitBranch"' in raw
+                if b'"assistant"' not in raw and not wants_branch:
+                    continue
+                try:
+                    ev = json.loads(raw.decode("utf-8", errors="replace"))
+                except (json.JSONDecodeError, ValueError):
+                    continue
+                if not isinstance(ev, dict):
+                    continue
+                if out["git_branch"] is None:
+                    gb = ev.get("gitBranch")
+                    if isinstance(gb, str) and gb:
+                        out["git_branch"] = gb
+                if ev.get("type") != "assistant":
+                    continue
+                out["event_count"] += 1
+                msg = ev.get("message")
+                usage = msg.get("usage") if isinstance(msg, dict) else None
+                if not isinstance(usage, dict):
+                    usage = ev.get("usage")
+                if isinstance(usage, dict):
+                    ot = usage.get("output_tokens")
+                    if isinstance(ot, int):
+                        out["output_tokens"] += ot
+                content = msg.get("content") if isinstance(msg, dict) else None
+                if not isinstance(content, list):
+                    continue
+                for blk in content:
+                    if not isinstance(blk, dict) or blk.get("type") != "tool_use":
+                        continue
+                    if blk.get("name") not in ("Task", "Agent"):
+                        continue
+                    out["subagent_dispatches"] += 1
+                    inp = blk.get("input")
+                    st = inp.get("subagent_type") if isinstance(inp, dict) else None
+                    label = _mimir_safe_label(st)
+                    out["subagent_types"][label] = out["subagent_types"].get(label, 0) + 1
+    except OSError:
+        pass
+    return out
 
 
 def _read_streams(project_root) -> dict:
@@ -1017,6 +1224,101 @@ def _read_streams(project_root) -> dict:
     return base
 
 
+def _read_dispatch_eval(project_root) -> dict:
+    """Summarise .ravenclaude/runs/dispatch-eval/ — the subagent-dispatch log.
+
+    THE HONEST-EMPTY CONTRACT, which is the whole reason this returns a state
+    rather than just a list. The producer is `agent-dispatch-evaluator.sh`, and it
+    SHORT-CIRCUITS unless `.ravenclaude/dispatch-config.json` contains
+    `"enabled": true` — `enabled:false` is the shipped default. So for almost
+    every consumer this directory does not exist, and a panel that simply
+    rendered "nothing here" would be indistinguishable from a broken reader.
+    That ambiguity is the exact defect this dashboard keeps being audited for
+    (the always-empty session card; the MCP step that reported "not configured").
+
+    So three states are reported distinctly:
+      off      — no config, or enabled != true. Nothing will EVER be recorded
+                 until the consumer opts in. The UI says how.
+      idle     — opted in, but nothing logged yet.
+      recorded — real events, summarised.
+
+    DERIVED ONLY: counts and validated subagent-type labels. The evaluator's
+    JSONL may carry a prompt or reasoning; neither is read.
+    """
+    from pathlib import Path as _P
+
+    root = _P(project_root)
+    cfg = root / ".ravenclaude" / "dispatch-config.json"
+    enabled = False
+    if cfg.is_file():
+        try:
+            enabled = bool(json.loads(cfg.read_text(encoding="utf-8")).get("enabled"))
+        except (OSError, json.JSONDecodeError, ValueError, AttributeError):
+            enabled = False
+
+    out = {
+        "state": "off",
+        "enabled": enabled,
+        "config_present": cfg.is_file(),
+        "total": 0,
+        "by_type": [],
+        "how_to_enable": (
+            'create .ravenclaude/dispatch-config.json containing {"enabled": true} '
+            "— the SubagentStart hook exits immediately without it, which is the "
+            "shipped default"
+        ),
+    }
+
+    eval_dir = root / ".ravenclaude" / "runs" / "dispatch-eval"
+    counts: dict = {}
+    total = 0
+    truncated = False
+    if eval_dir.is_dir():
+        for log in sorted(eval_dir.glob("*.jsonl")):
+            # Bounded like _mimir_scan_session, NOT with the 50 KiB head peek.
+            # The first version used _mimir_iter_jsonl_bounded's default cap, which
+            # reads the FIRST 50 KiB and reports no truncation — so a busy log
+            # would show a partial count as though it were the whole thing. That
+            # is the identical defect fixed in the session scan (a 14.5 MB
+            # transcript whose first 50 KiB held nothing), reintroduced here in a
+            # reader written afterwards. A partial number presented as a total is
+            # the failure this whole surface exists to avoid.
+            try:
+                consumed = 0
+                with log.open("rb") as fh:
+                    for raw in fh:
+                        consumed += len(raw)
+                        if consumed > _MIMIR_SESSION_SCAN_CAP:
+                            truncated = True
+                            break
+                        line = raw.strip()
+                        if not line:
+                            continue
+                        try:
+                            ev = json.loads(line.decode("utf-8", errors="replace"))
+                        except (json.JSONDecodeError, ValueError):
+                            continue
+                        if not isinstance(ev, dict):
+                            continue
+                        total += 1
+                        label = _mimir_safe_label(ev.get("subagent_type"))
+                        counts[label] = counts.get(label, 0) + 1
+            except OSError:
+                continue
+
+    out["total"] = total
+    out["by_type"] = [
+        {"type": k, "count": v}
+        for k, v in sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))[:8]
+    ]
+    out["truncated"] = truncated
+    if total:
+        out["state"] = "recorded"
+    elif enabled:
+        out["state"] = "idle"
+    return out
+
+
 def _read_mimir(project_root, claude_home) -> dict:
     """Build the Mímir session-state payload from on-disk Claude Code sources.
 
@@ -1117,24 +1419,40 @@ def _read_mimir(project_root, claude_home) -> dict:
     # last-used model: newest JSONL's most-recent assistant event.
     if jsonls:
         try:
-            newest_events = list(_mimir_iter_jsonl_bounded(jsonls[0]))
+            # from_end: this block reports "last used" and "current" — both are
+            # TAIL facts. Reading the head returned the session's OPENING state.
+            newest_events = list(_mimir_iter_jsonl_bounded(jsonls[0], from_end=True))
         except Exception:
             newest_events = []
         last_model = None
-        first_perm_mode = None
+        last_perm_mode = None
         for ev in newest_events:
             if ev.get("type") == "assistant":
-                m = ev.get("model")
+                # Claude Code NESTS model/usage under ev["message"]; the top-level
+                # read returned None on every assistant event (measured 2026-07-28:
+                # 0/6060 top-level vs 6060/6060 nested on a real 116 MB transcript),
+                # so "last used model" was permanently blank. Read nested FIRST,
+                # keep the flat read as a fallback for any other producer.
+                msg = ev.get("message")
+                m = msg.get("model") if isinstance(msg, dict) else None
+                if not isinstance(m, str):
+                    m = ev.get("model")
                 if isinstance(m, str):
                     last_model = m  # overwrite — keep newest seen in scanned slice
-            if first_perm_mode is None and ev.get("type") == "permission-mode":
+            # MH-06 — this was `if first_perm_mode is None`, i.e. FIRST-wins, in the
+            # very same loop that deliberately keeps the NEWEST model two lines
+            # above. So the card reported the session's OPENING permission mode as
+            # its current one, and said `default` while the session was in `auto` —
+            # a permissions surface asserting a laxer state than reality, which is
+            # the worst direction for that particular field to be wrong in.
+            if ev.get("type") == "permission-mode":
                 pm = ev.get("permissionMode")
                 if isinstance(pm, str):
-                    first_perm_mode = pm
+                    last_perm_mode = pm  # overwrite — keep newest, like last_model
         if last_model:
             base["settings"]["model"]["last_used"] = last_model
-        if first_perm_mode:
-            base["settings"]["permission_mode"] = first_perm_mode
+        if last_perm_mode:
+            base["settings"]["permission_mode"] = last_perm_mode
 
     # recent_sessions card (top 5 per the skill source-map).
     for jf in jsonls[:5]:
@@ -1150,32 +1468,29 @@ def _read_mimir(project_root, claude_home) -> dict:
         except (OSError, ValueError, OverflowError):
             last_active = ""
 
-        event_count = 0
-        output_tokens = 0
-        git_branch = None
-        # NEVER reads type=user content — only metadata from user events
-        # (gitBranch), and assistant events for token/count.
-        for ev in _mimir_iter_jsonl_bounded(jf):
-            t = ev.get("type")
-            if t == "assistant":
-                event_count += 1
-                usage = ev.get("usage")
-                if isinstance(usage, dict):
-                    ot = usage.get("output_tokens")
-                    if isinstance(ot, int):
-                        output_tokens += ot
-            if git_branch is None:
-                gb = ev.get("gitBranch")
-                if isinstance(gb, str) and gb:
-                    git_branch = gb
+        # MH-20 + the 50-KiB-head defect: one bounded streaming scan replaces
+        # the old head-read loop. See _mimir_scan_session for why the head-read
+        # reported 0 events / 0 tokens for every session on every machine.
+        scan = _mimir_scan_session(jf)
 
         sid = jf.stem  # filename is the session UUID; truncate to 8 for display.
         base["recent_sessions"].append({
             "session_id": sid[:8] if isinstance(sid, str) else "",
             "last_active": last_active,
-            "event_count": event_count,
-            "output_tokens": output_tokens,
-            "git_branch": git_branch,
+            "event_count": scan["event_count"],
+            "output_tokens": scan["output_tokens"],
+            "git_branch": scan["git_branch"],
+            "subagent_dispatches": scan["subagent_dispatches"],
+            # Top 5 by count, then name, so the ordering is stable across reads.
+            "subagent_types": [
+                {"type": k, "count": v}
+                for k, v in sorted(
+                    scan["subagent_types"].items(), key=lambda kv: (-kv[1], kv[0])
+                )[:5]
+            ],
+            # True only if the 64 MiB scan cap was hit — the counts are then a
+            # floor, not a total, and the UI says so rather than rounding it off.
+            "counts_truncated": scan["truncated"],
         })
 
     # ── activity card (~/.claude/stats-cache.json) ──────────────────────────
@@ -1232,6 +1547,10 @@ def _read_mimir(project_root, claude_home) -> dict:
             base["session"]["found"] = True
             break
 
+    # MH-20 remedy (2) — the dispatch log, with a three-state honest empty
+    # state so "nothing here" can never be mistaken for a broken reader.
+    base["dispatch"] = _read_dispatch_eval(project_root)
+
     return base
 
 
@@ -1279,13 +1598,125 @@ def _read_knowledge_health(repo_root: Path) -> dict:
         return empty
 
 
+def _read_worktree_guard(project_root: Path) -> dict | None:
+    """Worktree-hygiene guard status for THIS checkout — whether it is the repo's
+    anchor, how many live Claude sessions share this working tree, and whether
+    there is contention (a latecomer joined a tree already in use). The SINGLE
+    SOURCE OF TRUTH is worktree-guard.sh `status --json`; this reader never
+    reimplements anchor/staleness detection in Python — it only shells the hook
+    and parses its JSON. Read-only and fail-open: a missing hook, a non-git
+    checkout, a missing git/jq/shasum, a timeout, or non-JSON output all yield
+    None (the Sleipnir widget simply omits the guard block), never raises.
+    Duplicated byte-identically in both server copies — keep them in sync (the
+    parity gate guards endpoint NAMES; this helper is duplicated, so edit both)."""
+    hook = project_root / "plugins" / "ravenclaude-core" / "hooks" / "worktree-guard.sh"
+    if not hook.is_file():
+        # Bundled-plugin install ships the hook alongside this server (../hooks).
+        hook = Path(__file__).resolve().parent.parent / "hooks" / "worktree-guard.sh"
+    if not hook.is_file():
+        return None
+    try:
+        proc = subprocess.run(
+            ["bash", str(hook), "status", "--json"],
+            cwd=str(project_root),
+            stdin=subprocess.DEVNULL,
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=False,
+        )
+    except (subprocess.SubprocessError, OSError):
+        return None
+    out = (proc.stdout or "").strip()
+    if not out:
+        return None
+    try:
+        data = json.loads(out)
+    except json.JSONDecodeError:
+        return None
+    return data if isinstance(data, dict) else None
+
+
+# ── /__host — which CLI launched this dashboard, and what is wired ───────────
+# Multi-host audit MH-14. Two hard rules, both from the red-team:
+#
+# 1. LEAK-SAFE BY CONSTRUCTION. The probe list below is a CLOSED LITERAL of env
+#    var NAMES. It never iterates os.environ, so a variable we did not name can
+#    never reach a browser page — the page is screenshot-shareable, unlike the
+#    agent-context capability banner that set the precedent. Only PRESENCE
+#    booleans are emitted, never values, and never a filesystem path.
+#
+# 2. IT REPORTS THE LAUNCH ENVIRONMENT, NOT "YOUR CURRENT SESSION".
+#    This is the honest resolution to the wrong-verdict problem. A dashboard
+#    server is long-lived and reusable: open-dashboard.sh reuses a live one and
+#    dashboard-autostart.sh deliberately never starts a second. So a server
+#    started under Claude Code and later reused from a Copilot session would, if
+#    it claimed to know "your" host, confidently say Claude Code and be wrong.
+#    It cannot know that. What it CAN know is the environment it inherited at
+#    launch — so that is exactly what it says, with started_at so staleness is
+#    visible. A narrower true claim beats a broader false one.
+#
+# COPILOT_DEBUG_NONCE IS DELIBERATELY NOT A SIGNAL: it was observed set INSIDE a
+# Claude Code session on 2026-07-28, so "any COPILOT_* implies Copilot" mislabels
+# a live session. Copilot is identifiable only via THING_HOST, which
+# copilot-hook-adapter.sh exports explicitly — an assertion, never an inference.
+_HOST_ENV_PROBES = (
+    "CLAUDECODE",
+    "CLAUDE_CODE_ENTRYPOINT",
+    "THING_HOST",
+    "CODEX_SESSION_ID",
+    "CODEX_PROJECT_ROOT",
+    "PLUGIN_ROOT",
+    "CLAUDE_PLUGIN_ROOT",
+    "CLAUDE_PROJECT_DIR",
+    "CLAUDE_SESSION_ID",
+)
+
+_SERVER_STARTED_AT = _dt_mod.datetime.now(_dt_mod.timezone.utc).isoformat(timespec="seconds")
+
+
+def _read_host() -> dict:
+    """Report the host environment THIS SERVER PROCESS was launched in.
+
+    Positive signals only; returns host=None (rendered "cannot determine") rather
+    than guessing. Byte-identical in the root and bundled plugin server — the
+    parity gate guards endpoint NAMES, this helper is duplicated, so edit both.
+    Never raises."""
+    import os as _os
+
+    present = {name: bool(_os.environ.get(name)) for name in _HOST_ENV_PROBES}
+    host = None
+    basis = None
+    th = _os.environ.get("THING_HOST") or ""
+    if th:
+        host, basis = th, "THING_HOST asserted by the host adapter"
+    elif present["CLAUDECODE"] or present["CLAUDE_CODE_ENTRYPOINT"]:
+        host, basis = "claude-code", "CLAUDECODE / CLAUDE_CODE_ENTRYPOINT present"
+    elif present["CODEX_SESSION_ID"] or present["CODEX_PROJECT_ROOT"]:
+        host, basis = "codex", "CODEX_* session variables present"
+    return {
+        "host": host,
+        "basis": basis,
+        "scope": "launch-environment",
+        "started_at": _SERVER_STARTED_AT,
+        "env_present": present,
+        "note": (
+            "This is the environment the dashboard server was STARTED in, not your "
+            "current session. A server can be reused across sessions and hosts, so it "
+            "cannot know which CLI is talking to it now."
+        ),
+    }
+
+
 def _read_sleipnir(project_root: Path) -> dict:
-    """Sleipnir's stables — the current git worktrees under .claude/worktrees/.
-    Read-only directory listing (names + count), no git invocation. Reads only
-    under project_root (no root reference) so this is byte-identical in the root
-    and bundled plugin server — keep the two copies in sync (the parity gate
-    guards endpoint NAMES; this helper is duplicated, so edit both). Any failure
-    (missing dir, unreadable) degrades to an empty stable, never raises."""
+    """Sleipnir's stables — the current git worktrees under .claude/worktrees/,
+    plus the worktree-hygiene guard status for THIS checkout (is_anchor /
+    live_sessions / contention, via worktree-guard.sh status --json — the single
+    source of truth). The directory listing reads only under project_root; the
+    guard block is fail-open (absent on any git/hook failure). Byte-identical in
+    the root and bundled plugin server — keep the two copies in sync (the parity
+    gate guards endpoint NAMES; this helper is duplicated, so edit both). Any
+    failure (missing dir, unreadable) degrades to an empty stable, never raises."""
     out: dict = {"worktrees": [], "count": 0}
     wt_dir = project_root / ".claude" / "worktrees"
     if wt_dir.is_dir():
@@ -1295,6 +1726,9 @@ def _read_sleipnir(project_root: Path) -> dict:
             names = []
         out["worktrees"] = names
         out["count"] = len(names)
+    guard = _read_worktree_guard(project_root)
+    if guard is not None:
+        out["guard"] = guard
     return out
 
 
@@ -1342,6 +1776,13 @@ class DashboardHandler(SimpleHTTPRequestHandler):
     def log_message(self, format, *args):
         sys.stderr.write("[%s] %s\n" % (self.log_date_time_string(), format % args))
 
+    def handle_one_request(self):
+        # Record activity for the --max-idle reaper on every incoming request
+        # (before parsing, so even a rejected request counts as "in use").
+        global _LAST_ACTIVITY
+        _LAST_ACTIVITY = time.monotonic()
+        super().handle_one_request()
+
     def _local_request_ok(self) -> bool:
         """Refuse cross-origin / DNS-rebinding requests to the write/read/classify
         endpoints. Checked on every state-changing or read request.
@@ -1370,8 +1811,49 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             return False
         return True
 
+    def _state_change_origin_ok(self) -> bool:
+        """Require a PRESENT and allow-listed Origin on state-changing requests.
+
+        This is the browser-CSRF / DNS-rebinding defense, and it is the one check
+        on this path a hostile web page cannot satisfy. Per the Fetch standard
+        (§"append a request `Origin` header"), the browser appends Origin to every
+        request whose method is neither GET nor HEAD, and a page can neither forge
+        nor suppress it. So a same-origin dashboard POST always carries
+        `Origin: http://127.0.0.1:<port>`, while an opaque origin (sandboxed iframe,
+        data: URL) sends the literal `null` — not in _ALLOWED_ORIGINS, so rejected.
+
+        Why this is separate from _local_request_ok() instead of folded into it:
+        that guard also runs on GETs, and the Fetch standard appends Origin to a GET
+        only when the request is CROSS-origin. The dashboard's own same-origin
+        `GET /__csrf` token bootstrap therefore carries no Origin at all — requiring
+        it there would break the token fetch and the entire dashboard with it.
+
+        Sec-Fetch-Site is deliberately NOT required to be present: it is absent on
+        Safari < 16.4 and other older browsers, so requiring it would break real
+        dashboard saves to buy a defense Origin already provides. _local_request_ok()
+        still rejects it when it IS present and says cross-site.
+
+        WHAT THIS DOES NOT STOP — do not overstate it: a local scripted process (the
+        coding agent included) can send any header it likes, so it satisfies this
+        check trivially — and it can write the target file directly with its own
+        tools regardless of this server. Every discriminator available here is
+        client-asserted, so there is NO design in which "the human can flip this but
+        a local script cannot." The threat this closes is the browser one: a
+        malicious page the user is viewing, or a DNS-rebinding attack, driving this
+        server on their behalf.
+        """
+        origin = self.headers.get("Origin")
+        return origin is not None and origin in _ALLOWED_ORIGINS
+
     def _csrf_ok(self) -> bool:
-        """Belt-and-suspenders CSRF check on top of the Origin/Host guard.
+        """Second layer under the Origin guard, NOT an independent defense.
+
+        Do not read this as "even a client with no Origin still needs the token" —
+        that is circular. A client that can reach GET /__csrf can read the token,
+        and that bootstrap cannot be Origin-gated (see the _CSRF_TOKEN comment).
+        Its real value is against the BROWSER threat, where it is redundant with
+        _state_change_origin_ok() by design: a cross-origin page cannot read the
+        token because this server sends no CORS headers.
 
         State-changing POSTs must carry the X-CSRF-Token header with the
         per-process token; constant-time compared so a scripted client can't
@@ -1419,12 +1901,17 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             or self.path.startswith("/__knowledge-health")
             or self.path.startswith("/__sleipnir")
             or self.path.startswith("/__runs")
-            or self.path.startswith("/__concern-stats")
+            or self.path.startswith("/__concern-stats") or self.path.startswith("/__host")
         ):
             self.send_response(200)
             self.send_header("Allow", "GET, POST, HEAD")
             self.send_header("Content-Length", "0")
             self.end_headers()
+            return
+        # Gate the static HEAD fallback too — a HEAD probes file existence, so leaving
+        # it un-gated leaks the tree's shape to a DNS-rebinding page (see do_GET).
+        if not self._local_request_ok():
+            self.send_error(403, "cross-origin/forged-host request refused")
             return
         super().do_HEAD()
 
@@ -1433,6 +1920,16 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         # dir). Any NEW data-returning GET endpoint added here MUST call
         # self._local_request_ok() first (as _handle_read does) — do not let it ride
         # the static path.
+        if self.path in ("/", ""):
+            # Redirect bare root to the dashboard page. PLUGIN_DIR has no
+            # index.html, so without this SimpleHTTPRequestHandler renders a
+            # directory listing of the plugin — the "it opened the directory,
+            # not the dashboard" report. main() injects the target.
+            target = getattr(self.server, "_dash_path", DASH_PATH)
+            self.send_response(302)
+            self.send_header("Location", target)
+            self.end_headers()
+            return
         if self.path.startswith("/__read"):
             self._handle_read()
             return
@@ -1466,11 +1963,26 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         if self.path.startswith("/__runs"):
             self._handle_runs()
             return
+        if self.path.startswith("/__host"):
+            self._handle_host()
+            return
         if self.path.startswith("/__concern-stats"):
             self._handle_concern_stats()
             return
         if self.path == "/__csrf":
             self._handle_csrf()
+            return
+        # Gate the STATIC fallback with the same Origin/Host check the /__* endpoints
+        # use. A plain SimpleHTTPRequestHandler serves the whole served dir with no
+        # validation, so an un-gated static path is a DNS-rebinding read primitive: a
+        # malicious page the user is viewing rebinds its host to 127.0.0.1 and reads
+        # the consumer's repo files (.git/config, .ravenclaude/**, etc.) same-origin.
+        # _ALLOWED_HOSTS already covers 127.0.0.1/localhost + the forwarded Codespace
+        # host, so every legitimate load still passes (a real top-nav GET sends no
+        # Origin and a correct Host); only a forged/rebind Host is refused (repo-review
+        # 2026-08-05). Do NOT relax this into an ACAO header — see _local_request_ok.
+        if not self._local_request_ok():
+            self.send_error(403, "cross-origin/forged-host request refused")
             return
         super().do_GET()
 
@@ -1502,8 +2014,15 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         self.send_error(405)
 
     def do_POST(self):
+        # do_POST is the single chokepoint for every state-changing endpoint
+        # (/__save, /__classify), so the strict Origin requirement goes here rather
+        # than in _local_request_ok() — which also gates read-only GETs that
+        # legitimately carry no Origin. See _state_change_origin_ok.
         if not self._local_request_ok():
             self.send_error(403, "refused: cross-origin or non-local Origin/Host")
+            return
+        if not self._state_change_origin_ok():
+            self.send_error(403, "refused: state-changing request requires a present, allowed Origin")
             return
         if not self._csrf_ok():
             self.send_error(403, "missing or invalid CSRF token")
@@ -1560,9 +2079,17 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         # write_bytes, not write_text(newline=): Python 3.9 compat (LF preserved)
         out.write_bytes(content.encode("utf-8"))
 
-        payload = {"saved": str(out.relative_to(PROJECT_ROOT)), "bytes": len(content)}
+        payload = {
+            "saved": str(out.relative_to(PROJECT_ROOT)),
+            "root": str(PROJECT_ROOT),
+            "bytes": len(content),
+        }
         if target == POSTURE_TARGET:
             payload.update(self._apply_posture())
+            # MH-16 part 2 — the same save must also reach Codex, or the
+            # dashboard reports success while that host stays unbounded.
+            # Fail-safe and non-fatal by contract: see _apply_codex_posture.
+            payload.update(self._apply_codex_posture())
         self._json(200, payload)
 
     def _handle_read(self):
@@ -1703,6 +2230,79 @@ class DashboardHandler(SimpleHTTPRequestHandler):
 
         self._json(200, records)
 
+    def _apply_codex_posture(self) -> dict:
+        """Also project the saved posture onto Codex's OS sandbox.
+
+        WHY THIS EXISTS (audit MH-16 part 2, dashboard half). `emit-codex-config.py`
+        shipped, but it was invoked from exactly ONE place — `scripts/ravenclaude`,
+        the installer. Nothing on the dashboard's save path called it and
+        `apply-comfort-posture.py` has no Codex awareness at all, so a user could
+        tighten every category, click Save, watch it report success, and still be
+        running at Codex's default `workspace-write`. The dashboard's headline
+        product silently did nothing on that host.
+
+        THREE PROPERTIES, deliberately:
+
+        1. **Never weaken.** The emitter's own governing rule — absent key -> write,
+           stricter -> tighten, LOOSER -> refuse and print the line to change by
+           hand; `danger-full-access` / `approval_policy = "never"` are never
+           emitted at any posture. A refusal is reported here as a first-class
+           outcome, not swallowed as success.
+        2. **Do not litter.** Only runs when the project already uses Codex (a
+           `.codex/` directory or an existing `config.toml`). Writing an OS-sandbox
+           config into every repo that ever saves a posture would be a surprising
+           side effect on machines that have never seen Codex.
+        3. **Never break the save.** The YAML is already on disk by the time this
+           runs. Any failure is REPORTED, never raised — the posture save must not
+           fail because a secondary projection did.
+
+        Honest scope, carried into the response text: writing the file is not the
+        same as bounding the session. A project `.codex/config.toml` loads ONLY IN
+        TRUSTED PROJECTS, and two enum keys cannot express twelve posture
+        categories. Both caveats are the emitter's, restated where the user is.
+        """
+        if not CODEX_EMITTER.is_file():
+            return {"codex_applied": False, "codex_skipped": "emitter not found"}
+        codex_dir = PROJECT_TARGET / ".codex"
+        if not codex_dir.is_dir() and not (codex_dir / "config.toml").is_file():
+            return {"codex_applied": False, "codex_skipped": "not a Codex project"}
+        try:
+            proc = subprocess.run(
+                [sys.executable, str(CODEX_EMITTER), "--project", str(PROJECT_TARGET)],
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+        except (subprocess.SubprocessError, OSError) as e:
+            return {"codex_applied": False, "codex_error": f"could not run emitter: {e}"}
+        out = ((proc.stdout or "") + (proc.stderr or "")).strip()
+        if proc.returncode != 0:
+            # A refusal-to-weaken is the emitter working as designed, and the user
+            # needs to SEE it — silently reporting "saved" would recreate the exact
+            # false-assurance this whole change removes.
+            return {"codex_applied": False, "codex_error": out[:800] or "non-zero exit"}
+        # A REFUSAL EXITS 0 BY DESIGN — the emitter tightens what it can and
+        # declines the rest — so the return code alone would report unqualified
+        # success while some settings were deliberately NOT applied. Surface them.
+        # A partial apply reported as "applied" is precisely the false assurance
+        # this whole change exists to remove; it would just move it one layer out.
+        refusals = [ln.strip() for ln in out.splitlines() if "refusing to loosen" in ln]
+        result = {
+            "codex_applied": True,
+            "codex_summary": out[:800],
+            "codex_caveat": (
+                "Coarse by design: two Codex enum keys cannot express 12 posture "
+                "categories, and a project .codex/config.toml loads ONLY in trusted "
+                "projects — writing it is not the same as bounding the session."
+            ),
+        }
+        if refusals:
+            # Non-empty means your .codex/config.toml is STRICTER than the posture
+            # you just saved, and was left alone. Not an error — a deliberate
+            # decline that you must be told about.
+            result["codex_refusals"] = refusals[:10]
+        return result
+
     def _apply_posture(self) -> dict:
         """Re-run apply-comfort-posture.py against the CONSUMER's project after a save."""
         if not APPLY_SCRIPT.is_file():
@@ -1746,6 +2346,16 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             self._json(500, {"error": f"classify failed: {e}"})
             return
         self._json(200, decision)
+
+    def _handle_host(self):
+        """GET /__host — the environment THIS SERVER was launched in, plus which
+        RavenClaude wiring variables are present. Read-only; same Origin/Host CSRF
+        guard as /__read. Emits presence BOOLEANS only, from a closed literal probe
+        list — never an env value, never a path, never an os.environ walk."""
+        if not self._local_request_ok():
+            self.send_error(403, "refused: cross-origin or non-local Origin/Host")
+            return
+        self._json(200, _read_host())
 
     def _handle_runs(self):
         """GET /__runs[?limit=N] — recent multi-step runs from
@@ -1947,9 +2557,175 @@ def _print_qr(url: str) -> bool:
     return True
 
 
+# ── Port acquisition ────────────────────────────────────────────────────────
+# This replaced a bare ThreadingHTTPServer((bind, port)) that raised an OSError
+# traceback the moment port 8000 was busy — while commands/dashboard.md already
+# advertised a fallback that did not exist. Two recovery paths, in order:
+#   1. the holder is one of OUR OWN dashboard servers -> stop it, reuse the port
+#      (a relaunch is the common case; keeps the URL stable)
+#   2. anything else -> walk up to the next free port
+# A process we have not positively identified as ours is NEVER signalled.
+
+
+def _port_holder_pids(port: int) -> list[int]:
+    """PIDs listening on `port`, excluding this process. Never raises: no lsof
+    (or any failure) yields [], and the caller falls back to a port walk."""
+    try:
+        out = subprocess.run(
+            ["lsof", "-nP", f"-iTCP:{port}", "-sTCP:LISTEN", "-t"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        ).stdout
+    except (OSError, subprocess.SubprocessError):
+        return []
+    pids = []
+    for tok in out.split():
+        try:
+            pid = int(tok)
+        except ValueError:
+            continue
+        if pid != os.getpid():
+            pids.append(pid)
+    return pids
+
+
+def _holder_cwd(pid: int) -> str | None:
+    """`pid`'s working directory, or None. Never raises."""
+    try:
+        out = subprocess.run(
+            ["lsof", "-a", "-p", str(pid), "-d", "cwd", "-Fn"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        ).stdout
+    except (OSError, subprocess.SubprocessError):
+        return None
+    for line in out.splitlines():
+        if line.startswith("n"):
+            return line[1:]
+    return None
+
+
+def _is_our_dashboard(pid: int) -> bool:
+    """True only when `pid` is a serve-dashboards.py serving THIS project.
+
+    Both halves matter. The name check alone would also match a dashboard
+    another repo has open right now — reclaiming that would kill a live
+    session in an unrelated project to free a port we can just as easily
+    step around. So "ours" means "this project's own stale server"; every
+    other dashboard is treated like any foreign process (fall back instead).
+
+    Fail-closed — any doubt (no ps/lsof, a failure, an unreadable cwd, a
+    mismatch) is False, so a process we haven't positively identified is
+    never signalled."""
+    try:
+        out = subprocess.run(
+            ["ps", "-p", str(pid), "-o", "command="],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        ).stdout
+    except (OSError, subprocess.SubprocessError):
+        return False
+    if "serve-dashboards.py" not in out:
+        return False
+    cwd = _holder_cwd(pid)
+    if cwd is None:
+        return False
+    try:
+        return Path(cwd).resolve() == PROJECT_ROOT.resolve()
+    except OSError:
+        return False
+
+
+def _reclaim_port(port: int) -> bool:
+    """SIGTERM our own stale dashboard server(s) on `port` and wait for the
+    socket to free. False if the holder isn't ours (or won't let go) — the
+    caller then walks to another port rather than escalating."""
+    pids = [p for p in _port_holder_pids(port) if _is_our_dashboard(p)]
+    if not pids:
+        return False
+    for pid in pids:
+        try:
+            os.kill(pid, signal.SIGTERM)
+        except OSError:
+            return False
+    for _ in range(20):  # ~2s: SIGTERM + socket teardown is not instant
+        time.sleep(0.1)
+        if not _port_holder_pids(port):
+            return True
+    return False
+
+
+def _bind_server(bind, port, handler, span=10):
+    """Bind `port`, reclaiming it from our own stale server or falling back to
+    the next free one. Returns (server, actual_port)."""
+    try:
+        return ThreadingHTTPServer((bind, port), handler), port
+    except OSError as exc:
+        if exc.errno != errno.EADDRINUSE:
+            raise
+
+    if _reclaim_port(port):
+        try:
+            srv = ThreadingHTTPServer((bind, port), handler)
+            print(f"  port {port} was held by a stale RavenClaude dashboard — stopped it, rebound {port}")
+            return srv, port
+        except OSError as exc:
+            if exc.errno != errno.EADDRINUSE:
+                raise
+
+    for candidate in range(port + 1, port + span + 1):
+        try:
+            srv = ThreadingHTTPServer((bind, candidate), handler)
+            print(f"  port {port} is held by another process — bound {candidate} instead")
+            return srv, candidate
+        except OSError as exc:
+            if exc.errno != errno.EADDRINUSE:
+                raise
+    raise SystemExit(
+        f"serve-dashboards: ports {port}-{port + span} are all in use. Free one, or pass --port N."
+    )
+
+
+def _default_bind() -> str:
+    """The bind address to use when --bind is not passed explicitly.
+
+    In a Codespace the port-forwarder cannot reach a 127.0.0.1-only socket, so
+    default to 0.0.0.0 there (kept safe by the Private forwarded port + the
+    Origin/Host CSRF guard, and defensible because nothing auto-starts); off a
+    Codespace stay loopback-only. An explicit --bind always wins over this."""
+    return "0.0.0.0" if os.environ.get("CODESPACE_NAME") else "127.0.0.1"
+
+
+def _idle_reaper(max_idle_minutes: float) -> None:
+    """Self-expire the process after `max_idle_minutes` with no request.
+
+    This is a detached, session-outliving server bound to the loopback /__save
+    write surface; the launch ruling bounds its lifetime rather than leaving it
+    open indefinitely. `max_idle_minutes <= 0` disables the reaper (the thread
+    never starts). Activity is the module-global `_LAST_ACTIVITY` monotonic clock,
+    bumped by the request handler on every request; a tab open across the expiry
+    recovers via the client-side re-probe."""
+    if max_idle_minutes <= 0:
+        return
+    idle_seconds = max_idle_minutes * 60
+    while True:
+        time.sleep(min(idle_seconds, 30))
+        if time.monotonic() - _LAST_ACTIVITY >= idle_seconds:
+            print(f"serve-dashboards: idle {max_idle_minutes:g} min — exiting (--max-idle).", flush=True)
+            os._exit(0)
+
+
 def main() -> int:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--port", type=int, default=8000)
+    p.add_argument(
+        "--no-open",
+        action="store_true",
+        help="do not auto-open a browser (for scripts/CI). Matches the root dev server.",
+    )
     p.add_argument(
         "--bind",
         default=None,
@@ -1965,6 +2741,12 @@ def main() -> int:
         "--validate",
         action="store_true",
         help="Resolve + guard-check the project root, print it, and exit without serving.",
+    )
+    p.add_argument(
+        "--max-idle",
+        type=float,
+        default=120,
+        help="minutes of inactivity after which the server self-exits (bounds the detached /__save listener's lifetime); 0 disables. Default 120.",
     )
     args = p.parse_args()
 
@@ -2001,7 +2783,7 @@ def main() -> int:
     # In a Codespace the port-forwarder can't reach a 127.0.0.1-only socket, so default
     # to 0.0.0.0 there — kept safe by the Private forwarded port + the Origin/Host CSRF
     # guard below. Off-Codespace stay loopback-only. An explicit --bind always wins.
-    bind = args.bind or ("0.0.0.0" if codespace else "127.0.0.1")
+    bind = args.bind or _default_bind()
 
     # Refuse 0.0.0.0 when the Codespace forwarded port is set to Public — the
     # /__save surface would be reachable from the public internet on a path the
@@ -2020,24 +2802,36 @@ def main() -> int:
         )
         return 2
 
-    server = ThreadingHTTPServer((bind, args.port), handler)
+    server, actual_port = _bind_server(bind, args.port, handler)
+    # The redirect target for bare "/" — read by do_GET. Without it the plugin
+    # dir (which has no index.html) renders as a directory listing.
+    server._dash_path = DASH_PATH
 
     # Generate the per-process CSRF token + build the Origin/Host allow-lists
     # before the server can take a single request. State-changing POSTs require
     # the token in the X-CSRF-Token header (belt-and-suspenders on the Origin
     # guard); the dashboard JS fetches it from GET /__csrf on load.
-    global _ALLOWED_HOSTS, _ALLOWED_ORIGINS, _CSRF_TOKEN
+    # NOTE: keyed on actual_port, not args.port — a fallback bind would
+    # otherwise allow-list a port we are not listening on and reject every POST.
+    global _ALLOWED_HOSTS, _ALLOWED_ORIGINS, _CSRF_TOKEN, _LAST_ACTIVITY
     _CSRF_TOKEN = secrets.token_urlsafe(32)
-    _ALLOWED_HOSTS = {f"127.0.0.1:{args.port}", f"localhost:{args.port}", "127.0.0.1", "localhost"}
-    _ALLOWED_ORIGINS = {f"http://127.0.0.1:{args.port}", f"http://localhost:{args.port}"}
+    _LAST_ACTIVITY = time.monotonic()
+    # Self-expire after `--max-idle` minutes of inactivity so a forgotten detached
+    # server does not sit on the loopback /__save write surface indefinitely (the
+    # launch ruling bounds duration; a tab open across the expiry recovers via the
+    # client-side re-probe). --max-idle 0 disables (the thread never starts).
+    threading.Thread(target=_idle_reaper, args=(args.max_idle,), daemon=True).start()
+    _ALLOWED_HOSTS = {f"127.0.0.1:{actual_port}", f"localhost:{actual_port}", "127.0.0.1", "localhost"}
+    _ALLOWED_ORIGINS = {f"http://127.0.0.1:{actual_port}", f"http://localhost:{actual_port}"}
     if codespace:
-        _fwd = f"{codespace}-{args.port}.{domain}"
+        _fwd = f"{codespace}-{actual_port}.{domain}"
         _ALLOWED_HOSTS.add(_fwd)
         _ALLOWED_ORIGINS.add(f"https://{_fwd}")
 
+    local_url = f"http://127.0.0.1:{actual_port}{DASH_PATH}"
     print(f"serve-dashboards (plugin): serving {PLUGIN_DIR}")
     print(f"  project root (writes here): {PROJECT_ROOT}")
-    print(f"  local URL: http://127.0.0.1:{args.port}{DASH_PATH}  (bound to {bind})")
+    print(f"  local URL: {local_url}  (bound to {bind})")
     print("  POST /__save  - writes an allow-listed file under .ravenclaude/ + auto-applies")
     print("  GET  /__read  - hydrates the dashboard from your committed config")
     print("  GET  /__saga  - read-only Review-log feed from .ravenclaude/runs/thing/ (?limit=N, default 200)")
@@ -2046,7 +2840,7 @@ def main() -> int:
 
     phone_url = None
     if codespace:
-        phone_url = f"https://{codespace}-{args.port}.{domain}{DASH_PATH}"
+        phone_url = f"https://{codespace}-{actual_port}.{domain}{DASH_PATH}"
         print("\n  Codespace forwarded URL — open it via the Ports panel -> Open in Browser")
         print("  (that handles the GitHub auth; a raw paste needs you already signed in):")
         print(f"  {phone_url}")
@@ -2058,6 +2852,17 @@ def main() -> int:
             print("  ^ scan with your phone camera to open the dashboard there.")
         else:
             print("  (For a scannable QR code here, run: pip install qrcode)")
+
+    # Auto-open the browser on local/desktop runs (parity with the root dev
+    # server). In a Codespace the container has no display and VS Code's
+    # onAutoForward: openBrowser handles the forwarded port, so skip it there.
+    # Opens DASH_PATH, never "/" — the point is to land on the dashboard.
+    if not args.no_open and not codespace:
+        print(f"\n  Opening your browser at {local_url} ...")
+        try:
+            webbrowser.open(local_url)
+        except Exception:
+            pass  # silently fall back to the printed URL
 
     print("\n  Ctrl+C to stop.")
     sys.stdout.flush()

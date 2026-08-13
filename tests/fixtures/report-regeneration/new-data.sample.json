@@ -1,0 +1,22 @@
+{
+  "schema": "report-regeneration/new-data@1",
+  "description": "Plausible NEW-period values for the report-regeneration HTML pipeline, keyed to every data-bind in sample-report.html. The template is Q1 2025 (period 2025-Q1); this new data advances it one quarter to Q2 2025 (period 2025-Q2), so downstream stages (rebind, the fidelity harness, and the acceptance test) all share one consistent new dataset. Values are display strings — exactly the form a surgical rebind writes back at the anchor. Regional revenues sum to revenue.total ($5,142,800); regional shares sum to 100.0%.",
+  "period_label": "Q2 2025",
+  "source_period": "2025-Q2",
+  "bindings": {
+    "meta.period_label": "Q2 2025",
+    "meta.report_date": "July 8, 2025",
+    "revenue.total": "$5,142,800",
+    "revenue.growth_yoy": "+9.8%",
+    "margin.operating": "19.2%",
+    "revenue.region.north": "$1,310,900",
+    "revenue.region.north_share": "25.5%",
+    "revenue.region.emea": "$1,028,600",
+    "revenue.region.emea_share": "20.0%",
+    "revenue.region.apac": "$1,672,400",
+    "revenue.region.apac_share": "32.5%",
+    "revenue.region.latam": "$1,130,900",
+    "revenue.region.latam_share": "22.0%",
+    "revenue.trend.latest_quarter": "$5,142,800"
+  }
+}

@@ -26,6 +26,13 @@ with a per-link report otherwise. Runs in CI (validate-marketplace.yml) and is
 exercised bidirectionally by audit-gates.sh.
 """
 
+# PEP-604 unions (`Path | None`) appear in annotations below. CI's python3 is 3.10+
+# where those evaluate natively, but a contributor on 3.9 hits a TypeError at import
+# and the gate becomes unrunnable LOCALLY (it stays green in CI, which is what made
+# this easy to miss). Deferring annotation evaluation costs nothing here — this module
+# does no runtime annotation introspection (no get_type_hints / __annotations__ reads).
+from __future__ import annotations
+
 import re
 import sys
 from pathlib import Path
@@ -126,7 +133,12 @@ def strip_code(text: str) -> str:
 
 def main() -> int:
     for md_file in iter_markdown_files():
-        text = strip_code(md_file.read_text())
+        # Read tolerantly: a single non-UTF-8 byte (e.g. a cp1252 "smart quote"
+        # 0x92 pasted from Word — very ordinary) would otherwise raise an uncaught
+        # UnicodeDecodeError and crash the WHOLE gate, not just skip that file.
+        # Mirrors is_excluded()'s errors="ignore" (that guard was applied to the
+        # exclusion read but not to this one — repo-review 2026-08-05).
+        text = strip_code(md_file.read_text(encoding="utf-8", errors="ignore"))
         for m in LINK_RE.finditer(text):
             resolved = resolve_target(md_file, m.group(1))
             if resolved is None:

@@ -2,6 +2,14 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.12.5] — 2026-07-21
+
+### Changed
+
+- **`knowledge/ai-in-edtech-2026.md` freshness refresh** — the §1 Tier-1 vendor table's Anthropic row moved from "Claude for Education … K-12 support 'on the horizon'" to reflect **Claude for Teachers** (launched 2026-07-14: free 1-year Claude Pro for verified US K-12 educators enrolling by 2027-06-30; Learning Commons standards grounding; data not used for training). Added a PSM-detail prose block under the Tier-1 table carrying three protective caveats — "FERPA-aligned" ≠ "FERPA-compliant" (EdWeek 2026-07 critics), AFT = partnership not certification, and post-free-year cost unspecified (`[verify-at-use]`). "Last reviewed" date advanced to 2026-07-21. Product specifics are attributed as Anthropic self-reports, retrieved via WebSearch (primary-403→cross-reference pattern).
+
+_(0.12.3 and 0.12.4 were released without a changelog entry; this entry resumes the log at 0.12.5.)_
+
 ## [0.12.2] — 2026-06-22
 
 Version bump previously unlogged here; the change that set `0.12.2`:

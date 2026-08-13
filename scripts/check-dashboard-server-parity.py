@@ -43,7 +43,13 @@ PLUGIN_SERVER = REPO_ROOT / "plugins" / "ravenclaude-core" / "scripts" / "serve-
 # server's own module docstring. Keep this list in lockstep with that rationale.
 INTENTIONALLY_EXCLUDED = {"/__run"}
 
-_ENDPOINT_RE = re.compile(r"/__\w+")
+# `\w` does NOT match `-`, so the old `/__\w+` silently TRUNCATED every
+# hyphenated endpoint: `/__concern-stats` was compared as `/__concern`, and
+# `/__knowledge-health` as `/__knowledge` (multi-host audit MH-33). Two endpoints
+# differing only after a hyphen therefore compared as identical, which is exactly
+# the drift this gate exists to catch — and the truncation was visible in the
+# gate's own PASS output the whole time, reading as if those were the real names.
+_ENDPOINT_RE = re.compile(r"/__[\w-]+")
 
 # Names that legitimately differ between the two copies — the root server uses
 # REPO_ROOT (the marketplace clone), the plugin server uses PROJECT_ROOT (the
@@ -59,6 +65,34 @@ _ALLOWED_VARIANCE = [("REPO_ROOT", "PROJECT_ROOT")]
 # `_read_<card>` and the cross-card `_mimir_*` helpers (the universal scrubber +
 # encoded-path resolver — the contract surfaces them as load-bearing).
 _BODY_DIFF_PREFIXES = ("_read_", "_mimir_")
+
+# Exact-name body-diff contract (FORGE dashboard-consumption, PB-1). The launch
+# lane rewrites the port/reclaim/bind/lifetime path in BOTH server copies; those
+# functions are NOT `_read_*`/`_mimir_*`, so the prefix filter above cannot see
+# them, and a one-copy edit to (say) `_reclaim_port` would ship different bind
+# behaviour to consumers silently — the exact drift class behind the v0.205.3
+# incident. These three are already byte-identical today, so naming them is green
+# at zero cost. CODE-SHAPE RULE (binding on the L lane): any NEW port/bind/idle
+# logic must ship as a module-level named function present in BOTH copies and be
+# added here — logic left inline in `main()` is by construction ungated. When the
+# L lane lands `_default_bind()` and the idle-expiry reaper, append their names.
+_BODY_DIFF_NAMES = (
+    "_port_holder_pids",
+    "_holder_cwd",
+    "_reclaim_port",
+    "_default_bind",
+    "_idle_reaper",
+)
+
+# NOT compared — `main()` legitimately DIVERGES between the two copies in seven
+# documented ways, so byte-diffing it is unkeepable (this is why the contract is a
+# named-function list, not a whole-main diff): (1) the root serves the repo root +
+# a landing path while the plugin serves PLUGIN_DIR/DASH_PATH; (2) the root accepts
+# --project-root/--validate, the plugin does not; (3) the root carries the
+# marketplace-write refusal guard; (4) root-only LAN/QR `_lan_ip` phone-URL block;
+# (5) plugin-only `_bind_server` helper; (6) the `/__run` banner wording differs;
+# (7) Codespace-refusal wording differs. New drift-prone logic goes in a named
+# function above, never inline in main().
 
 _DEF_RE = re.compile(r"^def\s+(\w+)\s*\(", re.MULTILINE)
 # Module-level boundaries: `def NAME(` OR `class NAME(`. The body-extractor uses
@@ -84,9 +118,12 @@ def _normalize(body: str) -> str:
     return out
 
 
-def extract_functions(src: str, prefixes: tuple[str, ...]) -> dict[str, str]:
+def extract_functions(
+    src: str, prefixes: tuple[str, ...], names: tuple[str, ...] = ()
+) -> dict[str, str]:
     """Return {name: body_text} for every top-level `def NAME(...)` whose name
-    starts with one of the given prefixes. The body is the slice from the `def`
+    starts with one of the given prefixes OR is an exact member of `names`. The
+    body is the slice from the `def`
     line up to (but not including) the next top-level `def` / `class` line, or
     end-of-file. Returns the literal source, including the `def` signature line
     — enough for a meaningful byte-diff.
@@ -101,7 +138,7 @@ def extract_functions(src: str, prefixes: tuple[str, ...]) -> dict[str, str]:
     boundaries = [m.start() for m in _BOUNDARY_RE.finditer(src)]
     for m in _DEF_RE.finditer(src):
         name = m.group(1)
-        if not any(name.startswith(p) for p in prefixes):
+        if not (any(name.startswith(p) for p in prefixes) or name in names):
             continue
         start = m.start()
         # Find the next module-level boundary STRICTLY after this def's start
@@ -113,6 +150,50 @@ def extract_functions(src: str, prefixes: tuple[str, ...]) -> dict[str, str]:
         body = src[start:end].rstrip() + "\n"
         out[name] = body
     return out
+
+
+def unguarded_get_handlers(path: Path) -> list[str]:
+    """Every `/__` GET endpoint whose handler does NOT call `_local_request_ok()`.
+
+    The server carries this invariant as a COMMENT in do_GET:
+
+        "Any NEW data-returning GET endpoint added here MUST call
+         self._local_request_ok() first — do not let it ride the static path."
+
+    Nothing enforced it (multi-host audit MH-33). That guard is the
+    DNS-rebinding / cross-origin defense: without it, a page on any other origin
+    can read the endpoint's JSON. A comment is not a control, and "the next person
+    will remember" is not a security posture — especially on a surface where five
+    new endpoints were added in a single day.
+
+    Deliberately a STATIC check on the dispatch table rather than a live request:
+    it runs in CI with no server, and it fails on the shape that actually recurs —
+    a new handler added without the guard line.
+    """
+    text = path.read_text(encoding="utf-8")
+    # SCOPE TO do_GET's BODY ONLY. Scanning the whole file conflates GET with POST:
+    # /__classify and /__save are dispatched from do_POST and are guarded by the CSRF
+    # check, not by _local_request_ok(). The first version of this check scanned
+    # globally, flagged the POST-only /__classify, and looked exactly like a real
+    # security hole — it was a broken check. Diagnose before concluding.
+    m_get = re.search(r"\n    def do_GET\(self\):.*?(?=\n    def )", text, re.S)
+    if not m_get:
+        return ["do_GET not found — the dispatch table moved; this check needs updating"]
+    get_body = m_get.group(0)
+    # `if self.path.startswith("/__x"):` (or `== "/__x"`) followed by `self._handle_y()`
+    dispatch = re.findall(
+        r'self\.path(?:\.startswith|\s*==)\s*\(?\s*"(/__[\w-]+)"\)?\s*:\s*\n\s*self\.(_handle_[\w]+)\(',
+        get_body,
+    )
+    unguarded = []
+    for endpoint, handler in dispatch:
+        m = re.search(rf"\n    def {re.escape(handler)}\(.*?(?=\n    def |\nclass |\Z)", text, re.S)
+        if not m:
+            unguarded.append(f"{endpoint} -> {handler} (handler not found)")
+            continue
+        if "_local_request_ok()" not in m.group(0):
+            unguarded.append(f"{endpoint} -> {handler}")
+    return unguarded
 
 
 def main() -> int:
@@ -132,6 +213,12 @@ def main() -> int:
             print(f"ERROR: server file not found: {p}", file=sys.stderr)
             return 2
 
+    # MH-33 — enforce the do_GET invariant the server only documented.
+    guard_failures = []
+    for label, sp in (("root", root_path), ("plugin", plugin_path)):
+        for bad in unguarded_get_handlers(sp):
+            guard_failures.append(f"{label}: {bad}")
+
     root = endpoints(root_path)
     plugin = endpoints(plugin_path)
     expected = root - INTENTIONALLY_EXCLUDED
@@ -149,6 +236,23 @@ def main() -> int:
             "endpoint. If it was intentionally renamed, update both serve-dashboards.py "
             "copies AND the dashboard JS in scripts/generate-dashboards.py (search "
             "`/__csrf`).",
+            file=sys.stderr,
+        )
+        return 1
+
+    if guard_failures:
+        print(
+            "UNGUARDED ENDPOINT(S): a data-returning GET handler does not call "
+            "self._local_request_ok(). That guard is the DNS-rebinding / cross-origin "
+            "defense — without it any other origin can read the endpoint's JSON.",
+            file=sys.stderr,
+        )
+        for g in guard_failures:
+            print(f"  - {g}", file=sys.stderr)
+        print(
+            "  Fix: add `if not self._local_request_ok(): return` as the handler's "
+            "FIRST statement, as _handle_read does. do_GET documents this invariant; "
+            "MH-33 made it enforced.",
             file=sys.stderr,
         )
         return 1
@@ -187,10 +291,27 @@ def main() -> int:
     # mirrored is exactly the contract violation the gate is for).
     root_src = root_path.read_text(encoding="utf-8")
     plugin_src = plugin_path.read_text(encoding="utf-8")
-    root_fns = extract_functions(root_src, _BODY_DIFF_PREFIXES)
-    plugin_fns = extract_functions(plugin_src, _BODY_DIFF_PREFIXES)
+    root_fns = extract_functions(root_src, _BODY_DIFF_PREFIXES, _BODY_DIFF_NAMES)
+    plugin_fns = extract_functions(plugin_src, _BODY_DIFF_PREFIXES, _BODY_DIFF_NAMES)
 
     body_drift: list[str] = []
+
+    # CSRF-binding invariant (PB-1): both copies must key the allow-lists on the
+    # ACTUALLY-BOUND port (`actual_port`), never `args.port`. A fallback bind
+    # (port 8000 held → walk to 8001) makes `args.port` != the bound port, so an
+    # allow-list keyed on `args.port` would reject every same-origin /__save on
+    # the fallback port — the DNS-rebinding defense collapsed into a self-DoS.
+    # Green today (v0.205.3 keyed both on actual_port); this pins it so a later
+    # port edit cannot silently regress it in either copy.
+    for label, src_text in (("root", root_src), ("plugin", plugin_src)):
+        for ln in src_text.splitlines():
+            if "_ALLOWED_HOSTS" in ln or "_ALLOWED_ORIGINS" in ln:
+                if "args.port" in ln and "port" in ln:
+                    body_drift.append(
+                        f"{label} serve-dashboards.py keys an allow-list on `args.port`, "
+                        f"not `actual_port`: {ln.strip()!r}. A fallback bind would then "
+                        f"reject every same-origin /__save (CSRF self-DoS). Use actual_port."
+                    )
     only_in_root = sorted(set(root_fns) - set(plugin_fns))
     only_in_plugin = sorted(set(plugin_fns) - set(root_fns))
     if only_in_root:

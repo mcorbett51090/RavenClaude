@@ -10,7 +10,7 @@ last_verified: 2026-06-08
 refresh_when: "The safe-field allowlist, the posture-label derivation, or the never-capture privacy rule changes."
 sources:
   - label: "capture-run-context.py"
-    url: "plugins/ravenclaude-core/scripts/capture-run-context.py"
+    url: "scripts/capture-run-context.py"
 ---
 
 When `/wrap` writes a scenario, it can attach a **minimal, safe run-context bundle** so a future reader knows the few output-shaping variables that decide whether the lesson generalizes — instead of relying on the contributor's cold scope guess. The bundle holds exactly three things plus a status flag: the contributing session's **model**, the **plugin versions** in play, and a **derived posture label** (open / default / balanced / strict / unknown). The label is a *derivation* of the posture's global default, not the raw posture YAML — a label is not an environment name. A `capture_method` flag records whether any source was absent (`degraded`) versus a clean capture (`auto`).

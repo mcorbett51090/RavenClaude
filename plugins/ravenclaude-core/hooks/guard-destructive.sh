@@ -356,7 +356,12 @@ _is_dangerous_rm() {
   # bound this function's design (above) relies on to allow relative deletes.
   # Scoped relative paths (`./tmp/build`, `../build`) still fall through (allowed):
   # they carry a non-`*` path segment after the dots, so the boundary anchor fails.
-  [[ "$c" =~ (^|[[:space:]])(\.{1,2}/?\*?|\*)([[:space:]]|$) ]] && return 0
+  # `(\.{1,2}/?)+` matches ONE OR MORE dot/dot-dot navigation segments, so multi-hop
+  # escapes (`../../`, `../../*`, `../../../`) are caught, not just a single `../`.
+  # A single-segment form (`.`, `..`, `./`, `../`, `.*`, `./*`, `../*`) is the `+`=1
+  # case, so prior coverage is preserved. Scoped relative paths (`./tmp/build`,
+  # `../build`) still fall through — a non-dot path segment breaks the trailing anchor.
+  [[ "$c" =~ (^|[[:space:]])((\.{1,2}/?)+\*?|\*)([[:space:]]|$) ]] && return 0
   return 1
 }
 
@@ -367,7 +372,11 @@ _is_dangerous_chmod() {
   # _CMD_BOUNDARY also covers path-qualified `/usr/bin/chmod` (see _is_dangerous_rm).
   [[ "$c" =~ ${_CMD_BOUNDARY}chmod[[:space:]] ]] || return 1
   _has_recursive "$c" || return 1
-  [[ "$c" =~ (^|[[:space:]])0?(7{3}|6{3}|0{3})([[:space:]]|$) ]] || return 1
+  # A leading special-permission digit `[0-7]?` (not just `0?`) so setuid/setgid/
+  # sticky forms — `chmod -R 4777`/`2777`/`6777`/`1777` (world-writable PLUS an
+  # elevated-privilege bit, strictly WORSE than a plain 777) — are caught, not only
+  # the plain-octal `0777` prefix. Benign modes (644/755/…) still don't match.
+  [[ "$c" =~ (^|[[:space:]])[0-7]?(7{3}|6{3}|0{3})([[:space:]]|$) ]] || return 1
   return 0
 }
 

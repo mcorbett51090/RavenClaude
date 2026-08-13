@@ -141,11 +141,13 @@ function hmEmpty(a, b) { return sagaEmptyPanel(a, b); }
 const harness = new Function(
   `${sagaEmptyPanelSrc}
    let vidarrKindFilter = "all";
+   let vidarrEmitterSeen = false;
    ${extract(app, "const VIDARR_KIND_LABEL =")}
    ${extract(app, "function renderVidarrTable(")}
    return {
      render: renderVidarrTable,
      setFilter: (k) => { vidarrKindFilter = k; },
+     setEmitterSeen: (v) => { vidarrEmitterSeen = v; },
    };`,
 )();
 
@@ -212,11 +214,28 @@ ok(
   "deny filter: posture row hidden",
 );
 
-/* Case 4: empty → quiet empty state */
+/* Case 4: empty must distinguish QUIET from UNWATCHED (audit MH-05).
+   This is the SECURITY AUDIT LOG, so a false "quiet" is least acceptable here:
+   an audit log that has never been written to is not evidence of safety. */
 harness.setFilter("all");
+harness.setEmitterSeen(true);
 harness.render([]);
-ok(content.flatText().toLowerCase().includes("quiet"), "empty: 'quiet' empty state shown");
+ok(
+  content.flatText().toLowerCase().includes("quiet"),
+  "empty + emitter seen: 'quiet' empty state shown",
+);
 ok(count.textContent === "", "empty: count cleared");
+
+harness.setEmitterSeen(false);
+harness.render([]);
+ok(
+  content.flatText().toLowerCase().includes("unwatched"),
+  "empty + emitter NEVER seen: 'UNWATCHED' state shown, not 'quiet'",
+);
+ok(
+  !content.flatText().toLowerCase().includes("has been quiet"),
+  "empty + emitter NEVER seen: must NOT claim the perimeter has been quiet",
+);
 
 console.log("");
 if (failures === 0) {

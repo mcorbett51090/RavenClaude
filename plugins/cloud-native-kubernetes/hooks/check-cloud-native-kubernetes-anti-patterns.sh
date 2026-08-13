@@ -18,11 +18,19 @@ fi
 [ -z "$file" ] && exit 0
 [ ! -f "$file" ] && exit 0
 
-# grep -P (PCRE) is a GNU extension; BSD/macOS grep lacks it and errors. Probe once
-# so the PCRE-based multiline checks below don't SILENTLY no-op on non-GNU grep —
-# emit a visible advisory instead of failing to "no finding" (2026-07 review).
-_pcre_ok=1
-printf 'x' | grep -Pq 'x' 2>/dev/null || _pcre_ok=0
+# Stock-toolchain portability: `grep -P` (PCRE) is a GNU extension — BSD/macOS grep exits
+# 2, which inside `if grep -Pzi ...; then` reads as NO MATCH, so these checks silently
+# never fired on macOS. `_rc_pcre_match` uses perl (the PCRE engine, stock on macOS) for
+# REAL coverage. Fail-safe: an absent helper degrades to an inline perl equivalent.
+_rc_portable="${CLAUDE_PLUGIN_ROOT:-}/hooks/_portable.sh"
+[ -f "$_rc_portable" ] || _rc_portable="$(dirname "${BASH_SOURCE[0]}")/../../ravenclaude-core/hooks/_portable.sh"
+# shellcheck source=/dev/null
+[ -f "$_rc_portable" ] && . "$_rc_portable" 2>/dev/null || true
+command -v _rc_pcre_match >/dev/null 2>&1 || _rc_pcre_match() {
+  [ -r "$1" ] || return 1
+  RC_PCRE_PAT="$2" perl -0777 -ne 'BEGIN{$m=1} $m=0 if /$ENV{RC_PCRE_PAT}/i; END{exit $m}' -- "$1" 2>/dev/null
+}
+
 
 findings=()
 if grep -nEi "image:\\s*\\S+:latest|image:\\s*[^@\\s]+\\s*$" "$file" >/dev/null 2>&1; then
@@ -31,15 +39,11 @@ fi
 if grep -nEi "runAsNonRoot:\\s*false|privileged:\\s*true|runAsUser:\\s*0\\b" "$file" >/dev/null 2>&1; then
   findings+=("Privileged/root container — run as non-root and unprivileged; drop capabilities.")
 fi
-if [ "$_pcre_ok" = 1 ]; then
-  if grep -Pzi "kind:\\s*Deployment(?![\\s\\S]*resources:)" "$file" >/dev/null 2>&1; then
-    findings+=("Deployment without resources block nearby — set requests AND limits (scheduling + cap).")
-  fi
-  if grep -Pzi "kind:\\s*(Deployment|StatefulSet)(?![\\s\\S]*readinessProbe)" "$file" >/dev/null 2>&1; then
-    findings+=("Workload without a readinessProbe nearby — readiness gates traffic; add it.")
-  fi
-else
-  printf "%s\n" "  • [note] resources/readinessProbe checks skipped — this grep lacks -P (PCRE); install GNU grep for full coverage." >&2
+if _rc_pcre_match "$file" "kind:\\s*Deployment(?![\\s\\S]*resources:)"; then
+  findings+=("Deployment without resources block nearby — set requests AND limits (scheduling + cap).")
+fi
+if _rc_pcre_match "$file" "kind:\\s*(Deployment|StatefulSet)(?![\\s\\S]*readinessProbe)"; then
+  findings+=("Workload without a readinessProbe nearby — readiness gates traffic; add it.")
 fi
 if grep -nEi "clusterrolebinding[\\s\\S]*cluster-admin" "$file" >/dev/null 2>&1; then
   findings+=("Binding to cluster-admin — workloads should use namespace-scoped least-privilege RBAC.")

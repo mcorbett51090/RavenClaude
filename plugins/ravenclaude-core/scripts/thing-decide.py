@@ -345,7 +345,7 @@ def _evaluator_shadow(
     mock = os.environ.get("THING_DECIDE_MOCK_EVAL", "")
     tier_model = {
         "fast": "claude-haiku-4-5-20251001",
-        "balanced": "claude-sonnet-4-6",
+        "balanced": "claude-sonnet-5",
         "top": "claude-opus-4-8",
     }
     if mock in {"keep", "upgrade", "downgrade"}:
@@ -434,6 +434,13 @@ def _parse_seat(raw: str) -> dict:
         text = env.get("result", raw) if isinstance(env, dict) else raw
     except Exception:
         text = raw
+    # A seat envelope with a non-string `result` (e.g. {"result": 42}) would make
+    # the .strip() below raise AttributeError, which propagates uncaught and crashes
+    # the whole panel — violating the "never crashes the panel / always resolves"
+    # contract (and, for decision-review, a crash fails OPEN). Fail safe to ABSTAIN
+    # instead, exactly as the sibling _evaluator_shadow guards its own parse.
+    if not isinstance(text, str):
+        return dict(_ABSTAIN)
     text = re.sub(r"^```json", "", text.strip())
     text = re.sub(r"^```", "", text).strip()
     text = re.sub(r"```$", "", text).strip()
