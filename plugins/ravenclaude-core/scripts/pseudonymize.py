@@ -270,7 +270,12 @@ def _surrogate(value, label, salt, taken, banned):
     h = int(__import__("hashlib").sha256((salt + "\x00" + value).encode()).hexdigest(), 16)
     for i in range(len(pool)):
         cand = pool[(h + i) % len(pool)]
-        if cand not in taken and cand.lower() not in banned:
+        # `banned` holds single word-tokens of the input, but every pool entry is a
+        # multi-word phrase ("Kane Ferro"), so `cand.lower() not in banned` was always
+        # True — the FM4 "surrogate must not equal any input word" guard never fired.
+        # Reject the candidate if ANY of its constituent words is banned instead.
+        cand_words = set(cand.lower().split())
+        if cand not in taken and not (cand_words & banned):
             return cand
     # Pool exhausted / all collide -> fall back to an opaque marker (never a real name).
     return None

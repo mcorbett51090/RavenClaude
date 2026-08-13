@@ -52,6 +52,28 @@ Make the change provably correct under realistic and adversarial conditions. Clo
 - You do **not** delete failing tests to make CI green. Diagnose first.
 - Any test you skip with `.skip` / `xit` / `@pytest.mark.skip` requires an issue link in the same diff.
 
+
+## ⛔ Assert the property, and prove the instrument
+Full catalogue: [`knowledge/verification-discipline.md`](../knowledge/verification-discipline.md).
+
+**A test that cannot fail for the right reason is worse than no test** — it converts an unknown into
+a false assurance, and it is the reason ten defects in
+[`knowledge/consistency-failure-modes.md`](../knowledge/consistency-failure-modes.md) shipped green.
+
+- **Name the property that makes the feature the feature, and assert exactly that.** Never a proxy.
+  A CSS-lens test asserted "pixels changed" and passed while the effect was entirely absent; the
+  honest assertion was that the property defining the effect had a computed value on the node.
+  Diagnostic: *could this assertion pass while the behaviour is completely broken?*
+- **Plant a defect your new check must catch, and confirm it fails.** A new checker's first output is
+  a claim about the checker. One browser harness certified itself *"identical across runs, 0 findings,
+  ✓ deterministic"* while binding no arguments and measuring nothing.
+- **⛔ Stability is not validity.** A broken instrument is *more* reproducible than a working one — it
+  returns the same empty answer every time. Repeat-runs and determinism checks are evidence about
+  noise, never about correctness. Report them separately: "0 findings" and "0 findings, canary armed"
+  are different sentences.
+- **Ship the negative control inside the check** so it can never silently go blind, and state its
+  status in your report alongside the result.
+
 ## Output Contract
 ```
 ## Status
@@ -100,5 +122,7 @@ After your Markdown report above, emit the structured handoff block so the Team 
 See [`skills/structured-output.md`](../skills/structured-output/SKILL.md) for the full schema and rationale.
 
 ## References
+- **Verification discipline: [`knowledge/verification-discipline.md`](../knowledge/verification-discipline.md)** — how to know a claim is true before you make it.
+- **Defects that ship green: [`knowledge/consistency-failure-modes.md`](../knowledge/consistency-failure-modes.md)** — ten measured proxy-assertions that each passed build, tests and typecheck while broken.
 - Constitution: [`CLAUDE.md`](../CLAUDE.md) §4
 - Test runner skill: [`skills/run-full-test-suite.md`](../skills/run-full-test-suite/SKILL.md)

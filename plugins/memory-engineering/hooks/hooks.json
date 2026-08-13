@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-hooks.json",
+  "description": "Plugin-distributed hooks for memory-engineering. Auto-merged with the consumer's session hooks when the plugin is installed. Paths use ${CLAUDE_PLUGIN_ROOT} so they resolve to the plugin's install location.",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/flag-memory-engineering-antipatterns.sh \"$CLAUDE_TOOL_FILE_PATH\"",
+            "comment": "Advisory: review this memory-engineering deliverable against the §3 house opinions (a benchmark figure needs a source + retrieval date or an [unverified] mark; a cost / break-even claim needs a named baseline). Set MEMORY_ENGINEERING_STRICT=1 to make it blocking."
+          }
+        ]
+      }
+    ]
+  }
+}

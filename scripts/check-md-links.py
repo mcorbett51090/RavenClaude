@@ -133,7 +133,12 @@ def strip_code(text: str) -> str:
 
 def main() -> int:
     for md_file in iter_markdown_files():
-        text = strip_code(md_file.read_text())
+        # Read tolerantly: a single non-UTF-8 byte (e.g. a cp1252 "smart quote"
+        # 0x92 pasted from Word — very ordinary) would otherwise raise an uncaught
+        # UnicodeDecodeError and crash the WHOLE gate, not just skip that file.
+        # Mirrors is_excluded()'s errors="ignore" (that guard was applied to the
+        # exclusion read but not to this one — repo-review 2026-08-05).
+        text = strip_code(md_file.read_text(encoding="utf-8", errors="ignore"))
         for m in LINK_RE.finditer(text):
             resolved = resolve_target(md_file, m.group(1))
             if resolved is None:

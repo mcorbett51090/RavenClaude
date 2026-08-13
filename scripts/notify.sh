@@ -35,6 +35,20 @@ set -uo pipefail
 
 proj="${CLAUDE_PROJECT_DIR:-$(pwd)}"
 
+# Portable bounded-timeout helper. Stock macOS has no GNU `timeout` (exit 127),
+# so a bare `timeout N cmd` silently takes the caller's error path — here the
+# fallback would be an UNBOUNDED `cat`, contradicting the never-block invariant
+# above. Source the shared helper (timeout → gtimeout → perl alarm → unbounded);
+# if it is unavailable, degrade to an unbounded stub so a missing helper can
+# never break notify (fail-safe, matching this script's own contract).
+_np_portable="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../plugins/ravenclaude-core/hooks/_portable.sh"
+# shellcheck source=/dev/null
+[ -r "$_np_portable" ] && . "$_np_portable"
+command -v _rc_timeout >/dev/null 2>&1 || _rc_timeout() {
+  shift
+  "$@"
+}
+
 # Resolve the message: stdin payload (Notification hook JSON) → $1 → raw stdin.
 # Only drain stdin when NO message argument was supplied — a supplied "$1" must
 # short-circuit the read so `notify.sh "summary"` from a non-interactive caller
@@ -42,11 +56,7 @@ proj="${CLAUDE_PROJECT_DIR:-$(pwd)}"
 # invariant above — 2026-07 review). Bound the read too, as belt-and-suspenders.
 payload=""
 if [ "$#" -eq 0 ] && [ ! -t 0 ]; then
-  if command -v timeout >/dev/null 2>&1; then
-    payload="$(timeout 2 cat 2>/dev/null || true)"
-  else
-    payload="$(cat 2>/dev/null || true)"
-  fi
+  payload="$(_rc_timeout 2 cat 2>/dev/null || true)"
 fi
 msg=""
 if [ -n "$payload" ] && command -v jq >/dev/null 2>&1; then

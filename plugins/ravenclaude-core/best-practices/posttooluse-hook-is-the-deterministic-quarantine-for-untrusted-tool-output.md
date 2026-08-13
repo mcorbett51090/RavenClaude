@@ -24,9 +24,9 @@ meeting:
   says a load-bearing rule that can be mechanized belongs in a hook or CI gate, not
   in prose the model has to _remember_.
 
-Put them together and the gap is the same shape the
-[`PreCompact` rule](./precompact-hook-is-the-deterministic-enforcer-of-persist-before-compaction.md)
-closed for compaction. The `webfetch-hardening` floor is real but it has **two
+Put them together and the gap is the same prose-rule-needs-a-mechanism shape
+[`prefer-a-deterministic-gate-over-a-prose-rule.md`](./prefer-a-deterministic-gate-over-a-prose-rule.md)
+describes. The `webfetch-hardening` floor is real but it has **two
 boundaries the injection surface doesn't respect**:
 
 1. **It covers one tool.** `WebFetch` is not the only content channel. An MCP tool
@@ -152,7 +152,9 @@ hook no-ops.
   — the _static-config_ inbound-trust sibling; this rule is the _runtime tool-output_
   inbound-trust sibling.
 - [`./precompact-hook-is-the-deterministic-enforcer-of-persist-before-compaction.md`](./precompact-hook-is-the-deterministic-enforcer-of-persist-before-compaction.md)
-  — the same prose/skill → hook mechanization shape, applied to compaction.
+  — the **counter**-example: a case where the prose rule was real but no hook could carry it, and
+  the prescribed mechanism was retracted (2026-08-12). Read it before assuming a prose rule always
+  has a hook-shaped answer.
 - [`./prefer-a-deterministic-gate-over-a-prose-rule.md`](./prefer-a-deterministic-gate-over-a-prose-rule.md)
   — the general principle (mechanize a load-bearing rule into a hook/gate) this rule
   applies to the injection surface.

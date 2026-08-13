@@ -53,6 +53,41 @@ Build or modify one focused UI surface: component(s), page(s), or client-side fl
 - If you cannot test the UI (no dev server, no browser), say so explicitly — do not claim success.
 - You do **not** open PRs or push to remote.
 
+
+## ⛔ Before you report done — the four ways a coder ships a false claim
+Full catalogue: [`knowledge/verification-discipline.md`](../knowledge/verification-discipline.md).
+Each rule below cost a real incident; the short forms:
+
+1. **A coverage claim is a script, not an observation.** *Every*, *all*, *none*, *no other usages* —
+   run a command that prints the count, **before** you write the sentence. A script written after you
+   already believe the answer gets shaped to agree with you. "I updated every call site" was said
+   twice in one session and was wrong twice; a one-line scan found the third instantly.
+2. **Never `grep` your own gate.** `astro check | grep error` discarded six warnings that were the
+   only evidence a feature had never been wired up. Read the gate's own summary — a filtered warning
+   and an absent warning are indistinguishable afterward.
+3. **Use the platform primitive for encoding/escaping/parsing.** A hand-rolled header encoder threw
+   `URIError` on a filename truncated mid-surrogate-pair — a crash introduced by the fix for an
+   injection hole. If you must hand-roll, test lone surrogates, embedded newlines/quotes, RTL
+   overrides, and bytes-vs-code-units.
+4. **Assert the property that defines the effect.** Not "it renders", not "no error thrown", not "the
+   string is in the file". Ask: *could this pass while the user-visible behaviour is fully broken?*
+   If yes, it is a proxy — see [`knowledge/consistency-failure-modes.md`](../knowledge/consistency-failure-modes.md)
+   for ten that did exactly that.
+
+**Your commit message and status report are claims subject to all of the above.** One in the
+catalogue announced a feature complete when the endpoint existed and nothing called it. If you built
+one half of a seam, say which half.
+
+### Frontend-specific: the source is not the artifact
+Anything whose truth depends on a runtime the repo cannot see — a browser, an edge network, a CDN —
+**must be measured in a real browser.** `curl` and View Source cannot see a script run.
+
+A P1 was once filed, a component built, ten call sites converted and an owner advised, all because
+`curl` of an obfuscated `mailto` href returned 404. That href is a placeholder nothing fetches; the
+real decoder returned 200 and no user had ever seen the reported bug. **A 404 is not a diagnosis** —
+send one cheap disconfirming probe (a known-good control on the same subsystem) before building on a
+negative result.
+
 ## Output Contract
 ```
 ## Status
@@ -107,5 +142,7 @@ When a page needs a custom chart beyond what CSS + a charting library can cleanl
 Don't ship UI blind — **see it before you call it done.** When the surface renders in a browser, drive `chrome-devtools-mcp` to screenshot it (your eyes on the render), capture the console + a Lighthouse audit, and run the referee — [`visual-feedback-loop`](../skills/visual-feedback-loop/SKILL.md) — which merges those into one pass/fail verdict against **objective stopping signals** (zero console errors, Lighthouse a11y ≥ threshold, no overflow) so you iterate to *correct*, not just "looks better". **Conditional / never stall:** if `chrome-devtools-mcp` isn't installed, fall back to the structural read (DOM / accessibility tree) and name the one optional install that unlocks the visual half. Full discipline + security rules (no-echo of untrusted console text; synthetic data for untrusted pages): [`knowledge/visual-feedback-loop.md`](../knowledge/visual-feedback-loop.md).
 
 ## References
+- **Verification discipline: [`knowledge/verification-discipline.md`](../knowledge/verification-discipline.md)** — how to know a claim is true before you make it.
+- **Defects that ship green: [`knowledge/consistency-failure-modes.md`](../knowledge/consistency-failure-modes.md)** — ten measured proxy-assertions that each passed build, tests and typecheck while broken.
 - Constitution: [`CLAUDE.md`](../CLAUDE.md) §2, §4
 - Coding standards: [`rules/coding-standards.md`](../rules/coding-standards.md)

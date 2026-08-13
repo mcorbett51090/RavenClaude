@@ -19,7 +19,7 @@
 | [`agents-sdk-engineer`](agents/agents-sdk-engineer.md) | **Custom-engine agents** on the M365 Agents SDK/Teams SDK: channel/turn/state, streaming/citations, DA→CEA conversion, multi-channel publish | "build a custom-engine agent"; "convert my DA to a CEA"; "publish to Teams + web" |
 | [`copilot-admin-governance`](agents/copilot-admin-governance.md) | **Agent Registry** lifecycle, agent + MCP-tool approval, licensing/PAYG, **Purview DLP + sensitivity labels for Copilot**, Restricted SharePoint Search/RCD, **data residency** — the plugin's reason to exist | "approve/govern this agent"; "remediate oversharing before we turn on Copilot"; "where does our Copilot data live?" |
 
-**Sub-agents do not spawn other sub-agents** — only the Team Lead delegates. A domain **doing**-team in the `azure-cloud` / `microsoft-fabric` mold; ships **no** security-reviewer or architect clone — security + cross-domain architecture escalate to core (§10). *(Deferred to v0.2.0: an `agent-365-engineer` once Entra agent identity + governed MCP / Agent 365 reach GA.)*
+**Sub-agents do not spawn other sub-agents** — only the Team Lead delegates. A domain **doing**-team in the `azure-cloud` / `microsoft-fabric` mold; ships **no** security-reviewer or architect clone — security + cross-domain architecture escalate to core (§10). *(Deferred to v0.2.0: an `agent-365-engineer`. The Agent 365 control-plane **service reached GA 2026-05-01**, so the deferral trigger has fired — building the agent is a **pending maintainer decision, not yet built**; the Agent 365 SDK / registry-sync developer surface is still partly preview.)*
 
 ---
 

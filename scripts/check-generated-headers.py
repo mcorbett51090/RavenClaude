@@ -55,6 +55,8 @@ GENERATED_PREFIXES: tuple[str, ...] = (
     "plugins/ravenclaude-core/codex/agents/",
     "plugins/ravenclaude-core/dashboard.html",
     "index.html",
+    "docs/concepts.md",
+    "feedback-report.html",
 )
 
 # Files under a generated prefix that are NOT generated, with a reason. Keeps the
@@ -77,18 +79,12 @@ _HEAD_BYTES = 1500
 
 
 def tracked_files() -> list[str]:
-    out = subprocess.run(
-        ["git", "ls-files"], cwd=REPO_ROOT, capture_output=True, text=True
-    )
+    out = subprocess.run(["git", "ls-files"], cwd=REPO_ROOT, capture_output=True, text=True)
     return out.stdout.split()
 
 
 def generated_files() -> list[str]:
-    return [
-        f
-        for f in tracked_files()
-        if f.startswith(GENERATED_PREFIXES) and f not in EXEMPT
-    ]
+    return [f for f in tracked_files() if f.startswith(GENERATED_PREFIXES) and f not in EXEMPT]
 
 
 def declares_itself(rel: str, *, head_bytes: int = _HEAD_BYTES) -> bool:
@@ -114,8 +110,10 @@ def run(*, mutate: bool = False) -> int:
 
     files = generated_files()
     if not files:
-        bad("no generated files found — the gate would pass vacuously "
-            "(GENERATED_PREFIXES has drifted from the tree)")
+        bad(
+            "no generated files found — the gate would pass vacuously "
+            "(GENERATED_PREFIXES has drifted from the tree)"
+        )
         return failures
 
     # THE MUTANT: only look at the first 40 bytes. A real regression looks like a
@@ -125,8 +123,10 @@ def run(*, mutate: bool = False) -> int:
 
     for rel in files:
         if not declares_itself(rel, head_bytes=head):
-            bad(f"{rel} is generated but does not say so — a CLI will edit it and "
-                "the next regen silently reverts that work")
+            bad(
+                f"{rel} is generated but does not say so — a CLI will edit it and "
+                "the next regen silently reverts that work"
+            )
 
     return failures
 
@@ -141,14 +141,18 @@ def main() -> int:
         with contextlib.redirect_stderr(err):
             failures = run(mutate=True)
         if failures == 0:
-            print("MUST-FAIL: a header the reader cannot see produced NO failures — no teeth",
-                  file=sys.stderr)
+            print(
+                "MUST-FAIL: a header the reader cannot see produced NO failures — no teeth",
+                file=sys.stderr,
+            )
             return 1
         if "does not say so" not in err.getvalue():
             print("MUST-FAIL: failed, but not on the declaration assertion", file=sys.stderr)
             return 1
-        print(f"  ok: teeth — a generated file whose header is out of sight is caught "
-              f"({failures} file(s))")
+        print(
+            f"  ok: teeth — a generated file whose header is out of sight is caught "
+            f"({failures} file(s))"
+        )
         print("Generated headers: MUST-FAIL half behaved correctly")
         return 0
 
@@ -157,8 +161,7 @@ def main() -> int:
         print(f"FAIL: {failures} generated file(s) do not declare themselves", file=sys.stderr)
         return 1
     n = len(generated_files())
-    print(f"  ok: all {n} generated files declare themselves in their first "
-          f"{_HEAD_BYTES} bytes")
+    print(f"  ok: all {n} generated files declare themselves in their first {_HEAD_BYTES} bytes")
     print("  ok: the declaration names the SOURCE to edit, not just 'generated'")
     print("Generated headers: ALL ASSERTIONS PASS")
     return 0

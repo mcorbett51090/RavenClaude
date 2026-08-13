@@ -2,14 +2,44 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
-## [0.9.12] — 2026-08-05
+## 0.9.14 — 2026-08-12
 
-Weekly Tier-A news sweep (2026-08-05) — **two primary-sourced additions**, routed through a usefulness panel (3 seats — unanimous "useful") then a detailed-review panel (2 seats — both **APPROVE-WITH-FIXES**; the flagged fixes were applied). The two panels did not disagree, so no third-panel tiebreak was needed.
+### Changed
 
-- **Claude Opus 5 (`claude-opus-5`) GA 2026-07-24** added to `knowledge/model-selection-and-2026-capability-map.md`: new lineup row above Opus 4.8; a **step-change over Opus 4.8 at the same $5/$25 price**, 1M context (default+max), 128K output, thinking on by default, knowledge cutoff May 2026, new `xhigh`/`max` effort levels, and a **breaking change vs 4.8** (disabling thinking allowed only at effort ≤ `high`; `xhigh`/`max` → HTTP 400). Opus 5 becomes the recommended **Opus-tier** default and the new top of the routing ladder. **Guardrails honored:** Opus 5 does **not** supersede Fable 5 (Fable 5 stays the long-horizon-autonomous capability flagship); Opus 4.8 is recast as the prior default but **retains its distinct role as the named Fable-5 safety-fallback target** (not auto-swapped to Opus 5 — that pairing carries `[verify-at-use]`); the "close to Fable 5 at half the price" framing is tagged vendor/single-source. Header re-dated 2026-08-05; the 2026-07-08 note preserved as "Prior review." Sources: [release notes 2026-07-24](https://platform.claude.com/docs/en/release-notes/overview), [What's new in Claude Opus 5](https://platform.claude.com/docs/en/about-claude/models/whats-new-opus-5); retrieved 2026-08-05.
-- **MCP specification 2026-07-28 (stateless core)** noted in `knowledge/mcp-server-authoring.md`: a dated, **forward-looking** callout (stateless protocol — `Mcp-Session-Id` + `initialize`/`initialized` handshake removed, per-request identity/version/capabilities in `_meta`; Multi Round-Trip Requests; extensions framework with Tasks/MCP Apps/Enterprise Managed Authorization; header-based routing; cacheable list results; auth hardening) plus light annotations of the Sampling/Roots capabilities and the SSE transport now on the **12-month deprecation window**. **Guardrails honored:** framed as *spec published, clients/SDKs catching up* — author against your client/SDK's negotiated version; current capability/transport tables stay valid for the deprecation window; cites the versioned spec revision, not just the blog. Source: [MCP spec 2026-07-28](https://modelcontextprotocol.io/specification/2026-07-28) ([announcement](https://blog.modelcontextprotocol.io/posts/2026-07-28/)); retrieved 2026-08-05.
+- **`mcp-server-authoring.md` — the 2026-07-28 MCP spec revision (stateless core).** Landed from
+  PR #826, renumbered from its authored 0.9.12 (`main` had moved to 0.9.13). Adds the protocol-level
+  rewrite note: the `Mcp-Session-Id` header and the `initialize`/`initialized` handshake are removed,
+  Multi Round-Trip Requests replace held-open server-initiated requests, Tasks move to an extension,
+  and Sampling / Roots / legacy HTTP+SSE enter a 12-month deprecation window. Framed as
+  *spec published, SDKs still catching up* — author against the version your client negotiates.
 
-Catalog/plugin descriptions refreshed to `Opus 5 / Sonnet 5 / Haiku 4.5` (the model-right-sizing list still read `Opus 4.8 / Sonnet 4.6`). Every version/date-specific claim carries `[verify-at-use]` per house opinion #14. **Migration:** none — knowledge-bank content + catalog copy only; no hook, agent, or command behavior changed.
+⛔ PR #826's second hunk (the model-selection capability map) was **rejected, not merged**: `main`
+already documents Opus 5 and its review date is newer (2026-08-12 vs the branch's 2026-08-05), so
+taking the branch's side would have rolled the file backwards.
+
+## [0.9.13] — 2026-08-12
+
+### Changed
+
+**Recorded a new flagship-Opus GA in the model-selection capability map: Claude Opus 5 supersedes Opus 4.8.** Verified 2026-08-12 against the [platform.claude.com models overview](https://platform.claude.com/docs/en/about-claude/models/overview) (GA date corroborated by [9to5Mac 2026-07-24](https://9to5mac.com/2026/07/24/anthropic-upgrades-claude-with-new-opus-5-model-details-here/), which the overview page does not carry).
+
+- **`knowledge/model-selection-and-2026-capability-map.md`** — added **Opus 5** (`claude-opus-5`) to the lineup table as the current recommended Opus-tier default ($5/$25 per Mtok, 1M context / 128K output, adaptive thinking on / no extended-thinking mode, `effort` defaults to `high` on Claude API + Claude Code, reliable knowledge cutoff May 2026); demoted **Opus 4.8** to prior default (Anthropic now lists it under **Legacy models** with a "Migrating to Claude Opus 5" guide); updated the routing ladder to reserve **Opus 5** for the hard tail; added Opus 5 / Sonnet 5 to the 1M-context capability row; re-stamped **Last reviewed 2026-08-12** with citations + a `[verify-at-use]` rider.
+- **Left intact:** the Fable-5 safety-fallback-target references to Opus 4.8 (still correct per the platform docs) and all operational/runtime model IDs. The doc now carries an **operational-vs-advisory** note: the decision-review tribunal + dashboards still run on Opus 4.8 (`model-catalog.json`) until the maintainer runs the operational catalog bump — that bump is deferred as a high-blast governance decision.
+
+
+
+### Fixed
+
+**Verified false platform claims about the memory tool — corrected in seven places.** Anthropic ships **five distinct memory surfaces**; this plugin had collapsed two of them, and the collapse had reached the capability map (the bank's highest-trust surface, and the one every agent is told to cite).
+
+- **The Messages API memory tool is GA and requires no beta header** — `{"type": "memory_20250818", "name": "memory"}` is the entire configuration, it executes **client-side** (Claude *requests* file operations; your app performs them against storage you own), and it is available on all Claude 4+ models. Six locations described it as public beta: `knowledge/model-selection-and-2026-capability-map.md`, `knowledge/context-engineering-2026.md` (×2 — the lever list and the sources line), `knowledge/server-side-tools-and-files.md`, `best-practices/context-budget-the-1m-window.md`, and `agents/mcp-and-server-tools-engineer.md`.
+- **`managed-agents-2026-04-01` was attached to the wrong surface.** It belongs to Managed Agents **session** endpoints, not to the Messages API memory tool. The capability map and `knowledge/server-side-tools-and-files.md` carried that conflation; both now teach the two surfaces as two rows/sections.
+- **Managed Agents memory stores take two headers, not one** (`knowledge/agent-sdk-and-managed-agents.md`). The **beta status stated there was correct**; the header was half the picture — memory-store endpoints use `agent-memory-2026-07-22`, session endpoints (including *attaching* a store) use `managed-agents-2026-04-01`, and sending both on a memory-store request returns **400**.
+- Volatile header strings, statuses and limits are now **linked, not restated**, to [memory surfaces (2026)](../memory-engineering/knowledge/memory-surfaces-2026.md) so one file rots instead of six (house opinion #14). Every corrected claim carries a source URL + a 2026-08-06 retrieval date.
+
+The `[verify-at-build]` / "Re-verify … on the Researcher sweep" hedges that already sat beside these claims were **right and went unread**; they are kept, with the claim now correct beneath them.
+
+**Migration:** none — knowledge/best-practice/agent content only; no default, no schema, no script behaviour changed. Consumers who wired a beta header for the memory tool on the Messages API should remove it.
 
 ## [0.9.11] — 2026-07-14
 

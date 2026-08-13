@@ -56,6 +56,25 @@ def esc(s) -> str:
     return html.escape(str(s), quote=True)
 
 
+# A column `key` from data.json is interpolated into an HTML attribute NAME
+# (data-<key>=...). html.escape neutralizes &<>"' but NOT whitespace or `=`, so a
+# key like `x onmouseover=alert(1) y` would break out of the intended data-*
+# attribute and inject event handlers (2026-08 review). Attribute names cannot be
+# quote-escaped — they must be constrained to a safe charset. A key already matching
+# the safe identifier grammar (every shipped key does) passes through UNCHANGED, so
+# committed report.html output is byte-identical; only a malformed/adversarial key
+# is sanitized (unsafe chars -> `-`).
+_SAFE_ATTR_KEY = re.compile(r"^[A-Za-z_][A-Za-z0-9_-]*$")
+
+
+def _safe_attr_key(key) -> str:
+    k = str(key)
+    if _SAFE_ATTR_KEY.match(k):
+        return k
+    cleaned = re.sub(r"[^A-Za-z0-9_-]", "-", k).strip("-")
+    return cleaned or "col"
+
+
 # ── Consumer theme override ─────────────────────────────────────────────────
 # A `theme` block in data.json lets a plugin's users recolour the whole report
 # without touching code or the shared design tokens. Keys map to the --rc-*
@@ -1041,7 +1060,7 @@ def _render_table(sec, band_words) -> str:
         data_attrs = [f'data-band="{esc(r.get("band", ""))}"', f'data-search="{esc(searchable)}"']
         for c in cols:
             if c.get("key") in sortable:
-                data_attrs.append(f'data-{esc(c["key"])}="{esc(r.get(c["key"], ""))}"')
+                data_attrs.append(f'data-{_safe_attr_key(c["key"])}="{esc(r.get(c["key"], ""))}"')
         cells = "".join(_cell(c, r, band_words) for c in cols)
         body.append(f'<tr class="prow" {" ".join(data_attrs)}>{cells}</tr>')
         drill = r.get("drill")
@@ -1227,8 +1246,15 @@ def main(argv=None) -> int:
         try:
             data = json.loads(data_file.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError) as e:
+            # Degrade THIS plugin only (append + continue), consistent with the
+            # render-failure path below — one malformed/unreadable data.json must
+            # not abort the batch for every OTHER plugin (nor, in --check, dump a
+            # traceback-shaped early exit). The non-empty `failed` list still makes
+            # the overall run exit 2 at the end, so the broken input is never
+            # silently dropped.
             print(f"[error] {name}: cannot read {data_file}: {e}", file=sys.stderr)
-            return 2
+            failed.append(name)
+            continue
         # Wrap the render so a malformed-but-valid-JSON data.json degrades THIS
         # plugin only, instead of an uncaught exception aborting the run for every
         # plugin (and in --check, dumping a traceback instead of a clean status).
