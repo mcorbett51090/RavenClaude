@@ -35,7 +35,7 @@
 |---|---|---|---|---|---|
 | A1 | Agent-workflow least-privilege `permissions:` **and** default-token-suppression avoided (a push that must trigger downstream is authed as an App/PAT/OIDC, not the default `GITHUB_TOKEN`) | A | | | github-actions-hardening.md Rule 7 |
 | A2 | Agent PR template present (`.github/PULL_REQUEST_TEMPLATE/agent_pr_template.md`) | B | | | agent-pr-identity.md |
-| A3 | Structural anti-self-approval present (`agent-approval-check.yml` with ≥1 `excluded_approvers:` entry) | A | | | claude-in-ci.md |
+| A3 | Structural anti-self-approval present (`agent-approval-check.yml` with ≥1 `EXCLUDED_APPROVERS` entry, counting only write-access reviewers) | A | | | claude-in-ci.md |
 
 ## Remediation queue (ranked by leverage — highest first)
 

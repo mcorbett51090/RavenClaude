@@ -76,7 +76,7 @@ need history operations `[obs, claim 8]`. Which identity signs, and how attribut
 
 If the agent is ever allowed to **approve** a PR, exclude it *structurally* — a prompt instruction is
 not enough. The `agent-approval-check.yml` pattern carries an in-file guard (it "cannot edit this
-check to approve itself") plus an `excluded_approvers` knob `[obs, claim 9]`. `/init-agent-ready` can
+check to approve itself") plus an `EXCLUDED_APPROVERS` knob `[obs, claim 9]`. `/init-agent-ready` can
 drop in the
 [agent-approval-check.yml.template](../templates/agent-ready-repo/agent-approval-check.yml.template)
 scaffold.

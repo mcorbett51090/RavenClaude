@@ -55,7 +55,9 @@ jobs:
           EXCLUDED_APPROVERS: "dependabot[bot]"
         with:
           script: |
-            const required = parseInt(process.env.REQUIRED_APPROVALS || "1", 10);
+            const n = parseInt(process.env.REQUIRED_APPROVALS || "1", 10);
+            // Fail CLOSED on a misconfigured (non-numeric / < 1) value — never 0.
+            const required = Number.isInteger(n) && n > 0 ? n : 1;
             const excluded = new Set(
               (process.env.EXCLUDED_APPROVERS || "")
                 .split(",").map((s) => s.trim()).filter(Boolean),
@@ -82,14 +84,23 @@ jobs:
               per_page: 100,
             });
 
-            // Only the LATEST review state per user counts (an APPROVED later changed
-            // to COMMENTED / CHANGES_REQUESTED / DISMISSED no longer approves).
+            // Only the LATEST review per user counts (an APPROVED later changed to
+            // COMMENTED / CHANGES_REQUESTED / DISMISSED no longer approves), AND only a
+            // review from a user with write access (author_association OWNER / MEMBER /
+            // COLLABORATOR) — a drive-by or sockpuppet "Approve" from a no-access account
+            // never satisfies the check (otherwise a real gap on a public repo).
+            const TRUSTED = new Set(["OWNER", "MEMBER", "COLLABORATOR"]);
             const latest = new Map();
             for (const r of reviews) {
-              if (r.user && r.user.login) latest.set(r.user.login, r.state);
+              if (r.user && r.user.login) {
+                latest.set(r.user.login, { state: r.state, assoc: r.author_association });
+              }
             }
             const approvers = [...latest.entries()]
-              .filter(([login, state]) => state === "APPROVED" && !excluded.has(login))
+              .filter(
+                ([login, v]) =>
+                  v.state === "APPROVED" && TRUSTED.has(v.assoc) && !excluded.has(login),
+              )
               .map(([login]) => login);
 
             core.info(
