@@ -68,6 +68,23 @@ PLUGINS = ROOT / "plugins"
 MARKETPLACE = ROOT / ".claude-plugin" / "marketplace.json"
 ARCHITECTURE = ROOT / "docs" / "architecture.md"
 README = ROOT / "README.md"
+# AGENTS.md carries the same hand-maintained total ("~180 plugins") and was NOT
+# read by this gate at all until 2026-08-12 — so its counts could drift freely
+# while every mode reported green. That is not hypothetical: the commit this fix
+# was written against is literally "fix AGENTS.md stale counts", repaired by hand
+# because nothing enforced them. It is the canonical file for Codex and Copilot,
+# so a wrong count there misinforms the hosts that read it most.
+#
+# ⛔ DELIBERATELY NOT COVERED: AGENTS.md's "600+ agents". That is a FLOOR claim,
+# not an equality, and this gate's whole vocabulary is equality-against-a-derived
+# actual. A floor check would pass silently at 900 agents — stale but not false —
+# so it would buy the appearance of coverage rather than coverage. Closing it
+# properly needs a repo-wide agent total plus a decision about what "600+" should
+# mean when reality is 900; that is a design call, not a regex. Left open ON
+# PURPOSE and named here, because the next reader will otherwise assume this file
+# now covers AGENTS.md completely — which is exactly how the first blind spot
+# survived.
+AGENTS_MD = ROOT / "AGENTS.md"
 REQUIRED = ["README.md", "CLAUDE.md", ".claude-plugin/plugin.json"]
 SKILLS_RE = re.compile(r"(\d+)\s+skills", re.IGNORECASE)
 # Agent-count claims drift the same way skill counts did (the two-panel audit
@@ -90,7 +107,13 @@ README_COUNT_RE = re.compile(r"ships\s+\*\*(\d+)\s+plugins\*\*", re.IGNORECASE)
 # without the anchor, the --fix rewrite would corrupt such subset prose to the
 # marketplace total (the docstring's earlier "cannot false-positive" claim was
 # false — the prior regex had no anchor at all).
-README_PLUGINS_RE = re.compile(r"(?:\*\*|\bthe\s+)(\d+)\s+plugins\b", re.IGNORECASE)
+# The `~`/`≈` alternative is load-bearing, not cosmetic. AGENTS.md writes its
+# total as "~180 plugins" — no bold, no "the " — so the original anchor did not
+# match it, and simply adding AGENTS.md to the loop below would have scanned the
+# file, found nothing, and reported green: a second blind gate wearing the first
+# one's clothes. Verified 2026-08-12 by corrupting the count and watching it pass
+# before this alternative was added.
+README_PLUGINS_RE = re.compile(r"(?:\*\*|\bthe\s+|[~≈])(\d+)\s+plugins\b", re.IGNORECASE)
 README_REQUIRES_RE = re.compile(r"(\d+)\s+of\s+the\s+\d+\s+plugins\b", re.IGNORECASE)
 CORE_README = PLUGINS / "ravenclaude-core" / "README.md"
 CORE_HOOKS_JSON = PLUGINS / "ravenclaude-core" / "hooks" / "hooks.json"
@@ -250,15 +273,22 @@ def check_count_drift_family(plugin_names: list[str]) -> None:
       - core README "What's inside" table rows == the core actuals
     """
     actual_plugins = len(plugin_names)
-    if README.is_file():
-        readme = README.read_text()
-        for m in README_PLUGINS_RE.finditer(readme):
+    # Both boundary files carry the same hand-maintained total. AGENTS.md was
+    # unread here until 2026-08-12; it is the file Codex and Copilot read
+    # natively, so a stale count there is the one most likely to be believed.
+    for _src, _path in (("README.md", README), ("AGENTS.md", AGENTS_MD)):
+        if not _path.is_file():
+            continue
+        _text = _path.read_text()
+        for m in README_PLUGINS_RE.finditer(_text):
             if int(m.group(1)) != actual_plugins:
                 failures.append(
-                    f"README.md: a '{m.group(1)} plugins' claim disagrees with the actual "
+                    f"{_src}: a '{m.group(1)} plugins' claim disagrees with the actual "
                     f"plugin count {actual_plugins} — update the prose count"
                 )
                 break
+    if README.is_file():
+        readme = README.read_text()
         req = README_REQUIRES_RE.search(readme)
         if req is not None:
             actual_req = actual_requires_core_count()
