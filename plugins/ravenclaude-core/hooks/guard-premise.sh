@@ -108,7 +108,14 @@ try:
 except Exception:
     sys.exit(0)                      # malformed input -> allow (never break a session)
 
-if d.get("tool_name") != "Write":
+# Screened tools. Write was the only one until 2026-08-13, which meant an Edit or
+# MultiEdit carrying the identical diagnosis prose evaded the screen entirely —
+# both a false-negative and the exact surface a session tunnels through when the
+# guard denies a Write. The correct response to a false positive is the sanctioned
+# escape below (an in-block `premise-ok:` / `control:` marker, RC_PREMISE_CONTROL,
+# or the durable control.md), never a tool switch.
+_TOOL = d.get("tool_name")
+if _TOOL not in ("Write", "Edit", "MultiEdit"):
     sys.exit(0)
 
 proj = sys.argv[1] if len(sys.argv) > 1 else os.getcwd()
@@ -118,6 +125,35 @@ sid  = d.get("session_id", "nosession")
 
 if not path:
     sys.exit(0)
+
+
+def rc_rel(p, root):
+    """Project-relative path, correct when `root` is not a literal prefix of `p`.
+
+    The old idiom was `p.replace(root, "").lstrip("/")`. That is a SUBSTRING
+    operation, not a path operation, so it silently produced the full absolute
+    path whenever the two disagreed textually — a nested worktree, a symlinked
+    root (macOS /tmp vs /private/tmp), a trailing slash. An absolute string never
+    startswith(".ravenclaude/"), so the exemptions keyed on it evaporated and the
+    guard denied legitimate run-artifact writes. Both call sites below use this.
+    """
+    # A run artifact is a run artifact wherever it lives. In a NESTED worktree the
+    # tree sits at <proj>/.claude/worktrees/<wt>/, so even a correct relpath yields
+    # `.claude/worktrees/<wt>/.ravenclaude/runs/...` — which does not startswith
+    # ".ravenclaude/" either. Anchoring on the LAST `.ravenclaude/` segment is what
+    # makes the exemption hold in a worktree, which is where the parallel agents
+    # that hit this actually run.
+    marker = os.sep + ".ravenclaude" + os.sep
+    if marker in p:
+        return ".ravenclaude/" + p.rsplit(marker, 1)[1]
+    try:
+        rp, rr = os.path.realpath(p), os.path.realpath(root)
+        rel = os.path.relpath(rp, rr)
+        if not rel.startswith(".." + os.sep) and rel != "..":
+            return rel
+    except Exception:
+        pass
+    return p.replace(root, "").lstrip("/")
 
 # ═══ SCOPE — WHOSE LEDGER IS THIS? ═════════════════════════════════════════
 # ⛔ KEEP THIS BLOCK IN SYNC WITH ITS TWIN IN log-probe.sh. The recorder and the
@@ -272,12 +308,23 @@ def say(kind, fname, why, note=""):
 # only, docs/) may suppress this one, because a diagnosis written into docs/ or
 # over a file that already exists IS the damage. It reads no ledger — that
 # independence is the whole reason it exists.
-content = str(ti.get("content", "") or "")[:200000]
+# Per-tool content field. Write carries `content`; Edit carries the replacement
+# text; MultiEdit carries a list of them. Reading only `content` would have left
+# Edit/MultiEdit screened-but-blind — a screen that runs and sees nothing.
+if _TOOL == "Write":
+    content = str(ti.get("content", "") or "")
+elif _TOOL == "Edit":
+    content = str(ti.get("new_string", "") or "")
+else:
+    content = "\n".join(
+        str((e or {}).get("new_string", "") or "") for e in (ti.get("edits") or [])
+    )
+content = content[:200000]
 
 # (1) DURABLE ARTIFACT. Judged on the PROJECT-RELATIVE path, so a tree that
 #     happens to live under a temp root is still judged on docs/ vs scratch/
 #     rather than on wherever mktemp put it.
-rel_p = path.replace(proj, "").lstrip("/")
+rel_p = rc_rel(path, proj)
 _SCRATCH_SEG = ("tmp", ".tmp", "temp", "scratch", "scratchpad", ".scratch", ".cache")
 durable = not (
     rel_p.startswith(".ravenclaude/")
@@ -402,7 +449,7 @@ if os.path.exists(path):
 
 # (c) a SOURCE MODULE. Everything below is deliberately exempt: none of it is a
 #     thing whose reason for existing can be a false diagnosis.
-rel = path.replace(proj, "").lstrip("/")
+rel = rc_rel(path, proj)
 # Prefix-exempt: these are top-level areas that never hold a premise-bearing module.
 if rel.startswith((".ravenclaude/", "docs/", "node_modules/", ".git/", ".claude/")):
     sys.exit(0)
