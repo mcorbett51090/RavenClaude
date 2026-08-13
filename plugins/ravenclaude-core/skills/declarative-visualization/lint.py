@@ -330,10 +330,17 @@ _RE_FOREIGN_OBJECT = re.compile(r"<foreignObject[\s/>]", re.IGNORECASE)
 # Match href or xlink:href whose value begins with a remote scheme or javascript:.
 # Safe local fragment refs (href="#id") do NOT start with http/https/javascript,
 # so they are intentionally excluded from this pattern.
+# Also flags PROTOCOL-RELATIVE hrefs (href="//host/x.svg") — a remote fetch under
+# the page scheme that does NOT start with http(s):// (2026-08 review).
 _RE_REMOTE_HREF = re.compile(
-    r"""(?:xlink:)?href\s*=\s*['"]?\s*(?:https?://|javascript:)""",
+    r"""(?:xlink:)?href\s*=\s*['"]?\s*(?:https?://|//|javascript:)""",
     re.IGNORECASE,
 )
+# ASCII tab/CR/LF are stripped from the scheme-scan text: a WHATWG URL parser drops
+# them while parsing the scheme, so href="jav&#9;ascript:alert(1)" (the entity
+# decodes to a tab) executes as javascript: in a browser but would otherwise fail
+# the ^javascript: match (2026-08 review).
+_RE_URL_CTRL = re.compile(r"[\t\r\n]")
 # Numeric XML character entity patterns — decoded before applying _RE_REMOTE_HREF
 # to prevent entity-encoding bypass (e.g., &#106;avascript:alert(1) → javascript:alert(1)).
 _RE_ENTITY_DEC = re.compile(r"&#(\d+);")
@@ -353,9 +360,10 @@ def _check_svg(content: str, violations: list) -> None:
         violations.append(("svg-on-attr", "on* attribute found in SVG"))
     if _RE_FOREIGN_OBJECT.search(content):
         violations.append(("svg-foreign-object", "<foreignObject> element found in SVG"))
-    # Decode numeric XML character entities before checking for remote hrefs so
-    # entity-encoded schemes (&#106;avascript:, &#x68;ttps://) are caught.
-    if _RE_REMOTE_HREF.search(_decode_numeric_entities(content)):
+    # Decode numeric XML character entities AND strip tab/CR/LF before checking for
+    # remote hrefs so entity-encoded schemes (&#106;avascript:, &#x68;ttps://) and
+    # control-char-split schemes (jav&#9;ascript:) are both caught.
+    if _RE_REMOTE_HREF.search(_RE_URL_CTRL.sub("", _decode_numeric_entities(content))):
         violations.append(("svg-remote-href", "remote or javascript: href/xlink:href found in SVG"))
 
 

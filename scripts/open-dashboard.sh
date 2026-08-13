@@ -40,6 +40,18 @@ SERVER="$ROOT/scripts/serve-dashboards.py"
   exit 1
 }
 
+# Portable bounded-timeout helper (timeout → gtimeout → perl alarm → unbounded).
+# Without it, the browser-open fallback below runs a bare `timeout`, which on stock
+# macOS is command-not-found (exit 127) — swallowed by `|| true`, so the browser
+# silently never opens with no error. Degrade to an unbounded stub if unavailable.
+# shellcheck source=/dev/null
+[ -r "$ROOT/plugins/ravenclaude-core/hooks/_portable.sh" ] &&
+  . "$ROOT/plugins/ravenclaude-core/hooks/_portable.sh"
+command -v _rc_timeout >/dev/null 2>&1 || _rc_timeout() {
+  shift
+  "$@"
+}
+
 # ── Parse args ──────────────────────────────────────────────────────────────────
 PORT=8000
 ACTION=start
@@ -144,7 +156,7 @@ announce_and_open() { # $1 = bound port
       read -ra browser_cmd <<<"$BROWSER"
       "${browser_cmd[@]}" "$url" >/dev/null 2>&1 || true
     else
-      timeout 5 python3 -m webbrowser "$url" >/dev/null 2>&1 || true
+      _rc_timeout 5 python3 -m webbrowser "$url" >/dev/null 2>&1 || true
     fi
   fi
   echo "Dashboard: $url"

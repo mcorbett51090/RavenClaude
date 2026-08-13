@@ -1,0 +1,54 @@
+{
+  "_comment": "Round 2: 7 findings closed, of which 2 were defects introduced by round 1's FIXES. The two reopens carry the SAME file+rule as round 1 but a DIFFERENT line (42->57, 17->23) and reworded summaries — a rule-based fingerprint must still match them. The other 5 are genuinely new.",
+  "round": 2,
+  "head": "b2c3d4e5",
+  "findings": [
+    {
+      "file": "src/auth/session.ts",
+      "line": 57,
+      "rule": "unchecked-null",
+      "summary": "the round-1 fix moved the guard below the dereference, so session.user is unchecked again",
+      "status": "closed"
+    },
+    {
+      "file": "src/db/queries.ts",
+      "line": 23,
+      "rule": "limit-without-order",
+      "summary": "the ORDER BY added in round 1 was dropped when the query moved into the helper",
+      "status": "closed"
+    },
+    {
+      "file": "src/api/upload.ts",
+      "line": 40,
+      "rule": "lone-surrogate",
+      "summary": "slice(0, 255) can split a surrogate pair before encodeURIComponent, which throws",
+      "status": "closed"
+    },
+    {
+      "file": "src/api/upload.ts",
+      "line": 72,
+      "summary": "the new guard has no else, so a failed check falls through",
+      "status": "closed"
+    },
+    {
+      "file": "src/db/queries.ts",
+      "line": 61,
+      "rule": "unbounded-loop",
+      "summary": "the members loop is now unbounded over user-supplied data",
+      "status": "closed"
+    },
+    {
+      "file": "web/report.tsx",
+      "line": 30,
+      "summary": "the reduced-motion branch makes the animation synchronous",
+      "status": "closed"
+    },
+    {
+      "file": "src/auth/session.ts",
+      "line": 104,
+      "rule": "secret-in-log",
+      "summary": "the refresh token is written to the info log",
+      "status": "closed"
+    }
+  ]
+}

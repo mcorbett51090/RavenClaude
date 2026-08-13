@@ -141,8 +141,16 @@ def _match_variants(command: str) -> tuple[str, ...]:
     """
 
     def _flatten(s: str) -> str:
-        s = re.sub(r"\\\n", " ", s)  # shell line-continuation -> space
-        return re.sub(r"\s*\n\s*", " ", s)  # any remaining bare newline -> space
+        s = re.sub(r"\\\n", " ", s)  # shell line-continuation -> space (still ONE command)
+        # A BARE newline is a command SEPARATOR, not whitespace inside one command.
+        # It was previously flattened to a space, which let a trigger's `.*` bleed out of
+        # the dangerous program on line 1 and match an UNRELATED later command's flags.
+        # Measured (issue #861): a benign multi-line block was hard-denied because a later
+        # line carried a short flag the rule was scanning for. Emitting `;` keeps the
+        # flatten's real purpose — a line-continuation can no longer hide a dangerous flag
+        # from `.*` — while keeping segment-scoped triggers (`[^|&;]`) bounded to ONE
+        # command, which is what they were written to mean.
+        return re.sub(r"\s*\n\s*", "; ", s)
 
     forms = [command, _normalize_for_match(command)]
     forms += [_flatten(f) for f in list(forms)]
