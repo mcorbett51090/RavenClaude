@@ -2,6 +2,32 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.250.0 — 2026-08-12
+
+### Fixed
+
+- **The Gemini and Cursor hook adapters discarded every deny REASON.** Both ran the guard
+  with `>/dev/null 2>&1`, so the block still fired (exit 2 propagates / is translated) but the
+  explanation was thrown away. Measured with a baseline control: the guard emits **233 bytes**
+  of reason directly and **0 bytes** through the adapter. This is the diagnostic-blindness class
+  the Copilot adapter fixed in v0.111.0, reintroduced on two hosts by one redirect.
+  - The Gemini adapter's own comment said *"stderr already carries the reason"* while the code
+    two lines below sent it to `/dev/null`. **A comment is not a control** — the claim and the
+    code disagreed for the adapter's entire life and no gate could see the difference.
+  - Cursor's fixed-literal JSON verdict is **unchanged on purpose**: Cursor fails OPEN on
+    malformed JSON, so interpolating guard stderr into the verdict would convert a noisy reason
+    into a silently-allowed command. Stderr goes to the adapter's stderr; the verdict stays byte-fixed.
+- **`cleanup-branches.sh` — the remote delete is now SHA-guarded** (plugin copy; the root path is
+  a shim). The LOCAL delete was already SHA-guarded via `git update-ref -d … "$_tip"` and the
+  REMOTE delete three lines below it was unconditional, so a branch re-pushed with new,
+  never-verified commits between verdict and delete was still deleted. Fetch-then-compare — a
+  smaller TOCTOU window, not a closed one (the ref-delete API has no compare-and-swap) — and it
+  fails SAFE: a mismatch refuses, and can never delete more than predicted.
+
+⛔ Not claimed: this does NOT fix a deny that failed to fire. Both adapters were verified to
+block correctly before and after — the earlier report that they degraded DENY→ALLOW was wrong,
+and was retracted after driving the hooks rather than counting references to a field name.
+
 ## 0.249.0 — 2026-08-12
 
 > **Landed from PR #833.** Renumbered on integration — the non-substrate subset of this review

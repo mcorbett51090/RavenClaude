@@ -119,10 +119,22 @@ sys.stdout.write(json.dumps(d))
 
 case "$mode" in
   pretool)
-    _normalise | bash "$real" "$@" >/dev/null 2>&1
+    # ⛔ stdout is suppressed; stderr is NOT. The comment below has always said
+    # "stderr already carries the reason" — and until 2026-08-12 the very same
+    # line ended `2>&1`, which sent that reason to /dev/null. Measured: the guard
+    # emitted 233 bytes of deny reason directly and 0 bytes through this adapter,
+    # so a Gemini user saw a bare exit-2 block with no explanation. That is the
+    # diagnostic-blindness class the Copilot adapter fixed in v0.111.0, reproduced
+    # here by one redirect. A comment is not a control: the claim and the code
+    # disagreed for the adapter's whole life and no gate could see it.
+    #
+    # Only `>/dev/null` is correct — a guard may print a JSON verdict on stdout
+    # that Gemini does not expect, but stderr IS Gemini's documented reason
+    # channel, so it must flow through untouched. Do not "tidy" this back to 2>&1.
+    _normalise | bash "$real" "$@" >/dev/null
     rc=$?
     # exit 2 IS Gemini's block. Pass the guard's own code through untouched —
-    # there is nothing to translate, and stderr already carries the reason.
+    # there is nothing to translate, and stderr now genuinely carries the reason.
     exit "$rc"
     ;;
   posttool)

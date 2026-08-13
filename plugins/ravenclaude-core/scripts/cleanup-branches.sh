@@ -291,15 +291,33 @@ for v in "${verdict_safe[@]}"; do
   fi
 
   if [ "$delete_remote" = "1" ] && [ -n "$owner_repo" ]; then
-    if gh api "repos/$owner_repo/branches/$b" --silent 2>/dev/null; then
-      if gh api -X DELETE "repos/$owner_repo/git/refs/heads/$b" --silent 2>/dev/null; then
-        echo "    + remote deleted: $b"
-      else
-        echo "    ! remote delete failed: $b"
-        delete_failed=1
-      fi
-    else
+    # SHA-guard the remote delete so it mirrors the local update-ref guard above.
+    # Until 2026-08-12 the LOCAL delete was SHA-guarded and the REMOTE one was
+    # unconditional — so a branch re-pushed with new, never-verified commits
+    # between verdict and delete was still deleted. That asymmetry, inside one
+    # loop iteration, IS the bug: the guard was written, then not applied to the
+    # second delete three lines below it.
+    #
+    # The GitHub ref-delete API has no compare-and-swap, so this is a
+    # fetch-then-compare: a far smaller TOCTOU window than an unconditional
+    # delete, NOT a closed one. Both `_tip` (from `git rev-parse --verify`, no
+    # --short) and gh's `.commit.sha` are full 40-char SHAs, so the equality
+    # test is exact.
+    #
+    # Fails SAFE by construction: a mismatch REFUSES (deletes fewer than
+    # predicted) and can never delete more. Do not "simplify" this back to an
+    # unconditional delete — that is the defect, not the ceremony.
+    _remote_sha="$(gh api "repos/$owner_repo/branches/$b" --jq '.commit.sha' 2>/dev/null || true)"
+    if [ -z "$_remote_sha" ]; then
       echo "    (no remote branch: $b)"
+    elif [ "$_remote_sha" != "$_tip" ]; then
+      echo "    ! remote delete refused: $b (remote $_remote_sha != verified $_tip)"
+      delete_failed=1
+    elif gh api -X DELETE "repos/$owner_repo/git/refs/heads/$b" --silent 2>/dev/null; then
+      echo "    + remote deleted: $b"
+    else
+      echo "    ! remote delete failed: $b"
+      delete_failed=1
     fi
   fi
 done
