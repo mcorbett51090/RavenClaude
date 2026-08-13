@@ -2,6 +2,43 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.253.1 — 2026-08-13
+
+### Fixed
+
+- **The Copilot version floor went silently unverified on a build-qualified version.**
+  `copilot_version_check` (`scripts/ravenclaude`) extracted the version by splitting the
+  `copilot --version` line into whitespace-delimited tokens and requiring a **whole** token to be
+  exactly `x.y.z`. A four-component version such as `1.0.52.3` therefore matched **nothing**, and
+  the check reported `could not parse a version` — so a copilot **comfortably above** the 1.0.52
+  safety floor was treated as unverified. Below that floor a sub-agent's tool calls are not hooked
+  at all, which is the whole reason the floor exists, and the parser could reach the unverified
+  state on a compliant install. Now the first `x.y.z` token is matched as a **substring**
+  (`grep -Eo`, never `grep -P` — BSD/macOS grep exits 2 on `-P`, which reads as no-match), so
+  `1.0.52.3` → `1.0.52`, `v1.0.75-beta.1` → `1.0.75`, `copilot@1.0.52 (2026-05-23)` → `1.0.52`.
+  POSIX ERE is leftmost-longest and `[0-9]+` cannot cross a `.`, so a four-component string yields
+  its first three components rather than a truncated or greedy match.
+- **A parse failure now says what it saw and what it needed.** The old one-line
+  `could not parse a version … floor unverified` named neither the raw output nor the expected
+  shape, so an operator could not tell a nightly build from a broken shim without re-running
+  `copilot --version` by hand. The diagnostic now prints the raw line (control-stripped and capped
+  at 200 chars so a garbled version cannot scramble the terminal), the expected `x.y.z` format, the
+  required floor, and the consequence. **It still returns 0** — owner ruling 2026-08-13: make the
+  message clear, do *not* make it exit non-zero. Gate 157 pins all three unparseable paths at
+  exit 0 because an earlier revision of this same check aborted `ravenclaude status` mid-run, and a
+  version check that kills the installer is strictly worse than no version check.
+
+### Changed
+
+- **Gate 157: 10 → 18 assertions.** The gate previously grepped only for the literal string
+  `could not parse a version`, which the pre-fix one-liner satisfied — so the diagnostic's content
+  and the build-qualified parse were **ungated**, and a regression dropping either would have
+  stayed green. It now asserts the raw output, the expected format, the required floor, the
+  `(no output)` rendering, and the four-component / prerelease parses, plus a **third teeth half**
+  that drops `-o` from the extractor and requires the build-qualified assertion to fail. Verified
+  bidirectionally: the extended gate scores 18/0 against the fix and 11/7 against the pre-fix
+  parser.
+
 ## 0.252.0 — 2026-08-13
 
 ### Added
