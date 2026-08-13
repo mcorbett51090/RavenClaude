@@ -81,8 +81,16 @@ detect_host() {
 # WHY THIS ONLY WARNS: every host-condition guard in this repo is fail-safe. An
 # install that works for everything except sub-agent hook coverage is still worth
 # completing; a hard block would strand users whose setup is otherwise fine. And
-# `copilot` absent / unparseable version / no `sort -V` all degrade to a note —
+# `copilot` absent / unparseable version / no `sort -V` all degrade to a message —
 # never a failed install, never a false "you are fine".
+#
+# LOUD IS NOT THE SAME AS FATAL. An unparseable version now prints a full diagnostic
+# (the raw `copilot --version` line, the expected x.y.z shape, the required floor)
+# instead of a one-line shrug — but it still `return 0`s. Owner ruling 2026-08-13:
+# make the message clear, do NOT make it exit non-zero. Gate 157 pins all three
+# unparseable paths at exit 0 precisely because an earlier revision of this check
+# DID abort `ravenclaude status`/`install` mid-run. Do not "finish the job" by
+# turning these into a hard failure — that is the reverted incident, not a TODO.
 COPILOT_FLOOR="1.0.52"
 COPILOT_RECOMMENDED="1.0.57"
 
@@ -102,10 +110,37 @@ copilot_version_check() {
   # version check — it is the same fail-in-the-dangerous-direction defect this
   # whole audit exists to close, committed by the guard against it.
   raw="$(copilot --version 2>/dev/null | head -1 || true)"
-  # First dotted triple anywhere in the output; tolerant of "copilot version X" etc.
-  ver="$(printf '%s' "$raw" | tr -c '0-9.\n' ' ' | tr ' ' '\n' | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | head -1 || true)"
+  # FIRST semantic-version token (x.y.z) anywhere in the line — matched as a
+  # SUBSTRING, not as a whole space-delimited token. That distinction is the fix:
+  # the previous form (`tr` to one-token-per-line + `grep -E '^x\.y\.z$'`) required
+  # the ENTIRE token to be exactly three components, so a build-qualified version
+  # like `1.0.52.3` matched NOTHING and the floor silently went unverified on a
+  # copilot that is comfortably above it. Verified this session: old form on
+  # "copilot 1.0.52.3" -> empty; new form -> 1.0.52.
+  #
+  # POSIX ERE is leftmost-LONGEST and `[0-9]+` cannot cross a `.`, so `1.0.52.3`
+  # yields `1.0.52` — the first three components, which is what we want to compare.
+  # Tolerant of the shapes seen in the wild: "copilot version 1.0.52", "v1.0.52-beta.1",
+  # "copilot@1.0.52 (2026-05-23)".
+  #
+  # `grep -Eo`, never `grep -P`: BSD/macOS grep has no -P and exits 2, which reads
+  # as NO MATCH inside a conditional — the silent-fail-open shape of macOS door 3.
+  ver="$(printf '%s' "$raw" | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || true)"
   if [ -z "$ver" ]; then
-    note "could not parse a version from 'copilot --version' — floor unverified (need >= $COPILOT_FLOOR)"
+    # Say exactly what we saw and exactly what we needed — the old one-liner named
+    # neither, so an operator had no way to tell a nightly build from a broken shim
+    # without re-running `copilot --version` by hand. Control chars are stripped and
+    # the line is capped so a garbled/hostile version line cannot scramble the
+    # terminal or push the remediation off screen.
+    local shown
+    shown="$(printf '%s' "$raw" | tr -d '[:cntrl:]' | cut -c1-200)"
+    [ -n "$shown" ] || shown="(no output)"
+    warn "could not parse a version from 'copilot --version'."
+    note "  raw output : '$shown'"
+    note "  expected   : a semantic version token x.y.z (e.g. $COPILOT_FLOOR)"
+    note "  required   : >= $COPILOT_FLOOR"
+    note "  The Copilot CLI version floor is UNVERIFIED — a sub-agent's tool calls"
+    note "  may not be hooked. Update Copilot CLI, then re-run."
     return 0
   fi
   # Pure-sort comparison: the LOWEST of {ver, floor} equals floor  =>  ver >= floor.
