@@ -94,10 +94,56 @@ grep -q '^THING_HOST=gemini$' "$TMP/env.txt" && ok "THING_HOST asserted as gemin
 RC_OUT="$TMP" bash "$AD" pretool "$TMP/missing.sh" <<<"$(payload run_shell_command)" >/dev/null 2>&1
 [ "$?" -eq 0 ] && ok "a missing hook script exits 0 (never bricks every tool call)" || bad "missing script did not exit 0"
 
+# ── the deny REASON survives (added 2026-08-12) ─────────────────────────────
+# The adapter ran the guard as `>/dev/null 2>&1` for its whole life, so a block
+# reached Gemini with NO explanation — while the adapter's own comment claimed
+# "stderr already carries the reason". Measured: 233 bytes direct, 0 through the
+# adapter. `exit 2` alone was never enough to assert; the reason is the other
+# half of Gemini's documented block contract (exit 2 + stderr).
+cat >"$TMP/loud.sh" <<'LOUD'
+#!/usr/bin/env bash
+cat >/dev/null
+printf 'DENY_REASON_SENTINEL: blocked because of a specific named rule\n' >&2
+exit 2
+LOUD
+chmod +x "$TMP/loud.sh"
+
+RC_OUT="$TMP" bash "$AD" pretool "$TMP/loud.sh" <<<"$(payload run_shell_command)" >/dev/null 2>"$TMP/err.txt"
+_rc=$?
+[ "$_rc" -eq 2 ] && grep -q 'DENY_REASON_SENTINEL' "$TMP/err.txt" \
+  && ok "a deny carries its reason through to stderr (exit 2 + reason, both halves)" \
+  || bad "deny reason lost: exit=$_rc bytes=$(wc -c <"$TMP/err.txt" | tr -d ' ')"
+
+# The negative control — an ALLOW must stay quiet, or the fix just becomes noise
+# on every tool call.
+RC_OUT="$TMP" RC_RC=0 bash "$AD" pretool "$TMP/stub.sh" <<<"$(payload run_shell_command)" >/dev/null 2>"$TMP/err0.txt"
+[ ! -s "$TMP/err0.txt" ] \
+  && ok "an allow emits no stderr (the fix adds no per-call noise)" \
+  || bad "allow leaked $(wc -c <"$TMP/err0.txt" | tr -d ' ') bytes of stderr"
+
 # ── TEETH ───────────────────────────────────────────────────────────────────
 MUT="$TMP/mutant.sh"
 # Strip the normalisation: the guard then sees snake_case and MH-01 returns.
-sed 's/^    _normalise | bash "$real" "$@" >\/dev\/null 2>&1$/    printf %s "$payload" | bash "$real" "$@" >\/dev\/null 2>\&1/' "$AD" >"$MUT"
+# ⛔ This sed is anchored to the adapter's exact pretool line. If you change that
+# line, update this pattern IN THE SAME COMMIT — when it stops matching, the gate
+# FAILS LOUD ("adapter shape changed?") rather than silently skipping its teeth.
+# That is by design and it fired correctly on 2026-08-12 when the `2>&1` was
+# removed; do not "fix" it by loosening the anchor to a substring match.
+sed 's/^    _normalise | bash "$real" "$@" >\/dev\/null$/    printf %s "$payload" | bash "$real" "$@" >\/dev\/null/' "$AD" >"$MUT"
+
+# Teeth for the reason-preservation assertion: restore the `2>&1` and the
+# sentinel must vanish. Without this, "233 bytes arrived" proves nothing about
+# whether the adapter is what let them through.
+MUT2="$TMP/mutant-quiet.sh"
+sed 's/^    _normalise | bash "$real" "$@" >\/dev\/null$/    _normalise | bash "$real" "$@" >\/dev\/null 2>\&1/' "$AD" >"$MUT2"
+if grep -q '_normalise | bash "$real" "$@" >/dev/null 2>&1' "$MUT2"; then
+  RC_OUT="$TMP" bash "$MUT2" pretool "$TMP/loud.sh" <<<"$(payload run_shell_command)" >/dev/null 2>"$TMP/err2.txt"
+  grep -q 'DENY_REASON_SENTINEL' "$TMP/err2.txt" \
+    && bad "teeth: the 2>&1 mutant STILL carried the reason — the assertion is vacuous" \
+    || ok "teeth: restoring 2>&1 loses the reason (the assertion measures the redirect)"
+else
+  bad "teeth: could not build the reason-discarding mutant (adapter shape changed?)"
+fi
 if grep -q 'printf %s "$payload" | bash' "$MUT"; then
   RC_OUT="$TMP" RC_RC=0 bash "$MUT" pretool "$TMP/stub.sh" <<<"$(payload run_shell_command)" >/dev/null 2>&1
   [ "$(seen_tool)" = "run_shell_command" ] \
