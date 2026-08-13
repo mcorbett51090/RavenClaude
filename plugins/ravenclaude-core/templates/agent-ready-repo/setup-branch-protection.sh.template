@@ -169,6 +169,18 @@ run_self_check() {
   if [ "$_any_present" -eq 0 ]; then
     printf '  (none of the four github-protocol-*.yml workflows are in %s yet)\n' "$WF_DIR"
   fi
+  # Advisory (guidance-first — does NOT set SELF_CHECK_UNSAFE, never blocks --apply):
+  # if the opt-in anti-self-approval workflow is present, nudge when its exclusion set
+  # is empty. With no bots listed, only the PR author is excluded, so a bot approval
+  # could satisfy the check. The seeded config already carries one entry.
+  _asa="$WF_DIR/agent-approval-check.yml"
+  if [ -f "$_asa" ]; then
+    _excl="$(sed -n 's/.*EXCLUDED_APPROVERS:[[:space:]]*"\([^"]*\)".*/\1/p' "$_asa" | head -1 | tr -d '[:space:]')"
+    if [ -z "$_excl" ]; then
+      printf 'Anti-self-approval check — nudge:\n'
+      printf '  ⚠  %-42s EXCLUDED_APPROVERS is empty — add your agent/bot login(s)\n' "agent-approval-check.yml"
+    fi
+  fi
   printf '\n'
 }
 

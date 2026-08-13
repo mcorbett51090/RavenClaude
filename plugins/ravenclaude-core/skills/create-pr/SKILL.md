@@ -50,10 +50,12 @@ Use this template. Fill every section; delete sections that genuinely don't appl
 - `gh pr create --title "<type(scope): subject>" --body "$(cat <<'EOF' … EOF)"`.
 - Title follows Conventional Commits, ≤ 72 chars.
 - Return the PR URL to the user.
+- If the repo ships an agent PR template (`.github/PULL_REQUEST_TEMPLATE/agent_pr_template.md`, scaffolded opt-in by [`/init-agent-ready`](../../commands/init-agent-ready.md)), select it with `?template=agent_pr_template.md` on the PR-creation URL and fill its `Co-Authored-By:` provenance footer — see [`../../knowledge/agent-pr-identity.md`](../../knowledge/agent-pr-identity.md).
 - If the remote/PR route seems blocked (remote/sandboxed/web session), see [`../../knowledge/remote-mcp-pr-landing.md`](../../knowledge/remote-mcp-pr-landing.md) — probe `gh` → API → GitHub MCP before concluding blocked.
 
 ## Don'ts
 - Don't merge. Even on a green PR with one commit. The user merges.
+  - _After_ the user's approval, the landing mechanics (arming auto-merge from a remote/sandboxed session) are in [`../../knowledge/remote-mcp-pr-landing.md`](../../knowledge/remote-mcp-pr-landing.md) — post-approval only, never a self-merge.
 - Don't `--force`. If the remote diverged, surface it and ask.
 - Don't skip CI by editing workflow files in the same PR.
 

@@ -1,0 +1,120 @@
+# Structural anti-self-approval check (OPT-IN). Scaffolded by /init-agent-ready.
+#
+# Requires at least one APPROVED review from someone who is NOT the PR author and
+# NOT an excluded (agent/bot) account — so an agent-authored PR cannot merge on its
+# own approval. Domain-neutral and self-contained (no third-party action beyond a
+# SHA-pinned github-script); models the pattern of anthropics/claude-code-action's
+# examples/agent-approval-check.yml, verified 2026-08-12.
+#
+# WHY pull_request_target (and why that is SAFE here):
+#   Both triggers run the workflow file from the BASE/DEFAULT branch, so a PR cannot
+#   edit THIS check to approve itself. pull_request_target normally carries the
+#   base-repo write token, which is dangerous ONLY when a workflow checks out and
+#   executes the untrusted PR head — THIS WORKFLOW NEVER CHECKS OUT PR CODE. It reads
+#   PR review state via the API only, under a least-privilege read token. Do not add
+#   an `actions/checkout` of the PR head to this file.
+#   (pull_request_review is not used: it runs from the merge ref, which the PR can
+#   edit. Native Approve reviews are picked up on the next synchronize or a comment.)
+#
+# TO MAKE IT SOUND (consumer setup — this workflow alone is not the whole control):
+#   1. Add every agent/bot login to `EXCLUDED_APPROVERS` below (the PR author is always
+#      excluded automatically). Seeded with dependabot[bot].
+#   2. Mark the `agent-approval-check` job as a REQUIRED status check on protected branches.
+#   3. CODEOWNERS-protect THIS file (`.github/workflows/agent-approval-check.yml`) with a
+#      human owner + required code-owner review, so a PR editing the check needs approval.
+#   4. Prefer GitHub's native "Require approval of the most recent push" branch-protection
+#      setting as the primary control; this workflow is an explicit, auditable complement.
+
+name: agent-approval-check
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, ready_for_review]
+  issue_comment:
+    types: [created]
+
+# Least-privilege: read-only. The job fails itself on an insufficient approval set —
+# it needs no write scope to report the result (the required check IS the job).
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  agent-approval-check:
+    # issue_comment also fires on plain issues; only act when it is a PR comment.
+    if: github.event_name != 'issue_comment' || github.event.issue.pull_request
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require a human approval that is not the PR author
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        env:
+          # How many distinct non-author, non-excluded approvals are required.
+          REQUIRED_APPROVALS: "1"
+          # Comma-separated logins whose approval NEVER counts (agents/bots). The PR
+          # author is added to this set automatically. Add your agent's account here.
+          EXCLUDED_APPROVERS: "dependabot[bot]"
+        with:
+          script: |
+            const n = parseInt(process.env.REQUIRED_APPROVALS || "1", 10);
+            // Fail CLOSED on a misconfigured (non-numeric / < 1) value — never 0.
+            const required = Number.isInteger(n) && n > 0 ? n : 1;
+            const excluded = new Set(
+              (process.env.EXCLUDED_APPROVERS || "")
+                .split(",").map((s) => s.trim()).filter(Boolean),
+            );
+
+            // Resolve PR number + author from either event. Values come from the event
+            // payload as OBJECTS (never shell-interpolated), so an untrusted PR title /
+            // branch name cannot inject a command.
+            let prNumber, author;
+            if (context.payload.pull_request) {
+              prNumber = context.payload.pull_request.number;
+              author = context.payload.pull_request.user.login;
+            } else {
+              prNumber = context.payload.issue.number;
+              author = context.payload.issue.user.login;
+            }
+            // The PR initiator never counts toward approving its own PR.
+            excluded.add(author);
+
+            const reviews = await github.paginate(github.rest.pulls.listReviews, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber,
+              per_page: 100,
+            });
+
+            // Only the LATEST review per user counts (an APPROVED later changed to
+            // COMMENTED / CHANGES_REQUESTED / DISMISSED no longer approves), AND only a
+            // review from a user with write access (author_association OWNER / MEMBER /
+            // COLLABORATOR) — a drive-by or sockpuppet "Approve" from a no-access account
+            // never satisfies the check (otherwise a real gap on a public repo).
+            // NOTE: author_association is a PROXY for write access (a MEMBER is an ORG
+            // member, not a guarantee of repo-write); GitHub-native "require approving
+            // reviews" branch protection is the layer that enforces TRUE write access.
+            // This workflow is the auditable complement to that native control, not a
+            // replacement — an undefined/unexpected association is dropped (fail-closed).
+            const TRUSTED = new Set(["OWNER", "MEMBER", "COLLABORATOR"]);
+            const latest = new Map();
+            for (const r of reviews) {
+              if (r.user && r.user.login) {
+                latest.set(r.user.login, { state: r.state, assoc: r.author_association });
+              }
+            }
+            const approvers = [...latest.entries()]
+              .filter(
+                ([login, v]) =>
+                  v.state === "APPROVED" && TRUSTED.has(v.assoc) && !excluded.has(login),
+              )
+              .map(([login]) => login);
+
+            core.info(
+              `Valid non-author approvals: ${approvers.length}/${required}` +
+                ` (${approvers.join(", ") || "none"}); author=${author}`,
+            );
+            if (approvers.length < required) {
+              core.setFailed(
+                `This PR needs ${required} approval(s) from someone other than the PR ` +
+                  `author (${author}) or an excluded/agent account. Found ${approvers.length}.`,
+              );
+            }

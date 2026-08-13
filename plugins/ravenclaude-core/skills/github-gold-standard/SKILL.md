@@ -1,6 +1,6 @@
 ---
 name: github-gold-standard
-description: "Score a consumer repo's GitHub-development protocol against the shipped gold-standard catalog and produce a remediation queue ranked by leverage. A 10-row rubric mapping 1:1 to the P3 exemplar-repo catalog + the P4 Actions-hardening rules — each row is a check the agent runs against .github/workflows/*, the repo's .git, and its ruleset, a pass/partial/fail verdict, and the shipped fix (an /init-agent-ready template or a knowledge file). Use to measure a repo against the best-of-the-best bar before calling its CI/branch-protection done. Honest scope: it measures STRUCTURAL COVERAGE, not taste."
+description: "Score a consumer repo's GitHub-development protocol against the shipped gold-standard catalog and produce a remediation queue ranked by leverage. A 10-row core rubric (mapping 1:1 to the P3 exemplar-repo catalog + the P4 Actions-hardening rules) plus 3 agent-operability rows for the agent-as-primary-GitHub-operator bar — each row is a check the agent runs against .github/workflows/*, the repo's .git, and its ruleset, a pass/partial/fail verdict, and the shipped fix (an /init-agent-ready template or a knowledge file). Proportional banding (dynamic denominator). Use to measure a repo against the best-of-the-best bar before calling its CI/branch-protection done. Honest scope: it measures STRUCTURAL COVERAGE, not taste."
 ---
 
 # GitHub gold-standard scorecard
@@ -18,9 +18,9 @@ The rubric maps **1:1** onto the two shipped knowledge files — every row cites
 
 The **shipped remediation** each row points at is an [`/init-agent-ready`](../../commands/init-agent-ready.md) template or a sibling skill — so a `fail` is never "go read the internet," it's "scaffold this specific file."
 
-## The rubric — 10 dimensions, each a falsifiable check
+## The rubric — 10 core dimensions + 3 agent-operability rows, each a falsifiable check
 
-Score every row **2 (pass) / 1 (partial) / 0 (fail)**. Row 10 is **optional** (score it, but keep it out of the core denominator — see Scoring). Each row's "Check" is read-only: it reads `.github/workflows/*`, the repo's `.git` state, and the repo ruleset. It never mutates the repo.
+Score every row **2 (pass) / 1 (partial) / 0 (fail)**. Row 10 is **optional** (score it, but keep it out of the core denominator — see Scoring). The three **agent-operability rows (A1–A3)** below the core table are **N/A as a group** unless the repo runs an agent-in-CI workflow. Each row's "Check" is read-only: it reads `.github/workflows/*`, the repo's `.git` state, and the repo ruleset. It never mutates the repo.
 
 | # | Dimension | Catalog source | Pass / Partial / Fail | Shipped remediation |
 |---|---|---|---|---|
@@ -35,6 +35,16 @@ Score every row **2 (pass) / 1 (partial) / 0 (fail)**. Row 10 is **optional** (s
 | 9 | **Worktree lifecycle hygiene** | P4 catalog §1.3 | **Pass:** parallel/agent work uses one branch per worktree and finished worktrees are removed with `git worktree remove` + `prune`, not a raw directory delete. **Partial:** worktrees used, cleanup ad-hoc. **Fail:** no isolation / stash-juggling. | The [`cleanup-worktrees`](../cleanup-worktrees/SKILL.md) skill (list → remove finished → prune stale admin files). |
 | 10 | **Merge queue / CODEOWNERS** *(optional)* | P4 Rule 6 / P3 §1.2 | **Pass:** a merge queue guards a busy default branch **and** `CODEOWNERS` routes reviewers by path. **Partial:** one of the two. **Fail/N/A:** neither (fine for a low-traffic repo — score it N/A, don't penalize). | [`CODEOWNERS.template`](../../templates/agent-ready-repo/CODEOWNERS.template) + `setup-branch-protection.sh --require-codeowner-review`. |
 
+### Agent-operability rows (N/A **as a group** if the repo runs no agent-in-CI workflow)
+
+These three rows measure the *agent-as-primary-GitHub-operator* bar — score them only when the repo runs (or is set up to run) an AI agent as a GitHub actor in CI. If it doesn't, they are **N/A as a group** (out of the denominator), not 0.
+
+| # | Dimension | Leverage | Pass / Partial / Fail | Shipped remediation |
+|---|---|---|---|---|
+| A1 | **Agent-workflow least-privilege + default-token-suppression avoided** | A | **Pass:** an agent-triggered workflow carries a per-job least-privilege `permissions:` grant **and** any push that must trigger downstream is authed as a GitHub App / custom token / OIDC (not the default `GITHUB_TOKEN`, which does not fire downstream runs). **Partial:** one of the two. **Fail:** a blanket grant, or a default-token push relied on to trigger a required check. | [`github-actions-hardening.md`](../../knowledge/github-actions-hardening.md) Rule 7 + `check-workflow-hygiene.py` Rule 3 (advisory). |
+| A2 | **Agent PR template present** | B | **Pass:** `.github/PULL_REQUEST_TEMPLATE/agent_pr_template.md` exists with a structured body + a `Co-Authored-By:` provenance footer. **Partial:** a generic template only. **Fail:** none. | [`PULL_REQUEST_TEMPLATE-agent.md.template`](../../templates/agent-ready-repo/PULL_REQUEST_TEMPLATE-agent.md.template) (opt-in via `/init-agent-ready`) + [`agent-pr-identity.md`](../../knowledge/agent-pr-identity.md). |
+| A3 | **Structural anti-self-approval present** | A | **Pass:** `agent-approval-check.yml` exists with ≥1 `EXCLUDED_APPROVERS` entry, only counts write-access reviewers, runs from the base branch, and the PR initiator is excluded from the required-approval count. **Partial:** the workflow exists but its exclusion set is empty. **Fail:** none, or an agent PR can self-approve. | [`agent-approval-check.yml.template`](../../templates/agent-ready-repo/agent-approval-check.yml.template) (opt-in) + [`claude-in-ci.md`](../../knowledge/claude-in-ci.md). |
+
 ### How to run each check (read-only)
 
 - **Workflows (rows 2–6, 8):** enumerate `.github/workflows/*.yml` / `*.yaml`. For each, read the top-level keys and every `uses:`/`permissions:`/`on:` block. The shipped `check-workflow-hygiene.py` already encodes rows 3, 4, and the row-8 advisory — run it if present, or read the workflows directly with the same rules. For row 5, look for `id-token: write` + an OIDC login action in publish/deploy jobs vs. a `secrets.*` registry/cloud token.
@@ -43,13 +53,16 @@ Score every row **2 (pass) / 1 (partial) / 0 (fail)**. Row 10 is **optional** (s
 
 Every check is a **read**. If a control can't be observed from this session (e.g. the push-protection toggle behind Settings), score conservatively and say *why* in the row's note — never guess a pass.
 
-## Scoring
+## Scoring — PROPORTIONAL (dynamic denominator)
 
-- **Core score** = sum of rows **1–9** (each 0/1/2) out of **18**. Report row 10 separately (it's optional; a low-traffic repo legitimately scores it N/A).
-- Report a per-row breakdown (verdict + one-line evidence + the catalog citation), the core score `/18`, and a coverage band:
-  - **16–18 — gold:** the known-high-leverage controls are all present and shaped right.
-  - **11–15 — silver:** the load-bearing gates exist; a few high-leverage rows are partial/missing.
-  - **≤10 — bronze:** at least one top-4 gate or the row-8 trap is failing; start at the top of the queue.
+- **Core (rows 1–9, each 0/1/2): / 18** — always applicable.
+- **Agent-operability (rows A1–A3, each 0/1/2): / 6 — or N/A as a GROUP** when the repo runs no agent-in-CI workflow (no `claude-code-action`/`@claude`-style workflow). N/A rows are **excluded from the denominator**, scored neither 0 nor 2.
+- **Row 10** (merge-queue / CODEOWNERS) stays separate and optional.
+- **Band = round(100 × score ÷ applicable_max)**, where `applicable_max` = **18** (no agent workflow) or **24** (agent workflow present → the three agent rows apply):
+  - **≥ 89% — gold:** the known-high-leverage controls are all present and shaped right.
+  - **61–88% — silver:** the load-bearing gates exist; a few high-leverage rows are partial/missing.
+  - **< 61% — bronze:** at least one top-4 gate or the row-8 trap is failing; start at the top of the queue.
+- **Why proportional (RT-4):** the agent rows introduce a dynamic denominator (18 or 24), and a percentage band expresses both — so a no-agent-workflow repo stays eligible for gold on /18 while an agent-in-CI repo is judged on /24. Report the per-row breakdown, the score, `applicable_max`, and the band.
 
 The band names structural coverage only — re-read the honest-scope note before attaching any "secure/done" claim to it.
 
@@ -57,8 +70,8 @@ The band names structural coverage only — re-read the honest-scope note before
 
 Do **not** hand back failures in table order. Rank every `fail`/`partial` (and any row-8 filtered-required-check, always first) by **leverage tier**, taken from catalog Section 3:
 
-- **Tier A (highest leverage / the trap) — fix first:** row 8 (path-filtered required check — hangs the PR forever, always top), then rows 2, 4, 6, 7 (the four cheap high-leverage gates Section 3 names: workflow static analysis, SHA-pinning, the semantic-PR gate, secret-scan + push protection).
-- **Tier B — next:** rows 3 (permissions floor), 5 (OIDC), 1 (branch-delete recovery).
+- **Tier A (highest leverage / the trap) — fix first:** row 8 (path-filtered required check — hangs the PR forever, always top), then rows 2, 4, 6, 7 (the four cheap high-leverage gates Section 3 names: workflow static analysis, SHA-pinning, the semantic-PR gate, secret-scan + push protection), plus the agent-operability gates **A1** (agent-workflow least-privilege + default-token-suppression) and **A3** (structural anti-self-approval) when they apply.
+- **Tier B — next:** rows 3 (permissions floor), 5 (OIDC), 1 (branch-delete recovery), and **A2** (agent PR template) when it applies.
 - **Tier C — last:** row 9 (worktree hygiene), row 10 (merge-queue/CODEOWNERS, optional).
 
 Within a tier, a `fail` outranks a `partial`. Each queue item carries: the dimension, its verdict, the exact shipped remediation to apply (the template path or skill), and the catalog citation. See [`resources/scorecard.md`](resources/scorecard.md) for the fill-in template.
@@ -71,7 +84,10 @@ End the run with the machine-readable block alongside the human-readable scoreca
 ---RESULT_START---
 {
   "core_score": 0,
-  "max": 18,
+  "agent_operability_score": 0,
+  "agent_rows_applicable": true,
+  "applicable_max": 18,
+  "band_pct": 0,
   "band": "gold|silver|bronze",
   "optional_row_10": "pass|partial|fail|n/a",
   "rows": [

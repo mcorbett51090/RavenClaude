@@ -74,6 +74,12 @@ gh pr merge <n> --auto --squash
 ```
 
 This lands the PR the moment required checks pass — you don't hold the session open watching them.
+
+> **Subordinate to the human-approval rule (not a licence to self-merge).** Per
+> [`../rules/git-workflow.md`](../rules/git-workflow.md) the human approves the merge — even on a solo
+> project. Arm auto-merge **only after** the human's explicit "ship it." The `--auto` flag decides
+> *when* an already-authorized merge lands; it never decides *whether* the agent may merge on its own.
+
 (Prefix `GH_TOKEN="$GITHUB_TOKEN"` if `gh` isn't already authenticated this session.) If your project's
 merge policy differs, swap `--squash` for `--merge`/`--rebase`; the `--auto` flag is the load-bearing
 part. Note that an admin merge can still land ahead of a running check if your ruleset allows a bypass —
