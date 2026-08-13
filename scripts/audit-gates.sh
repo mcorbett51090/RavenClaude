@@ -872,9 +872,21 @@ PY
       bash plugins/ravenclaude-core/skills/design-clone/tests/test-gate194.sh
       exit $?
       ;;
+    195)
+      echo "── Gate 195: gate-introspection meta-gate (per-gate run) ──"
+      python3 scripts/check-gate-registration.py && \
+        python3 scripts/check-gate-registration.py --self-test
+      exit $?
+      ;;
+    196)
+      echo "── Gate 196: regex-catalog compile (per-gate run) ──"
+      python3 scripts/check-regex-catalog-compiles.py && \
+        python3 scripts/check-regex-catalog-compiles.py --self-test
+      exit $?
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -1244,22 +1256,33 @@ gate "check-layout (--all, off-allow-list file)" must_fail "$rc"
 
 echo
 echo "── Gate 6: Behavioral enforce-layout ─────────────────────────────────────"
+# Every deny below asserts exit 2 EXACTLY, not merely nonzero — same reasoning as
+# Gate 5: Claude Code treats exit 1 as a non-blocking error and runs the command
+# anyway, so a bare `must_fail` would pass on a hook that does not actually block.
+# (Added when Gate 195's exit-2 sub-check first ran over this suite and found the
+# four denies here asserted only "nonzero" — the P5 class, inside the audit suite.)
 mkdir -p "$TMP/proj/docs"
 cat > "$TMP/proj/.repo-layout.json" <<EOF
 { "allowed_globs": ["docs/**"], "forbidden_globs": [], "suggestions": {} }
 EOF
 rc=0; CLAUDE_PROJECT_DIR="$TMP/proj" plugins/ravenclaude-core/hooks/enforce-layout.sh "$TMP/proj/random/file.txt" >/dev/null 2>&1 || rc=$?
 gate "enforce-layout (off-pattern)" must_fail "$rc"
+rc_is_2=0; [ "$rc" -eq 2 ] || rc_is_2=1
+gate "enforce-layout (off-pattern) blocks with exit 2 (not 1)" must_pass "$rc_is_2"
 rc=0; CLAUDE_PROJECT_DIR="$TMP/proj" plugins/ravenclaude-core/hooks/enforce-layout.sh "$TMP/proj/docs/x.md" >/dev/null 2>&1 || rc=$?
 gate "enforce-layout (in-pattern)" must_pass "$rc"
 rc=0; CLAUDE_PROJECT_DIR="$TMP/proj" plugins/ravenclaude-core/hooks/enforce-layout.sh "$TMP/proj/docs/../../etc/passwd" >/dev/null 2>&1 || rc=$?
 gate "enforce-layout (..-traversal scrub)" must_fail "$rc"
+rc_is_2=0; [ "$rc" -eq 2 ] || rc_is_2=1
+gate "enforce-layout (..-traversal) blocks with exit 2 (not 1)" must_pass "$rc_is_2"
 # 2026-07 P1 teeth: under real Claude Code the path arrives via stdin JSON, NOT
 # as $1 ($CLAUDE_TOOL_FILE_PATH is not a hook var, so the arg is empty). With no
 # stdin fallback the hook no-ops (exit 0) and every layout/task-scope check is
 # silently inert. Empty $1 + off-pattern path on stdin MUST still deny.
 rc=0; printf '{"tool_input":{"file_path":"%s"}}' "$TMP/proj/random/file.txt" | CLAUDE_PROJECT_DIR="$TMP/proj" plugins/ravenclaude-core/hooks/enforce-layout.sh "" >/dev/null 2>&1 || rc=$?
 gate "enforce-layout (off-pattern via stdin JSON, empty \$1)" must_fail "$rc"
+rc_is_2=0; [ "$rc" -eq 2 ] || rc_is_2=1
+gate "enforce-layout (stdin JSON deny) blocks with exit 2 (not 1)" must_pass "$rc_is_2"
 rc=0; printf '{"tool_input":{"file_path":"%s"}}' "$TMP/proj/docs/x.md" | CLAUDE_PROJECT_DIR="$TMP/proj" plugins/ravenclaude-core/hooks/enforce-layout.sh "" >/dev/null 2>&1 || rc=$?
 gate "enforce-layout (in-pattern via stdin JSON, empty \$1)" must_pass "$rc"
 # Gap 6: task-scope gate — runs in the SAME hook, independent of .repo-layout.json.
@@ -1272,6 +1295,8 @@ rc=0; CLAUDE_PROJECT_DIR="$TMP/scopeproj" plugins/ravenclaude-core/hooks/enforce
 gate "task-scope (in-scope, no layout manifest)" must_pass "$rc"
 rc=0; CLAUDE_PROJECT_DIR="$TMP/scopeproj" plugins/ravenclaude-core/hooks/enforce-layout.sh "$TMP/scopeproj/secret/keys.txt" >/dev/null 2>&1 || rc=$?
 gate "task-scope (out-of-scope -> deny)" must_fail "$rc"
+rc_is_2=0; [ "$rc" -eq 2 ] || rc_is_2=1
+gate "task-scope (out-of-scope) blocks with exit 2 (not 1)" must_pass "$rc_is_2"
 cat > "$TMP/scopeproj/.ravenclaude/task-scope.json" <<EOF
 { "in_scope": [] }
 EOF
@@ -6425,6 +6450,60 @@ echo "── Gate 194: design-clone apply-path — BIDIRECTIONAL teeth (survive 
 # release while the suite reported green).
 rc=0; bash plugins/ravenclaude-core/skills/design-clone/tests/test-gate194.sh >/dev/null 2>&1 || rc=$?
 gate "design-clone: legit survives verbatim AND hostile neutralized AND identity blocked; teeth by 3 mutants" must_pass "$rc"
+
+echo
+echo "── Gate 195: gate-introspection meta-gate — this suite audits ITSELF ──────"
+# The suite is the instrument every other gate is measured with, and nothing
+# measured the instrument. Gate 195 statically audits THIS file for the three
+# ways a gate reports green while doing nothing:
+#   reachability   — a gate registered only in the --check dispatcher never runs
+#                    in the full suite (Gate 184 was unreachable for a whole
+#                    release while the suite printed "all gates audited").
+#   collision      — two gates hand-assigned the same number, so one silently
+#                    overwrites the other's identity (the two-Gate-104 case).
+#   exit-2 spec    — a gate that drives a PreToolUse hook and asserts only
+#                    must_fail (any nonzero) passes on a hook that exits 1, which
+#                    Claude Code treats as NON-blocking. It reports green over a
+#                    guard that does not guard. Running this check over this file
+#                    found exactly that shape in Gate 6 (4 denies), now fixed.
+# It also asserts the two hand-maintained dispatcher surfaces — the `<n>)` case
+# arms and the `Supported:` string — against EACH OTHER, never against a constant.
+# Calibrated against the real file first: the reachability check honours all
+# three legitimate registration shapes (a plain header, a grouped `Gates A–B:`
+# header, and a `gate "…Gate N…"` call naming its number under a neighbouring
+# header) — a naive per-number header rule flags 7 live gates on day one, and a
+# keystone that floods on day one is a keystone somebody switches off.
+#
+# ⛔ Registered in BOTH this main sequence AND the --check dispatcher above + the
+# Supported: string. After adding a gate, run the full suite and GREP ITS OUTPUT
+# FOR "195" — a passing suite is not evidence your gate is in it (v0.243.0: Gate
+# 184 was unreachable for a whole release while the suite reported green).
+rc=0; python3 scripts/check-gate-registration.py >/dev/null 2>&1 || rc=$?
+gate "gate-registration: reachability + number-uniqueness + dispatcher/Supported parity + exit-2 specificity" must_pass "$rc"
+rc=0; python3 scripts/check-gate-registration.py --self-test >/dev/null 2>&1 || rc=$?
+gate "gate-registration: teeth (4 mutants caught, 4 anti-flood companions clean, unparseable fails closed)" must_pass "$rc"
+
+echo
+echo "── Gate 196: every regex in every shipped catalog compiles ────────────────"
+# A catalog regex is compiled at RUNTIME by a consumer, and both live consumers
+# swallow the failure: thing-concerns.py::_matches catches re.error and continues
+# (a broken trigger silently stops gating), and thing-denial-kb-recall.sh runs the
+# recall with `2>/dev/null || true` (a broken rule empties the digest and the hook
+# exits 0). So a malformed pattern is not a syntax error anyone sees — it is a
+# silent disarming, discovered by the absence of an alarm that should have fired.
+# The engine is reusable (path, extractor, selector); the concerns catalog is the
+# surface Gate 16 already covers, and thing-denial-resolutions.json is the one
+# NOTHING compiled before this gate. Fail-closed on an unreadable catalog AND on
+# a selector matching zero regexes — a checker that finds nothing prints the same
+# "clean" as one that checked everything.
+#
+# ⛔ Registered in BOTH this main sequence AND the --check dispatcher above + the
+# Supported: string. After adding a gate, run the full suite and GREP ITS OUTPUT
+# FOR "196" — a passing suite is not evidence your gate is in it.
+rc=0; python3 scripts/check-regex-catalog-compiles.py >/dev/null 2>&1 || rc=$?
+gate "regex-catalog: 140 regexes across concerns-catalog + thing-denial-resolutions all compile" must_pass "$rc"
+rc=0; python3 scripts/check-regex-catalog-compiles.py --self-test >/dev/null 2>&1 || rc=$?
+gate "regex-catalog: teeth (malformed/zero-match/unparseable/missing all caught, live registry clean)" must_pass "$rc"
 
 echo
 
