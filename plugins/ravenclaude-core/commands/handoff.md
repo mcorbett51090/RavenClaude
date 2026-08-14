@@ -6,4 +6,4 @@ allowed-tools: Bash, Read, Write, Edit
 
 Load and follow `plugins/ravenclaude-core/skills/session-handoff/SKILL.md`.
 
-Optional `$ARGUMENTS` is the `task-id`. If empty, resolve per the skill (most-recent run dir, else propose a slug). Then write the handoff and call `rc handoff --task-id <id>`.
+Optional `$ARGUMENTS` is the `task-id`. If empty, resolve per the skill (most-recent run dir, else propose a slug). Resolve the originating host (`grok` / `cli` / `chat`) and pass `--host`. Then write the handoff and call `rc handoff --task-id <id> --host <pair>`. Do not hard-code grok.

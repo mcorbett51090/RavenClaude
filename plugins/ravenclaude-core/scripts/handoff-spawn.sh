@@ -16,7 +16,7 @@ set -uo pipefail
 
 usage() {
   cat >&2 <<'EOF'
-Usage: handoff-spawn.sh --task-id <id> [--dry-run] [--recipe copy-paste|same-host|os-terminal] [--project-root DIR] [--wait-ack-seconds N]
+Usage: handoff-spawn.sh --task-id <id> [--dry-run] [--host grok|cli|chat] [--recipe copy-paste|same-host|os-terminal] [--project-root DIR] [--wait-ack-seconds N]
 EOF
 }
 
@@ -25,11 +25,13 @@ dry_run=0
 recipe="copy-paste"
 project_root=""
 wait_ack=45
+host_flag=""
 
 while [ $# -gt 0 ]; do
   case "$1" in
     --task-id) task_id="${2:-}"; shift 2 ;;
     --dry-run) dry_run=1; shift ;;
+    --host) host_flag="${2:-}"; shift 2 ;;
     --recipe) recipe="${2:-}"; shift 2 ;;
     --project-root) project_root="${2:-}"; shift 2 ;;
     --wait-ack-seconds) wait_ack="${2:-45}"; shift 2 ;;
@@ -75,6 +77,59 @@ case "$seed" in
     ;;
 esac
 
+normalize_host() {
+  case "$1" in
+    grok|grok-tui) echo grok ;;
+    cli|copilot-cli|copilot) echo cli ;;
+    chat|copilot-chat) echo chat ;;
+    "") echo "" ;;
+    *) echo unknown ;;
+  esac
+}
+
+detect_origin_host() {
+  local from
+  from="$(normalize_host "$host_flag")"
+  if [ -n "$from" ] && [ "$from" != "unknown" ]; then
+    echo "$from"
+    return
+  fi
+  from="$(normalize_host "${RC_HOST:-}")"
+  if [ -n "$from" ] && [ "$from" != "unknown" ]; then
+    echo "$from"
+    return
+  fi
+  from="$(normalize_host "${THING_HOST:-}")"
+  if [ -n "$from" ] && [ "$from" != "unknown" ]; then
+    echo "$from"
+    return
+  fi
+  if [ -n "${GROK_AGENT:-}" ] || [ -n "${GROK_HOOK_EVENT:-}" ] || [ -n "${GROK_SESSION_ID:-}" ]; then
+    echo grok
+    return
+  fi
+  if [ -n "${COPILOT_CLI:-}" ] || [ -n "${GITHUB_COPILOT_CLI:-}" ]; then
+    echo cli
+    return
+  fi
+  # Never infer chat from TERM_PROGRAM=vscode (also Grok-in-VS-Code).
+  echo unknown
+}
+
+write_chat_resume() {
+  local dest="$project_root/.ravenclaude/runs/$task_id/chat-resume.md"
+  cat > "$dest" <<EOF
+# Copilot Chat resume — task ${task_id}
+
+Read \`.ravenclaude/runs/${task_id}/handoff.md\` first (then \`meta.json\`, \`decisions.md\`, \`summary.md\` if present).
+
+This is a **new** Chat session. Do not \`/fork\`. Do not reuse the hot thread. Do not launch \`grok\`.
+
+Execute the next steps in the brief.
+EOF
+  printf '%s\n' "$dest"
+}
+
 detect_ui() {
   # Prefer explicit bundle / product env over TERM_PROGRAM=vscode (Cursor,
   # Windsurf, and Grok Desktop also set that).
@@ -104,8 +159,50 @@ detect_ui() {
 }
 
 ui="$(detect_ui)"
+host="$(detect_origin_host)"
+chat_resume=""
+
+# vscode without a Grok/CLI marker is not Chat and is not a grok TUI we can prove.
+if [ "$host" = "unknown" ] && [ "${TERM_PROGRAM:-}" = "vscode" ]; then
+  seed="# host=unknown (TERM_PROGRAM=vscode without Grok/CLI markers) — copy-paste only. Do not launch grok. Do not infer Chat."
+fi
+
+if [ "$host" = "chat" ]; then
+  chat_resume="$(write_chat_resume)"
+  seed="# Read ${chat_resume} and .ravenclaude/runs/${task_id}/handoff.md then continue. Do not /fork. Do not launch grok."
+elif [ "$host" = "cli" ]; then
+  seed="copilot"
+fi
+
+if [ "$host" = "chat" ] || [ "$host" = "cli" ]; then
+  case "$seed" in
+    *"grok \""*|*"grok -p"*)
+      echo "handoff-spawn: refuse to emit a grok seed for host=$host" >&2
+      exit 2
+      ;;
+  esac
+fi
 
 copy_paste_block() {
+  if [ "$host" = "chat" ]; then
+    cat <<EOF
+# Copilot Chat resume (same window, NEW session):
+# 1. Cmd+N / Ctrl+N  (or Command Palette: "Chat: New Chat")
+# 2. Paste the block below  OR  open chat-resume.md / handoff.md via @file
+Read .ravenclaude/runs/${task_id}/handoff.md first (then meta.json, decisions.md, summary.md if present). Fresh Chat session. Do not /fork. Do not launch grok. Execute the next steps in the brief.
+# file: ${chat_resume:-.ravenclaude/runs/${task_id}/chat-resume.md}
+EOF
+    return
+  fi
+  if [ "$host" = "cli" ]; then
+    cat <<EOF
+# copy-paste into a new terminal in this repo (Copilot CLI, not grok):
+cd $(printf '%q' "$project_root")
+copilot
+# then paste: Continue task ${task_id}. Read .ravenclaude/runs/${task_id}/handoff.md first. Do not /fork. Do not launch grok.
+EOF
+    return
+  fi
   cat <<EOF
 # copy-paste into a new terminal in this repo (same app as this session):
 cd $(printf '%q' "$project_root")
@@ -138,12 +235,14 @@ if [ "$recipe" = "same-host" ] || [ "$recipe" = "os-terminal" ]; then
   fi
 fi
 
-echo "handoff-spawn: detected-ui=$ui recipe=$recipe spawn-flag=${spawn_flag:-none}"
+echo "handoff-spawn: detected-ui=$ui host=$host recipe=$recipe spawn-flag=${spawn_flag:-none}"
 copy_paste_block
 
 if [ "$dry_run" -eq 1 ]; then
   echo "handoff-spawn: dry-run — not launching, not writing pending"
-  if [ "$ui" = "vscode" ]; then
+  if [ "$host" = "chat" ]; then
+    echo "handoff-spawn: chat recipe is Cmd+N + paste (best-effort vscode://GitHub.Copilot-Chat/chat?mode=agent)"
+  elif [ "$ui" = "vscode" ]; then
     echo "handoff-spawn: vscode recipe would open a new VS Code terminal (not Terminal.app)"
   fi
   echo "$seed"
@@ -173,12 +272,36 @@ payload = {
 open(path, "w", encoding="utf-8").write(json.dumps(payload) + "\n")
 PY
 
-cat > "$launch" <<EOF
+if [ "$host" = "chat" ]; then
+  cat > "$launch" <<EOF
+#!/bin/bash
+# Chat successor is a new Chat session, not this script.
+exit 0
+EOF
+elif [ "$host" = "cli" ]; then
+  cat > "$launch" <<EOF
+#!/bin/bash
+cd $(printf '%q' "$project_root") || exit 1
+exec copilot
+EOF
+else
+  cat > "$launch" <<EOF
 #!/bin/bash
 cd $(printf '%q' "$project_root") || exit 1
 exec $seed
 EOF
+fi
 chmod +x "$launch"
+
+spawn_copilot_chat() {
+  # Default live assist: documented agent-mode URI. Does not claim new-session
+  # or prefill. Fail → copy-paste already printed; caller exits 0.
+  if command -v open >/dev/null 2>&1; then
+    open "vscode://GitHub.Copilot-Chat/chat?mode=agent" || return 1
+    return 0
+  fi
+  return 1
+}
 
 spawn_vscode_terminal() {
   # VS Code has no CLI to create an integrated terminal and run a command
@@ -232,6 +355,17 @@ spawn_terminal_app() {
 }
 
 launched=0
+if [ "$host" = "chat" ]; then
+  if spawn_copilot_chat; then
+    echo "handoff-spawn: opened vscode://GitHub.Copilot-Chat/chat?mode=agent (best-effort; still Cmd+N for a NEW session)"
+    launched=1
+  else
+    echo "handoff-spawn: Chat live assist missed; copy-paste above is the guaranteed path" >&2
+  fi
+  rm -f "$pending"
+  exit 0
+fi
+
 if [ "$recipe" = "same-host" ]; then
   case "$ui" in
     vscode)
@@ -269,11 +403,15 @@ fi
 
 if [ "$launched" -ne 1 ]; then
   rm -f "$pending"
+  if [ "$host" = "cli" ]; then
+    exit 0
+  fi
   exit 2
 fi
 
 # Wait for the successor SessionStart hook to write successor-ack.json.
-if [ "$wait_ack" -gt 0 ] 2>/dev/null; then
+# Chat does not wait (unverified SessionStart). CLI/Grok may.
+if [ "$host" != "chat" ] && [ "$wait_ack" -gt 0 ] 2>/dev/null; then
   n=0
   while [ "$n" -lt "$wait_ack" ]; do
     if [ -s "$ack" ]; then
