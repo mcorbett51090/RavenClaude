@@ -254,6 +254,17 @@
         ]
       },
       {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/handoff-successor-ack.sh",
+            "timeout": 5,
+            "comment": "Session-context handoff handshake. On a genuine startup, if handoff-pending.json is fresh, write successor-ack.json so the originating spawn knows the new session started. File write only — Grok ignores SessionStart stdout. Fail-open. Does not fire on compact/resume."
+          }
+        ]
+      },
+      {
         "matcher": "compact",
         "hooks": [
           {

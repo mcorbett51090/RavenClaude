@@ -296,6 +296,17 @@
         ]
       },
       {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/handoff-successor-ack.sh",
+            "timeout": 5,
+            "comment": "Marketplace-dev hook (dev-mirror). Handoff successor handshake: on startup, write successor-ack.json if a fresh pending marker exists. File write only."
+          }
+        ]
+      },
+      {
         "matcher": "compact",
         "hooks": [
           {
