@@ -1,0 +1,25 @@
+# Dogfood of templates/agent-ready-repo/github-protocol-workflow-hygiene.yml.template
+# (P4 Rules 1/2/5). Checkout pin matches the rest of this repo (v7.0.1), not
+# the template's older v4 pin. No paths: filter on pull_request (Rule 5).
+name: GitHub protocol — workflow hygiene
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  workflow-hygiene:
+    name: Lint workflow permissions + action pins
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Check workflow hygiene
+        run: python3 .github/scripts/check-workflow-hygiene.py .github/workflows

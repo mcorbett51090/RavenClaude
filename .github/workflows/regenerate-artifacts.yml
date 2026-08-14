@@ -95,6 +95,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Set up Python
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
@@ -417,10 +418,12 @@ jobs:
         if: steps.cpr.outputs.pull-request-number != ''
         env:
           GH_TOKEN: ${{ secrets.SELF_HEAL_PAT || github.token }}
+          PR_NUMBER: ${{ steps.cpr.outputs.pull-request-number }}
+          PR_OPERATION: ${{ steps.cpr.outputs.pull-request-operation }}
         run: |
           set -euo pipefail
-          n="${{ steps.cpr.outputs.pull-request-number }}"
-          echo "Waiting for required checks on self-heal PR #$n (operation: ${{ steps.cpr.outputs.pull-request-operation }})"
+          n="${PR_NUMBER}"
+          echo "Waiting for required checks on self-heal PR #$n (operation: ${PR_OPERATION})"
           # ⛔ A flat `sleep 25` here was a RACE, and it fired for real on 2026-08-13
           # (run 31655977109). `gh pr checks --watch` does NOT wait for checks to
           # APPEAR — it exits non-zero immediately on "no checks reported". So when

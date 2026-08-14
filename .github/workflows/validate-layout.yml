@@ -20,6 +20,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Validate .repo-layout.json
         run: |
@@ -33,13 +34,13 @@ jobs:
 
       - name: Determine base ref
         id: base
-        # BASE_REF is passed via env (not interpolated into the script) so a branch
-        # name can never be treated as shell — the GitHub-documented script-injection
-        # hardening for untrusted `github.*` context.
+        # Event name and base ref reach the shell only via env: — never
+        # interpolated into run: (zizmor template-injection).
         env:
           BASE_REF: ${{ github.base_ref }}
+          EVENT_NAME: ${{ github.event_name }}
         run: |
-          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+          if [[ "${EVENT_NAME}" == "pull_request" ]]; then
             echo "ref=origin/${BASE_REF}" >> "$GITHUB_OUTPUT"
           else
             # For push to main and workflow_dispatch, diff against previous commit
@@ -51,7 +52,9 @@ jobs:
         # audit-gates meta-test exercises (two-panel audit 2026-05-31, P1: the
         # prior inline bash matcher had no bidirectional fixture, so it could stop
         # gating while CI stayed green).
-        run: python3 scripts/check-layout.py --diff "${{ steps.base.outputs.ref }}"
+        env:
+          LAYOUT_BASE: ${{ steps.base.outputs.ref }}
+        run: python3 scripts/check-layout.py --diff "${LAYOUT_BASE}"
 
       - name: Check EVERY tracked file against allowed_globs (full tree)
         # The diff check only sees Added/Copied/Renamed paths, so a pre-existing or

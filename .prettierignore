@@ -1,3 +1,7 @@
+# CODEOWNERS is a path-pattern file with no parser; prettier --check on an
+# explicit path errors with "No parser could be inferred".
+CODEOWNERS
+
 # Markdown: skipped from prettier formatting/checks. Rewriting prose with
 # proseWrap or reflowing list indentation produces a 160+ file diff that's
 # pure noise and would conflict with the human voice maintained across
