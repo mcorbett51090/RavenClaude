@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-hooks.json",
+  "description": "Plugin-distributed hooks for graph-engineering. Paths use ${CLAUDE_PLUGIN_ROOT}. Advisory smell flags for unbounded paths, untyped relationships, and anonymous MATCH ()-.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/flag-graph-smells.sh \"$CLAUDE_TOOL_FILE_PATH\"",
+            "comment": "Advisory: flags unbounded [*], untyped -[]-, and anonymous MATCH ()- in .cypher/.cyp/.gql/.sparql/.rq/.groovy/.py/.js/.ts/.md. Set GRAPH_SMELLS_STRICT=1 to block."
+          }
+        ]
+      }
+    ]
+  }
+}

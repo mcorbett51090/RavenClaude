@@ -5,8 +5,8 @@
     "name": "Matt Corbett"
   },
   "metadata": {
-    "description": "RavenClaude \u2014 a private marketplace of opinionated Claude Code plugins: a domain-neutral core (Team Lead + specialist agents, skills, hooks, the Capability Grounding & Structured Output Protocols, a comfort-posture dashboard, the decision-review tribunal) plus 144 domain plugins across clusters: the software-delivery chain (devops-cicd, observability-sre, security-engineering, qa-test-automation, cloud-native-kubernetes, terraform-iac); cloud (azure/aws/gcp); app craft (backend, frontend, mobile, database, api, auth); data & AI (data-platform, analytics-engineering, data-streaming, ml-engineering, data-governance-privacy, applied-statistics, microsoft-fabric, tableau, claude-app-engineering); the Microsoft stack (power-platform, m365-copilot, microsoft-graph); and business/product verticals (finance, fintech-payments, product-management, project-management, process-improvement, staffing, freight-forwarding, edtech). Every agent ships example-scenario frontmatter surfaced in an 'I want to\u2026' use-case lookup.",
-    "version": "0.92.0"
+    "description": "RavenClaude \u2014 a private marketplace of opinionated Claude Code plugins: a domain-neutral core (Team Lead + specialist agents, skills, hooks, the Capability Grounding & Structured Output Protocols, a comfort-posture dashboard, the decision-review tribunal) plus 180 domain plugins across clusters: the software-delivery chain (devops-cicd, observability-sre, security-engineering, qa-test-automation, cloud-native-kubernetes, terraform-iac); cloud (azure/aws/gcp); app craft (backend, frontend, mobile, database, api, auth); data & AI (data-platform, analytics-engineering, data-streaming, ml-engineering, data-governance-privacy, applied-statistics, microsoft-fabric, tableau, claude-app-engineering); the Microsoft stack (power-platform, m365-copilot, microsoft-graph); and business/product verticals (finance, fintech-payments, product-management, project-management, process-improvement, staffing, freight-forwarding, edtech). Every agent ships example-scenario frontmatter surfaced in an 'I want to\u2026' use-case lookup.",
+    "version": "0.93.0"
   },
   "plugins": [
     {
@@ -4134,6 +4134,32 @@
         "asi06",
         "cost-per-correct",
         "memory-eval"
+      ]
+    },
+    {
+      "name": "graph-engineering",
+      "source": "./plugins/graph-engineering",
+      "description": "Graph-engineering team \u2014 2 agents (graph-data-modeler, graph-query-engineer) for property-graph and RDF craft: when a graph beats relational, LPG vs RDF, labeled/typed modeling, supernodes, Cypher/ISO GQL/openCypher/Gremlin/SPARQL traversals, and GraphRAG construction (skill + command, not a third agent). 4 skills, 4 commands, 4 knowledge files (graph-vs-relational tree, LPG catalog, dated 2026 language/engine map, GraphRAG construction), 6 best-practices, 3 templates, 3 scenarios, 1 advisory hook, 1 stdlib shape linter. Advisory only \u2014 snippets the user runs; no live graph runtime. Seams: when NOT a graph \u2192 database-engineering; vector/hybrid RAG \u2192 ai-rag-engineering; whether a memory graph beats BM25 \u2192 memory-engineering; GraphQL \u2192 graphql-engineering; Microsoft Graph API \u2192 microsoft-graph; Fabric Graph SKU \u2192 microsoft-fabric. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "graph",
+        "property-graph",
+        "lpg",
+        "cypher",
+        "gql",
+        "opencypher",
+        "gremlin",
+        "sparql",
+        "rdf",
+        "graphrag",
+        "neo4j",
+        "neptune",
+        "spanner-graph",
+        "janusgraph",
+        "supernode"
       ]
     }
   ]
