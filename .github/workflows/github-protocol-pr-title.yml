@@ -1,0 +1,41 @@
+# Dogfood of templates/agent-ready-repo/github-protocol-pr-title.yml.template
+# (P3 §1.5). Title reaches Python only via env: — never interpolated into run.
+name: GitHub protocol — PR title
+
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  pr-title:
+    name: Semantic PR title (Conventional Commits)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Validate PR title
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          python3 - <<'PY'
+          import os
+          import re
+          import sys
+
+          title = os.environ.get("PR_TITLE", "")
+          pattern = re.compile(
+              r"^(build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test)"
+              r"(\([\w .,/-]+\))?!?: .+"
+          )
+          if not title:
+              print("No PR title in the event payload — skipping.")
+              sys.exit(0)
+          if not pattern.match(title):
+              print(f"::error::PR title is not Conventional-Commits-shaped: {title!r}")
+              print("Expected e.g. 'feat(api): add pagination' or 'fix: correct typo'.")
+              sys.exit(1)
+          print(f"OK PR title: {title}")
+          PY
