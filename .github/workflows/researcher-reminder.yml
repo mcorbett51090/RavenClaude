@@ -23,6 +23,9 @@ on:
           - daily-quick-check
           - monthly-skill-gap-audit
 
+# Deny-all floor; the job below elevates issues:write + contents:read.
+permissions: {}
+
 jobs:
   create-research-issue:
     runs-on: ubuntu-latest

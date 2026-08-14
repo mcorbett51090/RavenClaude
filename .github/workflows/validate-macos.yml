@@ -55,6 +55,8 @@ jobs:
       # a coin-flip dressed as a gate.
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       # Recorded so a future image change is visible in the log rather than inferred from
       # a mystery failure. The gate itself ASSERTS these and fails red if the baseline
@@ -87,6 +89,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Drive every PreToolUse hook with input it was never written for
         # Asserts the exit is 0 (safe no-op) or 2 (deny) and never 1 — the

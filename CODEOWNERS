@@ -1,0 +1,10 @@
+# CODEOWNERS — dogfood of templates/agent-ready-repo/CODEOWNERS.template
+# (P3 §1.2 / P4 Rule 6). Solo-maintainer default owner.
+#
+# Listing an owner here only REQUESTS their review. require_code_owner_review
+# stays false on ruleset 17278731 ("main") so the owner is not locked out of
+# merging their own PRs. Do not flip that flag while this repo is solo-owned.
+#
+# Docs: https://docs.github.com/en/repositories/managing-your-repositories-permissions-and-settings/customizing-your-repository/about-code-owners
+
+* @mcorbett51090
