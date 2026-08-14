@@ -1632,10 +1632,27 @@ TEMPLATE = r"""<!doctype html>
       // #catalog-root.
       // Map any route (canonical, legacy alias, dashboard tab, or plugin-*) to the
       // NAV section that should light up.
+      // Shell routes that render their OWN view (not a folded dashboard tab) and
+      // therefore appear in neither NAV nor DASH_OWNER. Without this map they fall
+      // to the `control` default and the sidebar highlights the wrong destination
+      // while the correct page renders — the defect Gate 200 surfaced on #/learn.
+      //
+      // ⛔ THIS MUST NOT BE FOLDED INTO SECTION_ALIAS. route() applies SECTION_ALIAS
+      // BEFORE dispatching, so an alias here would make the `section === "learn"`
+      // branch dead code and orphan viewResources() — deleting a working page to
+      // fix a highlight. The two maps answer different questions: SECTION_ALIAS
+      // rewrites WHERE A ROUTE GOES; this one only says WHICH NAV ITEM LIGHTS UP.
+      const SHELL_ROUTE_HOME = {
+        // #/learn renders viewResources(). The standalone chrome groups it under
+        // "Learn & Help" beside #/trees, and DASH_OWNER homes trees at catalog —
+        // so catalog is the home both surfaces agree on.
+        learn: "catalog",
+      };
       function resolveNavActive(section) {
         if (SECTION_ALIAS[section]) section = SECTION_ALIAS[section];
         if (NAV.some((n) => n.id === section)) return section;
         if (DASH_OWNER[section]) return DASH_OWNER[section];
+        if (SHELL_ROUTE_HOME[section]) return SHELL_ROUTE_HOME[section];
         if (section && section.startsWith("plugin-")) return "catalog";
         return "control";
       }

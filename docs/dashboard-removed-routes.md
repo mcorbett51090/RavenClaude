@@ -21,7 +21,9 @@ named in the first cell with its disposition in the second.
 | `#/home` · `#/overview` · `#/configure` · `#/simulator` | **Control (Settings)** — the marketing home (`viewHome`: hero + CTA grid + onboarding checklist), the Overview tab (`panel-overview`), the non-writing posture editor (`viewConfiguration`, incl. its 167 always-`checked` "Plugin activation" toggles wired to nothing), and the "Preview a review" tab (`panel-simulator`) were removed. Settings is the one editor that saves; `/__classify` is kept for Gate 32 parity (now UI-orphaned). |
 | `#/team` | **Catalog** — the specialist roster (`viewTeam`) now lives in the marketplace. |
 | `#/about` · `#/bifrost` · `#/install` · `#/commands` | **Help** — folded into this drawer as the About, Claude Code (Bifröst), Copilot CLI, and Commands sections. |
-| `#/learn` · `#/trees` · `#/concepts` | The **standalone dashboard** (`rc dashboard` → `/dashboard`) and the **Pages** copy — these Learn / decision-trees / Concepts payloads are not shipped in this portal (their bytes are dropped in P6). They are **not** presented as working portal content. |
+| `#/concepts` | **Control** — a named removal. The Concepts route was aliased to the Learn *tab*, but P6 stripped the portal's `learn-payload`, so `loadLearn()` early-returned and `panel-learn` rendered a blank host. The concept explainers live on the standalone dashboard (`rc dashboard` → `/dashboard`). |
+| `#/learn` | **Not removed — it renders `viewResources()` on the portal** (Templates, decision trees & knowledge). It is homed under **Catalog** via `SHELL_ROUTE_HOME`, matching the standalone's "Learn & Help" grouping. The 58 *concept* explainers are standalone-only; the route itself is live portal content, not a retired one. |
+| `#/trees` | **Not removed — the portal ships the full 3.79 MB `trees-payload`** and `DASH_OWNER` homes it under Catalog. Byte-identical to the standalone. |
 
 ## Notes
 
