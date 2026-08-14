@@ -1050,9 +1050,15 @@ PY
         bash scripts/check-adapter-roundtrip.sh
       exit $?
       ;;
+    209)
+      echo "── Gate 209: hard-rule floor lock (per-gate run) ──"
+      python3 scripts/check-hard-rule-floor.py --self-test && \
+        python3 scripts/check-hard-rule-floor.py
+      exit $?
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -7109,6 +7115,25 @@ gate "adapter-roundtrip: live adapters keep deny and reason" must_pass "$rc"
 rc=0; bash scripts/check-adapter-roundtrip.sh --drive-mutant >/dev/null 2>&1 || rc=$?
 rc_is_2=0; [ "$rc" -eq 2 ] || rc_is_2=1
 gate "adapter-roundtrip teeth: reason-dropping mutant is exit 2 (not 1)" must_pass "$rc_is_2"
+
+echo "── Gate 209: hard-rule floor lock (shape d; no Bash exemption) ──"
+# PR 17 / D2. security-reviewer CLEAR d (2026-08-14): do not widen the
+# PreToolUse(Bash) ignore-surface. This gate is a regression lock on the
+# current fail-closed floor — a later path/sentinel skip, an echo/printf
+# strip extension, or attaching guard-destructive.sh to a Write-only
+# matcher must go red. Fixtures are fragment-assembled (SNR).
+#
+# ⛔ Registered in BOTH this main sequence AND the --check dispatcher above + the
+# Supported: string. After adding a gate, run the full suite and GREP ITS OUTPUT
+# FOR "209" — a passing suite is not evidence your gate is in it.
+rc=0; python3 scripts/check-hard-rule-floor.py --self-test >/dev/null 2>&1 || rc=$?
+gate "hard-rule-floor: teeth (live deny exit 2; Write/inert-body allowed; no skip)" must_pass "$rc"
+rc=0; python3 scripts/check-hard-rule-floor.py >/dev/null 2>&1 || rc=$?
+gate "hard-rule-floor: live hook + source-scan + tool-split" must_pass "$rc"
+rc=0; python3 scripts/check-hard-rule-floor.py --must-fail >/dev/null 2>&1 || rc=$?
+gate "hard-rule-floor teeth: a planted Bash exemption IS caught" must_fail "$rc"
+rc_is_2=0; [ "$rc" -eq 2 ] || rc_is_2=1
+gate "hard-rule-floor teeth: planted exemption exits 2 (not 1)" must_pass "$rc_is_2"
 
 echo "── Gate 206: no plugin description may carry an artifact-count literal ──"
 # P13 / D1. Prose counts in plugin.json + marketplace.json descriptions are
