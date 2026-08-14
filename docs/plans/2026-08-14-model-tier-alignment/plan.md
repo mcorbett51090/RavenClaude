@@ -9,7 +9,7 @@
 `plugins/ravenclaude-core/.claude-plugin/plugin.json` **0.255.0** · marketplace mirror **0.255.0** → bump **0.256.0**.
 `plugins/ai-coding-model-guidance/.claude-plugin/plugin.json` **0.3.13** · marketplace mirror **0.3.13** → bump **0.3.14**.
 
-**Success signal (G0):** every consumption site that maps `fast`/`balanced`/`top` (or `haiku`/`sonnet`/`opus`) to a SKU names a verified, dated Grok + Codex/API + Copilot + Claude id, and Grok’s two-SKU collapse is explicit.
+**Success signal (G0, amended):** every consumption site that maps `fast`/`balanced`/`top` (or `haiku`/`sonnet`/`opus`) to a SKU names a verified, dated Grok + Codex/API + Copilot + Claude id, and the three Grok rungs are **three different SKUs**.
 
 ---
 
@@ -19,7 +19,7 @@
 |---:|---|---|---|
 | **V1** | Runtime maps: A comment-only Claude dicts vs B host-keyed resolver | **B.** `resolveTier(host, tier)` with default `host=claude`. G0 named all consumption sites; comment-only fails that. Default protects `claude -p`. | §3, P1, P3 |
 | **V2** | New gate 134b vs reuse 45+134 | **A.** No new gate number. Optional self-test lives **in the shared module**, not `audit-gates.sh`. | §3, P1, DoD |
-| **V3** | FORGE A==B after Grok collapse: waiver vs hard-reject | **A.** Waiver. `A=sonnet,B=haiku` → both `grok-4.5` is the designed collapse; reject would make the honest mapping unusable. | P4 |
+| **V3** | FORGE A==B after Grok collapse | **Overturned 2026-08-14.** Distinct SKUs: haiku=`grok-build-0.1`, sonnet=`grok-4.5`, opus=`grok-4.6`. If a host cannot dispatch the fast SKU, fail closed — do not map two Claude rungs onto one Grok id. | P4 |
 | **V4** | Thing seats | **Both.** Stay Claude. Do not flip Forseti/Thor/Mímir/Heimdall to Grok. | P5 |
 | **V5** | Copilot `balanced` dual cell vs pin | **B.** Sonnet 5 **primary**; `Auto` footnote only. | §2 |
 | **V6** | Copilot `top` / Claude-host catalog | **Claim 13 + A.** Copilot `top` = **Opus 5**. Claude-host catalog stays `claude-opus-4-8`. No Opus-5 catalog bump. | §2, P5 |
@@ -75,11 +75,11 @@ Every cell `[verify-at-use — 2026-08-14]` until P0 restamps. Prices/context st
 
 | Tier / alias | Claude (host catalog) | Grok Build CLI | Codex / OpenAI API | Copilot |
 |---|---|---|---|---|
-| `fast` / `haiku` | `claude-haiku-4-5-20251001` | `grok-4.5` | `gpt-5.6-luna` | Claude Haiku 4.5 (footnote: Luna / MAI-Code-1.1-Flash) |
-| `balanced` / `sonnet` | `claude-sonnet-5` | `grok-4.5` *(collapse — feature)* | `gpt-5.6-terra` | **Claude Sonnet 5** (footnote: `Auto` when no tier label) |
-| `top` / `opus` | `claude-opus-4-8` (catalog; **not** Opus 5) | `grok-4.6` | `gpt-5.6-sol` — pro = `reasoning.mode:"pro"` on Sol, **no** `*-pro` slug | **Claude Opus 5** |
+| `fast` / `haiku` | `claude-haiku-4-5-20251001` | **`grok-build-0.1`** | `gpt-5.6-luna` | Claude Haiku 4.5 (footnote: Luna / MAI-Code-1.1-Flash) |
+| `balanced` / `sonnet` | `claude-sonnet-5` | **`grok-4.5`** | `gpt-5.6-terra` | **Claude Sonnet 5** (footnote: `Auto` when no tier label) |
+| `top` / `opus` | `claude-opus-4-8` (catalog; **not** Opus 5) | **`grok-4.6`** | `gpt-5.6-sol` — pro = `reasoning.mode:"pro"` on Sol, **no** `*-pro` slug | **Claude Opus 5** |
 
-Honesty: API-only Grok names stay in the lineup. `fable` is not in G0 — pass-through, never map to a Grok id. Tribunal seats are **not** the Grok column.
+**Owner amendment 2026-08-14 (overturns G0 ruling 3 / V3 collapse):** three **distinct** Grok SKUs so FORGE `B ≠ A` is a different model, not a waiver. Source: [xAI models](https://docs.x.ai/developers/models) 2026-08-14 — `grok-build-0.1` is the cheapest text SKU ($1/$2, 256k); `grok-4.5` is the prior flagship still listed; `grok-4.6` is current flagship. `grok models` in Grok Build CLI still only lists 4.5/4.6 — if `grok-build-0.1` is not dispatchable on that host, **fail closed** (do not silently collapse fast→4.5). `fable` is not in G0 — pass-through. Tribunal seats are **not** the Grok column.
 
 ---
 
@@ -98,7 +98,7 @@ Not in play: Claude-host `opus` → `claude-opus-5` (separate `docs/plans/2026-0
 
 | Surface | Path | Owns | Does not own |
 |---|---|---|---|
-| **Machine map** | `plugins/ravenclaude-core/knowledge/substrate-tier-map.json` + thin loaders | `host × {fast,balanced,top}` → SKU; Grok collapse invariant | Prices; seats; Gate 134 Claude catalog |
+| **Machine map** | `plugins/ravenclaude-core/knowledge/substrate-tier-map.json` + thin loaders | `host × {fast,balanced,top}` → SKU; Grok three-SKU uniqueness invariant | Prices; seats; Gate 134 Claude catalog |
 | **Adapter table** | `plugins/ravenclaude-core/skills/adaptive-run-classifier/SKILL.md` § Substrate tier table | Human four-column table; must **mirror** the JSON | Vendor prices/retirements |
 | **Vendor facts** | `plugins/ai-coding-model-guidance/knowledge/cross-tool-model-lineup-2026.md` | Dated names, prices, retirements, API/historical Grok rows | Claude-host catalog; Thing seats |
 | **Claude-host catalog** (untouched) | `plugins/ravenclaude-core/knowledge/model-catalog.json` | Governed `claude-*` (Gate 134) | Grok / Codex / Copilot |
@@ -113,12 +113,12 @@ Not in play: Claude-host `opus` → `claude-opus-5` (separate `docs/plans/2026-0
   "retrieved": "2026-08-14",
   "hosts": {
     "claude":  {"fast": "claude-haiku-4-5-20251001", "balanced": "claude-sonnet-5", "top": "claude-opus-4-8"},
-    "grok":    {"fast": "grok-4.5", "balanced": "grok-4.5", "top": "grok-4.6"},
+    "grok":    {"fast": "grok-build-0.1", "balanced": "grok-4.5", "top": "grok-4.6"},
     "codex":   {"fast": "gpt-5.6-luna", "balanced": "gpt-5.6-terra", "top": "gpt-5.6-sol"},
     "copilot": {"fast": "Claude Haiku 4.5", "balanced": "Claude Sonnet 5", "top": "Claude Opus 5"}
   },
   "notes": {
-    "grok_collapse": "fast+balanced share grok-4.5",
+    "grok_distinct": "fast=grok-build-0.1 balanced=grok-4.5 top=grok-4.6",
     "codex_pro_mode": "reasoning.mode pro on sol — not a separate slug",
     "copilot_balanced": "Sonnet 5 primary; Auto footnote",
     "seats": "Thing seats stay Claude; not this map"
@@ -143,7 +143,7 @@ Not in play: Claude-host `opus` → `claude-opus-5` (separate `docs/plans/2026-0
 | `skills/agent-dispatch-evaluator/reference/evaluate-dispatch.js` `TIER_MODEL` | adapter | n | P3 — `resolveTier` |
 | `skills/rc-deep-research/rc-deep-research.js` `TIER_MODEL` + `DISPATCH_TIER_MODEL` | adapter | n | P3 — lockstep copy fence |
 | `scripts/thing-decide.py` `_evaluator_shadow` `tier_model` | adapter (shadow) | n | P3 — `resolve_tier`; default `claude` |
-| `commands/forge.md` + `skills/forge-pipeline/SKILL.md` `--models` | alias resolve | n | P4 — host column + A==B **waiver** |
+| `commands/forge.md` + `skills/forge-pipeline/SKILL.md` `--models` | alias resolve | n | P4 — host column; Grok `B ≠ A` is three SKUs |
 | `.ravenclaude/comfort-posture.yaml` `panel.*.model` | seat | n (Claude by design) | P5 — **do not edit SKUs** |
 | `templates/thing.yaml` + `templates/comfort-posture-balanced.yaml` | seat template | n | P5 — optional one-line comment |
 | `scripts/generate-dashboards.py` `CR_MODELS` | seat / dashboard | n | P5 — **do not edit** |
@@ -152,7 +152,7 @@ Not in play: Claude-host `opus` → `claude-opus-5` (separate `docs/plans/2026-0
 | `plugins/ai-coding-model-guidance/agents/{grok,codex}-model-strategist.md` + plugin `CLAUDE.md` | strategist defaults | n/a | P2 (A named; B silent — adopt A) |
 | `docs/plans/2026-06-03-adaptive-run-classifier/plan.md` | frozen design | n/a | P6 — banner only |
 | Gate 52 GOOD fixture `DISPATCH_TIER_MODEL` | fixture | n | P7 — lockstep if shape changes |
-| Gate 121 seat-diversity fixtures | fixture / seat | n | P7 — **do not** feed Grok collapse into Claude seat diversity |
+| Gate 121 seat-diversity fixtures | fixture / seat | n | P7 — **do not** feed Grok SKUs into Claude seat diversity |
 | `eval-adaptive-classifier` fixtures | fixture | maybe | P7 — only if they assert SKU strings |
 
 P0 greps `TIER_TO_SKU|TIER_MODEL|DISPATCH_TIER_MODEL|tier_model|GPT-5.5|Opus 4.6` and diffs against this table. New hits get classified; no product edit until the grep is clean or added here.
@@ -213,14 +213,14 @@ Add the JSON + Python loader + JS sibling (§3.1). Default host = `claude`. Seat
 **Pre-build:** `python3 -m json.tool` on the map. Layout: `plugins/*/knowledge/**` and `plugins/*/scripts/**` already allow both paths — **no `.repo-layout.json` glob**.
 
 **Acceptance:**
-- [ ] `--self-test` (py + js) PASS: 4 hosts × 3 tiers; Grok collapse; no `gpt-*-pro`; `resolveTier("grok","top")=="grok-4.6"` and never `claude-*`; `resolveTier(undefined,"top")=="claude-opus-4-8"`.
+- [ ] `--self-test` (py + js) PASS: 4 hosts × 3 tiers; Grok three SKUs are pairwise distinct; no `gpt-*-pro`; `resolveTier("grok","top")=="grok-4.6"` and never `claude-*`; `resolveTier(undefined,"top")=="claude-opus-4-8"`.
 - [ ] No new `── Gate N:` in `audit-gates.sh`.
 
 ### P2 — Knowledge + strategists
 
 `depends_on_claims: [2, 6, 7, 9, 13, 14, 15]` · **Blocked by:** P1 (table mirrors JSON). **Parallel with:** P3, P5, P6.
 
-1. Adapter SKILL table: four host columns from §2; Grok collapse one-liner; seats-are-not-this-column sentence; `last_reviewed` → 2026-08-14.
+1. Adapter SKILL table: four host columns from §2; Grok three-SKU uniqueness one-liner; seats-are-not-this-column sentence; `last_reviewed` → 2026-08-14.
 2. Dispatch-evaluator skill: re-date pointer (`2026-05-31` → `2026-08-14`); **zero** SKU rows of its own.
 3. Lineup: `Last reviewed:` → 2026-08-14. Grok 4.6 = CLI/API flagship (`top`); 4.5 = selectable cheaper rung (`fast`+`balanced`); 4.3 / 4.1 Fast / 4.20 / `grok-build-0.1` = API or historical with `[verify-at-use]`. Codex three-rung Luna/Terra/Sol; GPT-5.5 / GPT-5.5-Pro = prior-generation (keep rows, mark superseded). Copilot: Opus 5 current Claude top; 2026-09-01 retirement table. Mermaid leaves that still say “GPT-5.5-Pro” / “Grok 4.3” as the *live* balanced/top default: retarget or class-label + table pointer. Every `$` / context row keeps date, link, or `verify` (Gate 45).
 4. Strategists (A; B silent — adopt A):
@@ -250,7 +250,7 @@ Add the JSON + Python loader + JS sibling (§3.1). Default host = `claude`. Seat
 - [ ] Comfort-posture seat model literals unchanged.
 - [ ] Disabled dispatch path still byte-identical floor (Gate 52).
 
-### P4 — FORGE `--models` host-aware aliases + A==B waiver
+### P4 — FORGE `--models` host-aware aliases (three distinct Grok SKUs)
 
 `depends_on_claims: [1, 3, 11]` · **Blocked by:** P1 (not full P3).
 
@@ -258,14 +258,15 @@ In `commands/forge.md` + `skills/forge-pipeline/SKILL.md`:
 
 1. Aliases: `haiku`=`fast`, `sonnet`=`balanced`, `opus`=`top`; raw SKUs pass through.
 2. Resolve each alias through `resolveTier(thisHost, alias)`. Host = the CLI `/forge` is running inside (orchestrator-known) or `RAVENCLAUDE_HOST`. Default `claude`.
-3. **After resolve, if `A == B`:** emit the **existing** divergence waiver and continue (V3). Do not invent a SKU. Do not hard-error.
-4. Spec pairs: Claude `A=opus,B=sonnet` → `claude-opus-4-8` vs `claude-sonnet-5`. Grok `A=opus,B=sonnet` / `A=top,B=balanced` → `grok-4.6` vs `grok-4.5` (divergence preserved). Grok `A=sonnet,B=haiku` / `A=fast,B=balanced` → both `grok-4.5` + **waiver**.
+3. **After resolve, if `A == B`:** **fail closed** (V3 amended). That means the map is wrong. Do not invent a SKU and do not waive divergence.
+4. Spec pairs: Claude `A=opus,B=sonnet` → `claude-opus-4-8` vs `claude-sonnet-5`. Grok `A=opus,B=sonnet` → `grok-4.6` vs `grok-4.5`. Grok `A=sonnet,B=haiku` → `grok-4.5` vs `grok-build-0.1`.
 5. `fable` unresolved / pass-through.
+6. If this host’s `grok models` omits `grok-build-0.1`, say so in the run log and pin `A=grok-4.6,B=grok-4.5` for the two panels — do **not** rewrite the adapter map to collapse tiers.
 
 **Acceptance:**
-- [ ] Skill + command state the alias map, host default, and A==B **waiver** (not reject).
+- [ ] Skill + command state the alias map, host default, and Grok three-SKU uniqueness.
 - [ ] No `resolve-tier.py` as a new user-facing CLI; no new gate.
-- [ ] A dry read of the skill is enough to pin `A=grok-4.6,B=grok-4.5` on this host.
+- [ ] A dry read of the skill pins `A=grok-4.6,B=grok-4.5` when only those two are CLI-selectable, while the map still names `grok-build-0.1` as `fast`.
 
 ### P5 — Thing seats: address claim 16; do not flip
 
@@ -322,8 +323,8 @@ Lockstep each `plugin.json` **and** `.claude-plugin/marketplace.json`. Guidance 
 | FM-3 | Copilot `Auto` as non-reproducible balanced SKU | MED | V5: Sonnet 5 primary; Auto footnote |
 | FM-4 | `gpt-5.6-pro` / leftover `GPT-5.5-Pro` as live `top` | MED | P1 self-test forbids `*-pro` slugs; P2/P7 grep |
 | FM-5 | New Gate 134b / Claude-only catalog scope creep | MED | V2: reuse 45+134; multi-host lives in sibling JSON; self-test in module |
-| FM-6 | Gate 52 / 121 / copy-fence drift after shape change | HIGH | Serial lock P3↔P7; 121 must not ingest Grok collapse |
-| FM-7 | FORGE A==B after collapse treated as invalid | HIGH | V3: **waiver**, not reject. Collapse is the designed mapping |
+| FM-6 | Gate 52 / 121 / copy-fence drift after shape change | HIGH | Serial lock P3↔P7; 121 must not ingest Grok SKUs |
+| FM-7 | FORGE `A == B` after resolve | HIGH | V3 amended: fail closed. Three Grok SKUs must stay distinct |
 | FM-8 | Version / marketplace drift | MED | P7 exact pins + `json.tool` + parity check |
 | FM-9 | Vendor page moved since G1 (2026-08-14) | MED | P0 probes; falsify → last observed + `[verify-at-use]` |
 | FM-10 | Strategist `description` > 300 chars | LOW | `check-frontmatter.py` |
@@ -338,11 +339,11 @@ Lockstep each `plugin.json` **and** `.claude-plugin/marketplace.json`. Guidance 
 
 **G0 success signal, mechanically:**
 
-1. Machine map exists; Grok two-SKU collapse enforced by module `--self-test` (not a new gate).
+1. Machine map exists; Grok three SKUs are pairwise distinct (`--self-test`, not a new gate).
 2. Adapter SKILL table names Claude + Codex/API + Copilot + Grok for `fast`/`balanced`/`top`, dated, `[verify-at-use]`; mirrors the JSON.
 3. Lineup re-dated; strategists no longer default to Grok 4.3 / GPT-5.5-Pro as *current*.
 4. Runtime maps host-switch via `resolveTier`; **default host=`claude`**. `evaluate-dispatch.js`, `rc-deep-research.js`, `thing-decide.py` never send `grok-*` to `claude -p` unless host is explicitly grok.
-5. FORGE `--models` aliases resolve through the host column; Grok collapse + **A==B waiver** written down.
+5. FORGE `--models` aliases resolve through the host column; Grok `haiku`/`sonnet`/`opus` are three different SKUs.
 6. Comfort-posture / dashboard / `thing.yaml` seat ids unchanged (claim 16 addressed, not flipped).
 7. Frozen plan has a banner only.
 8. **Versions:** core `0.255.0`→`0.256.0`, guidance `0.3.13`→`0.3.14`, marketplace lockstep.
@@ -355,7 +356,7 @@ Lockstep each `plugin.json` **and** `.claude-plugin/marketplace.json`. Guidance 
     - `python3 scripts/check-frontmatter.py` exit 0
     - Gate 52 PASS (real workflow + good/bad fixtures)
     - Gate 91 PASS (shadow still Claude at default host)
-    - Gate 121 PASS (no Grok collapse in seat diversity)
+    - Gate 121 PASS (no Grok SKUs in Claude seat diversity)
     - Module `--self-test` PASS
     - `npx --yes prettier@3.9.4 --write .` then `--check .` exit 0
     - `ruff check .` exit 0
