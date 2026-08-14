@@ -14,17 +14,17 @@
           {
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/guard-recursive-spawn.sh \"$CLAUDE_TOOL_FILE_PATH\"",
-            "comment": "Advisory: warns when an edit to a plugin agent definition file looks like the agent is instructing itself to spawn another sub-agent \u2014 only the Team Lead dispatches. Set RC_GUARD_RECURSIVE_SPAWN_STRICT=1 to make this blocking."
+            "comment": "Advisory: warns when an edit to a plugin agent definition file looks like the agent is instructing itself to spawn another sub-agent — only the Team Lead dispatches. Set RC_GUARD_RECURSIVE_SPAWN_STRICT=1 to make this blocking."
           },
           {
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/claim-grounding-lint.sh \"$CLAUDE_TOOL_FILE_PATH\"",
-            "comment": "Advisory (Claim Grounding & Source Honesty): nudges when an unhedged absolute capability claim ('you can't\u2026', 'not possible') is written into a knowledge/ or docs/ markdown file without an inline provenance marker \u2014 a durable false prior the next session would trust. Opt-in (no-op unless the project has a .ravenclaude/comfort-posture.yaml); skips frontmatter/code-fences/blockquotes/headings + conditional phrasings; honors a `claim-lint-ok` line escape. Exit 0 always; never blocks. Cannot see the chat answer (no hook can) \u2014 this is the durable-artifact surface only."
+            "comment": "Advisory (Claim Grounding & Source Honesty): nudges when an unhedged absolute capability claim ('you can't…', 'not possible') is written into a knowledge/ or docs/ markdown file without an inline provenance marker — a durable false prior the next session would trust. Opt-in (no-op unless the project has a .ravenclaude/comfort-posture.yaml); skips frontmatter/code-fences/blockquotes/headings + conditional phrasings; honors a `claim-lint-ok` line escape. Exit 0 always; never blocks. Cannot see the chat answer (no hook can) — this is the durable-artifact surface only."
           },
           {
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/delegation-nudge.sh \"$CLAUDE_TOOL_FILE_PATH\"",
-            "comment": "Advisory (Capability Grounding \u2014 'Consult your access inventory before telling the user to check/do something'): nudges when a 'tell the user to manually check / open the portal / check the run history' phrasing is written into a knowledge/ or docs/ markdown file \u2014 a durable prior that teaches over-deference when the agent holds the route itself. Opt-in (no-op unless the project has a .ravenclaude/comfort-posture.yaml); skips frontmatter/code-fences/blockquotes/headings; SUPPRESSES a genuine hand-back reason ('unless you lack\u2026') or a line citing the held route (Web API/GET/pac/az/gh); honors a `delegation-nudge-ok` line escape. Exit 0 always; never blocks. HONEST LIMIT: cannot see the chat answer (the primary surface) \u2014 this is the written-artifact subset only; the inventory + the CGP clause are the real fix."
+            "comment": "Advisory (Capability Grounding — 'Consult your access inventory before telling the user to check/do something'): nudges when a 'tell the user to manually check / open the portal / check the run history' phrasing is written into a knowledge/ or docs/ markdown file — a durable prior that teaches over-deference when the agent holds the route itself. Opt-in (no-op unless the project has a .ravenclaude/comfort-posture.yaml); skips frontmatter/code-fences/blockquotes/headings; SUPPRESSES a genuine hand-back reason ('unless you lack…') or a line citing the held route (Web API/GET/pac/az/gh); honors a `delegation-nudge-ok` line escape. Exit 0 always; never blocks. HONEST LIMIT: cannot see the chat answer (the primary surface) — this is the written-artifact subset only; the inventory + the CGP clause are the real fix."
           },
           {
             "type": "command",
@@ -34,7 +34,7 @@
           {
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/storage-placement-nudge.sh",
-            "comment": "ADVISORY (never blocks): notes when a scratch-named file lands at the repo root instead of one of the two storage tiers, where another CLI would not find it. Deliberately narrow \u2014 only root-level scratch NAMES \u2014 because a nudge that cries wolf gets ignored. Opt out per-file with 'placement-ok'."
+            "comment": "ADVISORY (never blocks): notes when a scratch-named file lands at the repo root instead of one of the two storage tiers, where another CLI would not find it. Deliberately narrow — only root-level scratch NAMES — because a nudge that cries wolf gets ignored. Opt out per-file with 'placement-ok'."
           }
         ]
       },
@@ -44,7 +44,12 @@
           {
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/mark-web-domain-seen.sh",
-            "comment": "Records the per-session first-use 'seen' marker for a YAML-whitelisted domain \u2014 but ONLY after the WebFetch actually proceeded (PostToolUse does not fire on a blocked/denied tool call). This is the consent-ordering complement to guard-web-access.sh's PreToolUse 'ask': a PreToolUse hook can't see its own ask's answer, so marking 'seen' there would silently auto-allow a domain the user just DENIED on the next retry. Recording consent post-allow here closes that inversion. Fail-safe: not WebFetch / no url / no jq -> no-op; never blocks."
+            "comment": "Records the per-session first-use 'seen' marker for a YAML-whitelisted domain — but ONLY after the WebFetch actually proceeded (PostToolUse does not fire on a blocked/denied tool call). This is the consent-ordering complement to guard-web-access.sh's PreToolUse 'ask': a PreToolUse hook can't see its own ask's answer, so marking 'seen' there would silently auto-allow a domain the user just DENIED on the next retry. Recording consent post-allow here closes that inversion. Fail-safe: not WebFetch / no url / no jq -> no-op; never blocks."
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/sanitize-webfetch-output.sh",
+            "comment": "Deterministic WebFetch result quarantine (v0.267.0). Pipes the PostToolUse tool_response body through sanitize-webfetch-body.py and emits hookSpecificOutput.updatedToolOutput so the model never reads raw injection-shaped blocks. Matcher is WebFetch ONLY (mcp__.* is an accepted-limit this increment). Fail-open: parse/IO/sanitizer errors exit 0 and leave the original body in place. House Rule 3: this rewrites every WebFetch result a consumer's agent sees; fail-open is the default-break mitigator."
           }
         ]
       },
@@ -71,7 +76,7 @@
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/thing-orchestrator.sh",
             "timeout": 90,
-            "comment": "Command review (the Thing) \u2014 T3 panel tribunal. No-ops (fast grep) unless a category has `thing: on` in .ravenclaude/comfort-posture.yaml. When a command's category is toggled on, convenes up to three reviewer seats in parallel (Forseti/M\u00edmir/Heimdall) + Thor on a split, renders ALLOW/DENY/EDIT, writes a S\u00e1ga-log audit entry, emits hookSpecificOutput (with updatedInput on EDIT). The internal panel deadline (~75s) stays under this 90s hook timeout so the script emits its own verdict before the platform's fail-OPEN-on-timeout fires. Fails closed (deny for high-stakes categories, ask for shell_readonly) on its own errors. Live for shell_readonly, shell_remote_mutate, shell_code_exec, shell_local_mutate, shell_package_install."
+            "comment": "Command review (the Thing) — T3 panel tribunal. No-ops (fast grep) unless a category has `thing: on` in .ravenclaude/comfort-posture.yaml. When a command's category is toggled on, convenes up to three reviewer seats in parallel (Forseti/Mímir/Heimdall) + Thor on a split, renders ALLOW/DENY/EDIT, writes a Sága-log audit entry, emits hookSpecificOutput (with updatedInput on EDIT). The internal panel deadline (~75s) stays under this 90s hook timeout so the script emits its own verdict before the platform's fail-OPEN-on-timeout fires. Fails closed (deny for high-stakes categories, ask for shell_readonly) on its own errors. Live for shell_readonly, shell_remote_mutate, shell_code_exec, shell_local_mutate, shell_package_install."
           },
           {
             "type": "command",
@@ -86,7 +91,7 @@
           {
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/enforce-git-protocol.sh",
-            "comment": "Git-protocol nudge (default WARN). PreToolUse(Bash). No-ops unless .ravenclaude/comfort-posture.yaml is present; reads the `git_protocol: off|warn|block` knob (default warn). WARNs (stderr, exit 0) on a non-Conventional-Commits `git commit -m` subject or a new-branch creation off the (feat|fix|chore|docs|refactor|agent)/ prefix convention; BLOCKS (exit 2) only when the knob is `block`. A direct non-force push to main/master is advisory-only and NEVER blocks at any knob. Deliberately does NOT touch force operations / branch force-delete / recursive-remove / hard reset \u2014 guard-destructive.sh owns those, and force pushes are force-EXCLUDED here so the two never collide. Fail-open on any error / missing git / missing python3 / absent posture."
+            "comment": "Git-protocol nudge (default WARN). PreToolUse(Bash). No-ops unless .ravenclaude/comfort-posture.yaml is present; reads the `git_protocol: off|warn|block` knob (default warn). WARNs (stderr, exit 0) on a non-Conventional-Commits `git commit -m` subject or a new-branch creation off the (feat|fix|chore|docs|refactor|agent)/ prefix convention; BLOCKS (exit 2) only when the knob is `block`. A direct non-force push to main/master is advisory-only and NEVER blocks at any knob. Deliberately does NOT touch force operations / branch force-delete / recursive-remove / hard reset — guard-destructive.sh owns those, and force pushes are force-EXCLUDED here so the two never collide. Fail-open on any error / missing git / missing python3 / absent posture."
           }
         ]
       },
@@ -110,7 +115,7 @@
           {
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/worktree-guard.sh check",
-            "comment": "Worktree-hygiene guard (check). Reads the `worktree_guard: off|warn|block` knob from .ravenclaude/comfort-posture.yaml (default warn when absent). On `block` DENIES (exit 2) ONLY a MUTATING op \u2014 git commit/add/checkout/switch/merge/rebase/cherry-pick/revert/stash/rm/mv, or a Write/Edit/MultiEdit under the working tree \u2014 and only when this session is contending with another live session in the same tree or is anchor-work; never a read / git status / rcwt. On `warn` (default) it emits a throttled (1/session/clause) stderr nudge and never blocks. Escape hatch: RC_WORKTREE_GUARD_ACK=1. `off` short-circuits before any git shell-out. Fail-open on missing git/jq; emits a hook-event audit line on a verdict."
+            "comment": "Worktree-hygiene guard (check). Reads the `worktree_guard: off|warn|block` knob from .ravenclaude/comfort-posture.yaml (default warn when absent). On `block` DENIES (exit 2) ONLY a MUTATING op — git commit/add/checkout/switch/merge/rebase/cherry-pick/revert/stash/rm/mv, or a Write/Edit/MultiEdit under the working tree — and only when this session is contending with another live session in the same tree or is anchor-work; never a read / git status / rcwt. On `warn` (default) it emits a throttled (1/session/clause) stderr nudge and never blocks. Escape hatch: RC_WORKTREE_GUARD_ACK=1. `off` short-circuits before any git shell-out. Fail-open on missing git/jq; emits a hook-event audit line on a verdict."
           }
         ]
       },
@@ -160,7 +165,7 @@
           {
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/dod-gate.sh",
-            "comment": "Definition-of-done gate. No-ops unless `definition_of_done.cmd` is set in .ravenclaude/comfort-posture.yaml. When set AND source changed this session, runs the gate command (tests/build/lint) at Stop and BLOCKS the stop (decision:block) until it passes \u2014 closing the 'looks done != is done' hallucination gap. Self-limited to max_blocks (default 8) consecutive blocks so it can't deadlock. Deterministic; ports to Copilot via the adapter's stop mode."
+            "comment": "Definition-of-done gate. No-ops unless `definition_of_done.cmd` is set in .ravenclaude/comfort-posture.yaml. When set AND source changed this session, runs the gate command (tests/build/lint) at Stop and BLOCKS the stop (decision:block) until it passes — closing the 'looks done != is done' hallucination gap. Self-limited to max_blocks (default 8) consecutive blocks so it can't deadlock. Deterministic; ports to Copilot via the adapter's stop mode."
           },
           {
             "type": "command",
@@ -193,7 +198,7 @@
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/stream-prompt-attribute.sh",
             "timeout": 10,
-            "comment": "Agentic Work-Streams (P4 \u2014 OPT-IN, FAIL-OPEN). No-ops (a single grep, zero cost) unless .ravenclaude/comfort-posture.yaml sets `stream_hook: per_prompt` (default session_boundary). When opted in: if a work-stream is ACTIVE, attribute the prompt to it as ONE derived event (sticky \u2014 does NOT re-classify); if none is active AND stream_classify is `auto`, classify + set-active on a confident match. NEVER blocks/alters the prompt (always exit 0); a latency budget (RC_STREAM_HOOK_BUDGET_S, default 3s) caps the inner work. NO-EGRESS: only derived labels/terms/word-count are persisted (stream-ops refuses raw-content fields) \u2014 the prompt text never reaches disk."
+            "comment": "Agentic Work-Streams (P4 — OPT-IN, FAIL-OPEN). No-ops (a single grep, zero cost) unless .ravenclaude/comfort-posture.yaml sets `stream_hook: per_prompt` (default session_boundary). When opted in: if a work-stream is ACTIVE, attribute the prompt to it as ONE derived event (sticky — does NOT re-classify); if none is active AND stream_classify is `auto`, classify + set-active on a confident match. NEVER blocks/alters the prompt (always exit 0); a latency budget (RC_STREAM_HOOK_BUDGET_S, default 3s) caps the inner work. NO-EGRESS: only derived labels/terms/word-count are persisted (stream-ops refuses raw-content fields) — the prompt text never reaches disk."
           }
         ]
       }
@@ -205,7 +210,7 @@
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/agent-dispatch-evaluator.sh",
             "timeout": 10,
-            "comment": "Agent-dispatch evaluator (Phase 3 \u2014 AUDIT-ONLY). No-ops (single grep) unless .ravenclaude/dispatch-config.json has `enabled: true` (default false). When opted in, fires a Haiku classifier on the about-to-start subagent and SHADOW-LOGS a model-right-sizing verdict to hook-events.jsonl + .ravenclaude/runs/dispatch-eval/ \u2014 it NEVER denies or redispatches. Ships audit-only because SubagentStart fires post-spawn (RM1): a DENY may be a late cancel, not a pre-dispatch intercept, and this session could not verify deny-is-pre-commit live. The Phase-2 workflow wrapper (evaluate-dispatch.js) is the sole binding path. Fail-open on missing jq/claude/timeout."
+            "comment": "Agent-dispatch evaluator (Phase 3 — AUDIT-ONLY). No-ops (single grep) unless .ravenclaude/dispatch-config.json has `enabled: true` (default false). When opted in, fires a Haiku classifier on the about-to-start subagent and SHADOW-LOGS a model-right-sizing verdict to hook-events.jsonl + .ravenclaude/runs/dispatch-eval/ — it NEVER denies or redispatches. Ships audit-only because SubagentStart fires post-spawn (RM1): a DENY may be a late cancel, not a pre-dispatch intercept, and this session could not verify deny-is-pre-commit live. The Phase-2 workflow wrapper (evaluate-dispatch.js) is the sole binding path. Fail-open on missing jq/claude/timeout."
           }
         ]
       }
@@ -227,7 +232,7 @@
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/capability-orientation.sh",
             "timeout": 10,
-            "comment": "Injects a session-start capability banner via hookSpecificOutput.additionalContext so the agent opens every session aware of the project's external surface, its detected auth (env-var NAMES/presence only \u2014 never values), and its effective .claude/settings.json permissions. Local + cheap; the ONLY subprocess is a bounded, read-only git read (branch + recent commit subjects) used by the work-streams classifier, and only when .ravenclaude/streams/ has streams + none is active. A 10s timeout bounds any pathological config/git read (defense-in-depth). Points to the environment-discovery skill for deep enumeration. Fail-silent; never blocks (SessionStart hooks cannot). Salience boost for the Capability Grounding Protocol, not enforcement."
+            "comment": "Injects a session-start capability banner via hookSpecificOutput.additionalContext so the agent opens every session aware of the project's external surface, its detected auth (env-var NAMES/presence only — never values), and its effective .claude/settings.json permissions. Local + cheap; the ONLY subprocess is a bounded, read-only git read (branch + recent commit subjects) used by the work-streams classifier, and only when .ravenclaude/streams/ has streams + none is active. A 10s timeout bounds any pathological config/git read (defense-in-depth). Points to the environment-discovery skill for deep enumeration. Fail-silent; never blocks (SessionStart hooks cannot). Salience boost for the Capability Grounding Protocol, not enforcement."
           },
           {
             "type": "command",
@@ -255,7 +260,7 @@
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/compact-anchor.sh",
             "timeout": 10,
-            "comment": "Post-compaction addressability pointer. Scoped `matcher: \"compact\"` so it fires ONLY when a session resumes from a compaction \u2014 never on startup/resume/clear/fork. Compaction is append-only: the transcript keeps every pre-boundary turn (text, thinking, tool_use, tool_result) and the compact_boundary record states what was dropped, so the post-compaction agent does not lack the data, it lacks the knowledge that the data exists. This injects the transcript path, where the boundary fell, and how to grep it. SessionStart is the ONLY placement that works \u2014 PreCompact's stdout is not injected. DERIVED VALUES ONLY: fixed strings, validated integers, an allowlisted `trigger`, and the path from the trusted payload \u2014 never a line of transcript content (it holds untrusted tool output; Gate 186 proves this with a sentinel). Fail-safe: EXIT trap armed first, always exits 0."
+            "comment": "Post-compaction addressability pointer. Scoped `matcher: \"compact\"` so it fires ONLY when a session resumes from a compaction — never on startup/resume/clear/fork. Compaction is append-only: the transcript keeps every pre-boundary turn (text, thinking, tool_use, tool_result) and the compact_boundary record states what was dropped, so the post-compaction agent does not lack the data, it lacks the knowledge that the data exists. This injects the transcript path, where the boundary fell, and how to grep it. SessionStart is the ONLY placement that works — PreCompact's stdout is not injected. DERIVED VALUES ONLY: fixed strings, validated integers, an allowlisted `trigger`, and the path from the trusted payload — never a line of transcript content (it holds untrusted tool output; Gate 186 proves this with a sentinel). Fail-safe: EXIT trap armed first, always exits 0."
           }
         ]
       }

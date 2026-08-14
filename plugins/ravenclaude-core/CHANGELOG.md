@@ -2,6 +2,19 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.267.0 — 2026-08-14
+
+### Added
+
+- **WebFetch result quarantine.** New PostToolUse hook `sanitize-webfetch-output.sh`
+  (matcher `WebFetch` only) rewrites the fetched body via
+  `hookSpecificOutput.updatedToolOutput` after `sanitize-webfetch-body.py`. The
+  model no longer has to remember the webfetch-hardening skill contract for this
+  channel. **Fail-open** on parse/IO/sanitizer errors. Does **not** match
+  `mcp__.*` (accepted-limit: product-shaped default change). House Rule 3: this
+  rewrites every WebFetch result a consumer's agent sees; fail-open is the
+  default-break mitigator. `RC_BASELINE.hooks` 33 → 34.
+
 ## 0.266.0 — 2026-08-14
 
 ### Added
