@@ -1,5 +1,7 @@
 # Plan — Adaptive Pre-Execution Classifier for Research/Agentic Workflows
 
+> **Frozen design record (2026-06-03).** Live adapter map: `plugins/ravenclaude-core/skills/adaptive-run-classifier/SKILL.md` § Substrate tier table and `plugins/ravenclaude-core/knowledge/substrate-tier-map.json`. Do not treat the SKUs in this file as current.
+
 **Slug:** `adaptive-run-classifier`
 **Depth:** quick · **Date:** 2026-06-03 · **Route:** stays local (pending G7 confirmation)
 **Synthesized from:** `plan-A.md` (Opus, system-architect), `plan-B.md` (Sonnet, Claude-app-substrate), `gap-delta.md`. Conflict resolutions applied per gap-delta column 5.

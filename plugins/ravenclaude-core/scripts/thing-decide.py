@@ -56,6 +56,17 @@ from pathlib import Path
 _HERE = Path(__file__).resolve().parent
 _DECISION = _HERE / "thing-decision.py"
 
+
+def _resolve_tier(host, tier):
+    """Default host=claude so tribunal shadow never sends grok-* to claude -p."""
+    spec = importlib.util.spec_from_file_location(
+        "load_substrate_tier_map", _HERE / "load-substrate-tier-map.py"
+    )
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    h = host if host is not None else os.environ.get("RAVENCLAUDE_HOST") or "claude"
+    return mod.resolve_tier(h, tier)
+
 _SEATS = ("forseti", "mimir", "heimdall")
 _TRUTHY = {True, "on", "true", "yes", "1"}
 
@@ -343,10 +354,11 @@ def _evaluator_shadow(
     # TEST HOOK: THING_DECIDE_MOCK_EVAL short-circuits the real claude call so the gate
     # can exercise the shadow-attach path offline. Values: keep|upgrade|downgrade.
     mock = os.environ.get("THING_DECIDE_MOCK_EVAL", "")
+    # Tribunal is claude -p. Default host stays claude even if RAVENCLAUDE_HOST is grok.
     tier_model = {
-        "fast": "claude-haiku-4-5-20251001",
-        "balanced": "claude-sonnet-5",
-        "top": "claude-opus-4-8",
+        "fast": _resolve_tier("claude", "fast")["model"],
+        "balanced": _resolve_tier("claude", "balanced")["model"],
+        "top": _resolve_tier("claude", "top")["model"],
     }
     if mock in {"keep", "upgrade", "downgrade"}:
         tier = {"keep": "balanced", "upgrade": "top", "downgrade": "fast"}[mock]

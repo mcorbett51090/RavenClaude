@@ -173,8 +173,26 @@ discipline from `docs/accuracy-near-guarantee-design.md` applied to planning: a 
 **tested facts, not assumptions**.
 
 ### G2 / G3 — Two divergent panels (different models, in parallel)
-Dispatch **one worker subagent per panel**, models pinned per `--models` (B **must** differ from A —
-cross-model divergence is the improvement over Ultraplan's same-model critic). Each panel **writes**
+`--models` aliases: `haiku`=`fast`, `sonnet`=`balanced`, `opus`=`top`; a raw SKU
+passes through. Resolve each alias with `resolveTier(host, alias)` from
+`plugins/ravenclaude-core/knowledge/substrate-tier-map.json` (host =
+`RAVENCLAUDE_HOST` or the CLI `/forge` is running in; default `claude`).
+Compare the resolved **`(model, effort, perspective)`** triples — same triple
+is fail-closed. Same model with different `effort` or `perspective` is allowed
+(Grok Build CLI only dispatches `grok-4.5` / `grok-4.6`; `fast` vs `balanced`
+share `grok-4.5` and diverge on `effort=low`/`perspective=scanner` vs
+`effort=high`/`perspective=architect`). Spec: Claude `A=opus,B=sonnet` →
+`claude-opus-4-8` vs `claude-sonnet-5`. Grok `A=opus,B=sonnet` → `grok-4.6` vs
+`grok-4.5`. Grok `A=sonnet,B=haiku` → `grok-4.5`/`high`/`architect` vs
+`grok-4.5`/`low`/`scanner`. Inject into each panel brief:
+`You are the <perspective> lens. Do not adopt the other panel's framing.`
+(`scanner` = cheap, failure-first; `architect` = SSOT, smallest surface;
+`critic` = adversarial). Pass `--effort` / `reasoning_effort` from the resolved
+row (`low`|`medium`|`high` on Grok CLI — `xhigh` is rejected). `fable` is
+pass-through. Dispatch **one worker subagent per panel**, models pinned per
+`--models` after that resolve (B **must** differ from A on the triple —
+cross-model, or same-model + effort/perspective, divergence is the improvement
+over Ultraplan's same-model critic). Each panel **writes**
 a complete phased plan that must include: per-phase acceptance tests + pre-build gates, a
 **dependency DAG** (what blocks what; what parallelizes; the critical path), **≥2 alternative
 approaches** with one-line trade-offs (the Ultraplan deep-plan structural inheritance — a plan, not a

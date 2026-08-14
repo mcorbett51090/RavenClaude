@@ -1,7 +1,7 @@
 ---
 name: adaptive-run-classifier
 description: "Substrate-neutral pre-execution classifier contract. A single Haiku call emits a `run_config` JSON envelope that right-sizes cardinality knobs + per-phase model tier + reasoning level for multi-phase agentic workflows (the rc-deep-research loop is the first consumer). Workflows read the envelope; substrate adapters (Claude / Codex / Copilot) map tier labels to SKUs. Carved out behind `.ravenclaude/run-config.json` `enabled: false` so adoption is opt-in and rollback is one line."
-last_reviewed: 2026-06-03
+last_reviewed: 2026-08-14
 confidence: high
 ---
 
@@ -74,15 +74,17 @@ See the full schema definition in [`templates/run-config.schema.json`](templates
 
 ## Substrate tier table
 
-The single source of truth for `tier label → SKU` mapping. **Mark every SKU `[verify-at-use]`** — the underlying lineup re-dates monthly (Claude) / weekly (Codex, Copilot, Grok). Source: [`plugins/ai-coding-model-guidance/knowledge/cross-tool-model-lineup-2026.md`](../../../ai-coding-model-guidance/knowledge/cross-tool-model-lineup-2026.md) (Tier-4 freshness anchor) + [`plugins/claude-app-engineering/knowledge/model-selection-and-2026-capability-map.md`](../../../claude-app-engineering/knowledge/model-selection-and-2026-capability-map.md). **Claude column re-verified 2026-06-04** against `platform.claude.com/docs/.../models/overview` (see [`docs/follow-ups/2026-06-04-overnight-parked-work.md`](../../../../docs/follow-ups/2026-06-04-overnight-parked-work.md) §1): all three Claude model-IDs are live + non-deprecated; the `top`-tier framing was updated — **Opus 4.8 is now the sole current top-tier; Opus 4.7 has moved to Anthropic's Legacy list (still available).**
+Human table. Machine SSOT is [`plugins/ravenclaude-core/knowledge/substrate-tier-map.json`](../../knowledge/substrate-tier-map.json) via `resolveTier(host, tier)` (default host = `claude`). **Mark every SKU `[verify-at-use — 2026-08-14]`.** Lineup: [`plugins/ai-coding-model-guidance/knowledge/cross-tool-model-lineup-2026.md`](../../../ai-coding-model-guidance/knowledge/cross-tool-model-lineup-2026.md). Claude catalog (`model-catalog.json`) is untouched: Opus 4.8 remains Claude-host `top`. Thing tribunal seats are **not** this table.
 
-| Tier       | Claude `[verify-at-use — Claude col re-verified 2026-06-04]`           | Codex `[verify-at-use — 2026-05-31]`        | Copilot `[verify-at-use — 2026-05-31]`         |
-| ---------- | --------------------------------------------------------------------- | ------------------------------------------- | ---------------------------------------------- |
-| `fast`     | Haiku 4.5 (`claude-haiku-4-5-20251001`)                               | GPT-5.5 reasoning=low                       | Haiku 4.5 (cloud-agent fast tier) / GPT-5.4-mini |
-| `balanced` | Sonnet 5 (`claude-sonnet-5`) — adaptive thinking                  | GPT-5.5 reasoning=medium/high               | `Auto` or Sonnet 5                            |
-| `top`      | Opus 4.8 (`claude-opus-4-8`), current — escalate sparingly (Opus 4.7 is legacy-but-available) | GPT-5.5-Pro                                 | Opus 4.6                                        |
+Grok Build CLI (`grok models` 2026-08-14) lists only `grok-4.5` and `grok-4.6`. `fast` and `balanced` therefore share `grok-4.5` and **must** differ on `effort` + `perspective` (scanner vs architect). A third CLI SKU was probed and rejected (`grok-build-0.1` / `grok-build` / `grok-4.3` → unknown model id).
 
-**Adapter discipline:** the adapter holds the ONE mapping table. Workflow code never names a SKU directly. SKU rotation happens here; everything downstream stays substrate-neutral.
+| Tier | Claude `[verify-at-use — 2026-08-14]` | Grok Build CLI | Codex / OpenAI API | Copilot |
+| --- | --- | --- | --- | --- |
+| `fast` / `haiku` | Haiku 4.5 (`claude-haiku-4-5-20251001`) | `grok-4.5` + `effort=low` + `perspective=scanner` | `gpt-5.6-luna` | Claude Haiku 4.5 (footnote: Luna / MAI-Code-1.1-Flash) |
+| `balanced` / `sonnet` | Sonnet 5 (`claude-sonnet-5`) | `grok-4.5` + `effort=high` + `perspective=architect` | `gpt-5.6-terra` | **Claude Sonnet 5** (footnote: `Auto` when no tier label) |
+| `top` / `opus` | Opus 4.8 (`claude-opus-4-8`) | `grok-4.6` + `effort=high` + `perspective=critic` | `gpt-5.6-sol` (pro = `reasoning.mode:"pro"`, not a `*-pro` slug) | **Claude Opus 5** |
+
+**Adapter discipline:** rotate SKUs in `substrate-tier-map.json` first, then mirror this table. Workflow code calls `resolveTier`; it does not hand-author a third table.
 
 ## Per-phase defaults
 

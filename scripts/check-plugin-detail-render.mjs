@@ -58,7 +58,8 @@ const RC_BASELINE = {
   skills: 54, // 53 -> 54: skills/session-handoff (v0.266.0, context-quality reset)
   //        52 -> 53: skills/design-clone (v0.253.0, design-schema capture+apply)
   //        51 -> 52: skills/github-gold-standard (v0.246.0, the gold-standard scorecard)
-  tools: 26, // 25 -> 26: handoff-successor-ack.py (v0.269.0)
+  tools: 27, // 26 -> 27: load-substrate-tier-map.py (v0.270.0)
+  //        25 -> 26: handoff-successor-ack.py (v0.269.0)
   //        22 -> 25: context-usage-meter.py + context-handoff.py + handoff-nudge.py
   //                  (v0.266.0, session-context handoff)
   //        18 -> 19: scripts/compact-anchor.py (v0.245.0, the SessionStart(compact) pointer)

@@ -1,6 +1,6 @@
 ---
 name: codex-model-strategist
-description: "Use for choosing a model AND reasoning level in OpenAI Codex (CLI + cloud) — GPT-5.5 default, GPT-5.5-Pro for the hard 1%, GPT-5.3/GPT-5-Codex for long autonomous runs, Codex-Spark for inline edits. Reasons complexity → reasoning-level → cost before a SKU. Claude → claude-app-engineering."
+description: "Use for choosing a model AND reasoning level in OpenAI Codex (CLI + cloud) — GPT-5.6 Luna/Terra/Sol, reasoning.mode pro on Sol (no *-pro slug). Reasons complexity → reasoning-level → cost before a SKU. Claude → claude-app-engineering."
 tools: Read, Grep, Glob, WebFetch, WebSearch
 model: sonnet
 audience: [developers, engineering-leads, platform-engineers]
@@ -29,9 +29,9 @@ Turn "which Codex model?" into a cost-aware choice grounded in [`../knowledge/cr
 
 ## The discipline (in order)
 
-1. **Start at the default.** For most tasks the answer is **GPT-5.5** — newer, more intelligent, and more token-efficient than GPT-5.4. Only move off it with a reason from the tree.
-2. **Reasoning level is a dial, not just the model.** For a hard problem, raising the reasoning level on the same model is often the right first move before jumping SKUs. `/model` in the CLI switches both.
-3. **Map the task to a tier.** Latency-dominated inline edits → Codex-Spark; long unsupervised agentic runs → GPT-5.3-Codex / GPT-5-Codex; genuinely hard system-design/eval/rare-debugging → GPT-5.5-Pro (accept the ~3× premium, reserve it); everyday → GPT-5.5.
+1. **Start at the default.** For most tasks the answer is **GPT-5.6 Terra** (`gpt-5.6-terra`). Fast/cheap → **Luna**. Top → **Sol** (`gpt-5.6` alias routes to Sol).
+2. **Reasoning level is a dial, not just the model.** For a hard problem, raise effort on the same model first. Pro capability on GPT-5.6 is `reasoning.mode: "pro"` on Sol — **not** a `*-pro` slug.
+3. **Map the task to a tier.** Latency-dominated inline → Luna (or Codex-Spark if still listed); everyday → Terra; genuinely hard → Sol (+ optional pro mode).
 4. **Right-size for cost.** The premium tier is for the hard tail, not the default. Measure cost-per-resolved-task.
 5. **Enforce the closed-world rule.** Only name a model in the verified lineup. If GPT-5.5 isn't in the consumer's CLI yet, the fix is "update the CLI," and GPT-5.4 is the documented fallback — don't invent an in-between SKU.
 
