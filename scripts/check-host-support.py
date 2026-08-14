@@ -26,7 +26,9 @@ Usage:
     check-host-support.py <path.json>     # map completeness only, against an arbitrary copy
                                           # (this is how the must-fail teeth drive it)
 
-Exit 0 = pass. Exit 1 = a real defect, with the reason on stderr.
+Exit 0 = pass. Exit 2 = a real defect, with the reason on stderr.
+Exit 1 is never used for a finding — the harness treats exit 1 as a
+non-blocking error (the fail-open this gate exists to close).
 """
 
 from __future__ import annotations
@@ -39,10 +41,30 @@ from pathlib import Path
 _REPO = Path(__file__).resolve().parent.parent
 _MAP = _REPO / "plugins" / "ravenclaude-core" / "knowledge" / "host-support.json"
 
+# PR 10 / Gate 207 — the silent-disarm class. Required on every host so a new
+# --host lane cannot ship without declaring how (or whether) its guardrails
+# re-arm after an update. Consumed by `_rc_rearm_notice`.
+_ACTIVATION_GATES = frozenset({"hash_trust", "version_floor", "none"})
+
 
 def _fail(msg: str) -> int:
     print(f"host-support: {msg}", file=sys.stderr)
-    return 1
+    return 2
+
+
+def check_activation_gates(data: dict) -> int:
+    """Every host declares a valid activation_gate (PR 10 schema pin)."""
+    hosts = data.get("hosts") or {}
+    for name, info in hosts.items():
+        if not isinstance(info, dict):
+            return _fail(f"host '{name}' must be an object")
+        gate = info.get("activation_gate")
+        if gate not in _ACTIVATION_GATES:
+            return _fail(
+                f"host '{name}' missing/invalid activation_gate {gate!r} "
+                f"(want hash_trust | version_floor | none)"
+            )
+    return 0
 
 
 def check_map(path: Path) -> int:
@@ -58,6 +80,10 @@ def check_map(path: Path) -> int:
     components = data.get("components") or {}
     if not components:
         return _fail("no components declared")
+
+    ag = check_activation_gates(data)
+    if ag:
+        return ag
 
     for name, comp in components.items():
         # `what` is prose describing the component; every OTHER key must be a host.

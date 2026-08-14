@@ -2,6 +2,22 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.261.0 — 2026-08-14
+
+### Added
+
+- **Behavioral canary at the end of every `--host` install (Gate 207, advisory).**
+  Each host lane now fires the host's real adapter / shim with a planted marker
+  and confirms the marker wrote — not a files-exist check (P16, generalizing
+  Gate 167). A miss WARNS and the install continues (D4: advisory first, not a
+  hard onboarding bar). Live-host behavior stays owner-verified (M10).
+- **Per-host `activation_gate` on `knowledge/host-support.json`** (`hash_trust` |
+  `version_floor` | `none`), pinned by Gate 154 in the same commit. Codex is
+  `hash_trust` (MH-17); Copilot is `version_floor` (MH-23).
+- **Shared `_rc_rearm_notice` helper** consumed at install / update / status, so
+  the Codex hash-trust and Copilot version-floor notices are one abstraction
+  instead of per-host copies (P18 silent-disarm).
+
 ## 0.260.0 — 2026-08-14
 
 ### Changed

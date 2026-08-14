@@ -1036,9 +1036,15 @@ PY
         python3 scripts/check-description-count-literals.py
       exit $?
       ;;
+    207)
+      echo "── Gate 207: host behavioral canary (per-gate run) ──"
+      bash scripts/check-host-canary.sh --self-test && \
+        bash scripts/check-host-canary.sh
+      exit $?
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -5741,6 +5747,19 @@ else
   gate "host-support teeth: an unsupported cell with no blocked_by is caught" must_fail "$rc"
 fi
 
+# PR 10 schema pin: a host missing activation_gate must be caught. Both fixtures
+# DERIVE their target (first host in the map) so a new host cannot break the
+# teeth by making a hardcoded name disappear.
+HSJ_NOAG="$TMP/host-support-noag.json"
+python3 -c "
+import json
+d=json.load(open('plugins/ravenclaude-core/knowledge/host-support.json'))
+h=next(iter(d['hosts']))
+d['hosts'][h].pop('activation_gate', None)
+json.dump(d, open('$HSJ_NOAG','w'))"
+rc=0; python3 scripts/check-host-support.py "$HSJ_NOAG" >/dev/null 2>&1 || rc=$?
+gate "host-support teeth: a host missing activation_gate is caught" must_fail "$rc"
+
 echo
 echo "── Gate 155: Codex env shim — stdin/exit-code/blanks-only invariants ──────"
 # MH-07/MH-08. hooks/codex-hook-env.sh sits in front of EVERY guardrail under
@@ -6989,6 +7008,34 @@ rc=0; python3 scripts/check-self-certifying-change.py --must-fail >/dev/null 2>&
 gate "self-certifying-change teeth: a planted rotted oracle IS caught" must_fail "$rc"
 rc_is_2=0; [ "$rc" -eq 2 ] || rc_is_2=1
 gate "self-certifying-change teeth: planted rot exits 2 (not 1)" must_pass "$rc_is_2"
+
+echo "── Gate 207: host behavioral canary (P16 install-wires-nothing + P18 silent-disarm) ──"
+# P16 / P18. Every --host install must end by firing the host's real invocation
+# path and confirming a planted marker wrote — not a files-exist check
+# (generalizing Gate 167). activation_gate on host-support.json + one shared
+# _rc_rearm_notice at install/update/status close the silent-disarm class.
+#
+# D4 ADVISORY: the installer WARNS on a canary miss and continues. This gate
+# is the mechanism's teeth, not a hard onboarding bar.
+#
+# M10 HONEST LIMIT, stated in the script header too: live-host behavior is
+# un-exercisable in CI. We gate adapter I/O + the planted-marker round-trip.
+# A host whose live binary ignores a correctly-wired hooks file stays
+# owner-verified.
+#
+# ⛔ Registered in BOTH this main sequence AND the --check dispatcher above + the
+# Supported: string. After adding a gate, run the full suite and GREP ITS OUTPUT
+# FOR "207" — a passing suite is not evidence your gate is in it.
+rc=0; bash scripts/check-host-canary.sh --self-test >/dev/null 2>&1 || rc=$?
+gate "host-canary: self-test (adapter+marker + both must-fail halves)" must_pass "$rc"
+rc=0; bash scripts/check-host-canary.sh >/dev/null 2>&1 || rc=$?
+gate "host-canary: live Codex + Copilot lanes fire the planted marker" must_pass "$rc"
+
+# Exit-2 specificity: a silent-success mutant must be exit 2, not merely nonzero.
+# A crash (exit 1) would be a counterfeit deny (Gate 6 lesson).
+rc=0; bash scripts/check-host-canary.sh --drive-mutant-silent >/dev/null 2>&1 || rc=$?
+rc_is_2=0; [ "$rc" -eq 2 ] || rc_is_2=1
+gate "host-canary teeth: silent-success mutant is exit 2 (not 1)" must_pass "$rc_is_2"
 
 echo "── Gate 206: no plugin description may carry an artifact-count literal ──"
 # P13 / D1. Prose counts in plugin.json + marketplace.json descriptions are
