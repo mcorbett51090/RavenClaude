@@ -6960,7 +6960,6 @@ cp scripts/check-selfheal-push-safety.py "$_g203_ctl/scripts/"
 rc=0; (cd "$_g203_ctl" && python3 scripts/check-selfheal-push-safety.py) >/dev/null 2>&1 || rc=$?
 gate "selfheal-push-safety teeth control: the unmutated copy is clean (the red is the mutation)" must_pass "$rc"
 
-<<<<<<< HEAD
 echo "── Gate 204: a gate re-authored with its target is flagged, not trusted ─"
 # P10. When the same commit rewrites a checker AND the artifact that checker
 # asserts over, the checker's green proves nothing: one edit moved both the
@@ -6990,7 +6989,7 @@ rc=0; python3 scripts/check-self-certifying-change.py --must-fail >/dev/null 2>&
 gate "self-certifying-change teeth: a planted rotted oracle IS caught" must_fail "$rc"
 rc_is_2=0; [ "$rc" -eq 2 ] || rc_is_2=1
 gate "self-certifying-change teeth: planted rot exits 2 (not 1)" must_pass "$rc_is_2"
-=======
+
 echo "── Gate 206: no plugin description may carry an artifact-count literal ──"
 # P13 / D1. Prose counts in plugin.json + marketplace.json descriptions are
 # dropped, not kept-fresh. The adjective-tolerant checker is the migration-
@@ -7043,7 +7042,6 @@ root = pathlib.Path(sys.argv[1])
 PY
 rc=0; python3 "$_g206_ctl/scripts/check-description-count-literals.py" "$_g206_ctl" >/dev/null 2>&1 || rc=$?
 gate "description-count-literals teeth control: the unmutated copy is clean (the red is the plant)" must_pass "$rc"
->>>>>>> 34096cf0 (feat(ci): drop prose count literals; Gate 206 forbids them (PR 12 / P13))
 
 echo
 echo "── Gate 205: route() dispatch is DERIVED; shipped sibling #/ hrefs resolve ─"
