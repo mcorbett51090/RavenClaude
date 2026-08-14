@@ -27,6 +27,8 @@
 
 **Is not:** a model-training/fine-tuning lab, an MLOps platform team, or a data-governance/privacy authority. It does not train base models, run cluster ops, or make data-privacy/compliance determinations — those route to the qualified authority.
 
+**Seams.** Vector / BM25+vector hybrid, chunking, recall@k, and token cost stay here. **Whether a memory graph (paradigm III.a) beats BM25** → [`memory-engineering`](../memory-engineering/). **How to model and query a retrieval graph after that “yes”** (extract → typed edges → local/global search) → [`graph-engineering`](../graph-engineering/). GraphQL and the Microsoft Graph API are other plugins; they are not property graphs.
+
 ---
 
 ## 3. House opinions (the team's standing biases)

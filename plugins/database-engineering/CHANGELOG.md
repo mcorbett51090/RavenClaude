@@ -2,6 +2,12 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.8] — 2026-08-14
+
+### Added
+
+- Seam to [`graph-engineering`](../graph-engineering/) for variable-depth traversal, LPG/RDF modeling, and GraphRAG construction. Relational OLTP stays here.
+
 ## [0.3.7] — 2026-08-14
 
 ### Changed
