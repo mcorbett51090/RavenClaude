@@ -26,7 +26,8 @@ This is a **quality reset**. The current window is (or will be) a detriment. Wri
 2. `bash plugins/ravenclaude-core/bin/rc artifacts new <task-id>` (continue-in-place).
 3. `python3 plugins/ravenclaude-core/scripts/context-handoff.py write --task-id <id>` to refresh the derive-fill skeleton.
 4. **Fill** every `<!-- MODEL FILL -->` section in `.ravenclaude/runs/<id>/handoff.md` from what you actually know. Update `summary.md` / `decisions.md` only when there is real content — never stamp empty files.
-5. Spawn: `bash plugins/ravenclaude-core/bin/rc handoff --task-id <id>` (or `handoff-spawn.sh`). If spawn is `copy-paste-only` or fails, print the exact copy-paste block from stdout. Report which path was taken.
+5. Spawn: `bash plugins/ravenclaude-core/bin/rc handoff --task-id <id> --recipe same-host` (or `handoff-spawn.sh`). Same-host opens a **new terminal in the same app** (VS Code → new VS Code terminal, never Terminal.app). If spawn is `copy-paste-only` or fails, print the exact copy-paste block. Report which path was taken.
+6. If stdout contains `SUCCESSOR_ACK`, the successor has the brief and has begun. **Stop this session.** Tell the user this tab can close. Do not continue the work here. You cannot invoke `/quit` — the TUI must be closed by the user.
 
 ## Out of scope for this skill
 

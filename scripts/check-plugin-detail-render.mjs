@@ -58,13 +58,15 @@ const RC_BASELINE = {
   skills: 54, // 53 -> 54: skills/session-handoff (v0.266.0, context-quality reset)
   //        52 -> 53: skills/design-clone (v0.253.0, design-schema capture+apply)
   //        51 -> 52: skills/github-gold-standard (v0.246.0, the gold-standard scorecard)
-  tools: 25, // 22 -> 25: context-usage-meter.py + context-handoff.py + handoff-nudge.py
+  tools: 26, // 25 -> 26: handoff-successor-ack.py (v0.269.0)
+  //        22 -> 25: context-usage-meter.py + context-handoff.py + handoff-nudge.py
   //                  (v0.266.0, session-context handoff)
   //        18 -> 19: scripts/compact-anchor.py (v0.245.0, the SessionStart(compact) pointer)
   //        19 -> 22: premise-gate.py + classify_claim.py + check-design-schema.py
   //                  (v0.263.0, PR 3b packaging move)
   scenarios: 4,
-  hooks: 34, // 33 -> 34: sanitize-webfetch-output.sh (v0.267.0, WebFetch result quarantine)
+  hooks: 35, // 34 -> 35: handoff-successor-ack.sh (v0.269.0, SessionStart handshake)
+  //        33 -> 34: sanitize-webfetch-output.sh (v0.267.0, WebFetch result quarantine)
   //        32 -> 33: handoff-nudge.sh (v0.266.0, Stop context-hot nudge)
   //        26 -> 28: log-probe.sh + guard-premise.sh (v0.240.0, the premise gate);
   //        28 -> 29: guard-memory-compaction.sh (v0.241.0, the Rule-4 control);

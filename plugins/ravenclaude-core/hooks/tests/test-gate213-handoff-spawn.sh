@@ -60,10 +60,17 @@ _assert_absent "no --prompt-json" "$out" "--prompt-json"
 _assert_absent "no SessionStart" "$out" "SessionStart"
 _assert_contains "copy-paste block present" "$out" "copy-paste"
 
-# os-terminal without owner flag
+# os-terminal / same-host without owner flag
 out="$(bash "$SPAWN" --task-id demo --project-root "$T/proj" --dry-run --recipe os-terminal 2>&1)" || ec=$?
 _assert_contains "os-terminal without flag is refused" "$out" "owner-flagged"
 _assert_absent "default never execs open" "$out" "open -na"
+
+printf 'schema_version: 5\ncontext_handoff:\n  mode: nag\n  spawn: same-host\n' > "$T/proj/.ravenclaude/comfort-posture.yaml"
+out="$(TERM_PROGRAM=vscode __CFBundleIdentifier=com.microsoft.VSCode \
+  bash "$SPAWN" --task-id demo --project-root "$T/proj" --dry-run --recipe same-host 2>&1)" || true
+_assert_contains "same-host dry-run names vscode" "$out" "detected-ui=vscode"
+_assert_contains "same-host dry-run says VS Code terminal" "$out" "VS Code terminal"
+_assert_absent "vscode recipe never uses Terminal.app" "$out" "open -na Terminal"
 
 if [ "$mode" = "--must-fail-headless" ]; then
   mutant="$T/mutant.sh"

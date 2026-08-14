@@ -135,7 +135,9 @@ model_fallback:
 # context_handoff:
 #   mode: nag                    # off | nag | block. Absent / off = silent.
 #   threshold_percent: 70        # before auto-compact (~85). Not a quality-rot %.
-#   spawn: copy-paste-only       # copy-paste-only | os-terminal
+#   spawn: copy-paste-only       # copy-paste-only | same-host | os-terminal
+#                                  same-host = new terminal in THIS app
+#                                  (VS Code → VS Code terminal, not Terminal.app)
 #   # context_window_tokens: 500000   # owner-supplied window; do not guess.
 
 # Web-access first-use trust (added 2026-06-03 — closes Codex desktop trust

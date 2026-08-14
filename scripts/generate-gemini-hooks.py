@@ -71,6 +71,10 @@ _SKIP = {
     "stream-session-close.sh": ("Stop — same unverified lifecycle mapping."),
     "thing-denial-kb-sync.sh": ("Stop — same unverified lifecycle mapping."),
     "handoff-nudge.sh": ("Stop — same unverified lifecycle mapping as dod-gate.sh."),
+    "handoff-successor-ack.sh": (
+        "SessionStart startup handshake (file write). Gemini SessionStart "
+        "payload/matcher names are unverified; a wrong-event ack would lie."
+    ),
     "route-decision-review.sh": (
         "matches AskUserQuestion, a Claude Code tool with no Gemini equivalent."
     ),

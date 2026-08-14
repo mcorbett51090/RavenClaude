@@ -2,6 +2,27 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.269.0 — 2026-08-14
+
+### Added
+
+- **Same-host spawn.** `context_handoff.spawn: same-host` opens a **new
+  terminal in the same app** as the originating session. `TERM_PROGRAM=vscode`
+  → new VS Code integrated terminal (never Terminal.app). Cursor is the same
+  shape. Explicit `os-terminal` still means Terminal.app.
+- **Successor handshake.** SessionStart (`startup`) writes
+  `successor-ack.json`. The originating `rc handoff` waits and prints
+  `SUCCESSOR_ACK` so the original session knows the successor has begun.
+  The original session then **stops**; it cannot `/quit` the TUI.
+- Gate **214** (successor-ack). `RC_BASELINE.hooks` 34 → 35; tools 25 → 26.
+
+### Not claimed
+
+- VS Code has no CLI to create an integrated terminal and run a command
+  (`code --help`, 2026-08-14). Same-host uses Accessibility keystrokes
+  (Ctrl+Shift+`) and falls back to copy-paste if that fails.
+- The originating Grok TUI cannot be closed from inside the agent.
+
 ## 0.268.0 — 2026-08-14
 
 ### Added
