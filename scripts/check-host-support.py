@@ -22,9 +22,11 @@ must-fail teeth — so the teeth could drift from the thing they were proving. O
 implementation, three call sites (main sequence, teeth, `--check 154`).
 
 Usage:
-    check-host-support.py                 # full gate: map completeness + generator derivation
+    check-host-support.py                 # full gate: map + derivation + generated-output scan
     check-host-support.py <path.json>     # map completeness only, against an arbitrary copy
                                           # (this is how the must-fail teeth drive it)
+    check-host-support.py --scan-generated <root>
+                                          # generated-output scan only (MH-27 teeth)
 
 Exit 0 = pass. Exit 2 = a real defect, with the reason on stderr.
 Exit 1 is never used for a finding — the harness treats exit 1 as a
@@ -35,6 +37,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -130,14 +133,80 @@ def check_generator_derives() -> int:
     return 0
 
 
+# MH-27: a generated Copilot manifest listed "Slash commands: /a, /b" on a host
+# the plugin (and host-support.json) says has none. The inventory phrase is the
+# positive advertisement; a sentence that *denies* slash commands is not this
+# shape. Host dirs are derived from the map's host keys — never a hand-typed list.
+_SLASH_INVENTORY = re.compile(r"Slash commands:\s*/")
+_GENERATED_TEXT = frozenset({".json", ".md", ".txt", ".html", ".toml"})
+
+
+def check_generator_output(root: Path) -> int:
+    """Generated per-host trees must not advertise a component the map forbids.
+
+    Walks ``plugins/ravenclaude-core/<host-key>/`` for every host in
+    host-support.json. A missing directory is not a finding (that host has no
+    generated projection). An unreadable map fails closed.
+    """
+    map_path = root / "plugins" / "ravenclaude-core" / "knowledge" / "host-support.json"
+    try:
+        data = json.loads(map_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        return _fail(f"unreadable/invalid JSON at {map_path}: {exc}")
+
+    hosts = data.get("hosts") or {}
+    if not hosts:
+        return _fail("no hosts declared")
+    components = data.get("components") or {}
+    slash_comp = components.get("slash_commands") or {}
+
+    findings: list[str] = []
+    scanned = 0
+    for host_key in hosts:
+        gen_dir = root / "plugins" / "ravenclaude-core" / host_key
+        if not gen_dir.is_dir():
+            continue
+        cell = slash_comp.get(host_key) or {}
+        if cell.get("supported") is not False:
+            continue
+        for path in sorted(gen_dir.rglob("*")):
+            if not path.is_file() or path.suffix.lower() not in _GENERATED_TEXT:
+                continue
+            scanned += 1
+            try:
+                text = path.read_text(encoding="utf-8")
+            except OSError as exc:
+                return _fail(f"unreadable generated file {path}: {exc}")
+            if _SLASH_INVENTORY.search(text):
+                rel = path.relative_to(root)
+                findings.append(
+                    f"{rel}: advertises a slash-command inventory but "
+                    f"host-support.json slash_commands.{host_key}.supported is false"
+                )
+    if findings:
+        return _fail("; ".join(findings))
+    # A root with no generated host trees is fine (teeth fixtures plant one).
+    # scanned is informational only — an empty walk is not a pass-by-skip
+    # because the live tree has copilot/ and the MH-27 teeth plant their own.
+    del scanned
+    return 0
+
+
 def main(argv: list[str]) -> int:
-    if len(argv) > 1:
+    if "--scan-generated" in argv:
+        idx = argv.index("--scan-generated")
+        root = Path(argv[idx + 1]) if idx + 1 < len(argv) else _REPO
+        return check_generator_output(root)
+    if len(argv) > 1 and not argv[1].startswith("-"):
         # Teeth mode: validate an arbitrary (usually deliberately-broken) copy.
         return check_map(Path(argv[1]))
     rc = check_map(_MAP)
     if rc:
         return rc
-    return check_generator_derives()
+    rc = check_generator_derives()
+    if rc:
+        return rc
+    return check_generator_output(_REPO)
 
 
 if __name__ == "__main__":
