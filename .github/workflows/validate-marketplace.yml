@@ -516,3 +516,52 @@ jobs:
             fi
           done < <(jq -r '.plugins[].name' .claude-plugin/marketplace.json)
           exit $status
+
+      - name: Flag a gate re-authored with its own target (advisory — does not fail the job)
+        # P10 / Gate 204. Diff-scan half: a checker + the artifact it asserts
+        # over, both modified in one PR. ADVISORY on purpose — most co-changes
+        # are legitimate; a hard block would train reviewers to bypass it.
+        # The blocking half is the oracle-manifest integrity check inside
+        # audit-gates.sh Gate 204 (exit 2 on rot). This step never fails the
+        # job: a finding is a ::warning:: + job-summary note, not a red X.
+        # Least-privilege: no pull-requests: write — the warning is the comment.
+        # A STEP inside this required workflow, not a new workflow and not a
+        # paths: filter (a path filter on a required check hangs the PR).
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -uo pipefail
+          if ! git fetch --no-tags origin "$BASE_SHA"; then
+            echo "advisory: could not fetch base $BASE_SHA; skipping the diff-scan"
+            exit 0
+          fi
+          out="$(mktemp)"
+          rc=0
+          python3 scripts/check-self-certifying-change.py --range "${BASE_SHA}...HEAD" >"$out" 2>&1 || rc=$?
+          cat "$out"
+          if [ "$rc" -eq 2 ]; then
+            echo "::warning::self-certifying-change: a gate moved in the same diff as the thing it gates (advisory; see the job summary). Declare an unchanged external oracle or a reasoned waiver in docs/gate-oracle-manifest.json."
+            {
+              echo "## Self-certifying-change (advisory)"
+              echo
+              echo "A gate was re-authored in the same diff as the thing it gates."
+              echo "The checker's green proves nothing here. This step does not fail the job."
+              echo
+              echo '```'
+              cat "$out"
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          elif [ "$rc" -ne 0 ]; then
+            echo "::warning::self-certifying-change: checker exited $rc (advisory; not a build failure). See the job summary."
+            {
+              echo "## Self-certifying-change (advisory)"
+              echo
+              echo "Checker exited \`$rc\` — not a finding, and not a build failure."
+              echo
+              echo '```'
+              cat "$out"
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+          exit 0

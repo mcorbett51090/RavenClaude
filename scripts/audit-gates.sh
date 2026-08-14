@@ -925,6 +925,12 @@ PY
         python3 scripts/check-selfheal-push-safety.py
       exit $?
       ;;
+    204)
+      echo "── Gate 204: self-certifying-change flag (per-gate run) ──"
+      python3 scripts/check-self-certifying-change.py --self-test && \
+        python3 scripts/check-self-certifying-change.py
+      exit $?
+      ;;
     205)
       echo "── Gate 205: derived route dispatch + sibling #/ hrefs (per-gate run) ──"
       node scripts/check-committed-routes.mjs --self-test && \
@@ -933,7 +939,7 @@ PY
       ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 205. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -6867,6 +6873,36 @@ cp .github/workflows/*.yml "$_g203_ctl/.github/workflows/"
 cp scripts/check-selfheal-push-safety.py "$_g203_ctl/scripts/"
 rc=0; (cd "$_g203_ctl" && python3 scripts/check-selfheal-push-safety.py) >/dev/null 2>&1 || rc=$?
 gate "selfheal-push-safety teeth control: the unmutated copy is clean (the red is the mutation)" must_pass "$rc"
+
+echo "── Gate 204: a gate re-authored with its target is flagged, not trusted ─"
+# P10. When the same commit rewrites a checker AND the artifact that checker
+# asserts over, the checker's green proves nothing: one edit moved both the
+# claim and the evidence. The remedy this repo already proved (v0.208.0 P3,
+# Gate 51) is an EXTERNAL oracle the commit leaves UNCHANGED.
+#
+# TWO HALVES, stated so a reader does not confuse them:
+#   (1) Oracle-manifest integrity (default mode) — BLOCKING, exit 2. A declared
+#       oracle or waiver that no longer resolves silently widens the
+#       suppression surface. That rot is a fail-closed finding.
+#   (2) Diff-scan (--range / --commit / --staged) — ADVISORY. Most co-changes
+#       are legitimate. Hard-blocking them would train reviewers to bypass the
+#       flag. CI posts a warning; it does not fail the job.
+#
+# exit-2 is N/A-by-design for the advisory half. The blocking half DOES exit 2
+# on a rotted manifest — asserted below via --must-fail (and rc_is_2, so a
+# crash that exits 1 cannot masquerade as the finding).
+#
+# ⛔ Registered in BOTH this main sequence AND the --check dispatcher above + the
+# Supported: string. After adding a gate, run the full suite and GREP ITS OUTPUT
+# FOR "204" — a passing suite is not evidence your gate is in it.
+rc=0; python3 scripts/check-self-certifying-change.py --self-test >/dev/null 2>&1 || rc=$?
+gate "self-certifying-change: teeth (co-change flagged; oracle/waiver/added-file silent; empty diff fails closed)" must_pass "$rc"
+rc=0; python3 scripts/check-self-certifying-change.py >/dev/null 2>&1 || rc=$?
+gate "self-certifying-change: the live oracle manifest is intact" must_pass "$rc"
+rc=0; python3 scripts/check-self-certifying-change.py --must-fail >/dev/null 2>&1 || rc=$?
+gate "self-certifying-change teeth: a planted rotted oracle IS caught" must_fail "$rc"
+rc_is_2=0; [ "$rc" -eq 2 ] || rc_is_2=1
+gate "self-certifying-change teeth: planted rot exits 2 (not 1)" must_pass "$rc_is_2"
 
 echo
 echo "── Gate 205: route() dispatch is DERIVED; shipped sibling #/ hrefs resolve ─"
