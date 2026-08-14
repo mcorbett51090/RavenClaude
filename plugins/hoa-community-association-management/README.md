@@ -22,18 +22,18 @@ Part of the [RavenClaude](../../README.md) marketplace. Extends `ravenclaude-cor
 
 ## What's inside
 
-- **2 agents** — `association-management-lead` (governance & fiduciary advisory, the annual budget & assessment strategy, reserve-funding policy from the reserve study, major-project & special-assessment planning, insurance/risk posture, developer-transition strategy, and the enforcement/collections policy) and `community-operations-specialist` (dues billing & collections/delinquency, covenant-violation & architectural-review processing, vendor & common-area maintenance coordination, meetings & minutes/official records, and resident communications).
-- **3 skills** — `build-budget-and-reserve-plan`, `run-covenant-and-collections-workflow`, `manage-board-and-vendor-operations`.
-- **2 knowledge files** — a Mermaid community-association decision tree (budget & assessment, reserve funding & major-project, enforcement & ARC, collections & delinquency + trade-off tables) and a 2026 patterns reference (the governing-document hierarchy, association types, operating + reserve budgeting, reserve studies & percent-funded, the assessment/lien concept, enforcement due process, meetings & records, insurance layers, developer transition, and a dated statute/standards map).
-- **2 templates** — an annual budget & reserve-study summary and a violation & collections procedure with a running matter log.
+- **agents** — `association-management-lead` (governance & fiduciary advisory, the annual budget & assessment strategy, reserve-funding policy from the reserve study, major-project & special-assessment planning, insurance/risk posture, developer-transition strategy, and the enforcement/collections policy) and `community-operations-specialist` (dues billing & collections/delinquency, covenant-violation & architectural-review processing, vendor & common-area maintenance coordination, meetings & minutes/official records, and resident communications).
+- **skills** — `build-budget-and-reserve-plan`, `run-covenant-and-collections-workflow`, `manage-board-and-vendor-operations`.
+- **knowledge files** — a Mermaid community-association decision tree (budget & assessment, reserve funding & major-project, enforcement & ARC, collections & delinquency + trade-off tables) and a 2026 patterns reference (the governing-document hierarchy, association types, operating + reserve budgeting, reserve studies & percent-funded, the assessment/lien concept, enforcement due process, meetings & records, insurance layers, developer transition, and a dated statute/standards map).
+- **templates** — an annual budget & reserve-study summary and a violation & collections procedure with a running matter log.
 
 ## Where it sits in the real-estate stack
 
 ```
-hoa-community-association-management (HERE)  →  the COMMUNITY ASSOCIATION & its common-interest governance  ("budget, assess, fund reserves, enforce, maintain")
-property-management                          →  a landlord's rental units, leases & rent                     ("rental operations of individual units")
-residential-real-estate-brokerage           →  buying & selling homes                                        ("the transaction")
-commercial-real-estate                       →  CRE brokerage / asset management                              ("commercial property")
+hoa-community-association-management (HERE) → the COMMUNITY ASSOCIATION & its common-interest governance ("budget, assess, fund reserves, enforce, maintain")
+property-management → a landlord's rental units, leases & rent ("rental operations of individual units")
+residential-real-estate-brokerage → buying & selling homes ("the transaction")
+commercial-real-estate → CRE brokerage / asset management ("commercial property")
 ```
 
 This plugin is the **community-association layer**: it governs, budgets, funds, enforces, and maintains the **common-interest community**, and stays clear of a *landlord's rental units* (`property-management`), the *home sale transaction* (`residential-real-estate-brokerage`), and *commercial real estate* (`commercial-real-estate`). Legal steps (lien, foreclosure, statute, fair-housing) route to **counsel** — it is not legal advice.

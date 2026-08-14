@@ -20,11 +20,11 @@ Running a fitness business well: a membership base that compounds because it ret
 
 ## What's inside
 
-- **4 skills** — membership-growth-and-churn, member-onboarding-and-retention, class-schedule-and-instructor-utilization, ancillary-revenue-mix.
-- **Knowledge bank** — [`fitness-studio-decision-trees.md`](knowledge/fitness-studio-decision-trees.md) (4 Mermaid trees: churn-save triage, membership pricing/tier model, schedule the class grid on fill, instructor pay model) + [`fitness-studio-reference-2026.md`](knowledge/fitness-studio-reference-2026.md) (dated reference, verify-at-use).
-- **5 best-practices** — see [`best-practices/README.md`](best-practices/README.md).
-- **2 templates** — studio KPI dashboard, retention playbook.
-- **2 commands** — `/build-retention-plan`, `/optimize-class-grid`.
+- **skills** — membership-growth-and-churn, member-onboarding-and-retention, class-schedule-and-instructor-utilization, ancillary-revenue-mix.
+- **Knowledge bank** — [`fitness-studio-decision-trees.md`](knowledge/fitness-studio-decision-trees.md) (Mermaid trees: churn-save triage, membership pricing/tier model, schedule the class grid on fill, instructor pay model) + [`fitness-studio-reference-2026.md`](knowledge/fitness-studio-reference-2026.md) (dated reference, verify-at-use).
+- **best-practices** — see [`best-practices/README.md`](best-practices/README.md).
+- **templates** — studio KPI dashboard, retention playbook.
+- **commands** — `/build-retention-plan`, `/optimize-class-grid`.
 
 ## Seams
 
@@ -33,7 +33,7 @@ Retail-attach mechanics → [`retail-store-operations`](../retail-store-operatio
 ## Install
 
 ```shell
-/plugin marketplace add ./        # from a separate Claude Code project, pointed at this repo
+/plugin marketplace add ./ # from a separate Claude Code project, pointed at this repo
 /plugin install fitness-studio-gym-operations@ravenclaude
 ```
 

@@ -28,20 +28,20 @@ and drive shrink to zero — across one store or a multi-store district.
 
 ## What's inside
 
-- **5 agents** — `store-ops-lead`, `merchandising-analyst`, `inventory-and-replenishment-analyst`,
-  `labor-scheduling-analyst`, `loss-prevention-advisor`.
-- **3 skills** — `merchandising-and-assortment`, `inventory-and-replenishment`, `labor-scheduling`.
-- **3 commands** — `/retail-store-operations:plan-assortment`, `:set-replenishment`,
-  `:build-labor-schedule`.
-- **2 templates** — `planogram-brief`, `store-labor-model`.
+- **agents** — `store-ops-lead`, `merchandising-analyst`, `inventory-and-replenishment-analyst`,
+ `labor-scheduling-analyst`, `loss-prevention-advisor`.
+- **skills** — `merchandising-and-assortment`, `inventory-and-replenishment`, `labor-scheduling`.
+- **commands** — `/retail-store-operations:plan-assortment`, `:set-replenishment`,
+ `:build-labor-schedule`.
+- **templates** — `planogram-brief`, `store-labor-model`.
 - **Knowledge bank** — `knowledge/retail-store-operations-decision-trees.md`: Mermaid trees for
-  markdown-or-hold, replenish-vs-allocate, and staff-to-traffic, plus a dated 2026 capability map
-  of POS, merch/space, and workforce-management platforms.
-- **6 best-practices** and **1 advisory hook** (flags schedules with no traffic basis, markdowns
-  with no sell-through rationale, hard-coded figures without dates, and replenishment without
-  service-level notes).
+ markdown-or-hold, replenish-vs-allocate, and staff-to-traffic, plus a dated 2026 capability map
+ of POS, merch/space, and workforce-management platforms.
+- **best-practices** and **an advisory hook** (flags schedules with no traffic basis, markdowns
+ with no sell-through rationale, hard-coded figures without dates, and replenishment without
+ service-level notes).
 - **Calculator** — `scripts/retail_calc.py`: GMROI, sell-through %, shrink %, weeks-of-supply,
-  conversion rate, sales per labor hour.
+ conversion rate, sales per labor hour.
 
 ---
 

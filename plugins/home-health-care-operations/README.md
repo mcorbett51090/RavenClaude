@@ -22,20 +22,20 @@ Part of the [RavenClaude](../../README.md) marketplace. Extends `ravenclaude-cor
 
 ## What's inside
 
-- **2 agents** — `home-health-agency-lead` (sets the service-line & payer-mix strategy, the PDGM/OASIS posture, the staffing & capacity model, the referral-development plan, the conditions-of-participation & survey-readiness posture, and the quality/VBP/Star strategy) and `home-care-operations-specialist` (runs intake & eligibility / benefit verification, the physician-order / face-to-face / certification gate, scheduling matched to the plan of care & authorization with caregiver continuity, EVV capture & exception handling, plan-of-care & visit documentation, and billing/RCM — PDGM period billing, Medicaid-waiver/private-pay, denials — with the survey-readiness audit trail).
-- **3 skills** — `plan-intake-and-eligibility`, `build-scheduling-and-evv-workflow`, `run-billing-and-survey-readiness`.
-- **2 knowledge files** — a Mermaid home-health decision tree (intake & the order gate, scheduling & EVV, PDGM/waiver billing & denials, CoP survey readiness + trade-off tables) and a 2026 home-health-patterns reference (the service-line split, intake & eligibility, OASIS & the plan of care, scheduling & continuity, EVV, PDGM/waiver/private-pay billing, the Conditions of Participation, quality/VBP, and a dated regulatory/tooling map).
-- **2 templates** — a plan of care & visit schedule and an agency compliance & survey-readiness checklist.
+- **agents** — `home-health-agency-lead` (sets the service-line & payer-mix strategy, the PDGM/OASIS posture, the staffing & capacity model, the referral-development plan, the conditions-of-participation & survey-readiness posture, and the quality/VBP/Star strategy) and `home-care-operations-specialist` (runs intake & eligibility / benefit verification, the physician-order / face-to-face / certification gate, scheduling matched to the plan of care & authorization with caregiver continuity, EVV capture & exception handling, plan-of-care & visit documentation, and billing/RCM — PDGM period billing, Medicaid-waiver/private-pay, denials — with the survey-readiness audit trail).
+- **skills** — `plan-intake-and-eligibility`, `build-scheduling-and-evv-workflow`, `run-billing-and-survey-readiness`.
+- **knowledge files** — a Mermaid home-health decision tree (intake & the order gate, scheduling & EVV, PDGM/waiver billing & denials, CoP survey readiness + trade-off tables) and a 2026 home-health-patterns reference (the service-line split, intake & eligibility, OASIS & the plan of care, scheduling & continuity, EVV, PDGM/waiver/private-pay billing, the Conditions of Participation, quality/VBP, and a dated regulatory/tooling map).
+- **templates** — a plan of care & visit schedule and an agency compliance & survey-readiness checklist.
 
 ## Where it sits in the care-continuum stack
 
 ```
-home-health-care-operations (HERE)  →  care delivered IN THE HOME + the agency        ("who's eligible, who visits, did we prove it?")
-hospice-referral-sales              →  end-of-life referral development                ("the terminal-care referral relationship")
-senior-care-operations              →  facility-based senior living / assisted living  ("care delivered in a facility")
-medical-revenue-cycle               →  hospital / physician-group RCM                   ("the institutional/professional claim")
-people-operations-hr                →  caregiver / clinician hiring & retention         ("the workforce")
-regulatory-compliance               →  licensure / accreditation / survey program       ("the compliance program")
+home-health-care-operations (HERE) → care delivered IN THE HOME + the agency ("who's eligible, who visits, did we prove it?")
+hospice-referral-sales → end-of-life referral development ("the terminal-care referral relationship")
+senior-care-operations → facility-based senior living / assisted living ("care delivered in a facility")
+medical-revenue-cycle → hospital / physician-group RCM ("the institutional/professional claim")
+people-operations-hr → caregiver / clinician hiring & retention ("the workforce")
+regulatory-compliance → licensure / accreditation / survey program ("the compliance program")
 ```
 
 This plugin is the **in-home-care-delivery layer**: it takes patients through intake, schedules and verifies the visits, documents the care, and bills it so it's paid and survives survey — and stays clear of the *end-of-life referral* (`hospice-referral-sales`), the *facility* (`senior-care-operations`), and the *hospital claim* (`medical-revenue-cycle`).

@@ -22,10 +22,10 @@ repos — this plugin reads it and rolls it up into reports and a dashboard.
 ## How it works
 
 ```
-   tracked repos (read via GitHub API)
-   └──► portfolio-collect.py ──► portfolio-activity.json
-                                   ├──► portfolio-report.py    ──► reports/*.md   (supervisor reads)
-                                   └──► portfolio-dashboard.py ──► portfolio.html (interactive)
+ tracked repos (read via GitHub API)
+ └──► portfolio-collect.py ──► portfolio-activity.json
+ ├──► portfolio-report.py ──► reports/*.md (supervisor reads)
+ └──► portfolio-dashboard.py ──► portfolio.html (interactive)
 ```
 
 You designate one **hub repo** to hold the config + reports + dashboard. The repos being
@@ -35,15 +35,15 @@ You designate one **hub repo** to hold the config + reports + dashboard. The rep
 
 1. Pick a hub repo (a dedicated `team-portfolio` repo is cleanest).
 2. Copy [`templates/team-portfolio.json`](templates/team-portfolio.json) to its root and edit
-   `repos`, `team`, and `projects`.
+ `repos`, `team`, and `projects`.
 3. Prove the renderers work with the bundled fixture (no token needed):
-   ```shell
-   PLUGIN=~/RavenClaude/plugins/team-portfolio
-   python3 "$PLUGIN/scripts/portfolio-dashboard.py" --activity "$PLUGIN/templates/sample-activity.json" --out /tmp/portfolio.html
-   ```
+ ```shell
+ PLUGIN=~/RavenClaude/plugins/team-portfolio
+ python3 "$PLUGIN/scripts/portfolio-dashboard.py" --activity "$PLUGIN/templates/sample-activity.json" --out /tmp/portfolio.html
+ ```
 4. Copy [`templates/portfolio-tracker.yml`](templates/portfolio-tracker.yml) to the hub repo's
-   `.github/workflows/`, add a `PORTFOLIO_TOKEN` secret if any repo is private, and let it run —
-   or run `/portfolio-refresh` on demand.
+ `.github/workflows/`, add a `PORTFOLIO_TOKEN` secret if any repo is private, and let it run —
+ or run `/portfolio-refresh` on demand.
 
 Full walkthrough: the **`portfolio-setup`** skill.
 

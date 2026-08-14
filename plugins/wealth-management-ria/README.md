@@ -8,11 +8,11 @@ A **Wealth Management (RIA Practice) specialist team** for an RIA practice princ
 
 | Surface | Contents |
 |---|---|
-| **4 agents** | `ria-practice-lead`, `aum-revenue-analyst`, `client-segmentation-specialist`, `compliance-cadence-specialist` |
-| **5 skills / commands** | `decompose-aum-growth` · `model-fee-revenue` · `segment-client-profitability` · `size-advisor-capacity` · `track-compliance-cadence` |
-| **4-file knowledge bank** | KPI glossary · unit economics · 2025–2026 context · Mermaid decision trees |
-| **4 templates** | scorecard · exec readout · aum-bridge.md · client-segmentation.md |
-| **1 advisory hook** | flags anti-patterns (unbaselined metric, unsourced benchmark, client financial PII) in generated deliverables |
+| **agents** | `ria-practice-lead`, `aum-revenue-analyst`, `client-segmentation-specialist`, `compliance-cadence-specialist` |
+| **skills / commands** | `decompose-aum-growth` · `model-fee-revenue` · `segment-client-profitability` · `size-advisor-capacity` · `track-compliance-cadence` |
+| **knowledge bank** | KPI glossary · unit economics · 2025–2026 context · Mermaid decision trees |
+| **templates** | scorecard · exec readout · aum-bridge.md · client-segmentation.md |
+| **an advisory hook** | flags anti-patterns (unbaselined metric, unsourced benchmark, client financial PII) in generated deliverables |
 | **`scripts/riaops_calc.py`** | stdlib calculator — `aum-revenue` · `advisor-capacity` · `client-profitability` |
 
 ## Install

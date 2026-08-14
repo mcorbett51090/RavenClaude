@@ -20,11 +20,11 @@ Running a title/settlement operation well: files that move from order to policy 
 
 ## What's inside
 
-- **4 skills** — title-search-and-examination, commitment-and-curative, escrow-closing-and-disbursement, wire-fraud-and-trust-account-controls.
-- **Knowledge bank** — [`title-escrow-decision-trees.md`](knowledge/title-escrow-decision-trees.md) (4 Mermaid trees: clear-a-title-exception, escrow disbursement authorization, wire verification, order-to-policy workflow) + [`title-escrow-reference-2026.md`](knowledge/title-escrow-reference-2026.md) (dated reference, verify-at-use).
-- **5 best-practices** — see [`best-practices/README.md`](best-practices/README.md).
-- **2 templates** — title commitment worksheet, closing checklist.
-- **2 commands** — `/clear-title-exceptions`, `/run-closing-checklist`.
+- **skills** — title-search-and-examination, commitment-and-curative, escrow-closing-and-disbursement, wire-fraud-and-trust-account-controls.
+- **Knowledge bank** — [`title-escrow-decision-trees.md`](knowledge/title-escrow-decision-trees.md) (Mermaid trees: clear-a-title-exception, escrow disbursement authorization, wire verification, order-to-policy workflow) + [`title-escrow-reference-2026.md`](knowledge/title-escrow-reference-2026.md) (dated reference, verify-at-use).
+- **best-practices** — see [`best-practices/README.md`](best-practices/README.md).
+- **templates** — title commitment worksheet, closing checklist.
+- **commands** — `/clear-title-exceptions`, `/run-closing-checklist`.
 
 ## Seams
 
@@ -33,7 +33,7 @@ The lender's loan and CD → [`mortgage-lending`](../mortgage-lending/) · bindi
 ## Install
 
 ```shell
-/plugin marketplace add ./        # from a separate Claude Code project, pointed at this repo
+/plugin marketplace add ./ # from a separate Claude Code project, pointed at this repo
 /plugin install title-escrow-settlement@ravenclaude
 ```
 

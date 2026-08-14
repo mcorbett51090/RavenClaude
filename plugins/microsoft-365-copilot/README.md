@@ -4,7 +4,7 @@ A Microsoft 365 Copilot **extensibility & administration** specialist team for C
 
 ## What it is
 
-Extending M365 Copilot is rarely blocked by typing — it's blocked by **decisions**: declarative agent or custom-engine? which grounding source? will this hit the 50-item / 45-second / no-loop wall? synced or federated connector? how do I remediate oversharing *before* turning Copilot on? This plugin encodes those decisions as a team of advisory specialists backed by a 9-doc knowledge bank whose every claim is grounded in Microsoft Learn with a retrieval date (the manifest schema ships ~monthly, so dated grounding matters).
+Extending M365 Copilot is rarely blocked by typing — it's blocked by **decisions**: declarative agent or custom-engine? which grounding source? will this hit the 50-item / 45-second / no-loop wall? synced or federated connector? how do I remediate oversharing *before* turning Copilot on? This plugin encodes those decisions as a team of advisory specialists backed by a knowledge bank whose every claim is grounded in Microsoft Learn with a retrieval date (the manifest schema ships ~monthly, so dated grounding matters).
 
 The agents are **advisory and interactive**: your M365 tenant lives outside the repo, so they recommend the design and emit runnable artifacts (manifest JSON, OpenAPI, `atk` / `m365` CLI / Microsoft Graph snippets, Purview / admin-center steps) you run yourself.
 
@@ -19,7 +19,7 @@ The agents are **advisory and interactive**: your M365 tenant lives outside the 
 | `agents-sdk-engineer` | custom-engine agents on the M365 Agents SDK/Toolkit — channels/turns/state, streaming/citations, DA→CEA conversion, multi-channel publish |
 | `copilot-admin-governance` | Agent Registry lifecycle, agent + MCP-tool approval, licensing/PAYG, Purview DLP + sensitivity labels for Copilot, RSS/RCD, data residency |
 
-Plus: a 9-doc knowledge bank (two Mermaid decision trees + manifest / connector / API-plugin / SDK / governance / security / residency references), 5 skills, 5 templates, and 1 advisory anti-pattern hook (15 house opinions).
+Plus: a knowledge bank (two Mermaid decision trees + manifest / connector / API-plugin / SDK / governance / security / residency references), skills, templates, and an advisory anti-pattern hook (house opinions).
 
 ## Install
 

@@ -22,19 +22,19 @@ Part of the [RavenClaude](../../README.md) marketplace. Extends `ravenclaude-cor
 
 ## What's inside
 
-- **2 agents** — `tax-practice-lead` (sets the client-mix & niche, busy-season capacity & staffing, pricing/realization, the review standard & risk posture, the representation stance, and the Circular 230 / PTIN / EFIN professional-standards governance) and `tax-preparation-specialist` (drives the organizer & document intake, prepares 1040 / 1120 / 1120-S / 1065 with schedules, self-reviews then routes to a separate reviewer, e-files & tracks the acknowledgment, files extensions & quarterly estimates, responds to IRS/state CP notices, and runs the entity/QBI/retirement/timing planning calc).
-- **3 skills** — `plan-engagement-and-capacity`, `run-return-preparation-workflow`, `handle-notices-and-planning`.
-- **2 knowledge files** — a Mermaid practice decision tree (engagement accept/decline, entity→form routing, prep→review→e-file, notice response, entity-choice/QBI + trade-off tables) and a 2026 tax-practice-patterns reference (the engagement/organizer intake, the entity→form map, the prep→separate-review→e-file pipeline, extensions & estimates, notices & representation, the planning levers, and the Circular 230 / PTIN / EFIN / WISP fence).
-- **2 templates** — a client organizer & engagement letter and a return review & e-file checklist.
+- **agents** — `tax-practice-lead` (sets the client-mix & niche, busy-season capacity & staffing, pricing/realization, the review standard & risk posture, the representation stance, and the Circular 230 / PTIN / EFIN professional-standards governance) and `tax-preparation-specialist` (drives the organizer & document intake, prepares 1040 / 1120 / 1120-S / 1065 with schedules, self-reviews then routes to a separate reviewer, e-files & tracks the acknowledgment, files extensions & quarterly estimates, responds to IRS/state CP notices, and runs the entity/QBI/retirement/timing planning calc).
+- **skills** — `plan-engagement-and-capacity`, `run-return-preparation-workflow`, `handle-notices-and-planning`.
+- **knowledge files** — a Mermaid practice decision tree (engagement accept/decline, entity→form routing, prep→review→e-file, notice response, entity-choice/QBI + trade-off tables) and a 2026 tax-practice-patterns reference (the engagement/organizer intake, the entity→form map, the prep→separate-review→e-file pipeline, extensions & estimates, notices & representation, the planning levers, and the Circular 230 / PTIN / EFIN / WISP fence).
+- **templates** — a client organizer & engagement letter and a return review & e-file checklist.
 
 ## Where it sits in the finance stack
 
 ```
-tax-preparation-practice (HERE)  →  the RETURN and the PRACTICE that produces it  ("prepare, review, file — and run the firm that does")
-accounting-bookkeeping           →  write-up / monthly close / the ledger          ("the books the return sits on")
-wealth-management-ria            →  investment advisory & financial planning        ("the portfolio")
-finance                          →  corporate FP&A / budgeting                       ("the earnings plan")
-legal-small-firm                 →  entity-law / Tax-Court representation             ("the legal side")
+tax-preparation-practice (HERE) → the RETURN and the PRACTICE that produces it ("prepare, review, file — and run the firm that does")
+accounting-bookkeeping → write-up / monthly close / the ledger ("the books the return sits on")
+wealth-management-ria → investment advisory & financial planning ("the portfolio")
+finance → corporate FP&A / budgeting ("the earnings plan")
+legal-small-firm → entity-law / Tax-Court representation ("the legal side")
 ```
 
 This plugin is the **tax-return-preparation layer**: it prepares, reviews, and files the **return** and runs the **practice** that produces it, and stays clear of the *books* (`accounting-bookkeeping`), the *portfolio* (`wealth-management-ria`), and the *earnings plan* (`finance`).

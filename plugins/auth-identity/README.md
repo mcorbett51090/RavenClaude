@@ -6,14 +6,14 @@ End-user **authentication & identity** for the three surfaces you actually prote
 
 ## What you get
 
-**2 agents**
+**agents**
 
 | Agent | Role |
 |---|---|
 | [`auth-architect`](agents/auth-architect.md) | Chooses the auth approach — build-vs-buy provider (leaning Supabase Auth), which OAuth/OIDC flow, session-vs-JWT + token storage — designs how to secure a SPA + API + dashboard, and defines the identity→authorization(RLS) boundary. |
 | [`auth-implementation-engineer`](agents/auth-implementation-engineer.md) | Implements the chosen design — Supabase Auth + Google provider wiring, protected routes, API token-verification middleware, secure cookie/session handling, token refresh/rotation, logout/revocation, CSRF. Routes concrete secret/token code to `security-reviewer`. |
 
-**7 skills**
+**skills**
 
 | Skill | What it does |
 |---|---|
@@ -25,7 +25,7 @@ End-user **authentication & identity** for the three surfaces you actually prote
 | `authorization-rbac` | Roles/permissions on top of authenticated identity — and the hand-off line to data-platform RLS for *row* scope. |
 | `gate-the-dashboard` | Put the analytics dashboard behind login — static-host auth vs reverse-proxy vs app-shell + embed-JWT (the seam to data-platform). |
 
-**4 knowledge docs** — [`auth-provider-landscape-2026.md`](knowledge/auth-provider-landscape-2026.md) (build-vs-buy + per-MAU pricing), [`oauth-oidc-and-google-sso.md`](knowledge/oauth-oidc-and-google-sso.md) (protocol + Google specifics), [`social-and-passwordless-providers-2026.md`](knowledge/social-and-passwordless-providers-2026.md) (the variety pack — Apple/Microsoft/GitHub + magic-link/passkeys, web-verified), [`auth-identity-decision-trees.md`](knowledge/auth-identity-decision-trees.md) (5 Mermaid trees incl. "which providers should you offer?").
+**knowledge docs** — [`auth-provider-landscape-2026.md`](knowledge/auth-provider-landscape-2026.md) (build-vs-buy + per-MAU pricing), [`oauth-oidc-and-google-sso.md`](knowledge/oauth-oidc-and-google-sso.md) (protocol + Google specifics), [`social-and-passwordless-providers-2026.md`](knowledge/social-and-passwordless-providers-2026.md) (the variety pack — Apple/Microsoft/GitHub + magic-link/passkeys, web-verified), [`auth-identity-decision-trees.md`](knowledge/auth-identity-decision-trees.md) (Mermaid trees incl. "which providers should you offer?").
 
 ## The build-vs-buy stance (Supabase-Auth lean)
 

@@ -2,6 +2,12 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.7] — 2026-08-14
+
+### Changed
+
+- Dropped hand-maintained artifact-count literals from the plugin description (D1). The roster enumerates itself; Gate 206 forbids the digit.
+
 ## [0.3.5] — 2026-07-08
 
 Weekly Tier-A news sweep (2026-07-08) — **correction** in `CLAUDE.md`: `dbt-mcp` latest is **1.21.2** (re-verified via the PyPI JSON API), superseding the documented **1.20.1**. **Migration:** none — knowledge-file content only.

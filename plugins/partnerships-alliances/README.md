@@ -1,7 +1,7 @@
 # partnerships-alliances
 
 The **indirect-revenue engine** for a partnerships, alliances, or channel leader — a
-team of 3 specialist agents that designs the partner program, structures joint
+team of specialist agents that designs the partner program, structures joint
 go-to-market, sizes partner-sourced pipeline honestly, and runs the incentive and QBR
 cadence to a P&L.
 

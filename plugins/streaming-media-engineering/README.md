@@ -22,11 +22,11 @@ Building streaming media well: choosing VOD vs live and the protocol you won't h
 
 ## What's inside
 
-- **4 skills** — streaming-architecture-and-protocol-selection, transcoding-and-abr-ladder, low-latency-live-streaming, playback-qoe-and-delivery.
-- **Knowledge bank** — [`streaming-decision-trees.md`](knowledge/streaming-decision-trees.md) (4 Mermaid trees: VOD vs live, protocol choice, codec choice, low-latency approach) + [`streaming-reference-2026.md`](knowledge/streaming-reference-2026.md) (dated codec/protocol/CDN/DRM/player landscape + QoE target ranges, verify-at-use).
-- **5 best-practices** — see [`best-practices/README.md`](best-practices/README.md).
-- **2 templates** — streaming architecture, ABR-ladder plan.
-- **2 commands** — `/choose-streaming-stack`, `/plan-abr-ladder`.
+- **skills** — streaming-architecture-and-protocol-selection, transcoding-and-abr-ladder, low-latency-live-streaming, playback-qoe-and-delivery.
+- **Knowledge bank** — [`streaming-decision-trees.md`](knowledge/streaming-decision-trees.md) (Mermaid trees: VOD vs live, protocol choice, codec choice, low-latency approach) + [`streaming-reference-2026.md`](knowledge/streaming-reference-2026.md) (dated codec/protocol/CDN/DRM/player landscape + QoE target ranges, verify-at-use).
+- **best-practices** — see [`best-practices/README.md`](best-practices/README.md).
+- **templates** — streaming architecture, ABR-ladder plan.
+- **commands** — `/choose-streaming-stack`, `/plan-abr-ladder`.
 
 ## Seams
 
@@ -35,7 +35,7 @@ Creative production → [`film-video-production`](../film-video-production/) · 
 ## Install
 
 ```shell
-/plugin marketplace add ./        # from a separate Claude Code project, pointed at this repo
+/plugin marketplace add ./ # from a separate Claude Code project, pointed at this repo
 /plugin install streaming-media-engineering@ravenclaude
 ```
 

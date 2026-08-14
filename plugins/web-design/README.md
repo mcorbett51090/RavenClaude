@@ -8,7 +8,7 @@ Ships seven specialist agents (web architect, UX designer, visual designer, fron
 
 ```shell
 /plugin marketplace add mcorbett51090/RavenClaude
-/plugin install ravenclaude-core@ravenclaude         # prerequisite
+/plugin install ravenclaude-core@ravenclaude # prerequisite
 /plugin install web-design@ravenclaude
 /reload-plugins
 ```
@@ -29,13 +29,13 @@ See [`CLAUDE.md`](CLAUDE.md) for the full team constitution.
 ## When to dispatch
 
 ```text
-"Build a new marketing site"          → web-architect → ux-designer → visual-designer → content-strategist → frontend-implementer → a11y + perf
-"This page is slow"                   → performance-engineer
-"Our site fails WCAG 2.2 AA"          → accessibility-auditor
-"Brand refresh"                       → visual-designer
-"Set up the design system"            → visual-designer → frontend-implementer
-"Search ranking dropped"              → web-architect + content-strategist
-"This form has poor conversion"       → ux-designer + content-strategist (microcopy)
+"Build a new marketing site" → web-architect → ux-designer → visual-designer → content-strategist → frontend-implementer → a11y + perf
+"This page is slow" → performance-engineer
+"Our site fails WCAG 2.2 AA" → accessibility-auditor
+"Brand refresh" → visual-designer
+"Set up the design system" → visual-designer → frontend-implementer
+"Search ranking dropped" → web-architect + content-strategist
+"This form has poor conversion" → ux-designer + content-strategist (microcopy)
 ```
 
 ## House opinions (short list)
@@ -54,7 +54,7 @@ See [`CLAUDE.md`](CLAUDE.md) for the full team constitution.
 12. One source of truth per design decision.
 13. Print and reduced-motion are not afterthoughts.
 
-Full list (plus 20 anti-patterns) in [`CLAUDE.md`](CLAUDE.md) §3 / §4.
+Full list (plus anti-patterns) in [`CLAUDE.md`](CLAUDE.md) §3 / §4.
 
 ## Hooks
 

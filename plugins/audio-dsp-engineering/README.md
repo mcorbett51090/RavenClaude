@@ -20,19 +20,19 @@ Part of the [RavenClaude](../../README.md) marketplace. Extends `ravenclaude-cor
 
 ## What's inside
 
-- **2 agents** — `audio-dsp-architect` (chooses the processing model, latency budget, platform/plugin format, fixed-vs-float, and algorithm approach) and `dsp-implementation-engineer` (writes real-time-safe DSP, handles denormals, passes parameters lock-free, vectorizes with SIMD, and measures).
-- **3 skills** — `choose-audio-dsp-architecture`, `design-signal-processing-chain`, `implement-and-optimize-realtime-audio`.
-- **2 knowledge files** — a Mermaid audio-DSP architecture decision tree (+ trade-off tables + time-vs-frequency sub-choice) and a 2026 audio-DSP-patterns reference (the callback contract, block processing, denormals, biquad/FIR/FFT overlap-add, lock-free params, oversampling, SIMD, the measurement suite, spatial audio, tooling map).
-- **2 templates** — a DSP design spec and a real-time-audio review checklist.
+- **agents** — `audio-dsp-architect` (chooses the processing model, latency budget, platform/plugin format, fixed-vs-float, and algorithm approach) and `dsp-implementation-engineer` (writes real-time-safe DSP, handles denormals, passes parameters lock-free, vectorizes with SIMD, and measures).
+- **skills** — `choose-audio-dsp-architecture`, `design-signal-processing-chain`, `implement-and-optimize-realtime-audio`.
+- **knowledge files** — a Mermaid audio-DSP architecture decision tree (+ trade-off tables + time-vs-frequency sub-choice) and a 2026 audio-DSP-patterns reference (the callback contract, block processing, denormals, biquad/FIR/FFT overlap-add, lock-free params, oversampling, SIMD, the measurement suite, spatial audio, tooling map).
+- **templates** — a DSP design spec and a real-time-audio review checklist.
 
 ## Where it sits in the audio stack
 
 ```
-audio-dsp-engineering (HERE)   →  PROCESS the sample in real time          ("filters, FX, the callback, at latency")
-streaming-media-engineering    →  encode / container / deliver the audio   ("how the audio is shipped")
-conversational-ai-voice-eng    →  ASR / TTS / turn-taking voice agents      ("the voice AI")
-embedded-iot-engineering       →  MCU firmware / RTOS / peripherals         ("the board around a DSP core")
-game-development               →  engine audio middleware / mixer           ("the game's audio integration")
+audio-dsp-engineering (HERE) → PROCESS the sample in real time ("filters, FX, the callback, at latency")
+streaming-media-engineering → encode / container / deliver the audio ("how the audio is shipped")
+conversational-ai-voice-eng → ASR / TTS / turn-taking voice agents ("the voice AI")
+embedded-iot-engineering → MCU firmware / RTOS / peripherals ("the board around a DSP core")
+game-development → engine audio middleware / mixer ("the game's audio integration")
 ```
 
 This plugin is the **real-time DSP layer**: it designs and builds the signal processing itself, and stays clear of the *delivery* pipeline (`streaming-media-engineering`), the *voice-AI* stack (`conversational-ai-voice-engineering`), and the *board bring-up* (`embedded-iot-engineering`) around a DSP core.

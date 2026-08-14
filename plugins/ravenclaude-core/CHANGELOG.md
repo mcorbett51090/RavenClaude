@@ -2,6 +2,14 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.260.0 — 2026-08-14
+
+### Changed
+
+- Dropped hand-maintained artifact-count literals from the plugin description (D1). The roster enumerates itself (`agents (a, b, c)` not `15 specialists, 53 skills`); Gate 206 forbids the digit.
+
+**Migration:** catalog text only — `/plugin marketplace update` shows the shorter description. No hook, skill, or runtime change. Derived counts (`| Skills | 53 |`, `ships **N plugins**`) stay and remain self-healed.
+
 ## 0.259.0 — 2026-08-14
 
 ### Added
@@ -3024,3 +3032,4 @@ A 2026-06-19 repo review surfaced ten fixes; six were independently landed on `m
 
 - No existing hook, script, skill, rule, or agent was modified. The only changes are additive files (`scenarios/`, this CHANGELOG) plus a `CLAUDE.md` append and the version bump. `plugins/*/scenarios/**` was already an allowed glob in `.repo-layout.json`, so no layout-manifest change was needed.
 - **Migration:** none — additive content; nothing in a consumer's installed plugin changes on `/plugin marketplace update`.
+

@@ -20,21 +20,21 @@ Part of the [RavenClaude](../../README.md) marketplace. Extends `ravenclaude-cor
 
 ## What's inside
 
-- **2 agents** — `shopify-app-architect` (app type, integration surface, Functions/extensibility, data model, storefront, billing/review envelope) and `shopify-app-engineer` (GraphQL/webhooks/OAuth/App-Bridge/Functions/extensions/Liquid/Hydrogen/Billing, built the current-generation way, with auth verified and rate limits handled).
-- **2 skills** — `design-shopify-build`, `ship-app-store-ready`.
-- **2 knowledge files** — a Mermaid decision-tree bank (app type, customization surface, theme-vs-headless, data model, commercial/safety envelope) and a dated 2026 patterns reference (auth, webhook reliability/security, GraphQL rate limits & bulk ops, Functions & checkout extensibility, App Bridge/Polaris, OS 2.0, Hydrogen, Billing, review categories, tooling map).
-- **1 template** — a Shopify build spec (audience/App-Store exposure → surface → customization path → data model → storefront → commercial/safety envelope → review checklist → seams).
+- **agents** — `shopify-app-architect` (app type, integration surface, Functions/extensibility, data model, storefront, billing/review envelope) and `shopify-app-engineer` (GraphQL/webhooks/OAuth/App-Bridge/Functions/extensions/Liquid/Hydrogen/Billing, built the current-generation way, with auth verified and rate limits handled).
+- **skills** — `design-shopify-build`, `ship-app-store-ready`.
+- **knowledge files** — a Mermaid decision-tree bank (app type, customization surface, theme-vs-headless, data model, commercial/safety envelope) and a dated 2026 patterns reference (auth, webhook reliability/security, GraphQL rate limits & bulk ops, Functions & checkout extensibility, App Bridge/Polaris, OS 2.0, Hydrogen, Billing, review categories, tooling map).
+- **a template** — a Shopify build spec (audience/App-Store exposure → surface → customization path → data model → storefront → commercial/safety envelope → review checklist → seams).
 
 ## Where it sits among the commerce & frontend plugins
 
 ```
-ecommerce-dtc               →  merchandising / retention / lifecycle OPERATIONS   (the strategy the app serves)
-web-commerce                →  a generic, non-Shopify PAYMENT scaffold
-fintech-payments-engineering →  off-Shopify PAYMENT RAILS / PSP work
-frontend-engineering        →  generic React component / state craft
-web-design                  →  visual / interaction / IA DESIGN
-shopify-app-engineering (HERE) →  DESIGN & BUILD on the Shopify platform
-                                  ("app type + GraphQL + Functions + themes + review-ready, with the platform's grain")
+ecommerce-dtc → merchandising / retention / lifecycle OPERATIONS (the strategy the app serves)
+web-commerce → a generic, non-Shopify PAYMENT scaffold
+fintech-payments-engineering → off-Shopify PAYMENT RAILS / PSP work
+frontend-engineering → generic React component / state craft
+web-design → visual / interaction / IA DESIGN
+shopify-app-engineering (HERE) → DESIGN & BUILD on the Shopify platform
+ ("app type + GraphQL + Functions + themes + review-ready, with the platform's grain")
 ```
 
 This plugin **builds on the Shopify platform** and **feeds** those teams rather than replacing them: it hands the merchandising strategy to `ecommerce-dtc`, the off-Shopify payment rails to `fintech-payments-engineering`, the generic React work to `frontend-engineering`, and the visual design to `web-design` — while owning the app-type decision, GraphQL/webhook/Functions craft, theme vs headless call, and App-Store-review discipline that make a Shopify build ship and survive.

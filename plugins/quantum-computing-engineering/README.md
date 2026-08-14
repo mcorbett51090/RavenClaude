@@ -24,19 +24,19 @@ Part of the [RavenClaude](../../README.md) marketplace. Extends `ravenclaude-cor
 
 ## What's inside
 
-- **2 agents** — `quantum-solutions-architect` (triages the problem, then chooses paradigm, qubit modality, NISQ-vs-FT roadmap, provider/SDK, and resource estimate) and `quantum-algorithm-engineer` (designs & transpiles circuits, builds VQE/QAOA hybrid loops, applies error mitigation, and runs/benchmarks on simulators and QPUs).
-- **3 skills** — `triage-quantum-use-case`, `design-and-transpile-quantum-circuit`, `select-error-mitigation-and-benchmark`.
-- **2 knowledge files** — a Mermaid quantum decision tree (classical-vs-quantum triage gate → paradigm → modality → NISQ-vs-FT → SDK/provider, + trade-off tables) and a dated 2026 quantum-patterns reference (the advantage reality check, the NISQ depth-vs-coherence contract, algorithm families, transpilation, error mitigation vs correction, the surface code / logical-vs-physical qubits / threshold, the hybrid loop, execution, benchmarking, and a landscape snapshot).
-- **2 templates** — a quantum use-case assessment (the triage) and a quantum experiment spec (the build & benchmark).
+- **agents** — `quantum-solutions-architect` (triages the problem, then chooses paradigm, qubit modality, NISQ-vs-FT roadmap, provider/SDK, and resource estimate) and `quantum-algorithm-engineer` (designs & transpiles circuits, builds VQE/QAOA hybrid loops, applies error mitigation, and runs/benchmarks on simulators and QPUs).
+- **skills** — `triage-quantum-use-case`, `design-and-transpile-quantum-circuit`, `select-error-mitigation-and-benchmark`.
+- **knowledge files** — a Mermaid quantum decision tree (classical-vs-quantum triage gate → paradigm → modality → NISQ-vs-FT → SDK/provider, + trade-off tables) and a dated 2026 quantum-patterns reference (the advantage reality check, the NISQ depth-vs-coherence contract, algorithm families, transpilation, error mitigation vs correction, the surface code / logical-vs-physical qubits / threshold, the hybrid loop, execution, benchmarking, and a landscape snapshot).
+- **templates** — a quantum use-case assessment (the triage) and a quantum experiment spec (the build & benchmark).
 
 ## Where it sits in the stack
 
 ```
-quantum-computing-engineering (HERE)  →  BUILD the quantum algorithm & run it       ("is it quantum, which one, and can we trust the result?")
-ml-engineering                        →  classical machine learning / MLOps         ("the classical ML")
-hardware-electronics-engineering      →  the control board / cryogenics             ("the fridge and the wiring")
-security-engineering / cybersec-grc   →  post-quantum CRYPTOGRAPHY migration         ("the DEFENSE against quantum")
-performance-engineering               →  large-scale classical simulation / HPC     ("simulating the circuit classically")
+quantum-computing-engineering (HERE) → BUILD the quantum algorithm & run it ("is it quantum, which one, and can we trust the result?")
+ml-engineering → classical machine learning / MLOps ("the classical ML")
+hardware-electronics-engineering → the control board / cryogenics ("the fridge and the wiring")
+security-engineering / cybersec-grc → post-quantum CRYPTOGRAPHY migration ("the DEFENSE against quantum")
+performance-engineering → large-scale classical simulation / HPC ("simulating the circuit classically")
 ```
 
 This plugin is the **quantum algorithm/software layer**: it decides whether a problem is even quantum and builds/benchmarks the circuit, and stays clear of classical ML (`ml-engineering`), the physical control hardware (`hardware-electronics-engineering`), the *defensive* post-quantum-cryptography migration (`security-engineering` / `cybersecurity-grc` — a security question, not a build-quantum-algorithms one), and large-scale classical simulation (`performance-engineering`).

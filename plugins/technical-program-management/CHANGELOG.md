@@ -16,3 +16,10 @@ Initial release.
 - 1 advisory anti-pattern hook (`flag-tpm-antipatterns.sh`) — flags
   activity-led status updates and launch checklists with no go/no-go criteria.
 - 1 worked scenario.
+
+## [0.1.2] — 2026-08-14
+
+### Changed
+
+- Dropped hand-maintained artifact-count literals from the plugin description (D1). The roster enumerates itself; Gate 206 forbids the digit.
+

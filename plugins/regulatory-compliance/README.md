@@ -10,7 +10,7 @@ The plugin's positioning reflects field experience inside a Tier-1 financial reg
 
 ```shell
 /plugin marketplace add mcorbett51090/RavenClaude
-/plugin install ravenclaude-core@ravenclaude         # prerequisite
+/plugin install ravenclaude-core@ravenclaude # prerequisite
 /plugin install regulatory-compliance@ravenclaude
 /reload-plugins
 ```
@@ -33,23 +33,23 @@ See [`CLAUDE.md`](CLAUDE.md) for the full team constitution.
 ## When to dispatch
 
 ```text
-"Review this customer's KYC file"          → aml-kyc-analyst
-"FATCA filing is due in 6 weeks"           → regulatory-reporting-analyst
-"Build our risk register"                  → risk-and-controls-specialist
-"Draft an AML policy refresh"              → policy-and-procedure-writer
-"BMA exam scheduled for Q3"                → examination-prep-specialist
-"BMA-domiciled captive — capital math"     → bermuda-insurance-specialist
+"Review this customer's KYC file" → aml-kyc-analyst
+"FATCA filing is due in 6 weeks" → regulatory-reporting-analyst
+"Build our risk register" → risk-and-controls-specialist
+"Draft an AML policy refresh" → policy-and-procedure-writer
+"BMA exam scheduled for Q3" → examination-prep-specialist
+"BMA-domiciled captive — capital math" → bermuda-insurance-specialist
 "Classify this Bermuda bank/trust/CSP/fund" → bma-financial-institutions-specialist
-"Mutual Funds Act or Private Funds Act?"   → cima-cayman-specialist
-"Who licenses this Bahamian entity?"       → bahamas-financial-services-specialist
-"Jersey JPF or Guernsey PIF?"              → channel-islands-specialist
-"Is this firm PRA- or FCA-regulated?"      → uk-pra-specialist
-"Which US regulator / BSA-AML / BOI?"      → us-financial-regulation-specialist
+"Mutual Funds Act or Private Funds Act?" → cima-cayman-specialist
+"Who licenses this Bahamian entity?" → bahamas-financial-services-specialist
+"Jersey JPF or Guernsey PIF?" → channel-islands-specialist
+"Is this firm PRA- or FCA-regulated?" → uk-pra-specialist
+"Which US regulator / BSA-AML / BOI?" → us-financial-regulation-specialist
 ```
 
 ## Regulator knowledge base
 
-The jurisdiction specialists read **19 primary-source-cited knowledge files** before answering — **thirteen BMA files** under [`knowledge/bma/`](knowledge/bma/) (banking, trust, corporate-services, fund-administration, investment-business, overview, **msb-and-digital-assets**, **aml-atf**, **supervision-and-filings**, a **decision-trees** classification file, a **filing-calendar**, an **economic-substance-and-tax** edge file, and an **edge-cases** catalogue) and six under [`knowledge/jurisdictions/`](knowledge/jurisdictions/) (CIMA/Cayman, Bahamas, Jersey-Guernsey, UK PRA, US federal+state, and a global standard-setter directory). Each cites the actual Act + section and Code + date; values that could not be pinned to the primary text (many regulator sites 403 automated fetch) carry an explicit `[unverified]` marker — the instruction to confirm against the primary PDF before relying.
+The jurisdiction specialists read **primary-source-cited knowledge files** before answering — **thirteen BMA files** under [`knowledge/bma/`](knowledge/bma/) (banking, trust, corporate-services, fund-administration, investment-business, overview, **msb-and-digital-assets**, **aml-atf**, **supervision-and-filings**, a **decision-trees** classification file, a **filing-calendar**, an **economic-substance-and-tax** edge file, and an **edge-cases** catalogue) and six under [`knowledge/jurisdictions/`](knowledge/jurisdictions/) (CIMA/Cayman, Bahamas, Jersey-Guernsey, UK PRA, US federal+state, and a global standard-setter directory). Each cites the actual Act + section and Code + date; values that could not be pinned to the primary text (many regulator sites 403 automated fetch) carry an explicit `[unverified]` marker — the instruction to confirm against the primary PDF before relying.
 
 ## House opinions (short list)
 
@@ -67,7 +67,7 @@ The jurisdiction specialists read **19 primary-source-cited knowledge files** be
 12. Jurisdiction matters.
 13. Risk is quantified where possible (inherent + residual).
 
-Full list (plus 14 anti-patterns) in [`CLAUDE.md`](CLAUDE.md) §3 / §4.
+Full list (plus anti-patterns) in [`CLAUDE.md`](CLAUDE.md) §3 / §4.
 
 ## Hooks — important
 

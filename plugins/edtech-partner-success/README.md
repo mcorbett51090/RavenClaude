@@ -1,6 +1,6 @@
 # edtech-partner-success
 
-EdTech-flavored Partner Success Manager team — a Claude Code plugin in the [RavenClaude marketplace](../../README.md) that bundles 6 specialist agents anchored on the PSM lane.
+EdTech-flavored Partner Success Manager team — a Claude Code plugin in the [RavenClaude marketplace](../../README.md) that bundles specialist agents anchored on the PSM lane.
 
 **For:** an actual PSM running an actual book of EdTech partners. K-12, higher-ed, corporate L&D, or mixed segments — the plugin is vertical-explicit but segment-agnostic.
 
@@ -34,11 +34,11 @@ Requires `ravenclaude-core@>=0.7.0` (for the alternate-methods Capability Ground
 
 ## What's inside
 
-- **6 agents** (above)
-- **14 skills:** partner-health-scoring, health-report-dashboard (a self-contained Power-BI/Tableau-style portfolio report — demo data + a generator that rebuilds it from real data), cs-platform-integration (back-end contract for a centralized CS dashboard on Planhat + Salesforce + Snowflake + Zapier + Granola), success-plan-authoring, qbr-composition, rostering-data-quality, advocacy-program-design, adoption-sequencing-k12, implementation-90-day-arc, partner-training-program-design, renewal-play-design, expansion-play-design, recovery-play-design, executive-sponsor-mapping
+- **agents** (above)
+- **skills:** partner-health-scoring, health-report-dashboard (a self-contained Power-BI/Tableau-style portfolio report — demo data + a generator that rebuilds it from real data), cs-platform-integration (back-end contract for a centralized CS dashboard on Planhat + Salesforce + Snowflake + Zapier + Granola), success-plan-authoring, qbr-composition, rostering-data-quality, advocacy-program-design, adoption-sequencing-k12, implementation-90-day-arc, partner-training-program-design, renewal-play-design, expansion-play-design, recovery-play-design, executive-sponsor-mapping
 - **BI report:** **[▶ View rendered in your browser](https://mcorbett51090.github.io/RavenClaude/plugins/edtech-partner-success/report.html)** (or the [raw source](report.html)) — the demo on synthetic data; rebuild from real data with `python3 scripts/generate-bi-report.py` after editing [`bi-report/data.json`](bi-report/data.json)
-- **8 templates:** success plan, partner profile, QBR deck outline, touchpoint log, escalation memo, health-score dashboard spec, onboarding checklist, annual partner review
-- **1 advisory hook:** `flag-psm-anti-patterns.sh` — flags unverified numeric claims, generic boilerplate, missing dates in action items, multi-partner names in `To:` lines, health-score status without named signals
+- **templates:** success plan, partner profile, QBR deck outline, touchpoint log, escalation memo, health-score dashboard spec, onboarding checklist, annual partner review
+- **an advisory hook:** `flag-psm-anti-patterns.sh` — flags unverified numeric claims, generic boilerplate, missing dates in action items, multi-partner names in `To:` lines, health-score status without named signals
 - **Knowledge bank:** empty at v0.1.0; will accumulate production lessons as the plugin gets used
 
 ## Boundaries

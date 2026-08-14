@@ -2,6 +2,12 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.2.2] — 2026-08-14
+
+### Changed
+
+- Dropped hand-maintained artifact-count literals from the plugin description (D1). The roster enumerates itself; Gate 206 forbids the digit.
+
 ## [0.2.0] — 2026-06-05
 
 Value-add build-out: the **scenarios bank** and the **technical-runtime tier** (LSP + a runnable contract-diff script), complementing the knowledge trees / best-practices / templates that landed between 0.1.0 and 0.1.3 (PR #315).

@@ -8,11 +8,11 @@ A **Customer Support & CX Operations specialist team** for a support-ops leader,
 
 | Surface | Contents |
 |---|---|
-| **4 agents** | `support-ops-lead`, `ticket-deflection-analyst`, `queue-staffing-specialist`, `csat-quality-strategist` |
-| **5 skills / commands** | `model-deflection` · `size-staffing` · `project-backlog` · `read-satisfaction` · `design-qa-program` |
-| **4-file knowledge bank** | KPI glossary · unit economics · 2025–2026 context · Mermaid decision trees |
-| **4 templates** | scorecard · exec readout · staffing-worksheet.md · csat-quality-readout.md |
-| **1 advisory hook** | flags anti-patterns (unbaselined metric, unsourced benchmark, customer PII) in generated deliverables |
+| **agents** | `support-ops-lead`, `ticket-deflection-analyst`, `queue-staffing-specialist`, `csat-quality-strategist` |
+| **skills / commands** | `model-deflection` · `size-staffing` · `project-backlog` · `read-satisfaction` · `design-qa-program` |
+| **knowledge bank** | KPI glossary · unit economics · 2025–2026 context · Mermaid decision trees |
+| **templates** | scorecard · exec readout · staffing-worksheet.md · csat-quality-readout.md |
+| **an advisory hook** | flags anti-patterns (unbaselined metric, unsourced benchmark, customer PII) in generated deliverables |
 | **`scripts/supportops_calc.py`** | stdlib calculator — `staffing` · `deflection` · `sla-backlog` |
 
 ## Install

@@ -22,20 +22,20 @@ Part of the [RavenClaude](../../README.md) marketplace. Extends `ravenclaude-cor
 
 ## What's inside
 
-- **2 agents** — `treasury-strategy-lead` (sets the liquidity policy, bank & account structure, investment policy statement, FX/rate risk-management policy & hedge program, and TMS strategy) and `cash-and-risk-operations-specialist` (positions cash, builds the 13-week/direct forecast, executes & books hedges with hedge accounting, runs positive pay / dual auth / BEC controls, and does bank admin — onboarding, AFP-code fee analysis, ISO 20022 camt/pain connectivity).
-- **3 skills** — `build-cash-forecast-and-liquidity-plan`, `design-fx-and-interest-rate-hedge`, `optimize-working-capital-and-payments`.
-- **2 knowledge files** — a Mermaid treasury decision tree (buffer sizing, invest-vs-payoff, hedge-vs-accept, pooling/in-house-bank, payment-method + trade-off tables) and a 2026 treasury-patterns reference (the cash-conversion cycle, direct/indirect forecasting, hedge instruments & ASC 815 / IFRS 9 hedge accounting, account structures, payment fraud controls, the TMS landscape, and a dated standards/tooling map).
-- **2 templates** — a cash forecast & liquidity policy and a hedge decision & FX/rate risk register.
+- **agents** — `treasury-strategy-lead` (sets the liquidity policy, bank & account structure, investment policy statement, FX/rate risk-management policy & hedge program, and TMS strategy) and `cash-and-risk-operations-specialist` (positions cash, builds the 13-week/direct forecast, executes & books hedges with hedge accounting, runs positive pay / dual auth / BEC controls, and does bank admin — onboarding, AFP-code fee analysis, ISO 20022 camt/pain connectivity).
+- **skills** — `build-cash-forecast-and-liquidity-plan`, `design-fx-and-interest-rate-hedge`, `optimize-working-capital-and-payments`.
+- **knowledge files** — a Mermaid treasury decision tree (buffer sizing, invest-vs-payoff, hedge-vs-accept, pooling/in-house-bank, payment-method + trade-off tables) and a 2026 treasury-patterns reference (the cash-conversion cycle, direct/indirect forecasting, hedge instruments & ASC 815 / IFRS 9 hedge accounting, account structures, payment fraud controls, the TMS landscape, and a dated standards/tooling map).
+- **templates** — a cash forecast & liquidity policy and a hedge decision & FX/rate risk register.
 
 ## Where it sits in the finance stack
 
 ```
-treasury-management (HERE)     →  the CASH and the BANK RELATIONSHIP     ("how much cash, where; who banks us; move & protect it")
-finance                        →  FP&A / budgeting / the P&L plan         ("the earnings plan")
-fintech-payments-engineering   →  payment-rail / API / ledger code        ("building the movement of money")
-regulatory-compliance          →  deep AML / OFAC / sanctions programs     ("the compliance program")
-procurement-sourcing           →  supplier terms & sourcing               ("the DPO source")
-internal-audit                 →  audit of treasury controls              ("independent assurance")
+treasury-management (HERE) → the CASH and the BANK RELATIONSHIP ("how much cash, where; who banks us; move & protect it")
+finance → FP&A / budgeting / the P&L plan ("the earnings plan")
+fintech-payments-engineering → payment-rail / API / ledger code ("building the movement of money")
+regulatory-compliance → deep AML / OFAC / sanctions programs ("the compliance program")
+procurement-sourcing → supplier terms & sourcing ("the DPO source")
+internal-audit → audit of treasury controls ("independent assurance")
 ```
 
 This plugin is the **corporate-treasury layer**: it forecasts and protects the **cash** and owns the **bank relationship**, and stays clear of the *earnings plan* (`finance`), the *rail engineering* (`fintech-payments-engineering`), and the *compliance program* (`regulatory-compliance`).

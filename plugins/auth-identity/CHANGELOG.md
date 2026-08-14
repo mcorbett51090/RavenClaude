@@ -2,6 +2,12 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.3] — 2026-08-14
+
+### Changed
+
+- Dropped hand-maintained artifact-count literals from the plugin description (D1). The roster enumerates itself; Gate 206 forbids the digit.
+
 ## [0.3.2] — 2026-07-14
 
 Captured field learnings from a live build (customer SSO — Google/Apple/Microsoft — on **Cloudflare Workers + D1** for an Astro app).

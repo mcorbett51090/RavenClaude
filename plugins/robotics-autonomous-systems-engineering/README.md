@@ -20,11 +20,11 @@ Getting a robot from a simulation and a whiteboard graph to a machine that sense
 
 ## What's inside
 
-- **4 skills** — ros2-architecture-and-dds, motion-planning-and-control, perception-and-state-estimation, sim-to-real-and-safety.
-- **Knowledge bank** — [`robotics-decision-trees.md`](knowledge/robotics-decision-trees.md) (4 Mermaid trees: middleware choice, motion-planner choice, localization-stack choice, real-time execution path) + [`robotics-reference-2026.md`](knowledge/robotics-reference-2026.md) (dated reference, verify-at-use).
-- **5 best-practices** — see [`best-practices/README.md`](best-practices/README.md).
-- **2 templates** — robot system architecture, ROS 2 node-graph plan.
-- **2 commands** — `/design-ros2-architecture`, `/plan-motion-stack`.
+- **skills** — ros2-architecture-and-dds, motion-planning-and-control, perception-and-state-estimation, sim-to-real-and-safety.
+- **Knowledge bank** — [`robotics-decision-trees.md`](knowledge/robotics-decision-trees.md) (Mermaid trees: middleware choice, motion-planner choice, localization-stack choice, real-time execution path) + [`robotics-reference-2026.md`](knowledge/robotics-reference-2026.md) (dated reference, verify-at-use).
+- **best-practices** — see [`best-practices/README.md`](best-practices/README.md).
+- **templates** — robot system architecture, ROS 2 node-graph plan.
+- **commands** — `/design-ros2-architecture`, `/plan-motion-stack`.
 
 ## Seams
 
@@ -33,7 +33,7 @@ Firmware / HAL / `micro-ROS` on a microcontroller → [`embedded-iot-engineering
 ## Install
 
 ```shell
-/plugin marketplace add ./        # from a separate Claude Code project, pointed at this repo
+/plugin marketplace add ./ # from a separate Claude Code project, pointed at this repo
 /plugin install robotics-autonomous-systems-engineering@ravenclaude
 ```
 

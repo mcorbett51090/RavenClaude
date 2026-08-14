@@ -8,11 +8,11 @@ A **Accessibility Engineering specialist team** for an accessibility lead, front
 
 | Surface | Contents |
 |---|---|
-| **4 agents** | `accessibility-lead`, `wcag-audit-analyst`, `assistive-tech-testing-specialist`, `inclusive-design-strategist` |
-| **5 skills / commands** | `run-wcag-audit` · `prioritize-remediation` · `test-assistive-tech` · `verify-contrast` · `design-accessible-pattern` |
-| **4-file knowledge bank** | KPI glossary · unit economics · 2025–2026 context · Mermaid decision trees |
-| **4 templates** | scorecard · exec readout · audit-worksheet.md · remediation-plan.md |
-| **1 advisory hook** | flags anti-patterns (unbaselined metric, unsourced benchmark, user PII) in generated deliverables |
+| **agents** | `accessibility-lead`, `wcag-audit-analyst`, `assistive-tech-testing-specialist`, `inclusive-design-strategist` |
+| **skills / commands** | `run-wcag-audit` · `prioritize-remediation` · `test-assistive-tech` · `verify-contrast` · `design-accessible-pattern` |
+| **knowledge bank** | KPI glossary · unit economics · 2025–2026 context · Mermaid decision trees |
+| **templates** | scorecard · exec readout · audit-worksheet.md · remediation-plan.md |
+| **an advisory hook** | flags anti-patterns (unbaselined metric, unsourced benchmark, user PII) in generated deliverables |
 | **`scripts/accessibility_calc.py`** | stdlib calculator — `conformance` · `remediation` · `contrast` |
 
 ## Install

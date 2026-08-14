@@ -36,7 +36,7 @@ Manages matters on realization/utilization, supports drafting and document revie
 
 ## Knowledge bank
 
-5 research-grounded reference docs under [`knowledge/`](knowledge/) — figures carry a source + date, advisory numbers are marked `[ESTIMATE]` / `[verify-at-use]`, and anything from training knowledge is marked `[unverified — training knowledge]`. Includes two **Mermaid** decision-tree files: the consolidated [`legal-practice-decision-trees.md`](knowledge/legal-practice-decision-trees.md) (fee structure / A/R collection / billing-rate review) and the net-new [`legal-intake-and-trust-decision-trees.md`](knowledge/legal-intake-and-trust-decision-trees.md) (conflict-checked intake / IOLTA three-way reconciliation).
+research-grounded reference docs under [`knowledge/`](knowledge/) — figures carry a source + date, advisory numbers are marked `[ESTIMATE]` / `[verify-at-use]`, and anything from training knowledge is marked `[unverified — training knowledge]`. Includes two **Mermaid** decision-tree files: the consolidated [`legal-practice-decision-trees.md`](knowledge/legal-practice-decision-trees.md) (fee structure / A/R collection / billing-rate review) and the net-new [`legal-intake-and-trust-decision-trees.md`](knowledge/legal-intake-and-trust-decision-trees.md) (conflict-checked intake / IOLTA three-way reconciliation).
 
 ## Scenarios bank & calculator
 
@@ -46,7 +46,7 @@ Manages matters on realization/utilization, supports drafting and document revie
 ## Install
 
 ```shell
-/plugin marketplace add ./            # from a separate Claude Code project
+/plugin marketplace add ./ # from a separate Claude Code project
 /plugin install legal-small-firm@ravenclaude
 ```
 

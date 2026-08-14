@@ -2,6 +2,12 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.1.2] — 2026-08-14
+
+### Changed
+
+- Dropped hand-maintained artifact-count literals from the plugin description (D1). The roster enumerates itself; Gate 206 forbids the digit.
+
 ## [0.1.0] — 2026-06-22
 
 Initial build — the **command-line-tool** sibling the app-craft cluster (backend / frontend / mobile / desktop-app / api / database / auth-identity) was missing. The #2 candidate on the 2026-06-12 ten-plugin roadmap (after desktop-app-engineering, #1). Mirrors the proven app-craft recipe for a **code** domain.

@@ -20,14 +20,14 @@ Part of the [RavenClaude](../../README.md) marketplace. Extends `ravenclaude-cor
 
 ## What's inside
 
-- **2 agents**
-  - [`lean-six-sigma-blackbelt`](agents/lean-six-sigma-blackbelt.md) — the centerpiece. Runs the full DMAIC arc, frames the problem quantitatively, proves root cause, designs the fix, locks the gain.
-  - [`process-analyst`](agents/process-analyst.md) — the green-belt analyst who maps and measures the current state (SIPOC, value-stream maps, data-collection plans, waste/Pareto) and feeds the Black Belt.
-- **6 skills** — `dmaic-project-charter`, `process-mapping`, `root-cause-analysis`, `process-capability-and-spc`, `lean-waste-analysis`, `control-plan-and-sustain`.
-- **3 knowledge files** —
-  - [`dmaic-and-lean-toolkit.md`](knowledge/dmaic-and-lean-toolkit.md) — DMAIC phase-by-phase + the canonical tool per phase; DMAIC vs DMADV vs Kaizen/PDCA; the Lean overlay (8 wastes / DOWNTIME, value-add vs non-value-add).
-  - [`six-sigma-statistics-and-spc.md`](knowledge/six-sigma-statistics-and-spc.md) — sigma↔DPMO↔yield (1.5σ shift), Cp/Cpk/Pp/Ppk + thresholds, control-chart selection + Western Electric / Nelson rules, MSA / Gage R&R, and the explicit map of what routes to `applied-statistics`.
-  - [`process-improvement-decision-trees.md`](knowledge/process-improvement-decision-trees.md) — Mermaid trees: which methodology, which control chart, which root-cause tool, capable-vs-in-control triage.
+- **agents**
+ - [`lean-six-sigma-blackbelt`](agents/lean-six-sigma-blackbelt.md) — the centerpiece. Runs the full DMAIC arc, frames the problem quantitatively, proves root cause, designs the fix, locks the gain.
+ - [`process-analyst`](agents/process-analyst.md) — the green-belt analyst who maps and measures the current state (SIPOC, value-stream maps, data-collection plans, waste/Pareto) and feeds the Black Belt.
+- **skills** — `dmaic-project-charter`, `process-mapping`, `root-cause-analysis`, `process-capability-and-spc`, `lean-waste-analysis`, `control-plan-and-sustain`.
+- **knowledge files** —
+ - [`dmaic-and-lean-toolkit.md`](knowledge/dmaic-and-lean-toolkit.md) — DMAIC phase-by-phase + the canonical tool per phase; DMAIC vs DMADV vs Kaizen/PDCA; the Lean overlay (8 wastes / DOWNTIME, value-add vs non-value-add).
+ - [`six-sigma-statistics-and-spc.md`](knowledge/six-sigma-statistics-and-spc.md) — sigma↔DPMO↔yield (1.5σ shift), Cp/Cpk/Pp/Ppk + thresholds, control-chart selection + Western Electric / Nelson rules, MSA / Gage R&R, and the explicit map of what routes to `applied-statistics`.
+ - [`process-improvement-decision-trees.md`](knowledge/process-improvement-decision-trees.md) — Mermaid trees: which methodology, which control chart, which root-cause tool, capable-vs-in-control triage.
 
 ## When to use it
 
@@ -41,8 +41,8 @@ Reach for `applied-statistics` instead when the question is purely "which statis
 ## How it seams with `applied-statistics`
 
 ```
-process-improvement  →  WHICH metric, WHICH chart, WHICH tool, what a Cpk of 1.1 MEANS for this process
-applied-statistics   →  "is the difference REAL?"  (the hypothesis test, DOE, regression, sample size, capability inference)
+process-improvement → WHICH metric, WHICH chart, WHICH tool, what a Cpk of 1.1 MEANS for this process
+applied-statistics → "is the difference REAL?" (the hypothesis test, DOE, regression, sample size, capability inference)
 ```
 
 This plugin owns the **process framing and the method choice**; it does **not** re-derive the inferential math. The Black Belt routes Analyze-phase hypothesis tests, Improve-phase pilot analysis, DOE, and formal capability inference to [`applied-statistics/applied-statistician`](../applied-statistics/agents/applied-statistician.md) — invoking its `choose-statistical-test`, `experiment-analysis`, `power-and-sample-size`, and `statistical-qa-of-metrics` skills. It also seams to `project-management` (the DMAIC project wrapper / RAID) and `data-platform` (instrumenting a process so it can be measured + monitored).

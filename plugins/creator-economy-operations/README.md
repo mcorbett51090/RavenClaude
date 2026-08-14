@@ -14,16 +14,16 @@ diversified off a single platform, and a sustainable content + audience-growth e
 ## What this plugin gives you
 
 - **A monetization mix that fits the audience** — ads, sponsorships, subscriptions &
-  memberships, digital products & courses, affiliate, and services — prioritized by
-  audience size × engagement × buying-intent, weighted toward recurring revenue.
+ memberships, digital products & courses, affiliate, and services — prioritized by
+ audience size × engagement × buying-intent, weighted toward recurring revenue.
 - **Sponsorships priced on value, not CPM** — a rate card built from audience value +
-  deliverable + separate usage/exclusivity line items + a walk-away floor, with clear
-  disclosure.
+ deliverable + separate usage/exclusivity line items + a walk-away floor, with clear
+ disclosure.
 - **Platform-risk de-risking** — moving audience onto owned channels (email/community)
-  and diversifying so no single platform or sponsor is catastrophic to lose.
+ and diversifying so no single platform or sponsor is catastrophic to lose.
 - **A sustainable content + growth engine** — content pillars, a cadence matched to
-  real capacity (not a burnout myth), native repurposing, and an owned-audience funnel,
-  steered by engagement and conversion instead of vanity metrics.
+ real capacity (not a burnout myth), native repurposing, and an owned-audience funnel,
+ steered by engagement and conversion instead of vanity metrics.
 
 ## The two agents
 
@@ -50,9 +50,9 @@ diversified off a single platform, and a sustainable content + audience-growth e
 ## When *not* to use it
 
 - You need brand-side demand-gen / paid media (the advertiser's campaigns) — that's
-  `marketing-operations`. This plugin is the creator's side of the deal.
+ `marketing-operations`. This plugin is the creator's side of the deal.
 - You're running a real product catalog with inventory and fulfillment — that's
-  `ecommerce-dtc`.
+ `ecommerce-dtc`.
 - You need DevRel / developer-audience community — that's `developer-relations`.
 - You need legal/tax/financial *advice* — see a licensed professional (`finance` for modeling).
 

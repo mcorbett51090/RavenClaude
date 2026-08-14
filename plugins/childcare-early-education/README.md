@@ -20,11 +20,11 @@ Running an early-education center well: every licensed seat filled with a family
 
 ## What's inside
 
-- **4 skills** — enrollment-and-waitlist-management, ratios-and-licensing-compliance, tuition-and-subsidy-billing, staffing-to-ratio-scheduling.
-- **Knowledge bank** — [`childcare-decision-trees.md`](knowledge/childcare-decision-trees.md) (4 Mermaid trees: staff a room to ratio, enrollment/waitlist, tuition vs subsidy billing route, licensing-readiness triage) + [`childcare-reference-2026.md`](knowledge/childcare-reference-2026.md) (dated reference: ratio/group-size norms by age, CCDF/subsidy basics, licensing domains — each verify-at-use, state-specific).
-- **5 best-practices** — see [`best-practices/README.md`](best-practices/README.md).
-- **2 templates** — enrollment funnel tracker, ratio staffing plan.
-- **2 commands** — `/plan-staffing-to-ratio`, `/model-enrollment`.
+- **skills** — enrollment-and-waitlist-management, ratios-and-licensing-compliance, tuition-and-subsidy-billing, staffing-to-ratio-scheduling.
+- **Knowledge bank** — [`childcare-decision-trees.md`](knowledge/childcare-decision-trees.md) (Mermaid trees: staff a room to ratio, enrollment/waitlist, tuition vs subsidy billing route, licensing-readiness triage) + [`childcare-reference-2026.md`](knowledge/childcare-reference-2026.md) (dated reference: ratio/group-size norms by age, CCDF/subsidy basics, licensing domains — each verify-at-use, state-specific).
+- **best-practices** — see [`best-practices/README.md`](best-practices/README.md).
+- **templates** — enrollment funnel tracker, ratio staffing plan.
+- **commands** — `/plan-staffing-to-ratio`, `/model-enrollment`.
 
 ## Seams
 
@@ -33,7 +33,7 @@ Broader early-education partner/programmatic and school-district relationships �
 ## Install
 
 ```shell
-/plugin marketplace add ./        # from a separate Claude Code project, pointed at this repo
+/plugin marketplace add ./ # from a separate Claude Code project, pointed at this repo
 /plugin install childcare-early-education@ravenclaude
 ```
 

@@ -17,7 +17,7 @@ Salesforce engineering specialists for the RavenClaude marketplace — bulk-safe
 | `flow-automation-architect` | You're deciding which automation tool to use, triaging automation density on an object, or weighing Flow vs Apex. |
 | `agentforce-architect` | You're designing an Agentforce agent and need to respect determinism boundaries and the Einstein Trust Layer. |
 | `salesforce-platform-architect` | You're designing a data model, sharing model, LDV strategy, packaging/DevOps pipeline, or integration pattern. |
-| `salesforce-reviewer` | You want a PR or component reviewed against the 15 Salesforce house opinions as pass/fail. |
+| `salesforce-reviewer` | You want a PR or component reviewed against the Salesforce house opinions as pass/fail. |
 
 ## Knowledge
 

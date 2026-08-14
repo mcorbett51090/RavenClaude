@@ -41,3 +41,10 @@ decision/production layers.
   (`check-data-science-research-anti-patterns.sh`; `DS_STRICT=1` to make it blocking), and a **scenarios bank** (2 field notes).
 - Seams: is-the-result-statistically-real → `applied-statistics`; productionize/serve/monitor → `ml-engineering`;
   data pipelines/warehouse → `data-platform`; PII/consent → `data-governance-privacy`. Requires `ravenclaude-core@>=0.7.0`.
+
+## [0.2.2] — 2026-08-14
+
+### Changed
+
+- Dropped hand-maintained artifact-count literals from the plugin description (D1). The roster enumerates itself; Gate 206 forbids the digit.
+

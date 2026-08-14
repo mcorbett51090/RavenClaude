@@ -19,19 +19,19 @@ Part of the [RavenClaude](../../README.md) marketplace. Extends `ravenclaude-cor
 
 ## What's inside
 
-- **2 agents** — `seo-strategy-architect` (decides the priority diagnosis, IA + internal-linking model, content/entity model, indexation strategy, and E-E-A-T posture) and `seo-implementation-engineer` (implements + verifies crawlability, rendering, indexation controls, JSON-LD structured data, Core Web Vitals, and site migrations).
-- **3 skills** — `choose-seo-strategy-and-priorities`, `design-site-architecture-and-content-model`, `implement-technical-seo-and-structured-data`.
-- **2 knowledge files** — a Mermaid crawl→render→index→understand→rank strategy decision tree (+ five-rung trade-off table + "what should we index" sub-choice) and a 2026 technical-SEO-patterns reference (crawl budget & logs, rendering, indexation mechanics, structured data, Core Web Vitals/INP, hreflang, migrations, tooling map).
-- **2 templates** — a technical-SEO audit report and an SEO migration plan.
+- **agents** — `seo-strategy-architect` (decides the priority diagnosis, IA + internal-linking model, content/entity model, indexation strategy, and E-E-A-T posture) and `seo-implementation-engineer` (implements + verifies crawlability, rendering, indexation controls, JSON-LD structured data, Core Web Vitals, and site migrations).
+- **skills** — `choose-seo-strategy-and-priorities`, `design-site-architecture-and-content-model`, `implement-technical-seo-and-structured-data`.
+- **knowledge files** — a Mermaid crawl→render→index→understand→rank strategy decision tree (+ five-rung trade-off table + "what should we index" sub-choice) and a 2026 technical-SEO-patterns reference (crawl budget & logs, rendering, indexation mechanics, structured data, Core Web Vitals/INP, hreflang, migrations, tooling map).
+- **templates** — a technical-SEO audit report and an SEO migration plan.
 
 ## Where it sits in the search stack
 
 ```
-web-design                  →  build the website / visual design      ("make the site exist & look right")
-technical-writing-docs      →  write the content                      ("the words on the page")
-technical-seo-engineering (HERE)  →  CRAWL / RENDER / INDEX / UNDERSTAND / RANK in Google/Bing  ("can search engines use it & will it rank")
-search-relevance-engineering →  relevance INSIDE the site's search box ("ranking within our own search")
-marketing-operations        →  paid ads / campaign strategy           ("buying reach — organic's paid sibling")
+web-design → build the website / visual design ("make the site exist & look right")
+technical-writing-docs → write the content ("the words on the page")
+technical-seo-engineering (HERE) → CRAWL / RENDER / INDEX / UNDERSTAND / RANK in Google/Bing ("can search engines use it & will it rank")
+search-relevance-engineering → relevance INSIDE the site's search box ("ranking within our own search")
+marketing-operations → paid ads / campaign strategy ("buying reach — organic's paid sibling")
 ```
 
 This plugin is the **organic-search-engineering layer**: it makes the site `web-design` builds and `technical-writing-docs` fills discoverable and rank-worthy in Google/Bing, and stays clear of *internal* site-search relevance (`search-relevance-engineering`), the visual build (`web-design`), and paid campaigns (`marketing-operations`).

@@ -8,11 +8,11 @@ A **Platform Engineering (IDP) specialist team** for a platform engineering lead
 
 | Surface | Contents |
 |---|---|
-| **4 agents** | `platform-eng-lead`, `golden-path-architect`, `developer-experience-analyst`, `platform-reliability-specialist` |
-| **5 skills / commands** | `classify-dora` · `measure-adoption` · `design-golden-path` · `quantify-toil` · `set-platform-slos` |
-| **4-file knowledge bank** | KPI glossary · unit economics · 2025–2026 context · Mermaid decision trees |
-| **4 templates** | scorecard · exec readout · golden-path-spec.md · platform-slo-sheet.md |
-| **1 advisory hook** | flags anti-patterns (unbaselined metric, unsourced benchmark, internal credentials/PII) in generated deliverables |
+| **agents** | `platform-eng-lead`, `golden-path-architect`, `developer-experience-analyst`, `platform-reliability-specialist` |
+| **skills / commands** | `classify-dora` · `measure-adoption` · `design-golden-path` · `quantify-toil` · `set-platform-slos` |
+| **knowledge bank** | KPI glossary · unit economics · 2025–2026 context · Mermaid decision trees |
+| **templates** | scorecard · exec readout · golden-path-spec.md · platform-slo-sheet.md |
+| **an advisory hook** | flags anti-patterns (unbaselined metric, unsourced benchmark, internal credentials/PII) in generated deliverables |
 | **`scripts/platform_engineering_idp_calc.py`** | stdlib calculator — `dora` · `adoption` · `toil` |
 
 ## Install

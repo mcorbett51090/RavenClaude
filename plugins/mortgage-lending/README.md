@@ -8,11 +8,11 @@ A **Mortgage Lending Operations specialist team** for a production manager, ops 
 
 | Surface | Contents |
 |---|---|
-| **4 agents** | `mortgage-lending-lead`, `pipeline-pullthrough-analyst`, `processing-cycle-specialist`, `compliance-quality-specialist` |
-| **5 skills / commands** | `diagnose-pullthrough` · `size-cycle-capacity` · `model-cost-to-originate` · `frame-pipeline-risk` · `route-compliance` |
-| **4-file knowledge bank** | KPI glossary · unit economics · 2025–2026 context · Mermaid decision trees |
-| **4 templates** | scorecard · exec readout · pullthrough-funnel.md · cost-to-originate-model.md |
-| **1 advisory hook** | flags anti-patterns (unbaselined metric, unsourced benchmark, borrower PII / NPI) in generated deliverables |
+| **agents** | `mortgage-lending-lead`, `pipeline-pullthrough-analyst`, `processing-cycle-specialist`, `compliance-quality-specialist` |
+| **skills / commands** | `diagnose-pullthrough` · `size-cycle-capacity` · `model-cost-to-originate` · `frame-pipeline-risk` · `route-compliance` |
+| **knowledge bank** | KPI glossary · unit economics · 2025–2026 context · Mermaid decision trees |
+| **templates** | scorecard · exec readout · pullthrough-funnel.md · cost-to-originate-model.md |
+| **an advisory hook** | flags anti-patterns (unbaselined metric, unsourced benchmark, borrower PII / NPI) in generated deliverables |
 | **`scripts/mortgage_lending_calc.py`** | stdlib calculator — `pullthrough` · `cycle-capacity` · `cost-to-originate` |
 
 ## Install

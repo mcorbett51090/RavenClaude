@@ -15,7 +15,7 @@
 
 ## Team
 
-4 specialist agents:
+specialist agents:
 
 - `database-setup-guide` — cloud-database setup, multi-tenant schema, RLS policies
 - `etl-pipeline-engineer` — ELT pipeline design + source-system specifics (QBO / Stripe / Salesforce / HubSpot / GA4 / Shopify)
@@ -58,7 +58,7 @@ This plugin follows the marketplace's house rule: **domain plugins extend core v
 
 ## Status
 
-v0.1.0 — first ship. Scope sized at 4 agents / 7 skills / 7 knowledge files / 10 templates / 1 hook based on expert-reviewed plan (5 expert verdicts on 5 blockers, all accepted 2026-05-21).
+v0.1.0 — first ship. Scope sized at agents / skills / knowledge files / templates / a hook based on expert-reviewed plan (5 expert verdicts on 5 blockers, all accepted 2026-05-21).
 
 ## See also
 

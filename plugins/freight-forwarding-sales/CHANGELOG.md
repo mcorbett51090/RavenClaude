@@ -2,6 +2,12 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.2.2] — 2026-08-14
+
+### Changed
+
+- Dropped hand-maintained artifact-count literals from the plugin description (D1). The roster enumerates itself; Gate 206 forbids the digit.
+
 ## [0.2.0] — 2026-06-05
 
 Value-add build-out against the full marketplace menu, mirroring the merged `veterinary-practice` non-code-vertical recipe (scenarios + decision trees + the "## Value-add completeness" disposition table + CHANGELOG). The plugin already shipped a rich surface (6 agents, 6 skills, 6 commands, 22 best-practices, a 2-doc knowledge bank, and `scripts/freight_calc.py`); this round fills the two genuine net-new gaps and dispositions every menu item honestly.

@@ -41,3 +41,10 @@ lifecycle management (CLM) — explicitly **not legal advice**; a qualified lawy
   (`check-legal-ops-clm-anti-patterns.sh`; `CLM_STRICT=1` to make it blocking), and a **scenarios bank** (2 field notes).
 - Seams: a law firm's own business → `legal-small-firm`; procurement/supplier contracts → `procurement-sourcing`;
   data-privacy/DPA clauses → `data-governance-privacy`; any legal opinion → a human lawyer. Requires `ravenclaude-core@>=0.7.0`.
+
+## [0.2.2] — 2026-08-14
+
+### Changed
+
+- Dropped hand-maintained artifact-count literals from the plugin description (D1). The roster enumerates itself; Gate 206 forbids the digit.
+

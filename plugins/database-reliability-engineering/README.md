@@ -6,7 +6,7 @@
 
 ## What it is
 
-A 3-agent team for production database reliability. It designs the HA topology and
+A team for production database reliability. It designs the HA topology and
 backup/PITR strategy from RPO/RTO, executes zero-downtime migrations and
 failover/restore drills, and runs DB on-call (incident triage, mitigation, SLOs,
 postmortems) — then hands the *schema* to `database-engineering`, the *service SLO*
@@ -37,10 +37,10 @@ plans). Nothing owned the *reliability* of the running database:
 
 ## What's inside
 
-- **4 skills** — `ha-topology-and-failover`, `zero-downtime-migration`, `backup-and-restore-verification`, `db-incident-triage`.
-- **Knowledge bank (2 docs)** — four Mermaid decision trees (HA topology / backup strategy / migration safety / incident triage) and a dated 2026 reference (HA by engine family, managed-service features, backup mechanisms, migration tooling, pooling, SLIs).
-- **5 best-practices** — a-backup-is-unverified-until-restored, migrations-are-expand-then-contract, replication-lag-is-a-first-class-metric, rpo-rto-drive-the-topology, practice-failover-before-you-need-it.
-- **2 templates** — HA & failover runbook, migration safety checklist.
+- **skills** — `ha-topology-and-failover`, `zero-downtime-migration`, `backup-and-restore-verification`, `db-incident-triage`.
+- **Knowledge bank (docs)** — four Mermaid decision trees (HA topology / backup strategy / migration safety / incident triage) and a dated 2026 reference (HA by engine family, managed-service features, backup mechanisms, migration tooling, pooling, SLIs).
+- **best-practices** — a-backup-is-unverified-until-restored, migrations-are-expand-then-contract, replication-lag-is-a-first-class-metric, rpo-rto-drive-the-topology, practice-failover-before-you-need-it.
+- **templates** — HA & failover runbook, migration safety checklist.
 
 ## Install
 

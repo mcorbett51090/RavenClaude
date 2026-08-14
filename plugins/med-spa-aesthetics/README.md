@@ -20,11 +20,11 @@ Running a med spa well: injector-hours and treatment-room-hours sold at high uti
 
 ## What's inside
 
-- **4 skills** — consult-to-treatment-conversion, treatment-room-and-injector-utilization, service-mix-injectables-devices-memberships, scope-of-practice-and-supervision.
-- **Knowledge bank** — [`med-spa-decision-trees.md`](knowledge/med-spa-decision-trees.md) (4 Mermaid trees: add a service/device, design the membership, rebook on cadence, scope & supervision structure) + [`med-spa-reference-2026.md`](knowledge/med-spa-reference-2026.md) (dated reference, verify-at-use).
-- **5 best-practices** — see [`best-practices/README.md`](best-practices/README.md).
-- **2 templates** — med-spa KPI dashboard, service/device pro-forma.
-- **2 commands** — `/model-device-payback`, `/design-membership`.
+- **skills** — consult-to-treatment-conversion, treatment-room-and-injector-utilization, service-mix-injectables-devices-memberships, scope-of-practice-and-supervision.
+- **Knowledge bank** — [`med-spa-decision-trees.md`](knowledge/med-spa-decision-trees.md) (Mermaid trees: add a service/device, design the membership, rebook on cadence, scope & supervision structure) + [`med-spa-reference-2026.md`](knowledge/med-spa-reference-2026.md) (dated reference, verify-at-use).
+- **best-practices** — see [`best-practices/README.md`](best-practices/README.md).
+- **templates** — med-spa KPI dashboard, service/device pro-forma.
+- **commands** — `/model-device-payback`, `/design-membership`.
 
 ## Seams
 
@@ -33,7 +33,7 @@ Scope of practice, supervision, good-faith exam, consent sufficiency, corporate-
 ## Install
 
 ```shell
-/plugin marketplace add ./        # from a separate Claude Code project, pointed at this repo
+/plugin marketplace add ./ # from a separate Claude Code project, pointed at this repo
 /plugin install med-spa-aesthetics@ravenclaude
 ```
 

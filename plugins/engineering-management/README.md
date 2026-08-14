@@ -8,11 +8,11 @@ An **Engineering Management specialist team** for an engineering manager, team l
 
 | Surface | Contents |
 |---|---|
-| **4 agents** | `engineering-manager-lead`, `people-and-growth-manager`, `delivery-and-execution-manager`, `technical-health-manager` |
-| **5 skills / commands** | `run-one-on-one` · `write-performance-review` · `design-hiring-loop` · `improve-team-flow` · `decide-tech-debt` |
-| **4-file knowledge bank** | KPI glossary (DORA/flow/people) · economics · 2025–2026 frameworks context · Mermaid decision trees |
-| **4 templates** | 1:1 agenda · growth plan · perf-review · tech-debt decision memo |
-| **1 advisory hook** | flags anti-patterns (a verdict-not-hypothesis about a person, a velocity-ranked individual, an unsourced benchmark) in generated deliverables |
+| **agents** | `engineering-manager-lead`, `people-and-growth-manager`, `delivery-and-execution-manager`, `technical-health-manager` |
+| **skills / commands** | `run-one-on-one` · `write-performance-review` · `design-hiring-loop` · `improve-team-flow` · `decide-tech-debt` |
+| **knowledge bank** | KPI glossary (DORA/flow/people) · economics · 2025–2026 frameworks context · Mermaid decision trees |
+| **templates** | 1:1 agenda · growth plan · perf-review · tech-debt decision memo |
+| **an advisory hook** | flags anti-patterns (a verdict-not-hypothesis about a person, a velocity-ranked individual, an unsourced benchmark) in generated deliverables |
 | **`scripts/engineering_management_calc.py`** | stdlib calculator — `oncall-load` · `attrition-cost` · `tech-debt` |
 
 ## Install

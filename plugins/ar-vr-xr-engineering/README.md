@@ -20,11 +20,11 @@ Building XR well: picking the platform and engine bet you won't have to reverse,
 
 ## What's inside
 
-- **4 skills** — xr-target-and-engine-selection, xr-interaction-and-locomotion, spatial-rendering-and-performance, comfort-safety-and-accessibility.
-- **Knowledge bank** — [`xr-decision-trees.md`](knowledge/xr-decision-trees.md) (4 Mermaid trees: target platform choice, engine choice, locomotion scheme to reduce sim-sickness, rendering perf-budget triage) + [`xr-reference-2026.md`](knowledge/xr-reference-2026.md) (dated device/runtime/engine landscape + per-eye perf targets, verify-at-use).
-- **5 best-practices** — see [`best-practices/README.md`](best-practices/README.md).
-- **2 templates** — XR project architecture, XR perf-budget plan.
-- **2 commands** — `/choose-xr-stack`, `/plan-xr-perf-budget`.
+- **skills** — xr-target-and-engine-selection, xr-interaction-and-locomotion, spatial-rendering-and-performance, comfort-safety-and-accessibility.
+- **Knowledge bank** — [`xr-decision-trees.md`](knowledge/xr-decision-trees.md) (Mermaid trees: target platform choice, engine choice, locomotion scheme to reduce sim-sickness, rendering perf-budget triage) + [`xr-reference-2026.md`](knowledge/xr-reference-2026.md) (dated device/runtime/engine landscape + per-eye perf targets, verify-at-use).
+- **best-practices** — see [`best-practices/README.md`](best-practices/README.md).
+- **templates** — XR project architecture, XR perf-budget plan.
+- **commands** — `/choose-xr-stack`, `/plan-xr-perf-budget`.
 
 ## Seams
 
@@ -33,7 +33,7 @@ Engine gameplay/asset pipeline → [`game-development`](../game-development/) ·
 ## Install
 
 ```shell
-/plugin marketplace add ./        # from a separate Claude Code project, pointed at this repo
+/plugin marketplace add ./ # from a separate Claude Code project, pointed at this repo
 /plugin install ar-vr-xr-engineering@ravenclaude
 ```
 

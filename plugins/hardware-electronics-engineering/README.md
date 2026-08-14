@@ -15,17 +15,17 @@ the first fab run.
 ## What this plugin gives you
 
 - **The build-vs-buy call, decided on volume** — module/dev-board vs custom PCB against
-  volume × cost × size × certification × time-to-market (with the wireless special case:
-  reuse a pre-certified radio module's approval instead of your own).
+ volume × cost × size × certification × time-to-market (with the wireless special case:
+ reuse a pre-certified radio module's approval instead of your own).
 - **A supply-aware BOM** — parts matched to requirements, datasheet parameters read at
-  the operating point (worst-case + margin), and availability / second-source /
-  lifecycle / cost scored as first-class selection criteria.
+ the operating point (worst-case + margin), and availability / second-source /
+ lifecycle / cost scored as first-class selection criteria.
 - **Sound power & integrity** — an explicit power tree (LDO vs switcher per rail),
-  decoupling at the pin, deliberate grounding and return paths, and a stack-up chosen
-  for the signal speeds.
+ decoupling at the pin, deliberate grounding and return paths, and a stack-up chosen
+ for the signal speeds.
 - **Manufacturable, pre-compliant boards** — schematic + layout reviewed against the
-  first-spin killers and the target fab's DFM rules, with EMC designed in (not tested
-  in) and certification correctly scoped as a test-lab verdict.
+ first-spin killers and the target fab's DFM rules, with EMC designed in (not tested
+ in) and certification correctly scoped as a test-lab verdict.
 
 ## The two agents
 
@@ -45,20 +45,20 @@ the first fab run.
 ## When to use it
 
 - You're taking a product from idea to board and need the build-vs-buy call and the
-  architecture before you design anything.
+ architecture before you design anything.
 - You need an MCU/parts selection and a BOM that won't die on availability or lifecycle.
 - You have a schematic/layout and want it reviewed against the first-spin killers and
-  the fab's DFM rules before you spend money on a fab run.
+ the fab's DFM rules before you spend money on a fab run.
 
 ## When *not* to use it
 
 - You need firmware / drivers / RTOS / the HAL on the MCU — that's
-  `embedded-iot-engineering`. This plugin builds the board firmware runs on.
+ `embedded-iot-engineering`. This plugin builds the board firmware runs on.
 - You're building the full robot (actuation, motion, autonomy) — that's
-  `robotics-autonomous-systems-engineering`.
+ `robotics-autonomous-systems-engineering`.
 - You need mechanical / enclosure / thermal-mechanical design — out of scope.
 - You need a certification pass/fail — that's an accredited **test lab's** verdict; this
-  plugin gives pre-compliance engineering judgment.
+ plugin gives pre-compliance engineering judgment.
 
 ## Seams to neighbouring plugins
 

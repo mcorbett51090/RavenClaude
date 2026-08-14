@@ -35,7 +35,7 @@ It packages the recurring, judgment-heavy work of that job into a team of specia
 
 ### Knowledge bank (2)
 
-- `freight-sales-decision-trees.md` — 4 Mermaid decision trees: **mode selection** (FCL/LCL/air/express), **quote-vs-qualify** (chase or decline an RFQ), **Incoterms selection**, **spot-vs-contract** rate strategy.
+- `freight-sales-decision-trees.md` — Mermaid decision trees: **mode selection** (FCL/LCL/air/express), **quote-vs-qualify** (chase or decline an RFQ), **Incoterms selection**, **spot-vs-contract** rate strategy.
 - `freight-sales-glossary.md` — the working vocabulary (Incoterms, surcharge codes, document set, charge points) so quotes and emails use the right terms.
 
 ### Runnable tool
@@ -56,7 +56,7 @@ python3 scripts/freight_calc.py quote --base 1200 --surcharge BAF=180 --surcharg
 ## Install
 
 ```shell
-/plugin marketplace add ./            # from a separate Claude Code project, or use the repo URL
+/plugin marketplace add ./ # from a separate Claude Code project, or use the repo URL
 /plugin install freight-forwarding-sales@ravenclaude
 ```
 

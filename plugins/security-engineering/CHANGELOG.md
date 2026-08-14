@@ -2,6 +2,12 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.8] — 2026-08-14
+
+### Changed
+
+- Dropped hand-maintained artifact-count literals from the plugin description (D1). The roster enumerates itself; Gate 206 forbids the digit.
+
 ## [0.3.7] — 2026-08-08
 
 Weekly Tier-A news sweep (2026-08-08) — **correction** in `knowledge/security-engineering-decision-trees.md:113` (npm install-script hardening capability-map row). npm **v12.0.0 shipped GA on 2026-07-08**, so the row's "est. July 2026 / warnings today / preview" framing was stale, and the approval command it named (`npm approve-scripts --allow-scripts-pending`) was the **pre-GA preview** path. Corrected to the released date and the **GA approval flow** — `npm install-scripts approve` then `npm rebuild` — re-verified this session against the primary source ([npm v12.0.0 release](https://github.com/npm/cli/releases/tag/v12.0.0)); the `[verify-at-build]` hedge is retained. No sibling fan-out: `agents/supply-chain-security-engineer.md:46` already frames v12 as GA-adoptable and stays consistent. **Migration:** none — knowledge-file content only.

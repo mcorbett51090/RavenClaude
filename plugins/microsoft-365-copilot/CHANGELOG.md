@@ -2,6 +2,12 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.5.6] — 2026-08-14
+
+### Changed
+
+- Dropped hand-maintained artifact-count literals from the plugin description (D1). The roster enumerates itself; Gate 206 forbids the digit.
+
 ## [0.5.5] — 2026-08-11
 
 Research-sweep **refresh** (deferred Microsoft-stack finding from the 2026-08-08 Tier-A sweep, picked up and panel-reviewed 2026-08-11). The knowledge bank stated **Microsoft Agent 365** was "emerging … deferred until GA"; **Agent 365 (the control-plane service) reached GA 2026-05-01** for the Commercial segment (per-user; included in Microsoft 365 E7). Verified 2026-08-11 against MS Learn [`microsoft-agent-365/overview`](https://learn.microsoft.com/microsoft-agent-365/overview) + [Partner Center May-2026 announcement](https://learn.microsoft.com/partner-center/announcements/2026-may). Panels: usefulness → USEFUL ×3 (0.9/0.85/0.9); detailed source-verified → CONFIRMED (no overstatement — the SDK/registry-sync developer surface is correctly kept hedged as still-preview).

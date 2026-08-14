@@ -35,7 +35,7 @@ It does **NOT** guarantee a human-free-correct report. Auto-QA proves the checke
 Human peer review, editing, and distribution stay **out of scope**. The plugin's job ends at a review-ready draft plus its QA receipt:
 
 ```
-plugin: draft + auto-QA receipt  →  human peer review  →  reviewer feedback  →  Matt edits  →  distribute
+plugin: draft + auto-QA receipt → human peer review → reviewer feedback → Matt edits → distribute
 ```
 
 The reviewer's real feedback (substantive vs. mechanical) is instrumented back into the Binding Manifest and the gold-standard rubric as the calibration signal across successive real reports — there is no in-plugin human-grader gate.

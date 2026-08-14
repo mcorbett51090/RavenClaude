@@ -18,12 +18,12 @@ Building a new WordPress site or extending an existing one and wanting it done r
 
 ## What's inside
 
-- **5 skills** — choose-wordpress-architecture, build-blocks-and-themes, extend-with-hooks-and-plugins, harden-and-secure-wordpress, performance-and-caching.
-- **Knowledge bank** — [`wordpress-decision-trees.md`](knowledge/wordpress-decision-trees.md) (4 Mermaid trees: classic-vs-block/FSE, plugin-vs-theme-vs-mu, headless-vs-traditional, caching-layer-selection) + [`wordpress-stack-2026.md`](knowledge/wordpress-stack-2026.md) (dated capability map).
-- **8 best-practices** — see [`best-practices/README.md`](best-practices/README.md).
-- **3 templates** — architecture decision, block/plugin scaffold plan, security & performance audit.
-- **3 commands** — `/choose-wp-architecture`, `/build-block`, `/audit-wp-site`.
-- **1 advisory hook** — `check-wordpress-anti-patterns.sh` ($wpdb concatenation, unsanitized superglobals, `eval(`/`extract(`, unversioned enqueue). `WPENG_STRICT=1` to block.
+- **skills** — choose-wordpress-architecture, build-blocks-and-themes, extend-with-hooks-and-plugins, harden-and-secure-wordpress, performance-and-caching.
+- **Knowledge bank** — [`wordpress-decision-trees.md`](knowledge/wordpress-decision-trees.md) (Mermaid trees: classic-vs-block/FSE, plugin-vs-theme-vs-mu, headless-vs-traditional, caching-layer-selection) + [`wordpress-stack-2026.md`](knowledge/wordpress-stack-2026.md) (dated capability map).
+- **best-practices** — see [`best-practices/README.md`](best-practices/README.md).
+- **templates** — architecture decision, block/plugin scaffold plan, security & performance audit.
+- **commands** — `/choose-wp-architecture`, `/build-block`, `/audit-wp-site`.
+- **an advisory hook** — `check-wordpress-anti-patterns.sh` ($wpdb concatenation, unsanitized superglobals, `eval(`/`extract(`, unversioned enqueue). `WPENG_STRICT=1` to block.
 
 ## Seams
 
@@ -32,7 +32,7 @@ Decoupled front-end app / app shell → [`frontend-engineering`](../frontend-eng
 ## Install
 
 ```shell
-/plugin marketplace add ./        # from a separate Claude Code project, pointed at this repo
+/plugin marketplace add ./ # from a separate Claude Code project, pointed at this repo
 /plugin install wordpress-cms-engineering@ravenclaude
 ```
 

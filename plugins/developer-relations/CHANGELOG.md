@@ -51,3 +51,10 @@ Initial release.
   started docs with no first-success milestone and sample code with hardcoded
   secrets / swallowed errors.
 - 1 worked scenario.
+
+## [0.3.2] — 2026-08-14
+
+### Changed
+
+- Dropped hand-maintained artifact-count literals from the plugin description (D1). The roster enumerates itself; Gate 206 forbids the digit.
+

@@ -8,7 +8,7 @@ validated records. Legality and good-citizenship come first; robustness and cost
 
 - Data/backend engineers building an ingestion pipeline whose *source* is the web.
 - Anyone deciding whether to scrape at all (vs an API/feed/export), and how to do it lawfully and
-  robustly.
+ robustly.
 - Teams whose scrapers keep breaking, getting blocked, or producing silently-wrong data.
 
 ## Legality first
@@ -30,20 +30,20 @@ legal/ToS specifics are retrieval-dated and verified at use; this is **not legal
 ## Skills
 
 - **legal-ethical-and-fetch-strategy** — run the legality/ethics gate and choose the fetch strategy
-  (API/feed first; HTTP before headless; find the JSON endpoint).
+ (API/feed first; HTTP before headless; find the JSON endpoint).
 - **resilient-extraction-and-parsing** — extract defensively (structured data over selectors),
-  validate to a schema, and make breakage detectable.
+ validate to a schema, and make breakage detectable.
 - **crawl-scheduling-and-pipeline** — change-detection, incremental re-crawl scheduling, and the
-  extraction-to-storage pipeline with provenance.
+ extraction-to-storage pipeline with provenance.
 
 ## Knowledge bank
 
 - [`knowledge/web-scraping-decision-tree.md`](knowledge/web-scraping-decision-tree.md) — a Mermaid
-  decision tree from "is there an API?" through the legal gate, fetch strategy, parse strategy, and
-  scheduling.
+ decision tree from "is there an API?" through the legal gate, fetch strategy, parse strategy, and
+ scheduling.
 - [`knowledge/web-scraping-reference-2026.md`](knowledge/web-scraping-reference-2026.md) — a dated
-  reference of the 2026 tooling/legal landscape (parsers, headless browsers, robots/ToS, anti-bot
-  reality) with retrieval-date + verify-at-use discipline.
+ reference of the 2026 tooling/legal landscape (parsers, headless browsers, robots/ToS, anti-bot
+ reality) with retrieval-date + verify-at-use discipline.
 
 ## Boundaries
 

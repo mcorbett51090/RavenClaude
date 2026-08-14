@@ -43,3 +43,10 @@ Initial release. The plan / make / control operations layer for discrete and pro
   (`check-manufacturing-operations-anti-patterns.sh`; `MFG_STRICT=1` to make it blocking), and a **scenarios bank**.
 - Seams: process redesign → `process-improvement`; inferential stats / Gage R&R → `applied-statistics`; sourcing →
   `procurement-sourcing`; distribution → `fleet-logistics`. Requires `ravenclaude-core@>=0.7.0`.
+
+## [0.2.2] — 2026-08-14
+
+### Changed
+
+- Dropped hand-maintained artifact-count literals from the plugin description (D1). The roster enumerates itself; Gate 206 forbids the digit.
+

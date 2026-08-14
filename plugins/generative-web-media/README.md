@@ -19,12 +19,12 @@ This plugin is the shared **foundation** for generating and shipping production 
 
 1. **Set your provider key.** The plugin declares the **fal** MCP server (`https://mcp.fal.ai/mcp`) so the substrate auto-wires on install. fal's hosted MCP is free + pay-per-run; the API key is the only manual input:
 
-   ```shell
-   export FAL_KEY="…"          # required for the fal substrate
-   export XAI_API_KEY="…"      # optional — direct Grok path off fal
-   ```
+ ```shell
+ export FAL_KEY="…" # required for the fal substrate
+ export XAI_API_KEY="…" # optional — direct Grok path off fal
+ ```
 
-   If the declarative binding can't carry the `Authorization: Bearer $FAL_KEY` header in your Claude Code version, run [`/wire-media-substrate`](commands/wire-media-substrate.md) (a one-line `claude mcp add` with the header) or use the direct-provider script — see [Substrate](#substrate) below. **The tool is never a silent dead end:** the first `/generate-web-asset` run checks the substrate and tells you how to wire it if it's absent.
+ If the declarative binding can't carry the `Authorization: Bearer $FAL_KEY` header in your Claude Code version, run [`/wire-media-substrate`](commands/wire-media-substrate.md) (a one-line `claude mcp add` with the header) or use the direct-provider script — see [Substrate](#substrate) below. **The tool is never a silent dead end:** the first `/generate-web-asset` run checks the substrate and tells you how to wire it if it's absent.
 
 2. **Generate + ship an asset:** `/generate-web-asset` runs the end-to-end flow (route → generate → license-pin → web-optimize → brand/accessibility gate → **human curation sign-off**). It cannot report "done" without a curation artifact.
 

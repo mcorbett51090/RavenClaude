@@ -20,11 +20,11 @@ Running a salon, spa, or barbershop well: a full calendar defended against no-sh
 
 ## What's inside
 
-- **4 skills** — booking-and-no-show-control, chair-and-room-utilization, retail-attach-and-service-mix, compensation-models-commission-vs-booth-rent.
-- **Knowledge bank** — [`salon-spa-decision-trees.md`](knowledge/salon-spa-decision-trees.md) (4 Mermaid trees: compensation model, no-show policy & deposit, rebook at checkout, price the service menu) + [`salon-spa-reference-2026.md`](knowledge/salon-spa-reference-2026.md) (dated reference, verify-at-use).
-- **5 best-practices** — see [`best-practices/README.md`](best-practices/README.md).
-- **2 templates** — salon KPI dashboard, service menu & pricing worksheet.
-- **2 commands** — `/set-noshow-policy`, `/model-compensation`.
+- **skills** — booking-and-no-show-control, chair-and-room-utilization, retail-attach-and-service-mix, compensation-models-commission-vs-booth-rent.
+- **Knowledge bank** — [`salon-spa-decision-trees.md`](knowledge/salon-spa-decision-trees.md) (Mermaid trees: compensation model, no-show policy & deposit, rebook at checkout, price the service menu) + [`salon-spa-reference-2026.md`](knowledge/salon-spa-reference-2026.md) (dated reference, verify-at-use).
+- **best-practices** — see [`best-practices/README.md`](best-practices/README.md).
+- **templates** — salon KPI dashboard, service menu & pricing worksheet.
+- **commands** — `/set-noshow-policy`, `/model-compensation`.
 
 ## Seams
 
@@ -33,7 +33,7 @@ Worker classification, wage/tax, lease law, and deposit/payment-processor rules 
 ## Install
 
 ```shell
-/plugin marketplace add ./        # from a separate Claude Code project, pointed at this repo
+/plugin marketplace add ./ # from a separate Claude Code project, pointed at this repo
 /plugin install salon-spa-operations@ravenclaude
 ```
 
