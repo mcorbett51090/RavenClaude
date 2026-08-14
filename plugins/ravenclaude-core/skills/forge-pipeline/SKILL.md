@@ -251,8 +251,19 @@ artifact whose count is encoded in marketplace prose, load
 [`reference/regen-discipline.md`](reference/regen-discipline.md) now** and fold its criteria into that
 phase's DoD — skipping this is what caused the 2026-06-03 three-PR hotfix chain (PRs #244-#247).
 
+**Publish the host session plan before any exit.** Grok's `exit_plan_mode` reads
+`~/.grok/sessions/<encoded-cwd>/<session-id>/plan.md` (Grok user-guide *The Plan File*),
+**not** the Sága run-dir `plan.md`. Those are different files. Skipping the copy
+opens the approval surface with **No plan written yet**. Run:
+
+`bash "$FORGE_PLUGIN_ROOT/scripts/forge-publish-session-plan.sh" --plan <run-dir>/plan.md`
+
+Refuse `ExitPlanMode` unless that command printed `FORGE_SESSION_PLAN` (published,
+non-empty, size-matched) **or** an honest `skip` (no Grok session tree — Claude
+Code / Copilot / Codex). A missing/empty source is exit 2 — do not exit plan mode.
+
 Then the single exit:
-- `execution=use_local` → call **`ExitPlanMode(plan.md)`**.
+- `execution=use_local` → call **`ExitPlanMode`** only after the publish step above.
 - `execution=lean_ultraplan`/`consider_ultraplan` → **decline `ExitPlanMode` with a "sending to
   Ultraplan" note** (the harness opens the browser session, seeded with `plan.md`).
 - `reject` (G5 left an unmitigated blocker, or G0 scope is incoherent) → report the blocker, no exit.
