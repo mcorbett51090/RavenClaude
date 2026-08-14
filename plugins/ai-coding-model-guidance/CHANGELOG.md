@@ -2,6 +2,16 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.14] — 2026-08-13
+
+Research-sweep **refresh** (Tier-A weekly news sweep; 4 weeks since 0.3.13) — folded into
+`knowledge/cross-tool-model-lineup-2026.md`. Grok 4.6 is the new xAI flagship (GA 2026-08-12;
+aggregator-tier secondaries, stronger `[verify-at-use]`). Kimi K3 GA in Copilot 2026-08-06
+(Fireworks AI; supersedes K2.7). Claude Opus 5 in Copilot 2026-07-24 (Copilot-surface fact only).
+MAI-Code-1-Flash deprecated 2026-09-10 → MAI-Code-1.1-Flash. Copilot Sept-1-2026 deprecations
+recorded. Default-model-enablement policy effective 2026-08-26. Closed-world: GPT-5.7 still
+fictional; Astra held out. Mermaid leaves unchanged. **Migration:** none.
+
 ## [0.3.13] — 2026-07-17
 
 Research-sweep **addition** (Tier-A weekly news sweep) — **xAI Grok 4.5 announced/GA 2026-07-08**, a gap the 2026-07-11 sweep left open because it refreshed the OpenAI/Copilot rows but explicitly **carried the Grok row forward from 2026-06-17** (30+ days stale on this Tier-4 file's own clock). Updated `knowledge/cross-tool-model-lineup-2026.md`: (1) added **Grok 4.5** as the **current Grok flagship** above 4.3 — reportedly GA the same day in Grok Build CLI / Cursor (all plans) / the xAI console+API at **$2 in / $6 out** per Mtok, context window **not** yet primary-confirmed; Grok 4.3 re-labelled "prior flagship, still selectable." (2) Annotated the **grok-build-0.1** row + Grok Build bullet that secondary reporting says the CLI is **now powered by Grok 4.5**, carried with `[verify-at-use — confirm the CLI's active model]` (the prior beta SKU and the new flagship may coexist per build). (3) **Closed-world fix (highest-value line):** the anti-hallucination rule used **"Grok 4.5?"** as a *fictional* SKU example — 4.5 is now real, so leaving it would train agents to deny a real model; swapped to the still-fictional **"Grok 5?"** (direct precedent: the 2026-07-11 GPT-5.6→GPT-5.7 example swap) and added 4.5 to the real dense-name list. Header re-dated to 2026-07-17 + a **2026-07-17 sweep note**; Sources line gained three Grok 4.5 secondaries. All Grok 4.5 numbers are **secondary-sourced** (xAI primary pages 403 automated fetch — the file's documented standard for this row) with dated `[verify-at-use]` riders — **not** vendor-confirmed. Vendor-neutral Mermaid decision-tree leaves that name "Grok 4.3" left **unchanged** (framework-level, not churned; 4.3 stays selectable — mirrors the 2026-07-11 GPT handling). Citation gate (`scripts/check-lineup-citations.py`) green. **Panels:** usefulness → USEFUL 3/3 (high/high/high); detailed review → APPROVE + APPROVE_WITH_CHANGES + APPROVE (no REJECT, no disagreement → no tiebreak) — the one required change applied (header "GA" softened to "announced/GA" + "secondary-sourced" to match the body's hedge). Sources: [Axios scoop (2026-07-08)](https://www.axios.com/2026/07/08/spacexai-grok-new-model), [FullStack Labs](https://www.fullstack.com/labs/resources/blog/grok-4-5-a-closer-look-at-xais-latest-model), [AI Business](https://aibusiness.com/generative-ai/musk-s-xai-launches-grok-build-take-claude-code-codex). **Migration:** none — knowledge-file content only.
