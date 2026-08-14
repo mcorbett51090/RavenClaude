@@ -17,8 +17,8 @@ Cross-tool agent-instruction file. This is the canonical version of the marketpl
 
 > **Two Geminis, and they are not the same thing** (added 2026-07-29, audit MH-36 + MH-30):
 >
-> 1. **Gemini CLI is a supported HOST** since v0.222.0 — `ravenclaude install --host gemini` wires the
->    guardrails into `.gemini/settings.json` and points `GEMINI.md` at this file.
+> 1. **Gemini CLI is a supported HOST** since v0.222.0 `[docs-verified 2026-07-29]` — `ravenclaude install --host gemini` wires the
+>    guardrails into `.gemini/settings.json` and points `GEMINI.md` at this file. Per-component truth: [`plugins/ravenclaude-core/knowledge/host-support.json`](plugins/ravenclaude-core/knowledge/host-support.json).
 > 2. **Gemini is also used as a MODEL**, in exactly one place: the Power Platform `visual-qa` skill's
 >    optional Gemini API integration for test-recording review. That is a supplemental feature, not
 >    required, and it has nothing to do with host support.

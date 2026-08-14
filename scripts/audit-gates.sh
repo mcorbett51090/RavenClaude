@@ -1042,9 +1042,17 @@ PY
         bash scripts/check-host-canary.sh
       exit $?
       ;;
+    208)
+      echo "── Gate 208: host-capability citations + adapter round-trip (per-gate run) ──"
+      python3 scripts/check-host-capability-citations.py --self-test && \
+        python3 scripts/check-host-capability-citations.py && \
+        bash scripts/check-adapter-roundtrip.sh --self-test && \
+        bash scripts/check-adapter-roundtrip.sh
+      exit $?
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -5760,6 +5768,45 @@ json.dump(d, open('$HSJ_NOAG','w'))"
 rc=0; python3 scripts/check-host-support.py "$HSJ_NOAG" >/dev/null 2>&1 || rc=$?
 gate "host-support teeth: a host missing activation_gate is caught" must_fail "$rc"
 
+# PR 11 / MH-27: a generated per-host manifest must not advertise slash
+# commands on a host the map says has none. Host dir is DERIVED (first host
+# whose slash_commands cell is supported:false AND that we plant under
+# plugins/ravenclaude-core/<key>/) — never a hardcoded "copilot".
+HSJ_GEN="$TMP/g154-gen"
+_g154_plant=0
+python3 - "$HSJ_GEN" <<'PY' || _g154_plant=$?
+import json, pathlib, sys
+root = pathlib.Path(sys.argv[1])
+src = pathlib.Path("plugins/ravenclaude-core/knowledge/host-support.json")
+data = json.loads(src.read_text())
+host = None
+for h in data["hosts"]:
+    cell = (data.get("components") or {}).get("slash_commands", {}).get(h) or {}
+    if cell.get("supported") is False:
+        host = h
+        break
+if host is None:
+    sys.exit(3)
+dest = root / "plugins" / "ravenclaude-core"
+(dest / "knowledge").mkdir(parents=True)
+(dest / "knowledge" / "host-support.json").write_text(json.dumps(data))
+plant = dest / host
+plant.mkdir(parents=True)
+# Assembled so this heredoc is not itself a live slash-command inventory.
+inv = "Slash commands: " + "/" + "dashboard, /wrap."
+(plant / "plugin.json").write_text(json.dumps({"description": inv}))
+PY
+if [ "$_g154_plant" -eq 3 ]; then
+  _skip_or_fail "host-support generated-output teeth: no slash_commands.supported=false host to plant"
+elif [ "$_g154_plant" -ne 0 ]; then
+  gate "host-support teeth: could not plant the generated slash-command inventory" must_pass "1"
+else
+  rc=0; python3 scripts/check-host-support.py --scan-generated "$HSJ_GEN" >/dev/null 2>&1 || rc=$?
+  gate "host-support teeth: generated slash-command inventory on an unsupported host is caught" must_fail "$rc"
+  rc_is_2=0; [ "$rc" -eq 2 ] || rc_is_2=1
+  gate "host-support teeth: generated slash-command inventory is exit 2 (not 1)" must_pass "$rc_is_2"
+fi
+
 echo
 echo "── Gate 155: Codex env shim — stdin/exit-code/blanks-only invariants ──────"
 # MH-07/MH-08. hooks/codex-hook-env.sh sits in front of EVERY guardrail under
@@ -7036,6 +7083,32 @@ gate "host-canary: live Codex + Copilot lanes fire the planted marker" must_pass
 rc=0; bash scripts/check-host-canary.sh --drive-mutant-silent >/dev/null 2>&1 || rc=$?
 rc_is_2=0; [ "$rc" -eq 2 ] || rc_is_2=1
 gate "host-canary teeth: silent-success mutant is exit 2 (not 1)" must_pass "$rc_is_2"
+
+echo "── Gate 208: host-capability citations + adapter deny/reason round-trip ──"
+# P17. Three halves: (a) Gate 154's generated-output scan (registered on 154),
+# (b) uncited host+capability claims on a host-support.json-backed surface
+# exit 2; free-form docs/ stays advisory, (c) adapter deny+reason survive
+# translation (generalizing Gate 167 / v0.250.0 reason-loss).
+#
+# ⛔ Registered in BOTH this main sequence AND the --check dispatcher above + the
+# Supported: string. After adding a gate, run the full suite and GREP ITS OUTPUT
+# FOR "208" — a passing suite is not evidence your gate is in it.
+rc=0; python3 scripts/check-host-capability-citations.py --self-test >/dev/null 2>&1 || rc=$?
+gate "host-capability-citations: teeth (uncited knowledge/ caught; markers spared; docs/ advisory)" must_pass "$rc"
+rc=0; python3 scripts/check-host-capability-citations.py >/dev/null 2>&1 || rc=$?
+gate "host-capability-citations: generator output + knowledge/ + AGENTS.md host table are cited" must_pass "$rc"
+rc=0; python3 scripts/check-host-capability-citations.py --must-fail >/dev/null 2>&1 || rc=$?
+gate "host-capability-citations teeth: a planted uncited knowledge/ claim IS caught" must_fail "$rc"
+rc_is_2=0; [ "$rc" -eq 2 ] || rc_is_2=1
+gate "host-capability-citations teeth: planted claim exits 2 (not 1)" must_pass "$rc_is_2"
+
+rc=0; bash scripts/check-adapter-roundtrip.sh --self-test >/dev/null 2>&1 || rc=$?
+gate "adapter-roundtrip: deny+reason survive translation (+ teeth)" must_pass "$rc"
+rc=0; bash scripts/check-adapter-roundtrip.sh >/dev/null 2>&1 || rc=$?
+gate "adapter-roundtrip: live adapters keep deny and reason" must_pass "$rc"
+rc=0; bash scripts/check-adapter-roundtrip.sh --drive-mutant >/dev/null 2>&1 || rc=$?
+rc_is_2=0; [ "$rc" -eq 2 ] || rc_is_2=1
+gate "adapter-roundtrip teeth: reason-dropping mutant is exit 2 (not 1)" must_pass "$rc_is_2"
 
 echo "── Gate 206: no plugin description may carry an artifact-count literal ──"
 # P13 / D1. Prose counts in plugin.json + marketplace.json descriptions are

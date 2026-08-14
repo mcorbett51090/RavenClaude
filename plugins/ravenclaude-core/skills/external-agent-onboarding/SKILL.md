@@ -27,8 +27,10 @@ sources:
 > were deleted, not re-dated.**
 
 Cross-tool onboarding: gives a non-Claude-Code agent the context Claude Code gets from `CLAUDE.md`,
-without assuming it has read it. **The one doc every supported host reads is `AGENTS.md`** — start
-there, then read *your host's* section below. They are not interchangeable.
+without assuming it has read it. **Which hosts automatically read `AGENTS.md` is recorded in
+[`../../knowledge/host-support.json`](../../knowledge/host-support.json)** (`instruction_files`) —
+start there, then read *your host's* section below. They are not interchangeable. Aider does
+**not** read `AGENTS.md` `[docs-verified]`.
 
 ## First five minutes (every host)
 
@@ -145,16 +147,24 @@ because a floor nobody checks is a floor that protects nobody.
 
 Full contract: [`../../knowledge/codex-cli-customization.md`](../../knowledge/codex-cli-customization.md).
 
-## Cursor · Aider · Devin Desktop (formerly Windsurf)
+## Cursor
 
-**Not wired. Nothing installs guardrails, skills, or agents for these hosts today**, and this file will
-not pretend otherwise — a false claim of support is worse than an admitted gap, because it stops
-anyone from building the bridge that would make it true.
+**Wiring:** `ravenclaude install --host cursor`. Hooks fire via `.cursor/hooks.json` +
+`cursor-hook-adapter.sh` `[docs-verified 2026-07-28]` — this is in
+[`../../knowledge/host-support.json`](../../knowledge/host-support.json) (`hooks.cursor.supported`).
+Cursor **fails OPEN** on malformed hook JSON; the adapter's deny is a fixed literal for that
+reason. Skills and agents are **not** wired. `AGENTS.md` auto-load remains `[unverified]`;
+the installer writes `.cursor/rules/*.mdc` instead.
+
+## Aider · Devin Desktop (formerly Windsurf)
+
+**Not wired for guardrails**, and this file will not pretend otherwise — a false claim of
+support is worse than an admitted gap, because it stops anyone from building the bridge
+that would make it true. See [`../../knowledge/host-support.json`](../../knowledge/host-support.json).
 
 - **Aider** reads `CONVENTIONS.md`, and **only on explicit opt-in** (`--read` / `.aider.conf.yml`). It
   does **not** auto-read `AGENTS.md`; this repo asserted otherwise until 2026-07-28 and was wrong
   `[docs-verified — aider.chat/docs/usage/conventions.html]`.
-- **Cursor**'s documented mechanism is `.cursor/rules/*.mdc`; `AGENTS.md` auto-load is unconfirmed.
 - **Devin Desktop** is unverified here. Cognition rebranded **Windsurf → Devin Desktop on
   2026-06-02**, and `docs.windsurf.com` now 307-redirects to `docs.devin.ai`. Its docs say it
   auto-discovers `AGENTS.md` into the same Rules engine as `.devin/rules/`, so the lane may in
@@ -162,8 +172,8 @@ anyone from building the bridge that would make it true.
   two hosts; they are one product under two names**, which is exactly how the old version-floor
   table ended up with a Devin row and no Windsurf row.
 
-If you are on one of these, read `AGENTS.md` by hand and treat every guardrail in this repo as
-**advisory** — none of them will fire for you.
+If you are on Aider or Devin Desktop, read `AGENTS.md` by hand and treat every guardrail in
+this repo as **advisory** — none of them will fire for you.
 
 ---
 

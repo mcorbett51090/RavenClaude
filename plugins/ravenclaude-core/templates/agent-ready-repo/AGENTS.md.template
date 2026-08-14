@@ -2,7 +2,18 @@
 
 {{ONE_SENTENCE_PURPOSE}}
 
-This is the canonical agent-instruction file for this repo. `CLAUDE.md` imports it and adds Claude-Code-specific notes. Cursor, OpenAI Codex CLI, Aider, GitHub Copilot, and Windsurf read this file natively.
+This is the canonical agent-instruction file for this repo. `CLAUDE.md` imports it and adds Claude-Code-specific notes. Which hosts actually read it is **not** universal (corrected 2026-07-29, audit MH-28 — a previous draft of this template claimed Cursor / Codex / Aider / Copilot / Windsurf all read it natively, and that was **false for Aider**):
+
+| Tool | Reads `AGENTS.md` automatically? | Basis |
+|---|---|---|
+| **GitHub Copilot CLI** | **Yes** | `[docs-verified]` |
+| **OpenAI Codex CLI** | **Yes**, from the repo root | `[docs-verified]` |
+| **Claude Code** | Indirectly (`CLAUDE.md` `@`-imports it) | |
+| **Aider** | **NO** — reads `CONVENTIONS.md` on explicit opt-in only | `[docs-verified]` |
+| **Cursor** | `[unverified]` — documented mechanism is `.cursor/rules/*.mdc` | |
+| **Windsurf / Devin Desktop** | `[unverified]` | |
+
+A false claim of support is worse than an admitted gap. Do not add a host to this table without a dated source.
 
 ## Setup commands
 

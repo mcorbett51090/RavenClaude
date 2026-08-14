@@ -2,6 +2,27 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.262.0 — 2026-08-14
+
+### Fixed
+
+- **MH-28 leftover call sites.** `init-agent-ready`'s consumer `AGENTS.md.template` still claimed
+  Cursor / Codex / Aider / Copilot / Windsurf all read `AGENTS.md` natively (false for Aider) —
+  the command's summary was corrected in v0.222.1, the file it *writes* was not. The
+  `external-agent-onboarding` skill still said "the one doc every supported host reads is
+  AGENTS.md" and lumped Cursor (hooks **are** wired) with Aider / Devin Desktop (not wired).
+  Both now point at `knowledge/host-support.json` and carry per-row provenance markers.
+
+### Added
+
+- **Gate 208 — host-capability citation lint + adapter round-trip (P17).** Uncited
+  host+supported/natively claims on generator output / `knowledge/` / the root `AGENTS.md`
+  table fail the build (exit 2) when a `host-support.json` cell exists to gate against;
+  free-form `docs/` stays advisory. Adapter deny + reason must survive translation
+  (generalizing Gate 167 / the v0.250.0 reason-loss regression); a mutant that drops
+  the reason is exit 2. Gate 154 now also rejects a generated manifest that advertises
+  slash commands on a host the map says has none (MH-27).
+
 ## 0.261.0 — 2026-08-14
 
 ### Added

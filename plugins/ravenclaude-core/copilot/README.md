@@ -72,8 +72,9 @@ single source of truth; this package is regenerated from it.
 > BEHAVIOUR (can it write?), never the description.
 - `AGENTS.md` — the cross-tool claim-grounding discipline, projected
   verbatim from RavenClaude's root `AGENTS.md`. Copilot reads `AGENTS.md`
-  natively, but only from *your* repo — so this travels the discipline
-  with the agents. Wire it via `COPILOT_CUSTOM_INSTRUCTIONS_DIRS` (below).
+  natively `[docs-verified 2026-05-31]`, but only from *your* repo — so
+  this travels the discipline with the agents. Wire it via
+  `COPILOT_CUSTOM_INSTRUCTIONS_DIRS` (below).
 
 ## Launching
 

@@ -4,7 +4,8 @@
 
 GitHub Copilot reads `AGENTS.md` natively from the repo root, the current
 working directory, or any directory named in the
-`COPILOT_CUSTOM_INSTRUCTIONS_DIRS` environment variable. When you install
+`COPILOT_CUSTOM_INSTRUCTIONS_DIRS` environment variable
+`[docs-verified 2026-05-31]`. When you install
 the `ravenclaude-core` agents into your own repo via
 `copilot --plugin-dir plugins/ravenclaude-core/copilot`, add this
 directory to that variable so the claim-grounding discipline below loads

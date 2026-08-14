@@ -13,7 +13,8 @@ own docs (MH-15).
 ## The headline: Gemini's hook contract is nearly Claude's
 
 The audit recorded Gemini as *"name-checked 17 times, supported zero times"* and framed it as an
-open question — support it, or formally unsupport it. The answer turns out to be cheap, because
+open question — support it, or formally unsupport it. The answer (now in
+[`host-support.json`](host-support.json), `hooks.gemini.supported`) turns out to be cheap, because
 Gemini CLI ships a **real hooks API** whose contract is closer to Claude Code's than Copilot's is.
 
 | Surface | Claude Code | **Gemini CLI** | Copilot CLI |
