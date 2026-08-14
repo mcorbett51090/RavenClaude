@@ -148,11 +148,11 @@ function adapterOpts(phaseName, runCfg) {
 // ║ copied body is faithful to the reference.                                 ║
 // ╚═══════════════════════════════════════════════════════════════════════════╝
 
-// ─── Tier → SKU map (lockstep with evaluate-dispatch.js resolveTier; default claude)
+// ─── Tier → SKU map (Claude literals — Gate 52 extracts this block in isolation)
 const DISPATCH_TIER_MODEL = {
-  fast: resolveTier("claude", "fast").model,
-  balanced: resolveTier("claude", "balanced").model,
-  top: resolveTier("claude", "top").model,
+  fast: "claude-haiku-4-5-20251001",
+  balanced: "claude-sonnet-5",
+  top: "claude-opus-4-8",
 };
 
 // ─── Audit log path template ──────────────────────────────────────────────────
