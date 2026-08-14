@@ -52,10 +52,11 @@ const _isoNow = () => "1970-01-01T00:00:00.000Z";
 // (empty object) on every call, so every agent() invocation's effective behaviour
 // is identical to the pre-port runtime-generated baseline.
 //
-// Tier → Claude model mapping (verified 2026-05-31, [verify-at-use] before Phase 6):
+// Tier → model mapping (generated from substrate-tier-map.json — 2026-08-14).
+// Default host = claude so Gate 51 disabled path stays Claude-SKU identical.
 //   fast     → claude-haiku-4-5-20251001   (no extended thinking — RM6)
-//   balanced → claude-sonnet-5           (adaptive thinking available)
-//   top      → claude-opus-4-8             (escalate sparingly)
+//   balanced → claude-sonnet-5
+//   top      → claude-opus-4-8
 //
 // cache_control: {type:"ephemeral", ttl:"1h"} ONLY on verify phases. The 36-min
 // baseline run vastly exceeds the 5-min default TTL; eat the 2× write penalty once
@@ -63,10 +64,42 @@ const _isoNow = () => "1970-01-01T00:00:00.000Z";
 // The classifier prompt is ~800 tokens — below Haiku 4.5's 4,096-token cache
 // minimum — so NO cache_control is applied there (pure write penalty, RM1).
 
+function _dispatchHost() {
+  try {
+    if (typeof process !== "undefined" && process.env && process.env.RAVENCLAUDE_HOST) {
+      const h = String(process.env.RAVENCLAUDE_HOST).trim();
+      if (h) return h;
+    }
+  } catch (e) {}
+  return "claude";
+}
+function resolveTier(host, tier) {
+  const MAP = {
+    claude: {
+      fast: "claude-haiku-4-5-20251001",
+      balanced: "claude-sonnet-5",
+      top: "claude-opus-4-8",
+    },
+    grok: {
+      fast: { model: "grok-4.5", effort: "low", perspective: "scanner" },
+      balanced: { model: "grok-4.5", effort: "high", perspective: "architect" },
+      top: { model: "grok-4.6", effort: "high", perspective: "critic" },
+    },
+    codex: { fast: "gpt-5.6-luna", balanced: "gpt-5.6-terra", top: "gpt-5.6-sol" },
+    copilot: { fast: "Claude Haiku 4.5", balanced: "Claude Sonnet 5", top: "Claude Opus 5" },
+  };
+  let h = host && String(host).trim() ? String(host).trim() : "claude";
+  if (!MAP[h]) h = "claude";
+  let t = tier && String(tier).trim() ? String(tier).trim() : "balanced";
+  const table = MAP[h];
+  if (!table[t]) t = "balanced";
+  const row = table[t];
+  return typeof row === "string" ? { model: row } : row;
+}
 const TIER_MODEL = {
-  fast: "claude-haiku-4-5-20251001",
-  balanced: "claude-sonnet-5",
-  top: "claude-opus-4-8",
+  fast: resolveTier("claude", "fast").model,
+  balanced: resolveTier("claude", "balanced").model,
+  top: resolveTier("claude", "top").model,
 };
 
 // Tiers that support extended/adaptive thinking (Haiku 4.5 does not — RM6).
@@ -81,7 +114,7 @@ function adapterOpts(phaseName, runCfg) {
 
   const tierLabel = (runCfg.tiers && runCfg.tiers[phaseName]) || "balanced";
   const reasoningLabel = (runCfg.reasoning && runCfg.reasoning[phaseName]) || "medium";
-  const model = TIER_MODEL[tierLabel] || TIER_MODEL["balanced"];
+  const model = resolveTier(_dispatchHost(), tierLabel).model || TIER_MODEL["balanced"];
 
   const opts = { model };
 
@@ -115,13 +148,11 @@ function adapterOpts(phaseName, runCfg) {
 // ║ copied body is faithful to the reference.                                 ║
 // ╚═══════════════════════════════════════════════════════════════════════════╝
 
-// ─── Tier → SKU map (single source of truth; verify-at-use — 2026-05-31) ────────
-// Sourced from adaptive-run-classifier/SKILL.md §"Substrate tier table".
-// Do NOT re-author the table; copy updates from there.
+// ─── Tier → SKU map (lockstep with evaluate-dispatch.js resolveTier; default claude)
 const DISPATCH_TIER_MODEL = {
-  fast: "claude-haiku-4-5-20251001",
-  balanced: "claude-sonnet-5",
-  top: "claude-opus-4-8",
+  fast: resolveTier("claude", "fast").model,
+  balanced: resolveTier("claude", "balanced").model,
+  top: resolveTier("claude", "top").model,
 };
 
 // ─── Audit log path template ──────────────────────────────────────────────────
@@ -287,7 +318,8 @@ async function evaluatedAgent(prompt, opts = {}, dispatchCfg) {
     } else if (callerContext === "workflow" && opts._run_config_phase) {
       // Inside a run_config context: downgrade is binding; upgrade is advisory.
       if (verdict.verdict === "downgrade") {
-        appliedOpts.model = DISPATCH_TIER_MODEL[verdict.suggested_tier] || appliedOpts.model;
+        appliedOpts.model =
+          resolveTier(_dispatchHost(), verdict.suggested_tier).model || appliedOpts.model;
         applied = "binding";
       } else if (verdict.verdict === "upgrade") {
         applied = "advisory"; // log only; keep original model
@@ -297,7 +329,8 @@ async function evaluatedAgent(prompt, opts = {}, dispatchCfg) {
     } else {
       // Top-level or plain workflow: full binding both directions.
       if (verdict.verdict === "downgrade" || verdict.verdict === "upgrade") {
-        appliedOpts.model = DISPATCH_TIER_MODEL[verdict.suggested_tier] || appliedOpts.model;
+        appliedOpts.model =
+          resolveTier(_dispatchHost(), verdict.suggested_tier).model || appliedOpts.model;
         applied = "binding";
       } else {
         applied = "keep";

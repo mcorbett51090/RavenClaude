@@ -14,7 +14,8 @@ the gates, because restating them means paying for the pipeline's description tw
 
 ## Steps
 
-1. **Parse args.** idea, `--depth` (default `quick`), `--models` (B **must** ≠ A), `--auto-route`
+1. **Parse args.** idea, `--depth` (default `quick`), `--models` (B **must** ≠ A
+   after resolve — see `skills/forge-pipeline/SKILL.md` § G2/G3 host aliases), `--auto-route`
    (act on G7's verdict without pausing — else present it to Matt), `--no-redteam` (skip G5 at
    quick/micro only; emits a waiver), `--resume <slug>` (deep only).
 2. **Mint** a `<slug>` and the Sága run dir `.ravenclaude/runs/forge/<slug>/`.

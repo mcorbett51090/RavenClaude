@@ -2,6 +2,10 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.15] — 2026-08-14
+
+Substrate-tier refresh — Grok Build CLI default is **Grok 4.6**; **Grok 4.5** remains the selectable balanced rung. Adapter `fast`/`balanced` share `grok-4.5` and diverge on `effort` + `perspective` (CLI probe: `grok-build-0.1` / `grok-4.3` are unknown model ids). Codex live three-rung is GPT-5.6 Luna / Terra / Sol (pro = `reasoning.mode`, not a `*-pro` slug). Copilot Claude `top` = Opus 5. Decision-tree leaves retargeted. `[verify-at-use]`.
+
 ## [0.3.14] — 2026-08-13
 
 Research-sweep **refresh** (Tier-A weekly news sweep; 4 weeks since 0.3.13) — folded into

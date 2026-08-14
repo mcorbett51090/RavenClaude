@@ -2,6 +2,12 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.270.0 — 2026-08-14
+
+### Added
+
+- Host-keyed substrate tier map (`knowledge/substrate-tier-map.json`) so FORGE / dispatch / classifier / Thing seats resolve haiku/sonnet/opus to live host SKUs. Grok `fast`/`balanced` share `grok-4.5` and diverge on effort + perspective (CLI probe: `grok-build-0.1` is not a selectable id).
+
 ## 0.269.0 — 2026-08-14
 
 ### Added
