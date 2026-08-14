@@ -70,6 +70,7 @@ _SKIP = {
     "remind-tests.sh": ("Stop — same unverified lifecycle mapping as dod-gate.sh."),
     "stream-session-close.sh": ("Stop — same unverified lifecycle mapping."),
     "thing-denial-kb-sync.sh": ("Stop — same unverified lifecycle mapping."),
+    "handoff-nudge.sh": ("Stop — same unverified lifecycle mapping as dod-gate.sh."),
     "route-decision-review.sh": (
         "matches AskUserQuestion, a Claude Code tool with no Gemini equivalent."
     ),

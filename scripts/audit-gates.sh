@@ -1069,9 +1069,31 @@ PY
           bash plugins/ravenclaude-core/scripts/resolve-plugin-root.sh >/dev/null
       exit $?
       ;;
+    212)
+      echo "── Gate 212: handoff-nudge (per-gate run) ──"
+      bash plugins/ravenclaude-core/hooks/tests/test-gate212-handoff-nudge.sh || exit $?
+      echo "── Gate 212 teeth: the mutant MUST leak ──"
+      if bash plugins/ravenclaude-core/hooks/tests/test-gate212-handoff-nudge.sh --must-fail-leak; then
+        echo "TEETH FAILED: the mutant did not leak — the no-leak assertion is toothless" >&2
+        exit 1
+      fi
+      echo "teeth ok (the mutant leaked, so the assertion measures the invariant)"
+      exit 0
+      ;;
+    213)
+      echo "── Gate 213: handoff-spawn (per-gate run) ──"
+      bash plugins/ravenclaude-core/hooks/tests/test-gate213-handoff-spawn.sh || exit $?
+      echo "── Gate 213 teeth: the mutant MUST emit grok -p ──"
+      if bash plugins/ravenclaude-core/hooks/tests/test-gate213-handoff-spawn.sh --must-fail-headless; then
+        echo "TEETH FAILED: the mutant did not emit grok -p" >&2
+        exit 1
+      fi
+      echo "teeth ok (the mutant emitted grok -p)"
+      exit 0
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -7206,6 +7228,27 @@ PY
 rc=0; bash "$_g211_tmp/resolve-plugin-root.sh" --self-test >/dev/null 2>&1 || rc=$?
 gate "resolve-plugin-root teeth: deleting the three-file conjunct fails --self-test" must_fail "$rc"
 rm -rf "$_g211_tmp"
+
+echo "── Gate 212: handoff-nudge — Stop detector, derived values only ─"
+# Session-context quality reset. The Stop hook nags via additionalContext when
+# live usage (updates.jsonl totalTokens) is at/over the owner threshold.
+# stdout is model-visible: NEVER echo lastAssistantMessage / transcript.
+# ⛔ Registered in BOTH this main sequence AND the --check dispatcher above.
+# After adding a gate, GREP THE SUITE OUTPUT FOR "212".
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate212-handoff-nudge.sh >/dev/null 2>&1 || rc=$?
+gate "handoff-nudge: nags at high usage, silent otherwise, never echoes lastAssistantMessage" must_pass "$rc"
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate212-handoff-nudge.sh --must-fail-leak >/dev/null 2>&1 || rc=$?
+gate "handoff-nudge teeth: a mutant that leaks lastAssistantMessage IS caught" must_fail "$rc"
+
+echo "── Gate 213: handoff-spawn — positional grok only, never headless ─"
+# Fresh-window successor. Seed is positional grok "<prompt>". A mutant that
+# emits grok -p must be caught. CI is --dry-run only (no live Terminal.app).
+# ⛔ Registered in BOTH this main sequence AND the --check dispatcher above.
+# After adding a gate, GREP THE SUITE OUTPUT FOR "213".
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate213-handoff-spawn.sh >/dev/null 2>&1 || rc=$?
+gate "handoff-spawn: dry-run positional seed, missing brief exits 1, no grok -p" must_pass "$rc"
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate213-handoff-spawn.sh --must-fail-headless >/dev/null 2>&1 || rc=$?
+gate "handoff-spawn teeth: a mutant that emits grok -p IS caught" must_fail "$rc"
 
 echo "── Gate 206: no plugin description may carry an artifact-count literal ──"
 # P13 / D1. Prose counts in plugin.json + marketplace.json descriptions are

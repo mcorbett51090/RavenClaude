@@ -48,6 +48,9 @@ Usage:
   rc streams [list]                     List logical work-streams in this project (default).
 
   rc artifacts list|new <id>   where work files go, across CLIs
+  rc handoff --task-id <id> [--dry-run] [--recipe copy-paste|os-terminal]
+                                        Print (and optionally spawn) a fresh Grok
+                                        window from a run-dir handoff.md.
   rc forge-worktree init|checkpoint|path|--self-test
                                         FORGE worktree provisioner (plugin scripts/).
   rc forge-route --plan PATH | --self-test
@@ -267,6 +270,10 @@ PY
     }
     exec python3 "$PLUGIN_ROOT/scripts/classify_claim.py" "$@"
     ;;
+  handoff)
+    shift
+    exec bash "$PLUGIN_ROOT/scripts/handoff-spawn.sh" "$@"
+    ;;
   artifacts)
     shift
     # The cross-CLI work-file index. Lives at the MARKETPLACE root scripts/ (not
@@ -289,7 +296,7 @@ PY
     ;;
 
   *)
-    echo "rc: unknown command '$cmd' (try: rc dashboard | rc streams | rc converge | rc artifacts | rc forge-worktree | rc forge-route | rc premise-gate | rc classify-claim)" >&2
+    echo "rc: unknown command '$cmd' (try: rc dashboard | rc streams | rc converge | rc artifacts | rc handoff | rc forge-worktree | rc forge-route | rc premise-gate | rc classify-claim)" >&2
     _usage
     exit 1
     ;;

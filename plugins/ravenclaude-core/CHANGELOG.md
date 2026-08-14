@@ -2,6 +2,28 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.266.0 — 2026-08-14
+
+### Added
+
+- **Session-context handoff** (`/handoff`, skill `session-handoff`). A Grok-first
+  preventive quality reset: write a host-agnostic brief into the existing
+  `.ravenclaude/runs/<task-id>/` contract and continue in a **fresh** interactive
+  TUI (`grok "<prompt>"`). Not `/fork`, not `grok -p`, not compacted mush.
+- **Stop-hook nudge** (`handoff-nudge.sh`) — opt-in (`context_handoff.mode: nag`).
+  Live meter is `updates.jsonl` `params._meta.totalTokens`. Default **off**.
+  Soft threshold default 70, always below auto-compact (~85).
+- **`rc handoff`** — always prints the copy-paste resume command. OS-terminal
+  spawn is owner-flagged (`context_handoff.spawn: os-terminal`) and unverified
+  until a human enables it and a window actually opens.
+- Gates **212** (nudge, derived-values-only + leak teeth) and **213** (spawn,
+  `--must-fail-headless`).
+
+### Not claimed
+
+- Other-host auto-spawn adapters. Compact-anchor is unchanged. Window-open from
+  a VS Code-family TTY was inventoried, not proven.
+
 ## 0.265.0 — 2026-08-14
 
 ### Added

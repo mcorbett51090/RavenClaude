@@ -176,6 +176,12 @@
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/thing-denial-kb-sync.sh",
             "comment": "Thing-denial knowledge base (Muninn). On session end, materialise any NEW command/decision-tribunal denials/defers into the per-repo denial KB (thing-denial-kb.py sync). Hot-path-safe: reads ONLY the S\u00e1ga audit records the Thing already wrote under .ravenclaude/runs/thing/ (decisions/*.json + command-review *.json) \u2014 never touches the tribunal's live PreToolUse emit path. Enriches each distinct denial SHAPE with a known resolution from knowledge/thing-denial-resolutions.json. No-op unless .ravenclaude/comfort-posture.yaml exists; never writes stdout; always exits 0."
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/handoff-nudge.sh",
+            "timeout": 10,
+            "comment": "Session-context handoff nudge. Advisory Stop additionalContext when context_handoff.mode is nag|block and live usage (updates.jsonl totalTokens) is at/over the soft threshold. Fail-open; never writes the brief; not a compact hook; not UserPromptSubmit. Default mode off."
           }
         ]
       }

@@ -85,6 +85,11 @@ def detect_host() -> str:
         return explicit.strip().lower()
     if os.environ.get("CLAUDECODE") or os.environ.get("CLAUDE_CODE_ENTRYPOINT"):
         return "claude-code"
+    # Grok before Copilot: this host often has COPILOT_* on PATH from the
+    # editor while GROK_AGENT=1 is the actual session. Do not key on
+    # GROK_SESSION_ID (absent in the agent process).
+    if os.environ.get("GROK_AGENT") or os.environ.get("GROK_HOOK_EVENT"):
+        return "grok"
     if any(k.startswith("CODEX_") for k in os.environ):
         return "codex"
     if os.environ.get("COPILOT_HOME") or any(k.startswith("COPILOT_") for k in os.environ):
