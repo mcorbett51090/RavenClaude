@@ -161,6 +161,94 @@ _gate192_noclobber_preserved() { # $1=installer script  $2=dest — 0 iff a pre-
   grep -q "$sentinel" "$victim"    # present => preserved (0); absent => clobbered (1)
 }
 
+# ── Gate 34 helper: claim-grounding lint (unhedged + contract-provenance) ─────
+# Shared by the --check dispatcher AND the full-suite region so the two cannot
+# drift. The hook is ADVISORY (exit 0 always; N/A-by-design for exit-2) — teeth
+# are on stderr text, never a deny code. Check 2 (PR 9 / P15) reuses the hook's
+# single stdin/arg parse; the stdin-JSON case below proves that (no $1).
+_gate34() {
+  local CGL="plugins/ravenclaude-core/hooks/claim-grounding-lint.sh"
+  local d err rc=0 hook_rc
+  d="$(mktemp -d)"
+  err="$d/err"
+  mkdir -p "$d/proj/.ravenclaude" "$d/proj/knowledge" "$d/np/knowledge"
+  printf 'schema_version: 5\n' > "$d/proj/.ravenclaude/comfort-posture.yaml"
+  # apostrophe-free: the check-1 regex makes the apostrophe optional (can'?t)
+  printf '# Doc\nYou cant export solutions as unmanaged.\n' > "$d/proj/knowledge/bad.md"
+  printf '# Doc\nIf you cant export, use the Dataverse API.\n' > "$d/proj/knowledge/cond.md"
+  printf '# Doc\nYou cant export unmanaged here. claim-lint-ok\n' > "$d/proj/knowledge/esc.md"
+  printf '# Doc\nYou cant export solutions as unmanaged.\n' > "$d/np/knowledge/bad.md"
+  # check 2: capability/contract claim (does not trip check 1's unhedged set)
+  printf '# Doc\nThe vendor API does not support MERGE operations.\n' > "$d/proj/knowledge/c-bad.md"
+  printf '# Doc\nThe vendor API does not support MERGE operations. [docs-verified 2026-08-13]\n' > "$d/proj/knowledge/c-good.md"
+  printf '# Doc\nThe vendor API does not support MERGE operations. claim-lint-ok\n' > "$d/proj/knowledge/c-esc.md"
+
+  hook_rc=0
+  bash "$CGL" "$d/proj/knowledge/bad.md" 2>"$err" || hook_rc=$?
+  if [ "$hook_rc" -eq 0 ]; then printf '  ok    advisory exit 0 on bare unhedged claim\n'
+  else printf '  FAIL  advisory exit 0 on bare unhedged claim (got %s)\n' "$hook_rc"; rc=1; fi
+  if grep -q "unhedged absolute" "$err"; then printf '  ok    claim-grounding (fires on bare claim)\n'
+  else printf '  FAIL  claim-grounding (fires on bare claim)\n'; rc=1; fi
+
+  hook_rc=0
+  bash "$CGL" "$d/proj/knowledge/cond.md" 2>"$err" || hook_rc=$?
+  if [ "$hook_rc" -eq 0 ] && ! grep -q "unhedged absolute" "$err"; then
+    printf '  ok    claim-grounding (silent on conditional)\n'
+  else printf '  FAIL  claim-grounding (silent on conditional)\n'; rc=1; fi
+
+  hook_rc=0
+  bash "$CGL" "$d/proj/knowledge/esc.md" 2>"$err" || hook_rc=$?
+  if [ "$hook_rc" -eq 0 ] && ! grep -q "unhedged absolute" "$err"; then
+    printf '  ok    claim-grounding (silent on escape marker)\n'
+  else printf '  FAIL  claim-grounding (silent on escape marker)\n'; rc=1; fi
+
+  hook_rc=0
+  bash "$CGL" "$d/np/knowledge/bad.md" 2>"$err" || hook_rc=$?
+  if [ "$hook_rc" -eq 0 ] && ! grep -q "unhedged absolute" "$err"; then
+    printf '  ok    claim-grounding (silent without opt-in posture)\n'
+  else printf '  FAIL  claim-grounding (silent without opt-in posture)\n'; rc=1; fi
+
+  hook_rc=0
+  bash "$CGL" "$d/proj/knowledge/c-bad.md" 2>"$err" || hook_rc=$?
+  if [ "$hook_rc" -eq 0 ]; then printf '  ok    advisory exit 0 on unmarked contract claim\n'
+  else printf '  FAIL  advisory exit 0 on unmarked contract claim (got %s)\n' "$hook_rc"; rc=1; fi
+  if grep -q "Contract-provenance" "$err"; then
+    printf '  ok    claim-grounding (fires on unmarked capability claim)\n'
+  else printf '  FAIL  claim-grounding (fires on unmarked capability claim)\n'; rc=1; fi
+  if grep -q "unhedged absolute" "$err"; then
+    printf '  FAIL  check 1 stayed silent on a check-2-only fixture\n'; rc=1
+  else printf '  ok    check 1 silent on a check-2-only fixture\n'; fi
+
+  hook_rc=0
+  bash "$CGL" "$d/proj/knowledge/c-good.md" 2>"$err" || hook_rc=$?
+  if [ "$hook_rc" -eq 0 ] && ! grep -q "Contract-provenance" "$err"; then
+    printf '  ok    claim-grounding (silent on [docs-verified 2026-…])\n'
+  else printf '  FAIL  claim-grounding (silent on [docs-verified 2026-…])\n'; rc=1; fi
+
+  hook_rc=0
+  bash "$CGL" "$d/proj/knowledge/c-esc.md" 2>"$err" || hook_rc=$?
+  if [ "$hook_rc" -eq 0 ] && ! grep -q "Contract-provenance" "$err"; then
+    printf '  ok    claim-grounding (suppression-honored)\n'
+  else printf '  FAIL  claim-grounding (suppression-honored)\n'; rc=1; fi
+
+  # Stdin JSON, no $1 — proves check 2 rides the existing parse, not a second one.
+  if command -v jq >/dev/null 2>&1; then
+    hook_rc=0
+    printf '{"tool_input":{"file_path":"%s"}}\n' "$d/proj/knowledge/c-bad.md" \
+      | bash "$CGL" 2>"$err" || hook_rc=$?
+    if [ "$hook_rc" -eq 0 ] && grep -q "Contract-provenance" "$err"; then
+      printf '  ok    claim-grounding (stdin JSON reuses the single parse)\n'
+    else
+      printf '  FAIL  claim-grounding (stdin JSON reuses the single parse)\n'; rc=1
+    fi
+  else
+    printf '  FAIL  jq missing — cannot prove stdin reuse\n'; rc=1
+  fi
+
+  rm -rf "$d"
+  return "$rc"
+}
+
 # ── Optional per-gate filter: --check <gate_number> ──────────────────────────
 # Usage: bash scripts/audit-gates.sh --check 50
 # Runs only the named gate's fixture test directly and exits, bypassing the full
@@ -177,6 +265,11 @@ if [[ "${1:-}" == "--check" && -n "${2:-}" ]]; then
     20)
       echo "── Gate 20: adapter diagnostics (per-gate run) ───────────────────────────"
       bash plugins/ravenclaude-core/hooks/tests/test-gate20-adapter-diagnostics.sh
+      exit $?
+      ;;
+    34)
+      echo "── Gate 34: claim-grounding lint (per-gate run) ──────────────────────────"
+      _gate34
       exit $?
       ;;
     50)
@@ -939,7 +1032,7 @@ PY
       ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -3666,30 +3759,15 @@ gate "golden-set (known-bad corpus -> runner must fail)" must_fail "$rc"
 
 echo
 echo "── Gate 34: claim-grounding lint (advisory; fires on bad, silent on good) ──"
-# The hook is advisory (exit 0 always), so we assert on its stderr nudge, not exit
-# code. Fires on a bare unhedged claim in a knowledge/ file (proves teeth), silent
-# on a conditional, on the claim-lint-ok escape, and without an opt-in posture.
-CGL="plugins/ravenclaude-core/hooks/claim-grounding-lint.sh"
-G34="$TMP/cg"
-mkdir -p "$G34/proj/.ravenclaude" "$G34/proj/knowledge" "$G34/np/knowledge"
-printf 'schema_version: 5\n' > "$G34/proj/.ravenclaude/comfort-posture.yaml"
-# apostrophe-free fixtures: the hook regex makes the apostrophe optional (can'?t)
-printf '# Doc\nYou cant export solutions as unmanaged.\n' > "$G34/proj/knowledge/bad.md"
-printf '# Doc\nIf you cant export, use the Dataverse API.\n' > "$G34/proj/knowledge/cond.md"
-printf '# Doc\nYou cant export unmanaged here. claim-lint-ok\n' > "$G34/proj/knowledge/esc.md"
-printf '# Doc\nYou cant export solutions as unmanaged.\n' > "$G34/np/knowledge/bad.md"
-bash "$CGL" "$G34/proj/knowledge/bad.md" 2>"$TMP/cg.err" || true
-rc=0; grep -q "unhedged absolute" "$TMP/cg.err" || rc=1
-gate "claim-grounding (fires on bare claim)" must_pass "$rc"
-bash "$CGL" "$G34/proj/knowledge/cond.md" 2>"$TMP/cg.err" || true
-rc=0; grep -q "unhedged absolute" "$TMP/cg.err" && rc=1
-gate "claim-grounding (silent on conditional)" must_pass "$rc"
-bash "$CGL" "$G34/proj/knowledge/esc.md" 2>"$TMP/cg.err" || true
-rc=0; grep -q "unhedged absolute" "$TMP/cg.err" && rc=1
-gate "claim-grounding (silent on escape marker)" must_pass "$rc"
-bash "$CGL" "$G34/np/knowledge/bad.md" 2>"$TMP/cg.err" || true
-rc=0; grep -q "unhedged absolute" "$TMP/cg.err" && rc=1
-gate "claim-grounding (silent without opt-in posture)" must_pass "$rc"
+# The hook is advisory (exit 0 always; N/A-by-design for exit-2), so teeth are
+# on stderr, not a deny code. Check 1: unhedged absolute. Check 2 (PR 9 / P15):
+# unmarked capability/contract claim. Both live in _gate34 so the dispatcher
+# and this region cannot drift. Check 2 reuses the hook's single stdin parse.
+#
+# ⛔ Registered in BOTH this main sequence AND the --check dispatcher above +
+# the Supported: string. After extending, GREP THE SUITE OUTPUT FOR "Gate 34".
+rc=0; _gate34 || rc=$?
+gate "claim-grounding lint (unhedged + contract-provenance)" must_pass "$rc"
 
 echo
 echo "── Gate 35: dashboard serializer round-trip + Pipeline-tab server validation ─"

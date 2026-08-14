@@ -2,6 +2,21 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.259.0 — 2026-08-14
+
+### Added
+
+- **Contract-provenance check on `claim-grounding-lint.sh` (PR 9 / P15).** The
+  existing advisory PostToolUse hook now has a second, independent scan over the
+  same knowledge/** + docs/** markdown: a capability/contract claim about another
+  system ("X does not support Y", "Z is supported", "W has no public API") with
+  no inline provenance marker nudges the author. It does **not** verify the
+  claim — only whether it is marked. Exit 0 always. Honor `[docs-verified
+  <date>]`, `[unverified]`, `[verify-at-use]`, a bare ISO date, and the existing
+  `claim-lint-ok` escape. Reuses the hook's single stdin/arg parse (no second
+  read). Gate 34 extended (no new gate number) with fires-on-bad / silent-on-good
+  / suppression-honored / stdin-reuse teeth; registered in both regions.
+
 ## 0.253.1 — 2026-08-13
 
 ### Fixed
