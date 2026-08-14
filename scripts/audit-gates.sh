@@ -925,9 +925,15 @@ PY
         python3 scripts/check-selfheal-push-safety.py
       exit $?
       ;;
+    205)
+      echo "── Gate 205: derived route dispatch + sibling #/ hrefs (per-gate run) ──"
+      node scripts/check-committed-routes.mjs --self-test && \
+        node scripts/check-committed-routes.mjs
+      exit $?
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 205. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -6861,6 +6867,49 @@ cp .github/workflows/*.yml "$_g203_ctl/.github/workflows/"
 cp scripts/check-selfheal-push-safety.py "$_g203_ctl/scripts/"
 rc=0; (cd "$_g203_ctl" && python3 scripts/check-selfheal-push-safety.py) >/dev/null 2>&1 || rc=$?
 gate "selfheal-push-safety teeth control: the unmutated copy is clean (the red is the mutation)" must_pass "$rc"
+
+echo
+echo "── Gate 205: route() dispatch is DERIVED; shipped sibling #/ hrefs resolve ─"
+# The two #903-run defects. Gate 51 already enumerates committed #/… destinations,
+# but (1) resolveIndex() used to hard-code the dispatch — including
+# `learn → viewResources` — so PR #903 re-homing a route left the checker green
+# while the live router moved, and (2) pitch.html's `href="index.html#/<route>"`
+# links were outside the scan, so a rename rotted a shipped marketing link
+# silently. Both halves now assert surfaces against EACH OTHER: parseRouteDispatch
+# reads route()'s if/else ladder out of the html, and every root-level *.html
+# cross-file #/ href is resolved through that same derived router.
+#
+# ⛔ Registered in BOTH this main sequence AND the --check dispatcher above + the
+# Supported: string. After adding a gate, run the full suite and GREP ITS OUTPUT
+# FOR "205" — a passing suite is not evidence your gate is in it.
+rc=0; node scripts/check-committed-routes.mjs --self-test >/dev/null 2>&1 || rc=$?
+gate "committed-routes derived-dispatch+siblings: teeth (retargeted learn branch + rotten pitch.html href caught; live tree clean)" must_pass "$rc"
+rc=0; node scripts/check-committed-routes.mjs >/dev/null 2>&1 || rc=$?
+gate "committed-routes derived-dispatch+siblings: live tree + shipped sibling pages resolve" must_pass "$rc"
+
+# must_fail: --must-fail plants a rotten pitch.html #/ href and MUST exit 2.
+rc=0; node scripts/check-committed-routes.mjs --must-fail >/dev/null 2>&1 || rc=$?
+gate "committed-routes sibling teeth: --must-fail (rotten pitch.html #/ href) actually fails" must_fail "$rc"
+
+# Live-tree teeth: retarget the learn branch in a copy. A hard-coded
+# `learn → viewResources` ladder stays green; the derived walker goes red.
+_g205_idx="$TMP/index-learn-retarget.html"
+python3 - "$IDX_HTML" "$_g205_idx" <<'PY'
+import sys
+src = open(sys.argv[1], encoding="utf-8").read()
+anchor = 'else if (section === "learn")'
+i = src.find(anchor)
+assert i != -1, "learn branch drifted — update the Gate 205 mutant"
+j = src.find("} else", i)
+assert j != -1 and "viewResources()" in src[i:j], "learn body has no viewResources() — no-op"
+open(sys.argv[2], "w", encoding="utf-8").write(
+    src[:i] + src[i:j].replace("viewResources()", "viewMarketplace()", 1) + src[j:]
+)
+PY
+cmp_rc=0; cmp -s "$IDX_HTML" "$_g205_idx" || cmp_rc=$?
+gate "committed-routes learn-retarget mutation is not a no-op" must_fail "$cmp_rc"
+rc=0; node scripts/check-committed-routes.mjs --index "$_g205_idx" >/dev/null 2>&1 || rc=$?
+gate "committed-routes derived-dispatch teeth: retargeting the learn branch IS caught" must_fail "$rc"
 
 echo
 
