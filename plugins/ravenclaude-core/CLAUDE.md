@@ -2304,6 +2304,17 @@ in-plugin relative), matching `forge-route.py` / `forge-worktree.sh`. Marketplac
 audit-gates and any leftover repo-relative citation. Gate 187's `_DEFERRED_PACKAGING`
 is empty — the gate now keeps those three honest.
 
+**Follow-up in v0.265.0:** those `${CLAUDE_PLUGIN_ROOT}` citations still did not resolve in VS Code
+Copilot Chat. `resolve-plugin-root.sh` + Gate 211 close that without adding a Chat host row.
+
+### Closed in v0.265.0 — FORGE helpers resolve without CLAUDE_PLUGIN_ROOT
+
+`scripts/resolve-plugin-root.sh` prints the plugin root only when
+`forge-route.py`, `forge-worktree.sh`, and `premise-gate.py` are all present (a
+partial set is exit 2). FORGE operational citations (`forge-pipeline` skill,
+`/forge` command, `reference/premise-gate.md`) resolve once via that script.
+VS Code Copilot Chat is not a host row. Gate 211 pins the conjunct.
+
 **Migration:** none — a gate that was not running now runs (it has always passed when invoked
 directly), and the recorder stops recording two shapes as absences they never were.
 

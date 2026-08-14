@@ -2,6 +2,30 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.265.0 — 2026-08-14
+
+### Added
+
+- **`scripts/resolve-plugin-root.sh`.** Prints the `ravenclaude-core` plugin root only when
+  `forge-route.py`, `forge-worktree.sh`, and `premise-gate.py` are all present. Works with
+  `$CLAUDE_PLUGIN_ROOT` set **or** unset (skill-symlink walk, invoke-by-path, `rc`,
+  `$RAVENCLAUDE_MARKET`). A partial set is exit 2 — never a "routing exists,
+  premise/worktree do not" split. `--self-test` ships six fixtures. Gate 211.
+
+### Changed
+
+- **FORGE operational citations** (`skills/forge-pipeline/SKILL.md` §0.4,
+  `commands/forge.md`, `reference/premise-gate.md`) resolve helpers via
+  `$FORGE_PLUGIN_ROOT` after the resolver runs. `${CLAUDE_PLUGIN_ROOT}` remains
+  the Claude Code equivalent, not a requirement.
+- **`bin/rc`** gained `forge-worktree` / `forge-route` / `premise-gate` /
+  `classify-claim` verbs (convenience; not the close).
+
+### Not claimed
+
+- VS Code Copilot Chat is not a first-class RavenClaude host. No new
+  `host-support.json` row.
+
 ## 0.264.0 — 2026-08-14
 
 ### Fixed

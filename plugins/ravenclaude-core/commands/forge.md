@@ -18,8 +18,15 @@ the gates, because restating them means paying for the pipeline's description tw
    (act on G7's verdict without pausing — else present it to Matt), `--no-redteam` (skip G5 at
    quick/micro only; emits a waiver), `--resume <slug>` (deep only).
 2. **Mint** a `<slug>` and the Sága run dir `.ravenclaude/runs/forge/<slug>/`.
+2.4 **Resolve helpers once** (skill §0.4) — do **not** require `${CLAUDE_PLUGIN_ROOT}`. That
+    variable is the Claude Code equivalent. `/forge` itself is Claude-Code-only; VS Code Copilot
+    Chat invokes the **skill** `forge-pipeline` (there is no skill named `forge`). Run
+    `resolve-plugin-root.sh` (via `$CLAUDE_PLUGIN_ROOT/scripts/…` if set, else the
+    `.claude/skills/forge-pipeline` symlink walk, else
+    `plugins/ravenclaude-core/scripts/resolve-plugin-root.sh`) and
+    `export FORGE_PLUGIN_ROOT`. Partial sets are a fail.
 2.5 **Provision the worktree** (skill §0.5, every depth) —
-   `bash ${CLAUDE_PLUGIN_ROOT}/scripts/forge-worktree.sh init <slug>`. The plan landing +
+   `bash "$FORGE_PLUGIN_ROOT/scripts/forge-worktree.sh" init <slug>`. The plan landing +
    implementation run on the `forge/<slug>` branch in `.claude/worktrees/forge-<slug>/`. Fail-safe:
    any `status=skipped|disabled` receipt ⇒ proceed in the primary checkout (it is a safety anchor, not
    a gate).
@@ -28,7 +35,7 @@ the gates, because restating them means paying for the pipeline's description tw
 4. **Run the gates the depth includes**, honoring the skill's §0 artifact contract on every dispatch:
    subagents **write** their artifact to the run dir and return a **receipt**; downstream gates get a
    **path** and read it themselves. Never relay artifact text through this session. **After each gate**,
-   checkpoint — `bash ${CLAUDE_PLUGIN_ROOT}/scripts/forge-worktree.sh checkpoint <slug> <gate>`
+   checkpoint — `bash "$FORGE_PLUGIN_ROOT/scripts/forge-worktree.sh" checkpoint <slug> <gate>`
    (no-op when there is nothing tracked to commit).
 5. **Write the Sága run record** — one entry per gate: pass/fail/waiver, who ran it, model, cost.
    Then a final checkpoint (`forge-worktree.sh checkpoint <slug> exit`) before the single exit.

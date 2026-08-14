@@ -1062,9 +1062,16 @@ PY
         python3 scripts/check-generated-gate-state.py
       exit $?
       ;;
+    211)
+      echo "── Gate 211: resolve-plugin-root three-file conjunct (per-gate run) ──"
+      bash plugins/ravenclaude-core/scripts/resolve-plugin-root.sh --self-test && \
+        env -u CLAUDE_PLUGIN_ROOT -u PLUGIN_ROOT \
+          bash plugins/ravenclaude-core/scripts/resolve-plugin-root.sh >/dev/null
+      exit $?
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -7157,6 +7164,48 @@ rc=0; python3 scripts/check-generated-gate-state.py --must-fail >/dev/null 2>&1 
 gate "generated-gate-state teeth: a planted stale phrase IS caught" must_fail "$rc"
 rc_is_2=0; [ "$rc" -eq 2 ] || rc_is_2=1
 gate "generated-gate-state teeth: planted phrase exits 2 (not 1)" must_pass "$rc_is_2"
+
+echo "── Gate 211: resolve-plugin-root three-file conjunct ──"
+# FORGE helpers (forge-route / forge-worktree / premise-gate) resolve without
+# CLAUDE_PLUGIN_ROOT. A partial set is exit 2 — never a 1-of-3 "routing exists"
+# split. ⛔ Registered in BOTH this main sequence AND the --check dispatcher
+# above + the Supported: string. After adding a gate, run the full suite and
+# GREP ITS OUTPUT FOR "211".
+rc=0; bash plugins/ravenclaude-core/scripts/resolve-plugin-root.sh --self-test >/dev/null 2>&1 || rc=$?
+gate "resolve-plugin-root: --self-test (6 fixtures)" must_pass "$rc"
+rc=0; env -u CLAUDE_PLUGIN_ROOT -u PLUGIN_ROOT \
+  bash plugins/ravenclaude-core/scripts/resolve-plugin-root.sh >/dev/null 2>&1 || rc=$?
+gate "resolve-plugin-root: this checkout with CLAUDE_PLUGIN_ROOT unset" must_pass "$rc"
+
+# Teeth: delete the three-file conjunct; --self-test must then fail (the
+# missing-one and cp -r fixtures go green without it).
+_g211_tmp="$(mktemp -d)"
+cp plugins/ravenclaude-core/scripts/resolve-plugin-root.sh "$_g211_tmp/resolve-plugin-root.sh"
+# Replace the body of _has_three with an always-true return. Portable: rewrite
+# the function via a python one-liner (no sed -i).
+python3 - "$_g211_tmp/resolve-plugin-root.sh" <<'PY'
+from pathlib import Path
+import sys
+p = Path(sys.argv[1])
+t = p.read_text()
+old = """_has_three() {
+  local root="${1:-}"
+  [ -n "$root" ] || return 1
+  [ -f "$root/scripts/forge-route.py" ] || return 1
+  [ -f "$root/scripts/forge-worktree.sh" ] || return 1
+  [ -f "$root/scripts/premise-gate.py" ] || return 1
+  return 0
+}"""
+new = """_has_three() {
+  return 0
+}"""
+if old not in t:
+    raise SystemExit("Gate 211 plant: _has_three body not found")
+p.write_text(t.replace(old, new, 1))
+PY
+rc=0; bash "$_g211_tmp/resolve-plugin-root.sh" --self-test >/dev/null 2>&1 || rc=$?
+gate "resolve-plugin-root teeth: deleting the three-file conjunct fails --self-test" must_fail "$rc"
+rm -rf "$_g211_tmp"
 
 echo "── Gate 206: no plugin description may carry an artifact-count literal ──"
 # P13 / D1. Prose counts in plugin.json + marketplace.json descriptions are
