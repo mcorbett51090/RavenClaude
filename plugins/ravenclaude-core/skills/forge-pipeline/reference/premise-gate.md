@@ -37,7 +37,7 @@ grounding an inference drawn from it** — that is the gap, and `kind` is the co
 
 ## Trigger — three conjuncts, all required
 
-1. **`kind: inference`** on the cited claims-table row, as typed by `${CLAUDE_PLUGIN_ROOT}/scripts/classify_claim.py`
+1. **`kind: inference`** on the cited claims-table row, as typed by `"$FORGE_PLUGIN_ROOT/scripts/classify_claim.py"` (resolve once per skill §0.4; `${CLAUDE_PLUGIN_ROOT}` is the Claude Code equivalent)
    (grammatical, **upward-only**: an author may raise a row to `inference`, never lower it — which is
    what makes it not-self-report).
 2. **Cited by a build phase** via that phase's `depends_on_claims: [...]`. This conjunct is the friction

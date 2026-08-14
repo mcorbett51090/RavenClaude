@@ -42,6 +42,7 @@ Copilot CLI **automatically adds** these to every request at session start — *
 - **`SKILL.md` frontmatter:** `name` (required, lowercase-hyphenated) · `description` (required — what it does + *when* Copilot should use it) · optional `license` · optional **`allowed-tools`** (pre-approves tools, e.g. `shell`, without per-use confirmation).
 - **Discovery/invocation:** auto-discovered; Copilot decides from the prompt + `description`, or the user forces it with `/skill-name`. When invoked, **all** files in the skill dir become available to the agent.
 - **Instructions vs. skills (the docs' own guidance):** custom instructions for simple guidance relevant to *almost every* task; skills for detailed guidance Copilot should load *only when relevant*.
+- **VS Code Copilot Chat / agent mode** can *load* project skills from `.claude/skills` (`[docs-verified 2026-08-14]` — [VS Code Agent Skills](https://code.visualstudio.com/docs/agent-customization/agent-skills)). That is **not** this file's `copilot` host row (GitHub Copilot CLI). FORGE helpers resolve via `scripts/resolve-plugin-root.sh`, not `${CLAUDE_PLUGIN_ROOT}`. Chat is not a first-class RavenClaude host.
 
 ## 4. Hooks
 

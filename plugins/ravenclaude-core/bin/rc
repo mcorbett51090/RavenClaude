@@ -48,6 +48,13 @@ Usage:
   rc streams [list]                     List logical work-streams in this project (default).
 
   rc artifacts list|new <id>   where work files go, across CLIs
+  rc forge-worktree init|checkpoint|path|--self-test
+                                        FORGE worktree provisioner (plugin scripts/).
+  rc forge-route --plan PATH | --self-test
+                                        FORGE G7 router.
+  rc premise-gate --run-dir DIR | --self-test | --must-fail
+                                        FORGE G3b premise gate.
+  rc classify-claim --text "…"          Grammatical claim classifier (upward-only).
   rc streams show <id> [--limit N]      Show a stream's resume state + recent DERIVED history.
   rc streams status                     One-line summary: active stream + stream count.
   rc streams create <name>              Create a named stream (slugified).
@@ -232,6 +239,34 @@ PY
     # No verb is an error (so scripts catch it); explicit help is a success.
     [ -z "$cmd" ] && exit 1 || exit 0
     ;;
+  forge-worktree)
+    shift
+    exec bash "$PLUGIN_ROOT/scripts/forge-worktree.sh" "$@"
+    ;;
+  forge-route)
+    shift
+    command -v python3 >/dev/null 2>&1 || {
+      echo "rc: python3 not found in PATH — 'rc forge-route' needs python3." >&2
+      exit 1
+    }
+    exec python3 "$PLUGIN_ROOT/scripts/forge-route.py" "$@"
+    ;;
+  premise-gate)
+    shift
+    command -v python3 >/dev/null 2>&1 || {
+      echo "rc: python3 not found in PATH — 'rc premise-gate' needs python3." >&2
+      exit 1
+    }
+    exec python3 "$PLUGIN_ROOT/scripts/premise-gate.py" "$@"
+    ;;
+  classify-claim)
+    shift
+    command -v python3 >/dev/null 2>&1 || {
+      echo "rc: python3 not found in PATH — 'rc classify-claim' needs python3." >&2
+      exit 1
+    }
+    exec python3 "$PLUGIN_ROOT/scripts/classify_claim.py" "$@"
+    ;;
   artifacts)
     shift
     # The cross-CLI work-file index. Lives at the MARKETPLACE root scripts/ (not
@@ -254,7 +289,7 @@ PY
     ;;
 
   *)
-    echo "rc: unknown command '$cmd' (try: rc dashboard | rc streams | rc converge | rc artifacts)" >&2
+    echo "rc: unknown command '$cmd' (try: rc dashboard | rc streams | rc converge | rc artifacts | rc forge-worktree | rc forge-route | rc premise-gate | rc classify-claim)" >&2
     _usage
     exit 1
     ;;

@@ -53,6 +53,42 @@ red-team in context through G6. Reading from disk hands each downstream gate the
 at a fraction of the resident context. This buys efficiency with **no** loss of gate input; it is the
 single largest cost lever in the pipeline, and it is free.
 
+## 0.4 Resolve helpers once
+
+`${CLAUDE_PLUGIN_ROOT}` is the Claude Code equivalent. **Do not require it.** VS Code Copilot
+Chat (and a consumer tree after `ravenclaude install`) never sets that variable
+`[docs-verified 2026-08-14]` — Chat can *load* this skill from `.claude/skills` and can run a
+terminal, but it is **not** a first-class RavenClaude host and there is **no** skill named
+`forge` (this skill's `name` is `forge-pipeline`; `/forge` is Claude Code only). A Chat pane
+with no Bash cannot run FORGE; that limit is accepted.
+
+Resolve the plugin root **once** per run, then use `$FORGE_PLUGIN_ROOT/scripts/…` for every
+helper. Partial sets are a fail — never invent a "routing exists, premise/worktree do not"
+split.
+
+```bash
+# Locate resolve-plugin-root.sh (first existing path), then let it confirm the
+# three-file conjunct (forge-route.py + forge-worktree.sh + premise-gate.py).
+_rpr=""
+if [ -n "${CLAUDE_PLUGIN_ROOT:-}" ] && [ -f "${CLAUDE_PLUGIN_ROOT}/scripts/resolve-plugin-root.sh" ]; then
+  _rpr="${CLAUDE_PLUGIN_ROOT}/scripts/resolve-plugin-root.sh"
+elif [ -L .claude/skills/forge-pipeline ]; then
+  _rpr="$(cd "$(dirname "$(readlink .claude/skills/forge-pipeline)")/../../scripts" && pwd)/resolve-plugin-root.sh"
+elif [ -L .agents/skills/forge-pipeline ]; then
+  _rpr="$(cd "$(dirname "$(readlink .agents/skills/forge-pipeline)")/../../scripts" && pwd)/resolve-plugin-root.sh"
+elif [ -f plugins/ravenclaude-core/scripts/resolve-plugin-root.sh ]; then
+  _rpr="plugins/ravenclaude-core/scripts/resolve-plugin-root.sh"
+fi
+FORGE_PLUGIN_ROOT="$(bash "${_rpr}")" || { echo "FORGE helpers unresolved" >&2; exit 2; }
+export FORGE_PLUGIN_ROOT
+```
+
+Then: `bash "$FORGE_PLUGIN_ROOT/scripts/forge-worktree.sh …"` and
+`python3 "$FORGE_PLUGIN_ROOT/scripts/premise-gate.py …"` /
+`python3 "$FORGE_PLUGIN_ROOT/scripts/forge-route.py …"` /
+`python3 "$FORGE_PLUGIN_ROOT/scripts/classify_claim.py …"`.
+Do **not** markdown-link those helper bodies from this skill (they are not skill resources).
+
 ## 0.5 Provisioning — **always a worktree, always checkpointed** (every depth)
 
 Before G0 at **every** depth, FORGE provisions an isolated git worktree and checkpoints the run's
@@ -60,7 +96,7 @@ tracked work at each gate boundary. This is a **deterministic script step, not a
 dispatches no subagent and costs ~0 tokens, so it runs identically at `micro` through `deep`.
 
 **Provision (once, at run start).** Run
-`bash ${CLAUDE_PLUGIN_ROOT}/scripts/forge-worktree.sh init <slug>` — it creates (or, on a
+`bash "$FORGE_PLUGIN_ROOT/scripts/forge-worktree.sh" init <slug>` — it creates (or, on a
 `--resume`, **reuses**) the branch `forge/<slug>` in the worktree `.claude/worktrees/forge-<slug>/`.
 The plan's landing (G7 `landing=pr` writes `plan.md` there) **and** any subsequent implementation
 happen on that branch, isolated from the primary checkout — which is exactly what the `worktree_guard`
@@ -69,7 +105,7 @@ edits on `main`) from stomping one shared tree. It prints a JSON receipt and, on
 `FORGE_WORKTREE <abs-path>` line; hand that path to the implementation phase.
 
 **Checkpoint (at each gate boundary and at exit).** After each gate and before the single exit, run
-`bash ${CLAUDE_PLUGIN_ROOT}/scripts/forge-worktree.sh checkpoint <slug> <gate>` — it commits the
+`bash "$FORGE_PLUGIN_ROOT/scripts/forge-worktree.sh" checkpoint <slug> <gate>` — it commits the
 worktree's tracked changes as `forge(<slug>): checkpoint — <gate>`. During pure planning most
 checkpoints are **no-ops** (the run-dir under `.ravenclaude/runs/forge/<slug>/` is git-ignored, so
 there is nothing tracked to commit); the checkpoints that carry weight are the landed `plan.md` (G6/G7)
@@ -129,7 +165,7 @@ through. G1's BLOCK/WARN split keys on *provenance* ("is it sourced?"), and the 
 this pipeline has seen **was** sourced: an in-session `curl` returned 404, and from that true
 OBSERVATION an agent drew the false INFERENCE "the decoder is broken, every visitor is affected" —
 then built 16 files on it. Grounding an observation ≠ grounding an inference drawn from it. Type each
-row with `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/classify_claim.py` (grammatical, **upward-only** — an author may raise a row
+row with `python3 "$FORGE_PLUGIN_ROOT/scripts/classify_claim.py"` (grammatical, **upward-only** — an author may raise a row
 to `inference`, never lower it) and settle any `inference` a build phase depends on at **G3b**.
 
 → `claims-table.md` (columns: claim · **kind** · tier · source/marker · settling-gate). This is the accuracy
@@ -160,7 +196,7 @@ never A's text inline, and B must draft *its own* plan **before** reading A, or 
 whole design rests on collapses into anchoring.
 
 ### G3b — Premise gate (deterministic — no model judgment)
-`python3 ${CLAUDE_PLUGIN_ROOT}/scripts/premise-gate.py --run-dir <run-dir>` after the panels, **before** G6. Fails closed
+`python3 "$FORGE_PLUGIN_ROOT/scripts/premise-gate.py" --run-dir <run-dir>` after the panels, **before** G6. Fails closed
 when a phase's `depends_on_claims` names a row that is `kind: inference` **and** unsettled **and** the
 phase's blast radius is over the floor. Three exits, none of which is "block and stop": run the probe
 (`cost ≤ CHEAP_FLOOR`), run the **cheapest partial** (mandatory when the full kill-shot needs prod or
@@ -178,7 +214,7 @@ settle it. This is the authoritative artifact — and the only one the orchestra
 (once, at G8).
 
 ### G7 — Route (deterministic — no model judgment)
-`python3 ${CLAUDE_PLUGIN_ROOT}/scripts/forge-route.py --plan <run-dir>/plan.md --size
+`python3 "$FORGE_PLUGIN_ROOT/scripts/forge-route.py" --plan <run-dir>/plan.md --size
 small|medium|large [--research-done] [--privacy clean|sensitive]` → JSON:
 - **`execution`** ∈ `use_local` | `consider_ultraplan` | `lean_ultraplan` (three-signal rubric;
   privacy=sensitive is a hard cap to local).
