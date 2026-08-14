@@ -22,6 +22,15 @@ F3 adds **no** hook, skill, or agent. Claim 7 satisfied (≤3 fills).
 
 DAG: F1 ∥ F2; F3 docs-only; Q1 after F1; Q2 after F3. Acyclic. No slot owns “all gaps.”
 
+## Pickup later (do not treat as a fourth fill)
+
+Exact prompts + do-not-redo: [../follow-ups/2026-08-14-analog-repos-leftovers.md](../../follow-ups/2026-08-14-analog-repos-leftovers.md).
+
+| id | Say this |
+|---|---|
+| Q1 | `Forge leftover Q1 — MCP result quarantine as its own plan. Read docs/follow-ups/2026-08-14-analog-repos-leftovers.md first. Do not extend the WebFetch sanitizer matcher with mcp__.` |
+| Q2 | `Forge leftover Q2 — analog closeness scorecard skill as its own plan. Read docs/follow-ups/2026-08-14-analog-repos-leftovers.md first.` |
+
 ## Serial ban
 
-F1/F2/F3 shipped. Serial `plugin.json` ban is lifted. Next plugin-touching PR verifies HEAD version (currently 0.267.0).
+F1/F2/F3 shipped. Serial `plugin.json` ban is lifted. Next plugin-touching PR verifies HEAD version (currently **0.269.0**; next bump **0.270.0**).

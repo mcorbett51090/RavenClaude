@@ -86,3 +86,7 @@ F1 (when rebased and merged) **does** rewrite every consumer WebFetch result. Th
 ## 8. Provenance
 
 FORGE artifacts live under `.ravenclaude/runs/forge/analog-repos-gap-fill/` (gitignored). Survey bodies were fetched with `gh api` only (F1 unmerged → FM-1 option b). No analog repo was cloned. No analog code was executed.
+
+## 9. Resume later
+
+Increment closed. Parked leftovers and the exact next-session prompts live in [`docs/follow-ups/2026-08-14-analog-repos-leftovers.md`](../follow-ups/2026-08-14-analog-repos-leftovers.md). Next plugin bump is **0.270.0**.
