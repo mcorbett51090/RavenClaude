@@ -22,19 +22,19 @@ Part of the [RavenClaude](../../README.md) marketplace. Extends `ravenclaude-cor
 
 ## What's inside
 
-- **2 agents** — `resilience-architect` (FMEA/SPOFs, the resilience-pattern set, the maturity gate, capacity/redundancy & DR RTO/RPO) and `chaos-experiment-engineer` (hypothesis-driven experiment design, blast-radius containment & automatic abort, game-day facilitation, the fault-injection taxonomy, and did-it-hold verification).
-- **3 skills** — `design-resilience-patterns`, `run-chaos-experiment`, `plan-game-day`.
-- **2 knowledge files** — a Mermaid decision tree (the maturity gate, which failure to inject first, which pattern for a failure mode) and a 2026 patterns reference (the resilience-pattern catalog, the principles of chaos, the fault-injection taxonomy, a dated tooling/service snapshot, and the anti-patterns).
-- **2 templates** — a chaos-experiment plan and a per-service resilience-review checklist.
+- **agents** — `resilience-architect` (FMEA/SPOFs, the resilience-pattern set, the maturity gate, capacity/redundancy & DR RTO/RPO) and `chaos-experiment-engineer` (hypothesis-driven experiment design, blast-radius containment & automatic abort, game-day facilitation, the fault-injection taxonomy, and did-it-hold verification).
+- **skills** — `design-resilience-patterns`, `run-chaos-experiment`, `plan-game-day`.
+- **knowledge files** — a Mermaid decision tree (the maturity gate, which failure to inject first, which pattern for a failure mode) and a 2026 patterns reference (the resilience-pattern catalog, the principles of chaos, the fault-injection taxonomy, a dated tooling/service snapshot, and the anti-patterns).
+- **templates** — a chaos-experiment plan and a per-service resilience-review checklist.
 
 ## Where it sits among the reliability plugins
 
 ```
-observability-sre        →  the METRICS / SLO / ALERTING / ON-CALL platform  ("measure & watch 'healthy'; page when it breaks")  — a HARD PREREQUISITE
-devops-cicd              →  the DEPLOY / RELEASE pipeline                     ("ship it — canary / blue-green / rollback")
-performance-engineering  →  LOAD & capacity                                  ("how much traffic can it take?")
-incident-response-dfir   →  the REAL incident                                ("it's actually on fire — respond & investigate")
-chaos-engineering-resilience (HERE)  →  DESIGN survival + PROVE it with chaos  ("build it to survive failure; then break it on purpose, safely, to prove it does")
+observability-sre → the METRICS / SLO / ALERTING / ON-CALL platform ("measure & watch 'healthy'; page when it breaks") — a HARD PREREQUISITE
+devops-cicd → the DEPLOY / RELEASE pipeline ("ship it — canary / blue-green / rollback")
+performance-engineering → LOAD & capacity ("how much traffic can it take?")
+incident-response-dfir → the REAL incident ("it's actually on fire — respond & investigate")
+chaos-engineering-resilience (HERE) → DESIGN survival + PROVE it with chaos ("build it to survive failure; then break it on purpose, safely, to prove it does")
 ```
 
 This plugin **designs and proves resilience** and **consumes** those disciplines rather than replacing them: it reads the steady-state signals `observability-sre` owns (a hard prerequisite), runs *under* the load `performance-engineering` generates, relies on the rollback `devops-cicd` wires, and hands a real incident to `incident-response-dfir` — while owning the resilience-*specific* work (failure-mode analysis, pattern design, the maturity gate, hypothesis-driven experiments, blast-radius control, game days) that none of them cover.

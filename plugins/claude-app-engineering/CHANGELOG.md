@@ -17,6 +17,12 @@ Versioning is semver; bump on every user-visible change and keep it in sync with
 already documents Opus 5 and its review date is newer (2026-08-12 vs the branch's 2026-08-05), so
 taking the branch's side would have rolled the file backwards.
 
+## [0.9.15] — 2026-08-14
+
+### Changed
+
+- Dropped hand-maintained artifact-count literals from the plugin description (D1). The roster enumerates itself; Gate 206 forbids the digit.
+
 ## [0.9.13] — 2026-08-12
 
 ### Changed

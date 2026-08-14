@@ -37,12 +37,12 @@ Holds donor retention as the master efficiency number, qualifies grants on funde
 
 ## Knowledge bank
 
-5 research-grounded reference docs under [`knowledge/`](knowledge/) — covering both the pre-award development side and the post-award / grant-compliance side ([`grant-management-post-award.md`](knowledge/grant-management-post-award.md)). Figures carry a source + date, advisory numbers are marked `[ESTIMATE]`, regulatory specifics carry `[verify-at-use]`, and anything from training knowledge is marked `[unverified — training knowledge]`.
+research-grounded reference docs under [`knowledge/`](knowledge/) — covering both the pre-award development side and the post-award / grant-compliance side ([`grant-management-post-award.md`](knowledge/grant-management-post-award.md)). Figures carry a source + date, advisory numbers are marked `[ESTIMATE]`, regulatory specifics carry `[verify-at-use]`, and anything from training knowledge is marked `[unverified — training knowledge]`.
 
 ## Install
 
 ```shell
-/plugin marketplace add ./            # from a separate Claude Code project
+/plugin marketplace add ./ # from a separate Claude Code project
 /plugin install nonprofit-fundraising@ravenclaude
 ```
 

@@ -20,12 +20,12 @@ Getting the two irreversible decisions right — **how concurrent edits merge** 
 
 ## What's inside
 
-- **5 skills** — choose-crdt-or-ot, design-the-document-model, handle-offline-and-reconnection, build-presence-and-awareness, scale-the-sync-server.
+- **skills** — choose-crdt-or-ot, design-the-document-model, handle-offline-and-reconnection, build-presence-and-awareness, scale-the-sync-server.
 - **Knowledge bank** — [`crdt-vs-ot-decision-tree.md`](knowledge/crdt-vs-ot-decision-tree.md) and [`transport-and-topology-decision-tree.md`](knowledge/transport-and-topology-decision-tree.md) (four Mermaid decision trees), [`consistency-and-merge-concepts.md`](knowledge/consistency-and-merge-concepts.md) (durable concepts), [`realtime-collab-tooling-2026.md`](knowledge/realtime-collab-tooling-2026.md) (dated tooling map, verify-at-use).
-- **8 best-practices** — see [`best-practices/README.md`](best-practices/README.md).
-- **4 templates** — collaboration-architecture decision, document-model spec, sync-server scaling plan, offline/conflict test plan.
-- **3 commands** — `/choose-merge-model`, `/design-doc-model`, `/review-collab-architecture`.
-- **1 advisory hook** — `flag-realtime-collab-smells.sh` (CRDT/OT design with no consistency guarantee, presence stored in the document, library reference with no date/verify-at-use). `RTC_STRICT=1` to block.
+- **best-practices** — see [`best-practices/README.md`](best-practices/README.md).
+- **templates** — collaboration-architecture decision, document-model spec, sync-server scaling plan, offline/conflict test plan.
+- **commands** — `/choose-merge-model`, `/design-doc-model`, `/review-collab-architecture`.
+- **an advisory hook** — `flag-realtime-collab-smells.sh` (CRDT/OT design with no consistency guarantee, presence stored in the document, library reference with no date/verify-at-use). `RTC_STRICT=1` to block.
 
 ## Seams
 
@@ -34,6 +34,6 @@ UI/editor binding → `frontend-engineering` · sync service & store → `backen
 ## Install
 
 ```shell
-/plugin marketplace add ./        # from a separate Claude Code project (local dev)
+/plugin marketplace add ./ # from a separate Claude Code project (local dev)
 /plugin install realtime-collaboration-engineering@ravenclaude
 ```

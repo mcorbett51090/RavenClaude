@@ -8,11 +8,11 @@ A **Embedded & IoT Engineering specialist team** for an embedded engineer, firmw
 
 | Surface | Contents |
 |---|---|
-| **4 agents** | `embedded-systems-lead`, `firmware-rtos-specialist`, `power-budget-analyst`, `connectivity-protocol-specialist` |
-| **5 skills / commands** | `build-power-budget` · `verify-real-time` · `budget-memory` · `select-protocol` · `plan-ota` |
-| **4-file knowledge bank** | KPI glossary · unit economics · 2025–2026 context · Mermaid decision trees |
-| **4 templates** | scorecard · exec readout · power-budget.md · memory-budget.md |
-| **1 advisory hook** | flags anti-patterns (unbaselined metric, unsourced benchmark, device/telemetry PII) in generated deliverables |
+| **agents** | `embedded-systems-lead`, `firmware-rtos-specialist`, `power-budget-analyst`, `connectivity-protocol-specialist` |
+| **skills / commands** | `build-power-budget` · `verify-real-time` · `budget-memory` · `select-protocol` · `plan-ota` |
+| **knowledge bank** | KPI glossary · unit economics · 2025–2026 context · Mermaid decision trees |
+| **templates** | scorecard · exec readout · power-budget.md · memory-budget.md |
+| **an advisory hook** | flags anti-patterns (unbaselined metric, unsourced benchmark, device/telemetry PII) in generated deliverables |
 | **`scripts/embedded_iot_calc.py`** | stdlib calculator — `power-budget` · `memory-budget` · `bom-cost` |
 
 ## Install

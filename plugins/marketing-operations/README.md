@@ -8,11 +8,11 @@ A **Marketing Operations specialist team** for a marketing-ops leader, demand-ge
 
 | Surface | Contents |
 |---|---|
-| **4 agents** | `marketing-ops-lead`, `demand-gen-funnel-analyst`, `attribution-analytics-specialist`, `martech-campaign-architect` |
-| **5 skills / commands** | `diagnose-funnel` · `size-demand` · `read-cac-ltv` · `evaluate-channel-mix` · `audit-attribution-data` |
-| **4-file knowledge bank** | KPI glossary · unit economics · 2025–2026 context · Mermaid decision trees |
-| **4 templates** | scorecard · exec readout · funnel-worksheet.md · channel-economics.md |
-| **1 advisory hook** | flags anti-patterns (unbaselined metric, unsourced benchmark, customer/lead PII) in generated deliverables |
+| **agents** | `marketing-ops-lead`, `demand-gen-funnel-analyst`, `attribution-analytics-specialist`, `martech-campaign-architect` |
+| **skills / commands** | `diagnose-funnel` · `size-demand` · `read-cac-ltv` · `evaluate-channel-mix` · `audit-attribution-data` |
+| **knowledge bank** | KPI glossary · unit economics · 2025–2026 context · Mermaid decision trees |
+| **templates** | scorecard · exec readout · funnel-worksheet.md · channel-economics.md |
+| **an advisory hook** | flags anti-patterns (unbaselined metric, unsourced benchmark, customer/lead PII) in generated deliverables |
 | **`scripts/marketingops_calc.py`** | stdlib calculator — `funnel` · `cac-ltv` · `channel-roi` |
 
 ## Install

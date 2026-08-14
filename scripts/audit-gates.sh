@@ -1030,9 +1030,15 @@ PY
         node scripts/check-committed-routes.mjs
       exit $?
       ;;
+    206)
+      echo "── Gate 206: description count literals dropped (per-gate run) ──"
+      python3 scripts/check-description-count-literals.py --self-test && \
+        python3 scripts/check-description-count-literals.py
+      exit $?
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -1554,15 +1560,17 @@ echo
 echo
 echo "── Gate 12: marketplace-claims (required files + skill counts) ────────────"
 # must_fail (a): a wrong skill count in a plugin.json must be detected.
+# D1 DROP removed prose "N skills" from descriptions, so replace() is a no-op.
+# Inject a false claim into the description so Check 2 still has something to catch.
 backup plugins/data-platform/.claude-plugin/plugin.json
-python3 -c "p='plugins/data-platform/.claude-plugin/plugin.json';s=open(p).read();open(p,'w').write(s.replace('13 skills','99 skills',1))"
+python3 -c "import json;p='plugins/data-platform/.claude-plugin/plugin.json';d=json.load(open(p));d['description']=(d.get('description') or '')+' 99 skills';json.dump(d,open(p,'w'),indent=2);open(p,'a').write('\n')"
 rc=0; python3 scripts/check-marketplace-claims.py >/dev/null 2>&1 || rc=$?
 gate "marketplace-claims (wrong skill count)" must_fail "$rc"
 cp -p "$TMP/plugins_data-platform_.claude-plugin_plugin.json.bak" plugins/data-platform/.claude-plugin/plugin.json
 # must_fail (a2): a wrong AGENT count in a plugin.json must be detected (the
 # drift class the two-panel audit found ungated — 4 stale roster numbers).
 backup plugins/salesforce/.claude-plugin/plugin.json
-python3 -c "p='plugins/salesforce/.claude-plugin/plugin.json';s=open(p).read();open(p,'w').write(s.replace('5 agents','99 agents',1))"
+python3 -c "import json;p='plugins/salesforce/.claude-plugin/plugin.json';d=json.load(open(p));d['description']=(d.get('description') or '')+' 99 agents';json.dump(d,open(p,'w'),indent=2);open(p,'a').write('\n')"
 rc=0; python3 scripts/check-marketplace-claims.py >/dev/null 2>&1 || rc=$?
 gate "marketplace-claims (wrong agent count)" must_fail "$rc"
 cp -p "$TMP/plugins_salesforce_.claude-plugin_plugin.json.bak" plugins/salesforce/.claude-plugin/plugin.json
@@ -1636,7 +1644,7 @@ gate "marketplace-claims (clean tree, structural-only)" must_pass "$rc"
 _predirty_fix="$TMP/predirty-marketplace-fix.txt"
 git diff --name-only >"$_predirty_fix" 2>/dev/null || : >"$_predirty_fix"
 backup plugins/data-platform/.claude-plugin/plugin.json
-python3 -c "p='plugins/data-platform/.claude-plugin/plugin.json';s=open(p).read();open(p,'w').write(s.replace('13 skills','99 skills',1))"
+python3 -c "import json;p='plugins/data-platform/.claude-plugin/plugin.json';d=json.load(open(p));d['description']=(d.get('description') or '')+' 99 skills';json.dump(d,open(p,'w'),indent=2);open(p,'a').write('\n')"
 rc=0; python3 scripts/check-marketplace-claims.py --fix >/dev/null 2>&1 || rc=$?
 gate "marketplace-claims --fix repairs count drift" must_pass "$rc"
 rc=0; python3 scripts/check-marketplace-claims.py >/dev/null 2>&1 || rc=$?
@@ -6952,6 +6960,7 @@ cp scripts/check-selfheal-push-safety.py "$_g203_ctl/scripts/"
 rc=0; (cd "$_g203_ctl" && python3 scripts/check-selfheal-push-safety.py) >/dev/null 2>&1 || rc=$?
 gate "selfheal-push-safety teeth control: the unmutated copy is clean (the red is the mutation)" must_pass "$rc"
 
+<<<<<<< HEAD
 echo "── Gate 204: a gate re-authored with its target is flagged, not trusted ─"
 # P10. When the same commit rewrites a checker AND the artifact that checker
 # asserts over, the checker's green proves nothing: one edit moved both the
@@ -6981,6 +6990,60 @@ rc=0; python3 scripts/check-self-certifying-change.py --must-fail >/dev/null 2>&
 gate "self-certifying-change teeth: a planted rotted oracle IS caught" must_fail "$rc"
 rc_is_2=0; [ "$rc" -eq 2 ] || rc_is_2=1
 gate "self-certifying-change teeth: planted rot exits 2 (not 1)" must_pass "$rc_is_2"
+=======
+echo "── Gate 206: no plugin description may carry an artifact-count literal ──"
+# P13 / D1. Prose counts in plugin.json + marketplace.json descriptions are
+# dropped, not kept-fresh. The adjective-tolerant checker is the migration-
+# completeness proof: a reintroduced digit fails closed (exit 2). The plant
+# uses "1 advisory hook" — the shape the narrow `\d+\s+noun` pattern MISSES —
+# so a future edit that narrows the regex turns this teeth half red.
+#
+# ⛔ Registered in BOTH this main sequence AND the --check dispatcher above + the
+# Supported: string. After adding a gate, run the full suite and GREP ITS OUTPUT
+# FOR "206" — a passing suite is not evidence your gate is in it.
+rc=0; python3 scripts/check-description-count-literals.py --self-test >/dev/null 2>&1 || rc=$?
+gate "description-count-literals: teeth (adjective/hyphen shapes caught; domain literals spared)" must_pass "$rc"
+rc=0; python3 scripts/check-description-count-literals.py >/dev/null 2>&1 || rc=$?
+gate "description-count-literals: no plugin description carries a count literal" must_pass "$rc"
+
+_g206_tmp="$(mktemp -d)"
+mkdir -p "$_g206_tmp/plugins/count-ssot-mutant/.claude-plugin" "$_g206_tmp/.claude-plugin" "$_g206_tmp/scripts"
+cp scripts/check-description-count-literals.py "$_g206_tmp/scripts/"
+python3 - "$_g206_tmp" <<'PY' >/dev/null 2>&1
+import json, pathlib, sys
+root = pathlib.Path(sys.argv[1])
+# Assembled so this heredoc is not itself a live description-count claim.
+hook = "advisory " + "hook"
+(root / "plugins/count-ssot-mutant/.claude-plugin/plugin.json").write_text(
+    json.dumps({"name": "count-ssot-mutant", "version": "0.0.0",
+                "description": "team with 1 " + hook})
+)
+(root / ".claude-plugin/marketplace.json").write_text(
+    json.dumps({"metadata": {"description": "ok"}, "plugins": []})
+)
+PY
+rc=0; python3 "$_g206_tmp/scripts/check-description-count-literals.py" "$_g206_tmp" >/dev/null 2>&1 || rc=$?
+gate "description-count-literals teeth: a planted adjective-count literal IS caught" must_fail "$rc"
+rc_is_2=0; [ "$rc" -eq 2 ] || rc_is_2=1
+gate "description-count-literals teeth: planted literal is exit 2 (not 1)" must_pass "$rc_is_2"
+# Unmutated control: a description with no digit is clean (the red is the plant).
+_g206_ctl="$(mktemp -d)"
+mkdir -p "$_g206_ctl/plugins/count-ssot-mutant/.claude-plugin" "$_g206_ctl/.claude-plugin" "$_g206_ctl/scripts"
+cp scripts/check-description-count-literals.py "$_g206_ctl/scripts/"
+python3 - "$_g206_ctl" <<'PY' >/dev/null 2>&1
+import json, pathlib, sys
+root = pathlib.Path(sys.argv[1])
+(root / "plugins/count-ssot-mutant/.claude-plugin/plugin.json").write_text(
+    json.dumps({"name": "count-ssot-mutant", "version": "0.0.0",
+                "description": "team with an advisory hook"})
+)
+(root / ".claude-plugin/marketplace.json").write_text(
+    json.dumps({"metadata": {"description": "ok"}, "plugins": []})
+)
+PY
+rc=0; python3 "$_g206_ctl/scripts/check-description-count-literals.py" "$_g206_ctl" >/dev/null 2>&1 || rc=$?
+gate "description-count-literals teeth control: the unmutated copy is clean (the red is the plant)" must_pass "$rc"
+>>>>>>> 34096cf0 (feat(ci): drop prose count literals; Gate 206 forbids them (PR 12 / P13))
 
 echo
 echo "── Gate 205: route() dispatch is DERIVED; shipped sibling #/ hrefs resolve ─"

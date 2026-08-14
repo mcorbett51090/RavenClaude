@@ -4,7 +4,7 @@ A Microsoft Fabric specialist team for Claude Code — seven agents that bring d
 
 ## What it is
 
-Microsoft Fabric is a big, fast-moving platform (it ships monthly), and the hard part of a Fabric engagement is rarely the typing — it's the **decisions**: lakehouse or warehouse? mirror or copy? which Direct Lake mode? why is the capacity throttling? This plugin encodes those decisions as a team of advisory specialists backed by an 8-doc knowledge bank whose every claim is grounded in Microsoft Learn with a retrieval date.
+Microsoft Fabric is a big, fast-moving platform (it ships monthly), and the hard part of a Fabric engagement is rarely the typing — it's the **decisions**: lakehouse or warehouse? mirror or copy? which Direct Lake mode? why is the capacity throttling? This plugin encodes those decisions as a team of advisory specialists backed by an knowledge bank whose every claim is grounded in Microsoft Learn with a retrieval date.
 
 The agents are **advisory and interactive**: your Fabric tenant lives outside the repo, so they recommend the design and emit runnable `fab` CLI / KQL / T-SQL / PySpark / Power Query snippets you run yourself.
 
@@ -20,7 +20,7 @@ The agents are **advisory and interactive**: your Fabric tenant lives outside th
 | `fabric-semantic-model-engineer` | Direct Lake semantic models (on-OneLake vs on-SQL), framing, fallback, PBIP/TMDL |
 | `fabric-admin` | capacity FinOps, OneLake security (two planes), domains/Purview, ALM (Git + deployment pipelines + Fabric CLI) |
 
-Plus: an 8-doc knowledge bank (two Mermaid decision trees + medallion / Direct Lake / capacity / security / ALM references + a dated 2026 capability map), 6 templates, and 1 advisory anti-pattern hook (14 house opinions).
+Plus: an knowledge bank (two Mermaid decision trees + medallion / Direct Lake / capacity / security / ALM references + a dated 2026 capability map), templates, and an advisory anti-pattern hook (house opinions).
 
 ## Install
 

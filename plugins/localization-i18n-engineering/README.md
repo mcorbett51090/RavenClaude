@@ -30,17 +30,17 @@ localization, l10n linting, and locale-coverage testing in CI.
 
 ## What's inside
 
-- **3 agents** — `i18n-architect`, `l10n-pipeline-engineer`, `localization-qa-engineer`.
-- **3 skills** — i18n-foundations-and-icu, l10n-pipeline-and-tms, localization-qa-and-pseudo-loc.
-- **3 commands** — `/localization-i18n-engineering:audit-i18n-readiness`,
-  `:design-l10n-pipeline`, `:run-pseudo-localization`.
-- **2 templates** — `string-catalog.md` (multi-format string catalog scaffold),
-  `l10n-ci-gate.md` (CI gate configuration template).
+- **agents** — `i18n-architect`, `l10n-pipeline-engineer`, `localization-qa-engineer`.
+- **skills** — i18n-foundations-and-icu, l10n-pipeline-and-tms, localization-qa-and-pseudo-loc.
+- **commands** — `/localization-i18n-engineering:audit-i18n-readiness`,
+ `:design-l10n-pipeline`, `:run-pseudo-localization`.
+- **templates** — `string-catalog.md` (multi-format string catalog scaffold),
+ `l10n-ci-gate.md` (CI gate configuration template).
 - **Knowledge bank** — `knowledge/i18n-l10n-decision-trees.md`: Mermaid decision trees for
-  library/format choice, machine-vs-human translation, pseudo-loc CI gate, plus a dated 2026
-  capability map of the i18n/TMS tool landscape.
-- **6 best-practice rules** and **1 advisory hook** (flags hard-coded user-facing strings,
-  string concatenation, if-count-1 plurals, hard-coded date/number/currency formats).
+ library/format choice, machine-vs-human translation, pseudo-loc CI gate, plus a dated 2026
+ capability map of the i18n/TMS tool landscape.
+- **best-practice rules** and **an advisory hook** (flags hard-coded user-facing strings,
+ string concatenation, if-count-1 plurals, hard-coded date/number/currency formats).
 
 ---
 

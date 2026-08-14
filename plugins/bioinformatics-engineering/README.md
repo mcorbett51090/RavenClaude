@@ -19,19 +19,19 @@ Part of the [RavenClaude](../../README.md) marketplace. Extends `ravenclaude-cor
 
 ## What's inside
 
-- **2 agents** — `bioinformatics-workflow-architect` (chooses engine + reference + tool chain + compute + reproducibility approach + validation truth set) and `genomics-pipeline-engineer` (implements the steps, containerizes/pins, scales with scatter/gather + spot, and validates against GIAB/hap.py).
-- **3 skills** — `choose-bioinformatics-pipeline-and-stack`, `design-genomics-analysis-workflow`, `implement-and-scale-bioinformatics-pipeline`.
-- **2 knowledge files** — a Mermaid bioinformatics-pipeline decision tree (engine + reference-build + compute sub-choices + trade-off tables) and a 2026 genomics-workflow-patterns reference (file-format contracts, germline/RNA-seq/single-cell step orders, reproducibility, scaling/cost, GIAB/hap.py validation, tooling map).
-- **2 templates** — an analysis-plan spec and a pipeline-validation report.
+- **agents** — `bioinformatics-workflow-architect` (chooses engine + reference + tool chain + compute + reproducibility approach + validation truth set) and `genomics-pipeline-engineer` (implements the steps, containerizes/pins, scales with scatter/gather + spot, and validates against GIAB/hap.py).
+- **skills** — `choose-bioinformatics-pipeline-and-stack`, `design-genomics-analysis-workflow`, `implement-and-scale-bioinformatics-pipeline`.
+- **knowledge files** — a Mermaid bioinformatics-pipeline decision tree (engine + reference-build + compute sub-choices + trade-off tables) and a 2026 genomics-workflow-patterns reference (file-format contracts, germline/RNA-seq/single-cell step orders, reproducibility, scaling/cost, GIAB/hap.py validation, tooling map).
+- **templates** — an analysis-plan spec and a pipeline-validation report.
 
 ## Where it sits in the genomics stack
 
 ```
-bioinformatics-engineering (HERE)  →  build a REPRODUCIBLE, VALIDATED genomics pipeline  ("compute the right variants/expression")
-ml-engineering          →  train / serve models on the outputs      ("model the biology, generically")
-clinical-trials         →  trial operations / regulatory / protocol  ("are we ALLOWED to, and under what protocol")
-data-platform           →  warehouse / BI the results land in        ("store & serve the numbers")
-data-orchestration      →  schedule & run the pipelines              ("what runs it, when, safely")
+bioinformatics-engineering (HERE) → build a REPRODUCIBLE, VALIDATED genomics pipeline ("compute the right variants/expression")
+ml-engineering → train / serve models on the outputs ("model the biology, generically")
+clinical-trials → trial operations / regulatory / protocol ("are we ALLOWED to, and under what protocol")
+data-platform → warehouse / BI the results land in ("store & serve the numbers")
+data-orchestration → schedule & run the pipelines ("what runs it, when, safely")
 ```
 
 This plugin is the **pipeline-engineering layer**: it chooses the engine/reference/compute and builds the reproducible, benchmarked pipeline. It stays clear of the *downstream modeling* (`ml-engineering`), the *trial/regulatory* work (`clinical-trials`), and the *warehouse/BI* the results land in (`data-platform`).

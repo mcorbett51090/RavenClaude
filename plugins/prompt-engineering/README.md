@@ -5,7 +5,7 @@
 
 ## What it is
 
-A provider-neutral, 3-agent team for prompt engineering. It decomposes a task into
+A provider-neutral, team for prompt engineering. It decomposes a task into
 prompts, picks the prompting pattern, engineers the context window, defines and
 enforces the output contract, and makes the result trustworthy in production
 (eval/regression, CI gate, versioning, prompt-injection defense) — then hands the
@@ -37,10 +37,10 @@ Several AI plugins sit *around* a model, but none owned the prompt itself:
 
 ## What's inside
 
-- **4 skills** — `prompt-pattern-selection`, `structured-output-design`, `context-window-engineering`, `prompt-eval-and-regression`.
-- **Knowledge bank (2 docs)** — four Mermaid decision trees (pattern / structured-output / context-inclusion / injection defense) and a dated 2026 reference (structured-output support, model capability axes, injection landscape, eval methods, tooling).
-- **5 best-practices** — show-don't-tell, contract-the-output, the-window-is-a-budget, evaluate-prompts-like-code, untrusted-input-is-not-instructions.
-- **2 templates** — prompt spec, prompt eval plan.
+- **skills** — `prompt-pattern-selection`, `structured-output-design`, `context-window-engineering`, `prompt-eval-and-regression`.
+- **Knowledge bank (docs)** — four Mermaid decision trees (pattern / structured-output / context-inclusion / injection defense) and a dated 2026 reference (structured-output support, model capability axes, injection landscape, eval methods, tooling).
+- **best-practices** — show-don't-tell, contract-the-output, the-window-is-a-budget, evaluate-prompts-like-code, untrusted-input-is-not-instructions.
+- **templates** — prompt spec, prompt eval plan.
 
 ## Install
 

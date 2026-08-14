@@ -18,12 +18,12 @@ Standing up an event and wanting it done right: the goal and KPIs, the format an
 
 ## What's inside
 
-- **5 skills** — design-event-plan-and-budget, build-run-of-show, sponsorship-and-revenue, registration-and-attendee-ops, post-event-measurement.
-- **Knowledge bank** — [`event-management-decision-trees.md`](knowledge/event-management-decision-trees.md) (4 Mermaid trees: format, break-even, sponsorship-tier, go/no-go) + [`event-management-reference-2026.md`](knowledge/event-management-reference-2026.md) (dated tooling/benchmark map).
-- **8 best-practices** — see [`best-practices/README.md`](best-practices/README.md).
-- **3 templates** — event plan & budget, run-of-show, post-event report.
-- **3 commands** — `/plan-event`, `/build-run-of-show`, `/event-debrief`.
-- **1 advisory hook** — `check-event-anti-patterns.sh` (budget with no contingency line, run-of-show with no owner column, plan with no go/no-go or success metric). `EVENT_STRICT=1` to block.
+- **skills** — design-event-plan-and-budget, build-run-of-show, sponsorship-and-revenue, registration-and-attendee-ops, post-event-measurement.
+- **Knowledge bank** — [`event-management-decision-trees.md`](knowledge/event-management-decision-trees.md) (Mermaid trees: format, break-even, sponsorship-tier, go/no-go) + [`event-management-reference-2026.md`](knowledge/event-management-reference-2026.md) (dated tooling/benchmark map).
+- **best-practices** — see [`best-practices/README.md`](best-practices/README.md).
+- **templates** — event plan & budget, run-of-show, post-event report.
+- **commands** — `/plan-event`, `/build-run-of-show`, `/event-debrief`.
+- **an advisory hook** — `check-event-anti-patterns.sh` (budget with no contingency line, run-of-show with no owner column, plan with no go/no-go or success metric). `EVENT_STRICT=1` to block.
 
 ## Seams
 
@@ -32,7 +32,7 @@ The cross-functional project schedule, RAID log, and stakeholder management → 
 ## Install
 
 ```shell
-/plugin marketplace add ./        # from a separate Claude Code project, pointed at this repo
+/plugin marketplace add ./ # from a separate Claude Code project, pointed at this repo
 /plugin install event-management@ravenclaude
 ```
 

@@ -18,12 +18,12 @@ Part of the [RavenClaude](../../README.md) marketplace. Extends `ravenclaude-cor
 
 ## What's inside
 
-- **2 agents** — `trust-safety-policy-lead` (policy taxonomy, enforcement ladder, review operations, measurement) and `abuse-detection-engineer` (signals, rules-vs-ML, thresholds, reviewer-queue routing).
-- **3 skills** — `design-moderation-policy`, `build-abuse-detection-pipeline`, `measure-enforcement-quality`.
-- **2 knowledge files** — an enforcement decision tree (Mermaid: report/signal → severity triage → ladder → appeal) and the T&S metrics catalogue (prevalence, precision/recall, SLA, overturn rate, with formulas).
-- **2 templates** — a content-policy doc and a moderation runbook.
-- **3 best-practice rules** — proportionality, appeals-as-due-process, prevalence-over-volume.
-- **1 advisory hook** — `flag-ts-smells.sh` (an enforcement action with no appeal path; a threshold with no precision/recall noted).
+- **agents** — `trust-safety-policy-lead` (policy taxonomy, enforcement ladder, review operations, measurement) and `abuse-detection-engineer` (signals, rules-vs-ML, thresholds, reviewer-queue routing).
+- **skills** — `design-moderation-policy`, `build-abuse-detection-pipeline`, `measure-enforcement-quality`.
+- **knowledge files** — an enforcement decision tree (Mermaid: report/signal → severity triage → ladder → appeal) and the T&S metrics catalogue (prevalence, precision/recall, SLA, overturn rate, with formulas).
+- **templates** — a content-policy doc and a moderation runbook.
+- **best-practice rules** — proportionality, appeals-as-due-process, prevalence-over-volume.
+- **an advisory hook** — `flag-ts-smells.sh` (an enforcement action with no appeal path; a threshold with no precision/recall noted).
 
 ## When to use it
 
@@ -32,11 +32,11 @@ Reach for this plugin when you're standing up or reviewing a content-moderation 
 ## Seams (where it hands off)
 
 ```
-trust-and-safety        →  policy, enforcement ladder, review ops, the detector, the metric definitions
-applied-statistics      →  "is this classifier eval statistically valid?" (precision/recall CI, sample size)
-data-governance-privacy →  PII / data-retention / lawful basis for moderation data
-security-engineering    →  account-takeover, coordinated inauthentic behavior, security signals
-claude-app-engineering  →  building an LLM-based classifier
+trust-and-safety → policy, enforcement ladder, review ops, the detector, the metric definitions
+applied-statistics → "is this classifier eval statistically valid?" (precision/recall CI, sample size)
+data-governance-privacy → PII / data-retention / lawful basis for moderation data
+security-engineering → account-takeover, coordinated inauthentic behavior, security signals
+claude-app-engineering → building an LLM-based classifier
 ```
 
 ## Install

@@ -2,6 +2,12 @@
 
 All notable changes to this plugin are documented here. Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.8.9] — 2026-08-14
+
+### Changed
+
+- Dropped hand-maintained artifact-count literals from the plugin description (D1). The roster enumerates itself; Gate 206 forbids the digit.
+
 ## [0.8.8] — 2026-08-11
 
 Research-sweep **correction** (deferred Microsoft-stack finding from the 2026-08-08 Tier-A sweep, picked up and panel-reviewed 2026-08-11) in `knowledge/fabric-2026-capability-map.md`: **Fabric Runtime 2.0 bundles Delta Lake 4.2**, not Delta 4.1 as previously documented (Spark 4.1 / Python 3.13 unchanged; Runtime 2.0 remains **public preview**, not the production default). Verified 2026-08-11 against the Microsoft-Learn MCP: [Runtime 2.0](https://learn.microsoft.com/fabric/data-engineering/runtime-2-0) ("Delta Lake: 4.2") + the [runtime comparison table](https://learn.microsoft.com/fabric/data-engineering/runtime) ("Delta Lake version | 3.2 | 4.2"). Panels: usefulness → USEFUL (2 of 3; one seat scored it churn — a preview, non-default runtime — noted); detailed source-verified → CONFIRMED. Materially, the line's own "re-verified 2026-06-11" stamp was vouching for the stale "Delta 4.1" digit on a client-facing, quotable capability map — so the fix re-dates that clause to the 2026-08-11 re-verification.

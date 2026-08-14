@@ -2,6 +2,12 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.7] — 2026-08-14
+
+### Changed
+
+- Dropped hand-maintained artifact-count literals from the plugin description (D1). The roster enumerates itself; Gate 206 forbids the digit.
+
 ## [0.3.5] — 2026-07-08
 
 Weekly Tier-A news sweep (2026-07-08) — **correction** in `CLAUDE.md`: MCP Toolbox for Databases is **v1.6.0** (past a v1.0 stable GA), not the documented **v0.28.0**. Re-verified via the GitHub releases API. **Migration:** none — knowledge-file content only.

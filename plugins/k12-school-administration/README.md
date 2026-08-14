@@ -8,11 +8,11 @@ A **K-12 School Administration specialist team** for a principal, business manag
 
 | Surface | Contents |
 |---|---|
-| **4 agents** | `school-administration-lead`, `enrollment-attendance-analyst`, `staffing-budget-specialist`, `student-outcomes-specialist` |
-| **5 skills / commands** | `model-enrollment-funding` · `flag-chronic-absenteeism` · `fit-staffing-to-budget` · `allocate-per-pupil` · `read-outcomes-segmented` |
-| **4-file knowledge bank** | KPI glossary · unit economics · 2025–2026 context · Mermaid decision trees |
-| **4 templates** | scorecard · exec readout · enrollment-funding.md · staffing-budget.md |
-| **1 advisory hook** | flags anti-patterns (unbaselined metric, unsourced benchmark, student PII (FERPA)) in generated deliverables |
+| **agents** | `school-administration-lead`, `enrollment-attendance-analyst`, `staffing-budget-specialist`, `student-outcomes-specialist` |
+| **skills / commands** | `model-enrollment-funding` · `flag-chronic-absenteeism` · `fit-staffing-to-budget` · `allocate-per-pupil` · `read-outcomes-segmented` |
+| **knowledge bank** | KPI glossary · unit economics · 2025–2026 context · Mermaid decision trees |
+| **templates** | scorecard · exec readout · enrollment-funding.md · staffing-budget.md |
+| **an advisory hook** | flags anti-patterns (unbaselined metric, unsourced benchmark, student PII (FERPA)) in generated deliverables |
 | **`scripts/k12_school_administration_calc.py`** | stdlib calculator — `enrollment-funding` · `staffing-ratio` · `absenteeism` |
 
 ## Install

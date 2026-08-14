@@ -6,14 +6,14 @@ Part of the [RavenClaude](../../README.md) marketplace. Inherits the `ravenclaud
 
 ## What it gives you
 
-**4 specialist agents:**
+**specialist agents:**
 
 - **modernization-strategist** — assesses the estate and picks the strategy: the 6 R's (retain / rehost / replatform / refactor / rearchitect / replace), the business case, and a roadmap that lands value before the project is "done."
 - **codebase-archaeologist** — makes sense of code nobody understands: dependency maps, where the seams are, the change hotspots, and the implicit behavior that isn't written down anywhere.
 - **refactoring-engineer** — changes code in place safely: characterization tests *first*, the refactoring catalog, framework/language version upgrades, dead-code removal — keeping refactors and behavior changes in separate commits.
 - **legacy-migration-engineer** — moves you off the old thing one capability at a time: strangler fig, branch-by-abstraction, the anti-corruption layer, dual-write data migration, and a cutover runbook with a *tested* rollback.
 
-Plus **5 skills**, a **knowledge bank** (Mermaid decision trees + a dated 2026 capability map + a pattern-catalog reference), **8 best-practices**, **4 templates**, **4 commands**, and **1 advisory hook**.
+Plus **skills**, a **knowledge bank** (Mermaid decision trees + a dated 2026 capability map + a pattern-catalog reference), **best-practices**, **templates**, **commands**, and **an advisory hook**.
 
 ## House opinions (what makes this team opinionated)
 

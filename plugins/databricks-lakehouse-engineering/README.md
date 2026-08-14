@@ -20,21 +20,21 @@ Part of the [RavenClaude](../../README.md) marketplace. Extends `ravenclaude-cor
 
 ## What's inside
 
-- **2 agents** — `lakehouse-architect` (layering, table strategy, batch-vs-streaming, Unity Catalog governance, compute/DBU envelope) and `databricks-platform-engineer` (PySpark/Spark SQL, Delta MERGE/CDC, DLT, Auto Loader/Structured Streaming, Jobs/Workflows, and evidence-driven job diagnosis + cost reduction).
-- **2 skills** — `design-medallion-lakehouse`, `tune-spark-and-costs`.
-- **2 knowledge files** — a Mermaid decision-tree bank (batch-vs-streaming, medallion, Delta partitioning, slow-job symptom→fix, compute/DBU) and a dated 2026 patterns reference (Delta discipline, Spark performance without guesswork, Auto Loader/Streaming, DLT, Unity Catalog, Jobs, DBU cost wins, tooling map).
-- **1 template** — a lakehouse design (readers/SLOs → layering → table strategy → governance → cost envelope → seams → verify-at-use list).
+- **agents** — `lakehouse-architect` (layering, table strategy, batch-vs-streaming, Unity Catalog governance, compute/DBU envelope) and `databricks-platform-engineer` (PySpark/Spark SQL, Delta MERGE/CDC, DLT, Auto Loader/Structured Streaming, Jobs/Workflows, and evidence-driven job diagnosis + cost reduction).
+- **skills** — `design-medallion-lakehouse`, `tune-spark-and-costs`.
+- **knowledge files** — a Mermaid decision-tree bank (batch-vs-streaming, medallion, Delta partitioning, slow-job symptom→fix, compute/DBU) and a dated 2026 patterns reference (Delta discipline, Spark performance without guesswork, Auto Loader/Streaming, DLT, Unity Catalog, Jobs, DBU cost wins, tooling map).
+- **a template** — a lakehouse design (readers/SLOs → layering → table strategy → governance → cost envelope → seams → verify-at-use list).
 
 ## Where it sits among the data plugins
 
 ```
-microsoft-fabric            →  Microsoft Fabric / OneLake            (a DIFFERENT platform)
-data-platform               →  generic, non-Databricks ETL scaffolding
-data-orchestration          →  Airflow/Dagster & complex cross-system DAGs
-analytics-engineering       →  dbt / semantic-layer modeling of the GOLD layer
-ml-engineering              →  classical model training / serving lifecycle
-databricks-lakehouse-engineering (HERE)  →  DESIGN & BUILD the lakehouse on Databricks
-                                            ("medallion + Delta + Unity Catalog + Spark jobs, correct & cheap")
+microsoft-fabric → Microsoft Fabric / OneLake (a DIFFERENT platform)
+data-platform → generic, non-Databricks ETL scaffolding
+data-orchestration → Airflow/Dagster & complex cross-system DAGs
+analytics-engineering → dbt / semantic-layer modeling of the GOLD layer
+ml-engineering → classical model training / serving lifecycle
+databricks-lakehouse-engineering (HERE) → DESIGN & BUILD the lakehouse on Databricks
+ ("medallion + Delta + Unity Catalog + Spark jobs, correct & cheap")
 ```
 
 This plugin **designs and builds the Databricks lakehouse** and **feeds** those teams rather than replacing them: it hands the gold-layer modeling to `analytics-engineering`, complex orchestration to `data-orchestration`, org privacy policy to `data-governance-privacy`, and the ML lifecycle to `ml-engineering` — while owning the medallion design, Delta table craft, Spark performance, governance layout, and DBU cost discipline that make the lakehouse trustworthy and affordable.

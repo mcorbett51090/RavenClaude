@@ -33,7 +33,7 @@ Three specialist agents cover the deal's technical arc:
 
 ## What's inside
 
-- **3 agents**, **5 skills**, a **4-doc knowledge bank** with 4 Mermaid decision trees, **5 templates**, **5 best-practices**, a **2-scenario bank**, and **1 advisory anti-pattern hook** (`flag-se-antipatterns.sh`).
+- **agents**, **skills**, a **knowledge bank** with Mermaid decision trees, **templates**, **best-practices**, a **scenario bank**, and **an advisory anti-pattern hook** (`flag-se-antipatterns.sh`).
 
 ## Boundaries (what this plugin is NOT)
 

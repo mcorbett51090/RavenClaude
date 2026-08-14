@@ -2,6 +2,12 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.4] — 2026-08-14
+
+### Changed
+
+- Dropped hand-maintained artifact-count literals from the plugin description (D1). The roster enumerates itself; Gate 206 forbids the digit.
+
 ## [0.3.3] — 2026-08-10
 
 Inbox categorization — a new knowledge file + best-practice covering how Gmail tabs (Primary/Promotions/Updates/Social/Forums), Outlook Focused Inbox, and Apple Mail categories work, what header and content signals drive placement, and how to send the right signals per email class.

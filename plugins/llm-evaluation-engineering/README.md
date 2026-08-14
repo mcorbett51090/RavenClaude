@@ -36,7 +36,7 @@ measure*, and *building the machinery* that proves it.
 ## Install
 
 ```
-/plugin marketplace add ./           # from a separate Claude Code project
+/plugin marketplace add ./ # from a separate Claude Code project
 /plugin install llm-evaluation-engineering@ravenclaude
 ```
 

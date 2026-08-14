@@ -19,3 +19,10 @@ Initial release. The indirect-revenue GTM team.
 - 1 advisory `PostToolUse` hook (`PARTNERSHIPS_ALLIANCES_STRICT=1` makes it blocking).
 - 8 house opinions anchored on honest sourced/influenced attribution, obligation-for-benefit
   tiering, named rep-to-rep co-sell, and MDF-as-investment.
+
+## [0.1.1] — 2026-08-14
+
+### Changed
+
+- Dropped hand-maintained artifact-count literals from the plugin description (D1). The roster enumerates itself; Gate 206 forbids the digit.
+

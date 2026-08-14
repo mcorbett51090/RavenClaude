@@ -6,14 +6,14 @@ Part of the [RavenClaude](../../README.md) marketplace. Inherits the `ravenclaud
 
 ## What it gives you
 
-**4 specialist agents:**
+**specialist agents:**
 
 - **service-management-lead** — the ITIL 4 service value system, which practices to actually adopt (and how lightly), governance, and continual improvement.
 - **incident-and-problem-manager** — restore service (incidents, major-incident command, swarming) and remove causes (problems, RCA, known errors) — two different jobs, kept distinct.
 - **change-and-release-manager** — change enablement (standard / normal / emergency), change models, risk assessment, the CAB (and when to skip it), and release management.
 - **service-desk-and-request-manager** — the service desk, request fulfillment, the service catalog, SLAs/OLAs/UCs, knowledge & self-service, and the CMDB / configuration management.
 
-Plus **5 skills**, a **knowledge bank** (Mermaid decision trees + an ITIL 4 practice reference + a dated 2026 ITSM tooling map), **8 best-practices**, **4 templates**, **4 commands**, and **1 advisory hook**.
+Plus **skills**, a **knowledge bank** (Mermaid decision trees + an ITIL 4 practice reference + a dated 2026 ITSM tooling map), **best-practices**, **templates**, **commands**, and **an advisory hook**.
 
 ## House opinions
 

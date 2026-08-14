@@ -24,20 +24,20 @@ Part of the [RavenClaude](../../README.md) marketplace. Extends `ravenclaude-cor
 
 ## What's inside
 
-- **2 agents** — `agentic-systems-architect` (triages the task, then chooses single-vs-multi-agent, topology, framework, and the cost/latency/guardrail budget) and `agent-implementation-engineer` (designs tools & context/memory, builds & hardens the loop, and runs the offline agent-eval harness).
-- **3 skills** — `triage-agentic-approach`, `design-agent-tools-and-context`, `evaluate-and-harden-agent`.
-- **2 knowledge files** — an agent decision tree (the agent-vs-not Gate 0 → single-call/workflow patterns → single-vs-multi → topology → framework, + budget/guardrail tiers) and a dated 2026 agent-patterns reference (the LLM-in-a-loop invariant, the minimal loop, tool design, context & memory, planning & reflection, multi-agent coordination, guardrails & prompt-injection, evaluation, cost/latency, and a framework-landscape snapshot).
-- **2 templates** — an agent system design doc (the triage → design captured before building) and an agent eval plan (the frozen task set, scorers, hardening checklist, and cost/latency ceilings before trusting an agent).
+- **agents** — `agentic-systems-architect` (triages the task, then chooses single-vs-multi-agent, topology, framework, and the cost/latency/guardrail budget) and `agent-implementation-engineer` (designs tools & context/memory, builds & hardens the loop, and runs the offline agent-eval harness).
+- **skills** — `triage-agentic-approach`, `design-agent-tools-and-context`, `evaluate-and-harden-agent`.
+- **knowledge files** — an agent decision tree (the agent-vs-not Gate 0 → single-call/workflow patterns → single-vs-multi → topology → framework, + budget/guardrail tiers) and a dated 2026 agent-patterns reference (the LLM-in-a-loop invariant, the minimal loop, tool design, context & memory, planning & reflection, multi-agent coordination, guardrails & prompt-injection, evaluation, cost/latency, and a framework-landscape snapshot).
+- **templates** — an agent system design doc (the triage → design captured before building) and an agent eval plan (the frozen task set, scorers, hardening checklist, and cost/latency ceilings before trusting an agent).
 
 ## Where it sits in the stack
 
 ```
-ai-agent-engineering (HERE)          →  BUILD the agent (LLM-in-a-loop-with-tools)   ("does it need an agent, which one, and does it work?")
-ai-rag-engineering                   →  the retrieval/RAG pipeline behind a tool     ("chunking / embeddings / vector DB / reranking")
-prompt-engineering                   →  single-call prompt/context craft (no loop)   ("the prompt inside one call")
-llm-evaluation-engineering           →  general non-agent LLM eval harnesses         ("is this model/prompt good?")
-claude-app-engineering               →  Claude-specific end-user product apps        ("the Claude product")
-conversational-ai-voice-engineering  →  real-time voice agents                       ("voice / turn-taking / ASR / TTS")
+ai-agent-engineering (HERE) → BUILD the agent (LLM-in-a-loop-with-tools) ("does it need an agent, which one, and does it work?")
+ai-rag-engineering → the retrieval/RAG pipeline behind a tool ("chunking / embeddings / vector DB / reranking")
+prompt-engineering → single-call prompt/context craft (no loop) ("the prompt inside one call")
+llm-evaluation-engineering → general non-agent LLM eval harnesses ("is this model/prompt good?")
+claude-app-engineering → Claude-specific end-user product apps ("the Claude product")
+conversational-ai-voice-engineering → real-time voice agents ("voice / turn-taking / ASR / TTS")
 ```
 
 This plugin is the **agentic-systems layer**: it decides whether a task even needs an agent and builds/hardens/evaluates the loop, and stays clear of the retrieval pipeline behind a tool (`ai-rag-engineering`), the single-call prompt craft (`prompt-engineering`), general non-agent eval harnesses (`llm-evaluation-engineering`), Claude-specific end-user apps (`claude-app-engineering`), and real-time voice (`conversational-ai-voice-engineering`).

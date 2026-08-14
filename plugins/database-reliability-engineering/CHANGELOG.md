@@ -22,3 +22,10 @@ without downtime), the layer `database-engineering` (schema/query design) did no
 - Seams: `database-engineering`, `observability-sre`, `terraform-iac` / cloud
   plugins, `data-orchestration`, `security-engineering` / `auth-identity`,
   `incident-response-dfir`. Requires `ravenclaude-core@>=0.7.0`.
+
+## [0.1.1] — 2026-08-14
+
+### Changed
+
+- Dropped hand-maintained artifact-count literals from the plugin description (D1). The roster enumerates itself; Gate 206 forbids the digit.
+

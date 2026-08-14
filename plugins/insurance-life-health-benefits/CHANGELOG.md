@@ -43,3 +43,10 @@ casualty (`insurance-pc`).
 - **Educational scaffolding only — not legal, tax, or actuarial advice.** Seams: P&C lines → `insurance-pc`;
   HR benefits administration → `people-ops-hr`; provider-side medical billing → `medical-revenue-cycle`.
   Requires `ravenclaude-core@>=0.7.0`.
+
+## [0.2.3] — 2026-08-14
+
+### Changed
+
+- Dropped hand-maintained artifact-count literals from the plugin description (D1). The roster enumerates itself; Gate 206 forbids the digit.
+

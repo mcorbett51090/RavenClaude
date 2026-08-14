@@ -24,24 +24,24 @@ punch-list.
 
 ## What's inside
 
-- **5 agents** — `gc-project-lead`, `estimating-and-takeoff-analyst`, `scheduling-engineer`,
-  `submittal-rfi-coordinator`, `jobsite-safety-advisor`.
-- **3 skills** — estimating-and-bidding, cpm-scheduling, submittals-rfis-change-orders.
-- **3 commands** — `/construction-general-contractor:build-bid-estimate`,
-  `:create-cpm-schedule`, `:manage-change-order`.
-- **2 templates** — bid-package, schedule-of-values.
+- **agents** — `gc-project-lead`, `estimating-and-takeoff-analyst`, `scheduling-engineer`,
+ `submittal-rfi-coordinator`, `jobsite-safety-advisor`.
+- **skills** — estimating-and-bidding, cpm-scheduling, submittals-rfis-change-orders.
+- **commands** — `/construction-general-contractor:build-bid-estimate`,
+ `:create-cpm-schedule`, `:manage-change-order`.
+- **templates** — bid-package, schedule-of-values.
 - **Knowledge bank** — `knowledge/construction-gc-decision-trees.md`: Mermaid trees for
-  markup-vs-margin, change-order-or-absorb, and critical-path-impact, plus a dated 2026
-  capability map (Procore, Autodesk Build, Bluebeam, P6/MS Project).
-- **6 best-practices** — scope-the-bid-or-lose-it-on-the-change-order (Absolute),
-  the-schedule-is-cpm-not-a-wish-list (Pattern), every-change-is-documented-before-the-work
-  (Absolute), safety-is-a-precondition-not-a-line-item (Absolute),
-  retainage-and-cash-flow-can-sink-a-profitable-job (Pattern),
-  submittals-gate-procurement-sequence-them-early (Pattern).
-- **1 advisory hook** — flags markup/margin confusion, hardcoded undated rates, verbal change
-  orders, and schedules without critical-path logic.
-- **1 calculator** — `scripts/construction_calc.py`: markup/margin conversion, schedule-of-values
-  line, earned value (CPI/SPI), labor productivity, retainage withheld, bid markup.
+ markup-vs-margin, change-order-or-absorb, and critical-path-impact, plus a dated 2026
+ capability map (Procore, Autodesk Build, Bluebeam, P6/MS Project).
+- **best-practices** — scope-the-bid-or-lose-it-on-the-change-order (Absolute),
+ the-schedule-is-cpm-not-a-wish-list (Pattern), every-change-is-documented-before-the-work
+ (Absolute), safety-is-a-precondition-not-a-line-item (Absolute),
+ retainage-and-cash-flow-can-sink-a-profitable-job (Pattern),
+ submittals-gate-procurement-sequence-them-early (Pattern).
+- **an advisory hook** — flags markup/margin confusion, hardcoded undated rates, verbal change
+ orders, and schedules without critical-path logic.
+- **a calculator** — `scripts/construction_calc.py`: markup/margin conversion, schedule-of-values
+ line, earned value (CPI/SPI), labor productivity, retainage withheld, bid markup.
 
 ## House opinions (the short list)
 

@@ -1,17 +1,17 @@
 # desktop-app-engineering
 
-> Build cross-platform desktop apps well — the **missing app-craft sibling** of `backend` / `frontend` / `mobile` / `api` / `database` / `auth-identity`. A 4-agent team for the Electron-vs-Tauri-vs-native-vs-PWA decision, a hardened process/security model, packaging + code-signing + safe auto-update, and native OS integration.
+> Build cross-platform desktop apps well — the **missing app-craft sibling** of `backend` / `frontend` / `mobile` / `api` / `database` / `auth-identity`. A team for the Electron-vs-Tauri-vs-native-vs-PWA decision, a hardened process/security model, packaging + code-signing + safe auto-update, and native OS integration.
 
 ## What you get
 
-- **4 specialist agents**
-  - `desktop-architect` — framework choice (Electron / Tauri / native / PWA), the process/security model, the renderer/backend boundary, distribution + updates.
-  - `electron-engineer` — the main/preload/renderer model, the hardened baseline (contextIsolation / nodeIntegration off / sandbox / CSP), a narrow `contextBridge` + validated `ipcMain` handlers, the build.
-  - `tauri-engineer` — the Rust core + system webview, `#[tauri::command]` handlers with validated input, the v2 capabilities/permissions allow-list, sidecars, state.
-  - `desktop-platform-engineer` — code-signing + notarization (Win + macOS), safe signed auto-update (channels / staged rollout / rollback / version floor), and native OS integration (tray, menus, notifications, file associations, deep links, secure storage).
-- **5 skills** — desktop-framework-choice, electron-security-hardening, tauri-capabilities-and-commands, packaging-signing-and-updates, native-os-integration.
+- **specialist agents**
+ - `desktop-architect` — framework choice (Electron / Tauri / native / PWA), the process/security model, the renderer/backend boundary, distribution + updates.
+ - `electron-engineer` — the main/preload/renderer model, the hardened baseline (contextIsolation / nodeIntegration off / sandbox / CSP), a narrow `contextBridge` + validated `ipcMain` handlers, the build.
+ - `tauri-engineer` — the Rust core + system webview, `#[tauri::command]` handlers with validated input, the v2 capabilities/permissions allow-list, sidecars, state.
+ - `desktop-platform-engineer` — code-signing + notarization (Win + macOS), safe signed auto-update (channels / staged rollout / rollback / version floor), and native OS integration (tray, menus, notifications, file associations, deep links, secure storage).
+- **skills** — desktop-framework-choice, electron-security-hardening, tauri-capabilities-and-commands, packaging-signing-and-updates, native-os-integration.
 - **A decision-tree knowledge bank** — framework-choice + IPC-security + signing/update Mermaid trees, a storage prior, and a dated 2026 capability map (`[verify-at-use]`).
-- **12 best-practices**, **4 templates**, **4 commands**, **1 advisory hook**, a **3-scenario bank**, and an **`.lsp.json`** (TypeScript + Rust).
+- **best-practices**, **templates**, **commands**, **an advisory hook**, a **scenario bank**, and an **`.lsp.json`** (TypeScript + Rust).
 
 ## Commands
 

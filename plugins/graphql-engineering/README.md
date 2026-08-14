@@ -24,11 +24,11 @@ Building and operating a GraphQL API well: a schema shaped for clients (not your
 
 ## What's inside
 
-- **4 skills** — graphql-schema-design-and-evolution, graphql-federation-and-composition, resolver-performance-and-n-plus-one, graphql-security-and-governance.
-- **Knowledge bank** — [`graphql-decision-trees.md`](knowledge/graphql-decision-trees.md) (4 Mermaid trees: schema-first vs code-first, monolith vs federation vs stitching, offset vs Relay-cursor pagination, top-level errors vs errors-as-data) + [`graphql-reference-2026.md`](knowledge/graphql-reference-2026.md) (dated server-library / federation / spec-feature / security-tooling landscape, verify-at-use).
-- **5 best-practices** — see [`best-practices/README.md`](best-practices/README.md).
-- **2 templates** — GraphQL schema design doc, GraphQL schema & perf review.
-- **2 commands** — `/design-schema`, `/review-schema-and-perf`.
+- **skills** — graphql-schema-design-and-evolution, graphql-federation-and-composition, resolver-performance-and-n-plus-one, graphql-security-and-governance.
+- **Knowledge bank** — [`graphql-decision-trees.md`](knowledge/graphql-decision-trees.md) (Mermaid trees: schema-first vs code-first, monolith vs federation vs stitching, offset vs Relay-cursor pagination, top-level errors vs errors-as-data) + [`graphql-reference-2026.md`](knowledge/graphql-reference-2026.md) (dated server-library / federation / spec-feature / security-tooling landscape, verify-at-use).
+- **best-practices** — see [`best-practices/README.md`](best-practices/README.md).
+- **templates** — GraphQL schema design doc, GraphQL schema & perf review.
+- **commands** — `/design-schema`, `/review-schema-and-perf`.
 
 ## Seams
 
@@ -37,7 +37,7 @@ REST/OpenAPI & gateway → [`api-engineering`](../api-engineering/) · databases
 ## Install
 
 ```shell
-/plugin marketplace add ./        # from a separate Claude Code project, pointed at this repo
+/plugin marketplace add ./ # from a separate Claude Code project, pointed at this repo
 /plugin install graphql-engineering@ravenclaude
 ```
 

@@ -49,7 +49,9 @@ const ISLANDED_AGENT_KEYS = ["scenarios", "quickstart", "works_with"];
 
 /* ── The committed ravenclaude-core baseline — the ONLY plugin of 167 with all
  * eight data-backed sections non-empty, so it is the sole valid must-pass
- * fixture. Altering any one of these is must-fail (c). ─────────────────────── */
+ * fixture. Altering any one of these is must-fail (c).
+ * D1 (2026-08-13): this object is a deliberate hand-maintained golden. Do not
+ * de-hardcode it from scan_repo — that is the forbidden tautology. ────────── */
 const RC = "ravenclaude-core";
 const RC_BASELINE = {
   agents: 15,

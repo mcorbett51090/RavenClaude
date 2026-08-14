@@ -39,3 +39,10 @@ and observability-sre SLOs.
   (`check-performance-engineering-anti-patterns.sh`; `PERF_STRICT=1` to make it blocking), and a **scenarios bank** (2 field notes).
 - Seams: web Core Web Vitals → `frontend-engineering`; SLO/error-budget → `observability-sre`; query tuning →
   `database-engineering`; resilience → `backend-engineering`; autoscaling → `cloud-native-kubernetes`. Requires `ravenclaude-core@>=0.7.0`.
+
+## [0.2.2] — 2026-08-14
+
+### Changed
+
+- Dropped hand-maintained artifact-count literals from the plugin description (D1). The roster enumerates itself; Gate 206 forbids the digit.
+

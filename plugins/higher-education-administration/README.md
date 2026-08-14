@@ -20,16 +20,16 @@ Running the administrative side of an institution well: an enrollment funnel mod
 
 ## What's inside
 
-- **4 skills** — enrollment-funnel-and-yield, financial-aid-and-discount-rate, retention-and-student-success, registrar-and-academic-operations.
-- **Knowledge bank** — [`higher-ed-decision-trees.md`](knowledge/higher-ed-decision-trees.md) (4 Mermaid trees: yield/melt intervention, discount-rate / aid-leverage decision, at-risk student triage, enrollment-vs-retention lever choice) + [`higher-ed-reference-2026.md`](knowledge/higher-ed-reference-2026.md) (dated reference, verify-at-use).
-- **5 best-practices** — see [`best-practices/README.md`](best-practices/README.md).
-- **2 templates** — enrollment funnel model, retention intervention plan.
-- **2 commands** — `/model-enrollment-funnel`, `/build-retention-plan`.
+- **skills** — enrollment-funnel-and-yield, financial-aid-and-discount-rate, retention-and-student-success, registrar-and-academic-operations.
+- **Knowledge bank** — [`higher-ed-decision-trees.md`](knowledge/higher-ed-decision-trees.md) (Mermaid trees: yield/melt intervention, discount-rate / aid-leverage decision, at-risk student triage, enrollment-vs-retention lever choice) + [`higher-ed-reference-2026.md`](knowledge/higher-ed-reference-2026.md) (dated reference, verify-at-use).
+- **best-practices** — see [`best-practices/README.md`](best-practices/README.md).
+- **templates** — enrollment funnel model, retention intervention plan.
+- **commands** — `/model-enrollment-funnel`, `/build-retention-plan`.
 
 ## Install
 
 ```shell
-/plugin marketplace add ./        # from a separate Claude Code project, pointed at this repo
+/plugin marketplace add ./ # from a separate Claude Code project, pointed at this repo
 /plugin install higher-education-administration@ravenclaude
 ```
 

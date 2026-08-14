@@ -19,18 +19,18 @@ Part of the [RavenClaude](../../README.md) marketplace. Extends `ravenclaude-cor
 
 ## What's inside
 
-- **2 agents** — `orchestration-architect` (chooses the engine/scheduling/executor) and `pipeline-orchestration-engineer` (builds DAGs/assets, idempotency, retries, backfills, SLAs, lineage).
-- **3 skills** — `choose-orchestrator`, `design-dag-and-dependencies`, `handle-backfills-and-retries`.
-- **2 knowledge files** — a Mermaid orchestrator-selection decision tree (+ trade-off table) and a 2026 orchestration-patterns reference (idempotency, retries/backoff, partitioning, catchup/backfill, scheduling models, freshness SLAs, lineage).
-- **2 templates** — a DAG/asset design doc and a backfill runbook.
+- **agents** — `orchestration-architect` (chooses the engine/scheduling/executor) and `pipeline-orchestration-engineer` (builds DAGs/assets, idempotency, retries, backfills, SLAs, lineage).
+- **skills** — `choose-orchestrator`, `design-dag-and-dependencies`, `handle-backfills-and-retries`.
+- **knowledge files** — a Mermaid orchestrator-selection decision tree (+ trade-off table) and a 2026 orchestration-patterns reference (idempotency, retries/backoff, partitioning, catchup/backfill, scheduling models, freshness SLAs, lineage).
+- **templates** — a DAG/asset design doc and a backfill runbook.
 
 ## Where it sits in the data stack
 
 ```
-data-platform              →  ingest / connectors / warehouse / BI  ("get the data in & served")
-analytics-engineering      →  dbt transforms                        ("model the data")
-data-streaming-engineering →  real-time Kafka / Flink               ("sub-minute latency")
-data-orchestration (HERE)  →  RUN & SCHEDULE all of the above       ("what runs it, when, and safely")
+data-platform → ingest / connectors / warehouse / BI ("get the data in & served")
+analytics-engineering → dbt transforms ("model the data")
+data-streaming-engineering → real-time Kafka / Flink ("sub-minute latency")
+data-orchestration (HERE) → RUN & SCHEDULE all of the above ("what runs it, when, and safely")
 ```
 
 This plugin is the **scheduling/run layer** the others plug into. It runs the dbt models (analytics-engineering), loads from the connectors/warehouse (data-platform), and hands off anything sub-minute to streaming.

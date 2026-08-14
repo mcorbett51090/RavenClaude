@@ -2,6 +2,12 @@
 
 All notable changes to this plugin are documented here. Format follows [Keep a Changelog](https://keepachangelog.com); this plugin versions per [SemVer](https://semver.org).
 
+## [0.1.3] — 2026-08-14
+
+### Changed
+
+- Dropped hand-maintained artifact-count literals from the plugin description (D1). The roster enumerates itself; Gate 206 forbids the digit.
+
 ## [0.1.2] — 2026-07-08
 
 Research-sweep **correction** — the plugin cited **NIST SP 800-61r2** as its incident-response standard throughout, but r2 is **superseded by [SP 800-61r3](https://csrc.nist.gov/pubs/sp/800/61/r3/final)** (published Apr 3 2025), which reframes IR around the **CSF 2.0 Functions** rather than a single prescribed lifecycle. Verified 2026-07-08 against csrc.nist.gov / nist.gov.

@@ -35,7 +35,7 @@ It packages the recurring, judgment-heavy work of that job into a team of specia
 
 ### Knowledge bank (4)
 
-- `hospice-sales-decision-trees.md` — 6 Mermaid decision trees: **referral-source prioritization**, **is-this-patient-ready-for-a-hospice-conversation** (educational eligibility screen), **hospice vs palliative vs continue-curative**, **level-of-care selection** (RHC/CHC/GIP/IRC), **gift/meal/arrangement anti-kickback gate**, **declined-referral root-cause**.
+- `hospice-sales-decision-trees.md` — Mermaid decision trees: **referral-source prioritization**, **is-this-patient-ready-for-a-hospice-conversation** (educational eligibility screen), **hospice vs palliative vs continue-curative**, **level-of-care selection** (RHC/CHC/GIP/IRC), **gift/meal/arrangement anti-kickback gate**, **declined-referral root-cause**.
 - `hospice-sales-glossary.md` — the working vocabulary (MHB, benefit periods, recertification, F2F, election/revocation, levels of care, PPS/FAST/NYHA, ADC/ALOS, AKS/Stark).
 - `hospice-eligibility-lcd-reference.md` — the published LCD decline criteria summarized by diagnosis, **as education, not certification**, dated and sourced.
 - `hospice-sales-compliance-reference.md` — AKS, Stark, beneficiary-inducement CMP, OIG hospice risk areas, gift/meal rules, HIPAA — dated and sourced.
@@ -61,7 +61,7 @@ python3 scripts/hospice_calc.py eligibility-indicators --pps 40 --weight-loss 12
 ## Install
 
 ```shell
-/plugin marketplace add ./            # from a separate Claude Code project, or use the repo URL
+/plugin marketplace add ./ # from a separate Claude Code project, or use the repo URL
 /plugin install hospice-referral-sales@ravenclaude
 ```
 

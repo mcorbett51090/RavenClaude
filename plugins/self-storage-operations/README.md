@@ -19,20 +19,20 @@ Part of the [RavenClaude](../../README.md) marketplace. Extends `ravenclaude-cor
 
 ## What's inside
 
-- **2 agents** — `self-storage-operations-lead` (runs the facility: operating model, staffing, security, maintenance, move-in/out flow, multi-site) and `storage-revenue-and-occupancy-specialist` (runs the money: street vs in-place rate, ECRIs, dynamic pricing, occupancy economics, delinquency/lien, ancillary revenue).
-- **3 skills** — `optimize-occupancy-and-dynamic-pricing`, `run-delinquency-and-lien-process`, `manage-facility-operations-and-security`.
-- **2 knowledge files** — a Mermaid self-storage operations decision tree (revenue vs operating-model vs security vs maintenance vs multi-site, with the revenue sub-branches) and a 2026 self-storage-patterns reference (occupancy metrics, ECRI mechanics, dynamic pricing, unit-mix, the state-varying lien timeline, tenant insurance/ancillary, PMS & aggregator landscape, REIT benchmarks, remote/kiosk).
-- **2 templates** — a delinquency-lien timeline (state-flagged, retrieval-dated, not-legal-advice) and an ECRI & pricing plan.
+- **agents** — `self-storage-operations-lead` (runs the facility: operating model, staffing, security, maintenance, move-in/out flow, multi-site) and `storage-revenue-and-occupancy-specialist` (runs the money: street vs in-place rate, ECRIs, dynamic pricing, occupancy economics, delinquency/lien, ancillary revenue).
+- **skills** — `optimize-occupancy-and-dynamic-pricing`, `run-delinquency-and-lien-process`, `manage-facility-operations-and-security`.
+- **knowledge files** — a Mermaid self-storage operations decision tree (revenue vs operating-model vs security vs maintenance vs multi-site, with the revenue sub-branches) and a 2026 self-storage-patterns reference (occupancy metrics, ECRI mechanics, dynamic pricing, unit-mix, the state-varying lien timeline, tenant insurance/ancillary, PMS & aggregator landscape, REIT benchmarks, remote/kiosk).
+- **templates** — a delinquency-lien timeline (state-flagged, retrieval-dated, not-legal-advice) and an ECRI & pricing plan.
 
 ## Where it sits
 
 ```
-commercial-real-estate     →  the lease / acquisition / cap-rate / asset investment   ("own the ASSET")
-property-management         →  residential — apartments, single-family, HOA           ("manage the RESIDENTIAL")
-field-service-management    →  generic mobile-crew dispatch / work orders             ("dispatch the CREW")
-marketing-operations        →  paid-search / aggregator campaigns / brand / creative  ("run the CAMPAIGN")
-accounting-bookkeeping      →  the books / P&L / sales tax                            ("keep the BOOKS")
-self-storage-operations (HERE)  →  run the storage BUSINESS: ops + revenue           ("operate the FACILITY & earn its dollars")
+commercial-real-estate → the lease / acquisition / cap-rate / asset investment ("own the ASSET")
+property-management → residential — apartments, single-family, HOA ("manage the RESIDENTIAL")
+field-service-management → generic mobile-crew dispatch / work orders ("dispatch the CREW")
+marketing-operations → paid-search / aggregator campaigns / brand / creative ("run the CAMPAIGN")
+accounting-bookkeeping → the books / P&L / sales tax ("keep the BOOKS")
+self-storage-operations (HERE) → run the storage BUSINESS: ops + revenue ("operate the FACILITY & earn its dollars")
 ```
 
 This plugin operates the storage *business* — the operating model, the rates, the ECRIs, the lien process, the revenue per unit — and stays clear of the *asset* (commercial-real-estate), the *residential* variant (property-management), and generic *dispatch* (field-service-management).

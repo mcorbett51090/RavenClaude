@@ -26,19 +26,19 @@ calibrates truck-stock to service-level targets.
 
 ## What's inside
 
-- **4 agents** — `fsm-ops-lead`, `dispatch-and-scheduling-engineer`, `technician-productivity-analyst`,
-  `parts-and-inventory-analyst`.
-- **3 skills** — `dispatch-and-scheduling`, `technician-productivity-and-first-time-fix`,
-  `truck-stock-and-parts`.
-- **3 commands** — `/field-service-management:design-dispatch-board`,
-  `:improve-first-time-fix`, `:optimize-truck-stock`.
-- **2 templates** — `dispatch-board.md`, `preventive-maintenance-schedule.md`.
+- **agents** — `fsm-ops-lead`, `dispatch-and-scheduling-engineer`, `technician-productivity-analyst`,
+ `parts-and-inventory-analyst`.
+- **skills** — `dispatch-and-scheduling`, `technician-productivity-and-first-time-fix`,
+ `truck-stock-and-parts`.
+- **commands** — `/field-service-management:design-dispatch-board`,
+ `:improve-first-time-fix`, `:optimize-truck-stock`.
+- **templates** — `dispatch-board.md`, `preventive-maintenance-schedule.md`.
 - **Knowledge bank** — `knowledge/fsm-decision-trees.md`: Mermaid trees for schedule priority
-  (SLA/skill/geo), stock-the-part-or-not, PM-vs-reactive; plus a dated 2026 capability map
-  (ServiceTitan, Salesforce Field Service, IFS, FieldEdge).
-- **6 best-practices** and **1 advisory hook** (flags SLA/skill/geo gaps, hard-coded rates).
+ (SLA/skill/geo), stock-the-part-or-not, PM-vs-reactive; plus a dated 2026 capability map
+ (ServiceTitan, Salesforce Field Service, IFS, FieldEdge).
+- **best-practices** and **an advisory hook** (flags SLA/skill/geo gaps, hard-coded rates).
 - **Calculator** — `scripts/fsm_calc.py`: technician utilization, first-time-fix rate, MTTR, route
-  density, SLA attainment, truck-stock fill rate.
+ density, SLA attainment, truck-stock fill rate.
 
 ---
 

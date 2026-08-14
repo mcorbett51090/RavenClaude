@@ -18,17 +18,17 @@ Part of the [RavenClaude](../../README.md) marketplace. Extends `ravenclaude-cor
 
 ## What's inside
 
-- **1 agent** — `applied-statistician` (advisory; recommends methods + emits snippets you run locally on your data).
-- **5 skills** — `choose-statistical-test`, `power-and-sample-size`, `experiment-analysis`, `statistical-qa-of-metrics`, `regression-and-forecasting-review`.
-- **5 knowledge files** — a Mermaid test-selection decision tree, a 9-item pitfalls guardrail, experiment-design best practice, 2026 tooling tiers, and a causal-inference primer.
-- **1 advisory hook** — `flag-statistical-smells.sh` (p-value-with-no-effect-size, uncorrected multiple comparisons, unchecked parametric assumptions, correlation→causation language).
-- **4 templates** — analysis plan (pre-registration), experiment design doc, power-analysis worksheet, statistical report.
+- **an agent** — `applied-statistician` (advisory; recommends methods + emits snippets you run locally on your data).
+- **skills** — `choose-statistical-test`, `power-and-sample-size`, `experiment-analysis`, `statistical-qa-of-metrics`, `regression-and-forecasting-review`.
+- **knowledge files** — a Mermaid test-selection decision tree, a 9-item pitfalls guardrail, experiment-design best practice, 2026 tooling tiers, and a causal-inference primer.
+- **an advisory hook** — `flag-statistical-smells.sh` (p-value-with-no-effect-size, uncorrected multiple comparisons, unchecked parametric assumptions, correlation→causation language).
+- **templates** — analysis plan (pre-registration), experiment design doc, power-analysis worksheet, statistical report.
 
 ## How it seams with `data-platform`
 
 ```
-data-platform        →  "is this number CORRECT?"   (present, in-range, reconciled, fresh)
-applied-statistics   →  "is this number REAL?"       (significant, powered, not an artifact)
+data-platform → "is this number CORRECT?" (present, in-range, reconciled, fresh)
+applied-statistics → "is this number REAL?" (significant, powered, not an artifact)
 ```
 
 `data-platform/dashboard-builder` invokes this plugin's `statistical-qa-of-metrics` skill when a widget shows a comparison or trend that needs a significance/CI annotation.

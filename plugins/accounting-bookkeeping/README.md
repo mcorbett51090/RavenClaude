@@ -8,11 +8,11 @@ A **Accounting & Bookkeeping Practice specialist team** for an accounting-practi
 
 | Surface | Contents |
 |---|---|
-| **4 agents** | `accounting-practice-lead`, `close-cycle-analyst`, `ap-ar-cashflow-specialist`, `reconciliation-controls-specialist` |
-| **5 skills / commands** | `run-close` · `reconcile-accounts` · `read-working-capital` · `estimate-bad-debt` · `audit-controls` |
-| **4-file knowledge bank** | KPI glossary · unit economics · 2025–2026 context · Mermaid decision trees |
-| **4 templates** | scorecard · exec readout · close-checklist.md · working-capital-worksheet.md |
-| **1 advisory hook** | flags anti-patterns (unbaselined metric, unsourced benchmark, client financial PII) in generated deliverables |
+| **agents** | `accounting-practice-lead`, `close-cycle-analyst`, `ap-ar-cashflow-specialist`, `reconciliation-controls-specialist` |
+| **skills / commands** | `run-close` · `reconcile-accounts` · `read-working-capital` · `estimate-bad-debt` · `audit-controls` |
+| **knowledge bank** | KPI glossary · unit economics · 2025–2026 context · Mermaid decision trees |
+| **templates** | scorecard · exec readout · close-checklist.md · working-capital-worksheet.md |
+| **an advisory hook** | flags anti-patterns (unbaselined metric, unsourced benchmark, client financial PII) in generated deliverables |
 | **`scripts/acctgops_calc.py`** | stdlib calculator — `working-capital` · `aging` · `close-cycle` |
 
 ## Install

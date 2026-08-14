@@ -19,18 +19,18 @@ Part of the [RavenClaude](../../README.md) marketplace. Extends `ravenclaude-cor
 
 ## What's inside
 
-- **2 agents** — `waste-operations-lead` (collection streams, fleet, transfer/landfill disposal, Subtitle D compliance, DOT/CDL & hopper safety) and `route-and-diversion-specialist` (route density/stops-per-hour, diversion-rate measurement, MRF & commodity economics, contamination reduction).
-- **3 skills** — `optimize-collection-routes-and-fleet`, `manage-disposal-and-regulatory-compliance`, `improve-diversion-and-recycling-economics`.
-- **2 knowledge files** — a Mermaid waste-operations decision tree (stream→truck, direct-haul vs transfer station, static vs dynamic routing, landfill vs divert, the Subtitle-D-vs-C scope gate) and a 2026 waste-recycling-patterns reference (route-density math, fleet types, disposal/tipping-fee/airspace economics, MRF & commodity markets post-National-Sword, contamination, diversion measurement, EPR/SB 1383/landfill bans, safety, tooling map).
-- **2 templates** — a route-optimization plan and a diversion-and-cost analysis.
+- **agents** — `waste-operations-lead` (collection streams, fleet, transfer/landfill disposal, Subtitle D compliance, DOT/CDL & hopper safety) and `route-and-diversion-specialist` (route density/stops-per-hour, diversion-rate measurement, MRF & commodity economics, contamination reduction).
+- **skills** — `optimize-collection-routes-and-fleet`, `manage-disposal-and-regulatory-compliance`, `improve-diversion-and-recycling-economics`.
+- **knowledge files** — a Mermaid waste-operations decision tree (stream→truck, direct-haul vs transfer station, static vs dynamic routing, landfill vs divert, the Subtitle-D-vs-C scope gate) and a 2026 waste-recycling-patterns reference (route-density math, fleet types, disposal/tipping-fee/airspace economics, MRF & commodity markets post-National-Sword, contamination, diversion measurement, EPR/SB 1383/landfill bans, safety, tooling map).
+- **templates** — a route-optimization plan and a diversion-and-cost analysis.
 
 ## Where it sits in the operation
 
 ```
-fleet-logistics             →  generic telematics / DOT / vehicle routing  ("cross-industry fleet")
-esg-sustainability-reporting →  corporate ESG / diversion as a REPORTED metric ("what we disclose")
-hazardous-waste (Subtitle C) →  characteristic/listed hazardous + incidents   ("out of scope — routed OUT")
-waste-recycling-operations (HERE) →  collect / haul / dispose / DIVERT the non-hazardous stream  ("run the trucks profitably")
+fleet-logistics → generic telematics / DOT / vehicle routing ("cross-industry fleet")
+esg-sustainability-reporting → corporate ESG / diversion as a REPORTED metric ("what we disclose")
+hazardous-waste (Subtitle C) → characteristic/listed hazardous + incidents ("out of scope — routed OUT")
+waste-recycling-operations (HERE) → collect / haul / dispose / DIVERT the non-hazardous stream ("run the trucks profitably")
 ```
 
 This plugin is the **hauling & diversion operations layer**: it runs the trucks and disposal that `fleet-logistics` supplies telematics for, produces the diversion tonnage that `esg-sustainability-reporting` discloses, and stays firmly on the **RCRA Subtitle D non-hazardous** side of the line — hazardous Subtitle C handling and incident response are adjacent and out of scope.

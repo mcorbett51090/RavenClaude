@@ -2,6 +2,12 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.6.5] — 2026-08-14
+
+### Changed
+
+- Dropped hand-maintained artifact-count literals from the plugin description (D1). The roster enumerates itself; Gate 206 forbids the digit.
+
 ## [0.6.4] — 2026-07-08
 
 Research-sweep **correctness fix** — the plugin recommended `WITH SECURITY_ENFORCED` as the primary CRUD/FLS enforcement clause (house opinion #7, the reviewer rubric, two skills, the security decision tree, templates). Salesforce **Summer '26 / API v67.0** **removes `WITH SECURITY_ENFORCED`** — an Apex class set to v67.0+ that uses it **does not compile** — and defaults database operations to **user mode** and omitted sharing keywords to **`with sharing`**. Following the old guidance on a v67.0+ class produced non-deployable code. Verified 2026-07-08 against salesforce.com (Summer '26 architect highlights) + developer.salesforce.com.

@@ -8,11 +8,11 @@ A **Blockchain & Web3 Engineering specialist team** for a Web3 engineer, protoco
 
 | Surface | Contents |
 |---|---|
-| **4 agents** | `web3-architect-lead`, `smart-contract-security-analyst`, `gas-optimization-specialist`, `protocol-economics-specialist` |
-| **5 skills / commands** | `audit-before-deploy` · `split-on-off-chain` · `optimize-gas` · `model-staking-yield` · `threat-model-protocol` |
-| **4-file knowledge bank** | KPI glossary · unit economics · 2025–2026 context · Mermaid decision trees |
-| **4 templates** | scorecard · exec readout · audit-findings.md · gas-cost-model.md |
-| **1 advisory hook** | flags anti-patterns (unbaselined metric, unsourced benchmark, private keys / wallet data) in generated deliverables |
+| **agents** | `web3-architect-lead`, `smart-contract-security-analyst`, `gas-optimization-specialist`, `protocol-economics-specialist` |
+| **skills / commands** | `audit-before-deploy` · `split-on-off-chain` · `optimize-gas` · `model-staking-yield` · `threat-model-protocol` |
+| **knowledge bank** | KPI glossary · unit economics · 2025–2026 context · Mermaid decision trees |
+| **templates** | scorecard · exec readout · audit-findings.md · gas-cost-model.md |
+| **an advisory hook** | flags anti-patterns (unbaselined metric, unsourced benchmark, private keys / wallet data) in generated deliverables |
 | **`scripts/blockchain_web3_calc.py`** | stdlib calculator — `gas-cost` · `storage-cost` · `staking-yield` |
 
 ## Install

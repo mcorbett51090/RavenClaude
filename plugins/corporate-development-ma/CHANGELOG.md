@@ -19,3 +19,10 @@ Initial release. The buy-side deal team.
 - 1 advisory `PostToolUse` hook (`CORPORATE_DEVELOPMENT_MA_STRICT=1` makes it blocking).
 - 8 house opinions anchored on thesis-before-model, valuation triangulation, owner/date
   synergies, and pricing integration risk pre-signing.
+
+## [0.1.1] — 2026-08-14
+
+### Changed
+
+- Dropped hand-maintained artifact-count literals from the plugin description (D1). The roster enumerates itself; Gate 206 forbids the digit.
+

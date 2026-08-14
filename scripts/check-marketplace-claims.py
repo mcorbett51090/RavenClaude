@@ -92,7 +92,12 @@ SKILLS_RE = re.compile(r"(\d+)\s+skills", re.IGNORECASE)
 # "N agents", "N specialist agents", "N strategist agents" — the phrasings the
 # 16 plugin descriptions actually use. Like SKILLS_RE it reads the FIRST such
 # claim; a description with no agent-count claim is simply not checked.
-AGENTS_RE = re.compile(r"(\d+)\s+(?:specialist\s+|strategist\s+)?agents?\b", re.IGNORECASE)
+# `\b` before the digit is load-bearing: without it, "M365 Agents SDK" (a
+# product name) is read as a "365 agents" claim. The DROP (D1) removed the
+# leading "N agents" inventory that used to shadow this false match.
+AGENTS_RE = re.compile(
+    r"\b(\d+)\s+(?:specialist\s+|strategist\s+)?agents?\b", re.IGNORECASE
+)
 README_COUNT_RE = re.compile(r"ships\s+\*\*(\d+)\s+plugins\*\*", re.IGNORECASE)
 # Count-drift family (the recurring hand-maintained-prose bug — README once said
 # "99 plugins" / "98 of the 99" / core "20 skills, 5 hooks" while reality was

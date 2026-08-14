@@ -21,18 +21,18 @@ Part of the [RavenClaude](../../README.md) marketplace. Extends `ravenclaude-cor
 
 ## What's inside
 
-- **2 agents** — `fundraising-strategist` (round strategy, cap-table/dilution math, term-sheet literacy, pipeline, data room) and `pitch-and-narrative-coach` (the narrative, the deck, the ask, investor updates).
-- **3 skills** — `build-investor-pipeline`, `model-cap-table-and-dilution`, `prepare-data-room`.
-- **2 knowledge files** — a Mermaid fundraising-stages decision tree (stage → instrument → range), and a term-sheet & SAFE essentials reference (founder-side literacy).
-- **2 templates** — a 10-12 slide pitch-deck outline, and a monthly investor-update template.
+- **agents** — `fundraising-strategist` (round strategy, cap-table/dilution math, term-sheet literacy, pipeline, data room) and `pitch-and-narrative-coach` (the narrative, the deck, the ask, investor updates).
+- **skills** — `build-investor-pipeline`, `model-cap-table-and-dilution`, `prepare-data-room`.
+- **knowledge files** — a Mermaid fundraising-stages decision tree (stage → instrument → range), and a term-sheet & SAFE essentials reference (founder-side literacy).
+- **templates** — a 10-12 slide pitch-deck outline, and a monthly investor-update template.
 
 ## How it seams with other plugins
 
 ```
-startup-fundraising  →  founder-side literacy: how much, what instrument, what dilution, what to ask
-finance              →  the financial model mechanics, projections, valuation defensibility
-product-management   →  the product what/why behind the story
-legal-ops-clm        →  binding term-sheet / SAFE review — what is enforceable, what to sign
+startup-fundraising → founder-side literacy: how much, what instrument, what dilution, what to ask
+finance → the financial model mechanics, projections, valuation defensibility
+product-management → the product what/why behind the story
+legal-ops-clm → binding term-sheet / SAFE review — what is enforceable, what to sign
 ```
 
 This plugin gives founders the **literacy to negotiate and the math to understand dilution**. It does **not** give legal or financial advice — those seams are hard lines, enforced in every agent's output contract.
