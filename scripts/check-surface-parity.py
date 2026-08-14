@@ -111,23 +111,55 @@ def derive_routes_and_homes(standalone: str) -> dict[str, str]:
 # A route may legitimately be absent from the portal's router. Each entry states
 # WHY, in the shape of _PIPELINE_EXCLUDED_HOOKS. An entry with no reason is not
 # an exemption, it is a silenced finding — which is how a gate becomes decoration.
-ROUTE_EXEMPT = {
-    "learn": (
-        "OPEN — needs an owner ruling, exempted so the gate can ship without "
-        "either flooding or silently hiding this. The portal DOES carry "
-        "`panel-learn` and `learn-collapse`, and its same-group sibling #/trees "
-        "IS routed to 'catalog' — so on the face of it this is the v0.211.1 "
-        "'portal does not own the route' defect. BUT the v0.208.0 byte-diet "
-        "deliberately stripped the portal's Learn payload, so routing it may "
-        "surface an EMPTY tab, and the real inconsistency may instead be that "
-        "the folded standalone chrome still renders the link at all. Fixing it "
-        "the wrong way is worse than the current state: route it and a user "
-        "clicks into nothing; drop the link and the portal loses a nav entry "
-        "the standalone has. Resolve by deciding which surface is right, then "
-        "either add `learn` to DASH_OWNER or stop rendering the link on the "
-        "portal — and delete this entry either way."
-    ),
-}
+# ⛔ EMPTY ON PURPOSE, and it must stay that way.
+#
+# This dict previously carried `learn` with a stated open question: does the portal
+# route it, or stop rendering the link? A FORGE run answered it -- and the answer was
+# that BOTH options were wrong, because the premise was:
+#
+#   * "the portal does not route #/learn"        -- FALSE. route() has an explicit
+#     `else if (section === "learn") { viewResources(); }` branch; the route renders
+#     a full Resources page.
+#   * "routing it would surface an empty tab"    -- FALSE of today; true only of the
+#     option that adds `learn` to DASH_OWNER, which is tested FIRST and would have
+#     STOLEN the route from the working branch and orphaned viewResources().
+#   * "the portal still renders a Learn nav link" -- FALSE. `#dash-root .dash-sidebar`
+#     is `display:none !important`, so the folded sidebar link is not rendered at all.
+#
+# The real defect was a nav-HIGHLIGHT mismatch, now fixed at source by
+# SHELL_ROUTE_HOME, and this gate now reads the whole router (see
+# `_shell_route_homes`) instead of DASH_OWNER alone.
+#
+# An entry here suppresses a genuine surface disagreement. If you are about to add
+# one, the bar is a DECIDED divergence with a stated reason -- never an open question
+# parked behind an exemption, which is what the `learn` entry was and why it took a
+# full adversarial run to discover the question itself rested on three false premises.
+ROUTE_EXEMPT: dict[str, str] = {}
+
+
+def _shell_route_homes(portal: str) -> dict[str, str]:
+    """Routes the portal serves from a shell branch rather than a dashboard tab.
+
+    A route is counted only when BOTH halves are present, because either alone is
+    a different defect and conflating them is what made this gate's one finding
+    misleading:
+
+      * `route()` dispatches it  -- `else if (section === "<r>")` -- so the route
+        actually renders something; and
+      * `SHELL_ROUTE_HOME` names the nav item that lights up for it.
+
+    A dispatched route with no home entry still falls to the `control` default and
+    IS a real finding, so it is deliberately NOT returned here.
+    """
+    dispatched = set(re.findall(r'section\s*===\s*["\']([a-z0-9-]+)["\']', portal))
+    i = portal.find("const SHELL_ROUTE_HOME")
+    if i == -1:
+        return {}
+    end = portal.find("};", i)
+    block = portal[i:end if end != -1 else i + 2000]
+    homes = dict(re.findall(
+        r'["\']?([a-z0-9-]+)["\']?\s*:\s*["\']([a-z0-9-]+)["\']', block))
+    return {r: h for r, h in homes.items() if r in dispatched}
 
 
 def assert_portal_homes(portal: str, expected: dict[str, str]) -> list[Mismatch]:
@@ -145,6 +177,21 @@ def assert_portal_homes(portal: str, expected: dict[str, str]) -> list[Mismatch]
     block = portal[i:end if end != -1 else i + 8000]
     owners = dict(re.findall(
         r'["\']?([a-z0-9-]+)["\']?\s*:\s*["\']([a-z0-9-]+)["\']', block))
+
+    # ⛔ DASH_OWNER IS NOT THE WHOLE ROUTER, and reading only it produced this
+    # gate's one false finding. The portal has TWO ways to home a route:
+    #   1. DASH_OWNER  -> the route is a folded dashboard TAB (viewDashboard)
+    #   2. a shell-route branch in route() that renders its OWN view, whose nav
+    #      highlight comes from SHELL_ROUTE_HOME
+    # #/learn is shape 2: `else if (section === "learn") { viewResources(); }`.
+    # Reading only DASH_OWNER, this gate reported it as "not routed at all — the
+    # tab is effectively hidden". That was false: the route renders a full
+    # Resources page. The finding was real (the nav highlighted the wrong item)
+    # but its stated CAUSE was wrong, and acting on the stated cause would have
+    # deleted a working page. A gate can be right that something is broken and
+    # wrong about what is broken; assert against the whole router, not one map.
+    owners.update(_shell_route_homes(portal))
+
     for route, home in sorted(expected.items()):
         if route in ROUTE_EXEMPT:
             continue
