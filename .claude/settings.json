@@ -207,6 +207,12 @@
             "type": "command",
             "command": "${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/thing-denial-kb-sync.sh",
             "comment": "Marketplace-dev hook (dev-mirror of the plugin's hooks/hooks.json entry). Thing-denial KB (Muninn): on session end, materialise new command/decision-tribunal denials/defers into .ravenclaude/runs/thing/denial-kb.jsonl by reading the existing S\u00e1ga audit records (hot-path-safe). No-op unless a comfort-posture exists; never writes stdout; always exits 0."
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/handoff-nudge.sh",
+            "timeout": 10,
+            "comment": "Marketplace-dev hook (dev-mirror). Session-context handoff nudge: advisory Stop additionalContext when context_handoff.mode is nag|block. Fail-open; never writes the brief; not a compact hook."
           }
         ]
       }

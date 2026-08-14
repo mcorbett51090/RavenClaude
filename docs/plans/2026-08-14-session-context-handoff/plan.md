@@ -1,5 +1,8 @@
 # Session-context handoff — reconciled plan (G6)
 
+> **Implement-time correction (2026-08-14):** tip was `0.265.0` after rebase onto `origin/main`, so this ships as **`0.266.0`**. Gates **201/202 were already taken**; the new gates are **212** (nudge) and **213** (spawn). Skill-count literals are forbidden by Gate 206 — README table only.
+
+
 Owner: `ravenclaude-core`. Stay local. Grok-first; other-host spawn adapters out of scope.
 
 ## 1. Intent

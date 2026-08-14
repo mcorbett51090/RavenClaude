@@ -6,7 +6,7 @@
 
 > 📚 **New here?** The dashboard's **Learn** tab explains the moving parts — permission layers, the command-review tribunal, hooks — with diagrams and interactive widgets. The same reference, readable on GitHub, is generated at **[docs/concepts.md](../../docs/concepts.md)**.
 
-Ships the orchestrator-worker dispatch model, generalist specialist agents (architect, backend/frontend/fullstack coders, code-reviewer, security-reviewer, tester-qa, data-engineer, deep-researcher, designer, documentarian, project-manager, partner-success-manager, prompt-engineer, viz-spec-reviewer), skills, hooks, rule-sets, working templates, slash commands (`/init-agent-ready`, `/wrap`, `/set-posture`, `/dashboard`, `/forge`, `/reset-plugin-cache` (alias `/ragnarok`)), and a knowledge bank the Researcher cross-checks. Every other plugin in the marketplace extends this one.
+Ships the orchestrator-worker dispatch model, generalist specialist agents (architect, backend/frontend/fullstack coders, code-reviewer, security-reviewer, tester-qa, data-engineer, deep-researcher, designer, documentarian, project-manager, partner-success-manager, prompt-engineer, viz-spec-reviewer), skills, hooks, rule-sets, working templates, slash commands (`/init-agent-ready`, `/wrap`, `/set-posture`, `/dashboard`, `/forge`, `/handoff`, `/reset-plugin-cache` (alias `/ragnarok`)), and a knowledge bank the Researcher cross-checks. Every other plugin in the marketplace extends this one.
 
 ## Install
 
@@ -23,10 +23,10 @@ This is the prerequisite plugin — domain plugins (`power-platform`, `finance`,
 | Component | Count | Where |
 |-----------|-------|-------|
 | Specialist agents | 15 | [`agents/`](agents/) |
-| Skills | 53 | [`skills/`](skills/) |
-| Hooks | 32 | [`hooks/`](hooks/) |
+| Skills | 54 | [`skills/`](skills/) |
+| Hooks | 33 | [`hooks/`](hooks/) |
 | Rule-sets | 5 | [`rules/`](rules/) |
-| Slash commands | 7 (`/init-agent-ready`, `/wrap`, `/set-posture`, `/dashboard`, `/forge`, `/reset-plugin-cache` (alias `/ragnarok`)) | [`commands/`](commands/) |
+| Slash commands | `/init-agent-ready`, `/wrap`, `/set-posture`, `/dashboard`, `/forge`, `/handoff`, `/reset-plugin-cache` (alias `/ragnarok`) | [`commands/`](commands/) |
 | Knowledge files | see [`knowledge/`](knowledge/) | [`knowledge/`](knowledge/) |
 
 ## The protocols it provides to the whole marketplace
