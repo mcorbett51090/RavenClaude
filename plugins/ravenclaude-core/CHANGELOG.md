@@ -2,6 +2,15 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.264.0 — 2026-08-14
+
+### Fixed
+
+- **MH-40 leftover in generated dashboard JS.** The Settings `dashboard_autostart`
+  control shipped in v0.216.0; CLAUDE.md was corrected; the generator kept
+  emitting "No DOM control ships with it" into `dashboard.html` and `index.html`.
+  Gate 210 denylists that shipping-state lie.
+
 ## 0.263.0 — 2026-08-14
 
 ### Changed

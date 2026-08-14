@@ -1056,9 +1056,15 @@ PY
         python3 scripts/check-hard-rule-floor.py
       exit $?
       ;;
+    210)
+      echo "── Gate 210: generated gate-state prose (per-gate run) ──"
+      python3 scripts/check-generated-gate-state.py --self-test && \
+        python3 scripts/check-generated-gate-state.py
+      exit $?
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -7134,6 +7140,23 @@ rc=0; python3 scripts/check-hard-rule-floor.py --must-fail >/dev/null 2>&1 || rc
 gate "hard-rule-floor teeth: a planted Bash exemption IS caught" must_fail "$rc"
 rc_is_2=0; [ "$rc" -eq 2 ] || rc_is_2=1
 gate "hard-rule-floor teeth: planted exemption exits 2 (not 1)" must_pass "$rc_is_2"
+
+echo "── Gate 210: generated shipping-state prose is not a typed lie ──"
+# PR 16 / P21 / MH-40. The generator kept emitting "No DOM control ships"
+# after _render_dashboard_autostart() landed. This gate denylists that
+# phrase in the generator and the two shipped HTML surfaces.
+#
+# ⛔ Registered in BOTH this main sequence AND the --check dispatcher above + the
+# Supported: string. After adding a gate, run the full suite and GREP ITS OUTPUT
+# FOR "210" — a passing suite is not evidence your gate is in it.
+rc=0; python3 scripts/check-generated-gate-state.py --self-test >/dev/null 2>&1 || rc=$?
+gate "generated-gate-state: teeth (phrase absent; plantable)" must_pass "$rc"
+rc=0; python3 scripts/check-generated-gate-state.py >/dev/null 2>&1 || rc=$?
+gate "generated-gate-state: generator + shipped HTML have no stale shipping-state lie" must_pass "$rc"
+rc=0; python3 scripts/check-generated-gate-state.py --must-fail >/dev/null 2>&1 || rc=$?
+gate "generated-gate-state teeth: a planted stale phrase IS caught" must_fail "$rc"
+rc_is_2=0; [ "$rc" -eq 2 ] || rc_is_2=1
+gate "generated-gate-state teeth: planted phrase exits 2 (not 1)" must_pass "$rc_is_2"
 
 echo "── Gate 206: no plugin description may carry an artifact-count literal ──"
 # P13 / D1. Prose counts in plugin.json + marketplace.json descriptions are
