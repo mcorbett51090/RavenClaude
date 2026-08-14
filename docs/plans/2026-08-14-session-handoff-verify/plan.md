@@ -1,7 +1,8 @@
 # Plan — session-handoff-verify (same-host close)
 
 **Owner:** ravenclaude-core · **Run:** `session-handoff-verify` · **G6 synthesize**
-**Origin lock (audit):** `9c7f0744478d2a033d349cbf6a6a48a695ae4d76` / plugin **0.269.0**. Re-read tip + versions at implement.
+**Origin lock (audit):** `9c7f0744478d2a033d349cbf6a6a48a695ae4d76` / plugin **0.269.0**.
+**Implement-time correction (G8, 2026-08-14):** origin/main moved to `50acc826` during this run. `#937` shipped ravenclaude-core **0.270.0** (host-keyed substrate tier map — does not touch handoff files). Next free bump for *this* plan is **0.271.0**. Gate **215** is still free. Re-read tip + versions again at implement.
 **This checkout:** `handoff2` is `fdb1efeb`, **37 behind**. Implement on a branch cut from **origin/main**, not this tree's `plugins/`.
 
 **Intent.** The shipped session-context handoff (#931 / #934) is **enabled-off**, not broken: Stop-hook nudge at soft 70 vs Grok auto-compact ~85 is coded and gated; same-host today is a new integrated terminal running positional `grok`. This plan adds host-paired spawn so Copilot Chat resumes in a **new Chat session** (prompt-file + Cmd+N / paste — guaranteed), Copilot CLI resumes in a new CLI terminal, and Grok TUI stays Grok. Live Chat URI open is owner-gated best-effort and is **not** a ship gate. Origin posture stays off. No `copilot-chat` install column.
@@ -56,7 +57,7 @@ G3 gap-delta left five forks. G6 picks, all binding:
 | 2 | Host select | **Detect origin host, but `--host` wins.** Skill/user `--host chat\|cli\|grok` (aliases `copilot-chat` / `copilot-cli` accepted) overrides detection. **Never infer Chat from `TERM_PROGRAM=vscode` alone** (that is also Grok-in-VS-Code). Unknown → copy-paste, never the wrong binary. | A's anti-false-Chat rule + B's detect-when-helpful. Flag-first prevents silent wrong-product launch. |
 | 3 | Gates | **New Gate 215** for Chat/CLI recipes **and** keep Gate 213 Grok teeth. Gate 215 additionally asserts a Chat/CLI seed must never emit `grok -p` **or** positional `grok` when origin host is Chat/CLI. | Clean slot after origin max 214. 213 stays Grok-byte-stable. 215 owns the new host matrix. |
 | 4 | Live Chat fail | **Print copy-paste and exit 0** for the guaranteed path. A live-launch miss is **not** a hard fail. Originating session still stops only on **SUCCESSOR_ACK** when a successor actually starts. | Guaranteed path is emit+instruct. Exit 2 would punish the always-works UX. Ack wait stays Grok-only until C18/C20 prove Chat SessionStart. |
-| 5 | Version / enablement / install | **0.269.0 → 0.270.0** + CHANGELOG top. Re-read origin tip at implement. **Do not** turn `context_handoff` on in origin posture. Document opt-in: `mode: nag`, `spawn: same-host`. **No** `copilot-chat` marketplace / `host-support.json` install column. | User-visible adapter, default-off, #933 honesty. |
+| 5 | Version / enablement / install | **0.270.0 → 0.271.0** + CHANGELOG top. Re-read origin tip at implement. **Do not** turn `context_handoff` on in origin posture. Document opt-in: `mode: nag`, `spawn: same-host`. **No** `copilot-chat` marketplace / `host-support.json` install column. | User-visible adapter, default-off, #933 honesty. |
 
 ---
 
@@ -115,7 +116,7 @@ origin/main  (#931 / #934 shipped; do not rewrite)
  │         ∥ P3
  │         not a ship gate
  │
- ├─► P5  Gate 215 + keep 213 + 0.270.0 + CHANGELOG (wire, do not enable)
+ ├─► P5  Gate 215 + keep 213 + 0.271.0 + CHANGELOG (wire, do not enable)
  │         needs P1 + P2 on disk
  │         P3/P4 may land thin (C14-only / CLI copy-paste-only) in the same PR
  │
@@ -125,7 +126,7 @@ origin/main  (#931 / #934 shipped; do not rewrite)
 
 - **Critical path:** **P1 → P2 → P5**. A Chat/CLI user can invoke the skill, get `chat-resume.md` + Cmd+N instructions, and paste into a new session even if live launch never opens a window.
 - **Parallel after P1:** P3 ∥ P4. Do **not** serialize CLI behind a Chat URI probe.
-- **0.270.0 ships** with P1+P2+Gate 215 even if P3/P4 live branches are thin.
+- **0.271.0 ships** with P1+P2+Gate 215 even if P3/P4 live branches are thin.
 - **P4 C17 probe negative →** B2 URI or copy-paste only. **P3 `copilot --help` is one-shot →** copy-paste + bare `copilot`.
 - **P1 without P3/P4** still closes the **wrong-binary** defect (Chat no longer prints `grok`).
 - **Do not enable** origin `context_handoff`. **Do not** wait on C18.
@@ -300,7 +301,7 @@ depends_on_claims: [14, 15]
 
 ---
 
-### P5 — Gate 215 + keep 213 + 0.270.0 + CHANGELOG (wire, do not enable)
+### P5 — Gate 215 + keep 213 + 0.271.0 + CHANGELOG (wire, do not enable)
 
 depends_on_claims: [1, 4, 13]
 
@@ -311,8 +312,8 @@ depends_on_claims: [1, 4, 13]
 - `plugins/ravenclaude-core/hooks/tests/test-gate215-handoff-host-spawn.sh` — Gate **215** (next free after origin highest **214**). Shape = Gate 213: bash 3.2, fixtures only, `--dry-run`, bidirectional teeth.
 - `plugins/ravenclaude-core/hooks/tests/test-gate213-handoff-spawn.sh` — **keep Grok teeth**. Update the mutant needle only if P1's grok seed assignment **must** move; prefer not to. If the assignment line moves, update the needle in the same PR. Gate 213 continues to refuse `grok -p` / `--single` / `--prompt-file` / `--prompt-json`.
 - `scripts/audit-gates.sh` — register 215 in (1) `--check` dispatcher, (2) main sequence after 214, (3) `Supported:` string. GREP THE SUITE OUTPUT FOR `215`.
-- `plugins/ravenclaude-core/.claude-plugin/plugin.json` **and** `.claude-plugin/marketplace.json` ravenclaude-core entry: origin tip **0.269.0 → 0.270.0** (or one minor above whatever is free on origin at implement). Marketplace catalog `metadata.version` is **not** this plugin's version — do not touch it unless a separate catalog rule requires it.
-- `plugins/ravenclaude-core/CHANGELOG.md` — new **0.270.0** top entry (file exists → keep current). Honest "Not claimed" bullets: Chat Stop/nudge (C18); C17 prefill; Chat is not a protected install host; origin posture stays off.
+- `plugins/ravenclaude-core/.claude-plugin/plugin.json` **and** `.claude-plugin/marketplace.json` ravenclaude-core entry: origin tip **0.270.0 → 0.271.0** (or one minor above whatever is free on origin at implement). Marketplace catalog `metadata.version` is **not** this plugin's version — do not touch it unless a separate catalog rule requires it.
+- `plugins/ravenclaude-core/CHANGELOG.md` — new **0.271.0** top entry (file exists → keep current). Honest "Not claimed" bullets: Chat Stop/nudge (C18); C17 prefill; Chat is not a protected install host; origin posture stays off.
 - `plugins/ravenclaude-core/templates/comfort-posture-balanced.yaml` — comment-only: spawn values unchanged (`copy-paste-only | same-host | os-terminal`); note that `same-host` is **host-paired** (Chat→Chat, Grok→Grok, CLI→CLI). Document opt-in:
 
   ```yaml
@@ -377,7 +378,7 @@ Human boxes on the PR (C4 shape — leave `[ ]` until a human ticks them):
 - [ ] Copilot CLI `spawn: same-host`: new terminal runs `copilot` (or the `--help`-confirmed interactive form) with the pointer; not `grok`.
 - [ ] Origin posture still has no live `context_handoff:` block after merge.
 
-**Blast.** User-visible 0.270.0. Reversible by revert. **No migration for default-off.** Consumers who never set `context_handoff` see no new Stop nag. Chat/CLI same-host launch still requires the existing owner spawn flag.
+**Blast.** User-visible 0.271.0. Reversible by revert. **No migration for default-off.** Consumers who never set `context_handoff` see no new Stop nag. Chat/CLI same-host launch still requires the existing owner spawn flag.
 
 ---
 
@@ -385,12 +386,12 @@ Human boxes on the PR (C4 shape — leave `[ ]` until a human ticks them):
 
 depends_on_claims: []
 
-C17 and C18 are **not** load-bearing. This phase settles them for a possible follow-up, not for 0.270.0.
+C17 and C18 are **not** load-bearing. This phase settles them for a possible follow-up, not for 0.271.0.
 
 **Work (owner machine with live VS Code Chat + optional Preview hooks).**
 
 1. **C17:** can `code --command` / URI start a **new** session and/or prefill? Record yes/no + VS Code / Copilot Chat version. If yes, a later PR may promote B3 behind the same `spawn: same-host` flag. If no, leave P4 as C14 + copy-paste.
-2. **C18 / CL-19:** does Chat Preview fire Stop / `handoff-nudge`? If no, Chat path stays skill-invoke forever in honesty docs. If yes, a later PR may document Chat nag — **not** part of 0.270.0 must-ship.
+2. **C18 / CL-19:** does Chat Preview fire Stop / `handoff-nudge`? If no, Chat path stays skill-invoke forever in honesty docs. If yes, a later PR may document Chat nag — **not** part of 0.271.0 must-ship.
 
 **Acceptance.** Probe notes in the PR or `.ravenclaude/runs/…`. Guaranteed path already merged without them.
 
@@ -445,9 +446,9 @@ C5, C14, C15, C16 are outside-repo observations with this-session sources. **C16
 
 | Artifact | Origin now | This work |
 |---|---|---|
-| `plugins/ravenclaude-core/.claude-plugin/plugin.json` `version` | **0.269.0** | **0.270.0** (or next free minor) |
+| `plugins/ravenclaude-core/.claude-plugin/plugin.json` `version` | **0.270.0** | **0.271.0** (or next free minor) |
 | `.claude-plugin/marketplace.json` ravenclaude-core `version` | **0.269.0** | lockstep |
-| `CHANGELOG.md` | top `## 0.269.0` | new `## 0.270.0` top entry |
+| `CHANGELOG.md` | top `## 0.270.0` | new `## 0.271.0` top entry |
 | New gate | highest **214** | **215** host-pair spawn + Chat/CLI-must-not-emit-grok teeth |
 | Gate 213 | Grok spawn + headless teeth | **kept**; do not replace with 215 |
 | Origin posture | no `context_handoff:` | **unchanged** (document opt-in: `mode: nag`, `spawn: same-host`) |
@@ -457,7 +458,7 @@ Minor bump: user-visible spawn pairing. Re-read both version fields at implement
 
 ---
 
-## Files expected to change in the implement PR (0.270.0)
+## Files expected to change in the implement PR (0.271.0)
 
 | Path (on origin tree) | Change |
 |---|---|
@@ -472,9 +473,9 @@ Minor bump: user-visible spawn pairing. Re-read both version fields at implement
 | `plugins/ravenclaude-core/bin/rc` | Usage string for `--host` / recipes |
 | `plugins/ravenclaude-core/templates/comfort-posture-balanced.yaml` | Comment: host-paired `same-host`; opt-in `mode: nag` |
 | `plugins/ravenclaude-core/knowledge/copilot-chat-customization.md` | Honesty cross-link (optional) |
-| `plugins/ravenclaude-core/.claude-plugin/plugin.json` | 0.270.0 |
+| `plugins/ravenclaude-core/.claude-plugin/plugin.json` | 0.271.0 |
 | `.claude-plugin/marketplace.json` | lockstep version |
-| `plugins/ravenclaude-core/CHANGELOG.md` | 0.270.0 entry + Not claimed |
+| `plugins/ravenclaude-core/CHANGELOG.md` | 0.271.0 entry + Not claimed |
 
 **Unchanged by design:** nudge meter math, Gate 212 semantics, compact-anchor, Grok positional seed forbid list, default posture off, no install column, no new top-level directory (no layout-glob update).
 
@@ -488,7 +489,7 @@ Minor bump: user-visible spawn pairing. Re-read both version fields at implement
 - [ ] `--host` wins; never Chat-from-`TERM_PROGRAM=vscode`; unknown → copy-paste.
 - [ ] Live C14 URI is owner-gated best-effort; miss → copy-paste + **exit 0**. URI-prefill is not a ship gate.
 - [ ] Gates **212 / 213 / 214 stay green**. Gate **215** added with `--must-fail-chat-grok` teeth. `scripts/audit-gates.sh --check 213` and `--check 215` pass; full `audit-gates.sh` before the PR.
-- [ ] ravenclaude-core **0.269.0 → 0.270.0** (or next free) in `plugin.json` + marketplace lockstep + CHANGELOG top.
+- [ ] ravenclaude-core **0.270.0 → 0.271.0** (or next free) in `plugin.json` + marketplace lockstep + CHANGELOG top.
 - [ ] Origin `.ravenclaude/comfort-posture.yaml` still has **no** `context_handoff:` block. Template documents opt-in (`mode: nag`, `spawn: same-host`).
 - [ ] No `copilot-chat` key in `host-support.json` / marketplace install column.
 - [ ] `npx prettier@3.9.4 --write` then `--check`; `python3 -m ruff check .`; `python3 scripts/check-frontmatter.py`.
@@ -501,4 +502,4 @@ Minor bump: user-visible spawn pairing. Re-read both version fields at implement
 ## Success signal (maps to scope)
 
 1. Written verdict: **enabled-off** + soft-threshold implemented + Grok same-host shipped owner-flagged; human live still open.
-2. Bounded plan: Chat→Chat via **`chat-resume.md` + Cmd+N (always)**; CLI→CLI via **confirmed terminal seed**; Grok→Grok **regression-only**; version **0.270.0**; Gate **215** added and Gate **213** kept; C17/C18 not load-bearing for merge.
+2. Bounded plan: Chat→Chat via **`chat-resume.md` + Cmd+N (always)**; CLI→CLI via **confirmed terminal seed**; Grok→Grok **regression-only**; version **0.271.0**; Gate **215** added and Gate **213** kept; C17/C18 not load-bearing for merge.
