@@ -407,7 +407,8 @@ def _collect_radii(css_text: str) -> Counter:
 #
 # Five stdlib collectors + pure derivation fns extend the brand kit with a full DESIGN
 # schema (spacing scale, type scale, elevation ramp, grid/breakpoints, component
-# recipes) written to design-schema.json and validated by scripts/check-design-schema.py.
+# recipes) written to design-schema.json and validated by
+# plugins/ravenclaude-core/scripts/check-design-schema.py.
 # Every value is DECLARED CSS only — a stdlib parser recovers no computed/rendered style
 # — so every dimension is stamped capture_method:"static" and degrades HONESTLY
 # (base_unit / ratio come back null, with a confidence note, when no clean fit exists).
@@ -1463,7 +1464,7 @@ def extract(
     # a NEW output that leaves brand.json / brand.css / report / summary untouched. Every
     # dimension is capture_method:"static" (declared CSS only; no browser CSSOM), and the
     # per-dimension null-degrade is carried in confidence_notes. Validated by
-    # scripts/check-design-schema.py.
+    # plugins/ravenclaude-core/scripts/check-design-schema.py.
     ds_source: dict = {"url": url, "fetched_at": brand["source"]["fetched_at"]}
     if parser.title:
         ds_source["title"] = parser.title

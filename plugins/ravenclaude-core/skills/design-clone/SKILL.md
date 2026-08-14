@@ -19,7 +19,7 @@ This is the **capture + apply** half of the design-schema-mimicry capability. It
   emits the reference's `design-schema.json` (declared-CSS only, every value stamped
   `capture_method:"static"`) and its `brand.json` brand kit.
 - **Contract** — [`schemas/design-schema.schema.json`](../../../../schemas/design-schema.schema.json),
-  conformance-checked by [`scripts/check-design-schema.py`](../../../../scripts/check-design-schema.py)
+  conformance-checked by [`scripts/check-design-schema.py`](../../scripts/check-design-schema.py)
   (the single stdlib conformance point — no `jsonschema`, no cross-skill import).
 - **Apply** — this skill's [`apply_schema.py`](apply_schema.py) + [`sanitizers.py`](sanitizers.py).
 

@@ -16,7 +16,7 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 SKILL="$(cd "$HERE/.." && pwd)"                 # .../skills/design-clone
 ROOT="$(cd "$HERE/../../../../.." && pwd)"       # repo root
 APPLY="$SKILL/apply_schema.py"
-CHECK="$ROOT/scripts/check-design-schema.py"
+CHECK="$SKILL/../../scripts/check-design-schema.py"
 FX="$ROOT/tests/fixtures/design-clone"
 TARGET="$FX/target-brand.json"
 

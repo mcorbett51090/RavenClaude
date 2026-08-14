@@ -64,7 +64,7 @@ design **schema** beyond brand tokens: a **spacing scale** (clustered margin/pad
 inferred 4/8px base unit), a **type scale** (clustered `font-size` + detected modular ratio), a
 **grid** (declared `@media` breakpoints + container max-width), an **elevation** ramp (distinct
 `box-shadow`s ordered by blur/spread), and **component recipes** (button/card/nav/input structural
-hints). It is validated by `scripts/check-design-schema.py` and consumed by the **`design-clone`**
+hints). It is validated by [`check-design-schema.py`](../../scripts/check-design-schema.py) and consumed by the **`design-clone`**
 skill (apply → a target) and the **`visual-feedback-loop`** render-compare loop (verify).
 
 ⛔ **The declared-only ceiling (honesty pivot).** Static parsing (`urllib`/`html.parser`/`re`)
