@@ -1,0 +1,8 @@
+{
+  "id": "analog-only",
+  "lattice_id": "C09",
+  "ships_in": "evals/cases/ravenclaude-core/new.yaml",
+  "acceptance_test": "python3 evals/runner.py --self-test",
+  "because_analog": "jeremylongshore/claude-code-plugins-plus-skills README says add evals",
+  "user_visible": "more evals"
+}
