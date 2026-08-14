@@ -60,6 +60,8 @@ const pieces = [
   app.match(/const DECISION_REVIEW_DEFAULT = [^;]*;/)[0],
   app.match(/const WORKTREE_GUARD_VALUES = \[[^\]]*\];/)[0],
   app.match(/const WORKTREE_GUARD_DEFAULT = [^;]*;/)[0],
+  app.match(/const WORKTREE_BOUND_VALUES = \[[^\]]*\];/)[0],
+  app.match(/const WORKTREE_BOUND_DEFAULT = [^;]*;/)[0],
   app.match(/const DASHBOARD_AUTOSTART_VALUES = \[[^\]]*\];/)[0],
   app.match(/const DASHBOARD_AUTOSTART_DEFAULT = [^;]*;/)[0],
   app.match(/const ORCHESTRATOR_VALUES = \[[^\]]*\];/)[0],
@@ -115,6 +117,7 @@ function _freshState() {
     parallelism: Object.assign({}, PARALLELISM_DEFAULT),
     decision_review: DECISION_REVIEW_DEFAULT,
     worktree_guard: WORKTREE_GUARD_DEFAULT,
+    worktree_bound: WORKTREE_BOUND_DEFAULT,
     dashboard_autostart: DASHBOARD_AUTOSTART_DEFAULT,
     definition_of_done: Object.assign({}, DOD_DEFAULT),
     orchestrator: ORCHESTRATOR_DEFAULT,
@@ -149,6 +152,7 @@ function check(name, cond) {
   s.parallelism = { enabled: true, max_workers: 6, unlimited: false };
   s.decision_review = "binding";
   s.worktree_guard = "block";
+  s.worktree_bound = "off";
   s.dashboard_autostart = "open";
   s.definition_of_done = { cmd: "npm test && npm run lint", max_blocks: 4 };
   s.command_review.dev_repo_exempt = true;
@@ -168,6 +172,7 @@ function check(name, cond) {
   check("parallelism.max_workers emitted", /^  max_workers: 6$/m.test(yaml));
   check("decision_review emitted", /^decision_review: binding$/m.test(yaml));
   check("worktree_guard emitted", /^worktree_guard: block$/m.test(yaml));
+  check("worktree_bound emitted", /^worktree_bound: off$/m.test(yaml));
   check("dashboard_autostart emitted", /^dashboard_autostart: open$/m.test(yaml));
   check("definition_of_done.cmd emitted", /^  cmd: "npm test && npm run lint"$/m.test(yaml));
   check("definition_of_done.max_blocks emitted", /^  max_blocks: 4$/m.test(yaml));
@@ -187,6 +192,7 @@ function check(name, cond) {
     parallelism: { enabled: true, max_workers: 6 },
     decision_review: "binding",
     worktree_guard: "block",
+    worktree_bound: "off",
     dashboard_autostart: "open",
     definition_of_done: { cmd: "npm test && npm run lint", max_blocks: 4 },
     command_review: { dev_repo_exempt: true },
@@ -204,6 +210,7 @@ function check(name, cond) {
   check("hydrate parallelism.enabled", h.parallelism.enabled === true);
   check("hydrate decision_review", h.decision_review === "binding");
   check("hydrate worktree_guard", h.worktree_guard === "block");
+  check("hydrate worktree_bound", h.worktree_bound === "off");
   check("hydrate dashboard_autostart", h.dashboard_autostart === "open");
   check("hydrate dod.cmd", /npm test/.test(h.definition_of_done.cmd));
   check("hydrate dev_repo_exempt", h.command_review.dev_repo_exempt === true);
@@ -224,6 +231,7 @@ function check(name, cond) {
   check("no parallelism block at default", !/parallelism:/.test(yaml));
   check("no decision_review at default", !/decision_review:/.test(yaml));
   check("no worktree_guard at default", !/^worktree_guard:/m.test(yaml));
+  check("no worktree_bound at default", !/^worktree_bound:/m.test(yaml));
   check("no dashboard_autostart at default", !/^dashboard_autostart:/m.test(yaml));
   check("no definition_of_done at default", !/definition_of_done:/.test(yaml));
   check("no dev_repo_exempt at default", !/dev_repo_exempt:/.test(yaml));
