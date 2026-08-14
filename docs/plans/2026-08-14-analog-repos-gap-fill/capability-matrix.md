@@ -3,7 +3,7 @@
 **Last verified:** 2026-08-14  
 **Cells:** `present` / `partial` / `absent` / `N/A`  
 **`[inf]` cannot mark `present` for E/C09 or T/C15.**  
-**RavenClaude row cites HEAD `0.266.0` (`d054a856`) paths.** F1 #928 and F2 #929 are in flight and do not change HEAD cells. #931 already spent hook slot 33 (`handoff-nudge.sh`).
+**RavenClaude row cites HEAD `0.267.0` (`0d40897f`) paths.** F1 #928 and F2 #929 are merged. C06/C15 PostToolUse quarantine is present; C09 has injection + minting cases. MCP result rewrite remains accepted-limit (L4).
 
 ## Lattice
 
@@ -13,23 +13,23 @@
 | C02 | Multi-host projection from one tree | `plugins/ravenclaude-core/knowledge/host-support.json`, `scripts/generate-copilot-plugin.py`, `scripts/generate-codex-agents.py` |
 | C03 | Skill progressive disclosure | `plugins/ravenclaude-core/skills/`, `scripts/check-frontmatter.py` |
 | C04 | Agent description / routing budget | `scripts/check-frontmatter.py` (≤300 chars), `plugins/ravenclaude-core/agents/` |
-| C05 | Hooks as policy | `plugins/ravenclaude-core/hooks/hooks.json` (33 commands on HEAD after #931) |
-| C06 | Trust boundary for untrusted tool/web output | `plugins/ravenclaude-core/scripts/sanitize-webfetch-body.py`, `hooks/guard-web-access.sh`, skill `webfetch-hardening`. **No** PostToolUse `updatedToolOutput` on HEAD |
+| C05 | Hooks as policy | `plugins/ravenclaude-core/hooks/hooks.json` (34 commands on HEAD after #928) |
+| C06 | Trust boundary for untrusted tool/web output | `hooks/sanitize-webfetch-output.sh` (PostToolUse `WebFetch` → `updatedToolOutput`), `scripts/sanitize-webfetch-body.py`, `hooks/guard-web-access.sh`. MCP still raw (L4) |
 | C07 | Layout allow-list | `.repo-layout.json`, `plugins/ravenclaude-core/hooks/enforce-layout.sh` |
 | C08 | CI gate meta-test | `scripts/audit-gates.sh` |
-| C09 | Eval / golden-set of agent failure modes | `evals/cases/ravenclaude-core/` (3 cases on HEAD; 0 injection) |
+| C09 | Eval / golden-set of agent failure modes | `evals/cases/ravenclaude-core/` (5 cases; includes `untrusted-fetch-injection` + `analog-readme-minting`) |
 | C10 | Comfort / permission posture | `.ravenclaude/comfort-posture.yaml` (consumer), `plugins/ravenclaude-core/skills/set-posture/` |
 | C11 | Cross-CLI run-artifact contract | `AGENTS.md` two-tier contract, `.ravenclaude/runs/` |
 | C12 | Agent-in-CI scaffolds | `plugins/ravenclaude-core/templates/agent-ready-repo/` |
 | C13 | Marketplace claim honesty | `scripts/check-marketplace-claims.py` |
 | C14 | Operator dashboard | `plugins/ravenclaude-core/bin/rc dashboard` |
-| C15 | Prompt-injection defenses | sanitizer script + claim-grounding prose; hook not on HEAD |
+| C15 | Prompt-injection defenses | sanitizer script + PostToolUse hook + claim-grounding; MCP channel still open (L4) |
 
 ## Priority columns (C01–C06, C09, C15)
 
 | repo | C01 | C02 | C03 | C04 | C05 | C06 | C09 | C15 |
 |---|---|---|---|---|---|---|---|---|
-| **RavenClaude (HEAD)** | present | present | present | present | present | **partial** | **partial** | **partial** |
+| **RavenClaude (HEAD)** | present | present | present | present | present | **partial** (WebFetch yes; MCP no) | present | **partial** (WebFetch yes; MCP no) |
 | jeremylongshore/claude-code-plugins-plus-skills | present | partial | present | partial | present | absent | absent | absent |
 | netresearch/claude-code-marketplace | present | present | present | absent | partial | absent | partial | absent |
 | wshobson/agents | present | present | present | partial | absent | absent | absent | absent |

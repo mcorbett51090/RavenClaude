@@ -1,12 +1,12 @@
 # Decision record — analog-repos gap fill (survey close-out)
 
 **Date:** 2026-08-14 · **Owner:** Matt · **Method:** `/forge --depth standard` then `/forge keep going` (P5–P10)  
-**Plugin version:** unchanged by this docs commit. `main` is **0.266.0** (#931 session-context handoff; `RC_BASELINE.hooks` already **33**). F1/F2 are queued PRs. F1 must **not** reuse 0.266.0 or 32→33 — verify-at-implement is **0.267.0** and hooks **33→34**.
+**Plugin version:** **0.267.0** after F1. F1 shipped as [#928](https://github.com/mcorbett51090/RavenClaude/pull/928) (`RC_BASELINE.hooks` **34**). F2 shipped as [#929](https://github.com/mcorbett51090/RavenClaude/pull/929). F3 was the docs promote. Draft plan [#926](https://github.com/mcorbett51090/RavenClaude/pull/926) closed as superseded.
 
 ## 0. Status (authoritative)
 
 - **Survey completed.** Verified set **N=13** (cap 30; shortfall 17). Dated catalog + C01–C15 matrix published under `docs/plans/2026-08-14-analog-repos-gap-fill/`.
-- **Fill slots:** F1 hook in flight ([#928](https://github.com/mcorbett51090/RavenClaude/pull/928), CONFLICTING). F2 evals in flight ([#929](https://github.com/mcorbett51090/RavenClaude/pull/929), required checks SUCCESS). F3 = this docs promote (no hook/skill/agent).
+- **Fill slots:** F1 **CLOSED** [#928](https://github.com/mcorbett51090/RavenClaude/pull/928) (`0.267.0`, hooks 34). F2 **CLOSED** [#929](https://github.com/mcorbett51090/RavenClaude/pull/929). F3 = docs promote (no hook/skill/agent).
 - **No silent drops** vs P2 row ids L1–L5. Residuals tagged.
 - **No weekly 5/30 refresh** of analog READMEs (FM-10). Re-rank only if Claude Code’s plugin-marketplace format changes, or on owner request.
 
@@ -45,9 +45,9 @@ Critic/red-team: `.ravenclaude/runs/forge/analog-repos-gap-fill/{critic-brief,re
 
 | # | Gap | Status |
 |---|---|---|
-| L1 | WebFetch result unsanitized | **QUEUED** — #928 (rebase: branch CONFLICTING / 1 behind main) |
-| L2 | Zero injection eval cases on HEAD | **QUEUED** — #929 (required checks green) |
-| L3 | README cannot mint closeable | **QUEUED** — #929 |
+| L1 | WebFetch result unsanitized | **CLOSED** — #928 (`sanitize-webfetch-output.sh`, v0.267.0) |
+| L2 | Zero injection eval cases on HEAD | **CLOSED** — #929 (`untrusted-fetch-injection.yaml`) |
+| L3 | README cannot mint closeable | **CLOSED** — #929 (`analog-readme-minting.yaml` + `closeable_validator.py`) |
 | L4 | MCP result quarantine | **accepted-limit** — product-shaped default change |
 | L5 | Operator-7 as product rows | **out-of-lens** — evidence-sample only |
 | F-C02-hosts | wshobson extra hosts | **accepted-limit** — new host = product |
