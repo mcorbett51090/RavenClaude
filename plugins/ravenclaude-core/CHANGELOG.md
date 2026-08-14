@@ -6,7 +6,7 @@ All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the 
 
 ### Added
 
-- Host-keyed substrate tier map (`knowledge/substrate-tier-map.json`) so FORGE / dispatch / classifier / Thing seats resolve haiku/sonnet/opus to live host SKUs. Grok `fast`/`balanced` share `grok-4.5` and diverge on effort + perspective (CLI probe: `grok-build-0.1` is not a selectable id).
+- Host-keyed substrate tier map (`knowledge/substrate-tier-map.json`) so FORGE / dispatch / classifier / Thing seats resolve haiku/sonnet/opus to live host SKUs. Grok `fast`/`balanced` share `grok-4.5` and diverge on effort + perspective (CLI probe: `grok-build-0.1` is not a selectable id). `RC_BASELINE.tools` 26 → 27 (`load-substrate-tier-map.py`; the JS twin is not counted — `_scan_scripts` is `*.py` only).
 
 ## 0.269.0 — 2026-08-14
 
