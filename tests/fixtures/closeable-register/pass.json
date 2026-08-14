@@ -1,0 +1,8 @@
+{
+  "id": "L1",
+  "lattice_id": "C06",
+  "ships_in": "plugins/ravenclaude-core/hooks/sanitize-webfetch-output.sh",
+  "acceptance_test": "python3 plugins/ravenclaude-core/hooks/sanitize-webfetch-output.py --self-test",
+  "local_known_bad": "tests/fixtures/webfetch/poisoned-body.txt",
+  "user_visible": "WebFetch injection-shaped blocks never reach the model"
+}
