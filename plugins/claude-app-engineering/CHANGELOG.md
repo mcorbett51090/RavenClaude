@@ -2,6 +2,15 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## 0.9.16 — 2026-08-14
+
+### Fixed
+
+- **Sonnet 5 pricing correction (replay of #886 onto current main).** The capability map still
+  said intro $2/$10 through 2026-08-31 then $3/$15. Anthropic made $2/$10 permanent on 2026-08-10.
+  Header re-dated 2026-08-13. Source: Claude on X, 2026-08-10 `[verify-at-use]`.
+  0.9.15 was already used on main for the Gate 206 count-literal drop, so this is 0.9.16.
+
 ## 0.9.14 — 2026-08-12
 
 ### Changed
