@@ -49,12 +49,25 @@ def template_path() -> Path:
     return plugin_root() / "skills" / "session-handoff" / "templates" / _TEMPLATE_NAME
 
 
+def _normalize_handoff_host(raw: str) -> str:
+    val = (raw or "").strip().lower()
+    if val in ("grok", "grok-tui"):
+        return "grok"
+    if val in ("cli", "copilot-cli", "copilot"):
+        return "cli"
+    if val in ("chat", "copilot-chat"):
+        return "chat"
+    return val
+
+
 def detect_host() -> str:
     explicit = os.environ.get("THING_HOST") or os.environ.get("RC_HOST")
     if explicit:
-        return explicit.strip().lower()
+        return _normalize_handoff_host(explicit)
     if os.environ.get("GROK_AGENT") or os.environ.get("GROK_HOOK_EVENT"):
         return "grok"
+    if os.environ.get("COPILOT_CLI") or os.environ.get("GITHUB_COPILOT_CLI"):
+        return "cli"
     if os.environ.get("CLAUDECODE") or os.environ.get("CLAUDE_CODE_ENTRYPOINT"):
         return "claude-code"
     return "unknown"
@@ -151,9 +164,20 @@ def render_skeleton(values: dict) -> str:
     return re.sub(r"\{\{([a-z_]+)\}\}", repl, text)
 
 
-def seed_text(root: Path, task_id: str) -> str:
+def seed_text(root: Path, task_id: str, host: str | None = None) -> str:
     rel = f".ravenclaude/runs/{task_id}/handoff.md"
     abs_path = root / rel
+    resolved = _normalize_handoff_host(host or detect_host())
+    if resolved == "chat":
+        return (
+            f"Read {rel} and .ravenclaude/runs/{task_id}/chat-resume.md in a NEW "
+            f"Copilot Chat session (Cmd+N). Do not /fork. Do not launch grok."
+        )
+    if resolved == "cli":
+        return (
+            f"copilot  # then: Continue task {task_id}. Read {rel}. "
+            f"Do not /fork. Do not launch grok."
+        )
     text = (
         f'grok "Continue task {task_id} in this repo. '
         f"Read {rel} first (then meta.json, decisions.md, summary.md if present). "
@@ -208,7 +232,15 @@ def cmd_write(task_id: str, project_root: Path | None, percent: str, threshold: 
         "recent_events": _recent_events(dest),
     }
     dest.joinpath("handoff.md").write_text(render_skeleton(values), encoding="utf-8")
-    dest.joinpath("handoff-seed.txt").write_text(seed_text(root, task_id) + "\n", encoding="utf-8")
+    host = values.get("host") or detect_host()
+    dest.joinpath("handoff-seed.txt").write_text(seed_text(root, task_id, host) + "\n", encoding="utf-8")
+    if _normalize_handoff_host(str(host)) == "chat":
+        dest.joinpath("chat-resume.md").write_text(
+            f"# Copilot Chat resume — task {task_id}\n\n"
+            f"Read `.ravenclaude/runs/{task_id}/handoff.md` first. "
+            f"New Chat session. Do not `/fork`. Do not launch `grok`.\n",
+            encoding="utf-8",
+        )
     stamp_meta(dest)
     print(str(dest / "handoff.md"))
     return 0
@@ -222,9 +254,12 @@ def main(argv=None) -> int:
     w.add_argument("--project-root")
     w.add_argument("--percent", default="")
     w.add_argument("--threshold", default="70")
+    w.add_argument("--host", default="")
     args = ap.parse_args(argv)
     if args.cmd == "write":
         root = Path(args.project_root) if args.project_root else None
+        if args.host:
+            os.environ["RC_HOST"] = args.host
         return cmd_write(args.task_id, root, args.percent, args.threshold)
     return 2
 
