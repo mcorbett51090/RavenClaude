@@ -3,7 +3,7 @@
 **Last verified:** 2026-08-14  
 **Cells:** `present` / `partial` / `absent` / `N/A`  
 **`[inf]` cannot mark `present` for E/C09 or T/C15.**  
-**RavenClaude row cites HEAD `0.265.0` (`3753cb55`) paths.** F1 #928 and F2 #929 are in flight and do not change HEAD cells.
+**RavenClaude row cites HEAD `0.266.0` (`d054a856`) paths.** F1 #928 and F2 #929 are in flight and do not change HEAD cells. #931 already spent hook slot 33 (`handoff-nudge.sh`).
 
 ## Lattice
 
@@ -13,7 +13,7 @@
 | C02 | Multi-host projection from one tree | `plugins/ravenclaude-core/knowledge/host-support.json`, `scripts/generate-copilot-plugin.py`, `scripts/generate-codex-agents.py` |
 | C03 | Skill progressive disclosure | `plugins/ravenclaude-core/skills/`, `scripts/check-frontmatter.py` |
 | C04 | Agent description / routing budget | `scripts/check-frontmatter.py` (≤300 chars), `plugins/ravenclaude-core/agents/` |
-| C05 | Hooks as policy | `plugins/ravenclaude-core/hooks/hooks.json` (32 commands on HEAD) |
+| C05 | Hooks as policy | `plugins/ravenclaude-core/hooks/hooks.json` (33 commands on HEAD after #931) |
 | C06 | Trust boundary for untrusted tool/web output | `plugins/ravenclaude-core/scripts/sanitize-webfetch-body.py`, `hooks/guard-web-access.sh`, skill `webfetch-hardening`. **No** PostToolUse `updatedToolOutput` on HEAD |
 | C07 | Layout allow-list | `.repo-layout.json`, `plugins/ravenclaude-core/hooks/enforce-layout.sh` |
 | C08 | CI gate meta-test | `scripts/audit-gates.sh` |

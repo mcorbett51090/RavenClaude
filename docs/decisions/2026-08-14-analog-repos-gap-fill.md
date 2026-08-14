@@ -1,7 +1,7 @@
 # Decision record — analog-repos gap fill (survey close-out)
 
 **Date:** 2026-08-14 · **Owner:** Matt · **Method:** `/forge --depth standard` then `/forge keep going` (P5–P10)  
-**Plugin version:** unchanged (`ravenclaude-core` **0.265.0** on `main`). F1/F2 are queued PRs, not this commit.
+**Plugin version:** unchanged by this docs commit. `main` is **0.266.0** (#931 session-context handoff; `RC_BASELINE.hooks` already **33**). F1/F2 are queued PRs. F1 must **not** reuse 0.266.0 or 32→33 — verify-at-implement is **0.267.0** and hooks **33→34**.
 
 ## 0. Status (authoritative)
 

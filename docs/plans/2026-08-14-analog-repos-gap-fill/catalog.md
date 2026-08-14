@@ -45,7 +45,7 @@ This is **evidence** for the C01–C15 matrix, not a fill backlog and not a tour
 | 12 | [anthropics/knowledge-work-plugins](https://github.com/anthropics/knowledge-work-plugins) | marketplace | 2 | 10 | 2 0 0 1 0 1 0 0 | C01 C03 C04 | First-party Cowork/Code catalog |
 | 13 | [snarktank/ralph](https://github.com/snarktank/ralph) | agent-loop | 1 | 8 | 0 1 1 1 0 0 0 0 | C05 C11 | Fresh-context PRD loop |
 
-RavenClaude baseline (matrix only, not a catalog row): closeness **5**, weighted **32** on HEAD `0.265.0` (E=1 T=1 until F1/F2 merge).
+RavenClaude baseline (matrix only, not a catalog row): closeness **5**, weighted **32** on HEAD `0.266.0` (E=1 T=1 until F1/F2 merge; G already 2 with 33 hooks).
 
 ## What 13 is not
 
