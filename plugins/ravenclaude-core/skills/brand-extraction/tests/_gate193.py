@@ -38,7 +38,7 @@ SKILL = HERE.parent
 ROOT = SKILL.parents[3]  # .../skills/brand-extraction -> repo root
 EXTRACT = SKILL / "extract_brand.py"
 REL_EXTRACT = "plugins/ravenclaude-core/skills/brand-extraction/extract_brand.py"
-CHECK = ROOT / "scripts" / "check-design-schema.py"
+CHECK = SKILL.parents[1] / "scripts" / "check-design-schema.py"
 FX = ROOT / "tests" / "fixtures" / "design-schema" / "reference-site"
 
 _TS_RE = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z")

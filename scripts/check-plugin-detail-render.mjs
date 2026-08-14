@@ -57,7 +57,9 @@ const RC_BASELINE = {
   agents: 15,
   skills: 53, // 52 -> 53: skills/design-clone (v0.253.0, design-schema capture+apply)
   //        51 -> 52: skills/github-gold-standard (v0.246.0, the gold-standard scorecard)
-  tools: 19, // 18 -> 19: scripts/compact-anchor.py (v0.245.0, the SessionStart(compact) pointer)
+  tools: 22, // 18 -> 19: scripts/compact-anchor.py (v0.245.0, the SessionStart(compact) pointer)
+  //        19 -> 22: premise-gate.py + classify_claim.py + check-design-schema.py
+  //                  (v0.263.0, PR 3b packaging move)
   scenarios: 4,
   hooks: 32, // 26 -> 28: log-probe.sh + guard-premise.sh (v0.240.0, the premise gate);
   //        28 -> 29: guard-memory-compaction.sh (v0.241.0, the Rule-4 control);

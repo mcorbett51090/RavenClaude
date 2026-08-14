@@ -2,6 +2,17 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.263.0 — 2026-08-14
+
+### Changed
+
+- **Packaging move (Gate 187 `_DEFERRED_PACKAGING` emptied).** `premise-gate.py`,
+  `classify_claim.py`, and `check-design-schema.py` now ship at
+  `plugins/ravenclaude-core/scripts/`. Marketplace-root `scripts/` keeps thin shims so
+  `python3 scripts/premise-gate.py` (audit-gates, existing citations) still works.
+  FORGE / design-clone / brand-extraction operational citations now point at the
+  shipped `${CLAUDE_PLUGIN_ROOT}/scripts/…` (or in-plugin relative) path.
+
 ## 0.262.0 — 2026-08-14
 
 ### Fixed

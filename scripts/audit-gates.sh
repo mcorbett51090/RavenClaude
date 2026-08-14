@@ -4782,14 +4782,14 @@ PY
   gate "plugin-detail render (deleted island record is detected)" must_fail "$rc"
 
   # must_fail (c): alter one committed baseline count (ravenclaude-core's islanded
-  # scripts_index 17 -> 16) → the rc-core baseline + the counts invariant go red.
+  # scripts_index 22 -> 21) → the rc-core baseline + the counts invariant go red.
   PD_BAD_C="$TMP/index-detail-altered-count.html"
   python3 - "$IDX_HTML" "$PD_BAD_C" <<'PY'
 import sys, re, json
 src = open(sys.argv[1]).read()
 m = re.search(r'(<script type="application/json" id="plugin-detail-payload">)([\s\S]*?)(</script>)', src)
 isl = json.loads(m.group(2))
-isl["plugins"]["ravenclaude-core"]["scripts_index"].pop()  # 17 -> 16
+isl["plugins"]["ravenclaude-core"]["scripts_index"].pop()  # 22 -> 21
 new = m.group(1) + json.dumps(isl, ensure_ascii=False, separators=(",", ":")).replace("<", "\\u003c") + m.group(3)
 open(sys.argv[2], "w").write(src[:m.start()] + new + src[m.end():])
 PY

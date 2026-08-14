@@ -2295,14 +2295,14 @@ verdict mis-classification. **A filed issue is a claim like any other, and mine 
 mechanism while right that something was broken.** Read the code before building to the report —
 including your own.
 
-### Still open, stated precisely
+### Closed in v0.263.0 — packaging move
 
-`premise-gate.py` and `classify_claim.py` live at the **marketplace-root** `scripts/` and are cited
-**repo-relative** in `forge-pipeline/SKILL.md`, so they resolve here and **cannot** resolve in a
-consumer repo. Their siblings `forge-route.py` / `forge-worktree.sh` ship inside the plugin and are
-cited `${CLAUDE_PLUGIN_ROOT}/scripts/…` — the pattern is established; these two are the outliers,
-and the plan that specified them named the plugin path. Deferred deliberately: it is a packaging
-move across 6 call sites plus the citations, and it earns its own diff.
+`premise-gate.py`, `classify_claim.py`, and `check-design-schema.py` now ship at
+`plugins/ravenclaude-core/scripts/` and are cited `${CLAUDE_PLUGIN_ROOT}/scripts/…` (or
+in-plugin relative), matching `forge-route.py` / `forge-worktree.sh`. Marketplace-root
+`scripts/` keeps thin shims so `python3 scripts/premise-gate.py` still works for
+audit-gates and any leftover repo-relative citation. Gate 187's `_DEFERRED_PACKAGING`
+is empty — the gate now keeps those three honest.
 
 **Migration:** none — a gate that was not running now runs (it has always passed when invoked
 directly), and the recorder stops recording two shapes as absences they never were.
@@ -2572,4 +2572,4 @@ from the byte-identical floor for exactly this reason.
 resolve-then-connect, so a DNS-rebinding record is a standard TOCTOU residual (closing it fully needs a
 pinned custom connector; size-cap + timeout bound the blast radius, and this is an offline dev tool);
 and `getaddrinfo` is not bounded by the fetch timeout (a low-risk DNS hang). Both are tracked for a
-follow-up, alongside the deferred `check-design-schema.py` packaging move.
+follow-up. The `check-design-schema.py` packaging move landed in v0.263.0.

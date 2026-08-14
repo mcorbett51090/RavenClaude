@@ -129,7 +129,7 @@ through. G1's BLOCK/WARN split keys on *provenance* ("is it sourced?"), and the 
 this pipeline has seen **was** sourced: an in-session `curl` returned 404, and from that true
 OBSERVATION an agent drew the false INFERENCE "the decoder is broken, every visitor is affected" —
 then built 16 files on it. Grounding an observation ≠ grounding an inference drawn from it. Type each
-row with `python3 scripts/classify_claim.py` (grammatical, **upward-only** — an author may raise a row
+row with `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/classify_claim.py` (grammatical, **upward-only** — an author may raise a row
 to `inference`, never lower it) and settle any `inference` a build phase depends on at **G3b**.
 
 → `claims-table.md` (columns: claim · **kind** · tier · source/marker · settling-gate). This is the accuracy
@@ -160,7 +160,7 @@ never A's text inline, and B must draft *its own* plan **before** reading A, or 
 whole design rests on collapses into anchoring.
 
 ### G3b — Premise gate (deterministic — no model judgment)
-`python3 scripts/premise-gate.py --run-dir <run-dir>` after the panels, **before** G6. Fails closed
+`python3 ${CLAUDE_PLUGIN_ROOT}/scripts/premise-gate.py --run-dir <run-dir>` after the panels, **before** G6. Fails closed
 when a phase's `depends_on_claims` names a row that is `kind: inference` **and** unsettled **and** the
 phase's blast radius is over the floor. Three exits, none of which is "block and stop": run the probe
 (`cost ≤ CHEAP_FLOOR`), run the **cheapest partial** (mandatory when the full kill-shot needs prod or

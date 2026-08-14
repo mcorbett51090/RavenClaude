@@ -9,9 +9,9 @@ resolve, because the target does not ship inside the plugin.
 The P1 instance: guard-destructive.sh (a shipped hook) hard-blocks branch
 force-delete and routes the agent to a recovery escape hatch that lived only
 at the marketplace-root `scripts/` and never shipped — so a consumer hit the
-block with no working exit. The constitution's "Still open, stated precisely"
-section records the same class open for premise-gate.py / classify_claim.py,
-cited repo-relative in forge-pipeline/SKILL.md.
+block with no working exit. The same class used to be open for premise-gate.py
+/ classify_claim.py / check-design-schema.py; those now ship in
+plugins/ravenclaude-core/scripts/ (v0.263.0).
 
 Three checks, all keyed on the same invariant — "does
 plugins/ravenclaude-core/(scripts|hooks)/<basename> exist?":
@@ -59,7 +59,7 @@ KINDS = ("scripts", "hooks")
 TEXT_EXT = (".md", ".sh", ".json", ".yaml", ".yml")
 
 # Operational surfaces: files a consumer's AGENT reads and ACTS on. The P1
-# escape-hatch bug and the forge still-open cases both live here. The
+# escape-hatch bug and the (now-closed) forge packaging-move cases both live here. The
 # marketplace-meta docs (CLAUDE.md / CHANGELOG.md / README.md / knowledge /
 # concepts.json / copilot/) are deliberately excluded from Check C: they
 # describe the marketplace's OWN dev/CI loop and cite root-level tooling by
@@ -82,23 +82,12 @@ _MARKETPLACE_DEV_TOOLING = {
     "generate-copilot-plugin.py",   # regenerates the Copilot package
     "review-ledger.py",          # the code-review reopen-ledger CLI
 }
-# GROUP 2 — deliberately deferred packaging move. See
-# plugins/ravenclaude-core/CLAUDE.md § "Still open, stated precisely":
-# premise-gate.py / classify_claim.py live at the marketplace root and are
-# cited repo-relative in forge-pipeline/SKILL.md; the move into the plugin (or
-# repoint to ${CLAUDE_PLUGIN_ROOT}) is deferred because it spans ~6 call sites.
-# REMOVE these two entries when that move lands — the gate then keeps them honest.
-_DEFERRED_PACKAGING = {
-    "premise-gate.py",
-    "classify_claim.py",
-    # check-design-schema.py (v0.253.0) — same class: the design-schema conformance
-    # validator lives at the marketplace root and is cited from design-clone/SKILL.md
-    # as the contract's conformance point. It is a CI/dev validator (apply_schema.py
-    # does NOT invoke it at runtime), so it ships alongside its sibling schemas/*.json
-    # at the root; the move into the plugin (or repoint to ${CLAUDE_PLUGIN_ROOT}) is
-    # deferred with premise-gate.py's. REMOVE when that packaging move lands.
-    "check-design-schema.py",
-}
+# GROUP 2 — packaging-move deferral. Emptied in v0.263.0 when premise-gate.py,
+# classify_claim.py, and check-design-schema.py moved into
+# plugins/ravenclaude-core/scripts/ (marketplace-root scripts/ keeps thin shims).
+# Left as an empty set so a future deferral has a named home; Gate 187 now
+# keeps those three honest like any other shipped basename.
+_DEFERRED_PACKAGING = set()
 IGNORED_BASENAMES = _MARKETPLACE_DEV_TOOLING | _DEFERRED_PACKAGING
 
 # Consumer-repo conventional paths that legitimately never ship (documented per
