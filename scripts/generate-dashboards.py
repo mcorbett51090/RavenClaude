@@ -936,6 +936,20 @@ _PIPELINE_LANES = [
         "tip": "After something happens, these tidy up and double-check the work.",
         "stages": [
             {
+                "id": "sanitize-webfetch-output",
+                "title": "Fetched-page cleaner",
+                "badge": "always",
+                "tip": "Strips instruction-shaped junk from a page the robot just fetched, before it reads it.",
+                "detail": {
+                    "steps": [
+                        "After a web fetch, strips fake system-reminder blocks from the page body.",
+                        "If the cleaner crashes, the original page is left in place (fail-open).",
+                    ],
+                    "trip": "Rewrites the fetched body the robot sees. Never blocks the fetch. Does not touch MCP results.",
+                    "set": "Built in.",
+                },
+            },
+            {
                 "id": "format-on-write",
                 "title": "Auto-tidy",
                 "badge": "always",
@@ -1070,6 +1084,7 @@ _PIPELINE_STAGE_HOOKS = {
     "route-decision-review": "route-decision-review.sh",
     "guard-web-access": "guard-web-access.sh",
     "claude-orchestrator": None,  # behavioral: spawn-team reads `orchestrator:` — no hook
+    "sanitize-webfetch-output": "sanitize-webfetch-output.sh",
     "format-on-write": "format-on-write.sh",
     "guard-recursive-spawn": "guard-recursive-spawn.sh",
     "claim-grounding-lint": "claim-grounding-lint.sh",
