@@ -76,6 +76,11 @@
             "type": "command",
             "command": "${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/mark-web-domain-seen.sh",
             "comment": "Marketplace-dev mirror of the plugin's PostToolUse WebFetch entry. Records the per-session 'seen' marker for a whitelisted domain ONLY after the fetch actually proceeded (PostToolUse doesn't fire on a blocked call) \u2014 the consent-ordering complement to guard-web-access.sh so a denied first fetch re-prompts instead of silently auto-allowing. Fail-safe; never blocks."
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/sanitize-webfetch-output.sh",
+            "comment": "Marketplace-dev mirror of the plugin's PostToolUse WebFetch sanitizer (v0.266.0). Rewrites the fetched body via updatedToolOutput. Fail-open; WebFetch only."
           }
         ]
       },
