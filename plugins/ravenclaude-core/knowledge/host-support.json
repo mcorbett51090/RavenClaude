@@ -52,7 +52,14 @@
       "copilot": {
         "supported": true,
         "how": "repo-level .github/hooks, wired by `ravenclaude install`, envelope translated by hooks/copilot-hook-adapter.sh",
-        "caveat": "PLUGIN-level hooks never fire (github/copilot-cli#2540), which is why they ship repo-level. Tool-name VALUES are lowercase and are normalised in the adapter (f55039ec) — before that fix the tribunal and web guard were silent no-ops.",
+        "caveat": "PLUGIN-level hooks never fire (github/copilot-cli#2540), which is why they ship repo-level. Tool-name VALUES are lowercase and are normalised in the adapter (f55039ec) — before that fix the tribunal and web guard were silent no-ops. CLI projection ≠ Chat Preview: VS Code Copilot Chat is a distinct product (see knowledge/copilot-chat-customization.md). Chat Preview may load .github/hooks when org policy / chat.hooks.enabled allows; matchers are ignored; live fire on a given machine is [unverified] until probed (CL-19). CONTENTION is two-writers-one-tree, not Chat context isolation.",
+        "surfaces": {
+          "chat": {
+            "supported": false,
+            "basis": "docs-verified only — Preview hooks documented 2026-08-14; live PreToolUse fire not confirmed on the owner's machine",
+            "note": "Do not flip supported to true without a Phase 0 payload dump."
+          }
+        },
         "basis": "verified + docs-verified (https://docs.github.com/en/copilot/concepts/agents/hooks)"
       },
       "codex": {

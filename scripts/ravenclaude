@@ -1038,6 +1038,8 @@ PY2
     printf '  alias rc='\''"%s/scripts/ravenclaude" update && copilot --plugin-dir "%s"'\''\n\n' "$MARKET" "$COPILOT_PKG"
     ok "install complete. Launch with:  copilot --plugin-dir $COPILOT_PKG"
     note "Updates from now on: just run 'ravenclaude update' (or 'rc'). No re-install, ever."
+    note "VS Code Copilot Chat is a separate product — CLI hooks are not Chat coverage."
+    note "One window per worktree; never add a sibling folder. See knowledge/copilot-chat-customization.md."
   fi
 }
 

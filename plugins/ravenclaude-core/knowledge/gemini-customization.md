@@ -1,5 +1,7 @@
 # Gemini CLI — the customization surface, and why the lane is cheap
 
+> **Worktree bound.** `GEMINI.md` is loaded from `~/.gemini/`, then workspace directories and parents, then **just-in-time** when a tool accesses a path. A Read of a sibling worktree can pull that tree's `GEMINI.md` into context. FOREIGN-TREE does **not** deny Read by default. Do **not** turn on `experimental.worktrees`.
+
 **Status:** `[docs-verified 2026-07-29]` against <https://geminicli.com/docs/hooks/>,
 <https://geminicli.com/docs/hooks/reference/> and <https://geminicli.com/docs/cli/gemini-md/>.
 Every platform claim carries its provenance; repo claims are `[verified]`.

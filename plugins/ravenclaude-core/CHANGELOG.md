@@ -2,6 +2,34 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.268.0 — 2026-08-14
+
+### Added
+
+- **FOREIGN-TREE** clause in `hooks/worktree-guard.sh` plus `worktree_bound: off|warn|block`
+  (default **block** when absent). A Write/Edit/MultiEdit or mutating `git -C` /
+  `GIT_WORK_TREE` whose target is a **sibling worktree** is denied. Independent of
+  `worktree_guard` (still default warn for two-writers-one-tree). Escape:
+  `RC_WORKTREE_BOUND_ACK=1`. T8–T16 + Gate 140 F3/P4/MF2.
+- **Lane stamp + one-window operator default.** `rcwt new` writes
+  `.ravenclaude/lane.md`, opens `code -n <worktree>`, and pins
+  `chat.useCustomizationsInParentRepositories: false`. Templates under
+  `templates/worktree-lane/`.
+- **`knowledge/copilot-chat-customization.md`** — VS Code Copilot Chat is a
+  distinct product from Copilot CLI.
+
+### Changed
+
+- `worktree_guard: off` no longer short-circuits FOREIGN-TREE (T13).
+- Isolate-parallel best-practice gained a dated host table (Chat ≠ CLI).
+- Codex consumers must `/hooks` after this hook-script change (hash-trust).
+
+### Not claimed
+
+- VS Code Copilot Chat is **not** protected. Preview hook fire and sibling
+  built-in Write stay `[unverified]` until owner probes (CL-19, CL-3).
+  Do not read this bump as Chat enforcement.
+
 ## 0.267.0 — 2026-08-14
 
 ### Added

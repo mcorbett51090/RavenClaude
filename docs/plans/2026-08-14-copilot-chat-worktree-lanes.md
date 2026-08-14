@@ -7,7 +7,7 @@
 **Owner folder:** `plugins/ravenclaude-core` (hooks, templates, knowledge, best-practices, `bin/rcwt`, skills) plus installer / dashboard generators only where a new knob or honesty sentence must round-trip
 **Ship shape:** markdown + shell + JSON. No new plugin. No new skill or agent (G8 regen not required). Sleipnir stays a label.
 **Landing:** PR `feat/ravenclaude-core-worktree-bound` (plugin + installer-adjacent). Not docs-straight-to-main.
-**Semver:** `ravenclaude-core` `0.255.0` → `0.256.0` in both `plugins/ravenclaude-core/.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json` (catalog entry at marketplace.json L279). CHANGELOG exists — write a new `0.256.0` top entry. Do not invent missing `0.254`/`0.255` backfill.
+**Semver:** `ravenclaude-core` `0.266.0` → `0.268.0` (0.266.0 landed as session-handoff #931; 0.267.0 is claimed by open PR #928 webfetch — stay out of that lane). CHANGELOG exists — write a new `0.268.0` top entry. Do not invent missing backfill.
 
 Claims authority: `claims-table.md` CL-1..CL-20. Inferences CL-3 and CL-19 are **owner-gated** (G3b 2026-08-14). They are not disconfirmed; they are not product facts. No phase in the `0.256.0` PR may claim "Chat is protected" or ship a Chat write-deny as the reason for the bump.
 

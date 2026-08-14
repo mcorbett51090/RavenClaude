@@ -12,6 +12,9 @@
 .ravenclaude/run-config.json
 .ravenclaude/self-heal-setup.md
 
+# Per-worktree lane identity (written by rcwt / write-lane-stamp.sh). Not constitution.
+.ravenclaude/lane.md
+
 # Local dashboard server logs
 *.log
 

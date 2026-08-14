@@ -1,5 +1,7 @@
 # Codex CLI — the customization surface, and why it is NOT another Copilot
 
+> **Worktree bound.** Codex CLI `workspace-write` sandbox is the write floor (cwd + tmp; asks before editing outside the workspace). `worktree-guard.sh` FOREIGN-TREE is extra defense against a sibling worktree path. After any byte change to that hook, Codex consumers must `/hooks` (hash-trust). ChatGPT desktop **managed worktrees** are a different product and are not this marketplace's Codex CLI lane.
+
 **Status:** `[docs-verified 2026-07-28]` against <https://learn.chatgpt.com/docs/hooks>
 (reached via a 308 from `developers.openai.com/codex/hooks`). Every platform claim below carries
 its provenance. Repo claims are `[verified]` with `file:line`.
