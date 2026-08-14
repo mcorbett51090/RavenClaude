@@ -6,7 +6,7 @@ Cross-tool agent-instruction file. This is the canonical version of the marketpl
 
 | Tool | Reads `AGENTS.md` automatically? | Basis |
 |---|---|---|
-| **GitHub Copilot CLI** | **Yes** | `[docs-verified]` — see [`plugins/ravenclaude-core/knowledge/copilot-cli-customization.md`](plugins/ravenclaude-core/knowledge/copilot-cli-customization.md) §1, which cites the instruction-file precedence. |
+| **GitHub Copilot CLI** | **Yes** | `[docs-verified]` — see [`plugins/ravenclaude-core/knowledge/copilot-cli-customization.md`](plugins/ravenclaude-core/knowledge/copilot-cli-customization.md) §1, which cites the instruction-file precedence. VS Code **Copilot Chat** is a distinct product: Preview hooks *may* load `.github/hooks`; do not claim CLI coverage as Chat coverage. See [`plugins/ravenclaude-core/knowledge/copilot-chat-customization.md`](plugins/ravenclaude-core/knowledge/copilot-chat-customization.md). |
 | **OpenAI Codex CLI** | **Yes** | `[docs-verified]` — Codex reads `AGENTS.md` from the repo root; see [`plugins/ravenclaude-core/skills/external-agent-onboarding/SKILL.md`](plugins/ravenclaude-core/skills/external-agent-onboarding/SKILL.md). |
 | **Claude Code** | Indirectly | `CLAUDE.md` `@`-imports this file. |
 | **Aider** | **NO — this was the false claim** | `[docs-verified 2026-07-28]` — [aider.chat/docs/usage/conventions.html](https://aider.chat/docs/usage/conventions.html) documents **`CONVENTIONS.md`**, loaded only on explicit opt-in (`aider --read CONVENTIONS.md` or `read:` in `.aider.conf.yml`). `AGENTS.md` is not mentioned on that page at all. An Aider user gets **nothing** from this file unless they opt in by hand. |

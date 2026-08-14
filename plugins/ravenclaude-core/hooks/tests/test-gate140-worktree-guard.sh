@@ -7,10 +7,12 @@
 #     F1  block + a live sibling session (contention, latecomer) + a mutating op
 #     F2  block + anchor checkout (worktrees present, HEAD on the anchor branch)
 #         + a mutating op
+#     F3  worktree_bound=block + Write absolute path under a sibling worktree
 #   MUST-PASS  (the guard ALLOWS → exit 0):
 #     P1  a lone checkout (no contention, not anchor) + a mutating op  [solo silence]
 #     P2  block + contention + a READ op (git status — never a mutation)
 #     P3  block + contention + a mutating op + RC_WORKTREE_GUARD_ACK=1  [escape hatch]
+#     P4  two-worktree + Write under THIS tree (sibling exists) → exit 0
 #   MF  teeth half — neuter the mutating-op classifier and assert F1's deny
 #       disappears, proving the exit-2 is produced by the mutating detector and
 #       is not a vacuous pass.
@@ -175,6 +177,35 @@ fi
 rm -rf "$SB"
 
 echo
+echo "── F3: MUST-FAIL — bound=block + Write to sibling worktree -> exit 2 ──────"
+SB="$(mktemp -d)"; export RC_WORKTREE_GUARD_HOME="$SB/guard"
+R="$SB/repo"; mk_repo "$R" warn
+git -C "$R" worktree add -q -b sibf3 "$SB/sibling"
+printf 'worktree_guard: warn\nworktree_bound: block\n' > "$R/.ravenclaude/comfort-posture.yaml"
+SIB_WRITE="$(jq -cn --arg fp "$SB/sibling/x.txt" '{file_path:$fp, content:"x"}')"
+RC="$(run_check "$R" solo Write "$SIB_WRITE")"
+if [ "$RC" = "2" ]; then
+  pass "F3: bound=block + Write to sibling -> exit 2 DENY (FOREIGN-TREE)"
+else
+  fail "F3: expected exit 2 DENY, got '$RC'"
+fi
+rm -rf "$SB"
+
+echo
+echo "── P4: MUST-PASS — two-worktree + Write under THIS tree -> exit 0 ─────────"
+SB="$(mktemp -d)"; export RC_WORKTREE_GUARD_HOME="$SB/guard"
+R="$SB/repo"; mk_repo "$R" warn
+git -C "$R" worktree add -q -b sibp4 "$SB/sibling"
+HERE_WRITE="$(jq -cn --arg fp "$R/here.txt" '{file_path:$fp, content:"x"}')"
+RC="$(run_check "$R" solo Write "$HERE_WRITE")"
+if [ "$RC" = "0" ]; then
+  pass "P4: Write under this tree with a sibling present -> exit 0"
+else
+  fail "P4: expected exit 0 allow, got '$RC'"
+fi
+rm -rf "$SB"
+
+echo
 echo "── MF: teeth — neuter the mutating classifier, F1's deny must disappear ───"
 # Neutralize the check subcommand's mutating branch so nothing is classified as a
 # mutation; F1's exact scenario must then NO LONGER deny (exit 0), proving the
@@ -202,6 +233,34 @@ if [ "$RC" = "0" ]; then
   pass "MF: with the mutating classifier neutered, F1's deny disappears (exit 0) — the exit-2 has teeth"
 else
   fail "MF: the neutered hook still returned '$RC' (expected 0) — the must-fail patch missed its target"
+fi
+
+echo
+echo "── MF2: teeth — neuter FOREIGN-TREE, F3's sibling-Write deny must disappear ─"
+# Proves the hole: without _wg_bound_should_deny, a sibling Write is classified
+# non-mutating by _wg_is_mutating and is allowed even in worktree_guard=block.
+PATCH_TMP="$(mktemp -d)"; PATCH_HOOK="$PATCH_TMP/worktree-guard-noforeign.sh"
+python3 - "$HOOK" "$PATCH_HOOK" <<'PY'
+import sys
+src = open(sys.argv[1]).read()
+needle = 'if [ "$bound" != "off" ] && _wg_bound_should_deny; then'
+repl = 'if false; then  # MF2: FOREIGN-TREE classification neutered'
+assert needle in src, "MF2 anchor drift: the '_wg_bound_should_deny' call site was not found"
+open(sys.argv[2], "w").write(src.replace(needle, repl, 1))
+PY
+chmod +x "$PATCH_HOOK"
+SB="$(mktemp -d)"; export RC_WORKTREE_GUARD_HOME="$SB/guard"
+R="$SB/repo"; mk_repo "$R" warn
+git -C "$R" worktree add -q -b sibmf2 "$SB/sibling"
+printf 'worktree_guard: warn\nworktree_bound: block\n' > "$R/.ravenclaude/comfort-posture.yaml"
+SIB_WRITE="$(jq -cn --arg fp "$SB/sibling/x.txt" '{file_path:$fp, content:"x"}')"
+mk_payload "$R" solo Write "$SIB_WRITE" | bash "$PATCH_HOOK" check >/dev/null 2>&1
+RC=$?
+rm -rf "$SB" "$PATCH_TMP"
+if [ "$RC" = "0" ]; then
+  pass "MF2: with FOREIGN-TREE neutered, sibling Write is allowed (the hole) — F3 has teeth"
+else
+  fail "MF2: the neutered hook still returned '$RC' (expected 0) — the must-fail patch missed its target"
 fi
 
 echo

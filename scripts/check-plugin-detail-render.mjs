@@ -72,7 +72,8 @@ const RC_BASELINE = {
   //        30 -> 31: enforce-git-protocol.sh (v0.246.0, the in-loop git-protocol hook)
   //        31 -> 32: enforce-portability.sh (v0.255.0, the in-loop macOS-portability lint)
   rules: 5,
-  templates: 23,
+  templates: 24, // 23 -> 24: templates/worktree-lane/ (v0.268.0, one-window lane pack)
+  //        (top-level scan only — the three files inside that dir do not increment)
   practices: 38,
   trees: 4,
 };

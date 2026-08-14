@@ -18,6 +18,16 @@
 #   T6  submodule-shaped fixture (nested independent toplevel) -> independent bucket
 #       (distinct PATH_KEY from the superproject).
 #   T7  `worktree_guard: off` -> register writes NOTHING (no registry dir created).
+#   T8  two-worktree; Write absolute path under sibling B:
+#       worktree_bound=block -> exit 2; warn -> 0 + FOREIGN; off -> 0, no stderr.
+#   T9  two-worktree; Write under A (this tree) -> exit 0.
+#   T10 Write to /tmp/rc-wt-probe -> exit 0 (not a listed worktree).
+#   T11 Bash `git -C <B> commit` from cwd A -> exit 2 when bound=block.
+#   T12 RC_WORKTREE_BOUND_ACK=1 + Write to B -> exit 0.
+#   T13 worktree_guard: off + worktree_bound: block + Write to B -> still exit 2.
+#   T14 lone checkout (no other worktrees) + Write under tree -> exit 0.
+#   T15 GIT_WORK_TREE=<B> git add -A from cwd A -> exit 2.
+#   T16 git status (no -C) from A -> exit 0.
 #   MF  must-fail half — strip the latecomer-only guard in _wg_contention and assert
 #       the incumbent now ALSO fires, proving T3's incumbent-silence has teeth.
 #
@@ -218,6 +228,115 @@ if [ ! -e "$SB/guard" ]; then
 else
   fail "T7: off mode created registry state: $(find "$SB/guard" -type f 2>/dev/null | tr '\n' ' ')"
 fi
+rm -rf "$SB"
+
+echo
+echo "── T8: FOREIGN-TREE Write to sibling — block/warn/off ────────────────────"
+SB="$(mktemp -d)"; export RC_WORKTREE_GUARD_HOME="$SB/guard"
+R="$SB/repo"; mk_repo "$R" warn
+git -C "$R" worktree add -q -b sibt8 "$SB/sibling"
+printf 'worktree_guard: warn\nworktree_bound: block\n' > "$R/.ravenclaude/comfort-posture.yaml"
+T8_ERR="$(mk_payload "$R" s Write "$(jq -cn --arg fp "$SB/sibling/x.txt" '{file_path:$fp, content:"x"}')" | bash "$HOOK" check 2>&1 1>/dev/null)"
+T8_RC=$?
+if [ "$T8_RC" -eq 2 ] && printf '%s' "$T8_ERR" | grep -q 'FOREIGN'; then
+  pass "T8: bound=block + Write to sibling -> exit 2 DENY"
+else
+  fail "T8: block expected exit 2 + FOREIGN (rc=$T8_RC err='$T8_ERR')"
+fi
+printf 'worktree_guard: warn\nworktree_bound: warn\n' > "$R/.ravenclaude/comfort-posture.yaml"
+T8W_ERR="$(mk_payload "$R" s Write "$(jq -cn --arg fp "$SB/sibling/x.txt" '{file_path:$fp, content:"x"}')" | bash "$HOOK" check 2>&1 1>/dev/null)"
+T8W_RC=$?
+if [ "$T8W_RC" -eq 0 ] && printf '%s' "$T8W_ERR" | grep -qi 'FOREIGN'; then
+  pass "T8: bound=warn + Write to sibling -> exit 0 + FOREIGN nudge"
+else
+  fail "T8: warn expected exit 0 + FOREIGN (rc=$T8W_RC err='$T8W_ERR')"
+fi
+printf 'worktree_guard: warn\nworktree_bound: off\n' > "$R/.ravenclaude/comfort-posture.yaml"
+T8O_ERR="$(mk_payload "$R" s Write "$(jq -cn --arg fp "$SB/sibling/x.txt" '{file_path:$fp, content:"x"}')" | bash "$HOOK" check 2>&1 1>/dev/null)"
+T8O_RC=$?
+if [ "$T8O_RC" -eq 0 ] && [ -z "$T8O_ERR" ]; then
+  pass "T8: bound=off + Write to sibling -> exit 0, no stderr"
+else
+  fail "T8: off expected silent allow (rc=$T8O_RC err='$T8O_ERR')"
+fi
+rm -rf "$SB"
+
+echo
+echo "── T9: Write under this tree (sibling exists) -> allow ───────────────────"
+SB="$(mktemp -d)"; export RC_WORKTREE_GUARD_HOME="$SB/guard"
+R="$SB/repo"; mk_repo "$R" warn
+git -C "$R" worktree add -q -b sibt9 "$SB/sibling"
+mk_payload "$R" s Write "$(jq -cn --arg fp "$R/here.txt" '{file_path:$fp, content:"x"}')" | bash "$HOOK" check >/dev/null 2>&1
+[ "$?" -eq 0 ] && pass "T9: Write under A with sibling present -> exit 0" || fail "T9: Write under A was denied"
+rm -rf "$SB"
+
+echo
+echo "── T10: Write to /tmp is not a listed worktree -> allow ──────────────────"
+SB="$(mktemp -d)"; export RC_WORKTREE_GUARD_HOME="$SB/guard"
+R="$SB/repo"; mk_repo "$R" warn
+git -C "$R" worktree add -q -b sibt10 "$SB/sibling"
+mk_payload "$R" s Write "$(jq -cn --arg fp "/tmp/rc-wt-probe" '{file_path:$fp, content:"x"}')" | bash "$HOOK" check >/dev/null 2>&1
+[ "$?" -eq 0 ] && pass "T10: Write to /tmp/rc-wt-probe -> exit 0" || fail "T10: /tmp Write was denied"
+rm -rf "$SB"
+
+echo
+echo "── T11: git -C <sibling> commit -> FOREIGN deny ──────────────────────────"
+SB="$(mktemp -d)"; export RC_WORKTREE_GUARD_HOME="$SB/guard"
+R="$SB/repo"; mk_repo "$R" warn
+git -C "$R" worktree add -q -b sibt11 "$SB/sibling"
+T11_RC=0
+mk_payload "$R" s Bash "$(jq -cn --arg c "git -C $SB/sibling commit -m x" '{command:$c}')" | bash "$HOOK" check >/dev/null 2>&1
+T11_RC=$?
+[ "$T11_RC" -eq 2 ] && pass "T11: git -C <B> commit -> exit 2" || fail "T11: expected exit 2, got $T11_RC"
+rm -rf "$SB"
+
+echo
+echo "── T12: RC_WORKTREE_BOUND_ACK=1 escapes sibling Write ────────────────────"
+SB="$(mktemp -d)"; export RC_WORKTREE_GUARD_HOME="$SB/guard"
+R="$SB/repo"; mk_repo "$R" warn
+git -C "$R" worktree add -q -b sibt12 "$SB/sibling"
+mk_payload "$R" s Write "$(jq -cn --arg fp "$SB/sibling/x.txt" '{file_path:$fp, content:"x"}')" | RC_WORKTREE_BOUND_ACK=1 bash "$HOOK" check >/dev/null 2>&1
+[ "$?" -eq 0 ] && pass "T12: ACK + Write to sibling -> exit 0" || fail "T12: ACK did not escape"
+rm -rf "$SB"
+
+echo
+echo "── T13: worktree_guard=off does not disable FOREIGN-TREE ─────────────────"
+SB="$(mktemp -d)"; export RC_WORKTREE_GUARD_HOME="$SB/guard"
+R="$SB/repo"; mk_repo "$R" off
+git -C "$R" worktree add -q -b sibt13 "$SB/sibling"
+printf 'worktree_guard: off\nworktree_bound: block\n' > "$R/.ravenclaude/comfort-posture.yaml"
+T13_RC=0
+mk_payload "$R" s Write "$(jq -cn --arg fp "$SB/sibling/x.txt" '{file_path:$fp, content:"x"}')" | bash "$HOOK" check >/dev/null 2>&1
+T13_RC=$?
+[ "$T13_RC" -eq 2 ] && pass "T13: guard=off + bound=block + sibling Write -> exit 2" || fail "T13: expected exit 2, got $T13_RC"
+rm -rf "$SB"
+
+echo
+echo "── T14: lone checkout Write under tree -> FOREIGN cannot fire ────────────"
+SB="$(mktemp -d)"; export RC_WORKTREE_GUARD_HOME="$SB/guard"
+R="$SB/repo"; mk_repo "$R" warn
+mk_payload "$R" s Write "$(jq -cn --arg fp "$R/solo.txt" '{file_path:$fp, content:"x"}')" | bash "$HOOK" check >/dev/null 2>&1
+[ "$?" -eq 0 ] && pass "T14: lone checkout Write under tree -> exit 0" || fail "T14: lone Write was denied"
+rm -rf "$SB"
+
+echo
+echo "── T15: GIT_WORK_TREE=<B> git add -> FOREIGN deny ────────────────────────"
+SB="$(mktemp -d)"; export RC_WORKTREE_GUARD_HOME="$SB/guard"
+R="$SB/repo"; mk_repo "$R" warn
+git -C "$R" worktree add -q -b sibt15 "$SB/sibling"
+T15_RC=0
+mk_payload "$R" s Bash "$(jq -cn --arg c "GIT_WORK_TREE=$SB/sibling git add -A" '{command:$c}')" | bash "$HOOK" check >/dev/null 2>&1
+T15_RC=$?
+[ "$T15_RC" -eq 2 ] && pass "T15: GIT_WORK_TREE=<B> git add -A -> exit 2" || fail "T15: expected exit 2, got $T15_RC"
+rm -rf "$SB"
+
+echo
+echo "── T16: git status (no -C) from A -> allow ───────────────────────────────"
+SB="$(mktemp -d)"; export RC_WORKTREE_GUARD_HOME="$SB/guard"
+R="$SB/repo"; mk_repo "$R" warn
+git -C "$R" worktree add -q -b sibt16 "$SB/sibling"
+mk_payload "$R" s Bash '{"command":"git status"}' | bash "$HOOK" check >/dev/null 2>&1
+[ "$?" -eq 0 ] && pass "T16: git status (no -C) -> exit 0" || fail "T16: git status was denied"
 rm -rf "$SB"
 
 echo

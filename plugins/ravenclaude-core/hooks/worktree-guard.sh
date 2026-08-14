@@ -10,27 +10,35 @@
 #   meaningful within one checkout.
 #   ⚑ The state root is $HOME/.ravenclaude/worktree-guard/, NOT .ravenclaude/runs/ —
 #   deliberately, since it must be visible ACROSS checkouts to count siblings.
-# rc-state-escape: the comfort-posture file — 'worktree_guard: off' in
-#   .ravenclaude/comfort-posture.yaml; the default posture is warn, not deny.
+# rc-state-escape: comfort-posture — 'worktree_guard: off' silences CONTENTION /
+#   ANCHOR (default warn). 'worktree_bound: off' silences FOREIGN-TREE (default
+#   block). The two knobs are independent; both-off is the only full short-circuit.
 #
 # worktree-guard.sh — portable worktree-hygiene guard (the CORE detection engine).
 #
-# Fires on exactly TWO locally-detectable conditions, per session, per working
-# tree (everything else is silent — a lone checkout in a fresh container satisfies
-# neither, which is why "all repos, not opt-in" is safe):
+# Fires on THREE locally-detectable conditions, per session, per working
+# tree (a lone checkout with no sibling worktrees satisfies none, which is why
+# "all repos, not opt-in" is safe):
 #   (a) CONTENTION — another *live* Claude session is already operating in this
 #       same working tree (same realpath(toplevel), same host). Only the LATECOMER
-#       fires; the incumbent stays silent.
+#       fires; the incumbent stays silent. Knob: worktree_guard (default warn).
 #   (b) ANCHOR-WORK — this checkout is the repo's primary/anchor, worktrees already
-#       exist, and HEAD is on the anchor branch.
+#       exist, and HEAD is on the anchor branch. Knob: worktree_guard (default warn).
+#   (c) FOREIGN-TREE — a Write/Edit/MultiEdit or a mutating git -C / GIT_WORK_TREE
+#       / --work-tree whose target resolves under a *different* `git worktree list`
+#       path than this session's realpath(toplevel). Sibling-worktree only — not a
+#       general jail. Knob: worktree_bound (default block). Escape: RC_WORKTREE_BOUND_ACK=1.
 #
 # Subcommands (selected by $1):
 #   register       SessionStart. Records this session's own file, GC-sweeps the
 #                  bucket, emits a banner (warn/block, when flagged). ALWAYS exit 0
 #                  (a SessionStart hook can never block).
-#   check          PreToolUse. warn -> stderr nudge (throttled 1/session/clause),
-#                  exit 0. block -> exit 2 DENY only on a MUTATING op (never a read
-#                  / git status / rcwt). Escape hatch: RC_WORKTREE_GUARD_ACK=1.
+#   check          PreToolUse. FOREIGN-TREE (worktree_bound) is evaluated first and
+#                  independently of CONTENTION/ANCHOR. bound=block -> exit 2 DENY
+#                  on a foreign mutating op (sibling Write / git -C <sibling>).
+#                  bound=warn -> stderr nudge, exit 0. Escape: RC_WORKTREE_BOUND_ACK=1.
+#                  Then worktree_guard warn/block as before (CONTENTION/ANCHOR only).
+#                  Reads / git status / rcwt / sibling Read are never denied.
 #   status --json  Read-only JSON snapshot for the dashboard / tests.
 #
 # Keying: TOPLEVEL=git rev-parse --show-toplevel; PATH_KEY=sha256(realpath TOPLEVEL).
@@ -44,9 +52,11 @@
 # not either: PID catches idle-but-alive; TTL bounds PID-reuse. Touch throttled to
 # <=1/60s. GC is folded into `register` (never depends on Stop firing).
 #
-# Knob: `worktree_guard: off|warn|block` in <repo>/.ravenclaude/comfort-posture.yaml.
-# DEFAULT warn even if the key OR the file is absent (T6 — all repos, not opt-in).
-# `off` short-circuits BEFORE any git shell-out (a fast no-op for non-adopters).
+# Knobs (independent):
+#   worktree_guard: off|warn|block  DEFAULT warn if absent (CONTENTION/ANCHOR).
+#   worktree_bound: off|warn|block  DEFAULT block if absent (FOREIGN-TREE).
+# Both-off short-circuits BEFORE any git shell-out. Either-on still shells out
+# git so the live clause can fire (T13: guard=off + bound=block still denies).
 #
 # Portability: set -uo pipefail (NOT -e — a guard must not die mid-check). macOS
 # bash 3.2 / BSD-safe (no declare -A / mapfile / grep -P / timeout / sed -i /
@@ -81,13 +91,17 @@ fi
 [ -z "$cwd" ] && cwd="${CLAUDE_PROJECT_DIR:-$PWD}"
 posture="${cwd}/.ravenclaude/comfort-posture.yaml"
 
-# ── KNOB: worktree_guard: off|warn|block (default warn). Read with the
-#    runaway-brake sed/grep idiom. `off` short-circuits BEFORE any git shell-out. ─
+# ── KNOBS (independent). sed/grep idiom, no PyYAML.
+#    worktree_guard: off|warn|block  DEFAULT warn  (CONTENTION / ANCHOR)
+#    worktree_bound: off|warn|block  DEFAULT block (FOREIGN-TREE)
+#    Both-off short-circuits BEFORE any git shell-out. status still reports. ─
 mode="$(sed -n 's/^[[:space:]]*worktree_guard:[[:space:]]*\([A-Za-z]\{1,\}\).*/\1/p' "$posture" 2>/dev/null | head -1)"
 [ -z "$mode" ] && mode="warn"
 case "$mode" in off|warn|block) ;; *) mode="warn" ;; esac
-if [ "$mode" = "off" ]; then
-  # Fast no-op: nothing written, no git invoked. status still reports (below).
+bound="$(sed -n 's/^[[:space:]]*worktree_bound:[[:space:]]*\([A-Za-z]\{1,\}\).*/\1/p' "$posture" 2>/dev/null | head -1)"
+[ -z "$bound" ] && bound="block"
+case "$bound" in off|warn|block) ;; *) bound="block" ;; esac
+if [ "$mode" = "off" ] && [ "$bound" = "off" ]; then
   [ "$SUBCMD" = "status" ] || exit 0
 fi
 
@@ -270,7 +284,11 @@ tn=""; cmd=""; fp=""
 if [ -n "$payload" ] && command -v jq >/dev/null 2>&1; then
   tn="$(printf '%s' "$payload" | jq -r '.tool_name // ""' 2>/dev/null)"
   [ "$tn" = "Bash" ] && cmd="$(printf '%s' "$payload" | jq -r '.tool_input.command // ""' 2>/dev/null)"
-  case "$tn" in Write|Edit|MultiEdit) fp="$(printf '%s' "$payload" | jq -r '.tool_input.file_path // ""' 2>/dev/null)" ;; esac
+  case "$tn" in
+    Write|Edit|MultiEdit)
+      fp="$(printf '%s' "$payload" | jq -r '.tool_input.file_path // .tool_input.path // ""' 2>/dev/null)"
+      ;;
+  esac
 fi
 
 _wg_path_under_tree() {
@@ -319,6 +337,143 @@ _wg_is_mutating() {
   return 1
 }
 
+# Sibling worktree paths (realpath), one per line, excluding REAL_TOP.
+_wg_sibling_list() {
+  local out line p rp
+  out="$(wg_git worktree list --porcelain)"
+  [ -n "$out" ] || return 0
+  printf '%s\n' "$out" | while IFS= read -r line; do
+    case "$line" in
+      "worktree "*)
+        p="${line#worktree }"
+        rp="$(_wg_realpath "$p")"
+        [ -n "$rp" ] || rp="$p"
+        [ "$rp" = "$REAL_TOP" ] && continue
+        printf '%s\n' "$rp"
+        ;;
+    esac
+  done
+}
+
+_wg_sibling_count() {
+  local list n
+  list="$(_wg_sibling_list)"
+  [ -n "$list" ] || { printf '0'; return 0; }
+  n="$(printf '%s\n' "$list" | grep -c .)"
+  case "$n" in ''|*[!0-9]*) n=0 ;; esac
+  printf '%s' "$n"
+}
+
+# Resolve a path for FOREIGN-TREE. An existing directory (git -C <worktree>)
+# is itself. A file or a not-yet-created path walks to the nearest existing
+# ancestor (same walk as _wg_path_under_tree).
+_wg_resolve_existing() {
+  local p="$1" d parent rp
+  [ -n "$p" ] || return 1
+  case "$p" in /*) d="$p" ;; *) d="$cwd/$p" ;; esac
+  if [ ! -d "$d" ]; then
+    d="$(dirname "$d")"
+    while [ -n "$d" ] && [ ! -d "$d" ]; do
+      parent="$(dirname "$d")"
+      [ "$parent" = "$d" ] && break
+      d="$parent"
+    done
+  fi
+  rp="$( cd "$d" 2>/dev/null && pwd -P )" || return 1
+  [ -n "$rp" ] || return 1
+  printf '%s' "$rp"
+}
+
+# 0 if $1 resolves under a sibling worktree (not REAL_TOP, not /tmp, not elsewhere).
+# Here-doc (not a pipe) so `return` is this function, not a subshell.
+_wg_is_foreign() {
+  local target="$1" rp sibs s
+  [ -n "$target" ] || return 1
+  rp="$(_wg_resolve_existing "$target")" || return 1
+  sibs="$(_wg_sibling_list)"
+  [ -n "$sibs" ] || return 1
+  while IFS= read -r s; do
+    [ -n "$s" ] || continue
+    [ "$rp" = "$s" ] && return 0
+    case "$rp/" in "$s"/*) return 0 ;; esac
+  done <<EOF
+$sibs
+EOF
+  return 1
+}
+
+# Candidate dirs from a Bash command: -C, --work-tree, --git-dir, GIT_WORK_TREE, GIT_DIR, cd.
+_wg_bash_targets() {
+  local tok prev=""
+  [ -n "$cmd" ] || return 0
+  # shellcheck disable=SC2086
+  for tok in $cmd; do
+    tok="${tok#\"}"; tok="${tok%\"}"
+    tok="${tok#\'}"; tok="${tok%\'}"
+    case "$tok" in
+      GIT_WORK_TREE=*) printf '%s\n' "${tok#GIT_WORK_TREE=}"; prev=""; continue ;;
+      GIT_DIR=*)       printf '%s\n' "${tok#GIT_DIR=}"; prev=""; continue ;;
+      --work-tree=*)   printf '%s\n' "${tok#--work-tree=}"; prev=""; continue ;;
+      --git-dir=*)     printf '%s\n' "${tok#--git-dir=}"; prev=""; continue ;;
+      -C|--work-tree|--git-dir) prev="$tok"; continue ;;
+      cd) prev="cd"; continue ;;
+    esac
+    case "$prev" in
+      -C|--work-tree|--git-dir|cd) printf '%s\n' "$tok"; prev="" ;;
+      *) prev="" ;;
+    esac
+  done
+}
+
+_wg_bash_is_mutating() {
+  [ -n "$cmd" ] || return 1
+  # Must look like a git invocation. `git -C <dir> commit` does NOT contain
+  # the substring "git commit", so match the subcommand as its own token too.
+  case " $cmd " in
+    *" git "*|*"git "*|*"git") : ;;
+    *) return 1 ;;
+  esac
+  case " $cmd " in
+    *"git commit"*|*"git add"*|*"git checkout"*|*"git switch"*|*"git merge"*|\
+    *"git rebase"*|*"git cherry-pick"*|*"git revert"*|*"git stash"*|\
+    *"git rm "*|*"git mv "*|\
+    *"git reset"*|*"git restore"*|*"git clean"*|\
+    *" commit "*|*" add "*|*" checkout "*|*" switch "*|*" merge "*|\
+    *" rebase "*|*" cherry-pick "*|*" revert "*|*" stash "*|\
+    *" rm "*|*" mv "*|*" reset "*|*" restore "*|*" clean "*) return 0 ;;
+  esac
+  return 1
+}
+
+# FOREIGN-TREE deny class (inverts the _wg_is_mutating hole): sibling Write, or
+# mutating git whose -C / GIT_WORK_TREE / --work-tree target is a sibling.
+# Unknown tool + no resolvable path -> allow (fail-open). Sibling Read -> allow.
+_wg_bound_should_deny() {
+  local t
+  case "$tn" in
+    Write|Edit|MultiEdit)
+      [ -n "$fp" ] || return 1
+      _wg_is_foreign "$fp"
+      return $?
+      ;;
+    Bash)
+      _wg_bash_is_mutating || return 1
+      for t in $(_wg_bash_targets); do
+        [ -n "$t" ] || continue
+        _wg_is_foreign "$t" && return 0
+      done
+      return 1
+      ;;
+    *) return 1 ;;
+  esac
+}
+
+_wg_lane_task() {
+  local f="$REAL_TOP/.ravenclaude/lane.md"
+  [ -f "$f" ] || return 0
+  sed -n 's/^[[:space:]]*task:[[:space:]]*//p' "$f" 2>/dev/null | head -1
+}
+
 # nudge throttle: 1/session/clause. Returns 0 if already nudged (skip), else marks
 # and returns 1 (proceed to nudge).
 _wg_already_nudged() {
@@ -333,38 +488,77 @@ _wg_already_nudged() {
 case "$SUBCMD" in
 
   register)
-    # SessionStart: cannot block. GC the bucket, write our own fresh record,
-    # evaluate flags, emit a banner (warn/block only, when flagged). Always exit 0.
-    mkdir -p "$SESS_DIR" 2>/dev/null || exit 0
-    _wg_gc
-    _wg_write_record "$SELF_FILE" "$(date +%s 2>/dev/null || printf '0')" || true
+    # SessionStart: cannot block. Registry write is gated on worktree_guard != off
+    # (T7: guard=off writes nothing). Lane pin is gated on worktree_bound != off
+    # and sibling count > 0 — no registry mkdir (so T7 still holds when bound=block).
+    ctx=""
+    if [ "$mode" != "off" ]; then
+      mkdir -p "$SESS_DIR" 2>/dev/null || true
+      _wg_gc
+      _wg_write_record "$SELF_FILE" "$(date +%s 2>/dev/null || printf '0')" || true
 
-    contention=1; anchor=1
-    _wg_contention && contention=0
-    _wg_is_anchor  && anchor=0
-    if [ "$contention" -eq 0 ] || [ "$anchor" -eq 0 ]; then
-      reasons=""
-      [ "$contention" -eq 0 ] && reasons="Another live session is already working in this working tree (${REAL_TOP}); you joined later."
-      if [ "$anchor" -eq 0 ]; then
-        ab="$(_wg_anchor_branch)"
-        reasons="${reasons:+$reasons }You are on the anchor branch '${ab}' in the primary checkout while worktrees exist."
+      contention=1; anchor=1
+      _wg_contention && contention=0
+      _wg_is_anchor  && anchor=0
+      if [ "$contention" -eq 0 ] || [ "$anchor" -eq 0 ]; then
+        reasons=""
+        [ "$contention" -eq 0 ] && reasons="Another live session is already working in this working tree (${REAL_TOP}); you joined later."
+        if [ "$anchor" -eq 0 ]; then
+          ab="$(_wg_anchor_branch)"
+          reasons="${reasons:+$reasons }You are on the anchor branch '${ab}' in the primary checkout while worktrees exist."
+        fi
+        ctx="worktree-guard: ${reasons} Prefer a dedicated git worktree to avoid collisions. (mode=${mode}; set 'worktree_guard: off' in .ravenclaude/comfort-posture.yaml to silence"
+        [ "$mode" = "block" ] && ctx="${ctx}; RC_WORKTREE_GUARD_ACK=1 overrides a mutating-op block"
+        ctx="${ctx}.)"
+        rule="anchor-branch"; [ "$contention" -eq 0 ] && rule="contention-latecomer"
+        _emit_hook_event "worktree-guard.sh" "warn" "SessionStart" "$REAL_TOP" "$rule" "0"
       fi
-      banner="worktree-guard: ${reasons} Prefer a dedicated git worktree to avoid collisions. (mode=${mode}; set 'worktree_guard: off' in .ravenclaude/comfort-posture.yaml to silence"
-      [ "$mode" = "block" ] && banner="${banner}; RC_WORKTREE_GUARD_ACK=1 overrides a mutating-op block"
-      banner="${banner}.)"
-      if command -v jq >/dev/null 2>&1; then
-        jq -cn --arg c "$banner" \
-          '{hookSpecificOutput:{hookEventName:"SessionStart",additionalContext:$c}}' 2>/dev/null || true
+    fi
+
+    if [ "$bound" != "off" ]; then
+      sibs_n="$(_wg_sibling_count)"
+      case "$sibs_n" in ''|*[!0-9]*) sibs_n=0 ;; esac
+      if [ "$sibs_n" -ge 1 ]; then
+        host="$(hostname 2>/dev/null || printf 'unknown')"
+        br="$(wg_git rev-parse --abbrev-ref HEAD)"
+        [ -n "$br" ] || br=""
+        lane="LANE: toplevel=${REAL_TOP} branch=${br} host=${host} siblings=${sibs_n}"
+        task="$(_wg_lane_task)"
+        [ -n "$task" ] && lane="${lane} task=${task}"
+        ctx="${ctx:+$ctx }$lane"
       fi
-      rule="anchor-branch"; [ "$contention" -eq 0 ] && rule="contention-latecomer"
-      _emit_hook_event "worktree-guard.sh" "warn" "SessionStart" "$REAL_TOP" "$rule" "0"
+    fi
+
+    if [ -n "$ctx" ] && command -v jq >/dev/null 2>&1; then
+      jq -cn --arg c "$ctx" \
+        '{hookSpecificOutput:{hookEventName:"SessionStart",additionalContext:$c}}' 2>/dev/null || true
     fi
     exit 0
     ;;
 
   check)
-    # PreToolUse. warn -> throttled stderr nudge, exit 0. block -> exit 2 DENY only
-    # on a MUTATING op (never a read / git status / rcwt); RC_WORKTREE_GUARD_ACK=1 escapes.
+    # PreToolUse. FOREIGN-TREE first (independent of CONTENTION/ANCHOR), then
+    # the existing two-writers / anchor clauses if worktree_guard != off.
+    if [ "$bound" != "off" ] && _wg_bound_should_deny; then
+      if [ "${RC_WORKTREE_BOUND_ACK:-}" = "1" ]; then
+        : # explicit override — fall through to CONTENTION/ANCHOR
+      elif [ "$bound" = "block" ]; then
+        printf '%s\n' "worktree-guard: DENIED — FOREIGN-TREE: the target resolves under a sibling worktree, not ${REAL_TOP}. Stay in this tree, or set RC_WORKTREE_BOUND_ACK=1 to override, or set 'worktree_bound: warn' (or 'off') in .ravenclaude/comfort-posture.yaml." >&2
+        _emit_hook_event "worktree-guard.sh" "deny" "${tn:-Bash}" "${cmd:-$fp}" "foreign-tree" "2"
+        exit 2
+      else
+        # warn: throttled stderr nudge, never blocks this clause.
+        if ! _wg_already_nudged "foreign"; then
+          printf '%s\n' "worktree-guard: FOREIGN — the target resolves under a sibling worktree, not ${REAL_TOP}. Stay in this tree. (worktree_bound: off to silence)" >&2
+          _emit_hook_event "worktree-guard.sh" "warn" "${tn:-Bash}" "${cmd:-$fp}" "foreign-tree" "0"
+        fi
+      fi
+    fi
+
+    if [ "$mode" = "off" ]; then
+      exit 0                     # CONTENTION/ANCHOR silenced; FOREIGN-TREE already handled
+    fi
+
     mkdir -p "$SESS_DIR" 2>/dev/null || exit 0
     _wg_heartbeat
 
@@ -434,17 +628,24 @@ case "$SUBCMD" in
     fi
     contention_flag=false; [ "$live_count" -ge 2 ] && contention_flag=true
 
+    sibs_n="$(_wg_sibling_count)"
+    case "$sibs_n" in ''|*[!0-9]*) sibs_n=0 ;; esac
+    foreign_flag=false
+    if [ -n "$fp" ] && _wg_is_foreign "$fp"; then foreign_flag=true; fi
+
     if command -v jq >/dev/null 2>&1; then
       jq -cn \
         --arg pk "$PATH_KEY" --arg top "$REAL_TOP" --arg mode "$mode" \
+        --arg bound "$bound" \
         --argjson anchor "$is_anchor" --arg ab "$anchor_branch" --arg cur "$current_branch" \
         --argjson live "$live_count" --argjson contention "$contention_flag" \
+        --argjson foreign "$foreign_flag" --argjson siblings "$sibs_n" \
         --argjson sessions "$sessions_json" \
-        '{schema_version:1,path_key:$pk,toplevel:$top,mode:$mode,is_anchor:$anchor,anchor_branch:$ab,current_branch:$cur,live_sessions:$live,contention:$contention,sessions:$sessions}' \
+        '{schema_version:1,path_key:$pk,toplevel:$top,mode:$mode,worktree_bound:$bound,is_anchor:$anchor,anchor_branch:$ab,current_branch:$cur,live_sessions:$live,contention:$contention,foreign:$foreign,siblings:$siblings,sessions:$sessions}' \
         2>/dev/null || printf '{"schema_version":1,"path_key":"%s","is_anchor":%s,"live_sessions":%s}\n' "$PATH_KEY" "$is_anchor" "$live_count"
     else
-      printf '{"schema_version":1,"path_key":"%s","toplevel":"%s","mode":"%s","is_anchor":%s,"anchor_branch":"%s","current_branch":"%s","live_sessions":%s,"contention":%s,"sessions":[]}\n' \
-        "$PATH_KEY" "$REAL_TOP" "$mode" "$is_anchor" "$anchor_branch" "$current_branch" "$live_count" "$contention_flag"
+      printf '{"schema_version":1,"path_key":"%s","toplevel":"%s","mode":"%s","worktree_bound":"%s","is_anchor":%s,"anchor_branch":"%s","current_branch":"%s","live_sessions":%s,"contention":%s,"foreign":%s,"siblings":%s,"sessions":[]}\n' \
+        "$PATH_KEY" "$REAL_TOP" "$mode" "$bound" "$is_anchor" "$anchor_branch" "$current_branch" "$live_count" "$contention_flag" "$foreign_flag" "$sibs_n"
     fi
     exit 0
     ;;

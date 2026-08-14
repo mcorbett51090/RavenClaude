@@ -1108,8 +1108,9 @@ _PIPELINE_EXCLUDED_HOOKS = {
     "stream-session-close.sh": "work-stream tracking (Stop); observability, not a guardrail",
     "stream-prompt-attribute.sh": "work-stream tracking (UserPromptSubmit); observability, not a guardrail",
     "agent-dispatch-evaluator.sh": "audit-only shadow (SubagentStart), opt-in; never denies",
-    "worktree-guard.sh": "worktree_guard knob is surfaced Settings-only (DOM-budget-exempt panel) "
-    "+ its live status as the Activity-tab Sleipnir badges; deliberately NOT a Pipeline stage card",
+    "worktree-guard.sh": "worktree_guard + worktree_bound knobs are surfaced Settings-only "
+    "(DOM-budget-exempt panel) + live status as the Activity-tab Sleipnir badges; "
+    "FOREIGN-TREE is the third clause (sibling Write / git -C); deliberately NOT a Pipeline stage card",
     "thing-denial-kb-sync.sh": "Muninn denial-KB materialiser (Stop); learns from tribunal denials, not itself a guardrail",
     "thing-denial-kb-recall.sh": "Muninn denial-KB recall (SessionStart); surfaces known denials + fixes, not a guardrail",
     "dashboard-autostart.sh": "opt-in convenience launcher (SessionStart) for the dashboard itself; "
@@ -8115,6 +8116,13 @@ _JS = r"""
    * user picks off or block, preserving "absent ⇒ warn". */
   const WORKTREE_GUARD_VALUES = ["off", "warn", "block"];
   const WORKTREE_GUARD_DEFAULT = "warn";
+  /* FOREIGN-TREE bound (read by hooks/worktree-guard.sh). Default `block`
+   * (leaving the tree is never a preference), so emitYaml writes it only when
+   * the user picks off or warn, preserving "absent ⇒ block". Independent of
+   * worktree_guard. Settings-only — no new DOM toggle (Gate 132 slack is zero;
+   * dashboard_autostart is the state-slot-without-toggle pattern). */
+  const WORKTREE_BOUND_VALUES = ["off", "warn", "block"];
+  const WORKTREE_BOUND_DEFAULT = "block";
   /* Dashboard autostart (read by hooks/dashboard-autostart.sh). OPT-IN — default
    * `off`, so emitYaml writes it only when the user picks serve or open,
    * preserving "absent ⇒ off". Wired here for the same reason worktree_guard is:
@@ -8208,6 +8216,7 @@ _JS = r"""
     parallelism: Object.assign({}, PARALLELISM_DEFAULT),
     decision_review: DECISION_REVIEW_DEFAULT,
     worktree_guard: WORKTREE_GUARD_DEFAULT,
+    worktree_bound: WORKTREE_BOUND_DEFAULT,
     dashboard_autostart: DASHBOARD_AUTOSTART_DEFAULT,
     orchestrator: ORCHESTRATOR_DEFAULT,
     orchestrator_scope: ORCHESTRATOR_SCOPE_DEFAULT,
@@ -8620,6 +8629,9 @@ _JS = r"""
     if (WORKTREE_GUARD_VALUES.includes(src.worktree_guard)) {
       state.worktree_guard = src.worktree_guard; touched = true;
     }
+    if (WORKTREE_BOUND_VALUES.includes(src.worktree_bound)) {
+      state.worktree_bound = src.worktree_bound; touched = true;
+    }
     if (DASHBOARD_AUTOSTART_VALUES.includes(src.dashboard_autostart)) {
       state.dashboard_autostart = src.dashboard_autostart; touched = true;
     }
@@ -8778,6 +8790,13 @@ _JS = r"""
       lines.push("");
     }
 
+    if (WORKTREE_BOUND_VALUES.includes(state.worktree_bound)
+        && state.worktree_bound !== WORKTREE_BOUND_DEFAULT) {
+      lines.push("# Sibling-worktree bound — deny a Write / git -C into another listed worktree (off | warn | block; default block).");
+      lines.push(`worktree_bound: ${state.worktree_bound}`);
+      lines.push("");
+    }
+
     if (DASHBOARD_AUTOSTART_VALUES.includes(state.dashboard_autostart)
         && state.dashboard_autostart !== DASHBOARD_AUTOSTART_DEFAULT) {
       lines.push("# Bring this dashboard up at session start (off | serve | open; default off).");
@@ -8896,6 +8915,7 @@ _JS = r"""
         parallelism: state.parallelism,
         decision_review: state.decision_review,
         worktree_guard: state.worktree_guard,
+        worktree_bound: state.worktree_bound,
         dashboard_autostart: state.dashboard_autostart,
         orchestrator: state.orchestrator,
         orchestrator_scope: state.orchestrator_scope,

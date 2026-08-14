@@ -19,21 +19,27 @@ schema_version: 5
 # Pause for design / architectural decisions before implementing them?
 design_checkins: true
 
-# Worktree-hygiene guard (worktree_guard: off | warn | block). Fires on exactly two
-# locally-detectable conditions, per session, per working tree: CONTENTION (another
-# live Claude Code session is already operating in this same checkout) or ANCHOR-WORK
+# Worktree-hygiene guard (worktree_guard: off | warn | block). Fires on CONTENTION
+# (another live session is already operating in this same checkout) or ANCHOR-WORK
 # (this is the repo's primary checkout, worktrees already exist, and HEAD is on the
-# anchor branch). Everything else is silent — a lone checkout in a fresh Codespace/web
-# container satisfies neither by construction, which is why `warn` is a safe default
-# for every repo (not opt-in) and never nags a solo session.
-#   off   — fast no-op; nothing is written and git is never shelled out.
+# anchor branch). A lone checkout in a fresh Codespace/web container satisfies
+# neither, which is why `warn` is a safe default and never nags a solo session.
+#   off   — silences CONTENTION/ANCHOR only (does not disable FOREIGN-TREE).
 #   warn  — (default) a throttled SessionStart + PreToolUse nudge; never blocks.
-#   block — additionally DENIES a mutating op (git commit/checkout/merge/rebase/…, or
-#           a Write/Edit under the tree) on contention/anchor-work; reads / git status
-#           / rcwt are never blocked. Escape hatch: RC_WORKTREE_GUARD_ACK=1.
-# Wired in hooks.json (SessionStart `register` + PreToolUse `check`) — no schema bump
-# (behavioral flag, like design_checkins / model_fallback above). Default warn.
+#   block — additionally DENIES a mutating op on contention/anchor-work; reads /
+#           git status / rcwt are never blocked. Escape: RC_WORKTREE_GUARD_ACK=1.
+# Wired in hooks.json (SessionStart `register` + PreToolUse `check`). Default warn.
 worktree_guard: warn
+
+# Sibling-worktree bound (worktree_bound: off | warn | block). FOREIGN-TREE: a
+# Write/Edit/MultiEdit or mutating git -C / GIT_WORK_TREE whose target is another
+# listed worktree. Independent of worktree_guard. Leaving your tree is never a
+# preference, so the default is block even when the key is absent.
+#   off   — silences FOREIGN-TREE only.
+#   warn  — stderr nudge, never blocks.
+#   block — (default) DENY exit 2. Escape: RC_WORKTREE_BOUND_ACK=1.
+# Not a Chat-is-protected claim — Chat Preview hook fire is unverified.
+worktree_bound: block
 
 # Bring the comfort-posture dashboard up at session start (dashboard_autostart:
 # off | serve | open). Read by hooks/dashboard-autostart.sh. LEFT UNSET ON PURPOSE —

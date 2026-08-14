@@ -46,7 +46,19 @@ git worktree remove ../repo-feat-auth                # clean up when the branch 
 - Give every concurrently-writing Claude Code instance its **own** worktree (or its own clone) on its **own** branch — the working tree and index are what must not be shared, and a worktree isolates exactly those while sharing history. Reach for native `--worktree`/`-w` or `claude agents` first; the manual `git worktree` commands are the same mechanism when you need finer control.
 - Reconcile the parallel work through **merge / PR**, the same way you'd integrate two humans' branches — that's the integration point, not the filesystem.
 - Use the bundled [`new-worktree`](../skills/new-worktree/SKILL.md) / [`cleanup-worktrees`](../skills/cleanup-worktrees/SKILL.md) skills so the create/branch/remove lifecycle is consistent (and prune stale worktrees — an abandoned one holds a branch ref and disk; Claude Code also auto-removes its own session worktrees past `cleanupPeriodDays` once they have no uncommitted/untracked/unpushed work).
-- In user-facing dispatch prose, the cross-branch traversal is "**Sleipnir**" — the same convention the sub-agent reads use.
+- In user-facing dispatch prose, the cross-branch traversal is "**Sleipnir**" — the same convention the sub-agent reads use. Sleipnir remains a **label**, not a component.
+
+### Operator layout (all supported hosts) — dated 2026-08-14
+
+CONTENTION (two live writers, one tree) is **not** Chat context isolation. FOREIGN-TREE is sibling Write / `git -C` on hooked hosts. Shared `~/.{claude,copilot,codex,gemini}` cannot be enforced.
+
+| Surface | Write bound | Context isolation | Git | Cannot enforce |
+|---|---|---|---|---|
+| **Claude Code** | Native worktree isolation blocks writes/cwd/git-redirects into the **main** checkout. FOREIGN-TREE additionally blocks **sibling-B**. | One session per worktree. Shared approvals on main `.claude/settings.local.json` are policy bleed, not file-write bleed. | Native + FOREIGN-TREE. | `~/.claude/` memory. |
+| **Copilot CLI** | Projected `.github/hooks` `worktree-guard` FOREIGN-TREE (after `/plugin marketplace update`). | SessionStart LANE pin when hooks fire. | FOREIGN-TREE on `git -C`. | Shared `~/.copilot`. |
+| **VS Code Copilot Chat** | **Not claimed.** Preview hooks *may* load `.github/hooks` `[unverified]` (CL-19). Sandbox does not cover built-in file tools. Sibling built-in Write `[unverified]` (CL-3). | **Operator layout:** `code -n` one folder per window; never multi-root two worktrees; new Chat session; never hop Agents-window sessions. | Same as write — not claimed until probed. | Agent Host session reuse. Open-editor bleed inside one window. |
+| **Codex CLI** | `workspace-write` sandbox is the write floor. FOREIGN-TREE is extra. After a hook-script change, `/hooks` (hash-trust). | cwd walk for `AGENTS.md`. | FOREIGN-TREE. | ChatGPT desktop managed worktrees are **not** this lane. |
+| **Gemini CLI** | Projected hooks + FOREIGN-TREE. Do **not** set `experimental.worktrees`. | JIT-on-touch: a **Read** of a sibling path can pull that tree's `GEMINI.md`. FOREIGN-TREE does **not** deny Read by default. | FOREIGN-TREE. | `~/.gemini/`. |
 
 **Don't:**
 

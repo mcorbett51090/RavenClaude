@@ -14,14 +14,15 @@ description: Remove finished agent worktrees, prune their branches, and surface 
    - **Open PR** — branch has an open PR. Don't remove.
    - **Dirty** — uncommitted changes. Surface and stop; the Team Lead must decide.
    - **Stale** — last commit > 14 days old, no PR. Flag for the user, don't remove without confirmation.
-3. **Remove the safe ones.**
+3. **Close the lane first.** Close the VS Code window / end the Chat session for that worktree before `git worktree remove`, or the next session can reuse an Agents-window conversation from the removed tree.
+4. **Remove the safe ones.**
    ```bash
    git worktree remove .claude/worktrees/<role>-<slug>
    git branch -d agent/<role>/<slug>     # only if fully merged
    ```
    Use `-d` (safe), never `-D` (force) without explicit user approval.
-4. **Prune metadata.** `git worktree prune`.
-5. **Report.** What was removed, what was kept, what needs attention.
+5. **Prune metadata.** `git worktree prune`.
+6. **Report.** What was removed, what was kept, what needs attention.
 
 ## Output format
 ```

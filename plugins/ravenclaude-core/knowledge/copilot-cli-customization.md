@@ -1,5 +1,7 @@
 # GitHub Copilot CLI — the customization surface
 
+> **Chat is a separate product.** VS Code Copilot Chat (the editor Agent / Chat panel) is documented in [`copilot-chat-customization.md`](copilot-chat-customization.md). This file is CLI-only. Projecting `.github/hooks` via `generate-copilot-hooks.py` is **not** Chat coverage. Chat Preview *may* load those same files when enabled; live fire is `[unverified]` until probed. Do not write "Copilot is protected" and mean Chat.
+
 **Last reviewed:** 2026-06-09 · **Confidence:** high (verified against the GitHub Copilot CLI customization docs — custom instructions, custom agents, agent skills, hooks, and the using-the-CLI reference; URLs in § Sources, retrieved 2026-06-09). GA Feb 2026 ([changelog](https://github.blog/changelog/2026-02-25-github-copilot-cli-is-now-generally-available/)).
 **Owner:** the Copilot CLI bridge in [`../CLAUDE.md`](../CLAUDE.md) § "GitHub Copilot CLI bridge". This file is the **canonical, complete** reference; the bridge prose is the RavenClaude-specific wiring on top of it.
 
