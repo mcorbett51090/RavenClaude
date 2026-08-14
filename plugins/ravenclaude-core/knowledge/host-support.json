@@ -1,37 +1,44 @@
 {
   "_note": "MH-21 — the single source of truth for WHICH RAVENCLAUDE COMPONENTS ACTUALLY WORK ON WHICH HOST. Created 2026-07-28 by the multi-host audit. Before this file, every surface that needed the answer either hardcoded it (generate-dashboards.py's _HOOK_CAPABLE_HOSTS) or, more often, silently assumed 'everywhere' — which is how the Pipeline tab came to imply guardrails on hosts that run none, and how Heimdall came to report an unwatched perimeter as clean. A per-component annotation would have been ~20 copies of the same few facts, each free to rot independently; ONE map keeps them honest together.",
-  "_contract": "`supported` is a claim about whether the component RUNS on that host today, in this repo, as wired by `scripts/ravenclaude`. It is NOT a claim about whether the host is capable in principle — a host can speak a contract perfectly and still be unsupported here because nothing wires it, in which case `supported` is false and `blocked_by` says exactly that. Codex WAS this file's worked example of that distinction until 2026-07-28, when `--host codex` shipped and flipped its hooks + skills cells to true; Cursor is the current example. When a host gains an install path, update this file; do not add a second list somewhere else.",
+  "_contract": "`supported` is a claim about whether the component RUNS on that host today, in this repo, as wired by `scripts/ravenclaude`. It is NOT a claim about whether the host is capable in principle — a host can speak a contract perfectly and still be unsupported here because nothing wires it, in which case `supported` is false and `blocked_by` says exactly that. Codex WAS this file's worked example of that distinction until 2026-07-28, when `--host codex` shipped and flipped its hooks + skills cells to true; Cursor is the current example. When a host gains an install path, update this file; do not add a second list somewhere else. `activation_gate` is the per-host silent-disarm class (`hash_trust` | `version_floor` | `none`), consumed by the shared `_rc_rearm_notice` helper at install/update/status (PR 10 / Gate 207). Codex is hash_trust (MH-17); Copilot is version_floor (MH-23). A host whose canary cannot be confirmed to fire ships as unsupported, not silently assumed working.",
   "_provenance": "verified = confirmed in-repo this session by a visible tool call. docs-verified = read from the host's own documentation this session, url given. inferred = neither; MUST be verified before anything is built on it.",
   "schema_version": 1,
-  "updated": "2026-07-29",
+  "updated": "2026-08-14",
   "hosts": {
     "claude-code": {
       "label": "Claude Code",
-      "native": true
+      "native": true,
+      "activation_gate": "none"
     },
     "copilot": {
       "label": "GitHub Copilot CLI",
-      "native": false
+      "native": false,
+      "activation_gate": "version_floor"
     },
     "codex": {
       "label": "OpenAI Codex CLI",
-      "native": false
+      "native": false,
+      "activation_gate": "hash_trust"
     },
     "cursor": {
       "label": "Cursor",
-      "native": false
+      "native": false,
+      "activation_gate": "none"
     },
     "gemini": {
       "label": "Gemini CLI",
-      "native": false
+      "native": false,
+      "activation_gate": "none"
     },
     "aider": {
       "label": "Aider",
-      "native": false
+      "native": false,
+      "activation_gate": "none"
     },
     "windsurf": {
       "label": "Windsurf / Devin Desktop",
-      "native": false
+      "native": false,
+      "activation_gate": "none"
     }
   },
   "components": {

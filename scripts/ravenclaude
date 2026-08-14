@@ -43,6 +43,29 @@ note() { printf '  %s\n' "$*"; }
 ok()   { printf '\033[32m✓\033[0m %s\n' "$*"; }
 warn() { printf '\033[33m!\033[0m %s\n' "$*" >&2; }
 
+# Shared host-activation helpers (PR 10 / Gate 207). Sourced, not executed.
+# `_rc_rearm_notice` is the one abstraction for Codex hash-trust + Copilot
+# version-floor; `_rc_host_canary` is the planted-marker round-trip at the
+# end of each --host install. Missing files degrade to no-ops so an install
+# never dies because a helper is absent.
+# shellcheck source=/dev/null
+[ -f "$CORE/hooks/_rearm-notice.sh" ] && . "$CORE/hooks/_rearm-notice.sh"
+# shellcheck source=/dev/null
+[ -f "$CORE/hooks/_host-canary.sh" ] && . "$CORE/hooks/_host-canary.sh"
+
+# _rc_finish_host_install HOST PROJECT — canary (advisory) then re-arm notice.
+# D4: a canary miss WARNS and the install continues. Gate 207 is the teeth.
+_rc_finish_host_install() {
+  local host="$1" project="$2"
+  # D4: a canary miss WARNS inside _rc_host_canary and the install continues.
+  if command -v _rc_host_canary >/dev/null 2>&1; then
+    _rc_host_canary "$host" "$project" || true
+  fi
+  if command -v _rc_rearm_notice >/dev/null 2>&1; then
+    _rc_rearm_notice "$host" "install" "$project"
+  fi
+}
+
 # detect_host — which agentic CLI is this install for? (multi-host audit MH-07)
 #
 # BACKWARD-COMPATIBILITY INVARIANT: when the answer is at all ambiguous this
@@ -411,16 +434,17 @@ PY
 # off the trust check to make trust convenient is governance theatre, and the
 # onboarding skill lists that anti-pattern by name.
 codex_retrust_notice() {
+  # Thin wrapper — the notice now lives in `_rc_rearm_notice` (activation_gate:
+  # hash_trust). Kept so any lingering call site still emits the same text.
+  if command -v _rc_rearm_notice >/dev/null 2>&1; then
+    _rc_rearm_notice "codex" "install" "$1"
+    return 0
+  fi
   local project="$1"
   local n; n="$(codex_hook_count "$project/.codex/hooks.json")"
   printf '\n'
   warn "Codex trusts hooks BY HASH — re-trust after every update."
   note "Run /hooks inside Codex and trust the $n RavenClaude hook(s)."
-  note "Until you do, they are SKIPPED — and no banner will say so, because the"
-  note "SessionStart banner is itself a hook. Re-run /hooks after every 'git pull'."
-  note "For teams: Codex's requirements.toml managed-hooks path auto-trusts by"
-  note "policy and is the only configuration where these survive an update"
-  note "unattended. Do NOT reach for --dangerously-bypass-hook-trust."
 }
 
 # Install the one-word `rc` launcher into ~/.bashrc — as a FUNCTION, not an alias.
@@ -537,14 +561,14 @@ cmd_update() {
   esac
   ok "up to date. In your Copilot session run '/skills reload' (or relaunch) to apply."
 
-  # MH-17 — the update path is exactly where the Codex silent-disarm happens, so
-  # this is exactly where it has to be said. A pull that changed any hook byte just
-  # invalidated that hook's trust hash; Codex will SKIP it until re-trusted, and
-  # the banner that would have told you is itself a skipped hook.
-  #
-  # Gated on the project actually being Codex-wired so a Copilot-only user never
-  # sees a Codex instruction (the cross-host noise this audit is full of).
-  if [ -f "$project/.codex/hooks.json" ]; then
+  # P18 — the update path is exactly where silent-disarm happens (Codex hash-trust
+  # after a pull that changed a hook byte; Copilot version-floor if the CLI was
+  # downgraded). One shared helper, keyed off activation_gate, so a new host
+  # cannot ship a third copy of this notice. Only wired hosts are addressed.
+  if command -v _rc_rearm_wired_hosts >/dev/null 2>&1; then
+    _rc_rearm_wired_hosts "$project" "update"
+  elif [ -f "$project/.codex/hooks.json" ]; then
+    # Fallback if the helper failed to source: keep the Codex notice alive.
     codex_retrust_notice "$project"
   fi
 }
@@ -773,6 +797,7 @@ PY2
     note "  enforced while silently no-opping. CI is the backstop; see the skip list"
     note "  in .gemini/settings.json (_ravenclaude_not_wired)."
     wire_dashboard_launchers "$project"
+    _rc_finish_host_install "$host" "$project"
     if [ -z "${RC_FROM_SETUP:-}" ]; then
       printf '\n'
       ok "install complete. Launch: gemini (reads .gemini/settings.json from this dir)."
@@ -804,6 +829,7 @@ PY2
     note "If .aider.conf.yml already existed it was OVERWRITTEN — merge by hand if"
     note "  you had other keys in it."
     wire_dashboard_launchers "$project"
+    _rc_finish_host_install "$host" "$project"
     if [ -z "${RC_FROM_SETUP:-}" ]; then
       printf '\n'
       ok "install complete. Launch: aider (it reads .aider.conf.yml from this dir)."
@@ -815,6 +841,7 @@ PY2
   if [ "$host" = "cursor" ]; then
     wire_cursor "$project"
     wire_dashboard_launchers "$project"
+    _rc_finish_host_install "$host" "$project"
     if [ -z "${RC_FROM_SETUP:-}" ]; then
       printf '\n'
       ok "install complete. Open this project in Cursor as usual."
@@ -917,7 +944,7 @@ PY2
     fi
 
     wire_dashboard_launchers "$project"
-    codex_retrust_notice "$project"
+    _rc_finish_host_install "$host" "$project"
     if [ -z "${RC_FROM_SETUP:-}" ]; then
       printf '\n'
       ok "install complete. Launch Codex from $project as usual."
@@ -1005,6 +1032,7 @@ PY2
 
   # 4. The launch alias — one command that updates then launches Copilot live.
   #    Suppressed when invoked by `setup`, which writes the alias to ~/.bashrc itself.
+  _rc_finish_host_install "$host" "$project"
   if [ -z "${RC_FROM_SETUP:-}" ]; then
     printf '\nAdd this to your shell rc (~/.bashrc / ~/.zshrc) for one-command use:\n\n'
     printf '  alias rc='\''"%s/scripts/ravenclaude" update && copilot --plugin-dir "%s"'\''\n\n' "$MARKET" "$COPILOT_PKG"
@@ -1105,6 +1133,12 @@ cmd_status() {
     note "agent-ci: $_aci_n github-protocol/agent-approval workflow(s) in .github/workflows"
   else
     note "agent-ci: not scaffolded — run 'ravenclaude init-agent-ci' to add the agent-in-CI protocol (opt-in, host-agnostic)"
+  fi
+
+  # P18 — one-line re-arm reminder for every wired host whose activation_gate
+  # is not `none`. Shared helper; do not add a third per-host copy here.
+  if command -v _rc_rearm_wired_hosts >/dev/null 2>&1; then
+    _rc_rearm_wired_hosts "$project" "status"
   fi
 }
 
