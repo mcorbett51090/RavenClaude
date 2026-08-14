@@ -1116,6 +1116,10 @@ _PIPELINE_EXCLUDED_HOOKS = {
     "enforce-git-protocol.sh: it enforces an authoring CONVENTION (portability) rather than the "
     "safety floor the drawn PreToolUse cards represent, and its knob is surfaced with the other "
     "posture settings — so it is deliberately NOT a Pipeline stage card",
+    "handoff-nudge.sh": "Stop advisory context-hot quality-reset nudge (session-handoff). "
+    "Opt-in via `context_handoff.mode` (default off). Never writes the brief, never "
+    "blocks unless the owner set `mode: block`, and is not a safety-floor card — same "
+    "class as compact-anchor.sh (informational Stop/SessionStart context, not a drawn Pipeline stage)",
 }
 
 _PIPELINE_CONTROLS = {
