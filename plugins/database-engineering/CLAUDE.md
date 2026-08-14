@@ -35,6 +35,7 @@
 - **The application's ORM usage, data-access layer, and N+1 in app code** → `backend-engineering` (we own the schema/index/plan; they own how the app calls it).
 - **Provisioning the managed database (RDS/Cloud SQL/Azure DB), HA topology, parameter groups** → the cloud plugin; we own logical design + tuning.
 - **Schema migrations as part of a progressive rollout** → coordinate with `devops-cicd/release-engineer` (expand/contract sequences with the deploy).
+- **Variable-depth traversal, property-graph / RDF modeling, Cypher / GQL / SPARQL, GraphRAG construction** → [`graph-engineering`](../graph-engineering/). This team owns the relational OLTP leaf; that one owns the specialized-engine leaf the SQL-vs-NoSQL tree already points at. Multi-row transactions + ad-hoc SQL + known schema stay here.
 
 ## 4. Inheritance
 

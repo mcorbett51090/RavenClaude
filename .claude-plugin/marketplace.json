@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "RavenClaude \u2014 a private marketplace of opinionated Claude Code plugins: a domain-neutral core (Team Lead + specialist agents, skills, hooks, the Capability Grounding & Structured Output Protocols, a comfort-posture dashboard, the decision-review tribunal) plus 180 domain plugins across clusters: the software-delivery chain (devops-cicd, observability-sre, security-engineering, qa-test-automation, cloud-native-kubernetes, terraform-iac); cloud (azure/aws/gcp); app craft (backend, frontend, mobile, database, api, auth); data & AI (data-platform, analytics-engineering, data-streaming, ml-engineering, data-governance-privacy, applied-statistics, microsoft-fabric, tableau, claude-app-engineering); the Microsoft stack (power-platform, m365-copilot, microsoft-graph); and business/product verticals (finance, fintech-payments, product-management, project-management, process-improvement, staffing, freight-forwarding, edtech). Every agent ships example-scenario frontmatter surfaced in an 'I want to\u2026' use-case lookup.",
-    "version": "0.93.0"
+    "version": "0.94.0"
   },
   "plugins": [
     {
@@ -858,7 +858,7 @@
       "name": "database-engineering",
       "source": "./plugins/database-engineering",
       "description": "Database-engineering team \u2014 agents (schema-architect, query-performance-engineer, migration-engineer, db-reliability-engineer) for the OPERATIONAL/transactional data layer (OLTP): relational schema design and normalization (and when to denormalize), indexing strategy and query/EXPLAIN-plan tuning, safe zero-downtime schema migrations (expand/contract), and connection-pooling, transactions/isolation, replication, and backup/restore reliability. Postgres-leaning, principles portable to MySQL/SQL Server; NoSQL access-pattern guidance where it fits. skills, a decision-tree knowledge bank (index-choice + migration-safety trees + a dated 2026 capability map), best-practices, templates, commands, an advisory hook. Distinct from data-platform (analytics/ELT/warehouse) and analytics-engineering (dbt). Seams: ELT/warehouse -> data-platform, ORM/app data-access -> backend-engineering, managed DB infra -> cloud plugins. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.3.7",
+      "version": "0.3.8",
       "author": {
         "name": "Matt Corbett"
       },
@@ -1905,7 +1905,7 @@
       "name": "ai-rag-engineering",
       "source": "./plugins/ai-rag-engineering",
       "description": "AI / RAG Engineering specialist team \u2014 agents (rag-architect-lead, retrieval-eval-analyst, ingestion-chunking-specialist, llm-serving-cost-specialist), skills, templates, commands, an advisory hook, best-practice rules, and a research-grounded knowledge bank. A RAG team for an ML engineer or AI product lead accountable for answer quality and serving cost \u2014 it fixes retrieval before generation, treats chunking as a retrieval decision, evals before it ships, and reads context-window and token economics. Inherits ravenclaude-core protocols.",
-      "version": "0.1.2",
+      "version": "0.1.3",
       "author": {
         "name": "Matt Corbett"
       },
@@ -4119,7 +4119,7 @@
       "name": "memory-engineering",
       "source": "./plugins/memory-engineering",
       "description": "Memory engineering team \u2014 agents (memory-architect-lead, memory-retention-and-erasure-engineer, memory-eval-cost-analyst) for the decisions behind a durable memory store: what earns a write, which paradigm, which surface holds the bytes, what makes it forget, what a delete leaves behind, cost per correct answer. skills, commands, dated knowledge files, best-practices, templates, scenarios, an advisory hook, a stdlib calculator. Advisory only \u2014 it never reads or mutates a real store. Seams: ai-agent-engineering decides whether an agent should remember at all and where state sits in its topology, this engineers the memory system itself; ai-red-teaming owns the ASI06 attack taxonomy and offensive testing, this owns the defensive design half; data-governance-privacy owns DSAR and legal basis, this owns erasure residue in embeddings and version history; retrieval \u2192 ai-rag-engineering; evals \u2192 llm-evaluation-engineering; the Claude app \u2192 claude-app-engineering. Requires ravenclaude-core@>=0.238.0.",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "author": {
         "name": "Matt Corbett"
       },
