@@ -8101,8 +8101,7 @@ _JS = r"""
    * preserving "absent ⇒ off". Wired here for the same reason worktree_guard is:
    * emitYaml rebuilds the WHOLE comfort-posture.yaml from `state`, so a key with
    * no state slot is silently DELETED on the next Save (the v0.61.0 data-loss
-   * class). No DOM control ships with it — Gate 132's budget is at zero slack and
-   * a visible toggle costs an owner-approved ratchet raise. */
+   * class). Settings renders the control via `_render_dashboard_autostart()`. */
   const DASHBOARD_AUTOSTART_VALUES = ["off", "serve", "open"];
   const DASHBOARD_AUTOSTART_DEFAULT = "off";
   const ORCHESTRATOR_VALUES = ["off", "decide", "full"];
