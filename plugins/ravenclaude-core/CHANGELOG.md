@@ -14,7 +14,8 @@ All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the 
 - **Lane stamp + one-window operator default.** `rcwt new` writes
   `.ravenclaude/lane.md`, opens `code -n <worktree>`, and pins
   `chat.useCustomizationsInParentRepositories: false`. Templates under
-  `templates/worktree-lane/`.
+  `templates/worktree-lane/`. `RC_BASELINE.templates` 23 → 24 (top-level
+  dir only; files inside that pack do not increment).
 - **`knowledge/copilot-chat-customization.md`** — VS Code Copilot Chat is a
   distinct product from Copilot CLI.
 
