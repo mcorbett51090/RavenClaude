@@ -13,6 +13,15 @@ description: Remove finished agent worktrees, prune their branches, and surface 
    - **Merged** — its branch is fully reachable from `main` (or the configured base). Safe to remove.
    - **Open PR** — branch has an open PR. Don't remove.
    - **Dirty** — uncommitted changes. Surface and stop; the Team Lead must decide.
+   - **UNKNOWN** — `git status` itself FAILED for that tree (stale linked worktree
+     whose admin dir under `.git/worktrees/` is gone, corrupt `.git`, permission
+     denied). ⛔ This is **not** a third flavour of clean: a failed inspection
+     writes empty stdout, byte-identical to a clean tree's, so treating it as
+     clean deletes work nobody looked at. `worktree-clean.sh` refuses it — and
+     refuses it **even with `--force`**, because `--force` discards uncommitted
+     work and here we do not know whether there is any. Repair it first
+     (`git worktree repair` / `git worktree prune`) or move it aside; do not
+     reach for `--force`.
    - **Stale** — last commit > 14 days old, no PR. Flag for the user, don't remove without confirmation.
 3. **Close the lane first.** Close the VS Code window / end the Chat session for that worktree before `git worktree remove`, or the next session can reuse an Agents-window conversation from the removed tree.
 4. **Remove the safe ones.**

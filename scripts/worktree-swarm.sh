@@ -16,7 +16,9 @@
 #   scripts/worktree-swarm.sh --task "<prompt>" <slug> [<slug> ...]
 #       Embed <prompt> in each emitted dispatch line (otherwise a TODO placeholder).
 #   scripts/worktree-swarm.sh --status
-#       List all worktrees with clean/dirty state (delegates to worktree-clean.sh).
+#       List all worktrees with clean/DIRTY/UNKNOWN state (delegates to
+#       worktree-clean.sh). UNKNOWN = `git status` itself failed for that tree;
+#       it is refused by --all and by remove_one even with --force.
 #   scripts/worktree-swarm.sh --clean-all
 #       Remove every clean worktree (delegates to worktree-clean.sh --all).
 #
