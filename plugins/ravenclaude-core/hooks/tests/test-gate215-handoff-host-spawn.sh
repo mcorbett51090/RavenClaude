@@ -6,6 +6,36 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")/.." && pwd)"
 SPAWN="$HERE/../scripts/handoff-spawn.sh"
+
+# ⛔ THE HOST DETECTOR READS THE AMBIENT ENVIRONMENT — PIN THE WHOLE SURFACE.
+# detect_origin_host() in handoff-spawn.sh branches on ELEVEN inherited vars.
+# The generic assertions below describe the DEFAULT path, so an unpinned
+# invocation measures whoever happens to run it: green on CI (bare env) and RED
+# inside any VS Code / Cursor / Grok terminal. That is exactly how Gates 213/215
+# shipped passing CI while failing every developer in an integrated terminal
+# (TERM_PROGRAM=vscode -> host=unknown -> the script correctly refuses to emit
+# `grok "`, and the test asserted it must be present).
+# Clearing only TERM_PROGRAM would fix the one that bit and leave ten.
+_HOST_ENV_CLEAR=( -u TERM_PROGRAM -u __CFBundleIdentifier -u GROK_AGENT \
+                  -u GROK_HOOK_EVENT -u GROK_SESSION_ID -u COPILOT_CLI \
+                  -u GITHUB_COPILOT_CLI -u CURSOR_AGENT -u CURSOR_TRACE_ID \
+                  -u RC_HOST -u THING_HOST )
+
+# Run the script under test with the detection surface cleared. Leading VAR=val
+# arguments are applied AFTER the clear, so a test pins exactly the vars it means
+# to exercise and inherits nothing else. (A `VAR=x _spawn` prefix would NOT work
+# — the helper's own `env -u` would clear it again.)
+_spawn() {
+  local pre=()
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      *=*) pre+=("$1"); shift ;;
+      *)   break ;;
+    esac
+  done
+  env "${_HOST_ENV_CLEAR[@]}" ${pre[@]+"${pre[@]}"} bash "$SPAWN" "$@"
+}
+
 mode="${1:-normal}"
 fails=0
 
@@ -29,7 +59,7 @@ _assert_absent() {
 mkdir -p "$T/proj/.ravenclaude/runs/demo"
 printf '# brief\n\nDo the next step.\n' > "$T/proj/.ravenclaude/runs/demo/handoff.md"
 
-out="$(bash "$SPAWN" --task-id demo --project-root "$T/proj" --dry-run --host chat 2>&1)" || true
+out="$(_spawn --task-id demo --project-root "$T/proj" --dry-run --host chat 2>&1)" || true
 _assert_absent "chat dry-run has no grok quote" "$out" 'grok "'
 _assert_absent "chat dry-run has no grok -p" "$out" "grok -p"
 _assert_contains "chat dry-run names New Chat" "$out" "New Chat"
@@ -41,18 +71,18 @@ _assert_absent "chat dry-run does not open Terminal.app" "$out" "open -na Termin
   fails=$((fails + 1))
 }
 
-out="$(bash "$SPAWN" --task-id demo --project-root "$T/proj" --dry-run --host cli 2>&1)" || true
+out="$(_spawn --task-id demo --project-root "$T/proj" --dry-run --host cli 2>&1)" || true
 _assert_absent "cli dry-run has no grok quote" "$out" 'grok "'
 _assert_absent "cli dry-run has no grok -p" "$out" "grok -p"
 _assert_contains "cli dry-run names copilot" "$out" "copilot"
 
-out="$(bash "$SPAWN" --task-id demo --project-root "$T/proj" --dry-run 2>&1)" || true
+out="$(_spawn --task-id demo --project-root "$T/proj" --dry-run 2>&1)" || true
 _assert_contains "unset host still grok quote" "$out" 'grok "'
 
-out="$(bash "$SPAWN" --task-id demo --project-root "$T/proj" --dry-run --host chat --recipe same-host 2>&1)" || ec=$?
+out="$(_spawn --task-id demo --project-root "$T/proj" --dry-run --host chat --recipe same-host 2>&1)" || ec=$?
 _assert_contains "chat same-host without flag is owner-flagged" "$out" "owner-flagged"
 
-out="$(TERM_PROGRAM=vscode GROK_AGENT=1 bash "$SPAWN" --task-id demo --project-root "$T/proj" --dry-run 2>&1)" || true
+out="$(_spawn TERM_PROGRAM=vscode GROK_AGENT=1 --task-id demo --project-root "$T/proj" --dry-run 2>&1)" || true
 _assert_contains "GROK_AGENT + vscode still grok" "$out" 'grok "'
 _assert_absent "GROK_AGENT + vscode is not Chat URI" "$out" "vscode://GitHub.Copilot-Chat"
 
@@ -78,7 +108,8 @@ src = src.replace(
 Path(sys.argv[2]).write_text(src)
 PY
   chmod +x "$mutant"
-  mout="$(bash "$mutant" --task-id demo --project-root "$T/proj" --dry-run --host chat 2>&1 || true)"
+  # The MUTANT is a copy of the script under test — pin the same surface.
+mout="$(env "${_HOST_ENV_CLEAR[@]}" bash "$mutant" --task-id demo --project-root "$T/proj" --dry-run --host chat 2>&1 || true)"
   case "$mout" in
     *"grok \""*) echo "mutant emitted grok quote as expected"; exit 1 ;;
     *) echo "TEETH FAILED: mutant did not emit grok quote"; echo "$mout"; exit 0 ;;
