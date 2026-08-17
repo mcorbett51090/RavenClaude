@@ -202,6 +202,7 @@ jobs:
             };
             const labels = labelMap[researchType] || ['researcher', 'maintenance'];
 
+            let created;
             try {
               const issue = await github.rest.issues.create({
                 owner: context.repo.owner,
@@ -210,8 +211,58 @@ jobs:
                 body: body,
                 labels: labels,
               });
-              console.log(`Created researcher reminder issue #${issue.data.number}`);
+              created = issue.data.number;
+              console.log(`Created researcher reminder issue #${created}`);
             } catch (error) {
               console.error('Failed to create issue:', error);
               core.setFailed(`Failed to create researcher reminder issue: ${error.message}`);
+              return;
+            }
+
+            // ── Supersede the prior reminders of THIS cadence ────────────────
+            // These issues are RECURRING REMINDERS, not work items: a weekly
+            // sweep from 12 weeks ago is not a backlog entry, it is noise. With
+            // no close step the queue grew unbounded — measured 2026-08-17:
+            // 26 open reminders (oldest 2026-05-25), ZERO ever closed, which
+            // buried the 4 genuinely-open issues in a 30-issue list.
+            //
+            // The load-bearing invariant: this runs ONLY AFTER a successful
+            // create, and closes only issues carrying this cadence's own
+            // discriminator label. So a reminder is never retired without a
+            // live replacement, and the other cadence is never touched.
+            // Failures here are logged, never fatal — the reminder (the
+            // primary job) already shipped.
+            const cadenceLabel = labels[labels.length - 1];
+            try {
+              const priors = await github.paginate(github.rest.issues.listForRepo, {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                state: 'open',
+                labels: cadenceLabel,
+                per_page: 100,
+              });
+              for (const prior of priors) {
+                // Never touch the issue just created, and never touch a pull
+                // request (listForRepo returns PRs too).
+                if (prior.number === created || prior.pull_request) continue;
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: prior.number,
+                  body:
+                    'Superseded by #' + created + ' — this cadence fires on a schedule, ' +
+                    'so the newest issue is the live reminder. Closing to keep the open-issue ' +
+                    'list a real backlog. Reopen if this specific sweep still has unfinished work.',
+                });
+                await github.rest.issues.update({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: prior.number,
+                  state: 'closed',
+                  state_reason: 'not_planned',
+                });
+                console.log(`Closed superseded reminder #${prior.number}`);
+              }
+            } catch (error) {
+              console.error('Failed to close superseded reminders:', error);
             }
