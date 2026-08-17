@@ -234,17 +234,49 @@ jobs:
             // primary job) already shipped.
             const cadenceLabel = labels[labels.length - 1];
             try {
-              const priors = await github.paginate(github.rest.issues.listForRepo, {
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                state: 'open',
-                labels: cadenceLabel,
-                per_page: 100,
-              });
+              // ⛔ Enumerate via GraphQL and filter labels CLIENT-SIDE. Do not
+              // "simplify" this back to rest.issues.listForRepo({labels}).
+              //
+              // Measured 2026-08-17 on this repo: the REST list endpoint
+              // returned 12 open `deep-research` issues when the true count was
+              // 13. #85 is open and carries the label on a direct
+              // `issues/85` read, yet is absent from every label-filtered
+              // listing — and the REST list omits #85/#86 even UNFILTERED.
+              // Only this GraphQL connection returns all 13.
+              //
+              // A cleanup loop that cannot see an issue leaves it open forever,
+              // which is precisely the defect this step exists to fix. The
+              // `issues` connection also returns issues only, never PRs.
+              const query = `
+                query($owner:String!, $repo:String!, $cursor:String) {
+                  repository(owner:$owner, name:$repo) {
+                    issues(states:OPEN, first:100, after:$cursor) {
+                      pageInfo { hasNextPage endCursor }
+                      nodes { number labels(first:20) { nodes { name } } }
+                    }
+                  }
+                }`;
+              const priors = [];
+              let cursor = null;
+              for (;;) {
+                const page = await github.graphql(query, {
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  cursor: cursor,
+                });
+                const conn = page.repository.issues;
+                for (const node of conn.nodes) {
+                  if (node.labels.nodes.some((l) => l.name === cadenceLabel)) {
+                    priors.push(node);
+                  }
+                }
+                if (!conn.pageInfo.hasNextPage) break;
+                cursor = conn.pageInfo.endCursor;
+              }
+              console.log(`Found ${priors.length} open '${cadenceLabel}' issue(s)`);
               for (const prior of priors) {
-                // Never touch the issue just created, and never touch a pull
-                // request (listForRepo returns PRs too).
-                if (prior.number === created || prior.pull_request) continue;
+                // Never touch the issue just created.
+                if (prior.number === created) continue;
                 await github.rest.issues.createComment({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
