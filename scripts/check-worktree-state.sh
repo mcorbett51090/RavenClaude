@@ -32,6 +32,9 @@ set -uo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SUT="$REPO_ROOT/scripts/worktree-clean.sh"
+# The unmutated subject, kept so mutant_is_defective can byte-compare against it
+# even in teeth mode (where SUT is reassigned to the mutant).
+SUT_PRISTINE="$SUT"
 FAILED=0
 pass() { printf '  ✓ %s\n' "$1"; }
 fail() { printf '  ✗ %s\n' "$1"; FAILED=$((FAILED + 1)); }
@@ -72,7 +75,14 @@ make_mutant() { # $1=src $2=dest
 # Assert the mutation actually landed. A mutation that silently no-ops turns the
 # teeth half into a second copy of the positive half.
 mutant_is_defective() { # $1=mutant path -> 0 if the fix is genuinely gone
-  ! grep -q "printf 'UNKNOWN'" "$1"
+  # ⛔ A BYTE COMPARISON, not a string grep. The previous version grepped for
+  # `printf 'UNKNOWN'` — a literal that stopped appearing in the PRISTINE
+  # subject once UNKNOWN was split into UNKNOWN-rc / UNKNOWN-scope. So it
+  # returned "the fix is genuinely gone" unconditionally and its own
+  # "mutation did not apply" branch became unreachable: a dead oracle, in the
+  # guard whose comment warns that a no-op mutation makes the teeth half a
+  # second copy of the positive half. A diff cannot rot when the strings change.
+  ! diff -q "$SUT_PRISTINE" "$1" >/dev/null 2>&1
 }
 
 # ⛔ TEETH MODE. Points the positive assertions at a MUTANT with the fix removed.
@@ -84,6 +94,27 @@ if [ "${1:-}" = "--must-fail-nofix" ]; then
   make_mutant "$SUT" "$T/nofix.sh"
   SUT="$T/nofix.sh"
   printf '  [teeth mode] running positive assertions against a fix-removed mutant\n'
+fi
+
+# ------------------------------------------------- invariant: no bare git ----
+# ⛔ A SOURCE-SCAN, because the behavioural assertions cannot see this class.
+# Rounds 3 and 4 both found holes of the same shape: the CLASSIFICATION calls
+# were env-scrubbed while the DESTRUCTIVE ones were not, so an exported GIT_DIR
+# steered the removal and `branch -d` at a different repository. Every fix that
+# enumerated call sites left the next one open. Assert the invariant instead:
+# every git invocation in the subject goes through rcgit.
+# ⛔ Match git in a COMMAND POSITION only — line start, or after a shell
+# separator. An earlier version matched `git ` anywhere and flagged
+# `printf '      git said: '` and the wrapper's own `env … git "$@"` line: a
+# grep satisfied by the thing being DESCRIBED rather than done, which is the
+# same class this gate exists to catch, in the check written to catch it.
+bare_git="$(grep -nE '(^|[;&|(]|\$\()[[:space:]]*git[[:space:]]' "$SUT" \
+             | grep -v 'rcgit' \
+             | grep -vE '^[0-9]+:[[:space:]]*#' || true)"
+if [ -z "$bare_git" ]; then
+  pass "invariant: every git call in the subject goes through the env-scrubbing wrapper"
+else
+  fail "bare git call(s) bypass the env scrub: $(printf '%s' "$bare_git" | head -3 | tr '\n' ' ')"
 fi
 
 # ---------------------------------------------------------------- fixture ----
@@ -253,16 +284,44 @@ fi
 # The ancestor case: .claude/worktrees itself symlinked. `[ -L "$wt_dir" ]`
 # stats only the last component and passes; only full-path resolution catches
 # it. Reproduced on both call sites before the fix.
+# ⛔ The target must be OUTSIDE the repository. An earlier version of this
+# fixture moved the worktrees dir to `$anc/.claude/_real_wt` — still inside the
+# repo — so containment correctly ALLOWED it and the assertion failed against a
+# working fix. Redirecting within your own repo is not the threat; escaping it
+# is. Verified: with the target inside, --all removes (correctly); with the
+# target outside, it must refuse.
 anc="$T/anc"
 if build_fixture "$anc" >/dev/null 2>&1; then
-  mv "$anc/.claude/worktrees" "$anc/.claude/_real_wt"
-  ln -s "$anc/.claude/_real_wt" "$anc/.claude/worktrees"
+  mkdir -p "$T/outside_anc"
+  mv "$anc/.claude/worktrees" "$T/outside_anc/_real_wt"
+  ln -s "$T/outside_anc/_real_wt" "$anc/.claude/worktrees"
   ( cd "$anc" && bash "$SUT" --all >"$T/anc.out" 2>&1 ) || true
-  if [ -f "$anc/.claude/_real_wt/cleanwt/f.txt" ] 2>/dev/null \
-     || grep -q 'symlink' "$T/anc.out" 2>/dev/null; then
+  # ⛔ Survival is the oracle, and it must name a file the fixture ACTUALLY
+  # creates. An earlier version tested `cleanwt/f.txt`, which appears nowhere
+  # else in this file — build_fixture never creates it — so that operand was
+  # permanently false and the assertion rested entirely on a bare grep for the
+  # word "symlink" anywhere in the output. seed.txt is committed by
+  # build_fixture, so it exists.
+  if [ -f "$T/outside_anc/_real_wt/cleanwt/seed.txt" ]; then
     pass "a symlinked worktree ROOT is refused (ancestor components resolve too)"
   else
     fail "a symlinked .claude/worktrees let --all delete through the ancestor link"
+  fi
+fi
+
+# The OTHER ancestor shape: .claude itself symlinked. The previous fix guarded
+# only .claude/worktrees, so this one still deleted outside the repo — the
+# containment is now anchored to REPO_ROOT, which closes both by construction.
+anc2="$T/anc2"
+if build_fixture "$anc2" >/dev/null 2>&1; then
+  mkdir -p "$T/outside_anc2"
+  mv "$anc2/.claude" "$T/outside_anc2/_real_dotclaude"
+  ln -s "$T/outside_anc2/_real_dotclaude" "$anc2/.claude"
+  ( cd "$anc2" && bash "$SUT" --all >"$T/anc2.out" 2>&1 ) || true
+  if [ -f "$T/outside_anc2/_real_dotclaude/worktrees/cleanwt/seed.txt" ]; then
+    pass "a symlinked .claude ROOT is refused too (containment anchored to the repo)"
+  else
+    fail "a symlinked .claude let --all delete a worktree outside the repository"
   fi
 else
   fail "ancestor-symlink fixture failed to build"

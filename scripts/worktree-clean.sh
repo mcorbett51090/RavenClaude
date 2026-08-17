@@ -25,8 +25,26 @@ set -euo pipefail
 # Git hooks routinely export GIT_DIR, so this is not a contrived environment.
 # Measured 2026-08-17: baseline plain=UNKNOWN/w1=clean; GIT_DIR exported ->
 # plain=DIRTY (containment bypassed); GIT_WORK_TREE+GIT_DIR -> all UNKNOWN.
-rcgit() { env -u GIT_DIR -u GIT_WORK_TREE -u GIT_INDEX_FILE -u GIT_COMMON_DIR \
-               -u GIT_OBJECT_DIRECTORY -u GIT_CEILING_DIRECTORIES git "$@"; }
+# ⛔ ALLOWLIST BY CONSTRUCTION — scrub EVERY GIT_* variable, not a named list.
+# A blocklist of six was tried and was defeated by the config-injection family:
+# GIT_CONFIG_GLOBAL / GIT_CONFIG_SYSTEM / GIT_CONFIG_COUNT+KEY_n+VALUE_n /
+# GIT_CONFIG_PARAMETERS each set `status.showUntrackedFiles=no`, which flips a
+# DIRTY worktree to `clean` and reaches the deletion path. Measured: with
+# GIT_CONFIG_GLOBAL set, --all deleted a worktree whose only copy of the work
+# was an untracked file.
+#
+# Naming more variables would repeat the mistake — the class is "anything git
+# reads from the environment", so enumerate it from the environment itself.
+# (`env -uall` is NOT a substitute: measured, it defeats GIT_CONFIG_PARAMETERS
+# and GIT_CONFIG_GLOBAL but NOT the GIT_CONFIG_COUNT form.)
+rcgit() {
+  local _u=() _v
+  for _v in $(env | sed -n 's/^\(GIT_[A-Za-z0-9_]*\)=.*/\1/p'); do
+    _u+=(-u "$_v")
+  done
+  # bash 3.2: an empty array under `set -u` errors on plain "${_u[@]}".
+  env ${_u[@]+"${_u[@]}"} git "$@"
+}
 
 # Strip terminal control characters from anything attacker-influenced before it
 # is printed. A directory name carrying ESC[2K + CR erases its own row and
@@ -37,12 +55,30 @@ sanitize() { LC_ALL=C tr -d '\000-\037\177'; }
 REPO_ROOT="$(rcgit rev-parse --show-toplevel)"
 WT_ROOT="$REPO_ROOT/.claude/worktrees"
 
-# Refuse a symlinked worktree root outright, so the --all loop never enumerates
-# a redirected root. The per-entry checks below only stat the LAST component.
-if [ -L "$WT_ROOT" ]; then
-  printf 'error: %s is a symlink — refusing (every path under it would resolve elsewhere)\n' \
-    "$WT_ROOT" >&2
-  exit 1
+# ⛔ ANCHOR CONTAINMENT TO THE REPO, ONCE, AT DERIVATION.
+# A `[ -L "$WT_ROOT" ]` refusal was tried and closed only the `.claude/worktrees`
+# shape. When `.claude` ITSELF is the symlink, WT_ROOT is not a link, the guard
+# passes, and every per-entry containment test then compares children against an
+# already-redirected root — so containment is satisfied trivially and worktrees
+# OUTSIDE the repo are deleted while the in-repo path is printed. Reproduced on
+# both call sites.
+#
+# Resolving WT_ROOT and requiring it under the resolved REPO_ROOT closes every
+# ancestor shape at once, because it constrains the ROOT rather than enumerating
+# which component might be a link. --status, --all and remove_one all inherit it.
+if [ -d "$WT_ROOT" ]; then
+  _repo_real="$(cd "$REPO_ROOT" 2>/dev/null && pwd -P)" || {
+    printf 'error: could not resolve %s — refusing\n' "$REPO_ROOT" >&2; exit 1; }
+  _root_real="$(cd "$WT_ROOT" 2>/dev/null && pwd -P)" || {
+    printf 'error: could not resolve %s — refusing\n' "$WT_ROOT" >&2; exit 1; }
+  case "$_root_real/" in
+    "$_repo_real"/*) ;;
+    *)
+      printf 'error: %s resolves to %s, outside the repository at %s — refusing\n' \
+        "$WT_ROOT" "$_root_real" "$_repo_real" >&2
+      exit 1
+      ;;
+  esac
 fi
 
 usage() {
@@ -87,7 +123,15 @@ worktree_state() { # $1=dir -> prints clean|DIRTY|UNKNOWN
   # A worktree's .git is the fact that makes discovery STOP here rather than
   # walking up. Cheapest possible precondition, and it closes the upward-walk
   # class more directly than the resolution check alone.
-  [ -e "$1/.git" ] || { printf 'UNKNOWN-scope'; return; }
+  # ⛔ Split EACCES out. `[ -e ]` fails for ANY reason including permission
+  # denied, and reporting that as UNKNOWN-scope produced a message that was both
+  # blank and FALSE — "git resolves this directory to , not itself … it is not a
+  # worktree" for a perfectly good worktree the process simply cannot read.
+  # Wrong advice is the pressure that produces tunnelling.
+  if [ ! -e "$1/.git" ]; then
+    if [ -r "$1" ]; then printf 'UNKNOWN-scope'; else printf 'UNKNOWN-perm'; fi
+    return
+  fi
   top="$(rcgit -C "$1" rev-parse --show-toplevel 2>/dev/null)" || { printf 'UNKNOWN-rc'; return; }
   [ -n "$top" ] && [ "$top" -ef "$1" ] || { printf 'UNKNOWN-scope'; return; }
   out="$(rcgit -C "$1" status --porcelain 2>/dev/null)" || rc=$?
@@ -133,10 +177,22 @@ explain_unknown() { # $1=state  $2=dir   -> one indented line of real diagnosis
       { rcgit -C "$2" status --porcelain 2>&1 >/dev/null | head -1 | sanitize; } || true
       printf '\n'
       ;;
+    UNKNOWN-perm)
+      printf '      cause: %s is not readable by this process (permission denied).\n' "$2"
+      printf '             It may be a perfectly good worktree — nothing was inspected.\n'
+      ;;
     *)
-      printf '      cause: git resolves this directory to %s, not itself — it is not a\n' \
-        "$( { rcgit -C "$2" rev-parse --show-toplevel 2>/dev/null | sanitize; } || true )"
-      printf '             worktree, or its .git file is missing. Nothing here was inspected.\n'
+      # Never print "resolves to , not itself" — if the substitution comes back
+      # empty, git could not resolve the path at all, which is a different fact.
+      local _top
+      _top="$( { rcgit -C "$2" rev-parse --show-toplevel 2>/dev/null | sanitize; } || true )"
+      if [ -n "$_top" ]; then
+        printf '      cause: git resolves this directory to %s, not itself — it is not a\n' "$_top"
+        printf '             worktree, or its .git file is missing. Nothing here was inspected.\n'
+      else
+        printf '      cause: git could not resolve this path at all — it is not inside a\n'
+        printf '             repository this process can read. Nothing here was inspected.\n'
+      fi
       ;;
   esac
 }
@@ -152,6 +208,10 @@ list_worktrees() {
     # sanitize: a name carrying ESC[2K + CR erases its own row and repaints a
     # forged one; --status previously did no filtering at all.
     slug="$(basename "${d%/}" | sanitize)"
+    # Truncate to the printf field width: stripping control chars is necessary
+    # but not sufficient — an over-long name renders as a second plausible
+    # (slug, status) pair and pushes the real verdict past the screen edge.
+    slug="$(printf '%.30s' "$slug")"
     status="$(worktree_state "$d")"
     # Both UNKNOWN causes display as one word; the distinction drives advice,
     # not the status column.
@@ -275,14 +335,18 @@ remove_one() {
   #   script aborts before REACHED when invoked bare. Same function, opposite
   #   outcomes by invocation context — so `set -e` does not cover this body,
   #   because remove_all_clean calls it as `remove_one … || printf`.
-  git -C "$REPO_ROOT" worktree remove "$wt_dir" ${force:+--force} || {
+  rcgit -C "$REPO_ROOT" worktree remove "$wt_dir" ${force:+--force} || {
     printf 'error: git worktree remove failed for %s\n' "$wt_dir" >&2
     return 1
   }
   # Best-effort: delete the matching agent/ branch only if it's fully merged.
   local branch="agent/$slug"
-  if git -C "$REPO_ROOT" show-ref --verify --quiet "refs/heads/$branch"; then
-    git -C "$REPO_ROOT" branch -d "$branch" 2>/dev/null \
+  # ⛔ These two were bare `git` while the classification was scrubbed — so the
+  # DESTRUCTIVE call was the unprotected one. Reproduced: with GIT_DIR set, the
+  # ref lookup and `branch -d` executed against a DIFFERENT repository's ref
+  # store than the one that had been inspected.
+  if rcgit -C "$REPO_ROOT" show-ref --verify --quiet "refs/heads/$branch"; then
+    rcgit -C "$REPO_ROOT" branch -d "$branch" 2>/dev/null \
       && printf '  deleted branch %s\n' "$branch" \
       || printf '  branch %s left (not fully merged)\n' "$branch"
   fi
