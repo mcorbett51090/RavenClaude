@@ -38,21 +38,41 @@ fail() { printf '  ✗ %s\n' "$1"; FAILED=$((FAILED + 1)); }
 
 [ -f "$SUT" ] || { printf '  ✗ subject under test missing: %s\n' "$SUT"; exit 1; }
 
-T="$(mktemp -d)"
+T="$(mktemp -d)" || { printf '  ✗ mktemp -d failed\n'; exit 1; }
+# Unchecked, an empty $T would send `mkdir -p "$T/live"` to /live and leave the
+# trap deleting "" — harmless as a user, litter as root in a container.
+[ -n "$T" ] && [ -d "$T" ] || { printf '  ✗ mktemp -d produced no usable dir\n'; exit 1; }
 trap 'rm -rf "$T"' EXIT
 
-# Rewrite worktree_state's call site back to the original one-line expression,
-# reintroducing the defect. Used twice: for this checker's own must-fail half,
-# and for --must-fail-nofix (the external teeth invocation audit-gates records
-# with must_fail).
+# Reintroduce the defect by rewriting worktree_state's BODY so it can never
+# return UNKNOWN — i.e. it collapses "I could not look" back into "clean",
+# which is exactly the pre-fix behaviour.
+#
+# ⛔ AN EARLIER VERSION OF THIS MUTATION WAS VACUOUS, and the way it failed is
+# the whole reason this comment is long. It rewrote the single call site
+# `status="$(worktree_state "$d")"` — which occurs ONLY in list_worktrees, the
+# --status DISPLAY path. remove_all_clean calls `case "$(worktree_state "$d")"`
+# and remove_one calls `case "$(worktree_state "$wt_dir")"`, neither of which
+# matched. So under --must-fail-nofix the two assertions that measure actual
+# DATA LOSS still passed with "the fix removed", and the gate's own header
+# claimed it was proven to measure the defect. It was proven to measure the
+# cosmetic half.
+#
+# Mutating the FUNCTION covers every caller by construction — present and
+# future — which a call-site regex cannot promise.
 make_mutant() { # $1=src $2=dest
   awk '
-    /status="\$\(worktree_state "\$d"\)"/ {
-      print "    if [ -z \"$(git -C \"$d\" status --porcelain 2>/dev/null)\" ]; then status=clean; else status=DIRTY; fi"
-      next
-    }
+    /^worktree_state\(\) \{/ { inside = 1; print; print "  git -C \"$1\" status --porcelain >/dev/null 2>&1"; print "  if [ -n \"$(git -C \"$1\" status --porcelain 2>/dev/null)\" ]; then printf DIRTY; else printf clean; fi"; next }
+    inside && /^\}/          { inside = 0; print; next }
+    inside                   { next }
     { print }
   ' "$1" > "$2"
+}
+
+# Assert the mutation actually landed. A mutation that silently no-ops turns the
+# teeth half into a second copy of the positive half.
+mutant_is_defective() { # $1=mutant path -> 0 if the fix is genuinely gone
+  ! grep -q "printf 'UNKNOWN'" "$1"
 }
 
 # ⛔ TEETH MODE. Points the positive assertions at a MUTANT with the fix removed.
@@ -69,41 +89,58 @@ fi
 # ---------------------------------------------------------------- fixture ----
 # A host repo whose .claude/worktrees/ holds three shapes: genuinely clean,
 # genuinely dirty, and un-inspectable (a plain directory with no .git at all).
-build_fixture() { # $1=dest root
+build_fixture() { # $1=dest root -> 0 on success
   r="$1"
-  mkdir -p "$r/.claude/worktrees"
-  git -C "$r" init -q
-  git -C "$r" config user.email t@example.com
-  git -C "$r" config user.name t
+  mkdir -p "$r/.claude/worktrees" || return 1
+  git -C "$r" init -q || return 1
+  git -C "$r" config user.email t@example.com || return 1
+  git -C "$r" config user.name t || return 1
   printf 'seed\n' > "$r/seed.txt"
-  git -C "$r" add seed.txt
-  git -C "$r" -c commit.gpgsign=false commit -qm seed
+  git -C "$r" add seed.txt || return 1
+  git -C "$r" -c commit.gpgsign=false commit -qm seed || return 1
 
-  mkdir -p "$r/.claude/worktrees/cleanwt"
-  git -C "$r/.claude/worktrees/cleanwt" init -q
-  git -C "$r/.claude/worktrees/cleanwt" config user.email t@example.com
-  git -C "$r/.claude/worktrees/cleanwt" config user.name t
-  printf 'x\n' > "$r/.claude/worktrees/cleanwt/f.txt"
-  git -C "$r/.claude/worktrees/cleanwt" add f.txt
-  git -C "$r/.claude/worktrees/cleanwt" -c commit.gpgsign=false commit -qm f
+  # ⛔ CONTAINMENT. worktree-clean.sh derives REPO_ROOT from `git rev-parse
+  # --show-toplevel`, which walks UPWARD. If `git init` above ever failed while
+  # $TMPDIR sat inside a git repository, `--all` would resolve to the ENCLOSING
+  # repo and delete its worktrees. Not reachable with mktemp -d -> /var/folders,
+  # but TMPDIR is environment-controlled and CI runners point it into the
+  # workspace. Assert the fixture is its own toplevel before anything runs.
+  top="$(git -C "$r" rev-parse --show-toplevel 2>/dev/null || true)"
+  [ -n "$top" ] && [ "$top" -ef "$r" ] || {
+    printf '  ✗ fixture is not its own git toplevel (got %s) — refusing to run --all\n' "${top:-<none>}"
+    return 1
+  }
 
-  mkdir -p "$r/.claude/worktrees/dirtywt"
-  git -C "$r/.claude/worktrees/dirtywt" init -q
+  # ⛔ All three are REAL linked worktrees (`git worktree add`), not standalone
+  # `git init` repos. The earlier fixture used `git init` for cleanwt, so it was
+  # not a worktree of the fixture repo at all — `git worktree remove` refused it
+  # and --all NEVER DELETED ANYTHING in this test. There was therefore no
+  # passing assertion on the deletion path, in a gate about a deletion bug.
+  git -C "$r" worktree add -q "$r/.claude/worktrees/cleanwt" >/dev/null 2>&1 || return 1
+  git -C "$r" worktree add -q "$r/.claude/worktrees/dirtywt" >/dev/null 2>&1 || return 1
+  git -C "$r" worktree add -q "$r/.claude/worktrees/brokenwt" >/dev/null 2>&1 || return 1
+
   printf 'uncommitted\n' > "$r/.claude/worktrees/dirtywt/pending.txt"
-
-  # A STALE LINKED WORKTREE — created properly, then its admin dir under
-  # .git/worktrees/ is orphaned. This is the real-world shape `git worktree
-  # prune` exists for, and `git -C <dir> status` then exits 128 with EMPTY
-  # stdout (verified 2026-08-17; the healthy worktree above exits 0, which is
-  # the control proving this fixture can produce both answers).
-  #
-  # ⛔ A plain non-git subdirectory does NOT reproduce it: git's discovery walks
-  # UPWARD, finds the parent repo, succeeds, and reports the file as untracked —
-  # so the fixture would read DIRTY and the gate would pass without ever
-  # exercising the defect. That mistake was made and caught while writing this.
-  git -C "$r" worktree add -q "$r/.claude/worktrees/brokenwt" >/dev/null 2>&1
   printf 'work that would be lost\n' > "$r/.claude/worktrees/brokenwt/precious.txt"
-  mv "$r/.git/worktrees/brokenwt" "$r/.git/worktrees/_orphaned"
+
+  # UNKNOWN shape: corrupt the worktree's index. `git status` then exits 128
+  # with EMPTY stdout — byte-identical to a clean tree's output.
+  # Measured 2026-08-17: corrupt index -> status rc=128; healthy -> rc=0.
+  #
+  # ⛔ Chosen over the orphaned-admin-dir shape ON PURPOSE. Both yield UNKNOWN,
+  # but `git worktree remove` REFUSES an orphaned-admin-dir tree outright
+  # (rc=128), so "brokenwt survived" would have passed no matter what the script
+  # decided — the assertion would have been measuring git, not us. It still
+  # cannot be measured by survival alone (git refuses the corrupt shape too,
+  # rc=128 measured), which is why the teeth assertion below keys on the
+  # script's DECISION (the UNKNOWN skip line), not on the file surviving.
+  printf 'GARBAGE-NOT-AN-INDEX' > "$r/.git/worktrees/brokenwt/index"
+
+  # A plain non-git subdirectory does NOT reproduce UNKNOWN: git's discovery
+  # walks UPWARD, finds the parent repo, succeeds, and reports the file as
+  # untracked — the fixture reads DIRTY and the gate passes without ever
+  # exercising the defect. That mistake was made and caught while writing this.
+  return 0
 }
 
 status_of() { # $1=root $2=slug -> prints the classification column
@@ -136,34 +173,92 @@ else
   fail "un-inspectable worktree read '$BROKEN_S' (expected UNKNOWN)"
 fi
 
-# --all must SKIP the un-inspectable tree and leave its contents on disk.
+# --- the deletion path -------------------------------------------------------
 ( cd "$T/live" && bash "$SUT" --all >"$T/all.out" 2>&1 )
+
+# POSITIVE CONTROL on deletion. Without this the three assertions below could
+# all pass against a script that deletes NOTHING — "it didn't delete the broken
+# one" is worthless if it never deletes anything. Measured: a clean linked
+# worktree IS removable (unforced `git worktree remove` rc=0).
+if [ ! -d "$T/live/.claude/worktrees/cleanwt" ]; then
+  pass "--all DOES delete a genuinely clean worktree (deletion is detectable here)"
+else
+  fail "--all did not delete the clean worktree — every 'did not delete' assertion below is vacuous"
+fi
+
+if [ -f "$T/live/.claude/worktrees/dirtywt/pending.txt" ]; then
+  pass "--all did not delete the dirty worktree"
+else
+  fail "--all DELETED a worktree holding uncommitted work"
+fi
+
 if [ -f "$T/live/.claude/worktrees/brokenwt/precious.txt" ]; then
   pass "--all did not delete the worktree it could not inspect"
 else
   fail "--all DELETED an un-inspectable worktree (the defect this gate exists for)"
 fi
-if grep -q 'UNKNOWN' "$T/all.out" 2>/dev/null; then
-  pass "--all reports the skip reason as UNKNOWN"
+
+# ⛔ Bound to the SLUG, not a bare grep for the word. `grep -q UNKNOWN` over
+# combined stdout+stderr passes if the string appears anywhere at all.
+if grep -q 'skipped brokenwt (UNKNOWN' "$T/all.out" 2>/dev/null; then
+  pass "--all names brokenwt as UNKNOWN, so an operator can tell inspection failed"
 else
-  fail "--all skipped silently — an operator cannot tell inspection failed"
+  fail "--all did not report brokenwt as UNKNOWN"
 fi
+
+# The remedy must not be a runnable --force command (it either fails on this
+# shape or destroys unreviewed work, depending on the invisible cause).
+if grep -q -- '--force' "$T/all.out" 2>/dev/null; then
+  fail "--all's UNKNOWN advice still recommends --force on a tree it could not inspect"
+else
+  pass "--all's UNKNOWN advice does not recommend --force"
+fi
+
+# remove_one must refuse UNKNOWN even when --force is passed.
+rm_out="$( cd "$T/live" && bash "$SUT" brokenwt --force 2>&1 )" || true
+if [ -f "$T/live/.claude/worktrees/brokenwt/precious.txt" ]; then
+  pass "remove_one --force refuses an un-inspectable worktree"
+else
+  fail "remove_one --force DELETED an un-inspectable worktree (reproduced data loss)"
+fi
+case "$rm_out" in
+  *"could not inspect"*) pass "remove_one names the reason it refused" ;;
+  *) fail "remove_one refused without saying why: $rm_out" ;;
+esac
 
 # ----------------------------------------------------------- must-fail half ---
 # Restore the original expression. The broken fixture MUST then read clean.
 MUT="$T/mutant.sh"
 make_mutant "$SUT" "$MUT"
 
-if grep -q 'status=clean' "$MUT" && ! grep -q 'status="\$(worktree_state' "$MUT"; then
-  build_fixture "$T/mutant"
-  MB="$( ( cd "$T/mutant" && bash "$MUT" --status 2>/dev/null ) | awk '$1=="brokenwt"{print $2}' )"
-  if [ "$MB" = "clean" ]; then
-    pass "must-fail half: the original expression DOES misread broken as clean (gate has teeth)"
+if mutant_is_defective "$MUT"; then
+  if build_fixture "$T/mutant"; then
+    MB="$( ( cd "$T/mutant" && bash "$MUT" --status 2>/dev/null ) | awk '$1=="brokenwt"{print $2}' )"
+    if [ "$MB" = "clean" ]; then
+      pass "teeth: with UNKNOWN removed, --status misreads broken as clean"
+    else
+      fail "teeth: mutant did not reproduce the display defect (read '$MB')"
+    fi
+
+    # ⛔ THE ASSERTION THAT MATTERS, and it keys on the script's DECISION.
+    # Survival cannot be used here: `git worktree remove` refuses the corrupt
+    # shape (rc=128 measured), so brokenwt survives whatever the script decides.
+    # What changes is whether the script CHOSE to skip it. The fixed script
+    # prints the UNKNOWN skip line; the mutant classifies it clean and attempts
+    # removal instead. If this line is still present in the mutant's output, the
+    # deletion path was never mutated and the teeth are cosmetic — which is
+    # exactly how the previous version of this gate was vacuous.
+    ( cd "$T/mutant" && bash "$MUT" --all >"$T/mutant-all.out" 2>&1 )
+    if grep -q 'skipped brokenwt (UNKNOWN' "$T/mutant-all.out" 2>/dev/null; then
+      fail "teeth: the mutant STILL skips brokenwt as UNKNOWN — the deletion path was not mutated (vacuous gate)"
+    else
+      pass "teeth: with UNKNOWN removed, --all no longer skips brokenwt (deletion path IS covered)"
+    fi
   else
-    fail "must-fail half did not reproduce the defect (read '$MB') — gate may be vacuous"
+    fail "teeth: mutant fixture failed to build"
   fi
 else
-  fail "must-fail half: mutation did not apply — cannot prove the gate has teeth"
+  fail "teeth: mutation did not apply — cannot prove the gate has teeth"
 fi
 
 printf '\n'

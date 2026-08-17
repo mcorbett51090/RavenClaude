@@ -2,6 +2,33 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.271.1 — 2026-08-17
+
+### Fixed
+
+- **`scripts/branch-hygiene.sh` gate 2 no longer passes on an inspection that
+  failed.** It read `git -C "$wt" status --porcelain 2>/dev/null | wc -l`. A
+  FAILED `git status` — a stale linked worktree whose admin dir under
+  `.git/worktrees/` is gone, a corrupt `.git`, git off `PATH`, permission
+  denied — writes nothing and exits non-zero, so the pipe yields `0`,
+  byte-identical to a genuinely clean worktree. Gate 2 therefore PASSED on a
+  worktree it had never managed to inspect. It now captures the exit code
+  separately and HOLDs with the real reason.
+
+  **Honest severity:** gate 4 (`git worktree remove` without `--force`, then
+  `git branch -d`) does close the actual loss path, so this is defense-in-depth
+  plus an accurate HOLD reason — **not** a data-loss fix. It is fixed anyway
+  because this script's own header states the gates are not redundant and
+  dropping one loses something, and because the identical pattern *did* delete
+  work in the marketplace-level `scripts/worktree-clean.sh` (Gate 216).
+
+  Verified against a real fixture, all three branches: stale linked worktree →
+  HOLD (exit 128); clean → passes gate 2; dirty → HOLD (1 file).
+
+**Migration:** none. The only behaviour change is that a worktree which cannot
+be inspected is now HELD with a stated reason instead of silently clearing
+gate 2. No branch that was previously retained is now deleted.
+
 ## 0.271.0 — 2026-08-14
 
 ### Added

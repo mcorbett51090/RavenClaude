@@ -9,7 +9,11 @@
 #   scripts/worktree-clean.sh <slug>              # remove if clean
 #   scripts/worktree-clean.sh <slug> --force      # remove even if dirty
 #   scripts/worktree-clean.sh --all               # remove all clean worktrees
-#   scripts/worktree-clean.sh --status            # list worktrees + clean/dirty
+#   scripts/worktree-clean.sh --status            # list worktrees + clean/DIRTY/UNKNOWN
+#
+# UNKNOWN means `git status` itself failed for that worktree (stale linked
+# worktree, corrupt .git, permission denied) — it is NOT a third flavour of
+# clean. --all skips it and remove_one refuses it, even with --force.
 
 set -euo pipefail
 
@@ -84,13 +88,42 @@ remove_one() {
     printf 'error: refusing to remove the main working tree\n' >&2
     return 1
   fi
-  if [ -n "$(git -C "$wt_dir" status --porcelain 2>/dev/null)" ]; then
-    if [ "$force" != "--force" ]; then
-      printf 'error: worktree has uncommitted changes; pass --force to remove anyway\n' >&2
+  # ⛔ This is the function that actually deletes, so it gets the SAME three-state
+  # classification as --all. The previous `[ -n "$(git … 2>/dev/null)" ]` was the
+  # identical blind idiom inverted: on a FAILED git status the substitution is
+  # empty, `-n` is false, the uncommitted-changes guard never fired, and control
+  # reached `git worktree remove` on a tree nobody had inspected. Safety then
+  # rested on git's own removal validation — real, but not this script's, and
+  # not what the guard claims to do.
+  case "$(worktree_state "$wt_dir")" in
+    clean) : ;;
+    DIRTY)
+      if [ "$force" != "--force" ]; then
+        printf 'error: worktree has uncommitted changes; pass --force to remove anyway\n' >&2
+        return 1
+      fi
+      ;;
+    *)
+      # UNKNOWN — could not inspect. Refuse even with --force: --force discards
+      # uncommitted work, and here we do not know whether there is any.
+      printf 'error: could not inspect %s (git status failed) — refusing to remove.\n' "$wt_dir" >&2
+      printf '       Try: git -C %s worktree repair   (or: worktree prune)\n' "$REPO_ROOT" >&2
+      printf '       If you have confirmed by hand there is nothing to keep, move it aside, do not delete.\n' >&2
       return 1
-    fi
-  fi
-  git -C "$REPO_ROOT" worktree remove "$wt_dir" ${force:+--force}
+      ;;
+  esac
+  # `|| return 1` is load-bearing: a bare `git worktree remove` that FAILED fell
+  # through to the success printf below and returned 0 — a failed operation
+  # rendering as a successful one, the very class this file was edited to close.
+  # control (2026-08-17): with `set -euo pipefail`, a function containing
+  #   `false; printf REACHED` prints REACHED when invoked as `f || …`, and the
+  #   script aborts before REACHED when invoked bare. Same function, opposite
+  #   outcomes by invocation context — so `set -e` does not cover this body,
+  #   because remove_all_clean calls it as `remove_one … || printf`.
+  git -C "$REPO_ROOT" worktree remove "$wt_dir" ${force:+--force} || {
+    printf 'error: git worktree remove failed for %s\n' "$wt_dir" >&2
+    return 1
+  }
   # Best-effort: delete the matching agent/ branch only if it's fully merged.
   local branch="agent/$slug"
   if git -C "$REPO_ROOT" show-ref --verify --quiet "refs/heads/$branch"; then
@@ -121,8 +154,17 @@ remove_all_clean() {
         # UNKNOWN — `git status` failed, so we never learned whether this tree
         # holds work. Deleting on an unreadable inspection is the exact defect
         # this case exists to prevent. Skip loudly and let a human look.
-        printf '  skipped %s (UNKNOWN — git status failed; inspect by hand, then use: %s %s --force)\n' \
-          "$slug" "$0" "$slug"
+        #
+        # ⛔ Deliberately NOT a runnable command. The earlier version printed
+        # `<script> <slug> --force`, which was wrong twice: --force is the flag
+        # that DISCARDS uncommitted work (exactly what we just failed to rule
+        # out), and the slug is unvalidated here — validation lives in
+        # remove_one, which UNKNOWN never reaches — so a directory named
+        # `x$(id)y` produced a copy-pasteable line that executes on paste.
+        # Print the PATH (as data, %s) and a non-destructive remedy instead.
+        printf '  skipped %s (UNKNOWN — git status failed; not removed)\n' "$slug"
+        printf '      path: %s\n' "$d"
+        printf '      try:  git -C %s worktree repair   (or: worktree prune)\n' "$REPO_ROOT"
         ;;
     esac
   done
