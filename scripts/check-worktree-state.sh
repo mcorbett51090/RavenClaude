@@ -149,7 +149,19 @@ status_of() { # $1=root $2=slug -> prints the classification column
 }
 
 # ------------------------------------------------------------ positive half ---
-build_fixture "$T/live"
+# ⛔ The return value is load-bearing. This file runs `set -uo pipefail` with NO
+# `-e`, so a bare `build_fixture "$T/live"` discards the failure — the
+# containment guard inside it would print "refusing to run --all" and then --all
+# would run anyway. And `mkdir -p "$r/.claude/worktrees"` happens BEFORE
+# `git init`, so on failure the dir still exists, `cd` succeeds, and
+# worktree-clean.sh's `git rev-parse --show-toplevel` walks UPWARD into whatever
+# repo encloses $TMPDIR. A guard that announces a refusal it does not perform is
+# worse than no guard.
+build_fixture "$T/live" || {
+  fail "live fixture failed to build — refusing to run --all against an unverified tree"
+  printf '\ncheck-worktree-state (Gate 216): aborted\n'
+  exit 1
+}
 
 CLEAN_S="$(status_of "$T/live" cleanwt)"
 DIRTY_S="$(status_of "$T/live" dirtywt)"

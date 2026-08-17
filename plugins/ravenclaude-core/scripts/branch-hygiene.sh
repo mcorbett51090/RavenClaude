@@ -138,16 +138,26 @@ for b in $(git for-each-ref --format='%(refname:short)' refs/heads/); do
     # ⛔ Capture the EXIT CODE, not just the line count. A FAILED `git status`
     # — a stale linked worktree whose admin dir under .git/worktrees/ is gone,
     # a corrupt .git, git off PATH, permission denied — writes NOTHING to
-    # stdout and exits non-zero. Piping straight into `wc -l` turns that into
-    # "0", byte-identical to a genuinely clean worktree, so gate 2 PASSED on an
-    # inspection that never happened.
+    # stdout and exits non-zero.
     #
-    # Gate 4 (`git worktree remove` without --force, then `git branch -d`) does
-    # close the actual loss path here, so this is defense-in-depth plus an
-    # honest HOLD reason — NOT a data-loss fix. But this file's own header says
-    # the gates are not redundant and dropping one loses something, and the
-    # identical pattern DID delete work in scripts/worktree-clean.sh (Gate 216).
-    # Measured 2026-08-17: a stale linked worktree → exit 128, empty stdout.
+    # What that COST here, measured 2026-08-17 on a corrupt-index worktree:
+    # this script sets `set -euo pipefail` (:51), so the failed pipeline's 128
+    # propagates through the command substitution and `set -e` ABORTS THE WHOLE
+    # SWEEP mid-loop — later branches are never examined and the summary line
+    # never prints. Before/after on the same fixture:
+    #   main: HOLD feat/clean … ; EXIT=128, feat/merged never reported
+    #   HEAD: HOLD feat/clean … ; HOLD feat/merged (git status exit 128);
+    #         "would delete: 0  held: 2"; EXIT=0
+    # So the fix converts a silent mid-sweep abort into a proper HOLD that
+    # finishes the sweep — a availability/correctness fix, not a deletion fix.
+    #
+    # ⛔ An earlier version of this comment claimed the pipe "yields 0, so gate 2
+    # PASSED on an inspection that never happened", and stamped it *Measured*.
+    # That was an INFERENCE from a true observation (status exits 128 with empty
+    # stdout) and it is false under `pipefail` — controlled both ways: with
+    # pipefail the substitution aborts at 128; without it, and only without it,
+    # the pipe yields "0". Grounding the observation did not ground the
+    # inference drawn from it.
     # See docs/best-practices/verification-probe-discipline.md.
     wt_status=""; wt_rc=0
     wt_status="$(git -C "$wt" status --porcelain 2>/dev/null)" || wt_rc=$?

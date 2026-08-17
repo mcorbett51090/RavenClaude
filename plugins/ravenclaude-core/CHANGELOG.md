@@ -6,28 +6,40 @@ All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the 
 
 ### Fixed
 
-- **`scripts/branch-hygiene.sh` gate 2 no longer passes on an inspection that
-  failed.** It read `git -C "$wt" status --porcelain 2>/dev/null | wc -l`. A
-  FAILED `git status` — a stale linked worktree whose admin dir under
-  `.git/worktrees/` is gone, a corrupt `.git`, git off `PATH`, permission
-  denied — writes nothing and exits non-zero, so the pipe yields `0`,
-  byte-identical to a genuinely clean worktree. Gate 2 therefore PASSED on a
-  worktree it had never managed to inspect. It now captures the exit code
-  separately and HOLDs with the real reason.
+- **`scripts/branch-hygiene.sh` no longer aborts the whole sweep when a
+  worktree cannot be inspected.** Gate 2 read
+  `git -C "$wt" status --porcelain 2>/dev/null | wc -l`. A FAILED `git status`
+  — a stale linked worktree whose admin dir under `.git/worktrees/` is gone, a
+  corrupt `.git`, git off `PATH`, permission denied — writes nothing and exits
+  non-zero. Because the script runs `set -euo pipefail`, that 128 propagates
+  through the command substitution and **`set -e` kills the run mid-loop**:
+  every later branch goes unexamined and the summary never prints. It now
+  captures the exit code separately and HOLDs that one worktree with the real
+  reason, so the sweep completes.
 
-  **Honest severity:** gate 4 (`git worktree remove` without `--force`, then
-  `git branch -d`) does close the actual loss path, so this is defense-in-depth
-  plus an accurate HOLD reason — **not** a data-loss fix. It is fixed anyway
-  because this script's own header states the gates are not redundant and
-  dropping one loses something, and because the identical pattern *did* delete
-  work in the marketplace-level `scripts/worktree-clean.sh` (Gate 216).
+  Measured on the same fixture — before: `EXIT=128` after the first bad
+  worktree, second branch never reported. After: both branches reported,
+  `would delete: 0  held: 2`, `EXIT=0`.
 
-  Verified against a real fixture, all three branches: stale linked worktree →
-  HOLD (exit 128); clean → passes gate 2; dirty → HOLD (1 file).
+  **Honest severity:** an availability/correctness fix, **not** a data-loss
+  fix. Nothing was ever deleted that should not have been — gate 4
+  (`git worktree remove` without `--force`, then `git branch -d`) independently
+  guards deletion. The reason to fix it anyway is that a sweep which stops
+  silently at branch 3 of 30 looks exactly like a sweep that found nothing.
 
-**Migration:** none. The only behaviour change is that a worktree which cannot
-be inspected is now HELD with a stated reason instead of silently clearing
-gate 2. No branch that was previously retained is now deleted.
+  > **Correction, recorded rather than quietly amended.** The first version of
+  > this entry claimed the pipe "yields `0` … so gate 2 PASSED on a worktree it
+  > had never inspected", and stamped it *Measured*. That was an **inference**
+  > drawn from a true observation (status exits 128 with empty stdout), and it
+  > is false under `pipefail`. Controlled both directions: with `pipefail` the
+  > substitution aborts at 128; only without it does the pipe yield `0`.
+  > Grounding an observation is not grounding an inference drawn from it — see
+  > `docs/best-practices/verification-probe-discipline.md`.
+
+**Migration:** none. A worktree that cannot be inspected is now HELD with a
+stated reason instead of aborting the sweep. No branch that was previously
+retained is now deleted, and no branch that was previously deleted is now
+retained.
 
 ## 0.271.0 — 2026-08-14
 
