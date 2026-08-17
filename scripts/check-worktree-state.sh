@@ -174,7 +174,7 @@ build_fixture() { # $1=dest root -> 0 on success
   # with EMPTY stdout, and the tree classifies `clean` while never having been
   # inspected at all. Measured 2026-08-17: both shapes gave status rc=0,
   # out_len=0, toplevel=<PARENT>.
-  printf '.claude/worktrees/\n' > "$r/.gitignore"
+  printf '.claude/worktrees/\n.env\nnode_modules/\n' > "$r/.gitignore"
   git -C "$r" add .gitignore >/dev/null 2>&1 || return 1
   git -C "$r" -c commit.gpgsign=false commit -qm ignore >/dev/null 2>&1 || return 1
 
@@ -197,6 +197,16 @@ build_fixture() { # $1=dest root -> 0 on success
   # git's discovery walks UPWARD and succeeds. That is why it is a fixture for
   # the upward-walk class above, and why using it as the status-fails fixture
   # (the first mistake made writing this gate) produced a vacuous pass.
+  # ⛔ IGNORED shape, added AFTER the .gitignore commit on purpose: the worktree
+  # checks out HEAD, so a worktree created before that commit would not carry the
+  # ignore rule and its .env would read as an ordinary untracked file — the tree
+  # would classify DIRTY and the IGNORED assertions would pass for the wrong
+  # reason, measuring nothing. `secrets.env` also matches nothing here; the file
+  # must be exactly `.env` for the committed rule to hide it.
+  git -C "$r" worktree add -q "$r/.claude/worktrees/ignoredwt" >/dev/null 2>&1 || return 1
+  printf 'DB_PASSWORD=irreplaceable\n' > "$r/.claude/worktrees/ignoredwt/.env"
+  mkdir -p "$r/.claude/worktrees/ignoredwt/node_modules/pkg"
+  printf 'x\n' > "$r/.claude/worktrees/ignoredwt/node_modules/pkg/index.js"
   return 0
 }
 
@@ -327,6 +337,17 @@ else
   fail "ancestor-symlink fixture failed to build"
 fi
 
+# ⛔ The ignored-only class. `status --porcelain` is silent on ignored files BY
+# DESIGN, so a tree holding only .env / node_modules produced empty output while
+# git was working perfectly — no failure, no wrong subject, no misleading config.
+# The probe simply answered a narrower question than the caller needed.
+IGNORED_S="$(status_of "$T/live" ignoredwt)"
+if [ "$IGNORED_S" = "IGNORED" ]; then
+  pass "a worktree holding only ignored files reads IGNORED, not clean"
+else
+  fail "ignored-only worktree read '$IGNORED_S' (expected IGNORED)"
+fi
+
 # --- the deletion path -------------------------------------------------------
 ( cd "$T/live" && bash "$SUT" --all >"$T/all.out" 2>&1 )
 
@@ -363,6 +384,37 @@ if [ -f "$T/live/.claude/worktrees/g_plaindir/keep.txt" ] \
   pass "--all left both upward-walk shapes on disk (asserted AFTER --all ran)"
 else
   fail "--all DELETED an upward-walk shape it never actually inspected"
+fi
+
+if [ -f "$T/live/.claude/worktrees/ignoredwt/.env" ]; then
+  pass "--all did not delete the worktree holding only ignored files"
+else
+  fail "--all DELETED an ignored-only worktree (.env is untracked by definition — unrecoverable)"
+fi
+
+# Refusal WITHOUT --force must be asserted before the --force case below, or
+# "--force removed it" is consistent with a script that removes it either way.
+ig_bare="$( cd "$T/live" && bash "$SUT" ignoredwt 2>&1 )" || true
+if [ -f "$T/live/.claude/worktrees/ignoredwt/.env" ]; then
+  pass "remove_one refuses an ignored-only worktree without --force"
+else
+  fail "remove_one removed an ignored-only worktree with no --force"
+fi
+case "$ig_bare" in
+  *"ignored files"*) pass "remove_one names what the ignored-only tree holds" ;;
+  *) fail "remove_one refused without naming the ignored content: $ig_bare" ;;
+esac
+
+# ⛔ THE OVER-BLOCKING HALF, and it is not optional. Every assertion above is
+# satisfied by a script that refuses to remove ANYTHING ignored under any
+# circumstances — which would strand every node_modules tree forever and quietly
+# convert a safety fix into a broken tool. IGNORED must take --force, unlike
+# UNKNOWN which must refuse it. Asserting only the refusal tests half a contract.
+ig_forced="$( cd "$T/live" && bash "$SUT" ignoredwt --force 2>&1 )" || true
+if [ ! -d "$T/live/.claude/worktrees/ignoredwt" ]; then
+  pass "remove_one --force DOES remove an ignored-only worktree (IGNORED is not UNKNOWN)"
+else
+  fail "remove_one --force refused an ignored-only worktree — over-blocking: $ig_forced"
 fi
 
 # ⛔ Bound to the SLUG, not a bare grep for the word. `grep -q UNKNOWN` over
@@ -404,6 +456,66 @@ case "$rm_out" in
   *) fail "remove_one refused without saying why: $rm_out" ;;
 esac
 
+# --- the config vector -------------------------------------------------------
+# ⛔ A status that RAN, against the RIGHT tree, and exited 0 can still report
+# "nothing here" because CONFIG told it to stay quiet. Neither setting below
+# needs an adversary — both are ordinary things a user types once and forgets,
+# and git honours them from the repo-local config, $HOME, XDG, the system
+# config, or GIT_CONFIG_*. The tree then classifies `clean` and --all deletes
+# uncommitted work.
+#
+# The three earlier UNKNOWN shapes cannot cover this: they are all cases where
+# git FAILED or resolved elsewhere. Here git succeeds, on the right tree, and
+# answers honestly to a question that was narrowed behind the script's back.
+#
+# Two independent config sources are asserted because they arrive by different
+# routes — a repo-local key needs no environment at all, and $HOME survives an
+# env scrub that only enumerates GIT_*. A fix that closes one and not the other
+# is not a fix.
+config_vector_case() { # $1=label $2=root $3... = env assignments for the run
+  label="$1"; root="$2"; shift 2
+  if ! build_fixture "$root"; then
+    fail "config-vector fixture ($label) failed to build"
+    return 1
+  fi
+  # Apply the caller's config-shaping step.
+  cfg_setup "$root" || { fail "config-vector setup ($label) failed"; return 1; }
+
+  ( cd "$root" && env "$@" bash "$SUT" --all >"$root/all.out" 2>&1 )
+
+  # POSITIVE CONTROL, and it is not optional here. "dirtywt survived" is
+  # worthless if --all deleted nothing at all — and a script that errored out on
+  # the crafted config would produce exactly that, passing the real assertion
+  # for entirely the wrong reason.
+  if [ ! -d "$root/.claude/worktrees/cleanwt" ]; then
+    pass "$label: --all still deletes a genuinely clean worktree (deletion is detectable)"
+  else
+    fail "$label: --all deleted nothing — the survival assertion below is vacuous"
+  fi
+
+  if [ -f "$root/.claude/worktrees/dirtywt/pending.txt" ]; then
+    pass "$label: uncommitted work survived --all"
+  else
+    fail "$label: --all DELETED a worktree holding uncommitted work (config steered the probe)"
+  fi
+}
+
+cfg_setup() { git -C "$1" config status.showUntrackedFiles no; }
+config_vector_case "repo-local status.showUntrackedFiles=no" "$T/cfg_local"
+
+# $HOME carries BOTH keys: showUntrackedFiles suppresses the listing outright,
+# and core.excludesFile hides the same files by a second, independent route —
+# so pinning only one of the two would still lose this case.
+mkdir -p "$T/evilhome"
+printf '*\n' > "$T/evilhome/exclude"
+{
+  printf '[status]\n\tshowUntrackedFiles = no\n'
+  printf '[core]\n\texcludesFile = %s/evilhome/exclude\n' "$T"
+} > "$T/evilhome/.gitconfig"
+cfg_setup() { :; }
+config_vector_case "\$HOME gitconfig (showUntrackedFiles + excludesFile)" "$T/cfg_home" \
+  "HOME=$T/evilhome" "XDG_CONFIG_HOME=$T/evilhome"
+
 # ----------------------------------------------------------- must-fail half ---
 # Restore the original expression. The broken fixture MUST then read clean.
 MUT="$T/mutant.sh"
@@ -441,6 +553,77 @@ if mutant_is_defective "$MUT"; then
   fi
 else
   fail "teeth: mutation did not apply — cannot prove the gate has teeth"
+fi
+
+# --- narrow teeth for the config vector --------------------------------------
+# ⛔ The make_mutant teeth above are TOO BROAD to prove anything about the config
+# assertions: that mutant deletes the whole three-state fix, so its failures are
+# over-determined. A stand-in that keeps every other guard and strips ONLY the
+# two call-site pins is the sharp control — it isolates this one change, and it
+# is precisely the shape that shipped and lost data.
+CMUT="$T/cfg-mutant.sh"
+sed 's/ -c core\.excludesFile=\/dev\/null//; s/ --untracked-files=normal//' "$SUT" > "$CMUT"
+# ⛔ Anchored on the STATUS CALL, not on the bare strings. Both names also occur
+# in the prose above that call explaining why they are there, so a whole-file
+# grep is satisfied by the comment and reports "not applied" on a stand-in that
+# applied perfectly — this repo's own source-scan-matches-PROSE trap, hit here
+# while writing this gate.
+if grep -q 'out=.*status --porcelain.*--untracked-files' "$CMUT" \
+   || grep -q 'out=.*excludesFile' "$CMUT"; then
+  fail "teeth: config-pin stand-in did not apply — cannot prove the config assertions have teeth"
+# ⛔ Matches the UNKNOWN FAMILY, not the bare literal. This file classifies
+# UNKNOWN-rc / UNKNOWN-scope / UNKNOWN-perm — a `printf 'UNKNOWN'` grep finds
+# none of them and reported "the stand-in lost the UNKNOWN fix" about a
+# stand-in that had kept it perfectly. Ported straight from main, where the
+# single-state literal was correct; the anchor had to move with the code.
+elif ! grep -q "printf 'UNKNOWN" "$CMUT"; then
+  fail "teeth: config-pin stand-in lost the UNKNOWN fix too — no longer a narrow control"
+elif build_fixture "$T/cfgmut"; then
+  git -C "$T/cfgmut" config status.showUntrackedFiles no
+  ( cd "$T/cfgmut" && bash "$CMUT" --all >/dev/null 2>&1 )
+  if [ -f "$T/cfgmut/.claude/worktrees/dirtywt/pending.txt" ]; then
+    fail "teeth: uncommitted work survived even WITHOUT the config pins — the config assertions are vacuous"
+  else
+    pass "teeth: strip only the config pins and uncommitted work IS deleted (config assertions are real)"
+  fi
+else
+  fail "teeth: config-pin stand-in fixture failed to build"
+fi
+
+# --- narrow teeth for the ignored-only state ---------------------------------
+# Same discipline as the config pins: strip ONLY the ignored probe, keep every
+# other guard, and the ignored-only tree must then be destroyed. Without this,
+# the IGNORED assertions could be passing on the strength of the earlier fixes.
+IMUT="$T/ig-mutant.sh"
+awk '
+  /^  local ig igrc=0$/ { skip = 1; print "  local ig igrc=0"; next }
+  skip && /^  if \[ -n "\$ig" \]/ { skip = 0; next }
+  skip { next }
+  { print }
+' "$SUT" > "$IMUT"
+if grep -q 'ignored=traditional' "$IMUT" && grep -q 'printf .IGNORED' "$IMUT"; then
+  # The classifier still has both halves, so nothing was removed. `ignored_sample`
+  # also contains `ignored=traditional`, so this checks the CLASSIFIER's own two
+  # markers together rather than a bare filename grep that the helper satisfies.
+  if awk '/^worktree_state\(\)/,/^\}/' "$IMUT" | grep -q 'ignored=traditional'; then
+    fail "teeth: ignored-probe stand-in did not apply — cannot prove the IGNORED assertions have teeth"
+  else
+    IMUT_OK=1
+  fi
+else
+  IMUT_OK=1
+fi
+if [ "${IMUT_OK:-0}" = "1" ]; then
+  if build_fixture "$T/igmut"; then
+    ( cd "$T/igmut" && bash "$IMUT" --all >/dev/null 2>&1 )
+    if [ -f "$T/igmut/.claude/worktrees/ignoredwt/.env" ]; then
+      fail "teeth: the ignored-only tree survived even WITHOUT the ignored probe — the IGNORED assertions are vacuous"
+    else
+      pass "teeth: strip only the ignored probe and the .env worktree IS destroyed (IGNORED assertions are real)"
+    fi
+  else
+    fail "teeth: ignored-probe stand-in fixture failed to build"
+  fi
 fi
 
 printf '\n'

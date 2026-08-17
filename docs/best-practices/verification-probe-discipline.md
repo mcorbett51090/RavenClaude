@@ -102,6 +102,37 @@ them is the whole bug. The same shape sat in
 though there the downstream `git worktree remove` (no `--force`) and `git branch -d`
 vetoes close the actual loss path. Same pattern, honestly different severity.
 
+### The third face: the probe ran, and answered a narrower question than you asked
+
+The two faces above are a probe that **failed** (rc ignored) and a probe that **succeeded against
+the wrong subject** (git's discovery walks upward, so rc=0 can come from an ancestor). There is a
+third, and it is the least visible of the three: the probe ran, against the right subject, exited
+0 — and reported "nothing here" because **configuration had narrowed what it was willing to say**.
+
+`git status --porcelain` honours `status.showUntrackedFiles`, and `core.excludesFile` can hide the
+same files by a second, independent route. Neither needs an adversary; both are ordinary settings a
+user types once and forgets, and git reads them from the repo-local `.git/config`, `$HOME`,
+`$XDG_CONFIG_HOME`, the system config, or `GIT_CONFIG_*`. So a worktree holding only untracked work
+classified `clean` and `--all` deleted it.
+
+Measured against the already-fixed script, one uncommitted file, **no environment variables at all**
+— just `git config status.showUntrackedFiles no` in the parent repo:
+
+```
+plain `status --porcelain`                          -> clean  -> DELETED
+with `-c core.excludesFile=/dev/null` + `--untracked-files=normal`  -> DIRTY -> refused
+```
+
+**Pin the semantics at the call site.** An explicit flag and `-c` outrank every config source, so
+one change closes repo-local, `$HOME`, XDG, system and `GIT_CONFIG_*` at once — where enumerating
+env vars closes only the ones you thought to name. (An env-scrub that enumerated `GIT_*` missed this
+entirely: `HOME` is not `GIT_`-prefixed.)
+
+The general form, which is what carries beyond git: **a probe's answer is scoped by its
+configuration, and the configuration is not part of the question you think you asked.** When an
+empty result will authorise something irreversible, pin the probe's semantics explicitly rather
+than inheriting whatever the environment happens to say.
+
 ## Edge cases / when this does NOT apply
 
 - **Fail-safe hooks keep their suppression.** This repo's hooks exit 0 on every error
