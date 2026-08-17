@@ -25,6 +25,31 @@ EOF
   exit "${1:-2}"
 }
 
+# Classify a worktree. Prints exactly one of: clean | DIRTY | UNKNOWN
+#
+# ⛔ UNKNOWN is the whole point of this helper. When `git status` itself FAILS —
+# not a git repo, a corrupt or absent .git, a linked worktree whose parent repo
+# is gone, git missing from PATH, permission denied — it writes NOTHING to
+# stdout and exits non-zero. That empty stdout is byte-identical to a genuinely
+# clean tree's. So `[ -z "$(git ... 2>/dev/null)" ]` reads a FAILED inspection as
+# "clean", and remove_all_clean would then DELETE a worktree it never managed to
+# look at. Verified 2026-08-17: a non-git dir yields exit 128 with empty stdout.
+#
+# Capturing the exit code separately is what splits "I looked and it is clean"
+# from "I could not look". Fail toward NOT deleting.
+# See docs/best-practices/verification-probe-discipline.md.
+worktree_state() { # $1=dir -> prints clean|DIRTY|UNKNOWN
+  local out rc=0
+  out="$(git -C "$1" status --porcelain 2>/dev/null)" || rc=$?
+  if [ "$rc" -ne 0 ]; then
+    printf 'UNKNOWN'
+  elif [ -z "$out" ]; then
+    printf 'clean'
+  else
+    printf 'DIRTY'
+  fi
+}
+
 list_worktrees() {
   if [ ! -d "$WT_ROOT" ]; then
     printf 'no worktrees (%s missing)\n' "$WT_ROOT"
@@ -35,11 +60,7 @@ list_worktrees() {
     local slug
     slug="$(basename "$d")"
     local status
-    if [ -z "$(git -C "$d" status --porcelain 2>/dev/null)" ]; then
-      status="clean"
-    else
-      status="DIRTY"
-    fi
+    status="$(worktree_state "$d")"
     printf '  %-30s  %s\n' "$slug" "$status"
   done
 }
@@ -89,11 +110,21 @@ remove_all_clean() {
     [ -d "$d" ] || continue
     local slug
     slug="$(basename "$d")"
-    if [ -z "$(git -C "$d" status --porcelain 2>/dev/null)" ]; then
-      remove_one "$slug" || printf '  skipped %s\n' "$slug"
-    else
-      printf '  skipped %s (dirty)\n' "$slug"
-    fi
+    case "$(worktree_state "$d")" in
+      clean)
+        remove_one "$slug" || printf '  skipped %s\n' "$slug"
+        ;;
+      DIRTY)
+        printf '  skipped %s (dirty)\n' "$slug"
+        ;;
+      *)
+        # UNKNOWN — `git status` failed, so we never learned whether this tree
+        # holds work. Deleting on an unreadable inspection is the exact defect
+        # this case exists to prevent. Skip loudly and let a human look.
+        printf '  skipped %s (UNKNOWN — git status failed; inspect by hand, then use: %s %s --force)\n' \
+          "$slug" "$0" "$slug"
+        ;;
+    esac
   done
 }
 

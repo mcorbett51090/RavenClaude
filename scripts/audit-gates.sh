@@ -1101,9 +1101,14 @@ PY
       bash plugins/ravenclaude-core/hooks/tests/test-gate215-handoff-host-spawn.sh
       exit $?
       ;;
+    216)
+      echo "── Gate 216: worktree state clean/DIRTY/UNKNOWN (per-gate run) ──"
+      bash scripts/check-worktree-state.sh
+      exit $?
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -7274,6 +7279,19 @@ rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate215-handoff-host-spawn.
 gate "handoff-host-pair: chat/cli dry-run omit grok; unset host still grok" must_pass "$rc"
 rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate215-handoff-host-spawn.sh --must-fail-chat-grok >/dev/null 2>&1 || rc=$?
 gate "handoff-host-pair teeth: a mutant that emits grok on --host chat IS caught" must_fail "$rc"
+
+echo "── Gate 216: a worktree we could not inspect must never read as clean ──"
+# ⛔ Registered in BOTH this main sequence AND the --check dispatcher above + the
+# Supported: string. After adding a gate, GREP THE SUITE OUTPUT FOR "216".
+#
+# worktree-clean.sh --all gated deletion on `[ -z "$(git … 2>/dev/null)" ]`. A
+# FAILED `git status` (stale linked worktree, corrupt .git, git off PATH) emits
+# empty stdout and a non-zero exit, so the failed inspection was indistinguishable
+# from a clean tree and the worktree was DELETED unexamined. Found 2026-08-17.
+rc=0; bash scripts/check-worktree-state.sh >/dev/null 2>&1 || rc=$?
+gate "worktree-state: clean/DIRTY/UNKNOWN split; --all skips the un-inspectable" must_pass "$rc"
+rc=0; bash scripts/check-worktree-state.sh --must-fail-nofix >/dev/null 2>&1 || rc=$?
+gate "worktree-state teeth: with the fix removed, broken misreads as clean and IS caught" must_fail "$rc"
 
 echo "── Gate 206: no plugin description may carry an artifact-count literal ──"
 # P13 / D1. Prose counts in plugin.json + marketplace.json descriptions are
