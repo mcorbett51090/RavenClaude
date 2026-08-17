@@ -36,6 +36,17 @@ description: Remove finished agent worktrees, prune their branches, and surface 
      that advice sends you in a loop — and loop pressure is what makes people
      tunnel to a manual delete. Read the specific cause, fix that, or move the
      tree aside. Never delete it to make the message go away.
+   - **IGNORED** — nothing tracked is modified and nothing is untracked, but the
+     tree still holds **ignored** files (`.env`, `node_modules/`, a local db).
+     ⛔ `git status --porcelain` is **silent on ignored files by design**, so this
+     tree used to report empty output and classify `clean` — with git working
+     perfectly. The `.env` case is the one that hurts: a file is ignored
+     *precisely because* it is not in git, so the rule that hides it from the
+     probe is the same rule that guarantees no other copy exists.
+     `worktree-clean.sh` skips it under `--all` and names what is there. Unlike
+     UNKNOWN, it **does** honour `--force` — the difference is knowledge, not
+     danger: here we can see exactly what would be destroyed, so `--force` is a
+     considered choice rather than a blind one.
    - **Stale** — last commit > 14 days old, no PR. Flag for the user, don't remove without confirmation.
 3. **Close the lane first.** Close the VS Code window / end the Chat session for that worktree before `git worktree remove`, or the next session can reuse an Agents-window conversation from the removed tree.
 4. **Remove the safe ones.**

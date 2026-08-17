@@ -141,7 +141,7 @@ build_fixture() { # $1=dest root -> 0 on success
   # untracked file would show in the PARENT's status. With the ignore in place
   # git walks up, finds the clean parent, exits 0 with EMPTY stdout, and the
   # tree classifies `clean` while never having been inspected at all.
-  printf '.claude/worktrees/\n' > "$r/.gitignore"
+  printf '.claude/worktrees/\n.env\nnode_modules/\n' > "$r/.gitignore"
   git -C "$r" add .gitignore >/dev/null 2>&1 || return 1
   git -C "$r" -c commit.gpgsign=false commit -qm ignore >/dev/null 2>&1 || return 1
   mkdir -p "$r/.claude/worktrees/g_plaindir"
@@ -154,6 +154,17 @@ build_fixture() { # $1=dest root -> 0 on success
   # walks UPWARD, finds the parent repo, succeeds, and reports the file as
   # untracked — the fixture reads DIRTY and the gate passes without ever
   # exercising the defect. That mistake was made and caught while writing this.
+
+  # ⛔ IGNORED shape, added AFTER the .gitignore commit on purpose: the worktree
+  # checks out HEAD, so a worktree created before that commit would not carry the
+  # ignore rule and its .env would read as an ordinary untracked file — the tree
+  # would classify DIRTY and the IGNORED assertions would pass for the wrong
+  # reason, measuring nothing. `secrets.env` also matches nothing here; the file
+  # must be exactly `.env` for the committed rule to hide it.
+  git -C "$r" worktree add -q "$r/.claude/worktrees/ignoredwt" >/dev/null 2>&1 || return 1
+  printf 'DB_PASSWORD=irreplaceable\n' > "$r/.claude/worktrees/ignoredwt/.env"
+  mkdir -p "$r/.claude/worktrees/ignoredwt/node_modules/pkg"
+  printf 'x\n' > "$r/.claude/worktrees/ignoredwt/node_modules/pkg/index.js"
   return 0
 }
 
@@ -214,6 +225,17 @@ else
   fail "worktree with .git removed read '$NOGIT_S' (expected UNKNOWN)"
 fi
 
+# ⛔ The ignored-only class. `status --porcelain` is silent on ignored files BY
+# DESIGN, so a tree holding only .env / node_modules produced empty output while
+# git was working perfectly — no failure, no wrong subject, no misleading config.
+# The probe simply answered a narrower question than the caller needed.
+IGNORED_S="$(status_of "$T/live" ignoredwt)"
+if [ "$IGNORED_S" = "IGNORED" ]; then
+  pass "a worktree holding only ignored files reads IGNORED, not clean"
+else
+  fail "ignored-only worktree read '$IGNORED_S' (expected IGNORED)"
+fi
+
 # --- the deletion path -------------------------------------------------------
 ( cd "$T/live" && bash "$SUT" --all >"$T/all.out" 2>&1 )
 
@@ -248,6 +270,37 @@ if [ -f "$T/live/.claude/worktrees/g_plaindir/keep.txt" ] \
   pass "--all left both upward-walk shapes on disk (asserted AFTER --all ran)"
 else
   fail "--all DELETED an upward-walk shape it never actually inspected"
+fi
+
+if [ -f "$T/live/.claude/worktrees/ignoredwt/.env" ]; then
+  pass "--all did not delete the worktree holding only ignored files"
+else
+  fail "--all DELETED an ignored-only worktree (.env is untracked by definition — unrecoverable)"
+fi
+
+# Refusal WITHOUT --force must be asserted before the --force case below, or
+# "--force removed it" is consistent with a script that removes it either way.
+ig_bare="$( cd "$T/live" && bash "$SUT" ignoredwt 2>&1 )" || true
+if [ -f "$T/live/.claude/worktrees/ignoredwt/.env" ]; then
+  pass "remove_one refuses an ignored-only worktree without --force"
+else
+  fail "remove_one removed an ignored-only worktree with no --force"
+fi
+case "$ig_bare" in
+  *"ignored files"*) pass "remove_one names what the ignored-only tree holds" ;;
+  *) fail "remove_one refused without naming the ignored content: $ig_bare" ;;
+esac
+
+# ⛔ THE OVER-BLOCKING HALF, and it is not optional. Every assertion above is
+# satisfied by a script that refuses to remove ANYTHING ignored under any
+# circumstances — which would strand every node_modules tree forever and quietly
+# convert a safety fix into a broken tool. IGNORED must take --force, unlike
+# UNKNOWN which must refuse it. Asserting only the refusal tests half a contract.
+ig_forced="$( cd "$T/live" && bash "$SUT" ignoredwt --force 2>&1 )" || true
+if [ ! -d "$T/live/.claude/worktrees/ignoredwt" ]; then
+  pass "remove_one --force DOES remove an ignored-only worktree (IGNORED is not UNKNOWN)"
+else
+  fail "remove_one --force refused an ignored-only worktree — over-blocking: $ig_forced"
 fi
 
 # ⛔ Bound to the SLUG, not a bare grep for the word. `grep -q UNKNOWN` over
@@ -401,6 +454,42 @@ elif build_fixture "$T/cfgmut"; then
   fi
 else
   fail "teeth: config-pin stand-in fixture failed to build"
+fi
+
+# --- narrow teeth for the ignored-only state ---------------------------------
+# Same discipline as the config pins: strip ONLY the ignored probe, keep every
+# other guard, and the ignored-only tree must then be destroyed. Without this,
+# the IGNORED assertions could be passing on the strength of the earlier fixes.
+IMUT="$T/ig-mutant.sh"
+awk '
+  /^  local ig igrc=0$/ { skip = 1; print "  local ig igrc=0"; next }
+  skip && /^  if \[ -n "\$ig" \]/ { skip = 0; next }
+  skip { next }
+  { print }
+' "$SUT" > "$IMUT"
+if grep -q 'ignored=traditional' "$IMUT" && grep -q 'printf .IGNORED' "$IMUT"; then
+  # The classifier still has both halves, so nothing was removed. `ignored_sample`
+  # also contains `ignored=traditional`, so this checks the CLASSIFIER's own two
+  # markers together rather than a bare filename grep that the helper satisfies.
+  if awk '/^worktree_state\(\)/,/^\}/' "$IMUT" | grep -q 'ignored=traditional'; then
+    fail "teeth: ignored-probe stand-in did not apply — cannot prove the IGNORED assertions have teeth"
+  else
+    IMUT_OK=1
+  fi
+else
+  IMUT_OK=1
+fi
+if [ "${IMUT_OK:-0}" = "1" ]; then
+  if build_fixture "$T/igmut"; then
+    ( cd "$T/igmut" && bash "$IMUT" --all >/dev/null 2>&1 )
+    if [ -f "$T/igmut/.claude/worktrees/ignoredwt/.env" ]; then
+      fail "teeth: the ignored-only tree survived even WITHOUT the ignored probe — the IGNORED assertions are vacuous"
+    else
+      pass "teeth: strip only the ignored probe and the .env worktree IS destroyed (IGNORED assertions are real)"
+    fi
+  else
+    fail "teeth: ignored-probe stand-in fixture failed to build"
+  fi
 fi
 
 printf '\n'
