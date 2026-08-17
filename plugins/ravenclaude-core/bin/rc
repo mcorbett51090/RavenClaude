@@ -48,9 +48,10 @@ Usage:
   rc streams [list]                     List logical work-streams in this project (default).
 
   rc artifacts list|new <id>   where work files go, across CLIs
-  rc handoff --task-id <id> [--dry-run] [--recipe copy-paste|os-terminal]
-                                        Print (and optionally spawn) a fresh Grok
-                                        window from a run-dir handoff.md.
+  rc handoff --task-id <id> [--dry-run] [--host grok|cli|chat]
+                                        [--recipe copy-paste|same-host|os-terminal]
+                                        Print (and optionally spawn) a same-host
+                                        successor from a run-dir handoff.md.
   rc forge-worktree init|checkpoint|path|--self-test
                                         FORGE worktree provisioner (plugin scripts/).
   rc forge-route --plan PATH | --self-test

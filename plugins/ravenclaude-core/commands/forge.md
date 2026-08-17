@@ -40,6 +40,9 @@ the gates, because restating them means paying for the pipeline's description tw
    (no-op when there is nothing tracked to commit).
 5. **Write the Sága run record** — one entry per gate: pass/fail/waiver, who ran it, model, cost.
    Then a final checkpoint (`forge-worktree.sh checkpoint <slug> exit`) before the single exit.
+   **Before `ExitPlanMode`:** `bash "$FORGE_PLUGIN_ROOT/scripts/forge-publish-session-plan.sh" --plan
+   .ravenclaude/runs/forge/<slug>/plan.md`. Grok reads the *session* `plan.md`, not the run-dir
+   file. Do not call `ExitPlanMode` if the source is empty or the publish step failed.
 
 ## Guardrails (reused, not rebuilt)
 

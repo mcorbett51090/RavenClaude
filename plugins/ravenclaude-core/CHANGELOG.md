@@ -2,6 +2,35 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.271.0 — 2026-08-14
+
+### Added
+
+- **Host-paired `/handoff` spawn.** `--host grok|cli|chat` (aliases `copilot-cli` /
+  `copilot-chat`). Chat writes `chat-resume.md` and prints Cmd+N / New Chat +
+  paste — never `grok`. CLI prints interactive `copilot`. Grok positional seed
+  is unchanged. `--host` wins; never infer Chat from `TERM_PROGRAM=vscode`.
+- Gate **215** (Chat/CLI must not emit `grok`; `--must-fail-chat-grok` teeth).
+  Gate 213 Grok teeth kept.
+
+### Not claimed
+
+- Copilot Chat Stop/nudge fire (Preview hooks). Chat path is skill-invoke.
+- URI `prompt=` / `query` starting a **new** Chat session and prefilling.
+- Chat is not a protected install host. No `copilot-chat` marketplace column.
+- Origin `context_handoff` stays off.
+
+## 0.270.1 — 2026-08-14
+
+### Fixed
+
+- **FORGE G8 publishes the host session `plan.md`.** Grok's `exit_plan_mode` reads
+  `~/.grok/sessions/<encoded-cwd>/<id>/plan.md`, not the Sága run-dir file. A
+  `/forge` that called `ExitPlanMode` without that copy opened **No plan written
+  yet**. New `scripts/forge-publish-session-plan.sh` copies the run-dir plan
+  (size-matched, refuse empty) before exit. Honest skip when there is no Grok
+  session tree.
+
 ## 0.270.0 — 2026-08-14
 
 ### Added
