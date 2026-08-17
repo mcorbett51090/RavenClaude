@@ -2,6 +2,31 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.271.2 — 2026-08-17
+
+### Fixed
+
+- **`skills/cleanup-worktrees/SKILL.md` no longer prescribes a remedy that does
+  nothing, and now documents both causes of `UNKNOWN`.** The entry told the
+  reader to "repair it first (`git worktree repair` / `git worktree prune`)".
+  Both were **measured to be no-ops on every UNKNOWN shape tested** — a corrupt
+  index and a `chmod 000` `.git` were unchanged by either command — so an agent
+  or operator following that advice loops indefinitely, which is the pressure
+  that produces a manual `rm -rf`. `scripts/worktree-clean.sh` had already
+  dropped the advice for that reason; the skill had not.
+
+  It also described only one of the two causes. `UNKNOWN` arises when
+  `git status` **fails** (empty stdout, non-zero exit) *and* when `git status`
+  **succeeds against an ancestor** — a directory that is not a worktree, or a
+  worktree whose `.git` file is missing, where git's discovery walks up and
+  reports the parent. Because `.claude/worktrees/` is gitignored the parent
+  reports nothing, so that case also comes back empty, with **exit 0**. That is
+  the more common shape and the reason a successful `git status` is not by
+  itself evidence that anything was inspected.
+
+**Migration:** none — documentation only. Describes behaviour already shipped in
+0.271.1; no code changed.
+
 ## 0.271.1 — 2026-08-17
 
 ### Fixed
