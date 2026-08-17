@@ -28,11 +28,15 @@ Copy-paste these in a VS Code window. This CLI cannot run Chat Agent mode.
 3. Ask the agent to Write an **absolute path** under sibling worktree B.
 4. Record keep / undo / approval dialog / no-op. Do not guess.
 
-Write the redacted result to (prefer the leftover run; keep prior-plan path
-for continuity):
+Write the redacted result into the **tracked** probe record:
 
-- `.ravenclaude/runs/forge/chat-write-deny/probe-cl3.md`
-- `.ravenclaude/runs/forge/copilot-chat-worktree-lanes/probe-cl3.md`
+- `docs/research/2026-08-14-chat-ceiling-probes.md` → the **CL-3** table
+
+⛔ Do **not** record the result only under `.ravenclaude/runs/forge/**`. That path is
+gitignored (`.gitignore:4`), so it is machine-local and disposable — the previous
+run's `probe-cl3.md` / `probe-cl19.md` were lost with their worktree and were never
+in the PR. A run-dir copy is fine as scratch; the `docs/` file is the record.
+Per `AGENTS.md` § "Where work files go", anything a teammate needs is committed-tier.
 
 Until that table is filled, do not claim Chat can or cannot land sibling Write.
 
@@ -48,10 +52,12 @@ Until that table is filled, do not claim Chat can or cannot land sibling Write.
 6. Output channels: **Developer: Show Agent Debug Logs** and
    **GitHub Copilot Chat Hooks**.
 
-Write the redacted dump to:
+Write the redacted dump into the **tracked** probe record:
 
-- `.ravenclaude/runs/forge/chat-write-deny/probe-cl19.md`
-- `.ravenclaude/runs/forge/copilot-chat-worktree-lanes/probe-cl19.md`
+- `docs/research/2026-08-14-chat-ceiling-probes.md` → the **CL-19b** dump + slot table
+
+⛔ Same rule as CL-3: `.ravenclaude/runs/forge/**` is gitignored and does not survive
+the worktree. Redact secrets and home paths **before** the dump reaches a tracked file.
 
 ### Observation slots (record; do not map)
 
