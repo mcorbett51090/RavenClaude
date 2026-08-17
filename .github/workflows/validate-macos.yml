@@ -37,6 +37,22 @@ on:
       # which is exactly how PR #828 shipped an unparseable scripts/ravenclaude.
       - "scripts/ravenclaude"
       - "plugins/*/bin/rc"
+  # ⛔ THE SUITE LANE NEEDS AN UNFILTERED TRIGGER, AND THIS IS WHY.
+  # The `paths:` filters above are correct for the two hook jobs — they protect a
+  # named shell surface. They are the WRONG shape for `audit-gates.sh`, which is a
+  # WHOLE-TREE reader (AGENTS.md: "An allow-list that fails open is the wrong shape
+  # for a whole-tree validator"). A macOS-only break in scripts/*.py or a generator
+  # would never match these globs, so a paths-filtered suite would rebuild the exact
+  # blind spot it exists to close.
+  # A `schedule` trigger carries NO paths filter, so the suite runs over the whole
+  # tree nightly regardless of what changed. Nightly (not per-PR) is the deliberate
+  # cost trade: macOS bills at 10x, and per-PR would be ~10x the spend of this lane.
+  # It cannot block a bad PR — but the status quo catches this class NEVER, and a
+  # <24h signal naming the merge that broke it is the large step. To promote to
+  # per-merge, add `push: branches: [main]` with no paths; to per-PR, drop the
+  # paths filters above. Both are one-line owner decisions, not code changes.
+  schedule:
+    - cron: "17 9 * * *" # 09:17 UTC daily — off the hour to dodge scheduler spikes
   workflow_dispatch:
 
 # Least-privilege GITHUB_TOKEN: this workflow only reads the repo to validate it.
@@ -107,3 +123,58 @@ jobs:
         run: |
           python3 scripts/check-verdict-default-nonpermissive.py --self-test
           python3 scripts/check-verdict-default-nonpermissive.py
+
+  audit-gates-macos:
+    name: Every gate passes on a stock macOS toolchain
+    runs-on: macos-latest
+    # WHY THIS JOB EXISTS (measured 2026-08-17, not hypothetical):
+    # Gates 213/215 shipped GREEN in CI and RED for every developer inside VS Code.
+    # The tests read the ambient host-detection surface (TERM_PROGRAM and ten
+    # siblings), so `TERM_PROGRAM` unset -> pass, `=vscode` -> fail. CI never saw it
+    # because audit-gates.sh runs ONLY in validate-marketplace.yml on ubuntu-latest;
+    # this workflow ran portability + hook-failclosed, never the suite. Three
+    # assertions were red on main for days with every check reporting SUCCESS.
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Record the toolchain baseline
+        # The suite's verdict is only meaningful against a KNOWN toolchain — print it
+        # so a future failure can be attributed to the runner rather than guessed at.
+        run: |
+          echo "uname:  $(uname -s) $(uname -r)"
+          echo "bash:   $(/bin/bash --version | head -1)"
+          echo "python: $(python3 --version)"
+          command -v timeout >/dev/null 2>&1 && echo "timeout: present" || echo "timeout: ABSENT (expected on stock macOS)"
+
+      - name: Set up Node.js
+        # The render/round-trip *.mjs gates run under node/npx, and audit-gates.sh
+        # HARD-FAILS in CI when node/npx is absent (a skip is not a pass).
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "20"
+
+      - name: Install ruff (audit-gates Gate 9b)
+        # Same pin as validate-marketplace.yml. `python3 -m pip`, never bare `pip`:
+        # bare pip is command-not-found on a stock macOS toolchain.
+        # ⛔ TWO DIFFERENT FAILURE MODES, so try plain THEN the PEP-668 escape:
+        # a Homebrew/externally-managed python REFUSES a plain install and needs
+        # --break-system-packages, while an older pip (21.2.4 ships with the stock
+        # CommandLineTools python 3.9) REJECTS that flag outright with exit 2
+        # (measured 2026-08-17). Neither form alone is safe across runner images.
+        run: |
+          python3 -m pip install --quiet 'ruff==0.15.8' \
+            || python3 -m pip install --quiet --break-system-packages 'ruff==0.15.8'
+
+      - name: Install jsonschema (audit-gates Gate 47)
+        # Same plain-then-PEP-668 fallback as the ruff step above.
+        run: |
+          python3 -m pip install --quiet jsonschema \
+            || python3 -m pip install --quiet --break-system-packages jsonschema
+
+      - name: Audit every gate on macOS
+        # Same command validate-marketplace.yml runs on ubuntu. The POINT is the
+        # runner, not the command: bash 3.2, BSD grep/sed, absent GNU timeout.
+        run: scripts/audit-gates.sh
