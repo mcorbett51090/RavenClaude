@@ -50,8 +50,35 @@ rcgit() {
   for _v in $(env | sed -n 's/^\(GIT_[A-Za-z0-9_]*\)=.*/\1/p'); do
     _u+=(-u "$_v")
   done
+  # ⛔ THE SCRUB ALONE IS NOT ENOUGH, and believing it was is what made the
+  # comment below this function false for a while. Unsetting GIT_* closes the
+  # GIT_CONFIG_COUNT/KEY_n/VALUE_n family, but git ALSO reads $HOME/.gitconfig,
+  # $XDG_CONFIG_HOME/git/config and the system config — none of which is
+  # GIT_-prefixed, so no amount of enumerating GIT_* reaches them.
+  #
+  # That matters far more than a misclassification, because some config values
+  # are PROGRAMS GIT EXECUTES. `core.fsmonitor` is run during `git status`.
+  # Measured 2026-08-17 against this script before this line existed:
+  #   repo-local .git/config core.fsmonitor -> 2 executions per --status
+  #   $HOME/.gitconfig       core.fsmonitor -> 2 executions per --status
+  #   GIT_CONFIG_COUNT=... (control)        -> 0   (the scrub held this route)
+  # i.e. arbitrary command execution as the operator, from a tool whose entire
+  # reason to exist is being the safe one.
+  #
+  # Pointing GLOBAL and SYSTEM at /dev/null closes those two whole FILES for
+  # every key, rather than naming keys one at a time — the same
+  # allowlist-by-construction argument as the GIT_* enumeration above, applied
+  # one layer out. `env` applies -u before assignments, so this composes with
+  # the scrub. Repo-local `.git/config` is NOT covered here (it is per-call, and
+  # a `-c` pin at the call site is the only thing that outranks it).
+  #
+  # Losing the user's global config is CORRECT for a classification probe: we
+  # want git's stock semantics, not whatever this machine was tuned to. And the
+  # one plausible casualty — a global `safe.directory` — makes git refuse, which
+  # this script reads as UNKNOWN-rc and fails toward NOT deleting.
+  #
   # bash 3.2: an empty array under `set -u` errors on plain "${_u[@]}".
-  env ${_u[@]+"${_u[@]}"} git "$@"
+  env ${_u[@]+"${_u[@]}"} GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null git "$@"
 }
 
 # Strip terminal control characters from anything attacker-influenced before it
@@ -154,10 +181,14 @@ worktree_state() { # $1=dir -> prints clean|DIRTY|IGNORED|UNKNOWN-rc|UNKNOWN-sco
   # environment variables at all, just `git config status.showUntrackedFiles no`:
   # a worktree holding uncommitted work classified `clean` and was removed.
   #
-  # The two pins below outrank every config source, so they close the vectors the
-  # scrub cannot see, and the scrub closes the env forms `-c` does not cover.
-  # Both are kept: neither subsumes the other.
-  out="$(rcgit -C "$1" -c core.excludesFile=/dev/null status --porcelain --untracked-files=normal 2>/dev/null)" || rc=$?
+  # ⛔ Scope, stated exactly — an earlier version of this comment said the pins
+  # "outrank every config source", which is false and was called out in review.
+  # What is true: a `-c` pin outranks every source FOR THE KEYS IT NAMES. It says
+  # nothing about keys it does not name, which is why the config-EXECUTION vector
+  # (core.fsmonitor) needed closing in rcgit rather than here.
+  # Division of labour: rcgit closes GIT_* and the global/system FILES wholesale;
+  # these per-call pins close the repo-local `.git/config`, which nothing else can.
+  out="$(rcgit -C "$1" -c core.excludesFile=/dev/null -c core.fsmonitor= status --porcelain --untracked-files=normal 2>/dev/null)" || rc=$?
   if [ "$rc" -ne 0 ]; then
     printf 'UNKNOWN-rc'
     return
@@ -184,7 +215,7 @@ worktree_state() { # $1=dir -> prints clean|DIRTY|IGNORED|UNKNOWN-rc|UNKNOWN-sco
   # signal), node_modules -> ONE line (`traditional` collapses it, so it is cheap).
   # Reached only when the tree is already a deletion candidate.
   local ig igrc=0
-  ig="$(rcgit -C "$1" -c core.excludesFile=/dev/null status --porcelain --untracked-files=normal --ignored=traditional 2>/dev/null)" || igrc=$?
+  ig="$(rcgit -C "$1" -c core.excludesFile=/dev/null -c core.fsmonitor= status --porcelain --untracked-files=normal --ignored=traditional 2>/dev/null)" || igrc=$?
   if [ "$igrc" -ne 0 ]; then printf 'UNKNOWN-rc'; return; fi
   if [ -n "$ig" ]; then printf 'IGNORED'; return; fi
   printf 'clean'
@@ -193,10 +224,33 @@ worktree_state() { # $1=dir -> prints clean|DIRTY|IGNORED|UNKNOWN-rc|UNKNOWN-sco
 # First few ignored entries, for a message an operator can act on. Bounded, and
 # sanitized like every other attacker-influenced string this file prints — an
 # ignored PATH is named by whoever created the file, so it reaches a terminal.
-ignored_sample() { # $1=dir
-  rcgit -C "$1" -c core.excludesFile=/dev/null status --porcelain \
+# ⛔ ORDER IS LOAD-BEARING in the pipeline below. `sanitize` deletes \000-\037,
+# which INCLUDES the newline (0x0A) — so running it BEFORE `tr` left the tr with
+# nothing to translate and glued every entry into one token: `.envnode_modules/`.
+# That is the exact string an operator reads before deciding to type --force on
+# something unrecoverable, made unparseable by the guard meant to make it safe.
+# Translate the separator FIRST, then strip whatever control bytes remain.
+#
+# ⛔ And the comment explaining that CANNOT live inside the pipeline: a comment
+# between a command and its `|` continuation is a syntax error, which took this
+# whole script out (`line 205: syntax error near unexpected token '|'`) while
+# every probe run against it silently returned "nothing found".
+ignored_sample() { # $1=dir -> "a b c" or "a b c (+N more)"
+  local _all _n
+  _all="$(rcgit -C "$1" -c core.excludesFile=/dev/null -c core.fsmonitor= status --porcelain \
       --untracked-files=normal --ignored=traditional 2>/dev/null \
-    | sed -n 's/^!! //p' | head -3 | sanitize | tr '\n' ' '
+    | sed -n 's/^!! //p')" || true
+  [ -n "$_all" ] || { printf ''; return; }
+  _n="$(printf '%s\n' "$_all" | wc -l | tr -d ' ')"
+  printf '%s' "$(printf '%s\n' "$_all" | head -3 | tr '\n' ' ' | sanitize)"
+  # ⛔ SAY WHEN YOU TRUNCATED. Review reproduced the consequence: three decoy
+  # names sorting before `.env` (an ordinary .gitignore covering .cache/,
+  # .coverage, .DS_Store does this with no attacker at all) meant the operator
+  # was shown "(.aaa .bbb .ccc)", typed --force on that basis, and destroyed a
+  # .env they were never shown. The whole justification for honouring --force
+  # here is "we can see it and we print it" — a silent cap makes that false.
+  [ "$_n" -gt 3 ] && printf '(+%s more)' "$((_n - 3))"
+  return 0
 }
 
 # UNKNOWN has two causes and they need OPPOSITE operator advice, so they are
@@ -207,6 +261,18 @@ ignored_sample() { # $1=dir
 #                   "Fix the cause above" pointing at a blank line.
 is_unknown() { case "$1" in UNKNOWN-*) return 0 ;; *) return 1 ;; esac; }
 explain_unknown() { # $1=state  $2=dir   -> one indented line of real diagnosis
+  # ⛔ SANITIZE ONCE, AT THE TOP, so every branch inherits it. Two of the three
+  # branches piped through `sanitize` individually and the UNKNOWN-perm branch
+  # did not — it printed the attacker-named path RAW. Reproduced in review: a
+  # directory named with ESC[2K + CR, mode 000, erased its own output row under
+  # --all and repainted a forged `<name>  clean` row; chaining two such entries
+  # erased a genuine `skipped … (dirty)` line entirely. The per-branch approach
+  # is the bug — it is an allowlist maintained by hand, and it was already wrong
+  # for one of three branches. One assignment covers every present and future
+  # branch by construction.
+  local _d
+  _d="$(printf '%s' "$2" | sanitize)"
+  set -- "$1" "$_d"
   case "$1" in
     UNKNOWN-rc)
       # ⛔ `|| true` on BOTH pipelines. This function is reached from paths where

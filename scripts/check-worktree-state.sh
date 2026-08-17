@@ -498,6 +498,19 @@ config_vector_case() { # $1=label $2=root $3... = env assignments for the run
   else
     fail "$label: --all DELETED a worktree holding uncommitted work (config steered the probe)"
   fi
+
+  # ⛔ CROSS THE TWO FIXES. The assertion above only exercises the pin on the
+  # `out` probe; the IGNORED probe is a SEPARATE call with its OWN pins, and the
+  # same config silences it too — `status.showUntrackedFiles=no` suppresses
+  # `--ignored` output as well. Measured: strip `--untracked-files=normal` from
+  # the ignored probe alone and an ignored-only tree flips IGNORED -> clean ->
+  # removed, with every other assertion in this gate still green. Two fixes
+  # reconciled independently, and the test for one did not cover the other.
+  if [ -f "$root/.claude/worktrees/ignoredwt/.env" ]; then
+    pass "$label: ignored-only worktree survived --all (the ignored probe is pinned too)"
+  else
+    fail "$label: --all DELETED an ignored-only worktree (config steered the IGNORED probe)"
+  fi
 }
 
 cfg_setup() { git -C "$1" config status.showUntrackedFiles no; }
