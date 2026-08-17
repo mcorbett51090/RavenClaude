@@ -9,11 +9,16 @@
 #   scripts/worktree-clean.sh <slug>              # remove if clean
 #   scripts/worktree-clean.sh <slug> --force      # remove even if dirty
 #   scripts/worktree-clean.sh --all               # remove all clean worktrees
-#   scripts/worktree-clean.sh --status            # list worktrees + clean/DIRTY/UNKNOWN
+#   scripts/worktree-clean.sh --status            # list worktrees + clean/DIRTY/IGNORED/UNKNOWN
 #
 # UNKNOWN means `git status` itself failed for that worktree (stale linked
-# worktree, corrupt .git, permission denied) — it is NOT a third flavour of
+# worktree, corrupt .git, permission denied) — it is NOT another flavour of
 # clean. --all skips it and remove_one refuses it, even with --force.
+#
+# IGNORED means the tree holds nothing tracked or untracked, but DOES hold
+# ignored files (.env, node_modules/, a local db). --all skips it and names
+# what is there; remove_one refuses it without --force and honours --force,
+# because unlike UNKNOWN we can see exactly what would be destroyed.
 
 set -euo pipefail
 
@@ -29,7 +34,7 @@ EOF
   exit "${1:-2}"
 }
 
-# Classify a worktree. Prints exactly one of: clean | DIRTY | UNKNOWN
+# Classify a worktree. Prints exactly one of: clean | DIRTY | IGNORED | UNKNOWN
 #
 # ⛔ UNKNOWN is the whole point of this helper. When `git status` itself FAILS —
 # not a git repo, a corrupt or absent .git, a linked worktree whose parent repo
@@ -42,7 +47,7 @@ EOF
 # Capturing the exit code separately is what splits "I looked and it is clean"
 # from "I could not look". Fail toward NOT deleting.
 # See docs/best-practices/verification-probe-discipline.md.
-worktree_state() { # $1=dir -> prints clean|DIRTY|UNKNOWN
+worktree_state() { # $1=dir -> prints clean|DIRTY|IGNORED|UNKNOWN
   local out rc=0 top
   # ⛔ SECOND HALF OF THE SAME DEFECT: `git status` exiting 0 does NOT mean
   # "I inspected this tree". Git's discovery walks UPWARD — for a plain
@@ -86,13 +91,51 @@ worktree_state() { # $1=dir -> prints clean|DIRTY|UNKNOWN
   # need an adversary who already controls the process, and are handled on the
   # hardening branch. This closes the no-adversary config vectors.
   out="$(git -C "$1" -c core.excludesFile=/dev/null status --porcelain --untracked-files=normal 2>/dev/null)" || rc=$?
-  if [ "$rc" -ne 0 ]; then
-    printf 'UNKNOWN'
-  elif [ -z "$out" ]; then
-    printf 'clean'
-  else
-    printf 'DIRTY'
-  fi
+  if [ "$rc" -ne 0 ]; then printf 'UNKNOWN'; return; fi
+  if [ -n "$out" ]; then printf 'DIRTY'; return; fi
+
+  # ⛔ FOURTH STATE. Nothing tracked is modified and nothing is untracked — but
+  # `status --porcelain` is SILENT ON IGNORED FILES BY DESIGN, so "empty" here
+  # still does not mean "empty tree". A worktree holding only `.env`,
+  # `node_modules/`, a local sqlite db or an un-pushed build classified `clean`
+  # and was removed. The credentials case is the one that hurts: `.env` is
+  # ignored precisely BECAUSE it is not in git, which makes it unrecoverable —
+  # the ignore rule that hides it from this probe is the same rule that means no
+  # copy exists anywhere else.
+  #
+  # This is the same "empty is a claim about the probe" shape a third time, and
+  # the narrowest version of it: the probe ran, against the right tree, exited 0,
+  # honoured no misleading config — and was still answering a narrower question
+  # than the one the caller needed ("is there anything here?" vs "is there
+  # anything git is TRACKING here?").
+  #
+  # Measured 2026-08-17:
+  #   fresh worktree of this repo -> 0 ignored entries (so this does not fire
+  #                                  on every newly created tree — it would be
+  #                                  noise, and a guard that always fires is a
+  #                                  guard that gets switched off)
+  #   worktree holding .env       -> `!! .env`
+  #   node_modules with 5 files   -> `!! node_modules/` (ONE line: `traditional`
+  #                                  collapses a wholly-ignored directory rather
+  #                                  than walking it, so this stays cheap)
+  #
+  # Only reached when the tree is otherwise a deletion CANDIDATE, so the extra
+  # git call is paid exactly where the care is warranted and nowhere else.
+  local ig igrc=0
+  ig="$(git -C "$1" -c core.excludesFile=/dev/null status --porcelain --untracked-files=normal --ignored=traditional 2>/dev/null)" || igrc=$?
+  # Could not determine -> fail toward NOT deleting, same as any failed probe.
+  if [ "$igrc" -ne 0 ]; then printf 'UNKNOWN'; return; fi
+  if [ -n "$ig" ]; then printf 'IGNORED'; return; fi
+  printf 'clean'
+}
+
+# The first few ignored entries, for a message an operator can act on. Bounded:
+# a wholly-ignored directory is already one line, but a tree with many distinct
+# ignore rules is not, and a skip message is not a place to print 200 paths.
+ignored_sample() { # $1=dir
+  git -C "$1" -c core.excludesFile=/dev/null status --porcelain \
+      --untracked-files=normal --ignored=traditional 2>/dev/null \
+    | sed -n 's/^!! //p' | head -3 | tr '\n' ' '
 }
 
 list_worktrees() {
@@ -129,7 +172,7 @@ remove_one() {
     printf 'error: refusing to remove the main working tree\n' >&2
     return 1
   fi
-  # ⛔ This is the function that actually deletes, so it gets the SAME three-state
+  # ⛔ This is the function that actually deletes, so it gets the SAME four-state
   # classification as --all. The previous `[ -n "$(git … 2>/dev/null)" ]` was the
   # identical blind idiom inverted: on a FAILED git status the substitution is
   # empty, `-n` is false, the uncommitted-changes guard never fired, and control
@@ -141,6 +184,21 @@ remove_one() {
     DIRTY)
       if [ "$force" != "--force" ]; then
         printf 'error: worktree has uncommitted changes; pass --force to remove anyway\n' >&2
+        return 1
+      fi
+      ;;
+    IGNORED)
+      # ⛔ Refused WITHOUT --force, but honoured WITH it — deliberately the DIRTY
+      # contract, not the UNKNOWN one. The difference is knowledge, not danger:
+      # for UNKNOWN we cannot see what we would destroy, so --force is refused;
+      # here we CAN see it, and we name it, so --force is a considered choice
+      # rather than a blind one. Treating these two alike would either strand
+      # every node_modules tree forever or delete .env files unexamined.
+      if [ "$force" != "--force" ]; then
+        printf 'error: %s holds only ignored files (%s) — refusing to remove.\n' \
+          "$wt_dir" "$(ignored_sample "$wt_dir")" >&2
+        printf '       Nothing is tracked here, so git has no copy: an ignored file is\n' >&2
+        printf '       unrecoverable once removed. Check it, then pass --force.\n' >&2
         return 1
       fi
       ;;
@@ -190,6 +248,12 @@ remove_all_clean() {
         ;;
       DIRTY)
         printf '  skipped %s (dirty)\n' "$slug"
+        ;;
+      IGNORED)
+        # Named, with what is actually there, so the operator can decide in one
+        # look instead of going to inspect it. --force on the single-slug form is
+        # the sanctioned removal path; --all deliberately never forces.
+        printf '  skipped %s (holds only ignored files: %s)\n' "$slug" "$(ignored_sample "$d")"
         ;;
       *)
         # UNKNOWN — `git status` failed, so we never learned whether this tree
