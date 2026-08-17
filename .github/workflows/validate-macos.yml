@@ -168,11 +168,22 @@ jobs:
           python3 -m pip install --quiet 'ruff==0.15.8' \
             || python3 -m pip install --quiet --break-system-packages 'ruff==0.15.8'
 
-      - name: Install jsonschema (audit-gates Gate 47)
+      - name: Install the Python deps the ubuntu image happens to preinstall
+        # ⛔ THIS STEP IS THE WHOLE POINT OF THE JOB, MEASURED 2026-08-17.
+        # validate-marketplace.yml never installs PyYAML because the ubuntu runner
+        # image ships it. macos-latest does not — so the FIRST run of this job came
+        # back 668 pass / 141 fail with 98x "ModuleNotFoundError: No module named
+        # 'yaml'" (the tribunal's concern-catalog parser). Not a code defect: an
+        # environment asymmetry that ubuntu-only CI can never surface.
+        #   pyyaml     - concerns-catalog parsing (98 failures without it)
+        #   jsonschema - Gate 47 validate-schemas fixtures
+        #   tomli      - the Codex sandbox reader; stdlib tomllib is 3.11+ only, so
+        #                an older runner python needs the backport
         # Same plain-then-PEP-668 fallback as the ruff step above.
         run: |
-          python3 -m pip install --quiet jsonschema \
-            || python3 -m pip install --quiet --break-system-packages jsonschema
+          python3 -m pip install --quiet pyyaml jsonschema tomli \
+            || python3 -m pip install --quiet --break-system-packages pyyaml jsonschema tomli
+          python3 -c 'import yaml, jsonschema; print("yaml", yaml.__version__)'
 
       - name: Audit every gate on macOS
         # Same command validate-marketplace.yml runs on ubuntu. The POINT is the
