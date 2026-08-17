@@ -135,7 +135,31 @@ for b in $(git for-each-ref --format='%(refname:short)' refs/heads/); do
         | grep -B2 "^branch refs/heads/$b\$" \
         | grep '^worktree ' | cut -d' ' -f2- | head -1 || true)"
   if [ -n "$wt" ] && [ -d "$wt" ]; then
-    dirty="$(git -C "$wt" status --porcelain 2>/dev/null | wc -l | tr -d ' ')"
+    # ⛔ Capture the EXIT CODE, not just the line count. A FAILED `git status`
+    # — a stale linked worktree whose admin dir under .git/worktrees/ is gone,
+    # a corrupt .git, git off PATH, permission denied — writes NOTHING to
+    # stdout and exits non-zero. Piping straight into `wc -l` turns that into
+    # "0", byte-identical to a genuinely clean worktree, so gate 2 PASSED on an
+    # inspection that never happened.
+    #
+    # Gate 4 (`git worktree remove` without --force, then `git branch -d`) does
+    # close the actual loss path here, so this is defense-in-depth plus an
+    # honest HOLD reason — NOT a data-loss fix. But this file's own header says
+    # the gates are not redundant and dropping one loses something, and the
+    # identical pattern DID delete work in scripts/worktree-clean.sh (Gate 216).
+    # Measured 2026-08-17: a stale linked worktree → exit 128, empty stdout.
+    # See docs/best-practices/verification-probe-discipline.md.
+    wt_status=""; wt_rc=0
+    wt_status="$(git -C "$wt" status --porcelain 2>/dev/null)" || wt_rc=$?
+    if [ "$wt_rc" -ne 0 ]; then
+      printf "  HOLD    %-38s worktree could not be inspected (git status exit %s) — inspect by hand\n" "$b" "$wt_rc"
+      held=$((held+1)); continue
+    fi
+    if [ -z "$wt_status" ]; then
+      dirty=0
+    else
+      dirty="$(printf '%s\n' "$wt_status" | wc -l | tr -d ' ')"
+    fi
     if [ "$dirty" != "0" ]; then
       printf "  HOLD    %-38s worktree has %s uncommitted/untracked file(s)\n" "$b" "$dirty"
       held=$((held+1)); continue
