@@ -62,7 +62,30 @@ worktree_state() { # $1=dir -> prints clean|DIRTY|UNKNOWN
   # A healthy worktree's toplevel IS itself, so this costs nothing normally.
   top="$(git -C "$1" rev-parse --show-toplevel 2>/dev/null)" || { printf 'UNKNOWN'; return; }
   [ -n "$top" ] && [ "$top" -ef "$1" ] || { printf 'UNKNOWN'; return; }
-  out="$(git -C "$1" status --porcelain 2>/dev/null)" || rc=$?
+  # ⛔ THIRD FACE OF THE SAME DEFECT: a status that ran, against the right tree,
+  # and exited 0 can STILL report "nothing here" because CONFIG told it to stay
+  # quiet. `status.showUntrackedFiles=no` suppresses untracked files entirely,
+  # and `core.excludesFile` can point at a pattern file that hides them. Neither
+  # needs an adversary — both are ordinary user settings, and git reads them from
+  # the repo-local `.git/config`, `$HOME/.gitconfig`, `$XDG_CONFIG_HOME`, the
+  # system config, or `GIT_CONFIG_*`. A worktree holding only untracked work then
+  # classifies `clean` and --all deletes it.
+  #
+  # Measured 2026-08-17 against this script, dirty worktree holding one untracked
+  # file, no env vars set at all — just `git config status.showUntrackedFiles no`
+  # in the parent repo:
+  #   plain `status --porcelain`                       -> clean  -> DELETED
+  #   with the two pins below                          -> DIRTY  -> refused
+  # and a genuinely clean worktree still reads `clean` under the pins, so this
+  # costs nothing normally.
+  #
+  # Pinning at the CALL SITE is what makes this total: `-c` and an explicit flag
+  # outrank every config source, so one change closes repo-local, $HOME,
+  # XDG, system and GIT_CONFIG_* at once rather than enumerating them.
+  # Out of scope here: a PATH shim or an LD_PRELOAD replacing git itself — those
+  # need an adversary who already controls the process, and are handled on the
+  # hardening branch. This closes the no-adversary config vectors.
+  out="$(git -C "$1" -c core.excludesFile=/dev/null status --porcelain --untracked-files=normal 2>/dev/null)" || rc=$?
   if [ "$rc" -ne 0 ]; then
     printf 'UNKNOWN'
   elif [ -z "$out" ]; then

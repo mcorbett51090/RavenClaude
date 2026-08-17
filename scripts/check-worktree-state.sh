@@ -278,6 +278,66 @@ case "$rm_out" in
   *) fail "remove_one refused without saying why: $rm_out" ;;
 esac
 
+# --- the config vector -------------------------------------------------------
+# ⛔ A status that RAN, against the RIGHT tree, and exited 0 can still report
+# "nothing here" because CONFIG told it to stay quiet. Neither setting below
+# needs an adversary — both are ordinary things a user types once and forgets,
+# and git honours them from the repo-local config, $HOME, XDG, the system
+# config, or GIT_CONFIG_*. The tree then classifies `clean` and --all deletes
+# uncommitted work.
+#
+# The three earlier UNKNOWN shapes cannot cover this: they are all cases where
+# git FAILED or resolved elsewhere. Here git succeeds, on the right tree, and
+# answers honestly to a question that was narrowed behind the script's back.
+#
+# Two independent config sources are asserted because they arrive by different
+# routes — a repo-local key needs no environment at all, and $HOME survives an
+# env scrub that only enumerates GIT_*. A fix that closes one and not the other
+# is not a fix.
+config_vector_case() { # $1=label $2=root $3... = env assignments for the run
+  label="$1"; root="$2"; shift 2
+  if ! build_fixture "$root"; then
+    fail "config-vector fixture ($label) failed to build"
+    return 1
+  fi
+  # Apply the caller's config-shaping step.
+  cfg_setup "$root" || { fail "config-vector setup ($label) failed"; return 1; }
+
+  ( cd "$root" && env "$@" bash "$SUT" --all >"$root/all.out" 2>&1 )
+
+  # POSITIVE CONTROL, and it is not optional here. "dirtywt survived" is
+  # worthless if --all deleted nothing at all — and a script that errored out on
+  # the crafted config would produce exactly that, passing the real assertion
+  # for entirely the wrong reason.
+  if [ ! -d "$root/.claude/worktrees/cleanwt" ]; then
+    pass "$label: --all still deletes a genuinely clean worktree (deletion is detectable)"
+  else
+    fail "$label: --all deleted nothing — the survival assertion below is vacuous"
+  fi
+
+  if [ -f "$root/.claude/worktrees/dirtywt/pending.txt" ]; then
+    pass "$label: uncommitted work survived --all"
+  else
+    fail "$label: --all DELETED a worktree holding uncommitted work (config steered the probe)"
+  fi
+}
+
+cfg_setup() { git -C "$1" config status.showUntrackedFiles no; }
+config_vector_case "repo-local status.showUntrackedFiles=no" "$T/cfg_local"
+
+# $HOME carries BOTH keys: showUntrackedFiles suppresses the listing outright,
+# and core.excludesFile hides the same files by a second, independent route —
+# so pinning only one of the two would still lose this case.
+mkdir -p "$T/evilhome"
+printf '*\n' > "$T/evilhome/exclude"
+{
+  printf '[status]\n\tshowUntrackedFiles = no\n'
+  printf '[core]\n\texcludesFile = %s/evilhome/exclude\n' "$T"
+} > "$T/evilhome/.gitconfig"
+cfg_setup() { :; }
+config_vector_case "\$HOME gitconfig (showUntrackedFiles + excludesFile)" "$T/cfg_home" \
+  "HOME=$T/evilhome" "XDG_CONFIG_HOME=$T/evilhome"
+
 # ----------------------------------------------------------- must-fail half ---
 # Restore the original expression. The broken fixture MUST then read clean.
 MUT="$T/mutant.sh"
@@ -311,6 +371,36 @@ if mutant_is_defective "$MUT"; then
   fi
 else
   fail "teeth: mutation did not apply — cannot prove the gate has teeth"
+fi
+
+# --- narrow teeth for the config vector --------------------------------------
+# ⛔ The make_mutant teeth above are TOO BROAD to prove anything about the config
+# assertions: that mutant deletes the whole three-state fix, so its failures are
+# over-determined. A stand-in that keeps every other guard and strips ONLY the
+# two call-site pins is the sharp control — it isolates this one change, and it
+# is precisely the shape that shipped and lost data.
+CMUT="$T/cfg-mutant.sh"
+sed 's/ -c core\.excludesFile=\/dev\/null//; s/ --untracked-files=normal//' "$SUT" > "$CMUT"
+# ⛔ Anchored on the STATUS CALL, not on the bare strings. Both names also occur
+# in the prose above that call explaining why they are there, so a whole-file
+# grep is satisfied by the comment and reports "not applied" on a stand-in that
+# applied perfectly — this repo's own source-scan-matches-PROSE trap, hit here
+# while writing this gate.
+if grep -q 'out=.*status --porcelain.*--untracked-files' "$CMUT" \
+   || grep -q 'out=.*excludesFile' "$CMUT"; then
+  fail "teeth: config-pin stand-in did not apply — cannot prove the config assertions have teeth"
+elif ! grep -q "printf 'UNKNOWN'" "$CMUT"; then
+  fail "teeth: config-pin stand-in lost the UNKNOWN fix too — no longer a narrow control"
+elif build_fixture "$T/cfgmut"; then
+  git -C "$T/cfgmut" config status.showUntrackedFiles no
+  ( cd "$T/cfgmut" && bash "$CMUT" --all >/dev/null 2>&1 )
+  if [ -f "$T/cfgmut/.claude/worktrees/dirtywt/pending.txt" ]; then
+    fail "teeth: uncommitted work survived even WITHOUT the config pins — the config assertions are vacuous"
+  else
+    pass "teeth: strip only the config pins and uncommitted work IS deleted (config assertions are real)"
+  fi
+else
+  fail "teeth: config-pin stand-in fixture failed to build"
 fi
 
 printf '\n'
