@@ -32,6 +32,9 @@ set -uo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SUT="$REPO_ROOT/scripts/worktree-clean.sh"
+# The unmutated subject, kept so mutant_is_defective can byte-compare against it
+# even in teeth mode (where SUT is reassigned to the mutant).
+SUT_PRISTINE="$SUT"
 FAILED=0
 pass() { printf '  ✓ %s\n' "$1"; }
 fail() { printf '  ✗ %s\n' "$1"; FAILED=$((FAILED + 1)); }
@@ -72,7 +75,14 @@ make_mutant() { # $1=src $2=dest
 # Assert the mutation actually landed. A mutation that silently no-ops turns the
 # teeth half into a second copy of the positive half.
 mutant_is_defective() { # $1=mutant path -> 0 if the fix is genuinely gone
-  ! grep -q "printf 'UNKNOWN'" "$1"
+  # ⛔ A BYTE COMPARISON, not a string grep. The previous version grepped for
+  # `printf 'UNKNOWN'` — a literal that stopped appearing in the PRISTINE
+  # subject once UNKNOWN was split into UNKNOWN-rc / UNKNOWN-scope. So it
+  # returned "the fix is genuinely gone" unconditionally and its own
+  # "mutation did not apply" branch became unreachable: a dead oracle, in the
+  # guard whose comment warns that a no-op mutation makes the teeth half a
+  # second copy of the positive half. A diff cannot rot when the strings change.
+  ! diff -q "$SUT_PRISTINE" "$1" >/dev/null 2>&1
 }
 
 # ⛔ TEETH MODE. Points the positive assertions at a MUTANT with the fix removed.
@@ -84,6 +94,27 @@ if [ "${1:-}" = "--must-fail-nofix" ]; then
   make_mutant "$SUT" "$T/nofix.sh"
   SUT="$T/nofix.sh"
   printf '  [teeth mode] running positive assertions against a fix-removed mutant\n'
+fi
+
+# ------------------------------------------------- invariant: no bare git ----
+# ⛔ A SOURCE-SCAN, because the behavioural assertions cannot see this class.
+# Rounds 3 and 4 both found holes of the same shape: the CLASSIFICATION calls
+# were env-scrubbed while the DESTRUCTIVE ones were not, so an exported GIT_DIR
+# steered the removal and `branch -d` at a different repository. Every fix that
+# enumerated call sites left the next one open. Assert the invariant instead:
+# every git invocation in the subject goes through rcgit.
+# ⛔ Match git in a COMMAND POSITION only — line start, or after a shell
+# separator. An earlier version matched `git ` anywhere and flagged
+# `printf '      git said: '` and the wrapper's own `env … git "$@"` line: a
+# grep satisfied by the thing being DESCRIBED rather than done, which is the
+# same class this gate exists to catch, in the check written to catch it.
+bare_git="$(grep -nE '(^|[;&|(]|\$\()[[:space:]]*git[[:space:]]' "$SUT" \
+             | grep -v 'rcgit' \
+             | grep -vE '^[0-9]+:[[:space:]]*#' || true)"
+if [ -z "$bare_git" ]; then
+  pass "invariant: every git call in the subject goes through the env-scrubbing wrapper"
+else
+  fail "bare git call(s) bypass the env scrub: $(printf '%s' "$bare_git" | head -3 | tr '\n' ' ')"
 fi
 
 # ---------------------------------------------------------------- fixture ----
@@ -139,22 +170,33 @@ build_fixture() { # $1=dest root -> 0 on success
   # ⛔ THE UPWARD-WALK CLASS. .claude/worktrees/ must be gitignored and the
   # parent clean, or these read DIRTY and the assertions are vacuous — the
   # untracked file would show in the PARENT's status. With the ignore in place
-  # git walks up, finds the clean parent, exits 0 with EMPTY stdout, and the
-  # tree classifies `clean` while never having been inspected at all.
+  # (this repo: .gitignore:47) git walks up, finds the clean parent, exits 0
+  # with EMPTY stdout, and the tree classifies `clean` while never having been
+  # inspected at all. Measured 2026-08-17: both shapes gave status rc=0,
+  # out_len=0, toplevel=<PARENT>.
   printf '.claude/worktrees/\n.env\nnode_modules/\n' > "$r/.gitignore"
   git -C "$r" add .gitignore >/dev/null 2>&1 || return 1
   git -C "$r" -c commit.gpgsign=false commit -qm ignore >/dev/null 2>&1 || return 1
+
+  # linktarget: a REGISTERED worktree, so the symlink assertion's oracle is this
+  # script's guard rather than git's refusal (see the assertion's comment).
+  git -C "$r" worktree add -q "$r/.claude/worktrees/linktarget" >/dev/null 2>&1 || return 1
+  printf 'LINKTARGET\n' > "$r/.claude/worktrees/linktarget/keep.txt"
+  git -C "$r/.claude/worktrees/linktarget" add keep.txt >/dev/null 2>&1 || true
+  git -C "$r/.claude/worktrees/linktarget" -c commit.gpgsign=false commit -qm k >/dev/null 2>&1 || true
+
+  # g_plaindir: a plain directory that was never a worktree at all.
   mkdir -p "$r/.claude/worktrees/g_plaindir"
   printf 'G-PRECIOUS\n' > "$r/.claude/worktrees/g_plaindir/keep.txt"
+  # h_nogit: a REGISTERED worktree whose .git file has been removed.
   git -C "$r" worktree add -q "$r/.claude/worktrees/h_nogit" >/dev/null 2>&1 || return 1
   printf 'H-PRECIOUS\n' > "$r/.claude/worktrees/h_nogit/keep.txt"
   rm -f "$r/.claude/worktrees/h_nogit/.git"
 
-  # A plain non-git subdirectory does NOT reproduce UNKNOWN: git's discovery
-  # walks UPWARD, finds the parent repo, succeeds, and reports the file as
-  # untracked — the fixture reads DIRTY and the gate passes without ever
-  # exercising the defect. That mistake was made and caught while writing this.
-
+  # A plain non-git subdirectory does NOT reproduce the *status-fails* UNKNOWN:
+  # git's discovery walks UPWARD and succeeds. That is why it is a fixture for
+  # the upward-walk class above, and why using it as the status-fails fixture
+  # (the first mistake made writing this gate) produced a vacuous pass.
   # ⛔ IGNORED shape, added AFTER the .gitignore commit on purpose: the worktree
   # checks out HEAD, so a worktree created before that commit would not carry the
   # ignore rule and its .env would read as an ordinary untracked file — the tree
@@ -210,8 +252,8 @@ else
   fail "un-inspectable worktree read '$BROKEN_S' (expected UNKNOWN)"
 fi
 
-# The upward-walk half: git exits 0 by resolving to an ANCESTOR, so rc==0 is not
-# evidence THIS directory was inspected.
+# THE UPWARD-WALK CLASS: git status exits 0 by resolving to an ANCESTOR, so
+# rc==0 is not evidence this directory was inspected.
 PLAIN_S="$(status_of "$T/live" g_plaindir)"
 NOGIT_S="$(status_of "$T/live" h_nogit)"
 if [ "$PLAIN_S" = "UNKNOWN" ]; then
@@ -223,6 +265,76 @@ if [ "$NOGIT_S" = "UNKNOWN" ]; then
   pass "a registered worktree with .git removed reads UNKNOWN"
 else
   fail "worktree with .git removed read '$NOGIT_S' (expected UNKNOWN)"
+fi
+# (the upward-walk SURVIVAL assertion lives after --all runs — see below)
+
+# Any non-empty second argument must NOT silently upgrade to --force.
+bad_flag_out="$( cd "$T/live" && bash "$SUT" cleanwt --froce 2>&1 )" || true
+case "$bad_flag_out" in
+  *"unknown flag"*) pass "a mistyped flag is rejected, not treated as --force" ;;
+  *) fail "a mistyped flag was not rejected: $bad_flag_out" ;;
+esac
+
+# A symlink under the worktree root must be refused, not followed.
+#
+# ⛔ THE TARGET MUST BE SOMETHING GIT WILL ACTUALLY DELETE, or the assertion has
+# no teeth. The first version pointed at a plain directory: worktree_state
+# returned UNKNOWN via the -ef check and `git worktree remove` would have
+# refused it anyway, so the assertion passed with BOTH -L guards stripped from
+# the SUT — proven. Pointing it at a REGISTERED worktree of the fixture repo
+# means only this script's guard stands between the link and deletion.
+ln -s "$T/live/.claude/worktrees/linktarget" "$T/live/.claude/worktrees/e_link" 2>/dev/null || true
+link_out="$( cd "$T/live" && bash "$SUT" e_link 2>&1 )" || true
+if [ -f "$T/live/.claude/worktrees/linktarget/keep.txt" ]; then
+  pass "a symlinked entry does not delete its target (a real worktree git would remove)"
+else
+  fail "a symlink under .claude/worktrees/ deleted a REGISTERED worktree via the link"
+fi
+
+# The ancestor case: .claude/worktrees itself symlinked. `[ -L "$wt_dir" ]`
+# stats only the last component and passes; only full-path resolution catches
+# it. Reproduced on both call sites before the fix.
+# ⛔ The target must be OUTSIDE the repository. An earlier version of this
+# fixture moved the worktrees dir to `$anc/.claude/_real_wt` — still inside the
+# repo — so containment correctly ALLOWED it and the assertion failed against a
+# working fix. Redirecting within your own repo is not the threat; escaping it
+# is. Verified: with the target inside, --all removes (correctly); with the
+# target outside, it must refuse.
+anc="$T/anc"
+if build_fixture "$anc" >/dev/null 2>&1; then
+  mkdir -p "$T/outside_anc"
+  mv "$anc/.claude/worktrees" "$T/outside_anc/_real_wt"
+  ln -s "$T/outside_anc/_real_wt" "$anc/.claude/worktrees"
+  ( cd "$anc" && bash "$SUT" --all >"$T/anc.out" 2>&1 ) || true
+  # ⛔ Survival is the oracle, and it must name a file the fixture ACTUALLY
+  # creates. An earlier version tested `cleanwt/f.txt`, which appears nowhere
+  # else in this file — build_fixture never creates it — so that operand was
+  # permanently false and the assertion rested entirely on a bare grep for the
+  # word "symlink" anywhere in the output. seed.txt is committed by
+  # build_fixture, so it exists.
+  if [ -f "$T/outside_anc/_real_wt/cleanwt/seed.txt" ]; then
+    pass "a symlinked worktree ROOT is refused (ancestor components resolve too)"
+  else
+    fail "a symlinked .claude/worktrees let --all delete through the ancestor link"
+  fi
+fi
+
+# The OTHER ancestor shape: .claude itself symlinked. The previous fix guarded
+# only .claude/worktrees, so this one still deleted outside the repo — the
+# containment is now anchored to REPO_ROOT, which closes both by construction.
+anc2="$T/anc2"
+if build_fixture "$anc2" >/dev/null 2>&1; then
+  mkdir -p "$T/outside_anc2"
+  mv "$anc2/.claude" "$T/outside_anc2/_real_dotclaude"
+  ln -s "$T/outside_anc2/_real_dotclaude" "$anc2/.claude"
+  ( cd "$anc2" && bash "$SUT" --all >"$T/anc2.out" 2>&1 ) || true
+  if [ -f "$T/outside_anc2/_real_dotclaude/worktrees/cleanwt/seed.txt" ]; then
+    pass "a symlinked .claude ROOT is refused too (containment anchored to the repo)"
+  else
+    fail "a symlinked .claude let --all delete a worktree outside the repository"
+  fi
+else
+  fail "ancestor-symlink fixture failed to build"
 fi
 
 # ⛔ The ignored-only class. `status --porcelain` is silent on ignored files BY
@@ -261,10 +373,12 @@ else
   fail "--all DELETED an un-inspectable worktree (the defect this gate exists for)"
 fi
 
-# ⛔ Asserted AFTER --all runs. An earlier draft placed the equivalent check
-# BEFORE the invocation, where it could not fail — proven by pointing the gate
-# at a stand-in that deletes every worktree slot: it stayed green while every
-# file it names was destroyed. Order is the whole assertion.
+# ⛔ THIS ASSERTION USED TO RUN 24 LINES *BEFORE* --all AND WAS THEREFORE
+# VACUOUS — it could not fail. Proven by pointing the gate at a SUT whose --all
+# rm -rf's every worktree slot: this stayed green while every file it names was
+# deleted, and it passed unchanged in teeth mode. It is the ONLY assertion
+# covering the upward-walk class on the deletion path, which is the class the
+# rev-parse containment fix was written for. Order is the whole assertion.
 if [ -f "$T/live/.claude/worktrees/g_plaindir/keep.txt" ] \
    && [ -f "$T/live/.claude/worktrees/h_nogit/keep.txt" ]; then
   pass "--all left both upward-walk shapes on disk (asserted AFTER --all ran)"
@@ -311,12 +425,23 @@ else
   fail "--all did not report brokenwt as UNKNOWN"
 fi
 
-# The remedy must not be a runnable --force command (it either fails on this
+# The remedy must not be a runnable --force COMMAND (it either fails on this
 # shape or destroys unreviewed work, depending on the invisible cause).
-if grep -q -- '--force' "$T/all.out" 2>/dev/null; then
-  fail "--all's UNKNOWN advice still recommends --force on a tree it could not inspect"
+#
+# ⛔ Keyed on an invocation-shaped line, not the bare token. The first version
+# grepped for `--force` anywhere, which flagged the message's own PROHIBITION
+# ("Do NOT use --force") as a recommendation — a grep satisfied by the thing
+# being described, which is the same class this gate exists to catch.
+if grep -qE 'worktree-clean(\.sh)?[^|&;]*--force' "$T/all.out" 2>/dev/null; then
+  fail "--all's UNKNOWN advice still prints a runnable --force command"
 else
-  pass "--all's UNKNOWN advice does not recommend --force"
+  pass "--all's UNKNOWN advice prints no runnable --force command"
+fi
+# ...and it must still WARN about --force, or the prohibition was simply dropped.
+if grep -qi 'not use --force\|NOT reach for --force' "$T/all.out" 2>/dev/null; then
+  pass "--all's UNKNOWN advice explicitly warns against --force"
+else
+  fail "--all's UNKNOWN advice no longer warns against --force"
 fi
 
 # remove_one must refuse UNKNOWN even when --force is passed.
@@ -373,6 +498,19 @@ config_vector_case() { # $1=label $2=root $3... = env assignments for the run
   else
     fail "$label: --all DELETED a worktree holding uncommitted work (config steered the probe)"
   fi
+
+  # ⛔ CROSS THE TWO FIXES. The assertion above only exercises the pin on the
+  # `out` probe; the IGNORED probe is a SEPARATE call with its OWN pins, and the
+  # same config silences it too — `status.showUntrackedFiles=no` suppresses
+  # `--ignored` output as well. Measured: strip `--untracked-files=normal` from
+  # the ignored probe alone and an ignored-only tree flips IGNORED -> clean ->
+  # removed, with every other assertion in this gate still green. Two fixes
+  # reconciled independently, and the test for one did not cover the other.
+  if [ -f "$root/.claude/worktrees/ignoredwt/.env" ]; then
+    pass "$label: ignored-only worktree survived --all (the ignored probe is pinned too)"
+  else
+    fail "$label: --all DELETED an ignored-only worktree (config steered the IGNORED probe)"
+  fi
 }
 
 cfg_setup() { git -C "$1" config status.showUntrackedFiles no; }
@@ -406,8 +544,12 @@ if mutant_is_defective "$MUT"; then
     fi
 
     # ⛔ THE ASSERTION THAT MATTERS, and it keys on the script's DECISION.
-    # Survival cannot be used here: `git worktree remove` refuses the corrupt
-    # shape (rc=128 measured), so brokenwt survives whatever the script decides.
+    # Survival cannot be used on THIS path: the UNFORCED `git worktree remove`
+    # that --all issues refuses the corrupt shape (rc=128 measured), so brokenwt
+    # survives whatever the script decides. (The --force path is different —
+    # git DOES delete the corrupt shape there, which is why the
+    # `remove_one --force` assertion above can and does use survival as its
+    # oracle. Do not generalise "git refuses it" across both paths.)
     # What changes is whether the script CHOSE to skip it. The fixed script
     # prints the UNKNOWN skip line; the mutant classifies it clean and attempts
     # removal instead. If this line is still present in the mutant's output, the
@@ -442,7 +584,12 @@ sed 's/ -c core\.excludesFile=\/dev\/null//; s/ --untracked-files=normal//' "$SU
 if grep -q 'out=.*status --porcelain.*--untracked-files' "$CMUT" \
    || grep -q 'out=.*excludesFile' "$CMUT"; then
   fail "teeth: config-pin stand-in did not apply — cannot prove the config assertions have teeth"
-elif ! grep -q "printf 'UNKNOWN'" "$CMUT"; then
+# ⛔ Matches the UNKNOWN FAMILY, not the bare literal. This file classifies
+# UNKNOWN-rc / UNKNOWN-scope / UNKNOWN-perm — a `printf 'UNKNOWN'` grep finds
+# none of them and reported "the stand-in lost the UNKNOWN fix" about a
+# stand-in that had kept it perfectly. Ported straight from main, where the
+# single-state literal was correct; the anchor had to move with the code.
+elif ! grep -q "printf 'UNKNOWN" "$CMUT"; then
   fail "teeth: config-pin stand-in lost the UNKNOWN fix too — no longer a narrow control"
 elif build_fixture "$T/cfgmut"; then
   git -C "$T/cfgmut" config status.showUntrackedFiles no
