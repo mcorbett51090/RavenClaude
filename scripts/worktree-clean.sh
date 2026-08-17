@@ -17,8 +17,33 @@
 
 set -euo pipefail
 
-REPO_ROOT="$(git rev-parse --show-toplevel)"
+# ⛔ Scrub the git environment on EVERY git call in this script. `git -C <dir>`
+# resolves against $dir PLUS the ambient git env, so an exported GIT_DIR makes
+# `rev-parse --show-toplevel` return the inspected directory for an arbitrary
+# non-worktree (defeating the containment check below), and GIT_WORK_TREE makes
+# every healthy worktree read UNKNOWN (breaking ordinary cleanup entirely).
+# Git hooks routinely export GIT_DIR, so this is not a contrived environment.
+# Measured 2026-08-17: baseline plain=UNKNOWN/w1=clean; GIT_DIR exported ->
+# plain=DIRTY (containment bypassed); GIT_WORK_TREE+GIT_DIR -> all UNKNOWN.
+rcgit() { env -u GIT_DIR -u GIT_WORK_TREE -u GIT_INDEX_FILE -u GIT_COMMON_DIR \
+               -u GIT_OBJECT_DIRECTORY -u GIT_CEILING_DIRECTORIES git "$@"; }
+
+# Strip terminal control characters from anything attacker-influenced before it
+# is printed. A directory name carrying ESC[2K + CR erases its own row and
+# repaints a forged one ("SAFE-LOOKING … clean"); a newline forges an extra row.
+# Applies to slugs AND paths, in every printing function.
+sanitize() { LC_ALL=C tr -d '\000-\037\177'; }
+
+REPO_ROOT="$(rcgit rev-parse --show-toplevel)"
 WT_ROOT="$REPO_ROOT/.claude/worktrees"
+
+# Refuse a symlinked worktree root outright, so the --all loop never enumerates
+# a redirected root. The per-entry checks below only stat the LAST component.
+if [ -L "$WT_ROOT" ]; then
+  printf 'error: %s is a symlink — refusing (every path under it would resolve elsewhere)\n' \
+    "$WT_ROOT" >&2
+  exit 1
+fi
 
 usage() {
   cat <<EOF >&2
@@ -59,16 +84,61 @@ worktree_state() { # $1=dir -> prints clean|DIRTY|UNKNOWN
   #   healthy linked worktree-> toplevel=<ITSELF>                          (still clean)
   # A healthy linked worktree's toplevel IS itself, so this costs nothing on
   # the normal path.
-  top="$(git -C "$1" rev-parse --show-toplevel 2>/dev/null)" || { printf 'UNKNOWN'; return; }
-  [ -n "$top" ] && [ "$top" -ef "$1" ] || { printf 'UNKNOWN'; return; }
-  out="$(git -C "$1" status --porcelain 2>/dev/null)" || rc=$?
+  # A worktree's .git is the fact that makes discovery STOP here rather than
+  # walking up. Cheapest possible precondition, and it closes the upward-walk
+  # class more directly than the resolution check alone.
+  [ -e "$1/.git" ] || { printf 'UNKNOWN-scope'; return; }
+  top="$(rcgit -C "$1" rev-parse --show-toplevel 2>/dev/null)" || { printf 'UNKNOWN-rc'; return; }
+  [ -n "$top" ] && [ "$top" -ef "$1" ] || { printf 'UNKNOWN-scope'; return; }
+  out="$(rcgit -C "$1" status --porcelain 2>/dev/null)" || rc=$?
   if [ "$rc" -ne 0 ]; then
-    printf 'UNKNOWN'
-  elif [ -z "$out" ]; then
+    printf 'UNKNOWN-rc'
+    return
+  fi
+  # ⛔ Re-check AFTER status, not only before. The pre-check vouches for a state
+  # that may no longer hold when status runs; a swap in that window returns the
+  # pre-fix answer (rc=0 from an ancestor, empty stdout, classified clean).
+  # Reproduced deterministically with a git shim that removed .git between the
+  # two calls: a DIRTY tree holding uncommitted work flipped to `clean`.
+  # A post-check attests to a state no older than the measurement. This is NOT
+  # race-free — nothing in shell can be — it removes the free single-swap window.
+  [ -e "$1/.git" ] || { printf 'UNKNOWN-scope'; return; }
+  top="$(rcgit -C "$1" rev-parse --show-toplevel 2>/dev/null)" || { printf 'UNKNOWN-rc'; return; }
+  [ -n "$top" ] && [ "$top" -ef "$1" ] || { printf 'UNKNOWN-scope'; return; }
+  if [ -z "$out" ]; then
     printf 'clean'
   else
     printf 'DIRTY'
   fi
+}
+
+# UNKNOWN has two causes and they need OPPOSITE operator advice, so they are
+# distinct states internally and collapse to "UNKNOWN" only for display.
+#   UNKNOWN-rc    : git status FAILED -> git's stderr names the cause, print it
+#   UNKNOWN-scope : git status SUCCEEDED against an ANCESTOR -> stderr is EMPTY,
+#                   so printing it left the operator staring at "git said: " and
+#                   "Fix the cause above" pointing at a blank line.
+is_unknown() { case "$1" in UNKNOWN-*) return 0 ;; *) return 1 ;; esac; }
+explain_unknown() { # $1=state  $2=dir   -> one indented line of real diagnosis
+  case "$1" in
+    UNKNOWN-rc)
+      # ⛔ `|| true` on BOTH pipelines. This function is reached from paths where
+      # `set -e` is live, and `git status` here exits NON-ZERO by definition —
+      # that is why we are in this branch. Under `pipefail` the pipeline fails
+      # and `set -e` aborted --all mid-loop, so it printed the skip line, then
+      # silently stopped: no advice, and later worktrees never processed. Caught
+      # by this gate's own positive control ("--all DOES delete a clean
+      # worktree"), which is what that control exists for.
+      printf '      git said: '
+      { rcgit -C "$2" status --porcelain 2>&1 >/dev/null | head -1 | sanitize; } || true
+      printf '\n'
+      ;;
+    *)
+      printf '      cause: git resolves this directory to %s, not itself — it is not a\n' \
+        "$( { rcgit -C "$2" rev-parse --show-toplevel 2>/dev/null | sanitize; } || true )"
+      printf '             worktree, or its .git file is missing. Nothing here was inspected.\n'
+      ;;
+  esac
 }
 
 list_worktrees() {
@@ -78,20 +148,32 @@ list_worktrees() {
   fi
   for d in "$WT_ROOT"/*/; do
     [ -d "$d" ] || continue
-    local slug
-    slug="$(basename "$d")"
-    local status
+    local slug status
+    # sanitize: a name carrying ESC[2K + CR erases its own row and repaints a
+    # forged one; --status previously did no filtering at all.
+    slug="$(basename "${d%/}" | sanitize)"
     status="$(worktree_state "$d")"
+    # Both UNKNOWN causes display as one word; the distinction drives advice,
+    # not the status column.
+    if is_unknown "$status"; then status=UNKNOWN; fi
+    if [ -L "${d%/}" ]; then status="$status (symlink)"; fi
     printf '  %-30s  %s\n' "$slug" "$status"
   done
 }
 
 remove_one() {
   local slug="$1" force="${2:-}"
-  if ! printf '%s' "$slug" | grep -qE '^[A-Za-z0-9._-]+$'; then
-    printf 'error: slug must match [A-Za-z0-9._-]+\n' >&2
-    return 2
-  fi
+  # ⛔ A bash pattern, not `printf | grep -qE '^…$'`. grep anchors PER LINE and
+  # -q succeeds if ANY line matches, so a multi-line slug passed a check whose
+  # error message promises a strict charset — verified: printf 'ok\nx y z' |
+  # grep -qE '^[A-Za-z0-9._-]+$' MATCHES. The case pattern has no line
+  # semantics and no subprocess.
+  case "$slug" in
+    ''|*[!A-Za-z0-9._-]*)
+      printf 'error: slug must match [A-Za-z0-9._-]+\n' >&2
+      return 2
+      ;;
+  esac
   # The charset above permits '.' and '-' — reject the traversal slugs and the
   # option-shaped ones it would otherwise allow (`--` makes the NEXT argument
   # land in $force, and `-rf` reads as a flag to anything that forgets to `--`).
@@ -116,15 +198,30 @@ remove_one() {
   # ⛔ Refuse a symlink. `[ -d ]` and the */ glob both match a symlink-to-dir,
   # `git -C` follows it, and `git worktree remove` resolves it — so the tool
   # deleted the symlink's TARGET, outside .claude/worktrees/, while printing the
-  # in-tree path as if that were what went. Reproduced: a symlink to a sibling
-  # registered worktree removed the sibling and left the link dangling. A
-  # "clean" outside lane can still hold irreplaceable gitignored state
-  # (.ravenclaude/runs/, .env, node_modules).
-  # The -ef check below catches a link to the repo root but nothing else.
+  # in-tree path as if that were what went.
   if [ -L "$wt_dir" ]; then
     printf 'error: %s is a symlink — refusing (it would delete the target, not the link)\n' "$wt_dir" >&2
     return 1
   fi
+  # ⛔ ...and that check alone is NOT enough: it stats only the LAST component.
+  # If .claude/worktrees — or .claude — is itself a symlink, $wt_dir is not a
+  # link, the check passes, and removal resolves through the ancestor and
+  # deletes a worktree outside the repo. Reproduced on BOTH call sites.
+  # So resolve the whole path and require containment. `pwd -P` resolves every
+  # component, which is exactly what `[ -L ]` cannot do.
+  local wt_real root_real
+  wt_real="$(cd "$wt_dir" 2>/dev/null && pwd -P)" || {
+    printf 'error: could not resolve %s — refusing\n' "$wt_dir" >&2; return 1; }
+  root_real="$(cd "$WT_ROOT" 2>/dev/null && pwd -P)" || {
+    printf 'error: could not resolve %s — refusing\n' "$WT_ROOT" >&2; return 1; }
+  case "$wt_real/" in
+    "$root_real"/*) ;;
+    *)
+      printf 'error: %s resolves to %s, outside %s — refusing\n' \
+        "$wt_dir" "$wt_real" "$root_real" >&2
+      return 1
+      ;;
+  esac
   if [ "$wt_dir" -ef "$REPO_ROOT" ]; then
     printf 'error: refusing to remove the main working tree\n' >&2
     return 1
@@ -156,9 +253,14 @@ remove_one() {
       # printed advice that cannot work loops forever — and that pressure is
       # exactly what produces tunnelling (a hand `rm -rf`, or re-adding
       # --force). git's own stderr names the actual cause; print that instead.
+      #
+      # ⛔ ...and the diagnostic must be branched on WHY. Printing git's stderr
+      # is only useful for UNKNOWN-rc; on the upward-walk class git SUCCEEDS, so
+      # stderr is EMPTY and the operator got "git said: " followed by a blank
+      # line and "Fix the cause above" pointing at nothing — the same
+      # loop-forever pressure the repair/prune advice created.
       printf 'error: could not inspect %s — refusing to remove.\n' "$wt_dir" >&2
-      printf '       git said: ' >&2
-      git -C "$wt_dir" status --porcelain 2>&1 >/dev/null | head -1 >&2 || true
+      explain_unknown "$(worktree_state "$wt_dir")" "$wt_dir" >&2
       printf '       Fix the cause above, then re-run. Do NOT reach for --force:\n' >&2
       printf '       it discards uncommitted work, and the point is that we could not rule any out.\n' >&2
       printf '       If you have confirmed by hand there is nothing to keep, move it aside rather than delete it.\n' >&2
@@ -199,7 +301,7 @@ remove_all_clean() {
     # directory name containing a newline otherwise splits the status line and
     # lets an attacker-named directory forge a plausible extra line in the
     # operator's terminal.
-    slug="$(basename "${d%/}" | tr -d '\r\n')"
+    slug="$(basename "${d%/}" | sanitize)"
     # Refuse symlinks here too, so the skip message is accurate rather than
     # relying on remove_one to catch it after classification. See remove_one.
     if [ -L "${d%/}" ]; then
@@ -228,9 +330,8 @@ remove_all_clean() {
         # `worktree repair`/`prune` suggestion was measured to be a no-op on
         # every UNKNOWN shape constructed, so it sent the operator in a loop.
         printf '  skipped %s (UNKNOWN — could not inspect; not removed)\n' "$slug"
-        printf '      path: %s\n' "${d%/}"
-        printf '      git said: '
-        git -C "${d%/}" status --porcelain 2>&1 >/dev/null | head -1 || true
+        printf '      path: %s\n' "$(printf '%s' "${d%/}" | sanitize)"
+        explain_unknown "$(worktree_state "$d")" "${d%/}"
         printf '      Fix the cause above, then re-run. Do NOT use --force — it discards\n'
         printf '      uncommitted work and the point is that we could not rule any out.\n'
         printf '      If nothing there matters, move it aside rather than delete it.\n'

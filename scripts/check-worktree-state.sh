@@ -147,6 +147,13 @@ build_fixture() { # $1=dest root -> 0 on success
   git -C "$r" add .gitignore >/dev/null 2>&1 || return 1
   git -C "$r" -c commit.gpgsign=false commit -qm ignore >/dev/null 2>&1 || return 1
 
+  # linktarget: a REGISTERED worktree, so the symlink assertion's oracle is this
+  # script's guard rather than git's refusal (see the assertion's comment).
+  git -C "$r" worktree add -q "$r/.claude/worktrees/linktarget" >/dev/null 2>&1 || return 1
+  printf 'LINKTARGET\n' > "$r/.claude/worktrees/linktarget/keep.txt"
+  git -C "$r/.claude/worktrees/linktarget" add keep.txt >/dev/null 2>&1 || true
+  git -C "$r/.claude/worktrees/linktarget" -c commit.gpgsign=false commit -qm k >/dev/null 2>&1 || true
+
   # g_plaindir: a plain directory that was never a worktree at all.
   mkdir -p "$r/.claude/worktrees/g_plaindir"
   printf 'G-PRECIOUS\n' > "$r/.claude/worktrees/g_plaindir/keep.txt"
@@ -218,11 +225,7 @@ if [ "$NOGIT_S" = "UNKNOWN" ]; then
 else
   fail "worktree with .git removed read '$NOGIT_S' (expected UNKNOWN)"
 fi
-if [ -f "$T/live/.claude/worktrees/g_plaindir/keep.txt" ] && [ -f "$T/live/.claude/worktrees/h_nogit/keep.txt" ]; then
-  pass "--all left both upward-walk shapes on disk"
-else
-  fail "--all DELETED an upward-walk shape it never actually inspected"
-fi
+# (the upward-walk SURVIVAL assertion lives after --all runs — see below)
 
 # Any non-empty second argument must NOT silently upgrade to --force.
 bad_flag_out="$( cd "$T/live" && bash "$SUT" cleanwt --froce 2>&1 )" || true
@@ -232,13 +235,37 @@ case "$bad_flag_out" in
 esac
 
 # A symlink under the worktree root must be refused, not followed.
-ln -s "$T/live/outside_target" "$T/live/.claude/worktrees/e_link" 2>/dev/null || true
-mkdir -p "$T/live/outside_target" && printf 'OUTSIDE\n' > "$T/live/outside_target/keep.txt"
+#
+# ⛔ THE TARGET MUST BE SOMETHING GIT WILL ACTUALLY DELETE, or the assertion has
+# no teeth. The first version pointed at a plain directory: worktree_state
+# returned UNKNOWN via the -ef check and `git worktree remove` would have
+# refused it anyway, so the assertion passed with BOTH -L guards stripped from
+# the SUT — proven. Pointing it at a REGISTERED worktree of the fixture repo
+# means only this script's guard stands between the link and deletion.
+ln -s "$T/live/.claude/worktrees/linktarget" "$T/live/.claude/worktrees/e_link" 2>/dev/null || true
 link_out="$( cd "$T/live" && bash "$SUT" e_link 2>&1 )" || true
-if [ -f "$T/live/outside_target/keep.txt" ]; then
-  pass "a symlinked worktree entry does not delete its target outside the worktree root"
+if [ -f "$T/live/.claude/worktrees/linktarget/keep.txt" ]; then
+  pass "a symlinked entry does not delete its target (a real worktree git would remove)"
 else
-  fail "a symlink under .claude/worktrees/ deleted a directory OUTSIDE it"
+  fail "a symlink under .claude/worktrees/ deleted a REGISTERED worktree via the link"
+fi
+
+# The ancestor case: .claude/worktrees itself symlinked. `[ -L "$wt_dir" ]`
+# stats only the last component and passes; only full-path resolution catches
+# it. Reproduced on both call sites before the fix.
+anc="$T/anc"
+if build_fixture "$anc" >/dev/null 2>&1; then
+  mv "$anc/.claude/worktrees" "$anc/.claude/_real_wt"
+  ln -s "$anc/.claude/_real_wt" "$anc/.claude/worktrees"
+  ( cd "$anc" && bash "$SUT" --all >"$T/anc.out" 2>&1 ) || true
+  if [ -f "$anc/.claude/_real_wt/cleanwt/f.txt" ] 2>/dev/null \
+     || grep -q 'symlink' "$T/anc.out" 2>/dev/null; then
+    pass "a symlinked worktree ROOT is refused (ancestor components resolve too)"
+  else
+    fail "a symlinked .claude/worktrees let --all delete through the ancestor link"
+  fi
+else
+  fail "ancestor-symlink fixture failed to build"
 fi
 
 # --- the deletion path -------------------------------------------------------
@@ -264,6 +291,19 @@ if [ -f "$T/live/.claude/worktrees/brokenwt/precious.txt" ]; then
   pass "--all did not delete the worktree it could not inspect"
 else
   fail "--all DELETED an un-inspectable worktree (the defect this gate exists for)"
+fi
+
+# ⛔ THIS ASSERTION USED TO RUN 24 LINES *BEFORE* --all AND WAS THEREFORE
+# VACUOUS — it could not fail. Proven by pointing the gate at a SUT whose --all
+# rm -rf's every worktree slot: this stayed green while every file it names was
+# deleted, and it passed unchanged in teeth mode. It is the ONLY assertion
+# covering the upward-walk class on the deletion path, which is the class the
+# rev-parse containment fix was written for. Order is the whole assertion.
+if [ -f "$T/live/.claude/worktrees/g_plaindir/keep.txt" ] \
+   && [ -f "$T/live/.claude/worktrees/h_nogit/keep.txt" ]; then
+  pass "--all left both upward-walk shapes on disk (asserted AFTER --all ran)"
+else
+  fail "--all DELETED an upward-walk shape it never actually inspected"
 fi
 
 # ⛔ Bound to the SLUG, not a bare grep for the word. `grep -q UNKNOWN` over
