@@ -207,6 +207,18 @@ build_fixture() { # $1=dest root -> 0 on success
   printf 'DB_PASSWORD=irreplaceable\n' > "$r/.claude/worktrees/ignoredwt/.env"
   mkdir -p "$r/.claude/worktrees/ignoredwt/node_modules/pkg"
   printf 'x\n' > "$r/.claude/worktrees/ignoredwt/node_modules/pkg/index.js"
+  # ⛔ DETACHED shapes, BOTH of them. det_work is detached with its own commit
+  # (no ref contains it — removing it loses the commit). det_safe is detached at
+  # a ref tip, which is common and harmless. Without the second, an assertion
+  # that "detached reads DETACHED" would pass against a script that flags EVERY
+  # detached worktree — noise that gets the guard ignored on the real case.
+  git -C "$r" worktree add -q --detach "$r/.claude/worktrees/det_work" >/dev/null 2>&1 || return 1
+  ( cd "$r/.claude/worktrees/det_work" \
+      && printf 'IRREPLACEABLE\n' > committed.txt \
+      && git add committed.txt \
+      && git -c commit.gpgsign=false commit -qm detached-work >/dev/null 2>&1 ) || return 1
+  git -C "$r" worktree add -q --detach "$r/.claude/worktrees/det_safe" >/dev/null 2>&1 || return 1
+
   return 0
 }
 
@@ -348,6 +360,25 @@ else
   fail "ignored-only worktree read '$IGNORED_S' (expected IGNORED)"
 fi
 
+# ⛔ The committed-work class. Every state above asks "is there UNCOMMITTED
+# content here?"; this tree is clean by all of them and still holds the only
+# copy of a commit.
+DET_S="$(status_of "$T/live" det_work)"
+SAFE_S="$(status_of "$T/live" det_safe)"
+if [ "$DET_S" = "DETACHED" ]; then
+  pass "a detached worktree whose commit no ref contains reads DETACHED"
+else
+  fail "detached-with-own-commit read '$DET_S' (expected DETACHED)"
+fi
+# THE NO-FALSE-POSITIVE HALF. Without it, flagging every detached worktree
+# passes — and a guard that fires on the harmless case gets ignored on the
+# harmful one.
+if [ "$SAFE_S" = "clean" ]; then
+  pass "a detached worktree at a reachable commit still reads clean (no false positive)"
+else
+  fail "detached-but-reachable read '$SAFE_S' (expected clean) — the guard fires on the harmless case"
+fi
+
 # --- the deletion path -------------------------------------------------------
 ( cd "$T/live" && bash "$SUT" --all >"$T/all.out" 2>&1 )
 
@@ -415,6 +446,28 @@ if [ ! -d "$T/live/.claude/worktrees/ignoredwt" ]; then
   pass "remove_one --force DOES remove an ignored-only worktree (IGNORED is not UNKNOWN)"
 else
   fail "remove_one --force refused an ignored-only worktree — over-blocking: $ig_forced"
+fi
+
+if [ -f "$T/live/.claude/worktrees/det_work/committed.txt" ]; then
+  pass "--all did not delete the detached worktree holding an unreachable commit"
+else
+  fail "--all DELETED a detached worktree whose commit no ref contains (unreachable, reflog gone)"
+fi
+if [ ! -d "$T/live/.claude/worktrees/det_safe" ]; then
+  pass "--all DID delete the harmless detached worktree (DETACHED is not over-broad)"
+else
+  fail "--all refused a detached worktree that was reachable — over-blocking"
+fi
+det_bare="$( cd "$T/live" && bash "$SUT" det_work 2>&1 )" || true
+case "$det_bare" in
+  *"branch <name>"*) pass "remove_one prints a rescue command for the detached commit" ;;
+  *) fail "remove_one refused a DETACHED tree without printing the rescue: $det_bare" ;;
+esac
+det_forced="$( cd "$T/live" && bash "$SUT" det_work --force 2>&1 )" || true
+if [ ! -d "$T/live/.claude/worktrees/det_work" ]; then
+  pass "remove_one --force DOES remove a DETACHED worktree (DIRTY contract, not UNKNOWN)"
+else
+  fail "remove_one --force refused a DETACHED worktree — over-blocking: $det_forced"
 fi
 
 # ⛔ Bound to the SLUG, not a bare grep for the word. `grep -q UNKNOWN` over
@@ -637,6 +690,31 @@ if [ "${IMUT_OK:-0}" = "1" ]; then
   else
     fail "teeth: ignored-probe stand-in fixture failed to build"
   fi
+fi
+
+# --- narrow teeth for the DETACHED state -------------------------------------
+# Strip ONLY the reachability check, keep every other guard, and the commit-
+# bearing worktree must then be destroyed. Same discipline as the config-pin and
+# ignored-probe stand-ins: proves these assertions measure THIS state rather
+# than riding on the five that came before it.
+DMUT="$T/det-mutant.sh"
+awk '
+  /^  if ! rcgit -C "\$1" symbolic-ref -q HEAD/ { skip = 1; next }
+  skip && /^  fi$/ { skip = 0; next }
+  skip { next }
+  { print }
+' "$SUT" > "$DMUT"
+if awk '/^worktree_state\(\)/,/^\}/' "$DMUT" | grep -q 'symbolic-ref'; then
+  fail "teeth: detached stand-in did not apply — cannot prove the DETACHED assertions have teeth"
+elif build_fixture "$T/detmut"; then
+  ( cd "$T/detmut" && bash "$DMUT" --all >/dev/null 2>&1 )
+  if [ -f "$T/detmut/.claude/worktrees/det_work/committed.txt" ]; then
+    fail "teeth: the detached worktree survived even WITHOUT the reachability check — the DETACHED assertions are vacuous"
+  else
+    pass "teeth: strip only the reachability check and the unreachable commit IS destroyed (DETACHED assertions are real)"
+  fi
+else
+  fail "teeth: detached stand-in fixture failed to build"
 fi
 
 printf '\n'

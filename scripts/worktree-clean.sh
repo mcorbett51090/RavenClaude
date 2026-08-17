@@ -9,7 +9,7 @@
 #   scripts/worktree-clean.sh <slug>              # remove if clean
 #   scripts/worktree-clean.sh <slug> --force      # remove even if dirty
 #   scripts/worktree-clean.sh --all               # remove all clean worktrees
-#   scripts/worktree-clean.sh --status            # list worktrees + clean/DIRTY/IGNORED/UNKNOWN
+#   scripts/worktree-clean.sh --status            # list worktrees + clean/DIRTY/IGNORED/DETACHED/UNKNOWN
 #
 # UNKNOWN means the tree could not be inspected (git status failed, or it
 # succeeded against an ANCESTOR, or the directory is unreadable) — it is NOT
@@ -22,6 +22,12 @@
 # --porcelain is silent about by design. --all skips it and names what is there;
 # remove_one refuses without --force and HONOURS --force, because unlike UNKNOWN
 # we can see exactly what would be destroyed.
+#
+# DETACHED means the tree is clean by every measure above, but its HEAD is
+# detached at a commit no branch or tag contains — so removing it makes that
+# commit unreachable and the worktree's own reflog goes with it. Same --force
+# contract as IGNORED, plus a printed `git branch <name> <sha>` rescue, because
+# here the safe move is one non-destructive command away.
 
 set -euo pipefail
 
@@ -126,7 +132,7 @@ EOF
 }
 
 # Classify a worktree. Prints exactly one of:
-#   clean | DIRTY | IGNORED | UNKNOWN-rc | UNKNOWN-scope | UNKNOWN-perm
+#   clean | DIRTY | IGNORED | DETACHED | UNKNOWN-rc | UNKNOWN-scope | UNKNOWN-perm
 # The three UNKNOWN-* causes collapse to "UNKNOWN" for DISPLAY; they stay
 # distinct internally because they need opposite operator advice.
 #
@@ -141,7 +147,7 @@ EOF
 # Capturing the exit code separately is what splits "I looked and it is clean"
 # from "I could not look". Fail toward NOT deleting.
 # See docs/best-practices/verification-probe-discipline.md.
-worktree_state() { # $1=dir -> prints clean|DIRTY|IGNORED|UNKNOWN-rc|UNKNOWN-scope|UNKNOWN-perm
+worktree_state() { # $1=dir -> clean|DIRTY|IGNORED|DETACHED|UNKNOWN-rc|UNKNOWN-scope|UNKNOWN-perm
   local out rc=0 top
   # ⛔ FIRST: prove git resolved to THIS directory, not an ancestor.
   # `git status` exiting 0 does NOT mean "I inspected this tree". Git's
@@ -218,7 +224,53 @@ worktree_state() { # $1=dir -> prints clean|DIRTY|IGNORED|UNKNOWN-rc|UNKNOWN-sco
   ig="$(rcgit -C "$1" -c core.excludesFile=/dev/null -c core.fsmonitor= status --porcelain --untracked-files=normal --ignored=traditional 2>/dev/null)" || igrc=$?
   if [ "$igrc" -ne 0 ]; then printf 'UNKNOWN-rc'; return; fi
   if [ -n "$ig" ]; then printf 'IGNORED'; return; fi
+
+  # ⛔ FIFTH FACE, and the first where the work is COMMITTED. Everything above
+  # asks "is there uncommitted content here?". A detached-HEAD worktree can be
+  # spotlessly clean by that measure and still be the only thing holding a
+  # commit: nothing points at it, so `git worktree remove` makes it unreachable.
+  #
+  # control 2026-08-17 (scratch repo, detached worktree carrying commit 92011128,
+  # then `git worktree remove --force`):
+  #   before: .git/worktrees/dw/logs/HEAD exists;  reflog --all | grep -c -> 0
+  #   after : that file is GONE;                   reflog --all | grep -c -> 0
+  #           for-each-ref --contains <sha>        -> 0 refs (unreachable)
+  #           git fsck --unreachable | grep -c     -> 1  (fsck is the only route)
+  #   positive control, same probe on a reachable sha:
+  #           reflog --all | grep -c $(rev-parse --short HEAD) -> 2
+  # So the reflog does not rescue it — the admin dir holding that reflog is
+  # deleted with the worktree — and `git fsck --lost-found` is the only path,
+  # until gc prunes. That is why DETACHED names the SHA and prints a rescue
+  # command rather than a bare warning.
+  #
+  # The discriminator is REACHABILITY, not detachment. Measured 2026-08-17:
+  #   detached + own commits  -> contained-by NONE            -> would be lost
+  #   detached at a ref tip   -> contained-by refs/heads/main -> loses nothing
+  #   branch-backed worktree  -> symbolic HEAD                -> loses nothing
+  # Flagging every detached worktree would fire on the middle case, which is
+  # common and harmless — and a guard that fires on the harmless case is one
+  # that gets ignored on the harmful one.
+  #
+  # Cost is paid only here, on a tree already queued for deletion, and
+  # `--count=1` lets the walk stop at the first containing ref.
+  if ! rcgit -C "$1" symbolic-ref -q HEAD >/dev/null 2>&1; then
+    local head_sha anyref
+    head_sha="$(rcgit -C "$1" rev-parse HEAD 2>/dev/null)" || { printf 'UNKNOWN-rc'; return; }
+    if [ -n "$head_sha" ]; then
+      # A failure here means we could not determine reachability. That is "I
+      # could not look", not "nothing is there" — the whole thesis of this file.
+      anyref="$(rcgit -C "$1" for-each-ref --count=1 --contains "$head_sha" \
+                  --format='%(refname)' 2>/dev/null)" || { printf 'UNKNOWN-rc'; return; }
+      [ -n "$anyref" ] || { printf 'DETACHED'; return; }
+    fi
+  fi
   printf 'clean'
+}
+
+# The HEAD commit of a detached worktree, short form, so the operator gets a
+# message they can act on rather than one they can only be alarmed by.
+detached_head() { # $1=dir
+  rcgit -C "$1" rev-parse --short HEAD 2>/dev/null | sanitize
 }
 
 # First few ignored entries, for a message an operator can act on. Bounded, and
@@ -410,6 +462,24 @@ remove_one() {
         return 1
       fi
       ;;
+    DETACHED)
+      # DIRTY contract, like IGNORED: we can see exactly what is at risk, so
+      # --force is a considered choice. Unlike IGNORED, the rescue is a single
+      # non-destructive command that makes the removal safe, so print THAT
+      # rather than only a warning — the operator's best move is to keep the
+      # commit and then delete freely.
+      if [ "$force" != "--force" ]; then
+        printf 'error: %s is on a detached HEAD whose commit (%s) is not reachable\n' \
+          "$(printf '%s' "$wt_dir" | sanitize)" "$(detached_head "$wt_dir")" >&2
+        printf '       from any branch or tag. Removing it makes that commit unreachable,\n' >&2
+        printf '       and the worktree reflog is deleted with it — recovery would be\n' >&2
+        printf '       `git fsck --lost-found` only, until gc prunes.\n' >&2
+        printf '       Keep it first:  git -C %s branch <name> %s\n' \
+          "$(printf '%s' "$REPO_ROOT" | sanitize)" "$(detached_head "$wt_dir")" >&2
+        printf '       Then re-run, or pass --force to discard it.\n' >&2
+        return 1
+      fi
+      ;;
     IGNORED)
       # ⛔ The DIRTY contract, NOT the UNKNOWN one below. The difference is
       # knowledge, not danger: for UNKNOWN we cannot see what we would destroy,
@@ -501,6 +571,13 @@ remove_all_clean() {
         ;;
       DIRTY)
         printf '  skipped %s (dirty)\n' "$slug"
+        ;;
+      DETACHED)
+        # Name the SHA and the one-command rescue. --all never forces.
+        printf '  skipped %s (detached HEAD, commit %s not reachable from any ref)\n' \
+          "$slug" "$(detached_head "$d")"
+        printf '      keep it: git -C %s branch <name> %s\n' \
+          "$(printf '%s' "$REPO_ROOT" | sanitize)" "$(detached_head "$d")"
         ;;
       IGNORED)
         # Named with what is actually there, so the operator decides in one look.
