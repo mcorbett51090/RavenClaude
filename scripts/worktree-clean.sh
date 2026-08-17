@@ -28,6 +28,49 @@
 # commit unreachable and the worktree's own reflog goes with it. Same --force
 # contract as IGNORED, plus a printed `git branch <name> <sha>` rescue, because
 # here the safe move is one non-destructive command away.
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# EXPLICIT NON-GOALS — two more shapes `--porcelain` is silent about
+# ─────────────────────────────────────────────────────────────────────────────
+# The states above were each added because "empty output" turned out to mean
+# something other than "empty tree". That logic does not stop where this file
+# does, and the two shapes below are genuinely in the same class. They are NOT
+# covered, ON PURPOSE, and this block exists so nobody has to re-derive that
+# from the code and conclude it was an oversight.
+#
+# 1. `assume-unchanged` (and `skip-worktree`). A tracked file with the bit set
+#    is invisible to status, so an edit to it classifies `clean` and --all
+#    removes the tree.
+#    control 2026-08-17, same worktree, one modified tracked file:
+#      bit NOT set (control) -> DIRTY     <- the probe can return the other answer
+#      bit set               -> clean     <- and the edit is then removed
+#    NOT covered because the user DELIBERATELY told git to stop tracking changes
+#    to that file. Re-surfacing it as a deletion blocker overrides an explicit
+#    instruction, and the flag's whole purpose is to make the file invisible.
+#    That is a weaker claim on this tool than `.env` has, where nothing was ever
+#    opted out of. Detection, if it is ever wanted, is
+#    `rcgit -C "$1" ls-files -v | grep -q '^[a-z]'` — cheap, and the reason to
+#    leave it out is judgement, not cost.
+#
+# 2. Worktrees containing SUBMODULES. They classify `clean`, and no data is lost
+#    today — but only because GIT refuses the removal, not because we did.
+#    control 2026-08-17:
+#      classification                 -> clean
+#      git worktree remove            -> fatal: working trees containing
+#                                        submodules cannot be moved or removed
+#      tree still present afterwards  -> YES
+#    NOT covered because there is nothing to fix: the outcome is already
+#    correct. ⛔ But name the caveat honestly, because it is precisely what
+#    remove_one's own comment calls unacceptable elsewhere in this file —
+#    "safety then rested on git's own removal validation — real, but not this
+#    script's". If git ever relaxes that refusal, this becomes a live gap with
+#    no guard behind it, and this paragraph is the thing that should be read
+#    before assuming otherwise.
+#
+# The general rule these two illustrate, and the reason the list is finite:
+# `--porcelain` answers "what is git TRACKING as changed here?", never "what
+# would I destroy?". Every future state belongs in this file only if the gap
+# between those two questions holds something UNRECOVERABLE.
 
 set -euo pipefail
 
