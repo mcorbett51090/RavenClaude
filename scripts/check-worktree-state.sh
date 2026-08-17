@@ -136,10 +136,29 @@ build_fixture() { # $1=dest root -> 0 on success
   # script's DECISION (the UNKNOWN skip line), not on the file surviving.
   printf 'GARBAGE-NOT-AN-INDEX' > "$r/.git/worktrees/brokenwt/index"
 
-  # A plain non-git subdirectory does NOT reproduce UNKNOWN: git's discovery
-  # walks UPWARD, finds the parent repo, succeeds, and reports the file as
-  # untracked — the fixture reads DIRTY and the gate passes without ever
-  # exercising the defect. That mistake was made and caught while writing this.
+  # ⛔ THE UPWARD-WALK CLASS. .claude/worktrees/ must be gitignored and the
+  # parent clean, or these read DIRTY and the assertions are vacuous — the
+  # untracked file would show in the PARENT's status. With the ignore in place
+  # (this repo: .gitignore:47) git walks up, finds the clean parent, exits 0
+  # with EMPTY stdout, and the tree classifies `clean` while never having been
+  # inspected at all. Measured 2026-08-17: both shapes gave status rc=0,
+  # out_len=0, toplevel=<PARENT>.
+  printf '.claude/worktrees/\n' > "$r/.gitignore"
+  git -C "$r" add .gitignore >/dev/null 2>&1 || return 1
+  git -C "$r" -c commit.gpgsign=false commit -qm ignore >/dev/null 2>&1 || return 1
+
+  # g_plaindir: a plain directory that was never a worktree at all.
+  mkdir -p "$r/.claude/worktrees/g_plaindir"
+  printf 'G-PRECIOUS\n' > "$r/.claude/worktrees/g_plaindir/keep.txt"
+  # h_nogit: a REGISTERED worktree whose .git file has been removed.
+  git -C "$r" worktree add -q "$r/.claude/worktrees/h_nogit" >/dev/null 2>&1 || return 1
+  printf 'H-PRECIOUS\n' > "$r/.claude/worktrees/h_nogit/keep.txt"
+  rm -f "$r/.claude/worktrees/h_nogit/.git"
+
+  # A plain non-git subdirectory does NOT reproduce the *status-fails* UNKNOWN:
+  # git's discovery walks UPWARD and succeeds. That is why it is a fixture for
+  # the upward-walk class above, and why using it as the status-fails fixture
+  # (the first mistake made writing this gate) produced a vacuous pass.
   return 0
 }
 
@@ -185,6 +204,43 @@ else
   fail "un-inspectable worktree read '$BROKEN_S' (expected UNKNOWN)"
 fi
 
+# THE UPWARD-WALK CLASS: git status exits 0 by resolving to an ANCESTOR, so
+# rc==0 is not evidence this directory was inspected.
+PLAIN_S="$(status_of "$T/live" g_plaindir)"
+NOGIT_S="$(status_of "$T/live" h_nogit)"
+if [ "$PLAIN_S" = "UNKNOWN" ]; then
+  pass "a plain directory reads UNKNOWN (git resolved to an ancestor, not this tree)"
+else
+  fail "plain directory read '$PLAIN_S' — rc=0 from an ANCESTOR was trusted as an inspection"
+fi
+if [ "$NOGIT_S" = "UNKNOWN" ]; then
+  pass "a registered worktree with .git removed reads UNKNOWN"
+else
+  fail "worktree with .git removed read '$NOGIT_S' (expected UNKNOWN)"
+fi
+if [ -f "$T/live/.claude/worktrees/g_plaindir/keep.txt" ] && [ -f "$T/live/.claude/worktrees/h_nogit/keep.txt" ]; then
+  pass "--all left both upward-walk shapes on disk"
+else
+  fail "--all DELETED an upward-walk shape it never actually inspected"
+fi
+
+# Any non-empty second argument must NOT silently upgrade to --force.
+bad_flag_out="$( cd "$T/live" && bash "$SUT" cleanwt --froce 2>&1 )" || true
+case "$bad_flag_out" in
+  *"unknown flag"*) pass "a mistyped flag is rejected, not treated as --force" ;;
+  *) fail "a mistyped flag was not rejected: $bad_flag_out" ;;
+esac
+
+# A symlink under the worktree root must be refused, not followed.
+ln -s "$T/live/outside_target" "$T/live/.claude/worktrees/e_link" 2>/dev/null || true
+mkdir -p "$T/live/outside_target" && printf 'OUTSIDE\n' > "$T/live/outside_target/keep.txt"
+link_out="$( cd "$T/live" && bash "$SUT" e_link 2>&1 )" || true
+if [ -f "$T/live/outside_target/keep.txt" ]; then
+  pass "a symlinked worktree entry does not delete its target outside the worktree root"
+else
+  fail "a symlink under .claude/worktrees/ deleted a directory OUTSIDE it"
+fi
+
 # --- the deletion path -------------------------------------------------------
 ( cd "$T/live" && bash "$SUT" --all >"$T/all.out" 2>&1 )
 
@@ -218,12 +274,23 @@ else
   fail "--all did not report brokenwt as UNKNOWN"
 fi
 
-# The remedy must not be a runnable --force command (it either fails on this
+# The remedy must not be a runnable --force COMMAND (it either fails on this
 # shape or destroys unreviewed work, depending on the invisible cause).
-if grep -q -- '--force' "$T/all.out" 2>/dev/null; then
-  fail "--all's UNKNOWN advice still recommends --force on a tree it could not inspect"
+#
+# ⛔ Keyed on an invocation-shaped line, not the bare token. The first version
+# grepped for `--force` anywhere, which flagged the message's own PROHIBITION
+# ("Do NOT use --force") as a recommendation — a grep satisfied by the thing
+# being described, which is the same class this gate exists to catch.
+if grep -qE 'worktree-clean(\.sh)?[^|&;]*--force' "$T/all.out" 2>/dev/null; then
+  fail "--all's UNKNOWN advice still prints a runnable --force command"
 else
-  pass "--all's UNKNOWN advice does not recommend --force"
+  pass "--all's UNKNOWN advice prints no runnable --force command"
+fi
+# ...and it must still WARN about --force, or the prohibition was simply dropped.
+if grep -qi 'not use --force\|NOT reach for --force' "$T/all.out" 2>/dev/null; then
+  pass "--all's UNKNOWN advice explicitly warns against --force"
+else
+  fail "--all's UNKNOWN advice no longer warns against --force"
 fi
 
 # remove_one must refuse UNKNOWN even when --force is passed.
@@ -253,8 +320,12 @@ if mutant_is_defective "$MUT"; then
     fi
 
     # ⛔ THE ASSERTION THAT MATTERS, and it keys on the script's DECISION.
-    # Survival cannot be used here: `git worktree remove` refuses the corrupt
-    # shape (rc=128 measured), so brokenwt survives whatever the script decides.
+    # Survival cannot be used on THIS path: the UNFORCED `git worktree remove`
+    # that --all issues refuses the corrupt shape (rc=128 measured), so brokenwt
+    # survives whatever the script decides. (The --force path is different —
+    # git DOES delete the corrupt shape there, which is why the
+    # `remove_one --force` assertion above can and does use survival as its
+    # oracle. Do not generalise "git refuses it" across both paths.)
     # What changes is whether the script CHOSE to skip it. The fixed script
     # prints the UNKNOWN skip line; the mutant classifies it clean and attempts
     # removal instead. If this line is still present in the mutant's output, the

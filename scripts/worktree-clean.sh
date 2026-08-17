@@ -43,7 +43,24 @@ EOF
 # from "I could not look". Fail toward NOT deleting.
 # See docs/best-practices/verification-probe-discipline.md.
 worktree_state() { # $1=dir -> prints clean|DIRTY|UNKNOWN
-  local out rc=0
+  local out rc=0 top
+  # ⛔ FIRST: prove git resolved to THIS directory, not an ancestor.
+  # `git status` exiting 0 does NOT mean "I inspected this tree". Git's
+  # discovery walks UPWARD: for a plain directory, or a registered worktree
+  # whose .git file has been removed, git finds the PARENT repo and reports the
+  # parent's status. And because .claude/worktrees/ is gitignored (this repo:
+  # .gitignore:47), the directory's own contents are invisible to that parent
+  # status — so it comes back rc=0 with EMPTY stdout and classified `clean`,
+  # which is precisely the "empty means nothing there" trap this whole file
+  # exists to close, one level deeper.
+  # Measured 2026-08-17 in a gitignored-worktrees fixture with a clean parent:
+  #   plain dir              -> status rc=0, out_len=0, toplevel=<PARENT>  (was: clean)
+  #   worktree, .git removed -> status rc=0, out_len=0, toplevel=<PARENT>  (was: clean)
+  #   healthy linked worktree-> toplevel=<ITSELF>                          (still clean)
+  # A healthy linked worktree's toplevel IS itself, so this costs nothing on
+  # the normal path.
+  top="$(git -C "$1" rev-parse --show-toplevel 2>/dev/null)" || { printf 'UNKNOWN'; return; }
+  [ -n "$top" ] && [ "$top" -ef "$1" ] || { printf 'UNKNOWN'; return; }
   out="$(git -C "$1" status --porcelain 2>/dev/null)" || rc=$?
   if [ "$rc" -ne 0 ]; then
     printf 'UNKNOWN'
@@ -75,13 +92,37 @@ remove_one() {
     printf 'error: slug must match [A-Za-z0-9._-]+\n' >&2
     return 2
   fi
-  # The charset above permits '.' — explicitly reject the traversal slugs it would otherwise allow.
+  # The charset above permits '.' and '-' — reject the traversal slugs and the
+  # option-shaped ones it would otherwise allow (`--` makes the NEXT argument
+  # land in $force, and `-rf` reads as a flag to anything that forgets to `--`).
   case "$slug" in
     .|..) printf 'error: slug may not be . or ..\n' >&2; return 2 ;;
+    -*)   printf 'error: slug may not begin with "-"\n' >&2; return 2 ;;
+  esac
+  # ⛔ $force is used two ways below: a string compare on the DIRTY branch, and
+  # `${force:+--force}` when invoking git. The second expands to --force for ANY
+  # non-empty value, so `worktree-clean.sh <slug> --froce` (or -f, or xyz)
+  # performed a FORCED removal of a tree classified clean — the typo silently
+  # upgraded the operation. Validate once, here, against the exact set.
+  case "$force" in
+    ''|--force) ;;
+    *) printf 'error: unknown flag: %s (expected --force or nothing)\n' "$force" >&2; return 2 ;;
   esac
   local wt_dir="$WT_ROOT/$slug"
   if [ ! -d "$wt_dir" ]; then
     printf 'error: worktree not found: %s\n' "$wt_dir" >&2
+    return 1
+  fi
+  # ⛔ Refuse a symlink. `[ -d ]` and the */ glob both match a symlink-to-dir,
+  # `git -C` follows it, and `git worktree remove` resolves it — so the tool
+  # deleted the symlink's TARGET, outside .claude/worktrees/, while printing the
+  # in-tree path as if that were what went. Reproduced: a symlink to a sibling
+  # registered worktree removed the sibling and left the link dangling. A
+  # "clean" outside lane can still hold irreplaceable gitignored state
+  # (.ravenclaude/runs/, .env, node_modules).
+  # The -ef check below catches a link to the repo root but nothing else.
+  if [ -L "$wt_dir" ]; then
+    printf 'error: %s is a symlink — refusing (it would delete the target, not the link)\n' "$wt_dir" >&2
     return 1
   fi
   if [ "$wt_dir" -ef "$REPO_ROOT" ]; then
@@ -106,9 +147,21 @@ remove_one() {
     *)
       # UNKNOWN — could not inspect. Refuse even with --force: --force discards
       # uncommitted work, and here we do not know whether there is any.
-      printf 'error: could not inspect %s (git status failed) — refusing to remove.\n' "$wt_dir" >&2
-      printf '       Try: git -C %s worktree repair   (or: worktree prune)\n' "$REPO_ROOT" >&2
-      printf '       If you have confirmed by hand there is nothing to keep, move it aside, do not delete.\n' >&2
+      #
+      # ⛔ Show the REAL diagnostic, not a guessed remedy. The previous version
+      # suggested `git worktree repair` / `prune`; both were measured to be
+      # no-ops on every UNKNOWN shape constructed (corrupt index: repair rc=0 no
+      # output, prune rc=0, state unchanged; chmod 000 .git: repair reports
+      # permission denied, prune rc=0, state unchanged). An operator following
+      # printed advice that cannot work loops forever — and that pressure is
+      # exactly what produces tunnelling (a hand `rm -rf`, or re-adding
+      # --force). git's own stderr names the actual cause; print that instead.
+      printf 'error: could not inspect %s — refusing to remove.\n' "$wt_dir" >&2
+      printf '       git said: ' >&2
+      git -C "$wt_dir" status --porcelain 2>&1 >/dev/null | head -1 >&2 || true
+      printf '       Fix the cause above, then re-run. Do NOT reach for --force:\n' >&2
+      printf '       it discards uncommitted work, and the point is that we could not rule any out.\n' >&2
+      printf '       If you have confirmed by hand there is nothing to keep, move it aside rather than delete it.\n' >&2
       return 1
       ;;
   esac
@@ -142,7 +195,17 @@ remove_all_clean() {
   for d in "$WT_ROOT"/*/; do
     [ -d "$d" ] || continue
     local slug
-    slug="$(basename "$d")"
+    # Strip the trailing / the glob adds, then strip control characters: a
+    # directory name containing a newline otherwise splits the status line and
+    # lets an attacker-named directory forge a plausible extra line in the
+    # operator's terminal.
+    slug="$(basename "${d%/}" | tr -d '\r\n')"
+    # Refuse symlinks here too, so the skip message is accurate rather than
+    # relying on remove_one to catch it after classification. See remove_one.
+    if [ -L "${d%/}" ]; then
+      printf '  skipped %s (symlink — refusing; it would delete the target, not the link)\n' "$slug"
+      continue
+    fi
     case "$(worktree_state "$d")" in
       clean)
         remove_one "$slug" || printf '  skipped %s\n' "$slug"
@@ -161,10 +224,16 @@ remove_all_clean() {
         # out), and the slug is unvalidated here — validation lives in
         # remove_one, which UNKNOWN never reaches — so a directory named
         # `x$(id)y` produced a copy-pasteable line that executes on paste.
-        # Print the PATH (as data, %s) and a non-destructive remedy instead.
-        printf '  skipped %s (UNKNOWN — git status failed; not removed)\n' "$slug"
-        printf '      path: %s\n' "$d"
-        printf '      try:  git -C %s worktree repair   (or: worktree prune)\n' "$REPO_ROOT"
+        # Print the PATH (as data, %s) and git's OWN diagnostic — the earlier
+        # `worktree repair`/`prune` suggestion was measured to be a no-op on
+        # every UNKNOWN shape constructed, so it sent the operator in a loop.
+        printf '  skipped %s (UNKNOWN — could not inspect; not removed)\n' "$slug"
+        printf '      path: %s\n' "${d%/}"
+        printf '      git said: '
+        git -C "${d%/}" status --porcelain 2>&1 >/dev/null | head -1 || true
+        printf '      Fix the cause above, then re-run. Do NOT use --force — it discards\n'
+        printf '      uncommitted work and the point is that we could not rule any out.\n'
+        printf '      If nothing there matters, move it aside rather than delete it.\n'
         ;;
     esac
   done
