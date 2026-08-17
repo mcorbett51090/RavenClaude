@@ -136,6 +136,20 @@ build_fixture() { # $1=dest root -> 0 on success
   # script's DECISION (the UNKNOWN skip line), not on the file surviving.
   printf 'GARBAGE-NOT-AN-INDEX' > "$r/.git/worktrees/brokenwt/index"
 
+  # ⛔ THE UPWARD-WALK CLASS. .claude/worktrees/ must be gitignored and the
+  # parent clean, or these read DIRTY and the assertions are vacuous — the
+  # untracked file would show in the PARENT's status. With the ignore in place
+  # git walks up, finds the clean parent, exits 0 with EMPTY stdout, and the
+  # tree classifies `clean` while never having been inspected at all.
+  printf '.claude/worktrees/\n' > "$r/.gitignore"
+  git -C "$r" add .gitignore >/dev/null 2>&1 || return 1
+  git -C "$r" -c commit.gpgsign=false commit -qm ignore >/dev/null 2>&1 || return 1
+  mkdir -p "$r/.claude/worktrees/g_plaindir"
+  printf 'G-PRECIOUS\n' > "$r/.claude/worktrees/g_plaindir/keep.txt"
+  git -C "$r" worktree add -q "$r/.claude/worktrees/h_nogit" >/dev/null 2>&1 || return 1
+  printf 'H-PRECIOUS\n' > "$r/.claude/worktrees/h_nogit/keep.txt"
+  rm -f "$r/.claude/worktrees/h_nogit/.git"
+
   # A plain non-git subdirectory does NOT reproduce UNKNOWN: git's discovery
   # walks UPWARD, finds the parent repo, succeeds, and reports the file as
   # untracked — the fixture reads DIRTY and the gate passes without ever
@@ -185,6 +199,21 @@ else
   fail "un-inspectable worktree read '$BROKEN_S' (expected UNKNOWN)"
 fi
 
+# The upward-walk half: git exits 0 by resolving to an ANCESTOR, so rc==0 is not
+# evidence THIS directory was inspected.
+PLAIN_S="$(status_of "$T/live" g_plaindir)"
+NOGIT_S="$(status_of "$T/live" h_nogit)"
+if [ "$PLAIN_S" = "UNKNOWN" ]; then
+  pass "a plain directory reads UNKNOWN (git resolved to an ancestor, not this tree)"
+else
+  fail "plain directory read '$PLAIN_S' — rc=0 from an ANCESTOR was trusted as an inspection"
+fi
+if [ "$NOGIT_S" = "UNKNOWN" ]; then
+  pass "a registered worktree with .git removed reads UNKNOWN"
+else
+  fail "worktree with .git removed read '$NOGIT_S' (expected UNKNOWN)"
+fi
+
 # --- the deletion path -------------------------------------------------------
 ( cd "$T/live" && bash "$SUT" --all >"$T/all.out" 2>&1 )
 
@@ -208,6 +237,17 @@ if [ -f "$T/live/.claude/worktrees/brokenwt/precious.txt" ]; then
   pass "--all did not delete the worktree it could not inspect"
 else
   fail "--all DELETED an un-inspectable worktree (the defect this gate exists for)"
+fi
+
+# ⛔ Asserted AFTER --all runs. An earlier draft placed the equivalent check
+# BEFORE the invocation, where it could not fail — proven by pointing the gate
+# at a stand-in that deletes every worktree slot: it stayed green while every
+# file it names was destroyed. Order is the whole assertion.
+if [ -f "$T/live/.claude/worktrees/g_plaindir/keep.txt" ] \
+   && [ -f "$T/live/.claude/worktrees/h_nogit/keep.txt" ]; then
+  pass "--all left both upward-walk shapes on disk (asserted AFTER --all ran)"
+else
+  fail "--all DELETED an upward-walk shape it never actually inspected"
 fi
 
 # ⛔ Bound to the SLUG, not a bare grep for the word. `grep -q UNKNOWN` over

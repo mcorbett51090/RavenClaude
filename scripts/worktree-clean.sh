@@ -43,7 +43,25 @@ EOF
 # from "I could not look". Fail toward NOT deleting.
 # See docs/best-practices/verification-probe-discipline.md.
 worktree_state() { # $1=dir -> prints clean|DIRTY|UNKNOWN
-  local out rc=0
+  local out rc=0 top
+  # ⛔ SECOND HALF OF THE SAME DEFECT: `git status` exiting 0 does NOT mean
+  # "I inspected this tree". Git's discovery walks UPWARD — for a plain
+  # directory, or a registered worktree whose .git file has been removed, git
+  # finds the PARENT repo and reports the parent's status. And because
+  # .claude/worktrees/ is gitignored (this repo: .gitignore:47), the directory's
+  # own contents are invisible to that parent status, so it returns rc=0 with
+  # EMPTY stdout and classifies `clean` — a tree nobody looked at, queued for
+  # deletion. Exactly the "empty means nothing there" trap above, one level
+  # deeper: there the exit code was ignored, here a success was taken as
+  # evidence of the wrong thing.
+  #
+  # Measured 2026-08-17 in a gitignored-worktrees fixture with a clean parent:
+  #   plain dir               -> status rc=0, out_len=0, toplevel=<PARENT>
+  #   worktree, .git removed  -> status rc=0, out_len=0, toplevel=<PARENT>
+  #   healthy linked worktree -> toplevel=<ITSELF>            (still clean)
+  # A healthy worktree's toplevel IS itself, so this costs nothing normally.
+  top="$(git -C "$1" rev-parse --show-toplevel 2>/dev/null)" || { printf 'UNKNOWN'; return; }
+  [ -n "$top" ] && [ "$top" -ef "$1" ] || { printf 'UNKNOWN'; return; }
   out="$(git -C "$1" status --porcelain 2>/dev/null)" || rc=$?
   if [ "$rc" -ne 0 ]; then
     printf 'UNKNOWN'
