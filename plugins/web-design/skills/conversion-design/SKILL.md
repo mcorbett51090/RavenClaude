@@ -43,7 +43,7 @@ The strongest predictor of conversion: how clear is the next action? Apply ruthl
 
 ## 3. Form field reduction
 
-Every form field is a cost. Industry rule of thumb: each additional required field reduces completion by ~5–7%. The discipline:
+Every form field is a cost — but the cost is **justification**, not a predictable conversion penalty. Make each field earn its place on the grounds that the business has a real use for the data. The discipline:
 
 - **What does the business genuinely need to fulfill this action?** That's the minimum.
 - **What's nice to have?** Move it to a post-conversion progressive-profiling step.
@@ -53,14 +53,14 @@ Every form field is a cost. Industry rule of thumb: each additional required fie
 - **Replace** "create password" with magic-link auth where the security model allows
 - **Use a single name field** ("Name") not first / last / middle unless you legitimately need them apart
 
-### Sign-up form field benchmarks (2026, self-serve SaaS)
+### ⛔ "Fewer fields always converts better" is folklore — do not repeat it
 
-| Field count | Typical completion | Use case |
-|---|---|---|
-| 1 (email only) | 35–50% | Newsletter, waitlist, magic-link sign-up |
-| 2–3 | 20–30% | Standard SaaS sign-up |
-| 4–6 | 10–18% | "Request a demo" / B2B with qualification |
-| 7+ | < 10% | You are losing money on this form |
+Field count is a **weak predictor** of conversion next to field clarity, user motivation, and context. The counter-evidence is direct: in a documented A/B test, **removing fields dropped conversion by 14%**, while merely **relabelling the same fields raised it by 19.21%**. The same source records a **30+ question** form converting at **53%**, and answers "is shorter better?" with *"No, not necessarily."*
+[source: https://ventureharbour.com/how-form-length-impacts-conversion-rates/ — retrieved 2026-08-17, summarising a ConversionXL / Michael Aagaard case]
+
+**So argue field reduction on the grounds that actually hold.** Cut a field you cannot name a *use* for — that is data minimisation, and it stands on its own merits (less to store, less to breach, less to justify under a privacy review). Do **not** promise a conversion lift for it. If conversion is the goal, **test the change**: field count is one of the few things genuinely worth A/B-testing (§8), precisely *because* its effect is not predictable in advance.
+
+⛔ **A per-field percentage penalty is not a real number.** Until 2026-08-17 this section stated "each additional required field reduces completion by ~5–7%" and carried a completion-by-field-count benchmark table (1 field → 35–50%, 7+ → <10%). Both were **unsourced**, and both are contradicted by the evidence above. They were **removed rather than re-cited**: the figures usually quoted in support are single-company tests, not controlled research, and presenting them as "benchmarks" lent invented precision the underlying data does not have. If you need a number for a specific funnel, **measure that funnel** — a borrowed conversion rate is a claim about someone else's traffic.
 
 ## 4. Trust signals — when to use which
 
