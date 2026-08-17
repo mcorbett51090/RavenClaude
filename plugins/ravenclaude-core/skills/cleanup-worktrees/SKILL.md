@@ -13,15 +13,29 @@ description: Remove finished agent worktrees, prune their branches, and surface 
    - **Merged** — its branch is fully reachable from `main` (or the configured base). Safe to remove.
    - **Open PR** — branch has an open PR. Don't remove.
    - **Dirty** — uncommitted changes. Surface and stop; the Team Lead must decide.
-   - **UNKNOWN** — `git status` itself FAILED for that tree (stale linked worktree
-     whose admin dir under `.git/worktrees/` is gone, corrupt `.git`, permission
-     denied). ⛔ This is **not** a third flavour of clean: a failed inspection
-     writes empty stdout, byte-identical to a clean tree's, so treating it as
-     clean deletes work nobody looked at. `worktree-clean.sh` refuses it — and
-     refuses it **even with `--force`**, because `--force` discards uncommitted
-     work and here we do not know whether there is any. Repair it first
-     (`git worktree repair` / `git worktree prune`) or move it aside; do not
-     reach for `--force`.
+   - **UNKNOWN** — the tree could not be inspected. ⛔ This is **not** a third
+     flavour of clean: an un-inspected tree produces empty output, byte-identical
+     to a clean one, so treating it as clean deletes work nobody looked at.
+     `worktree-clean.sh` refuses it — and refuses it **even with `--force`**,
+     because `--force` discards uncommitted work and here we do not know whether
+     there is any.
+
+     There are **two causes**, and only one of them involves an error:
+     - *`git status` failed* — a stale linked worktree whose admin dir under
+       `.git/worktrees/` is gone, a corrupt `.git`, permission denied. Empty
+       stdout, non-zero exit.
+     - *`git status` **succeeded**, but against an ANCESTOR* — the directory is
+       not a worktree, or its `.git` file is missing, so git's discovery walked
+       up and reported the parent repo. Since `.claude/worktrees/` is gitignored,
+       the parent reports nothing about it, so this also comes back empty — with
+       **exit 0**. This is the more common shape, and it is why a successful
+       `git status` is not by itself evidence that anything was inspected.
+
+     ⛔ Do **not** reach for `git worktree repair` / `git worktree prune` as a
+     reflex. Both were measured to be no-ops on every UNKNOWN shape tested, so
+     that advice sends you in a loop — and loop pressure is what makes people
+     tunnel to a manual delete. Read the specific cause, fix that, or move the
+     tree aside. Never delete it to make the message go away.
    - **Stale** — last commit > 14 days old, no PR. Flag for the user, don't remove without confirmation.
 3. **Close the lane first.** Close the VS Code window / end the Chat session for that worktree before `git worktree remove`, or the next session can reuse an Agents-window conversation from the removed tree.
 4. **Remove the safe ones.**
