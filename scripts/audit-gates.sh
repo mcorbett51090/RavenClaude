@@ -486,7 +486,36 @@ PY
       exit $?
       ;;
     126)
-      echo "── Gate 126: managed-solution-import pure-logic (PROD-guard / SSRF allow-list / baseline-by-stable-key / flag-economy / teeth) ──"
+      # ⛔ 126 is the WORKFLOW-MIRROR gate, matching the main sequence and the
+      # constitution (plugins/ravenclaude-core/CLAUDE.md:1432,1450). It used to
+      # answer with the managed-import test — a different gate under the same
+      # number, so `--check 126` exercised something the suite's Gate 126 never
+      # ran. managed-import is now Gate 217.
+      echo "── Gate 126: workflow-mirror byte-identity (skills copy vs .claude/workflows copy) ──"
+      _rc126=0
+      for _pair in \
+        "plugins/ravenclaude-core/skills/rc-deep-research/rc-deep-research.js:.claude/workflows/rc-deep-research.js" \
+        "plugins/ravenclaude-core/skills/two-panel-plan-review/two-panel-plan-review.js:.claude/workflows/two-panel-plan-review.js"; do
+        _a="${_pair%%:*}"; _b="${_pair##*:}"
+        if diff -q "$_a" "$_b" >/dev/null 2>&1; then
+          echo "  ✓ identical: $_a"
+        else
+          echo "  ✗ DRIFT: $_a vs $_b"; _rc126=1
+        fi
+      done
+      # teeth: a one-sided drift must be caught
+      _mmut="$(mktemp)"
+      { cat .claude/workflows/rc-deep-research.js; echo "// drift"; } > "$_mmut"
+      if diff -q plugins/ravenclaude-core/skills/rc-deep-research/rc-deep-research.js "$_mmut" >/dev/null 2>&1; then
+        echo "  ✗ must-fail half: injected drift was NOT caught — gate has no teeth"; _rc126=1
+      else
+        echo "  ✓ must-fail half: injected drift IS caught"
+      fi
+      rm -f "$_mmut"
+      exit "$_rc126"
+      ;;
+    217)
+      echo "── Gate 217: managed-solution-import pure-logic (PROD-guard / SSRF allow-list / baseline-by-stable-key / flag-economy / teeth) ──"
       bash plugins/power-platform/hooks/tests/test-managed-import.sh
       exit $?
       ;;
@@ -1108,7 +1137,7 @@ PY
       ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -5353,21 +5382,55 @@ gate "converge rc verb: report/verdict/derive + friendly errors + word-boundary 
 rc=0; python3 scripts/check-converge-rc.py --must-fail-overclaim >/dev/null 2>&1 || rc=$?
 gate "converge rc verb: over-claim screen has teeth (renders 'perfect' when screen neutered)" must_pass "$rc"
 
-echo "── Gates 120–125: model-fallback + nudges + Dataverse pre-flight (restored after #519 dropped 120–123) ──"
+# ⛔ THESE EIGHT USED TO SHARE ONE BATCHED HEADER, AND THAT DEFEATED THE ONE
+# CHECK THIS SUITE MANDATES FOR ITSELF.
+#
+# The header read "── Gates 120–125: … ──" while the block actually ran EIGHT
+# tests (120-125, the managed-import gate, and 127). Gate 184's block, twelve
+# hundred lines below, states the rule in its own words: "When adding a gate,
+# RUN THE FULL SUITE AND GREP ITS OUTPUT FOR THE NEW GATE: a passing suite is
+# not evidence your gate is in it."
+#
+# Against the old header that grep returned NOTHING for `Gate 120`, `Gate 121`,
+# `Gate 122`, `Gate 123`, `Gate 124`, `Gate 125` or `Gate 127` — the plural
+# "Gates" and the en-dash range match none of them. So the prescribed
+# verification reported seven gates ABSENT while all seven were running, and an
+# audit that trusted it would "restore" gates that were never lost. That is what
+# #519 did once already, which is why the old header carried "(restored after
+# #519 dropped 120–123)".
+#
+# One header per gate, each containing the literal string the grep looks for.
+# Do NOT re-batch them.
+echo "── Gate 120: model-fallback helper (classification / cost cap / exclude / disabled-byte-identical) ──"
 rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate120-model-fallback.sh >/dev/null 2>&1 || rc=$?
 gate "model-fallback helper: classification + cost cap + exclude + disabled-byte-identical + teeth" must_pass "$rc"
+echo "── Gate 121: model-fallback runtime model-diversity collapse (fail-closed / inert) ──"
 rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate121-model-fallback-diversity.sh >/dev/null 2>&1 || rc=$?
 gate "model-fallback runtime diversity: collapse fails closed + inert when distinct + teeth" must_pass "$rc"
+echo "── Gate 122: delegation-nudge.sh (consult-your-access-inventory written-artifact nudge) ──"
 rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate122-delegation-nudge.sh >/dev/null 2>&1 || rc=$?
 gate "delegation-nudge: fires on delegation prose + silent on reason/route/escape/scope/opt-out + teeth" must_pass "$rc"
+echo "── Gate 123: design-project binding surfacing (bound / half-set / absent / leak-safe) ──"
 rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate123-design-project-binding.sh >/dev/null 2>&1 || rc=$?
 gate "design-project binding: surfaces when bound + guides when half-set + silent when absent + leak-safe + teeth" must_pass "$rc"
+echo "── Gate 124: dataverse-payload-preflight validate() (all violation classes / clean) ──"
 rc=0; bash plugins/power-platform/hooks/tests/test-preflight.sh >/dev/null 2>&1 || rc=$?
 gate "dataverse-payload-preflight: catches all violation classes in one pass + clean on good + teeth" must_pass "$rc"
+echo "── Gate 125: nudge-dataverse-preflight.sh (fires on create/update / silent on GET+opt-out) ──"
 rc=0; bash plugins/power-platform/hooks/tests/test-nudge-preflight.sh >/dev/null 2>&1 || rc=$?
 gate "nudge-dataverse-preflight: fires on Dataverse create/update under posture + silent on GET/opt-out + teeth" must_pass "$rc"
+# ⛔ Gate 217, NOT 126. The --check dispatcher used to answer `126` with this
+# managed-import test, while the suite's own "Gate 126" header (below) is the
+# workflow-mirror byte-identity gate — two different gates wearing one number.
+# `--check 126` therefore ran something other than the Gate 126 the suite ran,
+# and the constitution documents 126 as the file-mirror gate
+# (plugins/ravenclaude-core/CLAUDE.md:1432,1450). The mirror gate keeps 126;
+# managed-import takes the next free number. Nothing referenced this gate by
+# number in any doc, so the renumber breaks no citation.
+echo "── Gate 217: managed-solution-import pure-logic (PROD-guard / SSRF allow-list / baseline-by-stable-key) ──"
 rc=0; bash plugins/power-platform/hooks/tests/test-managed-import.sh >/dev/null 2>&1 || rc=$?
 gate "managed-solution-import: PROD-guard boundaries + SSRF allow-list + baseline-by-stable-key + flag-economy + teeth" must_pass "$rc"
+echo "── Gate 127: pseudonymize.py (fail-closed encode / no-egress / FM7 NER-absent / FM8) ──"
 rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate127-pseudonymize.sh >/dev/null 2>&1 || rc=$?
 gate "Gate 127 pseudonymize.py: fail-closed encode + no-egress + FM7 NER-absent + FM8 + teeth" must_pass "$rc"
 
