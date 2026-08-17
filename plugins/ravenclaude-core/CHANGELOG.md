@@ -2,6 +2,20 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.271.4 — 2026-08-17
+
+### Fixed
+
+- **`cleanup-worktrees`: a detached-HEAD worktree holding the only copy of a commit is no longer deleted as `clean`.** Every prior state answers *"is there **uncommitted** content here?"*. A detached worktree can be spotless by that measure and still be the one thing holding a commit — `git status` is rightly silent, and `git worktree remove` then makes it unreachable.
+
+  **The reflog does not rescue it.** Controlled: before removal `.git/worktrees/<name>/logs/HEAD` exists; after, it is gone with the admin dir, the commit is contained by **0 refs**, and only `git fsck --unreachable` still finds it (positive control: the same reflog probe returns 2 hits for a reachable SHA, so the zeros are a fact about the subject, not a broken probe). Recovery is `git fsck --lost-found` until gc prunes.
+
+  New **DETACHED** state: `--all` skips it, names the SHA, and prints the one-command rescue `git branch <name> <sha>`; `remove_one` refuses bare and **honours `--force`** (the DIRTY contract, not UNKNOWN's — we can see exactly what is at risk).
+
+  **The discriminator is reachability, not detachment.** Measured: detached-with-own-commits is contained by no ref; detached at a ref tip is contained by `refs/heads/main`; a branch-backed worktree has a symbolic HEAD. Only the first is flagged — flagging every detached worktree would fire constantly on the harmless middle case, and a guard that fires on the harmless case is one that gets ignored on the harmful one.
+
+  Gate 216 covers both directions, including the **no-false-positive** assertion (a reachable detached tree must still read `clean` and still be removed) and a narrow stand-in that strips only the reachability check and confirms the commit-bearing worktree is then destroyed.
+
 ## 0.271.3 — 2026-08-17
 
 ### Fixed
