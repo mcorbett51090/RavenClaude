@@ -1778,6 +1778,8 @@ audit-gate), with three subcommands:
 - `init <slug>` — creates (or, on `--resume`, **reuses** — idempotent) the branch `forge/<slug>` in
   the worktree `.claude/worktrees/forge-<slug>/`, off `main` (or the resolved base). Prints a JSON
   receipt + a `FORGE_WORKTREE <abs-path>` line.
+  > **Superseded (v0.272.0):** "off `main`" was the defect, not the design — the base is now
+  > `origin/main` first. See the "FORGE branched off a stale local `main`" milestone below.
 - `checkpoint <slug> <label>` — commits the worktree's tracked changes as
   `forge(<slug>): checkpoint — <label>`. No-op when nothing tracked has changed.
 - `--self-test` — 9 scratch-repo fixtures (create/reuse idempotency, nesting guard, empty-checkpoint
@@ -2578,6 +2580,55 @@ color/length/number/shadow is **dropped** — this catches a hostile `url()` bea
 **and** a legitimate complex declaration (`linear-gradient(...)`, a multi-value shorthand, an
 `!important`), which now no longer round-trips into `brand.css`. `brand.css` was deliberately excluded
 from the byte-identical floor for exactly this reason.
+
+## FORGE branched off a stale local `main` (added 2026-08-17, v0.272.0)
+
+v0.210.0 shipped the worktree provisioner and got the hard part right — always-on, idempotent,
+fail-safe, nesting-guarded. It got the *base ref* wrong, and the base ref is the whole point.
+
+`_resolve_base` preferred the **local** `main`, so the isolation it provided was isolation from the
+present.
+control: `git rev-list --count main..origin/main` in this checkout -> **4**, while the provisioned
+worktree's HEAD equalled `origin/main` and **not** local `main` after the fix (2026-08-17). A prior
+occasion measured **105** behind, twice in one session.
+
+⛔ **This fails in the worst available direction: silently, and toward "clean."** The stale checkout has
+every file, compiles, and passes every gate — because the gates are also from the past. The diff built
+there does not *look* wrong; it **reverts** everything landed since, and it does so while reporting
+green. There is no error to read. The only tell is a commit count nobody was printing.
+
+**The fix is one ordering change and one number.** Base precedence is now explicit `--base` >
+`origin/main` > `origin/master` > `main` > `HEAD`, preceded by a bounded `git fetch` (10s, via
+`timeout` → `gtimeout` → stock `perl`'s `alarm` → **decline to run** — macOS door 2 means an unbounded
+network call in a provisioner is a hang, and the fetch is an optimisation, never a requirement). The
+fetch touches `refs/remotes/*` only, so it cannot disturb the primary checkout. Every success path now
+emits the proof: `base` + `behind` in the receipt, plus `FORGE_WORKTREE_BASE <ref> (<n> commits behind
+origin/main)`.
+
+⛔ **An absent count means *unknown*, never *up to date*.**
+control: `init` in a fresh repo with no origin -> `base=main, behind=""` printed as `no origin/main —
+staleness NOT comparable`; adding an origin to that same repo and re-running -> `base=origin/main,
+behind="0"` (2026-08-17, both directions observed). Emitting `0` for the no-origin case would have been
+the same silent-toward-clean defect one layer up. **Reuse is measured too:** a resumed worktree can be
+as stale as a fresh one, and the original code never looked.
+
+**The base preference is deliberately NOT opt-out-able** (only the fetch is, via `--no-fetch` /
+`FORGE_WORKTREE_FETCH=off`). A knob that lets you branch off a lagging `main` is a knob that
+re-introduces a failure with no symptom.
+
+**Self-test 9 → 11 fixtures, and the new ones carry a positive control plus teeth.** Fixture 10 builds a
+real upstream + clone, lands a commit upstream, and **asserts the clone actually IS behind before
+asserting anything else** — otherwise it would pass on a fixture that was never stale, which is the
+class of bug it exists to catch. Fixture 11 pins that an explicit `--base` still wins *and* that the
+count reports the staleness rather than hiding it.
+control: neutering the `origin/main` branch of `_resolve_base` -> fixture 10 fails at exit 36; restoring
+it -> 11/11 pass. The green is measuring the fix, not passing for an unrelated reason.
+
+**Migration:** consumer-visible and intended. A `/forge` run whose local default branch lags origin now
+provisions from `origin/main` instead of that stale local ref, so a plan or implementation built in the
+worktree no longer silently reverts landed work. A repo with no `origin` behaves exactly as before
+(`main` → `HEAD`). A repo whose default branch is `master` now resolves `origin/master` where it
+previously fell through to `HEAD` — a fix in the same direction. `--base` is unchanged and still wins.
 
 **Known residuals (reviewer-accepted, backlogged — not merge blockers):** the `_fetch` SSRF guard is
 resolve-then-connect, so a DNS-rebinding record is a standard TOCTOU residual (closing it fully needs a

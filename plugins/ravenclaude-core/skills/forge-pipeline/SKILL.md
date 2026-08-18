@@ -104,6 +104,20 @@ posture nudges toward, and what keeps two concurrent `/forge` runs (or a forge r
 edits on `main`) from stomping one shared tree. It prints a JSON receipt and, on success, a
 `FORGE_WORKTREE <abs-path>` line; hand that path to the implementation phase.
 
+⛔ **The base ref is `origin/main`, not local `main`** (precedence: an explicit `--base` > `origin/main` >
+`origin/master` > `main` > `HEAD`), preceded by a bounded, fail-safe `git fetch` of the remote-tracking
+refs only. Branching off a local `main` that lags origin yields a plausible checkout **from the past** —
+every file present, every gate green, and the diff built there silently **reverts** everything landed
+since. The receipt carries `base` + `behind` and the run prints
+`FORGE_WORKTREE_BASE <ref> (<n> commits behind origin/main)`: **read that count.** A non-zero `behind` on
+a fresh provision means you are about to build on stale ground. When there is no `origin/main` the count
+is empty — printed as `no origin/main — staleness NOT comparable`, which means *unknown*, never *up to
+date*.
+control: `init` in a fresh repo with no origin -> `base=main, behind=""`; adding an origin to that same
+repo and re-running -> `base=origin/main, behind="0"` (2026-08-17, both directions observed).
+Skip the fetch with `--no-fetch`
+or `FORGE_WORKTREE_FETCH=off`; the base **preference** is deliberately not opt-out-able.
+
 **Checkpoint (at each gate boundary and at exit).** After each gate and before the single exit, run
 `bash "$FORGE_PLUGIN_ROOT/scripts/forge-worktree.sh" checkpoint <slug> <gate>` — it commits the
 worktree's tracked changes as `forge(<slug>): checkpoint — <gate>`. During pure planning most
