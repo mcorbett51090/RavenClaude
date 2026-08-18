@@ -1,5 +1,11 @@
 #!/usr/bin/env bash
-# Gate 227 — the handoff seed must name the host it is handing off TO.
+# Gate 230 — the handoff seed must name the host it is handing off TO.
+#
+# ⛔ FILENAME SAYS 227, GATE SAYS 230, AND THAT IS DELIBERATE. Gate 227 was
+# claimed by guard-probe-validity while this branch was open, so the gate
+# renumbered; the file did not, because renaming anything under hooks/ is
+# blocked by the tribunal's substrate guard. Filename != gate number is already
+# the norm here — main's Gate 227 runs test-gate223-probe-validity.sh.
 #
 # WHY THIS GATE EXISTS. Both seed writers defaulted to the grok launch command
 # and overrode it only for hosts they recognised by name, so every host they did
@@ -149,7 +155,7 @@ assert_has() {
   case "$2" in *"$3"*) ok "$1" ;; *) no "$1 — missing: $3" ;; esac
 }
 
-echo "Gate 227 — handoff seed is host-correct"
+echo "Gate 230 — handoff seed is host-correct"
 echo "  spawn: $SPAWN"
 echo "  py:    $PY"
 
@@ -228,16 +234,16 @@ echo "  pass=$pass fail=$fail"
 
 if [ "$MUST_FAIL" -eq 1 ]; then
   if [ "$fail" -gt 0 ]; then
-    echo "Gate 227 must-fail half: mutant CAUGHT ($fail assertion(s) went red) — teeth confirmed"
+    echo "Gate 230 must-fail half: mutant CAUGHT ($fail assertion(s) went red) — teeth confirmed"
     exit 0
   fi
-  echo "Gate 227 must-fail half: MUTANT NOT CAUGHT — the assertions do not measure the seed" >&2
+  echo "Gate 230 must-fail half: MUTANT NOT CAUGHT — the assertions do not measure the seed" >&2
   exit 1
 fi
 
 if [ "$fail" -gt 0 ]; then
-  echo "Gate 227 FAILED" >&2
+  echo "Gate 230 FAILED" >&2
   exit 1
 fi
-echo "Gate 227 PASSED"
+echo "Gate 230 PASSED"
 exit 0

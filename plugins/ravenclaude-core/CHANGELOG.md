@@ -2,7 +2,7 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
-## 0.276.0 — 2026-08-18
+## 0.279.0 — 2026-08-18
 
 ### Fixed
 
@@ -11,7 +11,7 @@ All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the 
   - `scripts/context-handoff.py` — `seed_text()`'s fall-through **default** was the grok seed, so `claude-code`, `codex`, `unknown` and `""` all received it. `detect_host()` had resolved `claude-code` correctly all along; only the seed selector lacked the branch, and its default was the most host-specific option rather than the most neutral.
   - `scripts/handoff-spawn.sh` — `seed=grok "…"` was assigned ~90 lines **before** the host was resolved, and only `chat` / `cli` / (`unknown` + `TERM_PROGRAM=vscode`) overrode it. Its refusal guard was scoped to `chat|cli`, so it could not see the case it most needed to catch: an unrecognised host inheriting the default.
 
-  Measured 2026-08-18 against the shipped 0.271.4 copy: `--host claude-code` in a plain terminal emitted `grok "…"`, while the **same** invocation under `TERM_PROGRAM=vscode` emitted a safe comment. ⛔ That asymmetry is why the defect reads as absent if you sample only a VS Code session — and it is why Gate 227 drives `env -i` rather than inheriting the runner's environment.
+  Measured 2026-08-18 against the shipped 0.271.4 copy: `--host claude-code` in a plain terminal emitted `grok "…"`, while the **same** invocation under `TERM_PROGRAM=vscode` emitted a safe comment. ⛔ That asymmetry is why the defect reads as absent if you sample only a VS Code session — and it is why Gate 230 drives `env -i` rather than inheriting the runner's environment.
 
   The live path was worse than the printed one: `handoff-spawn.sh`'s launch-successor writer ended in `exec $seed`, so an unrecognised host got a script that **launches** the wrong agent, not merely a suggestion to. That branch now writes an `exit 0` launcher — no proven recipe means launch nothing, because a successor a human starts beats one the script guesses at.
 
@@ -25,8 +25,84 @@ All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the 
 
 ### Gates
 
-- **Gate 227** (`hooks/tests/test-gate227-handoff-seed-host.sh`) — 18 assertions pinning the seed each writer selects per host, across both writers, under `env -i`. **Positive control built in:** two rows assert grok *does* get the grok seed, because a blanket "no grok anywhere" suite would pass identically against a writer that emitted nothing. The must-fail half rebuilds the pre-fix file in all four parts and requires the assertions to go red. ⛔ **Honest scope:** it pins the seed value on the copy-paste/dry-run surface; it does not drive a live spawn, since that would start a real interactive agent.
+- **Gate 230** (`hooks/tests/test-gate227-handoff-seed-host.sh`) — 18 assertions pinning the seed each writer selects per host, across both writers, under `env -i`. **Positive control built in:** two rows assert grok *does* get the grok seed, because a blanket "no grok anywhere" suite would pass identically against a writer that emitted nothing. The must-fail half rebuilds the pre-fix file in all four parts and requires the assertions to go red. ⛔ **Honest scope:** it pins the seed value on the copy-paste/dry-run surface; it does not drive a live spawn, since that would start a real interactive agent.
 
+## 0.277.0 — 2026-08-18
+### Fixed
+
+- **`ravenclaude update` reported success over a checkout that had not moved.** It ran
+  `git pull --ff-only >/dev/null 2>&1` and then printed **"up to date."** unconditionally, so the
+  commonest stall produced a green line over stale content — and discarded the one message that
+  would have explained it. The stall is structural, not user error: the marketplace clone is *both*
+  the thing you pull into *and* the live runtime surface, so `.ravenclaude/comfort-posture.yaml` and
+  `.claude/settings.json` are **tracked** files that normal use rewrites and upstream also edits,
+  which is exactly what `--ff-only` refuses to overwrite. The real git error, the dirty-file list,
+  and a keep-your-tuning remedy are now printed, and the closing line says **NOT up to date**.
+
+- **⛔ The exit status was the half a human cannot see, and it had the same bug.**
+  `serve-dashboards.py` derives the dashboard's success flag from `proc.returncode == 0`, so the
+  Update button reported `ok: true` for a run that did not update. `update` now exits non-zero when
+  a pull was **attempted and failed**. Prose honesty that stops at the terminal is half a fix.
+
+- **A failure that never happened is no longer announced.** When `$MARKET` is not a git checkout,
+  nothing is attempted — the closing line used to say *"the pull above failed"* anyway. That is the
+  same dishonesty pointed the other way, and it now reports the honest case (and exits **0**).
+
+- **git's stderr is redacted before it is echoed.** git names the remote in its error text, so a
+  clone whose origin carries a token would have had that token printed by the very line added to
+  improve diagnostics. URL-embedded credentials only — not a general secret scanner, and it does not
+  claim to be.
+
+### Changed
+
+- **The `rc` function and the suggested alias chain with `;`, not `&&`.** With `update` now exiting
+  non-zero on a failed pull, `&&` would stop launching Copilot for precisely the people hitting the
+  stall — their own posture tuning. A stale checkout is still a working checkout. The detector for
+  the *legacy* `&&` alias in `~/.bashrc` deliberately still matches `&&`, since its job is to find
+  old installs.
+
+### Gates
+
+- **Gate 228** (`hooks/tests/test-gate228-update-pull-report.sh`) — the fix shipped without one, which
+  is the shape this repo's record says regresses. The pull step was extracted into
+  `_rc_pull_marketplace()` so it can be driven without `regen` and the launcher self-heal; the gate
+  extracts that function and **refuses rather than passing green** if the anchor moves. 13 assertions
+  over three outcomes (pulled / attempted-and-failed / not-a-checkout) plus credential redaction,
+  asserting the **return code** as well as the text, with two vacuity controls — the clone is proven
+  *behind* before the success case, and the redaction case is proven to have produced a report. The
+  must-fail half rebuilds the swallow-output/always-succeed shape and 6 assertions go red.
+
+### Migration
+
+`ravenclaude update` now exits non-zero when a pull was attempted and failed (it still exits 0 when
+there was nothing to pull). If you chain it with `&&`, switch to `;` — `ravenclaude setup` writes the
+`;` form from this version on, but an alias already in your `~/.bashrc` is not rewritten.
+
+## 0.276.0 — 2026-08-18
+### Added
+
+- **Merged forward from `feat/vacuity-guard-grep-quiet`.** The gate below was authored as **Gate 223** and renumbered to **227** on merge: `main` landed its own Gate 223 (parallelism posture) concurrently, 224 is claimed by `feat/assumption-claiming-layer`, and 225/226 were already taken. The test file keeps its original `test-gate223-probe-validity.sh` name — renaming it would be a `git mv` under the plugin's own hooks directory, which `xc.tribunal-self-disable` hard-denies pre-LLM, and the gate's grep discipline keys on the script basename rather than the number.
+
+- **`guard-probe-validity.sh` — a twelfth `PreToolUse(Bash)` gate, carrying exactly ONE rule: `grep -v` used in QUIET MODE.** The existing eleven gates each answer *is this dangerous / in the right place / premise-settled / portable?* **None answers *"will this command answer the question the agent thinks it is answering?"*** This is the first that does.
+
+  Outside quiet mode, `grep -v` exits 0 when a line was **selected** — "something does NOT match". In quiet mode that guarantee is lost: the status starts reporting whether the **pattern is absent**. The two disagree on any input holding **both** a matching and a non-matching line, and **the disagreement reads as clean**. Quiet is entered **two** ways, and the second is the one nobody expects: a `-q`/`--quiet`/`--silent` flag (possibly buried in a bundled cluster — `-qv`, `-vq`, `-rqv`, `-qvE`), **or stdout redirected to `/dev/null` specifically**, with no `-q` anywhere. Measured in the agent's own Bash-tool shell (ugrep 7.5.0, genuinely mixed fixture): `grep -v alpha mixed.txt >/dev/null` → **rc=1**, where BSD/GNU give 0.
+
+  **ONE rule, not three, because the corpus said so.** The detector was run over **17,410 distinct real agent-issued Bash commands** (43 transcripts). This rule fires **once**, and that catch was real and consequential — a PR `ALL_GREEN` verdict decided by `grep -qvE`. The two sibling candidates measured on the same corpus were **rejected and must not be added**: `find … -exec test` fired **0 times, ever**, and `$?`-after-a-pipe fired 13 times at an **85 % false-positive rate** — and its dominant false-positive idiom is *this repo's own standard hook-testing idiom*, so it would have warned on the fixtures written to prove it. A channel that is wrong 85 % of the time is how an agent learns to stop reading the channel.
+
+### Design constraints worth not re-litigating
+
+- **⛔ WARN-only, with no host probe — and the hook's header says so at length so a future maintainer does not "improve" it back into unreachability.** Two earlier designs decided WARN-vs-DENY from a host probe. Both were overturned on a mechanical fact: **the probe would run in the hook's shell; the judged command runs in the agent's shell, and they are not the same `grep`.** Measured on one machine at one instant — the Bash tool resolves `grep` to a shell function execing under `ARGV0=ugrep` (7.5.0, **inverts**), while a hook subprocess (`/bin/sh -c`, or even `env -i /bin/bash -c`) resolves BSD grep 2.6.0 (**does not**). So on the exact machine where the defect is documented, a hook-side probe answers *"this host is fine"* and the DENY branch is unreachable, on every host, forever — **and it is testable-green**, since a test that fakes the probe "proves" a branch that is dead in the live path. That is a green test over a dead rule: precisely the vacuity class this gate is named after. Caching does not rescue it either — the same shell delegates to BSD grep on any `-Z`/`--null`/`-z`/`-@` argument, so `grep --version` and `grep --null --version` print **different products from the same word in the same shell** (same cache key, opposite answer), and computing the key costs ~7.6 ms against the ~4.1 ms probe it caches. Warning unconditionally is correct advice everywhere, costs nothing at ~1-in-17,410, and removes the whole wrong-shell failure mode **by construction rather than by care**. There is no exit-2 path in the file; an EXIT trap armed before anything else pins every error path to 0.
+- **⛔ The 5-rule prototype was NOT promoted.** It shipped two rules both prior plans explicitly excluded, and promoting it would have multiplied warn volume 11× (14 → 157) *entirely* from those two. The one rule was written fresh.
+
+- **Gate 227 — and its must-fail half is an exit-code contract, not a mutant.** The prototype's runner exited **0 whether 11 assertions failed or none did** — a gate green forever, this repo's own documented Gate-184 shape one layer down. So `test-gate223-probe-validity.sh` exits 1 on any failure **and** ships `--prove-nonzero`, which routes a deliberately false claim through the real assertion path; Gate 227 asserts `must_fail` on that invocation, so *"the harness reddens"* is re-proved on every CI run instead of being a claim in a commit message. Per-rule teeth are two in-test mutants that neuter the quiet detector and the invert detector and require every fire case to go silent — without them, "fires" would print identically if the hook simply warned on anything containing the word `grep`.
+
+  **⛔ The fixture is asserted MIXED.** ugrep and BSD/GNU **agree** unless the input holds both a matching and a non-matching line, so 2 of the 3 plausible fixtures report *"no bug"* and silently prove nothing. Mixedness is a first-class, count-based assertion (`awk 'END{print NR}'` + `grep -c`), never an assumption.
+
+  Registered in all three Gate-195 sites (dispatcher arm, `Supported:` string, main sequence) and proven to run in the full suite by grepping the suite's own output **for the script name on an executed line** — never for the string "Gate 227", because a batched header once made a by-number grep report seven gates unrun that had all executed. Gate numbers **219–221 remain claimed** by unmerged PR #961.
+
+  ⛔ Nothing in the hook, the test, or the gate uses `grep -q -v` — that *is* the defect, and it inverts here. Every assertion is count-based, and the bad forms appear only as command **strings** handed to the hook as data.
+
+- **`probe_validity: off | warn` (default `warn`)** in `.ravenclaude/comfort-posture.yaml`, read with the same minimal `sed` idiom `worktree-guard.sh` uses. There is no `block` value — the hook has no deny path. An **absent posture file is a no-op**, so consumers who never opted in are never surprised.
 ## 0.273.0 — 2026-08-18
 
 ### Changed

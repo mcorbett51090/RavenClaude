@@ -52,6 +52,15 @@ command_review:
 # Runaway brake — disabled for this repo.
 runaway: off
 
+# Linked-worktree edits: warn, do not deny (owner decision 2026-08-18).
+# `worktree-guard.sh` has two arms that contradicted each other: the advisory arm
+# nudges you OUT of a shared primary checkout when another session is live in it,
+# while the `bound` arm DENIED every Edit whose target resolved under a linked
+# worktree — including one created inside the repo at .claude/worktrees/. Together
+# they left no legal place to edit: the tree it pushes you toward is the tree it
+# refuses to write in. `warn` keeps the signal and drops the deadlock.
+worktree_bound: warn
+
 # Parallelism — allow fan-out workers (subagents / worktrees); cap how many run at once.
 parallelism:
   enabled: true
@@ -62,6 +71,16 @@ decision_review: binding
 
 # Claude orchestrator for non-Claude CLIs (off | decide | full). No-op under Claude Code.
 orchestrator: off
+
+# Probe-validity advisory (off | warn; default warn). ONE rule, WARN only —
+# `guard-probe-validity.sh` flags `grep -v` used in QUIET MODE, where the exit
+# status stops answering "is there a line that does NOT match?" and starts
+# reporting whether the pattern is ABSENT. Quiet is entered by a -q/--quiet/
+# --silent flag (possibly bundled: -qv, -vq, -rqv) OR by stdout going to
+# /dev/null with no -q at all. It fired once in 17,410 real agent commands and
+# that catch was a PR ALL_GREEN verdict. There is no `block` value: the hook has
+# no deny path by design (see its header for why a host probe cannot decide one).
+probe_validity: warn
 
 # Bring this dashboard up at session start (off | serve | open; default off).
 # serve = start the local server headless; open = also open a browser tab.
@@ -157,3 +176,8 @@ categories:
 definition_of_done:
   cmd: "bash scripts/dod-fast.sh"
   max_blocks: 8
+  # Authorized by the owner 2026-08-18. `scripts/dod-fast.sh` is a git-tracked,
+  # read-only repo script (storage-contract check + ruff-if-installed); the
+  # first-run trust prompt was firing every session and did NOT self-clear at
+  # max_blocks as its docs imply.
+  trusted: true
