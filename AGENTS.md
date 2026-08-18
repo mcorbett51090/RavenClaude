@@ -173,8 +173,9 @@ This marketplace ships **~182 plugins / 600+ agents**, so two levers keep the bu
 ## Modifying an existing plugin
 
 1. Edit files inside `plugins/<plugin-name>/`.
-2. Bump `version` in `plugins/<plugin-name>/.claude-plugin/plugin.json` **and** in `.claude-plugin/marketplace.json` (CI fails on drift).
-3. Update consumers via `/plugin marketplace update ravenclaude` followed by `/reload-plugins`.
+2. Bump `version` in `plugins/<plugin-name>/.claude-plugin/plugin.json` — the **single source of truth** — then run `python3 scripts/sync-plugin-versions.py` to derive the `.claude-plugin/marketplace.json` entry. Never hand-edit the catalog version: two hand-edited copies of one fact is what made concurrent PRs conflict (one PR was re-bumped three times on 2026-08-17). CI still fails on drift (Gate 8), and Gate 226 (`sync-plugin-versions.py --check`) fails if the catalog is not derived.
+3. For `ravenclaude-core` only, a bump also needs `python3 scripts/generate-copilot-plugin.py` — its `copilot/plugin.json` is generated and has its own freshness gate. The sync script deliberately does not call it (that generator rewrites the whole projected agent tree, not just a version).
+4. Update consumers via `/plugin marketplace update ravenclaude` followed by `/reload-plugins`.
 
 ### CHANGELOG convention (optional per plugin)
 

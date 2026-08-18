@@ -586,6 +586,15 @@ PY
       [ "$_mf" -eq 2 ] || rc=1
       exit $rc
       ;;
+    226)
+      echo "── Gate 226: plugin version single-sourced (sync-plugin-versions.py) ──"
+      rc=0
+      python3 scripts/sync-plugin-versions.py --self-test || rc=$?
+      python3 scripts/sync-plugin-versions.py --check || rc=$?
+      _mf=0; python3 scripts/sync-plugin-versions.py --must-fail >/dev/null 2>&1 || _mf=$?
+      [ "$_mf" -eq 2 ] || rc=1
+      exit $rc
+      ;;
     127)
       echo "── Gate 127: pseudonymize.py (fail-closed encode / no-egress / FM7 NER-absent / FM8 / teeth) ──"
       bash plugins/ravenclaude-core/hooks/tests/test-gate127-pseudonymize.sh
@@ -1214,7 +1223,7 @@ PY
       ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 225. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 225, 226. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -7888,6 +7897,92 @@ rc=0; python3 scripts/check-forms-honesty-markers.py --must-fail >/dev/null 2>&1
 gate "forms honesty teeth: three planted dishonest claims ARE caught" must_fail "$rc"
 rc_is_2=0; [ "$rc" -eq 2 ] || rc_is_2=1
 gate "forms honesty teeth: the planted claims fail closed at exit 2" must_pass "$rc_is_2"
+
+echo
+echo "── Gate 226: plugin version single-sourced (sync-plugin-versions.py) ──────"
+# A plugin's version was hand-maintained in TWO committed files that this suite
+# compares against each other (Gate 8, version-pin-cross-check). Two hand-edited
+# copies of one fact is a merge-conflict generator, not a check. Measured
+# 2026-08-17: one PR was re-bumped THREE times (0.273.0 -> 0.274.0 -> 0.275.0)
+# purely from serialising on those two files, and two more needed manual
+# conflict resolution. plugins/<name>/.claude-plugin/plugin.json is now the
+# SINGLE SOURCE OF TRUTH and the catalog entry is DERIVED from it.
+#
+# Gate 8 still stands and is NOT replaced: it proves the two files AGREE. This
+# gate proves the agreement is now MECHANICALLY REACHABLE — one command derives
+# it — and that the deriving command refuses to guess.
+#
+# Assertions:
+#   (i)   --self-test: eleven finding classes each distinguish (drift; a catalog
+#         entry with no plugin.json; a plugin.json with no catalog entry;
+#         malformed JSON on either side; a missing/non-string version on either
+#         side; a duplicate catalog name; a plugin.json whose name disagrees with
+#         its directory), plus a convergence leg proving the write is byte-stable
+#         and idempotent.
+#   (ii)  --check against the LIVE tree: the committed catalog is already derived.
+#   (iii) --must-fail: 9.999.9 planted into a MIRROR of the live 182-entry catalog
+#         IS caught, and fails closed at exit 2 (never 1).
+#   (iv)  an in-suite plant/restore on the REAL .claude-plugin/marketplace.json:
+#         RED on the plant, then the WRITE path restores it BYTE-FOR-BYTE against
+#         a cmp of the pre-plant backup, then GREEN again. ⛔ This half is what
+#         proves byte-stability: marketplace.json is NOT in .prettierignore, so a
+#         json.dump() round-trip would reformat 252 KB and fail Gate 9. `cmp` is
+#         the assertion; "prettier still passes" would be a weaker restatement.
+#         ⛔ The plant is verified to have CHANGED the file before the gate reads
+#         anything into it — otherwise a no-op plant would score a free green.
+#
+# ⛔ Registered in BOTH this main sequence AND the --check dispatcher above + the
+# Supported: string. After adding a gate, run the full suite and GREP ITS OUTPUT
+# FOR the SCRIPT NAME on an executed line — a batched header once made a
+# by-number grep return 0 for seven gates that all ran.
+rc=0; python3 scripts/sync-plugin-versions.py --self-test >/dev/null 2>&1 || rc=$?
+gate "sync-plugin-versions teeth: 11 finding classes each distinguish" must_pass "$rc"
+rc=0; python3 scripts/sync-plugin-versions.py --check >/dev/null 2>&1 || rc=$?
+gate "sync-plugin-versions: catalog is derived from every plugin.json" must_pass "$rc"
+rc=0; python3 scripts/sync-plugin-versions.py --must-fail >/dev/null 2>&1 || rc=$?
+gate "sync-plugin-versions teeth: planted catalog drift IS caught" must_fail "$rc"
+rc_is_2=0; [ "$rc" -eq 2 ] || rc_is_2=1
+gate "sync-plugin-versions teeth: the planted drift fails closed at exit 2" must_pass "$rc_is_2"
+
+# (iv) the plant/restore half, on the real file. `backup` registers a cleanup
+# copy, so an early exit anywhere below still restores the catalog.
+backup .claude-plugin/marketplace.json
+_SPV_BAK="$TMP/.claude-plugin_marketplace.json.bak"
+# `set -e` is on, so the plant is guarded: a broken plant must be REPORTED as a
+# red assertion, not abort the suite before the restore line below runs.
+_spv_plant=0
+python3 - <<'SPV_PLANT' || _spv_plant=$?
+import re
+from pathlib import Path
+
+path = Path(".claude-plugin/marketplace.json")
+lines = path.read_text(encoding="utf-8").split("\n")
+pattern = re.compile(r'^( {6}"version": ")([^"]*)(",?)$')
+for index, line in enumerate(lines):
+    match = pattern.match(line)
+    if match is not None:
+        lines[index] = match.group(1) + "9.999.9" + match.group(3)
+        break
+else:
+    raise SystemExit("could not plant: no entry-level version line")
+path.write_text("\n".join(lines), encoding="utf-8")
+SPV_PLANT
+gate "sync-plugin-versions control: the plant script itself ran" must_pass "$_spv_plant"
+rc=0; cmp -s "$_SPV_BAK" .claude-plugin/marketplace.json || rc=1
+gate "sync-plugin-versions control: the plant really changed the catalog" must_fail "$rc"
+rc=0; python3 scripts/sync-plugin-versions.py --check >/dev/null 2>&1 || rc=$?
+gate "sync-plugin-versions: --check goes RED on a drifted catalog" must_fail "$rc"
+rc=0; python3 scripts/sync-plugin-versions.py >/dev/null 2>&1 || rc=$?
+gate "sync-plugin-versions: the write pass exits clean" must_pass "$rc"
+rc=0; cmp -s "$_SPV_BAK" .claude-plugin/marketplace.json || rc=1
+gate "sync-plugin-versions: the write restored the catalog BYTE-FOR-BYTE" must_pass "$rc"
+rc=0; python3 scripts/sync-plugin-versions.py --check >/dev/null 2>&1 || rc=$?
+gate "sync-plugin-versions: --check is GREEN again after the write" must_pass "$rc"
+_spv_idem=0
+python3 scripts/sync-plugin-versions.py >/dev/null 2>&1 || _spv_idem=$?
+cmp -s "$_SPV_BAK" .claude-plugin/marketplace.json || _spv_idem=1
+gate "sync-plugin-versions: a second write is a byte-identical no-op" must_pass "$_spv_idem"
+cp -p "$_SPV_BAK" .claude-plugin/marketplace.json
 
 echo
 
