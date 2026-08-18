@@ -542,6 +542,15 @@ PY
       rm -f "$_mut"
       exit $rc
       ;;
+    223)
+      echo "── Gate 223: guard-probe-validity — \`grep -v\` in QUIET mode (pv.grep-v-quiet) ──"
+      rc=0
+      bash plugins/ravenclaude-core/hooks/tests/test-gate223-probe-validity.sh || rc=$?
+      _pv_mf=0
+      bash plugins/ravenclaude-core/hooks/tests/test-gate223-probe-validity.sh --prove-nonzero >/dev/null 2>&1 || _pv_mf=$?
+      [ "$_pv_mf" -ne 0 ] || rc=1
+      exit $rc
+      ;;
     127)
       echo "── Gate 127: pseudonymize.py (fail-closed encode / no-egress / FM7 NER-absent / FM8 / teeth) ──"
       bash plugins/ravenclaude-core/hooks/tests/test-gate127-pseudonymize.sh
@@ -1160,7 +1169,7 @@ PY
       ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 222. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 222, 223. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -7554,6 +7563,54 @@ rc=0; python3 scripts/check-lss-calc.py --must-fail >/dev/null 2>&1 || rc=$?
 gate "lss_calc teeth: a planted wrong control-chart constant IS caught" must_fail "$rc"
 rc_is_2=0; [ "$rc" -eq 2 ] || rc_is_2=1
 gate "lss_calc teeth: the planted constant fails closed at exit 2 (not 1)" must_pass "$rc_is_2"
+
+echo
+echo "── Gate 223: guard-probe-validity — \`grep -v\` in QUIET mode (pv.grep-v-quiet) ─"
+# ONE rule: `grep -v` used in quiet mode. Outside quiet mode `-v` exits 0 when a
+# line was SELECTED ("something does NOT match"); in quiet mode that guarantee is
+# lost and the status starts reporting whether the PATTERN is ABSENT. The two
+# disagree on any input holding BOTH a matching and a non-matching line — and the
+# disagreement reads as CLEAN. Quiet is entered TWO ways: a -q/--quiet/--silent
+# flag (possibly buried in a cluster: -qv, -vq, -rqv, -qvE), and stdout to
+# /dev/null SPECIFICALLY, with no -q anywhere. The second is the one nobody expects.
+#
+# Measured yield over 17,410 distinct real agent-issued Bash commands: fires ONCE,
+# and the catch was real — a PR ALL_GREEN verdict decided by `grep -qvE`. Two
+# sibling candidates were measured on the same corpus and REJECTED (find -exec test:
+# 0 fires ever; $?-after-a-pipe: 13 fires at 85% false positives). Do not add them.
+#
+# ⛔ WARN-ONLY BY DESIGN — there is no deny branch and no host probe, and the hook
+# header says why at length: a probe run from the hook measures the HOOK's grep
+# (BSD, does not invert) while the judged command runs under the AGENT's grep
+# (ugrep 7.5.0, inverts). A deny branch gated on that probe is unreachable in
+# production AND testable-green, which is the exact vacuity class this gate is
+# named after. Do not "improve" it back into unreachability.
+#
+# ⛔ THE MUST-FAIL HALF IS AN EXIT-CODE CONTRACT, not a mutant. The 5-rule
+# prototype this rule was extracted from shipped a runner that exited 0 whether 11
+# assertions failed or none — a gate green forever. `--prove-nonzero` routes a
+# deliberately FALSE claim through the harness's real assertion path, so "this
+# harness reddens" is re-proved on every CI run instead of being asserted once in
+# a commit message. (The per-rule teeth — two mutants that neuter the quiet and
+# invert detectors — live inside the test itself.)
+#
+# ⛔ Registered in BOTH this main sequence AND the --check dispatcher above + the
+# Supported: string. After adding a gate, run the full suite and GREP ITS OUTPUT
+# FOR THE SCRIPT NAME (test-gate223-probe-validity.sh) on an EXECUTED line — never
+# for the string "Gate 223". A batched header once made a by-number grep report 7
+# gates unrun that had all executed.
+# ⛔ The two assertion LABELS below carry the SCRIPT BASENAME on purpose. A
+# `gate` line is printed only after `$rc` was captured from an actual invocation,
+# and it prints the observed exit code — so `grep test-gate223-probe-validity.sh`
+# over the suite's own output returns lines that are execution evidence, not a
+# batched header. The pair is mutually confirming: one line must read exit=0 and
+# the other exit=1, from the SAME script. A deleted or no-op invocation cannot
+# produce both, so this cannot go green on a gate that never ran.
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate223-probe-validity.sh >/dev/null 2>&1 || rc=$?
+gate "test-gate223-probe-validity.sh: quiet -v fires (flag AND >/dev/null), 13 legit forms silent, 2 mutants prove teeth" must_pass "$rc"
+
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate223-probe-validity.sh --prove-nonzero >/dev/null 2>&1 || rc=$?
+gate "test-gate223-probe-validity.sh --prove-nonzero: the harness HAS an exit-code contract (a false assertion reddens it)" must_fail "$rc"
 
 echo
 

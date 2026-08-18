@@ -1132,6 +1132,14 @@ _PIPELINE_EXCLUDED_HOOKS = {
     "enforce-git-protocol.sh: it enforces an authoring CONVENTION (portability) rather than the "
     "safety floor the drawn PreToolUse cards represent, and its knob is surfaced with the other "
     "posture settings — so it is deliberately NOT a Pipeline stage card",
+    "guard-probe-validity.sh": "advisory probe-validity nudge (PreToolUse Bash) governed by the "
+    "`probe_validity:` comfort-posture knob — WARN is its ONLY verdict (there is no `block` value "
+    "and no exit-2 path), on exactly one shape: `grep -v` used in quiet mode, where the exit status "
+    "stops answering \"is there a line that does NOT match?\" and starts reporting whether the "
+    "pattern is ABSENT. Same class as enforce-git-protocol.sh and enforce-portability.sh — it flags "
+    "a correctness hazard in how the agent PHRASED a probe rather than the safety floor the drawn "
+    "PreToolUse cards represent, and its knob is surfaced with the other posture settings — so it is "
+    "deliberately NOT a Pipeline stage card",
     "handoff-successor-ack.sh": "SessionStart(startup) handshake writer for session-handoff. "
     "Writes successor-ack.json when a pending marker exists so the originating spawn "
     "knows the new session started. File write only; not a Pipeline stage card",

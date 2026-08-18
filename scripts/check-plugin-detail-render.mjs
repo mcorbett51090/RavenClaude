@@ -66,7 +66,8 @@ const RC_BASELINE = {
   //        19 -> 22: premise-gate.py + classify_claim.py + check-design-schema.py
   //                  (v0.263.0, PR 3b packaging move)
   scenarios: 4,
-  hooks: 35, // 34 -> 35: handoff-successor-ack.sh (v0.269.0, SessionStart handshake)
+  hooks: 36, // 35 -> 36: guard-probe-validity.sh (v0.273.0, the pv.grep-v-quiet advisory)
+  //        34 -> 35: handoff-successor-ack.sh (v0.269.0, SessionStart handshake)
   //        33 -> 34: sanitize-webfetch-output.sh (v0.267.0, WebFetch result quarantine)
   //        32 -> 33: handoff-nudge.sh (v0.266.0, Stop context-hot nudge)
   //        26 -> 28: log-probe.sh + guard-premise.sh (v0.240.0, the premise gate);
