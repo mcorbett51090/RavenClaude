@@ -1079,3 +1079,143 @@ consolidating them (merged as PR #295, `3a63b6f5`) cut **168 → 96 billed min/d
 that exercise are load-bearing for Phase 4 and are already folded in above: `billable.*.total_ms`
 reads **0** for those runs, and `gh api /user/repos?per_page=100` **silently truncates** — a page-1
 enumeration missed the single repo carrying the entire bill.
+
+---
+
+## §7 — Alternatives considered, and their trade-offs
+
+| # | Alternative | Trade-off | Verdict |
+|---|---|---|---|
+| **A** | **Three independent implementations, one per surface** — gate as a self-contained bash block, dashboard reader as its own Python function, skill as a prose checklist an agent executes by hand. | Fastest to a first green. It is also precisely how "the audit's own gate rotted within an hour" happened before: three definitions of "healthy" that drift, with no single artifact whose staleness is detectable. | **REJECTED** on the single-source-of-truth lens and on the repo's own evidence. |
+| **B** | **Producer + gate + skill; dashboard as CLI-only (no panel).** The reader surface becomes `--report` rendered through the existing Runs card, which already reads `.ravenclaude/runs/**` at request time. | Zero DOM cost, no ratchet raise, no owner decision anywhere near the critical path — but the owner ratified a dashboard reader as one of three required surfaces. | **FALLBACK, designed and held in reserve.** Ships **iff** the ratchet raise is refused (P10 pre-build gate). Recorded so a refusal has a designed answer rather than an improvised one. |
+| **C** | **Live-first: drive everything from the Actions API.** Skip static parsing; compute health, effectiveness and spend from run history and the ruleset API. | Far richer effectiveness data (real failure rates, real durations) and it would have settled C13 immediately. But it is non-deterministic, unavailable offline, and **cannot be a gate**: red on a rate limit, green on a repo with no history. It also inverts the portability requirement — a fresh private consumer repo has no run history at all. | **ADOPTED AS THE SECONDARY LANE** (P7/P8), never the primary. This is the static/live split. |
+| **D** | **Extend `check-workflow-hygiene.py` instead of building a new producer.** | One fewer file, and it already owns permissions + pins. But it is a **scaffolded consumer artifact** copied verbatim into other repos by `init-agent-ci`; loading it with this repo's ruleset pin, cost policy and `audit-gates.sh` parser would make every consumer inherit RavenClaude-specific machinery. | **REJECTED.** The producer *invokes* it — reuse without coupling. Its absence on a consumer repo is caught by the `hygiene_rules` floor rather than reading as zero findings. |
+| **E** | **Reconciliation logic in bash inside `audit-gates.sh` itself** (plan-B's rejected alternative, re-examined). | bash 3.2 has no associative arrays; and it makes the reviewer's health depend on the health of the exact file it reviews. plan-B rejected this for the right reason — and then had the reviewer **execute** that file from inside it (B1). | **REJECTED**, and the irony recorded: the reason plan-B gave against bash is the reason against plan-B's own Phase 2. |
+| **F** | **Explicit `teeth-of:<n>` tag on every `gate()` call**, instead of inferring. | More precise, and it would make DECLARED trivially complete. But it requires editing ~604 existing call sites — that is "rewriting or consolidating existing gates," explicitly out of scope. | **REJECTED on scope.** The line-number key achieves the same join for ~4 lines instead of 604 edits. |
+| **G** | **A scheduled snapshot workflow that commits a cache file**, instead of reading the last generated JSON from disk. | Decouples the dashboard from live API availability and rate limits — but adds a new scheduled workflow (new spend, new surface needing its own audit — recursive) and a staleness window no better than the `generated_at` banner. | **REJECTED.** And under §1.2's ruling, adding a cron is now demonstrably the *expensive* shape. |
+| **H** | **Pre-rendered static HTML snapshot of the panel** instead of a served `/__*` endpoint. | Rejected outright: the dashboard HTML is under an exact-byte freshness gate, and a git-derived or per-machine value baked in at generate time fails that gate on the next commit **by construction**. | **REJECTED.** The served-endpoint pattern is the one already proven here (Heimdall/Níðhöggr/Norns). |
+| **I** | **Emit USD in v1**, behind a `verified: false` marker (plan-A's shape). | `verified: false` as a blanket mitigation was doing no work — it labelled a table nobody could check, and it marked the *pricing* half while leaving the *duration* half looking measured. | **REJECTED.** Minutes ship, money does not (§9). |
+| **J** | **Read `billable.*.total_ms` and nothing more** (the C3 reshape / plan-B's shape). | Correct about banning a hard-coded table. Wrong that measuring alone closes the loop: the API number excludes the multiplier and does no rounding, so it is a silent 10× under-report on macOS and under-reports every short-job workflow even at 1×. | **REJECTED**, and it is the reason §1.2's fleet finding was invisible to the API in the first place. |
+| **K** | **Scope spend to this repo only** (every input plan and both tiebreaks). | Simpler, hermetic, and reports a defensible zero. It is also the wrong answer: this repo bills nothing and the bill is elsewhere. A spend surface that cannot see the repo generating the bill is measuring its own convenience. | **REJECTED by the owner ruling (§1.2).** Fleet lane, P8. |
+
+---
+
+## §8 — Tiebreak verdicts of record (what was cut, and why)
+
+Every ruling from the two binding tiebreaks, recorded so nothing is silently reopened.
+
+| # | Question | Verdict | What was cut |
+|---|---|---|---|
+| T1 | Whose producer architecture ships? | **Synthesis: plan-A's spine, plan-B's three corrections, plus one component from neither** (the assertion-execution trace). | Neither plan ships whole. plan-A supplies 9 rows, plan-B exactly 3 + the germ of a 4th. |
+| T2 | What is the primary key for "did this run"? | **The source line that executed the assertion** — `"${BASH_SOURCE[1]}:${BASH_LINENO[0]}"`. The name is display-only and never joins. | plan-B's quoted-name key **CUT** — a name string is still a label; it moved from one label to another. plan-A's executable-path key survives for the reachability graph but is not the execution key. |
+| T3 | `ASSERTS-NOTHING` — new detector? | **NO. Disqualified on sight**; it exists at `check-gate-registration.py:233-236`. | plan-A §Phase 3 **CUT**; plan-B §0 **CUT**. Replaced by a ~10-line one-hop-to-fixpoint closure contributed to the incumbent (P0). |
+| T4 | Suite-internal reachability, `Supported:` parity, number collision, exit-2 specificity, batched headers | **All five disqualified**; Gate 195 owns them with its own `--self-test`. | plan-B Phases 1–2 **CUT** wholesale, including its headline acceptance test, which proves a property Gate 195 already proves. |
+| T5 | May a gate registered in `audit-gates.sh` execute `audit-gates.sh`? | **NO. Not even with a re-entrancy guard.** Non-recursion is **structural**, never guarded — a guard turns unbounded recursion into a silent skip, which is the disease shipped as the cure. | plan-B Phase 2 **CUT** (B1 — tracked-file corruption via the mutate/restore pair at `audit-gates.sh:1816-1819`). |
+| T6 | Where does reconciliation stand? | **After the suite returns**, as a separate workflow step. | plan-B's in-process reconciliation **CUT** — it would see only the gates that ran before it and report every later gate UNRUN. |
+| T7 | Static vs live split | **plan-A's determinism split adopted**; only static is ever gated. | plan-B's `--scope internal` / `--scope fleet` **CUT as the gating axis** — it separates *subject*, not *determinism*. (`--fleet` returns in P8 as a *live* lane, never gated.) |
+| T8 | Exit-code convention | **Gate 195's:** `0 = clean; 2 = finding or fail-closed; 1 is never a finding.` | plan-A's inversion **CUT** (it cited Gate 195 while inverting it). Every `must_fail` becomes a boolean `[[ $rc -eq 2 ]]` + a symptom grep, so a traceback cannot satisfy it. |
+| T9 | Suppression channel | **Struck.** Findings are RED or they are not findings. | plan-B's "zero *unacknowledged* CRITICAL" **CUT** — named once, designed nowhere, on a gate whose entire value is not crying wolf. |
+| T10 | Unit of "gate" | **Declared in the report's own output**: 222 numbers / 120 dispatcher arms / 604 assertion sites. | An undefined "N gates" **CUT** — it is the next stale-count defect, C5's own shape. |
+| T11 | Sequencing | **Split the change.** Land producer + Gate 223 + skill; run one cycle; then spend the ratchet. | The panels' *bundling inference* **CUT**. The owner ratified three surfaces, not one change. |
+| T12 | Spend — measure | **Read `billable.{OS}.total_ms` + `job_runs[]` per run. Never estimate.** | plan-A's checked-in `estimated_minutes`, seeded from the disowned 6-hour window, **CUT** (CE-3/R15). |
+| T13 | Spend — convert | **A dated, cited, per-fact-flagged policy file** (multipliers + rounding rule only). | plan-A's `.github/ci-cost-model.json` **CUT** as designed; `per_minute_usd` and `free_minutes_by_plan` **CUT**; blanket `verified: false` **CUT** in favour of `multiplier_verified: true` / `price_verified: false`. |
+| T14 | Spend — emit | **Minutes-equivalent, both columns, from v1. NO USD in any form.** | plan-A's dollar figures **CUT**. Position 3's "not even a multiplier until a nonzero repo exists" **also cut**, because the multiplier claim was answerable from primary documentation — the standard CE-2 demanded. |
+| T15 | Spend — output layer, where the two tiebreaks disagreed | **`tiebreak-spend.md` binds** (§2.2). Raw-only was the narrower ruling *because* the multiplier was thought unprobeable; the evidence removed that reason. | `tiebreak-architecture.md` §7's "raw `total_ms` and nothing more" **SUPERSEDED**; its USD prohibition **survives verbatim**. |
+| T16 | Spend — scope | **Fleet-wide, across repos** (owner ruling §1.2). | Single-repo scope **CUT** — every input document had it, and it is the reason the actual bill was invisible. |
+| T17 | Cardinality floors | **Mandatory chokepoint, enforced against itself.** | Both plans' *absence* of one **CUT as unacceptable**: without it, the deliverable is the defect. |
+| T18 | Dashboard data source | **Last generated JSON from disk; no `gh` at request time.** | plan-A Phase 7's live call per request **CUT** (plan-B is right: cheaper and non-flaky). |
+| T19 | `dynamic/**` + `state` exclusion | **Both, with the reason printed inline in output.** | plan-A's total absence of an exclusion **CUT** (it would emit a permanent false `GHOST-WORKFLOW` forever). `dynamic/**` alone **CUT as insufficient** — it describes two rows observed here today. |
+| T20 | `AGENTS.md` correction | **l.309 and l.311, anchored on a machine-readable fence.** | Both plans' count-only fix **CUT** — it leaves the load-bearing prohibition narrower than the tool and reads green forever. |
+
+---
+
+## §9 — `[unverified]` ledger — every open claim and the step that settles it
+
+**Nothing on this list is load-bearing.** Each row names the step that will settle it, or the reason
+it is structurally unsettleable and the design change that made it not matter.
+
+| Claim | Status | Settling step |
+|---|---|---|
+| **C3** — "standard runners free for public repos; macOS 10×, Windows 2×" | **PARTIALLY SETTLED.** The *multiplier* half is settled: two docs.github.com pages (2026-08-17) state the usage figure excludes the multiplier and is not rounded, and that public-repo/self-hosted minutes are not billable. The *pricing* half is **not** settled: `gh api /repos/{o}/{r}/actions/billing` → 404 (not a real endpoint), `gh api /users/{u}/settings/billing/actions` → 404 + "needs the 'user' scope". | **Owner route, and it is the only route:** `gh auth refresh -h github.com -s user`, then re-run the user-level billing endpoint. Recorded in §11 item 3. Until then the design does not need it — see the USD row below. |
+| **C15** — "the 4 undocumented required checks are at elevated risk of acquiring a `paths:` filter" | **OWNER-GATED, not probe-settleable.** A risk prediction about future author behaviour; no probe can disconfirm it and waiting for an incident is the only "evidence" — which is the thing being prevented. | **Settled by design change, not by probe (W-5).** P3 checks every required workflow for `paths:`/`paths-ignore:` **unconditionally**; the check costs the same whether the risk is high or nil. The prediction is cited for provenance and is not a premise of any phase. |
+| **USD output — BLOCKED, and the block is deliberate** | `usd: null`, `usd_blocked_by: ["per_minute_price_unprobed", "included_minutes_unprobed"]`. An absent field reads as "not applicable"; a null with a reason list reads as "we know what is missing." | **Two preconditions, both required, neither sufficient alone:** (1) a per-minute price + included-minutes table with `source_url` + `retrieved_on` from docs.github.com, carried in the policy file with `price_verified: true`; **and** (2) **one real positive control** — a nonzero `billable.MACOS.total_ms` from a private repo whose derived `billable_minutes_if_private` is cross-checked against an actual invoice/usage-report line, recorded with the run id and date. Until (2) exists, the conversion has been validated only against a fixture written from a doc sentence. That is why minutes ship and money does not. **P8's fleet lane makes (2) reachable for the first time** — `RavenPower-Website` is private and does bill. |
+| **`job_runs[].duration_ms` may be 0 in practice** | Unverified community report; deliberately not probed. | Self-checked at runtime (W-1): `Σ job_runs != total_ms` ⇒ `rounding: total_only_lower_bound`, render `≥`. Settled the first time P8 runs against a real private repo, by observation. |
+| **Whether a non-admin contributor can read the ruleset to refresh the pin** | Not probed. It is the input that would move RT-8's severity. | Settled by one `gh api .../rulesets` call as a non-admin. Until then RT-8 ships with the two-threshold mitigation, which is safe under either answer. |
+| **Gate 223's wall-clock ceiling** | No number yet (R9/W-4). | Measured at P5 build time against the mktemp fixture trees; assertion 11 then asserts it. |
+| **Cursor / Devin Desktop `AGENTS.md` support** *(inherited repo-level, not this project's)* | `[unverified]` in AGENTS.md itself. | Out of scope; named only so the AGENTS.md edit in P4 does not accidentally launder it into a verified claim. |
+
+---
+
+## §10 — Measurement reliability (the plan's own instruments)
+
+This project's whole thesis is that a green report can be a claim about the probe. The same standard
+applies to the plan.
+
+**⛔ Fleet enumeration MUST paginate.** `gh api /user/repos?per_page=100` **returns one page and
+silently truncates.** The repo carrying the owner's entire Actions bill — `RavenPower-Website` — was
+**missing from a page-1-only enumeration** this session. There was no error, no warning, and no
+signal of any kind: the truncated list looked exactly like a complete small fleet.
+
+Binding consequences:
+- Every fleet enumeration uses `--paginate` or follows the `Link` header. No exceptions.
+- **The reviewer asserts a repo-count floor** (`fleet_repos`). A count at or suspiciously near a page
+  boundary with no `Link` follow-up is a **could-not-run (exit 2)**, not a small fleet.
+- A pagination control fixture (mocked 2-page response) is part of P8's acceptance test — the
+  positive control that proves the enumerator can return more than one page.
+
+**Four instrument failures observed within this run**, all failing toward a clean-looking answer.
+They are recorded because they are the plan's justification, not decoration:
+1. `premise-gate.py`'s `parse_claims()` returned `{}` on a C-prefixed table and reported
+   `{"claims":0,"trips":[],"exit":0}` **CLEAN having resolved nothing** — contradicting its own
+   docstring. Fixed with `_norm_rid()` on both sides plus a raise on zero parsed rows.
+2. The orchestrator's `gate`-name grep extracted only the **first whitespace-delimited token**, so
+   every interpolated name containing a space was invisible — and it was used to "correct" a critic
+   who was right. A `control:` line proves a probe **ran**; it does not prove the probe could **see**
+   what it claimed to measure.
+3. `tiebreak-architecture.md` §2 asserted DECLARED was 100% complete using a different anchor from
+   its own §1 — 601 vs 604, three live sites silently exempt (RT-3).
+4. The page-1 fleet enumeration above.
+
+**The rules these produce, applied throughout this plan:**
+- **An empty or expected-looking result is a claim about the PROBE until a positive control shows it
+  can return the opposite.** Every phase's acceptance test therefore leads with a positive control,
+  and every `must_fail` fixture is paired with a negative control on the real tree.
+- **Enumerate by BEHAVIOUR, not by pattern.** Key on the thing that executes; grepping for a name
+  answers "is this string present", not "does this run".
+- **Stability is not validity.** Byte-stable output twice proves determinism, not correctness.
+- **A gate can be right and its message wrong.** Every finding names the mechanical cause, because
+  the cause selects the fix and is not interchangeable.
+- **`2>/dev/null` manufactures a clean empty result**; it appears nowhere on a measurement path here.
+
+---
+
+## §11 — Open items requiring the owner
+
+| # | Item | Blocks | If refused |
+|---|---|---|---|
+| 1 | **⚑ May `gate()` / `_skip_or_fail()` be touched?** ~4 lines, changing no verdict, in the suite's core. | P2 → P6 (and therefore the only honest answer to "did this run") | Rows 3–4 are cut. RT-1/2/3/4/7 evaporate with them. The deliverable keeps everything else and loses the execution axis entirely — i.e. C14's question has no honest answer in this repo. **Not recommended, but it is the owner's call, not the tool's.** |
+| 2 | **⚑ DOM ratchet raise**, both surfaces in lockstep, measured delta. Zero slack today (6217 / 7103). | P10 only — deliberately off the critical path | §7 Alternative B ships the reader through the existing Runs card at zero DOM cost. |
+| 3 | **`gh auth refresh -h github.com -s user`** to unblock the account-level billing endpoint. | Nothing. It is the *first* of two preconditions for USD; the second (an invoice-cross-checked positive control) is the binding one. | v1 ships minutes-equivalent, which is the ruled output regardless. |
+| 4 | **Fleet scope confirmation** — which repos `--fleet` may enumerate, and whether private-repo run metadata may be read into a local report. | P8's default scope | Default to an explicit repo allowlist rather than "everything the token can see." |
+| 5 | **RT-8 threshold acceptance** — the plan rules option (a) (180d WARN / 365d RED). The owner may prefer (b), a hard RED with the date recorded. | Nothing; (a) is the default and is safe under either answer | (b) is recorded as an accepted-risk waiver: Gate 223 reddens the whole repo on a known date, written into the pin file and the skill's cadence. |
+
+---
+
+## §12 — Build order
+
+1. **P0** — Gate 195 one-hop closure. Smallest diff, highest value, in the file that already owns it.
+2. **P1** — producer spine + FLOORS + non-circular `--self-test`. No verdicts yet.
+3. **P2** — trace sink (owner gate first), with the extracted-harness invariant and the SHA join guard.
+4. **P3 ∥ P4 ∥ P7** — static detectors; pin + prose fence + AGENTS.md; live spend lane.
+5. **P5** — Gate 223: static reader only, 11 assertions, four floor fixtures, self-budgeted.
+6. **P6** — post-suite reconcile step, `if: always()` + sentinel.
+7. **P8** — fleet spend lane (needs P7's `convert()`; needs item 4).
+8. **P9** — skill + the cross-link.
+9. **P10** — dashboard, as a **separate change**, after one cycle and the ratchet decision.
+
+**Definition of done for the first change:** P0–P6 + P9 land, Gate 223 is green in the full suite by
+**assertion name** (never by number), `check-gate-registration.py` exits 0, the reconcile step is
+present with `if: always()`, and `--report` prints every count beside its denominator with the unit
+named. **Definition of done for the spend lane:** P7 + P8, with the fleet run reproducing
+`RavenPower-Website`'s 1,825 runs and a nonzero `billable_minutes_if_private` on runs whose
+`billable.total_ms` is 0 — the number the API cannot see and the owner is paying.
