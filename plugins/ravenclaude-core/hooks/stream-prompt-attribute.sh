@@ -18,10 +18,17 @@
 #   1. NO-EGRESS: the prompt is read to DERIVE features only; stream-ops.append_event
 #      refuses any raw-content field, so only labels/terms/word-count/session_id reach disk.
 #      The prompt text NEVER egresses.
-#   2. FAIL-OPEN: this hook can NEVER block a prompt. It always exits 0 and emits NOTHING on
-#      stdout that would alter the prompt — a classifier error, a missing python3, a timeout,
-#      anything → silent exit 0. A latency budget (RC_STREAM_HOOK_BUDGET_S, default 3s) caps
-#      the inner work so a slow disk can't stall the prompt.
+#   2. FAIL-OPEN: this hook can NEVER block a prompt. It always exits 0 — a classifier error,
+#      a missing python3, a timeout, anything → silent exit 0. A latency budget
+#      (RC_STREAM_HOOK_BUDGET_S, default 3s) caps the inner work so a slow disk can't stall
+#      the prompt. The STREAMS half still emits nothing on stdout; see the second-concern
+#      note below for the one line the conserve-tokens block may add on a transition.
+#
+# SECOND CONCERN (v0.273.0) — the conserve-tokens exception's per-prompt trigger rides in
+# this file, before the streams opt-in gate, because UserPromptSubmit is the only honest
+# surface for a prompt-phrase trigger and this is the only UserPromptSubmit hook the plugin
+# ships (a new hook file would need chmod +x, which is denied on this substrate). It is
+# opt-in by POSTURE PRESENCE and is independent of `stream_hook`. See the delimited block.
 #
 # Wired in hooks.json (UserPromptSubmit) + the dev-mirror .claude/settings.json + the
 # Copilot installer (.github/hooks via the adapter's `userpromptsubmit` mode).
@@ -36,8 +43,44 @@ project_dir="${CLAUDE_PROJECT_DIR:-$PWD}"
 [ -d "$project_dir" ] || exit 0
 
 posture="$project_dir/.ravenclaude/comfort-posture.yaml"
-# Fast opt-in gate: do nothing unless `stream_hook: per_prompt` is set. A single grep.
 [ -f "$posture" ] || exit 0
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SECOND CONCERN (v0.273.0): the conserve-tokens exception, per-prompt half.
+#
+# ⛔ WHY IT LIVES IN THIS FILE AND NOT ITS OWN HOOK. `UserPromptSubmit` is the
+# only honest surface for a per-prompt phrase trigger, and this is the only
+# UserPromptSubmit hook the plugin ships. A NEW hook file would have to be
+# chmod +x to satisfy the repo's "every hooks/*.sh is executable" gate, and
+# `chmod +x` is denied on this substrate — so extending an already-executable
+# hook is the sanctioned move, not a shortcut. The block is fully delimited,
+# runs BEFORE the streams opt-in gate (it is opt-in by POSTURE PRESENCE, not by
+# `stream_hook: per_prompt`), and shares nothing with the streams logic below
+# but the payload and the project dir.
+#
+# It emits at most ONE stdout line, and only on a state TRANSITION — which is a
+# deliberate narrowing of this hook's original "emits NOTHING on stdout"
+# invariant, recorded here rather than silently broken. On UserPromptSubmit,
+# stdout is added to the session context; a line every turn would be a per-turn
+# tax on the very budget this feature protects.
+#
+# FAIL-OPEN, unchanged: no python3, no engine, any error -> silent, exit 0. It
+# can never block or alter the prompt.
+if command -v python3 >/dev/null 2>&1; then
+  _ct_scripts="${CLAUDE_PLUGIN_ROOT:-}/scripts"
+  if [ ! -f "$_ct_scripts/conserve-tokens.py" ]; then
+    _ct_scripts="$(cd "$(dirname "${BASH_SOURCE[0]}")/../scripts" 2>/dev/null && pwd || true)"
+  fi
+  if [ -n "${_ct_scripts:-}" ] && [ -f "$_ct_scripts/conserve-tokens.py" ]; then
+    _ct_out="$(printf '%s' "$payload" \
+      | CLAUDE_PROJECT_DIR="$project_dir" python3 "$_ct_scripts/conserve-tokens.py" \
+          --mode prompt --project-root "$project_dir" 2>/dev/null || true)"
+    [ -n "${_ct_out:-}" ] && printf '%s\n' "$_ct_out"
+  fi
+fi
+# ───────────────────────────── end conserve-tokens ───────────────────────────
+
+# Fast opt-in gate: do nothing unless `stream_hook: per_prompt` is set. A single grep.
 grep -Eq '^[[:space:]]*stream_hook[[:space:]]*:[[:space:]]*per_prompt([[:space:]]|#|$)' "$posture" 2>/dev/null || exit 0
 
 # python3 required for the derive/classify work. Absent -> fail-open no-op.

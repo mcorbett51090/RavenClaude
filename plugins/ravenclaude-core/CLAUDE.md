@@ -975,6 +975,8 @@ This **supersedes** the "Monitors / background jobs — N-A" row of the Value-ad
 
 ## Parallelism posture — spawn-team honors the dashboard cap (added 2026-06-09, v0.138.0)
 
+> **⛔ SUPERSEDED IN PART by v0.273.0 — read that milestone, not this sentence, for what `absent` means.** The semantics sentence below states `block absent → unchanged`. That is **no longer true**: absent now means **MAXIMUM**. Every *explicit* form (`enabled: false`, `max_workers: N`, `max_workers: unlimited`) is unchanged. Kept as the dated v0.138.0 record per this file's supersession convention — a stale claim in a file every session loads is an active defect, not a bookkeeping lag.
+
 The Pipeline page's **parallelism** control (toggle + max-workers + an "unlimited" option, shipped in v0.137.0 — now under **Configure → Pipeline**) gains its first **behavioral consumer**: [`skills/spawn-team/SKILL.md`](skills/spawn-team/SKILL.md) Step 5 reads the `parallelism:` block from `.ravenclaude/comfort-posture.yaml` and caps how wide the Team Lead fans independent agents out. It is a **behavioral commitment, not a hard gate** — like `design_checkins` / `decision_review`, the agent honors it (no hook tracks a live concurrency count). The cap bounds **breadth** (workers at once) where the runaway brake bounds **depth** (total tool calls). Semantics: block **absent → unchanged** (existing parallel-fan-out judgment); `enabled: false` → sequential; `enabled: true` + `max_workers: N` → batches of ≤N; `enabled: true` + `max_workers: unlimited` → uncapped. The enforcement approach (behavioral vs. a new SubagentStart concurrency-counter hook) was a routed decision — behavioral was chosen as the smaller-blast-radius leaf. **Migration:** none — absent ⇒ default, so nothing changes on `/plugin marketplace update` unless a consumer sets the block.
 
 ## Visual feedback loop — render→see→iterate for visual-output agents (added 2026-06-09, v0.141.0)
@@ -2636,6 +2638,104 @@ pinned custom connector; size-cap + timeout bound the blast radius, and this is 
 and `getaddrinfo` is not bounded by the fetch timeout (a low-risk DNS hang). Both are tracked for a
 follow-up. The `check-design-schema.py` packaging move landed in v0.263.0.
 
+## Parallelism defaults to MAXIMUM — default + directive + detector (added 2026-08-18, v0.274.0)
+
+`parallelism:` shipped in v0.137.0 with the default **off, 4 workers**, and exactly one behavioral
+consumer. So the marketplace's own guidance said "fan independent work out" while its own default said
+"don't", and the default won by silence — an absent block meant *unchanged*, i.e. nothing.
+
+The owner's decision was to flip it to **maximum everywhere**, and — explicitly — **not** to build a
+blocking gate for it. That constraint is the whole design, so it is worth stating why it is correct
+rather than a concession:
+
+> ⛔ **A hook cannot compel more parallelism.** `PreToolUse` can deny an action. There is no event at
+> which "you should have batched those two dispatches into one message" is blockable, because **the
+> second dispatch that never happened emits nothing**. A guardrail can only ever subtract. So the
+> shape is **default + directive + detector**, and any future attempt to "finish the job" with a
+> blocking gate is chasing an event that does not exist.
+
+**1 — The default.** `PARALLELISM_DEFAULT` is now `{enabled: true, max_workers: 4, unlimited: true}`.
+
+**⛔ The `absent` decision, and its migration cost — stated rather than assumed (House Rule 3).**
+`absent` now means **MAXIMUM**, not "unchanged". The alternative — keep `absent ⇒ unchanged` and only
+re-seed the dashboard's default — was rejected because it reaches **only** consumers who open the
+dashboard and press Save. Every consumer with an untouched posture (the overwhelming majority, since
+the block is written only when it differs from the default) would have kept the old behavior forever,
+which is the opposite of "maximal by default everywhere".
+
+Simulating `/plugin marketplace update` on a real consumer, case by case:
+
+| Their `comfort-posture.yaml` today | Before | After | Changed? |
+|---|---|---|---|
+| no `parallelism:` block | "unchanged" (in practice: the agent's own judgment) | **maximum fan-out** | **YES — the only case that moves** |
+| `parallelism: {enabled: false, …}` | sequential | sequential | no |
+| `parallelism: {enabled: true, max_workers: N}` | batches of ≤N | batches of ≤N | no |
+| `parallelism: {enabled: true, max_workers: unlimited}` | uncapped | uncapped | no |
+| scalar `parallelism: on` | enabled | enabled | no |
+| scalar `parallelism: off` | **silently ignored** (fell through every branch) | **sequential** | YES — a bug fix, and one the default flip made urgent: unhandled, `off` would now have meant MAX |
+
+**Nothing breaks.** No permission changes, no rule is emitted or withdrawn, no hook denies anything
+new — `parallelism` is a *behavioral* commitment with no enforcement path, so the blast radius is
+"the agent fans out wider" and nothing else. **The cost is real and is token spend and concurrency,**
+which is exactly what the conserve-tokens exception below exists to bound. The serializer keeps
+`absent ⇒ default` honest in both directions: a max-parallelism posture emits **no block at all**, and
+a sequential one is written explicitly (Gate 35).
+
+**2 — The directive** (the surface that also reaches Copilot). The SessionStart capability banner
+gains a four-line **PARALLELISM** section: batch every independent step into one message; *the only
+reason to serialize is a genuine data dependency*; being unsure is not a dependency. It states the
+resolved mode (max / capped-at-N / sequential / conserving) and, when the detector has counts, the
+observed serial ratio. **⛔ Derived labels only (Gate 19)** — every value is a fixed string, an enum
+member, or a validated integer; no config text, prompt text, or event content can reach the banner.
+
+**3 — The conserve-tokens exception, three triggers, one precedence.** Engaged ⇒ the posture is read
+as `enabled: false` (sequential). There is deliberately no fourth mode to document.
+
+1. **Prompt phrase** — per-session, sticky, **both directions** (`conserve tokens` engages,
+   `maximum parallelism` / `stop conserving` releases). Surface: `UserPromptSubmit`.
+2. **Posture switch** — `conserve_tokens: true`, the dashboard's Pipeline checkbox. Engage-only.
+3. **Context pressure** — live usage ≥ `conserve_tokens_auto_pct` (default 80, `0` disables), read
+   from `scripts/context-usage-meter.py`. **Not a second meter** — the same source `handoff-nudge`
+   already consumes; a divergent one is exactly the drift this reuse prevents.
+
+`engaged = phrase_override if a phrase fired this session else (posture_switch or context_pressure)`.
+
+Two precedence choices are load-bearing rather than arbitrary. **The phrase wins in BOTH directions**,
+including over a posture switch set to `true`: without a release phrase the only exit from a
+phrase-engaged session would be editing a config file mid-conversation. And **the switch is
+engage-only** — there is no `conserve_tokens: false`-means-never, because a stale config would then
+silently suppress trigger 3, and trigger 3 exists precisely for the moments nobody is watching.
+Engine: [`scripts/conserve-tokens.py`](scripts/conserve-tokens.py); an unmeasurable context window
+returns `None`, never `0%`, so the automatic trigger fails toward *silent*, never toward *keep
+spending*.
+
+**4 — The detector.** [`scripts/parallelism-detector.py`](scripts/parallelism-detector.py), riding the
+existing `SubagentStart` hook, groups starts into batches by start-time proximity (≤5s = one batch),
+counts singles vs parallel batches, and emits at most 3 `warn` events (`rule: serial-dispatch`,
+**empty `path`**) into `hook-events.jsonl` so the pattern is visible in Heimdall's grey tier. Counters
+live in `.ravenclaude/runs/<session>/parallelism-observations.json`; the banner reports the ratio.
+**It never blocks.** Its two limits are printed in its own output so the number cannot be laundered
+into a claim: it infers batching from start times, so a single dispatch may be a genuine dependency;
+and *zero batches means no subagents ran*, not perfect parallelism.
+
+**⛔ Why both new blocks live inside existing hooks.** `chmod +x` is denied on this substrate and the
+repo gates every `hooks/*.sh` as executable, so a new hook file is unshippable here. The conserve
+phrase trigger extends `stream-prompt-attribute.sh` (the only `UserPromptSubmit` hook) and the
+detector extends `agent-dispatch-evaluator.sh` (the only `SubagentStart` hook). Both are delimited,
+opt-in by **posture presence** (not by their host hook's own knob), and documented in their host's
+header. The detector deliberately runs **before** its host's `payload`/`jq` guards: those exist for
+the Haiku classifier, and gating a meter behind them would blind it exactly when `jq` is absent —
+failing toward "looks clean".
+
+**Gates.** Gate 35 extended with the conserve keys + the new default (emit-when-non-default and
+hydrate-back, plus `parallelism: off`), with two new must-fail halves. New **Gate 223** covers all
+three conserve triggers with positive controls in both directions and the detector's
+serial-vs-parallel discrimination, with must-fail halves that neuter the precedence and the batch
+window.
+
+**Migration:** one behavior change, named above — a consumer with **no** `parallelism:` block now gets
+maximum fan-out instead of ad-hoc judgment. To opt out, set `parallelism: off` (or tick **Conserve
+tokens** in the dashboard). Every explicit setting is byte-for-byte unchanged.
 ## The premise gate was denying on `wc -l`, and nobody could have known (added 2026-08-18, v0.273.0)
 
 Two defects in the premise mechanism, both found by measuring rather than reading, and the second is
