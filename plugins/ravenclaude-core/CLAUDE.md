@@ -2834,3 +2834,53 @@ a genuine `curl`/`gh api`/`WebFetch` 4xx, a `command not found`, a `No such file
 before. What stops denying is a line count. Existing ledgers are not rewritten; their stale
 `http-4NN` families age out as each scope's probes resolve, or clear immediately via the same
 `control.md` the deny already prints.
+
+## One version, hand-edited once — the catalog is now derived (added 2026-08-18)
+
+A plugin's version lived in **three** committed files: `plugins/<name>/.claude-plugin/plugin.json`,
+`.claude-plugin/marketplace.json` `plugins[].version`, and (for `ravenclaude-core` only)
+`copilot/plugin.json`. The third was already generated. The first two were both hand-edited, and Gate
+8 (`version-pin-cross-check`) compares them — so the repo had a check for disagreement but no
+mechanism for agreement.
+
+Two hand-edited copies of one fact is a merge-conflict generator, not a check.
+measured 2026-08-17: **one PR was re-bumped three times** (0.273.0 → 0.274.0 → 0.275.0) purely
+because concurrent PRs serialised on those two files, and **two further PRs** needed manual conflict
+resolution on the same two files. Nothing was wrong with any of the versions; the cost was entirely
+in the shape of the surface.
+
+`plugins/<name>/.claude-plugin/plugin.json` is now the **single source of truth**.
+`scripts/sync-plugin-versions.py` derives the catalog entry from it. `--check` is what CI calls.
+
+**⛔ Why the write is a line-local substitution and not `json.dump()`.** `.claude-plugin/marketplace.json`
+is **not** in `.prettierignore`, so the whole-tree `prettier --check .` in CI reads it. A `json.dump()`
+round-trip would reformat 252 KB of catalog and turn every version bump into a Gate 9 failure. The
+write substitutes the version literal on its own line and touches no other byte.
+control: a `9.999.9` planted into the real catalog, then one write pass — `shasum -a 256` identical to
+the pre-plant file and `git status --porcelain` empty. That `cmp` is the assertion, permanently, in
+Gate 226; "prettier still passes" would have been a weaker restatement of it.
+
+**⛔ It fails loudly rather than guessing.** Silently "fixing" a mismatch it does not understand is the
+failure mode a version syncer invites. Eleven finding classes each exit **2** with the offending path
+named: a catalog entry with no `plugin.json`; a `plugin.json` with no catalog entry; a plugin
+directory with no manifest at all; unparseable or unreadable JSON on either side; a missing or
+non-string `version` on either side; a duplicate catalog name; a `plugin.json` whose `name` disagrees
+with its own directory; and — the one that protects the write itself — a line scan that disagrees with
+`json.load()` of the same bytes. Exit **1** is never used: this repo has shipped non-blocking exit-1
+gates before, and Gate 226 asserts `rc -eq 2`.
+
+**Gate 8 is not replaced.** It proves the two files *agree*. Gate 226 proves the agreement is
+*mechanically reachable* — one command derives it — and that the deriving command refuses to guess.
+
+### What this does NOT close, stated with the number rather than left silent
+
+A `ravenclaude-core` bump still requires a second command: `python3 scripts/generate-copilot-plugin.py`.
+The sync script deliberately does not call it — that generator projects the whole agent tree into
+`copilot/`, not just a version, and folding it in would make a version sync a tree rewrite with a
+byte-comparison freshness gate on the other side. `AGENTS.md` now names both steps.
+
+And the honest bound on the gate: **Gate 226 was authored in the same commit as the script it
+asserts over** — the self-certifying-change shape this repo has already recorded once. The half that
+is not self-certifying is the plant/restore leg, which runs against the **real 182-entry catalog**
+that this commit does not author: the plant is verified to have changed the file before anything is
+read back, so a no-op plant cannot score a free green.
