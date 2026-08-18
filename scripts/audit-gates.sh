@@ -528,6 +528,13 @@ PY
       [ "$_mf" -eq 2 ] || rc=1
       exit $rc
       ;;
+    225)
+      echo "── Gate 225: self-disable read-only discriminator (floor intact, maintenance unblocked) ──"
+      rc=0
+      bash plugins/ravenclaude-core/hooks/tests/test-gate225-self-disable-readonly.sh || rc=$?
+      bash plugins/ravenclaude-core/hooks/tests/test-gate225-self-disable-readonly.sh --must-fail-meta || rc=1
+      exit "$rc"
+      ;;
     223)
       echo "── Gate 223: parallelism posture (conserve triggers + serial detector) ──"
       rc=0
@@ -1216,7 +1223,7 @@ PY
       ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 226. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 225, 226. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -1865,15 +1872,39 @@ echo "── Gate 13: dashboard.html freshness + native-merge render prep ──
 # See docs/best-practices/hermetic-validation-no-in-place-regen.md.
 DASH_HTML="$TMP/render-dashboard.html"
 IDX_HTML="$TMP/render-index.html"
-# (a) must_fail: a stale committed dashboard.html is detected (teeth). This uses
-#     generate-dashboards.py --check (which reads the committed file); it backs up,
-#     mutates, then RESTORES the committed file immediately, so it leaves the tree
-#     clean. --check has no temp-path mode, so this stays backup/restore-scoped.
-backup plugins/ravenclaude-core/dashboard.html
-printf '\n<!-- AUDIT FIXTURE — should diff against regenerated output -->\n' >> plugins/ravenclaude-core/dashboard.html
-rc=0; python3 scripts/generate-dashboards.py --check >/dev/null 2>&1 || rc=$?
-gate "dashboard freshness (stale committed dashboard.html)" must_fail "$rc"
-cp -p "$TMP/plugins_ravenclaude-core_dashboard.html.bak" plugins/ravenclaude-core/dashboard.html
+# (a) COMMITTED-ARTIFACT FRESHNESS (rewritten 2026-08-18 — the gate could not see
+#     the drift it existed to catch).
+#
+#     What shipped here was a lone must_fail: append a fixture to the committed
+#     dashboard.html, run `generate-dashboards.py --check`, expect non-zero. There
+#     was NO must_pass half, so a stale committed file was never asserted against —
+#     and worse, `--check` was ALREADY non-zero before the fixture was appended, so
+#     the must_fail was satisfied by a pre-existing condition and asserted nothing
+#     about the fixture at all. Measured on origin/main @ 08237f2e, pristine tree:
+#       generate-dashboards.py --check  -> "STALE: .../dashboard.html", exit 1
+#       generate-index-dashboard.py --check -> "[stale] .../index.html", exit 1
+#       audit-gates.sh                  -> 841 pass, 0 fail
+#     A must_fail whose expected outcome is already true is not a test. See
+#     scripts/check-artifact-freshness.py's header for the full mechanism and for
+#     why the comparator excludes timestamps and version VALUES (measured: 7 of the
+#     last 20 commits on main bump the rc-core version and only 2 touch
+#     dashboard.html, so gating the version exactly would redden a quarter of all
+#     PRs and force a 10 MB regen into each branch — the cross-PR contagion
+#     regenerate-artifacts.yml exists to end. Version drift stays owned by that
+#     post-merge self-heal, which fails LOUDLY on its own when it cannot land).
+#     Everything structural — a plugin row, a stat, a template/CSS/JS change, a
+#     hand-edit, a reordered or islanded DOM — IS gated here against committed bytes.
+#     Read-only: the comparator renders to memory/temp and never writes a tracked file.
+rc=0; python3 scripts/check-artifact-freshness.py --check --surface plugins/ravenclaude-core/dashboard.html >/dev/null 2>&1 || rc=$?
+gate "dashboard freshness (COMMITTED dashboard.html is structurally fresh)" must_pass "$rc"
+# Teeth, planted into the REAL committed artifact — not a synthetic fixture. The
+# helper asserts the clean baseline FIRST (the positive control the old gate
+# lacked), then plants two drift shapes (an append and a same-length in-place
+# mutation, the latter proving the version/timestamp carve-out does not launder
+# real content drift) and requires BOTH to redden. It exits non-zero if the
+# baseline was already stale, so "already broken" can never score as teeth.
+rc=0; python3 scripts/check-artifact-freshness.py --must-fail --surface plugins/ravenclaude-core/dashboard.html >/dev/null 2>&1 || rc=$?
+gate "dashboard freshness teeth: clean baseline -> planted drift in the REAL committed file caught" must_pass "$rc"
 # (b) render the CURRENT output to temp (no in-place write) for the render gates.
 rc=0; python3 scripts/generate-dashboards.py --plugin ravenclaude-core --stdout > "$DASH_HTML" 2>/dev/null || rc=$?
 gate "dashboard generator runs clean (rendered to temp, no in-place write)" must_pass "$rc"
@@ -4802,14 +4833,24 @@ PY
     --dashboard "$DASH_HTML" --index "$IDX_ROUTE_BAD" --fixture "$ROUTE_FIX" >/dev/null 2>&1 || rc=$?
   gate "committed-routes (a broken DASH_OWNER destination is detected)" must_fail "$rc"
 
-  # ── G12: committed-artifact version consistency. Asserts the ravenclaude-core
-  # plugin version embedded in the COMMITTED index.html (window.__RC_DATA__) equals
-  # the committed plugin.json version. Gate 13/97 catch this via regenerate+byte-
-  # compare, but that (a) needs a full regen and (b) was bypassed on the merge COMMIT
-  # for the 0.208.1-vs-0.209.0 drift that reached main via merge-skew. This is a cheap,
-  # committed-only, explicit-message tripwire (NOT the marketplace CATALOG version /
-  # foot-version, which is a separate field). Runs against $IDX_HTML (freshly rendered
-  # in the audit) so it also covers the fresh side. ──
+  # ── G12: rendered-artifact version consistency. Asserts the ravenclaude-core
+  # plugin version embedded in the RENDERED index.html ($IDX_HTML, window.__RC_DATA__)
+  # equals the committed plugin.json version.
+  #
+  # ⛔ NAME/COMMENT CORRECTION (2026-08-18). This block was documented as a
+  # "committed-only tripwire" for the 0.208.1-vs-0.209.0 drift that reached main via
+  # merge-skew — but the code passes $IDX_HTML, the file the audit had just rendered,
+  # so it never read the committed artifact at all and could not have caught that
+  # class of drift. The comment was cited as coverage that did not exist. It is
+  # relabelled here rather than repointed: on origin/main @ 08237f2e the COMMITTED
+  # index.html embedded 0.273.0 against a 0.275.0 manifest, and gating that at PR
+  # time would fail every version-bumping PR (7 of the last 20 commits) until the
+  # author regenerated a 9 MB artifact — the contagion regenerate-artifacts.yml
+  # exists to end. Committed version freshness is owned by that post-merge self-heal,
+  # which exits 1 loudly when it cannot land (runs 32121433735 / 32134742228 /
+  # 32136250292 / 32137465607 all failed at "self-heal PR #968 registered NO checks",
+  # which is why main was two versions behind). Structural committed-artifact drift
+  # — the class that does NOT self-heal — is gated in Gates 13(a) and 97. ──
   _idx_rc_version() { # $1=html $2=want-version → exit 0 iff embedded == want
     python3 - "$1" "$2" <<'PY'
 import json, re, sys
@@ -4825,13 +4866,13 @@ PY
   }
   MANIFEST_V=$(python3 -c "import json;print(json.load(open('plugins/ravenclaude-core/.claude-plugin/plugin.json'))['version'])")
   rc=0; _idx_rc_version "$IDX_HTML" "$MANIFEST_V" || rc=$?
-  gate "artifact-version (index.html embeds the manifest rc-core version)" must_pass "$rc"
+  gate "artifact-version (RENDERED index.html embeds the manifest rc-core version)" must_pass "$rc"
   # must_fail (teeth): an index.html embedding a DIFFERENT rc-core version is caught.
   IDX_VER_BAD="$TMP/render-index-verdrift.html"
   sed "s/\"name\":\"ravenclaude-core\",\"label\":\"Ravenclaude Core\",\"version\":\"$MANIFEST_V\"/\"name\":\"ravenclaude-core\",\"label\":\"Ravenclaude Core\",\"version\":\"0.0.0\"/" "$IDX_HTML" > "$IDX_VER_BAD"
   cmp_rc=0; cmp -s "$IDX_HTML" "$IDX_VER_BAD" || cmp_rc=$?; gate "artifact-version mutation is not a no-op" must_fail "$cmp_rc"
   rc=0; _idx_rc_version "$IDX_VER_BAD" "$MANIFEST_V" || rc=$?
-  gate "artifact-version (a drifted embedded rc-core version is detected)" must_fail "$rc"
+  gate "artifact-version (a drifted embedded rc-core version is detected in the RENDERED index)" must_fail "$rc"
 
   # ── required_routes floor half (PB-2): the anti-laundering control C5 needs. ──
   # must_fail 51-a (the sharpest): remove a required href from a rendered copy,
@@ -5023,6 +5064,28 @@ echo "── Gate 97: index.html freshness (template round-trip, check-only) ─
 # self-healed post-merge (regenerate-artifacts.yml) and remains checkable on
 # demand via `audit-gates.sh --check 97` (which reads the committed file).
 # See docs/best-practices/hermetic-validation-no-in-place-regen.md.
+#
+# ⛔ CORRECTION (2026-08-18): the paragraph above describes a gate with a blind
+# spot the size of the artifact. Pointing EVERY assertion at $IDX_HTML made this a
+# generator-determinism check and nothing more — it says exactly nothing about the
+# index.html that actually ships. The committed-file check survived only on the
+# `audit-gates.sh --check 97` per-gate path, which NO workflow invokes, so in the
+# full suite it was unreachable. On origin/main @ 08237f2e the committed index.html
+# was stale (`generate-index-dashboard.py --check` -> exit 1) while this gate
+# reported both halves green. The committed half is restored below. It is
+# STRUCTURAL (timestamps + version values excluded) so it does not reintroduce the
+# per-PR regen contagion — see scripts/check-artifact-freshness.py's header, and
+# Gate 13(a) for the same rewrite on the dashboard surface. Read-only.
+rc=0; python3 scripts/check-artifact-freshness.py --check --surface index.html >/dev/null 2>&1 || rc=$?
+gate "index freshness (COMMITTED index.html is structurally fresh)" must_pass "$rc"
+# Teeth planted into the REAL committed index.html: clean baseline asserted first,
+# then two drift shapes must BOTH redden. Non-zero if the baseline was already
+# stale, so a pre-existing condition can never be laundered into a passing must_fail.
+rc=0; python3 scripts/check-artifact-freshness.py --must-fail --surface index.html >/dev/null 2>&1 || rc=$?
+gate "index freshness teeth: clean baseline -> planted drift in the REAL committed file caught" must_pass "$rc"
+# The two assertions below stay: they are the generator-DETERMINISM half (a fresh
+# render round-trips through --check) and are complementary to, not a substitute
+# for, the committed-artifact half above.
 # must_fail: a hand-edit the template does not emit is detected by --check.
 printf '\n<!-- AUDIT FIXTURE — hand-edit the template does not have -->\n' >> "$IDX_HTML"
 rc=0; python3 scripts/generate-index-dashboard.py --check -o "$IDX_HTML" >/dev/null 2>&1 || rc=$?
@@ -7631,6 +7694,33 @@ for _pp_m in precedence window pressure; do
   python3 scripts/check-parallelism-posture.py --must-fail-"$_pp_m" >/dev/null 2>&1 || _pp_rc=$?
   gate "parallelism teeth: neutering $_pp_m reddens the suite" must_pass "$_pp_rc"
 done
+
+echo
+echo
+echo "── Gate 225: self-disable read-only discriminator — floor intact, maintenance unblocked ─"
+# xc.tribunal-self-disable is pre-LLM, non-overridable and category-independent: the
+# security floor. It was ALSO denying ordinary maintenance, because it matched any
+# command that merely NAMED the substrate. Measured 2026-08-18: SEVEN legitimate
+# operations denied in one session — a read-only search whose PATTERN contained
+# `command_review:`, a stage-and-commit whose COMMIT MESSAGE described the denial, a
+# rename of a gate TEST file, and a scratch file whose NAME contained `patch`. The
+# guard's printed remedy ("turn the Thing off in the dashboard") was ALREADY applied
+# and does not help — always_screen runs before the enabled gate.
+#
+# ⛔ THE FIX CLASSIFIES THE COMMAND; IT RELAXES NO TRIGGER. With a read-only first
+# token and no shell metacharacters, nothing else on the line can execute — later
+# words are ARGUMENTS. Controlled against pristine code: the 9 mutation cases deny
+# IDENTICALLY before and after; only the 2 false denials flipped.
+#
+# ⛔ Registered in BOTH this main sequence AND the --check dispatcher above + the
+# Supported: string. After adding a gate, run the full suite and GREP ITS OUTPUT FOR
+# "Gate 225" — a passing suite is not evidence your gate is in it.
+_g225_rc=0
+bash plugins/ravenclaude-core/hooks/tests/test-gate225-self-disable-readonly.sh >/dev/null 2>&1 || _g225_rc=$?
+gate "self-disable: every substrate mutation still denies; non-writing maintenance is not blocked" must_pass "$_g225_rc"
+_g225_mf=0
+bash plugins/ravenclaude-core/hooks/tests/test-gate225-self-disable-readonly.sh --must-fail-meta >/dev/null 2>&1 || _g225_mf=$?
+gate "self-disable teeth: neutering the metacharacter conjunct lets a chained mutation through" must_pass "$_g225_mf"
 
 echo
 echo "── Gate 222: forge-route.py routing fixtures — a MENTION is not a PRE-COMMITMENT ─"
