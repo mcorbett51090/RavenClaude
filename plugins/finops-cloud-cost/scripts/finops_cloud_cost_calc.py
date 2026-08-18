@@ -126,7 +126,7 @@ def build_parser():
     )
     sub = p.add_subparsers(dest="cmd", required=True)
 
-    sp = sub.add_parser('commitment', help='on-demand spend, coverage %, discount -> blended cost + savings')
+    sp = sub.add_parser('commitment', help='on-demand spend, coverage %%, discount -> blended cost + savings')
     sp.add_argument('--on-demand-spend', type=float, required=True, help='total eligible on-demand spend $ (per period)')
     sp.add_argument('--coverage', type=float, required=True, help='commitment coverage fraction (0-1)')
     sp.add_argument('--discount', type=float, required=True, help='commitment discount fraction (0-1)')

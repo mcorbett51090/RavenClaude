@@ -251,7 +251,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     sub = p.add_subparsers(dest="cmd", required=True)
 
-    pc = sub.add_parser("prime-cost", help="Food %, labor %, prime cost % vs segment bands")
+    pc = sub.add_parser("prime-cost", help="Food %%, labor %%, prime cost %% vs segment bands")
     pc.add_argument("--sales", type=float, required=True, help="total sales (revenue) for the window")
     pc.add_argument("--food", type=float, required=True, help="food cost (COGS) for the window")
     pc.add_argument("--labor", type=float, required=True, help="total labor cost for the window")

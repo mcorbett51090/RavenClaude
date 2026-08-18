@@ -211,7 +211,7 @@ def build_parser() -> argparse.ArgumentParser:
         action="append",
         default=[],
         metavar="name:cost_per_call:resolution_rate",
-        help="A candidate tier, e.g. balanced:1.0:85% (rate as 85% or 0.85). Repeatable.",
+        help="A candidate tier, e.g. balanced:1.0:85%% (rate as 85%% or 0.85). Repeatable.",
     )
     pt.set_defaults(func=cmd_per_task)
 
