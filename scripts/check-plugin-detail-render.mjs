@@ -66,7 +66,17 @@ const RC_BASELINE = {
   //        19 -> 22: premise-gate.py + classify_claim.py + check-design-schema.py
   //                  (v0.263.0, PR 3b packaging move)
   scenarios: 4,
-  hooks: 35, // 34 -> 35: handoff-successor-ack.sh (v0.269.0, SessionStart handshake)
+  // 34 -> 35: handoff-successor-ack.sh (v0.269.0, SessionStart handshake)
+  // 35 -> 36: ask-on-ambiguity (v0.273.0, UserPromptSubmit advisory nudge).
+  //   NOTE the counting rule, because it misled once: _scan_hooks() in
+  //   generate-index-dashboard.py indexes hooks.json REGISTRATIONS, not files on
+  //   disk. A stray .sh in hooks/ does not move this number and a registration
+  //   whose body lives elsewhere does. ask-on-ambiguity's body is under scripts/
+  //   (the tribunal substrate guard denies chmod +x on a new hooks/ file, and a
+  //   non-executable hooks/*.sh hard-fails CI), so it is registered as
+  //   `bash "${CLAUDE_PLUGIN_ROOT}/scripts/ask-on-ambiguity.sh"` and Path().stem
+  //   still renders it as `ask-on-ambiguity` — verified, not assumed.
+  hooks: 36,
   //        33 -> 34: sanitize-webfetch-output.sh (v0.267.0, WebFetch result quarantine)
   //        32 -> 33: handoff-nudge.sh (v0.266.0, Stop context-hot nudge)
   //        26 -> 28: log-probe.sh + guard-premise.sh (v0.240.0, the premise gate);

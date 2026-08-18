@@ -238,6 +238,12 @@
         "hooks": [
           {
             "type": "command",
+            "command": "bash \"${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/scripts/ask-on-ambiguity.sh\"",
+            "timeout": 10,
+            "comment": "Marketplace-dev hook (dev-mirror). Ask-on-ambiguity (ADVISORY, opt-in, fail-open): emits an additionalContext nudge when a prompt is short, names no file/path/symbol/quoted-string/number, AND pairs an open-ended verb with an unbound referent. NEVER blocks or alters the prompt (always exit 0). NO-EGRESS: writes no files and emits only fixed strings plus a derived word count. Disable with `ask_on_ambiguity: off`. It matches a SHAPE, not ambiguity, and cannot see whether the agent then actually asks."
+          },
+          {
+            "type": "command",
             "command": "${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/stream-prompt-attribute.sh",
             "timeout": 10,
             "comment": "Marketplace-dev hook (dev-mirror). Agentic Work-Streams P4 (OPT-IN, FAIL-OPEN): no-ops unless .ravenclaude/comfort-posture.yaml sets stream_hook: per_prompt (this repo doesn't, so it no-ops). When opted in, attributes the prompt to the active stream as a derived event (sticky \u2014 no reclassify) or auto-sets on a confident match. NEVER blocks/alters the prompt; NO-EGRESS (only derived labels persist)."

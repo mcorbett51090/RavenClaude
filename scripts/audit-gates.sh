@@ -470,6 +470,11 @@ PY
       bash plugins/ravenclaude-core/hooks/tests/test-gate122-delegation-nudge.sh
       exit $?
       ;;
+    223)
+      echo "── Gate 223: assumption layers — inference-as-observation + ask-on-ambiguity ─"
+      bash plugins/ravenclaude-core/hooks/tests/test-gate223-assumption-claiming.sh
+      exit $?
+      ;;
     123)
       echo "── Gate 123: design-project binding surfacing (banner bound / half-set / absent / leak-safe / teeth) ──"
       bash plugins/ravenclaude-core/hooks/tests/test-gate123-design-project-binding.sh
@@ -1187,7 +1192,7 @@ PY
       ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -7701,6 +7706,31 @@ rc=0; python3 scripts/check-forms-honesty-markers.py --must-fail >/dev/null 2>&1
 gate "forms honesty teeth: three planted dishonest claims ARE caught" must_fail "$rc"
 rc_is_2=0; [ "$rc" -eq 2 ] || rc_is_2=1
 gate "forms honesty teeth: the planted claims fail closed at exit 2" must_pass "$rc_is_2"
+
+echo "── Gate 223: assumption layers — inference-as-observation + ask-on-ambiguity ─"
+# Two advisory surfaces under the "before claiming" / "ask on ambiguity" rules:
+#   claim-grounding-lint.sh check 3 — a CAUSAL claim about an outcome written into
+#     a knowledge/ or docs/ markdown file with no cited this-session check. Typing
+#     is scripts/classify_claim.py's job (the hook batches candidates through its
+#     --lines mode); the hook only decides which lines are in scope.
+#   scripts/ask-on-ambiguity.sh — a UserPromptSubmit nudge on a narrow
+#     under-specified PROMPT SHAPE. Never blocks, never persists the prompt.
+#
+# ⛔ The B-half is the point, not decoration. The first cut of check 3 fired on
+# 92 of 240 sampled live knowledge/+docs/ files (38%); after narrowing it is
+# 9/240. A doc DESCRIBING the anti-pattern must not be flagged — this repo has a
+# recurring failure where a source-scan gate flags the prose explaining the very
+# pattern it hunts — so B2/B3 assert exactly that, and C1 neuters the
+# suppressions to prove those silences are load-bearing rather than a check that
+# never runs. C2 does the same for ask-on-ambiguity's referent conjunct.
+#
+# ⛔ Registered in BOTH this main sequence AND the --check dispatcher above + the
+# Supported: string. After changing it, GREP THE SUITE OUTPUT FOR "Gate 223" —
+# this repo shipped a gate unreachable for a whole release while the suite
+# reported 701 pass.
+rc=0
+bash plugins/ravenclaude-core/hooks/tests/test-gate223-assumption-claiming.sh >/dev/null 2>&1 || rc=$?
+gate "assumption layers: uncited causal claim fires, described/cited/escaped/prescriptive silent, ambiguity nudge shape-only + no-egress, both teeth" must_pass "$rc"
 
 echo
 

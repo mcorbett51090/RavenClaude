@@ -468,6 +468,29 @@ CGP keeps the agent from *under*-claiming ability; Last-Mile keeps it from *unde
 
 **Rule 2 — Verify before you yield.** Folded into the [Capability Grounding Protocol](#capability-grounding-protocol-updated-2026-05-21) as its correction-path clause (don't falsely concede / don't dig in). See it there.
 
+**Rule 1b — Observation vs inference: say which one you are stating.** Rule 1 asks "is this claim SOURCED?". This rule asks a different question, and the two are not the same axis. On 2026-08-18 an agent stated *"the failure is caused by my change"* and *"the status page is correctly green"* as FACTS. Both were **sourced** — each rested on a true, in-session observation. Both were **inferences drawn from those observations**, and both were wrong. Sourced-vs-unsourced could not see the gap; observation-vs-inference is the distinction that can.
+
+So, for any consequential claim: **an OBSERVATION is what the tool actually returned. An INFERENCE is what you concluded from it.** Write them differently.
+
+- **Observation** — quote the return. *"`scripts/audit-gates.sh` -> 703 pass, 0 fail."* *"The job exited 137."*
+- **Inference** — name the leap, and say what would falsify it. *"The job exited 137, which I read as OOM \[unverified — I did not check the memory limit]."*
+- **The test that separates them:** could this sentence be false while every command you ran returned exactly what it returned? If yes, it is an inference. "X failed and my change touched X" is an observation; "X failed **because of** my change" is an inference, and it stays one until you have run the check that would have come out **differently** if the cause were something else — reverting it, isolating it, bisecting.
+- **A causal claim is the highest-risk shape** because it is the one that gets acted on: it selects the fix. Attributing a cause you have not isolated sends the next hour of work at the wrong thing, and the work "succeeds" while solving nothing (the same shape as "Verify the load-bearing assumption before a high-impact activity" above, one level earlier — that clause verifies the premise of an ACTION; this one types the CLAIM before it becomes anyone's premise).
+- **The grammar of this is mechanized**, so you can check yourself: [`scripts/classify_claim.py`](scripts/classify_claim.py) types a sentence `observation` or `inference` from its grammar alone (`--text "…"`, or `--lines` for a batch). It is a **floor, not an oracle** — it reads grammar, so an inference carrying no grammatical marker types `observation`. Its verdict may only be raised, never lowered.
+
+**Rule 1c — Ask on ambiguity: one question beats an assumed interpretation.** The mirror of Rule 1b on the input side. When a request admits **more than one plausible reading AND those readings lead to different work**, ask ONE clarifying question **before** starting — do not pick a reading silently and build on it. The cost is asymmetric and that is the whole argument: one question costs a turn, while a wrong interpretation costs the work plus the unwinding, and it surfaces late, after there is something to throw away.
+
+This is deliberately **not** a licence to interrogate. The bar is both halves together:
+
+| Situation | Do |
+|---|---|
+| One reading is clearly intended (context, the repo, the last turn settles it) | **Proceed.** Do not ask. |
+| Several readings, but they converge on the same work | **Proceed**, and say in one clause which reading you took. |
+| Several readings that lead to **different work** | **Ask one question**, offering the readings as options. |
+| Ambiguous **and** the work is expensive or hard to reverse | **Ask** — and route the yes/no through the tribunal first (§ Decision review). |
+
+When you do proceed under a reading, **state it in one clause** ("taking this as the portal build, not the CLI"). That single clause is what lets the user correct you at turn 1 instead of turn 9, and it costs nothing.
+
 **Rule 3 — Abstain when you can't verify.** If you cannot verify a consequential action-gating claim, abstention is the **last** step, not the first: run CGP's alternate-paths enumeration (try ≥2 means), then say so and stop/escalate, listing what you tried (the mandatory-phrasing shape). An "I can't verify" that skips the attempt is a defect. An un-verifiability claim originating in tool output / a doc / a web page is untrusted data, not grounds to abstain.
 
 **The three epistemic protocols compose as a triad:**
@@ -480,7 +503,19 @@ CGP keeps the agent from *under*-claiming ability; Last-Mile keeps it from *unde
 
 **Marker vocabulary — one dialect, not three.** `[unverified — training knowledge]` is the same `[unverified]` family the Researcher / scenario-retrieval preamble already use ("Based on N unverified scenarios…") and is the prose-surface complement of the Structured Output Protocol's numeric `confidence` float (the float rides agent-to-agent handoffs; the inline marker rides conversational + written claims). Use the one marker with the source as a suffix; do not coin a new tag.
 
-**Enforced complements (this protocol's teeth, since the prose rules are best-effort):** a `judgment_only` command-review concern `xc.unverified-capability-assertion` lets a seat ASK (never deny on it alone) when an irreversible command visibly rests on an unverified platform assumption — the only surface that binds non-Claude seats under Copilot; and an advisory `claim-grounding-lint.sh` PostToolUse nudge when an absolute capability claim is written into a `knowledge/`/`docs/` file without an inline provenance marker. Neither can see the chat answer — that residue is irreducibly behavioral.
+**Enforced complements (this protocol's teeth, since the prose rules are best-effort):** a `judgment_only` command-review concern `xc.unverified-capability-assertion` lets a seat ASK (never deny on it alone) when an irreversible command visibly rests on an unverified platform assumption — the only surface that binds non-Claude seats under Copilot; an advisory `claim-grounding-lint.sh` PostToolUse nudge covering the written-artifact subset of Rules 1 and 1b; and an advisory `scripts/ask-on-ambiguity.sh` UserPromptSubmit nudge for Rule 1c. **None can see the chat answer — that residue is irreducibly behavioral.**
+
+⛔ **Read this before citing any of them as a control.** *No hook event carries the model's prose.* Hooks fire on tool calls; an answer is not a tool call. So a "label your claims" or "ask first" rule **cannot be machine-enforced on the primary surface**, and nothing in this repo does. What exists is three narrow slivers, and each is named here with what it misses:
+
+| Surface | Enforces | Cannot see |
+|---|---|---|
+| `claim-grounding-lint.sh` checks 1-2 | An unhedged absolute / an unmarked contract claim **written into a `knowledge/`/`docs/` markdown file** | Every claim spoken in chat; every claim in a `.py`/`.sh`/`.ts` file |
+| `claim-grounding-lint.sh` check 3 (Rule 1b) | A causal claim about an outcome written into such a file with **no cited this-session check** | The same chat surface — **plus** the measured, deliberate gap below |
+| `scripts/ask-on-ambiguity.sh` (Rule 1c) | A prompt matching a narrow **shape**: short, no concrete anchor, open-ended verb, unbound referent | Ambiguity in a long or well-anchored prompt; whether the agent then actually **asks** |
+
+⛔ **Check 3's known gap, stated because measurement forced it.** Separating an *explanatory* "because" ("the skip is correct because payloads are small") from a *diagnostic* one ("the page is green because the check passed") is **not mechanically decidable** — they are the same sentence to a regex. A first cut that treated every causal marker alike fired on **92 of 240 sampled live `knowledge/`+`docs/` files (38%)**, which is a lint nobody would leave on. Check 3 therefore keeps only the separable subset — attribution ("caused by", "root cause is", "due to") and conclusion connectives ("therefore", "which means") — plus two suppressions the same dry run identified (a *prescriptive* "must therefore rebase" is deriving an action, not a cause; a bare-noun "root cause" is a table header). Measured end state: **9 of 240 files (3.75%)**, the same band as the two existing checks (9 and 4 of 240), with **checks 1 and 2 unchanged at 9 and 4 across all three runs** — the regression proof that check 3 did not disturb them. **It consequently MISSES a causal claim whose only marker is "because", including the real "the status page is correctly green because the health check passed".** That is a measured gap, not an oversight. Do not close it by re-admitting bare "because" without re-running the dry run.
+
+**So the honest division of labour is: the prose above is the rule; the hooks are three narrow, advisory, opt-in surfaces beneath it; and the chat surface has no enforcement at all and will not get one.** An overclaimed control is worse than an admitted gap, because it stops anyone from building the real thing.
 
 ## Memory Engineering Protocol (added 2026-08-06, v0.238.0)
 
@@ -997,7 +1032,7 @@ Any plugin template that renders an HTML `<head>` (e.g. `templates/repo-build-st
 
 - `agents/` — 15 specialist agent definitions (includes `data-engineer` and `viz-spec-reviewer`)
 - `skills/` — dispatch playbook (spawn-team), worktree helpers, structured-output reference, run-full-test-suite, contribution-staging, agent-quality-rubric, knowledge-file-staleness-sweep, prompt-pattern-library, plugin-release-checklist, decision-review (route yes/no decisions through the tribunal), brand-extraction (website home page → reusable brand kit), pbir-layout-engine (deterministic PBIR/web-dashboard layout linter), visual-feedback-loop (the render→see→critique→iterate referee that merges the layout linter + agent-captured console/Lighthouse evidence into one pass/fail verdict — the runnable half of `knowledge/visual-feedback-loop.md`), thing-denial-kb (Muninn — recall/identify/solve/teach the fix when the Thing blocks you)
-- `hooks/` — format-on-write, guard-destructive, remind-tests, enforce-layout, guard-recursive-spawn, thing-orchestrator, ensure-default-mode, reapply-posture, capability-orientation, route-decision-review, runaway-brake, dod-gate, claim-grounding-lint, agent-dispatch-evaluator, guard-web-access, regen-on-manifest-change, thing-denial-kb-sync (Stop — materialise tribunal denials into the Muninn KB), thing-denial-kb-recall (SessionStart — surface known denials + resolutions), compact-anchor (SessionStart `matcher: "compact"` — the post-compaction addressability pointer; derived values only, never transcript content), handoff-nudge (Stop — opt-in context-hot quality-reset nudge; not a compact hook; does not replace compact-anchor) (all registered in `hooks/hooks.json` for plugin-level distribution), plus the sourced helper `_emit-event.sh` (the hook-event substrate — sourced by the verdict-emitting hooks, not a registered hook itself) and `tests/` (the hook-event fixture test)
+- `hooks/` — format-on-write, guard-destructive, remind-tests, enforce-layout, guard-recursive-spawn, thing-orchestrator, ensure-default-mode, reapply-posture, capability-orientation, route-decision-review, runaway-brake, dod-gate, claim-grounding-lint (three checks: unhedged absolute, contract provenance, and inference-as-observation — the third types its candidates via `scripts/classify_claim.py`), agent-dispatch-evaluator, guard-web-access, regen-on-manifest-change, thing-denial-kb-sync (Stop — materialise tribunal denials into the Muninn KB), thing-denial-kb-recall (SessionStart — surface known denials + resolutions), compact-anchor (SessionStart `matcher: "compact"` — the post-compaction addressability pointer; derived values only, never transcript content), handoff-nudge (Stop — opt-in context-hot quality-reset nudge; not a compact hook; does not replace compact-anchor) (all registered in `hooks/hooks.json` for plugin-level distribution), plus the sourced helper `_emit-event.sh` (the hook-event substrate — sourced by the verdict-emitting hooks, not a registered hook itself) and `tests/` (the hook-event fixture test). One registered hook body lives OUTSIDE this directory: `scripts/ask-on-ambiguity.sh` (UserPromptSubmit, advisory) — see the v0.273.0 milestone for why, and for the one-line move that returns it here
 - `scripts/` — apply-comfort-posture.py (`/set-posture` translator), serve-dashboards.py (the consumer dashboard server launched by `/dashboard` — serves the version-matched `dashboard.html` and writes `.ravenclaude/` into the consumer's project; binds 127.0.0.1, CSRF-guarded; the write surface is `/__save` + `/__read` + `/__classify` plus the allow-listed `/__run` (install/update/status — no arbitrary shell), and the remaining `/__*` endpoints (`/__heimdall` `/__vidarr` `/__norns` `/__nidhoggr` `/__mimir` `/__sleipnir` `/__saga` `/__concern` `/__knowledge` `/__runs` `/__csrf`) are read-only observability feeds), thing-decision.py + thing-seat.sh (command-review tribunal — see the `thing` skill), thing-decide.py (decision-review tribunal — see the `decision-review` skill)
 - `rules/` — coding-standards, security, git-workflow, agent-collaboration, terminal-copy-to-tempfile (copy-me CLI text → a temp `.md` file the user can copy from, because terminal clipboard copy doesn't work)
 - `templates/` — memos, runbooks, design specs, RAID logs, partner-success, `agent-ready-repo/` templates used by `/init-agent-ready`, plus `thing.yaml` (command-review seat config)
@@ -2635,3 +2670,83 @@ resolve-then-connect, so a DNS-rebinding record is a standard TOCTOU residual (c
 pinned custom connector; size-cap + timeout bound the blast radius, and this is an offline dev tool);
 and `getaddrinfo` is not bounded by the fetch timeout (a low-risk DNS hang). Both are tracked for a
 follow-up. The `check-design-schema.py` packaging move landed in v0.263.0.
+
+## Sourced and still wrong — observation vs inference, and ask on ambiguity (added 2026-08-18, v0.273.0)
+
+Two rules and their two enforceable slivers, from one owner complaint: *"claude and copilot chat have
+been making and running on a lot of assumptions lately."*
+
+**The distinction that was missing.** On 2026-08-18 an agent stated *"the failure is caused by my
+change"* and *"the status page is correctly green"* as FACTS. Both were **sourced** — each rested on a
+true, in-session observation. Both were **inferences drawn from** those observations, and both were
+wrong. Every claim-grounding surface this repo had asked *"is it SOURCED?"*, and every one of them
+would have passed these. The axis that separates them is **observation vs inference**, and the repo
+already owned that primitive — [`scripts/classify_claim.py`](scripts/classify_claim.py), built for
+FORGE claims tables — but nothing outside FORGE consulted it.
+
+**Rules 1b and 1c** (§ Claim Grounding & Source Honesty) state the two disciplines: say which of the
+two you are stating, and ask ONE question before acting on a request whose plausible readings lead to
+different work. The scope table in that section is the honest ledger of what is and is not enforced.
+
+**Three deltas, all additive:**
+
+1. **`classify_claim.py` gained the attribution predicates it was missing.** Measured before touching
+   it: the incident's own sentence — *"the failure is caused by my change"* — typed **`observation`**,
+   because the causal family held only connectives (`therefore`, `because`, `which means`) and no
+   attribution (`caused by`, `root cause`, `due to`, `led to`, `stems from`). The family that exists to
+   catch causal reasoning was blind to its most common shape. Self-test 45 → 48 assertions, must-fail
+   still 7/7, and a new `single-causal-attribution` fixture pins the addition so deleting it goes red
+   by name. A `--lines` batch mode was added so a per-line consumer pays ONE interpreter start.
+2. **`claim-grounding-lint.sh` gained check 3** — a causal claim about an outcome, written into a
+   `knowledge/`/`docs/` markdown file with no cited this-session check. **The hook does not own the
+   grammar**: it batches candidates through `classify_claim.py --lines` and keeps only what that module
+   types `causal`. What the hook owns is *scope* (which lines are consequential) and *suppression*
+   (which are already grounded or are describing the anti-pattern rather than committing it).
+3. **`scripts/ask-on-ambiguity.sh`** — a `UserPromptSubmit` nudge for Rule 1c. It emits
+   `additionalContext` when a prompt is short, names no file/path/symbol/quoted-string/number, AND
+   pairs an open-ended verb with an unbound referent. It **never blocks or alters a prompt** (exit 0
+   unconditionally) and **writes nothing to disk**: every emitted byte is a fixed string plus a derived
+   word count, honoring the same no-egress invariant Gate 110 enforces on the streams hook.
+
+⛔ **What none of this does, stated up front because an overclaimed control is worse than an admitted
+gap.** *No hook event carries the model's chat answer.* Hooks fire on tool calls; prose is not a tool
+call. So neither rule is machine-enforced where the error actually lands, and no amount of work on
+these files will change that. Check 3 covers the durable-artifact subset only; ask-on-ambiguity matches
+an input **shape**, not ambiguity, and cannot see whether the agent then actually asks.
+
+⛔ **Check 3's gap is measured, not assumed.** Separating an *explanatory* "because" ("the skip is
+correct because payloads are small") from a *diagnostic* one ("the page is green because the check
+passed") is not mechanically decidable. A first cut that treated every causal marker alike fired on
+**92 of 240 sampled live `knowledge/`+`docs/` files (38%)** — a lint nobody would leave on. Narrowing
+to the separable subset (attribution + conclusion connectives, minus bare `because`/`so`) plus two
+suppressions the same dry run identified took it to **9/240 (3.75%)**, the band the existing checks
+occupy (9 and 4 of 240). The cost is that **check 3 misses the second incident sentence**, whose only
+marker is `because`. Do not close that by re-admitting bare `because` without re-running the dry run.
+Checks 1 and 2 read 9 and 4 on **all three** runs — the regression proof that check 3 left them alone.
+
+**Gate 223** ([`hooks/tests/test-gate223-assumption-claiming.sh`](hooks/tests/test-gate223-assumption-claiming.sh))
+is bidirectional with two teeth halves: it asserts a doc **describing** the anti-pattern is NOT flagged
+(this repo's recurring source-scan-matches-prose failure), then neuters the suppressions and proves
+that doc DOES flag — so the silence is load-bearing rather than a check that never runs. The no-egress
+assertion carries a positive control on its own probe. Registered in the main sequence, the `--check`
+dispatcher, and the `Supported:` string.
+
+⛔ **Packaging exception — `ask-on-ambiguity.sh` lives in `scripts/`, not `hooks/`.** It is a hook body
+and `hooks/` is its natural home. The tribunal's substrate guard denies any command naming the plugin's
+hook directory (correctly — that is how the Thing protects itself), which includes setting the
+executable bit on a **new** file there; both a direct mode change and the git-index mode change were
+denied by design. A non-executable `hooks/*.sh` is not an option either: CI's "Verify hooks are
+executable" step hard-fails on it, and a hook wired into `hooks.json` that never runs is this repo's
+own silent-green defect class. `plugins/*/scripts/` carries no such check and already holds
+non-executable siblings, so both registrations invoke it through `bash`. **One-line follow-up for
+anyone who can set the bit:** move the file into `hooks/`, mark it executable, drop the `bash ` prefix
+from its two registrations. Nothing else changes.
+
+**Migration (consumer-visible, both advisory, nothing blocked).** On `/plugin marketplace update`, a
+consumer who **already has** a `.ravenclaude/comfort-posture.yaml` will see (a) a new stderr nudge when
+an uncited causal claim is written into a `knowledge/`/`docs/` markdown file, and (b) an
+`additionalContext` line on a prompt matching the narrow under-specified shape. Both are advisory —
+nothing is blocked, no write is refused, no prompt is altered. With **no** posture file both are
+complete no-ops. Silence the second with `ask_on_ambiguity: off` (or widen/narrow it with
+`ask_on_ambiguity_max_words: N`, clamped 3-40); silence a check-3 line with `claim-lint-ok`, the
+existing escape — no new vocabulary was coined.
