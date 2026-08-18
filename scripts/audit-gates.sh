@@ -519,6 +519,15 @@ PY
       bash plugins/power-platform/hooks/tests/test-managed-import.sh
       exit $?
       ;;
+    218)
+      echo "── Gate 218: lss_calc.py numeric correctness (Cp/Cpk/Ppk · sigma↔DPMO · I-MR · COPQ) ──"
+      rc=0
+      python3 scripts/check-lss-calc.py --self-test || rc=$?
+      python3 scripts/check-lss-calc.py || rc=$?
+      _mf=0; python3 scripts/check-lss-calc.py --must-fail >/dev/null 2>&1 || _mf=$?
+      [ "$_mf" -eq 2 ] || rc=1
+      exit $rc
+      ;;
     127)
       echo "── Gate 127: pseudonymize.py (fail-closed encode / no-egress / FM7 NER-absent / FM8 / teeth) ──"
       bash plugins/ravenclaude-core/hooks/tests/test-gate127-pseudonymize.sh
@@ -1137,7 +1146,7 @@ PY
       ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -3679,6 +3688,18 @@ printf '@import url(https://fonts.adobe.com/foo);\n' > "$DH/bad-brand-tokens.css
 printf 'font-family: Inter; /* OFL, self-hostable */\n' > "$DH/good-brand-tokens.css"
 assert_hook_fires  "brand anti-patterns" plugins/brand-identity-studio/hooks/flag-brand-antipatterns.sh "$DH/bad-brand-tokens.css"
 assert_hook_silent "brand anti-patterns" plugins/brand-identity-studio/hooks/flag-brand-antipatterns.sh "$DH/good-brand-tokens.css"
+
+# 12. process-improvement — a capability index (Cpk) quoted with no stability or
+#     spec-limit context (advisory hook: stderr + exit 0 unless
+#     PROCESS_IMPROVEMENT_STRICT=1). The hook only inspects .md/.markdown/.txt,
+#     so both fixtures must carry one of those extensions or it exits 0 unread
+#     and the "fires" half would measure nothing. The clean fixture must also
+#     avoid the OTHER three scans — notably the literal word "improvement",
+#     which trips the missing-control-plan rule.
+printf 'Line capability review: Cpk = 1.10 for the fill weight.\n' > "$DH/pi-bad.md"
+printf 'Kaizen event agenda and attendee list for Tuesday.\n' > "$DH/pi-good.md"
+assert_hook_fires  "process-improvement anti-patterns" plugins/process-improvement/hooks/flag-process-improvement-antipatterns.sh "$DH/pi-bad.md"
+assert_hook_silent "process-improvement anti-patterns" plugins/process-improvement/hooks/flag-process-improvement-antipatterns.sh "$DH/pi-good.md"
 
 echo
 echo "── Gate 31: route-decision-review (decision tribunal routing) ─────────────"
@@ -7451,6 +7472,37 @@ cmp_rc=0; cmp -s "$IDX_HTML" "$_g205_idx" || cmp_rc=$?
 gate "committed-routes learn-retarget mutation is not a no-op" must_fail "$cmp_rc"
 rc=0; node scripts/check-committed-routes.mjs --index "$_g205_idx" >/dev/null 2>&1 || rc=$?
 gate "committed-routes derived-dispatch teeth: retargeting the learn branch IS caught" must_fail "$rc"
+
+echo
+echo "── Gate 218: lss_calc.py numeric correctness (Cp/Cpk/Ppk · sigma↔DPMO · I-MR · COPQ) ─"
+# lss_calc.py is the process-improvement plugin's only executable, and it had NO
+# coverage anywhere in the repo — no gate, no workflow, no test — while every
+# number it prints (a capability index, a sigma level, a CONTROL LIMIT, a COPQ
+# recovery figure) lands in a tollgate deck. A transposed control-chart constant
+# is the worst thing it can ship: it moves the line a plant reacts to, and it
+# looks exactly like a correct number.
+#
+# The battery drives all four advertised modes against hand-checkable inputs
+# (3.4 DPMO -> 6.00σ long-term; 5,7,5,7,5,7 -> X-bar 6.0000, MR-bar 2.0000,
+# I limits 6 ± 2.66×2; 120k+80k+40k COPQ = 240,000 = 4.80% of 5M). The
+# expectations are auditable on paper, so the gate is not merely re-running the
+# implementation against itself.
+#
+# ⛔ Registered in BOTH this main sequence AND the --check dispatcher above + the
+# Supported: string. After adding a gate, run the full suite and GREP ITS OUTPUT
+# FOR "218" — a passing suite is not evidence your gate is in it.
+rc=0; python3 scripts/check-lss-calc.py --self-test >/dev/null 2>&1 || rc=$?
+gate "lss_calc teeth: 6 arithmetic mutants caught, unmutated control clean" must_pass "$rc"
+rc=0; python3 scripts/check-lss-calc.py >/dev/null 2>&1 || rc=$?
+gate "lss_calc: capability / sigma↔DPMO / I-MR / COPQ all match hand-checked values" must_pass "$rc"
+
+# must_fail half: plant the wrong MR-chart D4 constant (3.267 -> 3.0) and prove
+# the battery actually reddens on it — and reddens with exit 2, not a
+# non-blocking 1.
+rc=0; python3 scripts/check-lss-calc.py --must-fail >/dev/null 2>&1 || rc=$?
+gate "lss_calc teeth: a planted wrong control-chart constant IS caught" must_fail "$rc"
+rc_is_2=0; [ "$rc" -eq 2 ] || rc_is_2=1
+gate "lss_calc teeth: the planted constant fails closed at exit 2 (not 1)" must_pass "$rc_is_2"
 
 echo
 
