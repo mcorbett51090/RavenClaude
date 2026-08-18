@@ -68,6 +68,30 @@ if [ ! -s "$handoff" ]; then
   exit 1
 fi
 
+# ⛔ TWO DIFFERENT SITUATIONS WEAR THE SAME `unknown` LABEL, AND ONLY ONE IS A BUG.
+#
+#   (a) NOTHING was asked for and nothing was detected. This script exists to
+#       "start a FRESH interactive Grok TUI" (see the header), and the
+#       session-handoff skill records that Grok's own markers are unreliable
+#       inside the agent process — "Detection is hook-only". So a REAL Grok
+#       session can fail detection, and this grok-first fallback is what carries
+#       it. Gate 215 pins that deliberately ("unset host still grok"). It is NOT
+#       the defect, and it is left exactly as it was.
+#
+#   (b) A host WAS named and this script does not know the name (`--host codex`).
+#       Falling back to grok there is never right: the caller told us who the
+#       successor is, and we answered with a different agent's launch command.
+#
+# The reported failure was (b) wearing (a)'s clothes: `claude-code` was not a
+# recognised name, so an EXPLICIT `--host claude-code` collapsed to `unknown`
+# and inherited this fallback. Measured 2026-08-18 against the shipped 0.271.4
+# copy: `--host claude-code` in a plain terminal printed `grok "…"`, while the
+# SAME invocation under TERM_PROGRAM=vscode printed the safe comment below —
+# which is why the defect reads as absent from inside VS Code. The live path was
+# worse than the printed one: the launch-successor writer's final `else` did
+# `exec $seed`, so it would have LAUNCHED the wrong agent, not merely named it.
+#
+# Fix: teach it `claude-code`, and refuse this fallback for case (b) only.
 seed="grok \"Continue task ${task_id} in this repo. Read .ravenclaude/runs/${task_id}/handoff.md first (then meta.json, decisions.md, summary.md if present). Fresh window. Do not /fork. Do not /compact. Do not re-derive the brief from history you do not have. Execute the next steps in the brief.\""
 
 case "$seed" in
@@ -82,6 +106,7 @@ normalize_host() {
     grok|grok-tui) echo grok ;;
     cli|copilot-cli|copilot) echo cli ;;
     chat|copilot-chat) echo chat ;;
+    claude-code|claude|claudecode) echo claude-code ;;
     "") echo "" ;;
     *) echo unknown ;;
   esac
@@ -110,6 +135,14 @@ detect_origin_host() {
   fi
   if [ -n "${COPILOT_CLI:-}" ] || [ -n "${GITHUB_COPILOT_CLI:-}" ]; then
     echo cli
+    return
+  fi
+  # Same markers context-handoff.py's detect_host() already keys on. Kept in
+  # step with it deliberately: the two scripts write the seed for the SAME
+  # handoff, so a host either resolves in both or the pair disagrees about who
+  # the successor is.
+  if [ -n "${CLAUDECODE:-}" ] || [ -n "${CLAUDE_CODE_ENTRYPOINT:-}" ]; then
+    echo claude-code
     return
   fi
   # Never infer chat from TERM_PROGRAM=vscode (also Grok-in-VS-Code).
@@ -162,19 +195,48 @@ ui="$(detect_ui)"
 host="$(detect_origin_host)"
 chat_resume=""
 
+# Case (b) from the comment above: a host was NAMED and we do not know the name.
+# This is the only thing that distinguishes it from case (a) at this point —
+# both end up as host=unknown, and conflating them is exactly what shipped.
+named_but_unknown=0
+if [ -n "$host_flag" ] && [ "$host" = "unknown" ]; then
+  named_but_unknown=1
+fi
+
 # vscode without a Grok/CLI marker is not Chat and is not a grok TUI we can prove.
 if [ "$host" = "unknown" ] && [ "${TERM_PROGRAM:-}" = "vscode" ]; then
   seed="# host=unknown (TERM_PROGRAM=vscode without Grok/CLI markers) — copy-paste only. Do not launch grok. Do not infer Chat."
 fi
 
-if [ "$host" = "chat" ]; then
+if [ "$host" = "grok" ]; then
+  seed="grok \"Continue task ${task_id} in this repo. Read .ravenclaude/runs/${task_id}/handoff.md first (then meta.json, decisions.md, summary.md if present). Fresh window. Do not /fork. Do not /compact. Do not re-derive the brief from history you do not have. Execute the next steps in the brief.\""
+elif [ "$host" = "chat" ]; then
   chat_resume="$(write_chat_resume)"
   seed="# Read ${chat_resume} and .ravenclaude/runs/${task_id}/handoff.md then continue. Do not /fork. Do not launch grok."
 elif [ "$host" = "cli" ]; then
   seed="copilot"
+elif [ "$host" = "claude-code" ]; then
+  seed="claude"
+elif [ "$named_but_unknown" -eq 1 ]; then
+  # Case (b). Do NOT reach for the grok fallback — the caller named a successor
+  # and it is not grok. Host-neutral text is correct on every host, including
+  # ones that do not exist yet.
+  seed="# Read .ravenclaude/runs/${task_id}/handoff.md and continue in a NEW session of THIS host. Do not /fork. Do not /compact. Do not launch grok."
 fi
 
-if [ "$host" = "chat" ] || [ "$host" = "cli" ]; then
+case "$seed" in
+  *"grok -p"*|*"--single"*|*"--prompt-file"*|*"--prompt-json"*)
+    echo "handoff-spawn: refuse to emit a forbidden seed" >&2
+    exit 2
+    ;;
+esac
+
+# ⛔ THE TEETH. This was scoped to chat|cli, so it could not see the case it most
+# needed to catch: a NAMED host we did not recognise inheriting the grok
+# fallback. It now covers every host we were told about — chat, cli,
+# claude-code, and any name we do not know — while leaving case (a) (nothing
+# named, nothing detected) on the grok-first default Gate 215 pins.
+if [ "$host" != "grok" ] && { [ "$host" != "unknown" ] || [ "$named_but_unknown" -eq 1 ]; }; then
   case "$seed" in
     *"grok \""*|*"grok -p"*)
       echo "handoff-spawn: refuse to emit a grok seed for host=$host" >&2
@@ -200,6 +262,15 @@ EOF
 cd $(printf '%q' "$project_root")
 copilot
 # then paste: Continue task ${task_id}. Read .ravenclaude/runs/${task_id}/handoff.md first. Do not /fork. Do not launch grok.
+EOF
+    return
+  fi
+  if [ "$host" = "claude-code" ]; then
+    cat <<EOF
+# copy-paste into a new terminal in this repo (Claude Code, not grok):
+cd $(printf '%q' "$project_root")
+claude
+# then paste: Continue task ${task_id}. Read .ravenclaude/runs/${task_id}/handoff.md first. Fresh window — do not /fork, do not /compact, do not launch grok.
 EOF
     return
   fi
@@ -284,11 +355,31 @@ elif [ "$host" = "cli" ]; then
 cd $(printf '%q' "$project_root") || exit 1
 exec copilot
 EOF
-else
+elif [ "$host" = "claude-code" ]; then
+  cat > "$launch" <<EOF
+#!/bin/bash
+cd $(printf '%q' "$project_root") || exit 1
+exec claude
+EOF
+elif [ "$host" = "grok" ] || { [ "$host" = "unknown" ] && [ "$named_but_unknown" -eq 0 ]; }; then
+  # host=grok, or case (a): nothing named and nothing detected, which the
+  # grok-first fallback carries (see the seed comment). $seed is the grok
+  # command in both, so exec-ing it is the documented behaviour, unchanged.
   cat > "$launch" <<EOF
 #!/bin/bash
 cd $(printf '%q' "$project_root") || exit 1
 exec $seed
+EOF
+else
+  # ⛔ CASE (b): A NAMED HOST WE DO NOT KNOW ⇒ LAUNCH NOTHING. This branch was a
+  # bare `else` doing `exec $seed`, and $seed was the grok command, so a named
+  # non-grok host got a script that LAUNCHES a different agent. Copy-paste has
+  # already been printed; a successor a human starts beats one this script
+  # guesses at. $seed is host-neutral text here and is not executable anyway.
+  cat > "$launch" <<EOF
+#!/bin/bash
+# host=$host — no proven same-host launch recipe. Use the copy-paste block.
+exit 0
 EOF
 fi
 chmod +x "$launch"

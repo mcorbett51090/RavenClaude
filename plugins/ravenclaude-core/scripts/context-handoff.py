@@ -164,7 +164,25 @@ def render_skeleton(values: dict) -> str:
     return re.sub(r"\{\{([a-z_]+)\}\}", repl, text)
 
 
-def seed_text(root: Path, task_id: str, host: str | None = None) -> str:
+def seed_text(
+    root: Path, task_id: str, host: str | None = None, named: bool = False
+) -> str:
+    """Pick the successor's launch command.
+
+    `named` says a host was ASKED FOR (a --host flag), as opposed to merely
+    detected. It is the only thing separating two situations that both end up
+    labelled "unknown", and conflating them is what shipped:
+
+      (a) nothing named, nothing detected -> the grok-first fallback, because
+          this tooling exists for Grok->Grok handoff and the session-handoff
+          skill records that Grok's markers are unreliable in the agent process
+          ("Detection is hook-only"). handoff-spawn.sh's Gate 215 pins the same
+          default, and the two scripts write the seed for the SAME handoff, so
+          they must not disagree about it.
+      (b) a host was named and we do not know the name -> host-neutral text.
+          Answering a named successor with a different agent's launch command
+          is never right.
+    """
     rel = f".ravenclaude/runs/{task_id}/handoff.md"
     abs_path = root / rel
     resolved = _normalize_handoff_host(host or detect_host())
@@ -178,16 +196,42 @@ def seed_text(root: Path, task_id: str, host: str | None = None) -> str:
             f"copilot  # then: Continue task {task_id}. Read {rel}. "
             f"Do not /fork. Do not launch grok."
         )
-    text = (
-        f'grok "Continue task {task_id} in this repo. '
-        f"Read {rel} first (then meta.json, decisions.md, summary.md if present). "
-        f'Fresh window. Do not /fork. Do not /compact. Do not re-derive the brief from history you do not have. Execute the next steps in the brief."'
-    )
-    for bad in FORBIDDEN_SEED:
-        if bad in (" /fork",):
-            continue
-        # The seed may mention "/fork" only as a negation ("Do not /fork").
-        pass
+    if resolved == "claude-code":
+        text = (
+            f"claude  # then: Continue task {task_id}. Read {rel} first. "
+            f"Fresh window. Do not /fork. Do not /compact. Do not launch grok."
+        )
+    elif resolved == "grok" or (resolved in ("", "unknown") and not named):
+        # host=grok, or case (a) above. Unchanged from the original behaviour.
+        text = (
+            f'grok "Continue task {task_id} in this repo. '
+            f"Read {rel} first (then meta.json, decisions.md, summary.md if present). "
+            f'Fresh window. Do not /fork. Do not /compact. Do not re-derive the brief from history you do not have. Execute the next steps in the brief."'
+        )
+    else:
+        # ⛔ CASE (b): A NAMED HOST WE HAVE NO RECIPE FOR.
+        #
+        # This branch previously WAS the `grok "…"` seed — the fall-through
+        # default — so `claude-code`, `codex` and every future NAMED host got a
+        # command that launches a DIFFERENT AGENT. The session-handoff skill
+        # forbids exactly that ("A Chat or CLI successor must not launch grok"),
+        # and the failure is silent: the wrong command lands in
+        # `handoff-seed.txt`, where the next person pastes it without a second
+        # thought.
+        #
+        # Observed 2026-08-18: `context-handoff.py write --host claude-code`
+        # wrote a `grok "…"` seed. `detect_host()` returned "claude-code"
+        # correctly — it has a branch for it; only this function lacked one, and
+        # its default was the most host-SPECIFIC option rather than the most
+        # neutral.
+        #
+        # Host-neutral text is correct on every host, including ones that do not
+        # exist yet. It is deliberately NOT applied to case (a), which would
+        # regress the Grok->Grok flow this tooling was built for.
+        text = (
+            f"Read the handoff at {abs_path} and continue. "
+            f"Fresh window. Do not /fork. Do not /compact. Do not launch grok."
+        )
     if any(tok in text and f"Do not {tok}" not in text and f"do not {tok}" not in text.lower()
            for tok in ("grok -p", "--single", "--prompt-file", "--prompt-json", "SessionStart")):
         text = f"Read the handoff at {abs_path} and continue."
@@ -211,7 +255,13 @@ def stamp_meta(dest: Path) -> None:
     meta_path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
 
 
-def cmd_write(task_id: str, project_root: Path | None, percent: str, threshold: str) -> int:
+def cmd_write(
+    task_id: str,
+    project_root: Path | None,
+    percent: str,
+    threshold: str,
+    named_host: bool = False,
+) -> int:
     if not task_id or "/" in task_id or task_id in (".", ".."):
         print("context-handoff: invalid task-id", file=sys.stderr)
         return 2
@@ -233,7 +283,9 @@ def cmd_write(task_id: str, project_root: Path | None, percent: str, threshold: 
     }
     dest.joinpath("handoff.md").write_text(render_skeleton(values), encoding="utf-8")
     host = values.get("host") or detect_host()
-    dest.joinpath("handoff-seed.txt").write_text(seed_text(root, task_id, host) + "\n", encoding="utf-8")
+    dest.joinpath("handoff-seed.txt").write_text(
+        seed_text(root, task_id, host, named=named_host) + "\n", encoding="utf-8"
+    )
     if _normalize_handoff_host(str(host)) == "chat":
         dest.joinpath("chat-resume.md").write_text(
             f"# Copilot Chat resume — task {task_id}\n\n"
@@ -260,7 +312,13 @@ def main(argv=None) -> int:
         root = Path(args.project_root) if args.project_root else None
         if args.host:
             os.environ["RC_HOST"] = args.host
-        return cmd_write(args.task_id, root, args.percent, args.threshold)
+        # `--host` given == the caller NAMED a successor. Once RC_HOST is set,
+        # detect_host() can no longer tell a named host from a detected one, so
+        # the distinction has to be captured here, at the only place that sees
+        # the flag.
+        return cmd_write(
+            args.task_id, root, args.percent, args.threshold, named_host=bool(args.host)
+        )
     return 2
 
 

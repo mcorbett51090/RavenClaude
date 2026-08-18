@@ -2,6 +2,31 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.276.0 — 2026-08-18
+
+### Fixed
+
+- **The session handoff wrote a command that launches a different agent.** Both seed writers defaulted to the grok launch command and overrode it only for hosts they recognised **by name**, so every host they did not recognise inherited it — silently, onto disk, at `.ravenclaude/runs/<id>/handoff-seed.txt`, where the next person pastes it without a second thought.
+
+  - `scripts/context-handoff.py` — `seed_text()`'s fall-through **default** was the grok seed, so `claude-code`, `codex`, `unknown` and `""` all received it. `detect_host()` had resolved `claude-code` correctly all along; only the seed selector lacked the branch, and its default was the most host-specific option rather than the most neutral.
+  - `scripts/handoff-spawn.sh` — `seed=grok "…"` was assigned ~90 lines **before** the host was resolved, and only `chat` / `cli` / (`unknown` + `TERM_PROGRAM=vscode`) overrode it. Its refusal guard was scoped to `chat|cli`, so it could not see the case it most needed to catch: an unrecognised host inheriting the default.
+
+  Measured 2026-08-18 against the shipped 0.271.4 copy: `--host claude-code` in a plain terminal emitted `grok "…"`, while the **same** invocation under `TERM_PROGRAM=vscode` emitted a safe comment. ⛔ That asymmetry is why the defect reads as absent if you sample only a VS Code session — and it is why Gate 227 drives `env -i` rather than inheriting the runner's environment.
+
+  The live path was worse than the printed one: `handoff-spawn.sh`'s launch-successor writer ended in `exec $seed`, so an unrecognised host got a script that **launches** the wrong agent, not merely a suggestion to. That branch now writes an `exit 0` launcher — no proven recipe means launch nothing, because a successor a human starts beats one the script guesses at.
+
+  Both writers are now host-keyed: `grok` keeps the grok seed, `chat`/`cli` keep theirs, `claude-code` gets `claude`, and everything else — `codex`, `unknown`, and any host added later — degrades to *"read the handoff and continue"*, which is correct on every host including ones that do not exist yet.
+
+### Added
+
+- **`claude-code` is a recognised host in `handoff-spawn.sh`** — in `normalize_host()` (`claude-code|claude|claudecode`), in `detect_origin_host()` (via `CLAUDECODE` / `CLAUDE_CODE_ENTRYPOINT`, the same markers `context-handoff.py` already keyed on), and as its own copy-paste recipe. Previously `--host claude-code` reported `host=unknown`, which was the honest symptom of the bug above rather than a cosmetic mislabel.
+
+- **The refusal guard now has teeth on the case that mattered.** It was `chat|cli`-scoped; it is now `host != grok`, so a grok launch cannot reach `claude-code`, `codex`, `unknown`, or any future host.
+
+### Gates
+
+- **Gate 227** (`hooks/tests/test-gate227-handoff-seed-host.sh`) — 18 assertions pinning the seed each writer selects per host, across both writers, under `env -i`. **Positive control built in:** two rows assert grok *does* get the grok seed, because a blanket "no grok anywhere" suite would pass identically against a writer that emitted nothing. The must-fail half rebuilds the pre-fix file in all four parts and requires the assertions to go red. ⛔ **Honest scope:** it pins the seed value on the copy-paste/dry-run surface; it does not drive a live spawn, since that would start a real interactive agent.
+
 ## 0.273.0 — 2026-08-18
 
 ### Changed
