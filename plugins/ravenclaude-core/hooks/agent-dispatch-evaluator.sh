@@ -35,6 +35,14 @@
 # Every computed verdict is recorded via _emit_hook_event (verdict="warn", so it lands in
 # Heimdall's grey/advisory tier, never the security-deny tier) AND appended to the
 # dispatch-eval JSONL the Phase-5 sampler reads.
+#
+# SECOND CONCERN (v0.273.0): this file also hosts the SERIAL-DISPATCH DETECTOR — the
+# measurement leg of "parallelism defaults to MAXIMUM". It is a delimited block near the
+# top, opt-in by comfort-posture PRESENCE, independent of dispatch-config.json, and it
+# NEVER denies. It lives here because SubagentStart is the event it must observe and this
+# is the only SubagentStart hook the plugin ships (a new hook file would need chmod +x,
+# denied on this substrate). See the block's own comment for why it runs before the
+# payload/jq guards.
 
 set -euo pipefail
 
@@ -59,6 +67,51 @@ command -v _emit_hook_event >/dev/null 2>&1 || _emit_hook_event() { :; }
 emit_allow() { exit 0; }
 
 payload="$(cat 2>/dev/null || true)"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SECOND CONCERN (v0.273.0): the SERIAL-DISPATCH DETECTOR.
+#
+# Parallelism now defaults to MAXIMUM, which is a default plus a directive — and
+# a hook cannot compel more parallelism, only stop an action. So the third leg is
+# MEASUREMENT: count when independent-looking work ran one-at-a-time and surface
+# the ratio. This block NEVER denies and NEVER changes a dispatch.
+#
+# ⛔ It runs BEFORE the dispatch-config short-circuit and before the `[ -n
+# "$payload" ]` / jq guards on purpose. Those guards exist for the Haiku
+# right-sizing classifier, which genuinely needs a parsed payload; the detector
+# needs only a timestamp and a session id, so gating it behind them would make
+# the meter silently blind exactly when jq is absent or a payload is empty —
+# failing toward "looks clean", which is the class of defect this repo keeps
+# paying for.
+#
+# Opt-in by POSTURE PRESENCE (the claim-grounding-lint / delegation-nudge
+# precedent), so a consumer with no comfort-posture pays one `test -f`.
+# FAIL-SAFE: every path falls through to the dispatch; telemetry must never be
+# able to break the spawn it is measuring.
+if [ -f "${root_probe:=${CLAUDE_PROJECT_DIR:-$PWD}}/.ravenclaude/comfort-posture.yaml" ] \
+   && command -v python3 >/dev/null 2>&1; then
+  _pd_scripts="${CLAUDE_PLUGIN_ROOT:-}/scripts"
+  if [ ! -f "$_pd_scripts/parallelism-detector.py" ]; then
+    _pd_scripts="$(cd "$(dirname "${BASH_SOURCE[0]}")/../scripts" 2>/dev/null && pwd || true)"
+  fi
+  if [ -n "${_pd_scripts:-}" ] && [ -f "$_pd_scripts/parallelism-detector.py" ]; then
+    _pd_out="$(printf '%s' "$payload" \
+      | CLAUDE_PROJECT_DIR="$root_probe" _rc_timeout 5 python3 \
+          "$_pd_scripts/parallelism-detector.py" --mode observe \
+          --project-root "$root_probe" 2>/dev/null || true)"
+    case "${_pd_out:-}" in
+      SIGNAL\ serial-dispatch*)
+        # verdict=warn -> Heimdall's grey/advisory tier, never the deny tier.
+        # `path` is deliberately EMPTY: the substrate must carry the derived
+        # signal, never a prompt or a command.
+        _emit_hook_event "agent-dispatch-evaluator.sh" "warn" "Task" "" \
+          "serial-dispatch" "0" 2>/dev/null || true
+        ;;
+    esac
+  fi
+fi
+# ───────────────────────── end serial-dispatch detector ──────────────────────
+
 [ -n "$payload" ] || emit_allow
 command -v jq >/dev/null 2>&1 || emit_allow
 

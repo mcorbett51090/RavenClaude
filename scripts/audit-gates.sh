@@ -535,6 +535,16 @@ PY
       bash plugins/ravenclaude-core/hooks/tests/test-gate225-self-disable-readonly.sh --must-fail-meta || rc=1
       exit "$rc"
       ;;
+    223)
+      echo "── Gate 223: parallelism posture (conserve triggers + serial detector) ──"
+      rc=0
+      python3 scripts/check-parallelism-posture.py || rc=$?
+      for _m in precedence window pressure; do
+        _mf=0; python3 scripts/check-parallelism-posture.py --must-fail-"$_m" >/dev/null 2>&1 || _mf=$?
+        [ "$_mf" -eq 0 ] || rc=1
+      done
+      exit $rc
+      ;;
     222)
       echo "── Gate 222: forge-route.py routing fixtures (mention vs pre-commitment) ──"
       rc=0
@@ -883,8 +893,18 @@ PY
       ;;
     185)
       echo "── Gate 185: probe verdict classes (per-gate run) ────────────────────────"
-      bash plugins/ravenclaude-core/hooks/tests/test-probe-verdict-classes.sh
-      exit $?
+      bash plugins/ravenclaude-core/hooks/tests/test-probe-verdict-classes.sh || exit $?
+      echo "── Gate 185 teeth A: an ungated bare status code MUST be caught ─────────"
+      if bash plugins/ravenclaude-core/hooks/tests/test-probe-verdict-classes.sh \
+           --must-fail-http-gating >/dev/null 2>&1; then
+        echo "TEETH FAILED: the mutant passed"; exit 1
+      fi
+      echo "── Gate 185 teeth B: a deny that emits nothing MUST be caught ───────────"
+      if bash plugins/ravenclaude-core/hooks/tests/test-probe-verdict-classes.sh \
+           --must-fail-emit >/dev/null 2>&1; then
+        echo "TEETH FAILED: the mutant passed"; exit 1
+      fi
+      exit 0
       ;;
     186)
       echo "── Gate 186: compact-anchor (per-gate run) ───────────────────────────────"
@@ -1194,7 +1214,7 @@ PY
       ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 225. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 225. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -3990,6 +4010,24 @@ if command -v node >/dev/null 2>&1; then
   grep -v 'mk("deny", waLines(".wa-deny"))' index.html > "$RT_BAD_P3"
   rc=0; node "$RT" "$RT_BAD_P3" >/dev/null 2>&1 || rc=$?
   gate "dashboard round-trip (P3 regression: web-access deny emit stripped)" must_fail "$rc"
+  # must_fail (v0.273.0 A): the conserve_tokens emission stripped. This is the
+  # v0.61.0 data-loss class in a NEW key: emitYaml rebuilds the whole posture
+  # from `state`, so a key with no emit line is silently DELETED on the next
+  # Save & apply — a user's conserve-tokens switch would vanish the first time
+  # they changed anything else.
+  RT_BAD_CT="$TMP/dashboard-drifted-conserve.html"
+  grep -v 'conserve_tokens: ${state.conserve_tokens === true}' index.html > "$RT_BAD_CT"
+  rc=0; node "$RT" "$RT_BAD_CT" >/dev/null 2>&1 || rc=$?
+  gate "dashboard round-trip (drifted: conserve_tokens emit stripped)" must_fail "$rc"
+  # must_fail (v0.273.0 B): the parallelism default reverted to the pre-flip
+  # {enabled:false, unlimited:false}. Test 4 asserts the default IS maximum and
+  # that a maximum state emits NOTHING, so a silent revert of the flip — the
+  # single most consequential line in this change — reddens here rather than
+  # shipping as "absent means whatever the agent feels like" again.
+  RT_BAD_PD="$TMP/dashboard-drifted-parallelism.html"
+  sed 's/const PARALLELISM_DEFAULT = Object.freeze({ enabled: true, max_workers: 4, unlimited: true })/const PARALLELISM_DEFAULT = Object.freeze({ enabled: false, max_workers: 4, unlimited: false })/' index.html > "$RT_BAD_PD"
+  rc=0; node "$RT" "$RT_BAD_PD" >/dev/null 2>&1 || rc=$?
+  gate "dashboard round-trip (drifted: parallelism default reverted to OFF)" must_fail "$rc"
 else
   _skip_or_fail "Gate 35 (dashboard round-trip)" node
 fi
@@ -6559,8 +6597,31 @@ echo "── Gate 185: probe verdict classes — a non-result is not an absence 
 #   so following the printed remedy ADDED an unresolved negative instead of clearing one;
 #   and RATE-LIMITING recorded as `negative` — "I could not ask" stated as "it is not
 #   there", unclearable on retry, leaving the override as the only exit.
+#
+# EXTENDED 2026-08-18 — the same mis-classification, a third shape, MEASURED
+# rather than reasoned. Across every probe-ledger on the maintainer machine
+# (7 scopes / 3,070 entries) 54 of the 204 negatives carried an `http-NNN`
+# label, and 54 of 54 came from a Bash command with NO network client in it:
+# `wc -l` -> http-454, `ls -la` -> http-448, `git diff --stat` -> http-447,
+# `git show --stat` -> http-403. `http-447/448/454/459/482` are not status
+# codes. Three of the seven scopes carried unresolved negative families made
+# ENTIRELY of these — i.e. the gate refusing a new source module because a
+# line count started with a 4. A guard that fires on `wc -l` gets switched off.
+# The bare-code patterns (negative, indeterminate AND positive — symmetric, or
+# a false deny is merely traded for a false clear) are now gated on the probe
+# actually being an HTTP probe; every textual marker is untouched.
+#
+# The gate also now pins OBSERVABILITY: guard-premise.sh emitted ZERO of the
+# 463 real hook events on that machine, from six emitting hooks — so its own
+# false-positive rate was unmeasurable from the substrate and Heimdall/Víðarr
+# showed a clean perimeter while it denied. It now emits DERIVED VALUES ONLY
+# (basename + fixed rule token), and an allowed write still emits nothing.
 rc=0; bash plugins/ravenclaude-core/hooks/tests/test-probe-verdict-classes.sh >/dev/null 2>&1 || rc=$?
-gate "probe verdicts: non-result -> indeterminate, bidirectional control -> positive, real absence still negative" must_pass "$rc"
+gate "probe verdicts: non-result -> indeterminate, bidirectional control -> positive, real absence still negative, a bare number is not a status code, deny is observable" must_pass "$rc"
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-probe-verdict-classes.sh --must-fail-http-gating >/dev/null 2>&1 || rc=$?
+gate "probe verdicts teeth A: an ungated bare status code (wc -l -> http-454) IS caught" must_fail "$rc"
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-probe-verdict-classes.sh --must-fail-emit >/dev/null 2>&1 || rc=$?
+gate "probe verdicts teeth B: a premise deny that emits no substrate event IS caught" must_fail "$rc"
 
 echo "── Gate 186: compact-anchor — the pointer never echoes transcript content ─"
 # The SessionStart(compact) addressability pointer. Compaction is append-only, so the
@@ -7533,6 +7594,43 @@ gate "committed-routes learn-retarget mutation is not a no-op" must_fail "$cmp_r
 rc=0; node scripts/check-committed-routes.mjs --index "$_g205_idx" >/dev/null 2>&1 || rc=$?
 gate "committed-routes derived-dispatch teeth: retargeting the learn branch IS caught" must_fail "$rc"
 
+echo
+echo "── Gate 223: parallelism posture — 3 conserve triggers + the serial detector ─"
+# Parallelism now defaults to MAXIMUM, which is a default + a directive + a DETECTOR.
+# ⛔ None of the three can be a blocking gate: a hook can stop an action, it cannot
+# compel one, and the second dispatch that never happened emits no event to block.
+# So the only honest coverage is that the ENGINES DISCRIMINATE — this gate proves it.
+#
+# ⛔ EVERY assertion inside is PAIRED with a control in the opposite direction. "The
+# phrase engages conserve mode" is satisfied by an engine that engages on everything;
+# "88% of the window engages" is satisfied by one that always engages. Only the pair
+# distinguishes a working trigger from a stuck one, and a stuck-on trigger would
+# silently revert this whole change to sequential for every consumer.
+#
+# ⛔ Registered in BOTH this main sequence AND the --check dispatcher above + the
+# Supported: string. After adding a gate, run the full suite and GREP ITS OUTPUT FOR
+# "Gate 223" — a passing suite is not evidence your gate is in it. (v0.241.0 put a
+# gate's main block INSIDE the dispatcher's case arm; it never ran for a whole release
+# while the suite reported green.)
+rc=0; python3 scripts/check-parallelism-posture.py >/dev/null 2>&1 || rc=$?
+gate "parallelism: 3 conserve triggers + precedence + detector discriminates" must_pass "$rc"
+
+# Three teeth halves, one per mechanism. Each neuters ONE thing and must redden the
+# suite; `--must-fail-*` exits 0 only when at least one assertion actually fired, so a
+# mutant that changes nothing observable is itself a failure.
+#   precedence — RELEASE_PHRASES emptied: without it a session engaged by a phrase has
+#                NO exit short of editing a config file mid-conversation.
+#   window     — BATCH_WINDOW_S = 0: a genuinely parallel burst is miscounted as N
+#                serial singles, i.e. the detector reports the OPPOSITE of the truth.
+#   pressure   — the auto threshold ignored: the automatic trigger never fires, which
+#                is the failure that looks exactly like "nobody hit the threshold".
+for _pp_m in precedence window pressure; do
+  _pp_rc=0
+  python3 scripts/check-parallelism-posture.py --must-fail-"$_pp_m" >/dev/null 2>&1 || _pp_rc=$?
+  gate "parallelism teeth: neutering $_pp_m reddens the suite" must_pass "$_pp_rc"
+done
+
+echo
 echo
 echo "── Gate 225: self-disable read-only discriminator — floor intact, maintenance unblocked ─"
 # xc.tribunal-self-disable is pre-LLM, non-overridable and category-independent: the

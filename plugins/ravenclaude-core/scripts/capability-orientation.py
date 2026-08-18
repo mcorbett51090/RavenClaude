@@ -652,6 +652,87 @@ def summarize_streams(root: Path) -> dict | None:
     }
 
 
+_PARALLELISM_LABELS = ("max", "sequential", "capped")
+
+
+def _load_sibling(filename: str, modname: str):
+    """Import a sibling script by path. In-process only — this hook shells out to
+    nothing (its ONE subprocess is the streams git read), and a per-session
+    subprocess for a banner line would be a cost every consumer pays forever."""
+    try:
+        target = _here_scripts() / filename
+        if not target.is_file():
+            return None
+        spec = _ilu.spec_from_file_location(modname, target)
+        if spec is None or spec.loader is None:
+            return None
+        mod = _ilu.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        return mod
+    except Exception:
+        return None
+
+
+def summarize_parallelism(root: Path) -> dict:
+    """Derived parallelism posture + serial-dispatch counts for the banner.
+
+    ⛔ GATE 19 INVARIANT (derived labels only). Every field returned here is
+    either a member of a FIXED enum (_PARALLELISM_LABELS / the conserve `source`
+    tokens) or a validated integer. No config text, no prompt text, no event
+    content is read into a returnable value — `read_posture` extracts booleans
+    and small ints via anchored regexes, and the detector's `summarize` reads
+    only integer counters it wrote itself. A hostile comfort-posture.yaml or a
+    hostile run dir cannot put a byte of its own choosing into this banner.
+
+    Always returns a dict: parallelism has a DEFAULT (max), so unlike streams or
+    design-project there is no "absent ⇒ say nothing" case. Saying nothing when
+    the default is maximum would leave the most consequential standing
+    instruction unstated in exactly the sessions that never configured it.
+    """
+    out = {
+        "parallelism": "max",
+        "max_workers": None,
+        "conserve": False,
+        "conserve_source": "none",
+        "auto_pct": 80,
+        "batches": 0,
+        "singles": 0,
+        "serial_ratio": None,
+        "max_batch": 0,
+    }
+    ct = _load_sibling("conserve-tokens.py", "_rc_conserve_tokens")
+    if ct is not None:
+        try:
+            p = ct.read_posture(root)
+            if p.get("parallelism") in _PARALLELISM_LABELS:
+                out["parallelism"] = p["parallelism"]
+            mw = p.get("max_workers")
+            if isinstance(mw, int) and 0 < mw < 10000:
+                out["max_workers"] = mw
+            out["conserve"] = bool(p.get("conserve_tokens"))
+            ap = p.get("auto_pct")
+            if isinstance(ap, int) and 0 <= ap <= 100:
+                out["auto_pct"] = ap
+            if out["conserve"]:
+                out["conserve_source"] = "posture"
+        except Exception:
+            pass
+    pd = _load_sibling("parallelism-detector.py", "_rc_parallelism_detector")
+    if pd is not None:
+        try:
+            s = pd.summarize(root)
+            for k in ("batches", "singles", "max_batch"):
+                v = s.get(k)
+                if isinstance(v, int) and v >= 0:
+                    out[k] = v
+            r = s.get("serial_ratio")
+            if isinstance(r, (int, float)) and 0 <= r <= 1:
+                out["serial_ratio"] = round(float(r), 2)
+        except Exception:
+            pass
+    return out
+
+
 def build_banner(root: Path) -> str:
     surface = detect_surface(root)
     env_auth = detect_env_auth()
@@ -662,6 +743,7 @@ def build_banner(root: Path) -> str:
     run_cfg = summarize_run_config(root)
     streams = summarize_streams(root)
     design = summarize_design_project(root)
+    par = summarize_parallelism(root)
 
     # If we have nothing useful at all, emit nothing (don't inject an empty box).
     if not (
@@ -830,6 +912,52 @@ def build_banner(root: Path) -> str:
                 "`/stream set <id>` or `rc streams set-active <id>` so this session's work is "
                 "attributed + resumable."
             )
+
+    # PARALLELISM — a standing INSTRUCTION, always shown, deliberately short.
+    #
+    # This is the directive leg of "parallelism defaults to MAXIMUM". A default
+    # in a config file changes nothing on its own and a hook cannot compel more
+    # parallelism — it can only stop actions — so the only surface that can move
+    # this behaviour is the one injected into context on every session, on every
+    # host (this banner is also what reaches Copilot).
+    #
+    # ⛔ DERIVED LABELS ONLY (Gate 19): every value below is a fixed string, an
+    # enum member, or a validated integer from summarize_parallelism().
+    #
+    # Kept to ~4 lines because it is paid on EVERY session.
+    lines.append("")
+    lines.append("PARALLELISM (standing instruction — this is how to work, not a permission):")
+    if par["conserve"]:
+        lines.append(
+            f"  CONSERVE TOKENS is engaged ({par['conserve_source']}). Work SEQUENTIALLY: "
+            "one subagent at a time, prefer in-thread work over dispatch. Release it in the "
+            'dashboard, or say "maximum parallelism".'
+        )
+    elif par["parallelism"] == "sequential":
+        lines.append(
+            "  Posture is SEQUENTIAL (`parallelism.enabled: false`). Run one worker at a "
+            "time even when steps are independent."
+        )
+    elif par["parallelism"] == "capped" and par["max_workers"]:
+        lines.append(
+            f"  Posture caps fan-out at {par['max_workers']} workers at once. Batch "
+            "independent work into one message, up to that cap."
+        )
+    else:
+        lines.append(
+            "  Default is MAXIMUM. Batch every independent step into ONE message and let "
+            "them run at once — the only reason to serialize is a genuine data dependency "
+            "(step B needs step A's output). Being unsure is not a dependency; check."
+        )
+    if par["batches"]:
+        ratio = par["serial_ratio"]
+        pct = f"{int(round(ratio * 100))}%" if isinstance(ratio, float) else "n/a"
+        lines.append(
+            f"  Observed recently: {par['batches']} dispatch batch(es), {par['singles']} "
+            f"ran one-at-a-time ({pct}); widest batch {par['max_batch']}. Measured from "
+            "start-time proximity — a single dispatch may be a real dependency, so treat a "
+            "high ratio as a prompt to look, not a verdict."
+        )
 
     # Method-selection discipline — always shown (a standing instruction, not
     # data). This is the impossible-to-miss surface for the decision-tree +
