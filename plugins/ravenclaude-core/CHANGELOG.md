@@ -2,6 +2,26 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.271.5 — 2026-08-17
+
+### Fixed
+
+- **`forge-route.py`'s `layout-allowlist-edit` signal matched PROSE, inverting tiebreak F3.** The detector was `re.compile(r"\.repo-layout\.json|allowed_globs", re.IGNORECASE)` — a bare substring match on a **filename**. So a plan stating the *opposite* of a pre-commitment (*"`.repo-layout.json` needs **no edit** — settled by a bidirectional probe"*) fired the "this plan carries an engineering pre-commitment" signal and was forced to a draft PR.
+
+  That is this repo's own recorded **"source-scan gates match PROSE"** defect, sitting in the router that *enforces* F3 — and F3 exists precisely so a **pure design/analysis plan can land on `main`**. Every analysis plan that merely *discussed* the layout file was denied that path. Found by running the router against a real 153 KB FORGE plan whose definition-of-done explicitly asserts `.repo-layout.json` is **unmodified**.
+
+  The detector is now scoped **per line** and requires all three of: the token, an **edit verb**, and **no negation** on that line. ⛔ **The direction of error is deliberate and documented in-file:** firing wrongly costs a needless draft PR, while *not* firing wrongly lets a stale pre-commitment sit canonically in `main` — the harm F3 was written to prevent. Never widen the negation list to quiet a noisy PR verdict.
+
+### Added
+
+- **Gate 222 — because `forge-route.py --self-test` was registered by NOTHING.** It shipped with fixtures, is cited in the FORGE skill as *"a registered, citable canonical route"*, and **no gate or workflow ever invoked it** (a grep of `scripts/` and `.github/` returned zero hits). The fixtures could have rotted indefinitely with nothing to say so. **The detector fix is only half this change; the registration is the other half.**
+
+  Registered in all three Gate-195 sites (dispatcher arm, `Supported:` string, main sequence) and **proven to run in the full suite by grepping the suite's own output** — the check v0.241.0 skipped, which left Gate 184 unreachable for an entire release while the suite reported green. Assertion count moved **815 → 817**, exactly the two new assertions.
+
+  Ships a **must-fail half** (`scripts/_mutate-forge-route.py`): it reverts the detector in a throwaway copy and requires the two negative fixtures to redden. Without it, *"fixtures OK"* would print identically if the detector had gone **blind** and matched nothing at all — a false-negative detector and a correct one are indistinguishable from the positive fixtures alone. The mutator **refuses to write an unmutated copy** if its anchor text stops matching, because an unmutated copy would pass its own self-test and the gate would report teeth it does not have.
+
+  Gate numbers **219–221 were deliberately skipped** — an in-flight `forge/forms-process-expertise` build claims them, and a collision would redden Gate 195 (number-uniqueness), which masks every later gate in the same CI step.
+
 ## 0.271.4 — 2026-08-17
 
 ### Fixed

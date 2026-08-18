@@ -528,6 +528,20 @@ PY
       [ "$_mf" -eq 2 ] || rc=1
       exit $rc
       ;;
+    222)
+      echo "── Gate 222: forge-route.py routing fixtures (mention vs pre-commitment) ──"
+      rc=0
+      python3 plugins/ravenclaude-core/scripts/forge-route.py --self-test || rc=$?
+      _mut=$(mktemp) || _mut="/tmp/forge-route-mutant.$$"
+      if python3 scripts/_mutate-forge-route.py "$_mut"; then
+        _mf=0; python3 "$_mut" --self-test >/dev/null 2>&1 || _mf=$?
+        [ "$_mf" -ne 0 ] || rc=1
+      else
+        rc=1
+      fi
+      rm -f "$_mut"
+      exit $rc
+      ;;
     127)
       echo "── Gate 127: pseudonymize.py (fail-closed encode / no-egress / FM7 NER-absent / FM8 / teeth) ──"
       bash plugins/ravenclaude-core/hooks/tests/test-gate127-pseudonymize.sh
@@ -1146,7 +1160,7 @@ PY
       ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 222. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -7474,6 +7488,43 @@ rc=0; node scripts/check-committed-routes.mjs --index "$_g205_idx" >/dev/null 2>
 gate "committed-routes derived-dispatch teeth: retargeting the learn branch IS caught" must_fail "$rc"
 
 echo
+echo "── Gate 222: forge-route.py routing fixtures — a MENTION is not a PRE-COMMITMENT ─"
+# forge-route.py decides tiebreak F3: does a plan land on `main`, or via a draft PR?
+# Its `layout-allowlist-edit` signal was `re.compile(r"\.repo-layout\.json|allowed_globs")`
+# — a bare substring match on a FILENAME. So a plan stating the OPPOSITE of a
+# pre-commitment ("`.repo-layout.json` needs **no edit** — settled by probe") FIRED it and
+# was forced to a draft PR. That is this repo's own recorded "source-scan gates match
+# PROSE" defect, sitting in the router that enforces F3 — and F3 exists precisely so a
+# PURE DESIGN/ANALYSIS plan can land on main. Every analysis plan that merely *discussed*
+# the layout file was denied that path.
+#
+# ⛔ AND THE SELF-TEST WAS REGISTERED BY NOTHING. `forge-route.py --self-test` shipped with
+# fixtures, is cited in the FORGE skill as "a registered, citable canonical route", and NO
+# gate or workflow ever invoked it — a grep of scripts/ and .github/ returned zero hits.
+# The fixtures could have rotted indefinitely and nothing would have said so. THIS GATE IS
+# THAT REGISTRATION; the detector fix is only half the change.
+#
+# ⛔ Registered in BOTH this main sequence AND the --check dispatcher above + the
+# Supported: string. After adding a gate, run the full suite and GREP ITS OUTPUT FOR
+# "Gate 222" — a passing suite is not evidence your gate is in it. (v0.241.0 put a gate's
+# main block INSIDE the dispatcher's case arm; it never ran for a whole release while the
+# suite reported green.)
+rc=0; python3 plugins/ravenclaude-core/scripts/forge-route.py --self-test >/dev/null 2>&1 || rc=$?
+gate "forge-route: routing fixtures OK (incl. layout mention-vs-commitment, both ways)" must_pass "$rc"
+
+# must_fail half — revert the layout detector in a THROWAWAY copy and prove the two
+# NEGATIVE fixtures redden. Without this, "fixtures OK" would print identically if the
+# detector had gone blind and matched nothing at all: a false-negative detector and a
+# correct one are indistinguishable from the positive fixtures alone.
+_fr_mut=$(mktemp) || _fr_mut="/tmp/forge-route-mutant.$$"
+_fr_rc=1
+if python3 scripts/_mutate-forge-route.py "$_fr_mut" >/dev/null 2>&1; then
+  _fr_mf=0; python3 "$_fr_mut" --self-test >/dev/null 2>&1 || _fr_mf=$?
+  [ "$_fr_mf" -ne 0 ] && _fr_rc=0
+fi
+rm -f "$_fr_mut"
+gate "forge-route teeth: reverting the layout detector reddens the negative fixtures" must_pass "$_fr_rc"
+
 echo "── Gate 218: lss_calc.py numeric correctness (Cp/Cpk/Ppk · sigma↔DPMO · I-MR · COPQ) ─"
 # lss_calc.py is the process-improvement plugin's only executable, and it had NO
 # coverage anywhere in the repo — no gate, no workflow, no test — while every
