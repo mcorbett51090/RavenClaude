@@ -2999,3 +2999,56 @@ nothing is blocked, no write is refused, no prompt is altered. With **no** postu
 complete no-ops. Silence the second with `ask_on_ambiguity: off` (or widen/narrow it with
 `ask_on_ambiguity_max_words: N`, clamped 3-40); silence a check-3 line with `claim-lint-ok`, the
 existing escape — no new vocabulary was coined.
+
+## The dashboard 403'd in Codespaces because the host allow-list knew one form (added 2026-08-18, v0.282.0)
+
+A consumer opening the dashboard from Copilot Chat in a Codespace hit a `403` /
+`cross-origin/forged-host request refused` on a *healthy* server. Built via `/forge` (`standard`,
+in a worktree; run in `.ravenclaude/runs/forge/dashboard-403-codespaces-host-guard/`).
+
+**Root cause, empirically isolated — not inferred.** `main()` in **both** `serve-dashboards.py` copies
+built the Codespaces allow-list from exactly one string, `f"{codespace}-{actual_port}.{domain}"`, and
+`_local_request_ok` fails **closed** on a `Host` not in `_ALLOWED_HOSTS`. A control probe against this
+repo's own live server (`GET /__csrf`, same-origin headers, only the `Host` header varied) settled it:
+the canonical `<cs>-<port>.app.github.dev` → **200**, but the **explicit-`:443`** form of that same host,
+the **legacy `githubpreview.dev`** domain, and the **port-first** form all → **403**, while an
+**attacker** codespace host (`evil-…app.github.dev`) → **403** (correctly). A browser omits the default
+`:443`, but a proxy/client can include it — and a `:443` `Host` on the CSRF bootstrap `403`s, so the
+shell reads the reject as its **static-host signal** and silently degrades the dashboard to read-only
+"static" mode: **Save & apply dies with no error.**
+
+**The fix (both copies, byte-identical block).** Enumerate the bare **and** `:443` forms of **THIS**
+codespace's exact forwarded host into `_ALLOWED_HOSTS`/`_ALLOWED_ORIGINS`. ⛔ **Enumerated per-codespace
+strings ONLY — never a `*.app.github.dev` suffix/wildcard match**, which would allow *any other*
+codespace's forwarded host and defeat the DNS-rebinding defense `_local_request_ok` exists for (the
+attacker-host → 403 boundary is the whole point, and the fix keeps it: proven 403 post-fix). `domain`
+already comes from `GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN`, so an enterprise/legacy forwarding domain
+is covered **automatically** without hardcoding one.
+
+**The G1 fact-check overturned part of the report.** The feedback proposed also allow-listing the
+**port-first** `<port>-<codespace>` form; verification `[web-sourced 2026-08-18]` found that is
+**Gitpod's** convention (`<port>-<workspace>.<region>.gitpod.io`), **not Codespaces'** — a conflation —
+so it is **deliberately omitted** (adding a Gitpod form to a Codespaces guard is dead, misleading
+surface). `githubpreview.dev` is the **retired** pre-2023 domain (→ `preview.app.github.dev` →
+`app.github.dev`); it is env-var-derived, not hardcoded. The report's other two "fixes" **don't apply to
+the marketplace**: static GETs (the page load) are **ungated** here (`do_GET`'s documented
+static-path), so a page load never 403s on `Sec-Fetch-Site`, and `open-dashboard.sh` + the server
+already **skip browser auto-open in a Codespace**. Only the host allow-list was a real marketplace gap.
+
+**Diagnostic, so the next 403 is self-serviceable.** The server logged *that* it refused but not *why* —
+so the feedback's own detection step ("`tail` the log, find the offending host") had nothing to read.
+`_local_request_ok` now calls a bounded, secret-free `_log_guard_reject(field, value)` at each
+`return False`, naming which check failed + the offending `Host`/`Origin`/`Sec-Fetch-Site` (length-capped;
+the allow-list is deliberately **not** echoed).
+
+**Gate 142(d)** extends the existing live C2 security-floor harness: a **structural** teeth-check (both
+copies must enumerate the `:443` variant → reverting the fix fails the gate) plus a **live** server
+launched *with* `CODESPACE_NAME` set, asserting canonical → 200, `:443` → 200 (the fix; would 403 on
+unpatched code), and a **foreign** codespace host → 403 (the wildcard-would-break-this boundary). Bash
+3.2 / BSD-tool clean.
+
+**Migration (consumer-visible — a pure improvement, nothing to do):** on `/plugin marketplace update`, a
+Codespaces dashboard that silently fell to read-only because its forwarded `Host` carried an explicit
+`:443` (or arrived via a proxy that added one) now works — Save & apply POSTs succeed. No posture,
+tribunal, `/__*` endpoint, or security-floor semantics changed; the cross-origin/DNS-rebinding boundary
+is unchanged (a foreign forwarded host still 403s).
