@@ -2635,3 +2635,102 @@ resolve-then-connect, so a DNS-rebinding record is a standard TOCTOU residual (c
 pinned custom connector; size-cap + timeout bound the blast radius, and this is an offline dev tool);
 and `getaddrinfo` is not bounded by the fetch timeout (a low-risk DNS hang). Both are tracked for a
 follow-up. The `check-design-schema.py` packaging move landed in v0.263.0.
+
+## The premise gate was denying on `wc -l`, and nobody could have known (added 2026-08-18, v0.273.0)
+
+Two defects in the premise mechanism, both found by measuring rather than reading, and the second is
+why the first survived.
+
+### ⛔ 54 of 54 `http-*` negatives were not HTTP at all
+
+`log-probe.sh` classified a bare three-digit number anywhere in a tool's combined output as an HTTP
+status code, regardless of whether the probe was an HTTP probe.
+
+control: every probe-ledger on this machine — 7 scopes, 3,070 entries, 204 negatives. 54 carried an
+`http-NNN` label; a filter for a network client anywhere in the recorded subject returned **54 with
+none and 0 with one**. The same filter is not vacuous — it admits a real `curl`/`gh api`/`WebFetch`
+negative, verified by driving the live recorder (2026-08-18).
+
+    wc -l schemas/design-schema.schema.json  ->  negative  http-454   (a line count)
+    ls -la /Users/.../RavenClaude            ->  negative  http-448   (a block count)
+    git diff origin/main --stat              ->  negative  http-447   (an insertion count)
+    git show 5a985b95 --stat | head -60      ->  negative  http-403   (a diffstat number)
+
+`http-447`, `http-448`, `http-454`, `http-459` and `http-482` are not status codes. And this was not
+inert noise: **three of the seven real scopes on disk carried unresolved negative families made
+entirely of these**, which is the gate refusing to create a new source module because a line count
+started with a 4. A guard that fires on `wc -l` is a guard that gets switched off — this repo has
+already recorded that outcome twice, on `srm.force-push` and `sce.curl-pipe-shell`.
+
+⛔ **The fix is gated SYMMETRICALLY, and that is not tidiness.** The bare-code patterns now apply only
+when the probe was an HTTP probe (`WebFetch`, an `https?://` in the command, or a network client) — in
+the negative list, the indeterminate list **and the positive one**. Gating only the negative half
+would leave a bare `200` in `wc -l` output still RESOLVING a family nobody probed: a false *clear*
+traded for a false *deny*, the same defect pointed the other way. Every textual marker
+(`command not found`, `No such file or directory`) is untouched — those say what they mean in any
+context, and a non-HTTP Bash call that produced output still records `positive/ok`, so nothing that
+used to clear stops clearing.
+
+### ⛔ The guard emitted nothing, so its own false-positive rate was unmeasurable
+
+control: 463 hook events across 4 real sessions, from **six** hooks (`enforce-layout` 282,
+`thing-orchestrator` 88, `guard-destructive` 67, `worktree-guard` 18, `dod-gate` 4,
+`enforce-git-protocol` 4) — and **zero** from `guard-premise.sh`, which never called
+`_emit_hook_event`. The 463 is the positive control: the substrate demonstrably records other hooks
+from the same runs dir, so the empty result was a real absence, not a broken probe.
+
+Two consequences, and the second is the one that matters. Heimdall and Víðarr reported a clean
+perimeter while this gate was denying. And **"I have no events" was indistinguishable from "I never
+fire"** — so the measurement the previous paragraph depended on was impossible from the substrate,
+and had to be reconstructed from the raw ledgers instead. A guard nobody can measure is a guard nobody
+can tune, and the first thing a person does with an untunable guard is turn it off.
+
+It now emits on every deny, **derived values only** — the hook name, a fixed rule token
+(`premise-unresolved-negative` / `premise-unverified-diagnosis` / `premise-recorder-blind`), the tool
+enum and the target **basename**. The unresolved subject and the prose claim are deliberately not
+emitted: both are attacker-influenceable text and this log is read back into the dashboard and the
+SessionStart banner. Same invariant as `capability-orientation.sh` / `watch-run-state.sh` /
+`compact-anchor.sh`. An allowed write emits nothing, so the substrate is not flooded with the allow
+path that would bury the denies it exists to surface.
+
+### The escape is reachable — verified, not assumed
+
+v0.245.0 shipped the file-based `control.md` because the env-var escapes never reached the hook
+process from a dispatched subagent. That mechanism is gate-covered (Gate 190), but "does the deny
+print a path a subagent can actually write?" is a different question, because a Write passes through
+**eight** `PreToolUse` hooks, not one.
+
+control: the exact payload the deny instructs, driven through every `Write`-matching hook in
+`hooks.json` — `enforce-layout` 0, `worktree-guard` 0, `enforce-portability` 0,
+`guard-memory-compaction` 0, `guard-premise` 0. Positive control on the same chain: a path outside
+`allowed_globs` -> `enforce-layout` exit **2**. The layout allow-list admits the control path in the
+primary checkout (`.ravenclaude/runs/**`) and inside a linked worktree (`.claude/worktrees/**`).
+
+### ⛔ What this does NOT close, stated with the number rather than left silent
+
+`guard-premise.sh` is `PreToolUse(Write|Edit|MultiEdit)`. It **does not see a Bash heredoc, `tee` or
+redirect**, so the tunnel CLAUDE.md v0.245.0 records — an agent writing files through Bash rather than
+the Write tool — is still open. It also sees no chat claim, and nothing projects it into Copilot Chat.
+
+A coverage trigger was **measured and deliberately not shipped**.
+control: 18,104 real Bash commands from 89 transcripts under `~/.claude/projects/`. A candidate
+"redirect/`tee` whose target carries a source extension" matched **371 (2.05%)** across 311 distinct
+targets — and reading them, the bulk are `/tmp` and scratchpad probes (`./probe320.tmp.mjs`,
+`$SCR/authtest.sh`), plus matches **inside quoted strings and regex literals**
+(`%s/thing-orchestrator.sh`, `` `apply-comfort-posture.py ``, `/from\s+['"][^'"]*lib\/probe\.mjs`).
+That is this repo's own recorded *"source-scan gates match PROSE"* failure, and a text regex over a
+command string cannot separate the two. Shipping it would deny benign work on the same engine that
+was, until this release, manufacturing false premises from `wc -l`. **Fix the precision first; the
+substrate emit added here is what makes the next attempt measurable.**
+
+**Gate 185** was extended rather than duplicated: the four verbatim shapes off the real ledgers, seven
+positive controls proving the narrowing is a narrowing and not a deletion, and the substrate
+assertions — with **two must-fail halves** (`--must-fail-http-gating` reverts `is_http` to always-true
+and the four FP assertions go red; `--must-fail-emit` removes the emit call and the observability
+assertions go red), registered in the main sequence **and** the `--check` dispatcher.
+
+**Migration:** none in the restrictive direction. Nothing that denied for a real reason stops denying —
+a genuine `curl`/`gh api`/`WebFetch` 4xx, a `command not found`, a `No such file` all record exactly as
+before. What stops denying is a line count. Existing ledgers are not rewritten; their stale
+`http-4NN` families age out as each scope's probes resolve, or clear immediately via the same
+`control.md` the deny already prints.

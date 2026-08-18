@@ -311,8 +311,11 @@ def rc_note():
 def say(kind, fname, why, note=""):
     def flat(s):
         return re.sub(r"[\t\r\n]+", " ", str(s))
-    print("%s\t%s\t%s\t%s\t%s" % (flat(kind), flat(fname), flat(why),
-                                  flat(ctrl_path), flat(note)))
+    # Field 6 is the TOOL NAME, carried out for the substrate emit below. It is
+    # read straight off the payload (a fixed Claude Code enum), so passing it
+    # here costs nothing and saves the shell half a second python fork.
+    print("%s\t%s\t%s\t%s\t%s\t%s" % (flat(kind), flat(fname), flat(why),
+                                      flat(ctrl_path), flat(note), flat(_TOOL)))
 
 # ═══ T-PROSE ═══════════════════════════════════════════════════════════════
 # Evaluated FIRST and independently. OR-ed with T-SHAPE below, never AND-ed:
@@ -583,6 +586,47 @@ _file="$(printf '%s' "$_verdict" | cut -f2)"
 _why="$(printf '%s' "$_verdict" | cut -f3)"
 _ctrl="$(printf '%s' "$_verdict" | cut -f4)"
 _note="$(printf '%s' "$_verdict" | cut -f5)"
+_tool="$(printf '%s' "$_verdict" | cut -f6)"
+
+# ── SUBSTRATE EMIT — this gate was UNMEASURABLE until 2026-08-18 ────────────
+# ⛔ MEASURED: 463 hook events across 4 real sessions on this machine, from SIX
+# hooks (enforce-layout 282, thing-orchestrator 88, guard-destructive 67,
+# worktree-guard 18, dod-gate 4, enforce-git-protocol 4) — and ZERO from this
+# one, because it never called the emitter. Consequences, both real:
+#   * Heimdall and Víðarr showed a clean perimeter while this gate was denying.
+#   * Its own false-positive rate could not be measured from the substrate at
+#     all. "I have no events" and "I never fire" are indistinguishable — which
+#     is this repo's own recorded silent-green shape, on the guard whose
+#     precision matters most.
+# The 463 IS the positive control: the substrate demonstrably records other
+# hooks from the same runs dir, so the empty guard-premise result was a real
+# absence, not a broken probe.
+#
+# ⛔ DERIVED VALUES ONLY. The hook name, a fixed rule token, the tool enum and
+# the target BASENAME. The unresolved subject and the prose claim are NOT
+# emitted: both are attacker-influenceable text and this log is read back into
+# the dashboard and the SessionStart banner. Same invariant as
+# capability-orientation.sh / watch-run-state.sh / compact-anchor.sh.
+#
+# Fail-safe: every step degrades to a no-op. A telemetry write must never be
+# able to change a guardrail verdict — the deny below runs either way.
+_gp_emit() {
+  _gp_helper="$(dirname "${BASH_SOURCE[0]:-$0}")/_emit-event.sh"
+  [ -f "$_gp_helper" ] || return 0
+  # _emit-event.sh resolves the session id from the caller-scope `payload` var.
+  payload="$_input"
+  # shellcheck source=/dev/null
+  . "$_gp_helper" 2>/dev/null || return 0
+  command -v _emit_hook_event >/dev/null 2>&1 || return 0
+  _emit_hook_event "guard-premise.sh" "deny" "${_tool:-Write}" \
+    "${_file:-}" "${1:-premise-deny}" 2 2>/dev/null || true
+}
+
+case "$_kind" in
+  BLIND) _gp_rule="premise-recorder-blind" ;;
+  PROSE) _gp_rule="premise-unverified-diagnosis" ;;
+  *)     _gp_rule="premise-unresolved-negative" ;;
+esac
 
 # The file-based escape, printed VERBATIM in every deny. It is the only exit a
 # dispatched subagent can actually take: RC_PREMISE_* are environment variables,
@@ -674,6 +718,10 @@ by work in this tree — not by a sibling agent in another one.
 
 $_ESCAPE"
 fi
+
+# Emitted immediately before the deny, never on the override path above — an
+# override is already recorded in overrides.log and is not a perimeter event.
+_gp_emit "$_gp_rule"
 
 printf '%s' "$(python3 -c '
 import json,sys

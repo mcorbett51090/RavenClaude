@@ -876,8 +876,18 @@ PY
       ;;
     185)
       echo "── Gate 185: probe verdict classes (per-gate run) ────────────────────────"
-      bash plugins/ravenclaude-core/hooks/tests/test-probe-verdict-classes.sh
-      exit $?
+      bash plugins/ravenclaude-core/hooks/tests/test-probe-verdict-classes.sh || exit $?
+      echo "── Gate 185 teeth A: an ungated bare status code MUST be caught ─────────"
+      if bash plugins/ravenclaude-core/hooks/tests/test-probe-verdict-classes.sh \
+           --must-fail-http-gating >/dev/null 2>&1; then
+        echo "TEETH FAILED: the mutant passed"; exit 1
+      fi
+      echo "── Gate 185 teeth B: a deny that emits nothing MUST be caught ───────────"
+      if bash plugins/ravenclaude-core/hooks/tests/test-probe-verdict-classes.sh \
+           --must-fail-emit >/dev/null 2>&1; then
+        echo "TEETH FAILED: the mutant passed"; exit 1
+      fi
+      exit 0
       ;;
     186)
       echo "── Gate 186: compact-anchor (per-gate run) ───────────────────────────────"
@@ -6552,8 +6562,31 @@ echo "── Gate 185: probe verdict classes — a non-result is not an absence 
 #   so following the printed remedy ADDED an unresolved negative instead of clearing one;
 #   and RATE-LIMITING recorded as `negative` — "I could not ask" stated as "it is not
 #   there", unclearable on retry, leaving the override as the only exit.
+#
+# EXTENDED 2026-08-18 — the same mis-classification, a third shape, MEASURED
+# rather than reasoned. Across every probe-ledger on the maintainer machine
+# (7 scopes / 3,070 entries) 54 of the 204 negatives carried an `http-NNN`
+# label, and 54 of 54 came from a Bash command with NO network client in it:
+# `wc -l` -> http-454, `ls -la` -> http-448, `git diff --stat` -> http-447,
+# `git show --stat` -> http-403. `http-447/448/454/459/482` are not status
+# codes. Three of the seven scopes carried unresolved negative families made
+# ENTIRELY of these — i.e. the gate refusing a new source module because a
+# line count started with a 4. A guard that fires on `wc -l` gets switched off.
+# The bare-code patterns (negative, indeterminate AND positive — symmetric, or
+# a false deny is merely traded for a false clear) are now gated on the probe
+# actually being an HTTP probe; every textual marker is untouched.
+#
+# The gate also now pins OBSERVABILITY: guard-premise.sh emitted ZERO of the
+# 463 real hook events on that machine, from six emitting hooks — so its own
+# false-positive rate was unmeasurable from the substrate and Heimdall/Víðarr
+# showed a clean perimeter while it denied. It now emits DERIVED VALUES ONLY
+# (basename + fixed rule token), and an allowed write still emits nothing.
 rc=0; bash plugins/ravenclaude-core/hooks/tests/test-probe-verdict-classes.sh >/dev/null 2>&1 || rc=$?
-gate "probe verdicts: non-result -> indeterminate, bidirectional control -> positive, real absence still negative" must_pass "$rc"
+gate "probe verdicts: non-result -> indeterminate, bidirectional control -> positive, real absence still negative, a bare number is not a status code, deny is observable" must_pass "$rc"
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-probe-verdict-classes.sh --must-fail-http-gating >/dev/null 2>&1 || rc=$?
+gate "probe verdicts teeth A: an ungated bare status code (wc -l -> http-454) IS caught" must_fail "$rc"
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-probe-verdict-classes.sh --must-fail-emit >/dev/null 2>&1 || rc=$?
+gate "probe verdicts teeth B: a premise deny that emits no substrate event IS caught" must_fail "$rc"
 
 echo "── Gate 186: compact-anchor — the pointer never echoes transcript content ─"
 # The SessionStart(compact) addressability pointer. Compaction is append-only, so the
