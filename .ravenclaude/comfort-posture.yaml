@@ -52,6 +52,15 @@ command_review:
 # Runaway brake — disabled for this repo.
 runaway: off
 
+# Linked-worktree edits: warn, do not deny (owner decision 2026-08-18).
+# `worktree-guard.sh` has two arms that contradicted each other: the advisory arm
+# nudges you OUT of a shared primary checkout when another session is live in it,
+# while the `bound` arm DENIED every Edit whose target resolved under a linked
+# worktree — including one created inside the repo at .claude/worktrees/. Together
+# they left no legal place to edit: the tree it pushes you toward is the tree it
+# refuses to write in. `warn` keeps the signal and drops the deadlock.
+worktree_bound: warn
+
 # Parallelism — allow fan-out workers (subagents / worktrees); cap how many run at once.
 parallelism:
   enabled: true
@@ -157,3 +166,8 @@ categories:
 definition_of_done:
   cmd: "bash scripts/dod-fast.sh"
   max_blocks: 8
+  # Authorized by the owner 2026-08-18. `scripts/dod-fast.sh` is a git-tracked,
+  # read-only repo script (storage-contract check + ruff-if-installed); the
+  # first-run trust prompt was firing every session and did NOT self-clear at
+  # max_blocks as its docs imply.
+  trusted: true
