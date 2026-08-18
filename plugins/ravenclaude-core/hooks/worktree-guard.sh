@@ -475,16 +475,28 @@ _wg_owning_worktree() {
 LEASE_DIR="$GUARD_HOME/leases/$PATH_KEY"
 LEASE_FILE="$LEASE_DIR/lease.json"
 
+# ⛔ These `case`s are written MULTI-LINE with an explicit `*)` arm on its own
+# line, on purpose. `check-verdict-default-nonpermissive.py` scans from the line
+# AFTER the `case` for a default arm, so a one-liner hides its `*)` from the
+# check and is reported as failing open. The value here is a verdict about
+# whether to enforce, so the shape the checker wants is the shape it should
+# have: an unrecognised knob value must land on a NAMED default, never fall out.
 _wg_lease_mode() {
   local v
   v="$(sed -n 's/^[[:space:]]*worktree_lease:[[:space:]]*\([A-Za-z]\{1,\}\).*/\1/p' "$posture" 2>/dev/null | head -1)"
-  case "$v" in on|off|warn) printf '%s' "$v" ;; *) printf 'on' ;; esac
+  case "$v" in
+    on|off|warn) printf '%s' "$v" ;;
+    *) printf 'on' ;;          # unset or garbage -> ENFORCE (the safe direction)
+  esac
 }
 
 _wg_lease_idle_secs() {
   local v
   v="$(sed -n 's/^[[:space:]]*worktree_lease_idle_minutes:[[:space:]]*\([0-9]\{1,\}\).*/\1/p' "$posture" 2>/dev/null | head -1)"
-  case "$v" in ''|*[!0-9]*) v=20 ;; esac
+  case "$v" in
+    ''|*[!0-9]*) v=20 ;;       # unset or non-numeric -> the documented default
+    *) ;;                      # a valid number is used as-is
+  esac
   [ "$v" -lt 1 ] 2>/dev/null && v=1
   printf '%s' "$(( v * 60 ))"
 }

@@ -68,7 +68,7 @@ runaway: off
 # LONGEST matching prefix, so a file resolves to the worktree it actually lives
 # in. `warn` here was a workaround for a bug; keeping it after the fix would mean
 # shipping isolation that is switched off. Gate 229 pins both directions.
-worktree_bound: warn
+worktree_bound: block
 
 # ── Session lease: one worktree, one session ────────────────────────────────
 # CONTENTION above only NUDGES — it reports that another session is in this tree

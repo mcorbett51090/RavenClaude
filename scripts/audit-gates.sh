@@ -8091,6 +8091,14 @@ echo "── Gate 228: update must not claim success over a stale checkout ─�
 # remote URL is redacted out of the echoed git stderr. Two controls: the clone
 # is proven BEHIND before the pull-succeeds case, and the redaction case is
 # proven to have produced a report (or "no leak" would be vacuous).
+rc=0
+bash plugins/ravenclaude-core/hooks/tests/test-gate228-update-pull-report.sh >/dev/null 2>&1 || rc=$?
+gate "update: failed pull reports NOT up to date and exits non-zero" must_pass "$rc"
+rc=0
+bash plugins/ravenclaude-core/hooks/tests/test-gate228-update-pull-report.sh \
+  --must-fail-silent-pull >/dev/null 2>&1 || rc=$?
+gate "update teeth: the swallow-output/always-succeed shape IS caught" must_pass "$rc"
+
 echo "── Gate 229: worktree ownership + session lease ────────────────────────────"
 # TWO defects. (1) FOREIGN-TREE resolved ownership by the FIRST worktree whose
 # path prefixed the target, and this repo puts worktrees at
@@ -8120,12 +8128,6 @@ echo "── Gate 229: worktree ownership + session lease ───────�
 # Supported: string. After adding a gate, run the full suite and GREP ITS OUTPUT
 # FOR the SCRIPT NAME on an executed line.
 rc=0
-bash plugins/ravenclaude-core/hooks/tests/test-gate228-update-pull-report.sh >/dev/null 2>&1 || rc=$?
-gate "update: failed pull reports NOT up to date and exits non-zero" must_pass "$rc"
-rc=0
-bash plugins/ravenclaude-core/hooks/tests/test-gate228-update-pull-report.sh \
-  --must-fail-silent-pull >/dev/null 2>&1 || rc=$?
-gate "update teeth: the swallow-output/always-succeed shape IS caught" must_pass "$rc"
 bash plugins/ravenclaude-core/hooks/tests/test-gate229-worktree-lease.sh >/dev/null 2>&1 || rc=$?
 gate "worktree: own-tree writes allowed, cross-tree denied, lease excludes a 2nd session" must_pass "$rc"
 rc=0
