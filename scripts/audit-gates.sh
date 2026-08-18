@@ -542,6 +542,33 @@ PY
       rm -f "$_mut"
       exit $rc
       ;;
+    219)
+      echo "── Gate 219: forms-engineering substrate separation + cite-don't-restate ──"
+      rc=0
+      python3 scripts/check-forms-substrate-separation.py --self-test || rc=$?
+      python3 scripts/check-forms-substrate-separation.py || rc=$?
+      _mf=0; python3 scripts/check-forms-substrate-separation.py --must-fail >/dev/null 2>&1 || _mf=$?
+      [ "$_mf" -eq 2 ] || rc=1
+      exit $rc
+      ;;
+    220)
+      echo "── Gate 220: form_metrics.py numeric correctness + the lss_calc.py I-MR round-trip ──"
+      rc=0
+      python3 scripts/check-form-metrics.py --self-test || rc=$?
+      python3 scripts/check-form-metrics.py || rc=$?
+      _mf=0; python3 scripts/check-form-metrics.py --must-fail >/dev/null 2>&1 || _mf=$?
+      [ "$_mf" -eq 2 ] || rc=1
+      exit $rc
+      ;;
+    221)
+      echo "── Gate 221: forms-engineering honesty markers (novel-synthesis / WCAG conflict / no pricing) ──"
+      rc=0
+      python3 scripts/check-forms-honesty-markers.py --self-test || rc=$?
+      python3 scripts/check-forms-honesty-markers.py || rc=$?
+      _mf=0; python3 scripts/check-forms-honesty-markers.py --must-fail >/dev/null 2>&1 || _mf=$?
+      [ "$_mf" -eq 2 ] || rc=1
+      exit $rc
+      ;;
     127)
       echo "── Gate 127: pseudonymize.py (fail-closed encode / no-egress / FM7 NER-absent / FM8 / teeth) ──"
       bash plugins/ravenclaude-core/hooks/tests/test-gate127-pseudonymize.sh
@@ -1160,7 +1187,7 @@ PY
       ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 222. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -3714,6 +3741,18 @@ printf 'Line capability review: Cpk = 1.10 for the fill weight.\n' > "$DH/pi-bad
 printf 'Kaizen event agenda and attendee list for Tuesday.\n' > "$DH/pi-good.md"
 assert_hook_fires  "process-improvement anti-patterns" plugins/process-improvement/hooks/flag-process-improvement-antipatterns.sh "$DH/pi-bad.md"
 assert_hook_silent "process-improvement anti-patterns" plugins/process-improvement/hooks/flag-process-improvement-antipatterns.sh "$DH/pi-good.md"
+
+# 13. forms-engineering — a honeypot field that assistive tech and autofill can
+#     both reach (advisory hook: stderr + exit 0 unless FORMS_STRICT=1). The hook
+#     only inspects a fixed extension list, so both fixtures carry .html or the
+#     "fires" half would measure nothing. The clean fixture must also avoid the
+#     OTHER four scans — no form POST path, no challenge widget, no rate quoted
+#     without a denominator, no control limits — or "silent on clean" is testing
+#     the wrong thing.
+printf '<form><input type="text" name="honeypot" class="visually-hidden"></form>\n' > "$DH/src/form-bad.html"
+printf '<div style="display:none" aria-hidden="true"><label>Leave blank<input type="text" name="honeypot_zx9" tabindex="-1" autocomplete="off"></label></div>\n' > "$DH/src/form-good.html"
+assert_hook_fires  "forms anti-patterns" plugins/forms-engineering/hooks/flag-form-antipatterns.sh "$DH/src/form-bad.html"
+assert_hook_silent "forms anti-patterns" plugins/forms-engineering/hooks/flag-form-antipatterns.sh "$DH/src/form-good.html"
 
 echo
 echo "── Gate 31: route-decision-review (decision tribunal routing) ─────────────"
@@ -7554,6 +7593,114 @@ rc=0; python3 scripts/check-lss-calc.py --must-fail >/dev/null 2>&1 || rc=$?
 gate "lss_calc teeth: a planted wrong control-chart constant IS caught" must_fail "$rc"
 rc_is_2=0; [ "$rc" -eq 2 ] || rc_is_2=1
 gate "lss_calc teeth: the planted constant fails closed at exit 2 (not 1)" must_pass "$rc_is_2"
+
+echo
+echo "── Gate 219: forms substrate separation + cite-don't-restate (check-forms-substrate-separation.py) ─"
+# plugins/forms-engineering/ is a SEAM, not a new owner. Two properties keep that
+# framing honest and neither survives on author discipline:
+#   (1) SEPARABILITY — the RavenPower substrate layer is exactly two allowlisted
+#       files, so deleting them leaves a plugin that still passes this suite.
+#       plugins/*/substrate/** is DENIED by enforce-layout.sh, so the split is
+#       file-level and mechanically checked rather than expressed as a folder.
+#   (2) CITE, DON'T RESTATE — ravenclaude-core/rules/security.md owns upload
+#       hardening and knowledge/concepts/cloudflare-who-gets-in.md owns the
+#       challenge-widget mechanics (dated, sourced, refresh_when:-triggered). A
+#       second copy in a sibling plugin rots silently the moment upstream moves.
+#
+# Sub-checks A (path) / B (citation form) / C (no restated constitution, with
+# `single-use` scoped by CO-OCCURRENCE) / D (cite-or-be-silent: any file that
+# discusses uploads or a challenge widget must carry a RESOLVING link into
+# plugins/ravenclaude-core/) / E (anchor rot: cite by stable anchor text, never
+# by line number — P8-style edits move line numbers and nothing notices).
+#
+# ⛔ B and C are literal-string matches and CANNOT fail on a PARAPHRASE. Measured:
+# a paragraph restating security.md exactly in meaning passes both green. D is the
+# half that works — a positive requirement cannot be evaded by word choice — and a
+# paraphrase fixture is committed so the boundary lives in the suite, not a memo.
+# Scope is plugins/forms-engineering/**/*.md ONLY; hooks/ and scripts/ are out by
+# construction (a hook cannot detect a widget without naming it, and a shell line
+# can never be a markdown link). A .sh scope fixture regression-locks that.
+#
+# ⛔ Registered in BOTH this main sequence AND the --check dispatcher above + the
+# Supported: string. After adding a gate, run the full suite and GREP ITS OUTPUT
+# FOR the SCRIPT NAME on an executed line — a batched header once made a by-number
+# grep return 0 for seven gates that all ran.
+rc=0; python3 scripts/check-forms-substrate-separation.py --self-test >/dev/null 2>&1 || rc=$?
+gate "forms separation teeth: A/B/C/D/E each distinguish" must_pass "$rc"
+rc=0; python3 scripts/check-forms-substrate-separation.py >/dev/null 2>&1 || rc=$?
+gate "forms separation: allowlist / citation form / no restatement / anchors" must_pass "$rc"
+rc=0; python3 scripts/check-forms-substrate-separation.py --must-fail >/dev/null 2>&1 || rc=$?
+gate "forms separation teeth: a planted restatement IS caught" must_fail "$rc"
+rc_is_2=0; [ "$rc" -eq 2 ] || rc_is_2=1
+gate "forms separation teeth: the planted violation fails closed at exit 2" must_pass "$rc_is_2"
+
+echo
+echo "── Gate 220: form_metrics.py correctness + SPC round-trip (check-form-metrics.py) ──"
+# form_metrics.py is the forms plugin's only executable, and it carries the
+# plugin's only claim with no prior art: that a form completion series can be
+# handed to statistical process control. A claim with no literature has to be
+# mechanically testable or it is just prose — so this gate RUNS the script.
+#
+# Assertions, all against a committed fixture with HAND-COMPUTED expectations
+# (25 sessions; 20 completers at 60/62/58/64/56 x4 -> mean 60.00, median 60.00;
+# email errors 5/25 = 20.00%; last-touch phone 3/5 = 60.00%):
+#   (i)   the round-trip lss_calc.py imr --values "$(form_metrics.py --emit-imr F)"
+#         exits 0 and prints UCL/LCL. ⛔ COMMAND SUBSTITUTION, NOT A PIPE —
+#         lss_calc.py imr declares --values required and has NO stdin path; the
+#         piped form discards the left side and exits 2 (measured).
+#   (ii)  --emit-imr stdout is numeric-only, asserted as a COUNT of violating
+#         lines. ⛔ never `grep -q -v`: on this host adding -q to -v inverts the
+#         answer TOWARD CLEAN and a draft of this assertion passed a bad fixture.
+#   (iii) the VERBATIM novel-synthesis marker is in captured STDERR of a plain
+#         run and of --emit-imr. ⛔ This lives here and not in Gate 221 because
+#         only an EXECUTION assertion proves the label reaches a user — a marker
+#         in a docstring satisfies a string check identically.
+#   (iv)  negative controls: malformed CSV, completions > starts, and a series
+#         below the 20-observation charting floor each fail closed. The floor
+#         matters: lss_calc.py imr accepts n>=2, so without it this gate would
+#         bless a two-point series the plugin's own rule #5 forbids.
+#
+# ⛔ Registered in BOTH this main sequence AND the --check dispatcher above + the
+# Supported: string. GREP THE SUITE OUTPUT FOR the script name, not for "220".
+rc=0; python3 scripts/check-form-metrics.py --self-test >/dev/null 2>&1 || rc=$?
+gate "form_metrics teeth: stream contract distinguishes good vs bad mock" must_pass "$rc"
+rc=0; python3 scripts/check-form-metrics.py >/dev/null 2>&1 || rc=$?
+gate "form_metrics: hand-checked values, stream contract, I-MR round-trip EXECUTES" must_pass "$rc"
+rc=0; python3 scripts/check-form-metrics.py --must-fail >/dev/null 2>&1 || rc=$?
+gate "form_metrics teeth: a planted wrong expected value IS caught" must_fail "$rc"
+rc_is_2=0; [ "$rc" -eq 2 ] || rc_is_2=1
+gate "form_metrics teeth: the planted value fails closed at exit 2" must_pass "$rc_is_2"
+
+echo
+echo "── Gate 221: forms honesty markers (check-forms-honesty-markers.py) ─"
+# Two claims in forms-engineering are weaker than they read, and a one-time
+# release grep protects only the PR that introduces it. Both ship behind
+# permanent sub-checks with must-fail halves instead:
+#   A  applying SPC to form telemetry is OUR synthesis (two open-web searches
+#      returned zero intersection). Any doc surface co-occurring an SPC/DMAIC
+#      term with a form-analytics term must carry the VERBATIM marker.
+#   B  the challenge vendor's own docs give one WCAG level on the overview page
+#      and a different one on the plans page. No surface states either level
+#      unqualified. LINE-WINDOW based, never same-physical-line — a same-line
+#      probe reports green on wrapped prose while measuring nothing.
+#   C  no vendor pricing in prose (stale within a quarter). A negative
+#      INSTRUCTION about pricing must NOT trip it; that fixture is committed.
+#
+# ⛔ Sub-check A covers DOCUMENTATION surfaces only. It cannot verify that
+# form_metrics.py PRINTS the marker — a docstring satisfies a string check
+# identically to a printed line. That half is GATE 220, which executes the script
+# and reads captured stderr.
+#
+# ⛔ Registered in BOTH this main sequence AND the --check dispatcher above + the
+# Supported: string. GREP THE SUITE OUTPUT FOR the script name, not for "221".
+rc=0; python3 scripts/check-forms-honesty-markers.py --self-test >/dev/null 2>&1 || rc=$?
+gate "forms honesty teeth: A/B/C distinguish, negative instruction silent" must_pass "$rc"
+rc=0; python3 scripts/check-forms-honesty-markers.py >/dev/null 2>&1 || rc=$?
+gate "forms honesty: novel-synthesis marker / named WCAG conflict / no pricing" must_pass "$rc"
+rc=0; python3 scripts/check-forms-honesty-markers.py --must-fail >/dev/null 2>&1 || rc=$?
+gate "forms honesty teeth: three planted dishonest claims ARE caught" must_fail "$rc"
+rc_is_2=0; [ "$rc" -eq 2 ] || rc_is_2=1
+gate "forms honesty teeth: the planted claims fail closed at exit 2" must_pass "$rc_is_2"
 
 echo
 
