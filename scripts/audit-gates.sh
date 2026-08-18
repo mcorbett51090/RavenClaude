@@ -620,6 +620,19 @@ PY
         --must-fail-silent-pull || rc=$?
       exit $rc
       ;;
+    230)
+      # NOTE: the test file is test-gate227-*.sh. Gate 227 was taken by
+      # guard-probe-validity while this branch was open, so the GATE renumbered to
+      # 230 and the filename did not (renaming a hooks/ file is blocked by the
+      # tribunal's substrate guard). Filename != gate number is already the norm
+      # here: main's Gate 227 runs test-gate223-probe-validity.sh.
+      echo "── Gate 230: handoff seed names the host it hands off TO ──"
+      rc=0
+      bash plugins/ravenclaude-core/hooks/tests/test-gate227-handoff-seed-host.sh || rc=$?
+      bash plugins/ravenclaude-core/hooks/tests/test-gate227-handoff-seed-host.sh \
+        --must-fail-spawn-default || rc=$?
+      exit $rc
+      ;;
     127)
       echo "── Gate 127: pseudonymize.py (fail-closed encode / no-egress / FM7 NER-absent / FM8 / teeth) ──"
       bash plugins/ravenclaude-core/hooks/tests/test-gate127-pseudonymize.sh
@@ -1248,7 +1261,7 @@ PY
       ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 225, 226, 227, 228, 229. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 225, 226, 227, 228, 229, 230. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -8134,6 +8147,59 @@ rc=0
 bash plugins/ravenclaude-core/hooks/tests/test-gate229-worktree-lease.sh \
   --must-fail-prefix >/dev/null 2>&1 || rc=$?
 gate "worktree teeth: first-prefix ownership (the original defect) IS caught" must_pass "$rc"
+
+echo
+echo "── Gate 230: handoff seed names the host it hands off TO ───────────────────"
+# NOTE: the test file is test-gate227-*.sh. Gate 227 was taken by
+# guard-probe-validity while this branch was open, so the GATE renumbered to 230
+# and the filename did not (renaming a hooks/ file is blocked by the tribunal's
+# substrate guard). Filename != gate number is already the norm here: main's
+# Gate 227 runs test-gate223-probe-validity.sh.
+# Both seed writers defaulted to the grok launch command and overrode it only
+# for hosts they recognised by NAME, so every host they did not recognise
+# inherited a command that starts a DIFFERENT AGENT — silently, onto disk, where
+# the next person pastes it. handoff-spawn.sh set `seed=grok "…"` ~90 lines
+# before it resolved the host, and its refusal guard was scoped to chat|cli, so
+# it could not see the case it most needed to catch; context-handoff.py's
+# seed_text() fall-through default WAS the grok seed.
+#
+# Measured 2026-08-18 against the shipped 0.271.4 copy: `--host claude-code` in a
+# plain terminal emitted `grok "…"`, while the SAME invocation under
+# TERM_PROGRAM=vscode emitted a safe comment. ⛔ That asymmetry is why the defect
+# reads as ABSENT if you sample only a VS Code session — the gate drives `env -i`
+# for exactly that reason. The live path was worse than the printed one: the
+# launch-successor writer's final `else` did `exec $seed`.
+#
+# Assertions (18): per host — grok / claude-code / codex / cli / chat, plus
+# CLAUDECODE auto-detect and the unknown+vscode case that was already safe (so
+# the fix is not shown to trade one covered environment for another) — across
+# BOTH writers.
+#
+# ⛔ POSITIVE CONTROL: two rows assert grok DOES get the grok seed. A blanket
+# "no grok anywhere" suite would pass identically against a writer that emitted
+# nothing at all; the grok rows are what prove the others measure a CHOICE.
+#
+# ⛔ HONEST SCOPE: this pins the SEED VALUE on the copy-paste/dry-run surface. It
+# does NOT drive a live spawn — that would start a real interactive agent, which
+# a CI gate may not do. The launch-successor branch is covered only insofar as it
+# consumes the same $seed, plus the no-recipe host now writing an `exit 0`
+# launcher instead of `exec $seed`.
+#
+# The must-fail half rebuilds the PRE-FIX file in all four parts (grok default,
+# neutered refusal, normalize_host's claude-code row, the claude-code seed
+# branch) and requires ≥1 assertion to go red; reverting only the default turns
+# just `codex` red and would understate the teeth for the reported host.
+#
+# ⛔ Registered in BOTH this main sequence AND the --check dispatcher above + the
+# Supported: string. After adding a gate, run the full suite and GREP ITS OUTPUT
+# FOR the SCRIPT NAME on an executed line.
+rc=0
+bash plugins/ravenclaude-core/hooks/tests/test-gate227-handoff-seed-host.sh >/dev/null 2>&1 || rc=$?
+gate "handoff seed: every host gets its own launch, grok keeps grok's" must_pass "$rc"
+rc=0
+bash plugins/ravenclaude-core/hooks/tests/test-gate227-handoff-seed-host.sh \
+  --must-fail-spawn-default >/dev/null 2>&1 || rc=$?
+gate "handoff seed teeth: the pre-fix grok fall-through IS caught" must_pass "$rc"
 
 echo
 
