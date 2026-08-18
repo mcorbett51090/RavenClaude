@@ -18,10 +18,19 @@ All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the 
   lives in. Positive control on the same harness: a genuine sibling → FOREIGN, a
   `/tmp` path → silent, so the own-tree reading was real and not a dead probe.
 
-  Ownership is now the **longest** matching worktree prefix, and `worktree_bound`
-  returns to its documented default of `block`. It had been set to `warn` on main with
-  a comment saying the deadlock left *"no legal place to edit"* — the guard had been
-  switched off rather than fixed, so the isolation it advertised was not there.
+  Ownership is now the **longest** matching worktree prefix. It had been set to `warn`
+  on main with a comment saying the deadlock left *"no legal place to edit"* — the
+  guard had been switched off rather than fixed, so the isolation it advertised was
+  not there.
+
+  ⛔ **`worktree_bound` deliberately stays `warn` in this release** (owner decision).
+  Hooks execute from the **installed plugin cache**, so flipping to `block` in the
+  same change that fixes the predicate would re-arm the *old, buggy* guard for any
+  session whose cache is stale — re-creating the exact deadlock this removes. That
+  was observed while building this. Flip to `block` **after**
+  `/plugin marketplace update ravenclaude` has refreshed every live session's cache.
+  The knob only decides whether a correct verdict blocks or warns; Gate 229 pins the
+  verdict itself either way.
 
   ⛔ **A suppressed message is not a negative result.** The guard throttles a repeated
   nudge per (path key, session, kind); reading that silence as "the predicate stopped
@@ -62,16 +71,24 @@ All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the 
 
 ### Migration
 
-`worktree_bound` returns to `block` now that the predicate is correct — cross-worktree
-writes are denied again (`RC_WORKTREE_BOUND_ACK=1`, or `worktree_bound: warn`, to opt
-out). The lease is **on by default**: a second session writing into a worktree another
+**`worktree_bound` stays `warn`.** The false positives stop — that is the fix — but a
+correct FOREIGN verdict still only warns. Flip to `block` once caches are refreshed
+(`RC_WORKTREE_BOUND_ACK=1` remains the per-command escape).
+
+The lease is **on by default**: a second session writing into a worktree another
 session is actively using is denied until the holder has been idle 20 minutes. Set
 `worktree_lease: off` to disable, or `warn` to report without blocking.
 
-⛔ **Hooks run from the installed plugin cache, so neither change takes effect until
-`/plugin marketplace update ravenclaude`.** That lag is not cosmetic here: setting
-`worktree_bound: block` while the cache still holds the old predicate re-arms the
-*buggy* guard and re-creates the deadlock. Refresh the cache first, then flip the knob.
+⛔ **Hooks run from the installed plugin cache, so nothing here takes effect until
+`/plugin marketplace update ravenclaude`.** Until that refresh a stale session keeps
+the old predicate — which is exactly why `worktree_bound` is NOT flipped to `block` in
+the same change: the new knob plus the old predicate is the deadlock, not the fix.
+Refresh first, then flip.
+
+⛔ **The lease is on and enforcing**, so it reaches a session the moment its cache
+refreshes. If two sessions legitimately share one worktree today, set
+`worktree_lease: warn` before refreshing, or expect the latecomer to be denied until
+the holder has been idle 20 minutes.
 
 ## 0.277.0 — 2026-08-18
 

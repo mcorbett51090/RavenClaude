@@ -60,15 +60,21 @@ runaway: off
 # they left no legal place to edit: the tree it pushes you toward is the tree it
 # refuses to write in. `warn` kept the signal and dropped the deadlock.
 #
-# ⛔ ROOT CAUSE FIXED 2026-08-18 — back to `block`. The deadlock was not the
-# knob, it was `_wg_is_foreign` returning on the FIRST worktree whose path
-# prefixed the target. Worktrees live at `<primary>/.claude/worktrees/<name>`, so
-# the primary is an ANCESTOR of every linked worktree and always matched first —
-# every write in every linked worktree read as foreign. Ownership is now the
-# LONGEST matching prefix, so a file resolves to the worktree it actually lives
-# in. `warn` here was a workaround for a bug; keeping it after the fix would mean
-# shipping isolation that is switched off. Gate 229 pins both directions.
-worktree_bound: block
+# ⛔ ROOT CAUSE FIXED 2026-08-18 — but this knob deliberately STAYS `warn` for now.
+# The deadlock was not the knob: `_wg_is_foreign` returned on the FIRST worktree
+# whose path prefixed the target, and worktrees live at
+# `<primary>/.claude/worktrees/<name>`, so the primary is an ANCESTOR of every
+# linked worktree and always matched first — every write in every linked worktree
+# read as foreign. Ownership is now the LONGEST matching prefix.
+#
+# ⛔ WHY IT IS NOT FLIPPED IN THE SAME CHANGE (owner decision 2026-08-18): hooks
+# execute from the INSTALLED PLUGIN CACHE, not this checkout. Setting `block`
+# while a session's cache still holds the old predicate re-arms the BUGGY guard
+# and re-creates the very deadlock this fixes — observed while building it. Flip
+# to `block` AFTER `/plugin marketplace update ravenclaude` has refreshed the
+# caches of every live session. Gate 229 pins both directions either way; the
+# knob only decides whether a correct verdict blocks or warns.
+worktree_bound: warn
 
 # ── Session lease: one worktree, one session ────────────────────────────────
 # CONTENTION above only NUDGES — it reports that another session is in this tree
