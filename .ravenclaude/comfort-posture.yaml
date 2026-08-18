@@ -58,8 +58,46 @@ runaway: off
 # while the `bound` arm DENIED every Edit whose target resolved under a linked
 # worktree — including one created inside the repo at .claude/worktrees/. Together
 # they left no legal place to edit: the tree it pushes you toward is the tree it
-# refuses to write in. `warn` keeps the signal and drops the deadlock.
+# refuses to write in. `warn` kept the signal and dropped the deadlock.
+#
+# ⛔ ROOT CAUSE FIXED 2026-08-18 — but this knob deliberately STAYS `warn` for now.
+# The deadlock was not the knob: `_wg_is_foreign` returned on the FIRST worktree
+# whose path prefixed the target, and worktrees live at
+# `<primary>/.claude/worktrees/<name>`, so the primary is an ANCESTOR of every
+# linked worktree and always matched first — every write in every linked worktree
+# read as foreign. Ownership is now the LONGEST matching prefix.
+#
+# ⛔ WHY IT IS NOT FLIPPED IN THE SAME CHANGE (owner decision 2026-08-18): hooks
+# execute from the INSTALLED PLUGIN CACHE, not this checkout. Setting `block`
+# while a session's cache still holds the old predicate re-arms the BUGGY guard
+# and re-creates the very deadlock this fixes — observed while building it. Flip
+# to `block` AFTER `/plugin marketplace update ravenclaude` has refreshed the
+# caches of every live session. Gate 229 pins both directions either way; the
+# knob only decides whether a correct verdict blocks or warns.
 worktree_bound: warn
+
+# ── Session lease: one worktree, one session ────────────────────────────────
+# CONTENTION above only NUDGES — it reports that another session is in this tree
+# and lets both proceed. The lease is the enforcement: a session claims a
+# worktree and another session's mutating ops there are DENIED.
+#
+# ⛔ The stale fallback is what makes enforcement safe. A lock with no expiry
+# strands the tree the moment a session crashes or is closed, and a lock nobody
+# can get out of is a lock people route around. After
+# `worktree_lease_idle_minutes` with no activity from the holder, the next
+# session TAKES OVER — auto-committing the holder's work first (tracked AND
+# untracked; .gitignore still applies) as a `wip(worktree-lease)` checkpoint, so
+# the takeover cannot lose work. On the anchor branch it REFUSES to auto-commit
+# and reports instead: main is the shared anchor.
+#
+#   on   (default) deny a foreign session's writes; auto-take over when stale
+#   warn           report and proceed (useful while adopting)
+#   off            no cross-session exclusion
+#
+# Independent of worktree_guard / worktree_bound — switching those off does not
+# silence this one.
+worktree_lease: on
+worktree_lease_idle_minutes: 20
 
 # Parallelism — allow fan-out workers (subagents / worktrees); cap how many run at once.
 parallelism:
