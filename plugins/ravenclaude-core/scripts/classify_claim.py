@@ -49,6 +49,14 @@ Usage:
     python3 scripts/classify_claim.py --self-test
     python3 scripts/classify_claim.py --must-fail
     python3 scripts/classify_claim.py --text "the decoder is broken, therefore ..."
+    printf 'line one\nline two\n' | python3 scripts/classify_claim.py --lines
+
+`--lines` is the BATCH entry point, added so a per-line consumer (the
+`claim-grounding-lint.sh` PostToolUse hook) can type many candidate lines in ONE
+interpreter start instead of forking per line. It adds no grammar: it is a thin
+loop over the same `families()` every other entry point calls, so the hook cannot
+drift from this module's definition of "inference" — which is the whole reason the
+hook calls out to here rather than re-implementing the five families in bash.
 """
 
 from __future__ import annotations
@@ -90,6 +98,15 @@ FAMILY_ORDER = ("causal", "defect", "quantifier", "population", "modal")
 FAMILY_SOURCES = {
     # Causal connectives. `so` is guarded against its non-causal idioms
     # ("so that" is purposive, "so far"/"so many" are degree).
+    #
+    # ATTRIBUTION PREDICATES (added 2026-08-18). The connective list above types
+    # "X, therefore Y" but typed "the failure is caused by my change" as an
+    # OBSERVATION — measured, not assumed: that exact sentence returned
+    # `observation  -` from `--lines` before this block existed. It is the single
+    # most common shape of the real failure (an agent attributing a cause it did
+    # not test), so the family that exists to catch causal reasoning was blind to
+    # it. Each alternative is anchored to a following word so the bare nouns
+    # ("cause", "reason", "result") cannot fire on prose that merely uses them.
     "causal": r"""
         \btherefore\b
       | \bhence\b
@@ -104,6 +121,19 @@ FAMILY_SOURCES = {
       | \bit\s+follows\s+that\b
       | \bimpl(?:y|ies)\b
       | \bso\b (?! (?: \s+ (?:that|far|many|much|long|few|little)\b | -called ) )
+      | \bcaused\s+(?:by|the|it|this|that)\b
+      | \bcauses\s+(?:the|it|this|that)\b
+      | \b(?:is|are|was|were)\s+causing\b
+      | \broot\s+cause\b
+      | \bdue\s+to\b
+      | \bowing\s+to\b
+      | \bled\s+to\b
+      | \bleads\s+to\b
+      | \bresulted\s+in\b
+      | \bresult(?:s|ing)\s+from\b
+      | \bstems\s+from\b
+      | \bthat\s+is\s+why\b
+      | \bthe\s+reason\s+(?:is|was|for|why)\b
     """,
     # Defect predicates. Copula-anchored on purpose: a bare "fail" is a COUNT in
     # tool output ("688 pass, 0 fail, 1 skipped"), not a diagnosis, so only the
@@ -497,6 +527,26 @@ def must_fail(fixture_dir: Path | None = None) -> int:
     return 0
 
 
+def classify_lines(stream) -> int:
+    """Batch: type one claim per input line, emit `index<TAB>kind<TAB>families`.
+
+    `index` is the 1-based ORDINAL of the line as fed in — the caller owns the
+    mapping back to its own line numbers. Blank lines are emitted as
+    `observation` with no families rather than skipped, so the caller's ordinals
+    never shift out from under it (a silent off-by-N in a lint that prints
+    `file:line` is worse than a useless row).
+    """
+    for i, raw in enumerate(stream, start=1):
+        text = raw.rstrip("\n").rstrip("\r")
+        try:
+            hits = families(text)
+        except TypeError:
+            hits = []
+        kind = INFERENCE if hits else OBSERVATION
+        print("%d\t%s\t%s" % (i, kind, ",".join(hits) or "-"))
+    return 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--self-test", action="store_true", help="run the fixture battery")
@@ -506,6 +556,11 @@ def main() -> int:
         help="plant defects and assert each one is detected",
     )
     ap.add_argument("--text", help="classify a single claim and print its families")
+    ap.add_argument(
+        "--lines",
+        action="store_true",
+        help="batch: type one claim per stdin line as index<TAB>kind<TAB>families",
+    )
     ap.add_argument(
         "--kind",
         default=None,
@@ -517,6 +572,8 @@ def main() -> int:
         return self_test()
     if args.must_fail:
         return must_fail()
+    if args.lines:
+        return classify_lines(sys.stdin)
     if args.text is not None:
         kind = resolve(args.text, args.kind)
         print("%s\t%s" % (kind, ",".join(families(args.text)) or "-"))

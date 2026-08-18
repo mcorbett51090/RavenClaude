@@ -470,6 +470,23 @@ PY
       bash plugins/ravenclaude-core/hooks/tests/test-gate122-delegation-nudge.sh
       exit $?
       ;;
+    # ⛔ Renumbered 223 -> 224 on the v0.281.0 rebase. `main` had independently taken
+    # 223 for the parallelism-posture gate (below), so this branch's `223)` landed
+    # FIRST in the same `case` and SHADOWED it — a shell `case` runs only the first
+    # match, so the parallelism gate became dead code while still appearing here and
+    # in the --check supported list. That is the unrun-gate class, silent by default.
+    # The test FILE keeps its `test-gate223-` name: an agent cannot rename it, because
+    # the tribunal substrate guard (xc.tribunal-self-disable) denies `git mv` under
+    # plugins/ravenclaude-core/hooks/. Same guard, same accepted workaround as
+    # ask-on-ambiguity's body living under scripts/. No gate checks filename-vs-number
+    # (verified: no consistency check exists in this file), so this is correct but ugly.
+    # Owner follow-up, needs a `!` bang command: git mv the file to test-gate224-*.sh
+    # and update the two call sites here (this one and the full-suite run below).
+    224)
+      echo "── Gate 224: assumption layers — inference-as-observation + ask-on-ambiguity ─"
+      bash plugins/ravenclaude-core/hooks/tests/test-gate223-assumption-claiming.sh
+      exit $?
+      ;;
     123)
       echo "── Gate 123: design-project binding surfacing (banner bound / half-set / absent / leak-safe / teeth) ──"
       bash plugins/ravenclaude-core/hooks/tests/test-gate123-design-project-binding.sh
@@ -1269,7 +1286,7 @@ PY
       ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 225, 226, 227, 228, 229, 230, 231. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -7943,6 +7960,36 @@ rc=0; python3 scripts/check-forms-honesty-markers.py --must-fail >/dev/null 2>&1
 gate "forms honesty teeth: three planted dishonest claims ARE caught" must_fail "$rc"
 rc_is_2=0; [ "$rc" -eq 2 ] || rc_is_2=1
 gate "forms honesty teeth: the planted claims fail closed at exit 2" must_pass "$rc_is_2"
+
+echo "── Gate 224: assumption layers — inference-as-observation + ask-on-ambiguity ─"
+# Two advisory surfaces under the "before claiming" / "ask on ambiguity" rules:
+#   claim-grounding-lint.sh check 3 — a CAUSAL claim about an outcome written into
+#     a knowledge/ or docs/ markdown file with no cited this-session check. Typing
+#     is scripts/classify_claim.py's job (the hook batches candidates through its
+#     --lines mode); the hook only decides which lines are in scope.
+#   scripts/ask-on-ambiguity.sh — a UserPromptSubmit nudge on a narrow
+#     under-specified PROMPT SHAPE. Never blocks, never persists the prompt.
+#
+# ⛔ The B-half is the point, not decoration. The first cut of check 3 fired on
+# 92 of 240 sampled live knowledge/+docs/ files (38%); after narrowing it is
+# 9/240. A doc DESCRIBING the anti-pattern must not be flagged — this repo has a
+# recurring failure where a source-scan gate flags the prose explaining the very
+# pattern it hunts — so B2/B3 assert exactly that, and C1 neuters the
+# suppressions to prove those silences are load-bearing rather than a check that
+# never runs. C2 does the same for ask-on-ambiguity's referent conjunct.
+#
+# ⛔ Registered in BOTH this main sequence AND the --check dispatcher above + the
+# Supported: string. After changing it, GREP THE SUITE OUTPUT FOR "Gate 224" —
+# this repo shipped a gate unreachable for a whole release while the suite
+# reported 701 pass. ⛔ This gate was authored as 223 and renumbered to 224 (the
+# number main reserved for it) on the v0.281.0 rebase, because main concurrently
+# landed its OWN Gate 223 (parallelism posture). Authored-as-223 would have sorted
+# FIRST in the --check `case` and shadowed the parallelism gate into dead code —
+# precisely the failure this comment warns about, caught by grepping for duplicate
+# case labels rather than by the suite, which would have reported all-pass.
+rc=0
+bash plugins/ravenclaude-core/hooks/tests/test-gate223-assumption-claiming.sh >/dev/null 2>&1 || rc=$?
+gate "assumption layers: uncited causal claim fires, described/cited/escaped/prescriptive silent, ambiguity nudge shape-only + no-egress, both teeth" must_pass "$rc"
 
 echo
 echo "── Gate 226: plugin version single-sourced (sync-plugin-versions.py) ──────"
