@@ -559,6 +559,14 @@ PY
       rm -f "$_mut"
       exit $rc
       ;;
+    229)
+      echo "── Gate 229: worktree ownership + session lease ──"
+      rc=0
+      bash plugins/ravenclaude-core/hooks/tests/test-gate229-worktree-lease.sh || rc=$?
+      bash plugins/ravenclaude-core/hooks/tests/test-gate229-worktree-lease.sh \
+        --must-fail-prefix || rc=$?
+      exit $rc
+      ;;
     227)
       echo "── Gate 227: guard-probe-validity — \`grep -v\` in QUIET mode (pv.grep-v-quiet) ──"
       rc=0
@@ -1232,7 +1240,7 @@ PY
       ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 225, 226, 227. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 225, 226, 227, 229. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -8046,6 +8054,43 @@ gate "test-gate223-probe-validity.sh: quiet -v fires (flag AND >/dev/null), 13 l
 
 rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate223-probe-validity.sh --prove-nonzero >/dev/null 2>&1 || rc=$?
 gate "test-gate223-probe-validity.sh --prove-nonzero: the harness HAS an exit-code contract (a false assertion reddens it)" must_fail "$rc"
+
+echo
+echo "── Gate 229: worktree ownership + session lease ────────────────────────────"
+# TWO defects. (1) FOREIGN-TREE resolved ownership by the FIRST worktree whose
+# path prefixed the target, and this repo puts worktrees at
+# <primary>/.claude/worktrees/<name> - so the primary is an ANCESTOR of every
+# linked worktree and matched first. Every write inside any linked worktree read
+# as foreign, which is why worktree_bound sat at `warn` with a comment saying the
+# deadlock left "no legal place to edit": the guard was switched off, not fixed.
+# Ownership is now the LONGEST matching prefix.
+#
+# (2) CONTENTION only NUDGED - it reported a second session and let both write.
+# The lease DENIES, and the stale fallback is what makes that safe: after
+# worktree_lease_idle_minutes the next session auto-commits the holder's work
+# (tracked AND untracked; .gitignore applies) and takes over. A lock with no
+# expiry strands the tree when a session dies; a lock nobody can exit gets
+# routed around.
+#
+# ⛔ Every deny assertion is paired with one that must NOT deny - a guard that
+# denies everything passes any "did it deny?" test - and the takeover case
+# asserts the holder's work SURVIVED, because a takeover that loses work is
+# worse than the deadlock it replaces. Two vacuity controls: the fixture is
+# proven to have the nested layout (without it the defect cannot appear), and
+# each ownership probe uses a FRESH guard home so a THROTTLED nudge cannot be
+# misread as a predicate that stopped firing (that artifact produced one false
+# "regression" during this work).
+#
+# ⛔ Registered in BOTH this main sequence AND the --check dispatcher above + the
+# Supported: string. After adding a gate, run the full suite and GREP ITS OUTPUT
+# FOR the SCRIPT NAME on an executed line.
+rc=0
+bash plugins/ravenclaude-core/hooks/tests/test-gate229-worktree-lease.sh >/dev/null 2>&1 || rc=$?
+gate "worktree: own-tree writes allowed, cross-tree denied, lease excludes a 2nd session" must_pass "$rc"
+rc=0
+bash plugins/ravenclaude-core/hooks/tests/test-gate229-worktree-lease.sh \
+  --must-fail-prefix >/dev/null 2>&1 || rc=$?
+gate "worktree teeth: first-prefix ownership (the original defect) IS caught" must_pass "$rc"
 
 echo
 

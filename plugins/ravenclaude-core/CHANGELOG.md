@@ -2,6 +2,77 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.278.0 — 2026-08-18
+
+### Fixed
+
+- **⛔ The worktree guard called every in-tree write "foreign", so worktree isolation
+  did not exist.** `_wg_is_foreign` returned on the **first** worktree whose path
+  prefixed the target — and this repo's own convention puts worktrees at
+  `<primary>/.claude/worktrees/<name>` ("worktrees UNDER the repo, never `/tmp`"),
+  which makes the primary checkout an **ancestor of every linked worktree**. So from
+  inside any worktree, writing your own files matched the primary and read as foreign.
+
+  control (2026-08-18): cwd = a linked worktree, target = a file **inside that same
+  worktree** → `FOREIGN — ... not <that worktree>`, naming the very tree the file
+  lives in. Positive control on the same harness: a genuine sibling → FOREIGN, a
+  `/tmp` path → silent, so the own-tree reading was real and not a dead probe.
+
+  Ownership is now the **longest** matching worktree prefix, and `worktree_bound`
+  returns to its documented default of `block`. It had been set to `warn` on main with
+  a comment saying the deadlock left *"no legal place to edit"* — the guard had been
+  switched off rather than fixed, so the isolation it advertised was not there.
+
+  ⛔ **A suppressed message is not a negative result.** The guard throttles a repeated
+  nudge per (path key, session, kind); reading that silence as "the predicate stopped
+  firing" produced one false *regression* report while this was being fixed. Gate 229
+  drives a fresh guard home per probe for exactly that reason.
+
+### Added
+
+- **Session lease — one worktree, one session.** CONTENTION only ever *nudged*: it
+  reported that another session was in the tree and let both proceed. The lease is the
+  enforcement — a session claims a worktree, and another session's mutating ops there
+  are **denied**, naming the holder and how long it has been idle.
+
+- **The stale fallback, which is what makes enforcement safe.** A lock with no expiry
+  strands the tree the moment a session crashes or is closed, and a lock nobody can
+  exit is one people route around. After `worktree_lease_idle_minutes` (default **20**)
+  with no activity, the next session **takes over** — auto-committing the holder's work
+  first as a `wip(worktree-lease)` checkpoint so the takeover cannot lose it. Tracked
+  **and** untracked (owner ruling; `.gitignore` still applies).
+
+  ⛔ **It refuses on the anchor branch.** `main`/`master` is the shared anchor here, so
+  a stale lease there is reported rather than auto-committed — the guard must not
+  create the mess it exists to prevent.
+
+- **`worktree_lease: on|warn|off` and `worktree_lease_idle_minutes: N`**, deliberately
+  **independent** of the other two knobs: `worktree_guard: off` + `worktree_bound: off`
+  used to short-circuit before the lease clause could run, so silencing the two nudges
+  would have silently removed cross-session exclusion with nothing saying so.
+
+### Gates
+
+- **Gate 229** — 18 assertions. Every deny is paired with a case that must **not** deny
+  (a guard that denies everything passes any "did it deny?" test), and the takeover case
+  asserts the holder's work **survived**, including the untracked file. Two vacuity
+  controls: the fixture is proven to have the nested layout (without it the defect
+  cannot appear at all), and each ownership probe uses a fresh guard home. The must-fail
+  half restores first-prefix ownership and **8** assertions go red.
+
+### Migration
+
+`worktree_bound` returns to `block` now that the predicate is correct — cross-worktree
+writes are denied again (`RC_WORKTREE_BOUND_ACK=1`, or `worktree_bound: warn`, to opt
+out). The lease is **on by default**: a second session writing into a worktree another
+session is actively using is denied until the holder has been idle 20 minutes. Set
+`worktree_lease: off` to disable, or `warn` to report without blocking.
+
+⛔ **Hooks run from the installed plugin cache, so neither change takes effect until
+`/plugin marketplace update ravenclaude`.** That lag is not cosmetic here: setting
+`worktree_bound: block` while the cache still holds the old predicate re-arms the
+*buggy* guard and re-creates the deadlock. Refresh the cache first, then flip the knob.
+
 ## 0.276.0 — 2026-08-18
 
 ### Added
