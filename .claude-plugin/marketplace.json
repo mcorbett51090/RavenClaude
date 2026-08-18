@@ -276,7 +276,7 @@
       "displayName": "RavenClaude Core",
       "source": "./plugins/ravenclaude-core",
       "description": "Domain-neutral Claude Code foundation: specialist agents, skills, gates, hooks, rules, templates. Capability Grounding Protocol, Structured Output Protocol, Researcher meta-skill, comfort-posture dashboard, opt-in command-review tribunal (the Thing), WebFetch sanitizer, branch-archive escape hatch, brand-extraction (homepage \u2192 brand kit), /wireframe (describe anything \u2192 validated model + high-fi Artifact + Mermaid), Problems & Resolutions view, declarative-visualization (Vega-Lite/Deneb/SVG, Gate 101 + Gate 103 svg-report-lint, viz-spec-reviewer), and Claude orchestrator escape hatch (/claude-orchestrate). Slash commands: /init-agent-ready, /wrap, /set-posture, /dashboard, /forge, /wireframe, /reset-plugin-cache, /handoff.",
-      "version": "0.272.0",
+      "version": "0.274.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -3834,7 +3834,9 @@
         "local-first"
       ],
       "requires": {
-        "plugins": ["ravenclaude-core@>=0.204.0"]
+        "plugins": [
+          "ravenclaude-core@>=0.204.0"
+        ]
       }
     },
     {
@@ -4165,7 +4167,7 @@
     {
       "name": "forms-engineering",
       "source": "./plugins/forms-engineering",
-      "description": "Forms engineering — the seam between how a form is built, how the request stream behind it is run, and where its trust boundary sits. Owns what no other plugin does: intake taxonomy and triage routing that make a request stream deterministic; the form measurement contract (which events, which denominator, what counts as a defect) and its hand-off to statistical process control; the server half of a submission that web-design routes out by rule (client/server validation parity, honeypot design and its assistive-tech exemption, double-submit and submission idempotency, webhook signature verification, PII minimisation); and form-platform selection on durable axes rather than a feature matrix. Client-side form construction and form accessibility stay with web-design. Upload hardening and challenge-widget mechanics stay with ravenclaude-core, which this plugin cites rather than restates, and every binding security verdict routes to ravenclaude-core/security-reviewer. Requires ravenclaude-core@>=0.7.0.",
+      "description": "Forms engineering \u2014 the seam between how a form is built, how the request stream behind it is run, and where its trust boundary sits. Owns what no other plugin does: intake taxonomy and triage routing that make a request stream deterministic; the form measurement contract (which events, which denominator, what counts as a defect) and its hand-off to statistical process control; the server half of a submission that web-design routes out by rule (client/server validation parity, honeypot design and its assistive-tech exemption, double-submit and submission idempotency, webhook signature verification, PII minimisation); and form-platform selection on durable axes rather than a feature matrix. Client-side form construction and form accessibility stay with web-design. Upload hardening and challenge-widget mechanics stay with ravenclaude-core, which this plugin cites rather than restates, and every binding security verdict routes to ravenclaude-core/security-reviewer. Requires ravenclaude-core@>=0.7.0.",
       "version": "0.1.0",
       "author": {
         "name": "Matt Corbett"

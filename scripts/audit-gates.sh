@@ -528,6 +528,13 @@ PY
       [ "$_mf" -eq 2 ] || rc=1
       exit $rc
       ;;
+    225)
+      echo "── Gate 225: self-disable read-only discriminator (floor intact, maintenance unblocked) ──"
+      rc=0
+      bash plugins/ravenclaude-core/hooks/tests/test-gate225-self-disable-readonly.sh || rc=$?
+      bash plugins/ravenclaude-core/hooks/tests/test-gate225-self-disable-readonly.sh --must-fail-meta || rc=1
+      exit "$rc"
+      ;;
     222)
       echo "── Gate 222: forge-route.py routing fixtures (mention vs pre-commitment) ──"
       rc=0
@@ -1187,7 +1194,7 @@ PY
       ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 225. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -7525,6 +7532,32 @@ cmp_rc=0; cmp -s "$IDX_HTML" "$_g205_idx" || cmp_rc=$?
 gate "committed-routes learn-retarget mutation is not a no-op" must_fail "$cmp_rc"
 rc=0; node scripts/check-committed-routes.mjs --index "$_g205_idx" >/dev/null 2>&1 || rc=$?
 gate "committed-routes derived-dispatch teeth: retargeting the learn branch IS caught" must_fail "$rc"
+
+echo
+echo "── Gate 225: self-disable read-only discriminator — floor intact, maintenance unblocked ─"
+# xc.tribunal-self-disable is pre-LLM, non-overridable and category-independent: the
+# security floor. It was ALSO denying ordinary maintenance, because it matched any
+# command that merely NAMED the substrate. Measured 2026-08-18: SEVEN legitimate
+# operations denied in one session — a read-only search whose PATTERN contained
+# `command_review:`, a stage-and-commit whose COMMIT MESSAGE described the denial, a
+# rename of a gate TEST file, and a scratch file whose NAME contained `patch`. The
+# guard's printed remedy ("turn the Thing off in the dashboard") was ALREADY applied
+# and does not help — always_screen runs before the enabled gate.
+#
+# ⛔ THE FIX CLASSIFIES THE COMMAND; IT RELAXES NO TRIGGER. With a read-only first
+# token and no shell metacharacters, nothing else on the line can execute — later
+# words are ARGUMENTS. Controlled against pristine code: the 9 mutation cases deny
+# IDENTICALLY before and after; only the 2 false denials flipped.
+#
+# ⛔ Registered in BOTH this main sequence AND the --check dispatcher above + the
+# Supported: string. After adding a gate, run the full suite and GREP ITS OUTPUT FOR
+# "Gate 225" — a passing suite is not evidence your gate is in it.
+_g225_rc=0
+bash plugins/ravenclaude-core/hooks/tests/test-gate225-self-disable-readonly.sh >/dev/null 2>&1 || _g225_rc=$?
+gate "self-disable: every substrate mutation still denies; non-writing maintenance is not blocked" must_pass "$_g225_rc"
+_g225_mf=0
+bash plugins/ravenclaude-core/hooks/tests/test-gate225-self-disable-readonly.sh --must-fail-meta >/dev/null 2>&1 || _g225_mf=$?
+gate "self-disable teeth: neutering the metacharacter conjunct lets a chained mutation through" must_pass "$_g225_mf"
 
 echo
 echo "── Gate 222: forge-route.py routing fixtures — a MENTION is not a PRE-COMMITMENT ─"
