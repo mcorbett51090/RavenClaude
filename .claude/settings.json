@@ -121,6 +121,11 @@
         "hooks": [
           {
             "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/guard-probe-validity.sh",
+            "comment": "Marketplace-dev hook (dev-mirror of the plugin's hooks/hooks.json PreToolUse(Bash) entry). Probe-validity advisory (default WARN, and WARN is the ONLY verdict). Reads the `probe_validity: off|warn` knob from .ravenclaude/comfort-posture.yaml (this repo dogfoods `probe_validity: warn`); an ABSENT posture file is a no-op. ONE rule: `grep -v` used in QUIET MODE, where the exit status stops answering \"is there a line that does NOT match?\" and starts reporting whether the PATTERN is ABSENT — an inverted answer that reads as clean. Quiet is entered two ways: a -q/--quiet/--silent flag (possibly bundled: -qv, -vq, -rqv, -qvE), and stdout redirected to /dev/null SPECIFICALLY (no -q required). ⛔ No host probe and no deny path, deliberately — a hook-side probe measures the wrong shell's grep, which makes a probe-gated deny branch unreachable in production and testable-green. Never exits 2. Same script the plugin distributes to consumers via ${CLAUDE_PLUGIN_ROOT}."
+          },
+          {
+            "type": "command",
             "command": "${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/enforce-git-protocol.sh",
             "comment": "Marketplace-dev hook (dev-mirror of the plugin's hooks/hooks.json PreToolUse(Bash) entry). Git-protocol nudge (default WARN): no-ops unless .ravenclaude/comfort-posture.yaml is present (this repo has none, so it no-ops), then reads the `git_protocol: off|warn|block` knob (default warn). WARNs on a non-Conventional-Commits `git commit -m` subject or a new-branch creation off the (feat|fix|chore|docs|refactor|agent)/ prefix convention; BLOCKS (exit 2) only when the knob is `block`. A direct non-force push to main/master is advisory-only and NEVER blocks. Does NOT touch force operations / branch force-delete / recursive-remove / hard reset (guard-destructive.sh owns those). Fail-open on any error / missing git / missing python3 / absent posture. Same script the plugin distributes to consumers via ${CLAUDE_PLUGIN_ROOT}."
           }

@@ -72,6 +72,16 @@ decision_review: binding
 # Claude orchestrator for non-Claude CLIs (off | decide | full). No-op under Claude Code.
 orchestrator: off
 
+# Probe-validity advisory (off | warn; default warn). ONE rule, WARN only —
+# `guard-probe-validity.sh` flags `grep -v` used in QUIET MODE, where the exit
+# status stops answering "is there a line that does NOT match?" and starts
+# reporting whether the pattern is ABSENT. Quiet is entered by a -q/--quiet/
+# --silent flag (possibly bundled: -qv, -vq, -rqv) OR by stdout going to
+# /dev/null with no -q at all. It fired once in 17,410 real agent commands and
+# that catch was a PR ALL_GREEN verdict. There is no `block` value: the hook has
+# no deny path by design (see its header for why a host probe cannot decide one).
+probe_validity: warn
+
 # Bring this dashboard up at session start (off | serve | open; default off).
 # serve = start the local server headless; open = also open a browser tab.
 dashboard_autostart: open
