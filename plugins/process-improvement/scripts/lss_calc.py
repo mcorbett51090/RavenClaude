@@ -382,7 +382,7 @@ def build_parser() -> argparse.ArgumentParser:
     cop.add_argument("--appraisal", type=float, required=True,
                      help="appraisal cost (inspection, testing)")
     cop.add_argument("--revenue", type=float, default=None,
-                     help="revenue to express COPQ as a % of (optional)")
+                     help="revenue to express COPQ as a %% of (optional)")
     cop.add_argument("--target-reduction", type=_parse_rate, default=None,
                      help="reduction target for recoverable COPQ (e.g. 50%%)")
     cop.set_defaults(func=cmd_copq)

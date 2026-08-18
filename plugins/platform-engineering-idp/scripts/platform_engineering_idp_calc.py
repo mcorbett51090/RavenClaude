@@ -139,7 +139,7 @@ def build_parser():
     sp.add_argument('--mttr-hours', type=float, required=True, help='median time to restore (hours)')
     sp.set_defaults(func=cmd_dora)
 
-    sp = sub.add_parser('adoption', help='teams on path / total -> adoption % + gap')
+    sp = sub.add_parser('adoption', help='teams on path / total -> adoption %% + gap')
     sp.add_argument('--teams-on-path', type=float, required=True, help='teams on the golden path')
     sp.add_argument('--total-teams', type=float, required=True, help='total teams')
     sp.set_defaults(func=cmd_adoption)
