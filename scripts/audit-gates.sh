@@ -559,6 +559,14 @@ PY
       rm -f "$_mut"
       exit $rc
       ;;
+    231)
+      echo "── Gate 231: git-push delete detection is scoped to the push segment ──"
+      rc=0
+      bash plugins/ravenclaude-core/hooks/tests/test-gate231-push-delete-scoping.sh || rc=$?
+      bash plugins/ravenclaude-core/hooks/tests/test-gate231-push-delete-scoping.sh \
+        --must-fail-unscoped || rc=$?
+      exit $rc
+      ;;
     229)
       echo "── Gate 229: worktree ownership + session lease ──"
       rc=0
@@ -1261,7 +1269,7 @@ PY
       ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 225, 226, 227, 228, 229, 230. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 225, 226, 227, 228, 229, 230, 231. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -8200,6 +8208,37 @@ rc=0
 bash plugins/ravenclaude-core/hooks/tests/test-gate227-handoff-seed-host.sh \
   --must-fail-spawn-default >/dev/null 2>&1 || rc=$?
 gate "handoff seed teeth: the pre-fix grok fall-through IS caught" must_pass "$rc"
+echo "── Gate 231: git-push delete detection is scoped to the push segment ───────"
+# `_is_dangerous_git_push_delete` ran its flag regexes over the WHOLE command
+# string once any `git push` appeared in it, so a delete flag belonging to a
+# DIFFERENT command in the same line was read as a branch deletion.
+#
+# control (2026-08-18): an ordinary `git push -u origin <branch>` followed in the
+# same line by a `tr` carrying a short delete flag was DENIED as
+# git-push-remote-branch-delete. Nothing was being deleted; dropping the `tr`
+# from that same line allowed it, so the trigger was the unrelated token and not
+# the push. Observed live - it blocked a real push during this work.
+#
+# THIRD INSTANCE OF ONE CLASS (srm.force-push v0.242.0, sce.curl-pipe-shell
+# v0.244.0): a rule matching on a token, applied to a string wider than the
+# command that token belongs to. It was missed twice because NOTHING exercised
+# this predicate. The remedy is NOT portable across the siblings - splitting on
+# the shell separators is right here because a push flag never crosses one,
+# while curl-pipe-shell must deliberately NOT exclude the pipe.
+#
+# Every allow case is paired with a deny case, including a deletion in a LATER
+# segment, so a "fix" that only inspected the first segment cannot pass.
+#
+# Registered in BOTH this main sequence AND the --check dispatcher above + the
+# Supported: string. After adding a gate, run the full suite and GREP ITS OUTPUT
+# FOR the SCRIPT NAME on an executed line.
+rc=0
+bash plugins/ravenclaude-core/hooks/tests/test-gate231-push-delete-scoping.sh >/dev/null 2>&1 || rc=$?
+gate "push-delete: an unrelated delete flag no longer reads as a branch deletion" must_pass "$rc"
+rc=0
+bash plugins/ravenclaude-core/hooks/tests/test-gate231-push-delete-scoping.sh \
+  --must-fail-unscoped >/dev/null 2>&1 || rc=$?
+gate "push-delete teeth: the unscoped whole-string match IS caught" must_pass "$rc"
 
 echo
 
