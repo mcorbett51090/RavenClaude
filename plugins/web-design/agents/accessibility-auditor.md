@@ -132,3 +132,4 @@ See [`../../ravenclaude-core/skills/structured-output/SKILL.md`](../../ravenclau
 - Constitution: [`../CLAUDE.md`](../CLAUDE.md) §3, §4, §6
 - Skill: [`../skills/accessibility-review/SKILL.md`](../skills/accessibility-review/SKILL.md)
 - Template: [`../templates/accessibility-audit-report.md`](../templates/accessibility-audit-report.md)
+- **Multi-step intakes:** three of WCAG 2.2's new criteria (3.3.7, 3.3.8, 3.2.6) are properties of a journey, so a single-page audit passes them by default. The intake-level reading is [`../../forms-engineering/best-practices/wcag-2-2-added-five-criteria-that-land-on-forms.md`](../../forms-engineering/best-practices/wcag-2-2-added-five-criteria-that-land-on-forms.md); the verdict stays yours.
