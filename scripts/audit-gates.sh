@@ -3964,9 +3964,11 @@ rc=0; python3 "$DSP" --plugin-server "$DSP_PORT_BAD" >/dev/null 2>&1 || rc=$?
 gate "dashboard-server-parity body-diff (drifted: _reclaim_port body mutated)" must_fail "$rc"
 # 32-c: a CSRF allow-list keyed on `args.port` (not `actual_port`) must be caught —
 # a fallback bind would else reject every same-origin /__save (DNS-rebinding defense
-# collapsed into a self-DoS).
+# collapsed into a self-DoS). Injects `args.port` onto the loopback allow-list MEMBER
+# line (which ruff-format reflows onto its own continuation line, NOT the naming line),
+# so this also exercises the format-agnostic brace-span scan in the parity checker.
 DSP_CSRF_BAD="$TMP/serve-dashboards-argsport.py"
-sed 's/f"127.0.0.1:{actual_port}", f"localhost:{actual_port}", "127.0.0.1"/f"127.0.0.1:{args.port}", f"localhost:{actual_port}", "127.0.0.1"/' \
+sed 's/f"127.0.0.1:{actual_port}",/f"127.0.0.1:{args.port}",/' \
   scripts/serve-dashboards.py > "$DSP_CSRF_BAD"
 rc=0; python3 "$DSP" --root-server "$DSP_CSRF_BAD" >/dev/null 2>&1 || rc=$?
 gate "dashboard-server-parity (CSRF allow-list keyed on args.port is caught)" must_fail "$rc"
@@ -4043,6 +4045,59 @@ else
   fi
   kill "$C2_PID" 2>/dev/null || true
   wait "$C2_PID" 2>/dev/null || true
+fi
+
+# (d) LIVE codespace-forwarded-host variants (the dashboard-403-codespaces fix). A server
+#     launched WITH CODESPACE_NAME set must accept THIS codespace's forwarded host in both
+#     its bare AND explicit-:443 forms — a `:443` Host silently 403'd the CSRF bootstrap, so
+#     the dashboard fell back to read-only "static" mode in a Codespace and Save & apply died
+#     — while a FOREIGN codespace's forwarded host must still 403 (enumerated per-codespace
+#     strings, never a "*.app.github.dev" wildcard: that IS the DNS-rebinding boundary).
+# Structural teeth: both server copies must enumerate the :443 variant (revert the fix -> fail).
+rc=0; { grep -q 'f"{_fwd}:443"' scripts/serve-dashboards.py \
+    && grep -q 'f"{_fwd}:443"' plugins/ravenclaude-core/scripts/serve-dashboards.py; } || rc=1
+gate "C2: both server copies allow-list the codespace :443 host variant" must_pass "$rc"
+C2B_PORT=""
+for cand in $(seq 8065 8114); do
+  if python3 -c "import socket,sys; s=socket.socket(); r=s.connect_ex(('127.0.0.1',$cand)); s.close(); sys.exit(0 if r!=0 else 1)" 2>/dev/null; then
+    C2B_PORT="$cand"; break
+  fi
+done
+if [ -z "$C2B_PORT" ]; then
+  echo "  ‼ C2 codespace-variant guard SKIPPED — no free port in 8065-8114."
+  SKIP=$((SKIP + 1)); SKIPPED_GATES+=("C2 codespace-variant guard [no free port]")
+else
+  C2B_CS="rc-c2b-testcs"
+  C2B_LOG="$TMP/c2b-serve.log"
+  CODESPACE_NAME="$C2B_CS" GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN=app.github.dev \
+    python3 scripts/serve-dashboards.py --port "$C2B_PORT" --bind 127.0.0.1 --no-open --max-idle 0 >"$C2B_LOG" 2>&1 &
+  C2B_PID=$!
+  c2b_ready=0
+  for _ in $(seq 1 40); do
+    if curl -fsS -o /dev/null "http://127.0.0.1:${C2B_PORT}/index.html" 2>/dev/null; then c2b_ready=1; break; fi
+    sleep 0.25
+  done
+  if [ "$c2b_ready" -ne 1 ]; then
+    echo "  ‼ C2 codespace-variant guard SKIPPED — test server did not answer (see $C2B_LOG)."
+    SKIP=$((SKIP + 1)); SKIPPED_GATES+=("C2 codespace-variant guard [server did not start]")
+  else
+    C2B_URL="http://127.0.0.1:${C2B_PORT}"
+    C2B_FWD="${C2B_CS}-${C2B_PORT}.app.github.dev"
+    # canonical forwarded host (same-origin GET, no Origin) -> 200.
+    code=$(curl -s -o /dev/null -w '%{http_code}' -H "Host: ${C2B_FWD}" -H 'Sec-Fetch-Site: same-origin' "${C2B_URL}/__csrf" 2>/dev/null || echo 000)
+    rc=0; [ "$code" = "200" ] || rc=1
+    gate "C2 live: canonical codespace forwarded Host -> 200" must_pass "$rc"
+    # THE FIX: the explicit-:443 form of THIS codespace's host -> 200 (was 403 pre-fix).
+    code=$(curl -s -o /dev/null -w '%{http_code}' -H "Host: ${C2B_FWD}:443" -H 'Sec-Fetch-Site: same-origin' "${C2B_URL}/__csrf" 2>/dev/null || echo 000)
+    rc=0; [ "$code" = "200" ] || rc=1
+    gate "C2 live: codespace forwarded Host with :443 -> 200 (the fix)" must_pass "$rc"
+    # BOUNDARY: a FOREIGN codespace's forwarded host -> 403 (enumerated, never a wildcard).
+    code=$(curl -s -o /dev/null -w '%{http_code}' -H "Host: evil-${C2B_PORT}.app.github.dev" -H 'Sec-Fetch-Site: same-origin' "${C2B_URL}/__csrf" 2>/dev/null || echo 000)
+    rc=0; [ "$code" = "403" ] || rc=1
+    gate "C2 live: FOREIGN codespace forwarded Host -> 403 (no wildcard)" must_pass "$rc"
+  fi
+  kill "$C2B_PID" 2>/dev/null || true
+  wait "$C2B_PID" 2>/dev/null || true
 fi
 
 echo

@@ -200,10 +200,14 @@ def main() -> int:
     ap = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
-    ap.add_argument("--root-server", default=str(ROOT_SERVER),
-                    help="path to the root dev server (default: scripts/serve-dashboards.py)")
-    ap.add_argument("--plugin-server", default=str(PLUGIN_SERVER),
-                    help="path to the bundled plugin server")
+    ap.add_argument(
+        "--root-server",
+        default=str(ROOT_SERVER),
+        help="path to the root dev server (default: scripts/serve-dashboards.py)",
+    )
+    ap.add_argument(
+        "--plugin-server", default=str(PLUGIN_SERVER), help="path to the bundled plugin server"
+    )
     args = ap.parse_args()
 
     root_path = Path(args.root_server)
@@ -303,15 +307,26 @@ def main() -> int:
     # the fallback port — the DNS-rebinding defense collapsed into a self-DoS.
     # Green today (v0.205.3 keyed both on actual_port); this pins it so a later
     # port edit cannot silently regress it in either copy.
+    # FORMAT-AGNOSTIC (2026-08-18): ruff-format may reflow `_ALLOWED_HOSTS = { ... }`
+    # across several physical lines, so an `args.port` member can land on a
+    # continuation line that does NOT itself contain `_ALLOWED_HOSTS`. A per-line
+    # scan silently missed that. Track the `{...}` brace span of each allow-list
+    # assignment (plus the naming line, which covers a single-line assignment or an
+    # `_ALLOWED_*.add(...)` call) and flag `args.port` anywhere inside it.
     for label, src_text in (("root", root_src), ("plugin", plugin_src)):
+        brace_depth = 0  # > 0 while inside a multi-line `_ALLOWED_* = { ... }` block
         for ln in src_text.splitlines():
-            if "_ALLOWED_HOSTS" in ln or "_ALLOWED_ORIGINS" in ln:
-                if "args.port" in ln and "port" in ln:
-                    body_drift.append(
-                        f"{label} serve-dashboards.py keys an allow-list on `args.port`, "
-                        f"not `actual_port`: {ln.strip()!r}. A fallback bind would then "
-                        f"reject every same-origin /__save (CSRF self-DoS). Use actual_port."
-                    )
+            names_allowlist = "_ALLOWED_HOSTS" in ln or "_ALLOWED_ORIGINS" in ln
+            if (names_allowlist or brace_depth > 0) and "args.port" in ln:
+                body_drift.append(
+                    f"{label} serve-dashboards.py keys an allow-list on `args.port`, "
+                    f"not `actual_port`: {ln.strip()!r}. A fallback bind would then "
+                    f"reject every same-origin /__save (CSRF self-DoS). Use actual_port."
+                )
+            if names_allowlist or brace_depth > 0:
+                brace_depth += ln.count("{") - ln.count("}")
+                if brace_depth < 0:
+                    brace_depth = 0
     only_in_root = sorted(set(root_fns) - set(plugin_fns))
     only_in_plugin = sorted(set(plugin_fns) - set(root_fns))
     if only_in_root:
