@@ -21,7 +21,13 @@ SPAWN="$HERE/../scripts/handoff-spawn.sh"
 _HOST_ENV_CLEAR=( -u TERM_PROGRAM -u __CFBundleIdentifier -u GROK_AGENT \
                   -u GROK_HOOK_EVENT -u GROK_SESSION_ID -u COPILOT_CLI \
                   -u GITHUB_COPILOT_CLI -u CURSOR_AGENT -u CURSOR_TRACE_ID \
-                  -u RC_HOST -u THING_HOST )
+                  -u RC_HOST -u THING_HOST \
+                  -u CLAUDECODE -u CLAUDE_CODE_ENTRYPOINT )
+# ⛔ THIS LIST MUST NAME EVERY MARKER detect_origin_host CONSULTS. CLAUDECODE /
+# CLAUDE_CODE_ENTRYPOINT were added to that function in 0.276.0 and not added
+# here, and the omission was invisible in CI (which sets neither) while failing
+# on any maintainer running inside Claude Code — the gate's verdict came from
+# ambient environment rather than from what it asserts.
 
 # Run the script under test with the detection surface cleared. Leading VAR=val
 # arguments are applied AFTER the clear, so a test pins exactly the vars it means
