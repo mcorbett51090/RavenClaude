@@ -26,8 +26,96 @@ All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the 
 ### Gates
 
 - **Gate 230** (`hooks/tests/test-gate227-handoff-seed-host.sh`) — 18 assertions pinning the seed each writer selects per host, across both writers, under `env -i`. **Positive control built in:** two rows assert grok *does* get the grok seed, because a blanket "no grok anywhere" suite would pass identically against a writer that emitted nothing. The must-fail half rebuilds the pre-fix file in all four parts and requires the assertions to go red. ⛔ **Honest scope:** it pins the seed value on the copy-paste/dry-run surface; it does not drive a live spawn, since that would start a real interactive agent.
+## 0.278.0 — 2026-08-18
+
+### Fixed
+
+- **⛔ The worktree guard called every in-tree write "foreign", so worktree isolation
+  did not exist.** `_wg_is_foreign` returned on the **first** worktree whose path
+  prefixed the target — and this repo's own convention puts worktrees at
+  `<primary>/.claude/worktrees/<name>` ("worktrees UNDER the repo, never `/tmp`"),
+  which makes the primary checkout an **ancestor of every linked worktree**. So from
+  inside any worktree, writing your own files matched the primary and read as foreign.
+
+  control (2026-08-18): cwd = a linked worktree, target = a file **inside that same
+  worktree** → `FOREIGN — ... not <that worktree>`, naming the very tree the file
+  lives in. Positive control on the same harness: a genuine sibling → FOREIGN, a
+  `/tmp` path → silent, so the own-tree reading was real and not a dead probe.
+
+  Ownership is now the **longest** matching worktree prefix. It had been set to `warn`
+  on main with a comment saying the deadlock left *"no legal place to edit"* — the
+  guard had been switched off rather than fixed, so the isolation it advertised was
+  not there.
+
+  ⛔ **`worktree_bound` deliberately stays `warn` in this release** (owner decision).
+  Hooks execute from the **installed plugin cache**, so flipping to `block` in the
+  same change that fixes the predicate would re-arm the *old, buggy* guard for any
+  session whose cache is stale — re-creating the exact deadlock this removes. That
+  was observed while building this. Flip to `block` **after**
+  `/plugin marketplace update ravenclaude` has refreshed every live session's cache.
+  The knob only decides whether a correct verdict blocks or warns; Gate 229 pins the
+  verdict itself either way.
+
+  ⛔ **A suppressed message is not a negative result.** The guard throttles a repeated
+  nudge per (path key, session, kind); reading that silence as "the predicate stopped
+  firing" produced one false *regression* report while this was being fixed. Gate 229
+  drives a fresh guard home per probe for exactly that reason.
+
+### Added
+
+- **Session lease — one worktree, one session.** CONTENTION only ever *nudged*: it
+  reported that another session was in the tree and let both proceed. The lease is the
+  enforcement — a session claims a worktree, and another session's mutating ops there
+  are **denied**, naming the holder and how long it has been idle.
+
+- **The stale fallback, which is what makes enforcement safe.** A lock with no expiry
+  strands the tree the moment a session crashes or is closed, and a lock nobody can
+  exit is one people route around. After `worktree_lease_idle_minutes` (default **20**)
+  with no activity, the next session **takes over** — auto-committing the holder's work
+  first as a `wip(worktree-lease)` checkpoint so the takeover cannot lose it. Tracked
+  **and** untracked (owner ruling; `.gitignore` still applies).
+
+  ⛔ **It refuses on the anchor branch.** `main`/`master` is the shared anchor here, so
+  a stale lease there is reported rather than auto-committed — the guard must not
+  create the mess it exists to prevent.
+
+- **`worktree_lease: on|warn|off` and `worktree_lease_idle_minutes: N`**, deliberately
+  **independent** of the other two knobs: `worktree_guard: off` + `worktree_bound: off`
+  used to short-circuit before the lease clause could run, so silencing the two nudges
+  would have silently removed cross-session exclusion with nothing saying so.
+
+### Gates
+
+- **Gate 229** — 18 assertions. Every deny is paired with a case that must **not** deny
+  (a guard that denies everything passes any "did it deny?" test), and the takeover case
+  asserts the holder's work **survived**, including the untracked file. Two vacuity
+  controls: the fixture is proven to have the nested layout (without it the defect
+  cannot appear at all), and each ownership probe uses a fresh guard home. The must-fail
+  half restores first-prefix ownership and **8** assertions go red.
+
+### Migration
+
+**`worktree_bound` stays `warn`.** The false positives stop — that is the fix — but a
+correct FOREIGN verdict still only warns. Flip to `block` once caches are refreshed
+(`RC_WORKTREE_BOUND_ACK=1` remains the per-command escape).
+
+The lease is **on by default**: a second session writing into a worktree another
+session is actively using is denied until the holder has been idle 20 minutes. Set
+`worktree_lease: off` to disable, or `warn` to report without blocking.
+
+⛔ **Hooks run from the installed plugin cache, so nothing here takes effect until
+`/plugin marketplace update ravenclaude`.** Until that refresh a stale session keeps
+the old predicate — which is exactly why `worktree_bound` is NOT flipped to `block` in
+the same change: the new knob plus the old predicate is the deadlock, not the fix.
+Refresh first, then flip.
+
+⛔ **The lease is on and enforcing**, so it reaches a session the moment its cache
+refreshes. If two sessions legitimately share one worktree today, set
+`worktree_lease: warn` before refreshing, or expect the latecomer to be denied until
+the holder has been idle 20 minutes.
 
 ## 0.277.0 — 2026-08-18
+
 ### Fixed
 
 - **`ravenclaude update` reported success over a checkout that had not moved.** It ran
