@@ -165,16 +165,17 @@ in a host's private area crosses over — assume it is lost the moment the sessi
 
 Claude Code loads the `name` + `description` of **every agent in every *enabled* plugin** into the orchestrator's system prompt so it can route to subagents (agent bodies load lazily, only when an agent is invoked). The combined descriptions count against a **~15K-token budget**; cross it and Claude Code warns *"agent descriptions are over the 15.0K token limit — /agents to free up context."*
 
-This marketplace ships **~181 plugins / 600+ agents**, so two levers keep the budget affordable — they're complementary, not either/or:
+This marketplace ships **~182 plugins / 600+ agents**, so two levers keep the budget affordable — they're complementary, not either/or:
 
 1. **Per-agent cap (this repo's job).** Every agent `description` is held to ≤ 300 chars (~75 tokens) by the `check-frontmatter.py` gate above. No single plugin is the problem; the cap is what lets a consumer enable *many* plugins before hitting the warning.
-2. **Enable only what you need (the consumer's job).** You cannot fit all ~181 plugins under 15K regardless of how tight the descriptions are — that's expected, not a defect. Enable the plugins relevant to your work and disable the rest via **`/agents`** (or `/plugin`). That's exactly what the warning's `/agents` hint points at, and it's the correct response to it. **Budget before you enable, not after the warning fires:** the `/plugin` **Discover** tab now surfaces a per-plugin **Context cost** estimate (the tokens a plugin adds to every turn — Claude Code v2.1.143+) and a **Will install** inventory of its commands/agents/skills/hooks/MCP+LSP servers (v2.1.145+), so you can see what a plugin costs the orchestrator prompt _before_ installing it rather than discovering the 15K overrun afterward. (Verified against [Discover and install plugins](https://code.claude.com/docs/en/discover-plugins), 2026-06-21.)
+2. **Enable only what you need (the consumer's job).** You cannot fit all ~182 plugins under 15K regardless of how tight the descriptions are — that's expected, not a defect. Enable the plugins relevant to your work and disable the rest via **`/agents`** (or `/plugin`). That's exactly what the warning's `/agents` hint points at, and it's the correct response to it. **Budget before you enable, not after the warning fires:** the `/plugin` **Discover** tab now surfaces a per-plugin **Context cost** estimate (the tokens a plugin adds to every turn — Claude Code v2.1.143+) and a **Will install** inventory of its commands/agents/skills/hooks/MCP+LSP servers (v2.1.145+), so you can see what a plugin costs the orchestrator prompt _before_ installing it rather than discovering the 15K overrun afterward. (Verified against [Discover and install plugins](https://code.claude.com/docs/en/discover-plugins), 2026-06-21.)
 
 ## Modifying an existing plugin
 
 1. Edit files inside `plugins/<plugin-name>/`.
-2. Bump `version` in `plugins/<plugin-name>/.claude-plugin/plugin.json` **and** in `.claude-plugin/marketplace.json` (CI fails on drift).
-3. Update consumers via `/plugin marketplace update ravenclaude` followed by `/reload-plugins`.
+2. Bump `version` in `plugins/<plugin-name>/.claude-plugin/plugin.json` — the **single source of truth** — then run `python3 scripts/sync-plugin-versions.py` to derive the `.claude-plugin/marketplace.json` entry. Never hand-edit the catalog version: two hand-edited copies of one fact is what made concurrent PRs conflict (one PR was re-bumped three times on 2026-08-17). CI still fails on drift (Gate 8), and Gate 226 (`sync-plugin-versions.py --check`) fails if the catalog is not derived.
+3. For `ravenclaude-core` only, a bump also needs `python3 scripts/generate-copilot-plugin.py` — its `copilot/plugin.json` is generated and has its own freshness gate. The sync script deliberately does not call it (that generator rewrites the whole projected agent tree, not just a version).
+4. Update consumers via `/plugin marketplace update ravenclaude` followed by `/reload-plugins`.
 
 ### CHANGELOG convention (optional per plugin)
 

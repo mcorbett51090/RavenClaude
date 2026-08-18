@@ -127,3 +127,4 @@ See [`../../ravenclaude-core/skills/structured-output/SKILL.md`](../../ravenclau
 ## References
 - Constitution: [`../CLAUDE.md`](../CLAUDE.md) §3, §4, §6
 - Template: [`../templates/design-brief.md`](../templates/design-brief.md)
+- **Forms whose submissions become someone's work:** you keep the layout, the flow and the field-level UX. The intake behind it — request taxonomy, routing rules, per-type response clocks, abandonment read as a process defect stream — is [`../../forms-engineering/skills/form-intake-and-triage-design/SKILL.md`](../../forms-engineering/skills/form-intake-and-triage-design/SKILL.md).

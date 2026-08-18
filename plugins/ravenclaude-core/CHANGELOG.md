@@ -2,9 +2,11 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
-## 0.273.0 — 2026-08-18
+## 0.276.0 — 2026-08-18
 
 ### Added
+
+- **Merged forward from `feat/vacuity-guard-grep-quiet`.** The gate below was authored as **Gate 223** and renumbered to **227** on merge: `main` landed its own Gate 223 (parallelism posture) concurrently, 224 is claimed by `feat/assumption-claiming-layer`, and 225/226 were already taken. The test file keeps its original `test-gate223-probe-validity.sh` name — renaming it would be a `git mv` under the plugin's own hooks directory, which `xc.tribunal-self-disable` hard-denies pre-LLM, and the gate's grep discipline keys on the script basename rather than the number.
 
 - **`guard-probe-validity.sh` — a twelfth `PreToolUse(Bash)` gate, carrying exactly ONE rule: `grep -v` used in QUIET MODE.** The existing eleven gates each answer *is this dangerous / in the right place / premise-settled / portable?* **None answers *"will this command answer the question the agent thinks it is answering?"*** This is the first that does.
 
@@ -17,15 +19,44 @@ All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the 
 - **⛔ WARN-only, with no host probe — and the hook's header says so at length so a future maintainer does not "improve" it back into unreachability.** Two earlier designs decided WARN-vs-DENY from a host probe. Both were overturned on a mechanical fact: **the probe would run in the hook's shell; the judged command runs in the agent's shell, and they are not the same `grep`.** Measured on one machine at one instant — the Bash tool resolves `grep` to a shell function execing under `ARGV0=ugrep` (7.5.0, **inverts**), while a hook subprocess (`/bin/sh -c`, or even `env -i /bin/bash -c`) resolves BSD grep 2.6.0 (**does not**). So on the exact machine where the defect is documented, a hook-side probe answers *"this host is fine"* and the DENY branch is unreachable, on every host, forever — **and it is testable-green**, since a test that fakes the probe "proves" a branch that is dead in the live path. That is a green test over a dead rule: precisely the vacuity class this gate is named after. Caching does not rescue it either — the same shell delegates to BSD grep on any `-Z`/`--null`/`-z`/`-@` argument, so `grep --version` and `grep --null --version` print **different products from the same word in the same shell** (same cache key, opposite answer), and computing the key costs ~7.6 ms against the ~4.1 ms probe it caches. Warning unconditionally is correct advice everywhere, costs nothing at ~1-in-17,410, and removes the whole wrong-shell failure mode **by construction rather than by care**. There is no exit-2 path in the file; an EXIT trap armed before anything else pins every error path to 0.
 - **⛔ The 5-rule prototype was NOT promoted.** It shipped two rules both prior plans explicitly excluded, and promoting it would have multiplied warn volume 11× (14 → 157) *entirely* from those two. The one rule was written fresh.
 
-- **Gate 223 — and its must-fail half is an exit-code contract, not a mutant.** The prototype's runner exited **0 whether 11 assertions failed or none did** — a gate green forever, this repo's own documented Gate-184 shape one layer down. So `test-gate223-probe-validity.sh` exits 1 on any failure **and** ships `--prove-nonzero`, which routes a deliberately false claim through the real assertion path; Gate 223 asserts `must_fail` on that invocation, so *"the harness reddens"* is re-proved on every CI run instead of being a claim in a commit message. Per-rule teeth are two in-test mutants that neuter the quiet detector and the invert detector and require every fire case to go silent — without them, "fires" would print identically if the hook simply warned on anything containing the word `grep`.
+- **Gate 227 — and its must-fail half is an exit-code contract, not a mutant.** The prototype's runner exited **0 whether 11 assertions failed or none did** — a gate green forever, this repo's own documented Gate-184 shape one layer down. So `test-gate223-probe-validity.sh` exits 1 on any failure **and** ships `--prove-nonzero`, which routes a deliberately false claim through the real assertion path; Gate 227 asserts `must_fail` on that invocation, so *"the harness reddens"* is re-proved on every CI run instead of being a claim in a commit message. Per-rule teeth are two in-test mutants that neuter the quiet detector and the invert detector and require every fire case to go silent — without them, "fires" would print identically if the hook simply warned on anything containing the word `grep`.
 
   **⛔ The fixture is asserted MIXED.** ugrep and BSD/GNU **agree** unless the input holds both a matching and a non-matching line, so 2 of the 3 plausible fixtures report *"no bug"* and silently prove nothing. Mixedness is a first-class, count-based assertion (`awk 'END{print NR}'` + `grep -c`), never an assumption.
 
-  Registered in all three Gate-195 sites (dispatcher arm, `Supported:` string, main sequence) and proven to run in the full suite by grepping the suite's own output **for the script name on an executed line** — never for the string "Gate 223", because a batched header once made a by-number grep report seven gates unrun that had all executed. Gate numbers **219–221 remain claimed** by unmerged PR #961.
+  Registered in all three Gate-195 sites (dispatcher arm, `Supported:` string, main sequence) and proven to run in the full suite by grepping the suite's own output **for the script name on an executed line** — never for the string "Gate 227", because a batched header once made a by-number grep report seven gates unrun that had all executed. Gate numbers **219–221 remain claimed** by unmerged PR #961.
 
   ⛔ Nothing in the hook, the test, or the gate uses `grep -q -v` — that *is* the defect, and it inverts here. Every assertion is count-based, and the bad forms appear only as command **strings** handed to the hook as data.
 
 - **`probe_validity: off | warn` (default `warn`)** in `.ravenclaude/comfort-posture.yaml`, read with the same minimal `sed` idiom `worktree-guard.sh` uses. There is no `block` value — the hook has no deny path. An **absent posture file is a no-op**, so consumers who never opted in are never surprised.
+## 0.273.0 — 2026-08-18
+
+### Changed
+
+- **Parallelism now defaults to MAXIMUM.** `PARALLELISM_DEFAULT` is `{enabled: true, max_workers: 4, unlimited: true}`, and **an absent `parallelism:` block now means maximum**, not "unchanged".
+
+  **Migration — one behavior change, and only one.** A consumer with **no** `parallelism:` block gets maximum fan-out where they previously got the agent's ad-hoc judgment. Every *explicit* setting is unchanged: `enabled: false` is still sequential, `max_workers: N` is still batches of ≤N, `max_workers: unlimited` is still uncapped, scalar `parallelism: on` is still enabled. Nothing breaks — `parallelism` is a behavioral commitment with no enforcement path, so no permission changes and no hook denies anything new; the cost is token spend and concurrency, which is what the conserve-tokens exception bounds. To opt out: `parallelism: off`, or tick **Conserve tokens** in the dashboard.
+
+  The alternative (keep `absent ⇒ unchanged`, re-seed only the dashboard default) was rejected: it reaches only consumers who open the dashboard and press Save, leaving every untouched posture on the old behavior forever — the opposite of the ask.
+
+- **Fixed: the scalar `parallelism: off` was silently ignored.** It fell through every hydration branch. Harmless while the default was OFF; with the default flipped it would have meant the **opposite** of what it reads.
+
+### Added
+
+- **The conserve-tokens exception, with three triggers and one precedence.** Engaged ⇒ the posture is read as `enabled: false` (sequential). No fourth mode.
+  1. **Prompt phrase** — per-session, sticky, **both directions** (`conserve tokens` engages; `maximum parallelism` / `stop conserving` releases). Rides the existing `UserPromptSubmit` hook.
+  2. **Posture switch** — `conserve_tokens: true`, a new checkbox on the dashboard's Pipeline page. Engage-only.
+  3. **Context pressure** — live usage ≥ `conserve_tokens_auto_pct` (default `80`; `0` disables), read from the existing `context-usage-meter.py`, not a second meter.
+
+  `engaged = phrase_override if a phrase fired this session else (posture_switch or context_pressure)`. The phrase wins in both directions (otherwise a phrase-engaged session has no exit short of editing config mid-conversation); the switch is engage-only (otherwise a stale config could silently suppress trigger 3). Engine: `scripts/conserve-tokens.py`.
+
+- **A serial-dispatch detector.** `scripts/parallelism-detector.py`, riding the existing `SubagentStart` hook, groups subagent starts into batches by start-time proximity, counts singles vs parallel batches, and emits at most 3 advisory `warn` events (`rule: serial-dispatch`, empty `path`) into `hook-events.jsonl`. **It never blocks** — a hook can stop an action, it cannot compel one. Its limits ship in its own output: it infers batching from start times, so a single dispatch may be a genuine dependency, and *zero batches means no subagents ran*, not perfect parallelism.
+
+- **A standing SessionStart directive.** The capability banner gains a four-line **PARALLELISM** section stating the resolved mode and the observed serial ratio. Derived labels only (Gate 19).
+
+### Gates
+
+- **Gate 35** extended: the two conserve keys round-trip (emit-when-non-default + hydrate-back), the new default emits **no** block, sequential is written explicitly, and `parallelism: off` hydrates to sequential. Two new must-fail halves (conserve emit stripped; default reverted to OFF).
+- **Gate 223** (new): all three conserve triggers, each with a control in the opposite direction, the precedence ordering, and the detector's serial-vs-parallel discrimination — 32 assertions, three must-fail mutants.
 
 ## 0.271.5 — 2026-08-17
 

@@ -1,0 +1,30 @@
+{
+  "name": "forms-engineering",
+  "version": "0.1.0",
+  "description": "Forms engineering — the seam between how a form is built, how the request stream behind it is run, and where its trust boundary sits. Owns what no other plugin does: intake taxonomy and triage routing that make a request stream deterministic; the form measurement contract (which events, which denominator, what counts as a defect) and its hand-off to statistical process control; the server half of a submission that web-design routes out by rule (client/server validation parity, honeypot design and its assistive-tech exemption, double-submit and submission idempotency, webhook signature verification, PII minimisation); and form-platform selection on durable axes rather than a feature matrix. Client-side form construction and form accessibility stay with web-design. Upload hardening and challenge-widget mechanics stay with ravenclaude-core, which this plugin cites rather than restates, and every binding security verdict routes to ravenclaude-core/security-reviewer. Requires ravenclaude-core@>=0.7.0.",
+  "author": {
+    "name": "Matt Corbett"
+  },
+  "homepage": "https://github.com/mcorbett51090/RavenClaude",
+  "license": "MIT",
+  "keywords": [
+    "forms",
+    "form-design",
+    "form-intake",
+    "triage",
+    "form-telemetry",
+    "form-analytics",
+    "abandonment",
+    "honeypot",
+    "bot-defense",
+    "idempotency",
+    "double-submit",
+    "webhook-verification",
+    "pii-minimisation",
+    "wcag-2-2",
+    "spc"
+  ],
+  "requires": {
+    "plugins": ["ravenclaude-core@>=0.7.0"]
+  }
+}

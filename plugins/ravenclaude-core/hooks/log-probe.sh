@@ -89,10 +89,51 @@ else:
 if not subject:
     subject = "cmd:" + re.sub(r"\s+", " ", cmd.strip())[:40]
 
+# ── WAS THIS EVEN AN HTTP PROBE? ────────────────────────────────────────────
+# ⛔ MEASURED 2026-08-18 across every probe-ledger on disk (7 scopes, 3,070
+# entries): of the 204 recorded NEGATIVES, 54 carried an `http-NNN` label, and
+# 54 of those 54 came from a Bash command with NO network client anywhere in it.
+#
+#     wc -l schemas/design-schema.schema.json  ->  http-454   (a line count)
+#     ls -la /Users/.../RavenClaude            ->  http-448   (a block count)
+#     git diff origin/main --stat              ->  http-447   (an insertion count)
+#     git show 5a985b95 --stat | head -60      ->  http-403   (a diffstat number)
+#
+# `http-447`, `http-448`, `http-454`, `http-459` and `http-482` are not status
+# codes at all. The positive control on the same filter returned ZERO genuine
+# ones, so the class was 100% noise — and it was not harmless noise: THREE of
+# the seven real scopes on disk carried unresolved negative families made
+# entirely of these, which is the gate refusing to let a new source module be
+# created because `wc -l` printed 454. A guard that fires on `wc -l` is a guard
+# that gets switched off.
+#
+# So: a BARE three-digit number is a status code only when the probe was an HTTP
+# probe. Everything below is TEXTUAL (`command not found`, `No such file`) and
+# stays ungated — those say what they mean in any context.
+#
+# ⛔ THE GATING IS SYMMETRIC ON PURPOSE. Gating only the negative half would
+# leave a bare `200` in `wc -l` output still RESOLVING a family — trading a
+# false deny for a false clear, which is the same defect pointed the other way.
+# If you ever narrow one of these three lists, narrow all three.
+_HTTP_CLIENT = re.compile(
+    r"(?:^|[\s;|&(=])(?:curl|wget|httpie|xh|aria2c|lynx|w3m)(?:[\s;|&)]|$)"
+    r"|\bgh\s+api\b"
+    r"|\brequests\.(?:get|post|put|head|delete)\b"
+    r"|\bhttpx\b|\burllib\b|\bfetch\(",
+    re.I,
+)
+is_http = (
+    tool == "WebFetch"
+    or bool(re.search(r"https?://", cmd))
+    or bool(_HTTP_CLIENT.search(cmd))
+)
+
 # ── VERDICT: negative | positive | indeterminate | neutral ──────────────────
 # A NEGATIVE is a result that invites the inference "X is broken/absent".
-NEG = [
+_NEG_STATUS = [
     (r"(?:^|\s|\b)([45]\d\d)(?:\s|$)", "http-{0}"),
+]
+_NEG_TEXT = [
     (r"\bcommand not found\b", "command-not-found"),
     (r"\bNo such file or directory\b", "no-such-file"),
     (r"\bnot found\b", "not-found"),
@@ -100,6 +141,7 @@ NEG = [
     (r"\bPermission denied\b", "permission-denied"),
     (r"\b(?:0 hits|no matches found|0 results)\b", "zero-match"),
 ]
+NEG = (_NEG_STATUS + _NEG_TEXT) if is_http else _NEG_TEXT
 
 # ── INDETERMINATE, CHECKED FIRST — a NON-result, not a negative result. ─────
 # The probe never reached the question: rate-limited, the server errored, the
@@ -110,14 +152,20 @@ NEG = [
 # rate-limited probe returns the same 429, so a permanent block is the one
 # outcome guaranteed to train override-reflex, which costs more safety than it
 # buys. 429 is carved OUT of the 4xx pattern for this reason.
-INDET = [
+#
+# The bare-code halves are gated on `is_http` for the reason above — `wc -l`
+# printing 503 is a line count, not a server error. The word forms are not.
+_INDET_STATUS = [
     (r"(?:^|\s|\b)429(?:\s|$)", "rate-limited"),
-    (r"\b(?:rate.?limit(?:ed|ing)?|too many requests)\b", "rate-limited"),
     (r"(?:^|\s|\b)5\d\d(?:\s|$)", "server-error"),
+]
+_INDET_TEXT = [
+    (r"\b(?:rate.?limit(?:ed|ing)?|too many requests)\b", "rate-limited"),
     (r"\b(?:timed out|timeout|Operation timed out)\b", "timeout"),
     (r"\b(?:Connection refused|Connection reset|Could not resolve host"
      r"|Temporary failure in name resolution|Network is unreachable)\b", "unreachable"),
 ]
+INDET = (_INDET_STATUS + _INDET_TEXT) if is_http else _INDET_TEXT
 
 verdict, label = "neutral", ""
 for pat, lab in INDET:
@@ -127,7 +175,12 @@ for pat, lab in INDET:
         break
 
 # A POSITIVE-CAPABLE CONTROL: same subject family, demonstrably able to succeed.
-_pos = bool(re.search(r"(?:^|\s|\b)(2\d\d|3\d\d)(?:\s|$)", out, re.M))
+# ⛔ Gated on `is_http` for the SAME reason the negative half is — see above.
+# An ungated 2xx/3xx would let `wc -l` printing 200 silently RESOLVE a family
+# nobody probed, which is the false-clear twin of the false-deny. A non-HTTP
+# Bash call that produced output still records `positive/ok` through the
+# fallback below, so nothing that used to clear stops clearing.
+_pos = bool(is_http and re.search(r"(?:^|\s|\b)(2\d\d|3\d\d)(?:\s|$)", out, re.M))
 
 if verdict == "neutral":
     _neg = None

@@ -815,15 +815,15 @@ _PIPELINE_LANES = [
                 "title": "Parallel workers",
                 "badge": "dynamic",
                 "controls": "parallelism",
-                "tip": "Lets the robot split a job across several helpers at once — and caps how many run together.",
+                "tip": "By default the robot splits a job across as many helpers at once as the job allows.",
                 "detail": {
                     "steps": [
                         "Watches when the robot wants to fan work out to helpers (subagents / worktrees).",
-                        "If parallel workers are allowed, lets several run side by side.",
-                        "Caps how many run at once to your limit.",
+                        "By default it runs every independent piece at the same time, with no limit.",
+                        "Caps how many run at once if you set a limit — or works one at a time if you turn it off.",
                     ],
-                    "trip": "When off, helpers run one at a time; when on, up to your worker limit run together.",
-                    "set": "Turn parallel workers on and set the most-at-once limit in the boxes below.",
+                    "trip": "Nothing is blocked. This only tells the robot how wide to spread the work.",
+                    "set": "Set a most-at-once limit, or tick “Conserve tokens” to make it work one step at a time.",
                 },
             },
             {
@@ -1175,8 +1175,14 @@ _PIPELINE_CONTROLS = {
         "No limit (unlimited workers)</label>"
         '<label class="pipe-ctl">Most workers at once '
         '<input type="number" id="pipe-parallelism-workers" min="1" step="1"></label>'
-        '<p class="pipe-hint">When on, fan-out work (subagents / worktrees) may run in parallel. '
-        "Tick “No limit” for unlimited workers, or set a cap. Off keeps the work sequential.</p>"
+        '<label class="pipe-ctl"><input type="checkbox" id="pipe-conserve-tokens"> '
+        "Conserve tokens (work one step at a time)</label>"
+        '<p class="pipe-hint">The default is MAXIMUM: fan-out work '
+        "(subagents / worktrees) runs in parallel with no limit. Untick “No limit” and set a "
+        "cap to batch it, or untick “Allow parallel workers” to keep the work sequential. "
+        "“Conserve tokens” is the standing exception — it makes the robot work one step at a "
+        "time until you turn it back off. It also switches on by itself when a prompt says "
+        "“conserve tokens” or the session runs low on room.</p>"
     ),
     "decision": (
         '<label class="pipe-ctl">Mode '
@@ -8118,7 +8124,24 @@ _JS = r"""
    * user changed it — preserving "absent ⇒ default" so a consumer's untouched
    * posture is never bloated and nothing changes on /plugin marketplace update. */
   const RUNAWAY_DEFAULT = Object.freeze({ max_total: 1200, max_consecutive: 8, off: false });
-  const PARALLELISM_DEFAULT = Object.freeze({ enabled: false, max_workers: 4, unlimited: false });
+  /* Parallelism default flipped to MAXIMUM (v0.273.0, owner decision). `absent ⇒ max`:
+   * an untouched posture now means "fan independent work out as wide as the work
+   * allows". `enabled: false` (or the scalar `parallelism: off`) still means sequential
+   * and `max_workers: N` still means batches of ≤N, so a consumer who ever tuned the
+   * block sees ZERO change — only the absent case moves. emitYaml writes the block only
+   * when it DIFFERS from this default, so "absent ⇒ default" still holds in both
+   * directions (a max-parallelism posture stays absent; a sequential one is written). */
+  const PARALLELISM_DEFAULT = Object.freeze({ enabled: true, max_workers: 4, unlimited: true });
+  /* Conserve-tokens exception (v0.273.0). The persistent half of the three-trigger
+   * exception to maximum parallelism (the other two are per-session: a prompt phrase and
+   * automatic context/budget pressure — both live in hooks, not here). When engaged, the
+   * parallelism posture is read as `enabled: false` (sequential). Default OFF, so emitYaml
+   * writes it only when the user turns it on. `conserve_tokens_auto_pct` is the pressure
+   * threshold in percent of the context window; 0 disables the automatic trigger. */
+  const CONSERVE_TOKENS_DEFAULT = false;
+  const CONSERVE_AUTO_PCT_DEFAULT = 80;
+  const CONSERVE_AUTO_PCT_MIN = 0;
+  const CONSERVE_AUTO_PCT_MAX = 100;
   const DOD_DEFAULT = Object.freeze({ cmd: "", max_blocks: 8 });
   const DECISION_REVIEW_VALUES = ["off", "advisory", "binding"];
   const DECISION_REVIEW_DEFAULT = "off";
@@ -8225,6 +8248,8 @@ _JS = r"""
      * constants; emitYaml writes each block only when it differs from default. */
     runaway: Object.assign({}, RUNAWAY_DEFAULT),
     parallelism: Object.assign({}, PARALLELISM_DEFAULT),
+    conserve_tokens: CONSERVE_TOKENS_DEFAULT,
+    conserve_tokens_auto_pct: CONSERVE_AUTO_PCT_DEFAULT,
     decision_review: DECISION_REVIEW_DEFAULT,
     worktree_guard: WORKTREE_GUARD_DEFAULT,
     worktree_bound: WORKTREE_BOUND_DEFAULT,
@@ -8626,13 +8651,30 @@ _JS = r"""
       if (typeof pl.enabled === "boolean") { state.parallelism.enabled = pl.enabled; touched = true; }
       if (pl.max_workers === "unlimited" || pl.unlimited === true) {
         state.parallelism.unlimited = true; touched = true;
-      } else {
+      } else if (pl.max_workers !== undefined && pl.max_workers !== null) {
+        /* Only a PRESENT max_workers may clear `unlimited`. Reading an absent key as
+         * "not unlimited" would silently downgrade the max default on a posture that
+         * only set `enabled:` — the round-trip data-loss class in a new place. */
         const mw = parseInt(pl.max_workers, 10);
         if (Number.isFinite(mw) && mw > 0) { state.parallelism.max_workers = mw; state.parallelism.unlimited = false; touched = true; }
       }
     } else if (pl === true || pl === "on") {
       /* scalar `parallelism: on` form (YAML `on` parses to boolean true) */
       state.parallelism.enabled = true; touched = true;
+    } else if (pl === false || pl === "off") {
+      /* scalar `parallelism: off` form (YAML `off` parses to boolean false). Handled
+       * explicitly since the default flipped to MAX: leaving it unhandled would make
+       * the established `<knob>: off` idiom mean the OPPOSITE of what it reads. */
+      state.parallelism.enabled = false; touched = true;
+    }
+    if (typeof src.conserve_tokens === "boolean") {
+      state.conserve_tokens = src.conserve_tokens; touched = true;
+    }
+    {
+      const cp = parseInt(src.conserve_tokens_auto_pct, 10);
+      if (Number.isFinite(cp) && cp >= CONSERVE_AUTO_PCT_MIN && cp <= CONSERVE_AUTO_PCT_MAX) {
+        state.conserve_tokens_auto_pct = cp; touched = true;
+      }
     }
     if (DECISION_REVIEW_VALUES.includes(src.decision_review)) {
       state.decision_review = src.decision_review; touched = true;
@@ -8779,11 +8821,29 @@ _JS = r"""
     }
 
     const pl = state.parallelism;
-    if (pl.enabled === true || pl.unlimited === true || pl.max_workers !== PARALLELISM_DEFAULT.max_workers) {
-      lines.push("# Parallelism — allow fan-out workers (subagents / worktrees); cap how many run at once.");
+    /* Emit ONLY when the block differs from the (now MAXIMUM) default, so a
+     * max-parallelism posture stays absent and "absent ⇒ default" holds. */
+    if (pl.enabled !== PARALLELISM_DEFAULT.enabled
+        || pl.unlimited !== PARALLELISM_DEFAULT.unlimited
+        || pl.max_workers !== PARALLELISM_DEFAULT.max_workers) {
+      lines.push("# Parallelism — fan-out workers (subagents / worktrees). Default (block absent) is MAXIMUM.");
       lines.push("parallelism:");
       lines.push(`  enabled: ${pl.enabled === true}`);
       lines.push(`  max_workers: ${pl.unlimited === true ? "unlimited" : pl.max_workers}`);
+      lines.push("");
+    }
+
+    if (state.conserve_tokens === true) {
+      lines.push("# Conserve tokens — the standing exception to maximum parallelism (sequential work).");
+      lines.push(`conserve_tokens: ${state.conserve_tokens === true}`);
+      lines.push("");
+    }
+    if (Number.isFinite(state.conserve_tokens_auto_pct)
+        && state.conserve_tokens_auto_pct !== CONSERVE_AUTO_PCT_DEFAULT
+        && state.conserve_tokens_auto_pct >= CONSERVE_AUTO_PCT_MIN
+        && state.conserve_tokens_auto_pct <= CONSERVE_AUTO_PCT_MAX) {
+      lines.push("# Context-pressure percent at which conserve-tokens engages automatically (0 = never).");
+      lines.push(`conserve_tokens_auto_pct: ${state.conserve_tokens_auto_pct}`);
       lines.push("");
     }
 
@@ -8924,6 +8984,8 @@ _JS = r"""
         command_review: state.command_review,
         runaway: state.runaway,
         parallelism: state.parallelism,
+        conserve_tokens: state.conserve_tokens,
+        conserve_tokens_auto_pct: state.conserve_tokens_auto_pct,
         decision_review: state.decision_review,
         worktree_guard: state.worktree_guard,
         worktree_bound: state.worktree_bound,
@@ -10780,11 +10842,17 @@ _JS = r"""
     if (pu) pu.checked = state.parallelism.unlimited === true;
     const pw = document.getElementById("pipe-parallelism-workers");
     if (pw) { pw.value = state.parallelism.max_workers; pw.disabled = state.parallelism.unlimited === true; }
+    const pct = document.getElementById("pipe-conserve-tokens");
+    if (pct) pct.checked = state.conserve_tokens === true;
+    /* Conserve-tokens is the standing exception: it reads OVER the parallelism
+     * block, so the badge must show what the agent will actually do. */
     pipeBadge("parallel-workers",
-              state.parallelism.enabled
-                ? (state.parallelism.unlimited ? "On · unlimited" : ("On · " + state.parallelism.max_workers + " workers"))
-                : "Off",
-              state.parallelism.enabled ? "pipe-badge-on" : "pipe-badge-off");
+              state.conserve_tokens === true
+                ? "Conserving — one at a time"
+                : state.parallelism.enabled
+                  ? (state.parallelism.unlimited ? "On · unlimited" : ("On · " + state.parallelism.max_workers + " workers"))
+                  : "Off",
+              (state.conserve_tokens !== true && state.parallelism.enabled) ? "pipe-badge-on" : "pipe-badge-off");
     const dr = document.getElementById("pipe-decision-review");
     if (dr) dr.value = state.decision_review;
     pipeBadge("route-decision-review", state.decision_review,
@@ -10878,6 +10946,7 @@ _JS = r"""
     onChange("pipe-parallelism-enabled", el => { state.parallelism.enabled = el.checked; });
     onChange("pipe-parallelism-unlimited", el => { state.parallelism.unlimited = el.checked; });
     onInput("pipe-parallelism-workers", el => { const v = parseInt(el.value, 10); if (Number.isFinite(v) && v > 0) state.parallelism.max_workers = v; });
+    onChange("pipe-conserve-tokens", el => { state.conserve_tokens = el.checked; });
     onChange("pipe-decision-review", el => { if (DECISION_REVIEW_VALUES.includes(el.value)) state.decision_review = el.value; });
     onChange("pipe-orchestrator", el => { if (ORCHESTRATOR_VALUES.includes(el.value)) { state.orchestrator = el.value; syncPipelineTab(); } });
     onChange("pipe-orchestrator-scope", el => { if (ORCHESTRATOR_SCOPE_VALUES.includes(el.value)) { state.orchestrator_scope = el.value; syncPipelineTab(); } });

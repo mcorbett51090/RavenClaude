@@ -103,3 +103,4 @@ Hand-off to black belt: <what the black belt needs to baseline / analyze next>
 - **Instrumenting the process for ongoing measurement** → `data-platform` (the pipeline / dashboard).
 - **The project wrapper (schedule, RAID, status)** → `project-management/delivery-lead`.
 - **PII / confidential operational data in a data-collection plan** → `ravenclaude-core/security-reviewer`.
+- **The process starts at a web form** → [`../../forms-engineering/skills/form-telemetry-and-control/SKILL.md`](../../forms-engineering/skills/form-telemetry-and-control/SKILL.md) for the measurement contract (which events, which denominator, what counts as a defect) and an individuals series you can chart. ⛔ It labels the SPC↔form-telemetry join as **novel synthesis**, not received practice — carry that label into any tollgate deck.
