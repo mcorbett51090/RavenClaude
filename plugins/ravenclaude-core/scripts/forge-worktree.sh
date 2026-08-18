@@ -19,26 +19,36 @@
 # ravenclaude-core CLAUDE.md "macOS door" milestones.
 #
 # Usage:
-#   forge-worktree.sh init  <slug> [--base <ref>]   provision (or reuse) the worktree
+#   forge-worktree.sh init  <slug> [--base <ref>] [--no-fetch]
+#                                                   provision (or reuse) the worktree
 #   forge-worktree.sh checkpoint <slug> <label>     commit tracked work as a checkpoint
 #   forge-worktree.sh path  <slug>                  print the worktree path (or nothing)
 #   forge-worktree.sh --self-test                   run built-in fixtures (nonzero on failure)
 #
 # Opt-out: FORGE_WORKTREE=off (env) OR `forge_worktree: off` in
 # .ravenclaude/comfort-posture.yaml. Absent ⇒ ON (the default).
+#
+# Base-ref opt-out: FORGE_WORKTREE_FETCH=off (env) or --no-fetch skips the
+# bounded `git fetch` that keeps origin/main from being stale itself. The base
+# preference (origin/main > origin/master > main > HEAD) is NOT opt-out-able —
+# see _resolve_base for why branching off a lagging local `main` fails silently.
 
 set -euo pipefail
 
 WT_ROOT_REL=".claude/worktrees"
 SLUG_RE='^[a-z0-9][a-z0-9-]{1,60}$'
+WT_FETCH="on"
 
 # --- tiny helpers -----------------------------------------------------------
 
 # Emit a one-line JSON receipt on stdout. All values are pre-sanitized/simple.
 _receipt() {
   # $1=status $2=path $3=branch $4=slug $5=reason(optional)
-  printf '{"status":"%s","path":"%s","branch":"%s","slug":"%s","reason":"%s"}\n' \
-    "${1:-}" "${2:-}" "${3:-}" "${4:-}" "${5:-}"
+  # $6=base(optional)  $7=behind(optional — commits the base is behind origin/main)
+  # Fields 6-7 are ADDITIVE: every pre-existing call site passes 4-5 args and gets
+  # empty strings, so the receipt shape stays backward-compatible.
+  printf '{"status":"%s","path":"%s","branch":"%s","slug":"%s","reason":"%s","base":"%s","behind":"%s"}\n' \
+    "${1:-}" "${2:-}" "${3:-}" "${4:-}" "${5:-}" "${6:-}" "${7:-}"
 }
 
 _is_git_repo() {
@@ -93,17 +103,71 @@ _branch_exists() {
   git show-ref --verify --quiet "refs/heads/$1"
 }
 
-# Pick a base ref that exists: prefer requested --base, else main, else HEAD.
+# Run a command under a wall-clock bound. GNU `timeout` is ABSENT on stock macOS
+# (CLAUDE.md "macOS door 2"), so fall back to gtimeout, then stock /usr/bin/perl's
+# alarm, then DECLINE to run it at all — an unbounded network call must never
+# stall provisioning, and the only caller treats a skipped run as a no-op.
+_bounded() {
+  local secs="$1"; shift
+  if command -v timeout >/dev/null 2>&1; then
+    timeout "$secs" "$@"
+  elif command -v gtimeout >/dev/null 2>&1; then
+    gtimeout "$secs" "$@"
+  elif command -v perl >/dev/null 2>&1; then
+    perl -e 'alarm shift; exec @ARGV' "$secs" "$@"
+  else
+    return 0
+  fi
+}
+
+# Refresh the remote-tracking refs so origin/main is not itself stale. Touches
+# refs/remotes/* only — never the working tree, never a local branch — so it
+# cannot disturb the primary checkout's state. Fail-safe: offline, no remote,
+# no bounded runner, or any git error is ignored and provisioning continues.
+_maybe_fetch() {
+  [ "${FORGE_WORKTREE_FETCH:-on}" = "off" ] && return 0
+  [ "$WT_FETCH" = "off" ] && return 0
+  git remote get-url origin >/dev/null 2>&1 || return 0
+  _bounded 10 git fetch --quiet origin >/dev/null 2>&1 || true
+  return 0
+}
+
+# Pick a base ref that exists, preferring the REMOTE-tracking branch over the
+# local one: origin/main > origin/master > main > HEAD (an explicit --base wins).
+#
+# ⛔ Why the remote ref comes first. Branching off a local `main` that lags origin
+# yields a plausible checkout FROM THE PAST — every file is present, every gate
+# passes, and the diff built there silently REVERTS everything landed since. It
+# fails silently, which is the whole reason this ordering is not configurable.
+# Measured in this repo at 3 commits behind, and on a prior occasion at 105.
 _resolve_base() {
   # $1 = requested base (may be empty)
   local req="$1"
   if [ -n "$req" ] && git rev-parse --verify --quiet "$req" >/dev/null 2>&1; then
     echo "$req"; return 0
   fi
+  _maybe_fetch
+  if git rev-parse --verify --quiet "refs/remotes/origin/main" >/dev/null 2>&1; then
+    echo "origin/main"; return 0
+  fi
+  if git rev-parse --verify --quiet "refs/remotes/origin/master" >/dev/null 2>&1; then
+    echo "origin/master"; return 0
+  fi
   if git rev-parse --verify --quiet "main" >/dev/null 2>&1; then
     echo "main"; return 0
   fi
   echo "HEAD"
+}
+
+# How many commits a ref is behind origin/main. Empty when there is no
+# origin/main to compare against (a purely local repo) — an empty count means
+# "not comparable", NEVER "up to date". This is the PROOF value: a silently
+# stale base is the failure mode, so the count rides on every provision receipt.
+_behind_origin_main() {
+  # $1 = ref to measure
+  local ref="$1"
+  git rev-parse --verify --quiet "refs/remotes/origin/main" >/dev/null 2>&1 || { echo ""; return 0; }
+  git rev-list --count "${ref}..refs/remotes/origin/main" 2>/dev/null || echo ""
 }
 
 # --- subcommands ------------------------------------------------------------
@@ -115,6 +179,7 @@ cmd_init() {
     case "$1" in
       --base) base="${2:-}"; shift 2 || shift ;;
       --base=*) base="${1#--base=}"; shift ;;
+      --no-fetch) WT_FETCH="off"; shift ;;
       *) shift ;;
     esac
   done
@@ -151,10 +216,26 @@ cmd_init() {
   wt_abs="${top}/${WT_ROOT_REL}/forge-${slug}"
   branch="forge/${slug}"
 
+  # Emit the worktree path plus the staleness proof. A reused or existing branch
+  # can be just as stale as a fresh one, so EVERY success path prints it.
+  _emit_provisioned() {
+    # $1=status $2=reason $3=base-ref-to-measure
+    local behind
+    behind="$(_behind_origin_main "$3")"
+    _receipt "$1" "$wt_abs" "$branch" "$slug" "$2" "$3" "$behind"
+    printf 'FORGE_WORKTREE %s\n' "$wt_abs"
+    # An absent count means UNKNOWN, never "up to date" — say so in those words.
+    if [ -n "$behind" ]; then
+      printf 'FORGE_WORKTREE_BASE %s (%s commits behind origin/main)\n' "$3" "$behind"
+    else
+      printf 'FORGE_WORKTREE_BASE %s (no origin/main — staleness NOT comparable)\n' "$3"
+    fi
+  }
+
   # Idempotent reuse: a resume must re-enter the SAME worktree, not refuse.
   if _worktree_exists_at "$wt_abs"; then
-    _receipt "reused" "$wt_abs" "$branch" "$slug" "worktree-exists"
-    printf 'FORGE_WORKTREE %s\n' "$wt_abs"
+    _maybe_fetch
+    _emit_provisioned "reused" "worktree-exists" "$branch"
     return 0
   fi
 
@@ -165,14 +246,12 @@ cmd_init() {
   # else create it off the resolved base. Any failure is fail-safe (skip).
   if _branch_exists "$branch"; then
     if git worktree add "$wt_abs" "$branch" >/dev/null 2>&1; then
-      _receipt "created" "$wt_abs" "$branch" "$slug" "existing-branch"
-      printf 'FORGE_WORKTREE %s\n' "$wt_abs"
+      _emit_provisioned "created" "existing-branch" "$branch"
       return 0
     fi
   else
     if git worktree add -b "$branch" "$wt_abs" "$resolved_base" >/dev/null 2>&1; then
-      _receipt "created" "$wt_abs" "$branch" "$slug" "new-branch"
-      printf 'FORGE_WORKTREE %s\n' "$wt_abs"
+      _emit_provisioned "created" "new-branch" "$resolved_base"
       return 0
     fi
   fi
@@ -342,8 +421,63 @@ cmd_self_test() {
     rm -f .ravenclaude/comfort-posture.yaml
   ) || _st_fail "comfort-posture opt-out did not disable ($?)"
 
+  # --- stale-base fixtures -------------------------------------------------
+  # Build a real upstream + clone so origin/main can be made to LEAD local main.
+  local up="${scratch}/upstream.git" dn="${scratch}/downstream"
+  (
+    git init -q --bare "$up"
+    git clone -q "$up" "$dn" 2>/dev/null
+    cd "$dn"
+    git config user.email st@example.com
+    git config user.name selftest
+    echo one > f.txt && git add -A && git commit -qm one
+    git branch -M main
+    git push -q -u origin main
+  ) || { _st_fail "stale-base fixture setup"; return "$ST_RC"; }
+
+  # Land a second commit upstream WITHOUT fetching it into $dn, so the clone's
+  # local `main` lags origin — the exact silent-staleness shape this guards.
+  (
+    git clone -q "$up" "${scratch}/pusher"
+    cd "${scratch}/pusher"
+    git config user.email st@example.com
+    git config user.name selftest
+    echo two > f.txt && git add -A && git commit -qm two
+    git push -q origin main
+  ) || { _st_fail "stale-base upstream push"; return "$ST_RC"; }
+
+  local ahead_sha
+  ahead_sha="$(git -C "$dn" ls-remote "$up" refs/heads/main 2>/dev/null | awk '{print $1}')"
+
+  # Fixture 10: a local `main` that lags origin must NOT become the base.
+  (
+    cd "$dn"
+    lsha="$(git rev-parse main)"
+    # Positive control: the fixture must actually BE stale, or 10-11 prove nothing.
+    [ -n "$ahead_sha" ] || exit 34
+    [ "$lsha" != "$ahead_sha" ] || exit 35
+    out="$(bash "$script_abs" init stale 2>/dev/null)"
+    printf '%s' "$out" | grep -q '"base":"origin/main"' || exit 36
+    printf '%s' "$out" | grep -q '"behind":"0"' || exit 37
+    wsha="$(git -C ".claude/worktrees/forge-stale" rev-parse HEAD)"
+    [ "$wsha" = "$ahead_sha" ] || exit 38
+    [ "$wsha" != "$lsha" ] || exit 39
+  ) || _st_fail "stale local main was used as the base ($?)"
+
+  # Fixture 11: an explicit --base still wins, and the behind-count reports the
+  # staleness rather than hiding it (the proof value must be non-zero here).
+  (
+    cd "$dn"
+    lsha="$(git rev-parse main)"
+    out="$(bash "$script_abs" init explicitbase --base main 2>/dev/null)"
+    printf '%s' "$out" | grep -q '"base":"main"' || exit 40
+    printf '%s' "$out" | grep -q '"behind":"1"' || exit 41
+    wsha="$(git -C ".claude/worktrees/forge-explicitbase" rev-parse HEAD)"
+    [ "$wsha" = "$lsha" ] || exit 42
+  ) || _st_fail "explicit --base did not win / behind-count wrong ($?)"
+
   if [ "$ST_RC" -eq 0 ]; then
-    echo "SELF-TEST PASS: forge-worktree.sh (9 fixtures)"
+    echo "SELF-TEST PASS: forge-worktree.sh (11 fixtures)"
   fi
   return "$ST_RC"
 }
