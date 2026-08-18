@@ -2,6 +2,55 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.280.0 — 2026-08-18
+
+### Fixed
+
+- **`git push` delete-detection matched tokens belonging to other commands.**
+  `_is_dangerous_git_push_delete` ran its flag regexes over the **whole command
+  string** as soon as any `git push` appeared in it, so a short delete flag on an
+  unrelated command in the same line was read as `git push --delete` and the push was
+  blocked.
+
+  control (2026-08-18): an ordinary `git push -u origin <branch>`, followed in the same
+  line by a `tr` carrying a short delete flag, was **DENIED** as
+  `git-push-remote-branch-delete`. Nothing was being deleted. Removing the `tr` from
+  that same line allowed it — so the trigger was the unrelated token, not the push.
+  Observed live: it blocked a real push during this session's work.
+
+  The predicate's own comment said *"-d is the ONLY push short flag containing a
+  lowercase d"*. That is true of `git push` and irrelevant — the regex was never
+  looking only at `git push`. The flag and refspec searches are now scoped to the
+  `git push` **segment**.
+
+  ⛔ **Third instance of one defect class**, after `srm.force-push` (v0.242.0) and
+  `sce.curl-pipe-shell` (v0.244.0): a rule that matches on a token, applied to a string
+  wider than the command that token belongs to. The repo's own record says *"when you
+  fix a pattern, enumerate every instance of that pattern before you close it"* — this
+  one was missed both times, because **nothing exercised the predicate**.
+
+  ⛔ **The remedy is not portable across the siblings.** Splitting on the shell
+  separators is correct *here*, because a push flag never crosses one.
+  `curl-pipe-shell` deliberately must **not** exclude the pipe — a fetch piped into an
+  interpreter is precisely what it hunts. Same class, opposite correct fix.
+
+### Gates
+
+- **Gate 231** — 12 assertions over the extracted predicate. Every allow case is paired
+  with a deny case, including a deletion in a **later** segment, so a "fix" that only
+  inspected the first segment cannot pass. The false-negative half is the load-bearing
+  one: a predicate that never fires would satisfy every "did it stop crying wolf?"
+  assertion. The must-fail half restores the whole-string match and the two
+  false-positive rows go red. The gate refuses rather than passing green if the
+  extraction anchor moves.
+
+### Migration
+
+None in the permissive direction. Every genuine deletion still denies — `--delete`, a
+bare or bundled short flag, and the empty-source colon refspec — including when it
+appears in a later segment of a compound command. What stops being denied is an
+ordinary push that merely shares a command line with some other tool's delete flag.
+
 ## 0.278.0 — 2026-08-18
 
 ### Fixed
