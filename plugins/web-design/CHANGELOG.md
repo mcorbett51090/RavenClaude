@@ -2,6 +2,18 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.16.2] — 2026-08-17
+
+### Fixed
+
+- **`conversion-design` was shipping folklore as a benchmark.** §3 stated "each additional required field reduces completion by ~5–7%" and carried a *"Sign-up form field benchmarks (2026, self-serve SaaS)"* table mapping field count to completion ranges (1 field → 35–50%, 7+ → <10%). Both were **unsourced**, and both are contradicted by the evidence: a documented A/B test where **removing fields dropped conversion 14%** while merely **relabelling the same fields raised it 19.21%**, plus a 30+ question form converting at **53%** — the source's own verdict on "is shorter better?" being *"No, not necessarily"* ([ventureharbour.com](https://ventureharbour.com/how-form-length-impacts-conversion-rates/), retrieved 2026-08-17, summarising a ConversionXL / Michael Aagaard case).
+
+  Removed rather than re-cited: the figures usually quoted in support are single-company tests, not controlled research, and calling them "benchmarks" lent invented precision the underlying data does not carry.
+
+  The **design discipline is unchanged and now rests on an argument that holds** — cut a field you cannot name a *use* for, on data-minimisation grounds (less to store, less to breach, less to justify at privacy review), and do not promise a conversion lift for it. If conversion is the goal, test it; field count is worth A/B-testing precisely *because* its effect is not predictable in advance. The hygiene checklist already argued from justification ("the minimum that fulfills the action") and needed no change.
+
+  Found by a cross-source conflict during a `/forge` run: the shipped skill (claims-table row 3) contradicted primary-source research (row 90). Swept the rest of `plugins/` for the same claim class — **no other instance**.
+
 ## [0.16.1] — 2026-08-14
 
 ### Changed
