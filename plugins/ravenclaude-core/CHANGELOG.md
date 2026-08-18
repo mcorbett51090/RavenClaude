@@ -73,8 +73,59 @@ session is actively using is denied until the holder has been idle 20 minutes. S
 `worktree_bound: block` while the cache still holds the old predicate re-arms the
 *buggy* guard and re-creates the deadlock. Refresh the cache first, then flip the knob.
 
-## 0.276.0 — 2026-08-18
+## 0.277.0 — 2026-08-18
 
+### Fixed
+
+- **`ravenclaude update` reported success over a checkout that had not moved.** It ran
+  `git pull --ff-only >/dev/null 2>&1` and then printed **"up to date."** unconditionally, so the
+  commonest stall produced a green line over stale content — and discarded the one message that
+  would have explained it. The stall is structural, not user error: the marketplace clone is *both*
+  the thing you pull into *and* the live runtime surface, so `.ravenclaude/comfort-posture.yaml` and
+  `.claude/settings.json` are **tracked** files that normal use rewrites and upstream also edits,
+  which is exactly what `--ff-only` refuses to overwrite. The real git error, the dirty-file list,
+  and a keep-your-tuning remedy are now printed, and the closing line says **NOT up to date**.
+
+- **⛔ The exit status was the half a human cannot see, and it had the same bug.**
+  `serve-dashboards.py` derives the dashboard's success flag from `proc.returncode == 0`, so the
+  Update button reported `ok: true` for a run that did not update. `update` now exits non-zero when
+  a pull was **attempted and failed**. Prose honesty that stops at the terminal is half a fix.
+
+- **A failure that never happened is no longer announced.** When `$MARKET` is not a git checkout,
+  nothing is attempted — the closing line used to say *"the pull above failed"* anyway. That is the
+  same dishonesty pointed the other way, and it now reports the honest case (and exits **0**).
+
+- **git's stderr is redacted before it is echoed.** git names the remote in its error text, so a
+  clone whose origin carries a token would have had that token printed by the very line added to
+  improve diagnostics. URL-embedded credentials only — not a general secret scanner, and it does not
+  claim to be.
+
+### Changed
+
+- **The `rc` function and the suggested alias chain with `;`, not `&&`.** With `update` now exiting
+  non-zero on a failed pull, `&&` would stop launching Copilot for precisely the people hitting the
+  stall — their own posture tuning. A stale checkout is still a working checkout. The detector for
+  the *legacy* `&&` alias in `~/.bashrc` deliberately still matches `&&`, since its job is to find
+  old installs.
+
+### Gates
+
+- **Gate 228** (`hooks/tests/test-gate228-update-pull-report.sh`) — the fix shipped without one, which
+  is the shape this repo's record says regresses. The pull step was extracted into
+  `_rc_pull_marketplace()` so it can be driven without `regen` and the launcher self-heal; the gate
+  extracts that function and **refuses rather than passing green** if the anchor moves. 13 assertions
+  over three outcomes (pulled / attempted-and-failed / not-a-checkout) plus credential redaction,
+  asserting the **return code** as well as the text, with two vacuity controls — the clone is proven
+  *behind* before the success case, and the redaction case is proven to have produced a report. The
+  must-fail half rebuilds the swallow-output/always-succeed shape and 6 assertions go red.
+
+### Migration
+
+`ravenclaude update` now exits non-zero when a pull was attempted and failed (it still exits 0 when
+there was nothing to pull). If you chain it with `&&`, switch to `;` — `ravenclaude setup` writes the
+`;` form from this version on, but an alias already in your `~/.bashrc` is not rewritten.
+
+## 0.276.0 — 2026-08-18
 ### Added
 
 - **Merged forward from `feat/vacuity-guard-grep-quiet`.** The gate below was authored as **Gate 223** and renumbered to **227** on merge: `main` landed its own Gate 223 (parallelism posture) concurrently, 224 is claimed by `feat/assumption-claiming-layer`, and 225/226 were already taken. The test file keeps its original `test-gate223-probe-validity.sh` name — renaming it would be a `git mv` under the plugin's own hooks directory, which `xc.tribunal-self-disable` hard-denies pre-LLM, and the gate's grep discipline keys on the script basename rather than the number.

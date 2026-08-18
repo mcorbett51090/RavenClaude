@@ -612,6 +612,14 @@ PY
       [ "$_mf" -eq 2 ] || rc=1
       exit $rc
       ;;
+    228)
+      echo "── Gate 228: update must not claim success over a stale checkout ──"
+      rc=0
+      bash plugins/ravenclaude-core/hooks/tests/test-gate228-update-pull-report.sh || rc=$?
+      bash plugins/ravenclaude-core/hooks/tests/test-gate228-update-pull-report.sh \
+        --must-fail-silent-pull || rc=$?
+      exit $rc
+      ;;
     127)
       echo "── Gate 127: pseudonymize.py (fail-closed encode / no-egress / FM7 NER-absent / FM8 / teeth) ──"
       bash plugins/ravenclaude-core/hooks/tests/test-gate127-pseudonymize.sh
@@ -1240,7 +1248,7 @@ PY
       ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 225, 226, 227, 229. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 225, 226, 227, 228, 229. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -8056,6 +8064,33 @@ rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate223-probe-validity.sh -
 gate "test-gate223-probe-validity.sh --prove-nonzero: the harness HAS an exit-code contract (a false assertion reddens it)" must_fail "$rc"
 
 echo
+echo "── Gate 228: update must not claim success over a stale checkout ───────────"
+# `cmd_update` ran `git pull --ff-only >/dev/null 2>&1` and then unconditionally
+# printed "up to date." — so the commonest stall (a locally-tuned
+# .ravenclaude/comfort-posture.yaml, a TRACKED file that both normal use and
+# upstream edit, blocking the fast-forward) produced a green line over content
+# that had not moved.
+#
+# ⛔ THE EXIT STATUS IS THE HALF A HUMAN CANNOT SEE, and it had the same bug:
+# serve-dashboards.py's /__run sets the dashboard success flag to
+# `proc.returncode == 0`, so the Update button reported ok:true for a run that
+# did not update. This gate asserts the RETURN CODE, not only the text.
+#
+# ⛔ THREE OUTCOMES, AND THE THIRD IS NOT A FAILURE. `not a git checkout` means
+# nothing was ATTEMPTED; announcing "the pull failed" there is the same
+# dishonesty pointed the other way, so it is asserted as its own case.
+#
+# The pull step lives in `_rc_pull_marketplace()` precisely so it can be driven
+# without `regen` + the launcher self-heal. The gate EXTRACTS that function and
+# refuses (rather than passing green) if the anchor moves — a sed range that
+# matches nothing would otherwise yield a harness that tests nothing.
+#
+# Cases: clean clone -> rc 0 + "pulled latest"; dirty clone -> rc 1 + "NOT
+# updated" + names the file + offers the remedy + does NOT claim a pull;
+# non-git dir -> rc 2 + "nothing to pull" + no failure claimed; a token-bearing
+# remote URL is redacted out of the echoed git stderr. Two controls: the clone
+# is proven BEHIND before the pull-succeeds case, and the redaction case is
+# proven to have produced a report (or "no leak" would be vacuous).
 echo "── Gate 229: worktree ownership + session lease ────────────────────────────"
 # TWO defects. (1) FOREIGN-TREE resolved ownership by the FIRST worktree whose
 # path prefixed the target, and this repo puts worktrees at
@@ -8085,6 +8120,12 @@ echo "── Gate 229: worktree ownership + session lease ───────�
 # Supported: string. After adding a gate, run the full suite and GREP ITS OUTPUT
 # FOR the SCRIPT NAME on an executed line.
 rc=0
+bash plugins/ravenclaude-core/hooks/tests/test-gate228-update-pull-report.sh >/dev/null 2>&1 || rc=$?
+gate "update: failed pull reports NOT up to date and exits non-zero" must_pass "$rc"
+rc=0
+bash plugins/ravenclaude-core/hooks/tests/test-gate228-update-pull-report.sh \
+  --must-fail-silent-pull >/dev/null 2>&1 || rc=$?
+gate "update teeth: the swallow-output/always-succeed shape IS caught" must_pass "$rc"
 bash plugins/ravenclaude-core/hooks/tests/test-gate229-worktree-lease.sh >/dev/null 2>&1 || rc=$?
 gate "worktree: own-tree writes allowed, cross-tree denied, lease excludes a 2nd session" must_pass "$rc"
 rc=0
