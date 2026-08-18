@@ -211,7 +211,7 @@ def build_parser() -> argparse.ArgumentParser:
     rs.add_argument("--scale", type=int, default=5, help="matrix size, e.g. 5 for a 5x5 (default 5)")
     rs.set_defaults(func=cmd_risk_score)
 
-    cc = sub.add_parser("control-coverage", help="% of applicable controls with evidence")
+    cc = sub.add_parser("control-coverage", help="%% of applicable controls with evidence")
     cc.add_argument("--total", type=int, required=True, help="count of applicable (in-scope) controls")
     cc.add_argument("--evidenced", type=int, required=True, help="count with operating evidence attached")
     cc.set_defaults(func=cmd_control_coverage)
