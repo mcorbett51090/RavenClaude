@@ -295,8 +295,10 @@ Then the single exit:
   is already 15-min URL-cached.
 - **Parallel where independent** (G1 explore subagents; G2/G3 panels = one batch of `Task` calls),
   **serial where dependent** (G4→G5→G6) — capped by the `.ravenclaude/comfort-posture.yaml`
-  `parallelism:` posture like [`spawn-team`](../spawn-team/SKILL.md) Step 5 (`enabled: false` → serial;
-  `max_workers: N` → batches of ≤N; absent → unchanged). A **cap, not a floor**.
+  `parallelism:` posture like [`spawn-team`](../spawn-team/SKILL.md) Step 5 (**absent → MAXIMUM**, the
+  v0.273.0 default; `enabled: false` / `parallelism: off` → serial; `max_workers: N` → batches of ≤N),
+  and released to serial while the **conserve-tokens exception** is engaged (posture switch, a prompt
+  phrase, or context pressure — precedence in Step 5). A **cap, not a floor**.
 - **Brakes reused:** `runaway-brake.sh` (PreToolUse call caps) + `guard-recursive-spawn.sh` (tree
   topology) fire automatically — a thrashing gate trips the brake deterministically.
 - **Fail-fast:** G1 BLOCK and a G7 `reject` short-circuit the expensive G2–G6 core when an idea is

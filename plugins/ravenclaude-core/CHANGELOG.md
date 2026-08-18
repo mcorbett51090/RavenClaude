@@ -2,6 +2,36 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.273.0 — 2026-08-18
+
+### Changed
+
+- **Parallelism now defaults to MAXIMUM.** `PARALLELISM_DEFAULT` is `{enabled: true, max_workers: 4, unlimited: true}`, and **an absent `parallelism:` block now means maximum**, not "unchanged".
+
+  **Migration — one behavior change, and only one.** A consumer with **no** `parallelism:` block gets maximum fan-out where they previously got the agent's ad-hoc judgment. Every *explicit* setting is unchanged: `enabled: false` is still sequential, `max_workers: N` is still batches of ≤N, `max_workers: unlimited` is still uncapped, scalar `parallelism: on` is still enabled. Nothing breaks — `parallelism` is a behavioral commitment with no enforcement path, so no permission changes and no hook denies anything new; the cost is token spend and concurrency, which is what the conserve-tokens exception bounds. To opt out: `parallelism: off`, or tick **Conserve tokens** in the dashboard.
+
+  The alternative (keep `absent ⇒ unchanged`, re-seed only the dashboard default) was rejected: it reaches only consumers who open the dashboard and press Save, leaving every untouched posture on the old behavior forever — the opposite of the ask.
+
+- **Fixed: the scalar `parallelism: off` was silently ignored.** It fell through every hydration branch. Harmless while the default was OFF; with the default flipped it would have meant the **opposite** of what it reads.
+
+### Added
+
+- **The conserve-tokens exception, with three triggers and one precedence.** Engaged ⇒ the posture is read as `enabled: false` (sequential). No fourth mode.
+  1. **Prompt phrase** — per-session, sticky, **both directions** (`conserve tokens` engages; `maximum parallelism` / `stop conserving` releases). Rides the existing `UserPromptSubmit` hook.
+  2. **Posture switch** — `conserve_tokens: true`, a new checkbox on the dashboard's Pipeline page. Engage-only.
+  3. **Context pressure** — live usage ≥ `conserve_tokens_auto_pct` (default `80`; `0` disables), read from the existing `context-usage-meter.py`, not a second meter.
+
+  `engaged = phrase_override if a phrase fired this session else (posture_switch or context_pressure)`. The phrase wins in both directions (otherwise a phrase-engaged session has no exit short of editing config mid-conversation); the switch is engage-only (otherwise a stale config could silently suppress trigger 3). Engine: `scripts/conserve-tokens.py`.
+
+- **A serial-dispatch detector.** `scripts/parallelism-detector.py`, riding the existing `SubagentStart` hook, groups subagent starts into batches by start-time proximity, counts singles vs parallel batches, and emits at most 3 advisory `warn` events (`rule: serial-dispatch`, empty `path`) into `hook-events.jsonl`. **It never blocks** — a hook can stop an action, it cannot compel one. Its limits ship in its own output: it infers batching from start times, so a single dispatch may be a genuine dependency, and *zero batches means no subagents ran*, not perfect parallelism.
+
+- **A standing SessionStart directive.** The capability banner gains a four-line **PARALLELISM** section stating the resolved mode and the observed serial ratio. Derived labels only (Gate 19).
+
+### Gates
+
+- **Gate 35** extended: the two conserve keys round-trip (emit-when-non-default + hydrate-back), the new default emits **no** block, sequential is written explicitly, and `parallelism: off` hydrates to sequential. Two new must-fail halves (conserve emit stripped; default reverted to OFF).
+- **Gate 223** (new): all three conserve triggers, each with a control in the opposite direction, the precedence ordering, and the detector's serial-vs-parallel discrimination — 32 assertions, three must-fail mutants.
+
 ## 0.271.5 — 2026-08-17
 
 ### Fixed
