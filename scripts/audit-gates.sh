@@ -594,6 +594,17 @@ PY
         --must-fail-echo || rc=$?
       exit $rc
       ;;
+    234)
+      echo "── Gate 234: handoff --host contract — both writers, one vocabulary ──"
+      rc=0
+      bash plugins/ravenclaude-core/hooks/tests/test-gate234-handoff-host-contract.sh || rc=$?
+      for mf in --must-fail-arity --must-fail-d2 --must-fail-registry \
+                --must-fail-namedunknown --must-fail-parity \
+                --must-fail-precedence --must-fail-flagauthority; do
+        bash plugins/ravenclaude-core/hooks/tests/test-gate234-handoff-host-contract.sh "$mf" || rc=$?
+      done
+      exit $rc
+      ;;
     231)
       echo "── Gate 231: git-push delete detection is scoped to the push segment ──"
       rc=0
@@ -1304,7 +1315,7 @@ PY
       ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -8399,6 +8410,30 @@ rc=0
 bash plugins/ravenclaude-core/hooks/tests/test-gate233-triage-outcome.sh \
   --must-fail-echo >/dev/null 2>&1 || rc=$?
 gate "triage-outcome teeth: a hook quoting stderr IS caught by byte-identity" must_pass "$rc"
+
+echo "── Gate 234: handoff --host contract — both writers, one vocabulary ───"
+# Registry hosts (codex|cursor|gemini|aider|windsurf, per knowledge/host-support.json)
+# resolve host-neutral and exit 0; a name in NEITHER vocabulary prints the
+# copy-paste block and THEN exits 2; --host with a missing/empty/--flag value
+# exits 2 and never falls to the grok fallback; handoff-spawn.sh and
+# context-handoff.py agree on every row. The arity rows execute a known infinite
+# loop, so the gate bounds every child with _portable.sh's _rc_timeout and hard
+# fails if no bound exists — `timeout` and `gtimeout` are BOTH absent on macOS,
+# where a bare `timeout N cmd` is exit 127 and an "exits non-zero" assertion
+# passes vacuously.
+#
+# ⛔ Registered in BOTH this main sequence AND the --check dispatcher above +
+# the Supported: string.
+rc=0
+bash plugins/ravenclaude-core/hooks/tests/test-gate234-handoff-host-contract.sh >/dev/null 2>&1 || rc=$?
+gate "handoff --host: registry hosts neutral, typos fatal, writers agree" must_pass "$rc"
+for mf in --must-fail-arity --must-fail-d2 --must-fail-registry \
+          --must-fail-namedunknown --must-fail-parity \
+          --must-fail-precedence --must-fail-flagauthority; do
+  rc=0
+  bash plugins/ravenclaude-core/hooks/tests/test-gate234-handoff-host-contract.sh "$mf" >/dev/null 2>&1 || rc=$?
+  gate "handoff --host teeth: ${mf#--must-fail-} mutant IS caught" must_pass "$rc"
+done
 
 echo
 

@@ -57,11 +57,31 @@ def _normalize_handoff_host(raw: str) -> str:
         return "cli"
     if val in ("chat", "copilot-chat"):
         return "chat"
+    # ⛔ PARITY WITH handoff-spawn.sh's normalize_host(). Without this row the two
+    # writers named DIFFERENT successors for the SAME handoff: measured
+    # 2026-08-19, `--host claude` gave bash the Claude Code recipe and python
+    # host-neutral text, because "claude" fell through here as a raw string.
+    # handoff-spawn.sh states the contract these two are keeping, in
+    # detect_origin_host's comment above the CLAUDECODE arm.
+    if val in ("claude-code", "claude", "claudecode"):
+        return "claude-code"
     return val
 
 
 def detect_host() -> str:
-    explicit = os.environ.get("THING_HOST") or os.environ.get("RC_HOST")
+    # ⛔ RC_HOST BEFORE THING_HOST. main() writes the explicit `--host` flag into
+    # RC_HOST (see main()), so reading THING_HOST first let ambient adapter state
+    # outrank what the caller actually asked for: THING_HOST=copilot with
+    # --host claude-code made this write a `copilot` seed while handoff-spawn.sh
+    # emitted the Claude Code recipe, for one handoff.
+    #
+    # ⛔ THIS PINS AN INVARIANT, NOT A MEASURED LIVE FAILURE. The red team could
+    # not reach it from any shipped caller: THING_HOST is exported only inside
+    # hook processes (four adapters), no hook invokes this script, bin/rc sets
+    # neither variable, and RC_HOST is written in exactly one place — main(),
+    # by --host itself. An explicit flag outranking ambient environment is right
+    # regardless of how often it fires; do not re-tell this as a live incident.
+    explicit = os.environ.get("RC_HOST") or os.environ.get("THING_HOST")
     if explicit:
         return _normalize_handoff_host(explicit)
     if os.environ.get("GROK_AGENT") or os.environ.get("GROK_HOOK_EVENT"):
