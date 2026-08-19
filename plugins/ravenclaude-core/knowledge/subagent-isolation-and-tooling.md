@@ -97,3 +97,18 @@ The field-set table above lists `model` as the per-agent backbone pin, and the "
 **The gotcha that makes this load-bearing for RavenClaude (read before pinning core agents):** because the env var is step **1** and a roster `model:` is step **3**, a consumer who exports `CLAUDE_CODE_SUBAGENT_MODEL` **overrides every per-agent `model:` pin this plugin ships.** So the "add `model:` to harden cost" recommendation above is a *floor a consumer can move*, not a guarantee — if a specialist genuinely *must* run on a specific backbone (e.g. a reviewer that needs Opus-level judgment), the per-agent frontmatter pin does **not** protect it from a consumer's global env override; that constraint has to be stated in the agent's prose and can't be enforced declaratively. _(One nuance to verify at use: community reports — `[unverified — community aggregation]` — note the env var may not override Claude Code's **built-in** subagents that carry a hard-coded model; the official four-step order is about custom/user/plugin agents, which is what this marketplace ships.)_
 
 The env var is **not** in this plugin anywhere (`grep -r CLAUDE_CODE_SUBAGENT_MODEL` over the repo returned nothing this session) — it's a *consumer-environment* lever, which is exactly why it belongs in this knowledge file as a documented interaction rather than a config the plugin sets.
+
+## Native subagent runaway guards — the platform now caps concurrency + nesting depth
+
+> **Verified 2026-08-19 against the [Claude Code changelog](https://code.claude.com/docs/en/changelog).** These are *native, platform-enforced* caps — the complement to RavenClaude's own **behavioral** parallelism cap ([`skills/spawn-team`](../skills/spawn-team/SKILL.md) Step 5, which no hook tracks) and the deterministic [`runaway-brake.sh`](../hooks/runaway-brake.sh) (`max_total`). Refresh when Anthropic changes the subagent cap set.
+
+Since mid-2026 Claude Code enforces two native ceilings on a subagent fan-out, regardless of any RavenClaude posture:
+
+| Guard | Default | Override | Landed |
+| --- | --- | --- | --- |
+| **Concurrent subagents** — "one message can't fan out unbounded background agents" | **20** | `CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS` | v2.1.217 (2026-07-21) |
+| **Nesting depth** — how deep a subagent may spawn subagents | **3** (was 1) | `CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH` (`=1` disables nesting) | disabled-by-default v2.1.217 (2026-07-21) → depth 3 v2.1.219 (2026-07-24) |
+
+**The load-bearing interaction with v0.274.0 "parallelism defaults to MAXIMUM":** the constitution's parallelism posture now defaults to maximum fan-out, and its banner states "no hook tracks a live concurrency count." True at the RavenClaude layer — but the **platform still bounds it**: an "unlimited parallelism" posture is silently capped at **20 concurrent subagents** by the native guard above. So "maximum" means "up to the native ceiling," not literally unbounded; document that ceiling here so an orchestrator planning a wide fan-out isn't surprised by silent throttling.
+
+**Retired guard — do not cite the 200 per-session cap as current.** v2.1.212 (2026-07-17) added a per-session spawn budget (default 200, `CLAUDE_CODE_MAX_SUBAGENTS_PER_SESSION`, reset by `/clear`); it was **removed in v2.1.224 (2026-08-07)** — *"long-running sessions no longer refuse new agents (concurrency and depth limits still apply)."* As of 2026-08-19 only the **concurrency (20)** and **nesting-depth (3)** guards remain native; the per-session budget is gone. RavenClaude's own `runaway-brake.sh` `max_total` (default 1200) is the surviving portable equivalent of a total-spawn ceiling for the model-agnostic Copilot/Codex surfaces where the native guard is absent.
