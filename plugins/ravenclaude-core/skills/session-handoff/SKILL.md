@@ -1,6 +1,6 @@
 ---
 name: session-handoff
-description: "Write a host-paired handoff and start a fresh window before auto-compact — Grok TUI, Copilot Chat new session, or Copilot CLI. Use for /handoff, 'context is full', 'fresh window', or a Stop-hook hot-window nag."
+description: "Write a host-paired handoff and start a fresh window before auto-compact — Claude Code, Grok TUI, Copilot Chat new session, or Copilot CLI. Use for /handoff, 'context is full', 'fresh window', or a Stop-hook hot-window nag."
 user-invocable: true
 allowed-tools: Bash, Read, Write, Edit
 ---
@@ -20,13 +20,13 @@ This is a **quality reset**. Write the brief to the existing run-dir contract, t
 - **Never a PreCompact persist hook.** Compaction is append-only.
 - **Never encode 40% / 30% / 300K as a trigger.** The compact threshold is ~85%. Soft threshold default 70, always below auto-compact.
 - **Do not read `GROK_SESSION_ID` from the agent env.** It is unset here. Detection is hook-only.
-- **Never infer Chat from `TERM_PROGRAM=vscode` alone.** That is also Grok-in-VS-Code. Pass `--host grok|cli|chat` from what you actually are.
+- **Never infer Chat from `TERM_PROGRAM=vscode` alone.** That is also Grok-in-VS-Code. Pass `--host` from what you actually are: `claude-code` | `grok` | `cli` | `chat` each have their own recipe; `codex` | `cursor` | `gemini` | `aider` | `windsurf` | `other` get a host-neutral block. ⛔ **Never substitute a host you are not.** An agent that read an older, shorter list here passed `--host chat` from a Claude Code session and produced a Copilot-Chat seed for a Claude Code successor (2026-08-18).
 - **Chat Stop/nudge fire is unverified.** This skill is the Chat path when the **user or the model** invokes it. Copy-paste is always printed. Live Chat URI is owner-flagged best-effort.
 
 ## Procedure
 
 1. Resolve `task-id`: user argument → most-recently-touched `.ravenclaude/runs/<id>/` in this repo → else propose a slug and create it. Never a second id for the same task.
-2. Resolve **origin host** (you are Chat / Grok TUI / Copilot CLI — do not guess from `TERM_PROGRAM=vscode` alone) → `grok` | `cli` | `chat`.
+2. Resolve **origin host** (you are Claude Code / Grok TUI / Copilot CLI / Copilot Chat — do not guess from `TERM_PROGRAM=vscode` alone) → `claude-code` | `grok` | `cli` | `chat`. On any other host, pass its `host-support.json` name (`codex` | `cursor` | `gemini` | `aider` | `windsurf`) or `other`; you will get a host-neutral block, which is correct.
 3. `bash plugins/ravenclaude-core/bin/rc artifacts new <task-id>` (continue-in-place).
 4. `python3 plugins/ravenclaude-core/scripts/context-handoff.py write --task-id <id> --host <pair>` to refresh the derive-fill skeleton.
 5. **Fill** every `<!-- MODEL FILL -->` section in `.ravenclaude/runs/<id>/handoff.md`. Update `summary.md` / `decisions.md` only when there is real content — never stamp empty files.
@@ -37,7 +37,7 @@ This is a **quality reset**. Write the brief to the existing run-dir contract, t
 
 - Changing Grok's auto-compact threshold.
 - Dashboard dispatch as the spawn path.
-- Other-host adapters beyond Grok / Copilot CLI / Copilot Chat.
+- A per-host **launch recipe** beyond Claude Code / Grok / Copilot CLI / Copilot Chat. The other `host-support.json` hosts are accepted and answered host-neutrally; inventing a launch command for them is what is out of scope.
 - A `copilot-chat` marketplace install column.
 - Enabling origin `context_handoff`.
 - Touching `hooks/compact-anchor.sh` or `scripts/compact-anchor.py`.

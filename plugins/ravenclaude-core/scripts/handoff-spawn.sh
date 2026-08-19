@@ -16,7 +16,15 @@ set -uo pipefail
 
 usage() {
   cat >&2 <<'EOF'
-Usage: handoff-spawn.sh --task-id <id> [--dry-run] [--host grok|cli|chat] [--recipe copy-paste|same-host|os-terminal] [--project-root DIR] [--wait-ack-seconds N]
+Usage: handoff-spawn.sh --task-id <id> [--dry-run] [--host HOST] [--recipe copy-paste|same-host|os-terminal] [--project-root DIR] [--wait-ack-seconds N]
+
+  --host  claude-code | grok | cli (Copilot CLI) | chat (Copilot Chat)
+            -> that host's own launch recipe.
+          codex | cursor | gemini | aider | windsurf   (knowledge/host-support.json)
+          other | generic
+            -> host-neutral copy-paste block, exit 0. No launch command is invented.
+          anything else
+            -> the copy-paste block, then exit 2. Pass `other`, never a host you are not.
 EOF
 }
 
@@ -26,15 +34,74 @@ recipe="copy-paste"
 project_root=""
 wait_ack=45
 host_flag=""
+host_flag_seen=0
+host_flag_bad=0
 
+# ⛔ `shift 2` WHEN THE FLAG IS THE LAST ARGUMENT DOES NOT SHIFT AT ALL.
+# bash reports "shift count out of range" and returns non-zero; $# never
+# decreases and this loop spins forever at 100% CPU. Measured 2026-08-19 through
+# the DOCUMENTED shape (`rc handoff … --host $H` with H empty, per
+# commands/handoff.md): 0 bytes emitted, still running at 5 s, killed by SIGALRM
+# (exit 142). Control, same command with a value: exit 0, 443 bytes. Every
+# value-taking flag now shifts ONCE, then again only if an argument remains.
+#
+# A value that is missing, empty, or itself a `--flag` is a CALLER ERROR, not a
+# value. For --host it is RECORDED here and rejected later (see the D2 block,
+# after copy_paste_block is defined) so the file-header invariant "Copy-paste is
+# ALWAYS printed" survives. For the other four it is fatal here, matching the two
+# argument errors that already exit 2 without a block: the `unknown arg` arm
+# below and the --task-id check.
+#
+# ⛔ Do NOT "uniformise" --wait-ack-seconds to `${2:-}`. Its default of 45 is
+# load-bearing: `[ "$wait_ack" -gt 0 ] 2>/dev/null` is false on an empty string,
+# which SILENTLY skips the successor-ack wait — the handshake dies with no error.
 while [ $# -gt 0 ]; do
   case "$1" in
-    --task-id) task_id="${2:-}"; shift 2 ;;
+    --task-id)
+      case "${2:-}" in
+        ""|--*) echo "handoff-spawn: --task-id requires a value" >&2; usage; exit 2 ;;
+        *) task_id="$2" ;;
+      esac
+      shift; if [ $# -gt 0 ]; then shift; fi ;;
     --dry-run) dry_run=1; shift ;;
-    --host) host_flag="${2:-}"; shift 2 ;;
-    --recipe) recipe="${2:-}"; shift 2 ;;
-    --project-root) project_root="${2:-}"; shift 2 ;;
-    --wait-ack-seconds) wait_ack="${2:-45}"; shift 2 ;;
+    --host)
+      host_flag_seen=1
+      # ⛔ THE TWO BAD SHAPES NEED DIFFERENT SHIFT BEHAVIOUR, AND COLLAPSING THEM
+      # BREAKS AC-2. `--host --dry-run` must NOT consume its "value": the flag has
+      # to be re-parsed as a flag (MED-8 — otherwise a dry run silently becomes a
+      # live launch). But `--host ""` must consume the empty token, or it falls to
+      # the `*)` unknown-arg arm below and exits 2 with the USAGE string and NO
+      # copy-paste block. Measured 2026-08-19 with a single shared guard:
+      #   --host ''  -> EXIT=2 BYTES=609 "unknown arg:" + usage, block absent
+      # AC-2 requires the block before any D2 exit 2, so only a `--*` value skips
+      # the second shift. Trailing `--host` is safe either way: after the first
+      # shift $# is 0 and the guarded shift is a no-op.
+      host_flag_isflag=0
+      case "${2:-}" in
+        --*) host_flag_bad=1; host_flag_isflag=1 ;;
+        "") host_flag_bad=1 ;;
+        *) host_flag="$2" ;;
+      esac
+      shift
+      if [ "$host_flag_isflag" -eq 0 ] && [ $# -gt 0 ]; then shift; fi ;;
+    --recipe)
+      case "${2:-}" in
+        ""|--*) echo "handoff-spawn: --recipe requires a value" >&2; usage; exit 2 ;;
+        *) recipe="$2" ;;
+      esac
+      shift; if [ $# -gt 0 ]; then shift; fi ;;
+    --project-root)
+      case "${2:-}" in
+        ""|--*) echo "handoff-spawn: --project-root requires a value" >&2; usage; exit 2 ;;
+        *) project_root="$2" ;;
+      esac
+      shift; if [ $# -gt 0 ]; then shift; fi ;;
+    --wait-ack-seconds)
+      case "${2:-}" in
+        ""|--*) echo "handoff-spawn: --wait-ack-seconds requires a value" >&2; usage; exit 2 ;;
+        *) wait_ack="$2" ;;
+      esac
+      shift; if [ $# -gt 0 ]; then shift; fi ;;
     -h|--help) usage; exit 0 ;;
     *) echo "handoff-spawn: unknown arg: $1" >&2; usage; exit 2 ;;
   esac
@@ -101,8 +168,23 @@ case "$seed" in
     ;;
 esac
 
+_lc() {
+  printf '%s' "$1" | tr '[:upper:]' '[:lower:]' | sed 's/^[[:space:]]*//; s/[[:space:]]*$//'
+}
+
+# ⛔ CASE AND SURROUNDING WHITESPACE ARE NORMALISED HERE BECAUSE
+# context-handoff.py's _normalize_handoff_host ALREADY DOES `.strip().lower()`,
+# and the two write the seed for the SAME handoff (see detect_origin_host below).
+# Measured 2026-08-19 before this change:
+#   --host GROK        -> bash `unknown`  / python a LIVE `grok "…"` seed
+#   --host CLAUDE-CODE -> bash `unknown`  / python the claude recipe
+#   --host Chat / CLI  -> bash `unknown`  / python the correct chat / cli seed
+# bash was the stricter half, so the pair named different successors on four
+# inputs. `${var,,}` is bash 4.0+; this file is bash 3.2-safe, hence tr.
 normalize_host() {
-  case "$1" in
+  local h
+  h="$(_lc "$1")"
+  case "$h" in
     grok|grok-tui) echo grok ;;
     cli|copilot-cli|copilot) echo cli ;;
     chat|copilot-chat) echo chat ;;
@@ -112,11 +194,62 @@ normalize_host() {
   esac
 }
 
+# The seven hosts the marketplace officially declares in
+# knowledge/host-support.json. Duplicated as a literal ON PURPOSE: Gate 230 and
+# Gate 234 drive this script under `env -i PATH=/usr/bin:/bin`, so it may not
+# shell out to python3/jq to read the JSON. Gate 234 asserts this list and the
+# JSON agree, so the duplication cannot drift silently. Same pattern as
+# _read_heimdall / _read_mimir elsewhere in this plugin.
+is_registry_host() {
+  case "$(_lc "$1")" in
+    claude-code|copilot|codex|cursor|gemini|aider|windsurf) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+# ⛔ D2, owner ruling 2026-08-19. Three classes, not two:
+#   recipe  — we have a launch command for it.
+#   neutral — a host this marketplace officially supports, or an explicit
+#             `other`, for which we have NO launch command. Host-neutral
+#             copy-paste, exit 0. Measured as the WORKING behaviour before this
+#             change (`--host codex` exits 0 with the neutral block) and
+#             deliberately retained: hard-erroring here would destroy a working
+#             handoff for five supported hosts AND pressure an agent on an
+#             unlisted host into picking the nearest recognised token — almost
+#             certainly `cli` — which is the wrong-vendor failure this file
+#             exists to prevent.
+#   reject  — a name in neither vocabulary. A typo. The copy-paste block is
+#             printed and then this exits 2.
+classify_host_flag() {
+  local n
+  n="$(normalize_host "$1")"
+  if [ -n "$n" ] && [ "$n" != "unknown" ]; then echo recipe; return; fi
+  case "$(_lc "$1")" in
+    other|generic) echo neutral; return ;;
+  esac
+  if is_registry_host "$1"; then echo neutral; return; fi
+  echo reject
+}
+
 detect_origin_host() {
   local from
-  from="$(normalize_host "$host_flag")"
-  if [ -n "$from" ] && [ "$from" != "unknown" ]; then
-    echo "$from"
+  # ⛔ AN EXPLICIT --host IS THE WHOLE ANSWER, INCLUDING WHEN WE DO NOT KNOW THE
+  # NAME. This used to fall THROUGH to environment detection whenever the flag
+  # did not normalise to a recipe host, so with CLAUDECODE set `--host codex`
+  # printed a CLAUDE CODE recipe (measured 2026-08-18, claims-table row 8) and
+  # `--host <typo>` printed whatever the ambient session happened to be. That
+  # fall-through is the mechanism behind the whole defect class this file
+  # documents at the top: the caller told us who the successor is, and we
+  # answered with a different agent's launch command. Control that the flag is
+  # still honoured, not merely disabled: `--host cli` under the same env still
+  # emits the Copilot CLI recipe.
+  if [ "$host_flag_seen" -eq 1 ]; then
+    from="$(normalize_host "$host_flag")"
+    if [ -n "$from" ] && [ "$from" != "unknown" ]; then
+      echo "$from"
+    else
+      echo unknown
+    fi
     return
   fi
   from="$(normalize_host "${RC_HOST:-}")"
@@ -198,8 +331,20 @@ chat_resume=""
 # Case (b) from the comment above: a host was NAMED and we do not know the name.
 # This is the only thing that distinguishes it from case (a) at this point —
 # both end up as host=unknown, and conflating them is exactly what shipped.
+# One bit, three sources. It is set when a successor WAS named and we cannot
+# name a launch command for it:
+#   (i)   --host <registry host | other | typo>            -> host_flag_seen
+#   (ii)  --host with a missing / empty / --flag value     -> host_flag_seen
+#   (iii) RC_HOST / THING_HOST naming a host we do not know
+#
+# (iii) is new and was measured 2026-08-19: `THING_HOST=gemini` with no flag
+# emitted a LIVE `grok "…"` launch for a session that had named itself gemini,
+# because this test keyed on $host_flag only. Every existing gate clears
+# THING_HOST (`-u THING_HOST`, or `env -i`), which is correct hygiene for the
+# flag rows and is exactly why no gate could see it. Gate 234 row 21 drives it,
+# with a THING_HOST=grok control on row 22 proving grok still keeps its own seed.
 named_but_unknown=0
-if [ -n "$host_flag" ] && [ "$host" = "unknown" ]; then
+if [ "$host" = "unknown" ] && { [ "$host_flag_seen" -eq 1 ] || [ -n "${RC_HOST:-}" ] || [ -n "${THING_HOST:-}" ]; }; then
   named_but_unknown=1
 fi
 
@@ -280,6 +425,38 @@ cd $(printf '%q' "$project_root")
 $seed
 EOF
 }
+
+# ⛔ D2 — REFUSE A NAME WE DO NOT KNOW; NEVER REFUSE A HOST WE SUPPORT.
+#
+# Owner ruling 2026-08-19 (G5): a host declared in knowledge/host-support.json
+# but with no launch recipe here — codex / cursor / gemini / aider / windsurf —
+# resolves to the HOST-NEUTRAL block and exits 0. That was measured as the
+# working behaviour BEFORE this change and is deliberately retained. Only a name
+# in neither vocabulary is fatal, and `other` is always available as a truthful
+# value for a host that is in neither.
+#
+# ⛔ WHY THE BLOCK IS PRINTED BEFORE THE EXIT, AND WHY THIS SITS HERE AND NOT UP
+# BY THE ARGUMENT LOOP. The file header states "Copy-paste is ALWAYS printed",
+# and both existing fatal branches below (unknown --recipe, unflagged same-host)
+# call copy_paste_block and THEN exit 2. Validating up beside the argument loop
+# reads cleaner and is what the first draft specified — it cannot print the
+# block, because the block needs $host, $seed and $project_root, none of which
+# exist that early. The invariant wins: a user at a full context window who
+# mistypes a host name must still get something to paste.
+#
+# $seed is host-neutral text on both paths below, because named_but_unknown is 1
+# in both — see its assignment above. That is what stops a malformed --host from
+# falling to case (a) and printing a grok launch.
+if [ "$host_flag_bad" -eq 1 ]; then
+  echo "handoff-spawn: --host requires a value. Pass claude-code | grok | cli | chat | a host-support.json name | other." >&2
+  copy_paste_block
+  exit 2
+fi
+if [ "$host_flag_seen" -eq 1 ] && [ "$(classify_host_flag "$host_flag")" = "reject" ]; then
+  echo "handoff-spawn: unrecognised --host '$host_flag'. Use claude-code | grok | cli | chat, a host from knowledge/host-support.json (codex|cursor|gemini|aider|windsurf), or 'other' for a host-neutral handoff. Do NOT substitute a host you are not." >&2
+  copy_paste_block
+  exit 2
+fi
 
 spawn_flag=""
 posture="$project_root/.ravenclaude/comfort-posture.yaml"
