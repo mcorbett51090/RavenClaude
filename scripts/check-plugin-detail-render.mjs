@@ -77,7 +77,13 @@ const RC_BASELINE = {
   //        19 -> 22: premise-gate.py + classify_claim.py + check-design-schema.py
   //                  (v0.263.0, PR 3b packaging move)
   scenarios: 4,
-  hooks: 37, // 36 -> 37: ask-on-ambiguity (v0.281.0, UserPromptSubmit advisory nudge).
+  hooks: 38, // 37 -> 38: triage-outcome.sh WIRED on PostToolUse(Bash) after its fire
+  //   rate was measured down to 2.588% over a 46,557-envelope replay corpus (the
+  //   gate is 3%). ⛔ This count tracks WIRED hooks, not hook FILES: the file
+  //   itself landed earlier and moved no count, because it shipped deliberately
+  //   absent from the wiring. The ratchet reddening on the wiring commit — and
+  //   only on it — is the gate behaving exactly as intended.
+  //        36 -> 37: ask-on-ambiguity (v0.281.0, UserPromptSubmit advisory nudge).
   //   ⛔ Both hooks land in the SAME count and each side of the v0.281.0 rebase
   //   claimed 36 on its own: guard-probe-validity.sh took main 35 -> 36, and
   //   ask-on-ambiguity takes it 36 -> 37. Keeping either side's literal `36` would
