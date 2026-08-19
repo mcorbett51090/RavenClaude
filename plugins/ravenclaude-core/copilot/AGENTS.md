@@ -46,6 +46,7 @@ This section is the canonical statement. It is projected into every host's own i
 |---|---|---|---|
 | **Local run** | `.ravenclaude/runs/<task-id>/` | **this machine only** — gitignored | working notes, gate output, evidence, anything mid-flight |
 | **Committed** | `docs/plans/`, `docs/decisions/`, `docs/research/` | you, teammates, CI | anything meant to outlive the task or be read by a human later |
+| **Ledger** | `.ravenclaude/ledger/<YYYY-MM>.jsonl` | you, teammates, CI — **committed**, `merge=union` | the append-only work/change record: what is still open, how each item ended, and which PR/worktree it ended in |
 
 **The test:** *would a teammate cloning this repo need it?* Yes → committed tier. No → local run tier.
 When unsure, start local and promote it later; promoting is a `git add`, but un-committing something
