@@ -61,7 +61,7 @@ import hashlib
 import json
 import re
 import sys
-from typing import Any, Dict, List, NamedTuple, Optional
+from typing import Any, NamedTuple
 
 SCP_VERSION = 1
 
@@ -95,7 +95,7 @@ class SetKindSpec(NamedTuple):
 # ⛔ ONE TABLE. A new set kind is a row here. A caller that needs a different id
 # shape edits this row — it does not pass a pattern in, because a caller-supplied
 # pattern makes `verify` unable to re-check the block on its own.
-SET_KINDS: Dict[str, SetKindSpec] = {
+SET_KINDS: dict[str, SetKindSpec] = {
     "open_items": SetKindSpec(
         id_pattern=r"^rc-[0-9a-f]{12}$",
         owner="task-ledger",
@@ -120,24 +120,24 @@ class ScpUnknown(Exception):
 # ── build ────────────────────────────────────────────────────────────────────
 
 
-def compute_digest(set_kind: str, ids: List[str], scp_version: int = SCP_VERSION) -> str:
+def compute_digest(set_kind: str, ids: list[str], scp_version: int = SCP_VERSION) -> str:
     """Digest over the SORTED, DEDUPED id set. Stable under input reordering."""
     canonical = sorted(set(ids))
-    payload = "{0}\n{1}\n{2}".format(scp_version, set_kind, "\n".join(canonical))
+    payload = "{}\n{}\n{}".format(scp_version, set_kind, "\n".join(canonical))
     return "sha256:" + hashlib.sha256(payload.encode("utf-8")).hexdigest()[:12]
 
 
 def build_block(
     set_kind: str,
-    ids: List[str],
+    ids: list[str],
     basis: str,
     computed_at: str,
-    coverage: Optional[Dict[str, int]] = None,
+    coverage: dict[str, int] | None = None,
     truncated: bool = False,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     if set_kind not in SET_KINDS:
         raise ScpError(
-            "unknown set_kind {0!r} — known: {1}".format(set_kind, ", ".join(sorted(SET_KINDS)))
+            "unknown set_kind {!r} — known: {}".format(set_kind, ", ".join(sorted(SET_KINDS)))
         )
     if not basis:
         raise ScpError("basis is required — a set with no stated origin cannot be re-derived")
@@ -145,12 +145,12 @@ def build_block(
     bad = [i for i in ids if not isinstance(i, str) or not pattern.match(i)]
     if bad:
         raise ScpError(
-            "ids do not match {0}'s pattern {1}: {2}".format(
+            "ids do not match {}'s pattern {}: {}".format(
                 set_kind, SET_KINDS[set_kind].id_pattern, ", ".join(map(repr, sorted(bad)[:5]))
             )
         )
     canonical = sorted(set(ids))
-    block: Dict[str, Any] = {
+    block: dict[str, Any] = {
         "scp_version": SCP_VERSION,
         "set_kind": set_kind,
         "count": len(canonical),
@@ -168,26 +168,26 @@ def build_block(
 # ── verify ───────────────────────────────────────────────────────────────────
 
 
-def verify_block(block: Any) -> List[str]:
+def verify_block(block: Any) -> list[str]:
     """Return the list of broken invariants. An empty list means valid."""
-    problems: List[str] = []
+    problems: list[str] = []
     if not isinstance(block, dict):
         return ["block is not a JSON object"]
 
     unknown = sorted(set(block) - set(ALLOWED_KEYS))
     if unknown:
-        problems.append("unknown key(s): {0}".format(", ".join(unknown)))
+        problems.append("unknown key(s): {}".format(", ".join(unknown)))
     missing = [k for k in REQUIRED_KEYS if k not in block]
     if missing:
-        problems.append("missing required key(s): {0}".format(", ".join(missing)))
+        problems.append("missing required key(s): {}".format(", ".join(missing)))
         return problems
 
     if block["scp_version"] != SCP_VERSION:
-        problems.append("scp_version {0!r} != {1}".format(block["scp_version"], SCP_VERSION))
+        problems.append("scp_version {!r} != {}".format(block["scp_version"], SCP_VERSION))
 
     set_kind = block["set_kind"]
     if set_kind not in SET_KINDS:
-        problems.append("unknown set_kind {0!r}".format(set_kind))
+        problems.append(f"unknown set_kind {set_kind!r}")
         return problems
 
     ids = block["ids"]
@@ -199,7 +199,7 @@ def verify_block(block: Any) -> List[str]:
     bad = [i for i in ids if not pattern.match(i)]
     if bad:
         problems.append(
-            "id(s) fail {0}: {1}".format(
+            "id(s) fail {}: {}".format(
                 SET_KINDS[set_kind].id_pattern, ", ".join(map(repr, sorted(bad)[:5]))
             )
         )
@@ -207,14 +207,14 @@ def verify_block(block: Any) -> List[str]:
         problems.append("ids are not sorted lexicographically")
     if len(set(ids)) != len(ids):
         dupes = sorted({i for i in ids if ids.count(i) > 1})
-        problems.append("duplicate id(s): {0}".format(", ".join(dupes[:5])))
+        problems.append("duplicate id(s): {}".format(", ".join(dupes[:5])))
     if block["count"] != len(ids):
-        problems.append("count {0} != len(ids) {1}".format(block["count"], len(ids)))
+        problems.append("count {} != len(ids) {}".format(block["count"], len(ids)))
 
     expected = compute_digest(set_kind, ids)
     if block["digest"] != expected:
         problems.append(
-            "digest {0} does not recompute (expected {1})".format(block["digest"], expected)
+            "digest {} does not recompute (expected {})".format(block["digest"], expected)
         )
 
     if not isinstance(block["basis"], str) or not block["basis"]:
@@ -223,7 +223,7 @@ def verify_block(block: Any) -> List[str]:
         problems.append("truncated must be a boolean")
     if not isinstance(block["computed_at"], str) or not _TS_RE.match(block["computed_at"]):
         problems.append(
-            "computed_at {0!r} is not an ISO-8601 instant".format(block.get("computed_at"))
+            "computed_at {!r} is not an ISO-8601 instant".format(block.get("computed_at"))
         )
 
     cov = block.get("coverage")
@@ -233,7 +233,7 @@ def verify_block(block: Any) -> List[str]:
         else:
             for key, value in sorted(cov.items()):
                 if not isinstance(value, int) or isinstance(value, bool) or value < 0:
-                    problems.append("coverage.{0} must be a non-negative integer".format(key))
+                    problems.append(f"coverage.{key} must be a non-negative integer")
     return problems
 
 
@@ -246,11 +246,11 @@ def load_block(path: str) -> Any:
             with open(path, encoding="utf-8") as handle:
                 raw = handle.read()
     except OSError as exc:
-        raise ScpUnknown("basis_unreadable: cannot read {0}: {1}".format(path, exc))
+        raise ScpUnknown(f"basis_unreadable: cannot read {path}: {exc}")
     try:
         return json.loads(raw)
     except ValueError as exc:
-        raise ScpUnknown("block_unparseable: {0}: {1}".format(path, exc))
+        raise ScpUnknown(f"block_unparseable: {path}: {exc}")
 
 
 # ── diff (the three-valued gate) ─────────────────────────────────────────────
@@ -259,11 +259,11 @@ def load_block(path: str) -> Any:
 class Verdict(NamedTuple):
     verdict: str  # PASS | FAIL | UNKNOWN
     exit_code: int
-    reasons: List[str]
-    missing: List[str]  # in ACTUAL, absent from CLAIMED — under-enumeration
-    extra: List[str]  # in CLAIMED, absent from ACTUAL — over-enumeration
+    reasons: list[str]
+    missing: list[str]  # in ACTUAL, absent from CLAIMED — under-enumeration
+    extra: list[str]  # in CLAIMED, absent from ACTUAL — over-enumeration
 
-    def as_dict(self) -> Dict[str, Any]:
+    def as_dict(self) -> dict[str, Any]:
         return {
             "verdict": self.verdict,
             "exit_code": self.exit_code,
@@ -273,7 +273,7 @@ class Verdict(NamedTuple):
         }
 
 
-def diff_blocks(claimed: Any, actual: Any, parsed_records: Optional[int]) -> Verdict:
+def diff_blocks(claimed: Any, actual: Any, parsed_records: int | None) -> Verdict:
     """Three-valued conservation check.
 
     `parsed_records` is the POSITIVE CONTROL: how many records the caller
@@ -281,7 +281,7 @@ def diff_blocks(claimed: Any, actual: Any, parsed_records: Optional[int]) -> Ver
     UNKNOWN. Without it, an empty ledger and a perfectly-conserved one are the
     same two empty sets, and the gate is inert exactly when it matters.
     """
-    reasons: List[str] = []
+    reasons: list[str] = []
 
     if parsed_records is None:
         return Verdict(
@@ -319,7 +319,7 @@ def diff_blocks(claimed: Any, actual: Any, parsed_records: Optional[int]) -> Ver
             "FAIL",
             1,
             [
-                "set_kind mismatch: claimed {0!r} vs actual {1!r}".format(
+                "set_kind mismatch: claimed {!r} vs actual {!r}".format(
                     claimed["set_kind"], actual["set_kind"]
                 )
             ],
@@ -334,18 +334,18 @@ def diff_blocks(claimed: Any, actual: Any, parsed_records: Optional[int]) -> Ver
 
     if missing:
         reasons.append(
-            "under-enumeration: {0} id(s) present in the actual set and absent from the "
-            "claim: {1}".format(len(missing), ", ".join(missing))
+            "under-enumeration: {} id(s) present in the actual set and absent from the "
+            "claim: {}".format(len(missing), ", ".join(missing))
         )
     if extra:
         reasons.append(
-            "over-enumeration: {0} claimed id(s) the basis does not contain (fabricated or "
-            "stale — both unexplained): {1}".format(len(extra), ", ".join(extra))
+            "over-enumeration: {} claimed id(s) the basis does not contain (fabricated or "
+            "stale — both unexplained): {}".format(len(extra), ", ".join(extra))
         )
     if not missing and not extra and claimed["digest"] != actual["digest"]:
         reasons.append(
             "digest mismatch while the id sets agree — one of the blocks is corrupt "
-            "(claimed {0}, actual {1})".format(claimed["digest"], actual["digest"])
+            "(claimed {}, actual {})".format(claimed["digest"], actual["digest"])
         )
 
     if reasons:
@@ -354,7 +354,7 @@ def diff_blocks(claimed: Any, actual: Any, parsed_records: Optional[int]) -> Ver
         "PASS",
         0,
         [
-            "conserved: {0} id(s), digest {1}, {2} record(s) parsed".format(
+            "conserved: {} id(s), digest {}, {} record(s) parsed".format(
                 actual["count"], actual["digest"], parsed_records
             )
         ],
@@ -392,13 +392,13 @@ def _self_test(broken: bool = False) -> int:
         def compute_digest(set_kind, ids, scp_version=SCP_VERSION):  # type: ignore[misc]
             return "sha256:000000000000"
 
-    failures: List[str] = []
+    failures: list[str] = []
 
     def check(label: str, condition: bool) -> None:
         if condition:
-            print("  ok   {0}".format(label))
+            print(f"  ok   {label}")
         else:
-            print("  FAIL {0}".format(label))
+            print(f"  FAIL {label}")
             failures.append(label)
 
     try:
@@ -503,7 +503,7 @@ def _self_test(broken: bool = False) -> int:
 
     print()
     if failures:
-        print("set_conservation self-test FAILED ({0})".format(len(failures)))
+        print(f"set_conservation self-test FAILED ({len(failures)})")
         return 1
     print("set_conservation self-test PASS")
     return 0
@@ -517,40 +517,40 @@ def _must_fail() -> int:
     if rc == 0:
         print("TEETH FAILED: a neutered digest still passed the self-test", file=sys.stderr)
         return 1
-    print("teeth ok: the planted digest defect was caught (self-test exited {0})".format(rc))
+    print(f"teeth ok: the planted digest defect was caught (self-test exited {rc})")
     return 0
 
 
 # ── CLI ──────────────────────────────────────────────────────────────────────
 
 
-def _parse_coverage(pairs: List[str]) -> Optional[Dict[str, int]]:
+def _parse_coverage(pairs: list[str]) -> dict[str, int] | None:
     if not pairs:
         return None
-    coverage: Dict[str, int] = {}
+    coverage: dict[str, int] = {}
     for pair in pairs:
         if "=" not in pair:
-            raise ScpError("--coverage expects key=int, got {0!r}".format(pair))
+            raise ScpError(f"--coverage expects key=int, got {pair!r}")
         key, _, value = pair.partition("=")
         try:
             coverage[key] = int(value)
         except ValueError:
-            raise ScpError("--coverage value for {0!r} is not an integer".format(key))
+            raise ScpError(f"--coverage value for {key!r} is not an integer")
     return coverage
 
 
-def _collect_ids(args: argparse.Namespace) -> List[str]:
-    ids: List[str] = list(args.id or [])
+def _collect_ids(args: argparse.Namespace) -> list[str]:
+    ids: list[str] = list(args.id or [])
     if args.ids_file:
         try:
             with open(args.ids_file, encoding="utf-8") as handle:
                 ids += [line.strip() for line in handle if line.strip()]
         except OSError as exc:
-            raise ScpUnknown("ids_file unreadable: {0}".format(exc))
+            raise ScpUnknown(f"ids_file unreadable: {exc}")
     return ids
 
 
-def main(argv: Optional[List[str]] = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="set_conservation.py",
         description=__doc__.splitlines()[0],
@@ -628,7 +628,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         if args.command == "verify":
             problems = verify_block(load_block(args.block))
             if problems:
-                print("SCP INVALID ({0} problem(s)):".format(len(problems)), file=sys.stderr)
+                print(f"SCP INVALID ({len(problems)} problem(s)):", file=sys.stderr)
                 for problem in problems:
                     print("  - " + problem, file=sys.stderr)
                 return 1
@@ -643,17 +643,17 @@ def main(argv: Optional[List[str]] = None) -> int:
                 print(json.dumps(verdict.as_dict(), indent=2, sort_keys=True))
             else:
                 stream = sys.stdout if verdict.verdict == "PASS" else sys.stderr
-                print("{0} (exit {1})".format(verdict.verdict, verdict.exit_code), file=stream)
+                print(f"{verdict.verdict} (exit {verdict.exit_code})", file=stream)
                 for reason in verdict.reasons:
                     print("  - " + reason, file=stream)
                 if verdict.verdict == "UNKNOWN":
                     print("  UNKNOWN BLOCKS. It is never downgraded to PASS.", file=stream)
             return verdict.exit_code
     except ScpUnknown as exc:
-        print("UNKNOWN (exit 2): {0}".format(exc), file=sys.stderr)
+        print(f"UNKNOWN (exit 2): {exc}", file=sys.stderr)
         return 2
     except ScpError as exc:
-        print("FAIL (exit 1): {0}".format(exc), file=sys.stderr)
+        print(f"FAIL (exit 1): {exc}", file=sys.stderr)
         return 1
 
     parser.print_help()

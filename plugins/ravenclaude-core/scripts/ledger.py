@@ -78,9 +78,10 @@ import re
 import secrets
 import subprocess
 import sys
+from collections.abc import Iterable, Sequence
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, NamedTuple, Optional, Sequence, Tuple
+from typing import Any, NamedTuple
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import set_conservation as scp  # noqa: E402
@@ -92,7 +93,7 @@ EVENT_SCHEMA_PATH = PLUGIN_ROOT / "templates" / "ledger" / "ledger-event.schema.
 SCRUB_SH = PLUGIN_ROOT / "hooks" / "_scrub.sh"
 
 CONFIG_REL = ".ravenclaude/ledger-config.json"
-DEFAULT_CONFIG: Dict[str, Any] = {
+DEFAULT_CONFIG: dict[str, Any] = {
     "config_version": 1,
     "ledger_dir": ".ravenclaude/ledger",
     "view_path": "docs/pm/task-list.md",
@@ -134,7 +135,7 @@ class LedgerUnknown(Exception):
 # ═════════════════════════════════════════════════════════════════════════════
 
 
-def resolve_config(repo_root: Path) -> Dict[str, Any]:
+def resolve_config(repo_root: Path) -> dict[str, Any]:
     """First hit wins: env (harness only) → config file → defaults.
 
     ⛔ A config file that EXISTS but does not parse is UNKNOWN and a hard stop.
@@ -151,12 +152,12 @@ def resolve_config(repo_root: Path) -> Dict[str, Any]:
             loaded = json.loads(config_path.read_text(encoding="utf-8"))
         except (OSError, ValueError) as exc:
             raise LedgerUnknown(
-                "config_unparseable: {0} exists but does not parse ({1}). This is UNKNOWN, "
+                f"config_unparseable: {config_path} exists but does not parse ({exc}). This is UNKNOWN, "
                 "not a fall-through to defaults — a mangled config that silently reverts "
-                "splits the source of truth.".format(config_path, exc)
+                "splits the source of truth."
             )
         if not isinstance(loaded, dict):
-            raise LedgerUnknown("config_unparseable: {0} is not a JSON object".format(config_path))
+            raise LedgerUnknown(f"config_unparseable: {config_path} is not a JSON object")
         config.update(loaded)
         config["_initialised"] = True
     else:
@@ -171,7 +172,7 @@ def resolve_config(repo_root: Path) -> Dict[str, Any]:
     return config
 
 
-def find_repo_root(start: Optional[Path] = None) -> Path:
+def find_repo_root(start: Path | None = None) -> Path:
     here = (start or Path.cwd()).resolve()
     for candidate in [here] + list(here.parents):
         if (candidate / ".git").exists():
@@ -204,7 +205,7 @@ def _ere_to_python(pattern: str) -> str:
     return pattern
 
 
-def load_secret_patterns(scrub_path: Path = SCRUB_SH) -> List[str]:
+def load_secret_patterns(scrub_path: Path = SCRUB_SH) -> list[str]:
     """Read `_secret_patterns` out of hooks/_scrub.sh — the SSOT, not a copy.
 
     POSITIVE CONTROL: the loaded list must be non-trivial AND must actually match
@@ -214,18 +215,18 @@ def load_secret_patterns(scrub_path: Path = SCRUB_SH) -> List[str]:
     try:
         text = scrub_path.read_text(encoding="utf-8")
     except OSError as exc:
-        raise LedgerUnknown("scrub_unreadable: {0}: {1}".format(scrub_path, exc))
+        raise LedgerUnknown(f"scrub_unreadable: {scrub_path}: {exc}")
     match = re.search(r"^_secret_patterns=\(\s*$(.*?)^\)\s*$", text, re.M | re.S)
     if not match:
         raise LedgerUnknown(
-            "scrub_unparseable: the _secret_patterns array in {0} did not parse. An empty "
-            "pattern list makes every scrub a silent no-op.".format(scrub_path)
+            f"scrub_unparseable: the _secret_patterns array in {scrub_path} did not parse. An empty "
+            "pattern list makes every scrub a silent no-op."
         )
     patterns = [_ere_to_python(p) for p in re.findall(r"^\s*'([^']*)'\s*$", match.group(1), re.M)]
     if len(patterns) < 10:
         raise LedgerUnknown(
-            "scrub_unparseable: only {0} pattern(s) parsed from {1} — expected >=10. "
-            "Refusing to scrub with a near-empty list.".format(len(patterns), scrub_path)
+            f"scrub_unparseable: only {len(patterns)} pattern(s) parsed from {scrub_path} — expected >=10. "
+            "Refusing to scrub with a near-empty list."
         )
     control = "ghp_" + "A" * 32
     if not any(re.search(p, control) for p in patterns):
@@ -236,7 +237,7 @@ def load_secret_patterns(scrub_path: Path = SCRUB_SH) -> List[str]:
     return patterns
 
 
-_SECRET_CACHE: Optional[List[str]] = None
+_SECRET_CACHE: list[str] | None = None
 
 
 def scrub(text: str) -> str:
@@ -251,9 +252,9 @@ def scrub(text: str) -> str:
         except re.error:
             # A pattern that will not compile in Python must never be treated as
             # "nothing matched" — that is a scrub failing toward clean.
-            raise LedgerUnknown("scrub_pattern_uncompilable: {0!r}".format(pattern))
+            raise LedgerUnknown(f"scrub_pattern_uncompilable: {pattern!r}")
     for label, pattern in PII_PATTERNS:
-        result = re.sub(pattern, "[PII:{0}]".format(label), result)
+        result = re.sub(pattern, f"[PII:{label}]", result)
     return result
 
 
@@ -272,7 +273,7 @@ def scrub_asserted(asserted: Any) -> Any:
 # ═════════════════════════════════════════════════════════════════════════════
 
 
-def new_ulid(now_ms: Optional[int] = None, rand: Optional[bytes] = None) -> str:
+def new_ulid(now_ms: int | None = None, rand: bytes | None = None) -> str:
     """26-char Crockford base32 ULID: 48-bit ms timestamp + 80 bits of randomness."""
     if now_ms is None:
         now_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
@@ -305,13 +306,13 @@ def mint_item_id(
     factory = nonce_factory or (lambda: secrets.token_bytes(8))
     for _ in range(max_attempts):
         nonce = factory()
-        payload = "{0}\x00{1}\x00{2}\x00".format(source, ts, subject).encode("utf-8") + nonce
+        payload = f"{source}\x00{ts}\x00{subject}\x00".encode() + nonce
         candidate = "rc-" + hashlib.sha256(payload).hexdigest()[:12]
         if candidate not in taken:
             return candidate
     raise LedgerError(
-        "item_id collision: {0} attempts all collided. Refusing to reuse an id — a silently "
-        "reused id merges two items into one and the loss is invisible.".format(max_attempts)
+        f"item_id collision: {max_attempts} attempts all collided. Refusing to reuse an id — a silently "
+        "reused id merges two items into one and the loss is invisible."
     )
 
 
@@ -320,7 +321,7 @@ def mint_item_id(
 # ═════════════════════════════════════════════════════════════════════════════
 
 
-def canonical_bytes(record: Dict[str, Any]) -> bytes:
+def canonical_bytes(record: dict[str, Any]) -> bytes:
     return json.dumps(record, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode(
         "utf-8"
     )
@@ -351,19 +352,17 @@ def _append_bytes(path: Path, data: bytes) -> None:
         os.close(fd)
     if written != len(data):
         raise LedgerError(
-            "short write: {0} of {1} bytes. A partial record is a torn line; the caller "
-            "must not treat this as appended.".format(written, len(data))
+            f"short write: {written} of {len(data)} bytes. A partial record is a torn line; the caller "
+            "must not treat this as appended."
         )
 
 
-def append_record(ledger_dir: Path, record: Dict[str, Any], max_record_bytes: int) -> Path:
+def append_record(ledger_dir: Path, record: dict[str, Any], max_record_bytes: int) -> Path:
     data = canonical_bytes(record) + b"\n"
     if len(data) > max_record_bytes:
         raise LedgerError(
-            "record is {0} B, over max_record_bytes={1}. The cap keeps every record an order "
-            "of magnitude below the largest measured-safe append size.".format(
-                len(data), max_record_bytes
-            )
+            f"record is {len(data)} B, over max_record_bytes={max_record_bytes}. The cap keeps every record an order "
+            "of magnitude below the largest measured-safe append size."
         )
     path = ledger_dir / shard_for(record["machine"]["ts"])
     _append_bytes(path, data)
@@ -375,7 +374,7 @@ def append_record(ledger_dir: Path, record: Dict[str, Any], max_record_bytes: in
 # ═════════════════════════════════════════════════════════════════════════════
 
 
-def _git(repo_root: Path, *args: str) -> Optional[str]:
+def _git(repo_root: Path, *args: str) -> str | None:
     try:
         out = subprocess.run(
             ["git"] + list(args),
@@ -392,12 +391,10 @@ def _git(repo_root: Path, *args: str) -> Optional[str]:
 
 
 def utcnow_iso() -> str:
-    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.") + "{0:03d}Z".format(
-        datetime.now(timezone.utc).microsecond // 1000
-    )
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.") + f"{datetime.now(timezone.utc).microsecond // 1000:03d}Z"
 
 
-def machine_block(repo_root: Path, actor: str, ts: Optional[str] = None) -> Dict[str, Any]:
+def machine_block(repo_root: Path, actor: str, ts: str | None = None) -> dict[str, Any]:
     ts = ts or utcnow_iso()
     branch = _git(repo_root, "rev-parse", "--abbrev-ref", "HEAD")
     sha = _git(repo_root, "rev-parse", "--short", "HEAD")
@@ -406,7 +403,7 @@ def machine_block(repo_root: Path, actor: str, ts: Optional[str] = None) -> Dict
     worktree = repo_root.name
     return {
         "ts": ts,
-        "source": "{0}/{1}/{2}".format(repo_root.name, branch or "detached", sha or "unknown"),
+        "source": "{}/{}/{}".format(repo_root.name, branch or "detached", sha or "unknown"),
         "actor": actor,
         "host": os.environ.get("RC_HOST", "claude-code"),
         "emitter": EMITTER,
@@ -429,13 +426,13 @@ def load_validator():
         from jsonschema import Draft202012Validator
     except ImportError as exc:
         raise LedgerUnknown(
-            "validator_unavailable: jsonschema is not importable ({0}). An unvalidated "
-            "ledger is UNKNOWN, never a pass.".format(exc)
+            f"validator_unavailable: jsonschema is not importable ({exc}). An unvalidated "
+            "ledger is UNKNOWN, never a pass."
         )
     try:
         schema = json.loads(EVENT_SCHEMA_PATH.read_text(encoding="utf-8"))
     except (OSError, ValueError) as exc:
-        raise LedgerUnknown("schema_unreadable: {0}: {1}".format(EVENT_SCHEMA_PATH, exc))
+        raise LedgerUnknown(f"schema_unreadable: {EVENT_SCHEMA_PATH}: {exc}")
     validator = Draft202012Validator(schema)
     # POSITIVE CONTROL: a validator that accepts everything would make every
     # schema assertion pass by being dead.
@@ -447,9 +444,9 @@ def load_validator():
     return validator
 
 
-def validate_event(validator, record: Dict[str, Any]) -> List[str]:
+def validate_event(validator, record: dict[str, Any]) -> list[str]:
     return [
-        "{0}: {1}".format("/".join(str(p) for p in e.absolute_path) or "<root>", e.message)
+        "{}: {}".format("/".join(str(p) for p in e.absolute_path) or "<root>", e.message)
         for e in sorted(validator.iter_errors(record), key=lambda e: list(e.absolute_path))
     ]
 
@@ -460,7 +457,7 @@ def validate_event(validator, record: Dict[str, Any]) -> List[str]:
 
 
 class RawRecord(NamedTuple):
-    obj: Dict[str, Any]
+    obj: dict[str, Any]
     raw: bytes
     sha: str
     file: str
@@ -472,23 +469,23 @@ def parse_ts(ts: str) -> datetime:
     try:
         return datetime.fromisoformat(text)
     except ValueError:
-        raise LedgerError("unparseable timestamp {0!r}".format(ts))
+        raise LedgerError(f"unparseable timestamp {ts!r}")
 
 
-def read_ledger(ledger_dir: Path) -> Tuple[List[RawRecord], List[Dict[str, Any]], int]:
+def read_ledger(ledger_dir: Path) -> tuple[list[RawRecord], list[dict[str, Any]], int]:
     """READ every shard in sorted filename order. A line that fails to parse is
     recorded as an error and NEVER skipped. Returns (records, errors, lines_seen).
     """
-    records: List[RawRecord] = []
-    errors: List[Dict[str, Any]] = []
+    records: list[RawRecord] = []
+    errors: list[dict[str, Any]] = []
     lines_seen = 0
     if not ledger_dir.is_dir():
-        raise LedgerUnknown("ledger_dir_absent: {0} does not exist".format(ledger_dir))
+        raise LedgerUnknown(f"ledger_dir_absent: {ledger_dir} does not exist")
     for shard in sorted(ledger_dir.glob("*.jsonl")):
         try:
             blob = shard.read_bytes()
         except OSError as exc:
-            raise LedgerUnknown("shard_unreadable: {0}: {1}".format(shard, exc))
+            raise LedgerUnknown(f"shard_unreadable: {shard}: {exc}")
         for lineno, raw in enumerate(blob.split(b"\n"), start=1):
             if lineno == len(blob.split(b"\n")) and raw == b"":
                 continue  # the trailing newline, not a line
@@ -519,7 +516,7 @@ def read_ledger(ledger_dir: Path) -> Tuple[List[RawRecord], List[Dict[str, Any]]
     return records, errors, lines_seen
 
 
-def total_order_key(record: RawRecord) -> Tuple[str, str, str]:
+def total_order_key(record: RawRecord) -> tuple[str, str, str]:
     """(ts, event_id, sha256(canonical bytes)).
 
     ⛔ The THIRD key is what makes the order TOTAL. Two records sharing a ts AND
@@ -534,14 +531,14 @@ def total_order_key(record: RawRecord) -> Tuple[str, str, str]:
 
 def sort_then_dedupe(
     records: Sequence[RawRecord], _broken_dedupe_first: bool = False
-) -> Tuple[List[RawRecord], List[Dict[str, Any]]]:
+) -> tuple[list[RawRecord], list[dict[str, Any]]]:
     """⛔ SORT, THEN DEDUPE. `_broken_dedupe_first` exists only for `--must-fail`,
     which plants the inverted order and requires the suite to redden."""
-    errors: List[Dict[str, Any]] = []
+    errors: list[dict[str, Any]] = []
 
-    def dedupe(seq: Sequence[RawRecord]) -> List[RawRecord]:
-        kept: Dict[str, RawRecord] = {}
-        out: List[RawRecord] = []
+    def dedupe(seq: Sequence[RawRecord]) -> list[RawRecord]:
+        kept: dict[str, RawRecord] = {}
+        out: list[RawRecord] = []
         for record in seq:
             event_id = str(record.obj.get("event_id", ""))
             if event_id in kept:
@@ -576,11 +573,11 @@ REDACTED_MARK = "[redacted:{0}]"
 
 
 def fold(
-    records: Sequence[RawRecord], errors: List[Dict[str, Any]]
-) -> Tuple[Dict[str, Dict[str, Any]], List[Dict[str, Any]], List[Dict[str, Any]]]:
+    records: Sequence[RawRecord], errors: list[dict[str, Any]]
+) -> tuple[dict[str, dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
     """Fold the ordered, deduped events into per-item state. Returns
     (items, non_item_events, unrecognized)."""
-    redacted_targets: Dict[str, str] = {}
+    redacted_targets: dict[str, str] = {}
     for record in records:
         if record.obj.get("type") == "redact":
             asserted = record.obj.get("asserted") or {}
@@ -588,9 +585,9 @@ def fold(
             if target:
                 redacted_targets[str(target)] = str(asserted.get("reason_class", "wrong_content"))
 
-    items: Dict[str, Dict[str, Any]] = {}
-    non_item: List[Dict[str, Any]] = []
-    unrecognized: List[Dict[str, Any]] = []
+    items: dict[str, dict[str, Any]] = {}
+    non_item: list[dict[str, Any]] = []
+    unrecognized: list[dict[str, Any]] = []
 
     for record in records:
         obj = record.obj
@@ -679,7 +676,7 @@ def fold(
                 # that is also invisible.
                 errors.append(
                     {"kind": "divergence", "item_id": item_id, "event_id": event_id,
-                     "detail": "asserted prev_state {0!r} != folded state {1!r}; continuing "
+                     "detail": "asserted prev_state {!r} != folded state {!r}; continuing "
                      "with the later-ts event as the winner".format(prev, item["state"])}
                 )
             item["state"] = state
@@ -752,7 +749,7 @@ def normalise_ref(ref: str) -> str:
     if len(parts) != 3:
         return ref
     slug = re.sub(r"[^a-z0-9]+", "-", parts[2].strip().lower()).strip("-")[:48]
-    return "ext:{0}:{1}".format(parts[1].strip().lower(), slug)
+    return f"ext:{parts[1].strip().lower()}:{slug}"
 
 
 def _levenshtein(a: str, b: str, cap: int = 3) -> int:
@@ -770,11 +767,11 @@ def _levenshtein(a: str, b: str, cap: int = 3) -> int:
 
 
 def derive(
-    items: Dict[str, Dict[str, Any]], now: datetime, config: Dict[str, Any]
-) -> List[Dict[str, Any]]:
+    items: dict[str, dict[str, Any]], now: datetime, config: dict[str, Any]
+) -> list[dict[str, Any]]:
     """⛔ EVERY value here is DERIVED and none of it is ever stored. Storing any
     of it is two hand-maintained copies of one fact."""
-    warnings: List[Dict[str, Any]] = []
+    warnings: list[dict[str, Any]] = []
     for item in items.values():
         state = item["state"]
         resolution = item["resolution"]
@@ -836,9 +833,9 @@ RESOLUTION_COMPANIONS = {
 
 
 def check_integrity(
-    records: Sequence[RawRecord], items: Dict[str, Dict[str, Any]]
-) -> List[Dict[str, Any]]:
-    errors: List[Dict[str, Any]] = []
+    records: Sequence[RawRecord], items: dict[str, dict[str, Any]]
+) -> list[dict[str, Any]]:
+    errors: list[dict[str, Any]] = []
 
     for record in records:
         asserted = record.obj.get("asserted") or {}
@@ -870,9 +867,8 @@ def check_integrity(
             if not value:
                 errors.append(
                     {"kind": "missing_companion", "item_id": item_id, "resolution": resolution,
-                     "detail": "resolution {0!r} requires a typed, gate-checked {1!r}; "
-                     "a relationship resolution with no target id is INVALID".format(
-                         resolution, companion)}
+                     "detail": f"resolution {resolution!r} requires a typed, gate-checked {companion!r}; "
+                     "a relationship resolution with no target id is INVALID"}
                 )
         target = item.get("superseded_by")
         if target and target not in items:
@@ -917,17 +913,17 @@ def check_integrity(
     return errors
 
 
-def _g_led_07_message(obj: Dict[str, Any], field: str) -> str:
+def _g_led_07_message(obj: dict[str, Any], field: str) -> str:
     """⛔ The rejection must be a RUNNABLE COMMAND, not a description of one.
     A gate whose message is a description is the shape that produced five
     consecutive blocks to change one regex."""
     item_id = obj.get("item_id") or "rc-<item>"
     return (
-        "G-LED-07: `{0}` is derived and cannot be stored.\n"
+        f"G-LED-07: `{field}` is derived and cannot be stored.\n"
         "Run exactly this:\n"
-        "  rc ledger link --item {1} --add \"ext:owner-decision:<slug>\"\n"
+        f"  rc ledger link --item {item_id} --add \"ext:owner-decision:<slug>\"\n"
         "(classes: owner-decision|upstream|vendor|external-run|migration|access)"
-    ).format(field, item_id)
+    )
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -936,11 +932,11 @@ def _g_led_07_message(obj: Dict[str, Any], field: str) -> str:
 
 
 class Projection(NamedTuple):
-    items: Dict[str, Dict[str, Any]]
-    errors: List[Dict[str, Any]]
-    warnings: List[Dict[str, Any]]
-    unrecognized: List[Dict[str, Any]]
-    scp_block: Dict[str, Any]
+    items: dict[str, dict[str, Any]]
+    errors: list[dict[str, Any]]
+    warnings: list[dict[str, Any]]
+    unrecognized: list[dict[str, Any]]
+    scp_block: dict[str, Any]
     markdown: str
     verdict: str
     parsed_records: int
@@ -949,9 +945,9 @@ class Projection(NamedTuple):
 
 def project(
     ledger_dir: Path,
-    config: Dict[str, Any],
-    now: Optional[datetime] = None,
-    validator: Optional[Any] = None,
+    config: dict[str, Any],
+    now: datetime | None = None,
+    validator: Any | None = None,
     basis: str = "",
     _broken_dedupe_first: bool = False,
 ) -> Projection:
@@ -995,7 +991,7 @@ def project(
     scp_block = scp.build_block(
         "open_items",
         open_ids,
-        basis or "ledger:{0}".format(ledger_dir.as_posix()),
+        basis or f"ledger:{ledger_dir.as_posix()}",
         computed_at,
         coverage={"events_parsed": parsed, "items": len(items), "non_item_events": len(non_item)},
         truncated=truncated,
@@ -1029,7 +1025,7 @@ def _cell(value: Any) -> str:
     return str(value).replace("|", "\\|")
 
 
-def _display_state(item: Dict[str, Any]) -> str:
+def _display_state(item: dict[str, Any]) -> str:
     """Read vocabulary (blocked / awaiting verification) over WRITE vocabulary
     (the 4 stored states). The view shows the derivation; the gate refuses it."""
     parts = [item["state"]]
@@ -1046,7 +1042,7 @@ def _display_state(item: Dict[str, Any]) -> str:
     return " · ".join(parts)
 
 
-def _row(item: Dict[str, Any]) -> str:
+def _row(item: dict[str, Any]) -> str:
     return "| " + " | ".join(
         [
             item["item_id"],
@@ -1065,47 +1061,64 @@ def _row(item: Dict[str, Any]) -> str:
     ) + " |"
 
 
-def _sorted_items(values: Iterable[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def _as_priority(value: Any) -> int:
+    """Coerce a priority to a sortable int WITHOUT dropping the row.
+
+    ⛔ A redacted item's `asserted` fields are all blanked to `[redacted:<class>]`,
+    so `priority` is legitimately a non-integer after a redact event. An `int()`
+    here raised and took the whole render down — and a renderer that dies on a
+    valid ledger is a worse dropped-item bug than the one it renders. Unsortable
+    priorities sort LAST rather than vanishing; nothing is ever skipped.
+    """
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return 9
+
+
+def _sorted_items(values: Iterable[dict[str, Any]]) -> list[dict[str, Any]]:
     return sorted(
         values,
-        key=lambda i: (int(i.get("priority") or 3), STATE_ORDINAL.get(i["state"], 9), i["item_id"]),
+        key=lambda i: (
+            _as_priority(i.get("priority")),
+            STATE_ORDINAL.get(i["state"], 9),
+            i["item_id"],
+        ),
     )
 
 
-def _truncation_block(shown: int, full_ids: List[str], pointer: str, set_kind: str) -> List[str]:
+def _truncation_block(shown: int, full_ids: list[str], pointer: str, set_kind: str) -> list[str]:
     """⛔ Truncation is NEVER silent. Count + digest + pointer + a machine-readable
     marker, in that order. A truncated list read as a complete one is a measured
     defect, so the marker is mandatory and its absence is a gate failure."""
     digest = scp.compute_digest(set_kind, full_ids)
     return [
         "",
-        "⚠ RENDER TRUNCATED — {0} of {1} not shown. digest {2}".format(
-            len(full_ids) - shown, len(full_ids), digest
-        ),
-        "Full set: `{0}`".format(pointer),
+        f"⚠ RENDER TRUNCATED — {len(full_ids) - shown} of {len(full_ids)} not shown. digest {digest}",
+        f"Full set: `{pointer}`",
     ]
 
 
 def render(
-    items: Dict[str, Dict[str, Any]],
-    scp_block: Dict[str, Any],
-    errors: List[Dict[str, Any]],
-    warnings: List[Dict[str, Any]],
-    unrecognized: List[Dict[str, Any]],
-    config: Dict[str, Any],
+    items: dict[str, dict[str, Any]],
+    scp_block: dict[str, Any],
+    errors: list[dict[str, Any]],
+    warnings: list[dict[str, Any]],
+    unrecognized: list[dict[str, Any]],
+    config: dict[str, Any],
     now: datetime,
     verdict: str,
 ) -> str:
-    lines: List[str] = [
+    lines: list[str] = [
         "# Task ledger — generated view",
         "",
         "<!-- GENERATED by ledger.py project. Do NOT hand-edit: regeneration overwrites, and",
         "     the freshness gate compares this file to a fresh projection. -->",
         "",
-        "- as of: `{0}`".format(now.astimezone(timezone.utc).isoformat()),
-        "- basis: `{0}`".format(scp_block["basis"]),
-        "- open-set digest: `{0}`".format(scp_block["digest"]),
-        "- verdict: **{0}**".format(verdict),
+        f"- as of: `{now.astimezone(timezone.utc).isoformat()}`",
+        "- basis: `{}`".format(scp_block["basis"]),
+        "- open-set digest: `{}`".format(scp_block["digest"]),
+        f"- verdict: **{verdict}**",
         "",
     ]
 
@@ -1116,7 +1129,7 @@ def render(
     shown = active[:cap]
 
     lines.append(
-        "## Open — {0} items · digest `{1}` · showing {2}".format(
+        "## Open — {} items · digest `{}` · showing {}".format(
             len(open_items), scp_block["digest"], len(shown)
         )
     )
@@ -1134,20 +1147,20 @@ def render(
     if dormant:
         lines += [
             "",
-            "dormant: {0} of the {1} · digest `{2}` · `rc ledger open --dormant`".format(
+            "dormant: {} of the {} · digest `{}` · `rc ledger open --dormant`".format(
                 len(dormant), len(open_items),
                 scp.compute_digest("open_items", sorted(i["item_id"] for i in dormant)),
             ),
             "",
-            "_Dormant items are excluded from the {0}-row budget but INCLUDED in open_count "
-            "and in the SCP ids. Ageing must never weaken conservation._".format(cap),
+            f"_Dormant items are excluded from the {cap}-row budget but INCLUDED in open_count "
+            "and in the SCP ids. Ageing must never weaken conservation._",
         ]
     lines.append("")
 
     closed_not_completed = _sorted_items(
         [i for i in items.values() if not i["open"] and i["resolution"] != "completed"]
     )
-    lines.append("## Closed — not completed ({0})".format(len(closed_not_completed)))
+    lines.append(f"## Closed — not completed ({len(closed_not_completed)})")
     lines.append("")
     lines.append("| " + " | ".join(COLUMNS) + " |")
     lines.append("|" + "---|" * len(COLUMNS))
@@ -1160,7 +1173,7 @@ def render(
     completed = _sorted_items(
         [i for i in items.values() if not i["open"] and i["resolution"] == "completed"]
     )
-    lines.append("## Completed and verified ({0})".format(len(completed)))
+    lines.append(f"## Completed and verified ({len(completed)})")
     lines.append("")
     lines.append("| " + " | ".join(COLUMNS) + " |")
     lines.append("|" + "---|" * len(COLUMNS))
@@ -1176,7 +1189,7 @@ def render(
         lines.append("")
         for item in needs_reopen:
             lines.append(
-                "- `{0}` — reverted with no successor row. {1}".format(
+                "- `{}` — reverted with no successor row. {}".format(
                     item["item_id"], _cell(item["subject"])
                 )
             )
@@ -1185,11 +1198,11 @@ def render(
     if unrecognized:
         # ⛔ Rendered, never dropped. There is no `default: skip` in this renderer:
         # a silent skip would make the safety property destroy itself.
-        lines.append("## Unrecognized (schema drift?) — {0}".format(len(unrecognized)))
+        lines.append(f"## Unrecognized (schema drift?) — {len(unrecognized)}")
         lines.append("")
         for entry in sorted(unrecognized, key=lambda e: (str(e.get("ts")), str(e.get("event_id")))):
             lines.append(
-                "- {0}: `{1}` (event `{2}`, item `{3}`)".format(
+                "- {}: `{}` (event `{}`, item `{}`)".format(
                     entry["reason"], entry.get("value"), entry.get("event_id"),
                     entry.get("item_id")
                 )
@@ -1200,15 +1213,15 @@ def render(
     lines += [
         "## Diagnostics",
         "",
-        "- pr_unresolved: {0}".format(len(pr_unresolved)),
-        "- errors: {0}".format(len(errors)),
-        "- warnings: {0}".format(len(warnings)),
+        f"- pr_unresolved: {len(pr_unresolved)}",
+        f"- errors: {len(errors)}",
+        f"- warnings: {len(warnings)}",
         "",
     ]
     for error in errors:
-        lines.append("  - ⛔ {0}: {1}".format(error.get("kind"), error.get("detail", "")))
+        lines.append("  - ⛔ {}: {}".format(error.get("kind"), error.get("detail", "")))
     for warning in warnings:
-        lines.append("  - ⚠ {0}: {1}".format(warning.get("kind"), warning.get("detail", "")))
+        lines.append("  - ⚠ {}: {}".format(warning.get("kind"), warning.get("detail", "")))
     lines.append("")
     return "\n".join(lines) + "\n"
 
@@ -1218,7 +1231,7 @@ def render(
 # ═════════════════════════════════════════════════════════════════════════════
 
 
-def check_committable(repo_root: Path, ledger_path: str) -> Tuple[int, List[str]]:
+def check_committable(repo_root: Path, ledger_path: str) -> tuple[int, list[str]]:
     """⛔ THE POSITIVE CONTROL IS THE POINT.
 
     Without it, a `git check-ignore` that is broken, absent, or run outside a git
@@ -1227,9 +1240,9 @@ def check_committable(repo_root: Path, ledger_path: str) -> Tuple[int, List[str]
     basis: `.ravenclaude/runs/**` IS gitignored (.gitignore:4), so the control
     has a real subject that will keep firing.
     """
-    report: List[str] = []
+    report: list[str] = []
 
-    def ignored(rel: str) -> Optional[bool]:
+    def ignored(rel: str) -> bool | None:
         try:
             proc = subprocess.run(
                 ["git", "check-ignore", "--quiet", rel],
@@ -1248,14 +1261,12 @@ def check_committable(repo_root: Path, ledger_path: str) -> Tuple[int, List[str]
     control = ignored(control_path)
     if control is not True:
         report.append(
-            "HARNESS FAILURE: the positive control `{0}` did NOT report ignored "
-            "(got {1!r}). git check-ignore is broken, absent, or this is not a git repo, "
-            "so a 'not ignored' answer for the ledger proves nothing.".format(
-                control_path, control
-            )
+            f"HARNESS FAILURE: the positive control `{control_path}` did NOT report ignored "
+            f"(got {control!r}). git check-ignore is broken, absent, or this is not a git repo, "
+            "so a 'not ignored' answer for the ledger proves nothing."
         )
         return 2, report
-    report.append("  ok   positive control fired: `{0}` IS ignored".format(control_path))
+    report.append(f"  ok   positive control fired: `{control_path}` IS ignored")
 
     subject = ignored(ledger_path)
     if subject is None:
@@ -1263,12 +1274,12 @@ def check_committable(repo_root: Path, ledger_path: str) -> Tuple[int, List[str]
         return 2, report
     if subject:
         report.append(
-            "⛔ COMMITTABILITY FAILED: `{0}` IS gitignored. Appends would succeed, exit 0, "
+            f"⛔ COMMITTABILITY FAILED: `{ledger_path}` IS gitignored. Appends would succeed, exit 0, "
             "and never reach main. Fix the .gitignore rule that captures it; do not move "
-            "the ledger under .ravenclaude/runs/.".format(ledger_path)
+            "the ledger under .ravenclaude/runs/."
         )
         return 1, report
-    report.append("  ok   subject not ignored: `{0}` commits".format(ledger_path))
+    report.append(f"  ok   subject not ignored: `{ledger_path}` commits")
     return 0, report
 
 
@@ -1277,10 +1288,10 @@ def check_committable(repo_root: Path, ledger_path: str) -> Tuple[int, List[str]
 # ═════════════════════════════════════════════════════════════════════════════
 
 
-def _existing_item_ids(ledger_dir: Path) -> List[str]:
+def _existing_item_ids(ledger_dir: Path) -> list[str]:
     if not ledger_dir.is_dir():
         return []
-    ids: List[str] = []
+    ids: list[str] = []
     for shard in sorted(ledger_dir.glob("*.jsonl")):
         for raw in shard.read_bytes().split(b"\n"):
             if not raw.strip():
@@ -1295,9 +1306,9 @@ def _existing_item_ids(ledger_dir: Path) -> List[str]:
 
 
 def build_event(
-    repo_root: Path, etype: str, item_id: Optional[str], asserted: Dict[str, Any], actor: str,
-    ts: Optional[str] = None, machine_extra: Optional[Dict[str, Any]] = None,
-) -> Dict[str, Any]:
+    repo_root: Path, etype: str, item_id: str | None, asserted: dict[str, Any], actor: str,
+    ts: str | None = None, machine_extra: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     machine = machine_block(repo_root, actor, ts)
     if machine_extra:
         machine.update(machine_extra)
@@ -1331,7 +1342,7 @@ def cmd_init(repo_root: Path, args: argparse.Namespace) -> int:
         config_path.parent.mkdir(parents=True, exist_ok=True)
         config_path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n",
                                encoding="utf-8")
-        print("wrote {0}".format(config_path))
+        print(f"wrote {config_path}")
 
     # Step 7, load-bearing: a ledger with ZERO events in an INITIALISED repo is
     # UNKNOWN (something is wrong). A repo with no config at all is "not
@@ -1343,9 +1354,9 @@ def cmd_init(repo_root: Path, args: argparse.Namespace) -> int:
         args.actor,
     )
     path = append_record(ledger_dir, event, int(config["max_record_bytes"]))
-    print("appended ledger_init to {0}".format(path))
+    print(f"appended ledger_init to {path}")
     print("retention: PERMANENT (a committed git artifact — git history cannot be un-said)")
-    print("view_path: {0}".format(config["view_path"]))
+    print("view_path: {}".format(config["view_path"]))
     return 0
 
 
@@ -1355,7 +1366,7 @@ def cmd_open(repo_root: Path, args: argparse.Namespace) -> int:
     ts = args.ts or utcnow_iso()
     machine = machine_block(repo_root, args.actor, ts)
     item_id = mint_item_id(machine["source"], ts, args.subject, _existing_item_ids(ledger_dir))
-    asserted: Dict[str, Any] = {"subject": args.subject[:140]}
+    asserted: dict[str, Any] = {"subject": args.subject[:140]}
     if args.owner:
         asserted["owner"] = args.owner
     if args.priority:
@@ -1368,12 +1379,12 @@ def cmd_open(repo_root: Path, args: argparse.Namespace) -> int:
     return 0
 
 
-def _asserted_from_kv(pairs: Sequence[str]) -> Dict[str, Any]:
-    out: Dict[str, Any] = {}
+def _asserted_from_kv(pairs: Sequence[str]) -> dict[str, Any]:
+    out: dict[str, Any] = {}
     for pair in pairs or []:
         key, _, value = pair.partition("=")
         if not _:
-            raise LedgerError("--set expects key=value, got {0!r}".format(pair))
+            raise LedgerError(f"--set expects key=value, got {pair!r}")
         try:
             out[key] = json.loads(value)
         except ValueError:
@@ -1387,11 +1398,11 @@ def cmd_append(repo_root: Path, args: argparse.Namespace) -> int:
     asserted = _asserted_from_kv(args.set)
     event = build_event(repo_root, args.type, args.item, asserted, args.actor, args.ts)
     path = append_record(ledger_dir, event, int(config["max_record_bytes"]))
-    print("{0} {1} -> {2}".format(event["event_id"], args.type, path))
+    print("{} {} -> {}".format(event["event_id"], args.type, path))
     return 0
 
 
-def _emit(projection: Projection, config: Dict[str, Any], repo_root: Path, write: bool) -> None:
+def _emit(projection: Projection, config: dict[str, Any], repo_root: Path, write: bool) -> None:
     if not write:
         return
     view = repo_root / config["view_path"]
@@ -1431,8 +1442,8 @@ def cmd_check_enumeration(repo_root: Path, args: argparse.Namespace) -> int:
     # fires when the ledger is EMPTY: a turn that produced action-shaped output
     # and recorded nothing is UNKNOWN, not "0 open".
     if args.lower_bound is not None and args.lower_bound > 0 and (args.recorded_this_turn or 0) == 0:
-        print("UNKNOWN (exit 2): unrecorded_lower_bound — {0} action item(s) observed this "
-              "turn and 0 events recorded.".format(args.lower_bound), file=sys.stderr)
+        print(f"UNKNOWN (exit 2): unrecorded_lower_bound — {args.lower_bound} action item(s) observed this "
+              "turn and 0 events recorded.", file=sys.stderr)
         return 2
 
     validator = None if args.no_schema else load_validator()
@@ -1443,18 +1454,17 @@ def cmd_check_enumeration(repo_root: Path, args: argparse.Namespace) -> int:
               file=sys.stderr)
         return 2
     if projection.errors:
-        print("FAIL (exit 1): {0} projection error(s) — a determinate defect, so the "
-              "conservation answer would be built on a broken basis.".format(
-                  len(projection.errors)), file=sys.stderr)
+        print(f"FAIL (exit 1): {len(projection.errors)} projection error(s) — a determinate defect, so the "
+              "conservation answer would be built on a broken basis.", file=sys.stderr)
         for error in projection.errors:
-            print("  - {0}: {1}".format(error.get("kind"), error.get("detail", "")),
+            print("  - {}: {}".format(error.get("kind"), error.get("detail", "")),
                   file=sys.stderr)
         return 1
 
     claimed = scp.load_block(args.claimed)
     verdict = scp.diff_blocks(claimed, projection.scp_block, projection.parsed_records)
     stream = sys.stdout if verdict.verdict == "PASS" else sys.stderr
-    print("{0} (exit {1})".format(verdict.verdict, verdict.exit_code), file=stream)
+    print(f"{verdict.verdict} (exit {verdict.exit_code})", file=stream)
     for reason in verdict.reasons:
         print("  - " + reason, file=stream)
     return verdict.exit_code
@@ -1480,13 +1490,13 @@ def _self_test(broken_order: bool = False) -> int:
     import shutil
     import tempfile
 
-    failures: List[str] = []
+    failures: list[str] = []
 
     def check(label: str, condition: bool) -> None:
         if condition:
-            print("  ok   {0}".format(label))
+            print(f"  ok   {label}")
         else:
-            print("  FAIL {0}".format(label))
+            print(f"  FAIL {label}")
             failures.append(label)
 
     config = dict(DEFAULT_CONFIG)
@@ -1520,7 +1530,7 @@ def _self_test(broken_order: bool = False) -> int:
         # ── minting ──────────────────────────────────────────────────────────
         ids = set()
         for n in range(2000):
-            ids.add(mint_item_id("src", "2026-08-19T00:00:00.000Z", "subject-{0}".format(n), ids))
+            ids.add(mint_item_id("src", "2026-08-19T00:00:00.000Z", f"subject-{n}", ids))
         check("2000 mints are collision-free", len(ids) == 2000)
         pinned = mint_item_id("s", "t", "u", [], nonce_factory=lambda: b"\x00" * 8)
         try:
@@ -1533,7 +1543,7 @@ def _self_test(broken_order: bool = False) -> int:
 
         # ── scrub ────────────────────────────────────────────────────────────
         secret = "ghp_" + "b" * 36
-        scrubbed = scrub("token is {0} for jane.doe@client.com".format(secret))
+        scrubbed = scrub(f"token is {secret} for jane.doe@client.com")
         check("a ghp_-shaped token is [REDACTED] on the write path",
               secret not in scrubbed and "[REDACTED]" in scrubbed)
         check("an email address is [PII:email] on the write path",
@@ -1547,7 +1557,7 @@ def _self_test(broken_order: bool = False) -> int:
             validator = load_validator()
             check("the JSON-Schema validator loads and its bad-object control fires", True)
         except LedgerUnknown as exc:
-            check("the JSON-Schema validator loads ({0})".format(exc), False)
+            check(f"the JSON-Schema validator loads ({exc})", False)
 
         canonical = _FIXTURES / "canonical.jsonl"
         shuffled = _FIXTURES / "shuffled-order.jsonl"
@@ -1658,9 +1668,9 @@ def _self_test(broken_order: bool = False) -> int:
         big_dir.mkdir(parents=True, exist_ok=True)
         rows = []
         for n in range(40):
-            rows.append(build_event(repo_root, "open", "rc-{0:012x}".format(n),
-                                    {"subject": "item {0}".format(n)}, "selftest",
-                                    "2026-08-19T00:00:{0:02d}.000Z".format(n % 60)))
+            rows.append(build_event(repo_root, "open", f"rc-{n:012x}",
+                                    {"subject": f"item {n}"}, "selftest",
+                                    f"2026-08-19T00:00:{n % 60:02d}.000Z"))
         (big_dir / "2026-08.jsonl").write_bytes(
             b"\n".join(canonical_bytes(r) for r in rows) + b"\n")
         big = project(big_dir, dict(config, brief_max_items=12), validator=validator, basis="b")
@@ -1688,7 +1698,7 @@ def _self_test(broken_order: bool = False) -> int:
 
     print()
     if failures:
-        print("ledger self-test FAILED ({0})".format(len(failures)))
+        print(f"ledger self-test FAILED ({len(failures)})")
         return 1
     print("ledger self-test PASS")
     return 0
@@ -1708,7 +1718,7 @@ def _must_fail() -> int:
     if rc == 0:
         print("TEETH FAILED: dedupe-before-sort still passed the self-test", file=sys.stderr)
         return 1
-    print("teeth ok: the planted order bug was caught (self-test exited {0})".format(rc))
+    print(f"teeth ok: the planted order bug was caught (self-test exited {rc})")
     return 0
 
 
@@ -1717,7 +1727,7 @@ def _must_fail() -> int:
 # ═════════════════════════════════════════════════════════════════════════════
 
 
-def main(argv: Optional[List[str]] = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="ledger.py",
         description=__doc__.splitlines()[0],
@@ -1797,11 +1807,11 @@ def main(argv: Optional[List[str]] = None) -> int:
     try:
         return args.func(repo_root, args)
     except LedgerUnknown as exc:
-        print("UNKNOWN (exit 2): {0}".format(exc), file=sys.stderr)
+        print(f"UNKNOWN (exit 2): {exc}", file=sys.stderr)
         print("UNKNOWN BLOCKS. It is never downgraded to PASS.", file=sys.stderr)
         return 2
     except LedgerError as exc:
-        print("REFUSED (exit 1): {0}".format(exc), file=sys.stderr)
+        print(f"REFUSED (exit 1): {exc}", file=sys.stderr)
         return 1
 
 
