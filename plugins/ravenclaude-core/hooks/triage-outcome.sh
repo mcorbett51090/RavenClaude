@@ -107,11 +107,29 @@
 #      the full advisory ONCE, then a one-line pointer. Suppression lives in the
 #      DISPLAY, never in the ledger.
 #
-# ⛔ SHIPPED UNWIRED, AND SAID OUT LOUD. This file is deliberately absent from
-# hooks.json. The plan gates wiring on a measured fire rate of 3% or less over
-# the replay corpus (Phase 1), and that corpus has not been built yet. Wiring it
-# now would ship an unmeasured advisory volume into every session, which is what
-# brake 3 exists to prevent. It is fully exercised by its gate test today.
+# ⛔ WIRED 2026-08-19, ON A MEASUREMENT — not on a decision to stop waiting.
+# This hook shipped UNWIRED first, because the plan gates wiring on a measured fire
+# rate of 3% or less over a replay corpus, and no corpus existed. The corpus was
+# then built: 46,557 real Bash envelopes paired from 1,107 local transcripts.
+#
+#   first measurement   3.740%   OVER the gate -> NOT wired
+#   after two fixes     2.588%   under the gate -> wired
+#
+# ⛔ THE GATE WAS NEVER MOVED. The trigger got more specific; 3% stayed 3%. The two
+# fixes were the anticipated-failure brake (see the TRIGGER block) and gating the
+# URL subject on the http family (see the SUBJECT block). Both are objective
+# command shape. Same corpus, same sample seed, so the two numbers compare directly.
+#
+# Controls, run before believing either number, because a 0% rate and an inert hook
+# are indistinguishable: an unhandled failing command FIRES; `mkdir -p` is SILENT;
+# and — the pair that shows the brake removes noise and not signal — the SAME
+# failure is silent when the author wrote a `||` fallback and still fires without one.
+#
+# ⛔ HONEST LIMIT ON THAT NUMBER. Transcripts store a RENDERED result string, so the
+# corpus envelopes were reconstructed with everything in stdout and stderr always
+# empty. That is not byte-identical to a live payload and could bias the rate in
+# either direction. Re-measure against live payloads once the Phase 1 harness can
+# capture them; 2.588% is the best available figure, not a perfect one.
 #
 # Portability: bash 3.2 / BSD-safe. No declare -A, no mapfile, no GNU timeout.
 # ⛔ NO APOSTROPHES inside the embedded python: it sits in a single-quoted bash
@@ -305,7 +323,32 @@ shape = CmdShape(
 _INDETERMINATE = ("timeout", "rate-limited", "server-error", "dns-failure",
                   "conn-refused", "auth-denied", "in-progress")
 indeterminate = any(x in labels for x in _INDETERMINATE)
+
+# ── ANTICIPATED-FAILURE BRAKE (added after a corpus measurement) ────────────
+# ⛔ MEASURED over 46,557 real Bash envelopes from 1,107 local transcripts: the
+# unbraked trigger fired at 3.740%, over the 3% wiring gate set by the plan. The dominant
+# contributor was NOT failed commands — it was SUCCESSFUL COMPOUND commands
+# (`a; b; c`, `a && b`) where ONE sub-command emitted error-shaped text into the
+# merged output, e.g. `tail -20 /tmp/x.log || echo "(no log)"`.
+#
+# An error the author ALREADY HANDLED is not an unexplained outcome. A `||`
+# fallback or a `2>/dev/null` on the failing part is the author stating in the
+# command itself that this failure is expected and covered. Advising on it is the
+# 85%-false-positive shape this repo has already rejected once.
+#
+# ⛔ This is OBJECTIVE COMMAND SHAPE, not a confidence input and not a loosened
+# threshold. There is still no parameter here through which self-reported doubt
+# could be introduced. The gate stayed at 3%; the trigger got more specific.
+#
+# ⛔ SCOPED TO THE `angry` (label) ARM ONLY. `indeterminate` — timeout, rate
+# limit, auth, DNS, connection-refused — is NOT braked: those are the rare,
+# high-value shapes where a fallback hides a real infrastructure problem, and a
+# handled rate-limit is still a rate-limit worth naming.
+anticipated_failure = has(r"\|\|") or has(r"2>>?\s*/dev/null|&>\s*/dev/null")
+
 angry = bool(labels - set(["stderr-nonempty"])) or stderr_nonempty
+if anticipated_failure:
+    angry = False
 empty_null = stdout_empty and not stderr_nonempty and evidence_bearing
 
 if indeterminate:
@@ -345,7 +388,22 @@ if not candidates:
 subj_src = re.sub(r"[0-9]?>>?\s*[^\s;|&]+", " ", cmd)
 subj_src = re.sub(r"[0-9]?>&[0-9-]", " ", subj_src)
 subject = None
-m = re.search(r"https?://([^/\s\"]+)(/[^\s\"]*)?", subj_src)
+# ⛔ The URL subject is gated on the command actually being an HTTP command.
+# MEASURED in the corpus run: an export of a PATH plus a quoted user-agent string
+# that embedded https://github.com/owner/repo produced the subject
+# github.com/owner/repo — a URL lifted out of a
+# QUOTED LITERAL that was data, not a target, in a command that fetches nothing.
+# Same family as the redirect-operand defect above: a path-shaped token in the
+# command text is not automatically the thing being asked about.
+# control: with the gate, that export yields a `cmd:` subject; a real
+# `curl https://host/path` still yields `host/path` — so the gate removed noise
+# without removing signal.
+# ⛔ NO literal apostrophe anywhere in this python program — INCLUDING IN PROSE
+# COMMENTS. The whole program is one single-quoted bash string, so one apostrophe
+# ends it and the hook stops parsing. Cost me two rounds: the giveaway was four
+# different control inputs all returning an IDENTICAL 591 bytes, which is never a
+# real result, only a shared error.
+m = re.search(r"https?://([^/\s\"]+)(/[^\s\"]*)?", subj_src) if family == "http" else None
 if m:
     subject = m.group(1) + (m.group(2) or "/").split("?")[0][:60]
 else:
