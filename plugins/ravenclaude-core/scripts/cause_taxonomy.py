@@ -319,7 +319,7 @@ class CmdShape:
         return self.tool_family in GITIGNORE_AWARE_FAMILIES
 
     @classmethod
-    def from_dict(cls, d: dict) -> "CmdShape":
+    def from_dict(cls, d: dict) -> CmdShape:
         known = {
             k: v
             for k, v in (d or {}).items()
@@ -1022,7 +1022,7 @@ def _cmd_must_fail() -> int:
 def _cmd_check_doc(path: str) -> int:
     """Prose/code parity. An unreadable or empty doc is UNKNOWN, never a pass."""
     try:
-        with open(path, "r", encoding="utf-8", errors="replace") as fh:
+        with open(path, encoding="utf-8", errors="replace") as fh:
             text = fh.read()
     except OSError:
         print("UNKNOWN: the taxonomy doc could not be read at %s" % path)
