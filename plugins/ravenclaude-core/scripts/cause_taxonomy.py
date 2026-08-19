@@ -347,10 +347,26 @@ def _class_of(cause_id: str) -> str:
     return cause_id[0]
 
 
+#: Ordinal WITHIN a class, not within the whole table.
+# ⛔ The decrement has to be per class. Using the global table index gives class I
+# members a base of 8 minus 28-to-33, i.e. deeply negative, so an I member could
+# only ever surface by carrying a boost large enough to climb out of a hole that
+# had nothing to do with its likelihood.
+# control: observed by running the hook on a silent HTTP probe — the top three
+# came back as PATH and argv members for a command that had plainly executed,
+# while the reachability member that describes that exact shape scored below zero.
+_CLASS_ORDINAL = {}
+_seen_per_class: dict = {}
+for _i, (_cid, _c, _p) in enumerate(CAUSES):
+    _k = _cid[0]
+    _CLASS_ORDINAL[_cid] = _seen_per_class.get(_k, 0)
+    _seen_per_class[_k] = _CLASS_ORDINAL[_cid] + 1
+
+
 def _base_score(cause_id: str, index: int) -> int:
     # The intra-class decrement makes the order total and deterministic without
     # ever depending on dict iteration order.
-    return _CLASS_BASE[_class_of(cause_id)] - index
+    return _CLASS_BASE[_class_of(cause_id)] - _CLASS_ORDINAL.get(cause_id, index)
 
 
 def _eligible(cause_id: str, shape: CmdShape, exit_code, stdout_empty: bool, labels: frozenset) -> bool:
@@ -360,6 +376,10 @@ def _eligible(cause_id: str, shape: CmdShape, exit_code, stdout_empty: bool, lab
     if cls == "I":
         # Reachability classes are eligible ONLY on a reachability signal. They are
         # not evidence about the subject and must never pad a filesystem triage.
+        # The one carve-out is I5, whose own text names the empty-200 case: an HTTP
+        # probe that returns nothing is the exact shape that reads as absence.
+        if cause_id == "I5" and shape.tool_family == "http" and stdout_empty:
+            return True
         return bool(labels & INDETERMINATE_LABELS)
     if cls == "H":
         # H only speaks to EMPTINESS. A command that failed loudly is not empty.
@@ -444,6 +464,21 @@ def _boosts(shape: CmdShape, exit_code, stdout_empty: bool, labels: frozenset) -
     # ── R-H — HTTP-shaped work makes "auth returned an empty 200" live.
     if shape.tool_family == "http" and stdout_empty:
         bump("H2", 14)
+        # I5 is the member whose own text names this shape: an empty 200 body that
+        # reads as nothing-there. For a silent HTTP probe it is the best available
+        # candidate, and it is marked indeterminate so it can never close the row.
+        bump("I5", 45)
+    # ── R-SILENCE — total silence is evidence the binary RAN.
+    # A missing binary, a shadowed one and a permission failure all announce
+    # themselves on fd2. Empty stdout with an entirely empty stderr is therefore
+    # weak evidence for the PATH members and the ranking should say so.
+    # control: caught by running the hook, not by reading it — an empty `curl`
+    # returned E1, E2, E3 as its whole top 3, i.e. "your binary is missing" for a
+    # command that had plainly executed. The rc=127 collapse above is unaffected,
+    # so the case where PATH really is the answer still ranks E1 first.
+    if stdout_empty and not labels:
+        for cid in ("E1", "E2", "E3"):
+            bump(cid, -30)
     return b
 
 
