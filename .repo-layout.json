@@ -35,6 +35,8 @@
     ".ravenclaude/task-scope.json",
     ".ravenclaude/self-heal-setup.md",
     ".ravenclaude/runs/**",
+    ".ravenclaude/ledger-config.json",
+    ".ravenclaude/ledger/**",
     ".ravenclaude/web-access.yaml",
     ".claude-plugin/marketplace.json",
     ".claude/settings.json",

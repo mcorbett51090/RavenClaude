@@ -271,6 +271,22 @@ PY
     }
     exec python3 "$PLUGIN_ROOT/scripts/classify_claim.py" "$@"
     ;;
+  ledger)
+    shift
+    command -v python3 >/dev/null 2>&1 || {
+      echo "rc: python3 not found in PATH — 'rc ledger' needs python3." >&2
+      exit 1
+    }
+    exec python3 "$PLUGIN_ROOT/scripts/ledger.py" "$@"
+    ;;
+  set-conservation)
+    shift
+    command -v python3 >/dev/null 2>&1 || {
+      echo "rc: python3 not found in PATH — 'rc set-conservation' needs python3." >&2
+      exit 1
+    }
+    exec python3 "$PLUGIN_ROOT/scripts/set_conservation.py" "$@"
+    ;;
   handoff)
     shift
     exec bash "$PLUGIN_ROOT/scripts/handoff-spawn.sh" "$@"

@@ -5,3 +5,26 @@
 *.mmd text eol=lf
 *.svg text eol=lf
 *.txt text eol=lf
+
+# ─────────────────────────────────────────────────────────────────────────────
+# The task ledger is an APPEND-ONLY event log. Concurrent worktrees append to the
+# same file, so a default 3-way merge conflicts on every parallel session.
+#
+# ⛔ MEASURED 2026-08-19, WITH A CONTROL, before this line was written:
+#   two divergent branches each appending -> union merge = 5 lines, ZERO loss,
+#   zero conflict markers; the SAME scenario WITHOUT this attribute CONFLICTS
+#   (exit 1). The control fires, so the union driver is the mechanism and the
+#   clean result is real rather than incidental.
+#
+# ⛔ SCOPED TO THE LEDGER PATH, never a blanket `*.jsonl`. A blanket rule would
+#   also union-merge tests/fixtures/ledger/*.jsonl, whose EXACT BYTES are the
+#   assertion — silently corrupting the fixtures that prove the ledger works.
+#   Verified: check-attr reports `union` for the ledger path and `unspecified`
+#   for the fixture path.
+#
+# ⛔ union does NOT make dedupe unnecessary. It dedupes only BYTE-IDENTICAL lines
+#   (measured); two records sharing an event_id but differing in any byte both
+#   survive, so ledger.py still dedupes by event_id at projection. git's own docs
+#   warn union leaves lines "in random order" — hence the total-order sort in the
+#   projection, never reliance on file order.
+.ravenclaude/ledger/*.jsonl merge=union
