@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ravenclaude.dev/schemas/ledger-config.schema.json",
+  "title": "RavenClaude task-ledger config (.ravenclaude/ledger-config.json)",
+  "description": "Resolution order for EVERY consumer (writer, projector, gates, hooks, CI): (1) RC_LEDGER_DIR / RC_LEDGER_VIEW — test harness only, never a documented user knob; (2) these keys; (3) defaults. ⛔ If this file exists but does not parse, the answer is UNKNOWN and a HARD STOP — never a fall-through to the defaults, because a mangled config that silently reverts writes the ledger to a second location and splits the source of truth.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["config_version", "ledger_dir", "view_path"],
+  "properties": {
+    "config_version": { "const": 1 },
+    "ledger_dir": {
+      "type": "string",
+      "description": "Default .ravenclaude/ledger — MEASURED committable. ⛔ .ravenclaude/runs/** is gitignored (.gitignore:4): a ledger there appends happily, exits 0, and never reaches main.",
+      "minLength": 1,
+      "default": ".ravenclaude/ledger"
+    },
+    "view_path": {
+      "type": "string",
+      "description": "Generated Markdown view. docs/pm/task-list.md when docs/ exists at repo root, else <ledger_dir>/task-list.md.",
+      "minLength": 1,
+      "default": "docs/pm/task-list.md"
+    },
+    "brief_max_items": { "type": "integer", "minimum": 1, "default": 12 },
+    "brief_max_bytes": { "type": "integer", "minimum": 256, "default": 4096 },
+    "dormant_after_days": { "type": "integer", "minimum": 1, "default": 90 },
+    "stale_days": {
+      "type": "integer",
+      "minimum": 1,
+      "default": 7,
+      "description": "Taken from the incumbent templates/task-list.md rule, not invented."
+    },
+    "aging_policy": {
+      "description": "rollup keeps every dormant item in open_count and in the SCP ids. auto_descope bounds the set but SILENTLY CLOSES WORK, which is the defect this ledger exists to prevent — hence not the default.",
+      "enum": ["rollup", "auto_descope"],
+      "default": "rollup"
+    },
+    "max_record_bytes": {
+      "type": "integer",
+      "minimum": 512,
+      "maximum": 65536,
+      "default": 8192,
+      "description": "Gate-enforced. Keeps every record an order of magnitude below the largest measured-safe append size, so the unmeasured >64 KB atomicity region is unreachable by construction."
+    }
+  }
+}
