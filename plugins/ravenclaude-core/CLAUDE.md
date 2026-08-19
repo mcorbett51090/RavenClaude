@@ -31,7 +31,7 @@ This marketplace follows the **orchestrator-worker / hierarchical** pattern, whi
 
 **Sub-agents should not freely spawn or directly invoke other sub-agents.** Only the Team Lead performs dispatching and orchestration.
 
-> **This is a deliberate house policy, not a platform constraint (clarified 2026-06-16).** Claude Code **v2.1.172 (2026-06-10)** now *permits* sub-agents to spawn sub-agents up to **5 levels deep**; RavenClaude keeps the single-orchestrator pattern on purpose (observability, debuggability, loop-avoidance, token-spend control), enforced **soft** by `guard-recursive-spawn.sh` (warn, not block). The canonical statement + rationale lives in [`rules/agent-collaboration.md`](rules/agent-collaboration.md); the same rule is restated in several plugin constitutions and a downstream consistency sweep to align that phrasing is tracked separately. `[platform fact verified 2026-06-16 against the Claude Code changelog]`
+> **This is a deliberate house policy, not a platform constraint (clarified 2026-06-16; platform fact corrected 2026-08-19).** Claude Code *permits* sub-agents to spawn sub-agents, but the platform default has tightened since the original v2.1.172 note — the "up to 5 levels deep" figure is **stale**: **v2.1.217 (2026-07-21)** changed subagents to *not* nest by default, then **v2.1.219 (2026-07-24)** set the default nesting depth to **3** (was 1), controlled by `CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH` (`=1` disables nesting). RavenClaude keeps the single-orchestrator pattern on purpose (observability, debuggability, loop-avoidance, token-spend control), enforced **soft** by `guard-recursive-spawn.sh` (warn, not block) — so the house policy is unchanged regardless of the platform default. The canonical statement + rationale lives in [`rules/agent-collaboration.md`](rules/agent-collaboration.md); the same rule is restated in several plugin constitutions and a downstream consistency sweep to align that phrasing is tracked separately. `[platform fact re-verified 2026-08-19 against the Claude Code changelog: https://code.claude.com/docs/en/changelog]`
 
 **How cross-boundary work is handled:**
 
@@ -3052,3 +3052,47 @@ Codespaces dashboard that silently fell to read-only because its forwarded `Host
 `:443` (or arrived via a proxy that added one) now works — Save & apply POSTs succeed. No posture,
 tribunal, `/__*` endpoint, or security-floor semantics changed; the cross-origin/DNS-rebinding boundary
 is unchanged (a foreign forwarded host still 403s).
+
+## Claude Code platform-fact tracking refreshed — subagent caps, nesting depth, plugin install (added 2026-08-19, v0.283.0)
+
+A scheduled plugin-news research routine + two expert panels caught that this constitution's load-bearing
+subagent-nesting platform fact had gone **stale**, and surfaced three adjacent Claude Code changes worth
+recording. All four facts were fetched **verbatim from the [changelog](https://code.claude.com/docs/en/changelog)
+this session** — and the research subagent's version/date attributions were then **corrected against a direct
+re-fetch**: the accuracy panel caught that v2.1.219 is dated **2026-07-24** (not 07-25), that the
+`/plugin install` auto-refresh is **v2.1.221** (not v2.1.219), and — the sharpest catch — that the 200
+per-session cap had since been **removed**, so documenting it as a live guard would have been the very
+staleness this PR exists to fix.
+
+- **The "5 levels deep (v2.1.172)" nesting fact was wrong.** `rules/agent-collaboration.md` and this file
+  both asserted the platform "permits nested sub-agent spawning up to 5 levels deep." Corrected in place:
+  **v2.1.217 (2026-07-21)** changed subagents to *not* nest by default, then **v2.1.219 (2026-07-24)** set
+  the default nesting depth to **3** (was 1), env `CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH` (`=1` disables).
+  The house policy (single-orchestrator, `guard-recursive-spawn.sh` soft-warn) is unchanged — only the
+  platform-default figure was stale.
+- **Native runaway guards documented** in [`knowledge/subagent-isolation-and-tooling.md`](knowledge/subagent-isolation-and-tooling.md):
+  the native **concurrent-subagent cap (default 20, `CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS`, v2.1.217)** — the
+  accurate complement to v0.274.0's "parallelism defaults to MAXIMUM" (an "unlimited" posture is still bounded
+  at 20 by the platform). The v2.1.212 **200 per-session cap was removed in v2.1.224 (2026-08-07)**, so it is
+  recorded as retired, not current.
+- **`/reload-plugins` softened** (AGENTS.md): since **v2.1.221 (2026-08-04)** plugins activate immediately
+  when safe and `/plugin install` auto-refreshes a stale catalog — the step is often unnecessary now.
+- **New marketplace source types noted** (AGENTS.md): `archive` (zip over HTTPS + optional SHA-256 pin,
+  v2.1.224) and `command` (v2.1.229).
+
+**Deliberately NOT shipped in this PR (Claim-Grounding).** The same research routine surfaced 14 further
+findings across other plugins (Microsoft Fabric/M365, FOCUS 1.4, OWASP LLM Top 10 2026, MCP/A2A, React
+Native, Shopify, CSS anchor positioning, three US state privacy laws, the EU AI Act NCII/CSAM ban, CA
+SB 253/261 climate disclosure, OBBBA tax) whose **primary sources were egress-blocked this session** — they
+rest on WebSearch synthesis only, so under this repo's own Claim-Grounding protocol they go to a
+source-verified follow-up rather than into shipped knowledge on synthesis alone. Priority for that follow-up
+(harm/urgency): the Fabric Data-Agents Assistants-API retirement (hard deadline), the tax QBI-permanence
+correction, and the OWASP LLM renumbering. Full curated backlog:
+[`docs/research/2026-08-19-plugin-news-scan/`](../../docs/research/2026-08-19-plugin-news-scan/README.md).
+
+**Known partial (tracked follow-up):** the Bifröst install-wizard step 3 (in the *generated* dashboard) and
+this plugin's own "Modifying an existing plugin" note still name `/reload-plugins`; softening those touches
+the dashboard generator, so it is deferred to keep this PR a clean doc/knowledge correction.
+
+**Migration:** none — documentation + knowledge corrections only; no hook, gate, concern, engine, flag, or
+agent changed.
