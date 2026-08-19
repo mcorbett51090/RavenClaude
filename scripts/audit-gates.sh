@@ -576,6 +576,24 @@ PY
       rm -f "$_mut"
       exit $rc
       ;;
+    232)
+      echo "── Gate 232: cause_taxonomy.py — the SSOT cause grammar ──"
+      rc=0
+      bash plugins/ravenclaude-core/hooks/tests/test-gate232-cause-taxonomy.sh || rc=$?
+      bash plugins/ravenclaude-core/hooks/tests/test-gate232-cause-taxonomy.sh \
+        --must-fail-blind || rc=$?
+      bash plugins/ravenclaude-core/hooks/tests/test-gate232-cause-taxonomy.sh \
+        --must-fail-doc || rc=$?
+      exit $rc
+      ;;
+    233)
+      echo "── Gate 233: triage-outcome.sh — post-failure cause triage ──"
+      rc=0
+      bash plugins/ravenclaude-core/hooks/tests/test-gate233-triage-outcome.sh || rc=$?
+      bash plugins/ravenclaude-core/hooks/tests/test-gate233-triage-outcome.sh \
+        --must-fail-echo || rc=$?
+      exit $rc
+      ;;
     231)
       echo "── Gate 231: git-push delete detection is scoped to the push segment ──"
       rc=0
@@ -1286,7 +1304,7 @@ PY
       ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -8341,6 +8359,46 @@ rc=0
 bash plugins/ravenclaude-core/hooks/tests/test-gate231-push-delete-scoping.sh \
   --must-fail-unscoped >/dev/null 2>&1 || rc=$?
 gate "push-delete teeth: the unscoped whole-string match IS caught" must_pass "$rc"
+
+echo "── Gate 232: cause_taxonomy.py — the SSOT cause grammar ───────────────────"
+# The ranked cause grammar behind the verify-before-assert work. Its load-bearing
+# invariant is that H1 (the thing is absent) can never rank 1: with a positive
+# control it outscores every sibling and is STILL demoted, and the --must-fail-blind
+# arm empties the rank gate and requires a raise, so the demotion cannot decay into
+# a comment. The doc-parity extractor carries fixtures in BOTH failure directions.
+#
+# Registered in BOTH this main sequence AND the --check dispatcher above + the
+# Supported: string. After adding a gate, run the full suite and GREP ITS OUTPUT
+# FOR the SCRIPT NAME on an executed line.
+rc=0
+bash plugins/ravenclaude-core/hooks/tests/test-gate232-cause-taxonomy.sh >/dev/null 2>&1 || rc=$?
+gate "cause taxonomy: 34 members, 9 canaries armed, H1 never rank 1" must_pass "$rc"
+rc=0
+bash plugins/ravenclaude-core/hooks/tests/test-gate232-cause-taxonomy.sh \
+  --must-fail-blind >/dev/null 2>&1 || rc=$?
+gate "cause taxonomy teeth: a blinded taxonomy IS caught" must_pass "$rc"
+rc=0
+bash plugins/ravenclaude-core/hooks/tests/test-gate232-cause-taxonomy.sh \
+  --must-fail-doc >/dev/null 2>&1 || rc=$?
+gate "cause taxonomy teeth: doc drift IS caught, an absent doc reads UNKNOWN" must_pass "$rc"
+
+echo "── Gate 233: triage-outcome.sh — post-failure cause triage ────────────────"
+# Advisory-only PostToolUse(Bash) triage. Two paired negatives carry the weight:
+# a clean command must produce NEITHER an advisory NOR a ledger row, and
+# injection-shaped stderr must leave the advisory bytes IDENTICAL. The
+# --must-fail-echo arm weakens the hook to quote stderr for context and requires
+# the byte-identity canary to catch it, so a passing canary is not a canary that
+# merely has nothing to compare.
+#
+# Registered in BOTH this main sequence AND the --check dispatcher above + the
+# Supported: string.
+rc=0
+bash plugins/ravenclaude-core/hooks/tests/test-gate233-triage-outcome.sh >/dev/null 2>&1 || rc=$?
+gate "triage-outcome: fires on failure, silent on green, delivers via additionalContext" must_pass "$rc"
+rc=0
+bash plugins/ravenclaude-core/hooks/tests/test-gate233-triage-outcome.sh \
+  --must-fail-echo >/dev/null 2>&1 || rc=$?
+gate "triage-outcome teeth: a hook quoting stderr IS caught by byte-identity" must_pass "$rc"
 
 echo
 

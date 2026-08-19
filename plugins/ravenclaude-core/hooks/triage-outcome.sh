@@ -120,15 +120,23 @@
 
 set -uo pipefail
 
-# ── ADVISORY DELIVERY. rc_advise_init installs its own EXIT trap; the forced 0
-# reproduces this hook always-exit-0 fail-safe contract exactly, and the else
-# branch keeps that contract if the helper is ever absent.
+# ⛔ ARM THE FAIL-SAFE FIRST, before any line that could abort. Flagged by
+# check-verdict-default-nonpermissive.py on this file first run: the trap sat
+# below the directory-resolution line, so an abort in between would exit
+# non-zero with no trap, and the harness reads a non-zero PostToolUse exit as an
+# error rather than as this hook contract.
+# control: with the trap moved above, the same checker returns clean, and it was
+# returning a finding on this exact file before the move — so the pass measures
+# the fix and not a checker that stopped looking.
+trap 'exit 0' EXIT
+
+# ── ADVISORY DELIVERY. rc_advise_init installs its OWN EXIT trap, REPLACING the
+# one armed above; the forced 0 reproduces this hook always-exit-0 fail-safe
+# contract exactly, and the trap above keeps that contract if the helper is absent.
 _rc_hd="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" 2>/dev/null && pwd || printf '.')"
 if [ -f "$_rc_hd/_advise.sh" ]; then
   . "$_rc_hd/_advise.sh"
   rc_advise_init PostToolUse 0
-else
-  trap 'exit 0' EXIT
 fi
 
 # ── hook-event substrate (fail-safe: stub if absent) ────────────────────────

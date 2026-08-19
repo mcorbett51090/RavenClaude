@@ -58,7 +58,8 @@ const RC_BASELINE = {
   skills: 54, // 53 -> 54: skills/session-handoff (v0.266.0, context-quality reset)
   //        52 -> 53: skills/design-clone (v0.253.0, design-schema capture+apply)
   //        51 -> 52: skills/github-gold-standard (v0.246.0, the gold-standard scorecard)
-  tools: 29, // 26 -> 27: load-substrate-tier-map.py (v0.270.0)
+  tools: 30, // 29 -> 30: cause_taxonomy.py (the SSOT cause grammar)
+  //         26 -> 27: load-substrate-tier-map.py (v0.270.0)
   //         27 -> 29: conserve-tokens.py + parallelism-detector.py (v0.273.0)
   //        25 -> 26: handoff-successor-ack.py (v0.269.0)
   //        22 -> 25: context-usage-meter.py + context-handoff.py + handoff-nudge.py
