@@ -832,12 +832,101 @@ RESOLUTION_COMPANIONS = {
 }
 
 
+def _asserted_strings(value: Any) -> Iterable[str]:
+    if isinstance(value, str):
+        yield value
+    elif isinstance(value, list):
+        for item in value:
+            yield from _asserted_strings(item)
+    elif isinstance(value, dict):
+        for item in value.values():
+            yield from _asserted_strings(item)
+
+
+def scan_asserted_for_leaks(record: RawRecord) -> list[dict[str, Any]]:
+    """G-LED-06 read-side backstop: a secret or PII shape that survived the write.
+
+    ⛔ The write path scrubs (`scrub_asserted`), so a survivor here means the
+    record did NOT come through this writer — a hand-crafted Write, an import,
+    or a merge from a branch running an older version. Scrubbing on write and
+    NOT re-scanning on read would make the gate trust its own authorship, which
+    is exactly the residual-trust gap §4.2 states honestly: `Write` is not a CLI
+    flag, and no hook authenticates authorship.
+
+    The finding names the CLASS, never the matched text — this list is rendered
+    into the Markdown view and read back into a brief.
+    """
+    findings: list[dict[str, Any]] = []
+    asserted = record.obj.get("asserted") or {}
+    try:
+        patterns = load_secret_patterns()
+    except LedgerUnknown:
+        # A scanner that cannot load its patterns must not report "clean".
+        return [
+            {
+                "kind": "scan_unavailable",
+                "event_id": record.obj.get("event_id"),
+                "detail": "the secret-pattern list could not be loaded; this record is "
+                "UNSCANNED, which is not the same as clean",
+            }
+        ]
+    for text in _asserted_strings(asserted):
+        for pattern in patterns:
+            if re.search(pattern, text):
+                findings.append(
+                    {
+                        "kind": "secret_in_asserted",
+                        "event_id": record.obj.get("event_id"),
+                        "file": record.file,
+                        "lineno": record.lineno,
+                        "detail": "an asserted string matches a secret shape and was NOT "
+                        "scrubbed — this record did not come through ledger.py's write "
+                        "path. Rotate the credential FIRST; a redact event does not erase "
+                        "it, because git history keeps the bytes.",
+                    }
+                )
+                break
+        else:
+            for label, pattern in PII_PATTERNS:
+                if re.search(pattern, text):
+                    findings.append(
+                        {
+                            "kind": "pii_in_asserted",
+                            "event_id": record.obj.get("event_id"),
+                            "file": record.file,
+                            "lineno": record.lineno,
+                            "pii_class": label,
+                            "detail": f"an asserted string carries a {label} shape and was NOT "
+                            "scrubbed. The ledger is a permanently retained committed "
+                            "artifact; it cannot erase.",
+                        }
+                    )
+                    break
+    return findings
+
+
 def check_integrity(
-    records: Sequence[RawRecord], items: dict[str, dict[str, Any]]
+    records: Sequence[RawRecord], items: dict[str, dict[str, Any]],
+    max_record_bytes: int = 8192,
 ) -> list[dict[str, Any]]:
     errors: list[dict[str, Any]] = []
 
     for record in records:
+        errors += scan_asserted_for_leaks(record)
+        # G-LED-14 read side. The write path refuses an oversize record, but a
+        # record can reach a shard from a merge or an older writer, and the cap
+        # is what keeps every record inside the MEASURED-safe append region.
+        if len(record.raw) + 1 > max_record_bytes:
+            errors.append(
+                {
+                    "kind": "oversize_record",
+                    "event_id": record.obj.get("event_id"),
+                    "file": record.file,
+                    "lineno": record.lineno,
+                    "detail": f"record is {len(record.raw) + 1} B, over max_record_bytes={max_record_bytes} — outside the "
+                    "measured-safe append size band",
+                }
+            )
         asserted = record.obj.get("asserted") or {}
         if not isinstance(asserted, dict):
             continue
@@ -943,6 +1032,29 @@ class Projection(NamedTuple):
     now: datetime
 
 
+def default_basis(ledger_dir: Path) -> str:
+    """`ledger:<last two path components>` — NEVER an absolute path.
+
+    ⛔ This was a real defect, caught by the order-independence test rather than
+    by review: the basis used to be the ABSOLUTE ledger dir. Two consequences,
+    and the second is the one that bites quietly.
+
+    1. It embeds an OS username into `open-set.json`, which is a COMMITTED,
+       permanently-retained artifact — the same leak `machine.worktree` stores a
+       NAME to avoid. git history cannot un-say it.
+    2. It makes the projection machine-dependent. Two checkouts of the same
+       ledger produce different `basis` bytes, so the committed view and a fresh
+       regeneration differ for a reason that has nothing to do with the ledger —
+       which is exactly the freshness-gate-red-forever failure the semantic
+       compare exists to prevent, arriving from the other direction.
+
+    A caller that knows the repo root should pass an explicit repo-relative
+    basis (with a git sha) instead of relying on this.
+    """
+    parts = ledger_dir.parts[-2:] if len(ledger_dir.parts) >= 2 else ledger_dir.parts
+    return "ledger:" + "/".join(parts)
+
+
 def project(
     ledger_dir: Path,
     config: dict[str, Any],
@@ -980,7 +1092,7 @@ def project(
         now = parse_ts(max(stamps)) if stamps else datetime.now(timezone.utc)
 
     warnings = derive(items, now, config)
-    errors += check_integrity(ordered, items)
+    errors += check_integrity(ordered, items, int(config["max_record_bytes"]))
 
     open_ids = sorted(i["item_id"] for i in items.values() if i["open"])
     computed_at = now.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
@@ -991,7 +1103,7 @@ def project(
     scp_block = scp.build_block(
         "open_items",
         open_ids,
-        basis or f"ledger:{ledger_dir.as_posix()}",
+        basis or default_basis(ledger_dir),
         computed_at,
         coverage={"events_parsed": parsed, "items": len(items), "non_item_events": len(non_item)},
         truncated=truncated,
@@ -1413,12 +1525,25 @@ def _emit(projection: Projection, config: dict[str, Any], repo_root: Path, write
                    encoding="utf-8")
 
 
+def repo_basis(repo_root: Path, config: dict[str, Any]) -> str:
+    """`ledger:<repo-relative dir>@<short sha>` — the plan's §8.1 shape.
+
+    REPO-RELATIVE by construction (it is read from the config, never derived
+    from an absolute Path), so the block is re-derivable on any checkout and
+    carries no OS username. `basis` is in the SCP's volatile-field set, so the
+    embedded sha cannot make the freshness gate red on every commit.
+    """
+    sha = _git(repo_root, "rev-parse", "--short", "HEAD")
+    return f"ledger:{config['ledger_dir']}@{sha or 'unknown'}"
+
+
 def cmd_project(repo_root: Path, args: argparse.Namespace) -> int:
     config = resolve_config(repo_root)
     ledger_dir = repo_root / config["ledger_dir"]
     validator = None if args.no_schema else load_validator()
     now = parse_ts(args.now) if args.now else None
-    projection = project(ledger_dir, config, now=now, validator=validator)
+    projection = project(ledger_dir, config, now=now, validator=validator,
+                         basis=repo_basis(repo_root, config))
     _emit(projection, config, repo_root, args.write)
     if args.json:
         print(json.dumps({"verdict": projection.verdict, "scp": projection.scp_block,
