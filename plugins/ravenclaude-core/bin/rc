@@ -48,7 +48,7 @@ Usage:
   rc streams [list]                     List logical work-streams in this project (default).
 
   rc artifacts list|new <id>   where work files go, across CLIs
-  rc handoff --task-id <id> [--dry-run] [--host grok|cli|chat]
+  rc handoff --task-id <id> [--dry-run] [--host claude-code|grok|cli|chat|other]
                                         [--recipe copy-paste|same-host|os-terminal]
                                         Print (and optionally spawn) a same-host
                                         successor from a run-dir handoff.md.
