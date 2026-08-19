@@ -58,10 +58,16 @@ const RC_BASELINE = {
   skills: 54, // 53 -> 54: skills/session-handoff (v0.266.0, context-quality reset)
   //        52 -> 53: skills/design-clone (v0.253.0, design-schema capture+apply)
   //        51 -> 52: skills/github-gold-standard (v0.246.0, the gold-standard scorecard)
-  tools: 31, // 29 -> 31: set_conservation.py + ledger.py (task-ledger Phases 0-2).
+  tools: 32, // 30 -> 32: set_conservation.py + ledger.py (task-ledger Phases 0-2).
   //   set_conservation.py is the SSOT Set-Conservation Primitive, shared with the
-  //   sibling verify-before-assert run (set_kind ∈ {open_items, causes}); ledger.py
+  //   sibling verify-before-assert run (set_kind in {open_items, causes}); ledger.py
   //   is the append primitive + the projection. COUNTED on this tree, not inferred.
+  //   ⛔ RECONCILED ACROSS TWO PRs: this branch was authored against a base of 29 and
+  //   said 31, but #991 landed cause_taxonomy.py first and moved the base to 30. Each
+  //   branch's number was correct in isolation and wrong after the other merged —
+  //   taking either side verbatim would have set a silently wrong ratchet that still
+  //   passes on its own branch. 30 + 2 = 32.
+  //        29 -> 30: cause_taxonomy.py (the SSOT cause grammar, #991)
   //        26 -> 27: load-substrate-tier-map.py (v0.270.0)
   //         27 -> 29: conserve-tokens.py + parallelism-detector.py (v0.273.0)
   //        25 -> 26: handoff-successor-ack.py (v0.269.0)
