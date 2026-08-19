@@ -73,6 +73,17 @@
 
 set -euo pipefail
 
+# ── ADVISORY DELIVERY (added 2026-08-19) ────────────────────────────────────
+# ⛔ This hook's three checks all wrote to stderr and exited 0. That channel is
+# MEASURED UNDELIVERED to the model (matched-trial bake-off with a positive
+# control — see _advise.sh's header). Every advisory this file has ever emitted
+# went to the terminal and never reached the model it was written for.
+# rc_advise_init buffers fd2 and, at exit, re-emits it as additionalContext —
+# which IS delivered — while still printing the original UI notice unchanged.
+# No `>&2` call site below needs to change.
+_rc_hd="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" 2>/dev/null && pwd || printf '.')"
+if [ -f "$_rc_hd/_advise.sh" ]; then . "$_rc_hd/_advise.sh"; rc_advise_init PostToolUse; fi
+
 file="${1:-}"
 # $CLAUDE_TOOL_FILE_PATH (passed as $1 by hooks.json) is NOT a real Claude Code
 # hook variable, so under Claude Code the arg is empty and the path arrives only

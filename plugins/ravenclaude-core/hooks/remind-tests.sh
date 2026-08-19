@@ -7,6 +7,15 @@
 
 set -euo pipefail
 
+# ── ADVISORY DELIVERY (added 2026-08-19) ────────────────────────────────────
+# ⛔ Stop + stderr + exit 0 is MEASURED UNDELIVERED — confirmed with a TWO-TURN
+# test (turn 1 fires the hook, turn 2 asks), so the negative is not merely "the
+# model had no turn in which to answer". See _advise.sh's header.
+# Buffer fd2 and re-emit at exit as additionalContext, which IS delivered, while
+# still printing the original UI notice. No call site below changes.
+_rc_hd="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" 2>/dev/null && pwd || printf '.')"
+if [ -f "$_rc_hd/_advise.sh" ]; then . "$_rc_hd/_advise.sh"; rc_advise_init Stop; fi
+
 # Only run inside a git repo.
 git rev-parse --is-inside-work-tree >/dev/null 2>&1 || exit 0
 

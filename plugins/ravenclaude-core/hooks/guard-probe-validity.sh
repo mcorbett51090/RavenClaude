@@ -96,7 +96,18 @@
 set -uo pipefail
 
 # Fail-safe FIRST: whatever happens below, this hook exits 0. It never blocks.
-trap 'exit 0' EXIT
+# ── ADVISORY DELIVERY (added 2026-08-19) ────────────────────────────────────
+# ⛔ PreToolUse + stderr + exit 0 is MEASURED UNDELIVERED to the model (matched
+# trial, hook confirmed fired, positive control arrived — see _advise.sh header).
+# This hook's ONE rule fires roughly once in 17,410 commands; when it finally does,
+# the warning has been going to the terminal and not to the model.
+#
+# rc_advise_init installs its OWN EXIT trap, so it REPLACES the `trap 'exit 0' EXIT`
+# that used to sit on this line. The forced-exit argument (0) reproduces this hook's
+# always-exit-0 fail-safe contract EXACTLY; the else-branch keeps that contract if
+# the helper is ever missing.
+_rc_hd="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" 2>/dev/null && pwd || printf '.')"
+if [ -f "$_rc_hd/_advise.sh" ]; then . "$_rc_hd/_advise.sh"; rc_advise_init PreToolUse 0; else trap 'exit 0' EXIT; fi
 
 # ── sourced helper (fail-safe: stub if absent) ───────────────────────────────
 _pv_script_dir="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" 2>/dev/null && pwd || printf '.')"
