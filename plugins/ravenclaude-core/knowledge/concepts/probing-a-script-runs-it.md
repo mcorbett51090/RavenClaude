@@ -10,7 +10,7 @@ last_verified: 2026-08-20
 covers:
   - scripts/inventory-sweep.py
   - scripts/audit-prose-rendering-path.py
-covers_digest: "sha256:54d98dd8123d1b1465bfd7eddc7f50164e9faf5043fe8540c9a76ff55d4ab96f"
+covers_digest: "sha256:458c3e591e3d9654c8ee852e62e834567532c697e7bbdb64c9e82e95373455a0"
 nuance: "A script that never calls `argparse` simply runs, so asking 183 of them for `--must-fail-convention` wrote `forge-route.py` to a stray file rather than answering."
 nuance_evidence:
   measured: 2026-08-19
