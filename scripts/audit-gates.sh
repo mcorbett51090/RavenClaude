@@ -628,6 +628,16 @@ PY
         --must-fail-echo || rc=$?
       exit $rc
       ;;
+    238)
+      echo "── Gate 238: inventory sweep — path-keyed harness + sweep-of-the-sweep ──"
+      rc=0
+      python3 scripts/inventory-census.py --check || rc=$?
+      rc_mustfail python3 scripts/inventory-census.py || rc=$?
+      python3 scripts/inventory-sweep.py --check || rc=$?
+      python3 scripts/inventory-sweep.py --capping-table || rc=$?
+      rc_mustfail python3 scripts/inventory-sweep.py || rc=$?
+      exit $rc
+      ;;
     237)
       echo "── Gate 237: inventory staleness — both escapes, both axes ──"
       rc=0
@@ -1373,7 +1383,7 @@ PY
       ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -8590,6 +8600,46 @@ gate "prose-rendering audit declares its must-fail convention AND honours it" mu
 rc=0
 python3 scripts/audit-prose-rendering-path.py --check >/dev/null 2>&1 || rc=$?
 gate "authored prose never reaches a shell; no apostrophe closed a quoted block" must_pass "$rc"
+
+echo
+
+echo "── Gate 238: inventory sweep — path-keyed harness + sweep-of-the-sweep ─────"
+# ⛔ R8 — A SWEEP THAT COUNTS ITSELF CANNOT DETECT ITS OWN BLINDNESS. If a concept
+# file fails validation and silently drops out of the registry, a registry-derived
+# "registered" and "executed" count shrink TOGETHER and the check stays green.
+# So the denominator comes from inventory-census.py, whose source is
+# `git ls-files` — not concepts.json, not concepts.py, not anything the sweep
+# writes. Three assertions run every sweep, and the TELL is any of the three
+# moving DOWN with no artifact deletion in the same diff.
+#
+# control: the permanently-red canary at tests/fixtures/inventory-canary/. In
+# steady state a static class reporting zero findings for many consecutive runs is
+# EXPECTED and is not evidence of blindness, so a long green streak cannot
+# separate "nothing broke" from "the sweep stopped looking". The canary is the
+# only thing that can: it asserts a sentinel on a channel measured to be
+# undelivered, so a run that reports it PASSING fails this gate loud.
+#
+# ⛔ The census --must-fail plants an UNTRACKED file in an artifact root and
+# requires the count NOT to move — that is the proof the denominator is really
+# git-derived rather than a filesystem walk wearing the label.
+#
+# ⛔ Registered in BOTH this main sequence AND the --check dispatcher above AND
+# the Supported: string. ⛔ Grep the suite output for the literal name.
+rc=0
+python3 scripts/inventory-census.py --check >/dev/null 2>&1 || rc=$?
+gate "independent artifact census resolves every declared root" must_pass "$rc"
+rc=0
+rc_mustfail python3 scripts/inventory-census.py >/dev/null 2>&1 || rc=$?
+gate "census denominator is git-derived, not a filesystem walk (untracked file moves nothing)" must_pass "$rc"
+rc=0
+python3 scripts/inventory-sweep.py --check >/dev/null 2>&1 || rc=$?
+gate "inventory sweep: census==enumerated, registered==executed, canary RED" must_pass "$rc"
+rc=0
+python3 scripts/inventory-sweep.py --capping-table >/dev/null 2>&1 || rc=$?
+gate "claim-14 capping: every probe class control demonstrably FIRES" must_pass "$rc"
+rc=0
+rc_mustfail python3 scripts/inventory-sweep.py >/dev/null 2>&1 || rc=$?
+gate "sweep teeth: controls fire, scrubber constrains labels, canary stays red" must_pass "$rc"
 
 echo
 
