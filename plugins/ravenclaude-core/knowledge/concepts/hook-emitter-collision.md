@@ -9,8 +9,7 @@ summary: "What happens when two hooks emit on the same event: one channel adds, 
 last_verified: 2026-08-20
 covers:
   - plugins/ravenclaude-core/hooks/hooks.json
-  - .claude/settings.json
-covers_digest: "sha256:b75dbffea78fef385f172e9d31a7c0224e4921e6b346cdc4397ce2a7db47aec3"
+covers_digest: "sha256:081ff019fe05d2c50974cc1b5ee355871be0c2186d560dcec16cd15be07e225a"
 nuance: "Two `additionalContext` emitters on one event concatenate rather than last-write-wins, but two `updatedToolOutput` emitters replace, so the second silently discards the first."
 nuance_evidence:
   measured: 2026-08-19

@@ -40,6 +40,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _base_ref import merge_base as _resolve_merge_base  # noqa: E402
 from concepts import ENTRY_CLASS_INVENTORY, ConceptError, load_concepts  # noqa: E402
 
 PLUGIN = "plugins/ravenclaude-core"
@@ -60,9 +61,11 @@ def _git(root: Path, *args: str) -> tuple[int, str]:
 
 
 def added_artifacts(root: Path, base: str) -> tuple[list[str], str | None]:
-    rc, mb = _git(root, "merge-base", "HEAD", base)
-    if rc != 0 or not mb:
-        return [], f"no merge base against {base} — the added set is UNKNOWN, not empty"
+    # ⛔ Resolved through _base_ref: a CI checkout has no origin/main, and failing
+    # every PR on that is an environment defect masquerading as a finding.
+    mb, how = _resolve_merge_base(root, base)
+    if not mb:
+        return [], f"{how} — the added set is UNKNOWN, not empty"
     rc, out = _git(root, "diff", "--name-only", "--diff-filter=A", mb)
     if rc != 0:
         return [], "git diff failed — the added set is UNKNOWN, not empty"
@@ -170,10 +173,31 @@ def main() -> int:
             print("✗ must-fail: an uncovered artifact was not reported.")
             return 0
         # 2. An unresolvable base must report UNKNOWN, never an empty clean set.
-        _, unknown = added_artifacts(root, "refs/heads/definitely-not-a-real-ref")
-        if unknown is None:
-            print("✗ must-fail: a bogus base returned a KNOWN-empty added set.")
-            print("  'nothing was added' and 'the query broke' would be the same result.")
+        # ⛔ UNKNOWN MUST BE TESTED IN A REPO THAT GENUINELY HAS NO BASE.
+        # The old fixture passed a bogus ref name and expected UNKNOWN — which
+        # stopped working the moment _base_ref learned to FALL BACK to origin/main,
+        # because a bogus ref in a normal clone now correctly resolves to the real
+        # base. A teeth fixture that silently starts asserting the opposite of its
+        # intent is worse than none, so the isolation is now real: a fresh repo with
+        # one commit, no remote, no merge commit, and GITHUB_BASE_REF cleared.
+        import os as _os, subprocess as _sp, tempfile as _tf
+        with _tf.TemporaryDirectory() as _td:
+            _r = Path(_td)
+            for _cmd in (["init", "-q"], ["config", "user.email", "t@t"],
+                         ["config", "user.name", "t"]):
+                _sp.run(["git", "-C", str(_r), *_cmd], check=False, timeout=60)
+            (_r / "seed.txt").write_text("x\n", encoding="utf-8")
+            _sp.run(["git", "-C", str(_r), "add", "-A"], check=False, timeout=60)
+            _sp.run(["git", "-C", str(_r), "commit", "-qm", "seed"], check=False, timeout=60)
+            _saved = _os.environ.pop("GITHUB_BASE_REF", None)
+            try:
+                _paths, _unknown = added_artifacts(_r, "origin/main")
+            finally:
+                if _saved is not None:
+                    _os.environ["GITHUB_BASE_REF"] = _saved
+        if _unknown is None:
+            print("✗ must-fail: a repo with NO resolvable base returned a KNOWN result.")
+            print("  'nothing changed' and 'the query broke' would be the same output.")
             return 0
         # 3. The paths:-filter detector must bite on a planted trigger block.
         import tempfile
@@ -208,7 +232,7 @@ def main() -> int:
             print("✗ must-fail: the REAL tree already carries a paths: filter — fix that")
             print("  first; a teeth run against a broken tree proves nothing.")
             return 0
-        print("✓ must-fail: an uncovered added artifact is reported, an unresolvable base")
+        print("✓ must-fail: an uncovered added artifact is reported, a base-less repo")
         print("  reports UNKNOWN, and the paths:-filter detector bites on a planted trigger")
         print("  while the real tree is clean. Exiting 1, the DECLARED teeth code.")
         return 1

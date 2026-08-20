@@ -44,6 +44,9 @@ import subprocess
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _base_ref import merge_base as _resolve_merge_base  # noqa: E402
+
 CONCEPT_DIR = "plugins/ravenclaude-core/knowledge/concepts"
 BATCH_MAX = 20
 
@@ -55,12 +58,13 @@ def _git(root: Path, *args: str) -> tuple[int, str]:
 
 def changed_concepts(root: Path, base: str) -> tuple[list[str], str | None]:
     """Concept files changed vs the merge base. Returns (paths, unknown_reason)."""
-    rc, mb = _git(root, "merge-base", "HEAD", base)
-    if rc != 0 or not mb:
-        # ⛔ UNKNOWN IS NOT EMPTY. No merge base means this check cannot scope
-        # itself, and reporting "0 changed concepts, all clean" would manufacture
-        # a pass out of a broken query.
-        return [], f"no merge base against {base} — the changed set is UNKNOWN, not empty"
+    # ⛔ UNKNOWN IS NOT EMPTY. No base means this check cannot scope itself, and
+    # reporting "0 changed concepts, all clean" would manufacture a pass out of a
+    # broken query. But a CI checkout legitimately has no origin/main, so the base
+    # is resolved through _base_ref before UNKNOWN is concluded.
+    mb, how = _resolve_merge_base(root, base)
+    if not mb:
+        return [], f"{how} — the changed set is UNKNOWN, not empty"
     rc, out = _git(root, "diff", "--name-only", mb, "--", f"{CONCEPT_DIR}/*.md")
     if rc != 0:
         return [], "git diff failed — the changed set is UNKNOWN, not empty"
@@ -90,13 +94,33 @@ def main() -> int:
             print("✗ must-fail: the batch fixture is not actually over the cap.")
             return 0
         # 2. An unknown changed-set must NOT be reported as clean.
-        paths, unknown = changed_concepts(root, "refs/heads/definitely-not-a-real-ref")
-        if unknown is None:
-            print("✗ must-fail: a bogus base returned a KNOWN empty changed set.")
-            print("  That is the manufactured-clean shape: 'nothing changed' and")
-            print("  'the query broke' would be the same result.")
+        # ⛔ UNKNOWN MUST BE TESTED IN A REPO THAT GENUINELY HAS NO BASE.
+        # The old fixture passed a bogus ref name and expected UNKNOWN — which
+        # stopped working the moment _base_ref learned to FALL BACK to origin/main,
+        # because a bogus ref in a normal clone now correctly resolves to the real
+        # base. A teeth fixture that silently starts asserting the opposite of its
+        # intent is worse than none, so the isolation is now real: a fresh repo with
+        # one commit, no remote, no merge commit, and GITHUB_BASE_REF cleared.
+        import os as _os, subprocess as _sp, tempfile as _tf
+        with _tf.TemporaryDirectory() as _td:
+            _r = Path(_td)
+            for _cmd in (["init", "-q"], ["config", "user.email", "t@t"],
+                         ["config", "user.name", "t"]):
+                _sp.run(["git", "-C", str(_r), *_cmd], check=False, timeout=60)
+            (_r / "seed.txt").write_text("x\n", encoding="utf-8")
+            _sp.run(["git", "-C", str(_r), "add", "-A"], check=False, timeout=60)
+            _sp.run(["git", "-C", str(_r), "commit", "-qm", "seed"], check=False, timeout=60)
+            _saved = _os.environ.pop("GITHUB_BASE_REF", None)
+            try:
+                _paths, _unknown = changed_concepts(_r, "origin/main")
+            finally:
+                if _saved is not None:
+                    _os.environ["GITHUB_BASE_REF"] = _saved
+        if _unknown is None:
+            print("✗ must-fail: a repo with NO resolvable base returned a KNOWN result.")
+            print("  'nothing changed' and 'the query broke' would be the same output.")
             return 0
-        print("✓ must-fail: an unresolvable base reports UNKNOWN (never clean), and")
+        print("✓ must-fail: a repo with no resolvable base reports UNKNOWN (never clean), and")
         print(f"  a {len(over)}-concept batch exceeds the cap of {BATCH_MAX}.")
         print("  Exiting 1, the DECLARED teeth code.")
         return 1

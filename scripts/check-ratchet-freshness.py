@@ -43,6 +43,9 @@ import subprocess
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _base_ref import merge_base as _resolve_merge_base  # noqa: E402
+
 # Every committed file that carries a ratchet VALUE.
 RATCHET_FILES = (
     "scripts/artifact-budgets.seed.json",
@@ -56,8 +59,12 @@ def _git(root: Path, *args: str) -> tuple[int, str]:
 
 
 def merge_base(root: Path, base: str) -> str | None:
-    rc, out = _git(root, "merge-base", "HEAD", base)
-    return out if rc == 0 and out else None
+    """⛔ Resolved through _base_ref, which handles the CI checkout where
+    `origin/main` is simply absent. Before that, this gate failed on every pull
+    request for an environment reason rather than a defect — and a gate that can
+    never be green is a gate that gets disabled."""
+    sha, _how = _resolve_merge_base(root, base)
+    return sha
 
 
 def evaluate(root: Path, base: str) -> tuple[int, list[str]]:

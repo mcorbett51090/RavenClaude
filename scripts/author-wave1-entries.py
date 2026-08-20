@@ -65,7 +65,20 @@ ENTRIES = [
      "A hook can write to the terminal or to the model, and only one of those reaches the model."),
 
     ("hook-emitter-collision", "pos-concat-vs-replace",
-     ["plugins/ravenclaude-core/hooks/hooks.json", ".claude/settings.json"],
+     # ⛔ .claude/settings.json IS DELIBERATELY NOT COVERED — SECOND INSTANCE OF
+     # THE SAME RULE, and I missed it after writing the rule for the first.
+     # A posture-apply / dev-mirror hook re-serialises this file during ordinary
+     # operation (observed twice in one session: \u2014 escapes flipping to literal
+     # em-dashes and back). So the committed bytes and the working-tree bytes
+     # diverge without anyone editing it, the digest is stamped against whichever
+     # the author happened to have, and a FRESH CLONE then reports drift while the
+     # author machine reports clean. That is the worst shape available: green
+     # locally, red for everyone else.
+     #
+     # covers[] lists the artifacts the CLAIM rests on, never the artifacts the
+     # toolchain rewrites. hooks.json alone carries the emitter registration this
+     # entry is about.
+     ["plugins/ravenclaude-core/hooks/hooks.json"],
      {"tier": "none", "rationale":
       "Two live emitters on one event cannot be staged offline; the observable needs a real "
       "host session, which places it in the T2 sampled tier gated on claim 15."},
