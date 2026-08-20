@@ -117,9 +117,38 @@ def stamp(root: Path, base: str) -> int:
         fp = root / rel
         if not fp.is_file():
             continue
-        data = json.loads(fp.read_text(encoding="utf-8"))
-        data["measured_against"] = mb
-        fp.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+        # ⛔ LINE-LOCAL SUBSTITUTION, NOT A json.dump() ROUND-TRIP — and the reason
+        # is the same one sync-plugin-versions.py records. These files are NOT in
+        # .prettierignore, so the whole-tree `prettier --check .` in CI reads them.
+        # A round-trip re-serialises arrays prettier would inline, so every
+        # pre-merge `--stamp` reformatted the file and turned the LAST step before
+        # merge into a prettier failure. Measured: the full gate suite went red on
+        # exactly this, after the tree had been formatted and committed.
+        text = fp.read_text(encoding="utf-8")
+        data = json.loads(text)  # parse only, to validate and to detect the key
+        stamped = f'  "measured_against": "{mb}"'
+        if "measured_against" in data:
+            out_lines = []
+            for line in text.split("\n"):
+                if line.lstrip().startswith('"measured_against"'):
+                    out_lines.append(stamped + ("," if line.rstrip().endswith(",") else ""))
+                else:
+                    out_lines.append(line)
+            text = "\n".join(out_lines)
+        else:
+            # Insert before the closing brace, keeping every other byte untouched.
+            idx = text.rstrip().rfind("}")
+            head, tail = text[:idx].rstrip(), text[idx:]
+            sep = "," if head.rstrip().endswith(("}", "]", '"')) else ""
+            text = head + sep + "\n" + stamped + "\n" + tail
+        fp.write_text(text, encoding="utf-8")
+        # ⛔ Verify the write is still valid JSON carrying the intended SHA. A
+        # line-local edit that silently corrupts the file would break every gate
+        # that reads it, and the corruption would surface far from here.
+        check = json.loads(fp.read_text(encoding="utf-8"))
+        if check.get("measured_against") != mb:
+            print(f"stamp: {rel} did not take the SHA — refusing to report success")
+            return 2
         n += 1
     print(f"stamped {n} ratchet file(s) against merge base {mb[:12]}")
     print("⛔ Re-run this immediately before merge. A value measured when the branch")
