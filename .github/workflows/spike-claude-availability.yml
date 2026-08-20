@@ -1,0 +1,123 @@
+########################################################################
+# spike-claude-availability.yml — P1 / S2 of the product-inventory plan.
+#
+# ⛔ WHAT THIS SETTLES. claims-table row 15: "a scheduled sweep can run in CI
+# without credentials or a live model call." T0 (~80% of probe classes) needs
+# only bash + python3 and is already settled. The residual is whether the T2
+# tier — skill-invocation and agent-dispatch probes, which need a live
+# `claude -p` — can run under SCHEDULED-CI conditions.
+#
+# ⛔ THIS WORKFLOW IS workflow_dispatch + schedule ONLY. It carries NO
+# `pull_request` trigger and MUST NEVER become a required status check: a
+# scheduled workflow reports nothing on a PR, and a required check that reports
+# nothing hangs the PR forever. The same rule is why no required workflow in
+# this repo may carry a `paths:` filter.
+#
+# ⛔ NO PHASE IS CANCELLED BY EITHER ANSWER. The plan specifies a substitute
+# ladder: if `claude -p` is unavailable, T2 moves LOCAL and CI gates on
+# attestation AGE instead of on running the model. What this probe selects is
+# WHICH LANE does the work, not whether the work happens.
+#
+# ⛔ THE RESULT IS A LITERAL yes/no/UNKNOWN, NEVER A SILENT SKIP. A step that
+# cannot run reports UNKNOWN. "The probe did not report absent" and "the probe
+# never ran" must not be the same observation — that is the defect class this
+# whole project exists to close.
+########################################################################
+name: Spike — claude -p availability in scheduled CI
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Off the hour on purpose: scheduler spikes at :00 are real and add queue
+    # latency that would be misread as a slow or hung probe.
+    - cron: "17 6 * * 1"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: spike-claude-availability
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    name: Probe for a live model call under scheduled-CI conditions
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Record the substrate this verdict is about
+        run: |
+          echo "runner-image: ${ImageOS:-unknown} ${ImageVersion:-unknown}"
+          echo "event: ${{ github.event_name }}"
+          bash --version | head -1
+          python3 --version
+
+      # ── T0 CONTROL. Asserted FIRST. ─────────────────────────────────────
+      # If bash+python3 were somehow unavailable, every verdict below would be
+      # "absent" for a reason that has nothing to do with the model. This is the
+      # positive control that makes a T2 negative readable.
+      - name: T0 control — the credential-free tier really does run here
+        run: |
+          set -euo pipefail
+          python3 -c "print('t0-control-ok')" | grep -q t0-control-ok
+          echo "T0-CONTROL: PASS — bash + python3 execute under this trigger."
+
+      - name: S2 — is a live claude -p reachable?
+        id: probe
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          set -uo pipefail
+          verdict="UNKNOWN"
+          detail=""
+
+          if ! command -v claude >/dev/null 2>&1; then
+            verdict="no"
+            detail="claude is not on PATH in this runner image"
+          elif [ -z "${ANTHROPIC_API_KEY:-}" ]; then
+            # ⛔ A BINARY ON PATH IS NOT A WORKING MODEL CALL. Reporting "yes"
+            # here would be the exact conflation this probe exists to prevent.
+            verdict="no"
+            detail="claude is present but no ANTHROPIC_API_KEY secret is configured"
+          else
+            out="$(timeout 120 claude -p 'reply with exactly: OK' 2>&1)" && rc=0 || rc=$?
+            if [ "$rc" -eq 0 ] && printf '%s' "$out" | grep -q 'OK'; then
+              verdict="yes"
+              detail="claude -p returned the expected sentinel"
+            elif [ "$rc" -eq 124 ]; then
+              verdict="UNKNOWN"
+              detail="claude -p timed out at 120s — not absent, not proven present"
+            else
+              verdict="no"
+              detail="claude -p exited $rc without the sentinel"
+            fi
+          fi
+
+          echo "S2-VERDICT: $verdict"
+          echo "S2-DETAIL: $detail"
+          {
+            echo "verdict=$verdict"
+            echo "detail=$detail"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Write the literal verdict to the job summary
+        if: always()
+        run: |
+          {
+            echo "## S2 — claude -p availability in scheduled CI"
+            echo
+            echo "| field | value |"
+            echo "|---|---|"
+            echo "| verdict | \`${{ steps.probe.outputs.verdict || 'UNKNOWN' }}\` |"
+            echo "| detail | ${{ steps.probe.outputs.detail || 'the probe step did not complete' }} |"
+            echo "| trigger | \`${{ github.event_name }}\` |"
+            echo
+            echo "**A \`no\` cancels no phase.** It activates the substitute ladder:"
+            echo "T2 runs locally and CI gates on attestation **age**, not on a model call."
+            echo
+            echo "**\`UNKNOWN\` is not \`no\`.** It means the probe could not decide, and"
+            echo "the sweep must report UNKNOWN rather than green."
+          } >> "$GITHUB_STEP_SUMMARY"
