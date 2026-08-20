@@ -287,7 +287,7 @@ def _run_golden(root: Path) -> int:
         v = evaluate(root, p)
         print(f"    ✗ {p['id']}: {'; '.join(v['fails'])}")
     print(f"  negatives: {len(neg) - len(bad_neg)}/{len(neg)} rejected or flagged")
-    for n, v in bad_neg:
+    for n, _v in bad_neg:
         print(f"    ✗ {n['id']}: PASSED the floor and was not flagged derived-from-header")
 
     print()

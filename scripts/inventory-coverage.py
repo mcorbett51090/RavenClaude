@@ -242,7 +242,7 @@ def main() -> int:
                 return 0
             high = {"batches": [{"batch_id": "t2", "reviewer_context": "fresh",
                                  "entry_ids_sampled": ["a", "b", "c", "d", "e"],
-                                 "verdicts": {k: "nuance" for k in "abcde"}}]}
+                                 "verdicts": dict.fromkeys("abcde", "nuance")}]}
             (fake / LEDGER).write_text(json.dumps(high), encoding="utf-8")
             passed, why2 = ledger_verdict(fake, ["a"])
             if not passed:

@@ -9796,7 +9796,7 @@ footer.page-footer a:hover { text-decoration: underline; }
         "scripts/inventory-coverage.py",
         "scripts/inventory-nuance-judge.py"
       ],
-      "covers_digest": "sha256:af527f0886c37ead063e114dee9a430893bbecbe50d3d4568028c306704e0684",
+      "covers_digest": "sha256:f9d0823167297dcce58ab4a6b1658b14513f629712f0ed7c3964824460fe5fff",
       "nuance": "`premise-gate.py` treats `exit 0` as its teeth bit while `sync-plugin-versions.py` uses `exit 2`, so an auditor that hard-codes one number can never be right for both.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -10082,7 +10082,7 @@ footer.page-footer a:hover { text-decoration: underline; }
         "scripts/inventory-sweep.py",
         "scripts/inventory-coverage.py"
       ],
-      "covers_digest": "sha256:0956f38e7af52a71398c91c15636b7f39c7d36700168409c36c15d93b6f427e6",
+      "covers_digest": "sha256:b64f3561ed3743308ad47c927c7560c9f1e5542988d457c6cd92329ed139610e",
       "nuance": "`inventory-census.py` reads `git ls-files`, never a filesystem walk, so an untracked file cannot move the denominator; a `concepts.json`-derived count would shrink with the enumeration and stay green.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -10181,7 +10181,7 @@ footer.page-footer a:hover { text-decoration: underline; }
         "scripts/inventory-sweep.py",
         "scripts/audit-prose-rendering-path.py"
       ],
-      "covers_digest": "sha256:5cbaeffa222bf99a4d674a80de90aad8979ace7a397ab480d3f29f1d637582a5",
+      "covers_digest": "sha256:54d98dd8123d1b1465bfd7eddc7f50164e9faf5043fe8540c9a76ff55d4ab96f",
       "nuance": "A script that never calls `argparse` simply runs, so asking 183 of them for `--must-fail-convention` wrote `forge-route.py` to a stray file rather than answering.",
       "nuance_evidence": {
         "measured": "2026-08-19",

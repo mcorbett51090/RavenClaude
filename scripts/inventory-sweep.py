@@ -74,6 +74,24 @@ RUN_DIR = ".ravenclaude/runs/inventory-sweep"
 CANARY_DIR = "tests/fixtures/inventory-canary"
 PLANTED_TOKEN = "sk-CANARY-0000-not-a-real-secret-0000"  # fixture only, never a credential
 
+# ⛔ HOOKS THAT TAKE MACHINE-GLOBAL LOCKS ARE NOT EXECUTED BY THIS SWEEP.
+# Measured 2026-08-19: hook-benign-passthrough ran every real hook inside a
+# mktemp root with HOME and CLAUDE_PROJECT_DIR redirected — and worktree-guard.sh
+# still wrote a lease into the REAL store, because it anchors that store at a path
+# the HOME redirection does not cover. The lease then blocked this session own
+# writes for nine minutes, held by a PID that had already exited.
+#
+# The lesson generalises: a sandbox is only as good as the paths it actually
+# covers, and "I redirected HOME" is an assumption until something proves it. So
+# these are SKIPPED and REPORTED AS SKIPPED — never silently passed, and never
+# counted as evidence that they behave.
+GLOBAL_LOCK_HOOKS = {
+    "worktree-guard.sh": "writes a machine-global lease outside the sandboxed HOME",
+    "dashboard-autostart.sh": "starts a long-lived server process",
+    "thing-orchestrator.sh": "convenes the tribunal panel; can invoke a model",
+    "route-decision-review.sh": "routes to the tribunal; can invoke a model",
+}
+
 # Verdict vocabulary. ⛔ CLOSED SET. A record may never carry free text derived
 # from probe output — that is how payloads leak into a durable store.
 PASS, FAIL, UNKNOWN, SKIP = "pass", "fail", "unknown", "skip"
@@ -84,6 +102,7 @@ LABELS = {
     "selftest-failed", "convention-mismatch", "no-selftest-declared",
     "denies-benign-payload", "hook-not-executable", "canary-red-as-designed",
     "canary-UNEXPECTEDLY-GREEN", "no-cheap-observable", "probe-timeout",
+    "global-lock-hook", "self-probe-would-recurse",
 }
 
 _MD_LINK = re.compile(r"\[[^\]]*\]\(([^)\s#]+)(?:#[^)]*)?\)")
@@ -241,7 +260,18 @@ def _script_callgraph(root: Path, paths: list[str], ctx: dict) -> dict:
 )
 def _script_selftest(root: Path, paths: list[str], ctx: dict) -> dict:
     out = {}
+    _self = Path(__file__).name
     for p in paths:
+        # ⛔ THE SWEEP DOES NOT PROBE ITSELF. Measured: script-selftest ran
+        # `inventory-sweep.py --must-fail`, whose teeth run performs a full sweep,
+        # whose script-selftest runs `inventory-sweep.py --must-fail`… unbounded
+        # recursion, visible only as a hang. Its own teeth are exercised directly
+        # by audit-gates rc_mustfail, which is the right place: a harness that
+        # grades itself inside its own run cannot report an independent verdict
+        # anyway. Reported as a SKIP with a reason, never silently dropped.
+        if Path(p).name == _self:
+            out[p] = (SKIP, "self-probe-would-recurse")
+            continue
         # ⛔ READ BEFORE YOU EXECUTE. The first version invoked all 183 scripts with
         # --must-fail-convention to find out whether they implemented it. Two
         # problems, and the second is the serious one: it took 5+ minutes, and a
@@ -319,6 +349,10 @@ def _hook_benign(root: Path, paths: list[str], ctx: dict) -> dict:
             "cwd": str(sandbox),
         })
         for p in paths:
+            name = Path(p).name
+            if name in GLOBAL_LOCK_HOOKS:
+                out[p] = (SKIP, "global-lock-hook")
+                continue
             fp = root / p
             r = _run(sandbox, ["bash", str(fp), str(sandbox)], stdin=payload,
                      timeout=8, env=env)
@@ -766,7 +800,7 @@ def _must_fail(root: Path) -> int:
         return 0
 
     # 3. The permanently-red canary must be RED on the real tree.
-    result = sweep(root, tier="T1")
+    result = sweep(root, tier="T0")
     canary = [r for r in result["records"] if r["class"] == "canary-permanently-red"]
     if not canary:
         print("✗ must-fail: the permanently-red canary is ABSENT. Without it, a long")
