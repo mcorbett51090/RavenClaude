@@ -41,6 +41,7 @@ import argparse
 import json
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -185,8 +186,6 @@ def main() -> int:
     if args.must_fail:
         # ⛔ RECONSTRUCT THE #991 SHAPE DELIBERATELY, in a scratch tree: a ratchet
         # stamped against a SHA that is not the merge base must FAIL.
-        import tempfile
-
         with tempfile.TemporaryDirectory() as td:
             fake = Path(td)
             subprocess.run(["git", "-C", str(fake), "init", "-q"], check=False, timeout=60)

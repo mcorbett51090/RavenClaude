@@ -22,7 +22,7 @@ covers:
   - scripts/check-changed-concept-renders.py
   - scripts/inventory-coverage.py
   - scripts/inventory-nuance-judge.py
-covers_digest: "sha256:f6cbd2ee63313a756f9f4d17aec87af942f81e54a4da6d3efd88191721a8f6fc"
+covers_digest: "sha256:ab7247e9e65b8d2b2db1f12b46178c258781ad1e4106f6f5abdd9c4e54d05be8"
 nuance: "`premise-gate.py` treats `exit 0` as its teeth bit while `sync-plugin-versions.py` uses `exit 2`, so an auditor that hard-codes one number can never be right for both."
 nuance_evidence:
   measured: 2026-08-19

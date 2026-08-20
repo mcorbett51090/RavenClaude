@@ -160,11 +160,44 @@ else
 fi
 
 # ── 7. The real corpus is untouched ───────────────────────────────────────
-if (cd "$ROOT" && python3 scripts/concepts.py --check >/dev/null 2>&1) \
-   && (cd "$ROOT" && git diff --quiet -- plugins/ravenclaude-core/concepts.json); then
-  ok "CONTROL: 58 real concepts validate and concepts.json is byte-identical to HEAD"
+# ⛔ THE ADDITIVITY PROPERTY, RESTATED CORRECTLY.
+# This assertion used to be `git diff --quiet -- concepts.json`. That was right
+# while the corpus had ZERO inventory entries — the registry genuinely had to be
+# byte-identical to HEAD. Once P9 legitimately added twelve, it stopped measuring
+# additivity and started measuring "is the working tree committed": a true
+# statement about git that says nothing about the schema, and one that goes RED
+# on every mid-work run. A gate that fails whenever you have uncommitted changes
+# is a gate people learn to ignore.
+#
+# The property that actually matters: a concept opting into NONE of the new fields
+# must carry NONE of them in the registry. That holds regardless of what else the
+# corpus contains, and it is exactly what "absent entry_class reproduces today
+# behaviour" means.
+legacy_rc=0
+python3 - "$ROOT" <<'LEGACYPY' || legacy_rc=$?
+import json, sys
+from pathlib import Path
+reg = json.loads((Path(sys.argv[1]) / "plugins/ravenclaude-core/concepts.json").read_text())
+new_keys = ("entry_class", "covers", "covers_digest", "nuance", "nuance_evidence",
+            "verify", "strength_badge")
+legacy = [c for c in reg["concepts"] if "entry_class" not in c]
+leaked = [c["id"] for c in legacy if any(k in c for k in new_keys)]
+if leaked:
+    print("legacy concepts carrying new schema keys:", leaked)
+    sys.exit(1)
+if len(legacy) < 50:
+    print(f"only {len(legacy)} legacy concepts found — expected the original corpus")
+    sys.exit(1)
+LEGACYPY
+if [ "$legacy_rc" -eq 0 ]; then
+  ok "CONTROL: every concept that opted into nothing carries none of the new keys"
 else
-  bad "real corpus untouched" "the schema delta was not additive"
+  bad "schema delta is additive" "a legacy concept gained a new field"
+fi
+if (cd "$ROOT" && python3 scripts/concepts.py --check >/dev/null 2>&1); then
+  ok "the whole corpus validates under the full schema"
+else
+  bad "corpus validates" "concepts.py --check failed on the repo"
 fi
 
 echo

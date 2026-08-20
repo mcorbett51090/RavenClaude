@@ -40,8 +40,10 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import os
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -101,21 +103,20 @@ def main() -> int:
         # base. A teeth fixture that silently starts asserting the opposite of its
         # intent is worse than none, so the isolation is now real: a fresh repo with
         # one commit, no remote, no merge commit, and GITHUB_BASE_REF cleared.
-        import os as _os, subprocess as _sp, tempfile as _tf
-        with _tf.TemporaryDirectory() as _td:
+        with tempfile.TemporaryDirectory() as _td:
             _r = Path(_td)
             for _cmd in (["init", "-q"], ["config", "user.email", "t@t"],
                          ["config", "user.name", "t"]):
-                _sp.run(["git", "-C", str(_r), *_cmd], check=False, timeout=60)
+                subprocess.run(["git", "-C", str(_r), *_cmd], check=False, timeout=60)
             (_r / "seed.txt").write_text("x\n", encoding="utf-8")
-            _sp.run(["git", "-C", str(_r), "add", "-A"], check=False, timeout=60)
-            _sp.run(["git", "-C", str(_r), "commit", "-qm", "seed"], check=False, timeout=60)
-            _saved = _os.environ.pop("GITHUB_BASE_REF", None)
+            subprocess.run(["git", "-C", str(_r), "add", "-A"], check=False, timeout=60)
+            subprocess.run(["git", "-C", str(_r), "commit", "-qm", "seed"], check=False, timeout=60)
+            _saved = os.environ.pop("GITHUB_BASE_REF", None)
             try:
                 _paths, _unknown = changed_concepts(_r, "origin/main")
             finally:
                 if _saved is not None:
-                    _os.environ["GITHUB_BASE_REF"] = _saved
+                    os.environ["GITHUB_BASE_REF"] = _saved
         if _unknown is None:
             print("✗ must-fail: a repo with NO resolvable base returned a KNOWN result.")
             print("  'nothing changed' and 'the query broke' would be the same output.")
