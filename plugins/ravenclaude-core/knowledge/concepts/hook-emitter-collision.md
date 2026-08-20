@@ -5,7 +5,7 @@ category: "Inventory \u2014 measured mechanisms"
 kind: ravenclaude-built
 entry_class: inventory
 order: 902
-summary: "What happens when two hooks emit on the same event: one channel adds, the other overwrites."
+summary: "Two hooks registered on one event both emit. What the host does with the second payload."
 last_verified: 2026-08-20
 covers:
   - plugins/ravenclaude-core/hooks/hooks.json

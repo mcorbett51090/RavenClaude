@@ -96,12 +96,33 @@ the P9 figure in the plan's §19.2 should be read with that in mind.
 5. **A re-stamp Edit may bump the date and nothing else.** If the same edit rewrites
    the nuance, it is screened like any other write and needs its controls.
 
-6. **⛔ No apostrophes anywhere inside a single-quoted bash block, including in
+6. **⛔ The summary is a TOOLTIP. It must never state the finding.**
+   Measured 2026-08-20: a fresh-context reviewer rejected `hook-emitter-collision`
+   as a **restatement** because its summary read *"…: one channel adds, the other
+   overwrites"* — the punchline, in the 200 chars a reader sees first. The nuance
+   then had nothing left to teach, and the rubric is literally *"could they have
+   guessed it from title plus summary?"*
+
+   The failure is subtle because a leaky summary reads as a **good** summary: it
+   is informative, accurate, and it is the reason the entry scores zero. Say what
+   the entry is **about**; let the nuance carry what is **surprising**.
+
+   | | |
+   |---|---|
+   | ✗ leaks | `What happens when two hooks emit on one event: one channel adds, the other overwrites.` |
+   | ✓ tooltip | `Two hooks registered on one event both emit. What the host does with the second payload.` |
+
+   ⛔ The deterministic floor **cannot** catch this — a leaky summary makes the
+   nuance's tokens *less* novel against baseline B1, so a leak actively pushes the
+   entry toward failing F2 rather than passing it. This one is caught only by the
+   sampled review, which is precisely why that review is a blocking gate.
+
+7. **⛔ No apostrophes anywhere inside a single-quoted bash block, including in
    prose comments.** One apostrophe closes the string, the hook dies with a
    non-blocking error, and the gate fails **OPEN** — silently ceasing to gate.
    `scripts/audit-prose-rendering-path.py` checks this mechanically.
 
-7. **⛔ Do not write the denied shape literally into a test or a doc.** A guard
+8. **⛔ Do not write the denied shape literally into a test or a doc.** A guard
    cannot tell a command from a description of one. Assemble fixtures with
    `printf`, as `test-guard-premise-scope.sh` and `spike-tprose-canary.sh` do.
 

@@ -83,7 +83,12 @@ ENTRIES = [
       "Two live emitters on one event cannot be staged offline; the observable needs a real "
       "host session, which places it in the T2 sampled tier gated on claim 15."},
      "plugins/ravenclaude-core/hooks/hooks.json:1-40",
-     "What happens when two hooks emit on the same event: one channel adds, the other overwrites."),
+     # ⛔ REWORKED after the wave-1 fresh-context review scored this entry a
+     # RESTATEMENT. The previous summary read "…: one channel adds, the other
+     # overwrites" — it STATED THE FINDING, so the nuance had nothing left to
+     # teach and the reviewer was right to reject it. A 200-char summary is a
+     # TOOLTIP: it says what the entry is ABOUT. The finding belongs to the nuance.
+     "Two hooks registered on one event both emit. What the host does with the second payload."),
 
     ("plugin-cache-is-version-keyed", "pos-version-keyed-cache",
      ["plugins/ravenclaude-core/.claude-plugin/plugin.json", "scripts/sync-plugin-versions.py",

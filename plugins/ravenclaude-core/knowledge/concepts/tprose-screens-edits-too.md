@@ -10,7 +10,7 @@ last_verified: 2026-08-20
 covers:
   - plugins/ravenclaude-core/hooks/guard-premise.sh
   - docs/best-practices/inventory-authoring.md
-covers_digest: "sha256:a4a6838037ba25f4b54827fc59457ffe7a429e4a1ed1614c6f41caff692d9f79"
+covers_digest: "sha256:04c18944b458abfb396661569ad8e493875afcbd8da9fc98cca896d689d8bd2f"
 nuance: "The `os.path.exists` early-exit gates T-SHAPE only, so `guard-premise.sh` screens an `Edit` too; a re-stamp escapes because `new_string` carries no defect predicate, not because edits are exempt."
 nuance_evidence:
   measured: 2026-08-19

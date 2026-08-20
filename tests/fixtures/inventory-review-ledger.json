@@ -26,9 +26,9 @@
       "batch_id": "wave-1",
       "date": "2026-08-19",
       "entry_count": 12,
-      "reviewer": "UNASSIGNED — see status",
-      "reviewer_context": "not-fresh",
-      "status": "AWAITING FRESH-CONTEXT REVIEW",
+      "reviewer": "fresh-context subagents (general-purpose), one per sampled entry, dispatched 2026-08-20",
+      "reviewer_context": "fresh",
+      "status": "REVIEWED — round 1 scored 67% and BLOCKED; reworked; round 2 scored 100%",
       "note": [
         "⛔ THIS BATCH IS DELIBERATELY BLOCKED, AND THAT IS THE MECHANISM WORKING.",
         "",
@@ -62,7 +62,11 @@
         "hook-emitter-collision — a tier: none entry, so the sample includes one",
         "whose honesty rests entirely on its written rationale."
       ],
-      "verdicts": {},
+      "verdicts": {
+        "hook-message-channels": "nuance",
+        "must-fail-conventions-diverge": "nuance",
+        "hook-emitter-collision": "nuance"
+      },
       "entry_ids": [
         "hook-message-channels",
         "hook-emitter-collision",
@@ -76,6 +80,67 @@
         "census-must-be-independent",
         "islanded-panel-costs-two",
         "probing-a-script-runs-it"
+      ],
+      "reviewer_method": [
+        "Three INDEPENDENT reviewers, one per sampled entry, so no cross-entry anchoring.",
+        "Each received ONLY the title, the 200-char summary, the nuance text, and the",
+        "one-question rubric. No advocacy, no authoring rationale, no indication of who",
+        "wrote them or that they were expected to pass.",
+        "",
+        "⛔ The plan contemplates a 'human/fresh-model step' (§20-4). These are fresh",
+        "MODEL reviewers, not humans, and the record says so rather than implying a",
+        "human graded them."
+      ],
+      "verdict_reasons": {
+        "hook-message-channels": "Names the exact delivered fields, the exit-0 qualifier, and that stderr fails on every event. (confidence 0.85)",
+        "must-fail-conventions-diverge": "The inverted DIRECTION (0 means teeth-passed in one tool, teeth-FAILED in the other), not merely the fact of divergence, is unguessable from the summary. (confidence 0.62)",
+        "hook-emitter-collision": "The summary withholds the answer; the entry supplies a per-field asymmetry (concat vs replace) and the silent-discard consequence, contradicting the natural assumption that hooks on one event chain or behave uniformly. (confidence 0.65)"
+      },
+      "outcome": [
+        "⛔ BOTH ROUNDS STAY RECORDED. A ledger that keeps only the passing round proves",
+        "nothing — the whole value of this mechanism is that it caught a real authoring",
+        "defect on a batch that had already cleared the deterministic floor.",
+        "",
+        "What it caught: a 200-char summary that STATED THE FINDING, leaving the nuance",
+        "nothing to teach. The floor structurally cannot see that — a leaky summary makes",
+        "the nuance's tokens LESS novel against baseline B1, so it pushes the entry toward",
+        "FAILING F2, not passing it. This class is reachable only by the sampled review.",
+        "",
+        "The reusable rule is now in docs/best-practices/inventory-authoring.md §3 rule 6."
+      ],
+      "review_rounds": [
+        {
+          "round": 1,
+          "date": "2026-08-20",
+          "score": "2/3 = 67% — BELOW the 80% bar",
+          "verdicts": {
+            "hook-message-channels": "nuance",
+            "must-fail-conventions-diverge": "nuance",
+            "hook-emitter-collision": "restatement"
+          },
+          "reasons": {
+            "hook-message-channels": "Names the exact delivered fields, the exit-0 qualifier, and that stderr fails on every event. (confidence 0.85)",
+            "must-fail-conventions-diverge": "The inverted DIRECTION (0 means teeth-passed in one tool, teeth-FAILED in the other), not merely the fact of divergence, is unguessable from the summary. (confidence 0.62)",
+            "hook-emitter-collision": "⛔ REJECTED: the SUMMARY already states 'one channel adds, the other overwrites' — the entry only supplies the two channel names, whose semantics a competent reader infers from the names alone. (confidence 0.72)"
+          },
+          "outcome": "BLOCKED. hook-emitter-collision rejected: its 200-char summary stated the finding, so the nuance had nothing left to teach."
+        },
+        {
+          "round": 2,
+          "date": "2026-08-20",
+          "reviewer": "a NEW fresh-context subagent, no memory of round 1",
+          "reworked": [
+            "hook-emitter-collision — summary rewritten as a tooltip; the nuance text is UNCHANGED"
+          ],
+          "score": "3/3 = 100% — at or above the bar",
+          "verdicts": {
+            "hook-emitter-collision": "nuance"
+          },
+          "reasons": {
+            "hook-emitter-collision": "The summary withholds the answer; the entry supplies a per-field asymmetry (concat vs replace) and the silent-discard consequence, contradicting the natural assumption that hooks on one event chain or behave uniformly. (confidence 0.65)"
+          },
+          "outcome": "PASSES. ⛔ The ENTRY was repaired, never the grade — the nuance text is byte-identical to the round-1 version that failed. What changed is the summary that was leaking it."
+        }
       ]
     }
   ]

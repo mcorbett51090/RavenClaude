@@ -2263,7 +2263,7 @@ _Last verified: 2026-08-20_
 
 ### Two emitters on one event · _RavenClaude-built_
 
-> What happens when two hooks emit on the same event: one channel adds, the other overwrites.
+> Two hooks registered on one event both emit. What the host does with the second payload.
 
 ## What a reader would have assumed instead
 
