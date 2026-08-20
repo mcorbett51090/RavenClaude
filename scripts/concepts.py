@@ -269,6 +269,33 @@ def _serialize(registry: dict) -> str:
     return json.dumps(registry, indent=2, ensure_ascii=False) + "\n"
 
 
+# ── Failure CLASSES, and why they are a machine marker rather than a sentence ──
+#
+# ⛔ regenerate-artifacts.yml decides whether a failing `--check` is survivable by
+# grepping this output. It used to grep the LITERAL SENTENCE "staleness gate
+# FAILED"; on no match it ran `exit "$_crc"`, killing every later self-heal step —
+# concept SVGs, decision-tree SVGs, dashboard.html, index.html, BI reports, the
+# Copilot package, the feedback report. The workflow comment at that site records
+# the incident it re-arms: main left UN-HEALED across many merges.
+#
+# control: scripts/spike-selfheal-contract.sh extracts that conditional FROM the
+# workflow and replays it against each output class. Measured 2026-08-19, before
+# this change: a covers-digest-drift line was reported FATAL while a
+# platform-fact-staleness line was reported CONTINUE.
+#
+# A prose string a future edit can silently reword is the wrong contract shape —
+# that is how the fuse was armed. So the contract is a STABLE MARKER LINE:
+#
+#   RC-CONCEPTS-CLASS: human-reverify-required
+#       Regeneration CANNOT clear this. Only a human re-verifying the fact and
+#       moving the date can. The self-heal MUST warn and continue.
+#   RC-CONCEPTS-CLASS: generator-failure
+#       A real generator failure. The self-heal SHOULD abort.
+CLASS_HUMAN = "human-reverify-required"
+CLASS_GENERATOR = "generator-failure"
+MARKER = "RC-CONCEPTS-CLASS: "
+
+
 def _staleness_violations(concepts: list[dict]) -> list[str]:
     today = _today()
     out = []
@@ -279,6 +306,29 @@ def _staleness_violations(concepts: list[dict]) -> list[str]:
         if age > STALE_DAYS:
             out.append(f"  ✗ {c['id']}: last_verified {c['last_verified']} is {age} days old (> {STALE_DAYS})")
     return out
+
+
+def _emit(freshness: list[str], generator: list[str]) -> int:
+    """Report EVERY collected violation class, then exit once.
+
+    ⛔ COLLECT-ALL, NEVER SHORT-CIRCUIT. The previous shape evaluated staleness
+    first and returned 1 before it ever compared concepts.json to the serialized
+    registry. Adding more early-exit classes into that funnel means one stale
+    entry blinds registry-freshness for the whole corpus — the masking-gate
+    defect already in this repo record, where a red gate hides later ones in the
+    same step. A caller must be able to see both at once.
+    """
+    if freshness:
+        print("Concept staleness gate FAILED — refresh last_verified after re-checking the source:")
+        print("\n".join(freshness))
+        print(f"{MARKER}{CLASS_HUMAN}")
+    if generator:
+        if freshness:
+            print()
+        print("Concept generator gate FAILED:")
+        print("\n".join(generator))
+        print(f"{MARKER}{CLASS_GENERATOR}")
+    return 1 if (freshness or generator) else 0
 
 
 def main() -> int:
@@ -292,25 +342,28 @@ def main() -> int:
     try:
         registry = build_registry(root)
     except ConceptError as exc:
+        # A schema failure means there is no registry to compare against, so this
+        # is the one class that genuinely cannot collect further violations.
         print(f"Concept schema validation FAILED:\n  ✗ {exc}")
+        print(f"{MARKER}{CLASS_GENERATOR}")
         return 1
 
     serialized = _serialize(registry)
 
     if args.check:
-        problems = _staleness_violations(registry["concepts"])
-        if problems:
-            print("Concept staleness gate FAILED — refresh last_verified after re-checking the source:")
-            print("\n".join(problems))
-            return 1
+        # Two buckets, both filled completely before anything is printed.
+        freshness = _staleness_violations(registry["concepts"])
+        generator: list[str] = []
+
         if not out_path.exists():
-            print(f"concepts.json missing at {REGISTRY_PATH} — run: scripts/concepts.py")
-            return 1
-        if out_path.read_text(encoding="utf-8") != serialized:
-            print("concepts.json is STALE — regenerate with: scripts/concepts.py")
-            return 1
-        print(f"Concepts OK — {len(registry['concepts'])} concept(s), registry fresh, no stale platform-facts.")
-        return 0
+            generator.append(f"  ✗ concepts.json missing at {REGISTRY_PATH} — run: scripts/concepts.py")
+        elif out_path.read_text(encoding="utf-8") != serialized:
+            generator.append("  ✗ concepts.json is STALE — regenerate with: scripts/concepts.py")
+
+        rc = _emit(freshness, generator)
+        if rc == 0:
+            print(f"Concepts OK — {len(registry['concepts'])} concept(s), registry fresh, no stale platform-facts.")
+        return rc
 
     out_path.write_text(serialized, encoding="utf-8")
     print(f"Wrote {REGISTRY_PATH} — {len(registry['concepts'])} concept(s) in {len(registry['categories'])} categor(ies).")

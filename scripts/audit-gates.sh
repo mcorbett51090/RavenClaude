@@ -594,6 +594,14 @@ PY
         --must-fail-echo || rc=$?
       exit $rc
       ;;
+    236)
+      echo "── Gate 236: concepts --check contract (markers, collect-all, self-heal) ──"
+      rc=0
+      bash plugins/ravenclaude-core/hooks/tests/test-gate236-concepts-check-contract.sh || rc=$?
+      bash scripts/spike-selfheal-contract.sh --check || rc=$?
+      bash scripts/spike-selfheal-contract.sh --must-fail || rc=$?
+      exit $rc
+      ;;
     235)
       echo "── Gate 235: hooks reach the model (delivered-channel assertions) ──"
       rc=0
@@ -1323,7 +1331,7 @@ PY
       ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -8468,6 +8476,40 @@ gate "delivered-channel library self-test (6/6, both canaries bite)" must_pass "
 rc=0
 bash plugins/ravenclaude-core/hooks/tests/test-gate235-delivered-channel.sh >/dev/null 2>&1 || rc=$?
 gate "real shipping hooks reach the model on the delivered channel" must_pass "$rc"
+
+echo
+
+echo "── Gate 236: concepts --check contract (markers, collect-all, self-heal) ────"
+# Measured 2026-08-19 by scripts/spike-selfheal-contract.sh, which extracts the
+# conditional FROM regenerate-artifacts.yml and replays it: a covers-digest-drift
+# line was reported FATAL, so a content-freshness failure that regeneration cannot
+# fix would have killed every later self-heal step — concept SVGs, decision-tree
+# SVGs, dashboard.html, index.html, BI reports, the Copilot package, the feedback
+# report. That is the incident the workflow comment at that site already records:
+# main left UN-HEALED across many merges.
+#
+# control: the same probe replays the human-reverify marker and requires it to be
+# SURVIVABLE, so the two negatives it asserts are not the vacuous output of a grep
+# that matches nothing.
+#
+# The contract is now a stable machine marker (RC-CONCEPTS-CLASS: <class>), not a
+# prose sentence a future edit can silently reword — a reworded sentence is how
+# this fuse was armed in the first place. The legacy term is retained as an OR for
+# one release so a version-skew rollout cannot detonate mid-migration.
+#
+# ⛔ Registered in BOTH this main sequence AND the --check dispatcher above AND
+# the Supported: string. Gate 184 once shipped unreachable by living in only one.
+# ⛔ Grep the suite output for the literal name, never "Gate 236" — a batched
+# header has already made a by-number grep report 7 false unruns in this repo.
+rc=0
+bash plugins/ravenclaude-core/hooks/tests/test-gate236-concepts-check-contract.sh >/dev/null 2>&1 || rc=$?
+gate "concepts --check: markers, collect-all, self-heal survives content freshness" must_pass "$rc"
+rc=0
+bash scripts/spike-selfheal-contract.sh --check >/dev/null 2>&1 || rc=$?
+gate "self-heal contract holds for every emitted failure class" must_pass "$rc"
+rc=0
+bash scripts/spike-selfheal-contract.sh --must-fail >/dev/null 2>&1 || rc=$?
+gate "self-heal contract probe has teeth (unmarked + generator outputs are fatal)" must_pass "$rc"
 
 echo
 
