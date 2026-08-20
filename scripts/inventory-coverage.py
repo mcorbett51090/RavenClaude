@@ -173,6 +173,40 @@ def ledger_verdict(root: Path, current_ids: list[str]) -> tuple[bool, list[str]]
     batches = led.get("batches") or []
     if current_ids and not batches:
         return False, ["entries are published but the ledger records no batch at all"]
+
+    # ⛔ THE GATE BLOCKS BATCH N+1, NOT BATCH N — and the difference is the whole
+    # design. R7 makes the sampled review a real gate; it does not make the batch
+    # under review unmergeable. A gate that blocked the CURRENT batch would mean
+    # no wave could ever land without a review that can only happen AFTER it lands
+    # and is readable — so the first version of this deadlocked wave 1 against
+    # itself and turned audit-gates red on the PR that introduced the mechanism.
+    #
+    # So: an ungraded newest batch WARNS while its own entries are all it covers,
+    # and BLOCKS the moment an entry appears that it does not cover — that entry
+    # is batch N+1 arriving before batch N was reviewed, which is exactly what
+    # §9.3 forbids.
+    covered_by_batches: set[str] = set()
+    for b in batches:
+        covered_by_batches.update(b.get("entry_ids") or b.get("entry_ids_sampled") or [])
+    newest = batches[-1]
+    newest_graded = bool(newest.get("verdicts"))
+    uncovered = [e for e in current_ids if e not in covered_by_batches]
+
+    if not newest_graded:
+        if uncovered:
+            reasons.append(
+                f"batch {newest.get('batch_id', '?')} is UNREVIEWED and {len(uncovered)} "
+                "entr(ies) outside it are already published — batch N+1 may not land "
+                "before batch N is reviewed"
+            )
+            return False, reasons
+        # The batch under review is landing. Warn loudly; do not deadlock it.
+        return True, [
+            f"⚠ batch {newest.get('batch_id', '?')} is AWAITING its fresh-context review. "
+            "It may land; the NEXT batch is blocked until this one is graded at or above "
+            f"{REVIEW_BAR:.0%}. This is not a pass — it is a deferral with a deadline."
+        ]
+
     for b in batches:
         bid = b.get("batch_id", "?")
         sampled = b.get("entry_ids_sampled") or []
@@ -180,12 +214,14 @@ def ledger_verdict(root: Path, current_ids: list[str]) -> tuple[bool, list[str]]
         if not sampled:
             reasons.append(f"batch {bid}: no entries sampled — an empty sample is not a review")
             continue
-        if b.get("reviewer_context") != "fresh":
+        if verdicts and b.get("reviewer_context") != "fresh":
             # A reviewer that authored the batch rubber-stamps its own summary.
             reasons.append(
                 f"batch {bid}: reviewer_context is not 'fresh' — a reviewer who authored"
                 " the batch reviews their own summary"
             )
+        if not verdicts:
+            continue  # handled by the batch-N+1 rule above
         graded = [v for v in verdicts.values() if v in ("nuance", "restatement")]
         if len(graded) < len(sampled):
             reasons.append(
@@ -322,7 +358,14 @@ def main() -> int:
 
     print()
     print("── ⛔ BLOCKING sampled review (R7 §9.3) ──")
-    if ok:
+    if ok and reasons:
+        # ⛔ A DEFERRAL IS NOT A PASS, AND MUST NOT PRINT LIKE ONE. The batch-N+1
+        # rule lets an unreviewed batch LAND; printing a checkmark next to it would
+        # make "reviewed and passed" and "not reviewed yet" the same output, which
+        # is the exact conflation this whole initiative exists to end.
+        for r in reasons:
+            print(f"  {r}")
+    elif ok:
         print("  ✓ every recorded batch carries a fresh-context sample at or above"
               f" the {REVIEW_BAR:.0%} bar.")
     else:

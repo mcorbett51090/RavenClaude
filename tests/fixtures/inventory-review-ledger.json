@@ -62,7 +62,21 @@
         "hook-emitter-collision — a tier: none entry, so the sample includes one",
         "whose honesty rests entirely on its written rationale."
       ],
-      "verdicts": {}
+      "verdicts": {},
+      "entry_ids": [
+        "hook-message-channels",
+        "hook-emitter-collision",
+        "plugin-cache-is-version-keyed",
+        "must-fail-conventions-diverge",
+        "bash-tool-response-has-no-exit-code",
+        "tprose-screens-edits-too",
+        "frontmatter-date-is-a-certainty-stamp",
+        "selfheal-greps-a-sentence",
+        "staleness-double-exemption",
+        "census-must-be-independent",
+        "islanded-panel-costs-two",
+        "probing-a-script-runs-it"
+      ]
     }
   ]
 }

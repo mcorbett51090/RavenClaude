@@ -2231,3 +2231,318 @@ _Last verified: 2026-06-08_
 
 
 ---
+
+
+## Inventory — measured mechanisms
+
+### Hook message channels · _RavenClaude-built_
+
+> A hook can write to the terminal or to the model, and only one of those reaches the model.
+
+## What a reader would have assumed instead
+
+a SessionStart additionalContext sentinel came back in every trial while the stderr token never did
+
+## The discriminator
+
+control: a SessionStart additionalContext sentinel came back in every trial while the stderr token never did
+Measured 2026-08-19: A hook writing to stderr at `exit 0` reaches the model on no event; only `hookSpecificOutput.additionalContext` and `updatedToolOutput` are delivered, so `_advise.sh` advised the terminal for its entire service life.
+
+## Why it matters
+
+Falsifier: any recorded transcript containing the stderr token
+
+Probe: `unprobed: the delivery fact is a host-platform property; it is modelled as its own platform-fact concept under the 90-day gate`
+
+**Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
+
+_Last verified: 2026-08-20_
+
+
+---
+
+### Two emitters on one event · _RavenClaude-built_
+
+> What happens when two hooks emit on the same event: one channel adds, the other overwrites.
+
+## What a reader would have assumed instead
+
+a single-emitter run returned exactly one payload, so the doubling is the emitters and not the harness
+
+## The discriminator
+
+control: a single-emitter run returned exactly one payload, so the doubling is the emitters and not the harness
+Measured 2026-08-19: Two `additionalContext` emitters on one event concatenate rather than last-write-wins, but two `updatedToolOutput` emitters replace, so the second silently discards the first.
+
+## Why it matters
+
+Falsifier: a two-emitter run returning only one additionalContext block
+
+Probe: `unprobed: needs a live two-hook host session; scheduled for the T2 sampled tier`
+
+**Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
+
+_Last verified: 2026-08-20_
+
+
+---
+
+### Merged is not live · _RavenClaude-built_
+
+> Why a merged fix does not reach an installed session until the version field moves.
+
+## What a reader would have assumed instead
+
+a bumped version propagated on the next update while an unbumped one did not
+
+## The discriminator
+
+control: a bumped version propagated on the next update while an unbumped one did not
+Measured 2026-08-19: The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.
+
+## Why it matters
+
+Falsifier: an installed cache picking up an unbumped change
+
+Probe: `unprobed: requires a real consumer install cycle, which no CI job performs`
+
+**Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
+
+_Last verified: 2026-08-20_
+
+
+---
+
+### must-fail conventions diverge · _RavenClaude-built_
+
+> Every self-testing tool declares its own teeth-bit exit, because no single number fits all.
+
+## What a reader would have assumed instead
+
+each tool `--must-fail-convention` is read first and compared against its observed exit
+
+## The discriminator
+
+control: each tool `--must-fail-convention` is read first and compared against its observed exit
+Measured 2026-08-19: `premise-gate.py` treats `exit 0` as its teeth bit while `sync-plugin-versions.py` uses `exit 2`, so an auditor that hard-codes one number can never be right for both.
+
+## Why it matters
+
+Falsifier: both tools returning the same teeth exit
+
+Probe: `scripts/audit-gates.sh`
+
+**Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
+
+_Last verified: 2026-08-20_
+
+
+---
+
+### A failing Bash tool_response · _RavenClaude-built_
+
+> What a post-failure hook can and cannot read after a Bash call fails.
+
+## What a reader would have assumed instead
+
+the same payload shape with a synthetic exit field present did branch
+
+## The discriminator
+
+control: the same payload shape with a synthetic exit field present did branch
+Measured 2026-08-19: A failing Bash `tool_response` carries no exit-code field at all, so a hook that branches on `.tool_response.exit_code` never fires; `triage-outcome.sh` reads stream shape instead.
+
+## Why it matters
+
+Falsifier: a real failing Bash payload carrying an exit code
+
+Probe: `unprobed: the payload shape is host-supplied and cannot be synthesised faithfully offline`
+
+**Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
+
+_Last verified: 2026-08-20_
+
+
+---
+
+### T-PROSE is not CREATE-only · _RavenClaude-built_
+
+> The premise guard prose screen is not limited to newly created files.
+
+## What a reader would have assumed instead
+
+the identical body denied as a Write and as an Edit, while a benign body on the same path allowed
+
+## The discriminator
+
+control: the identical body denied as a Write and as an Edit, while a benign body on the same path allowed
+Measured 2026-08-19: The `os.path.exists` early-exit gates T-SHAPE only, so `guard-premise.sh` screens an `Edit` too; a re-stamp escapes because `new_string` carries no defect predicate, not because edits are exempt.
+
+## Why it matters
+
+Falsifier: a stamped diagnosis passing when sent as an Edit
+
+Probe: `scripts/spike-tprose-canary.sh`
+
+**Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
+
+_Last verified: 2026-08-20_
+
+
+---
+
+### The date you did not think of as a stamp · _RavenClaude-built_
+
+> Metadata you did not write as a claim can still arm the guard certainty trigger.
+
+## What a reader would have assumed instead
+
+the same body with no date anywhere was allowed
+
+## The discriminator
+
+control: the same body with no date anywhere was allowed
+Measured 2026-08-19: A `last_verified` date is itself a `_STAMP` match, so `guard-premise.sh` arms on metadata rather than on anything the author wrote; only a claim seven lines below the frontmatter escapes the window.
+
+## Why it matters
+
+Falsifier: a dated frontmatter failing to arm a nearby claim
+
+Probe: `scripts/spike-tprose-canary.sh`
+
+**Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
+
+_Last verified: 2026-08-20_
+
+
+---
+
+### The self-heal grep contract · _RavenClaude-built_
+
+> How a failing registry check decides whether the post-merge self-heal survives.
+
+## What a reader would have assumed instead
+
+the human-reverify marker replays as survivable while an unmarked line replays as fatal
+
+## The discriminator
+
+control: the human-reverify marker replays as survivable while an unmarked line replays as fatal
+Measured 2026-08-19: `regenerate-artifacts.yml` greps the sentence `staleness gate FAILED`, never a status, so an unrecognised class runs `exit "$_crc"` and every later self-heal step is skipped.
+
+## Why it matters
+
+Falsifier: an unmarked failure class continuing the self-heal
+
+Probe: `scripts/spike-selfheal-contract.sh`
+
+**Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
+
+_Last verified: 2026-08-20_
+
+
+---
+
+### The staleness double exemption · _RavenClaude-built_
+
+> Which concepts the staleness gate actually covered, and the two ways one escaped it.
+
+## What a reader would have assumed instead
+
+a fixture entry with the field absent now blocks, and one past the window warns on a PR but fails the sweep
+
+## The discriminator
+
+control: a fixture entry with the field absent now blocks, and one past the window warns on a PR but fails the sweep
+Measured 2026-08-19: `_staleness_violations` skipped on an OR, so a concept escaped for not being a `platform-fact` or merely for lacking `last_verified`; with 41 `ravenclaude-built` against 17 it gated only the minority kind.
+
+## Why it matters
+
+Falsifier: an entry with no last_verified passing the gate
+
+Probe: `plugins/ravenclaude-core/hooks/tests/test-gate237-inventory-staleness.sh`
+
+**Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
+
+_Last verified: 2026-08-20_
+
+
+---
+
+### A sweep that counts itself · _RavenClaude-built_
+
+> Why the coverage denominator is read from git rather than from the registry it measures.
+
+## What a reader would have assumed instead
+
+planting an untracked hook left the census unchanged, which a filesystem walk would not have
+
+## The discriminator
+
+control: planting an untracked hook left the census unchanged, which a filesystem walk would not have
+Measured 2026-08-19: `inventory-census.py` reads `git ls-files`, never a filesystem walk, so an untracked file cannot move the denominator; a `concepts.json`-derived count would shrink with the enumeration and stay green.
+
+## Why it matters
+
+Falsifier: an untracked artifact changing the census total
+
+Probe: `scripts/inventory-census.py`
+
+**Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
+
+_Last verified: 2026-08-20_
+
+
+---
+
+### An islanded panel costs two · _RavenClaude-built_
+
+> What the DOM budget measures, and the far larger number it does not.
+
+## What a reader would have assumed instead
+
+the payload counter reports 23,861 for learn-payload while the live gate reports it as two
+
+## The discriminator
+
+control: the payload counter reports 23,861 for learn-payload while the live gate reports it as two
+Measured 2026-08-19: `ISLANDED_PANEL_COST` is a flat 2 because the parser reads the payload as CDATA, so `check-dom-budget.py` cannot fire on `learn-payload` no matter how far past 23,861 elements it grows.
+
+## Why it matters
+
+Falsifier: the live-element gate ever failing on payload growth alone
+
+Probe: `scripts/check-artifact-budgets.py`
+
+**Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
+
+_Last verified: 2026-08-20_
+
+
+---
+
+### Asking a script a question runs it · _RavenClaude-built_
+
+> Asking a script a question is not free: one that ignores arguments simply runs.
+
+## What a reader would have assumed instead
+
+the same sweep after grepping first left the tree clean and finished in 33 seconds
+
+## The discriminator
+
+control: the same sweep after grepping first left the tree clean and finished in 33 seconds
+Measured 2026-08-19: A script that never calls `argparse` simply runs, so asking 183 of them for `--must-fail-convention` wrote `forge-route.py` to a stray file rather than answering.
+
+## Why it matters
+
+Falsifier: an argument-probing sweep leaving no artefact behind
+
+Probe: `scripts/inventory-sweep.py`
+
+**Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
+
+_Last verified: 2026-08-20_
+
+
+---

@@ -1,18 +1,32 @@
 {
   "payload": {
     "plugins/ravenclaude-core/dashboard.html": [
-      ["seeded 2026-08-19", 30555, "measured before any inventory authoring"],
+      [
+        "seeded 2026-08-19",
+        30555,
+        "measured before any inventory authoring"
+      ],
       [
         "P9 wave 1 (12 entries)",
         31500,
         "P9 wave 1: 12 mechanism inventory entries. Measured cost 34 payload elements per entry against the ~411/concept the Learn tab carries, because an inventory entry ships no mermaid block (the diagrams-opt-in decision, R2 corollary). Projection to a 162-entry corpus is ~5,500 elements, not the ~90,000 the plan feared. Headroom left for wave 2."
       ]
     ],
-    "index.html": [["seeded 2026-08-19", 6694, "measured before any inventory authoring"]]
+    "index.html": [
+      [
+        "seeded 2026-08-19",
+        6694,
+        "measured before any inventory authoring"
+      ]
+    ]
   },
   "bytes": {
     "plugins/ravenclaude-core/dashboard.html": [
-      ["seeded 2026-08-19", 10273863, "measured before any inventory authoring"],
+      [
+        "seeded 2026-08-19",
+        10273863,
+        "measured before any inventory authoring"
+      ],
       [
         "R12 strength badge CSS",
         10276000,
@@ -25,7 +39,11 @@
       ]
     ],
     "index.html": [
-      ["seeded 2026-08-19", 9263430, "measured before any inventory authoring"],
+      [
+        "seeded 2026-08-19",
+        9263430,
+        "measured before any inventory authoring"
+      ],
       [
         "P9 wave 1 (12 entries)",
         9300000,
