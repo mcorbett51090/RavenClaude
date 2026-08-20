@@ -66,11 +66,14 @@ import json, sys
 from pathlib import Path
 seed = json.loads((Path(sys.argv[1]) / "scripts" / "artifact-budgets.seed.json").read_text())
 bad = 0
+# BOTH tables are ceilings with a reviewed raise. The payload one was CORRECTED
+# to that after the first real batch: a reduction-only payload ceiling made every
+# inventory entry impossible, which is a stop-work order rather than a budget.
 for surface, rows in seed["payload"].items():
-    vals = [r[1] for r in rows]
-    if vals != sorted(vals, reverse=True):
-        print(f"payload ratchet for {surface} increased: {vals}")
-        bad = 1
+    for i in range(1, len(rows)):
+        if rows[i][1] > rows[i - 1][1] and len(str(rows[i][2]).strip()) < 30:
+            print(f"payload ceiling raise for {surface} has no real cause")
+            bad = 1
 for surface, rows in seed["bytes"].items():
     for i in range(1, len(rows)):
         if rows[i][1] > rows[i - 1][1] and len(str(rows[i][2]).strip()) < 30:
@@ -79,7 +82,7 @@ for surface, rows in seed["bytes"].items():
 sys.exit(bad)
 PY
 if [ "$py_rc" -eq 0 ]; then
-  ok "payload table only ever DECREASES; every byte raise carries a real cause"
+  ok "every payload AND byte ceiling raise carries a real, reviewed cause"
 else
   bad "budget table invariants" "see output above"
 fi

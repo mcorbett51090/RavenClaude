@@ -58,6 +58,18 @@ _fixture() {
     printf 'covers:\n'
     printf -- '  - covered/artifact.sh\n'
     printf 'covers_digest: "sha256:%s"\n' "$(printf '0%.0s' $(seq 1 64))"
+    # ⛔ P5 made nuance/nuance_evidence/verify REQUIRED on entry_class: inventory,
+    # which retroactively invalidated this P3 fixture. Adding them here is the
+    # correct fix: a fixture that no longer satisfies the schema it exercises is
+    # measuring the schema, not the staleness axis this gate exists for.
+    printf 'nuance: "The gate skips on an OR, so an entry escapes for not being a platform-fact or merely for lacking the field."\n'
+    printf 'nuance_evidence:\n'
+    printf '  measured: 2026-08-19\n'
+    printf '  control: "a fixture with the field absent now blocks where it used to be skipped"\n'
+    printf '  falsifier: "an entry with no last_verified passing the gate"\n'
+    printf '  probe: "unprobed: this fixture exists to exercise the gate, not to be probed by it"\n'
+    printf 'nuance_source: covered/artifact.sh:1-2\n'
+    printf 'verify:\n  tier: none\n  rationale: a Gate 237 fixture has no runtime observable of its own\n'
     printf 'sources:\n'
     printf -- '  - label: fixture\n'
     printf -- '    url: https://example.invalid/fixture\n'

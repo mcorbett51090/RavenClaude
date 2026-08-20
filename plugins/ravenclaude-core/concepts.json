@@ -2877,7 +2877,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-08-19",
+      "last_verified": "2026-08-20",
       "refresh_when": null,
       "sources": [
         {
@@ -2897,7 +2897,7 @@
         "scripts/sync-plugin-versions.py",
         "scripts/generate-copilot-plugin.py"
       ],
-      "covers_digest": "sha256:8e5861e9db53ad57786864af8724bcea267b7bd42d06d1e35abf18ace948c7c4",
+      "covers_digest": "sha256:1d5f5a93d02071dfbd58bc07560fbbdc7f3a72d54e06117b4a013b031620d213",
       "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -2957,7 +2957,7 @@
         "scripts/inventory-coverage.py",
         "scripts/inventory-nuance-judge.py"
       ],
-      "covers_digest": "sha256:f9d0823167297dcce58ab4a6b1658b14513f629712f0ed7c3964824460fe5fff",
+      "covers_digest": "sha256:4d5ed2129a47759c7df5a8227c446f1e1082293b68bb1351b4c314ab088ce0a2",
       "nuance": "`premise-gate.py` treats `exit 0` as its teeth bit while `sync-plugin-versions.py` uses `exit 2`, so an auditor that hard-codes one number can never be right for both.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3294,7 +3294,7 @@
         "scripts/generate-index-dashboard.py",
         "scripts/artifact-budgets.seed.json"
       ],
-      "covers_digest": "sha256:5294cc55c2936245a6ccd648d456276fa20fbd63e39b615868647064b7e7865f",
+      "covers_digest": "sha256:edd6cc362a07c978ae7f91e7b4a90757207979f0c5168c58185e12e64d42d6a8",
       "nuance": "`ISLANDED_PANEL_COST` is a flat 2 because the parser reads the payload as CDATA, so `check-dom-budget.py` cannot fire on `learn-payload` no matter how far past 23,861 elements it grows.",
       "nuance_evidence": {
         "measured": "2026-08-19",

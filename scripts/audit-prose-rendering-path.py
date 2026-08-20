@@ -48,6 +48,8 @@ from pathlib import Path
 # The authored-prose fields. A file mentioning any of these is a prose consumer.
 PROSE_FIELDS = ("body_md", "summary", "nuance", "refresh_when", "nuance_evidence")
 
+# ⛔ KEPT ONLY AS THE DOCUMENTED VOCABULARY OF WHAT COUNTS. The detector reads the
+# SYNTAX TREE, not these patterns — see check_shell_interpolation for why.
 # Shell-interpolation shapes. Presence in a prose consumer is the finding.
 # ⛔ The strings below are DETECTOR PATTERNS and the planted --must-fail fixture,
 # never calls this tool makes. The only subprocess here is a list-form
@@ -87,20 +89,51 @@ def find_prose_consumers(root: Path) -> list[Path]:
 
 
 def check_shell_interpolation(files: list[Path], root: Path | None = None) -> list[str]:
-    # ⛔ root is a PARAMETER, not _root(). The first version hard-coded the repo
-    # root, so --must-fail crashed on a temp-dir fixture and exited 1 — which is
-    # exactly this tool's declared teeth exit. A crash that returns the success
-    # code of a teeth run is a false pass, and it is the shape this whole audit
-    # exists to catch.
+    """Flag a prose consumer that ALSO calls into a shell.
+
+    ⛔ AST, NOT REGEX, AND THAT DISTINCTION IS THE FINDING. The regex version
+    matched the literal text `shell=True` wherever it appeared — including inside
+    the COMMENT `# LIST FORM, NEVER shell=True` in scripts/inventory-sweep.py,
+    which is a file whose entire subprocess usage is list-form with no shell. It
+    reported a prose consumer as a shell-injection surface on the strength of a
+    warning against doing that.
+
+    That is this repo recorded "a grep is satisfied by the thing being DESCRIBED"
+    class, and this detector — whose whole job is to police that boundary — walked
+    into it. Parsing the syntax tree means only a real call site counts: a comment,
+    a docstring and a string literal are all invisible, which is correct, because
+    none of them execute.
+
+    ⛔ Stated limit: a dynamically-built call (getattr(os, "system")) is invisible
+    to this too. That is a deliberate trade — the alternative is the regex, which
+    is worse in the direction that matters.
+    """
     root = root or _root()
     findings = []
     for p in files:
         text = p.read_text(encoding="utf-8", errors="replace")
-        for rx, label in SHELL_SHAPES:
-            for m in rx.finditer(text):
-                line = text[: m.start()].count("\n") + 1
+        try:
+            tree = ast.parse(text)
+        except SyntaxError as exc:
+            findings.append(f"{p.relative_to(root)}: does not parse ({exc.msg}) — UNKNOWN, not clean")
+            continue
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call):
+                continue
+            label = None
+            for kw in node.keywords:
+                if kw.arg == "shell" and isinstance(kw.value, ast.Constant) and kw.value.value is True:
+                    label = "subprocess(..., shell=True)"
+            fn = node.func
+            if isinstance(fn, ast.Attribute):
+                mod = getattr(fn.value, "id", None)
+                if mod == "os" and fn.attr in ("system", "popen"):
+                    label = f"os.{fn.attr}()"
+                elif mod == "commands" and fn.attr == "getoutput":
+                    label = "commands.getoutput()"
+            if label:
                 findings.append(
-                    f"{p.relative_to(root)}:{line}: prose consumer also uses {label} "
+                    f"{p.relative_to(root)}:{node.lineno}: prose consumer also uses {label} "
                     "— authored text and a shell share this process"
                 )
     return findings
