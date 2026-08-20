@@ -20,6 +20,23 @@
 
 set -euo pipefail
 
+# ── ADVISORY DELIVERY (added 2026-08-20) ────────────────────────────────────
+# Its failure path prints "failed to regenerate <label> — run manually: <cmd>",
+# which names a command the model can run. On stderr at exit 0 that reaches the
+# terminal and not the model (see _advise.sh), so the regeneration silently did
+# not happen and nothing told the agent.
+#
+# ⛔ Volume MEASURED before converting, not assumed: 0.60% over a 500-envelope
+# in-project Edit/Write/MultiEdit sample, and across that sample NO write event
+# ever produced more than ONE advisory emitter (98.8% produced none). Since two
+# additionalContext emitters on one event CONCATENATE rather than last-write-win,
+# stacking was the risk worth measuring, and it did not materialise.
+# control: the harness was first proven non-blind — an earlier run scored 0/600
+# purely because absolute out-of-project paths make these hooks exit early by
+# design, which a positive control on an in-project path exposed.
+_rc_hd="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" 2>/dev/null && pwd || printf '.')"
+if [ -f "$_rc_hd/_advise.sh" ]; then . "$_rc_hd/_advise.sh"; rc_advise_init PostToolUse; fi
+
 # Prefer the positional arg (set via `$CLAUDE_TOOL_FILE_PATH` in hooks.json), and
 # fall back to stdin JSON (`.tool_input.file_path`) for the case where the env
 # var isn't populated on PostToolUse. Same dual-source pattern guard-destructive.sh
