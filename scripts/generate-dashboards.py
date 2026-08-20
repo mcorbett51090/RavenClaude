@@ -1132,6 +1132,12 @@ _PIPELINE_EXCLUDED_HOOKS = {
     "dashboard-autostart.sh": "opt-in convenience launcher (SessionStart) for the dashboard itself; "
     "gates nothing, denies nothing, and never inspects a tool call — its knob is `dashboard_autostart` "
     "in comfort-posture.yaml, deliberately NOT a Pipeline stage card",
+    "keep-awake.sh": "opt-in sleep-assertion hook (SessionStart) whose knob is `keep_awake` in "
+    "comfort-posture.yaml; same class as dashboard-autostart.sh — it gates nothing, denies nothing, "
+    "and never inspects a tool call. It holds a `caffeinate -s` assertion on AC (and on battery holds "
+    "nothing and warns, because no software-only method beats Clamshell Sleep there) so a closed lid "
+    "cannot silently suspend the session. That is host-environment hygiene, not an agent guardrail, "
+    "so it is deliberately NOT a Pipeline stage card",
     "compact-anchor.sh": "post-compaction addressability pointer (SessionStart, matcher `compact`); "
     "injects the transcript path + boundary line so the post-compact agent knows its earlier turns "
     "are still on disk. Same class as thing-denial-kb-recall.sh — informational context, gates "

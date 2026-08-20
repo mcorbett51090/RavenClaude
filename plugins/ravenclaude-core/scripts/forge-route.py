@@ -35,8 +35,22 @@ from pathlib import Path
 
 # --- LANDING: engineering-pre-commitment signals (F3). A hit → draft PR, else main. ---
 _ENG_SIGNALS = {
+    # ⛔ The digit group was `\b\d+\.\d+\.\d+\b`, and a `v` prefix DESTROYS that leading
+    # `\b` — `v` and `0` are both word chars, so there is no boundary between them.
+    # Measured 2026-08-20 with an A/B control: one plan, changing only `v0.285.0` ->
+    # `0.285.0`, flipped landing from `main` to `pr`. It also missed this repo's own
+    # commit style (`chore(ravenclaude-core): v0.284.0`).
+    #
+    # ⛔ This is the EXPENSIVE direction of error. The comment on `layout-allowlist-edit`
+    # below states the deliberate bias: "firing wrongly costs a needless draft PR", i.e.
+    # over-fire on purpose. Missing a version bump does the opposite — it lets a plan
+    # carrying a stale engineering pre-commitment land canonically in `main`, inverting
+    # tiebreak F3. `(?<![\w.])` keeps the old anti-substring protection (no matching the
+    # tail of `1.2.3.4`) while allowing an optional `v`.
     "version-bump-target": re.compile(
-        r"\bbump\b[^\n]{0,40}\b\d+\.\d+\.\d+\b|\bversion\b[^\n]{0,20}\b\d+\.\d+\.\d+\b|\b\d+\.\d+\.\d+\b[^\n]{0,20}\bbump\b",
+        r"\bbump\b[^\n]{0,40}(?<![\w.])v?\d+\.\d+\.\d+\b"
+        r"|\bversion\b[^\n]{0,20}(?<![\w.])v?\d+\.\d+\.\d+\b"
+        r"|(?<![\w.])v?\d+\.\d+\.\d+\b[^\n]{0,20}\bbump\b",
         re.IGNORECASE,
     ),
     "reserved-gate-slot": re.compile(r"\bGate\s+\d+\b", re.IGNORECASE),
@@ -185,6 +199,25 @@ _FIXTURES = [
         False,
         "sensitive",
         ("use_local", "pr"),
+    ),
+    # Regression: the v-PREFIXED bump. Every fixture above writes a bare `1.2.3`, which is
+    # why nine of them passed while the detector was blind to this repo's own `v0.284.0`
+    # convention. A control that only ever uses the shape that works is not a control.
+    (
+        "Ship one hook. Bump `plugin.json` to v0.285.0 so the version-keyed cache refreshes.",
+        "small",
+        True,
+        "clean",
+        ("use_local", "pr"),
+    ),
+    # Counter-fixture: a version-shaped string that is NOT a pre-commitment must still
+    # land on main, so the widened regex cannot be "fixed" by matching everything.
+    (
+        "A design memo. Mentions that Python 3.11.2 is installed. No code, no bump target.",
+        "small",
+        True,
+        "clean",
+        ("use_local", "main"),
     ),
     (
         "Add a knowledge doc. Edit .repo-layout.json allowed_globs for the new dir.",
