@@ -219,3 +219,8 @@ definition_of_done:
   # first-run trust prompt was firing every session and did NOT self-clear at
   # max_blocks as its docs imply.
   trusted: true
+
+# Hold a sleep assertion for the session so a closed lid does not silently
+# suspend it (on | off; default off, and off when the key is absent).
+# AC only: on battery the hook holds nothing and warns instead.
+keep_awake: on

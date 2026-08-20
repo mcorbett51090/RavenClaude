@@ -256,6 +256,12 @@
           },
           {
             "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/keep-awake.sh",
+            "comment": "Sleep-assertion hook. OPT-IN via `keep_awake: on` in .ravenclaude/comfort-posture.yaml; absent or off means a no-op after one grep, so no install has its power management changed silently. Claude Code already holds `caffeinate -i` (IDLE sleep only), which does NOT stop a lid close: measured 2026-08-20, a session sat suspended 09:00:51-10:36:48 under 'Clamshell Sleep' with that assertion held, and the failure is silent because the process is suspended rather than killed. On AC this holds `caffeinate -s` (PreventSystemSleep) bound to the session pid via -w, idempotent across SessionStart re-fires. On battery it deliberately holds NOTHING and warns instead — no software-only method prevents Clamshell Sleep there, and a persistent pmset override cooks a closed laptop. Whether -s defeats clamshell sleep on Apple Silicon is UNVERIFIED and the banner says so. Advisory text goes through _advise.sh (additionalContext), because stderr-at-exit-0 reaches the terminal and not the model. Never blocks; always exits 0.",
+            "timeout": 10
+          },
+          {
+            "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/worktree-guard.sh register",
             "comment": "Worktree-hygiene guard (register). Records this session's own registry file under ${RC_WORKTREE_GUARD_HOME:-$HOME/.ravenclaude/worktree-guard} and GC-sweeps its PATH_KEY bucket (never depends on Stop firing) when worktree_guard != off. Reads `worktree_guard: off|warn|block` (default warn) and `worktree_bound: off|warn|block` (default block). On worktree_guard warn/block emits a SessionStart nudge only on CONTENTION or ANCHOR-WORK. When worktree_bound != off and sibling worktrees exist, also emits a LANE pin (toplevel/branch/host/siblings[/task]) \u2014 the context-isolation floor. worktree_guard=off still writes nothing to the registry (T7). Both-off short-circuits before any git shell-out. Fail-open on missing git/jq; SessionStart cannot block. Emits a hook-event audit line on a verdict."
           },
