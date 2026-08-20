@@ -61,6 +61,15 @@
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/log-probe.sh"
           }
         ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/triage-outcome.sh"
+          }
+        ]
       }
     ],
     "PreToolUse": [

@@ -979,6 +979,21 @@ _PIPELINE_LANES = [
                 },
             },
             {
+                "id": "triage-outcome",
+                "title": "Why did that come back empty?",
+                "badge": "advisory",
+                "tip": "When a command fails or returns nothing, lists the possible reasons instead of letting the robot guess one.",
+                "detail": {
+                    "steps": [
+                        "Watches commands that come back angry or empty.",
+                        "Lists the CANDIDATE causes, each with the one check that tells them apart.",
+                        "Refuses to let 'the thing is absent' be the top answer without a positive control.",
+                    ],
+                    "trip": "Advises only, never blocks. Wired after its fire rate was measured at 2.588% over 46,557 real commands (the bar was 3%).",
+                    "set": "`cause_triage: off` in .ravenclaude/comfort-posture.yaml.",
+                },
+            },
+            {
                 "id": "claim-grounding-lint",
                 "title": "Fact check",
                 "badge": "advisory",
@@ -1087,6 +1102,7 @@ _PIPELINE_STAGE_HOOKS = {
     "sanitize-webfetch-output": "sanitize-webfetch-output.sh",
     "format-on-write": "format-on-write.sh",
     "guard-recursive-spawn": "guard-recursive-spawn.sh",
+    "triage-outcome": "triage-outcome.sh",
     "claim-grounding-lint": "claim-grounding-lint.sh",
     "delegation-nudge": "delegation-nudge.sh",
     "storage-placement-nudge": "storage-placement-nudge.sh",
