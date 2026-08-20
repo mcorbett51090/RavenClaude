@@ -2319,12 +2319,12 @@ _Last verified: 2026-08-20_
 
 ## What a reader would have assumed instead
 
-each tool `--must-fail-convention` is read first and compared against its observed exit
+ran --must-fail on both: each exits 0 on success, so the 0-vs-2 divergence is in the CHECK exit each teeth run observes, not in the teeth exit itself
 
 ## The discriminator
 
-control: each tool `--must-fail-convention` is read first and compared against its observed exit
-Measured 2026-08-19: `premise-gate.py` treats `exit 0` as its teeth bit while `sync-plugin-versions.py` uses `exit 2`, so an auditor that hard-codes one number can never be right for both.
+control: ran --must-fail on both: each exits 0 on success, so the 0-vs-2 divergence is in the CHECK exit each teeth run observes, not in the teeth exit itself
+Measured 2026-08-19: The teeth bit is the exit a tool own CHECK returns on a planted defect, never the exit `--must-fail` itself returns: `premise-gate.py` denies at `exit 0` while `sync-plugin-versions.py` reddens at `exit 2`, so an auditor that hard-codes one number can never be right for both.
 
 ## Why it matters
 

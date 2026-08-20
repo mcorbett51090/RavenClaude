@@ -195,7 +195,7 @@ def main() -> int:
     args = ap.parse_args()
 
     if args.must_fail_convention:
-        print("must-fail-teeth-exit: 1")
+        print("must-fail-teeth-exit: 3")
         return 0
 
     root = _root()
@@ -235,8 +235,8 @@ def main() -> int:
                 print("  unterminated single-quoted block.")
                 return 0
         print("✓ must-fail: both detectors bit on planted defects.")
-        print("  exiting 1, the DECLARED teeth code, so the auditor can compare.")
-        return 1
+        print("  exiting 3, the DECLARED teeth code, so the auditor can compare.")
+        return 3
 
     consumers = find_prose_consumers(root)
     shell_findings = check_shell_interpolation(consumers)

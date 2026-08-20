@@ -113,7 +113,7 @@ def main() -> int:
     args = ap.parse_args()
 
     if args.must_fail_convention:
-        print("must-fail-teeth-exit: 1")
+        print("must-fail-teeth-exit: 3")
         return 0
 
     root = Path(args.root).resolve()
@@ -136,11 +136,11 @@ def main() -> int:
             print("✓ must-fail: uncalibrated, and therefore reporting NO per-entry")
             print("  verdicts — which is the whole control. 'The judge says fine' and")
             print("  'the judge is broken' cannot be the same output.")
-            print("  Exiting 1, the DECLARED teeth code.")
-            return 1
+            print("  Exiting 3, the DECLARED teeth code.")
+            return 3
         print("✓ must-fail: calibrated at or above the bar; verdicts are permitted.")
-        print("  Exiting 1, the DECLARED teeth code.")
-        return 1
+        print("  Exiting 3, the DECLARED teeth code.")
+        return 3
 
     avail, why = _model_available()
     print("── calibrated nuance judge (NON-BLOCKING by ruling) ──")

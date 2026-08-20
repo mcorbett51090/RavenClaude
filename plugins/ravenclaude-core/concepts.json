@@ -2933,7 +2933,7 @@
           "url": "https://github.com/mcorbett51090/RavenClaude/pull/997"
         }
       ],
-      "body_md": "## What a reader would have assumed instead\n\neach tool `--must-fail-convention` is read first and compared against its observed exit\n\n## The discriminator\n\ncontrol: each tool `--must-fail-convention` is read first and compared against its observed exit\nMeasured 2026-08-19: `premise-gate.py` treats `exit 0` as its teeth bit while `sync-plugin-versions.py` uses `exit 2`, so an auditor that hard-codes one number can never be right for both.\n\n## Why it matters\n\nFalsifier: both tools returning the same teeth exit\n\nProbe: `scripts/audit-gates.sh`",
+      "body_md": "## What a reader would have assumed instead\n\nran --must-fail on both: each exits 0 on success, so the 0-vs-2 divergence is in the CHECK exit each teeth run observes, not in the teeth exit itself\n\n## The discriminator\n\ncontrol: ran --must-fail on both: each exits 0 on success, so the 0-vs-2 divergence is in the CHECK exit each teeth run observes, not in the teeth exit itself\nMeasured 2026-08-19: The teeth bit is the exit a tool own CHECK returns on a planted defect, never the exit `--must-fail` itself returns: `premise-gate.py` denies at `exit 0` while `sync-plugin-versions.py` reddens at `exit 2`, so an auditor that hard-codes one number can never be right for both.\n\n## Why it matters\n\nFalsifier: both tools returning the same teeth exit\n\nProbe: `scripts/audit-gates.sh`",
       "diagram": null,
       "diagram_mini": null,
       "steps": [],
@@ -2956,11 +2956,11 @@
         "scripts/inventory-coverage.py",
         "scripts/inventory-nuance-judge.py"
       ],
-      "covers_digest": "sha256:ab7247e9e65b8d2b2db1f12b46178c258781ad1e4106f6f5abdd9c4e54d05be8",
-      "nuance": "`premise-gate.py` treats `exit 0` as its teeth bit while `sync-plugin-versions.py` uses `exit 2`, so an auditor that hard-codes one number can never be right for both.",
+      "covers_digest": "sha256:61ad978b754133f31698904e702a31becffcd8077e5086083de38336d440ed48",
+      "nuance": "The teeth bit is the exit a tool own CHECK returns on a planted defect, never the exit `--must-fail` itself returns: `premise-gate.py` denies at `exit 0` while `sync-plugin-versions.py` reddens at `exit 2`, so an auditor that hard-codes one number can never be right for both.",
       "nuance_evidence": {
         "measured": "2026-08-19",
-        "control": "each tool `--must-fail-convention` is read first and compared against its observed exit",
+        "control": "ran --must-fail on both: each exits 0 on success, so the 0-vs-2 divergence is in the CHECK exit each teeth run observes, not in the teeth exit itself",
         "falsifier": "both tools returning the same teeth exit",
         "probe": "scripts/audit-gates.sh"
       },
@@ -3193,7 +3193,7 @@
         "scripts/concepts.py",
         "scripts/check-covers-completeness.py"
       ],
-      "covers_digest": "sha256:62fcb0365fc11fd6957f7b8b4267c04d9aa488ac6d700d1ce6f5e3cca08585b1",
+      "covers_digest": "sha256:48aa36caf02c197dc7a6db79325398e16f63f4e1b95555c2572a89e2eefef0bc",
       "nuance": "`_staleness_violations` skipped on an OR, so a concept escaped for not being a `platform-fact` or merely for lacking `last_verified`; with 41 `ravenclaude-built` against 17 it gated only the minority kind.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3242,7 +3242,7 @@
         "scripts/inventory-sweep.py",
         "scripts/inventory-coverage.py"
       ],
-      "covers_digest": "sha256:47a059f945f720e676ceaea052d738f2b6548d4563c5f68b6944516ddf4e2fa8",
+      "covers_digest": "sha256:2983a8b768b4ea2b038fa8cdfbd5478d983b380f00b5f5aba077d5ae2f40d28e",
       "nuance": "`inventory-census.py` reads `git ls-files`, never a filesystem walk, so an untracked file cannot move the denominator; a `concepts.json`-derived count would shrink with the enumeration and stay green.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3292,7 +3292,7 @@
         "scripts/generate-dashboards.py",
         "scripts/generate-index-dashboard.py"
       ],
-      "covers_digest": "sha256:2f04a573a2a0fd0807d39d9e13113b0c2b75d58f0be04f3484f20f5b5cb0c4fa",
+      "covers_digest": "sha256:59afae76890d139cf2bebebe99ea7f74a55313046f33349ecf2f2a85020ce3dd",
       "nuance": "`ISLANDED_PANEL_COST` is a flat 2 because the parser reads the payload as CDATA, so `check-dom-budget.py` cannot fire on `learn-payload` no matter how far past 23,861 elements it grows.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3340,7 +3340,7 @@
         "scripts/inventory-sweep.py",
         "scripts/audit-prose-rendering-path.py"
       ],
-      "covers_digest": "sha256:458c3e591e3d9654c8ee852e62e834567532c697e7bbdb64c9e82e95373455a0",
+      "covers_digest": "sha256:ce946fc704195d1519164d4d58837add70d2e069a42b5c43c4173f4c15131e0c",
       "nuance": "A script that never calls `argparse` simply runs, so asking 183 of them for `--must-fail-convention` wrote `forge-route.py` to a stray file rather than answering.",
       "nuance_evidence": {
         "measured": "2026-08-19",

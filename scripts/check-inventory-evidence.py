@@ -25,7 +25,13 @@ these fields are meant to hold POINTERS AND LABELS, not payloads. The waiver
 carries its own TELL — any value over ~300 chars, or containing a newline-
 separated block — and both are reported here rather than left to chance.
 
-⛔ THE TEETH-BIT EXIT IS 1. Declared, never assumed.
+⛔ THE TEETH-BIT EXIT IS 3, AND THE NUMBER IS LOAD-BEARING.
+0 is ordinary success, 1 is an uncaught Python exception, and 2 is an argparse
+error — every one of them reachable WITHOUT the canary biting. Measured
+2026-08-20: an adversarial mutation that introduced an IndentationError exited 1,
+which was the declared teeth code at the time, so a CRASHED teeth run was
+indistinguishable from a PASSING one. That is the silent-green shape, inside the
+mechanism built to detect it. 3 is returned only where this file returns it.
 
 Usage:
     check-inventory-evidence.py [--root DIR] [--check]
@@ -105,7 +111,7 @@ def main() -> int:
     args = ap.parse_args()
 
     if args.must_fail_convention:
-        print("must-fail-teeth-exit: 1")
+        print("must-fail-teeth-exit: 3")
         return 0
 
     root = Path(args.root).resolve()
@@ -149,8 +155,8 @@ def main() -> int:
             print("  A gate that rejects honest authoring gets turned off in a week.")
             return 0
         print(f"✓ must-fail: all {len(samples)} pasted-output shapes caught; a legitimate")
-        print("  pointer-and-label entry passes. Exiting 1, the DECLARED teeth code.")
-        return 1
+        print("  pointer-and-label entry passes. Exiting 3, the DECLARED teeth code.")
+        return 3
 
     try:
         concepts = load_concepts(root)

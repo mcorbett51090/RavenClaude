@@ -40,7 +40,13 @@ and cumulative growth since the seed is reported every run so creep cannot hide
 inside a series of individually-reasonable raises. See the note above
 _monotonic() for the measurement that forced the distinction.
 
-⛔ THE TEETH-BIT EXIT IS 1. Declared, never assumed.
+⛔ THE TEETH-BIT EXIT IS 3, AND THE NUMBER IS LOAD-BEARING.
+0 is ordinary success, 1 is an uncaught Python exception, and 2 is an argparse
+error — every one of them reachable WITHOUT the canary biting. Measured
+2026-08-20: an adversarial mutation that introduced an IndentationError exited 1,
+which was the declared teeth code at the time, so a CRASHED teeth run was
+indistinguishable from a PASSING one. That is the silent-green shape, inside the
+mechanism built to detect it. 3 is returned only where this file returns it.
 
 Usage:
     check-artifact-budgets.py                 # report measured vs budget
@@ -244,7 +250,7 @@ def main() -> int:
     args = ap.parse_args()
 
     if args.must_fail_convention:
-        print("must-fail-teeth-exit: 1")
+        print("must-fail-teeth-exit: 3")
         return 0
 
     _load_seed()
@@ -304,8 +310,8 @@ def main() -> int:
             print("  A dimension that cannot fail is not a budget.")
             return 0
         print("✓ must-fail: both the payload and the byte budget catch an overrun,")
-        print("  and the pristine tree passes. Exiting 1, the DECLARED teeth code.")
-        return 1
+        print("  and the pristine tree passes. Exiting 3, the DECLARED teeth code.")
+        return 3
 
     rc, lines = evaluate(root)
     print("── artifact budgets: island payload + bytes (⛔ R5) ──")

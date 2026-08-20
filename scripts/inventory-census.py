@@ -122,7 +122,7 @@ def main() -> int:
     args = ap.parse_args()
 
     if args.must_fail_convention:
-        print("must-fail-teeth-exit: 1")
+        print("must-fail-teeth-exit: 3")
         return 0
 
     if args.explain:
@@ -155,8 +155,8 @@ def main() -> int:
             print("  claim that the whole sweep-of-the-sweep rests on is false.")
             return 0
         print(f"✓ must-fail: an untracked artifact did not move the census (stayed {before}).")
-        print("  The denominator really is git-derived. Exiting 1, the DECLARED teeth code.")
-        return 1
+        print("  The denominator really is git-derived. Exiting 3, the DECLARED teeth code.")
+        return 3
 
     try:
         c = census(root)

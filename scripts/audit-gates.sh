@@ -262,9 +262,19 @@ _gate34() {
 # runner script.
 # ── Shared: the --must-fail CONVENTION comparator (plan §6.3) ──────────────
 # ⛔ --must-fail CONVENTIONS DIFFER PER TOOL AND MUST NOT BE HARD-CODED.
-# Measured in this repo: premise-gate.py uses exit 0 as its teeth bit;
-# sync-plugin-versions.py uses exit 2. A shared constant is wrong by
-# construction. So every detector this initiative adds implements
+# ⛔ TWO DIFFERENT QUANTITIES HAVE BOTH BEEN CALLED "the teeth bit", and
+# conflating them is how a comparison ends up measuring nothing:
+#   (a) the exit a tool own CHECK returns when it catches a planted defect —
+#       premise-gate.py denies at 0, sync-plugin-versions.py reddens at 2;
+#   (b) the exit the --must-fail RUN itself returns. Measured 2026-08-20: both
+#       of those tools return 0 from --must-fail, so (a) and (b) are not the
+#       same number and an auditor must say which it compares.
+# rc_mustfail below compares (b), because that is the only one it can observe
+# without knowing each tool internals. Every detector this initiative adds
+# declares (b) explicitly, and declares it as 3 — 0/1/2 are reachable by
+# success, a crash, and an argparse error respectively, so any of them as a
+# declared teeth exit lets a crash masquerade as a passing teeth run.
+# So every detector this initiative adds implements
 # --must-fail-convention, printing exactly `must-fail-teeth-exit: <n>`, and
 # --must-fail, which runs its planted canary and exits with that declared code.
 #

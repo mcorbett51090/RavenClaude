@@ -42,7 +42,13 @@ F4  evidence triple wired: measured/control/falsifier non-empty, control >= 20
     plus >= 30 chars of reason. An unprobed nuance is ALLOWED — it is honest —
     and the unprobed fraction is counted and ratcheted down.
 
-⛔ THE TEETH-BIT EXIT IS 1. Declared, never assumed.
+⛔ THE TEETH-BIT EXIT IS 3, AND THE NUMBER IS LOAD-BEARING.
+0 is ordinary success, 1 is an uncaught Python exception, and 2 is an argparse
+error — every one of them reachable WITHOUT the canary biting. Measured
+2026-08-20: an adversarial mutation that introduced an IndentationError exited 1,
+which was the declared teeth code at the time, so a CRASHED teeth run was
+indistinguishable from a PASSING one. That is the silent-green shape, inside the
+mechanism built to detect it. 3 is returned only where this file returns it.
 
 Usage:
     check-nuance-floor.py [--root DIR] [--check]
@@ -327,7 +333,7 @@ def main() -> int:
     args = ap.parse_args()
 
     if args.must_fail_convention:
-        print("must-fail-teeth-exit: 1")
+        print("must-fail-teeth-exit: 3")
         return 0
 
     root = Path(args.root).resolve()
@@ -347,8 +353,8 @@ def main() -> int:
             print("✗ must-fail: an EMPTY nuance passed the floor.")
             return 0
         print("✓ must-fail: the golden set separates positives from negatives and an")
-        print("  empty nuance is rejected. Exiting 1, the DECLARED teeth code.")
-        return 1
+        print("  empty nuance is rejected. Exiting 3, the DECLARED teeth code.")
+        return 3
 
     try:
         concepts = load_concepts(root)
