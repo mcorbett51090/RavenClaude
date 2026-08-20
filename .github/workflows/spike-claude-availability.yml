@@ -47,11 +47,21 @@ jobs:
     steps:
       - name: Check out
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          # ⛔ The default persists the job token into .git/config, where any later
+          # step — or an artifact upload of the workspace — carries it out. This
+          # workflow needs no authenticated git operation, so it takes none.
+          persist-credentials: false
 
       - name: Record the substrate this verdict is about
+        env:
+          # Same env:-not-interpolation rule as the summary step below. Applied
+          # even to a fixed-enum context, because the rule is only reliable when
+          # it has no "this one is safe" exceptions for a reader to imitate.
+          EVENT_NAME: ${{ github.event_name }}
         run: |
           echo "runner-image: ${ImageOS:-unknown} ${ImageVersion:-unknown}"
-          echo "event: ${{ github.event_name }}"
+          echo "event: ${EVENT_NAME}"
           bash --version | head -1
           python3 --version
 
@@ -105,15 +115,27 @@ jobs:
 
       - name: Write the literal verdict to the job summary
         if: always()
+        # ⛔ STEP OUTPUTS ARRIVE VIA env:, NEVER BY ${{ }} INTERPOLATION INTO run:.
+        # `${{ }}` is substituted into the script BEFORE the shell parses it, so a
+        # value carrying a quote or a `$(…)` becomes shell syntax rather than data.
+        # These two values are produced by the step above and are therefore trusted
+        # TODAY — but the rule is structural: the next person to widen `detail` to
+        # include a command output would introduce injection with no visible edit
+        # here. This is the same env:-not-interpolation rule the repo already
+        # applies to untrusted github.event.* fields.
+        env:
+          S2_VERDICT: ${{ steps.probe.outputs.verdict || 'UNKNOWN' }}
+          S2_DETAIL: ${{ steps.probe.outputs.detail || 'the probe step did not complete' }}
+          S2_TRIGGER: ${{ github.event_name }}
         run: |
           {
             echo "## S2 — claude -p availability in scheduled CI"
             echo
             echo "| field | value |"
             echo "|---|---|"
-            echo "| verdict | \`${{ steps.probe.outputs.verdict || 'UNKNOWN' }}\` |"
-            echo "| detail | ${{ steps.probe.outputs.detail || 'the probe step did not complete' }} |"
-            echo "| trigger | \`${{ github.event_name }}\` |"
+            echo "| verdict | \`${S2_VERDICT}\` |"
+            echo "| detail | ${S2_DETAIL} |"
+            echo "| trigger | \`${S2_TRIGGER}\` |"
             echo
             echo "**A \`no\` cancels no phase.** It activates the substitute ladder:"
             echo "T2 runs locally and CI gates on attestation **age**, not on a model call."

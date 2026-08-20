@@ -48,6 +48,11 @@ jobs:
     steps:
       - name: Check out
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          # ⛔ The default persists the job token into .git/config, where any later
+          # step — or an artifact upload of the workspace — carries it out. This
+          # workflow needs no authenticated git operation, so it takes none.
+          persist-credentials: false
 
       - name: Install pyyaml
         run: python3 -m pip install --quiet pyyaml
