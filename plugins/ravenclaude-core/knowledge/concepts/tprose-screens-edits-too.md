@@ -6,7 +6,7 @@ kind: ravenclaude-built
 entry_class: inventory
 order: 906
 summary: "The premise guard prose screen is not limited to newly created files."
-last_verified: 2026-08-19
+last_verified: 2026-08-20
 covers:
   - plugins/ravenclaude-core/hooks/guard-premise.sh
   - docs/best-practices/inventory-authoring.md

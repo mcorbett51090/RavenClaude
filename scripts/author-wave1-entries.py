@@ -140,8 +140,18 @@ ENTRIES = [
      "Why the coverage denominator is read from git rather than from the registry it measures."),
 
     ("islanded-panel-costs-two", "pos-islanded-panel",
+     # ⛔ artifact-budgets.seed.json is DELIBERATELY NOT COVERED. It is generated
+     # ratchet STATE, and check-ratchet-freshness.py --stamp rewrites it on every
+     # pre-merge run — so watching it made this entry drift, restamp, regenerate,
+     # stamp, and drift again, forever. Measured: three full convergence loops
+     # before the cause was isolated.
+     #
+     # THE RULE, and it generalises: covers[] lists the artifacts the CLAIM rests
+     # on, never the artifacts the toolchain rewrites. A covers[] entry that some
+     # routine step regenerates is not a tripwire — it is a perpetual alarm, and a
+     # perpetual alarm gets silenced.
      _scripts("check-dom-budget.py", "check-artifact-budgets.py", "generate-dashboards.py",
-              "generate-index-dashboard.py") + ["scripts/artifact-budgets.seed.json"],
+              "generate-index-dashboard.py"),
      {"tier": "effect", "strength": "executed", "class": "script-selftest",
       "probe": "scripts/check-artifact-budgets.py", "teeth_exit": 1},
      "scripts/check-dom-budget.py:95-135",

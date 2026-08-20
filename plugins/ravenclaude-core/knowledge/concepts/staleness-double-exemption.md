@@ -6,7 +6,7 @@ kind: ravenclaude-built
 entry_class: inventory
 order: 909
 summary: "Which concepts the staleness gate actually covered, and the two ways one escaped it."
-last_verified: 2026-08-19
+last_verified: 2026-08-20
 covers:
   - scripts/concepts.py
   - scripts/check-covers-completeness.py

@@ -6,7 +6,7 @@ kind: ravenclaude-built
 entry_class: inventory
 order: 908
 summary: "How a failing registry check decides whether the post-merge self-heal survives."
-last_verified: 2026-08-19
+last_verified: 2026-08-20
 covers:
   - .github/workflows/regenerate-artifacts.yml
   - scripts/concepts.py

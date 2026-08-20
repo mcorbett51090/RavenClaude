@@ -6,7 +6,7 @@ kind: ravenclaude-built
 entry_class: inventory
 order: 905
 summary: "What a post-failure hook can and cannot read after a Bash call fails."
-last_verified: 2026-08-19
+last_verified: 2026-08-20
 covers:
   - plugins/ravenclaude-core/hooks/triage-outcome.sh
 covers_digest: "sha256:f45e2316e468541f1fee67d4583060a01fc048e8f0cdd10b05a7cba10ef6a36c"

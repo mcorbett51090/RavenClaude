@@ -6,7 +6,7 @@ kind: ravenclaude-built
 entry_class: inventory
 order: 902
 summary: "What happens when two hooks emit on the same event: one channel adds, the other overwrites."
-last_verified: 2026-08-19
+last_verified: 2026-08-20
 covers:
   - plugins/ravenclaude-core/hooks/hooks.json
   - .claude/settings.json

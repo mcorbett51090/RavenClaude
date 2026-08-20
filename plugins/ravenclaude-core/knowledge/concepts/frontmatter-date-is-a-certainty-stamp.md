@@ -6,7 +6,7 @@ kind: ravenclaude-built
 entry_class: inventory
 order: 907
 summary: "Metadata you did not write as a claim can still arm the guard certainty trigger."
-last_verified: 2026-08-19
+last_verified: 2026-08-20
 covers:
   - plugins/ravenclaude-core/hooks/guard-premise.sh
   - scripts/spike-tprose-canary.sh
