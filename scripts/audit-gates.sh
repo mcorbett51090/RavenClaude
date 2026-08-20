@@ -628,6 +628,15 @@ PY
         --must-fail-echo || rc=$?
       exit $rc
       ;;
+    240)
+      echo "── Gate 240: artifact budgets + R12 badge rendering ──"
+      rc=0
+      bash plugins/ravenclaude-core/hooks/tests/test-gate240-artifact-budgets.sh || rc=$?
+      python3 scripts/check-artifact-budgets.py --check || rc=$?
+      rc_mustfail python3 scripts/check-artifact-budgets.py || rc=$?
+      python3 scripts/check-changed-concept-renders.py --check || rc=$?
+      exit $rc
+      ;;
     239)
       echo "── Gate 239: inventory schema — nuance, evidence, verify, strength badge ──"
       rc=0
@@ -1391,7 +1400,7 @@ PY
       ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -8678,6 +8687,42 @@ gate "committed evidence fields hold pointers and labels, never payloads" must_p
 rc=0
 rc_mustfail python3 scripts/check-inventory-evidence.py >/dev/null 2>&1 || rc=$?
 gate "evidence shape gate declares its must-fail convention AND honours it" must_pass "$rc"
+
+echo
+
+echo "── Gate 240: artifact budgets + R12 badge rendering ───────────────────────"
+# ⛔ R5 — plan B premise was FALSE and the underlying risk is REAL. panel-learn is
+# already DOM-islanded, so check-dom-budget.py check() — which compares only the
+# LIVE element total — cannot fire on it, and plan B whole per-batch ratchet-raise
+# process was built for a gate that cannot fire. What nothing gated is what can
+# actually hurt: 23,861 island payload elements for 58 concepts (~411/concept,
+# so 162 more entries is ~90k injected on one tab click against a Lighthouse
+# threshold of 1,400), and two ~10 MB surfaces with ZERO byte gates among 336 gate
+# headers. Both budgets are seeded BEFORE any bulk authoring — a budget set after
+# a batch lands describes what happened, it does not constrain it.
+#
+# ⛔ THE TWO TABLES CARRY DIFFERENT INVARIANTS ON PURPOSE. Payload may only ever
+# go DOWN. Bytes is a ceiling whose raise must APPEND a row with a real cause —
+# measured: a shrink-only byte rule rejected the R12 badge CSS with no path
+# forward but deleting the feature.
+#
+# ⛔ R12 — the badge is asserted IN THE GENERATED HTML, never in the generator
+# source. A source scan would be satisfied by the string being described in a
+# comment, which is a recorded failure class in this repo.
+#
+# ⛔ Registered in dispatcher + main sequence + Supported:. Grep by literal name.
+rc=0
+bash plugins/ravenclaude-core/hooks/tests/test-gate240-artifact-budgets.sh >/dev/null 2>&1 || rc=$?
+gate "artifact budgets seeded, invariants distinct, R12 badge reaches the page" must_pass "$rc"
+rc=0
+python3 scripts/check-artifact-budgets.py --check >/dev/null 2>&1 || rc=$?
+gate "island payload and byte budgets both hold" must_pass "$rc"
+rc=0
+rc_mustfail python3 scripts/check-artifact-budgets.py >/dev/null 2>&1 || rc=$?
+gate "artifact budgets declare their must-fail convention AND honour it" must_pass "$rc"
+rc=0
+python3 scripts/check-changed-concept-renders.py --check >/dev/null 2>&1 || rc=$?
+gate "changed-concept renders FAIL the PR instead of warning" must_pass "$rc"
 
 echo
 

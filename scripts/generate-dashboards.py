@@ -1797,7 +1797,58 @@ def _render_concept_card(plugin_dir: Path, c: dict, titles: dict[str, str]) -> s
             f'<span class="concept-verified">verified {html.escape(c["last_verified"])}</span>'
         )
 
-    search_blob = html.escape(f"{c['title']} {c['summary']} {c['body_md']}".lower(), quote=True)
+    # ── ⛔ R12: the verification-strength badge, rendered NEXT TO the kind badge ──
+    # ~60% of the inventory (54 skills, 15 agents, 27 uncalled scripts) gets
+    # findability and reference integrity ONLY. Both panel plans recorded that
+    # honestly in the plan and then left the distinction INVISIBLE here — on the one
+    # surface the project exists to make legible. A weak check and a strong one that
+    # look identical is the inert-gate defect wearing a badge.
+    #
+    # The text comes from concepts.py `strength_badge`; this renderer does not get
+    # to choose a friendlier word. Each label states the LIMIT, because a reader
+    # skims the first word:
+    #   Probed     a real payload ran and a real observable was asserted
+    #   Findable   frontmatter parses and references resolve. NOTHING executed it
+    #   Observed   seen after the fact, not gate-capable before it
+    #   Unverified with the written rationale shown inline
+    strength = ""
+    sb = c.get("strength_badge")
+    if sb:
+        cls = {"Probed": "probed", "Findable": "findable",
+               "Observed": "observed"}.get(sb, "unverified")
+        rationale = (c.get("verify") or {}).get("rationale") or ""
+        title_attr = f' title="{html.escape(rationale)}"' if rationale else ""
+        strength = (
+            f'<span class="concept-strength {cls}" data-strength="{html.escape(sb)}"'
+            f"{title_attr}>{html.escape(sb)}</span>"
+        )
+
+    nuance_block = ""
+    if c.get("nuance"):
+        ev = c.get("nuance_evidence") or {}
+        probe = str(ev.get("probe") or "")
+        # An `unprobed:` value is rendered AS SUCH, never blanked. An absence shown
+        # as nothing reads as "fine"; shown as "unprobed" it reads as what it is.
+        probe_html = (
+            f'<span class="concept-unprobed">{html.escape(probe)}</span>'
+            if probe.startswith("unprobed: ")
+            else f'<code>{html.escape(probe)}</code>'
+        )
+        rat = (c.get("verify") or {}).get("rationale")
+        rat_html = f'<p class="concept-rationale">{html.escape(rat)}</p>' if rat else ""
+        nuance_block = (
+            f'<div class="concept-nuance">'
+            f'<p class="concept-nuance-text">{html.escape(c["nuance"])}</p>'
+            f'<p class="concept-evidence">'
+            f'<span class="ev-k">control:</span> {html.escape(str(ev.get("control") or ""))} · '
+            f'<span class="ev-k">falsifier:</span> {html.escape(str(ev.get("falsifier") or ""))} · '
+            f'<span class="ev-k">probe:</span> {probe_html}'
+            f"</p>{rat_html}</div>"
+        )
+
+    search_blob = html.escape(
+        f"{c['title']} {c['summary']} {c['body_md']} {c.get('nuance') or ''}".lower(), quote=True
+    )
 
     # The card is a native <details> (collapsed by default). The <summary> carries
     # the title + kind badge + one-line deck so the collapsed row is informative;
@@ -1814,10 +1865,12 @@ def _render_concept_card(plugin_dir: Path, c: dict, titles: dict[str, str]) -> s
         f'<div class="concept-head">'
         f'<h3 class="concept-title">{html.escape(c["title"])}</h3>'
         f'<span class="concept-badge {badge_cls}">{badge_icon}{html.escape(badge_label)}</span>'
+        f"{strength}"
         f"</div>"
         f'<p class="concept-deck">{html.escape(c["summary"])}</p>'
         f"</summary>"
         f'<div class="concept-card-body">'
+        f"{nuance_block}"
         f"{well}{stepper}"
         f'<div class="concept-body">{_md_to_html(c["body_md"])}</div>'
         f"{_CONCEPT_WIDGETS.get(c.get('widget') or '', '')}"
@@ -6193,6 +6246,28 @@ footer.page-footer a:hover { text-decoration: underline; }
 .concept-badge svg { width: 11px; height: 11px; }
 .concept-badge.fact { color: var(--muted); border-color: var(--muted); background: rgba(148, 163, 184, 0.1); }
 .concept-badge.built { color: var(--accent); border-color: var(--accent); background: rgba(86, 208, 138, 0.1); }
+/* ── ⛔ R12: verification-strength badge. NON-DECORATIVE BY DESIGN. ──────────
+   These four are deliberately NOT a green/amber/red confidence scale. A scale
+   invites a reader to average them; these are different KINDS of claim. Only
+   `probed` gets the accent colour, because only it means something executed.
+   `findable` is deliberately muted and outlined: it must not read as a weaker
+   shade of verified, because 96 of 162 artifacts will carry it. */
+.concept-strength {
+  display: inline-flex; align-items: center; flex: none;
+  font-size: 10.5px; font-weight: 700; letter-spacing: 0.02em;
+  padding: 2px 8px; border-radius: 4px; border: 1px solid; white-space: nowrap;
+  text-transform: uppercase;
+}
+.concept-strength.probed { color: var(--accent); border-color: var(--accent); background: rgba(86, 208, 138, 0.12); }
+.concept-strength.findable { color: var(--muted); border-color: var(--muted); background: transparent; border-style: dashed; }
+.concept-strength.observed { color: var(--muted); border-color: var(--muted); background: transparent; }
+.concept-strength.unverified { color: #f0b429; border-color: #f0b429; background: rgba(240, 180, 41, 0.1); }
+.concept-nuance { border-left: 3px solid var(--accent); padding: 10px 14px; margin: 0 0 14px; background: var(--surface-2); border-radius: 0 6px 6px 0; }
+.concept-nuance-text { font-size: 14px; line-height: 1.55; margin: 0 0 8px; }
+.concept-evidence { font-size: 12px; color: var(--muted); margin: 0; line-height: 1.6; }
+.concept-evidence .ev-k { font-weight: 700; }
+.concept-unprobed { color: #f0b429; font-weight: 600; }
+.concept-rationale { font-size: 12px; color: var(--muted); margin: 8px 0 0; font-style: italic; }
 .concept-deck { font-size: 13.5px; color: var(--muted); margin: 8px 0 12px; line-height: 1.5; }
 .concept-diagram-well {
   background: var(--surface-2); border: 1px solid var(--border);

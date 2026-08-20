@@ -1,0 +1,39 @@
+{
+  "payload": {
+    "plugins/ravenclaude-core/dashboard.html": [
+      [
+        "seeded 2026-08-19",
+        30555,
+        "measured before any inventory authoring"
+      ]
+    ],
+    "index.html": [
+      [
+        "seeded 2026-08-19",
+        6694,
+        "measured before any inventory authoring"
+      ]
+    ]
+  },
+  "bytes": {
+    "plugins/ravenclaude-core/dashboard.html": [
+      [
+        "seeded 2026-08-19",
+        10273863,
+        "measured before any inventory authoring"
+      ],
+      [
+        "R12 strength badge CSS",
+        10276000,
+        "P6 adds the verification-strength badge and nuance block to every concept card (~1.8 KB of CSS + markup scaffolding). R12 makes that rendering non-optional: 96 of 162 artifacts get a weak check, and a weak check that renders identically to a strong one is the inert-gate defect wearing a badge."
+      ]
+    ],
+    "index.html": [
+      [
+        "seeded 2026-08-19",
+        9263430,
+        "measured before any inventory authoring"
+      ]
+    ]
+  }
+}

@@ -388,7 +388,15 @@ def _parse_one(path: Path, root: Path) -> dict:
         if diagrams.get(kind_tag):
             raise ConceptError(f"{rel}: more than one ```{kind_tag} block")
         diagrams[kind_tag] = src.strip()
-    if not diagrams["mermaid"]:
+    # ⛔ R2 COROLLARY — DIAGRAMS ARE OPT-IN FOR INVENTORY ENTRIES, NEVER PREFILLED.
+    # Plan A skeleton prefilled a mermaid diagram per draft. regenerate-artifacts.yml
+    # reverts a failed render with a ::warning:: and CONTINUES GREEN, and
+    # render-concepts.py --check is deliberately off the PR path — so 162 diagrams
+    # rendered one npx process each through mermaid-cli + Chromium is an
+    # all-or-nothing revert that leaves SVGs permanently stale while CI reads green.
+    # An inventory entry therefore MAY omit the diagram; a concept (the Learn-tab
+    # teaching surface, where the diagram IS the point) still requires it.
+    if not diagrams["mermaid"] and entry_class != ENTRY_CLASS_INVENTORY:
         raise ConceptError(f"{rel}: missing the required ```mermaid full diagram block")
 
     # Ordered step frames: walk markers + fences by document position so each
@@ -449,7 +457,7 @@ def _parse_one(path: Path, root: Path) -> dict:
         "diagram": diagrams["mermaid"],
         "diagram_mini": diagrams["mermaid-mini"],
         "steps": steps,
-        "svg": f"{SVG_REL_PREFIX}/{cid}.svg",
+        "svg": f"{SVG_REL_PREFIX}/{cid}.svg" if diagrams["mermaid"] else None,
         "svg_mini": f"{SVG_REL_PREFIX}/{cid}.mini.svg" if has_mini else None,
     }
     if entry_class is not None:
