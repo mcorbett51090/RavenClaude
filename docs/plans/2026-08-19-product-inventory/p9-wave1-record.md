@@ -153,3 +153,51 @@ ratio** — the rubber-stamp tell.
 - [x] They render with **no hand edit** to `dashboard.html` or `concepts.json` —
       both regenerated, and the R12 badge asserted in the generated HTML by Gate 240.
 - [x] The 3-skill transferability test is recorded with a literal verdict (section 3).
+
+---
+
+## 8. ⛔ Two findings CI caught that a local run structurally could not
+
+### 8.1 `covers[]` must never watch a file the TOOLCHAIN rewrites — twice
+
+Stated once, then missed a second instance in the same PR. Both were found the
+same way: an oscillation or a fresh-clone failure, never by reading.
+
+| Covered file | Rewritten by | Symptom |
+|---|---|---|
+| `scripts/artifact-budgets.seed.json` | `check-ratchet-freshness.py --stamp` | drift → restamp → regen → stamp → drift, **forever**. Three convergence loops before the cause was isolated. |
+| `.claude/settings.json` | a posture-apply / dev-mirror hook | working tree and committed bytes diverge **with nobody editing it**, so the digest was stamped against the author's copy — **green locally, red in every fresh clone**. |
+
+⛔ The second is the worse shape, and it is invisible on the machine that made it.
+
+**The rule:** `covers[]` lists the artifacts the CLAIM rests on, never the
+artifacts the toolchain rewrites. This is the repo's own recorded *"fix one
+instance of a defect class and stop is not fixing the class"* failure, committed
+by the person who had just written the rule for the first instance.
+
+### 8.2 ⛔ `origin/main` does not exist in a CI checkout
+
+Three gates compared against `git merge-base HEAD origin/main` and, on failure,
+correctly reported **UNKNOWN** — and therefore failed **every pull request,
+forever**, for an environment reason rather than a defect.
+
+control: reproduced by cloning the branch and asking directly —
+`git rev-parse --verify origin/main` → `fatal: Not a valid object name`.
+
+**A gate that can never be green is a gate that gets disabled**, which is the
+failure this whole initiative exists to close, reproduced inside its own gates.
+
+`scripts/_base_ref.py` resolves the base through an ordered chain, and **the rule
+that actually works in CI needs no network**: `actions/checkout` checks out
+`refs/pull/N/merge`, whose **first parent IS the base**.
+
+control: constructed the same merge shape locally (`Merge <head> into <base>`) and
+asserted `HEAD^1 == the base tip` → **YES**, then ran the resolver against it →
+it returned that same SHA via the merge-commit rule. Verified rather than assumed,
+because git's first-parent convention is exactly the kind of "everyone knows"
+fact that is wrong half the time.
+
+⛔ **`None` is still UNKNOWN.** The chain makes the resolvable cases resolve; it
+never invents a base so a check can report green without one — a repo with no
+origin and no merge commit still fails, which the isolated `--must-fail` fixtures
+now prove.

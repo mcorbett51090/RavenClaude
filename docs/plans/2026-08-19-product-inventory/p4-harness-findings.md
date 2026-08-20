@@ -149,3 +149,24 @@ not 48 — `hooks/*.sh` at depth 1, excluding `hooks/tests/**` and `hooks.json`,
 
 The rule is written into the script, so it cannot drift again — which was the
 actual deliverable, the number being downstream of it.
+
+---
+
+## 8. ✅ Acceptance #4 demonstrated — the independence control
+
+Plan §6.6 #4: *"a deliberately-dropped concept file does **not** move both numbers
+together (the positive control for the independence claim)."*
+
+Measured by deleting `hook-message-channels.md` and re-running the sweep:
+
+```
+before drop : census=321  enumerated=321
+concept file dropped (12 entries -> 11)
+after drop  : census=321  enumerated=321
+restored    : census=321  enumerated=321
+```
+
+⛔ **Both numbers are UNMOVED, and that is the point.** A registry-derived
+denominator would have shrunk *with* the enumeration and stayed green —
+the exact blindness R8 exists to prevent. `git ls-files` cannot do that, because
+it never reads `concepts.json` at all.
