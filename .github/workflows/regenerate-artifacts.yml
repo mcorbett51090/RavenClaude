@@ -195,7 +195,20 @@ jobs:
             _cchk="$(python3 scripts/concepts.py --check 2>&1)" && _crc=0 || _crc=$?
             if [ "$_crc" -ne 0 ]; then
               printf '%s\n' "$_cchk"
-              if printf '%s' "$_cchk" | grep -q 'staleness gate FAILED'; then
+              # ⛔ GREP THE MACHINE MARKER, NOT THE SENTENCE. concepts.py emits a
+              # stable class line — RC-CONCEPTS-CLASS: human-reverify-required for
+              # anything regeneration cannot fix (platform-fact staleness, inventory
+              # staleness, covers-digest drift), and generator-failure otherwise.
+              # The old prose grep is kept as an OR-term for ONE release so a
+              # version-skew rollout (an older concepts.py against this workflow, or
+              # the reverse) cannot detonate mid-migration. Remove the second term
+              # only after a release where every branch emits the marker.
+              #
+              # control: scripts/spike-selfheal-contract.sh extracts THIS conditional
+              # from THIS file and replays it against every failure class, so a
+              # reword here changes the probe result. Its --must-fail plants a class
+              # outside the grep and requires it to be reported FATAL.
+              if printf '%s' "$_cchk" | grep -q -e 'RC-CONCEPTS-CLASS: human-reverify-required' -e 'staleness gate FAILED'; then
                 echo "::warning::platform-fact concept(s) are past the 90-day staleness gate. Regeneration cannot fix this — a human must re-verify the fact against its source and move last_verified. Continuing the self-heal so every other artifact still heals."
               else
                 echo "concepts.json still stale AFTER regeneration — that is a real generator failure, not content freshness."

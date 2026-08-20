@@ -1,0 +1,37 @@
+{
+  "payload": {
+    "plugins/ravenclaude-core/dashboard.html": [
+      ["seeded 2026-08-19", 30555, "measured before any inventory authoring"],
+      [
+        "P9 wave 1 (12 entries)",
+        31500,
+        "P9 wave 1: 12 mechanism inventory entries. Measured cost 34 payload elements per entry against the ~411/concept the Learn tab carries, because an inventory entry ships no mermaid block (the diagrams-opt-in decision, R2 corollary). Projection to a 162-entry corpus is ~5,500 elements, not the ~90,000 the plan feared. Headroom left for wave 2."
+      ]
+    ],
+    "index.html": [["seeded 2026-08-19", 6694, "measured before any inventory authoring"]]
+  },
+  "bytes": {
+    "plugins/ravenclaude-core/dashboard.html": [
+      ["seeded 2026-08-19", 10273863, "measured before any inventory authoring"],
+      [
+        "R12 strength badge CSS",
+        10276000,
+        "P6 adds the verification-strength badge and nuance block to every concept card (~1.8 KB of CSS + markup scaffolding). R12 makes that rendering non-optional: 96 of 162 artifacts get a weak check, and a weak check that renders identically to a strong one is the inert-gate defect wearing a badge."
+      ],
+      [
+        "P9 wave 1 (12 entries)",
+        10400000,
+        "P9 wave 1: 12 mechanism inventory entries plus their nuance and evidence blocks rendered into the concept cards. 74 KB for 12 entries is ~6 KB each; a 162-entry corpus projects to ~1 MB on this surface, well inside the 8-12 MB the plan warned about, again because no diagrams are rendered."
+      ]
+    ],
+    "index.html": [
+      ["seeded 2026-08-19", 9263430, "measured before any inventory authoring"],
+      [
+        "P9 wave 1 (12 entries)",
+        9300000,
+        "The marketplace index embeds the same concept registry; 12 entries added 1,352 bytes."
+      ]
+    ]
+  },
+  "measured_against": "fc84c7a0762b62b09deeb51dd9e27cd2cfa55044"
+}

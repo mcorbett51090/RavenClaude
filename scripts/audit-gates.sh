@@ -260,6 +260,50 @@ _gate34() {
 # duplicated list drifts; the header previously stopped at 105 while the case ran
 # to 127). Add a new value in both those places when a gate acquires a standalone
 # runner script.
+# ── Shared: the --must-fail CONVENTION comparator (plan §6.3) ──────────────
+# ⛔ --must-fail CONVENTIONS DIFFER PER TOOL AND MUST NOT BE HARD-CODED.
+# ⛔ TWO DIFFERENT QUANTITIES HAVE BOTH BEEN CALLED "the teeth bit", and
+# conflating them is how a comparison ends up measuring nothing:
+#   (a) the exit a tool own CHECK returns when it catches a planted defect —
+#       premise-gate.py denies at 0, sync-plugin-versions.py reddens at 2;
+#   (b) the exit the --must-fail RUN itself returns. Measured 2026-08-20: both
+#       of those tools return 0 from --must-fail, so (a) and (b) are not the
+#       same number and an auditor must say which it compares.
+# rc_mustfail below compares (b), because that is the only one it can observe
+# without knowing each tool internals. Every detector this initiative adds
+# declares (b) explicitly, and declares it as 3 — 0/1/2 are reachable by
+# success, a crash, and an argparse error respectively, so any of them as a
+# declared teeth exit lets a crash masquerade as a passing teeth run.
+# So every detector this initiative adds implements
+# --must-fail-convention, printing exactly `must-fail-teeth-exit: <n>`, and
+# --must-fail, which runs its planted canary and exits with that declared code.
+#
+# This helper calls the convention FIRST, then --must-fail, and COMPARES. A tool
+# that declares one number and returns another fails the audit — which also
+# catches a future convention change silently breaking the auditor, the failure
+# mode a hard-coded expectation cannot see.
+#
+# Usage: rc_mustfail <interpreter> <script> [extra args...]
+# Returns 0 only when the declaration and the observed exit agree.
+rc_mustfail() {
+  local runner="$1"; shift
+  local tool="$1"; shift
+  local decl want got
+  decl="$("$runner" "$tool" --must-fail-convention 2>/dev/null)" || {
+    echo "    ✗ $tool does not implement --must-fail-convention" >&2; return 1; }
+  want="${decl##*must-fail-teeth-exit: }"
+  case "$want" in
+    ''|*[!0-9]*) echo "    ✗ $tool declared an unparseable convention: $decl" >&2; return 1 ;;
+  esac
+  got=0
+  "$runner" "$tool" --must-fail "$@" >/dev/null 2>&1 || got=$?
+  if [[ "$got" != "$want" ]]; then
+    echo "    ✗ $tool declared teeth exit $want but --must-fail returned $got" >&2
+    return 1
+  fi
+  return 0
+}
+
 if [[ "${1:-}" == "--check" && -n "${2:-}" ]]; then
   case "${2}" in
     20)
@@ -592,6 +636,73 @@ PY
       bash plugins/ravenclaude-core/hooks/tests/test-gate233-triage-outcome.sh || rc=$?
       bash plugins/ravenclaude-core/hooks/tests/test-gate233-triage-outcome.sh \
         --must-fail-echo || rc=$?
+      exit $rc
+      ;;
+    243)
+      echo "── Gate 243: scheduled sweep contract + operator health card ──"
+      bash plugins/ravenclaude-core/hooks/tests/test-gate243-sweep-and-health-card.sh
+      exit $?
+      ;;
+    242)
+      echo "── Gate 242: inception ratchet + merge-time re-measure ──"
+      rc=0
+      python3 scripts/check-inception-coverage.py --check || rc=$?
+      rc_mustfail python3 scripts/check-inception-coverage.py || rc=$?
+      python3 scripts/check-ratchet-freshness.py --check || rc=$?
+      rc_mustfail python3 scripts/check-ratchet-freshness.py || rc=$?
+      exit $rc
+      ;;
+    241)
+      echo "── Gate 241: nuance floor + BLOCKING review ledger ──"
+      rc=0
+      python3 scripts/check-nuance-floor.py --golden || rc=$?
+      rc_mustfail python3 scripts/check-nuance-floor.py || rc=$?
+      python3 scripts/inventory-coverage.py --check || rc=$?
+      rc_mustfail python3 scripts/inventory-coverage.py || rc=$?
+      rc_mustfail python3 scripts/inventory-nuance-judge.py || rc=$?
+      exit $rc
+      ;;
+    240)
+      echo "── Gate 240: artifact budgets + R12 badge rendering ──"
+      rc=0
+      bash plugins/ravenclaude-core/hooks/tests/test-gate240-artifact-budgets.sh || rc=$?
+      python3 scripts/check-artifact-budgets.py --check || rc=$?
+      rc_mustfail python3 scripts/check-artifact-budgets.py || rc=$?
+      python3 scripts/check-changed-concept-renders.py --check || rc=$?
+      exit $rc
+      ;;
+    239)
+      echo "── Gate 239: inventory schema — nuance, evidence, verify, strength badge ──"
+      rc=0
+      bash plugins/ravenclaude-core/hooks/tests/test-gate239-inventory-schema.sh || rc=$?
+      python3 scripts/check-inventory-evidence.py --check || rc=$?
+      rc_mustfail python3 scripts/check-inventory-evidence.py || rc=$?
+      exit $rc
+      ;;
+    238)
+      echo "── Gate 238: inventory sweep — path-keyed harness + sweep-of-the-sweep ──"
+      rc=0
+      python3 scripts/inventory-census.py --check || rc=$?
+      rc_mustfail python3 scripts/inventory-census.py || rc=$?
+      python3 scripts/inventory-sweep.py --check || rc=$?
+      python3 scripts/inventory-sweep.py --capping-table || rc=$?
+      rc_mustfail python3 scripts/inventory-sweep.py || rc=$?
+      exit $rc
+      ;;
+    237)
+      echo "── Gate 237: inventory staleness — both escapes, both axes ──"
+      rc=0
+      bash plugins/ravenclaude-core/hooks/tests/test-gate237-inventory-staleness.sh || rc=$?
+      python3 scripts/check-covers-completeness.py --check || rc=$?
+      rc_mustfail python3 scripts/check-covers-completeness.py || rc=$?
+      exit $rc
+      ;;
+    236)
+      echo "── Gate 236: concepts --check contract (markers, collect-all, self-heal) ──"
+      rc=0
+      bash plugins/ravenclaude-core/hooks/tests/test-gate236-concepts-check-contract.sh || rc=$?
+      bash scripts/spike-selfheal-contract.sh --check || rc=$?
+      bash scripts/spike-selfheal-contract.sh --must-fail || rc=$?
       exit $rc
       ;;
     235)
@@ -1323,7 +1434,7 @@ PY
       ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -8468,6 +8579,295 @@ gate "delivered-channel library self-test (6/6, both canaries bite)" must_pass "
 rc=0
 bash plugins/ravenclaude-core/hooks/tests/test-gate235-delivered-channel.sh >/dev/null 2>&1 || rc=$?
 gate "real shipping hooks reach the model on the delivered channel" must_pass "$rc"
+
+echo
+
+echo "── Gate 236: concepts --check contract (markers, collect-all, self-heal) ────"
+# Measured 2026-08-19 by scripts/spike-selfheal-contract.sh, which extracts the
+# conditional FROM regenerate-artifacts.yml and replays it: a covers-digest-drift
+# line was reported FATAL, so a content-freshness failure that regeneration cannot
+# fix would have killed every later self-heal step — concept SVGs, decision-tree
+# SVGs, dashboard.html, index.html, BI reports, the Copilot package, the feedback
+# report. That is the incident the workflow comment at that site already records:
+# main left UN-HEALED across many merges.
+#
+# control: the same probe replays the human-reverify marker and requires it to be
+# SURVIVABLE, so the two negatives it asserts are not the vacuous output of a grep
+# that matches nothing.
+#
+# The contract is now a stable machine marker (RC-CONCEPTS-CLASS: <class>), not a
+# prose sentence a future edit can silently reword — a reworded sentence is how
+# this fuse was armed in the first place. The legacy term is retained as an OR for
+# one release so a version-skew rollout cannot detonate mid-migration.
+#
+# ⛔ Registered in BOTH this main sequence AND the --check dispatcher above AND
+# the Supported: string. Gate 184 once shipped unreachable by living in only one.
+# ⛔ Grep the suite output for the literal name, never "Gate 236" — a batched
+# header has already made a by-number grep report 7 false unruns in this repo.
+rc=0
+bash plugins/ravenclaude-core/hooks/tests/test-gate236-concepts-check-contract.sh >/dev/null 2>&1 || rc=$?
+gate "concepts --check: markers, collect-all, self-heal survives content freshness" must_pass "$rc"
+rc=0
+bash scripts/spike-selfheal-contract.sh --check >/dev/null 2>&1 || rc=$?
+gate "self-heal contract holds for every emitted failure class" must_pass "$rc"
+rc=0
+bash scripts/spike-selfheal-contract.sh --must-fail >/dev/null 2>&1 || rc=$?
+gate "self-heal contract probe has teeth (unmarked + generator outputs are fatal)" must_pass "$rc"
+
+echo
+
+echo "── Gate 237: inventory staleness — both escapes, both axes ─────────────────"
+# The old gate read: if c["kind"] != "platform-fact" or not c["last_verified"]:
+# continue. An OR, so a concept escaped on EITHER limb — and the corpus made the
+# first limb dominant (41 ravenclaude-built against 17 platform-fact), so the gate
+# covered the MINORITY kind. Every inventory entry would have inherited zero
+# staleness pressure, and an entry with no last_verified at all was skipped, so
+# "unverified" rendered identically to "verified recently".
+#
+# control: the same fixture tree is run in PR mode and in --sweep mode and the two
+# verdicts must DIFFER. Without that, either result could be an accident of the
+# other, and a gate that returns the same answer to both questions is measuring
+# neither.
+#
+# ⛔ Content drift blocks on a PR; calendar age only warns there and blocks on the
+# sweep. A blocking calendar gate at corpus scale is a periodic repo-wide outage
+# — entries authored in waves expire in waves — and a gate that gets disabled
+# protects nothing.
+#
+# ⛔ Registered in BOTH this main sequence AND the --check dispatcher above AND
+# the Supported: string. ⛔ Grep the suite output for the literal name.
+rc=0
+bash plugins/ravenclaude-core/hooks/tests/test-gate237-inventory-staleness.sh >/dev/null 2>&1 || rc=$?
+gate "inventory staleness closes BOTH escapes; drift blocks, calendar warns" must_pass "$rc"
+rc=0
+python3 scripts/check-covers-completeness.py --check >/dev/null 2>&1 || rc=$?
+gate "covers[] completeness: no nuance names a path its digest does not watch" must_pass "$rc"
+rc=0
+rc_mustfail python3 scripts/check-covers-completeness.py >/dev/null 2>&1 || rc=$?
+gate "covers-completeness declares its must-fail convention AND honours it" must_pass "$rc"
+rc=0
+rc_mustfail python3 scripts/audit-prose-rendering-path.py >/dev/null 2>&1 || rc=$?
+gate "prose-rendering audit declares its must-fail convention AND honours it" must_pass "$rc"
+rc=0
+python3 scripts/audit-prose-rendering-path.py --check >/dev/null 2>&1 || rc=$?
+gate "authored prose never reaches a shell; no apostrophe closed a quoted block" must_pass "$rc"
+
+echo
+
+echo "── Gate 238: inventory sweep — path-keyed harness + sweep-of-the-sweep ─────"
+# ⛔ R8 — A SWEEP THAT COUNTS ITSELF CANNOT DETECT ITS OWN BLINDNESS. If a concept
+# file fails validation and silently drops out of the registry, a registry-derived
+# "registered" and "executed" count shrink TOGETHER and the check stays green.
+# So the denominator comes from inventory-census.py, whose source is
+# `git ls-files` — not concepts.json, not concepts.py, not anything the sweep
+# writes. Three assertions run every sweep, and the TELL is any of the three
+# moving DOWN with no artifact deletion in the same diff.
+#
+# control: the permanently-red canary at tests/fixtures/inventory-canary/. In
+# steady state a static class reporting zero findings for many consecutive runs is
+# EXPECTED and is not evidence of blindness, so a long green streak cannot
+# separate "nothing broke" from "the sweep stopped looking". The canary is the
+# only thing that can: it asserts a sentinel on a channel measured to be
+# undelivered, so a run that reports it PASSING fails this gate loud.
+#
+# ⛔ The census --must-fail plants an UNTRACKED file in an artifact root and
+# requires the count NOT to move — that is the proof the denominator is really
+# git-derived rather than a filesystem walk wearing the label.
+#
+# ⛔ Registered in BOTH this main sequence AND the --check dispatcher above AND
+# the Supported: string. ⛔ Grep the suite output for the literal name.
+rc=0
+python3 scripts/inventory-census.py --check >/dev/null 2>&1 || rc=$?
+gate "independent artifact census resolves every declared root" must_pass "$rc"
+rc=0
+rc_mustfail python3 scripts/inventory-census.py >/dev/null 2>&1 || rc=$?
+gate "census denominator is git-derived, not a filesystem walk (untracked file moves nothing)" must_pass "$rc"
+rc=0
+python3 scripts/inventory-sweep.py --check >/dev/null 2>&1 || rc=$?
+gate "inventory sweep: census==enumerated, registered==executed, canary RED" must_pass "$rc"
+rc=0
+python3 scripts/inventory-sweep.py --capping-table >/dev/null 2>&1 || rc=$?
+gate "claim-14 capping: every probe class control demonstrably FIRES" must_pass "$rc"
+rc=0
+rc_mustfail python3 scripts/inventory-sweep.py >/dev/null 2>&1 || rc=$?
+gate "sweep teeth: controls fire, scrubber constrains labels, canary stays red" must_pass "$rc"
+
+echo
+
+echo "── Gate 239: inventory schema — nuance, evidence, verify, strength badge ──"
+# ⛔ R12 — A WEAK CHECK AND A STRONG ONE THAT LOOK IDENTICAL IS THE INERT-GATE
+# DEFECT WEARING A BADGE. ~60% of the inventory (54 skills, 15 agents, 27 uncalled
+# scripts) gets findability and reference integrity ONLY. Both panel plans recorded
+# that honestly in the plan and then left the distinction invisible on the one
+# surface the project exists to make legible. The badge text is DERIVED in
+# concepts.py so no renderer can substitute a friendlier word, and it names the
+# LIMIT: "Findable", never "Verified (static)" — a reader skims the first word.
+#
+# control: a well-formed entry must VALIDATE. Asserted first, because a schema
+# that rejected everything would pass every negative assertion in this gate.
+#
+# ⛔ R9 — the committed authoring surface gets the derived-labels-only rule that
+# log-probe.sh already applies to the GITIGNORED tier. Concept files are retained
+# permanently; run records are disposable. The weaker rule was on the more durable
+# store. Stated limit: a shape heuristic, not a secret scanner (plan §21-W4).
+#
+# ⛔ Registered in dispatcher + main sequence + Supported:. Grep by literal name.
+rc=0
+bash plugins/ravenclaude-core/hooks/tests/test-gate239-inventory-schema.sh >/dev/null 2>&1 || rc=$?
+gate "inventory schema: nuance cap, evidence triple, tier rationale, R12 badge" must_pass "$rc"
+rc=0
+python3 scripts/check-inventory-evidence.py --check >/dev/null 2>&1 || rc=$?
+gate "committed evidence fields hold pointers and labels, never payloads" must_pass "$rc"
+rc=0
+rc_mustfail python3 scripts/check-inventory-evidence.py >/dev/null 2>&1 || rc=$?
+gate "evidence shape gate declares its must-fail convention AND honours it" must_pass "$rc"
+
+echo
+
+echo "── Gate 240: artifact budgets + R12 badge rendering ───────────────────────"
+# ⛔ R5 — plan B premise was FALSE and the underlying risk is REAL. panel-learn is
+# already DOM-islanded, so check-dom-budget.py check() — which compares only the
+# LIVE element total — cannot fire on it, and plan B whole per-batch ratchet-raise
+# process was built for a gate that cannot fire. What nothing gated is what can
+# actually hurt: 23,861 island payload elements for 58 concepts (~411/concept,
+# so 162 more entries is ~90k injected on one tab click against a Lighthouse
+# threshold of 1,400), and two ~10 MB surfaces with ZERO byte gates among 336 gate
+# headers. Both budgets are seeded BEFORE any bulk authoring — a budget set after
+# a batch lands describes what happened, it does not constrain it.
+#
+# ⛔ THE TWO TABLES CARRY DIFFERENT INVARIANTS ON PURPOSE. Payload may only ever
+# go DOWN. Bytes is a ceiling whose raise must APPEND a row with a real cause —
+# measured: a shrink-only byte rule rejected the R12 badge CSS with no path
+# forward but deleting the feature.
+#
+# ⛔ R12 — the badge is asserted IN THE GENERATED HTML, never in the generator
+# source. A source scan would be satisfied by the string being described in a
+# comment, which is a recorded failure class in this repo.
+#
+# ⛔ Registered in dispatcher + main sequence + Supported:. Grep by literal name.
+rc=0
+bash plugins/ravenclaude-core/hooks/tests/test-gate240-artifact-budgets.sh >/dev/null 2>&1 || rc=$?
+gate "artifact budgets seeded, invariants distinct, R12 badge reaches the page" must_pass "$rc"
+rc=0
+python3 scripts/check-artifact-budgets.py --check >/dev/null 2>&1 || rc=$?
+gate "island payload and byte budgets both hold" must_pass "$rc"
+rc=0
+rc_mustfail python3 scripts/check-artifact-budgets.py >/dev/null 2>&1 || rc=$?
+gate "artifact budgets declare their must-fail convention AND honour it" must_pass "$rc"
+rc=0
+python3 scripts/check-changed-concept-renders.py --check >/dev/null 2>&1 || rc=$?
+gate "changed-concept renders FAIL the PR instead of warning" must_pass "$rc"
+
+echo
+
+echo "── Gate 241: nuance floor + BLOCKING review ledger ────────────────────────"
+# ⛔ R7 — THE NUANCE BAR IS NOT FULLY AUTOMATABLE, and a fake metric that passes
+# while entries teach nothing is worse than an admitted human step. So this gate
+# is deliberately TWO things:
+#
+#   the FLOOR (check-nuance-floor.py) is cheap, deterministic, and NECESSARY but
+#   never sufficient. It tests shape and falsifiability. It does not test whether
+#   a nuance is TRUE or NON-OBVIOUS, and its own output says so on every run.
+#
+#   the SAMPLED REVIEW (inventory-coverage.py) is the BLOCKING half, and its
+#   mechanism is a COMMITTED ledger this gate reads. Plan B had the review as a
+#   process step with no mechanism; this repo record is that process steps decay
+#   and mechanisms do not.
+#
+# control: the golden set is frozen at 12 measured positives and 12 negatives, and
+# --golden reports every run WHICH adversarial negatives cleared the floor
+# uncaught. That list is the measured gameability of the floor, reported rather
+# than tuned away — if it ever reads empty, the floor has been fitted to its own
+# fixtures, which is the fake metric R7 forbids.
+#
+# ⛔ The judge is NON-BLOCKING and must score >= 22/24 on the golden set IN THE
+# SAME RUN before reporting any verdict. Below that it emits judge-uncalibrated
+# and NO verdicts: "the judge says everything is fine" and "the judge is broken"
+# must never be the same output.
+#
+# ⛔ Registered in dispatcher + main sequence + Supported:. Grep by literal name.
+rc=0
+python3 scripts/check-nuance-floor.py --golden >/dev/null 2>&1 || rc=$?
+gate "nuance floor accepts 12/12 measured positives and rejects 12/12 negatives" must_pass "$rc"
+rc=0
+rc_mustfail python3 scripts/check-nuance-floor.py >/dev/null 2>&1 || rc=$?
+gate "nuance floor declares its must-fail convention AND honours it" must_pass "$rc"
+rc=0
+python3 scripts/inventory-coverage.py --check >/dev/null 2>&1 || rc=$?
+gate "coverage ratchet holds and the review ledger permits the next batch" must_pass "$rc"
+rc=0
+rc_mustfail python3 scripts/inventory-coverage.py >/dev/null 2>&1 || rc=$?
+gate "review ledger BLOCKS a missing sample and a below-bar batch" must_pass "$rc"
+rc=0
+rc_mustfail python3 scripts/inventory-nuance-judge.py >/dev/null 2>&1 || rc=$?
+gate "an uncalibrated judge reports NO verdicts (never a silent green)" must_pass "$rc"
+
+echo
+
+echo "── Gate 242: inception ratchet + merge-time re-measure ────────────────────"
+# ⛔ R2 — THIS IS THE MECHANISM BY WHICH "inventory all the features" IS ACTUALLY
+# REACHED. Any file added under the artifact roots in a diff that no inventory
+# entry names in covers[] fails the build, so coverage grows monotonically and new
+# features never widen the gap. A hard "162 by date X" target is explicitly
+# rejected: it creates exactly the pressure that produces restatements, which is
+# the failure the project exists to prevent. The ratchet guarantees the DIRECTION,
+# not the date. Armed BEFORE bulk authoring — plan A armed it after, leaving every
+# artifact shipped during the authoring window ungated.
+#
+# ⛔ R6 — PR #991, IN THIS REPO: two branches each raised a shared baseline
+# correctly IN ISOLATION and wrongly after the other merged. The wrong value still
+# passes on its own branch and surfaces later as unexplained drift. So every
+# ratchet value is bound to the merge-base SHA it was measured against, and an
+# ABSENT SHA is UNKNOWN rather than up-to-date.
+#
+# control: the freshness teeth reconstruct the #991 shape in a scratch repo — a
+# foreign SHA must fail AND a correctly-stamped one must pass, because a check
+# that fails everything proves nothing about the case it exists for.
+#
+# ⛔ The paths:-filter assertion lives here too, and it is scoped to the
+# PULL_REQUEST trigger only. Its first version regex-matched `paths:` anywhere in
+# the `on:` block and reported two false positives — one was a deliberate,
+# documented filter under `push:` (push runs are not required checks), the other
+# was a COMMENT saying the words. It parses YAML structure now.
+#
+# ⛔ Registered in dispatcher + main sequence + Supported:. Grep by literal name.
+rc=0
+python3 scripts/check-inception-coverage.py --check >/dev/null 2>&1 || rc=$?
+gate "every added artifact is named in an inventory covers[]; no required paths: filter" must_pass "$rc"
+rc=0
+rc_mustfail python3 scripts/check-inception-coverage.py >/dev/null 2>&1 || rc=$?
+gate "inception gate bites on an uncovered artifact and on a planted paths: filter" must_pass "$rc"
+rc=0
+python3 scripts/check-ratchet-freshness.py --check >/dev/null 2>&1 || rc=$?
+gate "every ratchet value is bound to this PR actual merge base" must_pass "$rc"
+rc=0
+rc_mustfail python3 scripts/check-ratchet-freshness.py >/dev/null 2>&1 || rc=$?
+gate "ratchet freshness reproduces the PR #991 shape and rejects it" must_pass "$rc"
+
+echo
+
+echo "── Gate 243: scheduled sweep contract + operator health card ──────────────"
+# ⛔ A SCHEDULED WORKFLOW MUST NEVER BECOME A REQUIRED STATUS CHECK. It reports
+# NOTHING on a pull request, and a required check that reports nothing leaves the
+# PR Pending forever — the same mechanism that makes a paths: filter on a required
+# check fatal. The sweep trigger is therefore asserted STRUCTURALLY, by parsing
+# the workflow YAML, and the assertion carries a control: a fixture that DOES
+# carry a pull_request trigger must be rejected, or the pass is vacuous.
+#
+# ⛔ The operator health card is asserted IN THE GENERATED PAGE, never in the
+# generator source — a source scan is satisfied by the string being described in
+# a comment. The Learn tab is where a reader browses; it is not where an operator
+# looks, and burying harness state inside a collapsed concept card is how a corpus
+# rots while every surface reads fine.
+#
+# ⛔ P11: the census counting rule is asserted to be WRITTEN DOWN, and claim 5 is
+# re-measured under it. The table said 48 hooks; two independent measures returned
+# 47. The number was never the deliverable — the rule that produces it was.
+#
+# ⛔ Registered in dispatcher + main sequence + Supported:. Grep by literal name.
+rc=0
+bash plugins/ravenclaude-core/hooks/tests/test-gate243-sweep-and-health-card.sh >/dev/null 2>&1 || rc=$?
+gate "sweep is unrequirable by construction; health card renders; census rule stated" must_pass "$rc"
 
 echo
 
