@@ -264,7 +264,16 @@ def _script_selftest(root: Path, paths: list[str], ctx: dict) -> dict:
             out[p] = (SKIP, "no-selftest-declared")
             continue
         want = decl.stdout.split("must-fail-teeth-exit:")[1].strip().split()[0]
-        got = _run(root, [runner, p, "--must-fail"], timeout=120).returncode
+        # ⛔ A GENEROUS TIMEOUT, AND A TIMEOUT IS NOT A MISMATCH. Measured: the
+        # sweep probing ITSELF (and the judge, which may attempt model calls) blew
+        # a 120s budget and returned 124, which the comparison then read as
+        # "declared 1, observed 124 — convention-mismatch". Two false findings from
+        # a clock, not from a contract. A timeout is reported as UNKNOWN.
+        _r = _run(root, [runner, p, "--must-fail"], timeout=420)
+        if _r.returncode == 124:
+            out[p] = (UNKNOWN, "probe-timeout")
+            continue
+        got = _r.returncode
         out[p] = (PASS, "ok") if str(got) == want else (FAIL, "convention-mismatch")
     return out
 

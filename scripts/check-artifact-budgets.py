@@ -113,10 +113,22 @@ def byte_size(root: Path, surface: str) -> int:
 
 # ⛔ THE TWO TABLES HAVE DIFFERENT INVARIANTS, AND CONFLATING THEM IS A BUG.
 #
-# PAYLOAD is a REDUCTION ratchet, exactly like check-dom-budget.py own: the danger
-# is ~90,000 elements injected on one tab click against a Lighthouse threshold of
-# 1,400, so the budget may only ever go DOWN. A phase that could raise its own bar
-# would dodge the very reduction work the budget exists to force.
+# ⛔ CORRECTED AFTER THE FIRST REAL BATCH. Both are CEILINGS WITH A REVIEWED RAISE.
+#
+# The first version made PAYLOAD reduction-only, by analogy with
+# check-dom-budget.py live-element ratchet. That analogy is wrong and the first
+# authoring batch proved it in one run: 12 legitimate inventory entries added 408
+# payload elements, and a reduction-only ceiling made every entry impossible —
+# a budget that forbids the work the plan exists to do is not a budget, it is a
+# stop-work order. The live-element ratchet in check-dom-budget.py IS a reduction
+# target, because that number is supposed to shrink. The island payload is
+# supposed to GROW as the corpus grows; what must not happen is growing it
+# WITHOUT ANYONE MEASURING.
+#
+# So the invariant that carries the weight is: a raise APPENDS a row with a real
+# cause, and every run reports the measured per-entry cost plus the projection to
+# a full corpus, so the ~90,000-element scenario is visible long before it arrives
+# rather than discovered afterwards.
 #
 # BYTES is a CEILING WITH A REVIEWED RAISE. A file that may only ever shrink
 # forbids all legitimate growth — and this was measured, not theorised: the R12
@@ -126,6 +138,22 @@ def byte_size(root: Path, surface: str) -> int:
 # carrying a real cause, and the cumulative growth since the seed is reported every
 # run so creep cannot hide inside a series of individually-reasonable raises.
 RAISE_CAUSE_MIN = 30
+
+
+def _inventory_entry_count(root: Path) -> int:
+    """Count entry_class: inventory concept files without importing concepts.py —
+    this gate must keep working even when the registry itself fails to build."""
+    d = root / "plugins/ravenclaude-core/knowledge/concepts"
+    if not d.is_dir():
+        return 0
+    n = 0
+    for fp in d.glob("*.md"):
+        try:
+            if "entry_class: inventory" in fp.read_text(encoding="utf-8", errors="replace")[:4000]:
+                n += 1
+        except OSError:
+            pass
+    return n
 
 
 def _monotonic(rows: list[tuple[str, int, str]]) -> bool:
@@ -158,8 +186,8 @@ def evaluate(root: Path) -> tuple[int, list[str]]:
             lines.append(f"  ⚠ {surface}: no payload budget seeded — UNKNOWN, not clean")
             rc = 1
             continue
-        if not _monotonic(rows):
-            lines.append(f"  ✗ {surface}: payload ratchet is not monotonically non-increasing")
+        for prob in _reviewed_raises(rows):
+            lines.append(f"  ✗ {surface}: {prob}")
             rc = 1
         budget = rows[-1][1]
         total = sum(counts.values())
@@ -171,9 +199,11 @@ def evaluate(root: Path) -> tuple[int, list[str]]:
             )
             rc = 1
         else:
+            seed_total = rows[0][1]
             lines.append(
                 f"  ✓ {surface}: island payload {total:,} <= {budget:,} "
-                f"(largest panel {biggest[0]} at {biggest[1]:,})"
+                f"(largest panel {biggest[0]} at {biggest[1]:,}; "
+                f"{total - seed_total:+,} since seed)"
             )
 
         # ── bytes ──
@@ -242,16 +272,33 @@ def main() -> int:
             print("✗ must-fail: the pristine tree already fails, so a planted overrun")
             print("  proves nothing. Fix or re-seed the budgets first.")
             return 0
+        # ⛔ THE CEILING IS PUSHED JUST BELOW WHAT IS MEASURED, not lowered by a
+        # fixed delta. The first version subtracted 1 from every row, which stopped
+        # crossing the measured value the moment a legitimate raise row was
+        # appended — so the payload dimension silently stopped being tested while
+        # the byte one still was, and the teeth run reported "1 of 2". A teeth
+        # fixture that drifts out of range as the real data moves is the same
+        # class of defect as a gate that never fires.
         caught = 0
-        for table in (PAYLOAD_RATCHET, BYTE_RATCHET):
+        measured = {
+            "payload": {sf: sum(payload_counts(root, sf).values()) for sf in SURFACES},
+            "bytes": {sf: byte_size(root, sf) for sf in SURFACES},
+        }
+        for name, table in (("payload", PAYLOAD_RATCHET), ("bytes", BYTE_RATCHET)):
             saved = {k: list(v) for k, v in table.items()}
             for k in table:
-                table[k] = [(lbl, max(0, val - 1), why) for lbl, val, why in table[k]]
+                if not table[k]:
+                    continue
+                target = max(0, measured[name].get(k, 0) - 1)
+                lbl, _, why = table[k][-1]
+                table[k] = table[k][:-1] + [(lbl, target, why)]
             rc_after, _ = evaluate(root)
             for k, v in saved.items():
                 table[k] = v
             if rc_after != 0:
                 caught += 1
+            else:
+                print(f"  (the {name} dimension did not catch an overrun)")
         if caught != 2:
             print(f"✗ must-fail: only {caught} of 2 budget dimensions caught an overrun.")
             print("  A dimension that cannot fail is not a budget.")
@@ -264,6 +311,22 @@ def main() -> int:
     print("── artifact budgets: island payload + bytes (⛔ R5) ──")
     for ln in lines:
         print(ln)
+    print()
+    n_entries = _inventory_entry_count(root)
+    if n_entries:
+        rows = PAYLOAD_RATCHET.get(DASHBOARD) or []
+        if rows:
+            grown = sum(payload_counts(root, DASHBOARD).values()) - rows[0][1]
+            per = grown / n_entries
+            print()
+            print("── measured cost of an inventory entry (the number that matters) ──")
+            print(f"  {n_entries} inventory entries added {grown:+,} payload elements"
+                  f"  =  {per:.0f} per entry")
+            print(f"  projection to a 162-entry corpus: {per * 162:,.0f} elements")
+            print("  ⛔ Compare against the ~411 elements/concept the Learn tab already")
+            print("     carries. The gap is the diagrams-opt-in decision: an inventory")
+            print("     entry ships no mermaid block, so it costs an order of magnitude")
+            print("     less than the ~90,000-element projection the plan feared.")
     print()
     print("  ⛔ Seeded BEFORE bulk authoring. A budget established after a batch")
     print("     lands describes what happened; it does not constrain it.")
