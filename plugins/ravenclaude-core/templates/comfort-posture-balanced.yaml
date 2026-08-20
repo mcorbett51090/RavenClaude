@@ -254,3 +254,9 @@ categories:
     user: inherit
     local: inherit
     project: ask
+
+# Sleep assertion for the session (on | off). Shipped default off, so installing
+# this plugin never changes your machine's power management unannounced.
+# on + AC power -> holds caffeinate -s bound to the session's lifetime.
+# on + battery   -> holds nothing and warns; a closed lid still suspends the session.
+keep_awake: off

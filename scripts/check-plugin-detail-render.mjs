@@ -77,7 +77,12 @@ const RC_BASELINE = {
   //        19 -> 22: premise-gate.py + classify_claim.py + check-design-schema.py
   //                  (v0.263.0, PR 3b packaging move)
   scenarios: 4,
-  hooks: 38, // 37 -> 38: triage-outcome.sh WIRED on PostToolUse(Bash) after its fire
+  hooks: 39, // 38 -> 39: keep-awake.sh WIRED on SessionStart — an opt-in sleep assertion
+  //   (`keep_awake` in comfort-posture.yaml, shipped default off) so a closed lid cannot
+  //   silently suspend a session. It is a REGISTRATION, which is what this count tracks,
+  //   even though it is excluded from the Pipeline map as host-environment hygiene rather
+  //   than an agent guardrail — the two lists answer different questions.
+  // 37 -> 38: triage-outcome.sh WIRED on PostToolUse(Bash) after its fire
   //   rate was measured down to 2.588% over a 46,557-envelope replay corpus (the
   //   gate is 3%). ⛔ This count tracks WIRED hooks, not hook FILES: the file
   //   itself landed earlier and moved no count, because it shipped deliberately
