@@ -35,5 +35,6 @@
         "measured before any inventory authoring"
       ]
     ]
-  }
+  },
+  "measured_against": "fc84c7a0762b62b09deeb51dd9e27cd2cfa55044"
 }

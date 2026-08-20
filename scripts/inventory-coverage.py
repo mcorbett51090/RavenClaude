@@ -295,6 +295,31 @@ def main() -> int:
         print(f"  ⚠ no committed baseline at {RATCHET} — first run seeds it, and until")
         print("     then the monotonic invariant is UNKNOWN rather than satisfied.")
 
+    # ── ⛔ §10.3: the RATE of tier: none growth, not just the raw fraction ──
+    # Once the gate is armed and the dedicated authoring push ends, the path of
+    # least resistance for any unrelated PR adding a script is a `tier: none` entry
+    # with a one-line rationale. The gate cannot distinguish "this team stopped
+    # caring" from "genuinely no cheap observable exists" — it only demands that
+    # SOME entry exist. That silently reproduces the stale-summaries failure,
+    # spread out post-hoc instead of front-loaded.
+    #
+    # ⛔ REPORTED, NEVER BLOCKING. Blocking it would push authors toward a false
+    # `tier: reachability`, and a wrong strong label beats no label only for
+    # appearances.
+    if prev:
+        d_entries = m["published_entries"] - prev.get("published_entries", 0)
+        d_none = m["tier_none"] - prev.get("tier_none", 0)
+        print()
+        print("── tier: none growth RATE (§10.3, the rationale-mill tell) ──")
+        if d_entries > 0:
+            print(f"  since the baseline: +{d_entries} entries, of which +{d_none} are"
+                  f" tier: none ({d_none / d_entries:.0%})")
+            print("  ⛔ Compare against the rate observed during the dedicated authoring")
+            print("     phase. A higher rate afterwards means the gate has become a")
+            print("     rationale mill. Signal only — never a block.")
+        else:
+            print("  no new entries since the baseline — no rate to compute yet.")
+
     print()
     print("── ⛔ BLOCKING sampled review (R7 §9.3) ──")
     if ok:

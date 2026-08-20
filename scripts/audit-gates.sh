@@ -628,6 +628,15 @@ PY
         --must-fail-echo || rc=$?
       exit $rc
       ;;
+    242)
+      echo "── Gate 242: inception ratchet + merge-time re-measure ──"
+      rc=0
+      python3 scripts/check-inception-coverage.py --check || rc=$?
+      rc_mustfail python3 scripts/check-inception-coverage.py || rc=$?
+      python3 scripts/check-ratchet-freshness.py --check || rc=$?
+      rc_mustfail python3 scripts/check-ratchet-freshness.py || rc=$?
+      exit $rc
+      ;;
     241)
       echo "── Gate 241: nuance floor + BLOCKING review ledger ──"
       rc=0
@@ -1410,7 +1419,7 @@ PY
       ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -8777,6 +8786,48 @@ gate "review ledger BLOCKS a missing sample and a below-bar batch" must_pass "$r
 rc=0
 rc_mustfail python3 scripts/inventory-nuance-judge.py >/dev/null 2>&1 || rc=$?
 gate "an uncalibrated judge reports NO verdicts (never a silent green)" must_pass "$rc"
+
+echo
+
+echo "── Gate 242: inception ratchet + merge-time re-measure ────────────────────"
+# ⛔ R2 — THIS IS THE MECHANISM BY WHICH "inventory all the features" IS ACTUALLY
+# REACHED. Any file added under the artifact roots in a diff that no inventory
+# entry names in covers[] fails the build, so coverage grows monotonically and new
+# features never widen the gap. A hard "162 by date X" target is explicitly
+# rejected: it creates exactly the pressure that produces restatements, which is
+# the failure the project exists to prevent. The ratchet guarantees the DIRECTION,
+# not the date. Armed BEFORE bulk authoring — plan A armed it after, leaving every
+# artifact shipped during the authoring window ungated.
+#
+# ⛔ R6 — PR #991, IN THIS REPO: two branches each raised a shared baseline
+# correctly IN ISOLATION and wrongly after the other merged. The wrong value still
+# passes on its own branch and surfaces later as unexplained drift. So every
+# ratchet value is bound to the merge-base SHA it was measured against, and an
+# ABSENT SHA is UNKNOWN rather than up-to-date.
+#
+# control: the freshness teeth reconstruct the #991 shape in a scratch repo — a
+# foreign SHA must fail AND a correctly-stamped one must pass, because a check
+# that fails everything proves nothing about the case it exists for.
+#
+# ⛔ The paths:-filter assertion lives here too, and it is scoped to the
+# PULL_REQUEST trigger only. Its first version regex-matched `paths:` anywhere in
+# the `on:` block and reported two false positives — one was a deliberate,
+# documented filter under `push:` (push runs are not required checks), the other
+# was a COMMENT saying the words. It parses YAML structure now.
+#
+# ⛔ Registered in dispatcher + main sequence + Supported:. Grep by literal name.
+rc=0
+python3 scripts/check-inception-coverage.py --check >/dev/null 2>&1 || rc=$?
+gate "every added artifact is named in an inventory covers[]; no required paths: filter" must_pass "$rc"
+rc=0
+rc_mustfail python3 scripts/check-inception-coverage.py >/dev/null 2>&1 || rc=$?
+gate "inception gate bites on an uncovered artifact and on a planted paths: filter" must_pass "$rc"
+rc=0
+python3 scripts/check-ratchet-freshness.py --check >/dev/null 2>&1 || rc=$?
+gate "every ratchet value is bound to this PR actual merge base" must_pass "$rc"
+rc=0
+rc_mustfail python3 scripts/check-ratchet-freshness.py >/dev/null 2>&1 || rc=$?
+gate "ratchet freshness reproduces the PR #991 shape and rejects it" must_pass "$rc"
 
 echo
 
