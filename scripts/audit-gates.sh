@@ -628,6 +628,14 @@ PY
         --must-fail-echo || rc=$?
       exit $rc
       ;;
+    239)
+      echo "── Gate 239: inventory schema — nuance, evidence, verify, strength badge ──"
+      rc=0
+      bash plugins/ravenclaude-core/hooks/tests/test-gate239-inventory-schema.sh || rc=$?
+      python3 scripts/check-inventory-evidence.py --check || rc=$?
+      rc_mustfail python3 scripts/check-inventory-evidence.py || rc=$?
+      exit $rc
+      ;;
     238)
       echo "── Gate 238: inventory sweep — path-keyed harness + sweep-of-the-sweep ──"
       rc=0
@@ -1383,7 +1391,7 @@ PY
       ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -8640,6 +8648,36 @@ gate "claim-14 capping: every probe class control demonstrably FIRES" must_pass 
 rc=0
 rc_mustfail python3 scripts/inventory-sweep.py >/dev/null 2>&1 || rc=$?
 gate "sweep teeth: controls fire, scrubber constrains labels, canary stays red" must_pass "$rc"
+
+echo
+
+echo "── Gate 239: inventory schema — nuance, evidence, verify, strength badge ──"
+# ⛔ R12 — A WEAK CHECK AND A STRONG ONE THAT LOOK IDENTICAL IS THE INERT-GATE
+# DEFECT WEARING A BADGE. ~60% of the inventory (54 skills, 15 agents, 27 uncalled
+# scripts) gets findability and reference integrity ONLY. Both panel plans recorded
+# that honestly in the plan and then left the distinction invisible on the one
+# surface the project exists to make legible. The badge text is DERIVED in
+# concepts.py so no renderer can substitute a friendlier word, and it names the
+# LIMIT: "Findable", never "Verified (static)" — a reader skims the first word.
+#
+# control: a well-formed entry must VALIDATE. Asserted first, because a schema
+# that rejected everything would pass every negative assertion in this gate.
+#
+# ⛔ R9 — the committed authoring surface gets the derived-labels-only rule that
+# log-probe.sh already applies to the GITIGNORED tier. Concept files are retained
+# permanently; run records are disposable. The weaker rule was on the more durable
+# store. Stated limit: a shape heuristic, not a secret scanner (plan §21-W4).
+#
+# ⛔ Registered in dispatcher + main sequence + Supported:. Grep by literal name.
+rc=0
+bash plugins/ravenclaude-core/hooks/tests/test-gate239-inventory-schema.sh >/dev/null 2>&1 || rc=$?
+gate "inventory schema: nuance cap, evidence triple, tier rationale, R12 badge" must_pass "$rc"
+rc=0
+python3 scripts/check-inventory-evidence.py --check >/dev/null 2>&1 || rc=$?
+gate "committed evidence fields hold pointers and labels, never payloads" must_pass "$rc"
+rc=0
+rc_mustfail python3 scripts/check-inventory-evidence.py >/dev/null 2>&1 || rc=$?
+gate "evidence shape gate declares its must-fail convention AND honours it" must_pass "$rc"
 
 echo
 

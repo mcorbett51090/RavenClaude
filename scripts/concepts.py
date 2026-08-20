@@ -29,6 +29,7 @@ import hashlib
 import json
 import re
 import sys
+import textwrap
 from pathlib import Path
 
 CONCEPTS_GLOB = "plugins/ravenclaude-core/knowledge/concepts/*.md"
@@ -72,6 +73,37 @@ VALID_ENTRY_CLASSES = (ENTRY_CLASS_INVENTORY,)
 RESTAMP_LOG = "tests/fixtures/inventory-restamp-log.jsonl"
 RESTAMP_REASON_MIN = 30  # chars; a restamp is a re-READ, not an edit
 _DIGEST_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
+
+# ── P5: the nuance / evidence / verify schema (⛔ R9, R12) ──────────────────
+#
+# ⛔ NUANCE IS CAPPED AT 4 RENDERED LINES, NOT 5 SENTENCES OR 600 CHARS.
+# Plan A capped it by sentence count, which wraps to 6-7 lines — and a `control:`
+# line must sit INSIDE T-PROSE +/-6-line window from the claim. S1 measured that
+# window directly (docs/best-practices/inventory-authoring.md). The cap is a
+# LAYOUT constraint because the gate it protects against is a layout gate.
+NUANCE_WRAP = 100          # the prose width this repo wraps at
+NUANCE_MAX_LINES = 4
+UNPROBED_PREFIX = "unprobed: "
+UNPROBED_REASON_MIN = 30
+VALID_TIERS = ("effect", "reachability", "none")
+# ⛔ R12 — STRENGTH RENDERS DISTINCTLY OR THE WHOLE SURFACE LIES.
+# ~60% of the inventory (54 skills, 15 agents, 27 uncalled scripts) gets
+# findability + reference integrity only. Both panels recorded that honestly in
+# the plan and then left the distinction INVISIBLE on the one surface the project
+# exists to make legible. A weak check and a strong one that look identical is the
+# inert-gate defect wearing a badge.
+#   executed      -> "Probed"     a real payload ran and a real observable asserted
+#   static        -> "Findable"   frontmatter parses, references resolve. NOTHING ran it
+#   observational -> "Observed"   seen after the fact, not gate-capable before it
+#   (tier: none)  -> "Unverified" with the written rationale shown inline
+# The badge text states the LIMIT, never a reassuring synonym: a reader skims the
+# first word, so "Findable" is honest and "Verified (static)" is not.
+VALID_STRENGTHS = ("executed", "static", "observational")
+STRENGTH_BADGE = {
+    "executed": "Probed",
+    "static": "Findable",
+    "observational": "Observed",
+}
 
 VALID_KINDS = ("platform-fact", "ravenclaude-built")
 STEP_CAPTION_MAX = 120  # a step caption is a one-liner, not a paragraph
@@ -268,6 +300,77 @@ def _parse_one(path: Path, root: Path) -> dict:
     elif entry_class == ENTRY_CLASS_INVENTORY:
         raise ConceptError(f"{rel}: entry_class: inventory requires a non-empty 'covers' list")
 
+    nuance = fm.get("nuance")
+    nuance_evidence = fm.get("nuance_evidence")
+    nuance_source = fm.get("nuance_source")
+    verify = fm.get("verify")
+
+    if entry_class == ENTRY_CLASS_INVENTORY:
+        if not isinstance(nuance, str) or not nuance.strip():
+            raise ConceptError(
+                f"{rel}: entry_class: inventory requires a non-empty 'nuance' — the "
+                "mechanism fact a reader could not have guessed from title + summary"
+            )
+        wrapped = []
+        for para in nuance.strip().split("\n"):
+            wrapped.extend(textwrap.wrap(para, NUANCE_WRAP) or [""])
+        if len(wrapped) > NUANCE_MAX_LINES:
+            raise ConceptError(
+                f"{rel}: nuance renders as {len(wrapped)} lines at {NUANCE_WRAP} cols "
+                f"(max {NUANCE_MAX_LINES}). This is a LAYOUT cap, not a style rule: a "
+                "longer nuance pushes its control: line outside the premise guard "
+                "+/-6-line window. See docs/best-practices/inventory-authoring.md"
+            )
+
+        if not isinstance(nuance_evidence, dict):
+            raise ConceptError(f"{rel}: entry_class: inventory requires a 'nuance_evidence' mapping")
+        for key in ("measured", "control", "falsifier", "probe"):
+            if not str(nuance_evidence.get(key, "")).strip():
+                raise ConceptError(f"{rel}: nuance_evidence.{key} is required and non-empty")
+        meas = nuance_evidence["measured"]
+        if isinstance(meas, datetime.date):
+            nuance_evidence["measured"] = meas.isoformat()
+        probe = str(nuance_evidence["probe"])
+        if probe.startswith(UNPROBED_PREFIX):
+            # ⛔ AN UNPROBED NUANCE IS ALLOWED — it is HONEST. What is not allowed
+            # is an unprobed nuance with no reason: that is an absence dressed as a
+            # value. The unprobed fraction is counted and ratcheted DOWN.
+            if len(probe) - len(UNPROBED_PREFIX) < UNPROBED_REASON_MIN:
+                raise ConceptError(
+                    f"{rel}: nuance_evidence.probe starts with '{UNPROBED_PREFIX}' but "
+                    f"carries under {UNPROBED_REASON_MIN} chars of reason"
+                )
+        elif not (root / probe).exists():
+            raise ConceptError(f"{rel}: nuance_evidence.probe '{probe}' does not exist")
+
+        if not isinstance(verify, dict):
+            raise ConceptError(f"{rel}: entry_class: inventory requires a 'verify' mapping")
+        tier = verify.get("tier")
+        if tier not in VALID_TIERS:
+            raise ConceptError(f"{rel}: verify.tier must be one of {VALID_TIERS}")
+        strength = verify.get("strength")
+        if tier == "none":
+            if not str(verify.get("rationale", "")).strip():
+                raise ConceptError(f"{rel}: verify.tier: none requires a written 'rationale'")
+        else:
+            if strength not in VALID_STRENGTHS:
+                raise ConceptError(f"{rel}: verify.strength must be one of {VALID_STRENGTHS}")
+            if not str(verify.get("probe", "")).strip():
+                raise ConceptError(f"{rel}: verify.probe is required unless tier is none")
+            if not isinstance(verify.get("teeth_exit"), int):
+                # ⛔ Claim 11: --must-fail conventions DIVERGE per tool (premise-gate
+                # uses 0, sync-plugin-versions uses 2). The entry records THIS
+                # probe declared exit rather than inheriting a shared constant.
+                raise ConceptError(
+                    f"{rel}: verify.teeth_exit must be an integer — this probe OWN "
+                    "declared convention, never a shared assumption"
+                )
+    elif any(x is not None for x in (nuance, nuance_evidence, nuance_source, verify)):
+        raise ConceptError(
+            f"{rel}: nuance/verify fields require 'entry_class: inventory' — a nuance "
+            "outside the inventory class is gated by nothing"
+        )
+
     covers_digest = fm.get("covers_digest")
     if covers_digest is not None:
         if not isinstance(covers_digest, str) or not _DIGEST_RE.match(covers_digest):
@@ -354,6 +457,17 @@ def _parse_one(path: Path, root: Path) -> dict:
     if covers is not None:
         out["covers"] = list(covers)
         out["covers_digest"] = covers_digest
+    if nuance is not None:
+        out["nuance"] = nuance
+        out["nuance_evidence"] = nuance_evidence
+        out["nuance_source"] = nuance_source
+        out["verify"] = verify
+        # ⛔ R12: the badge is DERIVED here, in the registry, so no renderer can
+        # quietly choose a friendlier word. tier: none renders "Unverified".
+        out["strength_badge"] = (
+            "Unverified" if (verify or {}).get("tier") == "none"
+            else STRENGTH_BADGE.get((verify or {}).get("strength"), "Unverified")
+        )
     return out
 
 
