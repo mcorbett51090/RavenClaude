@@ -628,6 +628,11 @@ PY
         --must-fail-echo || rc=$?
       exit $rc
       ;;
+    243)
+      echo "── Gate 243: scheduled sweep contract + operator health card ──"
+      bash plugins/ravenclaude-core/hooks/tests/test-gate243-sweep-and-health-card.sh
+      exit $?
+      ;;
     242)
       echo "── Gate 242: inception ratchet + merge-time re-measure ──"
       rc=0
@@ -1419,7 +1424,7 @@ PY
       ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -8828,6 +8833,31 @@ gate "every ratchet value is bound to this PR actual merge base" must_pass "$rc"
 rc=0
 rc_mustfail python3 scripts/check-ratchet-freshness.py >/dev/null 2>&1 || rc=$?
 gate "ratchet freshness reproduces the PR #991 shape and rejects it" must_pass "$rc"
+
+echo
+
+echo "── Gate 243: scheduled sweep contract + operator health card ──────────────"
+# ⛔ A SCHEDULED WORKFLOW MUST NEVER BECOME A REQUIRED STATUS CHECK. It reports
+# NOTHING on a pull request, and a required check that reports nothing leaves the
+# PR Pending forever — the same mechanism that makes a paths: filter on a required
+# check fatal. The sweep trigger is therefore asserted STRUCTURALLY, by parsing
+# the workflow YAML, and the assertion carries a control: a fixture that DOES
+# carry a pull_request trigger must be rejected, or the pass is vacuous.
+#
+# ⛔ The operator health card is asserted IN THE GENERATED PAGE, never in the
+# generator source — a source scan is satisfied by the string being described in
+# a comment. The Learn tab is where a reader browses; it is not where an operator
+# looks, and burying harness state inside a collapsed concept card is how a corpus
+# rots while every surface reads fine.
+#
+# ⛔ P11: the census counting rule is asserted to be WRITTEN DOWN, and claim 5 is
+# re-measured under it. The table said 48 hooks; two independent measures returned
+# 47. The number was never the deliverable — the rule that produces it was.
+#
+# ⛔ Registered in dispatcher + main sequence + Supported:. Grep by literal name.
+rc=0
+bash plugins/ravenclaude-core/hooks/tests/test-gate243-sweep-and-health-card.sh >/dev/null 2>&1 || rc=$?
+gate "sweep is unrequirable by construction; health card renders; census rule stated" must_pass "$rc"
 
 echo
 

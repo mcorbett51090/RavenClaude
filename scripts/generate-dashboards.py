@@ -1964,9 +1964,72 @@ def _render_learn_tab(plugin_dir: Path) -> str:
         '<span class="learn-legend-item"><span class="learn-swatch fact"></span>How agentic AI works</span>'
         '<span class="learn-legend-item"><span class="learn-swatch built"></span>RavenClaude feature</span>'
         "</div>"
+        + _operator_health_card(concepts)
         + "".join(tiers_html)
         + '<div class="stub learn-noresults" id="learn-noresults" hidden>'
         "<h2>No matching concepts</h2><p>Try a different search term.</p></div>" + "</div>"
+    )
+
+
+def _operator_health_card(concepts: list[dict]) -> str:
+    """⛔ P10 — THE OPERATOR HEALTH CARD.
+
+    The Learn tab is where a READER browses; it is not where an OPERATOR looks.
+    These figures are OPERATIONAL STATE, not knowledge, and burying them inside a
+    collapsed concept card is how a corpus rots while every surface reads fine.
+
+    Every number here is DERIVED FROM THE REGISTRY at build time. It renders only
+    when inventory entries exist, and when the numbers are unavailable it says so
+    rather than showing a reassuring zero — an absent measurement and a measured
+    zero are different facts.
+    """
+    entries = [c for c in concepts if c.get("entry_class") == "inventory"]
+    if not entries:
+        return ""
+
+    covered: set[str] = set()
+    for e in entries:
+        covered.update(e.get("covers") or [])
+    tier_none = [e for e in entries if (e.get("verify") or {}).get("tier") == "none"]
+    unprobed = [
+        e for e in entries
+        if str((e.get("nuance_evidence") or {}).get("probe") or "").startswith("unprobed: ")
+    ]
+    by_strength: dict[str, int] = {}
+    for e in entries:
+        by_strength[e.get("strength_badge") or "Unverified"] = (
+            by_strength.get(e.get("strength_badge") or "Unverified", 0) + 1
+        )
+
+    def cell(label: str, value: str, note: str = "") -> str:
+        n = f'<span class="ohc-note">{html.escape(note)}</span>' if note else ""
+        return (
+            f'<div class="ohc-cell"><span class="ohc-v">{html.escape(value)}</span>'
+            f'<span class="ohc-k">{html.escape(label)}</span>{n}</div>'
+        )
+
+    cells = [
+        cell("inventory entries", str(len(entries))),
+        cell("artifacts covered", str(len(covered)), "per artifact, not per entry"),
+        cell("tier: none", str(len(tier_none)), "rationale required"),
+        cell("unprobed", str(len(unprobed)), "honest, and counted"),
+    ]
+    for badge in ("Probed", "Findable", "Observed", "Unverified"):
+        if by_strength.get(badge):
+            cells.append(cell(badge.lower(), str(by_strength[badge])))
+
+    return (
+        '<details class="ohc" id="operator-health-card">'
+        '<summary class="ohc-head">Operator health card '
+        '<span class="ohc-sub">harness state — operational, not knowledge</span></summary>'
+        '<div class="ohc-grid">' + "".join(cells) + "</div>"
+        '<p class="ohc-foot">⛔ These are counts, never probe output. The live sweep '
+        "numbers — probes registered vs executed, the independent git census, and the "
+        "permanently-red canary — come from "
+        "<code>scripts/inventory-sweep.py</code>; a downward move in any of them with "
+        "no artifact deletion in the same diff means the sweep is going blind, not "
+        "that the repo shrank.</p>"
+        "</details>"
     )
 
 
@@ -6128,6 +6191,19 @@ footer.page-footer a:hover { text-decoration: underline; }
 }
 .learn-search:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .learn-count { color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+/* ── Operator health card (P10). Deliberately plain: it is an instrument
+   panel, not a scoreboard, and a celebratory treatment would invite reading
+   a high number as a good number. */
+.ohc { border: 1px solid var(--border); border-radius: 8px; margin: 0 0 16px; background: var(--surface-2); }
+.ohc-head { cursor: pointer; padding: 10px 14px; font-size: 13px; font-weight: 700; list-style: none; }
+.ohc-head::-webkit-details-marker { display: none; }
+.ohc-sub { font-weight: 400; color: var(--muted); font-size: 12px; margin-left: 8px; }
+.ohc-grid { display: flex; flex-wrap: wrap; gap: 10px; padding: 0 14px 12px; }
+.ohc-cell { min-width: 110px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); }
+.ohc-v { display: block; font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.ohc-k { display: block; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; }
+.ohc-note { display: block; font-size: 10.5px; color: var(--muted); font-style: italic; margin-top: 2px; }
+.ohc-foot { font-size: 11.5px; color: var(--muted); margin: 0; padding: 0 14px 12px; line-height: 1.55; }
 .learn-toolbar-spacer { flex: 1 1 auto; }
 .learn-linkbtn {
   background: none; border: none; color: var(--accent); cursor: pointer;
