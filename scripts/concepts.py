@@ -25,6 +25,7 @@ from __future__ import annotations
 import argparse
 import datetime
 import glob
+import hashlib
 import json
 import re
 import sys
@@ -36,6 +37,41 @@ VISUALS_DIR = "plugins/ravenclaude-core/knowledge/concepts/visuals"
 SVG_REL_PREFIX = "knowledge/concepts/visuals"
 SCHEMA_VERSION = 1
 STALE_DAYS = 90  # platform-fact concepts older than this fail --check
+
+# ── P3: the staleness gate, and why it now has TWO axes ────────────────────
+#
+# ⛔ THE DOUBLE EXEMPTION THIS CLOSES. The gate used to read:
+#     if c["kind"] != "platform-fact" or not c["last_verified"]: continue
+# A concept escaped if it was EITHER not a platform-fact OR simply lacked the
+# field. Both escapes mattered, and the corpus made the first dominant: 41
+# ravenclaude-built against 17 platform-fact, so the gate covered the MINORITY
+# kind. Every inventory entry would be ravenclaude-built and inherit zero
+# staleness pressure. Fixing only the kind check leaves the second escape wide
+# open — an entry with no last_verified at all is still skipped, and "unverified"
+# then looks identical to "verified recently". That is the silent-green shape.
+#
+# ⛔ CONTENT DRIFT IS THE PRIMARY AXIS; CALENDAR AGE IS SECONDARY.
+# The arithmetic decides it. At 162 entries on a 180-day clock, steady state needs
+# ~0.9 re-verifications every day, forever; at 30 days it is ~5.4/day and the gate
+# is red essentially always, so it gets disabled within a month. Worse, entries
+# authored in waves EXPIRE IN WAVES on the same day, turning every open PR in the
+# repo red — including PRs touching nothing related. That is not a deadline; it is
+# a periodic repo-wide outage with a documentation task as the only exit.
+#
+# Content drift fires when the fact CAN ACTUALLY HAVE BECOME FALSE, not when a
+# calendar rolls, and it is the same computation covers_digest already needs.
+#
+#   axis                           PR CI      scheduled sweep (--sweep)
+#   content drift (covers_digest)  BLOCKING   blocking
+#   absent last_verified           BLOCKING   blocking
+#   kind: platform-fact, 90 days   BLOCKING   blocking   (small, serviceable population)
+#   calendar age, inventory        WARNING    BLOCKING
+INVENTORY_STALE_DAYS = 180  # calendar window for entry_class: inventory
+ENTRY_CLASS_INVENTORY = "inventory"
+VALID_ENTRY_CLASSES = (ENTRY_CLASS_INVENTORY,)
+RESTAMP_LOG = "tests/fixtures/inventory-restamp-log.jsonl"
+RESTAMP_REASON_MIN = 30  # chars; a restamp is a re-READ, not an edit
+_DIGEST_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
 
 VALID_KINDS = ("platform-fact", "ravenclaude-built")
 STEP_CAPTION_MAX = 120  # a step caption is a one-liner, not a paragraph
@@ -60,7 +96,50 @@ def _today() -> datetime.date:
     return datetime.date.today()
 
 
-def _parse_one(path: Path) -> dict:
+def digest_inputs(root: Path, covers: list[str], refresh_when) -> list[str]:
+    """The repo-relative paths whose CONTENT the entry stands on, sorted.
+
+    covers[] is the declared set. A LIST-valued refresh_when is the structured
+    form of the same idea — extra path globs evaluated by the same drift check —
+    so its expansion joins the digest input. Free-text refresh_when stays prose
+    and contributes nothing computable, which is why it renders in the failure
+    message instead.
+
+    ⛔ plan-B proposed `git log -1 --format=%cI` timestamps as the drift axis. The
+    IDEA is adopted; that implementation is rejected — a git-log timestamp is
+    fragile to squash, rebase and shallow clones, where a content hash is not.
+    """
+    paths = set(covers)
+    if isinstance(refresh_when, list):
+        rroot = root.resolve()
+        for pat in refresh_when:
+            for hit in glob.glob(str(root / pat), recursive=True):
+                hp = Path(hit)
+                if hp.is_file():
+                    paths.add(hp.resolve().relative_to(rroot).as_posix())
+    return sorted(paths)
+
+
+def compute_covers_digest(root: Path, covers: list[str], refresh_when=None) -> str:
+    """sha256 over the sorted concat of every covered file, path-delimited.
+
+    ⛔ The digest is over the WHOLE FILE INCLUDING COMMENTS, deliberately: in this
+    repo the comments ARE where the mechanism nuance lives. The cost is that a
+    comment typo trips the same tripwire as a mechanism change. That is what
+    --restamp-cosmetic is for: it re-stamps the digest WITHOUT advancing
+    last_verified, so a cosmetic edit does not buy 180 days of false freshness.
+    """
+    h = hashlib.sha256()
+    for rel in digest_inputs(root, covers, refresh_when):
+        fp = root / rel
+        h.update(rel.encode("utf-8"))
+        h.update(b"\0")
+        h.update(fp.read_bytes() if fp.is_file() else b"<MISSING>")
+        h.update(b"\0")
+    return "sha256:" + h.hexdigest()
+
+
+def _parse_one(path: Path, root: Path) -> dict:
     """Parse and schema-validate a single concept file. Raises ConceptError."""
     try:
         import yaml  # local import so a missing pyyaml degrades to a clear message
@@ -156,9 +235,48 @@ def _parse_one(path: Path) -> dict:
     if kind == "platform-fact" and not last_verified:
         raise ConceptError(f"{rel}: platform-fact concepts require 'last_verified' (staleness gate)")
 
+    # refresh_when is the field the schema already reserved for a machine-actionable
+    # refresh trigger. Rather than ship two new fields beside a decorative third,
+    # it carries BOTH forms: free text (renders in the failure message) or a list
+    # of path globs (joins the drift computation).
     refresh_when = fm.get("refresh_when")
-    if refresh_when is not None and not isinstance(refresh_when, str):
-        raise ConceptError(f"{rel}: 'refresh_when' must be a string")
+    if refresh_when is not None:
+        if isinstance(refresh_when, list):
+            if not all(isinstance(x, str) and x.strip() for x in refresh_when):
+                raise ConceptError(f"{rel}: 'refresh_when' list entries must be non-empty path globs")
+        elif not isinstance(refresh_when, str):
+            raise ConceptError(f"{rel}: 'refresh_when' must be a string or a list of path globs")
+
+    # ── entry_class / covers / covers_digest (P3) ──────────────────────────
+    # ⛔ ABSENT entry_class MUST reproduce today behaviour exactly. The 58 existing
+    # concepts carry none, and concepts.json is asserted byte-identical to HEAD.
+    entry_class = fm.get("entry_class")
+    if entry_class is not None and entry_class not in VALID_ENTRY_CLASSES:
+        raise ConceptError(f"{rel}: entry_class '{entry_class}' must be one of {VALID_ENTRY_CLASSES}")
+
+    covers = fm.get("covers")
+    if covers is not None:
+        if not isinstance(covers, list) or not covers or not all(
+            isinstance(x, str) and x.strip() for x in covers
+        ):
+            raise ConceptError(f"{rel}: 'covers' must be a non-empty list of repo-relative paths")
+        for cp in covers:
+            if cp.startswith("/") or ".." in Path(cp).parts:
+                raise ConceptError(f"{rel}: covers entry '{cp}' must be repo-relative with no parent segments")
+            if not (root / cp).exists():
+                raise ConceptError(f"{rel}: covers entry '{cp}' does not exist")
+    elif entry_class == ENTRY_CLASS_INVENTORY:
+        raise ConceptError(f"{rel}: entry_class: inventory requires a non-empty 'covers' list")
+
+    covers_digest = fm.get("covers_digest")
+    if covers_digest is not None:
+        if not isinstance(covers_digest, str) or not _DIGEST_RE.match(covers_digest):
+            raise ConceptError(f"{rel}: 'covers_digest' must look like sha256 followed by 64 hex chars")
+    elif covers is not None:
+        raise ConceptError(
+            f"{rel}: 'covers' is declared with no 'covers_digest' — the tripwire would "
+            f"never fire. Generate it with: scripts/concepts.py --restamp-cosmetic {cid}"
+        )
 
     # Body + diagrams.
     rest = m.group(2)
@@ -205,7 +323,12 @@ def _parse_one(path: Path) -> dict:
         raise ConceptError(f"{rel}: empty body (need an explanation, not just a diagram)")
 
     has_mini = diagrams["mermaid-mini"] is not None
-    return {
+    # ⛔ The new keys are added CONDITIONALLY. Emitting them as nulls on all 58
+    # existing concepts would rewrite concepts.json, and "concepts.json is
+    # byte-identical to HEAD" is the positive control proving this change is
+    # additive. A schema change that quietly rewrites the registry is
+    # indistinguishable from one that broke it.
+    out = {
         "id": cid,
         "title": title,
         "category": category,
@@ -226,6 +349,12 @@ def _parse_one(path: Path) -> dict:
         "svg": f"{SVG_REL_PREFIX}/{cid}.svg",
         "svg_mini": f"{SVG_REL_PREFIX}/{cid}.mini.svg" if has_mini else None,
     }
+    if entry_class is not None:
+        out["entry_class"] = entry_class
+    if covers is not None:
+        out["covers"] = list(covers)
+        out["covers_digest"] = covers_digest
+    return out
 
 
 def load_concepts(root: Path) -> list[dict]:
@@ -235,7 +364,7 @@ def load_concepts(root: Path) -> list[dict]:
     files = sorted(glob.glob(str(root / CONCEPTS_GLOB)))
     if not files:
         return []
-    concepts = [_parse_one(Path(f)) for f in files]
+    concepts = [_parse_one(Path(f), root) for f in files]
 
     ids = {c["id"] for c in concepts}
     for c in concepts:
@@ -296,19 +425,107 @@ CLASS_GENERATOR = "generator-failure"
 MARKER = "RC-CONCEPTS-CLASS: "
 
 
-def _staleness_violations(concepts: list[dict]) -> list[str]:
+def _is_gated(c: dict) -> bool:
+    """Which concepts the freshness gate applies to.
+
+    ⛔ BOTH ESCAPES OF THE OLD CONDITION ARE CLOSED HERE. The old line was
+    `if c["kind"] != "platform-fact" or not c["last_verified"]: continue` — an OR,
+    so a concept escaped on EITHER limb. This function closes the kind limb;
+    _freshness_violations closes the missing-field limb by treating an absent
+    last_verified as a VIOLATION rather than a skip. Closing only one leaves the
+    silent-green shape intact, which is why they are asserted separately.
+    """
+    return c.get("entry_class") == ENTRY_CLASS_INVENTORY or c["kind"] == "platform-fact"
+
+
+def _refresh_hint(c: dict) -> str:
+    rw = c.get("refresh_when")
+    if isinstance(rw, str) and rw.strip():
+        return f"\n      refresh_when: {rw.strip()}"
+    if isinstance(rw, list) and rw:
+        return f"\n      refresh_when globs: {', '.join(rw)}"
+    return ""
+
+
+def _freshness_violations(
+    root: Path, concepts: list[dict], sweep: bool = False
+) -> tuple[list[str], list[str]]:
+    """Return (blocking, warning). See the axis table at the top of this file.
+
+    ⛔ CALENDAR AGE ON INVENTORY ENTRIES WARNS ON A PR AND BLOCKS ON THE SWEEP.
+    A blocking calendar gate over a large corpus is a periodic repo-wide outage —
+    entries authored in waves expire in waves, reddening every open PR including
+    ones touching nothing related — and a gate that gets disabled protects
+    nothing. Content drift carries the blocking duty because it fires when the
+    fact can actually have become false.
+    """
     today = _today()
-    out = []
+    blocking: list[str] = []
+    warnings: list[str] = []
     for c in concepts:
-        if c["kind"] != "platform-fact" or not c["last_verified"]:
+        if not _is_gated(c):
             continue
-        age = (today - datetime.date.fromisoformat(c["last_verified"])).days
-        if age > STALE_DAYS:
-            out.append(f"  ✗ {c['id']}: last_verified {c['last_verified']} is {age} days old (> {STALE_DAYS})")
-    return out
+        cid = c["id"]
+        lv = c.get("last_verified")
+
+        if not lv:
+            # ⛔ ESCAPE 2. An absent field is a VIOLATION, not a skip. Skipping it
+            # makes "unverified" render identically to "verified recently".
+            blocking.append(f"  ✗ {cid}: last_verified is ABSENT — unverified is not fresh")
+        else:
+            age = (today - datetime.date.fromisoformat(lv)).days
+            if c["kind"] == "platform-fact":
+                if age > STALE_DAYS:
+                    blocking.append(
+                        f"  ✗ {cid}: last_verified {lv} is {age} days old (> {STALE_DAYS})"
+                    )
+            elif age > INVENTORY_STALE_DAYS:
+                msg = (
+                    f"  ✗ {cid}: last_verified {lv} is {age} days old "
+                    f"(> {INVENTORY_STALE_DAYS}){_refresh_hint(c)}"
+                )
+                (blocking if sweep else warnings).append(msg)
+
+        covers = c.get("covers")
+        if covers:
+            actual = compute_covers_digest(root, covers, c.get("refresh_when"))
+            if actual != c.get("covers_digest"):
+                blocking.append(
+                    f"  ✗ {cid}: covers_digest drift — a covered artifact changed after "
+                    f"the entry was stamped{_refresh_hint(c)}\n"
+                    f"      re-READ the entry, then:  scripts/concepts.py --restamp {cid} "
+                    f"--reason '<>={RESTAMP_REASON_MIN} chars on what you re-verified>'\n"
+                    f"      cosmetic edit only:       scripts/concepts.py --restamp-cosmetic {cid}\n"
+                    f"      (--restamp-cosmetic moves the digest and NOT last_verified, so a "
+                    f"typo fix does not buy {INVENTORY_STALE_DAYS} days of false freshness)"
+                )
+    return blocking, warnings
 
 
-def _emit(freshness: list[str], generator: list[str]) -> int:
+def _set_frontmatter(path: Path, updates: dict) -> None:
+    """Set/replace top-level scalar keys in a concept file frontmatter, in place.
+
+    Line-oriented on purpose: a YAML round-trip would reformat the whole file and
+    make a one-field restamp indistinguishable from a rewrite in review.
+    """
+    text = path.read_text(encoding="utf-8")
+    m = _FM_RE.match(text)
+    if not m:
+        raise ConceptError(f"{path.name}: no YAML frontmatter to update")
+    fm_lines = m.group(1).split("\n")
+    for key, val in updates.items():
+        rendered = f'{key}: "{val}"' if key == "covers_digest" else f"{key}: {val}"
+        for i, ln in enumerate(fm_lines):
+            if re.match(rf"^{re.escape(key)}\s*:", ln):
+                fm_lines[i] = rendered
+                break
+        else:
+            fm_lines.append(rendered)
+    path.write_text("---\n" + "\n".join(fm_lines) + "\n---\n" + m.group(2), encoding="utf-8")
+
+
+def _emit(freshness: list[str], generator: list[str], warnings: list[str] | None = None) -> int:
+    warnings = warnings or []
     """Report EVERY collected violation class, then exit once.
 
     ⛔ COLLECT-ALL, NEVER SHORT-CIRCUIT. The previous shape evaluated staleness
@@ -318,6 +535,13 @@ def _emit(freshness: list[str], generator: list[str]) -> int:
     defect already in this repo record, where a red gate hides later ones in the
     same step. A caller must be able to see both at once.
     """
+    if warnings:
+        # ⛔ A WARNING IS NOT A PASS AND NOT A FAILURE. It is printed on every run
+        # so a corpus drifting past its calendar window is visible on the PR that
+        # would otherwise never mention it, while the SWEEP is what blocks.
+        print("Concept staleness WARNING (calendar age; blocks on the scheduled sweep, not here):")
+        print("\n".join(warnings))
+        print()
     if freshness:
         print("Concept staleness gate FAILED — refresh last_verified after re-checking the source:")
         print("\n".join(freshness))
@@ -331,10 +555,94 @@ def _emit(freshness: list[str], generator: list[str]) -> int:
     return 1 if (freshness or generator) else 0
 
 
+def _do_restamp(root: Path, registry: dict, args) -> int:
+    """Re-stamp one entry. Two forms, and the difference is the whole point.
+
+    ⛔ --restamp IS A CLAIM THAT SOMEBODY RE-READ THE ENTRY, not that a command
+    ran. Left as a bare digest refresh it becomes the new advisory-hook-writing-
+    to-stderr: it passes every check and nobody re-read the claim. So the
+    substantive form requires --reason of >= RESTAMP_REASON_MIN chars and appends
+    a committed log line carrying {entry_id, date, reason, digest_before,
+    digest_after}. coverage --report then surfaces the RATIO of restamps whose
+    nuance text was unchanged — a high ratio is the tell for a rubber-stamp loop.
+    That ratio is REPORTED, never gated: a legitimately-unchanged nuance after a
+    real re-read is normal, and gating it would manufacture false edits.
+
+    ⛔ --restamp-cosmetic moves covers_digest and NOT last_verified, so fixing a
+    typo in a covered file cannot buy the entry another full staleness window.
+    """
+    cid = args.restamp or args.restamp_cosmetic
+    cosmetic = bool(args.restamp_cosmetic)
+    by_id = {c["id"]: c for c in registry["concepts"]}
+    c = by_id.get(cid)
+    if c is None:
+        print(f"restamp: no concept with id '{cid}'")
+        return 2
+    if not c.get("covers"):
+        print(f"restamp: '{cid}' declares no covers[] — there is no digest to stamp")
+        return 2
+
+    if not cosmetic:
+        reason = (args.reason or "").strip()
+        if len(reason) < RESTAMP_REASON_MIN:
+            print(
+                f"restamp: --reason is {len(reason)} chars (need >= {RESTAMP_REASON_MIN}).\n"
+                "  A restamp asserts you RE-READ the entry against its covered artifacts.\n"
+                "  If you only fixed a typo, use --restamp-cosmetic, which does not move\n"
+                "  last_verified and therefore does not buy the entry a fresh window."
+            )
+            return 2
+
+    path = root / Path(CONCEPTS_GLOB).parent / f"{cid}.md"
+    if not path.is_file():
+        print(f"restamp: concept file not found at {path}")
+        return 2
+
+    before = c.get("covers_digest") or ""
+    after = compute_covers_digest(root, c["covers"], c.get("refresh_when"))
+    updates = {"covers_digest": after}
+    today = _today().isoformat()
+    if not cosmetic:
+        updates["last_verified"] = today
+    _set_frontmatter(path, updates)
+
+    if not cosmetic:
+        log = root / RESTAMP_LOG
+        log.parent.mkdir(parents=True, exist_ok=True)
+        entry = {
+            "entry_id": cid,
+            "date": today,
+            "reason": args.reason.strip(),
+            "digest_before": before,
+            "digest_after": after,
+        }
+        with log.open("a", encoding="utf-8") as fh:
+            fh.write(json.dumps(entry, ensure_ascii=False, sort_keys=True) + "\n")
+
+    kind = "cosmetic (last_verified NOT moved)" if cosmetic else f"substantive (last_verified -> {today})"
+    print(f"restamped {cid}: {kind}")
+    if before == after:
+        print("  note: the digest did not change — nothing the entry covers had drifted.")
+    print("  now regenerate: scripts/concepts.py")
+    return 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--root", default=".", help="repo root")
     ap.add_argument("--check", action="store_true", help="gate mode: validate + diff, never write")
+    ap.add_argument(
+        "--sweep",
+        action="store_true",
+        help="scheduled-sweep mode: promote calendar-age WARNINGS to blocking failures",
+    )
+    ap.add_argument("--restamp", metavar="ID", help="re-stamp an entry after RE-READING it (needs --reason)")
+    ap.add_argument(
+        "--restamp-cosmetic",
+        metavar="ID",
+        help="re-stamp covers_digest ONLY, leaving last_verified where it is (cosmetic edits)",
+    )
+    ap.add_argument("--reason", help=f"why the entry was re-verified (>= {RESTAMP_REASON_MIN} chars)")
     args = ap.parse_args()
     root = Path(args.root).resolve()
     out_path = root / REGISTRY_PATH
@@ -350,9 +658,12 @@ def main() -> int:
 
     serialized = _serialize(registry)
 
+    if args.restamp or args.restamp_cosmetic:
+        return _do_restamp(root, registry, args)
+
     if args.check:
-        # Two buckets, both filled completely before anything is printed.
-        freshness = _staleness_violations(registry["concepts"])
+        # Three buckets, ALL filled completely before anything is printed.
+        freshness, warnings = _freshness_violations(root, registry["concepts"], sweep=args.sweep)
         generator: list[str] = []
 
         if not out_path.exists():
@@ -360,9 +671,14 @@ def main() -> int:
         elif out_path.read_text(encoding="utf-8") != serialized:
             generator.append("  ✗ concepts.json is STALE — regenerate with: scripts/concepts.py")
 
-        rc = _emit(freshness, generator)
+        rc = _emit(freshness, generator, warnings)
         if rc == 0:
-            print(f"Concepts OK — {len(registry['concepts'])} concept(s), registry fresh, no stale platform-facts.")
+            mode = "sweep" if args.sweep else "PR"
+            print(
+                f"Concepts OK — {len(registry['concepts'])} concept(s), registry fresh, "
+                f"no stale platform-facts, no covers drift [{mode} mode, "
+                f"{len(warnings)} calendar warning(s)]."
+            )
         return rc
 
     out_path.write_text(serialized, encoding="utf-8")

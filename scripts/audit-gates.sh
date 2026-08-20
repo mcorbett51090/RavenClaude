@@ -260,6 +260,40 @@ _gate34() {
 # duplicated list drifts; the header previously stopped at 105 while the case ran
 # to 127). Add a new value in both those places when a gate acquires a standalone
 # runner script.
+# ── Shared: the --must-fail CONVENTION comparator (plan §6.3) ──────────────
+# ⛔ --must-fail CONVENTIONS DIFFER PER TOOL AND MUST NOT BE HARD-CODED.
+# Measured in this repo: premise-gate.py uses exit 0 as its teeth bit;
+# sync-plugin-versions.py uses exit 2. A shared constant is wrong by
+# construction. So every detector this initiative adds implements
+# --must-fail-convention, printing exactly `must-fail-teeth-exit: <n>`, and
+# --must-fail, which runs its planted canary and exits with that declared code.
+#
+# This helper calls the convention FIRST, then --must-fail, and COMPARES. A tool
+# that declares one number and returns another fails the audit — which also
+# catches a future convention change silently breaking the auditor, the failure
+# mode a hard-coded expectation cannot see.
+#
+# Usage: rc_mustfail <interpreter> <script> [extra args...]
+# Returns 0 only when the declaration and the observed exit agree.
+rc_mustfail() {
+  local runner="$1"; shift
+  local tool="$1"; shift
+  local decl want got
+  decl="$("$runner" "$tool" --must-fail-convention 2>/dev/null)" || {
+    echo "    ✗ $tool does not implement --must-fail-convention" >&2; return 1; }
+  want="${decl##*must-fail-teeth-exit: }"
+  case "$want" in
+    ''|*[!0-9]*) echo "    ✗ $tool declared an unparseable convention: $decl" >&2; return 1 ;;
+  esac
+  got=0
+  "$runner" "$tool" --must-fail "$@" >/dev/null 2>&1 || got=$?
+  if [[ "$got" != "$want" ]]; then
+    echo "    ✗ $tool declared teeth exit $want but --must-fail returned $got" >&2
+    return 1
+  fi
+  return 0
+}
+
 if [[ "${1:-}" == "--check" && -n "${2:-}" ]]; then
   case "${2}" in
     20)
@@ -592,6 +626,14 @@ PY
       bash plugins/ravenclaude-core/hooks/tests/test-gate233-triage-outcome.sh || rc=$?
       bash plugins/ravenclaude-core/hooks/tests/test-gate233-triage-outcome.sh \
         --must-fail-echo || rc=$?
+      exit $rc
+      ;;
+    237)
+      echo "── Gate 237: inventory staleness — both escapes, both axes ──"
+      rc=0
+      bash plugins/ravenclaude-core/hooks/tests/test-gate237-inventory-staleness.sh || rc=$?
+      python3 scripts/check-covers-completeness.py --check || rc=$?
+      rc_mustfail python3 scripts/check-covers-completeness.py || rc=$?
       exit $rc
       ;;
     236)
@@ -1331,7 +1373,7 @@ PY
       ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -8510,6 +8552,44 @@ gate "self-heal contract holds for every emitted failure class" must_pass "$rc"
 rc=0
 bash scripts/spike-selfheal-contract.sh --must-fail >/dev/null 2>&1 || rc=$?
 gate "self-heal contract probe has teeth (unmarked + generator outputs are fatal)" must_pass "$rc"
+
+echo
+
+echo "── Gate 237: inventory staleness — both escapes, both axes ─────────────────"
+# The old gate read: if c["kind"] != "platform-fact" or not c["last_verified"]:
+# continue. An OR, so a concept escaped on EITHER limb — and the corpus made the
+# first limb dominant (41 ravenclaude-built against 17 platform-fact), so the gate
+# covered the MINORITY kind. Every inventory entry would have inherited zero
+# staleness pressure, and an entry with no last_verified at all was skipped, so
+# "unverified" rendered identically to "verified recently".
+#
+# control: the same fixture tree is run in PR mode and in --sweep mode and the two
+# verdicts must DIFFER. Without that, either result could be an accident of the
+# other, and a gate that returns the same answer to both questions is measuring
+# neither.
+#
+# ⛔ Content drift blocks on a PR; calendar age only warns there and blocks on the
+# sweep. A blocking calendar gate at corpus scale is a periodic repo-wide outage
+# — entries authored in waves expire in waves — and a gate that gets disabled
+# protects nothing.
+#
+# ⛔ Registered in BOTH this main sequence AND the --check dispatcher above AND
+# the Supported: string. ⛔ Grep the suite output for the literal name.
+rc=0
+bash plugins/ravenclaude-core/hooks/tests/test-gate237-inventory-staleness.sh >/dev/null 2>&1 || rc=$?
+gate "inventory staleness closes BOTH escapes; drift blocks, calendar warns" must_pass "$rc"
+rc=0
+python3 scripts/check-covers-completeness.py --check >/dev/null 2>&1 || rc=$?
+gate "covers[] completeness: no nuance names a path its digest does not watch" must_pass "$rc"
+rc=0
+rc_mustfail python3 scripts/check-covers-completeness.py >/dev/null 2>&1 || rc=$?
+gate "covers-completeness declares its must-fail convention AND honours it" must_pass "$rc"
+rc=0
+rc_mustfail python3 scripts/audit-prose-rendering-path.py >/dev/null 2>&1 || rc=$?
+gate "prose-rendering audit declares its must-fail convention AND honours it" must_pass "$rc"
+rc=0
+python3 scripts/audit-prose-rendering-path.py --check >/dev/null 2>&1 || rc=$?
+gate "authored prose never reaches a shell; no apostrophe closed a quoted block" must_pass "$rc"
 
 echo
 

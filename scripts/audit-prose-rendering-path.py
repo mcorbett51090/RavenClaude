@@ -184,10 +184,14 @@ def main() -> int:
             shell_findings = check_shell_interpolation(
                 [fake / "scripts" / "bad-consumer.py"], root=fake
             )
+            # ⛔ INVERTED EXIT ON PURPOSE — see the note in
+            # check-covers-completeness.py. --must-fail exits with the DECLARED
+            # teeth code when the canary bites, so audit-gates can compare the
+            # declaration against the observed exit instead of hard-coding one.
             if len(shell_findings) < 2:
                 print("✗ must-fail: shell-interpolation detector did not bite on a")
                 print("  planted consumer. The clean report on the real tree is not evidence.")
-                return 1
+                return 0
             # Planted broken shell: an unterminated quote must trip bash -n.
             (fake / "scripts" / "bad-shell.sh").write_text(
                 "#!/usr/bin/env bash\necho 'unterminated\n", encoding="utf-8"
@@ -196,9 +200,10 @@ def main() -> int:
             if not errs:
                 print("✗ must-fail: shell-syntax detector did not bite on a planted")
                 print("  unterminated single-quoted block.")
-                return 1
-        print("✓ must-fail: both detectors bit on planted defects (teeth exit 1 declared).")
-        return 0
+                return 0
+        print("✓ must-fail: both detectors bit on planted defects.")
+        print("  exiting 1, the DECLARED teeth code, so the auditor can compare.")
+        return 1
 
     consumers = find_prose_consumers(root)
     shell_findings = check_shell_interpolation(consumers)
