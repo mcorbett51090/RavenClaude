@@ -115,6 +115,58 @@ if [ -f "$DASH" ]; then
   else
     bad "nuance block renders" "nuance or unprobed styling absent from the page"
   fi
+
+  # ⛔ A STYLESHEET IS NOT A RENDERED BADGE. Every assertion above matches a CSS
+  # selector, which would still be present if no element ever wore the class —
+  # an adversarial audit flagged exactly that gap. This asserts real ELEMENTS,
+  # and it DERIVES what to expect from the registry rather than hardcoding a list.
+  #
+  # ⛔ Two things the first version of this got wrong, both worth keeping written:
+  #   1. It demanded all four badges. Only three are in use — no entry currently
+  #      carries `strength: observational` — so a correct page failed. An
+  #      expectation must come from the data, not from the set of things that
+  #      could exist.
+  #   2. It searched for unescaped quotes. The concept cards live inside the
+  #      islanded <script type="application/json"> payload, where the markup is
+  #      stored ESCAPED, so the probe reported zero elements on a page that
+  #      renders them correctly — the manufactured-empty-result class.
+  elem_rc=0
+  python3 - "$DASH" "$ROOT/plugins/ravenclaude-core/concepts.json" <<'ELEMPY' || elem_rc=$?
+import json, re, sys
+from collections import Counter
+
+html = open(sys.argv[1], encoding="utf-8").read()
+reg = json.load(open(sys.argv[2], encoding="utf-8"))
+
+CLS = {"Probed": "probed", "Findable": "findable",
+       "Observed": "observed", "Unverified": "unverified"}
+want = Counter(c["strength_badge"] for c in reg["concepts"] if c.get("strength_badge"))
+if not want:
+    print("no entry carries a strength_badge — EMPTY, not clean")
+    sys.exit(1)
+
+problems = []
+for badge, n in want.items():
+    # Accept the escaped and unescaped quote forms; the payload uses escaped.
+    got = len(re.findall(r'class=\\?"concept-strength ' + CLS[badge] + r'\\?"', html))
+    if got != n:
+        problems.append(f"{badge}: registry says {n}, page has {got}")
+
+for pat, name in ((r'class=\\?"concept-nuance\\?"', "concept-nuance"),
+                  (r'class=\\?"ohc-cell\\?"', "ohc-cell")):
+    if not re.search(pat, html):
+        problems.append(f"no element wears {name}")
+
+if problems:
+    print("; ".join(problems))
+    sys.exit(1)
+print(f"verified {sum(want.values())} badge elements across {len(want)} distinct badges")
+ELEMPY
+  if [ "$elem_rc" -eq 0 ]; then
+    ok "R12: element COUNT per badge matches the registry; nuance + health card render"
+  else
+    bad "badges on real elements" "a class exists only in CSS, or the count disagrees with the registry"
+  fi
 fi
 
 # ── 6. Diagrams are OPT-IN for inventory entries ──────────────────────────
