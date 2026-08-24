@@ -370,6 +370,23 @@ fi
 # human is meant to use. The prompt is both an argv element and human-facing text.
 successor_prompt="Continue task ${task_id}. Read .ravenclaude/runs/${task_id}/handoff.md first. Fresh window - do not /fork, do not /compact, do not launch grok."
 
+# ⛔ SINGLE-QUOTE WRAP, not `printf %q`. Both are shell-safe; only one is readable.
+# %q backslash-escapes every space, so the copy-paste line a human is meant to
+# select renders as `claude Continue\ task\ t1.\ Read\ ...` — correct and
+# unusable. Single quotes are safe for ANY content (including newlines), with
+# '"'"'\'"'"' as the standard escape for an embedded quote, so one helper serves the
+# machine-read launcher AND the human-read block without them drifting.
+# ⛔ Parameter expansion, NOT sed. A `sed "s/'/'\\''/g"` inside a double-quoted
+# string loses a backslash layer (bash collapses \\ -> \), so sed sees \' , reads
+# it as a literal quote, and emits ''' instead of '\'' — which SPLITS the argument
+# instead of escaping it. Measured 2026-08-24 with task-id `it's`. ${v//p/r} is
+# bash 3.2-safe and has no second interpreter to quote through.
+_shq() {
+  local _s=$1
+  _s=${_s//\'/\'\\\'\'}
+  printf "'%s'" "$_s"
+}
+
 # vscode without a Grok/CLI marker is not Chat and is not a grok TUI we can prove.
 if [ "$host" = "unknown" ] && [ "${TERM_PROGRAM:-}" = "vscode" ]; then
   seed="# host=unknown (TERM_PROGRAM=vscode without Grok/CLI markers) — copy-paste only. Do not launch grok. Do not infer Chat."
@@ -436,7 +453,7 @@ EOF
     cat <<EOF
 # copy-paste into a new terminal in this repo (Claude Code, not grok):
 cd $(printf '%q' "$project_root")
-claude $(printf '%q' "$successor_prompt")
+claude $(_shq "$successor_prompt")
 # (or run a bare \`claude\` and paste: ${successor_prompt})
 EOF
     return
@@ -568,7 +585,7 @@ elif [ "$host" = "claude-code" ]; then
   cat > "$launch" <<EOF
 #!/bin/bash
 cd $(printf '%q' "$project_root") || exit 1
-exec claude $(printf '%q' "$successor_prompt")
+exec claude $(_shq "$successor_prompt")
 EOF
 elif [ "$host" = "grok" ] || { [ "$host" = "unknown" ] && [ "$named_but_unknown" -eq 0 ]; }; then
   # host=grok, or case (a): nothing named and nothing detected, which the
