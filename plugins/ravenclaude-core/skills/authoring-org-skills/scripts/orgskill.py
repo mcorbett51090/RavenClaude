@@ -438,18 +438,23 @@ def main(argv: list[str] | None = None) -> int:
                 for a in ambiguity:
                     print("orgskill pack: AMBIGUITY %s" % a, file=sys.stderr)
                 return EXIT_FINDINGS
-            _tier, accepted = packer.derive_zp02_tier(packer.evidence_path(skill_root))
+            layout, basis, basis_note = packer.derive_default_layout(
+                packer.evidence_path(skill_root))
             try:
-                result = packer.pack(args.target, args.out, table, findings,
-                                     layout=accepted or "A")
+                result = packer.pack(args.target, args.out, table, findings, layout=layout)
             except packer.PackRefused as exc:
                 print("orgskill pack: %s" % exc, file=sys.stderr)
                 return EXIT_FINDINGS
             print("packed %s (%d entries, root layout %s)"
                   % (result["archive"], len(result["entries"]), result["layout"]))
-            if accepted is None:
-                print("NOTE: the zip-root question is unsettled, so layout A was used. "
-                      "See reference/platform-constraints.md#zip-root-settlement.")
+            # ⛔ The BASIS travels with the layout. A user who is told "layout A" and not
+            # told why has no way to know whether that was observed, researched, or
+            # guessed — and those three carry very different odds of the upload working.
+            if basis != "upload-verified":
+                print("NOTE: root layout %s chosen on basis '%s' — %s."
+                      % (result["layout"], basis, basis_note))
+                print("      See reference/platform-constraints.md#zip-root-settlement. "
+                      "One upload each settles it.")
             return EXIT_OK
 
         findings, notes = packer.verify(

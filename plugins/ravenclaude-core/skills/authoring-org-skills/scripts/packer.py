@@ -62,6 +62,44 @@ def derive_zp02_tier(evidence_path: str) -> tuple[str, str | None]:
     return "fail", layout.group(1)
 
 
+_RESEARCH_RE = re.compile(r"^research_indicates:\s*([ABab]|unresolved)\s*$", re.M)
+_RESEARCH_CONF_RE = re.compile(r"^research_confidence:\s*(strong|moderate|weak|none)\s*$", re.M)
+
+
+def derive_default_layout(evidence_path: str) -> tuple[str, str, str]:
+    """Return (layout, basis, note) for what `pack` should EMIT.
+
+    ⛔ TWO KINDS OF EVIDENCE, DELIBERATELY NOT COLLAPSED INTO ONE FLAG.
+
+      `settled:`           an UPLOAD was attempted and observed. Promotes ZP02's TIER.
+      `research_indicates:` documentation and tooling were read. Moves only this DEFAULT.
+
+    Research can tell you what the platform's own packaging tool emits. It cannot tell
+    you what the platform's unpacker accepts, because nobody ran it. Letting a researched
+    answer promote a rule to FAIL would mean blocking a user's archive on a conclusion
+    drawn from a doc — which is exactly the confident-inference-from-a-true-observation
+    failure this whole file exists to avoid. So research improves the guess and never
+    the verdict, and the basis travels with the value so a reader can discount it.
+
+    Precedence: upload-verified > research > fallback A.
+    """
+    tier, accepted = derive_zp02_tier(evidence_path)
+    if accepted:
+        return accepted, "upload-verified", "an upload was attempted and observed"
+    try:
+        with open(evidence_path, encoding="utf-8") as fh:
+            text = fh.read()
+    except (OSError, UnicodeDecodeError):
+        return "A", "fallback", "no evidence file; layout A is an arbitrary default"
+    m = _RESEARCH_RE.search(text)
+    if not m or m.group(1).lower() == "unresolved":
+        return "A", "fallback", "research recorded no answer; layout A is an arbitrary default"
+    conf = _RESEARCH_CONF_RE.search(text)
+    return (m.group(1).upper(), "research",
+            "RESEARCH ONLY, NOT UPLOAD-TESTED (confidence: %s)"
+            % (conf.group(1) if conf else "unstated"))
+
+
 def evidence_path(skill_root: str) -> str:
     return os.path.join(skill_root, "reference", "platform-constraints.md")
 

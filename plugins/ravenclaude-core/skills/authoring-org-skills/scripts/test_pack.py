@@ -276,6 +276,36 @@ def main(argv: list[str]) -> int:
           packer.derive_zp02_tier(settled) == ("warn", None),
           "settled:yes with no accepted_layout is not a settlement")
 
+    # ── research vs upload-verified: two evidences, never collapsed ─────────
+    # ⛔ The case that matters is the LAST one. If research could outrank an observed
+    # upload, a doc-derived conclusion would start blocking real archives — the
+    # confident-inference-from-a-true-observation failure, wired into a linter.
+    for label, body, want in (
+        ("nothing recorded", "settled: no\n", ("A", "fallback")),
+        ("research A", "settled: no\nresearch_indicates: A\nresearch_confidence: moderate\n",
+         ("A", "research")),
+        ("research B", "settled: no\nresearch_indicates: B\nresearch_confidence: weak\n",
+         ("B", "research")),
+        ("research unresolved", "settled: no\nresearch_indicates: unresolved\n", ("A", "fallback")),
+        ("upload OUTRANKS research",
+         "settled: yes\naccepted_layout: B\nresearch_indicates: A\n", ("B", "upload-verified")),
+    ):
+        ep = os.path.join(d, "ev.md")
+        with open(ep, "w", encoding="utf-8") as fh:
+            fh.write(body)
+        got = packer.derive_default_layout(ep)[:2]
+        check("default layout: %-24s -> %s" % (label, want[0] + "/" + want[1]), got == want, str(got))
+    check("        …and research NEVER promotes ZP02's tier",
+          packer.derive_zp02_tier(ep) == ("fail", "B")
+          and packer.derive_zp02_tier(os.path.join(d, "ev.md")) == ("fail", "B"),
+          "upload set this one; the research-only cases above must stay warn")
+    with open(os.path.join(d, "r.md"), "w", encoding="utf-8") as fh:
+        fh.write("settled: no\nresearch_indicates: B\nresearch_confidence: strong\n")
+    check("        …even at research_confidence: strong",
+          packer.derive_zp02_tier(os.path.join(d, "r.md")) == ("warn", None)
+          and packer.derive_default_layout(os.path.join(d, "r.md"))[0] == "B",
+          "strong research moved the DEFAULT to B but must leave the TIER at warn")
+
     total = ok + len(bad)
     print("\norgskill pack/verify suite: %s (%d/%d)"
           % ("PASS" if not bad else "FAIL", ok, total))

@@ -55,7 +55,26 @@ platform accepting either layout, and only the second settles the rule. If both 
 the constraint is looser than S7 implies and `ZP02` stays at WARN **as a correct
 description of reality**, not as an unresolved to-do.
 
-### Result
+### Two kinds of evidence, and they are not interchangeable
+
+|  | What it is | What it moves |
+|---|---|---|
+| `settled:` + `accepted_layout:` | an upload was **attempted and observed** | `ZP02`'s **tier** (WARN -> FAIL) *and* the packer's default |
+| `research_indicates:` + `research_confidence:` | documentation and tooling were **read** | the packer's **default layout only** |
+
+⛔ **Research never promotes the tier, at any confidence.** Reading Anthropic's docs — even
+reading the exact zip-writing line in Anthropic's own packaging tool — tells you what the
+platform *emits*. It cannot tell you what the platform's unpacker *accepts*, because nobody
+ran it. Letting a documentary conclusion block a user's archive would be a confident
+inference drawn from a true observation, wired into a linter: the precise failure mode the
+rest of this studio is built to prevent. So research improves the **guess** and never the
+**verdict**, and `derive_default_layout()` returns the basis alongside the value so the
+packer can print which one the user is getting.
+
+Precedence: **upload-verified > research > fallback A.** A recorded upload outranks any
+research, including research that disagrees with it.
+
+### Result — upload attempt
 
 ```
 date:            <unrecorded>
@@ -66,7 +85,18 @@ settled:         no
 
 **The parser reads the `settled:` line.** While it says anything other than `yes`, `ZP02`
 is WARN. To settle it: fill in the outcomes, set `settled: yes`, and set `accepted_layout:`
-to `A` or `B` on its own line. The packer's fixture flip follows from that value.
+to `A` or `B` on its own line.
+
+### Result — research
+
+```
+research_date:       <unrecorded>
+research_indicates:  unresolved
+research_confidence: none
+```
+
+`research_indicates:` accepts `A`, `B`, or `unresolved`; `research_confidence:` accepts
+`strong`, `moderate`, `weak`, or `none`. Findings and their citations go below this block.
 
 ---
 
