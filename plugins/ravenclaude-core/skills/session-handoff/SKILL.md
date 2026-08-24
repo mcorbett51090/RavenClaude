@@ -7,7 +7,34 @@ allowed-tools: Bash, Read, Write, Edit
 
 # Session handoff — fresh window, not a compact
 
-This is a **quality reset**. Write the brief to the existing run-dir contract, then continue in a **new empty** session on the **same host**: Grok TUI → Grok TUI, Copilot Chat → **new** Chat session, Copilot CLI → Copilot CLI. Compaction keeps the transcript on disk; it does not keep quality.
+Write the brief to the existing run-dir contract, then continue in a **new empty** session on the **same host**: Grok TUI → Grok TUI, Copilot Chat → **new** Chat session, Copilot CLI → Copilot CLI.
+
+## ⛔ FIRST: do you need this at all? Default is `/compact`.
+
+**`/compact` by default. `/handoff` for three specific cases it structurally cannot cover.**
+
+This skill used to open with *"compaction keeps the transcript on disk; it does not keep
+quality."* That framing is **overstated, and this repo retracted the harder version of it after
+measuring** (see the marketplace CLAUDE.md, v0.244.1): **compaction APPENDS.** Measured on real
+transcripts — 44 `compact_boundary` records; a 12,398-line transcript with its first boundary at
+line 4031 and **1,942 pre-boundary turns still present**; **939 `thinking` blocks** retained.
+`compact-anchor.sh` exists precisely because the post-compaction agent does not lack the *data* —
+it lacks the **addressability**, which is one injected line, not a new session.
+
+So the burden is on `/handoff` to earn the reset. It earns it here:
+
+| Reach for | When | Why `/compact` cannot do it |
+|---|---|---|
+| **`/compact`** | **default** — context is hot and you are mid-task | keeps the process, the tools, and the thread |
+| **`/handoff`** | a **plugin/hook change must go live** | the plugin cache is **version-keyed** and hooks load at **SessionStart**. `/compact` is the SAME process, so a merged hook fix stays inert no matter how much context you free |
+| **`/handoff`** | the **next reader is not this session** — a different CLI, a later day, a teammate | `handoff.md` is the **cross-CLI contract**. Nothing in a compacted transcript is readable by Copilot or Codex |
+| **`/handoff`** | the **task is genuinely done** | a fresh window starts on the finished state instead of carrying a completed task's history |
+
+⛔ **The two halves of this skill are INDEPENDENT — do not conflate them.** *Writing the brief*
+is durable and always worth it; *opening the window* is the expensive half. You may run steps
+1–5 (write `handoff.md` + `summary.md` + `decisions.md`), then **`/compact` and keep going**. The
+run dir banks the expensive knowledge either way, and it survives compaction, a crash, and the
+session ending. **Skipping step 6 is a supported outcome, not an abandoned handoff.**
 
 ## Gotchas (read these; they are the load-bearing rules)
 
