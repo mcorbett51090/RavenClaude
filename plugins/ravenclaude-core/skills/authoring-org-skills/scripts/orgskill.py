@@ -32,6 +32,7 @@ EXIT_OK = 0
 EXIT_FINDINGS = 2
 EXIT_USAGE = 2
 
+_HARD_REFUSALS = ("R1", "R2", "R3", "R4")
 _VALID_TIERS = ("fail", "warn")
 _VALID_CLASSES = ("ground-truth", "advisory")
 _CLAIM_RE = re.compile(r"^S(\d+)$")
@@ -132,6 +133,21 @@ def check_invariants(data: dict[str, Any], max_claim: int) -> list[str]:
                 except (TypeError, ValueError, ZeroDivisionError):
                     problems.append("%s: fire_rate n/total/value are not numeric" % rid)
 
+        # ⛔ A hard refusal that lost its no_override flag is a refusal with a --force.
+        # The invariant is listed in the table's own invariants[]; a listed invariant
+        # nothing checks is this repo's gate-that-asserts-nothing class, so it is
+        # enforced here rather than described there.
+        if rid in _HARD_REFUSALS:
+            if tier != "fail":
+                problems.append("%s: a hard refusal must be tier 'fail' (got %r)" % (rid, tier))
+            if klass != "ground-truth":
+                problems.append("%s: a hard refusal must be class 'ground-truth' (got %r)"
+                                % (rid, klass))
+            if rule.get("no_override") is not True:
+                problems.append("%s: a hard refusal must carry no_override: true — a "
+                                "supply-chain refusal with an override is a refusal that "
+                                "will be overridden" % rid)
+
     if not data.get("stale_after"):
         problems.append("<table>: missing stale_after stamp — an unswept snapshot "
                         "enforces moved constraints with a green verdict")
@@ -224,6 +240,10 @@ def main(argv: list[str] | None = None) -> int:
     p_lint.add_argument("--rules", default=None, help="override the rule-table path")
     p_lint.add_argument("--markers", default=None, help="override the DS02 marker list")
     p_lint.add_argument("--json", action="store_true")
+    p_lint.add_argument("--run-record", default=None,
+                        help="path to the EXTERNAL run record naming quarantine reviewers. "
+                             "This is NOT an override: it can only satisfy the reviewer "
+                             "condition of a quarantine, never skip a refusal.")
     p_lint.add_argument("--warn-only", action="store_true",
                         help="report warns but exit 0 unless a FAIL fired")
 
@@ -286,17 +306,44 @@ def main(argv: list[str] | None = None) -> int:
             markers = []
 
         findings, ambiguity = lint_rules.lint_skill(args.target, table, markers)
+
+        # ── refusals (Phase 3) ───────────────────────────────────────────────
+        # Re-read the frontmatter the same way lint_rules does, so the description
+        # region the refusal scan treats as unconditional is byte-identical to the
+        # one the linter checked. Two parsers would be two definitions of "the
+        # description", and the strict one would be whichever ran second.
+        import refusals
+        try:
+            _raw = open(os.path.join(args.target, "SKILL.md"), encoding="utf-8").read()
+        except (OSError, UnicodeDecodeError):
+            _raw = ""
+        _fm_block, _body = lint_rules.split_frontmatter(_raw)
+        _fm = lint_rules.parse_scalars(_fm_block)[0] if _fm_block else {}
+        bundled = []
+        for _root, _dirs, _files in os.walk(args.target):
+            for _f in _files:
+                _rel = os.path.relpath(os.path.join(_root, _f), args.target)
+                if _rel != "SKILL.md":
+                    bundled.append(_rel)
+        record = refusals.load_run_record(args.run_record)
+        r_findings = refusals.scan_refusals(args.target, table, _body,
+                                            _fm.get("description", ""), record, bundled)
+        findings.extend(r_findings)
+        risk, drivers = refusals.scanner_risk(r_findings)
         fails = [f for f in findings if f["tier"] == "fail"]
         warns = [f for f in findings if f["tier"] == "warn"]
 
         if args.json:
             print(json.dumps({"target": args.target, "findings": findings,
-                              "ambiguity": ambiguity,
+                              "ambiguity": ambiguity, "scanner_risk": risk,
+                              "scanner_risk_drivers": drivers,
+                              "scanner_risk_note": refusals.SCANNER_RISK_NOTE,
                               "fail_count": len(fails), "warn_count": len(warns)}, indent=2))
         else:
             print("orgskill lint: %s" % args.target)
             for f in fails + warns:
-                head = "  [%s] %s  %s" % (f["tier"].upper(), f["rule_id"], f["message"])
+                label = "QUARANTINED" if f.get("quarantine_cleared_by") else f["tier"].upper()
+                head = "  [%s] %s  %s" % (label, f["rule_id"], f["message"])
                 print(head)
                 print("        span: %s   claim: %s" % (f["span"], f["claim"]))
                 print("        fix : %s" % f["remediation"])
@@ -308,6 +355,8 @@ def main(argv: list[str] | None = None) -> int:
             for a in ambiguity:
                 print("  [AMBIGUITY] %s" % a)
             print("\n%d fail, %d warn, %d ambiguity" % (len(fails), len(warns), len(ambiguity)))
+            print("\nscanner_risk: %s%s" % (risk, ("  <- " + ", ".join(drivers)) if drivers else ""))
+            print(refusals.SCANNER_RISK_NOTE)
             print("\n" + lint_rules.WHAT_THIS_DOES_NOT_CHECK)
 
         if ambiguity:

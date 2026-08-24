@@ -9,7 +9,8 @@
     "class == 'advisory'  =>  fire_rate is non-null",
     "every rule has a non-empty remediation",
     "every claim is a real S-id in S1..S27",
-    "no numeric limit appears anywhere except this file"
+    "no numeric limit appears anywhere except this file",
+    "id in {R1,R2,R3,R4}  =>  tier == 'fail' AND class == 'ground-truth' AND no_override == true"
   ],
   "fire_rate_caveat": "Every fire_rate below was measured on 934 expert-authored Claude CODE skills in this marketplace, NOT on novice-authored claude.ai ORGANIZATION Skills — the population this studio actually serves (S23, owner-gated). A 0.0% rate here means 'these authors already do this', never 'the check is worthless'. The rates are recorded so a reader can discount them, not so they can be cited as authority.",
   "rules": [
@@ -342,7 +343,128 @@
         "measured_on": "2026-08-24",
         "note": "Same quoted-span exclusion as PV01."
       }
+    },
+    {
+      "id": "R1",
+      "tier": "fail",
+      "class": "ground-truth",
+      "claim": "S20",
+      "rule": "no literal credential of any shape appears in the description, the body, or any bundled file",
+      "rationale": "S20: the studio is a supply-chain surface. A provider-prefixed key is ground truth by construction (AKIA + 16 uppercase alnum IS an AWS key id), not a claim about author habits — which is why this may sit at FAIL where the entropy heuristic R1B may not.",
+      "remediation": "Remove the literal. If you are DOCUMENTING credential handling, use a placeholder (<TOKEN>, $API_KEY, YOUR_KEY) — those are recognised and do not fire.",
+      "fire_rate": null,
+      "no_override": true,
+      "quarantine": "fence + frame + handling instruction + a named reviewer in the EXTERNAL run record. Three of four is still FAIL.",
+      "measured_note": "1/934 on the corpus: AWS's own documentation example key AKIAIOSFODNN7EXAMPLE, inside a secrets-detection skill. Deliberately NOT special-cased to a pass. It is credential-SHAPED, and the unappealable scanner (S9) reads shapes; and an ends-with-EXAMPLE carve-out is the exact cleverness that lets a real key through when someone names a variable EXAMPLE. The quarantine path exists for precisely this case."
+    },
+    {
+      "id": "R1B",
+      "tier": "warn",
+      "class": "advisory",
+      "claim": "S20",
+      "rule": "no unexplained high-entropy string (40+ chars, mixed case and digits, not a slug or a hex hash)",
+      "rationale": "An entropy heuristic cannot distinguish a secret from an opaque identifier, so it may not block. It is the backstop for a credential whose provider prefix R1 does not know.",
+      "remediation": "If it is a secret, remove it. If it is an opaque identifier, say what it is in a sentence beside it.",
+      "fire_rate": {
+        "value": 0.0,
+        "n": 0,
+        "total": 934,
+        "population": "expert-authored Claude Code skills in this marketplace",
+        "measured_on": "2026-08-24",
+        "note": "0/934 WITH A WORKING POSITIVE CONTROL — an opaque 44-char mixed-case token is caught (asserted in the battery). A 0.0% rate here means these authors do not paste secrets, NOT that the check is inert. Reaching 0 took two narrowings, both measured: admitting `/` in the charset made every long PATH match (2 of 3 hits), and an unbounded `(?=[^\\s]*[A-Z])` lookahead was satisfied by an uppercase letter beyond the candidate, so an all-lowercase slug matched a rule requiring uppercase."
+      }
+    },
+    {
+      "id": "R2",
+      "tier": "fail",
+      "class": "ground-truth",
+      "claim": "S20",
+      "rule": "no global-posture override imperative (ignore previous instructions and family)",
+      "rationale": "Provisioned org-wide, unreviewed if org sharing is on (S10), and injected into system prompts. An override imperative in that position is not a quotation.",
+      "remediation": "Paraphrase it FIRST: 'a message attempting to override the assistant's prior guidance' loses nothing operational and needs no reviewer. Only if the literal is genuinely required, use the quarantine path.",
+      "fire_rate": null,
+      "no_override": true,
+      "quarantine": "fence + frame + handling instruction + a named reviewer in the EXTERNAL run record. Three of four is still FAIL.",
+      "measured_note": "2/934, both in skills ABOUT injection ('disregard the above', 'NEW INSTRUCTIONS:'). These are the quarantine cases, not false positives — the literal really is in the archive the classifier reads."
+    },
+    {
+      "id": "R3",
+      "tier": "fail",
+      "class": "ground-truth",
+      "claim": "S20",
+      "rule": "no covert channel: self-concealment from the user, or egress combined with a reference to conversation/user content",
+      "rationale": "The exfiltration half requires BOTH an egress imperative AND a conversation reference, because either alone is ordinary — a skill that POSTs to a ticketing API is normal, and one that discusses the transcript is normal. The conjunction is the covert channel.",
+      "remediation": "Make the call user-visible and scoped, and drop any instruction to withhold information from the user.",
+      "fire_rate": null,
+      "no_override": true,
+      "quarantine": "fence + frame + handling instruction + a named reviewer in the EXTERNAL run record. Three of four is still FAIL.",
+      "measured_note": "0/934. The negative control that matters is asserted in the battery: a documented, scoped, user-visible external API call must NOT fire."
+    },
+    {
+      "id": "R4",
+      "tier": "fail",
+      "class": "ground-truth",
+      "claim": "S20",
+      "rule": "no tool-authority expansion (pipe-to-shell, install from an arbitrary URL)",
+      "rationale": "A bundle that instructs an install from an arbitrary URL hands the org's blast radius to whoever controls that URL.",
+      "remediation": "Pin the artifact and verify it. If you are documenting the anti-pattern, paraphrase it — 'piping a downloaded script straight into a shell' — which needs no reviewer.",
+      "fire_rate": null,
+      "no_override": true,
+      "quarantine": "fence + frame + handling instruction + a named reviewer in the EXTERNAL run record. Three of four is still FAIL.",
+      "measured_note": "4/934, every one inside a skill DOCUMENTING the anti-pattern. This is gap-delta's 'a grep is satisfied by the thing being described', and it is why paraphrase-first is the documented first remedy rather than the quarantine path."
+    },
+    {
+      "id": "R5",
+      "tier": "warn",
+      "class": "advisory",
+      "claim": "S10",
+      "rule": "no persona override on a binding matter (act as a lawyer / physician / auditor)",
+      "rationale": "S10: there is no approval workflow, so a persona instruction reaches every member unreviewed. It is a judgement call whether a given persona overrides binding guidance, so it may not block.",
+      "remediation": "State the role as scope ('this skill covers contract review') rather than as an identity Claude should assume, and keep the escalation path.",
+      "fire_rate": {
+        "value": 0.0,
+        "n": 0,
+        "total": 934,
+        "population": "expert-authored Claude Code skills in this marketplace",
+        "measured_on": "2026-08-24",
+        "note": "0/934. Acknowledge it in the run record if it fires; it is not a blocker."
+      }
+    },
+    {
+      "id": "R6",
+      "tier": "warn",
+      "class": "advisory",
+      "claim": "S10",
+      "rule": "no org-confidential material that need not be resident org-wide",
+      "rationale": "With org sharing on, the bundle is resident for every member (S10). Confidentiality is contextual, so this may not block.",
+      "remediation": "Move the confidential specifics to a linked internal system and keep the skill's procedure generic.",
+      "fire_rate": {
+        "value": 0.0011,
+        "n": 1,
+        "total": 934,
+        "population": "expert-authored Claude Code skills in this marketplace",
+        "measured_on": "2026-08-24",
+        "note": "1/934: 'under NDA' in a data-room skill that DISCUSSES NDAs and contains no confidential material — a described-vs-present false positive, which is exactly what the WARN tier is for. Disclosed rather than pattern-tuned away."
+      }
+    },
+    {
+      "id": "R7",
+      "tier": "warn",
+      "class": "advisory",
+      "claim": "S3",
+      "rule": "no description whose only content is a generic claim (DS01 promoted to the refusal set)",
+      "rationale": "Plan-A promotes this to a refusal. It stays at WARN because DS01 is a heuristic and the tier discipline admits no exceptions — including for a refusal wearing a rule id.",
+      "remediation": "Name the capability and the trigger. See DS01.",
+      "fire_rate": {
+        "value": 0.2173,
+        "n": 203,
+        "total": 934,
+        "population": "expert-authored Claude Code skills in this marketplace",
+        "measured_on": "2026-08-24",
+        "note": "IDENTICAL to DS01's measurement — R7 IS DS01, listed here so the refusal set is complete and so the reader can see it was deliberately NOT promoted to FAIL. The check is emitted ONCE, by DS01; R7 does not double-report."
+      }
     }
   ],
-  "id_note": "Rule ids are this implementation's, and they DEVIATE from plan-A's draft numbering in two places: plan-A used FM06 for reserved-words and FM10 for extra-frontmatter-keys, which this table had already assigned to description-present and body-present before those rules were specified. Renumbering committed ids is churn with no benefit, so the new rules take FM11/FM12 and this note records the mapping."
+  "id_note": "Rule ids are this implementation's, and they DEVIATE from plan-A's draft numbering in two places: plan-A used FM06 for reserved-words and FM10 for extra-frontmatter-keys, which this table had already assigned to description-present and body-present before those rules were specified. Renumbering committed ids is churn with no benefit, so the new rules take FM11/FM12 and this note records the mapping.",
+  "refusal_note": "R1-R4 are hard refusals with NO override flag, env var or config key. Their only path is quarantine: fence + frame + handling instruction + A NAMED HUMAN REVIEWER RECORDED IN THE EXTERNAL RUN RECORD. The fourth condition is the one the author cannot supply alone — plan-A's three-part incantation is authored entirely by whoever wrote the adversarial string, which is self-attestation with extra steps, i.e. a --force spelled out in the documentation. A reviewer line inside SKILL.md clears nothing. An adversarial literal in the frontmatter DESCRIPTION has no quarantine path at all: it is injected verbatim into every member's system prompt."
 }
