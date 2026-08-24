@@ -162,7 +162,7 @@ def _emit_nudge(percent: float, threshold: int, task_hint: str, mode: str) -> No
         f"cheap. Reach for /handoff (a NEW window on THIS host) only if a plugin/hook change "
         f"must go live (hooks load at SessionStart, so /compact cannot pick it up), the next "
         f"reader is not this session (another CLI, a later day, a teammate), or the task is "
-        f"done. Do not /fork."
+        f"done — then run the session-handoff skill. Do not /fork."
     )
     if SENTINEL_FORBIDDEN in ctx:
         return
