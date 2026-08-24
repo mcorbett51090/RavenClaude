@@ -53,8 +53,8 @@ A security fix that *must* break behavior may need an accelerated sunset — sho
 
 ## Provenance
 
-Codifies house opinion #10 (CLAUDE.md §3). `Sunset` is RFC 8594; the `Deprecation` header status is verified before quoting. Retrieved/verified 2026-06-04.
+Codifies house opinion #10 (CLAUDE.md §3). `Sunset` is RFC 8594; `Deprecation` is **RFC 9745** (Standards Track). Retrieved/verified 2026-08-24.
 
 ---
 
-_Last reviewed: 2026-06-04 by `claude`_
+_Last reviewed: 2026-08-24 by `claude`_

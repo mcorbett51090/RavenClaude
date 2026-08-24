@@ -110,7 +110,7 @@ flowchart TD
 | **RFC 9457 — Problem Details** | RFC (2023-07) | **Obsoletes RFC 7807**; same `application/problem+json` wire format; adds registry + multi-problem guidance. The error model. |
 | **RFC 9110 — HTTP Semantics** | RFC (2022) | Authoritative status-code & method semantics. |
 | **RFC 8594 — `Sunset` header** | RFC | Signals a resource's retirement time; pair with `Deprecation`. `[verify-at-build]` |
-| **`Deprecation` header** | IETF track | Signals a resource is deprecated; verify RFC-vs-draft status before quoting. `[verify-at-build]` |
+| **`Deprecation` header** | **RFC 9745** (Standards Track) | Signals a resource is deprecated; pair with `Sunset`. `[verify-at-build]` |
 | **`RateLimit` / `RateLimit-Policy` headers** | **IETF draft** (draft-ietf-httpapi-ratelimit-headers, ~v11, 2026) | **Not yet an RFC** — implement to the current draft and say so. `[verify-at-build]` |
 | **`Idempotency-Key` header** | **IETF draft** (draft-ietf-httpapi-idempotency-key-header, ~v07, 2025-10) | **Not yet an RFC** — the convention many APIs already ship; follow the draft. `[verify-at-build]` |
 | **OWASP API Security Top 10** | **2023 edition** | BOLA #1; BOPLA, sensitive-business-flows, unsafe-consumption are 2023 framing. Distinct from the OWASP *Web* Top 10. `[verify-at-build]` |
