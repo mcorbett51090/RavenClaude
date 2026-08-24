@@ -70,7 +70,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-06-05",
+      "last_verified": "2026-08-24",
       "refresh_when": "The fundamental agent-loop shape changes, or Claude Code/the Agent SDK restructures how a turn is driven.",
       "sources": [
         {
@@ -139,7 +139,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-06-05",
+      "last_verified": "2026-08-24",
       "refresh_when": "Anthropic changes the tool-use request/result message shape, the tool_choice options, or the parallel-tool-call behavior.",
       "sources": [
         {
@@ -173,7 +173,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-06-05",
+      "last_verified": "2026-08-24",
       "refresh_when": "Frontier context-window sizes change materially, or Claude Code changes its compaction / auto-compact behavior.",
       "sources": [
         {
@@ -207,7 +207,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-06-05",
+      "last_verified": "2026-08-24",
       "refresh_when": "Claude Code changes the subagent dispatch model, the Task/Agent tool shape, or how subagent results return to the parent.",
       "sources": [
         {
@@ -240,7 +240,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-06-05",
+      "last_verified": "2026-08-24",
       "refresh_when": "The MCP spec changes its primitives (tools/resources/prompts), transport set, or Claude Code changes how MCP servers are configured.",
       "sources": [
         {
@@ -273,7 +273,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-06-05",
+      "last_verified": "2026-08-24",
       "refresh_when": "The Claude model line-up (Opus / Sonnet / Haiku tiers) or the default-model guidance for agents changes.",
       "sources": [
         {
@@ -306,7 +306,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-06-04",
+      "last_verified": "2026-08-24",
       "refresh_when": "Git or GitHub change a load-bearing default (branch name, PR flow), or the marketplace's PR conventions or branch-archive contract change.",
       "sources": [
         {
@@ -2897,7 +2897,7 @@
         "scripts/sync-plugin-versions.py",
         "scripts/generate-copilot-plugin.py"
       ],
-      "covers_digest": "sha256:859ffa3aac6327ceeb372d5ab1684e73407c2b86806f67e7a7c7858cfe879952",
+      "covers_digest": "sha256:9005434b13e69c5bc81152c05c88ede44acb09a65e67afc2063e1421366de59e",
       "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
       "nuance_evidence": {
         "measured": "2026-08-19",

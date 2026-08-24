@@ -6,7 +6,7 @@ kind: platform-fact
 order: 6
 summary: "Bigger isn't always better. Match the model to the job — a fast, cheap model for routine steps, a frontier model for hard reasoning — and use the strong one to supervise the cheap ones."
 see_also: [agent-harness-loop, subagents]
-last_verified: 2026-06-05
+last_verified: 2026-08-24
 refresh_when: "The Claude model line-up (Opus / Sonnet / Haiku tiers) or the default-model guidance for agents changes."
 sources:
   - label: "Models overview — Claude API"
