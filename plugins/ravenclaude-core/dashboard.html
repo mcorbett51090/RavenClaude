@@ -9702,7 +9702,7 @@ footer.page-footer a:hover { text-decoration: underline; }
       "covers": [
         "plugins/ravenclaude-core/hooks/hooks.json"
       ],
-      "covers_digest": "sha256:081ff019fe05d2c50974cc1b5ee355871be0c2186d560dcec16cd15be07e225a",
+      "covers_digest": "sha256:86d1501753a26397026904585a6d50eb24c6a5d1b5a39f7401c6172a44a3040b",
       "nuance": "Two `additionalContext` emitters on one event concatenate rather than last-write-wins, but two `updatedToolOutput` emitters replace, so the second silently discards the first.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -9748,7 +9748,7 @@ footer.page-footer a:hover { text-decoration: underline; }
         "scripts/sync-plugin-versions.py",
         "scripts/generate-copilot-plugin.py"
       ],
-      "covers_digest": "sha256:1d5f5a93d02071dfbd58bc07560fbbdc7f3a72d54e06117b4a013b031620d213",
+      "covers_digest": "sha256:8fe81458c2aa68f8626c6398b751fcc3e66d23f86ec53980ff6a954d21b5f83b",
       "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -10144,7 +10144,7 @@ footer.page-footer a:hover { text-decoration: underline; }
         "scripts/generate-dashboards.py",
         "scripts/generate-index-dashboard.py"
       ],
-      "covers_digest": "sha256:59afae76890d139cf2bebebe99ea7f74a55313046f33349ecf2f2a85020ce3dd",
+      "covers_digest": "sha256:b99c853dab319676ccf5757143a2ac1a22c2b9351b8d59f9496bf898a403c1cd",
       "nuance": "`ISLANDED_PANEL_COST` is a flat 2 because the parser reads the payload as CDATA, so `check-dom-budget.py` cannot fire on `learn-payload` no matter how far past 23,861 elements it grows.",
       "nuance_evidence": {
         "measured": "2026-08-19",

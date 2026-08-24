@@ -142,7 +142,13 @@ runner does not have.
 
 ## 7. Claim 5 / GT16 settled early
 
-`inventory-census.py --explain` states the counting rule. Measured: **47 hooks**,
+`inventory-census.py --explain` states the counting rule. Measured **47 hooks** on 2026-08-19;
+**48 as of 2026-08-20** — PR #1003 added `keep-awake.sh`, and the independent census moved with
+it, which is the census working. ⛔ The count is DOWNSTREAM of the rule and is not pinned by any
+gate: Gate 243 asserts the rule's discriminating properties (includes `_`-prefixed, excludes
+`tests/` and `.json`) plus agreement with an independently-written enumeration. An earlier
+revision hard-coded `= 47` and went red on a correct tree the moment a hook was added.
+The rule, unchanged:
 not 48 — `hooks/*.sh` at depth 1, excluding `hooks/tests/**` and `hooks.json`,
 **including** `_`-prefixed helpers (they ship, execute, and can break). 54 skills,
 15 agents, 9 commands, 45 plugin scripts, 138 root scripts. **Total 308.**

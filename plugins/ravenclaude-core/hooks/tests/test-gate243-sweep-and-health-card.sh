@@ -98,12 +98,36 @@ else
   bad "census rule stated" "--explain does not name the counting rule"
 fi
 
+# ⛔ DO NOT PIN THE COUNT. This assertion used to read `[ "$hooks" = "47" ]`, and it
+# went red the moment PR #1003 added one hook — a gate failing on a correct tree, which
+# is how a gate gets deleted rather than fixed. The number was never the claim: claim 5
+# was about the RULE (depth-1 `*.sh`, EXCLUDING `hooks/tests/**` and `hooks.json`,
+# INCLUDING `_`-prefixed helpers, because they ship, execute and can break). The count
+# is downstream of the rule and moves every time a hook is added.
+#
+# So assert the rule's three DISCRIMINATING properties, and cross-check the total against
+# an enumeration written HERE in shell — a different implementation from the census's
+# Python, so agreement means something rather than comparing the census to itself.
 hooks="$(python3 "$ROOT/scripts/inventory-census.py" --json 2>/dev/null \
   | python3 -c 'import json,sys; print(json.load(sys.stdin)["counts"]["hook"])' 2>/dev/null)"
-if [ "$hooks" = "47" ]; then
-  ok "claim 5 re-measured under the stated rule: 47 hooks, not 48"
+paths="$(python3 "$ROOT/scripts/inventory-census.py" --json 2>/dev/null \
+  | python3 -c 'import json,sys; print("\n".join(json.load(sys.stdin)["paths"]["hook"]))' 2>/dev/null)"
+
+# Independent enumeration: git-tracked, depth-1 .sh under hooks/, tests/ excluded.
+# ⛔ git pathspec `*` is NOT a shell glob -- it matches ACROSS `/`, so the bare pattern
+# also sweeps in hooks/tests/ (112 vs 48, measured). The grep is load-bearing, not tidying.
+indep="$(cd "$ROOT" && git ls-files 'plugins/ravenclaude-core/hooks/*.sh' 2>/dev/null \
+  | grep -v '/tests/' | wc -l | tr -d ' ')"
+
+n_underscore="$(printf '%s\n' "$paths" | grep -c '/_[^/]*\.sh$' || true)"
+n_tests="$(printf '%s\n' "$paths" | grep -c '/tests/' || true)"
+n_json="$(printf '%s\n' "$paths" | grep -c '\.json$' || true)"
+
+if [ -n "$hooks" ] && [ "$hooks" -gt 0 ] 2>/dev/null && [ "$hooks" = "$indep" ] \
+   && [ "$n_underscore" -gt 0 ] && [ "$n_tests" -eq 0 ] && [ "$n_json" -eq 0 ]; then
+  ok "claim 5: the RULE holds ($hooks hooks; includes ${n_underscore} _-prefixed, excludes tests/ and .json), and an independent enumeration agrees"
 else
-  bad "claim 5 re-measure" "census reports $hooks hooks"
+  bad "claim 5 rule" "census=$hooks independent=$indep _-prefixed=$n_underscore tests=$n_tests json=$n_json"
 fi
 
 echo
