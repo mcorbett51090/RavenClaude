@@ -161,7 +161,7 @@ def _fixture(td, *, feature=False, root_only=False):
     import subprocess as sp
 
     r = Path(td)
-    q = dict(cwd=str(r), capture_output=True, text=True, timeout=60)
+    q = {"cwd": str(r), "capture_output": True, "text": True, "timeout": 60}
     sp.run(["git", "init", "-q", "-b", "main", str(r)], capture_output=True, timeout=60)
     sp.run(["git", "config", "user.email", "t@t"], **q)
     sp.run(["git", "config", "user.name", "t"], **q)
@@ -194,7 +194,7 @@ def _self_test():
     import tempfile
 
     ok = fail = 0
-    cases = [dict(), dict(feature=True), dict(root_only=True)]
+    cases = [{}, {"feature": True}, {"root_only": True}]
     for kw in cases:
         with tempfile.TemporaryDirectory() as td:
             root, want, label = _fixture(td, **kw)
