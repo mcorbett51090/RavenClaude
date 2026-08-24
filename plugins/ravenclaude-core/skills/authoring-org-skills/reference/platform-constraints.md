@@ -162,9 +162,15 @@ record. **Quote verbatim or do not present it as a quote.**
 - **Filename case.** Article 12512198 writes lowercase `skill.md` throughout and never uses
   `SKILL.md`; article 13119606 and `anthropics/skills` write `SKILL.md`. Anthropic's own
   sources disagree and none adjudicates. **Emit `SKILL.md`; do not hard-reject lowercase.**
-- **Folder-name equality.** The doc says "matches your skill's name", but its own example
-  pairs a `name:` of `Brand Guidelines` with a folder `my-skill/`, so byte-equality is not
-  demonstrated and nothing states an upload fails on mismatch.
+- **Folder-name equality — RESOLVED as a WARN, 2026-08-24 (owner decision: "go with
+  Anthropic's example").** Article 12512198 says "Ensure the folder name matches your skill's
+  name", but the example on that same page pairs a skill named `Brand Guidelines` with a
+  folder `my-skill/`. Meanwhile 12512180's upload-error list names "Skill folder name doesn't
+  match the skill name" as a failure cause. **The two Anthropic sources contradict each
+  other**, and no source states an upload fails on a mismatch. `FM09` was FAIL and is now
+  WARN. Re-promotion requires an observed upload that rejects a mismatched pair — not a
+  preference. The packer is unaffected: it roots the archive at the DIRECTORY name, which is
+  what Anthropic's example does.
 - **Doc staleness.** The platform Agent Skills overview still asserts claude.ai "does not
   support centralized admin management or org-wide distribution of custom Skills," which the
   existence of the console contradicts. Treat platform-docs claims about the claude.ai

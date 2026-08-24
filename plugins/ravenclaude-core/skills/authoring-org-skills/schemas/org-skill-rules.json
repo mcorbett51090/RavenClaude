@@ -98,13 +98,14 @@
     },
     {
       "id": "FM09",
-      "tier": "fail",
+      "tier": "warn",
       "class": "ground-truth",
       "claim": "S7",
       "rule": "`name` equals the containing directory name",
-      "rationale": "The packer derives the archive layout from the directory; a mismatch produces an archive whose declared identity differs from its path.",
-      "remediation": "Rename the directory to match `name`, or vice versa.",
-      "fire_rate": null
+      "rationale": "WARN, not FAIL — DEMOTED 2026-08-24 on Anthropic's own worked example. Support article 12512198 says 'Ensure the folder name matches your skill's name', but the example on the same page pairs a skill named 'Brand Guidelines' with a folder 'my-skill/'. Byte-equality is therefore not demonstrated by the vendor, and nothing anywhere states that an upload FAILS on a mismatch. This table's own discipline says a FAIL needs ground truth that does not depend on who authored the skill; an equality rule the vendor's own example violates is not that. Anthropic's upload-error list (12512180) does name 'Skill folder name doesn't match the skill name' as a failure cause, so the two Anthropic sources CONTRADICT each other — which is precisely the condition under which this table warns rather than blocks (cf. ZP02 on root layout, ZP10 on filename case).",
+      "remediation": "Match them if you can — it is the safer reading of 12512180's error list. Nothing demonstrates an upload fails on a mismatch, and Anthropic's own example does not match, so this does not block.",
+      "fire_rate": null,
+      "demotion_evidence": "reference/platform-constraints.md#zip-root-settlement, unresolved side-issues. RE-PROMOTION TO FAIL REQUIRES NEW EVIDENCE, not a preference: an observed upload that rejects a mismatched pair. The packer is unaffected either way — it roots the archive at the DIRECTORY name, which is what Anthropic's example does."
     },
     {
       "id": "FM10",

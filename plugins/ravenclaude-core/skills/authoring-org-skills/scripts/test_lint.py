@@ -192,6 +192,24 @@ def main(argv: list[str]) -> int:
                   got.get(rid) == expected_tier,
                   "expected %s=%s, got %r" % (rid, expected_tier, got.get(rid)))
 
+        # ── FM09 is a WARN, and the reason is pinned to EVIDENCE not taste ────
+        # ⛔ Demoted 2026-08-24 because Anthropic's own worked example violates the rule
+        # (skill "Brand Guidelines" in folder "my-skill/") while a sibling page lists the
+        # mismatch as a failure cause. Two vendor sources contradicting each other is the
+        # condition under which this table warns instead of blocking. If someone
+        # re-promotes this to FAIL, they must first record an observed upload that
+        # rejects a mismatched pair — the assertion below is what makes that explicit.
+        fm09 = next(r for r in table["rules"] if r["id"] == "FM09")
+        check("FM09 is WARN, not FAIL", fm09["tier"] == "warn", fm09["tier"])
+        check("        …and carries the evidence its demotion rests on",
+              "demotion_evidence" in fm09 and "Brand Guidelines" in fm09["rationale"],
+              "a tier change with no recorded basis is a preference wearing a rule id")
+        d = _skill(tmp, "declared-name", "Does a thing. Use when asked.",
+                   dirname="different-directory")
+        got, _ = _run(d, table, markers)
+        check("        …and a mismatch still REPORTS, it just does not block",
+              got.get("FM09") == "warn", "demoted into silence: %r" % got.get("FM09"))
+
         # ── tier discipline: no advisory rule may hold tier fail ──────────────
         offenders = [r["id"] for r in table["rules"]
                      if r["class"] == "advisory" and r["tier"] != "warn"]
