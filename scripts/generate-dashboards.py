@@ -1803,7 +1803,58 @@ def _render_concept_card(plugin_dir: Path, c: dict, titles: dict[str, str]) -> s
             f'<span class="concept-verified">verified {html.escape(c["last_verified"])}</span>'
         )
 
-    search_blob = html.escape(f"{c['title']} {c['summary']} {c['body_md']}".lower(), quote=True)
+    # ── ⛔ R12: the verification-strength badge, rendered NEXT TO the kind badge ──
+    # ~60% of the inventory (54 skills, 15 agents, 27 uncalled scripts) gets
+    # findability and reference integrity ONLY. Both panel plans recorded that
+    # honestly in the plan and then left the distinction INVISIBLE here — on the one
+    # surface the project exists to make legible. A weak check and a strong one that
+    # look identical is the inert-gate defect wearing a badge.
+    #
+    # The text comes from concepts.py `strength_badge`; this renderer does not get
+    # to choose a friendlier word. Each label states the LIMIT, because a reader
+    # skims the first word:
+    #   Probed     a real payload ran and a real observable was asserted
+    #   Findable   frontmatter parses and references resolve. NOTHING executed it
+    #   Observed   seen after the fact, not gate-capable before it
+    #   Unverified with the written rationale shown inline
+    strength = ""
+    sb = c.get("strength_badge")
+    if sb:
+        cls = {"Probed": "probed", "Findable": "findable",
+               "Observed": "observed"}.get(sb, "unverified")
+        rationale = (c.get("verify") or {}).get("rationale") or ""
+        title_attr = f' title="{html.escape(rationale)}"' if rationale else ""
+        strength = (
+            f'<span class="concept-strength {cls}" data-strength="{html.escape(sb)}"'
+            f"{title_attr}>{html.escape(sb)}</span>"
+        )
+
+    nuance_block = ""
+    if c.get("nuance"):
+        ev = c.get("nuance_evidence") or {}
+        probe = str(ev.get("probe") or "")
+        # An `unprobed:` value is rendered AS SUCH, never blanked. An absence shown
+        # as nothing reads as "fine"; shown as "unprobed" it reads as what it is.
+        probe_html = (
+            f'<span class="concept-unprobed">{html.escape(probe)}</span>'
+            if probe.startswith("unprobed: ")
+            else f'<code>{html.escape(probe)}</code>'
+        )
+        rat = (c.get("verify") or {}).get("rationale")
+        rat_html = f'<p class="concept-rationale">{html.escape(rat)}</p>' if rat else ""
+        nuance_block = (
+            f'<div class="concept-nuance">'
+            f'<p class="concept-nuance-text">{html.escape(c["nuance"])}</p>'
+            f'<p class="concept-evidence">'
+            f'<span class="ev-k">control:</span> {html.escape(str(ev.get("control") or ""))} · '
+            f'<span class="ev-k">falsifier:</span> {html.escape(str(ev.get("falsifier") or ""))} · '
+            f'<span class="ev-k">probe:</span> {probe_html}'
+            f"</p>{rat_html}</div>"
+        )
+
+    search_blob = html.escape(
+        f"{c['title']} {c['summary']} {c['body_md']} {c.get('nuance') or ''}".lower(), quote=True
+    )
 
     # The card is a native <details> (collapsed by default). The <summary> carries
     # the title + kind badge + one-line deck so the collapsed row is informative;
@@ -1820,10 +1871,12 @@ def _render_concept_card(plugin_dir: Path, c: dict, titles: dict[str, str]) -> s
         f'<div class="concept-head">'
         f'<h3 class="concept-title">{html.escape(c["title"])}</h3>'
         f'<span class="concept-badge {badge_cls}">{badge_icon}{html.escape(badge_label)}</span>'
+        f"{strength}"
         f"</div>"
         f'<p class="concept-deck">{html.escape(c["summary"])}</p>'
         f"</summary>"
         f'<div class="concept-card-body">'
+        f"{nuance_block}"
         f"{well}{stepper}"
         f'<div class="concept-body">{_md_to_html(c["body_md"])}</div>'
         f"{_CONCEPT_WIDGETS.get(c.get('widget') or '', '')}"
@@ -1917,9 +1970,72 @@ def _render_learn_tab(plugin_dir: Path) -> str:
         '<span class="learn-legend-item"><span class="learn-swatch fact"></span>How agentic AI works</span>'
         '<span class="learn-legend-item"><span class="learn-swatch built"></span>RavenClaude feature</span>'
         "</div>"
+        + _operator_health_card(concepts)
         + "".join(tiers_html)
         + '<div class="stub learn-noresults" id="learn-noresults" hidden>'
         "<h2>No matching concepts</h2><p>Try a different search term.</p></div>" + "</div>"
+    )
+
+
+def _operator_health_card(concepts: list[dict]) -> str:
+    """⛔ P10 — THE OPERATOR HEALTH CARD.
+
+    The Learn tab is where a READER browses; it is not where an OPERATOR looks.
+    These figures are OPERATIONAL STATE, not knowledge, and burying them inside a
+    collapsed concept card is how a corpus rots while every surface reads fine.
+
+    Every number here is DERIVED FROM THE REGISTRY at build time. It renders only
+    when inventory entries exist, and when the numbers are unavailable it says so
+    rather than showing a reassuring zero — an absent measurement and a measured
+    zero are different facts.
+    """
+    entries = [c for c in concepts if c.get("entry_class") == "inventory"]
+    if not entries:
+        return ""
+
+    covered: set[str] = set()
+    for e in entries:
+        covered.update(e.get("covers") or [])
+    tier_none = [e for e in entries if (e.get("verify") or {}).get("tier") == "none"]
+    unprobed = [
+        e for e in entries
+        if str((e.get("nuance_evidence") or {}).get("probe") or "").startswith("unprobed: ")
+    ]
+    by_strength: dict[str, int] = {}
+    for e in entries:
+        by_strength[e.get("strength_badge") or "Unverified"] = (
+            by_strength.get(e.get("strength_badge") or "Unverified", 0) + 1
+        )
+
+    def cell(label: str, value: str, note: str = "") -> str:
+        n = f'<span class="ohc-note">{html.escape(note)}</span>' if note else ""
+        return (
+            f'<div class="ohc-cell"><span class="ohc-v">{html.escape(value)}</span>'
+            f'<span class="ohc-k">{html.escape(label)}</span>{n}</div>'
+        )
+
+    cells = [
+        cell("inventory entries", str(len(entries))),
+        cell("artifacts covered", str(len(covered)), "per artifact, not per entry"),
+        cell("tier: none", str(len(tier_none)), "rationale required"),
+        cell("unprobed", str(len(unprobed)), "honest, and counted"),
+    ]
+    for badge in ("Probed", "Findable", "Observed", "Unverified"):
+        if by_strength.get(badge):
+            cells.append(cell(badge.lower(), str(by_strength[badge])))
+
+    return (
+        '<details class="ohc" id="operator-health-card">'
+        '<summary class="ohc-head">Operator health card '
+        '<span class="ohc-sub">harness state — operational, not knowledge</span></summary>'
+        '<div class="ohc-grid">' + "".join(cells) + "</div>"
+        '<p class="ohc-foot">⛔ These are counts, never probe output. The live sweep '
+        "numbers — probes registered vs executed, the independent git census, and the "
+        "permanently-red canary — come from "
+        "<code>scripts/inventory-sweep.py</code>; a downward move in any of them with "
+        "no artifact deletion in the same diff means the sweep is going blind, not "
+        "that the repo shrank.</p>"
+        "</details>"
     )
 
 
@@ -6081,6 +6197,19 @@ footer.page-footer a:hover { text-decoration: underline; }
 }
 .learn-search:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .learn-count { color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+/* ── Operator health card (P10). Deliberately plain: it is an instrument
+   panel, not a scoreboard, and a celebratory treatment would invite reading
+   a high number as a good number. */
+.ohc { border: 1px solid var(--border); border-radius: 8px; margin: 0 0 16px; background: var(--surface-2); }
+.ohc-head { cursor: pointer; padding: 10px 14px; font-size: 13px; font-weight: 700; list-style: none; }
+.ohc-head::-webkit-details-marker { display: none; }
+.ohc-sub { font-weight: 400; color: var(--muted); font-size: 12px; margin-left: 8px; }
+.ohc-grid { display: flex; flex-wrap: wrap; gap: 10px; padding: 0 14px 12px; }
+.ohc-cell { min-width: 110px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); }
+.ohc-v { display: block; font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.ohc-k { display: block; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; }
+.ohc-note { display: block; font-size: 10.5px; color: var(--muted); font-style: italic; margin-top: 2px; }
+.ohc-foot { font-size: 11.5px; color: var(--muted); margin: 0; padding: 0 14px 12px; line-height: 1.55; }
 .learn-toolbar-spacer { flex: 1 1 auto; }
 .learn-linkbtn {
   background: none; border: none; color: var(--accent); cursor: pointer;
@@ -6199,6 +6328,28 @@ footer.page-footer a:hover { text-decoration: underline; }
 .concept-badge svg { width: 11px; height: 11px; }
 .concept-badge.fact { color: var(--muted); border-color: var(--muted); background: rgba(148, 163, 184, 0.1); }
 .concept-badge.built { color: var(--accent); border-color: var(--accent); background: rgba(86, 208, 138, 0.1); }
+/* ── ⛔ R12: verification-strength badge. NON-DECORATIVE BY DESIGN. ──────────
+   These four are deliberately NOT a green/amber/red confidence scale. A scale
+   invites a reader to average them; these are different KINDS of claim. Only
+   `probed` gets the accent colour, because only it means something executed.
+   `findable` is deliberately muted and outlined: it must not read as a weaker
+   shade of verified, because 96 of 162 artifacts will carry it. */
+.concept-strength {
+  display: inline-flex; align-items: center; flex: none;
+  font-size: 10.5px; font-weight: 700; letter-spacing: 0.02em;
+  padding: 2px 8px; border-radius: 4px; border: 1px solid; white-space: nowrap;
+  text-transform: uppercase;
+}
+.concept-strength.probed { color: var(--accent); border-color: var(--accent); background: rgba(86, 208, 138, 0.12); }
+.concept-strength.findable { color: var(--muted); border-color: var(--muted); background: transparent; border-style: dashed; }
+.concept-strength.observed { color: var(--muted); border-color: var(--muted); background: transparent; }
+.concept-strength.unverified { color: #f0b429; border-color: #f0b429; background: rgba(240, 180, 41, 0.1); }
+.concept-nuance { border-left: 3px solid var(--accent); padding: 10px 14px; margin: 0 0 14px; background: var(--surface-2); border-radius: 0 6px 6px 0; }
+.concept-nuance-text { font-size: 14px; line-height: 1.55; margin: 0 0 8px; }
+.concept-evidence { font-size: 12px; color: var(--muted); margin: 0; line-height: 1.6; }
+.concept-evidence .ev-k { font-weight: 700; }
+.concept-unprobed { color: #f0b429; font-weight: 600; }
+.concept-rationale { font-size: 12px; color: var(--muted); margin: 8px 0 0; font-style: italic; }
 .concept-deck { font-size: 13.5px; color: var(--muted); margin: 8px 0 12px; line-height: 1.5; }
 .concept-diagram-well {
   background: var(--surface-2); border: 1px solid var(--border);

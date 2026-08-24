@@ -112,7 +112,16 @@ def build_doc(root: Path) -> str:
             parts.append(f"### {c['title']} · _{kind}_\n")
             parts.append(f"> {c['summary']}\n")
             parts.append(_rebase_body_links(c["body_md"]) + "\n")
-            parts.append("```mermaid\n" + c["diagram"] + "\n```\n")
+            # ⛔ DIAGRAMS ARE OPT-IN FOR INVENTORY ENTRIES (R2 corollary, plan P6.2).
+            # This is the THIRD consumer of that change — concepts.py stopped
+            # requiring a mermaid block, render-concepts.py stopped demanding an
+            # SVG for one, and this doc export still concatenated c["diagram"]
+            # unconditionally and raised TypeError on the first diagram-less entry.
+            # When a schema field becomes optional, every reader of it is part of
+            # the change; finding the third one by crash is the tell that the first
+            # two were fixed one at a time.
+            if c.get("diagram"):
+                parts.append("```mermaid\n" + c["diagram"] + "\n```\n")
             refs = [titles[r] for r in c.get("see_also", []) if r in titles]
             if refs:
                 parts.append("**See also:** " + " · ".join(refs) + "\n")

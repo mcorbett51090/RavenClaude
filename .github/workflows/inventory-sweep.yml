@@ -1,0 +1,122 @@
+########################################################################
+# inventory-sweep.yml — P10 §12. The scheduled efficacy sweep.
+#
+# ⛔ THIS WORKFLOW MUST NEVER BECOME A REQUIRED STATUS CHECK, and it must
+# never be added to the branch ruleset. A scheduled workflow reports
+# NOTHING on a pull request, and a required check that reports nothing
+# leaves the PR Pending forever. That is the same mechanism that makes a
+# `paths:` filter on a required check fatal — GitHub documents both.
+# scripts/check-inception-coverage.py asserts the paths: half; the ruleset
+# half is asserted below with `gh api`, in this workflow, so the claim is
+# re-measured on every run rather than trusted.
+#
+# ⛔ IT CARRIES NO `pull_request` TRIGGER, deliberately. Everything a PR
+# needs is already in audit-gates.sh (gates 236-242). This tier is the
+# expensive half: T1 executes real hooks against throwaway roots.
+#
+# ⛔ EVERY LINE IT EMITS CARRIES DERIVED LABELS ONLY — counts, entry ids,
+# verdict words. Never probe stdout, stderr, command text, or payloads.
+# The sweep itself enforces that with a closed label vocabulary; this
+# workflow must not reintroduce what the sweep was careful to exclude.
+#
+# ⛔ A SKIPPED TIER REPORTS **UNKNOWN**, NEVER GREEN. If the T2 model call
+# is unavailable, the judge emits `judge-uncalibrated` and no verdicts.
+# "The sweep found nothing" and "the sweep never ran" must not be the
+# same output — that is the defect class this whole project exists to end.
+########################################################################
+name: Inventory sweep (scheduled)
+
+on:
+  workflow_dispatch:
+  schedule:
+    # ⛔ Off the hour on purpose. Scheduler spikes at :00 are real and the
+    # added queue latency is easily misread as a hung probe.
+    - cron: "23 5 * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: inventory-sweep
+  cancel-in-progress: false
+
+jobs:
+  sweep:
+    name: T0 + T1 efficacy sweep and coverage report
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          # ⛔ The default persists the job token into .git/config, where any later
+          # step — or an artifact upload of the workspace — carries it out. This
+          # workflow needs no authenticated git operation, so it takes none.
+          persist-credentials: false
+
+      - name: Install pyyaml
+        run: python3 -m pip install --quiet pyyaml
+
+      # ── The independent census FIRST. Everything downstream is measured
+      #    against it, and a broken census must not read as a small repo.
+      - name: Independent artifact census (git ls-files)
+        run: |
+          python3 scripts/inventory-census.py --check
+          python3 scripts/inventory-census.py --explain
+
+      - name: T0 + T1 sweep (executes real hooks against throwaway roots)
+        run: python3 scripts/inventory-sweep.py --tier T1 --check --stamp scheduled
+
+      - name: claim-14 capping — every probe class control must FIRE
+        run: python3 scripts/inventory-sweep.py --capping-table
+
+      # ── ⛔ CALENDAR AGE BLOCKS **HERE**, and only here. On a PR it only
+      #    warns: a blocking calendar gate over a large corpus turns every
+      #    open PR red in waves, including PRs touching nothing related, and
+      #    a gate that gets disabled protects nothing.
+      - name: Concept freshness in SWEEP mode (calendar age blocks)
+        run: python3 scripts/concepts.py --check --sweep
+
+      - name: Coverage report (ratchets, unprobed, tier-none growth rate)
+        run: python3 scripts/inventory-coverage.py --report
+
+      - name: Committed evidence fields carry no payloads
+        run: python3 scripts/check-inventory-evidence.py --check
+
+      # ── T2. Non-blocking, and UNKNOWN when it cannot run.
+      - name: Calibrated nuance judge (advisory; UNKNOWN when unavailable)
+        continue-on-error: true
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: python3 scripts/inventory-nuance-judge.py --report
+
+      # ── ⛔ RE-MEASURE THE RULESET CLAIM. This workflow being absent from
+      #    the required checks is an ASSERTION, not an assumption.
+      - name: Assert this sweep is NOT a required status check
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -uo pipefail
+          rules="$(gh api "repos/${GITHUB_REPOSITORY}/rulesets" 2>/dev/null || echo '[]')"
+          if printf '%s' "$rules" | grep -q 'Inventory sweep'; then
+            echo "::error::This sweep appears in a branch ruleset. A scheduled workflow"
+            echo "::error::reports nothing on a PR, so a required check on it hangs the PR forever."
+            exit 1
+          fi
+          echo "OK: the scheduled sweep is not named in any branch ruleset."
+
+      - name: Job summary — derived labels only
+        if: always()
+        run: |
+          {
+            echo "## Inventory sweep"
+            echo
+            python3 scripts/inventory-census.py | sed 's/^/    /'
+            echo
+            python3 scripts/inventory-coverage.py --report | sed 's/^/    /'
+            echo
+            echo "⛔ Counts and entry ids only. No probe output, command text or payload"
+            echo "reaches this summary — the sweep enforces a closed label vocabulary and"
+            echo "this workflow must not reintroduce what it was careful to exclude."
+          } >> "$GITHUB_STEP_SUMMARY"
