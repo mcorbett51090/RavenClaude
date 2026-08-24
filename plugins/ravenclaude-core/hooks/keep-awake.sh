@@ -23,11 +23,36 @@
 #                battery, and forcing it via a persistent pmset override cooks a closed laptop.
 #   Never blocks. Always exits 0. SessionStart has nothing to fail closed to.
 #
-# ⛔ HONEST LIMIT, STATED NOT GLOSSED. Whether `caffeinate -s` defeats *Clamshell* sleep on
-# Apple Silicon is UNVERIFIED [training knowledge]: caffeinate(8) documents `-s` as AC-only
-# but is silent on the lid switch, and clamshell sleep is powerd/SMC-driven. It cannot be
-# tested without physically closing a lid. The banner says so rather than implying a safety
-# it has not earned — an assertion that silently fails is the exact defect above.
+# ✅ MEASURED 2026-08-24 — this was the last unverified premise in the hook, and it HOLDS.
+# Two physical lid closes on AC, `PreventSystemSleep 1` verified held before and after. A 1 s
+# user-space ticker recorded 98 ticks inside a 99 s closed-lid window (99.0% coverage), max
+# gap 2 s — identical to the lid-open baseline. So `caffeinate -s` DOES keep a session
+# executing through a closed lid, and the AC path earns what it claims.
+#
+# ⛔ AND THE OBVIOUS PROBE SAYS THE OPPOSITE. A `'Clamshell Sleep'` entry STILL appears on AC:
+#
+#     12:00:56  Sleep  Entering DarkWake state due to 'Clamshell Sleep' ... Using AC
+#
+# That line records the DarkWake TRANSITION, not a suspension. So "grep pmset -g log for a new
+# Clamshell Sleep entry; a new one means it failed" returns FAILED on a setup that works — it
+# was run first here and produced exactly that wrong verdict, and the planned response was to
+# make this AC path warning-only. That would have removed a protection that measurably works.
+#
+# ⛔ THE DISCRIMINATOR IS THE SECOND TRANSITION, so grep for `Entering Sleep state`, never for
+# `Clamshell Sleep`. Unprotected 2026-08-22: DarkWake 14:58:38, then `Entering Sleep state due
+# to 'Clamshell Sleep'` 34 s later. Protected 2026-08-24: DarkWake only, no full-Sleep entry
+# from a clamshell cause all day.
+#
+# ⛔ Daemon log activity during the window is NOT evidence the session survived — cloudd and
+# dasd run in DarkWake regardless. That is a different process class. Instrument a user-space
+# ticker, and take a positive control that the lid ACTUALLY closed (Clamshell count increments
+# + `powerd ... lidopen` TurnedOn on reopen), or "no gap" cannot be told apart from "the lid
+# never closed". Probes: `.ravenclaude/runs/guard-gate-correctness/lid-{probe,ticker}.sh`.
+#
+# ⛔ STILL TRUE, AND THE REASON THIS HOOK EXISTS: `-i` LOSES. The original 96-minute silent
+# suspension was under `caffeinate -i -t 300` (PreventUserIdleSystemSleep), which Claude Code
+# spawns per session — idle-only, and a lid close is not idle. `-i` losing says nothing about
+# `-s`; conflating them is what made this an open question for four days.
 #
 # PORTABILITY. bash 3.2-safe (stock macOS): no declare -A / mapfile / globstar, and no
 # GNU-only timeout / grep -P / sed -i.
@@ -79,10 +104,30 @@ SESSION_PID="$(_find_session_pid || true)"
 [ -n "$SESSION_PID" ] || SESSION_PID="${PPID:-$$}"
 
 # ── Battery: hold nothing, warn loudly ──────────────────────────────────────
-if ! pmset -g batt 2>/dev/null | grep -q "AC Power"; then
-  printf '%s\n' "RavenClaude keep-awake: on BATTERY — nothing software-only prevents Clamshell Sleep, so closing the lid WILL freeze this session (suspended, not killed; it resumes on wake and only wall-clock shows the gap). Plug into AC to have this hook hold an assertion, or accept the freeze." >&2
-  exit 0
-fi
+# ⛔ NO PIPE, NO `grep -q`, ON PURPOSE. This file runs under `set -o pipefail` (above), and
+# `grep -q` exits the instant it matches; if the producer still has a write pending it takes
+# SIGPIPE and the PIPELINE reports 141, not 0. Under the old `if ! pmset … | grep -q "AC
+# Power"` that inverted to TRUE, so a machine ON AC would take the BATTERY branch: warn "on
+# BATTERY" and hold NO assertion. That is the silent no-op this hook exists to prevent, and
+# it would have looked like correct behaviour.
+#
+# An intermittent RACE, not a certainty: measured 2026-08-24 at 141 once on a larger `pmset`
+# producer, then 0/460 on re-probe with a detector proven live by a positive control
+# (`yes | grep -q y` -> 20/20 exit 141). ⛔ 460 passes do NOT show a race is gone.
+#
+# `case` on a captured string removes the failure mode outright rather than narrowing it —
+# no subprocess, no pipe, no exit status to misread. Capturing and then piping into `grep -q`
+# would only have made the window smaller, which is not the same as closing it. bash 3.2-safe.
+_batt="$(pmset -g batt 2>/dev/null || printf '')"
+case "$_batt" in
+  *"AC Power"*)
+    : # on AC — fall through and hold the assertion
+    ;;
+  *)
+    printf '%s\n' "RavenClaude keep-awake: on BATTERY — nothing software-only prevents Clamshell Sleep, so closing the lid WILL freeze this session (suspended, not killed; it resumes on wake and only wall-clock shows the gap). Plug into AC to have this hook hold an assertion, or accept the freeze." >&2
+    exit 0
+    ;;
+esac
 
 # ── AC: one assertion per session, idempotent across SessionStart re-fires ──
 if pgrep -f "caffeinate -s -w $SESSION_PID" >/dev/null 2>&1; then
@@ -90,5 +135,5 @@ if pgrep -f "caffeinate -s -w $SESSION_PID" >/dev/null 2>&1; then
 fi
 nohup caffeinate -s -w "$SESSION_PID" >/dev/null 2>&1 &
 
-printf '%s\n' "RavenClaude keep-awake: holding PreventSystemSleep (caffeinate -s, bound to pid $SESSION_PID) on AC power. UNVERIFIED on this machine: whether -s defeats Clamshell Sleep on Apple Silicon is not confirmed — run the lid probe to settle it, and do not assume a closed lid is safe until you have." >&2
+printf '%s\n' "RavenClaude keep-awake: holding PreventSystemSleep (caffeinate -s, bound to pid $SESSION_PID) on AC power. VERIFIED 2026-08-24 by two physical lid closes — a user-space ticker logged 98 of 99 seconds inside a closed-lid window (max gap 2s, same as lid-open), so the session keeps running. ⛔ A 'Clamshell Sleep' line WILL still appear in pmset -g log; it is only the DarkWake transition, NOT a stall — grep for 'Entering Sleep state' if you want the real thing." >&2
 exit 0
