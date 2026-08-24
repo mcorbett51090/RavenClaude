@@ -3052,3 +3052,46 @@ Codespaces dashboard that silently fell to read-only because its forwarded `Host
 `:443` (or arrived via a proxy that added one) now works — Save & apply POSTs succeed. No posture,
 tribunal, `/__*` endpoint, or security-floor semantics changed; the cross-origin/DNS-rebinding boundary
 is unchanged (a foreign forwarded host still 403s).
+
+## `context_handoff` was the last posture block the serializer silently dropped (added 2026-08-24, v0.297.0)
+
+The dashboard's `emitYaml()` rebuilds the **whole** `.ravenclaude/comfort-posture.yaml` from its
+in-memory `state` on every "Save & apply", so any top-level key the serializer does not model is
+**silently deleted**. This is the v0.61.0 data-loss class — it already ate `runaway` /
+`decision_review` / `definition_of_done` (v0.61.0) and `stream_classify` / `stream_threshold` (F4),
+each fixed by giving the key a `state` slot + a hydrate parse + an emit-when-non-default block. This
+closes the **last** unmodelled one: `context_handoff`.
+
+control (2026-08-24): the generator only *described* it — a hook-lore line at
+`generate-dashboards.py:1168` — with **no** `state` slot, **no** `applyGuardrailConfig` parse, and
+**no** `emitYaml` emission. The live posture carried `context_handoff: { spawn: os-terminal }` with an
+inline ⛔ warning that a Save deletes it; the block is read by `hooks/handoff-nudge.sh` (Stop
+quality-reset nudge), `scripts/handoff-spawn.sh` (successor spawn), and
+`scripts/context-usage-meter.py` (soft-threshold + window), so a Save would have dropped the owner's
+spawn recipe and nudge mode.
+
+**The fix mirrors `worktree_bound` exactly — a state-slot round-trip with NO editable DOM control**, so
+it adds zero DOM elements and needs no Gate 132 ratchet raise. `context_handoff` is now in the schema,
+`state`, `applyGuardrailConfig`, and `emitYaml` (emitted only when a sub-field is non-default, so an
+absent block stays absent — "absent ⇒ default" holds). `mode` is validated `off | nag | block`;
+`context_window_tokens` a positive int; and `spawn` against the **union** of both readers' enums
+(`copy-paste-only | same-host | os-terminal`) so a Save **preserves** whatever the owner set instead of
+canonicalizing (the two readers genuinely disagree — `handoff-spawn.sh` reads `same-host|os-terminal`,
+`context-usage-meter.py` reads `copy-paste-only|os-terminal` — and reconciling that drift is a separate
+fix, deliberately not folded in here). An absent `spawn` is the launcher's copy-paste fallback and
+stays absent.
+
+⛔ **The load-bearing round-trip is the spawn-only shape.** The live posture sets `spawn:` with `mode`
+at its default `off`; the block must still emit (with just `spawn:`) even though `mode` is not written,
+or the recipe is lost. **Gate 35** ([`scripts/check-dashboard-roundtrip.mjs`](../../scripts/check-dashboard-roundtrip.mjs))
+gained emit + hydrate coverage in Test 1, a dedicated Test 6 for the spawn-only case + the union guard
+(an unknown `spawn` is dropped, so an otherwise-default block emits nothing), and
+[`audit-gates.sh`](../../scripts/audit-gates.sh) gained a must-fail mutant that strips the
+`context_handoff:` emit line — verified this session to redden the gate (Test 1 + Test 6 both catch it).
+A grep of the generated `dashboard.html` for a `context-handoff` control id returned empty (no rendered
+control, matching the `worktree_bound` precedent), while the state/emit-refs grep on the same file
+returned 17 — so the round-trip lives with no stray control. Both dashboard freshness gates stay green.
+
+**Migration:** none — `context_handoff` defaults absent (⇒ no handoff behavior), so an untouched posture
+is byte-identical on `/plugin marketplace update`. The only change is that a dashboard Save now
+**preserves** the block instead of dropping it.

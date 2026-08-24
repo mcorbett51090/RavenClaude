@@ -5829,6 +5829,37 @@ footer.page-footer a:hover { text-decoration: underline; }
       "title": "Worktree bound",
       "description": "Behavioral flag (not a permission \u2014 marked \u2699). FOREIGN-TREE: deny a Write/Edit/MultiEdit or a mutating git -C / GIT_WORK_TREE whose target resolves under a sibling worktree. Default block (absent \u21d2 block) \u2014 leaving your tree is never a preference. Independent of worktree_guard (which stays warn for two-writers-one-tree). off = silence this clause only; warn = nudge; block = exit 2. Escape: RC_WORKTREE_BOUND_ACK=1. Sibling Read is never denied. This is not a claim that VS Code Copilot Chat is protected."
     },
+    "context_handoff": {
+      "type": "object",
+      "title": "Session-context handoff",
+      "description": "Behavioral block (not a permission \u2014 marked \u2699). Round-tripped by the dashboard but has NO editable control (Settings-only, like worktree_bound): it is held in the serializer's state so a Save & apply preserves it instead of silently stripping it (the v0.61.0 data-loss class). Read by hooks/handoff-nudge.sh (Stop context-hot quality-reset nudge), scripts/handoff-spawn.sh (successor spawn), and scripts/context-usage-meter.py (soft-threshold + window). Absent \u21d2 no handoff behavior. spawn accepts the union of both readers' enums; absence of spawn means the launcher's copy-paste fallback.",
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": [
+            "off",
+            "nag",
+            "block"
+          ],
+          "default": "off",
+          "description": "Whether a context-hot Stop emits the quality-reset handoff nudge. off = silent; nag = advisory nudge; block = the owner opts into a stronger Stop nudge. Default off."
+        },
+        "spawn": {
+          "type": "string",
+          "enum": [
+            "copy-paste-only",
+            "same-host",
+            "os-terminal"
+          ],
+          "description": "How the successor session is launched. os-terminal opens Terminal.app; same-host opens a VS Code integrated terminal; copy-paste-only (or an absent value) falls back to the copy-paste block. Either non-fallback value degrades to copy-paste on failure, so this can only add a path, never remove one."
+        },
+        "context_window_tokens": {
+          "type": "integer",
+          "description": "Optional override of the assumed context-window size (tokens) used by context-usage-meter.py to compute the soft handoff threshold."
+        }
+      },
+      "additionalProperties": false
+    },
     "_category_value_shape": {
       "description": "Documentation-only key (ignored by tooling). Each `categories.\u003cname>` value can be (a) a plain string (v3/v4 legacy: single level for all layers), (b) an object `{ default, overrides }` (v4 per-pattern), or (c) an object `{ user, local, project }` with an optional `overrides` map (v5 per-layer, the canonical shape produced by the dashboard). Resolution: each layer independently resolves patterns (per-permission overrides win over the category-wide layer value); Claude Code merges user+local+project at runtime as deny > ask > allow.",
       "examples": [
@@ -11425,6 +11456,19 @@ footer.page-footer a:hover { text-decoration: underline; }
   const STREAM_THRESHOLD_DEFAULT = 0.18;
   const STREAM_THRESHOLD_MIN = 0.05;
   const STREAM_THRESHOLD_MAX = 0.95;
+  /* Session-context handoff (read by hooks/handoff-nudge.sh (Stop nudge) +
+   * scripts/handoff-spawn.sh (successor spawn) + scripts/context-usage-meter.py).
+   * A NESTED block, round-tripped here so a Save no longer strips it — the last
+   * unmodelled behavioral key of the v0.61.0 data-loss class (like stream_* / F4).
+   * `spawn` accepts the UNION of both readers' enums (handoff-spawn.sh reads
+   * same-host|os-terminal; context-usage-meter.py reads copy-paste-only|os-terminal)
+   * so a Save PRESERVES whatever the owner set instead of canonicalizing; absence =
+   * "not set" (the launcher's copy-paste fallback) and stays absent. NO DOM control —
+   * state-slot round-trip only, exactly like worktree_bound. */
+  const CONTEXT_HANDOFF_MODE_VALUES = ["off", "nag", "block"];
+  const CONTEXT_HANDOFF_MODE_DEFAULT = "off";
+  const CONTEXT_HANDOFF_SPAWN_VALUES = ["copy-paste-only", "same-host", "os-terminal"];
+  const CONTEXT_HANDOFF_DEFAULT = Object.freeze({ mode: "off", spawn: "", context_window_tokens: null });
 
   /* Per-tier panel defaults — mirror thing-decision.py's built-in tier table.
    * Seats are forseti | mimir | heimdall (thor is the tie-breaker, never a seat).
@@ -11511,6 +11555,10 @@ footer.page-footer a:hover { text-decoration: underline; }
     stream_classify: STREAM_CLASSIFY_DEFAULT,
     stream_threshold: STREAM_THRESHOLD_DEFAULT,
     definition_of_done: Object.assign({}, DOD_DEFAULT),
+    /* Session-context handoff (v0.61.0 data-loss class). Held in state so a Save
+     * round-trips it instead of silently dropping it. No DOM control (worktree_bound
+     * pattern) — the launcher/nudge/meter own the semantics, we only preserve. */
+    context_handoff: Object.assign({}, CONTEXT_HANDOFF_DEFAULT),
     expanded: {},   /* category -> boolean */
   };
 
@@ -11968,6 +12016,15 @@ footer.page-footer a:hover { text-decoration: underline; }
       const mb = parseInt(dod.max_blocks, 10);
       if (Number.isFinite(mb) && mb > 0) { state.definition_of_done.max_blocks = mb; touched = true; }
     }
+    /* Session-context handoff (v0.61.0 data-loss class). Validate against the readers'
+     * enums; spawn accepts the UNION so a set value is preserved, not canonicalized. */
+    const ch = src.context_handoff;
+    if (ch && typeof ch === "object") {
+      if (CONTEXT_HANDOFF_MODE_VALUES.includes(ch.mode)) { state.context_handoff.mode = ch.mode; touched = true; }
+      if (CONTEXT_HANDOFF_SPAWN_VALUES.includes(ch.spawn)) { state.context_handoff.spawn = ch.spawn; touched = true; }
+      const cw = parseInt(ch.context_window_tokens, 10);
+      if (Number.isFinite(cw) && cw > 0) { state.context_handoff.context_window_tokens = cw; touched = true; }
+    }
     const cr = src.command_review;
     if (cr && typeof cr === "object" && typeof cr.dev_repo_exempt === "boolean") {
       state.command_review.dev_repo_exempt = cr.dev_repo_exempt; touched = true;
@@ -12178,6 +12235,25 @@ footer.page-footer a:hover { text-decoration: underline; }
       lines.push("definition_of_done:");
       lines.push(`  cmd: ${quoteYamlKey(dod.cmd)}`);
       lines.push(`  max_blocks: ${dod.max_blocks}`);
+      lines.push("");
+    }
+
+    /* Session-context handoff (v0.61.0 data-loss class). Emit the block when ANY
+     * sub-field is non-default, and emit only the set sub-fields — so `spawn:
+     * os-terminal` alone round-trips and a default/absent block emits nothing
+     * ("absent ⇒ default"). Read back by handoff-nudge.sh / handoff-spawn.sh /
+     * context-usage-meter.py. No editable control (worktree_bound pattern). */
+    const cth = state.context_handoff;
+    const cthMode = cth.mode && cth.mode !== CONTEXT_HANDOFF_MODE_DEFAULT
+      && CONTEXT_HANDOFF_MODE_VALUES.includes(cth.mode);
+    const cthSpawn = cth.spawn && CONTEXT_HANDOFF_SPAWN_VALUES.includes(cth.spawn);
+    const cthWin = Number.isFinite(cth.context_window_tokens) && cth.context_window_tokens > 0;
+    if (cthMode || cthSpawn || cthWin) {
+      lines.push("# Session-context handoff — Stop quality-reset nudge + successor spawn.");
+      lines.push("context_handoff:");
+      if (cthMode) lines.push(`  mode: ${cth.mode}`);
+      if (cthSpawn) lines.push(`  spawn: ${cth.spawn}`);
+      if (cthWin) lines.push(`  context_window_tokens: ${cth.context_window_tokens}`);
       lines.push("");
     }
 

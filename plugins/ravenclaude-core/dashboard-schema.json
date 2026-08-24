@@ -232,6 +232,29 @@
       "title": "Worktree bound",
       "description": "Behavioral flag (not a permission — marked ⚙). FOREIGN-TREE: deny a Write/Edit/MultiEdit or a mutating git -C / GIT_WORK_TREE whose target resolves under a sibling worktree. Default block (absent ⇒ block) — leaving your tree is never a preference. Independent of worktree_guard (which stays warn for two-writers-one-tree). off = silence this clause only; warn = nudge; block = exit 2. Escape: RC_WORKTREE_BOUND_ACK=1. Sibling Read is never denied. This is not a claim that VS Code Copilot Chat is protected."
     },
+    "context_handoff": {
+      "type": "object",
+      "title": "Session-context handoff",
+      "description": "Behavioral block (not a permission — marked ⚙). Round-tripped by the dashboard but has NO editable control (Settings-only, like worktree_bound): it is held in the serializer's state so a Save & apply preserves it instead of silently stripping it (the v0.61.0 data-loss class). Read by hooks/handoff-nudge.sh (Stop context-hot quality-reset nudge), scripts/handoff-spawn.sh (successor spawn), and scripts/context-usage-meter.py (soft-threshold + window). Absent ⇒ no handoff behavior. spawn accepts the union of both readers' enums; absence of spawn means the launcher's copy-paste fallback.",
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": ["off", "nag", "block"],
+          "default": "off",
+          "description": "Whether a context-hot Stop emits the quality-reset handoff nudge. off = silent; nag = advisory nudge; block = the owner opts into a stronger Stop nudge. Default off."
+        },
+        "spawn": {
+          "type": "string",
+          "enum": ["copy-paste-only", "same-host", "os-terminal"],
+          "description": "How the successor session is launched. os-terminal opens Terminal.app; same-host opens a VS Code integrated terminal; copy-paste-only (or an absent value) falls back to the copy-paste block. Either non-fallback value degrades to copy-paste on failure, so this can only add a path, never remove one."
+        },
+        "context_window_tokens": {
+          "type": "integer",
+          "description": "Optional override of the assumed context-window size (tokens) used by context-usage-meter.py to compute the soft handoff threshold."
+        }
+      },
+      "additionalProperties": false
+    },
     "_category_value_shape": {
       "description": "Documentation-only key (ignored by tooling). Each `categories.<name>` value can be (a) a plain string (v3/v4 legacy: single level for all layers), (b) an object `{ default, overrides }` (v4 per-pattern), or (c) an object `{ user, local, project }` with an optional `overrides` map (v5 per-layer, the canonical shape produced by the dashboard). Resolution: each layer independently resolves patterns (per-permission overrides win over the category-wide layer value); Claude Code merges user+local+project at runtime as deny > ask > allow.",
       "examples": [

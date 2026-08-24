@@ -2,6 +2,30 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.297.0 — 2026-08-24
+
+### Fixed
+
+- **`context_handoff` was the last comfort-posture block the dashboard serializer did not
+  model, so a "Save & apply" silently deleted it** (the v0.61.0 data-loss class that already
+  ate `runaway` / `decision_review` / `definition_of_done` and `stream_classify`). `emitYaml()`
+  rebuilds the whole `.ravenclaude/comfort-posture.yaml` from `state`, and `context_handoff`
+  had no `state` slot, no hydrate parse, and no emit line — so the successor-spawn recipe
+  (`spawn:`) and Stop-nudge mode (`mode:`) read by `handoff-nudge.sh` / `handoff-spawn.sh` /
+  `context-usage-meter.py` vanished on the next Save.
+
+  It is now round-tripped exactly like `worktree_bound` — modelled in the schema + `state` +
+  `emitYaml` + `applyGuardrailConfig`, emitted only when non-default, with **no editable DOM
+  control** (so no Gate 132 ratchet raise). `spawn` validates against the union of both readers'
+  enums (`copy-paste-only` | `same-host` | `os-terminal`) so a Save preserves whatever the owner
+  set rather than canonicalizing. **Gate 35** gained emit + hydrate coverage, a spawn-only
+  round-trip test (the live-posture shape), and a must-fail mutant that strips the
+  `context_handoff:` emit.
+
+  **Migration:** none — `context_handoff` defaults absent (⇒ no handoff behavior), so an
+  untouched posture is byte-identical on `/plugin marketplace update`; the only change is that a
+  dashboard Save now preserves the block instead of dropping it.
+
 ## 0.280.0 — 2026-08-18
 
 ### Fixed

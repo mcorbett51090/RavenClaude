@@ -242,10 +242,10 @@ keep_awake: on
 # Accessibility to your host app, switch this to `same-host`. Either value falls back
 # to the copy-paste block on failure, so this can only add a path, never remove one.
 #
-# ⛔ context_handoff is NOT modelled in dashboard-schema.json (0 occurrences,
-# verified 2026-08-24), so a dashboard "Save & apply" will DELETE this block — the
-# unmodelled-key strip that has already eaten `command_review.enabled`, 5 behavioral
-# keys and 78 comment lines here. `git diff` after every dashboard Save until it is
-# modelled.
+# context_handoff is now MODELLED + round-tripped by the dashboard serializer
+# (v0.297.0, like worktree_bound), so a "Save & apply" PRESERVES this block instead of
+# stripping it. It still has no editable control — set it here by hand. (A dashboard
+# Save rebuilds the file from state and drops hand-written COMMENTS like this one, but
+# the `context_handoff:` block itself now survives.)
 context_handoff:
   spawn: os-terminal

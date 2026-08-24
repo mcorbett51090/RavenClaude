@@ -8351,6 +8351,19 @@ _JS = r"""
   const STREAM_THRESHOLD_DEFAULT = 0.18;
   const STREAM_THRESHOLD_MIN = 0.05;
   const STREAM_THRESHOLD_MAX = 0.95;
+  /* Session-context handoff (read by hooks/handoff-nudge.sh (Stop nudge) +
+   * scripts/handoff-spawn.sh (successor spawn) + scripts/context-usage-meter.py).
+   * A NESTED block, round-tripped here so a Save no longer strips it — the last
+   * unmodelled behavioral key of the v0.61.0 data-loss class (like stream_* / F4).
+   * `spawn` accepts the UNION of both readers' enums (handoff-spawn.sh reads
+   * same-host|os-terminal; context-usage-meter.py reads copy-paste-only|os-terminal)
+   * so a Save PRESERVES whatever the owner set instead of canonicalizing; absence =
+   * "not set" (the launcher's copy-paste fallback) and stays absent. NO DOM control —
+   * state-slot round-trip only, exactly like worktree_bound. */
+  const CONTEXT_HANDOFF_MODE_VALUES = ["off", "nag", "block"];
+  const CONTEXT_HANDOFF_MODE_DEFAULT = "off";
+  const CONTEXT_HANDOFF_SPAWN_VALUES = ["copy-paste-only", "same-host", "os-terminal"];
+  const CONTEXT_HANDOFF_DEFAULT = Object.freeze({ mode: "off", spawn: "", context_window_tokens: null });
 
   /* Per-tier panel defaults — mirror thing-decision.py's built-in tier table.
    * Seats are forseti | mimir | heimdall (thor is the tie-breaker, never a seat).
@@ -8437,6 +8450,10 @@ _JS = r"""
     stream_classify: STREAM_CLASSIFY_DEFAULT,
     stream_threshold: STREAM_THRESHOLD_DEFAULT,
     definition_of_done: Object.assign({}, DOD_DEFAULT),
+    /* Session-context handoff (v0.61.0 data-loss class). Held in state so a Save
+     * round-trips it instead of silently dropping it. No DOM control (worktree_bound
+     * pattern) — the launcher/nudge/meter own the semantics, we only preserve. */
+    context_handoff: Object.assign({}, CONTEXT_HANDOFF_DEFAULT),
     expanded: {},   /* category -> boolean */
   };
 
@@ -8894,6 +8911,15 @@ _JS = r"""
       const mb = parseInt(dod.max_blocks, 10);
       if (Number.isFinite(mb) && mb > 0) { state.definition_of_done.max_blocks = mb; touched = true; }
     }
+    /* Session-context handoff (v0.61.0 data-loss class). Validate against the readers'
+     * enums; spawn accepts the UNION so a set value is preserved, not canonicalized. */
+    const ch = src.context_handoff;
+    if (ch && typeof ch === "object") {
+      if (CONTEXT_HANDOFF_MODE_VALUES.includes(ch.mode)) { state.context_handoff.mode = ch.mode; touched = true; }
+      if (CONTEXT_HANDOFF_SPAWN_VALUES.includes(ch.spawn)) { state.context_handoff.spawn = ch.spawn; touched = true; }
+      const cw = parseInt(ch.context_window_tokens, 10);
+      if (Number.isFinite(cw) && cw > 0) { state.context_handoff.context_window_tokens = cw; touched = true; }
+    }
     const cr = src.command_review;
     if (cr && typeof cr === "object" && typeof cr.dev_repo_exempt === "boolean") {
       state.command_review.dev_repo_exempt = cr.dev_repo_exempt; touched = true;
@@ -9104,6 +9130,25 @@ _JS = r"""
       lines.push("definition_of_done:");
       lines.push(`  cmd: ${quoteYamlKey(dod.cmd)}`);
       lines.push(`  max_blocks: ${dod.max_blocks}`);
+      lines.push("");
+    }
+
+    /* Session-context handoff (v0.61.0 data-loss class). Emit the block when ANY
+     * sub-field is non-default, and emit only the set sub-fields — so `spawn:
+     * os-terminal` alone round-trips and a default/absent block emits nothing
+     * ("absent ⇒ default"). Read back by handoff-nudge.sh / handoff-spawn.sh /
+     * context-usage-meter.py. No editable control (worktree_bound pattern). */
+    const cth = state.context_handoff;
+    const cthMode = cth.mode && cth.mode !== CONTEXT_HANDOFF_MODE_DEFAULT
+      && CONTEXT_HANDOFF_MODE_VALUES.includes(cth.mode);
+    const cthSpawn = cth.spawn && CONTEXT_HANDOFF_SPAWN_VALUES.includes(cth.spawn);
+    const cthWin = Number.isFinite(cth.context_window_tokens) && cth.context_window_tokens > 0;
+    if (cthMode || cthSpawn || cthWin) {
+      lines.push("# Session-context handoff — Stop quality-reset nudge + successor spawn.");
+      lines.push("context_handoff:");
+      if (cthMode) lines.push(`  mode: ${cth.mode}`);
+      if (cthSpawn) lines.push(`  spawn: ${cth.spawn}`);
+      if (cthWin) lines.push(`  context_window_tokens: ${cth.context_window_tokens}`);
       lines.push("");
     }
 
