@@ -21,10 +21,15 @@ import json
 import os
 import re
 import sys
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
+# ⛔ EXIT CONTRACT — 0 = clean, 2 = finding or parse ambiguity. EXIT 1 IS NEVER USED.
+# Claude Code treats a hook exit of 1 as a NON-BLOCKING error, so a checker that
+# reports findings with 1 silently allows the thing it just objected to. That is the
+# defect class this repo has shipped twice (the macOS `globstar` fail-open, and Gate
+# 184 landing inside its own dispatcher). Fail closed or do not fail at all.
 EXIT_OK = 0
-EXIT_FINDINGS = 1
+EXIT_FINDINGS = 2
 EXIT_USAGE = 2
 
 _VALID_TIERS = ("fail", "warn")
@@ -41,7 +46,7 @@ _DEFAULT_RULES = os.path.join(
 
 # ── loading ──────────────────────────────────────────────────────────────────
 
-def load_rules(path: Optional[str] = None) -> Dict[str, Any]:
+def load_rules(path: str | None = None) -> dict[str, Any]:
     """Read the rule table. Raises on anything it cannot confidently parse.
 
     Refusing beats guessing: this table is the single source of every threshold
@@ -58,7 +63,7 @@ def load_rules(path: Optional[str] = None) -> Dict[str, Any]:
 
 # ── the invariant checker (Phase 0 acceptance test 5) ────────────────────────
 
-def check_invariants(data: Dict[str, Any], max_claim: int) -> List[str]:
+def check_invariants(data: dict[str, Any], max_claim: int) -> list[str]:
     """Return a list of invariant violations. Empty list == the table is sound.
 
     The load-bearing pair is advisory ⟹ warn and advisory ⟹ fire_rate present.
@@ -66,8 +71,8 @@ def check_invariants(data: Dict[str, Any], max_claim: int) -> List[str]:
     down a judgement-call rule without also writing down what it fired on and the
     population you measured. That is the whole tier discipline, mechanised.
     """
-    problems: List[str] = []
-    seen: Dict[str, int] = {}
+    problems: list[str] = []
+    seen: dict[str, int] = {}
 
     for idx, rule in enumerate(data.get("rules", [])):
         rid = rule.get("id") or "<rule #%d with no id>" % idx
@@ -135,7 +140,7 @@ def check_invariants(data: Dict[str, Any], max_claim: int) -> List[str]:
 
 # ── self-test, with the negative controls that give it teeth ─────────────────
 
-def _fixture(**over: Any) -> Dict[str, Any]:
+def _fixture(**over: Any) -> dict[str, Any]:
     base = {
         "id": "FX01", "tier": "warn", "class": "advisory", "claim": "S3",
         "rule": "a fixture rule", "rationale": "fixture", "remediation": "fix it",
@@ -153,7 +158,7 @@ def self_test(max_claim: int) -> int:
     Every case below asserts a *specific* violation string, so a checker that
     rejected everything for the wrong reason would not pass.
     """
-    cases: List[Tuple[str, Dict[str, Any], Optional[str]]] = [
+    cases: list[tuple[str, dict[str, Any], str | None]] = [
         ("positive control: a sound advisory rule passes", _fixture(), None),
         ("positive control: a sound ground-truth rule with no fire_rate passes",
          _fixture(**{"class": "ground-truth", "tier": "fail", "fire_rate": None}), None),
@@ -198,7 +203,7 @@ def self_test(max_claim: int) -> int:
 
 # ── CLI ──────────────────────────────────────────────────────────────────────
 
-def main(argv: Optional[List[str]] = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="orgskill", description=__doc__.splitlines()[0])
     # Top-level flag, matching this repo's convention (forge-route.py --self-test,
     # premise-gate.py --self-test). NOT a subcommand: argparse cannot dispatch a
@@ -214,9 +219,17 @@ def main(argv: Optional[List[str]] = None) -> int:
     p_rules.add_argument("--check", action="store_true", help="assert the table's invariants")
     p_rules.add_argument("--json", action="store_true")
 
-    for stub in ("lint", "pack", "verify", "report"):
+    p_lint = sub.add_parser("lint", help="check a skill directory against the rule battery")
+    p_lint.add_argument("target", help="path to the skill directory (containing SKILL.md)")
+    p_lint.add_argument("--rules", default=None, help="override the rule-table path")
+    p_lint.add_argument("--markers", default=None, help="override the DS02 marker list")
+    p_lint.add_argument("--json", action="store_true")
+    p_lint.add_argument("--warn-only", action="store_true",
+                        help="report warns but exit 0 unless a FAIL fired")
+
+    for stub in ("pack", "verify", "report"):
         sp = sub.add_parser(stub, help="(phase %s — not yet implemented)"
-                            % {"lint": "2", "pack": "4", "verify": "4", "report": "3"}[stub])
+                            % {"pack": "4", "verify": "4", "report": "3"}[stub])
         sp.add_argument("target", nargs="?")
 
     args = ap.parse_args(argv)
@@ -248,6 +261,62 @@ def main(argv: Optional[List[str]] = None) -> int:
             if args.check and not problems:
                 print("invariants: PASS")
         return EXIT_FINDINGS if problems else EXIT_OK
+
+    if args.cmd == "lint":
+        try:
+            import lint_rules
+        except ImportError:
+            sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+            import lint_rules
+        try:
+            table = load_rules(args.rules)
+        except (OSError, ValueError, json.JSONDecodeError) as exc:
+            print("orgskill: cannot read the rule table: %s" % exc, file=sys.stderr)
+            return EXIT_FINDINGS  # fail closed: no table means no checks ran
+
+        markers = []
+        mpath = args.markers or os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            "reference", "ds02-markers.json")
+        try:
+            markers = [m["idiom"] for m in json.load(open(mpath, encoding="utf-8"))["markers"]]
+        except (OSError, ValueError, KeyError, json.JSONDecodeError):
+            # DS02 simply does not run without its corpus-derived list. Silently
+            # skipping ONE advisory check is correct; inventing markers is not.
+            markers = []
+
+        findings, ambiguity = lint_rules.lint_skill(args.target, table, markers)
+        fails = [f for f in findings if f["tier"] == "fail"]
+        warns = [f for f in findings if f["tier"] == "warn"]
+
+        if args.json:
+            print(json.dumps({"target": args.target, "findings": findings,
+                              "ambiguity": ambiguity,
+                              "fail_count": len(fails), "warn_count": len(warns)}, indent=2))
+        else:
+            print("orgskill lint: %s" % args.target)
+            for f in fails + warns:
+                head = "  [%s] %s  %s" % (f["tier"].upper(), f["rule_id"], f["message"])
+                print(head)
+                print("        span: %s   claim: %s" % (f["span"], f["claim"]))
+                print("        fix : %s" % f["remediation"])
+                fr = f.get("fire_rate")
+                if fr:
+                    # An advisory finding without its provenance reads as a fact.
+                    print("        measured: %.1f%% (%d/%d) on %s"
+                          % (100 * fr["value"], fr["n"], fr["total"], fr["population"]))
+            for a in ambiguity:
+                print("  [AMBIGUITY] %s" % a)
+            print("\n%d fail, %d warn, %d ambiguity" % (len(fails), len(warns), len(ambiguity)))
+            print("\n" + lint_rules.WHAT_THIS_DOES_NOT_CHECK)
+
+        if ambiguity:
+            return EXIT_FINDINGS          # fail closed on anything we could not parse
+        if fails:
+            return EXIT_FINDINGS
+        if warns and not args.warn_only:
+            return EXIT_OK                # warns never block; they inform
+        return EXIT_OK
 
     print("orgskill: '%s' lands in a later phase" % args.cmd, file=sys.stderr)
     return EXIT_USAGE
