@@ -578,7 +578,21 @@ _wg_lease_should_enforce() {
   case "$tn" in
     Write|Edit|MultiEdit)
       [ -n "$fp" ] || return 1
-      _wg_is_foreign "$fp" && return 1
+      # ⛔ ENFORCE ONLY INSIDE THIS TREE. This used to read
+      # `_wg_is_foreign "$fp" && return 1`, which skips only a SIBLING-owned path
+      # — so a path owned by NO worktree came back "not foreign" and was enforced.
+      # The lease exists to stop a second writer colliding on THIS working tree; a
+      # file outside every worktree cannot cause that collision, so denying it buys
+      # nothing and turns the lease into precisely the "general jail" that
+      # _wg_is_foreign's own comment says this predicate must never be.
+      #
+      # control 2026-08-24, observed twice in one session: with a lease held on
+      # ~/RavenClaude, an Edit to ~/.claude/projects/.../memory/*.md — a path in no
+      # git worktree at all — was DENIED with the lease message, while the same
+      # content written via a Bash heredoc went through untouched. So the clause
+      # blocked the honest tool and not the workaround, which is the shape that
+      # teaches tunnelling rather than preventing collisions.
+      _wg_is_in_this_tree "$fp" || return 1
       return 0
       ;;
     Bash) _wg_bash_is_mutating || return 1; return 0 ;;
@@ -596,6 +610,17 @@ _wg_is_foreign() {
   [ -n "$owner" ] || return 1
   [ "$owner" = "$REAL_TOP" ] && return 1
   return 0
+}
+
+# Positive counterpart to _wg_is_foreign. "Not foreign" is NOT the same as "mine":
+# a path owned by no worktree satisfies the first and not the second, and conflating
+# them is what made the lease enforce on files outside every repo. Ask the question
+# you mean — is this target inside THIS working tree?
+_wg_is_in_this_tree() {
+  local target="$1" rp
+  [ -n "$target" ] || return 1
+  rp="$(_wg_resolve_existing "$target")" || return 1
+  [ "$(_wg_owning_worktree "$rp")" = "$REAL_TOP" ]
 }
 
 # Candidate dirs from a Bash command: -C, --work-tree, --git-dir, GIT_WORK_TREE, GIT_DIR, cd.

@@ -9655,7 +9655,7 @@ footer.page-footer a:hover { text-decoration: underline; }
         "plugins/ravenclaude-core/hooks/triage-outcome.sh",
         "plugins/ravenclaude-core/hooks/worktree-guard.sh"
       ],
-      "covers_digest": "sha256:6ef60dc0f0183ea60a500d5097f2611e4ed12569bed61aaf7983d087bfeac62b",
+      "covers_digest": "sha256:15518dd8087e2134fa3a329348463a666ef61623c2dc41c941a031e8fafdd0f1",
       "nuance": "A hook writing to stderr at `exit 0` reaches the model on no event; only `hookSpecificOutput.additionalContext` and `updatedToolOutput` are delivered, so `_advise.sh` advised the terminal for its entire service life.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -9748,7 +9748,7 @@ footer.page-footer a:hover { text-decoration: underline; }
         "scripts/sync-plugin-versions.py",
         "scripts/generate-copilot-plugin.py"
       ],
-      "covers_digest": "sha256:7536c6e8a2ec68b43fa08572ba4db8373e25736e406f19909018a04f4ae1ae13",
+      "covers_digest": "sha256:ade72267ab5581f9e2d2f8b54103a3fd0ad3fb1b85db6129c2b25bd58942e2b2",
       "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -9809,7 +9809,7 @@ footer.page-footer a:hover { text-decoration: underline; }
         "scripts/inventory-coverage.py",
         "scripts/inventory-nuance-judge.py"
       ],
-      "covers_digest": "sha256:d7b1820c669b8ea6ddd17a63c6c02607c5a4d65acbba5b590e84b54da8000e17",
+      "covers_digest": "sha256:def2ad92275ed6c1d6cf65604dfd5cd5235ee92ad703f3ccbf7ad152d9e8175a",
       "nuance": "The teeth bit is the exit a tool own CHECK returns on a planted defect, never the exit `--must-fail` itself returns: `premise-gate.py` denies at `exit 0` while `sync-plugin-versions.py` reddens at `exit 2`, so an auditor that hard-codes one number can never be right for both.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -11041,9 +11041,9 @@ footer.page-footer a:hover { text-decoration: underline; }
     },
     {
       "drift": false,
-      "marketplace_version": "0.288.0",
+      "marketplace_version": "0.289.0",
       "plugin": "ravenclaude-core",
-      "plugin_version": "0.288.0"
+      "plugin_version": "0.289.0"
     },
     {
       "drift": false,
