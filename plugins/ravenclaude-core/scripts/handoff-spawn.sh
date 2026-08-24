@@ -626,7 +626,26 @@ APPLESCRIPT
 
 spawn_terminal_app() {
   command -v open >/dev/null 2>&1 || return 1
-  open -na Terminal --args bash -lc "$(printf '%q' "$launch")"
+  # ⛔ The previous form — `open -na Terminal --args bash -lc '<cmd>'` — opened an empty
+  # window without running <cmd>. Terminal.app ignores --args, and `open` still exits 0, so
+  # this function returned success and the caller printed "launched Terminal.app" while
+  # nothing had started. A false success is worse than no attempt: `launched=1` SKIPS the
+  # copy-paste fallback, so the operator is told the successor is running when it is not.
+  #
+  # control: bidirectional sentinel, same shell, same minute, only the form varied —
+  #   (A) open -na Terminal --args bash -lc "touch SENT"        -> SENT not created
+  #   (B) open -a  Terminal <executable script touching SENT2>  -> SENT2 created
+  # (B) is the positive control: it proves the probe can observe a launch at all, so (A)'s
+  # empty result is a real absence rather than a blind detector. Corroborated live: a real
+  # spawn printed "launched Terminal.app" with NO new `claude` process in `ps`.
+  # premise-ok: recorded in runs/premise/<sid>/scopes/RavenClaude-*/control.md
+  #
+  # `$launch` is ALREADY an executable script ("$run_dir/launch-successor.sh", chmod +x at
+  # write time), so form (B) needs no temp file and no osascript — osascript would add an
+  # Automation-permission dependency this path deliberately avoids.
+  [ -x "$launch" ] || return 1
+  open -a Terminal "$launch" || return 1
+  return 0
 }
 
 launched=0
