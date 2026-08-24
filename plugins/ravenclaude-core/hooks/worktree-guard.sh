@@ -533,6 +533,23 @@ _wg_lease_idle() {
 # anchor we report and decline the takeover rather than commit.
 _wg_lease_autocheckin() {
   local holder="$1" idle="$2" branch mins
+  # ⛔ ORDER IS LOAD-BEARING — this check MUST precede the anchor refusal below.
+  # Nothing to check in is a clean takeover, not a failure, and that is true on
+  # EVERY branch INCLUDING the anchor: there is no work to auto-checkin, so the
+  # hazard the refusal exists to prevent cannot arise.
+  #
+  # It used to sit AFTER the `case`, which made the refusal UNCONDITIONAL on the
+  # anchor. MEASURED 2026-08-24: a CLEAN anchor (one untracked file), a holder
+  # session dead 4.4 days, and every mutating op still denied — for hours, across
+  # two sessions. The denial tells you to "Land or move that work by hand, then
+  # retry", but the retry never reached the line that checks whether you landed
+  # it, so the instruction was unsatisfiable BY CONSTRUCTION. Because the house
+  # convention keeps the anchor checkout on `main` permanently, that stranded the
+  # anchor for good rather than transiently.
+  #
+  # The safety property is UNCHANGED: an anchor with real work still refuses,
+  # because this returns only when the tree is clean. Only the vacuous case moves.
+  [ -z "$(wg_git status --porcelain 2>/dev/null)" ] && return 0
   branch="$(wg_git rev-parse --abbrev-ref HEAD 2>/dev/null || printf '')"
   case "$branch" in
     main|master|HEAD|"")
@@ -540,8 +557,6 @@ _wg_lease_autocheckin() {
       return 1
       ;;
   esac
-  # Nothing to check in is a clean takeover, not a failure.
-  [ -z "$(wg_git status --porcelain 2>/dev/null)" ] && return 0
   wg_git add -A >/dev/null 2>&1 || return 1
   mins="$(( idle / 60 ))"
   wg_git commit -q -m "wip(worktree-lease): auto-checkin of a stale worktree

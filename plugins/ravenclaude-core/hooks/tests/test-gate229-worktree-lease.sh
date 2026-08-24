@@ -206,6 +206,38 @@ anchor_head="$(git -C "$PRIMARY" log -1 --pretty=%s 2>/dev/null || printf '')"
 case "$anchor_head" in "wip(worktree-lease)"*) no_ "main carries an auto-checkin commit" ;;
   *) ok_ "main's history is untouched" ;; esac
 
+# ── part 4b: a CLEAN anchor is a clean takeover, not a deadlock ─────────────
+# ⛔ REGRESSION GUARD, and it needs BOTH halves. The clean-tree check used to sit
+# AFTER the anchor refusal, which made that refusal UNCONDITIONAL: a spotless
+# anchor under a stale lease was denied forever, and the denial's own advice
+# ("land that work by hand, then retry") could never be satisfied, because the
+# retry never reached the line that checks whether you landed it. Measured
+# 2026-08-24 against a real repo: clean tree, holder dead 4.4 days, still denied.
+# Part 4 above passes happily WITH that bug — a dirty anchor refuses either way.
+# Only this case distinguishes them, which is why part 4 alone was not coverage.
+GHL="$TMP/ghanchorclean"
+posture "worktree_guard: off
+worktree_bound: off
+worktree_lease: on
+worktree_lease_idle_minutes: 20" "$PRIMARY"
+git_q -C "$PRIMARY" add -A
+git_q -C "$PRIMARY" commit -m "tidy the anchor for the clean-takeover probe"
+# POSITIVE CONTROL: an "allowed" verdict here is only meaningful if the tree is
+# genuinely clean. Without this, a still-dirty fixture would make the probe pass
+# for the wrong reason and report coverage it does not have.
+[ -z "$(git -C "$PRIMARY" status --porcelain 2>/dev/null)" ] \
+  && ok_ "control: the anchor really is clean before the probe" \
+  || no_ "control FAILED — anchor still dirty, the clean-takeover probe is vacuous"
+out="$(runL "$PRIMARY/file.txt" "$PRIMARY" sG)"      # sG claims
+touch -t 200001010000 "$GHL/leases/"*/lease.json 2>/dev/null
+out="$(runL "$PRIMARY/file.txt" "$PRIMARY" sH)"
+[ "$(exit_of "$out")" = "0" ] \
+  && ok_ "a stale lease on a CLEAN anchor is a clean takeover, not a deadlock" \
+  || no_ "clean anchor DEADLOCKED (exit $(exit_of "$out")) — the unconditional refusal is back"
+anchor_head2="$(git -C "$PRIMARY" log -1 --pretty=%s 2>/dev/null || printf '')"
+case "$anchor_head2" in "wip(worktree-lease)"*) no_ "clean takeover still wrote an auto-checkin to main" ;;
+  *) ok_ "clean takeover left main's history untouched" ;; esac
+
 # ── part 5: the off switch, and independence from the other two knobs ───────
 GHL="$TMP/ghoff"
 posture "worktree_guard: off
