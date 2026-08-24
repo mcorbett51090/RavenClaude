@@ -838,7 +838,7 @@ case "$SUBCMD" in
           ab="$(_wg_anchor_branch)"
           msg="${msg}you are on the anchor branch '${ab}' with worktrees present; "
         fi
-        msg="${msg}a mutating op here risks a collision. Open your own git worktree, or set RC_WORKTREE_GUARD_ACK=1 to override, or set 'worktree_guard: warn' (or 'off') in .ravenclaude/comfort-posture.yaml."
+        msg="${msg}a mutating op here risks a collision. Open your own git worktree, or set RC_WORKTREE_GUARD_ACK=1 to override THIS check (it does not release a held SESSION LEASE — that denial names its own escapes), or set 'worktree_guard: warn' (or 'off') in .ravenclaude/comfort-posture.yaml."
         printf '%s\n' "$msg" >&2
         _emit_hook_event "worktree-guard.sh" "deny" "${tn:-Bash}" "${cmd:-$fp}" "$flag_rule" "2"
         exit 2
