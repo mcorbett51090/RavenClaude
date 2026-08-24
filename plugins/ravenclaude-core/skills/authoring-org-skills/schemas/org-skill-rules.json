@@ -10,7 +10,8 @@
     "every rule has a non-empty remediation",
     "every claim is a real S-id in S1..S27",
     "no numeric limit appears anywhere except this file",
-    "id in {R1,R2,R3,R4}  =>  tier == 'fail' AND class == 'ground-truth' AND no_override == true"
+    "id in {R1,R2,R3,R4}  =>  tier == 'fail' AND class == 'ground-truth' AND no_override == true",
+    "ZP02's tier is READ from reference/platform-constraints.md, never hand-set in this file"
   ],
   "fire_rate_caveat": "Every fire_rate below was measured on 934 expert-authored Claude CODE skills in this marketplace, NOT on novice-authored claude.ai ORGANIZATION Skills — the population this studio actually serves (S23, owner-gated). A 0.0% rate here means 'these authors already do this', never 'the check is worthless'. The rates are recorded so a reader can discount them, not so they can be cited as authority.",
   "rules": [
@@ -463,8 +464,72 @@
         "measured_on": "2026-08-24",
         "note": "IDENTICAL to DS01's measurement — R7 IS DS01, listed here so the refusal set is complete and so the reader can see it was deliberately NOT promoted to FAIL. The check is emitted ONCE, by DS01; R7 does not double-report."
       }
+    },
+    {
+      "id": "ZP05",
+      "tier": "fail",
+      "class": "ground-truth",
+      "claim": "S7",
+      "rule": "the archive has exactly one distinct top-level path component",
+      "rationale": "Two top-level components means the unpacker has no unambiguous root to install. This is the wrapper-directory failure and its mirror, the loose-files failure.",
+      "remediation": "Rebuild from a single skill directory with `orgskill pack`.",
+      "fire_rate": null
+    },
+    {
+      "id": "ZP06",
+      "tier": "fail",
+      "class": "ground-truth",
+      "claim": "S7",
+      "rule": "SKILL.md is present and non-empty at the archive's root, and is valid UTF-8",
+      "rationale": "An archive whose SKILL.md is missing, empty or mis-encoded installs into nothing. Checked from the archive bytes, not the source tree.",
+      "remediation": "Rebuild the archive; if SKILL.md is non-empty on disk but empty here, the packer excluded or truncated it.",
+      "fire_rate": null
+    },
+    {
+      "id": "ZP07",
+      "tier": "fail",
+      "class": "ground-truth",
+      "claim": "S7",
+      "rule": "the archive contains no non-shippable entry (macOS Finder artifacts, VCS metadata, caches)",
+      "rationale": "The macOS Compress context-menu action emits __MACOSX/ sidecars and ._* resource forks the author never sees in Finder. An entry the author cannot see is an entry they cannot audit.",
+      "remediation": "Rebuild with `orgskill pack`, which excludes these by construction, rather than compressing the folder in Finder.",
+      "fire_rate": null
+    },
+    {
+      "id": "ZP08",
+      "tier": "fail",
+      "class": "ground-truth",
+      "claim": "S2",
+      "rule": "every relative link in the archived SKILL.md resolves to an entry present IN THE ARCHIVE",
+      "rationale": "S2 puts overflow in bundled files. The source tree can be complete while the archive is not — a dead bundled reference emits nothing at author time and fails only in production. Resolution is against the archive namelist, never the disk.",
+      "remediation": "Add the referenced file to the skill directory, or remove the link.",
+      "fire_rate": null
+    },
+    {
+      "id": "ZP09",
+      "tier": "fail",
+      "class": "ground-truth",
+      "claim": "S7",
+      "rule": "the archive extracts, and the EXTRACTED tree passes the linter",
+      "rationale": "Verification by attempt (gap-delta D4). A source tree that lints clean can still ship a broken bundle; case-collisions on a case-insensitive filesystem and encoding mangles also surface here rather than at upload. The source directory is not consulted.",
+      "remediation": "Read the underlying finding: it names the rule the extracted tree failed.",
+      "fire_rate": null
     }
   ],
-  "id_note": "Rule ids are this implementation's, and they DEVIATE from plan-A's draft numbering in two places: plan-A used FM06 for reserved-words and FM10 for extra-frontmatter-keys, which this table had already assigned to description-present and body-present before those rules were specified. Renumbering committed ids is churn with no benefit, so the new rules take FM11/FM12 and this note records the mapping.",
-  "refusal_note": "R1-R4 are hard refusals with NO override flag, env var or config key. Their only path is quarantine: fence + frame + handling instruction + A NAMED HUMAN REVIEWER RECORDED IN THE EXTERNAL RUN RECORD. The fourth condition is the one the author cannot supply alone — plan-A's three-part incantation is authored entirely by whoever wrote the adversarial string, which is self-attestation with extra steps, i.e. a --force spelled out in the documentation. A reviewer line inside SKILL.md clears nothing. An adversarial literal in the frontmatter DESCRIPTION has no quarantine path at all: it is injected verbatim into every member's system prompt."
+  "id_note": "Rule ids are this implementation's, and they DEVIATE from plan-A's draft numbering in two places: plan-A used FM06 for reserved-words and FM10 for extra-frontmatter-keys, which this table had already assigned to description-present and body-present before those rules were specified. Renumbering committed ids is churn with no benefit, so the new rules take FM11/FM12 and this note records the mapping. ZP ids deviate from the plan's draft numbering for the same reason: ZP01-ZP04 were committed in Phase 0 before the archive checks were specified, so the new checks take ZP05-ZP09 rather than renumbering committed ids. Mapping — plan ZP01 (one top-level component) = ZP05; plan ZP03 (SKILL.md present/non-empty) = ZP06; plan ZP04 (Finder artifacts) = ZP07; plan ZP05+ZP06 (traversal, symlinks) = the committed combined ZP03, which emits a distinguishing message per shape; plan ZP07 (links resolve in-archive) = ZP08; plan ZP08 (extract and re-lint) = ZP09. This table's ZP01 (exactly one SKILL.md) and ZP04 (the report must not travel) have no plan counterpart and are additional.",
+  "refusal_note": "R1-R4 are hard refusals with NO override flag, env var or config key. Their only path is quarantine: fence + frame + handling instruction + A NAMED HUMAN REVIEWER RECORDED IN THE EXTERNAL RUN RECORD. The fourth condition is the one the author cannot supply alone — plan-A's three-part incantation is authored entirely by whoever wrote the adversarial string, which is self-attestation with extra steps, i.e. a --force spelled out in the documentation. A reviewer line inside SKILL.md clears nothing. An adversarial literal in the frontmatter DESCRIPTION has no quarantine path at all: it is injected verbatim into every member's system prompt.",
+  "non_shippable": [
+    "__MACOSX/*",
+    "__MACOSX",
+    ".DS_Store",
+    "._*",
+    ".git/*",
+    ".git",
+    ".gitignore",
+    "*.pyc",
+    "__pycache__/*",
+    "__pycache__",
+    "*.swp",
+    "Thumbs.db"
+  ]
 }

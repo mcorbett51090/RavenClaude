@@ -154,6 +154,22 @@ def check_invariants(data: dict[str, Any], max_claim: int) -> list[str]:
     return problems
 
 
+def _load_markers(override: str | None, skill_root: str) -> list[str]:
+    """The DS02 marker list, or an empty list.
+
+    ⛔ An unreadable list means DS02 does not run. Silently skipping ONE advisory
+    check is correct; inventing markers is not — an intuition-authored list is the
+    exact defect the corpus derivation exists to prevent. Shared by lint, pack and
+    verify so all three see the same list; two loaders would be two DS02s.
+    """
+    path = override or os.path.join(skill_root, "reference", "ds02-markers.json")
+    try:
+        with open(path, encoding="utf-8") as fh:
+            return [m["idiom"] for m in json.load(fh)["markers"]]
+    except (OSError, ValueError, KeyError, json.JSONDecodeError):
+        return []
+
+
 # ── self-test, with the negative controls that give it teeth ─────────────────
 
 def _fixture(**over: Any) -> dict[str, Any]:
@@ -247,10 +263,25 @@ def main(argv: list[str] | None = None) -> int:
     p_lint.add_argument("--warn-only", action="store_true",
                         help="report warns but exit 0 unless a FAIL fired")
 
-    for stub in ("pack", "verify", "report"):
-        sp = sub.add_parser(stub, help="(phase %s — not yet implemented)"
-                            % {"pack": "4", "verify": "4", "report": "3"}[stub])
-        sp.add_argument("target", nargs="?")
+    p_pack = sub.add_parser("pack", help="build the archive (refuses on any FAIL)")
+    p_pack.add_argument("target", help="path to the skill directory")
+    p_pack.add_argument("-o", "--out", required=True, help="output .zip path")
+    p_pack.add_argument("--rules", default=None)
+    p_pack.add_argument("--markers", default=None)
+    p_pack.add_argument("--run-record", default=None)
+
+    p_verify = sub.add_parser("verify", help="re-open an archive and check it from its bytes")
+    p_verify.add_argument("target", help="path to the .zip")
+    p_verify.add_argument("--rules", default=None)
+    p_verify.add_argument("--markers", default=None)
+    p_verify.add_argument("--evidence", default=None,
+                          help="override the ZP02 evidence file path")
+
+    p_fix = sub.add_parser("fixtures", help="write the two zip-root probe archives")
+    p_fix.add_argument("--out", required=True, help="directory to write the fixtures into")
+
+    sp = sub.add_parser("report", help="(phase 3 — folded into lint)")
+    sp.add_argument("target", nargs="?")
 
     args = ap.parse_args(argv)
 
@@ -294,16 +325,8 @@ def main(argv: list[str] | None = None) -> int:
             print("orgskill: cannot read the rule table: %s" % exc, file=sys.stderr)
             return EXIT_FINDINGS  # fail closed: no table means no checks ran
 
-        markers = []
-        mpath = args.markers or os.path.join(
-            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-            "reference", "ds02-markers.json")
-        try:
-            markers = [m["idiom"] for m in json.load(open(mpath, encoding="utf-8"))["markers"]]
-        except (OSError, ValueError, KeyError, json.JSONDecodeError):
-            # DS02 simply does not run without its corpus-derived list. Silently
-            # skipping ONE advisory check is correct; inventing markers is not.
-            markers = []
+        markers = _load_markers(
+            args.markers, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
         findings, ambiguity = lint_rules.lint_skill(args.target, table, markers)
 
@@ -366,6 +389,82 @@ def main(argv: list[str] | None = None) -> int:
         if warns and not args.warn_only:
             return EXIT_OK                # warns never block; they inform
         return EXIT_OK
+
+    if args.cmd in ("pack", "verify", "fixtures"):
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        import packer
+
+        skill_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+        if args.cmd == "fixtures":
+            paths = packer.write_probe_fixtures(args.out)
+            print("zip-root probe fixtures written:")
+            for pth in paths:
+                print("   %s" % pth)
+            print("\nUpload BOTH at Organization settings > Skills and record BOTH "
+                  "outcomes in\n%s (see #zip-root-settlement)."
+                  % packer.evidence_path(skill_root))
+            return EXIT_OK
+
+        try:
+            table = load_rules(args.rules)
+        except (OSError, ValueError, json.JSONDecodeError) as exc:
+            print("orgskill: cannot read the rule table: %s" % exc, file=sys.stderr)
+            return EXIT_FINDINGS
+        markers = _load_markers(args.markers, skill_root)
+
+        if args.cmd == "pack":
+            import lint_rules
+            import refusals
+            findings, ambiguity = lint_rules.lint_skill(args.target, table, markers)
+            raw = ""
+            try:
+                with open(os.path.join(args.target, "SKILL.md"), encoding="utf-8") as fh:
+                    raw = fh.read()
+            except (OSError, UnicodeDecodeError):
+                pass
+            fm_block, body = lint_rules.split_frontmatter(raw)
+            fm = lint_rules.parse_scalars(fm_block)[0] if fm_block else {}
+            bundled = []
+            for root, _d, fs in os.walk(args.target):
+                for f in fs:
+                    rel = os.path.relpath(os.path.join(root, f), args.target)
+                    if rel != "SKILL.md":
+                        bundled.append(rel)
+            findings.extend(refusals.scan_refusals(
+                args.target, table, body, fm.get("description", ""),
+                refusals.load_run_record(args.run_record), bundled))
+            if ambiguity:
+                for a in ambiguity:
+                    print("orgskill pack: AMBIGUITY %s" % a, file=sys.stderr)
+                return EXIT_FINDINGS
+            _tier, accepted = packer.derive_zp02_tier(packer.evidence_path(skill_root))
+            try:
+                result = packer.pack(args.target, args.out, table, findings,
+                                     layout=accepted or "A")
+            except packer.PackRefused as exc:
+                print("orgskill pack: %s" % exc, file=sys.stderr)
+                return EXIT_FINDINGS
+            print("packed %s (%d entries, root layout %s)"
+                  % (result["archive"], len(result["entries"]), result["layout"]))
+            if accepted is None:
+                print("NOTE: the zip-root question is unsettled, so layout A was used. "
+                      "See reference/platform-constraints.md#zip-root-settlement.")
+            return EXIT_OK
+
+        findings, notes = packer.verify(
+            args.target, table, args.evidence or packer.evidence_path(skill_root), markers)
+        fails = [f for f in findings if f["tier"] == "fail"]
+        warns = [f for f in findings if f["tier"] == "warn"]
+        print("orgskill verify: %s" % args.target)
+        for f in fails + warns:
+            print("  [%s] %s  %s" % (f["tier"].upper(), f["rule_id"], f["message"]))
+            if f.get("remediation"):
+                print("        fix : %s" % f["remediation"])
+        for n in notes:
+            print("  [note] %s" % n)
+        print("\n%d fail, %d warn" % (len(fails), len(warns)))
+        return EXIT_FINDINGS if fails else EXIT_OK
 
     print("orgskill: '%s' lands in a later phase" % args.cmd, file=sys.stderr)
     return EXIT_USAGE
