@@ -133,8 +133,17 @@ def merge_base(root: Path, requested: str = "origin/main") -> tuple[str | None, 
         #
         # ⛔ NOT reachable via `_is_merge_commit`: that needs >=2 parents and this repo
         # SQUASHES to one, so rule 4 never fires on a push to main.
+        # ⛔ ONLY when the base resolved to a BRANCH REF. A caller that explicitly
+        # asks for `HEAD` is requesting a deliberate self-comparison, not falling
+        # into the push-to-main accident — check-ratchet-freshness's --must-fail
+        # does exactly that in a single-commit scratch repo, and treating it as
+        # the accident returned UNKNOWN and broke that gate's TEETH. The fault
+        # this branch exists for is "the resolved branch ref happens to point at
+        # HEAD because we are standing on that branch", which cannot be true of a
+        # literal HEAD request.
         rc_head, head = _git(root, "rev-parse", "HEAD")
-        if (not _NEUTER_BASE_TIP) and rc_head == 0 and head and sha == head:
+        _explicit_head = base in ("HEAD", "HEAD^1")
+        if (not _NEUTER_BASE_TIP) and (not _explicit_head) and rc_head == 0 and head and sha == head:
             rc_parent, parent = _git(root, "rev-parse", "HEAD^1")
             if rc_parent == 0 and parent:
                 return parent, how + " (HEAD is the base tip — first parent is the base)"
@@ -194,11 +203,19 @@ def _self_test():
     import tempfile
 
     ok = fail = 0
-    cases = [{}, {"feature": True}, {"root_only": True}]
+    cases = [{}, {"feature": True}, {"root_only": True}, {"root_only": True, "explicit_head": True}]
     for kw in cases:
+        explicit = kw.pop("explicit_head", False)
         with tempfile.TemporaryDirectory() as td:
             root, want, label = _fixture(td, **kw)
-            got, how = merge_base(root)
+            if explicit:
+                # ⛔ REGRESSION PIN. An explicit `HEAD` request on a single-commit
+                # repo must return HEAD, not UNKNOWN. Scoping the base-tip branch
+                # to branch refs is what makes that true; without it this returns
+                # None and check-ratchet-freshness's --must-fail loses its teeth.
+                want = _git(root, "rev-parse", "HEAD")[1]
+                label = "explicit HEAD request -> HEAD, never UNKNOWN"
+            got, how = merge_base(root, "HEAD") if explicit else merge_base(root)
             if got == want:
                 ok += 1
                 print(f"  ok   {label}")
