@@ -80,6 +80,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          # 2, not the default 1 — this job runs audit-gates.sh, whose base-diffing
+          # gates need HEAD^1 on a push to main. See the fuller note (and the
+          # depth-1-vs-depth-2 clone control) in validate-marketplace.yml.
+          fetch-depth: 2
           persist-credentials: false
 
       # Recorded so a future image change is visible in the log rather than inferred from
@@ -114,6 +118,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          # 2, not the default 1 — this job runs audit-gates.sh, whose base-diffing
+          # gates need HEAD^1 on a push to main. See the fuller note (and the
+          # depth-1-vs-depth-2 clone control) in validate-marketplace.yml.
+          fetch-depth: 2
           persist-credentials: false
 
       - name: Drive every PreToolUse hook with input it was never written for
@@ -161,6 +169,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          # 2, not the default 1 — this job runs audit-gates.sh, whose base-diffing
+          # gates need HEAD^1 on a push to main. See the fuller note (and the
+          # depth-1-vs-depth-2 clone control) in validate-marketplace.yml.
+          fetch-depth: 2
           persist-credentials: false
 
       - name: Record the toolchain baseline
