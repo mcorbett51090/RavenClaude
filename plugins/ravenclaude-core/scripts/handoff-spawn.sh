@@ -348,6 +348,45 @@ if [ "$host" = "unknown" ] && { [ "$host_flag_seen" -eq 1 ] || [ -n "${RC_HOST:-
   named_but_unknown=1
 fi
 
+# ⛔ ONE source of truth for the successor's opening prompt.
+#
+# It used to exist ONLY as literal text inside the copy-paste heredocs, while the
+# claude-code launcher ran a BARE `exec claude`. So an os-terminal/same-host spawn
+# opened a window, `claude` started, and the successor sat IDLE with no brief —
+# while the script printed "successor has the brief and has begun". MEASURED
+# 2026-08-24: SUCCESSOR_ACK returned and a real new `claude` pid existed, and the
+# session still had no idea what to do. The ack only ever proved a session STARTED
+# (its SessionStart hook fires on the pending marker); it never proved delivery.
+#
+# `claude [options] [prompt]` takes a positional prompt and stays INTERACTIVE
+# (`--help`: "starts an interactive session by default, use -p/--print for
+# non-interactive"), so the prompt is passed as an argument — NOT `-p`, which would
+# print once and exit, killing the session the handoff exists to create.
+#
+# Defining it once means the launcher and the copy-paste block CANNOT drift; when
+# they were separate, only the copy-paste half carried the brief.
+# ASCII ONLY. An em-dash here made printf %q emit a locale-dependent ANSI-C string
+# ($'...\200\224...'), which is valid bash but unreadable in the copy-paste block a
+# human is meant to use. The prompt is both an argv element and human-facing text.
+successor_prompt="Continue task ${task_id}. Read .ravenclaude/runs/${task_id}/handoff.md first. Fresh window - do not /fork, do not /compact, do not launch grok."
+
+# ⛔ SINGLE-QUOTE WRAP, not `printf %q`. Both are shell-safe; only one is readable.
+# %q backslash-escapes every space, so the copy-paste line a human is meant to
+# select renders as `claude Continue\ task\ t1.\ Read\ ...` — correct and
+# unusable. Single quotes are safe for ANY content (including newlines), with
+# '"'"'\'"'"' as the standard escape for an embedded quote, so one helper serves the
+# machine-read launcher AND the human-read block without them drifting.
+# ⛔ Parameter expansion, NOT sed. A `sed "s/'/'\\''/g"` inside a double-quoted
+# string loses a backslash layer (bash collapses \\ -> \), so sed sees \' , reads
+# it as a literal quote, and emits ''' instead of '\'' — which SPLITS the argument
+# instead of escaping it. Measured 2026-08-24 with task-id `it's`. ${v//p/r} is
+# bash 3.2-safe and has no second interpreter to quote through.
+_shq() {
+  local _s=$1
+  _s=${_s//\'/\'\\\'\'}
+  printf "'%s'" "$_s"
+}
+
 # vscode without a Grok/CLI marker is not Chat and is not a grok TUI we can prove.
 if [ "$host" = "unknown" ] && [ "${TERM_PROGRAM:-}" = "vscode" ]; then
   seed="# host=unknown (TERM_PROGRAM=vscode without Grok/CLI markers) — copy-paste only. Do not launch grok. Do not infer Chat."
@@ -414,8 +453,8 @@ EOF
     cat <<EOF
 # copy-paste into a new terminal in this repo (Claude Code, not grok):
 cd $(printf '%q' "$project_root")
-claude
-# then paste: Continue task ${task_id}. Read .ravenclaude/runs/${task_id}/handoff.md first. Fresh window — do not /fork, do not /compact, do not launch grok.
+claude $(_shq "$successor_prompt")
+# (or run a bare \`claude\` and paste: ${successor_prompt})
 EOF
     return
   fi
@@ -540,10 +579,13 @@ cd $(printf '%q' "$project_root") || exit 1
 exec copilot
 EOF
 elif [ "$host" = "claude-code" ]; then
+  # ⛔ The prompt is POSITIONAL and must be passed, or the successor opens idle —
+  # see the successor_prompt block above. printf %q so a quote/newline in the
+  # task-id cannot break out of the argument.
   cat > "$launch" <<EOF
 #!/bin/bash
 cd $(printf '%q' "$project_root") || exit 1
-exec claude
+exec claude $(_shq "$successor_prompt")
 EOF
 elif [ "$host" = "grok" ] || { [ "$host" = "unknown" ] && [ "$named_but_unknown" -eq 0 ]; }; then
   # host=grok, or case (a): nothing named and nothing detected, which the
@@ -710,7 +752,14 @@ if [ "$host" != "chat" ] && [ "$wait_ack" -gt 0 ] 2>/dev/null; then
   while [ "$n" -lt "$wait_ack" ]; do
     if [ -s "$ack" ]; then
       echo "SUCCESSOR_ACK $(tr -d '\n' < "$ack")"
-      echo "handoff-spawn: successor has the brief and has begun. Stop THIS session. Do not continue the work here. This script cannot /quit the TUI — close this tab when ready."
+      # ⛔ Say what the ack ACTUALLY proves. It is written by the successor's
+      # SessionStart hook off the pending marker, so it proves a session STARTED —
+      # it does NOT observe the prompt being received. Measured 2026-08-24: the ack
+      # returned, a real new `claude` pid existed, and the successor sat idle because
+      # the launcher passed no prompt. Claiming "has the brief" from a start signal
+      # is the same over-claim this repo keeps paying for; the brief now rides in the
+      # launch argv, and this line reports the two facts separately.
+      echo "handoff-spawn: successor session STARTED (ack), and the brief was passed as its opening prompt. If its first turn is empty, the prompt did not take — fall back to the copy-paste block above. Stop THIS session. This script cannot /quit the TUI — close this tab when ready."
       exit 0
     fi
     sleep 1

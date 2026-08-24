@@ -597,11 +597,30 @@ assert_has "row 33b chat copy-paste block is byte-exact" "$SP_OUT" \
 Read .ravenclaude/runs/t1/handoff.md first (then meta.json, decisions.md, summary.md if present). Fresh Chat session. Do not /fork. Do not launch grok. Execute the next steps in the brief.'
 
 spawn_run --host claude-code
+# ⛔ UPDATED 2026-08-24 for a DELIBERATE contract change, and the change is the
+# point of the row: the launcher used to emit a bare `exec claude`, so a spawned
+# successor opened IDLE with no brief while the script reported success. The
+# prompt is now passed POSITIONALLY (interactive; never -p, which prints once and
+# exits), single-quote wrapped so the line stays copy-pasteable by a human.
+# Row 33d below pins the escape that makes that wrapping safe.
 assert_has "row 33c claude-code copy-paste block is byte-exact" "$SP_OUT" \
 '# copy-paste into a new terminal in this repo (Claude Code, not grok):
 cd '"$REPO_Q"'
-claude
-# then paste: Continue task t1. Read .ravenclaude/runs/t1/handoff.md first. Fresh window — do not /fork, do not /compact, do not launch grok.'
+claude '"'"'Continue task t1. Read .ravenclaude/runs/t1/handoff.md first. Fresh window - do not /fork, do not /compact, do not launch grok.'"'"'
+# (or run a bare `claude` and paste: Continue task t1. Read .ravenclaude/runs/t1/handoff.md first. Fresh window - do not /fork, do not /compact, do not launch grok.)'
+
+# ---- row 33d: the prompt is ONE argv element, even carrying a quote ----------
+# ⛔ This is the row that has teeth. 33c pins the happy-path bytes; a wrapper that
+# emitted ''' instead of '\'' would still LOOK right there while SPLITTING the
+# argument. Measured: a sed-based escape inside a double-quoted string lost a
+# backslash layer and did exactly that with task-id `it's`.
+mkdir -p "$REPO/.ravenclaude/runs/it's" && printf 'x\n' > "$REPO/.ravenclaude/runs/it's/handoff.md"
+_q_line="$(bash "$SPAWN" --task-id "it's" --host claude-code --project-root "$REPO" --dry-run 2>/dev/null | grep '^claude ' || true)"
+if printf '%s' "$_q_line" | grep -Fq "it'\\''s"; then
+  ok "row 33d apostrophe in task-id escapes as '\\'' (one argv element)"
+else
+  no "row 33d apostrophe escape wrong — got: $_q_line"
+fi
 
 # ---- row 34: syntax floor -------------------------------------------------
 if bash -n "$SPAWN" 2>/dev/null; then ok "row 34 bash -n handoff-spawn.sh"
