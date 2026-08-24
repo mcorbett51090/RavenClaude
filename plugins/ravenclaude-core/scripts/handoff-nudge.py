@@ -144,13 +144,25 @@ def _recent_handoff(root: Path, session_started: str | None) -> bool:
 
 def _emit_nudge(percent: float, threshold: int, task_hint: str, mode: str) -> None:
     pct = int(round(percent))
+    # ⛔ This message used to say "continue in a fresh Grok window" and "do not compact
+    # away the work". BOTH were wrong, and the hook fires on every host:
+    #   - It named GROK unconditionally, while session-handoff/SKILL.md's own rule is that a
+    #     non-Grok successor must NEVER be handed a grok launch command. On a Claude Code or
+    #     Copilot session this nag was instructing the wrong host outright.
+    #   - "Do not compact away the work" asserts compaction DESTROYS. This repo retracted that
+    #     after measuring: compaction APPENDS (CLAUDE.md v0.244.1 — pre-boundary turns and
+    #     thinking blocks are retained; compact-anchor.sh restores ADDRESSABILITY, not data).
+    # The nudge now states the cost honestly and names /compact as the default, so a hot
+    # window is not pushed into an unnecessary session reset.
     ctx = (
-        f"Context is hot (~{pct}% used; soft threshold {threshold}%, "
-        f"before auto-compact). Quality reset: run the session-handoff skill now "
-        f"(/handoff). Write the brief to the existing run dir"
-        f"{' (' + task_hint + ')' if task_hint else ''} "
-        f"and continue in a fresh Grok window. Do not /fork. Do not grok -p. "
-        f"Do not compact away the work."
+        f"Context is hot (~{pct}% used; soft threshold {threshold}%, before auto-compact). "
+        f"DEFAULT: /compact and keep going — compaction appends, it does not delete the "
+        f"transcript. Consider writing the brief to the run dir"
+        f"{' (' + task_hint + ')' if task_hint else ''} either way; that is durable and "
+        f"cheap. Reach for /handoff (a NEW window on THIS host) only if a plugin/hook change "
+        f"must go live (hooks load at SessionStart, so /compact cannot pick it up), the next "
+        f"reader is not this session (another CLI, a later day, a teammate), or the task is "
+        f"done — then run the session-handoff skill. Do not /fork."
     )
     if SENTINEL_FORBIDDEN in ctx:
         return
