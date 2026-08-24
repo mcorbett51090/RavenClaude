@@ -4330,6 +4330,16 @@ if command -v node >/dev/null 2>&1; then
   sed 's/const PARALLELISM_DEFAULT = Object.freeze({ enabled: true, max_workers: 4, unlimited: true })/const PARALLELISM_DEFAULT = Object.freeze({ enabled: false, max_workers: 4, unlimited: false })/' index.html > "$RT_BAD_PD"
   rc=0; node "$RT" "$RT_BAD_PD" >/dev/null 2>&1 || rc=$?
   gate "dashboard round-trip (drifted: parallelism default reverted to OFF)" must_fail "$rc"
+  # must_fail (context_handoff): the context_handoff block header emit stripped —
+  # the exact v0.61.0 data-loss class this key closes. Before it was modelled,
+  # emitYaml rebuilt the whole posture from `state` and silently dropped
+  # `context_handoff:` on every Save (deleting a consumer's successor-spawn recipe
+  # + Stop-nudge mode). Test 1 + Test 6 assert the block survives, so the strip
+  # must redden here.
+  RT_BAD_CH="$TMP/dashboard-drifted-context-handoff.html"
+  grep -v 'lines.push("context_handoff:")' index.html > "$RT_BAD_CH"
+  rc=0; node "$RT" "$RT_BAD_CH" >/dev/null 2>&1 || rc=$?
+  gate "dashboard round-trip (drifted: context_handoff emit stripped)" must_fail "$rc"
 else
   _skip_or_fail "Gate 35 (dashboard round-trip)" node
 fi
