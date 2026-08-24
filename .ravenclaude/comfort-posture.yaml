@@ -224,3 +224,28 @@ definition_of_done:
 # suspend it (on | off; default off, and off when the key is absent).
 # AC only: on battery the hook holds nothing and warns instead.
 keep_awake: on
+
+# /handoff spawns the successor session itself instead of printing a copy-paste
+# block. Owner-flagged on purpose: it launches a process, so it stays opt-in.
+#   same-host   detect the UI and open a new session there.
+#   os-terminal always Terminal.app via `open -na`, regardless of UI.
+#
+# `os-terminal` is chosen on a MEASUREMENT, not a guess. handoff-spawn.sh reports
+# `detected-ui=vscode` in this environment (dry-run, 2026-08-24), so `same-host`
+# would take the VS Code KEYSTROKE path — which needs Accessibility permission and
+# degrades to "keystroke launch failed (Accessibility?)" + the copy-paste block.
+# That is precisely the outcome this flag is being set to avoid. `os-terminal` uses
+# `open -na Terminal`, which needs no permission and cannot fail that way.
+#
+# Trade-off, stated: the successor opens in Terminal.app, OUTSIDE the editor. If you
+# would rather it open as a VS Code integrated terminal and you have granted
+# Accessibility to your host app, switch this to `same-host`. Either value falls back
+# to the copy-paste block on failure, so this can only add a path, never remove one.
+#
+# ⛔ context_handoff is NOT modelled in dashboard-schema.json (0 occurrences,
+# verified 2026-08-24), so a dashboard "Save & apply" will DELETE this block — the
+# unmodelled-key strip that has already eaten `command_review.enabled`, 5 behavioral
+# keys and 78 comment lines here. `git diff` after every dashboard Save until it is
+# modelled.
+context_handoff:
+  spawn: os-terminal

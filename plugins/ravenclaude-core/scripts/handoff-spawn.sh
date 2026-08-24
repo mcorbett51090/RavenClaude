@@ -488,8 +488,15 @@ copy_paste_block
 
 if [ "$dry_run" -eq 1 ]; then
   echo "handoff-spawn: dry-run — not launching, not writing pending"
+  # ⛔ Branch on $recipe FIRST, then $ui — the launch below does, and a preview that
+  # disagrees with the thing it previews is worse than no preview. This used to test
+  # only `$ui`, so `--recipe os-terminal` on a VS Code UI printed "would open a new
+  # VS Code terminal" while the real path is `spawn_terminal_app` -> Terminal.app.
+  # Measured 2026-08-24: that line was read as evidence os-terminal was being ignored.
   if [ "$host" = "chat" ]; then
     echo "handoff-spawn: chat recipe is Cmd+N + paste (best-effort vscode://GitHub.Copilot-Chat/chat?mode=agent)"
+  elif [ "$recipe" = "os-terminal" ]; then
+    echo "handoff-spawn: os-terminal recipe would open Terminal.app (explicit recipe; detected-ui=$ui is not consulted)"
   elif [ "$ui" = "vscode" ]; then
     echo "handoff-spawn: vscode recipe would open a new VS Code terminal (not Terminal.app)"
   fi

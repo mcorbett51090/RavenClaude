@@ -2897,7 +2897,7 @@
         "scripts/sync-plugin-versions.py",
         "scripts/generate-copilot-plugin.py"
       ],
-      "covers_digest": "sha256:8070af6a150db8f2dfd9a84810e88676ad602e8ae953eb736cfe00bab9a819e2",
+      "covers_digest": "sha256:57ca89be7fccdbfc1abf73627798088af0470d09c578a287843b59e051de00c0",
       "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
       "nuance_evidence": {
         "measured": "2026-08-19",
