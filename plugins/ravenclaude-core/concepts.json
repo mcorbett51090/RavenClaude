@@ -2896,7 +2896,7 @@
         "scripts/sync-plugin-versions.py",
         "scripts/generate-copilot-plugin.py"
       ],
-      "covers_digest": "sha256:c4d6cf4ccf5503cd82dad145cb93c7d3f56fb34a98bcf42f3012b88bffb1f9c2",
+      "covers_digest": "sha256:7536c6e8a2ec68b43fa08572ba4db8373e25736e406f19909018a04f4ae1ae13",
       "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -2925,7 +2925,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-08-20",
+      "last_verified": "2026-08-24",
       "refresh_when": null,
       "sources": [
         {
@@ -2950,13 +2950,14 @@
         "scripts/inventory-sweep.py",
         "scripts/check-inception-coverage.py",
         "scripts/check-ratchet-freshness.py",
+        "scripts/_base_ref.py",
         "scripts/spike-selfheal-contract.sh",
         "scripts/audit-prose-rendering-path.py",
         "scripts/check-changed-concept-renders.py",
         "scripts/inventory-coverage.py",
         "scripts/inventory-nuance-judge.py"
       ],
-      "covers_digest": "sha256:61ad978b754133f31698904e702a31becffcd8077e5086083de38336d440ed48",
+      "covers_digest": "sha256:d7b1820c669b8ea6ddd17a63c6c02607c5a4d65acbba5b590e84b54da8000e17",
       "nuance": "The teeth bit is the exit a tool own CHECK returns on a planted defect, never the exit `--must-fail` itself returns: `premise-gate.py` denies at `exit 0` while `sync-plugin-versions.py` reddens at `exit 2`, so an auditor that hard-codes one number can never be right for both.",
       "nuance_evidence": {
         "measured": "2026-08-19",
