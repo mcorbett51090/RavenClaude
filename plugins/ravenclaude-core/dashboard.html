@@ -5816,7 +5816,7 @@ footer.page-footer a:hover { text-decoration: underline; }
       ],
       "default": "warn",
       "title": "Worktree guard",
-      "description": "Behavioral flag (not a permission \u2014 marked \u2699 in the UI). Nudges \u2014 or, in block mode, denies a mutating op \u2014 when this working tree is already in use by another live session, or when you are mutating the repo's anchor checkout while worktrees exist. Prefer a dedicated git worktree to avoid collisions. off = silent; warn = a SessionStart / PreToolUse nudge on contention or anchor-work, never blocks; block = a mutating op (commit / add / checkout / switch / merge / rebase / rm / mv, or a Write / Edit under the tree) is denied on contention or anchor-work \u2014 reads and git status stay allowed, RC_WORKTREE_GUARD_ACK=1 overrides. A pristine single checkout stays completely silent. Setting every permission to Allow does not change this. Independent of worktree_bound."
+      "description": "Behavioral flag (not a permission \u2014 marked \u2699 in the UI). Nudges \u2014 or, in block mode, denies a mutating op \u2014 when this working tree is already in use by another live session, or when you are mutating the repo's anchor checkout while worktrees exist. Prefer a dedicated git worktree to avoid collisions. off = silent; warn = a SessionStart / PreToolUse nudge on contention or anchor-work, never blocks; block = a mutating op (commit / add / checkout / switch / merge / rebase / rm / mv, or a Write / Edit under the tree) is denied on contention or anchor-work \u2014 reads and git status stay allowed, RC_WORKTREE_GUARD_ACK=1 overrides THIS knob only. \u26d4 GUARD_ACK does NOT release a held session lease \u2014 worktree_lease is a separate knob, evaluated first, and its denial names its own escapes (open your own worktree, wait for it to go stale, or set worktree_lease: off). A pristine single checkout stays completely silent. Setting every permission to Allow does not change this. Independent of worktree_bound and of worktree_lease."
     },
     "worktree_bound": {
       "type": "string",
@@ -9655,7 +9655,7 @@ footer.page-footer a:hover { text-decoration: underline; }
         "plugins/ravenclaude-core/hooks/triage-outcome.sh",
         "plugins/ravenclaude-core/hooks/worktree-guard.sh"
       ],
-      "covers_digest": "sha256:15518dd8087e2134fa3a329348463a666ef61623c2dc41c941a031e8fafdd0f1",
+      "covers_digest": "sha256:54c5766532c92742be6978d6620e8a0159a8713f3caff75bde3325c157ffc975",
       "nuance": "A hook writing to stderr at `exit 0` reaches the model on no event; only `hookSpecificOutput.additionalContext` and `updatedToolOutput` are delivered, so `_advise.sh` advised the terminal for its entire service life.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -9702,7 +9702,7 @@ footer.page-footer a:hover { text-decoration: underline; }
       "covers": [
         "plugins/ravenclaude-core/hooks/hooks.json"
       ],
-      "covers_digest": "sha256:86d1501753a26397026904585a6d50eb24c6a5d1b5a39f7401c6172a44a3040b",
+      "covers_digest": "sha256:245fc065440d8fe70b76f835f6dbdd4a8ce6cc98d021d1059b496b2168896728",
       "nuance": "Two `additionalContext` emitters on one event concatenate rather than last-write-wins, but two `updatedToolOutput` emitters replace, so the second silently discards the first.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -9748,7 +9748,7 @@ footer.page-footer a:hover { text-decoration: underline; }
         "scripts/sync-plugin-versions.py",
         "scripts/generate-copilot-plugin.py"
       ],
-      "covers_digest": "sha256:ade72267ab5581f9e2d2f8b54103a3fd0ad3fb1b85db6129c2b25bd58942e2b2",
+      "covers_digest": "sha256:7cf74b29d517d43c67c832b09861a8f69c5c4a819a6d24b1d0d412a4438dd096",
       "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -11041,9 +11041,9 @@ footer.page-footer a:hover { text-decoration: underline; }
     },
     {
       "drift": false,
-      "marketplace_version": "0.289.0",
+      "marketplace_version": "0.290.0",
       "plugin": "ravenclaude-core",
-      "plugin_version": "0.289.0"
+      "plugin_version": "0.290.0"
     },
     {
       "drift": false,
