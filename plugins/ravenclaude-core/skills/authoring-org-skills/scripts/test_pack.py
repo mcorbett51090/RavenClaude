@@ -63,6 +63,14 @@ def _tree(tmp: str, name: str = "processing-invoices", with_ref: bool = True) ->
     return d
 
 
+def wrap_no_skill(tmp: str) -> str:
+    """An archive with no SKILL.md under any casing — ZP01 must still fire."""
+    p = os.path.join(tmp, "noskill.zip")
+    with zipfile.ZipFile(p, "w") as zf:
+        zf.writestr("processing-invoices/README.md", "# nothing here\n")
+    return p
+
+
 def main(argv: list[str]) -> int:
     must_fail_zp09 = "--must-fail-zp09" in argv
     must_fail_harness = "--must-fail-harness" in argv
@@ -95,7 +103,7 @@ def main(argv: list[str]) -> int:
             print("  OK    %s" % label)
         else:
             bad.append(label)
-            print("  FAIL  %s%s" % (label, ("  — " + detail) if detail else ""))
+            print("  FAIL  %s%s" % (label, ("  — " + str(detail)) if detail else ""))
 
     def ids(findings):
         return {f["rule_id"] for f in findings}
@@ -212,6 +220,31 @@ def main(argv: list[str]) -> int:
         f, _ = packer.verify(planted, table, _EVIDENCE, [])
         check("verify catches a report planted into the archive (ZP04)", "ZP04" in ids(f),
               "ids=%s" % ids(f))
+
+        # ── ZP10: filename case is a WARN, because the vendor contradicts itself ──
+        # ⛔ This fixture is a regression record. verify() used to hard-REJECT an archive
+        # whose SKILL.md was spelled the way Anthropic's own worked example spells it
+        # (article 12512198 writes lowercase throughout and never the uppercase form),
+        # reporting "contains 0 SKILL.md entries" on a perfectly good bundle. Rejecting on
+        # a point where the vendor disagrees with itself is not ground truth.
+        lower = os.path.join(tmp, "lowercase.zip")
+        with zipfile.ZipFile(lower, "w") as zf:
+            zf.writestr("processing-invoices/skill.md", GOOD_SKILL)
+            zf.writestr("processing-invoices/reference/fields.md", "# Fields\n")
+        f, _ = packer.verify(lower, table, _EVIDENCE, [])
+        check("ZP10 lowercase skill.md is a WARN, not a FAIL",
+              not [x for x in f if x["tier"] == "fail"] and "ZP10" in ids(f),
+              [(x["rule_id"], x["tier"]) for x in f])
+        upper = os.path.join(tmp, "uppercase.zip")
+        with zipfile.ZipFile(upper, "w") as zf:
+            zf.writestr("processing-invoices/SKILL.md", GOOD_SKILL)
+            zf.writestr("processing-invoices/reference/fields.md", "# Fields\n")
+        f, _ = packer.verify(upper, table, _EVIDENCE, [])
+        check("        …and canonical SKILL.md raises no ZP10 at all", "ZP10" not in ids(f),
+              "a warn that fires on the correct spelling is noise")
+        check("        …and ZP01 still catches a genuinely absent SKILL.md",
+              "ZP01" in ids(packer.verify(wrap_no_skill(tmp), table, _EVIDENCE, [])[0]),
+              "case-insensitivity must not blind the presence check")
 
         # ── AT3: verify in a FRESH PROCESS against a zip(1)-built archive ────
         if shutil.which("zip") is None:

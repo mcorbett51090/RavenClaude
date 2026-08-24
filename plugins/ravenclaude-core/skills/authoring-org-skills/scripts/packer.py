@@ -250,11 +250,24 @@ def verify(archive_path: str, table: dict[str, Any],
                                     "the validation report is inside the archive: %s" % n))
 
         # ── locate SKILL.md ──────────────────────────────────────────────────
-        skill_entries = [n for n in names if os.path.basename(n) == "SKILL.md"]
+        # ⛔ CASE-INSENSITIVE MATCH, then WARN on non-canonical casing (ZP10).
+        # Anthropic's own sources disagree: support article 12512198 writes lowercase
+        # `skill.md` throughout and never the uppercase form, while 13119606 and the
+        # anthropics/skills repo write `SKILL.md`. An exact match here hard-REJECTED an
+        # archive built by following Anthropic's own worked example — measured, it
+        # reported "contains 0 SKILL.md entries" on a perfectly good bundle. Rejecting
+        # on a point where the vendor contradicts itself is not ground truth.
+        skill_entries = [n for n in names if os.path.basename(n).lower() == "skill.md"]
+        for n in skill_entries:
+            if os.path.basename(n) != "SKILL.md":
+                findings.append(_zp(table, "ZP10", n,
+                                    "SKILL.md is spelled %r; the org-facing article and "
+                                    "anthropics/skills both use 'SKILL.md'"
+                                    % os.path.basename(n)))
         if len(skill_entries) != 1:
             findings.append(_zp(table, "ZP01", archive_path,
-                                "the archive contains %d SKILL.md entries; expected exactly 1"
-                                % len(skill_entries)))
+                                "the archive contains %d SKILL.md entries (any casing); "
+                                "expected exactly 1" % len(skill_entries)))
             return findings, notes
         skill_entry = skill_entries[0]
         depth = skill_entry.replace("\\", "/").count("/")

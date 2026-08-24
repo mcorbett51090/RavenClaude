@@ -514,6 +514,17 @@
       "rationale": "Verification by attempt (gap-delta D4). A source tree that lints clean can still ship a broken bundle; case-collisions on a case-insensitive filesystem and encoding mangles also surface here rather than at upload. The source directory is not consulted.",
       "remediation": "Read the underlying finding: it names the rule the extracted tree failed.",
       "fire_rate": null
+    },
+    {
+      "id": "ZP10",
+      "tier": "warn",
+      "class": "ground-truth",
+      "claim": "S7",
+      "rule": "the SKILL.md filename uses the canonical casing",
+      "rationale": "WARN, not FAIL, because ANTHROPIC'S OWN SOURCES DISAGREE and none adjudicates: support article 12512198 writes lowercase skill.md throughout and never uses the uppercase form, while article 13119606 and the anthropics/skills repo write SKILL.md. Neither casing is demonstrably rejected by the platform. Hard-rejecting one of them would block an archive built by following Anthropic's own worked example — measured 2026-08-24: verify() did exactly that, reporting ZP01 'contains 0 SKILL.md entries' on an otherwise valid bundle.",
+      "remediation": "Rename to SKILL.md — it matches the org-facing article and Anthropic's repo. This is a preference, not a known requirement; nothing states an upload fails on the other casing.",
+      "fire_rate": null,
+      "casing_note": "Resolution needs an upload attempt, which is also what would settle ZP02. Recorded in reference/platform-constraints.md under the research block's unresolved side-issues."
     }
   ],
   "id_note": "Rule ids are this implementation's, and they DEVIATE from plan-A's draft numbering in two places: plan-A used FM06 for reserved-words and FM10 for extra-frontmatter-keys, which this table had already assigned to description-present and body-present before those rules were specified. Renumbering committed ids is churn with no benefit, so the new rules take FM11/FM12 and this note records the mapping. ZP ids deviate from the plan's draft numbering for the same reason: ZP01-ZP04 were committed in Phase 0 before the archive checks were specified, so the new checks take ZP05-ZP09 rather than renumbering committed ids. Mapping — plan ZP01 (one top-level component) = ZP05; plan ZP03 (SKILL.md present/non-empty) = ZP06; plan ZP04 (Finder artifacts) = ZP07; plan ZP05+ZP06 (traversal, symlinks) = the committed combined ZP03, which emits a distinguishing message per shape; plan ZP07 (links resolve in-archive) = ZP08; plan ZP08 (extract and re-lint) = ZP09. This table's ZP01 (exactly one SKILL.md) and ZP04 (the report must not travel) have no plan counterpart and are additional.",

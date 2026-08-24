@@ -142,7 +142,16 @@ def lint_skill(skill_dir: str, table: dict[str, Any],
     findings: list[dict[str, Any]] = []
     ambiguity: list[str] = []
 
+    # Case-insensitive, for the same reason verify() is (ZP10): Anthropic's own worked
+    # example writes `skill.md`. Matters on a case-SENSITIVE filesystem, and on the
+    # extracted tree ZP09 re-lints — where an exact match would turn a vendor
+    # disagreement into a hard failure one layer down.
     skill_md = os.path.join(skill_dir, "SKILL.md")
+    if not os.path.isfile(skill_md):
+        for _cand in sorted(os.listdir(skill_dir)) if os.path.isdir(skill_dir) else []:
+            if _cand.lower() == "skill.md":
+                skill_md = os.path.join(skill_dir, _cand)
+                break
     if not os.path.isfile(skill_md):
         ambiguity.append("no SKILL.md in %s" % skill_dir)
         return findings, ambiguity
