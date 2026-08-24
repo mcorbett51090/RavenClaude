@@ -108,6 +108,39 @@ def merge_base(root: Path, requested: str = "origin/main") -> tuple[str | None, 
         return (sha, how) if rc == 0 and sha else (None, "HEAD^1 did not resolve")
     rc, sha = _git(root, "merge-base", "HEAD", base)
     if rc == 0 and sha:
+        # ⛔ ON THE BASE BRANCH ITSELF, merge-base(HEAD, origin/main) IS HEAD.
+        # A push to main runs with HEAD == origin/main, so rule 2 resolves and the
+        # "base" comes back as the commit under test. That is not a base at all — it
+        # is the thing being compared — and the three consumers degrade in TWO
+        # different directions from the one fault.
+        #
+        # control 2026-08-24, all three run in a checkout where HEAD, origin/main and
+        # merge-base were the SAME sha (7025d056), true exit codes captured directly
+        # rather than through a pipe:
+        #   check-inception-coverage      -> exit 0, "artifacts added vs origin/main : 0"
+        #   check-changed-concept-renders -> exit 0, "no concept changed in this diff"
+        #   check-ratchet-freshness       -> exit 1
+        # So two gates report clean having examined an empty diff, and the third can
+        # never be green: a stamped SHA cannot equal the commit it was stamped before.
+        # Corroborated in CI — main was red on "every ratchet value is bound to this PR
+        # actual merge base" from #1002's merge onward, on BOTH Validate macOS and
+        # Validate Marketplace, and no PR could fix it, because a PR cannot stamp a SHA
+        # that does not exist until its own merge creates it.
+        #
+        # On the base branch the honest comparison point is the FIRST PARENT: "what did
+        # this push change?". For a squash merge that is the previous tip — exactly the
+        # SHA a well-formed PR stamped its ratchets against.
+        #
+        # ⛔ NOT reachable via `_is_merge_commit`: that needs >=2 parents and this repo
+        # SQUASHES to one, so rule 4 never fires on a push to main.
+        rc_head, head = _git(root, "rev-parse", "HEAD")
+        if (not _NEUTER_BASE_TIP) and rc_head == 0 and head and sha == head:
+            rc_parent, parent = _git(root, "rev-parse", "HEAD^1")
+            if rc_parent == 0 and parent:
+                return parent, how + " (HEAD is the base tip — first parent is the base)"
+            # A root commit has no parent. Per this module's contract that is UNKNOWN,
+            # never "up to date" — do not hand back HEAD to buy a green.
+            return None, how + ", but HEAD is the base tip with no parent — UNKNOWN"
         return sha, how
     # Shallow clones can share no history with the base tip. The base ref itself is
     # still the correct comparison point — say so rather than reporting UNKNOWN.
@@ -115,3 +148,90 @@ def merge_base(root: Path, requested: str = "origin/main") -> tuple[str | None, 
     if rc2 == 0 and sha2:
         return sha2, how + " (no shared history — using the base tip)"
     return None, f"{how}, but no merge base could be computed"
+
+
+# ── self-test ───────────────────────────────────────────────────────────────
+# Set only by --must-fail: skip the base-tip branch so the OLD behaviour returns,
+# and assert the fixtures catch it. This is the single planted defect.
+_NEUTER_BASE_TIP = False
+
+
+def _fixture(td, *, feature=False, root_only=False):
+    """Build a scratch repo and return (root, expected_base_sha_or_None, label)."""
+    import subprocess as sp
+
+    r = Path(td)
+    q = dict(cwd=str(r), capture_output=True, text=True, timeout=60)
+    sp.run(["git", "init", "-q", "-b", "main", str(r)], capture_output=True, timeout=60)
+    sp.run(["git", "config", "user.email", "t@t"], **q)
+    sp.run(["git", "config", "user.name", "t"], **q)
+
+    def commit(name):
+        (r / name).write_text(name, encoding="utf-8")
+        sp.run(["git", "add", "-A"], **q)
+        sp.run(["git", "commit", "-q", "-m", name], **q)
+        return sp.run(["git", "rev-parse", "HEAD"], **q).stdout.strip()
+
+    a = commit("a.txt")
+    if root_only:
+        # HEAD is the base tip AND has no parent -> UNKNOWN, never HEAD.
+        sp.run(["git", "update-ref", "refs/remotes/origin/main", a], **q)
+        return r, None, "root commit on the base tip -> UNKNOWN"
+    b = commit("b.txt")
+    if not feature:
+        # The push-to-main shape: HEAD == origin/main. Base must be HEAD^1 (a).
+        sp.run(["git", "update-ref", "refs/remotes/origin/main", b], **q)
+        return r, a, "HEAD is the base tip -> first parent"
+    # A real PR shape: two commits off the base, so HEAD^1 != merge-base.
+    sp.run(["git", "update-ref", "refs/remotes/origin/main", b], **q)
+    sp.run(["git", "checkout", "-q", "-b", "feat"], **q)
+    commit("c.txt")
+    commit("d.txt")
+    return r, b, "feature branch -> the real merge base, NOT HEAD^1"
+
+
+def _self_test():
+    import tempfile
+
+    ok = fail = 0
+    cases = [dict(), dict(feature=True), dict(root_only=True)]
+    for kw in cases:
+        with tempfile.TemporaryDirectory() as td:
+            root, want, label = _fixture(td, **kw)
+            got, how = merge_base(root)
+            if got == want:
+                ok += 1
+                print(f"  ok   {label}")
+            else:
+                fail += 1
+                print(f"  FAIL {label}: want {want}, got {got} ({how})")
+    print(f"  pass={ok} fail={fail}")
+    return 0 if fail == 0 else 1
+
+
+if __name__ == "__main__":
+    import argparse
+
+    ap = argparse.ArgumentParser(description="_base_ref self-test")
+    ap.add_argument("--self-test", action="store_true")
+    ap.add_argument("--must-fail", action="store_true")
+    ap.add_argument("--must-fail-convention", action="store_true")
+    _a = ap.parse_args()
+
+    if _a.must_fail_convention:
+        # ⛔ 3, not 1: exit 1 is indistinguishable from a Python traceback, so a
+        # crashing tool would masquerade as teeth that bit. Matches the sibling
+        # ratchet/inventory checks in this initiative.
+        print("must-fail-teeth-exit: 3")
+        raise SystemExit(0)
+
+    if _a.must_fail:
+        _NEUTER_BASE_TIP = True
+        rc = _self_test()
+        if rc != 0:
+            print("  teeth OK: with the base-tip branch neutered, the fixtures went red")
+            raise SystemExit(3)
+        print("  MUTANT NOT CAUGHT — the base-tip fixtures are inert", flush=True)
+        raise SystemExit(1)
+
+    raise SystemExit(_self_test())

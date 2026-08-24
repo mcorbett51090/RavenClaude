@@ -650,6 +650,8 @@ PY
       rc_mustfail python3 scripts/check-inception-coverage.py || rc=$?
       python3 scripts/check-ratchet-freshness.py --check || rc=$?
       rc_mustfail python3 scripts/check-ratchet-freshness.py || rc=$?
+      python3 scripts/_base_ref.py --self-test || rc=$?
+      rc_mustfail python3 scripts/_base_ref.py || rc=$?
       exit $rc
       ;;
     241)
@@ -8843,6 +8845,12 @@ gate "every ratchet value is bound to this PR actual merge base" must_pass "$rc"
 rc=0
 rc_mustfail python3 scripts/check-ratchet-freshness.py >/dev/null 2>&1 || rc=$?
 gate "ratchet freshness reproduces the PR #991 shape and rejects it" must_pass "$rc"
+rc=0
+python3 scripts/_base_ref.py --self-test >/dev/null 2>&1 || rc=$?
+gate "on the base tip the base resolves to the first parent, never to HEAD itself" must_pass "$rc"
+rc=0
+rc_mustfail python3 scripts/_base_ref.py >/dev/null 2>&1 || rc=$?
+gate "base-ref fixtures bite when the base-tip branch is neutered" must_pass "$rc"
 
 echo
 
