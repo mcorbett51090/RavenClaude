@@ -13,7 +13,7 @@
     "id in {R1,R2,R3,R4}  =>  tier == 'fail' AND class == 'ground-truth' AND no_override == true",
     "ZP02's tier is READ from reference/platform-constraints.md, never hand-set in this file"
   ],
-  "fire_rate_caveat": "Every fire_rate below was measured on 934 expert-authored Claude CODE skills in this marketplace, NOT on novice-authored claude.ai ORGANIZATION Skills — the population this studio actually serves (S23, owner-gated). A 0.0% rate here means 'these authors already do this', never 'the check is worthless'. The rates are recorded so a reader can discount them, not so they can be cited as authority.",
+  "fire_rate_caveat": "Every fire_rate below was measured on 934 expert-authored Claude CODE skills in this marketplace, NOT on novice-authored claude.ai ORGANIZATION Skills — the population this studio actually serves (S23, owner-gated). A 0.0% rate here means 'these authors already do this', never 'the check is worthless'. The rates are recorded so a reader can discount them, not so they can be cited as authority. ⛔ The corpus was 934 SKILL.md files when these rates were measured. Adding this studio's own SKILL.md in Phase 5 made it 935, so every n/934 is a DATED SNAPSHOT and is one skill behind by construction. It is deliberately NOT re-measured to chase the delta: the rates are recorded so a reader can discount a heuristic, and no decision here turns on the third decimal place. Re-measure when the sweep falls due (stale_after), not when the denominator moves by one.",
   "rules": [
     {
       "id": "FM01",
@@ -356,7 +356,7 @@
       "fire_rate": null,
       "no_override": true,
       "quarantine": "fence + frame + handling instruction + a named reviewer in the EXTERNAL run record. Three of four is still FAIL.",
-      "measured_note": "1/934 on the corpus: AWS's own documentation example key AKIAIOSFODNN7EXAMPLE, inside a secrets-detection skill. Deliberately NOT special-cased to a pass. It is credential-SHAPED, and the unappealable scanner (S9) reads shapes; and an ends-with-EXAMPLE carve-out is the exact cleverness that lets a real key through when someone names a variable EXAMPLE. The quarantine path exists for precisely this case."
+      "measured_note": "1/934 on the corpus: AWS's own documentation example key AWS's own documentation example key, inside a secrets-detection skill. Deliberately NOT special-cased to a pass. It is credential-SHAPED, and the unappealable scanner (S9) reads shapes; and an ends-with-EXAMPLE carve-out is the exact cleverness that lets a real key through when someone names a variable EXAMPLE. The quarantine path exists for precisely this case."
     },
     {
       "id": "R1B",
@@ -380,13 +380,13 @@
       "tier": "fail",
       "class": "ground-truth",
       "claim": "S20",
-      "rule": "no global-posture override imperative (ignore previous instructions and family)",
+      "rule": "no global-posture override imperative (an instruction to set aside prior guidance, and its family)",
       "rationale": "Provisioned org-wide, unreviewed if org sharing is on (S10), and injected into system prompts. An override imperative in that position is not a quotation.",
       "remediation": "Paraphrase it FIRST: 'a message attempting to override the assistant's prior guidance' loses nothing operational and needs no reviewer. Only if the literal is genuinely required, use the quarantine path.",
       "fire_rate": null,
       "no_override": true,
       "quarantine": "fence + frame + handling instruction + a named reviewer in the EXTERNAL run record. Three of four is still FAIL.",
-      "measured_note": "2/934, both in skills ABOUT injection ('disregard the above', 'NEW INSTRUCTIONS:'). These are the quarantine cases, not false positives — the literal really is in the archive the classifier reads."
+      "measured_note": "2/934, both in skills ABOUT injection — one an imperative to set aside prior guidance, one a new-instructions header. The literals are PARAPHRASED here rather than quoted: dogfooding the studio on itself showed R2 firing on this very file, and paraphrase-first is the remedy this table's own refusals.md prescribes. It costs nothing — the note's content is the measurement, not the string. These are the quarantine cases, not false positives — the literal really is in the archive the classifier reads."
     },
     {
       "id": "R3",
@@ -419,7 +419,7 @@
       "tier": "warn",
       "class": "advisory",
       "claim": "S10",
-      "rule": "no persona override on a binding matter (act as a lawyer / physician / auditor)",
+      "rule": "no persona override on a binding matter (an instruction to assume the identity of a lawyer, clinician or auditor)",
       "rationale": "S10: there is no approval workflow, so a persona instruction reaches every member unreviewed. It is a judgement call whether a given persona overrides binding guidance, so it may not block.",
       "remediation": "State the role as scope ('this skill covers contract review') rather than as an identity Claude should assume, and keep the escalation path.",
       "fire_rate": {
@@ -445,7 +445,7 @@
         "total": 934,
         "population": "expert-authored Claude Code skills in this marketplace",
         "measured_on": "2026-08-24",
-        "note": "1/934: 'under NDA' in a data-room skill that DISCUSSES NDAs and contains no confidential material — a described-vs-present false positive, which is exactly what the WARN tier is for. Disclosed rather than pattern-tuned away."
+        "note": "1/934: a non-disclosure marker in a data-room skill that DISCUSSES NDAs and contains no confidential material — a described-vs-present false positive, which is exactly what the WARN tier is for. Disclosed rather than pattern-tuned away."
       }
     },
     {
@@ -517,7 +517,7 @@
     }
   ],
   "id_note": "Rule ids are this implementation's, and they DEVIATE from plan-A's draft numbering in two places: plan-A used FM06 for reserved-words and FM10 for extra-frontmatter-keys, which this table had already assigned to description-present and body-present before those rules were specified. Renumbering committed ids is churn with no benefit, so the new rules take FM11/FM12 and this note records the mapping. ZP ids deviate from the plan's draft numbering for the same reason: ZP01-ZP04 were committed in Phase 0 before the archive checks were specified, so the new checks take ZP05-ZP09 rather than renumbering committed ids. Mapping — plan ZP01 (one top-level component) = ZP05; plan ZP03 (SKILL.md present/non-empty) = ZP06; plan ZP04 (Finder artifacts) = ZP07; plan ZP05+ZP06 (traversal, symlinks) = the committed combined ZP03, which emits a distinguishing message per shape; plan ZP07 (links resolve in-archive) = ZP08; plan ZP08 (extract and re-lint) = ZP09. This table's ZP01 (exactly one SKILL.md) and ZP04 (the report must not travel) have no plan counterpart and are additional.",
-  "refusal_note": "R1-R4 are hard refusals with NO override flag, env var or config key. Their only path is quarantine: fence + frame + handling instruction + A NAMED HUMAN REVIEWER RECORDED IN THE EXTERNAL RUN RECORD. The fourth condition is the one the author cannot supply alone — plan-A's three-part incantation is authored entirely by whoever wrote the adversarial string, which is self-attestation with extra steps, i.e. a --force spelled out in the documentation. A reviewer line inside SKILL.md clears nothing. An adversarial literal in the frontmatter DESCRIPTION has no quarantine path at all: it is injected verbatim into every member's system prompt.",
+  "refusal_note": "R1-R4 are hard refusals with NO override flag, env var or config key. Their only path is quarantine: fence + frame + handling instruction + A NAMED HUMAN REVIEWER RECORDED IN THE EXTERNAL RUN RECORD. The fourth condition is the one the author cannot supply alone — plan-A's three-part incantation is authored entirely by whoever wrote the adversarial string, which is self-attestation with extra steps, i.e. a --force spelled out in the documentation. A reviewer line inside SKILL.md clears nothing. An adversarial literal in the frontmatter DESCRIPTION has no quarantine path at all: it is injected verbatim into every member's system prompt. ⛔ THIS TABLE PARAPHRASES EVERY ADVERSARIAL LITERAL IT DESCRIBES. Dogfooding the studio on its own directory showed R1/R2/R5 firing on this file's rule text and measured_note fields — the studio would have refused to pack itself, on the exact defect its own refusals.md tells authors to fix by paraphrasing. Nothing operational was lost: a rule's content is the constraint and the measurement, never the string. Do not restore the literals for 'clarity'.",
   "non_shippable": [
     "__MACOSX/*",
     "__MACOSX",
