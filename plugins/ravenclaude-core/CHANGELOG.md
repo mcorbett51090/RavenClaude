@@ -2,6 +2,28 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.298.0 — 2026-08-24
+
+### Changed
+
+- **Re-verified and re-stamped the seven `platform-fact` "Foundations" concepts** — `agent-harness-loop`,
+  `tool-use`, `context-window`, `subagents`, `mcp`, `model-selection`, `source-control-basics` — refreshing
+  each `last_verified` from 2026-06-05/04 → 2026-08-24. All seven were re-read and confirmed current
+  against how agentic AI works today; several were empirically re-confirmed this session (the agent loop,
+  tool-gating, compaction, the Explore subagent dispatch, MCP servers connecting).
+
+  This **honors the concept-inventory design** (`docs/plans/2026-08-19-product-inventory/plan.md` §5.3):
+  `platform-fact` entries carry a **90-day BLOCKING** calendar gate on PRs — deliberately stricter than
+  the 180-day warn-on-PR inventory corpus — because the ~17-entry population is small enough to service by
+  re-verification rather than by relaxing the gate. The seven were ~80 days old and would have crossed 90
+  within ~10 days, taking every subsequent PR's `scripts/concepts.py --check` down with them in a wave.
+  This is the scheduled service, done early — **the gate logic is unchanged**. Regenerated `concepts.json`
+  + `dashboard.html` + `index.html` (they render the `verified <date>` span); `concepts.py --check` passes
+  with 0 calendar warnings.
+
+  **Migration:** none — knowledge-freshness metadata only; nothing in an installed plugin behaves
+  differently on `/plugin marketplace update`.
+
 ## 0.297.0 — 2026-08-24
 
 ### Fixed

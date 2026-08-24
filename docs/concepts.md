@@ -49,7 +49,7 @@ flowchart TD
 
 **Sources:** [Building agents with the Claude Agent SDK](https://code.claude.com/docs/en/agent-sdk) · ["The Anatomy of an Agent Harness" (Akshay Pachaar)](https://x.com/_avichawla/status/2062082282878627946)
 
-_Last verified: 2026-06-05_
+_Last verified: 2026-08-24_
 
 
 ---
@@ -90,7 +90,7 @@ flowchart TD
 
 **Sources:** [Tool use (function calling) — Claude API](https://docs.claude.com/en/docs/build-with-claude/tool-use) · [Agent SDK — tools & permissions](https://code.claude.com/docs/en/agent-sdk)
 
-_Last verified: 2026-06-05_
+_Last verified: 2026-08-24_
 
 
 ---
@@ -131,7 +131,7 @@ flowchart TD
 
 **Sources:** [Context windows — Claude API](https://docs.claude.com/en/docs/build-with-claude/context-windows) · [Manage context — Claude Code](https://code.claude.com/docs/en/costs)
 
-_Last verified: 2026-06-05_
+_Last verified: 2026-08-24_
 
 
 ---
@@ -174,7 +174,7 @@ flowchart TD
 
 **Sources:** [Subagents — Claude Code](https://code.claude.com/docs/en/sub-agents) · [Building agents with the Agent SDK](https://code.claude.com/docs/en/agent-sdk)
 
-_Last verified: 2026-06-05_
+_Last verified: 2026-08-24_
 
 
 ---
@@ -213,7 +213,7 @@ flowchart TD
 
 **Sources:** [Model Context Protocol — specification](https://modelcontextprotocol.io) · [Connect to MCP servers — Claude Code](https://code.claude.com/docs/en/mcp)
 
-_Last verified: 2026-06-05_
+_Last verified: 2026-08-24_
 
 
 ---
@@ -251,7 +251,7 @@ flowchart TD
 
 **Sources:** [Models overview — Claude API](https://docs.claude.com/en/docs/about-claude/models) · [Choosing a model — Claude Code](https://code.claude.com/docs/en/model-config)
 
-_Last verified: 2026-06-05_
+_Last verified: 2026-08-24_
 
 
 ---
@@ -308,7 +308,7 @@ flowchart TD
 
 **Sources:** [AGENTS.md — PR conventions](../AGENTS.md) · [AGENTS.md — House rules (branch-archive)](../AGENTS.md) · [branch-archive skill](../plugins/ravenclaude-core/skills/branch-archive/SKILL.md) · [Pro Git — About Version Control](https://git-scm.com/book/en/v2/Getting-Started-About-Version-Control)
 
-_Last verified: 2026-06-04_
+_Last verified: 2026-08-24_
 
 
 ---

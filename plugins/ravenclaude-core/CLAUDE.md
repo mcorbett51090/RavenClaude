@@ -3095,3 +3095,35 @@ returned 17 — so the round-trip lives with no stray control. Both dashboard fr
 **Migration:** none — `context_handoff` defaults absent (⇒ no handoff behavior), so an untouched posture
 is byte-identical on `/plugin marketplace update`. The only change is that a dashboard Save now
 **preserves** the block instead of dropping it.
+
+## The seven Foundations platform-facts, re-verified on schedule (added 2026-08-24, v0.298.0)
+
+The concept inventory splits its freshness duty on two axes (`docs/plans/2026-08-19-product-inventory/plan.md`
+§5.3, and the axis table atop [`scripts/concepts.py`](../../scripts/concepts.py)): **content drift carries
+the blocking duty** across the corpus (a covered artifact changing is when a fact can actually have gone
+false), while **calendar age is deliberately warn-on-PR / block-on-sweep for the ~180-day inventory
+population** — a blocking calendar gate over a large corpus is a periodic repo-wide outage, and a gate that
+gets disabled protects nothing. The **one** exception is `kind: platform-fact` at **90 days → BLOCKING on
+every PR**, kept strict on purpose because the population is tiny (the ~17 Foundations explainers) and
+*serviceable by re-verification* rather than by relaxing the gate.
+
+This is that service, done early. The seven Foundations platform-facts — `agent-harness-loop`, `tool-use`,
+`context-window`, `subagents`, `mcp`, `model-selection`, `source-control-basics` — were stamped 2026-06-05
+/ 2026-06-04, i.e. ~80 days old, and would have crossed 90 within ~10 days, taking **every** subsequent
+PR's `scripts/concepts.py --check` red in a wave (exactly the wave-outage the inventory corpus is *spared*
+and the small platform-fact set is meant to *absorb*). All seven were re-read and confirmed current against
+how agentic AI works today; several were empirically re-confirmed this session (the agent loop, tool-gating,
+compaction, the Explore subagent dispatch, MCP servers connecting). `last_verified` was refreshed to
+2026-08-24 by **direct frontmatter edit** — `--restamp` refuses a no-`covers[]` concept (there is no digest
+to move), so a generic explainer with no covered artifact is serviced by editing the date, which is exactly
+what the design intends.
+
+⛔ **This honors the design; it does NOT change the gate.** Nothing in `concepts.py`'s staleness logic,
+`STALE_DAYS`, or the axis split was touched — the earlier diagnosis that the 90-day platform-fact block
+"flakes" was a false premise (git history + the §5.3 plan show it is a deliberate, small-population design,
+not a bug). The mechanical follow-through: `concepts.json` + `dashboard.html` + `index.html` regenerated
+(they render the `verified <date>` span), `concepts.py --check` passes with 0 calendar warnings, and the
+DOM-budget ratchet is untouched (a 10-char date replacing a 10-char date changes no element count).
+
+**Migration:** none — knowledge-freshness metadata only; nothing in an installed plugin behaves differently
+on `/plugin marketplace update`.
