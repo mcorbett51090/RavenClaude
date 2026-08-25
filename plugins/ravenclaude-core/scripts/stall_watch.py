@@ -382,6 +382,23 @@ def evaluate(now: float, slept: bool, state: dict) -> dict:
     episodes = state.setdefault("episodes", {})
     findings = []
 
+    # ⛔ RESOLUTION MUST BE OBSERVABLE, NEVER ASSERTED. The ladder deliberately
+    # never reaches zero, so an episode that is never closed nags forever. That
+    # is correct for an ONGOING stall and wrong for one that ended, so "ended"
+    # needs a definition the watchdog can SEE rather than one a human claims:
+    #
+    #   resolved := the session produced a new assistant record  (progress)
+    #            OR its process is gone                          (it ended)
+    #            OR the registry reports it idle                 (the turn closed)
+    #
+    # There is deliberately NO acknowledge/mute. A mute button on a detector is
+    # the thing that gets used, and a muted detector protects nothing; every one
+    # of these three closes on evidence instead.
+    live_now = {str(s["pid"]) for s in sessions if s["alive"] and s["status"] != "idle"}
+    for gone in [k for k in list(episodes) if k not in live_now]:
+        episodes.pop(gone, None)
+        notes.append("episode_resolved:%s:session-gone-or-idle" % gone)
+
     for sess in sessions:
         if not sess["alive"]:
             # SIGKILL ORPHANS the registry file — measured: .json/.key/.sock all

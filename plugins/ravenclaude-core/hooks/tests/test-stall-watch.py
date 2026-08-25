@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """test-stall-watch.py — Gate 244 for the stall watchdog.
 
-ONE gate slot, five check groups. Claiming 244-248 for a single script would
+ONE gate slot, six check groups. Claiming 244-248 for a single script would
 inflate the gate count without adding a single independent invocation; Gate 242
 already sets the precedent of several checks under one number.
 
@@ -16,6 +16,7 @@ before — so an impotent mutant fails the script rather than passing it.
   246a-c  parse_ts is UTC-correct           <- R3 (UTC-vs-local, fails to silence)
   247a-c  ladder advances on RECEIPT        <- RT-4 (silent miss on sink outage)
   248a-c  no committed .plist; payload safe <- C19 oscillation, CE-2 injection
+  249a-e  resolution, ladder floor, sleep suppression <- red-team, never exercised
 
 Run standalone:  python3 test-stall-watch.py
 Invoked by:      scripts/audit-gates.sh  ->  .github/workflows/validate-marketplace.yml
@@ -260,10 +261,90 @@ def gate_248(sw):
         gate("248c benign identifiers still accepted", False, str(exc))
 
 
+def _quiet(fn, *a):
+    import contextlib
+    import io as _io
+    with contextlib.redirect_stdout(_io.StringIO()):
+        return fn(*a)
+
+
+# ---------------------------------------------------------------------------
+# 249 — the three red-team items that shipped implemented but never exercised:
+# resolution, the ladder past rung 1, and sleep suppression. Verified once is
+# not verified; each carries its positive control, because "no alert fired" is
+# only evidence if the same setup DOES alert when it should.
+# ---------------------------------------------------------------------------
+def gate_249(sw):
+    now = time.time()
+    saved_reg = sw.read_registry
+
+    # Resolution must be OBSERVABLE, never asserted: the ladder never reaches
+    # zero, so an episode that is never closed nags forever. There is
+    # deliberately no mute — a mute button on a detector is the thing that gets
+    # used, and a muted detector protects nothing.
+    try:
+        state = {"episodes": {"999999": {"rung": 2, "last_alert_at": now - 100,
+                                         "opened_at": now - 9999}}}
+        sw.read_registry = lambda: ([], [])
+        _quiet(sw.evaluate, now, False, state)
+        gate("249a resolution: a gone session's episode is pruned",
+             "999999" not in state["episodes"])
+
+        state = {"episodes": {"1234": {"rung": 1, "last_alert_at": now - 100,
+                                       "opened_at": now - 9999}}}
+        sw.read_registry = lambda: ([{"pid": 1234, "session_id": "x" * 36,
+                                      "status": "idle", "cwd": "/tmp",
+                                      "alive": True, "identity_ok": True}], [])
+        _quiet(sw.evaluate, now, False, state)
+        gate("249b resolution: an idle session's episode is pruned",
+             "1234" not in state["episodes"])
+    finally:
+        sw.read_registry = saved_reg
+
+    # The ladder must reach its floor and stay there: never zero (a real stall
+    # would go quiet) and never unbounded (it would spam and get muted).
+    episode = {"rung": 0, "last_alert_at": 0.0, "opened_at": now}
+    fired = []
+    for minute in range(0, 24 * 60 + 1):
+        if sw.ladder_due(episode, now + minute * 60):
+            fired.append(minute)
+            sw.advance_ladder({"episodes": {"1": episode}}, [{"pid": 1}],
+                              now + minute * 60)
+    gaps = [fired[i + 1] - fired[i] for i in range(len(fired) - 1)]
+    gate("249c ladder passes rung 1, floors, and never goes silent",
+         episode["rung"] > 1 and gaps and min(gaps) > 0
+         and max(gaps) <= sw.LADDER_MIN[-1],
+         "gaps=%s rung=%d" % (gaps, episode["rung"]))
+
+    # Sleep suppression, with the positive control that makes it meaningful.
+    fake = [{"pid": 4242, "session_id": "s" * 36, "status": "busy",
+             "cwd": "/tmp", "alive": True, "identity_ok": True}]
+    saved_find, saved_age = sw.find_transcript, sw.last_progress_age_min
+    saved_cnt = sw.count_compact_boundaries
+    try:
+        sw.read_registry = lambda: (fake, [])
+        sw.find_transcript = lambda sid: "/dev/null"
+        sw.last_progress_age_min = lambda p, n: (999.0, {"scanned_bytes": 0,
+                                                         "last_any_age_min": 999.0})
+        sw.count_compact_boundaries = lambda p: 0
+        awake = _quiet(sw.evaluate, now, False, {"episodes": {}})
+        slept = _quiet(sw.evaluate, now, True, {"episodes": {}})
+    finally:
+        sw.read_registry = saved_reg
+        sw.find_transcript = saved_find
+        sw.last_progress_age_min = saved_age
+        sw.count_compact_boundaries = saved_cnt
+    gate("249d sleep: the SAME stall alerts awake (positive control)",
+         len(awake["alerts"]) == 1, "alerts=%d" % len(awake["alerts"]))
+    gate("249e sleep: suppressed after a wake, finding still reported",
+         len(slept["alerts"]) == 0 and len(slept["findings"]) == 1,
+         "alerts=%d findings=%d" % (len(slept["alerts"]), len(slept["findings"])))
+
+
 def main():
-    sys.stdout.write("Gates 244-248: stall watchdog\n")
+    sys.stdout.write("Gate 244: stall watchdog\n")
     sw = load("stall_watch")
-    for fn in (gate_244, gate_245, gate_246, gate_247, gate_248):
+    for fn in (gate_244, gate_245, gate_246, gate_247, gate_248, gate_249):
         try:
             fn(sw)
         except Exception as exc:
