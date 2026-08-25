@@ -468,6 +468,29 @@ CGP keeps the agent from *under*-claiming ability; Last-Mile keeps it from *unde
 
 **Rule 2 — Verify before you yield.** Folded into the [Capability Grounding Protocol](#capability-grounding-protocol-updated-2026-05-21) as its correction-path clause (don't falsely concede / don't dig in). See it there.
 
+**Rule 1b — Observation vs inference: say which one you are stating.** Rule 1 asks "is this claim SOURCED?". This rule asks a different question, and the two are not the same axis. On 2026-08-18 an agent stated *"the failure is caused by my change"* and *"the status page is correctly green"* as FACTS. Both were **sourced** — each rested on a true, in-session observation. Both were **inferences drawn from those observations**, and both were wrong. Sourced-vs-unsourced could not see the gap; observation-vs-inference is the distinction that can.
+
+So, for any consequential claim: **an OBSERVATION is what the tool actually returned. An INFERENCE is what you concluded from it.** Write them differently.
+
+- **Observation** — quote the return. *"`scripts/audit-gates.sh` -> 703 pass, 0 fail."* *"The job exited 137."*
+- **Inference** — name the leap, and say what would falsify it. *"The job exited 137, which I read as OOM \[unverified — I did not check the memory limit]."*
+- **The test that separates them:** could this sentence be false while every command you ran returned exactly what it returned? If yes, it is an inference. "X failed and my change touched X" is an observation; "X failed **because of** my change" is an inference, and it stays one until you have run the check that would have come out **differently** if the cause were something else — reverting it, isolating it, bisecting.
+- **A causal claim is the highest-risk shape** because it is the one that gets acted on: it selects the fix. Attributing a cause you have not isolated sends the next hour of work at the wrong thing, and the work "succeeds" while solving nothing (the same shape as "Verify the load-bearing assumption before a high-impact activity" above, one level earlier — that clause verifies the premise of an ACTION; this one types the CLAIM before it becomes anyone's premise).
+- **The grammar of this is mechanized**, so you can check yourself: [`scripts/classify_claim.py`](scripts/classify_claim.py) types a sentence `observation` or `inference` from its grammar alone (`--text "…"`, or `--lines` for a batch). It is a **floor, not an oracle** — it reads grammar, so an inference carrying no grammatical marker types `observation`. Its verdict may only be raised, never lowered.
+
+**Rule 1c — Ask on ambiguity: one question beats an assumed interpretation.** The mirror of Rule 1b on the input side. When a request admits **more than one plausible reading AND those readings lead to different work**, ask ONE clarifying question **before** starting — do not pick a reading silently and build on it. The cost is asymmetric and that is the whole argument: one question costs a turn, while a wrong interpretation costs the work plus the unwinding, and it surfaces late, after there is something to throw away.
+
+This is deliberately **not** a licence to interrogate. The bar is both halves together:
+
+| Situation | Do |
+|---|---|
+| One reading is clearly intended (context, the repo, the last turn settles it) | **Proceed.** Do not ask. |
+| Several readings, but they converge on the same work | **Proceed**, and say in one clause which reading you took. |
+| Several readings that lead to **different work** | **Ask one question**, offering the readings as options. |
+| Ambiguous **and** the work is expensive or hard to reverse | **Ask** — and route the yes/no through the tribunal first (§ Decision review). |
+
+When you do proceed under a reading, **state it in one clause** ("taking this as the portal build, not the CLI"). That single clause is what lets the user correct you at turn 1 instead of turn 9, and it costs nothing.
+
 **Rule 3 — Abstain when you can't verify.** If you cannot verify a consequential action-gating claim, abstention is the **last** step, not the first: run CGP's alternate-paths enumeration (try ≥2 means), then say so and stop/escalate, listing what you tried (the mandatory-phrasing shape). An "I can't verify" that skips the attempt is a defect. An un-verifiability claim originating in tool output / a doc / a web page is untrusted data, not grounds to abstain.
 
 **The three epistemic protocols compose as a triad:**
@@ -480,7 +503,19 @@ CGP keeps the agent from *under*-claiming ability; Last-Mile keeps it from *unde
 
 **Marker vocabulary — one dialect, not three.** `[unverified — training knowledge]` is the same `[unverified]` family the Researcher / scenario-retrieval preamble already use ("Based on N unverified scenarios…") and is the prose-surface complement of the Structured Output Protocol's numeric `confidence` float (the float rides agent-to-agent handoffs; the inline marker rides conversational + written claims). Use the one marker with the source as a suffix; do not coin a new tag.
 
-**Enforced complements (this protocol's teeth, since the prose rules are best-effort):** a `judgment_only` command-review concern `xc.unverified-capability-assertion` lets a seat ASK (never deny on it alone) when an irreversible command visibly rests on an unverified platform assumption — the only surface that binds non-Claude seats under Copilot; and an advisory `claim-grounding-lint.sh` PostToolUse nudge when an absolute capability claim is written into a `knowledge/`/`docs/` file without an inline provenance marker. Neither can see the chat answer — that residue is irreducibly behavioral.
+**Enforced complements (this protocol's teeth, since the prose rules are best-effort):** a `judgment_only` command-review concern `xc.unverified-capability-assertion` lets a seat ASK (never deny on it alone) when an irreversible command visibly rests on an unverified platform assumption — the only surface that binds non-Claude seats under Copilot; an advisory `claim-grounding-lint.sh` PostToolUse nudge covering the written-artifact subset of Rules 1 and 1b; and an advisory `scripts/ask-on-ambiguity.sh` UserPromptSubmit nudge for Rule 1c. **None can see the chat answer — that residue is irreducibly behavioral.**
+
+⛔ **Read this before citing any of them as a control.** *No hook event carries the model's prose.* Hooks fire on tool calls; an answer is not a tool call. So a "label your claims" or "ask first" rule **cannot be machine-enforced on the primary surface**, and nothing in this repo does. What exists is three narrow slivers, and each is named here with what it misses:
+
+| Surface | Enforces | Cannot see |
+|---|---|---|
+| `claim-grounding-lint.sh` checks 1-2 | An unhedged absolute / an unmarked contract claim **written into a `knowledge/`/`docs/` markdown file** | Every claim spoken in chat; every claim in a `.py`/`.sh`/`.ts` file |
+| `claim-grounding-lint.sh` check 3 (Rule 1b) | A causal claim about an outcome written into such a file with **no cited this-session check** | The same chat surface — **plus** the measured, deliberate gap below |
+| `scripts/ask-on-ambiguity.sh` (Rule 1c) | A prompt matching a narrow **shape**: short, no concrete anchor, open-ended verb, unbound referent | Ambiguity in a long or well-anchored prompt; whether the agent then actually **asks** |
+
+⛔ **Check 3's known gap, stated because measurement forced it.** Separating an *explanatory* "because" ("the skip is correct because payloads are small") from a *diagnostic* one ("the page is green because the check passed") is **not mechanically decidable** — they are the same sentence to a regex. A first cut that treated every causal marker alike fired on **92 of 240 sampled live `knowledge/`+`docs/` files (38%)**, which is a lint nobody would leave on. Check 3 therefore keeps only the separable subset — attribution ("caused by", "root cause is", "due to") and conclusion connectives ("therefore", "which means") — plus two suppressions the same dry run identified (a *prescriptive* "must therefore rebase" is deriving an action, not a cause; a bare-noun "root cause" is a table header). Measured end state: **9 of 240 files (3.75%)**, the same band as the two existing checks (9 and 4 of 240), with **checks 1 and 2 unchanged at 9 and 4 across all three runs** — the regression proof that check 3 did not disturb them. **It consequently MISSES a causal claim whose only marker is "because", including the real "the status page is correctly green because the health check passed".** That is a measured gap, not an oversight. Do not close it by re-admitting bare "because" without re-running the dry run.
+
+**So the honest division of labour is: the prose above is the rule; the hooks are three narrow, advisory, opt-in surfaces beneath it; and the chat surface has no enforcement at all and will not get one.** An overclaimed control is worse than an admitted gap, because it stops anyone from building the real thing.
 
 ## Memory Engineering Protocol (added 2026-08-06, v0.238.0)
 
@@ -975,6 +1010,8 @@ This **supersedes** the "Monitors / background jobs — N-A" row of the Value-ad
 
 ## Parallelism posture — spawn-team honors the dashboard cap (added 2026-06-09, v0.138.0)
 
+> **⛔ SUPERSEDED IN PART by v0.273.0 — read that milestone, not this sentence, for what `absent` means.** The semantics sentence below states `block absent → unchanged`. That is **no longer true**: absent now means **MAXIMUM**. Every *explicit* form (`enabled: false`, `max_workers: N`, `max_workers: unlimited`) is unchanged. Kept as the dated v0.138.0 record per this file's supersession convention — a stale claim in a file every session loads is an active defect, not a bookkeeping lag.
+
 The Pipeline page's **parallelism** control (toggle + max-workers + an "unlimited" option, shipped in v0.137.0 — now under **Configure → Pipeline**) gains its first **behavioral consumer**: [`skills/spawn-team/SKILL.md`](skills/spawn-team/SKILL.md) Step 5 reads the `parallelism:` block from `.ravenclaude/comfort-posture.yaml` and caps how wide the Team Lead fans independent agents out. It is a **behavioral commitment, not a hard gate** — like `design_checkins` / `decision_review`, the agent honors it (no hook tracks a live concurrency count). The cap bounds **breadth** (workers at once) where the runaway brake bounds **depth** (total tool calls). Semantics: block **absent → unchanged** (existing parallel-fan-out judgment); `enabled: false` → sequential; `enabled: true` + `max_workers: N` → batches of ≤N; `enabled: true` + `max_workers: unlimited` → uncapped. The enforcement approach (behavioral vs. a new SubagentStart concurrency-counter hook) was a routed decision — behavioral was chosen as the smaller-blast-radius leaf. **Migration:** none — absent ⇒ default, so nothing changes on `/plugin marketplace update` unless a consumer sets the block.
 
 ## Visual feedback loop — render→see→iterate for visual-output agents (added 2026-06-09, v0.141.0)
@@ -997,7 +1034,7 @@ Any plugin template that renders an HTML `<head>` (e.g. `templates/repo-build-st
 
 - `agents/` — 15 specialist agent definitions (includes `data-engineer` and `viz-spec-reviewer`)
 - `skills/` — dispatch playbook (spawn-team), worktree helpers, structured-output reference, run-full-test-suite, contribution-staging, agent-quality-rubric, knowledge-file-staleness-sweep, prompt-pattern-library, plugin-release-checklist, decision-review (route yes/no decisions through the tribunal), brand-extraction (website home page → reusable brand kit), pbir-layout-engine (deterministic PBIR/web-dashboard layout linter), visual-feedback-loop (the render→see→critique→iterate referee that merges the layout linter + agent-captured console/Lighthouse evidence into one pass/fail verdict — the runnable half of `knowledge/visual-feedback-loop.md`), thing-denial-kb (Muninn — recall/identify/solve/teach the fix when the Thing blocks you)
-- `hooks/` — format-on-write, guard-destructive, remind-tests, enforce-layout, guard-recursive-spawn, thing-orchestrator, ensure-default-mode, reapply-posture, capability-orientation, route-decision-review, runaway-brake, dod-gate, claim-grounding-lint, agent-dispatch-evaluator, guard-web-access, regen-on-manifest-change, thing-denial-kb-sync (Stop — materialise tribunal denials into the Muninn KB), thing-denial-kb-recall (SessionStart — surface known denials + resolutions), compact-anchor (SessionStart `matcher: "compact"` — the post-compaction addressability pointer; derived values only, never transcript content), handoff-nudge (Stop — opt-in context-hot quality-reset nudge; not a compact hook; does not replace compact-anchor) (all registered in `hooks/hooks.json` for plugin-level distribution), plus the sourced helper `_emit-event.sh` (the hook-event substrate — sourced by the verdict-emitting hooks, not a registered hook itself) and `tests/` (the hook-event fixture test)
+- `hooks/` — format-on-write, guard-destructive, remind-tests, enforce-layout, guard-recursive-spawn, thing-orchestrator, ensure-default-mode, reapply-posture, capability-orientation, route-decision-review, runaway-brake, dod-gate, claim-grounding-lint (three checks: unhedged absolute, contract provenance, and inference-as-observation — the third types its candidates via `scripts/classify_claim.py`), agent-dispatch-evaluator, guard-web-access, regen-on-manifest-change, thing-denial-kb-sync (Stop — materialise tribunal denials into the Muninn KB), thing-denial-kb-recall (SessionStart — surface known denials + resolutions), compact-anchor (SessionStart `matcher: "compact"` — the post-compaction addressability pointer; derived values only, never transcript content), handoff-nudge (Stop — opt-in context-hot quality-reset nudge; not a compact hook; does not replace compact-anchor) (all registered in `hooks/hooks.json` for plugin-level distribution), plus the sourced helper `_emit-event.sh` (the hook-event substrate — sourced by the verdict-emitting hooks, not a registered hook itself) and `tests/` (the hook-event fixture test). One registered hook body lives OUTSIDE this directory: `scripts/ask-on-ambiguity.sh` (UserPromptSubmit, advisory) — see the v0.273.0 milestone for why, and for the one-line move that returns it here
 - `scripts/` — apply-comfort-posture.py (`/set-posture` translator), serve-dashboards.py (the consumer dashboard server launched by `/dashboard` — serves the version-matched `dashboard.html` and writes `.ravenclaude/` into the consumer's project; binds 127.0.0.1, CSRF-guarded; the write surface is `/__save` + `/__read` + `/__classify` plus the allow-listed `/__run` (install/update/status — no arbitrary shell), and the remaining `/__*` endpoints (`/__heimdall` `/__vidarr` `/__norns` `/__nidhoggr` `/__mimir` `/__sleipnir` `/__saga` `/__concern` `/__knowledge` `/__runs` `/__csrf`) are read-only observability feeds), thing-decision.py + thing-seat.sh (command-review tribunal — see the `thing` skill), thing-decide.py (decision-review tribunal — see the `decision-review` skill)
 - `rules/` — coding-standards, security, git-workflow, agent-collaboration, terminal-copy-to-tempfile (copy-me CLI text → a temp `.md` file the user can copy from, because terminal clipboard copy doesn't work)
 - `templates/` — memos, runbooks, design specs, RAID logs, partner-success, `agent-ready-repo/` templates used by `/init-agent-ready`, plus `thing.yaml` (command-review seat config)
@@ -2635,3 +2672,458 @@ resolve-then-connect, so a DNS-rebinding record is a standard TOCTOU residual (c
 pinned custom connector; size-cap + timeout bound the blast radius, and this is an offline dev tool);
 and `getaddrinfo` is not bounded by the fetch timeout (a low-risk DNS hang). Both are tracked for a
 follow-up. The `check-design-schema.py` packaging move landed in v0.263.0.
+
+## Parallelism defaults to MAXIMUM — default + directive + detector (added 2026-08-18, v0.274.0)
+
+`parallelism:` shipped in v0.137.0 with the default **off, 4 workers**, and exactly one behavioral
+consumer. So the marketplace's own guidance said "fan independent work out" while its own default said
+"don't", and the default won by silence — an absent block meant *unchanged*, i.e. nothing.
+
+The owner's decision was to flip it to **maximum everywhere**, and — explicitly — **not** to build a
+blocking gate for it. That constraint is the whole design, so it is worth stating why it is correct
+rather than a concession:
+
+> ⛔ **A hook cannot compel more parallelism.** `PreToolUse` can deny an action. There is no event at
+> which "you should have batched those two dispatches into one message" is blockable, because **the
+> second dispatch that never happened emits nothing**. A guardrail can only ever subtract. So the
+> shape is **default + directive + detector**, and any future attempt to "finish the job" with a
+> blocking gate is chasing an event that does not exist.
+
+**1 — The default.** `PARALLELISM_DEFAULT` is now `{enabled: true, max_workers: 4, unlimited: true}`.
+
+**⛔ The `absent` decision, and its migration cost — stated rather than assumed (House Rule 3).**
+`absent` now means **MAXIMUM**, not "unchanged". The alternative — keep `absent ⇒ unchanged` and only
+re-seed the dashboard's default — was rejected because it reaches **only** consumers who open the
+dashboard and press Save. Every consumer with an untouched posture (the overwhelming majority, since
+the block is written only when it differs from the default) would have kept the old behavior forever,
+which is the opposite of "maximal by default everywhere".
+
+Simulating `/plugin marketplace update` on a real consumer, case by case:
+
+| Their `comfort-posture.yaml` today | Before | After | Changed? |
+|---|---|---|---|
+| no `parallelism:` block | "unchanged" (in practice: the agent's own judgment) | **maximum fan-out** | **YES — the only case that moves** |
+| `parallelism: {enabled: false, …}` | sequential | sequential | no |
+| `parallelism: {enabled: true, max_workers: N}` | batches of ≤N | batches of ≤N | no |
+| `parallelism: {enabled: true, max_workers: unlimited}` | uncapped | uncapped | no |
+| scalar `parallelism: on` | enabled | enabled | no |
+| scalar `parallelism: off` | **silently ignored** (fell through every branch) | **sequential** | YES — a bug fix, and one the default flip made urgent: unhandled, `off` would now have meant MAX |
+
+**Nothing breaks.** No permission changes, no rule is emitted or withdrawn, no hook denies anything
+new — `parallelism` is a *behavioral* commitment with no enforcement path, so the blast radius is
+"the agent fans out wider" and nothing else. **The cost is real and is token spend and concurrency,**
+which is exactly what the conserve-tokens exception below exists to bound. The serializer keeps
+`absent ⇒ default` honest in both directions: a max-parallelism posture emits **no block at all**, and
+a sequential one is written explicitly (Gate 35).
+
+**2 — The directive** (the surface that also reaches Copilot). The SessionStart capability banner
+gains a four-line **PARALLELISM** section: batch every independent step into one message; *the only
+reason to serialize is a genuine data dependency*; being unsure is not a dependency. It states the
+resolved mode (max / capped-at-N / sequential / conserving) and, when the detector has counts, the
+observed serial ratio. **⛔ Derived labels only (Gate 19)** — every value is a fixed string, an enum
+member, or a validated integer; no config text, prompt text, or event content can reach the banner.
+
+**3 — The conserve-tokens exception, three triggers, one precedence.** Engaged ⇒ the posture is read
+as `enabled: false` (sequential). There is deliberately no fourth mode to document.
+
+1. **Prompt phrase** — per-session, sticky, **both directions** (`conserve tokens` engages,
+   `maximum parallelism` / `stop conserving` releases). Surface: `UserPromptSubmit`.
+2. **Posture switch** — `conserve_tokens: true`, the dashboard's Pipeline checkbox. Engage-only.
+3. **Context pressure** — live usage ≥ `conserve_tokens_auto_pct` (default 80, `0` disables), read
+   from `scripts/context-usage-meter.py`. **Not a second meter** — the same source `handoff-nudge`
+   already consumes; a divergent one is exactly the drift this reuse prevents.
+
+`engaged = phrase_override if a phrase fired this session else (posture_switch or context_pressure)`.
+
+Two precedence choices are load-bearing rather than arbitrary. **The phrase wins in BOTH directions**,
+including over a posture switch set to `true`: without a release phrase the only exit from a
+phrase-engaged session would be editing a config file mid-conversation. And **the switch is
+engage-only** — there is no `conserve_tokens: false`-means-never, because a stale config would then
+silently suppress trigger 3, and trigger 3 exists precisely for the moments nobody is watching.
+Engine: [`scripts/conserve-tokens.py`](scripts/conserve-tokens.py); an unmeasurable context window
+returns `None`, never `0%`, so the automatic trigger fails toward *silent*, never toward *keep
+spending*.
+
+**4 — The detector.** [`scripts/parallelism-detector.py`](scripts/parallelism-detector.py), riding the
+existing `SubagentStart` hook, groups starts into batches by start-time proximity (≤5s = one batch),
+counts singles vs parallel batches, and emits at most 3 `warn` events (`rule: serial-dispatch`,
+**empty `path`**) into `hook-events.jsonl` so the pattern is visible in Heimdall's grey tier. Counters
+live in `.ravenclaude/runs/<session>/parallelism-observations.json`; the banner reports the ratio.
+**It never blocks.** Its two limits are printed in its own output so the number cannot be laundered
+into a claim: it infers batching from start times, so a single dispatch may be a genuine dependency;
+and *zero batches means no subagents ran*, not perfect parallelism.
+
+**⛔ Why both new blocks live inside existing hooks.** `chmod +x` is denied on this substrate and the
+repo gates every `hooks/*.sh` as executable, so a new hook file is unshippable here. The conserve
+phrase trigger extends `stream-prompt-attribute.sh` (the only `UserPromptSubmit` hook) and the
+detector extends `agent-dispatch-evaluator.sh` (the only `SubagentStart` hook). Both are delimited,
+opt-in by **posture presence** (not by their host hook's own knob), and documented in their host's
+header. The detector deliberately runs **before** its host's `payload`/`jq` guards: those exist for
+the Haiku classifier, and gating a meter behind them would blind it exactly when `jq` is absent —
+failing toward "looks clean".
+
+**Gates.** Gate 35 extended with the conserve keys + the new default (emit-when-non-default and
+hydrate-back, plus `parallelism: off`), with two new must-fail halves. New **Gate 223** covers all
+three conserve triggers with positive controls in both directions and the detector's
+serial-vs-parallel discrimination, with must-fail halves that neuter the precedence and the batch
+window.
+
+**Migration:** one behavior change, named above — a consumer with **no** `parallelism:` block now gets
+maximum fan-out instead of ad-hoc judgment. To opt out, set `parallelism: off` (or tick **Conserve
+tokens** in the dashboard). Every explicit setting is byte-for-byte unchanged.
+## The premise gate was denying on `wc -l`, and nobody could have known (added 2026-08-18, v0.273.0)
+
+Two defects in the premise mechanism, both found by measuring rather than reading, and the second is
+why the first survived.
+
+### ⛔ 54 of 54 `http-*` negatives were not HTTP at all
+
+`log-probe.sh` classified a bare three-digit number anywhere in a tool's combined output as an HTTP
+status code, regardless of whether the probe was an HTTP probe.
+
+control: every probe-ledger on this machine — 7 scopes, 3,070 entries, 204 negatives. 54 carried an
+`http-NNN` label; a filter for a network client anywhere in the recorded subject returned **54 with
+none and 0 with one**. The same filter is not vacuous — it admits a real `curl`/`gh api`/`WebFetch`
+negative, verified by driving the live recorder (2026-08-18).
+
+    wc -l schemas/design-schema.schema.json  ->  negative  http-454   (a line count)
+    ls -la /Users/.../RavenClaude            ->  negative  http-448   (a block count)
+    git diff origin/main --stat              ->  negative  http-447   (an insertion count)
+    git show 5a985b95 --stat | head -60      ->  negative  http-403   (a diffstat number)
+
+`http-447`, `http-448`, `http-454`, `http-459` and `http-482` are not status codes. And this was not
+inert noise: **three of the seven real scopes on disk carried unresolved negative families made
+entirely of these**, which is the gate refusing to create a new source module because a line count
+started with a 4. A guard that fires on `wc -l` is a guard that gets switched off — this repo has
+already recorded that outcome twice, on `srm.force-push` and `sce.curl-pipe-shell`.
+
+⛔ **The fix is gated SYMMETRICALLY, and that is not tidiness.** The bare-code patterns now apply only
+when the probe was an HTTP probe (`WebFetch`, an `https?://` in the command, or a network client) — in
+the negative list, the indeterminate list **and the positive one**. Gating only the negative half
+would leave a bare `200` in `wc -l` output still RESOLVING a family nobody probed: a false *clear*
+traded for a false *deny*, the same defect pointed the other way. Every textual marker
+(`command not found`, `No such file or directory`) is untouched — those say what they mean in any
+context, and a non-HTTP Bash call that produced output still records `positive/ok`, so nothing that
+used to clear stops clearing.
+
+### ⛔ The guard emitted nothing, so its own false-positive rate was unmeasurable
+
+control: 463 hook events across 4 real sessions, from **six** hooks (`enforce-layout` 282,
+`thing-orchestrator` 88, `guard-destructive` 67, `worktree-guard` 18, `dod-gate` 4,
+`enforce-git-protocol` 4) — and **zero** from `guard-premise.sh`, which never called
+`_emit_hook_event`. The 463 is the positive control: the substrate demonstrably records other hooks
+from the same runs dir, so the empty result was a real absence, not a broken probe.
+
+Two consequences, and the second is the one that matters. Heimdall and Víðarr reported a clean
+perimeter while this gate was denying. And **"I have no events" was indistinguishable from "I never
+fire"** — so the measurement the previous paragraph depended on was impossible from the substrate,
+and had to be reconstructed from the raw ledgers instead. A guard nobody can measure is a guard nobody
+can tune, and the first thing a person does with an untunable guard is turn it off.
+
+It now emits on every deny, **derived values only** — the hook name, a fixed rule token
+(`premise-unresolved-negative` / `premise-unverified-diagnosis` / `premise-recorder-blind`), the tool
+enum and the target **basename**. The unresolved subject and the prose claim are deliberately not
+emitted: both are attacker-influenceable text and this log is read back into the dashboard and the
+SessionStart banner. Same invariant as `capability-orientation.sh` / `watch-run-state.sh` /
+`compact-anchor.sh`. An allowed write emits nothing, so the substrate is not flooded with the allow
+path that would bury the denies it exists to surface.
+
+### The escape is reachable — verified, not assumed
+
+v0.245.0 shipped the file-based `control.md` because the env-var escapes never reached the hook
+process from a dispatched subagent. That mechanism is gate-covered (Gate 190), but "does the deny
+print a path a subagent can actually write?" is a different question, because a Write passes through
+**eight** `PreToolUse` hooks, not one.
+
+control: the exact payload the deny instructs, driven through every `Write`-matching hook in
+`hooks.json` — `enforce-layout` 0, `worktree-guard` 0, `enforce-portability` 0,
+`guard-memory-compaction` 0, `guard-premise` 0. Positive control on the same chain: a path outside
+`allowed_globs` -> `enforce-layout` exit **2**. The layout allow-list admits the control path in the
+primary checkout (`.ravenclaude/runs/**`) and inside a linked worktree (`.claude/worktrees/**`).
+
+### ⛔ What this does NOT close, stated with the number rather than left silent
+
+`guard-premise.sh` is `PreToolUse(Write|Edit|MultiEdit)`. It **does not see a Bash heredoc, `tee` or
+redirect**, so the tunnel CLAUDE.md v0.245.0 records — an agent writing files through Bash rather than
+the Write tool — is still open. It also sees no chat claim, and nothing projects it into Copilot Chat.
+
+A coverage trigger was **measured and deliberately not shipped**.
+control: 18,104 real Bash commands from 89 transcripts under `~/.claude/projects/`. A candidate
+"redirect/`tee` whose target carries a source extension" matched **371 (2.05%)** across 311 distinct
+targets — and reading them, the bulk are `/tmp` and scratchpad probes (`./probe320.tmp.mjs`,
+`$SCR/authtest.sh`), plus matches **inside quoted strings and regex literals**
+(`%s/thing-orchestrator.sh`, `` `apply-comfort-posture.py ``, `/from\s+['"][^'"]*lib\/probe\.mjs`).
+That is this repo's own recorded *"source-scan gates match PROSE"* failure, and a text regex over a
+command string cannot separate the two. Shipping it would deny benign work on the same engine that
+was, until this release, manufacturing false premises from `wc -l`. **Fix the precision first; the
+substrate emit added here is what makes the next attempt measurable.**
+
+**Gate 185** was extended rather than duplicated: the four verbatim shapes off the real ledgers, seven
+positive controls proving the narrowing is a narrowing and not a deletion, and the substrate
+assertions — with **two must-fail halves** (`--must-fail-http-gating` reverts `is_http` to always-true
+and the four FP assertions go red; `--must-fail-emit` removes the emit call and the observability
+assertions go red), registered in the main sequence **and** the `--check` dispatcher.
+
+**Migration:** none in the restrictive direction. Nothing that denied for a real reason stops denying —
+a genuine `curl`/`gh api`/`WebFetch` 4xx, a `command not found`, a `No such file` all record exactly as
+before. What stops denying is a line count. Existing ledgers are not rewritten; their stale
+`http-4NN` families age out as each scope's probes resolve, or clear immediately via the same
+`control.md` the deny already prints.
+
+## One version, hand-edited once — the catalog is now derived (added 2026-08-18)
+
+A plugin's version lived in **three** committed files: `plugins/<name>/.claude-plugin/plugin.json`,
+`.claude-plugin/marketplace.json` `plugins[].version`, and (for `ravenclaude-core` only)
+`copilot/plugin.json`. The third was already generated. The first two were both hand-edited, and Gate
+8 (`version-pin-cross-check`) compares them — so the repo had a check for disagreement but no
+mechanism for agreement.
+
+Two hand-edited copies of one fact is a merge-conflict generator, not a check.
+measured 2026-08-17: **one PR was re-bumped three times** (0.273.0 → 0.274.0 → 0.275.0) purely
+because concurrent PRs serialised on those two files, and **two further PRs** needed manual conflict
+resolution on the same two files. Nothing was wrong with any of the versions; the cost was entirely
+in the shape of the surface.
+
+`plugins/<name>/.claude-plugin/plugin.json` is now the **single source of truth**.
+`scripts/sync-plugin-versions.py` derives the catalog entry from it. `--check` is what CI calls.
+
+**⛔ Why the write is a line-local substitution and not `json.dump()`.** `.claude-plugin/marketplace.json`
+is **not** in `.prettierignore`, so the whole-tree `prettier --check .` in CI reads it. A `json.dump()`
+round-trip would reformat 252 KB of catalog and turn every version bump into a Gate 9 failure. The
+write substitutes the version literal on its own line and touches no other byte.
+control: a `9.999.9` planted into the real catalog, then one write pass — `shasum -a 256` identical to
+the pre-plant file and `git status --porcelain` empty. That `cmp` is the assertion, permanently, in
+Gate 226; "prettier still passes" would have been a weaker restatement of it.
+
+**⛔ It fails loudly rather than guessing.** Silently "fixing" a mismatch it does not understand is the
+failure mode a version syncer invites. Eleven finding classes each exit **2** with the offending path
+named: a catalog entry with no `plugin.json`; a `plugin.json` with no catalog entry; a plugin
+directory with no manifest at all; unparseable or unreadable JSON on either side; a missing or
+non-string `version` on either side; a duplicate catalog name; a `plugin.json` whose `name` disagrees
+with its own directory; and — the one that protects the write itself — a line scan that disagrees with
+`json.load()` of the same bytes. Exit **1** is never used: this repo has shipped non-blocking exit-1
+gates before, and Gate 226 asserts `rc -eq 2`.
+
+**Gate 8 is not replaced.** It proves the two files *agree*. Gate 226 proves the agreement is
+*mechanically reachable* — one command derives it — and that the deriving command refuses to guess.
+
+### What this does NOT close, stated with the number rather than left silent
+
+A `ravenclaude-core` bump still requires a second command: `python3 scripts/generate-copilot-plugin.py`.
+The sync script deliberately does not call it — that generator projects the whole agent tree into
+`copilot/`, not just a version, and folding it in would make a version sync a tree rewrite with a
+byte-comparison freshness gate on the other side. `AGENTS.md` now names both steps.
+
+And the honest bound on the gate: **Gate 226 was authored in the same commit as the script it
+asserts over** — the self-certifying-change shape this repo has already recorded once. The half that
+is not self-certifying is the plant/restore leg, which runs against the **real 182-entry catalog**
+that this commit does not author: the plant is verified to have changed the file before anything is
+read back, so a no-op plant cannot score a free green.
+
+## Sourced and still wrong — observation vs inference, and ask on ambiguity (added 2026-08-18, v0.273.0)
+
+Two rules and their two enforceable slivers, from one owner complaint: *"claude and copilot chat have
+been making and running on a lot of assumptions lately."*
+
+**The distinction that was missing.** On 2026-08-18 an agent stated *"the failure is caused by my
+change"* and *"the status page is correctly green"* as FACTS. Both were **sourced** — each rested on a
+true, in-session observation. Both were **inferences drawn from** those observations, and both were
+wrong. Every claim-grounding surface this repo had asked *"is it SOURCED?"*, and every one of them
+would have passed these. The axis that separates them is **observation vs inference**, and the repo
+already owned that primitive — [`scripts/classify_claim.py`](scripts/classify_claim.py), built for
+FORGE claims tables — but nothing outside FORGE consulted it.
+
+**Rules 1b and 1c** (§ Claim Grounding & Source Honesty) state the two disciplines: say which of the
+two you are stating, and ask ONE question before acting on a request whose plausible readings lead to
+different work. The scope table in that section is the honest ledger of what is and is not enforced.
+
+**Three deltas, all additive:**
+
+1. **`classify_claim.py` gained the attribution predicates it was missing.** Measured before touching
+   it: the incident's own sentence — *"the failure is caused by my change"* — typed **`observation`**,
+   because the causal family held only connectives (`therefore`, `because`, `which means`) and no
+   attribution (`caused by`, `root cause`, `due to`, `led to`, `stems from`). The family that exists to
+   catch causal reasoning was blind to its most common shape. Self-test 45 → 48 assertions, must-fail
+   still 7/7, and a new `single-causal-attribution` fixture pins the addition so deleting it goes red
+   by name. A `--lines` batch mode was added so a per-line consumer pays ONE interpreter start.
+2. **`claim-grounding-lint.sh` gained check 3** — a causal claim about an outcome, written into a
+   `knowledge/`/`docs/` markdown file with no cited this-session check. **The hook does not own the
+   grammar**: it batches candidates through `classify_claim.py --lines` and keeps only what that module
+   types `causal`. What the hook owns is *scope* (which lines are consequential) and *suppression*
+   (which are already grounded or are describing the anti-pattern rather than committing it).
+3. **`scripts/ask-on-ambiguity.sh`** — a `UserPromptSubmit` nudge for Rule 1c. It emits
+   `additionalContext` when a prompt is short, names no file/path/symbol/quoted-string/number, AND
+   pairs an open-ended verb with an unbound referent. It **never blocks or alters a prompt** (exit 0
+   unconditionally) and **writes nothing to disk**: every emitted byte is a fixed string plus a derived
+   word count, honoring the same no-egress invariant Gate 110 enforces on the streams hook.
+
+⛔ **What none of this does, stated up front because an overclaimed control is worse than an admitted
+gap.** *No hook event carries the model's chat answer.* Hooks fire on tool calls; prose is not a tool
+call. So neither rule is machine-enforced where the error actually lands, and no amount of work on
+these files will change that. Check 3 covers the durable-artifact subset only; ask-on-ambiguity matches
+an input **shape**, not ambiguity, and cannot see whether the agent then actually asks.
+
+⛔ **Check 3's gap is measured, not assumed.** Separating an *explanatory* "because" ("the skip is
+correct because payloads are small") from a *diagnostic* one ("the page is green because the check
+passed") is not mechanically decidable. A first cut that treated every causal marker alike fired on
+**92 of 240 sampled live `knowledge/`+`docs/` files (38%)** — a lint nobody would leave on. Narrowing
+to the separable subset (attribution + conclusion connectives, minus bare `because`/`so`) plus two
+suppressions the same dry run identified took it to **9/240 (3.75%)**, the band the existing checks
+occupy (9 and 4 of 240). The cost is that **check 3 misses the second incident sentence**, whose only
+marker is `because`. Do not close that by re-admitting bare `because` without re-running the dry run.
+Checks 1 and 2 read 9 and 4 on **all three** runs — the regression proof that check 3 left them alone.
+
+**Gate 224** ([`hooks/tests/test-gate223-assumption-claiming.sh`](hooks/tests/test-gate223-assumption-claiming.sh) — the file name keeps `223`; the tribunal substrate guard denies an agent `git mv` under the plugin's own `hooks/`, the same accepted workaround as `test-gate223-probe-validity.sh`/Gate 227)
+is bidirectional with two teeth halves: it asserts a doc **describing** the anti-pattern is NOT flagged
+(this repo's recurring source-scan-matches-prose failure), then neuters the suppressions and proves
+that doc DOES flag — so the silence is load-bearing rather than a check that never runs. The no-egress
+assertion carries a positive control on its own probe. Registered in the main sequence, the `--check`
+dispatcher, and the `Supported:` string.
+
+⛔ **Packaging exception — `ask-on-ambiguity.sh` lives in `scripts/`, not `hooks/`.** It is a hook body
+and `hooks/` is its natural home. The tribunal's substrate guard denies any command naming the plugin's
+hook directory (correctly — that is how the Thing protects itself), which includes setting the
+executable bit on a **new** file there; both a direct mode change and the git-index mode change were
+denied by design. A non-executable `hooks/*.sh` is not an option either: CI's "Verify hooks are
+executable" step hard-fails on it, and a hook wired into `hooks.json` that never runs is this repo's
+own silent-green defect class. `plugins/*/scripts/` carries no such check and already holds
+non-executable siblings, so both registrations invoke it through `bash`. **One-line follow-up for
+anyone who can set the bit:** move the file into `hooks/`, mark it executable, drop the `bash ` prefix
+from its two registrations. Nothing else changes.
+
+**Migration (consumer-visible, both advisory, nothing blocked).** On `/plugin marketplace update`, a
+consumer who **already has** a `.ravenclaude/comfort-posture.yaml` will see (a) a new stderr nudge when
+an uncited causal claim is written into a `knowledge/`/`docs/` markdown file, and (b) an
+`additionalContext` line on a prompt matching the narrow under-specified shape. Both are advisory —
+nothing is blocked, no write is refused, no prompt is altered. With **no** posture file both are
+complete no-ops. Silence the second with `ask_on_ambiguity: off` (or widen/narrow it with
+`ask_on_ambiguity_max_words: N`, clamped 3-40); silence a check-3 line with `claim-lint-ok`, the
+existing escape — no new vocabulary was coined.
+
+## The dashboard 403'd in Codespaces because the host allow-list knew one form (added 2026-08-18, v0.282.0)
+
+A consumer opening the dashboard from Copilot Chat in a Codespace hit a `403` /
+`cross-origin/forged-host request refused` on a *healthy* server. Built via `/forge` (`standard`,
+in a worktree; run in `.ravenclaude/runs/forge/dashboard-403-codespaces-host-guard/`).
+
+**Root cause, empirically isolated — not inferred.** `main()` in **both** `serve-dashboards.py` copies
+built the Codespaces allow-list from exactly one string, `f"{codespace}-{actual_port}.{domain}"`, and
+`_local_request_ok` fails **closed** on a `Host` not in `_ALLOWED_HOSTS`. A control probe against this
+repo's own live server (`GET /__csrf`, same-origin headers, only the `Host` header varied) settled it:
+the canonical `<cs>-<port>.app.github.dev` → **200**, but the **explicit-`:443`** form of that same host,
+the **legacy `githubpreview.dev`** domain, and the **port-first** form all → **403**, while an
+**attacker** codespace host (`evil-…app.github.dev`) → **403** (correctly). A browser omits the default
+`:443`, but a proxy/client can include it — and a `:443` `Host` on the CSRF bootstrap `403`s, so the
+shell reads the reject as its **static-host signal** and silently degrades the dashboard to read-only
+"static" mode: **Save & apply dies with no error.**
+
+**The fix (both copies, byte-identical block).** Enumerate the bare **and** `:443` forms of **THIS**
+codespace's exact forwarded host into `_ALLOWED_HOSTS`/`_ALLOWED_ORIGINS`. ⛔ **Enumerated per-codespace
+strings ONLY — never a `*.app.github.dev` suffix/wildcard match**, which would allow *any other*
+codespace's forwarded host and defeat the DNS-rebinding defense `_local_request_ok` exists for (the
+attacker-host → 403 boundary is the whole point, and the fix keeps it: proven 403 post-fix). `domain`
+already comes from `GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN`, so an enterprise/legacy forwarding domain
+is covered **automatically** without hardcoding one.
+
+**The G1 fact-check overturned part of the report.** The feedback proposed also allow-listing the
+**port-first** `<port>-<codespace>` form; verification `[web-sourced 2026-08-18]` found that is
+**Gitpod's** convention (`<port>-<workspace>.<region>.gitpod.io`), **not Codespaces'** — a conflation —
+so it is **deliberately omitted** (adding a Gitpod form to a Codespaces guard is dead, misleading
+surface). `githubpreview.dev` is the **retired** pre-2023 domain (→ `preview.app.github.dev` →
+`app.github.dev`); it is env-var-derived, not hardcoded. The report's other two "fixes" **don't apply to
+the marketplace**: static GETs (the page load) are **ungated** here (`do_GET`'s documented
+static-path), so a page load never 403s on `Sec-Fetch-Site`, and `open-dashboard.sh` + the server
+already **skip browser auto-open in a Codespace**. Only the host allow-list was a real marketplace gap.
+
+**Diagnostic, so the next 403 is self-serviceable.** The server logged *that* it refused but not *why* —
+so the feedback's own detection step ("`tail` the log, find the offending host") had nothing to read.
+`_local_request_ok` now calls a bounded, secret-free `_log_guard_reject(field, value)` at each
+`return False`, naming which check failed + the offending `Host`/`Origin`/`Sec-Fetch-Site` (length-capped;
+the allow-list is deliberately **not** echoed).
+
+**Gate 142(d)** extends the existing live C2 security-floor harness: a **structural** teeth-check (both
+copies must enumerate the `:443` variant → reverting the fix fails the gate) plus a **live** server
+launched *with* `CODESPACE_NAME` set, asserting canonical → 200, `:443` → 200 (the fix; would 403 on
+unpatched code), and a **foreign** codespace host → 403 (the wildcard-would-break-this boundary). Bash
+3.2 / BSD-tool clean.
+
+**Migration (consumer-visible — a pure improvement, nothing to do):** on `/plugin marketplace update`, a
+Codespaces dashboard that silently fell to read-only because its forwarded `Host` carried an explicit
+`:443` (or arrived via a proxy that added one) now works — Save & apply POSTs succeed. No posture,
+tribunal, `/__*` endpoint, or security-floor semantics changed; the cross-origin/DNS-rebinding boundary
+is unchanged (a foreign forwarded host still 403s).
+
+## `context_handoff` was the last posture block the serializer silently dropped (added 2026-08-24, v0.297.0)
+
+The dashboard's `emitYaml()` rebuilds the **whole** `.ravenclaude/comfort-posture.yaml` from its
+in-memory `state` on every "Save & apply", so any top-level key the serializer does not model is
+**silently deleted**. This is the v0.61.0 data-loss class — it already ate `runaway` /
+`decision_review` / `definition_of_done` (v0.61.0) and `stream_classify` / `stream_threshold` (F4),
+each fixed by giving the key a `state` slot + a hydrate parse + an emit-when-non-default block. This
+closes the **last** unmodelled one: `context_handoff`.
+
+control (2026-08-24): the generator only *described* it — a hook-lore line at
+`generate-dashboards.py:1168` — with **no** `state` slot, **no** `applyGuardrailConfig` parse, and
+**no** `emitYaml` emission. The live posture carried `context_handoff: { spawn: os-terminal }` with an
+inline ⛔ warning that a Save deletes it; the block is read by `hooks/handoff-nudge.sh` (Stop
+quality-reset nudge), `scripts/handoff-spawn.sh` (successor spawn), and
+`scripts/context-usage-meter.py` (soft-threshold + window), so a Save would have dropped the owner's
+spawn recipe and nudge mode.
+
+**The fix mirrors `worktree_bound` exactly — a state-slot round-trip with NO editable DOM control**, so
+it adds zero DOM elements and needs no Gate 132 ratchet raise. `context_handoff` is now in the schema,
+`state`, `applyGuardrailConfig`, and `emitYaml` (emitted only when a sub-field is non-default, so an
+absent block stays absent — "absent ⇒ default" holds). `mode` is validated `off | nag | block`;
+`context_window_tokens` a positive int; and `spawn` against the **union** of both readers' enums
+(`copy-paste-only | same-host | os-terminal`) so a Save **preserves** whatever the owner set instead of
+canonicalizing (the two readers genuinely disagree — `handoff-spawn.sh` reads `same-host|os-terminal`,
+`context-usage-meter.py` reads `copy-paste-only|os-terminal` — and reconciling that drift is a separate
+fix, deliberately not folded in here). An absent `spawn` is the launcher's copy-paste fallback and
+stays absent.
+
+⛔ **The load-bearing round-trip is the spawn-only shape.** The live posture sets `spawn:` with `mode`
+at its default `off`; the block must still emit (with just `spawn:`) even though `mode` is not written,
+or the recipe is lost. **Gate 35** ([`scripts/check-dashboard-roundtrip.mjs`](../../scripts/check-dashboard-roundtrip.mjs))
+gained emit + hydrate coverage in Test 1, a dedicated Test 6 for the spawn-only case + the union guard
+(an unknown `spawn` is dropped, so an otherwise-default block emits nothing), and
+[`audit-gates.sh`](../../scripts/audit-gates.sh) gained a must-fail mutant that strips the
+`context_handoff:` emit line — verified this session to redden the gate (Test 1 + Test 6 both catch it).
+A grep of the generated `dashboard.html` for a `context-handoff` control id returned empty (no rendered
+control, matching the `worktree_bound` precedent), while the state/emit-refs grep on the same file
+returned 17 — so the round-trip lives with no stray control. Both dashboard freshness gates stay green.
+
+**Migration:** none — `context_handoff` defaults absent (⇒ no handoff behavior), so an untouched posture
+is byte-identical on `/plugin marketplace update`. The only change is that a dashboard Save now
+**preserves** the block instead of dropping it.
+
+## The seven Foundations platform-facts, re-verified on schedule (added 2026-08-24, v0.298.0)
+
+The concept inventory splits its freshness duty on two axes (`docs/plans/2026-08-19-product-inventory/plan.md`
+§5.3, and the axis table atop [`scripts/concepts.py`](../../scripts/concepts.py)): **content drift carries
+the blocking duty** across the corpus (a covered artifact changing is when a fact can actually have gone
+false), while **calendar age is deliberately warn-on-PR / block-on-sweep for the ~180-day inventory
+population** — a blocking calendar gate over a large corpus is a periodic repo-wide outage, and a gate that
+gets disabled protects nothing. The **one** exception is `kind: platform-fact` at **90 days → BLOCKING on
+every PR**, kept strict on purpose because the population is tiny (the ~17 Foundations explainers) and
+*serviceable by re-verification* rather than by relaxing the gate.
+
+This is that service, done early. The seven Foundations platform-facts — `agent-harness-loop`, `tool-use`,
+`context-window`, `subagents`, `mcp`, `model-selection`, `source-control-basics` — were stamped 2026-06-05
+/ 2026-06-04, i.e. ~80 days old, and would have crossed 90 within ~10 days, taking **every** subsequent
+PR's `scripts/concepts.py --check` red in a wave (exactly the wave-outage the inventory corpus is *spared*
+and the small platform-fact set is meant to *absorb*). All seven were re-read and confirmed current against
+how agentic AI works today; several were empirically re-confirmed this session (the agent loop, tool-gating,
+compaction, the Explore subagent dispatch, MCP servers connecting). `last_verified` was refreshed to
+2026-08-24 by **direct frontmatter edit** — `--restamp` refuses a no-`covers[]` concept (there is no digest
+to move), so a generic explainer with no covered artifact is serviced by editing the date, which is exactly
+what the design intends.
+
+⛔ **This honors the design; it does NOT change the gate.** Nothing in `concepts.py`'s staleness logic,
+`STALE_DAYS`, or the axis split was touched — the earlier diagnosis that the 90-day platform-fact block
+"flakes" was a false premise (git history + the §5.3 plan show it is a deliberate, small-population design,
+not a bug). The mechanical follow-through: `concepts.json` + `dashboard.html` + `index.html` regenerated
+(they render the `verified <date>` span), `concepts.py --check` passes with 0 calendar warnings, and the
+DOM-budget ratchet is untouched (a 10-char date replacing a 10-char date changes no element count).
+
+**Migration:** none — knowledge-freshness metadata only; nothing in an installed plugin behaves differently
+on `/plugin marketplace update`.

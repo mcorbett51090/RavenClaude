@@ -55,6 +55,14 @@ on:
     - cron: "17 9 * * *" # 09:17 UTC daily — off the hour to dodge scheduler spikes
   workflow_dispatch:
 
+# Supersede in-flight runs for the same ref. Measured 2026-08-24: 35 of 1,000 sampled
+# RavenClaude runs (9% of compute) were still running when a newer push to the same
+# branch started. Safe here — this workflow only READS the repo to validate it; there
+# is no deploy, no migration and no write, so a cancelled run strands nothing.
+concurrency:
+  group: validate-macos-${{ github.ref }}
+  cancel-in-progress: true
+
 # Least-privilege GITHUB_TOKEN: this workflow only reads the repo to validate it.
 permissions:
   contents: read
@@ -72,6 +80,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          # 2, not the default 1 — this job runs audit-gates.sh, whose base-diffing
+          # gates need HEAD^1 on a push to main. See the fuller note (and the
+          # depth-1-vs-depth-2 clone control) in validate-marketplace.yml.
+          fetch-depth: 2
           persist-credentials: false
 
       # Recorded so a future image change is visible in the log rather than inferred from
@@ -106,6 +118,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          # 2, not the default 1 — this job runs audit-gates.sh, whose base-diffing
+          # gates need HEAD^1 on a push to main. See the fuller note (and the
+          # depth-1-vs-depth-2 clone control) in validate-marketplace.yml.
+          fetch-depth: 2
           persist-credentials: false
 
       - name: Drive every PreToolUse hook with input it was never written for
@@ -127,6 +143,21 @@ jobs:
   audit-gates-macos:
     name: Every gate passes on a stock macOS toolchain
     runs-on: macos-latest
+    # ⛔ NOT ON `push`. Measured 2026-08-24: this ONE job is 10.6 min average and
+    # 232.6 of the workflow's 247.5 sampled minutes — 94% of the whole macOS lane,
+    # on a runner billed at ~10x Linux. The other three jobs are 0.2-0.3 min each.
+    #
+    # A push to main re-runs the identical suite on the commits its own PR just
+    # validated. Dropping THIS job from that lane cuts ~91% of the push lane's cost
+    # while the three portability jobs KEEP running on push, so the "did the tree
+    # that actually LANDED still work on macOS" signal survives for about $1/month.
+    #
+    # ⛔ The daily `schedule` is deliberately NOT widened. It is the backstop for a
+    # change that reaches main WITHOUT a PR (admin bypass), and this job exists
+    # precisely because three assertions sat red on main for days with every check
+    # reporting SUCCESS. Stretching that window is the wrong direction; a weekly cron
+    # would save ~$5/month and take worst-case detection from 24h to 7 days.
+    if: github.event_name != 'push'
     # WHY THIS JOB EXISTS (measured 2026-08-17, not hypothetical):
     # Gates 213/215 shipped GREEN in CI and RED for every developer inside VS Code.
     # The tests read the ambient host-detection surface (TERM_PROGRAM and ten
@@ -138,6 +169,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          # 2, not the default 1 — this job runs audit-gates.sh, whose base-diffing
+          # gates need HEAD^1 on a push to main. See the fuller note (and the
+          # depth-1-vs-depth-2 clone control) in validate-marketplace.yml.
+          fetch-depth: 2
           persist-credentials: false
 
       - name: Record the toolchain baseline

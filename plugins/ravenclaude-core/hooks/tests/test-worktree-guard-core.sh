@@ -181,6 +181,15 @@ echo
 echo "── T5: block mode — mutating denies (exit 2), read allows, ACK escapes ───"
 SB="$(mktemp -d)"; export RC_WORKTREE_GUARD_HOME="$SB/guard"
 R="$SB/repo"; mk_repo "$R" block
+# ⛔ Lease OFF so this block tests the CONTENTION clause in isolation, which is
+# what T5's name claims. The lease clause is evaluated FIRST and denies on the
+# same fixture (another live session in this tree), so with it on, the 4th call
+# below never reaches the contention code and the ACK assertion measured the
+# wrong clause. That is not hypothetical: T5's ACK case had been RED since the
+# lease landed, and nobody saw it because this suite is invoked by no workflow.
+# The lease/contention layering is pinned separately in T5b — deleting this line
+# does not silently weaken T5, it makes T5 test something else.
+printf 'worktree_lease: off\n' >> "$R/.ravenclaude/comfort-posture.yaml"
 PK="$(path_key "$R")"; BUCKET="$SB/guard/sessions/$PK"
 sleep 300 & INC_PID=$!; disown 2>/dev/null || true
 NOW="$(date +%s)"
@@ -198,6 +207,34 @@ mk_payload "$R" late-write Write "$(jq -cn --arg fp "$R/newfile.txt" '{file_path
 mk_payload "$R" late-ack Bash '{"command":"git commit -m x"}' | RC_WORKTREE_GUARD_ACK=1 bash "$HOOK" check >/dev/null 2>&1
 [ "$?" -eq 0 ] && pass "T5: block + mutating + RC_WORKTREE_GUARD_ACK=1 -> exit 0 (escape)" || fail "T5: ACK did NOT escape the block"
 kill "$INC_PID" 2>/dev/null
+rm -rf "$SB"
+
+echo
+echo "── T5b: the LEASE clause is evaluated before contention, and shadows GUARD_ACK ──"
+# ⛔ PINS THE LAYERING, and it is currently a SHARP EDGE rather than a clean one.
+# On the same two-writers fixture the lease denies first, so RC_WORKTREE_GUARD_ACK
+# — documented in hooks.json, dashboard-schema.json and the contention deny's own
+# text as the override for exactly this situation — does NOT get you through.
+# The lease's own message names a DIFFERENT, working escape (worktree_lease: off),
+# so the user is not stranded; they are told about a hatch that does not apply.
+# This test asserts the behaviour AS IT IS so a future change to it is deliberate
+# and visible, NOT that the behaviour is correct. Whether GUARD_ACK should also
+# release the lease is an owner call: it would add a bypass to a mutual-exclusion
+# control, which is not a call a test should make by encoding it.
+SB="$(mktemp -d)"; export RC_WORKTREE_GUARD_HOME="$SB/guard"
+R="$SB/repo"; mk_repo "$R" block
+printf 'worktree_lease: on\nworktree_lease_idle_minutes: 20\n' >> "$R/.ravenclaude/comfort-posture.yaml"
+# The lease needs a live holder, which a real `check` call establishes.
+mk_payload "$R" holder Bash '{"command":"git commit -m x"}' | bash "$HOOK" check >/dev/null 2>&1
+out5b="$(mk_payload "$R" latecomer Bash '{"command":"git commit -m x"}' | RC_WORKTREE_GUARD_ACK=1 bash "$HOOK" check 2>&1)"
+rc5b=$?
+[ "$rc5b" -eq 2 ] \
+  && pass "T5b: a held lease denies (exit 2) even with RC_WORKTREE_GUARD_ACK=1" \
+  || fail "T5b: expected the lease to deny at exit 2, got $rc5b"
+case "$out5b" in
+  *"holds a live lease"*) pass "T5b: the denial is the LEASE clause, naming its own escape" ;;
+  *) fail "T5b: denied, but not by the lease clause — layering changed: $out5b" ;;
+esac
 rm -rf "$SB"
 
 echo
@@ -337,6 +374,41 @@ R="$SB/repo"; mk_repo "$R" warn
 git -C "$R" worktree add -q -b sibt16 "$SB/sibling"
 mk_payload "$R" s Bash '{"command":"git status"}' | bash "$HOOK" check >/dev/null 2>&1
 [ "$?" -eq 0 ] && pass "T16: git status (no -C) -> exit 0" || fail "T16: git status was denied"
+rm -rf "$SB"
+
+echo
+echo "── T17: the lease governs THIS tree, not every file on the disk ──────────"
+# ⛔ REGRESSION PIN, and BOTH halves are required. _wg_lease_should_enforce used to
+# skip only a SIBLING-owned path (_wg_is_foreign), so a path owned by NO worktree
+# came back "not foreign" and was enforced — the lease became a general jail over
+# files that cannot possibly collide with this working tree.
+#
+# control 2026-08-24, observed live: with a lease held on the anchor checkout, an
+# Edit to ~/.claude/projects/<proj>/memory/*.md was DENIED with the lease message,
+# while the same bytes written through a Bash heredoc went through untouched — the
+# clause blocked the honest tool and not the workaround.
+#
+# The out-of-tree half alone would pass against a hook that enforces NOTHING, so
+# the in-tree half is what proves the fix narrowed the scope instead of removing it.
+SB="$(mktemp -d)"; export RC_WORKTREE_GUARD_HOME="$SB/guard"
+R="$SB/repo"; mk_repo "$R"
+printf 'worktree_lease: on\nworktree_lease_idle_minutes: 20\n' >> "$R/.ravenclaude/comfort-posture.yaml"
+OUTSIDE="$SB/not-a-repo"; mkdir -p "$OUTSIDE"
+# A real check call establishes the lease for 'holder'.
+mk_payload "$R" holder Write "$(jq -cn --arg fp "$R/seed.txt" '{file_path:$fp, content:"x"}')" \
+  | bash "$HOOK" check >/dev/null 2>&1
+# (a) IN-TREE write by a second session must STILL be denied — the lease's whole job.
+mk_payload "$R" latecomer Write "$(jq -cn --arg fp "$R/intree.txt" '{file_path:$fp, content:"x"}')" \
+  | bash "$HOOK" check >/dev/null 2>&1
+[ "$?" -eq 2 ] \
+  && pass "T17: in-tree write by a second session -> exit 2 (lease still protects the tree)" \
+  || fail "T17: the lease stopped protecting its own working tree"
+# (b) OUT-OF-TREE write by that same session must be allowed.
+mk_payload "$R" latecomer Write "$(jq -cn --arg fp "$OUTSIDE/notes.md" '{file_path:$fp, content:"x"}')" \
+  | bash "$HOOK" check >/dev/null 2>&1
+[ "$?" -eq 0 ] \
+  && pass "T17: write to a path owned by NO worktree -> exit 0 (not a general jail)" \
+  || fail "T17: the lease denied a file outside every worktree"
 rm -rf "$SB"
 
 echo

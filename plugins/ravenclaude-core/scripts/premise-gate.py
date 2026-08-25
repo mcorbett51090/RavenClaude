@@ -60,7 +60,26 @@ _EDGE_RE = re.compile(r"depends_on_claims\s*:\s*\[([^\]]*)\]", re.I)
 _PHASE_RE = re.compile(r"^\s{0,3}#{2,4}\s*(?:Phase\s*)?(P?-?\d+[a-z]?)\b(.*)$", re.I | re.M)
 
 
-_RID_RE = re.compile(r"^[A-Za-z]*[-_ ]?(\d+)$")
+# ⛔ TWO DEFECTS FIXED HERE 2026-08-20, both measured with fixtures before the change.
+#
+# 1. The pattern was `^[A-Za-z]*[-_ ]?(\d+)$` — anchored with no room for a trailing
+#    suffix, so `C4a` / `C9b` / `4b` returned "". parse_claims does `if not rid: continue`,
+#    so a suffixed ROW was silently dropped from the table, while parse_phases keeps an
+#    unmatched edge VERBATIM. Measured: a table with `C4a` cited by an over-floor phase
+#    parsed claims:1 of 2 rows and tripped "cites a claims-table row that does not exist",
+#    exit 2. That is fail-CLOSED — loud and safe, but it accused the plan of citing a
+#    phantom when the real fault was the parser. Suffixed ids are now first-class: `C4a`
+#    normalises to `4a`, so it matches an edge citing `C4a` and trips for the RIGHT reason.
+#
+# 2. ⛔ THE ACTUAL FAIL-OPEN, and it is NOT the suffix. `[A-Za-z]*` collapses every prefix:
+#    `C4`, `D4`, `X4` and `4` ALL normalise to `4`. The dict assignment then let a LATER row
+#    silently OVERWRITE an earlier one. Measured: a table carrying `C4` (unsettled
+#    inference, load-bearing) followed by `D4` (settled observation) parsed claims:2 of 3
+#    with inferences:0 — the inference was gone — and a phase citing `C4` resolved to the
+#    settled row and returned `trips: [] exit 0`. The gate reported CLEAN over an unsettled
+#    premise. Collisions now RAISE, which main() turns into exit 1 (could-not-run), matching
+#    this file's existing rule: cannot see -> cannot report clean.
+_RID_RE = re.compile(r"^[A-Za-z]*[-_ ]?(\d+[a-z]?)$", re.IGNORECASE)
 
 
 def _norm_rid(raw):
@@ -75,7 +94,8 @@ def _norm_rid(raw):
     bare ints -> claims:16, inferences:3. The id format was the only variable.
     """
     m = _RID_RE.match(str(raw).strip().lstrip("#").strip())
-    return m.group(1) if m else ""
+    # .lower() so `C4A` and `c4a` are one row, not two that then collide.
+    return m.group(1).lower() if m else ""
 
 
 def _cells(line: str):
@@ -129,6 +149,15 @@ def parse_claims(path: str):
         kind = (cells[i_kind].lower() if i_kind is not None and i_kind < len(cells) else "")
         kind = "inference" if "inference" in kind else ("observation" if "observation" in kind else "")
         settle = (cells[i_settle].lower() if i_settle is not None and i_settle < len(cells) else "")
+        # ⛔ Collision = fail CLOSED. Silently overwriting is how an unsettled inference
+        # disappears behind a settled row that merely shares its number (see _RID_RE).
+        if rid in claims:
+            raise ValueError(
+                "duplicate claims-row id %r after normalisation (row %r collides with an "
+                "earlier row). Prefixes are stripped, so C4 / D4 / 4 are the SAME id — "
+                "renumber one of them. Refusing to report clean over an ambiguous table."
+                % (rid, cells[0])
+            )
         claims[rid] = {
             "kind": kind or "observation",
             "settled": any(s in settle for s in _SETTLED),

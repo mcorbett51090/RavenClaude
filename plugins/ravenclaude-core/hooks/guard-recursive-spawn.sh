@@ -45,6 +45,21 @@
 
 set -euo pipefail
 
+# ── ADVISORY DELIVERY (added 2026-08-20) ────────────────────────────────────
+# Reports recursive-spawn patterns in a file the MODEL just wrote, so the model
+# is the party who can act on it. On stderr at exit 0 that reaches the terminal
+# and not the model (see _advise.sh).
+#
+# ⛔ HONEST LIMIT ON ITS MEASURED VOLUME. It scored 0% over a 500-envelope
+# in-project sample, but unlike its peers no positive control was constructed
+# proving this harness CAN make it fire — so that 0% is "did not fire here",
+# not "can fire and did not". The conversion is still safe on the compounding
+# question (no write event in the sample produced more than one emitter), and a
+# hook that fires rarely is exactly the case where reaching the model matters.
+# `[unverified — no positive control for this hook in the volume harness]`
+_rc_hd="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" 2>/dev/null && pwd || printf '.')"
+if [ -f "$_rc_hd/_advise.sh" ]; then . "$_rc_hd/_advise.sh"; rc_advise_init PostToolUse; fi
+
 # Structured hook-event substrate (P0.2). Sourced fail-safe — a missing helper
 # becomes a no-op so the emit call below can never throw.
 _emit_event_helper="$(dirname "$0")/_emit-event.sh"

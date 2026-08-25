@@ -313,8 +313,21 @@ def _check(root: Path, concepts: list[dict]) -> int:
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     recorded = manifest.get("concepts", {})
     problems: list[str] = []
+    diagramless = 0
     for c in concepts:
         cid = c["id"]
+        # ⛔ DIAGRAMS ARE OPT-IN FOR INVENTORY ENTRIES (R2 corollary, plan P6.2).
+        # concepts.py stopped requiring a ```mermaid block on entry_class:
+        # inventory; this loop is the OTHER HALF of that change and was missing.
+        # Without it, 12 diagram-less entries each reported "diagram source changed
+        # since last render" and the only way to clear the gate would have been to
+        # render 12 diagrams nobody asked for — one npx + Chromium process each,
+        # with an all-or-nothing revert that continues green on failure. That is
+        # the single most dangerous line in either panel plan, arriving through the
+        # back door of a freshness check.
+        if not c.get("diagram"):
+            diagramless += 1
+            continue
         want = _source_hash(c)
         if recorded.get(cid) != want:
             problems.append(f"  ✗ {cid}: diagram source changed since last render — re-run scripts/render-concepts.py")
@@ -326,14 +339,20 @@ def _check(root: Path, concepts: list[dict]) -> int:
         for idx in range(1, len(c.get("steps", [])) + 1):
             if not (vis / f"{cid}.step-{idx}.svg").exists():
                 problems.append(f"  ✗ {cid}: {cid}.step-{idx}.svg missing")
-    stale = set(recorded) - {c["id"] for c in concepts}
+    # An orphan is a manifest entry for a concept that no longer has a diagram OR
+    # no longer exists. Both need a re-render to clean up.
+    stale = set(recorded) - {c["id"] for c in concepts if c.get("diagram")}
     for cid in sorted(stale):
         problems.append(f"  ✗ {cid}: orphaned in manifest (concept removed) — re-run scripts/render-concepts.py")
     if problems:
         print("Concept SVG freshness gate FAILED:")
         print("\n".join(problems))
         return 1
-    print(f"Concept SVGs OK — {len(concepts)} concept(s) match their diagram source.")
+    print(
+        f"Concept SVGs OK — {len(concepts) - diagramless} concept(s) match their "
+        f"diagram source; {diagramless} carry no diagram (opt-in, and a skip is "
+        "reported rather than counted as a pass)."
+    )
     return 0
 
 

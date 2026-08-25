@@ -33,6 +33,17 @@
 
 set -euo pipefail
 
+# ── ADVISORY DELIVERY (added 2026-08-20) ────────────────────────────────────
+# The message reports that a comfort posture was found but could not be applied
+# (python3 absent). That is a capability degradation: the posture the model
+# assumes is in force is NOT in force. On stderr at exit 0 it reaches the
+# terminal and not the model (see _advise.sh).
+#
+# Volume: fires only on the degraded path, at most once per session, so the
+# common case adds nothing to the SessionStart banner it concatenates onto.
+_rc_hd="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" 2>/dev/null && pwd || printf '.')"
+if [ -f "$_rc_hd/_advise.sh" ]; then . "$_rc_hd/_advise.sh"; rc_advise_init SessionStart; fi
+
 # Resolve the project root. SessionStart sets CLAUDE_PROJECT_DIR; fall back to CWD.
 project_dir="${CLAUDE_PROJECT_DIR:-$PWD}"
 posture="$project_dir/.ravenclaude/comfort-posture.yaml"

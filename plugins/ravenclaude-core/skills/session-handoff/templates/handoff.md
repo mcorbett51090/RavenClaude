@@ -52,7 +52,7 @@ This is a **fresh-window quality reset**, not a compact and not a `/fork`. The s
 ## Do-not-redo
 
 <!-- MODEL FILL -->
-Do not use `grok -p`, `--single`, `/fork`, or a Grok `SessionStart` injection to continue this work. A Chat or CLI successor must not launch `grok`. Do not replace compact-anchor. Do not treat 40% / 30% / 300K as a trigger.
+Do not use `grok -p`, `--single`, `/fork`, or a Grok `SessionStart` injection to continue this work. A non-Grok successor must never be handed a `grok` launch command — that includes Claude Code, Copilot Chat, Copilot CLI, and every host in `knowledge/host-support.json`. Do not replace compact-anchor. Do not treat 40% / 30% / 300K as a trigger.
 
 ## Blockers
 

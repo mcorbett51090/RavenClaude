@@ -61,6 +61,15 @@
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/log-probe.sh"
           }
         ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/triage-outcome.sh"
+          }
+        ]
       }
     ],
     "PreToolUse": [
@@ -90,6 +99,11 @@
         "hooks": [
           {
             "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/guard-probe-validity.sh",
+            "comment": "Probe-validity advisory (default WARN, and WARN is the ONLY verdict). PreToolUse(Bash). No-ops after a single shell `case` unless the command mentions grep, and no-ops entirely unless .ravenclaude/comfort-posture.yaml exists; reads the `probe_validity: off|warn` knob (default warn). ONE rule: `grep -v` used in QUIET MODE, where the exit status stops answering \"is there a line that does NOT match?\" and starts reporting whether the PATTERN is ABSENT — an inverted answer that reads as clean. Quiet is entered two ways: a -q/--quiet/--silent flag (possibly buried in a cluster: -qv, -vq, -rqv, -qvE), and stdout redirected to /dev/null SPECIFICALLY (no -q required — the form nobody expects). Measured yield: 1 fire in 17,410 real agent Bash commands, and that catch was a PR ALL_GREEN verdict decided by `grep -qvE`. ⛔ There is NO host probe and NO deny path, deliberately: a probe run from the hook measures the HOOK's grep (BSD, does not invert) while the judged command runs under the AGENT's grep (ugrep, inverts), so a probe-gated deny branch is unreachable in production AND testable-green. Never exits 2; every error path exits 0."
+          },
+          {
+            "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/enforce-git-protocol.sh",
             "comment": "Git-protocol nudge (default WARN). PreToolUse(Bash). No-ops unless .ravenclaude/comfort-posture.yaml is present; reads the `git_protocol: off|warn|block` knob (default warn). WARNs (stderr, exit 0) on a non-Conventional-Commits `git commit -m` subject or a new-branch creation off the (feat|fix|chore|docs|refactor|agent)/ prefix convention; BLOCKS (exit 2) only when the knob is `block`. A direct non-force push to main/master is advisory-only and NEVER blocks at any knob. Deliberately does NOT touch force operations / branch force-delete / recursive-remove / hard reset — guard-destructive.sh owns those, and force pushes are force-EXCLUDED here so the two never collide. Fail-open on any error / missing git / missing python3 / absent posture."
           }
@@ -115,7 +129,7 @@
           {
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/worktree-guard.sh check",
-            "comment": "Worktree-hygiene guard (check). Two independent knobs in .ravenclaude/comfort-posture.yaml: `worktree_guard: off|warn|block` (default warn) for CONTENTION/ANCHOR, and `worktree_bound: off|warn|block` (default block) for FOREIGN-TREE \u2014 a Write/Edit/MultiEdit or mutating git -C / GIT_WORK_TREE whose target is a sibling worktree. FOREIGN-TREE is evaluated first and does not depend on worktree_guard. On worktree_guard=block DENIES (exit 2) a MUTATING op only on contention or anchor-work; never a read / git status / rcwt / sibling Read. Escape hatches: RC_WORKTREE_GUARD_ACK=1 (contention/anchor), RC_WORKTREE_BOUND_ACK=1 (FOREIGN-TREE). Both-off short-circuits before any git shell-out. Fail-open on missing git/jq; emits a hook-event audit line on a verdict."
+            "comment": "Worktree-hygiene guard (check). Two independent knobs in .ravenclaude/comfort-posture.yaml: `worktree_guard: off|warn|block` (default warn) for CONTENTION/ANCHOR, and `worktree_bound: off|warn|block` (default block) for FOREIGN-TREE \u2014 a Write/Edit/MultiEdit or mutating git -C / GIT_WORK_TREE whose target is a sibling worktree. FOREIGN-TREE is evaluated first and does not depend on worktree_guard. On worktree_guard=block DENIES (exit 2) a MUTATING op only on contention or anchor-work; never a read / git status / rcwt / sibling Read. Escape hatches: RC_WORKTREE_GUARD_ACK=1 (contention/anchor ONLY), RC_WORKTREE_BOUND_ACK=1 (FOREIGN-TREE). ⛔ NEITHER ACK releases the third knob, the SESSION LEASE (`worktree_lease`, default on): the lease clause is evaluated BEFORE contention, so where a lease is held its denial is what you get, and GUARD_ACK does not touch it. That is deliberate — the lease is a mutual-exclusion control and an env var must not defeat it. Its own escapes: open your own worktree, wait for the lease to go stale (the next session then takes over and auto-commits the holder's work), or set `worktree_lease: off`. Both-off short-circuits before any git shell-out. Fail-open on missing git/jq; emits a hook-event audit line on a verdict."
           }
         ]
       },
@@ -196,6 +210,12 @@
         "hooks": [
           {
             "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/ask-on-ambiguity.sh\"",
+            "timeout": 10,
+            "comment": "Ask-on-ambiguity (ADVISORY, opt-in, fail-open). No-ops unless the project has .ravenclaude/comfort-posture.yaml; disable with `ask_on_ambiguity: off`, tune with `ask_on_ambiguity_max_words: N`. Emits an additionalContext nudge when a prompt is short, names no file/path/symbol/quoted-string/number, AND pairs an open-ended verb with an unbound referent — so the agent states the interpretation it would act on, or asks ONE clarifying question, instead of assuming silently. NEVER blocks or alters the prompt (always exit 0). NO-EGRESS: writes no files at all and emits only fixed strings plus a derived word count — the prompt text never reaches disk or the model's context. HONEST LIMIT: it matches a SHAPE, not ambiguity; a long, well-anchored but genuinely ambiguous request is invisible to it, and no hook can see whether the agent then actually asks (prose is not a tool call). Lives under scripts/ because the tribunal substrate guard denies setting the executable bit on a new file in hooks/, and a non-executable hooks/*.sh hard-fails the CI executability step — hence the `bash` prefix."
+          },
+          {
+            "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/stream-prompt-attribute.sh",
             "timeout": 10,
             "comment": "Agentic Work-Streams (P4 — OPT-IN, FAIL-OPEN). No-ops (a single grep, zero cost) unless .ravenclaude/comfort-posture.yaml sets `stream_hook: per_prompt` (default session_boundary). When opted in: if a work-stream is ACTIVE, attribute the prompt to it as ONE derived event (sticky — does NOT re-classify); if none is active AND stream_classify is `auto`, classify + set-active on a confident match. NEVER blocks/alters the prompt (always exit 0); a latency budget (RC_STREAM_HOOK_BUDGET_S, default 3s) caps the inner work. NO-EGRESS: only derived labels/terms/word-count are persisted (stream-ops refuses raw-content fields) — the prompt text never reaches disk."
@@ -233,6 +253,12 @@
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/capability-orientation.sh",
             "timeout": 10,
             "comment": "Injects a session-start capability banner via hookSpecificOutput.additionalContext so the agent opens every session aware of the project's external surface, its detected auth (env-var NAMES/presence only — never values), and its effective .claude/settings.json permissions. Local + cheap; the ONLY subprocess is a bounded, read-only git read (branch + recent commit subjects) used by the work-streams classifier, and only when .ravenclaude/streams/ has streams + none is active. A 10s timeout bounds any pathological config/git read (defense-in-depth). Points to the environment-discovery skill for deep enumeration. Fail-silent; never blocks (SessionStart hooks cannot). Salience boost for the Capability Grounding Protocol, not enforcement."
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/keep-awake.sh",
+            "comment": "Sleep-assertion hook. OPT-IN via `keep_awake: on` in .ravenclaude/comfort-posture.yaml; absent or off means a no-op after one grep, so no install has its power management changed silently. Claude Code already holds `caffeinate -i` (IDLE sleep only), which does NOT stop a lid close: measured 2026-08-20, a session sat suspended 09:00:51-10:36:48 under 'Clamshell Sleep' with that assertion held, and the failure is silent because the process is suspended rather than killed. On AC this holds `caffeinate -s` (PreventSystemSleep) bound to the session pid via -w, idempotent across SessionStart re-fires. On battery it deliberately holds NOTHING and warns instead — no software-only method prevents Clamshell Sleep there, and a persistent pmset override cooks a closed laptop. Whether -s defeats clamshell sleep on Apple Silicon is UNVERIFIED and the banner says so. Advisory text goes through _advise.sh (additionalContext), because stderr-at-exit-0 reaches the terminal and not the model. Never blocks; always exits 0.",
+            "timeout": 10
           },
           {
             "type": "command",

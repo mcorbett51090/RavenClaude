@@ -48,6 +48,10 @@
     {
       "name": "Planning & contribution",
       "order": 60
+    },
+    {
+      "name": "Inventory — measured mechanisms",
+      "order": 901
     }
   ],
   "concepts": [
@@ -66,7 +70,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-06-05",
+      "last_verified": "2026-08-24",
       "refresh_when": "The fundamental agent-loop shape changes, or Claude Code/the Agent SDK restructures how a turn is driven.",
       "sources": [
         {
@@ -135,7 +139,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-06-05",
+      "last_verified": "2026-08-24",
       "refresh_when": "Anthropic changes the tool-use request/result message shape, the tool_choice options, or the parallel-tool-call behavior.",
       "sources": [
         {
@@ -169,7 +173,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-06-05",
+      "last_verified": "2026-08-24",
       "refresh_when": "Frontier context-window sizes change materially, or Claude Code changes its compaction / auto-compact behavior.",
       "sources": [
         {
@@ -203,7 +207,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-06-05",
+      "last_verified": "2026-08-24",
       "refresh_when": "Claude Code changes the subagent dispatch model, the Task/Agent tool shape, or how subagent results return to the parent.",
       "sources": [
         {
@@ -236,7 +240,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-06-05",
+      "last_verified": "2026-08-24",
       "refresh_when": "The MCP spec changes its primitives (tools/resources/prompts), transport set, or Claude Code changes how MCP servers are configured.",
       "sources": [
         {
@@ -269,7 +273,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-06-05",
+      "last_verified": "2026-08-24",
       "refresh_when": "The Claude model line-up (Opus / Sonnet / Haiku tiers) or the default-model guidance for agents changes.",
       "sources": [
         {
@@ -302,7 +306,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-06-04",
+      "last_verified": "2026-08-24",
       "refresh_when": "Git or GitHub change a load-bearing default (branch name, PR flow), or the marketplace's PR conventions or branch-archive contract change.",
       "sources": [
         {
@@ -2723,6 +2727,709 @@
       "steps": [],
       "svg": "knowledge/concepts/visuals/external-contribution-intake.svg",
       "svg_mini": "knowledge/concepts/visuals/external-contribution-intake.mini.svg"
+    },
+    {
+      "id": "hook-message-channels",
+      "title": "Hook message channels",
+      "category": "Inventory — measured mechanisms",
+      "kind": "ravenclaude-built",
+      "order": 901,
+      "summary": "A hook can write to the terminal or to the model, and only one of those reaches the model.",
+      "see_also": [],
+      "widget": null,
+      "try_it": null,
+      "node_links": {},
+      "last_verified": "2026-08-24",
+      "refresh_when": null,
+      "sources": [
+        {
+          "label": "measured in the FORGE product-inventory run",
+          "url": "https://github.com/mcorbett51090/RavenClaude/pull/997"
+        }
+      ],
+      "body_md": "## What a reader would have assumed instead\n\na SessionStart additionalContext sentinel came back in every trial while the stderr token never did\n\n## The discriminator\n\ncontrol: a SessionStart additionalContext sentinel came back in every trial while the stderr token never did\nMeasured 2026-08-19: A hook writing to stderr at `exit 0` reaches the model on no event; only `hookSpecificOutput.additionalContext` and `updatedToolOutput` are delivered, so `_advise.sh` advised the terminal for its entire service life.\n\n## Why it matters\n\nFalsifier: any recorded transcript containing the stderr token\n\nProbe: `unprobed: the delivery fact is a host-platform property; it is modelled as its own platform-fact concept under the 90-day gate`",
+      "diagram": null,
+      "diagram_mini": null,
+      "steps": [],
+      "svg": null,
+      "svg_mini": null,
+      "entry_class": "inventory",
+      "covers": [
+        "plugins/ravenclaude-core/hooks/_advise.sh",
+        "plugins/ravenclaude-core/hooks/_emit-event.sh",
+        "plugins/ravenclaude-core/hooks/_host-canary.sh",
+        "plugins/ravenclaude-core/hooks/_model-fallback.sh",
+        "plugins/ravenclaude-core/hooks/_portable.sh",
+        "plugins/ravenclaude-core/hooks/_rearm-notice.sh",
+        "plugins/ravenclaude-core/hooks/_scrub.sh",
+        "plugins/ravenclaude-core/hooks/agent-dispatch-evaluator.sh",
+        "plugins/ravenclaude-core/hooks/capability-orientation.sh",
+        "plugins/ravenclaude-core/hooks/claim-grounding-lint.sh",
+        "plugins/ravenclaude-core/hooks/codex-hook-env.sh",
+        "plugins/ravenclaude-core/hooks/compact-anchor.sh",
+        "plugins/ravenclaude-core/hooks/copilot-hook-adapter.sh",
+        "plugins/ravenclaude-core/hooks/cursor-hook-adapter.sh",
+        "plugins/ravenclaude-core/hooks/dashboard-autostart.sh",
+        "plugins/ravenclaude-core/hooks/delegation-nudge.sh",
+        "plugins/ravenclaude-core/hooks/dod-gate.sh",
+        "plugins/ravenclaude-core/hooks/enforce-git-protocol.sh",
+        "plugins/ravenclaude-core/hooks/enforce-layout.sh",
+        "plugins/ravenclaude-core/hooks/enforce-portability.sh",
+        "plugins/ravenclaude-core/hooks/ensure-default-mode.sh",
+        "plugins/ravenclaude-core/hooks/format-on-write.sh",
+        "plugins/ravenclaude-core/hooks/gemini-hook-adapter.sh",
+        "plugins/ravenclaude-core/hooks/guard-destructive.sh",
+        "plugins/ravenclaude-core/hooks/guard-memory-compaction.sh",
+        "plugins/ravenclaude-core/hooks/guard-premise.sh",
+        "plugins/ravenclaude-core/hooks/guard-probe-validity.sh",
+        "plugins/ravenclaude-core/hooks/guard-recursive-spawn.sh",
+        "plugins/ravenclaude-core/hooks/guard-web-access.sh",
+        "plugins/ravenclaude-core/hooks/handoff-nudge.sh",
+        "plugins/ravenclaude-core/hooks/handoff-successor-ack.sh",
+        "plugins/ravenclaude-core/hooks/keep-awake.sh",
+        "plugins/ravenclaude-core/hooks/log-probe.sh",
+        "plugins/ravenclaude-core/hooks/mark-web-domain-seen.sh",
+        "plugins/ravenclaude-core/hooks/reapply-posture.sh",
+        "plugins/ravenclaude-core/hooks/regen-on-manifest-change.sh",
+        "plugins/ravenclaude-core/hooks/remind-tests.sh",
+        "plugins/ravenclaude-core/hooks/route-decision-review.sh",
+        "plugins/ravenclaude-core/hooks/runaway-brake.sh",
+        "plugins/ravenclaude-core/hooks/sanitize-webfetch-output.sh",
+        "plugins/ravenclaude-core/hooks/storage-placement-nudge.sh",
+        "plugins/ravenclaude-core/hooks/stream-prompt-attribute.sh",
+        "plugins/ravenclaude-core/hooks/stream-session-close.sh",
+        "plugins/ravenclaude-core/hooks/thing-denial-kb-recall.sh",
+        "plugins/ravenclaude-core/hooks/thing-denial-kb-sync.sh",
+        "plugins/ravenclaude-core/hooks/thing-orchestrator.sh",
+        "plugins/ravenclaude-core/hooks/triage-outcome.sh",
+        "plugins/ravenclaude-core/hooks/worktree-guard.sh"
+      ],
+      "covers_digest": "sha256:fb7ba0c4d333d126e4fa0d811639eedaef46ae1f9d04822a0d32a00236308e87",
+      "nuance": "A hook writing to stderr at `exit 0` reaches the model on no event; only `hookSpecificOutput.additionalContext` and `updatedToolOutput` are delivered, so `_advise.sh` advised the terminal for its entire service life.",
+      "nuance_evidence": {
+        "measured": "2026-08-19",
+        "control": "a SessionStart additionalContext sentinel came back in every trial while the stderr token never did",
+        "falsifier": "any recorded transcript containing the stderr token",
+        "probe": "unprobed: the delivery fact is a host-platform property; it is modelled as its own platform-fact concept under the 90-day gate"
+      },
+      "nuance_source": "plugins/ravenclaude-core/hooks/_advise.sh:1-40",
+      "verify": {
+        "tier": "effect",
+        "strength": "executed",
+        "class": "hook-advisory",
+        "probe": "plugins/ravenclaude-core/hooks/tests/lib/assert-delivered-channel.sh",
+        "teeth_exit": 1
+      },
+      "strength_badge": "Probed"
+    },
+    {
+      "id": "hook-emitter-collision",
+      "title": "Two emitters on one event",
+      "category": "Inventory — measured mechanisms",
+      "kind": "ravenclaude-built",
+      "order": 902,
+      "summary": "Two hooks registered on one event both emit. What the host does with the second payload.",
+      "see_also": [],
+      "widget": null,
+      "try_it": null,
+      "node_links": {},
+      "last_verified": "2026-08-20",
+      "refresh_when": null,
+      "sources": [
+        {
+          "label": "measured in the FORGE product-inventory run",
+          "url": "https://github.com/mcorbett51090/RavenClaude/pull/997"
+        }
+      ],
+      "body_md": "## What a reader would have assumed instead\n\na single-emitter run returned exactly one payload, so the doubling is the emitters and not the harness\n\n## The discriminator\n\ncontrol: a single-emitter run returned exactly one payload, so the doubling is the emitters and not the harness\nMeasured 2026-08-19: Two `additionalContext` emitters on one event concatenate rather than last-write-wins, but two `updatedToolOutput` emitters replace, so the second silently discards the first.\n\n## Why it matters\n\nFalsifier: a two-emitter run returning only one additionalContext block\n\nProbe: `unprobed: needs a live two-hook host session; scheduled for the T2 sampled tier`",
+      "diagram": null,
+      "diagram_mini": null,
+      "steps": [],
+      "svg": null,
+      "svg_mini": null,
+      "entry_class": "inventory",
+      "covers": [
+        "plugins/ravenclaude-core/hooks/hooks.json"
+      ],
+      "covers_digest": "sha256:245fc065440d8fe70b76f835f6dbdd4a8ce6cc98d021d1059b496b2168896728",
+      "nuance": "Two `additionalContext` emitters on one event concatenate rather than last-write-wins, but two `updatedToolOutput` emitters replace, so the second silently discards the first.",
+      "nuance_evidence": {
+        "measured": "2026-08-19",
+        "control": "a single-emitter run returned exactly one payload, so the doubling is the emitters and not the harness",
+        "falsifier": "a two-emitter run returning only one additionalContext block",
+        "probe": "unprobed: needs a live two-hook host session; scheduled for the T2 sampled tier"
+      },
+      "nuance_source": "plugins/ravenclaude-core/hooks/hooks.json:1-40",
+      "verify": {
+        "tier": "none",
+        "rationale": "Two live emitters on one event cannot be staged offline; the observable needs a real host session, which places it in the T2 sampled tier gated on claim 15."
+      },
+      "strength_badge": "Unverified"
+    },
+    {
+      "id": "plugin-cache-is-version-keyed",
+      "title": "Merged is not live",
+      "category": "Inventory — measured mechanisms",
+      "kind": "ravenclaude-built",
+      "order": 903,
+      "summary": "Why a merged fix does not reach an installed session until the version field moves.",
+      "see_also": [],
+      "widget": null,
+      "try_it": null,
+      "node_links": {},
+      "last_verified": "2026-08-24",
+      "refresh_when": null,
+      "sources": [
+        {
+          "label": "measured in the FORGE product-inventory run",
+          "url": "https://github.com/mcorbett51090/RavenClaude/pull/997"
+        }
+      ],
+      "body_md": "## What a reader would have assumed instead\n\na bumped version propagated on the next update while an unbumped one did not\n\n## The discriminator\n\ncontrol: a bumped version propagated on the next update while an unbumped one did not\nMeasured 2026-08-19: The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.\n\n## Why it matters\n\nFalsifier: an installed cache picking up an unbumped change\n\nProbe: `unprobed: requires a real consumer install cycle, which no CI job performs`",
+      "diagram": null,
+      "diagram_mini": null,
+      "steps": [],
+      "svg": null,
+      "svg_mini": null,
+      "entry_class": "inventory",
+      "covers": [
+        "plugins/ravenclaude-core/.claude-plugin/plugin.json",
+        "scripts/sync-plugin-versions.py",
+        "scripts/generate-copilot-plugin.py"
+      ],
+      "covers_digest": "sha256:86a747331c828bf4ead9449125349959fbfa1f2a8b605db62ce322b75e079103",
+      "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
+      "nuance_evidence": {
+        "measured": "2026-08-19",
+        "control": "a bumped version propagated on the next update while an unbumped one did not",
+        "falsifier": "an installed cache picking up an unbumped change",
+        "probe": "unprobed: requires a real consumer install cycle, which no CI job performs"
+      },
+      "nuance_source": "plugins/ravenclaude-core/.claude-plugin/plugin.json:1-10",
+      "verify": {
+        "tier": "reachability",
+        "strength": "static",
+        "class": "static-resolution",
+        "probe": "scripts/sync-plugin-versions.py",
+        "teeth_exit": 2
+      },
+      "strength_badge": "Findable"
+    },
+    {
+      "id": "must-fail-conventions-diverge",
+      "title": "must-fail conventions diverge",
+      "category": "Inventory — measured mechanisms",
+      "kind": "ravenclaude-built",
+      "order": 904,
+      "summary": "Every self-testing tool declares its own teeth-bit exit, because no single number fits all.",
+      "see_also": [],
+      "widget": null,
+      "try_it": null,
+      "node_links": {},
+      "last_verified": "2026-08-24",
+      "refresh_when": null,
+      "sources": [
+        {
+          "label": "measured in the FORGE product-inventory run",
+          "url": "https://github.com/mcorbett51090/RavenClaude/pull/997"
+        }
+      ],
+      "body_md": "## What a reader would have assumed instead\n\nran --must-fail on both: each exits 0 on success, so the 0-vs-2 divergence is in the CHECK exit each teeth run observes, not in the teeth exit itself\n\n## The discriminator\n\ncontrol: ran --must-fail on both: each exits 0 on success, so the 0-vs-2 divergence is in the CHECK exit each teeth run observes, not in the teeth exit itself\nMeasured 2026-08-19: The teeth bit is the exit a tool own CHECK returns on a planted defect, never the exit `--must-fail` itself returns: `premise-gate.py` denies at `exit 0` while `sync-plugin-versions.py` reddens at `exit 2`, so an auditor that hard-codes one number can never be right for both.\n\n## Why it matters\n\nFalsifier: both tools returning the same teeth exit\n\nProbe: `scripts/audit-gates.sh`",
+      "diagram": null,
+      "diagram_mini": null,
+      "steps": [],
+      "svg": null,
+      "svg_mini": null,
+      "entry_class": "inventory",
+      "covers": [
+        "scripts/audit-gates.sh",
+        "scripts/check-covers-completeness.py",
+        "scripts/check-inventory-evidence.py",
+        "scripts/check-artifact-budgets.py",
+        "scripts/check-nuance-floor.py",
+        "scripts/inventory-census.py",
+        "scripts/inventory-sweep.py",
+        "scripts/check-inception-coverage.py",
+        "scripts/check-ratchet-freshness.py",
+        "scripts/_base_ref.py",
+        "scripts/spike-selfheal-contract.sh",
+        "scripts/audit-prose-rendering-path.py",
+        "scripts/check-changed-concept-renders.py",
+        "scripts/inventory-coverage.py",
+        "scripts/inventory-nuance-judge.py"
+      ],
+      "covers_digest": "sha256:7db63565369e1163898484ada37d78951ad6efa38a21ed10ccc02f8a8a93f16c",
+      "nuance": "The teeth bit is the exit a tool own CHECK returns on a planted defect, never the exit `--must-fail` itself returns: `premise-gate.py` denies at `exit 0` while `sync-plugin-versions.py` reddens at `exit 2`, so an auditor that hard-codes one number can never be right for both.",
+      "nuance_evidence": {
+        "measured": "2026-08-19",
+        "control": "ran --must-fail on both: each exits 0 on success, so the 0-vs-2 divergence is in the CHECK exit each teeth run observes, not in the teeth exit itself",
+        "falsifier": "both tools returning the same teeth exit",
+        "probe": "scripts/audit-gates.sh"
+      },
+      "nuance_source": "scripts/audit-gates.sh:1-40",
+      "verify": {
+        "tier": "effect",
+        "strength": "executed",
+        "class": "script-selftest",
+        "probe": "scripts/audit-gates.sh",
+        "teeth_exit": 1
+      },
+      "strength_badge": "Probed"
+    },
+    {
+      "id": "org-skill-tiers-are-derived",
+      "title": "An unsettled constraint ships as a WARN, not a guess",
+      "category": "Inventory — measured mechanisms",
+      "kind": "ravenclaude-built",
+      "order": 904,
+      "summary": "How the org-skill studio represents a platform constraint nobody has verified, instead of guessing one.",
+      "see_also": [],
+      "widget": null,
+      "try_it": null,
+      "node_links": {},
+      "last_verified": "2026-08-25",
+      "refresh_when": null,
+      "sources": [
+        {
+          "label": "claude.ai Organization Skills — provisioning",
+          "url": "https://support.claude.com/en/articles/13119606"
+        },
+        {
+          "label": "claude.ai skills — packaging structure",
+          "url": "https://support.claude.com/en/articles/12512198"
+        }
+      ],
+      "body_md": "# An unsettled constraint ships as a WARN, not a guess\n\nThe studio enforces claude.ai **Organization Skill** packaging — a different artifact\nfrom the Claude Code skills this repo is built from. Three of its constraints cannot be\nsettled by reading, because **Anthropic's own sources contradict each other**:\n\n| Rule | The contradiction |\n|---|---|\n| `ZP02` root layout | the org-console article is silent; the rule is inherited from the sibling personal-uploader page |\n| `ZP10` filename case | one article writes `skill.md` throughout, another and the repo write `SKILL.md` |\n| `FM09` folder-name equality | the doc says \"matches your skill's name\" and its own example pairs `Brand Guidelines` with `my-skill/` |\n\nEach could have been guessed. Guessing wrong blocks a correct archive on a coin flip,\non an artifact provisioned org-wide.\n\n## The mechanism\n\n`derive_zp02_tier()` reads the evidence file and returns the tier. **Nothing hand-sets\nit.** While the file records no settlement the rule is WARN; a recorded upload promotes\nit to FAIL. Settling is a data edit, never a code change.\n\n`derive_default_layout()` adds a second, weaker channel with a strict precedence:\n\n```\nupload-verified  >  research  >  fallback\n```\n\nResearch moves only the packer's **default**. It never promotes a tier, at any\nconfidence — and a test asserts exactly that, because the asymmetry is the whole point:\nreading a doc tells you what the platform **emits**, not what its unpacker **accepts**.\nPromoting a rule on a documentary inference would block a real archive on a conclusion\nnobody ran, which is the failure the rest of the studio exists to catch.\n\nDemotion runs the other way and is admissible: `FM09` went FAIL → WARN once Anthropic's\nown worked example was found to violate it. Removing an unjustified block needs only the\ndemonstration that the ground truth was never there; adding one needs an observation.\n\n## What the basis buys the user\n\nThe packer prints which channel it used, on every non-verified build:\n\n```\npacked out.zip (2 entries, root layout A)\nNOTE: root layout A chosen on basis 'research' — RESEARCH ONLY, NOT UPLOAD-TESTED\n      (confidence: moderate).\n```\n\nA user told \"layout A\" and not told *why* cannot tell an observation from a guess, and\nthose carry very different odds of the upload working.\n\n## Limit\n\n⛔ This makes the uncertainty **representable**, not smaller. All three rules stay\nunsettled until someone with an org owner seat uploads the two probe fixtures\n(`orgskill fixtures --out <dir>`). The mechanism's honesty is the deliverable; the\nanswer is still missing.",
+      "diagram": null,
+      "diagram_mini": null,
+      "steps": [],
+      "svg": null,
+      "svg_mini": null,
+      "entry_class": "inventory",
+      "covers": [
+        "plugins/ravenclaude-core/skills/authoring-org-skills/SKILL.md",
+        "plugins/ravenclaude-core/skills/authoring-org-skills/schemas/org-skill-rules.json",
+        "plugins/ravenclaude-core/skills/authoring-org-skills/reference/platform-constraints.md",
+        "plugins/ravenclaude-core/skills/authoring-org-skills/reference/refusals.md",
+        "plugins/ravenclaude-core/skills/authoring-org-skills/reference/ds02-markers.json",
+        "plugins/ravenclaude-core/skills/authoring-org-skills/scripts/orgskill.py",
+        "plugins/ravenclaude-core/skills/authoring-org-skills/scripts/lint_rules.py",
+        "plugins/ravenclaude-core/skills/authoring-org-skills/scripts/refusals.py",
+        "plugins/ravenclaude-core/skills/authoring-org-skills/scripts/packer.py",
+        "plugins/ravenclaude-core/skills/authoring-org-skills/scripts/derive_markers.py",
+        "plugins/ravenclaude-core/skills/authoring-org-skills/scripts/test_lint.py",
+        "plugins/ravenclaude-core/skills/authoring-org-skills/scripts/test_refusals.py",
+        "plugins/ravenclaude-core/skills/authoring-org-skills/scripts/test_pack.py",
+        "plugins/ravenclaude-core/skills/authoring-org-skills/scripts/test_procedure.py",
+        "plugins/ravenclaude-core/skills/authoring-org-skills/templates/skeleton/SKILL.md",
+        "plugins/ravenclaude-core/skills/authoring-org-skills/templates/skeleton/reference/details.md",
+        "plugins/ravenclaude-core/skills/authoring-org-skills/templates/examples/drafting-customer-replies/SKILL.md",
+        "plugins/ravenclaude-core/skills/authoring-org-skills/templates/examples/drafting-customer-replies/reference/categories.md",
+        "plugins/ravenclaude-core/skills/authoring-org-skills/templates/examples/drafting-customer-replies/reference/tone.md",
+        "plugins/ravenclaude-core/skills/authoring-org-skills/templates/examples/screening-vendor-invoices/SKILL.md",
+        "plugins/ravenclaude-core/skills/authoring-org-skills/templates/examples/screening-vendor-invoices/reference/tolerances.md"
+      ],
+      "covers_digest": "sha256:8139a1422d1d0ab1fbee7a0d713fa0e6e3d39dc50679b58fa0e02a28f2ca3d9a",
+      "nuance": "A rule's tier is READ from `reference/platform-constraints.md`, never hand-set, so a constraint the vendor contradicts itself on ships as WARN instead of a guess. Research moves the packer's default and never the tier: docs say what the platform emits, not what its unpacker accepts.",
+      "nuance_evidence": {
+        "measured": "2026-08-25",
+        "control": "settled:yes plus accepted_layout promotes the tier to fail; settled:yes alone does not; and research at strong confidence moved the default while the tier stayed warn",
+        "falsifier": "a tier that changes without an edit to the evidence file, or research promoting one",
+        "probe": "plugins/ravenclaude-core/skills/authoring-org-skills/scripts/test_pack.py"
+      },
+      "nuance_source": "plugins/ravenclaude-core/skills/authoring-org-skills/scripts/packer.py:34-100",
+      "verify": {
+        "tier": "effect",
+        "strength": "executed",
+        "class": "static-resolution",
+        "probe": "plugins/ravenclaude-core/skills/authoring-org-skills/scripts/test_pack.py",
+        "teeth_exit": 1
+      },
+      "strength_badge": "Probed"
+    },
+    {
+      "id": "bash-tool-response-has-no-exit-code",
+      "title": "A failing Bash tool_response",
+      "category": "Inventory — measured mechanisms",
+      "kind": "ravenclaude-built",
+      "order": 905,
+      "summary": "What a post-failure hook can and cannot read after a Bash call fails.",
+      "see_also": [],
+      "widget": null,
+      "try_it": null,
+      "node_links": {},
+      "last_verified": "2026-08-20",
+      "refresh_when": null,
+      "sources": [
+        {
+          "label": "measured in the FORGE product-inventory run",
+          "url": "https://github.com/mcorbett51090/RavenClaude/pull/997"
+        }
+      ],
+      "body_md": "## What a reader would have assumed instead\n\nthe same payload shape with a synthetic exit field present did branch\n\n## The discriminator\n\ncontrol: the same payload shape with a synthetic exit field present did branch\nMeasured 2026-08-19: A failing Bash `tool_response` carries no exit-code field at all, so a hook that branches on `.tool_response.exit_code` never fires; `triage-outcome.sh` reads stream shape instead.\n\n## Why it matters\n\nFalsifier: a real failing Bash payload carrying an exit code\n\nProbe: `unprobed: the payload shape is host-supplied and cannot be synthesised faithfully offline`",
+      "diagram": null,
+      "diagram_mini": null,
+      "steps": [],
+      "svg": null,
+      "svg_mini": null,
+      "entry_class": "inventory",
+      "covers": [
+        "plugins/ravenclaude-core/hooks/triage-outcome.sh"
+      ],
+      "covers_digest": "sha256:f45e2316e468541f1fee67d4583060a01fc048e8f0cdd10b05a7cba10ef6a36c",
+      "nuance": "A failing Bash `tool_response` carries no exit-code field at all, so a hook that branches on `.tool_response.exit_code` never fires; `triage-outcome.sh` reads stream shape instead.",
+      "nuance_evidence": {
+        "measured": "2026-08-19",
+        "control": "the same payload shape with a synthetic exit field present did branch",
+        "falsifier": "a real failing Bash payload carrying an exit code",
+        "probe": "unprobed: the payload shape is host-supplied and cannot be synthesised faithfully offline"
+      },
+      "nuance_source": "plugins/ravenclaude-core/hooks/triage-outcome.sh:1-40",
+      "verify": {
+        "tier": "none",
+        "rationale": "The payload shape is supplied by the host and cannot be synthesised faithfully offline; a synthetic fixture would assert the shape this entry says is absent."
+      },
+      "strength_badge": "Unverified"
+    },
+    {
+      "id": "tprose-screens-edits-too",
+      "title": "T-PROSE is not CREATE-only",
+      "category": "Inventory — measured mechanisms",
+      "kind": "ravenclaude-built",
+      "order": 906,
+      "summary": "The premise guard prose screen is not limited to newly created files.",
+      "see_also": [],
+      "widget": null,
+      "try_it": null,
+      "node_links": {},
+      "last_verified": "2026-08-20",
+      "refresh_when": null,
+      "sources": [
+        {
+          "label": "measured in the FORGE product-inventory run",
+          "url": "https://github.com/mcorbett51090/RavenClaude/pull/997"
+        }
+      ],
+      "body_md": "## What a reader would have assumed instead\n\nthe identical body denied as a Write and as an Edit, while a benign body on the same path allowed\n\n## The discriminator\n\ncontrol: the identical body denied as a Write and as an Edit, while a benign body on the same path allowed\nMeasured 2026-08-19: The `os.path.exists` early-exit gates T-SHAPE only, so `guard-premise.sh` screens an `Edit` too; a re-stamp escapes because `new_string` carries no defect predicate, not because edits are exempt.\n\n## Why it matters\n\nFalsifier: a stamped diagnosis passing when sent as an Edit\n\nProbe: `scripts/spike-tprose-canary.sh`",
+      "diagram": null,
+      "diagram_mini": null,
+      "steps": [],
+      "svg": null,
+      "svg_mini": null,
+      "entry_class": "inventory",
+      "covers": [
+        "plugins/ravenclaude-core/hooks/guard-premise.sh",
+        "docs/best-practices/inventory-authoring.md"
+      ],
+      "covers_digest": "sha256:04c18944b458abfb396661569ad8e493875afcbd8da9fc98cca896d689d8bd2f",
+      "nuance": "The `os.path.exists` early-exit gates T-SHAPE only, so `guard-premise.sh` screens an `Edit` too; a re-stamp escapes because `new_string` carries no defect predicate, not because edits are exempt.",
+      "nuance_evidence": {
+        "measured": "2026-08-19",
+        "control": "the identical body denied as a Write and as an Edit, while a benign body on the same path allowed",
+        "falsifier": "a stamped diagnosis passing when sent as an Edit",
+        "probe": "scripts/spike-tprose-canary.sh"
+      },
+      "nuance_source": "plugins/ravenclaude-core/hooks/guard-premise.sh:320-462",
+      "verify": {
+        "tier": "effect",
+        "strength": "executed",
+        "class": "hook-decision",
+        "probe": "scripts/spike-tprose-canary.sh",
+        "teeth_exit": 1
+      },
+      "strength_badge": "Probed"
+    },
+    {
+      "id": "frontmatter-date-is-a-certainty-stamp",
+      "title": "The date you did not think of as a stamp",
+      "category": "Inventory — measured mechanisms",
+      "kind": "ravenclaude-built",
+      "order": 907,
+      "summary": "Metadata you did not write as a claim can still arm the guard certainty trigger.",
+      "see_also": [],
+      "widget": null,
+      "try_it": null,
+      "node_links": {},
+      "last_verified": "2026-08-20",
+      "refresh_when": null,
+      "sources": [
+        {
+          "label": "measured in the FORGE product-inventory run",
+          "url": "https://github.com/mcorbett51090/RavenClaude/pull/997"
+        }
+      ],
+      "body_md": "## What a reader would have assumed instead\n\nthe same body with no date anywhere was allowed\n\n## The discriminator\n\ncontrol: the same body with no date anywhere was allowed\nMeasured 2026-08-19: A `last_verified` date is itself a `_STAMP` match, so `guard-premise.sh` arms on metadata rather than on anything the author wrote; only a claim seven lines below the frontmatter escapes the window.\n\n## Why it matters\n\nFalsifier: a dated frontmatter failing to arm a nearby claim\n\nProbe: `scripts/spike-tprose-canary.sh`",
+      "diagram": null,
+      "diagram_mini": null,
+      "steps": [],
+      "svg": null,
+      "svg_mini": null,
+      "entry_class": "inventory",
+      "covers": [
+        "plugins/ravenclaude-core/hooks/guard-premise.sh",
+        "scripts/spike-tprose-canary.sh"
+      ],
+      "covers_digest": "sha256:93898f0b02b5309f27d3403a90e3dd565c66b60d4529c2340344420ad4f20e3d",
+      "nuance": "A `last_verified` date is itself a `_STAMP` match, so `guard-premise.sh` arms on metadata rather than on anything the author wrote; only a claim seven lines below the frontmatter escapes the window.",
+      "nuance_evidence": {
+        "measured": "2026-08-19",
+        "control": "the same body with no date anywhere was allowed",
+        "falsifier": "a dated frontmatter failing to arm a nearby claim",
+        "probe": "scripts/spike-tprose-canary.sh"
+      },
+      "nuance_source": "plugins/ravenclaude-core/hooks/guard-premise.sh:393-400",
+      "verify": {
+        "tier": "effect",
+        "strength": "executed",
+        "class": "hook-decision",
+        "probe": "scripts/spike-tprose-canary.sh",
+        "teeth_exit": 1
+      },
+      "strength_badge": "Probed"
+    },
+    {
+      "id": "selfheal-greps-a-sentence",
+      "title": "The self-heal grep contract",
+      "category": "Inventory — measured mechanisms",
+      "kind": "ravenclaude-built",
+      "order": 908,
+      "summary": "How a failing registry check decides whether the post-merge self-heal survives.",
+      "see_also": [],
+      "widget": null,
+      "try_it": null,
+      "node_links": {},
+      "last_verified": "2026-08-20",
+      "refresh_when": null,
+      "sources": [
+        {
+          "label": "measured in the FORGE product-inventory run",
+          "url": "https://github.com/mcorbett51090/RavenClaude/pull/997"
+        }
+      ],
+      "body_md": "## What a reader would have assumed instead\n\nthe human-reverify marker replays as survivable while an unmarked line replays as fatal\n\n## The discriminator\n\ncontrol: the human-reverify marker replays as survivable while an unmarked line replays as fatal\nMeasured 2026-08-19: `regenerate-artifacts.yml` greps the sentence `staleness gate FAILED`, never a status, so an unrecognised class runs `exit \"$_crc\"` and every later self-heal step is skipped.\n\n## Why it matters\n\nFalsifier: an unmarked failure class continuing the self-heal\n\nProbe: `scripts/spike-selfheal-contract.sh`",
+      "diagram": null,
+      "diagram_mini": null,
+      "steps": [],
+      "svg": null,
+      "svg_mini": null,
+      "entry_class": "inventory",
+      "covers": [
+        ".github/workflows/regenerate-artifacts.yml",
+        "scripts/concepts.py",
+        "scripts/spike-selfheal-contract.sh"
+      ],
+      "covers_digest": "sha256:9ad4384f2133790dcc2e17903364c32b25cf6232b30230bd889afb90a632f4fd",
+      "nuance": "`regenerate-artifacts.yml` greps the sentence `staleness gate FAILED`, never a status, so an unrecognised class runs `exit \"$_crc\"` and every later self-heal step is skipped.",
+      "nuance_evidence": {
+        "measured": "2026-08-19",
+        "control": "the human-reverify marker replays as survivable while an unmarked line replays as fatal",
+        "falsifier": "an unmarked failure class continuing the self-heal",
+        "probe": "scripts/spike-selfheal-contract.sh"
+      },
+      "nuance_source": ".github/workflows/regenerate-artifacts.yml:193-206",
+      "verify": {
+        "tier": "effect",
+        "strength": "executed",
+        "class": "script-selftest",
+        "probe": "scripts/spike-selfheal-contract.sh",
+        "teeth_exit": 0
+      },
+      "strength_badge": "Probed"
+    },
+    {
+      "id": "staleness-double-exemption",
+      "title": "The staleness double exemption",
+      "category": "Inventory — measured mechanisms",
+      "kind": "ravenclaude-built",
+      "order": 909,
+      "summary": "Which concepts the staleness gate actually covered, and the two ways one escaped it.",
+      "see_also": [],
+      "widget": null,
+      "try_it": null,
+      "node_links": {},
+      "last_verified": "2026-08-20",
+      "refresh_when": null,
+      "sources": [
+        {
+          "label": "measured in the FORGE product-inventory run",
+          "url": "https://github.com/mcorbett51090/RavenClaude/pull/997"
+        }
+      ],
+      "body_md": "## What a reader would have assumed instead\n\na fixture entry with the field absent now blocks, and one past the window warns on a PR but fails the sweep\n\n## The discriminator\n\ncontrol: a fixture entry with the field absent now blocks, and one past the window warns on a PR but fails the sweep\nMeasured 2026-08-19: `_staleness_violations` skipped on an OR, so a concept escaped for not being a `platform-fact` or merely for lacking `last_verified`; with 41 `ravenclaude-built` against 17 it gated only the minority kind.\n\n## Why it matters\n\nFalsifier: an entry with no last_verified passing the gate\n\nProbe: `plugins/ravenclaude-core/hooks/tests/test-gate237-inventory-staleness.sh`",
+      "diagram": null,
+      "diagram_mini": null,
+      "steps": [],
+      "svg": null,
+      "svg_mini": null,
+      "entry_class": "inventory",
+      "covers": [
+        "scripts/concepts.py",
+        "scripts/check-covers-completeness.py"
+      ],
+      "covers_digest": "sha256:48aa36caf02c197dc7a6db79325398e16f63f4e1b95555c2572a89e2eefef0bc",
+      "nuance": "`_staleness_violations` skipped on an OR, so a concept escaped for not being a `platform-fact` or merely for lacking `last_verified`; with 41 `ravenclaude-built` against 17 it gated only the minority kind.",
+      "nuance_evidence": {
+        "measured": "2026-08-19",
+        "control": "a fixture entry with the field absent now blocks, and one past the window warns on a PR but fails the sweep",
+        "falsifier": "an entry with no last_verified passing the gate",
+        "probe": "plugins/ravenclaude-core/hooks/tests/test-gate237-inventory-staleness.sh"
+      },
+      "nuance_source": "scripts/concepts.py:271-330",
+      "verify": {
+        "tier": "effect",
+        "strength": "executed",
+        "class": "script-selftest",
+        "probe": "plugins/ravenclaude-core/hooks/tests/test-gate237-inventory-staleness.sh",
+        "teeth_exit": 1
+      },
+      "strength_badge": "Probed"
+    },
+    {
+      "id": "census-must-be-independent",
+      "title": "A sweep that counts itself",
+      "category": "Inventory — measured mechanisms",
+      "kind": "ravenclaude-built",
+      "order": 910,
+      "summary": "Why the coverage denominator is read from git rather than from the registry it measures.",
+      "see_also": [],
+      "widget": null,
+      "try_it": null,
+      "node_links": {},
+      "last_verified": "2026-08-20",
+      "refresh_when": null,
+      "sources": [
+        {
+          "label": "measured in the FORGE product-inventory run",
+          "url": "https://github.com/mcorbett51090/RavenClaude/pull/997"
+        }
+      ],
+      "body_md": "## What a reader would have assumed instead\n\nplanting an untracked hook left the census unchanged, which a filesystem walk would not have\n\n## The discriminator\n\ncontrol: planting an untracked hook left the census unchanged, which a filesystem walk would not have\nMeasured 2026-08-19: `inventory-census.py` reads `git ls-files`, never a filesystem walk, so an untracked file cannot move the denominator; a `concepts.json`-derived count would shrink with the enumeration and stay green.\n\n## Why it matters\n\nFalsifier: an untracked artifact changing the census total\n\nProbe: `scripts/inventory-census.py`",
+      "diagram": null,
+      "diagram_mini": null,
+      "steps": [],
+      "svg": null,
+      "svg_mini": null,
+      "entry_class": "inventory",
+      "covers": [
+        "scripts/inventory-census.py",
+        "scripts/inventory-sweep.py",
+        "scripts/inventory-coverage.py"
+      ],
+      "covers_digest": "sha256:2983a8b768b4ea2b038fa8cdfbd5478d983b380f00b5f5aba077d5ae2f40d28e",
+      "nuance": "`inventory-census.py` reads `git ls-files`, never a filesystem walk, so an untracked file cannot move the denominator; a `concepts.json`-derived count would shrink with the enumeration and stay green.",
+      "nuance_evidence": {
+        "measured": "2026-08-19",
+        "control": "planting an untracked hook left the census unchanged, which a filesystem walk would not have",
+        "falsifier": "an untracked artifact changing the census total",
+        "probe": "scripts/inventory-census.py"
+      },
+      "nuance_source": "scripts/inventory-census.py:1-60",
+      "verify": {
+        "tier": "effect",
+        "strength": "executed",
+        "class": "script-selftest",
+        "probe": "scripts/inventory-census.py",
+        "teeth_exit": 1
+      },
+      "strength_badge": "Probed"
+    },
+    {
+      "id": "islanded-panel-costs-two",
+      "title": "An islanded panel costs two",
+      "category": "Inventory — measured mechanisms",
+      "kind": "ravenclaude-built",
+      "order": 911,
+      "summary": "What the DOM budget measures, and the far larger number it does not.",
+      "see_also": [],
+      "widget": null,
+      "try_it": null,
+      "node_links": {},
+      "last_verified": "2026-08-20",
+      "refresh_when": null,
+      "sources": [
+        {
+          "label": "measured in the FORGE product-inventory run",
+          "url": "https://github.com/mcorbett51090/RavenClaude/pull/997"
+        }
+      ],
+      "body_md": "## What a reader would have assumed instead\n\nthe payload counter reports 23,861 for learn-payload while the live gate reports it as two\n\n## The discriminator\n\ncontrol: the payload counter reports 23,861 for learn-payload while the live gate reports it as two\nMeasured 2026-08-19: `ISLANDED_PANEL_COST` is a flat 2 because the parser reads the payload as CDATA, so `check-dom-budget.py` cannot fire on `learn-payload` no matter how far past 23,861 elements it grows.\n\n## Why it matters\n\nFalsifier: the live-element gate ever failing on payload growth alone\n\nProbe: `scripts/check-artifact-budgets.py`",
+      "diagram": null,
+      "diagram_mini": null,
+      "steps": [],
+      "svg": null,
+      "svg_mini": null,
+      "entry_class": "inventory",
+      "covers": [
+        "scripts/check-dom-budget.py",
+        "scripts/check-artifact-budgets.py",
+        "scripts/generate-dashboards.py",
+        "scripts/generate-index-dashboard.py"
+      ],
+      "covers_digest": "sha256:85ed55b5399f7b3c08c276ff3288b90b01309d0a70225f741c0ae9409f5155fb",
+      "nuance": "`ISLANDED_PANEL_COST` is a flat 2 because the parser reads the payload as CDATA, so `check-dom-budget.py` cannot fire on `learn-payload` no matter how far past 23,861 elements it grows.",
+      "nuance_evidence": {
+        "measured": "2026-08-19",
+        "control": "the payload counter reports 23,861 for learn-payload while the live gate reports it as two",
+        "falsifier": "the live-element gate ever failing on payload growth alone",
+        "probe": "scripts/check-artifact-budgets.py"
+      },
+      "nuance_source": "scripts/check-dom-budget.py:95-135",
+      "verify": {
+        "tier": "effect",
+        "strength": "executed",
+        "class": "script-selftest",
+        "probe": "scripts/check-artifact-budgets.py",
+        "teeth_exit": 1
+      },
+      "strength_badge": "Probed"
+    },
+    {
+      "id": "probing-a-script-runs-it",
+      "title": "Asking a script a question runs it",
+      "category": "Inventory — measured mechanisms",
+      "kind": "ravenclaude-built",
+      "order": 912,
+      "summary": "Asking a script a question is not free: one that ignores arguments simply runs.",
+      "see_also": [],
+      "widget": null,
+      "try_it": null,
+      "node_links": {},
+      "last_verified": "2026-08-20",
+      "refresh_when": null,
+      "sources": [
+        {
+          "label": "measured in the FORGE product-inventory run",
+          "url": "https://github.com/mcorbett51090/RavenClaude/pull/997"
+        }
+      ],
+      "body_md": "## What a reader would have assumed instead\n\nthe same sweep after grepping first left the tree clean and finished in 33 seconds\n\n## The discriminator\n\ncontrol: the same sweep after grepping first left the tree clean and finished in 33 seconds\nMeasured 2026-08-19: A script that never calls `argparse` simply runs, so asking 183 of them for `--must-fail-convention` wrote `forge-route.py` to a stray file rather than answering.\n\n## Why it matters\n\nFalsifier: an argument-probing sweep leaving no artefact behind\n\nProbe: `scripts/inventory-sweep.py`",
+      "diagram": null,
+      "diagram_mini": null,
+      "steps": [],
+      "svg": null,
+      "svg_mini": null,
+      "entry_class": "inventory",
+      "covers": [
+        "scripts/inventory-sweep.py",
+        "scripts/audit-prose-rendering-path.py"
+      ],
+      "covers_digest": "sha256:ce946fc704195d1519164d4d58837add70d2e069a42b5c43c4173f4c15131e0c",
+      "nuance": "A script that never calls `argparse` simply runs, so asking 183 of them for `--must-fail-convention` wrote `forge-route.py` to a stray file rather than answering.",
+      "nuance_evidence": {
+        "measured": "2026-08-19",
+        "control": "the same sweep after grepping first left the tree clean and finished in 33 seconds",
+        "falsifier": "an argument-probing sweep leaving no artefact behind",
+        "probe": "scripts/inventory-sweep.py"
+      },
+      "nuance_source": "scripts/inventory-sweep.py:1-60",
+      "verify": {
+        "tier": "effect",
+        "strength": "executed",
+        "class": "script-selftest",
+        "probe": "scripts/inventory-sweep.py",
+        "teeth_exit": 1
+      },
+      "strength_badge": "Probed"
     }
   ]
 }

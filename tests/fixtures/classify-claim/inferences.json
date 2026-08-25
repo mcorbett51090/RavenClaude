@@ -59,6 +59,13 @@
       "id": "multi-which-means",
       "text": "The header comment is missing, which means the component was never wired up",
       "families": ["causal", "defect"]
+    },
+    {
+      "id": "single-causal-attribution",
+      "text": "The build failure is caused by my change to the parser",
+      "families": ["causal"],
+      "single_signal": true,
+      "why": "Attribution, not connective. Typed `observation` before the attribution predicates were added to the causal family (2026-08-18) — this pins them so deleting them goes red by name."
     }
   ]
 }

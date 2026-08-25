@@ -262,7 +262,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     p_funnel = sub.add_parser("funnel", help="referral-to-admission funnel")
     p_funnel.add_argument("--referrals", type=float, required=True)
-    p_funnel.add_argument("--admit-rate", required=True, help="e.g. 65% or 0.65")
+    p_funnel.add_argument("--admit-rate", required=True, help="e.g. 65%% or 0.65")
     p_funnel.add_argument("--time-to-admit", type=float, default=None, help="days")
     p_funnel.add_argument("--cost-per-admission", type=float, default=None)
     p_funnel.set_defaults(func=cmd_funnel)
@@ -285,7 +285,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="EDUCATIONAL decline-indicator tally (defers to physician)",
     )
     p_elig.add_argument("--pps", type=float, default=None, help="PPS percent, e.g. 40")
-    p_elig.add_argument("--weight-loss", default=None, help="e.g. 12% or 0.12")
+    p_elig.add_argument("--weight-loss", default=None, help="e.g. 12%% or 0.12")
     p_elig.add_argument("--hospitalizations", type=float, default=None)
     p_elig.add_argument("--fast", default=None, help="FAST stage, e.g. 7a")
     p_elig.add_argument("--recurrent-infection", action="store_true")

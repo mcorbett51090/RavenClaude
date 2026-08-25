@@ -815,15 +815,15 @@ _PIPELINE_LANES = [
                 "title": "Parallel workers",
                 "badge": "dynamic",
                 "controls": "parallelism",
-                "tip": "Lets the robot split a job across several helpers at once — and caps how many run together.",
+                "tip": "By default the robot splits a job across as many helpers at once as the job allows.",
                 "detail": {
                     "steps": [
                         "Watches when the robot wants to fan work out to helpers (subagents / worktrees).",
-                        "If parallel workers are allowed, lets several run side by side.",
-                        "Caps how many run at once to your limit.",
+                        "By default it runs every independent piece at the same time, with no limit.",
+                        "Caps how many run at once if you set a limit — or works one at a time if you turn it off.",
                     ],
-                    "trip": "When off, helpers run one at a time; when on, up to your worker limit run together.",
-                    "set": "Turn parallel workers on and set the most-at-once limit in the boxes below.",
+                    "trip": "Nothing is blocked. This only tells the robot how wide to spread the work.",
+                    "set": "Set a most-at-once limit, or tick “Conserve tokens” to make it work one step at a time.",
                 },
             },
             {
@@ -979,6 +979,21 @@ _PIPELINE_LANES = [
                 },
             },
             {
+                "id": "triage-outcome",
+                "title": "Why did that come back empty?",
+                "badge": "advisory",
+                "tip": "When a command fails or returns nothing, lists the possible reasons instead of letting the robot guess one.",
+                "detail": {
+                    "steps": [
+                        "Watches commands that come back angry or empty.",
+                        "Lists the CANDIDATE causes, each with the one check that tells them apart.",
+                        "Refuses to let 'the thing is absent' be the top answer without a positive control.",
+                    ],
+                    "trip": "Advises only, never blocks. Wired after its fire rate was measured at 2.588% over 46,557 real commands (the bar was 3%).",
+                    "set": "`cause_triage: off` in .ravenclaude/comfort-posture.yaml.",
+                },
+            },
+            {
                 "id": "claim-grounding-lint",
                 "title": "Fact check",
                 "badge": "advisory",
@@ -1087,6 +1102,7 @@ _PIPELINE_STAGE_HOOKS = {
     "sanitize-webfetch-output": "sanitize-webfetch-output.sh",
     "format-on-write": "format-on-write.sh",
     "guard-recursive-spawn": "guard-recursive-spawn.sh",
+    "triage-outcome": "triage-outcome.sh",
     "claim-grounding-lint": "claim-grounding-lint.sh",
     "delegation-nudge": "delegation-nudge.sh",
     "storage-placement-nudge": "storage-placement-nudge.sh",
@@ -1116,6 +1132,12 @@ _PIPELINE_EXCLUDED_HOOKS = {
     "dashboard-autostart.sh": "opt-in convenience launcher (SessionStart) for the dashboard itself; "
     "gates nothing, denies nothing, and never inspects a tool call — its knob is `dashboard_autostart` "
     "in comfort-posture.yaml, deliberately NOT a Pipeline stage card",
+    "keep-awake.sh": "opt-in sleep-assertion hook (SessionStart) whose knob is `keep_awake` in "
+    "comfort-posture.yaml; same class as dashboard-autostart.sh — it gates nothing, denies nothing, "
+    "and never inspects a tool call. It holds a `caffeinate -s` assertion on AC (and on battery holds "
+    "nothing and warns, because no software-only method beats Clamshell Sleep there) so a closed lid "
+    "cannot silently suspend the session. That is host-environment hygiene, not an agent guardrail, "
+    "so it is deliberately NOT a Pipeline stage card",
     "compact-anchor.sh": "post-compaction addressability pointer (SessionStart, matcher `compact`); "
     "injects the transcript path + boundary line so the post-compact agent knows its earlier turns "
     "are still on disk. Same class as thing-denial-kb-recall.sh — informational context, gates "
@@ -1132,6 +1154,14 @@ _PIPELINE_EXCLUDED_HOOKS = {
     "enforce-git-protocol.sh: it enforces an authoring CONVENTION (portability) rather than the "
     "safety floor the drawn PreToolUse cards represent, and its knob is surfaced with the other "
     "posture settings — so it is deliberately NOT a Pipeline stage card",
+    "guard-probe-validity.sh": "advisory probe-validity nudge (PreToolUse Bash) governed by the "
+    "`probe_validity:` comfort-posture knob — WARN is its ONLY verdict (there is no `block` value "
+    "and no exit-2 path), on exactly one shape: `grep -v` used in quiet mode, where the exit status "
+    "stops answering \"is there a line that does NOT match?\" and starts reporting whether the "
+    "pattern is ABSENT. Same class as enforce-git-protocol.sh and enforce-portability.sh — it flags "
+    "a correctness hazard in how the agent PHRASED a probe rather than the safety floor the drawn "
+    "PreToolUse cards represent, and its knob is surfaced with the other posture settings — so it is "
+    "deliberately NOT a Pipeline stage card",
     "handoff-successor-ack.sh": "SessionStart(startup) handshake writer for session-handoff. "
     "Writes successor-ack.json when a pending marker exists so the originating spawn "
     "knows the new session started. File write only; not a Pipeline stage card",
@@ -1167,8 +1197,14 @@ _PIPELINE_CONTROLS = {
         "No limit (unlimited workers)</label>"
         '<label class="pipe-ctl">Most workers at once '
         '<input type="number" id="pipe-parallelism-workers" min="1" step="1"></label>'
-        '<p class="pipe-hint">When on, fan-out work (subagents / worktrees) may run in parallel. '
-        "Tick “No limit” for unlimited workers, or set a cap. Off keeps the work sequential.</p>"
+        '<label class="pipe-ctl"><input type="checkbox" id="pipe-conserve-tokens"> '
+        "Conserve tokens (work one step at a time)</label>"
+        '<p class="pipe-hint">The default is MAXIMUM: fan-out work '
+        "(subagents / worktrees) runs in parallel with no limit. Untick “No limit” and set a "
+        "cap to batch it, or untick “Allow parallel workers” to keep the work sequential. "
+        "“Conserve tokens” is the standing exception — it makes the robot work one step at a "
+        "time until you turn it back off. It also switches on by itself when a prompt says "
+        "“conserve tokens” or the session runs low on room.</p>"
     ),
     "decision": (
         '<label class="pipe-ctl">Mode '
@@ -1767,7 +1803,58 @@ def _render_concept_card(plugin_dir: Path, c: dict, titles: dict[str, str]) -> s
             f'<span class="concept-verified">verified {html.escape(c["last_verified"])}</span>'
         )
 
-    search_blob = html.escape(f"{c['title']} {c['summary']} {c['body_md']}".lower(), quote=True)
+    # ── ⛔ R12: the verification-strength badge, rendered NEXT TO the kind badge ──
+    # ~60% of the inventory (54 skills, 15 agents, 27 uncalled scripts) gets
+    # findability and reference integrity ONLY. Both panel plans recorded that
+    # honestly in the plan and then left the distinction INVISIBLE here — on the one
+    # surface the project exists to make legible. A weak check and a strong one that
+    # look identical is the inert-gate defect wearing a badge.
+    #
+    # The text comes from concepts.py `strength_badge`; this renderer does not get
+    # to choose a friendlier word. Each label states the LIMIT, because a reader
+    # skims the first word:
+    #   Probed     a real payload ran and a real observable was asserted
+    #   Findable   frontmatter parses and references resolve. NOTHING executed it
+    #   Observed   seen after the fact, not gate-capable before it
+    #   Unverified with the written rationale shown inline
+    strength = ""
+    sb = c.get("strength_badge")
+    if sb:
+        cls = {"Probed": "probed", "Findable": "findable",
+               "Observed": "observed"}.get(sb, "unverified")
+        rationale = (c.get("verify") or {}).get("rationale") or ""
+        title_attr = f' title="{html.escape(rationale)}"' if rationale else ""
+        strength = (
+            f'<span class="concept-strength {cls}" data-strength="{html.escape(sb)}"'
+            f"{title_attr}>{html.escape(sb)}</span>"
+        )
+
+    nuance_block = ""
+    if c.get("nuance"):
+        ev = c.get("nuance_evidence") or {}
+        probe = str(ev.get("probe") or "")
+        # An `unprobed:` value is rendered AS SUCH, never blanked. An absence shown
+        # as nothing reads as "fine"; shown as "unprobed" it reads as what it is.
+        probe_html = (
+            f'<span class="concept-unprobed">{html.escape(probe)}</span>'
+            if probe.startswith("unprobed: ")
+            else f'<code>{html.escape(probe)}</code>'
+        )
+        rat = (c.get("verify") or {}).get("rationale")
+        rat_html = f'<p class="concept-rationale">{html.escape(rat)}</p>' if rat else ""
+        nuance_block = (
+            f'<div class="concept-nuance">'
+            f'<p class="concept-nuance-text">{html.escape(c["nuance"])}</p>'
+            f'<p class="concept-evidence">'
+            f'<span class="ev-k">control:</span> {html.escape(str(ev.get("control") or ""))} · '
+            f'<span class="ev-k">falsifier:</span> {html.escape(str(ev.get("falsifier") or ""))} · '
+            f'<span class="ev-k">probe:</span> {probe_html}'
+            f"</p>{rat_html}</div>"
+        )
+
+    search_blob = html.escape(
+        f"{c['title']} {c['summary']} {c['body_md']} {c.get('nuance') or ''}".lower(), quote=True
+    )
 
     # The card is a native <details> (collapsed by default). The <summary> carries
     # the title + kind badge + one-line deck so the collapsed row is informative;
@@ -1784,10 +1871,12 @@ def _render_concept_card(plugin_dir: Path, c: dict, titles: dict[str, str]) -> s
         f'<div class="concept-head">'
         f'<h3 class="concept-title">{html.escape(c["title"])}</h3>'
         f'<span class="concept-badge {badge_cls}">{badge_icon}{html.escape(badge_label)}</span>'
+        f"{strength}"
         f"</div>"
         f'<p class="concept-deck">{html.escape(c["summary"])}</p>'
         f"</summary>"
         f'<div class="concept-card-body">'
+        f"{nuance_block}"
         f"{well}{stepper}"
         f'<div class="concept-body">{_md_to_html(c["body_md"])}</div>'
         f"{_CONCEPT_WIDGETS.get(c.get('widget') or '', '')}"
@@ -1881,9 +1970,72 @@ def _render_learn_tab(plugin_dir: Path) -> str:
         '<span class="learn-legend-item"><span class="learn-swatch fact"></span>How agentic AI works</span>'
         '<span class="learn-legend-item"><span class="learn-swatch built"></span>RavenClaude feature</span>'
         "</div>"
+        + _operator_health_card(concepts)
         + "".join(tiers_html)
         + '<div class="stub learn-noresults" id="learn-noresults" hidden>'
         "<h2>No matching concepts</h2><p>Try a different search term.</p></div>" + "</div>"
+    )
+
+
+def _operator_health_card(concepts: list[dict]) -> str:
+    """⛔ P10 — THE OPERATOR HEALTH CARD.
+
+    The Learn tab is where a READER browses; it is not where an OPERATOR looks.
+    These figures are OPERATIONAL STATE, not knowledge, and burying them inside a
+    collapsed concept card is how a corpus rots while every surface reads fine.
+
+    Every number here is DERIVED FROM THE REGISTRY at build time. It renders only
+    when inventory entries exist, and when the numbers are unavailable it says so
+    rather than showing a reassuring zero — an absent measurement and a measured
+    zero are different facts.
+    """
+    entries = [c for c in concepts if c.get("entry_class") == "inventory"]
+    if not entries:
+        return ""
+
+    covered: set[str] = set()
+    for e in entries:
+        covered.update(e.get("covers") or [])
+    tier_none = [e for e in entries if (e.get("verify") or {}).get("tier") == "none"]
+    unprobed = [
+        e for e in entries
+        if str((e.get("nuance_evidence") or {}).get("probe") or "").startswith("unprobed: ")
+    ]
+    by_strength: dict[str, int] = {}
+    for e in entries:
+        by_strength[e.get("strength_badge") or "Unverified"] = (
+            by_strength.get(e.get("strength_badge") or "Unverified", 0) + 1
+        )
+
+    def cell(label: str, value: str, note: str = "") -> str:
+        n = f'<span class="ohc-note">{html.escape(note)}</span>' if note else ""
+        return (
+            f'<div class="ohc-cell"><span class="ohc-v">{html.escape(value)}</span>'
+            f'<span class="ohc-k">{html.escape(label)}</span>{n}</div>'
+        )
+
+    cells = [
+        cell("inventory entries", str(len(entries))),
+        cell("artifacts covered", str(len(covered)), "per artifact, not per entry"),
+        cell("tier: none", str(len(tier_none)), "rationale required"),
+        cell("unprobed", str(len(unprobed)), "honest, and counted"),
+    ]
+    for badge in ("Probed", "Findable", "Observed", "Unverified"):
+        if by_strength.get(badge):
+            cells.append(cell(badge.lower(), str(by_strength[badge])))
+
+    return (
+        '<details class="ohc" id="operator-health-card">'
+        '<summary class="ohc-head">Operator health card '
+        '<span class="ohc-sub">harness state — operational, not knowledge</span></summary>'
+        '<div class="ohc-grid">' + "".join(cells) + "</div>"
+        '<p class="ohc-foot">⛔ These are counts, never probe output. The live sweep '
+        "numbers — probes registered vs executed, the independent git census, and the "
+        "permanently-red canary — come from "
+        "<code>scripts/inventory-sweep.py</code>; a downward move in any of them with "
+        "no artifact deletion in the same diff means the sweep is going blind, not "
+        "that the repo shrank.</p>"
+        "</details>"
     )
 
 
@@ -6045,6 +6197,19 @@ footer.page-footer a:hover { text-decoration: underline; }
 }
 .learn-search:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .learn-count { color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+/* ── Operator health card (P10). Deliberately plain: it is an instrument
+   panel, not a scoreboard, and a celebratory treatment would invite reading
+   a high number as a good number. */
+.ohc { border: 1px solid var(--border); border-radius: 8px; margin: 0 0 16px; background: var(--surface-2); }
+.ohc-head { cursor: pointer; padding: 10px 14px; font-size: 13px; font-weight: 700; list-style: none; }
+.ohc-head::-webkit-details-marker { display: none; }
+.ohc-sub { font-weight: 400; color: var(--muted); font-size: 12px; margin-left: 8px; }
+.ohc-grid { display: flex; flex-wrap: wrap; gap: 10px; padding: 0 14px 12px; }
+.ohc-cell { min-width: 110px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); }
+.ohc-v { display: block; font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.ohc-k { display: block; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; }
+.ohc-note { display: block; font-size: 10.5px; color: var(--muted); font-style: italic; margin-top: 2px; }
+.ohc-foot { font-size: 11.5px; color: var(--muted); margin: 0; padding: 0 14px 12px; line-height: 1.55; }
 .learn-toolbar-spacer { flex: 1 1 auto; }
 .learn-linkbtn {
   background: none; border: none; color: var(--accent); cursor: pointer;
@@ -6163,6 +6328,28 @@ footer.page-footer a:hover { text-decoration: underline; }
 .concept-badge svg { width: 11px; height: 11px; }
 .concept-badge.fact { color: var(--muted); border-color: var(--muted); background: rgba(148, 163, 184, 0.1); }
 .concept-badge.built { color: var(--accent); border-color: var(--accent); background: rgba(86, 208, 138, 0.1); }
+/* ── ⛔ R12: verification-strength badge. NON-DECORATIVE BY DESIGN. ──────────
+   These four are deliberately NOT a green/amber/red confidence scale. A scale
+   invites a reader to average them; these are different KINDS of claim. Only
+   `probed` gets the accent colour, because only it means something executed.
+   `findable` is deliberately muted and outlined: it must not read as a weaker
+   shade of verified, because 96 of 162 artifacts will carry it. */
+.concept-strength {
+  display: inline-flex; align-items: center; flex: none;
+  font-size: 10.5px; font-weight: 700; letter-spacing: 0.02em;
+  padding: 2px 8px; border-radius: 4px; border: 1px solid; white-space: nowrap;
+  text-transform: uppercase;
+}
+.concept-strength.probed { color: var(--accent); border-color: var(--accent); background: rgba(86, 208, 138, 0.12); }
+.concept-strength.findable { color: var(--muted); border-color: var(--muted); background: transparent; border-style: dashed; }
+.concept-strength.observed { color: var(--muted); border-color: var(--muted); background: transparent; }
+.concept-strength.unverified { color: #f0b429; border-color: #f0b429; background: rgba(240, 180, 41, 0.1); }
+.concept-nuance { border-left: 3px solid var(--accent); padding: 10px 14px; margin: 0 0 14px; background: var(--surface-2); border-radius: 0 6px 6px 0; }
+.concept-nuance-text { font-size: 14px; line-height: 1.55; margin: 0 0 8px; }
+.concept-evidence { font-size: 12px; color: var(--muted); margin: 0; line-height: 1.6; }
+.concept-evidence .ev-k { font-weight: 700; }
+.concept-unprobed { color: #f0b429; font-weight: 600; }
+.concept-rationale { font-size: 12px; color: var(--muted); margin: 8px 0 0; font-style: italic; }
 .concept-deck { font-size: 13.5px; color: var(--muted); margin: 8px 0 12px; line-height: 1.5; }
 .concept-diagram-well {
   background: var(--surface-2); border: 1px solid var(--border);
@@ -8110,7 +8297,24 @@ _JS = r"""
    * user changed it — preserving "absent ⇒ default" so a consumer's untouched
    * posture is never bloated and nothing changes on /plugin marketplace update. */
   const RUNAWAY_DEFAULT = Object.freeze({ max_total: 1200, max_consecutive: 8, off: false });
-  const PARALLELISM_DEFAULT = Object.freeze({ enabled: false, max_workers: 4, unlimited: false });
+  /* Parallelism default flipped to MAXIMUM (v0.273.0, owner decision). `absent ⇒ max`:
+   * an untouched posture now means "fan independent work out as wide as the work
+   * allows". `enabled: false` (or the scalar `parallelism: off`) still means sequential
+   * and `max_workers: N` still means batches of ≤N, so a consumer who ever tuned the
+   * block sees ZERO change — only the absent case moves. emitYaml writes the block only
+   * when it DIFFERS from this default, so "absent ⇒ default" still holds in both
+   * directions (a max-parallelism posture stays absent; a sequential one is written). */
+  const PARALLELISM_DEFAULT = Object.freeze({ enabled: true, max_workers: 4, unlimited: true });
+  /* Conserve-tokens exception (v0.273.0). The persistent half of the three-trigger
+   * exception to maximum parallelism (the other two are per-session: a prompt phrase and
+   * automatic context/budget pressure — both live in hooks, not here). When engaged, the
+   * parallelism posture is read as `enabled: false` (sequential). Default OFF, so emitYaml
+   * writes it only when the user turns it on. `conserve_tokens_auto_pct` is the pressure
+   * threshold in percent of the context window; 0 disables the automatic trigger. */
+  const CONSERVE_TOKENS_DEFAULT = false;
+  const CONSERVE_AUTO_PCT_DEFAULT = 80;
+  const CONSERVE_AUTO_PCT_MIN = 0;
+  const CONSERVE_AUTO_PCT_MAX = 100;
   const DOD_DEFAULT = Object.freeze({ cmd: "", max_blocks: 8 });
   const DECISION_REVIEW_VALUES = ["off", "advisory", "binding"];
   const DECISION_REVIEW_DEFAULT = "off";
@@ -8147,6 +8351,19 @@ _JS = r"""
   const STREAM_THRESHOLD_DEFAULT = 0.18;
   const STREAM_THRESHOLD_MIN = 0.05;
   const STREAM_THRESHOLD_MAX = 0.95;
+  /* Session-context handoff (read by hooks/handoff-nudge.sh (Stop nudge) +
+   * scripts/handoff-spawn.sh (successor spawn) + scripts/context-usage-meter.py).
+   * A NESTED block, round-tripped here so a Save no longer strips it — the last
+   * unmodelled behavioral key of the v0.61.0 data-loss class (like stream_* / F4).
+   * `spawn` accepts the UNION of both readers' enums (handoff-spawn.sh reads
+   * same-host|os-terminal; context-usage-meter.py reads copy-paste-only|os-terminal)
+   * so a Save PRESERVES whatever the owner set instead of canonicalizing; absence =
+   * "not set" (the launcher's copy-paste fallback) and stays absent. NO DOM control —
+   * state-slot round-trip only, exactly like worktree_bound. */
+  const CONTEXT_HANDOFF_MODE_VALUES = ["off", "nag", "block"];
+  const CONTEXT_HANDOFF_MODE_DEFAULT = "off";
+  const CONTEXT_HANDOFF_SPAWN_VALUES = ["copy-paste-only", "same-host", "os-terminal"];
+  const CONTEXT_HANDOFF_DEFAULT = Object.freeze({ mode: "off", spawn: "", context_window_tokens: null });
 
   /* Per-tier panel defaults — mirror thing-decision.py's built-in tier table.
    * Seats are forseti | mimir | heimdall (thor is the tie-breaker, never a seat).
@@ -8217,6 +8434,8 @@ _JS = r"""
      * constants; emitYaml writes each block only when it differs from default. */
     runaway: Object.assign({}, RUNAWAY_DEFAULT),
     parallelism: Object.assign({}, PARALLELISM_DEFAULT),
+    conserve_tokens: CONSERVE_TOKENS_DEFAULT,
+    conserve_tokens_auto_pct: CONSERVE_AUTO_PCT_DEFAULT,
     decision_review: DECISION_REVIEW_DEFAULT,
     worktree_guard: WORKTREE_GUARD_DEFAULT,
     worktree_bound: WORKTREE_BOUND_DEFAULT,
@@ -8231,6 +8450,10 @@ _JS = r"""
     stream_classify: STREAM_CLASSIFY_DEFAULT,
     stream_threshold: STREAM_THRESHOLD_DEFAULT,
     definition_of_done: Object.assign({}, DOD_DEFAULT),
+    /* Session-context handoff (v0.61.0 data-loss class). Held in state so a Save
+     * round-trips it instead of silently dropping it. No DOM control (worktree_bound
+     * pattern) — the launcher/nudge/meter own the semantics, we only preserve. */
+    context_handoff: Object.assign({}, CONTEXT_HANDOFF_DEFAULT),
     expanded: {},   /* category -> boolean */
   };
 
@@ -8618,13 +8841,30 @@ _JS = r"""
       if (typeof pl.enabled === "boolean") { state.parallelism.enabled = pl.enabled; touched = true; }
       if (pl.max_workers === "unlimited" || pl.unlimited === true) {
         state.parallelism.unlimited = true; touched = true;
-      } else {
+      } else if (pl.max_workers !== undefined && pl.max_workers !== null) {
+        /* Only a PRESENT max_workers may clear `unlimited`. Reading an absent key as
+         * "not unlimited" would silently downgrade the max default on a posture that
+         * only set `enabled:` — the round-trip data-loss class in a new place. */
         const mw = parseInt(pl.max_workers, 10);
         if (Number.isFinite(mw) && mw > 0) { state.parallelism.max_workers = mw; state.parallelism.unlimited = false; touched = true; }
       }
     } else if (pl === true || pl === "on") {
       /* scalar `parallelism: on` form (YAML `on` parses to boolean true) */
       state.parallelism.enabled = true; touched = true;
+    } else if (pl === false || pl === "off") {
+      /* scalar `parallelism: off` form (YAML `off` parses to boolean false). Handled
+       * explicitly since the default flipped to MAX: leaving it unhandled would make
+       * the established `<knob>: off` idiom mean the OPPOSITE of what it reads. */
+      state.parallelism.enabled = false; touched = true;
+    }
+    if (typeof src.conserve_tokens === "boolean") {
+      state.conserve_tokens = src.conserve_tokens; touched = true;
+    }
+    {
+      const cp = parseInt(src.conserve_tokens_auto_pct, 10);
+      if (Number.isFinite(cp) && cp >= CONSERVE_AUTO_PCT_MIN && cp <= CONSERVE_AUTO_PCT_MAX) {
+        state.conserve_tokens_auto_pct = cp; touched = true;
+      }
     }
     if (DECISION_REVIEW_VALUES.includes(src.decision_review)) {
       state.decision_review = src.decision_review; touched = true;
@@ -8670,6 +8910,15 @@ _JS = r"""
       if (typeof dod.cmd === "string") { state.definition_of_done.cmd = dod.cmd; touched = true; }
       const mb = parseInt(dod.max_blocks, 10);
       if (Number.isFinite(mb) && mb > 0) { state.definition_of_done.max_blocks = mb; touched = true; }
+    }
+    /* Session-context handoff (v0.61.0 data-loss class). Validate against the readers'
+     * enums; spawn accepts the UNION so a set value is preserved, not canonicalized. */
+    const ch = src.context_handoff;
+    if (ch && typeof ch === "object") {
+      if (CONTEXT_HANDOFF_MODE_VALUES.includes(ch.mode)) { state.context_handoff.mode = ch.mode; touched = true; }
+      if (CONTEXT_HANDOFF_SPAWN_VALUES.includes(ch.spawn)) { state.context_handoff.spawn = ch.spawn; touched = true; }
+      const cw = parseInt(ch.context_window_tokens, 10);
+      if (Number.isFinite(cw) && cw > 0) { state.context_handoff.context_window_tokens = cw; touched = true; }
     }
     const cr = src.command_review;
     if (cr && typeof cr === "object" && typeof cr.dev_repo_exempt === "boolean") {
@@ -8771,11 +9020,29 @@ _JS = r"""
     }
 
     const pl = state.parallelism;
-    if (pl.enabled === true || pl.unlimited === true || pl.max_workers !== PARALLELISM_DEFAULT.max_workers) {
-      lines.push("# Parallelism — allow fan-out workers (subagents / worktrees); cap how many run at once.");
+    /* Emit ONLY when the block differs from the (now MAXIMUM) default, so a
+     * max-parallelism posture stays absent and "absent ⇒ default" holds. */
+    if (pl.enabled !== PARALLELISM_DEFAULT.enabled
+        || pl.unlimited !== PARALLELISM_DEFAULT.unlimited
+        || pl.max_workers !== PARALLELISM_DEFAULT.max_workers) {
+      lines.push("# Parallelism — fan-out workers (subagents / worktrees). Default (block absent) is MAXIMUM.");
       lines.push("parallelism:");
       lines.push(`  enabled: ${pl.enabled === true}`);
       lines.push(`  max_workers: ${pl.unlimited === true ? "unlimited" : pl.max_workers}`);
+      lines.push("");
+    }
+
+    if (state.conserve_tokens === true) {
+      lines.push("# Conserve tokens — the standing exception to maximum parallelism (sequential work).");
+      lines.push(`conserve_tokens: ${state.conserve_tokens === true}`);
+      lines.push("");
+    }
+    if (Number.isFinite(state.conserve_tokens_auto_pct)
+        && state.conserve_tokens_auto_pct !== CONSERVE_AUTO_PCT_DEFAULT
+        && state.conserve_tokens_auto_pct >= CONSERVE_AUTO_PCT_MIN
+        && state.conserve_tokens_auto_pct <= CONSERVE_AUTO_PCT_MAX) {
+      lines.push("# Context-pressure percent at which conserve-tokens engages automatically (0 = never).");
+      lines.push(`conserve_tokens_auto_pct: ${state.conserve_tokens_auto_pct}`);
       lines.push("");
     }
 
@@ -8866,6 +9133,25 @@ _JS = r"""
       lines.push("");
     }
 
+    /* Session-context handoff (v0.61.0 data-loss class). Emit the block when ANY
+     * sub-field is non-default, and emit only the set sub-fields — so `spawn:
+     * os-terminal` alone round-trips and a default/absent block emits nothing
+     * ("absent ⇒ default"). Read back by handoff-nudge.sh / handoff-spawn.sh /
+     * context-usage-meter.py. No editable control (worktree_bound pattern). */
+    const cth = state.context_handoff;
+    const cthMode = cth.mode && cth.mode !== CONTEXT_HANDOFF_MODE_DEFAULT
+      && CONTEXT_HANDOFF_MODE_VALUES.includes(cth.mode);
+    const cthSpawn = cth.spawn && CONTEXT_HANDOFF_SPAWN_VALUES.includes(cth.spawn);
+    const cthWin = Number.isFinite(cth.context_window_tokens) && cth.context_window_tokens > 0;
+    if (cthMode || cthSpawn || cthWin) {
+      lines.push("# Session-context handoff — Stop quality-reset nudge + successor spawn.");
+      lines.push("context_handoff:");
+      if (cthMode) lines.push(`  mode: ${cth.mode}`);
+      if (cthSpawn) lines.push(`  spawn: ${cth.spawn}`);
+      if (cthWin) lines.push(`  context_window_tokens: ${cth.context_window_tokens}`);
+      lines.push("");
+    }
+
     /* security_deny */
     const activeDeny = state.security_deny_baseline.filter(
       p => state.security_deny.includes(p)
@@ -8916,6 +9202,8 @@ _JS = r"""
         command_review: state.command_review,
         runaway: state.runaway,
         parallelism: state.parallelism,
+        conserve_tokens: state.conserve_tokens,
+        conserve_tokens_auto_pct: state.conserve_tokens_auto_pct,
         decision_review: state.decision_review,
         worktree_guard: state.worktree_guard,
         worktree_bound: state.worktree_bound,
@@ -10772,11 +11060,17 @@ _JS = r"""
     if (pu) pu.checked = state.parallelism.unlimited === true;
     const pw = document.getElementById("pipe-parallelism-workers");
     if (pw) { pw.value = state.parallelism.max_workers; pw.disabled = state.parallelism.unlimited === true; }
+    const pct = document.getElementById("pipe-conserve-tokens");
+    if (pct) pct.checked = state.conserve_tokens === true;
+    /* Conserve-tokens is the standing exception: it reads OVER the parallelism
+     * block, so the badge must show what the agent will actually do. */
     pipeBadge("parallel-workers",
-              state.parallelism.enabled
-                ? (state.parallelism.unlimited ? "On · unlimited" : ("On · " + state.parallelism.max_workers + " workers"))
-                : "Off",
-              state.parallelism.enabled ? "pipe-badge-on" : "pipe-badge-off");
+              state.conserve_tokens === true
+                ? "Conserving — one at a time"
+                : state.parallelism.enabled
+                  ? (state.parallelism.unlimited ? "On · unlimited" : ("On · " + state.parallelism.max_workers + " workers"))
+                  : "Off",
+              (state.conserve_tokens !== true && state.parallelism.enabled) ? "pipe-badge-on" : "pipe-badge-off");
     const dr = document.getElementById("pipe-decision-review");
     if (dr) dr.value = state.decision_review;
     pipeBadge("route-decision-review", state.decision_review,
@@ -10870,6 +11164,7 @@ _JS = r"""
     onChange("pipe-parallelism-enabled", el => { state.parallelism.enabled = el.checked; });
     onChange("pipe-parallelism-unlimited", el => { state.parallelism.unlimited = el.checked; });
     onInput("pipe-parallelism-workers", el => { const v = parseInt(el.value, 10); if (Number.isFinite(v) && v > 0) state.parallelism.max_workers = v; });
+    onChange("pipe-conserve-tokens", el => { state.conserve_tokens = el.checked; });
     onChange("pipe-decision-review", el => { if (DECISION_REVIEW_VALUES.includes(el.value)) state.decision_review = el.value; });
     onChange("pipe-orchestrator", el => { if (ORCHESTRATOR_VALUES.includes(el.value)) { state.orchestrator = el.value; syncPipelineTab(); } });
     onChange("pipe-orchestrator-scope", el => { if (ORCHESTRATOR_SCOPE_VALUES.includes(el.value)) { state.orchestrator_scope = el.value; syncPipelineTab(); } });

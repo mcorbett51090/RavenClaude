@@ -2,6 +2,320 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.298.0 — 2026-08-24
+
+### Changed
+
+- **Re-verified and re-stamped the seven `platform-fact` "Foundations" concepts** — `agent-harness-loop`,
+  `tool-use`, `context-window`, `subagents`, `mcp`, `model-selection`, `source-control-basics` — refreshing
+  each `last_verified` from 2026-06-05/04 → 2026-08-24. All seven were re-read and confirmed current
+  against how agentic AI works today; several were empirically re-confirmed this session (the agent loop,
+  tool-gating, compaction, the Explore subagent dispatch, MCP servers connecting).
+
+  This **honors the concept-inventory design** (`docs/plans/2026-08-19-product-inventory/plan.md` §5.3):
+  `platform-fact` entries carry a **90-day BLOCKING** calendar gate on PRs — deliberately stricter than
+  the 180-day warn-on-PR inventory corpus — because the ~17-entry population is small enough to service by
+  re-verification rather than by relaxing the gate. The seven were ~80 days old and would have crossed 90
+  within ~10 days, taking every subsequent PR's `scripts/concepts.py --check` down with them in a wave.
+  This is the scheduled service, done early — **the gate logic is unchanged**. Regenerated `concepts.json`
+  + `dashboard.html` + `index.html` (they render the `verified <date>` span); `concepts.py --check` passes
+  with 0 calendar warnings.
+
+  **Migration:** none — knowledge-freshness metadata only; nothing in an installed plugin behaves
+  differently on `/plugin marketplace update`.
+
+## 0.297.0 — 2026-08-24
+
+### Fixed
+
+- **`context_handoff` was the last comfort-posture block the dashboard serializer did not
+  model, so a "Save & apply" silently deleted it** (the v0.61.0 data-loss class that already
+  ate `runaway` / `decision_review` / `definition_of_done` and `stream_classify`). `emitYaml()`
+  rebuilds the whole `.ravenclaude/comfort-posture.yaml` from `state`, and `context_handoff`
+  had no `state` slot, no hydrate parse, and no emit line — so the successor-spawn recipe
+  (`spawn:`) and Stop-nudge mode (`mode:`) read by `handoff-nudge.sh` / `handoff-spawn.sh` /
+  `context-usage-meter.py` vanished on the next Save.
+
+  It is now round-tripped exactly like `worktree_bound` — modelled in the schema + `state` +
+  `emitYaml` + `applyGuardrailConfig`, emitted only when non-default, with **no editable DOM
+  control** (so no Gate 132 ratchet raise). `spawn` validates against the union of both readers'
+  enums (`copy-paste-only` | `same-host` | `os-terminal`) so a Save preserves whatever the owner
+  set rather than canonicalizing. **Gate 35** gained emit + hydrate coverage, a spawn-only
+  round-trip test (the live-posture shape), and a must-fail mutant that strips the
+  `context_handoff:` emit.
+
+  **Migration:** none — `context_handoff` defaults absent (⇒ no handoff behavior), so an
+  untouched posture is byte-identical on `/plugin marketplace update`; the only change is that a
+  dashboard Save now preserves the block instead of dropping it.
+
+## 0.280.0 — 2026-08-18
+
+### Fixed
+
+- **`git push` delete-detection matched tokens belonging to other commands.**
+  `_is_dangerous_git_push_delete` ran its flag regexes over the **whole command
+  string** as soon as any `git push` appeared in it, so a short delete flag on an
+  unrelated command in the same line was read as `git push --delete` and the push was
+  blocked.
+
+  control (2026-08-18): an ordinary `git push -u origin <branch>`, followed in the same
+  line by a `tr` carrying a short delete flag, was **DENIED** as
+  `git-push-remote-branch-delete`. Nothing was being deleted. Removing the `tr` from
+  that same line allowed it — so the trigger was the unrelated token, not the push.
+  Observed live: it blocked a real push during this session's work.
+
+  The predicate's own comment said *"-d is the ONLY push short flag containing a
+  lowercase d"*. That is true of `git push` and irrelevant — the regex was never
+  looking only at `git push`. The flag and refspec searches are now scoped to the
+  `git push` **segment**.
+
+  ⛔ **Third instance of one defect class**, after `srm.force-push` (v0.242.0) and
+  `sce.curl-pipe-shell` (v0.244.0): a rule that matches on a token, applied to a string
+  wider than the command that token belongs to. The repo's own record says *"when you
+  fix a pattern, enumerate every instance of that pattern before you close it"* — this
+  one was missed both times, because **nothing exercised the predicate**.
+
+  ⛔ **The remedy is not portable across the siblings.** Splitting on the shell
+  separators is correct *here*, because a push flag never crosses one.
+  `curl-pipe-shell` deliberately must **not** exclude the pipe — a fetch piped into an
+  interpreter is precisely what it hunts. Same class, opposite correct fix.
+
+### Gates
+
+- **Gate 231** — 12 assertions over the extracted predicate. Every allow case is paired
+  with a deny case, including a deletion in a **later** segment, so a "fix" that only
+  inspected the first segment cannot pass. The false-negative half is the load-bearing
+  one: a predicate that never fires would satisfy every "did it stop crying wolf?"
+  assertion. The must-fail half restores the whole-string match and the two
+  false-positive rows go red. The gate refuses rather than passing green if the
+  extraction anchor moves.
+
+### Migration
+
+None in the permissive direction. Every genuine deletion still denies — `--delete`, a
+bare or bundled short flag, and the empty-source colon refspec — including when it
+appears in a later segment of a compound command. What stops being denied is an
+ordinary push that merely shares a command line with some other tool's delete flag.
+
+## 0.279.0 — 2026-08-18
+
+### Fixed
+
+- **The session handoff wrote a command that launches a different agent.** Both seed writers defaulted to the grok launch command and overrode it only for hosts they recognised **by name**, so every host they did not recognise inherited it — silently, onto disk, at `.ravenclaude/runs/<id>/handoff-seed.txt`, where the next person pastes it without a second thought.
+
+  - `scripts/context-handoff.py` — `seed_text()`'s fall-through **default** was the grok seed, so `claude-code`, `codex`, `unknown` and `""` all received it. `detect_host()` had resolved `claude-code` correctly all along; only the seed selector lacked the branch, and its default was the most host-specific option rather than the most neutral.
+  - `scripts/handoff-spawn.sh` — `seed=grok "…"` was assigned ~90 lines **before** the host was resolved, and only `chat` / `cli` / (`unknown` + `TERM_PROGRAM=vscode`) overrode it. Its refusal guard was scoped to `chat|cli`, so it could not see the case it most needed to catch: an unrecognised host inheriting the default.
+
+  Measured 2026-08-18 against the shipped 0.271.4 copy: `--host claude-code` in a plain terminal emitted `grok "…"`, while the **same** invocation under `TERM_PROGRAM=vscode` emitted a safe comment. ⛔ That asymmetry is why the defect reads as absent if you sample only a VS Code session — and it is why Gate 230 drives `env -i` rather than inheriting the runner's environment.
+
+  The live path was worse than the printed one: `handoff-spawn.sh`'s launch-successor writer ended in `exec $seed`, so an unrecognised host got a script that **launches** the wrong agent, not merely a suggestion to. That branch now writes an `exit 0` launcher — no proven recipe means launch nothing, because a successor a human starts beats one the script guesses at.
+
+  Both writers are now host-keyed: `grok` keeps the grok seed, `chat`/`cli` keep theirs, `claude-code` gets `claude`, and everything else — `codex`, `unknown`, and any host added later — degrades to *"read the handoff and continue"*, which is correct on every host including ones that do not exist yet.
+
+### Added
+
+- **`claude-code` is a recognised host in `handoff-spawn.sh`** — in `normalize_host()` (`claude-code|claude|claudecode`), in `detect_origin_host()` (via `CLAUDECODE` / `CLAUDE_CODE_ENTRYPOINT`, the same markers `context-handoff.py` already keyed on), and as its own copy-paste recipe. Previously `--host claude-code` reported `host=unknown`, which was the honest symptom of the bug above rather than a cosmetic mislabel.
+
+- **The refusal guard now has teeth on the case that mattered.** It was `chat|cli`-scoped; it is now `host != grok`, so a grok launch cannot reach `claude-code`, `codex`, `unknown`, or any future host.
+
+### Gates
+
+- **Gate 230** (`hooks/tests/test-gate227-handoff-seed-host.sh`) — 18 assertions pinning the seed each writer selects per host, across both writers, under `env -i`. **Positive control built in:** two rows assert grok *does* get the grok seed, because a blanket "no grok anywhere" suite would pass identically against a writer that emitted nothing. The must-fail half rebuilds the pre-fix file in all four parts and requires the assertions to go red. ⛔ **Honest scope:** it pins the seed value on the copy-paste/dry-run surface; it does not drive a live spawn, since that would start a real interactive agent.
+## 0.278.0 — 2026-08-18
+
+### Fixed
+
+- **⛔ The worktree guard called every in-tree write "foreign", so worktree isolation
+  did not exist.** `_wg_is_foreign` returned on the **first** worktree whose path
+  prefixed the target — and this repo's own convention puts worktrees at
+  `<primary>/.claude/worktrees/<name>` ("worktrees UNDER the repo, never `/tmp`"),
+  which makes the primary checkout an **ancestor of every linked worktree**. So from
+  inside any worktree, writing your own files matched the primary and read as foreign.
+
+  control (2026-08-18): cwd = a linked worktree, target = a file **inside that same
+  worktree** → `FOREIGN — ... not <that worktree>`, naming the very tree the file
+  lives in. Positive control on the same harness: a genuine sibling → FOREIGN, a
+  `/tmp` path → silent, so the own-tree reading was real and not a dead probe.
+
+  Ownership is now the **longest** matching worktree prefix. It had been set to `warn`
+  on main with a comment saying the deadlock left *"no legal place to edit"* — the
+  guard had been switched off rather than fixed, so the isolation it advertised was
+  not there.
+
+  ⛔ **`worktree_bound` deliberately stays `warn` in this release** (owner decision).
+  Hooks execute from the **installed plugin cache**, so flipping to `block` in the
+  same change that fixes the predicate would re-arm the *old, buggy* guard for any
+  session whose cache is stale — re-creating the exact deadlock this removes. That
+  was observed while building this. Flip to `block` **after**
+  `/plugin marketplace update ravenclaude` has refreshed every live session's cache.
+  The knob only decides whether a correct verdict blocks or warns; Gate 229 pins the
+  verdict itself either way.
+
+  ⛔ **A suppressed message is not a negative result.** The guard throttles a repeated
+  nudge per (path key, session, kind); reading that silence as "the predicate stopped
+  firing" produced one false *regression* report while this was being fixed. Gate 229
+  drives a fresh guard home per probe for exactly that reason.
+
+### Added
+
+- **Session lease — one worktree, one session.** CONTENTION only ever *nudged*: it
+  reported that another session was in the tree and let both proceed. The lease is the
+  enforcement — a session claims a worktree, and another session's mutating ops there
+  are **denied**, naming the holder and how long it has been idle.
+
+- **The stale fallback, which is what makes enforcement safe.** A lock with no expiry
+  strands the tree the moment a session crashes or is closed, and a lock nobody can
+  exit is one people route around. After `worktree_lease_idle_minutes` (default **20**)
+  with no activity, the next session **takes over** — auto-committing the holder's work
+  first as a `wip(worktree-lease)` checkpoint so the takeover cannot lose it. Tracked
+  **and** untracked (owner ruling; `.gitignore` still applies).
+
+  ⛔ **It refuses on the anchor branch.** `main`/`master` is the shared anchor here, so
+  a stale lease there is reported rather than auto-committed — the guard must not
+  create the mess it exists to prevent.
+
+- **`worktree_lease: on|warn|off` and `worktree_lease_idle_minutes: N`**, deliberately
+  **independent** of the other two knobs: `worktree_guard: off` + `worktree_bound: off`
+  used to short-circuit before the lease clause could run, so silencing the two nudges
+  would have silently removed cross-session exclusion with nothing saying so.
+
+### Gates
+
+- **Gate 229** — 18 assertions. Every deny is paired with a case that must **not** deny
+  (a guard that denies everything passes any "did it deny?" test), and the takeover case
+  asserts the holder's work **survived**, including the untracked file. Two vacuity
+  controls: the fixture is proven to have the nested layout (without it the defect
+  cannot appear at all), and each ownership probe uses a fresh guard home. The must-fail
+  half restores first-prefix ownership and **8** assertions go red.
+
+### Migration
+
+**`worktree_bound` stays `warn`.** The false positives stop — that is the fix — but a
+correct FOREIGN verdict still only warns. Flip to `block` once caches are refreshed
+(`RC_WORKTREE_BOUND_ACK=1` remains the per-command escape).
+
+The lease is **on by default**: a second session writing into a worktree another
+session is actively using is denied until the holder has been idle 20 minutes. Set
+`worktree_lease: off` to disable, or `warn` to report without blocking.
+
+⛔ **Hooks run from the installed plugin cache, so nothing here takes effect until
+`/plugin marketplace update ravenclaude`.** Until that refresh a stale session keeps
+the old predicate — which is exactly why `worktree_bound` is NOT flipped to `block` in
+the same change: the new knob plus the old predicate is the deadlock, not the fix.
+Refresh first, then flip.
+
+⛔ **The lease is on and enforcing**, so it reaches a session the moment its cache
+refreshes. If two sessions legitimately share one worktree today, set
+`worktree_lease: warn` before refreshing, or expect the latecomer to be denied until
+the holder has been idle 20 minutes.
+
+## 0.277.0 — 2026-08-18
+
+### Fixed
+
+- **`ravenclaude update` reported success over a checkout that had not moved.** It ran
+  `git pull --ff-only >/dev/null 2>&1` and then printed **"up to date."** unconditionally, so the
+  commonest stall produced a green line over stale content — and discarded the one message that
+  would have explained it. The stall is structural, not user error: the marketplace clone is *both*
+  the thing you pull into *and* the live runtime surface, so `.ravenclaude/comfort-posture.yaml` and
+  `.claude/settings.json` are **tracked** files that normal use rewrites and upstream also edits,
+  which is exactly what `--ff-only` refuses to overwrite. The real git error, the dirty-file list,
+  and a keep-your-tuning remedy are now printed, and the closing line says **NOT up to date**.
+
+- **⛔ The exit status was the half a human cannot see, and it had the same bug.**
+  `serve-dashboards.py` derives the dashboard's success flag from `proc.returncode == 0`, so the
+  Update button reported `ok: true` for a run that did not update. `update` now exits non-zero when
+  a pull was **attempted and failed**. Prose honesty that stops at the terminal is half a fix.
+
+- **A failure that never happened is no longer announced.** When `$MARKET` is not a git checkout,
+  nothing is attempted — the closing line used to say *"the pull above failed"* anyway. That is the
+  same dishonesty pointed the other way, and it now reports the honest case (and exits **0**).
+
+- **git's stderr is redacted before it is echoed.** git names the remote in its error text, so a
+  clone whose origin carries a token would have had that token printed by the very line added to
+  improve diagnostics. URL-embedded credentials only — not a general secret scanner, and it does not
+  claim to be.
+
+### Changed
+
+- **The `rc` function and the suggested alias chain with `;`, not `&&`.** With `update` now exiting
+  non-zero on a failed pull, `&&` would stop launching Copilot for precisely the people hitting the
+  stall — their own posture tuning. A stale checkout is still a working checkout. The detector for
+  the *legacy* `&&` alias in `~/.bashrc` deliberately still matches `&&`, since its job is to find
+  old installs.
+
+### Gates
+
+- **Gate 228** (`hooks/tests/test-gate228-update-pull-report.sh`) — the fix shipped without one, which
+  is the shape this repo's record says regresses. The pull step was extracted into
+  `_rc_pull_marketplace()` so it can be driven without `regen` and the launcher self-heal; the gate
+  extracts that function and **refuses rather than passing green** if the anchor moves. 13 assertions
+  over three outcomes (pulled / attempted-and-failed / not-a-checkout) plus credential redaction,
+  asserting the **return code** as well as the text, with two vacuity controls — the clone is proven
+  *behind* before the success case, and the redaction case is proven to have produced a report. The
+  must-fail half rebuilds the swallow-output/always-succeed shape and 6 assertions go red.
+
+### Migration
+
+`ravenclaude update` now exits non-zero when a pull was attempted and failed (it still exits 0 when
+there was nothing to pull). If you chain it with `&&`, switch to `;` — `ravenclaude setup` writes the
+`;` form from this version on, but an alias already in your `~/.bashrc` is not rewritten.
+
+## 0.276.0 — 2026-08-18
+### Added
+
+- **Merged forward from `feat/vacuity-guard-grep-quiet`.** The gate below was authored as **Gate 223** and renumbered to **227** on merge: `main` landed its own Gate 223 (parallelism posture) concurrently, 224 is claimed by `feat/assumption-claiming-layer`, and 225/226 were already taken. The test file keeps its original `test-gate223-probe-validity.sh` name — renaming it would be a `git mv` under the plugin's own hooks directory, which `xc.tribunal-self-disable` hard-denies pre-LLM, and the gate's grep discipline keys on the script basename rather than the number.
+
+- **`guard-probe-validity.sh` — a twelfth `PreToolUse(Bash)` gate, carrying exactly ONE rule: `grep -v` used in QUIET MODE.** The existing eleven gates each answer *is this dangerous / in the right place / premise-settled / portable?* **None answers *"will this command answer the question the agent thinks it is answering?"*** This is the first that does.
+
+  Outside quiet mode, `grep -v` exits 0 when a line was **selected** — "something does NOT match". In quiet mode that guarantee is lost: the status starts reporting whether the **pattern is absent**. The two disagree on any input holding **both** a matching and a non-matching line, and **the disagreement reads as clean**. Quiet is entered **two** ways, and the second is the one nobody expects: a `-q`/`--quiet`/`--silent` flag (possibly buried in a bundled cluster — `-qv`, `-vq`, `-rqv`, `-qvE`), **or stdout redirected to `/dev/null` specifically**, with no `-q` anywhere. Measured in the agent's own Bash-tool shell (ugrep 7.5.0, genuinely mixed fixture): `grep -v alpha mixed.txt >/dev/null` → **rc=1**, where BSD/GNU give 0.
+
+  **ONE rule, not three, because the corpus said so.** The detector was run over **17,410 distinct real agent-issued Bash commands** (43 transcripts). This rule fires **once**, and that catch was real and consequential — a PR `ALL_GREEN` verdict decided by `grep -qvE`. The two sibling candidates measured on the same corpus were **rejected and must not be added**: `find … -exec test` fired **0 times, ever**, and `$?`-after-a-pipe fired 13 times at an **85 % false-positive rate** — and its dominant false-positive idiom is *this repo's own standard hook-testing idiom*, so it would have warned on the fixtures written to prove it. A channel that is wrong 85 % of the time is how an agent learns to stop reading the channel.
+
+### Design constraints worth not re-litigating
+
+- **⛔ WARN-only, with no host probe — and the hook's header says so at length so a future maintainer does not "improve" it back into unreachability.** Two earlier designs decided WARN-vs-DENY from a host probe. Both were overturned on a mechanical fact: **the probe would run in the hook's shell; the judged command runs in the agent's shell, and they are not the same `grep`.** Measured on one machine at one instant — the Bash tool resolves `grep` to a shell function execing under `ARGV0=ugrep` (7.5.0, **inverts**), while a hook subprocess (`/bin/sh -c`, or even `env -i /bin/bash -c`) resolves BSD grep 2.6.0 (**does not**). So on the exact machine where the defect is documented, a hook-side probe answers *"this host is fine"* and the DENY branch is unreachable, on every host, forever — **and it is testable-green**, since a test that fakes the probe "proves" a branch that is dead in the live path. That is a green test over a dead rule: precisely the vacuity class this gate is named after. Caching does not rescue it either — the same shell delegates to BSD grep on any `-Z`/`--null`/`-z`/`-@` argument, so `grep --version` and `grep --null --version` print **different products from the same word in the same shell** (same cache key, opposite answer), and computing the key costs ~7.6 ms against the ~4.1 ms probe it caches. Warning unconditionally is correct advice everywhere, costs nothing at ~1-in-17,410, and removes the whole wrong-shell failure mode **by construction rather than by care**. There is no exit-2 path in the file; an EXIT trap armed before anything else pins every error path to 0.
+- **⛔ The 5-rule prototype was NOT promoted.** It shipped two rules both prior plans explicitly excluded, and promoting it would have multiplied warn volume 11× (14 → 157) *entirely* from those two. The one rule was written fresh.
+
+- **Gate 227 — and its must-fail half is an exit-code contract, not a mutant.** The prototype's runner exited **0 whether 11 assertions failed or none did** — a gate green forever, this repo's own documented Gate-184 shape one layer down. So `test-gate223-probe-validity.sh` exits 1 on any failure **and** ships `--prove-nonzero`, which routes a deliberately false claim through the real assertion path; Gate 227 asserts `must_fail` on that invocation, so *"the harness reddens"* is re-proved on every CI run instead of being a claim in a commit message. Per-rule teeth are two in-test mutants that neuter the quiet detector and the invert detector and require every fire case to go silent — without them, "fires" would print identically if the hook simply warned on anything containing the word `grep`.
+
+  **⛔ The fixture is asserted MIXED.** ugrep and BSD/GNU **agree** unless the input holds both a matching and a non-matching line, so 2 of the 3 plausible fixtures report *"no bug"* and silently prove nothing. Mixedness is a first-class, count-based assertion (`awk 'END{print NR}'` + `grep -c`), never an assumption.
+
+  Registered in all three Gate-195 sites (dispatcher arm, `Supported:` string, main sequence) and proven to run in the full suite by grepping the suite's own output **for the script name on an executed line** — never for the string "Gate 227", because a batched header once made a by-number grep report seven gates unrun that had all executed. Gate numbers **219–221 remain claimed** by unmerged PR #961.
+
+  ⛔ Nothing in the hook, the test, or the gate uses `grep -q -v` — that *is* the defect, and it inverts here. Every assertion is count-based, and the bad forms appear only as command **strings** handed to the hook as data.
+
+- **`probe_validity: off | warn` (default `warn`)** in `.ravenclaude/comfort-posture.yaml`, read with the same minimal `sed` idiom `worktree-guard.sh` uses. There is no `block` value — the hook has no deny path. An **absent posture file is a no-op**, so consumers who never opted in are never surprised.
+## 0.273.0 — 2026-08-18
+
+### Changed
+
+- **Parallelism now defaults to MAXIMUM.** `PARALLELISM_DEFAULT` is `{enabled: true, max_workers: 4, unlimited: true}`, and **an absent `parallelism:` block now means maximum**, not "unchanged".
+
+  **Migration — one behavior change, and only one.** A consumer with **no** `parallelism:` block gets maximum fan-out where they previously got the agent's ad-hoc judgment. Every *explicit* setting is unchanged: `enabled: false` is still sequential, `max_workers: N` is still batches of ≤N, `max_workers: unlimited` is still uncapped, scalar `parallelism: on` is still enabled. Nothing breaks — `parallelism` is a behavioral commitment with no enforcement path, so no permission changes and no hook denies anything new; the cost is token spend and concurrency, which is what the conserve-tokens exception bounds. To opt out: `parallelism: off`, or tick **Conserve tokens** in the dashboard.
+
+  The alternative (keep `absent ⇒ unchanged`, re-seed only the dashboard default) was rejected: it reaches only consumers who open the dashboard and press Save, leaving every untouched posture on the old behavior forever — the opposite of the ask.
+
+- **Fixed: the scalar `parallelism: off` was silently ignored.** It fell through every hydration branch. Harmless while the default was OFF; with the default flipped it would have meant the **opposite** of what it reads.
+
+### Added
+
+- **The conserve-tokens exception, with three triggers and one precedence.** Engaged ⇒ the posture is read as `enabled: false` (sequential). No fourth mode.
+  1. **Prompt phrase** — per-session, sticky, **both directions** (`conserve tokens` engages; `maximum parallelism` / `stop conserving` releases). Rides the existing `UserPromptSubmit` hook.
+  2. **Posture switch** — `conserve_tokens: true`, a new checkbox on the dashboard's Pipeline page. Engage-only.
+  3. **Context pressure** — live usage ≥ `conserve_tokens_auto_pct` (default `80`; `0` disables), read from the existing `context-usage-meter.py`, not a second meter.
+
+  `engaged = phrase_override if a phrase fired this session else (posture_switch or context_pressure)`. The phrase wins in both directions (otherwise a phrase-engaged session has no exit short of editing config mid-conversation); the switch is engage-only (otherwise a stale config could silently suppress trigger 3). Engine: `scripts/conserve-tokens.py`.
+
+- **A serial-dispatch detector.** `scripts/parallelism-detector.py`, riding the existing `SubagentStart` hook, groups subagent starts into batches by start-time proximity, counts singles vs parallel batches, and emits at most 3 advisory `warn` events (`rule: serial-dispatch`, empty `path`) into `hook-events.jsonl`. **It never blocks** — a hook can stop an action, it cannot compel one. Its limits ship in its own output: it infers batching from start times, so a single dispatch may be a genuine dependency, and *zero batches means no subagents ran*, not perfect parallelism.
+
+- **A standing SessionStart directive.** The capability banner gains a four-line **PARALLELISM** section stating the resolved mode and the observed serial ratio. Derived labels only (Gate 19).
+
+### Gates
+
+- **Gate 35** extended: the two conserve keys round-trip (emit-when-non-default + hydrate-back), the new default emits **no** block, sequential is written explicitly, and `parallelism: off` hydrates to sequential. Two new must-fail halves (conserve emit stripped; default reverted to OFF).
+- **Gate 223** (new): all three conserve triggers, each with a control in the opposite direction, the precedence ordering, and the detector's serial-vs-parallel discrimination — 32 assertions, three must-fail mutants.
+
 ## 0.271.5 — 2026-08-17
 
 ### Fixed

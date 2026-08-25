@@ -133,7 +133,7 @@ def build_parser():
     sp.add_argument('--derate', type=float, default=0.85, help='usable-capacity derate (0-1, e.g. 0.85)')
     sp.set_defaults(func=cmd_power_budget)
 
-    sp = sub.add_parser('memory-budget', help='per-region flash/RAM headroom % + over-budget flag')
+    sp = sub.add_parser('memory-budget', help='per-region flash/RAM headroom %% + over-budget flag')
     sp.add_argument('--flash-used', type=float, required=True, help='flash/image used (bytes or KB)')
     sp.add_argument('--flash-avail', type=float, required=True, help='flash available on the part')
     sp.add_argument('--ram-used', type=float, required=True, help='RAM used: static + worst-case stack/heap')

@@ -1,0 +1,349 @@
+{
+  "_readme": [
+    "FROZEN GOLDEN SET for scripts/check-nuance-floor.py and the calibrated judge.",
+    "",
+    "⛔ NAMED WEAKNESS OF THIS FILE, RECORDED RATHER THAN HIDDEN: plan A authored",
+    "both the check and the fixtures meant to defeat it — a closed loop. The",
+    "requirement that follows is that at least 4 of the negatives be authored",
+    "ADVERSARIALLY: written to the instruction 'make this pass the nuance gate while",
+    "teaching nothing', not written to illustrate a failure. Those four carry",
+    "\"adversarial\": true.",
+    "",
+    "⛔ AN ADVERSARIAL NEGATIVE THAT PASSES THE FLOOR IS AN EXPECTED RESULT, NOT A",
+    "GATE FAILURE. The floor is explicitly a cheap FLOOR, and R7 rules that the bar",
+    "is not fully automatable. What the gate requires is that every ILLUSTRATIVE",
+    "negative is rejected and that each adversarial one has its disposition recorded",
+    "honestly — because a floor that silently passed them while reporting one",
+    "aggregate number is the fake metric R7 exists to forbid.",
+    "",
+    "Positives are MEASURED facts. Each cites the session that measured it."
+  ],
+  "positives": [
+    {
+      "id": "pos-two-channel",
+      "title": "Hook message channels",
+      "summary": "How a hook talks to the model.",
+      "covers": ["plugins/ravenclaude-core/hooks/_advise.sh"],
+      "nuance": "A hook writing to stderr at `exit 0` reaches the model on no event; only `hookSpecificOutput.additionalContext` and `updatedToolOutput` are delivered, so `_advise.sh` advised the terminal for its entire service life.",
+      "nuance_evidence": {
+        "measured": "2026-08-19",
+        "control": "a SessionStart additionalContext sentinel came back in every trial while the stderr token never did",
+        "falsifier": "any recorded transcript containing the stderr token",
+        "probe": "unprobed: the delivery fact is a host-platform property; it is modelled as its own platform-fact concept under the 90-day gate"
+      }
+    },
+    {
+      "id": "pos-concat-vs-replace",
+      "title": "Two emitters on one event",
+      "summary": "What happens when two hooks emit on the same event.",
+      "covers": ["plugins/ravenclaude-core/hooks/hooks.json"],
+      "nuance": "Two `additionalContext` emitters on one event concatenate rather than last-write-wins, but two `updatedToolOutput` emitters replace, so the second silently discards the first.",
+      "nuance_evidence": {
+        "measured": "2026-08-19",
+        "control": "a single-emitter run returned exactly one payload, so the doubling is the emitters and not the harness",
+        "falsifier": "a two-emitter run returning only one additionalContext block",
+        "probe": "unprobed: needs a live two-hook host session; scheduled for the T2 sampled tier"
+      }
+    },
+    {
+      "id": "pos-version-keyed-cache",
+      "title": "Merged is not live",
+      "summary": "Why a merged hook fix does not reach a consumer.",
+      "covers": ["plugins/ravenclaude-core/.claude-plugin/plugin.json"],
+      "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
+      "nuance_evidence": {
+        "measured": "2026-08-19",
+        "control": "a bumped version propagated on the next update while an unbumped one did not",
+        "falsifier": "an installed cache picking up an unbumped change",
+        "probe": "unprobed: requires a real consumer install cycle, which no CI job performs"
+      }
+    },
+    {
+      "id": "pos-divergent-teeth",
+      "title": "must-fail conventions diverge",
+      "summary": "The teeth-bit exit code of a self-testing tool.",
+      "covers": ["scripts/audit-gates.sh"],
+      "nuance": "The teeth bit is the exit a tool own CHECK returns on a planted defect, never the exit `--must-fail` itself returns: `premise-gate.py` denies at `exit 0` while `sync-plugin-versions.py` reddens at `exit 2`, so an auditor that hard-codes one number can never be right for both.",
+      "nuance_evidence": {
+        "measured": "2026-08-19",
+        "control": "ran --must-fail on both: each exits 0 on success, so the 0-vs-2 divergence is in the CHECK exit each teeth run observes, not in the teeth exit itself",
+        "falsifier": "both tools returning the same teeth exit",
+        "probe": "scripts/audit-gates.sh"
+      }
+    },
+    {
+      "id": "pos-no-exit-code-field",
+      "title": "A failing Bash tool_response",
+      "summary": "What a PostToolUse hook can read after a failed Bash call.",
+      "covers": ["plugins/ravenclaude-core/hooks/triage-outcome.sh"],
+      "nuance": "A failing Bash `tool_response` carries no exit-code field at all, so a hook that branches on `.tool_response.exit_code` never fires; `triage-outcome.sh` reads stream shape instead.",
+      "nuance_evidence": {
+        "measured": "2026-08-19",
+        "control": "the same payload shape with a synthetic exit field present did branch",
+        "falsifier": "a real failing Bash payload carrying an exit code",
+        "probe": "unprobed: the payload shape is host-supplied and cannot be synthesised faithfully offline"
+      }
+    },
+    {
+      "id": "pos-tprose-edits",
+      "title": "T-PROSE is not CREATE-only",
+      "summary": "When the premise guard prose screen fires.",
+      "covers": ["plugins/ravenclaude-core/hooks/guard-premise.sh"],
+      "nuance": "The `os.path.exists` early-exit gates T-SHAPE only, so `guard-premise.sh` screens an `Edit` too; a re-stamp escapes because `new_string` carries no defect predicate, not because edits are exempt.",
+      "nuance_evidence": {
+        "measured": "2026-08-19",
+        "control": "the identical body denied as a Write and as an Edit, while a benign body on the same path allowed",
+        "falsifier": "a stamped diagnosis passing when sent as an Edit",
+        "probe": "scripts/spike-tprose-canary.sh"
+      }
+    },
+    {
+      "id": "pos-frontmatter-stamp",
+      "title": "The date you did not think of as a stamp",
+      "summary": "What arms the premise guard certainty trigger.",
+      "covers": ["plugins/ravenclaude-core/hooks/guard-premise.sh"],
+      "nuance": "A `last_verified` date is itself a `_STAMP` match, so `guard-premise.sh` arms on metadata rather than on anything the author wrote; only a claim seven lines below the frontmatter escapes the window.",
+      "nuance_evidence": {
+        "measured": "2026-08-19",
+        "control": "the same body with no date anywhere was allowed",
+        "falsifier": "a dated frontmatter failing to arm a nearby claim",
+        "probe": "scripts/spike-tprose-canary.sh"
+      }
+    },
+    {
+      "id": "pos-selfheal-grep",
+      "title": "The self-heal grep contract",
+      "summary": "How a failing concepts check reaches the post-merge self-heal.",
+      "covers": [".github/workflows/regenerate-artifacts.yml"],
+      "nuance": "`regenerate-artifacts.yml` greps the sentence `staleness gate FAILED`, never a status, so an unrecognised class runs `exit \"$_crc\"` and every later self-heal step is skipped.",
+      "nuance_evidence": {
+        "measured": "2026-08-19",
+        "control": "the human-reverify marker replays as survivable while an unmarked line replays as fatal",
+        "falsifier": "an unmarked failure class continuing the self-heal",
+        "probe": "scripts/spike-selfheal-contract.sh"
+      }
+    },
+    {
+      "id": "pos-double-exemption",
+      "title": "The staleness double exemption",
+      "summary": "Which concepts the staleness gate actually covered.",
+      "covers": ["scripts/concepts.py"],
+      "nuance": "`_staleness_violations` skipped on an OR, so a concept escaped for not being a `platform-fact` or merely for lacking `last_verified`; with 41 `ravenclaude-built` against 17 it gated only the minority kind.",
+      "nuance_evidence": {
+        "measured": "2026-08-19",
+        "control": "a fixture entry with the field absent now blocks, and one past the window warns on a PR but fails the sweep",
+        "falsifier": "an entry with no last_verified passing the gate",
+        "probe": "plugins/ravenclaude-core/hooks/tests/test-gate237-inventory-staleness.sh"
+      }
+    },
+    {
+      "id": "pos-census-independence",
+      "title": "A sweep that counts itself",
+      "summary": "Where the coverage denominator comes from.",
+      "covers": ["scripts/inventory-census.py"],
+      "nuance": "`inventory-census.py` reads `git ls-files`, never a filesystem walk, so an untracked file cannot move the denominator; a `concepts.json`-derived count would shrink with the enumeration and stay green.",
+      "nuance_evidence": {
+        "measured": "2026-08-19",
+        "control": "planting an untracked hook left the census unchanged, which a filesystem walk would not have",
+        "falsifier": "an untracked artifact changing the census total",
+        "probe": "scripts/inventory-census.py"
+      }
+    },
+    {
+      "id": "pos-islanded-panel",
+      "title": "An islanded panel costs two",
+      "summary": "What the DOM budget actually measures.",
+      "covers": ["scripts/check-dom-budget.py"],
+      "nuance": "`ISLANDED_PANEL_COST` is a flat 2 because the parser reads the payload as CDATA, so `check-dom-budget.py` cannot fire on `learn-payload` no matter how far past 23,861 elements it grows.",
+      "nuance_evidence": {
+        "measured": "2026-08-19",
+        "control": "the payload counter reports 23,861 for learn-payload while the live gate reports it as two",
+        "falsifier": "the live-element gate ever failing on payload growth alone",
+        "probe": "scripts/check-artifact-budgets.py"
+      }
+    },
+    {
+      "id": "pos-probe-side-effects",
+      "title": "Asking a script a question runs it",
+      "summary": "Why the self-test probe greps before it executes.",
+      "covers": ["scripts/inventory-sweep.py"],
+      "nuance": "A script that never calls `argparse` simply runs, so asking 183 of them for `--must-fail-convention` wrote `forge-route.py` to a stray file rather than answering.",
+      "nuance_evidence": {
+        "measured": "2026-08-19",
+        "control": "the same sweep after grepping first left the tree clean and finished in 33 seconds",
+        "falsifier": "an argument-probing sweep leaving no artefact behind",
+        "probe": "scripts/inventory-sweep.py"
+      }
+    }
+  ],
+  "negatives": [
+    {
+      "id": "neg-restates-title",
+      "adversarial": false,
+      "title": "Layout enforcement",
+      "summary": "Blocks writes to paths outside the allow-list.",
+      "covers": ["plugins/ravenclaude-core/hooks/enforce-layout.sh"],
+      "nuance": "This hook enforces the repository layout by blocking writes to paths outside the allow-list.",
+      "nuance_evidence": {
+        "measured": "2026-08-19",
+        "control": "it was observed to work correctly",
+        "falsifier": "it not working",
+        "probe": "unprobed: no reason given"
+      }
+    },
+    {
+      "id": "neg-no-mechanism",
+      "adversarial": false,
+      "title": "Formatting on write",
+      "summary": "Formats files after an agent edits them.",
+      "covers": ["plugins/ravenclaude-core/hooks/format-on-write.sh"],
+      "nuance": "The formatter runs after edits and keeps the tree tidy, which is helpful for reviewers.",
+      "nuance_evidence": {
+        "measured": "2026-08-19",
+        "control": "checked manually",
+        "falsifier": "unformatted files",
+        "probe": "unprobed: n/a"
+      }
+    },
+    {
+      "id": "neg-vague-evidence",
+      "adversarial": false,
+      "title": "Recursive spawn guard",
+      "summary": "Limits how deep agents may spawn.",
+      "covers": ["plugins/ravenclaude-core/hooks/guard-recursive-spawn.sh"],
+      "nuance": "The guard prevents runaway spawning, but not always, and never in every case.",
+      "nuance_evidence": {
+        "measured": "",
+        "control": "",
+        "falsifier": "",
+        "probe": ""
+      }
+    },
+    {
+      "id": "neg-control-equals-falsifier",
+      "adversarial": false,
+      "title": "Posture reapplication",
+      "summary": "Reapplies the comfort posture at session start.",
+      "covers": ["plugins/ravenclaude-core/hooks/reapply-posture.sh"],
+      "nuance": "Posture is reapplied at session start rather than at each tool call, so a mid-session edit never takes effect until the next session starts.",
+      "nuance_evidence": {
+        "measured": "2026-08-19",
+        "control": "the posture did not change mid-session",
+        "falsifier": "the posture did not change mid-session",
+        "probe": "unprobed: short"
+      }
+    },
+    {
+      "id": "neg-noun-phrase-stuffing",
+      "adversarial": false,
+      "title": "Event emitter",
+      "summary": "Writes an event line to the ledger.",
+      "covers": ["plugins/ravenclaude-core/hooks/_emit-event.sh"],
+      "nuance": "`PreToolUse`, `PostToolUse`, `exit 2`, `hookSpecificOutput.additionalContext`, `updatedToolOutput` — not one of these, but the ledger.",
+      "nuance_evidence": {
+        "measured": "2026-08-19",
+        "control": "the ledger line was present after the run and absent before it",
+        "falsifier": "a ledger line appearing with no event",
+        "probe": "unprobed: the ledger write path is covered by its own gate elsewhere"
+      }
+    },
+    {
+      "id": "neg-tautology",
+      "adversarial": false,
+      "title": "The premise gate",
+      "summary": "Blocks a new module built on an unresolved negative.",
+      "covers": ["plugins/ravenclaude-core/hooks/guard-premise.sh"],
+      "nuance": "The premise gate blocks a write when it should block a write, and allows one when it should not block.",
+      "nuance_evidence": {
+        "measured": "2026-08-19",
+        "control": "the gate blocked when it was supposed to block",
+        "falsifier": "the gate not blocking when it should",
+        "probe": "unprobed: covered by the guard own tests, so no separate probe was written here"
+      }
+    },
+    {
+      "id": "neg-summary-paraphrase",
+      "adversarial": false,
+      "title": "Destructive command guard",
+      "summary": "Blocks obviously destructive commands that slipped past the deny list.",
+      "covers": ["plugins/ravenclaude-core/hooks/guard-destructive.sh"],
+      "nuance": "Commands that are obviously destructive are blocked when they slip past the consumer deny list.",
+      "nuance_evidence": {
+        "measured": "2026-08-19",
+        "control": "a destructive fixture was blocked and a benign one was not",
+        "falsifier": "a destructive command passing",
+        "probe": "unprobed: the guard own test suite already covers this path in detail"
+      }
+    },
+    {
+      "id": "neg-marketing",
+      "adversarial": false,
+      "title": "The dashboard",
+      "summary": "A local dashboard for the comfort posture.",
+      "covers": ["plugins/ravenclaude-core/dashboard.html"],
+      "nuance": "The dashboard provides a comprehensive, best-in-class view of everything the marketplace offers.",
+      "nuance_evidence": {
+        "measured": "2026-08-19",
+        "control": "it rendered",
+        "falsifier": "it not rendering",
+        "probe": "unprobed: rendering is verified by the generator freshness gate already"
+      }
+    },
+    {
+      "id": "adv-header-restatement",
+      "adversarial": true,
+      "title": "Recursive spawn guard",
+      "summary": "Limits how deep agents may spawn.",
+      "covers": ["plugins/ravenclaude-core/hooks/guard-recursive-spawn.sh"],
+      "nuance": "The guard reads the spawn depth from the tree topology rather than from a per-session counter, so a sibling agent never inflates the depth of an unrelated branch.",
+      "nuance_evidence": {
+        "measured": "2026-08-19",
+        "control": "a sibling spawn left the depth of the other branch unchanged",
+        "falsifier": "a sibling spawn raising an unrelated branch depth",
+        "probe": "unprobed: written by reading the hook header, with no independent measurement taken"
+      }
+    },
+    {
+      "id": "adv-critic-false-claim",
+      "adversarial": true,
+      "title": "PostToolUse ordering",
+      "summary": "When a PostToolUse hook output is read.",
+      "covers": ["plugins/ravenclaude-core/hooks/hooks.json"],
+      "nuance": "`PostToolUse` fires before `hookSpecificOutput.additionalContext` is read and the hook exits 0, so the payload never reaches the turn it was written for.",
+      "nuance_evidence": {
+        "measured": "2026-08-19",
+        "control": "the ordering was inspected in the event stream",
+        "falsifier": "additionalContext arriving in the same turn",
+        "probe": "unprobed: authored adversarially to be mechanism-dense and false; do not fix it"
+      }
+    },
+    {
+      "id": "adv-plausible-inversion",
+      "adversarial": true,
+      "title": "Concept staleness",
+      "summary": "How stale concepts are detected.",
+      "covers": ["scripts/concepts.py"],
+      "nuance": "The staleness gate compares `last_verified` against the registry mtime rather than against today, so a regenerated `concepts.json` refreshes every entry without anyone re-reading a claim.",
+      "nuance_evidence": {
+        "measured": "2026-08-19",
+        "control": "regenerating the registry left the reported ages unchanged",
+        "falsifier": "a regeneration changing a reported age",
+        "probe": "unprobed: authored adversarially; the mechanism described here is not the one implemented"
+      }
+    },
+    {
+      "id": "adv-token-dense-truism",
+      "adversarial": true,
+      "title": "Gate registration",
+      "summary": "Where a new gate must be registered.",
+      "covers": ["scripts/audit-gates.sh"],
+      "nuance": "A gate registered only in the `--check` dispatcher never runs in the main sequence, so `audit-gates.sh` reports a pass that covers no assertion at all.",
+      "nuance_evidence": {
+        "measured": "2026-08-19",
+        "control": "a dispatcher-only fixture gate was absent from the full-suite output",
+        "falsifier": "a dispatcher-only gate appearing in the suite summary",
+        "probe": "unprobed: authored adversarially; true but stated in the gate own header, so it teaches nothing new"
+      }
+    }
+  ]
+}

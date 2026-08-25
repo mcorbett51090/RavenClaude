@@ -195,7 +195,20 @@ jobs:
             _cchk="$(python3 scripts/concepts.py --check 2>&1)" && _crc=0 || _crc=$?
             if [ "$_crc" -ne 0 ]; then
               printf '%s\n' "$_cchk"
-              if printf '%s' "$_cchk" | grep -q 'staleness gate FAILED'; then
+              # ⛔ GREP THE MACHINE MARKER, NOT THE SENTENCE. concepts.py emits a
+              # stable class line — RC-CONCEPTS-CLASS: human-reverify-required for
+              # anything regeneration cannot fix (platform-fact staleness, inventory
+              # staleness, covers-digest drift), and generator-failure otherwise.
+              # The old prose grep is kept as an OR-term for ONE release so a
+              # version-skew rollout (an older concepts.py against this workflow, or
+              # the reverse) cannot detonate mid-migration. Remove the second term
+              # only after a release where every branch emits the marker.
+              #
+              # control: scripts/spike-selfheal-contract.sh extracts THIS conditional
+              # from THIS file and replays it against every failure class, so a
+              # reword here changes the probe result. Its --must-fail plants a class
+              # outside the grep and requires it to be reported FATAL.
+              if printf '%s' "$_cchk" | grep -q -e 'RC-CONCEPTS-CLASS: human-reverify-required' -e 'staleness gate FAILED'; then
                 echo "::warning::platform-fact concept(s) are past the 90-day staleness gate. Regeneration cannot fix this — a human must re-verify the fact against its source and move last_verified. Continuing the self-heal so every other artifact still heals."
               else
                 echo "concepts.json still stale AFTER regeneration — that is a real generator failure, not content freshness."
@@ -441,9 +454,35 @@ jobs:
           # Poll for checks to REGISTER (bounded), then hand off to --watch for the
           # conclusion. Registration and completion are two different waits and
           # conflating them is what broke.
+          # ⛔ THE EXISTENCE PROBE MUST NOT BE `gh pr checks`'s EXIT CODE.
+          # That exit code reports the OUTCOME, not whether checks exist:
+          #   all checks passed  -> 0
+          #   ANY check pending  -> 8      <-- and this is the normal state here
+          #   no checks at all   -> 8
+          # So `if gh pr checks "$n"` (the previous probe) could only ever succeed
+          # once every check had ALREADY PASSED. While they were merely running it
+          # returned 8, the loop spun the full 5 minutes, and the step then declared
+          # "registered NO checks" and pointed the reader at SELF_HEAL_PAT — a
+          # secret that was set, valid, and working the whole time.
+          #
+          # Measured 2026-08-18 on this repo, both directions:
+          #   PR #974 (6 pass, 1 pending) -> exit 8, but `--json name` lists 7
+          #   PR #968 (all 7 passed)      -> exit 0,     `--json name` lists 7
+          # Four consecutive self-heal runs (32121433735, 32134742228, 32136250292,
+          # 32137465607) failed this way while their PR sat CLEAN and MERGEABLE with
+          # 7 passing required checks.
+          #
+          # Existence and outcome are two different questions — ask each separately.
+          # This loop asks only "have any checks REGISTERED?"; the `--watch` below
+          # still owns the conclusion, so a genuinely check-less PR is still never
+          # merged.
           registered=0
           for _i in $(seq 1 20); do            # 20 x 15s = 5 min ceiling
-            if gh pr checks "$n" >/dev/null 2>&1; then registered=1; break; fi
+            _n_checks="$(gh pr checks "$n" --json name --jq 'length' 2>/dev/null || echo 0)"
+            case "$_n_checks" in
+              ''|*[!0-9]*) _n_checks=0 ;;      # non-numeric (API hiccup) -> not registered
+            esac
+            if [ "$_n_checks" -gt 0 ]; then registered=1; break; fi
             sleep 15
           done
           if [ "$registered" -ne 1 ]; then
@@ -451,7 +490,7 @@ jobs:
             # 2026-07-27 root cause (a GITHUB_TOKEN-opened PR never gets checks),
             # and force-landing unvalidated output is the one outcome worse than
             # a stale dashboard.
-            echo "::error::self-heal PR #$n registered NO checks after 5min — leaving it open (is SELF_HEAL_PAT set?)"
+            echo "::error::self-heal PR #$n registered NO checks after 5min — leaving it open. Verify the PR was opened by a real identity (SELF_HEAL_PAT), not GITHUB_TOKEN."
             exit 1
           fi
           if ! gh pr checks "$n" --watch --interval 30; then

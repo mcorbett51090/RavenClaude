@@ -6,7 +6,7 @@ kind: platform-fact
 order: 2
 summary: "A model can't act on its own — it asks for a tool by name, the harness runs it, and the result comes back as the next message. That request/result loop is every agent action."
 see_also: [agent-harness-loop, permission-layers]
-last_verified: 2026-06-05
+last_verified: 2026-08-24
 refresh_when: "Anthropic changes the tool-use request/result message shape, the tool_choice options, or the parallel-tool-call behavior."
 sources:
   - label: "Tool use (function calling) — Claude API"
