@@ -427,6 +427,20 @@ print(json.dumps({
 PYEOF
 )" || _gcc_rc=$?
 
+  # ⛔ A NON-ZERO INTERPRETER EXIT IS BLINDNESS, NOT SILENCE (P2-2). `_gcc_rc`
+  # was captured here and then NEVER READ: the next line returned 0 on an empty
+  # verdict, so a missing python3, an E2BIG exec or a crash inside the program
+  # produced an ALLOW indistinguishable from "nothing to report" — inert AND
+  # invisible, which this file's own header promises it will not be.
+  #
+  # ⛔ The sibling guard already had this fix. Applying it to one gate of a pair
+  # and stopping is not fixing the class, and the second gate is the one whose
+  # blind path existed but was unreachable from an interpreter failure.
+  if [ "$_gcc_rc" -ne 0 ]; then
+    _gcc_report_blind "the verdict program exited $_gcc_rc"
+    return 0
+  fi
+
   [ -n "$verdict" ] || return 0
   kind="$(printf '%s' "$verdict" | python3 -c 'import json,sys
 try: print(json.load(sys.stdin).get("verdict",""))
