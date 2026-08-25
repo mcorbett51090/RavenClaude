@@ -491,9 +491,9 @@ _is_dangerous_git_clean() {
 # when nested / wrapped / reordered.
 deny_patterns=(
   # git history / branch destruction
-  'git[[:space:]]+push[[:space:]]+.*--force([[:space:]]|$)'        # --force (allows --force-with-lease)
-  'git[[:space:]]+push[[:space:]]+(.*[[:space:]])?-[A-Za-z]*f[A-Za-z]*([[:space:]]|$)'  # -f in ANY bundled short-flag cluster (git push -uf), order-independent like _has_recursive; does NOT match --force-with-lease
-  'git[[:space:]]+push[[:space:]].*[[:space:]]\+[A-Za-z0-9_./@~^-]+'  # refspec force-push: git push origin +HEAD:main
+  'git[[:space:]]+push[[:space:]]+[^;&|]*--force([[:space:]]|$)'        # --force (allows --force-with-lease)
+  'git[[:space:]]+push[[:space:]]+([^;&|]*[[:space:]])?-[A-Za-z]*f[A-Za-z]*([[:space:]]|$)'  # -f in ANY bundled short-flag cluster (git push -uf), order-independent like _has_recursive; does NOT match --force-with-lease
+  'git[[:space:]]+push[[:space:]][^;&|]*[[:space:]]\+[A-Za-z0-9_./@~^-]+'  # refspec force-push: git push origin +HEAD:main
   'git[[:space:]]+reset[[:space:]]+--hard([[:space:]]+|$)'
   # NB: git force-branch-delete (_is_dangerous_git_branch_delete), remote-branch
   # deletion (_is_dangerous_git_push_delete), and `git clean` force
