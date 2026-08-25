@@ -176,9 +176,16 @@ sys.stdout.write(ti.get("command") or "")' 2>/dev/null || true)"
 
   if [ -n "$_PCR_HOOKS" ] && [ -f "$_PCR_HOOKS/_advise.sh" ]; then
     # shellcheck source=/dev/null
-    . "$_PCR_HOOKS/_advise.sh" 2>/dev/null || true
+    . "$_PCR_HOOKS/_advise.sh" || true
     if command -v rc_advise_init >/dev/null 2>&1; then
-      rc_advise_init PreToolUse 2>/dev/null || true
+      # ⛔ NO `2>/dev/null` ON THIS CALL. rc_advise_init INSTALLS an fd2 buffer and
+      # re-emits at EXIT both to the real stderr and as additionalContext — the
+      # only channel this repo measured as actually reaching the model. Redirecting
+      # its stderr discards the very fd it is installing, so the advisory went
+      # nowhere while the hook still looked healthy.
+      # control (A/B on this hook): as shipped -> 0 bytes and no additionalContext;
+      # with the redirect removed -> 953 bytes carrying the advisory.
+      rc_advise_init PreToolUse || true
     fi
   fi
 
@@ -232,18 +239,54 @@ _pcr_self_test() {
   # Comment lines are stripped too: a deny path is CODE, and prose describing one
   # is inert. Leaving them in matched the header paragraph that documents this
   # very guarantee -- the same self-reference, one layer up.
-  local optlines needle_exit
-  optlines="$(awk '/^# ── Self-test/{exit} /^[[:space:]]*#/{next} {print}' "$self")"
+  # ⛔ THE SCAN LOOKED FOR THE WRONG MECHANISM, AND IT MISSED HALF THE FILE.
+  # A PreToolUse deny in this repo is NOT `exit 2`. Its own sibling
+  # guard-remediation-cause.sh denies by PRINTING
+  # {"hookSpecificOutput":{"permissionDecision":"deny",...}} and returning 0. A
+  # mutant modelled on that sibling denied every R-3 match while this self-test
+  # printed "PASS: no-deny source scan" and CI stayed green.
+  # control: that mutant emitted a real deny envelope AND exited 0 from --self-test.
+  # Second hole: the region stopped at the `# ── Self-test` marker, leaving lines
+  # 205-349 unscanned INCLUDING the `case "${1:-}"` dispatcher, where
+  # `*) _pcr_main || exit 2 ;;` would have evaded even the shape it did understand.
+  # Now: the WHOLE file (comments stripped), and every deny shape this repo uses.
+  # ⛔ THE SCANNED REGION EXCLUDES THE TEST BODIES, NOT "EVERYTHING AFTER A MARKER".
+  # A deny path matters in _pcr_main and in the DISPATCHER; the test functions
+  # merely talk about denies. Excluding by marker left the dispatcher unscanned,
+  # and scanning everything made this block match its own needles and messages —
+  # the same "a grep satisfied by the thing being DESCRIBED" trap, twice.
+  # ⛔ Every needle is assembled from fragments and every message interpolates a
+  # variable, so no literal needle appears in this file at all.
+  local optlines needle_exit needle_pd
+  optlines="$(awk '
+    /^_pcr_self_test\(\) \{$/ { skip = 1 }
+    /^_pcr_must_fail\(\) \{$/ { skip = 1 }
+    skip && /^\}$/            { skip = 0; next }
+    skip                      { next }
+    /^[[:space:]]*#/          { next }
+    { print }
+  ' "$self")"
   needle_exit="e""xit[[:space:]]+2"
+  needle_pd="permission""Decision"
   if printf '%s\n' "$optlines" | grep -Eq -e "(^|[^_[:alnum:]])${needle_exit}([^0-9]|$)"; then
     _fail "SOURCE SCAN: a bare deny exit appears in the operative region"
   fi
   if printf '%s\n' "$optlines" | grep -q -e 's''ys\.exit(2)'; then
     _fail "SOURCE SCAN: a python deny exit appears in the operative region"
   fi
-  # The scan must be capable of finding something — otherwise it passes blind.
+  if printf '%s\n' "$optlines" | grep -q -e "$needle_pd"; then
+    _fail "SOURCE SCAN: a ${needle_pd} envelope appears in the operative region — that is the deny shape this codebase actually uses"
+  fi
+  # Both needles must be capable of finding something, or the scan passes blind.
   if ! printf 'foo\ne''xit 2\n' | grep -Eq -e "(^|[^_[:alnum:]])${needle_exit}([^0-9]|$)"; then
-    _fail "POSITIVE CONTROL: the source scan cannot match a real deny exit"
+    _fail "POSITIVE CONTROL: the scan cannot match a real deny exit"
+  fi
+  if ! printf '%s\n' "{\"${needle_pd}\":\"deny\"}" | grep -q -e "$needle_pd"; then
+    _fail "POSITIVE CONTROL: the scan cannot match a real deny envelope"
+  fi
+  # And the region must actually include the dispatcher, or the second hole is open.
+  if ! printf '%s\n' "$optlines" | grep -q 'case "\${1:-}" in'; then
+    _fail "SCAN REGION: the dispatcher is not inside the scanned region"
   fi
 
   # 2. R-3 true positive: a real collection read, unbounded.

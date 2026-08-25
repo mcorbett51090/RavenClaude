@@ -9231,7 +9231,12 @@ done
 gate "plugin scripts/ shell syntax: every plugins/*/scripts/*.sh parses" must_pass "$rc"
 # Teeth: a planted syntax error in that glob must be caught, or the loop above is
 # iterating over nothing and passing for free.
-_synbad="plugins/ravenclaude-core/scripts/.__syntax_canary.sh"
+# ⛔ NOT A DOTFILE. `plugins/*/scripts/*.sh` does not match a leading-dot name
+# without `shopt -s dotglob`, so the canary was invisible to the very loop it
+# was planted for: nothing broken was ever checked, rc stayed 0, and must_fail
+# correctly reported that these teeth do not bite.
+# control: two canaries in one dir, one dotted and one not -> the glob matched 1.
+_synbad="plugins/ravenclaude-core/scripts/zz_syntax_canary.sh"
 printf '#!/usr/bin/env bash\nif [ "x" = "x" ; then :; fi\n' > "$_synbad"
 rc=0
 for _f in plugins/*/scripts/*.sh; do

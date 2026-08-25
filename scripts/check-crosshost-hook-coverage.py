@@ -195,9 +195,40 @@ def must_fail() -> int:
             "so the zero-silent-drops assertion is not measuring resolution"
         )
         return 1
+    # ⛔ AND THE VERDICT MUST COME FROM check() ITSELF. Counting drops is a proxy:
+    # a check() blinded so it can report nothing would still let the count above
+    # pass. Point the reader at a manifest carrying an unresolvable command and
+    # require the ENTRY POINT to return 2.
+    import json as _json
+    import tempfile as _tf
+
+    real = check()
+    if real != 0:
+        print(f"MUST-FAIL SETUP FAILED: the unmutated tree already fails check() "
+              f"(rc={real}), so a red result would be ambiguous")
+        return 1
+
+    saved = globals()["_MANIFEST"]
+    try:
+        with _tf.TemporaryDirectory() as tmp:
+            bad = os.path.join(tmp, "hooks.json")
+            with open(bad, "w", encoding="utf-8") as fh:
+                _json.dump({"hooks": {"PreToolUse": [{"matcher": "Bash", "hooks": [
+                    {"type": "command", "command": "python3 /elsewhere/not-a-hook.py"}]}]}}, fh)
+            globals()["_MANIFEST"] = bad
+            rc = check()
+    finally:
+        globals()["_MANIFEST"] = saved
+
+    if rc != 2:
+        print(f"MUST-FAIL VIOLATED: check() returned {rc} on a manifest whose "
+              "registration resolves to no script — the silent-drop assertion is "
+              "not reaching the verdict")
+        return 1
+
     print(
-        f"PASS (--must-fail): the narrowed resolver drops {len(dropped)} registration(s) "
-        "— the assertion has teeth"
+        f"PASS (--must-fail): the narrowed resolver drops {len(dropped)} registration(s), "
+        "and an unresolvable registration drives check() to 2 while the real tree scores 0"
     )
     return 0
 

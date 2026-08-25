@@ -169,43 +169,49 @@ def check(copies=_COPIES) -> int:
 
 
 def must_fail() -> int:
-    """Perturb one copy in memory and require the check to redden.
+    """Perturb a real copy on disk and require `check()` ITSELF to return 2.
 
-    ⛔ The perturbation changes the DIGEST LENGTH, so it is a behavioural change
-    and not merely a comment edit — a whitespace-only mutation would be
-    normalised away and would prove nothing about the check.
+    ⛔ AN EARLIER VERSION OF THIS ASSERTED THE WRONG THING. It exercised the two
+    helper predicates and concluded that both halves "WOULD redden" — a proxy for
+    the property, not the property. Blinding `check()` so it could report nothing
+    at all left BOTH `--check` and `--must-fail` at rc=0: a gate that had stopped
+    gating passed its own teeth test.
+    control: with that shape, `fails = []` injected before the report loop scored
+    0 and 0; with the shape below it scores 2 and 1, because the verdict is now
+    read from the entry point the gate actually runs.
     """
-    blocks = {}
-    for path in _COPIES:
-        b = extract(path)
-        if b:
-            blocks[os.path.relpath(path, _PLUGIN)] = b
-    if len(blocks) < 2:
-        print("MUST-FAIL SETUP FAILED: fewer than two copies extracted")
+    import shutil
+    import tempfile
+
+    real = check(_COPIES)
+    if real != 0:
+        print(f"MUST-FAIL SETUP FAILED: the UNMUTATED tree already fails check() "
+              f"(rc={real}), so a red result would be ambiguous")
         return 1
 
-    rel, block = sorted(blocks.items())[0]
-    mutated = block.replace("hexdigest()[:10]", "hexdigest()[:12]")
-    if mutated == block:
-        print("MUST-FAIL SETUP FAILED: the mutation did not apply")
-        return 1
+    with tempfile.TemporaryDirectory() as tmp:
+        # A real copy, perturbed where it CHANGES THE DERIVED KEY -- a
+        # whitespace-only edit would normalise away and prove nothing.
+        src = _COPIES[0]
+        dst = os.path.join(tmp, os.path.basename(src))
+        shutil.copy(src, dst)
+        with open(dst, encoding="utf-8", errors="replace") as fh:
+            text = fh.read()
+        mutated = text.replace("hexdigest()[:10]", "hexdigest()[:12]", 1)
+        if mutated == text:
+            print("MUST-FAIL SETUP FAILED: the mutation did not apply")
+            return 1
+        with open(dst, "w", encoding="utf-8") as fh:
+            fh.write(mutated)
 
-    a = _drive(block, _PROBE_CWD, _PROBE_FALLBACK)
-    b = _drive(mutated, _PROBE_CWD, _PROBE_FALLBACK)
-    if a == b:
-        print(
-            "MUST-FAIL VIOLATED: a copy with a different digest length produced the "
-            "SAME key — the behavioural half is not measuring anything"
-        )
+        rc = check(tuple(list(_COPIES[1:]) + [dst]))
+
+    if rc != 2:
+        print(f"MUST-FAIL VIOLATED: check() returned {rc} on a tree whose copies "
+              "derive DIFFERENT keys — the gate is not measuring parity")
         return 1
-    if _normalise(mutated) == _normalise(block):
-        print("MUST-FAIL VIOLATED: the mutation normalised away, so the textual half "
-              "would not see it either")
-        return 1
-    print(
-        f"PASS (--must-fail): perturbing {rel} yields {b!r} against {a!r} — both the "
-        "textual and behavioural halves would redden"
-    )
+    print("PASS (--must-fail): a perturbed copy drives check() to 2, and the real "
+          "tree to 0 — the verdict comes from the entry point the gate runs")
     return 0
 
 

@@ -87,6 +87,35 @@ _gcc_posture() {
   printf 'absent\n'
 }
 
+# ⛔ WITHOUT THIS, THE `warn` TIER REACHES NOBODY. This repo MEASURED
+# stderr-at-exit-0 as UNDELIVERED on every event; `_advise.sh` buffers fd2 and
+# re-emits at EXIT both to the terminal AND as additionalContext, the channel the
+# model actually receives. This gate wrote to `>&2` and never sourced it.
+# ⛔ Do NOT redirect this call: `rc_advise_init ... 2>/dev/null` discards the very
+# fd it is installing.
+_gcc_deliver() {
+  [ -n "$_GCC_HOOKS" ] || return 0
+  [ -f "$_GCC_HOOKS/_advise.sh" ] || return 0
+  # shellcheck source=/dev/null
+  . "$_GCC_HOOKS/_advise.sh" || return 0
+  command -v rc_advise_init >/dev/null 2>&1 || return 0
+  rc_advise_init PreToolUse || true
+}
+
+_gcc_report_blind() {
+  if [ -n "$_GCC_HOOKS" ] && [ -f "$_GCC_HOOKS/_emit-event.sh" ]; then
+    # shellcheck source=/dev/null
+    . "$_GCC_HOOKS/_emit-event.sh" 2>/dev/null || true
+    if command -v _emit_hook_event >/dev/null 2>&1; then
+      _emit_hook_event "guard-cause-closure.sh" "warn" "Write" "" "blind" "0" || true
+    fi
+  fi
+  _gcc_deliver
+  printf '%s\n' \
+"[cause-closure] I AM BLIND — $1; my clean verdict means nothing." \
+"  This gate is ALLOWING the write, deliberately, and has recorded a blind event." >&2
+}
+
 _gcc_main() {
   local payload posture verdict kind
   payload="$(cat 2>/dev/null || true)"
@@ -107,7 +136,18 @@ _gcc_main() {
   # matching '" at the LAST line; deleting exactly one apostrophe from a prose
   # comment 440 lines earlier made it parse clean. One apostrophe, one file, two
   # outcomes.
-  verdict="$(RC_GCC_PAYLOAD="$payload" RC_GCC_DIR="$_GCC_DIR" python3 - <<'PYEOF' 2>/dev/null || true
+    # ⛔ PAYLOAD VIA A FILE, NOT THE ENVIRONMENT. An env var is bounded by ARG_MAX,
+  # and a payload over it made `exec` fail E2BIG -- swallowed by `|| true`, so the
+  # write gate ALLOWED with zero output. MEASURED bypass at ~80k filler lines.
+  local _gcc_tmp _gcc_rc
+  _gcc_tmp="$(mktemp 2>/dev/null)" || _gcc_tmp=""
+  if [ -z "$_gcc_tmp" ]; then
+    _gcc_report_blind "cannot create a temp file to pass the payload"
+    return 0
+  fi
+  printf '%s' "$payload" > "$_gcc_tmp"
+  _gcc_rc=0
+verdict="$(RC_GCC_PAYLOAD_FILE="$_gcc_tmp" RC_GCC_DIR="$_GCC_DIR" python3 - <<'PYEOF' 2>/dev/null
 import hashlib
 import json
 import os
@@ -115,8 +155,13 @@ import re
 import subprocess
 import sys
 
-payload = os.environ.get("RC_GCC_PAYLOAD") or ""
 here = os.environ.get("RC_GCC_DIR") or "."
+try:
+    with open(os.environ["RC_GCC_PAYLOAD_FILE"], encoding="utf-8", errors="replace") as _fh:
+        payload = _fh.read()
+except Exception:
+    # Exit 3 = "I could not read my own input", reported as BLIND by the caller.
+    sys.exit(3)
 try:
     d = json.loads(payload)
 except Exception:
@@ -250,6 +295,25 @@ def subject_body(s):
     return s
 
 
+# ⛔ NEVER EMIT A `cmd:` SUBJECT VERBATIM -- IT IS RAW COMMAND TEXT.
+# The ledger writer derives `fs:` and URL subjects genuinely; its FALLBACK arm is
+# the raw command truncated to 40 chars. That value was re-emitted verbatim into
+# permissionDecisionReason, so attacker-chosen bytes arrived in the model context
+# as a repo guard speaking. Two headers in this tree claimed the ledger holds
+# derived labels only; for that arm the claim was FALSE.
+# control: a write naming a `cmd:` subject that began `IGNORE PREVIOUS
+# INSTRUCTIONS.` reproduced the phrase end-to-end in the deny envelope; with this
+# transform the same input yields `cmd:<8 hex>` and the phrase is absent.
+# The join still uses the RAW ledger value internally -- only what LEAVES this
+# process is transformed -- so the readable-subject ruling is preserved.
+def emit_safe_subject(s):
+    s = s or ""
+    if s.startswith("cmd:"):
+        return "cmd:" + hashlib.sha1(
+            s[4:].encode("utf-8", "replace")).hexdigest()[:8]
+    return re.sub(r"[^A-Za-z0-9._/:@-]", "", s)[:80]
+
+
 proj = os.environ.get("CLAUDE_PROJECT_DIR") or os.getcwd()
 cwd = d.get("cwd") or os.getcwd()
 sid = str(d.get("session_id", "nosession") or "nosession")
@@ -303,12 +367,35 @@ except OSError:
     pass
 
 # ── Conjuncts 3 and 4: a causal line NAMES an open, undiscriminated subject ──
+# ⛔ THE ESCAPE IS SCOPED TO THE CLAIM PARAGRAPH, NOT THE WHOLE FILE.
+# `if escaped(content)` cleared the ENTIRE write when any marker appeared
+# ANYWHERE in it. In a repo whose prose is full of `control:` lines that is a
+# trivially-satisfied global bypass: any document that mentions a control once is
+# exempt from the whole gate, however imprecise the other conjuncts become.
+# It also made G6.2 -- "the highest-value pre-build gate" -- pass for a reason
+# unrelated to what it claims.
+# control: the two worst-case docs carry 8 escape-vocabulary matches EACH; driven
+# as-is the gate is silent, and with the markers stripped the IDENTICAL document
+# FIRES. The escape, not the detector, was doing the work.
+# A paragraph is the contiguous run of non-blank lines around the causal claim --
+# close enough to read as "beside the claim", narrow enough that a marker three
+# sections away does not clear it.
+def paragraph_of(all_lines, idx):
+    start = idx
+    while start > 0 and all_lines[start - 1].strip():
+        start -= 1
+    end = idx
+    while end + 1 < len(all_lines) and all_lines[end + 1].strip():
+        end += 1
+    return "\n".join(all_lines[start:end + 1])
+
+
 hit = None
 for i in causal_idx:
     if i < 0 or i >= len(lines):
         continue
     line = lines[i]
-    if escaped(line):
+    if escaped(line) or escaped(paragraph_of(lines, i)):
         continue
     for r in open_rows:
         s = r.get("subject") or ""
@@ -326,20 +413,19 @@ for i in causal_idx:
 if hit is None:
     sys.exit(0)
 
-# A block-level escape anywhere in the written content also clears.
-if escaped(content):
-    sys.exit(0)
-
 row, lineno = hit
 print(json.dumps({
     "verdict": "fire",
-    "subject": row.get("subject"),
-    "candidates": (row.get("candidate_ids") or [])[:3],
+    "subject": emit_safe_subject(row.get("subject") or ""),
+    "candidates": [c for c in (row.get("candidate_ids") or [])[:3]
+                   if re.fullmatch(r"[EFGHI][0-9]{1,2}", str(c))],
     "line": lineno,
-    "path": os.path.basename(path),
+    # The basename is attacker-influenceable (the agent chose the path), so it is
+    # allowlisted and capped like any other emitted value.
+    "path": re.sub(r"[^A-Za-z0-9._-]", "", os.path.basename(path))[:60],
 }))
 PYEOF
-)"
+)" || _gcc_rc=$?
 
   [ -n "$verdict" ] || return 0
   kind="$(printf '%s' "$verdict" | python3 -c 'import json,sys
@@ -531,6 +617,36 @@ PYEOF
       case "$out" in
         *"cause-closure"*) _fail "G6.2: the gate FIRES on $doc — it would block its own repair" ;;
       esac
+
+      # ⛔ G6.2 WAS PASSING FOR A REASON UNRELATED TO WHAT IT CLAIMS.
+      # Both target documents carry EIGHT escape-vocabulary matches each, and the
+      # old code cleared the entire write if any marker appeared anywhere in it.
+      # The assertion was satisfied by the documents VOCABULARY, not by the gate
+      # precision, and would have kept passing however imprecise conjuncts 2-4
+      # became. control: with the markers stripped, the identical document FIRED.
+      # So the same document is now driven a SECOND time with every escape marker
+      # removed. It must STILL be silent -- because it names no open ledger
+      # subject, which is conjunct 3 doing the work rather than the escape.
+      local stripped
+      stripped="$(RC_DOC="$repo/$doc" RC_ROOT2="$root" RC_SID="$sid" python3 - <<'PYEOF' 2>/dev/null || true
+import json, os, re
+body = open(os.environ["RC_DOC"], encoding="utf-8", errors="replace").read()
+body = re.sub(r"control:", "REDACTED-MARKER:", body)
+body = re.sub(r"rc probe", "REDACTED-MARKER", body)
+body = re.sub(r"disconfirm(?:ed|ing|s)?", "REDACTED-MARKER", body)
+body = re.sub(r"cause-ok:", "REDACTED-MARKER:", body)
+print(json.dumps({"tool_name": "Write", "session_id": os.environ["RC_SID"],
+                  "cwd": os.environ["RC_ROOT2"],
+                  "tool_input": {"file_path": "docs/real-doc.md", "content": body}}))
+PYEOF
+)"
+      if [ -n "$stripped" ]; then
+        out="$(printf '%s' "$stripped" | CLAUDE_PROJECT_DIR="$root" bash "$self" 2>&1 || true)"
+        case "$out" in
+          *"cause-closure"*)
+            _fail "G6.2 (escapes stripped): the gate FIRES on $doc — the earlier pass was the escape vocabulary, not the detector" ;;
+        esac
+      fi
     fi
   done
 
