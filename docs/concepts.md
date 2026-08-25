@@ -2256,7 +2256,7 @@ Probe: `unprobed: the delivery fact is a host-platform property; it is modelled 
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-08-24_
+_Last verified: 2026-08-25_
 
 
 ---
@@ -2428,7 +2428,7 @@ Probe: `unprobed: the payload shape is host-supplied and cannot be synthesised f
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-08-20_
+_Last verified: 2026-08-25_
 
 
 ---
