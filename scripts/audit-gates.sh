@@ -638,6 +638,13 @@ PY
         --must-fail-echo || rc=$?
       exit $rc
       ;;
+    248)
+      echo "── Gate 248: portable cause floor — present on every text-only host, and honest ──"
+      rc=0
+      python3 scripts/check-portable-floor.py --check || rc=$?
+      python3 scripts/check-portable-floor.py --must-fail || rc=$?
+      exit $rc
+      ;;
     247)
       echo "── Gate 247: cross-host hook coverage — no registered hook drops silently ──"
       rc=0
@@ -1468,7 +1475,7 @@ PY
       ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -9064,6 +9071,40 @@ gate "cross-host: 0 silent drops, 3 resolvers agree, R7 cells declared not dropp
 rc=0
 python3 scripts/check-crosshost-hook-coverage.py --must-fail >/dev/null 2>&1 || rc=$?
 gate "cross-host --must-fail: narrowing the resolver reddens the zero-drop assertion" must_pass "$rc"
+
+echo
+echo "── Gate 248: portable cause floor — present everywhere, and honest ────────"
+# ⛔ ON A HOST THAT RUNS NO HOOKS, THIS TEXT IS THE WHOLE MECHANISM. R1 is
+# layered: deterministic hooks where they fire, protocol text as the floor. Aider
+# reads nothing automatically (CONVENTIONS.md is opt-in via --read) and Copilot
+# CHAT's hooks are supported:false, so for those surfaces the projection is not a
+# supplement to enforcement — it IS the coverage.
+#
+# ⛔ THE ANTI-OVERCLAIM ASSERTION IS THE POINT. A floor that reads as though the
+# rule is ENFORCED on those hosts is worse than no floor: it manufactures exactly
+# the false sense of coverage R7 refuses, in prose, on the hosts least able to
+# check it. The honest-limit paragraph is required VERBATIM in every projection,
+# and --must-fail plants an enforcement claim to prove the check catches one.
+# The verb list deliberately does not match "enforced sliver" / "not the rule's
+# enforcement": both occur only inside that disclaimer, and matching them would
+# forbid the check's own required text.
+#
+# ⛔ HEADER-RENAME CANARY: renaming the source section must make the aider
+# projector RAISE rather than ship a CONVENTIONS.md with a floor-shaped hole.
+# control: the unmodified tree projects cleanly, so a non-zero there is the
+# rename and not a broken projector. AGENTS.md is restored in a finally block.
+#
+# ⛔ Windsurf is DECLARED OUT OF SCOPE in host-support.json rather than given a
+# half-lane: this repo's own record has the product renamed to Devin Desktop and
+# the lane unmaintained, so a .windsurfrules projector would be wired-and-hopeful.
+#
+# ⛔ Registered in dispatcher + main sequence + Supported:. Grep by literal name.
+rc=0
+python3 scripts/check-portable-floor.py --check >/dev/null 2>&1 || rc=$?
+gate "portable floor: 3 surfaces carry ritual + 5 classes + honest limit, no enforcement verb" must_pass "$rc"
+rc=0
+python3 scripts/check-portable-floor.py --must-fail >/dev/null 2>&1 || rc=$?
+gate "portable floor --must-fail: a planted enforcement claim is caught" must_pass "$rc"
 
 echo
 
