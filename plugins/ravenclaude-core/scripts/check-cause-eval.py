@@ -407,8 +407,40 @@ def must_fail() -> int:
               "red result is indistinguishable from the premature-flip case")
         return 1
 
+    # ⛔ THIRD TEETH, AND THE ONE P1-3 IS ABOUT: every assertion above exercises a
+    # HELPER (instrument_checks, _blocking_knobs_set). A check() blinded so it can
+    # report nothing satisfies all of them, leaving --check AND --must-fail both at
+    # rc=0 — the exact shape this gate exists to detect. Assert the ENTRY POINT.
+    # The rc asserted below is MEASURED, not assumed: unmutated scores 0 and a
+    # probe-stripped taxonomy drives check() to 2 (2026-08-25).
+    import contextlib as _ctx
+    import io as _io
+
+    _corpus = os.path.expanduser(
+        "~/RavenClaude/.ravenclaude/runs/forge/vba-impl/corpus"
+    )
+    with _ctx.redirect_stdout(_io.StringIO()):
+        real_rc = check(_corpus)
+    if real_rc != 0:
+        print(f"MUST-FAIL SETUP FAILED: the unblinded tree already fails check() "
+              f"(rc={real_rc}), so a red result below would be ambiguous")
+        return 1
+
+    try:
+        ct.CAUSES = tuple((cid, cause, "") for cid, cause, _ in saved)
+        with _ctx.redirect_stdout(_io.StringIO()):
+            blind_rc = check(_corpus)
+    finally:
+        ct.CAUSES = saved
+
+    if blind_rc != 2:
+        print(f"MUST-FAIL VIOLATED: check() returned {blind_rc} on a probe-stripped "
+              "taxonomy — the blinding is not reaching the entry point's verdict")
+        return 1
+
     print(f"PASS (--must-fail): blinding the probes produces {len(fails)} finding(s), "
-          "a premature `block` flip is caught, and an all-warn posture is clean")
+          "a premature `block` flip is caught, an all-warn posture is clean, and the "
+          "blinded taxonomy drives check() to 2 while the real one scores 0")
     return 0
 
 

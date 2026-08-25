@@ -192,7 +192,57 @@ def must_fail() -> int:
         print("MUST-FAIL VIOLATED: the UNMODIFIED floor already trips the check, so a "
               "pass would be indistinguishable from the poisoned case")
         return 1
-    print("PASS (--must-fail): a planted enforcement claim is caught; the real floor is clean")
+    # ⛔ AND THE VERDICT MUST COME FROM check() ITSELF (P1-3). Everything above
+    # exercises the _OVERCLAIM regex — a HELPER. A check() blinded so it can
+    # report nothing satisfies it, leaving --check AND --must-fail both at rc=0,
+    # which is the shape this gate exists to detect. Assert the ENTRY POINT.
+    #
+    # ⛔ The poisoned tree is a TEMP COPY, never the real AGENTS.md. check()
+    # mutates-and-restores that file in place (P2-5), so driving the mutant over
+    # the real path would leave a poisoned AGENTS.md behind if this process died
+    # between the write and the restore. The rc asserted is MEASURED: unmutated
+    # scores 0 and a planted enforcement claim drives check() to 2 (2026-08-25).
+    import contextlib as _ctx
+    import hashlib as _hash
+    import io as _io
+    import tempfile as _tf
+
+    def _digest(path):
+        with open(path, "rb") as fh:
+            return _hash.sha256(fh.read()).hexdigest()
+
+    before = _digest(_AGENTS)
+    with _ctx.redirect_stdout(_io.StringIO()):
+        real_rc = check()
+    if real_rc != 0:
+        print(f"MUST-FAIL SETUP FAILED: the unmutated floor already fails check() "
+              f"(rc={real_rc}), so a red result below would be ambiguous")
+        return 1
+
+    saved_agents = _AGENTS
+    try:
+        with _tf.TemporaryDirectory() as tmp:
+            fake = os.path.join(tmp, "AGENTS.md")
+            with open(fake, "w", encoding="utf-8") as fh:
+                fh.write(agents.replace(body, poisoned, 1))
+            globals()["_AGENTS"] = fake
+            with _ctx.redirect_stdout(_io.StringIO()):
+                bad_rc = check()
+    finally:
+        globals()["_AGENTS"] = saved_agents
+
+    if bad_rc != 2:
+        print(f"MUST-FAIL VIOLATED: check() returned {bad_rc} on a floor carrying a "
+              "planted enforcement claim — the overclaim assertion is not reaching "
+              "the entry point's verdict")
+        return 1
+    if _digest(_AGENTS) != before:
+        print("MUST-FAIL VIOLATED: the real AGENTS.md changed while running the "
+              "teeth — check()'s mutate-and-restore did not restore (P2-5)")
+        return 1
+
+    print("PASS (--must-fail): a planted enforcement claim is caught, it drives "
+          "check() to 2 while the real floor scores 0, and AGENTS.md is byte-identical")
     return 0
 
 

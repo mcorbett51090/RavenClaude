@@ -234,8 +234,37 @@ def must_fail() -> int:
         print("MUST-FAIL VIOLATED: the UNMODIFIED negative control also fails, so a "
               "red result is indistinguishable from the broken case")
         return 1
-    print(f"PASS (--must-fail): a clean-reporting instrument is caught ({detail}); "
-          "the real one reports 'unwired'")
+
+    # ⛔ AND THE VERDICT MUST COME FROM check() ITSELF (P1-3). Everything above
+    # exercises a HELPER predicate. A check() blinded so it can report nothing
+    # would still satisfy it, leaving --check AND --must-fail both at rc=0 —
+    # which is precisely the shape this gate exists to detect. Assert the ENTRY
+    # POINT: unmutated must score 0, and the blinded instrument must drive it to 2.
+    import contextlib as _ctx
+    import io as _io
+
+    with _ctx.redirect_stdout(_io.StringIO()):
+        real = check()
+    if real != 0:
+        print(f"MUST-FAIL SETUP FAILED: the unmutated tree already fails check() "
+              f"(rc={real}), so a red result below would be ambiguous")
+        return 1
+
+    saved2 = classify.__globals__["classify"]
+    try:
+        classify.__globals__["classify"] = lambda counts, any_events: "firing"
+        with _ctx.redirect_stdout(_io.StringIO()):
+            rc = check()
+    finally:
+        classify.__globals__["classify"] = saved2
+
+    if rc != 2:
+        print(f"MUST-FAIL VIOLATED: check() returned {rc} with a blinded classify() "
+              "— the control failure is not reaching the entry point's verdict")
+        return 1
+
+    print(f"PASS (--must-fail): a clean-reporting instrument is caught ({detail}), "
+          "and it drives check() to 2 while the real tree scores 0")
     return 0
 
 
