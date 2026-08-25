@@ -638,6 +638,16 @@ PY
         --must-fail-echo || rc=$?
       exit $rc
       ;;
+    244)
+      echo "── Gate 244: pre-flight command review — WARN-only, measured membership ──"
+      rc=0
+      bash plugins/ravenclaude-core/scripts/preflight-command-review.sh --self-test || rc=$?
+      bash plugins/ravenclaude-core/scripts/preflight-command-review.sh --must-fail || rc=$?
+      python3 plugins/ravenclaude-core/scripts/replay-outcome-rules.py --self-test || rc=$?
+      python3 plugins/ravenclaude-core/scripts/build-outcome-corpus.py --self-test || rc=$?
+      python3 plugins/ravenclaude-core/scripts/build-outcome-corpus.py --must-fail || rc=$?
+      exit $rc
+      ;;
     243)
       echo "── Gate 243: scheduled sweep contract + operator health card ──"
       bash plugins/ravenclaude-core/hooks/tests/test-gate243-sweep-and-health-card.sh
@@ -1437,7 +1447,7 @@ PY
       ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -8898,6 +8908,44 @@ echo "── Gate 243: scheduled sweep contract + operator health card ───
 rc=0
 bash plugins/ravenclaude-core/hooks/tests/test-gate243-sweep-and-health-card.sh >/dev/null 2>&1 || rc=$?
 gate "sweep is unrequirable by construction; health card renders; census rule stated" must_pass "$rc"
+
+echo
+echo "── Gate 244: pre-flight command review — WARN-only, measured membership ───"
+# ⛔ THE NO-BLOCK GUARANTEE IS STRUCTURAL, NOT A PROMISE. The hook scans its own
+# operative region for a deny exit and fails if one appears, so promotion to
+# blocking turns this gate red before it can ship. The scan is bounded to CODE:
+# scanning the whole file matched the very lines that search for the needle and
+# the header paragraph documenting the guarantee — this repo's own recorded
+# "a grep is satisfied by the thing being DESCRIBED", reproduced on first run.
+# control: injecting a real `exit 2` into the operative region turns the scan red,
+# so the pass is measuring the code rather than passing blind.
+#
+# ⛔ RULE MEMBERSHIP IS A MEASUREMENT, NOT AN INTENTION. Five rules were drafted;
+# ONE cleared its fire-rate ceiling and its hand-classified FP bar against 34,014
+# evidence-bearing commands. The four rejections are recorded with their numbers
+# in replay-outcome-rules.py REJECTED, and its --self-test asserts they cannot
+# quietly reappear in the active set.
+#
+# ⛔ The corpus extractor carries planted controls so "0 failures in the corpus"
+# can never mean "the extractor is blind", and --must-fail blinds its exit-code
+# derivation to prove the self-test has teeth.
+#
+# ⛔ Registered in dispatcher + main sequence + Supported:. Grep by literal name.
+rc=0
+bash plugins/ravenclaude-core/scripts/preflight-command-review.sh --self-test >/dev/null 2>&1 || rc=$?
+gate "pre-flight hook: no deny path, R-3 fires, 3 near-misses stay silent, injection byte-identical" must_pass "$rc"
+rc=0
+bash plugins/ravenclaude-core/scripts/preflight-command-review.sh --must-fail >/dev/null 2>&1 || rc=$?
+gate "pre-flight --must-fail: deleting R-3 silences its own true positive" must_pass "$rc"
+rc=0
+python3 plugins/ravenclaude-core/scripts/replay-outcome-rules.py --self-test >/dev/null 2>&1 || rc=$?
+gate "replay harness: C15 both directions, R-1 exclusions, rejected rules stay rejected" must_pass "$rc"
+rc=0
+python3 plugins/ravenclaude-core/scripts/build-outcome-corpus.py --self-test >/dev/null 2>&1 || rc=$?
+gate "corpus extractor: planted controls recovered, scrub fires, labels stderr-only" must_pass "$rc"
+rc=0
+python3 plugins/ravenclaude-core/scripts/build-outcome-corpus.py --must-fail >/dev/null 2>&1 || rc=$?
+gate "corpus --must-fail: blinding the exit-code derivation turns the self-test red" must_pass "$rc"
 
 echo
 

@@ -55,9 +55,20 @@ def strip_bodies(cmd: str) -> str:
 
 _LAST_LIMIT_RE = re.compile(r"\|\s*(head|tail)\b[^|]*$")
 _ABS_PATH_RE = re.compile(r"(?:^|\s)(/[A-Za-z0-9._/-]{4,}|~/[A-Za-z0-9._/-]{2,})")
+# ⛔ A COLLECTION endpoint ends AT the collection segment -- followed by `?`, a
+# quote, or end-of-token. `/runs/<id>` is a SINGLE RESOURCE and pagination is
+# meaningless there. MEASURED 2026-08-25: without the terminator this matched
+# `/runs/31659533954/jobs`, `/commits/v4.2.2` and `/actions/jobs/<id>/logs`, and a
+# hand classification of 12 fires read ~11 as false positives.
 _COLLECTION_RE = re.compile(
-    r"gh\s+api\s+[^\s|]*/(repos|issues|pulls|runs|jobs|workflows|commits|branches|"
-    r"releases|artifacts|members|teams|packages)\b"
+    r"gh\s+api\s+['\"]?[^\s|'\"]*/(repos|issues|pulls|runs|jobs|workflows|commits|"
+    r"branches|releases|artifacts|members|teams|packages)(?=[?'\"\s]|$)"
+)
+
+# Deliberate bounding: the author already decided how much they wanted. A rule
+# that fires on an explicit bound is telling the author something they knew.
+_BOUNDED_RE = re.compile(
+    r"--limit\b|per_page=1\b|\[0\]|\bfor\s+\w+\s+in\b|--paginate|\bhead\s+-\d"
 )
 _PROSE_SCAN_RE = re.compile(r"--include=\*\.\{?md|\*\.md|\.md['\"]?\s")
 _SEARCH_FAMILIES = frozenset({"grep", "find", "git"})
@@ -141,7 +152,7 @@ def rule_r3(e):
     return (
         e["shape"]["is_evidence_bearing"]
         and bool(_COLLECTION_RE.search(cmd))
-        and "--paginate" not in cmd
+        and not _BOUNDED_RE.search(cmd)
     )
 
 
@@ -184,18 +195,45 @@ def rule_r5(e):
     )
 
 
+# ⛔ ONE RULE SURVIVED, and that is the intended shape of this file's output.
+# Phase 4 caps the pre-flight hook at five rules and requires each to clear a
+# measured fire-rate ceiling AND a hand-classified false-positive bar. Four did
+# not. The survivors ship; the rest are recorded below, not deleted.
 RULES = {
-    "R-1": (rule_r1, 0.02, "2>/dev/null on an evidence-bearing read, empty result"),
-    "R-2": (rule_r2, 0.01, "output limit is the last stage, absence-shaped result"),
     "R-3": (rule_r3, 0.01, "collection endpoint read without --paginate"),
-    "R-4": (rule_r4, 0.02, "argv path resolving outside the tree the command ran in"),
 }
 
 # ⛔ REJECTED RULES — recorded, not deleted, and asserted ABSENT by --self-test.
-# A rule that was measured and rejected must not quietly reappear in a later
-# edit because it still sounds good. This mirrors the treatment of
-# `$?`-after-a-pipe, which measured 13 fires at 85% FP and is permanently out.
+# A rule that was measured and rejected must not quietly reappear in a later edit
+# because it still sounds good. This mirrors the treatment of `$?`-after-a-pipe,
+# which measured 13 fires at 85% FP and is permanently out.
 REJECTED = {
+    "R-1": (
+        "2>/dev/null on an evidence-bearing read",
+        "⛔ THE PREDICATE IS NOT EVALUABLE AT PRE-FLIGHT. The hazard is a "
+        "suppressed-stderr read whose result then came BACK EMPTY -- but a "
+        "PreToolUse hook runs BEFORE the command, so `stdout_empty` does not "
+        "exist yet. Measured lexically (the only form the hook can see): 8.28% "
+        "of evidence-bearing commands, 4x the 2% combined ceiling, and a hand "
+        "classification read nearly all as idiomatic glob-noise suppression. "
+        "ITS VALUE IS ALREADY DELIVERED POST-HOC: triage-outcome.sh ranks member "
+        "G2 first for exactly this shape, at the moment the result IS known. "
+        "Re-adding it here would duplicate a working rule at 100x the noise.",
+    ),
+    "R-2": (
+        "output limit is the last stage, absence-shaped result",
+        "Same pre-flight evaluability problem as R-1, and over ceiling even "
+        "post-hoc: 1.03% against a 1% bar at its narrowest. The G-x hazard is "
+        "real and is covered by taxonomy member G7, which triage-outcome ranks "
+        "post-hoc where the count is actually comparable.",
+    ),
+    "R-4": (
+        "argv path resolving outside the tree the command ran in",
+        "5.69% of evidence-bearing commands against a 2% ceiling. Working across "
+        "trees is ordinary practice in this repo (worktrees are the sanctioned "
+        "workflow), so the shape does not discriminate a defect from the house "
+        "convention.",
+    ),
     "R-5": (
         "search spanning .md and code in one call",
         "660 fires (1.94%); hand-classified 14/14 as false positives (100%, "
