@@ -108,13 +108,15 @@ _SKIP = {
 
 
 def _script_of(command: str) -> str:
-    m = re.search(r"/hooks/([A-Za-z0-9._-]+\.sh)", command)
+    m = re.search(r"/(?:hooks|scripts)/([A-Za-z0-9._-]+\.sh)", command)
     return m.group(1) if m else ""
 
 
 def _extra_args(command: str, script: str) -> str:
     """Everything after the script path, minus Claude-only argv placeholders."""
     marker = "/hooks/" + script
+    if marker not in command:
+        marker = "/scripts/" + script
     tail = command.split(marker, 1)[1].strip() if marker in command else ""
     # The tool-file-path placeholder is supplied by the adapter in file/post modes.
     return tail.replace(_ARGV_TOKEN, "").strip()

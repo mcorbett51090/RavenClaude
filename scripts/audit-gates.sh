@@ -638,6 +638,13 @@ PY
         --must-fail-echo || rc=$?
       exit $rc
       ;;
+    247)
+      echo "── Gate 247: cross-host hook coverage — no registered hook drops silently ──"
+      rc=0
+      python3 scripts/check-crosshost-hook-coverage.py --check || rc=$?
+      python3 scripts/check-crosshost-hook-coverage.py --must-fail || rc=$?
+      exit $rc
+      ;;
     246)
       echo "── Gate 246: cause-closure gate — is the cause SET closed (not: is a control cited) ──"
       rc=0
@@ -1461,7 +1468,7 @@ PY
       ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -9022,6 +9029,41 @@ gate "closure gate: fires unclosed, both escape dialects clear, Edit/MultiEdit p
 rc=0
 bash plugins/ravenclaude-core/scripts/guard-cause-closure.sh --must-fail >/dev/null 2>&1 || rc=$?
 gate "closure --must-fail: neutering the escape makes an escaped write fire" must_pass "$rc"
+
+echo
+echo "── Gate 247: cross-host hook coverage — no registered hook drops silently ─"
+# ⛔ THIS PINS A CLASS, NOT AN INSTANCE, AND THE CLASS WAS LIVE.
+# Each host projector was written to be LOUD about a hook it cannot place: an
+# unmapped event RAISES, an intentional omission needs an explicit skip WITH A
+# REASON, and --check fails otherwise. That contract had a hole underneath it.
+# `_script_of` matched only `/hooks/([...]+\.sh)`, so a hook body living under
+# `/scripts/` — the packaging exception the tribunal's substrate guard forces,
+# because it denies setting the executable bit on a NEW hooks/*.sh — resolved to
+# the empty string and hit a bare `continue`. A hook a projector cannot SEE is a
+# hook it cannot REFUSE, so explicit-skip-or-raise never fired for it.
+#
+# control: with the old resolver 4 of 42 registered commands dropped silently and
+# none of the three generators said a word; with the widened one 42 of 42 resolve
+# and 0 drop. `ask-on-ambiguity.sh` had been dropped from EVERY cross-host
+# projection since v0.273.0 — shipped, documented, and reaching no host but
+# Claude Code for its whole service life.
+#
+# --must-fail narrows the resolver back to /hooks/ and requires the drop count to
+# go non-zero, so the pass is measuring resolution rather than passing for an
+# unrelated reason.
+#
+# ⛔ R7 is asserted in BOTH directions: the three verify-before-assert cells must
+# be DECLARED (non-empty reason) in the Cursor and Gemini projections and PRESENT
+# in Copilot's, which is wired repo-level per github/copilot-cli#2540. A cell that
+# flips from skipped to wired without a live round-trip is the MH-01 shape.
+#
+# ⛔ Registered in dispatcher + main sequence + Supported:. Grep by literal name.
+rc=0
+python3 scripts/check-crosshost-hook-coverage.py --check >/dev/null 2>&1 || rc=$?
+gate "cross-host: 0 silent drops, 3 resolvers agree, R7 cells declared not dropped" must_pass "$rc"
+rc=0
+python3 scripts/check-crosshost-hook-coverage.py --must-fail >/dev/null 2>&1 || rc=$?
+gate "cross-host --must-fail: narrowing the resolver reddens the zero-drop assertion" must_pass "$rc"
 
 echo
 

@@ -79,16 +79,58 @@ _SKIP = {
     "mark-web-domain-seen.sh": (
         "PostToolUse on WebFetch; pairs with guard-web-access.sh, which is skipped."
     ),
+    # ⛔ R7 — THE THREE verify-before-assert CELLS SHIP **UNWIRED AND DECLARED**.
+    # This is a deliberate DOWNGRADE from what the lane would otherwise do: both
+    # Bash-shaped hooks below would map cleanly onto beforeShellExecution, and the
+    # generator would wire them without complaint. They are skipped anyway.
+    #
+    # The governing rule: a lane whose event is not LIVE-verified ships as
+    # explicitly skipped with a stated reason, never as wired-and-hopeful. A
+    # silent no-op guardrail is strictly worse than a documented gap, because it
+    # produces a false sense of coverage that survives into the next session's
+    # priors. The in-repo existence proof is Copilot: plugin-level hooks were
+    # DOCUMENTED to fire, were shipped that way, and only github/copilot-cli#2540
+    # -- a live product bug report, not a docs re-read -- revealed they never do.
+    # A synthetic-fixture canary would have stayed green throughout.
+    #
+    # ⛔ Cursor additionally FAILS OPEN on a malformed hook response, so a cell
+    # that is wrong here is wrong SILENTLY.
+    #
+    # control (G7.2, 2026-08-25): re-read knowledge/host-support.json rather than
+    # trusting its standing "unverified" note. `updated` still reads 2026-08-14 --
+    # no newer evidence than the plan had -- so the downgrade stands unmodified.
+    # These move to wired only when G7.1 is satisfied in full: a cited dated URL
+    # for the event's input schema, the field name carrying a file path for the
+    # write-path gate, AND a live round-trip against the real product.
+    "preflight-command-review.sh": (
+        "UNWIRED — declared (R7). Bash-shaped and would map to "
+        "beforeShellExecution, but that round-trip has never been run against the "
+        "live product, and Cursor fails OPEN on a malformed response. Ships "
+        "skipped until G7.1 passes; the host degrades to the portable text floor."
+    ),
+    "guard-remediation-cause.sh": (
+        "UNWIRED — declared (R7). Same basis as preflight-command-review.sh. This "
+        "one carries a deny path at cause_remediation: block, so a silently "
+        "fail-open cell would claim a fail-closed surface that does not exist."
+    ),
+    "guard-cause-closure.sh": (
+        "UNWIRED — declared (R7). Write/Edit/MultiEdit-shaped: Cursor's verified "
+        "enforcement event carries a shell command, not file content, and the "
+        "file-write events reachable here fire AFTER the edit. Same skip basis as "
+        "enforce-layout.sh above, plus the R7 live-round-trip requirement."
+    ),
 }
 
 
 def _script_of(command: str) -> str:
-    m = re.search(r"/hooks/([A-Za-z0-9._-]+\.sh)", command)
+    m = re.search(r"/(?:hooks|scripts)/([A-Za-z0-9._-]+\.sh)", command)
     return m.group(1) if m else ""
 
 
 def _extra_args(command: str, script: str) -> str:
     marker = "/hooks/" + script
+    if marker not in command:
+        marker = "/scripts/" + script
     tail = command.split(marker, 1)[1].strip() if marker in command else ""
     return tail.replace(_ARGV_TOKEN, "").strip()
 
