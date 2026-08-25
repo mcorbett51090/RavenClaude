@@ -65,16 +65,3 @@ A detector keyed on the wrong clock therefore fails toward "looks alive", which
 is the dangerous direction: typing into a session suspected of being stuck
 silences the detector for a further window, so the act of investigating hides
 the thing being investigated.
-
-```mermaid
-graph TD
-  A[turn opens] --> B[assistant records appended]
-  B --> C{turn closes?}
-  C -->|yes| D[Stop hooks fire]
-  C -->|never| E[no boundary, no hook]
-  E --> F[queue-operation / user / away_summary<br/>still appended]
-  F --> G[last-any clock resets<br/>looks alive]
-  E --> H[last-assistant clock keeps ageing<br/>the true signal]
-  H --> I[out-of-session watchdog<br/>on a timer]
-  I --> J[receipted webhook]
-```
