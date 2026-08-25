@@ -82,7 +82,10 @@ const RC_BASELINE = {
   //        19 -> 22: premise-gate.py + classify_claim.py + check-design-schema.py
   //                  (v0.263.0, PR 3b packaging move)
   scenarios: 4,
-  hooks: 40, // 39 -> 40: preflight-command-review.sh WIRED on PreToolUse(Bash) —
+  hooks: 41, // 40 -> 41: guard-remediation-cause.sh WIRED on PreToolUse(Bash) —
+  //   verify-before-assert Phase 5, THE PRIMARY D1 GATE, shipping at `warn`. Same
+  //   scripts/-plus-`bash` packaging as its sibling below, for the same reason.
+  //        39 -> 40: preflight-command-review.sh WIRED on PreToolUse(Bash) —
   //   verify-before-assert Phase 4, WARN-only, one measured rule (R-3). It is a
   //   REGISTRATION, which is what this count tracks; the body lives under scripts/
   //   and is invoked via `bash` because the tribunal substrate guard denies setting

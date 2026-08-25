@@ -638,6 +638,13 @@ PY
         --must-fail-echo || rc=$?
       exit $rc
       ;;
+    245)
+      echo "── Gate 245: remediation-cause gate — the primary D1 surface ──"
+      rc=0
+      bash plugins/ravenclaude-core/scripts/guard-remediation-cause.sh --self-test || rc=$?
+      bash plugins/ravenclaude-core/scripts/guard-remediation-cause.sh --must-fail || rc=$?
+      exit $rc
+      ;;
     244)
       echo "── Gate 244: pre-flight command review — WARN-only, measured membership ──"
       rc=0
@@ -1447,7 +1454,7 @@ PY
       ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -8946,6 +8953,37 @@ gate "corpus extractor: planted controls recovered, scrub fires, labels stderr-o
 rc=0
 python3 plugins/ravenclaude-core/scripts/build-outcome-corpus.py --must-fail >/dev/null 2>&1 || rc=$?
 gate "corpus --must-fail: blinding the exit-code derivation turns the self-test red" must_pass "$rc"
+
+echo
+echo "── Gate 245: remediation-cause gate — the primary D1 surface ──────────────"
+# ⛔ THE JOIN IS THE WHOLE GATE, AND IT FAILED SILENTLY FIRST. The ledger stamps a
+# TYPE PREFIX on every subject (`fs:` for a path, `cmd:` otherwise), so a row
+# reading `fs:src/thing.ts` never equalled the `cmd:rm -rf src/thing.ts` a
+# remediating command derives. Comparing the labelled forms, the gate matched
+# NOTHING and allowed every command — while running, reading the ledger and
+# exiting 0. A gate that reads an empty join and passes is the inverted-audit
+# defect wearing a green tick.
+#
+# ⛔ CASE 2 IS THE CANARY AND IT CARRIES THE GATE'S MEANING. Same ledger state, a
+# DISCRIMINATING command must be ALLOWED. Without it, "fires on remediate" and
+# "allows on discriminate" would differ only by luck, and an inert classifier
+# would be indistinguishable from a working one. --must-fail neuters the
+# discriminate arm and requires a plain read to start firing.
+#
+# ⛔ Blindness ADVISES, it never denies. Fail-closed is authorised here only for
+# unresolved cause-ambiguity, and a missing beacon is not that. The test asserts
+# both halves: the advisory appears AND no permissionDecision is emitted.
+#
+# ⛔ The empty-escape refusal is tested BEFORE the working escape, because an
+# escape hatch nobody tested is one everybody uses.
+#
+# ⛔ Registered in dispatcher + main sequence + Supported:. Grep by literal name.
+rc=0
+bash plugins/ravenclaude-core/scripts/guard-remediation-cause.sh --self-test >/dev/null 2>&1 || rc=$?
+gate "remediation gate: fires on remediate, allows on discriminate, ledger read, empty escape refused" must_pass "$rc"
+rc=0
+bash plugins/ravenclaude-core/scripts/guard-remediation-cause.sh --must-fail >/dev/null 2>&1 || rc=$?
+gate "remediation --must-fail: neutering the discriminate arm makes a plain read fire" must_pass "$rc"
 
 echo
 
