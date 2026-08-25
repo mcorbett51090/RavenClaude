@@ -2851,7 +2851,7 @@
       "covers": [
         "plugins/ravenclaude-core/hooks/hooks.json"
       ],
-      "covers_digest": "sha256:f1bd0791180b9150b40e1d0d58b8ff95c3dc610d22a8ca791db4592ae81ee3b5",
+      "covers_digest": "sha256:6e3eb8064e12834b26921001abc5a9a1a65066fc1190cb8c4cfff8ae530023d2",
       "nuance": "Two `additionalContext` emitters on one event concatenate rather than last-write-wins, but two `updatedToolOutput` emitters replace, so the second silently discards the first.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -2958,7 +2958,7 @@
         "scripts/inventory-coverage.py",
         "scripts/inventory-nuance-judge.py"
       ],
-      "covers_digest": "sha256:92fbae68b5d66e65243935c0796fc977460a547881f52f85adb8cd9a7fffc6d0",
+      "covers_digest": "sha256:df9a50b522188cae301035d3b97af59d60c53bf26ae00251e8c9f878a5677daf",
       "nuance": "The teeth bit is the exit a tool own CHECK returns on a planted defect, never the exit `--must-fail` itself returns: `premise-gate.py` denies at `exit 0` while `sync-plugin-versions.py` reddens at `exit 2`, so an auditor that hard-codes one number can never be right for both.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3388,11 +3388,12 @@
       "entry_class": "inventory",
       "covers": [
         "plugins/ravenclaude-core/scripts/build-outcome-corpus.py",
+        "plugins/ravenclaude-core/scripts/guard-cause-closure.sh",
         "plugins/ravenclaude-core/scripts/guard-remediation-cause.sh",
         "plugins/ravenclaude-core/scripts/preflight-command-review.sh",
         "plugins/ravenclaude-core/scripts/replay-outcome-rules.py"
       ],
-      "covers_digest": "sha256:757c67a4493e87e565ceeaf2e8eb6cc30a6614c310e676b00a8a0d6b9fd4ebd7",
+      "covers_digest": "sha256:aa8f6c84b60bfc4c21a122a9caa76adc826bd7e24ca34ab4bf2c890915630338",
       "nuance": "Two of five drafted pre-flight rules name a result that CAME BACK EMPTY — which a `PreToolUse` hook cannot know — so their offline fire rates scored a field absent at fire time; re-measured lexically, one went from 1.43% to 8.28%.",
       "nuance_evidence": {
         "measured": "2026-08-25",

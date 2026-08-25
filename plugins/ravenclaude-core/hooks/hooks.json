@@ -177,6 +177,11 @@
           {
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/enforce-portability.sh"
+          },
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/guard-cause-closure.sh",
+            "comment": "verify-before-assert Phase 6 — the SECOND fail-closed surface. Asks whether the ALTERNATIVE CAUSE SET IS CLOSED, a different axis from guard-premise.sh's T-PROSE (which asks whether a control is CITED). A diagnosis can cite a real control and still be the wrong member of an unenumerated set. Ships at `warn` behind cause_closure; absent posture is a no-op; blindness advises and never denies."
           }
         ]
       }

@@ -199,6 +199,11 @@
           {
             "type": "command",
             "command": "${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/enforce-portability.sh"
+          },
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/scripts/guard-cause-closure.sh",
+            "comment": "Marketplace-dev mirror of the plugin's Phase 6 cause-closure gate."
           }
         ]
       }

@@ -82,7 +82,10 @@ const RC_BASELINE = {
   //        19 -> 22: premise-gate.py + classify_claim.py + check-design-schema.py
   //                  (v0.263.0, PR 3b packaging move)
   scenarios: 4,
-  hooks: 41, // 40 -> 41: guard-remediation-cause.sh WIRED on PreToolUse(Bash) —
+  hooks: 42, // 41 -> 42: guard-cause-closure.sh WIRED on PreToolUse(Write|Edit|
+  //   MultiEdit) — verify-before-assert Phase 6, the SECOND fail-closed surface,
+  //   shipping at `warn`. Same scripts/-plus-`bash` packaging as its siblings.
+  //        40 -> 41: guard-remediation-cause.sh WIRED on PreToolUse(Bash) —
   //   verify-before-assert Phase 5, THE PRIMARY D1 GATE, shipping at `warn`. Same
   //   scripts/-plus-`bash` packaging as its sibling below, for the same reason.
   //        39 -> 40: preflight-command-review.sh WIRED on PreToolUse(Bash) —

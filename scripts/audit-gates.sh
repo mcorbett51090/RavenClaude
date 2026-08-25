@@ -638,6 +638,13 @@ PY
         --must-fail-echo || rc=$?
       exit $rc
       ;;
+    246)
+      echo "── Gate 246: cause-closure gate — is the cause SET closed (not: is a control cited) ──"
+      rc=0
+      bash plugins/ravenclaude-core/scripts/guard-cause-closure.sh --self-test || rc=$?
+      bash plugins/ravenclaude-core/scripts/guard-cause-closure.sh --must-fail || rc=$?
+      exit $rc
+      ;;
     245)
       echo "── Gate 245: remediation-cause gate — the primary D1 surface ──"
       rc=0
@@ -1454,7 +1461,7 @@ PY
       ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -8984,6 +8991,37 @@ gate "remediation gate: fires on remediate, allows on discriminate, ledger read,
 rc=0
 bash plugins/ravenclaude-core/scripts/guard-remediation-cause.sh --must-fail >/dev/null 2>&1 || rc=$?
 gate "remediation --must-fail: neutering the discriminate arm makes a plain read fire" must_pass "$rc"
+
+echo
+echo "── Gate 246: cause-closure gate — is the cause SET closed ─────────────────"
+# ⛔ G6.2 IS THE HIGHEST-VALUE ASSERTION HERE AND IT IS A STANDING REGRESSION,
+# NOT A ONE-TIME PRE-BUILD CHECK. The gate's REAL detection bytes are run against
+# the FULL TEXT of knowledge/cause-taxonomy.md and knowledge/verification-
+# discipline.md — the two documents whose entire purpose is to contain
+# subject + defect-predicate + date sentences. They are the worst case BY
+# CONSTRUCTION. Zero denies on both, or this gate blocks its own repair the first
+# time somebody edits the taxonomy, which is the trap this repo has hit
+# repeatedly ("the guard blocks its own repair", 5 blocks to change one regex).
+#
+# ⛔ A RELOCATED COPY OF THIS GATE SILENTLY GATES NOTHING. Conjunct 2 shells out
+# to the SIBLING classify_claim.py; a copy running from a temp path finds no
+# sibling, hits an os.path.exists guard and exits 0 while still reading its
+# posture and returning success. control: the mutant produced no output even on a
+# payload carrying NO escape, while the same program with the real module dir
+# emitted its fire verdict. --must-fail therefore passes RC_GCC_MODULE_DIR
+# explicitly; without it the teeth would be measuring path resolution.
+#
+# ⛔ Edit and MultiEdit carrying IDENTICAL prose must reach an IDENTICAL verdict.
+# A gate that reads only `content` inspects Write and waves Edit through — the
+# tool-switch tunnel guard-premise.sh had to close on 2026-08-13.
+#
+# ⛔ Registered in dispatcher + main sequence + Supported:. Grep by literal name.
+rc=0
+bash plugins/ravenclaude-core/scripts/guard-cause-closure.sh --self-test >/dev/null 2>&1 || rc=$?
+gate "closure gate: fires unclosed, both escape dialects clear, Edit/MultiEdit parity, G6.2 zero-denies" must_pass "$rc"
+rc=0
+bash plugins/ravenclaude-core/scripts/guard-cause-closure.sh --must-fail >/dev/null 2>&1 || rc=$?
+gate "closure --must-fail: neutering the escape makes an escaped write fire" must_pass "$rc"
 
 echo
 
