@@ -3127,3 +3127,80 @@ DOM-budget ratchet is untouched (a 10-char date replacing a 10-char date changes
 
 **Migration:** none — knowledge-freshness metadata only; nothing in an installed plugin behaves differently
 on `/plugin marketplace update`.
+
+## ⛔ A stall has no turn boundary, so no hook can see one (added 2026-08-25, v0.301.0)
+
+A session wedged for **six hours** with four prompts queued behind it. The turn never ended, so
+nothing in this repo's guardrail set ever fired. That is not a gap in the hooks — it is a property
+of what a hook IS.
+
+control: the same enumeration returned **39 hooks across 6 event types**, so an empty in-turn set is
+the event map and not a failed read.
+Measured 2026-08-25: every registered hook fires on a turn or tool boundary (`SessionStart`,
+`UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `SubagentStart`, `Stop`). A stall is **defined** by
+the absence of a turn boundary, so it is unobservable from any of them.
+
+⛔ **The sharpest instance is the guard built for exactly this case.** `handoff-nudge.sh` exists to
+nudge a context-hot session toward a handoff, and it is a **`Stop`** hook. If the turn never stops it
+never runs — the one hook authored for a hot window is structurally silent during the failure it was
+written for. **Do not try to build a hook for this class.** Detection has to live in a separate
+process on a timer, which is what `scripts/stall_watch.py` + the LaunchAgent are.
+
+### ⛔ The observable is last-ASSISTANT-record age. Every alternative fails toward "looks alive"
+
+| candidate | measured failure |
+|---|---|
+| last-entry-of-ANY-type | **masked the real stall by 44.3 min** — the owner's queued prompts and a product-generated `system/away_summary` reset the clock. The stalled session's last SIX timestamped records contain **zero** assistant records. Typing into a session you suspect is stuck silences a last-any detector for a full window, so investigating hides the thing being investigated. |
+| file mtime | diverges from the last entry by up to **100 min** in the looks-alive direction; **99.03%** of transcripts end in an UNTIMESTAMPED record |
+| registry `statusUpdatedAt` | a genuine but COARSE progress signal at a **~17-min bump cadence** — **NOT** the "transition latch" two short samples (90s, 120s) concluded. It is superseded, not inert: the assistant-record distribution has **p99.9 = 4.52 min** |
+
+Threshold 20 min: only **4 of 128,130** within-turn gaps before an assistant record reach 20 min
+(0.003%). An earlier figure of 13.15 min was wrong because it included between-turn idle.
+
+### ⛔ `~/.claude/sessions/<pid>.json` — an undocumented live registry, and what it is NOT
+
+`{sessionId, pid, status: busy|idle|waiting, statusUpdatedAt, procStart, cwd, version}`. Exited
+sessions leave no file (3 files vs 2,055 transcripts), and it is the **only** pid↔session↔cwd map.
+
+- ⛔ **SIGKILL ORPHANS IT.** Measured: `.json`/`.key`/`.sock` all survive `kill -9`, with a clean-exit
+  positive control that DID remove them. **Registry presence never proves a session runs**, so dedup
+  state is retained rather than demoted.
+- ⛔ `procStart` renders **UTC** while `ps` prints **local** — a naive identity check mismatches on
+  every session and fails toward SILENCE. Use `ps -o etime=`, a timezone-free duration.
+- The `*.key` siblings are `0600` secrets and are never opened.
+
+### Resolution must be observable, and there is no mute
+
+The ladder never reaches zero (a real ongoing stall must not go quiet), so an episode that is never
+closed nags forever. "Ended" is therefore something the watchdog can SEE:
+`resolved := a new assistant record OR the process is gone OR the registry reports idle`. There is
+deliberately **no acknowledge/mute** — a mute button on a detector is the thing that gets used.
+
+### Gate 244 — one slot, six check groups
+
+Each must-fail half is **proven to flip**: the masking mutant drops a naive detector to 1.0 min while
+the whitelist detector still reads 141.0 min. Fixtures are **derived skeletons** — timestamps and
+record types only, 14.7 MB → 606 KB — because raw transcripts carry credentials and fetched web
+bodies and must never be committed. The mechanism detail lives in the inventory concept
+[`stall-has-no-turn-boundary`](knowledge/concepts/stall-has-no-turn-boundary.md).
+
+⛔ **A gate that reads the host's timezone is red on CI forever.** Check 246b compared against local
+time and refused to discriminate on a UTC host — and CI runners are UTC, so the gate passed locally
+(16/16) and could never go green in CI. The instinct (refuse a vacuous pass) was right; converting it
+into a hard failure was not. It now **imposes** a zone, so it discriminates everywhere instead of
+abstaining somewhere.
+
+### Open, stated rather than implied
+
+- **C13 unsettled** — whether a LaunchAgent-fired banner is VISIBLE cannot be observed
+  programmatically: Focus state and the Notification Center DB are **both TCC-denied**, each
+  positive-controlled. Owner-gated; the banner is capped behind `banner_enabled`, default off.
+- **P7 install sign-off incomplete** — until the owner subscribes to the sink, every tick returns
+  "accepted by the sink", which is **not** "reached a human". A 200 from a zero-subscriber topic is
+  still a 200.
+- **C17 generalization pending** — the backtest is n=4 with one positive. `soak.jsonl` accumulates the
+  forward series (derived values only, capped) because the heartbeat is overwritten each tick and a
+  snapshot cannot answer a generalization question.
+
+**Migration:** none — a new out-of-session tool plus one gate; nothing in an installed plugin behaves
+differently on `/plugin marketplace update`. The LaunchAgent is opt-in via `install_stall_watch.py`.
