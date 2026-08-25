@@ -79,6 +79,14 @@ PROJECTS_DIR = os.path.join(HOME, ".claude", "projects")
 STATE_DIR = os.path.join(HOME, ".claude", "stall-watch")
 STATE_PATH = os.path.join(STATE_DIR, "state.json")
 HEARTBEAT_PATH = os.path.join(STATE_DIR, "heartbeat.json")
+# ⛔ THE HEARTBEAT IS NOT A SOAK: it is overwritten every tick, so after days it
+# holds one snapshot. C17's open question is whether the detector GENERALIZES
+# beyond the 4 frozen fixtures, and a single snapshot cannot answer that. The
+# soak log is the append-only series. Capped by bytes, because a log that fills
+# a disk is a tool that gets deleted.
+SOAK_PATH = os.path.join(STATE_DIR, "soak.jsonl")
+SOAK_MAX_BYTES = 2 * 1024 * 1024
+SOAK_KEEP_LINES = 5000
 SALT_PATH = os.path.join(STATE_DIR, "salt")
 
 # Read at most this much of a transcript tail. The largest on this machine is
@@ -370,6 +378,54 @@ def write_heartbeat(payload: dict):
         pass
 
 
+def append_soak(payload: dict):
+    """One derived line per tick, so the soak ACCUMULATES instead of evaporating.
+
+    ⛔ DERIVED VALUES ONLY — the same invariant as the alert payload: counts,
+    rounded integers, booleans. No session id, no path, no transcript content,
+    no command text. This file is durable and the transcripts it summarises carry
+    credentials and fetched web bodies, so nothing that could contain either is
+    written here. `silent_min` is rounded to whole minutes, which is all a
+    generalization question needs.
+    """
+    _ensure_state_dir()
+    try:
+        findings = payload.get("findings") or []
+        line = json.dumps({
+            "ts": int(payload.get("ts") or time.time()),
+            "ok": bool(payload.get("ok")),
+            "sessions": int(payload.get("sessions") or 0),
+            "findings": len(findings),
+            "alerts": len(payload.get("alerts") or []),
+            "slept": bool(payload.get("slept")),
+            "silent_min": sorted(int(round(float(f.get("silent_min") or 0)))
+                                 for f in findings),
+            "notes": len(payload.get("notes") or []),
+            "receipted": bool((payload.get("reach") or {}).get("any_accepted")),
+        }, sort_keys=True)
+        with open(SOAK_PATH, "a") as fh:
+            fh.write(line + "\n")
+        _trim_soak()
+    except Exception:
+        # A soak record is evidence, never a precondition. Losing one must never
+        # cost a tick.
+        pass
+
+
+def _trim_soak():
+    try:
+        if os.path.getsize(SOAK_PATH) < SOAK_MAX_BYTES:
+            return
+        with open(SOAK_PATH) as fh:
+            lines = fh.readlines()
+        tmp = SOAK_PATH + ".tmp"
+        with open(tmp, "w") as fh:
+            fh.writelines(lines[-SOAK_KEEP_LINES:])
+        os.rename(tmp, SOAK_PATH)
+    except Exception:
+        pass
+
+
 def ladder_due(episode: dict, now: float) -> bool:
     rung = int(episode.get("rung", 0))
     last = float(episode.get("last_alert_at", 0.0))
@@ -504,7 +560,11 @@ def main(argv: list[str]) -> int:
         return 4
     finally:
         signal.alarm(0)
+        # Both run on success, no-op AND caught error alike. "Did it run" must
+        # never depend on "did it alert", and the soak series must not have holes
+        # exactly where the interesting ticks are.
         write_heartbeat(result)
+        append_soak(result)
 
 
 if __name__ == "__main__":

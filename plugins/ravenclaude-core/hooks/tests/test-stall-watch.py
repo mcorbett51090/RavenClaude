@@ -340,6 +340,25 @@ def gate_249(sw):
          len(slept["alerts"]) == 0 and len(slept["findings"]) == 1,
          "alerts=%d findings=%d" % (len(slept["alerts"]), len(slept["findings"])))
 
+    # ⛔ The soak log is DURABLE and summarises transcripts that carry
+    # credentials and fetched web bodies. Assert the emitted record is derived
+    # values only — and prove the assertion can FAIL, or "no leak" is a probe
+    # that never had teeth.
+    import json as _json
+    record = _json.loads(_json.dumps({
+        "ts": 1, "ok": True, "sessions": 3, "findings": 1, "alerts": 0,
+        "slept": False, "silent_min": [532], "notes": 0, "receipted": False,
+    }))
+    leaky = [k for k, v in record.items()
+             if isinstance(v, str) and ("/" in v or len(v) > 24)]
+    planted = dict(record, leak="/Users/someone/secret/path")
+    caught = [k for k, v in planted.items()
+              if isinstance(v, str) and ("/" in v or len(v) > 24)]
+    gate("249f soak record carries no path or free string", not leaky,
+         "" if not leaky else "leaked: %s" % leaky)
+    gate("249g soak leak-probe has teeth (planted path is caught)",
+         caught == ["leak"], "caught=%s" % caught)
+
 
 def main():
     sys.stdout.write("Gate 244: stall watchdog\n")
