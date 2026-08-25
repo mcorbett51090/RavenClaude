@@ -114,8 +114,15 @@ _RE_CMD = re.compile(
     r"(?<![\w./-])(?:bash|sh|source|python3|python)\s+['\"]?(?:\./)?"
     r"(scripts|hooks)/([A-Za-z0-9._-]+\.(?:sh|py))"
 )
+# ⛔ The lookbehind must exclude `.` and `/`, not just word characters. With
+# `(?<![\w])` a PARENT-relative path `../scripts/x.py` matches as `./scripts/x.py`
+# — the `.` before `./` is not a word char — so a correct relative citation was
+# reported as a bare marketplace-root invocation. `_RE_CMD` directly above already
+# uses `(?<![\w./-])`; when two patterns in one block disagree about scoping, the
+# looser one is the bug. Measured both directions: `../scripts/x.py` and
+# `x/./scripts/x.py` stop matching, `./scripts/audit-gates.sh` still matches.
 _RE_DOTSLASH = re.compile(
-    r"(?<![\w])\./(scripts|hooks)/([A-Za-z0-9._-]+\.(?:sh|py))"
+    r"(?<![\w./-])\./(scripts|hooks)/([A-Za-z0-9._-]+\.(?:sh|py))"
 )
 
 
@@ -249,6 +256,29 @@ def scan(repo_root):
                 if target.startswith(("http://", "https://", "#", "mailto:")):
                     hay = anchor
                 else:
+                    # ⛔ A relative link that RESOLVES to a real file inside the plugin
+                    # is resolvable by a consumer BY CONSTRUCTION, so it is not a bare
+                    # marketplace-root reference no matter what its basename looks like.
+                    # Check B above cannot make this call: it only considers the
+                    # PLUGIN-LEVEL scripts/ and hooks/, so a skill-bundled script
+                    # (plugins/<p>/skills/<s>/scripts/<f>.py — a real pattern here, in
+                    # record-screen, refine-to-rubric and authoring-org-skills) fell
+                    # through to Check C and was reported as unshipped on the strength
+                    # of its basename alone. Existence is required, so this cannot
+                    # excuse a dangling reference. The ANCHOR is skipped with the
+                    # target because an anchor is a LABEL FOR THAT TARGET, not an
+                    # independent claim — scanning it separately is what made every
+                    # such link count twice. Check B already validates the target by
+                    # resolution, which is a stronger test than a basename match.
+                    # Measured: this removed 61 candidates, every one of which had been
+                    # passing only because its basename coincidentally existed at
+                    # plugin level; the dot-slash fix removed 44 phantom invocations.
+                    # 0 violations before and after on the real tree.
+                    if "${" not in target:
+                        _res = os.path.normpath(os.path.join(fdir, target))
+                        if (_res.startswith(plugin_abs + os.sep)
+                                and os.path.isfile(_res)):
+                            continue
                     hay = anchor + " " + target
                 for kind, name in _RE_PATHTOKEN.findall(hay):
                     candidates.append((kind, name))

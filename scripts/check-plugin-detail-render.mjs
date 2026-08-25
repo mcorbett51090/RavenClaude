@@ -55,7 +55,8 @@ const ISLANDED_AGENT_KEYS = ["scenarios", "quickstart", "works_with"];
 const RC = "ravenclaude-core";
 const RC_BASELINE = {
   agents: 15,
-  skills: 54, // 53 -> 54: skills/session-handoff (v0.266.0, context-quality reset)
+  skills: 55, // 54 -> 55: skills/authoring-org-skills (org-skill studio, Phase 5)
+  //        53 -> 54: skills/session-handoff (v0.266.0, context-quality reset)
   //        52 -> 53: skills/design-clone (v0.253.0, design-schema capture+apply)
   //        51 -> 52: skills/github-gold-standard (v0.246.0, the gold-standard scorecard)
   tools: 32, // 30 -> 32: set_conservation.py + ledger.py (task-ledger Phases 0-2).

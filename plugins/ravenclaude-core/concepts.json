@@ -2897,7 +2897,7 @@
         "scripts/sync-plugin-versions.py",
         "scripts/generate-copilot-plugin.py"
       ],
-      "covers_digest": "sha256:9005434b13e69c5bc81152c05c88ede44acb09a65e67afc2063e1421366de59e",
+      "covers_digest": "sha256:86a747331c828bf4ead9449125349959fbfa1f2a8b605db62ce322b75e079103",
       "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -2972,6 +2972,77 @@
         "strength": "executed",
         "class": "script-selftest",
         "probe": "scripts/audit-gates.sh",
+        "teeth_exit": 1
+      },
+      "strength_badge": "Probed"
+    },
+    {
+      "id": "org-skill-tiers-are-derived",
+      "title": "An unsettled constraint ships as a WARN, not a guess",
+      "category": "Inventory — measured mechanisms",
+      "kind": "ravenclaude-built",
+      "order": 904,
+      "summary": "How the org-skill studio represents a platform constraint nobody has verified, instead of guessing one.",
+      "see_also": [],
+      "widget": null,
+      "try_it": null,
+      "node_links": {},
+      "last_verified": "2026-08-25",
+      "refresh_when": null,
+      "sources": [
+        {
+          "label": "claude.ai Organization Skills — provisioning",
+          "url": "https://support.claude.com/en/articles/13119606"
+        },
+        {
+          "label": "claude.ai skills — packaging structure",
+          "url": "https://support.claude.com/en/articles/12512198"
+        }
+      ],
+      "body_md": "# An unsettled constraint ships as a WARN, not a guess\n\nThe studio enforces claude.ai **Organization Skill** packaging — a different artifact\nfrom the Claude Code skills this repo is built from. Three of its constraints cannot be\nsettled by reading, because **Anthropic's own sources contradict each other**:\n\n| Rule | The contradiction |\n|---|---|\n| `ZP02` root layout | the org-console article is silent; the rule is inherited from the sibling personal-uploader page |\n| `ZP10` filename case | one article writes `skill.md` throughout, another and the repo write `SKILL.md` |\n| `FM09` folder-name equality | the doc says \"matches your skill's name\" and its own example pairs `Brand Guidelines` with `my-skill/` |\n\nEach could have been guessed. Guessing wrong blocks a correct archive on a coin flip,\non an artifact provisioned org-wide.\n\n## The mechanism\n\n`derive_zp02_tier()` reads the evidence file and returns the tier. **Nothing hand-sets\nit.** While the file records no settlement the rule is WARN; a recorded upload promotes\nit to FAIL. Settling is a data edit, never a code change.\n\n`derive_default_layout()` adds a second, weaker channel with a strict precedence:\n\n```\nupload-verified  >  research  >  fallback\n```\n\nResearch moves only the packer's **default**. It never promotes a tier, at any\nconfidence — and a test asserts exactly that, because the asymmetry is the whole point:\nreading a doc tells you what the platform **emits**, not what its unpacker **accepts**.\nPromoting a rule on a documentary inference would block a real archive on a conclusion\nnobody ran, which is the failure the rest of the studio exists to catch.\n\nDemotion runs the other way and is admissible: `FM09` went FAIL → WARN once Anthropic's\nown worked example was found to violate it. Removing an unjustified block needs only the\ndemonstration that the ground truth was never there; adding one needs an observation.\n\n## What the basis buys the user\n\nThe packer prints which channel it used, on every non-verified build:\n\n```\npacked out.zip (2 entries, root layout A)\nNOTE: root layout A chosen on basis 'research' — RESEARCH ONLY, NOT UPLOAD-TESTED\n      (confidence: moderate).\n```\n\nA user told \"layout A\" and not told *why* cannot tell an observation from a guess, and\nthose carry very different odds of the upload working.\n\n## Limit\n\n⛔ This makes the uncertainty **representable**, not smaller. All three rules stay\nunsettled until someone with an org owner seat uploads the two probe fixtures\n(`orgskill fixtures --out <dir>`). The mechanism's honesty is the deliverable; the\nanswer is still missing.",
+      "diagram": null,
+      "diagram_mini": null,
+      "steps": [],
+      "svg": null,
+      "svg_mini": null,
+      "entry_class": "inventory",
+      "covers": [
+        "plugins/ravenclaude-core/skills/authoring-org-skills/SKILL.md",
+        "plugins/ravenclaude-core/skills/authoring-org-skills/schemas/org-skill-rules.json",
+        "plugins/ravenclaude-core/skills/authoring-org-skills/reference/platform-constraints.md",
+        "plugins/ravenclaude-core/skills/authoring-org-skills/reference/refusals.md",
+        "plugins/ravenclaude-core/skills/authoring-org-skills/reference/ds02-markers.json",
+        "plugins/ravenclaude-core/skills/authoring-org-skills/scripts/orgskill.py",
+        "plugins/ravenclaude-core/skills/authoring-org-skills/scripts/lint_rules.py",
+        "plugins/ravenclaude-core/skills/authoring-org-skills/scripts/refusals.py",
+        "plugins/ravenclaude-core/skills/authoring-org-skills/scripts/packer.py",
+        "plugins/ravenclaude-core/skills/authoring-org-skills/scripts/derive_markers.py",
+        "plugins/ravenclaude-core/skills/authoring-org-skills/scripts/test_lint.py",
+        "plugins/ravenclaude-core/skills/authoring-org-skills/scripts/test_refusals.py",
+        "plugins/ravenclaude-core/skills/authoring-org-skills/scripts/test_pack.py",
+        "plugins/ravenclaude-core/skills/authoring-org-skills/scripts/test_procedure.py",
+        "plugins/ravenclaude-core/skills/authoring-org-skills/templates/skeleton/SKILL.md",
+        "plugins/ravenclaude-core/skills/authoring-org-skills/templates/skeleton/reference/details.md",
+        "plugins/ravenclaude-core/skills/authoring-org-skills/templates/examples/drafting-customer-replies/SKILL.md",
+        "plugins/ravenclaude-core/skills/authoring-org-skills/templates/examples/drafting-customer-replies/reference/categories.md",
+        "plugins/ravenclaude-core/skills/authoring-org-skills/templates/examples/drafting-customer-replies/reference/tone.md",
+        "plugins/ravenclaude-core/skills/authoring-org-skills/templates/examples/screening-vendor-invoices/SKILL.md",
+        "plugins/ravenclaude-core/skills/authoring-org-skills/templates/examples/screening-vendor-invoices/reference/tolerances.md"
+      ],
+      "covers_digest": "sha256:8139a1422d1d0ab1fbee7a0d713fa0e6e3d39dc50679b58fa0e02a28f2ca3d9a",
+      "nuance": "A rule's tier is READ from `reference/platform-constraints.md`, never hand-set, so a constraint the vendor contradicts itself on ships as WARN instead of a guess. Research moves the packer's default and never the tier: docs say what the platform emits, not what its unpacker accepts.",
+      "nuance_evidence": {
+        "measured": "2026-08-25",
+        "control": "settled:yes plus accepted_layout promotes the tier to fail; settled:yes alone does not; and research at strong confidence moved the default while the tier stayed warn",
+        "falsifier": "a tier that changes without an edit to the evidence file, or research promoting one",
+        "probe": "plugins/ravenclaude-core/skills/authoring-org-skills/scripts/test_pack.py"
+      },
+      "nuance_source": "plugins/ravenclaude-core/skills/authoring-org-skills/scripts/packer.py:34-100",
+      "verify": {
+        "tier": "effect",
+        "strength": "executed",
+        "class": "static-resolution",
+        "probe": "plugins/ravenclaude-core/skills/authoring-org-skills/scripts/test_pack.py",
         "teeth_exit": 1
       },
       "strength_badge": "Probed"
