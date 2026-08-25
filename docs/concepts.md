@@ -2339,6 +2339,74 @@ _Last verified: 2026-08-24_
 
 ---
 
+### An unsettled constraint ships as a WARN, not a guess · _RavenClaude-built_
+
+> How the org-skill studio represents a platform constraint nobody has verified, instead of guessing one.
+
+# An unsettled constraint ships as a WARN, not a guess
+
+The studio enforces claude.ai **Organization Skill** packaging — a different artifact
+from the Claude Code skills this repo is built from. Three of its constraints cannot be
+settled by reading, because **Anthropic's own sources contradict each other**:
+
+| Rule | The contradiction |
+|---|---|
+| `ZP02` root layout | the org-console article is silent; the rule is inherited from the sibling personal-uploader page |
+| `ZP10` filename case | one article writes `skill.md` throughout, another and the repo write `SKILL.md` |
+| `FM09` folder-name equality | the doc says "matches your skill's name" and its own example pairs `Brand Guidelines` with `my-skill/` |
+
+Each could have been guessed. Guessing wrong blocks a correct archive on a coin flip,
+on an artifact provisioned org-wide.
+
+## The mechanism
+
+`derive_zp02_tier()` reads the evidence file and returns the tier. **Nothing hand-sets
+it.** While the file records no settlement the rule is WARN; a recorded upload promotes
+it to FAIL. Settling is a data edit, never a code change.
+
+`derive_default_layout()` adds a second, weaker channel with a strict precedence:
+
+```
+upload-verified  >  research  >  fallback
+```
+
+Research moves only the packer's **default**. It never promotes a tier, at any
+confidence — and a test asserts exactly that, because the asymmetry is the whole point:
+reading a doc tells you what the platform **emits**, not what its unpacker **accepts**.
+Promoting a rule on a documentary inference would block a real archive on a conclusion
+nobody ran, which is the failure the rest of the studio exists to catch.
+
+Demotion runs the other way and is admissible: `FM09` went FAIL → WARN once Anthropic's
+own worked example was found to violate it. Removing an unjustified block needs only the
+demonstration that the ground truth was never there; adding one needs an observation.
+
+## What the basis buys the user
+
+The packer prints which channel it used, on every non-verified build:
+
+```
+packed out.zip (2 entries, root layout A)
+NOTE: root layout A chosen on basis 'research' — RESEARCH ONLY, NOT UPLOAD-TESTED
+      (confidence: moderate).
+```
+
+A user told "layout A" and not told *why* cannot tell an observation from a guess, and
+those carry very different odds of the upload working.
+
+## Limit
+
+⛔ This makes the uncertainty **representable**, not smaller. All three rules stay
+unsettled until someone with an org owner seat uploads the two probe fixtures
+(`orgskill fixtures --out <dir>`). The mechanism's honesty is the deliverable; the
+answer is still missing.
+
+**Sources:** [claude.ai Organization Skills — provisioning](https://support.claude.com/en/articles/13119606) · [claude.ai skills — packaging structure](https://support.claude.com/en/articles/12512198)
+
+_Last verified: 2026-08-25_
+
+
+---
+
 ### A failing Bash tool_response · _RavenClaude-built_
 
 > What a post-failure hook can and cannot read after a Bash call fails.
