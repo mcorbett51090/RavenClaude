@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """install_stall_watch.py — install the stall watchdog as a macOS LaunchAgent.
 
 TWO DESIGN CONSTRAINTS THAT ARE NOT NEGOTIABLE.

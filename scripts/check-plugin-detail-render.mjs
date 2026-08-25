@@ -59,7 +59,14 @@ const RC_BASELINE = {
   //        53 -> 54: skills/session-handoff (v0.266.0, context-quality reset)
   //        52 -> 53: skills/design-clone (v0.253.0, design-schema capture+apply)
   //        51 -> 52: skills/github-gold-standard (v0.246.0, the gold-standard scorecard)
-  tools: 32, // 30 -> 32: set_conservation.py + ledger.py (task-ledger Phases 0-2).
+  tools: 35, // 32 -> 35: stall_watch.py + stall_reach.py + install_stall_watch.py
+  //   (the out-of-session stall watchdog, v0.300.0). COUNTED on this tree: the gate
+  //   read 35 against a base of 32 and the three scripts are the whole delta.
+  //   test-stall-watch.py is NOT counted — it lives in hooks/tests/, not scripts/.
+  //   Base verified current: this branch is 0 commits behind origin/main at author
+  //   time, so 32 is not a stale ratchet inherited from a concurrent PR (see the
+  //   reconciliation note below for why that check is not optional here).
+  //        30 -> 32: set_conservation.py + ledger.py (task-ledger Phases 0-2).
   //   set_conservation.py is the SSOT Set-Conservation Primitive, shared with the
   //   sibling verify-before-assert run (set_kind in {open_items, causes}); ledger.py
   //   is the append primitive + the projection. COUNTED on this tree, not inferred.

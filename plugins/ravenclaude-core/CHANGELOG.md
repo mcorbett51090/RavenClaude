@@ -2,6 +2,58 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.300.0 — 2026-08-25
+
+### Added
+
+- **Stall watchdog** — an out-of-session detector for wedged Claude Code sessions
+  (`scripts/stall_watch.py` + `scripts/stall_reach.py` + `scripts/install_stall_watch.py`),
+  installed as a macOS LaunchAgent on a 300s interval. Verified end-to-end under launchd against a
+  real 174-minute stall: detected, `0600` secret read from the launchd context, sink returned
+  **HTTP 200**, escalation rung advanced only after the receipt.
+
+  **Why this cannot be a hook, measured:** all 39 registered hooks fire on a turn or tool boundary
+  (SessionStart 9, PreToolUse 12, PostToolUse 10, UserPromptSubmit 2, SubagentStart 1, Stop 5). A
+  stall is *defined* by the absence of a turn boundary. `handoff-nudge.sh` — the guard built for a
+  hot window — is a **Stop** hook: if the turn never stops it never runs. Detection must come from
+  outside the process.
+
+  **The observable is last-ASSISTANT-record age.** Every alternative failed toward "looks alive",
+  which is the dangerous direction: last-entry-of-any-type **masked the real stall by 44.3 min**
+  (the owner's own queued prompts plus a product-generated `system/away_summary` reset the clock —
+  the stalled session's last six timestamped records contain *zero* assistant records); file mtime
+  diverges up to 100 min the same way, and 99.03% of transcripts end in an untimestamped record;
+  registry `statusUpdatedAt` is a genuine but coarse progress signal (~17-min bump cadence, measured
+  over 35 samples — **not** the "transition latch" an earlier analysis claimed) and is simply
+  superseded, since the assistant-record distribution has p99.9 = 4.52 min.
+
+  **The registry (`~/.claude/sessions/<pid>.json`) is used for liveness and idle-exclusion only.**
+  It does *not* close the killed-session class structurally: `SIGKILL` **orphans** the `.json`/`.key`/
+  `.sock` (measured, with a clean-exit positive control that *did* remove them), so dedup state is
+  retained rather than demoted.
+
+  Security invariants: the webhook URL never enters `argv` (`curl --config` over a `0600` file —
+  `ps -Ao args` would otherwise expose it 288×/day, and a real bootstrapped LaunchAgent sees only 12
+  env vars with `RAVENCLAUDE_NOTIFY_WEBHOOK` **absent**); no untrusted text is ever interpolated into
+  `osascript` (a cloned repo names its own directory); payloads carry a salted-hash project key and
+  validated integers only. `scripts/notify.sh` is deliberately **not** reused — its
+  `curl … >/dev/null 2>&1 || true` discards the HTTP status that is the entire justification for the
+  channel. A 2xx means "accepted by the sink", never "a human saw it"; a zero-subscriber topic
+  returns 200, and that limit is carried as an explicit accepted-risk waiver.
+
+- **Gate 244** (`hooks/tests/test-stall-watch.py`) — one gate slot, five check groups, each with a
+  must-fail half **proven to flip**: the RT-2 mutant drops a naive detector to 1.0 min (a miss) while
+  the whitelist detector still reads 141.0 min; widening the whitelist moves the answer 141.0 → 96.7;
+  the `time.mktime` variant differs by the zone offset, so the UTC bug is detectable here. Registered
+  in `scripts/audit-gates.sh` in **both** the `--check` dispatcher and the main sequence, and verified
+  to *bite* (mutating the observable turns it red) — a gate no workflow invokes and a gate that cannot
+  fail are both this repo's documented silent-green classes.
+
+- **Frozen fixtures** (`tests/fixtures/stall-watchdog/`) — derived skeletons of one positive and three
+  negative sessions, **timestamps and record types only, no message content**: raw transcripts carry
+  credentials, tool output and fetched web bodies and must never be committed. 14.7 MB → 606 KB, and
+  the skeletons reproduce the ground truth including the 44.3-min masking effect.
+
 ## 0.298.0 — 2026-08-24
 
 ### Changed

@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """stall_reach.py — the reach layer for stall_watch.
 
 THREE MEASURED CONSTRAINTS SHAPE THIS FILE.
@@ -35,7 +34,6 @@ import os
 import re
 import subprocess
 import tempfile
-from typing import Dict, List, Optional, Tuple
 
 HOME = os.path.expanduser("~")
 STATE_DIR = os.path.join(HOME, ".claude", "stall-watch")
@@ -49,11 +47,11 @@ DEFAULT_CONNECT_TIMEOUT = 5
 DEFAULT_MAX_TIME = 15
 
 
-def load_sinks() -> Dict:
+def load_sinks() -> dict:
     try:
-        with open(SINKS_PATH, "r") as fh:
+        with open(SINKS_PATH) as fh:
             return json.load(fh)
-    except IOError:
+    except OSError:
         return {"sinks": []}
     except ValueError:
         return {"sinks": [], "error": "sinks.json unparseable"}
@@ -65,11 +63,11 @@ def _assert_safe(value: str, field: str) -> str:
     return value or ""
 
 
-def build_message(alerts: List[Dict]) -> Tuple[str, str]:
+def build_message(alerts: list[dict]) -> tuple[str, str]:
     """Fixed template + validated integers + salted hashes. Nothing else."""
     if not alerts:
         return ("Claude stall watchdog", "No stalled sessions.")
-    first = alerts[0]
+    alerts[0]
     title = "Claude session stalled"
     parts = []
     for a in alerts:
@@ -91,7 +89,7 @@ def build_message(alerts: List[Dict]) -> Tuple[str, str]:
     return (title, "\n".join(parts))
 
 
-def _curl_config(sink: Dict, title: str, body: str, cfg: Dict) -> str:
+def _curl_config(sink: dict, title: str, body: str, cfg: dict) -> str:
     """Build a curl --config document. The URL lives HERE, not in argv."""
     url = sink.get("url") or ""
     lines = [
@@ -116,7 +114,7 @@ def _curl_config(sink: Dict, title: str, body: str, cfg: Dict) -> str:
     return "\n".join(lines) + "\n"
 
 
-def send_one(sink: Dict, title: str, body: str, cfg: Dict) -> Dict:
+def send_one(sink: dict, title: str, body: str, cfg: dict) -> dict:
     """Returns a receipt. `http_code` is the only evidence of anything."""
     name = sink.get("name") or sink.get("kind") or "sink"
     if not sink.get("enabled") or not sink.get("url"):
@@ -147,7 +145,7 @@ def send_one(sink: Dict, title: str, body: str, cfg: Dict) -> Dict:
             pass
 
 
-def dispatch(alerts: List[Dict]) -> Dict:
+def dispatch(alerts: list[dict]) -> dict:
     """Send to every enabled sink. Returns receipts and whether ANY sink
     accepted — the ladder advances on receipt, never on attempt, because the
     attempt branch reintroduces exactly the silent miss this tool exists to

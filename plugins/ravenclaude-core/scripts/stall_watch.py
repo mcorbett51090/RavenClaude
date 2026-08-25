@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """stall_watch.py — out-of-session detector for wedged Claude Code sessions.
 
 WHY THIS IS NOT A HOOK (the finding the whole tool rests on):
@@ -41,7 +40,6 @@ import signal
 import subprocess
 import sys
 import time
-from typing import Dict, List, Optional, Tuple
 
 # ---------------------------------------------------------------------------
 # Tunables. Every default below is derived from a measurement, not a guess.
@@ -163,7 +161,7 @@ def salt() -> bytes:
             existing = fh.read().strip()
             if existing:
                 return existing
-    except IOError:
+    except OSError:
         pass
     value = hashlib.sha256(os.urandom(32)).hexdigest().encode("ascii")
     _ensure_state_dir()
@@ -199,7 +197,7 @@ def pid_alive(pid) -> bool:
         return False
 
 
-def proc_identity_ok(pid, recorded) -> Optional[bool]:
+def proc_identity_ok(pid, recorded) -> bool | None:
     """Guard against PID reuse.
 
     Plan A proposed comparing the registry's `procStart` against `ps` output.
@@ -219,7 +217,7 @@ def proc_identity_ok(pid, recorded) -> Optional[bool]:
         return None
 
 
-def read_registry() -> Tuple[List[Dict], List[str]]:
+def read_registry() -> tuple[list[dict], list[str]]:
     """Live-session registry. Exited sessions leave no file — 3 registry files
     against 2,055 transcripts. Health notes are returned, never swallowed."""
     notes = []  # type: List[str]
@@ -233,7 +231,7 @@ def read_registry() -> Tuple[List[Dict], List[str]]:
             continue
         path = os.path.join(SESSIONS_DIR, name)
         try:
-            with open(path, "r") as fh:
+            with open(path) as fh:
                 rec = json.load(fh)
         except Exception as exc:
             notes.append("registry_unreadable:%s:%s" % (name, type(exc).__name__))
@@ -251,7 +249,7 @@ def read_registry() -> Tuple[List[Dict], List[str]]:
     return out, notes
 
 
-def find_transcript(session_id: str) -> Optional[str]:
+def find_transcript(session_id: str) -> str | None:
     """Locate a session's main transcript.
 
     NOTE: Claude Code project directories carry a LEADING HYPHEN
@@ -270,7 +268,7 @@ def find_transcript(session_id: str) -> Optional[str]:
     return None
 
 
-def last_progress_age_min(path: str, now: float) -> Tuple[Optional[float], Dict]:
+def last_progress_age_min(path: str, now: float) -> tuple[float | None, dict]:
     """Age in minutes of the last PROGRESS record, plus diagnostics.
 
     Widens the tail read rather than concluding "no progress" from a bounded
@@ -331,13 +329,13 @@ def count_compact_boundaries(path: str) -> int:
     return total
 
 
-def load_state() -> Dict:
+def load_state() -> dict:
     """A corrupt state file is quarantined, never silently reset to {} — a
     silent reset clears the dedup ladder and re-alerts from rung 1."""
     try:
-        with open(STATE_PATH, "r") as fh:
+        with open(STATE_PATH) as fh:
             return json.load(fh)
-    except IOError:
+    except OSError:
         return {}
     except ValueError:
         stamp = time.strftime("%Y%m%dT%H%M%S")
@@ -348,7 +346,7 @@ def load_state() -> Dict:
         return {"recovered_from_corrupt": stamp, "dedup_state_lost": True}
 
 
-def save_state(state: Dict):
+def save_state(state: dict):
     _ensure_state_dir()
     tmp = STATE_PATH + ".tmp"
     with open(tmp, "w") as fh:
@@ -358,7 +356,7 @@ def save_state(state: Dict):
     os.rename(tmp, STATE_PATH)
 
 
-def write_heartbeat(payload: Dict):
+def write_heartbeat(payload: dict):
     """Written on success, no-op AND caught error alike, so 'did it run' never
     depends on 'did it alert'. A detector whose only output is an alert cannot
     be distinguished from a detector that is dead."""
@@ -372,14 +370,14 @@ def write_heartbeat(payload: Dict):
         pass
 
 
-def ladder_due(episode: Dict, now: float) -> bool:
+def ladder_due(episode: dict, now: float) -> bool:
     rung = int(episode.get("rung", 0))
     last = float(episode.get("last_alert_at", 0.0))
     wait = LADDER_MIN[rung] if rung < len(LADDER_MIN) else LADDER_MIN[-1]
     return (now - last) / 60.0 >= wait
 
 
-def evaluate(now: float, slept: bool, state: Dict) -> Dict:
+def evaluate(now: float, slept: bool, state: dict) -> dict:
     sessions, notes = read_registry()
     episodes = state.setdefault("episodes", {})
     findings = []
@@ -437,7 +435,7 @@ def evaluate(now: float, slept: bool, state: Dict) -> Dict:
             "alerts": alerts, "notes": notes, "slept": slept}
 
 
-def advance_ladder(state: Dict, alerts: List[Dict], now: float):
+def advance_ladder(state: dict, alerts: list[dict], now: float):
     """Called ONLY after a sink returned 2xx. An un-receipted alert leaves the
     rung where it is, so the next tick retries instead of going quiet."""
     episodes = state.setdefault("episodes", {})
@@ -449,7 +447,7 @@ def advance_ladder(state: Dict, alerts: List[Dict], now: float):
         episode["rung"] = min(int(episode.get("rung", 0)) + 1, len(LADDER_MIN) - 1)
 
 
-def main(argv: List[str]) -> int:
+def main(argv: list[str]) -> int:
     signal.signal(signal.SIGALRM, _alarm)
     signal.alarm(TICK_SELF_TIMEOUT_SEC)
     now = time.time()
