@@ -2897,7 +2897,7 @@
         "scripts/sync-plugin-versions.py",
         "scripts/generate-copilot-plugin.py"
       ],
-      "covers_digest": "sha256:c23e57e4d117b4760befd5d5fb68bc2b63f9b54db91445c3381529e62417edad",
+      "covers_digest": "sha256:a43e518fe334f4e38f21c7210cc8dd6c46ecb83a28831f0c241b7df264d73ac8",
       "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3273,7 +3273,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-08-20",
+      "last_verified": "2026-08-25",
       "refresh_when": null,
       "sources": [
         {
@@ -3294,7 +3294,7 @@
         "scripts/generate-dashboards.py",
         "scripts/generate-index-dashboard.py"
       ],
-      "covers_digest": "sha256:85ed55b5399f7b3c08c276ff3288b90b01309d0a70225f741c0ae9409f5155fb",
+      "covers_digest": "sha256:e3a4a3b1bf833387db72f49840ec0127c795aef2a2908f8e0c215627cc8c7ae3",
       "nuance": "`ISLANDED_PANEL_COST` is a flat 2 because the parser reads the payload as CDATA, so `check-dom-budget.py` cannot fire on `learn-payload` no matter how far past 23,861 elements it grows.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3396,7 +3396,7 @@
         "plugins/ravenclaude-core/scripts/preflight-command-review.sh",
         "plugins/ravenclaude-core/scripts/replay-outcome-rules.py"
       ],
-      "covers_digest": "sha256:d1b8c08c9903f658bdd98f54ceea2ad9a542a5018963058a600c92f8454199fb",
+      "covers_digest": "sha256:0ad41aba508da6c08fc32559ddd39bb49fc5abdf0ddca289f9f92716b3cafeab",
       "nuance": "Two of five drafted pre-flight rules name a result that CAME BACK EMPTY — which a `PreToolUse` hook cannot know — so their offline fire rates scored a field absent at fire time; re-measured lexically, one went from 1.43% to 8.28%.",
       "nuance_evidence": {
         "measured": "2026-08-25",

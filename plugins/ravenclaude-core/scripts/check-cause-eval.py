@@ -209,6 +209,45 @@ def instrument_checks():
     return fails
 
 
+_BLOCKABLE = ("cause_remediation", "cause_closure")
+_POSTURES = (
+    os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(_HERE))),
+                 ".ravenclaude", "comfort-posture.yaml"),
+    os.path.join(os.path.dirname(_HERE), "templates", "comfort-posture-balanced.yaml"),
+)
+
+
+def _blocking_knobs_set():
+    """Return findings for any seeded posture that already sets a knob to `block`.
+
+    ⛔ Phase 11 gates the `block` flips on the with-hook arm. A sentence in a plan
+    decays; this reads the files. A knob flipped early would otherwise ship a
+    fail-closed surface whose false-positive rate nobody has measured.
+    """
+    out = []
+    seen_any = False
+    for path in _POSTURES:
+        try:
+            with open(path, encoding="utf-8", errors="replace") as fh:
+                text = fh.read()
+        except OSError:
+            continue
+        seen_any = True
+        for knob in _BLOCKABLE:
+            if re.search(r"^%s:\s*block\b" % re.escape(knob), text, re.M):
+                out.append(
+                    f"{os.path.basename(path)}: {knob} is set to `block` while the "
+                    "with-hook arm is [unverified]. Phase 11 gates that flip on a "
+                    "MEASURED false-positive result; revert to `warn`."
+                )
+    if not seen_any:
+        out.append(
+            "no seeded posture found to inspect — the block-flip prohibition would "
+            "pass vacuously, which is not the same as passing"
+        )
+    return out
+
+
 def check(corpus_dir) -> int:
     fails = []
     notes = []
@@ -269,6 +308,10 @@ def check(corpus_dir) -> int:
             "with-hook arm: [unverified — awaiting live window]. NO SHIP VERDICT is "
             "emitted, and Phase 11 must not flip any knob to `block`."
         )
+        # ⛔ AND THAT PROHIBITION IS MECHANIZED, NOT EXHORTED. Phase 11 gates the
+        # `block` flips on this arm; a sentence in a plan decays, so the seeded
+        # postures are actually read and a premature flip FAILS here.
+        fails.extend(_blocking_knobs_set())
 
     for f in fails:
         print(f"FAIL: {f}")
@@ -333,8 +376,39 @@ def must_fail() -> int:
         print("MUST-FAIL VIOLATED: the UNBLINDED taxonomy also fails, so a red "
               "result is indistinguishable from the blinded case")
         return 1
-    print(f"PASS (--must-fail): blinding the probes produces {len(fails)} finding(s); "
-          "the real taxonomy is clean")
+    # ⛔ SECOND TEETH: the block-flip prohibition. A posture that already sets a
+    # blockable knob to `block` must be caught while the with-hook arm is
+    # unverified. Driven over a TEMP file rather than the real posture, because
+    # the tribunal's substrate guard denies writing a comfort-posture (correctly:
+    # that is the self-disable vector), and because a test that mutates the live
+    # posture to prove a point is its own hazard.
+    import tempfile
+    with tempfile.TemporaryDirectory() as tmp:
+        good = os.path.join(tmp, "good.yaml")
+        bad = os.path.join(tmp, "bad.yaml")
+        with open(good, "w", encoding="utf-8") as fh:
+            fh.write("cause_remediation: warn\ncause_closure: warn\n")
+        with open(bad, "w", encoding="utf-8") as fh:
+            fh.write("cause_remediation: block\ncause_closure: warn\n")
+        saved_postures = globals()["_POSTURES"]
+        try:
+            globals()["_POSTURES"] = (bad,)
+            caught = _blocking_knobs_set()
+            globals()["_POSTURES"] = (good,)
+            clean = _blocking_knobs_set()
+        finally:
+            globals()["_POSTURES"] = saved_postures
+    if not caught:
+        print("MUST-FAIL VIOLATED: a posture setting cause_remediation: block was not "
+              "caught while the with-hook arm is unverified")
+        return 1
+    if clean:
+        print("MUST-FAIL VIOLATED: an all-`warn` posture also reported findings, so a "
+              "red result is indistinguishable from the premature-flip case")
+        return 1
+
+    print(f"PASS (--must-fail): blinding the probes produces {len(fails)} finding(s), "
+          "a premature `block` flip is caught, and an all-warn posture is clean")
     return 0
 
 

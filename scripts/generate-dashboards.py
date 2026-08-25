@@ -8364,6 +8364,22 @@ _JS = r"""
   const CONTEXT_HANDOFF_MODE_DEFAULT = "off";
   const CONTEXT_HANDOFF_SPAWN_VALUES = ["copy-paste-only", "same-host", "os-terminal"];
   const CONTEXT_HANDOFF_DEFAULT = Object.freeze({ mode: "off", spawn: "", context_window_tokens: null });
+  /* Advisory scalar knobs held only so a Save round-trips them. Values are
+   * validated against each knob's OWN vocabulary, because they differ:
+   * cause_preflight has NO block value by construction (its hook scans its own
+   * source for a deny exit and fails if one appears), while cause_remediation and
+   * cause_closure do — gated behind Phase 9's measured false-positive result. */
+  const ADVISORY_KNOB_VALUES = Object.freeze({
+    probe_validity: ["off", "warn"],
+    cause_triage: ["off", "warn"],
+    cause_preflight: ["off", "warn"],
+    cause_remediation: ["off", "warn", "block"],
+    cause_closure: ["off", "warn", "block"],
+  });
+  const ADVISORY_KNOBS_DEFAULT = Object.freeze({
+    probe_validity: "", cause_triage: "", cause_preflight: "",
+    cause_remediation: "", cause_closure: "",
+  });
 
   /* Per-tier panel defaults — mirror thing-decision.py's built-in tier table.
    * Seats are forseti | mimir | heimdall (thor is the tie-breaker, never a seat).
@@ -8454,6 +8470,17 @@ _JS = r"""
      * round-trips it instead of silently dropping it. No DOM control (worktree_bound
      * pattern) — the launcher/nudge/meter own the semantics, we only preserve. */
     context_handoff: Object.assign({}, CONTEXT_HANDOFF_DEFAULT),
+    /* ⛔ ADVISORY SCALAR KNOBS — the v0.61.0 data-loss class, again.
+     * emitYaml rebuilds the WHOLE posture from state, so any top-level key with
+     * no state slot is SILENTLY DELETED on the next Save & apply. These five are
+     * held here purely so a Save round-trips them; there is no DOM control
+     * (worktree_bound / context_handoff pattern), so this costs zero elements
+     * and needs no ratchet raise.
+     * `probe_validity` was ALREADY unmodelled and already exposed: the live
+     * posture carries `probe_validity: warn` and one Save would have dropped it.
+     * The four `cause_*` knobs are Phase 11's posture seeding — without them the
+     * whole verify-before-assert mechanism is inert by default, which is CE-6. */
+    advisory_knobs: Object.assign({}, ADVISORY_KNOBS_DEFAULT),
     expanded: {},   /* category -> boolean */
   };
 
@@ -8920,6 +8947,15 @@ _JS = r"""
       const cw = parseInt(ch.context_window_tokens, 10);
       if (Number.isFinite(cw) && cw > 0) { state.context_handoff.context_window_tokens = cw; touched = true; }
     }
+    /* Advisory scalar knobs — hydrate each against its OWN vocabulary. An
+     * unknown value is DROPPED rather than canonicalized, so a Save cannot
+     * silently rewrite a knob nobody asked it to change. */
+    for (const kn of Object.keys(ADVISORY_KNOB_VALUES)) {
+      const v = src[kn];
+      if (typeof v === "string" && ADVISORY_KNOB_VALUES[kn].includes(v)) {
+        state.advisory_knobs[kn] = v; touched = true;
+      }
+    }
     const cr = src.command_review;
     if (cr && typeof cr === "object" && typeof cr.dev_repo_exempt === "boolean") {
       state.command_review.dev_repo_exempt = cr.dev_repo_exempt; touched = true;
@@ -9149,6 +9185,22 @@ _JS = r"""
       if (cthMode) lines.push(`  mode: ${cth.mode}`);
       if (cthSpawn) lines.push(`  spawn: ${cth.spawn}`);
       if (cthWin) lines.push(`  context_window_tokens: ${cth.context_window_tokens}`);
+      lines.push("");
+    }
+
+    /* Advisory scalar knobs. Emitted ONLY when set, so "absent ⇒ default" holds
+     * and an untouched posture is not bloated — but once set they SURVIVE a Save
+     * instead of being silently dropped. */
+    const knobLines = [];
+    for (const kn of Object.keys(ADVISORY_KNOB_VALUES)) {
+      const v = state.advisory_knobs[kn];
+      if (v && ADVISORY_KNOB_VALUES[kn].includes(v)) knobLines.push(`${kn}: ${v}`);
+    }
+    if (knobLines.length) {
+      lines.push("# Advisory guardrail knobs (off | warn [| block where a deny path exists]).");
+      lines.push("# Absent ⇒ the hook is a no-op. These are what make the cause");
+      lines.push("# discipline active rather than inert — see CE-6.");
+      for (const l of knobLines) lines.push(l);
       lines.push("");
     }
 
