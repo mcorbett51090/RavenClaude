@@ -2739,7 +2739,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-08-24",
+      "last_verified": "2026-08-25",
       "refresh_when": null,
       "sources": [
         {
@@ -2804,7 +2804,7 @@
         "plugins/ravenclaude-core/hooks/triage-outcome.sh",
         "plugins/ravenclaude-core/hooks/worktree-guard.sh"
       ],
-      "covers_digest": "sha256:fb7ba0c4d333d126e4fa0d811639eedaef46ae1f9d04822a0d32a00236308e87",
+      "covers_digest": "sha256:c9d44bd8b8a5a03aa4ca02bd86bde32f58d33389a758daf3e2a01d8af889ba6a",
       "nuance": "A hook writing to stderr at `exit 0` reaches the model on no event; only `hookSpecificOutput.additionalContext` and `updatedToolOutput` are delivered, so `_advise.sh` advised the terminal for its entire service life.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -2958,7 +2958,7 @@
         "scripts/inventory-coverage.py",
         "scripts/inventory-nuance-judge.py"
       ],
-      "covers_digest": "sha256:6d278186d2b1fef27935e7ae19f3b23e81522e75b4017ff1b1357573fda7dcc5",
+      "covers_digest": "sha256:edfb08d09469c000ae7c354d3908cde8220ba4b429b012865601a1e2c8a403a7",
       "nuance": "The teeth bit is the exit a tool own CHECK returns on a planted defect, never the exit `--must-fail` itself returns: `premise-gate.py` denies at `exit 0` while `sync-plugin-versions.py` reddens at `exit 2`, so an auditor that hard-codes one number can never be right for both.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3058,7 +3058,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-08-20",
+      "last_verified": "2026-08-25",
       "refresh_when": null,
       "sources": [
         {
@@ -3076,7 +3076,7 @@
       "covers": [
         "plugins/ravenclaude-core/hooks/triage-outcome.sh"
       ],
-      "covers_digest": "sha256:f45e2316e468541f1fee67d4583060a01fc048e8f0cdd10b05a7cba10ef6a36c",
+      "covers_digest": "sha256:9a2df20ae75bb49090262342007b0a89fee94d0c4f62e7a9099fc5ce09dc9ed2",
       "nuance": "A failing Bash `tool_response` carries no exit-code field at all, so a hook that branches on `.tool_response.exit_code` never fires; `triage-outcome.sh` reads stream shape instead.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3467,7 +3467,7 @@
         "plugins/ravenclaude-core/scripts/preflight-command-review.sh",
         "plugins/ravenclaude-core/scripts/replay-outcome-rules.py"
       ],
-      "covers_digest": "sha256:0ad41aba508da6c08fc32559ddd39bb49fc5abdf0ddca289f9f92716b3cafeab",
+      "covers_digest": "sha256:66873f80c86e496070a4f90887b59ef7cfaad1dcefa3ad9ea3394f3770b10cb1",
       "nuance": "Two of five drafted pre-flight rules name a result that CAME BACK EMPTY — which a `PreToolUse` hook cannot know — so their offline fire rates scored a field absent at fire time; re-measured lexically, one went from 1.43% to 8.28%.",
       "nuance_evidence": {
         "measured": "2026-08-25",

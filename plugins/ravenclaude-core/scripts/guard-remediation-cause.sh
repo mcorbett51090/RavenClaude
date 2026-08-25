@@ -308,6 +308,26 @@ def escape_present(raw):
     return bool(m.group(1).strip()) and bool(m.group(2).strip())
 
 
+def escape_class(raw):
+    """The VALIDATED class id from an accepted escape, or None.
+
+    ⛔ Returns the id ONLY -- never the probe text. The probe half comes from the
+    raw command and is untrusted; this value is written into the durable ledger,
+    and the ledger's own header records a live injection path from re-emitting
+    command-derived text. The id is re-validated against the closed class set
+    even though the pattern already constrains it, because the value crossing
+    into storage should not depend on a regex two hundred lines away staying
+    narrow.
+    """
+    m = _CAUSE_OK.search(raw)
+    if not m:
+        return None
+    cid = (m.group(1) or "").strip()
+    if not cid or not m.group(2).strip():
+        return None
+    return cid if re.fullmatch(r"[EFGHI][0-9]{1,2}", cid) else None
+
+
 scope = rc_scope_key(cwd, proj)
 sess = os.path.join(proj, ".ravenclaude", "runs", "cause-triage", sid)
 run = os.path.join(sess, "scopes", scope)
@@ -400,7 +420,44 @@ if match is None:
     sys.exit(0)
 if not is_remediating(cmd):            # conjunct 3
     sys.exit(0)
-if escape_present(cmd):                # conjunct 5
+_esc_cid = escape_class(cmd)           # conjunct 5
+if _esc_cid or escape_present(cmd):
+    # ⛔ SETTLE THE ROW. Without this, NOTHING in production ever writes
+    # `discriminated`: the only non-fixture write is triage-outcome.sh's
+    # hardcoded `"discriminated": None`, so `settled` was permanently EMPTY and
+    # conjunct 4 -- "no discriminating result for S" -- was a production
+    # CONSTANT. The gate ran, read the ledger and exited 0, which is why it
+    # looked like a working conjunct. Two costs: the owner had to re-mark the
+    # same subject on every remediating command forever, and the ledger could
+    # never answer "was this cause ever discriminated?" -- the question it
+    # exists to answer.
+    #
+    # Append-only, matching the ledger's own discipline: a settling row rather
+    # than a rewrite, so there is no read-modify-write race with the PostToolUse
+    # writer appending concurrently. The join is on the RAW subject because
+    # `settled` is built from raw subjects.
+    #
+    # Only the validated class id is stored. The probe half is untrusted command
+    # text and is deliberately NOT persisted.
+    if _esc_cid and match is not None:
+        import time as _time
+        try:
+            with open(ledger, "a", encoding="utf-8") as _fh:
+                _fh.write(json.dumps({
+                    "ts": int(_time.time()),
+                    "subject": match.get("subject") or "",
+                    "verdict": "discriminated",
+                    "candidate_ids": [c for c in (match.get("candidate_ids") or [])
+                                      if re.fullmatch(r"[EFGHI][0-9]{1,2}", str(c))],
+                    "discriminated": _esc_cid,
+                    "tool_use_id": "",
+                    "scope": scope,
+                }) + "\n")
+        except OSError:
+            # Fail OPEN: the escape was valid, so the command proceeds whether or
+            # not the ledger could be updated. A settle that cannot be written is
+            # a lost convenience, never grounds to block accepted work.
+            pass
     sys.exit(0)
 
 print(json.dumps({

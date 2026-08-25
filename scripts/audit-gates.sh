@@ -9237,7 +9237,14 @@ gate "plugin scripts/ shell syntax: every plugins/*/scripts/*.sh parses" must_pa
 # correctly reported that these teeth do not bite.
 # control: two canaries in one dir, one dotted and one not -> the glob matched 1.
 _synbad="plugins/ravenclaude-core/scripts/zz_syntax_canary.sh"
-printf '#!/usr/bin/env bash\nif [ "x" = "x" ; then :; fi\n' > "$_synbad"
+# ⛔ THE CANARY MUST BE A PARSE ERROR, NOT A RUNTIME ONE. The first version
+# planted `if [ "x" = "x" ; then :; fi` — a missing `]`. But `[` is a COMMAND,
+# so a missing `]` fails at RUN time while `bash -n` only PARSES, and returns 0.
+# The gate therefore planted a defect its own probe could not detect, and the
+# must_fail half reported rc=0 forever — a teeth half with no teeth, on a branch
+# whose review was about exactly that class.
+# control: `bash -n` on the old canary -> 0; on this unterminated `if` -> 2.
+printf '#!/usr/bin/env bash\nif [ "x" = "x" ]; then :;\n' > "$_synbad"
 rc=0
 for _f in plugins/*/scripts/*.sh; do
   [ -e "$_f" ] || continue
