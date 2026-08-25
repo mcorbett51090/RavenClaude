@@ -58,7 +58,12 @@ const RC_BASELINE = {
   skills: 54, // 53 -> 54: skills/session-handoff (v0.266.0, context-quality reset)
   //        52 -> 53: skills/design-clone (v0.253.0, design-schema capture+apply)
   //        51 -> 52: skills/github-gold-standard (v0.246.0, the gold-standard scorecard)
-  tools: 32, // 30 -> 32: set_conservation.py + ledger.py (task-ledger Phases 0-2).
+  tools: 34, // 32 -> 34: build-outcome-corpus.py + replay-outcome-rules.py
+  //   (verify-before-assert Phase 1 — the offline replay corpus and the rule
+  //   measurement harness). COUNTED on this tree, not inferred: the sibling
+  //   preflight-command-review.sh lands in `hooks` below rather than here,
+  //   because hooks.json registers it, so +3 files is +2 tools and +1 hook.
+  //        30 -> 32: set_conservation.py + ledger.py (task-ledger Phases 0-2).
   //   set_conservation.py is the SSOT Set-Conservation Primitive, shared with the
   //   sibling verify-before-assert run (set_kind in {open_items, causes}); ledger.py
   //   is the append primitive + the projection. COUNTED on this tree, not inferred.
@@ -77,7 +82,12 @@ const RC_BASELINE = {
   //        19 -> 22: premise-gate.py + classify_claim.py + check-design-schema.py
   //                  (v0.263.0, PR 3b packaging move)
   scenarios: 4,
-  hooks: 39, // 38 -> 39: keep-awake.sh WIRED on SessionStart — an opt-in sleep assertion
+  hooks: 40, // 39 -> 40: preflight-command-review.sh WIRED on PreToolUse(Bash) —
+  //   verify-before-assert Phase 4, WARN-only, one measured rule (R-3). It is a
+  //   REGISTRATION, which is what this count tracks; the body lives under scripts/
+  //   and is invoked via `bash` because the tribunal substrate guard denies setting
+  //   the executable bit on a new hooks/*.sh, so it does NOT also raise `tools`.
+  //        38 -> 39: keep-awake.sh WIRED on SessionStart — an opt-in sleep assertion
   //   (`keep_awake` in comfort-posture.yaml, shipped default off) so a closed lid cannot
   //   silently suspend a session. It is a REGISTRATION, which is what this count tracks,
   //   even though it is excluded from the Pipeline map as host-environment hygiene rather
