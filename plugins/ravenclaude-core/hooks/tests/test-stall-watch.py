@@ -173,16 +173,29 @@ def gate_246(sw):
     expected = 1787666732.0  # 2026-08-25 14:05:32 UTC
     gate("246a parse_ts is UTC-correct", abs(got - expected) < 1.0,
          "got %.0f expected %.0f" % (got, expected))
-    # must-fail: the local-time implementation must give a DIFFERENT answer, or
-    # this machine is in UTC and the test cannot discriminate — say so loudly
-    # rather than pass by accident.
-    local = time.mktime(time.strptime("2026-08-25T14:05:32", "%Y-%m-%dT%H:%M:%S"))
-    if abs(local - expected) < 1.0:
-        gate("246b must-fail discriminates", False,
-             "host TZ is UTC — this gate cannot tell the bug from the fix here")
-    else:
-        gate("246b must-fail: mktime version differs (bug is detectable)", True,
-             "delta %.0fs" % abs(local - expected))
+    # must-fail: the local-time implementation must give a DIFFERENT answer.
+    #
+    # ⛔ IMPOSE A TIMEZONE; DO NOT READ THE HOST'S. The first version of this
+    # check compared against the host's local time and declared itself unable to
+    # discriminate when that was UTC. CI runners ARE UTC, so the gate was RED on
+    # every PR while passing on the author's machine — a worse outcome than the
+    # vacuous pass it was avoiding, and invisible locally. Forcing a known
+    # non-UTC zone makes the mktime-vs-timegm divergence observable on ANY host,
+    # so the check discriminates everywhere instead of abstaining somewhere.
+    saved_tz = os.environ.get("TZ")
+    try:
+        os.environ["TZ"] = "America/New_York"
+        time.tzset()
+        local = time.mktime(time.strptime("2026-08-25T14:05:32", "%Y-%m-%dT%H:%M:%S"))
+    finally:
+        if saved_tz is None:
+            os.environ.pop("TZ", None)
+        else:
+            os.environ["TZ"] = saved_tz
+        time.tzset()
+    differs = abs(local - expected) > 1.0
+    gate("246b must-fail: mktime version differs (bug is detectable)", differs,
+         "delta %.0fs under an imposed non-UTC zone" % abs(local - expected))
     try:
         sw.parse_ts("not-a-timestamp")
         gate("246c rejects malformed timestamps", False, "accepted garbage")
