@@ -300,9 +300,44 @@ def is_remediating(raw):
 # ⛔ An EMPTY marker does not clear. The pattern requires a class id AND a probe.
 _CAUSE_OK = re.compile(r"cause-ok:\s*([EFGHI][0-9]{1,2})\s+via\s+(\S.*)")
 
+_COMMENT_START = re.compile(r"(?<=\s)#")
+
+
+def comment_region(raw):
+    """The trailing COMMENT, or "" — the only place an escape is honoured.
+
+    ⛔ THE ESCAPE MUST NOT BE MATCHED AGAINST THE WHOLE COMMAND. `_CAUSE_OK` was
+    `.search(raw)`'d over the entire string while its sibling `_DISCRIMINATE` was
+    already segment-scoped after this branch's own review found a suffix-disarm
+    bug. So a marker sitting in a commit message, a quoted string or a heredoc
+    tripped a REAL escape:
+        git commit -m "fix: cause-ok: F1 via probe" src/thing.ts
+    matched `_REMEDIATE` and was silently allowed. That was a one-shot bypass
+    before; once an accepted escape SETTLES the ledger row it becomes a durable
+    disarmament of that subject's gate, so the blast radius grew and the scoping
+    had to come with it.
+
+    A `#` inside quotes is not a comment, so the quote balance before it is
+    counted -- otherwise `-m "msg # cause-ok: ..."` would re-open the same hole
+    one character further along.
+
+    ⛔ HONEST LIMIT: this is a heuristic, not a shell parser. A `#` after an
+    unbalanced quote inside a heredoc body can still be misread. It closes the
+    measured case and narrows the rest; it does not make the escape unforgeable.
+    """
+    text = raw or ""
+    for m in _COMMENT_START.finditer(text):
+        before = text[: m.start()]
+        # An even count of unescaped quotes means the `#` sits outside a string.
+        dq = len(re.findall(r'(?<!\\)"', before))
+        sq = len(re.findall(r"(?<!\\)'", before))
+        if dq % 2 == 0 and sq % 2 == 0:
+            return text[m.start():]
+    return ""
+
 
 def escape_present(raw):
-    m = _CAUSE_OK.search(raw)
+    m = _CAUSE_OK.search(comment_region(raw))
     if not m:
         return False
     return bool(m.group(1).strip()) and bool(m.group(2).strip())
@@ -319,7 +354,7 @@ def escape_class(raw):
     into storage should not depend on a regex two hundred lines away staying
     narrow.
     """
-    m = _CAUSE_OK.search(raw)
+    m = _CAUSE_OK.search(comment_region(raw))
     if not m:
         return None
     cid = (m.group(1) or "").strip()
@@ -657,6 +692,43 @@ _grc_self_test() {
   case "$out" in *"cause-gate"*) : ;; *) _fail "an EMPTY cause-ok: cleared the gate" ;; esac
   out="$(_run '"rm -rf src/thing.ts # cause-ok: F4 via rg -uuu"')"
   case "$out" in *"cause-gate"*) _fail "a complete cause-ok: did not clear the gate" ;; esac
+
+  # 5c. ⛔ A MARKER INSIDE A QUOTED STRING IS NOT AN ESCAPE. `_CAUSE_OK` was
+  # searched over the WHOLE command while its sibling `_DISCRIMINATE` was already
+  # segment-scoped, so a commit message carrying the marker silently cleared a
+  # fail-closed gate. Harmless-looking until an accepted escape also SETTLES the
+  # ledger row, which turns a one-shot bypass into durable disarmament.
+  : > "$run/open.jsonl"
+  _row "fs:src/thing.ts" "null"
+  out="$(_run '"git commit -m \"fix: cause-ok: F1 via probe\" src/thing.ts"')"
+  case "$out" in
+    *"cause-gate"*) : ;;
+    *) _fail "a cause-ok: inside a QUOTED STRING cleared the gate" ;;
+  esac
+
+  # 5d. ⛔ THE TWO-STEP CANARY. 5b only proves the escape clears the command
+  # CARRYING it. It says nothing about whether the settle row was written, so
+  # the settle would have been the next mechanism nobody verified. This asserts
+  # the SUBSEQUENT bare command -- no marker at all -- is allowed, which is only
+  # possible if the escape actually wrote `discriminated` back to the ledger.
+  : > "$run/open.jsonl"
+  _row "fs:src/thing.ts" "null"
+  out="$(_run '"rm -rf src/thing.ts # cause-ok: F4 via rg -uuu"')"
+  case "$out" in *"cause-gate"*) _fail "5d setup: the escape itself did not clear" ;; esac
+  out="$(_run '"rm -rf src/thing.ts"')"
+  case "$out" in
+    *"cause-gate"*) _fail "the settle did not persist: a later BARE remediating command still fired" ;;
+    *) : ;;
+  esac
+  # ...and the control: an UNSETTLED subject must still fire, or 5d passes for
+  # the trivial reason that nothing fires any more.
+  : > "$run/open.jsonl"
+  _row "fs:src/other.ts" "null"
+  out="$(_run '"rm -rf src/other.ts"')"
+  case "$out" in
+    *"cause-gate"*) : ;;
+    *) _fail "5d control: an unsettled subject did NOT fire, so 5d proves nothing" ;;
+  esac
 
   # 6. beacon absent + a Bash call -> ALLOW, but a blind advisory must appear.
   rm -f "$root/.ravenclaude/runs/cause-triage/$sid/triage-alive"
