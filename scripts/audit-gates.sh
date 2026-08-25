@@ -638,6 +638,13 @@ PY
         --must-fail-echo || rc=$?
       exit $rc
       ;;
+    249)
+      echo "── Gate 249: outcome eval — the ship gate must be SATISFIABLE ──"
+      rc=0
+      python3 plugins/ravenclaude-core/scripts/check-cause-eval.py --check || rc=$?
+      python3 plugins/ravenclaude-core/scripts/check-cause-eval.py --must-fail || rc=$?
+      exit $rc
+      ;;
     248)
       echo "── Gate 248: portable cause floor — present on every text-only host, and honest ──"
       rc=0
@@ -1475,7 +1482,7 @@ PY
       ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -9105,6 +9112,45 @@ gate "portable floor: 3 surfaces carry ritual + 5 classes + honest limit, no enf
 rc=0
 python3 scripts/check-portable-floor.py --must-fail >/dev/null 2>&1 || rc=$?
 gate "portable floor --must-fail: a planted enforcement claim is caught" must_pass "$rc"
+
+echo
+echo "── Gate 249: outcome eval — the ship gate must be SATISFIABLE ─────────────"
+# ⛔ THE PLAN'S OWN SHIP GATE WAS UNSATISFIABLE UNDER ITS NATURAL READING, AND
+# THAT IS A MEASURED FINDING. The gate is DBR(with-hook) >= DBR(without-hook)
+# + 0.15, and the plan never says what counts as "a discriminating probe".
+# Measured over 43,714 real envelopes with ONE corpus and ONE remediate predicate,
+# varying only the discriminate predicate:
+#     any read verb (natural reading)   0.9757  -> needs 1.1257  IMPOSSIBLE
+#     control-shaped (pinned)           0.6751  -> needs 0.8251  reachable
+# Agents overwhelmingly DO read again before remediating, so under the natural
+# reading the metric is saturated and no hook could ever move it +0.15. A ship
+# gate nobody can pass is not a high bar — it is a mechanism permanently stuck at
+# `warn`, with Phase 11's knob flips unreachable forever. This gate asserts
+# satisfiability, which is the assertion that would have caught it.
+#
+# ⛔ THE BASELINE IS FROZEN, AND DRIFT >0.05 FAILS. A baseline re-derived at gate
+# time from whatever corpus is present is not a pre-registration; it is a moving
+# target that always agrees with the current code.
+#
+# ⛔ NO SHIP VERDICT WITHOUT THE SECOND ARM. The with-hook arm needs a live
+# window (posture off vs warn alternating, >=500 envelopes) and does not exist:
+# control: a search for a two-arm artifact returned only substring false
+# positives while the same search located corpus.jsonl, and the live posture sets
+# no cause_* knob, so both arms would read the same default. Reporting a
+# single-arm number as evidence is the instrument-over-outcome failure this phase
+# exists to prevent.
+#
+# ⛔ --must-fail strips every probe template from the taxonomy and requires J4 to
+# redden: "if a blinded module still scores well, the eval is measuring nothing."
+# It also asserts the UNBLINDED module is clean, so a red is not ambiguous.
+#
+# ⛔ Registered in dispatcher + main sequence + Supported:. Grep by literal name.
+rc=0
+python3 plugins/ravenclaude-core/scripts/check-cause-eval.py --check >/dev/null 2>&1 || rc=$?
+gate "outcome eval: ship gate satisfiable, J4/J5 hold, baseline agrees with the freeze" must_pass "$rc"
+rc=0
+python3 plugins/ravenclaude-core/scripts/check-cause-eval.py --must-fail >/dev/null 2>&1 || rc=$?
+gate "outcome eval --must-fail: a probe-blinded taxonomy reddens J4" must_pass "$rc"
 
 echo
 

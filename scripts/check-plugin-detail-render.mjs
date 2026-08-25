@@ -58,7 +58,10 @@ const RC_BASELINE = {
   skills: 54, // 53 -> 54: skills/session-handoff (v0.266.0, context-quality reset)
   //        52 -> 53: skills/design-clone (v0.253.0, design-schema capture+apply)
   //        51 -> 52: skills/github-gold-standard (v0.246.0, the gold-standard scorecard)
-  tools: 34, // 32 -> 34: build-outcome-corpus.py + replay-outcome-rules.py
+  tools: 35, // 34 -> 35: check-cause-eval.py (verify-before-assert Phase 9 — the
+  //   OUTCOME eval; it is the gate that found the plan's own ship gate to be
+  //   unsatisfiable under its natural reading). COUNTED on this tree.
+  //        32 -> 34: build-outcome-corpus.py + replay-outcome-rules.py
   //   (verify-before-assert Phase 1 — the offline replay corpus and the rule
   //   measurement harness). COUNTED on this tree, not inferred: the sibling
   //   preflight-command-review.sh lands in `hooks` below rather than here,
