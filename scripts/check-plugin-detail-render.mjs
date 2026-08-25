@@ -58,7 +58,12 @@ const RC_BASELINE = {
   skills: 54, // 53 -> 54: skills/session-handoff (v0.266.0, context-quality reset)
   //        52 -> 53: skills/design-clone (v0.253.0, design-schema capture+apply)
   //        51 -> 52: skills/github-gold-standard (v0.246.0, the gold-standard scorecard)
-  tools: 35, // 34 -> 35: check-cause-eval.py (verify-before-assert Phase 9 — the
+  tools: 37, // 35 -> 37: check-scope-key-parity.py + audit-fired-count.py
+  //   (verify-before-assert Phase 10 — anti-rot. The parity check guards a block
+  //   duplicated in FIVE live files where drift is a silent pass, not a bug; the
+  //   fired-count audit carries both G10.1 controls so "no events" can never be
+  //   read as "clean"). COUNTED on this tree.
+  //        34 -> 35: check-cause-eval.py (verify-before-assert Phase 9 — the
   //   OUTCOME eval; it is the gate that found the plan's own ship gate to be
   //   unsatisfiable under its natural reading). COUNTED on this tree.
   //        32 -> 34: build-outcome-corpus.py + replay-outcome-rules.py

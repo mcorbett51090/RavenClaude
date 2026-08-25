@@ -181,6 +181,22 @@ sys.stdout.write(ti.get("command") or "")' 2>/dev/null || true)"
       rc_advise_init PreToolUse 2>/dev/null || true
     fi
   fi
+
+  # ⛔ EMIT, OR THE ANTI-ROT AUDIT IS STRUCTURALLY BLIND TO THIS HOOK.
+  # Phase 10's fired-count audit reads hook-events.jsonl to distinguish "wired and
+  # firing" from "wired and never fires" — a hook that emits nothing is
+  # indistinguishable from one that was never registered, which is the exact
+  # silent-green shape guard-premise.sh carried until 2026-08-18 (463 events from
+  # six hooks, zero from itself). This fires on ~0.07% of evidence-bearing
+  # commands, so the log is not flooded. Derived rule token only; no command bytes.
+  if [ -n "$_PCR_HOOKS" ] && [ -f "$_PCR_HOOKS/_emit-event.sh" ]; then
+    # shellcheck source=/dev/null
+    . "$_PCR_HOOKS/_emit-event.sh" 2>/dev/null || true
+    if command -v _emit_hook_event >/dev/null 2>&1; then
+      _emit_hook_event "preflight-command-review.sh" "warn" "Bash" "" "R-3-unpaginated-collection" "0" || true
+    fi
+  fi
+
   _pcr_advisory >&2
   return 0
 }

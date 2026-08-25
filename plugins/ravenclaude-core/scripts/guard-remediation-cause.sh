@@ -89,13 +89,21 @@ _grc_main() {
     off | absent) return 0 ;;
   esac
 
-  # ⛔ The payload reaches python via the ENVIRONMENT, and the program is a
-  # QUOTED HEREDOC. triage-outcome.sh embeds its program as a single-quoted bash
-  # string, which makes ONE apostrophe anywhere -- including in a prose comment --
-  # end the string and silently truncate the program. Its header records that
-  # costing two rounds, with four different control inputs all returning an
-  # identical byte count, which is never a real result and only ever a shared
-  # error. A quoted heredoc has no such trap.
+  # ⛔ NO LITERAL APOSTROPHE ANYWHERE BELOW, INCLUDING IN PROSE COMMENTS.
+  # The payload reaches python via the ENVIRONMENT, and the program is a QUOTED
+  # heredoc. triage-outcome.sh embeds its program as a single-quoted bash string,
+  # where one apostrophe ends the string and silently truncates the program; its
+  # header records that costing two rounds, with four different control inputs
+  # all returning an identical byte count, which is never a real result and only
+  # ever a shared error.
+  #
+  # An earlier draft of this comment said a quoted heredoc HAS NO SUCH TRAP.
+  # THAT WAS FALSE. The heredoc sits inside `$( ... )`, and bash scanning for the
+  # closing paren treats an apostrophe as a quote regardless of the heredoc
+  # quoting. control: the sibling guard-cause-closure.sh failed `bash -n` with
+  # "unexpected EOF while looking for matching '" at its LAST line, and deleting
+  # exactly one apostrophe from a prose comment 440 lines earlier made it parse
+  # clean. The trap is the same trap; only the failure line moves.
   verdict="$(RC_GRC_PAYLOAD="$payload" RC_GRC_POSTURE="$posture" python3 - <<'PYEOF' 2>/dev/null || true
 import hashlib
 import json

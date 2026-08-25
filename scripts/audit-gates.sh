@@ -638,6 +638,21 @@ PY
         --must-fail-echo || rc=$?
       exit $rc
       ;;
+    250)
+      echo "── Gate 250: anti-rot — scope-key parity, taxonomy parity, fired-count ──"
+      rc=0
+      python3 plugins/ravenclaude-core/scripts/check-scope-key-parity.py --check || rc=$?
+      python3 plugins/ravenclaude-core/scripts/check-scope-key-parity.py --must-fail || rc=$?
+      python3 plugins/ravenclaude-core/scripts/cause_taxonomy.py \
+        --check-doc plugins/ravenclaude-core/knowledge/cause-taxonomy.md || rc=$?
+      python3 plugins/ravenclaude-core/scripts/audit-fired-count.py --check || rc=$?
+      python3 plugins/ravenclaude-core/scripts/audit-fired-count.py --must-fail || rc=$?
+      for _f in plugins/*/scripts/*.sh; do
+        [ -e "$_f" ] || continue
+        bash -n "$_f" || rc=$?
+      done
+      exit $rc
+      ;;
     249)
       echo "── Gate 249: outcome eval — the ship gate must be SATISFIABLE ──"
       rc=0
@@ -1482,7 +1497,7 @@ PY
       ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -9151,6 +9166,80 @@ gate "outcome eval: ship gate satisfiable, J4/J5 hold, baseline agrees with the 
 rc=0
 python3 plugins/ravenclaude-core/scripts/check-cause-eval.py --must-fail >/dev/null 2>&1 || rc=$?
 gate "outcome eval --must-fail: a probe-blinded taxonomy reddens J4" must_pass "$rc"
+
+echo
+echo "── Gate 250: anti-rot — parity + fired-count ──────────────────────────────"
+# ⛔ INVOCATION IS NECESSARY AND DEMONSTRABLY NOT SUFFICIENT. This repo's evidence:
+# test-gate140 was invoked and green while worktree-guard.sh shipped both F1 and
+# F2. So anti-rot needs three mechanisms, none sufficient alone — parity checks,
+# a fired-count audit, and per-detector teeth batteries.
+#
+# ⛔ THE SCOPE-KEY BLOCK IS DUPLICATED IN FIVE LIVE FILES, DELIBERATELY. Drift
+# there is not a bug, it is a SILENT PASS: the recorder writes
+# scopes/<key>/open.jsonl and a gate deriving a different key reads a ledger
+# NOBODY WRITES, finds no open rows, and reports clean forever while running,
+# parsing and exiting 0. Textual identity is the weaker half; the check also
+# drives every copy with one synthetic tree and requires an identical key, AND
+# requires the key to VARY with the tree, or parity would be satisfied by a
+# constant.
+# control: the extractor itself was the first trap — a naive range over-ran in
+# guard-cause-closure.sh, which MENTIONS the function name inside its own
+# --must-fail awk program, and reported a 61-line block against a 22-line
+# reference. Stopping at the first closing return removes that false positive.
+#
+# ⛔ G10.1 — THE FIRED-COUNT AUDIT CARRIES BOTH CONTROLS OR IT IS WORTHLESS.
+# POSITIVE: a planted event must be read back, or "no events" might mean the
+# READER is broken. NEGATIVE: an empty tree must report UNWIRED, never CLEAN.
+# The verdict is THREE-valued — unwired / gap / firing — so `clean` is
+# unreachable without evidence. A fired-count of exactly zero after real usage is
+# a FINDING, not a pass: either mis-wired or too narrow to ever fire, and both
+# are findings. --must-fail installs an instrument that calls an empty tree
+# "firing" and requires the control to catch it.
+#
+# ⛔ Registered in dispatcher + main sequence + Supported:. Grep by literal name.
+rc=0
+python3 plugins/ravenclaude-core/scripts/check-scope-key-parity.py --check >/dev/null 2>&1 || rc=$?
+gate "scope-key parity: 5 copies identical, same key for one tree, key varies with tree" must_pass "$rc"
+rc=0
+python3 plugins/ravenclaude-core/scripts/check-scope-key-parity.py --must-fail >/dev/null 2>&1 || rc=$?
+gate "scope-key --must-fail: a perturbed copy reddens both the textual and behavioural halves" must_pass "$rc"
+rc=0
+python3 plugins/ravenclaude-core/scripts/cause_taxonomy.py \
+  --check-doc plugins/ravenclaude-core/knowledge/cause-taxonomy.md >/dev/null 2>&1 || rc=$?
+gate "taxonomy parity: prose and code hold the same 34 members" must_pass "$rc"
+rc=0
+python3 plugins/ravenclaude-core/scripts/audit-fired-count.py --check >/dev/null 2>&1 || rc=$?
+gate "fired-count audit: positive AND negative controls both pass before any count" must_pass "$rc"
+rc=0
+python3 plugins/ravenclaude-core/scripts/audit-fired-count.py --must-fail >/dev/null 2>&1 || rc=$?
+gate "fired-count --must-fail: a clean-reporting instrument is caught by the negative control" must_pass "$rc"
+
+# ⛔ THE SYNTAX CHECK DID NOT COVER WHERE HOOK BODIES ACTUALLY LIVE.
+# The repo checks `bash -n plugins/*/hooks/*.sh scripts/*.sh`. Four REGISTERED
+# hook bodies live under `plugins/*/scripts/` — the packaging exception the
+# tribunal substrate guard forces — and 15 files there were checked by nothing.
+# This is the same root cause as the cross-host silent drop in Gate 247: the
+# exception was created, and every check that assumed `hooks/` was never widened.
+# control: a real unbalanced-quote break in guard-cause-closure.sh (one apostrophe
+# in a prose comment, inside a heredoc nested in `$( ... )`) failed `bash -n`
+# locally while matching NONE of the CI globs — it would have shipped.
+rc=0
+for _f in plugins/*/scripts/*.sh; do
+  [ -e "$_f" ] || continue
+  bash -n "$_f" 2>/dev/null || rc=$?
+done
+gate "plugin scripts/ shell syntax: every plugins/*/scripts/*.sh parses" must_pass "$rc"
+# Teeth: a planted syntax error in that glob must be caught, or the loop above is
+# iterating over nothing and passing for free.
+_synbad="plugins/ravenclaude-core/scripts/.__syntax_canary.sh"
+printf '#!/usr/bin/env bash\nif [ "x" = "x" ; then :; fi\n' > "$_synbad"
+rc=0
+for _f in plugins/*/scripts/*.sh; do
+  [ -e "$_f" ] || continue
+  bash -n "$_f" 2>/dev/null || rc=$?
+done
+rm -f "$_synbad"
+gate "plugin scripts/ syntax teeth: a planted break in that glob is caught" must_fail "$rc"
 
 echo
 

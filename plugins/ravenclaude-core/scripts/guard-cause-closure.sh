@@ -97,6 +97,16 @@ _gcc_main() {
     off | absent) return 0 ;;
   esac
 
+  # ⛔ NO LITERAL APOSTROPHE ANYWHERE BELOW, INCLUDING IN PROSE COMMENTS.
+  # An earlier draft of this header claimed a QUOTED heredoc has no such trap,
+  # unlike the single-quoted-string form triage-outcome.sh warns about. THAT CLAIM
+  # WAS FALSE, and it was written into a file whose whole subject is not doing
+  # that. The heredoc sits inside `$( ... )`, and bash scanning for the closing
+  # paren treats an apostrophe as a quote regardless of the heredoc quoting.
+  # control: `bash -n` on this file reported "unexpected EOF while looking for
+  # matching '" at the LAST line; deleting exactly one apostrophe from a prose
+  # comment 440 lines earlier made it parse clean. One apostrophe, one file, two
+  # outcomes.
   verdict="$(RC_GCC_PAYLOAD="$payload" RC_GCC_DIR="$_GCC_DIR" python3 - <<'PYEOF' 2>/dev/null || true
 import hashlib
 import json
@@ -139,9 +149,21 @@ if not content.strip():
 
 
 # ── Conjunct 1: is the target DURABLE? ───────────────────────────────────────
-# ⛔ The exclusion list mirrors guard-premise.sh's. check-durable-predicate-parity
-# drives both over one fixture set; they must agree or one guard gates a surface
-# the other exempts.
+# The exclusion list mirrors guard-premise.sh's intent: they must agree, or one
+# guard gates a surface the other exempts.
+#
+# ⛔ THIS PARITY IS NOT MECHANIZED, AND SAYING SO IS THE POINT. An earlier draft
+# of this comment asserted that `check-durable-predicate-parity.py` drives both
+# over one fixture set. No such script exists. The durable predicate inside
+# guard-premise.sh is not an extractable list — it is embedded in conjunct logic and
+# entangled with ledger state — so a byte-parity check across the two shapes
+# would very likely pass vacuously, which is worse than an admitted gap: it would
+# report agreement nobody measured.
+# control: `grep -nE "scratch|durable|_is_durable" guard-premise.sh` returns only
+# prose and conjunct descriptions, no list literal to compare against.
+# The honest form is BEHAVIOURAL parity over a shared path fixture, which is a
+# declared follow-up rather than a claim made here. Until it lands, the two
+# predicates are kept aligned by review, and that is a weaker guarantee.
 _SCRATCH = re.compile(
     r"(^|/)\.ravenclaude/|(^|/)\.claude/|(^|/)runs?/|^/tmp/|^/private/tmp/|"
     r"(^|/)(scratch|tmp|temp|draft|wip|scratchpad)[^/]*$|\.(tmp|bak|orig|swp)$|"

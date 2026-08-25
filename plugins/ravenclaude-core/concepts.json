@@ -2958,7 +2958,7 @@
         "scripts/inventory-coverage.py",
         "scripts/inventory-nuance-judge.py"
       ],
-      "covers_digest": "sha256:34ed31075d97258ecc3c8f9184c7177e2d83b67bac77065101acbf4c414b6bee",
+      "covers_digest": "sha256:6d278186d2b1fef27935e7ae19f3b23e81522e75b4017ff1b1357573fda7dcc5",
       "nuance": "The teeth bit is the exit a tool own CHECK returns on a planted defect, never the exit `--must-fail` itself returns: `premise-gate.py` denies at `exit 0` while `sync-plugin-versions.py` reddens at `exit 2`, so an auditor that hard-codes one number can never be right for both.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3388,13 +3388,15 @@
       "entry_class": "inventory",
       "covers": [
         "plugins/ravenclaude-core/scripts/build-outcome-corpus.py",
+        "plugins/ravenclaude-core/scripts/audit-fired-count.py",
         "plugins/ravenclaude-core/scripts/check-cause-eval.py",
+        "plugins/ravenclaude-core/scripts/check-scope-key-parity.py",
         "plugins/ravenclaude-core/scripts/guard-cause-closure.sh",
         "plugins/ravenclaude-core/scripts/guard-remediation-cause.sh",
         "plugins/ravenclaude-core/scripts/preflight-command-review.sh",
         "plugins/ravenclaude-core/scripts/replay-outcome-rules.py"
       ],
-      "covers_digest": "sha256:3a43a6285a357fc1ba2600cbf99dd73f7c5a65181149a8ebba973895b8f1ab80",
+      "covers_digest": "sha256:d1b8c08c9903f658bdd98f54ceea2ad9a542a5018963058a600c92f8454199fb",
       "nuance": "Two of five drafted pre-flight rules name a result that CAME BACK EMPTY — which a `PreToolUse` hook cannot know — so their offline fire rates scored a field absent at fire time; re-measured lexically, one went from 1.43% to 8.28%.",
       "nuance_evidence": {
         "measured": "2026-08-25",
