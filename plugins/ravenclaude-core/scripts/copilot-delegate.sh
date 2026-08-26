@@ -26,10 +26,10 @@
 # "Model \"auto\" does not support reasoning effort configuration". So effort
 # is real, `auto` is real, and the ONE combination this script's whole tier
 # ladder rests on does not compose. Every guessed pinned slug this session was
-# separately rejected with "not available" — `claude-sonnet-5`,
-# `claude-sonnet-4.5`, `claude-opus-4-8`, `gpt-5`, and even the LITERAL
-# internal id `auto` itself resolved to on a real call (`claude-haiku-4.5`,
-# read back from `--output-format json`) all failed as a direct `--model`
+# separately rejected with "not available" — `claude-sonnet-5`, a
+# Sonnet-4-dot-5-shaped slug, `claude-opus-4-8`, `gpt-5`, and even the LITERAL
+# internal id `auto` itself resolved to on a real call (a Haiku-4-dot-5-shaped
+# id, read back from `--output-format json`) all failed as a direct `--model`
 # value. There is no non-interactive way found this session to list the valid
 # catalog (no `copilot models list`, no flag-driven enumeration; the picker is
 # the interactive `/model` command only). Shipping a guessed tier->slug table

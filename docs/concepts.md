@@ -2287,6 +2287,32 @@ _Last verified: 2026-08-20_
 
 ---
 
+### The cheap lane is agent-agnostic, not Grok-only · _RavenClaude-built_
+
+> route-task.py picks a lane, not a vendor; cheap-lane-delegate.sh picks the agent — and the two CLIs' real capability shapes genuinely diverge.
+
+## What a reader would have assumed instead
+
+That `--effort` is a Copilot CLI flag like any other, so passing it alongside the default `--model auto` would just apply the effort level to whatever model `auto` resolves to.
+
+## The discriminator
+
+control: a call with --model auto and NO --effort flag completed normally, isolating the rejection to the flag pairing rather than to the CLI itself
+Measured 2026-08-26: Copilot CLI's `--model auto` rejects `--effort` outright at runtime — `"Model \"auto\" does not support reasoning effort configuration"` — a real error hit on the first live end-to-end test through the dispatcher, not a hypothetical read from documentation. `copilot-delegate.sh` therefore emits `--effort` only when `[ "$model" != "auto" ]`.
+
+## Why it matters
+
+`route-task.py`'s `lane` field now reads `"cheap"`, not `"grok"` — the router decides whether work leaves Claude at all, never which CLI it lands on. `cheap-lane-delegate.sh --agent grok|copilot` is the layer that actually picks the coding agent, and the two agents' tier tables cannot share one row: Grok's model/effort/perspective come from the shared `substrate-tier-map.json`; Copilot's does not, because none of six guessed pinned model slugs validated as a real `--model` value against the installed CLI, and the only value confirmed to work (`auto`) is exactly the one that forbids `--effort`.
+
+Falsifier: a future Copilot CLI release accepting `--effort` together with `--model auto`.
+
+**Sources:** [verified live against the installed grok and copilot CLIs, this session](https://github.com/mcorbett51090/RavenClaude/pull/1030)
+
+_Last verified: 2026-08-26_
+
+
+---
+
 ### Merged is not live · _RavenClaude-built_
 
 > Why a merged fix does not reach an installed session until the version field moves.
