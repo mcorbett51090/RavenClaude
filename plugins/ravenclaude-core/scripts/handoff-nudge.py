@@ -228,6 +228,7 @@ def main() -> int:
         posture.get("window"),
         posture.get("threshold"),
         None,
+        claude_payload=payload,
     )
     if result.get("status") != "ok" or not result.get("over"):
         return 0

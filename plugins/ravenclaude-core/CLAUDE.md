@@ -54,6 +54,69 @@ When the Team Lead fans work out across multiple git branches, **how** the sub-a
 
 Worktree traversal is named **Sleipnir** — Odin's eight-legged horse, the one mount that crosses realm boundaries safely. In **user-facing dispatch prose**, prefer "I'll send Sleipnir to that branch" over narrating the raw `EnterWorktree`/`git worktree` call; the label anchors the user's intuition while the underlying mechanism is unchanged. This is **labeling only** — there is deliberately **no `/sleipnir` slash command, no Sleipnir agent, no new component** (architect's veto). The convention is surfaced in the worktree skills ([`skills/new-worktree`](skills/new-worktree/SKILL.md), [`skills/cleanup-worktrees`](skills/cleanup-worktrees/SKILL.md), [`skills/spawn-team`](skills/spawn-team/SKILL.md)) and as a read-only **"Sleipnir's stables"** widget at the top of the dashboard's Activity tab (the current `.claude/worktrees/` list + count, served via `/__sleipnir`; honest empty state on a static host). ASCII form `sleipnir` (no diacritics; CLI form == display form). Proven by **Gate 43**. **Migration:** none — copy/labeling + one read-only widget.
 
+### The cheap lane — routing everyday work off Claude entirely (added 2026-08-26, v0.303.0)
+
+**Scope: a second dispatch target, not a replacement for sub-agent dispatch.** The
+Team Lead already dispatches Claude sub-agents (`skills/spawn-team`) and, for
+subagent *tier* selection, defers to `agent-dispatch-evaluator` when it is enabled.
+This is a third, narrower question, upstream of both: **does this task need to be
+in the main session's reasoning loop at all?**
+
+**Why this exists.** Measured on the owner's account (14 days, main-loop output):
+41.2M tokens, 83.2% top-tier model, essentially none on a cheap model — and all of
+it main-loop, not sub-agent spend. Tuning sub-agent tiers cannot touch that; the
+spend is in the conversation itself. `skills/cheap-lane-delegation` is the answer:
+a **deterministic router** (`scripts/route-task.py`, no model call, self-tested)
+decides `claude` vs `grok` for one well-defined task, and `scripts/grok-delegate.sh`
+is the transport when the answer is `grok`.
+
+**Off by default, exactly like `design_checkins` / `decision_review` / `parallelism`
+/ `orchestrator`.** `cheap_lane: { mode: off | advise | agent, tier: fast | balanced }`
+in `.ravenclaude/comfort-posture.yaml`. **`off` is the default and the skill is
+inert** — nothing here changes today's behavior for a consumer who has not set the
+knob. `advise` returns Grok's output as a suggestion only; `agent` runs Grok in a
+disposable worktree for review before merge. Full contract, the escalation-vs-cheap
+rule table, and the exit-code contract: [`skills/cheap-lane-delegation/SKILL.md`](skills/cheap-lane-delegation/SKILL.md).
+
+⛔ **The routing asymmetry is deliberate and load-bearing.** An unmatched task, an
+ambiguous one, and one matching *both* an escalation and a cheap-lane rule all
+resolve to `claude` — escalation always dominates. A task wrongly sent to Grok can
+produce a confidently wrong multi-file change that costs more to unwind than it
+saved; one wrongly kept on Claude only costs money. Do not "balance" this rule to
+route more aggressively without re-running `route-task.py --self-test`'s teeth
+checks (one proves the router is not a constant `claude`; one proves escalation
+dominates rather than merely co-occurring).
+
+⛔ **Containment is a disposable worktree/scratch-dir AND the kernel sandbox
+(`grok --sandbox`), deliberately both — not Grok's own permission flags alone.**
+`grok-delegate.sh`'s header carries the measured, positive-controlled proof: an
+`--sandbox read-only` probe run *inside* one of Grok's own always-writable temp
+paths (`/tmp`) looked like a containment failure and was not one — re-tested
+outside every allowlisted path, the kernel (Seatbelt/Landlock) genuinely refused
+the write and logged it to `~/.grok/sandbox-events.jsonl`. Before touching either
+layer, re-run that probe outside `/tmp`/`/var/tmp`/`~/.grok` and read the event log
+— a probe run inside the tool's own writable scratch space will always look like a
+containment failure whether or not one exists.
+
+**Composition with the orchestrator-worker rule (unchanged).** Only the Team Lead
+dispatches — to a Claude sub-agent, or, when this knob is on, to Grok. A dispatched
+Claude sub-agent does not itself reach for this skill; that would be a sub-agent
+spawning further work outside the Team Lead's view, which
+[`rules/agent-collaboration.md`](rules/agent-collaboration.md) already governs
+against.
+
+**`agent-dispatch-evaluator` is a separate mechanism and this does not flip its
+default.** The evaluator tunes which *tier* a Claude sub-agent dispatch uses;
+`dispatch-config.json`'s own template ships `enabled: false, mode: "shadow"`
+because its documented readiness gate (a live eval run, a pre-merge re-confirm) is
+not yet met — this milestone does not override that gate. If you want it live for
+this repo's own dev use, its safe, already-designed step is enabling **shadow
+mode** locally (a repo-local `.ravenclaude/dispatch-config.json`), not flipping the
+shipped template's default for every consumer.
+
+**Migration:** none — `cheap_lane` defaults to `off`; the skill, the router, and
+the transport ship inert until a consumer sets the knob. Skill count 55 → 56.
+
 ### Agent-routing decision tree (priors — for the Team Lead)
 
 Before spawning any specialist, traverse the Mermaid graph in [`knowledge/agent-routing.md`](knowledge/agent-routing.md) `## Decision Tree` top-to-bottom against the user's observable request signals — do NOT keyword-match the request to an agent name. The earliest-blocking gate wins (e.g., a UI change that touches auth spawns `security-reviewer` before `frontend-coder`); when multiple branches could apply, default to the leaf with the smaller spawn cost and escalate only if it returns insufficient. Domain plugins (e.g. `power-platform`) with a more-specific routing rule for the request override this tree.
@@ -3127,3 +3190,151 @@ DOM-budget ratchet is untouched (a 10-char date replacing a 10-char date changes
 
 **Migration:** none — knowledge-freshness metadata only; nothing in an installed plugin behaves differently
 on `/plugin marketplace update`.
+
+## The context-usage meter had no Claude Code path — the handoff nudge was inert on the most common host (added 2026-08-26, v0.303.0)
+
+`scripts/context-usage-meter.py` powers `handoff-nudge.sh` (the Stop-hook context-hot warning) and,
+since v0.274.0, the `conserve_tokens_auto_pct` trigger — the two mechanisms meant to warn a session
+*before* it hits the real auto-compact cliff. Both were silently inert under Claude Code, every session,
+regardless of `context_handoff.mode`.
+
+⛔ **Root cause: the meter was Grok-only from its first line, and nobody had a Claude Code path to fall
+back to.** `session_dir_from_env` / `last_total_tokens` read `GROK_SESSION_ID` and
+`~/.grok/sessions/<cwd>/<sid>/updates.jsonl` — a format that does not exist for a Claude Code session
+(Claude Code writes `~/.claude/projects/<encoded-cwd>/<sid>.jsonl`, an entirely different transcript
+shape). So under Claude Code `last_total_tokens` always returned `None`, `measure()` always returned
+`status: "unknown"`, and `handoff-nudge.py`'s `if result.get("status") != "ok" ... return 0` made it a
+no-op on every turn — independent of, and compounding, this repo's own posture never having set
+`context_handoff.mode` (it defaulted `off`, per `read_posture`'s own default dict). Two independent
+reasons the mechanism never fired, on the host most sessions run on.
+
+control: driven against this session's own live transcript —
+`meter.measure(None, None, 70, None, claude_payload={"transcript_path": <this session's .jsonl>})` →
+`{"status":"ok","used":85676,"window":200000,"percent":42.8,"source":"claude-code", ...}` — where the
+unpatched code returned `status: "unknown"` on the identical input (no Claude Code branch existed to
+resolve it).
+
+**The fix — a second, purely additive resolution path, tried only when Grok's resolves nothing.**
+`claude_transcript_path(payload)` prefers the hook payload's own `transcript_path` field (present on
+every Claude Code hook invocation — the same field `compact-anchor.py` already uses), falling back to
+reconstructing `~/.claude/projects/<encoded-cwd>/<sid>.jsonl` only when that field is absent (a test
+harness building its own payload). `last_total_tokens_claude(path)` reads the **last `assistant` turn's
+`message.usage`** — `input_tokens + cache_read_input_tokens + cache_creation_input_tokens` (what was
+actually sent as context for that turn; `output_tokens` is deliberately excluded — it is what the model
+*produced*, not part of the next turn's input) — via a **bounded tail read** (4 MiB), not a full-file
+read like Grok's `updates.jsonl` path, because a Claude Code transcript can be large. Window falls back
+to a Claude-appropriate default (200000) only when nothing else resolved one **and** the reading came
+from the Claude Code path — a Grok session with no resolvable window still reports `unknown`, unchanged.
+`measure()` gained one new keyword-only parameter, `claude_payload=None`; every existing call site is
+byte-identical (the parameter defaults to inert), and `handoff-nudge.py` + `conserve-tokens.py`'s
+`context_percent()` now pass their already-available hook `payload` through.
+
+**Dogfooded, not just built:** this repo's own `.ravenclaude/comfort-posture.yaml` had `context_handoff:
+{spawn: os-terminal}` with no `mode:` — meaning the nudge was doubly dark here even before this fix.
+`mode: nag` is now set, with an inline comment explaining why it was previously a no-op.
+
+**Migration:** none in the Grok direction — every existing test (`test-context-usage-meter.py`, 9
+pre-existing cases) passes unchanged, and a Grok session's reading is never overridden by the Claude
+fallback (asserted directly: `test_grok_reading_never_overridden_by_claude_fallback`). A consumer running
+Claude Code with `context_handoff.mode: nag` or `block` set will, for the first time, actually see the
+nudge fire as context climbs — this is the mechanism working as originally documented, not a new
+behavior being introduced.
+
+## Cheap-lane delegation gains a real matrix — per-tier turn/timeout budget + an `--effort` override (added 2026-08-26, v0.304.0)
+
+The cheap-lane's `--tier` flag already resolved model + effort + perspective from the
+shared `substrate-tier-map.json`, but every delegated task then paid the same flat
+30-turn/600s budget regardless of tier — a one-line regex and a multi-file mechanical
+refactor got identical runway, and `top` (reserved for the hardest cheap-lane-adjacent
+work a human explicitly picks) had no extra room to use its stronger model.
+
+`grok-delegate.sh` now resolves a **per-tier turn/timeout budget** alongside the
+existing model/effort/perspective resolution — `fast`=15 turns/300s,
+`balanced`=30/600 (unchanged from before, so a bare `--tier balanced` call is
+byte-identical), `top`=60/1200. An explicit `--timeout`/`--max-turns` always wins over
+the tier's row, exactly as before. A new `--effort low|medium|high` flag lets a caller
+override the tier-resolved effort directly (validated against Grok CLI's real set —
+`xhigh` is rejected by the CLI itself, per the forge-pipeline skill's own note), for
+the case a `fast`-tier task needs more reasoning depth without paying for
+`balanced`'s whole budget.
+
+The full matrix — model × effort × perspective × mode × turn/timeout budget — is now
+documented as one table in [`skills/cheap-lane-delegation/SKILL.md`](skills/cheap-lane-delegation/SKILL.md#the-matrix--every-lever-this-tool-tunes-not-just-the-model)
+rather than left implicit across two files.
+
+Verified end-to-end against the real `grok` CLI (1.0.5) this session: a `--tier fast`
+`advise`-mode call resolved model=grok-4.5/effort=low, the new 15-turn/300s budget,
+and returned exit 0 with the expected output; `--effort xhigh` was correctly rejected
+before any egress; `route-task.py --self-test` stayed 17/17.
+
+**Migration:** none — `balanced`'s defaults are unchanged (30/600, the prior flat
+default for every tier), so any existing call that never specified `--tier` sees
+byte-identical behavior. `fast` and `top` calls now get a scaled budget instead of
+`balanced`'s; `--effort` is a new opt-in flag.
+
+## The cheap lane was a Grok integration wearing a generic name — now it is genuinely agent-agnostic (added 2026-08-26, v0.305.0)
+
+Everything the cheap lane shipped with — `grok-delegate.sh`, the `cheap_lane.mode` knob,
+`route-task.py`'s `lane: "grok"` output — was Grok-specific by construction, despite the
+skill and its matrix table presenting themselves as the general "route work off Claude"
+mechanism. An owner review caught it directly: *"make sure the matrix is by coding agent,
+by model, by effort level — and not just geared toward one coding agent."*
+
+**New: [`scripts/cheap-lane-delegate.sh`](scripts/cheap-lane-delegate.sh)**, an
+agent-agnostic dispatcher — `--agent grok|copilot` selects the target CLI; every other
+flag passes through verbatim to that agent's own delegate script, because the two CLIs'
+real flag shapes genuinely differ and a shared shape would have to be the lowest common
+denominator of both (a strictly worse design than each script owning its own real
+capabilities).
+
+**New: [`scripts/copilot-delegate.sh`](scripts/copilot-delegate.sh)**, the Copilot
+sibling of `grok-delegate.sh` — same contract (args, exit codes, containment shape),
+built the same way grok-delegate.sh was: **live-probed against the installed CLI, not
+guessed from docs.** What that probing found, stated because it changes what the tier
+matrix can honestly promise:
+
+- `-p`/`--prompt`, `--model`, `--effort` (choices `none|minimal|low|medium|high|xhigh|max`
+  — a WIDER set than Grok's `low|medium|high`), `-C`, and `--deny-tool write --deny-tool
+  shell` (paired with `--allow-all-tools`, since denial takes precedence over allow) all
+  verified working via real non-interactive calls.
+- ⛔ **Read-only ("advise") containment was verified with a positive control, not
+  assumed**: a real call instructed to write `canary.txt` and report success returned
+  *"I was unable to create the file due to permission restrictions… I failed to create
+  canary.txt"* — the deny-tool pairing genuinely blocks writes, the same rigor
+  `grok-delegate.sh`'s header applies to Grok's kernel sandbox.
+- ⛔ **`--model auto` (the only value confirmed to work as a literal `--model` argument)
+  REJECTS `--effort` outright** — `"Model \"auto\" does not support reasoning effort
+  configuration"`, a real runtime error hit on the first live test, not a hypothetical.
+  Six distinct guessed pinned slugs (`claude-sonnet-5`, `claude-sonnet-4.5`,
+  `claude-opus-4-8`, `gpt-5`, the display-name string, and — surprisingly — the literal
+  internal id `auto` itself resolved to on a real call, `claude-haiku-4.5`, read back via
+  `--output-format json`) were all rejected as `--model` values. There is no
+  non-interactive way to enumerate the valid catalog; the picker is the interactive
+  `/model` command only. **Consequence, shipped honestly rather than glossed over:** with
+  the default `auto` model, `--effort` is omitted entirely — the Copilot lane's tier
+  ladder differentiates by timeout budget only, out of the box. `--model <slug>` is an
+  explicit override for a caller who has confirmed their own effort-capable slug.
+
+⛔ **codex is deliberately NOT a third `--agent` value.** The Codex CLI was not
+installed on the host this work was verified against. `command -v codex` alone was not
+trusted as the verdict — the premise gate this repo runs on new source modules caught
+exactly this (a new file referencing an unresolved negative), and the positive control it
+demanded was run for real: `command -v bash` proved the probe mechanism itself works, and
+a broader search (`~/.local/bin`, `~/.codex/bin`, `/usr/local/bin`, `/opt/homebrew/bin`,
+`brew list`) confirmed Codex is genuinely absent, not merely unresolved by a narrow PATH
+check. `cheap-lane-delegate.sh --agent codex` refuses with a message pointing at exactly
+what a future session needs to verify before adding it for real.
+
+**`route-task.py`'s `lane` output renamed `"grok"` → `"cheap"`** (17/17 self-test
+unchanged, verified before and after the rename) — the router decides *whether* work
+leaves the Claude session, never *which* agent it goes to; keeping the literal string
+`"grok"` in an agent-neutral field was itself part of the one-vendor framing this release
+corrects. `cheap_lane.agent: grok | copilot` (default `grok`, preserving today's
+behavior) is the new, separate posture knob that actually selects the agent.
+
+**Migration:** none in the permissive/default direction — `cheap_lane.agent` defaults to
+`grok`, so an existing posture with `cheap_lane.mode` set continues to route to Grok
+exactly as before. The one consumer-visible rename is `route-task.py`'s `lane` value
+(`"grok"` → `"cheap"`) — any external caller pattern-matching on the literal string
+`"grok"` in that JSON field (none exist inside this plugin; verified by grep) would need
+updating.

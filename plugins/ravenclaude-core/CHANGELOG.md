@@ -2,6 +2,197 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.303.0 — 2026-08-26
+
+### Added
+
+- **The cheap lane — `skills/cheap-lane-delegation`, `scripts/route-task.py`,
+  `scripts/grok-delegate.sh` — route everyday work to Grok, escalate the hard
+  work to Claude.** Measured (14-day, main-loop output): 41.2M tokens, 83.2%
+  top-tier model, essentially none of it on a cheap model, and none of it
+  sub-agent spend — `agent-dispatch-evaluator` tunes sub-agent tier and cannot
+  touch this. The fix is upstream of tier selection: decide whether a task needs
+  the main Claude session's reasoning loop at all.
+
+  `route-task.py` is a deterministic text classifier, no model call, self-tested
+  (`--self-test`, 17 cases + 2 teeth checks: one proves the router is not a
+  constant `claude`, one proves an escalation rule dominates a co-occurring cheap
+  rule rather than the reverse). **The default is `claude`, deliberately
+  asymmetric** — an unmatched, ambiguous, or both-lanes task all resolve to
+  `claude`; a task wrongly sent to Grok can produce a confidently wrong
+  multi-file change that costs more to unwind than it saved, a task wrongly kept
+  on Claude only costs money.
+
+  `grok-delegate.sh` is the transport, mirroring `claude-orchestrate.sh`'s
+  hardening pointed the other way: a recursion guard (nested delegation, or
+  called from inside a tribunal seat), a pre-egress secret scrub (refuses
+  before anything leaves the machine, never after), and a bounded timeout with
+  fall-back-to-local on any non-zero exit.
+
+  ⛔ **Containment is two independent layers, verified with a positive control
+  after an initial false conclusion.** The first version of this file claimed
+  Grok's `--sandbox` flags do not contain, based on a probe run *inside* one of
+  `--sandbox read-only`'s own always-writable temp paths — a write there is not
+  a containment failure. Re-tested outside every allowlisted path: the kernel
+  (Seatbelt on macOS) genuinely refused the write and logged it to
+  `~/.grok/sandbox-events.jsonl`. Fixed same-session — `--sandbox <profile>` is
+  the real, kernel-enforced boundary (`advise`→`read-only`, `agent`→`workspace`);
+  the disposable worktree/scratch-dir is what Grok can reach in the first place
+  and, for `agent` mode, the reviewable diff before merge. Neither layer
+  replaces the other.
+
+  **Off by default**, matching `design_checkins` / `decision_review` /
+  `parallelism` / `orchestrator`: `cheap_lane: { mode: off | advise | agent,
+  tier: fast | balanced }` in `.ravenclaude/comfort-posture.yaml`. `off` is
+  inert — nothing runs until a consumer opts in. Full contract:
+  [`skills/cheap-lane-delegation/SKILL.md`](skills/cheap-lane-delegation/SKILL.md);
+  the composition with `spawn-team` and `agent-dispatch-evaluator`, and why
+  this milestone does **not** flip the evaluator's own gated `binding`-mode
+  default, in [`CLAUDE.md`](CLAUDE.md) § "The cheap lane".
+
+  **Migration:** none — `cheap_lane` defaults to `off`; nothing in an installed
+  plugin changes on `/plugin marketplace update` until a consumer sets the
+  knob. Skill count 55 → 56; script-tool count 32 → 33 (`route-task.py`;
+  `grok-delegate.sh` is bash and is not counted by `_scan_scripts`'s `*.py`
+  glob).
+
+## 0.302.0 — 2026-08-26
+
+### Added
+
+- **`hooks/guard-foreground-suite.sh` — a PreToolUse(Bash) guard that denies a FOREGROUND
+  invocation of a suite that provably cannot finish inside the Bash tool's hard ceiling.**
+
+  The Bash tool clamps `timeout` at **600000 ms**, and `scripts/audit-gates.sh` (917 gates)
+  outgrew it. A foreground full-suite run is therefore **structurally guaranteed** to wedge the
+  session for the full ten minutes and then be auto-backgrounded anyway — the operator sees a
+  stall, and the run they were waiting on was never going to return in-band.
+
+  **control (session `94d2ba9f`, 2026-08-25):** foreground call at `02:21:45Z`, result at
+  `02:31:49Z` — *"Command did not complete within its 600s timeout and was moved to the
+  background (ID: bg7y7j7s7)."*
+
+  ⛔ **Raising the timeout is a non-fix, and it fails silently.** The same session tried
+  `timeout: 900000` at `07:17:42Z` and received the byte-identical *"within its 600s timeout"*
+  message at `07:27:45Z`. 900000 is clamped to 600000 with no warning, so the guard now calls
+  that out explicitly in its denial rather than letting the next person rediscover it.
+
+  ⛔ **Why a hook and not a note.** This fired 3+ times in one week, and the third time it fired
+  at a session that had **already adopted `run_in_background: true`** — five clean runs that
+  morning — and regressed off it hours later. A written note demonstrably did not hold. This is
+  the control that does.
+
+  **Three escapes, all allowed:** `run_in_background: true` (the right answer for a full suite),
+  `--check N` (one gate, seconds), and a literal `RC_SUITE_FOREGROUND_ACK=1` prefix. The ACK is
+  read out of the **command text**, not the environment — an env var cannot reach a PreToolUse
+  hook from inside the command it gates, so spelling it as a prefix is what makes it reachable.
+
+  ⛔ **Matching is INVOCATION-only, never substring.** The command is split into segments and
+  each segment's **first word** is checked, so `grep`, `sed`, `git show` and `wc` that merely
+  **name** the suite still run. A guard that cannot tell a command from a description of one
+  blocks its own repair — this repo has already paid for that twice.
+
+  **Posture: fails OPEN.** An unreadable payload, absent `jq`, or absent `python3` all ALLOW and
+  emit a `warn` event. This is an ergonomic guard, not a trust boundary; denying a tool call
+  because a convenience hook could not read its own input would be a worse failure than the ten
+  minutes it prevents. (Contrast `worktree-guard.sh`, which gates a trust boundary and fails
+  closed.) It reads its own payload with `_rc_timeout`+`cat`, never `read -t` — the latter
+  deadlines a *complete line* and bash reads a pipe one byte per `read(2)`, which turns the
+  deadline into a payload-size cap.
+
+  **Pinned by Gate 251** (`hooks/tests/test-guard-foreground-suite.sh`, 23 assertions), registered
+  in the `--check` dispatcher, the main sequence, and the `Supported:` string. The load-bearing
+  half is the **must-fail** one: it neuters the matcher and asserts the deny disappears, and it
+  carries its **own vacuity control** — if the mutation fails to apply, the half fails rather
+  than reporting green against a byte-identical copy.
+
+  **Migration:** none required. If you genuinely want to spend the ten minutes, prefix the
+  command with `RC_SUITE_FOREGROUND_ACK=1`. Extend coverage to another long suite via
+  `RC_FOREGROUND_SUITES` (space-separated basenames; default `audit-gates.sh`).
+## 0.299.1 — 2026-08-25
+
+### Fixed
+
+- **`worktree-guard.sh` no longer hangs forever on an inherited pipe.** The hook read its stdin
+  payload with a bare `cat`, gated on `[ ! -t 0 ]`. That test cannot distinguish *"a payload is on
+  its way"* from *"fd 0 is an open pipe nobody will ever write to"* — both are simply not-a-tty — so
+  the gate was satisfied in precisely the case that blocks, and the read never returned. Every caller
+  downstream stalled with it, `audit-gates.sh` Gate 140 included, which invokes this hook and
+  inherits whatever stdin the harness was launched with.
+
+  Measured under a FIFO with a held-open writer: `status --json` and `check` both hung until killed
+  at 6s, while a control script that reads no stdin exited in 1s under the identical descriptor — the
+  differential is the read, not the environment.
+
+  The read is bounded with **`_rc_timeout` + `cat`** (`_portable.sh`'s existing `timeout → gtimeout →
+  perl alarm` ladder, already sourced by this hook), so the ceiling applies to the **writer** —
+  `RC_GUARD_STDIN_TIMEOUT`, default 10s, arithmetically clamped, `0` restores the old blocking read.
+
+  ⛔ **`read -t` was the wrong instrument, and that took two attempts to see.** It deadlines a
+  **complete line**, and bash reads a pipe one byte per `read(2)`. A Claude Code payload is
+  single-line JSON, so the deadline ends up racing bash's byte loop instead of the writer, and payload
+  **size** consumes the budget meant for writer latency. A `Write` of this repo's own `dashboard.html`
+  JSON-encodes to **~11 MB on one line** (escaping turns all ~17k newlines into `\n`). Measured
+  through a real pipe on bash 3.2.57: `read -t 10` took **4.6s idle** and lost the **entire payload at
+  10.04s under a load of ~4 on 10 cores**, while `_rc_timeout 10 cat` did the same bytes in **0.3s**
+  either way. Any deadline on `read` is a bet against payload size × machine load. It also bounds the
+  **whole** read — `read` plus an unbounded `cat` drain still hung once one line had arrived (measured
+  past 14s), so only the zero-byte case had actually been fixed. And it sidesteps a platform split
+  this host cannot test: bash 3.2 discards partial input on timeout (measured — the variable is left
+  untouched) while bash ≥4 documents retaining it, which on a Linux runner would hand the parser a
+  **truncated** payload. There is no partial-line branch any more, so neither behaviour is reachable.
+
+  ⛔ **An unreadable payload now fails CLOSED on `check`.** A payload with no `tool_name` sends every
+  classifier to its `*)` default — "not mutating / no deny / no enforcement" — so the default-block
+  FOREIGN-TREE deny and the session lease both silently disarm. The boundary is deliberate: a
+  zero-byte **clean EOF** is the documented no-payload contract (a bare CLI or test invocation) and
+  still allows; what denies is a **timeout** or an **unparseable** payload, the shapes a stalled or
+  truncating writer produces. `register` is exempt by contract and `status` no longer reads stdin at
+  all — it carries no payload and was paying the full deadline ~15× per Gate 140 run.
+
+  ⛔ **The knob is clamped arithmetically, not by character class.** `00` and
+  `99999999999999999999` are all-digits, so a `*[!0-9]*` filter passed them and the timeout tool then
+  rejected them as an argument error — an empty payload in 0s, i.e. the guard disarmed by the most
+  natural attempt to configure it. Out-of-range falls back to the **default**, never the ceiling:
+  clamping `2000` to 3600 would hand an operator who assumed milliseconds a 33-minute deadline.
+
+  Pinned by **T18** in `test-worktree-guard-core.sh` (Gate 140), in seven halves — (a) the hook exits
+  under a held-open FIFO; (b) a must-fail half restores the bare `cat` and asserts it *still* hangs,
+  so (a) measures the read and not the fixture; (c) payload fidelity, labelled as a **fidelity**
+  detector rather than a bound detector because the pre-fix hook passes it too; (d) a truncated
+  payload fails closed while clean-EOF-empty and a readable payload still allow; (e) a 3s-late writer
+  is served by the shipped deadline **and starved by a 1s one**, so the margin is tested rather than
+  asserted; (f) eight malformed/extreme knob values all still read the payload; (g) a 3 MB
+  single-line payload is read whole. `audit-gates.sh` also redirects Gate 140's three invocation
+  sites from `/dev/null` — the suites drive a stdin-reading hook, and a bound is a ceiling, not a
+  reason to hand a suite an open pipe.
+
+  ⛔ **Not fixed here, and the count is reported with its command because three regexes gave three
+  answers.** Of the **169** plugin hook scripts (`find plugins -path '*/hooks/*.sh' -not -path
+  '*/tests/*'`), **145** slurp stdin with a bare `cat` and **134** of those gate on `-t 0`
+  (`grep -lE '\$\(cat( 2>/dev/null)?( \|\| (true|printf|:))?\)'`, 2026-08-25). Two independent
+  recounts produced 143/138 and 148/137 on different patterns — so treat any single number as a
+  function of its regex, not a fact.
+
+  What all three agree on, and the worse class: **11 hooks read stdin with an unconditional bare
+  `cat` and no tty test at all** — `agent-dispatch-evaluator.sh`, `codex-hook-env.sh`,
+  `cursor-hook-adapter.sh`, `enforce-portability.sh`, `ensure-default-mode.sh`,
+  `gemini-hook-adapter.sh`, `guard-premise.sh`, `log-probe.sh`, `route-decision-review.sh`,
+  `stream-session-close.sh`, and `power-platform/hooks/nudge-dataverse-preflight.sh`. All of these are
+  invoked by Claude Code, which writes the payload and closes the descriptor, so none is *known* to
+  hang in practice — but the shape is the one just fixed, and this fix is not applied to them. Out of
+  scope for this patch; recorded so the survey is not mistaken for a clean bill of health.
+
+## 0.299.0 — 2026-08-25
+
+### Added
+
+- **The org-skill studio** (`skills/authoring-org-skills/`) — lint, pack and verify a claude.ai
+  Organization Skill. 41 rules across a fail/warn split, hard refusals `R1`–`R4` with no override, a
+  `pack`/`verify` separation that shares data and never code, and tiers that are **derived from a
+  recorded evidence file** rather than hand-set, so a constraint the vendor contradicts itself on
+  ships as WARN instead of a guess. (Backfilled entry — the 0.299.0 bump landed in #1021 without one.)
+
 ## 0.298.0 — 2026-08-24
 
 ### Changed

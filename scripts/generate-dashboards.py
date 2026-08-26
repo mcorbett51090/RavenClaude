@@ -1154,6 +1154,15 @@ _PIPELINE_EXCLUDED_HOOKS = {
     "enforce-git-protocol.sh: it enforces an authoring CONVENTION (portability) rather than the "
     "safety floor the drawn PreToolUse cards represent, and its knob is surfaced with the other "
     "posture settings — so it is deliberately NOT a Pipeline stage card",
+    "guard-foreground-suite.sh": "foreground long-suite guard (PreToolUse Bash). DENIES (exit 2) a "
+    "FOREGROUND invocation of scripts/audit-gates.sh, because the Bash tool clamps `timeout` at "
+    "600000ms and the 917-gate suite outgrew it — so the run wedges the session for ten minutes and "
+    "is auto-backgrounded anyway. Three escapes: run_in_background:true, `--check N`, and a literal "
+    "RC_SUITE_FOREGROUND_ACK=1 prefix. ⛔ Unlike the other excluded PreToolUse hooks this one really "
+    "does exit 2 — but it is excluded for the same reason enforce-git-protocol.sh is (which also "
+    "blocks at its `block` knob): what it enforces is a WORKFLOW constraint imposed by the tool "
+    "harness, not the safety floor the drawn PreToolUse cards represent. It protects the operator's "
+    "ten minutes, not the repo or the user's data — so it is deliberately NOT a Pipeline stage card",
     "guard-probe-validity.sh": "advisory probe-validity nudge (PreToolUse Bash) governed by the "
     "`probe_validity:` comfort-posture knob — WARN is its ONLY verdict (there is no `block` value "
     "and no exit-2 path), on exactly one shape: `grep -v` used in quiet mode, where the exit status "
