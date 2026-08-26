@@ -2868,6 +2868,54 @@
       "strength_badge": "Unverified"
     },
     {
+      "id": "cheap-lane-agent-matrix",
+      "title": "The cheap lane is agent-agnostic, not Grok-only",
+      "category": "Inventory — measured mechanisms",
+      "kind": "ravenclaude-built",
+      "order": 903,
+      "summary": "route-task.py picks a lane, not a vendor; cheap-lane-delegate.sh picks the agent — and the two CLIs' real capability shapes genuinely diverge.",
+      "see_also": [],
+      "widget": null,
+      "try_it": null,
+      "node_links": {},
+      "last_verified": "2026-08-26",
+      "refresh_when": null,
+      "sources": [
+        {
+          "label": "verified live against the installed grok and copilot CLIs, this session",
+          "url": "https://github.com/mcorbett51090/RavenClaude/pull/1030"
+        }
+      ],
+      "body_md": "## What a reader would have assumed instead\n\nThat `--effort` is a Copilot CLI flag like any other, so passing it alongside the default `--model auto` would just apply the effort level to whatever model `auto` resolves to.\n\n## The discriminator\n\ncontrol: a call with --model auto and NO --effort flag completed normally, isolating the rejection to the flag pairing rather than to the CLI itself\nMeasured 2026-08-26: Copilot CLI's `--model auto` rejects `--effort` outright at runtime — `\"Model \\\"auto\\\" does not support reasoning effort configuration\"` — a real error hit on the first live end-to-end test through the dispatcher, not a hypothetical read from documentation. `copilot-delegate.sh` therefore emits `--effort` only when `[ \"$model\" != \"auto\" ]`.\n\n## Why it matters\n\n`route-task.py`'s `lane` field now reads `\"cheap\"`, not `\"grok\"` — the router decides whether work leaves Claude at all, never which CLI it lands on. `cheap-lane-delegate.sh --agent grok|copilot` is the layer that actually picks the coding agent, and the two agents' tier tables cannot share one row: Grok's model/effort/perspective come from the shared `substrate-tier-map.json`; Copilot's does not, because none of six guessed pinned model slugs validated as a real `--model` value against the installed CLI, and the only value confirmed to work (`auto`) is exactly the one that forbids `--effort`.\n\nFalsifier: a future Copilot CLI release accepting `--effort` together with `--model auto`.",
+      "diagram": null,
+      "diagram_mini": null,
+      "steps": [],
+      "svg": null,
+      "svg_mini": null,
+      "entry_class": "inventory",
+      "covers": [
+        "plugins/ravenclaude-core/scripts/cheap-lane-delegate.sh",
+        "plugins/ravenclaude-core/scripts/copilot-delegate.sh",
+        "plugins/ravenclaude-core/scripts/grok-delegate.sh",
+        "plugins/ravenclaude-core/scripts/route-task.py",
+        "plugins/ravenclaude-core/skills/cheap-lane-delegation/SKILL.md"
+      ],
+      "covers_digest": "sha256:fec7a918dcf80a7921e3d2bf1aeeb1814b85a85c28d51fa11d5912add8881bbf",
+      "nuance": "Copilot CLI's `--model auto` rejects `--effort` outright at runtime — a real error, not a doc gap — so the Copilot lane differentiates by timeout budget only unless a caller pins an effort-capable model.",
+      "nuance_evidence": {
+        "measured": "2026-08-26",
+        "control": "a call with --model auto and NO --effort flag completed normally, isolating the rejection to the flag pairing rather than to the CLI itself",
+        "falsifier": "a future Copilot CLI release accepting --effort together with --model auto",
+        "probe": "plugins/ravenclaude-core/scripts/copilot-delegate.sh"
+      },
+      "nuance_source": "plugins/ravenclaude-core/scripts/copilot-delegate.sh:195-200",
+      "verify": {
+        "tier": "none",
+        "rationale": "The rejection is live Copilot CLI runtime behavior, not something offline-stageable in CI; re-verifying it means a real non-interactive Copilot CLI call — already recorded as nuance_evidence.control — not a separate staged check."
+      },
+      "strength_badge": "Unverified"
+    },
+    {
       "id": "plugin-cache-is-version-keyed",
       "title": "Merged is not live",
       "category": "Inventory — measured mechanisms",
@@ -2898,7 +2946,7 @@
         "scripts/sync-plugin-versions.py",
         "scripts/generate-copilot-plugin.py"
       ],
-      "covers_digest": "sha256:f03cf3f5cf7e7d75bae4f4029d4ac5c06e0120cef924faeaa9e6bc56085e9e3d",
+      "covers_digest": "sha256:d1e039f480801271f15c4447e89d3698483e2bd64b146fe768d83ccad3cf036b",
       "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
       "nuance_evidence": {
         "measured": "2026-08-19",
