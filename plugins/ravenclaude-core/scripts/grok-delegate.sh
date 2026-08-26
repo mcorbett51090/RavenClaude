@@ -9,7 +9,23 @@
 #   grok-delegate.sh --task "<text>"        [--tier fast|balanced|top]
 #   grok-delegate.sh --task-file <path>     [--mode advise|agent]
 #                                           [--repo <dir>] [--timeout <secs>]
-#                                           [--max-turns <n>]
+#                                           [--max-turns <n>] [--effort low|medium|high]
+#
+# THE MATRIX (2026-08-26). Model + effort + perspective come from the shared
+# substrate-tier-map.json (the same map FORGE's G2/G3 panels resolve from) —
+# this script is not a second source of truth for those three. What IS local
+# to cheap-lane delegation, because it is a cost/turnaround decision rather
+# than a model-capability one, is the per-tier TURN/TIMEOUT BUDGET below:
+#
+#   tier      model(grok)  effort  perspective  max_turns  timeout_s
+#   fast      grok-4.5     low     scanner      15         300
+#   balanced  grok-4.5     high    architect    30         600
+#   top       grok-4.6     high    critic       60         1200
+#
+# An explicit --max-turns/--timeout/--effort always overrides its column.
+# --effort is validated against Grok CLI's real set (low|medium|high — xhigh
+# is rejected by the CLI, per the forge-pipeline skill's own note) and wins
+# over the tier-resolved effort from the substrate map.
 #
 # Exit codes (a caller treats ANY non-zero as "do it locally"):
 #   0  ok — grok's output is on stdout
@@ -76,8 +92,24 @@ _self="$(basename "$0")"
 # Layer 3 is structural and lives at the call site: --disallowed-tools "Agent"
 # stops grok spawning its own subagents, so the tree cannot fan out unbounded.
 
+# ── the per-tier turn/timeout budget (bash-3.2-safe: case, not declare -A) ────
+_tier_max_turns() {
+  case "$1" in
+    fast) echo 15 ;;
+    top) echo 60 ;;
+    *) echo 30 ;;  # balanced + any unrecognized tier
+  esac
+}
+_tier_timeout_s() {
+  case "$1" in
+    fast) echo 300 ;;
+    top) echo 1200 ;;
+    *) echo 600 ;;  # balanced + any unrecognized tier
+  esac
+}
+
 # ── args ──────────────────────────────────────────────────────────────────────
-task=""; task_file=""; tier="balanced"; mode="advise"; repo=""; timeout_s=600; max_turns=30
+task=""; task_file=""; tier="balanced"; mode="advise"; repo=""; timeout_s=""; max_turns=""; effort_override=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --task)       task="${2:-}"; shift 2 ;;
@@ -87,7 +119,8 @@ while [ $# -gt 0 ]; do
     --repo)       repo="${2:-}"; shift 2 ;;
     --timeout)    timeout_s="${2:-}"; shift 2 ;;
     --max-turns)  max_turns="${2:-}"; shift 2 ;;
-    -h|--help)    sed -n '2,30p' "$0"; exit 0 ;;
+    --effort)     effort_override="${2:-}"; shift 2 ;;
+    -h|--help)    sed -n '2,40p' "$0"; exit 0 ;;
     *) echo "$_self: unknown arg '$1'" >&2; exit 2 ;;
   esac
 done
@@ -98,8 +131,17 @@ if [ -n "$task_file" ]; then
 fi
 [ -n "$task" ] || { echo "$_self: --task or --task-file is required" >&2; exit 2; }
 case "$mode" in advise|agent) : ;; *) echo "$_self: --mode must be advise|agent" >&2; exit 2 ;; esac
-case "$timeout_s" in ''|*[!0-9]*) timeout_s=600 ;; esac
-case "$max_turns" in ''|*[!0-9]*) max_turns=30 ;; esac
+if [ -n "$effort_override" ]; then
+  case "$effort_override" in
+    low|medium|high) : ;;
+    *) echo "$_self: --effort must be low|medium|high (Grok CLI rejects xhigh)" >&2; exit 2 ;;
+  esac
+fi
+# An explicit --timeout/--max-turns wins; otherwise fall back to THIS tier's
+# budget row (resolved once tier is known — never the old flat 600/30 for
+# every tier regardless of cost).
+case "$timeout_s" in ''|*[!0-9]*) timeout_s="$(_tier_timeout_s "$tier")" ;; esac
+case "$max_turns" in ''|*[!0-9]*) max_turns="$(_tier_max_turns "$tier")" ;; esac
 
 command -v grok >/dev/null 2>&1 || { echo "$_self: grok CLI not found — run it locally" >&2; exit 2; }
 
@@ -152,6 +194,8 @@ PY
 fi
 # The map is the source of truth; this is only the floor if it is unreadable.
 [ -n "$model" ] || model="grok-4.5"
+# An explicit --effort wins over the tier-resolved effort (validated above).
+[ -n "$effort_override" ] && effort="$effort_override"
 
 # ── the isolated working directory (THE containment) ─────────────────────────
 scratch=""; workdir=""

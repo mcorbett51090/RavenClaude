@@ -3190,3 +3190,35 @@ DOM-budget ratchet is untouched (a 10-char date replacing a 10-char date changes
 
 **Migration:** none — knowledge-freshness metadata only; nothing in an installed plugin behaves differently
 on `/plugin marketplace update`.
+
+## Cheap-lane delegation gains a real matrix — per-tier turn/timeout budget + an `--effort` override (added 2026-08-26, v0.304.0)
+
+The cheap-lane's `--tier` flag already resolved model + effort + perspective from the
+shared `substrate-tier-map.json`, but every delegated task then paid the same flat
+30-turn/600s budget regardless of tier — a one-line regex and a multi-file mechanical
+refactor got identical runway, and `top` (reserved for the hardest cheap-lane-adjacent
+work a human explicitly picks) had no extra room to use its stronger model.
+
+`grok-delegate.sh` now resolves a **per-tier turn/timeout budget** alongside the
+existing model/effort/perspective resolution — `fast`=15 turns/300s,
+`balanced`=30/600 (unchanged from before, so a bare `--tier balanced` call is
+byte-identical), `top`=60/1200. An explicit `--timeout`/`--max-turns` always wins over
+the tier's row, exactly as before. A new `--effort low|medium|high` flag lets a caller
+override the tier-resolved effort directly (validated against Grok CLI's real set —
+`xhigh` is rejected by the CLI itself, per the forge-pipeline skill's own note), for
+the case a `fast`-tier task needs more reasoning depth without paying for
+`balanced`'s whole budget.
+
+The full matrix — model × effort × perspective × mode × turn/timeout budget — is now
+documented as one table in [`skills/cheap-lane-delegation/SKILL.md`](skills/cheap-lane-delegation/SKILL.md#the-matrix--every-lever-this-tool-tunes-not-just-the-model)
+rather than left implicit across two files.
+
+Verified end-to-end against the real `grok` CLI (1.0.5) this session: a `--tier fast`
+`advise`-mode call resolved model=grok-4.5/effort=low, the new 15-turn/300s budget,
+and returned exit 0 with the expected output; `--effort xhigh` was correctly rejected
+before any egress; `route-task.py --self-test` stayed 17/17.
+
+**Migration:** none — `balanced`'s defaults are unchanged (30/600, the prior flat
+default for every tier), so any existing call that never specified `--tier` sees
+byte-identical behavior. `fast` and `top` calls now get a scaled budget instead of
+`balanced`'s; `--effort` is a new opt-in flag.

@@ -78,6 +78,37 @@ bash "${CLAUDE_PLUGIN_ROOT:-plugins/ravenclaude-core}/scripts/grok-delegate.sh" 
   --task "<the same task description>" [--repo <path>, agent mode only]
 ```
 
+### The matrix — every lever this tool tunes, not just the model
+
+`--tier` resolves **model + effort + perspective** from the shared
+[`knowledge/substrate-tier-map.json`](../../knowledge/substrate-tier-map.json) (the
+same map FORGE's G2/G3 panels resolve from), and additionally sets a **per-tier
+turn/timeout budget** — a cost/turnaround decision that is local to cheap-lane
+delegation, not a model-capability fact, so it does not belong in the shared map:
+
+| Tier | Model (Grok) | Effort | Perspective | `max_turns` | `timeout_s` |
+|---|---|---|---|---|---|
+| `fast` (default) | grok-4.5 | low | scanner | 15 | 300 |
+| `balanced` | grok-4.5 | high | architect | 30 | 600 |
+| `top` (never auto-assigned) | grok-4.6 | high | critic | 60 | 1200 |
+
+Plus the two levers that are orthogonal to tier and always available:
+
+| Lever | Values | Set by |
+|---|---|---|
+| `mode` | `advise` (suggestion only) \| `agent` (disposable worktree, human reviews the diff) | `cheap_lane.mode` in `comfort-posture.yaml` — the containment lever |
+| `--effort` | `low` \| `medium` \| `high` (Grok CLI rejects `xhigh`) | An explicit CLI override — wins over the tier-resolved effort, for the rare case a `fast`-tier task still needs more reasoning depth without paying for `balanced`'s whole turn/timeout budget |
+| `--timeout <secs>` / `--max-turns <n>` | any positive int | An explicit CLI override — wins over the tier's budget row above |
+
+**Why turn/timeout scale with tier at all.** Before this, every delegated task got the
+same flat 30-turn/600s budget regardless of how trivial or how deep the task was — a
+one-liner regex paid for the same ceiling as a multi-file mechanical refactor, and
+`top` (reserved for the hardest cheap-lane-adjacent work a human explicitly picked)
+had no extra runway to actually use its stronger model. Scaling the budget with the
+tier means `fast` fails fast (300s) instead of hanging for 10 minutes on a task that
+should have taken 20 seconds, and `top` gets the room its model/effort choice implies
+it might need.
+
 Exit code is the whole contract — **treat any non-zero as "do it locally"**, silently, no drama:
 
 | Exit | Meaning |
