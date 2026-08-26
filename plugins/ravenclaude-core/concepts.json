@@ -2779,6 +2779,7 @@
         "plugins/ravenclaude-core/hooks/format-on-write.sh",
         "plugins/ravenclaude-core/hooks/gemini-hook-adapter.sh",
         "plugins/ravenclaude-core/hooks/guard-destructive.sh",
+        "plugins/ravenclaude-core/hooks/guard-foreground-suite.sh",
         "plugins/ravenclaude-core/hooks/guard-memory-compaction.sh",
         "plugins/ravenclaude-core/hooks/guard-premise.sh",
         "plugins/ravenclaude-core/hooks/guard-probe-validity.sh",
@@ -2804,7 +2805,11 @@
         "plugins/ravenclaude-core/hooks/triage-outcome.sh",
         "plugins/ravenclaude-core/hooks/worktree-guard.sh"
       ],
+<<<<<<< HEAD
       "covers_digest": "sha256:5fa0239aac3118f4f5ded2dbc1b21c547676e97a7011bda89857b70caadc6940",
+=======
+      "covers_digest": "sha256:dc1db96172f360f4c815dca14d3738346787eb2b2e1041e93c3595f287d64311",
+>>>>>>> origin/main
       "nuance": "A hook writing to stderr at `exit 0` reaches the model on no event; only `hookSpecificOutput.additionalContext` and `updatedToolOutput` are delivered, so `_advise.sh` advised the terminal for its entire service life.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -2851,7 +2856,7 @@
       "covers": [
         "plugins/ravenclaude-core/hooks/hooks.json"
       ],
-      "covers_digest": "sha256:245fc065440d8fe70b76f835f6dbdd4a8ce6cc98d021d1059b496b2168896728",
+      "covers_digest": "sha256:255b6a6b49e9a30de7f889d27e0056c7327ba8723ea9a1fba0796ba008170b17",
       "nuance": "Two `additionalContext` emitters on one event concatenate rather than last-write-wins, but two `updatedToolOutput` emitters replace, so the second silently discards the first.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -2897,7 +2902,7 @@
         "scripts/sync-plugin-versions.py",
         "scripts/generate-copilot-plugin.py"
       ],
-      "covers_digest": "sha256:86a747331c828bf4ead9449125349959fbfa1f2a8b605db62ce322b75e079103",
+      "covers_digest": "sha256:ed07dc50d6100a1efd514962f6c48b557a27aa1b5a24a58bfc6681e2c22eb781",
       "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -2958,7 +2963,7 @@
         "scripts/inventory-coverage.py",
         "scripts/inventory-nuance-judge.py"
       ],
-      "covers_digest": "sha256:7db63565369e1163898484ada37d78951ad6efa38a21ed10ccc02f8a8a93f16c",
+      "covers_digest": "sha256:977972b99fbb9c3b0583890f989f5ef13c8d4efe3f0cf609cf6e5b81b51b3f4a",
       "nuance": "The teeth bit is the exit a tool own CHECK returns on a planted defect, never the exit `--must-fail` itself returns: `premise-gate.py` denies at `exit 0` while `sync-plugin-versions.py` reddens at `exit 2`, so an auditor that hard-codes one number can never be right for both.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3365,7 +3370,7 @@
         "scripts/generate-dashboards.py",
         "scripts/generate-index-dashboard.py"
       ],
-      "covers_digest": "sha256:85ed55b5399f7b3c08c276ff3288b90b01309d0a70225f741c0ae9409f5155fb",
+      "covers_digest": "sha256:757a178cb844de1eace5113742c954f58d856dd916c60b3cf199149da8ff1926",
       "nuance": "`ISLANDED_PANEL_COST` is a flat 2 because the parser reads the payload as CDATA, so `check-dom-budget.py` cannot fire on `learn-payload` no matter how far past 23,861 elements it grows.",
       "nuance_evidence": {
         "measured": "2026-08-19",

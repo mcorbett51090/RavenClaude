@@ -638,6 +638,11 @@ PY
         --must-fail-echo || rc=$?
       exit $rc
       ;;
+    251)
+      echo "── Gate 251: foreground long-suite guard — deny, escapes, mention-vs-invocation ──"
+      bash plugins/ravenclaude-core/hooks/tests/test-guard-foreground-suite.sh
+      exit $?
+      ;;
     243)
       echo "── Gate 243: scheduled sweep contract + operator health card ──"
       bash plugins/ravenclaude-core/hooks/tests/test-gate243-sweep-and-health-card.sh
@@ -864,8 +869,13 @@ PY
       ;;
     140)
       echo "── Gate 140: worktree-guard block-mode teeth (per-gate run) ──────────────"
-      bash plugins/ravenclaude-core/hooks/tests/test-gate140-worktree-guard.sh
-      bash plugins/ravenclaude-core/hooks/tests/test-worktree-guard-core.sh
+      # ⛔ `< /dev/null` is load-bearing, not tidiness. These suites drive a hook
+      # that reads stdin; without the redirect they inherit whatever stdin the
+      # harness was launched with, and an inherited-but-never-closed pipe made the
+      # hook block forever — the original Gate 140 hang. The hook is bounded now,
+      # but a bound is a ceiling, not a reason to hand a suite an open pipe.
+      bash plugins/ravenclaude-core/hooks/tests/test-gate140-worktree-guard.sh < /dev/null
+      bash plugins/ravenclaude-core/hooks/tests/test-worktree-guard-core.sh < /dev/null
       exit $?
       ;;
     143)
@@ -1437,7 +1447,7 @@ PY
       ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 251. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -6118,7 +6128,7 @@ echo "── Gate 140: worktree-guard block-mode teeth ────────�
 # contention/anchor + a mutating op -> exit 2 deny) AND MUST-PASS (a solo checkout, a
 # read op, or ACK=1 -> exit 0), plus a teeth half that neuters the mutating classifier
 # and proves the deny then disappears.
-rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate140-worktree-guard.sh >/dev/null 2>&1 || rc=$?
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate140-worktree-guard.sh < /dev/null >/dev/null 2>&1 || rc=$?
 gate "worktree-guard block-mode teeth (deny mutating on contention/anchor; allow solo/read/ACK)" must_pass "$rc"
 
 # ⛔ The 16-case core suite for the SAME hook, and until now NO WORKFLOW RAN IT.
@@ -6129,7 +6139,7 @@ gate "worktree-guard block-mode teeth (deny mutating on contention/anchor; allow
 # PATH_KEY bucketing, GC of stale records, FOREIGN-TREE, and the lease/contention
 # layering (T5b). Registering it is the whole point — a gate that is not in a
 # sequence some workflow executes is indistinguishable from a gate that passes.
-rc=0; bash plugins/ravenclaude-core/hooks/tests/test-worktree-guard-core.sh >/dev/null 2>&1 || rc=$?
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-worktree-guard-core.sh < /dev/null >/dev/null 2>&1 || rc=$?
 gate "worktree-guard core: ownership, bucketing, stale-GC, FOREIGN-TREE, lease/contention layering" must_pass "$rc"
 
 echo
@@ -8898,6 +8908,29 @@ echo "── Gate 243: scheduled sweep contract + operator health card ───
 rc=0
 bash plugins/ravenclaude-core/hooks/tests/test-gate243-sweep-and-health-card.sh >/dev/null 2>&1 || rc=$?
 gate "sweep is unrequirable by construction; health card renders; census rule stated" must_pass "$rc"
+
+echo
+echo "── Gate 251: foreground long-suite guard — the 600s ceiling is a MECHANISM now ──"
+# ⛔ WHY A GATE AND NOT A NOTE. The Bash tool clamps `timeout` at 600000ms and this
+# very suite outgrew it, so a FOREGROUND full-suite run wedges the session for ten
+# minutes and is auto-backgrounded anyway. That happened 3+ times in one week, and
+# the third time it happened to a session that had ALREADY adopted
+# run_in_background:true and regressed off it hours later. A memory note demonstrably
+# did not hold; hooks/guard-foreground-suite.sh is the control that does.
+#
+# ⛔ THE HALF THAT CARRIES THE WEIGHT IS THE MUST-FAIL ONE. (d) neuters the matcher
+# and asserts the deny DISAPPEARS, so (a) is measuring the matcher and not the
+# fixture — and it carries its OWN vacuity control (if the mutation does not apply,
+# the half FAILS rather than reporting green against a byte-identical copy).
+#
+# ⛔ (c) is the mention-vs-invocation half. `grep`/`sed`/`git show`/`wc` naming the
+# suite must still RUN — a guard that cannot tell a command from a description of
+# one blocks its own repair, which this repo has already paid for twice.
+#
+# ⛔ Registered in dispatcher + main sequence + Supported:. Grep by literal name.
+rc=0
+bash plugins/ravenclaude-core/hooks/tests/test-guard-foreground-suite.sh >/dev/null 2>&1 || rc=$?
+gate "foreground long-suite guard: denies, honours 3 escapes, and a MENTION still runs" must_pass "$rc"
 
 echo
 
