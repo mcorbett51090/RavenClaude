@@ -82,6 +82,20 @@ orchestrator_repo_pii: true
 # sole guard. Caveat: pattern detection does NOT reliably catch free-text names/addresses. Default off.
 orchestrator_pseudonymize: false
 
+# Cheap lane — route everyday, well-defined work (single-file edits, test-writing,
+# summarization, mechanical refactors) to Grok instead of the main Claude session.
+# Multi-file/architecture/debugging/security/ambiguous work always stays on Claude
+# (the router is asymmetric by design — see skills/cheap-lane-delegation/SKILL.md).
+# Default: off. Nothing here runs until you set mode to advise or agent.
+#   off     — inert; every task stays in the main session (today's behavior).
+#   advise  — a routed task runs in an isolated scratch dir; output is a
+#             suggestion only, never applied automatically.
+#   agent   — a routed task runs in a disposable git worktree with write access;
+#             review the diff before it merges.
+cheap_lane:
+  mode: off
+  tier: fast # fast (default) | balanced — the Grok tier for delegated work
+
 # Model-fallback ladder (added 2026-06-24). When a model a RavenClaude process
 # invokes (a tribunal seat, the convergence judge, the orchestrator) ERRORS or is
 # OVERLOADED/unavailable, retry the same call on the next model in the ladder
