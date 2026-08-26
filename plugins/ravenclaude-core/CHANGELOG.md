@@ -2,6 +2,35 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.303.0 — 2026-08-26
+
+### Fixed
+
+- **`scripts/inventory-nuance-judge.py` re-ran the full 24-item golden-set
+  calibration on every invocation, and it is invoked independently by at least
+  two callers in one `audit-gates.sh` run.** Measured: gate 238 (inventory
+  sweep) 540.1s, gate 241 (nuance floor) 146.1s. Now content-hash + a
+  short, disclosed TTL (default 1h — `--cache-ttl-hours` / `INVENTORY_JUDGE_CACHE_TTL_HOURS`,
+  `--no-cache` / `INVENTORY_JUDGE_CACHE=off` restores the exact prior behavior).
+  The report line reads `cached, verified <age> ago`, never blended into
+  "verified now" — the file's own strongest stated invariant ("calibration
+  must hold IN THE SAME RUN") is honored by disclosure and a short window,
+  not silently reinterpreted. Per-entry verdicts cache without a TTL (the key
+  IS the judged text, so a hit means the question is byte-identical) but are
+  only ever read when calibration is CURRENTLY valid.
+
+  Verified with a new `--self-test` (12 assertions, 5 of them mutation-style
+  teeth) rather than a live model call: a live nested `claude -p` from inside
+  this repo's own working directory was found to hang intermittently during
+  this work (up to 60s+, no answer — isolated with a positive control to a
+  directory with no `.claude/settings.local.json`, which answers in ~6s every
+  time). That is a separate, unfixed finding, not something this caching fix
+  addresses or depends on.
+
+  **Migration:** none — cache lives at `.ravenclaude/cache/` (gitignored),
+  read/write is fail-safe on every error path, and `--must-fail`/
+  `--must-fail-convention`'s existing structural teeth are unchanged.
+
 ## 0.302.0 — 2026-08-26
 
 ### Added
