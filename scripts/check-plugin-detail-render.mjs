@@ -78,7 +78,9 @@ const RC_BASELINE = {
   //        19 -> 22: premise-gate.py + classify_claim.py + check-design-schema.py
   //                  (v0.263.0, PR 3b packaging move)
   scenarios: 4,
-  hooks: 39, // 38 -> 39: keep-awake.sh WIRED on SessionStart — an opt-in sleep assertion
+  hooks: 40, // 39 -> 40: guard-foreground-suite.sh WIRED on PreToolUse(Bash) — denies a
+  //        foreground full-suite run that cannot finish inside the 600s Bash-tool ceiling
+  //        38 -> 39: keep-awake.sh WIRED on SessionStart — an opt-in sleep assertion
   //   (`keep_awake` in comfort-posture.yaml, shipped default off) so a closed lid cannot
   //   silently suspend a session. It is a REGISTRATION, which is what this count tracks,
   //   even though it is excluded from the Pipeline map as host-environment hygiene rather
