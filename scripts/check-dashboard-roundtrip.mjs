@@ -84,6 +84,14 @@ const pieces = [
   app.match(/const CONTEXT_HANDOFF_MODE_DEFAULT = [^;]*;/)[0],
   app.match(/const CONTEXT_HANDOFF_SPAWN_VALUES = \[[^\]]*\];/)[0],
   extract(app, "const CONTEXT_HANDOFF_DEFAULT ="),
+  // Cheap lane (v0.61.0 data-loss class, closed same shape as context_handoff).
+  app.match(/const CHEAP_LANE_MODE_VALUES = \[[^\]]*\];/)[0],
+  app.match(/const CHEAP_LANE_MODE_DEFAULT = [^;]*;/)[0],
+  app.match(/const CHEAP_LANE_TIER_VALUES = \[[^\]]*\];/)[0],
+  app.match(/const CHEAP_LANE_TIER_DEFAULT = [^;]*;/)[0],
+  app.match(/const CHEAP_LANE_AGENT_VALUES = \[[^\]]*\];/)[0],
+  app.match(/const CHEAP_LANE_AGENT_DEFAULT = [^;]*;/)[0],
+  extract(app, "const CHEAP_LANE_DEFAULT ="),
   extract(app, "function freshTiers()"),
   extract(app, "function quoteYamlKey("),
   extract(app, "function applyGuardrailConfig("),
@@ -140,6 +148,7 @@ function _freshState() {
     stream_classify: STREAM_CLASSIFY_DEFAULT,
     stream_threshold: STREAM_THRESHOLD_DEFAULT,
     context_handoff: Object.assign({}, CONTEXT_HANDOFF_DEFAULT),
+    cheap_lane: Object.assign({}, CHEAP_LANE_DEFAULT),
     expanded: {},
   };
 }
@@ -180,6 +189,7 @@ function check(name, cond) {
   s.conserve_tokens = true;
   s.conserve_tokens_auto_pct = 65;
   s.context_handoff = { mode: "nag", spawn: "os-terminal", context_window_tokens: 150000 };
+  s.cheap_lane = { mode: "agent", tier: "top", agent: "copilot" };
   api._set(s);
 
   const yaml = api.emitYaml();
@@ -210,6 +220,10 @@ function check(name, cond) {
     "context_handoff.context_window_tokens emitted",
     /^  context_window_tokens: 150000$/m.test(yaml),
   );
+  check("cheap_lane block emitted", /^cheap_lane:$/m.test(yaml));
+  check("cheap_lane.mode emitted", /^  mode: agent$/m.test(yaml));
+  check("cheap_lane.tier emitted", /^  tier: top$/m.test(yaml));
+  check("cheap_lane.agent emitted", /^  agent: copilot$/m.test(yaml));
 
   // And the hydrator reads them back into a fresh state.
   api._set(api._freshState());
@@ -232,6 +246,7 @@ function check(name, cond) {
     conserve_tokens: true,
     conserve_tokens_auto_pct: 65,
     context_handoff: { mode: "nag", spawn: "os-terminal", context_window_tokens: 150000 },
+    cheap_lane: { mode: "agent", tier: "top", agent: "copilot" },
   });
   const h = api._get();
   check("hydrate runaway.max_total", h.runaway.max_total === 500);
@@ -258,6 +273,9 @@ function check(name, cond) {
     "hydrate context_handoff.context_window_tokens",
     h.context_handoff.context_window_tokens === 150000,
   );
+  check("hydrate cheap_lane.mode", h.cheap_lane.mode === "agent");
+  check("hydrate cheap_lane.tier", h.cheap_lane.tier === "top");
+  check("hydrate cheap_lane.agent", h.cheap_lane.agent === "copilot");
 }
 
 // ── Test 2: defaults are NOT emitted (absent ⇒ default; no posture bloat) ─────
@@ -282,6 +300,7 @@ function check(name, cond) {
   check("no conserve_tokens at default", !/^conserve_tokens:/m.test(yaml));
   check("no conserve_tokens_auto_pct at default", !/^conserve_tokens_auto_pct:/m.test(yaml));
   check("no context_handoff block at default", !/^context_handoff:/m.test(yaml));
+  check("no cheap_lane block at default", !/^cheap_lane:/m.test(yaml));
 }
 
 // ── Test 3: runaway: off scalar form ─────────────────────────────────────────
@@ -421,6 +440,48 @@ function check(name, cond) {
     api._set(api._freshState());
     api.applyGuardrailConfig({ context_handoff: { spawn: v } });
     check(`spawn union accepts ${v}`, api._get().context_handoff.spawn === v);
+  }
+}
+
+// ── Test 7: cheap_lane round-trips with ONLY mode set (the live-posture shape:
+//            `cheap_lane: { mode: agent, tier: fast }`, where tier is already the
+//            default). tier/agent stay their defaults (never emitted), but the
+//            block MUST still be written so the mode survives a Save — this is
+//            the exact key a real dashboard Save would have silently dropped
+//            before this fix (verified absent from emitYaml() prior to it). ──
+{
+  const s = api._freshState();
+  s.cheap_lane = { mode: "advise", tier: "fast", agent: "grok" };
+  api._set(s);
+  const yaml = api.emitYaml();
+  check("cheap_lane block emitted for mode-only", /^cheap_lane:$/m.test(yaml));
+  check("cheap_lane.mode emitted (mode-only)", /^  mode: advise$/m.test(yaml));
+  check("cheap_lane.tier NOT emitted when default fast", !/^  tier:/m.test(yaml));
+  check("cheap_lane.agent NOT emitted when default grok", !/^  agent:/m.test(yaml));
+
+  // An unknown mode/tier/agent value is rejected by the enum guard, so an
+  // otherwise-default block emits nothing (a Save neither invents nor
+  // corrupts a value).
+  api._set(api._freshState());
+  api.applyGuardrailConfig({ cheap_lane: { mode: "not-a-real-mode" } });
+  check("unknown mode ignored on hydrate", api._get().cheap_lane.mode === "off");
+  check("all-default cheap_lane emits no block", !/^cheap_lane:/m.test(api.emitYaml()));
+
+  // Every accepted value round-trips.
+  for (const v of ["off", "advise", "agent"]) {
+    api._set(api._freshState());
+    api.applyGuardrailConfig({ cheap_lane: { mode: v } });
+    check(`mode enum accepts ${v}`, api._get().cheap_lane.mode === v);
+  }
+  for (const v of ["fast", "balanced", "top"]) {
+    api._set(api._freshState());
+    api.applyGuardrailConfig({ cheap_lane: { tier: v } });
+    check(`tier enum accepts ${v}`, api._get().cheap_lane.tier === v);
+  }
+  for (const v of ["grok", "copilot"]) {
+    api._set(api._freshState());
+    api.applyGuardrailConfig({ cheap_lane: { agent: v } });
+    check(`agent enum accepts ${v}`, api._get().cheap_lane.agent === v);
   }
 }
 
