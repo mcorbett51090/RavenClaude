@@ -89,8 +89,38 @@ command -v _ee_sanitize_session >/dev/null 2>&1 || _ee_sanitize_session() {
 SUBCMD="${1:-}"
 
 # ── read the stdin payload (check/register carry one; status usually does not) ─
+# ⛔ BOUNDED ON PURPOSE — a bare `cat` here blocks FOREVER.
+# `[ ! -t 0 ]` cannot tell "a payload is on its way" from "fd 0 is an open pipe
+# nobody will ever write to". Both are simply not-a-tty, so the test that gates
+# the read is satisfied in precisely the case that hangs, and the guard stalls
+# every caller downstream of it — including audit-gates.sh Gate 140, which
+# invokes this hook and inherits whatever stdin the harness was launched with.
+# control: measured 2026-08-25 under a FIFO with a held-open writer — `status
+# --json` and `check` both hung until killed at 6s, while a control script that
+# reads no stdin exited in 1s under the identical fd. The differential is the
+# read, not the environment.
+# The bound covers the FIRST line only. Once a writer is demonstrably delivering,
+# the remainder drains unbounded, so a large or slow payload is never truncated —
+# the failure this fixes is "no writer at all", not "a slow writer".
 payload=""
-[ ! -t 0 ] && payload="$(cat 2>/dev/null || printf '')"
+_wg_read_payload() {
+  local first="" rest="" t="${RC_GUARD_STDIN_TIMEOUT:-2}"
+  # Non-numeric or absent -> the default. `read -t` rejects garbage outright, and
+  # a guard must never die on a malformed knob.
+  case "$t" in ''|*[!0-9]*) t=2 ;; esac
+  # 0 is the documented escape back to the old unbounded read.
+  if [ "$t" = "0" ]; then cat 2>/dev/null || printf ''; return 0; fi
+  if IFS= read -r -t "$t" first; then
+    rest="$(cat 2>/dev/null || printf '')"
+    if [ -n "$rest" ]; then printf '%s\n%s' "$first" "$rest"; else printf '%s' "$first"; fi
+  else
+    # Non-zero from `read` is EOF-carrying-a-partial-line OR the timeout. A
+    # non-empty `first` is real payload that must not be dropped; an empty one
+    # means nothing was ever written, which is the hang case, now bounded.
+    printf '%s' "$first"
+  fi
+}
+[ -t 0 ] || payload="$(_wg_read_payload)"
 
 # ── project dir (for the knob) + cwd (for git) ────────────────────────────────
 cwd=""

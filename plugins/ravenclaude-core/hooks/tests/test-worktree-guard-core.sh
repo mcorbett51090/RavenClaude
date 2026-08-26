@@ -28,6 +28,9 @@
 #   T14 lone checkout (no other worktrees) + Write under tree -> exit 0.
 #   T15 GIT_WORK_TREE=<B> git add -A from cwd A -> exit 2.
 #   T16 git status (no -C) from A -> exit 0.
+#   T18 stdin read is BOUNDED: (a) the hook exits under a held-open pipe,
+#       (b) must-fail — the bare `cat` restored still hangs there, (c) a
+#       multi-line payload still denies (the bound must not truncate).
 #   MF  must-fail half — strip the latecomer-only guard in _wg_contention and assert
 #       the incumbent now ALSO fires, proving T3's incumbent-silence has teeth.
 #
@@ -409,6 +412,87 @@ mk_payload "$R" latecomer Write "$(jq -cn --arg fp "$OUTSIDE/notes.md" '{file_pa
 [ "$?" -eq 0 ] \
   && pass "T17: write to a path owned by NO worktree -> exit 0 (not a general jail)" \
   || fail "T17: the lease denied a file outside every worktree"
+rm -rf "$SB"
+
+echo
+echo "── T18: the stdin read is BOUNDED — an open pipe must not hang the guard ─"
+# ⛔ REGRESSION PIN, and ALL THREE halves are load-bearing.
+# `[ ! -t 0 ]` cannot tell "a payload is on its way" from "fd 0 is an open pipe
+# nobody will ever write to" — both are simply not-a-tty — so the bare `cat` that
+# used to sit here blocked FOREVER on an inherited pipe, stalling every caller
+# downstream of the hook, audit-gates.sh Gate 140 included.
+#
+#   (a) the shipped hook EXITS under a FIFO whose writer is held open;
+#   (b) the must-fail half — the same hook with the bare `cat` restored must
+#       still HANG on that same FIFO. Without (b), (a) passes against a fixture
+#       that never blocked anything and the pin measures the environment, not
+#       the read. Both halves run against ONE fifo shape for exactly that reason.
+#   (c) a MULTI-LINE payload still denies. A bound that truncates the JSON to its
+#       first line yields a payload jq cannot parse, and an unparseable payload
+#       makes the guard ALLOW — a bounded read that silently disarms the guard is
+#       a worse defect than the hang it replaced.
+#
+# control 2026-08-25: under a FIFO with a held-open writer, the pre-fix hook hung
+# until killed at 6s while a script that reads no stdin exited in 1s.
+
+# _wg_bounded <limit-secs> <fifo-path> <cmd...> -> prints DONE | TIMEOUT
+_wg_bounded() {
+  local limit="$1" fifo="$2"; shift 2
+  rm -f "$fifo"; mkfifo "$fifo"
+  sleep "$((limit + 20))" > "$fifo" & local holder=$!
+  ( "$@" >/dev/null 2>&1 < "$fifo" ) & local pid=$!
+  local w=0
+  while kill -0 "$pid" 2>/dev/null && [ "$w" -lt "$limit" ]; do sleep 1; w=$((w + 1)); done
+  local verdict="DONE"
+  if kill -0 "$pid" 2>/dev/null; then kill -9 "$pid" 2>/dev/null; verdict="TIMEOUT"; fi
+  wait "$pid" 2>/dev/null
+  kill -9 "$holder" 2>/dev/null; wait "$holder" 2>/dev/null
+  rm -f "$fifo"
+  printf '%s' "$verdict"
+}
+
+SB="$(mktemp -d)"; export RC_WORKTREE_GUARD_HOME="$SB/guard"
+R="$SB/repo"; mk_repo "$R"
+
+# (a) the shipped hook must come back on its own.
+T18_STATUS="$(_wg_bounded 8 "$SB/fifo" bash "$HOOK" status --json)"
+T18_CHECK="$(_wg_bounded 8 "$SB/fifo" bash "$HOOK" check)"
+if [ "$T18_STATUS" = "DONE" ] && [ "$T18_CHECK" = "DONE" ]; then
+  pass "T18: status + check both exit under a held-open pipe (no unbounded read)"
+else
+  fail "T18: the guard hung on an open pipe (status=$T18_STATUS check=$T18_CHECK)"
+fi
+
+# (b) must-fail half — restore the bare `cat` and prove THAT still hangs.
+T18_TMP="$(mktemp -d)"; T18_HOOK="$T18_TMP/worktree-guard-unbounded.sh"
+python3 - "$HOOK" "$T18_HOOK" <<'T18PY'
+import sys
+src = open(sys.argv[1]).read()
+needle = '[ -t 0 ] || payload="$(_wg_read_payload)"'
+repl   = '[ ! -t 0 ] && payload="$(cat 2>/dev/null || printf \'\')"'
+assert needle in src, "T18 anchor drift: the bounded-read call site is gone"
+open(sys.argv[2], "w").write(src.replace(needle, repl))
+T18PY
+chmod +x "$T18_HOOK"
+T18_MF="$(_wg_bounded 6 "$SB/fifo" bash "$T18_HOOK" status --json)"
+if [ "$T18_MF" = "TIMEOUT" ]; then
+  pass "T18: must-fail — the unbounded read still HANGS, so (a) measures the read"
+else
+  fail "T18: the unbounded hook exited too ($T18_MF) — the fixture blocks nothing, (a) is vacuous"
+fi
+rm -rf "$T18_TMP"
+
+# (c) fidelity — a pretty-printed (multi-line) payload must still be parsed whole.
+git -C "$R" worktree add -q -b t18sib "$SB/t18sib"
+printf 'worktree_bound: block\n' >> "$R/.ravenclaude/comfort-posture.yaml"
+T18_ONELINE="$(mk_payload "$R" t18 Write "$(jq -cn --arg fp "$SB/t18sib/x.txt" '{file_path:$fp, content:"x"}')")"
+printf '%s' "$T18_ONELINE" | bash "$HOOK" check >/dev/null 2>&1; T18_RC1=$?
+printf '%s' "$T18_ONELINE" | jq '.' | bash "$HOOK" check >/dev/null 2>&1; T18_RCM=$?
+if [ "$T18_RC1" -eq 2 ] && [ "$T18_RCM" -eq 2 ]; then
+  pass "T18: a multi-line payload still denies (rc=$T18_RCM) — the bound does not truncate"
+else
+  fail "T18: payload fidelity broke (one-line rc=$T18_RC1, multi-line rc=$T18_RCM; both must be 2)"
+fi
 rm -rf "$SB"
 
 echo

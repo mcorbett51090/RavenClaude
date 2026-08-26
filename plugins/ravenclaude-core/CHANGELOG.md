@@ -2,6 +2,49 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.299.1 — 2026-08-25
+
+### Fixed
+
+- **`worktree-guard.sh` no longer hangs forever on an inherited pipe.** The hook read its stdin
+  payload with a bare `cat`, gated on `[ ! -t 0 ]`. That test cannot distinguish *"a payload is on
+  its way"* from *"fd 0 is an open pipe nobody will ever write to"* — both are simply not-a-tty — so
+  the gate was satisfied in precisely the case that blocks, and the read never returned. Every caller
+  downstream stalled with it, `audit-gates.sh` Gate 140 included, which invokes this hook and
+  inherits whatever stdin the harness was launched with.
+
+  Measured under a FIFO with a held-open writer: `status --json` and `check` both hung until killed
+  at 6s, while a control script that reads no stdin exited in 1s under the identical descriptor — the
+  differential is the read, not the environment.
+
+  The read is now bounded on the **first line only** (`RC_GUARD_STDIN_TIMEOUT`, default 2s; `0`
+  restores the old blocking read). Once a writer is demonstrably delivering, the remainder drains
+  unbounded, so a large or slow payload is never truncated — the failure fixed is *"no writer at
+  all"*, not *"a slow writer"*. That distinction is load-bearing: a bound that truncated the JSON to
+  its first line would leave a payload `jq` cannot parse, and an unparseable payload makes the guard
+  **allow** — silently disarming it, which is a worse defect than the hang.
+
+  Pinned by **T18** in `test-worktree-guard-core.sh` (Gate 140), in three halves: the shipped hook
+  exits under the FIFO; a must-fail half restores the bare `cat` and asserts it *still* hangs there,
+  so the first half measures the read rather than the fixture; and a pretty-printed multi-line
+  payload must still deny, proving the bound does not truncate.
+
+  ⛔ The same `[ ! -t 0 ] && cat` idiom appears in **143 of the 169 plugin hook scripts** (138 gate on
+  `-t 0` specifically; counted 2026-08-25). Those are invoked by
+  Claude Code, which writes the payload and closes the descriptor, so they are not known to hang in
+  practice — but the shape is identical and the fix here is not applied to them. Not in scope for
+  this patch; recorded so the survey isn't mistaken for a clean bill of health.
+
+## 0.299.0 — 2026-08-25
+
+### Added
+
+- **The org-skill studio** (`skills/authoring-org-skills/`) — lint, pack and verify a claude.ai
+  Organization Skill. 41 rules across a fail/warn split, hard refusals `R1`–`R4` with no override, a
+  `pack`/`verify` separation that shares data and never code, and tiers that are **derived from a
+  recorded evidence file** rather than hand-set, so a constraint the vendor contradicts itself on
+  ships as WARN instead of a guess. (Backfilled entry — the 0.299.0 bump landed in #1021 without one.)
+
 ## 0.298.0 — 2026-08-24
 
 ### Changed
