@@ -869,8 +869,13 @@ PY
       ;;
     140)
       echo "── Gate 140: worktree-guard block-mode teeth (per-gate run) ──────────────"
-      bash plugins/ravenclaude-core/hooks/tests/test-gate140-worktree-guard.sh
-      bash plugins/ravenclaude-core/hooks/tests/test-worktree-guard-core.sh
+      # ⛔ `< /dev/null` is load-bearing, not tidiness. These suites drive a hook
+      # that reads stdin; without the redirect they inherit whatever stdin the
+      # harness was launched with, and an inherited-but-never-closed pipe made the
+      # hook block forever — the original Gate 140 hang. The hook is bounded now,
+      # but a bound is a ceiling, not a reason to hand a suite an open pipe.
+      bash plugins/ravenclaude-core/hooks/tests/test-gate140-worktree-guard.sh < /dev/null
+      bash plugins/ravenclaude-core/hooks/tests/test-worktree-guard-core.sh < /dev/null
       exit $?
       ;;
     143)
@@ -6123,7 +6128,7 @@ echo "── Gate 140: worktree-guard block-mode teeth ────────�
 # contention/anchor + a mutating op -> exit 2 deny) AND MUST-PASS (a solo checkout, a
 # read op, or ACK=1 -> exit 0), plus a teeth half that neuters the mutating classifier
 # and proves the deny then disappears.
-rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate140-worktree-guard.sh >/dev/null 2>&1 || rc=$?
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate140-worktree-guard.sh < /dev/null >/dev/null 2>&1 || rc=$?
 gate "worktree-guard block-mode teeth (deny mutating on contention/anchor; allow solo/read/ACK)" must_pass "$rc"
 
 # ⛔ The 16-case core suite for the SAME hook, and until now NO WORKFLOW RAN IT.
@@ -6134,7 +6139,7 @@ gate "worktree-guard block-mode teeth (deny mutating on contention/anchor; allow
 # PATH_KEY bucketing, GC of stale records, FOREIGN-TREE, and the lease/contention
 # layering (T5b). Registering it is the whole point — a gate that is not in a
 # sequence some workflow executes is indistinguishable from a gate that passes.
-rc=0; bash plugins/ravenclaude-core/hooks/tests/test-worktree-guard-core.sh >/dev/null 2>&1 || rc=$?
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-worktree-guard-core.sh < /dev/null >/dev/null 2>&1 || rc=$?
 gate "worktree-guard core: ownership, bucketing, stale-GC, FOREIGN-TREE, lease/contention layering" must_pass "$rc"
 
 echo
