@@ -60,7 +60,10 @@ const RC_BASELINE = {
   //        53 -> 54: skills/session-handoff (v0.266.0, context-quality reset)
   //        52 -> 53: skills/design-clone (v0.253.0, design-schema capture+apply)
   //        51 -> 52: skills/github-gold-standard (v0.246.0, the gold-standard scorecard)
-  tools: 37, // 35 -> 37: check-scope-key-parity.py + audit-fired-count.py
+  tools: 38, // 37 -> 38: route-task.py (the cheap-lane deterministic router, merged
+  //   in from origin/main's cheap-lane-agnostic work; grok-delegate.sh is bash, so
+  //   _scan_scripts's *.py glob does not count it).
+  //        35 -> 37: check-scope-key-parity.py + audit-fired-count.py
   //   (verify-before-assert Phase 10 — anti-rot. The parity check guards a block
   //   duplicated in FIVE live files where drift is a silent pass, not a bug; the
   //   fired-count audit carries both G10.1 controls so "no events" can never be
@@ -92,7 +95,10 @@ const RC_BASELINE = {
   //        19 -> 22: premise-gate.py + classify_claim.py + check-design-schema.py
   //                  (v0.263.0, PR 3b packaging move)
   scenarios: 4,
-  hooks: 42, // 41 -> 42: guard-cause-closure.sh WIRED on PreToolUse(Write|Edit|
+  hooks: 43, // 42 -> 43: guard-foreground-suite.sh WIRED on PreToolUse(Bash), merged
+  //   in from origin/main — denies a foreground full-suite run that cannot finish
+  //   inside the 600s Bash-tool ceiling.
+  //        41 -> 42: guard-cause-closure.sh WIRED on PreToolUse(Write|Edit|
   //   MultiEdit) — verify-before-assert Phase 6, the SECOND fail-closed surface,
   //   shipping at `warn`. Same scripts/-plus-`bash` packaging as its siblings.
   //        40 -> 41: guard-remediation-cause.sh WIRED on PreToolUse(Bash) —
