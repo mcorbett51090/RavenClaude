@@ -2,7 +2,7 @@
 """route-task.py — decide whether a task goes to the CHEAP lane (Grok) or stays
 on Claude. Deterministic, model-free, stdlib-only, no network.
 
-    route-task.py --task "<text>"        -> {"lane":"grok"|"claude", ...}
+    route-task.py --task "<text>"        -> {"lane":"cheap"|"claude", ...}
     route-task.py --task-file <path>
     route-task.py --self-test
 
@@ -73,7 +73,7 @@ def route(task: str) -> dict:
                 "escalations": sorted(set(esc)), "cheap_signals": sorted(set(cheap))}
     if cheap:
         tier = "balanced" if _CHEAP_BALANCED.search(t) else "fast"
-        return {"lane": "grok", "tier": tier, "rule": cheap[0],
+        return {"lane": "cheap", "tier": tier, "rule": cheap[0],
                 "reason": "cheap-lane rule matched: " + ", ".join(sorted(set(cheap))),
                 "escalations": [], "cheap_signals": sorted(set(cheap))}
     return {"lane": "claude", "tier": "top", "rule": "unmatched",
@@ -84,12 +84,12 @@ def route(task: str) -> dict:
 # ── self-test ────────────────────────────────────────────────────────────────
 _CASES = [
     # (task, expected_lane, why-this-case-exists)
-    ("Write unit tests for parse_config in config.py", "grok", "canonical cheap"),
-    ("Summarize what this script does", "grok", "summarization"),
-    ("Rename the variable `foo` to `bar`", "grok", "mechanical refactor"),
-    ("Add docstrings to the functions in utils.py", "grok", "docstring"),
-    ("Write a regex that matches an ISO date", "grok", "one-liner"),
-    ("Reformat this JSON", "grok", "reformat"),
+    ("Write unit tests for parse_config in config.py", "cheap", "canonical cheap"),
+    ("Summarize what this script does", "cheap", "summarization"),
+    ("Rename the variable `foo` to `bar`", "cheap", "mechanical refactor"),
+    ("Add docstrings to the functions in utils.py", "cheap", "docstring"),
+    ("Write a regex that matches an ISO date", "cheap", "one-liner"),
+    ("Reformat this JSON", "cheap", "reformat"),
     # escalations — each must beat any cheap signal present
     ("Debug why the tests fail in config.py", "claude", "debug beats single-file"),
     ("Write unit tests for the auth token validator", "claude", "security beats test-writing"),
@@ -116,7 +116,7 @@ def self_test() -> int:
     # ⛔ TEETH: prove the escalation rules are what produce the claude verdicts —
     # a router that returned "claude" unconditionally would pass every case above.
     forced = route("Write unit tests for parse_config in config.py")
-    if forced["lane"] != "grok":
+    if forced["lane"] != "cheap":
         print("  ✗ TEETH: no task reaches the cheap lane — the router is a constant")
         bad += 1
     else:

@@ -3222,3 +3222,70 @@ before any egress; `route-task.py --self-test` stayed 17/17.
 default for every tier), so any existing call that never specified `--tier` sees
 byte-identical behavior. `fast` and `top` calls now get a scaled budget instead of
 `balanced`'s; `--effort` is a new opt-in flag.
+
+## The cheap lane was a Grok integration wearing a generic name — now it is genuinely agent-agnostic (added 2026-08-26, v0.305.0)
+
+Everything the cheap lane shipped with — `grok-delegate.sh`, the `cheap_lane.mode` knob,
+`route-task.py`'s `lane: "grok"` output — was Grok-specific by construction, despite the
+skill and its matrix table presenting themselves as the general "route work off Claude"
+mechanism. An owner review caught it directly: *"make sure the matrix is by coding agent,
+by model, by effort level — and not just geared toward one coding agent."*
+
+**New: [`scripts/cheap-lane-delegate.sh`](scripts/cheap-lane-delegate.sh)**, an
+agent-agnostic dispatcher — `--agent grok|copilot` selects the target CLI; every other
+flag passes through verbatim to that agent's own delegate script, because the two CLIs'
+real flag shapes genuinely differ and a shared shape would have to be the lowest common
+denominator of both (a strictly worse design than each script owning its own real
+capabilities).
+
+**New: [`scripts/copilot-delegate.sh`](scripts/copilot-delegate.sh)**, the Copilot
+sibling of `grok-delegate.sh` — same contract (args, exit codes, containment shape),
+built the same way grok-delegate.sh was: **live-probed against the installed CLI, not
+guessed from docs.** What that probing found, stated because it changes what the tier
+matrix can honestly promise:
+
+- `-p`/`--prompt`, `--model`, `--effort` (choices `none|minimal|low|medium|high|xhigh|max`
+  — a WIDER set than Grok's `low|medium|high`), `-C`, and `--deny-tool write --deny-tool
+  shell` (paired with `--allow-all-tools`, since denial takes precedence over allow) all
+  verified working via real non-interactive calls.
+- ⛔ **Read-only ("advise") containment was verified with a positive control, not
+  assumed**: a real call instructed to write `canary.txt` and report success returned
+  *"I was unable to create the file due to permission restrictions… I failed to create
+  canary.txt"* — the deny-tool pairing genuinely blocks writes, the same rigor
+  `grok-delegate.sh`'s header applies to Grok's kernel sandbox.
+- ⛔ **`--model auto` (the only value confirmed to work as a literal `--model` argument)
+  REJECTS `--effort` outright** — `"Model \"auto\" does not support reasoning effort
+  configuration"`, a real runtime error hit on the first live test, not a hypothetical.
+  Six distinct guessed pinned slugs (`claude-sonnet-5`, `claude-sonnet-4.5`,
+  `claude-opus-4-8`, `gpt-5`, the display-name string, and — surprisingly — the literal
+  internal id `auto` itself resolved to on a real call, `claude-haiku-4.5`, read back via
+  `--output-format json`) were all rejected as `--model` values. There is no
+  non-interactive way to enumerate the valid catalog; the picker is the interactive
+  `/model` command only. **Consequence, shipped honestly rather than glossed over:** with
+  the default `auto` model, `--effort` is omitted entirely — the Copilot lane's tier
+  ladder differentiates by timeout budget only, out of the box. `--model <slug>` is an
+  explicit override for a caller who has confirmed their own effort-capable slug.
+
+⛔ **codex is deliberately NOT a third `--agent` value.** The Codex CLI was not
+installed on the host this work was verified against. `command -v codex` alone was not
+trusted as the verdict — the premise gate this repo runs on new source modules caught
+exactly this (a new file referencing an unresolved negative), and the positive control it
+demanded was run for real: `command -v bash` proved the probe mechanism itself works, and
+a broader search (`~/.local/bin`, `~/.codex/bin`, `/usr/local/bin`, `/opt/homebrew/bin`,
+`brew list`) confirmed Codex is genuinely absent, not merely unresolved by a narrow PATH
+check. `cheap-lane-delegate.sh --agent codex` refuses with a message pointing at exactly
+what a future session needs to verify before adding it for real.
+
+**`route-task.py`'s `lane` output renamed `"grok"` → `"cheap"`** (17/17 self-test
+unchanged, verified before and after the rename) — the router decides *whether* work
+leaves the Claude session, never *which* agent it goes to; keeping the literal string
+`"grok"` in an agent-neutral field was itself part of the one-vendor framing this release
+corrects. `cheap_lane.agent: grok | copilot` (default `grok`, preserving today's
+behavior) is the new, separate posture knob that actually selects the agent.
+
+**Migration:** none in the permissive/default direction — `cheap_lane.agent` defaults to
+`grok`, so an existing posture with `cheap_lane.mode` set continues to route to Grok
+exactly as before. The one consumer-visible rename is `route-task.py`'s `lane` value
+(`"grok"` → `"cheap"`) — any external caller pattern-matching on the literal string
+`"grok"` in that JSON field (none exist inside this plugin; verified by grep) would need
+updating.
