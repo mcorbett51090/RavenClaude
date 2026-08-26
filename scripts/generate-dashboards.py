@@ -926,6 +926,22 @@ _PIPELINE_LANES = [
                     "set": "Pick off / decide / full below. Inert under Claude Code (host already IS Claude).",
                 },
             },
+            {
+                "id": "cheap-lane-delegation",
+                "title": "Cheap lane (Grok/Copilot)",
+                "badge": "dynamic",
+                "controls": "cheap_lane",
+                "tip": "Routes well-defined everyday work (tests, summaries, mechanical edits) to a cheaper coding agent instead of spending Claude's own turn on it.",
+                "detail": {
+                    "steps": [
+                        "A deterministic router decides whether a task is well-defined enough to leave the Claude session.",
+                        "advise: the delegated agent's output comes back as a suggestion only — nothing is applied automatically.",
+                        "agent: the delegated agent writes to a disposable, sandboxed git worktree — you review the diff before it merges.",
+                    ],
+                    "trip": "An ambiguous or escalation-shaped task always stays with Claude — the router defaults to keeping work local.",
+                    "set": "Pick off / advise / agent, the tier, and the coding agent below.",
+                },
+            },
         ],
     },
     {
@@ -1080,8 +1096,8 @@ _PIPELINE_LANES = [
 
 # ── The lane→hook contract (the ONLY thing that keeps the map "grounded") ─────
 # Maps every _PIPELINE_LANES stage id -> the registered hook basename it stands
-# for, or None for the two BEHAVIORAL guardrails (comfort-posture knobs read by
-# spawn-team at dispatch time, not hooks). Gate 133 asserts this dict's keys are
+# for, or None for the three BEHAVIORAL guardrails (comfort-posture knobs read by
+# spawn-team / cheap-lane-delegation at dispatch time, not hooks). Gate 133 asserts this dict's keys are
 # EXACTLY the set of stage ids in _PIPELINE_LANES — so a stage cannot be added
 # without declaring the hook it represents (or None) — and reconciles the mapped
 # hooks against hooks/hooks.json.
@@ -1099,6 +1115,7 @@ _PIPELINE_STAGE_HOOKS = {
     "route-decision-review": "route-decision-review.sh",
     "guard-web-access": "guard-web-access.sh",
     "claude-orchestrator": None,  # behavioral: spawn-team reads `orchestrator:` — no hook
+    "cheap-lane-delegation": None,  # behavioral: cheap-lane-delegation skill reads `cheap_lane:` — no hook
     "sanitize-webfetch-output": "sanitize-webfetch-output.sh",
     "format-on-write": "format-on-write.sh",
     "guard-recursive-spawn": "guard-recursive-spawn.sh",
@@ -1270,6 +1287,39 @@ _PIPELINE_CONTROLS = {
         "restored locally on return. Defense-in-depth on <em>top</em> of the floor — <strong>not</strong> a "
         "guarantee: pattern detection does not catch free-text names or addresses, which is exactly why "
         "the floor above is the real protection.</p></div>"
+    ),
+    "cheap_lane": (
+        '<label class="pipe-ctl">Mode '
+        '<select id="pipe-cheap-lane-mode">'
+        '<option value="off">off — every task stays with Claude (default, zero extra cost)</option>'
+        "<option value=\"advise\">advise — the delegated agent's output comes back as a "
+        "suggestion only</option>"
+        '<option value="agent">agent — the delegated agent writes to a disposable worktree; '
+        "you review the diff before it merges</option>"
+        "</select></label>"
+        '<label class="pipe-ctl">Tier — how much runway the delegated task gets '
+        '<select id="pipe-cheap-lane-tier">'
+        '<option value="fast">fast — cheapest model, low effort, 15 turns / 300s (default)</option>'
+        '<option value="balanced">balanced — stronger model, high effort, 30 turns / 600s</option>'
+        '<option value="top">top — strongest model, high effort, 60 turns / 1200s '
+        "(pick this yourself; never auto-assigned)</option>"
+        "</select></label>"
+        '<label class="pipe-ctl">Coding agent '
+        '<select id="pipe-cheap-lane-agent">'
+        "<option value=\"grok\">Grok — kernel-sandboxed (Seatbelt / Landlock), the stronger "
+        "containment (default)</option>"
+        '<option value="copilot">Copilot — CLI-documented path restriction, not a kernel '
+        "sandbox</option>"
+        "</select></label>"
+        '<p class="pipe-hint">Off by default — nothing here executes until mode is set to '
+        "<em>advise</em> or <em>agent</em>. <strong>advise</strong> — the delegated agent runs in "
+        "an isolated scratch dir with no repo access; its output is a suggestion for you to apply, "
+        "never applied automatically. <strong>agent</strong> — the delegated agent runs in a "
+        "disposable git worktree with write access; <strong>you review the diff before it "
+        "merges.</strong> A task the router judges ambiguous, escalation-shaped, or "
+        "security-sensitive always stays on Claude regardless of this setting — the routing "
+        "asymmetry is deliberate. See "
+        "<code>skills/cheap-lane-delegation/SKILL.md</code>.</p>"
     ),
     "files": (
         '<div class="pipe-file" data-file=".repo-layout.json">'
@@ -1556,13 +1606,15 @@ def _render_pipeline_tab() -> str:
                 if controls
                 else ""
             )
-            # P5a: mark the BEHAVIORAL-flag stages (decision_review, orchestrator)
-            # so the Pipeline surface makes the same permission-vs-behavior
+            # P5a: mark the BEHAVIORAL-flag stages (decision_review, orchestrator,
+            # cheap_lane) so the Pipeline surface makes the same permission-vs-behavior
             # distinction the Settings tab does — these do NOT gate a tool-call
             # permission. (worktree_guard is a behavioral flag too, but it is
             # surfaced Settings-only, so it carries the badge there, not here.)
             behavioral_html = (
-                _render_behavioral_flag_badge() if controls in ("decision", "orchestrator") else ""
+                _render_behavioral_flag_badge()
+                if controls in ("decision", "orchestrator", "cheap_lane")
+                else ""
             )
             detail = st.get("detail")
             detail_html = ""
@@ -11149,6 +11201,15 @@ _JS = r"""
     const orelay = document.getElementById("pipe-orch-relay-opts");
     if (orelay) orelay.style.display =
       (state.orchestrator_scope === "all" && state.orchestrator !== "off") ? "" : "none";
+    const clm = document.getElementById("pipe-cheap-lane-mode");
+    if (clm) clm.value = state.cheap_lane.mode;
+    const clt = document.getElementById("pipe-cheap-lane-tier");
+    if (clt) clt.value = state.cheap_lane.tier;
+    const cla = document.getElementById("pipe-cheap-lane-agent");
+    if (cla) cla.value = state.cheap_lane.agent;
+    pipeBadge("cheap-lane-delegation",
+              state.cheap_lane.mode === "off" ? "Off" : (state.cheap_lane.mode + " · " + state.cheap_lane.agent),
+              state.cheap_lane.mode === "off" ? "pipe-badge-off" : "pipe-badge-on");
     const dc = document.getElementById("pipe-dod-cmd");
     if (dc) dc.value = state.definition_of_done.cmd || "";
     const dm = document.getElementById("pipe-dod-maxblocks");
@@ -11227,6 +11288,9 @@ _JS = r"""
     onChange("pipe-decision-review", el => { if (DECISION_REVIEW_VALUES.includes(el.value)) state.decision_review = el.value; });
     onChange("pipe-orchestrator", el => { if (ORCHESTRATOR_VALUES.includes(el.value)) { state.orchestrator = el.value; syncPipelineTab(); } });
     onChange("pipe-orchestrator-scope", el => { if (ORCHESTRATOR_SCOPE_VALUES.includes(el.value)) { state.orchestrator_scope = el.value; syncPipelineTab(); } });
+    onChange("pipe-cheap-lane-mode", el => { if (CHEAP_LANE_MODE_VALUES.includes(el.value)) { state.cheap_lane.mode = el.value; syncPipelineTab(); } });
+    onChange("pipe-cheap-lane-tier", el => { if (CHEAP_LANE_TIER_VALUES.includes(el.value)) { state.cheap_lane.tier = el.value; syncPipelineTab(); } });
+    onChange("pipe-cheap-lane-agent", el => { if (CHEAP_LANE_AGENT_VALUES.includes(el.value)) { state.cheap_lane.agent = el.value; syncPipelineTab(); } });
     onChange("pipe-orch-zdr", el => { state.orchestrator_zdr_confirmed = el.checked; });
     onChange("pipe-orch-nopii", el => { state.orchestrator_repo_pii = !el.checked; });
     onChange("pipe-orch-pseudo", el => { state.orchestrator_pseudonymize = el.checked; });

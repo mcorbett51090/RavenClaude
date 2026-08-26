@@ -183,7 +183,7 @@ RATCHET = {
         ),
         (
             "P1 (plugin-panel collapse)",
-            6235,
+            6273,
             "the 167 panel-plugin-* sections (~4,843 elems) collapsed "
             "into ONE #plugin-vars picker: a <select> of 167 plugins whose "
             "editor form renders client-side into #plugin-vars-mount from the "
@@ -192,7 +192,7 @@ RATCHET = {
         ),
         (
             "P3 (chrome shrink)",
-            6235,
+            6273,
             "IA re-cut: the two-tier <nav class=cat-bar> (5 cat-btns) deleted and "
             "the <nav class=tab-bar> shrunk from 18 core tabs to 10 destination tabs "
             "(+ the plugin-vars picker tab); role=tablist/role=tab + the roving-"
@@ -201,7 +201,7 @@ RATCHET = {
         ),
         (
             "P4 (Observe merge)",
-            6235,
+            6273,
             "the Observe family is physically merged: the five tab-panel wrappers "
             "panel-{saga,mimir,streams,norns,vidarr} are removed and their content "
             "folded into panel-activity (saga/mimir/streams/norns) and panel-heimdall "
@@ -211,7 +211,7 @@ RATCHET = {
         ),
         (
             "P5 (shell-view deletions)",
-            6235,
+            6273,
             "panel-overview + panel-simulator deleted; the install/bifrost/"
             "about/commands panels folded into ONE panel-help drawer as "
             "collapsed <details> (their render fns + mount ids byte-identical). "
@@ -222,7 +222,7 @@ RATCHET = {
         ),
         (
             "A-split (Observe un-merge)",
-            6235,
+            6273,
             "the Observe family is UN-merged back into one "
             "<section class=tab-panel> per sub-page (the exact inverse of P4): "
             "Activity -> Run feed / Saga / Session / Streams / Lineage; Guardrails "
@@ -236,7 +236,7 @@ RATCHET = {
         ),
         (
             "PR-A (Help reachability + About accuracy)",
-            6235,
+            6273,
             "the About 'How the pages are organized' list was "
             "re-cut to the 5 current areas (gap G6): stale pre-recut sections + "
             "the deleted Overview / Preview-a-review refs removed; 4 li -> 5 li "
@@ -248,7 +248,7 @@ RATCHET = {
         ),
         (
             "PR-B (Guidance/trees wire-back)",
-            6235,
+            6273,
             "the Guidance (decision-trees + best-practices) tab was "
             "orphaned on both surfaces — no tab-btn reached panel-trees (gap G4). "
             "Added the tab-btn[data-tab=trees] to the tab-bar (visible + clickable "
@@ -259,7 +259,7 @@ RATCHET = {
         ),
         (
             "PR-C (cleanups + data refresh)",
-            6235,
+            6273,
             "PR-C's own changes are DOM-NEUTRAL — G8 (concepts routing "
             "maps), G9 (feed-cap CSS + comment), G13 (sim-probe JS guard), G15 "
             "(serve-dashboards allow-list) touch only JS/CSS/server, no markup. The "
@@ -272,7 +272,7 @@ RATCHET = {
         ),
         (
             "PR-E (standalone 4-dest sidebar)",
-            6235,
+            6273,
             "G11: the standalone dashboard.html gains a portal-style left "
             "<aside class=dash-sidebar> (brand + 4 destinations Control/Activity/"
             "Guardrails/Learn&Help -> 15 nav <a> links driving the EXISTING "
@@ -284,7 +284,7 @@ RATCHET = {
         ),
         (
             "premise gate (Pipeline stage card)",
-            6235,
+            6273,
             "guard-premise.sh becomes a visible PreToolUse stage: +16 elements "
             "(stage card + 4 steps + trip/set detail) on each surface. Owner-approved "
             "+16 raise (6,155 -> 6,171); index lifted in lockstep (7,041 -> 7,057). "
@@ -299,12 +299,12 @@ RATCHET = {
         ),
         (
             "v0.211.0 (Prompt Builder tab)",
-            6235,
+            6273,
             "new #/prompt-builder Learn & Help tab: +6 static elements (sidebar link + tab-btn + panel section + #pb-root mount + noscript + p); the whole interactive UI is JS-built by initPromptBuilder() so it is uncounted. Owner-approved +6 raise off the frozen zero-slack tail (6,097 -> 6,103); the P1..PR-E rows above were lifted in lockstep to keep the ratchet monotonic.",
         ),
         (
             "reland-11-plugins reflected in standalone dashboard",
-            6235,
+            6273,
             "the standalone dashboard.html was stale at 168 plugins — #778 (the "
             "11-plugin reland) regenerated index.html but NOT the standalone dashboard, "
             "so its plugin-version-drift card never picked up the 11 relanded plugins. "
@@ -316,7 +316,7 @@ RATCHET = {
         ),
         (
             "v0.216.0 (dashboard_autostart control)",
-            6235,
+            6273,
             "a 3-option select (off | serve | open) for the new `dashboard_autostart` "
             "posture knob, in the Settings panel beside the other behavioral flags. "
             "The knob shipped YAML-only earlier in v0.216.0 precisely BECAUSE the "
@@ -333,7 +333,7 @@ RATCHET = {
         ),
         (
             "v0.216.0 (Host & context page — MH-14)",
-            6235,
+            6273,
             "the #/host-context Control page: panel section + #hc-root mount + noscript + p "
             "+ the inlined host-support payload, plus the sidebar link, the mirrored tab-btn and "
             "the portal sub-nav link = +8 MEASURED. (First measurement said +7; the tab-btn was added AFTERWARDS to make the route resolve, and re-measuring caught the extra element. Measure LAST, not mid-change.) The 7x6 support matrix itself costs ZERO counted elements — "
@@ -344,7 +344,7 @@ RATCHET = {
         ),
         (
             "v0.217.0 (Help drawer: third host lane — MH-38)",
-            6235,
+            6273,
             "the Help drawer held exactly TWO onboarding lanes (Claude Code / Bifrost and "
             "Copilot CLI) that cross-linked only each other, and the drawer's own "
             "self-description named them as the whole world — while Codex had just become a "
@@ -359,16 +359,16 @@ RATCHET = {
         ),
         (
             "PR-F (placement nudge stage)",
-            6235,
+            6273,
             "owner-approved +14 (2026-07-29): the storage-placement nudge gets a Pipeline-tab stage beside its two already-drawn siblings (claim-grounding lint, do-it-yourself nudge). Leaving it undrawn would make the guardrail map read as though the guardrail does not exist. MEASURED, not estimated: trimming the stage description from 4 steps to 2 saved only 2 elements, so ~12 is the stage's fixed cost and +14 is the floor for drawing it at all. Tail lifted in lockstep to stay monotonic.",
         ),
         (
             "v0.238.0 (memory-engineering: marketplace 179 -> 180)",
-            6235,
+            6273,
             "owner-approved +1 (2026-08-06): the marketplace gains its 180th plugin (memory-engineering, PR #840), and every plugin costs exactly ONE element per surface — its row in the plugin-version-drift card. MEASURED, not estimated: dashboard.html went 6,154 -> 6,155 against a frozen zero-slack tail. This is the cheapest possible plugin addition; nothing in the plugin itself is heavy, and a plugin that added no DOM would mean it was absent from the catalog. Directly analogous to the 'reland-11-plugins (marketplace 168 -> 179)' row below/above. Tail lifted in lockstep to stay monotonic. NOTE for the next plugin: this +1 is per-plugin and recurs — re-measure, do not assume the tail has slack.",
         ),        (
             "v0.241.0 (memory-compaction guard: Rule 4 gets a mechanism)",
-            6235,
+            6273,
             "OWNER-APPROVED +31. guard-memory-compaction.sh is a real PreToolUse "
             "guardrail, so check-pipeline-lanes requires it be mapped or explicitly "
             "excluded; the 10 existing exclusions are all 'observability, not a "
@@ -380,7 +380,7 @@ RATCHET = {
         ),
         (
             "v0.267.0 (WebFetch result quarantine stage)",
-            6235,
+            6273,
             "OWNER-APPROVED +15. sanitize-webfetch-output.sh is a real PostToolUse "
             "guardrail (rewrites every consumer WebFetch body), so check-pipeline-lanes "
             "requires it be mapped or excluded; excluding it would hide a safety-floor "
@@ -389,7 +389,7 @@ RATCHET = {
         ),
         (
             "v0.273.0 (conserve-tokens switch + forms-engineering row restored)",
-            6235,
+            6273,
             "+3 = TWO independent components, measured separately and stated "
             "separately so neither hides behind the other. (1) +1 is NOT this change: "
             "the committed dashboard.html on origin/main was already STALE by one "
@@ -415,7 +415,7 @@ RATCHET = {
 
         (
             "triage-outcome (Pipeline stage card)",
-            6235,
+            6273,
             "triage-outcome.sh becomes a visible PostToolUse(Bash) stage: +15 elements "
             "(stage card + 3 steps + trip/set detail) on each surface. OWNER-APPROVED +15 "
             "raise, requested explicitly rather than taken: this table exists so a phase "
@@ -428,6 +428,19 @@ RATCHET = {
             "Wired only after its fire rate measured 2.588% over 46,557 real commands "
             "against a 3% bar. REVERSIBLE: drop this row, restore 6,220/7,106, and move "
             "'triage-outcome' from _PIPELINE_STAGE_HOOKS into _PIPELINE_EXCLUDED_HOOKS.",
+        ),
+        (
+            "cheap-lane dashboard control (Pipeline tab)",
+            6273,
+            "OWNER-REQUESTED: the cheap_lane posture knob (route everyday work to "
+            "Grok/Copilot) previously had a state-slot round-trip but NO point-and-click "
+            "control -- YAML-only, unlike its sibling `orchestrator`. Owner explicitly "
+            "asked for a toggle. Adds one Pipeline-tab stage card (title + 3 detail "
+            "steps + trip/set text, same class as PR-F/triage-outcome) plus 3 <select> "
+            "controls (mode/tier/agent) + 1 hint paragraph, mirroring `orchestrator`'s "
+            "exact pattern (3 options + a <p class=pipe-hint>, no relay-style nested "
+            "checkboxes). MEASURED, not estimated: 6,235 -> 6,273 (+38). Tail lifted in "
+            "lockstep to stay monotonic. Zero slack.",
         ),
     ],
     INDEX: [
@@ -457,7 +470,7 @@ RATCHET = {
         ),
         (
             "P1 (plugin-panel collapse)",
-            7121,
+            7159,
             "the 167 panel-plugin-* sections collapsed into ONE "
             "#plugin-vars picker in the merged dashboard fragment (same "
             "collapse as the standalone surface). Measured 11,462 -> 6,800. "
@@ -465,7 +478,7 @@ RATCHET = {
         ),
         (
             "P3 (chrome shrink)",
-            7121,
+            7159,
             "the folded fragment's cat-bar + tab-bar shrink (-14, same as the "
             "standalone surface) nets against +4 static destination anchors seeded "
             "into #primary-nav (the committed-route floor for #/control, #/activity, "
@@ -474,7 +487,7 @@ RATCHET = {
         ),
         (
             "P4 (Observe merge)",
-            7121,
+            7159,
             "the folded fragment's five Observe wrappers (panel-{saga,mimir,streams,"
             "norns,vidarr}) removed and their content folded into panel-activity / "
             "panel-heimdall (same merge as the standalone surface). Measured "
@@ -482,7 +495,7 @@ RATCHET = {
         ),
         (
             "P5 (shell-view deletions)",
-            7121,
+            7159,
             "same shell-view deletions folded into the portal fragment: "
             "panel-overview + panel-simulator deleted; install/bifrost/about/"
             "commands folded into ONE panel-help drawer + the grouped C5 "
@@ -492,7 +505,7 @@ RATCHET = {
         ),
         (
             "P6 (payload demotion)",
-            7121,
+            7159,
             "the three portal-only JSON payload islands learn-payload / "
             "trees-payload / concepts-data stripped from the folded dashboard body "
             "(portal Learn/Trees/Concepts are P5 named removals -> standalone + "
@@ -504,7 +517,7 @@ RATCHET = {
         ),
         (
             "A-split (Observe un-merge)",
-            7121,
+            7159,
             "the folded fragment's Observe family is UN-merged back into one "
             "<section class=tab-panel> per sub-page (the exact inverse of P4, same "
             "as the standalone surface): Activity -> Run feed / Saga / Session / "
@@ -517,7 +530,7 @@ RATCHET = {
         ),
         (
             "PR-A (Help reachability + About accuracy)",
-            7121,
+            7159,
             "portal-only +7 vs the standalone's +2: the shared "
             "About list re-cut 4 li -> 5 li (+2, gap G6) PLUS the G1 Help-"
             "reachability affordance in the shell topbar — an <a> '?' link + its "
@@ -528,7 +541,7 @@ RATCHET = {
         ),
         (
             "PR-B (Guidance/trees wire-back)",
-            7121,
+            7159,
             "portal +2 vs the standalone's +1: the +1 tab-btn[data-tab=trees] "
             "(same as the standalone) PLUS +1 for the restored trees-payload "
             "<script> START TAG — G4 removed 'trees-payload' from the P6 portal "
@@ -540,7 +553,7 @@ RATCHET = {
         ),
         (
             "PR-C (cleanups + data refresh)",
-            7121,
+            7159,
             "PR-C's own changes are DOM-NEUTRAL (G8/G9/G13/G15 = JS/CSS/"
             "server only). The +1 is MARKETPLACE DATA growth: main's committed "
             "index.html was stale at 6,776 while a fresh regen of current plugin "
@@ -551,7 +564,7 @@ RATCHET = {
         ),
         (
             "premise gate (Pipeline stage card)",
-            7121,
+            7159,
             "the portal folds the standalone payload, so the +16 premise-gate stage "
             "card lands here too (7,041 -> 7,057). Same owner-approved raise; see the "
             "matching row in the dashboard table above for the reasoning and the "
@@ -559,7 +572,7 @@ RATCHET = {
         ),
         (
             "PR-E (standalone 4-dest sidebar)",
-            7121,
+            7159,
             "the portal folds the SAME standalone payload, so the new "
             "<aside class=dash-sidebar> (+32, same as the standalone) lands in "
             "index.html too — hidden by the shell's `#dash-root .dash-sidebar "
@@ -569,17 +582,17 @@ RATCHET = {
         ),
         (
             "v0.211.0 (Prompt Builder tab)",
-            7121,
+            7159,
             "portal folds the same standalone payload: the +6 prompt-builder static elements land here too. Owner-approved +6 raise (6,809 -> 6,815); P1..PR-E lifted in lockstep to keep the ratchet monotonic.",
         ),
         (
             "render-fix (174 trees restored to portal)",
-            7121,
+            7159,
             "the self-heal's decision-tree SVG render had been broken for a while — mermaid 11.15.0 parse errors on 6 unquoted-special-char labels failed the whole single-batch 799-tree render, so it reverted every run. 174 decision trees added to newer plugins since the last successful render therefore had NO committed SVG (625 of 799 committed) and were ABSENT from the portal's per-plugin #dt-store tree-dropdowns. PR #772 quoted the 6 labels; the render now succeeds and commits all 799 SVGs, so the portal inlines 174 more <details>+<summary>+<img> dropdowns. Owner-approved +174 raise (6,815 -> 6,989) — legitimate content restoration (the trees were always meant to be in the portal), not new feature bloat. Measured 6,815 -> 6,989 (+174). Zero slack; the ratchet resumes its descent from this corrected baseline. dashboard.html is unaffected (6,103) — the per-plugin tree dropdowns are a portal-only surface.",
         ),
         (
             "reland-11-plugins (marketplace 168 -> 179)",
-            7121,
+            7159,
             "reland of 11 routine-proposed plugins (168 -> 179; PRs "
             "#709/#722/#725/#730/#736, deduped: dropped already-on-main "
             "ai-agent-engineering + one of two competing subscription-billing "
@@ -591,7 +604,7 @@ RATCHET = {
         ),
         (
             "v0.216.0 (dashboard_autostart control)",
-            7121,
+            7159,
             "the portal folds the SAME standalone payload, so the standalone's +6 "
             "dashboard_autostart select lands here too — the identical mechanism as the "
             "v0.211.0 Prompt Builder row. Owner-approved +6 raise (7,000 -> 7,006); the "
@@ -600,22 +613,22 @@ RATCHET = {
         ),
         (
             "v0.216.0 (Host & context page — MH-14)",
-            7121,
+            7159,
             "the portal folds the same standalone payload, so the +7 host-context elements land "
             "here too. Measured on BOTH surfaces after the edit, not projected. 7,006 -> 7,014.",
         ),
         (
             "PR-F (placement nudge stage)",
-            7121,
+            7159,
             "owner-approved +14 (2026-07-29): the storage-placement nudge gets a Pipeline-tab stage beside its two already-drawn siblings (claim-grounding lint, do-it-yourself nudge). Leaving it undrawn would make the guardrail map read as though the guardrail does not exist. MEASURED, not estimated: trimming the stage description from 4 steps to 2 saved only 2 elements, so ~12 is the stage's fixed cost and +14 is the floor for drawing it at all. Tail lifted in lockstep to stay monotonic.",
         ),
         (
             "v0.238.0 (memory-engineering: marketplace 179 -> 180)",
-            7121,
+            7159,
             "owner-approved +1 (2026-08-06): the marketplace gains its 180th plugin (memory-engineering, PR #840), and every plugin costs exactly ONE element per surface — its row in the plugin-version-drift card. MEASURED, not estimated: index.html went 7,040 -> 7,041 against a frozen zero-slack tail. This is the cheapest possible plugin addition; nothing in the plugin itself is heavy, and a plugin that added no DOM would mean it was absent from the catalog. Directly analogous to the 'reland-11-plugins (marketplace 168 -> 179)' row below/above. Tail lifted in lockstep to stay monotonic. NOTE for the next plugin: this +1 is per-plugin and recurs — re-measure, do not assume the tail has slack.",
         ),        (
             "v0.241.0 (memory-compaction guard: Rule 4 gets a mechanism)",
-            7121,
+            7159,
             "OWNER-APPROVED +31. guard-memory-compaction.sh is a real PreToolUse "
             "guardrail, so check-pipeline-lanes requires it be mapped or explicitly "
             "excluded; the 10 existing exclusions are all 'observability, not a "
@@ -627,13 +640,13 @@ RATCHET = {
         ),
         (
             "v0.267.0 (WebFetch result quarantine stage)",
-            7121,
+            7159,
             "OWNER-APPROVED +15. Same sanitize-webfetch-output.sh Pipeline stage as "
             "the dashboard surface. Measured 7,088 -> 7,103. Zero slack.",
         ),
         (
             "v0.273.0 (conserve-tokens switch + forms-engineering row restored)",
-            7121,
+            7159,
             "+3, the same two components as the dashboard surface (the portal folds "
             "the same standalone payload). (1) +1 pre-existing staleness: "
             "regenerating index.html at an otherwise untouched origin/main checkout "
@@ -646,7 +659,7 @@ RATCHET = {
 
         (
             "triage-outcome (Pipeline stage card)",
-            7121,
+            7159,
             "triage-outcome.sh becomes a visible PostToolUse(Bash) stage: +15 elements "
             "(stage card + 3 steps + trip/set detail) on each surface. OWNER-APPROVED +15 "
             "raise, requested explicitly rather than taken: this table exists so a phase "
@@ -659,6 +672,15 @@ RATCHET = {
             "Wired only after its fire rate measured 2.588% over 46,557 real commands "
             "against a 3% bar. REVERSIBLE: drop this row, restore 6,220/7,106, and move "
             "'triage-outcome' from _PIPELINE_STAGE_HOOKS into _PIPELINE_EXCLUDED_HOOKS.",
+        ),
+        (
+            "cheap-lane dashboard control (Pipeline tab)",
+            7159,
+            "OWNER-REQUESTED, same change as the dashboard surface (the portal folds "
+            "the same standalone payload): the cheap_lane Pipeline-tab stage card + "
+            "3 <select> controls (mode/tier/agent) + hint paragraph land here too. "
+            "MEASURED, not estimated, on BOTH surfaces after the edit, not projected: "
+            "7,121 -> 7,159 (+38). Tail lifted in lockstep to stay monotonic. Zero slack.",
         ),
     ],
 }
