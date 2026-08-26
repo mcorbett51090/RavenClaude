@@ -3191,6 +3191,55 @@ DOM-budget ratchet is untouched (a 10-char date replacing a 10-char date changes
 **Migration:** none — knowledge-freshness metadata only; nothing in an installed plugin behaves differently
 on `/plugin marketplace update`.
 
+## The context-usage meter had no Claude Code path — the handoff nudge was inert on the most common host (added 2026-08-26, v0.303.0)
+
+`scripts/context-usage-meter.py` powers `handoff-nudge.sh` (the Stop-hook context-hot warning) and,
+since v0.274.0, the `conserve_tokens_auto_pct` trigger — the two mechanisms meant to warn a session
+*before* it hits the real auto-compact cliff. Both were silently inert under Claude Code, every session,
+regardless of `context_handoff.mode`.
+
+⛔ **Root cause: the meter was Grok-only from its first line, and nobody had a Claude Code path to fall
+back to.** `session_dir_from_env` / `last_total_tokens` read `GROK_SESSION_ID` and
+`~/.grok/sessions/<cwd>/<sid>/updates.jsonl` — a format that does not exist for a Claude Code session
+(Claude Code writes `~/.claude/projects/<encoded-cwd>/<sid>.jsonl`, an entirely different transcript
+shape). So under Claude Code `last_total_tokens` always returned `None`, `measure()` always returned
+`status: "unknown"`, and `handoff-nudge.py`'s `if result.get("status") != "ok" ... return 0` made it a
+no-op on every turn — independent of, and compounding, this repo's own posture never having set
+`context_handoff.mode` (it defaulted `off`, per `read_posture`'s own default dict). Two independent
+reasons the mechanism never fired, on the host most sessions run on.
+
+control: driven against this session's own live transcript —
+`meter.measure(None, None, 70, None, claude_payload={"transcript_path": <this session's .jsonl>})` →
+`{"status":"ok","used":85676,"window":200000,"percent":42.8,"source":"claude-code", ...}` — where the
+unpatched code returned `status: "unknown"` on the identical input (no Claude Code branch existed to
+resolve it).
+
+**The fix — a second, purely additive resolution path, tried only when Grok's resolves nothing.**
+`claude_transcript_path(payload)` prefers the hook payload's own `transcript_path` field (present on
+every Claude Code hook invocation — the same field `compact-anchor.py` already uses), falling back to
+reconstructing `~/.claude/projects/<encoded-cwd>/<sid>.jsonl` only when that field is absent (a test
+harness building its own payload). `last_total_tokens_claude(path)` reads the **last `assistant` turn's
+`message.usage`** — `input_tokens + cache_read_input_tokens + cache_creation_input_tokens` (what was
+actually sent as context for that turn; `output_tokens` is deliberately excluded — it is what the model
+*produced*, not part of the next turn's input) — via a **bounded tail read** (4 MiB), not a full-file
+read like Grok's `updates.jsonl` path, because a Claude Code transcript can be large. Window falls back
+to a Claude-appropriate default (200000) only when nothing else resolved one **and** the reading came
+from the Claude Code path — a Grok session with no resolvable window still reports `unknown`, unchanged.
+`measure()` gained one new keyword-only parameter, `claude_payload=None`; every existing call site is
+byte-identical (the parameter defaults to inert), and `handoff-nudge.py` + `conserve-tokens.py`'s
+`context_percent()` now pass their already-available hook `payload` through.
+
+**Dogfooded, not just built:** this repo's own `.ravenclaude/comfort-posture.yaml` had `context_handoff:
+{spawn: os-terminal}` with no `mode:` — meaning the nudge was doubly dark here even before this fix.
+`mode: nag` is now set, with an inline comment explaining why it was previously a no-op.
+
+**Migration:** none in the Grok direction — every existing test (`test-context-usage-meter.py`, 9
+pre-existing cases) passes unchanged, and a Grok session's reading is never overridden by the Claude
+fallback (asserted directly: `test_grok_reading_never_overridden_by_claude_fallback`). A consumer running
+Claude Code with `context_handoff.mode: nag` or `block` set will, for the first time, actually see the
+nudge fire as context climbs — this is the mechanism working as originally documented, not a new
+behavior being introduced.
+
 ## Cheap-lane delegation gains a real matrix — per-tier turn/timeout budget + an `--effort` override (added 2026-08-26, v0.304.0)
 
 The cheap-lane's `--tier` flag already resolved model + effort + perspective from the

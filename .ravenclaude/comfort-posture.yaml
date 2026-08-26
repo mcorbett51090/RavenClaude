@@ -249,3 +249,11 @@ keep_awake: on
 # the `context_handoff:` block itself now survives.)
 context_handoff:
   spawn: os-terminal
+  # mode: nag added 2026-08-26 — dogfooding the Claude Code fix. Before this,
+  # context-usage-meter.py had no Claude Code read path at all, so this knob
+  # was silently inert on every session run under Claude Code (the meter
+  # always returned status=unknown regardless of `mode`). With the Claude Code
+  # path now wired in, `nag` actually fires: a Stop-hook additionalContext
+  # nudge once live usage crosses the soft threshold, before the real
+  # auto-compact cliff.
+  mode: nag
