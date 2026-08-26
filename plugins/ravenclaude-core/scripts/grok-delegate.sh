@@ -27,15 +27,39 @@
 #   `--sandbox read-only`              -> WROTE a file anyway
 #   `--sandbox read-only` (no bypass)  -> WROTE a file anyway (confound removed)
 #   `--sandbox workspace`  (control)   -> wrote, as expected
-# There is no `~/.grok/sandbox.toml` and no `[sandbox]` block in `~/.grok/config.toml`
-# on this machine, so the flag is accepted and silently does nothing. Two of three
-# permission primitives failed to contain, SILENTLY — so this script rests no safety
-# claim on the third. Instead:
-#   advise mode -> grok runs in an EMPTY scratch dir. There is nothing to damage.
-#   agent  mode -> grok runs in a DISPOSABLE git worktree. Review the diff, then merge.
-# That is blast-radius containment, and it holds whether or not grok's flags work.
-# ⛔ Do NOT "improve" this by trusting --sandbox until you have re-run the probes
-# above and seen read-only actually refuse a write.
+#
+# ⛔ CORRECTED 2026-08-26 — that conclusion was WRONG, and the flaw was the test,
+# not grok. Every probe above ran inside
+# /private/tmp/.../scratchpad/groktest — i.e. under `/private/tmp`, one of the
+# paths `--sandbox read-only`'s OWN allowlist grants write access to (grok needs
+# temp dirs for session bookkeeping). The "leak" was a write to a path the profile
+# explicitly permits.
+# control: re-ran read-only in a workspace OUTSIDE every allowlisted path
+# (~/rc-scratch-outside-tmp — no /tmp, /var/tmp, or ~/.grok in it) -> write
+# REFUSED; grok's own reply: "an environment restriction, not a missing-permission
+# bit"; it fell back to /tmp rather than wrongly claiming success. Logged in
+# ~/.grok/sandbox-events.jsonl:
+#   {"event_type":"FsViolation","profile":"read-only","operation":"write",
+#    "target":"/Users/matthewcorbett/rc-scratch-outside-tmp/wrote_real.txt"}
+# Positive control, same location: `--sandbox workspace` -> write SUCCEEDED.
+# Seatbelt (the macOS kernel primitive) really is enforcing this.
+#
+# `--tools ""` was a separate, real footgun and stays fixed: an EMPTY allowlist
+# means "no allowlist", not "no tools" — a CLI-argument mistake, not a containment
+# failure — so it is simply not passed below. `--disallowed-tools "Agent"` is the
+# verified recursion guard.
+#
+# CONTAINMENT IS NOW TWO LAYERS, DELIBERATELY BOTH:
+#   `--sandbox <profile>`  -> KERNEL-enforced (Seatbelt/Landlock). The real boundary.
+#   worktree / scratch dir -> what grok can reach in the first place, and — for
+#                              agent mode — the disposable branch reviewed before
+#                              merging. Not a substitute for the sandbox; a second,
+#                              independent layer, because a session-scoped kernel
+#                              boundary and a git-scoped review boundary fail for
+#                              different reasons.
+# ⛔ Before changing either layer, re-run the outside-allowlist probe above and
+# read ~/.grok/sandbox-events.jsonl — never trust a probe run inside a path the
+# profile already allowlists.
 
 set -uo pipefail
 
@@ -155,10 +179,18 @@ else
 fi
 
 # ── the call ──────────────────────────────────────────────────────────────────
+# --sandbox is the KERNEL boundary (Seatbelt/Landlock) — verified above, not
+# assumed. advise mode gets `read-only` (nothing should be written at all, and if
+# the model tries, the kernel refuses it); agent mode gets `workspace` (writes
+# confined to $workdir — the disposable worktree — plus grok's own state dir and
+# temp, never the primary checkout).
 # --disallowed-tools "Agent" is recursion layer 3: grok must not spawn its own
 # subagents, or one delegation fans out into a tree nobody is counting.
 # --max-turns bounds the agent loop — the cost control that makes this worth doing.
-set -- --cwd "$workdir" --model "$model" --disallowed-tools "Agent" --max-turns "$max_turns"
+sandbox_profile="read-only"
+[ "$mode" = "agent" ] && sandbox_profile="workspace"
+set -- --cwd "$workdir" --sandbox "$sandbox_profile" --model "$model" \
+       --disallowed-tools "Agent" --max-turns "$max_turns"
 [ -n "$effort" ] && set -- "$@" --effort "$effort"
 [ "$mode" = "agent" ] && set -- "$@" --permission-mode acceptEdits
 
