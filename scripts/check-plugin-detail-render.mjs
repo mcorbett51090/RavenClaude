@@ -55,11 +55,14 @@ const ISLANDED_AGENT_KEYS = ["scenarios", "quickstart", "works_with"];
 const RC = "ravenclaude-core";
 const RC_BASELINE = {
   agents: 15,
-  skills: 55, // 54 -> 55: skills/authoring-org-skills (org-skill studio, Phase 5)
+  skills: 56, // 55 -> 56: skills/cheap-lane-delegation (route everyday work to Grok)
+  //        54 -> 55: skills/authoring-org-skills (org-skill studio, Phase 5)
   //        53 -> 54: skills/session-handoff (v0.266.0, context-quality reset)
   //        52 -> 53: skills/design-clone (v0.253.0, design-schema capture+apply)
   //        51 -> 52: skills/github-gold-standard (v0.246.0, the gold-standard scorecard)
-  tools: 32, // 30 -> 32: set_conservation.py + ledger.py (task-ledger Phases 0-2).
+  tools: 33, // 32 -> 33: route-task.py (the cheap-lane deterministic router;
+  //   grok-delegate.sh is bash, so _scan_scripts's *.py glob does not count it).
+  //   30 -> 32: set_conservation.py + ledger.py (task-ledger Phases 0-2).
   //   set_conservation.py is the SSOT Set-Conservation Primitive, shared with the
   //   sibling verify-before-assert run (set_kind in {open_items, causes}); ledger.py
   //   is the append primitive + the projection. COUNTED on this tree, not inferred.

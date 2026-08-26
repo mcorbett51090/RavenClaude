@@ -107,5 +107,106 @@ class MeterTests(unittest.TestCase):
             self.assertNotIn("contextTokensUsed", live_fn)
 
 
+def _claude_transcript(tmp: Path, usages) -> Path:
+    """Build a minimal Claude Code transcript: one assistant line per usage dict."""
+    path = tmp / "transcript.jsonl"
+    lines = []
+    for usage in usages:
+        lines.append(
+            json.dumps({"type": "assistant", "message": {"usage": usage}}) + "\n"
+        )
+    path.write_text("".join(lines))
+    return path
+
+
+class ClaudeCodePathTests(unittest.TestCase):
+    """The Claude Code fallback added 2026-08-26 — see the module docstring's
+    ⛔ CORRECTED note. Every existing Grok-path test above must remain
+    untouched and green; these are purely additive."""
+
+    def test_grok_path_untouched_by_new_default_param(self):
+        """A caller that never passes claude_payload gets byte-identical behavior."""
+        with tempfile.TemporaryDirectory() as raw:
+            sess = _session(Path(raw), [100])
+            r = meter.measure(sess, 1000, 70, 85)
+            self.assertEqual(r["status"], "ok")
+            self.assertEqual(r["used"], 100)
+
+    def test_claude_transcript_resolves_usage_and_status_ok(self):
+        with tempfile.TemporaryDirectory() as raw:
+            transcript = _claude_transcript(
+                Path(raw),
+                [
+                    {
+                        "input_tokens": 5,
+                        "cache_read_input_tokens": 1000,
+                        "cache_creation_input_tokens": 2000,
+                        "output_tokens": 40,
+                    }
+                ],
+            )
+            payload = {"transcript_path": str(transcript), "session_id": "sid-1", "cwd": raw}
+            r = meter.measure(None, 10000, 70, None, claude_payload=payload)
+            self.assertEqual(r["status"], "ok")
+            self.assertEqual(r["used"], 5 + 1000 + 2000)
+            self.assertEqual(r["source"], "claude-code")
+            # output_tokens must NOT be counted as context usage.
+            self.assertNotEqual(r["used"], 5 + 1000 + 2000 + 40)
+
+    def test_claude_last_assistant_turn_wins(self):
+        with tempfile.TemporaryDirectory() as raw:
+            transcript = _claude_transcript(
+                Path(raw),
+                [
+                    {"input_tokens": 10, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0},
+                    {"input_tokens": 999, "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0},
+                ],
+            )
+            payload = {"transcript_path": str(transcript)}
+            r = meter.measure(None, 10000, 70, None, claude_payload=payload)
+            self.assertEqual(r["used"], 999)
+
+    def test_grok_reading_never_overridden_by_claude_fallback(self):
+        """When the Grok session HAS a reading, the Claude payload must be ignored."""
+        with tempfile.TemporaryDirectory() as raw:
+            sess = _session(Path(raw), [50])
+            transcript = _claude_transcript(Path(raw), [{"input_tokens": 999999}])
+            payload = {"transcript_path": str(transcript)}
+            r = meter.measure(sess, 1000, 70, 85, claude_payload=payload)
+            self.assertEqual(r["used"], 50)
+            self.assertEqual(r["source"], "grok")
+
+    def test_claude_default_window_only_applies_to_claude_source(self):
+        with tempfile.TemporaryDirectory() as raw:
+            transcript = _claude_transcript(Path(raw), [{"input_tokens": 100}])
+            payload = {"transcript_path": str(transcript)}
+            # no owner_window, no signals.json (there is none for Claude Code) —
+            # the Claude default (200000) must apply.
+            r = meter.measure(None, None, 70, None, claude_payload=payload)
+            self.assertEqual(r["window"], meter.DEFAULT_CLAUDE_WINDOW)
+
+    def test_claude_transcript_path_prefers_payload_field(self):
+        payload = {"transcript_path": "/tmp/does-not-matter.jsonl", "session_id": "x", "cwd": "/tmp"}
+        p = meter.claude_transcript_path(payload)
+        self.assertEqual(str(p), "/tmp/does-not-matter.jsonl")
+
+    def test_claude_transcript_path_falls_back_to_reconstruction(self):
+        payload = {"session_id": "abc123", "cwd": "/Users/x/proj"}
+        p = meter.claude_transcript_path(payload)
+        self.assertIsNotNone(p)
+        self.assertTrue(str(p).endswith("-Users-x-proj/abc123.jsonl"))
+
+    def test_no_usable_source_still_unknown(self):
+        """No Grok session, no Claude transcript -> unknown, never a crash."""
+        r = meter.measure(None, None, 70, None, claude_payload={})
+        self.assertEqual(r["status"], "unknown")
+        self.assertIsNone(r["percent"])
+
+    def test_missing_transcript_file_is_none_not_error(self):
+        payload = {"transcript_path": "/nonexistent/path/does-not-exist.jsonl"}
+        used = meter.last_total_tokens_claude(meter.claude_transcript_path(payload))
+        self.assertIsNone(used)
+
+
 if __name__ == "__main__":
     unittest.main()
