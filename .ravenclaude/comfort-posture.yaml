@@ -110,6 +110,13 @@ decision_review: binding
 # Claude orchestrator for non-Claude CLIs (off | decide | full). No-op under Claude Code.
 orchestrator: off
 
+# Cheap lane — route everyday, well-defined work to Grok instead of the main
+# Claude session (off | advise | agent). advise = suggestion only, never
+# applied automatically. See skills/cheap-lane-delegation/SKILL.md.
+cheap_lane:
+  mode: advise
+  tier: fast
+
 # Probe-validity advisory (off | warn; default warn). ONE rule, WARN only —
 # `guard-probe-validity.sh` flags `grep -v` used in QUIET MODE, where the exit
 # status stops answering "is there a line that does NOT match?" and starts
