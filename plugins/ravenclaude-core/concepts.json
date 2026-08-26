@@ -2804,7 +2804,7 @@
         "plugins/ravenclaude-core/hooks/triage-outcome.sh",
         "plugins/ravenclaude-core/hooks/worktree-guard.sh"
       ],
-      "covers_digest": "sha256:a93e964312104549f40a21355008b7627f5511194f9aa4bee7f9bc33dad6da76",
+      "covers_digest": "sha256:4407ecca83daeed07abcd2bd9a50f18bfb6653799348792df77a910c9db109eb",
       "nuance": "A hook writing to stderr at `exit 0` reaches the model on no event; only `hookSpecificOutput.additionalContext` and `updatedToolOutput` are delivered, so `_advise.sh` advised the terminal for its entire service life.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -2958,7 +2958,7 @@
         "scripts/inventory-coverage.py",
         "scripts/inventory-nuance-judge.py"
       ],
-      "covers_digest": "sha256:7db63565369e1163898484ada37d78951ad6efa38a21ed10ccc02f8a8a93f16c",
+      "covers_digest": "sha256:622f6d7e18585b5be802c846644cbe6cc2d54898f59796385a34d51144c11138",
       "nuance": "The teeth bit is the exit a tool own CHECK returns on a planted defect, never the exit `--must-fail` itself returns: `premise-gate.py` denies at `exit 0` while `sync-plugin-versions.py` reddens at `exit 2`, so an auditor that hard-codes one number can never be right for both.",
       "nuance_evidence": {
         "measured": "2026-08-19",

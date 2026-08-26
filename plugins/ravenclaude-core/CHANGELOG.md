@@ -17,33 +17,64 @@ All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the 
   at 6s, while a control script that reads no stdin exited in 1s under the identical descriptor — the
   differential is the read, not the environment.
 
-  The read is now bounded on the **first line only** (`RC_GUARD_STDIN_TIMEOUT`, **default 10s**; `0`
-  restores the old blocking read). Once a writer is demonstrably delivering, the remainder drains
-  unbounded, so a large or slow payload is never truncated — the failure fixed is *"no writer at
-  all"*, not *"a slow writer"*.
+  The read is bounded with **`_rc_timeout` + `cat`** (`_portable.sh`'s existing `timeout → gtimeout →
+  perl alarm` ladder, already sourced by this hook), so the ceiling applies to the **writer** —
+  `RC_GUARD_STDIN_TIMEOUT`, default 10s, arithmetically clamped, `0` restores the old blocking read.
 
-  ⛔ **The 10s deadline is load-bearing, and 2s — the first value tried — was wrong.** An empty
-  payload carries no `tool_input`, so the payload-derived checks have nothing to test and the call is
-  allowed through. That fail-open is *pre-existing* behaviour for an unreadable payload, but a
-  deadline short enough for a merely **slow** writer to trip converts it from *"stdin was broken"*
-  into *"the guard was disarmed under load"* — new, worse, and indistinguishable from a clean run.
-  Measured on a two-worktree fixture with `worktree_bound: block`: a full payload denies at exit 2
-  (the positive control), an empty one exits 0, and a writer 3s late exits **0 at a 1s deadline** but
-  **2 at 10s**. On the timeout path the hook now also writes an explicit *"proceeds UNGUARDED"* line
-  to stderr, so a disarmed check is visible to an operator instead of silent.
+  ⛔ **`read -t` was the wrong instrument, and that took two attempts to see.** It deadlines a
+  **complete line**, and bash reads a pipe one byte per `read(2)`. A Claude Code payload is
+  single-line JSON, so the deadline ends up racing bash's byte loop instead of the writer, and payload
+  **size** consumes the budget meant for writer latency. A `Write` of this repo's own `dashboard.html`
+  JSON-encodes to **~11 MB on one line** (escaping turns all ~17k newlines into `\n`). Measured
+  through a real pipe on bash 3.2.57: `read -t 10` took **4.6s idle** and lost the **entire payload at
+  10.04s under a load of ~4 on 10 cores**, while `_rc_timeout 10 cat` did the same bytes in **0.3s**
+  either way. Any deadline on `read` is a bet against payload size × machine load. It also bounds the
+  **whole** read — `read` plus an unbounded `cat` drain still hung once one line had arrived (measured
+  past 14s), so only the zero-byte case had actually been fixed. And it sidesteps a platform split
+  this host cannot test: bash 3.2 discards partial input on timeout (measured — the variable is left
+  untouched) while bash ≥4 documents retaining it, which on a Linux runner would hand the parser a
+  **truncated** payload. There is no partial-line branch any more, so neither behaviour is reachable.
 
-  Pinned by **T18** in `test-worktree-guard-core.sh` (Gate 140), in four halves: the shipped hook
-  exits under the FIFO; a must-fail half restores the bare `cat` and asserts it *still* hangs there,
-  so the first half measures the read rather than the fixture; a pretty-printed multi-line payload
-  must still deny, proving the bound does not truncate; and a 3s-late writer must clear the shipped
-  deadline **while a 1s deadline demonstrably disarms the guard** — a margin asserted without that
-  second half is a number nobody has tested.
+  ⛔ **An unreadable payload now fails CLOSED on `check`.** A payload with no `tool_name` sends every
+  classifier to its `*)` default — "not mutating / no deny / no enforcement" — so the default-block
+  FOREIGN-TREE deny and the session lease both silently disarm. The boundary is deliberate: a
+  zero-byte **clean EOF** is the documented no-payload contract (a bare CLI or test invocation) and
+  still allows; what denies is a **timeout** or an **unparseable** payload, the shapes a stalled or
+  truncating writer produces. `register` is exempt by contract and `status` no longer reads stdin at
+  all — it carries no payload and was paying the full deadline ~15× per Gate 140 run.
 
-  ⛔ The same `[ ! -t 0 ] && cat` idiom appears in **143 of the 169 plugin hook scripts** (138 gate on
-  `-t 0` specifically; counted 2026-08-25). Those are invoked by
-  Claude Code, which writes the payload and closes the descriptor, so they are not known to hang in
-  practice — but the shape is identical and the fix here is not applied to them. Not in scope for
-  this patch; recorded so the survey isn't mistaken for a clean bill of health.
+  ⛔ **The knob is clamped arithmetically, not by character class.** `00` and
+  `99999999999999999999` are all-digits, so a `*[!0-9]*` filter passed them and the timeout tool then
+  rejected them as an argument error — an empty payload in 0s, i.e. the guard disarmed by the most
+  natural attempt to configure it. Out-of-range falls back to the **default**, never the ceiling:
+  clamping `2000` to 3600 would hand an operator who assumed milliseconds a 33-minute deadline.
+
+  Pinned by **T18** in `test-worktree-guard-core.sh` (Gate 140), in seven halves — (a) the hook exits
+  under a held-open FIFO; (b) a must-fail half restores the bare `cat` and asserts it *still* hangs,
+  so (a) measures the read and not the fixture; (c) payload fidelity, labelled as a **fidelity**
+  detector rather than a bound detector because the pre-fix hook passes it too; (d) a truncated
+  payload fails closed while clean-EOF-empty and a readable payload still allow; (e) a 3s-late writer
+  is served by the shipped deadline **and starved by a 1s one**, so the margin is tested rather than
+  asserted; (f) eight malformed/extreme knob values all still read the payload; (g) a 3 MB
+  single-line payload is read whole. `audit-gates.sh` also redirects Gate 140's three invocation
+  sites from `/dev/null` — the suites drive a stdin-reading hook, and a bound is a ceiling, not a
+  reason to hand a suite an open pipe.
+
+  ⛔ **Not fixed here, and the count is reported with its command because three regexes gave three
+  answers.** Of the **169** plugin hook scripts (`find plugins -path '*/hooks/*.sh' -not -path
+  '*/tests/*'`), **145** slurp stdin with a bare `cat` and **134** of those gate on `-t 0`
+  (`grep -lE '\$\(cat( 2>/dev/null)?( \|\| (true|printf|:))?\)'`, 2026-08-25). Two independent
+  recounts produced 143/138 and 148/137 on different patterns — so treat any single number as a
+  function of its regex, not a fact.
+
+  What all three agree on, and the worse class: **11 hooks read stdin with an unconditional bare
+  `cat` and no tty test at all** — `agent-dispatch-evaluator.sh`, `codex-hook-env.sh`,
+  `cursor-hook-adapter.sh`, `enforce-portability.sh`, `ensure-default-mode.sh`,
+  `gemini-hook-adapter.sh`, `guard-premise.sh`, `log-probe.sh`, `route-decision-review.sh`,
+  `stream-session-close.sh`, and `power-platform/hooks/nudge-dataverse-preflight.sh`. All of these are
+  invoked by Claude Code, which writes the payload and closes the descriptor, so none is *known* to
+  hang in practice — but the shape is the one just fixed, and this fix is not applied to them. Out of
+  scope for this patch; recorded so the survey is not mistaken for a clean bill of health.
 
 ## 0.299.0 — 2026-08-25
 

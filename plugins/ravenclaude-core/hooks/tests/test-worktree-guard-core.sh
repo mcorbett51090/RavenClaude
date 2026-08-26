@@ -29,10 +29,12 @@
 #   T15 GIT_WORK_TREE=<B> git add -A from cwd A -> exit 2.
 #   T16 git status (no -C) from A -> exit 0.
 #   T18 stdin read is BOUNDED: (a) the hook exits under a held-open pipe,
-#       (b) must-fail — the bare `cat` restored still hangs there, (c) a
-#       multi-line payload still denies (the bound must not truncate), (d) a
-#       3s-late writer clears the shipped deadline while a 1s one disarms
-#       the guard — an empty payload fails OPEN, so the margin is the fix.
+#       (b) must-fail — the bare `cat` restored still hangs there, (c) payload
+#       FIDELITY (a fidelity detector, NOT a bound detector), (d) an unreadable
+#       payload FAILS CLOSED on check while a readable one still allows, (e) the
+#       deadline governs (3s-late writer served at the default, starved at 1s),
+#       (f) the knob clamp survives 00 / 2^32 / 20-digit / non-numeric, (g) a
+#       3MB SINGLE-LINE payload is read whole — the shape `read -t` used to cap.
 #   MF  must-fail half — strip the latecomer-only guard in _wg_contention and assert
 #       the incumbent now ALSO fires, proving T3's incumbent-silence has teeth.
 #
@@ -472,13 +474,24 @@ T18_TMP="$(mktemp -d)"; T18_HOOK="$T18_TMP/worktree-guard-unbounded.sh"
 python3 - "$HOOK" "$T18_HOOK" <<'T18PY'
 import sys
 src = open(sys.argv[1]).read()
-needle = '[ -t 0 ] || payload="$(_wg_read_payload)"'
-repl   = '[ ! -t 0 ] && payload="$(cat 2>/dev/null || printf \'\')"'
+needle = 'payload="$(_rc_timeout "$_wg_deadline" cat 2>/dev/null)"; _wg_stdin_rc=$?'
+repl   = 'payload="$(cat 2>/dev/null || printf \'\')"; _wg_stdin_rc=0'
 assert needle in src, "T18 anchor drift: the bounded-read call site is gone"
 open(sys.argv[2], "w").write(src.replace(needle, repl))
 T18PY
-chmod +x "$T18_HOOK"
-T18_MF="$(_wg_bounded 6 "$SB/fifo" bash "$T18_HOOK" status --json)"
+T18_PATCH_RC=$?
+chmod +x "$T18_HOOK" 2>/dev/null
+# ⛔ Drive `check`, NOT `status`. The shipped hook skips the stdin read entirely
+# for `status`, so a `status` mutant exits promptly for the RIGHT reason and this
+# half would pass while measuring nothing. Caught exactly that way on first run.
+# ⛔ Distinguish "the mutant could not be built" from "the mutant did not hang".
+# Without this the anchor-drift AssertionError falls through to the (b) assertion
+# below, which then reports "the fixture blocks nothing" — a true RED with the
+# WRONG cause, sending the next reader after a fixture that is fine.
+if [ "$T18_PATCH_RC" -ne 0 ]; then
+  fail "T18: must-fail mutant could not be built — the anchor drifted, NOT a fixture problem"
+fi
+T18_MF="$(_wg_bounded 6 "$SB/fifo" bash "$T18_HOOK" check)"
 if [ "$T18_MF" = "TIMEOUT" ]; then
   pass "T18: must-fail — the unbounded read still HANGS, so (a) measures the read"
 else
@@ -493,35 +506,89 @@ T18_ONELINE="$(mk_payload "$R" t18 Write "$(jq -cn --arg fp "$SB/t18sib/x.txt" '
 printf '%s' "$T18_ONELINE" | bash "$HOOK" check >/dev/null 2>&1; T18_RC1=$?
 printf '%s' "$T18_ONELINE" | jq '.' | bash "$HOOK" check >/dev/null 2>&1; T18_RCM=$?
 if [ "$T18_RC1" -eq 2 ] && [ "$T18_RCM" -eq 2 ]; then
-  pass "T18: a multi-line payload still denies (rc=$T18_RCM) — the bound does not truncate"
+  pass "T18: payload FIDELITY — a multi-line payload still denies (rc=$T18_RCM)"
 else
   fail "T18: payload fidelity broke (one-line rc=$T18_RC1, multi-line rc=$T18_RCM; both must be 2)"
 fi
+# ⛔ (c) is a FIDELITY detector, not a bound detector — the pre-fix bare-cat hook
+# passes it too. (a)+(b) are what measure the bound. Naming it otherwise would
+# have this block claim coverage it does not have.
 
-# (d) a SLOW writer must not be mistaken for an ABSENT one.
-# ⛔ This is the deadline's own risk, and it is the reverse of the hang: an empty
-# payload carries no tool_input, so the guard has nothing to test and ALLOWS. A
-# deadline short enough for a live-but-slow writer to trip therefore disarms the
-# guard on a loaded machine, and the run looks identical to a clean one. BOTH
-# halves are required — the tight half proves the failure is real and reachable,
-# the shipped-default half proves the deadline actually clears it. A margin
-# asserted without the tight half is a number nobody has tested.
-# ⛔ pipefail is ON in this file, and it MUST be off for these two. When the hook
-# gives up early it closes the read end, the still-sleeping producer takes SIGPIPE,
-# and pipefail promotes that 141 over the hook's own status — the tight half then
-# reads 141 instead of 0 and the assertion blames the wrong process. Exit 128-165
-# is a signal, not a verdict. Measured here on the first run of this very block.
-set +o pipefail
-( sleep 3; printf '%s' "$T18_ONELINE" ) | RC_GUARD_STDIN_TIMEOUT=1 bash "$HOOK" check >/dev/null 2>&1
-T18_SLOW_TIGHT=$?
-( sleep 3; printf '%s' "$T18_ONELINE" ) | bash "$HOOK" check >/dev/null 2>&1
-T18_SLOW_DEFAULT=$?
-set -o pipefail
-if [ "$T18_SLOW_TIGHT" -eq 0 ] && [ "$T18_SLOW_DEFAULT" -eq 2 ]; then
-  pass "T18: a 3s-late writer is served by the shipped deadline (exit 2); a 1s deadline demonstrably disarms it (exit 0)"
+# (d) an UNPARSEABLE payload must FAIL CLOSED on check.
+# ⛔ This is the inversion the rewrite is for. A truncated payload has no
+# tool_name, so every classifier falls through to its default and answers "no
+# deny" — the guard ALLOWED, and a truncation is indistinguishable from a clean
+# run. THE BOUNDARY MATTERS AND IS DELIBERATE: a zero-byte CLEAN EOF is the
+# documented "no payload" contract (a bare CLI/test invocation) and still allows;
+# what fails closed is a writer that existed and delivered something unusable.
+# The in-tree pair is the control — same hook, same fixture, a readable payload
+# must still answer 0, or a hook that simply denies everything would pass too.
+printf '' | bash "$HOOK" check >/dev/null 2>&1; T18_EMPTY=$?
+printf '%s' '{"cwd":"/x","tool_name":"Wri' | bash "$HOOK" check >/dev/null 2>&1; T18_TRUNC=$?
+T18_INTREE="$(mk_payload "$R" t18 Write "$(jq -cn --arg fp "$R/intree.txt" '{file_path:$fp, content:"x"}')")"
+printf '%s' "$T18_INTREE" | bash "$HOOK" check >/dev/null 2>&1; T18_OKALLOW=$?
+if [ "$T18_TRUNC" -eq 2 ] && [ "$T18_EMPTY" -eq 0 ] && [ "$T18_OKALLOW" -eq 0 ]; then
+  pass "T18: a TRUNCATED payload fails closed (exit 2); clean-EOF-empty and a readable payload still allow (exit 0)"
 else
-  fail "T18: slow-writer margin wrong (tight=$T18_SLOW_TIGHT want 0, default=$T18_SLOW_DEFAULT want 2)"
+  fail "T18: fail-closed wrong (truncated=$T18_TRUNC want 2, empty-EOF=$T18_EMPTY want 0, readable=$T18_OKALLOW want 0)"
 fi
+
+# (e) the DEADLINE is what governs — proven by moving only the deadline.
+# ⛔ pipefail is ON in this file and MUST be off here: when the hook gives up it
+# closes the read end, the still-sleeping producer takes SIGPIPE, and pipefail
+# promotes that 141 over the hook's own status. Exit 128-165 is a signal, not a
+# verdict. Measured on the first run of this block.
+# The subject is an IN-TREE write, whose correct answer is ALLOW, so the two arms
+# are distinguishable: served -> 0, starved -> 2. A foreign path would answer 2
+# either way and prove nothing.
+set +o pipefail
+( sleep 3; printf '%s' "$T18_INTREE" ) | bash "$HOOK" check >/dev/null 2>&1
+T18_SLOW_DEFAULT=$?
+( sleep 3; printf '%s' "$T18_INTREE" ) | RC_GUARD_STDIN_TIMEOUT=1 bash "$HOOK" check >/dev/null 2>&1
+T18_SLOW_TIGHT=$?
+set -o pipefail
+if [ "$T18_SLOW_DEFAULT" -eq 0 ] && [ "$T18_SLOW_TIGHT" -eq 2 ]; then
+  pass "T18: a 3s-late writer is served by the shipped deadline (exit 0) and starved by a 1s one (exit 2)"
+else
+  fail "T18: deadline does not govern (default=$T18_SLOW_DEFAULT want 0, tight=$T18_SLOW_TIGHT want 2)"
+fi
+
+# (f) the knob CLAMP — the values an operator actually reaches for.
+# ⛔ Each of these is all-digits, so a character-class filter passes it and the
+# timeout tool then rejects it as an argument error: an empty payload in 0s, i.e.
+# the guard disarmed by the most natural attempt to configure it. Under
+# fail-closed a broken clamp now shows up as 2 on a call whose answer is 0.
+T18_KNOB_BAD=""
+for T18_V in 00 0 07 2000 4294967296 99999999999999999999 abc ""; do
+  printf '%s' "$T18_INTREE" | RC_GUARD_STDIN_TIMEOUT="$T18_V" bash "$HOOK" check >/dev/null 2>&1
+  [ "$?" -eq 0 ] || T18_KNOB_BAD="$T18_KNOB_BAD ${T18_V:-<empty>}=$?"
+done
+if [ -z "$T18_KNOB_BAD" ]; then
+  pass "T18: every malformed/extreme RC_GUARD_STDIN_TIMEOUT still reads the payload (8/8)"
+else
+  fail "T18: knob clamp leaks —$T18_KNOB_BAD (each must exit 0; non-zero = disarmed or denied)"
+fi
+
+# (g) a LARGE SINGLE-LINE payload — the shape the deadline used to cap.
+# ⛔ A Write of a generated artifact JSON-encodes to megabytes on ONE line, since
+# escaping turns every newline into a two-character \n. `read` consumes a pipe one
+# byte per read(2), so under the old instrument the deadline doubled as a payload
+# SIZE cap and an 11 MB Write of this repo's own dashboard.html lost everything
+# under modest load. Bounding the writer with `cat` removes the size dimension.
+# In-tree again, so the answer is 0 and a truncation shows up as fail-closed 2.
+# (e)'s tight arm is the control that this fixture CAN produce 2.
+T18_BIG="$(python3 -c "
+import json,sys
+sys.stdout.write(json.dumps({'cwd':'$R','session_id':'t18','tool_name':'Write',
+  'tool_input':{'file_path':'$R/big.txt','content':'x'*3000000}}))")"
+printf '%s' "$T18_BIG" | bash "$HOOK" check >/dev/null 2>&1; T18_BIG_RC=$?
+T18_BIG_LINES=$(printf '%s' "$T18_BIG" | wc -l | tr -d ' ')
+if [ "$T18_BIG_RC" -eq 0 ] && [ "$T18_BIG_LINES" -eq 0 ]; then
+  pass "T18: a 3MB single-line payload is read whole (exit 0, 0 embedded newlines)"
+else
+  fail "T18: large single-line payload broke (rc=$T18_BIG_RC want 0; embedded newlines=$T18_BIG_LINES want 0)"
+fi
+
 rm -rf "$SB"
 
 echo
