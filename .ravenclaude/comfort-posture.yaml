@@ -114,7 +114,7 @@ orchestrator: off
 # Claude session (off | advise | agent). advise = suggestion only, never
 # applied automatically. See skills/cheap-lane-delegation/SKILL.md.
 cheap_lane:
-  mode: advise
+  mode: agent
   tier: fast
 
 # Probe-validity advisory (off | warn; default warn). ONE rule, WARN only —
