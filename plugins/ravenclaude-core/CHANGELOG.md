@@ -2,6 +2,60 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.303.0 — 2026-08-26
+
+### Added
+
+- **The cheap lane — `skills/cheap-lane-delegation`, `scripts/route-task.py`,
+  `scripts/grok-delegate.sh` — route everyday work to Grok, escalate the hard
+  work to Claude.** Measured (14-day, main-loop output): 41.2M tokens, 83.2%
+  top-tier model, essentially none of it on a cheap model, and none of it
+  sub-agent spend — `agent-dispatch-evaluator` tunes sub-agent tier and cannot
+  touch this. The fix is upstream of tier selection: decide whether a task needs
+  the main Claude session's reasoning loop at all.
+
+  `route-task.py` is a deterministic text classifier, no model call, self-tested
+  (`--self-test`, 17 cases + 2 teeth checks: one proves the router is not a
+  constant `claude`, one proves an escalation rule dominates a co-occurring cheap
+  rule rather than the reverse). **The default is `claude`, deliberately
+  asymmetric** — an unmatched, ambiguous, or both-lanes task all resolve to
+  `claude`; a task wrongly sent to Grok can produce a confidently wrong
+  multi-file change that costs more to unwind than it saved, a task wrongly kept
+  on Claude only costs money.
+
+  `grok-delegate.sh` is the transport, mirroring `claude-orchestrate.sh`'s
+  hardening pointed the other way: a recursion guard (nested delegation, or
+  called from inside a tribunal seat), a pre-egress secret scrub (refuses
+  before anything leaves the machine, never after), and a bounded timeout with
+  fall-back-to-local on any non-zero exit.
+
+  ⛔ **Containment is two independent layers, verified with a positive control
+  after an initial false conclusion.** The first version of this file claimed
+  Grok's `--sandbox` flags do not contain, based on a probe run *inside* one of
+  `--sandbox read-only`'s own always-writable temp paths — a write there is not
+  a containment failure. Re-tested outside every allowlisted path: the kernel
+  (Seatbelt on macOS) genuinely refused the write and logged it to
+  `~/.grok/sandbox-events.jsonl`. Fixed same-session — `--sandbox <profile>` is
+  the real, kernel-enforced boundary (`advise`→`read-only`, `agent`→`workspace`);
+  the disposable worktree/scratch-dir is what Grok can reach in the first place
+  and, for `agent` mode, the reviewable diff before merge. Neither layer
+  replaces the other.
+
+  **Off by default**, matching `design_checkins` / `decision_review` /
+  `parallelism` / `orchestrator`: `cheap_lane: { mode: off | advise | agent,
+  tier: fast | balanced }` in `.ravenclaude/comfort-posture.yaml`. `off` is
+  inert — nothing runs until a consumer opts in. Full contract:
+  [`skills/cheap-lane-delegation/SKILL.md`](skills/cheap-lane-delegation/SKILL.md);
+  the composition with `spawn-team` and `agent-dispatch-evaluator`, and why
+  this milestone does **not** flip the evaluator's own gated `binding`-mode
+  default, in [`CLAUDE.md`](CLAUDE.md) § "The cheap lane".
+
+  **Migration:** none — `cheap_lane` defaults to `off`; nothing in an installed
+  plugin changes on `/plugin marketplace update` until a consumer sets the
+  knob. Skill count 55 → 56; script-tool count 32 → 33 (`route-task.py`;
+  `grok-delegate.sh` is bash and is not counted by `_scan_scripts`'s `*.py`
+  glob).
+
 ## 0.302.0 — 2026-08-26
 
 ### Added

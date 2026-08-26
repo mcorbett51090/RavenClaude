@@ -54,6 +54,69 @@ When the Team Lead fans work out across multiple git branches, **how** the sub-a
 
 Worktree traversal is named **Sleipnir** — Odin's eight-legged horse, the one mount that crosses realm boundaries safely. In **user-facing dispatch prose**, prefer "I'll send Sleipnir to that branch" over narrating the raw `EnterWorktree`/`git worktree` call; the label anchors the user's intuition while the underlying mechanism is unchanged. This is **labeling only** — there is deliberately **no `/sleipnir` slash command, no Sleipnir agent, no new component** (architect's veto). The convention is surfaced in the worktree skills ([`skills/new-worktree`](skills/new-worktree/SKILL.md), [`skills/cleanup-worktrees`](skills/cleanup-worktrees/SKILL.md), [`skills/spawn-team`](skills/spawn-team/SKILL.md)) and as a read-only **"Sleipnir's stables"** widget at the top of the dashboard's Activity tab (the current `.claude/worktrees/` list + count, served via `/__sleipnir`; honest empty state on a static host). ASCII form `sleipnir` (no diacritics; CLI form == display form). Proven by **Gate 43**. **Migration:** none — copy/labeling + one read-only widget.
 
+### The cheap lane — routing everyday work off Claude entirely (added 2026-08-26, v0.303.0)
+
+**Scope: a second dispatch target, not a replacement for sub-agent dispatch.** The
+Team Lead already dispatches Claude sub-agents (`skills/spawn-team`) and, for
+subagent *tier* selection, defers to `agent-dispatch-evaluator` when it is enabled.
+This is a third, narrower question, upstream of both: **does this task need to be
+in the main session's reasoning loop at all?**
+
+**Why this exists.** Measured on the owner's account (14 days, main-loop output):
+41.2M tokens, 83.2% top-tier model, essentially none on a cheap model — and all of
+it main-loop, not sub-agent spend. Tuning sub-agent tiers cannot touch that; the
+spend is in the conversation itself. `skills/cheap-lane-delegation` is the answer:
+a **deterministic router** (`scripts/route-task.py`, no model call, self-tested)
+decides `claude` vs `grok` for one well-defined task, and `scripts/grok-delegate.sh`
+is the transport when the answer is `grok`.
+
+**Off by default, exactly like `design_checkins` / `decision_review` / `parallelism`
+/ `orchestrator`.** `cheap_lane: { mode: off | advise | agent, tier: fast | balanced }`
+in `.ravenclaude/comfort-posture.yaml`. **`off` is the default and the skill is
+inert** — nothing here changes today's behavior for a consumer who has not set the
+knob. `advise` returns Grok's output as a suggestion only; `agent` runs Grok in a
+disposable worktree for review before merge. Full contract, the escalation-vs-cheap
+rule table, and the exit-code contract: [`skills/cheap-lane-delegation/SKILL.md`](skills/cheap-lane-delegation/SKILL.md).
+
+⛔ **The routing asymmetry is deliberate and load-bearing.** An unmatched task, an
+ambiguous one, and one matching *both* an escalation and a cheap-lane rule all
+resolve to `claude` — escalation always dominates. A task wrongly sent to Grok can
+produce a confidently wrong multi-file change that costs more to unwind than it
+saved; one wrongly kept on Claude only costs money. Do not "balance" this rule to
+route more aggressively without re-running `route-task.py --self-test`'s teeth
+checks (one proves the router is not a constant `claude`; one proves escalation
+dominates rather than merely co-occurring).
+
+⛔ **Containment is a disposable worktree/scratch-dir AND the kernel sandbox
+(`grok --sandbox`), deliberately both — not Grok's own permission flags alone.**
+`grok-delegate.sh`'s header carries the measured, positive-controlled proof: an
+`--sandbox read-only` probe run *inside* one of Grok's own always-writable temp
+paths (`/tmp`) looked like a containment failure and was not one — re-tested
+outside every allowlisted path, the kernel (Seatbelt/Landlock) genuinely refused
+the write and logged it to `~/.grok/sandbox-events.jsonl`. Before touching either
+layer, re-run that probe outside `/tmp`/`/var/tmp`/`~/.grok` and read the event log
+— a probe run inside the tool's own writable scratch space will always look like a
+containment failure whether or not one exists.
+
+**Composition with the orchestrator-worker rule (unchanged).** Only the Team Lead
+dispatches — to a Claude sub-agent, or, when this knob is on, to Grok. A dispatched
+Claude sub-agent does not itself reach for this skill; that would be a sub-agent
+spawning further work outside the Team Lead's view, which
+[`rules/agent-collaboration.md`](rules/agent-collaboration.md) already governs
+against.
+
+**`agent-dispatch-evaluator` is a separate mechanism and this does not flip its
+default.** The evaluator tunes which *tier* a Claude sub-agent dispatch uses;
+`dispatch-config.json`'s own template ships `enabled: false, mode: "shadow"`
+because its documented readiness gate (a live eval run, a pre-merge re-confirm) is
+not yet met — this milestone does not override that gate. If you want it live for
+this repo's own dev use, its safe, already-designed step is enabling **shadow
+mode** locally (a repo-local `.ravenclaude/dispatch-config.json`), not flipping the
+shipped template's default for every consumer.
+
+**Migration:** none — `cheap_lane` defaults to `off`; the skill, the router, and
+the transport ship inert until a consumer sets the knob. Skill count 55 → 56.
+
 ### Agent-routing decision tree (priors — for the Team Lead)
 
 Before spawning any specialist, traverse the Mermaid graph in [`knowledge/agent-routing.md`](knowledge/agent-routing.md) `## Decision Tree` top-to-bottom against the user's observable request signals — do NOT keyword-match the request to an agent name. The earliest-blocking gate wins (e.g., a UI change that touches auth spawns `security-reviewer` before `frontend-coder`); when multiple branches could apply, default to the leaf with the smaller spawn cost and escalate only if it returns insufficient. Domain plugins (e.g. `power-platform`) with a more-specific routing rule for the request override this tree.
