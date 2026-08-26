@@ -2946,7 +2946,7 @@
         "scripts/sync-plugin-versions.py",
         "scripts/generate-copilot-plugin.py"
       ],
-      "covers_digest": "sha256:d1e039f480801271f15c4447e89d3698483e2bd64b146fe768d83ccad3cf036b",
+      "covers_digest": "sha256:f48c7045349b4967497a434d00ce2a36ee4fca257e3a7f8dba0b10148ea46778",
       "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3007,7 +3007,7 @@
         "scripts/inventory-coverage.py",
         "scripts/inventory-nuance-judge.py"
       ],
-      "covers_digest": "sha256:2490dd7710e82ba82cbde8bdbfbbe78e52388951f097dfc77700afc5f2a0637f",
+      "covers_digest": "sha256:5cad48e19d5af6aa8d5d721b5b23d0c04929cf1522177389059e506ec09f4f46",
       "nuance": "The teeth bit is the exit a tool own CHECK returns on a planted defect, never the exit `--must-fail` itself returns: `premise-gate.py` denies at `exit 0` while `sync-plugin-versions.py` reddens at `exit 2`, so an auditor that hard-codes one number can never be right for both.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3414,7 +3414,7 @@
         "scripts/generate-dashboards.py",
         "scripts/generate-index-dashboard.py"
       ],
-      "covers_digest": "sha256:757a178cb844de1eace5113742c954f58d856dd916c60b3cf199149da8ff1926",
+      "covers_digest": "sha256:8922d4e53dcf42c27753c36ac7bbdcf620a4ce83673d93a2f39c50ccfec2fa78",
       "nuance": "`ISLANDED_PANEL_COST` is a flat 2 because the parser reads the payload as CDATA, so `check-dom-budget.py` cannot fire on `learn-payload` no matter how far past 23,861 elements it grows.",
       "nuance_evidence": {
         "measured": "2026-08-19",
