@@ -183,9 +183,18 @@ case "$cmd" in
     # rcwt runs in-plugin; a copy in ~/.local/bin won't find it -> plain fallback).
     guard="${RCWT_GUARD:-$PLUGIN_ROOT/hooks/worktree-guard.sh}"
     if [ -f "$guard" ]; then
-      # Feed a minimal payload so the guard keys on the right repo even without jq's
-      # $CLAUDE_PROJECT_DIR; run it from PRIMARY so the no-jq path also sees the repo.
-      ( cd "$PRIMARY" 2>/dev/null && printf '{"cwd":"%s"}\n' "$PRIMARY" | bash "$guard" status --json )
+      # ⛔ Say which repo we mean EXPLICITLY — do not pipe a payload.
+      # `status` does not read stdin (it carries no payload and would otherwise pay
+      # the full stdin deadline on every call), so the `{"cwd":…}` this used to pipe
+      # was inert and the guard fell through to ${CLAUDE_PROJECT_DIR:-$PWD}. In a
+      # Claude Code session CLAUDE_PROJECT_DIR is always set — to the WORKTREE — so
+      # `rcwt status` reported the worktree's posture instead of PRIMARY's.
+      # control: two git repos, postures warn/warn and block/block; cd A with
+      #   CLAUDE_PROJECT_DIR unset -> mode=warn (correct), and cd A with
+      #   CLAUDE_PROJECT_DIR=B -> mode=block (the wrong tree). Measured 2026-08-25.
+      # `cwd` selects only the posture file; toplevel/path_key/branch come from $PWD,
+      # so the `cd` is still required and the env var is not a substitute for it.
+      ( cd "$PRIMARY" 2>/dev/null && CLAUDE_PROJECT_DIR="$PRIMARY" bash "$guard" status --json )
     else
       echo "rcwt: worktree-guard.sh not reachable (set \$RCWT_GUARD to override) — plain worktree list:" >&2
       git -C "$PRIMARY" worktree list

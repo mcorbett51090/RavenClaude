@@ -592,6 +592,36 @@ fi
 rm -rf "$SB"
 
 echo
+echo "── T19: status selects its POSTURE from CLAUDE_PROJECT_DIR, else \$PWD ─────"
+# ⛔ REGRESSION PIN for a defect T18 introduced and a peer review caught.
+# `status` deliberately does not read stdin, so a caller can no longer hand it a
+# `{"cwd":…}` payload to say which repo it means — it falls through to
+# ${CLAUDE_PROJECT_DIR:-$PWD}. bin/rcwt was piping exactly such a payload, and in
+# a Claude Code session CLAUDE_PROJECT_DIR is ALWAYS set (to the worktree), so
+# `rcwt status` silently reported the wrong tree's posture.
+# Both halves are required: the unset half is the positive control proving the
+# fixture CAN report the local posture, so the set half is measuring precedence
+# rather than a fixture that only ever emits one answer.
+SB="$(mktemp -d)"; export RC_WORKTREE_GUARD_HOME="$SB/guard"
+mk_repo "$SB/A"; mk_repo "$SB/B"
+printf 'worktree_guard: warn\nworktree_bound: warn\n'   > "$SB/A/.ravenclaude/comfort-posture.yaml"
+printf 'worktree_guard: block\nworktree_bound: block\n' > "$SB/B/.ravenclaude/comfort-posture.yaml"
+T19_CTL="$( cd "$SB/A" && env -u CLAUDE_PROJECT_DIR bash "$HOOK" status --json | jq -r '.mode' )"
+T19_ENV="$( cd "$SB/A" && CLAUDE_PROJECT_DIR="$SB/B" bash "$HOOK" status --json | jq -r '.mode' )"
+if [ "$T19_CTL" = "warn" ] && [ "$T19_ENV" = "block" ]; then
+  pass "T19: posture comes from \$PWD when CLAUDE_PROJECT_DIR is unset (warn) and from the env var when set (block)"
+else
+  fail "T19: posture selection wrong (unset=$T19_CTL want warn, set=$T19_ENV want block)"
+fi
+# The caller-side consequence: rcwt must name the repo explicitly, not pipe it.
+if grep -q 'CLAUDE_PROJECT_DIR="\$PRIMARY" bash "\$guard" status --json' "$(dirname "$HOOK")/../bin/rcwt" 2>/dev/null; then
+  pass "T19: bin/rcwt names PRIMARY explicitly instead of piping an inert payload"
+else
+  fail "T19: bin/rcwt does not set CLAUDE_PROJECT_DIR=\$PRIMARY — it will report the wrong tree's posture"
+fi
+rm -rf "$SB"
+
+echo
 echo "── MF: must-fail half — strip the latecomer-only guard -> incumbent fires ─"
 # Neutralize the latecomer test in _wg_contention so ANY other live record counts
 # as contention; the incumbent (T3-silent) must then ALSO get nudged, proving the
