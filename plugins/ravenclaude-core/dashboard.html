@@ -9829,7 +9829,7 @@ footer.page-footer a:hover { text-decoration: underline; }
         "scripts/sync-plugin-versions.py",
         "scripts/generate-copilot-plugin.py"
       ],
-      "covers_digest": "sha256:d1e039f480801271f15c4447e89d3698483e2bd64b146fe768d83ccad3cf036b",
+      "covers_digest": "sha256:f48c7045349b4967497a434d00ce2a36ee4fca257e3a7f8dba0b10148ea46778",
       "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -9890,7 +9890,7 @@ footer.page-footer a:hover { text-decoration: underline; }
         "scripts/inventory-coverage.py",
         "scripts/inventory-nuance-judge.py"
       ],
-      "covers_digest": "sha256:2490dd7710e82ba82cbde8bdbfbbe78e52388951f097dfc77700afc5f2a0637f",
+      "covers_digest": "sha256:5cad48e19d5af6aa8d5d721b5b23d0c04929cf1522177389059e506ec09f4f46",
       "nuance": "The teeth bit is the exit a tool own CHECK returns on a planted defect, never the exit `--must-fail` itself returns: `premise-gate.py` denies at `exit 0` while `sync-plugin-versions.py` reddens at `exit 2`, so an auditor that hard-codes one number can never be right for both.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -10297,7 +10297,7 @@ footer.page-footer a:hover { text-decoration: underline; }
         "scripts/generate-dashboards.py",
         "scripts/generate-index-dashboard.py"
       ],
-      "covers_digest": "sha256:757a178cb844de1eace5113742c954f58d856dd916c60b3cf199149da8ff1926",
+      "covers_digest": "sha256:8922d4e53dcf42c27753c36ac7bbdcf620a4ce83673d93a2f39c50ccfec2fa78",
       "nuance": "`ISLANDED_PANEL_COST` is a flat 2 because the parser reads the payload as CDATA, so `check-dom-budget.py` cannot fire on `learn-payload` no matter how far past 23,861 elements it grows.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -11193,9 +11193,9 @@ footer.page-footer a:hover { text-decoration: underline; }
     },
     {
       "drift": false,
-      "marketplace_version": "0.305.0",
+      "marketplace_version": "0.305.1",
       "plugin": "ravenclaude-core",
-      "plugin_version": "0.305.0"
+      "plugin_version": "0.305.1"
     },
     {
       "drift": false,
@@ -11589,6 +11589,21 @@ footer.page-footer a:hover { text-decoration: underline; }
   const CONTEXT_HANDOFF_MODE_DEFAULT = "off";
   const CONTEXT_HANDOFF_SPAWN_VALUES = ["copy-paste-only", "same-host", "os-terminal"];
   const CONTEXT_HANDOFF_DEFAULT = Object.freeze({ mode: "off", spawn: "", context_window_tokens: null });
+  /* Cheap lane — route everyday work to Grok/Copilot instead of the main Claude
+   * session (v0.303.0-v0.305.0). Round-tripped here so a Save no longer strips
+   * it — it shipped in the same release arc as context_handoff above but was
+   * never wired into emitYaml()/applyGuardrailConfig, so it was the one
+   * unmodelled key of the v0.61.0 data-loss class left in this file. Values
+   * mirror cheap-lane-delegate.sh / grok-delegate.sh / route-task.py's own
+   * accepted set exactly. NO DOM control — state-slot round-trip only, same
+   * pattern as worktree_bound / context_handoff. */
+  const CHEAP_LANE_MODE_VALUES = ["off", "advise", "agent"];
+  const CHEAP_LANE_MODE_DEFAULT = "off";
+  const CHEAP_LANE_TIER_VALUES = ["fast", "balanced", "top"];
+  const CHEAP_LANE_TIER_DEFAULT = "fast";
+  const CHEAP_LANE_AGENT_VALUES = ["grok", "copilot"];
+  const CHEAP_LANE_AGENT_DEFAULT = "grok";
+  const CHEAP_LANE_DEFAULT = Object.freeze({ mode: "off", tier: "fast", agent: "grok" });
 
   /* Per-tier panel defaults — mirror thing-decision.py's built-in tier table.
    * Seats are forseti | mimir | heimdall (thor is the tie-breaker, never a seat).
@@ -11679,6 +11694,11 @@ footer.page-footer a:hover { text-decoration: underline; }
      * round-trips it instead of silently dropping it. No DOM control (worktree_bound
      * pattern) — the launcher/nudge/meter own the semantics, we only preserve. */
     context_handoff: Object.assign({}, CONTEXT_HANDOFF_DEFAULT),
+    /* Cheap lane (v0.61.0 data-loss class, closed same shape as context_handoff).
+     * Held in state so a Save round-trips it instead of silently dropping it.
+     * No DOM control (worktree_bound pattern) — cheap-lane-delegate.sh /
+     * grok-delegate.sh / route-task.py own the semantics, we only preserve. */
+    cheap_lane: Object.assign({}, CHEAP_LANE_DEFAULT),
     expanded: {},   /* category -> boolean */
   };
 
@@ -12145,6 +12165,14 @@ footer.page-footer a:hover { text-decoration: underline; }
       const cw = parseInt(ch.context_window_tokens, 10);
       if (Number.isFinite(cw) && cw > 0) { state.context_handoff.context_window_tokens = cw; touched = true; }
     }
+    /* Cheap lane (v0.61.0 data-loss class). Validate against the same accepted
+     * sets cheap-lane-delegate.sh / grok-delegate.sh / route-task.py enforce. */
+    const cl = src.cheap_lane;
+    if (cl && typeof cl === "object") {
+      if (CHEAP_LANE_MODE_VALUES.includes(cl.mode)) { state.cheap_lane.mode = cl.mode; touched = true; }
+      if (CHEAP_LANE_TIER_VALUES.includes(cl.tier)) { state.cheap_lane.tier = cl.tier; touched = true; }
+      if (CHEAP_LANE_AGENT_VALUES.includes(cl.agent)) { state.cheap_lane.agent = cl.agent; touched = true; }
+    }
     const cr = src.command_review;
     if (cr && typeof cr === "object" && typeof cr.dev_repo_exempt === "boolean") {
       state.command_review.dev_repo_exempt = cr.dev_repo_exempt; touched = true;
@@ -12374,6 +12402,28 @@ footer.page-footer a:hover { text-decoration: underline; }
       if (cthMode) lines.push(`  mode: ${cth.mode}`);
       if (cthSpawn) lines.push(`  spawn: ${cth.spawn}`);
       if (cthWin) lines.push(`  context_window_tokens: ${cth.context_window_tokens}`);
+      lines.push("");
+    }
+
+    /* Cheap lane (v0.61.0 data-loss class). Emit the block when ANY sub-field is
+     * non-default, and emit only the set sub-fields — so a Save preserves
+     * whatever the owner set instead of silently dropping it ("absent ⇒
+     * default" holds for an untouched dashboard). Read back by
+     * cheap-lane-delegate.sh / grok-delegate.sh / route-task.py via
+     * skills/cheap-lane-delegation/SKILL.md. No editable control. */
+    const cln = state.cheap_lane;
+    const clnMode = cln.mode && cln.mode !== CHEAP_LANE_MODE_DEFAULT
+      && CHEAP_LANE_MODE_VALUES.includes(cln.mode);
+    const clnTier = cln.tier && cln.tier !== CHEAP_LANE_TIER_DEFAULT
+      && CHEAP_LANE_TIER_VALUES.includes(cln.tier);
+    const clnAgent = cln.agent && cln.agent !== CHEAP_LANE_AGENT_DEFAULT
+      && CHEAP_LANE_AGENT_VALUES.includes(cln.agent);
+    if (clnMode || clnTier || clnAgent) {
+      lines.push("# Cheap lane — route everyday work to Grok/Copilot instead of the main Claude session.");
+      lines.push("cheap_lane:");
+      if (clnMode) lines.push(`  mode: ${cln.mode}`);
+      if (clnTier) lines.push(`  tier: ${cln.tier}`);
+      if (clnAgent) lines.push(`  agent: ${cln.agent}`);
       lines.push("");
     }
 
