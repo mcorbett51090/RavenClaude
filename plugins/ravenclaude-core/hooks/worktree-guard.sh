@@ -103,21 +103,41 @@ SUBCMD="${1:-}"
 # the remainder drains unbounded, so a large or slow payload is never truncated —
 # the failure this fixes is "no writer at all", not "a slow writer".
 payload=""
+#
+# ⛔ THE DEADLINE IS 10s, NOT 2s, AND THE NUMBER IS LOAD-BEARING.
+# An empty payload carries no `tool_input`, so the payload-derived checks have
+# nothing to test and the call is allowed through. That fail-open is PRE-EXISTING
+# behaviour for an unreadable payload — but a deadline short enough for a merely
+# SLOW writer to trip would convert it from "stdin was broken" into "the guard
+# was disarmed under load", which is new and worse. 10s sits far above any real
+# hook writer and is still finite.
+# control: two-worktree fixture, `worktree_bound: block`, sibling Write —
+#   full payload      -> exit 2 (the positive control: this fixture DOES deny)
+#   empty payload     -> exit 0
+#   writer 3s late, deadline 1s  -> exit 0   (disarmed)
+#   writer 3s late, deadline 10s -> exit 2   (correct)
+#   measured 2026-08-25; pinned by T18(d) in test-worktree-guard-core.sh.
 _wg_read_payload() {
-  local first="" rest="" t="${RC_GUARD_STDIN_TIMEOUT:-2}"
+  local first="" rest="" t="${RC_GUARD_STDIN_TIMEOUT:-10}"
   # Non-numeric or absent -> the default. `read -t` rejects garbage outright, and
   # a guard must never die on a malformed knob.
-  case "$t" in ''|*[!0-9]*) t=2 ;; esac
+  case "$t" in ''|*[!0-9]*) t=10 ;; esac
   # 0 is the documented escape back to the old unbounded read.
   if [ "$t" = "0" ]; then cat 2>/dev/null || printf ''; return 0; fi
   if IFS= read -r -t "$t" first; then
     rest="$(cat 2>/dev/null || printf '')"
     if [ -n "$rest" ]; then printf '%s\n%s' "$first" "$rest"; else printf '%s' "$first"; fi
-  else
-    # Non-zero from `read` is EOF-carrying-a-partial-line OR the timeout. A
-    # non-empty `first` is real payload that must not be dropped; an empty one
-    # means nothing was ever written, which is the hang case, now bounded.
+  elif [ -n "$first" ]; then
+    # EOF carrying a partial line — real payload that must not be dropped.
     printf '%s' "$first"
+  else
+    # Timed out with nothing. SAY SO. The call proceeds either way, so the only
+    # thing left to protect is the operator's ability to tell a disarmed check
+    # from a clean one. stderr reaches the terminal and the CI log but NOT the
+    # model (see the hook-message-channels inventory entry) — the right audience
+    # for a stdin fault.
+    printf 'worktree-guard: no stdin payload within %ss — this call proceeds UNGUARDED (RC_GUARD_STDIN_TIMEOUT)\n' \
+      "$t" >&2
   fi
 }
 [ -t 0 ] || payload="$(_wg_read_payload)"

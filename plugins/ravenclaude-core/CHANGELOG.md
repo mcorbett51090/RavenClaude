@@ -17,17 +17,27 @@ All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the 
   at 6s, while a control script that reads no stdin exited in 1s under the identical descriptor — the
   differential is the read, not the environment.
 
-  The read is now bounded on the **first line only** (`RC_GUARD_STDIN_TIMEOUT`, default 2s; `0`
+  The read is now bounded on the **first line only** (`RC_GUARD_STDIN_TIMEOUT`, **default 10s**; `0`
   restores the old blocking read). Once a writer is demonstrably delivering, the remainder drains
   unbounded, so a large or slow payload is never truncated — the failure fixed is *"no writer at
-  all"*, not *"a slow writer"*. That distinction is load-bearing: a bound that truncated the JSON to
-  its first line would leave a payload `jq` cannot parse, and an unparseable payload makes the guard
-  **allow** — silently disarming it, which is a worse defect than the hang.
+  all"*, not *"a slow writer"*.
 
-  Pinned by **T18** in `test-worktree-guard-core.sh` (Gate 140), in three halves: the shipped hook
+  ⛔ **The 10s deadline is load-bearing, and 2s — the first value tried — was wrong.** An empty
+  payload carries no `tool_input`, so the payload-derived checks have nothing to test and the call is
+  allowed through. That fail-open is *pre-existing* behaviour for an unreadable payload, but a
+  deadline short enough for a merely **slow** writer to trip converts it from *"stdin was broken"*
+  into *"the guard was disarmed under load"* — new, worse, and indistinguishable from a clean run.
+  Measured on a two-worktree fixture with `worktree_bound: block`: a full payload denies at exit 2
+  (the positive control), an empty one exits 0, and a writer 3s late exits **0 at a 1s deadline** but
+  **2 at 10s**. On the timeout path the hook now also writes an explicit *"proceeds UNGUARDED"* line
+  to stderr, so a disarmed check is visible to an operator instead of silent.
+
+  Pinned by **T18** in `test-worktree-guard-core.sh` (Gate 140), in four halves: the shipped hook
   exits under the FIFO; a must-fail half restores the bare `cat` and asserts it *still* hangs there,
-  so the first half measures the read rather than the fixture; and a pretty-printed multi-line
-  payload must still deny, proving the bound does not truncate.
+  so the first half measures the read rather than the fixture; a pretty-printed multi-line payload
+  must still deny, proving the bound does not truncate; and a 3s-late writer must clear the shipped
+  deadline **while a 1s deadline demonstrably disarms the guard** — a margin asserted without that
+  second half is a number nobody has tested.
 
   ⛔ The same `[ ! -t 0 ] && cat` idiom appears in **143 of the 169 plugin hook scripts** (138 gate on
   `-t 0` specifically; counted 2026-08-25). Those are invoked by

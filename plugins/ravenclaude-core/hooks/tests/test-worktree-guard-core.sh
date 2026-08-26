@@ -30,7 +30,9 @@
 #   T16 git status (no -C) from A -> exit 0.
 #   T18 stdin read is BOUNDED: (a) the hook exits under a held-open pipe,
 #       (b) must-fail — the bare `cat` restored still hangs there, (c) a
-#       multi-line payload still denies (the bound must not truncate).
+#       multi-line payload still denies (the bound must not truncate), (d) a
+#       3s-late writer clears the shipped deadline while a 1s one disarms
+#       the guard — an empty payload fails OPEN, so the margin is the fix.
 #   MF  must-fail half — strip the latecomer-only guard in _wg_contention and assert
 #       the incumbent now ALSO fires, proving T3's incumbent-silence has teeth.
 #
@@ -454,9 +456,11 @@ _wg_bounded() {
 SB="$(mktemp -d)"; export RC_WORKTREE_GUARD_HOME="$SB/guard"
 R="$SB/repo"; mk_repo "$R"
 
-# (a) the shipped hook must come back on its own.
-T18_STATUS="$(_wg_bounded 8 "$SB/fifo" bash "$HOOK" status --json)"
-T18_CHECK="$(_wg_bounded 8 "$SB/fifo" bash "$HOOK" check)"
+# (a) the shipped hook must come back on its own. The watchdog limit MUST exceed
+# the shipped deadline (10s) or this half kills a guard that was about to exit
+# and reports the fix as broken — which is exactly what it did at limit 8.
+T18_STATUS="$(_wg_bounded 16 "$SB/fifo" bash "$HOOK" status --json)"
+T18_CHECK="$(_wg_bounded 16 "$SB/fifo" bash "$HOOK" check)"
 if [ "$T18_STATUS" = "DONE" ] && [ "$T18_CHECK" = "DONE" ]; then
   pass "T18: status + check both exit under a held-open pipe (no unbounded read)"
 else
@@ -492,6 +496,31 @@ if [ "$T18_RC1" -eq 2 ] && [ "$T18_RCM" -eq 2 ]; then
   pass "T18: a multi-line payload still denies (rc=$T18_RCM) — the bound does not truncate"
 else
   fail "T18: payload fidelity broke (one-line rc=$T18_RC1, multi-line rc=$T18_RCM; both must be 2)"
+fi
+
+# (d) a SLOW writer must not be mistaken for an ABSENT one.
+# ⛔ This is the deadline's own risk, and it is the reverse of the hang: an empty
+# payload carries no tool_input, so the guard has nothing to test and ALLOWS. A
+# deadline short enough for a live-but-slow writer to trip therefore disarms the
+# guard on a loaded machine, and the run looks identical to a clean one. BOTH
+# halves are required — the tight half proves the failure is real and reachable,
+# the shipped-default half proves the deadline actually clears it. A margin
+# asserted without the tight half is a number nobody has tested.
+# ⛔ pipefail is ON in this file, and it MUST be off for these two. When the hook
+# gives up early it closes the read end, the still-sleeping producer takes SIGPIPE,
+# and pipefail promotes that 141 over the hook's own status — the tight half then
+# reads 141 instead of 0 and the assertion blames the wrong process. Exit 128-165
+# is a signal, not a verdict. Measured here on the first run of this very block.
+set +o pipefail
+( sleep 3; printf '%s' "$T18_ONELINE" ) | RC_GUARD_STDIN_TIMEOUT=1 bash "$HOOK" check >/dev/null 2>&1
+T18_SLOW_TIGHT=$?
+( sleep 3; printf '%s' "$T18_ONELINE" ) | bash "$HOOK" check >/dev/null 2>&1
+T18_SLOW_DEFAULT=$?
+set -o pipefail
+if [ "$T18_SLOW_TIGHT" -eq 0 ] && [ "$T18_SLOW_DEFAULT" -eq 2 ]; then
+  pass "T18: a 3s-late writer is served by the shipped deadline (exit 2); a 1s deadline demonstrably disarms it (exit 0)"
+else
+  fail "T18: slow-writer margin wrong (tight=$T18_SLOW_TIGHT want 0, default=$T18_SLOW_DEFAULT want 2)"
 fi
 rm -rf "$SB"
 
