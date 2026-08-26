@@ -2,6 +2,59 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.302.0 — 2026-08-26
+
+### Added
+
+- **`hooks/guard-foreground-suite.sh` — a PreToolUse(Bash) guard that denies a FOREGROUND
+  invocation of a suite that provably cannot finish inside the Bash tool's hard ceiling.**
+
+  The Bash tool clamps `timeout` at **600000 ms**, and `scripts/audit-gates.sh` (917 gates)
+  outgrew it. A foreground full-suite run is therefore **structurally guaranteed** to wedge the
+  session for the full ten minutes and then be auto-backgrounded anyway — the operator sees a
+  stall, and the run they were waiting on was never going to return in-band.
+
+  **control (session `94d2ba9f`, 2026-08-25):** foreground call at `02:21:45Z`, result at
+  `02:31:49Z` — *"Command did not complete within its 600s timeout and was moved to the
+  background (ID: bg7y7j7s7)."*
+
+  ⛔ **Raising the timeout is a non-fix, and it fails silently.** The same session tried
+  `timeout: 900000` at `07:17:42Z` and received the byte-identical *"within its 600s timeout"*
+  message at `07:27:45Z`. 900000 is clamped to 600000 with no warning, so the guard now calls
+  that out explicitly in its denial rather than letting the next person rediscover it.
+
+  ⛔ **Why a hook and not a note.** This fired 3+ times in one week, and the third time it fired
+  at a session that had **already adopted `run_in_background: true`** — five clean runs that
+  morning — and regressed off it hours later. A written note demonstrably did not hold. This is
+  the control that does.
+
+  **Three escapes, all allowed:** `run_in_background: true` (the right answer for a full suite),
+  `--check N` (one gate, seconds), and a literal `RC_SUITE_FOREGROUND_ACK=1` prefix. The ACK is
+  read out of the **command text**, not the environment — an env var cannot reach a PreToolUse
+  hook from inside the command it gates, so spelling it as a prefix is what makes it reachable.
+
+  ⛔ **Matching is INVOCATION-only, never substring.** The command is split into segments and
+  each segment's **first word** is checked, so `grep`, `sed`, `git show` and `wc` that merely
+  **name** the suite still run. A guard that cannot tell a command from a description of one
+  blocks its own repair — this repo has already paid for that twice.
+
+  **Posture: fails OPEN.** An unreadable payload, absent `jq`, or absent `python3` all ALLOW and
+  emit a `warn` event. This is an ergonomic guard, not a trust boundary; denying a tool call
+  because a convenience hook could not read its own input would be a worse failure than the ten
+  minutes it prevents. (Contrast `worktree-guard.sh`, which gates a trust boundary and fails
+  closed.) It reads its own payload with `_rc_timeout`+`cat`, never `read -t` — the latter
+  deadlines a *complete line* and bash reads a pipe one byte per `read(2)`, which turns the
+  deadline into a payload-size cap.
+
+  **Pinned by Gate 251** (`hooks/tests/test-guard-foreground-suite.sh`, 23 assertions), registered
+  in the `--check` dispatcher, the main sequence, and the `Supported:` string. The load-bearing
+  half is the **must-fail** one: it neuters the matcher and asserts the deny disappears, and it
+  carries its **own vacuity control** — if the mutation fails to apply, the half fails rather
+  than reporting green against a byte-identical copy.
+
+  **Migration:** none required. If you genuinely want to spend the ten minutes, prefix the
+  command with `RC_SUITE_FOREGROUND_ACK=1`. Extend coverage to another long suite via
+  `RC_FOREGROUND_SUITES` (space-separated basenames; default `audit-gates.sh`).
 ## 0.299.1 — 2026-08-25
 
 ### Fixed
