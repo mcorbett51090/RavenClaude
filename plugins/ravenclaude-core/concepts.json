@@ -2898,7 +2898,7 @@
         "scripts/sync-plugin-versions.py",
         "scripts/generate-copilot-plugin.py"
       ],
-      "covers_digest": "sha256:f03cf3f5cf7e7d75bae4f4029d4ac5c06e0120cef924faeaa9e6bc56085e9e3d",
+      "covers_digest": "sha256:ed07dc50d6100a1efd514962f6c48b557a27aa1b5a24a58bfc6681e2c22eb781",
       "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -2959,7 +2959,7 @@
         "scripts/inventory-coverage.py",
         "scripts/inventory-nuance-judge.py"
       ],
-      "covers_digest": "sha256:977972b99fbb9c3b0583890f989f5ef13c8d4efe3f0cf609cf6e5b81b51b3f4a",
+      "covers_digest": "sha256:f7c0701dfd5b3e780d162e0a6530b8990871e79c66a8263ac05af191126600ef",
       "nuance": "The teeth bit is the exit a tool own CHECK returns on a planted defect, never the exit `--must-fail` itself returns: `premise-gate.py` denies at `exit 0` while `sync-plugin-versions.py` reddens at `exit 2`, so an auditor that hard-codes one number can never be right for both.",
       "nuance_evidence": {
         "measured": "2026-08-19",
