@@ -3,6 +3,8 @@
 **Last reviewed:** 2026-05-28 · **Confidence:** high (platform.claude.com + code.claude.com/agent-sdk, retrieved 2026-05-28).
 **Owner:** `claude-solution-architect` (traverse before recommending a surface).
 
+> **Naming update (primary-verified 2026-08-27):** the Console prototyping surface named **"Workbench"** throughout this file was **renamed to [Playground](https://platform.claude.com/playground)** on **2026-08-18**, and the *legacy* Workbench (`platform.claude.com/workbench`) — along with the experimental prompt-tools APIs (`/v1/experimental/{generate,improve,templatize}_prompt`) — was **sunset 2026-08-17**. Read every "Workbench" node/row below as **"Playground / Console."** Source: [release notes 2026-08-18](https://platform.claude.com/docs/en/release-notes/overview) (fetched directly this session). `[verify-at-use]`
+
 ```mermaid
 flowchart TD
     A[Build a Claude-backed feature] --> P{Just prototyping / iterating on a prompt?}

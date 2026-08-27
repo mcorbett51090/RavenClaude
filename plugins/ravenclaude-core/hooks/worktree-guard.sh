@@ -86,11 +86,117 @@ command -v _ee_sanitize_session >/dev/null 2>&1 || _ee_sanitize_session() {
   case "$s" in .|.. | "") s="unknown" ;; esac; printf '%s' "$s"
 }
 
+# ⛔ If _portable.sh did not load, degrade to the OLD UNBOUNDED read, never to an
+# empty payload. A stub that returned nothing would turn a missing helper into a
+# silently disarmed guard — strictly worse than the hang it replaced.
+command -v _rc_timeout >/dev/null 2>&1 || _rc_timeout() { shift; "$@"; }
+
 SUBCMD="${1:-}"
 
-# ── read the stdin payload (check/register carry one; status usually does not) ─
+# ── read the stdin payload (check/register carry one; status never does) ──────
+# ⛔ THE BOUND IS ON THE WRITER, NOT ON BASH'S BYTE LOOP.
+#
+# A bare `cat` here blocks FOREVER: `[ ! -t 0 ]` cannot tell "a payload is on its
+# way" from "fd 0 is an open pipe nobody will ever write to" — both are simply
+# not-a-tty — so the test gating the read is satisfied in precisely the case that
+# hangs, stalling every caller downstream, audit-gates.sh Gate 140 included.
+# control: FIFO with a held-open writer -> `status --json` and `check` both hung
+#   until killed, while a script reading no stdin exited in 1s on the same fd.
+#
+# ⛔ `read -t` WAS THE WRONG INSTRUMENT, AND WAS THE FIRST TWO ATTEMPTS HERE.
+# It deadlines a COMPLETE LINE, and bash reads a pipe one byte per read(2). A
+# Claude Code payload is single-line JSON, so the deadline races bash's byte loop
+# rather than the writer, and payload SIZE eats the budget meant for writer
+# latency. A `Write` of this repo's own dashboard.html JSON-encodes to ~11 MB on
+# ONE line (escaping turns all ~17k newlines into `\n`).
+# control, same 11 MB through a real pipe, bash 3.2.57:
+#   `IFS= read -r -t 10` -> 4.6s idle, complete; 0 BYTES at 10.04s under load ~4
+#                           on 10 cores — the entire payload lost
+#   `_rc_timeout 10 cat` -> 0.3s, complete, idle and loaded alike
+# So the size dimension is removed rather than widened; a deadline on `read` is a
+# bet against payload size x machine load, and `cat` does not take that bet.
+# It also bounds the WHOLE read: `read` plus an unbounded `cat` drain still hung
+# once one line had arrived (measured past 14s) — only the zero-byte case was fixed.
+# ⛔ And it sidesteps a PLATFORM SPLIT this hook cannot test on one host: bash 3.2
+# discards partial input on timeout (measured here — the variable is left
+# untouched) while bash >=4 documents retaining it, which on a Linux runner would
+# hand the parser a TRUNCATED payload. There is no partial-line branch any more,
+# so neither behaviour is reachable.
 payload=""
-[ ! -t 0 ] && payload="$(cat 2>/dev/null || printf '')"
+_wg_stdin_state="none"          # none | ok | timeout | error
+
+# ⛔ THE DEADLINE IS VALIDATED ARITHMETICALLY, NOT BY CHARACTER CLASS.
+# `00` and `99999999999999999999` are all-digits, so a `*[!0-9]*` filter passes
+# them and the timeout tool then rejects them as an argument error — an EMPTY
+# payload in 0s, which is the exact fail-open this block exists to prevent, and
+# reachable by the most natural way an operator would try to disable the bound.
+# control: RC_GUARD_STDIN_TIMEOUT=99999999999999999999 under the old filter ->
+#   `invalid timeout specification`, elapsed 0s, payload 0 B; `00` -> same.
+# An out-of-range value falls back to the DEFAULT, never to the ceiling: clamping
+# 2000 to 3600 would hand an operator who assumed milliseconds a 33-minute
+# deadline, which is the original hang wearing a configured face.
+_wg_deadline="${RC_GUARD_STDIN_TIMEOUT:-10}"
+case "$_wg_deadline" in ''|*[!0-9]*) _wg_deadline=10 ;; esac
+# Cap the LENGTH before the arithmetic: $(( 10#99999999999999999999 )) overflows
+# bash's signed 64-bit integers, and an overflowed comparison is not a clamp.
+# Anything over 4 digits is already past the ceiling below.
+[ "${#_wg_deadline}" -gt 4 ] && _wg_deadline=10
+# 10# forces base 10 — $((08)) is an octal error in bash, $((10#08)) is 8.
+_wg_deadline=$(( 10#$_wg_deadline ))
+[ "$_wg_deadline" -gt 3600 ] && _wg_deadline=10
+
+# ⛔ `status` NEVER READS STDIN. It carries no payload, it is the read-only
+# dashboard/test path, and test-worktree-guard-core.sh calls it ~15x with stdin
+# inherited — every one of which would otherwise pay the full deadline for a
+# payload it does not use.
+if [ "$SUBCMD" != "status" ] && [ ! -t 0 ]; then
+  if [ "$_wg_deadline" -eq 0 ]; then
+    # 0 is the documented escape back to the old unbounded read.
+    payload="$(cat 2>/dev/null || printf '')"; _wg_stdin_state="ok"
+  else
+    payload="$(_rc_timeout "$_wg_deadline" cat 2>/dev/null)"; _wg_stdin_rc=$?
+    case "$_wg_stdin_rc" in
+      0)       _wg_stdin_state="ok" ;;
+      124|142) _wg_stdin_state="timeout"; payload="" ;;   # 124 GNU timeout, 142 perl alarm
+      *)       _wg_stdin_state="error" ;;
+    esac
+  fi
+  # ⛔ VALIDATE THE RESULT, NOT JUST THE EXIT CODE. A truncated payload parses to
+  # nothing and disarms the guard exactly like an absent one, and whether a
+  # truncation is even possible depends on the bash version. Checking that what
+  # arrived is parseable is platform-independent, so it holds on a runner this
+  # host cannot reproduce. jq is already required one block below.
+  if [ "$_wg_stdin_state" = "ok" ] && [ -n "$payload" ] && command -v jq >/dev/null 2>&1; then
+    printf '%s' "$payload" | jq -e . >/dev/null 2>&1 || _wg_stdin_state="error"
+  fi
+fi
+
+# ⛔ AN UNREADABLE PAYLOAD FAILS CLOSED ON `check`, AND ONLY ON `check`.
+# A payload with no `tool_name` sends every classifier to its `*)` default —
+# "not mutating / no deny / no enforcement" — so the default-block FOREIGN-TREE
+# deny and the session lease BOTH silently disarm. control: with tn="" the case
+# statements at :374, :608 and :704 all return 1, while tn="Write" matches its arm.
+#
+# ⛔ THE BOUNDARY IS `timeout`/`error`, NOT "payload is empty", and the difference
+# is deliberate. A zero-byte CLEAN EOF is the documented no-payload contract — a
+# bare CLI or test invocation of `check` — and still allows, exactly as before.
+# What denies is a writer that existed and delivered something unusable: the read
+# timed out, or bytes arrived that are not parseable JSON. Those are the shapes a
+# stalled or truncating writer produces, and waving one through is the failure
+# this hook exists to prevent — so it denies loudly, with an event, never dark in
+# hook-events.jsonl.
+# `register` is exempt by contract (a SessionStart hook can never block) and
+# `status` never reaches here.
+if [ "$_wg_stdin_state" = "timeout" ] || [ "$_wg_stdin_state" = "error" ]; then
+  printf '%s\n' "worktree-guard: stdin payload unreadable (${_wg_stdin_state}, deadline ${_wg_deadline}s, RC_GUARD_STDIN_TIMEOUT)." >&2
+  if [ "$SUBCMD" = "check" ]; then
+    printf '%s\n' "worktree-guard: DENIED — refusing to wave through a tool call it could not read. Retry; if this repeats the payload writer is stalled, and RC_GUARD_STDIN_TIMEOUT=0 restores the old unbounded read." >&2
+    _emit_hook_event "worktree-guard.sh" "deny" "unknown" "" "stdin-${_wg_stdin_state}" "2"
+    exit 2
+  fi
+  printf '%s\n' "worktree-guard: ${SUBCMD:-<none>} proceeds UNGUARDED for this call." >&2
+  _emit_hook_event "worktree-guard.sh" "warn" "unknown" "" "stdin-${_wg_stdin_state}" "0"
+fi
 
 # ── project dir (for the knob) + cwd (for git) ────────────────────────────────
 cwd=""

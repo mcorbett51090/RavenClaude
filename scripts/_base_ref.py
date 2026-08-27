@@ -25,7 +25,12 @@ THE RESOLUTION ORDER, cheapest and most trustworthy first:
      `actions/checkout` checks out the merge commit refs/pull/N/merge, whose FIRST
      parent IS the base. This is the one that actually works in CI, and it needs no
      network at all.
-  5. a bounded, fail-safe `git fetch --depth=1` of the base branch
+  5. a bounded, fail-safe `git fetch --unshallow` of the base branch (⛔ NOT
+     `--depth=1` — see the control note at this step's implementation. A
+     depth-1 fetch creates a parentless commit that can never share history
+     with a shallow HEAD, so `git merge-base` structurally cannot resolve
+     against it; `--unshallow` converts the local repo to full history in one
+     bounded fetch, which is what actually lets the two sides meet)
   6. give up -> return None, and the caller reports UNKNOWN
 
 ⛔ NONE IS STILL UNKNOWN, NEVER "UP TO DATE". Step 6 returning None must keep
@@ -39,7 +44,11 @@ import os
 import subprocess
 from pathlib import Path
 
-FETCH_TIMEOUT = 20
+# ⛔ 60, not 20. `--unshallow` (below) fetches full history rather than one
+# commit — measured at ~9s over a local `file://` remote for this repo's 1178
+# commits; a real network fetch over HTTPS is slower and 20s cut it close for no
+# reason, since a slow fetch just falls through to UNKNOWN (fail-safe either way).
+FETCH_TIMEOUT = 60
 
 
 def _git(root: Path, *args: str, timeout: int = 60) -> tuple[int, str]:
@@ -87,8 +96,31 @@ def resolve_base(root: Path, requested: str = "origin/main") -> tuple[str | None
         return "HEAD^1", "PR merge commit — first parent is the base"
 
     # Last resort: ask the network, bounded, and never let a failure propagate.
+    #
+    # ⛔ `--unshallow`, NOT `--depth=1`. control 2026-08-26: reproduced the real CI
+    # checkout shape (actions/checkout, fetch-depth 2, single-branch, so
+    # `origin/main` never resolves — matches the module docstring's own
+    # measurement). A `--depth=1` fetch of `main` creates a commit with NO parent
+    # pointers, so `git merge-base HEAD FETCH_HEAD` fails (both sides are shallow
+    # and share no walkable history) — the "no shared history — using the base
+    # tip" branch below then fires and hands back whatever `main`'s tip happened
+    # to be AT FETCH TIME. That is not the merge base; it is a moving target that
+    # only matches a properly-stamped ratchet value by accident, so every
+    # consumer of this fallback (check-ratchet-freshness.py,
+    # check-inception-coverage.py, check-changed-concept-renders.py) fails on any
+    # workflow_dispatch run once the checked-out branch is more than 0 commits
+    # behind `main` — which is most of the time, not an edge case. `--unshallow`
+    # converts the WHOLE local repo to full history in one bounded fetch (works
+    # even though `origin`'s configured refspec is narrowed to the single
+    # checked-out branch — verified this session: `origin/main` still never
+    # appears as a ref, but `FETCH_HEAD` and `HEAD` now share real history, and
+    # the resulting `git merge-base` matches the SHA a full local clone computes,
+    # byte for byte). Errors harmlessly (exit 128, caught by `_git`'s try/except)
+    # if the repo is already non-shallow when this line is reached — which the
+    # earlier steps make rare, since a fully-cloned repo resolves `origin/main`
+    # directly at step 2 and never reaches here.
     branch = ci_base or ("main" if requested.endswith("main") else "master")
-    _git(root, "fetch", "--quiet", "--depth=1", "origin", branch, timeout=FETCH_TIMEOUT)
+    _git(root, "fetch", "--quiet", "--unshallow", "origin", branch, timeout=FETCH_TIMEOUT)
     for ref in (f"origin/{branch}", "FETCH_HEAD"):
         if _resolves(root, ref):
             return ref, f"fetched {ref}"

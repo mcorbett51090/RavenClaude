@@ -110,6 +110,13 @@ decision_review: binding
 # Claude orchestrator for non-Claude CLIs (off | decide | full). No-op under Claude Code.
 orchestrator: off
 
+# Cheap lane — route everyday, well-defined work to Grok instead of the main
+# Claude session (off | advise | agent). advise = suggestion only, never
+# applied automatically. See skills/cheap-lane-delegation/SKILL.md.
+cheap_lane:
+  mode: agent
+  tier: fast
+
 # Probe-validity advisory (off | warn; default warn). ONE rule, WARN only —
 # `guard-probe-validity.sh` flags `grep -v` used in QUIET MODE, where the exit
 # status stops answering "is there a line that does NOT match?" and starts
@@ -249,3 +256,11 @@ keep_awake: on
 # the `context_handoff:` block itself now survives.)
 context_handoff:
   spawn: os-terminal
+  # mode: nag added 2026-08-26 — dogfooding the Claude Code fix. Before this,
+  # context-usage-meter.py had no Claude Code read path at all, so this knob
+  # was silently inert on every session run under Claude Code (the meter
+  # always returned status=unknown regardless of `mode`). With the Claude Code
+  # path now wired in, `nag` actually fires: a Stop-hook additionalContext
+  # nudge once live usage crosses the soft threshold, before the real
+  # auto-compact cliff.
+  mode: nag

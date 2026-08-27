@@ -22,6 +22,11 @@
         "P9 wave 1 (12 entries)",
         10400000,
         "P9 wave 1: 12 mechanism inventory entries plus their nuance and evidence blocks rendered into the concept cards. 74 KB for 12 entries is ~6 KB each; a 162-entry corpus projects to ~1 MB on this surface, well inside the 8-12 MB the plan warned about, again because no diagrams are rendered."
+      ],
+      [
+        "merge: forge/stall-watchdog into origin/main (2026-08-27)",
+        10410000,
+        "MERGE-TIME RE-MEASURE. The stall-watchdog branch and origin/main's cheap-lane + inventory work were authored in parallel; dashboard.html fit the 10,400,000 ceiling on each side alone, but the union of both sides' Learn-tab concepts and inventory entries regenerates deterministically to 10,403,505 bytes (island payload unchanged at 31,143 <= 31,500, still within budget). Neither side's number was wrong in isolation — this is the same PR #991 shape the ratchet-freshness gate defends, applied to the byte ceiling: re-measured on the merge commit and APPENDED, never edited. Headroom to 10,410,000 (+0.06%)."
       ]
     ],
     "index.html": [
@@ -33,5 +38,5 @@
       ]
     ]
   },
-  "measured_against": "a1979b213612610ca5e6e88d4eb0d614c9ac9a09"
+  "measured_against": "8001ee4d5191a0327590a2aec0cc3474e90f0ddc"
 }

@@ -2739,7 +2739,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-08-24",
+      "last_verified": "2026-08-25",
       "refresh_when": null,
       "sources": [
         {
@@ -2779,6 +2779,7 @@
         "plugins/ravenclaude-core/hooks/format-on-write.sh",
         "plugins/ravenclaude-core/hooks/gemini-hook-adapter.sh",
         "plugins/ravenclaude-core/hooks/guard-destructive.sh",
+        "plugins/ravenclaude-core/hooks/guard-foreground-suite.sh",
         "plugins/ravenclaude-core/hooks/guard-memory-compaction.sh",
         "plugins/ravenclaude-core/hooks/guard-premise.sh",
         "plugins/ravenclaude-core/hooks/guard-probe-validity.sh",
@@ -2804,7 +2805,7 @@
         "plugins/ravenclaude-core/hooks/triage-outcome.sh",
         "plugins/ravenclaude-core/hooks/worktree-guard.sh"
       ],
-      "covers_digest": "sha256:fb7ba0c4d333d126e4fa0d811639eedaef46ae1f9d04822a0d32a00236308e87",
+      "covers_digest": "sha256:18a26a4b567ec137e13980fa8f5c5a4309c15c5e9e9a63d31d2e9a3f990b8b18",
       "nuance": "A hook writing to stderr at `exit 0` reaches the model on no event; only `hookSpecificOutput.additionalContext` and `updatedToolOutput` are delivered, so `_advise.sh` advised the terminal for its entire service life.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -2851,7 +2852,7 @@
       "covers": [
         "plugins/ravenclaude-core/hooks/hooks.json"
       ],
-      "covers_digest": "sha256:245fc065440d8fe70b76f835f6dbdd4a8ce6cc98d021d1059b496b2168896728",
+      "covers_digest": "sha256:255b6a6b49e9a30de7f889d27e0056c7327ba8723ea9a1fba0796ba008170b17",
       "nuance": "Two `additionalContext` emitters on one event concatenate rather than last-write-wins, but two `updatedToolOutput` emitters replace, so the second silently discards the first.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -2863,6 +2864,54 @@
       "verify": {
         "tier": "none",
         "rationale": "Two live emitters on one event cannot be staged offline; the observable needs a real host session, which places it in the T2 sampled tier gated on claim 15."
+      },
+      "strength_badge": "Unverified"
+    },
+    {
+      "id": "cheap-lane-agent-matrix",
+      "title": "The cheap lane is agent-agnostic, not Grok-only",
+      "category": "Inventory — measured mechanisms",
+      "kind": "ravenclaude-built",
+      "order": 903,
+      "summary": "route-task.py picks a lane, not a vendor; cheap-lane-delegate.sh picks the agent — and the two CLIs' real capability shapes genuinely diverge.",
+      "see_also": [],
+      "widget": null,
+      "try_it": null,
+      "node_links": {},
+      "last_verified": "2026-08-26",
+      "refresh_when": null,
+      "sources": [
+        {
+          "label": "verified live against the installed grok and copilot CLIs, this session",
+          "url": "https://github.com/mcorbett51090/RavenClaude/pull/1030"
+        }
+      ],
+      "body_md": "## What a reader would have assumed instead\n\nThat `--effort` is a Copilot CLI flag like any other, so passing it alongside the default `--model auto` would just apply the effort level to whatever model `auto` resolves to.\n\n## The discriminator\n\ncontrol: a call with --model auto and NO --effort flag completed normally, isolating the rejection to the flag pairing rather than to the CLI itself\nMeasured 2026-08-26: Copilot CLI's `--model auto` rejects `--effort` outright at runtime — `\"Model \\\"auto\\\" does not support reasoning effort configuration\"` — a real error hit on the first live end-to-end test through the dispatcher, not a hypothetical read from documentation. `copilot-delegate.sh` therefore emits `--effort` only when `[ \"$model\" != \"auto\" ]`.\n\n## Why it matters\n\n`route-task.py`'s `lane` field now reads `\"cheap\"`, not `\"grok\"` — the router decides whether work leaves Claude at all, never which CLI it lands on. `cheap-lane-delegate.sh --agent grok|copilot` is the layer that actually picks the coding agent, and the two agents' tier tables cannot share one row: Grok's model/effort/perspective come from the shared `substrate-tier-map.json`; Copilot's does not, because none of six guessed pinned model slugs validated as a real `--model` value against the installed CLI, and the only value confirmed to work (`auto`) is exactly the one that forbids `--effort`.\n\nFalsifier: a future Copilot CLI release accepting `--effort` together with `--model auto`.",
+      "diagram": null,
+      "diagram_mini": null,
+      "steps": [],
+      "svg": null,
+      "svg_mini": null,
+      "entry_class": "inventory",
+      "covers": [
+        "plugins/ravenclaude-core/scripts/cheap-lane-delegate.sh",
+        "plugins/ravenclaude-core/scripts/copilot-delegate.sh",
+        "plugins/ravenclaude-core/scripts/grok-delegate.sh",
+        "plugins/ravenclaude-core/scripts/route-task.py",
+        "plugins/ravenclaude-core/skills/cheap-lane-delegation/SKILL.md"
+      ],
+      "covers_digest": "sha256:dd45a8cdc69bc4bf6e7de4e96c527457904ebd7dead9f7b5a6fc8cab173eefe0",
+      "nuance": "Copilot CLI's `--model auto` rejects `--effort` outright at runtime — a real error, not a doc gap — so the Copilot lane differentiates by timeout budget only unless a caller pins an effort-capable model.",
+      "nuance_evidence": {
+        "measured": "2026-08-26",
+        "control": "a call with --model auto and NO --effort flag completed normally, isolating the rejection to the flag pairing rather than to the CLI itself",
+        "falsifier": "a future Copilot CLI release accepting --effort together with --model auto",
+        "probe": "plugins/ravenclaude-core/scripts/copilot-delegate.sh"
+      },
+      "nuance_source": "plugins/ravenclaude-core/scripts/copilot-delegate.sh:195-200",
+      "verify": {
+        "tier": "none",
+        "rationale": "The rejection is live Copilot CLI runtime behavior, not something offline-stageable in CI; re-verifying it means a real non-interactive Copilot CLI call — already recorded as nuance_evidence.control — not a separate staged check."
       },
       "strength_badge": "Unverified"
     },
@@ -2897,7 +2946,7 @@
         "scripts/sync-plugin-versions.py",
         "scripts/generate-copilot-plugin.py"
       ],
-      "covers_digest": "sha256:defc94d8a1ad281efc13bd7a09f62eea80cbc66ee47209c7b1b26909efb34c10",
+      "covers_digest": "sha256:12222fa8d376d77ab5858aba151a5a22339abd9f7610b9329d58e23eae79c71d",
       "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -2958,7 +3007,7 @@
         "scripts/inventory-coverage.py",
         "scripts/inventory-nuance-judge.py"
       ],
-      "covers_digest": "sha256:d5fae9b701bcddfc93691be126bb8cf771c13a1fa4ab6e7a120316b8f8d57a23",
+      "covers_digest": "sha256:61b68caaa9fa21d1bb03d6c28747b49d8e6b1e69f5c3d24c3593955bb85a5276",
       "nuance": "The teeth bit is the exit a tool own CHECK returns on a planted defect, never the exit `--must-fail` itself returns: `premise-gate.py` denies at `exit 0` while `sync-plugin-versions.py` reddens at `exit 2`, so an auditor that hard-codes one number can never be right for both.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3365,7 +3414,7 @@
         "scripts/generate-dashboards.py",
         "scripts/generate-index-dashboard.py"
       ],
-      "covers_digest": "sha256:85ed55b5399f7b3c08c276ff3288b90b01309d0a70225f741c0ae9409f5155fb",
+      "covers_digest": "sha256:b5c3655b71b85942852ea39d5ec1ab025d5d0664af777e5a2ae22fc1a6eef969",
       "nuance": "`ISLANDED_PANEL_COST` is a flat 2 because the parser reads the payload as CDATA, so `check-dom-budget.py` cannot fire on `learn-payload` no matter how far past 23,861 elements it grows.",
       "nuance_evidence": {
         "measured": "2026-08-19",

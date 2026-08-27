@@ -55,17 +55,19 @@ const ISLANDED_AGENT_KEYS = ["scenarios", "quickstart", "works_with"];
 const RC = "ravenclaude-core";
 const RC_BASELINE = {
   agents: 15,
-  skills: 55, // 54 -> 55: skills/authoring-org-skills (org-skill studio, Phase 5)
+  skills: 56, // 55 -> 56: skills/cheap-lane-delegation (route everyday work to Grok)
+  //        54 -> 55: skills/authoring-org-skills (org-skill studio, Phase 5)
   //        53 -> 54: skills/session-handoff (v0.266.0, context-quality reset)
   //        52 -> 53: skills/design-clone (v0.253.0, design-schema capture+apply)
   //        51 -> 52: skills/github-gold-standard (v0.246.0, the gold-standard scorecard)
-  tools: 35, // 32 -> 35: stall_watch.py + stall_reach.py + install_stall_watch.py
-  //   (the out-of-session stall watchdog, v0.300.0). COUNTED on this tree: the gate
-  //   read 35 against a base of 32 and the three scripts are the whole delta.
-  //   test-stall-watch.py is NOT counted — it lives in hooks/tests/, not scripts/.
-  //   Base verified current: this branch is 0 commits behind origin/main at author
-  //   time, so 32 is not a stale ratchet inherited from a concurrent PR (see the
-  //   reconciliation note below for why that check is not optional here).
+  tools: 36, // 32 -> 36 AT MERGE: this branch's three stall-watchdog tools
+  //   (stall_watch.py + stall_reach.py + install_stall_watch.py, the out-of-session
+  //   watchdog, v0.300.0) AND origin/main's route-task.py (the cheap-lane
+  //   deterministic router) both land on the merged tree, so 32 + 3 + 1 = 36.
+  //   COUNTED, not inferred: _scan_scripts globs 36 *.py in
+  //   plugins/ravenclaude-core/scripts/. grok-delegate.sh is bash, so the *.py glob
+  //   does not count it; test-stall-watch.py lives in hooks/tests/, not scripts/,
+  //   so it is not counted either.
   //        30 -> 32: set_conservation.py + ledger.py (task-ledger Phases 0-2).
   //   set_conservation.py is the SSOT Set-Conservation Primitive, shared with the
   //   sibling verify-before-assert run (set_kind in {open_items, causes}); ledger.py
@@ -85,7 +87,9 @@ const RC_BASELINE = {
   //        19 -> 22: premise-gate.py + classify_claim.py + check-design-schema.py
   //                  (v0.263.0, PR 3b packaging move)
   scenarios: 4,
-  hooks: 39, // 38 -> 39: keep-awake.sh WIRED on SessionStart — an opt-in sleep assertion
+  hooks: 40, // 39 -> 40: guard-foreground-suite.sh WIRED on PreToolUse(Bash) — denies a
+  //        foreground full-suite run that cannot finish inside the 600s Bash-tool ceiling
+  //        38 -> 39: keep-awake.sh WIRED on SessionStart — an opt-in sleep assertion
   //   (`keep_awake` in comfort-posture.yaml, shipped default off) so a closed lid cannot
   //   silently suspend a session. It is a REGISTRATION, which is what this count tracks,
   //   even though it is excluded from the Pipeline map as host-environment hygiene rather
