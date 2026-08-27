@@ -4410,6 +4410,16 @@ if command -v node >/dev/null 2>&1; then
   grep -v 'lines.push("context_handoff:")' index.html > "$RT_BAD_CH"
   rc=0; node "$RT" "$RT_BAD_CH" >/dev/null 2>&1 || rc=$?
   gate "dashboard round-trip (drifted: context_handoff emit stripped)" must_fail "$rc"
+  # must_fail (cheap_lane): the cheap_lane block header emit stripped — the exact
+  # v0.61.0 data-loss class this key closes. Before this fix, cheap_lane was the
+  # ONE unmodelled key in this whole serializer: emitYaml rebuilt the whole
+  # posture from `state` and silently dropped `cheap_lane:` on every Save,
+  # deleting a consumer's Grok/Copilot delegation config with zero warning.
+  # Test 1 + Test 7 assert the block survives, so the strip must redden here.
+  RT_BAD_CL="$TMP/dashboard-drifted-cheap-lane.html"
+  grep -v 'lines.push("cheap_lane:")' index.html > "$RT_BAD_CL"
+  rc=0; node "$RT" "$RT_BAD_CL" >/dev/null 2>&1 || rc=$?
+  gate "dashboard round-trip (drifted: cheap_lane emit stripped)" must_fail "$rc"
 else
   _skip_or_fail "Gate 35 (dashboard round-trip)" node
 fi

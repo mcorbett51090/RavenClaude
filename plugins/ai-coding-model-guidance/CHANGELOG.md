@@ -2,6 +2,17 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.16] — 2026-08-27
+
+Research-sweep **refresh** of `knowledge/cross-tool-model-lineup-2026.md` — folded in the **Gemini
+_Flash_ lane in the GitHub Copilot picker** the 2026-08-13/14 review missed: **Gemini 3.7 Flash GA in
+Copilot 2026-08-13** (same-day as the prior sweep stamp) and **Gemini 3.6 Flash 2026-07-21**.
+**Secondary-sourced** — github.blog 403s automated fetch, so availability rests on the dated primary
+changelog URLs + GitHub's official X post, and the reported $0.75/$3.75 intro pricing is secondary; both
+availability and pricing ship with `[verify-at-use]`, not primary-verified. No model-tier default
+changed. Closed-world list unchanged. **Migration:** none. Reviewed via a 3-seat usefulness panel + a
+detailed-review pass (recorded in the PR).
+
 ## [0.3.15] — 2026-08-14
 
 Substrate-tier refresh — Grok Build CLI default is **Grok 4.6**; **Grok 4.5** remains the selectable balanced rung. Adapter `fast`/`balanced` share `grok-4.5` and diverge on `effort` + `perspective` (CLI probe: `grok-build-0.1` / `grok-4.3` are unknown model ids). Codex live three-rung is GPT-5.6 Luna / Terra / Sol (pro = `reasoning.mode`, not a `*-pro` slug). Copilot Claude `top` = Opus 5. Decision-tree leaves retargeted. `[verify-at-use]`.
