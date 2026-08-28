@@ -60,9 +60,15 @@ const RC_BASELINE = {
   //        53 -> 54: skills/session-handoff (v0.266.0, context-quality reset)
   //        52 -> 53: skills/design-clone (v0.253.0, design-schema capture+apply)
   //        51 -> 52: skills/github-gold-standard (v0.246.0, the gold-standard scorecard)
-  tools: 33, // 32 -> 33: route-task.py (the cheap-lane deterministic router;
-  //   grok-delegate.sh is bash, so _scan_scripts's *.py glob does not count it).
-  //   30 -> 32: set_conservation.py + ledger.py (task-ledger Phases 0-2).
+  tools: 36, // 32 -> 36 AT MERGE: this branch's three stall-watchdog tools
+  //   (stall_watch.py + stall_reach.py + install_stall_watch.py, the out-of-session
+  //   watchdog, v0.300.0) AND origin/main's route-task.py (the cheap-lane
+  //   deterministic router) both land on the merged tree, so 32 + 3 + 1 = 36.
+  //   COUNTED, not inferred: _scan_scripts globs 36 *.py in
+  //   plugins/ravenclaude-core/scripts/. grok-delegate.sh is bash, so the *.py glob
+  //   does not count it; test-stall-watch.py lives in hooks/tests/, not scripts/,
+  //   so it is not counted either.
+  //        30 -> 32: set_conservation.py + ledger.py (task-ledger Phases 0-2).
   //   set_conservation.py is the SSOT Set-Conservation Primitive, shared with the
   //   sibling verify-before-assert run (set_kind in {open_items, causes}); ledger.py
   //   is the append primitive + the projection. COUNTED on this tree, not inferred.

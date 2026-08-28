@@ -638,6 +638,11 @@ PY
         --must-fail-echo || rc=$?
       exit $rc
       ;;
+    244)
+      echo "── Gate 244: stall watchdog (observable, UTC, receipt-ladder, payload) ──"
+      python3 plugins/ravenclaude-core/hooks/tests/test-stall-watch.py
+      exit $?
+      ;;
     251)
       echo "── Gate 251: foreground long-suite guard — deny, escapes, mention-vs-invocation ──"
       bash plugins/ravenclaude-core/hooks/tests/test-guard-foreground-suite.sh
@@ -1447,7 +1452,7 @@ PY
       ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 251. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 251. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -8941,6 +8946,29 @@ echo "── Gate 251: foreground long-suite guard — the 600s ceiling is a MEC
 rc=0
 bash plugins/ravenclaude-core/hooks/tests/test-guard-foreground-suite.sh >/dev/null 2>&1 || rc=$?
 gate "foreground long-suite guard: denies, honours 3 escapes, and a MENTION still runs" must_pass "$rc"
+
+echo
+
+echo "── Gate 244: stall watchdog (observable, UTC, receipt-ladder, payload) ────"
+# ⛔ THE OBSERVABLE IS LAST-**ASSISTANT**-RECORD AGE, never last-entry-of-any-type.
+# On the real recorded stall the any-type clock was reset 44.3 minutes by the
+# owner's own queued prompts and by a product-generated system/away_summary — a
+# detector keyed on it read 96.6 min where the truth was 141.0 min, i.e. it failed
+# toward "looks alive". The mutant half PROVES the whitelist is load-bearing: it
+# drops the naive detector to 1.0 min (a miss) while the whitelist detector still
+# reads 141.0 min. An impotent mutant FAILS the script rather than printing green.
+#
+# ⛔ The ladder advances on RECEIPT, never on attempt. Advancing on attempt means a
+# sink outage leaves state reading "alerted" while nobody was reached for six
+# hours — the silent miss the watchdog exists to prevent. Asserted structurally
+# against evaluate()'s body, not against a comment describing the rule.
+#
+# ⛔ parse_ts must be UTC (calendar.timegm, not time.mktime). The local-time form
+# is off by the zone offset and fails toward SILENCE. The gate refuses to pass
+# vacuously on a UTC host: it says so instead of pretending to discriminate.
+rc=0
+python3 plugins/ravenclaude-core/hooks/tests/test-stall-watch.py >/dev/null 2>&1 || rc=$?
+gate "stall observable, UTC parse, receipt-gated ladder, payload safety" must_pass "$rc"
 
 echo
 
