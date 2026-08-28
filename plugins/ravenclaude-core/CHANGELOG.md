@@ -2,6 +2,25 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.306.0 — 2026-08-28
+
+### Added
+
+- **Cause-taxonomy phases 1–11 + P1-3 must-fail teeth.** The verify-before-assert
+  surface: SSOT cause grammar, post-failure triage, remediation-cause and
+  cause-closure guards (shipping at `warn`), a portable cause floor, outcome-eval
+  that the ship gate is satisfiable, and anti-rot parity/fired-count checks.
+  Gates 245–250 plus Gate 252 (pre-flight command review — WARN-only, one
+  measured rule). Pre-flight was Gate 244 on this branch; #1023 had already
+  shipped stall-watchdog as Gate 244, so the merge yields the number rather
+  than colliding. P1-3 closed: the remaining three `--must-fail` halves now
+  call `check()`, so blinding `check()` turns them red.
+
+### Migration
+
+None — additive gates and warn-level hooks. Nothing in an installed plugin
+behaves differently on `/plugin marketplace update`.
+
 ## 0.305.3 — 2026-08-28
 
 ### Fixed
