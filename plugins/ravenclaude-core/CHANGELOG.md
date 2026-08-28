@@ -2,6 +2,23 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.307.0 — 2026-08-28
+
+### Fixed
+
+- **Stale Claude Code platform facts (draft #987, recut).** `main` still taught
+  "nested sub-agents up to 5 levels deep (v2.1.172)" after the changelog
+  superseded it. Recut from current main (do **not** merge #987 as-is — that
+  commit rewinds the plugin to 0.283.0). Facts, re-checked against the changelog
+  through 2.1.250 (2026-08-28):
+  - Nesting default is **depth 3** (`CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH`;
+    v2.1.217 disabled-by-default, v2.1.219 set 3). House single-orchestrator
+    policy is unchanged.
+  - Native concurrent cap **20** (`CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS`,
+    v2.1.217). The 200 per-session cap was **removed** in v2.1.224.
+  - `/reload-plugins` is often unnecessary since v2.1.221.
+  - Marketplace `archive` (v2.1.224) and `command` (v2.1.229) source types.
+
 ## 0.306.1 — 2026-08-28
 
 ### Fixed
