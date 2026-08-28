@@ -2851,7 +2851,7 @@
       "covers": [
         "plugins/ravenclaude-core/hooks/hooks.json"
       ],
-      "covers_digest": "sha256:a519704d9af89156b83eafe3a8e8cd1817300254ef7d181519f69d106e3fcc96",
+      "covers_digest": "sha256:1666112d0fa4644677177074443743ce511f091ff1a4eaacd44e67dc9d3e2f61",
       "nuance": "Two `additionalContext` emitters on one event concatenate rather than last-write-wins, but two `updatedToolOutput` emitters replace, so the second silently discards the first.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -2945,7 +2945,7 @@
         "scripts/sync-plugin-versions.py",
         "scripts/generate-copilot-plugin.py"
       ],
-      "covers_digest": "sha256:6121cfa4b6d19c36d1b3345fe5df79ab2b68f1b405ccc4d2ff177ec81ca941d1",
+      "covers_digest": "sha256:7b57cc905dc25cb47f66df4ab0f1285bf0e0585bf2b770c0890467169bbb7c72",
       "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3006,7 +3006,7 @@
         "scripts/inventory-coverage.py",
         "scripts/inventory-nuance-judge.py"
       ],
-      "covers_digest": "sha256:d24d627980c31665e17564b9003c880538f49e6616da41c46e624a9d88b824e6",
+      "covers_digest": "sha256:140a3b99da652d6ecb5f63428cc986aa3143f9d2524d80eef6e1e10f5625a6ee",
       "nuance": "The teeth bit is the exit a tool own CHECK returns on a planted defect, never the exit `--must-fail` itself returns: `premise-gate.py` denies at `exit 0` while `sync-plugin-versions.py` reddens at `exit 2`, so an auditor that hard-codes one number can never be right for both.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3529,6 +3529,55 @@
         "strength": "executed",
         "class": "script-selftest",
         "probe": "plugins/ravenclaude-core/scripts/replay-outcome-rules.py",
+        "teeth_exit": 1
+      },
+      "strength_badge": "Probed"
+    },
+    {
+      "id": "stall-has-no-turn-boundary",
+      "title": "A stall has no turn boundary",
+      "category": "Inventory — measured mechanisms",
+      "kind": "ravenclaude-built",
+      "order": 913,
+      "summary": "Every registered hook fires on a turn or tool boundary. A stall is the absence of one, so no in-session hook can observe it — including the guard built for it.",
+      "see_also": [],
+      "widget": null,
+      "try_it": null,
+      "node_links": {},
+      "last_verified": "2026-08-25",
+      "refresh_when": null,
+      "sources": [
+        {
+          "label": "measured in the FORGE stall-watchdog run",
+          "url": "https://github.com/mcorbett51090/RavenClaude/tree/forge/stall-watchdog"
+        }
+      ],
+      "body_md": "## What it does\n\nThe three covered scripts detect a wedged Claude Code session from **outside** the\nsession, because nothing inside one can. They read the session registry for\nliveness, the transcript for progress, and reach the owner through a receipted\nwebhook.\n\ncontrol: the same enumeration of `hooks.json` returned 39 hooks across 6 event\ntypes, so an empty in-turn set is the event map itself and not a failed read\nMeasured 2026-08-25: every registered hook fires on a turn or tool boundary\n(`SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PostToolUse`,\n`SubagentStart`, `Stop`), so a stall — which is *defined* by the absence of a\nturn boundary — is unobservable from any of them.\n\nThe guard built for exactly this case is the sharpest instance rather than an\nexception. `handoff-nudge.sh` exists to nudge a context-hot session toward a\nhandoff, and it is registered on `Stop`. If the turn never stops it never runs,\nso the one hook authored for a hot window is structurally silent during the\nfailure it was written for. Detection therefore has to live in a separate\nprocess on a timer, which is what the LaunchAgent is.\n\nThe second mechanism is which clock the detector reads, and the two available\nclocks disagree in the direction that matters.\n\ncontrol: on the exited-session fixtures the two clocks agree to 0.0 min, so the\ndivergence below is the live stall and not a parsing artifact\nMeasured 2026-08-25: on the recorded 174-minute stall the last-assistant clock\nread 141.0 min while the last-any-record clock read 96.6 min — a 44.3 minute\nmask, produced by the owner's own queued prompts and by a product-generated\n`system/away_summary` record, neither of which is progress.\n\nA detector keyed on the wrong clock therefore fails toward \"looks alive\", which\nis the dangerous direction: typing into a session suspected of being stuck\nsilences the detector for a further window, so the act of investigating hides\nthe thing being investigated.",
+      "diagram": null,
+      "diagram_mini": null,
+      "steps": [],
+      "svg": null,
+      "svg_mini": null,
+      "entry_class": "inventory",
+      "covers": [
+        "plugins/ravenclaude-core/scripts/stall_watch.py",
+        "plugins/ravenclaude-core/scripts/stall_reach.py",
+        "plugins/ravenclaude-core/scripts/install_stall_watch.py"
+      ],
+      "covers_digest": "sha256:89cbda9bbd9cc2b1093c3c55050e0afa7a8090b1646f7e8851a55106825d8d90",
+      "nuance": "The observable must be the last *assistant* record, not the last record of any type: a human typing into a suspected stall, and a product-generated `system/away_summary`, both reset a last-any clock without any progress having occurred.",
+      "nuance_evidence": {
+        "measured": "2026-08-25",
+        "control": "the same enumeration returned 39 hooks across 6 event types, so an empty in-turn set is the event map and not a failed read; and on the recorded stall the last-assistant and last-any clocks disagreed by 44.3 min while the exited-session fixtures showed a 0.0 min delta",
+        "falsifier": "a registered hook event that fires without a turn or tool boundary, or a stalled session whose last-any clock tracks its last-assistant clock",
+        "probe": "plugins/ravenclaude-core/hooks/tests/test-stall-watch.py"
+      },
+      "nuance_source": "plugins/ravenclaude-core/scripts/stall_watch.py:96-118",
+      "verify": {
+        "tier": "effect",
+        "strength": "executed",
+        "class": "script-selftest",
+        "probe": "plugins/ravenclaude-core/hooks/tests/test-stall-watch.py",
         "teeth_exit": 1
       },
       "strength_badge": "Probed"

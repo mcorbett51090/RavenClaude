@@ -60,7 +60,14 @@ const RC_BASELINE = {
   //        53 -> 54: skills/session-handoff (v0.266.0, context-quality reset)
   //        52 -> 53: skills/design-clone (v0.253.0, design-schema capture+apply)
   //        51 -> 52: skills/github-gold-standard (v0.246.0, the gold-standard scorecard)
-  tools: 38, // 37 -> 38: route-task.py (the cheap-lane deterministic router, merged
+  tools: 41, // 38 -> 41 AT MERGE (#1025 <- origin/main after #1023): this
+  //   branch's cause-taxonomy tools (38 on forge/vba-impl) PLUS the three
+  //   stall-watchdog scripts that landed on main via #1023 (stall_watch.py +
+  //   stall_reach.py + install_stall_watch.py). COUNTED, not inferred: _scan_scripts
+  //   globs 41 *.py in plugins/ravenclaude-core/scripts/. grok-delegate.sh is bash,
+  //   so the *.py glob does not count it; test-stall-watch.py lives in hooks/tests/,
+  //   not scripts/, so it is not counted either.
+  //        37 -> 38: route-task.py (the cheap-lane deterministic router, merged
   //   in from origin/main's cheap-lane-agnostic work; grok-delegate.sh is bash, so
   //   _scan_scripts's *.py glob does not count it).
   //        35 -> 37: check-scope-key-parity.py + audit-fired-count.py
