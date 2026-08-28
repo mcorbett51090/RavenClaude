@@ -2,6 +2,19 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.305.3 — 2026-08-28
+
+### Fixed
+
+- **SessionStart hooks that had no `timeout` now cap at 10s.** `reapply-posture.sh`,
+  `ensure-default-mode.sh`, and `worktree-guard.sh register` were the remaining
+  SessionStart entries without a host timeout. Claude Code's SessionStart contract
+  is still additive (it cannot deny a session), but an unbounded hook subprocess
+  can still sit on stdin. This is defense-in-depth for a fresh-session TUI that
+  never reaches `/usage`; the load-bearing hang observed 2026-08-27 was MCP
+  needs-auth (Figma/Vercel/fal), not these hooks. Dev-mirror in `.claude/settings.json`
+  matches.
+
 ## 0.303.0 — 2026-08-26
 
 ### Added
