@@ -523,6 +523,24 @@ if [ "$recipe" = "same-host" ] || [ "$recipe" = "os-terminal" ]; then
 fi
 
 echo "handoff-spawn: detected-ui=$ui host=$host recipe=$recipe spawn-flag=${spawn_flag:-none}"
+# PRODUCT label — "give this to Grok" is two products. This path is a NEW
+# interactive TUI (unbounded). Cheap-lane is cheap-lane-delegate.sh and returns.
+# Do NOT emit the substring "grok -p" here: Gate 213 treats that as a forbidden
+# seed (and its --must-fail teeth plant exactly that token).
+echo "handoff-spawn: PRODUCT this is a NEW interactive session on $host (unbounded TUI), not cheap-lane-delegation (bounded job that returns)."
+cl_mode=""
+if [ -f "$posture" ]; then
+  cl_mode="$(awk '
+    $1=="cheap_lane:" {in_cl=1; next}
+    in_cl && /^[^[:space:]#]/ {in_cl=0}
+    in_cl && $1=="mode:" {print $2; exit}
+  ' "$posture" | tr -d '\r')"
+fi
+case "$cl_mode" in
+  advise|agent)
+    echo "handoff-spawn: cheap_lane.mode=$cl_mode is on; this spawn is a host-switch, not a cheap-lane job."
+    ;;
+esac
 copy_paste_block
 
 if [ "$dry_run" -eq 1 ]; then
