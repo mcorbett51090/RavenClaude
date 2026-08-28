@@ -31,7 +31,7 @@ This marketplace follows the **orchestrator-worker / hierarchical** pattern, whi
 
 **Sub-agents should not freely spawn or directly invoke other sub-agents.** Only the Team Lead performs dispatching and orchestration.
 
-> **This is a deliberate house policy, not a platform constraint (clarified 2026-06-16).** Claude Code **v2.1.172 (2026-06-10)** now *permits* sub-agents to spawn sub-agents up to **5 levels deep**; RavenClaude keeps the single-orchestrator pattern on purpose (observability, debuggability, loop-avoidance, token-spend control), enforced **soft** by `guard-recursive-spawn.sh` (warn, not block). The canonical statement + rationale lives in [`rules/agent-collaboration.md`](rules/agent-collaboration.md); the same rule is restated in several plugin constitutions and a downstream consistency sweep to align that phrasing is tracked separately. `[platform fact verified 2026-06-16 against the Claude Code changelog]`
+> **This is a deliberate house policy, not a platform constraint (clarified 2026-06-16; platform fact corrected 2026-08-19).** Claude Code *permits* sub-agents to spawn sub-agents, but the platform default has tightened since the original v2.1.172 note — the "up to 5 levels deep" figure is **stale**: **v2.1.217 (2026-07-21)** changed subagents to *not* nest by default, then **v2.1.219 (2026-07-24)** set the default nesting depth to **3** (was 1), controlled by `CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH` (`=1` disables nesting). RavenClaude keeps the single-orchestrator pattern on purpose (observability, debuggability, loop-avoidance, token-spend control), enforced **soft** by `guard-recursive-spawn.sh` (warn, not block) — so the house policy is unchanged regardless of the platform default. The canonical statement + rationale lives in [`rules/agent-collaboration.md`](rules/agent-collaboration.md); the same rule is restated in several plugin constitutions and a downstream consistency sweep to align that phrasing is tracked separately. `[platform fact re-verified 2026-08-19 against the Claude Code changelog; changelog through 2.1.250 on 2026-08-28 does not reverse it]`
 
 **How cross-boundary work is handled:**
 
@@ -3422,3 +3422,24 @@ exactly as before. The one consumer-visible rename is `route-task.py`'s `lane` v
 (`"grok"` → `"cheap"`) — any external caller pattern-matching on the literal string
 `"grok"` in that JSON field (none exist inside this plugin; verified by grep) would need
 updating.
+
+## Claude Code platform-fact tracking refreshed — subagent caps, nesting depth, plugin install (added 2026-08-28, v0.307.0)
+
+Draft #987 (2026-08-19) verified four changelog facts first-hand, then sat unmerged while
+the plugin moved 0.283.0 → 0.306.1. Recut here from current `main` so the version bump
+does not rewind the catalog. Changelog through **2.1.250 (2026-08-28)** does not reverse
+them. House policy (single-orchestrator, `guard-recursive-spawn.sh` soft-warn) is
+unchanged.
+
+- **"5 levels deep (v2.1.172)" was wrong.** v2.1.217 disabled nesting by default; v2.1.219
+  set default depth **3** (`CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH`, `=1` disables).
+- **Native concurrent cap 20** (`CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS`, v2.1.217). The
+  v2.1.212 **200 per-session cap was removed in v2.1.224**.
+- **`/reload-plugins` is often unnecessary** since v2.1.221.
+- **Marketplace `archive` (v2.1.224) and `command` (v2.1.229)** source types.
+
+Deferred 14 synthesis-only findings remain in
+[`docs/research/2026-08-19-plugin-news-scan/`](../../docs/research/2026-08-19-plugin-news-scan/README.md).
+The Fabric Assistants-API P0 deadline (2026-08-26) has passed; re-verify before quoting.
+
+**Migration:** none — documentation + knowledge only.
