@@ -625,7 +625,7 @@
       "name": "microsoft-365-copilot",
       "source": "./plugins/microsoft-365-copilot",
       "description": "Microsoft 365 Copilot extensibility & administration team \u2014 agents (copilot-extensibility-architect, declarative-agent-engineer, graph-connector-engineer, api-plugin-engineer, agents-sdk-engineer, copilot-admin-governance) covering declarative agents (pinned manifest schema + the 50/25/4096/45s hard-limit wall), custom-engine agents on the M365 Agents SDK/Toolkit, Copilot (Graph) connectors (synced vs federated/MCP, semantic labels, ACL trimming), API plugins (OpenAPI + Entra/OAuth2), the app-package publish lifecycle, and M365 Agent Registry + Purview DLP-for-Copilot governance. citation-grounded knowledge bank (two Mermaid decision trees), skills, templates, an advisory hook (house opinions). Disjoint from power-platform's Copilot Studio low-code coverage (cross-linked). Seams: Copilot Studio \u2192 power-platform; CEA engine \u2192 claude-app-engineering; Entra/hosting \u2192 azure-cloud; security \u2192 ravenclaude-core. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.5.6",
+      "version": "0.5.7",
       "author": {
         "name": "Matt Corbett"
       },
@@ -678,7 +678,7 @@
       "name": "microsoft-graph",
       "source": "./plugins/microsoft-graph",
       "description": "Microsoft Graph developer team \u2014 specialist agents for the Graph API surface: querying (OData $select/$filter/$expand/$search, paging, $batch, change tracking via delta), throttling/429 + retry discipline, the Graph SDKs; identity & authorization on Entra (app registration, delegated vs application permissions, scopes/consent, least-privilege, auth-code/client-credentials/OBO flows, certificate creds); and the workloads (users/groups, mail/calendar, Teams, SharePoint/OneDrive files, change notifications/subscriptions + lifecycle, Graph connectors). Citation-grounded knowledge bank with Mermaid decision trees + a best-practices library. Seams: Copilot Graph connectors \u2192 microsoft-365-copilot; Entra tenant/identity infrastructure \u2192 azure-cloud; Power Platform Dataverse \u2192 power-platform; methodology/security-review \u2192 ravenclaude-core. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.4.4",
+      "version": "0.4.5",
       "author": {
         "name": "Matt Corbett"
       },
