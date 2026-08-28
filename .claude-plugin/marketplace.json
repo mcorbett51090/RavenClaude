@@ -530,7 +530,7 @@
       "name": "microsoft-fabric",
       "source": "./plugins/microsoft-fabric",
       "description": "Microsoft Fabric specialist team \u2014 agents (fabric-architect, lakehouse-engineer, warehouse-engineer, data-factory-engineer, realtime-intelligence-engineer, fabric-semantic-model-engineer, fabric-admin) covering OneLake, Lakehouse (Spark/Delta/medallion/materialized lake views), Warehouse (T-SQL/ACID), Data Factory (mirroring/copy-job/dataflow-gen2/pipelines), Real-Time Intelligence (Eventstream/Eventhouse/KQL/Activator), Direct Lake semantic models, and platform admin (capacity FinOps, OneLake security, domains, Purview, ALM). citation-grounded knowledge bank (two Mermaid decision trees + a dated 2026 capability map), templates, an advisory hook (house opinions). Seams: enterprise Microsoft/Fabric here vs non-Microsoft/SMB embedded to data-platform; Fabric storage + Direct Lake here vs standalone Power BI/.pbix to power-platform/power-bi-engineer. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.8.9",
+      "version": "0.8.10",
       "author": {
         "name": "Matt Corbett"
       },
@@ -776,7 +776,7 @@
       "name": "api-engineering",
       "source": "./plugins/api-engineering",
       "description": "API engineering specialist team \u2014 agents (api-design-architect, api-implementation-engineer, api-security-engineer, api-testing-engineer, api-platform-engineer) for the full lifecycle of an API you produce: paradigm choice (REST/GraphQL/gRPC/webhooks/AsyncAPI), contract-first design (OpenAPI 3.1/3.2, AsyncAPI 3.0, Arazzo), versioning & deprecation; the build craft (RFC 9457 Problem Details, cursor pagination, Idempotency-Key, ETag concurrency, HTTP semantics, 202+polling, RateLimit headers); security (OWASP API Security Top 10 2023 \u2014 BOLA/BOPLA/BFLA, token/scope validation, consumption limits, SSRF); and testing & operations (contract tests, Spectral lint in CI, Prism/Postman mocks, k6 load, gateway design, dev portal + SDK codegen, sunset rollout). Knowledge bank with Mermaid decision trees + a dated 2026 capability map, best-practices, templates, commands, an advisory hook. Security verdicts escalate to ravenclaude-core/security-reviewer. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.2.2",
+      "version": "0.2.3",
       "author": {
         "name": "Matt Corbett"
       },
@@ -1272,7 +1272,7 @@
       "name": "cloud-native-kubernetes",
       "source": "./plugins/cloud-native-kubernetes",
       "description": "Cloud-native & Kubernetes team \u2014 agents (kubernetes-architect, container-build-engineer, k8s-platform-operator, service-mesh-networking-engineer) for running workloads on Kubernetes well: workload design (Deployment/StatefulSet/Job, probes, requests/limits, PDBs, HPA/VPA), container build hygiene (minimal non-root images, distroless, multi-stage), platform ops (namespaces, RBAC, network policies, resource quotas, admission control, upgrades), and service-mesh networking (ingress/gateway, mTLS, traffic-splitting, observability). Cloud-agnostic. skills, a decision-tree knowledge bank (workload-type + ingress trees + a dated 2026 ecosystem map), best-practices, templates, commands, an advisory hook. Seams: managed control plane (AKS/EKS/GKE) -> azure/aws/gcp-cloud, GitOps reconcile -> devops-cicd, telemetry/SLOs -> observability-sre. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.3.8",
+      "version": "0.3.9",
       "author": {
         "name": "Matt Corbett"
       },
@@ -3979,7 +3979,7 @@
       "name": "databricks-lakehouse-engineering",
       "source": "./plugins/databricks-lakehouse-engineering",
       "description": "Databricks lakehouse engineering team \u2014 agents (lakehouse-architect, databricks-platform-engineer) answering 'how do we build this on Databricks correctly and affordably?': medallion (bronze/silver/gold) architecture, Delta Lake table design (partitioning, liquid clustering, OPTIMIZE/Z-ORDER, VACUUM), Unity Catalog governance (catalogs/schemas/grants, lineage), Spark & PySpark job design and the shuffle/skew/spill failure modes, Structured Streaming & Auto Loader, DLT pipelines, Photon, Jobs/Workflows orchestration, and cluster/SQL-warehouse sizing & cost control (DBUs, autoscaling, spot, serverless). Engineering judgment, not a benchmark; DBR/runtime/pricing specifics are volatile \u2014 every version carries a retrieval date + [verify-at-use]. Distinct from microsoft-fabric (Fabric/OneLake), data-platform (generic ETL), data-orchestration (Airflow/Dagster), analytics-engineering (dbt/semantic layer), and ml-engineering (classical MLOps). Needs ravenclaude-core.",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "author": {
         "name": "Matt Corbett"
       },
