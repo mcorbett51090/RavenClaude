@@ -78,6 +78,13 @@ knob. `advise` returns Grok's output as a suggestion only; `agent` runs Grok in 
 disposable worktree for review before merge. Full contract, the escalation-vs-cheap
 rule table, and the exit-code contract: [`skills/cheap-lane-delegation/SKILL.md`](skills/cheap-lane-delegation/SKILL.md).
 
+⛔ **"Give this to Grok" is two products, not one.** Cheap-lane is **one bounded
+job** (`cheap-lane-delegate.sh`, returns). A quota escape, a leftover multi-item
+list, a plugin-cache reload, or "pass remaining work to Grok to finish" is
+**session-handoff** (a new unbounded interactive TUI). Do not treat those as the
+same action. When `cheap_lane` is on and you still hand off, say in one clause
+why it is not a cheap-lane job.
+
 ⛔ **The routing asymmetry is deliberate and load-bearing.** An unmatched task, an
 ambiguous one, and one matching *both* an escalation and a cheap-lane rule all
 resolve to `claude` — escalation always dominates. A task wrongly sent to Grok can

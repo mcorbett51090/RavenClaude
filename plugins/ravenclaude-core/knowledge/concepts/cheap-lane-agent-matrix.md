@@ -13,7 +13,7 @@ covers:
   - plugins/ravenclaude-core/scripts/grok-delegate.sh
   - plugins/ravenclaude-core/scripts/route-task.py
   - plugins/ravenclaude-core/skills/cheap-lane-delegation/SKILL.md
-covers_digest: "sha256:dd45a8cdc69bc4bf6e7de4e96c527457904ebd7dead9f7b5a6fc8cab173eefe0"
+covers_digest: "sha256:40a22d94b0a8080e593d8bdc4cbc84da9ccecd825113bf6a36519fca3ee0a2fb"
 nuance: "Copilot CLI's `--model auto` rejects `--effort` outright at runtime — a real error, not a doc gap — so the Copilot lane differentiates by timeout budget only unless a caller pins an effort-capable model."
 nuance_evidence:
   measured: 2026-08-26

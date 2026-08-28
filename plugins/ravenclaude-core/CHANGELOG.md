@@ -2,6 +2,19 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.306.1 — 2026-08-28
+
+### Fixed
+
+- **`session-handoff` vs `cheap-lane-delegation` are two products, not one
+  "give this to Grok".** Skill descriptions now route the fork (bounded job
+  that returns vs new unbounded TUI). `handoff-spawn.sh` prints a `PRODUCT`
+  line before launch; when `cheap_lane` is `advise`/`agent` it also names the
+  spawn as a host-switch. Measured 2026-08-28: "pass remaining work to grok"
+  from a quota-limited Claude session spawned an interactive grok-4.6 TUI via
+  `/handoff` and never called `cheap-lane-delegate.sh`. Gate 213 asserts the
+  product line and the cheap_lane clause.
+
 ## 0.306.0 — 2026-08-28
 
 ### Added

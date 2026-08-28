@@ -1,6 +1,6 @@
 ---
 name: cheap-lane-delegation
-description: Route everyday, well-defined work (single-file edits, test-writing, summarization, mechanical refactors, boilerplate) to a cheaper coding agent (Grok or Copilot CLI) instead of doing it in the main Claude session, escalating multi-file/architecture/debugging/security work to Claude. Opt-in via the `cheap_lane:` comfort-posture knob.
+description: "Route ONE well-defined job (single-file, tests, summary, mechanical refactor) off Claude via cheap-lane-delegate.sh (bounded, returns). Opt-in cheap_lane: advise|agent. NOT for quota-escape, host-switch, fresh window, or 'pass remaining work to Grok' → session-handoff."
 allowed-tools: Bash, Read
 ---
 
@@ -179,6 +179,7 @@ on anything you would not also hand write access via a worktree alone.
 |---|---|
 | Does this multi-agent orchestration need a Claude sub-agent, a skill, or a dynamic workflow? | `spawn-team` Step 2 |
 | Is this ONE well-defined task cheap enough to route off Claude entirely? | **This skill** |
+| Must a **new session** on another host own the rest (quota, leftover list, plugin-cache reload)? | `session-handoff` — not this skill |
 | Should a sub-agent dispatch downgrade/upgrade tier? | `agent-dispatch-evaluator` (governs sub-agent calls only — see its own `dispatch-config.json`) |
 
 This skill and `agent-dispatch-evaluator` are **not the same mechanism** and do not
