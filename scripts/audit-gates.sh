@@ -7387,7 +7387,7 @@ echo "── Gate 195: gate-introspection meta-gate — this suite audits ITSELF
 rc=0; python3 scripts/check-gate-registration.py >/dev/null 2>&1 || rc=$?
 gate "gate-registration: reachability + number-uniqueness + dispatcher/Supported parity + exit-2 specificity" must_pass "$rc"
 rc=0; python3 scripts/check-gate-registration.py --self-test >/dev/null 2>&1 || rc=$?
-gate "gate-registration: teeth (4 mutants caught, 4 anti-flood companions clean, unparseable fails closed)" must_pass "$rc"
+gate "gate-registration: teeth (5 mutants caught, 5 anti-flood companions clean, unparseable fails closed)" must_pass "$rc"
 
 echo
 echo "── Gate 196: every regex in every shipped catalog compiles ────────────────"
