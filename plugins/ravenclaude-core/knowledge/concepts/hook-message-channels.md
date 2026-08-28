@@ -32,7 +32,6 @@ covers:
   - plugins/ravenclaude-core/hooks/format-on-write.sh
   - plugins/ravenclaude-core/hooks/gemini-hook-adapter.sh
   - plugins/ravenclaude-core/hooks/guard-destructive.sh
-  - plugins/ravenclaude-core/hooks/guard-foreground-suite.sh
   - plugins/ravenclaude-core/hooks/guard-memory-compaction.sh
   - plugins/ravenclaude-core/hooks/guard-premise.sh
   - plugins/ravenclaude-core/hooks/guard-probe-validity.sh
@@ -57,7 +56,7 @@ covers:
   - plugins/ravenclaude-core/hooks/thing-orchestrator.sh
   - plugins/ravenclaude-core/hooks/triage-outcome.sh
   - plugins/ravenclaude-core/hooks/worktree-guard.sh
-covers_digest: "sha256:18a26a4b567ec137e13980fa8f5c5a4309c15c5e9e9a63d31d2e9a3f990b8b18"
+covers_digest: "sha256:caa608648036623271000d146bdec655768843ec0fb38ebe40cdcfedf5e5e80a"
 nuance: "A hook writing to stderr at `exit 0` reaches the model on no event; only `hookSpecificOutput.additionalContext` and `updatedToolOutput` are delivered, so `_advise.sh` advised the terminal for its entire service life."
 nuance_evidence:
   measured: 2026-08-19

@@ -2779,7 +2779,6 @@
         "plugins/ravenclaude-core/hooks/format-on-write.sh",
         "plugins/ravenclaude-core/hooks/gemini-hook-adapter.sh",
         "plugins/ravenclaude-core/hooks/guard-destructive.sh",
-        "plugins/ravenclaude-core/hooks/guard-foreground-suite.sh",
         "plugins/ravenclaude-core/hooks/guard-memory-compaction.sh",
         "plugins/ravenclaude-core/hooks/guard-premise.sh",
         "plugins/ravenclaude-core/hooks/guard-probe-validity.sh",
@@ -2805,7 +2804,7 @@
         "plugins/ravenclaude-core/hooks/triage-outcome.sh",
         "plugins/ravenclaude-core/hooks/worktree-guard.sh"
       ],
-      "covers_digest": "sha256:18a26a4b567ec137e13980fa8f5c5a4309c15c5e9e9a63d31d2e9a3f990b8b18",
+      "covers_digest": "sha256:caa608648036623271000d146bdec655768843ec0fb38ebe40cdcfedf5e5e80a",
       "nuance": "A hook writing to stderr at `exit 0` reaches the model on no event; only `hookSpecificOutput.additionalContext` and `updatedToolOutput` are delivered, so `_advise.sh` advised the terminal for its entire service life.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -2834,7 +2833,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-08-20",
+      "last_verified": "2026-08-25",
       "refresh_when": null,
       "sources": [
         {
@@ -2852,7 +2851,7 @@
       "covers": [
         "plugins/ravenclaude-core/hooks/hooks.json"
       ],
-      "covers_digest": "sha256:f47418dd3a9ceeff02f86724c9adb16a4541a005d459aaf397800e5b2e6dbda2",
+      "covers_digest": "sha256:1666112d0fa4644677177074443743ce511f091ff1a4eaacd44e67dc9d3e2f61",
       "nuance": "Two `additionalContext` emitters on one event concatenate rather than last-write-wins, but two `updatedToolOutput` emitters replace, so the second silently discards the first.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -2946,7 +2945,7 @@
         "scripts/sync-plugin-versions.py",
         "scripts/generate-copilot-plugin.py"
       ],
-      "covers_digest": "sha256:a85743f6e4937512179c6709af512246366d48d77f8b40eb240a825ec4b95e41",
+      "covers_digest": "sha256:d0f174312bc769b34368ea234626409a2ed587fcf65a18406a599003f19bca92",
       "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3007,7 +3006,7 @@
         "scripts/inventory-coverage.py",
         "scripts/inventory-nuance-judge.py"
       ],
-      "covers_digest": "sha256:61b68caaa9fa21d1bb03d6c28747b49d8e6b1e69f5c3d24c3593955bb85a5276",
+      "covers_digest": "sha256:140a3b99da652d6ecb5f63428cc986aa3143f9d2524d80eef6e1e10f5625a6ee",
       "nuance": "The teeth bit is the exit a tool own CHECK returns on a planted defect, never the exit `--must-fail` itself returns: `premise-gate.py` denies at `exit 0` while `sync-plugin-versions.py` reddens at `exit 2`, so an auditor that hard-codes one number can never be right for both.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3107,7 +3106,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-08-20",
+      "last_verified": "2026-08-25",
       "refresh_when": null,
       "sources": [
         {
@@ -3125,7 +3124,7 @@
       "covers": [
         "plugins/ravenclaude-core/hooks/triage-outcome.sh"
       ],
-      "covers_digest": "sha256:f45e2316e468541f1fee67d4583060a01fc048e8f0cdd10b05a7cba10ef6a36c",
+      "covers_digest": "sha256:9a2df20ae75bb49090262342007b0a89fee94d0c4f62e7a9099fc5ce09dc9ed2",
       "nuance": "A failing Bash `tool_response` carries no exit-code field at all, so a hook that branches on `.tool_response.exit_code` never fires; `triage-outcome.sh` reads stream shape instead.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3393,7 +3392,7 @@
       "widget": null,
       "try_it": null,
       "node_links": {},
-      "last_verified": "2026-08-20",
+      "last_verified": "2026-08-25",
       "refresh_when": null,
       "sources": [
         {
@@ -3414,7 +3413,7 @@
         "scripts/generate-dashboards.py",
         "scripts/generate-index-dashboard.py"
       ],
-      "covers_digest": "sha256:b5c3655b71b85942852ea39d5ec1ab025d5d0664af777e5a2ae22fc1a6eef969",
+      "covers_digest": "sha256:5f7eae16a02a5fea66c7a845d3064296652405f79dd588669746d8d6c5a8d505",
       "nuance": "`ISLANDED_PANEL_COST` is a flat 2 because the parser reads the payload as CDATA, so `check-dom-budget.py` cannot fire on `learn-payload` no matter how far past 23,861 elements it grows.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3476,6 +3475,60 @@
         "strength": "executed",
         "class": "script-selftest",
         "probe": "scripts/inventory-sweep.py",
+        "teeth_exit": 1
+      },
+      "strength_badge": "Probed"
+    },
+    {
+      "id": "preflight-predicate-not-evaluable",
+      "title": "Pre-flight rules and post-hoc predicates",
+      "category": "Inventory — measured mechanisms",
+      "kind": "ravenclaude-built",
+      "order": 913,
+      "summary": "A rule about how a command turned out cannot run before the command.",
+      "see_also": [],
+      "widget": null,
+      "try_it": null,
+      "node_links": {},
+      "last_verified": "2026-08-25",
+      "refresh_when": null,
+      "sources": [
+        {
+          "label": "measured in the verify-before-assert Phase 1 corpus run",
+          "url": "https://github.com/mcorbett51090/RavenClaude/blob/main/docs/plans/2026-08-19-verify-before-assert/plan.md"
+        }
+      ],
+      "body_md": "## What a reader would have assumed instead\n\nThat a pre-flight rule and a post-failure rule are the same rule pointed at a\ndifferent moment, so a candidate measured on recorded outcomes can simply be\nmoved to `PreToolUse` once it clears its ceiling.\n\n## The discriminator\n\ncontrol: the same candidate measured two ways over one 34,014-command corpus —\nwith `stdout_empty` in the predicate it fires 487 times (1.43%), and with that\nfield removed it fires 2,816 times (8.28%). One corpus, one rule, two numbers:\nthe difference is the field, not the sample.\n\nA `PreToolUse` hook runs **before** the command. Any predicate naming the result\n— empty stdout, a non-zero exit, a truncated count — is unevaluable there. A\nrule written that way does not become noisy at pre-flight; it becomes a\n*different rule*, and the offline number that justified it was never a\nmeasurement of the thing that would ship.\n\n## Why it matters\n\nThe offline harness will happily report a passing fire rate for a rule that\ncannot exist. Both candidates cleared their ceilings on paper. Shipping either\nwould have put a rule into the pre-flight path whose measured justification\nbelonged to a predicate the hook could never evaluate — a green number attached\nto the wrong mechanism.\n\nThe hazard itself was real in both cases and is not lost: it is delivered\npost-hoc by `triage-outcome.sh`, which ranks the matching taxonomy members first\nat the moment the result IS known. The correction was to move the rule to the\nevent where its predicate exists, not to widen it until the lexical form passed.\n\nProbe: `replay-outcome-rules.py --rule R-1 --sample 40`, then read whether the\npredicate names anything the command has not done yet.",
+      "diagram": null,
+      "diagram_mini": null,
+      "steps": [],
+      "svg": null,
+      "svg_mini": null,
+      "entry_class": "inventory",
+      "covers": [
+        "plugins/ravenclaude-core/scripts/build-outcome-corpus.py",
+        "plugins/ravenclaude-core/scripts/audit-fired-count.py",
+        "plugins/ravenclaude-core/scripts/check-cause-eval.py",
+        "plugins/ravenclaude-core/scripts/check-scope-key-parity.py",
+        "plugins/ravenclaude-core/scripts/guard-cause-closure.sh",
+        "plugins/ravenclaude-core/scripts/guard-remediation-cause.sh",
+        "plugins/ravenclaude-core/scripts/preflight-command-review.sh",
+        "plugins/ravenclaude-core/scripts/replay-outcome-rules.py"
+      ],
+      "covers_digest": "sha256:9faabb82ab464c2be44d9474a8e1d29e33d5be3a9dbd5fb2dece5b767f8ae386",
+      "nuance": "Two of five drafted pre-flight rules name a result that CAME BACK EMPTY — which a `PreToolUse` hook cannot know — so their offline fire rates scored a field absent at fire time; re-measured lexically, one went from 1.43% to 8.28%.",
+      "nuance_evidence": {
+        "measured": "2026-08-25",
+        "control": "the same rule measured post-hoc (with stdout_empty) fired 487 times and lexically (without it) 2,816 times over the same 34,014 evidence-bearing commands, so the gap is the missing field and not a different corpus",
+        "falsifier": "a PreToolUse payload carrying the tool result",
+        "probe": "plugins/ravenclaude-core/scripts/replay-outcome-rules.py"
+      },
+      "nuance_source": "plugins/ravenclaude-core/scripts/preflight-command-review.sh:26-42",
+      "verify": {
+        "tier": "effect",
+        "strength": "executed",
+        "class": "script-selftest",
+        "probe": "plugins/ravenclaude-core/scripts/replay-outcome-rules.py",
         "teeth_exit": 1
       },
       "strength_badge": "Probed"

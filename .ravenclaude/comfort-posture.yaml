@@ -127,6 +127,30 @@ cheap_lane:
 # no deny path by design (see its header for why a host probe cannot decide one).
 probe_validity: warn
 
+# ── The cause discipline (verify-before-assert) ─────────────────────────────
+# ⛔ ABSENT MEANS INERT. Every hook below no-ops entirely when its key is
+# missing, so a rollout with no step that WRITES these keys ships a mechanism
+# that is off by default in exactly the repos where the complaint is newest.
+# That is CE-6, and this block is the fix.
+#
+#   cause_triage       off | warn          post-failure triage (PostToolUse)
+#   cause_preflight    off | warn          pre-flight review; NO block value
+#                                          exists by construction — the hook
+#                                          scans its own source for a deny exit
+#                                          and fails if one appears
+#   cause_remediation  off | warn | block  the primary D1 gate (PreToolUse Bash)
+#   cause_closure      off | warn | block  the write-path gate
+#
+# ⛔ ALL FOUR SHIP AT `warn`. Neither `block` value may be set until Phase 9's
+# with-hook arm exists and its measured false-positive gate passes; a gate that
+# starts by blocking is one that gets switched off before anyone measured
+# whether it was right. `scripts/check-cause-eval.py --check` fails if a knob is
+# set to `block` while that arm is still unverified.
+cause_triage: warn
+cause_preflight: warn
+cause_remediation: warn
+cause_closure: warn
+
 # Bring this dashboard up at session start (off | serve | open; default off).
 # serve = start the local server headless; open = also open a browser tab.
 dashboard_autostart: open

@@ -648,6 +648,66 @@ PY
       bash plugins/ravenclaude-core/hooks/tests/test-guard-foreground-suite.sh
       exit $?
       ;;
+    250)
+      echo "── Gate 250: anti-rot — scope-key parity, taxonomy parity, fired-count ──"
+      rc=0
+      python3 plugins/ravenclaude-core/scripts/check-scope-key-parity.py --check || rc=$?
+      python3 plugins/ravenclaude-core/scripts/check-scope-key-parity.py --must-fail || rc=$?
+      python3 plugins/ravenclaude-core/scripts/cause_taxonomy.py \
+        --check-doc plugins/ravenclaude-core/knowledge/cause-taxonomy.md || rc=$?
+      python3 plugins/ravenclaude-core/scripts/audit-fired-count.py --check || rc=$?
+      python3 plugins/ravenclaude-core/scripts/audit-fired-count.py --must-fail || rc=$?
+      for _f in plugins/*/scripts/*.sh; do
+        [ -e "$_f" ] || continue
+        bash -n "$_f" || rc=$?
+      done
+      exit $rc
+      ;;
+    249)
+      echo "── Gate 249: outcome eval — the ship gate must be SATISFIABLE ──"
+      rc=0
+      python3 plugins/ravenclaude-core/scripts/check-cause-eval.py --check || rc=$?
+      python3 plugins/ravenclaude-core/scripts/check-cause-eval.py --must-fail || rc=$?
+      exit $rc
+      ;;
+    248)
+      echo "── Gate 248: portable cause floor — present on every text-only host, and honest ──"
+      rc=0
+      python3 scripts/check-portable-floor.py --check || rc=$?
+      python3 scripts/check-portable-floor.py --must-fail || rc=$?
+      exit $rc
+      ;;
+    247)
+      echo "── Gate 247: cross-host hook coverage — no registered hook drops silently ──"
+      rc=0
+      python3 scripts/check-crosshost-hook-coverage.py --check || rc=$?
+      python3 scripts/check-crosshost-hook-coverage.py --must-fail || rc=$?
+      exit $rc
+      ;;
+    246)
+      echo "── Gate 246: cause-closure gate — is the cause SET closed (not: is a control cited) ──"
+      rc=0
+      bash plugins/ravenclaude-core/scripts/guard-cause-closure.sh --self-test || rc=$?
+      bash plugins/ravenclaude-core/scripts/guard-cause-closure.sh --must-fail || rc=$?
+      exit $rc
+      ;;
+    245)
+      echo "── Gate 245: remediation-cause gate — the primary D1 surface ──"
+      rc=0
+      bash plugins/ravenclaude-core/scripts/guard-remediation-cause.sh --self-test || rc=$?
+      bash plugins/ravenclaude-core/scripts/guard-remediation-cause.sh --must-fail || rc=$?
+      exit $rc
+      ;;
+    252)
+      echo "── Gate 252: pre-flight command review — WARN-only, measured membership ──"
+      rc=0
+      bash plugins/ravenclaude-core/scripts/preflight-command-review.sh --self-test || rc=$?
+      bash plugins/ravenclaude-core/scripts/preflight-command-review.sh --must-fail || rc=$?
+      python3 plugins/ravenclaude-core/scripts/replay-outcome-rules.py --self-test || rc=$?
+      python3 plugins/ravenclaude-core/scripts/build-outcome-corpus.py --self-test || rc=$?
+      python3 plugins/ravenclaude-core/scripts/build-outcome-corpus.py --must-fail || rc=$?
+      exit $rc
+      ;;
     243)
       echo "── Gate 243: scheduled sweep contract + operator health card ──"
       bash plugins/ravenclaude-core/hooks/tests/test-gate243-sweep-and-health-card.sh
@@ -1452,7 +1512,7 @@ PY
       ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 251. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -8925,6 +8985,299 @@ bash plugins/ravenclaude-core/hooks/tests/test-gate243-sweep-and-health-card.sh 
 gate "sweep is unrequirable by construction; health card renders; census rule stated" must_pass "$rc"
 
 echo
+echo "── Gate 252: pre-flight command review — WARN-only, measured membership ───"
+# ⛔ THE NO-BLOCK GUARANTEE IS STRUCTURAL, NOT A PROMISE. The hook scans its own
+# operative region for a deny exit and fails if one appears, so promotion to
+# blocking turns this gate red before it can ship. The scan is bounded to CODE:
+# scanning the whole file matched the very lines that search for the needle and
+# the header paragraph documenting the guarantee — this repo's own recorded
+# "a grep is satisfied by the thing being DESCRIBED", reproduced on first run.
+# control: injecting a real `exit 2` into the operative region turns the scan red,
+# so the pass is measuring the code rather than passing blind.
+#
+# ⛔ RULE MEMBERSHIP IS A MEASUREMENT, NOT AN INTENTION. Five rules were drafted;
+# ONE cleared its fire-rate ceiling and its hand-classified FP bar against 34,014
+# evidence-bearing commands. The four rejections are recorded with their numbers
+# in replay-outcome-rules.py REJECTED, and its --self-test asserts they cannot
+# quietly reappear in the active set.
+#
+# ⛔ The corpus extractor carries planted controls so "0 failures in the corpus"
+# can never mean "the extractor is blind", and --must-fail blinds its exit-code
+# derivation to prove the self-test has teeth.
+#
+# ⛔ Registered in dispatcher + main sequence + Supported:. Grep by literal name.
+rc=0
+bash plugins/ravenclaude-core/scripts/preflight-command-review.sh --self-test >/dev/null 2>&1 || rc=$?
+gate "pre-flight hook: no deny path, R-3 fires, 3 near-misses stay silent, injection byte-identical" must_pass "$rc"
+rc=0
+bash plugins/ravenclaude-core/scripts/preflight-command-review.sh --must-fail >/dev/null 2>&1 || rc=$?
+gate "pre-flight --must-fail: deleting R-3 silences its own true positive" must_pass "$rc"
+rc=0
+python3 plugins/ravenclaude-core/scripts/replay-outcome-rules.py --self-test >/dev/null 2>&1 || rc=$?
+gate "replay harness: C15 both directions, R-1 exclusions, rejected rules stay rejected" must_pass "$rc"
+rc=0
+python3 plugins/ravenclaude-core/scripts/build-outcome-corpus.py --self-test >/dev/null 2>&1 || rc=$?
+gate "corpus extractor: planted controls recovered, scrub fires, labels stderr-only" must_pass "$rc"
+rc=0
+python3 plugins/ravenclaude-core/scripts/build-outcome-corpus.py --must-fail >/dev/null 2>&1 || rc=$?
+gate "corpus --must-fail: blinding the exit-code derivation turns the self-test red" must_pass "$rc"
+
+echo
+echo "── Gate 245: remediation-cause gate — the primary D1 surface ──────────────"
+# ⛔ THE JOIN IS THE WHOLE GATE, AND IT FAILED SILENTLY FIRST. The ledger stamps a
+# TYPE PREFIX on every subject (`fs:` for a path, `cmd:` otherwise), so a row
+# reading `fs:src/thing.ts` never equalled the `cmd:rm -rf src/thing.ts` a
+# remediating command derives. Comparing the labelled forms, the gate matched
+# NOTHING and allowed every command — while running, reading the ledger and
+# exiting 0. A gate that reads an empty join and passes is the inverted-audit
+# defect wearing a green tick.
+#
+# ⛔ CASE 2 IS THE CANARY AND IT CARRIES THE GATE'S MEANING. Same ledger state, a
+# DISCRIMINATING command must be ALLOWED. Without it, "fires on remediate" and
+# "allows on discriminate" would differ only by luck, and an inert classifier
+# would be indistinguishable from a working one. --must-fail neuters the
+# discriminate arm and requires a plain read to start firing.
+#
+# ⛔ Blindness ADVISES, it never denies. Fail-closed is authorised here only for
+# unresolved cause-ambiguity, and a missing beacon is not that. The test asserts
+# both halves: the advisory appears AND no permissionDecision is emitted.
+#
+# ⛔ The empty-escape refusal is tested BEFORE the working escape, because an
+# escape hatch nobody tested is one everybody uses.
+#
+# ⛔ Registered in dispatcher + main sequence + Supported:. Grep by literal name.
+rc=0
+bash plugins/ravenclaude-core/scripts/guard-remediation-cause.sh --self-test >/dev/null 2>&1 || rc=$?
+gate "remediation gate: fires on remediate, allows on discriminate, ledger read, empty escape refused" must_pass "$rc"
+rc=0
+bash plugins/ravenclaude-core/scripts/guard-remediation-cause.sh --must-fail >/dev/null 2>&1 || rc=$?
+gate "remediation --must-fail: neutering the discriminate arm makes a plain read fire" must_pass "$rc"
+
+echo
+echo "── Gate 246: cause-closure gate — is the cause SET closed ─────────────────"
+# ⛔ G6.2 IS THE HIGHEST-VALUE ASSERTION HERE AND IT IS A STANDING REGRESSION,
+# NOT A ONE-TIME PRE-BUILD CHECK. The gate's REAL detection bytes are run against
+# the FULL TEXT of knowledge/cause-taxonomy.md and knowledge/verification-
+# discipline.md — the two documents whose entire purpose is to contain
+# subject + defect-predicate + date sentences. They are the worst case BY
+# CONSTRUCTION. Zero denies on both, or this gate blocks its own repair the first
+# time somebody edits the taxonomy, which is the trap this repo has hit
+# repeatedly ("the guard blocks its own repair", 5 blocks to change one regex).
+#
+# ⛔ A RELOCATED COPY OF THIS GATE SILENTLY GATES NOTHING. Conjunct 2 shells out
+# to the SIBLING classify_claim.py; a copy running from a temp path finds no
+# sibling, hits an os.path.exists guard and exits 0 while still reading its
+# posture and returning success. control: the mutant produced no output even on a
+# payload carrying NO escape, while the same program with the real module dir
+# emitted its fire verdict. --must-fail therefore passes RC_GCC_MODULE_DIR
+# explicitly; without it the teeth would be measuring path resolution.
+#
+# ⛔ Edit and MultiEdit carrying IDENTICAL prose must reach an IDENTICAL verdict.
+# A gate that reads only `content` inspects Write and waves Edit through — the
+# tool-switch tunnel guard-premise.sh had to close on 2026-08-13.
+#
+# ⛔ Registered in dispatcher + main sequence + Supported:. Grep by literal name.
+rc=0
+bash plugins/ravenclaude-core/scripts/guard-cause-closure.sh --self-test >/dev/null 2>&1 || rc=$?
+gate "closure gate: fires unclosed, both escape dialects clear, Edit/MultiEdit parity, G6.2 zero-denies" must_pass "$rc"
+rc=0
+bash plugins/ravenclaude-core/scripts/guard-cause-closure.sh --must-fail >/dev/null 2>&1 || rc=$?
+gate "closure --must-fail: neutering the escape makes an escaped write fire" must_pass "$rc"
+
+echo
+echo "── Gate 247: cross-host hook coverage — no registered hook drops silently ─"
+# ⛔ THIS PINS A CLASS, NOT AN INSTANCE, AND THE CLASS WAS LIVE.
+# Each host projector was written to be LOUD about a hook it cannot place: an
+# unmapped event RAISES, an intentional omission needs an explicit skip WITH A
+# REASON, and --check fails otherwise. That contract had a hole underneath it.
+# `_script_of` matched only `/hooks/([...]+\.sh)`, so a hook body living under
+# `/scripts/` — the packaging exception the tribunal's substrate guard forces,
+# because it denies setting the executable bit on a NEW hooks/*.sh — resolved to
+# the empty string and hit a bare `continue`. A hook a projector cannot SEE is a
+# hook it cannot REFUSE, so explicit-skip-or-raise never fired for it.
+#
+# control: with the old resolver 4 of 42 registered commands dropped silently and
+# none of the three generators said a word; with the widened one 42 of 42 resolve
+# and 0 drop. `ask-on-ambiguity.sh` had been dropped from EVERY cross-host
+# projection since v0.273.0 — shipped, documented, and reaching no host but
+# Claude Code for its whole service life.
+#
+# --must-fail narrows the resolver back to /hooks/ and requires the drop count to
+# go non-zero, so the pass is measuring resolution rather than passing for an
+# unrelated reason.
+#
+# ⛔ R7 is asserted in BOTH directions: the three verify-before-assert cells must
+# be DECLARED (non-empty reason) in the Cursor and Gemini projections and PRESENT
+# in Copilot's, which is wired repo-level per github/copilot-cli#2540. A cell that
+# flips from skipped to wired without a live round-trip is the MH-01 shape.
+#
+# ⛔ Registered in dispatcher + main sequence + Supported:. Grep by literal name.
+rc=0
+python3 scripts/check-crosshost-hook-coverage.py --check >/dev/null 2>&1 || rc=$?
+gate "cross-host: 0 silent drops, 3 resolvers agree, R7 cells declared not dropped" must_pass "$rc"
+rc=0
+python3 scripts/check-crosshost-hook-coverage.py --must-fail >/dev/null 2>&1 || rc=$?
+gate "cross-host --must-fail: narrowing the resolver reddens the zero-drop assertion" must_pass "$rc"
+
+echo
+echo "── Gate 248: portable cause floor — present everywhere, and honest ────────"
+# ⛔ ON A HOST THAT RUNS NO HOOKS, THIS TEXT IS THE WHOLE MECHANISM. R1 is
+# layered: deterministic hooks where they fire, protocol text as the floor. Aider
+# reads nothing automatically (CONVENTIONS.md is opt-in via --read) and Copilot
+# CHAT's hooks are supported:false, so for those surfaces the projection is not a
+# supplement to enforcement — it IS the coverage.
+#
+# ⛔ THE ANTI-OVERCLAIM ASSERTION IS THE POINT. A floor that reads as though the
+# rule is ENFORCED on those hosts is worse than no floor: it manufactures exactly
+# the false sense of coverage R7 refuses, in prose, on the hosts least able to
+# check it. The honest-limit paragraph is required VERBATIM in every projection,
+# and --must-fail plants an enforcement claim to prove the check catches one.
+# The verb list deliberately does not match "enforced sliver" / "not the rule's
+# enforcement": both occur only inside that disclaimer, and matching them would
+# forbid the check's own required text.
+#
+# ⛔ HEADER-RENAME CANARY: renaming the source section must make the aider
+# projector RAISE rather than ship a CONVENTIONS.md with a floor-shaped hole.
+# control: the unmodified tree projects cleanly, so a non-zero there is the
+# rename and not a broken projector. AGENTS.md is restored in a finally block.
+#
+# ⛔ Windsurf is DECLARED OUT OF SCOPE in host-support.json rather than given a
+# half-lane: this repo's own record has the product renamed to Devin Desktop and
+# the lane unmaintained, so a .windsurfrules projector would be wired-and-hopeful.
+#
+# ⛔ Registered in dispatcher + main sequence + Supported:. Grep by literal name.
+rc=0
+python3 scripts/check-portable-floor.py --check >/dev/null 2>&1 || rc=$?
+gate "portable floor: 3 surfaces carry ritual + 5 classes + honest limit, no enforcement verb" must_pass "$rc"
+rc=0
+python3 scripts/check-portable-floor.py --must-fail >/dev/null 2>&1 || rc=$?
+gate "portable floor --must-fail: a planted enforcement claim is caught" must_pass "$rc"
+
+echo
+echo "── Gate 249: outcome eval — the ship gate must be SATISFIABLE ─────────────"
+# ⛔ THE PLAN'S OWN SHIP GATE WAS UNSATISFIABLE UNDER ITS NATURAL READING, AND
+# THAT IS A MEASURED FINDING. The gate is DBR(with-hook) >= DBR(without-hook)
+# + 0.15, and the plan never says what counts as "a discriminating probe".
+# Measured over 43,714 real envelopes with ONE corpus and ONE remediate predicate,
+# varying only the discriminate predicate:
+#     any read verb (natural reading)   0.9757  -> needs 1.1257  IMPOSSIBLE
+#     control-shaped (pinned)           0.6751  -> needs 0.8251  reachable
+# Agents overwhelmingly DO read again before remediating, so under the natural
+# reading the metric is saturated and no hook could ever move it +0.15. A ship
+# gate nobody can pass is not a high bar — it is a mechanism permanently stuck at
+# `warn`, with Phase 11's knob flips unreachable forever. This gate asserts
+# satisfiability, which is the assertion that would have caught it.
+#
+# ⛔ THE BASELINE IS FROZEN, AND DRIFT >0.05 FAILS. A baseline re-derived at gate
+# time from whatever corpus is present is not a pre-registration; it is a moving
+# target that always agrees with the current code.
+#
+# ⛔ NO SHIP VERDICT WITHOUT THE SECOND ARM. The with-hook arm needs a live
+# window (posture off vs warn alternating, >=500 envelopes) and does not exist:
+# control: a search for a two-arm artifact returned only substring false
+# positives while the same search located corpus.jsonl, and the live posture sets
+# no cause_* knob, so both arms would read the same default. Reporting a
+# single-arm number as evidence is the instrument-over-outcome failure this phase
+# exists to prevent.
+#
+# ⛔ --must-fail strips every probe template from the taxonomy and requires J4 to
+# redden: "if a blinded module still scores well, the eval is measuring nothing."
+# It also asserts the UNBLINDED module is clean, so a red is not ambiguous.
+#
+# ⛔ Registered in dispatcher + main sequence + Supported:. Grep by literal name.
+rc=0
+python3 plugins/ravenclaude-core/scripts/check-cause-eval.py --check >/dev/null 2>&1 || rc=$?
+gate "outcome eval: ship gate satisfiable, J4/J5 hold, baseline agrees with the freeze" must_pass "$rc"
+rc=0
+python3 plugins/ravenclaude-core/scripts/check-cause-eval.py --must-fail >/dev/null 2>&1 || rc=$?
+gate "outcome eval --must-fail: a probe-blinded taxonomy reddens J4" must_pass "$rc"
+
+echo
+echo "── Gate 250: anti-rot — parity + fired-count ──────────────────────────────"
+# ⛔ INVOCATION IS NECESSARY AND DEMONSTRABLY NOT SUFFICIENT. This repo's evidence:
+# test-gate140 was invoked and green while worktree-guard.sh shipped both F1 and
+# F2. So anti-rot needs three mechanisms, none sufficient alone — parity checks,
+# a fired-count audit, and per-detector teeth batteries.
+#
+# ⛔ THE SCOPE-KEY BLOCK IS DUPLICATED IN FIVE LIVE FILES, DELIBERATELY. Drift
+# there is not a bug, it is a SILENT PASS: the recorder writes
+# scopes/<key>/open.jsonl and a gate deriving a different key reads a ledger
+# NOBODY WRITES, finds no open rows, and reports clean forever while running,
+# parsing and exiting 0. Textual identity is the weaker half; the check also
+# drives every copy with one synthetic tree and requires an identical key, AND
+# requires the key to VARY with the tree, or parity would be satisfied by a
+# constant.
+# control: the extractor itself was the first trap — a naive range over-ran in
+# guard-cause-closure.sh, which MENTIONS the function name inside its own
+# --must-fail awk program, and reported a 61-line block against a 22-line
+# reference. Stopping at the first closing return removes that false positive.
+#
+# ⛔ G10.1 — THE FIRED-COUNT AUDIT CARRIES BOTH CONTROLS OR IT IS WORTHLESS.
+# POSITIVE: a planted event must be read back, or "no events" might mean the
+# READER is broken. NEGATIVE: an empty tree must report UNWIRED, never CLEAN.
+# The verdict is THREE-valued — unwired / gap / firing — so `clean` is
+# unreachable without evidence. A fired-count of exactly zero after real usage is
+# a FINDING, not a pass: either mis-wired or too narrow to ever fire, and both
+# are findings. --must-fail installs an instrument that calls an empty tree
+# "firing" and requires the control to catch it.
+#
+# ⛔ Registered in dispatcher + main sequence + Supported:. Grep by literal name.
+rc=0
+python3 plugins/ravenclaude-core/scripts/check-scope-key-parity.py --check >/dev/null 2>&1 || rc=$?
+gate "scope-key parity: 5 copies identical, same key for one tree, key varies with tree" must_pass "$rc"
+rc=0
+python3 plugins/ravenclaude-core/scripts/check-scope-key-parity.py --must-fail >/dev/null 2>&1 || rc=$?
+gate "scope-key --must-fail: a perturbed copy reddens both the textual and behavioural halves" must_pass "$rc"
+rc=0
+python3 plugins/ravenclaude-core/scripts/cause_taxonomy.py \
+  --check-doc plugins/ravenclaude-core/knowledge/cause-taxonomy.md >/dev/null 2>&1 || rc=$?
+gate "taxonomy parity: prose and code hold the same 34 members" must_pass "$rc"
+rc=0
+python3 plugins/ravenclaude-core/scripts/audit-fired-count.py --check >/dev/null 2>&1 || rc=$?
+gate "fired-count audit: positive AND negative controls both pass before any count" must_pass "$rc"
+rc=0
+python3 plugins/ravenclaude-core/scripts/audit-fired-count.py --must-fail >/dev/null 2>&1 || rc=$?
+gate "fired-count --must-fail: a clean-reporting instrument is caught by the negative control" must_pass "$rc"
+
+# ⛔ THE SYNTAX CHECK DID NOT COVER WHERE HOOK BODIES ACTUALLY LIVE.
+# The repo checks `bash -n plugins/*/hooks/*.sh scripts/*.sh`. Four REGISTERED
+# hook bodies live under `plugins/*/scripts/` — the packaging exception the
+# tribunal substrate guard forces — and 15 files there were checked by nothing.
+# This is the same root cause as the cross-host silent drop in Gate 247: the
+# exception was created, and every check that assumed `hooks/` was never widened.
+# control: a real unbalanced-quote break in guard-cause-closure.sh (one apostrophe
+# in a prose comment, inside a heredoc nested in `$( ... )`) failed `bash -n`
+# locally while matching NONE of the CI globs — it would have shipped.
+rc=0
+for _f in plugins/*/scripts/*.sh; do
+  [ -e "$_f" ] || continue
+  bash -n "$_f" 2>/dev/null || rc=$?
+done
+gate "plugin scripts/ shell syntax: every plugins/*/scripts/*.sh parses" must_pass "$rc"
+# Teeth: a planted syntax error in that glob must be caught, or the loop above is
+# iterating over nothing and passing for free.
+# ⛔ NOT A DOTFILE. `plugins/*/scripts/*.sh` does not match a leading-dot name
+# without `shopt -s dotglob`, so the canary was invisible to the very loop it
+# was planted for: nothing broken was ever checked, rc stayed 0, and must_fail
+# correctly reported that these teeth do not bite.
+# control: two canaries in one dir, one dotted and one not -> the glob matched 1.
+_synbad="plugins/ravenclaude-core/scripts/zz_syntax_canary.sh"
+# ⛔ THE CANARY MUST BE A PARSE ERROR, NOT A RUNTIME ONE. The first version
+# planted `if [ "x" = "x" ; then :; fi` — a missing `]`. But `[` is a COMMAND,
+# so a missing `]` fails at RUN time while `bash -n` only PARSES, and returns 0.
+# The gate therefore planted a defect its own probe could not detect, and the
+# must_fail half reported rc=0 forever — a teeth half with no teeth, on a branch
+# whose review was about exactly that class.
+# control: `bash -n` on the old canary -> 0; on this unterminated `if` -> 2.
+printf '#!/usr/bin/env bash\nif [ "x" = "x" ]; then :;\n' > "$_synbad"
+rc=0
+for _f in plugins/*/scripts/*.sh; do
+  [ -e "$_f" ] || continue
+  bash -n "$_f" 2>/dev/null || rc=$?
+done
+rm -f "$_synbad"
+gate "plugin scripts/ syntax teeth: a planted break in that glob is caught" must_fail "$rc"
+
 echo "── Gate 251: foreground long-suite guard — the 600s ceiling is a MECHANISM now ──"
 # ⛔ WHY A GATE AND NOT A NOTE. The Bash tool clamps `timeout` at 600000ms and this
 # very suite outgrew it, so a FOREGROUND full-suite run wedges the session for ten

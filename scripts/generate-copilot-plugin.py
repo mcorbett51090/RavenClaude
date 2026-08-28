@@ -59,6 +59,12 @@ GROUNDING_SECTION_HEADER = "## Accuracy discipline (cross-tool pointer)"
 # the same class of gap as one making unverified claims — invisible until the
 # next tool cannot find the work.
 STORAGE_SECTION_HEADER = "## Where work files go — the cross-CLI storage contract (READ THIS BEFORE WRITING ANY FILE)"
+# verify-before-assert Phase 8 — the portable text floor. Copilot CHAT's hooks are
+# `supported: false`, so on that surface this projection is the ONLY form the cause
+# discipline takes: there is no event to gate, and the section says so rather than
+# implying enforcement it does not have. Same class of gap as the two above —
+# invisible until a confident wrong cause has already been acted on.
+CAUSE_FLOOR_SECTION_HEADER = "## Naming a cause (the portable floor)"
 
 # "Launch the dashboard" directive appended to copilot/AGENTS.md. The `/dashboard`
 # slash command is Claude-Code-only and does not exist in Copilot CLI, so without
@@ -675,6 +681,9 @@ def build_agents_md() -> str:
     # The storage contract travels too — a Copilot session that writes its work
     # where no other CLI looks has produced nothing the next tool can use.
     section = section.rstrip() + "\n\n" + extract_section(root_agents, STORAGE_SECTION_HEADER)
+    section = section.rstrip() + "\n\n" + extract_section(
+        root_agents, CAUSE_FLOOR_SECTION_HEADER
+    )
     banner = (
         "# ravenclaude-core — Copilot grounding instructions\n"
         "\n"
