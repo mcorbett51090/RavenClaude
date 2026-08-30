@@ -54,6 +54,16 @@
         ]
       },
       {
+        "matcher": "mcp__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/sanitize-mcp-output.sh",
+            "comment": "Q1/L4 leftover of analog-repos-gap-fill (docs/follow-ups/2026-08-14-analog-repos-leftovers.md): the same deterministic quarantine as sanitize-webfetch-output.sh (F1, #928), extended from WebFetch-only to any mcp__* tool call, closing the accepted-limit that hook's own comment names. Reuses sanitize-webfetch-body.py unchanged. Fail-open: parse/IO/sanitizer errors exit 0 and leave the original result in place. House Rule 3: this rewrites every MCP tool result a consumer's agent sees on every host that projects MCP tool calls through this matcher; fail-open is the default-break mitigator, matching F1's own precedent."
+          }
+        ]
+      },
+      {
         "matcher": "Bash|WebFetch",
         "hooks": [
           {

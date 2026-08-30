@@ -4942,6 +4942,19 @@ gate "sanitize-webfetch-body (no injection markers survive in sanitized output)"
 rc=0; grep -q "IBCS SUCCESS rules" "$POISONED_OUT" || rc=$?
 gate "sanitize-webfetch-body (canonical content preserved across strips)" must_pass "$rc"
 
+# Q1 / L4 (analog-repos-gap-fill leftover, docs/follow-ups/2026-08-14-analog-repos-leftovers.md):
+# the same quarantine extended to mcp__* tool output. sanitize-mcp-output.py's
+# own --self-test exercises the full PostToolUse envelope (MCP content-array
+# shape, additionalContext tool-name attribution, and the mcp__ prefix boundary
+# — a substring match must NOT trigger), not just the shared body sanitizer
+# CLI above. Depends on F1 (this same file) already shipped; matcher stays
+# disjoint from WebFetch (F1's own accepted-limit) by construction.
+MCP_SELFTEST_OUT="$TMP/sanitize-mcp-selftest.txt"
+rc=0; python3 plugins/ravenclaude-core/hooks/sanitize-mcp-output.py --self-test > "$MCP_SELFTEST_OUT" 2>&1 || rc=$?
+gate "sanitize-mcp-output --self-test (all envelope + boundary checks OK)" must_pass "$rc"
+rc=0; grep -q "^FAIL" "$MCP_SELFTEST_OUT" && rc=1 || rc=0
+gate "sanitize-mcp-output --self-test (zero FAIL lines)" must_pass "$rc"
+
 echo "── Gate 54: R-PRIV run-context bundler allowlist (never-capture) ─────────"
 # The run-context bundler (scripts/capture-run-context.py) attaches a minimal,
 # safe bundle to a /wrap scenario. Scenario files SHIP to every installer, so an

@@ -2,6 +2,18 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.308.0 — 2026-08-30
+
+### Added
+
+- **MCP result quarantine (`sanitize-mcp-output.sh`/`.py`)** — extends F1's WebFetch
+  injection-quarantine ([#928](https://github.com/mcorbett51090/RavenClaude/pull/928)) to any
+  `mcp__*` tool result, closing the accepted-limit that hook's own comment named. Same fail-open
+  contract, same underlying `sanitize()`; new envelope handling for MCP's content-array shape and a
+  prefix-boundary matcher (`mcp__` prefix, not substring). Q1/L4 of the analog-repos-gap-fill
+  leftovers, unparked on owner request. See
+  [`docs/decisions/2026-08-30-mcp-result-quarantine.md`](../../docs/decisions/2026-08-30-mcp-result-quarantine.md).
+
 ## 0.307.0 — 2026-08-28
 
 ### Fixed
