@@ -953,29 +953,15 @@ _PIPELINE_LANES = [
         "stages": [
             {
                 "id": "sanitize-webfetch-output",
-                "title": "Fetched-page cleaner",
+                "title": "Fetched-page / MCP-result cleaner",
                 "badge": "always",
-                "tip": "Strips instruction-shaped junk from a page the robot just fetched, before it reads it.",
+                "tip": "Strips instruction-shaped junk from a page or MCP tool result the robot just received, before it reads it.",
                 "detail": {
                     "steps": [
-                        "After a web fetch, strips fake system-reminder blocks from the page body.",
-                        "If the cleaner crashes, the original page is left in place (fail-open).",
-                    ],
-                    "trip": "Rewrites the fetched body the robot sees. Never blocks the fetch. A sibling stage covers MCP tool results.",
-                    "set": "Built in.",
-                },
-            },
-            {
-                "id": "sanitize-mcp-output",
-                "title": "MCP result cleaner",
-                "badge": "always",
-                "tip": "Strips instruction-shaped junk from a result an MCP tool just returned, before it reads it.",
-                "detail": {
-                    "steps": [
-                        "After any mcp__* tool call, strips fake system-reminder blocks from the result.",
+                        "After a web fetch or any mcp__* tool call, strips fake system-reminder blocks from the result.",
                         "If the cleaner crashes, the original result is left in place (fail-open).",
                     ],
-                    "trip": "Rewrites the MCP result the robot sees. Never blocks the tool call. Same quarantine as the fetched-page cleaner.",
+                    "trip": "Rewrites the fetched body or MCP result the robot sees. Never blocks the call.",
                     "set": "Built in.",
                 },
             },
@@ -1131,7 +1117,6 @@ _PIPELINE_STAGE_HOOKS = {
     "claude-orchestrator": None,  # behavioral: spawn-team reads `orchestrator:` — no hook
     "cheap-lane-delegation": None,  # behavioral: cheap-lane-delegation skill reads `cheap_lane:` — no hook
     "sanitize-webfetch-output": "sanitize-webfetch-output.sh",
-    "sanitize-mcp-output": "sanitize-mcp-output.sh",
     "format-on-write": "format-on-write.sh",
     "guard-recursive-spawn": "guard-recursive-spawn.sh",
     "triage-outcome": "triage-outcome.sh",
@@ -1161,6 +1146,10 @@ _PIPELINE_EXCLUDED_HOOKS = {
     "FOREIGN-TREE is the third clause (sibling Write / git -C); deliberately NOT a Pipeline stage card",
     "thing-denial-kb-sync.sh": "Muninn denial-KB materialiser (Stop); learns from tribunal denials, not itself a guardrail",
     "thing-denial-kb-recall.sh": "Muninn denial-KB recall (SessionStart); surfaces known denials + fixes, not a guardrail",
+    "sanitize-mcp-output.sh": "same PostToolUse quarantine as sanitize-webfetch-output.sh, extended "
+    "from WebFetch to mcp__* tool results (Q1/L4, analog-repos-gap-fill leftovers). One stage card "
+    "covers both — the 'Fetched-page / MCP-result cleaner' stage, mapped to sanitize-webfetch-output.sh "
+    "above; a second card would duplicate the same mechanism at DOM-budget cost for no reader value",
     "dashboard-autostart.sh": "opt-in convenience launcher (SessionStart) for the dashboard itself; "
     "gates nothing, denies nothing, and never inspects a tool call — its knob is `dashboard_autostart` "
     "in comfort-posture.yaml, deliberately NOT a Pipeline stage card",

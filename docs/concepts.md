@@ -2733,3 +2733,35 @@ _Last verified: 2026-08-25_
 
 
 ---
+
+### The MCP quarantine hook matches a prefix, not WebFetch's exact string · _RavenClaude-built_
+
+> sanitize-mcp-output.py extends F1's WebFetch quarantine to mcp__* tool results — but the tool-name match has to be a prefix check, and a substring match had to be deliberately excluded.
+
+## What a reader would have assumed instead
+
+Copy F1's WebFetch matcher verbatim (`tool_name == "WebFetch"`) and swap the string — an
+exact-match check would silently never fire, because MCP tool names are dynamic
+(`mcp__<server>__<verb>`), not a fixed string.
+
+## The discriminator
+
+control: `handle()` on a payload naming `not_mcp__lookalike` returns `None` (no-op) in the
+self-test — proving the prefix check correctly rejects a substring match, not just an
+exact-match miss.
+Measured 2026-08-30: the matcher is `tool_name.startswith("mcp__")`, a prefix check — and the
+self-test asserts both the negative direction (a real MCP name is quarantined) and the false-prefix
+direction (a name merely containing `mcp__` is not).
+
+## Why it matters
+
+Falsifier: the same fixture producing a sanitize envelope instead of `None`.
+
+Probe: `plugins/ravenclaude-core/hooks/sanitize-mcp-output.py` (`--self-test`)
+
+**Sources:** [Q1/L4 of the analog-repos-gap-fill leftovers, unparked on owner request](https://github.com/mcorbett51090/RavenClaude/pull/928)
+
+_Last verified: 2026-08-30_
+
+
+---
