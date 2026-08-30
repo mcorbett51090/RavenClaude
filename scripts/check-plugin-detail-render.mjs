@@ -102,7 +102,9 @@ const RC_BASELINE = {
   //        19 -> 22: premise-gate.py + classify_claim.py + check-design-schema.py
   //                  (v0.263.0, PR 3b packaging move)
   scenarios: 4,
-  hooks: 43, // 42 -> 43: guard-foreground-suite.sh WIRED on PreToolUse(Bash), merged
+  hooks: 44, // 43 -> 44: sanitize-mcp-output.sh WIRED on PostToolUse(mcp__.*) — Q1/L4,
+  //   analog-repos-gap-fill leftovers; extends the WebFetch quarantine to MCP results.
+  //        42 -> 43: guard-foreground-suite.sh WIRED on PreToolUse(Bash), merged
   //   in from origin/main — denies a foreground full-suite run that cannot finish
   //   inside the 600s Bash-tool ceiling.
   //        41 -> 42: guard-cause-closure.sh WIRED on PreToolUse(Write|Edit|
