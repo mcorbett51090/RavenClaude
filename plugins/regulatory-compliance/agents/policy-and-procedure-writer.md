@@ -125,5 +125,6 @@ See [`../../ravenclaude-core/skills/structured-output/SKILL.md`](../../ravenclau
 
 ## References
 - Constitution: [`../CLAUDE.md`](../CLAUDE.md) §3, §4, §6
-- Skill: [`../skills/regulatory-mapping/SKILL.md`](../skills/regulatory-mapping/SKILL.md)
+- Skill: [`../skills/compliance-policy-authoring/SKILL.md`](../skills/compliance-policy-authoring/SKILL.md) (primary playbook)
+- Skill: [`../skills/regulatory-mapping/SKILL.md`](../skills/regulatory-mapping/SKILL.md) (gap analysis vs new regulation)
 - Template: [`../templates/policy-template.md`](../templates/policy-template.md)

@@ -2,6 +2,12 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.12.7] — 2026-08-28
+
+### Added
+
+- **`skills/ferpa-comms-translation/SKILL.md`** — agent-consumed playbook for audience-reshape + residual screen + multilingual redesign (monthly skill-gap audit #821). Same procedure as `/translate-ferpa-safe-comms`; spawned agents now load it. Case-study quotes stay in `advocacy-program-design`. **Migration:** none.
+
 ## [0.12.6] — 2026-08-14
 
 ### Changed
