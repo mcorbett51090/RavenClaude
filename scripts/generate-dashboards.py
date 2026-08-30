@@ -961,7 +961,21 @@ _PIPELINE_LANES = [
                         "After a web fetch, strips fake system-reminder blocks from the page body.",
                         "If the cleaner crashes, the original page is left in place (fail-open).",
                     ],
-                    "trip": "Rewrites the fetched body the robot sees. Never blocks the fetch. Does not touch MCP results.",
+                    "trip": "Rewrites the fetched body the robot sees. Never blocks the fetch. A sibling stage covers MCP tool results.",
+                    "set": "Built in.",
+                },
+            },
+            {
+                "id": "sanitize-mcp-output",
+                "title": "MCP result cleaner",
+                "badge": "always",
+                "tip": "Strips instruction-shaped junk from a result an MCP tool just returned, before it reads it.",
+                "detail": {
+                    "steps": [
+                        "After any mcp__* tool call, strips fake system-reminder blocks from the result.",
+                        "If the cleaner crashes, the original result is left in place (fail-open).",
+                    ],
+                    "trip": "Rewrites the MCP result the robot sees. Never blocks the tool call. Same quarantine as the fetched-page cleaner.",
                     "set": "Built in.",
                 },
             },
@@ -1117,6 +1131,7 @@ _PIPELINE_STAGE_HOOKS = {
     "claude-orchestrator": None,  # behavioral: spawn-team reads `orchestrator:` — no hook
     "cheap-lane-delegation": None,  # behavioral: cheap-lane-delegation skill reads `cheap_lane:` — no hook
     "sanitize-webfetch-output": "sanitize-webfetch-output.sh",
+    "sanitize-mcp-output": "sanitize-mcp-output.sh",
     "format-on-write": "format-on-write.sh",
     "guard-recursive-spawn": "guard-recursive-spawn.sh",
     "triage-outcome": "triage-outcome.sh",
