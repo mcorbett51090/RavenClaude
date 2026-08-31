@@ -2,6 +2,10 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.10] — 2026-08-31
+
+Research-sweep **correction** — the Kubernetes-core capability-map row (`knowledge/cloud-native-kubernetes-decision-trees.md:100`) still said "current GA 1.36" (\"Haru\", 2026-04-22). **Kubernetes v1.37 (\"Garhwal\") reached GA on 2026-08-26** (67 enhancements, 16 Stable, Pod Certificates + Cluster Trust Bundles GA) — the prior sweep's own forward-looking "1.37 scheduled 2026-08-26" note has now resolved. Updated the row to 1.37 current / 1.36+1.35 in support, re-verified 2026-08-31 (WebSearch cross-referenced against kubernetes.io — direct WebFetch to kubernetes.io was egress-blocked this session; corroborated via multiple independent secondary sources). No other file in this plugin or a sibling plugin references the stale "1.36 current" claim (blast-radius checked).
+
 ## [0.3.8] — 2026-08-14
 
 ### Changed

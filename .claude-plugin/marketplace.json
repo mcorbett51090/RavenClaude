@@ -276,7 +276,7 @@
       "displayName": "RavenClaude Core",
       "source": "./plugins/ravenclaude-core",
       "description": "Domain-neutral Claude Code foundation: specialist agents, skills, gates, hooks, rules, templates. Capability Grounding Protocol, Structured Output Protocol, Researcher meta-skill, comfort-posture dashboard, opt-in command-review tribunal (the Thing), WebFetch sanitizer, branch-archive escape hatch, brand-extraction (homepage \u2192 brand kit), /wireframe (describe anything \u2192 validated model + high-fi Artifact + Mermaid), Problems & Resolutions view, declarative-visualization (Vega-Lite/Deneb/SVG, Gate 101 + Gate 103 svg-report-lint, viz-spec-reviewer), and Claude orchestrator escape hatch (/claude-orchestrate). Slash commands: /init-agent-ready, /wrap, /set-posture, /dashboard, /forge, /wireframe, /reset-plugin-cache, /handoff.",
-      "version": "0.307.1",
+      "version": "0.307.2",
       "author": {
         "name": "Matt Corbett"
       },
@@ -554,7 +554,7 @@
       "name": "claude-app-engineering",
       "source": "./plugins/claude-app-engineering",
       "description": "Claude app-engineering specialist team \u2014 agents (claude-solution-architect, prompt-and-context-engineer, mcp-and-server-tools-engineer, agent-sdk-engineer, eval-engineer, claude-app-ops-engineer) for building production applications on the Claude API, the Claude Agent SDK, and MCP. Covers the build-surface decision (Messages API / Agent SDK / Managed Agents), model right-sizing (Opus 4.8 / Sonnet 4.6 / Haiku 4.5, 1M context), prompt caching, tool use + structured output, MCP server authoring + Anthropic-hosted server tools (computer use, code execution, Files API, memory, advisor tool), evals (golden sets, LLM-as-judge), and FinOps + reliability (batch, model routing, backoff, observability). dated-and-cited knowledge bank, templates, an advisory hook (house opinions). Seams: prompt-as-artifact, security, and cross-domain architecture escalate to ravenclaude-core. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.9.17",
+      "version": "0.9.18",
       "author": {
         "name": "Matt Corbett"
       },
@@ -1272,7 +1272,7 @@
       "name": "cloud-native-kubernetes",
       "source": "./plugins/cloud-native-kubernetes",
       "description": "Cloud-native & Kubernetes team \u2014 agents (kubernetes-architect, container-build-engineer, k8s-platform-operator, service-mesh-networking-engineer) for running workloads on Kubernetes well: workload design (Deployment/StatefulSet/Job, probes, requests/limits, PDBs, HPA/VPA), container build hygiene (minimal non-root images, distroless, multi-stage), platform ops (namespaces, RBAC, network policies, resource quotas, admission control, upgrades), and service-mesh networking (ingress/gateway, mTLS, traffic-splitting, observability). Cloud-agnostic. skills, a decision-tree knowledge bank (workload-type + ingress trees + a dated 2026 ecosystem map), best-practices, templates, commands, an advisory hook. Seams: managed control plane (AKS/EKS/GKE) -> azure/aws/gcp-cloud, GitOps reconcile -> devops-cicd, telemetry/SLOs -> observability-sre. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.3.9",
+      "version": "0.3.10",
       "author": {
         "name": "Matt Corbett"
       },
