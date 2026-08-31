@@ -2,6 +2,18 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.10] — 2026-08-31
+
+### Changed
+
+- **Kubernetes core bumped 1.36 → 1.37 GA** (2026-08-26) in the capability map, with the three
+  upstream "ACTION REQUIRED" breaking changes a cluster owner needs before upgrading:
+  `SELinuxMount` now GA and enabled by default (can break SELinux-enabled workloads), the
+  `scheduling.k8s.io` API group dropped `v1alpha2` entirely, and kubelet's cAdvisor swap
+  rejects several long-deprecated flags. Verified against the upstream `kubernetes/kubernetes`
+  CHANGELOG; passed a usefulness panel and a detailed-review panel as part of the scheduled
+  research routine.
+
 ## [0.3.8] — 2026-08-14
 
 ### Changed
