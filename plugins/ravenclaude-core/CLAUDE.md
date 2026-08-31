@@ -1311,7 +1311,7 @@ and one honest non-lever:
    cost-cutting pass doesn't reach for them.
 
 **Latent bug fixed in passing:** the regen list told agents to run `scripts/generate-repo-guide.py` —
-**deleted in v0.124.0** along with `repo-guide.html` (Gate 11 retired; see `scripts/audit-gates.sh:761`),
+**deleted in v0.124.0** along with `repo-guide.html` (Gate 11 retired; see `scripts/audit-gates.sh:1128`),
 so the instruction had been dead for months — and it omitted the live `generate-index-dashboard.py`
 freshness gate. Corrected against the actual harness, with a staleness note pointing at
 `audit-gates.sh` as the source of truth.
