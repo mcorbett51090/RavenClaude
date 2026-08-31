@@ -2,6 +2,21 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.3.16] — 2026-08-31
+
+Scheduled news-sweep **refresh** — folded into `knowledge/cross-tool-model-lineup-2026.md`.
+**Codex GPT-5.4 / GPT-5.4-mini retirement:** OpenAI retires both from **Codex on 2026-08-31 for
+ChatGPT-account sessions only**; they remain available on the **direct OpenAI API and Codex
+API-key sessions** (unaffected). Migration for ChatGPT-auth Codex use: `gpt-5.4→gpt-5.6-terra`,
+`gpt-5.4-mini→gpt-5.6-luna`. The Codex table row moved from "Current, not deprecated" to a
+surface+auth-scoped retirement warning (not full strikethrough — the model is still callable on
+two surfaces), correcting the 2026-08-14 sweep's "OpenAI/Codex rows unchanged" note. Copilot-surface
+GPT-5.4 mentions left unchanged (different surface). Mermaid trees + closed-world list unchanged.
+Primary: @OpenAIDevs + openai/codex Discussion #17038. **Deferred:** a secondary-only 2026-07-30
+GPT-5.6 Luna −80% / Terra −20% price cut (no verified absolute numbers — both panels: DEFER).
+Reviewed by two expert panels (usefulness 3/3 useful; detailed review 3/3 ship). **Migration:**
+none — knowledge-file content only.
+
 ## [0.3.15] — 2026-08-14
 
 Substrate-tier refresh — Grok Build CLI default is **Grok 4.6**; **Grok 4.5** remains the selectable balanced rung. Adapter `fast`/`balanced` share `grok-4.5` and diverge on `effort` + `perspective` (CLI probe: `grok-build-0.1` / `grok-4.3` are unknown model ids). Codex live three-rung is GPT-5.6 Luna / Terra / Sol (pro = `reasoning.mode`, not a `*-pro` slug). Copilot Claude `top` = Opus 5. Decision-tree leaves retargeted. `[verify-at-use]`.
