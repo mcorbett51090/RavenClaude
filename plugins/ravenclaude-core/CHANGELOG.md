@@ -2,6 +2,765 @@
 
 All notable changes to the `ravenclaude-core` plugin. Versioning is semver; the `version` field in `.claude-plugin/plugin.json` (mirrored in the marketplace catalog) is the authoritative source of truth, and this file tracks the user-visible arc. Larger architectural narratives live in [`CLAUDE.md`](CLAUDE.md) milestones; this file is the scannable per-version log.
 
+## 0.307.0 — 2026-08-28
+
+### Fixed
+
+- **Stale Claude Code platform facts (draft #987, recut).** `main` still taught
+  "nested sub-agents up to 5 levels deep (v2.1.172)" after the changelog
+  superseded it. Recut from current main (do **not** merge #987 as-is — that
+  commit rewinds the plugin to 0.283.0). Facts, re-checked against the changelog
+  through 2.1.250 (2026-08-28):
+  - Nesting default is **depth 3** (`CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH`;
+    v2.1.217 disabled-by-default, v2.1.219 set 3). House single-orchestrator
+    policy is unchanged.
+  - Native concurrent cap **20** (`CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS`,
+    v2.1.217). The 200 per-session cap was **removed** in v2.1.224.
+  - `/reload-plugins` is often unnecessary since v2.1.221.
+  - Marketplace `archive` (v2.1.224) and `command` (v2.1.229) source types.
+
+## 0.306.1 — 2026-08-28
+
+### Fixed
+
+- **`session-handoff` vs `cheap-lane-delegation` are two products, not one
+  "give this to Grok".** Skill descriptions now route the fork (bounded job
+  that returns vs new unbounded TUI). `handoff-spawn.sh` prints a `PRODUCT`
+  line before launch; when `cheap_lane` is `advise`/`agent` it also names the
+  spawn as a host-switch. Measured 2026-08-28: "pass remaining work to grok"
+  from a quota-limited Claude session spawned an interactive grok-4.6 TUI via
+  `/handoff` and never called `cheap-lane-delegate.sh`. Gate 213 asserts the
+  product line and the cheap_lane clause.
+
+## 0.306.0 — 2026-08-28
+
+### Added
+
+- **Cause-taxonomy phases 1–11 + P1-3 must-fail teeth.** The verify-before-assert
+  surface: SSOT cause grammar, post-failure triage, remediation-cause and
+  cause-closure guards (shipping at `warn`), a portable cause floor, outcome-eval
+  that the ship gate is satisfiable, and anti-rot parity/fired-count checks.
+  Gates 245–250 plus Gate 252 (pre-flight command review — WARN-only, one
+  measured rule). Pre-flight was Gate 244 on this branch; #1023 had already
+  shipped stall-watchdog as Gate 244, so the merge yields the number rather
+  than colliding. P1-3 closed: the remaining three `--must-fail` halves now
+  call `check()`, so blinding `check()` turns them red.
+
+### Migration
+
+None — additive gates and warn-level hooks. Nothing in an installed plugin
+behaves differently on `/plugin marketplace update`.
+
+## 0.305.3 — 2026-08-28
+
+### Fixed
+
+- **SessionStart hooks that had no `timeout` now cap at 10s.** `reapply-posture.sh`,
+  `ensure-default-mode.sh`, and `worktree-guard.sh register` were the remaining
+  SessionStart entries without a host timeout. Claude Code's SessionStart contract
+  is still additive (it cannot deny a session), but an unbounded hook subprocess
+  can still sit on stdin. This is defense-in-depth for a fresh-session TUI that
+  never reaches `/usage`; the load-bearing hang observed 2026-08-27 was MCP
+  needs-auth (Figma/Vercel/fal), not these hooks. Dev-mirror in `.claude/settings.json`
+  matches.
+
+## 0.303.0 — 2026-08-26
+
+### Added
+
+- **The cheap lane — `skills/cheap-lane-delegation`, `scripts/route-task.py`,
+  `scripts/grok-delegate.sh` — route everyday work to Grok, escalate the hard
+  work to Claude.** Measured (14-day, main-loop output): 41.2M tokens, 83.2%
+  top-tier model, essentially none of it on a cheap model, and none of it
+  sub-agent spend — `agent-dispatch-evaluator` tunes sub-agent tier and cannot
+  touch this. The fix is upstream of tier selection: decide whether a task needs
+  the main Claude session's reasoning loop at all.
+
+  `route-task.py` is a deterministic text classifier, no model call, self-tested
+  (`--self-test`, 17 cases + 2 teeth checks: one proves the router is not a
+  constant `claude`, one proves an escalation rule dominates a co-occurring cheap
+  rule rather than the reverse). **The default is `claude`, deliberately
+  asymmetric** — an unmatched, ambiguous, or both-lanes task all resolve to
+  `claude`; a task wrongly sent to Grok can produce a confidently wrong
+  multi-file change that costs more to unwind than it saved, a task wrongly kept
+  on Claude only costs money.
+
+  `grok-delegate.sh` is the transport, mirroring `claude-orchestrate.sh`'s
+  hardening pointed the other way: a recursion guard (nested delegation, or
+  called from inside a tribunal seat), a pre-egress secret scrub (refuses
+  before anything leaves the machine, never after), and a bounded timeout with
+  fall-back-to-local on any non-zero exit.
+
+  ⛔ **Containment is two independent layers, verified with a positive control
+  after an initial false conclusion.** The first version of this file claimed
+  Grok's `--sandbox` flags do not contain, based on a probe run *inside* one of
+  `--sandbox read-only`'s own always-writable temp paths — a write there is not
+  a containment failure. Re-tested outside every allowlisted path: the kernel
+  (Seatbelt on macOS) genuinely refused the write and logged it to
+  `~/.grok/sandbox-events.jsonl`. Fixed same-session — `--sandbox <profile>` is
+  the real, kernel-enforced boundary (`advise`→`read-only`, `agent`→`workspace`);
+  the disposable worktree/scratch-dir is what Grok can reach in the first place
+  and, for `agent` mode, the reviewable diff before merge. Neither layer
+  replaces the other.
+
+  **Off by default**, matching `design_checkins` / `decision_review` /
+  `parallelism` / `orchestrator`: `cheap_lane: { mode: off | advise | agent,
+  tier: fast | balanced }` in `.ravenclaude/comfort-posture.yaml`. `off` is
+  inert — nothing runs until a consumer opts in. Full contract:
+  [`skills/cheap-lane-delegation/SKILL.md`](skills/cheap-lane-delegation/SKILL.md);
+  the composition with `spawn-team` and `agent-dispatch-evaluator`, and why
+  this milestone does **not** flip the evaluator's own gated `binding`-mode
+  default, in [`CLAUDE.md`](CLAUDE.md) § "The cheap lane".
+
+  **Migration:** none — `cheap_lane` defaults to `off`; nothing in an installed
+  plugin changes on `/plugin marketplace update` until a consumer sets the
+  knob. Skill count 55 → 56; script-tool count 32 → 33 (`route-task.py`;
+  `grok-delegate.sh` is bash and is not counted by `_scan_scripts`'s `*.py`
+  glob).
+
+### Fixed
+
+- **`scripts/inventory-nuance-judge.py` re-ran the full 24-item golden-set
+  calibration on every invocation, and it is invoked independently by at least
+  two callers in one `audit-gates.sh` run.** Measured: gate 238 (inventory
+  sweep) 540.1s, gate 241 (nuance floor) 146.1s. Now content-hash + a
+  short, disclosed TTL (default 1h — `--cache-ttl-hours` / `INVENTORY_JUDGE_CACHE_TTL_HOURS`,
+  `--no-cache` / `INVENTORY_JUDGE_CACHE=off` restores the exact prior behavior).
+  The report line reads `cached, verified <age> ago`, never blended into
+  "verified now" — the file's own strongest stated invariant ("calibration
+  must hold IN THE SAME RUN") is honored by disclosure and a short window,
+  not silently reinterpreted. Per-entry verdicts cache without a TTL (the key
+  IS the judged text, so a hit means the question is byte-identical) but are
+  only ever read when calibration is CURRENTLY valid.
+
+  Verified with a new `--self-test` (12 assertions, 5 of them mutation-style
+  teeth) rather than a live model call: a live nested `claude -p` from inside
+  this repo's own working directory was found to hang intermittently during
+  this work (up to 60s+, no answer — isolated with a positive control to a
+  directory with no `.claude/settings.local.json`, which answers in ~6s every
+  time). That is a separate, unfixed finding, not something this caching fix
+  addresses or depends on.
+
+  **Migration:** none — cache lives at `.ravenclaude/cache/` (gitignored),
+  read/write is fail-safe on every error path, and `--must-fail`/
+  `--must-fail-convention`'s existing structural teeth are unchanged.
+
+## 0.302.0 — 2026-08-26
+
+### Added
+
+- **`hooks/guard-foreground-suite.sh` — a PreToolUse(Bash) guard that denies a FOREGROUND
+  invocation of a suite that provably cannot finish inside the Bash tool's hard ceiling.**
+
+  The Bash tool clamps `timeout` at **600000 ms**, and `scripts/audit-gates.sh` (917 gates)
+  outgrew it. A foreground full-suite run is therefore **structurally guaranteed** to wedge the
+  session for the full ten minutes and then be auto-backgrounded anyway — the operator sees a
+  stall, and the run they were waiting on was never going to return in-band.
+
+  **control (session `94d2ba9f`, 2026-08-25):** foreground call at `02:21:45Z`, result at
+  `02:31:49Z` — *"Command did not complete within its 600s timeout and was moved to the
+  background (ID: bg7y7j7s7)."*
+
+  ⛔ **Raising the timeout is a non-fix, and it fails silently.** The same session tried
+  `timeout: 900000` at `07:17:42Z` and received the byte-identical *"within its 600s timeout"*
+  message at `07:27:45Z`. 900000 is clamped to 600000 with no warning, so the guard now calls
+  that out explicitly in its denial rather than letting the next person rediscover it.
+
+  ⛔ **Why a hook and not a note.** This fired 3+ times in one week, and the third time it fired
+  at a session that had **already adopted `run_in_background: true`** — five clean runs that
+  morning — and regressed off it hours later. A written note demonstrably did not hold. This is
+  the control that does.
+
+  **Three escapes, all allowed:** `run_in_background: true` (the right answer for a full suite),
+  `--check N` (one gate, seconds), and a literal `RC_SUITE_FOREGROUND_ACK=1` prefix. The ACK is
+  read out of the **command text**, not the environment — an env var cannot reach a PreToolUse
+  hook from inside the command it gates, so spelling it as a prefix is what makes it reachable.
+
+  ⛔ **Matching is INVOCATION-only, never substring.** The command is split into segments and
+  each segment's **first word** is checked, so `grep`, `sed`, `git show` and `wc` that merely
+  **name** the suite still run. A guard that cannot tell a command from a description of one
+  blocks its own repair — this repo has already paid for that twice.
+
+  **Posture: fails OPEN.** An unreadable payload, absent `jq`, or absent `python3` all ALLOW and
+  emit a `warn` event. This is an ergonomic guard, not a trust boundary; denying a tool call
+  because a convenience hook could not read its own input would be a worse failure than the ten
+  minutes it prevents. (Contrast `worktree-guard.sh`, which gates a trust boundary and fails
+  closed.) It reads its own payload with `_rc_timeout`+`cat`, never `read -t` — the latter
+  deadlines a *complete line* and bash reads a pipe one byte per `read(2)`, which turns the
+  deadline into a payload-size cap.
+
+  **Pinned by Gate 251** (`hooks/tests/test-guard-foreground-suite.sh`, 23 assertions), registered
+  in the `--check` dispatcher, the main sequence, and the `Supported:` string. The load-bearing
+  half is the **must-fail** one: it neuters the matcher and asserts the deny disappears, and it
+  carries its **own vacuity control** — if the mutation fails to apply, the half fails rather
+  than reporting green against a byte-identical copy.
+
+  **Migration:** none required. If you genuinely want to spend the ten minutes, prefix the
+  command with `RC_SUITE_FOREGROUND_ACK=1`. Extend coverage to another long suite via
+  `RC_FOREGROUND_SUITES` (space-separated basenames; default `audit-gates.sh`).
+
+## 0.301.0 — 2026-08-25
+
+### Added
+
+- **Stall watchdog** — an out-of-session detector for wedged Claude Code sessions
+  (`scripts/stall_watch.py` + `scripts/stall_reach.py` + `scripts/install_stall_watch.py`),
+  installed as a macOS LaunchAgent on a 300s interval. Verified end-to-end under launchd against a
+  real 174-minute stall: detected, `0600` secret read from the launchd context, sink returned
+  **HTTP 200**, escalation rung advanced only after the receipt.
+
+  **Why this cannot be a hook, measured:** all 39 registered hooks fire on a turn or tool boundary
+  (SessionStart 9, PreToolUse 12, PostToolUse 10, UserPromptSubmit 2, SubagentStart 1, Stop 5). A
+  stall is *defined* by the absence of a turn boundary. `handoff-nudge.sh` — the guard built for a
+  hot window — is a **Stop** hook: if the turn never stops it never runs. Detection must come from
+  outside the process.
+
+  **The observable is last-ASSISTANT-record age.** Every alternative failed toward "looks alive",
+  which is the dangerous direction: last-entry-of-any-type **masked the real stall by 44.3 min**
+  (the owner's own queued prompts plus a product-generated `system/away_summary` reset the clock —
+  the stalled session's last six timestamped records contain *zero* assistant records); file mtime
+  diverges up to 100 min the same way, and 99.03% of transcripts end in an untimestamped record;
+  registry `statusUpdatedAt` is a genuine but coarse progress signal (~17-min bump cadence, measured
+  over 35 samples — **not** the "transition latch" an earlier analysis claimed) and is simply
+  superseded, since the assistant-record distribution has p99.9 = 4.52 min.
+
+  **The registry (`~/.claude/sessions/<pid>.json`) is used for liveness and idle-exclusion only.**
+  It does *not* close the killed-session class structurally: `SIGKILL` **orphans** the `.json`/`.key`/
+  `.sock` (measured, with a clean-exit positive control that *did* remove them), so dedup state is
+  retained rather than demoted.
+
+  Security invariants: the webhook URL never enters `argv` (`curl --config` over a `0600` file —
+  `ps -Ao args` would otherwise expose it 288×/day, and a real bootstrapped LaunchAgent sees only 12
+  env vars with `RAVENCLAUDE_NOTIFY_WEBHOOK` **absent**); no untrusted text is ever interpolated into
+  `osascript` (a cloned repo names its own directory); payloads carry a salted-hash project key and
+  validated integers only. `scripts/notify.sh` is deliberately **not** reused — its
+  `curl … >/dev/null 2>&1 || true` discards the HTTP status that is the entire justification for the
+  channel. A 2xx means "accepted by the sink", never "a human saw it"; a zero-subscriber topic
+  returns 200, and that limit is carried as an explicit accepted-risk waiver.
+
+- **Gate 244** (`hooks/tests/test-stall-watch.py`) — one gate slot, five check groups, each with a
+  must-fail half **proven to flip**: the RT-2 mutant drops a naive detector to 1.0 min (a miss) while
+  the whitelist detector still reads 141.0 min; widening the whitelist moves the answer 141.0 → 96.7;
+  the `time.mktime` variant differs by the zone offset, so the UTC bug is detectable here. Registered
+  in `scripts/audit-gates.sh` in **both** the `--check` dispatcher and the main sequence, and verified
+  to *bite* (mutating the observable turns it red) — a gate no workflow invokes and a gate that cannot
+  fail are both this repo's documented silent-green classes.
+
+- **Frozen fixtures** (`tests/fixtures/stall-watchdog/`) — derived skeletons of one positive and three
+  negative sessions, **timestamps and record types only, no message content**: raw transcripts carry
+  credentials, tool output and fetched web bodies and must never be committed. 14.7 MB → 606 KB, and
+  the skeletons reproduce the ground truth including the 44.3-min masking effect.
+
+## 0.299.1 — 2026-08-25
+
+### Fixed
+
+- **`worktree-guard.sh` no longer hangs forever on an inherited pipe.** The hook read its stdin
+  payload with a bare `cat`, gated on `[ ! -t 0 ]`. That test cannot distinguish *"a payload is on
+  its way"* from *"fd 0 is an open pipe nobody will ever write to"* — both are simply not-a-tty — so
+  the gate was satisfied in precisely the case that blocks, and the read never returned. Every caller
+  downstream stalled with it, `audit-gates.sh` Gate 140 included, which invokes this hook and
+  inherits whatever stdin the harness was launched with.
+
+  Measured under a FIFO with a held-open writer: `status --json` and `check` both hung until killed
+  at 6s, while a control script that reads no stdin exited in 1s under the identical descriptor — the
+  differential is the read, not the environment.
+
+  The read is bounded with **`_rc_timeout` + `cat`** (`_portable.sh`'s existing `timeout → gtimeout →
+  perl alarm` ladder, already sourced by this hook), so the ceiling applies to the **writer** —
+  `RC_GUARD_STDIN_TIMEOUT`, default 10s, arithmetically clamped, `0` restores the old blocking read.
+
+  ⛔ **`read -t` was the wrong instrument, and that took two attempts to see.** It deadlines a
+  **complete line**, and bash reads a pipe one byte per `read(2)`. A Claude Code payload is
+  single-line JSON, so the deadline ends up racing bash's byte loop instead of the writer, and payload
+  **size** consumes the budget meant for writer latency. A `Write` of this repo's own `dashboard.html`
+  JSON-encodes to **~11 MB on one line** (escaping turns all ~17k newlines into `\n`). Measured
+  through a real pipe on bash 3.2.57: `read -t 10` took **4.6s idle** and lost the **entire payload at
+  10.04s under a load of ~4 on 10 cores**, while `_rc_timeout 10 cat` did the same bytes in **0.3s**
+  either way. Any deadline on `read` is a bet against payload size × machine load. It also bounds the
+  **whole** read — `read` plus an unbounded `cat` drain still hung once one line had arrived (measured
+  past 14s), so only the zero-byte case had actually been fixed. And it sidesteps a platform split
+  this host cannot test: bash 3.2 discards partial input on timeout (measured — the variable is left
+  untouched) while bash ≥4 documents retaining it, which on a Linux runner would hand the parser a
+  **truncated** payload. There is no partial-line branch any more, so neither behaviour is reachable.
+
+  ⛔ **An unreadable payload now fails CLOSED on `check`.** A payload with no `tool_name` sends every
+  classifier to its `*)` default — "not mutating / no deny / no enforcement" — so the default-block
+  FOREIGN-TREE deny and the session lease both silently disarm. The boundary is deliberate: a
+  zero-byte **clean EOF** is the documented no-payload contract (a bare CLI or test invocation) and
+  still allows; what denies is a **timeout** or an **unparseable** payload, the shapes a stalled or
+  truncating writer produces. `register` is exempt by contract and `status` no longer reads stdin at
+  all — it carries no payload and was paying the full deadline ~15× per Gate 140 run.
+
+  ⛔ **The knob is clamped arithmetically, not by character class.** `00` and
+  `99999999999999999999` are all-digits, so a `*[!0-9]*` filter passed them and the timeout tool then
+  rejected them as an argument error — an empty payload in 0s, i.e. the guard disarmed by the most
+  natural attempt to configure it. Out-of-range falls back to the **default**, never the ceiling:
+  clamping `2000` to 3600 would hand an operator who assumed milliseconds a 33-minute deadline.
+
+  Pinned by **T18** in `test-worktree-guard-core.sh` (Gate 140), in seven halves — (a) the hook exits
+  under a held-open FIFO; (b) a must-fail half restores the bare `cat` and asserts it *still* hangs,
+  so (a) measures the read and not the fixture; (c) payload fidelity, labelled as a **fidelity**
+  detector rather than a bound detector because the pre-fix hook passes it too; (d) a truncated
+  payload fails closed while clean-EOF-empty and a readable payload still allow; (e) a 3s-late writer
+  is served by the shipped deadline **and starved by a 1s one**, so the margin is tested rather than
+  asserted; (f) eight malformed/extreme knob values all still read the payload; (g) a 3 MB
+  single-line payload is read whole. `audit-gates.sh` also redirects Gate 140's three invocation
+  sites from `/dev/null` — the suites drive a stdin-reading hook, and a bound is a ceiling, not a
+  reason to hand a suite an open pipe.
+
+  ⛔ **Not fixed here, and the count is reported with its command because three regexes gave three
+  answers.** Of the **169** plugin hook scripts (`find plugins -path '*/hooks/*.sh' -not -path
+  '*/tests/*'`), **145** slurp stdin with a bare `cat` and **134** of those gate on `-t 0`
+  (`grep -lE '\$\(cat( 2>/dev/null)?( \|\| (true|printf|:))?\)'`, 2026-08-25). Two independent
+  recounts produced 143/138 and 148/137 on different patterns — so treat any single number as a
+  function of its regex, not a fact.
+
+  What all three agree on, and the worse class: **11 hooks read stdin with an unconditional bare
+  `cat` and no tty test at all** — `agent-dispatch-evaluator.sh`, `codex-hook-env.sh`,
+  `cursor-hook-adapter.sh`, `enforce-portability.sh`, `ensure-default-mode.sh`,
+  `gemini-hook-adapter.sh`, `guard-premise.sh`, `log-probe.sh`, `route-decision-review.sh`,
+  `stream-session-close.sh`, and `power-platform/hooks/nudge-dataverse-preflight.sh`. All of these are
+  invoked by Claude Code, which writes the payload and closes the descriptor, so none is *known* to
+  hang in practice — but the shape is the one just fixed, and this fix is not applied to them. Out of
+  scope for this patch; recorded so the survey is not mistaken for a clean bill of health.
+
+## 0.299.0 — 2026-08-25
+
+### Added
+
+- **The org-skill studio** (`skills/authoring-org-skills/`) — lint, pack and verify a claude.ai
+  Organization Skill. 41 rules across a fail/warn split, hard refusals `R1`–`R4` with no override, a
+  `pack`/`verify` separation that shares data and never code, and tiers that are **derived from a
+  recorded evidence file** rather than hand-set, so a constraint the vendor contradicts itself on
+  ships as WARN instead of a guess. (Backfilled entry — the 0.299.0 bump landed in #1021 without one.)
+
+## 0.298.0 — 2026-08-24
+
+### Changed
+
+- **Re-verified and re-stamped the seven `platform-fact` "Foundations" concepts** — `agent-harness-loop`,
+  `tool-use`, `context-window`, `subagents`, `mcp`, `model-selection`, `source-control-basics` — refreshing
+  each `last_verified` from 2026-06-05/04 → 2026-08-24. All seven were re-read and confirmed current
+  against how agentic AI works today; several were empirically re-confirmed this session (the agent loop,
+  tool-gating, compaction, the Explore subagent dispatch, MCP servers connecting).
+
+  This **honors the concept-inventory design** (`docs/plans/2026-08-19-product-inventory/plan.md` §5.3):
+  `platform-fact` entries carry a **90-day BLOCKING** calendar gate on PRs — deliberately stricter than
+  the 180-day warn-on-PR inventory corpus — because the ~17-entry population is small enough to service by
+  re-verification rather than by relaxing the gate. The seven were ~80 days old and would have crossed 90
+  within ~10 days, taking every subsequent PR's `scripts/concepts.py --check` down with them in a wave.
+  This is the scheduled service, done early — **the gate logic is unchanged**. Regenerated `concepts.json`
+  + `dashboard.html` + `index.html` (they render the `verified <date>` span); `concepts.py --check` passes
+  with 0 calendar warnings.
+
+  **Migration:** none — knowledge-freshness metadata only; nothing in an installed plugin behaves
+  differently on `/plugin marketplace update`.
+
+## 0.297.0 — 2026-08-24
+
+### Fixed
+
+- **`context_handoff` was the last comfort-posture block the dashboard serializer did not
+  model, so a "Save & apply" silently deleted it** (the v0.61.0 data-loss class that already
+  ate `runaway` / `decision_review` / `definition_of_done` and `stream_classify`). `emitYaml()`
+  rebuilds the whole `.ravenclaude/comfort-posture.yaml` from `state`, and `context_handoff`
+  had no `state` slot, no hydrate parse, and no emit line — so the successor-spawn recipe
+  (`spawn:`) and Stop-nudge mode (`mode:`) read by `handoff-nudge.sh` / `handoff-spawn.sh` /
+  `context-usage-meter.py` vanished on the next Save.
+
+  It is now round-tripped exactly like `worktree_bound` — modelled in the schema + `state` +
+  `emitYaml` + `applyGuardrailConfig`, emitted only when non-default, with **no editable DOM
+  control** (so no Gate 132 ratchet raise). `spawn` validates against the union of both readers'
+  enums (`copy-paste-only` | `same-host` | `os-terminal`) so a Save preserves whatever the owner
+  set rather than canonicalizing. **Gate 35** gained emit + hydrate coverage, a spawn-only
+  round-trip test (the live-posture shape), and a must-fail mutant that strips the
+  `context_handoff:` emit.
+
+  **Migration:** none — `context_handoff` defaults absent (⇒ no handoff behavior), so an
+  untouched posture is byte-identical on `/plugin marketplace update`; the only change is that a
+  dashboard Save now preserves the block instead of dropping it.
+
+## 0.280.0 — 2026-08-18
+
+### Fixed
+
+- **`git push` delete-detection matched tokens belonging to other commands.**
+  `_is_dangerous_git_push_delete` ran its flag regexes over the **whole command
+  string** as soon as any `git push` appeared in it, so a short delete flag on an
+  unrelated command in the same line was read as `git push --delete` and the push was
+  blocked.
+
+  control (2026-08-18): an ordinary `git push -u origin <branch>`, followed in the same
+  line by a `tr` carrying a short delete flag, was **DENIED** as
+  `git-push-remote-branch-delete`. Nothing was being deleted. Removing the `tr` from
+  that same line allowed it — so the trigger was the unrelated token, not the push.
+  Observed live: it blocked a real push during this session's work.
+
+  The predicate's own comment said *"-d is the ONLY push short flag containing a
+  lowercase d"*. That is true of `git push` and irrelevant — the regex was never
+  looking only at `git push`. The flag and refspec searches are now scoped to the
+  `git push` **segment**.
+
+  ⛔ **Third instance of one defect class**, after `srm.force-push` (v0.242.0) and
+  `sce.curl-pipe-shell` (v0.244.0): a rule that matches on a token, applied to a string
+  wider than the command that token belongs to. The repo's own record says *"when you
+  fix a pattern, enumerate every instance of that pattern before you close it"* — this
+  one was missed both times, because **nothing exercised the predicate**.
+
+  ⛔ **The remedy is not portable across the siblings.** Splitting on the shell
+  separators is correct *here*, because a push flag never crosses one.
+  `curl-pipe-shell` deliberately must **not** exclude the pipe — a fetch piped into an
+  interpreter is precisely what it hunts. Same class, opposite correct fix.
+
+### Gates
+
+- **Gate 231** — 12 assertions over the extracted predicate. Every allow case is paired
+  with a deny case, including a deletion in a **later** segment, so a "fix" that only
+  inspected the first segment cannot pass. The false-negative half is the load-bearing
+  one: a predicate that never fires would satisfy every "did it stop crying wolf?"
+  assertion. The must-fail half restores the whole-string match and the two
+  false-positive rows go red. The gate refuses rather than passing green if the
+  extraction anchor moves.
+
+### Migration
+
+None in the permissive direction. Every genuine deletion still denies — `--delete`, a
+bare or bundled short flag, and the empty-source colon refspec — including when it
+appears in a later segment of a compound command. What stops being denied is an
+ordinary push that merely shares a command line with some other tool's delete flag.
+
+## 0.279.0 — 2026-08-18
+
+### Fixed
+
+- **The session handoff wrote a command that launches a different agent.** Both seed writers defaulted to the grok launch command and overrode it only for hosts they recognised **by name**, so every host they did not recognise inherited it — silently, onto disk, at `.ravenclaude/runs/<id>/handoff-seed.txt`, where the next person pastes it without a second thought.
+
+  - `scripts/context-handoff.py` — `seed_text()`'s fall-through **default** was the grok seed, so `claude-code`, `codex`, `unknown` and `""` all received it. `detect_host()` had resolved `claude-code` correctly all along; only the seed selector lacked the branch, and its default was the most host-specific option rather than the most neutral.
+  - `scripts/handoff-spawn.sh` — `seed=grok "…"` was assigned ~90 lines **before** the host was resolved, and only `chat` / `cli` / (`unknown` + `TERM_PROGRAM=vscode`) overrode it. Its refusal guard was scoped to `chat|cli`, so it could not see the case it most needed to catch: an unrecognised host inheriting the default.
+
+  Measured 2026-08-18 against the shipped 0.271.4 copy: `--host claude-code` in a plain terminal emitted `grok "…"`, while the **same** invocation under `TERM_PROGRAM=vscode` emitted a safe comment. ⛔ That asymmetry is why the defect reads as absent if you sample only a VS Code session — and it is why Gate 230 drives `env -i` rather than inheriting the runner's environment.
+
+  The live path was worse than the printed one: `handoff-spawn.sh`'s launch-successor writer ended in `exec $seed`, so an unrecognised host got a script that **launches** the wrong agent, not merely a suggestion to. That branch now writes an `exit 0` launcher — no proven recipe means launch nothing, because a successor a human starts beats one the script guesses at.
+
+  Both writers are now host-keyed: `grok` keeps the grok seed, `chat`/`cli` keep theirs, `claude-code` gets `claude`, and everything else — `codex`, `unknown`, and any host added later — degrades to *"read the handoff and continue"*, which is correct on every host including ones that do not exist yet.
+
+### Added
+
+- **`claude-code` is a recognised host in `handoff-spawn.sh`** — in `normalize_host()` (`claude-code|claude|claudecode`), in `detect_origin_host()` (via `CLAUDECODE` / `CLAUDE_CODE_ENTRYPOINT`, the same markers `context-handoff.py` already keyed on), and as its own copy-paste recipe. Previously `--host claude-code` reported `host=unknown`, which was the honest symptom of the bug above rather than a cosmetic mislabel.
+
+- **The refusal guard now has teeth on the case that mattered.** It was `chat|cli`-scoped; it is now `host != grok`, so a grok launch cannot reach `claude-code`, `codex`, `unknown`, or any future host.
+
+### Gates
+
+- **Gate 230** (`hooks/tests/test-gate227-handoff-seed-host.sh`) — 18 assertions pinning the seed each writer selects per host, across both writers, under `env -i`. **Positive control built in:** two rows assert grok *does* get the grok seed, because a blanket "no grok anywhere" suite would pass identically against a writer that emitted nothing. The must-fail half rebuilds the pre-fix file in all four parts and requires the assertions to go red. ⛔ **Honest scope:** it pins the seed value on the copy-paste/dry-run surface; it does not drive a live spawn, since that would start a real interactive agent.
+## 0.278.0 — 2026-08-18
+
+### Fixed
+
+- **⛔ The worktree guard called every in-tree write "foreign", so worktree isolation
+  did not exist.** `_wg_is_foreign` returned on the **first** worktree whose path
+  prefixed the target — and this repo's own convention puts worktrees at
+  `<primary>/.claude/worktrees/<name>` ("worktrees UNDER the repo, never `/tmp`"),
+  which makes the primary checkout an **ancestor of every linked worktree**. So from
+  inside any worktree, writing your own files matched the primary and read as foreign.
+
+  control (2026-08-18): cwd = a linked worktree, target = a file **inside that same
+  worktree** → `FOREIGN — ... not <that worktree>`, naming the very tree the file
+  lives in. Positive control on the same harness: a genuine sibling → FOREIGN, a
+  `/tmp` path → silent, so the own-tree reading was real and not a dead probe.
+
+  Ownership is now the **longest** matching worktree prefix. It had been set to `warn`
+  on main with a comment saying the deadlock left *"no legal place to edit"* — the
+  guard had been switched off rather than fixed, so the isolation it advertised was
+  not there.
+
+  ⛔ **`worktree_bound` deliberately stays `warn` in this release** (owner decision).
+  Hooks execute from the **installed plugin cache**, so flipping to `block` in the
+  same change that fixes the predicate would re-arm the *old, buggy* guard for any
+  session whose cache is stale — re-creating the exact deadlock this removes. That
+  was observed while building this. Flip to `block` **after**
+  `/plugin marketplace update ravenclaude` has refreshed every live session's cache.
+  The knob only decides whether a correct verdict blocks or warns; Gate 229 pins the
+  verdict itself either way.
+
+  ⛔ **A suppressed message is not a negative result.** The guard throttles a repeated
+  nudge per (path key, session, kind); reading that silence as "the predicate stopped
+  firing" produced one false *regression* report while this was being fixed. Gate 229
+  drives a fresh guard home per probe for exactly that reason.
+
+### Added
+
+- **Session lease — one worktree, one session.** CONTENTION only ever *nudged*: it
+  reported that another session was in the tree and let both proceed. The lease is the
+  enforcement — a session claims a worktree, and another session's mutating ops there
+  are **denied**, naming the holder and how long it has been idle.
+
+- **The stale fallback, which is what makes enforcement safe.** A lock with no expiry
+  strands the tree the moment a session crashes or is closed, and a lock nobody can
+  exit is one people route around. After `worktree_lease_idle_minutes` (default **20**)
+  with no activity, the next session **takes over** — auto-committing the holder's work
+  first as a `wip(worktree-lease)` checkpoint so the takeover cannot lose it. Tracked
+  **and** untracked (owner ruling; `.gitignore` still applies).
+
+  ⛔ **It refuses on the anchor branch.** `main`/`master` is the shared anchor here, so
+  a stale lease there is reported rather than auto-committed — the guard must not
+  create the mess it exists to prevent.
+
+- **`worktree_lease: on|warn|off` and `worktree_lease_idle_minutes: N`**, deliberately
+  **independent** of the other two knobs: `worktree_guard: off` + `worktree_bound: off`
+  used to short-circuit before the lease clause could run, so silencing the two nudges
+  would have silently removed cross-session exclusion with nothing saying so.
+
+### Gates
+
+- **Gate 229** — 18 assertions. Every deny is paired with a case that must **not** deny
+  (a guard that denies everything passes any "did it deny?" test), and the takeover case
+  asserts the holder's work **survived**, including the untracked file. Two vacuity
+  controls: the fixture is proven to have the nested layout (without it the defect
+  cannot appear at all), and each ownership probe uses a fresh guard home. The must-fail
+  half restores first-prefix ownership and **8** assertions go red.
+
+### Migration
+
+**`worktree_bound` stays `warn`.** The false positives stop — that is the fix — but a
+correct FOREIGN verdict still only warns. Flip to `block` once caches are refreshed
+(`RC_WORKTREE_BOUND_ACK=1` remains the per-command escape).
+
+The lease is **on by default**: a second session writing into a worktree another
+session is actively using is denied until the holder has been idle 20 minutes. Set
+`worktree_lease: off` to disable, or `warn` to report without blocking.
+
+⛔ **Hooks run from the installed plugin cache, so nothing here takes effect until
+`/plugin marketplace update ravenclaude`.** Until that refresh a stale session keeps
+the old predicate — which is exactly why `worktree_bound` is NOT flipped to `block` in
+the same change: the new knob plus the old predicate is the deadlock, not the fix.
+Refresh first, then flip.
+
+⛔ **The lease is on and enforcing**, so it reaches a session the moment its cache
+refreshes. If two sessions legitimately share one worktree today, set
+`worktree_lease: warn` before refreshing, or expect the latecomer to be denied until
+the holder has been idle 20 minutes.
+
+## 0.277.0 — 2026-08-18
+
+### Fixed
+
+- **`ravenclaude update` reported success over a checkout that had not moved.** It ran
+  `git pull --ff-only >/dev/null 2>&1` and then printed **"up to date."** unconditionally, so the
+  commonest stall produced a green line over stale content — and discarded the one message that
+  would have explained it. The stall is structural, not user error: the marketplace clone is *both*
+  the thing you pull into *and* the live runtime surface, so `.ravenclaude/comfort-posture.yaml` and
+  `.claude/settings.json` are **tracked** files that normal use rewrites and upstream also edits,
+  which is exactly what `--ff-only` refuses to overwrite. The real git error, the dirty-file list,
+  and a keep-your-tuning remedy are now printed, and the closing line says **NOT up to date**.
+
+- **⛔ The exit status was the half a human cannot see, and it had the same bug.**
+  `serve-dashboards.py` derives the dashboard's success flag from `proc.returncode == 0`, so the
+  Update button reported `ok: true` for a run that did not update. `update` now exits non-zero when
+  a pull was **attempted and failed**. Prose honesty that stops at the terminal is half a fix.
+
+- **A failure that never happened is no longer announced.** When `$MARKET` is not a git checkout,
+  nothing is attempted — the closing line used to say *"the pull above failed"* anyway. That is the
+  same dishonesty pointed the other way, and it now reports the honest case (and exits **0**).
+
+- **git's stderr is redacted before it is echoed.** git names the remote in its error text, so a
+  clone whose origin carries a token would have had that token printed by the very line added to
+  improve diagnostics. URL-embedded credentials only — not a general secret scanner, and it does not
+  claim to be.
+
+### Changed
+
+- **The `rc` function and the suggested alias chain with `;`, not `&&`.** With `update` now exiting
+  non-zero on a failed pull, `&&` would stop launching Copilot for precisely the people hitting the
+  stall — their own posture tuning. A stale checkout is still a working checkout. The detector for
+  the *legacy* `&&` alias in `~/.bashrc` deliberately still matches `&&`, since its job is to find
+  old installs.
+
+### Gates
+
+- **Gate 228** (`hooks/tests/test-gate228-update-pull-report.sh`) — the fix shipped without one, which
+  is the shape this repo's record says regresses. The pull step was extracted into
+  `_rc_pull_marketplace()` so it can be driven without `regen` and the launcher self-heal; the gate
+  extracts that function and **refuses rather than passing green** if the anchor moves. 13 assertions
+  over three outcomes (pulled / attempted-and-failed / not-a-checkout) plus credential redaction,
+  asserting the **return code** as well as the text, with two vacuity controls — the clone is proven
+  *behind* before the success case, and the redaction case is proven to have produced a report. The
+  must-fail half rebuilds the swallow-output/always-succeed shape and 6 assertions go red.
+
+### Migration
+
+`ravenclaude update` now exits non-zero when a pull was attempted and failed (it still exits 0 when
+there was nothing to pull). If you chain it with `&&`, switch to `;` — `ravenclaude setup` writes the
+`;` form from this version on, but an alias already in your `~/.bashrc` is not rewritten.
+
+## 0.276.0 — 2026-08-18
+### Added
+
+- **Merged forward from `feat/vacuity-guard-grep-quiet`.** The gate below was authored as **Gate 223** and renumbered to **227** on merge: `main` landed its own Gate 223 (parallelism posture) concurrently, 224 is claimed by `feat/assumption-claiming-layer`, and 225/226 were already taken. The test file keeps its original `test-gate223-probe-validity.sh` name — renaming it would be a `git mv` under the plugin's own hooks directory, which `xc.tribunal-self-disable` hard-denies pre-LLM, and the gate's grep discipline keys on the script basename rather than the number.
+
+- **`guard-probe-validity.sh` — a twelfth `PreToolUse(Bash)` gate, carrying exactly ONE rule: `grep -v` used in QUIET MODE.** The existing eleven gates each answer *is this dangerous / in the right place / premise-settled / portable?* **None answers *"will this command answer the question the agent thinks it is answering?"*** This is the first that does.
+
+  Outside quiet mode, `grep -v` exits 0 when a line was **selected** — "something does NOT match". In quiet mode that guarantee is lost: the status starts reporting whether the **pattern is absent**. The two disagree on any input holding **both** a matching and a non-matching line, and **the disagreement reads as clean**. Quiet is entered **two** ways, and the second is the one nobody expects: a `-q`/`--quiet`/`--silent` flag (possibly buried in a bundled cluster — `-qv`, `-vq`, `-rqv`, `-qvE`), **or stdout redirected to `/dev/null` specifically**, with no `-q` anywhere. Measured in the agent's own Bash-tool shell (ugrep 7.5.0, genuinely mixed fixture): `grep -v alpha mixed.txt >/dev/null` → **rc=1**, where BSD/GNU give 0.
+
+  **ONE rule, not three, because the corpus said so.** The detector was run over **17,410 distinct real agent-issued Bash commands** (43 transcripts). This rule fires **once**, and that catch was real and consequential — a PR `ALL_GREEN` verdict decided by `grep -qvE`. The two sibling candidates measured on the same corpus were **rejected and must not be added**: `find … -exec test` fired **0 times, ever**, and `$?`-after-a-pipe fired 13 times at an **85 % false-positive rate** — and its dominant false-positive idiom is *this repo's own standard hook-testing idiom*, so it would have warned on the fixtures written to prove it. A channel that is wrong 85 % of the time is how an agent learns to stop reading the channel.
+
+### Design constraints worth not re-litigating
+
+- **⛔ WARN-only, with no host probe — and the hook's header says so at length so a future maintainer does not "improve" it back into unreachability.** Two earlier designs decided WARN-vs-DENY from a host probe. Both were overturned on a mechanical fact: **the probe would run in the hook's shell; the judged command runs in the agent's shell, and they are not the same `grep`.** Measured on one machine at one instant — the Bash tool resolves `grep` to a shell function execing under `ARGV0=ugrep` (7.5.0, **inverts**), while a hook subprocess (`/bin/sh -c`, or even `env -i /bin/bash -c`) resolves BSD grep 2.6.0 (**does not**). So on the exact machine where the defect is documented, a hook-side probe answers *"this host is fine"* and the DENY branch is unreachable, on every host, forever — **and it is testable-green**, since a test that fakes the probe "proves" a branch that is dead in the live path. That is a green test over a dead rule: precisely the vacuity class this gate is named after. Caching does not rescue it either — the same shell delegates to BSD grep on any `-Z`/`--null`/`-z`/`-@` argument, so `grep --version` and `grep --null --version` print **different products from the same word in the same shell** (same cache key, opposite answer), and computing the key costs ~7.6 ms against the ~4.1 ms probe it caches. Warning unconditionally is correct advice everywhere, costs nothing at ~1-in-17,410, and removes the whole wrong-shell failure mode **by construction rather than by care**. There is no exit-2 path in the file; an EXIT trap armed before anything else pins every error path to 0.
+- **⛔ The 5-rule prototype was NOT promoted.** It shipped two rules both prior plans explicitly excluded, and promoting it would have multiplied warn volume 11× (14 → 157) *entirely* from those two. The one rule was written fresh.
+
+- **Gate 227 — and its must-fail half is an exit-code contract, not a mutant.** The prototype's runner exited **0 whether 11 assertions failed or none did** — a gate green forever, this repo's own documented Gate-184 shape one layer down. So `test-gate223-probe-validity.sh` exits 1 on any failure **and** ships `--prove-nonzero`, which routes a deliberately false claim through the real assertion path; Gate 227 asserts `must_fail` on that invocation, so *"the harness reddens"* is re-proved on every CI run instead of being a claim in a commit message. Per-rule teeth are two in-test mutants that neuter the quiet detector and the invert detector and require every fire case to go silent — without them, "fires" would print identically if the hook simply warned on anything containing the word `grep`.
+
+  **⛔ The fixture is asserted MIXED.** ugrep and BSD/GNU **agree** unless the input holds both a matching and a non-matching line, so 2 of the 3 plausible fixtures report *"no bug"* and silently prove nothing. Mixedness is a first-class, count-based assertion (`awk 'END{print NR}'` + `grep -c`), never an assumption.
+
+  Registered in all three Gate-195 sites (dispatcher arm, `Supported:` string, main sequence) and proven to run in the full suite by grepping the suite's own output **for the script name on an executed line** — never for the string "Gate 227", because a batched header once made a by-number grep report seven gates unrun that had all executed. Gate numbers **219–221 remain claimed** by unmerged PR #961.
+
+  ⛔ Nothing in the hook, the test, or the gate uses `grep -q -v` — that *is* the defect, and it inverts here. Every assertion is count-based, and the bad forms appear only as command **strings** handed to the hook as data.
+
+- **`probe_validity: off | warn` (default `warn`)** in `.ravenclaude/comfort-posture.yaml`, read with the same minimal `sed` idiom `worktree-guard.sh` uses. There is no `block` value — the hook has no deny path. An **absent posture file is a no-op**, so consumers who never opted in are never surprised.
+## 0.273.0 — 2026-08-18
+
+### Changed
+
+- **Parallelism now defaults to MAXIMUM.** `PARALLELISM_DEFAULT` is `{enabled: true, max_workers: 4, unlimited: true}`, and **an absent `parallelism:` block now means maximum**, not "unchanged".
+
+  **Migration — one behavior change, and only one.** A consumer with **no** `parallelism:` block gets maximum fan-out where they previously got the agent's ad-hoc judgment. Every *explicit* setting is unchanged: `enabled: false` is still sequential, `max_workers: N` is still batches of ≤N, `max_workers: unlimited` is still uncapped, scalar `parallelism: on` is still enabled. Nothing breaks — `parallelism` is a behavioral commitment with no enforcement path, so no permission changes and no hook denies anything new; the cost is token spend and concurrency, which is what the conserve-tokens exception bounds. To opt out: `parallelism: off`, or tick **Conserve tokens** in the dashboard.
+
+  The alternative (keep `absent ⇒ unchanged`, re-seed only the dashboard default) was rejected: it reaches only consumers who open the dashboard and press Save, leaving every untouched posture on the old behavior forever — the opposite of the ask.
+
+- **Fixed: the scalar `parallelism: off` was silently ignored.** It fell through every hydration branch. Harmless while the default was OFF; with the default flipped it would have meant the **opposite** of what it reads.
+
+### Added
+
+- **The conserve-tokens exception, with three triggers and one precedence.** Engaged ⇒ the posture is read as `enabled: false` (sequential). No fourth mode.
+  1. **Prompt phrase** — per-session, sticky, **both directions** (`conserve tokens` engages; `maximum parallelism` / `stop conserving` releases). Rides the existing `UserPromptSubmit` hook.
+  2. **Posture switch** — `conserve_tokens: true`, a new checkbox on the dashboard's Pipeline page. Engage-only.
+  3. **Context pressure** — live usage ≥ `conserve_tokens_auto_pct` (default `80`; `0` disables), read from the existing `context-usage-meter.py`, not a second meter.
+
+  `engaged = phrase_override if a phrase fired this session else (posture_switch or context_pressure)`. The phrase wins in both directions (otherwise a phrase-engaged session has no exit short of editing config mid-conversation); the switch is engage-only (otherwise a stale config could silently suppress trigger 3). Engine: `scripts/conserve-tokens.py`.
+
+- **A serial-dispatch detector.** `scripts/parallelism-detector.py`, riding the existing `SubagentStart` hook, groups subagent starts into batches by start-time proximity, counts singles vs parallel batches, and emits at most 3 advisory `warn` events (`rule: serial-dispatch`, empty `path`) into `hook-events.jsonl`. **It never blocks** — a hook can stop an action, it cannot compel one. Its limits ship in its own output: it infers batching from start times, so a single dispatch may be a genuine dependency, and *zero batches means no subagents ran*, not perfect parallelism.
+
+- **A standing SessionStart directive.** The capability banner gains a four-line **PARALLELISM** section stating the resolved mode and the observed serial ratio. Derived labels only (Gate 19).
+
+### Gates
+
+- **Gate 35** extended: the two conserve keys round-trip (emit-when-non-default + hydrate-back), the new default emits **no** block, sequential is written explicitly, and `parallelism: off` hydrates to sequential. Two new must-fail halves (conserve emit stripped; default reverted to OFF).
+- **Gate 223** (new): all three conserve triggers, each with a control in the opposite direction, the precedence ordering, and the detector's serial-vs-parallel discrimination — 32 assertions, three must-fail mutants.
+
+## 0.271.5 — 2026-08-17
+
+### Fixed
+
+- **`forge-route.py`'s `layout-allowlist-edit` signal matched PROSE, inverting tiebreak F3.** The detector was `re.compile(r"\.repo-layout\.json|allowed_globs", re.IGNORECASE)` — a bare substring match on a **filename**. So a plan stating the *opposite* of a pre-commitment (*"`.repo-layout.json` needs **no edit** — settled by a bidirectional probe"*) fired the "this plan carries an engineering pre-commitment" signal and was forced to a draft PR.
+
+  That is this repo's own recorded **"source-scan gates match PROSE"** defect, sitting in the router that *enforces* F3 — and F3 exists precisely so a **pure design/analysis plan can land on `main`**. Every analysis plan that merely *discussed* the layout file was denied that path. Found by running the router against a real 153 KB FORGE plan whose definition-of-done explicitly asserts `.repo-layout.json` is **unmodified**.
+
+  The detector is now scoped **per line** and requires all three of: the token, an **edit verb**, and **no negation** on that line. ⛔ **The direction of error is deliberate and documented in-file:** firing wrongly costs a needless draft PR, while *not* firing wrongly lets a stale pre-commitment sit canonically in `main` — the harm F3 was written to prevent. Never widen the negation list to quiet a noisy PR verdict.
+
+### Added
+
+- **Gate 222 — because `forge-route.py --self-test` was registered by NOTHING.** It shipped with fixtures, is cited in the FORGE skill as *"a registered, citable canonical route"*, and **no gate or workflow ever invoked it** (a grep of `scripts/` and `.github/` returned zero hits). The fixtures could have rotted indefinitely with nothing to say so. **The detector fix is only half this change; the registration is the other half.**
+
+  Registered in all three Gate-195 sites (dispatcher arm, `Supported:` string, main sequence) and **proven to run in the full suite by grepping the suite's own output** — the check v0.241.0 skipped, which left Gate 184 unreachable for an entire release while the suite reported green. Assertion count moved **815 → 817**, exactly the two new assertions.
+
+  Ships a **must-fail half** (`scripts/_mutate-forge-route.py`): it reverts the detector in a throwaway copy and requires the two negative fixtures to redden. Without it, *"fixtures OK"* would print identically if the detector had gone **blind** and matched nothing at all — a false-negative detector and a correct one are indistinguishable from the positive fixtures alone. The mutator **refuses to write an unmutated copy** if its anchor text stops matching, because an unmutated copy would pass its own self-test and the gate would report teeth it does not have.
+
+  Gate numbers **219–221 were deliberately skipped** — an in-flight `forge/forms-process-expertise` build claims them, and a collision would redden Gate 195 (number-uniqueness), which masks every later gate in the same CI step.
+
+## 0.271.4 — 2026-08-17
+
+### Fixed
+
+- **`cleanup-worktrees`: a detached-HEAD worktree holding the only copy of a commit is no longer deleted as `clean`.** Every prior state answers *"is there **uncommitted** content here?"*. A detached worktree can be spotless by that measure and still be the one thing holding a commit — `git status` is rightly silent, and `git worktree remove` then makes it unreachable.
+
+  **The reflog does not rescue it.** Controlled: before removal `.git/worktrees/<name>/logs/HEAD` exists; after, it is gone with the admin dir, the commit is contained by **0 refs**, and only `git fsck --unreachable` still finds it (positive control: the same reflog probe returns 2 hits for a reachable SHA, so the zeros are a fact about the subject, not a broken probe). Recovery is `git fsck --lost-found` until gc prunes.
+
+  New **DETACHED** state: `--all` skips it, names the SHA, and prints the one-command rescue `git branch <name> <sha>`; `remove_one` refuses bare and **honours `--force`** (the DIRTY contract, not UNKNOWN's — we can see exactly what is at risk).
+
+  **The discriminator is reachability, not detachment.** Measured: detached-with-own-commits is contained by no ref; detached at a ref tip is contained by `refs/heads/main`; a branch-backed worktree has a symbolic HEAD. Only the first is flagged — flagging every detached worktree would fire constantly on the harmless middle case, and a guard that fires on the harmless case is one that gets ignored on the harmful one.
+
+  Gate 216 covers both directions, including the **no-false-positive** assertion (a reachable detached tree must still read `clean` and still be removed) and a narrow stand-in that strips only the reachability check and confirms the commit-bearing worktree is then destroyed.
+
+## 0.271.3 — 2026-08-17
+
+### Fixed
+
+- **`cleanup-worktrees`: a worktree holding only ignored files is no longer treated as empty.** `git status --porcelain` is **silent on ignored files by design**, so a worktree containing nothing but `.env`, `node_modules/` or a local database produced empty output and classified `clean` — and `--all` removed it. Nothing failed: git ran, against the right tree, exited 0, honoured no misleading config. The probe was simply answering a narrower question ("is anything *tracked* here?") than the caller needed ("is anything here?").
+
+  The `.env` case is the one that hurts: a file is ignored *precisely because* it is not in git, so the rule that hides it from the probe is the same rule that guarantees no other copy exists.
+
+  `worktree-clean.sh` now emits a fourth state, **IGNORED**, and the skill documents it. `--all` skips such a tree and names what it holds; `remove_one` refuses it without `--force` and **honours** `--force` — deliberately the `DIRTY` contract, not the `UNKNOWN` one. The difference is knowledge, not danger: for UNKNOWN we cannot see what would be destroyed, so `--force` is refused; here we can see it and we print it, so `--force` is a considered choice. Collapsing the two would either strand every `node_modules` tree forever or keep deleting `.env` files unexamined.
+
+  Measured before building: a **fresh worktree of this repo shows 0 ignored entries**, so the new state does not fire on every newly created tree (a guard that always fires is a guard that gets switched off), and `--ignored=traditional` collapses a wholly-ignored directory to one line rather than walking it. The extra git call runs **only** when the tree is otherwise a deletion candidate.
+
+  Gate 216 covers it in both directions — including the over-blocking half (`--force` must still remove it, or a safety fix has quietly become a broken tool) and a narrow stand-in that strips **only** the ignored probe and confirms the `.env` worktree is then destroyed.
+
+## 0.271.2 — 2026-08-17
+
+### Fixed
+
+- **`skills/cleanup-worktrees/SKILL.md` no longer prescribes a remedy that does
+  nothing, and now documents both causes of `UNKNOWN`.** The entry told the
+  reader to "repair it first (`git worktree repair` / `git worktree prune`)".
+  Both were **measured to be no-ops on every UNKNOWN shape tested** — a corrupt
+  index and a `chmod 000` `.git` were unchanged by either command — so an agent
+  or operator following that advice loops indefinitely, which is the pressure
+  that produces a manual `rm -rf`. `scripts/worktree-clean.sh` had already
+  dropped the advice for that reason; the skill had not.
+
+  It also described only one of the two causes. `UNKNOWN` arises when
+  `git status` **fails** (empty stdout, non-zero exit) *and* when `git status`
+  **succeeds against an ancestor** — a directory that is not a worktree, or a
+  worktree whose `.git` file is missing, where git's discovery walks up and
+  reports the parent. Because `.claude/worktrees/` is gitignored the parent
+  reports nothing, so that case also comes back empty, with **exit 0**. That is
+  the more common shape and the reason a successful `git status` is not by
+  itself evidence that anything was inspected.
+
+**Migration:** none — documentation only. Describes behaviour already shipped in
+0.271.1; no code changed.
+
+## 0.271.1 — 2026-08-17
+
+### Fixed
+
+- **`scripts/branch-hygiene.sh` no longer aborts the whole sweep when a
+  worktree cannot be inspected.** Gate 2 read
+  `git -C "$wt" status --porcelain 2>/dev/null | wc -l`. A FAILED `git status`
+  — a stale linked worktree whose admin dir under `.git/worktrees/` is gone, a
+  corrupt `.git`, git off `PATH`, permission denied — writes nothing and exits
+  non-zero. Because the script runs `set -euo pipefail`, that 128 propagates
+  through the command substitution and **`set -e` kills the run mid-loop**:
+  every later branch goes unexamined and the summary never prints. It now
+  captures the exit code separately and HOLDs that one worktree with the real
+  reason, so the sweep completes.
+
+  Measured on the same fixture — before: `EXIT=128` after the first bad
+  worktree, second branch never reported. After: both branches reported,
+  `would delete: 0  held: 2`, `EXIT=0`.
+
+  **Honest severity:** an availability/correctness fix, **not** a data-loss
+  fix. Nothing was ever deleted that should not have been — gate 4
+  (`git worktree remove` without `--force`, then `git branch -d`) independently
+  guards deletion. The reason to fix it anyway is that a sweep which stops
+  silently at branch 3 of 30 looks exactly like a sweep that found nothing.
+
+  > **Correction, recorded rather than quietly amended.** The first version of
+  > this entry claimed the pipe "yields `0` … so gate 2 PASSED on a worktree it
+  > had never inspected", and stamped it *Measured*. That was an **inference**
+  > drawn from a true observation (status exits 128 with empty stdout), and it
+  > is false under `pipefail`. Controlled both directions: with `pipefail` the
+  > substitution aborts at 128; only without it does the pipe yield `0`.
+  > Grounding an observation is not grounding an inference drawn from it — see
+  > `docs/best-practices/verification-probe-discipline.md`.
+
+**Migration:** none. A worktree that cannot be inspected is now HELD with a
+stated reason instead of aborting the sweep. No branch that was previously
+retained is now deleted, and no branch that was previously deleted is now
+retained.
+
 ## 0.271.0 — 2026-08-14
 
 ### Added

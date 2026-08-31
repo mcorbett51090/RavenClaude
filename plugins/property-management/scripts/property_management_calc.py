@@ -121,7 +121,7 @@ def build_parser():
     sp.add_argument('--cap-rate', type=float, default=0.0, help='market cap rate (0-1) for value')
     sp.set_defaults(func=cmd_noi)
 
-    sp = sub.add_parser('occupancy-rev', help='start occupied + move-ins - move-outs => end occupancy %, revenue, gap to target')
+    sp = sub.add_parser('occupancy-rev', help='start occupied + move-ins - move-outs => end occupancy %%, revenue, gap to target')
     sp.add_argument('--start-occupied', type=float, required=True, help='units occupied at period start')
     sp.add_argument('--move-ins', type=float, required=True, help='move-ins in the period')
     sp.add_argument('--move-outs', type=float, required=True, help='move-outs in the period')

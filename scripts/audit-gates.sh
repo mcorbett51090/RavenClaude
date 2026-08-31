@@ -260,6 +260,50 @@ _gate34() {
 # duplicated list drifts; the header previously stopped at 105 while the case ran
 # to 127). Add a new value in both those places when a gate acquires a standalone
 # runner script.
+# ── Shared: the --must-fail CONVENTION comparator (plan §6.3) ──────────────
+# ⛔ --must-fail CONVENTIONS DIFFER PER TOOL AND MUST NOT BE HARD-CODED.
+# ⛔ TWO DIFFERENT QUANTITIES HAVE BOTH BEEN CALLED "the teeth bit", and
+# conflating them is how a comparison ends up measuring nothing:
+#   (a) the exit a tool own CHECK returns when it catches a planted defect —
+#       premise-gate.py denies at 0, sync-plugin-versions.py reddens at 2;
+#   (b) the exit the --must-fail RUN itself returns. Measured 2026-08-20: both
+#       of those tools return 0 from --must-fail, so (a) and (b) are not the
+#       same number and an auditor must say which it compares.
+# rc_mustfail below compares (b), because that is the only one it can observe
+# without knowing each tool internals. Every detector this initiative adds
+# declares (b) explicitly, and declares it as 3 — 0/1/2 are reachable by
+# success, a crash, and an argparse error respectively, so any of them as a
+# declared teeth exit lets a crash masquerade as a passing teeth run.
+# So every detector this initiative adds implements
+# --must-fail-convention, printing exactly `must-fail-teeth-exit: <n>`, and
+# --must-fail, which runs its planted canary and exits with that declared code.
+#
+# This helper calls the convention FIRST, then --must-fail, and COMPARES. A tool
+# that declares one number and returns another fails the audit — which also
+# catches a future convention change silently breaking the auditor, the failure
+# mode a hard-coded expectation cannot see.
+#
+# Usage: rc_mustfail <interpreter> <script> [extra args...]
+# Returns 0 only when the declaration and the observed exit agree.
+rc_mustfail() {
+  local runner="$1"; shift
+  local tool="$1"; shift
+  local decl want got
+  decl="$("$runner" "$tool" --must-fail-convention 2>/dev/null)" || {
+    echo "    ✗ $tool does not implement --must-fail-convention" >&2; return 1; }
+  want="${decl##*must-fail-teeth-exit: }"
+  case "$want" in
+    ''|*[!0-9]*) echo "    ✗ $tool declared an unparseable convention: $decl" >&2; return 1 ;;
+  esac
+  got=0
+  "$runner" "$tool" --must-fail "$@" >/dev/null 2>&1 || got=$?
+  if [[ "$got" != "$want" ]]; then
+    echo "    ✗ $tool declared teeth exit $want but --must-fail returned $got" >&2
+    return 1
+  fi
+  return 0
+}
+
 if [[ "${1:-}" == "--check" && -n "${2:-}" ]]; then
   case "${2}" in
     20)
@@ -470,6 +514,23 @@ PY
       bash plugins/ravenclaude-core/hooks/tests/test-gate122-delegation-nudge.sh
       exit $?
       ;;
+    # ⛔ Renumbered 223 -> 224 on the v0.281.0 rebase. `main` had independently taken
+    # 223 for the parallelism-posture gate (below), so this branch's `223)` landed
+    # FIRST in the same `case` and SHADOWED it — a shell `case` runs only the first
+    # match, so the parallelism gate became dead code while still appearing here and
+    # in the --check supported list. That is the unrun-gate class, silent by default.
+    # The test FILE keeps its `test-gate223-` name: an agent cannot rename it, because
+    # the tribunal substrate guard (xc.tribunal-self-disable) denies `git mv` under
+    # plugins/ravenclaude-core/hooks/. Same guard, same accepted workaround as
+    # ask-on-ambiguity's body living under scripts/. No gate checks filename-vs-number
+    # (verified: no consistency check exists in this file), so this is correct but ugly.
+    # Owner follow-up, needs a `!` bang command: git mv the file to test-gate224-*.sh
+    # and update the two call sites here (this one and the full-suite run below).
+    224)
+      echo "── Gate 224: assumption layers — inference-as-observation + ask-on-ambiguity ─"
+      bash plugins/ravenclaude-core/hooks/tests/test-gate223-assumption-claiming.sh
+      exit $?
+      ;;
     123)
       echo "── Gate 123: design-project binding surfacing (banner bound / half-set / absent / leak-safe / teeth) ──"
       bash plugins/ravenclaude-core/hooks/tests/test-gate123-design-project-binding.sh
@@ -486,9 +547,336 @@ PY
       exit $?
       ;;
     126)
-      echo "── Gate 126: managed-solution-import pure-logic (PROD-guard / SSRF allow-list / baseline-by-stable-key / flag-economy / teeth) ──"
+      # ⛔ 126 is the WORKFLOW-MIRROR gate, matching the main sequence and the
+      # constitution (plugins/ravenclaude-core/CLAUDE.md:1432,1450). It used to
+      # answer with the managed-import test — a different gate under the same
+      # number, so `--check 126` exercised something the suite's Gate 126 never
+      # ran. managed-import is now Gate 217.
+      echo "── Gate 126: workflow-mirror byte-identity (skills copy vs .claude/workflows copy) ──"
+      _rc126=0
+      for _pair in \
+        "plugins/ravenclaude-core/skills/rc-deep-research/rc-deep-research.js:.claude/workflows/rc-deep-research.js" \
+        "plugins/ravenclaude-core/skills/two-panel-plan-review/two-panel-plan-review.js:.claude/workflows/two-panel-plan-review.js"; do
+        _a="${_pair%%:*}"; _b="${_pair##*:}"
+        if diff -q "$_a" "$_b" >/dev/null 2>&1; then
+          echo "  ✓ identical: $_a"
+        else
+          echo "  ✗ DRIFT: $_a vs $_b"; _rc126=1
+        fi
+      done
+      # teeth: a one-sided drift must be caught
+      _mmut="$(mktemp)"
+      { cat .claude/workflows/rc-deep-research.js; echo "// drift"; } > "$_mmut"
+      if diff -q plugins/ravenclaude-core/skills/rc-deep-research/rc-deep-research.js "$_mmut" >/dev/null 2>&1; then
+        echo "  ✗ must-fail half: injected drift was NOT caught — gate has no teeth"; _rc126=1
+      else
+        echo "  ✓ must-fail half: injected drift IS caught"
+      fi
+      rm -f "$_mmut"
+      exit "$_rc126"
+      ;;
+    217)
+      echo "── Gate 217: managed-solution-import pure-logic (PROD-guard / SSRF allow-list / baseline-by-stable-key / flag-economy / teeth) ──"
       bash plugins/power-platform/hooks/tests/test-managed-import.sh
       exit $?
+      ;;
+    218)
+      echo "── Gate 218: lss_calc.py numeric correctness (Cp/Cpk/Ppk · sigma↔DPMO · I-MR · COPQ) ──"
+      rc=0
+      python3 scripts/check-lss-calc.py --self-test || rc=$?
+      python3 scripts/check-lss-calc.py || rc=$?
+      _mf=0; python3 scripts/check-lss-calc.py --must-fail >/dev/null 2>&1 || _mf=$?
+      [ "$_mf" -eq 2 ] || rc=1
+      exit $rc
+      ;;
+    225)
+      echo "── Gate 225: self-disable read-only discriminator (floor intact, maintenance unblocked) ──"
+      rc=0
+      bash plugins/ravenclaude-core/hooks/tests/test-gate225-self-disable-readonly.sh || rc=$?
+      bash plugins/ravenclaude-core/hooks/tests/test-gate225-self-disable-readonly.sh --must-fail-meta || rc=1
+      exit "$rc"
+      ;;
+    223)
+      echo "── Gate 223: parallelism posture (conserve triggers + serial detector) ──"
+      rc=0
+      python3 scripts/check-parallelism-posture.py || rc=$?
+      for _m in precedence window pressure; do
+        _mf=0; python3 scripts/check-parallelism-posture.py --must-fail-"$_m" >/dev/null 2>&1 || _mf=$?
+        [ "$_mf" -eq 0 ] || rc=1
+      done
+      exit $rc
+      ;;
+    222)
+      echo "── Gate 222: forge-route.py routing fixtures (mention vs pre-commitment) ──"
+      rc=0
+      python3 plugins/ravenclaude-core/scripts/forge-route.py --self-test || rc=$?
+      _mut=$(mktemp) || _mut="/tmp/forge-route-mutant.$$"
+      if python3 scripts/_mutate-forge-route.py "$_mut"; then
+        _mf=0; python3 "$_mut" --self-test >/dev/null 2>&1 || _mf=$?
+        [ "$_mf" -ne 0 ] || rc=1
+      else
+        rc=1
+      fi
+      rm -f "$_mut"
+      exit $rc
+      ;;
+    232)
+      echo "── Gate 232: cause_taxonomy.py — the SSOT cause grammar ──"
+      rc=0
+      bash plugins/ravenclaude-core/hooks/tests/test-gate232-cause-taxonomy.sh || rc=$?
+      bash plugins/ravenclaude-core/hooks/tests/test-gate232-cause-taxonomy.sh \
+        --must-fail-blind || rc=$?
+      bash plugins/ravenclaude-core/hooks/tests/test-gate232-cause-taxonomy.sh \
+        --must-fail-doc || rc=$?
+      exit $rc
+      ;;
+    233)
+      echo "── Gate 233: triage-outcome.sh — post-failure cause triage ──"
+      rc=0
+      bash plugins/ravenclaude-core/hooks/tests/test-gate233-triage-outcome.sh || rc=$?
+      bash plugins/ravenclaude-core/hooks/tests/test-gate233-triage-outcome.sh \
+        --must-fail-echo || rc=$?
+      exit $rc
+      ;;
+    244)
+      echo "── Gate 244: stall watchdog (observable, UTC, receipt-ladder, payload) ──"
+      python3 plugins/ravenclaude-core/hooks/tests/test-stall-watch.py
+      exit $?
+      ;;
+    251)
+      echo "── Gate 251: foreground long-suite guard — deny, escapes, mention-vs-invocation ──"
+      bash plugins/ravenclaude-core/hooks/tests/test-guard-foreground-suite.sh
+      exit $?
+      ;;
+    250)
+      echo "── Gate 250: anti-rot — scope-key parity, taxonomy parity, fired-count ──"
+      rc=0
+      python3 plugins/ravenclaude-core/scripts/check-scope-key-parity.py --check || rc=$?
+      python3 plugins/ravenclaude-core/scripts/check-scope-key-parity.py --must-fail || rc=$?
+      python3 plugins/ravenclaude-core/scripts/cause_taxonomy.py \
+        --check-doc plugins/ravenclaude-core/knowledge/cause-taxonomy.md || rc=$?
+      python3 plugins/ravenclaude-core/scripts/audit-fired-count.py --check || rc=$?
+      python3 plugins/ravenclaude-core/scripts/audit-fired-count.py --must-fail || rc=$?
+      for _f in plugins/*/scripts/*.sh; do
+        [ -e "$_f" ] || continue
+        bash -n "$_f" || rc=$?
+      done
+      exit $rc
+      ;;
+    249)
+      echo "── Gate 249: outcome eval — the ship gate must be SATISFIABLE ──"
+      rc=0
+      python3 plugins/ravenclaude-core/scripts/check-cause-eval.py --check || rc=$?
+      python3 plugins/ravenclaude-core/scripts/check-cause-eval.py --must-fail || rc=$?
+      exit $rc
+      ;;
+    248)
+      echo "── Gate 248: portable cause floor — present on every text-only host, and honest ──"
+      rc=0
+      python3 scripts/check-portable-floor.py --check || rc=$?
+      python3 scripts/check-portable-floor.py --must-fail || rc=$?
+      exit $rc
+      ;;
+    247)
+      echo "── Gate 247: cross-host hook coverage — no registered hook drops silently ──"
+      rc=0
+      python3 scripts/check-crosshost-hook-coverage.py --check || rc=$?
+      python3 scripts/check-crosshost-hook-coverage.py --must-fail || rc=$?
+      exit $rc
+      ;;
+    246)
+      echo "── Gate 246: cause-closure gate — is the cause SET closed (not: is a control cited) ──"
+      rc=0
+      bash plugins/ravenclaude-core/scripts/guard-cause-closure.sh --self-test || rc=$?
+      bash plugins/ravenclaude-core/scripts/guard-cause-closure.sh --must-fail || rc=$?
+      exit $rc
+      ;;
+    245)
+      echo "── Gate 245: remediation-cause gate — the primary D1 surface ──"
+      rc=0
+      bash plugins/ravenclaude-core/scripts/guard-remediation-cause.sh --self-test || rc=$?
+      bash plugins/ravenclaude-core/scripts/guard-remediation-cause.sh --must-fail || rc=$?
+      exit $rc
+      ;;
+    252)
+      echo "── Gate 252: pre-flight command review — WARN-only, measured membership ──"
+      rc=0
+      bash plugins/ravenclaude-core/scripts/preflight-command-review.sh --self-test || rc=$?
+      bash plugins/ravenclaude-core/scripts/preflight-command-review.sh --must-fail || rc=$?
+      python3 plugins/ravenclaude-core/scripts/replay-outcome-rules.py --self-test || rc=$?
+      python3 plugins/ravenclaude-core/scripts/build-outcome-corpus.py --self-test || rc=$?
+      python3 plugins/ravenclaude-core/scripts/build-outcome-corpus.py --must-fail || rc=$?
+      exit $rc
+      ;;
+    243)
+      echo "── Gate 243: scheduled sweep contract + operator health card ──"
+      bash plugins/ravenclaude-core/hooks/tests/test-gate243-sweep-and-health-card.sh
+      exit $?
+      ;;
+    242)
+      echo "── Gate 242: inception ratchet + merge-time re-measure ──"
+      rc=0
+      python3 scripts/check-inception-coverage.py --check || rc=$?
+      rc_mustfail python3 scripts/check-inception-coverage.py || rc=$?
+      python3 scripts/check-ratchet-freshness.py --check || rc=$?
+      rc_mustfail python3 scripts/check-ratchet-freshness.py || rc=$?
+      python3 scripts/_base_ref.py --self-test || rc=$?
+      rc_mustfail python3 scripts/_base_ref.py || rc=$?
+      exit $rc
+      ;;
+    241)
+      echo "── Gate 241: nuance floor + BLOCKING review ledger ──"
+      rc=0
+      python3 scripts/check-nuance-floor.py --golden || rc=$?
+      rc_mustfail python3 scripts/check-nuance-floor.py || rc=$?
+      python3 scripts/inventory-coverage.py --check || rc=$?
+      rc_mustfail python3 scripts/inventory-coverage.py || rc=$?
+      rc_mustfail python3 scripts/inventory-nuance-judge.py || rc=$?
+      exit $rc
+      ;;
+    240)
+      echo "── Gate 240: artifact budgets + R12 badge rendering ──"
+      rc=0
+      bash plugins/ravenclaude-core/hooks/tests/test-gate240-artifact-budgets.sh || rc=$?
+      python3 scripts/check-artifact-budgets.py --check || rc=$?
+      rc_mustfail python3 scripts/check-artifact-budgets.py || rc=$?
+      python3 scripts/check-changed-concept-renders.py --check || rc=$?
+      exit $rc
+      ;;
+    239)
+      echo "── Gate 239: inventory schema — nuance, evidence, verify, strength badge ──"
+      rc=0
+      bash plugins/ravenclaude-core/hooks/tests/test-gate239-inventory-schema.sh || rc=$?
+      python3 scripts/check-inventory-evidence.py --check || rc=$?
+      rc_mustfail python3 scripts/check-inventory-evidence.py || rc=$?
+      exit $rc
+      ;;
+    238)
+      echo "── Gate 238: inventory sweep — path-keyed harness + sweep-of-the-sweep ──"
+      rc=0
+      python3 scripts/inventory-census.py --check || rc=$?
+      rc_mustfail python3 scripts/inventory-census.py || rc=$?
+      python3 scripts/inventory-sweep.py --check || rc=$?
+      python3 scripts/inventory-sweep.py --capping-table || rc=$?
+      rc_mustfail python3 scripts/inventory-sweep.py || rc=$?
+      exit $rc
+      ;;
+    237)
+      echo "── Gate 237: inventory staleness — both escapes, both axes ──"
+      rc=0
+      bash plugins/ravenclaude-core/hooks/tests/test-gate237-inventory-staleness.sh || rc=$?
+      python3 scripts/check-covers-completeness.py --check || rc=$?
+      rc_mustfail python3 scripts/check-covers-completeness.py || rc=$?
+      exit $rc
+      ;;
+    236)
+      echo "── Gate 236: concepts --check contract (markers, collect-all, self-heal) ──"
+      rc=0
+      bash plugins/ravenclaude-core/hooks/tests/test-gate236-concepts-check-contract.sh || rc=$?
+      bash scripts/spike-selfheal-contract.sh --check || rc=$?
+      bash scripts/spike-selfheal-contract.sh --must-fail || rc=$?
+      exit $rc
+      ;;
+    235)
+      echo "── Gate 235: hooks reach the model (delivered-channel assertions) ──"
+      rc=0
+      # The library proves itself first; a verdict from an unproven harness is noise.
+      bash plugins/ravenclaude-core/hooks/tests/lib/assert-delivered-channel.sh --self-test || rc=$?
+      bash plugins/ravenclaude-core/hooks/tests/test-gate235-delivered-channel.sh || rc=$?
+      exit $rc
+      ;;
+    234)
+      echo "── Gate 234: handoff --host contract — both writers, one vocabulary ──"
+      rc=0
+      bash plugins/ravenclaude-core/hooks/tests/test-gate234-handoff-host-contract.sh || rc=$?
+      for mf in --must-fail-arity --must-fail-d2 --must-fail-registry \
+                --must-fail-namedunknown --must-fail-parity \
+                --must-fail-precedence --must-fail-flagauthority; do
+        bash plugins/ravenclaude-core/hooks/tests/test-gate234-handoff-host-contract.sh "$mf" || rc=$?
+      done
+      exit $rc
+      ;;
+    231)
+      echo "── Gate 231: git-push delete detection is scoped to the push segment ──"
+      rc=0
+      bash plugins/ravenclaude-core/hooks/tests/test-gate231-push-delete-scoping.sh || rc=$?
+      bash plugins/ravenclaude-core/hooks/tests/test-gate231-push-delete-scoping.sh \
+        --must-fail-unscoped || rc=$?
+      exit $rc
+      ;;
+    229)
+      echo "── Gate 229: worktree ownership + session lease ──"
+      rc=0
+      bash plugins/ravenclaude-core/hooks/tests/test-gate229-worktree-lease.sh || rc=$?
+      bash plugins/ravenclaude-core/hooks/tests/test-gate229-worktree-lease.sh \
+        --must-fail-prefix || rc=$?
+      exit $rc
+      ;;
+    227)
+      echo "── Gate 227: guard-probe-validity — \`grep -v\` in QUIET mode (pv.grep-v-quiet) ──"
+      rc=0
+      bash plugins/ravenclaude-core/hooks/tests/test-gate223-probe-validity.sh || rc=$?
+      _pv_mf=0
+      bash plugins/ravenclaude-core/hooks/tests/test-gate223-probe-validity.sh --prove-nonzero >/dev/null 2>&1 || _pv_mf=$?
+      [ "$_pv_mf" -ne 0 ] || rc=1
+      exit $rc
+      ;;
+    219)
+      echo "── Gate 219: forms-engineering substrate separation + cite-don't-restate ──"
+      rc=0
+      python3 scripts/check-forms-substrate-separation.py --self-test || rc=$?
+      python3 scripts/check-forms-substrate-separation.py || rc=$?
+      _mf=0; python3 scripts/check-forms-substrate-separation.py --must-fail >/dev/null 2>&1 || _mf=$?
+      [ "$_mf" -eq 2 ] || rc=1
+      exit $rc
+      ;;
+    220)
+      echo "── Gate 220: form_metrics.py numeric correctness + the lss_calc.py I-MR round-trip ──"
+      rc=0
+      python3 scripts/check-form-metrics.py --self-test || rc=$?
+      python3 scripts/check-form-metrics.py || rc=$?
+      _mf=0; python3 scripts/check-form-metrics.py --must-fail >/dev/null 2>&1 || _mf=$?
+      [ "$_mf" -eq 2 ] || rc=1
+      exit $rc
+      ;;
+    221)
+      echo "── Gate 221: forms-engineering honesty markers (novel-synthesis / WCAG conflict / no pricing) ──"
+      rc=0
+      python3 scripts/check-forms-honesty-markers.py --self-test || rc=$?
+      python3 scripts/check-forms-honesty-markers.py || rc=$?
+      _mf=0; python3 scripts/check-forms-honesty-markers.py --must-fail >/dev/null 2>&1 || _mf=$?
+      [ "$_mf" -eq 2 ] || rc=1
+      exit $rc
+      ;;
+    226)
+      echo "── Gate 226: plugin version single-sourced (sync-plugin-versions.py) ──"
+      rc=0
+      python3 scripts/sync-plugin-versions.py --self-test || rc=$?
+      python3 scripts/sync-plugin-versions.py --check || rc=$?
+      _mf=0; python3 scripts/sync-plugin-versions.py --must-fail >/dev/null 2>&1 || _mf=$?
+      [ "$_mf" -eq 2 ] || rc=1
+      exit $rc
+      ;;
+    228)
+      echo "── Gate 228: update must not claim success over a stale checkout ──"
+      rc=0
+      bash plugins/ravenclaude-core/hooks/tests/test-gate228-update-pull-report.sh || rc=$?
+      bash plugins/ravenclaude-core/hooks/tests/test-gate228-update-pull-report.sh \
+        --must-fail-silent-pull || rc=$?
+      exit $rc
+      ;;
+    230)
+      # NOTE: the test file is test-gate227-*.sh. Gate 227 was taken by
+      # guard-probe-validity while this branch was open, so the GATE renumbered to
+      # 230 and the filename did not (renaming a hooks/ file is blocked by the
+      # tribunal's substrate guard). Filename != gate number is already the norm
+      # here: main's Gate 227 runs test-gate223-probe-validity.sh.
+      echo "── Gate 230: handoff seed names the host it hands off TO ──"
+      rc=0
+      bash plugins/ravenclaude-core/hooks/tests/test-gate227-handoff-seed-host.sh || rc=$?
+      bash plugins/ravenclaude-core/hooks/tests/test-gate227-handoff-seed-host.sh \
+        --must-fail-spawn-default || rc=$?
+      exit $rc
       ;;
     127)
       echo "── Gate 127: pseudonymize.py (fail-closed encode / no-egress / FM7 NER-absent / FM8 / teeth) ──"
@@ -546,7 +934,13 @@ PY
       ;;
     140)
       echo "── Gate 140: worktree-guard block-mode teeth (per-gate run) ──────────────"
-      bash plugins/ravenclaude-core/hooks/tests/test-gate140-worktree-guard.sh
+      # ⛔ `< /dev/null` is load-bearing, not tidiness. These suites drive a hook
+      # that reads stdin; without the redirect they inherit whatever stdin the
+      # harness was launched with, and an inherited-but-never-closed pipe made the
+      # hook block forever — the original Gate 140 hang. The hook is bounded now,
+      # but a bound is a ceiling, not a reason to hand a suite an open pipe.
+      bash plugins/ravenclaude-core/hooks/tests/test-gate140-worktree-guard.sh < /dev/null
+      bash plugins/ravenclaude-core/hooks/tests/test-worktree-guard-core.sh < /dev/null
       exit $?
       ;;
     143)
@@ -797,8 +1191,18 @@ PY
       ;;
     185)
       echo "── Gate 185: probe verdict classes (per-gate run) ────────────────────────"
-      bash plugins/ravenclaude-core/hooks/tests/test-probe-verdict-classes.sh
-      exit $?
+      bash plugins/ravenclaude-core/hooks/tests/test-probe-verdict-classes.sh || exit $?
+      echo "── Gate 185 teeth A: an ungated bare status code MUST be caught ─────────"
+      if bash plugins/ravenclaude-core/hooks/tests/test-probe-verdict-classes.sh \
+           --must-fail-http-gating >/dev/null 2>&1; then
+        echo "TEETH FAILED: the mutant passed"; exit 1
+      fi
+      echo "── Gate 185 teeth B: a deny that emits nothing MUST be caught ───────────"
+      if bash plugins/ravenclaude-core/hooks/tests/test-probe-verdict-classes.sh \
+           --must-fail-emit >/dev/null 2>&1; then
+        echo "TEETH FAILED: the mutant passed"; exit 1
+      fi
+      exit 0
       ;;
     186)
       echo "── Gate 186: compact-anchor (per-gate run) ───────────────────────────────"
@@ -1101,9 +1505,14 @@ PY
       bash plugins/ravenclaude-core/hooks/tests/test-gate215-handoff-host-spawn.sh
       exit $?
       ;;
+    216)
+      echo "── Gate 216: worktree state clean/DIRTY/UNKNOWN (per-gate run) ──"
+      bash scripts/check-worktree-state.sh
+      exit $?
+      ;;
     *)
       echo "audit-gates.sh --check: gate '${2}' is not registered for per-gate runs." >&2
-      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215. Run without --check to execute the full suite." >&2
+      echo "Supported: 20, 34, 50, 52, 53, 54, 60, 70, 80, 90, 91, 92, 93, 97, 100, 101, 103, 104, 105, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 132, 133, 134, 135, 136, 137, 138, 139, 140, 143, 144, 145, 146, 147, 148, 149, 150, 151, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252. Run without --check to execute the full suite." >&2
       exit 1
       ;;
   esac
@@ -1752,15 +2161,39 @@ echo "── Gate 13: dashboard.html freshness + native-merge render prep ──
 # See docs/best-practices/hermetic-validation-no-in-place-regen.md.
 DASH_HTML="$TMP/render-dashboard.html"
 IDX_HTML="$TMP/render-index.html"
-# (a) must_fail: a stale committed dashboard.html is detected (teeth). This uses
-#     generate-dashboards.py --check (which reads the committed file); it backs up,
-#     mutates, then RESTORES the committed file immediately, so it leaves the tree
-#     clean. --check has no temp-path mode, so this stays backup/restore-scoped.
-backup plugins/ravenclaude-core/dashboard.html
-printf '\n<!-- AUDIT FIXTURE — should diff against regenerated output -->\n' >> plugins/ravenclaude-core/dashboard.html
-rc=0; python3 scripts/generate-dashboards.py --check >/dev/null 2>&1 || rc=$?
-gate "dashboard freshness (stale committed dashboard.html)" must_fail "$rc"
-cp -p "$TMP/plugins_ravenclaude-core_dashboard.html.bak" plugins/ravenclaude-core/dashboard.html
+# (a) COMMITTED-ARTIFACT FRESHNESS (rewritten 2026-08-18 — the gate could not see
+#     the drift it existed to catch).
+#
+#     What shipped here was a lone must_fail: append a fixture to the committed
+#     dashboard.html, run `generate-dashboards.py --check`, expect non-zero. There
+#     was NO must_pass half, so a stale committed file was never asserted against —
+#     and worse, `--check` was ALREADY non-zero before the fixture was appended, so
+#     the must_fail was satisfied by a pre-existing condition and asserted nothing
+#     about the fixture at all. Measured on origin/main @ 08237f2e, pristine tree:
+#       generate-dashboards.py --check  -> "STALE: .../dashboard.html", exit 1
+#       generate-index-dashboard.py --check -> "[stale] .../index.html", exit 1
+#       audit-gates.sh                  -> 841 pass, 0 fail
+#     A must_fail whose expected outcome is already true is not a test. See
+#     scripts/check-artifact-freshness.py's header for the full mechanism and for
+#     why the comparator excludes timestamps and version VALUES (measured: 7 of the
+#     last 20 commits on main bump the rc-core version and only 2 touch
+#     dashboard.html, so gating the version exactly would redden a quarter of all
+#     PRs and force a 10 MB regen into each branch — the cross-PR contagion
+#     regenerate-artifacts.yml exists to end. Version drift stays owned by that
+#     post-merge self-heal, which fails LOUDLY on its own when it cannot land).
+#     Everything structural — a plugin row, a stat, a template/CSS/JS change, a
+#     hand-edit, a reordered or islanded DOM — IS gated here against committed bytes.
+#     Read-only: the comparator renders to memory/temp and never writes a tracked file.
+rc=0; python3 scripts/check-artifact-freshness.py --check --surface plugins/ravenclaude-core/dashboard.html >/dev/null 2>&1 || rc=$?
+gate "dashboard freshness (COMMITTED dashboard.html is structurally fresh)" must_pass "$rc"
+# Teeth, planted into the REAL committed artifact — not a synthetic fixture. The
+# helper asserts the clean baseline FIRST (the positive control the old gate
+# lacked), then plants two drift shapes (an append and a same-length in-place
+# mutation, the latter proving the version/timestamp carve-out does not launder
+# real content drift) and requires BOTH to redden. It exits non-zero if the
+# baseline was already stale, so "already broken" can never score as teeth.
+rc=0; python3 scripts/check-artifact-freshness.py --must-fail --surface plugins/ravenclaude-core/dashboard.html >/dev/null 2>&1 || rc=$?
+gate "dashboard freshness teeth: clean baseline -> planted drift in the REAL committed file caught" must_pass "$rc"
 # (b) render the CURRENT output to temp (no in-place write) for the render gates.
 rc=0; python3 scripts/generate-dashboards.py --plugin ravenclaude-core --stdout > "$DASH_HTML" 2>/dev/null || rc=$?
 gate "dashboard generator runs clean (rendered to temp, no in-place write)" must_pass "$rc"
@@ -3646,6 +4079,30 @@ printf 'font-family: Inter; /* OFL, self-hostable */\n' > "$DH/good-brand-tokens
 assert_hook_fires  "brand anti-patterns" plugins/brand-identity-studio/hooks/flag-brand-antipatterns.sh "$DH/bad-brand-tokens.css"
 assert_hook_silent "brand anti-patterns" plugins/brand-identity-studio/hooks/flag-brand-antipatterns.sh "$DH/good-brand-tokens.css"
 
+# 12. process-improvement — a capability index (Cpk) quoted with no stability or
+#     spec-limit context (advisory hook: stderr + exit 0 unless
+#     PROCESS_IMPROVEMENT_STRICT=1). The hook only inspects .md/.markdown/.txt,
+#     so both fixtures must carry one of those extensions or it exits 0 unread
+#     and the "fires" half would measure nothing. The clean fixture must also
+#     avoid the OTHER three scans — notably the literal word "improvement",
+#     which trips the missing-control-plan rule.
+printf 'Line capability review: Cpk = 1.10 for the fill weight.\n' > "$DH/pi-bad.md"
+printf 'Kaizen event agenda and attendee list for Tuesday.\n' > "$DH/pi-good.md"
+assert_hook_fires  "process-improvement anti-patterns" plugins/process-improvement/hooks/flag-process-improvement-antipatterns.sh "$DH/pi-bad.md"
+assert_hook_silent "process-improvement anti-patterns" plugins/process-improvement/hooks/flag-process-improvement-antipatterns.sh "$DH/pi-good.md"
+
+# 13. forms-engineering — a honeypot field that assistive tech and autofill can
+#     both reach (advisory hook: stderr + exit 0 unless FORMS_STRICT=1). The hook
+#     only inspects a fixed extension list, so both fixtures carry .html or the
+#     "fires" half would measure nothing. The clean fixture must also avoid the
+#     OTHER four scans — no form POST path, no challenge widget, no rate quoted
+#     without a denominator, no control limits — or "silent on clean" is testing
+#     the wrong thing.
+printf '<form><input type="text" name="honeypot" class="visually-hidden"></form>\n' > "$DH/src/form-bad.html"
+printf '<div style="display:none" aria-hidden="true"><label>Leave blank<input type="text" name="honeypot_zx9" tabindex="-1" autocomplete="off"></label></div>\n' > "$DH/src/form-good.html"
+assert_hook_fires  "forms anti-patterns" plugins/forms-engineering/hooks/flag-form-antipatterns.sh "$DH/src/form-bad.html"
+assert_hook_silent "forms anti-patterns" plugins/forms-engineering/hooks/flag-form-antipatterns.sh "$DH/src/form-good.html"
+
 echo
 echo "── Gate 31: route-decision-review (decision tribunal routing) ─────────────"
 # The PreToolUse(AskUserQuestion) hook auto-resolves rule/fact-derivable yes/no
@@ -3733,9 +4190,11 @@ rc=0; python3 "$DSP" --plugin-server "$DSP_PORT_BAD" >/dev/null 2>&1 || rc=$?
 gate "dashboard-server-parity body-diff (drifted: _reclaim_port body mutated)" must_fail "$rc"
 # 32-c: a CSRF allow-list keyed on `args.port` (not `actual_port`) must be caught —
 # a fallback bind would else reject every same-origin /__save (DNS-rebinding defense
-# collapsed into a self-DoS).
+# collapsed into a self-DoS). Injects `args.port` onto the loopback allow-list MEMBER
+# line (which ruff-format reflows onto its own continuation line, NOT the naming line),
+# so this also exercises the format-agnostic brace-span scan in the parity checker.
 DSP_CSRF_BAD="$TMP/serve-dashboards-argsport.py"
-sed 's/f"127.0.0.1:{actual_port}", f"localhost:{actual_port}", "127.0.0.1"/f"127.0.0.1:{args.port}", f"localhost:{actual_port}", "127.0.0.1"/' \
+sed 's/f"127.0.0.1:{actual_port}",/f"127.0.0.1:{args.port}",/' \
   scripts/serve-dashboards.py > "$DSP_CSRF_BAD"
 rc=0; python3 "$DSP" --root-server "$DSP_CSRF_BAD" >/dev/null 2>&1 || rc=$?
 gate "dashboard-server-parity (CSRF allow-list keyed on args.port is caught)" must_fail "$rc"
@@ -3814,6 +4273,59 @@ else
   wait "$C2_PID" 2>/dev/null || true
 fi
 
+# (d) LIVE codespace-forwarded-host variants (the dashboard-403-codespaces fix). A server
+#     launched WITH CODESPACE_NAME set must accept THIS codespace's forwarded host in both
+#     its bare AND explicit-:443 forms — a `:443` Host silently 403'd the CSRF bootstrap, so
+#     the dashboard fell back to read-only "static" mode in a Codespace and Save & apply died
+#     — while a FOREIGN codespace's forwarded host must still 403 (enumerated per-codespace
+#     strings, never a "*.app.github.dev" wildcard: that IS the DNS-rebinding boundary).
+# Structural teeth: both server copies must enumerate the :443 variant (revert the fix -> fail).
+rc=0; { grep -q 'f"{_fwd}:443"' scripts/serve-dashboards.py \
+    && grep -q 'f"{_fwd}:443"' plugins/ravenclaude-core/scripts/serve-dashboards.py; } || rc=1
+gate "C2: both server copies allow-list the codespace :443 host variant" must_pass "$rc"
+C2B_PORT=""
+for cand in $(seq 8065 8114); do
+  if python3 -c "import socket,sys; s=socket.socket(); r=s.connect_ex(('127.0.0.1',$cand)); s.close(); sys.exit(0 if r!=0 else 1)" 2>/dev/null; then
+    C2B_PORT="$cand"; break
+  fi
+done
+if [ -z "$C2B_PORT" ]; then
+  echo "  ‼ C2 codespace-variant guard SKIPPED — no free port in 8065-8114."
+  SKIP=$((SKIP + 1)); SKIPPED_GATES+=("C2 codespace-variant guard [no free port]")
+else
+  C2B_CS="rc-c2b-testcs"
+  C2B_LOG="$TMP/c2b-serve.log"
+  CODESPACE_NAME="$C2B_CS" GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN=app.github.dev \
+    python3 scripts/serve-dashboards.py --port "$C2B_PORT" --bind 127.0.0.1 --no-open --max-idle 0 >"$C2B_LOG" 2>&1 &
+  C2B_PID=$!
+  c2b_ready=0
+  for _ in $(seq 1 40); do
+    if curl -fsS -o /dev/null "http://127.0.0.1:${C2B_PORT}/index.html" 2>/dev/null; then c2b_ready=1; break; fi
+    sleep 0.25
+  done
+  if [ "$c2b_ready" -ne 1 ]; then
+    echo "  ‼ C2 codespace-variant guard SKIPPED — test server did not answer (see $C2B_LOG)."
+    SKIP=$((SKIP + 1)); SKIPPED_GATES+=("C2 codespace-variant guard [server did not start]")
+  else
+    C2B_URL="http://127.0.0.1:${C2B_PORT}"
+    C2B_FWD="${C2B_CS}-${C2B_PORT}.app.github.dev"
+    # canonical forwarded host (same-origin GET, no Origin) -> 200.
+    code=$(curl -s -o /dev/null -w '%{http_code}' -H "Host: ${C2B_FWD}" -H 'Sec-Fetch-Site: same-origin' "${C2B_URL}/__csrf" 2>/dev/null || echo 000)
+    rc=0; [ "$code" = "200" ] || rc=1
+    gate "C2 live: canonical codespace forwarded Host -> 200" must_pass "$rc"
+    # THE FIX: the explicit-:443 form of THIS codespace's host -> 200 (was 403 pre-fix).
+    code=$(curl -s -o /dev/null -w '%{http_code}' -H "Host: ${C2B_FWD}:443" -H 'Sec-Fetch-Site: same-origin' "${C2B_URL}/__csrf" 2>/dev/null || echo 000)
+    rc=0; [ "$code" = "200" ] || rc=1
+    gate "C2 live: codespace forwarded Host with :443 -> 200 (the fix)" must_pass "$rc"
+    # BOUNDARY: a FOREIGN codespace's forwarded host -> 403 (enumerated, never a wildcard).
+    code=$(curl -s -o /dev/null -w '%{http_code}' -H "Host: evil-${C2B_PORT}.app.github.dev" -H 'Sec-Fetch-Site: same-origin' "${C2B_URL}/__csrf" 2>/dev/null || echo 000)
+    rc=0; [ "$code" = "403" ] || rc=1
+    gate "C2 live: FOREIGN codespace forwarded Host -> 403 (no wildcard)" must_pass "$rc"
+  fi
+  kill "$C2B_PID" 2>/dev/null || true
+  wait "$C2B_PID" 2>/dev/null || true
+fi
+
 echo
 echo "── Gate 33: command-review golden set (deterministic regression lane) ─────"
 # Gap 4: thing-golden-eval.py runs a corpus of {dangerous, benign, injection,
@@ -3875,6 +4387,44 @@ if command -v node >/dev/null 2>&1; then
   grep -v 'mk("deny", waLines(".wa-deny"))' index.html > "$RT_BAD_P3"
   rc=0; node "$RT" "$RT_BAD_P3" >/dev/null 2>&1 || rc=$?
   gate "dashboard round-trip (P3 regression: web-access deny emit stripped)" must_fail "$rc"
+  # must_fail (v0.273.0 A): the conserve_tokens emission stripped. This is the
+  # v0.61.0 data-loss class in a NEW key: emitYaml rebuilds the whole posture
+  # from `state`, so a key with no emit line is silently DELETED on the next
+  # Save & apply — a user's conserve-tokens switch would vanish the first time
+  # they changed anything else.
+  RT_BAD_CT="$TMP/dashboard-drifted-conserve.html"
+  grep -v 'conserve_tokens: ${state.conserve_tokens === true}' index.html > "$RT_BAD_CT"
+  rc=0; node "$RT" "$RT_BAD_CT" >/dev/null 2>&1 || rc=$?
+  gate "dashboard round-trip (drifted: conserve_tokens emit stripped)" must_fail "$rc"
+  # must_fail (v0.273.0 B): the parallelism default reverted to the pre-flip
+  # {enabled:false, unlimited:false}. Test 4 asserts the default IS maximum and
+  # that a maximum state emits NOTHING, so a silent revert of the flip — the
+  # single most consequential line in this change — reddens here rather than
+  # shipping as "absent means whatever the agent feels like" again.
+  RT_BAD_PD="$TMP/dashboard-drifted-parallelism.html"
+  sed 's/const PARALLELISM_DEFAULT = Object.freeze({ enabled: true, max_workers: 4, unlimited: true })/const PARALLELISM_DEFAULT = Object.freeze({ enabled: false, max_workers: 4, unlimited: false })/' index.html > "$RT_BAD_PD"
+  rc=0; node "$RT" "$RT_BAD_PD" >/dev/null 2>&1 || rc=$?
+  gate "dashboard round-trip (drifted: parallelism default reverted to OFF)" must_fail "$rc"
+  # must_fail (context_handoff): the context_handoff block header emit stripped —
+  # the exact v0.61.0 data-loss class this key closes. Before it was modelled,
+  # emitYaml rebuilt the whole posture from `state` and silently dropped
+  # `context_handoff:` on every Save (deleting a consumer's successor-spawn recipe
+  # + Stop-nudge mode). Test 1 + Test 6 assert the block survives, so the strip
+  # must redden here.
+  RT_BAD_CH="$TMP/dashboard-drifted-context-handoff.html"
+  grep -v 'lines.push("context_handoff:")' index.html > "$RT_BAD_CH"
+  rc=0; node "$RT" "$RT_BAD_CH" >/dev/null 2>&1 || rc=$?
+  gate "dashboard round-trip (drifted: context_handoff emit stripped)" must_fail "$rc"
+  # must_fail (cheap_lane): the cheap_lane block header emit stripped — the exact
+  # v0.61.0 data-loss class this key closes. Before this fix, cheap_lane was the
+  # ONE unmodelled key in this whole serializer: emitYaml rebuilt the whole
+  # posture from `state` and silently dropped `cheap_lane:` on every Save,
+  # deleting a consumer's Grok/Copilot delegation config with zero warning.
+  # Test 1 + Test 7 assert the block survives, so the strip must redden here.
+  RT_BAD_CL="$TMP/dashboard-drifted-cheap-lane.html"
+  grep -v 'lines.push("cheap_lane:")' index.html > "$RT_BAD_CL"
+  rc=0; node "$RT" "$RT_BAD_CL" >/dev/null 2>&1 || rc=$?
+  gate "dashboard round-trip (drifted: cheap_lane emit stripped)" must_fail "$rc"
 else
   _skip_or_fail "Gate 35 (dashboard round-trip)" node
 fi
@@ -4647,14 +5197,24 @@ PY
     --dashboard "$DASH_HTML" --index "$IDX_ROUTE_BAD" --fixture "$ROUTE_FIX" >/dev/null 2>&1 || rc=$?
   gate "committed-routes (a broken DASH_OWNER destination is detected)" must_fail "$rc"
 
-  # ── G12: committed-artifact version consistency. Asserts the ravenclaude-core
-  # plugin version embedded in the COMMITTED index.html (window.__RC_DATA__) equals
-  # the committed plugin.json version. Gate 13/97 catch this via regenerate+byte-
-  # compare, but that (a) needs a full regen and (b) was bypassed on the merge COMMIT
-  # for the 0.208.1-vs-0.209.0 drift that reached main via merge-skew. This is a cheap,
-  # committed-only, explicit-message tripwire (NOT the marketplace CATALOG version /
-  # foot-version, which is a separate field). Runs against $IDX_HTML (freshly rendered
-  # in the audit) so it also covers the fresh side. ──
+  # ── G12: rendered-artifact version consistency. Asserts the ravenclaude-core
+  # plugin version embedded in the RENDERED index.html ($IDX_HTML, window.__RC_DATA__)
+  # equals the committed plugin.json version.
+  #
+  # ⛔ NAME/COMMENT CORRECTION (2026-08-18). This block was documented as a
+  # "committed-only tripwire" for the 0.208.1-vs-0.209.0 drift that reached main via
+  # merge-skew — but the code passes $IDX_HTML, the file the audit had just rendered,
+  # so it never read the committed artifact at all and could not have caught that
+  # class of drift. The comment was cited as coverage that did not exist. It is
+  # relabelled here rather than repointed: on origin/main @ 08237f2e the COMMITTED
+  # index.html embedded 0.273.0 against a 0.275.0 manifest, and gating that at PR
+  # time would fail every version-bumping PR (7 of the last 20 commits) until the
+  # author regenerated a 9 MB artifact — the contagion regenerate-artifacts.yml
+  # exists to end. Committed version freshness is owned by that post-merge self-heal,
+  # which exits 1 loudly when it cannot land (runs 32121433735 / 32134742228 /
+  # 32136250292 / 32137465607 all failed at "self-heal PR #968 registered NO checks",
+  # which is why main was two versions behind). Structural committed-artifact drift
+  # — the class that does NOT self-heal — is gated in Gates 13(a) and 97. ──
   _idx_rc_version() { # $1=html $2=want-version → exit 0 iff embedded == want
     python3 - "$1" "$2" <<'PY'
 import json, re, sys
@@ -4670,13 +5230,13 @@ PY
   }
   MANIFEST_V=$(python3 -c "import json;print(json.load(open('plugins/ravenclaude-core/.claude-plugin/plugin.json'))['version'])")
   rc=0; _idx_rc_version "$IDX_HTML" "$MANIFEST_V" || rc=$?
-  gate "artifact-version (index.html embeds the manifest rc-core version)" must_pass "$rc"
+  gate "artifact-version (RENDERED index.html embeds the manifest rc-core version)" must_pass "$rc"
   # must_fail (teeth): an index.html embedding a DIFFERENT rc-core version is caught.
   IDX_VER_BAD="$TMP/render-index-verdrift.html"
   sed "s/\"name\":\"ravenclaude-core\",\"label\":\"Ravenclaude Core\",\"version\":\"$MANIFEST_V\"/\"name\":\"ravenclaude-core\",\"label\":\"Ravenclaude Core\",\"version\":\"0.0.0\"/" "$IDX_HTML" > "$IDX_VER_BAD"
   cmp_rc=0; cmp -s "$IDX_HTML" "$IDX_VER_BAD" || cmp_rc=$?; gate "artifact-version mutation is not a no-op" must_fail "$cmp_rc"
   rc=0; _idx_rc_version "$IDX_VER_BAD" "$MANIFEST_V" || rc=$?
-  gate "artifact-version (a drifted embedded rc-core version is detected)" must_fail "$rc"
+  gate "artifact-version (a drifted embedded rc-core version is detected in the RENDERED index)" must_fail "$rc"
 
   # ── required_routes floor half (PB-2): the anti-laundering control C5 needs. ──
   # must_fail 51-a (the sharpest): remove a required href from a rendered copy,
@@ -4868,6 +5428,28 @@ echo "── Gate 97: index.html freshness (template round-trip, check-only) ─
 # self-healed post-merge (regenerate-artifacts.yml) and remains checkable on
 # demand via `audit-gates.sh --check 97` (which reads the committed file).
 # See docs/best-practices/hermetic-validation-no-in-place-regen.md.
+#
+# ⛔ CORRECTION (2026-08-18): the paragraph above describes a gate with a blind
+# spot the size of the artifact. Pointing EVERY assertion at $IDX_HTML made this a
+# generator-determinism check and nothing more — it says exactly nothing about the
+# index.html that actually ships. The committed-file check survived only on the
+# `audit-gates.sh --check 97` per-gate path, which NO workflow invokes, so in the
+# full suite it was unreachable. On origin/main @ 08237f2e the committed index.html
+# was stale (`generate-index-dashboard.py --check` -> exit 1) while this gate
+# reported both halves green. The committed half is restored below. It is
+# STRUCTURAL (timestamps + version values excluded) so it does not reintroduce the
+# per-PR regen contagion — see scripts/check-artifact-freshness.py's header, and
+# Gate 13(a) for the same rewrite on the dashboard surface. Read-only.
+rc=0; python3 scripts/check-artifact-freshness.py --check --surface index.html >/dev/null 2>&1 || rc=$?
+gate "index freshness (COMMITTED index.html is structurally fresh)" must_pass "$rc"
+# Teeth planted into the REAL committed index.html: clean baseline asserted first,
+# then two drift shapes must BOTH redden. Non-zero if the baseline was already
+# stale, so a pre-existing condition can never be laundered into a passing must_fail.
+rc=0; python3 scripts/check-artifact-freshness.py --must-fail --surface index.html >/dev/null 2>&1 || rc=$?
+gate "index freshness teeth: clean baseline -> planted drift in the REAL committed file caught" must_pass "$rc"
+# The two assertions below stay: they are the generator-DETERMINISM half (a fresh
+# render round-trips through --check) and are complementary to, not a substitute
+# for, the committed-artifact half above.
 # must_fail: a hand-edit the template does not emit is detected by --check.
 printf '\n<!-- AUDIT FIXTURE — hand-edit the template does not have -->\n' >> "$IDX_HTML"
 rc=0; python3 scripts/generate-index-dashboard.py --check -o "$IDX_HTML" >/dev/null 2>&1 || rc=$?
@@ -5348,21 +5930,55 @@ gate "converge rc verb: report/verdict/derive + friendly errors + word-boundary 
 rc=0; python3 scripts/check-converge-rc.py --must-fail-overclaim >/dev/null 2>&1 || rc=$?
 gate "converge rc verb: over-claim screen has teeth (renders 'perfect' when screen neutered)" must_pass "$rc"
 
-echo "── Gates 120–125: model-fallback + nudges + Dataverse pre-flight (restored after #519 dropped 120–123) ──"
+# ⛔ THESE EIGHT USED TO SHARE ONE BATCHED HEADER, AND THAT DEFEATED THE ONE
+# CHECK THIS SUITE MANDATES FOR ITSELF.
+#
+# The header read "── Gates 120–125: … ──" while the block actually ran EIGHT
+# tests (120-125, the managed-import gate, and 127). Gate 184's block, twelve
+# hundred lines below, states the rule in its own words: "When adding a gate,
+# RUN THE FULL SUITE AND GREP ITS OUTPUT FOR THE NEW GATE: a passing suite is
+# not evidence your gate is in it."
+#
+# Against the old header that grep returned NOTHING for `Gate 120`, `Gate 121`,
+# `Gate 122`, `Gate 123`, `Gate 124`, `Gate 125` or `Gate 127` — the plural
+# "Gates" and the en-dash range match none of them. So the prescribed
+# verification reported seven gates ABSENT while all seven were running, and an
+# audit that trusted it would "restore" gates that were never lost. That is what
+# #519 did once already, which is why the old header carried "(restored after
+# #519 dropped 120–123)".
+#
+# One header per gate, each containing the literal string the grep looks for.
+# Do NOT re-batch them.
+echo "── Gate 120: model-fallback helper (classification / cost cap / exclude / disabled-byte-identical) ──"
 rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate120-model-fallback.sh >/dev/null 2>&1 || rc=$?
 gate "model-fallback helper: classification + cost cap + exclude + disabled-byte-identical + teeth" must_pass "$rc"
+echo "── Gate 121: model-fallback runtime model-diversity collapse (fail-closed / inert) ──"
 rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate121-model-fallback-diversity.sh >/dev/null 2>&1 || rc=$?
 gate "model-fallback runtime diversity: collapse fails closed + inert when distinct + teeth" must_pass "$rc"
+echo "── Gate 122: delegation-nudge.sh (consult-your-access-inventory written-artifact nudge) ──"
 rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate122-delegation-nudge.sh >/dev/null 2>&1 || rc=$?
 gate "delegation-nudge: fires on delegation prose + silent on reason/route/escape/scope/opt-out + teeth" must_pass "$rc"
+echo "── Gate 123: design-project binding surfacing (bound / half-set / absent / leak-safe) ──"
 rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate123-design-project-binding.sh >/dev/null 2>&1 || rc=$?
 gate "design-project binding: surfaces when bound + guides when half-set + silent when absent + leak-safe + teeth" must_pass "$rc"
+echo "── Gate 124: dataverse-payload-preflight validate() (all violation classes / clean) ──"
 rc=0; bash plugins/power-platform/hooks/tests/test-preflight.sh >/dev/null 2>&1 || rc=$?
 gate "dataverse-payload-preflight: catches all violation classes in one pass + clean on good + teeth" must_pass "$rc"
+echo "── Gate 125: nudge-dataverse-preflight.sh (fires on create/update / silent on GET+opt-out) ──"
 rc=0; bash plugins/power-platform/hooks/tests/test-nudge-preflight.sh >/dev/null 2>&1 || rc=$?
 gate "nudge-dataverse-preflight: fires on Dataverse create/update under posture + silent on GET/opt-out + teeth" must_pass "$rc"
+# ⛔ Gate 217, NOT 126. The --check dispatcher used to answer `126` with this
+# managed-import test, while the suite's own "Gate 126" header (below) is the
+# workflow-mirror byte-identity gate — two different gates wearing one number.
+# `--check 126` therefore ran something other than the Gate 126 the suite ran,
+# and the constitution documents 126 as the file-mirror gate
+# (plugins/ravenclaude-core/CLAUDE.md:1432,1450). The mirror gate keeps 126;
+# managed-import takes the next free number. Nothing referenced this gate by
+# number in any doc, so the renumber breaks no citation.
+echo "── Gate 217: managed-solution-import pure-logic (PROD-guard / SSRF allow-list / baseline-by-stable-key) ──"
 rc=0; bash plugins/power-platform/hooks/tests/test-managed-import.sh >/dev/null 2>&1 || rc=$?
 gate "managed-solution-import: PROD-guard boundaries + SSRF allow-list + baseline-by-stable-key + flag-economy + teeth" must_pass "$rc"
+echo "── Gate 127: pseudonymize.py (fail-closed encode / no-egress / FM7 NER-absent / FM8) ──"
 rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate127-pseudonymize.sh >/dev/null 2>&1 || rc=$?
 gate "Gate 127 pseudonymize.py: fail-closed encode + no-egress + FM7 NER-absent + FM8 + teeth" must_pass "$rc"
 
@@ -5587,8 +6203,19 @@ echo "── Gate 140: worktree-guard block-mode teeth ────────�
 # contention/anchor + a mutating op -> exit 2 deny) AND MUST-PASS (a solo checkout, a
 # read op, or ACK=1 -> exit 0), plus a teeth half that neuters the mutating classifier
 # and proves the deny then disappears.
-rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate140-worktree-guard.sh >/dev/null 2>&1 || rc=$?
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate140-worktree-guard.sh < /dev/null >/dev/null 2>&1 || rc=$?
 gate "worktree-guard block-mode teeth (deny mutating on contention/anchor; allow solo/read/ACK)" must_pass "$rc"
+
+# ⛔ The 16-case core suite for the SAME hook, and until now NO WORKFLOW RAN IT.
+# It carries its own must-fail half, so it was a real gate — just an unrun one,
+# which is this repo's recorded silent-green "unrun" variant. Measured 2026-08-24:
+# its T5 ACK assertion had been RED on main, and a suite nobody invokes reports
+# nothing. Gate 140 above covers block-mode teeth only; this covers ownership,
+# PATH_KEY bucketing, GC of stale records, FOREIGN-TREE, and the lease/contention
+# layering (T5b). Registering it is the whole point — a gate that is not in a
+# sequence some workflow executes is indistinguishable from a gate that passes.
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-worktree-guard-core.sh < /dev/null >/dev/null 2>&1 || rc=$?
+gate "worktree-guard core: ownership, bucketing, stale-GC, FOREIGN-TREE, lease/contention layering" must_pass "$rc"
 
 echo
 echo "── Gate 143: Thing-denial KB (Muninn) security contract ──────────────────"
@@ -6410,8 +7037,31 @@ echo "── Gate 185: probe verdict classes — a non-result is not an absence 
 #   so following the printed remedy ADDED an unresolved negative instead of clearing one;
 #   and RATE-LIMITING recorded as `negative` — "I could not ask" stated as "it is not
 #   there", unclearable on retry, leaving the override as the only exit.
+#
+# EXTENDED 2026-08-18 — the same mis-classification, a third shape, MEASURED
+# rather than reasoned. Across every probe-ledger on the maintainer machine
+# (7 scopes / 3,070 entries) 54 of the 204 negatives carried an `http-NNN`
+# label, and 54 of 54 came from a Bash command with NO network client in it:
+# `wc -l` -> http-454, `ls -la` -> http-448, `git diff --stat` -> http-447,
+# `git show --stat` -> http-403. `http-447/448/454/459/482` are not status
+# codes. Three of the seven scopes carried unresolved negative families made
+# ENTIRELY of these — i.e. the gate refusing a new source module because a
+# line count started with a 4. A guard that fires on `wc -l` gets switched off.
+# The bare-code patterns (negative, indeterminate AND positive — symmetric, or
+# a false deny is merely traded for a false clear) are now gated on the probe
+# actually being an HTTP probe; every textual marker is untouched.
+#
+# The gate also now pins OBSERVABILITY: guard-premise.sh emitted ZERO of the
+# 463 real hook events on that machine, from six emitting hooks — so its own
+# false-positive rate was unmeasurable from the substrate and Heimdall/Víðarr
+# showed a clean perimeter while it denied. It now emits DERIVED VALUES ONLY
+# (basename + fixed rule token), and an allowed write still emits nothing.
 rc=0; bash plugins/ravenclaude-core/hooks/tests/test-probe-verdict-classes.sh >/dev/null 2>&1 || rc=$?
-gate "probe verdicts: non-result -> indeterminate, bidirectional control -> positive, real absence still negative" must_pass "$rc"
+gate "probe verdicts: non-result -> indeterminate, bidirectional control -> positive, real absence still negative, a bare number is not a status code, deny is observable" must_pass "$rc"
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-probe-verdict-classes.sh --must-fail-http-gating >/dev/null 2>&1 || rc=$?
+gate "probe verdicts teeth A: an ungated bare status code (wc -l -> http-454) IS caught" must_fail "$rc"
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-probe-verdict-classes.sh --must-fail-emit >/dev/null 2>&1 || rc=$?
+gate "probe verdicts teeth B: a premise deny that emits no substrate event IS caught" must_fail "$rc"
 
 echo "── Gate 186: compact-anchor — the pointer never echoes transcript content ─"
 # The SessionStart(compact) addressability pointer. Compaction is append-only, so the
@@ -6737,7 +7387,7 @@ echo "── Gate 195: gate-introspection meta-gate — this suite audits ITSELF
 rc=0; python3 scripts/check-gate-registration.py >/dev/null 2>&1 || rc=$?
 gate "gate-registration: reachability + number-uniqueness + dispatcher/Supported parity + exit-2 specificity" must_pass "$rc"
 rc=0; python3 scripts/check-gate-registration.py --self-test >/dev/null 2>&1 || rc=$?
-gate "gate-registration: teeth (4 mutants caught, 4 anti-flood companions clean, unparseable fails closed)" must_pass "$rc"
+gate "gate-registration: teeth (5 mutants caught, 5 anti-flood companions clean, unparseable fails closed)" must_pass "$rc"
 
 echo
 echo "── Gate 196: every regex in every shipped catalog compiles ────────────────"
@@ -7275,6 +7925,19 @@ gate "handoff-host-pair: chat/cli dry-run omit grok; unset host still grok" must
 rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate215-handoff-host-spawn.sh --must-fail-chat-grok >/dev/null 2>&1 || rc=$?
 gate "handoff-host-pair teeth: a mutant that emits grok on --host chat IS caught" must_fail "$rc"
 
+echo "── Gate 216: a worktree we could not inspect must never read as clean ──"
+# ⛔ Registered in BOTH this main sequence AND the --check dispatcher above + the
+# Supported: string. After adding a gate, GREP THE SUITE OUTPUT FOR "216".
+#
+# worktree-clean.sh --all gated deletion on `[ -z "$(git … 2>/dev/null)" ]`. A
+# FAILED `git status` (stale linked worktree, corrupt .git, git off PATH) emits
+# empty stdout and a non-zero exit, so the failed inspection was indistinguishable
+# from a clean tree and the worktree was DELETED unexamined. Found 2026-08-17.
+rc=0; bash scripts/check-worktree-state.sh >/dev/null 2>&1 || rc=$?
+gate "worktree-state: clean/DIRTY/UNKNOWN split; --all skips the un-inspectable" must_pass "$rc"
+rc=0; bash scripts/check-worktree-state.sh --must-fail-nofix >/dev/null 2>&1 || rc=$?
+gate "worktree-state teeth: with the fix removed, broken misreads as clean and IS caught" must_fail "$rc"
+
 echo "── Gate 206: no plugin description may carry an artifact-count literal ──"
 # P13 / D1. Prose counts in plugin.json + marketplace.json descriptions are
 # dropped, not kept-fresh. The adjective-tolerant checker is the migration-
@@ -7370,6 +8033,1295 @@ cmp_rc=0; cmp -s "$IDX_HTML" "$_g205_idx" || cmp_rc=$?
 gate "committed-routes learn-retarget mutation is not a no-op" must_fail "$cmp_rc"
 rc=0; node scripts/check-committed-routes.mjs --index "$_g205_idx" >/dev/null 2>&1 || rc=$?
 gate "committed-routes derived-dispatch teeth: retargeting the learn branch IS caught" must_fail "$rc"
+
+echo
+echo "── Gate 223: parallelism posture — 3 conserve triggers + the serial detector ─"
+# Parallelism now defaults to MAXIMUM, which is a default + a directive + a DETECTOR.
+# ⛔ None of the three can be a blocking gate: a hook can stop an action, it cannot
+# compel one, and the second dispatch that never happened emits no event to block.
+# So the only honest coverage is that the ENGINES DISCRIMINATE — this gate proves it.
+#
+# ⛔ EVERY assertion inside is PAIRED with a control in the opposite direction. "The
+# phrase engages conserve mode" is satisfied by an engine that engages on everything;
+# "88% of the window engages" is satisfied by one that always engages. Only the pair
+# distinguishes a working trigger from a stuck one, and a stuck-on trigger would
+# silently revert this whole change to sequential for every consumer.
+#
+# ⛔ Registered in BOTH this main sequence AND the --check dispatcher above + the
+# Supported: string. After adding a gate, run the full suite and GREP ITS OUTPUT FOR
+# "Gate 223" — a passing suite is not evidence your gate is in it. (v0.241.0 put a
+# gate's main block INSIDE the dispatcher's case arm; it never ran for a whole release
+# while the suite reported green.)
+rc=0; python3 scripts/check-parallelism-posture.py >/dev/null 2>&1 || rc=$?
+gate "parallelism: 3 conserve triggers + precedence + detector discriminates" must_pass "$rc"
+
+# Three teeth halves, one per mechanism. Each neuters ONE thing and must redden the
+# suite; `--must-fail-*` exits 0 only when at least one assertion actually fired, so a
+# mutant that changes nothing observable is itself a failure.
+#   precedence — RELEASE_PHRASES emptied: without it a session engaged by a phrase has
+#                NO exit short of editing a config file mid-conversation.
+#   window     — BATCH_WINDOW_S = 0: a genuinely parallel burst is miscounted as N
+#                serial singles, i.e. the detector reports the OPPOSITE of the truth.
+#   pressure   — the auto threshold ignored: the automatic trigger never fires, which
+#                is the failure that looks exactly like "nobody hit the threshold".
+for _pp_m in precedence window pressure; do
+  _pp_rc=0
+  python3 scripts/check-parallelism-posture.py --must-fail-"$_pp_m" >/dev/null 2>&1 || _pp_rc=$?
+  gate "parallelism teeth: neutering $_pp_m reddens the suite" must_pass "$_pp_rc"
+done
+
+echo
+echo
+echo "── Gate 225: self-disable read-only discriminator — floor intact, maintenance unblocked ─"
+# xc.tribunal-self-disable is pre-LLM, non-overridable and category-independent: the
+# security floor. It was ALSO denying ordinary maintenance, because it matched any
+# command that merely NAMED the substrate. Measured 2026-08-18: SEVEN legitimate
+# operations denied in one session — a read-only search whose PATTERN contained
+# `command_review:`, a stage-and-commit whose COMMIT MESSAGE described the denial, a
+# rename of a gate TEST file, and a scratch file whose NAME contained `patch`. The
+# guard's printed remedy ("turn the Thing off in the dashboard") was ALREADY applied
+# and does not help — always_screen runs before the enabled gate.
+#
+# ⛔ THE FIX CLASSIFIES THE COMMAND; IT RELAXES NO TRIGGER. With a read-only first
+# token and no shell metacharacters, nothing else on the line can execute — later
+# words are ARGUMENTS. Controlled against pristine code: the 9 mutation cases deny
+# IDENTICALLY before and after; only the 2 false denials flipped.
+#
+# ⛔ Registered in BOTH this main sequence AND the --check dispatcher above + the
+# Supported: string. After adding a gate, run the full suite and GREP ITS OUTPUT FOR
+# "Gate 225" — a passing suite is not evidence your gate is in it.
+_g225_rc=0
+bash plugins/ravenclaude-core/hooks/tests/test-gate225-self-disable-readonly.sh >/dev/null 2>&1 || _g225_rc=$?
+gate "self-disable: every substrate mutation still denies; non-writing maintenance is not blocked" must_pass "$_g225_rc"
+_g225_mf=0
+bash plugins/ravenclaude-core/hooks/tests/test-gate225-self-disable-readonly.sh --must-fail-meta >/dev/null 2>&1 || _g225_mf=$?
+gate "self-disable teeth: neutering the metacharacter conjunct lets a chained mutation through" must_pass "$_g225_mf"
+
+echo
+echo "── Gate 222: forge-route.py routing fixtures — a MENTION is not a PRE-COMMITMENT ─"
+# forge-route.py decides tiebreak F3: does a plan land on `main`, or via a draft PR?
+# Its `layout-allowlist-edit` signal was `re.compile(r"\.repo-layout\.json|allowed_globs")`
+# — a bare substring match on a FILENAME. So a plan stating the OPPOSITE of a
+# pre-commitment ("`.repo-layout.json` needs **no edit** — settled by probe") FIRED it and
+# was forced to a draft PR. That is this repo's own recorded "source-scan gates match
+# PROSE" defect, sitting in the router that enforces F3 — and F3 exists precisely so a
+# PURE DESIGN/ANALYSIS plan can land on main. Every analysis plan that merely *discussed*
+# the layout file was denied that path.
+#
+# ⛔ AND THE SELF-TEST WAS REGISTERED BY NOTHING. `forge-route.py --self-test` shipped with
+# fixtures, is cited in the FORGE skill as "a registered, citable canonical route", and NO
+# gate or workflow ever invoked it — a grep of scripts/ and .github/ returned zero hits.
+# The fixtures could have rotted indefinitely and nothing would have said so. THIS GATE IS
+# THAT REGISTRATION; the detector fix is only half the change.
+#
+# ⛔ Registered in BOTH this main sequence AND the --check dispatcher above + the
+# Supported: string. After adding a gate, run the full suite and GREP ITS OUTPUT FOR
+# "Gate 222" — a passing suite is not evidence your gate is in it. (v0.241.0 put a gate's
+# main block INSIDE the dispatcher's case arm; it never ran for a whole release while the
+# suite reported green.)
+rc=0; python3 plugins/ravenclaude-core/scripts/forge-route.py --self-test >/dev/null 2>&1 || rc=$?
+gate "forge-route: routing fixtures OK (incl. layout mention-vs-commitment, both ways)" must_pass "$rc"
+
+# must_fail half — revert the layout detector in a THROWAWAY copy and prove the two
+# NEGATIVE fixtures redden. Without this, "fixtures OK" would print identically if the
+# detector had gone blind and matched nothing at all: a false-negative detector and a
+# correct one are indistinguishable from the positive fixtures alone.
+_fr_mut=$(mktemp) || _fr_mut="/tmp/forge-route-mutant.$$"
+_fr_rc=1
+if python3 scripts/_mutate-forge-route.py "$_fr_mut" >/dev/null 2>&1; then
+  _fr_mf=0; python3 "$_fr_mut" --self-test >/dev/null 2>&1 || _fr_mf=$?
+  [ "$_fr_mf" -ne 0 ] && _fr_rc=0
+fi
+rm -f "$_fr_mut"
+gate "forge-route teeth: reverting the layout detector reddens the negative fixtures" must_pass "$_fr_rc"
+
+echo "── Gate 218: lss_calc.py numeric correctness (Cp/Cpk/Ppk · sigma↔DPMO · I-MR · COPQ) ─"
+# lss_calc.py is the process-improvement plugin's only executable, and it had NO
+# coverage anywhere in the repo — no gate, no workflow, no test — while every
+# number it prints (a capability index, a sigma level, a CONTROL LIMIT, a COPQ
+# recovery figure) lands in a tollgate deck. A transposed control-chart constant
+# is the worst thing it can ship: it moves the line a plant reacts to, and it
+# looks exactly like a correct number.
+#
+# The battery drives all four advertised modes against hand-checkable inputs
+# (3.4 DPMO -> 6.00σ long-term; 5,7,5,7,5,7 -> X-bar 6.0000, MR-bar 2.0000,
+# I limits 6 ± 2.66×2; 120k+80k+40k COPQ = 240,000 = 4.80% of 5M). The
+# expectations are auditable on paper, so the gate is not merely re-running the
+# implementation against itself.
+#
+# ⛔ Registered in BOTH this main sequence AND the --check dispatcher above + the
+# Supported: string. After adding a gate, run the full suite and GREP ITS OUTPUT
+# FOR "218" — a passing suite is not evidence your gate is in it.
+rc=0; python3 scripts/check-lss-calc.py --self-test >/dev/null 2>&1 || rc=$?
+gate "lss_calc teeth: 6 arithmetic mutants caught, unmutated control clean" must_pass "$rc"
+rc=0; python3 scripts/check-lss-calc.py >/dev/null 2>&1 || rc=$?
+gate "lss_calc: capability / sigma↔DPMO / I-MR / COPQ all match hand-checked values" must_pass "$rc"
+
+# must_fail half: plant the wrong MR-chart D4 constant (3.267 -> 3.0) and prove
+# the battery actually reddens on it — and reddens with exit 2, not a
+# non-blocking 1.
+rc=0; python3 scripts/check-lss-calc.py --must-fail >/dev/null 2>&1 || rc=$?
+gate "lss_calc teeth: a planted wrong control-chart constant IS caught" must_fail "$rc"
+rc_is_2=0; [ "$rc" -eq 2 ] || rc_is_2=1
+gate "lss_calc teeth: the planted constant fails closed at exit 2 (not 1)" must_pass "$rc_is_2"
+
+echo
+echo "── Gate 219: forms substrate separation + cite-don't-restate (check-forms-substrate-separation.py) ─"
+# plugins/forms-engineering/ is a SEAM, not a new owner. Two properties keep that
+# framing honest and neither survives on author discipline:
+#   (1) SEPARABILITY — the RavenPower substrate layer is exactly two allowlisted
+#       files, so deleting them leaves a plugin that still passes this suite.
+#       plugins/*/substrate/** is DENIED by enforce-layout.sh, so the split is
+#       file-level and mechanically checked rather than expressed as a folder.
+#   (2) CITE, DON'T RESTATE — ravenclaude-core/rules/security.md owns upload
+#       hardening and knowledge/concepts/cloudflare-who-gets-in.md owns the
+#       challenge-widget mechanics (dated, sourced, refresh_when:-triggered). A
+#       second copy in a sibling plugin rots silently the moment upstream moves.
+#
+# Sub-checks A (path) / B (citation form) / C (no restated constitution, with
+# `single-use` scoped by CO-OCCURRENCE) / D (cite-or-be-silent: any file that
+# discusses uploads or a challenge widget must carry a RESOLVING link into
+# plugins/ravenclaude-core/) / E (anchor rot: cite by stable anchor text, never
+# by line number — P8-style edits move line numbers and nothing notices).
+#
+# ⛔ B and C are literal-string matches and CANNOT fail on a PARAPHRASE. Measured:
+# a paragraph restating security.md exactly in meaning passes both green. D is the
+# half that works — a positive requirement cannot be evaded by word choice — and a
+# paraphrase fixture is committed so the boundary lives in the suite, not a memo.
+# Scope is plugins/forms-engineering/**/*.md ONLY; hooks/ and scripts/ are out by
+# construction (a hook cannot detect a widget without naming it, and a shell line
+# can never be a markdown link). A .sh scope fixture regression-locks that.
+#
+# ⛔ Registered in BOTH this main sequence AND the --check dispatcher above + the
+# Supported: string. After adding a gate, run the full suite and GREP ITS OUTPUT
+# FOR the SCRIPT NAME on an executed line — a batched header once made a by-number
+# grep return 0 for seven gates that all ran.
+rc=0; python3 scripts/check-forms-substrate-separation.py --self-test >/dev/null 2>&1 || rc=$?
+gate "forms separation teeth: A/B/C/D/E each distinguish" must_pass "$rc"
+rc=0; python3 scripts/check-forms-substrate-separation.py >/dev/null 2>&1 || rc=$?
+gate "forms separation: allowlist / citation form / no restatement / anchors" must_pass "$rc"
+rc=0; python3 scripts/check-forms-substrate-separation.py --must-fail >/dev/null 2>&1 || rc=$?
+gate "forms separation teeth: a planted restatement IS caught" must_fail "$rc"
+rc_is_2=0; [ "$rc" -eq 2 ] || rc_is_2=1
+gate "forms separation teeth: the planted violation fails closed at exit 2" must_pass "$rc_is_2"
+
+echo
+echo "── Gate 220: form_metrics.py correctness + SPC round-trip (check-form-metrics.py) ──"
+# form_metrics.py is the forms plugin's only executable, and it carries the
+# plugin's only claim with no prior art: that a form completion series can be
+# handed to statistical process control. A claim with no literature has to be
+# mechanically testable or it is just prose — so this gate RUNS the script.
+#
+# Assertions, all against a committed fixture with HAND-COMPUTED expectations
+# (25 sessions; 20 completers at 60/62/58/64/56 x4 -> mean 60.00, median 60.00;
+# email errors 5/25 = 20.00%; last-touch phone 3/5 = 60.00%):
+#   (i)   the round-trip lss_calc.py imr --values "$(form_metrics.py --emit-imr F)"
+#         exits 0 and prints UCL/LCL. ⛔ COMMAND SUBSTITUTION, NOT A PIPE —
+#         lss_calc.py imr declares --values required and has NO stdin path; the
+#         piped form discards the left side and exits 2 (measured).
+#   (ii)  --emit-imr stdout is numeric-only, asserted as a COUNT of violating
+#         lines. ⛔ never `grep -q -v`: on this host adding -q to -v inverts the
+#         answer TOWARD CLEAN and a draft of this assertion passed a bad fixture.
+#   (iii) the VERBATIM novel-synthesis marker is in captured STDERR of a plain
+#         run and of --emit-imr. ⛔ This lives here and not in Gate 221 because
+#         only an EXECUTION assertion proves the label reaches a user — a marker
+#         in a docstring satisfies a string check identically.
+#   (iv)  negative controls: malformed CSV, completions > starts, and a series
+#         below the 20-observation charting floor each fail closed. The floor
+#         matters: lss_calc.py imr accepts n>=2, so without it this gate would
+#         bless a two-point series the plugin's own rule #5 forbids.
+#
+# ⛔ Registered in BOTH this main sequence AND the --check dispatcher above + the
+# Supported: string. GREP THE SUITE OUTPUT FOR the script name, not for "220".
+rc=0; python3 scripts/check-form-metrics.py --self-test >/dev/null 2>&1 || rc=$?
+gate "form_metrics teeth: stream contract distinguishes good vs bad mock" must_pass "$rc"
+rc=0; python3 scripts/check-form-metrics.py >/dev/null 2>&1 || rc=$?
+gate "form_metrics: hand-checked values, stream contract, I-MR round-trip EXECUTES" must_pass "$rc"
+rc=0; python3 scripts/check-form-metrics.py --must-fail >/dev/null 2>&1 || rc=$?
+gate "form_metrics teeth: a planted wrong expected value IS caught" must_fail "$rc"
+rc_is_2=0; [ "$rc" -eq 2 ] || rc_is_2=1
+gate "form_metrics teeth: the planted value fails closed at exit 2" must_pass "$rc_is_2"
+
+echo
+echo "── Gate 221: forms honesty markers (check-forms-honesty-markers.py) ─"
+# Two claims in forms-engineering are weaker than they read, and a one-time
+# release grep protects only the PR that introduces it. Both ship behind
+# permanent sub-checks with must-fail halves instead:
+#   A  applying SPC to form telemetry is OUR synthesis (two open-web searches
+#      returned zero intersection). Any doc surface co-occurring an SPC/DMAIC
+#      term with a form-analytics term must carry the VERBATIM marker.
+#   B  the challenge vendor's own docs give one WCAG level on the overview page
+#      and a different one on the plans page. No surface states either level
+#      unqualified. LINE-WINDOW based, never same-physical-line — a same-line
+#      probe reports green on wrapped prose while measuring nothing.
+#   C  no vendor pricing in prose (stale within a quarter). A negative
+#      INSTRUCTION about pricing must NOT trip it; that fixture is committed.
+#
+# ⛔ Sub-check A covers DOCUMENTATION surfaces only. It cannot verify that
+# form_metrics.py PRINTS the marker — a docstring satisfies a string check
+# identically to a printed line. That half is GATE 220, which executes the script
+# and reads captured stderr.
+#
+# ⛔ Registered in BOTH this main sequence AND the --check dispatcher above + the
+# Supported: string. GREP THE SUITE OUTPUT FOR the script name, not for "221".
+rc=0; python3 scripts/check-forms-honesty-markers.py --self-test >/dev/null 2>&1 || rc=$?
+gate "forms honesty teeth: A/B/C distinguish, negative instruction silent" must_pass "$rc"
+rc=0; python3 scripts/check-forms-honesty-markers.py >/dev/null 2>&1 || rc=$?
+gate "forms honesty: novel-synthesis marker / named WCAG conflict / no pricing" must_pass "$rc"
+rc=0; python3 scripts/check-forms-honesty-markers.py --must-fail >/dev/null 2>&1 || rc=$?
+gate "forms honesty teeth: three planted dishonest claims ARE caught" must_fail "$rc"
+rc_is_2=0; [ "$rc" -eq 2 ] || rc_is_2=1
+gate "forms honesty teeth: the planted claims fail closed at exit 2" must_pass "$rc_is_2"
+
+echo "── Gate 224: assumption layers — inference-as-observation + ask-on-ambiguity ─"
+# Two advisory surfaces under the "before claiming" / "ask on ambiguity" rules:
+#   claim-grounding-lint.sh check 3 — a CAUSAL claim about an outcome written into
+#     a knowledge/ or docs/ markdown file with no cited this-session check. Typing
+#     is scripts/classify_claim.py's job (the hook batches candidates through its
+#     --lines mode); the hook only decides which lines are in scope.
+#   scripts/ask-on-ambiguity.sh — a UserPromptSubmit nudge on a narrow
+#     under-specified PROMPT SHAPE. Never blocks, never persists the prompt.
+#
+# ⛔ The B-half is the point, not decoration. The first cut of check 3 fired on
+# 92 of 240 sampled live knowledge/+docs/ files (38%); after narrowing it is
+# 9/240. A doc DESCRIBING the anti-pattern must not be flagged — this repo has a
+# recurring failure where a source-scan gate flags the prose explaining the very
+# pattern it hunts — so B2/B3 assert exactly that, and C1 neuters the
+# suppressions to prove those silences are load-bearing rather than a check that
+# never runs. C2 does the same for ask-on-ambiguity's referent conjunct.
+#
+# ⛔ Registered in BOTH this main sequence AND the --check dispatcher above + the
+# Supported: string. After changing it, GREP THE SUITE OUTPUT FOR "Gate 224" —
+# this repo shipped a gate unreachable for a whole release while the suite
+# reported 701 pass. ⛔ This gate was authored as 223 and renumbered to 224 (the
+# number main reserved for it) on the v0.281.0 rebase, because main concurrently
+# landed its OWN Gate 223 (parallelism posture). Authored-as-223 would have sorted
+# FIRST in the --check `case` and shadowed the parallelism gate into dead code —
+# precisely the failure this comment warns about, caught by grepping for duplicate
+# case labels rather than by the suite, which would have reported all-pass.
+rc=0
+bash plugins/ravenclaude-core/hooks/tests/test-gate223-assumption-claiming.sh >/dev/null 2>&1 || rc=$?
+gate "assumption layers: uncited causal claim fires, described/cited/escaped/prescriptive silent, ambiguity nudge shape-only + no-egress, both teeth" must_pass "$rc"
+
+echo
+echo "── Gate 226: plugin version single-sourced (sync-plugin-versions.py) ──────"
+# A plugin's version was hand-maintained in TWO committed files that this suite
+# compares against each other (Gate 8, version-pin-cross-check). Two hand-edited
+# copies of one fact is a merge-conflict generator, not a check. Measured
+# 2026-08-17: one PR was re-bumped THREE times (0.273.0 -> 0.274.0 -> 0.275.0)
+# purely from serialising on those two files, and two more needed manual
+# conflict resolution. plugins/<name>/.claude-plugin/plugin.json is now the
+# SINGLE SOURCE OF TRUTH and the catalog entry is DERIVED from it.
+#
+# Gate 8 still stands and is NOT replaced: it proves the two files AGREE. This
+# gate proves the agreement is now MECHANICALLY REACHABLE — one command derives
+# it — and that the deriving command refuses to guess.
+#
+# Assertions:
+#   (i)   --self-test: eleven finding classes each distinguish (drift; a catalog
+#         entry with no plugin.json; a plugin.json with no catalog entry;
+#         malformed JSON on either side; a missing/non-string version on either
+#         side; a duplicate catalog name; a plugin.json whose name disagrees with
+#         its directory), plus a convergence leg proving the write is byte-stable
+#         and idempotent.
+#   (ii)  --check against the LIVE tree: the committed catalog is already derived.
+#   (iii) --must-fail: 9.999.9 planted into a MIRROR of the live 182-entry catalog
+#         IS caught, and fails closed at exit 2 (never 1).
+#   (iv)  an in-suite plant/restore on the REAL .claude-plugin/marketplace.json:
+#         RED on the plant, then the WRITE path restores it BYTE-FOR-BYTE against
+#         a cmp of the pre-plant backup, then GREEN again. ⛔ This half is what
+#         proves byte-stability: marketplace.json is NOT in .prettierignore, so a
+#         json.dump() round-trip would reformat 252 KB and fail Gate 9. `cmp` is
+#         the assertion; "prettier still passes" would be a weaker restatement.
+#         ⛔ The plant is verified to have CHANGED the file before the gate reads
+#         anything into it — otherwise a no-op plant would score a free green.
+#
+# ⛔ Registered in BOTH this main sequence AND the --check dispatcher above + the
+# Supported: string. After adding a gate, run the full suite and GREP ITS OUTPUT
+# FOR the SCRIPT NAME on an executed line — a batched header once made a
+# by-number grep return 0 for seven gates that all ran.
+rc=0; python3 scripts/sync-plugin-versions.py --self-test >/dev/null 2>&1 || rc=$?
+gate "sync-plugin-versions teeth: 11 finding classes each distinguish" must_pass "$rc"
+rc=0; python3 scripts/sync-plugin-versions.py --check >/dev/null 2>&1 || rc=$?
+gate "sync-plugin-versions: catalog is derived from every plugin.json" must_pass "$rc"
+rc=0; python3 scripts/sync-plugin-versions.py --must-fail >/dev/null 2>&1 || rc=$?
+gate "sync-plugin-versions teeth: planted catalog drift IS caught" must_fail "$rc"
+rc_is_2=0; [ "$rc" -eq 2 ] || rc_is_2=1
+gate "sync-plugin-versions teeth: the planted drift fails closed at exit 2" must_pass "$rc_is_2"
+
+# (iv) the plant/restore half, on the real file. `backup` registers a cleanup
+# copy, so an early exit anywhere below still restores the catalog.
+backup .claude-plugin/marketplace.json
+_SPV_BAK="$TMP/.claude-plugin_marketplace.json.bak"
+# `set -e` is on, so the plant is guarded: a broken plant must be REPORTED as a
+# red assertion, not abort the suite before the restore line below runs.
+_spv_plant=0
+python3 - <<'SPV_PLANT' || _spv_plant=$?
+import re
+from pathlib import Path
+
+path = Path(".claude-plugin/marketplace.json")
+lines = path.read_text(encoding="utf-8").split("\n")
+pattern = re.compile(r'^( {6}"version": ")([^"]*)(",?)$')
+for index, line in enumerate(lines):
+    match = pattern.match(line)
+    if match is not None:
+        lines[index] = match.group(1) + "9.999.9" + match.group(3)
+        break
+else:
+    raise SystemExit("could not plant: no entry-level version line")
+path.write_text("\n".join(lines), encoding="utf-8")
+SPV_PLANT
+gate "sync-plugin-versions control: the plant script itself ran" must_pass "$_spv_plant"
+rc=0; cmp -s "$_SPV_BAK" .claude-plugin/marketplace.json || rc=1
+gate "sync-plugin-versions control: the plant really changed the catalog" must_fail "$rc"
+rc=0; python3 scripts/sync-plugin-versions.py --check >/dev/null 2>&1 || rc=$?
+gate "sync-plugin-versions: --check goes RED on a drifted catalog" must_fail "$rc"
+rc=0; python3 scripts/sync-plugin-versions.py >/dev/null 2>&1 || rc=$?
+gate "sync-plugin-versions: the write pass exits clean" must_pass "$rc"
+rc=0; cmp -s "$_SPV_BAK" .claude-plugin/marketplace.json || rc=1
+gate "sync-plugin-versions: the write restored the catalog BYTE-FOR-BYTE" must_pass "$rc"
+rc=0; python3 scripts/sync-plugin-versions.py --check >/dev/null 2>&1 || rc=$?
+gate "sync-plugin-versions: --check is GREEN again after the write" must_pass "$rc"
+_spv_idem=0
+python3 scripts/sync-plugin-versions.py >/dev/null 2>&1 || _spv_idem=$?
+cmp -s "$_SPV_BAK" .claude-plugin/marketplace.json || _spv_idem=1
+gate "sync-plugin-versions: a second write is a byte-identical no-op" must_pass "$_spv_idem"
+cp -p "$_SPV_BAK" .claude-plugin/marketplace.json
+echo "── Gate 227: guard-probe-validity — \`grep -v\` in QUIET mode (pv.grep-v-quiet) ─"
+# ⛔ FILENAME SAYS 223, GATE IS 227 — deliberate, not a typo. This gate was
+# authored as 223 while `main` concurrently landed its OWN Gate 223 (parallelism
+# posture, v0.274.0), so the number collided on merge and this one moved. 224 was
+# already spoken for by feat/assumption-claiming-layer, and 225/226 are on main,
+# so 227 was the first free slot. The TEST FILE keeps its original name on
+# purpose: renaming it is a `git mv` under plugins/ravenclaude-core/hooks/, which
+# `xc.tribunal-self-disable` hard-denies pre-LLM — and the grep discipline below
+# keys on the SCRIPT BASENAME, not the number, so the mismatch costs nothing.
+# ONE rule: `grep -v` used in quiet mode. Outside quiet mode `-v` exits 0 when a
+# line was SELECTED ("something does NOT match"); in quiet mode that guarantee is
+# lost and the status starts reporting whether the PATTERN is ABSENT. The two
+# disagree on any input holding BOTH a matching and a non-matching line — and the
+# disagreement reads as CLEAN. Quiet is entered TWO ways: a -q/--quiet/--silent
+# flag (possibly buried in a cluster: -qv, -vq, -rqv, -qvE), and stdout to
+# /dev/null SPECIFICALLY, with no -q anywhere. The second is the one nobody expects.
+#
+# Measured yield over 17,410 distinct real agent-issued Bash commands: fires ONCE,
+# and the catch was real — a PR ALL_GREEN verdict decided by `grep -qvE`. Two
+# sibling candidates were measured on the same corpus and REJECTED (find -exec test:
+# 0 fires ever; $?-after-a-pipe: 13 fires at 85% false positives). Do not add them.
+#
+# ⛔ WARN-ONLY BY DESIGN — there is no deny branch and no host probe, and the hook
+# header says why at length: a probe run from the hook measures the HOOK's grep
+# (BSD, does not invert) while the judged command runs under the AGENT's grep
+# (ugrep 7.5.0, inverts). A deny branch gated on that probe is unreachable in
+# production AND testable-green, which is the exact vacuity class this gate is
+# named after. Do not "improve" it back into unreachability.
+#
+# ⛔ THE MUST-FAIL HALF IS AN EXIT-CODE CONTRACT, not a mutant. The 5-rule
+# prototype this rule was extracted from shipped a runner that exited 0 whether 11
+# assertions failed or none — a gate green forever. `--prove-nonzero` routes a
+# deliberately FALSE claim through the harness's real assertion path, so "this
+# harness reddens" is re-proved on every CI run instead of being asserted once in
+# a commit message. (The per-rule teeth — two mutants that neuter the quiet and
+# invert detectors — live inside the test itself.)
+#
+# ⛔ Registered in BOTH this main sequence AND the --check dispatcher above + the
+# Supported: string. After adding a gate, run the full suite and GREP ITS OUTPUT
+# FOR THE SCRIPT NAME (test-gate223-probe-validity.sh) on an EXECUTED line — never
+# for the string "Gate 227". A batched header once made a by-number grep report 7
+# gates unrun that had all executed.
+# ⛔ The two assertion LABELS below carry the SCRIPT BASENAME on purpose. A
+# `gate` line is printed only after `$rc` was captured from an actual invocation,
+# and it prints the observed exit code — so `grep test-gate223-probe-validity.sh`
+# over the suite's own output returns lines that are execution evidence, not a
+# batched header. The pair is mutually confirming: one line must read exit=0 and
+# the other exit=1, from the SAME script. A deleted or no-op invocation cannot
+# produce both, so this cannot go green on a gate that never ran.
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate223-probe-validity.sh >/dev/null 2>&1 || rc=$?
+gate "test-gate223-probe-validity.sh: quiet -v fires (flag AND >/dev/null), 13 legit forms silent, 2 mutants prove teeth" must_pass "$rc"
+
+rc=0; bash plugins/ravenclaude-core/hooks/tests/test-gate223-probe-validity.sh --prove-nonzero >/dev/null 2>&1 || rc=$?
+gate "test-gate223-probe-validity.sh --prove-nonzero: the harness HAS an exit-code contract (a false assertion reddens it)" must_fail "$rc"
+
+echo
+echo "── Gate 228: update must not claim success over a stale checkout ───────────"
+# `cmd_update` ran `git pull --ff-only >/dev/null 2>&1` and then unconditionally
+# printed "up to date." — so the commonest stall (a locally-tuned
+# .ravenclaude/comfort-posture.yaml, a TRACKED file that both normal use and
+# upstream edit, blocking the fast-forward) produced a green line over content
+# that had not moved.
+#
+# ⛔ THE EXIT STATUS IS THE HALF A HUMAN CANNOT SEE, and it had the same bug:
+# serve-dashboards.py's /__run sets the dashboard success flag to
+# `proc.returncode == 0`, so the Update button reported ok:true for a run that
+# did not update. This gate asserts the RETURN CODE, not only the text.
+#
+# ⛔ THREE OUTCOMES, AND THE THIRD IS NOT A FAILURE. `not a git checkout` means
+# nothing was ATTEMPTED; announcing "the pull failed" there is the same
+# dishonesty pointed the other way, so it is asserted as its own case.
+#
+# The pull step lives in `_rc_pull_marketplace()` precisely so it can be driven
+# without `regen` + the launcher self-heal. The gate EXTRACTS that function and
+# refuses (rather than passing green) if the anchor moves — a sed range that
+# matches nothing would otherwise yield a harness that tests nothing.
+#
+# Cases: clean clone -> rc 0 + "pulled latest"; dirty clone -> rc 1 + "NOT
+# updated" + names the file + offers the remedy + does NOT claim a pull;
+# non-git dir -> rc 2 + "nothing to pull" + no failure claimed; a token-bearing
+# remote URL is redacted out of the echoed git stderr. Two controls: the clone
+# is proven BEHIND before the pull-succeeds case, and the redaction case is
+# proven to have produced a report (or "no leak" would be vacuous).
+rc=0
+bash plugins/ravenclaude-core/hooks/tests/test-gate228-update-pull-report.sh >/dev/null 2>&1 || rc=$?
+gate "update: failed pull reports NOT up to date and exits non-zero" must_pass "$rc"
+rc=0
+bash plugins/ravenclaude-core/hooks/tests/test-gate228-update-pull-report.sh \
+  --must-fail-silent-pull >/dev/null 2>&1 || rc=$?
+gate "update teeth: the swallow-output/always-succeed shape IS caught" must_pass "$rc"
+
+echo "── Gate 229: worktree ownership + session lease ────────────────────────────"
+# TWO defects. (1) FOREIGN-TREE resolved ownership by the FIRST worktree whose
+# path prefixed the target, and this repo puts worktrees at
+# <primary>/.claude/worktrees/<name> - so the primary is an ANCESTOR of every
+# linked worktree and matched first. Every write inside any linked worktree read
+# as foreign, which is why worktree_bound sat at `warn` with a comment saying the
+# deadlock left "no legal place to edit": the guard was switched off, not fixed.
+# Ownership is now the LONGEST matching prefix.
+#
+# (2) CONTENTION only NUDGED - it reported a second session and let both write.
+# The lease DENIES, and the stale fallback is what makes that safe: after
+# worktree_lease_idle_minutes the next session auto-commits the holder's work
+# (tracked AND untracked; .gitignore applies) and takes over. A lock with no
+# expiry strands the tree when a session dies; a lock nobody can exit gets
+# routed around.
+#
+# ⛔ Every deny assertion is paired with one that must NOT deny - a guard that
+# denies everything passes any "did it deny?" test - and the takeover case
+# asserts the holder's work SURVIVED, because a takeover that loses work is
+# worse than the deadlock it replaces. Two vacuity controls: the fixture is
+# proven to have the nested layout (without it the defect cannot appear), and
+# each ownership probe uses a FRESH guard home so a THROTTLED nudge cannot be
+# misread as a predicate that stopped firing (that artifact produced one false
+# "regression" during this work).
+#
+# ⛔ Registered in BOTH this main sequence AND the --check dispatcher above + the
+# Supported: string. After adding a gate, run the full suite and GREP ITS OUTPUT
+# FOR the SCRIPT NAME on an executed line.
+rc=0
+bash plugins/ravenclaude-core/hooks/tests/test-gate229-worktree-lease.sh >/dev/null 2>&1 || rc=$?
+gate "worktree: own-tree writes allowed, cross-tree denied, lease excludes a 2nd session" must_pass "$rc"
+rc=0
+bash plugins/ravenclaude-core/hooks/tests/test-gate229-worktree-lease.sh \
+  --must-fail-prefix >/dev/null 2>&1 || rc=$?
+gate "worktree teeth: first-prefix ownership (the original defect) IS caught" must_pass "$rc"
+
+echo
+echo "── Gate 230: handoff seed names the host it hands off TO ───────────────────"
+# NOTE: the test file is test-gate227-*.sh. Gate 227 was taken by
+# guard-probe-validity while this branch was open, so the GATE renumbered to 230
+# and the filename did not (renaming a hooks/ file is blocked by the tribunal's
+# substrate guard). Filename != gate number is already the norm here: main's
+# Gate 227 runs test-gate223-probe-validity.sh.
+# Both seed writers defaulted to the grok launch command and overrode it only
+# for hosts they recognised by NAME, so every host they did not recognise
+# inherited a command that starts a DIFFERENT AGENT — silently, onto disk, where
+# the next person pastes it. handoff-spawn.sh set `seed=grok "…"` ~90 lines
+# before it resolved the host, and its refusal guard was scoped to chat|cli, so
+# it could not see the case it most needed to catch; context-handoff.py's
+# seed_text() fall-through default WAS the grok seed.
+#
+# Measured 2026-08-18 against the shipped 0.271.4 copy: `--host claude-code` in a
+# plain terminal emitted `grok "…"`, while the SAME invocation under
+# TERM_PROGRAM=vscode emitted a safe comment. ⛔ That asymmetry is why the defect
+# reads as ABSENT if you sample only a VS Code session — the gate drives `env -i`
+# for exactly that reason. The live path was worse than the printed one: the
+# launch-successor writer's final `else` did `exec $seed`.
+#
+# Assertions (18): per host — grok / claude-code / codex / cli / chat, plus
+# CLAUDECODE auto-detect and the unknown+vscode case that was already safe (so
+# the fix is not shown to trade one covered environment for another) — across
+# BOTH writers.
+#
+# ⛔ POSITIVE CONTROL: two rows assert grok DOES get the grok seed. A blanket
+# "no grok anywhere" suite would pass identically against a writer that emitted
+# nothing at all; the grok rows are what prove the others measure a CHOICE.
+#
+# ⛔ HONEST SCOPE: this pins the SEED VALUE on the copy-paste/dry-run surface. It
+# does NOT drive a live spawn — that would start a real interactive agent, which
+# a CI gate may not do. The launch-successor branch is covered only insofar as it
+# consumes the same $seed, plus the no-recipe host now writing an `exit 0`
+# launcher instead of `exec $seed`.
+#
+# The must-fail half rebuilds the PRE-FIX file in all four parts (grok default,
+# neutered refusal, normalize_host's claude-code row, the claude-code seed
+# branch) and requires ≥1 assertion to go red; reverting only the default turns
+# just `codex` red and would understate the teeth for the reported host.
+#
+# ⛔ Registered in BOTH this main sequence AND the --check dispatcher above + the
+# Supported: string. After adding a gate, run the full suite and GREP ITS OUTPUT
+# FOR the SCRIPT NAME on an executed line.
+rc=0
+bash plugins/ravenclaude-core/hooks/tests/test-gate227-handoff-seed-host.sh >/dev/null 2>&1 || rc=$?
+gate "handoff seed: every host gets its own launch, grok keeps grok's" must_pass "$rc"
+rc=0
+bash plugins/ravenclaude-core/hooks/tests/test-gate227-handoff-seed-host.sh \
+  --must-fail-spawn-default >/dev/null 2>&1 || rc=$?
+gate "handoff seed teeth: the pre-fix grok fall-through IS caught" must_pass "$rc"
+echo "── Gate 231: git-push delete detection is scoped to the push segment ───────"
+# `_is_dangerous_git_push_delete` ran its flag regexes over the WHOLE command
+# string once any `git push` appeared in it, so a delete flag belonging to a
+# DIFFERENT command in the same line was read as a branch deletion.
+#
+# control (2026-08-18): an ordinary `git push -u origin <branch>` followed in the
+# same line by a `tr` carrying a short delete flag was DENIED as
+# git-push-remote-branch-delete. Nothing was being deleted; dropping the `tr`
+# from that same line allowed it, so the trigger was the unrelated token and not
+# the push. Observed live - it blocked a real push during this work.
+#
+# THIRD INSTANCE OF ONE CLASS (srm.force-push v0.242.0, sce.curl-pipe-shell
+# v0.244.0): a rule matching on a token, applied to a string wider than the
+# command that token belongs to. It was missed twice because NOTHING exercised
+# this predicate. The remedy is NOT portable across the siblings - splitting on
+# the shell separators is right here because a push flag never crosses one,
+# while curl-pipe-shell must deliberately NOT exclude the pipe.
+#
+# Every allow case is paired with a deny case, including a deletion in a LATER
+# segment, so a "fix" that only inspected the first segment cannot pass.
+#
+# Registered in BOTH this main sequence AND the --check dispatcher above + the
+# Supported: string. After adding a gate, run the full suite and GREP ITS OUTPUT
+# FOR the SCRIPT NAME on an executed line.
+rc=0
+bash plugins/ravenclaude-core/hooks/tests/test-gate231-push-delete-scoping.sh >/dev/null 2>&1 || rc=$?
+gate "push-delete: an unrelated delete flag no longer reads as a branch deletion" must_pass "$rc"
+rc=0
+bash plugins/ravenclaude-core/hooks/tests/test-gate231-push-delete-scoping.sh \
+  --must-fail-unscoped >/dev/null 2>&1 || rc=$?
+gate "push-delete teeth: the unscoped whole-string match IS caught" must_pass "$rc"
+
+echo "── Gate 232: cause_taxonomy.py — the SSOT cause grammar ───────────────────"
+# The ranked cause grammar behind the verify-before-assert work. Its load-bearing
+# invariant is that H1 (the thing is absent) can never rank 1: with a positive
+# control it outscores every sibling and is STILL demoted, and the --must-fail-blind
+# arm empties the rank gate and requires a raise, so the demotion cannot decay into
+# a comment. The doc-parity extractor carries fixtures in BOTH failure directions.
+#
+# Registered in BOTH this main sequence AND the --check dispatcher above + the
+# Supported: string. After adding a gate, run the full suite and GREP ITS OUTPUT
+# FOR the SCRIPT NAME on an executed line.
+rc=0
+bash plugins/ravenclaude-core/hooks/tests/test-gate232-cause-taxonomy.sh >/dev/null 2>&1 || rc=$?
+gate "cause taxonomy: 34 members, 9 canaries armed, H1 never rank 1" must_pass "$rc"
+rc=0
+bash plugins/ravenclaude-core/hooks/tests/test-gate232-cause-taxonomy.sh \
+  --must-fail-blind >/dev/null 2>&1 || rc=$?
+gate "cause taxonomy teeth: a blinded taxonomy IS caught" must_pass "$rc"
+rc=0
+bash plugins/ravenclaude-core/hooks/tests/test-gate232-cause-taxonomy.sh \
+  --must-fail-doc >/dev/null 2>&1 || rc=$?
+gate "cause taxonomy teeth: doc drift IS caught, an absent doc reads UNKNOWN" must_pass "$rc"
+
+echo "── Gate 233: triage-outcome.sh — post-failure cause triage ────────────────"
+# Advisory-only PostToolUse(Bash) triage. Two paired negatives carry the weight:
+# a clean command must produce NEITHER an advisory NOR a ledger row, and
+# injection-shaped stderr must leave the advisory bytes IDENTICAL. The
+# --must-fail-echo arm weakens the hook to quote stderr for context and requires
+# the byte-identity canary to catch it, so a passing canary is not a canary that
+# merely has nothing to compare.
+#
+# Registered in BOTH this main sequence AND the --check dispatcher above + the
+# Supported: string.
+rc=0
+bash plugins/ravenclaude-core/hooks/tests/test-gate233-triage-outcome.sh >/dev/null 2>&1 || rc=$?
+gate "triage-outcome: fires on failure, silent on green, delivers via additionalContext" must_pass "$rc"
+rc=0
+bash plugins/ravenclaude-core/hooks/tests/test-gate233-triage-outcome.sh \
+  --must-fail-echo >/dev/null 2>&1 || rc=$?
+gate "triage-outcome teeth: a hook quoting stderr IS caught by byte-identity" must_pass "$rc"
+
+echo "── Gate 234: handoff --host contract — both writers, one vocabulary ───"
+# Registry hosts (codex|cursor|gemini|aider|windsurf, per knowledge/host-support.json)
+# resolve host-neutral and exit 0; a name in NEITHER vocabulary prints the
+# copy-paste block and THEN exits 2; --host with a missing/empty/--flag value
+# exits 2 and never falls to the grok fallback; handoff-spawn.sh and
+# context-handoff.py agree on every row. The arity rows execute a known infinite
+# loop, so the gate bounds every child with _portable.sh's _rc_timeout and hard
+# fails if no bound exists — `timeout` and `gtimeout` are BOTH absent on macOS,
+# where a bare `timeout N cmd` is exit 127 and an "exits non-zero" assertion
+# passes vacuously.
+#
+# ⛔ Registered in BOTH this main sequence AND the --check dispatcher above +
+# the Supported: string.
+rc=0
+bash plugins/ravenclaude-core/hooks/tests/test-gate234-handoff-host-contract.sh >/dev/null 2>&1 || rc=$?
+gate "handoff --host: registry hosts neutral, typos fatal, writers agree" must_pass "$rc"
+for mf in --must-fail-arity --must-fail-d2 --must-fail-registry \
+          --must-fail-namedunknown --must-fail-parity \
+          --must-fail-precedence --must-fail-flagauthority; do
+  rc=0
+  bash plugins/ravenclaude-core/hooks/tests/test-gate234-handoff-host-contract.sh "$mf" >/dev/null 2>&1 || rc=$?
+  gate "handoff --host teeth: ${mf#--must-fail-} mutant IS caught" must_pass "$rc"
+done
+
+echo
+
+echo "── Gate 235: hooks reach the model (delivered-channel assertions) ─────────"
+# Measured 2026-08-19: 56 hook tests existed; 5 asserted additionalContext and ZERO
+# asserted updatedToolOutput. Five advisory hooks had therefore spent their entire
+# service life on a channel that reaches the model on NO event, with every test
+# passing — because the tests asserted on stderr, which is what the hooks produced.
+# The tests could not fail. This gate is the assertion that was missing.
+#
+# control: the bake-off behind that finding carried a SessionStart additionalContext
+# sentinel that arrived in EVERY trial, so each negative was a fact about the channel
+# and not a blind harness.
+#
+# ⛔ The library proves itself FIRST. A delivery verdict from an unproven harness is
+# noise, and "the hook delivers" vs "the check never ran" is exactly the pair this
+# gate exists to separate. Both its canaries must bite or the gate fails.
+#
+# ⛔ Registered in BOTH this main sequence AND the --check dispatcher AND the
+# Supported: string. Gate 184 once shipped unreachable by living in only one.
+rc=0
+bash plugins/ravenclaude-core/hooks/tests/lib/assert-delivered-channel.sh --self-test >/dev/null 2>&1 || rc=$?
+gate "delivered-channel library self-test (6/6, both canaries bite)" must_pass "$rc"
+rc=0
+bash plugins/ravenclaude-core/hooks/tests/test-gate235-delivered-channel.sh >/dev/null 2>&1 || rc=$?
+gate "real shipping hooks reach the model on the delivered channel" must_pass "$rc"
+
+echo
+
+echo "── Gate 236: concepts --check contract (markers, collect-all, self-heal) ────"
+# Measured 2026-08-19 by scripts/spike-selfheal-contract.sh, which extracts the
+# conditional FROM regenerate-artifacts.yml and replays it: a covers-digest-drift
+# line was reported FATAL, so a content-freshness failure that regeneration cannot
+# fix would have killed every later self-heal step — concept SVGs, decision-tree
+# SVGs, dashboard.html, index.html, BI reports, the Copilot package, the feedback
+# report. That is the incident the workflow comment at that site already records:
+# main left UN-HEALED across many merges.
+#
+# control: the same probe replays the human-reverify marker and requires it to be
+# SURVIVABLE, so the two negatives it asserts are not the vacuous output of a grep
+# that matches nothing.
+#
+# The contract is now a stable machine marker (RC-CONCEPTS-CLASS: <class>), not a
+# prose sentence a future edit can silently reword — a reworded sentence is how
+# this fuse was armed in the first place. The legacy term is retained as an OR for
+# one release so a version-skew rollout cannot detonate mid-migration.
+#
+# ⛔ Registered in BOTH this main sequence AND the --check dispatcher above AND
+# the Supported: string. Gate 184 once shipped unreachable by living in only one.
+# ⛔ Grep the suite output for the literal name, never "Gate 236" — a batched
+# header has already made a by-number grep report 7 false unruns in this repo.
+rc=0
+bash plugins/ravenclaude-core/hooks/tests/test-gate236-concepts-check-contract.sh >/dev/null 2>&1 || rc=$?
+gate "concepts --check: markers, collect-all, self-heal survives content freshness" must_pass "$rc"
+rc=0
+bash scripts/spike-selfheal-contract.sh --check >/dev/null 2>&1 || rc=$?
+gate "self-heal contract holds for every emitted failure class" must_pass "$rc"
+rc=0
+bash scripts/spike-selfheal-contract.sh --must-fail >/dev/null 2>&1 || rc=$?
+gate "self-heal contract probe has teeth (unmarked + generator outputs are fatal)" must_pass "$rc"
+
+echo
+
+echo "── Gate 237: inventory staleness — both escapes, both axes ─────────────────"
+# The old gate read: if c["kind"] != "platform-fact" or not c["last_verified"]:
+# continue. An OR, so a concept escaped on EITHER limb — and the corpus made the
+# first limb dominant (41 ravenclaude-built against 17 platform-fact), so the gate
+# covered the MINORITY kind. Every inventory entry would have inherited zero
+# staleness pressure, and an entry with no last_verified at all was skipped, so
+# "unverified" rendered identically to "verified recently".
+#
+# control: the same fixture tree is run in PR mode and in --sweep mode and the two
+# verdicts must DIFFER. Without that, either result could be an accident of the
+# other, and a gate that returns the same answer to both questions is measuring
+# neither.
+#
+# ⛔ Content drift blocks on a PR; calendar age only warns there and blocks on the
+# sweep. A blocking calendar gate at corpus scale is a periodic repo-wide outage
+# — entries authored in waves expire in waves — and a gate that gets disabled
+# protects nothing.
+#
+# ⛔ Registered in BOTH this main sequence AND the --check dispatcher above AND
+# the Supported: string. ⛔ Grep the suite output for the literal name.
+rc=0
+bash plugins/ravenclaude-core/hooks/tests/test-gate237-inventory-staleness.sh >/dev/null 2>&1 || rc=$?
+gate "inventory staleness closes BOTH escapes; drift blocks, calendar warns" must_pass "$rc"
+rc=0
+python3 scripts/check-covers-completeness.py --check >/dev/null 2>&1 || rc=$?
+gate "covers[] completeness: no nuance names a path its digest does not watch" must_pass "$rc"
+rc=0
+rc_mustfail python3 scripts/check-covers-completeness.py >/dev/null 2>&1 || rc=$?
+gate "covers-completeness declares its must-fail convention AND honours it" must_pass "$rc"
+rc=0
+rc_mustfail python3 scripts/audit-prose-rendering-path.py >/dev/null 2>&1 || rc=$?
+gate "prose-rendering audit declares its must-fail convention AND honours it" must_pass "$rc"
+rc=0
+python3 scripts/audit-prose-rendering-path.py --check >/dev/null 2>&1 || rc=$?
+gate "authored prose never reaches a shell; no apostrophe closed a quoted block" must_pass "$rc"
+
+echo
+
+echo "── Gate 238: inventory sweep — path-keyed harness + sweep-of-the-sweep ─────"
+# ⛔ R8 — A SWEEP THAT COUNTS ITSELF CANNOT DETECT ITS OWN BLINDNESS. If a concept
+# file fails validation and silently drops out of the registry, a registry-derived
+# "registered" and "executed" count shrink TOGETHER and the check stays green.
+# So the denominator comes from inventory-census.py, whose source is
+# `git ls-files` — not concepts.json, not concepts.py, not anything the sweep
+# writes. Three assertions run every sweep, and the TELL is any of the three
+# moving DOWN with no artifact deletion in the same diff.
+#
+# control: the permanently-red canary at tests/fixtures/inventory-canary/. In
+# steady state a static class reporting zero findings for many consecutive runs is
+# EXPECTED and is not evidence of blindness, so a long green streak cannot
+# separate "nothing broke" from "the sweep stopped looking". The canary is the
+# only thing that can: it asserts a sentinel on a channel measured to be
+# undelivered, so a run that reports it PASSING fails this gate loud.
+#
+# ⛔ The census --must-fail plants an UNTRACKED file in an artifact root and
+# requires the count NOT to move — that is the proof the denominator is really
+# git-derived rather than a filesystem walk wearing the label.
+#
+# ⛔ Registered in BOTH this main sequence AND the --check dispatcher above AND
+# the Supported: string. ⛔ Grep the suite output for the literal name.
+rc=0
+python3 scripts/inventory-census.py --check >/dev/null 2>&1 || rc=$?
+gate "independent artifact census resolves every declared root" must_pass "$rc"
+rc=0
+rc_mustfail python3 scripts/inventory-census.py >/dev/null 2>&1 || rc=$?
+gate "census denominator is git-derived, not a filesystem walk (untracked file moves nothing)" must_pass "$rc"
+rc=0
+python3 scripts/inventory-sweep.py --check >/dev/null 2>&1 || rc=$?
+gate "inventory sweep: census==enumerated, registered==executed, canary RED" must_pass "$rc"
+rc=0
+python3 scripts/inventory-sweep.py --capping-table >/dev/null 2>&1 || rc=$?
+gate "claim-14 capping: every probe class control demonstrably FIRES" must_pass "$rc"
+rc=0
+rc_mustfail python3 scripts/inventory-sweep.py >/dev/null 2>&1 || rc=$?
+gate "sweep teeth: controls fire, scrubber constrains labels, canary stays red" must_pass "$rc"
+
+echo
+
+echo "── Gate 239: inventory schema — nuance, evidence, verify, strength badge ──"
+# ⛔ R12 — A WEAK CHECK AND A STRONG ONE THAT LOOK IDENTICAL IS THE INERT-GATE
+# DEFECT WEARING A BADGE. ~60% of the inventory (54 skills, 15 agents, 27 uncalled
+# scripts) gets findability and reference integrity ONLY. Both panel plans recorded
+# that honestly in the plan and then left the distinction invisible on the one
+# surface the project exists to make legible. The badge text is DERIVED in
+# concepts.py so no renderer can substitute a friendlier word, and it names the
+# LIMIT: "Findable", never "Verified (static)" — a reader skims the first word.
+#
+# control: a well-formed entry must VALIDATE. Asserted first, because a schema
+# that rejected everything would pass every negative assertion in this gate.
+#
+# ⛔ R9 — the committed authoring surface gets the derived-labels-only rule that
+# log-probe.sh already applies to the GITIGNORED tier. Concept files are retained
+# permanently; run records are disposable. The weaker rule was on the more durable
+# store. Stated limit: a shape heuristic, not a secret scanner (plan §21-W4).
+#
+# ⛔ Registered in dispatcher + main sequence + Supported:. Grep by literal name.
+rc=0
+bash plugins/ravenclaude-core/hooks/tests/test-gate239-inventory-schema.sh >/dev/null 2>&1 || rc=$?
+gate "inventory schema: nuance cap, evidence triple, tier rationale, R12 badge" must_pass "$rc"
+rc=0
+python3 scripts/check-inventory-evidence.py --check >/dev/null 2>&1 || rc=$?
+gate "committed evidence fields hold pointers and labels, never payloads" must_pass "$rc"
+rc=0
+rc_mustfail python3 scripts/check-inventory-evidence.py >/dev/null 2>&1 || rc=$?
+gate "evidence shape gate declares its must-fail convention AND honours it" must_pass "$rc"
+
+echo
+
+echo "── Gate 240: artifact budgets + R12 badge rendering ───────────────────────"
+# ⛔ R5 — plan B premise was FALSE and the underlying risk is REAL. panel-learn is
+# already DOM-islanded, so check-dom-budget.py check() — which compares only the
+# LIVE element total — cannot fire on it, and plan B whole per-batch ratchet-raise
+# process was built for a gate that cannot fire. What nothing gated is what can
+# actually hurt: 23,861 island payload elements for 58 concepts (~411/concept,
+# so 162 more entries is ~90k injected on one tab click against a Lighthouse
+# threshold of 1,400), and two ~10 MB surfaces with ZERO byte gates among 336 gate
+# headers. Both budgets are seeded BEFORE any bulk authoring — a budget set after
+# a batch lands describes what happened, it does not constrain it.
+#
+# ⛔ THE TWO TABLES CARRY DIFFERENT INVARIANTS ON PURPOSE. Payload may only ever
+# go DOWN. Bytes is a ceiling whose raise must APPEND a row with a real cause —
+# measured: a shrink-only byte rule rejected the R12 badge CSS with no path
+# forward but deleting the feature.
+#
+# ⛔ R12 — the badge is asserted IN THE GENERATED HTML, never in the generator
+# source. A source scan would be satisfied by the string being described in a
+# comment, which is a recorded failure class in this repo.
+#
+# ⛔ Registered in dispatcher + main sequence + Supported:. Grep by literal name.
+rc=0
+bash plugins/ravenclaude-core/hooks/tests/test-gate240-artifact-budgets.sh >/dev/null 2>&1 || rc=$?
+gate "artifact budgets seeded, invariants distinct, R12 badge reaches the page" must_pass "$rc"
+rc=0
+python3 scripts/check-artifact-budgets.py --check >/dev/null 2>&1 || rc=$?
+gate "island payload and byte budgets both hold" must_pass "$rc"
+rc=0
+rc_mustfail python3 scripts/check-artifact-budgets.py >/dev/null 2>&1 || rc=$?
+gate "artifact budgets declare their must-fail convention AND honour it" must_pass "$rc"
+rc=0
+python3 scripts/check-changed-concept-renders.py --check >/dev/null 2>&1 || rc=$?
+gate "changed-concept renders FAIL the PR instead of warning" must_pass "$rc"
+
+echo
+
+echo "── Gate 241: nuance floor + BLOCKING review ledger ────────────────────────"
+# ⛔ R7 — THE NUANCE BAR IS NOT FULLY AUTOMATABLE, and a fake metric that passes
+# while entries teach nothing is worse than an admitted human step. So this gate
+# is deliberately TWO things:
+#
+#   the FLOOR (check-nuance-floor.py) is cheap, deterministic, and NECESSARY but
+#   never sufficient. It tests shape and falsifiability. It does not test whether
+#   a nuance is TRUE or NON-OBVIOUS, and its own output says so on every run.
+#
+#   the SAMPLED REVIEW (inventory-coverage.py) is the BLOCKING half, and its
+#   mechanism is a COMMITTED ledger this gate reads. Plan B had the review as a
+#   process step with no mechanism; this repo record is that process steps decay
+#   and mechanisms do not.
+#
+# control: the golden set is frozen at 12 measured positives and 12 negatives, and
+# --golden reports every run WHICH adversarial negatives cleared the floor
+# uncaught. That list is the measured gameability of the floor, reported rather
+# than tuned away — if it ever reads empty, the floor has been fitted to its own
+# fixtures, which is the fake metric R7 forbids.
+#
+# ⛔ The judge is NON-BLOCKING and must score >= 22/24 on the golden set IN THE
+# SAME RUN before reporting any verdict. Below that it emits judge-uncalibrated
+# and NO verdicts: "the judge says everything is fine" and "the judge is broken"
+# must never be the same output.
+#
+# ⛔ Registered in dispatcher + main sequence + Supported:. Grep by literal name.
+rc=0
+python3 scripts/check-nuance-floor.py --golden >/dev/null 2>&1 || rc=$?
+gate "nuance floor accepts 12/12 measured positives and rejects 12/12 negatives" must_pass "$rc"
+rc=0
+rc_mustfail python3 scripts/check-nuance-floor.py >/dev/null 2>&1 || rc=$?
+gate "nuance floor declares its must-fail convention AND honours it" must_pass "$rc"
+rc=0
+python3 scripts/inventory-coverage.py --check >/dev/null 2>&1 || rc=$?
+gate "coverage ratchet holds and the review ledger permits the next batch" must_pass "$rc"
+rc=0
+rc_mustfail python3 scripts/inventory-coverage.py >/dev/null 2>&1 || rc=$?
+gate "review ledger BLOCKS a missing sample and a below-bar batch" must_pass "$rc"
+rc=0
+rc_mustfail python3 scripts/inventory-nuance-judge.py >/dev/null 2>&1 || rc=$?
+gate "an uncalibrated judge reports NO verdicts (never a silent green)" must_pass "$rc"
+
+echo
+
+echo "── Gate 242: inception ratchet + merge-time re-measure ────────────────────"
+# ⛔ R2 — THIS IS THE MECHANISM BY WHICH "inventory all the features" IS ACTUALLY
+# REACHED. Any file added under the artifact roots in a diff that no inventory
+# entry names in covers[] fails the build, so coverage grows monotonically and new
+# features never widen the gap. A hard "162 by date X" target is explicitly
+# rejected: it creates exactly the pressure that produces restatements, which is
+# the failure the project exists to prevent. The ratchet guarantees the DIRECTION,
+# not the date. Armed BEFORE bulk authoring — plan A armed it after, leaving every
+# artifact shipped during the authoring window ungated.
+#
+# ⛔ R6 — PR #991, IN THIS REPO: two branches each raised a shared baseline
+# correctly IN ISOLATION and wrongly after the other merged. The wrong value still
+# passes on its own branch and surfaces later as unexplained drift. So every
+# ratchet value is bound to the merge-base SHA it was measured against, and an
+# ABSENT SHA is UNKNOWN rather than up-to-date.
+#
+# control: the freshness teeth reconstruct the #991 shape in a scratch repo — a
+# foreign SHA must fail AND a correctly-stamped one must pass, because a check
+# that fails everything proves nothing about the case it exists for.
+#
+# ⛔ The paths:-filter assertion lives here too, and it is scoped to the
+# PULL_REQUEST trigger only. Its first version regex-matched `paths:` anywhere in
+# the `on:` block and reported two false positives — one was a deliberate,
+# documented filter under `push:` (push runs are not required checks), the other
+# was a COMMENT saying the words. It parses YAML structure now.
+#
+# ⛔ Registered in dispatcher + main sequence + Supported:. Grep by literal name.
+rc=0
+python3 scripts/check-inception-coverage.py --check >/dev/null 2>&1 || rc=$?
+gate "every added artifact is named in an inventory covers[]; no required paths: filter" must_pass "$rc"
+rc=0
+rc_mustfail python3 scripts/check-inception-coverage.py >/dev/null 2>&1 || rc=$?
+gate "inception gate bites on an uncovered artifact and on a planted paths: filter" must_pass "$rc"
+rc=0
+python3 scripts/check-ratchet-freshness.py --check >/dev/null 2>&1 || rc=$?
+gate "every ratchet value is bound to this PR actual merge base" must_pass "$rc"
+rc=0
+rc_mustfail python3 scripts/check-ratchet-freshness.py >/dev/null 2>&1 || rc=$?
+gate "ratchet freshness reproduces the PR #991 shape and rejects it" must_pass "$rc"
+rc=0
+python3 scripts/_base_ref.py --self-test >/dev/null 2>&1 || rc=$?
+gate "on the base tip the base resolves to the first parent, never to HEAD itself" must_pass "$rc"
+rc=0
+rc_mustfail python3 scripts/_base_ref.py >/dev/null 2>&1 || rc=$?
+gate "base-ref fixtures bite when the base-tip branch is neutered" must_pass "$rc"
+
+echo
+
+echo "── Gate 243: scheduled sweep contract + operator health card ──────────────"
+# ⛔ A SCHEDULED WORKFLOW MUST NEVER BECOME A REQUIRED STATUS CHECK. It reports
+# NOTHING on a pull request, and a required check that reports nothing leaves the
+# PR Pending forever — the same mechanism that makes a paths: filter on a required
+# check fatal. The sweep trigger is therefore asserted STRUCTURALLY, by parsing
+# the workflow YAML, and the assertion carries a control: a fixture that DOES
+# carry a pull_request trigger must be rejected, or the pass is vacuous.
+#
+# ⛔ The operator health card is asserted IN THE GENERATED PAGE, never in the
+# generator source — a source scan is satisfied by the string being described in
+# a comment. The Learn tab is where a reader browses; it is not where an operator
+# looks, and burying harness state inside a collapsed concept card is how a corpus
+# rots while every surface reads fine.
+#
+# ⛔ P11: the census counting rule is asserted to be WRITTEN DOWN, and claim 5 is
+# re-measured under it. The table said 48 hooks; two independent measures returned
+# 47. The number was never the deliverable — the rule that produces it was.
+#
+# ⛔ Registered in dispatcher + main sequence + Supported:. Grep by literal name.
+rc=0
+bash plugins/ravenclaude-core/hooks/tests/test-gate243-sweep-and-health-card.sh >/dev/null 2>&1 || rc=$?
+gate "sweep is unrequirable by construction; health card renders; census rule stated" must_pass "$rc"
+
+echo
+echo "── Gate 252: pre-flight command review — WARN-only, measured membership ───"
+# ⛔ THE NO-BLOCK GUARANTEE IS STRUCTURAL, NOT A PROMISE. The hook scans its own
+# operative region for a deny exit and fails if one appears, so promotion to
+# blocking turns this gate red before it can ship. The scan is bounded to CODE:
+# scanning the whole file matched the very lines that search for the needle and
+# the header paragraph documenting the guarantee — this repo's own recorded
+# "a grep is satisfied by the thing being DESCRIBED", reproduced on first run.
+# control: injecting a real `exit 2` into the operative region turns the scan red,
+# so the pass is measuring the code rather than passing blind.
+#
+# ⛔ RULE MEMBERSHIP IS A MEASUREMENT, NOT AN INTENTION. Five rules were drafted;
+# ONE cleared its fire-rate ceiling and its hand-classified FP bar against 34,014
+# evidence-bearing commands. The four rejections are recorded with their numbers
+# in replay-outcome-rules.py REJECTED, and its --self-test asserts they cannot
+# quietly reappear in the active set.
+#
+# ⛔ The corpus extractor carries planted controls so "0 failures in the corpus"
+# can never mean "the extractor is blind", and --must-fail blinds its exit-code
+# derivation to prove the self-test has teeth.
+#
+# ⛔ Registered in dispatcher + main sequence + Supported:. Grep by literal name.
+rc=0
+bash plugins/ravenclaude-core/scripts/preflight-command-review.sh --self-test >/dev/null 2>&1 || rc=$?
+gate "pre-flight hook: no deny path, R-3 fires, 3 near-misses stay silent, injection byte-identical" must_pass "$rc"
+rc=0
+bash plugins/ravenclaude-core/scripts/preflight-command-review.sh --must-fail >/dev/null 2>&1 || rc=$?
+gate "pre-flight --must-fail: deleting R-3 silences its own true positive" must_pass "$rc"
+rc=0
+python3 plugins/ravenclaude-core/scripts/replay-outcome-rules.py --self-test >/dev/null 2>&1 || rc=$?
+gate "replay harness: C15 both directions, R-1 exclusions, rejected rules stay rejected" must_pass "$rc"
+rc=0
+python3 plugins/ravenclaude-core/scripts/build-outcome-corpus.py --self-test >/dev/null 2>&1 || rc=$?
+gate "corpus extractor: planted controls recovered, scrub fires, labels stderr-only" must_pass "$rc"
+rc=0
+python3 plugins/ravenclaude-core/scripts/build-outcome-corpus.py --must-fail >/dev/null 2>&1 || rc=$?
+gate "corpus --must-fail: blinding the exit-code derivation turns the self-test red" must_pass "$rc"
+
+echo
+echo "── Gate 245: remediation-cause gate — the primary D1 surface ──────────────"
+# ⛔ THE JOIN IS THE WHOLE GATE, AND IT FAILED SILENTLY FIRST. The ledger stamps a
+# TYPE PREFIX on every subject (`fs:` for a path, `cmd:` otherwise), so a row
+# reading `fs:src/thing.ts` never equalled the `cmd:rm -rf src/thing.ts` a
+# remediating command derives. Comparing the labelled forms, the gate matched
+# NOTHING and allowed every command — while running, reading the ledger and
+# exiting 0. A gate that reads an empty join and passes is the inverted-audit
+# defect wearing a green tick.
+#
+# ⛔ CASE 2 IS THE CANARY AND IT CARRIES THE GATE'S MEANING. Same ledger state, a
+# DISCRIMINATING command must be ALLOWED. Without it, "fires on remediate" and
+# "allows on discriminate" would differ only by luck, and an inert classifier
+# would be indistinguishable from a working one. --must-fail neuters the
+# discriminate arm and requires a plain read to start firing.
+#
+# ⛔ Blindness ADVISES, it never denies. Fail-closed is authorised here only for
+# unresolved cause-ambiguity, and a missing beacon is not that. The test asserts
+# both halves: the advisory appears AND no permissionDecision is emitted.
+#
+# ⛔ The empty-escape refusal is tested BEFORE the working escape, because an
+# escape hatch nobody tested is one everybody uses.
+#
+# ⛔ Registered in dispatcher + main sequence + Supported:. Grep by literal name.
+rc=0
+bash plugins/ravenclaude-core/scripts/guard-remediation-cause.sh --self-test >/dev/null 2>&1 || rc=$?
+gate "remediation gate: fires on remediate, allows on discriminate, ledger read, empty escape refused" must_pass "$rc"
+rc=0
+bash plugins/ravenclaude-core/scripts/guard-remediation-cause.sh --must-fail >/dev/null 2>&1 || rc=$?
+gate "remediation --must-fail: neutering the discriminate arm makes a plain read fire" must_pass "$rc"
+
+echo
+echo "── Gate 246: cause-closure gate — is the cause SET closed ─────────────────"
+# ⛔ G6.2 IS THE HIGHEST-VALUE ASSERTION HERE AND IT IS A STANDING REGRESSION,
+# NOT A ONE-TIME PRE-BUILD CHECK. The gate's REAL detection bytes are run against
+# the FULL TEXT of knowledge/cause-taxonomy.md and knowledge/verification-
+# discipline.md — the two documents whose entire purpose is to contain
+# subject + defect-predicate + date sentences. They are the worst case BY
+# CONSTRUCTION. Zero denies on both, or this gate blocks its own repair the first
+# time somebody edits the taxonomy, which is the trap this repo has hit
+# repeatedly ("the guard blocks its own repair", 5 blocks to change one regex).
+#
+# ⛔ A RELOCATED COPY OF THIS GATE SILENTLY GATES NOTHING. Conjunct 2 shells out
+# to the SIBLING classify_claim.py; a copy running from a temp path finds no
+# sibling, hits an os.path.exists guard and exits 0 while still reading its
+# posture and returning success. control: the mutant produced no output even on a
+# payload carrying NO escape, while the same program with the real module dir
+# emitted its fire verdict. --must-fail therefore passes RC_GCC_MODULE_DIR
+# explicitly; without it the teeth would be measuring path resolution.
+#
+# ⛔ Edit and MultiEdit carrying IDENTICAL prose must reach an IDENTICAL verdict.
+# A gate that reads only `content` inspects Write and waves Edit through — the
+# tool-switch tunnel guard-premise.sh had to close on 2026-08-13.
+#
+# ⛔ Registered in dispatcher + main sequence + Supported:. Grep by literal name.
+rc=0
+bash plugins/ravenclaude-core/scripts/guard-cause-closure.sh --self-test >/dev/null 2>&1 || rc=$?
+gate "closure gate: fires unclosed, both escape dialects clear, Edit/MultiEdit parity, G6.2 zero-denies" must_pass "$rc"
+rc=0
+bash plugins/ravenclaude-core/scripts/guard-cause-closure.sh --must-fail >/dev/null 2>&1 || rc=$?
+gate "closure --must-fail: neutering the escape makes an escaped write fire" must_pass "$rc"
+
+echo
+echo "── Gate 247: cross-host hook coverage — no registered hook drops silently ─"
+# ⛔ THIS PINS A CLASS, NOT AN INSTANCE, AND THE CLASS WAS LIVE.
+# Each host projector was written to be LOUD about a hook it cannot place: an
+# unmapped event RAISES, an intentional omission needs an explicit skip WITH A
+# REASON, and --check fails otherwise. That contract had a hole underneath it.
+# `_script_of` matched only `/hooks/([...]+\.sh)`, so a hook body living under
+# `/scripts/` — the packaging exception the tribunal's substrate guard forces,
+# because it denies setting the executable bit on a NEW hooks/*.sh — resolved to
+# the empty string and hit a bare `continue`. A hook a projector cannot SEE is a
+# hook it cannot REFUSE, so explicit-skip-or-raise never fired for it.
+#
+# control: with the old resolver 4 of 42 registered commands dropped silently and
+# none of the three generators said a word; with the widened one 42 of 42 resolve
+# and 0 drop. `ask-on-ambiguity.sh` had been dropped from EVERY cross-host
+# projection since v0.273.0 — shipped, documented, and reaching no host but
+# Claude Code for its whole service life.
+#
+# --must-fail narrows the resolver back to /hooks/ and requires the drop count to
+# go non-zero, so the pass is measuring resolution rather than passing for an
+# unrelated reason.
+#
+# ⛔ R7 is asserted in BOTH directions: the three verify-before-assert cells must
+# be DECLARED (non-empty reason) in the Cursor and Gemini projections and PRESENT
+# in Copilot's, which is wired repo-level per github/copilot-cli#2540. A cell that
+# flips from skipped to wired without a live round-trip is the MH-01 shape.
+#
+# ⛔ Registered in dispatcher + main sequence + Supported:. Grep by literal name.
+rc=0
+python3 scripts/check-crosshost-hook-coverage.py --check >/dev/null 2>&1 || rc=$?
+gate "cross-host: 0 silent drops, 3 resolvers agree, R7 cells declared not dropped" must_pass "$rc"
+rc=0
+python3 scripts/check-crosshost-hook-coverage.py --must-fail >/dev/null 2>&1 || rc=$?
+gate "cross-host --must-fail: narrowing the resolver reddens the zero-drop assertion" must_pass "$rc"
+
+echo
+echo "── Gate 248: portable cause floor — present everywhere, and honest ────────"
+# ⛔ ON A HOST THAT RUNS NO HOOKS, THIS TEXT IS THE WHOLE MECHANISM. R1 is
+# layered: deterministic hooks where they fire, protocol text as the floor. Aider
+# reads nothing automatically (CONVENTIONS.md is opt-in via --read) and Copilot
+# CHAT's hooks are supported:false, so for those surfaces the projection is not a
+# supplement to enforcement — it IS the coverage.
+#
+# ⛔ THE ANTI-OVERCLAIM ASSERTION IS THE POINT. A floor that reads as though the
+# rule is ENFORCED on those hosts is worse than no floor: it manufactures exactly
+# the false sense of coverage R7 refuses, in prose, on the hosts least able to
+# check it. The honest-limit paragraph is required VERBATIM in every projection,
+# and --must-fail plants an enforcement claim to prove the check catches one.
+# The verb list deliberately does not match "enforced sliver" / "not the rule's
+# enforcement": both occur only inside that disclaimer, and matching them would
+# forbid the check's own required text.
+#
+# ⛔ HEADER-RENAME CANARY: renaming the source section must make the aider
+# projector RAISE rather than ship a CONVENTIONS.md with a floor-shaped hole.
+# control: the unmodified tree projects cleanly, so a non-zero there is the
+# rename and not a broken projector. AGENTS.md is restored in a finally block.
+#
+# ⛔ Windsurf is DECLARED OUT OF SCOPE in host-support.json rather than given a
+# half-lane: this repo's own record has the product renamed to Devin Desktop and
+# the lane unmaintained, so a .windsurfrules projector would be wired-and-hopeful.
+#
+# ⛔ Registered in dispatcher + main sequence + Supported:. Grep by literal name.
+rc=0
+python3 scripts/check-portable-floor.py --check >/dev/null 2>&1 || rc=$?
+gate "portable floor: 3 surfaces carry ritual + 5 classes + honest limit, no enforcement verb" must_pass "$rc"
+rc=0
+python3 scripts/check-portable-floor.py --must-fail >/dev/null 2>&1 || rc=$?
+gate "portable floor --must-fail: a planted enforcement claim is caught" must_pass "$rc"
+
+echo
+echo "── Gate 249: outcome eval — the ship gate must be SATISFIABLE ─────────────"
+# ⛔ THE PLAN'S OWN SHIP GATE WAS UNSATISFIABLE UNDER ITS NATURAL READING, AND
+# THAT IS A MEASURED FINDING. The gate is DBR(with-hook) >= DBR(without-hook)
+# + 0.15, and the plan never says what counts as "a discriminating probe".
+# Measured over 43,714 real envelopes with ONE corpus and ONE remediate predicate,
+# varying only the discriminate predicate:
+#     any read verb (natural reading)   0.9757  -> needs 1.1257  IMPOSSIBLE
+#     control-shaped (pinned)           0.6751  -> needs 0.8251  reachable
+# Agents overwhelmingly DO read again before remediating, so under the natural
+# reading the metric is saturated and no hook could ever move it +0.15. A ship
+# gate nobody can pass is not a high bar — it is a mechanism permanently stuck at
+# `warn`, with Phase 11's knob flips unreachable forever. This gate asserts
+# satisfiability, which is the assertion that would have caught it.
+#
+# ⛔ THE BASELINE IS FROZEN, AND DRIFT >0.05 FAILS. A baseline re-derived at gate
+# time from whatever corpus is present is not a pre-registration; it is a moving
+# target that always agrees with the current code.
+#
+# ⛔ NO SHIP VERDICT WITHOUT THE SECOND ARM. The with-hook arm needs a live
+# window (posture off vs warn alternating, >=500 envelopes) and does not exist:
+# control: a search for a two-arm artifact returned only substring false
+# positives while the same search located corpus.jsonl, and the live posture sets
+# no cause_* knob, so both arms would read the same default. Reporting a
+# single-arm number as evidence is the instrument-over-outcome failure this phase
+# exists to prevent.
+#
+# ⛔ --must-fail strips every probe template from the taxonomy and requires J4 to
+# redden: "if a blinded module still scores well, the eval is measuring nothing."
+# It also asserts the UNBLINDED module is clean, so a red is not ambiguous.
+#
+# ⛔ Registered in dispatcher + main sequence + Supported:. Grep by literal name.
+rc=0
+python3 plugins/ravenclaude-core/scripts/check-cause-eval.py --check >/dev/null 2>&1 || rc=$?
+gate "outcome eval: ship gate satisfiable, J4/J5 hold, baseline agrees with the freeze" must_pass "$rc"
+rc=0
+python3 plugins/ravenclaude-core/scripts/check-cause-eval.py --must-fail >/dev/null 2>&1 || rc=$?
+gate "outcome eval --must-fail: a probe-blinded taxonomy reddens J4" must_pass "$rc"
+
+echo
+echo "── Gate 250: anti-rot — parity + fired-count ──────────────────────────────"
+# ⛔ INVOCATION IS NECESSARY AND DEMONSTRABLY NOT SUFFICIENT. This repo's evidence:
+# test-gate140 was invoked and green while worktree-guard.sh shipped both F1 and
+# F2. So anti-rot needs three mechanisms, none sufficient alone — parity checks,
+# a fired-count audit, and per-detector teeth batteries.
+#
+# ⛔ THE SCOPE-KEY BLOCK IS DUPLICATED IN FIVE LIVE FILES, DELIBERATELY. Drift
+# there is not a bug, it is a SILENT PASS: the recorder writes
+# scopes/<key>/open.jsonl and a gate deriving a different key reads a ledger
+# NOBODY WRITES, finds no open rows, and reports clean forever while running,
+# parsing and exiting 0. Textual identity is the weaker half; the check also
+# drives every copy with one synthetic tree and requires an identical key, AND
+# requires the key to VARY with the tree, or parity would be satisfied by a
+# constant.
+# control: the extractor itself was the first trap — a naive range over-ran in
+# guard-cause-closure.sh, which MENTIONS the function name inside its own
+# --must-fail awk program, and reported a 61-line block against a 22-line
+# reference. Stopping at the first closing return removes that false positive.
+#
+# ⛔ G10.1 — THE FIRED-COUNT AUDIT CARRIES BOTH CONTROLS OR IT IS WORTHLESS.
+# POSITIVE: a planted event must be read back, or "no events" might mean the
+# READER is broken. NEGATIVE: an empty tree must report UNWIRED, never CLEAN.
+# The verdict is THREE-valued — unwired / gap / firing — so `clean` is
+# unreachable without evidence. A fired-count of exactly zero after real usage is
+# a FINDING, not a pass: either mis-wired or too narrow to ever fire, and both
+# are findings. --must-fail installs an instrument that calls an empty tree
+# "firing" and requires the control to catch it.
+#
+# ⛔ Registered in dispatcher + main sequence + Supported:. Grep by literal name.
+rc=0
+python3 plugins/ravenclaude-core/scripts/check-scope-key-parity.py --check >/dev/null 2>&1 || rc=$?
+gate "scope-key parity: 5 copies identical, same key for one tree, key varies with tree" must_pass "$rc"
+rc=0
+python3 plugins/ravenclaude-core/scripts/check-scope-key-parity.py --must-fail >/dev/null 2>&1 || rc=$?
+gate "scope-key --must-fail: a perturbed copy reddens both the textual and behavioural halves" must_pass "$rc"
+rc=0
+python3 plugins/ravenclaude-core/scripts/cause_taxonomy.py \
+  --check-doc plugins/ravenclaude-core/knowledge/cause-taxonomy.md >/dev/null 2>&1 || rc=$?
+gate "taxonomy parity: prose and code hold the same 34 members" must_pass "$rc"
+rc=0
+python3 plugins/ravenclaude-core/scripts/audit-fired-count.py --check >/dev/null 2>&1 || rc=$?
+gate "fired-count audit: positive AND negative controls both pass before any count" must_pass "$rc"
+rc=0
+python3 plugins/ravenclaude-core/scripts/audit-fired-count.py --must-fail >/dev/null 2>&1 || rc=$?
+gate "fired-count --must-fail: a clean-reporting instrument is caught by the negative control" must_pass "$rc"
+
+# ⛔ THE SYNTAX CHECK DID NOT COVER WHERE HOOK BODIES ACTUALLY LIVE.
+# The repo checks `bash -n plugins/*/hooks/*.sh scripts/*.sh`. Four REGISTERED
+# hook bodies live under `plugins/*/scripts/` — the packaging exception the
+# tribunal substrate guard forces — and 15 files there were checked by nothing.
+# This is the same root cause as the cross-host silent drop in Gate 247: the
+# exception was created, and every check that assumed `hooks/` was never widened.
+# control: a real unbalanced-quote break in guard-cause-closure.sh (one apostrophe
+# in a prose comment, inside a heredoc nested in `$( ... )`) failed `bash -n`
+# locally while matching NONE of the CI globs — it would have shipped.
+rc=0
+for _f in plugins/*/scripts/*.sh; do
+  [ -e "$_f" ] || continue
+  bash -n "$_f" 2>/dev/null || rc=$?
+done
+gate "plugin scripts/ shell syntax: every plugins/*/scripts/*.sh parses" must_pass "$rc"
+# Teeth: a planted syntax error in that glob must be caught, or the loop above is
+# iterating over nothing and passing for free.
+# ⛔ NOT A DOTFILE. `plugins/*/scripts/*.sh` does not match a leading-dot name
+# without `shopt -s dotglob`, so the canary was invisible to the very loop it
+# was planted for: nothing broken was ever checked, rc stayed 0, and must_fail
+# correctly reported that these teeth do not bite.
+# control: two canaries in one dir, one dotted and one not -> the glob matched 1.
+_synbad="plugins/ravenclaude-core/scripts/zz_syntax_canary.sh"
+# ⛔ THE CANARY MUST BE A PARSE ERROR, NOT A RUNTIME ONE. The first version
+# planted `if [ "x" = "x" ; then :; fi` — a missing `]`. But `[` is a COMMAND,
+# so a missing `]` fails at RUN time while `bash -n` only PARSES, and returns 0.
+# The gate therefore planted a defect its own probe could not detect, and the
+# must_fail half reported rc=0 forever — a teeth half with no teeth, on a branch
+# whose review was about exactly that class.
+# control: `bash -n` on the old canary -> 0; on this unterminated `if` -> 2.
+printf '#!/usr/bin/env bash\nif [ "x" = "x" ]; then :;\n' > "$_synbad"
+rc=0
+for _f in plugins/*/scripts/*.sh; do
+  [ -e "$_f" ] || continue
+  bash -n "$_f" 2>/dev/null || rc=$?
+done
+rm -f "$_synbad"
+gate "plugin scripts/ syntax teeth: a planted break in that glob is caught" must_fail "$rc"
+
+echo "── Gate 251: foreground long-suite guard — the 600s ceiling is a MECHANISM now ──"
+# ⛔ WHY A GATE AND NOT A NOTE. The Bash tool clamps `timeout` at 600000ms and this
+# very suite outgrew it, so a FOREGROUND full-suite run wedges the session for ten
+# minutes and is auto-backgrounded anyway. That happened 3+ times in one week, and
+# the third time it happened to a session that had ALREADY adopted
+# run_in_background:true and regressed off it hours later. A memory note demonstrably
+# did not hold; hooks/guard-foreground-suite.sh is the control that does.
+#
+# ⛔ THE HALF THAT CARRIES THE WEIGHT IS THE MUST-FAIL ONE. (d) neuters the matcher
+# and asserts the deny DISAPPEARS, so (a) is measuring the matcher and not the
+# fixture — and it carries its OWN vacuity control (if the mutation does not apply,
+# the half FAILS rather than reporting green against a byte-identical copy).
+#
+# ⛔ (c) is the mention-vs-invocation half. `grep`/`sed`/`git show`/`wc` naming the
+# suite must still RUN — a guard that cannot tell a command from a description of
+# one blocks its own repair, which this repo has already paid for twice.
+#
+# ⛔ Registered in dispatcher + main sequence + Supported:. Grep by literal name.
+rc=0
+bash plugins/ravenclaude-core/hooks/tests/test-guard-foreground-suite.sh >/dev/null 2>&1 || rc=$?
+gate "foreground long-suite guard: denies, honours 3 escapes, and a MENTION still runs" must_pass "$rc"
+
+echo
+
+echo "── Gate 244: stall watchdog (observable, UTC, receipt-ladder, payload) ────"
+# ⛔ THE OBSERVABLE IS LAST-**ASSISTANT**-RECORD AGE, never last-entry-of-any-type.
+# On the real recorded stall the any-type clock was reset 44.3 minutes by the
+# owner's own queued prompts and by a product-generated system/away_summary — a
+# detector keyed on it read 96.6 min where the truth was 141.0 min, i.e. it failed
+# toward "looks alive". The mutant half PROVES the whitelist is load-bearing: it
+# drops the naive detector to 1.0 min (a miss) while the whitelist detector still
+# reads 141.0 min. An impotent mutant FAILS the script rather than printing green.
+#
+# ⛔ The ladder advances on RECEIPT, never on attempt. Advancing on attempt means a
+# sink outage leaves state reading "alerted" while nobody was reached for six
+# hours — the silent miss the watchdog exists to prevent. Asserted structurally
+# against evaluate()'s body, not against a comment describing the rule.
+#
+# ⛔ parse_ts must be UTC (calendar.timegm, not time.mktime). The local-time form
+# is off by the zone offset and fails toward SILENCE. The gate refuses to pass
+# vacuously on a UTC host: it says so instead of pretending to discriminate.
+rc=0
+python3 plugins/ravenclaude-core/hooks/tests/test-stall-watch.py >/dev/null 2>&1 || rc=$?
+gate "stall observable, UTC parse, receipt-gated ladder, payload safety" must_pass "$rc"
 
 echo
 

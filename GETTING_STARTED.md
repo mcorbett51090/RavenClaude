@@ -213,7 +213,7 @@ For deeper diagrams of each layer (don't worry about these yet — they're for w
 
 | Step | Actor | Output |
 |---|---|---|
-| 1 | Team Lead (`/spawn-team`) | Picks the **document** playbook — `deep-researcher` → `documentarian` → `code-reviewer` (`spawn-team/SKILL.md:94-97`) |
+| 1 | Team Lead (`/spawn-team`) | Picks the **document** playbook — `deep-researcher` → `documentarian` (`spawn-team/SKILL.md:94-96`); adds a `code-reviewer` pass on the draft, since any non-trivial diff gets one per the skill's dispatch table |
 | 2 | `deep-researcher` | Reads `AGENTS.md`, `CLAUDE.md`, existing `docs/`, and recent PRs to capture the actual conventions. Writes `01-research.md` into `.ravenclaude/runs/<run-id>/`. |
 | 3 | `documentarian` | Drafts `docs/PR_PROCESS.md` from the research brief. Writes `02-draft.md`. |
 | 4 | `code-reviewer` | Reads the draft + the existing tone reference. Suggests 3 prose edits + 1 link to fix. Writes `03-review.json` (structured findings). |

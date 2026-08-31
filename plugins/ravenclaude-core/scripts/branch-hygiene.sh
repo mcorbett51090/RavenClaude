@@ -135,7 +135,41 @@ for b in $(git for-each-ref --format='%(refname:short)' refs/heads/); do
         | grep -B2 "^branch refs/heads/$b\$" \
         | grep '^worktree ' | cut -d' ' -f2- | head -1 || true)"
   if [ -n "$wt" ] && [ -d "$wt" ]; then
-    dirty="$(git -C "$wt" status --porcelain 2>/dev/null | wc -l | tr -d ' ')"
+    # ⛔ Capture the EXIT CODE, not just the line count. A FAILED `git status`
+    # — a stale linked worktree whose admin dir under .git/worktrees/ is gone,
+    # a corrupt .git, git off PATH, permission denied — writes NOTHING to
+    # stdout and exits non-zero.
+    #
+    # What that COST here, measured 2026-08-17 on a corrupt-index worktree:
+    # this script sets `set -euo pipefail` (:51), so the failed pipeline's 128
+    # propagates through the command substitution and `set -e` ABORTS THE WHOLE
+    # SWEEP mid-loop — later branches are never examined and the summary line
+    # never prints. Before/after on the same fixture:
+    #   main: HOLD feat/clean … ; EXIT=128, feat/merged never reported
+    #   HEAD: HOLD feat/clean … ; HOLD feat/merged (git status exit 128);
+    #         "would delete: 0  held: 2"; EXIT=0
+    # So the fix converts a silent mid-sweep abort into a proper HOLD that
+    # finishes the sweep — a availability/correctness fix, not a deletion fix.
+    #
+    # ⛔ An earlier version of this comment claimed the pipe "yields 0, so gate 2
+    # PASSED on an inspection that never happened", and stamped it *Measured*.
+    # That was an INFERENCE from a true observation (status exits 128 with empty
+    # stdout) and it is false under `pipefail` — controlled both ways: with
+    # pipefail the substitution aborts at 128; without it, and only without it,
+    # the pipe yields "0". Grounding the observation did not ground the
+    # inference drawn from it.
+    # See docs/best-practices/verification-probe-discipline.md.
+    wt_status=""; wt_rc=0
+    wt_status="$(git -C "$wt" status --porcelain 2>/dev/null)" || wt_rc=$?
+    if [ "$wt_rc" -ne 0 ]; then
+      printf "  HOLD    %-38s worktree could not be inspected (git status exit %s) — inspect by hand\n" "$b" "$wt_rc"
+      held=$((held+1)); continue
+    fi
+    if [ -z "$wt_status" ]; then
+      dirty=0
+    else
+      dirty="$(printf '%s\n' "$wt_status" | wc -l | tr -d ' ')"
+    fi
     if [ "$dirty" != "0" ]; then
       printf "  HOLD    %-38s worktree has %s uncommitted/untracked file(s)\n" "$b" "$dirty"
       held=$((held+1)); continue

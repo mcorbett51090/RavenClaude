@@ -55,10 +55,46 @@ const ISLANDED_AGENT_KEYS = ["scenarios", "quickstart", "works_with"];
 const RC = "ravenclaude-core";
 const RC_BASELINE = {
   agents: 15,
-  skills: 54, // 53 -> 54: skills/session-handoff (v0.266.0, context-quality reset)
+  skills: 56, // 55 -> 56: skills/cheap-lane-delegation (route everyday work to Grok)
+  //        54 -> 55: skills/authoring-org-skills (org-skill studio, Phase 5)
+  //        53 -> 54: skills/session-handoff (v0.266.0, context-quality reset)
   //        52 -> 53: skills/design-clone (v0.253.0, design-schema capture+apply)
   //        51 -> 52: skills/github-gold-standard (v0.246.0, the gold-standard scorecard)
-  tools: 27, // 26 -> 27: load-substrate-tier-map.py (v0.270.0)
+  tools: 41, // 38 -> 41 AT MERGE (#1025 <- origin/main after #1023): this
+  //   branch's cause-taxonomy tools (38 on forge/vba-impl) PLUS the three
+  //   stall-watchdog scripts that landed on main via #1023 (stall_watch.py +
+  //   stall_reach.py + install_stall_watch.py). COUNTED, not inferred: _scan_scripts
+  //   globs 41 *.py in plugins/ravenclaude-core/scripts/. grok-delegate.sh is bash,
+  //   so the *.py glob does not count it; test-stall-watch.py lives in hooks/tests/,
+  //   not scripts/, so it is not counted either.
+  //        37 -> 38: route-task.py (the cheap-lane deterministic router, merged
+  //   in from origin/main's cheap-lane-agnostic work; grok-delegate.sh is bash, so
+  //   _scan_scripts's *.py glob does not count it).
+  //        35 -> 37: check-scope-key-parity.py + audit-fired-count.py
+  //   (verify-before-assert Phase 10 — anti-rot. The parity check guards a block
+  //   duplicated in FIVE live files where drift is a silent pass, not a bug; the
+  //   fired-count audit carries both G10.1 controls so "no events" can never be
+  //   read as "clean"). COUNTED on this tree.
+  //        34 -> 35: check-cause-eval.py (verify-before-assert Phase 9 — the
+  //   OUTCOME eval; it is the gate that found the plan's own ship gate to be
+  //   unsatisfiable under its natural reading). COUNTED on this tree.
+  //        32 -> 34: build-outcome-corpus.py + replay-outcome-rules.py
+  //   (verify-before-assert Phase 1 — the offline replay corpus and the rule
+  //   measurement harness). COUNTED on this tree, not inferred: the sibling
+  //   preflight-command-review.sh lands in `hooks` below rather than here,
+  //   because hooks.json registers it, so +3 files is +2 tools and +1 hook.
+  //        30 -> 32: set_conservation.py + ledger.py (task-ledger Phases 0-2).
+  //   set_conservation.py is the SSOT Set-Conservation Primitive, shared with the
+  //   sibling verify-before-assert run (set_kind in {open_items, causes}); ledger.py
+  //   is the append primitive + the projection. COUNTED on this tree, not inferred.
+  //   ⛔ RECONCILED ACROSS TWO PRs: this branch was authored against a base of 29 and
+  //   said 31, but #991 landed cause_taxonomy.py first and moved the base to 30. Each
+  //   branch's number was correct in isolation and wrong after the other merged —
+  //   taking either side verbatim would have set a silently wrong ratchet that still
+  //   passes on its own branch. 30 + 2 = 32.
+  //        29 -> 30: cause_taxonomy.py (the SSOT cause grammar, #991)
+  //        26 -> 27: load-substrate-tier-map.py (v0.270.0)
+  //         27 -> 29: conserve-tokens.py + parallelism-detector.py (v0.273.0)
   //        25 -> 26: handoff-successor-ack.py (v0.269.0)
   //        22 -> 25: context-usage-meter.py + context-handoff.py + handoff-nudge.py
   //                  (v0.266.0, session-context handoff)
@@ -66,7 +102,47 @@ const RC_BASELINE = {
   //        19 -> 22: premise-gate.py + classify_claim.py + check-design-schema.py
   //                  (v0.263.0, PR 3b packaging move)
   scenarios: 4,
-  hooks: 35, // 34 -> 35: handoff-successor-ack.sh (v0.269.0, SessionStart handshake)
+  hooks: 43, // 42 -> 43: guard-foreground-suite.sh WIRED on PreToolUse(Bash), merged
+  //   in from origin/main — denies a foreground full-suite run that cannot finish
+  //   inside the 600s Bash-tool ceiling.
+  //        41 -> 42: guard-cause-closure.sh WIRED on PreToolUse(Write|Edit|
+  //   MultiEdit) — verify-before-assert Phase 6, the SECOND fail-closed surface,
+  //   shipping at `warn`. Same scripts/-plus-`bash` packaging as its siblings.
+  //        40 -> 41: guard-remediation-cause.sh WIRED on PreToolUse(Bash) —
+  //   verify-before-assert Phase 5, THE PRIMARY D1 GATE, shipping at `warn`. Same
+  //   scripts/-plus-`bash` packaging as its sibling below, for the same reason.
+  //        39 -> 40: preflight-command-review.sh WIRED on PreToolUse(Bash) —
+  //   verify-before-assert Phase 4, WARN-only, one measured rule (R-3). It is a
+  //   REGISTRATION, which is what this count tracks; the body lives under scripts/
+  //   and is invoked via `bash` because the tribunal substrate guard denies setting
+  //   the executable bit on a new hooks/*.sh, so it does NOT also raise `tools`.
+  //        38 -> 39: keep-awake.sh WIRED on SessionStart — an opt-in sleep assertion
+  //   (`keep_awake` in comfort-posture.yaml, shipped default off) so a closed lid cannot
+  //   silently suspend a session. It is a REGISTRATION, which is what this count tracks,
+  //   even though it is excluded from the Pipeline map as host-environment hygiene rather
+  //   than an agent guardrail — the two lists answer different questions.
+  // 37 -> 38: triage-outcome.sh WIRED on PostToolUse(Bash) after its fire
+  //   rate was measured down to 2.588% over a 46,557-envelope replay corpus (the
+  //   gate is 3%). ⛔ This count tracks WIRED hooks, not hook FILES: the file
+  //   itself landed earlier and moved no count, because it shipped deliberately
+  //   absent from the wiring. The ratchet reddening on the wiring commit — and
+  //   only on it — is the gate behaving exactly as intended.
+  //        36 -> 37: ask-on-ambiguity (v0.281.0, UserPromptSubmit advisory nudge).
+  //   ⛔ Both hooks land in the SAME count and each side of the v0.281.0 rebase
+  //   claimed 36 on its own: guard-probe-validity.sh took main 35 -> 36, and
+  //   ask-on-ambiguity takes it 36 -> 37. Keeping either side's literal `36` would
+  //   have left this constant one short of reality while reading as clean.
+  //   COUNTED, not inferred: hooks.json on this tree holds 37 registrations.
+  //   NOTE the counting rule, because it misled once: _scan_hooks() in
+  //   generate-index-dashboard.py indexes hooks.json REGISTRATIONS, not files on
+  //   disk. A stray .sh in hooks/ does not move this number and a registration
+  //   whose body lives elsewhere does. ask-on-ambiguity's body is under scripts/
+  //   (the tribunal substrate guard denies chmod +x on a new hooks/ file, and a
+  //   non-executable hooks/*.sh hard-fails CI), so it is registered as
+  //   `bash "${CLAUDE_PLUGIN_ROOT}/scripts/ask-on-ambiguity.sh"` and Path().stem
+  //   still renders it as `ask-on-ambiguity` — verified, not assumed.
+  //        35 -> 36: guard-probe-validity.sh (v0.273.0, the pv.grep-v-quiet advisory)
+  //        34 -> 35: handoff-successor-ack.sh (v0.269.0, SessionStart handshake)
   //        33 -> 34: sanitize-webfetch-output.sh (v0.267.0, WebFetch result quarantine)
   //        32 -> 33: handoff-nudge.sh (v0.266.0, Stop context-hot nudge)
   //        26 -> 28: log-probe.sh + guard-premise.sh (v0.240.0, the premise gate);
@@ -75,7 +151,11 @@ const RC_BASELINE = {
   //        30 -> 31: enforce-git-protocol.sh (v0.246.0, the in-loop git-protocol hook)
   //        31 -> 32: enforce-portability.sh (v0.255.0, the in-loop macOS-portability lint)
   rules: 5,
-  templates: 24, // 23 -> 24: templates/worktree-lane/ (v0.268.0, one-window lane pack)
+  templates: 25, // 24 -> 25: templates/ledger/ (task-ledger Phase 0 — the event +
+  //        config JSON Schemas). Top-level scan only, so the TWO schema files
+  //        inside that dir increment this by one, not by two — the same rule the
+  //        worktree-lane note below records.
+  //        23 -> 24: templates/worktree-lane/ (v0.268.0, one-window lane pack)
   //        (top-level scan only — the three files inside that dir do not increment)
   practices: 38,
   trees: 4,

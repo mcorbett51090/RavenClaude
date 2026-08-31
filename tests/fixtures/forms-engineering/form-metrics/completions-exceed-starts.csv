@@ -1,0 +1,3 @@
+session_id,form_id,started_at,submitted_at,last_field,errors
+s001,contact,1755001000,1755001060,submit,
+s002,contact,,1755002060,submit,

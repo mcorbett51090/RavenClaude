@@ -12,11 +12,13 @@
 #   deliberately, since it must be visible ACROSS checkouts to count siblings.
 # rc-state-escape: comfort-posture — 'worktree_guard: off' silences CONTENTION /
 #   ANCHOR (default warn). 'worktree_bound: off' silences FOREIGN-TREE (default
-#   block). The two knobs are independent; both-off is the only full short-circuit.
+#   block). 'worktree_lease: off' silences the SESSION LEASE (default on).
+#   All three are independent — ALL-off is the only full short-circuit, and the
+#   lease deliberately survives the other two being off.
 #
 # worktree-guard.sh — portable worktree-hygiene guard (the CORE detection engine).
 #
-# Fires on THREE locally-detectable conditions, per session, per working
+# Fires on FOUR locally-detectable conditions, per session, per working
 # tree (a lone checkout with no sibling worktrees satisfies none, which is why
 # "all repos, not opt-in" is safe):
 #   (a) CONTENTION — another *live* Claude session is already operating in this
@@ -28,6 +30,11 @@
 #       / --work-tree whose target resolves under a *different* `git worktree list`
 #       path than this session's realpath(toplevel). Sibling-worktree only — not a
 #       general jail. Knob: worktree_bound (default block). Escape: RC_WORKTREE_BOUND_ACK=1.
+#   (d) LEASE-HELD — another session holds a live claim on THIS worktree. (a)
+#       only nudges; this DENIES. Goes stale after worktree_lease_idle_minutes
+#       (default 20), after which the next session auto-commits the holder's
+#       work as a wip(worktree-lease) checkpoint and takes over — never on the
+#       anchor branch. Knob: worktree_lease (default on).
 #
 # Subcommands (selected by $1):
 #   register       SessionStart. Records this session's own file, GC-sweeps the
@@ -55,7 +62,9 @@
 # Knobs (independent):
 #   worktree_guard: off|warn|block  DEFAULT warn if absent (CONTENTION/ANCHOR).
 #   worktree_bound: off|warn|block  DEFAULT block if absent (FOREIGN-TREE).
-# Both-off short-circuits BEFORE any git shell-out. Either-on still shells out
+#   worktree_lease: on|warn|off     DEFAULT on    if absent (SESSION LEASE).
+#   worktree_lease_idle_minutes: N  DEFAULT 20    if absent.
+# ALL-off short-circuits BEFORE any git shell-out. Either-on still shells out
 # git so the live clause can fire (T13: guard=off + bound=block still denies).
 #
 # Portability: set -uo pipefail (NOT -e — a guard must not die mid-check). macOS
@@ -77,11 +86,117 @@ command -v _ee_sanitize_session >/dev/null 2>&1 || _ee_sanitize_session() {
   case "$s" in .|.. | "") s="unknown" ;; esac; printf '%s' "$s"
 }
 
+# ⛔ If _portable.sh did not load, degrade to the OLD UNBOUNDED read, never to an
+# empty payload. A stub that returned nothing would turn a missing helper into a
+# silently disarmed guard — strictly worse than the hang it replaced.
+command -v _rc_timeout >/dev/null 2>&1 || _rc_timeout() { shift; "$@"; }
+
 SUBCMD="${1:-}"
 
-# ── read the stdin payload (check/register carry one; status usually does not) ─
+# ── read the stdin payload (check/register carry one; status never does) ──────
+# ⛔ THE BOUND IS ON THE WRITER, NOT ON BASH'S BYTE LOOP.
+#
+# A bare `cat` here blocks FOREVER: `[ ! -t 0 ]` cannot tell "a payload is on its
+# way" from "fd 0 is an open pipe nobody will ever write to" — both are simply
+# not-a-tty — so the test gating the read is satisfied in precisely the case that
+# hangs, stalling every caller downstream, audit-gates.sh Gate 140 included.
+# control: FIFO with a held-open writer -> `status --json` and `check` both hung
+#   until killed, while a script reading no stdin exited in 1s on the same fd.
+#
+# ⛔ `read -t` WAS THE WRONG INSTRUMENT, AND WAS THE FIRST TWO ATTEMPTS HERE.
+# It deadlines a COMPLETE LINE, and bash reads a pipe one byte per read(2). A
+# Claude Code payload is single-line JSON, so the deadline races bash's byte loop
+# rather than the writer, and payload SIZE eats the budget meant for writer
+# latency. A `Write` of this repo's own dashboard.html JSON-encodes to ~11 MB on
+# ONE line (escaping turns all ~17k newlines into `\n`).
+# control, same 11 MB through a real pipe, bash 3.2.57:
+#   `IFS= read -r -t 10` -> 4.6s idle, complete; 0 BYTES at 10.04s under load ~4
+#                           on 10 cores — the entire payload lost
+#   `_rc_timeout 10 cat` -> 0.3s, complete, idle and loaded alike
+# So the size dimension is removed rather than widened; a deadline on `read` is a
+# bet against payload size x machine load, and `cat` does not take that bet.
+# It also bounds the WHOLE read: `read` plus an unbounded `cat` drain still hung
+# once one line had arrived (measured past 14s) — only the zero-byte case was fixed.
+# ⛔ And it sidesteps a PLATFORM SPLIT this hook cannot test on one host: bash 3.2
+# discards partial input on timeout (measured here — the variable is left
+# untouched) while bash >=4 documents retaining it, which on a Linux runner would
+# hand the parser a TRUNCATED payload. There is no partial-line branch any more,
+# so neither behaviour is reachable.
 payload=""
-[ ! -t 0 ] && payload="$(cat 2>/dev/null || printf '')"
+_wg_stdin_state="none"          # none | ok | timeout | error
+
+# ⛔ THE DEADLINE IS VALIDATED ARITHMETICALLY, NOT BY CHARACTER CLASS.
+# `00` and `99999999999999999999` are all-digits, so a `*[!0-9]*` filter passes
+# them and the timeout tool then rejects them as an argument error — an EMPTY
+# payload in 0s, which is the exact fail-open this block exists to prevent, and
+# reachable by the most natural way an operator would try to disable the bound.
+# control: RC_GUARD_STDIN_TIMEOUT=99999999999999999999 under the old filter ->
+#   `invalid timeout specification`, elapsed 0s, payload 0 B; `00` -> same.
+# An out-of-range value falls back to the DEFAULT, never to the ceiling: clamping
+# 2000 to 3600 would hand an operator who assumed milliseconds a 33-minute
+# deadline, which is the original hang wearing a configured face.
+_wg_deadline="${RC_GUARD_STDIN_TIMEOUT:-10}"
+case "$_wg_deadline" in ''|*[!0-9]*) _wg_deadline=10 ;; esac
+# Cap the LENGTH before the arithmetic: $(( 10#99999999999999999999 )) overflows
+# bash's signed 64-bit integers, and an overflowed comparison is not a clamp.
+# Anything over 4 digits is already past the ceiling below.
+[ "${#_wg_deadline}" -gt 4 ] && _wg_deadline=10
+# 10# forces base 10 — $((08)) is an octal error in bash, $((10#08)) is 8.
+_wg_deadline=$(( 10#$_wg_deadline ))
+[ "$_wg_deadline" -gt 3600 ] && _wg_deadline=10
+
+# ⛔ `status` NEVER READS STDIN. It carries no payload, it is the read-only
+# dashboard/test path, and test-worktree-guard-core.sh calls it ~15x with stdin
+# inherited — every one of which would otherwise pay the full deadline for a
+# payload it does not use.
+if [ "$SUBCMD" != "status" ] && [ ! -t 0 ]; then
+  if [ "$_wg_deadline" -eq 0 ]; then
+    # 0 is the documented escape back to the old unbounded read.
+    payload="$(cat 2>/dev/null || printf '')"; _wg_stdin_state="ok"
+  else
+    payload="$(_rc_timeout "$_wg_deadline" cat 2>/dev/null)"; _wg_stdin_rc=$?
+    case "$_wg_stdin_rc" in
+      0)       _wg_stdin_state="ok" ;;
+      124|142) _wg_stdin_state="timeout"; payload="" ;;   # 124 GNU timeout, 142 perl alarm
+      *)       _wg_stdin_state="error" ;;
+    esac
+  fi
+  # ⛔ VALIDATE THE RESULT, NOT JUST THE EXIT CODE. A truncated payload parses to
+  # nothing and disarms the guard exactly like an absent one, and whether a
+  # truncation is even possible depends on the bash version. Checking that what
+  # arrived is parseable is platform-independent, so it holds on a runner this
+  # host cannot reproduce. jq is already required one block below.
+  if [ "$_wg_stdin_state" = "ok" ] && [ -n "$payload" ] && command -v jq >/dev/null 2>&1; then
+    printf '%s' "$payload" | jq -e . >/dev/null 2>&1 || _wg_stdin_state="error"
+  fi
+fi
+
+# ⛔ AN UNREADABLE PAYLOAD FAILS CLOSED ON `check`, AND ONLY ON `check`.
+# A payload with no `tool_name` sends every classifier to its `*)` default —
+# "not mutating / no deny / no enforcement" — so the default-block FOREIGN-TREE
+# deny and the session lease BOTH silently disarm. control: with tn="" the case
+# statements at :374, :608 and :704 all return 1, while tn="Write" matches its arm.
+#
+# ⛔ THE BOUNDARY IS `timeout`/`error`, NOT "payload is empty", and the difference
+# is deliberate. A zero-byte CLEAN EOF is the documented no-payload contract — a
+# bare CLI or test invocation of `check` — and still allows, exactly as before.
+# What denies is a writer that existed and delivered something unusable: the read
+# timed out, or bytes arrived that are not parseable JSON. Those are the shapes a
+# stalled or truncating writer produces, and waving one through is the failure
+# this hook exists to prevent — so it denies loudly, with an event, never dark in
+# hook-events.jsonl.
+# `register` is exempt by contract (a SessionStart hook can never block) and
+# `status` never reaches here.
+if [ "$_wg_stdin_state" = "timeout" ] || [ "$_wg_stdin_state" = "error" ]; then
+  printf '%s\n' "worktree-guard: stdin payload unreadable (${_wg_stdin_state}, deadline ${_wg_deadline}s, RC_GUARD_STDIN_TIMEOUT)." >&2
+  if [ "$SUBCMD" = "check" ]; then
+    printf '%s\n' "worktree-guard: DENIED — refusing to wave through a tool call it could not read. Retry; if this repeats the payload writer is stalled, and RC_GUARD_STDIN_TIMEOUT=0 restores the old unbounded read." >&2
+    _emit_hook_event "worktree-guard.sh" "deny" "unknown" "" "stdin-${_wg_stdin_state}" "2"
+    exit 2
+  fi
+  printf '%s\n' "worktree-guard: ${SUBCMD:-<none>} proceeds UNGUARDED for this call." >&2
+  _emit_hook_event "worktree-guard.sh" "warn" "unknown" "" "stdin-${_wg_stdin_state}" "0"
+fi
 
 # ── project dir (for the knob) + cwd (for git) ────────────────────────────────
 cwd=""
@@ -94,6 +209,11 @@ posture="${cwd}/.ravenclaude/comfort-posture.yaml"
 # ── KNOBS (independent). sed/grep idiom, no PyYAML.
 #    worktree_guard: off|warn|block  DEFAULT warn  (CONTENTION / ANCHOR)
 #    worktree_bound: off|warn|block  DEFAULT block (FOREIGN-TREE)
+#    worktree_lease: on|warn|off     DEFAULT on    (SESSION LEASE - one worktree,
+#                                    one session. INDEPENDENT: the two knobs
+#                                    above cannot silence it.)
+#    worktree_lease_idle_minutes: N  DEFAULT 20    (idle holder -> the next
+#                                    session auto-commits their work and takes over)
 #    Both-off short-circuits BEFORE any git shell-out. status still reports. ─
 mode="$(sed -n 's/^[[:space:]]*worktree_guard:[[:space:]]*\([A-Za-z]\{1,\}\).*/\1/p' "$posture" 2>/dev/null | head -1)"
 [ -z "$mode" ] && mode="warn"
@@ -101,7 +221,14 @@ case "$mode" in off|warn|block) ;; *) mode="warn" ;; esac
 bound="$(sed -n 's/^[[:space:]]*worktree_bound:[[:space:]]*\([A-Za-z]\{1,\}\).*/\1/p' "$posture" 2>/dev/null | head -1)"
 [ -z "$bound" ] && bound="block"
 case "$bound" in off|warn|block) ;; *) bound="block" ;; esac
-if [ "$mode" = "off" ] && [ "$bound" = "off" ]; then
+# ⛔ The lease is a THIRD, INDEPENDENT knob and must not be switched off by the
+# other two. Without this clause `worktree_guard: off` + `worktree_bound: off`
+# short-circuits here — before the lease clause in `check` ever runs — so a
+# consumer who silenced the two nudges would silently lose cross-session
+# exclusion as well, with nothing saying so.
+_wg_lease_knob="$(sed -n 's/^[[:space:]]*worktree_lease:[[:space:]]*\([A-Za-z]\{1,\}\).*/\1/p' "$posture" 2>/dev/null | head -1)"
+case "$_wg_lease_knob" in on|warn|off) ;; *) _wg_lease_knob="on" ;; esac
+if [ "$mode" = "off" ] && [ "$bound" = "off" ] && [ "$_wg_lease_knob" = "off" ]; then
   [ "$SUBCMD" = "status" ] || exit 0
 fi
 
@@ -386,20 +513,220 @@ _wg_resolve_existing() {
 
 # 0 if $1 resolves under a sibling worktree (not REAL_TOP, not /tmp, not elsewhere).
 # Here-doc (not a pipe) so `return` is this function, not a subshell.
+# ⛔ OWNERSHIP IS THE LONGEST MATCHING WORKTREE PREFIX — NOT "matches any sibling".
+#
+# This predicate used to walk the sibling list and return foreign on the FIRST
+# prefix hit. That is wrong whenever one worktree path contains another, and this
+# repo's own convention guarantees exactly that: worktrees live at
+# `<primary>/.claude/worktrees/<name>` ("worktrees UNDER the repo, never /tmp").
+# So from inside any linked worktree, the PRIMARY checkout is a sibling AND a
+# path-prefix of you — and every write to your own files matched it and was
+# reported foreign.
+#
+# Measured 2026-08-18: with cwd = a linked worktree and the target a file INSIDE
+# that same worktree, the guard answered FOREIGN while naming that very worktree
+# as "this tree". It was not a corner case — it was every mutating write in every
+# linked worktree, which is why `worktree_bound` was set to `warn` on main with a
+# comment saying the deadlock left "no legal place to edit". The guard had been
+# switched off rather than fixed, so the isolation it advertises did not exist.
+#
+# Correct rule: a path belongs to the DEEPEST worktree that contains it. Compare
+# that owner to this session's tree; only a different owner is foreign. Under the
+# nested layout the deepest match for a file in your worktree is your worktree,
+# so self-writes resolve to self and the primary no longer shadows its children.
+_wg_owning_worktree() {
+  local rp="$1" out
+  out="$(wg_git worktree list --porcelain)"
+  [ -n "$out" ] || return 1
+  # Print every worktree that CONTAINS rp, then take the longest.
+  #
+  # `sort | tail -1` is the longest here, not merely the lexicographic max: every
+  # candidate is a prefix of the same rp, so any two are prefix-comparable, and a
+  # proper prefix always sorts BEFORE the longer string. Total order, so max ==
+  # deepest. (Length-sorting would need `awk '{print length, $0}'`; this is the
+  # same answer with fewer moving parts.)
+  printf '%s\n' "$out" | while IFS= read -r line; do
+    case "$line" in
+      "worktree "*)
+        p="${line#worktree }"
+        cand="$(_wg_realpath "$p")"
+        [ -n "$cand" ] || cand="$p"
+        if [ "$rp" = "$cand" ]; then
+          printf '%s\n' "$cand"
+        else
+          case "$rp/" in "$cand"/*) printf '%s\n' "$cand" ;; esac
+        fi
+        ;;
+    esac
+  done | sort | tail -1
+}
+
+# ═══ SESSION LEASE — one worktree, one session, with a stale fallback ═══════
+#
+# CONTENTION (above) only ever NUDGED: it told the latecomer someone else was
+# here and let both proceed into the same tree. That is a report, not isolation.
+# The lease is the enforcement: a session CLAIMS a worktree, and another
+# session's mutating ops there are denied while the claim is live.
+#
+# ⛔ THE STALE FALLBACK IS THE WHOLE REASON THIS IS SAFE TO ENFORCE. A hard lock
+# with no expiry strands the worktree the moment a session crashes, is killed, or
+# is simply closed — and the next session has no sanctioned way in, so it learns
+# to bypass the guard. That is how a lock becomes a thing people route around.
+# So: after `worktree_lease_idle_minutes` (default 20) with no activity, the next
+# session TAKES OVER — auto-committing the holder's work first so nothing is lost.
+#
+# Liveness is the lease file's MTIME, refreshed on every mutating op by the
+# holder. Not a pid check: a pid says the process exists, not that it is still
+# working this tree, and a reused pid says nothing at all.
+LEASE_DIR="$GUARD_HOME/leases/$PATH_KEY"
+LEASE_FILE="$LEASE_DIR/lease.json"
+
+# ⛔ These `case`s are written MULTI-LINE with an explicit `*)` arm on its own
+# line, on purpose. `check-verdict-default-nonpermissive.py` scans from the line
+# AFTER the `case` for a default arm, so a one-liner hides its `*)` from the
+# check and is reported as failing open. The value here is a verdict about
+# whether to enforce, so the shape the checker wants is the shape it should
+# have: an unrecognised knob value must land on a NAMED default, never fall out.
+_wg_lease_mode() {
+  local v
+  v="$(sed -n 's/^[[:space:]]*worktree_lease:[[:space:]]*\([A-Za-z]\{1,\}\).*/\1/p' "$posture" 2>/dev/null | head -1)"
+  case "$v" in
+    on|off|warn) printf '%s' "$v" ;;
+    *) printf 'on' ;;          # unset or garbage -> ENFORCE (the safe direction)
+  esac
+}
+
+_wg_lease_idle_secs() {
+  local v
+  v="$(sed -n 's/^[[:space:]]*worktree_lease_idle_minutes:[[:space:]]*\([0-9]\{1,\}\).*/\1/p' "$posture" 2>/dev/null | head -1)"
+  case "$v" in
+    ''|*[!0-9]*) v=20 ;;       # unset or non-numeric -> the documented default
+    *) ;;                      # a valid number is used as-is
+  esac
+  [ "$v" -lt 1 ] 2>/dev/null && v=1
+  printf '%s' "$(( v * 60 ))"
+}
+
+_wg_lease_holder() { _wg_json_field "$LEASE_FILE" session_id 2>/dev/null || printf ''; }
+
+_wg_lease_write() {
+  mkdir -p "$LEASE_DIR" 2>/dev/null || return 1
+  printf '{"session_id":"%s","pid":"%s","tree":"%s","claimed_at":"%s"}\n' \
+    "$session" "$SESSION_PID" "$REAL_TOP" "$(date +%s 2>/dev/null || printf '0')" \
+    > "$LEASE_FILE" 2>/dev/null || return 1
+  return 0
+}
+
+# Idle seconds since the holder last touched the lease. Empty => unknown, and an
+# unknown age must NEVER be treated as stale (that would hand the tree away from
+# a session that is actively working it).
+_wg_lease_idle() {
+  local m now
+  m="$(_wg_mtime "$LEASE_FILE" 2>/dev/null)" || return 1
+  [ -n "$m" ] || return 1
+  now="$(date +%s 2>/dev/null)" || return 1
+  case "$m" in ''|*[!0-9]*) return 1 ;; esac
+  printf '%s' "$(( now - m ))"
+}
+
+# Auto-checkin: commit the stale holder's work so the takeover loses nothing.
+# Owner ruling 2026-08-18: tracked AND untracked (`git add -A`). .gitignore is
+# still honoured, so `.ravenclaude/runs/` scratch is not swept.
+#
+# ⛔ REFUSES ON THE ANCHOR BRANCH. This repo keeps main as the shared anchor and
+# has a dedicated check against working on it; auto-committing a stranded tree
+# there would be the guard creating exactly the mess it exists to prevent. On the
+# anchor we report and decline the takeover rather than commit.
+_wg_lease_autocheckin() {
+  local holder="$1" idle="$2" branch mins
+  # ⛔ ORDER IS LOAD-BEARING — this check MUST precede the anchor refusal below.
+  # Nothing to check in is a clean takeover, not a failure, and that is true on
+  # EVERY branch INCLUDING the anchor: there is no work to auto-checkin, so the
+  # hazard the refusal exists to prevent cannot arise.
+  #
+  # It used to sit AFTER the `case`, which made the refusal UNCONDITIONAL on the
+  # anchor. MEASURED 2026-08-24: a CLEAN anchor (one untracked file), a holder
+  # session dead 4.4 days, and every mutating op still denied — for hours, across
+  # two sessions. The denial tells you to "Land or move that work by hand, then
+  # retry", but the retry never reached the line that checks whether you landed
+  # it, so the instruction was unsatisfiable BY CONSTRUCTION. Because the house
+  # convention keeps the anchor checkout on `main` permanently, that stranded the
+  # anchor for good rather than transiently.
+  #
+  # The safety property is UNCHANGED: an anchor with real work still refuses,
+  # because this returns only when the tree is clean. Only the vacuous case moves.
+  [ -z "$(wg_git status --porcelain 2>/dev/null)" ] && return 0
+  branch="$(wg_git rev-parse --abbrev-ref HEAD 2>/dev/null || printf '')"
+  case "$branch" in
+    main|master|HEAD|"")
+      printf '%s\n' "worktree-guard: stale lease (holder ${holder}, idle $(( idle / 60 ))m) but HEAD is '${branch:-detached}' — REFUSING to auto-commit the anchor. Land or move that work by hand, then retry." >&2
+      return 1
+      ;;
+  esac
+  wg_git add -A >/dev/null 2>&1 || return 1
+  mins="$(( idle / 60 ))"
+  wg_git commit -q -m "wip(worktree-lease): auto-checkin of a stale worktree
+
+Session ${holder} held this worktree and went idle for ${mins}m, so the lease
+expired and another session took it over. This commit is that session's work,
+committed automatically so the takeover could not lose it.
+
+Tracked AND untracked files are included (.gitignore still applies). Reword,
+amend or reset this commit freely — it is a checkpoint, not a decision." \
+    >/dev/null 2>&1 || return 1
+  return 0
+}
+
+# Which operations the lease governs: a mutating op aimed at THIS tree. Foreign
+# targets are already handled by the FOREIGN-TREE clause above, and a read is
+# never contended.
+_wg_lease_should_enforce() {
+  case "$tn" in
+    Write|Edit|MultiEdit)
+      [ -n "$fp" ] || return 1
+      # ⛔ ENFORCE ONLY INSIDE THIS TREE. This used to read
+      # `_wg_is_foreign "$fp" && return 1`, which skips only a SIBLING-owned path
+      # — so a path owned by NO worktree came back "not foreign" and was enforced.
+      # The lease exists to stop a second writer colliding on THIS working tree; a
+      # file outside every worktree cannot cause that collision, so denying it buys
+      # nothing and turns the lease into precisely the "general jail" that
+      # _wg_is_foreign's own comment says this predicate must never be.
+      #
+      # control 2026-08-24, observed twice in one session: with a lease held on
+      # ~/RavenClaude, an Edit to ~/.claude/projects/.../memory/*.md — a path in no
+      # git worktree at all — was DENIED with the lease message, while the same
+      # content written via a Bash heredoc went through untouched. So the clause
+      # blocked the honest tool and not the workaround, which is the shape that
+      # teaches tunnelling rather than preventing collisions.
+      _wg_is_in_this_tree "$fp" || return 1
+      return 0
+      ;;
+    Bash) _wg_bash_is_mutating || return 1; return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
 _wg_is_foreign() {
-  local target="$1" rp sibs s
+  local target="$1" rp owner
   [ -n "$target" ] || return 1
   rp="$(_wg_resolve_existing "$target")" || return 1
-  sibs="$(_wg_sibling_list)"
-  [ -n "$sibs" ] || return 1
-  while IFS= read -r s; do
-    [ -n "$s" ] || continue
-    [ "$rp" = "$s" ] && return 0
-    case "$rp/" in "$s"/*) return 0 ;; esac
-  done <<EOF
-$sibs
-EOF
-  return 1
+  owner="$(_wg_owning_worktree "$rp")"
+  # No worktree owns it (outside the repo entirely) -> not a SIBLING problem.
+  # This predicate is scoped to sibling worktrees, never a general jail.
+  [ -n "$owner" ] || return 1
+  [ "$owner" = "$REAL_TOP" ] && return 1
+  return 0
+}
+
+# Positive counterpart to _wg_is_foreign. "Not foreign" is NOT the same as "mine":
+# a path owned by no worktree satisfies the first and not the second, and conflating
+# them is what made the lease enforce on files outside every repo. Ask the question
+# you mean — is this target inside THIS working tree?
+_wg_is_in_this_tree() {
+  local target="$1" rp
+  [ -n "$target" ] || return 1
+  rp="$(_wg_resolve_existing "$target")" || return 1
+  [ "$(_wg_owning_worktree "$rp")" = "$REAL_TOP" ]
 }
 
 # Candidate dirs from a Bash command: -C, --work-tree, --git-dir, GIT_WORK_TREE, GIT_DIR, cd.
@@ -537,6 +864,40 @@ case "$SUBCMD" in
     ;;
 
   check)
+    # ── SESSION LEASE (before FOREIGN/CONTENTION: it answers "may I write HERE
+    # at all", which precedes "is this the right tree"). Fail-OPEN throughout —
+    # a lease bug must never be able to brick a session, so every unknown
+    # (no session id, unreadable lease, unknown age, failed write) allows.
+    if [ "$(_wg_lease_mode)" != "off" ] && [ "$session" != "unknown" ] \
+       && _wg_lease_should_enforce; then
+      _wg_holder="$(_wg_lease_holder)"
+      if [ -z "$_wg_holder" ] || [ "$_wg_holder" = "$session" ]; then
+        _wg_lease_write || true          # claim / heartbeat; failure is not fatal
+      else
+        _wg_idle="$(_wg_lease_idle || printf '')"
+        _wg_ttl="$(_wg_lease_idle_secs)"
+        if [ -n "$_wg_idle" ] && [ "$_wg_idle" -ge "$_wg_ttl" ] 2>/dev/null; then
+          # STALE -> take over, but only after the holder's work is safely in.
+          if _wg_lease_autocheckin "$_wg_holder" "$_wg_idle"; then
+            _wg_lease_write || true
+            printf '%s\n' "worktree-guard: took over a stale worktree lease from session ${_wg_holder} (idle $(( _wg_idle / 60 ))m). Their work was auto-committed as a wip(worktree-lease) checkpoint first." >&2
+            _emit_hook_event "worktree-guard.sh" "warn" "${tn:-Bash}" "" "lease-takeover" "0"
+          elif [ "$(_wg_lease_mode)" = "warn" ]; then
+            : # advisory mode: the refusal was reported, proceed anyway
+          else
+            _emit_hook_event "worktree-guard.sh" "deny" "${tn:-Bash}" "" "lease-stale-anchor" "2"
+            exit 2
+          fi
+        elif [ "$(_wg_lease_mode)" = "warn" ]; then
+          printf '%s\n' "worktree-guard: session ${_wg_holder} holds this worktree (idle $(( ${_wg_idle:-0} / 60 ))m of ${_wg_ttl} s). Proceeding because worktree_lease is 'warn'." >&2
+        else
+          printf '%s\n' "worktree-guard: DENIED — session ${_wg_holder} holds a live lease on ${REAL_TOP} (idle $(( ${_wg_idle:-0} / 60 ))m; it expires at $(( _wg_ttl / 60 ))m). Open your own worktree (rcwt / forge-worktree.sh), or wait for the lease to go stale — the next session then takes over automatically and their work is auto-committed first. Set 'worktree_lease: off' in .ravenclaude/comfort-posture.yaml to disable." >&2
+          _emit_hook_event "worktree-guard.sh" "deny" "${tn:-Bash}" "" "lease-held" "2"
+          exit 2
+        fi
+      fi
+    fi
+
     # PreToolUse. FOREIGN-TREE first (independent of CONTENTION/ANCHOR), then
     # the existing two-writers / anchor clauses if worktree_guard != off.
     if [ "$bound" != "off" ] && _wg_bound_should_deny; then
@@ -583,7 +944,7 @@ case "$SUBCMD" in
           ab="$(_wg_anchor_branch)"
           msg="${msg}you are on the anchor branch '${ab}' with worktrees present; "
         fi
-        msg="${msg}a mutating op here risks a collision. Open your own git worktree, or set RC_WORKTREE_GUARD_ACK=1 to override, or set 'worktree_guard: warn' (or 'off') in .ravenclaude/comfort-posture.yaml."
+        msg="${msg}a mutating op here risks a collision. Open your own git worktree, or set RC_WORKTREE_GUARD_ACK=1 to override THIS check (it does not release a held SESSION LEASE — that denial names its own escapes), or set 'worktree_guard: warn' (or 'off') in .ravenclaude/comfort-posture.yaml."
         printf '%s\n' "$msg" >&2
         _emit_hook_event "worktree-guard.sh" "deny" "${tn:-Bash}" "${cmd:-$fp}" "$flag_rule" "2"
         exit 2

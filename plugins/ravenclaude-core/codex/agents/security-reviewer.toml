@@ -145,4 +145,5 @@ See [`skills/structured-output.md`](../skills/structured-output/SKILL.md) for th
 ## References
 - Constitution: [`CLAUDE.md`](../CLAUDE.md) §6
 - Security rules: [`rules/security.md`](../rules/security.md)
+- **Public form submissions:** [`../../forms-engineering/skills/harden-a-form-submission/SKILL.md`](../../forms-engineering/skills/harden-a-form-submission/SKILL.md) walks the trust boundary and cites this file rather than restating it. It produces the walk; the binding verdict stays yours, zero-exception.
 '''

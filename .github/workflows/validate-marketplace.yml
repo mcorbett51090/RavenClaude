@@ -47,6 +47,16 @@ on:
       - ".github/workflows/**"
   workflow_dispatch:
 
+# Supersede in-flight runs for the same ref. Measured 2026-08-24: 35 of 1,000
+# sampled RavenClaude runs (9% of compute) were still running when a newer push
+# to the same branch started. Safe here — this workflow only READS the repo;
+# there is no deploy, no migration and no write, so a cancelled run strands
+# nothing. Same shape as validate-macos.yml. Do NOT add `paths:` to pull_request
+# (this is a required check — a skipped workflow hangs the PR forever).
+concurrency:
+  group: validate-marketplace-${{ github.ref }}
+  cancel-in-progress: true
+
 # Least-privilege GITHUB_TOKEN: this workflow only reads the repo to validate it.
 permissions:
   contents: read
@@ -59,6 +69,24 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          # ⛔ 2, not the default 1. Three gates here diff against the PR base via
+          # scripts/_base_ref.py, and on a PUSH TO MAIN that base is HEAD^1 —
+          # "what did this push change?". A depth-1 checkout cannot see it.
+          #
+          # control 2026-08-24, same upstream cloned twice:
+          #   git clone --depth 1  -> is_shallow=true, HEAD resolves, HEAD^1 does NOT
+          #   git clone --depth 2  -> HEAD^1 DOES resolve
+          # So the probe was capable of returning the other answer, and depth is
+          # the only variable. Corroborated on main at 11869939: inception-coverage,
+          # changed-concept-renders AND ratchet-freshness went red together — the
+          # single UNKNOWN signature, not three separate defects.
+          #
+          # ⛔ Do NOT "fix" this by making _base_ref fall back to HEAD. That is the
+          # vacuous-empty-diff bug it was written to remove: two of those three
+          # gates then report clean having compared a commit against itself.
+          # Give CI the parent instead. 0 also works (regenerate-artifacts.yml
+          # uses it); 2 is the cheapest depth that suffices.
+          fetch-depth: 2
           persist-credentials: false
 
       - name: Set up Node.js

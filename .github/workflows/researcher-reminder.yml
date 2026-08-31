@@ -202,6 +202,7 @@ jobs:
             };
             const labels = labelMap[researchType] || ['researcher', 'maintenance'];
 
+            let created;
             try {
               const issue = await github.rest.issues.create({
                 owner: context.repo.owner,
@@ -210,8 +211,90 @@ jobs:
                 body: body,
                 labels: labels,
               });
-              console.log(`Created researcher reminder issue #${issue.data.number}`);
+              created = issue.data.number;
+              console.log(`Created researcher reminder issue #${created}`);
             } catch (error) {
               console.error('Failed to create issue:', error);
               core.setFailed(`Failed to create researcher reminder issue: ${error.message}`);
+              return;
+            }
+
+            // ── Supersede the prior reminders of THIS cadence ────────────────
+            // These issues are RECURRING REMINDERS, not work items: a weekly
+            // sweep from 12 weeks ago is not a backlog entry, it is noise. With
+            // no close step the queue grew unbounded — measured 2026-08-17:
+            // 26 open reminders (oldest 2026-05-25), ZERO ever closed, which
+            // buried the 4 genuinely-open issues in a 30-issue list.
+            //
+            // The load-bearing invariant: this runs ONLY AFTER a successful
+            // create, and closes only issues carrying this cadence's own
+            // discriminator label. So a reminder is never retired without a
+            // live replacement, and the other cadence is never touched.
+            // Failures here are logged, never fatal — the reminder (the
+            // primary job) already shipped.
+            const cadenceLabel = labels[labels.length - 1];
+            try {
+              // ⛔ Enumerate via GraphQL and filter labels CLIENT-SIDE. Do not
+              // "simplify" this back to rest.issues.listForRepo({labels}).
+              //
+              // Measured 2026-08-17 on this repo: the REST list endpoint
+              // returned 12 open `deep-research` issues when the true count was
+              // 13. #85 is open and carries the label on a direct
+              // `issues/85` read, yet is absent from every label-filtered
+              // listing — and the REST list omits #85/#86 even UNFILTERED.
+              // Only this GraphQL connection returns all 13.
+              //
+              // A cleanup loop that cannot see an issue leaves it open forever,
+              // which is precisely the defect this step exists to fix. The
+              // `issues` connection also returns issues only, never PRs.
+              const query = `
+                query($owner:String!, $repo:String!, $cursor:String) {
+                  repository(owner:$owner, name:$repo) {
+                    issues(states:OPEN, first:100, after:$cursor) {
+                      pageInfo { hasNextPage endCursor }
+                      nodes { number labels(first:20) { nodes { name } } }
+                    }
+                  }
+                }`;
+              const priors = [];
+              let cursor = null;
+              for (;;) {
+                const page = await github.graphql(query, {
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  cursor: cursor,
+                });
+                const conn = page.repository.issues;
+                for (const node of conn.nodes) {
+                  if (node.labels.nodes.some((l) => l.name === cadenceLabel)) {
+                    priors.push(node);
+                  }
+                }
+                if (!conn.pageInfo.hasNextPage) break;
+                cursor = conn.pageInfo.endCursor;
+              }
+              console.log(`Found ${priors.length} open '${cadenceLabel}' issue(s)`);
+              for (const prior of priors) {
+                // Never touch the issue just created.
+                if (prior.number === created) continue;
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: prior.number,
+                  body:
+                    'Superseded by #' + created + ' — this cadence fires on a schedule, ' +
+                    'so the newest issue is the live reminder. Closing to keep the open-issue ' +
+                    'list a real backlog. Reopen if this specific sweep still has unfinished work.',
+                });
+                await github.rest.issues.update({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: prior.number,
+                  state: 'closed',
+                  state_reason: 'not_planned',
+                });
+                console.log(`Closed superseded reminder #${prior.number}`);
+              }
+            } catch (error) {
+              console.error('Failed to close superseded reminders:', error);
             }

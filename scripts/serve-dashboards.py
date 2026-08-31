@@ -83,9 +83,7 @@ ALLOWED_TARGETS = {
 # Saving the comfort posture immediately re-runs the translator so
 # .claude/settings.json reflects the new YAML without a manual /set-posture.
 POSTURE_TARGET = ".ravenclaude/comfort-posture.yaml"
-APPLY_SCRIPT = (
-    REPO_ROOT / "plugins" / "ravenclaude-core" / "scripts" / "apply-comfort-posture.py"
-)
+APPLY_SCRIPT = REPO_ROOT / "plugins" / "ravenclaude-core" / "scripts" / "apply-comfort-posture.py"
 
 # MH-16 part 2 (dashboard half): the Codex sandbox emitter, and the project it
 # targets. The emitter ships at the MARKETPLACE root, not inside the plugin —
@@ -150,9 +148,14 @@ _PLUGIN_CFG_PREFIX = ".ravenclaude/plugins/"
 def _is_plugin_config_target(target: str) -> bool:
     if not target.startswith(_PLUGIN_CFG_PREFIX) or not target.endswith(".yaml"):
         return False
-    slug = target[len(_PLUGIN_CFG_PREFIX):-len(".yaml")]
-    return bool(slug) and all(c.islower() or c.isdigit() or c == "-" for c in slug) \
-        and slug[0] != "-" and "/" not in slug and ".." not in slug
+    slug = target[len(_PLUGIN_CFG_PREFIX) : -len(".yaml")]
+    return (
+        bool(slug)
+        and all(c.islower() or c.isdigit() or c == "-" for c in slug)
+        and slug[0] != "-"
+        and "/" not in slug
+        and ".." not in slug
+    )
 
 
 def _validate_plugin_config(content: str) -> str | None:
@@ -202,9 +205,7 @@ def _validate_json_target(target: str, content: str) -> str | None:
 # REAL deterministic classifier (thing-decision.py) on the typed string so the
 # preview can't drift from the engine. It does NOT execute the command — the
 # string is analysed only (passed as a single argv to a read-only classifier).
-THING_DECISION = (
-    REPO_ROOT / "plugins" / "ravenclaude-core" / "scripts" / "thing-decision.py"
-)
+THING_DECISION = REPO_ROOT / "plugins" / "ravenclaude-core" / "scripts" / "thing-decision.py"
 
 # ── Tier helpers for /__saga enrichment ─────────────────────────────────────
 # Loaded once at module start (not per-request) using the same importlib pattern
@@ -346,12 +347,18 @@ def _summarize_run(d: Path) -> dict:
     not this helper)."""
     import datetime as _dt
 
-    rec = {"id": d.name, "timestamp": "", "status": "", "summary": "",
-           "artifacts": [], "event_count": 0}
+    rec = {
+        "id": d.name,
+        "timestamp": "",
+        "status": "",
+        "summary": "",
+        "artifacts": [],
+        "event_count": 0,
+    }
     try:
-        rec["timestamp"] = _dt.datetime.utcfromtimestamp(
-            d.stat().st_mtime
-        ).strftime("%Y-%m-%dT%H:%M:%SZ")
+        rec["timestamp"] = _dt.datetime.utcfromtimestamp(d.stat().st_mtime).strftime(
+            "%Y-%m-%dT%H:%M:%SZ"
+        )
     except OSError:
         pass
     for name in ("summary.md", "SUMMARY.md"):
@@ -587,8 +594,7 @@ def _read_vidarr_events(runs_dir: Path, posture_log: Path, days: int = 30) -> di
     # are absent this audit log has never been written to — and an empty audit log
     # is not evidence of safety, which matters more here than anywhere else.
     emitter_seen = bool(
-        (runs_dir.is_dir() and any(runs_dir.glob("*/hook-events.jsonl")))
-        or posture_log.exists()
+        (runs_dir.is_dir() and any(runs_dir.glob("*/hook-events.jsonl"))) or posture_log.exists()
     )
     return {
         "events": events,
@@ -606,9 +612,7 @@ def _norns_git_lines(args: list, cwd: Path) -> list:
     import subprocess as _sp
 
     try:
-        out = _sp.run(
-            ["git"] + args, cwd=str(cwd), capture_output=True, text=True, timeout=10
-        )
+        out = _sp.run(["git"] + args, cwd=str(cwd), capture_output=True, text=True, timeout=10)
         if out.returncode != 0:
             return []
         return [ln for ln in out.stdout.splitlines() if ln.strip()]
@@ -681,14 +685,10 @@ def _read_norns(repo_root: Path, plugin: str) -> dict:
     hook_count = 0
     if hooks_dir.is_dir():
         hook_count = sum(
-            1
-            for p in hooks_dir.glob("*.sh")
-            if p.is_file() and not p.name.startswith("_")
+            1 for p in hooks_dir.glob("*.sh") if p.is_file() and not p.name.startswith("_")
         )
     rules_dir = repo_root / pdir / "rules"
-    rule_count = (
-        sum(1 for p in rules_dir.iterdir() if p.is_file()) if rules_dir.is_dir() else 0
-    )
+    rule_count = sum(1 for p in rules_dir.iterdir() if p.is_file()) if rules_dir.is_dir() else 0
     rel = _norns_git_lines(
         ["log", "-1", "--format=%cs", "--", f"{pdir}/.claude-plugin/plugin.json"],
         repo_root,
@@ -796,9 +796,7 @@ def _read_nidhoggr(repo_root: Path) -> dict:
             if name.startswith("_"):
                 continue
             if name not in refs:
-                out["ungated_hooks"].append(
-                    {"hook": name, "plugin": h.parent.parent.name}
-                )
+                out["ungated_hooks"].append({"hook": name, "plugin": h.parent.parent.name})
 
     # 3) Superseded decision-log entries (docs/decisions/, `supersedes:` frontmatter).
     dec_dir = repo_root / "docs" / "decisions"
@@ -888,6 +886,7 @@ def _mimir_scrub_string(s):
         return s
     try:
         import re as _re
+
         global _MIMIR_SECRET_RES
         if not _MIMIR_SECRET_RES:
             _MIMIR_SECRET_RES = [_re.compile(p) for p in _MIMIR_SECRET_PATTERNS]
@@ -908,8 +907,7 @@ def _mimir_scrub_tree(obj):
     field readers don't have to remember to scrub — RM7 universal-scrub."""
     if isinstance(obj, dict):
         return {
-            (_mimir_scrub_string(k) if isinstance(k, str) else k):
-                _mimir_scrub_tree(v)
+            (_mimir_scrub_string(k) if isinstance(k, str) else k): _mimir_scrub_tree(v)
             for k, v in obj.items()
         }
     if isinstance(obj, list):
@@ -931,9 +929,7 @@ _MIMIR_JSONL_READ_CAP = 50 * 1024  # 50 KiB
 # A label failing this check is counted as "unnamed" rather than dropped — the
 # DISPATCH still happened, and silently under-reporting it would be the worse
 # error. The prompt/description fields are never read at all, at any length.
-_MIMIR_LABEL_OK = frozenset(
-    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789:_-"
-)
+_MIMIR_LABEL_OK = frozenset("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789:_-")
 _MIMIR_LABEL_MAX = 64
 
 
@@ -981,6 +977,7 @@ def _mimir_resolve_project_dir(claude_home, project_root):
     glob ~/.claude/projects/* and reverse-decode each candidate. Returns the
     resolved Path or None. Defense against Anthropic ABI drift (RM1)."""
     from pathlib import Path as _Path
+
     claude_home = _Path(claude_home)
     projects = claude_home / "projects"
     if not projects.is_dir():
@@ -1012,9 +1009,9 @@ def _mimir_resolve_project_dir(claude_home, project_root):
             decoded = candidate.name.replace("-", "/")
             if decoded == target:
                 import sys as _sys
+
                 print(
-                    f"[mimir] encoded-path fallback resolved {candidate.name!r}"
-                    f" -> {target!r}",
+                    f"[mimir] encoded-path fallback resolved {candidate.name!r} -> {target!r}",
                     file=_sys.stderr,
                 )
                 return candidate
@@ -1023,9 +1020,7 @@ def _mimir_resolve_project_dir(claude_home, project_root):
     return None
 
 
-def _mimir_iter_jsonl_bounded(
-    path, cap_bytes: int = _MIMIR_JSONL_READ_CAP, from_end: bool = False
-):
+def _mimir_iter_jsonl_bounded(path, cap_bytes: int = _MIMIR_JSONL_READ_CAP, from_end: bool = False):
     """Yield dicts from a JSONL file, capping the read at `cap_bytes`. Per-line
     json.loads is try/except wrapped so a torn final line silently drops
     (RM2 / gap-delta C4). Never raises — OSError yields nothing.
@@ -1229,26 +1224,42 @@ def _read_streams(project_root) -> dict:
         if not _slug_ok.match(sid):
             continue  # skip a malformed registry key defensively
         meta = streams_obj.get(sid) or {}
-        rows.append({
-            "id": sid,
-            "name": str(meta.get("name", sid))[:120],
-            "description": str(meta.get("description", ""))[:240],
-            "created": str(meta.get("created", "")),
-            "updated": str(meta.get("updated", "")),
-            "event_count": int(meta.get("event_count", 0)) if isinstance(meta.get("event_count"), int) else 0,
-            "active": sid == active,
-        })
+        rows.append(
+            {
+                "id": sid,
+                "name": str(meta.get("name", sid))[:120],
+                "description": str(meta.get("description", ""))[:240],
+                "created": str(meta.get("created", "")),
+                "updated": str(meta.get("updated", "")),
+                "event_count": int(meta.get("event_count", 0))
+                if isinstance(meta.get("event_count"), int)
+                else 0,
+                "active": sid == active,
+            }
+        )
     # newest-updated first; stable tiebreak on id
     rows.sort(key=lambda r: (r["updated"], r["id"]), reverse=True)
 
     # Last N DERIVED events of the active stream (whitelisted fields only).
-    _allowed_event_keys = ("kind", "label", "terms", "word_count", "summary",
-                           "session_id", "score", "ts", "stream_id", "schema_version")
+    _allowed_event_keys = (
+        "kind",
+        "label",
+        "terms",
+        "word_count",
+        "summary",
+        "session_id",
+        "score",
+        "ts",
+        "stream_id",
+        "schema_version",
+    )
     active_history = []
     if active:
         hist_path = sroot / active / "history.jsonl"
         try:
-            lines = hist_path.read_text(encoding="utf-8").splitlines() if hist_path.is_file() else []
+            lines = (
+                hist_path.read_text(encoding="utf-8").splitlines() if hist_path.is_file() else []
+            )
         except OSError:
             lines = []
         for raw in lines[-25:]:
@@ -1509,10 +1520,11 @@ def _read_mimir(project_root, claude_home) -> dict:
         except OSError:
             continue
         import datetime as _dt
+
         try:
-            last_active = _dt.datetime.fromtimestamp(
-                mtime, tz=_dt.timezone.utc
-            ).strftime("%Y-%m-%dT%H:%M:%SZ")
+            last_active = _dt.datetime.fromtimestamp(mtime, tz=_dt.timezone.utc).strftime(
+                "%Y-%m-%dT%H:%M:%SZ"
+            )
         except (OSError, ValueError, OverflowError):
             last_active = ""
 
@@ -1522,24 +1534,26 @@ def _read_mimir(project_root, claude_home) -> dict:
         scan = _mimir_scan_session(jf)
 
         sid = jf.stem  # filename is the session UUID; truncate to 8 for display.
-        base["recent_sessions"].append({
-            "session_id": sid[:8] if isinstance(sid, str) else "",
-            "last_active": last_active,
-            "event_count": scan["event_count"],
-            "output_tokens": scan["output_tokens"],
-            "git_branch": scan["git_branch"],
-            "subagent_dispatches": scan["subagent_dispatches"],
-            # Top 5 by count, then name, so the ordering is stable across reads.
-            "subagent_types": [
-                {"type": k, "count": v}
-                for k, v in sorted(
-                    scan["subagent_types"].items(), key=lambda kv: (-kv[1], kv[0])
-                )[:5]
-            ],
-            # True only if the 64 MiB scan cap was hit — the counts are then a
-            # floor, not a total, and the UI says so rather than rounding it off.
-            "counts_truncated": scan["truncated"],
-        })
+        base["recent_sessions"].append(
+            {
+                "session_id": sid[:8] if isinstance(sid, str) else "",
+                "last_active": last_active,
+                "event_count": scan["event_count"],
+                "output_tokens": scan["output_tokens"],
+                "git_branch": scan["git_branch"],
+                "subagent_dispatches": scan["subagent_dispatches"],
+                # Top 5 by count, then name, so the ordering is stable across reads.
+                "subagent_types": [
+                    {"type": k, "count": v}
+                    for k, v in sorted(
+                        scan["subagent_types"].items(), key=lambda kv: (-kv[1], kv[0])
+                    )[:5]
+                ],
+                # True only if the 64 MiB scan cap was hit — the counts are then a
+                # floor, not a total, and the UI says so rather than rounding it off.
+                "counts_truncated": scan["truncated"],
+            }
+        )
 
     # ── activity card (~/.claude/stats-cache.json) ──────────────────────────
     stats_path = claude_home / "stats-cache.json"
@@ -1583,9 +1597,7 @@ def _read_mimir(project_root, claude_home) -> dict:
             if sd.get("cwd") != target_cwd or sd.get("status") != "busy":
                 continue
             sid = sd.get("sessionId")
-            base["session"]["session_id"] = (
-                sid[:8] if isinstance(sid, str) else None
-            )
+            base["session"]["session_id"] = sid[:8] if isinstance(sid, str) else None
             ver = sd.get("version")
             base["session"]["version"] = ver if isinstance(ver, str) else None
             st = sd.get("startedAt")
@@ -1799,7 +1811,10 @@ def _read_concern_stats(project_root: Path) -> dict:
     empty = {"schema_version": 1, "total_reviews": 0, "concerns": []}
     if _CONCERN_STATS_MOD is None:
         import importlib.util
-        script = project_root / "plugins" / "ravenclaude-core" / "scripts" / "thing-concern-stats.py"
+
+        script = (
+            project_root / "plugins" / "ravenclaude-core" / "scripts" / "thing-concern-stats.py"
+        )
         if not script.is_file():
             # Bundled-plugin install ships the analyzer alongside this server.
             script = Path(__file__).resolve().parent / "thing-concern-stats.py"
@@ -1822,9 +1837,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
     """SimpleHTTPRequestHandler + POST /__save for dashboard writes."""
 
     def log_message(self, format, *args):
-        sys.stderr.write(
-            "[%s] %s\n" % (self.log_date_time_string(), format % args)
-        )
+        sys.stderr.write("[%s] %s\n" % (self.log_date_time_string(), format % args))
 
     def handle_one_request(self):
         # Record activity for the --max-idle reaper on every incoming request
@@ -1848,17 +1861,32 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         """
         sfs = self.headers.get("Sec-Fetch-Site")
         if sfs is not None and sfs not in ("same-origin", "none"):
+            self._log_guard_reject("Sec-Fetch-Site", sfs)
             return False
         origin = self.headers.get("Origin")
         if origin is not None and origin not in _ALLOWED_ORIGINS:
+            self._log_guard_reject("Origin", origin)
             return False
         # Fail CLOSED on Host: a browser (HTTP/1.1) always sends Host, so the legit
         # dashboard never trips this — but a header-absent non-browser request must
         # not slip through. Host must be present AND a known local/forwarded host.
         host = self.headers.get("Host")
         if host is None or host not in _ALLOWED_HOSTS:
+            self._log_guard_reject("Host", host)
             return False
         return True
+
+    def _log_guard_reject(self, field: str, value: str | None) -> None:
+        """One bounded stderr line naming WHY a dashboard request was refused, so a 403
+        in a Codespace can be diagnosed from the server log (the operator-playbook step:
+        `tail` the log, look for this line + the offending Host). Host / Origin /
+        Sec-Fetch-Site are not secrets, but the length is bounded anyway; the allow-list
+        is deliberately NOT echoed (it names the forwarded host)."""
+        shown = "<absent>" if value is None else str(value)[:120]
+        sys.stderr.write(
+            f"serve-dashboards: refused dashboard request — {field} {shown!r} not "
+            f"allow-listed (cross-origin / non-local / unlisted forwarded host)\n"
+        )
 
     def _state_change_origin_ok(self) -> bool:
         """Require a PRESENT and allow-listed Origin on state-changing requests.
@@ -1935,7 +1963,22 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         return length
 
     def do_HEAD(self):
-        if self.path in ("/__save", "/__run", "/__classify", "/__csrf") or self.path.startswith("/__read") or self.path.startswith("/__saga") or self.path.startswith("/__heimdall") or self.path.startswith("/__vidarr") or self.path.startswith("/__norns") or self.path.startswith("/__nidhoggr") or self.path.startswith("/__mimir") or self.path.startswith("/__streams") or self.path.startswith("/__knowledge-health") or self.path.startswith("/__sleipnir") or self.path.startswith("/__runs") or self.path.startswith("/__concern-stats") or self.path.startswith("/__host"):
+        if (
+            self.path in ("/__save", "/__run", "/__classify", "/__csrf")
+            or self.path.startswith("/__read")
+            or self.path.startswith("/__saga")
+            or self.path.startswith("/__heimdall")
+            or self.path.startswith("/__vidarr")
+            or self.path.startswith("/__norns")
+            or self.path.startswith("/__nidhoggr")
+            or self.path.startswith("/__mimir")
+            or self.path.startswith("/__streams")
+            or self.path.startswith("/__knowledge-health")
+            or self.path.startswith("/__sleipnir")
+            or self.path.startswith("/__runs")
+            or self.path.startswith("/__concern-stats")
+            or self.path.startswith("/__host")
+        ):
             self.send_response(200)
             self.send_header("Allow", "GET, POST, HEAD")
             self.send_header("Content-Length", "0")
@@ -2046,6 +2089,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             self.send_error(403, "refused: cross-origin or non-local Origin/Host")
             return
         from urllib.parse import parse_qs, urlparse
+
         qs = parse_qs(urlparse(self.path).query)
         target = (qs.get("path") or [""])[0]
         if target not in ALLOWED_READ and not _is_plugin_config_target(target):
@@ -2065,6 +2109,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         if target.endswith((".yaml", ".yml")):
             try:
                 import yaml  # present in the devcontainer
+
                 payload["parsed"] = yaml.safe_load(content)
             except Exception:
                 payload["parsed"] = None  # dashboard falls back to defaults
@@ -2136,14 +2181,16 @@ class DashboardHandler(SimpleHTTPRequestHandler):
                 single = d.get("seat")
                 raw_seats = [single] if isinstance(single, dict) else []
             compact_seats = []
-            for s in (raw_seats or []):
+            for s in raw_seats or []:
                 if not isinstance(s, dict):
                     continue
-                compact_seats.append({
-                    "name": s.get("name", ""),
-                    "verdict": s.get("verdict") or s.get("status", ""),
-                    "confidence": s.get("confidence", 0),
-                })
+                compact_seats.append(
+                    {
+                        "name": s.get("name", ""),
+                        "verdict": s.get("verdict") or s.get("status", ""),
+                        "confidence": s.get("confidence", 0),
+                    }
+                )
 
             # Rewrite field: only for edit verdicts, truncated, command text only.
             rewrite = None
@@ -2161,21 +2208,23 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             entry_cited = d.get("concerns_cited") or []
             entry_cat = d.get("category", "")
             base_t, final_t = _compute_saga_tiers(entry_cat, entry_cited)
-            records.append({
-                "id": d.get("id", ""),
-                "timestamp": d.get("timestamp", ""),
-                "tool_name": tool_name,
-                "action": action,
-                "category": entry_cat,
-                "phase": d.get("phase", ""),
-                "final_verdict": d.get("final_verdict", ""),
-                "duration_ms": d.get("duration_ms", 0),
-                "concerns_cited": entry_cited,
-                "seats": compact_seats,
-                "rewrite": rewrite,
-                "base_tier": base_t,
-                "final_tier": final_t,
-            })
+            records.append(
+                {
+                    "id": d.get("id", ""),
+                    "timestamp": d.get("timestamp", ""),
+                    "tool_name": tool_name,
+                    "action": action,
+                    "category": entry_cat,
+                    "phase": d.get("phase", ""),
+                    "final_verdict": d.get("final_verdict", ""),
+                    "duration_ms": d.get("duration_ms", 0),
+                    "concerns_cited": entry_cited,
+                    "seats": compact_seats,
+                    "rewrite": rewrite,
+                    "base_tier": base_t,
+                    "final_tier": final_t,
+                }
+            )
 
         self._json(200, records)
 
@@ -2208,9 +2257,8 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         runs_dir = REPO_ROOT / ".ravenclaude" / "runs"
         records = []
         if runs_dir.is_dir():
-            run_dirs = [
-                d for d in runs_dir.iterdir() if d.is_dir() and d.name != "thing"
-            ]
+            run_dirs = [d for d in runs_dir.iterdir() if d.is_dir() and d.name != "thing"]
+
             def _safe_mtime(d):
                 # A run dir deleted between iterdir() and sort() (concurrent run
                 # cleanup) must not crash the /__runs handler with OSError —
@@ -2317,6 +2365,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             self.send_error(403, "refused: cross-origin or non-local Origin/Host")
             return
         from pathlib import Path as _Path
+
         claude_home = _Path(os.path.expanduser("~/.claude"))
         payload = _read_mimir(REPO_ROOT, claude_home)
         self._json(200, _mimir_scrub_tree(payload))
@@ -2396,7 +2445,9 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             self.send_error(403, "refused: cross-origin or non-local Origin/Host")
             return
         if not self._state_change_origin_ok():
-            self.send_error(403, "refused: state-changing request requires a present, allowed Origin")
+            self.send_error(
+                403, "refused: state-changing request requires a present, allowed Origin"
+            )
             return
         if not self._csrf_ok():
             self.send_error(403, "missing or invalid CSRF token")
@@ -2565,7 +2616,14 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             return {"applied": False, "apply_error": "apply-comfort-posture.py not found"}
         try:
             proc = subprocess.run(
-                [sys.executable, str(APPLY_SCRIPT), "--project-root", str(REPO_ROOT), "--source", "dashboard-save"],
+                [
+                    sys.executable,
+                    str(APPLY_SCRIPT),
+                    "--project-root",
+                    str(REPO_ROOT),
+                    "--source",
+                    "dashboard-save",
+                ],
                 capture_output=True,
                 text=True,
                 timeout=30,
@@ -2610,8 +2668,15 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             self._json(500, {"ok": False, "action": action, "error": f"could not run: {e}"})
             return
         output = ((proc.stdout or "") + (proc.stderr or "")).strip()
-        self._json(200, {"ok": proc.returncode == 0, "action": action,
-                         "exit_code": proc.returncode, "output": output[:8000]})
+        self._json(
+            200,
+            {
+                "ok": proc.returncode == 0,
+                "action": action,
+                "exit_code": proc.returncode,
+                "output": output[:8000],
+            },
+        )
 
     def _handle_classify(self):
         """POST /__classify {command} — run the real thing-decision classifier on
@@ -2633,9 +2698,19 @@ class DashboardHandler(SimpleHTTPRequestHandler):
             return
         try:
             proc = subprocess.run(
-                [sys.executable, str(THING_DECISION), "--root", str(REPO_ROOT),
-                 "preview", "--", command[:4000]],
-                cwd=str(REPO_ROOT), capture_output=True, text=True, timeout=15,
+                [
+                    sys.executable,
+                    str(THING_DECISION),
+                    "--root",
+                    str(REPO_ROOT),
+                    "preview",
+                    "--",
+                    command[:4000],
+                ],
+                cwd=str(REPO_ROOT),
+                capture_output=True,
+                text=True,
+                timeout=15,
             )
             decision = json.loads(proc.stdout) if proc.stdout.strip() else {"category": None}
         except (subprocess.SubprocessError, OSError, json.JSONDecodeError) as e:
@@ -2808,12 +2883,17 @@ def _idle_reaper(max_idle_minutes: float) -> None:
     while True:
         time.sleep(min(idle_seconds, 30))
         if time.monotonic() - _LAST_ACTIVITY >= idle_seconds:
-            print(f"serve-dashboards: idle {max_idle_minutes:g} min — exiting (--max-idle).", flush=True)
+            print(
+                f"serve-dashboards: idle {max_idle_minutes:g} min — exiting (--max-idle).",
+                flush=True,
+            )
             os._exit(0)
 
 
 def main() -> int:
-    p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    p = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     p.add_argument("--port", type=int, default=8000)
     p.add_argument(
         "--bind",
@@ -2849,7 +2929,10 @@ def main() -> int:
     # Codespaces does NOT export GITHUB_CODESPACES_PORT_VISIBILITY today (verified
     # 2026-06-02), so the check is a defensive no-op today and a real gate if/when
     # the env var ships. Use `gh codespace ports list` for the authoritative state.
-    if bind == "0.0.0.0" and os.environ.get("GITHUB_CODESPACES_PORT_VISIBILITY", "").lower() == "public":
+    if (
+        bind == "0.0.0.0"
+        and os.environ.get("GITHUB_CODESPACES_PORT_VISIBILITY", "").lower() == "public"
+    ):
         print(
             "serve-dashboards: refusing to bind 0.0.0.0 with the Codespace port set to Public.\n"
             "  /__save and /__run would be reachable from the public internet.\n"
@@ -2871,7 +2954,9 @@ def main() -> int:
     actual_port = args.port
     if _port_holder_pids(args.port):
         if _reclaim_port(args.port):
-            print(f"  port {args.port} was held by a stale dashboard server — stopped it, rebinding")
+            print(
+                f"  port {args.port} was held by a stale dashboard server — stopped it, rebinding"
+            )
     for candidate in range(args.port, args.port + 6):
         try:
             server = ThreadingHTTPServer((bind, candidate), DashboardHandler)
@@ -2898,12 +2983,28 @@ def main() -> int:
     # launch ruling bounds duration; a tab open across the expiry recovers via the
     # client-side re-probe). --max-idle 0 disables (the thread never starts).
     threading.Thread(target=_idle_reaper, args=(args.max_idle,), daemon=True).start()
-    _ALLOWED_HOSTS = {f"127.0.0.1:{actual_port}", f"localhost:{actual_port}", "127.0.0.1", "localhost"}
+    _ALLOWED_HOSTS = {
+        f"127.0.0.1:{actual_port}",
+        f"localhost:{actual_port}",
+        "127.0.0.1",
+        "localhost",
+    }
     _ALLOWED_ORIGINS = {f"http://127.0.0.1:{actual_port}", f"http://localhost:{actual_port}"}
     if codespace:
         _fwd = f"{codespace}-{actual_port}.{domain}"
-        _ALLOWED_HOSTS.add(_fwd)
-        _ALLOWED_ORIGINS.add(f"https://{_fwd}")
+        # Accept the bare AND explicit-:443 forms of THIS codespace's forwarded host.
+        # Browsers omit the default HTTPS port, but some proxies/clients include it; a
+        # `:443` Host was 403ing the same-origin CSRF bootstrap and silently degrading
+        # the dashboard to read-only "static" mode in a Codespace. Enumerate the exact
+        # per-codespace strings ONLY — never a "*.app.github.dev" suffix/wildcard match,
+        # which would allow any OTHER codespace's forwarded host and defeat the
+        # DNS-rebinding defense _local_request_ok() exists for. `domain` comes from
+        # GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN, so an enterprise/legacy forwarding
+        # domain is covered automatically without hardcoding one; the port-first form
+        # (`<port>-<codespace>`) is Gitpod, not Codespaces, and is deliberately omitted.
+        for _fwd_host in (_fwd, f"{_fwd}:443"):
+            _ALLOWED_HOSTS.add(_fwd_host)
+            _ALLOWED_ORIGINS.add(f"https://{_fwd_host}")
     if bind == "0.0.0.0":
         _ip = _lan_ip()
         if _ip:
@@ -2919,16 +3020,24 @@ def main() -> int:
     # without a global variable.
     server._dash_path = dash_path  # type: ignore[attr-defined]
 
-    print(f"serve-dashboards: serving {REPO_ROOT} at http://127.0.0.1:{actual_port}/  (bound to {bind})")
+    print(
+        f"serve-dashboards: serving {REPO_ROOT} at http://127.0.0.1:{actual_port}/  (bound to {bind})"
+    )
     print("  POST /__save  - writes a whitelisted file under .ravenclaude/")
     print(f"  allow-list   - {sorted(ALLOWED_TARGETS)}")
     print("  POST /__run   - runs an allow-listed ravenclaude action (Install/Update buttons)")
     print(f"  actions      - {sorted(ALLOWED_ACTIONS)}")
     print("  GET  /__read  - reads an allow-listed config file so the dashboard hydrates from it")
     print(f"  read-list    - {sorted(ALLOWED_READ)}")
-    print("  POST /__classify - runs the real command-review classifier on a string (Test-a-command simulator)")
-    print("  GET  /__saga     - read-only list of Thing verdicts from .ravenclaude/runs/thing/ (?limit=N, default 200)")
-    print("  GET  /__runs     - read-only list of multi-step runs from .ravenclaude/runs/<id>/ (?limit=N, default 200)")
+    print(
+        "  POST /__classify - runs the real command-review classifier on a string (Test-a-command simulator)"
+    )
+    print(
+        "  GET  /__saga     - read-only list of Thing verdicts from .ravenclaude/runs/thing/ (?limit=N, default 200)"
+    )
+    print(
+        "  GET  /__runs     - read-only list of multi-step runs from .ravenclaude/runs/<id>/ (?limit=N, default 200)"
+    )
 
     # Work out a phone-reachable URL (if any). localhost is NOT reachable from a
     # phone, so it gets no QR. The QR lets you open the live dashboard on a phone

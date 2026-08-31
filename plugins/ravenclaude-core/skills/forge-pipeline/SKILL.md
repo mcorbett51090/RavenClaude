@@ -104,6 +104,20 @@ posture nudges toward, and what keeps two concurrent `/forge` runs (or a forge r
 edits on `main`) from stomping one shared tree. It prints a JSON receipt and, on success, a
 `FORGE_WORKTREE <abs-path>` line; hand that path to the implementation phase.
 
+⛔ **The base ref is `origin/main`, not local `main`** (precedence: an explicit `--base` > `origin/main` >
+`origin/master` > `main` > `HEAD`), preceded by a bounded, fail-safe `git fetch` of the remote-tracking
+refs only. Branching off a local `main` that lags origin yields a plausible checkout **from the past** —
+every file present, every gate green, and the diff built there silently **reverts** everything landed
+since. The receipt carries `base` + `behind` and the run prints
+`FORGE_WORKTREE_BASE <ref> (<n> commits behind origin/main)`: **read that count.** A non-zero `behind` on
+a fresh provision means you are about to build on stale ground. When there is no `origin/main` the count
+is empty — printed as `no origin/main — staleness NOT comparable`, which means *unknown*, never *up to
+date*.
+control: `init` in a fresh repo with no origin -> `base=main, behind=""`; adding an origin to that same
+repo and re-running -> `base=origin/main, behind="0"` (2026-08-17, both directions observed).
+Skip the fetch with `--no-fetch`
+or `FORGE_WORKTREE_FETCH=off`; the base **preference** is deliberately not opt-out-able.
+
 **Checkpoint (at each gate boundary and at exit).** After each gate and before the single exit, run
 `bash "$FORGE_PLUGIN_ROOT/scripts/forge-worktree.sh" checkpoint <slug> <gate>` — it commits the
 worktree's tracked changes as `forge(<slug>): checkpoint — <gate>`. During pure planning most
@@ -281,8 +295,10 @@ Then the single exit:
   is already 15-min URL-cached.
 - **Parallel where independent** (G1 explore subagents; G2/G3 panels = one batch of `Task` calls),
   **serial where dependent** (G4→G5→G6) — capped by the `.ravenclaude/comfort-posture.yaml`
-  `parallelism:` posture like [`spawn-team`](../spawn-team/SKILL.md) Step 5 (`enabled: false` → serial;
-  `max_workers: N` → batches of ≤N; absent → unchanged). A **cap, not a floor**.
+  `parallelism:` posture like [`spawn-team`](../spawn-team/SKILL.md) Step 5 (**absent → MAXIMUM**, the
+  v0.273.0 default; `enabled: false` / `parallelism: off` → serial; `max_workers: N` → batches of ≤N),
+  and released to serial while the **conserve-tokens exception** is engaged (posture switch, a prompt
+  phrase, or context pressure — precedence in Step 5). A **cap, not a floor**.
 - **Brakes reused:** `runaway-brake.sh` (PreToolUse call caps) + `guard-recursive-spawn.sh` (tree
   topology) fire automatically — a thrashing gate trips the brake deterministically.
 - **Fail-fast:** G1 BLOCK and a G7 `reject` short-circuit the expensive G2–G6 core when an idea is

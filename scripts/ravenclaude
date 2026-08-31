@@ -485,8 +485,12 @@ add_rc_alias() {
       printf '    # any verb goes to the real front-door dispatcher (rc dashboard, rc streams…)\n'
       printf '    command bash "%s/plugins/ravenclaude-core/bin/rc" "$@"\n' "$MARKET"
       printf '  else\n'
-      printf '    # bare `rc` keeps the one-word "update and launch Copilot" behaviour\n'
-      printf '    "%s/scripts/ravenclaude" update && copilot --plugin-dir "%s"\n' "$MARKET" "$COPILOT_PKG"
+      printf '    # bare `rc` keeps the one-word "update and launch Copilot" behaviour.\n'
+      printf '    # `;` NOT `&&`: update now exits non-zero when the pull was attempted\n'
+      printf '    # and failed, and the commonest cause is a locally-tuned posture file.\n'
+      printf '    # Under `&&` that would stop launching Copilot for exactly the people\n'
+      printf '    # hitting it — a stale checkout is still a working checkout.\n'
+      printf '    "%s/scripts/ravenclaude" update ; copilot --plugin-dir "%s"\n' "$MARKET" "$COPILOT_PKG"
       printf '  fi\n'
       printf '}\n'
     } >>"$bashrc"
@@ -526,6 +530,55 @@ regen() {
   fi
 }
 
+# Redact credentials embedded in a URL before echoing git's own stderr.
+# `git pull` names the remote in its error text, and a clone whose origin carries
+# a token (https://x-access-token:<token>@github.com/…) puts that token in the
+# message. This path prints git's stderr verbatim, so without this the fix for one
+# honesty bug would open a credential-echo. URL-embedded creds only — this is not
+# a general secret scanner, and it does not pretend to be.
+_rc_redact_urls() {
+  printf '%s\n' "$1" | sed -E 's#://[^/@[:space:]]*:[^/@[:space:]]*@#://[REDACTED]@#g'
+}
+
+# The git-pull step, extracted from cmd_update so it can be driven on its own.
+# cmd_update also runs `regen` and the launcher self-heal — heavy and
+# side-effecting — so a gate that had to call the whole command could not assert
+# on the pull report without those. Gate 228 drives this function directly.
+#
+# ⛔ THREE OUTCOMES, AND THE THIRD IS NOT A FAILURE:
+#   0  pulled
+#   1  a pull was ATTEMPTED and FAILED   -> the caller must not report success
+#   2  not a git checkout, so NOTHING WAS ATTEMPTED. Reporting "the pull failed"
+#      here would announce a failure that never happened — the mirror image of
+#      the bug this whole change exists to fix.
+_rc_pull_marketplace() {
+  local market="$1"
+  if ! git -C "$market" rev-parse --git-dir >/dev/null 2>&1; then
+    warn "$market is not a git checkout — nothing to pull"
+    return 2
+  fi
+  local branch; branch="$(git -C "$market" symbolic-ref --short HEAD 2>/dev/null || echo HEAD)"
+  local pull_out
+  if pull_out="$(git -C "$market" pull --ff-only 2>&1)"; then
+    ok "pulled latest ($branch)"
+    return 0
+  fi
+  warn "git pull --ff-only failed on $market ($branch) — NOT updated"
+  _rc_redact_urls "$pull_out" | sed 's/^/      /' >&2
+  local dirty
+  dirty="$(git -C "$market" status --porcelain --untracked-files=no 2>/dev/null || true)"
+  if [ -n "$dirty" ]; then
+    warn "tracked files are modified in the marketplace clone:"
+    printf '%s\n' "$dirty" | sed 's/^/      /' >&2
+    note "Keep them (robust):  git -C $market switch -c local-posture && git -C $market commit -am 'local tuning' && git -C $market switch main && git -C $market pull --ff-only"
+    note "Stash/pop is the quick form, but it CONFLICTS whenever upstream edited the same file:"
+    note "                     git -C $market stash push -m rc-update && git -C $market pull --ff-only && git -C $market stash pop"
+    note "Discard a formatting-only diff:  git -C $market checkout -- <path>"
+  fi
+  note "Skills/hooks below are re-materialized from the CURRENT (unchanged) checkout."
+  return 1
+}
+
 cmd_update() {
   local project="$PWD"
   while [ $# -gt 0 ]; do
@@ -535,16 +588,14 @@ cmd_update() {
     esac
   done
   printf '== ravenclaude update ==\n'
-  if git -C "$MARKET" rev-parse --git-dir >/dev/null 2>&1; then
-    local branch; branch="$(git -C "$MARKET" symbolic-ref --short HEAD 2>/dev/null || echo HEAD)"
-    if git -C "$MARKET" pull --ff-only >/dev/null 2>&1; then
-      ok "pulled latest ($branch)"
-    else
-      warn "git pull --ff-only failed (local changes or diverged?) — skills/hooks still update from whatever is checked out"
-    fi
-  else
-    warn "$MARKET is not a git checkout — nothing to pull"
-  fi
+  # `pull_rc` gates BOTH the closing line and this command's exit status: a
+  # failed pull must not report "up to date", and must not exit 0 either.
+  # Discarding git's stderr here used to turn the single most common failure
+  # (locally-tuned .ravenclaude/comfort-posture.yaml, a tracked file upstream
+  # also edits) into a one-line guess — and the run still ended with a green
+  # "up to date" over a stale checkout.
+  local pull_rc=0
+  _rc_pull_marketplace "$MARKET" || pull_rc=$?
   regen
   # Self-heal the repo-local dashboard launchers when update is run from inside a wired
   # consumer repo, so an improved launcher / README arrives on `update` (or the `rc` alias),
@@ -559,7 +610,15 @@ cmd_update() {
       fi
       ;;
   esac
-  ok "up to date. In your Copilot session run '/skills reload' (or relaunch) to apply."
+  if [ "$pull_rc" -eq 0 ]; then
+    ok "up to date. In your Copilot session run '/skills reload' (or relaunch) to apply."
+  elif [ "$pull_rc" -eq 2 ]; then
+    # Nothing was attempted. Saying "the pull above failed" here would be the
+    # same class of dishonesty this change is closing, pointed the other way.
+    warn "re-materialized from the existing checkout. $MARKET is not a git checkout, so there was nothing to pull."
+  else
+    warn "re-materialized from the existing checkout, but NOT up to date — the pull above failed."
+  fi
 
   # P18 — the update path is exactly where silent-disarm happens (Codex hash-trust
   # after a pull that changed a hook byte; Copilot version-floor if the CLI was
@@ -571,6 +630,20 @@ cmd_update() {
     # Fallback if the helper failed to source: keep the Codex notice alive.
     codex_retrust_notice "$project"
   fi
+
+  # ⛔ THE EXIT STATUS IS PART OF THE REPORT. Fixing only the printed line leaves
+  # every automated caller reading a green signal over a stale checkout — and one
+  # exists: serve-dashboards.py's /__run sets the dashboard's success flag to
+  # `proc.returncode == 0`, so the Update button showed ok:true for a run that
+  # did not update. Prose honesty that stops at the human surface is half a fix.
+  #
+  # Only an ATTEMPTED-and-FAILED pull is non-zero. `not a git checkout` (rc 2)
+  # stays 0: nothing was attempted, the re-materialize genuinely succeeded, and
+  # a consumer whose MARKET is a tarball must not start seeing failures.
+  if [ "$pull_rc" -eq 1 ]; then
+    return 1
+  fi
+  return 0
 }
 
 # Symlink one plugin's skills into <project>/.claude/skills. Used by cmd_install
@@ -1035,7 +1108,10 @@ PY2
   _rc_finish_host_install "$host" "$project"
   if [ -z "${RC_FROM_SETUP:-}" ]; then
     printf '\nAdd this to your shell rc (~/.bashrc / ~/.zshrc) for one-command use:\n\n'
-    printf '  alias rc='\''"%s/scripts/ravenclaude" update && copilot --plugin-dir "%s"'\''\n\n' "$MARKET" "$COPILOT_PKG"
+    # `;` NOT `&&` — see the rc() function above: a failed pull is now a non-zero
+    # exit, and `&&` would turn "your posture file blocks the pull" into "Copilot
+    # will not start".
+    printf '  alias rc='\''"%s/scripts/ravenclaude" update ; copilot --plugin-dir "%s"'\''\n\n' "$MARKET" "$COPILOT_PKG"
     ok "install complete. Launch with:  copilot --plugin-dir $COPILOT_PKG"
     note "Updates from now on: just run 'ravenclaude update' (or 'rc'). No re-install, ever."
     note "VS Code Copilot Chat is a separate product — CLI hooks are not Chat coverage."

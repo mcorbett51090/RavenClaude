@@ -145,3 +145,4 @@ See [`../../ravenclaude-core/skills/structured-output/SKILL.md`](../../ravenclau
 - Skill: [`../skills/design-system-audit/SKILL.md`](../skills/design-system-audit/SKILL.md)
 - Skill: [`../skills/card-tile-ui/SKILL.md`](../skills/card-tile-ui/SKILL.md)
 - Skill: [`../skills/accessibility-review/SKILL.md`](../skills/accessibility-review/SKILL.md)
+- **Form submissions:** you keep the client half — markup, native validation attributes, controlled inputs, error UX. The server half (client/server validation parity, honeypot design, duplicate-submission guards, webhook verification, PII minimisation) is [`../../forms-engineering/skills/harden-a-form-submission/SKILL.md`](../../forms-engineering/skills/harden-a-form-submission/SKILL.md).

@@ -5,7 +5,7 @@ argument-hint: "[the comm, e.g. 'turn this district update into a parent-facing 
 
 # Translate FERPA-safe comms
 
-You are running `/edtech-partner-success:translate-ferpa-safe-comms`. Reshape the communication the user described (`$ARGUMENTS`) so it is privacy-safe and lands with its audience — the work the `ferpa-comms-translator` agent owns. The PSM's job is to *recognize the shape of the question* and route, not to render a legal opinion. Keep every example generic — no real student data.
+You are running `/edtech-partner-success:translate-ferpa-safe-comms`. Reshape the communication the user described (`$ARGUMENTS`) so it is privacy-safe and lands with its audience — the work the `ferpa-comms-translator` agent owns. The agent-consumed playbook is [`../skills/ferpa-comms-translation/SKILL.md`](../skills/ferpa-comms-translation/SKILL.md); keep this command and that skill in lockstep. The PSM's job is to *recognize the shape of the question* and route, not to render a legal opinion. Keep every example generic — no real student data.
 
 ## When to use this
 

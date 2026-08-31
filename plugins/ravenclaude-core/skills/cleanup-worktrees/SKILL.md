@@ -13,6 +13,53 @@ description: Remove finished agent worktrees, prune their branches, and surface 
    - **Merged** — its branch is fully reachable from `main` (or the configured base). Safe to remove.
    - **Open PR** — branch has an open PR. Don't remove.
    - **Dirty** — uncommitted changes. Surface and stop; the Team Lead must decide.
+   - **UNKNOWN** — the tree could not be inspected. ⛔ This is **not** a third
+     flavour of clean: an un-inspected tree produces empty output, byte-identical
+     to a clean one, so treating it as clean deletes work nobody looked at.
+     `worktree-clean.sh` refuses it — and refuses it **even with `--force`**,
+     because `--force` discards uncommitted work and here we do not know whether
+     there is any.
+
+     There are **two causes**, and only one of them involves an error:
+     - *`git status` failed* — a stale linked worktree whose admin dir under
+       `.git/worktrees/` is gone, a corrupt `.git`, permission denied. Empty
+       stdout, non-zero exit.
+     - *`git status` **succeeded**, but against an ANCESTOR* — the directory is
+       not a worktree, or its `.git` file is missing, so git's discovery walked
+       up and reported the parent repo. Since `.claude/worktrees/` is gitignored,
+       the parent reports nothing about it, so this also comes back empty — with
+       **exit 0**. This is the more common shape, and it is why a successful
+       `git status` is not by itself evidence that anything was inspected.
+
+     ⛔ Do **not** reach for `git worktree repair` / `git worktree prune` as a
+     reflex. Both were measured to be no-ops on every UNKNOWN shape tested, so
+     that advice sends you in a loop — and loop pressure is what makes people
+     tunnel to a manual delete. Read the specific cause, fix that, or move the
+     tree aside. Never delete it to make the message go away.
+   - **IGNORED** — nothing tracked is modified and nothing is untracked, but the
+     tree still holds **ignored** files (`.env`, `node_modules/`, a local db).
+     ⛔ `git status --porcelain` is **silent on ignored files by design**, so this
+     tree used to report empty output and classify `clean` — with git working
+     perfectly. The `.env` case is the one that hurts: a file is ignored
+     *precisely because* it is not in git, so the rule that hides it from the
+     probe is the same rule that guarantees no other copy exists.
+     `worktree-clean.sh` skips it under `--all` and names what is there. Unlike
+     UNKNOWN, it **does** honour `--force` — the difference is knowledge, not
+     danger: here we can see exactly what would be destroyed, so `--force` is a
+     considered choice rather than a blind one.
+   - **DETACHED** — the tree is clean by every measure above, but its HEAD is
+     detached at a commit **no branch or tag contains**. ⛔ This is the first
+     state where the work is *committed*: `git status` is rightly silent, and
+     removing the worktree makes that commit unreachable. The reflog does **not**
+     rescue it — `.git/worktrees/<name>/logs/HEAD` is deleted with the admin dir
+     (controlled 2026-08-17: before removal the file exists; after, it is gone,
+     the commit is contained by 0 refs, and only `git fsck --unreachable` still
+     finds it). Recovery is `git fsck --lost-found` until gc prunes.
+     `worktree-clean.sh` skips it under `--all`, names the SHA, and prints the
+     one-command rescue: `git branch <name> <sha>`. It honours `--force`, like
+     IGNORED. **The discriminator is reachability, not detachment** — a worktree
+     detached at an existing ref tip is common and harmless, still reads `clean`,
+     and is removed normally.
    - **Stale** — last commit > 14 days old, no PR. Flag for the user, don't remove without confirmation.
 3. **Close the lane first.** Close the VS Code window / end the Chat session for that worktree before `git worktree remove`, or the next session can reuse an Agents-window conversation from the removed tree.
 4. **Remove the safe ones.**

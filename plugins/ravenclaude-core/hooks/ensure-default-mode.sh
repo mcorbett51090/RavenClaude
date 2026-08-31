@@ -26,6 +26,25 @@
 
 set -euo pipefail
 
+# ── ADVISORY DELIVERY (added 2026-08-20) ────────────────────────────────────
+# ⛔ THE HIGHEST-PRIORITY CONVERSION OF THE FOUR. This hook's message says the
+# comfort-posture allow/ask/deny rules are "partially or fully bypassed" in the
+# current mode. On stderr at exit 0 that reaches the terminal and NOT the model
+# (measured across PostToolUse, PreToolUse and Stop — see _advise.sh), so the
+# model has been proceeding as though its guardrails were active while they were
+# bypassed. A false belief about its own constraints is the costliest kind.
+#
+# control: the same bake-off carried a SessionStart additionalContext sentinel
+# that arrived in EVERY trial, so the negative was about the channel, not a blind
+# harness — and SessionStart is exactly the event this hook fires on.
+#
+# Volume: fires only when mode != default, at most once per session. It
+# concatenates onto capability-orientation.sh's SessionStart banner (measured:
+# two additionalContext emitters on one event CONCATENATE, never last-write-wins),
+# so the message is kept short deliberately.
+_rc_hd="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" 2>/dev/null && pwd || printf '.')"
+if [ -f "$_rc_hd/_advise.sh" ]; then . "$_rc_hd/_advise.sh"; rc_advise_init SessionStart; fi
+
 # SessionStart delivers a JSON payload on stdin. Read it (non-blocking-safe).
 input="$(cat 2>/dev/null || true)"
 [[ -z "$input" ]] && exit 0

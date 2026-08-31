@@ -22,6 +22,12 @@ export COPILOT_CUSTOM_INSTRUCTIONS_DIRS=plugins/ravenclaude-core/copilot
 
 Confident reasoning errors — a flawed belief about a tool/platform/API stated as fact with no uncertainty marker — are as dangerous as hallucinations and harder to catch. For any **consequential** claim (one that gates an irreversible action or gets written into a durable doc): **cite the this-session check that backs it inline, or mark it `[unverified — training knowledge]` and offer to verify before acting** — and never falsely concede (or dig in) when corrected; verify first. This applies to every agentic tool reading this file (Claude Code, GitHub Copilot CLI routing Claude/GPT/Grok, Cursor, Codex). Full protocol + the enforced complements: [`plugins/ravenclaude-core/CLAUDE.md`](plugins/ravenclaude-core/CLAUDE.md) § "Claim Grounding & Source Honesty".
 
+**Before you CLAIM: say whether you are stating an OBSERVATION or an INFERENCE.** These are different axes from sourced-vs-unsourced, and conflating them is how a *correctly sourced* claim still turns out false. The case this rule was written from (2026-08-18): an agent stated *"the failure is caused by my change"* and *"the status page is correctly green"* as facts. Both rested on true, in-session observations. Both were conclusions **drawn from** those observations, and both were wrong. An **observation** is what the tool actually returned — quote it (`scripts/audit-gates.sh` → 703 pass, 0 fail). An **inference** is what you concluded from it — name the leap and what would falsify it ("exit 137, which I read as OOM `[unverified — I did not check the memory limit]`"). **The separating test:** could this sentence be false while every command you ran returned exactly what it returned? If yes, it is an inference. "X failed and my change touched X" is an observation; "X failed **because of** my change" is an inference until you have run the check that would have come out **differently** if the cause were something else. Causal claims are the highest-risk shape because they select the fix — attribute a cause you have not isolated and the next hour of work goes at the wrong thing, succeeding mechanically while solving nothing.
+
+**Before you ACT on an under-specified request: ask ONE question.** When a request admits more than one plausible reading **and those readings lead to different work**, ask before starting rather than picking one silently and building on it. The cost is asymmetric — a question costs one turn; a wrong interpretation costs the work plus the unwinding, and it surfaces late. This is **not** a licence to interrogate: if one reading is clearly intended, proceed; if several readings converge on the same work, proceed and say in one clause which you took; ask only when the readings diverge, and always when the work is also expensive or hard to reverse. Whenever you do proceed under a reading, **state it in one clause** ("taking this as the portal build, not the CLI") — that clause is what lets the user correct you at turn 1 instead of turn 9.
+
+> **Both of these rules are prose, and prose has no gate on the surface that matters.** No hook event carries a model's chat answer — hooks fire on tool calls, and an answer is not a tool call — so neither rule can be machine-enforced where the error usually lands. RavenClaude ships two narrow, advisory, opt-in complements: a `PostToolUse` lint over causal claims **written into `knowledge/`/`docs/` markdown**, and a `UserPromptSubmit` nudge on a narrow under-specified-prompt **shape**. Each is a sliver of its rule, each names what it misses, and neither is a control. Full scope table, including the measured gap where "because" is not mechanically separable into explanatory vs diagnostic: [`plugins/ravenclaude-core/CLAUDE.md`](plugins/ravenclaude-core/CLAUDE.md) § "Claim Grounding & Source Honesty".
+
 **The same discipline governs the mirror-image error — falsely claiming you _can't_ do something** (the costlier one in practice: it silently abandons work and wastes a round-trip). A `command not found`, an HTTP 401/403, a deferred/MCP tool whose schema isn't loaded yet, or an "API doesn't support X" recalled from training is evidence about **one route**, **never** proof the capability is absent. Before any "I can't" / "that's not possible" / "no PR capability here" leaves an agent: (0) **read the actual error first and name its specific mechanical cause** — the status code *and* the body/stderr, not the headline. The cause **selects** the next move and is not interchangeable: an expired/missing-token `401` means re-authenticate then **retry the same route** (do not switch surfaces); an insufficient-scope `403` means a surface that already holds the scope; a `command not found` means the tool is absent *on this host*; an unloaded MCP schema means search/await it. Guessing the cause picks the wrong fix. (1) **load the sanctioned route first** — e.g. an MCP tool that shows as "still connecting" or name-only must be searched/awaited before you call it, and a missing-schema error is a not-loaded-yet signal, not an absent tool; (2) **enumerate ≥2 alternative paths and try the next-easiest** before reporting blocked; (3) report blockage only with the this-session checks you ran (`command + output`, or `file:line`) and the alternatives tried — same falsifiability bar as a positive claim. A wrong path is not a missing capability, and a CLI/API dead-end is not a verdict on the goal. _Worked example (this repo): creating a PR in the web/remote environment is **only** the GitHub MCP path — `gh`/`hub` are absent and the direct API 403s, so a session that concluded "can't create a PR" from those two dead-ends skipped step 1 (load the MCP tool) and step 2 (try the sanctioned route)._
 
 ## Where work files go — the cross-CLI storage contract (READ THIS BEFORE WRITING ANY FILE)
@@ -40,6 +46,7 @@ This section is the canonical statement. It is projected into every host's own i
 |---|---|---|---|
 | **Local run** | `.ravenclaude/runs/<task-id>/` | **this machine only** — gitignored | working notes, gate output, evidence, anything mid-flight |
 | **Committed** | `docs/plans/`, `docs/decisions/`, `docs/research/` | you, teammates, CI | anything meant to outlive the task or be read by a human later |
+| **Ledger** | `.ravenclaude/ledger/<YYYY-MM>.jsonl` | you, teammates, CI — **committed**, `merge=union` | the append-only work/change record: what is still open, how each item ended, and which PR/worktree it ended in |
 
 **The test:** *would a teammate cloning this repo need it?* Yes → committed tier. No → local run tier.
 When unsure, start local and promote it later; promoting is a `git add`, but un-committing something
@@ -52,8 +59,8 @@ that should not have travelled is not.
 
 ### What a run directory looks like
 
-Create it with `bin/rc artifacts new <task-id>` so the shape and the provenance stamp are right
-without anyone memorising this:
+Create it with `plugins/ravenclaude-core/bin/rc artifacts new <task-id>` so the shape and the
+provenance stamp are right without anyone memorising this:
 
 ```
 .ravenclaude/runs/<task-id>/
@@ -69,7 +76,7 @@ Every file is optional except `meta.json`. **Write the ones you actually have co
 
 ### Picking work up from another CLI
 
-1. `bin/rc artifacts list` — shows both tiers, newest first, with **which CLI wrote each one**. It is
+1. `plugins/ravenclaude-core/bin/rc artifacts list` — shows both tiers, newest first, with **which CLI wrote each one**. It is
    computed by scanning, so it cannot go stale.
 2. Read `meta.json` first. If it was written by a different CLI, nothing special is required — the
    layout is identical — but knowing the origin tells you what *else* might exist (e.g. a Claude Code
@@ -89,6 +96,32 @@ Naming this is part of the contract — an honest gap beats a false promise of p
 
 If work needs to survive across CLIs, **it has to be written into one of the two tiers above.** Nothing
 in a host's private area crosses over — assume it is lost the moment the session ends.
+
+## Naming a cause (the portable floor)
+
+Projected from [`plugins/ravenclaude-core/knowledge/cause-taxonomy.md`](plugins/ravenclaude-core/knowledge/cause-taxonomy.md), which is the single source. Edit it there, not here.
+
+A negative or empty result names ONE outcome. It never names its cause. The ritual, in three steps:
+
+> (1) Before asserting a cause, list the classes that could produce **this exact output**.
+> (2) Name the ONE discriminating probe that splits the top two.
+> (3) Run it, then assert — and if you cannot run it, **write the cause as a hypothesis, not a fact.**
+
+The classes, so step 1 has something to enumerate against:
+
+| class | the output looked that way because… |
+|---|---|
+| **E** | the command did not run as intended — the shell never reached the subject, so nothing in the output is evidence about the subject at all |
+| **F** | the read looked in the wrong place — the subject exists, but the target examined was not the one holding the answer |
+| **G** | the answer was produced and then discarded — the subject answered correctly and the answer was lost between producer and reader |
+| **H** | the subject genuinely has no such thing — the only class that licenses an absence conclusion, reachable only after E, F and G are excluded |
+| **I** | indeterminate — the transport failed, which is evidence about reachability and never about the subject |
+
+⛔ **`H1` — "the thing is absent" — is never available as the rank-1 answer.** It becomes credible only once E, F and G are excluded **and** a positive control on the same subsystem shows the probe was capable of returning something else. An empty result from a blind probe and an empty result from an empty subject are the same bytes; only the control separates them.
+
+**The honest limit.** No hook on any host carries the model's chat text, so the place the confident inference is most often spoken is structurally out of reach. This is a behavioural rule with an enforced sliver beneath it — not the rule's enforcement.
+
+What the sliver covers: a failed or empty Bash result is triaged after the fact, and a durable write or a remediating command that rests on an unsettled cause meets a gate. What it does not cover: a cause asserted in conversation and acted on in the same breath.
 
 ---
 

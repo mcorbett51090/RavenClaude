@@ -28,6 +28,13 @@
 #   T14 lone checkout (no other worktrees) + Write under tree -> exit 0.
 #   T15 GIT_WORK_TREE=<B> git add -A from cwd A -> exit 2.
 #   T16 git status (no -C) from A -> exit 0.
+#   T18 stdin read is BOUNDED: (a) the hook exits under a held-open pipe,
+#       (b) must-fail — the bare `cat` restored still hangs there, (c) payload
+#       FIDELITY (a fidelity detector, NOT a bound detector), (d) an unreadable
+#       payload FAILS CLOSED on check while a readable one still allows, (e) the
+#       deadline governs (3s-late writer served at the default, starved at 1s),
+#       (f) the knob clamp survives 00 / 2^32 / 20-digit / non-numeric, (g) a
+#       3MB SINGLE-LINE payload is read whole — the shape `read -t` used to cap.
 #   MF  must-fail half — strip the latecomer-only guard in _wg_contention and assert
 #       the incumbent now ALSO fires, proving T3's incumbent-silence has teeth.
 #
@@ -181,6 +188,15 @@ echo
 echo "── T5: block mode — mutating denies (exit 2), read allows, ACK escapes ───"
 SB="$(mktemp -d)"; export RC_WORKTREE_GUARD_HOME="$SB/guard"
 R="$SB/repo"; mk_repo "$R" block
+# ⛔ Lease OFF so this block tests the CONTENTION clause in isolation, which is
+# what T5's name claims. The lease clause is evaluated FIRST and denies on the
+# same fixture (another live session in this tree), so with it on, the 4th call
+# below never reaches the contention code and the ACK assertion measured the
+# wrong clause. That is not hypothetical: T5's ACK case had been RED since the
+# lease landed, and nobody saw it because this suite is invoked by no workflow.
+# The lease/contention layering is pinned separately in T5b — deleting this line
+# does not silently weaken T5, it makes T5 test something else.
+printf 'worktree_lease: off\n' >> "$R/.ravenclaude/comfort-posture.yaml"
 PK="$(path_key "$R")"; BUCKET="$SB/guard/sessions/$PK"
 sleep 300 & INC_PID=$!; disown 2>/dev/null || true
 NOW="$(date +%s)"
@@ -198,6 +214,34 @@ mk_payload "$R" late-write Write "$(jq -cn --arg fp "$R/newfile.txt" '{file_path
 mk_payload "$R" late-ack Bash '{"command":"git commit -m x"}' | RC_WORKTREE_GUARD_ACK=1 bash "$HOOK" check >/dev/null 2>&1
 [ "$?" -eq 0 ] && pass "T5: block + mutating + RC_WORKTREE_GUARD_ACK=1 -> exit 0 (escape)" || fail "T5: ACK did NOT escape the block"
 kill "$INC_PID" 2>/dev/null
+rm -rf "$SB"
+
+echo
+echo "── T5b: the LEASE clause is evaluated before contention, and shadows GUARD_ACK ──"
+# ⛔ PINS THE LAYERING, and it is currently a SHARP EDGE rather than a clean one.
+# On the same two-writers fixture the lease denies first, so RC_WORKTREE_GUARD_ACK
+# — documented in hooks.json, dashboard-schema.json and the contention deny's own
+# text as the override for exactly this situation — does NOT get you through.
+# The lease's own message names a DIFFERENT, working escape (worktree_lease: off),
+# so the user is not stranded; they are told about a hatch that does not apply.
+# This test asserts the behaviour AS IT IS so a future change to it is deliberate
+# and visible, NOT that the behaviour is correct. Whether GUARD_ACK should also
+# release the lease is an owner call: it would add a bypass to a mutual-exclusion
+# control, which is not a call a test should make by encoding it.
+SB="$(mktemp -d)"; export RC_WORKTREE_GUARD_HOME="$SB/guard"
+R="$SB/repo"; mk_repo "$R" block
+printf 'worktree_lease: on\nworktree_lease_idle_minutes: 20\n' >> "$R/.ravenclaude/comfort-posture.yaml"
+# The lease needs a live holder, which a real `check` call establishes.
+mk_payload "$R" holder Bash '{"command":"git commit -m x"}' | bash "$HOOK" check >/dev/null 2>&1
+out5b="$(mk_payload "$R" latecomer Bash '{"command":"git commit -m x"}' | RC_WORKTREE_GUARD_ACK=1 bash "$HOOK" check 2>&1)"
+rc5b=$?
+[ "$rc5b" -eq 2 ] \
+  && pass "T5b: a held lease denies (exit 2) even with RC_WORKTREE_GUARD_ACK=1" \
+  || fail "T5b: expected the lease to deny at exit 2, got $rc5b"
+case "$out5b" in
+  *"holds a live lease"*) pass "T5b: the denial is the LEASE clause, naming its own escape" ;;
+  *) fail "T5b: denied, but not by the lease clause — layering changed: $out5b" ;;
+esac
 rm -rf "$SB"
 
 echo
@@ -337,6 +381,244 @@ R="$SB/repo"; mk_repo "$R" warn
 git -C "$R" worktree add -q -b sibt16 "$SB/sibling"
 mk_payload "$R" s Bash '{"command":"git status"}' | bash "$HOOK" check >/dev/null 2>&1
 [ "$?" -eq 0 ] && pass "T16: git status (no -C) -> exit 0" || fail "T16: git status was denied"
+rm -rf "$SB"
+
+echo
+echo "── T17: the lease governs THIS tree, not every file on the disk ──────────"
+# ⛔ REGRESSION PIN, and BOTH halves are required. _wg_lease_should_enforce used to
+# skip only a SIBLING-owned path (_wg_is_foreign), so a path owned by NO worktree
+# came back "not foreign" and was enforced — the lease became a general jail over
+# files that cannot possibly collide with this working tree.
+#
+# control 2026-08-24, observed live: with a lease held on the anchor checkout, an
+# Edit to ~/.claude/projects/<proj>/memory/*.md was DENIED with the lease message,
+# while the same bytes written through a Bash heredoc went through untouched — the
+# clause blocked the honest tool and not the workaround.
+#
+# The out-of-tree half alone would pass against a hook that enforces NOTHING, so
+# the in-tree half is what proves the fix narrowed the scope instead of removing it.
+SB="$(mktemp -d)"; export RC_WORKTREE_GUARD_HOME="$SB/guard"
+R="$SB/repo"; mk_repo "$R"
+printf 'worktree_lease: on\nworktree_lease_idle_minutes: 20\n' >> "$R/.ravenclaude/comfort-posture.yaml"
+OUTSIDE="$SB/not-a-repo"; mkdir -p "$OUTSIDE"
+# A real check call establishes the lease for 'holder'.
+mk_payload "$R" holder Write "$(jq -cn --arg fp "$R/seed.txt" '{file_path:$fp, content:"x"}')" \
+  | bash "$HOOK" check >/dev/null 2>&1
+# (a) IN-TREE write by a second session must STILL be denied — the lease's whole job.
+mk_payload "$R" latecomer Write "$(jq -cn --arg fp "$R/intree.txt" '{file_path:$fp, content:"x"}')" \
+  | bash "$HOOK" check >/dev/null 2>&1
+[ "$?" -eq 2 ] \
+  && pass "T17: in-tree write by a second session -> exit 2 (lease still protects the tree)" \
+  || fail "T17: the lease stopped protecting its own working tree"
+# (b) OUT-OF-TREE write by that same session must be allowed.
+mk_payload "$R" latecomer Write "$(jq -cn --arg fp "$OUTSIDE/notes.md" '{file_path:$fp, content:"x"}')" \
+  | bash "$HOOK" check >/dev/null 2>&1
+[ "$?" -eq 0 ] \
+  && pass "T17: write to a path owned by NO worktree -> exit 0 (not a general jail)" \
+  || fail "T17: the lease denied a file outside every worktree"
+rm -rf "$SB"
+
+echo
+echo "── T18: the stdin read is BOUNDED — an open pipe must not hang the guard ─"
+# ⛔ REGRESSION PIN, and ALL THREE halves are load-bearing.
+# `[ ! -t 0 ]` cannot tell "a payload is on its way" from "fd 0 is an open pipe
+# nobody will ever write to" — both are simply not-a-tty — so the bare `cat` that
+# used to sit here blocked FOREVER on an inherited pipe, stalling every caller
+# downstream of the hook, audit-gates.sh Gate 140 included.
+#
+#   (a) the shipped hook EXITS under a FIFO whose writer is held open;
+#   (b) the must-fail half — the same hook with the bare `cat` restored must
+#       still HANG on that same FIFO. Without (b), (a) passes against a fixture
+#       that never blocked anything and the pin measures the environment, not
+#       the read. Both halves run against ONE fifo shape for exactly that reason.
+#   (c) a MULTI-LINE payload still denies. A bound that truncates the JSON to its
+#       first line yields a payload jq cannot parse, and an unparseable payload
+#       makes the guard ALLOW — a bounded read that silently disarms the guard is
+#       a worse defect than the hang it replaced.
+#
+# control 2026-08-25: under a FIFO with a held-open writer, the pre-fix hook hung
+# until killed at 6s while a script that reads no stdin exited in 1s.
+
+# _wg_bounded <limit-secs> <fifo-path> <cmd...> -> prints DONE | TIMEOUT
+_wg_bounded() {
+  local limit="$1" fifo="$2"; shift 2
+  rm -f "$fifo"; mkfifo "$fifo"
+  sleep "$((limit + 20))" > "$fifo" & local holder=$!
+  ( "$@" >/dev/null 2>&1 < "$fifo" ) & local pid=$!
+  local w=0
+  while kill -0 "$pid" 2>/dev/null && [ "$w" -lt "$limit" ]; do sleep 1; w=$((w + 1)); done
+  local verdict="DONE"
+  if kill -0 "$pid" 2>/dev/null; then kill -9 "$pid" 2>/dev/null; verdict="TIMEOUT"; fi
+  wait "$pid" 2>/dev/null
+  kill -9 "$holder" 2>/dev/null; wait "$holder" 2>/dev/null
+  rm -f "$fifo"
+  printf '%s' "$verdict"
+}
+
+SB="$(mktemp -d)"; export RC_WORKTREE_GUARD_HOME="$SB/guard"
+R="$SB/repo"; mk_repo "$R"
+
+# (a) the shipped hook must come back on its own. The watchdog limit MUST exceed
+# the shipped deadline (10s) or this half kills a guard that was about to exit
+# and reports the fix as broken — which is exactly what it did at limit 8.
+T18_STATUS="$(_wg_bounded 16 "$SB/fifo" bash "$HOOK" status --json)"
+T18_CHECK="$(_wg_bounded 16 "$SB/fifo" bash "$HOOK" check)"
+if [ "$T18_STATUS" = "DONE" ] && [ "$T18_CHECK" = "DONE" ]; then
+  pass "T18: status + check both exit under a held-open pipe (no unbounded read)"
+else
+  fail "T18: the guard hung on an open pipe (status=$T18_STATUS check=$T18_CHECK)"
+fi
+
+# (b) must-fail half — restore the bare `cat` and prove THAT still hangs.
+T18_TMP="$(mktemp -d)"; T18_HOOK="$T18_TMP/worktree-guard-unbounded.sh"
+python3 - "$HOOK" "$T18_HOOK" <<'T18PY'
+import sys
+src = open(sys.argv[1]).read()
+needle = 'payload="$(_rc_timeout "$_wg_deadline" cat 2>/dev/null)"; _wg_stdin_rc=$?'
+repl   = 'payload="$(cat 2>/dev/null || printf \'\')"; _wg_stdin_rc=0'
+assert needle in src, "T18 anchor drift: the bounded-read call site is gone"
+open(sys.argv[2], "w").write(src.replace(needle, repl))
+T18PY
+T18_PATCH_RC=$?
+chmod +x "$T18_HOOK" 2>/dev/null
+# ⛔ Drive `check`, NOT `status`. The shipped hook skips the stdin read entirely
+# for `status`, so a `status` mutant exits promptly for the RIGHT reason and this
+# half would pass while measuring nothing. Caught exactly that way on first run.
+# ⛔ Distinguish "the mutant could not be built" from "the mutant did not hang".
+# Without this the anchor-drift AssertionError falls through to the (b) assertion
+# below, which then reports "the fixture blocks nothing" — a true RED with the
+# WRONG cause, sending the next reader after a fixture that is fine.
+if [ "$T18_PATCH_RC" -ne 0 ]; then
+  fail "T18: must-fail mutant could not be built — the anchor drifted, NOT a fixture problem"
+fi
+T18_MF="$(_wg_bounded 6 "$SB/fifo" bash "$T18_HOOK" check)"
+if [ "$T18_MF" = "TIMEOUT" ]; then
+  pass "T18: must-fail — the unbounded read still HANGS, so (a) measures the read"
+else
+  fail "T18: the unbounded hook exited too ($T18_MF) — the fixture blocks nothing, (a) is vacuous"
+fi
+rm -rf "$T18_TMP"
+
+# (c) fidelity — a pretty-printed (multi-line) payload must still be parsed whole.
+git -C "$R" worktree add -q -b t18sib "$SB/t18sib"
+printf 'worktree_bound: block\n' >> "$R/.ravenclaude/comfort-posture.yaml"
+T18_ONELINE="$(mk_payload "$R" t18 Write "$(jq -cn --arg fp "$SB/t18sib/x.txt" '{file_path:$fp, content:"x"}')")"
+printf '%s' "$T18_ONELINE" | bash "$HOOK" check >/dev/null 2>&1; T18_RC1=$?
+printf '%s' "$T18_ONELINE" | jq '.' | bash "$HOOK" check >/dev/null 2>&1; T18_RCM=$?
+if [ "$T18_RC1" -eq 2 ] && [ "$T18_RCM" -eq 2 ]; then
+  pass "T18: payload FIDELITY — a multi-line payload still denies (rc=$T18_RCM)"
+else
+  fail "T18: payload fidelity broke (one-line rc=$T18_RC1, multi-line rc=$T18_RCM; both must be 2)"
+fi
+# ⛔ (c) is a FIDELITY detector, not a bound detector — the pre-fix bare-cat hook
+# passes it too. (a)+(b) are what measure the bound. Naming it otherwise would
+# have this block claim coverage it does not have.
+
+# (d) an UNPARSEABLE payload must FAIL CLOSED on check.
+# ⛔ This is the inversion the rewrite is for. A truncated payload has no
+# tool_name, so every classifier falls through to its default and answers "no
+# deny" — the guard ALLOWED, and a truncation is indistinguishable from a clean
+# run. THE BOUNDARY MATTERS AND IS DELIBERATE: a zero-byte CLEAN EOF is the
+# documented "no payload" contract (a bare CLI/test invocation) and still allows;
+# what fails closed is a writer that existed and delivered something unusable.
+# The in-tree pair is the control — same hook, same fixture, a readable payload
+# must still answer 0, or a hook that simply denies everything would pass too.
+printf '' | bash "$HOOK" check >/dev/null 2>&1; T18_EMPTY=$?
+printf '%s' '{"cwd":"/x","tool_name":"Wri' | bash "$HOOK" check >/dev/null 2>&1; T18_TRUNC=$?
+T18_INTREE="$(mk_payload "$R" t18 Write "$(jq -cn --arg fp "$R/intree.txt" '{file_path:$fp, content:"x"}')")"
+printf '%s' "$T18_INTREE" | bash "$HOOK" check >/dev/null 2>&1; T18_OKALLOW=$?
+if [ "$T18_TRUNC" -eq 2 ] && [ "$T18_EMPTY" -eq 0 ] && [ "$T18_OKALLOW" -eq 0 ]; then
+  pass "T18: a TRUNCATED payload fails closed (exit 2); clean-EOF-empty and a readable payload still allow (exit 0)"
+else
+  fail "T18: fail-closed wrong (truncated=$T18_TRUNC want 2, empty-EOF=$T18_EMPTY want 0, readable=$T18_OKALLOW want 0)"
+fi
+
+# (e) the DEADLINE is what governs — proven by moving only the deadline.
+# ⛔ pipefail is ON in this file and MUST be off here: when the hook gives up it
+# closes the read end, the still-sleeping producer takes SIGPIPE, and pipefail
+# promotes that 141 over the hook's own status. Exit 128-165 is a signal, not a
+# verdict. Measured on the first run of this block.
+# The subject is an IN-TREE write, whose correct answer is ALLOW, so the two arms
+# are distinguishable: served -> 0, starved -> 2. A foreign path would answer 2
+# either way and prove nothing.
+set +o pipefail
+( sleep 3; printf '%s' "$T18_INTREE" ) | bash "$HOOK" check >/dev/null 2>&1
+T18_SLOW_DEFAULT=$?
+( sleep 3; printf '%s' "$T18_INTREE" ) | RC_GUARD_STDIN_TIMEOUT=1 bash "$HOOK" check >/dev/null 2>&1
+T18_SLOW_TIGHT=$?
+set -o pipefail
+if [ "$T18_SLOW_DEFAULT" -eq 0 ] && [ "$T18_SLOW_TIGHT" -eq 2 ]; then
+  pass "T18: a 3s-late writer is served by the shipped deadline (exit 0) and starved by a 1s one (exit 2)"
+else
+  fail "T18: deadline does not govern (default=$T18_SLOW_DEFAULT want 0, tight=$T18_SLOW_TIGHT want 2)"
+fi
+
+# (f) the knob CLAMP — the values an operator actually reaches for.
+# ⛔ Each of these is all-digits, so a character-class filter passes it and the
+# timeout tool then rejects it as an argument error: an empty payload in 0s, i.e.
+# the guard disarmed by the most natural attempt to configure it. Under
+# fail-closed a broken clamp now shows up as 2 on a call whose answer is 0.
+T18_KNOB_BAD=""
+for T18_V in 00 0 07 2000 4294967296 99999999999999999999 abc ""; do
+  printf '%s' "$T18_INTREE" | RC_GUARD_STDIN_TIMEOUT="$T18_V" bash "$HOOK" check >/dev/null 2>&1
+  [ "$?" -eq 0 ] || T18_KNOB_BAD="$T18_KNOB_BAD ${T18_V:-<empty>}=$?"
+done
+if [ -z "$T18_KNOB_BAD" ]; then
+  pass "T18: every malformed/extreme RC_GUARD_STDIN_TIMEOUT still reads the payload (8/8)"
+else
+  fail "T18: knob clamp leaks —$T18_KNOB_BAD (each must exit 0; non-zero = disarmed or denied)"
+fi
+
+# (g) a LARGE SINGLE-LINE payload — the shape the deadline used to cap.
+# ⛔ A Write of a generated artifact JSON-encodes to megabytes on ONE line, since
+# escaping turns every newline into a two-character \n. `read` consumes a pipe one
+# byte per read(2), so under the old instrument the deadline doubled as a payload
+# SIZE cap and an 11 MB Write of this repo's own dashboard.html lost everything
+# under modest load. Bounding the writer with `cat` removes the size dimension.
+# In-tree again, so the answer is 0 and a truncation shows up as fail-closed 2.
+# (e)'s tight arm is the control that this fixture CAN produce 2.
+T18_BIG="$(python3 -c "
+import json,sys
+sys.stdout.write(json.dumps({'cwd':'$R','session_id':'t18','tool_name':'Write',
+  'tool_input':{'file_path':'$R/big.txt','content':'x'*3000000}}))")"
+printf '%s' "$T18_BIG" | bash "$HOOK" check >/dev/null 2>&1; T18_BIG_RC=$?
+T18_BIG_LINES=$(printf '%s' "$T18_BIG" | wc -l | tr -d ' ')
+if [ "$T18_BIG_RC" -eq 0 ] && [ "$T18_BIG_LINES" -eq 0 ]; then
+  pass "T18: a 3MB single-line payload is read whole (exit 0, 0 embedded newlines)"
+else
+  fail "T18: large single-line payload broke (rc=$T18_BIG_RC want 0; embedded newlines=$T18_BIG_LINES want 0)"
+fi
+
+rm -rf "$SB"
+
+echo
+echo "── T19: status selects its POSTURE from CLAUDE_PROJECT_DIR, else \$PWD ─────"
+# ⛔ REGRESSION PIN for a defect T18 introduced and a peer review caught.
+# `status` deliberately does not read stdin, so a caller can no longer hand it a
+# `{"cwd":…}` payload to say which repo it means — it falls through to
+# ${CLAUDE_PROJECT_DIR:-$PWD}. bin/rcwt was piping exactly such a payload, and in
+# a Claude Code session CLAUDE_PROJECT_DIR is ALWAYS set (to the worktree), so
+# `rcwt status` silently reported the wrong tree's posture.
+# Both halves are required: the unset half is the positive control proving the
+# fixture CAN report the local posture, so the set half is measuring precedence
+# rather than a fixture that only ever emits one answer.
+SB="$(mktemp -d)"; export RC_WORKTREE_GUARD_HOME="$SB/guard"
+mk_repo "$SB/A"; mk_repo "$SB/B"
+printf 'worktree_guard: warn\nworktree_bound: warn\n'   > "$SB/A/.ravenclaude/comfort-posture.yaml"
+printf 'worktree_guard: block\nworktree_bound: block\n' > "$SB/B/.ravenclaude/comfort-posture.yaml"
+T19_CTL="$( cd "$SB/A" && env -u CLAUDE_PROJECT_DIR bash "$HOOK" status --json | jq -r '.mode' )"
+T19_ENV="$( cd "$SB/A" && CLAUDE_PROJECT_DIR="$SB/B" bash "$HOOK" status --json | jq -r '.mode' )"
+if [ "$T19_CTL" = "warn" ] && [ "$T19_ENV" = "block" ]; then
+  pass "T19: posture comes from \$PWD when CLAUDE_PROJECT_DIR is unset (warn) and from the env var when set (block)"
+else
+  fail "T19: posture selection wrong (unset=$T19_CTL want warn, set=$T19_ENV want block)"
+fi
+# The caller-side consequence: rcwt must name the repo explicitly, not pipe it.
+if grep -q 'CLAUDE_PROJECT_DIR="\$PRIMARY" bash "\$guard" status --json' "$(dirname "$HOOK")/../bin/rcwt" 2>/dev/null; then
+  pass "T19: bin/rcwt names PRIMARY explicitly instead of piping an inert payload"
+else
+  fail "T19: bin/rcwt does not set CLAUDE_PROJECT_DIR=\$PRIMARY — it will report the wrong tree's posture"
+fi
 rm -rf "$SB"
 
 echo

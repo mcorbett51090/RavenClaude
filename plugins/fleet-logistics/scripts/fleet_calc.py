@@ -291,7 +291,7 @@ def build_parser() -> argparse.ArgumentParser:
     dh = sub.add_parser("deadhead", help="Quantify the deadhead/empty-mile leak")
     dh.add_argument("--total-miles", type=float, required=True, help="total miles (loaded + empty)")
     dh.add_argument("--deadhead", type=_parse_rate, required=True,
-                    help="deadhead/empty-mile rate (e.g. 22%)")
+                    help="deadhead/empty-mile rate (e.g. 22%%)")
     dh.add_argument("--cpm", type=float, required=True, help="all-in cost per mile")
     dh.add_argument("--rate", type=float, default=None,
                     help="avg loaded rate per mile for a revenue readout (optional)")
@@ -304,7 +304,7 @@ def build_parser() -> argparse.ArgumentParser:
                     help="trailing maintenance cost per mile for the unit")
     rr.add_argument("--miles", type=float, required=True, help="monthly miles for the unit")
     rr.add_argument("--downtime-rate", type=_parse_rate, default=0.0,
-                    help="unplanned-downtime rate (fraction of working days, e.g. 8%)")
+                    help="unplanned-downtime rate (fraction of working days, e.g. 8%%)")
     rr.add_argument("--downtime-day-cost", type=float, default=0.0,
                     help="cost of one downtime day (lost load + repair + driver)")
     rr.add_argument("--working-days", type=float, default=22.0,
@@ -318,7 +318,7 @@ def build_parser() -> argparse.ArgumentParser:
     to = sub.add_parser("turnover", help="Annual driver-turnover cost + retention prize")
     to.add_argument("--drivers", type=float, required=True, help="number of driver seats")
     to.add_argument("--turnover", type=_parse_rate, required=True,
-                    help="annual turnover rate (e.g. 90%)")
+                    help="annual turnover rate (e.g. 90%%)")
     to.add_argument("--cost-per-replacement", type=float, required=True,
                     help="cost to replace one driver (recruiting + screening + training)")
     to.add_argument("--unseated-days", type=float, default=0.0,

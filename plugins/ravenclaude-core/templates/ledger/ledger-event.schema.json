@@ -1,0 +1,333 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ravenclaude.dev/schemas/ledger-event.schema.json",
+  "title": "RavenClaude task-ledger event",
+  "description": "One JSON value per line of <ledger_dir>/<YYYY-MM>.jsonl. There is no item record: an item is the fold over the events sharing its item_id. No record is ever rewritten in place — a change is a new superseding event (invariant I2). See plugins/ravenclaude-core/knowledge/task-ledger-spec.md.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "event_id", "item_id", "type", "machine", "asserted"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "event_id": {
+      "type": "string",
+      "description": "ULID, 26 chars Crockford base32. Lexicographically time-sortable, 80 bits of randomness, no coordinator.",
+      "pattern": "^[0-9A-HJKMNP-TV-Z]{26}$"
+    },
+    "item_id": {
+      "type": ["string", "null"],
+      "description": "rc- + 12 hex (48 bits). Null ONLY for the non-item-bearing types (bridge_health, ledger_init), enforced by the per-type branches below. NEVER sequential: a T001-style id needs a central allocator and collides across worktrees.",
+      "pattern": "^rc-[0-9a-f]{12}$"
+    },
+    "type": {
+      "description": "⛔ EIGHT members. `redact` is in this enum deliberately: plan-A's four-member enum made G-LED-01 reject every redact and left the erasure path inert (bug A-3). A type used anywhere must be declared here.",
+      "enum": [
+        "open",
+        "state",
+        "verify",
+        "link",
+        "redact",
+        "provenance",
+        "bridge_health",
+        "ledger_init"
+      ]
+    },
+    "machine": { "$ref": "#/$defs/machine" },
+    "asserted": { "type": "object" }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "type": { "const": "open" } }, "required": ["type"] },
+      "then": {
+        "properties": {
+          "item_id": { "type": "string" },
+          "asserted": { "$ref": "#/$defs/assertedOpen" }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "type": { "const": "state" } }, "required": ["type"] },
+      "then": {
+        "properties": {
+          "item_id": { "type": "string" },
+          "asserted": { "$ref": "#/$defs/assertedState" }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "type": { "const": "verify" } }, "required": ["type"] },
+      "then": {
+        "properties": {
+          "item_id": { "type": "string" },
+          "asserted": { "$ref": "#/$defs/assertedVerify" }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "type": { "const": "link" } }, "required": ["type"] },
+      "then": {
+        "properties": {
+          "item_id": { "type": "string" },
+          "asserted": { "$ref": "#/$defs/assertedLink" }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "type": { "const": "redact" } }, "required": ["type"] },
+      "then": {
+        "properties": {
+          "item_id": { "type": "string" },
+          "asserted": { "$ref": "#/$defs/assertedRedact" }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "type": { "const": "provenance" } }, "required": ["type"] },
+      "then": {
+        "properties": {
+          "item_id": { "type": "string" },
+          "asserted": { "$ref": "#/$defs/assertedEmpty" },
+          "machine": { "required": ["pr", "merge_commit", "merged_at"] }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "type": { "const": "bridge_health" } }, "required": ["type"] },
+      "then": { "properties": { "asserted": { "$ref": "#/$defs/assertedBridgeHealth" } } }
+    },
+    {
+      "if": { "properties": { "type": { "const": "ledger_init" } }, "required": ["type"] },
+      "then": { "properties": { "asserted": { "$ref": "#/$defs/assertedLedgerInit" } } }
+    }
+  ],
+  "$defs": {
+    "machine": {
+      "$comment": "SLSA internalParameters — platform-controlled, written by ledger.py only. An unknown key here is REJECTED.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ts", "source", "actor", "host", "emitter"],
+      "properties": {
+        "ts": { "$ref": "#/$defs/instant" },
+        "source": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "actor": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "host": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "emitter": {
+          "type": "string",
+          "description": "tool@version. G-LED-10 (advisory) flags an absent/malformed emitter; the ledger does NOT authenticate authorship and signing is out of scope for v1.",
+          "pattern": "^[A-Za-z0-9._-]+@[0-9]+\\.[0-9]+\\.[0-9]+$"
+        },
+        "branch": { "type": ["string", "null"], "maxLength": 255 },
+        "worktree": {
+          "type": ["string", "null"],
+          "description": "⛔ The worktree NAME, never an absolute path. An absolute path leaks an OS username into a permanently retained committed artifact; the pattern makes that structurally impossible.",
+          "pattern": "^[A-Za-z0-9._-]{1,128}$"
+        },
+        "pr": {
+          "type": ["integer", "null"],
+          "description": "null means NOT YET RESOLVED, never 'no PR'. Resolved later by a provenance event; rendered as an em dash, never as 'none'.",
+          "minimum": 1
+        },
+        "merge_commit": { "type": ["string", "null"], "pattern": "^[0-9a-f]{7,40}$" },
+        "merged_at": { "$ref": "#/$defs/instantOrNull" },
+        "session_id": { "type": ["string", "null"], "maxLength": 128 },
+        "turn_seq": { "type": ["integer", "null"], "minimum": 0 }
+      }
+    },
+    "instant": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$"
+    },
+    "instantOrNull": {
+      "type": ["string", "null"],
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$"
+    },
+    "itemRef": { "type": "string", "pattern": "^rc-[0-9a-f]{12}$" },
+    "blockedRef": {
+      "$comment": "A ledger id OR a first-class external ref. Deriving `blocked` is only safe with these — a regex pinned to ^rc- cannot express 'blocked on an owner decision'.",
+      "type": "string",
+      "pattern": "^(rc-[0-9a-f]{12}|ext:(owner-decision|upstream|vendor|external-run|migration|access):[a-z0-9-]{1,48})$"
+    },
+    "evidenceItem": {
+      "$comment": "⛔ anyOf, NOT oneOf. A `pattern` is vacuously satisfied by a non-string, so under oneOf `null` matches all branches and is INVALID, and `ci-run:123` matches two branches and is INVALID — measured through Draft202012Validator (bug B-1). Every branch declares its own `type`, and anyOf needs only one match.",
+      "type": ["string", "null"],
+      "anyOf": [
+        { "type": "null" },
+        { "type": "string", "pattern": "^path:[^\\s#]+#L[0-9]+(-L[0-9]+)?$" },
+        { "type": "string", "pattern": "^git:[0-9a-f]{7,40}$" },
+        { "type": "string", "pattern": "^pr:[0-9]+$" },
+        { "type": "string", "pattern": "^run:[0-9]+$" },
+        { "type": "string", "pattern": "^ci-run:[A-Za-z0-9._-]{1,64}$" },
+        { "type": "string", "pattern": "^cmd:[A-Za-z0-9._-]{1,64}@[0-9]+$" },
+        { "type": "string", "pattern": "^url:https://[^\\s?#]+$" }
+      ]
+    },
+    "evidence": {
+      "type": ["array", "null"],
+      "items": { "$ref": "#/$defs/evidenceItem" },
+      "maxItems": 16
+    },
+    "subject": {
+      "$comment": "The ledger's ONLY prose field, and it is capped. A `note` event is REFUSED: free prose has no machine consumer and is the largest secret/PII ingress surface in the design.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 140
+    },
+    "assertedOpen": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["subject"],
+      "properties": {
+        "subject": { "$ref": "#/$defs/subject" },
+        "owner": { "type": ["string", "null"], "maxLength": 64 },
+        "priority": { "type": "integer", "minimum": 1, "maximum": 4 },
+        "tags": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^[a-z0-9-]{1,32}$" },
+          "maxItems": 12
+        },
+        "due": { "type": ["string", "null"], "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" }
+      }
+    },
+    "assertedState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state"],
+      "properties": {
+        "state": {
+          "$comment": "⛔ FOUR members. `blocked` and `awaiting_verification` are DERIVED and must never be stored (G-LED-07 / ruling E). Storing a derived fact is two hand-maintained copies of one fact, which is the failure this repo has already paid for.",
+          "enum": ["proposed", "ready", "in_progress", "done"]
+        },
+        "prev_state": { "enum": ["proposed", "ready", "in_progress", "done", null] },
+        "resolution": {
+          "$comment": "Required when state = done; each member carries a gate-checked companion (G-LED-02).",
+          "enum": [
+            "completed",
+            "superseded_by",
+            "split_into",
+            "descoped",
+            "obsolete_upstream",
+            "reverted",
+            "failed"
+          ]
+        },
+        "superseded_by": { "$ref": "#/$defs/itemRef" },
+        "split_into": { "type": "array", "items": { "$ref": "#/$defs/itemRef" }, "minItems": 2 },
+        "decided_by": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "decided_on": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" },
+        "reverted_by": { "type": "string", "pattern": "^(git:[0-9a-f]{7,40}|pr:[0-9]+)$" },
+        "attempts": { "type": "integer", "minimum": 1 },
+        "evidence": { "$ref": "#/$defs/evidence" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "state": { "const": "done" } }, "required": ["state"] },
+          "then": { "required": ["resolution"] }
+        },
+        {
+          "if": {
+            "properties": { "resolution": { "const": "superseded_by" } },
+            "required": ["resolution"]
+          },
+          "then": { "required": ["superseded_by"] }
+        },
+        {
+          "if": {
+            "properties": { "resolution": { "const": "split_into" } },
+            "required": ["resolution"]
+          },
+          "then": { "required": ["split_into"] }
+        },
+        {
+          "if": {
+            "properties": { "resolution": { "const": "descoped" } },
+            "required": ["resolution"]
+          },
+          "then": { "required": ["decided_by", "decided_on"] }
+        },
+        {
+          "if": {
+            "properties": { "resolution": { "const": "obsolete_upstream" } },
+            "required": ["resolution"]
+          },
+          "then": { "required": ["evidence"] }
+        },
+        {
+          "if": {
+            "properties": { "resolution": { "const": "reverted" } },
+            "required": ["resolution"]
+          },
+          "then": { "required": ["reverted_by"] }
+        },
+        {
+          "if": {
+            "properties": { "resolution": { "const": "failed" } },
+            "required": ["resolution"]
+          },
+          "then": { "required": ["attempts", "evidence"] }
+        }
+      ]
+    },
+    "assertedVerify": {
+      "$comment": "THE ONE STORAGE SITE FOR VERIFICATION (ruling E). `unverified` is not a stored value — it is the fold's default when no verify event exists.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["verification", "verified_by", "evidence"],
+      "properties": {
+        "verification": {
+          "enum": ["self_verified", "independently_verified", "verification_failed"]
+        },
+        "verified_by": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "evidence": { "type": "array", "items": { "$ref": "#/$defs/evidenceItem" }, "minItems": 1 }
+      }
+    },
+    "assertedLink": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["op", "ref"],
+      "properties": {
+        "op": { "enum": ["add", "clear"] },
+        "ref": { "$ref": "#/$defs/blockedRef" }
+      }
+    },
+    "assertedRedact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["redacts", "reason_class"],
+      "properties": {
+        "redacts": { "type": "string", "pattern": "^[0-9A-HJKMNP-TV-Z]{26}$" },
+        "reason_class": {
+          "$comment": "Enum only. A free-text reason would reintroduce the prose ingress that `note` was refused for.",
+          "enum": ["wrong_content", "pii", "secret"]
+        }
+      }
+    },
+    "assertedEmpty": {
+      "$comment": "A provenance event carries only machine-observed facts, so there is nothing for a model to assert and nothing to scrub.",
+      "type": "object",
+      "additionalProperties": false,
+      "maxProperties": 0,
+      "properties": {}
+    },
+    "assertedBridgeHealth": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["metrics"],
+      "properties": {
+        "metrics": {
+          "type": "object",
+          "additionalProperties": { "type": "integer", "minimum": 0 }
+        },
+        "finding": { "enum": ["ok", "shape_drift", "source_absent", "zero_import"] }
+      }
+    },
+    "assertedLedgerInit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["config_version"],
+      "properties": {
+        "config_version": { "type": "integer", "minimum": 1 },
+        "ledger_dir": { "type": "string", "minLength": 1 },
+        "view_path": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}

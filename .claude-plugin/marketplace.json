@@ -276,7 +276,7 @@
       "displayName": "RavenClaude Core",
       "source": "./plugins/ravenclaude-core",
       "description": "Domain-neutral Claude Code foundation: specialist agents, skills, gates, hooks, rules, templates. Capability Grounding Protocol, Structured Output Protocol, Researcher meta-skill, comfort-posture dashboard, opt-in command-review tribunal (the Thing), WebFetch sanitizer, branch-archive escape hatch, brand-extraction (homepage \u2192 brand kit), /wireframe (describe anything \u2192 validated model + high-fi Artifact + Mermaid), Problems & Resolutions view, declarative-visualization (Vega-Lite/Deneb/SVG, Gate 101 + Gate 103 svg-report-lint, viz-spec-reviewer), and Claude orchestrator escape hatch (/claude-orchestrate). Slash commands: /init-agent-ready, /wrap, /set-posture, /dashboard, /forge, /wireframe, /reset-plugin-cache, /handoff.",
-      "version": "0.271.0",
+      "version": "0.307.1",
       "author": {
         "name": "Matt Corbett"
       },
@@ -323,7 +323,7 @@
       "name": "finance",
       "source": "./plugins/finance",
       "description": "Corporate finance & FP&A specialist team \u2014 FP&A analyst (budgets, forecasts, variance commentary), financial modeler (3-statement, DCF, scenarios), controller (close, JEs, reconciliations), treasury analyst (cash, covenants, FX), valuation analyst (DCF + comps + precedent), audit-prep specialist (PBC, walkthroughs, SOC1/2 narratives), and board-pack composer. skills incl. a gold-standard NetSuite close (OAuth2 M2M + SuiteQL BS/IS trial balance, layperson runbook), templates, a knowledge bank (ASC 805 / 718 / 740, accrual-cutoff, WACC, cost accounting, FP&A operating model + decision support, NetSuite integration landscape), advisory hooks (hardcoded rates / plaintext PII / missing Sources / Assumptions; secrets-PII scan). Inherits ravenclaude-core protocols.",
-      "version": "0.18.4",
+      "version": "0.18.5",
       "author": {
         "name": "Matt Corbett"
       },
@@ -343,7 +343,7 @@
       "name": "regulatory-compliance",
       "source": "./plugins/regulatory-compliance",
       "description": "Financial-regulatory & compliance specialist team \u2014 function agents (AML/KYC, regulatory-reporting, risk-and-controls, policy & procedure, examination-prep, Bermuda-insurance) PLUS jurisdiction/regulator specialists: BMA financial-institutions (banking, trust, corporate-services, fund-admin, investment-business, money-service, digital-assets \u2014 the primary build-out, with deep AML/ATF + supervision/fees + licensing-classification trees), CIMA (Cayman), Bahamas, Channel Islands (Jersey JFSC + Guernsey GFSC), UK PRA, and US federal+state. primary-source-cited regulator knowledge files, best-practice rules, skills, templates, a defensive PreToolUse hook (PII scrub \u2014 SSN/IBAN/credit-card/Bermuda TIN/wire instructions). Positioning reflects field experience inside a Tier-1 financial regulator (BMA). Inherits ravenclaude-core protocols.",
-      "version": "0.12.4",
+      "version": "0.12.5",
       "author": {
         "name": "Matt Corbett"
       },
@@ -364,7 +364,7 @@
       "name": "web-design",
       "source": "./plugins/web-design",
       "description": "Web design & build specialist team \u2014 web architect (IA, stack, hosting), UX designer (wireframes, flows, conversion), visual designer (brand, typography, tokens), frontend implementer (HTML/CSS/JS, React, Astro, Next), content strategist (copy, microcopy, SEO content), accessibility auditor (WCAG 2.2 AA/AAA), and performance engineer (Core Web Vitals, image/font optimization). skills (the gold-standard-website-pipeline gated build pipeline, static-site build, design-system audit, card/tile UI, accessibility review, Core Web Vitals tuning, technical SEO audit, information architecture, conversion design, content audit, design-tokens scaffolding, third-party hygiene, Fluent UI v9 + React implementation), templates, an advisory hook, and a knowledge bank seeded with a curated 2026 reference set of \"cutting edge yet simple\" marketing-site donors \u2014 the design agents carry compact inline priors plus a pointer to the full brief. Inherits ravenclaude-core protocols.",
-      "version": "0.16.1",
+      "version": "0.16.2",
       "author": {
         "name": "Matt Corbett"
       },
@@ -385,7 +385,7 @@
       "name": "edtech-partner-success",
       "source": "./plugins/edtech-partner-success",
       "description": "EdTech-flavored Partner Success Manager team \u2014 specialist agents anchored on the PSM lane, with skills, templates, an advisory hook, a knowledge bank with Mermaid decision trees, a engagement bank, and a stdlib psm_calc.py calculator (seat-utilization / renewal-NRR-forecast / time-to-value). Covers QBRs, success plans, health scores, a self-contained Power-BI-style partner-health report, onboarding, touchpoint logs, adoption sequencing, 90-day implementation arcs, train-the-trainer curricula, advocacy/reference pipelines, renewal decision memos, and the integration contract for a centralized CS dashboard (Planhat + Salesforce + Snowflake + Zapier + Granola). Team growth ships as skills + knowledge + templates, not parallel agents. Primary-source citations with retrieval dates. Vertical-explicit but segment-agnostic \u2014 fits K-12, higher-ed, corporate L&D, or mixed EdTech books. Inherits ravenclaude-core protocols including the alternate-methods Capability Grounding Protocol.",
-      "version": "0.12.6",
+      "version": "0.12.7",
       "author": {
         "name": "Matt Corbett"
       },
@@ -405,7 +405,7 @@
       "name": "data-platform",
       "source": "./plugins/data-platform",
       "description": "Data-platform team \u2014 agents (database-setup-guide, etl-pipeline-engineer, dashboard-builder, connector-developer) for cloud DBs, ELT (Airbyte / Fivetran / n8n) with connectors for QuickBooks / Stripe / Salesforce / HubSpot / GA4 / Shopify / HRIS / Planhat / Intercom / Slack-as-source plus 8-vendor support-tool integration coverage (Zendesk, Freshdesk, Intercom Conv+Tkt, SFDC Service Cloud, JSM, HubSpot Service, Help Scout, Front + 2026 Fivetran connector-MAR build-vs-buy math), and embedded dashboards (Evidence.dev / Superset / Metabase / Cube + Tremor). skills (incl. support-ticket-normalization \u2014 conformed fct_ticket / fct_conversation_event over 8 vendors; cross-system-identity-resolution \u2014 the Salesforce\u2194Planhat\u2194Intercom\u2194Slack account spine), templates, a knowledge bank, best-practices. Opinionated against per-viewer-priced BI for greenfield SMB. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.14.2",
+      "version": "0.14.3",
       "author": {
         "name": "Matt Corbett"
       },
@@ -504,7 +504,7 @@
       "name": "process-improvement",
       "source": "./plugins/process-improvement",
       "description": "Lean Six Sigma process-improvement team \u2014 specialist agents (lean-six-sigma-blackbelt, process-analyst) that analyze a team's operational processes and improve them with Black-Belt rigor: DMAIC, Lean waste removal (the 8 wastes / DOWNTIME), data-proven root-cause analysis, statistical process control, and control plans that make the gain stick. Domain-neutral (support, onboarding, billing, deployment, hiring \u2014 any process). skills (dmaic-project-charter, process-mapping, root-cause-analysis, process-capability-and-spc, lean-waste-analysis, control-plan-and-sustain), templates (charter, SIPOC, fishbone+5-Whys, FMEA, control-plan), best-practices, and a knowledge bank with web-verified Mermaid decision trees (sigma/DPMO, Cp/Cpk, control-chart selection, Western-Electric/Nelson rules). The inferential statistics seam (hypothesis tests, DOE, regression, Gage R&R) routes to applied-statistics; DMAIC project delivery routes to project-management. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.2.2",
+      "version": "0.3.0",
       "author": {
         "name": "Matt Corbett"
       },
@@ -530,7 +530,7 @@
       "name": "microsoft-fabric",
       "source": "./plugins/microsoft-fabric",
       "description": "Microsoft Fabric specialist team \u2014 agents (fabric-architect, lakehouse-engineer, warehouse-engineer, data-factory-engineer, realtime-intelligence-engineer, fabric-semantic-model-engineer, fabric-admin) covering OneLake, Lakehouse (Spark/Delta/medallion/materialized lake views), Warehouse (T-SQL/ACID), Data Factory (mirroring/copy-job/dataflow-gen2/pipelines), Real-Time Intelligence (Eventstream/Eventhouse/KQL/Activator), Direct Lake semantic models, and platform admin (capacity FinOps, OneLake security, domains, Purview, ALM). citation-grounded knowledge bank (two Mermaid decision trees + a dated 2026 capability map), templates, an advisory hook (house opinions). Seams: enterprise Microsoft/Fabric here vs non-Microsoft/SMB embedded to data-platform; Fabric storage + Direct Lake here vs standalone Power BI/.pbix to power-platform/power-bi-engineer. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.8.9",
+      "version": "0.8.10",
       "author": {
         "name": "Matt Corbett"
       },
@@ -554,7 +554,7 @@
       "name": "claude-app-engineering",
       "source": "./plugins/claude-app-engineering",
       "description": "Claude app-engineering specialist team \u2014 agents (claude-solution-architect, prompt-and-context-engineer, mcp-and-server-tools-engineer, agent-sdk-engineer, eval-engineer, claude-app-ops-engineer) for building production applications on the Claude API, the Claude Agent SDK, and MCP. Covers the build-surface decision (Messages API / Agent SDK / Managed Agents), model right-sizing (Opus 4.8 / Sonnet 4.6 / Haiku 4.5, 1M context), prompt caching, tool use + structured output, MCP server authoring + Anthropic-hosted server tools (computer use, code execution, Files API, memory, advisor tool), evals (golden sets, LLM-as-judge), and FinOps + reliability (batch, model routing, backoff, observability). dated-and-cited knowledge bank, templates, an advisory hook (house opinions). Seams: prompt-as-artifact, security, and cross-domain architecture escalate to ravenclaude-core. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.9.16",
+      "version": "0.9.17",
       "author": {
         "name": "Matt Corbett"
       },
@@ -625,7 +625,7 @@
       "name": "microsoft-365-copilot",
       "source": "./plugins/microsoft-365-copilot",
       "description": "Microsoft 365 Copilot extensibility & administration team \u2014 agents (copilot-extensibility-architect, declarative-agent-engineer, graph-connector-engineer, api-plugin-engineer, agents-sdk-engineer, copilot-admin-governance) covering declarative agents (pinned manifest schema + the 50/25/4096/45s hard-limit wall), custom-engine agents on the M365 Agents SDK/Toolkit, Copilot (Graph) connectors (synced vs federated/MCP, semantic labels, ACL trimming), API plugins (OpenAPI + Entra/OAuth2), the app-package publish lifecycle, and M365 Agent Registry + Purview DLP-for-Copilot governance. citation-grounded knowledge bank (two Mermaid decision trees), skills, templates, an advisory hook (house opinions). Disjoint from power-platform's Copilot Studio low-code coverage (cross-linked). Seams: Copilot Studio \u2192 power-platform; CEA engine \u2192 claude-app-engineering; Entra/hosting \u2192 azure-cloud; security \u2192 ravenclaude-core. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.5.6",
+      "version": "0.5.7",
       "author": {
         "name": "Matt Corbett"
       },
@@ -678,7 +678,7 @@
       "name": "microsoft-graph",
       "source": "./plugins/microsoft-graph",
       "description": "Microsoft Graph developer team \u2014 specialist agents for the Graph API surface: querying (OData $select/$filter/$expand/$search, paging, $batch, change tracking via delta), throttling/429 + retry discipline, the Graph SDKs; identity & authorization on Entra (app registration, delegated vs application permissions, scopes/consent, least-privilege, auth-code/client-credentials/OBO flows, certificate creds); and the workloads (users/groups, mail/calendar, Teams, SharePoint/OneDrive files, change notifications/subscriptions + lifecycle, Graph connectors). Citation-grounded knowledge bank with Mermaid decision trees + a best-practices library. Seams: Copilot Graph connectors \u2192 microsoft-365-copilot; Entra tenant/identity infrastructure \u2192 azure-cloud; Power Platform Dataverse \u2192 power-platform; methodology/security-review \u2192 ravenclaude-core. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.4.4",
+      "version": "0.4.5",
       "author": {
         "name": "Matt Corbett"
       },
@@ -705,7 +705,7 @@
       "name": "ai-coding-model-guidance",
       "source": "./plugins/ai-coding-model-guidance",
       "description": "Cross-tool AI-coding model guidance \u2014 three strategist agents that help you reason about model selection in the non-Claude coding ecosystems: GitHub Copilot's model picker (completions / chat / coding agent / cloud agent + org model rules), OpenAI Codex (CLI + cloud model lineup, reasoning levels, /model), and xAI Grok (Grok 4.x lineup + the coding-tool surface). Teaches the DURABLE reasoning \u2014 task-complexity \u2192 reasoning-level \u2192 cost-tier \u2192 surface \u2014 over a single citation-grounded, dated lineup that is the marketplace's freshness anchor for non-Claude model facts. Volatile specifics (prices, context windows, picker availability) carry retrieval dates + a re-verify-at-use rider, and the agents fetch live before quoting. Seam: when the answer is a CLAUDE model or a Claude-app build, escalate to claude-app-engineering/claude-solution-architect \u2014 this plugin owns the non-Claude tools. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.3.16",
+      "version": "0.3.17",
       "author": {
         "name": "Matt Corbett"
       },
@@ -776,7 +776,7 @@
       "name": "api-engineering",
       "source": "./plugins/api-engineering",
       "description": "API engineering specialist team \u2014 agents (api-design-architect, api-implementation-engineer, api-security-engineer, api-testing-engineer, api-platform-engineer) for the full lifecycle of an API you produce: paradigm choice (REST/GraphQL/gRPC/webhooks/AsyncAPI), contract-first design (OpenAPI 3.1/3.2, AsyncAPI 3.0, Arazzo), versioning & deprecation; the build craft (RFC 9457 Problem Details, cursor pagination, Idempotency-Key, ETag concurrency, HTTP semantics, 202+polling, RateLimit headers); security (OWASP API Security Top 10 2023 \u2014 BOLA/BOPLA/BFLA, token/scope validation, consumption limits, SSRF); and testing & operations (contract tests, Spectral lint in CI, Prism/Postman mocks, k6 load, gateway design, dev portal + SDK codegen, sunset rollout). Knowledge bank with Mermaid decision trees + a dated 2026 capability map, best-practices, templates, commands, an advisory hook. Security verdicts escalate to ravenclaude-core/security-reviewer. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.2.2",
+      "version": "0.2.3",
       "author": {
         "name": "Matt Corbett"
       },
@@ -1272,7 +1272,7 @@
       "name": "cloud-native-kubernetes",
       "source": "./plugins/cloud-native-kubernetes",
       "description": "Cloud-native & Kubernetes team \u2014 agents (kubernetes-architect, container-build-engineer, k8s-platform-operator, service-mesh-networking-engineer) for running workloads on Kubernetes well: workload design (Deployment/StatefulSet/Job, probes, requests/limits, PDBs, HPA/VPA), container build hygiene (minimal non-root images, distroless, multi-stage), platform ops (namespaces, RBAC, network policies, resource quotas, admission control, upgrades), and service-mesh networking (ingress/gateway, mTLS, traffic-splitting, observability). Cloud-agnostic. skills, a decision-tree knowledge bank (workload-type + ingress trees + a dated 2026 ecosystem map), best-practices, templates, commands, an advisory hook. Seams: managed control plane (AKS/EKS/GKE) -> azure/aws/gcp-cloud, GitOps reconcile -> devops-cicd, telemetry/SLOs -> observability-sre. Requires ravenclaude-core@>=0.7.0.",
-      "version": "0.3.8",
+      "version": "0.3.9",
       "author": {
         "name": "Matt Corbett"
       },
@@ -3979,7 +3979,7 @@
       "name": "databricks-lakehouse-engineering",
       "source": "./plugins/databricks-lakehouse-engineering",
       "description": "Databricks lakehouse engineering team \u2014 agents (lakehouse-architect, databricks-platform-engineer) answering 'how do we build this on Databricks correctly and affordably?': medallion (bronze/silver/gold) architecture, Delta Lake table design (partitioning, liquid clustering, OPTIMIZE/Z-ORDER, VACUUM), Unity Catalog governance (catalogs/schemas/grants, lineage), Spark & PySpark job design and the shuffle/skew/spill failure modes, Structured Streaming & Auto Loader, DLT pipelines, Photon, Jobs/Workflows orchestration, and cluster/SQL-warehouse sizing & cost control (DBUs, autoscaling, spot, serverless). Engineering judgment, not a benchmark; DBR/runtime/pricing specifics are volatile \u2014 every version carries a retrieval date + [verify-at-use]. Distinct from microsoft-fabric (Fabric/OneLake), data-platform (generic ETL), data-orchestration (Airflow/Dagster), analytics-engineering (dbt/semantic layer), and ml-engineering (classical MLOps). Needs ravenclaude-core.",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "author": {
         "name": "Matt Corbett"
       },
@@ -4160,6 +4160,32 @@
         "spanner-graph",
         "janusgraph",
         "supernode"
+      ]
+    },
+    {
+      "name": "forms-engineering",
+      "source": "./plugins/forms-engineering",
+      "description": "Forms engineering \u2014 the seam between how a form is built, how the request stream behind it is run, and where its trust boundary sits. Owns what no other plugin does: intake taxonomy and triage routing that make a request stream deterministic; the form measurement contract (which events, which denominator, what counts as a defect) and its hand-off to statistical process control; the server half of a submission that web-design routes out by rule (client/server validation parity, honeypot design and its assistive-tech exemption, double-submit and submission idempotency, webhook signature verification, PII minimisation); and form-platform selection on durable axes rather than a feature matrix. Client-side form construction and form accessibility stay with web-design. Upload hardening and challenge-widget mechanics stay with ravenclaude-core, which this plugin cites rather than restates, and every binding security verdict routes to ravenclaude-core/security-reviewer. Requires ravenclaude-core@>=0.7.0.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Matt Corbett"
+      },
+      "keywords": [
+        "forms",
+        "form-design",
+        "form-intake",
+        "triage",
+        "form-telemetry",
+        "form-analytics",
+        "abandonment",
+        "honeypot",
+        "bot-defense",
+        "idempotency",
+        "double-submit",
+        "webhook-verification",
+        "pii-minimisation",
+        "wcag-2-2",
+        "spc"
       ]
     }
   ]

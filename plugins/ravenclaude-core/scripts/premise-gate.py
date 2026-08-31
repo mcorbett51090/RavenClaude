@@ -60,8 +60,47 @@ _EDGE_RE = re.compile(r"depends_on_claims\s*:\s*\[([^\]]*)\]", re.I)
 _PHASE_RE = re.compile(r"^\s{0,3}#{2,4}\s*(?:Phase\s*)?(P?-?\d+[a-z]?)\b(.*)$", re.I | re.M)
 
 
+# ⛔ TWO DEFECTS FIXED HERE 2026-08-20, both measured with fixtures before the change.
+#
+# 1. The pattern was `^[A-Za-z]*[-_ ]?(\d+)$` — anchored with no room for a trailing
+#    suffix, so `C4a` / `C9b` / `4b` returned "". parse_claims does `if not rid: continue`,
+#    so a suffixed ROW was silently dropped from the table, while parse_phases keeps an
+#    unmatched edge VERBATIM. Measured: a table with `C4a` cited by an over-floor phase
+#    parsed claims:1 of 2 rows and tripped "cites a claims-table row that does not exist",
+#    exit 2. That is fail-CLOSED — loud and safe, but it accused the plan of citing a
+#    phantom when the real fault was the parser. Suffixed ids are now first-class: `C4a`
+#    normalises to `4a`, so it matches an edge citing `C4a` and trips for the RIGHT reason.
+#
+# 2. ⛔ THE ACTUAL FAIL-OPEN, and it is NOT the suffix. `[A-Za-z]*` collapses every prefix:
+#    `C4`, `D4`, `X4` and `4` ALL normalise to `4`. The dict assignment then let a LATER row
+#    silently OVERWRITE an earlier one. Measured: a table carrying `C4` (unsettled
+#    inference, load-bearing) followed by `D4` (settled observation) parsed claims:2 of 3
+#    with inferences:0 — the inference was gone — and a phase citing `C4` resolved to the
+#    settled row and returned `trips: [] exit 0`. The gate reported CLEAN over an unsettled
+#    premise. Collisions now RAISE, which main() turns into exit 1 (could-not-run), matching
+#    this file's existing rule: cannot see -> cannot report clean.
+_RID_RE = re.compile(r"^[A-Za-z]*[-_ ]?(\d+[a-z]?)$", re.IGNORECASE)
+
+
+def _norm_rid(raw):
+    """Normalise a claims-row id to its bare digits, or '' if it is not one.
+
+    ⛔ Both SIDES of this gate must use this. The claims table and the plans are written
+    by different authors (a human, then two independent panels), and nothing in the SKILL
+    specifies the id format. Before this existed, rows had to match `^\\d+$` while edges
+    were taken VERBATIM — so a table using `C1` and a plan citing `C1` agreed with each
+    other and matched nothing, and the gate reported `{"claims":0,"trips":[]}` exit 0.
+    control 2026-08-17: same table with `C`-prefixed ids -> claims:0 CLEAN; renumbered to
+    bare ints -> claims:16, inferences:3. The id format was the only variable.
+    """
+    m = _RID_RE.match(str(raw).strip().lstrip("#").strip())
+    # .lower() so `C4A` and `c4a` are one row, not two that then collide.
+    return m.group(1).lower() if m else ""
+
+
 def _cells(line: str):
     """Split one markdown table row into stripped cells."""
+
     if "|" not in line:
         return []
     parts = line.strip().strip("|").split("|")
@@ -104,17 +143,37 @@ def parse_claims(path: str):
             continue
         if len(cells) < 2:
             continue
-        rid = cells[0].strip().lstrip("#").strip()
-        if not rid or not re.match(r"^\d+$", rid):
+        rid = _norm_rid(cells[0])
+        if not rid:
             continue
         kind = (cells[i_kind].lower() if i_kind is not None and i_kind < len(cells) else "")
         kind = "inference" if "inference" in kind else ("observation" if "observation" in kind else "")
         settle = (cells[i_settle].lower() if i_settle is not None and i_settle < len(cells) else "")
+        # ⛔ Collision = fail CLOSED. Silently overwriting is how an unsettled inference
+        # disappears behind a settled row that merely shares its number (see _RID_RE).
+        if rid in claims:
+            raise ValueError(
+                "duplicate claims-row id %r after normalisation (row %r collides with an "
+                "earlier row). Prefixes are stripped, so C4 / D4 / 4 are the SAME id — "
+                "renumber one of them. Refusing to report clean over an ambiguous table."
+                % (rid, cells[0])
+            )
         claims[rid] = {
             "kind": kind or "observation",
             "settled": any(s in settle for s in _SETTLED),
             "text": cells[1][:120] if len(cells) > 1 else "",
         }
+    # ⛔ A header with ZERO parsed rows is unreadable, not empty-and-clean. Without this
+    # the docstring invariant above was false: parse_claims returned {} silently, and a
+    # plan whose phases legitimately declare `depends_on_claims: []` (which the SKILL
+    # explicitly permits) then produced `{"claims":0,"trips":[]}` exit 0 — the gate
+    # reporting CLEAN having resolved nothing. It guarded the no-EDGES case and not the
+    # no-CLAIMS case; the guard was asymmetric. Cannot see -> cannot report clean.
+    if not claims:
+        raise ValueError(
+            "claims table header found but ZERO rows parsed — unreadable, not empty. "
+            "Row ids must be digits, optionally with a letter prefix (1, C1, c-1)."
+        )
     return claims
 
 
@@ -129,7 +188,11 @@ def parse_phases(text: str):
         edges = []
         for em in _EDGE_RE.finditer(body):
             raw = em.group(1)
-            edges += [x.strip().strip("\"'#") for x in raw.split(",") if x.strip()]
+            # Normalise ids the same way the claims table does, so `C4` and `4` are the
+            # same row. A token that is not id-shaped is kept VERBATIM on purpose: it
+            # must still trip "cites a row that does not exist" rather than vanish.
+            edges += [(_norm_rid(x) or x.strip().strip("\"'#"))
+                      for x in raw.split(",") if x.strip()]
         # Blast radius: count distinct path-ish tokens; a new-module phase is over floor.
         files = set(re.findall(r"[\w./-]+\.(?:py|sh|ts|tsx|js|mjs|astro|go|rs|rb|java|c|h|cpp|cs|php)", body))
         creates = bool(re.search(r"\b(create|new file|new module|add)\b", body, re.I))

@@ -8,6 +8,12 @@
 
 # Posture-change audit log (per-project, append-only — P0.4 event substrate)
 .ravenclaude/posture-events.jsonl
+# Per-machine handoff spawn marker; consumed by the successor's SessionStart hook.
+.ravenclaude/handoff-pending.json
+
+# inventory-nuance-judge.py's content-hash calibration/entry cache — machine- and
+# model-behavior-specific, never meant to be shared or committed.
+.ravenclaude/cache/
 
 # Local/runtime config — not part of the committed marketplace (rc-deep-research
 # substrate baseline arm + local self-heal setup notes). Templates live in
@@ -53,3 +59,4 @@ evals/__pycache__/
 # report-regeneration test output — regenerated reports and QA artifacts written
 # by the plugin's skills during a run; never source, never committed.
 tests/fixtures/report-regeneration/_out/
+.ravenclaude/handoff-nudge-state.json

@@ -2,7 +2,7 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
-## [0.3.16] — 2026-08-31
+## [0.3.17] — 2026-08-31
 
 Scheduled news-sweep **refresh** — folded into `knowledge/cross-tool-model-lineup-2026.md`.
 **Codex GPT-5.4 / GPT-5.4-mini retirement:** OpenAI retires both from **Codex on 2026-08-31 for
@@ -16,6 +16,17 @@ Primary: @OpenAIDevs + openai/codex Discussion #17038. **Deferred:** a secondary
 GPT-5.6 Luna −80% / Terra −20% price cut (no verified absolute numbers — both panels: DEFER).
 Reviewed by two expert panels (usefulness 3/3 useful; detailed review 3/3 ship). **Migration:**
 none — knowledge-file content only.
+
+## [0.3.16] — 2026-08-27
+
+Research-sweep **refresh** of `knowledge/cross-tool-model-lineup-2026.md` — folded in the **Gemini
+_Flash_ lane in the GitHub Copilot picker** the 2026-08-13/14 review missed: **Gemini 3.7 Flash GA in
+Copilot 2026-08-13** (same-day as the prior sweep stamp) and **Gemini 3.6 Flash 2026-07-21**.
+**Secondary-sourced** — github.blog 403s automated fetch, so availability rests on the dated primary
+changelog URLs + GitHub's official X post, and the reported $0.75/$3.75 intro pricing is secondary; both
+availability and pricing ship with `[verify-at-use]`, not primary-verified. No model-tier default
+changed. Closed-world list unchanged. **Migration:** none. Reviewed via a 3-seat usefulness panel + a
+detailed-review pass (recorded in the PR).
 
 ## [0.3.15] — 2026-08-14
 

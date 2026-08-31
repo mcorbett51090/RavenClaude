@@ -82,6 +82,20 @@ orchestrator_repo_pii: true
 # sole guard. Caveat: pattern detection does NOT reliably catch free-text names/addresses. Default off.
 orchestrator_pseudonymize: false
 
+# Cheap lane — route everyday, well-defined work (single-file edits, test-writing,
+# summarization, mechanical refactors) to Grok instead of the main Claude session.
+# Multi-file/architecture/debugging/security/ambiguous work always stays on Claude
+# (the router is asymmetric by design — see skills/cheap-lane-delegation/SKILL.md).
+# Default: off. Nothing here runs until you set mode to advise or agent.
+#   off     — inert; every task stays in the main session (today's behavior).
+#   advise  — a routed task runs in an isolated scratch dir; output is a
+#             suggestion only, never applied automatically.
+#   agent   — a routed task runs in a disposable git worktree with write access;
+#             review the diff before it merges.
+cheap_lane:
+  mode: off
+  tier: fast # fast (default) | balanced — the Grok tier for delegated work
+
 # Model-fallback ladder (added 2026-06-24). When a model a RavenClaude process
 # invokes (a tribunal seat, the convergence judge, the orchestrator) ERRORS or is
 # OVERLOADED/unavailable, retry the same call on the next model in the ladder
@@ -254,3 +268,33 @@ categories:
     user: inherit
     local: inherit
     project: ask
+
+# Sleep assertion for the session (on | off). Shipped default off, so installing
+# this plugin never changes your machine's power management unannounced.
+# on + AC power -> holds caffeinate -s bound to the session's lifetime.
+# on + battery   -> holds nothing and warns; a closed lid still suspends the session.
+keep_awake: off
+
+# ── The cause discipline (verify-before-assert) ─────────────────────────────
+# ⛔ ABSENT MEANS INERT. Every hook below no-ops entirely when its key is
+# missing, so a rollout with no step that WRITES these keys ships a mechanism
+# that is off by default in exactly the repos where the complaint is newest.
+# That is CE-6, and this block is the fix.
+#
+#   cause_triage       off | warn          post-failure triage (PostToolUse)
+#   cause_preflight    off | warn          pre-flight review; NO block value
+#                                          exists by construction — the hook
+#                                          scans its own source for a deny exit
+#                                          and fails if one appears
+#   cause_remediation  off | warn | block  the primary D1 gate (PreToolUse Bash)
+#   cause_closure      off | warn | block  the write-path gate
+#
+# ⛔ ALL FOUR SHIP AT `warn`. Neither `block` value may be set until Phase 9's
+# with-hook arm exists and its measured false-positive gate passes; a gate that
+# starts by blocking is one that gets switched off before anyone measured
+# whether it was right. `scripts/check-cause-eval.py --check` fails if a knob is
+# set to `block` while that arm is still unverified.
+cause_triage: warn
+cause_preflight: warn
+cause_remediation: warn
+cause_closure: warn

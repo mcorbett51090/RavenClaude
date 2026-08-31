@@ -345,6 +345,71 @@ def revalidate(
 
 _SELF_DISABLE_ID = "xc.tribunal-self-disable"
 
+# ─────────────────────────────────────────────────────────────────────────────
+# READ-ONLY DISCRIMINATOR — scoped to xc.tribunal-self-disable ONLY.
+#
+# A command that provably cannot WRITE cannot disable the Thing. Without this,
+# the self-disable screen denies pre-LLM and non-overridably on commands that
+# merely NAME the substrate — which is how a session ends up tunnelling around
+# the guard instead of using it. Measured 2026-08-18: three consecutive
+# legitimate maintenance operations denied in ~3 minutes — a rename of a gate
+# TEST file, a stage-and-commit whose COMMIT MESSAGE described that denial, and
+# a read-only search of comfort-posture.yaml whose SEARCH PATTERN contained
+# `command_review:`. The guard's own printed remedy ("turn the Thing off in the
+# dashboard") was already applied — command review was disabled in the posture —
+# and does not help, because always_screen is evaluated before the enabled gate.
+#
+# The safety argument, and it is the whole basis for this carve-out: with a
+# read-only FIRST TOKEN and no shell metacharacters, nothing else on the command
+# line can execute. Later words are ARGUMENTS — inert data to a program that
+# does not write. That is why naming a mutating verb or a substrate path inside
+# a search pattern is not a mutation, and why the fix is to classify the COMMAND
+# rather than to weaken any trigger. No trigger is relaxed by this change.
+#
+# FAIL-CLOSED, in this order:
+#   1. Quoted spans are removed FIRST and treated as inert data. This is sound
+#      ONLY because the first token must be a non-interpreter reader — quoted
+#      text is data to a search tool, but it is CODE to an interpreter's -c, and
+#      no interpreter appears in the allowlist. Do NOT add one.
+#   2. ANY shell metacharacter (semicolon, ampersand, pipe, redirect, backtick,
+#      command/parameter substitution, newline) outside quotes => NOT read-only.
+#      Chaining, redirection and substitution all re-open a write.
+#   3. ANY in-place/output flag => NOT read-only.
+#   4. The first token must match a STRICT allowlist of programs with no write
+#      mode. `find` is excluded deliberately (-delete/-exec mutate), as are the
+#      stream editors (-i), `sort` (-o), `tee`, and `dd`.
+#
+# This does NOT touch the hard-rule concerns (protected-branch force push, a
+# fetch piped into an interpreter, an inline secret) — none is read-only by
+# construction, and scoping the carve-out to the self-disable id keeps that
+# guarantee explicit rather than incidental.
+# ─────────────────────────────────────────────────────────────────────────────
+_RO_QUOTED = re.compile(r"'[^']*'|\"[^\"]*\"")
+_RO_META = re.compile(r"[;&|><`\n]|\$\(|\$\{")
+_RO_WRITE_FLAG = re.compile(r"--in-?place|--output\b", re.IGNORECASE)
+_RO_ALLOW_FIRST = re.compile(
+    r"\A\s*(?:"
+    r"grep|egrep|fgrep|rg|ugrep|cat|head|tail|wc|ls|stat|file|nl|od|xxd|cmp|diff|"
+    r"basename|dirname|realpath|readlink|"
+    r"git\s+(?:-C\s+\S+\s+)?"
+    r"(?:log|show|status|diff|blame|cat-file|ls-files|ls-tree|rev-parse|describe|shortlog)"
+    r")\b",
+    re.IGNORECASE,
+)
+
+
+def _self_disable_read_only(command: str) -> bool:
+    """True when `command` provably cannot write, so it cannot self-disable.
+
+    Conservative by construction: every ambiguity resolves to False (screened).
+    """
+    stripped = _RO_QUOTED.sub(" ", command)
+    if _RO_META.search(stripped):
+        return False
+    if _RO_WRITE_FLAG.search(stripped):
+        return False
+    return bool(_RO_ALLOW_FIRST.match(stripped))
+
 
 def screen_always(catalog: dict, command: str) -> dict:
     """Category-independent hard screen (design §B.9.3 + §B.9.5).
@@ -405,6 +470,11 @@ def screen_always(catalog: dict, command: str) -> dict:
             if not matched:
                 continue
             if c["id"] == _SELF_DISABLE_ID:
+                # A provably-non-writing command cannot disable the Thing. Scoped
+                # to this concern ONLY — the hard rules below keep screening every
+                # command, read-only or not. See _self_disable_read_only().
+                if _self_disable_read_only(command):
+                    continue
                 self_hit = self_hit or c["id"]
             else:
                 hard_hit = hard_hit or c["id"]

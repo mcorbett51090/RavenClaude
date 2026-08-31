@@ -222,18 +222,51 @@ Return your standard structured report. Cap your response at <N> words.
 - Never spawn the same role twice in parallel on the same branch.
 - **Honor the parallelism posture** (see below) before fanning independent agents out in parallel — and when allocating worktrees in Step 3.
 
-### Parallelism posture (`.ravenclaude/comfort-posture.yaml`)
+### Parallelism posture (`.ravenclaude/comfort-posture.yaml`) — the default is MAXIMUM
 
-The user tunes how wide you may fan out from the dashboard's **Pipeline** page (Configure section), which writes a `parallelism:` block into `.ravenclaude/comfort-posture.yaml`. Read it before a parallel dispatch and honor it:
+**The default is maximum parallelism.** Batch every independent step into ONE message and let them run at once. **The only reason to serialize is a genuine data dependency** — step B literally needs step A's output. Being unsure whether two steps are independent is *not* a dependency; spend one read to find out, then batch them.
+
+The user tunes this from the dashboard's **Pipeline** page (Configure section), which writes a `parallelism:` block into `.ravenclaude/comfort-posture.yaml`. Read it before a parallel dispatch and honor it:
 
 | Posture | Meaning | What you do |
 |---|---|---|
-| block **absent** (default) | unset | Existing behavior — dispatch independent agents in parallel as written above. **Nothing changes for an untouched posture.** |
-| `enabled: false` | parallel workers turned off | Run independent agents **sequentially**, one at a time. |
+| block **absent** (default, v0.273.0+) | **maximum** | Fan out as wide as the independent work allows — no concurrency cap. Same as `enabled: true` + `max_workers: unlimited`. |
+| `enabled: false`, or the scalar `parallelism: off` | parallel workers turned off | Run independent agents **sequentially**, one at a time. |
 | `enabled: true` + `max_workers: N` | capped fan-out | Dispatch independent agents in **batches of at most N** concurrent workers; queue the rest until a slot frees. |
 | `enabled: true` + `max_workers: unlimited` | uncapped | Fan out as wide as the independent work allows — no concurrency cap. |
 
-This is a **behavioral commitment, not a hard gate** — no hook tracks a live concurrency count, so (exactly like `design_checkins` and `decision_review`) you honor it rather than `settings.json` enforcing it. The cap bounds **breadth** (how many workers run at once); the runaway brake bounds **depth** (total tool calls) independently. Say the effective cap in your summary when it changed how you fanned out.
+> **⛔ `absent` changed meaning in v0.273.0** — it used to mean "unchanged / use your own judgment" and now means **maximum**. Every *explicit* setting is unchanged, so a consumer who ever tuned the block sees no difference; only the untouched case moves, and it moves toward more parallelism, never less. See the CLAUDE.md milestone for the migration note.
+
+### The conserve-tokens exception (three triggers, one precedence)
+
+Maximum parallelism has exactly one exception, and it can be engaged three ways. **When it is engaged, read the `parallelism:` posture as `enabled: false` — sequential, one worker at a time.** There is deliberately no fourth mode.
+
+| # | Trigger | Scope | Engages when |
+|---|---|---|---|
+| 1 | **Prompt phrase** | this session (sticky, either direction) | The user's prompt says *"conserve tokens"* / *"conserve context"* / *"save tokens"* / *"minimise tokens"*. **Releases** on *"maximum parallelism"* / *"full parallelism"* / *"stop conserving"*. |
+| 2 | **Posture switch** | persistent | `conserve_tokens: true` (the dashboard's Pipeline **Conserve tokens** checkbox). |
+| 3 | **Context pressure** | automatic | Live usage ≥ `conserve_tokens_auto_pct` percent of the context window (default `80`; `0` disables). Measured by `scripts/context-usage-meter.py` — the same live-usage source `handoff-nudge` reads. |
+
+**Precedence (highest first):**
+
+1. **The session phrase wins outright, in BOTH directions.** An explicit human instruction in the live conversation beats standing configuration — including releasing a posture switch that is set to `true`. The release direction is as load-bearing as the engage direction: without it the only exit from a phrase-engaged session would be editing a config file mid-conversation.
+2. **The posture switch** engages it. It cannot *dis*-engage it — there is no "never conserve" setting, because that would let a stale config silently suppress trigger 3, and trigger 3 exists precisely for the moments nobody is watching.
+3. **Context pressure** engages it.
+4. Otherwise: **maximum**.
+
+Formally: `engaged = phrase_override if a phrase fired this session else (posture_switch or context_pressure)`.
+
+Triggers 1 and 3 are resolved by [`scripts/conserve-tokens.py`](../../scripts/conserve-tokens.py), run from the `UserPromptSubmit` hook; it prints a one-line notice **only on a state transition** and writes `.ravenclaude/runs/<session>/conserve-tokens.json`. The SessionStart capability banner states the resolved mode every session.
+
+### Why this is a commitment and not a gate
+
+This is a **behavioral commitment, not a hard gate** — exactly like `design_checkins` and `decision_review`. And it is not an oversight: **a hook cannot compel more parallelism.** A `PreToolUse` hook can *stop* an action; there is no event at which "you should have batched those two dispatches" is a blockable thing, because the second dispatch that never happened emits nothing. So the design is **default + directive + detector**:
+
+- the **default** (this posture) sets the target,
+- the **directive** (the SessionStart banner) puts it in front of you every session, on every host,
+- the **detector** ([`scripts/parallelism-detector.py`](../../scripts/parallelism-detector.py), riding the `SubagentStart` hook) measures how often work actually ran one-at-a-time and reports the ratio. It never blocks. A high ratio is a **prompt to look**, not a verdict — it infers batching from start-time proximity and cannot tell a needless serialization from a real dependency.
+
+The cap bounds **breadth** (how many workers run at once); the runaway brake bounds **depth** (total tool calls) independently. Say the effective mode in your summary when it changed how you fanned out.
 
 ### Parallel reviewer fan-out (standard pattern)
 

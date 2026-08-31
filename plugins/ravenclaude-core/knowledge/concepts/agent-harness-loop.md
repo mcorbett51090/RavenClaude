@@ -6,7 +6,7 @@ kind: platform-fact
 order: 1
 summary: "Every agent turn runs the same loop: assemble prompt → call model → run tools → feed results back → repeat until done. The 'harness' is the software wrapping the model that drives it."
 see_also: [tool-use, context-window, subagents]
-last_verified: 2026-06-05
+last_verified: 2026-08-24
 refresh_when: "The fundamental agent-loop shape changes, or Claude Code/the Agent SDK restructures how a turn is driven."
 sources:
   - label: "Building agents with the Claude Agent SDK"

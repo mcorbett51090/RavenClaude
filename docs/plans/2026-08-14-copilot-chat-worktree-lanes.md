@@ -1,3 +1,5 @@
+> **Leftover (phases 6–7) forged 2026-08-14:** see [`2026-08-14-chat-write-deny.md`](2026-08-14-chat-write-deny.md). Phase 6 remains a documented no-op (CL-3 / CL-19b still owner-gated). Chat is **not** claimed as protected.
+
 <!-- Landed by FORGE G8 2026-08-14. Canonical run artifacts remain in `.ravenclaude/runs/forge/copilot-chat-worktree-lanes/` (gitignored). G7: execution=use_local landing=pr. Do not treat this as Chat-is-protected. -->
 
 # Copilot Chat worktree-lane isolation — merged plan (G6)

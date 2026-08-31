@@ -6,7 +6,7 @@ kind: platform-fact
 order: 4
 summary: "A lead agent can spawn focused subagents, each with its own clean context window, and get back a short summary — not the raw work. It's how big tasks stay inside finite context."
 see_also: [context-window, agent-harness-loop, tool-use]
-last_verified: 2026-06-05
+last_verified: 2026-08-24
 refresh_when: "Claude Code changes the subagent dispatch model, the Task/Agent tool shape, or how subagent results return to the parent."
 sources:
   - label: "Subagents — Claude Code"

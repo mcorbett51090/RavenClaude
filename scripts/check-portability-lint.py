@@ -39,9 +39,21 @@ TABLE = Path("plugins/ravenclaude-core/knowledge/portability-tokens.json")
 
 # Files scanned. Extension-less entrypoints are named explicitly because a
 # `*.sh` glob silently misses them — one of them is where break #885 landed.
+#
+# `plugins/**/*.sh` covers every shell script under any plugin dir, at any depth —
+# hooks, monitors, scripts, skills, templates, models. This MIRRORS the in-loop
+# enforce-portability.sh hook, which scopes on `path.endswith(".sh")`: the two
+# surfaces are meant to share scope ("cannot drift"), and this closes the drift.
+# is_exempt() below skips /tests/ · /test/ · /fixtures/ (the must-fail corpora that
+# must contain the banned tokens). The prior three narrow globs
+# (plugins/*/hooks + plugins/*/monitors + scripts/) silently missed
+# plugins/*/scripts/*.sh — thing-seat.sh (the tribunal seat that runs on macOS),
+# handoff-spawn.sh, forge-worktree.sh, claude-orchestrate.sh — plus the skill and
+# template scripts, so a non-Claude edit (Cursor/Codex/a direct commit, exactly what
+# a CI backstop exists to catch) could ship a macOS-door regression there uncaught,
+# while the in-loop hook caught it. scripts/ has no subdir .sh, so `scripts/*.sh` stays.
 SCOPE_GLOBS = [
-    "plugins/*/hooks/*.sh",
-    "plugins/*/monitors/*.sh",
+    "plugins/**/*.sh",
     "scripts/*.sh",
 ]
 SCOPE_FILES = ["scripts/ravenclaude"]
@@ -275,6 +287,25 @@ def self_test() -> int:
             print("  ✗ MISSED: a token-less table was accepted instead of failing closed")
         except SystemExit:
             print("  ✓ caught: a token-less table fails closed")
+
+    # Scope guard. The CI backstop must cover the same universe as the in-loop
+    # enforce-portability.sh hook (any .sh). Assert on the REAL tree that a
+    # representative file from each covered class is in scope, so a future
+    # narrowing of SCOPE_GLOBS reddens HERE instead of silently reopening the
+    # plugins/*/scripts/ blind spot that shipped thing-seat.sh / handoff-spawn.sh
+    # uncaught by CI. (Runs from the repo root — load_tokens() already reads a
+    # relative TABLE path, so the self-test's cwd is the repo root by contract.)
+    scoped = {p.as_posix() for p in scoped_files(Path("."))}
+    for probe in (
+        "plugins/ravenclaude-core/scripts/thing-seat.sh",    # the closed gap: plugins/*/scripts/
+        "plugins/ravenclaude-core/hooks/enforce-layout.sh",  # plugins/*/hooks/ (still covered)
+        "scripts/audit-gates.sh",                            # scripts/*.sh (still covered)
+    ):
+        if probe in scoped:
+            print(f"  ✓ in scope: {probe}")
+        else:
+            ok = False
+            print(f"  ✗ OUT OF SCOPE: {probe} — the CI backstop must cover it (drift from the in-loop hook)")
 
     print("\nteeth verified" if ok else "\nTEETH BROKEN")
     return 0 if ok else 2

@@ -27,6 +27,13 @@
 
 set -euo pipefail
 
+# ── ADVISORY DELIVERY (added 2026-08-19) ────────────────────────────────────
+# stderr at exit 0 is MEASURED UNDELIVERED to the model (see _advise.sh header).
+# Buffer fd2 and re-emit it at exit as additionalContext, which IS delivered,
+# while still printing the original UI notice. No call site below changes.
+_rc_hd="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" 2>/dev/null && pwd || printf '.')"
+if [ -f "$_rc_hd/_advise.sh" ]; then . "$_rc_hd/_advise.sh"; rc_advise_init PostToolUse; fi
+
 file="${1:-}"
 # $CLAUDE_TOOL_FILE_PATH (passed as $1 by hooks.json) is NOT a real Claude Code
 # hook variable, so under Claude Code the arg is empty and the path arrives only
