@@ -192,12 +192,17 @@ def _kind_from_code(code):
 
 
 def resolve_scope(scope, entries):
-    """`auto` measures the index when anything is staged, else the worktree."""
+    """`auto` measures both index and worktree once anything is staged, else the
+    worktree alone. A worktree deletion is real regardless of what else happens to
+    be staged — resolving to "staged" only would blind classify() to it entirely
+    (scope="staged" never reads e["y"], not even for entries where "x" is
+    unchanged), the exact Incident-2 shape: a small unrelated staged edit hiding a
+    mass unstaged deletion."""
     if scope != "auto":
         return scope
     for e in entries:
         if e["x"] not in (" ", "?", "!"):
-            return "staged"
+            return "both"
     return "worktree"
 
 
@@ -398,8 +403,7 @@ def render_human(result):
         for b in result["breaches"]:
             if b["rule"] == "max-deleted-files":
                 out.append(
-                    f"    max-deleted-files  {b['deleted']} deleted files "
-                    f"(budget {b['budget']})"
+                    f"    max-deleted-files  {b['deleted']} deleted files (budget {b['budget']})"
                 )
             else:
                 out.append(
@@ -421,9 +425,7 @@ def render_human(result):
 
 
 def _run(cmd, cwd):
-    subprocess.run(
-        cmd, cwd=cwd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True
-    )
+    subprocess.run(cmd, cwd=cwd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
 
 
 def _scratch_repo(root, tree_files=100, src_files=12):
@@ -588,6 +590,23 @@ def self_test():
         t.check("unstaged mass deletion -> over budget", r["verdict"] == "over-budget")
         t.check("and it says which tree it measured", r["scope_measured"] == "worktree")
 
+        print("-- 6b. A staged edit must not blind auto to an unstaged deletion --")
+        # An unrelated staged file used to make resolve_scope() commit to "staged"
+        # for the WHOLE analysis, so classify() never read e["y"] for any entry —
+        # not even the 60 deleted-but-unstaged files. `both` is the only scope that
+        # sees an index change and a worktree deletion at once.
+        _restore(root)
+        with open(os.path.join(root, "src", "s0.txt"), "w") as fh:
+            fh.write("touched\n")
+        _run(["git", "add", "src/s0.txt"], root)
+        _delete_trees(root, 60, stage=False)
+        r = analyze(root, "auto", _budget())
+        t.check(
+            "staged edit + unstaged mass deletion -> over budget", r["verdict"] == "over-budget"
+        )
+        t.check("the deletion is still counted (60)", r["counts"]["deleted"] == 60)
+        t.check("auto resolves to `both`, not `staged`", r["scope_measured"] == "both")
+
         print("-- 7. Could-not-run is never reported as clean --")
         _restore(root)
         outside = os.path.join(tmp, "not-a-repo")
@@ -630,7 +649,9 @@ def must_fail():
         _delete_trees(root, 60)
 
         baseline = analyze(root, "auto", _budget())
-        t.check("control: the real check CATCHES the 60-file wipe", baseline["verdict"] == "over-budget")
+        t.check(
+            "control: the real check CATCHES the 60-file wipe", baseline["verdict"] == "over-budget"
+        )
 
         _COUNT_DELETIONS = False
         try:
