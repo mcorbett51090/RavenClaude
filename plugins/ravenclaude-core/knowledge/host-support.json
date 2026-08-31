@@ -282,7 +282,9 @@
       "windsurf": {
         "supported": false,
         "blocked_by": "unverified, and the product was reportedly renamed to Devin Desktop (2026-06-02)",
-        "basis": "inferred"
+        "basis": "inferred",
+        "how": "",
+        "caveat": "⛔ DECLARED OUT OF SCOPE, not overlooked (verify-before-assert Phase 8). The portable cause floor reaches aider via CONVENTIONS.md and Copilot Chat via the projected instructions; Windsurf has no projector and is NOT getting a half-lane. The plan offered two options — write scripts/generate-windsurf-rules.py (~40 lines) or declare the lane out of scope here — and the declaration is the honest one: this repo's own record has the product RENAMED to Devin Desktop (2026-06-02) and the lane unmaintained pending re-verification. Building a .windsurfrules projector for a product whose current name and file convention are unverified is wired-and-hopeful, the exact posture R7 refuses on Cursor and Gemini. To open the lane: re-verify the product identity and its instruction-file convention with a dated source, then add the projector and flip this cell."
       }
     }
   }

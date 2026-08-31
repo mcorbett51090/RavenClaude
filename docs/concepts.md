@@ -2282,7 +2282,7 @@ Probe: `unprobed: needs a live two-hook host session; scheduled for the T2 sampl
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-08-20_
+_Last verified: 2026-08-25_
 
 
 ---
@@ -2334,7 +2334,7 @@ Probe: `unprobed: requires a real consumer install cycle, which no CI job perfor
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-08-24_
+_Last verified: 2026-08-25_
 
 
 ---
@@ -2360,7 +2360,7 @@ Probe: `scripts/audit-gates.sh`
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-08-24_
+_Last verified: 2026-08-25_
 
 
 ---
@@ -2454,7 +2454,7 @@ Probe: `unprobed: the payload shape is host-supplied and cannot be synthesised f
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-08-20_
+_Last verified: 2026-08-25_
 
 
 ---
@@ -2610,7 +2610,7 @@ Probe: `scripts/check-artifact-budgets.py`
 
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
-_Last verified: 2026-08-20_
+_Last verified: 2026-08-25_
 
 
 ---
@@ -2637,6 +2637,99 @@ Probe: `scripts/inventory-sweep.py`
 **Sources:** [measured in the FORGE product-inventory run](https://github.com/mcorbett51090/RavenClaude/pull/997)
 
 _Last verified: 2026-08-20_
+
+
+---
+
+### Pre-flight rules and post-hoc predicates · _RavenClaude-built_
+
+> A rule about how a command turned out cannot run before the command.
+
+## What a reader would have assumed instead
+
+That a pre-flight rule and a post-failure rule are the same rule pointed at a
+different moment, so a candidate measured on recorded outcomes can simply be
+moved to `PreToolUse` once it clears its ceiling.
+
+## The discriminator
+
+control: the same candidate measured two ways over one 34,014-command corpus —
+with `stdout_empty` in the predicate it fires 487 times (1.43%), and with that
+field removed it fires 2,816 times (8.28%). One corpus, one rule, two numbers:
+the difference is the field, not the sample.
+
+A `PreToolUse` hook runs **before** the command. Any predicate naming the result
+— empty stdout, a non-zero exit, a truncated count — is unevaluable there. A
+rule written that way does not become noisy at pre-flight; it becomes a
+*different rule*, and the offline number that justified it was never a
+measurement of the thing that would ship.
+
+## Why it matters
+
+The offline harness will happily report a passing fire rate for a rule that
+cannot exist. Both candidates cleared their ceilings on paper. Shipping either
+would have put a rule into the pre-flight path whose measured justification
+belonged to a predicate the hook could never evaluate — a green number attached
+to the wrong mechanism.
+
+The hazard itself was real in both cases and is not lost: it is delivered
+post-hoc by `triage-outcome.sh`, which ranks the matching taxonomy members first
+at the moment the result IS known. The correction was to move the rule to the
+event where its predicate exists, not to widen it until the lexical form passed.
+
+Probe: `replay-outcome-rules.py --rule R-1 --sample 40`, then read whether the
+predicate names anything the command has not done yet.
+
+**Sources:** [measured in the verify-before-assert Phase 1 corpus run](https://github.com/mcorbett51090/RavenClaude/blob/main/docs/plans/2026-08-19-verify-before-assert/plan.md)
+
+_Last verified: 2026-08-25_
+
+
+---
+
+### A stall has no turn boundary · _RavenClaude-built_
+
+> Every registered hook fires on a turn or tool boundary. A stall is the absence of one, so no in-session hook can observe it — including the guard built for it.
+
+## What it does
+
+The three covered scripts detect a wedged Claude Code session from **outside** the
+session, because nothing inside one can. They read the session registry for
+liveness, the transcript for progress, and reach the owner through a receipted
+webhook.
+
+control: the same enumeration of `hooks.json` returned 39 hooks across 6 event
+types, so an empty in-turn set is the event map itself and not a failed read
+Measured 2026-08-25: every registered hook fires on a turn or tool boundary
+(`SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PostToolUse`,
+`SubagentStart`, `Stop`), so a stall — which is *defined* by the absence of a
+turn boundary — is unobservable from any of them.
+
+The guard built for exactly this case is the sharpest instance rather than an
+exception. `handoff-nudge.sh` exists to nudge a context-hot session toward a
+handoff, and it is registered on `Stop`. If the turn never stops it never runs,
+so the one hook authored for a hot window is structurally silent during the
+failure it was written for. Detection therefore has to live in a separate
+process on a timer, which is what the LaunchAgent is.
+
+The second mechanism is which clock the detector reads, and the two available
+clocks disagree in the direction that matters.
+
+control: on the exited-session fixtures the two clocks agree to 0.0 min, so the
+divergence below is the live stall and not a parsing artifact
+Measured 2026-08-25: on the recorded 174-minute stall the last-assistant clock
+read 141.0 min while the last-any-record clock read 96.6 min — a 44.3 minute
+mask, produced by the owner's own queued prompts and by a product-generated
+`system/away_summary` record, neither of which is progress.
+
+A detector keyed on the wrong clock therefore fails toward "looks alive", which
+is the dangerous direction: typing into a session suspected of being stuck
+silences the detector for a further window, so the act of investigating hides
+the thing being investigated.
+
+**Sources:** [measured in the FORGE stall-watchdog run](https://github.com/mcorbett51090/RavenClaude/tree/forge/stall-watchdog)
+
+_Last verified: 2026-08-25_
 
 
 ---

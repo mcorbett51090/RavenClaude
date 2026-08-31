@@ -60,9 +60,30 @@ const RC_BASELINE = {
   //        53 -> 54: skills/session-handoff (v0.266.0, context-quality reset)
   //        52 -> 53: skills/design-clone (v0.253.0, design-schema capture+apply)
   //        51 -> 52: skills/github-gold-standard (v0.246.0, the gold-standard scorecard)
-  tools: 33, // 32 -> 33: route-task.py (the cheap-lane deterministic router;
-  //   grok-delegate.sh is bash, so _scan_scripts's *.py glob does not count it).
-  //   30 -> 32: set_conservation.py + ledger.py (task-ledger Phases 0-2).
+  tools: 41, // 38 -> 41 AT MERGE (#1025 <- origin/main after #1023): this
+  //   branch's cause-taxonomy tools (38 on forge/vba-impl) PLUS the three
+  //   stall-watchdog scripts that landed on main via #1023 (stall_watch.py +
+  //   stall_reach.py + install_stall_watch.py). COUNTED, not inferred: _scan_scripts
+  //   globs 41 *.py in plugins/ravenclaude-core/scripts/. grok-delegate.sh is bash,
+  //   so the *.py glob does not count it; test-stall-watch.py lives in hooks/tests/,
+  //   not scripts/, so it is not counted either.
+  //        37 -> 38: route-task.py (the cheap-lane deterministic router, merged
+  //   in from origin/main's cheap-lane-agnostic work; grok-delegate.sh is bash, so
+  //   _scan_scripts's *.py glob does not count it).
+  //        35 -> 37: check-scope-key-parity.py + audit-fired-count.py
+  //   (verify-before-assert Phase 10 — anti-rot. The parity check guards a block
+  //   duplicated in FIVE live files where drift is a silent pass, not a bug; the
+  //   fired-count audit carries both G10.1 controls so "no events" can never be
+  //   read as "clean"). COUNTED on this tree.
+  //        34 -> 35: check-cause-eval.py (verify-before-assert Phase 9 — the
+  //   OUTCOME eval; it is the gate that found the plan's own ship gate to be
+  //   unsatisfiable under its natural reading). COUNTED on this tree.
+  //        32 -> 34: build-outcome-corpus.py + replay-outcome-rules.py
+  //   (verify-before-assert Phase 1 — the offline replay corpus and the rule
+  //   measurement harness). COUNTED on this tree, not inferred: the sibling
+  //   preflight-command-review.sh lands in `hooks` below rather than here,
+  //   because hooks.json registers it, so +3 files is +2 tools and +1 hook.
+  //        30 -> 32: set_conservation.py + ledger.py (task-ledger Phases 0-2).
   //   set_conservation.py is the SSOT Set-Conservation Primitive, shared with the
   //   sibling verify-before-assert run (set_kind in {open_items, causes}); ledger.py
   //   is the append primitive + the projection. COUNTED on this tree, not inferred.
@@ -81,8 +102,20 @@ const RC_BASELINE = {
   //        19 -> 22: premise-gate.py + classify_claim.py + check-design-schema.py
   //                  (v0.263.0, PR 3b packaging move)
   scenarios: 4,
-  hooks: 40, // 39 -> 40: guard-foreground-suite.sh WIRED on PreToolUse(Bash) — denies a
-  //        foreground full-suite run that cannot finish inside the 600s Bash-tool ceiling
+  hooks: 43, // 42 -> 43: guard-foreground-suite.sh WIRED on PreToolUse(Bash), merged
+  //   in from origin/main — denies a foreground full-suite run that cannot finish
+  //   inside the 600s Bash-tool ceiling.
+  //        41 -> 42: guard-cause-closure.sh WIRED on PreToolUse(Write|Edit|
+  //   MultiEdit) — verify-before-assert Phase 6, the SECOND fail-closed surface,
+  //   shipping at `warn`. Same scripts/-plus-`bash` packaging as its siblings.
+  //        40 -> 41: guard-remediation-cause.sh WIRED on PreToolUse(Bash) —
+  //   verify-before-assert Phase 5, THE PRIMARY D1 GATE, shipping at `warn`. Same
+  //   scripts/-plus-`bash` packaging as its sibling below, for the same reason.
+  //        39 -> 40: preflight-command-review.sh WIRED on PreToolUse(Bash) —
+  //   verify-before-assert Phase 4, WARN-only, one measured rule (R-3). It is a
+  //   REGISTRATION, which is what this count tracks; the body lives under scripts/
+  //   and is invoked via `bash` because the tribunal substrate guard denies setting
+  //   the executable bit on a new hooks/*.sh, so it does NOT also raise `tools`.
   //        38 -> 39: keep-awake.sh WIRED on SessionStart — an opt-in sleep assertion
   //   (`keep_awake` in comfort-posture.yaml, shipped default off) so a closed lid cannot
   //   silently suspend a session. It is a REGISTRATION, which is what this count tracks,

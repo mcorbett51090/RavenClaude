@@ -2,6 +2,12 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.12.5] — 2026-08-28
+
+### Added
+
+- **`skills/compliance-policy-authoring/SKILL.md`** — agent-consumed playbook for draft/refresh (monthly skill-gap audit #821). Same procedure as `/write-compliance-policy`; gap analysis stays in `regulatory-mapping`. **Migration:** none.
+
 ## [0.12.4] — 2026-08-14
 
 ### Changed

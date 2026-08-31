@@ -59,3 +59,4 @@ evals/__pycache__/
 # report-regeneration test output — regenerated reports and QA artifacts written
 # by the plugin's skills during a run; never source, never committed.
 tests/fixtures/report-regeneration/_out/
+.ravenclaude/handoff-nudge-state.json

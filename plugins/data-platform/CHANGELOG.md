@@ -2,6 +2,12 @@
 
 Versioning is semver; bump on every user-visible change and keep it in sync with the catalog entry in `.claude-plugin/marketplace.json`.
 
+## [0.14.3] — 2026-08-28
+
+### Added
+
+- **`skills/airbyte-cdk-authoring/SKILL.md`** — agent-consumed playbook for custom Airbyte connectors (monthly skill-gap audit #821). Promotes `/build-incremental-connector` so spawned `connector-developer` loads it. Retargeted `edtech-lms-connector-gap.md` off `connector-configuration`. **Migration:** none.
+
 ## [0.14.2] — 2026-08-14
 
 ### Changed

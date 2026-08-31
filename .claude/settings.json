@@ -126,7 +126,15 @@
           },
           {
             "type": "command",
-            "command": "${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/enforce-git-protocol.sh",
+            "command": "${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/enforce-git-protocol.sh"
+          },
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/scripts/preflight-command-review.sh"
+          },
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/scripts/guard-remediation-cause.sh",
             "comment": "Marketplace-dev hook (dev-mirror of the plugin's hooks/hooks.json PreToolUse(Bash) entry). Git-protocol nudge (default WARN): no-ops unless .ravenclaude/comfort-posture.yaml is present (this repo has none, so it no-ops), then reads the `git_protocol: off|warn|block` knob (default warn). WARNs on a non-Conventional-Commits `git commit -m` subject or a new-branch creation off the (feat|fix|chore|docs|refactor|agent)/ prefix convention; BLOCKS (exit 2) only when the knob is `block`. A direct non-force push to main/master is advisory-only and NEVER blocks. Does NOT touch force operations / branch force-delete / recursive-remove / hard reset (guard-destructive.sh owns those). Fail-open on any error / missing git / missing python3 / absent posture. Same script the plugin distributes to consumers via ${CLAUDE_PLUGIN_ROOT}."
           }
         ]
@@ -191,6 +199,11 @@
           {
             "type": "command",
             "command": "${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/enforce-portability.sh"
+          },
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/scripts/guard-cause-closure.sh",
+            "comment": "Marketplace-dev mirror of the plugin's Phase 6 cause-closure gate."
           }
         ]
       }
@@ -274,11 +287,13 @@
           {
             "type": "command",
             "command": "${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/reapply-posture.sh",
+            "timeout": 10,
             "comment": "Marketplace-dev hook. Regenerates the comfort-posture project-layer rules from .ravenclaude/comfort-posture.yaml at session start. No-ops in this repo because it has no .ravenclaude/comfort-posture.yaml. The plugin's hooks/hooks.json registers the same script for consumers via ${CLAUDE_PLUGIN_ROOT}; both paths are safe because the script is idempotent and no-ops when the posture file is absent."
           },
           {
             "type": "command",
             "command": "${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/ensure-default-mode.sh",
+            "timeout": 10,
             "comment": "Marketplace-dev hook. Warns when a session loads in acceptEdits/bypassPermissions mode, which bypasses the comfort-posture rules. The plugin's hooks/hooks.json registers the same hook for consumers via ${CLAUDE_PLUGIN_ROOT}; both paths are safe because the script is advisory and idempotent."
           },
           {
@@ -290,6 +305,7 @@
           {
             "type": "command",
             "command": "${CLAUDE_PROJECT_DIR}/plugins/ravenclaude-core/hooks/worktree-guard.sh register",
+            "timeout": 10,
             "comment": "Marketplace-dev hook (dev-mirror of the plugin's hooks/hooks.json SessionStart entry). Worktree-hygiene guard (register): records this session's registry file under ${RC_WORKTREE_GUARD_HOME:-$HOME/.ravenclaude/worktree-guard} + GC-sweeps its bucket. Reads `worktree_guard: off|warn|block` from .ravenclaude/comfort-posture.yaml (default warn; this repo dogfoods `worktree_guard: warn`). Nudges at SessionStart only on real contention (another live session in this same working tree) or anchor-work (primary checkout, worktrees exist, HEAD on the anchor branch); a lone checkout stays silent. `off` short-circuits before any git shell-out. Fail-open on missing git/jq; SessionStart cannot block. The plugin's hooks/hooks.json registers the same script for consumers via ${CLAUDE_PLUGIN_ROOT}."
           },
           {

@@ -1,0 +1,90 @@
+{
+  "captured_utc": "2026-08-25T16:26:30.823771+00:00",
+  "note": "DERIVED SKELETON ONLY - no message content, no tool output, no paths. Transcripts contain secrets and must never be committed.",
+  "sessions": {
+    "09c79ccc": {
+      "label": "NEGATIVE",
+      "desc": "exited worktree session",
+      "records": 27,
+      "source_bytes": 176005,
+      "skeleton_bytes": 2508,
+      "first_ts": "2026-08-25T13:29:21.194Z",
+      "last_ts": "2026-08-25T13:29:26.404Z",
+      "last_assistant_ts": "2026-08-25T13:29:26.038Z",
+      "untimestamped_tail": 3
+    },
+    "116165e6": {
+      "label": "NEGATIVE",
+      "desc": "exited worktree session, silent 127min at discovery",
+      "records": 25,
+      "source_bytes": 177028,
+      "skeleton_bytes": 2318,
+      "first_ts": "2026-08-25T13:29:28.141Z",
+      "last_ts": "2026-08-25T13:29:33.988Z",
+      "last_assistant_ts": "2026-08-25T13:29:33.649Z",
+      "untimestamped_tail": 3
+    },
+    "8f8fbacd": {
+      "label": "POSITIVE",
+      "desc": "live stalled session: turn open, no assistant output ~130min",
+      "records": 2951,
+      "source_bytes": 5928986,
+      "skeleton_bytes": 275082,
+      "first_ts": "2026-08-25T07:20:58.751Z",
+      "last_ts": "2026-08-25T14:49:53.237Z",
+      "last_assistant_ts": "2026-08-25T14:05:32.599Z",
+      "untimestamped_tail": 612
+    },
+    "94d2ba9f": {
+      "label": "NEGATIVE",
+      "desc": "live human-idle session; carries a system/away_summary reset (RT-2)",
+      "records": 3677,
+      "source_bytes": 8393756,
+      "skeleton_bytes": 341585,
+      "first_ts": "2026-08-20T11:15:27.838Z",
+      "last_ts": "2026-08-25T14:01:49.928Z",
+      "last_assistant_ts": "2026-08-25T13:27:03.409Z",
+      "untimestamped_tail": 838
+    }
+  },
+  "registry_snapshot": [
+    {
+      "pid": 32683,
+      "sessionId": "8f8fbacd-f924-4c37-9892-e809e685cb53",
+      "status": "busy",
+      "statusUpdatedAt": 1787669388491,
+      "updatedAt": 1787669388491,
+      "procStart": "Tue Aug 25 07:20:56 2026",
+      "startedAt": 1787642458572,
+      "version": "2.1.245",
+      "kind": "interactive"
+    },
+    {
+      "pid": 43034,
+      "sessionId": "94d2ba9f-4db0-4c5d-8292-016e724e50fa",
+      "status": "idle",
+      "statusUpdatedAt": 1787664423699,
+      "updatedAt": 1787664423699,
+      "procStart": "Thu Aug 20 11:15:25 2026",
+      "startedAt": 1787224527600,
+      "version": "2.1.237",
+      "kind": "interactive"
+    },
+    {
+      "pid": 64713,
+      "sessionId": "f0499374-47e3-4c17-9038-f9da81c4c4ed",
+      "status": "busy",
+      "statusUpdatedAt": 1787675132867,
+      "updatedAt": 1787675132867,
+      "procStart": "Tue Aug 25 15:19:22 2026",
+      "startedAt": 1787671167508,
+      "version": "2.1.245",
+      "kind": "interactive"
+    }
+  ],
+  "live_pids": {
+    "32683": "09:05:34  17:02.19",
+    "43034": "05-05:11:05 113:11.39",
+    "64713": "01:07:08   2:35.15"
+  }
+}

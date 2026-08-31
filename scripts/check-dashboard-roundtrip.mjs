@@ -52,6 +52,10 @@ const pieces = [
   extract(app, "const RUNAWAY_DEFAULT ="),
   extract(app, "const PARALLELISM_DEFAULT ="),
   extract(app, "const DOD_DEFAULT ="),
+  // Advisory scalar knobs (probe_validity + the four cause_*). Object literals,
+  // so they need the brace-matching extractor rather than a `[^;]*;` regex.
+  extract(app, "const ADVISORY_KNOB_VALUES ="),
+  extract(app, "const ADVISORY_KNOBS_DEFAULT ="),
   // simple scalar/array consts the functions reference
   app.match(/const CR_SEATS = \[[^\]]*\];/)[0],
   app.match(/const TIER_SEATS = \[[^\]]*\];/)[0],
@@ -148,6 +152,7 @@ function _freshState() {
     stream_classify: STREAM_CLASSIFY_DEFAULT,
     stream_threshold: STREAM_THRESHOLD_DEFAULT,
     context_handoff: Object.assign({}, CONTEXT_HANDOFF_DEFAULT),
+    advisory_knobs: Object.assign({}, ADVISORY_KNOBS_DEFAULT),
     cheap_lane: Object.assign({}, CHEAP_LANE_DEFAULT),
     expanded: {},
   };
@@ -443,7 +448,63 @@ function check(name, cond) {
   }
 }
 
-// ── Test 7: cheap_lane round-trips with ONLY mode set (the live-posture shape:
+// ── Test 7: the advisory scalar knobs (probe_validity + the four cause_*). ─────
+// ⛔ THE POINT IS THE v0.61.0 DATA-LOSS CLASS, ONE MORE TIME. emitYaml rebuilds
+// the WHOLE posture from state, so a top-level key with no state slot is silently
+// DELETED on the next Save & apply. `probe_validity` was already unmodelled AND
+// already live in this repo's posture, so one Save would have dropped it. The four
+// `cause_*` knobs are Phase 11's posture seeding — without them the entire
+// verify-before-assert mechanism is inert by default, which is CE-6.
+{
+  const s = api._freshState();
+  s.advisory_knobs = {
+    probe_validity: "warn",
+    cause_triage: "warn",
+    cause_preflight: "warn",
+    cause_remediation: "warn",
+    cause_closure: "warn",
+  };
+  api._set(s);
+  const yaml = api.emitYaml();
+  for (const kn of [
+    "probe_validity",
+    "cause_triage",
+    "cause_preflight",
+    "cause_remediation",
+    "cause_closure",
+  ]) {
+    check(`${kn} survives emit`, new RegExp(`^${kn}: warn$`, "m").test(yaml));
+  }
+
+  // Absent ⇒ default: an untouched posture must not be bloated with these keys.
+  const s2 = api._freshState();
+  api._set(s2);
+  const bare = api.emitYaml();
+  check("advisory knobs absent when unset", !/^cause_remediation:/m.test(bare));
+  check("probe_validity absent when unset", !/^probe_validity:/m.test(bare));
+
+  // Hydrate back, and REJECT a value outside the knob's own vocabulary rather
+  // than canonicalizing it — a Save must not silently rewrite a knob nobody
+  // asked it to change. `cause_preflight` has no `block` by construction.
+  const s3 = api._freshState();
+  api._set(s3);
+  api.applyGuardrailConfig({
+    probe_validity: "warn",
+    cause_remediation: "block",
+    cause_preflight: "block", // not in its vocabulary -> dropped
+    cause_closure: "nonsense", // not in any vocabulary  -> dropped
+  });
+  const got = api._get().advisory_knobs;
+  check("hydrate: probe_validity warn", got.probe_validity === "warn");
+  check("hydrate: cause_remediation block accepted", got.cause_remediation === "block");
+  check(
+    "hydrate: cause_preflight block REJECTED (no deny path exists)",
+    got.cause_preflight === "",
+  );
+  check("hydrate: unknown value rejected, not canonicalized", got.cause_closure === "");
+}
+
+// ── Test 8: cheap_lane round-trips with ONLY mode set (the live-posture shape:
 //            `cheap_lane: { mode: agent, tier: fast }`, where tier is already the
 //            default). tier/agent stay their defaults (never emitted), but the
 //            block MUST still be written so the mode survives a Save — this is

@@ -31,7 +31,7 @@ This marketplace follows the **orchestrator-worker / hierarchical** pattern, whi
 
 **Sub-agents should not freely spawn or directly invoke other sub-agents.** Only the Team Lead performs dispatching and orchestration.
 
-> **This is a deliberate house policy, not a platform constraint (clarified 2026-06-16).** Claude Code **v2.1.172 (2026-06-10)** now *permits* sub-agents to spawn sub-agents up to **5 levels deep**; RavenClaude keeps the single-orchestrator pattern on purpose (observability, debuggability, loop-avoidance, token-spend control), enforced **soft** by `guard-recursive-spawn.sh` (warn, not block). The canonical statement + rationale lives in [`rules/agent-collaboration.md`](rules/agent-collaboration.md); the same rule is restated in several plugin constitutions and a downstream consistency sweep to align that phrasing is tracked separately. `[platform fact verified 2026-06-16 against the Claude Code changelog]`
+> **This is a deliberate house policy, not a platform constraint (clarified 2026-06-16; platform fact corrected 2026-08-19).** Claude Code *permits* sub-agents to spawn sub-agents, but the platform default has tightened since the original v2.1.172 note — the "up to 5 levels deep" figure is **stale**: **v2.1.217 (2026-07-21)** changed subagents to *not* nest by default, then **v2.1.219 (2026-07-24)** set the default nesting depth to **3** (was 1), controlled by `CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH` (`=1` disables nesting). RavenClaude keeps the single-orchestrator pattern on purpose (observability, debuggability, loop-avoidance, token-spend control), enforced **soft** by `guard-recursive-spawn.sh` (warn, not block) — so the house policy is unchanged regardless of the platform default. The canonical statement + rationale lives in [`rules/agent-collaboration.md`](rules/agent-collaboration.md); the same rule is restated in several plugin constitutions and a downstream consistency sweep to align that phrasing is tracked separately. `[platform fact re-verified 2026-08-19 against the Claude Code changelog; changelog through 2.1.250 on 2026-08-28 does not reverse it]`
 
 **How cross-boundary work is handled:**
 
@@ -77,6 +77,13 @@ inert** — nothing here changes today's behavior for a consumer who has not set
 knob. `advise` returns Grok's output as a suggestion only; `agent` runs Grok in a
 disposable worktree for review before merge. Full contract, the escalation-vs-cheap
 rule table, and the exit-code contract: [`skills/cheap-lane-delegation/SKILL.md`](skills/cheap-lane-delegation/SKILL.md).
+
+⛔ **"Give this to Grok" is two products, not one.** Cheap-lane is **one bounded
+job** (`cheap-lane-delegate.sh`, returns). A quota escape, a leftover multi-item
+list, a plugin-cache reload, or "pass remaining work to Grok to finish" is
+**session-handoff** (a new unbounded interactive TUI). Do not treat those as the
+same action. When `cheap_lane` is on and you still hand off, say in one clause
+why it is not a cheap-lane job.
 
 ⛔ **The routing asymmetry is deliberate and load-bearing.** An unmatched task, an
 ambiguous one, and one matching *both* an escalation and a cheap-lane rule all
@@ -3191,6 +3198,83 @@ DOM-budget ratchet is untouched (a 10-char date replacing a 10-char date changes
 **Migration:** none — knowledge-freshness metadata only; nothing in an installed plugin behaves differently
 on `/plugin marketplace update`.
 
+## ⛔ A stall has no turn boundary, so no hook can see one (added 2026-08-25, v0.301.0)
+
+A session wedged for **six hours** with four prompts queued behind it. The turn never ended, so
+nothing in this repo's guardrail set ever fired. That is not a gap in the hooks — it is a property
+of what a hook IS.
+
+control: the same enumeration returned **39 hooks across 6 event types**, so an empty in-turn set is
+the event map and not a failed read.
+Measured 2026-08-25: every registered hook fires on a turn or tool boundary (`SessionStart`,
+`UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `SubagentStart`, `Stop`). A stall is **defined** by
+the absence of a turn boundary, so it is unobservable from any of them.
+
+⛔ **The sharpest instance is the guard built for exactly this case.** `handoff-nudge.sh` exists to
+nudge a context-hot session toward a handoff, and it is a **`Stop`** hook. If the turn never stops it
+never runs — the one hook authored for a hot window is structurally silent during the failure it was
+written for. **Do not try to build a hook for this class.** Detection has to live in a separate
+process on a timer, which is what `scripts/stall_watch.py` + the LaunchAgent are.
+
+### ⛔ The observable is last-ASSISTANT-record age. Every alternative fails toward "looks alive"
+
+| candidate | measured failure |
+|---|---|
+| last-entry-of-ANY-type | **masked the real stall by 44.3 min** — the owner's queued prompts and a product-generated `system/away_summary` reset the clock. The stalled session's last SIX timestamped records contain **zero** assistant records. Typing into a session you suspect is stuck silences a last-any detector for a full window, so investigating hides the thing being investigated. |
+| file mtime | diverges from the last entry by up to **100 min** in the looks-alive direction; **99.03%** of transcripts end in an UNTIMESTAMPED record |
+| registry `statusUpdatedAt` | a genuine but COARSE progress signal at a **~17-min bump cadence** — **NOT** the "transition latch" two short samples (90s, 120s) concluded. It is superseded, not inert: the assistant-record distribution has **p99.9 = 4.52 min** |
+
+Threshold 20 min: only **4 of 128,130** within-turn gaps before an assistant record reach 20 min
+(0.003%). An earlier figure of 13.15 min was wrong because it included between-turn idle.
+
+### ⛔ `~/.claude/sessions/<pid>.json` — an undocumented live registry, and what it is NOT
+
+`{sessionId, pid, status: busy|idle|waiting, statusUpdatedAt, procStart, cwd, version}`. Exited
+sessions leave no file (3 files vs 2,055 transcripts), and it is the **only** pid↔session↔cwd map.
+
+- ⛔ **SIGKILL ORPHANS IT.** Measured: `.json`/`.key`/`.sock` all survive `kill -9`, with a clean-exit
+  positive control that DID remove them. **Registry presence never proves a session runs**, so dedup
+  state is retained rather than demoted.
+- ⛔ `procStart` renders **UTC** while `ps` prints **local** — a naive identity check mismatches on
+  every session and fails toward SILENCE. Use `ps -o etime=`, a timezone-free duration.
+- The `*.key` siblings are `0600` secrets and are never opened.
+
+### Resolution must be observable, and there is no mute
+
+The ladder never reaches zero (a real ongoing stall must not go quiet), so an episode that is never
+closed nags forever. "Ended" is therefore something the watchdog can SEE:
+`resolved := a new assistant record OR the process is gone OR the registry reports idle`. There is
+deliberately **no acknowledge/mute** — a mute button on a detector is the thing that gets used.
+
+### Gate 244 — one slot, six check groups
+
+Each must-fail half is **proven to flip**: the masking mutant drops a naive detector to 1.0 min while
+the whitelist detector still reads 141.0 min. Fixtures are **derived skeletons** — timestamps and
+record types only, 14.7 MB → 606 KB — because raw transcripts carry credentials and fetched web
+bodies and must never be committed. The mechanism detail lives in the inventory concept
+[`stall-has-no-turn-boundary`](knowledge/concepts/stall-has-no-turn-boundary.md).
+
+⛔ **A gate that reads the host's timezone is red on CI forever.** Check 246b compared against local
+time and refused to discriminate on a UTC host — and CI runners are UTC, so the gate passed locally
+(16/16) and could never go green in CI. The instinct (refuse a vacuous pass) was right; converting it
+into a hard failure was not. It now **imposes** a zone, so it discriminates everywhere instead of
+abstaining somewhere.
+
+### Open, stated rather than implied
+
+- **C13 unsettled** — whether a LaunchAgent-fired banner is VISIBLE cannot be observed
+  programmatically: Focus state and the Notification Center DB are **both TCC-denied**, each
+  positive-controlled. Owner-gated; the banner is capped behind `banner_enabled`, default off.
+- **P7 install sign-off incomplete** — until the owner subscribes to the sink, every tick returns
+  "accepted by the sink", which is **not** "reached a human". A 200 from a zero-subscriber topic is
+  still a 200.
+- **C17 generalization pending** — the backtest is n=4 with one positive. `soak.jsonl` accumulates the
+  forward series (derived values only, capped) because the heartbeat is overwritten each tick and a
+  snapshot cannot answer a generalization question.
+
+**Migration:** none — a new out-of-session tool plus one gate; nothing in an installed plugin behaves
+differently on `/plugin marketplace update`. The LaunchAgent is opt-in via `install_stall_watch.py`.
+
 ## The context-usage meter had no Claude Code path — the handoff nudge was inert on the most common host (added 2026-08-26, v0.303.0)
 
 `scripts/context-usage-meter.py` powers `handoff-nudge.sh` (the Stop-hook context-hot warning) and,
@@ -3338,3 +3422,24 @@ exactly as before. The one consumer-visible rename is `route-task.py`'s `lane` v
 (`"grok"` → `"cheap"`) — any external caller pattern-matching on the literal string
 `"grok"` in that JSON field (none exist inside this plugin; verified by grep) would need
 updating.
+
+## Claude Code platform-fact tracking refreshed — subagent caps, nesting depth, plugin install (added 2026-08-28, v0.307.0)
+
+Draft #987 (2026-08-19) verified four changelog facts first-hand, then sat unmerged while
+the plugin moved 0.283.0 → 0.306.1. Recut here from current `main` so the version bump
+does not rewind the catalog. Changelog through **2.1.250 (2026-08-28)** does not reverse
+them. House policy (single-orchestrator, `guard-recursive-spawn.sh` soft-warn) is
+unchanged.
+
+- **"5 levels deep (v2.1.172)" was wrong.** v2.1.217 disabled nesting by default; v2.1.219
+  set default depth **3** (`CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH`, `=1` disables).
+- **Native concurrent cap 20** (`CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS`, v2.1.217). The
+  v2.1.212 **200 per-session cap was removed in v2.1.224**.
+- **`/reload-plugins` is often unnecessary** since v2.1.221.
+- **Marketplace `archive` (v2.1.224) and `command` (v2.1.229)** source types.
+
+Deferred 14 synthesis-only findings remain in
+[`docs/research/2026-08-19-plugin-news-scan/`](../../docs/research/2026-08-19-plugin-news-scan/README.md).
+The Fabric Assistants-API P0 deadline (2026-08-26) has passed; re-verify before quoting.
+
+**Migration:** none — documentation + knowledge only.
