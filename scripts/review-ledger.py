@@ -379,8 +379,10 @@ def read_findings(spec: str) -> tuple[list, int | None, str]:
         if not isinstance(findings, list):
             raise LedgerError("--findings object must carry a `findings` array")
         round_hint = data.get("round")
-        return findings, (int(round_hint) if round_hint is not None else None), (
-            str(data.get("head") or "")
+        return (
+            findings,
+            (int(round_hint) if round_hint is not None else None),
+            (str(data.get("head") or "")),
         )
     raise LedgerError("--findings must be a JSON array, or an object with a `findings` array")
 
@@ -808,14 +810,26 @@ def run_self_test() -> int:
         print("\n[1] per-round arithmetic matches the committed fixture expectations")
         for want, got in zip(expected["rounds"], records):
             tag = f"round {want['round']}"
-            checks.ok(len(got["raised_ids"]) == want["raised"],
-                      f"{tag}: raised == {want['raised']}", f"got {len(got['raised_ids'])}")
-            checks.ok(len(got["new_ids"]) == want["new"], f"{tag}: new == {want['new']}",
-                      f"got {len(got['new_ids'])}")
-            checks.ok(len(got["reopened_ids"]) == want["reopened"],
-                      f"{tag}: reopened == {want['reopened']}", f"got {len(got['reopened_ids'])}")
-            checks.ok(len(got["suspected"]) == want["suspected"],
-                      f"{tag}: suspected == {want['suspected']}", f"got {len(got['suspected'])}")
+            checks.ok(
+                len(got["raised_ids"]) == want["raised"],
+                f"{tag}: raised == {want['raised']}",
+                f"got {len(got['raised_ids'])}",
+            )
+            checks.ok(
+                len(got["new_ids"]) == want["new"],
+                f"{tag}: new == {want['new']}",
+                f"got {len(got['new_ids'])}",
+            )
+            checks.ok(
+                len(got["reopened_ids"]) == want["reopened"],
+                f"{tag}: reopened == {want['reopened']}",
+                f"got {len(got['reopened_ids'])}",
+            )
+            checks.ok(
+                len(got["suspected"]) == want["suspected"],
+                f"{tag}: suspected == {want['suspected']}",
+                f"got {len(got['suspected'])}",
+            )
 
         print("\n[2] reopen detection FIRES on rounds 2 and 3 (the point of the whole thing)")
         by_id = {f["id"]: f for f in ledger["findings"]}
@@ -823,18 +837,24 @@ def run_self_test() -> int:
             result = reopen_check(ledger, round_no)
             want = expected["rounds"][round_no - 1]["reopened"]
             code = EXIT_REOPENED if result["reopened"] else EXIT_OK
-            checks.ok(len(result["reopened"]) == want,
-                      f"reopen-check round {round_no}: {want} reopened",
-                      f"got {len(result['reopened'])}")
-            checks.ok(code == (EXIT_REOPENED if want else EXIT_OK),
-                      f"reopen-check round {round_no}: exit {EXIT_REOPENED if want else EXIT_OK}")
+            checks.ok(
+                len(result["reopened"]) == want,
+                f"reopen-check round {round_no}: {want} reopened",
+                f"got {len(result['reopened'])}",
+            )
+            checks.ok(
+                code == (EXIT_REOPENED if want else EXIT_OK),
+                f"reopen-check round {round_no}: exit {EXIT_REOPENED if want else EXIT_OK}",
+            )
             want_rules = expected["rounds"][round_no - 1].get("reopened_rules") or []
             if want_rules:
                 ids = _round_record(ledger, round_no)["reopened_ids"]
                 got_rules = sorted(by_id[i].get("rule", "") for i in ids)
-                checks.ok(got_rules == sorted(want_rules),
-                          f"reopen-check round {round_no}: rules {sorted(want_rules)}",
-                          f"got {got_rules}")
+                checks.ok(
+                    got_rules == sorted(want_rules),
+                    f"reopen-check round {round_no}: rules {sorted(want_rules)}",
+                    f"got {got_rules}",
+                )
 
         print("\n[3] the fingerprint survived a line-number shift (a fix above moved it)")
         for pair in expected["line_shift_pairs"]:
@@ -843,42 +863,61 @@ def run_self_test() -> int:
                 for f in ledger["findings"]
                 if f.get("rule") == pair["rule"] and f["file"] == pair["file"]
             ]
-            checks.ok(len(match) == 1,
-                      f"{pair['rule']} @ {pair['file']}: ONE identity, not two",
-                      f"got {len(match)} entries")
+            checks.ok(
+                len(match) == 1,
+                f"{pair['rule']} @ {pair['file']}: ONE identity, not two",
+                f"got {len(match)} entries",
+            )
             if len(match) == 1:
                 entry = match[0]
-                checks.ok(pair["first_line"] != pair["reopened_line"],
-                          f"{pair['rule']}: fixture really does shift the line "
-                          f"({pair['first_line']} -> {pair['reopened_line']})")
-                checks.ok(sorted(entry["rounds_seen"]) == sorted(pair["rounds_seen"]),
-                          f"{pair['rule']}: seen in rounds {pair['rounds_seen']} despite the shift",
-                          f"got {entry['rounds_seen']}")
-                checks.ok(entry["line"] == pair["reopened_line"],
-                          f"{pair['rule']}: line carried for humans ({pair['reopened_line']})",
-                          f"got {entry['line']}")
+                checks.ok(
+                    pair["first_line"] != pair["reopened_line"],
+                    f"{pair['rule']}: fixture really does shift the line "
+                    f"({pair['first_line']} -> {pair['reopened_line']})",
+                )
+                checks.ok(
+                    sorted(entry["rounds_seen"]) == sorted(pair["rounds_seen"]),
+                    f"{pair['rule']}: seen in rounds {pair['rounds_seen']} despite the shift",
+                    f"got {entry['rounds_seen']}",
+                )
+                checks.ok(
+                    entry["line"] == pair["reopened_line"],
+                    f"{pair['rule']}: line carried for humans ({pair['reopened_line']})",
+                    f"got {entry['line']}",
+                )
 
         print("\n[4] next-round-brief hands the next reviewer the two things it must have")
         brief = next_round_brief(ledger)
         checks.ok(brief["next_round"] == 4, "brief: next round is 4")
-        checks.ok(len(brief["recheck_first"]) >= expected["brief_min_recheck"],
-                  f"brief: >= {expected['brief_min_recheck']} closed findings to re-check first",
-                  f"got {len(brief['recheck_first'])}")
-        checks.ok(brief["diff_range"] == f"{rounds[2]['head']}..HEAD",
-                  "brief: diff range scopes to the diff since round 3",
-                  f"got {brief['diff_range']}")
+        checks.ok(
+            len(brief["recheck_first"]) >= expected["brief_min_recheck"],
+            f"brief: >= {expected['brief_min_recheck']} closed findings to re-check first",
+            f"got {len(brief['recheck_first'])}",
+        )
+        checks.ok(
+            brief["diff_range"] == f"{rounds[2]['head']}..HEAD",
+            "brief: diff range scopes to the diff since round 3",
+            f"got {brief['diff_range']}",
+        )
 
         print("\n[5] converge-report computes the regression share and the stop signal")
         report = converge_report(ledger)
         for want, got in zip(expected["rounds"], report["rounds"]):
-            checks.ok(abs(got["regression_share"] - want["regression_share"]) < 0.002,
-                      f"round {want['round']}: regression share {want['regression_share']}",
-                      f"got {got['regression_share']}")
-        checks.ok(report["trend"] == expected["trend"],
-                  f"trend == {expected['trend']}", f"got {report['trend']}")
+            checks.ok(
+                abs(got["regression_share"] - want["regression_share"]) < 0.002,
+                f"round {want['round']}: regression share {want['regression_share']}",
+                f"got {got['regression_share']}",
+            )
+        checks.ok(
+            report["trend"] == expected["trend"],
+            f"trend == {expected['trend']}",
+            f"got {report['trend']}",
+        )
         checks.ok(report["falling"] is expected["falling"], f"falling is {expected['falling']}")
-        checks.ok(report["stop_recommended"] is expected["stop_recommended"],
-                  f"stop_recommended is {expected['stop_recommended']} after 3 rounds")
+        checks.ok(
+            report["stop_recommended"] is expected["stop_recommended"],
+            f"stop_recommended is {expected['stop_recommended']} after 3 rounds",
+        )
 
         print("\n[6] the stop signal is not dead code — a reopen-dominated round trips it")
         stop_fixture = _load_fixture("round-4-stop.json")
@@ -886,13 +925,19 @@ def run_self_test() -> int:
         ledger = load_ledger(ledger_path(branch, root), branch)
         report = converge_report(ledger)
         want_stop = _load_fixture("expected.json")["stop_round"]
-        checks.ok(report["rounds"][-1]["reopened"] == want_stop["reopened"],
-                  f"round 4: reopened == {want_stop['reopened']}",
-                  f"got {report['rounds'][-1]['reopened']}")
-        checks.ok(report["stop_recommended"] is True,
-                  "round 4: E[round 5] has crossed zero -> STOP AND SHIP")
-        checks.ok("CROSSED ZERO" in _render_converge(report),
-                  "round 4: the report says so plainly, in words")
+        checks.ok(
+            report["rounds"][-1]["reopened"] == want_stop["reopened"],
+            f"round 4: reopened == {want_stop['reopened']}",
+            f"got {report['rounds'][-1]['reopened']}",
+        )
+        checks.ok(
+            report["stop_recommended"] is True,
+            "round 4: E[round 5] has crossed zero -> STOP AND SHIP",
+        )
+        checks.ok(
+            "CROSSED ZERO" in _render_converge(report),
+            "round 4: the report says so plainly, in words",
+        )
 
     print(f"\nself-test: {checks.passed} passed, {checks.failed} failed")
     if checks.failed:
@@ -930,16 +975,25 @@ def run_must_fail() -> int:
                 result = reopen_check(ledger, round_no)
                 want = expected["rounds"][round_no - 1]["reopened"]
                 missed += want - len(result["reopened"])
-                checks.ok(len(result["reopened"]) == 0,
-                          f"round {round_no}: mutant reports 0 reopened (should have found {want})",
-                          f"got {len(result['reopened'])}")
-                checks.ok(len(result["suspected"]) == 0,
-                          f"round {round_no}: mutant reports 0 suspected too")
+                checks.ok(
+                    len(result["reopened"]) == 0,
+                    f"round {round_no}: mutant reports 0 reopened (should have found {want})",
+                    f"got {len(result['reopened'])}",
+                )
+                checks.ok(
+                    len(result["suspected"]) == 0,
+                    f"round {round_no}: mutant reports 0 suspected too",
+                )
             report = converge_report(ledger)
-            checks.ok(all(r["regression_share"] == 0.0 for r in report["rounds"]),
-                      "mutant reports a 0% regression share for every round")
-            checks.ok(missed == should_catch,
-                      f"the mutant MISSED all {should_catch} real reopens", f"missed {missed}")
+            checks.ok(
+                all(r["regression_share"] == 0.0 for r in report["rounds"]),
+                "mutant reports a 0% regression share for every round",
+            )
+            checks.ok(
+                missed == should_catch,
+                f"the mutant MISSED all {should_catch} real reopens",
+                f"missed {missed}",
+            )
     finally:
         module.previously_closed = original
 
@@ -1034,37 +1088,52 @@ def build_parser() -> argparse.ArgumentParser:
             "ledger:     .ravenclaude/runs/review/<branch>/ledger.json"
         ),
     )
-    parser.add_argument("--self-test", action="store_true",
-                        help="replay the real 3-round history from tests/fixtures/review-ledger/")
-    parser.add_argument("--must-fail", action="store_true",
-                        help="neuter the comparison; assert the reopens are then MISSED")
+    parser.add_argument(
+        "--self-test",
+        action="store_true",
+        help="replay the real 3-round history from tests/fixtures/review-ledger/",
+    )
+    parser.add_argument(
+        "--must-fail",
+        action="store_true",
+        help="neuter the comparison; assert the reopens are then MISSED",
+    )
     sub = parser.add_subparsers(dest="cmd")
 
     def shared(sub_parser: argparse.ArgumentParser) -> None:
-        sub_parser.add_argument("--branch", default=None,
-                                help="default: $RC_REVIEW_BRANCH, else the current git branch")
-        sub_parser.add_argument("--ledger-root", default=None,
-                                help="default: <project>/.ravenclaude/runs/review")
-        sub_parser.add_argument("--json", action="store_true", dest="as_json",
-                                help="machine-readable output")
+        sub_parser.add_argument(
+            "--branch", default=None, help="default: $RC_REVIEW_BRANCH, else the current git branch"
+        )
+        sub_parser.add_argument(
+            "--ledger-root", default=None, help="default: <project>/.ravenclaude/runs/review"
+        )
+        sub_parser.add_argument(
+            "--json", action="store_true", dest="as_json", help="machine-readable output"
+        )
 
     record_p = sub.add_parser("record", help="append a review round to the ledger")
     shared(record_p)
     record_p.add_argument("--round", type=int, required=True)
-    record_p.add_argument("--findings", required=True,
-                          help="path to a JSON file, an inline JSON literal, or '-' for stdin")
+    record_p.add_argument(
+        "--findings",
+        required=True,
+        help="path to a JSON file, an inline JSON literal, or '-' for stdin",
+    )
     record_p.add_argument("--head", default="", help="commit sha this round reviewed")
     record_p.add_argument("--base", default="", help="commit sha this round was scoped from")
-    record_p.add_argument("--fail-on-reopen", action="store_true",
-                          help="exit 2 if this round reopened anything")
+    record_p.add_argument(
+        "--fail-on-reopen", action="store_true", help="exit 2 if this round reopened anything"
+    )
 
     check_p = sub.add_parser("reopen-check", help="which closed findings came back in round N")
     shared(check_p)
     check_p.add_argument("--round", type=int, required=True)
-    check_p.add_argument("--findings", default=None,
-                         help="dry run: check these findings without recording the round")
-    check_p.add_argument("--strict", action="store_true",
-                         help="also exit 2 on SUSPECTED (reworded) reopens")
+    check_p.add_argument(
+        "--findings", default=None, help="dry run: check these findings without recording the round"
+    )
+    check_p.add_argument(
+        "--strict", action="store_true", help="also exit 2 on SUSPECTED (reworded) reopens"
+    )
 
     brief_p = sub.add_parser("next-round-brief", help="what the next reviewer must read first")
     shared(brief_p)

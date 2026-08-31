@@ -189,6 +189,26 @@ def _violations(root: Path) -> list[tuple[str, str]]:
                         "'tools: \"*\"' to opt into all tools explicitly.",
                     )
                 )
+            elif not isinstance(tools, str):
+                # scripts/generate-copilot-plugin.py's frontmatter parser is a
+                # hand-rolled per-line regex, not real YAML — a block/flow list
+                # `tools:` value parses there as an EMPTY tools list (the list
+                # items live on lines the parser never matches), which the
+                # Copilot projection reads as "all tools, unrestricted": the
+                # exact privilege-escalation shape this gate exists to close.
+                # Only the comma-separated scalar form round-trips through both
+                # readers correctly.
+                bad.append(
+                    (
+                        rel,
+                        "'tools' must be the comma-separated scalar form "
+                        "(e.g. 'tools: Read, Grep, Glob') — a YAML list form "
+                        "parses as an EMPTY allowlist in the Copilot projection "
+                        "(scripts/generate-copilot-plugin.py's line-based "
+                        "parser doesn't read list items), silently granting "
+                        "unrestricted tool access there.",
+                    )
+                )
             desc = data.get("description")
             if isinstance(desc, str) and len(desc) > _AGENT_DESCRIPTION_MAX_CHARS:
                 bad.append(

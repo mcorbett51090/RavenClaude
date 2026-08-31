@@ -2946,7 +2946,7 @@
         "scripts/sync-plugin-versions.py",
         "scripts/generate-copilot-plugin.py"
       ],
-      "covers_digest": "sha256:12222fa8d376d77ab5858aba151a5a22339abd9f7610b9329d58e23eae79c71d",
+      "covers_digest": "sha256:fd9cd9673d5b3404c0c367f947ed7381e8b787e6600a9a0da9fdf58be84d966e",
       "nuance": "The cache key is the `version` string, never a content hash, so `sync-plugin-versions.py` can report clean while every installed session keeps running the old `hooks/` code.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3007,7 +3007,7 @@
         "scripts/inventory-coverage.py",
         "scripts/inventory-nuance-judge.py"
       ],
-      "covers_digest": "sha256:5cad48e19d5af6aa8d5d721b5b23d0c04929cf1522177389059e506ec09f4f46",
+      "covers_digest": "sha256:00ba4e63da3ec09cf342ab083ebe7161413dcc40911c6a6525bdd0f1a84dc467",
       "nuance": "The teeth bit is the exit a tool own CHECK returns on a planted defect, never the exit `--must-fail` itself returns: `premise-gate.py` denies at `exit 0` while `sync-plugin-versions.py` reddens at `exit 2`, so an auditor that hard-codes one number can never be right for both.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3364,7 +3364,7 @@
         "scripts/inventory-sweep.py",
         "scripts/inventory-coverage.py"
       ],
-      "covers_digest": "sha256:2983a8b768b4ea2b038fa8cdfbd5478d983b380f00b5f5aba077d5ae2f40d28e",
+      "covers_digest": "sha256:2851b36fffbcd7dbfe35ed1ba03b96b39b2259a8db26dac3f1b08324864dcf46",
       "nuance": "`inventory-census.py` reads `git ls-files`, never a filesystem walk, so an untracked file cannot move the denominator; a `concepts.json`-derived count would shrink with the enumeration and stay green.",
       "nuance_evidence": {
         "measured": "2026-08-19",
@@ -3462,7 +3462,7 @@
         "scripts/inventory-sweep.py",
         "scripts/audit-prose-rendering-path.py"
       ],
-      "covers_digest": "sha256:ce946fc704195d1519164d4d58837add70d2e069a42b5c43c4173f4c15131e0c",
+      "covers_digest": "sha256:d8140bb2f69eb22a1d2b0b39905dbfeef8a4f9e9b5d27d74b4c9588b5d2abf8e",
       "nuance": "A script that never calls `argparse` simply runs, so asking 183 of them for `--must-fail-convention` wrote `forge-route.py` to a stray file rather than answering.",
       "nuance_evidence": {
         "measured": "2026-08-19",
